@@ -166,11 +166,18 @@ jobs:
         run: |
           echo "Autodetecting which tests to run."
           if [[ -n "${{github.event.inputs.test_pull_request}}" ]]; then
-            # If running this manually, diff against main.
-            echo "AUTO_DIFF_PARAM=--auto_diff main" >> $GITHUB_ENV
+            # If running this manually, diff against our common ancestor with main.
+            MERGE_BASE=$(git merge-base HEAD origin/main)
+            echo "::warning ::Auto-diff HEAD..${MERGE_BASE}"
+            git diff --name-only HEAD..${MERGE_BASE}
+            echo "AUTO_DIFF_PARAM=--auto_diff HEAD..${MERGE_BASE}" >> $GITHUB_ENV
           else
             # If running in a PR, diff against the PR's base.
-            echo "AUTO_DIFF_PARAM=--auto_diff ${{github.event.pull_request.base.sha}}" >> $GITHUB_ENV
+            # "git merge-base main branch_name" will give the common ancestor of both branches.
+            MERGE_BASE=$(git merge-base origin/${{github.event.pull_request.head.ref}} origin/${{github.event.pull_request.base.ref}})
+            echo "::warning ::Auto-diff origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}"
+            git diff --name-only origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}
+            echo "AUTO_DIFF_PARAM=--auto_diff origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}" >> $GITHUB_ENV
           fi
       - id: export-result
         # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'

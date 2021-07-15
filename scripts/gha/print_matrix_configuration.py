@@ -243,16 +243,32 @@ def filter_values_on_diff(parm_key, value, auto_diff):
       # Any top-level directories set to None are completely ignored.
       "external": None,
       "release_build_files": None,
+      # Uncomment the two below lines when debugging this script, or GitHub
+      # actions related to auto-diff mode.
+      # ".github": None,
+      # "scripts": None,
       # Top-level directories listed below trigger additional APIs being tested.
       # For example, if auth is touched by a PR, we also need to test functions,
       # database, firestore, and storage.
       "auth": "auth,functions,database,firestore,storage",
+    }
+    file_redirects = {
+      # Custom handling for specific files, to be treated as a different path or
+      # ignored completely (set to None).
+      "cmake/external/firestore.cmake": "firestore",
+      "cmake/external/libuv.cmake": "database",
+      "cmake/external/uWebSockets.cmake": "database",
     }
     requested_api_list = set(value.split(','))
     filtered_api_list = set()
 
     for path in file_list:
       if len(path) == 0: continue
+      if path in file_redirects:
+        if file_redirects[path] is None:
+          continue
+        else:
+          path = os.path.join(file_redirects[path], path)
       topdir = path.split(os.path.sep)[0]
       if topdir in custom_triggers:
         if not custom_triggers[topdir]: continue  # Skip ones set to None.
@@ -263,7 +279,7 @@ def filter_values_on_diff(parm_key, value, auto_diff):
       else:
         # Something was modified that's not a known subdirectory.
         # Abort this whole process and just return the original api list.
-        sys.stderr.write("Defaulting to all APIs: %s\n" % value)
+        sys.stderr.write("Path '%s' is outside known directories, defaulting to all APIs: %s\n" % (path, value))
         return value
     sys.stderr.write("::warning::Autodetected APIs: %s\n" % ','.join(sorted(filtered_api_list)))
     return ','.join(sorted(filtered_api_list))
