@@ -408,7 +408,8 @@ static std::string ConstructHtmlToSendMessage(
        "document.write('Status '+xhttp.status+': '+xhttp.response);"
        "}},";
   char delay_seconds_string[22];
-  snprintf(delay_seconds_string, 22, "%d", delay_seconds);
+  snprintf(delay_seconds_string, sizeof(delay_seconds_string), "%d",
+           delay_seconds);
   h += delay_seconds_string;
   h += ");}</script>";
   return h;
