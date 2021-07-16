@@ -739,6 +739,11 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ env.pythonVersion }}
+      - name: Setup Firebase Emulators
+        run: |
+          curl -sL firebase.tools | bash
+          firebase setup:emulators:firestore
+          firebase emulators:start
       - name: Setup integration test deps
         run: |
           pip install -r scripts/gha/requirements.txt
@@ -808,6 +813,11 @@ jobs:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
         run: pip install -r scripts/gha/requirements.txt
+      - name: Setup Firebase Emulators
+        run: |
+          curl -sL firebase.tools | bash
+          firebase setup:emulators:firestore
+          firebase emulators:start
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.android_device }} )"
@@ -893,6 +903,11 @@ jobs:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
         run: pip install -r scripts/gha/requirements.txt
+      - name: Setup Firebase Emulators
+        run: |
+          curl -sL firebase.tools | bash
+          firebase setup:emulators:firestore
+          firebase emulators:start
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.ios_device }} )"
@@ -978,6 +993,11 @@ jobs:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
         run: pip install -r scripts/gha/requirements.txt
+      - name: Setup Firebase Emulators
+        run: |
+          curl -sL firebase.tools | bash
+          firebase setup:emulators:firestore
+          firebase emulators:start
       - name: Run tvOS integration tests on Simulator locally
         timeout-minutes: 60
         run: |

@@ -352,7 +352,9 @@ def _run_xctest(gameloop_app, device_id):
     "-xctestrun", gameloop_app, 
     "-destination", "id=%s" % device_id]
   logging.info("Running game-loop test: %s", " ".join(args))
-  result = subprocess.run(args=args, capture_output=True, text=True, check=False)
+  env = os.environ.copy()
+  env["USE_FIRESTORE_EMULATOR"] = "true"
+  result = subprocess.run(args=args, capture_output=True, text=True, check=False, env=env)
 
   if not result.stdout:
     logging.info("No xctest result")
@@ -626,7 +628,8 @@ def _run_instrumented_test():
     This gameloop app can run integration_test app automatically.
   """
   args = ["adb", "shell", "am", "instrument",
-    "-w", "%s.test/androidx.test.runner.AndroidJUnitRunner" % _GAMELOOP_PACKAGE] 
+    "-w", "%s.test/androidx.test.runner.AndroidJUnitRunner" % _GAMELOOP_PACKAGE,
+          "-e", "USE_FIRESTORE_EMULATOR", "true"]
   logging.info("Running game-loop test: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=False) 
   _reset_emulator_on_error(result.stdout)
