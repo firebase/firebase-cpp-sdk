@@ -473,10 +473,25 @@ def _summarize_results(testapps, platforms, failures, root_output_dir, artifact_
 
 
 def _build_desktop(sdk_dir, cmake_flags):
-  cmake_configure_cmd = ["cmake", ".", "-DCMAKE_BUILD_TYPE=Debug",
+  cmake_configure_cmd = ["cmake", ".", "-DCMAKE_BUILD_TYPE=" + FLAGS.build_type,
                                        "-DFIREBASE_CPP_SDK_DIR=" + sdk_dir]
+  if utils.is_linux_os() and FLAGS.arch_windows_linux == _ARCHITECTURE_X86:
+    # Use a separate cmake toolchain for cross compiling linux x86 builds
+    vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external', 'vcpkg',
+                                              'scripts', 'buildsystems', 'linux_32.cmake')
+  else:
+    vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external',
+                                              'vcpkg', 'scripts',
+                                              'buildsystems', 'vcpkg.cmake')
+  cmake_configure_cmd.append('-DCMAKE_TOOLCHAIN_FILE={0}'.format(vcpkg_toolchain_file_path))
+  vcpkg_triplet = utils.get_vcpkg_triplet(FLAGS.arch_windows_linux, FLAGS.msvc_runtime)
+  cmake_configure_cmd.append('-DVCPKG_TARGET_TRIPLET={0}'.format(vcpkg_triplet))
   if utils.is_windows_os():
-    cmake_configure_cmd += ["-A", "x64"]
+    cmake_configure_cmd.append('-A')
+    cmake_configure_cmd.append('Win32') if FLAGS.arch_windows_linux == _ARCHITECTURE_X86 else cmake_configure_cmd.append('x64')
+    # Use our special cmake flag to specify /MD vs /MT
+    if FLAGS.msvc_runtime == _MSVC_RUNTIME_STATIC:
+      cmake_configure_cmd.append('-DMSVC_RUNTIME_LIBRARY_STATIC=ON')
   _run(cmake_configure_cmd + cmake_flags)
   _run(["cmake", "--build", ".", "--config", "Debug"])
 
