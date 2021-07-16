@@ -337,14 +337,12 @@ def filter_values_on_diff(parm_key, value, auto_diff):
 
 
 def filter_platforms_on_apis(platforms, apis):
-  platform_list = platforms.split(",")
-  if "tvOS" in platform_list:
+  if "tvOS" in platforms:
     api_list = apis.split(",")
     config = config_reader.read_config()
     supported_apis = [api for api in api_list if config.get_api(api).tvos_target]
     if not supported_apis:
-      platform_list.remove("tvOS")
-      return ",".join(platform_list)
+      platforms.remove("tvOS")
   
   return platforms
 
@@ -370,8 +368,6 @@ def main():
     value = filter_devices(value, args.device_type)
   if args.auto_diff:
     value = filter_values_on_diff(args.parm_key, value, args.auto_diff)
-  if args.parm_key == "platform" and args.apis:
-    value = filter_platforms_on_apis(args.parm_key, args.apis)
   print_value(value)
 
 
