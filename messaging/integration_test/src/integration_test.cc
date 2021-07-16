@@ -353,8 +353,13 @@ TEST_F(FirebaseMessagingTest, TestReceiveToken) {
   TEST_REQUIRES_USER_INTERACTION_ON_IOS;
 
   EXPECT_TRUE(RequestPermission());
+
+  FLAKY_TEST_SECTION_BEGIN();
+
   EXPECT_TRUE(WaitForToken());
   EXPECT_NE(*shared_token_, "");
+
+  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseMessagingTest, TestSubscribeAndUnsubscribe) {
