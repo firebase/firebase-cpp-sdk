@@ -338,9 +338,8 @@ def filter_values_on_diff(parm_key, value, auto_diff):
 
 def filter_platforms_on_apis(platforms, apis):
   if "tvOS" in platforms:
-    api_list = apis.split(",")
     config = config_reader.read_config()
-    supported_apis = [api for api in api_list if config.get_api(api).tvos_target]
+    supported_apis = [api for api in apis if config.get_api(api).tvos_target]
     if not supported_apis:
       platforms.remove("tvOS")
   
@@ -354,7 +353,7 @@ def main():
     if not args.config:
       args.override = args.override.split(',')
     if args.parm_key == "platform" and args.apis:
-      args.override = filter_platforms_on_apis(args.override, args.apis)
+      args.override = filter_platforms_on_apis(args.override, json.load(args.apis))
 
     print_value(args.override)
     return
