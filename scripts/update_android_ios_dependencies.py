@@ -157,7 +157,7 @@ def get_files(dirs_and_files, file_extension, file_name=None,
   return files
 
 # Regex to match versions with just digits (ignoring things like -alpha, -beta)
-NON_EXPERIMENTAL_VERSION_RE = re.compile('[0-9.]+$')
+RE_NON_EXPERIMENTAL_VERSION = re.compile('[0-9.]+$')
 
 ##########  iOS pods versions update #######################################
 
@@ -221,7 +221,7 @@ def get_pod_versions(specs_repo, pods=PODS, ignore_pods=None,
     parent_dir = os.path.dirname(podspec_file)
     version = os.path.basename(parent_dir)
     if not allow_experimental and '-cppsdk' not in version:
-      if not re.match(NON_EXPERIMENTAL_VERSION_RE, version):
+      if not re.match(RE_NON_EXPERIMENTAL_VERSION, version):
         continue
     all_versions[podname].append(version)
 
@@ -357,6 +357,8 @@ def modify_pod_file(pod_file, pod_version_map, dryrun=True):
     print()
 
 
+# Regex to match lines like:
+# |                          | Firebase/Auth Cocoapod (8.2.0)
 RE_README_POD_VERSION = re.compile(
   r"\|(?P<spaces>\s+)\| (?P<pod_name>.*) Cocoapod \((?P<version>([0-9.]+))\)")
 
@@ -364,7 +366,7 @@ def modify_readme_file_pods(readme_filepath, version_map, dryrun=True):
   """Modify a readme Markdown file to reference correct cocoapods versions.
 
   Looks for lines like:
-  <br>Firebase/AdMob Cocoapod (7.11.0)<br>Firebase/Auth Cocoapod (8.1.0)
+  |                          | Firebase/Auth Cocoapod (8.2.0)
   for pods matching the ones in the version map, and modifies them in-place.
 
   Args:
@@ -463,7 +465,7 @@ def get_latest_maven_versions(ignore_packages=None, allow_experimental=False):
       versions = group_child.attrib['versions'].split(',')
       if not allow_experimental:
         versions = [version for version in versions
-          if re.match(NON_EXPERIMENTAL_VERSION_RE, version) or '-cppsdk' in version]
+          if re.match(RE_NON_EXPERIMENTAL_VERSION, version) or '-cppsdk' in version]
       if versions:
         latest_valid_version = versions[-1]
         latest_versions[package_full_name] = latest_valid_version
@@ -533,6 +535,9 @@ def modify_dependency_file(dependency_filepath, version_map, dryrun=True):
     print()
 
 
+# Regex to match lines like:
+# |                          | com.google.firebase:firebase-auth:1.2.3
+# |                          | com.google.firebase:firebase-auth:1.2.3-alpha
 RE_README_ANDROID_VERSION = re.compile(
     r"\|(?P<spaces>\s+)\| (?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([a-zA-Z0-9._-]+)")
 
@@ -541,7 +546,7 @@ def modify_readme_file_android(readme_filepath, version_map, dryrun=True):
   """Modify a readme Markdown file to reference correct module versions.
 
   Looks for lines like:
-  <br>com.google.firebase:firebase-core:15.0.0<br>
+  |                          | com.google.firebase:firebase-auth:1.2.3
   for modules matching the ones in the version map, and modifies them in-place.
 
   Args:
@@ -595,6 +600,7 @@ def modify_readme_file_android(readme_filepath, version_map, dryrun=True):
 
 # Regex to match lines like:
 # implementation 'com.google.firebase:firebase-auth:1.2.3'
+# implementation 'com.google.firebase:firebase-auth:1.2.3-alpha'
 RE_GRADLE_COMPILE_MODULE = re.compile(
     r"implementation\s*\'(?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([a-zA-Z0-9._-]+)\'")
 
