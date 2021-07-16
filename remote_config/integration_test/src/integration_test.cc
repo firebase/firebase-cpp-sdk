@@ -277,9 +277,8 @@ TEST_F(FirebaseRemoteConfigTest, TestGetAll) {
   ASSERT_NE(rc_, nullptr);
 
   EXPECT_TRUE(WaitForCompletion(SetDefaults(rc_), "SetDefaults"));
-  EXPECT_TRUE(WaitForCompletion(
-      RunWithRetry([](RemoteConfig* rc) { return rc->Fetch(); }, rc_),
-      "Fetch"));
+  EXPECT_TRUE(
+      WaitForCompletion(RunWithRetry([&]() { return rc_->Fetch(); }), "Fetch"));
   EXPECT_TRUE(WaitForCompletion(rc_->Activate(), "Activate"));
   std::map<std::string, firebase::Variant> key_values = rc_->GetAll();
   EXPECT_EQ(key_values.size(), 6);
@@ -303,9 +302,8 @@ TEST_F(FirebaseRemoteConfigTest, TestFetch) {
   ASSERT_NE(rc_, nullptr);
 
   EXPECT_TRUE(WaitForCompletion(SetDefaults(rc_), "SetDefaults"));
-  EXPECT_TRUE(WaitForCompletion(
-      RunWithRetry([](RemoteConfig* rc) { return rc->Fetch(); }, rc_),
-      "Fetch"));
+  EXPECT_TRUE(
+      WaitForCompletion(RunWithRetry([&]() { return rc_->Fetch(); }), "Fetch"));
   EXPECT_TRUE(WaitForCompletion(rc_->Activate(), "Activate"));
   LogDebug("Fetch time: %lld", rc_->GetInfo().fetch_time);
   firebase::remote_config::ValueInfo value_info;
@@ -347,27 +345,24 @@ TEST_F(FirebaseRemoteConfigTest, TestFetch) {
 
 TEST_F(FirebaseRemoteConfigTest, TestFetchInterval) {
   ASSERT_NE(rc_, nullptr);
-  EXPECT_TRUE(WaitForCompletion(
-      RunWithRetry([](RemoteConfig* rc) { return rc->FetchAndActivate(); },
-                   rc_),
-      "FetchAndActivate"));
+  EXPECT_TRUE(
+      WaitForCompletion(RunWithRetry([&]() { return rc_->FetchAndActivate(); }),
+                        "FetchAndActivate"));
   uint64_t current_fetch_time = rc_->GetInfo().fetch_time;
   // Making sure the config settings's fetch interval is 12 hours
   EXPECT_TRUE(WaitForCompletion(SetDefaultConfigSettings(rc_),
                                 "SetDefaultConfigSettings"));
   // Second fetch, should respect fetch interval and don't change data.
-  EXPECT_TRUE(WaitForCompletion(
-      RunWithRetry([](RemoteConfig* rc) { return rc->Fetch(); }, rc_),
-      "Fetch"));
+  EXPECT_TRUE(
+      WaitForCompletion(RunWithRetry([&]() { return rc_->Fetch(); }), "Fetch"));
   EXPECT_EQ(current_fetch_time, rc_->GetInfo().fetch_time);
   // Update fetch interval to 0
   EXPECT_TRUE(WaitForCompletion(SetZeroIntervalConfigSettings(rc_),
                                 "SetZeroIntervalConfigSettings"));
   EXPECT_EQ(0, rc_->GetConfigSettings().minimum_fetch_interval_in_milliseconds);
   // Third fetch, this should operate the real fetch and update the fetch time.
-  EXPECT_TRUE(WaitForCompletion(
-      RunWithRetry([](RemoteConfig* rc) { return rc->Fetch(); }, rc_),
-      "Fetch"));
+  EXPECT_TRUE(
+      WaitForCompletion(RunWithRetry([&]() { return rc_->Fetch(); }), "Fetch"));
   EXPECT_NE(current_fetch_time, rc_->GetInfo().fetch_time);
 }
 

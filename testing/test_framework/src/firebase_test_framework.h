@@ -18,6 +18,7 @@
 #include <functional>
 #include <iostream>
 #include <sstream>
+#include <vector>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
@@ -27,6 +28,11 @@
 #include "firebase/variant.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+
+// Include this internal header so we have access to UnitTestImpl and
+// ClearTestPartResults. We are not supposed to use these, but we do anyway as a
+// workaround for handling flaky test sections.
+#include "gtest/../../src/gtest-internal-inl.h"
 
 namespace firebase_test_framework {
 
@@ -181,108 +187,11 @@ namespace firebase_test_framework {
 #define DEATHTEST_SIGABRT ""
 #endif
 
-// Helper macros to assist with RunFlakyBlock.
-// Unlike EXPECT_*, FLAKY_EXPECT_* just prints out the error and returns
-// false, which will cause RunFlakyBlock to retry.
-
-// This returns false, which will make RunFlakyBlock retry.
-#define FLAKY_FAIL() \
-  { return false; }
-// Put this at the end of each RunFlakyBlock function. It will return true.
-#define FLAKY_SUCCESS() \
-  { return true; }
-
-#define FLAKY_EXPECT_EQ(a, b)                                 \
-  {                                                           \
-    auto a_result = (a);                                      \
-    auto b_result = (b);                                      \
-    if ((a_result) != (b_result)) {                           \
-      std::stringstream a_str, b_str;                         \
-      a_str << a_result;                                      \
-      b_str << b_result;                                      \
-      app_framework::LogError(                                \
-          "Expected %s and %s to be equal, but they differ. " \
-          "first(%s) vs second(%s)",                          \
-          #a, #b, a_str.str().c_str(), b_str.str().c_str());  \
-      return false;                                           \
-    }                                                         \
-  }
-
-#define FLAKY_EXPECT_NE(a, b)                                               \
-  {                                                                         \
-    auto a_result = (a);                                                    \
-    auto b_result = (b);                                                    \
-    if ((a_result) == (b_result)) {                                         \
-      std::stringstream a_str, b_str;                                       \
-      a_str << a_result;                                                    \
-      b_str << b_result;                                                    \
-      app_framework::LogError(                                              \
-          "Expected %s and %s to differ, but they are equal. first(%s) vs " \
-          "second(%s)",                                                     \
-          #a, #b, a_str.str().c_str(), b_str.str().c_str());                \
-      return false;                                                         \
-    }                                                                       \
-  }
-
-#define FLAKY_EXPECT_NULL(a)                                           \
-  {                                                                    \
-    auto a_result = (a);                                               \
-    if ((a_result) != nullptr) {                                       \
-      std::stringstream a_str;                                         \
-      a_str << a_result;                                               \
-      app_framework::LogError(                                         \
-          "Expected %s to be null, but it is not null. value(%s)", #a, \
-          a_str.str().c_str());                                        \
-      return false;                                                    \
-    }                                                                  \
-  }
-#define FLAKY_EXPECT_NOTNULL(a)                                              \
-  {                                                                          \
-    if ((a) == nullptr) {                                                    \
-      app_framework::LogError("Expected %s to be non-null, but it is null.", \
-                              #a);                                           \
-      return false;                                                          \
-    }                                                                        \
-  }
-#define FLAKY_EXPECT_NONNULL(a) FLAKY_EXPECT_NOTNULL(a)
-#define FLAKY_EXPECT_TRUE(a)                                                   \
-  {                                                                            \
-    if (!(a)) {                                                                \
-      app_framework::LogError("Expected %s to be true, but it is false.", #a); \
-      return false;                                                            \
-    }                                                                          \
-  }
-
-#define FLAKY_EXPECT_FALSE(a)                                                  \
-  {                                                                            \
-    if ((a)) {                                                                 \
-      app_framework::LogError("Expected %s to be false, but it is true.", #a); \
-      return false;                                                            \
-    }                                                                          \
-  }
-
-#define FLAKY_WAIT_FOR_COMPLETION(future, name)                            \
-  {                                                                        \
-    auto f = (future);                                                     \
-    WaitForCompletionAnyResult(f, name);                                   \
-    if (f.error() != 0) {                                                  \
-      app_framework::LogError("%s returned error %d: %s", name, f.error(), \
-                              f.error_message());                          \
-      return false;                                                        \
-    }                                                                      \
-  }
-
-#define FLAKY_WAIT_FOR_COMPLETION_WITH_ERROR(future, name, expected_error) \
-  {                                                                        \
-    auto f = (future);                                                     \
-    WaitForCompletionAnyResult(f, name);                                   \
-    if (f.error() != expected_error) {                                     \
-      app_framework::LogError(                                             \
-          "%s expected error %d but returned error %d: %s", name,          \
-          expected_error, f.error(), f.error_message());                   \
-      return false;                                                        \
-    }                                                                      \
-  }
+// Macros to surround a flaky section of your test.
+// If this section fails, it will retry several times until it succeeds.
+#define FLAKY_TEST_SECTION_BEGIN() RunFlakyTestSection([&]() { (void)0
+#define FLAKY_TEST_SECTION_END() \
+  })
 
 class FirebaseTest : public testing::Test {
  public:
@@ -378,6 +287,33 @@ class FirebaseTest : public testing::Test {
   // it's not Invalid). Returns true, unless Invalid.
   static bool WaitForCompletionAnyResult(const firebase::FutureBase& future,
                                          const char* name);
+
+  // Run a flaky section of a test. If any expectations fail, it will clear
+  // those failures and retry the section.
+  //
+  // Typically, you wouldn't use this method directly. Instead, you should use
+  // it via the FLAKY_TEST_SECTION_BEGIN() and FLAKY_TEST_SECTION_END() macros
+  // defined above.
+  //
+  // For example:
+  // TEST_F(MyTestClass, MyTestCase) {
+  //   /* do some non-flaky stuff here */
+  //   FLAKY_TEST_SECTION_BEGIN();
+  //   /* do some stuff that might need to be retried here */
+  //   FLAKY_TEST_SECTION_END();
+  //   /* do some more non-flaky stuff here */
+  // }
+  void RunFlakyTestSection(std::function<void()> flaky_test_section) {
+    // Save the current state of test results.
+    auto saved_test_results = SaveTestPartResults();
+    RunFlakyBlock([&]() {
+      RestoreTestPartResults(saved_test_results);
+
+      flaky_test_section();
+
+      return !HasFailure();
+    });
+  }
 
   // Run an operation that returns a Future (via a callback), retrying with
   // exponential backoff if the operation fails.
@@ -523,6 +459,22 @@ class FirebaseTest : public testing::Test {
   // for type safety.
   static bool RunFlakyBlockBase(bool (*flaky_block)(void* context),
                                 void* context, const char* name = "");
+
+  std::vector<::testing::TestPartResult> SaveTestPartResults() {
+    return ::testing::internal::TestResultAccessor::test_part_results(
+        *::testing::internal::GetUnitTestImpl()->current_test_result());
+  }
+
+  void RestoreTestPartResults(
+      const std::vector<::testing::TestPartResult>& test_part_results) {
+    const std::vector<testing::TestPartResult>& existing_results =
+        ::testing::internal::TestResultAccessor::test_part_results(
+            *::testing::internal::GetUnitTestImpl()->current_test_result());
+    // Overwrite the existing test_part_results with the previously-saved
+    // version.
+    const_cast<std::vector<testing::TestPartResult>&>(existing_results)
+        .assign(test_part_results.begin(), test_part_results.end());
+  }
 };
 
 }  // namespace firebase_test_framework
