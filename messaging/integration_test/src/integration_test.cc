@@ -158,7 +158,14 @@ void FirebaseMessagingTest::SetUpTestSuite() {
           // The first time, suppress the notification prompt so that
           // RequestPermission will be called.
           options.suppress_notification_permission_prompt = true;
-        }
+          // Request provisional permissions, so that the user is not prompted.
+#if TARGET_OS_IPHONE
+          if (!IsUserInteractionAllowed()) {
+            options.request_provisional_permission = true;
+            LogInfo("User interaction disallowed, requesting provisional "
+                    "permission on iOS.");
+          }
+#endif
 
         return ::firebase::messaging::Initialize(*app, *listener, options);
       });
@@ -342,16 +349,12 @@ bool FirebaseMessagingTest::RequestPermission() {
 // Test cases below.
 
 TEST_F(FirebaseMessagingTest, TestRequestPermission) {
-  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
-
   // This test may request a permission from the user; if so, the user must
   // respond affirmatively.
   EXPECT_TRUE(RequestPermission());
 }
 
 TEST_F(FirebaseMessagingTest, TestReceiveToken) {
-  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
-
   EXPECT_TRUE(RequestPermission());
 
   FLAKY_TEST_SECTION_BEGIN();
@@ -363,8 +366,6 @@ TEST_F(FirebaseMessagingTest, TestReceiveToken) {
 }
 
 TEST_F(FirebaseMessagingTest, TestSubscribeAndUnsubscribe) {
-  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
-
   EXPECT_TRUE(RequestPermission());
   EXPECT_TRUE(WaitForToken());
   EXPECT_TRUE(WaitForCompletion(firebase::messaging::Subscribe("SubscribeTest"),
@@ -489,7 +490,6 @@ TEST_F(FirebaseMessagingTest, TestNotification) {
 }
 
 TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
-  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
   SKIP_TEST_ON_DESKTOP;
 
   EXPECT_TRUE(RequestPermission());
@@ -520,7 +520,6 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
 }
 
 TEST_F(FirebaseMessagingTest, TestSendMessageToTopic) {
-  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
   SKIP_TEST_ON_DESKTOP;
 
   EXPECT_TRUE(RequestPermission());
@@ -568,7 +567,6 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToTopic) {
 }
 
 TEST_F(FirebaseMessagingTest, TestChangingListener) {
-  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
   SKIP_TEST_ON_DESKTOP;
 
   EXPECT_TRUE(RequestPermission());

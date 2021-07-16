@@ -211,6 +211,9 @@ Future<void> RequestPermission() {
       // iOS 8 or later
       UIUserNotificationType allNotificationTypes =
           (UIUserNotificationTypeSound | UIUserNotificationTypeAlert | UIUserNotificationTypeBadge);
+      if (g_messaging_options.request_provisional_permission) {
+        allNotificationTypes |= UIUserNotificationTypeProvisional;
+      }
       UIUserNotificationSettings *settings =
           [UIUserNotificationSettings settingsForTypes:allNotificationTypes categories:nil];
       [appDelegate registerUserNotificationSettings:settings];

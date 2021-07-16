@@ -47,7 +47,8 @@ namespace messaging {
 /// Firebase Cloud Messaging's behavior.
 struct MessagingOptions {
   /// Default constructor.
-  MessagingOptions() : suppress_notification_permission_prompt(false) {}
+  MessagingOptions() : suppress_notification_permission_prompt(false),
+                       request_provisional_permission(false) {}
 
   /// If true, do not display the prompt to the user requesting permission to
   /// allow notifications to this app. If the prompt is suppressed in this way,
@@ -59,6 +60,16 @@ struct MessagingOptions {
   ///
   /// This option currently only applies to iOS.
   bool suppress_notification_permission_prompt;
+
+  /// If true, on iOS, request "provisional" authorization for notifications,
+  /// rather than full authorization.
+  ///
+  /// This avoids prompting the user the first time authorization is requested,
+  /// but received notifications will only be displayed in Notification Center
+  /// and not as banners or popups.
+  ///
+  /// This option currently only applies to iOS.
+  bool request_provisional_permission;
 };
 
 /// @brief Data structure for parameters that are unique to the Android
