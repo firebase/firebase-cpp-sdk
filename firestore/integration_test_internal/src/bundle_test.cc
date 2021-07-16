@@ -133,15 +133,20 @@ TEST_F(BundleTest, CanLoadBundlesWithProgressUpdates) {
   auto bundle = CreateTestBundle(db);
 
   std::vector<LoadBundleTaskProgress> progresses;
+  std::promise<void> final_update;
   Future<LoadBundleTaskProgress> result = db->LoadBundle(
-      bundle, [&progresses](const LoadBundleTaskProgress& progress) {
+      bundle, [&progresses, &final_update](const LoadBundleTaskProgress& progress) {
         progresses.push_back(progress);
+        if(progress.state() == LoadBundleTaskProgress::State::kError || progress.state() == LoadBundleTaskProgress::State::kSuccess) {
+          final_update.set_value();
+        }
       });
 
   auto final_progress = AwaitResult(result);
 
   // 4 progresses will be reported: initial, document 1, document 2, final
   // success.
+  final_update.get_future().wait();
   ASSERT_EQ(progresses.size(), 4);
   EXPECT_THAT(progresses[0], InProgressWithLoadedDocuments(0));
   EXPECT_THAT(progresses[1], InProgressWithLoadedDocuments(1));
@@ -195,12 +200,17 @@ TEST_F(BundleTest, LoadBundlesForASecondTimeSkips) {
   VerifySuccessProgress(first_load);
 
   std::vector<LoadBundleTaskProgress> progresses;
+  std::promise<void> final_update;
   LoadBundleTaskProgress second_load = AwaitResult(db->LoadBundle(
-      bundle, [&progresses](const LoadBundleTaskProgress& progress) {
+      bundle, [&progresses, &final_update](const LoadBundleTaskProgress& progress) {
         progresses.push_back(progress);
+        if(progress.state() == LoadBundleTaskProgress::State::kError || progress.state() == LoadBundleTaskProgress::State::kSuccess) {
+          final_update.set_value();
+        }
       }));
 
   // There will be 4 progress updates if it does not skip loading.
+  final_update.get_future().wait();
   ASSERT_EQ(progresses.size(), 1);
   VerifySuccessProgress(progresses[0]);
   EXPECT_EQ(progresses[0], second_load);
@@ -220,13 +230,19 @@ TEST_F(BundleTest, LoadInvalidBundlesShouldFail) {
   };
   for (const auto& bundle : invalid_bundles) {
     std::vector<LoadBundleTaskProgress> progresses;
+    std::promise<void> final_update;
     Future<LoadBundleTaskProgress> result = db->LoadBundle(
-        bundle, [&progresses](const LoadBundleTaskProgress& progress) {
+        bundle, [&progresses, &final_update](const LoadBundleTaskProgress& progress) {
           progresses.push_back(progress);
+          if(progress.state() == LoadBundleTaskProgress::State::kError || progress.state() == LoadBundleTaskProgress::State::kSuccess) {
+            final_update.set_value();
+          }
         });
-    Await(result);
 
+    Await(result);
     EXPECT_NE(result.error(), Error::kErrorOk);
+
+    final_update.get_future().wait();
     ASSERT_EQ(progresses.size(), 1);
     VerifyErrorProgress(progresses[0]);
   }
@@ -306,13 +322,18 @@ TEST_F(BundleTest, LoadDocumentsFromOtherProjectsShouldFail) {
   Firestore* db = TestFirestore();
   auto bundle = CreateBundle("other-project");
   std::vector<LoadBundleTaskProgress> progresses;
+  std::promise<void> final_update;
   Future<LoadBundleTaskProgress> result = db->LoadBundle(
-      bundle, [&progresses](const LoadBundleTaskProgress& progress) {
+      bundle, [&progresses, &final_update](const LoadBundleTaskProgress& progress) {
         progresses.push_back(progress);
+        if(progress.state() == LoadBundleTaskProgress::State::kError || progress.state() == LoadBundleTaskProgress::State::kSuccess) {
+          final_update.set_value();
+        }
       });
   Await(result);
-
   EXPECT_NE(result.error(), Error::kErrorOk);
+
+  final_update.get_future().wait();
   ASSERT_EQ(progresses.size(), 2);
   EXPECT_THAT(progresses[0], InProgressWithLoadedDocuments(0));
   VerifyErrorProgress(progresses[1]);
