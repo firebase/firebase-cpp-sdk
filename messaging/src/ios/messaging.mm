@@ -207,13 +207,22 @@ Future<void> RequestPermission() {
           (UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert |
            UIRemoteNotificationTypeBadge);
       [appDelegate registerForRemoteNotificationTypes:allNotificationTypes];
-    } else {
+    }
+    else if (@available(iOS 10.0, *)) {
+      UNAuthorizationOptions options = (UNAuthorizationOptions) (UNAuthorizationOptionAlert | UNAuthorizationOptionBadge | UNAuthorizationOptionSound);
+      if (g_messaging_options.request_provisional_permission) {
+        options |= UNAuthorizationOptionProvisional;
+      }
+      UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+      center.delegate = g_user_delegate;
+      [center requestAuthorizationWithOptions:options completionHandler:^(BOOL granted, NSError *error){
+          NSLog(@"GRANTED: %i, Error: %@", granted, error);
+        }];
+    }
+    else {
       // iOS 8 or later
       UIUserNotificationType allNotificationTypes =
           (UIUserNotificationTypeSound | UIUserNotificationTypeAlert | UIUserNotificationTypeBadge);
-      if (g_messaging_options.request_provisional_permission) {
-        allNotificationTypes |= UIUserNotificationTypeProvisional;
-      }
       UIUserNotificationSettings *settings =
           [UIUserNotificationSettings settingsForTypes:allNotificationTypes categories:nil];
       [appDelegate registerUserNotificationSettings:settings];
