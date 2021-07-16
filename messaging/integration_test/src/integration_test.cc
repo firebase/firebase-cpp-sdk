@@ -158,9 +158,9 @@ void FirebaseMessagingTest::SetUpTestSuite() {
           // The first time, suppress the notification prompt so that
           // RequestPermission will be called.
           options.suppress_notification_permission_prompt = true;
-          // Request provisional permissions, so that the user is not prompted.
 #if TARGET_OS_IPHONE
           if (!IsUserInteractionAllowed()) {
+            // Request provisional permissions, so that the user is not prompted.
             options.request_provisional_permission = true;
             LogInfo("User interaction disallowed, requesting provisional "
                     "permission on iOS.");
