@@ -583,6 +583,28 @@ TEST_F(ValidationTest, BatchWritesRequireCorrectDocumentReferences) {
       "instance.");
 }
 
+TEST_F(ValidationTest, TransactionsRequireValidDocumentReferences) {
+  auto* db1 = TestFirestore();
+
+  std::string reason = "Invalid document reference provided.";
+  MapFieldValue data{{"foo", FieldValue::Integer(1)}};
+  DocumentReference bad_ref;
+
+  auto future = db1->RunTransaction([&](Transaction& txn, std::string&) {
+    EXPECT_ERROR(
+        txn.Get(bad_ref, /*error_code=*/nullptr, /*error_message=*/nullptr),
+        reason);
+    EXPECT_ERROR(txn.Set(bad_ref, data), reason);
+    EXPECT_ERROR(txn.Set(bad_ref, data, SetOptions::Merge()), reason);
+    EXPECT_ERROR(txn.Update(bad_ref, data), reason);
+    EXPECT_ERROR(txn.Delete(bad_ref), reason);
+
+    return Error::kErrorOk;
+  });
+
+  EXPECT_THAT(future, FutureSucceeds());
+}
+
 TEST_F(ValidationTest, TransactionsRequireCorrectDocumentReferences) {
   auto* db1 = TestFirestore();
   auto* db2 = TestFirestore("db2");
