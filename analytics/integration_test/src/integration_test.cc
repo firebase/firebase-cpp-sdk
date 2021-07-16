@@ -132,26 +132,27 @@ TEST_F(FirebaseAnalyticsTest, TestLogEventWithMultipleParameters) {
 
 TEST_F(FirebaseAnalyticsTest, TestResettingGivesNewInstanceId) {
   // Test is flaky on iPhone due to a known issue in iOS.  See b/143656277.
-  if (!RunFlakyBlock([&]() {
-        firebase::Future<std::string> future =
-            firebase::analytics::GetAnalyticsInstanceId();
-        FLAKY_WAIT_FOR_COMPLETION(future, "GetAnalyticsInstanceId");
-        FLAKY_EXPECT_FALSE(future.result()->empty());
-        std::string instance_id = *future.result();
+#if TARGET_OS_IPHONE
+  FLAKY_TEST_SECTION_BEGIN();
+#endif  // TARGET_OS_IPHONE
 
-        firebase::analytics::ResetAnalyticsData();
+  firebase::Future<std::string> future =
+      firebase::analytics::GetAnalyticsInstanceId();
+  WaitForCompletion(future, "GetAnalyticsInstanceId");
+  EXPECT_FALSE(future.result()->empty());
+  std::string instance_id = *future.result();
 
-        future = firebase::analytics::GetAnalyticsInstanceId();
-        FLAKY_WAIT_FOR_COMPLETION(
-            future, "GetAnalyticsInstanceId after ResetAnalyticsData");
-        std::string new_instance_id = *future.result();
-        FLAKY_EXPECT_FALSE(future.result()->empty());
-        FLAKY_EXPECT_NE(instance_id, new_instance_id);
+  firebase::analytics::ResetAnalyticsData();
 
-        FLAKY_SUCCESS();
-      })) {
-    FAIL() << "Failed, see error log for details.";
-  }
+  future = firebase::analytics::GetAnalyticsInstanceId();
+  WaitForCompletion(future, "GetAnalyticsInstanceId after ResetAnalyticsData");
+  std::string new_instance_id = *future.result();
+  EXPECT_FALSE(future.result()->empty());
+  EXPECT_NE(instance_id, new_instance_id);
+
+#if TARGET_OS_IPHONE
+  FLAKY_TEST_SECTION_END();
+#endif  // TARGET_OS_IPHONE
 }
 
 }  // namespace firebase_testapp_automated

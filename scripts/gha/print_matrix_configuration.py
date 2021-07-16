@@ -102,7 +102,7 @@ PARAMETERS = {
       "ssl_lib": ["openssl"],
       "android_device": ["android_latest", "emulator_target"],
       "ios_device": ["ios_target", "simulator_target"],
-      "tvos_device": ["tvos_simulator_target"],
+      "tvos_device": ["tvos_simulator"],
       "build_type": ["Debug"],
       "architecture_windows_linux": ["x64"],
       "architecture_macos": ["x64"],
