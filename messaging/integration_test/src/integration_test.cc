@@ -198,8 +198,8 @@ void FirebaseMessagingTest::TearDownTestSuite() {
   delete shared_app_;
   shared_app_ = nullptr;
 
-  // On iOS/FTL, most or all of the tests are skipped, so add a delay so the
-  // app doesn't finish too quickly, as this makes test results flaky.
+  // On iOS/FTL, most or all of the tests are skipped, so add a delay so the app
+  // doesn't finish too quickly, as this makes test results flaky.
   ProcessEvents(1000);
 }
 
@@ -422,11 +422,11 @@ TEST_F(FirebaseMessagingTest, TestNotification) {
   EXPECT_TRUE(RequestPermission());
   EXPECT_TRUE(WaitForToken());
 
-  // To test notifications, this test app must be running in the background.
-  // To accomplish this, switch over to the device's web browser, loading an
-  // HTML page that will, after a short delay, send the FCM message request to
-  // the app in the background. This will produce the system notification that
-  // you can then click on to go back into the app and continue the test.
+  // To test notifications, this test app must be running in the background. To
+  // accomplish this, switch over to the device's web browser, loading an HTML
+  // page that will, after a short delay, send the FCM message request to the
+  // app in the background. This will produce the system notification that you
+  // can then click on to go back into the app and continue the test.
 
   std::string unique_id = GetUniqueMessageId();
   std::string token = *shared_token_;
@@ -453,10 +453,9 @@ TEST_F(FirebaseMessagingTest, TestNotification) {
                                   kNotificationBody, message_fields, &request,
                                   &headers));
     std::string html = ConstructHtmlToSendMessage(request, headers, 5);
-    // We now have some HTML/Javascript to send the message request. Embed it
-    // in a data: url so we can try receiving a message with the app in the
-    // background.
-    // Encode the HTML into base64.
+    // We now have some HTML/Javascript to send the message request. Embed it in
+    // a data: url so we can try receiving a message with the app in the
+    // background.  Encode the HTML into base64.
     std::string html_encoded;
     EXPECT_TRUE(Base64Encode(html, &html_encoded));
     std::string url = std::string("data:text/html;base64,") + html_encoded;
@@ -476,9 +475,9 @@ TEST_F(FirebaseMessagingTest, TestNotification) {
 
 #if defined(__ANDROID__)
   // On Android, if the app is running in the background, FCM does not deliver
-  // both the "notification" and the "data". So for our purposes, duplicate
-  // the notification fields we are checking into the data fields so we can
-  // still check that it's correct.
+  // both the "notification" and the "data". So for our purposes, duplicate the
+  // notification fields we are checking into the data fields so we can still
+  // check that it's correct.
   EXPECT_EQ(message.notification, nullptr);
   EXPECT_EQ(message.data["notification_title"], kNotificationTitle);
   EXPECT_EQ(message.data["notification_body"], kNotificationBody);
