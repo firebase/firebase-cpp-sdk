@@ -35,3 +35,4 @@ class TransactionFunction {
 }  // namespace firebase
 
 #endif  // FIREBASE_FIRESTORE_SRC_COMMON_TRANSACTION_FUNCTION_H_
+
