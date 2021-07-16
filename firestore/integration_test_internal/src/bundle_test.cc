@@ -65,6 +65,15 @@ std::string CreateTestBundle(Firestore* db) {
   return CreateBundle(db->app()->options().project_id());
 }
 
+void SetPromiseValueWhenUpdateIsFinal(
+    LoadBundleTaskProgress progress,
+    std::promise<void>& final_update_received) {
+  if (progress.state() == LoadBundleTaskProgress::State::kError ||
+      progress.state() == LoadBundleTaskProgress::State::kSuccess) {
+    final_update_received.set_value();
+  }
+}
+
 class BundleTest : public FirestoreIntegrationTest {
  protected:
   void SetUp() override {
@@ -135,11 +144,10 @@ TEST_F(BundleTest, CanLoadBundlesWithProgressUpdates) {
   std::vector<LoadBundleTaskProgress> progresses;
   std::promise<void> final_update;
   Future<LoadBundleTaskProgress> result = db->LoadBundle(
-      bundle, [&progresses, &final_update](const LoadBundleTaskProgress& progress) {
+      bundle,
+      [&progresses, &final_update](const LoadBundleTaskProgress& progress) {
         progresses.push_back(progress);
-        if(progress.state() == LoadBundleTaskProgress::State::kError || progress.state() == LoadBundleTaskProgress::State::kSuccess) {
-          final_update.set_value();
-        }
+        SetPromiseValueWhenUpdateIsFinal(progress, final_update);
       });
 
   auto final_progress = AwaitResult(result);
@@ -202,11 +210,10 @@ TEST_F(BundleTest, LoadBundlesForASecondTimeSkips) {
   std::vector<LoadBundleTaskProgress> progresses;
   std::promise<void> final_update;
   LoadBundleTaskProgress second_load = AwaitResult(db->LoadBundle(
-      bundle, [&progresses, &final_update](const LoadBundleTaskProgress& progress) {
+      bundle,
+      [&progresses, &final_update](const LoadBundleTaskProgress& progress) {
         progresses.push_back(progress);
-        if(progress.state() == LoadBundleTaskProgress::State::kError || progress.state() == LoadBundleTaskProgress::State::kSuccess) {
-          final_update.set_value();
-        }
+        SetPromiseValueWhenUpdateIsFinal(progress, final_update);
       }));
 
   // There will be 4 progress updates if it does not skip loading.
@@ -232,11 +239,10 @@ TEST_F(BundleTest, LoadInvalidBundlesShouldFail) {
     std::vector<LoadBundleTaskProgress> progresses;
     std::promise<void> final_update;
     Future<LoadBundleTaskProgress> result = db->LoadBundle(
-        bundle, [&progresses, &final_update](const LoadBundleTaskProgress& progress) {
+        bundle,
+        [&progresses, &final_update](const LoadBundleTaskProgress& progress) {
           progresses.push_back(progress);
-          if(progress.state() == LoadBundleTaskProgress::State::kError || progress.state() == LoadBundleTaskProgress::State::kSuccess) {
-            final_update.set_value();
-          }
+          SetPromiseValueWhenUpdateIsFinal(progress, final_update);
         });
 
     Await(result);
@@ -324,11 +330,10 @@ TEST_F(BundleTest, LoadDocumentsFromOtherProjectsShouldFail) {
   std::vector<LoadBundleTaskProgress> progresses;
   std::promise<void> final_update;
   Future<LoadBundleTaskProgress> result = db->LoadBundle(
-      bundle, [&progresses, &final_update](const LoadBundleTaskProgress& progress) {
+      bundle,
+      [&progresses, &final_update](const LoadBundleTaskProgress& progress) {
         progresses.push_back(progress);
-        if(progress.state() == LoadBundleTaskProgress::State::kError || progress.state() == LoadBundleTaskProgress::State::kSuccess) {
-          final_update.set_value();
-        }
+        SetPromiseValueWhenUpdateIsFinal(progress, final_update);
       });
   Await(result);
   EXPECT_NE(result.error(), Error::kErrorOk);
