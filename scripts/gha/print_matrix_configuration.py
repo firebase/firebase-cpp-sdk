@@ -116,7 +116,7 @@ PARAMETERS = {
 
       EXPANDED_KEY: {
         "ssl_lib": ["openssl", "boringssl"],
-        "android_device": ["android_min", "android_latest", "android_latest", "emulator_min", "emulator_target", "emulator_latest"],
+        "android_device": ["android_latest", "android_latest", "emulator_target", "emulator_latest"],
         "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"],
         "tvos_device": ["tvos_simulator"],
       }
