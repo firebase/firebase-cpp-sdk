@@ -743,7 +743,7 @@ jobs:
         run: |
           curl -sL firebase.tools | bash
           firebase setup:emulators:firestore
-          firebase emulators:start
+          firebase emulators:start --only firestore &
       - name: Setup integration test deps
         run: |
           pip install -r scripts/gha/requirements.txt
@@ -817,7 +817,7 @@ jobs:
         run: |
           curl -sL firebase.tools | bash
           firebase setup:emulators:firestore
-          firebase emulators:start
+          firebase emulators:start --only firestore &
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.android_device }} )"
@@ -907,7 +907,7 @@ jobs:
         run: |
           curl -sL firebase.tools | bash
           firebase setup:emulators:firestore
-          firebase emulators:start
+          firebase emulators:start --only firestore &
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.ios_device }} )"
@@ -997,7 +997,7 @@ jobs:
         run: |
           curl -sL firebase.tools | bash
           firebase setup:emulators:firestore
-          firebase emulators:start
+          firebase emulators:start --only firestore &
       - name: Run tvOS integration tests on Simulator locally
         timeout-minutes: 60
         run: |
