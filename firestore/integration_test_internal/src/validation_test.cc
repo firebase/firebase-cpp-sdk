@@ -288,6 +288,8 @@ std::string ErrorMessage(ErrorCase error_case) {
              "document ID since document IDs are not arrays.";
 #endif
   }
+
+  FIRESTORE_UNREACHABLE();
 }
 
 }  // namespace
@@ -843,6 +845,8 @@ TEST_F(ValidationTest,
                ErrorMessage(ErrorCase::kQueryDocumentIdArrayContains));
 }
 
+#else
+#error "No exceptions"
 #endif  // FIRESTORE_HAVE_EXCEPTIONS
 
 }  // namespace firestore
