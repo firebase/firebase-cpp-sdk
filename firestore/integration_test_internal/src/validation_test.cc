@@ -10,9 +10,11 @@
 #include "firebase/firestore/firestore_errors.h"
 #include "firestore/src/common/macros.h"
 #include "firestore_integration_test.h"
+#include "gmock/gmock-matchers.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "util/event_accumulator.h"
+#include "util/future_test_util.h"
 
 // These test cases are in sync with native iOS client SDK test
 //   Firestore/Example/Tests/Integration/API/FIRValidationTests.mm
@@ -35,10 +37,10 @@ using testing::HasSubstr;
 using testing::Property;
 using testing::StrEq;
 using testing::Throws;
+using testing::ThrowsMessage;
 
-#define EXPECT_ERROR(stmt, msg)                               \
-  EXPECT_THAT([&] { stmt; }, Throws<std::exception>(Property( \
-                                 &std::exception::what, StrEq(msg))));
+#define EXPECT_ERROR(stmt, msg) \
+  EXPECT_THAT([&] { stmt; }, ThrowsMessage<std::exception>(StrEq(msg)));
 
 #define EXPECT_ERROR_EITHER(stmt, msg1, msg2)  \
   EXPECT_THAT([&] { stmt; },                   \
@@ -49,6 +51,7 @@ namespace {
 
 enum class ErrorCase {
   kSettingsAfterUse,
+  kSettingsDisableSsl,
   kFieldValueDeleteInSet,
   kFieldValueDeleteNested,
   kFieldNameEmpty1,
@@ -84,6 +87,15 @@ std::string ErrorMessage(ErrorCase error_case) {
       return "Firestore instance has already been started and its settings can "
              "no longer be changed. You can only set settings before calling "
              "any other methods on a Firestore instance.";
+#endif
+
+    case ErrorCase::kSettingsDisableSsl:
+#ifdef __ANDROID__
+      return "You can't set the 'sslEnabled' setting unless you also set a "
+             "non-default 'host'.";
+#else
+      return "You can't set the 'sslEnabled' setting to false unless you also "
+             "set a non-default 'host'.";
 #endif
 
     case ErrorCase::kFieldValueDeleteInSet:
@@ -391,8 +403,7 @@ TEST_F(ValidationTest, DisableSslWithoutSettingHostFails) {
   Settings setting;
   setting.set_ssl_enabled(false);
   EXPECT_ERROR(TestFirestore()->set_settings(setting),
-               "You can't set the 'sslEnabled' setting unless you also set a "
-               "non-default 'host'.");
+               ErrorMessage(ErrorCase::kSettingsDisableSsl));
 }
 
 TEST_F(ValidationTest, FirestoreGetInstanceWithNullAppFails) {
