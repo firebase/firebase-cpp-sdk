@@ -666,14 +666,19 @@ def parse_cmdline_args():
             help='Just print the replaced lines, DO NOT overwrite any files')
   parser.add_argument( "--log_level", default="info",
             help="Logging level (debug, warning, info)")
+  # TODO: remove default values when we decide to update androidx for 
+  # gameloop_android as well.
   parser.add_argument('--ignore_directories', nargs='+',
+            default=('gameloop_android', 'scripts'),
             help='Ignore updating any files in these directories (names).')
   parser.add_argument('--allow_experimental', action='store_true',
             help='Allow updating to experimental versions (eg:1.2.3-alpha))')
   # iOS options
   parser.add_argument('--skip_ios', action='store_true',
             help='Skip iOS pod version update completely.')
+  # TODO: remove default values when Ads SDK does not need to be pinned.
   parser.add_argument('--ignore_ios_pods', nargs='+',
+            default=('Google-Mobile-Ads-SDK',),
             help='Ignore iOS pods which have any of the items specified in '
                  'this list as substrings.')
   parser.add_argument('--podfiles', nargs='+', default=(os.getcwd(),),
@@ -683,7 +688,9 @@ def parse_cmdline_args():
   # Android options
   parser.add_argument('--skip_android', action='store_true',
             help='Skip Android libraries version update completely.')
+  # TODO: remove default values when Ads SDK does not need to be pinned.
   parser.add_argument('--ignore_android_packages', nargs='+',
+            default=('firebase-ads',),
             help='Ignore Android packages which have any of the items '
                  'specified in this list as substrings.')
   parser.add_argument('--depfiles', nargs='+',
