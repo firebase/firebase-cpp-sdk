@@ -353,7 +353,7 @@ def main():
     if not args.config:
       args.override = args.override.split(',')
     if args.parm_key == "platform" and args.apis:
-      args.override = filter_platforms_on_apis(args.override, json.load(args.apis))
+      args.override = filter_platforms_on_apis(args.override, json.loads(args.apis))
 
     print_value(args.override)
     return
