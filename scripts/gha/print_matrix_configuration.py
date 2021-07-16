@@ -61,6 +61,8 @@ import re
 import subprocess
 import sys
 
+from integration_testing import config_reader
+
 # Note that desktop is used for fallback,
 # if there is no direct match for a key.
 DEFAULT_WORKFLOW = "desktop"
@@ -334,12 +336,28 @@ def filter_values_on_diff(parm_key, value, auto_diff):
     return value
 
 
+def filter_platforms_on_apis(platforms, apis):
+  platform_list = platforms.split(",")
+  if "tvOS" in platform_list:
+    api_list = apis.split(",")
+    config = config_reader.read_config()
+    supported_apis = [api for api in api_list if config.get_api(api).tvos_target]
+    if not supported_apis:
+      platform_list.remove("tvOS")
+      return ",".join(platform_list)
+  
+  return platforms
+
+
 def main():
   args = parse_cmdline_args()
   if args.override:
     # If it is matrix parm, convert CSV string into a list
     if not args.config:
       args.override = args.override.split(',')
+    if args.parm_key == "platform" and args.apis:
+      args.override = filter_platforms_on_apis(args.override, args.apis)
+
     print_value(args.override)
     return
 
@@ -352,6 +370,8 @@ def main():
     value = filter_devices(value, args.device_type)
   if args.auto_diff:
     value = filter_values_on_diff(args.parm_key, value, args.auto_diff)
+  if args.parm_key == "platform" and args.apis:
+    value = filter_platforms_on_apis(args.parm_key, args.apis)
   print_value(value)
 
 
@@ -365,6 +385,8 @@ def parse_cmdline_args():
   parser.add_argument('-o', '--override', help='Override existing value with provided value')
   parser.add_argument('-d', '--device', action='store_true', help='Get the device type, used with -k $device')
   parser.add_argument('-t', '--device_type', default=['real', 'virtual'], help='Test on which type of mobile devices')
+  parser.add_argument('-p', '--apis', default=["admob,analytics,auth,database,dynamic_links,firestore,functions,installations,messaging,remote_config,storage"], 
+                      help='Exclude platform based on apis. Certain platform does not support all apis. e.g. tvOS does not support messaging')
   args = parser.parse_args()
   return args
 
