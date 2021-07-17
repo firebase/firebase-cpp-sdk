@@ -2,8 +2,8 @@
 
 #include "firestore/src/include/firebase/firestore/transaction.h"
 
-#include "app/src/assert.h"
 #include "firestore/src/common/cleanup.h"
+#include "firestore/src/common/exception_common.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #if defined(__ANDROID__)
@@ -18,7 +18,7 @@ namespace firestore {
 using CleanupFnTransaction = CleanupFn<Transaction>;
 
 Transaction::Transaction(TransactionInternal* internal) : internal_(internal) {
-  FIREBASE_ASSERT(internal != nullptr);
+  SIMPLE_HARD_ASSERT(internal != nullptr);
   CleanupFnTransaction::Register(this, internal_);
 }
 
