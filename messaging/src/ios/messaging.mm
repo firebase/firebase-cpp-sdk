@@ -208,7 +208,7 @@ Future<void> RequestPermission() {
            UIRemoteNotificationTypeBadge);
       [appDelegate registerForRemoteNotificationTypes:allNotificationTypes];
     }
-    else if (@available(iOS 10.0, *)) {
+    else if (@available(iOS 12.0, *)) {
       UNAuthorizationOptions options = (UNAuthorizationOptions) (UNAuthorizationOptionAlert | UNAuthorizationOptionBadge | UNAuthorizationOptionSound);
       if (g_messaging_options.request_provisional_permission) {
         options |= UNAuthorizationOptionProvisional;
@@ -216,7 +216,14 @@ Future<void> RequestPermission() {
       UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
       center.delegate = g_user_delegate;
       [center requestAuthorizationWithOptions:options completionHandler:^(BOOL granted, NSError *error){
-          NSLog(@"GRANTED: %i, Error: %@", granted, error);
+          if (granted && !error) {
+            LogInfo("FCM: RequestPermission success");
+            CompletePermissionFuture(::firebase::messaging::kErrorNone);
+          }
+          else {
+            LogError("FCM: RequestPermission error: %s", error.localizedDescription.UTF8String);
+            CompletePermissionFuture(::firebase::messaging::kErrorFailedToRegisterForRemoteNotifications);
+          }
         }];
     }
     else {
