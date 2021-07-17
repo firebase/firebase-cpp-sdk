@@ -122,13 +122,13 @@ Firestore* Firestore::CreateFirestore(App* app,
                                       InitResult* init_result_out) {
   ValidateApp(app);
   SIMPLE_HARD_ASSERT(internal != nullptr,
-                          "Provided FirestoreInternal must not be null.");
+                     "Provided FirestoreInternal must not be null.");
 
   MutexLock lock(*g_firestores_lock);
 
   Firestore* from_cache = FindFirestoreInCache(app, init_result_out);
   SIMPLE_HARD_ASSERT(from_cache == nullptr,
-                          "Firestore must not be created already");
+                     "Firestore must not be created already");
 
   return AddFirestoreToCache(new Firestore(internal), init_result_out);
 }
