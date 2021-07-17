@@ -176,6 +176,20 @@ void NotifyListenerSet(Listener* listener) {
   }
 }
 
+static void CompletePermissionFuture(::firebase::messaging::Error error) {
+  if (internal::IsInitialized()) {
+    ::firebase::ReferenceCountedFutureImpl* api = ::firebase::messaging::FutureData::Get()->api();
+    // The ReferenceCountedFutureImpl object should be initialized in Initialize().
+    FIREBASE_ASSERT_RETURN_VOID(api != nullptr);
+    if (api->ValidFuture(::firebase::messaging::g_permission_prompt_future_handle) &&
+        RequestPermissionLastResult().status() == kFutureStatusPending) {
+      api->Complete(::firebase::messaging::g_permission_prompt_future_handle, error);
+    }
+  } else {
+    LogError("Attempting to complete future before FCM initialized.");
+  }
+}
+
 Future<void> RequestPermission() {
   FIREBASE_ASSERT_RETURN(RequestPermissionLastResult(), internal::IsInitialized());
 
@@ -334,20 +348,6 @@ static void RetrieveRegistrationToken() {
   // call back into this function.
   if (registration_token.length) {
     NotifyListenerOnTokenReceived(registration_token.UTF8String);
-  }
-}
-
-static void CompletePermissionFuture(::firebase::messaging::Error error) {
-  if (internal::IsInitialized()) {
-    ::firebase::ReferenceCountedFutureImpl* api = ::firebase::messaging::FutureData::Get()->api();
-    // The ReferenceCountedFutureImpl object should be initialized in Initialize().
-    FIREBASE_ASSERT_RETURN_VOID(api != nullptr);
-    if (api->ValidFuture(::firebase::messaging::g_permission_prompt_future_handle) &&
-        RequestPermissionLastResult().status() == kFutureStatusPending) {
-      api->Complete(::firebase::messaging::g_permission_prompt_future_handle, error);
-    }
-  } else {
-    LogError("Attempting to complete future before FCM initialized.");
   }
 }
 
