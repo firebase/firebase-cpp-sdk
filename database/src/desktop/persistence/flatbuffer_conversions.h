@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_PERSISTENCE_FLATBUFFER_CONVERSIONS_H_
-#define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_PERSISTENCE_FLATBUFFER_CONVERSIONS_H_
+#ifndef FIREBASE_DATABASE_SRC_DESKTOP_PERSISTENCE_FLATBUFFER_CONVERSIONS_H_
+#define FIREBASE_DATABASE_SRC_DESKTOP_PERSISTENCE_FLATBUFFER_CONVERSIONS_H_
 
 #include "app/src/include/firebase/variant.h"
 #include "database/src/common/query_spec.h"
@@ -76,4 +76,4 @@ Variant FlexbufferVectorToVariant(const flexbuffers::Vector& vector);
 }  // namespace database
 }  // namespace firebase
 
-#endif  // FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_PERSISTENCE_FLATBUFFER_CONVERSIONS_H_
+#endif  // FIREBASE_DATABASE_SRC_DESKTOP_PERSISTENCE_FLATBUFFER_CONVERSIONS_H_

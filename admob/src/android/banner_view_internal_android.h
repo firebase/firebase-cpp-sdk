@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_CLIENT_CPP_SRC_ANDROID_BANNER_VIEW_INTERNAL_ANDROID_H_
-#define FIREBASE_ADMOB_CLIENT_CPP_SRC_ANDROID_BANNER_VIEW_INTERNAL_ANDROID_H_
+#ifndef FIREBASE_ADMOB_SRC_ANDROID_BANNER_VIEW_INTERNAL_ANDROID_H_
+#define FIREBASE_ADMOB_SRC_ANDROID_BANNER_VIEW_INTERNAL_ANDROID_H_
 
 #include "admob/src/common/banner_view_internal.h"
 #include "app/src/util_android.h"
@@ -87,4 +87,4 @@ class BannerViewInternalAndroid : public BannerViewInternal {
 }  // namespace admob
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_CLIENT_CPP_SRC_ANDROID_BANNER_VIEW_INTERNAL_ANDROID_H_
+#endif  // FIREBASE_ADMOB_SRC_ANDROID_BANNER_VIEW_INTERNAL_ANDROID_H_

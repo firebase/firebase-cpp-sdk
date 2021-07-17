@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/include/firebase/firestore/settings.h"
 
 #include <ostream>
@@ -19,8 +21,7 @@ const char kDefaultHost[] = "firestore.googleapis.com";
 std::string ToStr(bool v) { return v ? "true" : "false"; }
 
 std::string ToStr(int64_t v) {
-  // TODO(b/163140650): use `std::to_string` (which will make this function
-  // unnecessary).
+  // TODO(b/192885139): when possible, use `std::to_string` instead.
   std::ostringstream s;
   s << v;
   return s.str();

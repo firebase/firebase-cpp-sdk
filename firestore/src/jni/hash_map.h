@@ -1,5 +1,7 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_HASH_MAP_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_HASH_MAP_H_
+// Copyright 2020 Google LLC
+
+#ifndef FIREBASE_FIRESTORE_SRC_JNI_HASH_MAP_H_
+#define FIREBASE_FIRESTORE_SRC_JNI_HASH_MAP_H_
 
 #include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/map.h"
@@ -22,4 +24,4 @@ class HashMap : public Map {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_HASH_MAP_H_
+#endif  // FIREBASE_FIRESTORE_SRC_JNI_HASH_MAP_H_

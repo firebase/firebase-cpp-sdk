@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_FILESYSTEM_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_FILESYSTEM_H_
+#ifndef FIREBASE_APP_SRC_FILESYSTEM_H_
+#define FIREBASE_APP_SRC_FILESYSTEM_H_
 
 #include <string>
 
@@ -56,4 +56,4 @@ std::string AppDataDir(const char* app_name, bool should_create = true,
 
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_FILESYSTEM_H_
+#endif  // FIREBASE_APP_SRC_FILESYSTEM_H_

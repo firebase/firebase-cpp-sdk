@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #import "performance/src_ios/fake/FIRHTTPMetric.h"
 
 #include "testing/reporter_impl.h"

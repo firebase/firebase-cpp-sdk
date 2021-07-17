@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_TESTS_INCLUDE_FIREBASE_APP_FOR_TESTING_H_
-#define FIREBASE_APP_CLIENT_CPP_TESTS_INCLUDE_FIREBASE_APP_FOR_TESTING_H_
+#ifndef FIREBASE_APP_TESTS_INCLUDE_FIREBASE_APP_FOR_TESTING_H_
+#define FIREBASE_APP_TESTS_INCLUDE_FIREBASE_APP_FOR_TESTING_H_
 
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/platform.h"
@@ -56,4 +56,4 @@ static App* CreateApp() { return CreateApp(MockAppOptions()); }
 }  // namespace testing
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_TESTS_INCLUDE_FIREBASE_APP_FOR_TESTING_H_
+#endif  // FIREBASE_APP_TESTS_INCLUDE_FIREBASE_APP_FOR_TESTING_H_

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_REST_REQUEST_BINARY_GZIP_H_
-#define FIREBASE_APP_CLIENT_CPP_REST_REQUEST_BINARY_GZIP_H_
+#ifndef FIREBASE_APP_REST_REQUEST_BINARY_GZIP_H_
+#define FIREBASE_APP_REST_REQUEST_BINARY_GZIP_H_
 
 #include <cstddef>
 #include <string>
@@ -70,4 +70,4 @@ class RequestBinaryGzip : public RequestBinary {
 }  // namespace rest
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_REST_REQUEST_BINARY_GZIP_H_
+#endif  // FIREBASE_APP_REST_REQUEST_BINARY_GZIP_H_

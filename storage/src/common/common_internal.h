@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_STORAGE_CLIENT_CPP_SRC_COMMON_COMMON_INTERNAL_H_
-#define FIREBASE_STORAGE_CLIENT_CPP_SRC_COMMON_COMMON_INTERNAL_H_
+#ifndef FIREBASE_STORAGE_SRC_COMMON_COMMON_INTERNAL_H_
+#define FIREBASE_STORAGE_SRC_COMMON_COMMON_INTERNAL_H_
 
 #include "storage/src/include/firebase/storage/metadata.h"
 
@@ -28,4 +28,4 @@ void MetadataSetDefaults(Metadata* metadata);
 }  // namespace storage
 }  // namespace firebase
 
-#endif  // FIREBASE_STORAGE_CLIENT_CPP_SRC_COMMON_COMMON_INTERNAL_H_
+#endif  // FIREBASE_STORAGE_SRC_COMMON_COMMON_INTERNAL_H_

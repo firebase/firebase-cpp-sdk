@@ -1,5 +1,7 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_LISTENER_MAIN_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_LISTENER_MAIN_H_
+// Copyright 2021 Google LLC
+
+#ifndef FIREBASE_FIRESTORE_SRC_MAIN_LISTENER_MAIN_H_
+#define FIREBASE_FIRESTORE_SRC_MAIN_LISTENER_MAIN_H_
 
 #include <functional>
 #include <memory>
@@ -94,4 +96,4 @@ inline util::StatusCallback StatusCallbackWithPromise(Promise<void> promise) {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_LISTENER_MAIN_H_
+#endif  // FIREBASE_FIRESTORE_SRC_MAIN_LISTENER_MAIN_H_

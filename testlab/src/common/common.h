@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_TESTLAB_CLIENT_CPP_SRC_COMMON_COMMON_H_
-#define FIREBASE_TESTLAB_CLIENT_CPP_SRC_COMMON_COMMON_H_
+#ifndef FIREBASE_TESTLAB_SRC_COMMON_COMMON_H_
+#define FIREBASE_TESTLAB_SRC_COMMON_COMMON_H_
 
 #include <stdarg.h>
 
@@ -63,4 +63,4 @@ FILE* OpenCustomResultsFile(int scenario);
 }  //  namespace test_lab
 }  // namespace firebase
 
-#endif  // FIREBASE_TESTLAB_CLIENT_CPP_SRC_COMMON_COMMON_H_
+#endif  // FIREBASE_TESTLAB_SRC_COMMON_COMMON_H_

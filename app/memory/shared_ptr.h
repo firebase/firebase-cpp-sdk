@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_MEMORY_SHARED_PTR_H_
-#define FIREBASE_APP_CLIENT_CPP_MEMORY_SHARED_PTR_H_
+#ifndef FIREBASE_APP_MEMORY_SHARED_PTR_H_
+#define FIREBASE_APP_MEMORY_SHARED_PTR_H_
 #include <cstdint>
 
 #include "app/memory/atomic.h"
@@ -226,4 +226,4 @@ void SharedPtr<T>::Clear() {
 }
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase
-#endif  // FIREBASE_APP_CLIENT_CPP_MEMORY_SHARED_PTR_H_
+#endif  // FIREBASE_APP_MEMORY_SHARED_PTR_H_

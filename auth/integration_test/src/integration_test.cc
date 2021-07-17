@@ -395,7 +395,7 @@ TEST_F(FirebaseAuthTest, TestTokensAndAuthStateListeners) {
 
 static std::string GenerateEmailAddress() {
   char time_string[22];
-  snprintf(time_string, 22, "%d",
+  snprintf(time_string, sizeof(time_string), "%lld",
            app_framework::GetCurrentTimeInMicroseconds());
   std::string email = "random_user_";
   email.append(time_string);
@@ -719,34 +719,40 @@ TEST_F(FirebaseAuthTest, TestWithCustomEmailAndPassword) {
   EXPECT_NE(auth_->current_user(), nullptr);
 }
 
-#if !defined(__linux__)
-// Test is disabled on linux due to the need to unlock the keystore.
 TEST_F(FirebaseAuthTest, TestAuthPersistenceWithAnonymousSignin) {
+  // Automated test is disabled on linux due to the need to unlock the keystore.
+  SKIP_TEST_ON_LINUX;
+
+  FLAKY_TEST_SECTION_BEGIN();
+
   WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
-  ASSERT_NE(auth_->current_user(), nullptr);
+  EXPECT_NE(auth_->current_user(), nullptr);
   EXPECT_TRUE(auth_->current_user()->is_anonymous());
   Terminate();
   ProcessEvents(2000);
   Initialize();
   EXPECT_NE(auth_, nullptr);
-  ASSERT_NE(auth_->current_user(), nullptr);
+  EXPECT_NE(auth_->current_user(), nullptr);
   EXPECT_TRUE(auth_->current_user()->is_anonymous());
   DeleteUser();
-}
-#endif  // ! defined(__linux__)
 
-#if !defined(__linux__)
-// Test is disabled on linux due to the need to unlock the keychain.
+  FLAKY_TEST_SECTION_END();
+}
 TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
+  // Automated test is disabled on linux due to the need to unlock the keystore.
+  SKIP_TEST_ON_LINUX;
+
+  FLAKY_TEST_SECTION_BEGIN();
+
   std::string email = GenerateEmailAddress();
   WaitForCompletion(
       auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
       "CreateUserWithEmailAndPassword");
-  ASSERT_NE(auth_->current_user(), nullptr);
+  EXPECT_NE(auth_->current_user(), nullptr);
   EXPECT_FALSE(auth_->current_user()->is_anonymous());
   std::string prev_provider_id = auth_->current_user()->provider_id();
-  // Save the old provider ID list so we can make sure it's the same once it's
-  // loaded again.
+  // Save the old provider ID list so we can make sure it's the same once
+  // it's loaded again.
   std::vector<std::string> prev_provider_data_ids;
   for (int i = 0; i < auth_->current_user()->provider_data().size(); i++) {
     prev_provider_data_ids.push_back(
@@ -756,7 +762,7 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
   ProcessEvents(2000);
   Initialize();
   EXPECT_NE(auth_, nullptr);
-  ASSERT_NE(auth_->current_user(), nullptr);
+  EXPECT_NE(auth_->current_user(), nullptr);
   EXPECT_FALSE(auth_->current_user()->is_anonymous());
   // Make sure the provider IDs are the same as they were before.
   EXPECT_EQ(auth_->current_user()->provider_id(), prev_provider_id);
@@ -765,7 +771,7 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
     loaded_provider_data_ids.push_back(
         auth_->current_user()->provider_data()[i]->provider_id());
   }
-  EXPECT_EQ(loaded_provider_data_ids, prev_provider_data_ids);
+  EXPECT_TRUE(loaded_provider_data_ids == prev_provider_data_ids);
 
   // Cleanup, ensure we are signed in as the user so we can delete it.
   WaitForCompletion(
@@ -773,8 +779,9 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
       "SignInWithEmailAndPassword");
   EXPECT_NE(auth_->current_user(), nullptr);
   DeleteUser();
+
+  FLAKY_TEST_SECTION_END();
 }
-#endif  // ! defined(__linux__)
 
 class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
  public:
@@ -860,57 +867,63 @@ TEST_F(FirebaseAuthTest, TestPhoneAuth) {
   // Note: This test requires interactivity on iOS, as it displays a CAPTCHA.
   TEST_REQUIRES_USER_INTERACTION;
 #endif  // TARGET_OS_IPHONE
-  {
-    firebase::auth::PhoneAuthProvider& phone_provider =
-        firebase::auth::PhoneAuthProvider::GetInstance(auth_);
-    LogDebug("Creating listener.");
-    PhoneListener listener;
-    LogDebug("Calling VerifyPhoneNumber.");
-    // Randomly choose one of the phone numbers to avoid collisions.
-    const int random_phone_number =
-        app_framework::GetCurrentTimeInMicroseconds() %
-        kPhoneAuthTestNumPhoneNumbers;
-    phone_provider.VerifyPhoneNumber(
-        kPhoneAuthTestPhoneNumbers[random_phone_number], kPhoneAuthTimeoutMs,
-        nullptr, &listener);
-    // Wait for OnCodeSent() callback.
-    int wait_ms = 0;
-    LogDebug("Waiting for code send.");
-    while (listener.waiting_to_send_code()) {
-      if (wait_ms > kPhoneAuthCodeSendWaitMs) break;
-      ProcessEvents(kWaitIntervalMs);
-      wait_ms += kWaitIntervalMs;
-    }
-    EXPECT_EQ(listener.on_verification_failed_count(), 0);
-    LogDebug("Waiting for verification ID.");
-    // Wait for the listener to have a verification ID.
-    wait_ms = 0;
-    while (listener.waiting_for_verification_id()) {
-      if (wait_ms > kPhoneAuthCompletionWaitMs) break;
-      ProcessEvents(kWaitIntervalMs);
-      wait_ms += kWaitIntervalMs;
-    }
-    if (listener.on_verification_complete_count() > 0) {
-      LogDebug("Signing in with automatic verification code.");
-      WaitForCompletion(auth_->SignInWithCredential(listener.credential()),
-                        "SignInWithCredential(PhoneCredential) automatic");
-    } else if (listener.on_verification_failed_count() > 0) {
-      FAIL() << "Automatic verification failed.";
-    } else {
-      // Did not automatically verify, submit verification code manually.
-      EXPECT_GT(listener.on_code_auto_retrieval_time_out_count(), 0);
-      EXPECT_NE(listener.verification_id(), "");
-      LogDebug("Signing in with verification code.");
-      const firebase::auth::Credential phone_credential =
-          phone_provider.GetCredential(listener.verification_id().c_str(),
-                                       kPhoneAuthTestVerificationCode);
 
-      WaitForCompletion(auth_->SignInWithCredential(phone_credential),
-                        "SignInWithCredential(PhoneCredential)");
-    }
+  FLAKY_TEST_SECTION_BEGIN();
+
+  firebase::auth::PhoneAuthProvider& phone_provider =
+      firebase::auth::PhoneAuthProvider::GetInstance(auth_);
+  LogDebug("Creating listener.");
+  PhoneListener listener;
+  LogDebug("Calling VerifyPhoneNumber.");
+  // Randomly choose one of the phone numbers to avoid collisions.
+  const int random_phone_number =
+      app_framework::GetCurrentTimeInMicroseconds() %
+      kPhoneAuthTestNumPhoneNumbers;
+  phone_provider.VerifyPhoneNumber(
+      kPhoneAuthTestPhoneNumbers[random_phone_number], kPhoneAuthTimeoutMs,
+      nullptr, &listener);
+
+  // Wait for OnCodeSent() callback.
+  int wait_ms = 0;
+  LogDebug("Waiting for code send.");
+  while (listener.waiting_to_send_code()) {
+    if (wait_ms > kPhoneAuthCodeSendWaitMs) break;
+    ProcessEvents(kWaitIntervalMs);
+    wait_ms += kWaitIntervalMs;
   }
+  EXPECT_EQ(listener.on_verification_failed_count(), 0);
+
+  LogDebug("Waiting for verification ID.");
+  // Wait for the listener to have a verification ID.
+  wait_ms = 0;
+  while (listener.waiting_for_verification_id()) {
+    if (wait_ms > kPhoneAuthCompletionWaitMs) break;
+    ProcessEvents(kWaitIntervalMs);
+    wait_ms += kWaitIntervalMs;
+  }
+  if (listener.on_verification_complete_count() > 0) {
+    LogDebug("Signing in with automatic verification code.");
+    WaitForCompletion(auth_->SignInWithCredential(listener.credential()),
+                      "SignInWithCredential(PhoneCredential) automatic");
+  } else if (listener.on_verification_failed_count() > 0) {
+    FAIL() << "Automatic verification failed.";
+  } else {
+    // Did not automatically verify, submit verification code manually.
+    EXPECT_GT(listener.on_code_auto_retrieval_time_out_count(), 0);
+    EXPECT_NE(listener.verification_id(), "");
+    LogDebug("Signing in with verification code.");
+    const firebase::auth::Credential phone_credential =
+        phone_provider.GetCredential(listener.verification_id().c_str(),
+                                     kPhoneAuthTestVerificationCode);
+
+    WaitForCompletion(auth_->SignInWithCredential(phone_credential),
+                      "SignInWithCredential(PhoneCredential)");
+  }
+
   ProcessEvents(1000);
   DeleteUser();
+
+  FLAKY_TEST_SECTION_END();
 }
 
 #if defined(ENABLE_OAUTH_TESTS)

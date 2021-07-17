@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/android/timestamp_android.h"
 
 #include "firebase/firestore/timestamp.h"

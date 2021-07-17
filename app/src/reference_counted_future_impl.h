@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_REFERENCE_COUNTED_FUTURE_IMPL_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_REFERENCE_COUNTED_FUTURE_IMPL_H_
+#ifndef FIREBASE_APP_SRC_REFERENCE_COUNTED_FUTURE_IMPL_H_
+#define FIREBASE_APP_SRC_REFERENCE_COUNTED_FUTURE_IMPL_H_
 
 #include <functional>
 #include <map>
@@ -619,4 +619,4 @@ Future<T> MakeFuture(ReferenceCountedFutureImpl* api,
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_REFERENCE_COUNTED_FUTURE_IMPL_H_
+#endif  // FIREBASE_APP_SRC_REFERENCE_COUNTED_FUTURE_IMPL_H_

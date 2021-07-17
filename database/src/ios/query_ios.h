@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_IOS_QUERY_IOS_H_
-#define FIREBASE_DATABASE_CLIENT_CPP_SRC_IOS_QUERY_IOS_H_
+#ifndef FIREBASE_DATABASE_SRC_IOS_QUERY_IOS_H_
+#define FIREBASE_DATABASE_SRC_IOS_QUERY_IOS_H_
 
 #include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/future.h"
@@ -250,4 +250,4 @@ class SingleValueListener : public ValueListener {
 }  // namespace database
 }  // namespace firebase
 
-#endif  // FIREBASE_DATABASE_CLIENT_CPP_SRC_IOS_QUERY_IOS_H_
+#endif  // FIREBASE_DATABASE_SRC_IOS_QUERY_IOS_H_

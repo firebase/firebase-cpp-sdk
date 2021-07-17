@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_VIEW_CHANGE_H_
-#define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_VIEW_CHANGE_H_
+#ifndef FIREBASE_DATABASE_SRC_DESKTOP_VIEW_CHANGE_H_
+#define FIREBASE_DATABASE_SRC_DESKTOP_VIEW_CHANGE_H_
 
 #include <string>
 
@@ -97,4 +97,4 @@ Change ChangeWithPrevName(const Change& change, const std::string& prev_name);
 }  // namespace database
 }  // namespace firebase
 
-#endif  // FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_VIEW_CHANGE_H_
+#endif  // FIREBASE_DATABASE_SRC_DESKTOP_VIEW_CHANGE_H_

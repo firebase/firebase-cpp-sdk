@@ -34,17 +34,29 @@ There are 3 types of files being updated by this script,
 Usage:
 # Dryrun (does not update any files on disk but prints out all replacements for
 # preview) - Update versions in default set of files in the repository.
-python3 scripts/update_ios_android_dependencies.py --dryrun
+python3 scripts/update_android_ios_dependencies.py --dryrun
 
-# Update versions in default set of files in the repository
-python3 scripts/update_ios_android_dependencies.py
+# Update versions in default set of files in the repository.
+python3 scripts/update_android_ios_dependencies.py
+
+# Update versions in default set of files in the repository. (allow updating to
+# experimental versions)
+python3 scripts/update_android_ios_dependencies.py --allow_experimental
 
 # Update only Android packages
-python3 scripts/update_ios_android_dependencies.py --skip_ios
+python3 scripts/update_android_ios_dependencies.py --skip_ios
 
 # Update specific pod files (or directories containing pod files)
-python3 scripts/update_ios_android_dependencies.py --podfiles foo/Podfile
+python3 scripts/update_android_ios_dependencies.py --podfiles foo/Podfile
                                                               dir_with_podfiles
+
+# Update all Android packages except any names containing androidx and auth
+python3 scripts/update_android_ios_dependencies.py --skip_ios
+  --ignore_android_packages auth androidx
+
+# Ignore updating any files in gameloop_android and test directories
+python3 scripts/update_android_ios_dependencies.py --ignore_directories test
+  gameloop_android
 
 Other similar flags:
 --depfiles
@@ -66,12 +78,12 @@ import sys
 import tempfile
 
 from collections import defaultdict
-from pkg_resources import packaging
 from xml.etree import ElementTree
+from pkg_resources import packaging
 
 
 def get_files_from_directory(dirpath, file_extension, file_name=None,
-                             absolute_paths=True):
+                             absolute_paths=True, ignore_directories=None):
   """Helper function to filter files in directories.
 
   Args:
@@ -83,27 +95,35 @@ def get_files_from_directory(dirpath, file_extension, file_name=None,
       absolute_paths (bool, optional): Return absolute paths to files.
         Defaults to True.
         If False, just filenames are returned.
+      ignore_directories (list[str], optional): Directory names to ignore.
+        Eg: ['gameloop_android', 'do_not_scan_this_directory']
 
   Returns:
       list(str): List of files matching the specified criteria.
         List of filenames (if absolute_paths=False), or
         a list of absolute paths (if absolute_paths=True)
   """
+  if ignore_directories is None:
+    ignore_directories = []
+
   files = []
-  for dirpath, _, filenames in os.walk(dirpath):
+  for root, dirs, filenames in os.walk(dirpath):
+    dirs[:] = [directory for directory in dirs
+               if directory not in ignore_directories]
     for filename in filenames:
       if not filename.endswith(file_extension):
         continue
       if file_name and not file_name == filename:
         continue
       if absolute_paths:
-        files.append(os.path.join(dirpath, filename))
+        files.append(os.path.join(root, filename))
       else:
         files.append(filename)
   return files
 
 
-def get_files(dirs_and_files, file_extension, file_name=None):
+def get_files(dirs_and_files, file_extension, file_name=None,
+              ignore_directories=None):
   """Gets the final flat list of files after searching directories.
 
   If a directory is passed, it is searched recursively.
@@ -115,6 +135,8 @@ def get_files(dirs_and_files, file_extension, file_name=None):
         Eg: '.gradle'
       file_name (str, optional): Exact file name to search for.
         Defaults to None. Eg: 'foo.gradle'
+      ignore_directories (list[str], optional): Directory names to ignore.
+        Eg: ['gameloop_android', 'do_not_scan_this_directory']
 
   Returns:
       iterable(str): Final list of files after recursively searching dirs.
@@ -125,13 +147,17 @@ def get_files(dirs_and_files, file_extension, file_name=None):
     if not os.path.exists(abspath):
       continue
     if os.path.isdir(abspath):
-      files = files + get_files_from_directory(abspath,
-                                               file_extension=file_extension,
-                                               file_name=file_name)
+      files = files + get_files_from_directory(
+        abspath,
+        file_extension=file_extension,
+        file_name=file_name,
+        ignore_directories=ignore_directories)
     elif os.path.isfile(abspath):
       files.append(abspath)
   return files
 
+# Regex to match versions with just digits (ignoring things like -alpha, -beta)
+RE_NON_EXPERIMENTAL_VERSION = re.compile('[0-9.]+$')
 
 ##########  iOS pods versions update #######################################
 
@@ -158,47 +184,73 @@ PODS = (
 )
 
 
-def get_pod_versions(specs_repo, pods=PODS):
+def get_pod_versions(specs_repo, pods=PODS, ignore_pods=None,
+                     allow_experimental=False):
   """Get available pods and their versions from the specs repo
 
   Args:
       local_repo_dir (str): Directory mirroring Cocoapods specs repo
       pods (iterable(str), optional): List of pods whose versions we need.
         Defaults to PODS.
-
+      ignore_pods (list[str], optional): Case insensitive list of substrings
+        If any of these substrings are present in the pod name, it will not be
+        updated.
+        Eg: ['foo', 'bar'] will ignore all pods that have 'foo' or
+        'bar' in their name. For example, 'test_foo', 'test_foo_baz'
+      allow_experimental (bool): Allow experimental versions.
+        Eg: 1.2.3-alpha, 1.2.3-beta, 1.2.3-rc
   Returns:
       dict: Map of the form {<str>:list(str)}
         Containing a mapping of podnames to available versions.
   """
+  if ignore_pods is None:
+    ignore_pods = []
+
   all_versions = defaultdict(list)
   logging.info('Fetching pod versions from Specs repo...')
   podspec_files = get_files_from_directory(specs_repo,
                                            file_extension='.podspec.json')
   for podspec_file in podspec_files:
     filename = os.path.basename(podspec_file)
-    # Example: FirebaseAuth.podspec.json
+    # Example: FirebaseAuth.podspec.json --> FirebaseAuth
     podname = filename.split('.')[0]
-    if not podname in pods:
+    if podname not in pods:
+      continue
+    if any(ignore_pod.lower() in podname.lower() for ignore_pod in ignore_pods):
       continue
     parent_dir = os.path.dirname(podspec_file)
     version = os.path.basename(parent_dir)
+    if not allow_experimental and '-cppsdk' not in version:
+      if not re.match(RE_NON_EXPERIMENTAL_VERSION, version):
+        continue
     all_versions[podname].append(version)
 
   return all_versions
 
 
-def get_latest_pod_versions(specs_repo=None, pods=PODS):
+def get_latest_pod_versions(specs_repo=None, pods=PODS, ignore_pods=None,
+                            allow_experimental=None):
   """Get latest versions for specified pods.
 
   Args:
       pods (iterable(str) optional): Pods for which we need latest version.
         Defaults to PODS.
       specs_repo (str optional): Local checkout of Cocoapods specs repo.
+      ignore_pods (list[str], optional): Case insensitive list of substrings
+        If any of these substrings are present in the pod name, it will not be
+        updated.
+        Eg: ['Foo', 'bar'] will ignore all pods that have 'foo' or
+        'bar' in their name. For example, 'test_foo', 'test_foo_baz'
+      allow_experimental (bool): Allow experimental versions.
+        Eg: 1.2.3-alpha, 1.2.3-beta, 1.2.3-rc
 
   Returns:
       dict: Map of the form {<str>:<str>} containing a mapping of podnames to
         latest version.
   """
+  if ignore_pods is None:
+    ignore_pods = []
+
   cleanup_required = False
   if specs_repo is None:
     specs_repo = tempfile.mkdtemp(suffix='pods')
@@ -209,7 +261,8 @@ def get_latest_pod_versions(specs_repo=None, pods=PODS):
     # Temporary directory should be cleaned up after use.
     cleanup_required = True
 
-  all_versions = get_pod_versions(specs_repo, pods)
+  all_versions = get_pod_versions(specs_repo, pods, ignore_pods,
+                                  allow_experimental)
   if cleanup_required:
     shutil.rmtree(specs_repo)
 
@@ -304,6 +357,8 @@ def modify_pod_file(pod_file, pod_version_map, dryrun=True):
     print()
 
 
+# Regex to match lines like:
+# |                          | Firebase/Auth Cocoapod (8.2.0)
 RE_README_POD_VERSION = re.compile(
   r"\|(?P<spaces>\s+)\| (?P<pod_name>.*) Cocoapod \((?P<version>([0-9.]+))\)")
 
@@ -311,7 +366,7 @@ def modify_readme_file_pods(readme_filepath, version_map, dryrun=True):
   """Modify a readme Markdown file to reference correct cocoapods versions.
 
   Looks for lines like:
-  <br>Firebase/AdMob Cocoapod (7.11.0)<br>Firebase/Auth Cocoapod (8.1.0)
+  |                          | Firebase/Auth Cocoapod (8.2.0)
   for pods matching the ones in the version map, and modifies them in-place.
 
   Args:
@@ -373,7 +428,26 @@ GMAVEN_MASTER_INDEX = "https://dl.google.com/dl/android/maven2/master-index.xml"
 GMAVEN_GROUP_INDEX = "https://dl.google.com/dl/android/maven2/{0}/group-index.xml"
 
 
-def get_latest_maven_versions():
+def get_latest_maven_versions(ignore_packages=None, allow_experimental=False):
+  """Gets latest versions of android packages from google Maven repository.
+
+  Args:
+      ignore_packages (list[str], optional): Case insensitive list of substrings
+        If any of these substrings are present in the android package name, it
+        will not be updated.
+        Eg: ['Foo', 'bar'] will ignore all android packages that have 'foo' or
+        'bar' in their name. For example, 'my.android.foo.package',
+        'myfoo.android.package'
+      allow_experimental (bool): Allow experimental versions.
+        Eg: 1.2.3-alpha, 1.2.3-beta, 1.2.3-rc
+
+  Returns:
+      dict: Dictionary of the form {<str>: list(str)} containing full name of
+        android package as the key and its list of versions as value.
+  """
+  if ignore_packages is None:
+    ignore_packages = []
+
   latest_versions = {}
   response = requests.get(GMAVEN_MASTER_INDEX)
   index_xml = ElementTree.fromstring(response.content)
@@ -385,8 +459,16 @@ def get_latest_maven_versions():
     for group_child in group_xml:
       package_name = group_child.tag.replace('-', '_')
       package_full_name = group_name + "." + package_name
-      package_version = group_child.attrib['versions'].split(',')[-1]
-      latest_versions[package_full_name] = package_version
+      if any(ignore_package.lower().replace('-', '_') in package_full_name.lower()
+              for ignore_package in ignore_packages):
+        continue
+      versions = group_child.attrib['versions'].split(',')
+      if not allow_experimental:
+        versions = [version for version in versions
+          if re.match(RE_NON_EXPERIMENTAL_VERSION, version) or '-cppsdk' in version]
+      if versions:
+        latest_valid_version = versions[-1]
+        latest_versions[package_full_name] = latest_valid_version
   return latest_versions
 
 
@@ -453,15 +535,18 @@ def modify_dependency_file(dependency_filepath, version_map, dryrun=True):
     print()
 
 
+# Regex to match lines like:
+# |                          | com.google.firebase:firebase-auth:1.2.3
+# |                          | com.google.firebase:firebase-auth:1.2.3-alpha
 RE_README_ANDROID_VERSION = re.compile(
-    r"\|(?P<spaces>\s+)\| (?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([0-9.]+)")
+    r"\|(?P<spaces>\s+)\| (?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([a-zA-Z0-9._-]+)")
 
 
 def modify_readme_file_android(readme_filepath, version_map, dryrun=True):
   """Modify a readme Markdown file to reference correct module versions.
 
   Looks for lines like:
-  <br>com.google.firebase:firebase-core:15.0.0<br>
+  |                          | com.google.firebase:firebase-auth:1.2.3
   for modules matching the ones in the version map, and modifies them in-place.
 
   Args:
@@ -489,7 +574,7 @@ def modify_readme_file_android(readme_filepath, version_map, dryrun=True):
     pkg = m.group('pkg').replace('-', '_').replace(':', '.')
     if pkg not in version_map:
       return m.group(0)
-    repl = '|%s| %s:%s ' % (m.group('spaces'), m.group('pkg'), version_map[pkg])
+    repl = '|%s| %s:%s' % (m.group('spaces'), m.group('pkg'), version_map[pkg])
     return repl
 
   substituted_pairs = []
@@ -515,8 +600,9 @@ def modify_readme_file_android(readme_filepath, version_map, dryrun=True):
 
 # Regex to match lines like:
 # implementation 'com.google.firebase:firebase-auth:1.2.3'
+# implementation 'com.google.firebase:firebase-auth:1.2.3-alpha'
 RE_GRADLE_COMPILE_MODULE = re.compile(
-    r"implementation\s*\'(?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([0-9.]+)\'")
+    r"implementation\s*\'(?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([a-zA-Z0-9._-]+)\'")
 
 
 def modify_gradle_file(gradle_filepath, version_map, dryrun=True):
@@ -580,16 +666,33 @@ def parse_cmdline_args():
             help='Just print the replaced lines, DO NOT overwrite any files')
   parser.add_argument( "--log_level", default="info",
             help="Logging level (debug, warning, info)")
+  # TODO: remove default values when we decide to update androidx for 
+  # gameloop_android as well.
+  parser.add_argument('--ignore_directories', nargs='+',
+            default=('gameloop_android', 'scripts'),
+            help='Ignore updating any files in these directories (names).')
+  parser.add_argument('--allow_experimental', action='store_true',
+            help='Allow updating to experimental versions (eg:1.2.3-alpha))')
   # iOS options
   parser.add_argument('--skip_ios', action='store_true',
-            help='Skip iOS pod version update.')
+            help='Skip iOS pod version update completely.')
+  # TODO: remove default values when Ads SDK does not need to be pinned.
+  parser.add_argument('--ignore_ios_pods', nargs='+',
+            default=('Google-Mobile-Ads-SDK',),
+            help='Ignore iOS pods which have any of the items specified in '
+                 'this list as substrings.')
   parser.add_argument('--podfiles', nargs='+', default=(os.getcwd(),),
             help= 'List of pod files or directories containing podfiles')
   parser.add_argument('--specs_repo',
             help= 'Local checkout of github Cocoapods Specs repository')
   # Android options
   parser.add_argument('--skip_android', action='store_true',
-            help='Skip Android libraries version update.')
+            help='Skip Android libraries version update completely.')
+  # TODO: remove default values when Ads SDK does not need to be pinned.
+  parser.add_argument('--ignore_android_packages', nargs='+',
+            default=('firebase-ads',),
+            help='Ignore Android packages which have any of the items '
+                 'specified in this list as substrings.')
   parser.add_argument('--depfiles', nargs='+',
             default=('Android/firebase_dependencies.gradle',
                     'release_build_files/Android/firebase_dependencies.gradle'),
@@ -630,17 +733,21 @@ def main():
                            file_name='readme')
 
   if not args.skip_ios:
-    latest_pod_versions_map = get_latest_pod_versions(args.specs_repo, PODS)
-    pod_files = get_files(args.podfiles, file_extension='', file_name='Podfile')
+    latest_pod_versions_map = get_latest_pod_versions(args.specs_repo, PODS,
+      set(args.ignore_ios_pods), args.allow_experimental)
+    pod_files = get_files(args.podfiles, file_extension='', file_name='Podfile',
+                          ignore_directories=set(args.ignore_directories))
     for pod_file in pod_files:
       modify_pod_file(pod_file, latest_pod_versions_map, args.dryrun)
     for readme_file in readme_files:
       modify_readme_file_pods(readme_file, latest_pod_versions_map, args.dryrun)
 
   if not args.skip_android:
-    latest_android_versions_map = get_latest_maven_versions()
+    latest_android_versions_map = get_latest_maven_versions(
+      set(args.ignore_android_packages), args.allow_experimental)
     dep_files = get_files(args.depfiles, file_extension='.gradle',
-                          file_name='firebase_dependencies.gradle')
+                          file_name='firebase_dependencies.gradle',
+                          ignore_directories=set(args.ignore_directories))
     for dep_file in dep_files:
       modify_dependency_file(dep_file, latest_android_versions_map, args.dryrun)
 
@@ -649,7 +756,8 @@ def main():
                                  args.dryrun)
 
     gradle_files = get_files(args.gradlefiles, file_extension='.gradle',
-                             file_name='build.gradle')
+                             file_name='build.gradle',
+                             ignore_directories=set(args.ignore_directories))
     for gradle_file in gradle_files:
       modify_gradle_file(gradle_file, latest_android_versions_map, args.dryrun)
 

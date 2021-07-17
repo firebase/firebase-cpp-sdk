@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #import "performance/src_ios/fake/FIRTrace.h"
 
 #import "performance/src_ios/fake/FIRPerformance.h"

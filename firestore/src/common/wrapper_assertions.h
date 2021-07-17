@@ -1,5 +1,7 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_WRAPPER_ASSERTIONS_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_WRAPPER_ASSERTIONS_H_
+// Copyright 2020 Google LLC
+
+#ifndef FIREBASE_FIRESTORE_SRC_COMMON_WRAPPER_ASSERTIONS_H_
+#define FIREBASE_FIRESTORE_SRC_COMMON_WRAPPER_ASSERTIONS_H_
 
 #include "firestore/src/common/type_mapping.h"
 #include "firestore/src/include/firebase/firestore.h"
@@ -128,4 +130,4 @@ void AssertWrapperAssignmentContract() {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_WRAPPER_ASSERTIONS_H_
+#endif  // FIREBASE_FIRESTORE_SRC_COMMON_WRAPPER_ASSERTIONS_H_

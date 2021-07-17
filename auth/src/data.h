@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DATA_H_
-#define FIREBASE_AUTH_CLIENT_CPP_SRC_DATA_H_
+#ifndef FIREBASE_AUTH_SRC_DATA_H_
+#define FIREBASE_AUTH_SRC_DATA_H_
 
 #include <string>
 
@@ -211,4 +211,4 @@ void DestroyTokenRefresher(AuthData* auth_data);
 }  // namespace auth
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_SRC_DATA_H_
+#endif  // FIREBASE_AUTH_SRC_DATA_H_

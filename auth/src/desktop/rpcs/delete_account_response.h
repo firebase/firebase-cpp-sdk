@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_RPCS_DELETE_ACCOUNT_RESPONSE_H_
-#define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_RPCS_DELETE_ACCOUNT_RESPONSE_H_
+#ifndef FIREBASE_AUTH_SRC_DESKTOP_RPCS_DELETE_ACCOUNT_RESPONSE_H_
+#define FIREBASE_AUTH_SRC_DESKTOP_RPCS_DELETE_ACCOUNT_RESPONSE_H_
 
 #include "auth/src/desktop/rpcs/auth_response.h"
 #include "auth/src/desktop/visual_studio_compatibility.h"
@@ -31,4 +31,4 @@ class DeleteAccountResponse : public AuthResponse {
 }  // namespace auth
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_RPCS_DELETE_ACCOUNT_RESPONSE_H_
+#endif  // FIREBASE_AUTH_SRC_DESKTOP_RPCS_DELETE_ACCOUNT_RESPONSE_H_

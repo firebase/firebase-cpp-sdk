@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_CALLBACK_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_CALLBACK_H_
+#ifndef FIREBASE_APP_SRC_CALLBACK_H_
+#define FIREBASE_APP_SRC_CALLBACK_H_
 
 #include "app/meta/move.h"
 #include "firebase/internal/common.h"
@@ -397,4 +397,4 @@ void PollCallbacks();
 }  // namespace firebase
 /// @endcond
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_CALLBACK_H_
+#endif  // FIREBASE_APP_SRC_CALLBACK_H_

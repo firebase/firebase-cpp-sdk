@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_META_MOVE_H_
-#define FIREBASE_APP_CLIENT_CPP_META_MOVE_H_
+#ifndef FIREBASE_APP_META_MOVE_H_
+#define FIREBASE_APP_META_MOVE_H_
 
 #include "app/src/include/firebase/internal/type_traits.h"
 
@@ -49,4 +49,4 @@ inline T&& Forward(typename remove_reference<T>::type&& arg) {
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_META_MOVE_H_
+#endif  // FIREBASE_APP_META_MOVE_H_

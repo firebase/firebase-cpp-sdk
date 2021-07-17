@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_DATABASE_CLIENT_CPP_TESTS_DESKTOP_TEST_MOCK_PERSISTENCE_MANAGER_H_
-#define FIREBASE_DATABASE_CLIENT_CPP_TESTS_DESKTOP_TEST_MOCK_PERSISTENCE_MANAGER_H_
+#ifndef FIREBASE_DATABASE_TESTS_DESKTOP_TEST_MOCK_PERSISTENCE_MANAGER_H_
+#define FIREBASE_DATABASE_TESTS_DESKTOP_TEST_MOCK_PERSISTENCE_MANAGER_H_
 
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
@@ -74,4 +74,4 @@ class MockPersistenceManager : public PersistenceManager {
 }  // namespace database
 }  // namespace firebase
 
-#endif  // FIREBASE_DATABASE_CLIENT_CPP_TESTS_DESKTOP_TEST_MOCK_PERSISTENCE_MANAGER_H_
+#endif  // FIREBASE_DATABASE_TESTS_DESKTOP_TEST_MOCK_PERSISTENCE_MANAGER_H_

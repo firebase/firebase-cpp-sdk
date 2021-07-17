@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_SECURE_USER_SECURE_INTERNAL_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_SECURE_USER_SECURE_INTERNAL_H_
+#ifndef FIREBASE_APP_SRC_SECURE_USER_SECURE_INTERNAL_H_
+#define FIREBASE_APP_SRC_SECURE_USER_SECURE_INTERNAL_H_
 
 #include <string>
 
@@ -50,4 +50,4 @@ class UserSecureInternal {
 }  // namespace app
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_SECURE_USER_SECURE_INTERNAL_H_
+#endif  // FIREBASE_APP_SRC_SECURE_USER_SECURE_INTERNAL_H_

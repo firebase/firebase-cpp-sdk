@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "performance/src/performance_common.h"
 
 #include <assert.h>

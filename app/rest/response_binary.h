@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_REST_RESPONSE_BINARY_H_
-#define FIREBASE_APP_CLIENT_CPP_REST_RESPONSE_BINARY_H_
+#ifndef FIREBASE_APP_REST_RESPONSE_BINARY_H_
+#define FIREBASE_APP_REST_RESPONSE_BINARY_H_
 
 #include <string>
 
@@ -47,4 +47,4 @@ class ResponseBinary : public Response {
 }  // namespace rest
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_REST_RESPONSE_BINARY_H_
+#endif  // FIREBASE_APP_REST_RESPONSE_BINARY_H_

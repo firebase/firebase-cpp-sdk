@@ -1,5 +1,7 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_EXCEPTION_COMMON_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_EXCEPTION_COMMON_H_
+// Copyright 2021 Google LLC
+
+#ifndef FIREBASE_FIRESTORE_SRC_COMMON_EXCEPTION_COMMON_H_
+#define FIREBASE_FIRESTORE_SRC_COMMON_EXCEPTION_COMMON_H_
 
 // Routines in this file are used to throw an exception (or crash, depending on
 // platform) in response to API usage errors. Exceptions should only be used
@@ -16,9 +18,7 @@
 // For internal programming errors, including internal argument checking, use
 // HARD_ASSERT or HARD_FAIL().
 //
-// TODO(b/163140650): Remove this/unify with the iOS implementation.
-// On Android we still support customers building with STLPort, which precludes
-// use of Abseil here.
+// TODO(b/191981857): Remove this/unify with the iOS implementation.
 
 #include <string>
 
@@ -110,4 +110,4 @@ FIRESTORE_ATTRIBUTE_NORETURN void SimpleThrowIllegalState(
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_EXCEPTION_COMMON_H_
+#endif  // FIREBASE_FIRESTORE_SRC_COMMON_EXCEPTION_COMMON_H_

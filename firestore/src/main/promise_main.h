@@ -1,5 +1,7 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_PROMISE_MAIN_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_PROMISE_MAIN_H_
+// Copyright 2021 Google LLC
+
+#ifndef FIREBASE_FIRESTORE_SRC_MAIN_PROMISE_MAIN_H_
+#define FIREBASE_FIRESTORE_SRC_MAIN_PROMISE_MAIN_H_
 
 #include <mutex>  // NOLINT(build/c++11)
 #include <utility>
@@ -199,4 +201,4 @@ class Promise {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_PROMISE_MAIN_H_
+#endif  // FIREBASE_FIRESTORE_SRC_MAIN_PROMISE_MAIN_H_

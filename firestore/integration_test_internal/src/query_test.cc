@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>

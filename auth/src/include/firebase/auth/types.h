@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_INCLUDE_FIREBASE_AUTH_TYPES_H_
-#define FIREBASE_AUTH_CLIENT_CPP_SRC_INCLUDE_FIREBASE_AUTH_TYPES_H_
+#ifndef FIREBASE_AUTH_SRC_INCLUDE_FIREBASE_AUTH_TYPES_H_
+#define FIREBASE_AUTH_SRC_INCLUDE_FIREBASE_AUTH_TYPES_H_
 
 #include <map>
 #include <string>
@@ -462,4 +462,4 @@ struct FederatedOAuthProviderData : FederatedProviderData {
 }  // namespace auth
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_SRC_INCLUDE_FIREBASE_AUTH_TYPES_H_
+#endif  // FIREBASE_AUTH_SRC_INCLUDE_FIREBASE_AUTH_TYPES_H_

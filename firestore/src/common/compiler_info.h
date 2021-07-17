@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_COMPILER_INFO_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_COMPILER_INFO_H_
+#ifndef FIREBASE_FIRESTORE_SRC_COMMON_COMPILER_INFO_H_
+#define FIREBASE_FIRESTORE_SRC_COMMON_COMPILER_INFO_H_
 
 #include <string>
 
@@ -35,4 +35,4 @@ std::string GetFullCompilerInfo();
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_COMPILER_INFO_H_
+#endif  // FIREBASE_FIRESTORE_SRC_COMMON_COMPILER_INFO_H_

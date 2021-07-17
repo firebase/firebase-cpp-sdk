@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_INVITES_STUB_INVITES_RECEIVER_INTERNAL_STUB_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_INVITES_STUB_INVITES_RECEIVER_INTERNAL_STUB_H_
+#ifndef FIREBASE_APP_SRC_INVITES_STUB_INVITES_RECEIVER_INTERNAL_STUB_H_
+#define FIREBASE_APP_SRC_INVITES_STUB_INVITES_RECEIVER_INTERNAL_STUB_H_
 
 #include "app/src/invites/invites_receiver_internal.h"
 
@@ -40,4 +40,4 @@ class InvitesReceiverInternalStub : public InvitesReceiverInternal {
 }  // namespace invites
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_INVITES_STUB_INVITES_RECEIVER_INTERNAL_STUB_H_
+#endif  // FIREBASE_APP_SRC_INVITES_STUB_INVITES_RECEIVER_INTERNAL_STUB_H_

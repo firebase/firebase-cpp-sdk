@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_INCLUDE_FIREBASE_REMOTE_CONFIG_H_
-#define FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_INCLUDE_FIREBASE_REMOTE_CONFIG_H_
+#ifndef FIREBASE_REMOTE_CONFIG_SRC_INCLUDE_FIREBASE_REMOTE_CONFIG_H_
+#define FIREBASE_REMOTE_CONFIG_SRC_INCLUDE_FIREBASE_REMOTE_CONFIG_H_
 
 #include <cstdint>
 #include <string>
@@ -523,4 +523,4 @@ class RemoteConfig {
 }  // namespace remote_config
 }  // namespace firebase
 
-#endif  // FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_INCLUDE_FIREBASE_REMOTE_CONFIG_H_
+#endif  // FIREBASE_REMOTE_CONFIG_SRC_INCLUDE_FIREBASE_REMOTE_CONFIG_H_

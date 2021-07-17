@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_RPCS_ERROR_CODES_H_
-#define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_RPCS_ERROR_CODES_H_
+#ifndef FIREBASE_AUTH_SRC_DESKTOP_RPCS_ERROR_CODES_H_
+#define FIREBASE_AUTH_SRC_DESKTOP_RPCS_ERROR_CODES_H_
 
 #include <string>
 
@@ -35,4 +35,4 @@ const char* GetAuthErrorMessage(AuthError error_code);
 
 }  // namespace auth
 }  // namespace firebase
-#endif  // FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_RPCS_ERROR_CODES_H_
+#endif  // FIREBASE_AUTH_SRC_DESKTOP_RPCS_ERROR_CODES_H_

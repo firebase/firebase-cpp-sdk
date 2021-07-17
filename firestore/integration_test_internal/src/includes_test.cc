@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include <string>
 
 #include "app_framework.h"
@@ -18,12 +20,8 @@ class IncludesTest : public testing::Test {
 
 namespace {
 
-struct TestListener : EventListener<int> {
-  void OnEvent(const int&, Error, const std::string&) override {}
-};
-
-struct TestTransactionFunction : TransactionFunction {
-  Error Apply(Transaction&, std::string&) override { return Error::kErrorOk; }
+struct TestListener {
+  void OnEvent(const int&, Error, const std::string&) {}
 };
 
 }  // namespace
@@ -66,7 +64,6 @@ TEST_F(IncludesTest, TestIncludingFirestoreHeaderIsSufficient) {
       WriteBatch write_batch;
 
       TestListener test_listener;
-      TestTransactionFunction test_transaction_function;
 
       Timestamp timestamp;
       GeoPoint geo_point;

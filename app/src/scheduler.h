@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_SCHEDULER_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_SCHEDULER_H_
+#ifndef FIREBASE_APP_SRC_SCHEDULER_H_
+#define FIREBASE_APP_SRC_SCHEDULER_H_
 
 #include <queue>
 
@@ -212,4 +212,4 @@ class Scheduler {
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_SCHEDULER_H_
+#endif  // FIREBASE_APP_SRC_SCHEDULER_H_

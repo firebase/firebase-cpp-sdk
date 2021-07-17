@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_REST_TESTS_REQUEST_TEST_H_
-#define FIREBASE_APP_CLIENT_CPP_REST_TESTS_REQUEST_TEST_H_
+#ifndef FIREBASE_APP_REST_TESTS_REQUEST_TEST_H_
+#define FIREBASE_APP_REST_TESTS_REQUEST_TEST_H_
 
 #include <cstddef>
 #include <memory>
@@ -113,4 +113,4 @@ static const std::string CreateLargeBinaryData() {
 }  // namespace rest
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_REST_TESTS_REQUEST_TEST_H_
+#endif  // FIREBASE_APP_REST_TESTS_REQUEST_TEST_H_

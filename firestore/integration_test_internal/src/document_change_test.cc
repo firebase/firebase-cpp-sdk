@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #if defined(__ANDROID__)
 #include "firestore/src/android/document_change_android.h"
 #endif  // defined(__ANDROID__)

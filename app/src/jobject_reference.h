@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_JOBJECT_REFERENCE_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_JOBJECT_REFERENCE_H_
+#ifndef FIREBASE_APP_SRC_JOBJECT_REFERENCE_H_
+#define FIREBASE_APP_SRC_JOBJECT_REFERENCE_H_
 
 #include <jni.h>
 
@@ -113,4 +113,4 @@ class JObjectReference {
 }  // namespace internal
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_JOBJECT_REFERENCE_H_
+#endif  // FIREBASE_APP_SRC_JOBJECT_REFERENCE_H_

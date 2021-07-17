@@ -91,6 +91,7 @@ from print_matrix_configuration import TEST_DEVICES
 
 _GAMELOOP_PACKAGE = "com.google.firebase.gameloop"
 _RESULT_FILE = "Results1.json"
+_TEST_RETRY = 3
 
 FLAGS = flags.FLAGS
 
@@ -109,6 +110,17 @@ flags.DEFINE_string(
     "ios_version", "12.0",
     "See module docstring for details on how to set and get this version.")
 flags.DEFINE_string(
+    "tvos_device", None,
+    "tvOS device, which is a combination of device name and os version"
+    "See module docstring for details on how to set and get this id. "
+    "If none, will use ios_name and ios_version.")
+flags.DEFINE_string(
+    "tvos_name", "Apple TV",
+    "See module docstring for details on how to set and get this name.")
+flags.DEFINE_string(
+    "tvos_version", "14.0",
+    "See module docstring for details on how to set and get this version.")
+flags.DEFINE_string(
     "android_device", None,
     "Android device, which is the sdk id of an emulator image"
     "See module docstring for details on how to set and get this id."
@@ -120,7 +132,7 @@ flags.DEFINE_string(
     "build_tools_version", "28.0.3",
     "android build_tools_version")
 flags.DEFINE_string(
-    "logfile_name", "",
+    "logfile_name", "simulator-test",
     "Create test log artifact test-results-$logfile_name.log."
     " logfile will be created and placed in testapp_dir.")   
 flags.DEFINE_boolean(
@@ -142,19 +154,22 @@ def main(argv):
   testapp_dir = os.path.abspath(os.path.expanduser(FLAGS.testapp_dir))
   
   ios_testapps = []
+  tvos_testapps = []
   android_testapps = []
   for file_dir, directories, file_names in os.walk(testapp_dir):
     # .app is treated as a directory, not a file in MacOS
     for directory in directories:
       full_path = os.path.join(file_dir, directory)
-      if directory.endswith(".app"):
+      if directory.endswith("integration_test.app"):
         ios_testapps.append(full_path)
+      elif directory.endswith("integration_test_tvos.app"):
+        tvos_testapps.append(full_path)
     for file_name in file_names:
       full_path = os.path.join(file_dir, file_name)
       if file_name.endswith(".apk"):
         android_testapps.append(full_path)    
 
-  if not ios_testapps and not android_testapps:
+  if not ios_testapps and not tvos_testapps and not android_testapps:
     logging.info("No testapps found")
     return 1
 
@@ -173,13 +188,13 @@ def main(argv):
       device_name = FLAGS.ios_name
       device_os = FLAGS.ios_version
 
-    device_id = _create_and_boot_simulator(device_name, device_os)
+    device_id = _create_and_boot_simulator("iOS", device_name, device_os)
     if not device_id:
       logging.error("simulator created fail")
       return 21
 
     # A tool that enable game-loop test. This is a XCode project
-    ios_gameloop_project = os.path.join(current_dir, "integration_testing", "gameloop_ios")
+    ios_gameloop_project = os.path.join(current_dir, "integration_testing", "gameloop_apple")
     ios_gameloop_app = _build_ios_gameloop(ios_gameloop_project, device_name, device_os)
     if not ios_gameloop_app:
       logging.error("gameloop app not found")
@@ -194,11 +209,51 @@ def main(argv):
   
     for app_path in ios_testapps:
       bundle_id = _get_bundle_id(app_path, config)
-      tests.append(Test(
-                      testapp_path=app_path, 
-                      logs=_run_ios_gameloop_test(bundle_id, app_path, ios_gameloop_app, device_id)))
+      logs=_run_apple_gameloop_test(bundle_id, app_path, ios_gameloop_app, device_id, _TEST_RETRY)
+      tests.append(Test(testapp_path=app_path, logs=logs))
 
     _shutdown_simulator()
+
+  if tvos_testapps:
+    logging.info("tvOS Testapps found: %s", "\n".join(path for path in tvos_testapps))
+    
+    if FLAGS.tvos_device:
+      device_info = TEST_DEVICES.get(FLAGS.tvos_device)
+      if not device_info:
+        logging.error("Not a valid tvos device: %s" % FLAGS.tvos_device)
+        return 20
+      device_name = device_info.get("name")
+      device_os = device_info.get("version")
+    else:
+      device_name = FLAGS.tvos_name
+      device_os = FLAGS.tvos_version
+
+    device_id = _create_and_boot_simulator("tvOS", device_name, device_os)
+    if not device_id:
+      logging.error("simulator created fail")
+      return 21
+
+    # A tool that enable game-loop test. This is a XCode project
+    tvos_gameloop_project = os.path.join(current_dir, "integration_testing", "gameloop_apple")
+    tvos_gameloop_app = _build_tvos_gameloop(tvos_gameloop_project, device_name, device_os)
+    if not tvos_gameloop_app:
+      logging.error("gameloop app not found")
+      return 22
+
+    config_path = os.path.join(current_dir, "integration_testing", "build_testapps.json")
+    with open(config_path, "r") as configFile:
+      config = json.load(configFile)
+    if not config:
+      logging.error("No config file found")
+      return 23
+  
+    for app_path in tvos_testapps:
+      bundle_id = _get_bundle_id(app_path, config)
+      logs=_run_apple_gameloop_test(bundle_id, app_path, tvos_gameloop_app, device_id, _TEST_RETRY)
+      tests.append(Test(testapp_path=app_path, logs=logs))
+
+    _shutdown_simulator()
+
 
   if android_testapps:
     logging.info("Android Testapps found: %s", "\n".join(path for path in android_testapps))
@@ -229,9 +284,8 @@ def main(argv):
 
     for app_path in android_testapps:
       package_name = _get_package_name(app_path)
-      tests.append(Test(
-                      testapp_path=app_path, 
-                      logs=_run_android_gameloop_test(package_name, app_path, android_gameloop_project)))
+      logs=_run_android_gameloop_test(package_name, app_path, android_gameloop_project, _TEST_RETRY)
+      tests.append(Test(testapp_path=app_path, logs=logs))
 
     _shutdown_emulator()
 
@@ -243,6 +297,7 @@ def main(argv):
     extra_info=" (ON SIMULATOR/EMULATOR)")
 
 
+# -------------------Apple Only-------------------
 def _build_ios_gameloop(gameloop_project, device_name, device_os):
   """Build gameloop UI Test app. 
 
@@ -254,7 +309,6 @@ def _build_ios_gameloop(gameloop_project, device_name, device_os):
   """Build the gameloop app for test."""
   args = ["xcodebuild", "-project", project_path,
     "-scheme", "gameloop",
-    "-sdk", "iphonesimulator",
     "build-for-testing", 
     "-destination", "platform=iOS Simulator,name=%s,OS=%s" % (device_name, device_os), 
     "SYMROOT=%s" % output_path]
@@ -263,7 +317,30 @@ def _build_ios_gameloop(gameloop_project, device_name, device_os):
   
   for file_dir, _, file_names in os.walk(output_path):
     for file_name in file_names:
-      if file_name.endswith(".xctestrun"): 
+      if file_name.endswith(".xctestrun") and "iphonesimulator" in file_name: 
+        return os.path.join(file_dir, file_name)
+
+
+def _build_tvos_gameloop(gameloop_project, device_name, device_os):
+  """Build gameloop UI Test app. 
+
+  This gameloop app can run integration_test app automatically.
+  """
+  project_path = os.path.join(gameloop_project, "gameloop.xcodeproj")
+  output_path = os.path.join(gameloop_project, "Build")
+
+  """Build the gameloop app for test."""
+  args = ["xcodebuild", "-project", project_path,
+    "-scheme", "gameloop_tvos",
+    "build-for-testing", 
+    "-destination", "platform=tvOS Simulator,name=%s,OS=%s" % (device_name, device_os), 
+    "SYMROOT=%s" % output_path]
+  logging.info("Building game-loop test: %s", " ".join(args))
+  subprocess.run(args=args, check=True)
+  
+  for file_dir, _, file_names in os.walk(output_path):
+    for file_name in file_names:
+      if file_name.endswith(".xctestrun") and "appletvsimulator" in file_name: 
         return os.path.join(file_dir, file_name)
 
 
@@ -293,7 +370,7 @@ def _shutdown_simulator():
   subprocess.run(args=args, check=True)
 
 
-def _create_and_boot_simulator(device_name, device_os):
+def _create_and_boot_simulator(apple_platform, device_name, device_os):
   """Create a simulator locally. Will wait until this simulator booted."""
   _shutdown_simulator()
   command = "xcrun xctrace list devices 2>&1 | grep \"%s (%s)\" | awk -F'[()]' '{print $4}'" % (device_name, device_os)
@@ -308,11 +385,11 @@ def _create_and_boot_simulator(device_name, device_os):
     logging.info("Download xcode-install: %s", " ".join(args))
     subprocess.run(args=args, check=True)
 
-    args = ["xcversion", "simulators", "--install=iOS %s" % device_os]
-    logging.info("Download iOS simulator: %s", " ".join(args))
+    args = ["xcversion", "simulators", "--install=%s %s" % (apple_platform, device_os)]
+    logging.info("Download simulator: %s", " ".join(args))
     subprocess.run(args=args, check=False)
     
-    args = ["xcrun", "simctl", "create", "test_simulator", device_name, "iOS%s" % device_os]
+    args = ["xcrun", "simctl", "create", "test_simulator", device_name, "%s%s" % (apple_platform, device_os)]
     logging.info("Create test simulator: %s", " ".join(args))
     result = subprocess.run(args=args, capture_output=True, text=True, check=True)
     device_id = result.stdout.strip()
@@ -341,31 +418,37 @@ def _get_bundle_id(app_path, config):
       return api["bundle_id"]
 
 
-def _run_ios_gameloop_test(bundle_id, app_path, gameloop_app, device_id):
+def _run_apple_gameloop_test(bundle_id, app_path, gameloop_app, device_id, retry=1):
   """Run gameloop test and collect test result."""
-  logging.info("Running iOS gameloop test: %s, %s, %s, %s", bundle_id, app_path, gameloop_app, device_id)
-  _install_ios_app(app_path, device_id)
+  logging.info("Running apple gameloop test: %s, %s, %s, %s", bundle_id, app_path, gameloop_app, device_id)
+  _install_apple_app(app_path, device_id)
   _run_xctest(gameloop_app, device_id)
-  logs = _get_ios_test_log(bundle_id, app_path, device_id)
-  _uninstall_ios_app(bundle_id, device_id)
+  logs = _get_apple_test_log(bundle_id, app_path, device_id)
+  _uninstall_apple_app(bundle_id, device_id)
+  if retry > 1:
+    results = test_validation.validate_results_cpp(logs)
+    if not results.complete:
+      logging.info("Retry _run_apple_gameloop_test. Remaining retry: %s", retry-1)
+      return _run_apple_gameloop_test(bundle_id, app_path, gameloop_app, device_id, retry=retry-1)
+  
   return logs
+  
 
-
-def _install_ios_app(app_path, device_id):
+def _install_apple_app(app_path, device_id):
   """Install integration_test app into the simulator."""
   args = ["xcrun", "simctl", "install", device_id, app_path]
   logging.info("Install testapp: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
 
-def _uninstall_ios_app(bundle_id, device_id):
+def _uninstall_apple_app(bundle_id, device_id):
   """Uninstall integration_test app from the simulator."""
   args = ["xcrun", "simctl", "uninstall", device_id, bundle_id]
   logging.info("Uninstall testapp: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
 
-def _get_ios_test_log(bundle_id, app_path, device_id):
+def _get_apple_test_log(bundle_id, app_path, device_id):
   """Read integration_test app testing result."""
   args=["xcrun", "simctl", "get_app_container", device_id, bundle_id, "data"]
   logging.info("Get test result: %s", " ".join(args))
@@ -383,14 +466,16 @@ def _get_ios_test_log(bundle_id, app_path, device_id):
 
 def _read_file(path):
   """Extracts the contents of a file."""
-  with open(path, "r") as f:
-    test_result = f.read()
+  if os.path.isfile(path):
+    with open(path, "r") as f:
+      test_result = f.read()
 
-  logging.info("Reading file: %s", path)
-  logging.info("File contant: %s", test_result)
-  return test_result
+    logging.info("Reading file: %s", path)
+    logging.info("File content: %s", test_result)
+    return test_result
 
 
+# -------------------Android Only-------------------
 def _check_java_version():
   command = "java -version 2>&1 | awk -F[\\\"_] 'NR==1{print $2}'"
   logging.info("Get java version: %s", command)
@@ -474,12 +559,18 @@ def _get_package_name(app_path):
   return package_name  
 
 
-def _run_android_gameloop_test(package_name, app_path, gameloop_project): 
+def _run_android_gameloop_test(package_name, app_path, gameloop_project, retry=1): 
   logging.info("Running android gameloop test: %s, %s, %s", package_name, app_path, gameloop_project)
   _install_android_app(app_path)
   _run_instrumented_test()
   logs = _get_android_test_log(package_name)
   _uninstall_android_app(package_name)
+  if retry > 1:
+    results = test_validation.validate_results_cpp(logs)
+    if not results.complete:
+      logging.info("Retry _run_android_gameloop_test. Remaining retry: %s", retry-1)
+      return _run_android_gameloop_test(package_name, app_path, gameloop_project, retry=retry-1)
+  
   return logs
 
 

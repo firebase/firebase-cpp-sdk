@@ -11,8 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#ifndef FIREBASE_MESSAGING_CLIENT_CPP_SRC_COMMON_H_
-#define FIREBASE_MESSAGING_CLIENT_CPP_SRC_COMMON_H_
+#ifndef FIREBASE_MESSAGING_SRC_COMMON_H_
+#define FIREBASE_MESSAGING_SRC_COMMON_H_
 
 #include "app/src/reference_counted_future_impl.h"
 #include "messaging/src/include/firebase/messaging.h"
@@ -84,4 +84,4 @@ void NotifyListenerOnTokenReceived(const char* token);
 }  // namespace messaging
 }  // namespace firebase
 
-#endif  // FIREBASE_MESSAGING_CLIENT_CPP_SRC_COMMON_H_
+#endif  // FIREBASE_MESSAGING_SRC_COMMON_H_

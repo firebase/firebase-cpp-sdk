@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_IOS_COMMON_IOS_H_
-#define FIREBASE_AUTH_CLIENT_CPP_SRC_IOS_COMMON_IOS_H_
+#ifndef FIREBASE_AUTH_SRC_IOS_COMMON_IOS_H_
+#define FIREBASE_AUTH_SRC_IOS_COMMON_IOS_H_
 
 #import <Foundation/Foundation.h>
 
@@ -118,4 +118,4 @@ NSError* RemapBadProviderIDErrors(NSError* _Nonnull error);
 }  // namespace auth
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_SRC_IOS_COMMON_IOS_H_
+#endif  // FIREBASE_AUTH_SRC_IOS_COMMON_IOS_H_

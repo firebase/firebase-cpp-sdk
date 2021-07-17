@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 /// Constants used across the loop launcher and UI test.
 public struct Constants {
   public static let completeText = "Game Loop Complete"

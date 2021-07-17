@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_TESTS_DESKTOP_RPCS_TEST_UTIL_H_
-#define FIREBASE_AUTH_CLIENT_CPP_TESTS_DESKTOP_RPCS_TEST_UTIL_H_
+#ifndef FIREBASE_AUTH_TESTS_DESKTOP_RPCS_TEST_UTIL_H_
+#define FIREBASE_AUTH_TESTS_DESKTOP_RPCS_TEST_UTIL_H_
 
 #include <string>
 
@@ -35,4 +35,4 @@ std::string SignUpNewUserAndGetIdToken(const char* api_key, const char* email);
 }  // namespace auth
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_TESTS_DESKTOP_RPCS_TEST_UTIL_H_
+#endif  // FIREBASE_AUTH_TESTS_DESKTOP_RPCS_TEST_UTIL_H_

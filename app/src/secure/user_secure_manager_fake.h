@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_SECURE_USER_SECURE_MANAGER_FAKE_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_SECURE_USER_SECURE_MANAGER_FAKE_H_
+#ifndef FIREBASE_APP_SRC_SECURE_USER_SECURE_MANAGER_FAKE_H_
+#define FIREBASE_APP_SRC_SECURE_USER_SECURE_MANAGER_FAKE_H_
 
 #include "app/src/secure/user_secure_manager.h"
 
@@ -32,4 +32,4 @@ class UserSecureManagerFake : public UserSecureManager {
 }  // namespace app
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_SECURE_USER_SECURE_MANAGER_FAKE_H_
+#endif  // FIREBASE_APP_SRC_SECURE_USER_SECURE_MANAGER_FAKE_H_

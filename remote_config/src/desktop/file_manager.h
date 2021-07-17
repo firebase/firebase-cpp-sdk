@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_DESKTOP_FILE_MANAGER_H_
-#define FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_DESKTOP_FILE_MANAGER_H_
+#ifndef FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_FILE_MANAGER_H_
+#define FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_FILE_MANAGER_H_
 
 #include <string>
 
@@ -44,4 +44,4 @@ class RemoteConfigFileManager {
 }  // namespace remote_config
 }  // namespace firebase
 
-#endif  // FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_DESKTOP_FILE_MANAGER_H_
+#endif  // FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_FILE_MANAGER_H_

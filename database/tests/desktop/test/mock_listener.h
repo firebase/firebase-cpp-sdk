@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_DATABASE_CLIENT_CPP_TESTS_DESKTOP_TEST_MOCK_LISTENER_H_
-#define FIREBASE_DATABASE_CLIENT_CPP_TESTS_DESKTOP_TEST_MOCK_LISTENER_H_
+#ifndef FIREBASE_DATABASE_TESTS_DESKTOP_TEST_MOCK_LISTENER_H_
+#define FIREBASE_DATABASE_TESTS_DESKTOP_TEST_MOCK_LISTENER_H_
 
 #include "database/src/desktop/data_snapshot_desktop.h"
 #include "database/src/include/firebase/database/common.h"
@@ -52,4 +52,4 @@ class MockChildListener : public ChildListener {
 }  // namespace database
 }  // namespace firebase
 
-#endif  // FIREBASE_DATABASE_CLIENT_CPP_TESTS_DESKTOP_TEST_MOCK_LISTENER_H_
+#endif  // FIREBASE_DATABASE_TESTS_DESKTOP_TEST_MOCK_LISTENER_H_

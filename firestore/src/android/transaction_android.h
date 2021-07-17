@@ -1,9 +1,11 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_TRANSACTION_ANDROID_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_TRANSACTION_ANDROID_H_
+// Copyright 2020 Google LLC
 
+#ifndef FIREBASE_FIRESTORE_SRC_ANDROID_TRANSACTION_ANDROID_H_
+#define FIREBASE_FIRESTORE_SRC_ANDROID_TRANSACTION_ANDROID_H_
+
+#include <memory>
 #include <string>
 
-#include "app/memory/shared_ptr.h"
 #include "app/meta/move.h"
 #include "app/src/embedded_file.h"
 #include "firestore/src/android/wrapper.h"
@@ -24,14 +26,14 @@ class TransactionInternal : public Wrapper {
 
   TransactionInternal(FirestoreInternal* firestore, const jni::Object& obj)
       : Wrapper(firestore, obj),
-        first_exception_(MakeShared<jni::Local<jni::Throwable>>()) {}
+        first_exception_(std::make_shared<jni::Local<jni::Throwable>>()) {}
 
   TransactionInternal(const TransactionInternal& rhs)
       : Wrapper(rhs), first_exception_(rhs.first_exception_) {}
 
   TransactionInternal(TransactionInternal&& rhs)
       : Wrapper(firebase::Move(rhs)),
-        first_exception_(Move(rhs.first_exception_)) {}
+        first_exception_(std::move(rhs.first_exception_)) {}
 
   void Set(const DocumentReference& document,
            const MapFieldValue& data,
@@ -76,10 +78,10 @@ class TransactionInternal : public Wrapper {
   // mechanism to properly handle native calls via JNI. The first exception is
   // shared by a transaction and its copies. User is allowed to make copy and
   // call transaction operation on the copy.
-  SharedPtr<jni::Local<jni::Throwable>> first_exception_;
+  std::shared_ptr<jni::Local<jni::Throwable>> first_exception_;
 };
 
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_TRANSACTION_ANDROID_H_
+#endif  // FIREBASE_FIRESTORE_SRC_ANDROID_TRANSACTION_ANDROID_H_

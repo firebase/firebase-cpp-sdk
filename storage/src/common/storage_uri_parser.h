@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_STORAGE_CLIENT_CPP_SRC_COMMON_STORAGE_URI_PARSER_H_
-#define FIREBASE_STORAGE_CLIENT_CPP_SRC_COMMON_STORAGE_URI_PARSER_H_
+#ifndef FIREBASE_STORAGE_SRC_COMMON_STORAGE_URI_PARSER_H_
+#define FIREBASE_STORAGE_SRC_COMMON_STORAGE_URI_PARSER_H_
 
 #include <string>
 
@@ -31,4 +31,4 @@ bool UriToComponents(const std::string& url, const char* object_type,
 }  // namespace storage
 }  // namespace firebase
 
-#endif  // FIREBASE_STORAGE_CLIENT_CPP_SRC_COMMON_STORAGE_URI_PARSER_H_
+#endif  // FIREBASE_STORAGE_SRC_COMMON_STORAGE_URI_PARSER_H_

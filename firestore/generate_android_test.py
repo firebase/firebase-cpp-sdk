@@ -1,4 +1,6 @@
 #!/usr/grte/v4/bin/python2.7
+
+# Copyright 2020 Google LLC
 """Generate JUnit4 tests from gtest files.
 
 This script reads a template and fills in test-specific information such as .so

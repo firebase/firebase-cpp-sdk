@@ -1,10 +1,12 @@
+// Copyright 2021 Google LLC
+
 // This file contains the declarations of common functions that deal with
 // initialization of the Firebase Performance C++ API and how it deals with the
 // lifecycle of the common FirebaseApp instance. Some of these functions are
 // implemented in a platform independent manner, while some are implemented
 // specific to each platform.
-#ifndef FIREBASE_PERFORMANCE_CLIENT_CPP_SRC_PERFORMANCE_COMMON_H_
-#define FIREBASE_PERFORMANCE_CLIENT_CPP_SRC_PERFORMANCE_COMMON_H_
+#ifndef FIREBASE_PERFORMANCE_SRC_PERFORMANCE_COMMON_H_
+#define FIREBASE_PERFORMANCE_SRC_PERFORMANCE_COMMON_H_
 
 namespace firebase {
 namespace performance {
@@ -27,4 +29,4 @@ void UnregisterTerminateOnDefaultAppDestroy();
 }  // namespace performance
 }  // namespace firebase
 
-#endif  // FIREBASE_PERFORMANCE_CLIENT_CPP_SRC_PERFORMANCE_COMMON_H_
+#endif  // FIREBASE_PERFORMANCE_SRC_PERFORMANCE_COMMON_H_

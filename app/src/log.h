@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_LOG_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_LOG_H_
+#ifndef FIREBASE_APP_SRC_LOG_H_
+#define FIREBASE_APP_SRC_LOG_H_
 
 #include <stdarg.h>
 
@@ -71,4 +71,4 @@ void LogInitialize();
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_LOG_H_
+#endif  // FIREBASE_APP_SRC_LOG_H_

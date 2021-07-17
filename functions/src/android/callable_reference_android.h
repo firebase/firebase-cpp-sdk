@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_ANDROID_CALLABLE_REFERENCE_ANDROID_H_
-#define FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_ANDROID_CALLABLE_REFERENCE_ANDROID_H_
+#ifndef FIREBASE_FUNCTIONS_SRC_ANDROID_CALLABLE_REFERENCE_ANDROID_H_
+#define FIREBASE_FUNCTIONS_SRC_ANDROID_CALLABLE_REFERENCE_ANDROID_H_
 
 #include <jni.h>
 
@@ -82,4 +82,4 @@ class HttpsCallableReferenceInternal {
 }  // namespace functions
 }  // namespace firebase
 
-#endif  // FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_ANDROID_CALLABLE_REFERENCE_ANDROID_H_
+#endif  // FIREBASE_FUNCTIONS_SRC_ANDROID_CALLABLE_REFERENCE_ANDROID_H_

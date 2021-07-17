@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_FIELD_PATH_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_FIELD_PATH_H_
+#ifndef FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_FIELD_PATH_H_
+#define FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_FIELD_PATH_H_
 
+#include <initializer_list>
 #include <iosfwd>
 #include <string>
 #include <vector>
-
-#if !defined(_STLPORT_VERSION)
-#include <initializer_list>
-#endif  // !defined(_STLPORT_VERSION)
 
 namespace firebase {
 namespace firestore {
@@ -59,18 +56,13 @@ class FieldPath final {
    */
   FieldPath();
 
-#if !defined(_STLPORT_VERSION)
   /**
    * Creates a FieldPath from the provided field names. If more than one field
    * name is provided, the path will point to a nested field in a document.
    *
    * @param field_names A list of field names.
-   *
-   * @note This method is not available when using the STLPort C++ runtime
-   * library.
    */
   FieldPath(std::initializer_list<std::string> field_names);
-#endif  // !defined(_STLPORT_VERSION)
 
   /**
    * Creates a FieldPath from the provided field names. If more than one field
@@ -199,4 +191,4 @@ struct hash<firebase::firestore::FieldPath> {
 }  // namespace std
 #endif  // !defined(SWIG)
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_FIELD_PATH_H_
+#endif  // FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_FIELD_PATH_H_

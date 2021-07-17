@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_RPCS_AUTH_REQUEST_H_
-#define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_RPCS_AUTH_REQUEST_H_
+#ifndef FIREBASE_AUTH_SRC_DESKTOP_RPCS_AUTH_REQUEST_H_
+#define FIREBASE_AUTH_SRC_DESKTOP_RPCS_AUTH_REQUEST_H_
 
 #include "app/rest/request_json.h"
 #include "auth/request_generated.h"
@@ -39,4 +39,4 @@ class AuthRequest
 }  // namespace auth
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_RPCS_AUTH_REQUEST_H_
+#endif  // FIREBASE_AUTH_SRC_DESKTOP_RPCS_AUTH_REQUEST_H_

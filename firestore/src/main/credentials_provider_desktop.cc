@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/main/credentials_provider_desktop.h"
 
 #include <string>

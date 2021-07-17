@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_MUTEX_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_MUTEX_H_
+#ifndef FIREBASE_APP_SRC_MUTEX_H_
+#define FIREBASE_APP_SRC_MUTEX_H_
 #include <errno.h>
 
 #include "app/src/include/firebase/internal/platform.h"
@@ -161,4 +161,4 @@ class MutexLock {
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_MUTEX_H_
+#endif  // FIREBASE_APP_SRC_MUTEX_H_
