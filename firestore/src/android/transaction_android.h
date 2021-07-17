@@ -9,6 +9,7 @@
 #include "app/meta/move.h"
 #include "app/src/embedded_file.h"
 #include "firestore/src/android/wrapper.h"
+#include "firestore/src/common/transaction_function.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #include "firestore/src/include/firebase/firestore/map_field_value.h"

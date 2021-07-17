@@ -29,7 +29,6 @@ namespace firestore {
 class Firestore;
 class ListenerRegistrationInternal;
 class Transaction;
-class TransactionFunction;
 class WriteBatch;
 
 template <typename EnumT>
@@ -92,11 +91,6 @@ class FirestoreInternal {
   void set_settings(Settings settings);
 
   WriteBatch batch() const;
-
-  // Runs transaction atomically.
-  // TODO(b/191969448): Remove the is_lambda parameter if possible.
-  Future<void> RunTransaction(TransactionFunction* update,
-                              bool is_lambda = false);
 
   Future<void> RunTransaction(
       std::function<Error(Transaction&, std::string&)> update);

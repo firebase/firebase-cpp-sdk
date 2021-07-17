@@ -254,26 +254,6 @@ class Firestore {
       std::function<Error(Transaction&, std::string&)> update);
 
   /**
-   * Executes the given update and then attempts to commit the changes applied
-   * within the transaction. If any document read within the transaction has
-   * changed, the update function will be retried. If it fails to commit after 5
-   * attempts, the transaction will fail.
-   *
-   * @param update The function to execute within the transaction context.
-   * (Ownership is not transferred; you are responsible for making sure that
-   * transaction is valid as long as the Future has not yet completed.)
-   *
-   * @return A Future that will be resolved when the transaction finishes.
-   *
-   * @deprecated This method was originally added to support the STLPort C++
-   * runtime on Android. Firebase support for STLPort has been removed, and
-   * consequently this method is deprecated and will be removed in a future
-   * release.
-   */
-  FIREBASE_DEPRECATED virtual Future<void> RunTransaction(
-      TransactionFunction* update);
-
-  /**
    * Sets the log verbosity of all Firestore instances.
    *
    * The default verbosity level is `kLogLevelInfo`.

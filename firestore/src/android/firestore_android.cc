@@ -440,25 +440,18 @@ WriteBatch FirestoreInternal::batch() const {
   return WriteBatch(new WriteBatchInternal(mutable_this(), result));
 }
 
-Future<void> FirestoreInternal::RunTransaction(TransactionFunction* update,
-                                               bool is_lambda) {
+Future<void> FirestoreInternal::RunTransaction(
+    std::function<Error(Transaction&, std::string&)> update) {
+  auto* lambda_update = new LambdaTransactionFunction(Move(update));
   Env env = GetEnv();
   Local<Object> transaction_function =
-      TransactionInternal::Create(env, this, update);
+      TransactionInternal::Create(env, this, lambda_update);
   Local<Task> task = env.Call(obj_, kRunTransaction, transaction_function);
 
   if (!env.ok()) return {};
 
-  auto* completion =
-      static_cast<LambdaTransactionFunction*>(is_lambda ? update : nullptr);
   return promises_->NewFuture<void>(env, AsyncFn::kRunTransaction, task,
-                                    completion);
-}
-
-Future<void> FirestoreInternal::RunTransaction(
-    std::function<Error(Transaction&, std::string&)> update) {
-  auto* lambda_update = new LambdaTransactionFunction(Move(update));
-  return RunTransaction(lambda_update, /*is_lambda=*/true);
+                                    lambda_update);
 }
 
 Future<void> FirestoreInternal::DisableNetwork() {
