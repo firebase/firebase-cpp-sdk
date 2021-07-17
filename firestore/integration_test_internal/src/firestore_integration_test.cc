@@ -97,18 +97,9 @@ std::string ToFirestoreErrorCodeName(int error_code) {
   }
 }
 
-int WaitFor(const FutureBase& future) {
-  // Instead of getting a clock, we count the cycles instead.
-  int cycles = kTimeOutMillis / kCheckIntervalMillis;
-  while (future.status() == FutureStatus::kFutureStatusPending && cycles > 0) {
-    if (ProcessEvents(kCheckIntervalMillis)) {
-      std::cout << "WARNING: app receives an event requesting exit."
-                << std::endl;
-      break;
-    }
-    --cycles;
-  }
-  return cycles;
+bool WaitUntilFutureCompletes(const FutureBase& future) {
+  return WaitUntil(
+      [&] { return future.status() != FutureStatus::kFutureStatusPending; });
 }
 
 FirestoreIntegrationTest::FirestoreIntegrationTest() {
@@ -280,18 +271,10 @@ FirestoreIntegrationTest::QuerySnapshotToMap(
   return result;
 }
 
-/* static */
 void FirestoreIntegrationTest::Await(const Future<void>& future) {
-  while (future.status() == FutureStatus::kFutureStatusPending) {
-    if (ProcessEvents(kCheckIntervalMillis)) {
-      std::cout << "WARNING: app received an event requesting exit."
-                << std::endl;
-      break;
-    }
-  }
+  EXPECT_TRUE(WaitUntilFutureCompletes(future)) << "Future<void> timed out.";
 }
 
-/* static */
 bool FirestoreIntegrationTest::FailIfUnsuccessful(const char* operation,
                                                   const FutureBase& future) {
   if (future.status() != FutureStatus::kFutureStatusComplete) {
@@ -307,11 +290,13 @@ bool FirestoreIntegrationTest::FailIfUnsuccessful(const char* operation,
   }
 }
 
-/* static */
 std::string FirestoreIntegrationTest::DescribeFailedFuture(
     const FutureBase& future) {
-  return "Future failed: " + ToFirestoreErrorCodeName(future.error()) + " (" +
-         std::to_string(future.error()) + "): " + future.error_message();
+  std::string error_message =
+      future.error_message() ? future.error_message() : "[no additional info]";
+  return std::string("Future failed: ") +
+         ToFirestoreErrorCodeName(future.error()) + " (" +
+         std::to_string(future.error()) + "): " + error_message;
 }
 
 bool ProcessEvents(int msec) { return app_framework::ProcessEvents(msec); }
