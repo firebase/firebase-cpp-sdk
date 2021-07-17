@@ -353,7 +353,6 @@ def main():
     if not args.config:
       args.override = args.override.split(',')
     if args.parm_key == "platform" and args.apis:
-      print_value(args.apis)
       # e.g. args.apis = "\"admob,analytics\""
       args.override = filter_platforms_on_apis(args.override, args.apis.strip('"').split(','))
 
