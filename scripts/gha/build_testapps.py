@@ -106,6 +106,17 @@ _TVOS = "tvOS"
 _DESKTOP = "Desktop"
 _SUPPORTED_PLATFORMS = (_ANDROID, _IOS, _TVOS, _DESKTOP)
 
+# Values for Desktop
+_ARCHITECTURE_X64 = "x64"
+_ARCHITECTURE_X86 = "x86"
+_SUPPORTED_ARCHITECTURE = (_ARCHITECTURE_X64, _ARCHITECTURE_X86)
+_BUILD_TYPE_RELEASE = "Release"
+_BUILD_TYPE_DEBUG = "Debug"
+_SUPPORTED_BUILD_TYPE = (_BUILD_TYPE_RELEASE, _BUILD_TYPE_DEBUG)
+_MSVC_RUNTIME_STATIC = "static"
+_MSVC_RUNTIME_DYNAMIC = "dynamic"
+_SUPPORTED_MSVC_RUNTIME = (_MSVC_RUNTIME_STATIC, _MSVC_RUNTIME_DYNAMIC)
+
 # Values for iOS SDK flag (where the iOS app will run)
 _APPLE_SDK_DEVICE = "real"
 _APPLE_SDK_SIMULATOR = "virtual"
@@ -151,6 +162,18 @@ flags.DEFINE_list(
     "(iOS only) Build for real device (.ipa), virtual device / simulator (.app), "
     "or both. Building for both will produce both an .app and an .ipa.")
 
+flags.DEFINE_string(
+    "arch_windows_linux", _ARCHITECTURE_X64, 
+    "(Windows and Linux Desktop only) Platform architecture (x64, x86).")
+
+flags.DEFINE_string(
+    "build_type", _BUILD_TYPE_DEBUG, 
+    "(Windows Desktop only) Release/Debug config.")
+
+flags.DEFINE_string(
+    "msvc_runtime", _MSVC_RUNTIME_DYNAMIC, 
+    "(Windows Desktop only) Runtime library for MSVC (static(/MT) or dynamic(/MD).")
+
 flags.DEFINE_list(
     "tvos_sdk", _APPLE_SDK_SIMULATOR, 
     "(tvOS only) Build for real device (.ipa), virtual device / simulator (.app), "
@@ -183,6 +206,24 @@ flags.register_validator(
     "ios_sdk",
     lambda s: all(ios_sdk in _SUPPORTED_APPLE_SDK for ios_sdk in s),
     message="Valid platforms: " + ",".join(_SUPPORTED_APPLE_SDK),
+    flag_values=FLAGS)
+
+flags.register_validator(
+    "arch_windows_linux",
+    lambda a: a in _SUPPORTED_ARCHITECTURE,
+    message="Valid arch for Windows/Linux: " + ",".join(_SUPPORTED_ARCHITECTURE),
+    flag_values=FLAGS)
+
+flags.register_validator(
+    "build_type",
+    lambda b: b in _SUPPORTED_BUILD_TYPE,
+    message="Valid build_type for Windows: " + ",".join(_SUPPORTED_BUILD_TYPE),
+    flag_values=FLAGS)
+
+flags.register_validator(
+    "msvc_runtime",
+    lambda m: m in _SUPPORTED_MSVC_RUNTIME,
+    message="Valid msvc_runtime for Windows: " + ",".join(_SUPPORTED_MSVC_RUNTIME),
     flag_values=FLAGS)
 
 flags.register_validator(
@@ -237,13 +278,25 @@ def main(argv):
   # so we need to use VCPKG as well.
   if _DESKTOP in platforms and not FLAGS.packaged_sdk:
     installer = os.path.join(repo_dir, "scripts", "gha", "build_desktop.py")
-    _run([sys.executable, installer, "--vcpkg_step_only"])
-    toolchain_file = os.path.join(
-        repo_dir, "external", "vcpkg", "scripts", "buildsystems", "vcpkg.cmake")
-    cmake_flags.extend((
-        "-DCMAKE_TOOLCHAIN_FILE=%s" % toolchain_file,
-        "-DVCPKG_TARGET_TRIPLET=%s" % utils.get_vcpkg_triplet(arch="x64")
-    ))
+    desktop_builder_args = [
+      sys.executable, installer,
+      "--arch", FLAGS.arch_windows_linux, 
+      "--config", FLAGS.build_type, 
+      "--msvc_runtime_library", FLAGS.msvc_runtime,
+      "--vcpkg_step_only"
+    ]
+    _run(desktop_builder_args)
+    if utils.is_linux_os() and FLAGS.arch_windows_linux == _ARCHITECTURE_X86:
+      # Use a separate cmake toolchain for cross compiling linux x86 builds
+      vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external', 'vcpkg',
+                                                'scripts', 'buildsystems', 'linux_32.cmake')
+    else:
+      vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external',
+                                                'vcpkg', 'scripts',
+                                                'buildsystems', 'vcpkg.cmake')
+    cmake_flags.append('-DCMAKE_TOOLCHAIN_FILE={0}'.format(vcpkg_toolchain_file_path))
+    vcpkg_triplet = utils.get_vcpkg_triplet(FLAGS.arch_windows_linux, FLAGS.msvc_runtime)
+    cmake_flags.append('-DVCPKG_TARGET_TRIPLET={0}'.format(vcpkg_triplet))
 
   if FLAGS.cmake_flag:
     cmake_flags.extend(FLAGS.cmake_flag)
@@ -431,10 +484,14 @@ def _summarize_results(testapps, platforms, failures, root_output_dir, artifact_
 
 
 def _build_desktop(sdk_dir, cmake_flags):
-  cmake_configure_cmd = ["cmake", ".", "-DCMAKE_BUILD_TYPE=Debug",
+  cmake_configure_cmd = ["cmake", ".", "-DCMAKE_BUILD_TYPE=" + FLAGS.build_type,
                                        "-DFIREBASE_CPP_SDK_DIR=" + sdk_dir]
   if utils.is_windows_os():
-    cmake_configure_cmd += ["-A", "x64"]
+    cmake_configure_cmd.append('-A')
+    cmake_configure_cmd.append('Win32') if FLAGS.arch_windows_linux == _ARCHITECTURE_X86 else cmake_configure_cmd.append('x64')
+    # Use our special cmake flag to specify /MD vs /MT
+    if FLAGS.msvc_runtime == _MSVC_RUNTIME_STATIC:
+      cmake_configure_cmd.append('-DMSVC_RUNTIME_LIBRARY_STATIC=ON')
   _run(cmake_configure_cmd + cmake_flags)
   _run(["cmake", "--build", ".", "--config", "Debug"])
 

@@ -115,6 +115,9 @@ PARAMETERS = {
       "build_tools_version": ["28.0.3"],
 
       EXPANDED_KEY: {
+        "build_type": ["Release", "Debug"],
+        "architecture_windows_linux": ["x64", "x86"],
+        "msvc_runtime": ["static", "dynamic"],
         "ssl_lib": ["openssl", "boringssl"],
         "android_device": ["android_latest", "android_latest", "emulator_target", "emulator_latest"],
         "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"],
@@ -142,9 +145,9 @@ PARAMETERS = {
 # value: supported build configurations for that platform
 # It consists with workflow matrix. And Test Result Report will use it.
 BUILD_CONFIGS = {
-  "windows": ["ssl_lib", "build_type", "architecture_windows_linux", "msvc_runtime", "cpp_compiler_windows"],
-  "ubuntu": ["ssl_lib", "build_type", "architecture_windows_linux", "cpp_compiler_linux"],
-  "macos": ["ssl_lib", "architecture_macos", "xcode_version"],
+  "windows": ["ssl_lib", "architecture_windows_linux", "msvc_runtime", "build_type", "cpp_compiler_windows"],
+  "ubuntu": ["ssl_lib", "architecture_windows_linux", "ignore_msvc", "ignore_build_type", "cpp_compiler_linux"],
+  "macos": ["ssl_lib", "ignore_arch", "ignore_msvc", "ignore_build_type", "xcode_version"],
   "android": ["os", "ndk_version", "build_tools", "platform_version", "android_device"],
   "ios": ["os", "xcode_version", "ios_device"],
   "tvos": ["os", "xcode_version", "tvos_device"]
