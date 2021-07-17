@@ -176,6 +176,20 @@ void NotifyListenerSet(Listener* listener) {
   }
 }
 
+static void CompletePermissionFuture(::firebase::messaging::Error error) {
+  if (internal::IsInitialized()) {
+    ::firebase::ReferenceCountedFutureImpl* api = ::firebase::messaging::FutureData::Get()->api();
+    // The ReferenceCountedFutureImpl object should be initialized in Initialize().
+    FIREBASE_ASSERT_RETURN_VOID(api != nullptr);
+    if (api->ValidFuture(::firebase::messaging::g_permission_prompt_future_handle) &&
+        RequestPermissionLastResult().status() == kFutureStatusPending) {
+      api->Complete(::firebase::messaging::g_permission_prompt_future_handle, error);
+    }
+  } else {
+    LogError("Attempting to complete future before FCM initialized.");
+  }
+}
+
 Future<void> RequestPermission() {
   FIREBASE_ASSERT_RETURN(RequestPermissionLastResult(), internal::IsInitialized());
 
@@ -207,7 +221,26 @@ Future<void> RequestPermission() {
           (UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert |
            UIRemoteNotificationTypeBadge);
       [appDelegate registerForRemoteNotificationTypes:allNotificationTypes];
-    } else {
+    }
+    else if (@available(iOS 12.0, *)) {
+      UNAuthorizationOptions options = (UNAuthorizationOptions) (UNAuthorizationOptionAlert | UNAuthorizationOptionBadge | UNAuthorizationOptionSound);
+      if (g_messaging_options.request_provisional_permission) {
+        options |= UNAuthorizationOptionProvisional;
+      }
+      UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+      center.delegate = g_user_delegate;
+      [center requestAuthorizationWithOptions:options completionHandler:^(BOOL granted, NSError *error){
+          if (granted && !error) {
+            LogInfo("FCM: RequestPermission success");
+            CompletePermissionFuture(::firebase::messaging::kErrorNone);
+          }
+          else {
+            LogError("FCM: RequestPermission error: %s", error.localizedDescription.UTF8String);
+            CompletePermissionFuture(::firebase::messaging::kErrorFailedToRegisterForRemoteNotifications);
+          }
+        }];
+    }
+    else {
       // iOS 8 or later
       UIUserNotificationType allNotificationTypes =
           (UIUserNotificationTypeSound | UIUserNotificationTypeAlert | UIUserNotificationTypeBadge);
@@ -315,20 +348,6 @@ static void RetrieveRegistrationToken() {
   // call back into this function.
   if (registration_token.length) {
     NotifyListenerOnTokenReceived(registration_token.UTF8String);
-  }
-}
-
-static void CompletePermissionFuture(::firebase::messaging::Error error) {
-  if (internal::IsInitialized()) {
-    ::firebase::ReferenceCountedFutureImpl* api = ::firebase::messaging::FutureData::Get()->api();
-    // The ReferenceCountedFutureImpl object should be initialized in Initialize().
-    FIREBASE_ASSERT_RETURN_VOID(api != nullptr);
-    if (api->ValidFuture(::firebase::messaging::g_permission_prompt_future_handle) &&
-        RequestPermissionLastResult().status() == kFutureStatusPending) {
-      api->Complete(::firebase::messaging::g_permission_prompt_future_handle, error);
-    }
-  } else {
-    LogError("Attempting to complete future before FCM initialized.");
   }
 }
 

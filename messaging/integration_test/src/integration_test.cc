@@ -158,8 +158,17 @@ void FirebaseMessagingTest::SetUpTestSuite() {
           // The first time, suppress the notification prompt so that
           // RequestPermission will be called.
           options.suppress_notification_permission_prompt = true;
+#if TARGET_OS_IPHONE
+          if (!IsUserInteractionAllowed()) {
+            // Request provisional permissions, so that the user is not
+            // prompted.
+            options.request_provisional_permission = true;
+            LogInfo(
+                "User interaction disallowed, requesting provisional "
+                "permission on iOS.");
+          }
+#endif
         }
-
         return ::firebase::messaging::Initialize(*app, *listener, options);
       });
 
@@ -342,16 +351,12 @@ bool FirebaseMessagingTest::RequestPermission() {
 // Test cases below.
 
 TEST_F(FirebaseMessagingTest, TestRequestPermission) {
-  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
-
   // This test may request a permission from the user; if so, the user must
   // respond affirmatively.
   EXPECT_TRUE(RequestPermission());
 }
 
 TEST_F(FirebaseMessagingTest, TestReceiveToken) {
-  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
-
   EXPECT_TRUE(RequestPermission());
 
   FLAKY_TEST_SECTION_BEGIN();
@@ -363,8 +368,6 @@ TEST_F(FirebaseMessagingTest, TestReceiveToken) {
 }
 
 TEST_F(FirebaseMessagingTest, TestSubscribeAndUnsubscribe) {
-  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
-
   EXPECT_TRUE(RequestPermission());
   EXPECT_TRUE(WaitForToken());
   EXPECT_TRUE(WaitForCompletion(firebase::messaging::Subscribe("SubscribeTest"),
@@ -376,8 +379,8 @@ TEST_F(FirebaseMessagingTest, TestSubscribeAndUnsubscribe) {
 static std::string ConstructHtmlToSendMessage(
     const std::string& request,
     const std::map<std::string, std::string>& headers, int delay_seconds) {
-  // Generate some simple HTML/Javascript to pause a few seconds, then send the
-  // POST request via XMLHttpRequest.
+  // Generate some simple HTML/Javascript to pause a few seconds, then send
+  // the POST request via XMLHttpRequest.
   std::string h;
   h += "<script>window.onload = function(e){"
        "document.write('<h1>FCM Integration Test</h1>');"
@@ -405,7 +408,8 @@ static std::string ConstructHtmlToSendMessage(
        "document.write('Status '+xhttp.status+': '+xhttp.response);"
        "}},";
   char delay_seconds_string[22];
-  snprintf(delay_seconds_string, 22, "%d", delay_seconds);
+  snprintf(delay_seconds_string, sizeof(delay_seconds_string), "%d",
+           delay_seconds);
   h += delay_seconds_string;
   h += ");}</script>";
   return h;
@@ -430,8 +434,8 @@ TEST_F(FirebaseMessagingTest, TestNotification) {
   const char kNotificationBody[] = "Test notification, open to resume testing.";
   std::string value;
   if (!GetPersistentString(kTestingNotificationKey, &value) || value.empty()) {
-    // If the notification test is already in progress, just go straight to the
-    // waiting part. This can happen if you wait too long to click on the
+    // If the notification test is already in progress, just go straight to
+    // the waiting part. This can happen if you wait too long to click on the
     // notification and the app is no longer running in the background.
     std::string request;
     std::map<std::string, std::string> headers;
@@ -451,8 +455,7 @@ TEST_F(FirebaseMessagingTest, TestNotification) {
     std::string html = ConstructHtmlToSendMessage(request, headers, 5);
     // We now have some HTML/Javascript to send the message request. Embed it in
     // a data: url so we can try receiving a message with the app in the
-    // background.
-    // Encode the HTML into base64.
+    // background.  Encode the HTML into base64.
     std::string html_encoded;
     EXPECT_TRUE(Base64Encode(html, &html_encoded));
     std::string url = std::string("data:text/html;base64,") + html_encoded;
@@ -489,7 +492,6 @@ TEST_F(FirebaseMessagingTest, TestNotification) {
 }
 
 TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
-  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
   SKIP_TEST_ON_DESKTOP;
 
   EXPECT_TRUE(RequestPermission());
@@ -520,7 +522,6 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
 }
 
 TEST_F(FirebaseMessagingTest, TestSendMessageToTopic) {
-  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
   SKIP_TEST_ON_DESKTOP;
 
   EXPECT_TRUE(RequestPermission());
@@ -568,7 +569,6 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToTopic) {
 }
 
 TEST_F(FirebaseMessagingTest, TestChangingListener) {
-  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
   SKIP_TEST_ON_DESKTOP;
 
   EXPECT_TRUE(RequestPermission());
