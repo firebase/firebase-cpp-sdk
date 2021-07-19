@@ -570,6 +570,18 @@ TEST_F(ValidationTest, UpdatesMustNotContainNestedFieldValueDeletes) {
       ErrorMessage(ErrorCase::kFieldValueDeleteNested));
 }
 
+TEST_F(ValidationTest, BatchWritesRequireValidDocumentReferences) {
+  std::string reason = "Invalid document reference provided.";
+
+  MapFieldValue data{{"foo", FieldValue::Integer(1)}};
+  DocumentReference bad_document;
+  WriteBatch batch = TestFirestore()->batch();
+
+  EXPECT_ERROR(batch.Set(bad_document, data), reason);
+  EXPECT_ERROR(batch.Update(bad_document, data), reason);
+  EXPECT_ERROR(batch.Delete(bad_document), reason);
+}
+
 TEST_F(ValidationTest, BatchWritesRequireCorrectDocumentReferences) {
   DocumentReference bad_document =
       TestFirestore("another")->Document("foo/bar");
@@ -582,23 +594,23 @@ TEST_F(ValidationTest, BatchWritesRequireCorrectDocumentReferences) {
 }
 
 TEST_F(ValidationTest, TransactionsRequireValidDocumentReferences) {
-  auto* db1 = TestFirestore();
-
   std::string reason = "Invalid document reference provided.";
+
   MapFieldValue data{{"foo", FieldValue::Integer(1)}};
   DocumentReference bad_ref;
 
-  auto future = db1->RunTransaction([&](Transaction& txn, std::string&) {
-    EXPECT_ERROR(
-        txn.Get(bad_ref, /*error_code=*/nullptr, /*error_message=*/nullptr),
-        reason);
-    EXPECT_ERROR(txn.Set(bad_ref, data), reason);
-    EXPECT_ERROR(txn.Set(bad_ref, data, SetOptions::Merge()), reason);
-    EXPECT_ERROR(txn.Update(bad_ref, data), reason);
-    EXPECT_ERROR(txn.Delete(bad_ref), reason);
+  auto future =
+      TestFirestore()->RunTransaction([&](Transaction& txn, std::string&) {
+        EXPECT_ERROR(
+            txn.Get(bad_ref, /*error_code=*/nullptr, /*error_message=*/nullptr),
+            reason);
+        EXPECT_ERROR(txn.Set(bad_ref, data), reason);
+        EXPECT_ERROR(txn.Set(bad_ref, data, SetOptions::Merge()), reason);
+        EXPECT_ERROR(txn.Update(bad_ref, data), reason);
+        EXPECT_ERROR(txn.Delete(bad_ref), reason);
 
-    return Error::kErrorOk;
-  });
+        return Error::kErrorOk;
+      });
 
   EXPECT_THAT(future, FutureSucceeds());
 }

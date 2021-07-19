@@ -6,6 +6,7 @@
 
 #include "app/src/include/firebase/future.h"
 #include "firestore/src/common/cleanup.h"
+#include "firestore/src/common/exception_common.h"
 #include "firestore/src/common/futures.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
@@ -18,7 +19,17 @@
 namespace firebase {
 namespace firestore {
 
+namespace {
+
 using CleanupFnWriteBatch = CleanupFn<WriteBatch>;
+
+void ValidateReference(const DocumentReference& document) {
+  if (!document.is_valid()) {
+    SimpleThrowInvalidArgument("Invalid document reference provided.");
+  }
+}
+
+}  // namespace
 
 WriteBatch::WriteBatch() {}
 
@@ -79,6 +90,8 @@ WriteBatch& WriteBatch::operator=(WriteBatch&& value) {
 WriteBatch& WriteBatch::Set(const DocumentReference& document,
                             const MapFieldValue& data,
                             const SetOptions& options) {
+  ValidateReference(document);
+
   if (!internal_) return *this;
   internal_->Set(document, data, options);
   return *this;
@@ -86,6 +99,8 @@ WriteBatch& WriteBatch::Set(const DocumentReference& document,
 
 WriteBatch& WriteBatch::Update(const DocumentReference& document,
                                const MapFieldValue& data) {
+  ValidateReference(document);
+
   if (!internal_) return *this;
   internal_->Update(document, data);
   return *this;
@@ -93,12 +108,16 @@ WriteBatch& WriteBatch::Update(const DocumentReference& document,
 
 WriteBatch& WriteBatch::Update(const DocumentReference& document,
                                const MapFieldPathValue& data) {
+  ValidateReference(document);
+
   if (!internal_) return *this;
   internal_->Update(document, data);
   return *this;
 }
 
 WriteBatch& WriteBatch::Delete(const DocumentReference& document) {
+  ValidateReference(document);
+
   if (!internal_) return *this;
   internal_->Delete(document);
   return *this;
