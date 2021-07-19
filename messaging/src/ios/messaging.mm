@@ -222,9 +222,9 @@ Future<void> RequestPermission() {
             (UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert |
             UIRemoteNotificationTypeBadge);
         [appDelegate registerForRemoteNotificationTypes:allNotificationTypes];
-      } else if (floor(NSFoundationVersionNumber) < NSFoundationVersionNumber_iOS_10_0) {
-        // 8.0 <= iOS version < 10.0
-        // > 10.0 is handled by the if block above
+      } else if (floor(NSFoundationVersionNumber) <= NSFoundationVersionNumber_iOS_9_4) {
+        // 8.0 <= iOS version <= 9.4
+        // >= 10.0 is handled by the first if block above.
         UIUserNotificationType allNotificationTypes =
             (UIUserNotificationTypeSound | UIUserNotificationTypeAlert | UIUserNotificationTypeBadge);
         UIUserNotificationSettings *settings =
