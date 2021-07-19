@@ -567,6 +567,12 @@ code.
 
 ## Release Notes
 
+### 8.3.0
+-   Changes
+    -   Firestore: Removed the deprecated
+        `Firestore::RunTransaction(TransactionFunction*)` function. Please use
+        the overload that takes a `std::function` argument instead.
+
 ### 8.2.0
 -   Changes
     -   General (Android): Updated Flatbuffers internal dependency from version
