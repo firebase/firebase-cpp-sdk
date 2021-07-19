@@ -325,7 +325,6 @@ class FieldValue final {
    */
   static FieldValue ArrayRemove(std::vector<FieldValue> elements);
 
-#if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
   /**
    * Returns a special value that can be used with `Set()` or `Update()` that
    * tells the server to increment the field's current value by the given
@@ -355,9 +354,6 @@ class FieldValue final {
     return IntegerIncrement(static_cast<int64_t>(by_value));
   }
 
-#endif  // if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
-
-#if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
   /**
    * Returns a special value that can be used with `Set()` or `Update()` that
    * tells the server to increment the field's current value by the given
@@ -387,8 +383,6 @@ class FieldValue final {
         "FieldValue::Increment().");
     return DoubleIncrement(static_cast<double>(by_value));
   }
-
-#endif  // if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
 
   /**
    * Returns a string representation of this `FieldValue` for logging/debugging
