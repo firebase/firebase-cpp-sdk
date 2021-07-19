@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_REST_TRANSPORT_MOCK_H_
-#define FIREBASE_APP_CLIENT_CPP_REST_TRANSPORT_MOCK_H_
+#ifndef FIREBASE_APP_REST_TRANSPORT_MOCK_H_
+#define FIREBASE_APP_REST_TRANSPORT_MOCK_H_
 
 #include "app/rest/transport_interface.h"
 
@@ -35,4 +35,4 @@ class TransportMock : public Transport {
 
 }  // namespace rest
 }  // namespace firebase
-#endif  // FIREBASE_APP_CLIENT_CPP_REST_TRANSPORT_MOCK_H_
+#endif  // FIREBASE_APP_REST_TRANSPORT_MOCK_H_

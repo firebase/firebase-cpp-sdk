@@ -1,0 +1,33 @@
+name: Lint
+
+on:
+  pull_request:
+    types: [opened,synchronize]
+
+jobs:
+  lint_warnings_check_and_comment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          repository: cpplint/cpplint
+          ref: "1.5.5"
+          path: cpplint
+      - uses: actions/checkout@v2
+        with:
+          submodules: false
+          path: firebase
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+      - name: Install prerequisites
+        run: |
+          python3 -m pip install unidiff
+      - name: Run cpplint
+        shell: bash
+        run: |
+          set -e
+          cd firebase
+          python3 scripts/gha/lint_commenter.py -l ../cpplint/cpplint.py -p ${{ github.event.pull_request.number }} -t ${{ github.token }} -A

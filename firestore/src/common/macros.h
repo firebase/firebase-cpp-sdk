@@ -1,12 +1,14 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_MACROS_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_MACROS_H_
+// Copyright 2020 Google LLC
+
+#ifndef FIREBASE_FIRESTORE_SRC_COMMON_MACROS_H_
+#define FIREBASE_FIRESTORE_SRC_COMMON_MACROS_H_
 
 #include <cstdlib>
 
 // A collection of macros that really should come from elsewhere but are
 // required for compatibility with STLPort.
 //
-// TODO(b/163140650): Remove these and just use the Abseil equivalents.
+// TODO(b/191981857): Remove these and just use the Abseil equivalents.
 
 #if !defined(__ANDROID__)
 #include "absl/base/attributes.h"
@@ -23,7 +25,7 @@
 //
 // Discover if exceptions are enabled and define them as needed.
 //
-// TODO(b/163140650): Consider ABSL_HAVE_EXCEPTIONS after dropping STLPort.
+// TODO(b/191981857): Consider using ABSL_HAVE_EXCEPTIONS.
 // This will require re-validating the results of `GetFullCompilerInfo()` on all
 // supported platforms.
 #if defined(__clang__)
@@ -95,4 +97,4 @@
 #define FIRESTORE_UNREACHABLE()  // nothing
 #endif                           // defined(__GNUC__) || defined(__clang__)
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_MACROS_H_
+#endif  // FIREBASE_FIRESTORE_SRC_COMMON_MACROS_H_

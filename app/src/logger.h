@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_LOGGER_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_LOGGER_H_
+#ifndef FIREBASE_APP_SRC_LOGGER_H_
+#define FIREBASE_APP_SRC_LOGGER_H_
 
 #include <stdarg.h>
 
@@ -120,4 +120,4 @@ class Logger : public LoggerBase {
 
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_LOGGER_H_
+#endif  // FIREBASE_APP_SRC_LOGGER_H_

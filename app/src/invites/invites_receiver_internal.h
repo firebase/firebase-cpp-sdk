@@ -16,8 +16,8 @@
 
 // Internal header file for Android InvitesReceiver functionality.
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_INVITES_INVITES_RECEIVER_INTERNAL_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_INVITES_INVITES_RECEIVER_INTERNAL_H_
+#ifndef FIREBASE_APP_SRC_INVITES_INVITES_RECEIVER_INTERNAL_H_
+#define FIREBASE_APP_SRC_INVITES_INVITES_RECEIVER_INTERNAL_H_
 
 #include <string>
 
@@ -151,4 +151,4 @@ class InvitesReceiverInternal : public SenderReceiverInterface {
 }  // namespace invites
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_INVITES_INVITES_RECEIVER_INTERNAL_H_
+#endif  // FIREBASE_APP_SRC_INVITES_INVITES_RECEIVER_INTERNAL_H_

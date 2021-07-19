@@ -1,5 +1,7 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_FIRESTORE_MAIN_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_FIRESTORE_MAIN_H_
+// Copyright 2021 Google LLC
+
+#ifndef FIREBASE_FIRESTORE_SRC_MAIN_FIRESTORE_MAIN_H_
+#define FIREBASE_FIRESTORE_SRC_MAIN_FIRESTORE_MAIN_H_
 
 #include <cstdint>
 #include <functional>
@@ -13,6 +15,7 @@
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
+#include "firestore/src/common/event_listener.h"
 #include "firestore/src/include/firebase/firestore/collection_reference.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/load_bundle_task_progress.h"
@@ -161,4 +164,4 @@ class FirestoreInternal {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_FIRESTORE_MAIN_H_
+#endif  // FIREBASE_FIRESTORE_SRC_MAIN_FIRESTORE_MAIN_H_

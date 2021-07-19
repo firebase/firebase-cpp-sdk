@@ -40,6 +40,7 @@
 #include "firestore/src/android/transaction_android.h"
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/android/write_batch_android.h"
+#include "firestore/src/common/make_unique.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/jni/array.h"
 #include "firestore/src/jni/array_list.h"
@@ -263,7 +264,7 @@ FirestoreInternal::FirestoreInternal(App* app) {
   FIREBASE_ASSERT(java_user_callback_executor.get() != nullptr);
   user_callback_executor_ = java_user_callback_executor;
 
-  promises_ = MakeUnique<PromiseFactory<AsyncFn>>(this);
+  promises_ = make_unique<PromiseFactory<AsyncFn>>(this);
 }
 
 /* static */
@@ -448,23 +449,17 @@ Future<void> FirestoreInternal::RunTransaction(TransactionFunction* update,
 
   if (!env.ok()) return {};
 
-#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   auto* completion =
       static_cast<LambdaTransactionFunction*>(is_lambda ? update : nullptr);
   return promises_->NewFuture<void>(env, AsyncFn::kRunTransaction, task,
                                     completion);
-#else   // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
-  return promises_->NewFuture<void>(env, AsyncFn::kRunTransaction, task);
-#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 }
 
-#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 Future<void> FirestoreInternal::RunTransaction(
     std::function<Error(Transaction&, std::string&)> update) {
   auto* lambda_update = new LambdaTransactionFunction(Move(update));
   return RunTransaction(lambda_update, /*is_lambda=*/true);
 }
-#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
 Future<void> FirestoreInternal::DisableNetwork() {
   Env env = GetEnv();
@@ -510,16 +505,12 @@ ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
       this, listener, passing_listener_ownership, java_registration));
 }
 
-#if defined(FIREBASE_USE_STD_FUNCTION)
-
 ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
     std::function<void()> callback) {
   auto* listener = new LambdaEventListener<void>(firebase::Move(callback));
   return AddSnapshotsInSyncListener(listener,
                                     /*passing_listener_ownership=*/true);
 }
-
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
 void FirestoreInternal::RegisterListenerRegistration(
     ListenerRegistrationInternal* registration) {

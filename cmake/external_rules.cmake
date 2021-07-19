@@ -61,6 +61,12 @@ function(download_external_sources)
   check_use_local_directory(ZLIB)
   check_use_local_directory(FIREBASE_IOS_SDK)
 
+  if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)
+    set(FIREBASE_DOWNLOAD_GTEST ON)
+  else()
+    set(FIREBASE_DOWNLOAD_GTEST OFF)
+  endif()
+
   execute_process(
     COMMAND
       ${ENV_COMMAND} ${CMAKE_COMMAND}
@@ -74,13 +80,14 @@ function(download_external_sources)
       -DDOWNLOAD_BORINGSSL=${DOWNLOAD_BORINGSSL}
       -DDOWNLOAD_CURL=${DOWNLOAD_CURL}
       -DDOWNLOAD_FLATBUFFERS=${DOWNLOAD_FLATBUFFERS}
-      -DDOWNLOAD_GOOGLETEST=${FIREBASE_CPP_BUILD_TESTS}
+      -DDOWNLOAD_GOOGLETEST=${FIREBASE_DOWNLOAD_GTEST}
       -DDOWNLOAD_LIBUV=${DOWNLOAD_LIBUV}
       -DDOWNLOAD_NANOPB=${DOWNLOAD_NANOPB}
       -DDOWNLOAD_UWEBSOCKETS=${DOWNLOAD_UWEBSOCKETS}
       -DDOWNLOAD_ZLIB=${DOWNLOAD_ZLIB}
       -DDOWNLOAD_FIREBASE_IOS_SDK=${DOWNLOAD_FIREBASE_IOS_SDK}
       -DFIREBASE_CPP_BUILD_TESTS=${FIREBASE_CPP_BUILD_TESTS}
+      -DFIREBASE_CPP_BUILD_STUB_TESTS=${FIREBASE_CPP_BUILD_STUB_TESTS}
       ${PROJECT_SOURCE_DIR}/cmake/external
     OUTPUT_FILE ${PROJECT_BINARY_DIR}/external/output_cmake_config.txt
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external
@@ -121,16 +128,6 @@ function(download_external_sources)
       file(INSTALL "${PROJECT_SOURCE_DIR}/cmake/external/leveldb.cmake"
            DESTINATION "${PROJECT_BINARY_DIR}/external/src/firestore/cmake/external")
     endif()
-
-    execute_process(
-      COMMAND ${FIREBASE_PYTHON_EXECUTABLE} "${PROJECT_SOURCE_DIR}/scripts/patch_websockets.py" 
-              "-file" "${PROJECT_BINARY_DIR}/external/src/uWebSockets/src/Socket.h"
-              "-cmakefile" "${PROJECT_SOURCE_DIR}/cmake/external/uWebSockets.cmake" 
-      RESULT_VARIABLE STATUS)
-      if( STATUS AND NOT STATUS EQUAL 0 )
-        message(FATAL_ERROR "FAILED to patch uWebsockets/src/Socket.h")
-        message(FATAL_ERROR "see cmake/external_rules.cmake.")
-      endif()
   endif()
 endfunction()
 

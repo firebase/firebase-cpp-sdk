@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/jni/env.h"
 
 #include <cstring>
@@ -172,7 +174,7 @@ std::string Env::ToStringUtf(const String& string) {
   size_t len = GetArrayLength(bytes);
 
   // Copy directly into the std::string buffer. This is guaranteed to work as
-  // of C++11, and also happens to work with STLPort.
+  // of C++11.
   std::string result;
   result.resize(len);
 

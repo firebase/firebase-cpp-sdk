@@ -36,7 +36,7 @@ import os
 import shutil
 
 def get_args_for_build(
-    path, scheme, output_dir, ios_sdk, configuration):
+    path, scheme, output_dir, apple_platfrom, apple_sdk, configuration):
   """Constructs subprocess args for an unsigned xcode build.
 
   Args:
@@ -45,7 +45,8 @@ def get_args_for_build(
     scheme (str): Name of the scheme to build.
     output_dir (str): Directory for the resulting build artifacts. Will be
         created if it doesn't already exist.
-    ios_sdk (str): Where this build will be run: real device or virtual device (simulator).
+    apple_platfrom (str): iOS or tvOS.
+    apple_sdk (str): Where this build will be run: real device or virtual device (simulator).
     configuration (str): Value for the -configuration flag.
 
   Returns:
@@ -54,15 +55,19 @@ def get_args_for_build(
   """
   args = [
       "xcodebuild",
-      "-sdk", _get_ios_env_from_target(ios_sdk),
+      "-sdk", _get_apple_env_from_target(apple_platfrom, apple_sdk),
       "-scheme", scheme,
       "-configuration", configuration,
       "-quiet",
-      "BUILD_DIR=" + output_dir,
-      'CODE_SIGN_IDENTITY=""',
-      "CODE_SIGNING_REQUIRED=NO",
-      "CODE_SIGNING_ALLOWED=NO"
+      "BUILD_DIR=" + output_dir
   ]
+
+  if apple_sdk == "real":
+    args.extend(['CODE_SIGN_IDENTITY=""',
+      "CODE_SIGNING_REQUIRED=NO",
+      "CODE_SIGNING_ALLOWED=NO"])
+  elif apple_sdk == "virtual" and apple_platfrom == "tvOS":
+    args.extend(['-arch', "x86_64"])
 
   if not path:
     raise ValueError("Must supply a path.")
@@ -75,14 +80,24 @@ def get_args_for_build(
   return args
 
 
-def _get_ios_env_from_target(ios_sdk):
+def _get_apple_env_from_target(apple_platfrom, apple_sdk):
   """Return a value for the -sdk flag based on the target (device/simulator)."""
-  if ios_sdk == "real":
-    return "iphoneos"
-  elif ios_sdk == "virtual":
-    return "iphonesimulator"
+  if apple_platfrom == "iOS":
+    if apple_sdk == "real":
+      return "iphoneos"
+    elif apple_sdk == "virtual":
+      return "iphonesimulator"
+    else:
+      raise ValueError("Unrecognized apple_sdk: %s" % apple_sdk)
+  elif apple_platfrom == "tvOS":
+    if apple_sdk == "real":
+      return "appletvos"
+    elif apple_sdk == "virtual":
+      return "appletvsimulator"
+    else:
+      raise ValueError("Unrecognized apple_sdk: %s" % apple_sdk)
   else:
-    raise ValueError("Unrecognized ios_sdk: %s" % ios_sdk)
+    raise ValueError("Unrecognized apple_sdk: %s" % apple_sdk)
 
 
 def generate_unsigned_ipa(output_dir, configuration):

@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/android/blob_android.h"
 
 #include "firestore/src/jni/array.h"

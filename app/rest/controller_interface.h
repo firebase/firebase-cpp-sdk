@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_REST_CONTROLLER_INTERFACE_H_
-#define FIREBASE_APP_CLIENT_CPP_REST_CONTROLLER_INTERFACE_H_
+#ifndef FIREBASE_APP_REST_CONTROLLER_INTERFACE_H_
+#define FIREBASE_APP_REST_CONTROLLER_INTERFACE_H_
 
 #include <cstdint>
 
@@ -56,4 +56,4 @@ class Controller {
 }  // namespace rest
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_REST_CONTROLLER_INTERFACE_H_
+#endif  // FIREBASE_APP_REST_CONTROLLER_INTERFACE_H_

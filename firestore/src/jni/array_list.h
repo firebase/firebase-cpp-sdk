@@ -1,5 +1,7 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_ARRAY_LIST_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_ARRAY_LIST_H_
+// Copyright 2020 Google LLC
+
+#ifndef FIREBASE_FIRESTORE_SRC_JNI_ARRAY_LIST_H_
+#define FIREBASE_FIRESTORE_SRC_JNI_ARRAY_LIST_H_
 
 #include "firestore/src/jni/list.h"
 
@@ -22,4 +24,4 @@ class ArrayList : public List {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_ARRAY_LIST_H_
+#endif  // FIREBASE_FIRESTORE_SRC_JNI_ARRAY_LIST_H_

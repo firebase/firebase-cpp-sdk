@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_ANDROID_DATABASE_ANDROID_H_
-#define FIREBASE_DATABASE_CLIENT_CPP_SRC_ANDROID_DATABASE_ANDROID_H_
+#ifndef FIREBASE_DATABASE_SRC_ANDROID_DATABASE_ANDROID_H_
+#define FIREBASE_DATABASE_SRC_ANDROID_DATABASE_ANDROID_H_
 
 #include <jni.h>
 
@@ -228,4 +228,4 @@ class DatabaseInternal {
 }  // namespace database
 }  // namespace firebase
 
-#endif  // FIREBASE_DATABASE_CLIENT_CPP_SRC_ANDROID_DATABASE_ANDROID_H_
+#endif  // FIREBASE_DATABASE_SRC_ANDROID_DATABASE_ANDROID_H_

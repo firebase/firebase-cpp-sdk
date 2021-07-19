@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_RPCS_GET_ACCOUNT_INFO_REQUEST_H_
-#define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_RPCS_GET_ACCOUNT_INFO_REQUEST_H_
+#ifndef FIREBASE_AUTH_SRC_DESKTOP_RPCS_GET_ACCOUNT_INFO_REQUEST_H_
+#define FIREBASE_AUTH_SRC_DESKTOP_RPCS_GET_ACCOUNT_INFO_REQUEST_H_
 
 #include "app/src/log.h"
 #include "auth/request_generated.h"
@@ -47,4 +47,4 @@ class GetAccountInfoRequest : public AuthRequest {
 }  // namespace auth
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_RPCS_GET_ACCOUNT_INFO_REQUEST_H_
+#endif  // FIREBASE_AUTH_SRC_DESKTOP_RPCS_GET_ACCOUNT_INFO_REQUEST_H_

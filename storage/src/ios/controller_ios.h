@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_STORAGE_CLIENT_CPP_SRC_IOS_CONTROLLER_IOS_H_
-#define FIREBASE_STORAGE_CLIENT_CPP_SRC_IOS_CONTROLLER_IOS_H_
+#ifndef FIREBASE_STORAGE_SRC_IOS_CONTROLLER_IOS_H_
+#define FIREBASE_STORAGE_SRC_IOS_CONTROLLER_IOS_H_
 
 #include <cstdint>
 
@@ -100,4 +100,4 @@ class ControllerInternal {
 }  // namespace storage
 }  // namespace firebase
 
-#endif  // FIREBASE_STORAGE_CLIENT_CPP_SRC_IOS_CONTROLLER_IOS_H_
+#endif  // FIREBASE_STORAGE_SRC_IOS_CONTROLLER_IOS_H_

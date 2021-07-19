@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_PTHREAD_CONDVAR_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_PTHREAD_CONDVAR_H_
+#ifndef FIREBASE_APP_SRC_PTHREAD_CONDVAR_H_
+#define FIREBASE_APP_SRC_PTHREAD_CONDVAR_H_
 
 #include "app/src/include/firebase/internal/platform.h"
 
@@ -89,4 +89,4 @@ class ConditionVariable {
 
 #endif  // !FIREBASE_PLATFORM_WINDOWS
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_PTHREAD_CONDVAR_H_
+#endif  // FIREBASE_APP_SRC_PTHREAD_CONDVAR_H_

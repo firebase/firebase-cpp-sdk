@@ -130,9 +130,12 @@ TEST_F(FirebaseAnalyticsTest, TestLogEventWithMultipleParameters) {
       sizeof(kLevelUpParameters) / sizeof(kLevelUpParameters[0]));
 }
 
-#if !(TARGET_OS_IPHONE)
-// Test is flakey on iPhone due to a known issue in iOS.  See b/143656277.
 TEST_F(FirebaseAnalyticsTest, TestResettingGivesNewInstanceId) {
+  // Test is flaky on iPhone due to a known issue in iOS.  See b/143656277.
+#if TARGET_OS_IPHONE
+  FLAKY_TEST_SECTION_BEGIN();
+#endif  // TARGET_OS_IPHONE
+
   firebase::Future<std::string> future =
       firebase::analytics::GetAnalyticsInstanceId();
   WaitForCompletion(future, "GetAnalyticsInstanceId");
@@ -146,7 +149,10 @@ TEST_F(FirebaseAnalyticsTest, TestResettingGivesNewInstanceId) {
   std::string new_instance_id = *future.result();
   EXPECT_FALSE(future.result()->empty());
   EXPECT_NE(instance_id, new_instance_id);
+
+#if TARGET_OS_IPHONE
+  FLAKY_TEST_SECTION_END();
+#endif  // TARGET_OS_IPHONE
 }
-#endif  // !(TARGET_OS_IPHONE)
 
 }  // namespace firebase_testapp_automated

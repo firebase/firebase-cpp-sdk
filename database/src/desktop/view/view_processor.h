@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_VIEW_VIEW_PROCESSOR_H_
-#define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_VIEW_VIEW_PROCESSOR_H_
+#ifndef FIREBASE_DATABASE_SRC_DESKTOP_VIEW_VIEW_PROCESSOR_H_
+#define FIREBASE_DATABASE_SRC_DESKTOP_VIEW_VIEW_PROCESSOR_H_
 
 #include "app/memory/unique_ptr.h"
 #include "app/src/path.h"
@@ -137,4 +137,4 @@ class ViewProcessor {
 }  // namespace database
 }  // namespace firebase
 
-#endif  // FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_VIEW_VIEW_PROCESSOR_H_
+#endif  // FIREBASE_DATABASE_SRC_DESKTOP_VIEW_VIEW_PROCESSOR_H_

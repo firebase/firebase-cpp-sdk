@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ANALYTICS_CLIENT_CPP_SRC_ANALYTICS_COMMON_H__
-#define FIREBASE_ANALYTICS_CLIENT_CPP_SRC_ANALYTICS_COMMON_H__
+#ifndef FIREBASE_ANALYTICS_SRC_ANALYTICS_COMMON_H__
+#define FIREBASE_ANALYTICS_SRC_ANALYTICS_COMMON_H__
 
 #include "app/src/reference_counted_future_impl.h"
 
@@ -63,4 +63,4 @@ bool IsInitialized();
 }  // namespace analytics
 }  // namespace firebase
 
-#endif  // FIREBASE_ANALYTICS_CLIENT_CPP_SRC_ANALYTICS_COMMON_H__
+#endif  // FIREBASE_ANALYTICS_SRC_ANALYTICS_COMMON_H__

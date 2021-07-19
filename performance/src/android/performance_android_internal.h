@@ -1,8 +1,10 @@
+// Copyright 2021 Google LLC
+
 // This file contains the declarations of common internal functions that are
 // needed for the android implementation of the Firebase Performance C++
 // bindings to work. Their definitions live in firebase_performance.cc.
-#ifndef FIREBASE_PERFORMANCE_CLIENT_CPP_SRC_ANDROID_PERFORMANCE_ANDROID_INTERNAL_H_
-#define FIREBASE_PERFORMANCE_CLIENT_CPP_SRC_ANDROID_PERFORMANCE_ANDROID_INTERNAL_H_
+#ifndef FIREBASE_PERFORMANCE_SRC_ANDROID_PERFORMANCE_ANDROID_INTERNAL_H_
+#define FIREBASE_PERFORMANCE_SRC_ANDROID_PERFORMANCE_ANDROID_INTERNAL_H_
 
 #include <jni.h>
 
@@ -75,4 +77,4 @@ const ::firebase::App* GetFirebaseApp();
 }  // namespace performance
 }  // namespace firebase
 
-#endif  // FIREBASE_PERFORMANCE_CLIENT_CPP_SRC_ANDROID_PERFORMANCE_ANDROID_INTERNAL_H_
+#endif  // FIREBASE_PERFORMANCE_SRC_ANDROID_PERFORMANCE_ANDROID_INTERNAL_H_

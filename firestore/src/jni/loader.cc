@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/jni/loader.h"
 
 #include "app/meta/move.h"

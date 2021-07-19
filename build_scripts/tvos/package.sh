@@ -1,4 +1,6 @@
 #!/bin/bash -e
+
+# Copyright 2021 Google LLC
 #
 # Script to package tvOS SDK.
 #

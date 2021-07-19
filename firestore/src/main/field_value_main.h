@@ -1,5 +1,7 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_FIELD_VALUE_MAIN_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_FIELD_VALUE_MAIN_H_
+// Copyright 2021 Google LLC
+
+#ifndef FIREBASE_FIRESTORE_SRC_MAIN_FIELD_VALUE_MAIN_H_
+#define FIREBASE_FIRESTORE_SRC_MAIN_FIELD_VALUE_MAIN_H_
 
 #include <cstdint>
 #include <string>
@@ -85,4 +87,4 @@ std::string Describe(FieldValue::Type type);
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_FIELD_VALUE_MAIN_H_
+#endif  // FIREBASE_FIRESTORE_SRC_MAIN_FIELD_VALUE_MAIN_H_

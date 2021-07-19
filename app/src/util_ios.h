@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_UTIL_IOS_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_UTIL_IOS_H_
+#ifndef FIREBASE_APP_SRC_UTIL_IOS_H_
+#define FIREBASE_APP_SRC_UTIL_IOS_H_
 
 #ifdef __OBJC__
 
@@ -337,4 +337,4 @@ NS_ASSUME_NONNULL_END
 #define OBJ_C_PTR_WRAPPER(objc_type_name) \
   OBJ_C_PTR_WRAPPER_NAMED(objc_type_name##Pointer, objc_type_name)
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_UTIL_IOS_H_
+#endif  // FIREBASE_APP_SRC_UTIL_IOS_H_

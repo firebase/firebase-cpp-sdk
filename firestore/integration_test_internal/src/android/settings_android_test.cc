@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/android/settings_android.h"
 
 #include "firestore/src/include/firebase/firestore/settings.h"

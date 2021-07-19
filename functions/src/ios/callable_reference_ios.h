@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_IOS_FUNCTIONS_REFERENCE_IOS_H_
-#define FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_IOS_FUNCTIONS_REFERENCE_IOS_H_
+#ifndef FIREBASE_FUNCTIONS_SRC_IOS_CALLABLE_REFERENCE_IOS_H_
+#define FIREBASE_FUNCTIONS_SRC_IOS_CALLABLE_REFERENCE_IOS_H_
 
 #include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/future.h"
@@ -100,4 +100,4 @@ class HttpsCallableReferenceInternal {
 }  // namespace functions
 }  // namespace firebase
 
-#endif  // FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_IOS_FUNCTIONS_REFERENCE_IOS_H_
+#endif  // FIREBASE_FUNCTIONS_SRC_IOS_CALLABLE_REFERENCE_IOS_H_

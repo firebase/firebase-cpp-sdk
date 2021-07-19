@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_COMMON_DATABASE_REFERENCE_H_
-#define FIREBASE_DATABASE_CLIENT_CPP_SRC_COMMON_DATABASE_REFERENCE_H_
+#ifndef FIREBASE_DATABASE_SRC_COMMON_DATABASE_REFERENCE_H_
+#define FIREBASE_DATABASE_SRC_COMMON_DATABASE_REFERENCE_H_
 
 #include "database/src/include/firebase/database/common.h"
 
@@ -47,4 +47,4 @@ inline bool IsValidPriority(const Variant& v) {
 }  // namespace database
 }  // namespace firebase
 
-#endif  // FIREBASE_DATABASE_CLIENT_CPP_SRC_COMMON_DATABASE_REFERENCE_H_
+#endif  // FIREBASE_DATABASE_SRC_COMMON_DATABASE_REFERENCE_H_

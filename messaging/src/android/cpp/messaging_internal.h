@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_MESSAGING_CLIENT_CPP_SRC_ANDROID_CPP_MESSAGING_INTERNAL_H_
-#define FIREBASE_MESSAGING_CLIENT_CPP_SRC_ANDROID_CPP_MESSAGING_INTERNAL_H_
+#ifndef FIREBASE_MESSAGING_SRC_ANDROID_CPP_MESSAGING_INTERNAL_H_
+#define FIREBASE_MESSAGING_SRC_ANDROID_CPP_MESSAGING_INTERNAL_H_
 
 namespace firebase {
 namespace messaging {
@@ -54,4 +54,4 @@ class FileLocker {
 }  // namespace messaging
 }  // namespace firebase
 
-#endif  // FIREBASE_MESSAGING_CLIENT_CPP_SRC_ANDROID_CPP_MESSAGING_INTERNAL_H_
+#endif  // FIREBASE_MESSAGING_SRC_ANDROID_CPP_MESSAGING_INTERNAL_H_

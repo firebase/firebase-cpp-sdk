@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_TESTS_UTIL_BUNDLE_BUILDER_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_TESTS_UTIL_BUNDLE_BUILDER_H_
+#ifndef FIREBASE_FIRESTORE_INTEGRATION_TEST_INTERNAL_SRC_UTIL_BUNDLE_BUILDER_H_
+#define FIREBASE_FIRESTORE_INTEGRATION_TEST_INTERNAL_SRC_UTIL_BUNDLE_BUILDER_H_
 
 #include <string>
 
@@ -30,4 +30,4 @@ std::string CreateBundle(const std::string& project_id);
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_TESTS_UTIL_BUNDLE_BUILDER_H_
+#endif  // FIREBASE_FIRESTORE_INTEGRATION_TEST_INTERNAL_SRC_UTIL_BUNDLE_BUILDER_H_

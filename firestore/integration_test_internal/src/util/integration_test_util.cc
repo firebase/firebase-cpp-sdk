@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include <chrono>  // NOLINT(build/c++11)
 #include <thread>  // NOLINT(build/c++11)
 

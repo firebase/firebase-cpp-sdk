@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/include/firebase/firestore/transaction.h"
 
 #include "firestore/src/common/cleanup.h"

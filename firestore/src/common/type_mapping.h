@@ -1,5 +1,7 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_TYPE_MAPPING_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_TYPE_MAPPING_H_
+// Copyright 2020 Google LLC
+
+#ifndef FIREBASE_FIRESTORE_SRC_COMMON_TYPE_MAPPING_H_
+#define FIREBASE_FIRESTORE_SRC_COMMON_TYPE_MAPPING_H_
 
 #include "app/src/include/firebase/internal/type_traits.h"
 
@@ -97,4 +99,4 @@ using InternalType = typename InternalTypeMap<typename decay<T>::type>::type;
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_TYPE_MAPPING_H_
+#endif  // FIREBASE_FIRESTORE_SRC_COMMON_TYPE_MAPPING_H_

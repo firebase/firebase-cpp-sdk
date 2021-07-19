@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_UTIL_H_
-#define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_UTIL_H_
+#ifndef FIREBASE_AUTH_SRC_DESKTOP_AUTH_UTIL_H_
+#define FIREBASE_AUTH_SRC_DESKTOP_AUTH_UTIL_H_
 
 #include <memory>
 #include <vector>
@@ -124,4 +124,4 @@ inline void FailPromise(Promise<T>* const promise, const AuthError error_code) {
 }  // namespace auth
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_UTIL_H_
+#endif  // FIREBASE_AUTH_SRC_DESKTOP_AUTH_UTIL_H_

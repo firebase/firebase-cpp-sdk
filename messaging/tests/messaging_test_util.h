@@ -14,8 +14,8 @@
 
 // This file contains utility methods used by messaging tests where the
 // implementation diverges across platforms.
-#ifndef FIREBASE_MESSAGING_CLIENT_CPP_TESTS_MESSAGING_TEST_UTIL_H_
-#define FIREBASE_MESSAGING_CLIENT_CPP_TESTS_MESSAGING_TEST_UTIL_H_
+#ifndef FIREBASE_MESSAGING_TESTS_MESSAGING_TEST_UTIL_H_
+#define FIREBASE_MESSAGING_TESTS_MESSAGING_TEST_UTIL_H_
 
 namespace firebase {
 namespace messaging {
@@ -48,4 +48,4 @@ void OnMessageSentError(const char* message_id, const char* error);
 }  // namespace messaging
 }  // namespace firebase
 
-#endif  // FIREBASE_MESSAGING_CLIENT_CPP_TESTS_MESSAGING_TEST_UTIL_H_
+#endif  // FIREBASE_MESSAGING_TESTS_MESSAGING_TEST_UTIL_H_

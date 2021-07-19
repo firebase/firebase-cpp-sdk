@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_VARIANT_UTIL_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_VARIANT_UTIL_H_
+#ifndef FIREBASE_APP_SRC_VARIANT_UTIL_H_
+#define FIREBASE_APP_SRC_VARIANT_UTIL_H_
 
 #include <string>
 
@@ -76,4 +76,4 @@ bool VariantVectorToFlexbuffer(const std::vector<Variant>& vector,
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_VARIANT_UTIL_H_
+#endif  // FIREBASE_APP_SRC_VARIANT_UTIL_H_

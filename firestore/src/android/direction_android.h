@@ -1,5 +1,7 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_DIRECTION_ANDROID_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_DIRECTION_ANDROID_H_
+// Copyright 2020 Google LLC
+
+#ifndef FIREBASE_FIRESTORE_SRC_ANDROID_DIRECTION_ANDROID_H_
+#define FIREBASE_FIRESTORE_SRC_ANDROID_DIRECTION_ANDROID_H_
 
 #include "firestore/src/android/query_android.h"
 #include "firestore/src/jni/jni_fwd.h"
@@ -18,4 +20,4 @@ class DirectionInternal {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_DIRECTION_ANDROID_H_
+#endif  // FIREBASE_FIRESTORE_SRC_ANDROID_DIRECTION_ANDROID_H_

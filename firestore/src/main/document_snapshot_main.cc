@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/main/document_snapshot_main.h"
 
 #include <utility>

@@ -137,12 +137,16 @@ jobs:
           architecture: 'x64'
 
       - name: Update homebrew (avoid bintray errors)
+        uses: nick-invision/retry@v2
         if: startsWith(matrix.os, 'macos')
-        run: |
-          # Temporarily here until Github runners have updated their version of
-          # homebrew. This prevents errors arising from the shut down of
-          # binutils, used by older version of homebrew for hosting packages.
-          brew update
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: |
+            # Temporarily here until Github runners have updated their version of
+            # homebrew. This prevents errors arising from the shut down of
+            # binutils, used by older version of homebrew for hosting packages.
+            brew update
 
       - name: Install prerequisites
         run: |

@@ -1,5 +1,7 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_UTIL_ANDROID_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_UTIL_ANDROID_H_
+// Copyright 2020 Google LLC
+
+#ifndef FIREBASE_FIRESTORE_SRC_ANDROID_UTIL_ANDROID_H_
+#define FIREBASE_FIRESTORE_SRC_ANDROID_UTIL_ANDROID_H_
 
 #include <vector>
 
@@ -31,11 +33,7 @@ std::vector<PublicT> MakePublicVector(jni::Env& env,
     jni::Local<jni::Object> element = from.Get(env, i);
 
     // Avoid creating a partially valid public object on failure.
-    //
-    // TODO(b/163140650): Use `return {}`
-    // Clang 5 with STLPort gives a "chosen constructor is explicit in
-    // copy-initialization" error because the default constructor is explicit.
-    if (!env.ok()) return std::vector<PublicT>();
+    if (!env.ok()) return {};
 
     // Use push_back because emplace_back requires a public constructor.
     result.push_back(MakePublic<PublicT>(env, firestore, element));
@@ -74,4 +72,4 @@ UpdateFieldPathArgs MakeUpdateFieldPathArgs(jni::Env& env,
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_UTIL_ANDROID_H_
+#endif  // FIREBASE_FIRESTORE_SRC_ANDROID_UTIL_ANDROID_H_

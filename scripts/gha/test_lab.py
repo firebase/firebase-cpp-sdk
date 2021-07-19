@@ -118,7 +118,7 @@ flags.DEFINE_string(
     "iOS version for desired device. See module docstring for details on how"
     " to find available values. If none, will use FTL's default.")
 flags.DEFINE_string(
-    "logfile_name", "",
+    "logfile_name", "ftl-test",
     "Create test log artifact test-results-$logfile_name.log."
     " logfile will be created and placed in testapp_dir.")   
 

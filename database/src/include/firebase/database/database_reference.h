@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_DATABASE_DATABASE_REFERENCE_H_
-#define FIREBASE_DATABASE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_DATABASE_DATABASE_REFERENCE_H_
+#ifndef FIREBASE_DATABASE_SRC_INCLUDE_FIREBASE_DATABASE_DATABASE_REFERENCE_H_
+#define FIREBASE_DATABASE_SRC_INCLUDE_FIREBASE_DATABASE_DATABASE_REFERENCE_H_
 
 #include <map>
 #include <string>
@@ -473,4 +473,4 @@ bool operator==(const DatabaseReference& lhs, const DatabaseReference& rhs);
 }  // namespace database
 }  // namespace firebase
 
-#endif  // FIREBASE_DATABASE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_DATABASE_DATABASE_REFERENCE_H_
+#endif  // FIREBASE_DATABASE_SRC_INCLUDE_FIREBASE_DATABASE_DATABASE_REFERENCE_H_
