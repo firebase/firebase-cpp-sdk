@@ -381,7 +381,7 @@ def parse_cmdline_args():
   parser.add_argument('-o', '--override', help='Override existing value with provided value')
   parser.add_argument('-d', '--device', action='store_true', help='Get the device type, used with -k $device')
   parser.add_argument('-t', '--device_type', default=['real', 'virtual'], help='Test on which type of mobile devices')
-  parser.add_argument('-p', '--apis', default=["admob,analytics,auth,database,dynamic_links,firestore,functions,installations,messaging,remote_config,storage"], 
+  parser.add_argument('--apis', default=PARAMETERS["integration_tests"]["config"]["apis"], 
                       help='Exclude platform based on apis. Certain platform does not support all apis. e.g. tvOS does not support messaging')
   args = parser.parse_args()
   return args
