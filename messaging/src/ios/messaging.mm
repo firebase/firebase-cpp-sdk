@@ -197,26 +197,6 @@ Future<void> RequestPermission() {
     id appDelegate = [UIApplication sharedApplication];
 
   #if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
-    // Register for remote notifications. Both codepaths result in
-    // application:didRegisterForRemoteNotificationsWithDeviceToken: being called when they
-    // complete, or application:didFailToRegisterForRemoteNotificationsWithError: if there was an
-    // error. We complete the future there.
-    // if (floor(NSFoundationVersionNumber) <= NSFoundationVersionNumber_iOS_7_1) {
-    //   // iOS 7.1 or earlier
-    //   UIRemoteNotificationType allNotificationTypes =
-    //       (UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert |
-    //        UIRemoteNotificationTypeBadge);
-    //   [appDelegate registerForRemoteNotificationTypes:allNotificationTypes];
-    // } else {
-    //   // iOS 8 or later
-    //   UIUserNotificationType allNotificationTypes =
-    //       (UIUserNotificationTypeSound | UIUserNotificationTypeAlert | UIUserNotificationTypeBadge);
-    //   UIUserNotificationSettings *settings =
-    //       [UIUserNotificationSettings settingsForTypes:allNotificationTypes categories:nil];
-    //   [appDelegate registerUserNotificationSettings:settings];
-    //   [appDelegate registerForRemoteNotifications];
-    // }
-
     if ([UNUserNotificationCenter class] != nil) {
       // iOS 10 or later, and tvOS
       // For iOS 10 display notification (sent via APNS)
@@ -226,21 +206,25 @@ Future<void> RequestPermission() {
       [[UNUserNotificationCenter currentNotificationCenter]
           requestAuthorizationWithOptions:authOptions
           completionHandler:^(BOOL granted, NSError * _Nullable error) {
-            // ...
           }];
       [appDelegate registerForRemoteNotifications];
     }
-    #endif
+    #endif //FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 
     #if FIREBASE_PLATFORM_IOS
+      // Register for remote notifications. Both codepaths result in
+      // application:didRegisterForRemoteNotificationsWithDeviceToken: being called when they
+      // complete, or application:didFailToRegisterForRemoteNotificationsWithError: if there was an
+      // error. We complete the future there.
       if (floor(NSFoundationVersionNumber) <= NSFoundationVersionNumber_iOS_7_1) {
         // iOS 7.1 or earlier
         UIRemoteNotificationType allNotificationTypes =
             (UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert |
             UIRemoteNotificationTypeBadge);
         [appDelegate registerForRemoteNotificationTypes:allNotificationTypes];
-      } else if (floor(NSFoundationVersionNumber) <= NSFoundationVersionNumber_iOS_10_0) {
-        // iOS 8 or later
+      } else if (floor(NSFoundationVersionNumber) < NSFoundationVersionNumber_iOS_10_0) {
+        // 8.0 <= iOS version < 10.0
+        // > 10.0 is handled by the if block above
         UIUserNotificationType allNotificationTypes =
             (UIUserNotificationTypeSound | UIUserNotificationTypeAlert | UIUserNotificationTypeBadge);
         UIUserNotificationSettings *settings =
