@@ -111,7 +111,7 @@
       "full_name": "FirebaseMessaging",
       "bundle_id": "com.google.FirebaseCppMessagingTestApp.dev",
       "ios_target": "integration_test",
-      "tvos_target": "",
+      "tvos_target": "integration_test_tvos",
       "testapp_path": "messaging/integration_test",
       "frameworks": [
         "firebase_messaging.xcframework",
