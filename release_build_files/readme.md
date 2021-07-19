@@ -572,6 +572,8 @@ code.
     -   Firestore: Removed the deprecated
         `Firestore::RunTransaction(TransactionFunction*)` function. Please use
         the overload that takes a `std::function` argument instead.
+    -   Firestore: `FieldValue::Increment` functions are no longer guarded by
+        the `INTERNAL_EXPERIMENTAL` macro.
 
 ### 8.2.0
 -   Changes
