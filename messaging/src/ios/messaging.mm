@@ -540,13 +540,13 @@ static BOOL AppDelegateApplicationDidFinishLaunchingWithOptions(id self, SEL sel
     [user_notification_center setDelegate:(id<UNUserNotificationCenterDelegate>)application];
   }
 
-  // If the app was launched with a notification, cache it until we're connected.
   g_message_notification_opened = false;
   #if FIREBASE_PLATFORM_IOS
+  // If the app was launched with a notification, cache it until we're connected.
   g_launch_notification =
       [launch_options objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
   g_message_notification_opened = g_launch_notification != nil;
-  #endif
+  #endif // FIREBASE_PLATFORM_IOS
 
   IMP app_delegate_application_did_finish_launching_with_options =
       SwizzledMethodCache().GetMethodForObject(
