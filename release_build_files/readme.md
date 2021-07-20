@@ -567,6 +567,10 @@ code.
 
 ## Release Notes
 
+### 8.3.0
+-   Changes
+    -   Firestore: added more validation of invalid input.
+
 ### 8.2.0
 -   Changes
     -   General (Android): Updated Flatbuffers internal dependency from version
