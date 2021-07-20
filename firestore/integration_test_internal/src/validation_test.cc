@@ -125,7 +125,6 @@ std::string ErrorMessage(ErrorCase error_case) {
 #ifdef __ANDROID__
       return "Invalid field name at argument 1. Field names must not be null "
              "or empty.";
-      return "Invalid field name at index 0. Field names must not be empty.";
 #else
       return "Invalid field name at index 0. Field names must not be empty.";
 #endif
@@ -704,7 +703,7 @@ TEST_F(ValidationTest, FieldNamesMustNotBeEmpty) {
   // must not be empty.");
 
   EXPECT_ERROR(snapshot.Get(FieldPath{""}),
-               ""ErrorMessage(ErrorCase::kFieldNameEmpty1));
+               ErrorMessage(ErrorCase::kFieldNameEmpty1));
   EXPECT_ERROR(snapshot.Get(FieldPath{"foo", ""}),
                ErrorMessage(ErrorCase::kFieldNameEmpty2));
 }
