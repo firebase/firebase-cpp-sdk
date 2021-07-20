@@ -293,11 +293,6 @@ WriteBatch Firestore::batch() const {
   return internal_->batch();
 }
 
-Future<void> Firestore::RunTransaction(TransactionFunction* update) {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->RunTransaction(update);
-}
-
 Future<void> Firestore::RunTransaction(
     std::function<Error(Transaction&, std::string&)> update) {
   if (!update) {

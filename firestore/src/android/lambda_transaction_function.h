@@ -10,6 +10,7 @@
 #include "app/src/assert.h"
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/promise_android.h"
+#include "firestore/src/common/transaction_function.h"
 #include "firestore/src/include/firebase/firestore/transaction.h"
 
 namespace firebase {

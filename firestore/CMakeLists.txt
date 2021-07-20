@@ -342,6 +342,8 @@ add_custom_target(
   COMMENT "Copying internal Firestore headers"
 )
 
+# This is needed due to Firestore's dependence on some firebase::app APIs that
+# are guarded by this flag, such as GetUserAgent and function_registry.
 set(FIREBASE_FIRESTORE_CPP_DEFINES -DINTERNAL_EXPERIMENTAL=1)
 
 if (WIN32 AND NOT ANDROID AND NOT IOS)

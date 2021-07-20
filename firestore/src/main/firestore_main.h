@@ -28,7 +28,6 @@ namespace firestore {
 class Firestore;
 class ListenerRegistrationInternal;
 class Transaction;
-class TransactionFunction;
 class WriteBatch;
 
 namespace util {
@@ -69,7 +68,6 @@ class FirestoreInternal {
 
   Future<void> RunTransaction(
       std::function<Error(Transaction&, std::string&)> update);
-  Future<void> RunTransaction(TransactionFunction* update);
 
   Future<void> DisableNetwork();
 
