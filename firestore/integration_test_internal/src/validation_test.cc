@@ -520,12 +520,15 @@ TEST_F(ValidationTest, WritesMayContainIndirectlyNestedLists) {
 }
 
 TEST_F(ValidationTest, WritesMustNotContainReferencesToADifferentDatabase) {
-  // TODO(b/136012313): batches and transactions don't currently throw.
-  GTEST_SKIP();
-
-  DocumentReference ref = TestFirestore("different-db")->Document("baz/quu");
+  DocumentReference ref =
+      TestFirestoreWithProjectId(/*name=*/"db2", /*project_id=*/"different-db")
+          ->Document("baz/quu");
   auto data = FieldValue::Reference(ref);
-  ExpectWriteError(MapFieldValue{{"foo", data}}, "Abc");
+
+  ExpectWriteError(MapFieldValue{{"foo", data}},
+                   "Invalid data. Document reference is for database "
+                   "different-db/(default) but should be for database "
+                   "cpp-firestore-test-app/(default) (found in field foo)");
 }
 
 TEST_F(ValidationTest, WritesMustNotContainReservedFieldNames) {

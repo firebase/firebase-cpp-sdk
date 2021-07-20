@@ -27,7 +27,7 @@ struct TestFriend {
   }
 };
 
-App* GetApp(const char* name) {
+App* GetApp(const char* name, const std::string& override_project_id) {
   // TODO(varconst): try to avoid using a real project ID when possible. iOS
   // unit tests achieve this by using fake options:
   // https://github.com/firebase/firebase-ios-sdk/blob/9a5afbffc17bb63b7bb7f51b9ea9a6a9e1c88a94/Firestore/core/test/firebase/firestore/testutil/app_testing.mm#L29
@@ -43,16 +43,22 @@ App* GetApp(const char* name) {
     App* default_app = App::GetInstance();
     SIMPLE_HARD_ASSERT(default_app,
                        "Cannot create a named app before the default app");
+
+    AppOptions options = default_app->options();
+    if (!override_project_id.empty()) {
+      options.set_project_id(override_project_id.c_str());
+    }
+
 #if defined(__ANDROID__)
-    return App::Create(default_app->options(), name, app_framework::GetJniEnv(),
+    return App::Create(options, name, app_framework::GetJniEnv(),
                        app_framework::GetActivity());
 #else
-    return App::Create(default_app->options(), name);
+    return App::Create(options, name);
 #endif  // defined(__ANDROID__)
   }
 }
 
-App* GetApp() { return GetApp(nullptr); }
+App* GetApp() { return GetApp(/*name=*/nullptr, /*project_id=*/""); }
 
 FirestoreInternal* CreateTestFirestoreInternal(App* app) {
   return TestFriend::CreateTestFirestoreInternal(app);
