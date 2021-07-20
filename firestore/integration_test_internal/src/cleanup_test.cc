@@ -233,16 +233,16 @@ void ExpectAllMethodsAreNoOps(QuerySnapshot* ptr) {
   EXPECT_TRUE(ptr->size() == 0);
 }
 
-void ExpectAllMethodsAreNoOps(WriteBatch* ptr) {
+void ExpectAllMethodsAreNoOps(WriteBatch* ptr, const DocumentReference& doc) {
   // `WriteBatch` isn't equality comparable.
   ExpectCopyableAndMoveable(ptr);
 
-  ptr->Set(DocumentReference(), MapFieldValue());
+  ptr->Set(doc, MapFieldValue());
 
-  ptr->Update(DocumentReference(), MapFieldValue());
-  ptr->Update(DocumentReference(), MapFieldPathValue());
+  ptr->Update(doc, MapFieldValue());
+  ptr->Update(doc, MapFieldPathValue());
 
-  ptr->Delete(DocumentReference());
+  ptr->Delete(doc);
 
   EXPECT_TRUE(ptr->Commit() == FailedFuture<void>());
 }
@@ -395,17 +395,20 @@ TEST_F(CleanupTest, QuerySnapshotIsBlankAfterCleanup) {
 // case where a user could be accessing a "blank" transaction.
 
 TEST_F(CleanupTest, WriteBatchIsBlankAfterCleanup) {
+  // Need a valid `DocumentReference` to avoid `WriteBatch` methods throwing.
+  DocumentReference doc = Document();
+
   {
     WriteBatch default_constructed;
     SCOPED_TRACE("WriteBatch.DefaultConstructed");
-    ExpectAllMethodsAreNoOps(&default_constructed);
+    ExpectAllMethodsAreNoOps(&default_constructed, doc);
   }
 
   Firestore* db = TestFirestore();
   WriteBatch batch = db->batch();
   DeleteFirestore(db);
   SCOPED_TRACE("WriteBatch.AfterCleanup");
-  ExpectAllMethodsAreNoOps(&batch);
+  ExpectAllMethodsAreNoOps(&batch, doc);
 }
 
 }  // namespace

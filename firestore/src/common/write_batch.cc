@@ -90,35 +90,35 @@ WriteBatch& WriteBatch::operator=(WriteBatch&& value) {
 WriteBatch& WriteBatch::Set(const DocumentReference& document,
                             const MapFieldValue& data,
                             const SetOptions& options) {
-  ValidateReference(document);
-
   if (!internal_) return *this;
+
+  ValidateReference(document);
   internal_->Set(document, data, options);
   return *this;
 }
 
 WriteBatch& WriteBatch::Update(const DocumentReference& document,
                                const MapFieldValue& data) {
-  ValidateReference(document);
-
   if (!internal_) return *this;
+
+  ValidateReference(document);
   internal_->Update(document, data);
   return *this;
 }
 
 WriteBatch& WriteBatch::Update(const DocumentReference& document,
                                const MapFieldPathValue& data) {
-  ValidateReference(document);
-
   if (!internal_) return *this;
+
+  ValidateReference(document);
   internal_->Update(document, data);
   return *this;
 }
 
 WriteBatch& WriteBatch::Delete(const DocumentReference& document) {
-  ValidateReference(document);
-
   if (!internal_) return *this;
+
+  ValidateReference(document);
   internal_->Delete(document);
   return *this;
 }

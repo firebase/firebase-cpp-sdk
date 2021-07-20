@@ -42,41 +42,41 @@ Transaction::~Transaction() {
 void Transaction::Set(const DocumentReference& document,
                       const MapFieldValue& data,
                       const SetOptions& options) {
-  ValidateReference(document);
-
   if (!internal_) return;
+
+  ValidateReference(document);
   internal_->Set(document, data, options);
 }
 
 void Transaction::Update(const DocumentReference& document,
                          const MapFieldValue& data) {
-  ValidateReference(document);
-
   if (!internal_) return;
+
+  ValidateReference(document);
   internal_->Update(document, data);
 }
 
 void Transaction::Update(const DocumentReference& document,
                          const MapFieldPathValue& data) {
-  ValidateReference(document);
-
   if (!internal_) return;
+
+  ValidateReference(document);
   internal_->Update(document, data);
 }
 
 void Transaction::Delete(const DocumentReference& document) {
-  ValidateReference(document);
-
   if (!internal_) return;
+
+  ValidateReference(document);
   internal_->Delete(document);
 }
 
 DocumentSnapshot Transaction::Get(const DocumentReference& document,
                                   Error* error_code,
                                   std::string* error_message) {
-  ValidateReference(document);
-
   if (!internal_) return {};
+
+  ValidateReference(document);
   return internal_->Get(document, error_code, error_message);
 }
 
