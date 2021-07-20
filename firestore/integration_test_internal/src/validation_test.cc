@@ -41,8 +41,11 @@ using testing::StrEq;
 using testing::Throws;
 using testing::ThrowsMessage;
 
-#define EXPECT_ERROR(stmt, msg) \
-  EXPECT_THAT([&] { stmt; }, ThrowsMessage<std::exception>(StrEq(msg)));
+// #define EXPECT_ERROR(stmt, msg) \
+//   EXPECT_THAT([&] { stmt; }, ThrowsMessage<std::exception>(StrEq(msg)));
+#define EXPECT_ERROR(stmt, msg)                               \
+  EXPECT_THAT([&] { stmt; }, Throws<std::exception>(Property( \
+                                 &std::exception::what, StrEq(msg))));
 
 #define EXPECT_ERROR_EITHER(stmt, msg1, msg2)  \
   EXPECT_THAT([&] { stmt; },                   \
@@ -122,6 +125,7 @@ std::string ErrorMessage(ErrorCase error_case) {
 #ifdef __ANDROID__
       return "Invalid field name at argument 1. Field names must not be null "
              "or empty.";
+      return "Invalid field name at index 0. Field names must not be empty.";
 #else
       return "Invalid field name at index 0. Field names must not be empty.";
 #endif
@@ -244,7 +248,7 @@ std::string ErrorMessage(ErrorCase error_case) {
     case ErrorCase::kQueryEndBoundWithoutOrderBy:
 #ifdef __ANDROID__
       return "Invalid query. You must not call Query.endAt() or "
-             "Query.endAfter() before calling Query.orderBy().";
+             "Query.endBefore() before calling Query.orderBy().";
 #else
       return "Invalid query. You must not specify an ending point before "
              "specifying the order by.";
@@ -629,6 +633,23 @@ TEST_F(ValidationTest, TransactionsRequireCorrectDocumentReferences) {
   MapFieldValue data{{"foo", FieldValue::Integer(1)}};
   DocumentReference bad_ref = db2->Document("foo/bar");
 
+#if defined(__ANDROID__)
+  auto future = db1->RunTransaction([&](Transaction& txn, std::string&) {
+    txn.Get(bad_ref, /*error_code=*/nullptr, /*error_message=*/nullptr);
+    txn.Set(bad_ref, data);
+    txn.Set(bad_ref, data, SetOptions::Merge());
+    txn.Update(bad_ref, data);
+    txn.Delete(bad_ref);
+
+    return Error::kErrorOk;
+  });
+
+  Await(future);
+  EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
+  EXPECT_EQ(future.error(), Error::kErrorUnknown);
+  EXPECT_STREQ(future.error_message(), reason.c_str());
+
+#else
   auto future = db1->RunTransaction([&](Transaction& txn, std::string&) {
     EXPECT_ERROR(
         txn.Get(bad_ref, /*error_code=*/nullptr, /*error_message=*/nullptr),
@@ -642,6 +663,8 @@ TEST_F(ValidationTest, TransactionsRequireCorrectDocumentReferences) {
   });
 
   EXPECT_THAT(future, FutureSucceeds());
+
+#endif  // defined(__ANDROID__)
 }
 
 TEST_F(ValidationTest, FieldPathsMustNotHaveEmptySegments) {
@@ -681,7 +704,7 @@ TEST_F(ValidationTest, FieldNamesMustNotBeEmpty) {
   // must not be empty.");
 
   EXPECT_ERROR(snapshot.Get(FieldPath{""}),
-               ErrorMessage(ErrorCase::kFieldNameEmpty1));
+               ""ErrorMessage(ErrorCase::kFieldNameEmpty1));
   EXPECT_ERROR(snapshot.Get(FieldPath{"foo", ""}),
                ErrorMessage(ErrorCase::kFieldNameEmpty2));
 }
