@@ -319,7 +319,7 @@ char** VectorToArgcArgv(const std::vector<std::string>& args_vector,
     std::strcpy(arg_copy, arg);
     argv[i] = arg_copy;
   }
-  argv[args_vector.size()] = 0;
+  argv[args_vector.size()] = nullptr;
   *argc = static_cast<int>(args_vector.size());
   return argv;
 }
