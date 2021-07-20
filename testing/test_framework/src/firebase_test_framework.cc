@@ -309,13 +309,17 @@ std::vector<std::string> ArgcArgvToVector(int argc, char* argv[]) {
 
 char** VectorToArgcArgv(const std::vector<std::string>& args_vector,
                         int* argc) {
-  char** argv = new char*[args_vector.size()];
+  // Create `argv` one element larger than strictly required since gtest expects
+  // there to be a null element at `argv[argc]`. Not doing so causes an invalid
+  // memory access in googletest's `ParseGoogleTestFlagsOnlyImpl()` function.
+  char** argv = new char*[args_vector.size() + 1];
   for (int i = 0; i < args_vector.size(); ++i) {
     const char* arg = args_vector[i].c_str();
     char* arg_copy = new char[std::strlen(arg) + 1];
     std::strcpy(arg_copy, arg);
     argv[i] = arg_copy;
   }
+  argv[args_vector.size()] = 0;
   *argc = static_cast<int>(args_vector.size());
   return argv;
 }
@@ -344,18 +348,11 @@ char** EditMainArgsForGoogleTest(int* argc, char* argv[]) {
   const std::vector<std::string> original_args = ArgcArgvToVector(*argc, argv);
   std::vector<std::string> modified_args(original_args);
 
-  // Add elements to the `modified_args` vector to specify to googletest.
-  // e.g. modified_args.push_back("--gtest_list_tests");
-  // e.g. modified_args.push_back("--gtest_filter=MyTestFixture.MyTest");
-
-  // Avoid the memory leaks documented below if there were no arg changes.
-  if (modified_args == original_args) {
-    return argv;
-  }
-
   // Create a new `argv` with the elements from the `modified_args` vector and
   // write the new count back to `argc`. The memory leaks produced by
   // `VectorToArgcArgv` acceptable because they last for the entire application.
+  // Calling `VectorToArgcArgv` also fixes an invalid memory access performed by
+  // googletest by adding an extra null element to the end of `argv`.
   return VectorToArgcArgv(modified_args, argc);
 }
 
