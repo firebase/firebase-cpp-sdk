@@ -116,7 +116,7 @@ PARAMETERS = {
 
       EXPANDED_KEY: {
         "ssl_lib": ["openssl", "boringssl"],
-        "android_device": ["android_latest", "android_latest", "emulator_target", "emulator_latest"],
+        "android_device": ["android_latest", "android_latest", "emulator_target", "emulator_latest", "emulator_32bit"],
         "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"],
         "tvos_device": ["tvos_simulator"],
       }
@@ -156,7 +156,8 @@ TEST_DEVICES = {
   "android_latest": {"type": "real", "model":"flame", "version":"29"},
   "emulator_min": {"type": "virtual", "image":"system-images;android-18;google_apis;x86"},
   "emulator_target": {"type": "virtual", "image":"system-images;android-28;google_apis;x86_64"},
-  "emulator_latest": {"type": "virtual", "image":"system-images;android-29;google_apis;x86"},
+  "emulator_latest": {"type": "virtual", "image":"system-images;android-30;google_apis;x86_64"},
+  "emulator_32bit": {"type": "virtual", "image":"system-images;android-30;google_apis;x86"},
   "ios_min": {"type": "real", "model":"iphone8", "version":"11.4"},
   "ios_target": {"type": "real", "model":"iphone8plus", "version":"12.0"},
   "ios_latest": {"type": "real", "model":"iphone11", "version":"13.6"},
