@@ -61,6 +61,8 @@ import re
 import subprocess
 import sys
 
+from integration_testing import config_reader
+
 # Note that desktop is used for fallback,
 # if there is no direct match for a key.
 DEFAULT_WORKFLOW = "desktop"
@@ -334,12 +336,26 @@ def filter_values_on_diff(parm_key, value, auto_diff):
     return value
 
 
+def filter_platforms_on_apis(platforms, apis):
+  if "tvOS" in platforms:
+    config = config_reader.read_config()
+    supported_apis = [api for api in apis if config.get_api(api).tvos_target]
+    if not supported_apis:
+      platforms.remove("tvOS")
+  
+  return platforms
+
+
 def main():
   args = parse_cmdline_args()
   if args.override:
     # If it is matrix parm, convert CSV string into a list
     if not args.config:
       args.override = args.override.split(',')
+    if args.parm_key == "platform" and args.apis:
+      # e.g. args.apis = "\"admob,analytics\""
+      args.override = filter_platforms_on_apis(args.override, args.apis.strip('"').split(','))
+
     print_value(args.override)
     return
 
@@ -365,6 +381,8 @@ def parse_cmdline_args():
   parser.add_argument('-o', '--override', help='Override existing value with provided value')
   parser.add_argument('-d', '--device', action='store_true', help='Get the device type, used with -k $device')
   parser.add_argument('-t', '--device_type', default=['real', 'virtual'], help='Test on which type of mobile devices')
+  parser.add_argument('--apis', default=PARAMETERS["integration_tests"]["config"]["apis"], 
+                      help='Exclude platform based on apis. Certain platform does not support all apis. e.g. tvOS does not support messaging')
   args = parser.parse_args()
   return args
 
