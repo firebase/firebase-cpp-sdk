@@ -4,6 +4,7 @@
 
 #include "firestore/src/common/cleanup.h"
 #include "firestore/src/common/exception_common.h"
+#include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #if defined(__ANDROID__)
