@@ -39,10 +39,9 @@ using testing::HasSubstr;
 using testing::Property;
 using testing::StrEq;
 using testing::Throws;
-using testing::ThrowsMessage;
 
-// #define EXPECT_ERROR(stmt, msg) \
-//   EXPECT_THAT([&] { stmt; }, ThrowsMessage<std::exception>(StrEq(msg)));
+// Note: there is some issue with the `ThrowsMessage` matcher that prevents it
+// from printing the actual exception message to the console.
 #define EXPECT_ERROR(stmt, msg)                               \
   EXPECT_THAT([&] { stmt; }, Throws<std::exception>(Property( \
                                  &std::exception::what, StrEq(msg))));
@@ -59,8 +58,6 @@ enum class ErrorCase {
   kSettingsDisableSsl,
   kFieldValueDeleteInSet,
   kFieldValueDeleteNested,
-  kFieldNameEmpty1,
-  kFieldNameEmpty2,
   kArrayUnionInQuery,
   kArrayRemoveInQuery,
   kQueryMissingOrderBy,
@@ -119,22 +116,6 @@ std::string ErrorMessage(ErrorCase error_case) {
 #else
       return "Invalid data. FieldValue::Delete() can only appear at the top "
              "level of your update data (found in field foo.bar)";
-#endif
-
-    case ErrorCase::kFieldNameEmpty1:
-#ifdef __ANDROID__
-      return "Invalid field name at argument 1. Field names must not be null "
-             "or empty.";
-#else
-      return "Invalid field name at index 0. Field names must not be empty.";
-#endif
-
-    case ErrorCase::kFieldNameEmpty2:
-#ifdef __ANDROID__
-      return "Invalid field name at argument 2. Field names must not be null "
-             "or empty.";
-#else
-      return "Invalid field name at index 1. Field names must not be empty.";
 #endif
 
     case ErrorCase::kArrayUnionInQuery:
@@ -703,9 +684,9 @@ TEST_F(ValidationTest, FieldNamesMustNotBeEmpty) {
   // must not be empty.");
 
   EXPECT_ERROR(snapshot.Get(FieldPath{""}),
-               ErrorMessage(ErrorCase::kFieldNameEmpty1));
+               "Invalid field name at index 0. Field names must not be empty.");
   EXPECT_ERROR(snapshot.Get(FieldPath{"foo", ""}),
-               ErrorMessage(ErrorCase::kFieldNameEmpty2));
+               "Invalid field name at index 1. Field names must not be empty.");
 }
 
 TEST_F(ValidationTest, ArrayTransformsFailInQueries) {
