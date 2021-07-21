@@ -309,9 +309,11 @@ std::vector<std::string> ArgcArgvToVector(int argc, char* argv[]) {
 
 char** VectorToArgcArgv(const std::vector<std::string>& args_vector,
                         int* argc) {
-  // Create `argv` one element larger than strictly required since gtest expects
-  // there to be a null element at `argv[argc]`. Not doing so causes an invalid
-  // memory access in googletest's `ParseGoogleTestFlagsOnlyImpl()` function.
+  // Ensure that `argv` ends with a null terminator. This is a Poxis requirement
+  // (see https://man7.org/linux/man-pages/man2/execve.2.html) and googletest
+  // relies on it. Without this null terminator, the
+  // `ParseGoogleTestFlagsOnlyImpl()` function in googletest accesses invalid
+  // memory and causes an Address Sanitizer failure.
   char** argv = new char*[args_vector.size() + 1];
   for (int i = 0; i < args_vector.size(); ++i) {
     const char* arg = args_vector[i].c_str();
@@ -352,7 +354,7 @@ char** EditMainArgsForGoogleTest(int* argc, char* argv[]) {
   // write the new count back to `argc`. The memory leaks produced by
   // `VectorToArgcArgv` acceptable because they last for the entire application.
   // Calling `VectorToArgcArgv` also fixes an invalid memory access performed by
-  // googletest by adding an extra null element to the end of `argv`.
+  // googletest by adding the required null element to the end of `argv`.
   return VectorToArgcArgv(modified_args, argc);
 }
 
