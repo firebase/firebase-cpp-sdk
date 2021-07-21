@@ -559,17 +559,18 @@ def main():
 
   # Since we renamed firebase_app.framework to firebase.framework we add that
   # to our list of targets.
-  supported_targets.add('firebase')
+  targets = set(args.target)
+  targets.add('firebase')
 
   # if we built for all architectures build universal framework as well.
-  build_universal_framework(frameworks_path, supported_targets)
+  build_universal_framework(frameworks_path, targets)
 
   # Build xcframeworks
   xcframeworks_path = os.path.join(args.build_dir, 'xcframeworks')
   template_info_plist_path = os.path.join(args.source_dir, 'build_scripts',
                                           'tvos', 'Info_ios_and_tvos.plist')
   build_xcframeworks(frameworks_path, xcframeworks_path,
-                     template_info_plist_path, supported_targets)
+                     template_info_plist_path, targets)
 
 
 def parse_cmdline_args():
