@@ -493,13 +493,20 @@ def _setup_android(platform_version, build_tool_version, sdk_id):
     os.path.join(android_home, "platform-tools"), 
     os.path.join(android_home, "build-tools", build_tool_version)]
   os.environ["PATH"] += os.pathsep + os.pathsep.join(pathlist)
-  
+
   args = ["sdkmanager", 
     "emulator", "platform-tools", 
     "platforms;%s" % platform_version, 
     "build-tools;%s" % build_tool_version]
   logging.info("Install packages: %s", " ".join(args))
   subprocess.run(args=args, check=True)
+
+  args = ["sdkmanager", "--licenses"]
+  logging.info("Accept all licenses: %s", " ".join(args))
+  p_yes = subprocess.Popen(["echo", "yes"], stdout=subprocess.PIPE)
+  proc = subprocess.Popen(args, stdin=p_yes.stdout, stdout=subprocess.PIPE)
+  p_yes.stdout.close()
+  proc.communicate()
 
   args = ["sdkmanager", sdk_id]
   logging.info("Download an emulator: %s", " ".join(args))

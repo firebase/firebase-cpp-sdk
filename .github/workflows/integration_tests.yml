@@ -812,6 +812,7 @@ jobs:
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.android_device }} )"
       - name: Run Android integration tests on Emulator locally
+        timeout-minutes: 60
         if: steps.get-device-type.outputs.device_type == 'virtual'
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
@@ -896,6 +897,7 @@ jobs:
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.ios_device }} )"
       - name: Run iOS integration tests on Simulator locally
+        timeout-minutes: 60
         if: steps.get-device-type.outputs.device_type == 'virtual'
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
@@ -977,6 +979,7 @@ jobs:
       - name: Install python deps
         run: pip install -r scripts/gha/requirements.txt
       - name: Run tvOS integration tests on Simulator locally
+        timeout-minutes: 60
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
             --tvos_device "${{ matrix.tvos_device }}" \
