@@ -56,8 +56,8 @@ Future<T> FailedFuture() {
   static auto* future = new Future<T>(FailedFuture<T>(
       Error::kErrorFailedPrecondition,
       "The object that issued this future is in an invalid state. This can be "
-      "because:\n- the object was default-constructed and never reassigned;\n"
-      "- the object was moved from;\n- the Firestore instance with which the "
+      "because the object was default-constructed and never reassigned, "
+      "the object was moved from, or the Firestore instance with which the "
       "object was associated has been destroyed."));
   return *future;
 }
