@@ -157,6 +157,19 @@ class WriteBatch {
    */
   virtual Future<void> Commit();
 
+  /**
+   * @brief Returns true if this `WriteBatch` is valid, false if it is not
+   * valid. An invalid `WriteBatch` could be the result of:
+   *   - Creating a `WriteBatch` using the default constructor.
+   *   - Moving from the `WriteBatch`.
+   *   - Deleting your Firestore instance, which will invalidate all
+   *     `WriteBatch` instances associated with it.
+   *
+   * @return true if this `WriteBatch` is valid, false if this `WriteBatch` is
+   * invalid.
+   */
+  bool is_valid() const { return internal_ != nullptr; }
+
  private:
   friend class FirestoreInternal;
   friend class WriteBatchInternal;

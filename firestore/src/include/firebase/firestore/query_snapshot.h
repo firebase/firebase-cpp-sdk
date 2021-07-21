@@ -150,6 +150,19 @@ class QuerySnapshot {
    */
   virtual std::size_t size() const;
 
+  /**
+   * @brief Returns true if this `QuerySnapshot` is valid, false if it is not
+   * valid. An invalid `QuerySnapshot` could be the result of:
+   *   - Creating a `QuerySnapshot` using the default constructor.
+   *   - Moving from the `QuerySnapshot`.
+   *   - Deleting your Firestore instance, which will invalidate all
+   *     `QuerySnapshot` instances associated with it.
+   *
+   * @return true if this `QuerySnapshot` is valid, false if this
+   * `QuerySnapshot` is invalid.
+   */
+  bool is_valid() const { return internal_ != nullptr; }
+
  private:
   friend class EventListenerInternal;
   friend class FirestoreInternal;

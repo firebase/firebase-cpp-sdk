@@ -94,6 +94,19 @@ class ListenerRegistration {
    */
   virtual void Remove();
 
+  /**
+   * @brief Returns true if this `ListenerRegistration` is valid, false if it is
+   * not valid. An invalid `ListenerRegistration` could be the result of:
+   *   - Creating a `ListenerRegistration` using the default constructor.
+   *   - Moving from the `ListenerRegistration`.
+   *   - Deleting your Firestore instance, which will invalidate all
+   *     `ListenerRegistration` instances associated with it.
+   *
+   * @return true if this `ListenerRegistration` is valid, false if this
+   * `ListenerRegistration` is invalid.
+   */
+  bool is_valid() const { return internal_ != nullptr; }
+
  private:
   friend class DocumentReferenceInternal;
   friend class FirestoreInternal;

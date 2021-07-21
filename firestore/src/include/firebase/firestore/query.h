@@ -637,6 +637,18 @@ class Query {
       std::function<void(const QuerySnapshot&, Error, const std::string&)>
           callback);
 
+  /**
+   * @brief Returns true if this `Query` is valid, false if it is not valid. An
+   * invalid `Query` could be the result of:
+   *   - Creating a `Query` using the default constructor.
+   *   - Moving from the `Query`.
+   *   - Deleting your Firestore instance, which will invalidate all `Query`
+   *     instances associated with it.
+   *
+   * @return true if this `Query` is valid, false if this `Query` is invalid.
+   */
+  bool is_valid() const { return internal_ != nullptr; }
+
  private:
   friend bool operator==(const Query& lhs, const Query& rhs);
 
