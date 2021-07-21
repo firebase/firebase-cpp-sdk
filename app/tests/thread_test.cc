@@ -20,7 +20,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-#define EXPECT_SYSTEM_ERROR(statement, error_code) \
+#define EXPECT_THROW_ERROR_CODE(statement, error_code) \
     EXPECT_THROW({\
         try { \
           GTEST_SUPPRESS_UNREACHABLE_CODE_WARNING_BELOW_(statement); \
@@ -118,7 +118,7 @@ TEST(ThreadDeathTest, MovingIntoRunningThreadShouldAbort) {
 }
 
 TEST(ThreadDeathTest, JoinEmptyThreadShouldAbort) {
-  EXPECT_SYSTEM_ERROR(
+  EXPECT_THROW_ERROR_CODE(
       {
         firebase::Thread thread;
         thread.Join();
@@ -127,7 +127,7 @@ TEST(ThreadDeathTest, JoinEmptyThreadShouldAbort) {
 }
 
 TEST(ThreadDeathTest, JoinThreadMultipleTimesShouldAbort) {
-  EXPECT_SYSTEM_ERROR(
+  EXPECT_THROW_ERROR_CODE(
       {
         firebase::Thread thread([] {});
 
@@ -138,7 +138,7 @@ TEST(ThreadDeathTest, JoinThreadMultipleTimesShouldAbort) {
 }
 
 TEST(ThreadDeathTest, JoinDetachedThreadShouldAbort) {
-  EXPECT_SYSTEM_ERROR(
+  EXPECT_THROW_ERROR_CODE(
       {
         firebase::Thread thread([] {});
 
@@ -149,7 +149,7 @@ TEST(ThreadDeathTest, JoinDetachedThreadShouldAbort) {
 }
 
 TEST(ThreadDeathTest, DetachJoinedThreadShouldAbort) {
-  EXPECT_SYSTEM_ERROR(
+  EXPECT_THROW_ERROR_CODE(
       {
         firebase::Thread thread([] {});
 
@@ -160,7 +160,7 @@ TEST(ThreadDeathTest, DetachJoinedThreadShouldAbort) {
 }
 
 TEST(ThreadDeathTest, DetachEmptyThreadShouldAbort) {
-  EXPECT_SYSTEM_ERROR(
+  EXPECT_THROW_ERROR_CODE(
       {
         firebase::Thread thread;
 
@@ -170,7 +170,7 @@ TEST(ThreadDeathTest, DetachEmptyThreadShouldAbort) {
 }
 
 TEST(ThreadDeathTest, DetachThreadMultipleTimesShouldAbort) {
-  EXPECT_SYSTEM_ERROR(
+  EXPECT_THROW_ERROR_CODE(
       {
         firebase::Thread thread([] {});
 
