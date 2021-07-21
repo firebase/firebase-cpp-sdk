@@ -65,11 +65,10 @@ CONFIG = {
   },
 
   'tvos': {
-    'supported_targets' : ('firebase_analytics', 'firebase_auth',
-                           'firebase_database',  'firebase_firestore',
-                           'firebase_functions', 'firebase_installations',
-                           'firebase_messaging', 'firebase_remote_config',
-                           'firebase_storage'),
+    'supported_targets' : ('firebase_auth', 'firebase_database',
+                           'firebase_firestore', 'firebase_functions',
+                           'firebase_installations', 'firebase_messaging',
+                           'firebase_remote_config', 'firebase_storage'),
     'device': {
       'architectures' : ('arm64',),
       'toolchain' : 'cmake/toolchains/apple.toolchain.cmake',
