@@ -309,7 +309,7 @@ std::vector<std::string> ArgcArgvToVector(int argc, char* argv[]) {
 
 char** VectorToArgcArgv(const std::vector<std::string>& args_vector,
                         int* argc) {
-  // Ensure that `argv` ends with a null terminator. This is a Poxis requirement
+  // Ensure that `argv` ends with a null terminator. This is a POSIX requirement
   // (see https://man7.org/linux/man-pages/man2/execve.2.html) and googletest
   // relies on it. Without this null terminator, the
   // `ParseGoogleTestFlagsOnlyImpl()` function in googletest accesses invalid
