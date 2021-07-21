@@ -642,7 +642,7 @@ class Query {
    * invalid `Query` could be the result of:
    *   - Creating a `Query` using the default constructor.
    *   - Moving from the `Query`.
-   *   - Deleting your Firestore instance, which will invalidate all `Query`
+   *   - Deleting your Firestore instance, which will invalidate all the `Query`
    *     instances associated with it.
    *
    * @return true if this `Query` is valid, false if this `Query` is invalid.

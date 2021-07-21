@@ -164,7 +164,7 @@ class DocumentChange {
    * not valid. An invalid `DocumentChange` could be the result of:
    *   - Creating a `DocumentChange` using the default constructor.
    *   - Moving from the `DocumentChange`.
-   *   - Deleting your Firestore instance, which will invalidate all
+   *   - Deleting your Firestore instance, which will invalidate all the
    *     `DocumentChange` instances associated with it.
    *
    * @return true if this `DocumentChange` is valid, false if this

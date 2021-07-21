@@ -291,7 +291,7 @@ class DocumentReference {
    *   - Moving from the `DocumentReference`.
    *   - Calling `CollectionReference::Parent()` on a `CollectionReference` that
    *     is not a subcollection.
-   *   - Deleting your Firestore instance, which will invalidate all
+   *   - Deleting your Firestore instance, which will invalidate all the
    *     `DocumentReference` instances associated with it.
    *
    * @return true if this `DocumentReference` is valid, false if this

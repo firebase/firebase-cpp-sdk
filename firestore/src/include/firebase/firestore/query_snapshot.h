@@ -155,7 +155,7 @@ class QuerySnapshot {
    * valid. An invalid `QuerySnapshot` could be the result of:
    *   - Creating a `QuerySnapshot` using the default constructor.
    *   - Moving from the `QuerySnapshot`.
-   *   - Deleting your Firestore instance, which will invalidate all
+   *   - Deleting your Firestore instance, which will invalidate all the
    *     `QuerySnapshot` instances associated with it.
    *
    * @return true if this `QuerySnapshot` is valid, false if this

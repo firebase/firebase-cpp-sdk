@@ -162,7 +162,7 @@ class WriteBatch {
    * valid. An invalid `WriteBatch` could be the result of:
    *   - Creating a `WriteBatch` using the default constructor.
    *   - Moving from the `WriteBatch`.
-   *   - Deleting your Firestore instance, which will invalidate all
+   *   - Deleting your Firestore instance, which will invalidate all the
    *     `WriteBatch` instances associated with it.
    *
    * @return true if this `WriteBatch` is valid, false if this `WriteBatch` is

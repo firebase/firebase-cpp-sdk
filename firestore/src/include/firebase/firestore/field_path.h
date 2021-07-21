@@ -127,8 +127,6 @@ class FieldPath final {
    * An invalid `FieldPath` could be the result of:
    *   - Creating a `FieldPath` using the default constructor.
    *   - Moving from the `FieldPath`.
-   *   - Deleting your Firestore instance, which will invalidate all
-   *     `FieldPath` instances associated with it.
    *
    * @return true if this `FieldPath` is valid, false if this `FieldPath` is
    * invalid.

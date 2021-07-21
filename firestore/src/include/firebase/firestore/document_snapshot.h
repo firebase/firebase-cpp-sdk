@@ -234,7 +234,7 @@ class DocumentSnapshot {
    * not valid. An invalid `DocumentSnapshot` could be the result of:
    *   - Creating a `DocumentSnapshot` with the default constructor.
    *   - Moving from the `DocumentSnapshot`.
-   *   - Deleting your Firestore instance, which will invalidate all
+   *   - Deleting your Firestore instance, which will invalidate all the
    *     `DocumentSnapshot` instances associated with it.
    *
    * @return true if this `DocumentSnapshot` is valid, false if this
