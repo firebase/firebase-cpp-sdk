@@ -309,13 +309,19 @@ std::vector<std::string> ArgcArgvToVector(int argc, char* argv[]) {
 
 char** VectorToArgcArgv(const std::vector<std::string>& args_vector,
                         int* argc) {
-  char** argv = new char*[args_vector.size()];
+  // Ensure that `argv` ends with a null terminator. This is a POSIX requirement
+  // (see https://man7.org/linux/man-pages/man2/execve.2.html) and googletest
+  // relies on it. Without this null terminator, the
+  // `ParseGoogleTestFlagsOnlyImpl()` function in googletest accesses invalid
+  // memory and causes an Address Sanitizer failure.
+  char** argv = new char*[args_vector.size() + 1];
   for (int i = 0; i < args_vector.size(); ++i) {
     const char* arg = args_vector[i].c_str();
     char* arg_copy = new char[std::strlen(arg) + 1];
     std::strcpy(arg_copy, arg);
     argv[i] = arg_copy;
   }
+  argv[args_vector.size()] = nullptr;
   *argc = static_cast<int>(args_vector.size());
   return argv;
 }
@@ -348,14 +354,11 @@ char** EditMainArgsForGoogleTest(int* argc, char* argv[]) {
   // e.g. modified_args.push_back("--gtest_list_tests");
   // e.g. modified_args.push_back("--gtest_filter=MyTestFixture.MyTest");
 
-  // Avoid the memory leaks documented below if there were no arg changes.
-  if (modified_args == original_args) {
-    return argv;
-  }
-
   // Create a new `argv` with the elements from the `modified_args` vector and
   // write the new count back to `argc`. The memory leaks produced by
   // `VectorToArgcArgv` acceptable because they last for the entire application.
+  // Calling `VectorToArgcArgv` also fixes an invalid memory access performed by
+  // googletest by adding the required null element to the end of `argv`.
   return VectorToArgcArgv(modified_args, argc);
 }
 
