@@ -350,6 +350,10 @@ char** EditMainArgsForGoogleTest(int* argc, char* argv[]) {
   const std::vector<std::string> original_args = ArgcArgvToVector(*argc, argv);
   std::vector<std::string> modified_args(original_args);
 
+  // Add elements to the `modified_args` vector to specify to googletest.
+  // e.g. modified_args.push_back("--gtest_list_tests");
+  // e.g. modified_args.push_back("--gtest_filter=MyTestFixture.MyTest");
+
   // Create a new `argv` with the elements from the `modified_args` vector and
   // write the new count back to `argc`. The memory leaks produced by
   // `VectorToArgcArgv` acceptable because they last for the entire application.
