@@ -197,7 +197,7 @@ if(FIREBASE_INCLUDE_FIRESTORE AND DESKTOP)
 endif()
 
 if(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
-  # Quote meta characters in "${CMAKE_CURRENT_LIST_DIR} so we can
+  # Quote meta characters in ${CMAKE_CURRENT_LIST_DIR} so we can
   # match it in a regex.
   string(REGEX REPLACE
          "([][+.*()^])" "\\\\\\1"  # Yes, this many \'s is correct.
