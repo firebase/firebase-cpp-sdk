@@ -203,7 +203,7 @@ if(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
          "([][+.*()^])" "\\\\\\1"  # Yes, this many \'s is correct.
          current_list_dir_regex
          "${CMAKE_CURRENT_LIST_DIR}")
-  # Figure out where app's binary_dir wasabi.
+  # Figure out where app's binary_dir was.
   string(REGEX REPLACE
     "${current_list_dir_regex}/[^/]+/(.*)"
     "${CMAKE_CURRENT_LIST_DIR}/app/\\1"
