@@ -33,7 +33,7 @@ from absl import logging
 import github
 
 FLAGS = flags.FLAGS
-_DEFAULT_DISMISSAL_MESSAGE = "Dismissing stale review."
+_DEFAULT_MESSAGE = "Dismissing stale review."
 
 flags.DEFINE_string(
     "token", None,
@@ -44,7 +44,7 @@ flags.DEFINE_string(
     "Github's pull request #.")
 
 flags.DEFINE_string(
-    "message", _DEFAULT_DISMISSAL_MESSAGE,
+    "message", _DEFAULT_MESSAGE,
     "Message to post on dismissed reviews")
 
 flags.DEFINE_string(
