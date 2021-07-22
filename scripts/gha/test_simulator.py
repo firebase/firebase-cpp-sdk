@@ -585,7 +585,7 @@ def _install_android_app(app_path):
   """Install integration_test app into the emulator."""
   args = ["adb", "install", app_path]
   logging.info("Install testapp: %s", " ".join(args))
-  subprocess.run(args=args, check=True)
+  subprocess.run(args=args, check=False)
 
 
 def _uninstall_android_app(package_name):
