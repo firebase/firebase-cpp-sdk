@@ -574,6 +574,8 @@ code.
         the overload that takes a `std::function` argument instead.
     -   Firestore: `FieldValue::Increment` functions are no longer guarded by
         the `INTERNAL_EXPERIMENTAL` macro.
+    -   General: Compiler setting of "no exceptions" on app is PRIVATE now 
+        and will not affect other targets in CMake builds.
 
 ### 8.2.0
 -   Changes
