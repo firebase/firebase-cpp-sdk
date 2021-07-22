@@ -423,15 +423,15 @@ def _run_apple_gameloop_test(bundle_id, app_path, gameloop_app, device_id, retry
   logging.info("Running apple gameloop test: %s, %s, %s, %s", bundle_id, app_path, gameloop_app, device_id)
   _install_apple_app(app_path, device_id)
   _run_xctest(gameloop_app, device_id)
-  logs = _get_apple_test_log(bundle_id, app_path, device_id)
+  log = _get_apple_test_log(bundle_id, app_path, device_id)
   _uninstall_apple_app(bundle_id, device_id)
   if retry > 1:
-    results = test_validation.validate_results_cpp(logs)
-    if not results.complete:
+    result = test_validation.validate_results(log, test_validation.CPP)
+    if not result.complete:
       logging.info("Retry _run_apple_gameloop_test. Remaining retry: %s", retry-1)
       return _run_apple_gameloop_test(bundle_id, app_path, gameloop_app, device_id, retry=retry-1)
   
-  return logs
+  return log
   
 
 def _install_apple_app(app_path, device_id):
@@ -493,13 +493,20 @@ def _setup_android(platform_version, build_tool_version, sdk_id):
     os.path.join(android_home, "platform-tools"), 
     os.path.join(android_home, "build-tools", build_tool_version)]
   os.environ["PATH"] += os.pathsep + os.pathsep.join(pathlist)
-  
+
   args = ["sdkmanager", 
     "emulator", "platform-tools", 
     "platforms;%s" % platform_version, 
     "build-tools;%s" % build_tool_version]
   logging.info("Install packages: %s", " ".join(args))
   subprocess.run(args=args, check=True)
+
+  args = ["sdkmanager", "--licenses"]
+  logging.info("Accept all licenses: %s", " ".join(args))
+  p_yes = subprocess.Popen(["echo", "yes"], stdout=subprocess.PIPE)
+  proc = subprocess.Popen(args, stdin=p_yes.stdout, stdout=subprocess.PIPE)
+  p_yes.stdout.close()
+  proc.communicate()
 
   args = ["sdkmanager", sdk_id]
   logging.info("Download an emulator: %s", " ".join(args))
@@ -563,15 +570,15 @@ def _run_android_gameloop_test(package_name, app_path, gameloop_project, retry=1
   logging.info("Running android gameloop test: %s, %s, %s", package_name, app_path, gameloop_project)
   _install_android_app(app_path)
   _run_instrumented_test()
-  logs = _get_android_test_log(package_name)
+  log = _get_android_test_log(package_name)
   _uninstall_android_app(package_name)
   if retry > 1:
-    results = test_validation.validate_results_cpp(logs)
-    if not results.complete:
+    result = test_validation.validate_results(log, test_validation.CPP)
+    if not result.complete:
       logging.info("Retry _run_android_gameloop_test. Remaining retry: %s", retry-1)
       return _run_android_gameloop_test(package_name, app_path, gameloop_project, retry=retry-1)
   
-  return logs
+  return log
 
 
 def _install_android_app(app_path):
