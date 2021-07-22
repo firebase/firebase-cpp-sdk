@@ -592,7 +592,7 @@ def _uninstall_android_app(package_name):
   """Uninstall integration_test app from the emulator."""
   args = ["adb", "uninstall", package_name]
   logging.info("Uninstall testapp: %s", " ".join(args))
-  subprocess.run(args=args, check=True)
+  subprocess.run(args=args, check=False)
 
 
 def _install_android_gameloop_app(gameloop_project):
@@ -619,6 +619,7 @@ def _get_android_test_log(test_package):
   args = ["adb", "shell", "su", "0", "cat", path]
   logging.info("Get android test result: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=False)
+  logging.info("Android test result: %s", result.stdout)
   return result.stdout
 
 

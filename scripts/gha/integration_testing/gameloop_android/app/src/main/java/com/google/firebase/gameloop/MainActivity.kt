@@ -14,7 +14,7 @@ import java.io.File
 class MainActivity : AppCompatActivity(R.layout.activity_main) {
   companion object {
     const val GAMELOOP_INTENT = "com.google.intent.action.TEST_LOOP"
-    const val TEST_LOOP_REQUEST_CODE = 1024568
+    const val TEST_LOOP_REQUEST_CODE = 1
   }
 
   private lateinit var testingTV: TextView
