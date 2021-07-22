@@ -93,7 +93,7 @@ jobs:
           set -e
           bash scripts/gha/check_copyright.sh -g
 
-  require_approvals_on_new_commits:
+  external_pr_latest_approval_check:
     runs-on: ubuntu-latest
     if: 
     steps:
@@ -104,7 +104,7 @@ jobs:
           required-permission: write
         env:
           GITHUB_TOKEN: ${{ github.token }}
-      - uses: artis3n/signoff-new-commit@v1
+      - uses: artis3n/signoff-new-commit@0.2.0pre
         # If the user doesn't have write access, or this is a PR from a forked repo, require signoff on new commits.
         if: steps.check.outputs.has-permission != 1 || github.event.pull_request.head.repo.full_name != github.repository
         with:
