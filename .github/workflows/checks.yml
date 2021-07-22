@@ -2,7 +2,7 @@ name: Checks
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize, labeled, unlabeled]
+    types: [opened, reopened, synchronize, labeled, unlabeled, edited, reviewed]
 
 env:
   triggerLabelFull: "tests-requested: full"
@@ -94,6 +94,12 @@ jobs:
           bash scripts/gha/check_copyright.sh -g
 
   required_approvals_check:
+    # This check is only required for PRs from external contributors - either
+    # from a forked repository, or from users without write permission.
+    #
+    # If such a PR is approved, but has additional commits pushed to it after
+    # approval, this check requires that the PR must receive an updated approval
+    # before it can be merged.
     runs-on: ubuntu-latest
     if: 
     steps:
