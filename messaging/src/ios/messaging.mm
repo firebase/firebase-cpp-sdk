@@ -196,26 +196,42 @@ Future<void> RequestPermission() {
     LogInfo("FCM: Using FCM senderID %s", senderID.UTF8String);
     id appDelegate = [UIApplication sharedApplication];
 
-    #if FIREBASE_PLATFORM_IOS
-    // Register for remote notifications. Both codepaths result in
-    // application:didRegisterForRemoteNotificationsWithDeviceToken: being called when they
-    // complete, or application:didFailToRegisterForRemoteNotificationsWithError: if there was an
-    // error. We complete the future there.
-    if (floor(NSFoundationVersionNumber) <= NSFoundationVersionNumber_iOS_7_1) {
-      // iOS 7.1 or earlier
-      UIRemoteNotificationType allNotificationTypes =
-          (UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert |
-           UIRemoteNotificationTypeBadge);
-      [appDelegate registerForRemoteNotificationTypes:allNotificationTypes];
-    } else {
-      // iOS 8 or later
-      UIUserNotificationType allNotificationTypes =
-          (UIUserNotificationTypeSound | UIUserNotificationTypeAlert | UIUserNotificationTypeBadge);
-      UIUserNotificationSettings *settings =
-          [UIUserNotificationSettings settingsForTypes:allNotificationTypes categories:nil];
-      [appDelegate registerUserNotificationSettings:settings];
+  #if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+    if ([UNUserNotificationCenter class] != nil) {
+      // iOS 10 or later, and tvOS
+      // For iOS 10 display notification (sent via APNS)
+      [UNUserNotificationCenter currentNotificationCenter].delegate = appDelegate;
+      UNAuthorizationOptions authOptions = UNAuthorizationOptionAlert |
+          UNAuthorizationOptionSound | UNAuthorizationOptionBadge;
+      [[UNUserNotificationCenter currentNotificationCenter]
+          requestAuthorizationWithOptions:authOptions
+          completionHandler:^(BOOL granted, NSError * _Nullable error) {
+          }];
       [appDelegate registerForRemoteNotifications];
     }
+    #endif //FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+
+    #if FIREBASE_PLATFORM_IOS
+      // Register for remote notifications. Both codepaths result in
+      // application:didRegisterForRemoteNotificationsWithDeviceToken: being called when they
+      // complete, or application:didFailToRegisterForRemoteNotificationsWithError: if there was an
+      // error. We complete the future there.
+      if (floor(NSFoundationVersionNumber) <= NSFoundationVersionNumber_iOS_7_1) {
+        // iOS 7.1 or earlier
+        UIRemoteNotificationType allNotificationTypes =
+            (UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert |
+            UIRemoteNotificationTypeBadge);
+        [appDelegate registerForRemoteNotificationTypes:allNotificationTypes];
+      } else if (floor(NSFoundationVersionNumber) <= NSFoundationVersionNumber_iOS_9_4) {
+        // 8.0 <= iOS version <= 9.4
+        // >= 10.0 is handled by the first if block above.
+        UIUserNotificationType allNotificationTypes =
+            (UIUserNotificationTypeSound | UIUserNotificationTypeAlert | UIUserNotificationTypeBadge);
+        UIUserNotificationSettings *settings =
+            [UIUserNotificationSettings settingsForTypes:allNotificationTypes categories:nil];
+        [appDelegate registerUserNotificationSettings:settings];
+        [appDelegate registerForRemoteNotifications];
+      }
     #endif // FIREBASE_PLATFORM_IOS
 
     // Only request the token automatically if permitted
@@ -524,11 +540,13 @@ static BOOL AppDelegateApplicationDidFinishLaunchingWithOptions(id self, SEL sel
     [user_notification_center setDelegate:(id<UNUserNotificationCenterDelegate>)application];
   }
 
+  g_message_notification_opened = false;
   #if FIREBASE_PLATFORM_IOS
   // If the app was launched with a notification, cache it until we're connected.
   g_launch_notification =
       [launch_options objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
   g_message_notification_opened = g_launch_notification != nil;
+  #endif // FIREBASE_PLATFORM_IOS
 
   IMP app_delegate_application_did_finish_launching_with_options =
       SwizzledMethodCache().GetMethodForObject(
@@ -551,7 +569,6 @@ static BOOL AppDelegateApplicationDidFinishLaunchingWithOptions(id self, SEL sel
     [invocation getReturnValue:&ret];
     return ret;
   }
-  #endif // FIREBASE_PLATFORM_IOS
   return NO;
 }
 

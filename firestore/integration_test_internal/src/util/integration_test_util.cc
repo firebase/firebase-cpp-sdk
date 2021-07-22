@@ -9,7 +9,12 @@
 #include "firebase/app.h"
 #include "firebase/firestore.h"
 #include "firestore/src/common/hard_assert_common.h"
+
+#if !defined(__ANDROID__)
 #include "firestore/src/main/firestore_main.h"
+#else
+#include "firestore/src/android/firestore_android.h"
+#endif  // !defined(__ANDROID__)
 
 namespace firebase {
 namespace firestore {
