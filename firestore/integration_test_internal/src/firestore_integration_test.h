@@ -54,7 +54,8 @@ bool WaitUntil(const PredT& pred, int timeout_ms = kTimeOutMillis);
 
 // Blocks until either the future completes or timeout occurs. Returns `true`
 // on success, `false` on timeout or if exit signal was received.
-bool WaitUntilFutureCompletes(const FutureBase& future);
+bool WaitUntilFutureCompletes(const FutureBase& future,
+                              int timeout_ms = kTimeOutMillis);
 
 template <typename T>
 class EventAccumulator;
@@ -283,8 +284,10 @@ class FirestoreIntegrationTest : public testing::Test {
 
   // Blocks until the future is completed and returns the future result.
   template <typename T>
-  static const T* Await(const Future<T>& future) {
-    EXPECT_TRUE(WaitUntilFutureCompletes(future)) << "Future<T> timed out.";
+  static const T* Await(const Future<T>& future,
+                        int timeout_ms = kTimeOutMillis) {
+    EXPECT_TRUE(WaitUntilFutureCompletes(future, timeout_ms))
+        << "Future<T> timed out.";
 
     EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete)
         << DescribeFailedFuture(future);
@@ -294,7 +297,8 @@ class FirestoreIntegrationTest : public testing::Test {
   }
 
   // Blocks until the future completes.
-  static void Await(const Future<void>& future);
+  static void Await(const Future<void>& future,
+                    int timeout_ms = kTimeOutMillis);
 
   // Blocks until there is at least `event_count` events.
   template <typename T>

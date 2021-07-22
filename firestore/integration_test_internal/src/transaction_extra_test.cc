@@ -89,7 +89,11 @@ TEST_F(TransactionExtraTest, TestReadingADocTwiceWithDifferentVersions) {
     transaction.Set(doc, MapFieldValue{{"count", FieldValue::Double(16.0)}});
     return error;
   });
-  Await(future);
+
+  // Because the transaction retries a few times with exponential backoff, it
+  // might time out with the default timeout time (the default timeout value is
+  // 15 seconds and the transaction can take 11-16 seconds).
+  Await(future, kTimeOutMillis * 2);
   EXPECT_EQ(Error::kErrorAborted, future.error());
   EXPECT_STREQ("Document version changed between two reads.",
                future.error_message());

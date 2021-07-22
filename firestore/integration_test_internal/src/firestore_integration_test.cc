@@ -97,9 +97,10 @@ std::string ToFirestoreErrorCodeName(int error_code) {
   }
 }
 
-bool WaitUntilFutureCompletes(const FutureBase& future) {
+bool WaitUntilFutureCompletes(const FutureBase& future, int timeout_ms) {
   return WaitUntil(
-      [&] { return future.status() != FutureStatus::kFutureStatusPending; });
+      [&] { return future.status() != FutureStatus::kFutureStatusPending; },
+      timeout_ms);
 }
 
 FirestoreIntegrationTest::FirestoreIntegrationTest() {
@@ -271,8 +272,10 @@ FirestoreIntegrationTest::QuerySnapshotToMap(
   return result;
 }
 
-void FirestoreIntegrationTest::Await(const Future<void>& future) {
-  EXPECT_TRUE(WaitUntilFutureCompletes(future)) << "Future<void> timed out.";
+void FirestoreIntegrationTest::Await(const Future<void>& future,
+                                     int timeout_ms) {
+  EXPECT_TRUE(WaitUntilFutureCompletes(future, timeout_ms))
+      << "Future<void> timed out.";
 }
 
 bool FirestoreIntegrationTest::FailIfUnsuccessful(const char* operation,

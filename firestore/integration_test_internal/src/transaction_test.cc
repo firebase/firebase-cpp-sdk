@@ -39,12 +39,13 @@ class TransactionTest : public FirestoreIntegrationTest {
   void RunTransactionAndExpect(
       Error error,
       const char* message,
-      std::function<Error(Transaction&, std::string&)> update) {
+      std::function<Error(Transaction&, std::string&)> update,
+      int timeout_ms = kTimeOutMillis) {
     Future<void> future;
     // Re-try 5 times in case server is unavailable.
     for (int i = 0; i < 5; ++i) {
       future = TestFirestore()->RunTransaction(update);
-      Await(future);
+      Await(future, timeout_ms);
       if (future.error() == Error::kErrorUnavailable) {
         std::cout << "Could not reach backend. Retrying transaction test."
                   << std::endl;
@@ -57,10 +58,13 @@ class TransactionTest : public FirestoreIntegrationTest {
   }
 
   void RunTransactionAndExpect(
-      Error error, std::function<Error(Transaction&, std::string&)> update) {
+      Error error,
+      std::function<Error(Transaction&, std::string&)> update,
+      int timeout_ms = kTimeOutMillis) {
     switch (error) {
       case Error::kErrorOk:
-        RunTransactionAndExpect(Error::kErrorOk, "", std::move(update));
+        RunTransactionAndExpect(Error::kErrorOk, "", std::move(update),
+                                timeout_ms);
         break;
       case Error::kErrorAborted:
         RunTransactionAndExpect(
@@ -69,7 +73,7 @@ class TransactionTest : public FirestoreIntegrationTest {
 #else
             Error::kErrorAborted,
 #endif
-            "Transaction failed all retries.", std::move(update));
+            "Transaction failed all retries.", std::move(update), timeout_ms);
         break;
       case Error::kErrorFailedPrecondition:
         // Here specifies error message of the most common cause. There are
@@ -77,7 +81,7 @@ class TransactionTest : public FirestoreIntegrationTest {
         // parameter if the expected error message is different.
         RunTransactionAndExpect(Error::kErrorFailedPrecondition,
                                 "Can't update a document that doesn't exist.",
-                                std::move(update));
+                                std::move(update), timeout_ms);
         break;
       default:
         FAIL() << "Unexpected error code: " << error;
@@ -694,6 +698,10 @@ TEST_F(TransactionTest, TestCancellationOnError) {
   int count = 0;
 
   SCOPED_TRACE("TestCancellationOnError");
+
+  // Because the transaction retries a few times with exponential backoff, it
+  // might time out with the default timeout time (the default timeout value is
+  // 15 seconds and the transaction can take up to 20 seconds).
   RunTransactionAndExpect(
       Error::kErrorDeadlineExceeded, "no",
       [doc, &count_locker, &count](Transaction& transaction,
@@ -705,7 +713,8 @@ TEST_F(TransactionTest, TestCancellationOnError) {
         transaction.Set(doc, MapFieldValue{{"foo", FieldValue::String("bar")}});
         error_message = "no";
         return Error::kErrorDeadlineExceeded;
-      });
+      },
+      kTimeOutMillis * 3);
 
   // TODO(varconst): uncomment. Currently, there is no way in C++ to distinguish
   // user error, so the transaction gets retried, and the counter goes up to 6.
