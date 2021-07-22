@@ -93,7 +93,7 @@ jobs:
           set -e
           bash scripts/gha/check_copyright.sh -g
 
-  require_approvals_on_new_commits:
+  external_pr_latest_approval_check:
     runs-on: ubuntu-latest
     if: 
     steps:
