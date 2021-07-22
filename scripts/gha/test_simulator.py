@@ -91,6 +91,7 @@ from print_matrix_configuration import TEST_DEVICES
 
 _GAMELOOP_PACKAGE = "com.google.firebase.gameloop"
 _RESULT_FILE = "Results1.json"
+_TEST_RETRY = 3
 
 FLAGS = flags.FLAGS
 
@@ -208,9 +209,8 @@ def main(argv):
   
     for app_path in ios_testapps:
       bundle_id = _get_bundle_id(app_path, config)
-      tests.append(Test(
-                      testapp_path=app_path, 
-                      logs=_run_apple_gameloop_test(bundle_id, app_path, ios_gameloop_app, device_id)))
+      logs=_run_apple_gameloop_test(bundle_id, app_path, ios_gameloop_app, device_id, _TEST_RETRY)
+      tests.append(Test(testapp_path=app_path, logs=logs))
 
     _shutdown_simulator()
 
@@ -249,9 +249,8 @@ def main(argv):
   
     for app_path in tvos_testapps:
       bundle_id = _get_bundle_id(app_path, config)
-      tests.append(Test(
-                      testapp_path=app_path, 
-                      logs=_run_apple_gameloop_test(bundle_id, app_path, tvos_gameloop_app, device_id)))
+      logs=_run_apple_gameloop_test(bundle_id, app_path, tvos_gameloop_app, device_id, _TEST_RETRY)
+      tests.append(Test(testapp_path=app_path, logs=logs))
 
     _shutdown_simulator()
 
@@ -285,9 +284,8 @@ def main(argv):
 
     for app_path in android_testapps:
       package_name = _get_package_name(app_path)
-      tests.append(Test(
-                      testapp_path=app_path, 
-                      logs=_run_android_gameloop_test(package_name, app_path, android_gameloop_project)))
+      logs=_run_android_gameloop_test(package_name, app_path, android_gameloop_project, _TEST_RETRY)
+      tests.append(Test(testapp_path=app_path, logs=logs))
 
     _shutdown_emulator()
 
@@ -420,14 +418,20 @@ def _get_bundle_id(app_path, config):
       return api["bundle_id"]
 
 
-def _run_apple_gameloop_test(bundle_id, app_path, gameloop_app, device_id):
+def _run_apple_gameloop_test(bundle_id, app_path, gameloop_app, device_id, retry=1):
   """Run gameloop test and collect test result."""
   logging.info("Running apple gameloop test: %s, %s, %s, %s", bundle_id, app_path, gameloop_app, device_id)
   _install_apple_app(app_path, device_id)
   _run_xctest(gameloop_app, device_id)
-  logs = _get_apple_test_log(bundle_id, app_path, device_id)
+  log = _get_apple_test_log(bundle_id, app_path, device_id)
   _uninstall_apple_app(bundle_id, device_id)
-  return logs
+  if retry > 1:
+    result = test_validation.validate_results(log, test_validation.CPP)
+    if not result.complete:
+      logging.info("Retry _run_apple_gameloop_test. Remaining retry: %s", retry-1)
+      return _run_apple_gameloop_test(bundle_id, app_path, gameloop_app, device_id, retry=retry-1)
+  
+  return log
   
 
 def _install_apple_app(app_path, device_id):
@@ -462,14 +466,13 @@ def _get_apple_test_log(bundle_id, app_path, device_id):
 
 def _read_file(path):
   """Extracts the contents of a file."""
-  with open(path, "r") as f:
-    test_result = f.read()
+  if os.path.isfile(path):
+    with open(path, "r") as f:
+      test_result = f.read()
 
-  logging.info("Reading file: %s", path)
-  logging.info("File contant: %s", test_result)
-  return test_result
-
-
+    logging.info("Reading file: %s", path)
+    logging.info("File content: %s", test_result)
+    return test_result
 
 
 # -------------------Android Only-------------------
@@ -490,13 +493,20 @@ def _setup_android(platform_version, build_tool_version, sdk_id):
     os.path.join(android_home, "platform-tools"), 
     os.path.join(android_home, "build-tools", build_tool_version)]
   os.environ["PATH"] += os.pathsep + os.pathsep.join(pathlist)
-  
+
   args = ["sdkmanager", 
     "emulator", "platform-tools", 
     "platforms;%s" % platform_version, 
     "build-tools;%s" % build_tool_version]
   logging.info("Install packages: %s", " ".join(args))
   subprocess.run(args=args, check=True)
+
+  args = ["sdkmanager", "--licenses"]
+  logging.info("Accept all licenses: %s", " ".join(args))
+  p_yes = subprocess.Popen(["echo", "yes"], stdout=subprocess.PIPE)
+  proc = subprocess.Popen(args, stdin=p_yes.stdout, stdout=subprocess.PIPE)
+  p_yes.stdout.close()
+  proc.communicate()
 
   args = ["sdkmanager", sdk_id]
   logging.info("Download an emulator: %s", " ".join(args))
@@ -556,13 +566,19 @@ def _get_package_name(app_path):
   return package_name  
 
 
-def _run_android_gameloop_test(package_name, app_path, gameloop_project): 
+def _run_android_gameloop_test(package_name, app_path, gameloop_project, retry=1): 
   logging.info("Running android gameloop test: %s, %s, %s", package_name, app_path, gameloop_project)
   _install_android_app(app_path)
   _run_instrumented_test()
-  logs = _get_android_test_log(package_name)
+  log = _get_android_test_log(package_name)
   _uninstall_android_app(package_name)
-  return logs
+  if retry > 1:
+    result = test_validation.validate_results(log, test_validation.CPP)
+    if not result.complete:
+      logging.info("Retry _run_android_gameloop_test. Remaining retry: %s", retry-1)
+      return _run_android_gameloop_test(package_name, app_path, gameloop_project, retry=retry-1)
+  
+  return log
 
 
 def _install_android_app(app_path):

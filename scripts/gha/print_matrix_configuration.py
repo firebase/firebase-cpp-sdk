@@ -61,6 +61,8 @@ import re
 import subprocess
 import sys
 
+from integration_testing import config_reader
+
 # Note that desktop is used for fallback,
 # if there is no direct match for a key.
 DEFAULT_WORKFLOW = "desktop"
@@ -99,10 +101,10 @@ PARAMETERS = {
     "matrix": {
       "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
       "platform": ["Desktop", "Android", "iOS", "tvOS"],
-      "ssl_lib": ["openssl", "boringssl"],
+      "ssl_lib": ["openssl"],
       "android_device": ["android_latest", "emulator_target"],
       "ios_device": ["ios_target", "simulator_target"],
-      "tvos_device": ["tvos_simulator_target"],
+      "tvos_device": ["tvos_simulator"],
       "build_type": ["Debug"],
       "architecture_windows_linux": ["x64"],
       "architecture_macos": ["x64"],
@@ -113,6 +115,13 @@ PARAMETERS = {
       "ndk_version": ["r22b"],
       "platform_version": ["28"],
       "build_tools_version": ["28.0.3"],
+
+      EXPANDED_KEY: {
+        "ssl_lib": ["openssl", "boringssl"],
+        "android_device": ["android_latest", "android_latest", "emulator_target", "emulator_latest", "emulator_32bit"],
+        "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"],
+        "tvos_device": ["tvos_simulator"],
+      }
     },
     "config": {
       "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,installations,messaging,remote_config,storage",
@@ -147,16 +156,17 @@ TEST_DEVICES = {
   "android_min": {"type": "real", "model":"Nexus10", "version":"19"},
   "android_target": {"type": "real", "model":"Pixel2", "version":"28"},
   "android_latest": {"type": "real", "model":"flame", "version":"29"},
-  "emulator_min": {"type": "virtual", "image":"system-images;android-18;default;x86"},
+  "emulator_min": {"type": "virtual", "image":"system-images;android-18;google_apis;x86"},
   "emulator_target": {"type": "virtual", "image":"system-images;android-28;google_apis;x86_64"},
-  "emulator_latest": {"type": "virtual", "image":"system-images;android-29;default;x86"},
+  "emulator_latest": {"type": "virtual", "image":"system-images;android-30;google_apis;x86_64"},
+  "emulator_32bit": {"type": "virtual", "image":"system-images;android-30;google_apis;x86"},
   "ios_min": {"type": "real", "model":"iphone8", "version":"11.4"},
   "ios_target": {"type": "real", "model":"iphone8plus", "version":"12.0"},
   "ios_latest": {"type": "real", "model":"iphone11", "version":"13.6"},
   "simulator_min": {"type": "virtual", "name":"iPhone 6", "version":"11.4"},
   "simulator_target": {"type": "virtual", "name":"iPhone 8", "version":"12.0"},
   "simulator_latest": {"type": "virtual", "name":"iPhone 11", "version":"14.4"},
-  "tvos_simulator_target": {"type": "virtual", "name":"Apple TV", "version":"14.0"},
+  "tvos_simulator": {"type": "virtual", "name":"Apple TV", "version":"14.0"},
 }
  
 
@@ -243,16 +253,32 @@ def filter_values_on_diff(parm_key, value, auto_diff):
       # Any top-level directories set to None are completely ignored.
       "external": None,
       "release_build_files": None,
+      # Uncomment the two below lines when debugging this script, or GitHub
+      # actions related to auto-diff mode.
+      # ".github": None,
+      # "scripts": None,
       # Top-level directories listed below trigger additional APIs being tested.
       # For example, if auth is touched by a PR, we also need to test functions,
       # database, firestore, and storage.
       "auth": "auth,functions,database,firestore,storage",
+    }
+    file_redirects = {
+      # Custom handling for specific files, to be treated as a different path or
+      # ignored completely (set to None).
+      "cmake/external/firestore.cmake": "firestore",
+      "cmake/external/libuv.cmake": "database",
+      "cmake/external/uWebSockets.cmake": "database",
     }
     requested_api_list = set(value.split(','))
     filtered_api_list = set()
 
     for path in file_list:
       if len(path) == 0: continue
+      if path in file_redirects:
+        if file_redirects[path] is None:
+          continue
+        else:
+          path = os.path.join(file_redirects[path], path)
       topdir = path.split(os.path.sep)[0]
       if topdir in custom_triggers:
         if not custom_triggers[topdir]: continue  # Skip ones set to None.
@@ -263,7 +289,7 @@ def filter_values_on_diff(parm_key, value, auto_diff):
       else:
         # Something was modified that's not a known subdirectory.
         # Abort this whole process and just return the original api list.
-        sys.stderr.write("Defaulting to all APIs: %s\n" % value)
+        sys.stderr.write("Path '%s' is outside known directories, defaulting to all APIs: %s\n" % (path, value))
         return value
     sys.stderr.write("::warning::Autodetected APIs: %s\n" % ','.join(sorted(filtered_api_list)))
     return ','.join(sorted(filtered_api_list))
@@ -311,12 +337,26 @@ def filter_values_on_diff(parm_key, value, auto_diff):
     return value
 
 
+def filter_platforms_on_apis(platforms, apis):
+  if "tvOS" in platforms:
+    config = config_reader.read_config()
+    supported_apis = [api for api in apis if config.get_api(api).tvos_target]
+    if not supported_apis:
+      platforms.remove("tvOS")
+  
+  return platforms
+
+
 def main():
   args = parse_cmdline_args()
   if args.override:
     # If it is matrix parm, convert CSV string into a list
     if not args.config:
       args.override = args.override.split(',')
+    if args.parm_key == "platform" and args.apis:
+      # e.g. args.apis = "\"admob,analytics\""
+      args.override = filter_platforms_on_apis(args.override, args.apis.strip('"').split(','))
+
     print_value(args.override)
     return
 
@@ -342,6 +382,8 @@ def parse_cmdline_args():
   parser.add_argument('-o', '--override', help='Override existing value with provided value')
   parser.add_argument('-d', '--device', action='store_true', help='Get the device type, used with -k $device')
   parser.add_argument('-t', '--device_type', default=['real', 'virtual'], help='Test on which type of mobile devices')
+  parser.add_argument('--apis', default=PARAMETERS["integration_tests"]["config"]["apis"], 
+                      help='Exclude platform based on apis. Certain platform does not support all apis. e.g. tvOS does not support messaging')
   args = parser.parse_args()
   return args
 

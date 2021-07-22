@@ -79,14 +79,7 @@ class FirebaseStorageTest : public FirebaseTest {
   // Called after each test.
   void TearDown() override;
 
-  // Create a unique working folder and return a reference to it.
-  firebase::storage::StorageReference CreateFolder();
-
   // File references that we need to delete on test exit.
-  std::vector<firebase::storage::StorageReference>& cleanup_files() {
-    return cleanup_files_;
-  }
-
  protected:
   // Initialize Firebase App and Firebase Auth.
   static void InitializeAppAndAuth();
@@ -104,6 +97,9 @@ class FirebaseStorageTest : public FirebaseTest {
   void InitializeStorage();
   // Shut down Firebase Storage.
   void TerminateStorage();
+
+  // Create a unique working folder and return a reference to it.
+  firebase::storage::StorageReference CreateFolder();
 
   static firebase::App* shared_app_;
   static firebase::auth::Auth* shared_auth_;
@@ -402,7 +398,9 @@ TEST_F(FirebaseStorageTest, TestWriteAndReadByteBuffer) {
   {
     LogDebug("Upload sample file from memory.");
     firebase::Future<firebase::storage::Metadata> future =
-        ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size());
+        RunWithRetry<firebase::storage::Metadata>([&]() {
+          return ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size());
+        });
     WaitForCompletion(future, "PutBytes");
     auto metadata = future.result();
     EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
@@ -415,7 +413,8 @@ TEST_F(FirebaseStorageTest, TestWriteAndReadByteBuffer) {
     char buffer[kBufferSize];
     memset(buffer, 0, sizeof(buffer));
 
-    firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
+    firebase::Future<size_t> future = RunWithRetry<size_t>(
+        [&]() { return ref.GetBytes(buffer, kBufferSize); });
     WaitForCompletion(future, "GetBytes");
     ASSERT_NE(future.result(), nullptr);
     size_t file_size = *future.result();
@@ -459,7 +458,8 @@ TEST_F(FirebaseStorageTest, TestWriteAndReadFileWithCustomMetadata) {
     char buffer[kBufferSize];
     memset(buffer, 0, sizeof(buffer));
 
-    firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
+    firebase::Future<size_t> future = RunWithRetry<size_t>(
+        [&]() { return ref.GetBytes(buffer, kBufferSize); });
     WaitForCompletion(future, "GetBytes");
     ASSERT_NE(future.result(), nullptr);
     size_t file_size = *future.result();
@@ -470,7 +470,9 @@ TEST_F(FirebaseStorageTest, TestWriteAndReadFileWithCustomMetadata) {
   // And read the custom metadata.
   {
     LogDebug("Read custom metadata.");
-    firebase::Future<firebase::storage::Metadata> future = ref.GetMetadata();
+    firebase::Future<firebase::storage::Metadata> future =
+        RunWithRetry<firebase::storage::Metadata>(
+            [&]() { return ref.GetMetadata(); });
     WaitForCompletion(future, "GetFileMetadata");
     const firebase::storage::Metadata* metadata = future.result();
     ASSERT_NE(metadata, nullptr);
@@ -502,82 +504,74 @@ const char kFileUriScheme[] = "file://";
 TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
   SignIn();
 
-  if (!RunFlakyBlock(
-          [](FirebaseStorageTest* this_) {
-            firebase::storage::StorageReference ref =
-                this_->CreateFolder().Child("TestFile-FileIO.txt");
-            this_->cleanup_files().push_back(ref);
+  firebase::storage::StorageReference ref =
+      CreateFolder().Child("TestFile-FileIO.txt");
+  cleanup_files_.push_back(ref);
 
-            // Upload a file.
-            {
-              // Write file that we're going to upload.
-              std::string path = PathForResource() + kPutFileTestFile;
-              // Cloud Storage expects a URI, so add file:// in front of local
-              // paths.
-              std::string file_path = kFileUriScheme + path;
+  // Upload a file.
+  {
+    // Write file that we're going to upload.
+    std::string path = PathForResource() + kPutFileTestFile;
+    // Cloud Storage expects a URI, so add file:// in front of local
+    // paths.
+    std::string file_path = kFileUriScheme + path;
 
-              LogDebug("Creating local file: %s", path.c_str());
+    LogDebug("Creating local file: %s", path.c_str());
 
-              FILE* file = fopen(path.c_str(), "wb");
-              std::fwrite(kSimpleTestFile.c_str(), 1, kSimpleTestFile.size(),
-                          file);
-              fclose(file);
+    FILE* file = fopen(path.c_str(), "wb");
+    std::fwrite(kSimpleTestFile.c_str(), 1, kSimpleTestFile.size(), file);
+    fclose(file);
 
-              firebase::storage::Metadata new_metadata;
-              std::string content_type = "text/plain";
-              new_metadata.set_content_type(content_type);
+    firebase::storage::Metadata new_metadata;
+    std::string content_type = "text/plain";
+    new_metadata.set_content_type(content_type);
 
-              LogDebug("Uploading sample file from disk.");
-              firebase::Future<firebase::storage::Metadata> future =
-                  ref.PutFile(file_path.c_str(), new_metadata);
-              FLAKY_WAIT_FOR_COMPLETION(future, "PutFile");
-              FLAKY_EXPECT_NONNULL(future.result());
-              const firebase::storage::Metadata* metadata = future.result();
-              FLAKY_EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
-              FLAKY_EXPECT_EQ(metadata->content_type(), content_type);
-            }
-            // Use GetBytes to ensure the file uploaded correctly.
-            {
-              LogDebug("Downloading file to disk.");
-              const size_t kBufferSize = 1024;
-              char buffer[kBufferSize];
-              memset(buffer, 0, sizeof(buffer));
+    LogDebug("Uploading sample file from disk.");
+    firebase::Future<firebase::storage::Metadata> future =
+        RunWithRetry<firebase::storage::Metadata>(
+            [&]() { return ref.PutFile(file_path.c_str(), new_metadata); });
+    WaitForCompletion(future, "PutFile");
+    EXPECT_NE(future.result(), nullptr);
+    const firebase::storage::Metadata* metadata = future.result();
+    EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
+    EXPECT_EQ(metadata->content_type(), content_type);
+  }
+  // Use GetBytes to ensure the file uploaded correctly.
+  {
+    LogDebug("Downloading file to disk.");
+    const size_t kBufferSize = 1024;
+    char buffer[kBufferSize];
+    memset(buffer, 0, sizeof(buffer));
 
-              firebase::Future<size_t> future =
-                  ref.GetBytes(buffer, kBufferSize);
-              FLAKY_WAIT_FOR_COMPLETION(future, "GetBytes");
-              FLAKY_EXPECT_NONNULL(future.result());
-              size_t file_size = *future.result();
-              FLAKY_EXPECT_EQ(file_size, kSimpleTestFile.size());
-              FLAKY_EXPECT_EQ(
-                  memcmp(&kSimpleTestFile[0], &buffer[0], file_size), 0);
-            }
-            // Test GetFile to ensure we can download to a file.
-            {
-              std::string path = PathForResource() + kGetFileTestFile;
-              // Cloud Storage expects a URI, so add file:// in front of local
-              // paths.
-              std::string file_path = kFileUriScheme + path;
+    firebase::Future<size_t> future = RunWithRetry<size_t>(
+        [&]() { return ref.GetBytes(buffer, kBufferSize); });
+    WaitForCompletion(future, "GetBytes");
+    EXPECT_NE(future.result(), nullptr);
+    size_t file_size = *future.result();
+    EXPECT_EQ(file_size, kSimpleTestFile.size());
+    EXPECT_EQ(memcmp(&kSimpleTestFile[0], &buffer[0], file_size), 0);
+  }
+  // Test GetFile to ensure we can download to a file.
+  {
+    std::string path = PathForResource() + kGetFileTestFile;
+    // Cloud Storage expects a URI, so add file:// in front of local
+    // paths.
+    std::string file_path = kFileUriScheme + path;
 
-              LogDebug("Saving to local file: %s", path.c_str());
+    LogDebug("Saving to local file: %s", path.c_str());
 
-              firebase::Future<size_t> future = ref.GetFile(file_path.c_str());
-              FLAKY_WAIT_FOR_COMPLETION(future, "GetFile");
-              FLAKY_EXPECT_NONNULL(future.result());
-              FLAKY_EXPECT_EQ(*future.result(), kSimpleTestFile.size());
+    firebase::Future<size_t> future =
+        RunWithRetry<size_t>([&]() { return ref.GetFile(file_path.c_str()); });
+    WaitForCompletion(future, "GetFile");
+    EXPECT_NE(future.result(), nullptr);
+    EXPECT_EQ(*future.result(), kSimpleTestFile.size());
 
-              std::vector<char> buffer(kSimpleTestFile.size());
-              FILE* file = fopen(path.c_str(), "rb");
-              FLAKY_EXPECT_NONNULL(file);
-              std::fread(&buffer[0], 1, kSimpleTestFile.size(), file);
-              fclose(file);
-              FLAKY_EXPECT_EQ(
-                  memcmp(&kSimpleTestFile[0], &buffer[0], buffer.size()), 0);
-            }
-            return true;
-          },
-          this)) {
-    FAIL() << "Upload and download file failed, check log for details.";
+    std::vector<char> buffer(kSimpleTestFile.size());
+    FILE* file = fopen(path.c_str(), "rb");
+    EXPECT_NE(file, nullptr);
+    std::fread(&buffer[0], 1, kSimpleTestFile.size(), file);
+    fclose(file);
+    EXPECT_EQ(memcmp(&kSimpleTestFile[0], &buffer[0], buffer.size()), 0);
   }
 }
 
@@ -589,11 +583,15 @@ TEST_F(FirebaseStorageTest, TestDownloadUrl) {
   cleanup_files_.push_back(ref);
 
   LogDebug("Uploading file.");
-  WaitForCompletion(ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size()),
+  WaitForCompletion(RunWithRetry([&]() {
+                      return ref.PutBytes(&kSimpleTestFile[0],
+                                          kSimpleTestFile.size());
+                    }),
                     "PutBytes");
 
   LogDebug("Getting download URL.");
-  firebase::Future<std::string> future = ref.GetDownloadUrl();
+  firebase::Future<std::string> future =
+      RunWithRetry<std::string>([&]() { return ref.GetDownloadUrl(); });
   WaitForCompletion(future, "GetDownloadUrl");
   ASSERT_NE(future.result(), nullptr);
   LogDebug("Got download URL: %s", future.result()->c_str());
@@ -613,7 +611,10 @@ TEST_F(FirebaseStorageTest, TestDeleteFile) {
   // Don't add to cleanup_files_ because we are going to delete it anyway.
 
   LogDebug("Uploading file.");
-  WaitForCompletion(ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size()),
+  WaitForCompletion(RunWithRetry([&]() {
+                      return ref.PutBytes(&kSimpleTestFile[0],
+                                          kSimpleTestFile.size());
+                    }),
                     "PutBytes");
 
   LogDebug("Deleting file.");
@@ -702,73 +703,55 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
 
   const size_t kLargeFileSize = kLargeFileMegabytes * 1024 * 1024;
   const std::string kLargeTestFile = CreateDataForLargeFile(kLargeFileSize);
-  struct Context {
-    firebase::storage::StorageReference* ref;
-    const std::string* test_file;
-    size_t test_file_size;
-  };
-  Context context;
-  // It's safe to use stack-allocated pointers as RunFlakyBlock does all its
-  // work in this thread.
-  context.ref = &ref;
-  context.test_file = &kLargeTestFile;
-  context.test_file_size = kLargeFileSize;
-  if (!RunFlakyBlock(
-          [](Context* context) {
-            firebase::storage::StorageReference* ref = context->ref;
-            const std::string* test_file = context->test_file;
-            size_t test_file_size = context->test_file_size;
-            LogDebug("Uploading large file with pause/resume.");
-            StorageListener listener;
-            firebase::storage::Controller controller;
-            firebase::Future<firebase::storage::Metadata> future =
-                ref->PutBytes(test_file->c_str(), test_file_size, &listener,
-                              &controller);
 
-            // Ensure the Controller is valid now that we have associated it
-            // with an operation.
-            FLAKY_EXPECT_TRUE(controller.is_valid());
+  FLAKY_TEST_SECTION_BEGIN();
 
-            while (controller.bytes_transferred() == 0) {
+  LogDebug("Uploading large file with pause/resume.");
+  StorageListener listener;
+  firebase::storage::Controller controller;
+  firebase::Future<firebase::storage::Metadata> future = ref.PutBytes(
+      kLargeTestFile.c_str(), kLargeFileSize, &listener, &controller);
+
+  // Ensure the Controller is valid now that we have associated it
+  // with an operation.
+  EXPECT_TRUE(controller.is_valid());
+
+  while (controller.bytes_transferred() == 0) {
 #if FIREBASE_PLATFORM_DESKTOP
-              ProcessEvents(1);
+    ProcessEvents(1);
 #else  // FIREBASE_PLATFORM_MOBILE
-              ProcessEvents(500);
+    ProcessEvents(500);
 #endif
-            }
-
-            // After waiting a moment for the operation to start (above), pause
-            // the operation and verify it was successfully paused when the
-            // future completes.
-            LogDebug("Pausing upload.");
-            if (!FirebaseTest::RunFlakyBlock(
-                    [](firebase::storage::Controller* controller) {
-                      return controller->Pause();
-                    },
-                    &controller, "Pause")) {
-              LogError("Pause failed.");
-              return false;
-            }
-
-            // The StorageListener's OnPaused will call Resume().
-
-            LogDebug("Waiting for future.");
-            FLAKY_WAIT_FOR_COMPLETION(future, "WriteLargeFile");
-            LogDebug("Upload complete.");
-
-            // Ensure the various callbacks were called.
-            FLAKY_EXPECT_TRUE(listener.on_paused_was_called());
-            FLAKY_EXPECT_TRUE(listener.on_progress_was_called());
-            FLAKY_EXPECT_TRUE(listener.resume_succeeded());
-
-            auto metadata = future.result();
-            // If metadata reports incorrect size, file failed to upload.
-            FLAKY_EXPECT_EQ(metadata->size_bytes(), test_file_size);
-            return true;
-          },
-          &context, "PutBytes")) {
-    FAIL() << "Upload with pause/resume failed, check error log for details.";
   }
+
+  // After waiting a moment for the operation to start (above), pause
+  // the operation and verify it was successfully paused when the
+  // future completes.
+  LogDebug("Pausing upload.");
+  if (!FirebaseTest::RunFlakyBlock(
+          [](firebase::storage::Controller* controller) {
+            return controller->Pause();
+          },
+          &controller, "Pause")) {
+    FAIL() << "Pause failed.";
+  }
+
+  // The StorageListener's OnPaused will call Resume().
+
+  LogDebug("Waiting for future.");
+  WaitForCompletion(future, "WriteLargeFile");
+  LogDebug("Upload complete.");
+
+  // Ensure the various callbacks were called.
+  EXPECT_TRUE(listener.on_paused_was_called());
+  EXPECT_TRUE(listener.on_progress_was_called());
+  EXPECT_TRUE(listener.resume_succeeded());
+
+  auto metadata = future.result();
+  // If metadata reports incorrect size, file failed to upload.
+  EXPECT_EQ(metadata->size_bytes(), kLargeFileSize);
+
+  FLAKY_TEST_SECTION_END();
 
   // Download the file and confirm it's correct.
   {
@@ -776,8 +759,8 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
     memset(&buffer[0], 0, kLargeFileSize);
     LogDebug("Downloading large file for comparison.");
     StorageListener listener;
-    firebase::Future<size_t> future =
-        ref.GetBytes(&buffer[0], kLargeFileSize, &listener);
+    firebase::Future<size_t> future = RunWithRetry<size_t>(
+        [&]() { return ref.GetBytes(&buffer[0], kLargeFileSize, &listener); });
     WaitForCompletion(future, "GetBytes");
     ASSERT_NE(future.result(), nullptr);
     size_t file_size = *future.result();
@@ -786,77 +769,45 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
         << "Read large file failed, contents did not match.";
   }
 #if FIREBASE_PLATFORM_DESKTOP
-  if (!RunFlakyBlock(
-          [](Context* context) {
-            firebase::storage::StorageReference* ref = context->ref;
-            const std::string* test_file = context->test_file;
-            size_t test_file_size = context->test_file_size;
-            // Test pausing/resuming while downloading (desktop only).
-            std::vector<char> buffer(test_file_size);
-            memset(&buffer[0], 0, test_file_size);
-            LogDebug("Downloading large file with pausing/resuming.");
-            StorageListener listener;
-            firebase::storage::Controller controller;
-            firebase::Future<size_t> future = ref->GetBytes(
-                &buffer[0], test_file_size, &listener, &controller);
-            if (!controller.is_valid()) {
-              LogError("Controller invalid");
-              return false;
-            }
+  FLAKY_TEST_SECTION_BEGIN();
 
-            while (controller.bytes_transferred() == 0) {
-              ProcessEvents(1);
-            }
+  // Test pausing/resuming while downloading (desktop only).
+  std::vector<char> buffer(kLargeFileSize);
+  memset(&buffer[0], 0, kLargeFileSize);
+  LogDebug("Downloading large file with pausing/resuming.");
+  StorageListener listener;
+  firebase::storage::Controller controller;
+  firebase::Future<size_t> future =
+      ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
+  EXPECT_TRUE(controller.is_valid());
 
-            LogDebug("Pausing download.");
-            if (!FirebaseTest::RunFlakyBlock(
-                    [](firebase::storage::Controller* controller) {
-                      return controller->Pause();
-                    },
-                    &controller, "Pause")) {
-              LogError("Pause failed.");
-              return false;
-            }
-
-            WaitForCompletionAnyResult(future, "GetBytes");
-            if (future.error() != firebase::storage::kErrorNone) {
-              LogError("GetBytes returned error %d: %s", future.error(),
-                       future.error_message());
-              return false;
-            }
-            LogDebug("Download complete.");
-
-            // Ensure the progress and pause callbacks were called.
-            if (!listener.on_paused_was_called()) {
-              LogError("Listener::OnPaused was not called");
-              return false;
-            }
-            if (!listener.on_progress_was_called()) {
-              LogError("Listener::OnProgress was not called");
-              return false;
-            }
-            if (!listener.resume_succeeded()) {
-              LogError("Resume failed");
-              return false;
-            }
-            if (future.result() == nullptr) {
-              LogError("Future returned null data");
-              return false;
-            }
-            size_t file_size = *future.result();
-            if (file_size != test_file_size) {
-              LogError("Read size with pause/resume did not match");
-              return false;
-            }
-            if (memcmp(test_file->c_str(), &buffer[0], test_file_size) != 0) {
-              LogError("Read large file failed, contents did not match.");
-              return false;
-            }
-            return true;
-          },
-          &context, "GetBytes")) {
-    FAIL() << "Download of file with pause/resume failed, see error log";
+  while (controller.bytes_transferred() == 0) {
+    ProcessEvents(1);
   }
+
+  LogDebug("Pausing download.");
+  if (!FirebaseTest::RunFlakyBlock(
+          [](firebase::storage::Controller* controller) {
+            return controller->Pause();
+          },
+          &controller, "Pause")) {
+    FAIL() << "Pause failed";
+  }
+
+  WaitForCompletion(future, "GetBytes");
+
+  LogDebug("Download complete.");
+
+  // Ensure the progress and pause callbacks were called.
+  EXPECT_TRUE(listener.on_paused_was_called());
+  EXPECT_TRUE(listener.on_progress_was_called());
+  EXPECT_TRUE(listener.resume_succeeded());
+  EXPECT_NE(future.result(), nullptr);
+  size_t file_size = *future.result();
+  EXPECT_EQ(file_size, kLargeFileSize);
+  EXPECT_EQ(memcmp(kLargeTestFile.c_str(), &buffer[0], kLargeFileSize), 0);
+
+  FLAKY_TEST_SECTION_END();
 #else
   {
     std::vector<char> buffer(kLargeFileSize);
@@ -866,8 +817,9 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
     LogDebug("Downloading large file.");
     StorageListener listener;
     firebase::storage::Controller controller;
-    firebase::Future<size_t> future =
-        ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
+    firebase::Future<size_t> future = RunWithRetry<size_t>([&]() {
+      return ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
+    });
     ASSERT_TRUE(controller.is_valid());
 
     WaitForCompletion(future, "GetBytes");
@@ -886,23 +838,25 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
 #endif  // FIREBASE_PLATFORM_DESKTOP
 
   // Try canceling while downloading.
-  {
-    std::vector<char> buffer(kLargeFileSize);
-    LogDebug("Downloading large file with cancellation.");
-    StorageListener listener;
-    firebase::storage::Controller controller;
-    firebase::Future<size_t> future =
-        ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
-    ASSERT_TRUE(controller.is_valid());
+  FLAKY_TEST_SECTION_BEGIN();
 
-    while (controller.bytes_transferred() == 0) {
-      ProcessEvents(1);
-    }
+  std::vector<char> buffer(kLargeFileSize);
+  LogDebug("Downloading large file with cancellation.");
+  StorageListener listener;
+  firebase::storage::Controller controller;
+  firebase::Future<size_t> future =
+      ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
+  EXPECT_TRUE(controller.is_valid());
 
-    LogDebug("Cancelling download.");
-    EXPECT_TRUE(controller.Cancel());
-    WaitForCompletion(future, "GetBytes", firebase::storage::kErrorCancelled);
+  while (controller.bytes_transferred() == 0) {
+    ProcessEvents(1);
   }
+
+  LogDebug("Cancelling download.");
+  EXPECT_TRUE(controller.Cancel());
+  WaitForCompletion(future, "GetBytes", firebase::storage::kErrorCancelled);
+
+  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseStorageTest, TestLargeFileCancelUpload) {
@@ -913,27 +867,29 @@ TEST_F(FirebaseStorageTest, TestLargeFileCancelUpload) {
 
   const size_t kLargeFileSize = kLargeFileMegabytes * 1024 * 1024;
   const std::string kLargeTestFile = CreateDataForLargeFile(kLargeFileSize);
-  {
-    LogDebug("Write a large file and cancel mid-way.");
-    StorageListener listener;
-    firebase::storage::Controller controller;
-    firebase::Future<firebase::storage::Metadata> future = ref.PutBytes(
-        kLargeTestFile.c_str(), kLargeFileSize, &listener, &controller);
+  FLAKY_TEST_SECTION_BEGIN();
 
-    // Ensure the Controller is valid now that we have associated it with an
-    // operation.
-    ASSERT_TRUE(controller.is_valid());
+  LogDebug("Write a large file and cancel mid-way.");
+  StorageListener listener;
+  firebase::storage::Controller controller;
+  firebase::Future<firebase::storage::Metadata> future = ref.PutBytes(
+      kLargeTestFile.c_str(), kLargeFileSize, &listener, &controller);
 
-    while (controller.bytes_transferred() == 0) {
-      ProcessEvents(1);
-    }
+  // Ensure the Controller is valid now that we have associated it
+  // with an operation.
+  EXPECT_TRUE(controller.is_valid());
 
-    LogDebug("Cancelling upload.");
-    // Cancel the operation and verify it was successfully canceled.
-    EXPECT_TRUE(controller.Cancel());
-
-    WaitForCompletion(future, "PutBytes", firebase::storage::kErrorCancelled);
+  while (controller.bytes_transferred() == 0) {
+    ProcessEvents(1);
   }
+
+  LogDebug("Cancelling upload.");
+  // Cancel the operation and verify it was successfully canceled.
+  EXPECT_TRUE(controller.Cancel());
+
+  WaitForCompletion(future, "PutBytes", firebase::storage::kErrorCancelled);
+
+  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseStorageTest, TestInvalidatingReferencesWhenDeletingStorage) {
