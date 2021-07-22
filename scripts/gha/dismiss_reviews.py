@@ -23,7 +23,6 @@ USAGE:
 """
 
 import datetime
-import pytz
 import shutil
 
 from absl import app
