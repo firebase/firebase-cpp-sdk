@@ -106,6 +106,12 @@ jobs:
           required-permission: write
         env:
           GITHUB_TOKEN: ${{ github.token }}
+      - name: Debug output
+        run: |
+          echo "has-permission = ${{steps.check.outputs.has-permission}}"
+          echo "head.repo = ${{github.event.pull_request.head.repo.full_name}}"
+          echo "github.repo == ${{github.repository}}"
+
       - uses: actions/checkout@v2
         if: steps.check.outputs.has-permission != 1 && github.event.pull_request.head.repo.full_name == github.repository
         with:
