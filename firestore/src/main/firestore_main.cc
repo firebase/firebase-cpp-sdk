@@ -151,13 +151,6 @@ WriteBatch FirestoreInternal::batch() const {
   return MakePublic(firestore_core_->GetBatch());
 }
 
-Future<void> FirestoreInternal::RunTransaction(TransactionFunction* update) {
-  return RunTransaction(
-      [update](Transaction& transaction, std::string& error_message) {
-        return update->Apply(transaction, error_message);
-      });
-}
-
 Future<void> FirestoreInternal::RunTransaction(
     std::function<Error(Transaction&, std::string&)> update) {
   auto executor = transaction_executor_;

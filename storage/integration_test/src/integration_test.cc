@@ -703,57 +703,55 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
 
   const size_t kLargeFileSize = kLargeFileMegabytes * 1024 * 1024;
   const std::string kLargeTestFile = CreateDataForLargeFile(kLargeFileSize);
-  if (!RunFlakyBlock([&]() {
-        LogDebug("Uploading large file with pause/resume.");
-        StorageListener listener;
-        firebase::storage::Controller controller;
-        firebase::Future<firebase::storage::Metadata> future = ref.PutBytes(
-            kLargeTestFile.c_str(), kLargeFileSize, &listener, &controller);
 
-        // Ensure the Controller is valid now that we have associated it
-        // with an operation.
-        FLAKY_EXPECT_TRUE(controller.is_valid());
+  FLAKY_TEST_SECTION_BEGIN();
 
-        while (controller.bytes_transferred() == 0) {
+  LogDebug("Uploading large file with pause/resume.");
+  StorageListener listener;
+  firebase::storage::Controller controller;
+  firebase::Future<firebase::storage::Metadata> future = ref.PutBytes(
+      kLargeTestFile.c_str(), kLargeFileSize, &listener, &controller);
+
+  // Ensure the Controller is valid now that we have associated it
+  // with an operation.
+  EXPECT_TRUE(controller.is_valid());
+
+  while (controller.bytes_transferred() == 0) {
 #if FIREBASE_PLATFORM_DESKTOP
-          ProcessEvents(1);
+    ProcessEvents(1);
 #else  // FIREBASE_PLATFORM_MOBILE
-          ProcessEvents(500);
+    ProcessEvents(500);
 #endif
-        }
-
-        // After waiting a moment for the operation to start (above), pause
-        // the operation and verify it was successfully paused when the
-        // future completes.
-        LogDebug("Pausing upload.");
-        if (!FirebaseTest::RunFlakyBlock(
-                [](firebase::storage::Controller* controller) {
-                  return controller->Pause();
-                },
-                &controller, "Pause")) {
-          LogError("Pause failed.");
-          FLAKY_FAIL();
-        }
-
-        // The StorageListener's OnPaused will call Resume().
-
-        LogDebug("Waiting for future.");
-        FLAKY_WAIT_FOR_COMPLETION(future, "WriteLargeFile");
-        LogDebug("Upload complete.");
-
-        // Ensure the various callbacks were called.
-        FLAKY_EXPECT_TRUE(listener.on_paused_was_called());
-        FLAKY_EXPECT_TRUE(listener.on_progress_was_called());
-        FLAKY_EXPECT_TRUE(listener.resume_succeeded());
-
-        auto metadata = future.result();
-        // If metadata reports incorrect size, file failed to upload.
-        FLAKY_EXPECT_EQ(metadata->size_bytes(), kLargeFileSize);
-
-        FLAKY_SUCCESS();
-      })) {
-    FAIL() << "Upload with pause/resume failed, check error log for details.";
   }
+
+  // After waiting a moment for the operation to start (above), pause
+  // the operation and verify it was successfully paused when the
+  // future completes.
+  LogDebug("Pausing upload.");
+  if (!FirebaseTest::RunFlakyBlock(
+          [](firebase::storage::Controller* controller) {
+            return controller->Pause();
+          },
+          &controller, "Pause")) {
+    FAIL() << "Pause failed.";
+  }
+
+  // The StorageListener's OnPaused will call Resume().
+
+  LogDebug("Waiting for future.");
+  WaitForCompletion(future, "WriteLargeFile");
+  LogDebug("Upload complete.");
+
+  // Ensure the various callbacks were called.
+  EXPECT_TRUE(listener.on_paused_was_called());
+  EXPECT_TRUE(listener.on_progress_was_called());
+  EXPECT_TRUE(listener.resume_succeeded());
+
+  auto metadata = future.result();
+  // If metadata reports incorrect size, file failed to upload.
+  EXPECT_EQ(metadata->size_bytes(), kLargeFileSize);
+
+  FLAKY_TEST_SECTION_END();
 
   // Download the file and confirm it's correct.
   {
@@ -771,48 +769,45 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
         << "Read large file failed, contents did not match.";
   }
 #if FIREBASE_PLATFORM_DESKTOP
-  if (!RunFlakyBlock([&]() {
-        // Test pausing/resuming while downloading (desktop only).
-        std::vector<char> buffer(kLargeFileSize);
-        memset(&buffer[0], 0, kLargeFileSize);
-        LogDebug("Downloading large file with pausing/resuming.");
-        StorageListener listener;
-        firebase::storage::Controller controller;
-        firebase::Future<size_t> future =
-            ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
-        FLAKY_EXPECT_TRUE(controller.is_valid());
+  FLAKY_TEST_SECTION_BEGIN();
 
-        while (controller.bytes_transferred() == 0) {
-          ProcessEvents(1);
-        }
+  // Test pausing/resuming while downloading (desktop only).
+  std::vector<char> buffer(kLargeFileSize);
+  memset(&buffer[0], 0, kLargeFileSize);
+  LogDebug("Downloading large file with pausing/resuming.");
+  StorageListener listener;
+  firebase::storage::Controller controller;
+  firebase::Future<size_t> future =
+      ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
+  EXPECT_TRUE(controller.is_valid());
 
-        LogDebug("Pausing download.");
-        if (!FirebaseTest::RunFlakyBlock(
-                [](firebase::storage::Controller* controller) {
-                  return controller->Pause();
-                },
-                &controller, "Pause")) {
-          LogError("Pause failed.");
-          FLAKY_FAIL();
-        }
-
-        FLAKY_WAIT_FOR_COMPLETION(future, "GetBytes");
-
-        LogDebug("Download complete.");
-
-        // Ensure the progress and pause callbacks were called.
-        FLAKY_EXPECT_TRUE(listener.on_paused_was_called());
-        FLAKY_EXPECT_TRUE(listener.on_progress_was_called());
-        FLAKY_EXPECT_TRUE(listener.resume_succeeded());
-        FLAKY_EXPECT_NONNULL(future.result());
-        size_t file_size = *future.result();
-        FLAKY_EXPECT_EQ(file_size, kLargeFileSize);
-        FLAKY_EXPECT_EQ(
-            memcmp(kLargeTestFile.c_str(), &buffer[0], kLargeFileSize), 0);
-        FLAKY_SUCCESS();
-      })) {
-    FAIL() << "Download of file with pause/resume failed, see error log";
+  while (controller.bytes_transferred() == 0) {
+    ProcessEvents(1);
   }
+
+  LogDebug("Pausing download.");
+  if (!FirebaseTest::RunFlakyBlock(
+          [](firebase::storage::Controller* controller) {
+            return controller->Pause();
+          },
+          &controller, "Pause")) {
+    FAIL() << "Pause failed";
+  }
+
+  WaitForCompletion(future, "GetBytes");
+
+  LogDebug("Download complete.");
+
+  // Ensure the progress and pause callbacks were called.
+  EXPECT_TRUE(listener.on_paused_was_called());
+  EXPECT_TRUE(listener.on_progress_was_called());
+  EXPECT_TRUE(listener.resume_succeeded());
+  EXPECT_NE(future.result(), nullptr);
+  size_t file_size = *future.result();
+  EXPECT_EQ(file_size, kLargeFileSize);
+  EXPECT_EQ(memcmp(kLargeTestFile.c_str(), &buffer[0], kLargeFileSize), 0);
+
+  FLAKY_TEST_SECTION_END();
 #else
   {
     std::vector<char> buffer(kLargeFileSize);
@@ -843,28 +838,25 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
 #endif  // FIREBASE_PLATFORM_DESKTOP
 
   // Try canceling while downloading.
-  if (!RunFlakyBlock([&]() {
-        std::vector<char> buffer(kLargeFileSize);
-        LogDebug("Downloading large file with cancellation.");
-        StorageListener listener;
-        firebase::storage::Controller controller;
-        firebase::Future<size_t> future =
-            ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
-        FLAKY_EXPECT_TRUE(controller.is_valid());
+  FLAKY_TEST_SECTION_BEGIN();
 
-        while (controller.bytes_transferred() == 0) {
-          ProcessEvents(1);
-        }
+  std::vector<char> buffer(kLargeFileSize);
+  LogDebug("Downloading large file with cancellation.");
+  StorageListener listener;
+  firebase::storage::Controller controller;
+  firebase::Future<size_t> future =
+      ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
+  EXPECT_TRUE(controller.is_valid());
 
-        LogDebug("Cancelling download.");
-        FLAKY_EXPECT_TRUE(controller.Cancel());
-        FLAKY_WAIT_FOR_COMPLETION_WITH_ERROR(
-            future, "GetBytes", firebase::storage::kErrorCancelled);
-
-        FLAKY_SUCCESS();
-      })) {
-    FAIL() << "Cancel file download failed, see log for details";
+  while (controller.bytes_transferred() == 0) {
+    ProcessEvents(1);
   }
+
+  LogDebug("Cancelling download.");
+  EXPECT_TRUE(controller.Cancel());
+  WaitForCompletion(future, "GetBytes", firebase::storage::kErrorCancelled);
+
+  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseStorageTest, TestLargeFileCancelUpload) {
@@ -875,32 +867,29 @@ TEST_F(FirebaseStorageTest, TestLargeFileCancelUpload) {
 
   const size_t kLargeFileSize = kLargeFileMegabytes * 1024 * 1024;
   const std::string kLargeTestFile = CreateDataForLargeFile(kLargeFileSize);
-  if (!RunFlakyBlock([&]() {
-        LogDebug("Write a large file and cancel mid-way.");
-        StorageListener listener;
-        firebase::storage::Controller controller;
-        firebase::Future<firebase::storage::Metadata> future = ref.PutBytes(
-            kLargeTestFile.c_str(), kLargeFileSize, &listener, &controller);
+  FLAKY_TEST_SECTION_BEGIN();
 
-        // Ensure the Controller is valid now that we have associated it
-        // with an operation.
-        FLAKY_EXPECT_TRUE(controller.is_valid());
+  LogDebug("Write a large file and cancel mid-way.");
+  StorageListener listener;
+  firebase::storage::Controller controller;
+  firebase::Future<firebase::storage::Metadata> future = ref.PutBytes(
+      kLargeTestFile.c_str(), kLargeFileSize, &listener, &controller);
 
-        while (controller.bytes_transferred() == 0) {
-          ProcessEvents(1);
-        }
+  // Ensure the Controller is valid now that we have associated it
+  // with an operation.
+  EXPECT_TRUE(controller.is_valid());
 
-        LogDebug("Cancelling upload.");
-        // Cancel the operation and verify it was successfully canceled.
-        FLAKY_EXPECT_TRUE(controller.Cancel());
-
-        FLAKY_WAIT_FOR_COMPLETION_WITH_ERROR(
-            future, "PutBytes", firebase::storage::kErrorCancelled);
-
-        FLAKY_SUCCESS();
-      })) {
-    FAIL() << "Cancel file upload failed, see log for details";
+  while (controller.bytes_transferred() == 0) {
+    ProcessEvents(1);
   }
+
+  LogDebug("Cancelling upload.");
+  // Cancel the operation and verify it was successfully canceled.
+  EXPECT_TRUE(controller.Cancel());
+
+  WaitForCompletion(future, "PutBytes", firebase::storage::kErrorCancelled);
+
+  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseStorageTest, TestInvalidatingReferencesWhenDeletingStorage) {

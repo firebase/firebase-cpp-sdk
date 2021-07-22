@@ -1,9 +1,14 @@
 
 source 'https://github.com/CocoaPods/Specs.git'
-platform :ios, '10.0'
 # Firebase Cloud Messaging test application.
 
 target 'integration_test' do
+  platform :ios, '10.0'
+  pod 'Firebase/Messaging', '8.3.0'
+end
+
+target 'integration_test_tvos' do
+  platform :tvos, '10.0'
   pod 'Firebase/Messaging', '8.3.0'
 end
 

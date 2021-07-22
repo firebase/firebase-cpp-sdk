@@ -61,6 +61,8 @@ import re
 import subprocess
 import sys
 
+from integration_testing import config_reader
+
 # Note that desktop is used for fallback,
 # if there is no direct match for a key.
 DEFAULT_WORKFLOW = "desktop"
@@ -116,7 +118,7 @@ PARAMETERS = {
 
       EXPANDED_KEY: {
         "ssl_lib": ["openssl", "boringssl"],
-        "android_device": ["android_min", "android_latest", "android_latest", "emulator_min", "emulator_target", "emulator_latest"],
+        "android_device": ["android_latest", "android_latest", "emulator_target", "emulator_latest", "emulator_32bit"],
         "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"],
         "tvos_device": ["tvos_simulator"],
       }
@@ -154,9 +156,10 @@ TEST_DEVICES = {
   "android_min": {"type": "real", "model":"Nexus10", "version":"19"},
   "android_target": {"type": "real", "model":"Pixel2", "version":"28"},
   "android_latest": {"type": "real", "model":"flame", "version":"29"},
-  "emulator_min": {"type": "virtual", "image":"system-images;android-18;default;x86"},
+  "emulator_min": {"type": "virtual", "image":"system-images;android-18;google_apis;x86"},
   "emulator_target": {"type": "virtual", "image":"system-images;android-28;google_apis;x86_64"},
-  "emulator_latest": {"type": "virtual", "image":"system-images;android-29;default;x86"},
+  "emulator_latest": {"type": "virtual", "image":"system-images;android-30;google_apis;x86_64"},
+  "emulator_32bit": {"type": "virtual", "image":"system-images;android-30;google_apis;x86"},
   "ios_min": {"type": "real", "model":"iphone8", "version":"11.4"},
   "ios_target": {"type": "real", "model":"iphone8plus", "version":"12.0"},
   "ios_latest": {"type": "real", "model":"iphone11", "version":"13.6"},
@@ -334,12 +337,26 @@ def filter_values_on_diff(parm_key, value, auto_diff):
     return value
 
 
+def filter_platforms_on_apis(platforms, apis):
+  if "tvOS" in platforms:
+    config = config_reader.read_config()
+    supported_apis = [api for api in apis if config.get_api(api).tvos_target]
+    if not supported_apis:
+      platforms.remove("tvOS")
+  
+  return platforms
+
+
 def main():
   args = parse_cmdline_args()
   if args.override:
     # If it is matrix parm, convert CSV string into a list
     if not args.config:
       args.override = args.override.split(',')
+    if args.parm_key == "platform" and args.apis:
+      # e.g. args.apis = "\"admob,analytics\""
+      args.override = filter_platforms_on_apis(args.override, args.apis.strip('"').split(','))
+
     print_value(args.override)
     return
 
@@ -365,6 +382,8 @@ def parse_cmdline_args():
   parser.add_argument('-o', '--override', help='Override existing value with provided value')
   parser.add_argument('-d', '--device', action='store_true', help='Get the device type, used with -k $device')
   parser.add_argument('-t', '--device_type', default=['real', 'virtual'], help='Test on which type of mobile devices')
+  parser.add_argument('--apis', default=PARAMETERS["integration_tests"]["config"]["apis"], 
+                      help='Exclude platform based on apis. Certain platform does not support all apis. e.g. tvOS does not support messaging')
   args = parser.parse_args()
   return args
 

@@ -32,6 +32,7 @@ set(common_SRCS
     src/common/field_path.cc
     src/common/field_value.cc
     src/common/firestore.cc
+    src/common/firestore_exceptions_common.h
     src/common/futures.cc
     src/common/futures.h
     src/common/hard_assert_common.cc
@@ -39,7 +40,6 @@ set(common_SRCS
     src/common/listener_registration.cc
     src/common/load_bundle_task_progress.cc
     src/common/macros.h
-    src/common/main_for_testing_build.cc
     src/common/query.cc
     src/common/query_snapshot.cc
     src/common/set_options.cc
@@ -342,6 +342,8 @@ add_custom_target(
   COMMENT "Copying internal Firestore headers"
 )
 
+# This is needed due to Firestore's dependence on some firebase::app APIs that
+# are guarded by this flag, such as GetUserAgent and function_registry.
 set(FIREBASE_FIRESTORE_CPP_DEFINES -DINTERNAL_EXPERIMENTAL=1)
 
 if (WIN32 AND NOT ANDROID AND NOT IOS)
