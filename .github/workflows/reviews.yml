@@ -1,0 +1,37 @@
+name: Update review status on push
+
+on:
+  pull_request:
+    types: [push]
+
+jobs:
+  dismiss_stale_approvals_on_external_contributor_pull_requests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check user permission
+        # When this action runs on a PR from a forked repo, it will
+        # not have write access to our repo. If this is the case,
+        # we must dismiss all approvals on the PR.
+        id: check
+        uses: scherermichael-oss/action-has-permission@master
+        with:
+          required-permission: write
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - uses: actions/checkout@v2
+        if: !steps.check.outputs.has-permission
+        with:
+          submodules: false
+      - name: Setup python
+        if: !steps.check.outputs.has-permission
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+      - name: Install prerequisites
+        if: !steps.check.outputs.has-permission
+        run: python scripts/gha/install_prereqs_desktop.py
+      - name: Dismiss reviews
+        if: !steps.check.outputs.has-permission
+        shell: bash
+        run: |
+          python scripts/gha/dismiss_reviews.py --token ${{github.token}} --pull_number ${{github.event.pull_request.number}} --review_state=APPROVED --message "Dismissed stale approval on external PR."

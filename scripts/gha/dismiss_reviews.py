@@ -19,6 +19,7 @@ USAGE:
     --token ${{github.token}} \
     --pull_number ${{needs.check_trigger.outputs.pr_number}}\
     [--reviewer github_username]
+    [--status APPROVED|PENDING]
 """
 
 import datetime
@@ -50,19 +51,28 @@ flags.DEFINE_string(
     "reviewer", None,
     "Reviewer to dismiss (by username). If unspecified, dismiss all reviews.")
 
+flags.DEFINE_enum(
+    "review_state", "ANY", ["ANY", "APPROVED", "CHANGES_REQUESTED", "COMMENTED",
+                            "PENDING"],
+    "Only dismiss reviews in this state. Specify ANY for any state.")
+
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
   # Get list of reviews from PR.
   reviews = github.get_reviews(FLAGS.token, FLAGS.pull_number)
+  logging.debug("Found %d reviews", len(reviews))
+
   # Filter out already-dismissed reviews.
   reviews = [r for r in reviews if r['state'] != 'DISMISSED']
+  # Filter by review_state if specified.
+  if FLAGS.review_state != 'ANY':
+    reviews = [r for r in reviews if r['state'] == FLAGS.review_state]
+  # Filter by reviewer's username, if specified.
+  if FLAGS.reviewer:
+    reviews = [r for r in reviews if r.user.login == FLAGS.reviewer]
+
   if reviews:
-    logging.debug("Found %d reviews", len(reviews))
-    if FLAGS.reviewer:
-      # Filter reviewers to the given reviewer, if requested
-      logging.debug("Filtering to reviews owned by: %s", FLAGS.reviewer)
-      reviews = [r for r in reviews if r.user.login == FLAGS.reviewer]
     review_ids = [r['id'] for r in reviews]
     logging.debug("Dismissing reviews: %s", review_ids)
     for review_id in review_ids:
