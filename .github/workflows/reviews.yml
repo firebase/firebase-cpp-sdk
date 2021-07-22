@@ -2,7 +2,7 @@ name: Update review status on push
 
 on:
   pull_request:
-    types: [push]
+    types: [synchronize]
 
 jobs:
   dismiss_stale_approvals_on_external_contributor_pull_requests:
