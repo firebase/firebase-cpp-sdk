@@ -249,6 +249,13 @@ jobs:
       - name: Add msbuild to PATH (Windows)
         if: startsWith(matrix.os, 'windows')
         uses: microsoft/setup-msbuild@v1.0.2
+      # TODO: remove this after we fix issues with our SDK
+      # build and cmake 3.21 on Windows.
+      - name: Setup cmake
+        if: startsWith(matrix.os, 'windows')
+        uses: jwlawson/actions-setup-cmake@v1.9
+        with:
+          cmake-version: '3.20.5'
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
         uses: actions/cache@v2
@@ -407,6 +414,13 @@ jobs:
       - name: Add msbuild to PATH (Windows)
         if: startsWith(matrix.os, 'windows')
         uses: microsoft/setup-msbuild@v1.0.2
+      # TODO: remove this after we fix issues with our SDK
+      # build and cmake 3.21 on Windows.
+      - name: Setup cmake
+        if: startsWith(matrix.os, 'windows')
+        uses: jwlawson/actions-setup-cmake@v1.9
+        with:
+          cmake-version: '3.20.5'
       - name: Cache NDK
         id: cache_ndk
         uses: actions/cache@v2
