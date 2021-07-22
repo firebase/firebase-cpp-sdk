@@ -118,8 +118,16 @@ jobs:
       - name: Install prerequisites
         if: steps.check.outputs.has-permission != 1 || github.event.pull_request.head.repo.full_name != github.repository
         run: pip install -r scripts/gha/requirements.txt
+      - name: Generate token for GitHub API
+        # Use a different token to dismiss the reviews, since ours may be read-only.
+        uses: tibdex/github-app-token@v1
+        id: generate-token
+        if: steps.check.outputs.has-permission != 1 || github.event.pull_request.head.repo.full_name != github.repository
+        with:
+          app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
+          private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
       - name: Dismiss reviews
         if: steps.check.outputs.has-permission != 1 || github.event.pull_request.head.repo.full_name != github.repository
         shell: bash
         run: |
-          python scripts/gha/dismiss_reviews.py --token ${{github.token}} --pull_number ${{github.event.pull_request.number}} --review_state=APPROVED --message "Dismissed stale approval on external PR."
+          python scripts/gha/dismiss_reviews.py --token ${{steps.generate-token.outputs.token}} --pull_number ${{github.event.pull_request.number}} --review_state=APPROVED --message "Dismissed stale approval on external PR."
