@@ -110,7 +110,8 @@ jobs:
           required-permission: write
         env:
           GITHUB_TOKEN: ${{ github.token }}
-      - uses: artis3n/signoff-new-commit@0.2.0pre
+      - name: Check for up-to-date approvals
+        uses: artis3n/signoff-new-commit@0.2.0pre
         # If the user doesn't have write access, or this is a PR from a forked repo, require signoff on new commits.
         if: steps.check.outputs.has-permission != 1 || github.event.pull_request.head.repo.full_name != github.repository
         with:
