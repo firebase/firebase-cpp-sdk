@@ -117,7 +117,7 @@ jobs:
           python-version: 3.7
       - name: Install prerequisites
         if: steps.check.outputs.has-permission != 1 || github.event.pull_request.head.repo.full_name != github.repository
-        run: python scripts/gha/install_prereqs_desktop.py
+        run: pip install -r scripts/gha/requirements.txt
       - name: Dismiss reviews
         if: steps.check.outputs.has-permission != 1 || github.event.pull_request.head.repo.full_name != github.repository
         shell: bash
