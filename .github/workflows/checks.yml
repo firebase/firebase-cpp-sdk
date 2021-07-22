@@ -104,7 +104,7 @@ jobs:
         # not have write access to our repo. If this is the case,
         # we must dismiss all approvals on the PR.
         id: check
-        uses: scherermichael-oss/action-has-permission@v1.0.6
+        uses: scherermichael-oss/action-has-permission@1.0.6
         with:
           required-permission: write
         env:
