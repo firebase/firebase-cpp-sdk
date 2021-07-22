@@ -106,26 +106,20 @@ jobs:
           required-permission: write
         env:
           GITHUB_TOKEN: ${{ github.token }}
-      - name: Debug output
-        run: |
-          echo "has-permission = ${{steps.check.outputs.has-permission}}"
-          echo "head.repo = ${{github.event.pull_request.head.repo.full_name}}"
-          echo "github.repo == ${{github.repository}}"
-
       - uses: actions/checkout@v2
-        if: steps.check.outputs.has-permission != 1 && github.event.pull_request.head.repo.full_name == github.repository
+        if: steps.check.outputs.has-permission != 1 || github.event.pull_request.head.repo.full_name != github.repository
         with:
           submodules: false
       - name: Setup python
-        if: steps.check.outputs.has-permission != 1 && github.event.pull_request.head.repo.full_name == github.repository
+        if: steps.check.outputs.has-permission != 1 || github.event.pull_request.head.repo.full_name != github.repository
         uses: actions/setup-python@v2
         with:
           python-version: 3.7
       - name: Install prerequisites
-        if: steps.check.outputs.has-permission != 1 && github.event.pull_request.head.repo.full_name == github.repository
+        if: steps.check.outputs.has-permission != 1 || github.event.pull_request.head.repo.full_name != github.repository
         run: python scripts/gha/install_prereqs_desktop.py
       - name: Dismiss reviews
-        if: steps.check.outputs.has-permission != 1 && github.event.pull_request.head.repo.full_name == github.repository
+        if: steps.check.outputs.has-permission != 1 || github.event.pull_request.head.repo.full_name != github.repository
         shell: bash
         run: |
           python scripts/gha/dismiss_reviews.py --token ${{github.token}} --pull_number ${{github.event.pull_request.number}} --review_state=APPROVED --message "Dismissed stale approval on external PR."
