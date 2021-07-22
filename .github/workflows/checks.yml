@@ -2,7 +2,7 @@ name: Checks
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize, labeled, unlabeled, edited, reviewed]
+    types: [opened, reopened, synchronize, labeled, unlabeled, edited, reviewed, review_dismissed]
 
 env:
   triggerLabelFull: "tests-requested: full"
