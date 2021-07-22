@@ -405,6 +405,7 @@ TEST_F(ValidationTest,
   InitResult result;
   EXPECT_NO_THROW(Firestore::GetInstance(app(), &result));
   EXPECT_EQ(kInitResultSuccess, result);
+  EXPECT_NE(Firestore::GetInstance(app()), nullptr);
 }
 
 TEST_F(ValidationTest, CollectionPathsMustBeOddLength) {
@@ -613,6 +614,7 @@ TEST_F(ValidationTest, TransactionsRequireCorrectDocumentReferences) {
   MapFieldValue data{{"foo", FieldValue::Integer(1)}};
   DocumentReference bad_ref = db2->Document("foo/bar");
 
+  // TODO(b/194338435): fix the discrepancy between Android and other platforms.
 #if defined(__ANDROID__)
   auto future = db1->RunTransaction([&](Transaction& txn, std::string&) {
     txn.Get(bad_ref, /*error_code=*/nullptr, /*error_message=*/nullptr);
