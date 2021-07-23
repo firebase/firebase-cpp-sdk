@@ -179,8 +179,8 @@ def test_report(token, actor, commit, run_id):
     github.open_issue(token, issue_number)
     comment = (_COMMENT_TITLE_FAIL +
                _get_description(actor, commit, run_id) +
-               _COMMENT_FLAKY_TRACKER +
                log_summary +
+               _COMMENT_FLAKY_TRACKER +
                _COMMENT_SUFFIX)
     github.update_issue_comment(token, issue_number, comment)
 
