@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Top level CMake file that defines the entire Firebase C++ SDK build.
-# This is a test change.
+# This is another test change.
 
 cmake_minimum_required (VERSION 3.1)
 
