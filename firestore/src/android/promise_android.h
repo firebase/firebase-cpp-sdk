@@ -65,8 +65,8 @@ class Promise {
     // Ownership of the completer will pass to to RegisterCallbackOnTask
     auto* completer = completer_.release();
 
-    util::RegisterCallbackOnTask(env.get(), task.get(), ResultCallback,
-                                 completer, kApiIdentifier);
+    ::firebase::util::RegisterCallbackOnTask(
+        env.get(), task.get(), ResultCallback, completer, kApiIdentifier);
   }
 
   Future<PublicType> GetFuture() { return MakeFuture(impl_, handle_); }
@@ -99,14 +99,14 @@ class Promise {
     }
 
     virtual void CompleteWithResult(jobject raw_result,
-                                    util::FutureResult result_code,
+                                    ::firebase::util::FutureResult result_code,
                                     const char* status_message) {
       // result can be either the resolved object or exception, depending on
       // result_code.
       jni::Env env;
       jni::Object result(raw_result);
 
-      if (result_code == util::kFutureResultSuccess) {
+      if (result_code == ::firebase::util::kFutureResultSuccess) {
         // When succeeded, result is the resolved object of the Future.
         SucceedWithResult(env, result);
         return;
@@ -114,11 +114,11 @@ class Promise {
 
       Error error_code = Error::kErrorUnknown;
       switch (result_code) {
-        case util::kFutureResultFailure:
+        case ::firebase::util::kFutureResultFailure:
           // When failed, result is the exception raised.
           error_code = ExceptionInternal::GetErrorCode(env, result);
           break;
-        case util::kFutureResultCancelled:
+        case ::firebase::util::kFutureResultCancelled:
           error_code = Error::kErrorCancelled;
           break;
         default:
@@ -182,7 +182,7 @@ class Promise {
 
   static void ResultCallback(JNIEnv* env,
                              jobject result,
-                             util::FutureResult result_code,
+                             ::firebase::util::FutureResult result_code,
                              const char* status_message,
                              void* callback_data) {
     if (callback_data != nullptr) {

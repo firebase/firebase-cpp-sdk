@@ -118,6 +118,11 @@ FirestoreIntegrationTest::FirestoreIntegrationTest() {
 
 Firestore* FirestoreIntegrationTest::TestFirestore(
     const std::string& name) const {
+  return TestFirestoreWithProjectId(name, /*project_id=*/"");
+}
+
+Firestore* FirestoreIntegrationTest::TestFirestoreWithProjectId(
+    const std::string& name, const std::string& project_id) const {
   for (const auto& entry : firestores_) {
     const FirestoreInfo& firestore_info = entry.second;
     if (firestore_info.name() == name) {
@@ -125,7 +130,7 @@ Firestore* FirestoreIntegrationTest::TestFirestore(
     }
   }
 
-  App* app = GetApp(name.c_str());
+  App* app = GetApp(name.c_str(), project_id);
   if (apps_.find(app) == apps_.end()) {
     apps_[app] = std::unique_ptr<App>(app);
   }

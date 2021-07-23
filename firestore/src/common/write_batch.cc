@@ -4,10 +4,11 @@
 
 #include <utility>
 
-#include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
 #include "firestore/src/common/cleanup.h"
+#include "firestore/src/common/exception_common.h"
 #include "firestore/src/common/futures.h"
+#include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/write_batch_android.h"
@@ -18,7 +19,17 @@
 namespace firebase {
 namespace firestore {
 
+namespace {
+
 using CleanupFnWriteBatch = CleanupFn<WriteBatch>;
+
+void ValidateReference(const DocumentReference& document) {
+  if (!document.is_valid()) {
+    SimpleThrowInvalidArgument("Invalid document reference provided.");
+  }
+}
+
+}  // namespace
 
 WriteBatch::WriteBatch() {}
 
@@ -36,7 +47,7 @@ WriteBatch::WriteBatch(WriteBatch&& value) {
 }
 
 WriteBatch::WriteBatch(WriteBatchInternal* internal) : internal_(internal) {
-  FIREBASE_ASSERT(internal != nullptr);
+  SIMPLE_HARD_ASSERT(internal != nullptr);
   CleanupFnWriteBatch::Register(this, internal_);
 }
 
@@ -80,6 +91,8 @@ WriteBatch& WriteBatch::Set(const DocumentReference& document,
                             const MapFieldValue& data,
                             const SetOptions& options) {
   if (!internal_) return *this;
+
+  ValidateReference(document);
   internal_->Set(document, data, options);
   return *this;
 }
@@ -87,6 +100,8 @@ WriteBatch& WriteBatch::Set(const DocumentReference& document,
 WriteBatch& WriteBatch::Update(const DocumentReference& document,
                                const MapFieldValue& data) {
   if (!internal_) return *this;
+
+  ValidateReference(document);
   internal_->Update(document, data);
   return *this;
 }
@@ -94,12 +109,16 @@ WriteBatch& WriteBatch::Update(const DocumentReference& document,
 WriteBatch& WriteBatch::Update(const DocumentReference& document,
                                const MapFieldPathValue& data) {
   if (!internal_) return *this;
+
+  ValidateReference(document);
   internal_->Update(document, data);
   return *this;
 }
 
 WriteBatch& WriteBatch::Delete(const DocumentReference& document) {
   if (!internal_) return *this;
+
+  ValidateReference(document);
   internal_->Delete(document);
   return *this;
 }

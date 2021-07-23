@@ -574,7 +574,8 @@ code.
         the overload that takes a `std::function` argument instead.
     -   Firestore: `FieldValue::Increment` functions are no longer guarded by
         the `INTERNAL_EXPERIMENTAL` macro.
-    -   Firestore: add an `is_valid` method to the public API classes that can
+    -   Firestore: added more validation of invalid input.
+    -   Firestore: added an `is_valid` method to the public API classes that can
         be in an invalid state.
 
 ### 8.2.0

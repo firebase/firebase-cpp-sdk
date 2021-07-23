@@ -7,9 +7,9 @@
 #include <sstream>
 
 #include "app/meta/move.h"
-#include "app/src/assert.h"
 #include "firebase/firestore/geo_point.h"
 #include "firebase/firestore/timestamp.h"
+#include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/to_string.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #if defined(__ANDROID__)
@@ -87,7 +87,7 @@ FieldValue::FieldValue(FieldValue&& value) noexcept {
 }
 
 FieldValue::FieldValue(FieldValueInternal* internal) : internal_(internal) {
-  FIREBASE_ASSERT(internal != nullptr);
+  SIMPLE_HARD_ASSERT(internal != nullptr);
 }
 
 FieldValue::~FieldValue() {
@@ -321,9 +321,9 @@ std::string FieldValue::ToString() const {
       return "FieldValue::Increment()";
   }
 
-  FIREBASE_ASSERT_MESSAGE_RETURN("<invalid>", false,
-                                 "Unexpected FieldValue type: %d",
-                                 static_cast<int>(type()));
+  // TODO(b/147444199): use string formatting.
+  // HARD_FAIL("Unexpected FieldValue type: %s", static_cast<int>(type()));
+  SIMPLE_HARD_FAIL("Unexpected FieldValue type");
 }
 
 bool operator==(const FieldValue& lhs, const FieldValue& rhs) {
