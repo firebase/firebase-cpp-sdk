@@ -15,11 +15,11 @@
 """A utility to dismiss PR reviews.
 
 USAGE:
-  python scripts/gha/it_workflow.py --stage <stage> \
+  python scripts/gha/dismiss_reviews.py \
     --token ${{github.token}} \
-    --pull_number ${{needs.check_trigger.outputs.pr_number}}\
-    [--message 'Message to be posted on the dismissal.']
-    [--reviewer github_username]
+    --pull_number ${{needs.check_trigger.outputs.pr_number}} \
+    [--message 'Message to be posted on the dismissal.'] \
+    [--reviewer github_username] \
     [--review_state ANY|APPROVED|CHANGES_REQUESTED|COMMENTED|PENDING]
 """
 
