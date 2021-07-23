@@ -285,16 +285,17 @@ class DocumentReference {
           callback);
 
   /**
-   * @brief Returns true if this DocumentReference is valid, false if it is not
-   * valid. An invalid DocumentReference could be the result of:
-   *   - Creating a DocumentReference with the default constructor.
-   *   - Calling CollectionReference::Parent() on a CollectionReference that is
-   *     not a subcollection.
-   *   - Deleting your Firestore instance, which will invalidate all
-   *     DocumentReference instances associated with it.
+   * @brief Returns true if this `DocumentReference` is valid, false if it is
+   * not valid. An invalid `DocumentReference` could be the result of:
+   *   - Creating a `DocumentReference` using the default constructor.
+   *   - Moving from the `DocumentReference`.
+   *   - Calling `CollectionReference::Parent()` on a `CollectionReference` that
+   *     is not a subcollection.
+   *   - Deleting your Firestore instance, which will invalidate all the
+   *     `DocumentReference` instances associated with it.
    *
-   * @return true if this DocumentReference is valid, false if this
-   * DocumentReference is invalid.
+   * @return true if this `DocumentReference` is valid, false if this
+   * `DocumentReference` is invalid.
    */
   bool is_valid() const { return internal_ != nullptr; }
 
