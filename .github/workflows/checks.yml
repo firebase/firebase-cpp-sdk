@@ -92,4 +92,3 @@ jobs:
         run: |
           set -e
           bash scripts/gha/check_copyright.sh -g
-
