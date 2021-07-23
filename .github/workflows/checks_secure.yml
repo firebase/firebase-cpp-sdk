@@ -5,6 +5,7 @@ on:
   pull_request_target:
     types: [synchronize]
 
+jobs:
   dismiss_stale_approvals:
     # Dismiss stale approvals for users without write access to the repo, or if this PR comes from a fork.
     runs-on: ubuntu-latest
