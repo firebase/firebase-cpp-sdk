@@ -619,7 +619,6 @@ def _get_android_test_log(test_package):
   args = ["adb", "shell", "su", "0", "cat", path]
   logging.info("Get android test result: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=False)
-  logging.info("Android test result: %s", result.stdout)
   return result.stdout
 
 
