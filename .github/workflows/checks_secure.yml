@@ -1,4 +1,5 @@
-name: Checks that are run on base branch with read/write access
+name: Checks (secure)
+# These are run on base branch with read/write access
 
 on:
   pull_request_target:
