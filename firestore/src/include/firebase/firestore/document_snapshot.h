@@ -230,6 +230,19 @@ class DocumentSnapshot {
       ServerTimestampBehavior stb = ServerTimestampBehavior::kDefault) const;
 
   /**
+   * @brief Returns true if this `DocumentSnapshot` is valid, false if it is
+   * not valid. An invalid `DocumentSnapshot` could be the result of:
+   *   - Creating a `DocumentSnapshot` with the default constructor.
+   *   - Moving from the `DocumentSnapshot`.
+   *   - Deleting your Firestore instance, which will invalidate all the
+   *     `DocumentSnapshot` instances associated with it.
+   *
+   * @return true if this `DocumentSnapshot` is valid, false if this
+   * `DocumentSnapshot` is invalid.
+   */
+  bool is_valid() const { return internal_ != nullptr; }
+
+  /**
    * Returns a string representation of this `DocumentSnapshot` for
    * logging/debugging purposes.
    *

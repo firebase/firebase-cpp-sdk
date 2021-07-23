@@ -277,8 +277,9 @@ class FieldValue final {
    * @brief Returns `true` if this `FieldValue` is valid, `false` if it is not
    * valid. An invalid `FieldValue` could be the result of:
    *   - Creating a `FieldValue` using the default constructor.
+   *   - Moving from the `FieldValue`.
    *   - Calling `DocumentSnapshot::Get(field)` for a field that does not exist
-   * in the document.
+   *   in the document.
    *
    * @return `true` if this `FieldValue` is valid, `false` if this `FieldValue`
    * is invalid.
