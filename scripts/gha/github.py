@@ -168,7 +168,7 @@ def dismiss_review(token, pull_number, review_id, message):
   url = f'{FIREBASE_URL}/pulls/{pull_number}/reviews/{review_id}/dismissals'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
   data = {'message': message}
-  with requests.put(url, headers=headers, data=json.dumps(data),
+  with requests_retry_session().put(url, headers=headers, data=json.dumps(data),
                     stream=True, timeout=TIMEOUT) as response:
     logging.info("dismiss_review: %s response: %s", url, response)
     return response.json()
@@ -185,7 +185,7 @@ def get_reviews(token, pull_number):
     params = {'per_page': per_page, 'page': page}
     page = page + 1
     keep_going = False
-    with requests.get(url, headers=headers, params=params,
+    with requests_retry_session().get(url, headers=headers, params=params,
                       stream=True, timeout=TIMEOUT) as response:
       logging.info("get_reviews: %s response: %s", url, response)
       results = results + response.json()
