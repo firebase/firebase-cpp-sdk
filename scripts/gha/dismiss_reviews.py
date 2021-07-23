@@ -69,7 +69,7 @@ def main(argv):
     reviews = [r for r in reviews if r['state'] == FLAGS.review_state]
   # Filter by reviewer's username, if specified.
   if FLAGS.reviewer:
-    reviews = [r for r in reviews if r.user.login == FLAGS.reviewer]
+    reviews = [r for r in reviews if r['user']['login'] == FLAGS.reviewer]
 
   if reviews:
     review_ids = [r['id'] for r in reviews]
