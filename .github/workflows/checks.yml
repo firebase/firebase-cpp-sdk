@@ -2,7 +2,9 @@ name: Checks
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize, labeled, unlabeled, edited, review_requested, review_request_removed]
+    types: [opened, reopened, synchronize, labeled, unlabeled, edited]
+  pull_request_review:
+    types: [submitted]
 
 env:
   triggerLabelFull: "tests-requested: full"
@@ -12,6 +14,7 @@ env:
 
 jobs:
   file_format_check:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -34,6 +37,7 @@ jobs:
         run: python3 scripts/format_code.py -git_diff -noformat_file -verbose -github_log
   
   check_integration_test_labels:
+    if: github.event_name == 'pull_request'
     # This check fails if integration tests are queued, in progress, or failed.
     runs-on: ubuntu-latest
     steps:
@@ -43,6 +47,7 @@ jobs:
         repo_token: ${{ github.token }}
 
   generated_docs_check:
+    if: github.event_name == 'pull_request'
     # This check succeeds if Doxygen documentation generates without errors.
     runs-on: ubuntu-latest
     steps:
@@ -82,6 +87,7 @@ jobs:
           fi
 
   copyright_check:
+    if: github.event_name == 'pull_request'
     # Check for Google copyright in each file.
     runs-on: ubuntu-latest
     steps:
@@ -101,7 +107,7 @@ jobs:
     # approval, this check requires that the PR must receive an updated approval
     # before it can be merged.
     runs-on: ubuntu-latest
-    if: 
+    if: github.event_name == 'pull_request' || github.event_name == 'pull_request_review'
     steps:
       - name: Check user permission
         id: check
