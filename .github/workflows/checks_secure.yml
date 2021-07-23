@@ -35,4 +35,4 @@ jobs:
         if: steps.check.outputs.has-permission != 1 || github.event.pull_request.head.repo.full_name != github.repository
         shell: bash
         run: |
-          python scripts/gha/dismiss_reviews.py --token ${{github.token}} --pull_number ${{github.event.pull_request.number}} --review_state=APPROVED --message "Dismissed stale approval on external PR."
+          python scripts/gha/dismiss_reviews.py --token ${{github.token}} --pull_number ${{github.event.pull_request.number}} --review_state=APPROVED --message "🍞 Dismissed stale approval on external PR."
