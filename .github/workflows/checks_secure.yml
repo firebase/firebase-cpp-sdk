@@ -1,5 +1,5 @@
 name: Checks (secure)
-# These are run on base branch with read/write access
+# These are run on base branch with read/write access.
 
 on:
   pull_request_target:
@@ -7,16 +7,16 @@ on:
 
 jobs:
   dismiss_stale_approvals:
-    # Dismiss stale approvals for users without write access to the repo, or if this PR comes from a fork.
+    # Dismiss stale approvals for non-admins or if this PR comes from a fork.
     runs-on: ubuntu-latest
     # Only if another commit was added to the PR.
-    if: github.event.action == 'synchronize'
     steps:
       - name: Check user permission
         id: check
         uses: scherermichael-oss/action-has-permission@1.0.6
+        # This action sets outputs.has-permission to '1' or ''
         with:
-          required-permission: write
+          required-permission: admin
         env:
           GITHUB_TOKEN: ${{ github.token }}
       - uses: actions/checkout@v2
@@ -35,4 +35,4 @@ jobs:
         if: steps.check.outputs.has-permission != 1 || github.event.pull_request.head.repo.full_name != github.repository
         shell: bash
         run: |
-          python scripts/gha/dismiss_reviews.py --token ${{github.token}} --pull_number ${{github.event.pull_request.number}} --review_state=APPROVED --message "Dismissed stale approval on external PR."
+          python scripts/gha/dismiss_reviews.py --token ${{github.token}} --pull_number ${{github.event.pull_request.number}} --review_state=APPROVED --message "🍞 Dismissed stale approval on external PR."

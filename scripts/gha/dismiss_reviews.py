@@ -15,11 +15,12 @@
 """A utility to dismiss PR reviews.
 
 USAGE:
-  python scripts/gha/it_workflow.py --stage <stage> \
+  python scripts/gha/dismiss_reviews.py \
     --token ${{github.token}} \
-    --pull_number ${{needs.check_trigger.outputs.pr_number}}\
-    [--reviewer github_username]
-    [--status APPROVED|PENDING]
+    --pull_number ${{needs.check_trigger.outputs.pr_number}} \
+    [--message 'Message to be posted on the dismissal.'] \
+    [--reviewer github_username] \
+    [--review_state ANY|APPROVED|CHANGES_REQUESTED|COMMENTED|PENDING]
 """
 
 import datetime
@@ -69,7 +70,7 @@ def main(argv):
     reviews = [r for r in reviews if r['state'] == FLAGS.review_state]
   # Filter by reviewer's username, if specified.
   if FLAGS.reviewer:
-    reviews = [r for r in reviews if r.user.login == FLAGS.reviewer]
+    reviews = [r for r in reviews if r['user']['login'] == FLAGS.reviewer]
 
   if reviews:
     review_ids = [r['id'] for r in reviews]
