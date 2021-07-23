@@ -10,11 +10,11 @@ jobs:
     # Dismiss stale approvals for non-admins or if this PR comes from a fork.
     runs-on: ubuntu-latest
     # Only if another commit was added to the PR.
-    if: github.event.action == 'synchronize'
     steps:
       - name: Check user permission
         id: check
         uses: scherermichael-oss/action-has-permission@1.0.6
+        # This action sets outputs.has-permission to '1' or ''
         with:
           required-permission: admin
         env:

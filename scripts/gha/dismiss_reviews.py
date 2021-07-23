@@ -18,8 +18,9 @@ USAGE:
   python scripts/gha/it_workflow.py --stage <stage> \
     --token ${{github.token}} \
     --pull_number ${{needs.check_trigger.outputs.pr_number}}\
+    [--message 'Message to be posted on the dismissal.']
     [--reviewer github_username]
-    [--status APPROVED|PENDING]
+    [--review_state ANY|APPROVED|CHANGES_REQUESTED|COMMENTED|PENDING]
 """
 
 import datetime
