@@ -12,9 +12,9 @@
 namespace firebase {
 
 // Prints a human-friendly representation of a Future to an ostream.
-// This function is via ADL by Googletest to print a Future object in a test
-// failure message. Note that the future type must match exactly, without any
-// implicit conversions, for this mechanism to work.
+// This function is found via ADL by Googletest to print a Future object in
+// a test failure message. Note that the future type must match exactly, without
+// any implicit conversions, for this mechanism to work.
 template <typename T>
 void PrintTo(const Future<T>& future, std::ostream* os);
 
