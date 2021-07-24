@@ -233,8 +233,8 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
       summary_json["failures"][testapp]["raw_result_link"] = test.raw_result_link
     failed_tests = re.findall(r"\[  FAILED  \] (.+)[.](.+)", results.summary)
     for failed_test in failed_tests:
-      failed_test = failed_test[1]
-      pattern = fr'\[ RUN      \] (.+)[.]{failed_test}(.*?)\[  FAILED  \] (.+)[.]{failed_test}'
+      failed_test = failed_test[0] + "." + failed_test[1]
+      pattern = fr'\[ RUN      \] {failed_test}(.*?)\[  FAILED  \] {failed_test}'
       failure_log = re.search(pattern, test.logs, re.MULTILINE | re.DOTALL)
       summary_json["failures"][testapp]["failed_tests"][failed_test] = failure_log.group()
       summary.append("\n%s FAILED:\n%s\n" % (failed_test, failure_log.group()))
@@ -243,7 +243,6 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
     f.write(json.dumps(summary_json, indent=2))
 
   summary = "\n".join(summary)
-  logging.info(summary)
   write_summary(summary_dir, summary, file_name)
 
   return 0 if len(tests) == len(successes) else 1
