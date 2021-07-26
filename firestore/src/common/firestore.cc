@@ -3,16 +3,18 @@
 #include "firestore/src/include/firebase/firestore.h"
 
 #include <cassert>
+#include <cstring>
 #include <map>
 
 #include "app/meta/move.h"
-#include "app/src/assert.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
 #include "app/src/util.h"
 #include "firestore/src/common/compiler_info.h"
+#include "firestore/src/common/exception_common.h"
 #include "firestore/src/common/futures.h"
+#include "firestore/src/common/hard_assert_common.h"
 
 #if defined(__ANDROID__)
 #include "firestore/src/android/firestore_android.h"
@@ -82,11 +84,19 @@ InitResult CheckInitialized(const FirestoreInternal& firestore) {
   return kInitResultSuccess;
 }
 
+void ValidateApp(App* app) {
+  if (!app) {
+    SimpleThrowInvalidArgument(
+        "firebase::App instance cannot be null. Use "
+        "firebase::App::GetInstance() without arguments if you'd like to use "
+        "the default instance.");
+  }
+}
+
 }  // namespace
 
 Firestore* Firestore::GetInstance(App* app, InitResult* init_result_out) {
-  FIREBASE_ASSERT_MESSAGE(app != nullptr,
-                          "Provided firebase::App must not be null.");
+  ValidateApp(app);
 
   MutexLock lock(*g_firestores_lock);
 
@@ -100,23 +110,27 @@ Firestore* Firestore::GetInstance(App* app, InitResult* init_result_out) {
 
 Firestore* Firestore::GetInstance(InitResult* init_result_out) {
   App* app = App::GetInstance();
-  FIREBASE_ASSERT_MESSAGE(app, "You must call firebase::App.Create first.");
+  if (!app) {
+    SimpleThrowInvalidArgument(
+        "Failed to get firebase::App instance. Please call "
+        "firebase::App::Create before using Firestore");
+  }
+
   return Firestore::GetInstance(app, init_result_out);
 }
 
 Firestore* Firestore::CreateFirestore(App* app,
                                       FirestoreInternal* internal,
                                       InitResult* init_result_out) {
-  FIREBASE_ASSERT_MESSAGE(app != nullptr,
-                          "Provided firebase::App must not be null.");
-  FIREBASE_ASSERT_MESSAGE(internal != nullptr,
-                          "Provided FirestoreInternal must not be null.");
+  ValidateApp(app);
+  SIMPLE_HARD_ASSERT(internal != nullptr,
+                     "Provided FirestoreInternal must not be null.");
 
   MutexLock lock(*g_firestores_lock);
 
   Firestore* from_cache = FindFirestoreInCache(app, init_result_out);
-  FIREBASE_ASSERT_MESSAGE(from_cache == nullptr,
-                          "Firestore must not be created already");
+  SIMPLE_HARD_ASSERT(from_cache == nullptr,
+                     "Firestore must not be created already");
 
   return AddFirestoreToCache(new Firestore(internal), init_result_out);
 }
@@ -215,8 +229,13 @@ App* Firestore::app() {
 }
 
 CollectionReference Firestore::Collection(const char* collection_path) const {
-  FIREBASE_ASSERT_MESSAGE(collection_path != nullptr,
-                          "Provided collection path must not be null");
+  if (!collection_path) {
+    SimpleThrowInvalidArgument("Collection path cannot be null.");
+  }
+  if (collection_path[0] == '\0') {
+    SimpleThrowInvalidArgument("Collection path cannot be empty.");
+  }
+
   if (!internal_) return {};
   return internal_->Collection(collection_path);
 }
@@ -227,6 +246,13 @@ CollectionReference Firestore::Collection(
 }
 
 DocumentReference Firestore::Document(const char* document_path) const {
+  if (!document_path) {
+    SimpleThrowInvalidArgument("Document path cannot be null.");
+  }
+  if (document_path[0] == '\0') {
+    SimpleThrowInvalidArgument("Document path cannot be empty.");
+  }
+
   if (!internal_) return {};
   return internal_->Document(document_path);
 }
@@ -236,6 +262,13 @@ DocumentReference Firestore::Document(const std::string& document_path) const {
 }
 
 Query Firestore::CollectionGroup(const char* collection_id) const {
+  if (!collection_id) {
+    SimpleThrowInvalidArgument("Collection ID cannot be null.");
+  }
+  if (collection_id[0] == '\0') {
+    SimpleThrowInvalidArgument("Collection ID cannot be empty.");
+  }
+
   if (!internal_) return {};
   return internal_->CollectionGroup(collection_id);
 }
@@ -262,7 +295,11 @@ WriteBatch Firestore::batch() const {
 
 Future<void> Firestore::RunTransaction(
     std::function<Error(Transaction&, std::string&)> update) {
-  FIREBASE_ASSERT_MESSAGE(update, "invalid update parameter is passed in.");
+  if (!update) {
+    SimpleThrowInvalidArgument(
+        "Transaction update callback cannot be an empty function.");
+  }
+
   if (!internal_) return FailedFuture<void>();
   return internal_->RunTransaction(firebase::Move(update));
 }
@@ -295,6 +332,11 @@ Future<void> Firestore::ClearPersistence() {
 
 ListenerRegistration Firestore::AddSnapshotsInSyncListener(
     std::function<void()> callback) {
+  if (!callback) {
+    SimpleThrowInvalidArgument(
+        "Snapshots in sync listener callback cannot be an empty function.");
+  }
+
   if (!internal_) return {};
   return internal_->AddSnapshotsInSyncListener(std::move(callback));
 }
@@ -318,6 +360,11 @@ Future<LoadBundleTaskProgress> Firestore::LoadBundle(
 Future<LoadBundleTaskProgress> Firestore::LoadBundle(
     const std::string& bundle,
     std::function<void(const LoadBundleTaskProgress&)> progress_callback) {
+  if (!progress_callback) {
+    SimpleThrowInvalidArgument(
+        "Progress callback cannot be an empty function.");
+  }
+
   if (!internal_) return FailedFuture<LoadBundleTaskProgress>();
   return internal_->LoadBundle(bundle, std::move(progress_callback));
 }

@@ -5,8 +5,9 @@
 #include <ostream>
 #include <utility>
 
-#include "app/src/assert.h"
 #include "firestore/src/common/cleanup.h"
+#include "firestore/src/common/exception_common.h"
+#include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/to_string.h"
 #include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
@@ -40,7 +41,7 @@ DocumentSnapshot::DocumentSnapshot(DocumentSnapshot&& snapshot) {
 
 DocumentSnapshot::DocumentSnapshot(DocumentSnapshotInternal* internal)
     : internal_(internal) {
-  FIREBASE_ASSERT(internal != nullptr);
+  SIMPLE_HARD_ASSERT(internal != nullptr);
   CleanupFnDocumentSnapshot::Register(this, internal_);
 }
 
@@ -108,6 +109,10 @@ MapFieldValue DocumentSnapshot::GetData(ServerTimestampBehavior stb) const {
 
 FieldValue DocumentSnapshot::Get(const char* field,
                                  ServerTimestampBehavior stb) const {
+  if (!field) {
+    SimpleThrowInvalidArgument("Field name cannot be null.");
+  }
+
   if (!internal_) return {};
   return internal_->Get(FieldPath::FromDotSeparatedString(field), stb);
 }

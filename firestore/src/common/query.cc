@@ -3,11 +3,11 @@
 #include "firestore/src/include/firebase/firestore/query.h"
 
 #include "app/meta/move.h"
-#include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
 #include "firestore/src/common/cleanup.h"
 #include "firestore/src/common/event_listener.h"
 #include "firestore/src/common/futures.h"
+#include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
@@ -279,7 +279,9 @@ ListenerRegistration Query::AddSnapshotListener(
     MetadataChanges metadata_changes,
     std::function<void(const QuerySnapshot&, Error, const std::string&)>
         callback) {
-  FIREBASE_ASSERT_MESSAGE(callback, "invalid callback parameter is passed in.");
+  SIMPLE_HARD_ASSERT(callback,
+                     "Snapshot listener callback cannot be an empty function.");
+
   if (!internal_) return {};
   return internal_->AddSnapshotListener(metadata_changes,
                                         firebase::Move(callback));

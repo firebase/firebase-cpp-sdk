@@ -198,9 +198,17 @@ if(FIREBASE_INCLUDE_FIRESTORE AND DESKTOP)
 endif()
 
 if(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
+  # Quote meta characters in ${CMAKE_CURRENT_LIST_DIR} so we can
+  # match it in a regex.
+  # For example, '/path/with/+meta/char.acters' will become
+  # '/path/with/\+meta/char\.acters'.
+  string(REGEX REPLACE
+         "([][+.*()^])" "\\\\\\1"  # Yes, this many \'s is correct.
+         current_list_dir_regex
+         "${CMAKE_CURRENT_LIST_DIR}")
   # Figure out where app's binary_dir was.
   string(REGEX REPLACE
-    "${CMAKE_CURRENT_LIST_DIR}/[^/]+/(.*)"
+    "${current_list_dir_regex}/[^/]+/(.*)"
     "${CMAKE_CURRENT_LIST_DIR}/app/\\1"
     APP_BINARY_DIR "${FIREBASE_BINARY_DIR}")
 

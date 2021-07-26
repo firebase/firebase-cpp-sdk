@@ -62,6 +62,8 @@ _COMMENT_TITLE_PROGESS_FAIL = "### ❌&nbsp; Integration test FAILED (but still 
 _COMMENT_TITLE_FAIL = "### ❌&nbsp; Integration test FAILED\n"
 _COMMENT_TITLE_SUCCEED = "### ✅&nbsp; Integration test succeeded!\n"
 
+_COMMENT_FLAKY_TRACKER = "\nAdd flaky tests to **[go/fpl-cpp-flake-tracker](http://go/fpl-cpp-flake-tracker)**\n"
+
 _COMMENT_IDENTIFIER = "integration-test-status-comment"
 _COMMENT_SUFFIX = f'\n\n\n<hidden value="{_COMMENT_IDENTIFIER}"></hidden>'
 
@@ -178,6 +180,7 @@ def test_report(token, actor, commit, run_id):
     comment = (_COMMENT_TITLE_FAIL +
                _get_description(actor, commit, run_id) +
                log_summary +
+               _COMMENT_FLAKY_TRACKER +
                _COMMENT_SUFFIX)
     github.update_issue_comment(token, issue_number, comment)
 
