@@ -750,7 +750,7 @@ jobs:
         shell: bash
         run: |
           if [ ! -f testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json ]; then
-            echo "__SUMMARY_MISSING__" > testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json
           fi
       - name: Upload Desktop test results artifact
         if: ${{ !cancelled() }}
@@ -836,7 +836,7 @@ jobs:
         shell: bash
         run: |
           if [ ! -f "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}.log.json" ]; then
-            echo "__SUMMARY_MISSING__" > "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}.log.json"
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}.log.json"
           fi
       - name: Upload Android test results artifact
         if: ${{ !cancelled() }}
@@ -921,7 +921,7 @@ jobs:
         shell: bash
         run: |
           if [ ! -f "testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}.log.json" ]; then
-            echo "__SUMMARY_MISSING__" > "testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}.log.json"
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}.log.json"
           fi
       - name: Upload iOS test results artifact
         if: ${{ !cancelled() }}
@@ -990,7 +990,7 @@ jobs:
         shell: bash
         run: |
           if [ ! -f "testapps/test-results-tvos-macos-latest-${{ matrix.tvos_device }}.log.json" ]; then
-            echo "__SUMMARY_MISSING__" > "testapps/test-results-tvos-macos-latest-${{ matrix.tvos_device }}.log.json"
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-tvos-macos-latest-${{ matrix.tvos_device }}.log.json"
           fi
       - name: Upload tvOS test results artifact
         if: ${{ !cancelled() }}
