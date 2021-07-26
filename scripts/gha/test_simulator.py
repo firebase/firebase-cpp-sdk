@@ -348,13 +348,11 @@ def _run_xctest(gameloop_app, device_id):
   """Run the gameloop UI Test app.
     This gameloop app can run integration_test app automatically.
   """
-  args = ["xcodebuild", "test-without-building", 
+  args = ["xcodebuild", "test-without-building", "USE_FIRESTORE_EMULATOR=true",
     "-xctestrun", gameloop_app, 
     "-destination", "id=%s" % device_id]
   logging.info("Running game-loop test: %s", " ".join(args))
-  env = os.environ.copy()
-  env["USE_FIRESTORE_EMULATOR"] = "true"
-  result = subprocess.run(args=args, capture_output=True, text=True, check=False, env=env)
+  result = subprocess.run(args=args, capture_output=True, text=True, check=False)
 
   if not result.stdout:
     logging.info("No xctest result")
