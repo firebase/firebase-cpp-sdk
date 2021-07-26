@@ -608,6 +608,10 @@ def _uninstall_android_app(package_name):
 
 def _install_android_gameloop_app(gameloop_project):
   os.chdir(gameloop_project)
+  logging.info("CD to gameloop_project: %s", gameloop_project)
+  args = ["./gradlew", "clean"]
+  logging.info("Clean game-loop cache: %s", " ".join(args))
+  subprocess.run(args=args, check=False)
   args = ["./gradlew", "installDebug", "installDebugAndroidTest"]
   logging.info("Installing game-loop app and test: %s", " ".join(args))
   subprocess.run(args=args, check=True)
