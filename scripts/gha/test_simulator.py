@@ -609,7 +609,9 @@ def _run_instrumented_test():
   args = ["adb", "shell", "am", "instrument",
     "-w", "%s.test/androidx.test.runner.AndroidJUnitRunner" % _GAMELOOP_PACKAGE] 
   logging.info("Running game-loop test: %s", " ".join(args))
-  subprocess.run(args=args, check=False) 
+  result = subprocess.run(args=args, capture_output=True, text=True, check=False) 
+  logging.info("game-loop test result: %s", result.stdout)
+  logging.info("game-loop test error: %s", result.stderr)
 
 
 def _get_android_test_log(test_package):
