@@ -558,14 +558,13 @@ def _create_and_boot_emulator(sdk_id):
     time.sleep(45)
 
 
-def _reset_emulator_on_error(instrumented_test_result):
+def _reset_emulator_on_error(gameloop_project, instrumented_test_result):
   logging.info("game-loop test result: %s", instrumented_test_result)
   if "FAILURES!!!" in instrumented_test_result:
+    logging.info("game-loop test error!!! reset emualtor...")
     sdk_id = TEST_DEVICES.get(FLAGS.android_device).get("image") if FLAGS.android_device else FLAGS.android_sdk
     _create_and_boot_emulator(sdk_id)
-    current_dir = pathlib.Path(__file__).parent.absolute()
-    android_gameloop_project = os.path.join(current_dir, "integration_testing", "gameloop_android")
-    _install_android_gameloop_app(android_gameloop_project)
+    _install_android_gameloop_app(gameloop_project)
 
 
 def _get_package_name(app_path):
@@ -579,7 +578,7 @@ def _get_package_name(app_path):
 def _run_android_gameloop_test(package_name, app_path, gameloop_project, retry=1): 
   logging.info("Running android gameloop test: %s, %s, %s", package_name, app_path, gameloop_project)
   _install_android_app(app_path)
-  _run_instrumented_test()
+  _run_instrumented_test(gameloop_project)
   log = _get_android_test_log(package_name)
   _uninstall_android_app(package_name)
   if retry > 1:
@@ -612,7 +611,7 @@ def _install_android_gameloop_app(gameloop_project):
   subprocess.run(args=args, check=True)
 
 
-def _run_instrumented_test():
+def _run_instrumented_test(gameloop_project):
   """Run the gameloop UI Test app.
     This gameloop app can run integration_test app automatically.
   """
@@ -620,7 +619,7 @@ def _run_instrumented_test():
     "-w", "%s.test/androidx.test.runner.AndroidJUnitRunner" % _GAMELOOP_PACKAGE] 
   logging.info("Running game-loop test: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=False) 
-  _reset_emulator_on_error(result.stdout)
+  _reset_emulator_on_error(gameloop_project, result.stdout)
 
 
 def _get_android_test_log(test_package):
