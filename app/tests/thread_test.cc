@@ -20,16 +20,17 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-#define EXPECT_THROW_ERROR_CODE(statement, error_code) \
-    EXPECT_THROW({\
-        try { \
+#define EXPECT_THROW_ERROR_CODE(statement, error_code)               \
+  EXPECT_THROW(                                                      \
+      {                                                              \
+        try {                                                        \
           GTEST_SUPPRESS_UNREACHABLE_CODE_WARNING_BELOW_(statement); \
-        } \
-        catch(const std::system_error &exception) {\
-            EXPECT_EQ(error_code, exception.code());\
-            throw;\
-        }\
-    }, std::system_error)
+        } catch (const std::system_error& exception) {               \
+          EXPECT_EQ(error_code, exception.code());                   \
+          throw;                                                     \
+        }                                                            \
+      },                                                             \
+      std::system_error)
 
 namespace {
 
