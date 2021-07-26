@@ -185,7 +185,7 @@ core::Bound QueryInternal::ToBound(
               "Invalid query. You are trying to start or end a query using a "
               "document for which the field '") +
           field_path.CanonicalString() +
-          "' is an uncommitted server timestamp. (Since the value of this"
+          "' is an uncommitted server timestamp. (Since the value of this "
           "field is unknown, you cannot start/end a query with it.)";
       SimpleThrowInvalidArgument(message);
     }
@@ -241,11 +241,11 @@ model::FieldValue QueryInternal::ConvertDocumentId(
     //     "Invalid query. When querying a collection and ordering by document "
     //     "ID, you must pass a plain document ID, but '%s' contains a slash.",
     //     document_id);
-    auto message = std::string(
-                       "Invalid query. When querying a collection and ordering "
-                       "by document "
-                       "ID, you must pass a plain document ID, but '") +
-                   document_id + "' contains a slash.";
+    auto message =
+        std::string(
+            "Invalid query. When querying a collection and ordering "
+            "by document ID, you must pass a plain document ID, but '") +
+        document_id + "' contains a slash.";
     SimpleThrowInvalidArgument(message);
   }
 

@@ -159,6 +159,19 @@ class DocumentChange {
    */
   virtual std::size_t new_index() const;
 
+  /**
+   * @brief Returns true if this `DocumentChange` is valid, false if it is
+   * not valid. An invalid `DocumentChange` could be the result of:
+   *   - Creating a `DocumentChange` using the default constructor.
+   *   - Moving from the `DocumentChange`.
+   *   - Deleting your Firestore instance, which will invalidate all the
+   *     `DocumentChange` instances associated with it.
+   *
+   * @return true if this `DocumentChange` is valid, false if this
+   * `DocumentChange` is invalid.
+   */
+  bool is_valid() const { return internal_ != nullptr; }
+
  private:
   friend class FirestoreInternal;
   friend class Wrapper;

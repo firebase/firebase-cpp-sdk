@@ -4,8 +4,8 @@
 
 #include <utility>
 
-#include "app/src/assert.h"
 #include "firestore/src/common/cleanup.h"
+#include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/document_change_android.h"
@@ -44,7 +44,7 @@ DocumentChange::DocumentChange(DocumentChange&& value) {
 
 DocumentChange::DocumentChange(DocumentChangeInternal* internal)
     : internal_(internal) {
-  FIREBASE_ASSERT(internal != nullptr);
+  SIMPLE_HARD_ASSERT(internal != nullptr);
   CleanupFnDocumentChange::Register(this, internal_);
 }
 

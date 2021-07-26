@@ -37,7 +37,7 @@ FirestoreInternal* CreateTestFirestoreInternal(App* app);
 void InitializeFirestore(Firestore* instance);
 
 App* GetApp();
-App* GetApp(const char* name);
+App* GetApp(const char* name, const std::string& override_project_id);
 bool ProcessEvents(int msec);
 
 // Converts a Firestore error code to a human-friendly name. The `error_code`
@@ -183,6 +183,11 @@ class FirestoreIntegrationTest : public testing::Test {
   // from the cache by a call to `DeleteFirestore()` or `DisownFirestore()`, or
   // if `DeleteApp()` is called with the `App` of the returned `Firestore`.
   Firestore* TestFirestore(const std::string& name = kDefaultAppName) const;
+
+  // Returns a Firestore instance for an app with the given `name`, associated
+  // with the database with the given `project_id`.
+  Firestore* TestFirestoreWithProjectId(const std::string& name,
+                                        const std::string& project_id) const;
 
   // Deletes the given `Firestore` instance, which must have been returned by a
   // previous invocation of `TestFirestore()`, and removes it from the cache of
