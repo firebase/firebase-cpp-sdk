@@ -569,6 +569,12 @@ code.
 
 ### 8.3.0
 -   Changes
+    -   General: This release adds tvOS C++ libraries that wrap the community
+        supported Firebase tvOS SDK. `libs/tvos` contains tvOS specific
+        libraries and the `xcframeworks` directory now includes support for both
+        iOS and tvOS. The following products are currently included for tvOS:
+        Auth, Database, Firestore, Functions, Installations, Messaging, 
+        Remote Config, Storage.
     -   Firestore: Removed the deprecated
         `Firestore::RunTransaction(TransactionFunction*)` function. Please use
         the overload that takes a `std::function` argument instead.
