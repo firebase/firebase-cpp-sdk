@@ -461,7 +461,9 @@ def _get_apple_test_log(bundle_id, app_path, device_id):
     return None
 
   log_path = os.path.join(result.stdout.strip(), "Documents", "GameLoopResults", _RESULT_FILE) 
-  return _read_file(log_path) 
+  log = _read_file(log_path) 
+  logging.info("Apple test result: %s", log)
+  return log
 
 
 def _read_file(path):
@@ -629,6 +631,7 @@ def _get_android_test_log(test_package):
   args = ["adb", "shell", "su", "0", "cat", path]
   logging.info("Get android test result: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=False)
+  logging.info("Android test result: %s", result.stdout)
   return result.stdout
 
 
