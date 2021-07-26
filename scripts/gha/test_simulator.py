@@ -523,6 +523,8 @@ def _shutdown_emulator():
   subprocess.Popen(command, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
 
 def _create_and_boot_emulator(sdk_id):
+  _shutdown_emulator()
+
   args = ["avdmanager", "-s", 
     "create", "avd", 
     "-n", "test_emulator", 
@@ -537,8 +539,6 @@ def _create_and_boot_emulator(sdk_id):
   args = ["adb", "start-server"]
   logging.info("Start adb server: %s", " ".join(args))
   subprocess.run(args=args, check=True)
-
-  _shutdown_emulator()
 
   if not FLAGS.ci: 
     command = "$ANDROID_HOME/emulator/emulator -avd test_emulator &"
@@ -556,6 +556,16 @@ def _create_and_boot_emulator(sdk_id):
     time.sleep(90)
   else:
     time.sleep(45)
+
+
+def _reset_emulator_on_error(instrumented_test_result):
+  logging.info("game-loop test result: %s", instrumented_test_result)
+  if "FAILURES!!!" in instrumented_test_result:
+    sdk_id = TEST_DEVICES.get(FLAGS.android_device).get("image") if FLAGS.android_device else FLAGS.android_sdk
+    _create_and_boot_emulator(sdk_id)
+    current_dir = pathlib.Path(__file__).parent.absolute()
+    android_gameloop_project = os.path.join(current_dir, "integration_testing", "gameloop_android")
+    _install_android_gameloop_app(android_gameloop_project)
 
 
 def _get_package_name(app_path):
@@ -610,8 +620,7 @@ def _run_instrumented_test():
     "-w", "%s.test/androidx.test.runner.AndroidJUnitRunner" % _GAMELOOP_PACKAGE] 
   logging.info("Running game-loop test: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=False) 
-  logging.info("game-loop test result: %s", result.stdout)
-  logging.info("game-loop test error: %s", result.stderr)
+  _reset_emulator_on_error(result.stdout)
 
 
 def _get_android_test_log(test_package):
