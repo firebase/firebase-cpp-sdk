@@ -503,12 +503,9 @@ def _setup_android(platform_version, build_tool_version, sdk_id):
   logging.info("Install packages: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
-  args = ["sdkmanager", "--licenses"]
+  args = ["yes", "|", "sdkmanager", "--licenses"]
   logging.info("Accept all licenses: %s", " ".join(args))
-  p_yes = subprocess.Popen(["echo", "yes"], stdout=subprocess.PIPE)
-  proc = subprocess.Popen(args, stdin=p_yes.stdout, stdout=subprocess.PIPE)
-  p_yes.stdout.close()
-  proc.communicate()
+  subprocess.run(" ".join(args), shell=True, check=False)
 
   args = ["sdkmanager", sdk_id]
   logging.info("Download an emulator: %s", " ".join(args))
@@ -527,16 +524,13 @@ def _shutdown_emulator():
 def _create_and_boot_emulator(sdk_id):
   _shutdown_emulator()
 
-  args = ["avdmanager", "-s", 
+  args = ["echo", "no", "|", "avdmanager", "-s", 
     "create", "avd", 
     "-n", "test_emulator", 
-    "-k", sdk_id, 
-    "-f"]
+    "-k", "'"+sdk_id+"'", 
+    "-f"] 
   logging.info("Create an emulator: %s", " ".join(args))
-  p_no = subprocess.Popen(["echo", "no"], stdout=subprocess.PIPE)
-  proc = subprocess.Popen(args, stdin=p_no.stdout, stdout=subprocess.PIPE)
-  p_no.stdout.close()
-  proc.communicate()
+  subprocess.run(" ".join(args), shell=True, check=True)
 
   args = ["adb", "start-server"]
   logging.info("Start adb server: %s", " ".join(args))
