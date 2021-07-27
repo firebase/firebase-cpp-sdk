@@ -703,7 +703,6 @@ jobs:
       run: |
         echo "USE_EXPANDED_MATRIX=1" >> $GITHUB_ENV
     - name: Generate test report
-      if: github.event_name == 'schedule'
       run: |
         echo "GENERATE_TEST_REPORT=1" >> $GITHUB_ENV
     - name: Generate token for GitHub API
