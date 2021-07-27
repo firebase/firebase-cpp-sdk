@@ -7,6 +7,10 @@
 
 #include "Firestore/core/src/auth/credentials_provider.h"
 
+#if defined(__ANDROID__)
+#error "This header should not be used on Android."
+#endif
+
 namespace firebase {
 
 class App;
