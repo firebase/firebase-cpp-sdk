@@ -575,13 +575,13 @@ code.
         iOS and tvOS. The following products are currently included for tvOS:
         Auth, Database, Firestore, Functions, Installations, Messaging, 
         Remote Config, Storage.
+    -   General: Compiler setting of "no exceptions" on app is PRIVATE now 
+        and will not affect other targets in CMake builds.
     -   Firestore: Removed the deprecated
         `Firestore::RunTransaction(TransactionFunction*)` function. Please use
         the overload that takes a `std::function` argument instead.
     -   Firestore: `FieldValue::Increment` functions are no longer guarded by
         the `INTERNAL_EXPERIMENTAL` macro.
-    -   General: Compiler setting of "no exceptions" on app is PRIVATE now 
-        and will not affect other targets in CMake builds.
     -   Firestore: added more validation of invalid input.
     -   Firestore: added an `is_valid` method to the public API classes that can
         be in an invalid state.
