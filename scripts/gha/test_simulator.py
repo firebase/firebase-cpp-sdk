@@ -547,8 +547,7 @@ def _create_and_boot_emulator(sdk_id):
 
   args = ["adb", "wait-for-device"]
   logging.info("Wait for emulator to boot: %s", " ".join(args))
-  subprocess.run(args=args, check=False)
-
+  subprocess.run(args=args, check=True)
   if FLAGS.ci: 
     # wait extra 90 seconds to ensure emulator booted.
     time.sleep(90)
@@ -556,13 +555,21 @@ def _create_and_boot_emulator(sdk_id):
     time.sleep(45)
 
 
-def _reset_emulator_on_error(gameloop_project, instrumented_test_result):
+def _reset_emulator_on_error(instrumented_test_result):
   logging.info("game-loop test result: %s", instrumented_test_result)
   if "FAILURES!!!" in instrumented_test_result:
-    logging.info("game-loop test error!!! reset emualtor...")
-    sdk_id = TEST_DEVICES.get(FLAGS.android_device).get("image") if FLAGS.android_device else FLAGS.android_sdk
-    _create_and_boot_emulator(sdk_id)
-    _install_android_gameloop_app(gameloop_project)
+    logging.info("game-loop test error!!! reboot emualtor...")
+    args = ["adb", "-e", "reboot"]
+    logging.info("Reboot android emulator: %s", " ".join(args))
+    subprocess.run(args=args, check=True)
+    args = ["adb", "wait-for-device"]
+    logging.info("Wait for emulator to boot: %s", " ".join(args))
+    subprocess.run(args=args, check=True)
+    if FLAGS.ci: 
+      # wait extra 90 seconds to ensure emulator booted.
+      time.sleep(90)
+    else:
+      time.sleep(45)
 
 
 def _get_package_name(app_path):
@@ -576,7 +583,7 @@ def _get_package_name(app_path):
 def _run_android_gameloop_test(package_name, app_path, gameloop_project, retry=1): 
   logging.info("Running android gameloop test: %s, %s, %s", package_name, app_path, gameloop_project)
   _install_android_app(app_path)
-  _run_instrumented_test(gameloop_project)
+  _run_instrumented_test()
   log = _get_android_test_log(package_name)
   _uninstall_android_app(package_name)
   if retry > 1:
@@ -614,7 +621,7 @@ def _install_android_gameloop_app(gameloop_project):
   subprocess.run(args=args, check=True)
 
 
-def _run_instrumented_test(gameloop_project):
+def _run_instrumented_test():
   """Run the gameloop UI Test app.
     This gameloop app can run integration_test app automatically.
   """
@@ -622,7 +629,7 @@ def _run_instrumented_test(gameloop_project):
     "-w", "%s.test/androidx.test.runner.AndroidJUnitRunner" % _GAMELOOP_PACKAGE] 
   logging.info("Running game-loop test: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=False) 
-  _reset_emulator_on_error(gameloop_project, result.stdout)
+  _reset_emulator_on_error(result.stdout)
 
 
 def _get_android_test_log(test_package):
