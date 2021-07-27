@@ -58,7 +58,7 @@ jobs:
     ### subsequent steps to update the labels as well.
     runs-on: ubuntu-latest
     if: |
-      github.event_name == 'pull_request' || github.event.inputs.test_pull_request != ''
+      github.event_name == 'pull_request' || (github.event.inputs.test_pull_request != '' && github.event.inputs.test_pull_request != 'sdk')
     outputs:
       should_update_pr: ${{ steps.set_outputs.outputs.should_update_pr }}
       requested_tests: ${{ steps.set_outputs.outputs.requested_tests }}
@@ -1064,7 +1064,7 @@ jobs:
       - name: Update Daily Report
         shell: bash
         run: |
-          if [[ "${{ github.event.inputs.test_pull_request }}" == '1' ]]; then
+          if [[ "${{ github.event.inputs.test_pull_request }}" == 'sdk' ]]; then
             additional_flags=(--build_against sdk)
           else
             additional_flags=(--build_against repo)
