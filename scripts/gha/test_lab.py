@@ -278,6 +278,7 @@ class Test(object):
       self.raw_result_link = raw_result_link.group(1)
 
     self.logs = self._get_testapp_log_text_from_gcs()
+    logging.info("Test result: %s", self.logs)
 
   @property
   def _gcloud_command(self):
