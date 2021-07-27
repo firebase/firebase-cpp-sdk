@@ -702,6 +702,10 @@ jobs:
       if: github.event_name == 'schedule' || github.event.inputs.use_expanded_matrix == '1'
       run: |
         echo "USE_EXPANDED_MATRIX=1" >> $GITHUB_ENV
+    - name: Generate test report
+      if: github.event_name == 'schedule'
+      run: |
+        echo "GENERATE_TEST_REPORT=1" >> $GITHUB_ENV
     - name: Generate token for GitHub API
       # This step is necessary because the existing GITHUB_TOKEN cannot be used inside one workflow to trigger another.
       # 
@@ -720,9 +724,12 @@ jobs:
         if [[ -z ${USE_EXPANDED_MATRIX} ]]; then
           USE_EXPANDED_MATRIX=0
         fi
+        if [[ -z ${GENERATE_TEST_REPORT} ]]; then
+          GENERATE_TEST_REPORT=0
+        fi
         verbose_flag=
         if [[ -n "${{ github.event.inputs.verboseBuild }}" && "${{ github.event.inputs.verboseBuild }}" -ne 0 ]]; then
           verbose_flag=-v
         fi
         set -e
-        python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} -w integration_tests.yml -p test_packaged_sdk ${{ github.run_id }} -p use_expanded_matrix ${USE_EXPANDED_MATRIX} -s 10 -A ${verbose_flag}
+        python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} -w integration_tests.yml -p test_packaged_sdk ${{ github.run_id }} -p use_expanded_matrix ${USE_EXPANDED_MATRIX} -p test_pull_request ${GENERATE_TEST_REPORT} -s 10 -A ${verbose_flag}
