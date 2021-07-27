@@ -520,10 +520,11 @@ def _shutdown_emulator():
   command = "adb devices | grep emulator | cut -f1 | while read line; do adb -s $line emu kill; done"
   logging.info("Kill all running emulator: %s", command)
   subprocess.Popen(command, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
-
+  time.sleep(5)
   args = ["adb", "kill-server"]
   logging.info("Kill adb server: %s", " ".join(args))
   subprocess.run(args=args, check=False)
+  time.sleep(5)
 
 
 def _create_and_boot_emulator(sdk_id):
