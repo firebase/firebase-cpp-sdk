@@ -177,8 +177,12 @@ TEST_F(BundleTest, CanDeleteFirestoreFromProgressUpdate) {
         progresses.push_back(progress);
         // Delete firestore before the final progress.
         if (progresses.size() == 3) {
+          // Save `db_deleted` to a local variable because this lambda gets
+          // deleted by the call to `DeleteFirestore()` below, and therefore it
+          // is undefined behavior to access any captured variables thereafter.
+          auto& db_deleted_local = db_deleted;
           DeleteFirestore(db);
-          db_deleted.set_value();
+          db_deleted_local.set_value();
         }
       });
 

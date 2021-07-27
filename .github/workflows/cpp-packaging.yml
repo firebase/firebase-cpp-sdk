@@ -142,8 +142,8 @@ jobs:
           name: packaging-tools-${{ matrix.tools_platform }}
           path: packaging-tools.tgz
 
-  build_and_package_ios:
-    name: build-and-package-ios
+  build_and_package_ios_tvos:
+    name: build-and-package-ios-tvos
     runs-on: macos-latest
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     steps:
@@ -156,15 +156,21 @@ jobs:
         with:
           path: sdk-src
 
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
       - name: install prerequisites
         run: sdk-src/build_scripts/ios/install_prereqs.sh
 
       - name: build sdk
         run: |
-          sdk-src/build_scripts/ios/build.sh -b firebase-cpp-sdk-ios-build -s sdk-src
-          sdk-src/build_scripts/ios/package.sh firebase-cpp-sdk-ios-build firebase-cpp-sdk-ios-package
-          cd firebase-cpp-sdk-ios-package
-          tar -czhf ../firebase-cpp-sdk-ios-package.tgz .
+          python sdk-src/scripts/gha/build_ios_tvos.py -b firebase-cpp-sdk-ios-tvos-build -s sdk-src
+          sdk-src/build_scripts/ios/package.sh firebase-cpp-sdk-ios-tvos-build firebase-cpp-sdk-ios-tvos-package
+          sdk-src/build_scripts/tvos/package.sh firebase-cpp-sdk-ios-tvos-build firebase-cpp-sdk-ios-tvos-package
+          cd firebase-cpp-sdk-ios-tvos-package
+          tar -czhf ../firebase-cpp-sdk-ios-tvos-package.tgz .
 
       - name: Print built libraries
         shell: bash
@@ -184,8 +190,8 @@ jobs:
       - name: upload artifacts
         uses: actions/upload-artifact@v2.2.2
         with:
-          name: firebase-cpp-sdk-ios-package
-          path: firebase-cpp-sdk-ios-package.tgz
+          name: firebase-cpp-sdk-ios-tvos-package
+          path: firebase-cpp-sdk-ios-tvos-package.tgz
 
   build_and_package_android:
     name: build-and-package-android-${{matrix.stl}}
@@ -600,7 +606,7 @@ jobs:
     name: final-merge-packages
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
-    needs: [build_and_package_ios, build_and_package_android, package_desktop, log_inputs]
+    needs: [build_and_package_ios_tvos, build_and_package_android, package_desktop, log_inputs]
     steps:
       - name: fetch SDK
         uses: actions/checkout@v2.3.1
