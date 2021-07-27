@@ -503,9 +503,9 @@ def _setup_android(platform_version, build_tool_version, sdk_id):
   logging.info("Install packages: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
-  args = ["yes", "|", "sdkmanager", "--licenses"]
-  logging.info("Accept all licenses: %s", " ".join(args))
-  subprocess.run(" ".join(args), shell=True, check=False)
+  command = "yes | sdkmanager --licenses"
+  logging.info("Accept all licenses: %s", command)
+  subprocess.run(command, shell=True, check=False)
 
   args = ["sdkmanager", sdk_id]
   logging.info("Download an emulator: %s", " ".join(args))
@@ -521,16 +521,17 @@ def _shutdown_emulator():
   logging.info("Kill all running emulator: %s", command)
   subprocess.Popen(command, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
 
+  args = ["adb", "kill-server"]
+  logging.info("Kill adb server: %s", " ".join(args))
+  subprocess.run(args=args, check=False)
+
+
 def _create_and_boot_emulator(sdk_id):
   _shutdown_emulator()
 
-  args = ["echo", "no", "|", "avdmanager", "-s", 
-    "create", "avd", 
-    "-n", "test_emulator", 
-    "-k", "'"+sdk_id+"'", 
-    "-f"] 
-  logging.info("Create an emulator: %s", " ".join(args))
-  subprocess.run(" ".join(args), shell=True, check=True)
+  command = "echo no | avdmanager -s create avd -n test_emulator -k '%s' -f" % sdk_id
+  logging.info("Create an emulator: %s", command)
+  subprocess.run(command, shell=True, check=True)
 
   args = ["adb", "start-server"]
   logging.info("Start adb server: %s", " ".join(args))
@@ -545,7 +546,7 @@ def _create_and_boot_emulator(sdk_id):
 
   args = ["adb", "wait-for-device"]
   logging.info("Wait for emulator to boot: %s", " ".join(args))
-  subprocess.run(args=args, check=True)
+  subprocess.run(args=args, check=False)
 
   if FLAGS.ci: 
     # wait extra 90 seconds to ensure emulator booted.
@@ -603,6 +604,7 @@ def _uninstall_android_app(package_name):
 def _install_android_gameloop_app(gameloop_project):
   os.chdir(gameloop_project)
   logging.info("CD to gameloop_project: %s", gameloop_project)
+  _uninstall_android_app("com.google.firebase.gameloop")
   args = ["./gradlew", "clean"]
   logging.info("Clean game-loop cache: %s", " ".join(args))
   subprocess.run(args=args, check=False)
