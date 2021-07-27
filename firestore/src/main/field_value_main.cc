@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "Firestore/core/src/nanopb/byte_string.h"
+#include "Firestore/core/src/nanopb/nanopb_util.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/include/firebase/firestore/map_field_value.h"
@@ -16,6 +17,11 @@ namespace firestore {
 namespace {
 
 using nanopb::ByteString;
+using nanopb::MakeBytesArray;
+using nanopb::MakeMessage;
+using nanopb::MakeString;
+using nanopb::Message;
+using nanopb::SharedMessage;
 
 using Type = FieldValue::Type;
 
@@ -23,32 +29,56 @@ using Type = FieldValue::Type;
 
 // Constructors
 
-FieldValueInternal::FieldValueInternal(bool value)
-    : type_{Type::kBoolean}, value_{model::FieldValue::FromBoolean(value)} {}
+FieldValueInternal::FieldValueInternal(bool value) : type_{Type::kBoolean} {
+  auto proto = absl::get<SharedMessage<google_firestore_v1_Value>>(value_);
+  proto->which_value_type = google_firestore_v1_Value_boolean_value_tag;
+  proto->boolean_value = value;
+}
 
-FieldValueInternal::FieldValueInternal(int64_t value)
-    : type_{Type::kInteger}, value_{model::FieldValue::FromInteger(value)} {}
+FieldValueInternal::FieldValueInternal(int64_t value) : type_{Type::kInteger} {
+  auto proto = absl::get<SharedMessage<google_firestore_v1_Value>>(value_);
+  proto->which_value_type = google_firestore_v1_Value_integer_value_tag;
+  proto->integer_value = value;
+}
 
-FieldValueInternal::FieldValueInternal(double value)
-    : type_{Type::kDouble}, value_{model::FieldValue::FromDouble(value)} {}
+FieldValueInternal::FieldValueInternal(double value) : type_{Type::kDouble} {
+  auto proto = absl::get<SharedMessage<google_firestore_v1_Value>>(value_);
+  proto->which_value_type = google_firestore_v1_Value_double_value_tag;
+  proto->double_value = value;
+}
 
 FieldValueInternal::FieldValueInternal(Timestamp value)
-    : type_{Type::kTimestamp},
-      value_{model::FieldValue::FromTimestamp(value)} {}
+    : type_{Type::kTimestamp} {
+  auto proto = absl::get<SharedMessage<google_firestore_v1_Value>>(value_);
+  proto->which_value_type = google_firestore_v1_Value_timestamp_value_tag;
+  proto->timestamp_value.seconds = value.seconds();
+  proto->timestamp_value.nanos = value.nanoseconds();
+}
 
 FieldValueInternal::FieldValueInternal(std::string value)
-    : type_{Type::kString},
-      value_{model::FieldValue::FromString(std::move(value))} {}
+    : type_{Type::kString} {
+  auto proto = absl::get<SharedMessage<google_firestore_v1_Value>>(value_);
+  proto->which_value_type = google_firestore_v1_Value_string_value_tag;
+  proto->string_value = MakeBytesArray(value);
+}
 
 FieldValueInternal::FieldValueInternal(const uint8_t* value, size_t size)
-    : type_{Type::kBlob},
-      value_{model::FieldValue::FromBlob(ByteString{value, size})} {}
+    : type_{Type::kBlob} {
+  auto proto = absl::get<SharedMessage<google_firestore_v1_Value>>(value_);
+  proto->which_value_type = google_firestore_v1_Value_bytes_value_tag;
+  proto->bytes_value = MakeBytesArray(value, size);
+}
 
 FieldValueInternal::FieldValueInternal(DocumentReference value)
     : type_{Type::kReference}, value_{std::move(value)} {}
 
 FieldValueInternal::FieldValueInternal(GeoPoint value)
-    : type_{Type::kGeoPoint}, value_{model::FieldValue::FromGeoPoint(value)} {}
+    : type_{Type::kGeoPoint} {
+  auto proto = absl::get<SharedMessage<google_firestore_v1_Value>>(value_);
+  proto->which_value_type = google_firestore_v1_Value_geo_point_value_tag;
+  proto->geo_point_value.latitude = value.latitude();
+  proto->geo_point_value.longitude = value.longitude();
+}
 
 FieldValueInternal::FieldValueInternal(std::vector<FieldValue> value)
     : type_{Type::kArray}, value_{std::move(value)} {}
@@ -60,37 +90,48 @@ FieldValueInternal::FieldValueInternal(MapFieldValue value)
 
 bool FieldValueInternal::boolean_value() const {
   SIMPLE_HARD_ASSERT(type_ == Type::kBoolean);
-  return absl::get<model::FieldValue>(value_).boolean_value();
+  return absl::get<SharedMessage<google_firestore_v1_Value>>(value_)
+      ->boolean_value;
 }
 
 int64_t FieldValueInternal::integer_value() const {
   SIMPLE_HARD_ASSERT(type_ == Type::kInteger);
-  return absl::get<model::FieldValue>(value_).integer_value();
+  return absl::get<SharedMessage<google_firestore_v1_Value>>(value_)
+      ->integer_value;
 }
 
 double FieldValueInternal::double_value() const {
   SIMPLE_HARD_ASSERT(type_ == Type::kDouble);
-  return absl::get<model::FieldValue>(value_).double_value();
+  return absl::get<SharedMessage<google_firestore_v1_Value>>(value_)
+      ->double_value;
 }
 
 Timestamp FieldValueInternal::timestamp_value() const {
   SIMPLE_HARD_ASSERT(type_ == Type::kTimestamp);
-  return absl::get<model::FieldValue>(value_).timestamp_value();
+  const auto& value =
+      absl::get<SharedMessage<google_firestore_v1_Value>>(value_)
+          ->timestamp_value;
+  return Timestamp{value.seconds, value.nanos};
 }
 
 std::string FieldValueInternal::string_value() const {
   SIMPLE_HARD_ASSERT(type_ == Type::kString);
-  return absl::get<model::FieldValue>(value_).string_value();
+  return MakeString(absl::get<SharedMessage<google_firestore_v1_Value>>(value_)
+                        ->string_value);
 }
 
 const uint8_t* FieldValueInternal::blob_value() const {
   SIMPLE_HARD_ASSERT(type_ == Type::kBlob);
-  return absl::get<model::FieldValue>(value_).blob_value().data();
+  auto value =
+      absl::get<SharedMessage<google_firestore_v1_Value>>(value_)->bytes_value;
+  return value ? value->bytes : nullptr;
 }
 
 size_t FieldValueInternal::blob_size() const {
   SIMPLE_HARD_ASSERT(type_ == Type::kBlob);
-  return absl::get<model::FieldValue>(value_).blob_value().size();
+  auto value =
+      absl::get<SharedMessage<google_firestore_v1_Value>>(value_)->bytes_value;
+  return value ? value->size : 0;
 }
 
 DocumentReference FieldValueInternal::reference_value() const {
@@ -100,7 +141,10 @@ DocumentReference FieldValueInternal::reference_value() const {
 
 GeoPoint FieldValueInternal::geo_point_value() const {
   SIMPLE_HARD_ASSERT(type_ == Type::kGeoPoint);
-  return absl::get<model::FieldValue>(value_).geo_point_value();
+  const auto& value =
+      absl::get<SharedMessage<google_firestore_v1_Value>>(value_)
+          ->geo_point_value;
+  return GeoPoint{value.latitude, value.longitude};
 }
 
 std::vector<FieldValue> FieldValueInternal::array_value() const {
@@ -120,24 +164,26 @@ std::vector<FieldValue> FieldValueInternal::array_transform_value() const {
 
 std::int64_t FieldValueInternal::integer_increment_value() const {
   SIMPLE_HARD_ASSERT(type_ == Type::kIncrementInteger);
-  return absl::get<model::FieldValue>(value_).integer_value();
+  return absl::get<SharedMessage<google_firestore_v1_Value>>(value_)
+      ->integer_value;
 }
 
 double FieldValueInternal::double_increment_value() const {
   SIMPLE_HARD_ASSERT(type_ == Type::kIncrementDouble);
-  return absl::get<model::FieldValue>(value_).double_value();
+  return absl::get<SharedMessage<google_firestore_v1_Value>>(value_)
+      ->double_value;
 }
 
 // Creating sentinels
 
 FieldValue FieldValueInternal::Delete() {
   return MakePublic(
-      FieldValueInternal{Type::kDelete, model::FieldValue::Null()});
+      FieldValueInternal{Type::kDelete, Message<google_firestore_v1_Value>{}});
 }
 
 FieldValue FieldValueInternal::ServerTimestamp() {
-  return MakePublic(
-      FieldValueInternal{Type::kServerTimestamp, model::FieldValue::Null()});
+  return MakePublic(FieldValueInternal{Type::kServerTimestamp,
+                                       Message<google_firestore_v1_Value>{}});
 }
 
 FieldValue FieldValueInternal::ArrayUnion(std::vector<FieldValue> elements) {
@@ -150,13 +196,19 @@ FieldValue FieldValueInternal::ArrayRemove(std::vector<FieldValue> elements) {
 }
 
 FieldValue FieldValueInternal::IntegerIncrement(std::int64_t by_value) {
-  return MakePublic(FieldValueInternal{
-      Type::kIncrementInteger, model::FieldValue::FromInteger(by_value)});
+  Message<google_firestore_v1_Value> value;
+  value->which_value_type = google_firestore_v1_Value_integer_value_tag;
+  value->integer_value = by_value;
+  return MakePublic(
+      FieldValueInternal{Type::kIncrementInteger, std::move(value)});
 }
 
 FieldValue FieldValueInternal::DoubleIncrement(double by_value) {
-  return MakePublic(FieldValueInternal{
-      Type::kIncrementDouble, model::FieldValue::FromDouble(by_value)});
+  Message<google_firestore_v1_Value> value;
+  value->which_value_type = google_firestore_v1_Value_double_value_tag;
+  value->double_value = by_value;
+  return MakePublic(
+      FieldValueInternal{Type::kIncrementDouble, std::move(value)});
 }
 
 // Equality operator
@@ -179,13 +231,14 @@ bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs) {
     case Type::kString:
     case Type::kBlob:
     case Type::kGeoPoint:
-    // Sentinels
+      // Sentinels
     case Type::kIncrementDouble:
     case Type::kIncrementInteger:
     case Type::kDelete:
     case Type::kServerTimestamp:
-      return absl::get<model::FieldValue>(lhs.value_) ==
-             absl::get<model::FieldValue>(rhs.value_);
+      return *(absl::get<SharedMessage<google_firestore_v1_Value>>(
+                 lhs.value_)) ==
+             *(absl::get<SharedMessage<google_firestore_v1_Value>>(rhs.value_));
 
     case Type::kReference:
       return absl::get<DocumentReference>(lhs.value_) ==

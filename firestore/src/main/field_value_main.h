@@ -7,7 +7,8 @@
 #include <string>
 #include <vector>
 
-#include "Firestore/core/src/model/field_value.h"
+#include "Firestore/Protos/nanopb/google/firestore/v1/document.nanopb.h"
+#include "Firestore/core/src/nanopb/message.h"
 #include "absl/types/variant.h"
 #include "app/src/assert.h"
 #include "firebase/firestore/geo_point.h"
@@ -74,10 +75,14 @@ class FieldValueInternal {
 
   FieldValue::Type type_ = FieldValue::Type::kNull;
   // Note: it's impossible to roundtrip between a `DocumentReference` and
-  // `model::FieldValue::reference_value`, because the latter omits some
+  // `google_firestore_v1_ReferenceValue`, because the latter omits some
   // information from the former (`shared_ptr` to the Firestore instance). For
   // that reason, just store the `DocumentReference` directly in the `variant`.
-  absl::variant<model::FieldValue, DocumentReference, ArrayT, MapT> value_;
+  absl::variant<nanopb::SharedMessage<google_firestore_v1_Value>,
+                DocumentReference,
+                ArrayT,
+                MapT>
+      value_ = nanopb::MakeSharedMessage<google_firestore_v1_Value>({});
 };
 
 bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs);

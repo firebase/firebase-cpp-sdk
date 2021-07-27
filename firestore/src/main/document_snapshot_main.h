@@ -7,8 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "Firestore/Protos/nanopb/google/firestore/v1/document.nanopb.h"
 #include "Firestore/core/src/api/document_snapshot.h"
-#include "Firestore/core/src/model/field_value.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
@@ -53,18 +53,17 @@ class DocumentSnapshotInternal {
 
   // Note: these are member functions only because access to `api::Firestore`
   // is needed to create a `DocumentReferenceInternal`.
-  FieldValue ConvertAnyValue(const model::FieldValue& input,
+  FieldValue ConvertAnyValue(const google_firestore_v1_Value& input,
                              ServerTimestampBehavior stb) const;
-  FieldValue ConvertObject(const model::FieldValue::Map& object,
+  FieldValue ConvertObject(const google_firestore_v1_MapValue& object,
                            ServerTimestampBehavior stb) const;
-  FieldValue ConvertArray(const model::FieldValue::Array& array,
+  FieldValue ConvertArray(const google_firestore_v1_ArrayValue& array,
                           ServerTimestampBehavior stb) const;
-  FieldValue ConvertReference(
-      const model::FieldValue::Reference& reference) const;
+  FieldValue ConvertReference(const google_firestore_v1_Value& reference) const;
   FieldValue ConvertServerTimestamp(
-      const model::FieldValue::ServerTimestamp& server_timestamp,
+      const google_firestore_v1_Value& server_timestamp,
       ServerTimestampBehavior stb) const;
-  FieldValue ConvertScalar(const model::FieldValue& scalar,
+  FieldValue ConvertScalar(const google_firestore_v1_Value& scalar,
                            ServerTimestampBehavior stb) const;
 
   api::DocumentSnapshot snapshot_;
