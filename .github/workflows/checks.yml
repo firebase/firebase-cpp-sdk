@@ -104,9 +104,16 @@ jobs:
         with:
           fetch-depth: 0
           submodules: false
-      - name: Check if readme has been modified vs. the base ref.
+      - name: Check whether release notes have been updated
         run: |
           set -e
+          cat <<EOF
+          LABEL NAMES
+          ${{github.event.issue.labels.*.name}}
+
+          LABELS
+          ${{github.event.issue.labels}}
+          EOF
           # Filename to check.
           README_FILE=release_build_files/readme.md
           # Determine the github merge base - same logic as integration_tests.yml
@@ -120,3 +127,4 @@ jobs:
               exit 1
             fi
           fi
+          
