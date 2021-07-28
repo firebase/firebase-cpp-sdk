@@ -15,6 +15,10 @@
 #include "firebase/firestore/firestore_errors.h"
 #include "firestore/src/common/hard_assert_common.h"
 
+#if defined(__ANDROID__)
+#error "This header should not be used on Android."
+#endif
+
 namespace firebase {
 namespace firestore {
 
