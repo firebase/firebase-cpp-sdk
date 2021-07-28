@@ -101,14 +101,17 @@ jobs:
     if: github.event.pull_request.state == 'open'
     steps:
       - uses: actions/checkout@v2
-        # Skip this if the PR has the skipReleaseNotes label.
-        if: ${{!contains(github.event.pull_request.labels.*.name, env.skipReleaseNotesLabel)}}
+        # Skip this if the PR has the skipReleaseNotes label or if it's a merge to other than main.
+        if: |
+          ${{!contains(github.event.pull_request.labels.*.name, env.skipReleaseNotesLabel) && github.event.pull_request.base.name == 'main'}}
+          ${{github.event.pull_request.head.name}} == 'main'
         with:
           fetch-depth: 0
           submodules: false
       - name: Check whether release notes have been updated
-        # Skip this if the PR has the skipReleaseNotes label.
-        if: ${{!contains(github.event.pull_request.labels.*.name, env.skipReleaseNotesLabel)}}
+        # Skip this if the PR has the skipReleaseNotes label or if it's a merge to other than main.
+        if: |
+          ${{!contains(github.event.pull_request.labels.*.name, env.skipReleaseNotesLabel) && github.event.pull_request.base.name == 'main'}}
         run: |
           set -e
           # Filename to check.
