@@ -294,7 +294,12 @@ std::string Describe(Type type) {
 
 // Helpers
 
-SharedMessage<google_firestore_v1_Value>& GetProtoValue() {
+const SharedMessage<google_firestore_v1_Value>&
+FieldValueInternal::GetProtoValue() const {
+  return absl::get<SharedMessage<google_firestore_v1_Value>>(value_);
+}
+
+SharedMessage<google_firestore_v1_Value>& FieldValueInternal::GetProtoValue() {
   return absl::get<SharedMessage<google_firestore_v1_Value>>(value_);
 }
 
