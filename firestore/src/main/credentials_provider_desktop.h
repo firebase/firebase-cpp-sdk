@@ -14,6 +14,10 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 
+#if defined(__ANDROID__)
+#error "This header should not be used on Android."
+#endif
+
 namespace firebase {
 namespace firestore {
 
