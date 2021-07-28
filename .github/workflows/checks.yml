@@ -101,12 +101,12 @@ jobs:
     if: github.event.pull_request.state == 'open'
     steps:
       - uses: actions/checkout@v2
-        if: !contains(github.event.pull_request.labels.*.name, env.skipReleaseNotesLabel)
+        if: ${{!contains(github.event.pull_request.labels.*.name, env.skipReleaseNotesLabel)}}
         with:
           fetch-depth: 0
           submodules: false
       - name: Check whether release notes have been updated
-        if: !contains(github.event.pull_request.labels.*.name, env.skipReleaseNotesLabel)
+        if: ${{!contains(github.event.pull_request.labels.*.name, env.skipReleaseNotesLabel)}}
         run: |
           set -e
           # Filename to check.
