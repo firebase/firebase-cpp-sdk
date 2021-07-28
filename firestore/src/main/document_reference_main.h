@@ -15,6 +15,10 @@
 #include "firestore/src/main/promise_factory_main.h"
 #include "firestore/src/main/user_data_converter_main.h"
 
+#if defined(__ANDROID__)
+#error "This header should not be used on Android."
+#endif
+
 namespace firebase {
 namespace firestore {
 
