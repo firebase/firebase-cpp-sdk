@@ -73,6 +73,9 @@ class FieldValueInternal {
   explicit FieldValueInternal(FieldValue::Type type, T value)
       : type_{type}, value_{std::move(value)} {}
 
+  /** Returns the underlying value as a google_firestore_v1_Value proto. */
+  nanopb::SharedMessage<google_firestore_v1_Value>& GetProtoValue();
+
   FieldValue::Type type_ = FieldValue::Type::kNull;
   // Note: it's impossible to roundtrip between a `DocumentReference` and
   // `google_firestore_v1_ReferenceValue`, because the latter omits some

@@ -110,7 +110,7 @@ FieldValue DocumentSnapshotInternal::ConvertObject(
   for (pb_size_t i = 0; i < object.fields_count; ++i) {
     std::string key = MakeString(object.fields[i].key);
     const google_firestore_v1_Value& value = object.fields[i].value;
-    result[key] = ConvertAnyValue(value, stb);
+    result[std::move(key)] = ConvertAnyValue(value, stb);
   }
 
   return FieldValue::Map(std::move(result));
@@ -174,7 +174,7 @@ FieldValue DocumentSnapshotInternal::ConvertReference(
   SIMPLE_HARD_ASSERT(database_id == firestore_internal()->database_id(),
                      "Converted reference is from another database");
 
-  api::DocumentReference api_reference{key, snapshot_.firestore()};
+  api::DocumentReference api_reference{std::move(key), snapshot_.firestore()};
   return FieldValue::Reference(MakePublic(std::move(api_reference)));
 }
 

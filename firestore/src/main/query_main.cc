@@ -257,7 +257,8 @@ Message<google_firestore_v1_Value> QueryInternal::ConvertDocumentId(
     SimpleThrowInvalidArgument(
         "Invalid query. Expected a string for the document ID.");
   }
-  const std::string& document_id = MakeString(from->string_value);
+
+  std::string document_id = MakeString(from->string_value);
 
   if (!internal_query.IsCollectionGroupQuery() &&
       document_id.find('/') != std::string::npos) {

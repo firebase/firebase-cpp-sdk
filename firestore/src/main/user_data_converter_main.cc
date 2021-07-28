@@ -338,16 +338,16 @@ Message<google_firestore_v1_Value> UserDataConverter::ParseMap(
       const std::string& key = kv.first;
       const FieldValue& value = kv.second;
 
-      auto parsedValue = ParseData(value, context.ChildContext(key));
-      if (parsedValue) {
+      auto parsed_value = ParseData(value, context.ChildContext(key));
+      if (parsed_value) {
         result->map_value.fields[index].key = nanopb::MakeBytesArray(key);
-        result->map_value.fields[index].value = *parsedValue->release();
+        result->map_value.fields[index].value = *parsed_value->release();
         ++index;
       }
     }
   }
 
-  return std::move(result);
+  return result;
 }
 
 void UserDataConverter::ParseSentinel(const FieldValue& value,
