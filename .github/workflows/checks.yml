@@ -97,8 +97,6 @@ jobs:
   release_notes_check:
     # Check that the readme was updated, unless the PR has the 'no-release-notes' flag.
     runs-on: ubuntu-latest
-    # Don't bother doing this if the PR is already closed.
-    if: github.event.pull_request.state == 'open'
     steps:
       - uses: actions/checkout@v2
         # Skip this if the PR has the skipReleaseNotes label or if it's a merge to other than main.
