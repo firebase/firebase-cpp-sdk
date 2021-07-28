@@ -98,7 +98,7 @@ jobs:
     # Check that the readme was updated, unless the PR has the 'no-release-notes' flag.
     runs-on: ubuntu-latest
     # Don't bother doing this if the PR is already closed or has the no-release-notes label.
-    if: github.event.pull_request.state == 'open' && !contains(github.event.pull_request.labels.*.name, github.env.skipReleaseNotesLabel)
+    if: github.event.pull_request.state == 'open' && !contains(github.event.pull_request.labels.*.name, '${{env.skipReleaseNotesLabel}}')
     steps:
       - uses: actions/checkout@v2
         with:
@@ -107,13 +107,6 @@ jobs:
       - name: Check whether release notes have been updated
         run: |
           set -e
-          cat <<EOF
-          LABEL NAMES
-          ${{toJSON(github.event.pull_request.labels.*.name)}}
-
-          LABELS
-          ${{toJSON(github.event.pull_request.labels)}}
-          EOF
           # Filename to check.
           README_FILE=release_build_files/readme.md
           # Determine the github merge base - same logic as integration_tests.yml
