@@ -166,7 +166,7 @@ jobs:
         if: needs.check_trigger.outputs.requested_tests == 'auto'
         run: |
           echo "Autodetecting which tests to run."
-          if [[ -n "${{github.event.inputs.test_pull_request}}" ]]; then
+          if [[ -n "${{github.event.inputs.test_pull_request}}" || "${{github.event.inputs.test_pull_request}}" == "sdk" ]]; then
             # If running this manually, diff against our common ancestor with main.
             MERGE_BASE=$(git merge-base HEAD origin/main)
             echo "::warning ::Auto-diff HEAD..${MERGE_BASE}"
@@ -203,7 +203,7 @@ jobs:
           echo "::set-output name=android_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k android_device -t ${mobile_test_on} )"
           echo "::set-output name=ios_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k ios_device -t ${mobile_test_on} )"
           echo "::set-output name=tvos_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k tvos_device -t ${mobile_test_on} )"
-          if [[ -z "${{github.event.inputs.test_pull_request}}" ]]; then
+          if [[ -z "${{github.event.inputs.test_pull_request}}" || "${{github.event.inputs.test_pull_request}}" == "sdk" ]]; then
             echo "::warning ::Running on https://github.com/${{github.repository}}/commits/$GITHUB_SHA"
             echo "::set-output name=github_ref::$GITHUB_SHA"
           elif [[ "${{github.event.inputs.test_pull_request}}" == *:* ]]; then
