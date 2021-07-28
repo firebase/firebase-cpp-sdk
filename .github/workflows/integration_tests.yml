@@ -1065,7 +1065,7 @@ jobs:
         if: ${{ github.event_name == 'schedule' || github.event.inputs.test_pull_request == 'sdk'}}
         shell: bash
         run: |
-          if [[ "${{ github.event.inputs.test_pull_request }}" == 'sdk' ]]; then
+          if [[ "${{ github.event.inputs.test_pull_request }}" == "sdk" ]]; then
             additional_flags=(--build_against sdk)
           else
             additional_flags=(--build_against repo)
