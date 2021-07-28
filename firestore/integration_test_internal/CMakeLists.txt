@@ -203,6 +203,7 @@ include_directories(src)
 include_directories(${FIREBASE_CPP_SDK_DIR})
 # Additional public headers from Firestore core SDK.
 include_directories(${PROJECT_BINARY_DIR}/bin/external/src/firestore)
+include_directories(${PROJECT_BINARY_DIR}/bin/external/src/nanopb)
 # Additional public headers for absl.
 include_directories(${ABSEIL_CPP_ROOT})
 # Allow testing internal Firebase APIs.
@@ -284,7 +285,7 @@ if(ANDROID)
   target_include_directories(${integration_test_target_name} PRIVATE
     ${ANDROID_NDK}/sources/android/native_app_glue)
 
-  set(ADDITIONAL_LIBS log android atomic native_app_glue nanopb)
+  set(ADDITIONAL_LIBS log android atomic native_app_glue)
 else()
   set(ABSEIL_CPP_ROOT ${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp/src/abseil-cpp)
 
@@ -338,9 +339,9 @@ else()
       "-framework SystemConfiguration"
     )
   elseif(MSVC)
-    set(ADDITIONAL_LIBS advapi32 ws2_32 crypt32 nanopb)
+    set(ADDITIONAL_LIBS advapi32 ws2_32 crypt32)
   else()
-    set(ADDITIONAL_LIBS pthread nanopb)
+    set(ADDITIONAL_LIBS pthread)
   endif()
 
   # If a config file is present, copy it into the binary location so that it's
