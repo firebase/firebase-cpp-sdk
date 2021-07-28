@@ -284,7 +284,7 @@ if(ANDROID)
   target_include_directories(${integration_test_target_name} PRIVATE
     ${ANDROID_NDK}/sources/android/native_app_glue)
 
-  set(ADDITIONAL_LIBS log android atomic native_app_glue)
+  set(ADDITIONAL_LIBS log android atomic native_app_glue nanopb)
 else()
   set(ABSEIL_CPP_ROOT ${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp/src/abseil-cpp)
 
@@ -338,9 +338,9 @@ else()
       "-framework SystemConfiguration"
     )
   elseif(MSVC)
-    set(ADDITIONAL_LIBS advapi32 ws2_32 crypt32)
+    set(ADDITIONAL_LIBS advapi32 ws2_32 crypt32 nanopb)
   else()
-    set(ADDITIONAL_LIBS pthread)
+    set(ADDITIONAL_LIBS pthread nanopb)
   endif()
 
   # If a config file is present, copy it into the binary location so that it's
