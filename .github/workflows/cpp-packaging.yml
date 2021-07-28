@@ -721,6 +721,7 @@ jobs:
           USE_EXPANDED_MATRIX=0
         fi
         if [[ "${{ github.event_name }}" == "schedule" ]]; then
+          # reuse flag --test_pull_request=sdk to generate report
           generate_report=(-p test_pull_request sdk)
         fi
         verbose_flag=
