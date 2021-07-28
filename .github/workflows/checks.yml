@@ -102,6 +102,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
+          fetch-depth: 0
           submodules: false
       - name: Check if readme has been modified vs. the base ref.
         run: |
