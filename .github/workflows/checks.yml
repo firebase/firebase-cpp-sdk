@@ -102,18 +102,15 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         # Skip this if the PR has the skipReleaseNotes label or if it's a merge to other than main.
-        if: ${{!contains(github.event.pull_request.labels.*.name, env.skipReleaseNotesLabel)}}
+        if: ${{!contains(github.event.pull_request.labels.*.name, env.skipReleaseNotesLabel) && (github.event.pull_request.base.ref == 'main')}}
         with:
           fetch-depth: 0
           submodules: false
       - name: Check whether release notes have been updated
         # Skip this if the PR has the skipReleaseNotes label or if it's a merge to other than main.
-        if: ${{!contains(github.event.pull_request.labels.*.name, env.skipReleaseNotesLabel)}}
+        if: ${{!contains(github.event.pull_request.labels.*.name, env.skipReleaseNotesLabel) && (github.event.pull_request.base.ref == 'main')}}
         run: |
           set -e
-          cat <<EOF
-          ${{toJSON(github.event.pull_request)}}
-          EOF
           # Filename to check.
           README_FILE=release_build_files/readme.md
           # Determine the github merge base - same logic as integration_tests.yml
