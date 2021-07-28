@@ -95,7 +95,7 @@ jobs:
           bash scripts/gha/check_copyright.sh -g
 
   release_notes_check:
-    # Check that the readme was updated, unless the PR has the 'no-release-notes' flag.
+    # Check that the readme was updated, unless the PR has a specific label set (env.skipReleaseNotesLabel).
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
