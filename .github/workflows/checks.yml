@@ -97,16 +97,18 @@ jobs:
   release_notes_check:
     # Check that the readme was updated, unless the PR has the 'no-release-notes' flag.
     runs-on: ubuntu-latest
-    # Don't bother doing this if the PR is already closed or has the no-release-notes label.
+    # Don't bother doing this if the PR is already closed.
     if: github.event.pull_request.state == 'open'
     steps:
       - uses: actions/checkout@v2
-        if: contains(github.event.pull_request.labels.*.name, env.skipReleaseNotesLabel) == 0
+        # Skip this if the PR has the skipReleaseNotes label.
+        if: ${{!contains(github.event.pull_request.labels.*.name, env.skipReleaseNotesLabel)}}
         with:
           fetch-depth: 0
           submodules: false
       - name: Check whether release notes have been updated
-        if: contains(github.event.pull_request.labels.*.name, env.skipReleaseNotesLabel) == 0
+        # Skip this if the PR has the skipReleaseNotes label.
+        if: ${{!contains(github.event.pull_request.labels.*.name, env.skipReleaseNotesLabel)}}
         run: |
           set -e
           # Filename to check.
