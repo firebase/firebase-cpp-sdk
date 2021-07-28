@@ -720,7 +720,7 @@ jobs:
         if [[ -z ${USE_EXPANDED_MATRIX} ]]; then
           USE_EXPANDED_MATRIX=0
         fi
-        if [[ "${{ github.event_name }}" == "schedule" ]]; then
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
           generate_report=(-p test_pull_request sdk)
         fi
         verbose_flag=
