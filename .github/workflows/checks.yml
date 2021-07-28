@@ -112,14 +112,11 @@ jobs:
           # Determine the github merge base - same logic as integration_tests.yml
           # "git merge-base main branch_name" will give the common ancestor of both branches.
           MERGE_BASE=$(git merge-base origin/${{github.event.pull_request.head.ref}} origin/${{github.event.pull_request.base.ref}} || true)
-          echo "Merge base: ${MERGE_BASE}"
-          # If MERGE_BASE can't be determined, just use "main"
-          if [[ -z "${MERGE_BASE}" ]]; then
-            echo "Defaulting to origin/main"
-            MERGE_BASE=origin/main
-          fi
-          DIFF_RESULT_=$(git diff --name-only "origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}" -- "${README_FILE}")
-          if [[ "${DIFF_RESULT}" != "${README_FILE}" ]]; then
-            echo "::error :Please update release notes (${README_FILE}) or add '${{env.skipReleaseNotesLabel}}' label."
-            exit 1
+          # If MERGE_BASE can't be determined, ignore this check, something odd is going on.
+          if [[ -n "${MERGE_BASE}" ]]; then
+            DIFF_RESULT_=$(git diff --name-only "origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}" -- "${README_FILE}")
+            if [[ "${DIFF_RESULT}" != "${README_FILE}" ]]; then
+              echo "::error ::Please update release notes (${README_FILE}) or add '${{env.skipReleaseNotesLabel}}' label."
+              exit 1
+            fi
           fi
