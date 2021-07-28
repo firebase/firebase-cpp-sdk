@@ -69,7 +69,7 @@ _COMMENT_TITLE_SUCCEED_REPO = "### ✅&nbsp; Integration test succeeded! (build 
 _COMMENT_FLAKY_TRACKER = "\n\nAdd flaky tests to **[go/fpl-cpp-flake-tracker](http://go/fpl-cpp-flake-tracker)**\n"
 
 _COMMENT_IDENTIFIER = "integration-test-status-comment"
-_COMMENT_SUFFIX = f'\n\n\n<hidden value="{_COMMENT_IDENTIFIER}"></hidden>'
+_COMMENT_SUFFIX = f'\n<hidden value="{_COMMENT_IDENTIFIER}"></hidden>'
 
 _LOG_ARTIFACT_NAME = "log-artifact"
 _LOG_OUTPUT_DIR = "test_results"

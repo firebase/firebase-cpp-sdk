@@ -67,7 +67,7 @@ def get_issue_body(token, issue_number):
   url = f'{FIREBASE_URL}/issues/{issue_number}'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
   with requests_retry_session().get(url, headers=headers, timeout=TIMEOUT) as response:
-    logging.info("update_comment: %s response: %s", url, response)
+    logging.info("get_issue_body: %s response: %s", url, response)
     return response.json()["body"]
 
 
