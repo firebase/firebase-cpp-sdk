@@ -109,10 +109,10 @@ jobs:
           set -e
           cat <<EOF
           LABEL NAMES
-          ${{github.event.pull_request.labels.*.name}}
+          ${{toJSON(github.event.pull_request.labels.*.name)}}
 
           LABELS
-          ${{github.event.pull_request.labels}}
+          ${{toJSON(github.event.pull_request.labels)}}
           EOF
           # Filename to check.
           README_FILE=release_build_files/readme.md
