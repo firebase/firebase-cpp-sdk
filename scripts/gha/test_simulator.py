@@ -461,7 +461,9 @@ def _get_apple_test_log(bundle_id, app_path, device_id):
     return None
 
   log_path = os.path.join(result.stdout.strip(), "Documents", "GameLoopResults", _RESULT_FILE) 
-  return _read_file(log_path) 
+  log = _read_file(log_path) 
+  logging.info("Apple test result: %s", log)
+  return log
 
 
 def _read_file(path):
@@ -501,12 +503,9 @@ def _setup_android(platform_version, build_tool_version, sdk_id):
   logging.info("Install packages: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
-  args = ["sdkmanager", "--licenses"]
-  logging.info("Accept all licenses: %s", " ".join(args))
-  p_yes = subprocess.Popen(["echo", "yes"], stdout=subprocess.PIPE)
-  proc = subprocess.Popen(args, stdin=p_yes.stdout, stdout=subprocess.PIPE)
-  p_yes.stdout.close()
-  proc.communicate()
+  command = "yes | sdkmanager --licenses"
+  logging.info("Accept all licenses: %s", command)
+  subprocess.run(command, shell=True, check=False)
 
   args = ["sdkmanager", sdk_id]
   logging.info("Download an emulator: %s", " ".join(args))
@@ -521,24 +520,23 @@ def _shutdown_emulator():
   command = "adb devices | grep emulator | cut -f1 | while read line; do adb -s $line emu kill; done"
   logging.info("Kill all running emulator: %s", command)
   subprocess.Popen(command, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
+  time.sleep(5)
+  args = ["adb", "kill-server"]
+  logging.info("Kill adb server: %s", " ".join(args))
+  subprocess.run(args=args, check=False)
+  time.sleep(5)
+
 
 def _create_and_boot_emulator(sdk_id):
-  args = ["avdmanager", "-s", 
-    "create", "avd", 
-    "-n", "test_emulator", 
-    "-k", sdk_id, 
-    "-f"]
-  logging.info("Create an emulator: %s", " ".join(args))
-  p_no = subprocess.Popen(["echo", "no"], stdout=subprocess.PIPE)
-  proc = subprocess.Popen(args, stdin=p_no.stdout, stdout=subprocess.PIPE)
-  p_no.stdout.close()
-  proc.communicate()
+  _shutdown_emulator()
+
+  command = "echo no | avdmanager -s create avd -n test_emulator -k '%s' -f" % sdk_id
+  logging.info("Create an emulator: %s", command)
+  subprocess.run(command, shell=True, check=True)
 
   args = ["adb", "start-server"]
   logging.info("Start adb server: %s", " ".join(args))
   subprocess.run(args=args, check=True)
-
-  _shutdown_emulator()
 
   if not FLAGS.ci: 
     command = "$ANDROID_HOME/emulator/emulator -avd test_emulator &"
@@ -550,12 +548,28 @@ def _create_and_boot_emulator(sdk_id):
   args = ["adb", "wait-for-device"]
   logging.info("Wait for emulator to boot: %s", " ".join(args))
   subprocess.run(args=args, check=True)
-
   if FLAGS.ci: 
     # wait extra 90 seconds to ensure emulator booted.
     time.sleep(90)
   else:
     time.sleep(45)
+
+
+def _reset_emulator_on_error(instrumented_test_result):
+  logging.info("game-loop test result: %s", instrumented_test_result)
+  if "FAILURES!!!" in instrumented_test_result:
+    logging.info("game-loop test error!!! reboot emualtor...")
+    args = ["adb", "-e", "reboot"]
+    logging.info("Reboot android emulator: %s", " ".join(args))
+    subprocess.run(args=args, check=True)
+    args = ["adb", "wait-for-device"]
+    logging.info("Wait for emulator to boot: %s", " ".join(args))
+    subprocess.run(args=args, check=True)
+    if FLAGS.ci: 
+      # wait extra 90 seconds to ensure emulator booted.
+      time.sleep(90)
+    else:
+      time.sleep(45)
 
 
 def _get_package_name(app_path):
@@ -597,6 +611,11 @@ def _uninstall_android_app(package_name):
 
 def _install_android_gameloop_app(gameloop_project):
   os.chdir(gameloop_project)
+  logging.info("CD to gameloop_project: %s", gameloop_project)
+  _uninstall_android_app("com.google.firebase.gameloop")
+  args = ["./gradlew", "clean"]
+  logging.info("Clean game-loop cache: %s", " ".join(args))
+  subprocess.run(args=args, check=False)
   args = ["./gradlew", "installDebug", "installDebugAndroidTest"]
   logging.info("Installing game-loop app and test: %s", " ".join(args))
   subprocess.run(args=args, check=True)
@@ -609,7 +628,8 @@ def _run_instrumented_test():
   args = ["adb", "shell", "am", "instrument",
     "-w", "%s.test/androidx.test.runner.AndroidJUnitRunner" % _GAMELOOP_PACKAGE] 
   logging.info("Running game-loop test: %s", " ".join(args))
-  subprocess.run(args=args, check=False) 
+  result = subprocess.run(args=args, capture_output=True, text=True, check=False) 
+  _reset_emulator_on_error(result.stdout)
 
 
 def _get_android_test_log(test_package):
@@ -619,6 +639,7 @@ def _get_android_test_log(test_package):
   args = ["adb", "shell", "su", "0", "cat", path]
   logging.info("Get android test result: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=False)
+  logging.info("Android test result: %s", result.stdout)
   return result.stdout
 
 

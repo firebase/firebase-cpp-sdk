@@ -328,9 +328,9 @@ set_property(TARGET firebase_app PROPERTY FOLDER "Firebase Cpp")
 
 # Disable exceptions in std
 if (MSVC)
-  target_compile_options(firebase_app PUBLIC /EHs-c-)
+  target_compile_options(firebase_app PRIVATE /EHs-c-)
 else()
-  target_compile_options(firebase_app PUBLIC -fno-exceptions)
+  target_compile_options(firebase_app PRIVATE -fno-exceptions)
 endif()
 
 target_include_directories(firebase_app

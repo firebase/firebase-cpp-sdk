@@ -58,7 +58,7 @@ jobs:
     ### subsequent steps to update the labels as well.
     runs-on: ubuntu-latest
     if: |
-      github.event_name == 'pull_request' || github.event.inputs.test_pull_request != ''
+      github.event_name == 'pull_request' || (github.event.inputs.test_pull_request != '' && github.event.inputs.test_pull_request != 'sdk')
     outputs:
       should_update_pr: ${{ steps.set_outputs.outputs.should_update_pr }}
       requested_tests: ${{ steps.set_outputs.outputs.requested_tests }}
@@ -166,7 +166,7 @@ jobs:
         if: needs.check_trigger.outputs.requested_tests == 'auto'
         run: |
           echo "Autodetecting which tests to run."
-          if [[ -n "${{github.event.inputs.test_pull_request}}" ]]; then
+          if [[ -n "${{github.event.inputs.test_pull_request}}" || "${{github.event.inputs.test_pull_request}}" == "sdk" ]]; then
             # If running this manually, diff against our common ancestor with main.
             MERGE_BASE=$(git merge-base HEAD origin/main)
             echo "::warning ::Auto-diff HEAD..${MERGE_BASE}"
@@ -203,7 +203,7 @@ jobs:
           echo "::set-output name=android_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k android_device -t ${mobile_test_on} )"
           echo "::set-output name=ios_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k ios_device -t ${mobile_test_on} )"
           echo "::set-output name=tvos_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k tvos_device -t ${mobile_test_on} )"
-          if [[ -z "${{github.event.inputs.test_pull_request}}" ]]; then
+          if [[ -z "${{github.event.inputs.test_pull_request}}" || "${{github.event.inputs.test_pull_request}}" == "sdk" ]]; then
             echo "::warning ::Running on https://github.com/${{github.repository}}/commits/$GITHUB_SHA"
             echo "::set-output name=github_ref::$GITHUB_SHA"
           elif [[ "${{github.event.inputs.test_pull_request}}" == *:* ]]; then
@@ -750,7 +750,7 @@ jobs:
         shell: bash
         run: |
           if [ ! -f testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json ]; then
-            echo "__SUMMARY_MISSING__" > testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json
           fi
       - name: Upload Desktop test results artifact
         if: ${{ !cancelled() }}
@@ -836,7 +836,7 @@ jobs:
         shell: bash
         run: |
           if [ ! -f "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}.log.json" ]; then
-            echo "__SUMMARY_MISSING__" > "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}.log.json"
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}.log.json"
           fi
       - name: Upload Android test results artifact
         if: ${{ !cancelled() }}
@@ -921,7 +921,7 @@ jobs:
         shell: bash
         run: |
           if [ ! -f "testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}.log.json" ]; then
-            echo "__SUMMARY_MISSING__" > "testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}.log.json"
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}.log.json"
           fi
       - name: Upload iOS test results artifact
         if: ${{ !cancelled() }}
@@ -990,7 +990,7 @@ jobs:
         shell: bash
         run: |
           if [ ! -f "testapps/test-results-tvos-macos-latest-${{ matrix.tvos_device }}.log.json" ]; then
-            echo "__SUMMARY_MISSING__" > "testapps/test-results-tvos-macos-latest-${{ matrix.tvos_device }}.log.json"
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-tvos-macos-latest-${{ matrix.tvos_device }}.log.json"
           fi
       - name: Upload tvOS test results artifact
         if: ${{ !cancelled() }}
@@ -1062,12 +1062,19 @@ jobs:
             --run_id ${{github.run_id}} \
             --new_token ${{steps.generate-token.outputs.token}}
       - name: Update Daily Report
-        if: ${{ github.event_name == 'schedule' }}
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.test_pull_request == 'sdk'}}
+        shell: bash
         run: |
+          if [[ "${{ github.event.inputs.test_pull_request }}" == "sdk" ]]; then
+            additional_flags=(--build_against sdk)
+          else
+            additional_flags=(--build_against repo)
+          fi
           python scripts/gha/it_workflow.py --stage report \
             --token ${{github.token}} \
             --actor ${{github.actor}} \
             --commit ${{needs.prepare_matrix.outputs.github_ref}} \
-            --run_id ${{github.run_id}}
+            --run_id ${{github.run_id}} \
+            ${additional_flags[*]}
       - name: Summarize results into GitHub log
         run: python scripts/gha/summarize_test_results.py --dir test_results --github_log

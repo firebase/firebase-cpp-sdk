@@ -54,14 +54,13 @@ def main():
   json_params = {}
   for param in args.param:
       json_params[param[0]] = param[1]
-  json_params["platforms"] = "Desktop,Android,iOS"
   json_text = '{"ref":%s,"inputs":%s}' % (json.dumps(args.branch), json.dumps(json_params))
   if args.verbose or args.dryrun:
     print('request_url: %s' % request_url)
     print('request_body: %s' % json_text)
   if args.dryrun:
     return(0)
-  
+
   print('Sending request to GitHub API...')
   run_output = subprocess.check_output([args.curl,
                                         '-s', '-o', '-', '-w', '\nHTTP status %{http_code}\n',
@@ -104,7 +103,7 @@ def main():
           workflow['head_branch'] == args.branch):
         run_id = workflow['id']
         break
-  
+
   if run_id:
     workflow_url = 'https://github.com/firebase/firebase-cpp-sdk/actions/runs/%s' % (run_id)
   else:

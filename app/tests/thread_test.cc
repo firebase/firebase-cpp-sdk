@@ -20,6 +20,18 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
+#define EXPECT_THROW_ERROR_CODE(statement, error_code)               \
+  EXPECT_THROW(                                                      \
+      {                                                              \
+        try {                                                        \
+          GTEST_SUPPRESS_UNREACHABLE_CODE_WARNING_BELOW_(statement); \
+        } catch (const std::system_error& exception) {               \
+          EXPECT_EQ(error_code, exception.code());                   \
+          throw;                                                     \
+        }                                                            \
+      },                                                             \
+      std::system_error)
+
 namespace {
 
 using ::testing::Eq;
@@ -107,66 +119,66 @@ TEST(ThreadDeathTest, MovingIntoRunningThreadShouldAbort) {
 }
 
 TEST(ThreadDeathTest, JoinEmptyThreadShouldAbort) {
-  ASSERT_DEATH(
+  EXPECT_THROW_ERROR_CODE(
       {
         firebase::Thread thread;
         thread.Join();
       },
-      "");
+      std::errc::invalid_argument);
 }
 
 TEST(ThreadDeathTest, JoinThreadMultipleTimesShouldAbort) {
-  ASSERT_DEATH(
+  EXPECT_THROW_ERROR_CODE(
       {
         firebase::Thread thread([] {});
 
         thread.Join();
         thread.Join();
       },
-      "");
+      std::errc::invalid_argument);
 }
 
 TEST(ThreadDeathTest, JoinDetachedThreadShouldAbort) {
-  ASSERT_DEATH(
+  EXPECT_THROW_ERROR_CODE(
       {
         firebase::Thread thread([] {});
 
         thread.Detach();
         thread.Join();
       },
-      "");
+      std::errc::invalid_argument);
 }
 
 TEST(ThreadDeathTest, DetachJoinedThreadShouldAbort) {
-  ASSERT_DEATH(
+  EXPECT_THROW_ERROR_CODE(
       {
         firebase::Thread thread([] {});
 
         thread.Join();
         thread.Detach();
       },
-      "");
+      std::errc::invalid_argument);
 }
 
 TEST(ThreadDeathTest, DetachEmptyThreadShouldAbort) {
-  ASSERT_DEATH(
+  EXPECT_THROW_ERROR_CODE(
       {
         firebase::Thread thread;
 
         thread.Detach();
       },
-      "");
+      std::errc::invalid_argument);
 }
 
 TEST(ThreadDeathTest, DetachThreadMultipleTimesShouldAbort) {
-  ASSERT_DEATH(
+  EXPECT_THROW_ERROR_CODE(
       {
         firebase::Thread thread([] {});
 
         thread.Detach();
         thread.Detach();
       },
-      "");
+      std::errc::invalid_argument);
 }
 
 TEST(ThreadDeathTest, WhenJoinableThreadIsDestructedShouldAbort) {

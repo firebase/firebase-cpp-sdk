@@ -11,6 +11,10 @@
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/main/promise_main.h"
 
+#if defined(__ANDROID__)
+#error "This header should not be used on Android."
+#endif
+
 namespace firebase {
 class CleanupNotifier;
 
