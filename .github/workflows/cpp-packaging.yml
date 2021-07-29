@@ -720,9 +720,13 @@ jobs:
         if [[ -z ${USE_EXPANDED_MATRIX} ]]; then
           USE_EXPANDED_MATRIX=0
         fi
+        if [[ "${{ github.event_name }}" == "schedule" ]]; then
+          # reuse flag --test_pull_request=sdk to generate report
+          generate_report=(-p test_pull_request sdk)
+        fi
         verbose_flag=
         if [[ -n "${{ github.event.inputs.verboseBuild }}" && "${{ github.event.inputs.verboseBuild }}" -ne 0 ]]; then
           verbose_flag=-v
         fi
         set -e
-        python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} -w integration_tests.yml -p test_packaged_sdk ${{ github.run_id }} -p use_expanded_matrix ${USE_EXPANDED_MATRIX} -s 10 -A ${verbose_flag}
+        python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} -w integration_tests.yml -p test_packaged_sdk ${{ github.run_id }} -p use_expanded_matrix ${USE_EXPANDED_MATRIX} ${generate_report[*]} -s 10 -A ${verbose_flag}
