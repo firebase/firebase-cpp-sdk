@@ -203,7 +203,6 @@ include_directories(src)
 include_directories(${FIREBASE_CPP_SDK_DIR})
 # Additional public headers from Firestore core SDK.
 include_directories(${PROJECT_BINARY_DIR}/bin/external/src/firestore)
-include_directories(${PROJECT_BINARY_DIR}/bin/external/src/nanopb)
 # Additional public headers for absl.
 include_directories(${ABSEIL_CPP_ROOT})
 # Allow testing internal Firebase APIs.
