@@ -117,8 +117,8 @@ Android.
 Note that we include the Gradle wrapper, which if used will acquire the
 necessary version of Gradle for you.
 
-### Prerequisites for iOS
-The following prerequisites are required when building the libraries for iOS.
+### Prerequisites for iOS/tvOS
+The following prerequisites are required when building the libraries for iOS or tvOS.
 - [Cocoapods](https://cocoapods.org/)
 
 ## Building
@@ -192,14 +192,39 @@ Currently, the third party libraries that can be provided this way are:
 The Firebase C++ SDK comes with a CMake config file to build the library for
 iOS platforms, [cmake/toolchains/ios.cmake](/cmake/toolchains/ios.cmake).  In
 order to build with it, when running the CMake configuration pass it in with
-the CMAKE_TOOLCHAIN_FILE definition.  For example, to build the Analytics
+the CMAKE_TOOLCHAIN_FILE definition.  For example, to build the Auth
 library for iOS, you could run the following commands:
 
 ``` bash
 mkdir ios_build && cd ios_build
 cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/ios.cmake ..
-cmake --build . --target firebase_analytics
+cmake --build . --target firebase_auth
 ```
+
+#### Building with CMake for tvOS
+The Firebase C++ SDK comes with a CMake config file to build the library for
+tvOS platforms, [cmake/toolchains/apple.toolchain.cmake](/cmake/toolchains/apple.toolchain.cmake).  In
+order to build with it, when running the CMake configuration pass it in with
+the CMAKE_TOOLCHAIN_FILE definition.  For example, to build the Auth
+library for tvOS, you could run the following commands:
+
+``` bash
+mkdir tvos_build && cd tvos_build
+cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/apple.toolchain.cmake -DPLATFORM=TVOS ..
+cmake --build . --target firebase_auth
+```
+
+#### Building XCFrameworks for both iOS and tvOS
+The Firebase C++ SDK comes with a helper Python script to build XCFrameworks
+that work for both iOS and tvOS. This is helpful as we can use the same
+deliverable for both iOS and tvOS targets in the same XCode project.
+
+``` bash
+# Install prereqs (like cocoapods)
+./build_scripts/tvos/install_prereqs.sh
+python scripts/gha/build_ios_tvos.py -s . -b ios_tvos_build
+```
+
 
 ### Building with Gradle for Android
 When building the Firebase C++ SDK for Android, gradle is used in combination
