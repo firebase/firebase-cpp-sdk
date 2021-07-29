@@ -9,6 +9,10 @@
 #include "firestore/src/include/firebase/firestore/document_change.h"
 #include "firestore/src/main/firestore_main.h"
 
+#if defined(__ANDROID__)
+#error "This header should not be used on Android."
+#endif
+
 namespace firebase {
 namespace firestore {
 
