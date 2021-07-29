@@ -384,7 +384,6 @@ TEST_F(SourceTest, GetNonExistingDocWhileOfflineWithDefaultGetOptions) {
   EXPECT_EQ(future.error(), Error::kErrorUnavailable);
 }
 
-
 TEST_F(SourceTest, GetDeletedDocWhileOfflineWithDefaultGetOptions) {
   GTEST_SKIP() << "b/112267729: We should raise a fromCache=true event with "
                << "a nonexistent snapshot, but because the default source goes "
@@ -516,7 +515,8 @@ TEST_F(SourceTest, GetNonExistingDocWhileOfflineWithSourceEqualToServer) {
   EXPECT_EQ(future.error(), Error::kErrorUnavailable);
 }
 
-TEST_F(SourceTest, GetNonExistingCollectionWhileOfflineWithSourceEqualToServer) {
+TEST_F(SourceTest,
+       GetNonExistingCollectionWhileOfflineWithSourceEqualToServer) {
   CollectionReference col_ref = Collection();
 
   DisableNetwork();

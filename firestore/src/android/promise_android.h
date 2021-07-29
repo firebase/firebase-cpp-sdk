@@ -79,8 +79,13 @@ class Promise {
  private:
   // The constructor is intentionally private.
   // Create instances with `PromiseFactory`.
-  Promise(const FirestoreInternalWeakReference& firestore_ref, ReferenceCountedFutureImpl* impl, Completion* completion) : firestore_ref_(firestore_ref), completer_(make_unique<Completer<PublicType, InternalType>>(firestore_ref, impl, completion)), impl_(impl) {
-  }
+  Promise(const FirestoreInternalWeakReference& firestore_ref,
+          ReferenceCountedFutureImpl* impl,
+          Completion* completion)
+      : firestore_ref_(firestore_ref),
+        completer_(make_unique<Completer<PublicType, InternalType>>(
+            firestore_ref, impl, completion)),
+        impl_(impl) {}
 
   template <typename PublicT>
   class CompleterBase {
@@ -111,9 +116,10 @@ class Promise {
       jni::Object result(raw_result);
 
       if (result_code == ::firebase::util::kFutureResultSuccess) {
-        firestore_ref_.RunIfValid([this, &env, &result](FirestoreInternal* firestore) {
-          SucceedWithResult(env, result, firestore);
-        });
+        firestore_ref_.RunIfValid(
+            [this, &env, &result](FirestoreInternal* firestore) {
+              SucceedWithResult(env, result, firestore);
+            });
 
         delete this;
 
