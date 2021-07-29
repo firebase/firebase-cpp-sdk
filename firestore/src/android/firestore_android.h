@@ -250,8 +250,8 @@ class FirestoreInternalWeakReference {
    * deleted) for the duration of the callback's execution.
    *
    * If this method is invoked concurrently then calls will be serialized in
-   * an undefined order. Recursive calls of this method are allowed and will not
-   * block.
+   * an undefined order. Recursive calls of this method are allowed on the same
+   * thread and will not block.
    */
   template <typename CallbackT>
   auto Run(CallbackT callback) -> decltype(callback(this->firestore_)) {
@@ -263,10 +263,10 @@ class FirestoreInternalWeakReference {
    * Same as `Run()` except that it only invokes the given callback if the
    * `FirestoreInternal` pointer is non-null.
    */
-  void RunIfValid(std::function<void(FirestoreInternal*)> callback) {
+  void RunIfValid(const std::function<void(FirestoreInternal&)>& callback) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (firestore_) {
-      callback(firestore_);
+      callback(*firestore_);
     }
   }
 };

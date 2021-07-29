@@ -19,28 +19,28 @@ class PromiseFactory {
  public:
   explicit PromiseFactory(FirestoreInternal* firestore)
       : firestore_ref_(firestore) {
-    firestore_ref_.RunIfValid([this](FirestoreInternal* firestore) {
-      firestore->future_manager().AllocFutureApi(this, ApiCount());
+    firestore_ref_.RunIfValid([this](FirestoreInternal& firestore) {
+      firestore.future_manager().AllocFutureApi(this, ApiCount());
     });
   }
 
   PromiseFactory(const PromiseFactory& rhs)
       : firestore_ref_(rhs.firestore_ref_) {
-    firestore_ref_.RunIfValid([this](FirestoreInternal* firestore) {
-      firestore->future_manager().AllocFutureApi(this, ApiCount());
+    firestore_ref_.RunIfValid([this](FirestoreInternal& firestore) {
+      firestore.future_manager().AllocFutureApi(this, ApiCount());
     });
   }
 
   PromiseFactory(PromiseFactory&& rhs)
       : firestore_ref_(Move(rhs.firestore_ref_)) {
-    firestore_ref_.RunIfValid([this, &rhs](FirestoreInternal* firestore) {
-      firestore->future_manager().MoveFutureApi(&rhs, this);
+    firestore_ref_.RunIfValid([this, &rhs](FirestoreInternal& firestore) {
+      firestore.future_manager().MoveFutureApi(&rhs, this);
     });
   }
 
   ~PromiseFactory() {
-    firestore_ref_.RunIfValid([this](FirestoreInternal* firestore) {
-      firestore->future_manager().ReleaseFutureApi(this);
+    firestore_ref_.RunIfValid([this](FirestoreInternal& firestore) {
+      firestore.future_manager().ReleaseFutureApi(this);
     });
   }
 

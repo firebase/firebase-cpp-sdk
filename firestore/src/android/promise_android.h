@@ -117,7 +117,7 @@ class Promise {
 
       if (result_code == ::firebase::util::kFutureResultSuccess) {
         firestore_ref_.RunIfValid(
-            [this, &env, &result](FirestoreInternal* firestore) {
+            [this, &env, &result](FirestoreInternal& firestore) {
               SucceedWithResult(env, result, firestore);
             });
 
@@ -141,7 +141,7 @@ class Promise {
           break;
       }
       firestore_ref_.RunIfValid(
-          [this, error_code, status_message](FirestoreInternal* firestore) {
+          [this, error_code, status_message](FirestoreInternal& firestore) {
             impl_->Complete(handle_, error_code, status_message);
           });
       if (completion_ != nullptr) {
@@ -152,7 +152,7 @@ class Promise {
 
     virtual void SucceedWithResult(jni::Env& env,
                                    const jni::Object& result,
-                                   FirestoreInternal* firestore) = 0;
+                                   FirestoreInternal& firestore) = 0;
 
    private:
     FirestoreInternalWeakReference firestore_ref_;
@@ -173,9 +173,9 @@ class Promise {
 
     void SucceedWithResult(jni::Env& env,
                            const jni::Object& result,
-                           FirestoreInternal* firestore) override {
+                           FirestoreInternal& firestore) override {
       auto future_result =
-          MakePublic<PublicT, InternalT>(env, firestore, result);
+          MakePublic<PublicT, InternalT>(env, &firestore, result);
 
       this->impl_->CompleteWithResult(this->handle_, Error::kErrorOk,
                                       /*error_msg=*/"", future_result);
@@ -193,7 +193,7 @@ class Promise {
 
     void SucceedWithResult(jni::Env& env,
                            const jni::Object& result,
-                           FirestoreInternal*) override {
+                           FirestoreInternal&) override {
       this->impl_->Complete(this->handle_, Error::kErrorOk, /*error_msg=*/"");
       if (this->completion_ != nullptr) {
         this->completion_->CompleteWith(Error::kErrorOk, /*error_message*/ "",
