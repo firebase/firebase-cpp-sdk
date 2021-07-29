@@ -403,6 +403,24 @@ TEST_F(PromiseTest, FutureNonVoidShouldCallCompletionWhenTaskCancels) {
   EXPECT_EQ(completion.result(), nullptr);
 }
 
+TEST_F(PromiseTest, RegisterForTaskShouldNotCrashIfFirestoreWasDeleted) {
+  jni::Env env = GetEnv();
+  auto promise = promises().MakePromise<void>();
+  DeleteFirestore(TestFirestore());
+
+  promise.RegisterForTask(env, AsyncFn::kFn, GetTask());
+}
+
+TEST_F(PromiseTest, GetFutureShouldNotCrashIfFirestoreWasDeleted) {
+  jni::Env env = GetEnv();
+  auto promise = promises().MakePromise<void>();
+  promise.RegisterForTask(env, AsyncFn::kFn, GetTask());
+  DeleteFirestore(TestFirestore());
+
+  auto future = promise.GetFuture();
+  EXPECT_EQ(future.status(), FutureStatus::kFutureStatusInvalid);
+}
+
 }  // namespace
 }  // namespace firestore
 }  // namespace firebase
