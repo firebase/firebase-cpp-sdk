@@ -110,6 +110,7 @@ set(FIREBASE_INTEGRATION_TEST_ANDROID_TEST_SRCS
     src/android/geo_point_android_test.cc
     src/android/jni_runnable_android_test.cc
     src/android/promise_android_test.cc
+    src/android/promise_factory_android_test.cc
     src/android/settings_android_test.cc
     src/android/snapshot_metadata_android_test.cc
     src/android/timestamp_android_test.cc
