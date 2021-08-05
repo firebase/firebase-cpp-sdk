@@ -8,6 +8,7 @@ iOS, and desktop platforms. It includes the following Firebase libraries:
 - [Firebase Authentication](https://firebase.google.com/docs/auth/)
 - [Firebase Realtime Database](https://firebase.google.com/docs/database/)
 - [Firebase Dynamic Links](https://firebase.google.com/docs/dynamic-links/)
+- [Cloud Firestore](https://firebase.google.com/docs/firestore/)
 - [Cloud Functions for Firebase](https://firebase.google.com/docs/functions/)
 - [Firebase Invites](https://firebase.google.com/docs/invites/)
 - [Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging/)
@@ -65,9 +66,9 @@ required packages:
 The following prerequisites are required when building the libraries for
 desktop platforms.
 
-- [OpenSSL](https://www.openssl.org/), needed for Realtime Database
+- [OpenSSL](https://www.openssl.org/), needed for Realtime Database and Cloud Firestore
 - [Protobuf](https://github.com/protocolbuffers/protobuf/blob/master/src/README.md),
-  needed for Remote Config
+  needed for Remote Config and Cloud Firestore
 
 ### Prerequisites for Windows
 Prebuilt packages for openssl can be found using google and if CMake fails to
@@ -135,6 +136,7 @@ The CMake following targets are available to build and link with:
 | Firebase Authentication | firebase_auth |
 | Firebase Realtime Database | firebase_database |
 | Firebase Dynamic Links | firebase_dynamic_links |
+| Cloud Firestore | firebase_firestore |
 | Cloud Functions for Firebase | firebase_functions |
 | Firebase Invites | firebase_invites |
 | Firebase Cloud Messaging | firebase_messaging |
@@ -240,6 +242,7 @@ release version of each Firebase library is:
 | Firebase Authentication | :auth:assembleRelease |
 | Firebase Realtime Database | :database:assembleRelease |
 | Firebase Dynamic Links | :dynamic_links:assembleRelease |
+| Cloud Firestore | :firestore:assembleRelease |
 | Cloud Functions for Firebase | :functions:assembleRelease |
 | Firebase Invites | :invites:assembleRelease |
 | Firebase Cloud Messaging | :messaging:assembleRelease |
