@@ -730,8 +730,6 @@ jobs:
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.prepare_matrix.outputs.github_ref}}
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
       - name: Download Desktop integration tests artifact
         uses: actions/download-artifact@v2.0.8
         with:
@@ -750,6 +748,8 @@ jobs:
         run: |
           pip install -r scripts/gha/requirements.txt
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Run Desktop integration tests
         run: python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
       - name: Prepare results summary artifact
@@ -804,8 +804,6 @@ jobs:
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.prepare_matrix.outputs.github_ref}}
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
       - name: Download Android integration tests artifact
         uses: actions/download-artifact@v2.0.8
         with:
@@ -825,6 +823,8 @@ jobs:
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.android_device }} )"
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Run Android integration tests on Emulator locally
         timeout-minutes: 60
         if: steps.get-device-type.outputs.device_type == 'virtual'
@@ -896,8 +896,6 @@ jobs:
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.prepare_matrix.outputs.github_ref}}
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
       - name: Download iOS integration tests artifact
         uses: actions/download-artifact@v2.0.8
         with:
@@ -917,6 +915,8 @@ jobs:
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.ios_device }} )"
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Run iOS integration tests on Simulator locally
         timeout-minutes: 60
         if: steps.get-device-type.outputs.device_type == 'virtual'
