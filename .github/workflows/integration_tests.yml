@@ -27,7 +27,7 @@ on:
       mobile_test_on:
         description: 'Run mobile tests on real and/or virtual devices? (separated by commas)'
         default: 'real,virtual'
-        required: true 
+        required: true
       use_expanded_matrix:
         description: 'Use an expanded matrix? Note: above config will be ignored.'
         default: '0'
@@ -52,8 +52,8 @@ jobs:
   check_trigger:
     ### This job runs when the workflow was triggered by 1) PR getting labeled
     ### 2) PR merged & closed 3) or manumlly triggered with Pull request #.
-    ### If triggered by label, then checks whether the label is a test-request 
-    ### trigger (cancelling the workflow if not). 
+    ### If triggered by label, then checks whether the label is a test-request
+    ### trigger (cancelling the workflow if not).
     ### It sets outputs to control the build_* matrix (full or quick) and to tell
     ### subsequent steps to update the labels as well.
     runs-on: ubuntu-latest
@@ -233,6 +233,8 @@ jobs:
         with:
           ref: ${{needs.prepare_matrix.outputs.github_ref}}
           submodules: true
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Set env vars (Linux)
         if: startsWith(matrix.os, 'ubuntu')
         run: echo "VCPKG_TRIPLET=x64-linux" >> $GITHUB_ENV
@@ -404,6 +406,8 @@ jobs:
         with:
           ref: ${{needs.prepare_matrix.outputs.github_ref}}
           submodules: true
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Add msbuild to PATH (Windows)
         if: startsWith(matrix.os, 'windows')
         uses: microsoft/setup-msbuild@v1.0.2
@@ -461,7 +465,7 @@ jobs:
             --artifact_name "android-${{ matrix.os }}" \
             --noadd_timestamp \
             --short_output_paths \
-            ${additional_flags[*]} 
+            ${additional_flags[*]}
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
@@ -519,6 +523,8 @@ jobs:
         with:
           ref: ${{needs.prepare_matrix.outputs.github_ref}}
           submodules: true
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Setup python
         uses: actions/setup-python@v2
         with:
@@ -566,7 +572,7 @@ jobs:
             --artifact_name "ios-macos-latest" \
             --noadd_timestamp \
             --short_output_paths \
-            ${additional_flags[*]} 
+            ${additional_flags[*]}
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
@@ -670,7 +676,7 @@ jobs:
             --artifact_name "tvos-macos-latest" \
             --noadd_timestamp \
             --short_output_paths \
-            ${additional_flags[*]} 
+            ${additional_flags[*]}
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
@@ -730,6 +736,8 @@ jobs:
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.prepare_matrix.outputs.github_ref}}
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Download Desktop integration tests artifact
         uses: actions/download-artifact@v2.0.8
         with:
@@ -778,7 +786,7 @@ jobs:
             --issue_number ${{needs.check_trigger.outputs.pr_number}}\
             --actor ${{github.actor}} \
             --commit ${{needs.prepare_matrix.outputs.github_ref}} \
-            --run_id ${{github.run_id}}       
+            --run_id ${{github.run_id}}
       - name: Summarize test results
         if: ${{ !cancelled() }}
         shell: bash
@@ -802,6 +810,8 @@ jobs:
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.prepare_matrix.outputs.github_ref}}
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Download Android integration tests artifact
         uses: actions/download-artifact@v2.0.8
         with:
@@ -892,6 +902,8 @@ jobs:
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.prepare_matrix.outputs.github_ref}}
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Download iOS integration tests artifact
         uses: actions/download-artifact@v2.0.8
         with:
@@ -944,7 +956,7 @@ jobs:
         with:
           name: log-artifact
           path: testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}*
-          retention-days: ${{ env.artifactRetentionDays }}      
+          retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         uses: actions/download-artifact@v2.0.8
@@ -1018,7 +1030,7 @@ jobs:
         with:
           name: log-artifact
           path: testapps/test-results-tvos-macos-latest-${{ matrix.tvos_device }}*
-          retention-days: ${{ env.artifactRetentionDays }}      
+          retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         uses: actions/download-artifact@v2.0.8
