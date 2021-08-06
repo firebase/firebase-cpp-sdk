@@ -233,8 +233,6 @@ jobs:
         with:
           ref: ${{needs.prepare_matrix.outputs.github_ref}}
           submodules: true
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
       - name: Set env vars (Linux)
         if: startsWith(matrix.os, 'ubuntu')
         run: echo "VCPKG_TRIPLET=x64-linux" >> $GITHUB_ENV
@@ -406,8 +404,6 @@ jobs:
         with:
           ref: ${{needs.prepare_matrix.outputs.github_ref}}
           submodules: true
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
       - name: Add msbuild to PATH (Windows)
         if: startsWith(matrix.os, 'windows')
         uses: microsoft/setup-msbuild@v1.0.2
@@ -523,8 +519,6 @@ jobs:
         with:
           ref: ${{needs.prepare_matrix.outputs.github_ref}}
           submodules: true
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
       - name: Setup python
         uses: actions/setup-python@v2
         with:
