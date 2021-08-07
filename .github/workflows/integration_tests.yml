@@ -748,10 +748,10 @@ jobs:
         run: |
           pip install -r scripts/gha/requirements.txt
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
       - name: Run Desktop integration tests
         run: python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
@@ -823,8 +823,6 @@ jobs:
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.android_device }} )"
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
       - name: Run Android integration tests on Emulator locally
         timeout-minutes: 60
         if: steps.get-device-type.outputs.device_type == 'virtual'
@@ -833,6 +831,8 @@ jobs:
             --android_device "${{ matrix.android_device }}" \
             --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}" \
             --ci
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Install Cloud SDK
         if: steps.get-device-type.outputs.device_type == 'real'
         uses: google-github-actions/setup-gcloud@master
@@ -915,8 +915,6 @@ jobs:
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.ios_device }} )"
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
       - name: Run iOS integration tests on Simulator locally
         timeout-minutes: 60
         if: steps.get-device-type.outputs.device_type == 'virtual'
@@ -925,6 +923,8 @@ jobs:
             --ios_device "${{ matrix.ios_device }}" \
             --logfile_name "ios-macos-latest-${{ matrix.ios_device }}" \
             --ci
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Install Cloud SDK
         if: steps.get-device-type.outputs.device_type == 'real'
         uses: google-github-actions/setup-gcloud@master
