@@ -68,7 +68,7 @@ desktop platforms.
 
 - [OpenSSL](https://www.openssl.org/), needed for Realtime Database and Cloud Firestore
 - [Protobuf](https://github.com/protocolbuffers/protobuf/blob/master/src/README.md),
-  needed for Remote Config and Cloud Firestore
+  needed for Remote Config
 
 ### Prerequisites for Windows
 Prebuilt packages for openssl can be found using google and if CMake fails to
