@@ -750,7 +750,8 @@ jobs:
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps
       - name: Run Desktop integration tests
         run: python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
-        env: USE_FIRESTORE_FIRESTORE: true
+        env:
+          USE_FIRESTORE_FIRESTORE: true
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
       - name: Prepare results summary artifact
