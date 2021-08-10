@@ -1272,7 +1272,7 @@ TEST_F(FirebaseDatabaseTest, TestInfoConnected) {
 #if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
   FLAKY_TEST_SECTION_BEGIN();
 #endif  // defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
-  
+
   firebase::database::DatabaseReference ref = CreateWorkingPath();
   // Force getting a value so that we are connected to the database.
   WaitForCompletion(ref.GetValue(), "GetValue 1 [ignored]");
