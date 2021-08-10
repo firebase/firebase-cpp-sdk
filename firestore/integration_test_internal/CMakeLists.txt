@@ -95,6 +95,7 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS
     src/query_test.cc
     src/sanity_test.cc
     src/server_timestamp_test.cc
+    src/settings_test.cc
     src/smoke_test.cc
     src/source_test.cc
     src/transaction_test.cc
