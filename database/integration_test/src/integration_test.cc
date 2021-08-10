@@ -1266,9 +1266,17 @@ TEST_F(FirebaseDatabaseTest, TestInvalidatingReferencesWhenDeletingApp) {
 
 TEST_F(FirebaseDatabaseTest, TestInfoConnected) {
   SignIn();
+
+  // The entire test can be a bit flaky on iOS, as the iOS SDK's
+  // .info/connected is not quite perfect.
+#if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+  FLAKY_TEST_SECTION_BEGIN();
+#endif  // defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+  
   firebase::database::DatabaseReference ref = CreateWorkingPath();
   // Force getting a value so that we are connected to the database.
   WaitForCompletion(ref.GetValue(), "GetValue 1 [ignored]");
+
   firebase::database::DatabaseReference info =
       database_->GetReference(".info").Child("connected");
   {
@@ -1299,6 +1307,10 @@ TEST_F(FirebaseDatabaseTest, TestInfoConnected) {
     WaitForCompletion(reconnected, "GetValue 5");
     EXPECT_EQ(reconnected.result()->value(), true);
   }
+
+#if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+  FLAKY_TEST_SECTION_END();
+#endif  // defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
 }
 
 TEST_F(FirebaseDatabaseTest, TestGetReferenceWillNullArgument) {
