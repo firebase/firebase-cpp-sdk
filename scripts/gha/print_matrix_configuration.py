@@ -102,7 +102,7 @@ PARAMETERS = {
       "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
       "platform": ["Desktop", "Android", "iOS", "tvOS"],
       "ssl_lib": ["openssl"],
-      "android_device": ["android_latest", "emulator_target"],
+      "android_device": ["android_target", "emulator_target"],
       "ios_device": ["ios_target", "simulator_target"],
       "tvos_device": ["tvos_simulator"],
       "build_type": ["Debug"],
@@ -118,7 +118,7 @@ PARAMETERS = {
 
       EXPANDED_KEY: {
         "ssl_lib": ["openssl", "boringssl"],
-        "android_device": ["android_latest", "android_latest", "emulator_target", "emulator_latest", "emulator_32bit"],
+        "android_device": ["android_target", "android_latest", "emulator_target", "emulator_latest", "emulator_32bit"],
         "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"],
         "tvos_device": ["tvos_simulator"],
       }
