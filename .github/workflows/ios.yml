@@ -1,0 +1,58 @@
+name: iOS Builds
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  workflow_dispatch:
+    inputs:
+      use_expanded_matrix:
+        description: 'Use an expanded matrix?'
+        default: '0'
+        required: true
+jobs:
+  prepare_matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix_xcode_version: ${{ steps.export-result.outputs.matrix_xcode_version }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: false
+      - name: Use expanded matrix
+        if: github.event.inputs.use_expanded_matrix == '1'
+        run: |
+          echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
+      - id: export-result
+        run: |
+          echo "::set-output name=matrix_xcode_version::$( python scripts/gha/print_matrix_configuration.py -w ios -k xcode_version ${EXPANDED_MATRIX_PARAM} )"
+
+  build:
+    name: ios-macos-latest
+    runs-on: macos-latest
+    needs: prepare_matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        xcode_verison: ${{ fromJson(needs.prepare_matrix.outputs.matrix_xcode_version) }}
+    steps:
+      - name: setup Xcode version (macos)
+        if: runner.os == 'macOS'
+        run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_verison }}.app/Contents/Developer
+
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+          architecture: "x64"
+
+      - name: Install prerequisites
+        run: |
+          build_scripts/ios/install_prereqs.sh
+
+      - name: Build SDK
+        run: |
+          build_scripts/ios/build.sh -b ios_build -s .

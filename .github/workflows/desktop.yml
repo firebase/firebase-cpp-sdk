@@ -1,0 +1,264 @@
+name: Desktop Builds
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  workflow_dispatch:
+    inputs:
+      expanded_matrix:
+        description: 'Use an expanded matrix?'
+        default: '0'
+        required: true
+
+env:
+  CCACHE_DIR: ${{ github.workspace }}/ccache_dir
+
+jobs:
+  prepare_matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix_os: ${{ steps.export-result.outputs.matrix_os }}
+      matrix_build_type: ${{ steps.export-result.outputs.matrix_build_type }}
+      matrix_architecture: ${{ steps.export-result.outputs.matrix_architecture }}
+      matrix_msvc_runtime: ${{ steps.export-result.outputs.msvc_runtime }}
+      matrix_xcode_version: ${{ steps.export-result.outputs.xcode_version }}
+      matrix_python_version: ${{ steps.export-result.outputs.python_version }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: false
+      - name: Use expanded matrix
+        if: github.event.inputs.expanded_matrix == '1'
+        run: |
+          echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
+      - id: export-result
+        run: |
+          echo "::set-output name=matrix_os::$( python scripts/gha/print_matrix_configuration.py -w desktop -k os ${EXPANDED_MATRIX_PARAM})"
+          echo "::set-output name=matrix_build_type::$( python scripts/gha/print_matrix_configuration.py -w desktop -k build_type ${EXPANDED_MATRIX_PARAM})"
+          echo "::set-output name=matrix_architecture::$( python scripts/gha/print_matrix_configuration.py -w desktop -k architecture ${EXPANDED_MATRIX_PARAM})"
+          echo "::set-output name=msvc_runtime::$( python scripts/gha/print_matrix_configuration.py -w desktop -k msvc_runtime ${EXPANDED_MATRIX_PARAM})"
+          echo "::set-output name=xcode_version::$( python scripts/gha/print_matrix_configuration.py -w desktop -k xcode_version ${EXPANDED_MATRIX_PARAM})"
+          echo "::set-output name=python_version::$( python scripts/gha/print_matrix_configuration.py -w desktop -k python_version ${EXPANDED_MATRIX_PARAM})"
+  build:
+    name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime}}
+    runs-on: ${{ matrix.os }}
+    needs: prepare_matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
+        build_type: ${{ fromJson(needs.prepare_matrix.outputs.matrix_build_type) }}
+        architecture: ${{ fromJson(needs.prepare_matrix.outputs.matrix_architecture) }}
+        msvc_runtime: ${{ fromJson(needs.prepare_matrix.outputs.matrix_msvc_runtime) }}
+        xcode_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_xcode_version) }}
+        python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
+        include:
+          # More Windows combinations are in the expanded matrix. 
+          - os: windows-latest
+            build_type: "Release"
+            architecture: "x64"
+            msvc_runtime: "static"
+          - os: windows-latest
+            build_type: "Debug"
+            architecture: "x86"
+            msvc_runtime: "dynamic"
+        exclude:
+          # msvc_runtime excludes
+          - os: ubuntu-latest
+            msvc_runtime: "dynamic"
+          - os: macos-latest
+            msvc_runtime: "dynamic"
+          # architecture excluees
+          - os: macos-latest
+            architecture: "x86"
+          # Xcode excludes -- allow only one on osx and linux
+          - os: ubuntu-latest
+            xcode_version: "12.4"
+          - os: windows-latest
+            xcode_version: "12.4"
+    steps:                
+      - name: Setup Xcode version (macos)
+        if: runner.os == 'macOS'
+        run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer
+
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      
+      - name: Set env vars (ubuntu)
+        if: startsWith(matrix.os, 'ubuntu')
+        shell: bash
+        run:  echo "VCPKG_SUFFIX=linux" >> $GITHUB_ENV
+
+      - name: Set env vars (macos)
+        if: startsWith(matrix.os, 'macos')
+        shell: bash
+        run: echo "VCPKG_SUFFIX=osx" >> $GITHUB_ENV
+
+      - name: Set env vars (windows)
+        if: startsWith(matrix.os, 'windows')
+        shell: bash
+        run: |
+          if [[ ${{matrix.msvc_runtime}}  == "static" ]];
+            then echo "VCPKG_SUFFIX=windows-static" >> $GITHUB_ENV;
+          elif [[ ${{matrix.msvc_runtime}} == "dynamic" ]];
+            then echo "VCPKG_SUFFIX=windows-static-md" >> $GITHUB_ENV;
+          else
+            echo "Warning, could not resolve vcpkg suffix.";
+          fi
+
+      - name: Set env variables for subsequent steps (all)
+        shell: bash
+        run: |
+          echo "BUILD_TYPE: ${{ matrix.build_type }}"
+          echo "VCPKG_SUFFIX: ${{env.VCPKG_SUFFIX}}"
+          echo "VCPKG_RESPONSE_FILE=external/vcpkg_custom_data/response_files/${{ matrix.architecture }}-${{ env.VCPKG_SUFFIX }}.txt" >> $GITHUB_ENV
+          echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}" >> $GITHUB_ENV
+
+      - name: Cache vcpkg C++ dependencies
+        id: cache_vcpkg
+        uses: actions/cache@v2
+        with:
+          path: external/vcpkg/installed
+          key: dev-vcpkg-${{ matrix.architecture }}-${{ env.VCPKG_SUFFIX }}-${{ matrix.msvc_runtime }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
+
+      - name: Cache ccache files
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        id: cache_ccache
+        uses: actions/cache@v2
+        with:
+          path: ccache_dir
+          key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python_version }}
+          architecture: 'x64'
+
+      - name: Update homebrew (avoid bintray errors)
+        uses: nick-invision/retry@v2
+        if: startsWith(matrix.os, 'macos')
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: |
+            # Temporarily here until Github runners have updated their version of
+            # homebrew. This prevents errors arising from the shut down of
+            # binutils, used by older version of homebrew for hosting packages.
+            brew update
+
+      - name: Install prerequisites
+        run: |
+          python scripts/gha/install_prereqs_desktop.py
+
+      - name: Build SDK
+        shell: bash
+        run: |
+          python scripts/gha/build_desktop.py --build_tests --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}" --gha_build
+
+      - name: Stats for ccache (mac and linux)
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        run: ccache -s
+
+      - name: Print built libraries
+        shell: bash
+        run: |
+          find build -name "*.lib"
+          find build -name "*.dll"
+          find build -name "*.dylib"
+          find build -name "*.a"
+          find build -name "*.so"
+
+      - name: Inspect firebase libraries for cpu arch and msvc runtime.
+        shell: bash
+        run: |
+          python scripts/gha/inspect_built_libraries.py build/
+        continue-on-error: true
+
+      - name: Prep crash support (linux)
+        # Ensures directory structure is in place to capture core files on Linux.
+        if: startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
+        shell: bash
+        run: |
+          echo '/tmp/cores/core.%E' | sudo tee /proc/sys/kernel/core_pattern
+          sudo mkdir -p /tmp/cores/
+          sudo rm -rf /tmp/cores/*
+
+      - name: Prep crash support (mac)
+        # Ensures no lingering crashes from the previous run.
+        if: startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
+        run: |
+          rm -rf ~/Library/Logs/DiagnosticReports/*
+
+      - name: Run unit tests (windows & macos)
+        # TODO: Enable tests for x86 once they are all working
+        if: (startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')) && matrix.architecture != 'x86'
+        env:
+          LANG: en_US
+        run: |
+          cd build
+          ctest --repeat until-pass:3
+
+      - name: Run unit tests (linux)
+        # Linux exists as its own standalone execution step in order to invoke
+        # platform-specific `ulimit` to enable crash collection.  The ulimit
+        # command must be invoked in same shell instance of that runs the
+        # tests.
+        # TODO: Enable tests for x86 once they are all working
+        if: startsWith(matrix.os, 'ubuntu') && matrix.architecture != 'x86'
+        env:
+          LANG: en_US
+        run: |
+          ulimit -c unlimited
+          cd build
+          sudo ctest --repeat until-pass:3
+
+      - name: Prep bins for achive (linux)
+        # Copies all of the binary files into one directory for ease in
+        # archiving. Directory contents are then marked readable for the
+        # archive step.
+        if: failure() && startsWith(matrix.build_type, 'Debug') && ( startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos') )
+        shell: bash
+        run: |
+          sudo rm -rf /tmp/bins/* || :
+          sudo mkdir -p /tmp/bins/
+          sudo rm -rf ./build/app/tests/firebase_test
+          sudo cp -f ./build/*/tests/firebase* /tmp/bins
+          sudo chmod -R +rwx /tmp/bins/* || :
+
+      - name: Prep crash data for archive (linux)
+        # Marks the contents of the core dump directory to be readable for the
+        # archiving step on linux.
+        shell: bash
+        if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo chmod -R +rwx /tmp/cores/* || :
+
+      - name: Prep crash data for archive (macos)
+        # Freshly made diagnostic reports are marked as readable for
+        # the archive step. Note: for some reason /tmp/cores doesn't survive
+        # long enough for archiving on mac, so prep the DiagnosticReports
+        # directory instead.
+        shell: bash
+        if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
+        run: |
+          sudo chmod -R +rwx ~/Library/Logs/DiagnosticReports/* || :
+
+      - name: Archive crashes and binaries (linux)
+        uses: actions/upload-artifact@v2
+        if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
+        with:
+          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          path: |
+            /tmp/cores/*
+            /tmp/bins/*
+
+      - name: Archive crashes (mac)
+        uses: actions/upload-artifact@v2
+        if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
+        with:
+          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.xcode_version }}
+          path: |
+            ~/Library/Logs/DiagnosticReports/*
+            /tmp/bins/*

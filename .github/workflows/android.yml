@@ -1,0 +1,138 @@
+name: Android Builds
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  workflow_dispatch:
+    inputs:
+      use_expanded_matrix:
+        description: 'Use an expanded matrix?'
+        default: '0'
+        required: true
+
+env:
+  CCACHE_DIR: ${{ github.workspace }}/ccache_dir
+
+jobs:
+  prepare_matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix_os: ${{ steps.export-result.outputs.matrix_os }}
+      matrix_architecture: ${{ steps.export-result.outputs.matrix_architecture }}
+      matrix_python_version: ${{ steps.export-result.outputs.matrix_python_version }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: false
+      - name: Use expanded matrix
+        if: github.event.inputs.use_expanded_matrix == '1'
+        run: |
+          echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
+      - id: export-result
+        run: |
+          echo "::set-output name=matrix_os::$( python scripts/gha/print_matrix_configuration.py -w android -k os ${EXPANDED_MATRIX_PARAM} )"
+          echo "::set-output name=matrix_architecture::$( python scripts/gha/print_matrix_configuration.py -w android -k architecture ${EXPANDED_MATRIX_PARAM} )"
+          echo "::set-output name=matrix_python_version::$( python scripts/gha/print_matrix_configuration.py -w android -k python_version ${EXPANDED_MATRIX_PARAM} )"
+
+  build:
+    name: android-${{ matrix.os }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+    runs-on: ${{ matrix.os }}
+    needs: prepare_matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
+        architecture: ${{ fromJson(needs.prepare_matrix.outputs.matrix_architecture) }}
+        python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
+    steps:
+      - name: Check expanded matrix config
+        if: github.event.inputs.expanded_matrix == '1'
+        run: |
+          echo "Enabling expanded build and test matrix."
+          echo "USE_EXPANDED_MATRIX=1" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Set env variables for subsequent steps (all)
+        shell: bash
+        run: |
+          echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.architecture }}" >> $GITHUB_ENV
+          echo "GHA_INSTALL_CCACHE=1" >> $GITHUB_ENV
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python_version }}
+          architecture: ${{ matrix.architecture }}
+
+      - name: Add msbuild to PATH
+        if: startsWith(matrix.os, 'windows')
+        uses: microsoft/setup-msbuild@v1.0.2
+
+      - name: Cache NDK
+        id: cache_ndk
+        uses: actions/cache@v2
+        with:
+          path: /tmp/android-ndk-r16b
+          key: android-ndk-${{ matrix.os }}-r16b
+
+      - name: Update homebrew (avoid bintray errors)
+        uses: nick-invision/retry@v2
+        if: startsWith(matrix.os, 'macos')
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: |
+            # Temporarily here until Github runners have updated their version of
+            # homebrew. This prevents errors arising from the shut down of
+            # binutils, used by older version of homebrew for hosting packages.
+            brew update
+
+      - name: Install prerequisites
+        shell: bash
+        run: |
+          build_scripts/android/install_prereqs.sh
+
+      - name: Add strings.exe to PATH (Windows only)
+        if: startsWith(matrix.os, 'windows')
+        shell: bash
+        run: |
+          # strings.exe was installed in repo root by install_prereqs.sh.
+          # There is another conflicting strings executable on Github runners.
+          # "C:\ProgramData\Chocolatey\lib\mingw\tools\install\mingw64\bin\strings.exe"
+          # Make sure to prepend the one in our repo root to the path.
+          echo "${{ github.workspace }}" >> $GITHUB_PATH
+
+      - name: Run strings.exe once to accept license(Windows only)
+        if: startsWith(matrix.os, 'windows')
+        shell: bash
+        run: |
+          # This invocation is just to accept the license. Otherwise the command
+          # fails during build process. Also, running a command with just this
+          # flag makes the process exit with code 127 and stops the workflow.
+          # We ignore the error and continue with the rest of the steps.
+          strings -accepteula || true
+
+      - name: Cache ccache files
+        id: cache_ccache
+        uses: actions/cache@v2
+        with:
+          path: ccache_dir
+          key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
+
+      - name: Build SDK
+        shell: bash
+        run: |
+          build_scripts/android/build.sh android_build .
+
+      - name: Stats for ccache (mac and linux)
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        run: ccache -s
+
+      - name: Print built libraries
+        shell: bash
+        run: |
+          find android_build -name "*.aar"
+          find android_build -name "*.jar"

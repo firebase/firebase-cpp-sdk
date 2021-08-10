@@ -833,7 +833,8 @@ jobs:
             --android_device "${{ matrix.android_device }}" \
             --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}" \
             --ci
-        env: USE_FIRESTORE_EMULATOR: true
+        env:
+          USE_FIRESTORE_EMULATOR: true
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
       - name: Install Cloud SDK
@@ -926,7 +927,8 @@ jobs:
             --ios_device "${{ matrix.ios_device }}" \
             --logfile_name "ios-macos-latest-${{ matrix.ios_device }}" \
             --ci
-        env: USE_FIRESTORE_EMULATOR: true
+        env: 
+          USE_FIRESTORE_EMULATOR: true
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
       - name: Install Cloud SDK
