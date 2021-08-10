@@ -61,11 +61,15 @@ _COMMENT_TITLE_PROGESS = "### ⏳&nbsp; Integration test in progress...\n"
 _COMMENT_TITLE_PROGESS_FAIL = "### ❌&nbsp; Integration test FAILED (but still ⏳&nbsp; in progress)\n" 
 _COMMENT_TITLE_FAIL = "### ❌&nbsp; Integration test FAILED\n"
 _COMMENT_TITLE_SUCCEED = "### ✅&nbsp; Integration test succeeded!\n"
+_COMMENT_TITLE_FAIL_SDK = "\n***\n### ❌&nbsp; Integration test FAILED (build against SDK)\n"
+_COMMENT_TITLE_SUCCEED_SDK = "\n***\n### ✅&nbsp; Integration test succeeded! (build against SDK)\n"
+_COMMENT_TITLE_FAIL_REPO = "### ❌&nbsp; Integration test FAILED (build against repo)\n"
+_COMMENT_TITLE_SUCCEED_REPO = "### ✅&nbsp; Integration test succeeded! (build against repo)\n"
 
-_COMMENT_FLAKY_TRACKER = "\nAdd flaky tests to **[go/fpl-cpp-flake-tracker](http://go/fpl-cpp-flake-tracker)**\n"
+_COMMENT_FLAKY_TRACKER = "\n\nAdd flaky tests to **[go/fpl-cpp-flake-tracker](http://go/fpl-cpp-flake-tracker)**\n"
 
 _COMMENT_IDENTIFIER = "integration-test-status-comment"
-_COMMENT_SUFFIX = f'\n\n\n<hidden value="{_COMMENT_IDENTIFIER}"></hidden>'
+_COMMENT_SUFFIX = f'\n<hidden value="{_COMMENT_IDENTIFIER}"></hidden>'
 
 _LOG_ARTIFACT_NAME = "log-artifact"
 _LOG_OUTPUT_DIR = "test_results"
@@ -75,6 +79,9 @@ _BUILD_STAGES_PROGRESS = "progress"
 _BUILD_STAGES_END = "end"
 _BUILD_STAGES_REPORT = "report"
 _BUILD_STAGES = [_BUILD_STAGES_START, _BUILD_STAGES_PROGRESS, _BUILD_STAGES_END, _BUILD_STAGES_REPORT]
+
+_BUILD_AGAINST_SDK = "sdk"
+_BUILD_AGAINST_REPO = "repo"
 
 FLAGS = flags.FLAGS
 
@@ -105,7 +112,12 @@ flags.DEFINE_string(
     "new_token", None,
     "Only used with --stage end"
     "Use a different token to remove the \"in-progress\" label,"
-    "to allow the removal to trigger the \"Check Labels\" workflow.")                    
+    "to allow the removal to trigger the \"Check Labels\" workflow.")   
+
+flags.DEFINE_string(
+    "build_against", None,
+    "Integration testapps could either build against packaged SDK or repo")
+
 
 def test_start(token, issue_number, actor, commit, run_id):
   """In PR, when start testing, add comment and label \"tests: in-progress\""""
@@ -130,6 +142,7 @@ def test_progress(token, issue_number, actor, commit, run_id):
     comment = (_COMMENT_TITLE_PROGESS_FAIL +
                _get_description(actor, commit, run_id) +
                log_summary +
+               _COMMENT_FLAKY_TRACKER +
                _COMMENT_SUFFIX)
     _update_comment(token, issue_number, comment)
 
@@ -150,39 +163,40 @@ def test_end(token, issue_number, actor, commit, run_id, new_token):
     comment = (_COMMENT_TITLE_FAIL +
                _get_description(actor, commit, run_id) +
                log_summary +
+               _COMMENT_FLAKY_TRACKER +
                _COMMENT_SUFFIX)
     _update_comment(token, issue_number, comment)
 
   github.delete_label(new_token, issue_number, _LABEL_PROGRESS)
 
 
-def test_report(token, actor, commit, run_id):
+def test_report(token, actor, commit, run_id, build_against):
   """Update (create if not exist) a Daily Report in Issue. 
-  If test failed, add label \"tests: failed\" and open the Issue, 
-  If test succeed, add label \"tests: succeeded\" and close the Issue.
   The Issue with title _REPORT_TITLE and label _REPORT_LABEL:
-  https://github.com/firebase/firebase-cpp-sdk/issues?q=is%3Aissue+is%3Aclosed+label%3Anightly-testing
+  https://github.com/firebase/firebase-cpp-sdk/issues?q=is%3Aissue+label%3Anightly-testing
   """
   issue_number = _get_issue_number(token, _REPORT_TITLE, _REPORT_LABEL)
+  previous_comment = github.get_issue_body(token, issue_number)
+  [previous_comment_repo, previous_comment_sdk] = previous_comment.split(_COMMENT_SUFFIX)
   log_summary = _get_summary_talbe(token, run_id)
   if log_summary == 0:
-#     github.delete_label(token, issue_number, _LABEL_FAILED)
-#     github.add_label(token, issue_number, _LABEL_SUCCEED)
-    github.close_issue(token, issue_number)
-    comment = (_COMMENT_TITLE_SUCCEED +
-               _get_description(actor, commit, run_id) +
-               _COMMENT_SUFFIX)
-    github.update_issue_comment(token, issue_number, comment)
+    title = _COMMENT_TITLE_SUCCEED_REPO if build_against==_BUILD_AGAINST_REPO else _COMMENT_TITLE_SUCCEED_SDK
+    comment = title + _get_description(actor, commit, run_id)
   else:
-#     github.delete_label(token, issue_number, _LABEL_SUCCEED)
-#     github.add_label(token, issue_number, _LABEL_FAILED)
+    title = _COMMENT_TITLE_FAIL_REPO if build_against==_BUILD_AGAINST_REPO else _COMMENT_TITLE_FAIL_SDK
+    comment = title + _get_description(actor, commit, run_id) + log_summary + _COMMENT_FLAKY_TRACKER
+  
+  if build_against==_BUILD_AGAINST_REPO:
+    comment = comment + _COMMENT_SUFFIX + previous_comment_sdk
+  else:
+    comment = previous_comment_repo + _COMMENT_SUFFIX + comment
+
+  if (_COMMENT_TITLE_SUCCEED_REPO in comment) and (_COMMENT_TITLE_SUCCEED_SDK in comment):
+    github.close_issue(token, issue_number)
+  else:
     github.open_issue(token, issue_number)
-    comment = (_COMMENT_TITLE_FAIL +
-               _get_description(actor, commit, run_id) +
-               log_summary +
-               _COMMENT_FLAKY_TRACKER +
-               _COMMENT_SUFFIX)
-    github.update_issue_comment(token, issue_number, comment)
+    
+  github.update_issue_comment(token, issue_number, comment)
 
 
 def _get_issue_number(token, title, label):
@@ -191,7 +205,7 @@ def _get_issue_number(token, title, label):
     if issue["title"] == title:
       return issue["number"]
 
-  return github.create_issue(token, title, label)["number"]
+  return github.create_issue(token, title, label, _COMMENT_SUFFIX)["number"]
 
 
 def _update_comment(token, issue_number, comment):
@@ -253,7 +267,7 @@ def main(argv):
   elif FLAGS.stage == _BUILD_STAGES_END:
     test_end(FLAGS.token, FLAGS.issue_number, FLAGS.actor, FLAGS.commit, FLAGS.run_id, FLAGS.new_token)
   elif FLAGS.stage == _BUILD_STAGES_REPORT:
-    test_report(FLAGS.token, FLAGS.actor, FLAGS.commit, FLAGS.run_id)
+    test_report(FLAGS.token, FLAGS.actor, FLAGS.commit, FLAGS.run_id, FLAGS.build_against)
   else:
     print("Invalid stage value. Valid value: " + ",".join(_BUILD_STAGES))
 

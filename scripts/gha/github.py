@@ -52,14 +52,23 @@ def requests_retry_session(retries=RETRIES,
     session.mount('https://', adapter)
     return session
 
-def create_issue(token, title, label):
+def create_issue(token, title, label, body):
   """Create an issue: https://docs.github.com/en/rest/reference/issues#create-an-issue"""
   url = f'{FIREBASE_URL}/issues'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
-  data = {'title': title, 'labels': [label]}
+  data = {'title': title, 'labels': [label], 'body': body}
   with requests.post(url, headers=headers, data=json.dumps(data), timeout=TIMEOUT) as response:
     logging.info("create_issue: %s response: %s", url, response)
     return response.json()
+
+
+def get_issue_body(token, issue_number):
+  """https://docs.github.com/en/rest/reference/issues#get-an-issue-comment"""
+  url = f'{FIREBASE_URL}/issues/{issue_number}'
+  headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
+  with requests_retry_session().get(url, headers=headers, timeout=TIMEOUT) as response:
+    logging.info("get_issue_body: %s response: %s", url, response)
+    return response.json()["body"]
 
 
 def update_issue(token, issue_number, data):
@@ -192,3 +201,13 @@ def get_reviews(token, pull_number):
       # If exactly per_page results were retrieved, read the next page.
       keep_going = (len(response.json()) == per_page)
   return results
+
+
+def workflow_dispatch(token, workflow_id, ref, inputs):
+  """https://docs.github.com/en/rest/reference/actions#create-a-workflow-dispatch-event"""
+  url = f'{FIREBASE_URL}/actions/workflows/{workflow_id}/dispatches'
+  headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
+  data = {'ref': ref, 'inputs': inputs}
+  with requests.post(url, headers=headers, data=json.dumps(data),
+                    stream=True, timeout=TIMEOUT) as response:
+    logging.info("workflow_dispatch: %s response: %s", url, response)
