@@ -319,7 +319,7 @@ jobs:
               additional_flags+=(--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON)
             fi
           fi
-          python scripts/gha/build_testapps.py --p Desktop \
+          python scripts/gha/build_testapps.py --t firestore --p Desktop \
             --t ${{ needs.prepare_matrix.outputs.apis }} \
             --output_directory "${{ github.workspace }}" \
             --artifact_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}" \
@@ -455,7 +455,7 @@ jobs:
             cd ..
             additional_flags+=(--packaged_sdk downloaded_sdk/firebase_cpp_sdk)
           fi
-          python scripts/gha/build_testapps.py --p Android \
+          python scripts/gha/build_testapps.py --t firestore --p Android \
             --t ${{ needs.prepare_matrix.outputs.apis }}  \
             --output_directory "${{ github.workspace }}" \
             --artifact_name "android-${{ matrix.os }}" \
@@ -559,7 +559,7 @@ jobs:
             cd ..
             additional_flags+=(--packaged_sdk downloaded_sdk/firebase_cpp_sdk)
           fi
-          python scripts/gha/build_testapps.py --p iOS \
+          python scripts/gha/build_testapps.py --t firestore --p iOS \
             --t ${{ needs.prepare_matrix.outputs.apis }}  \
             --output_directory "${{ github.workspace }}" \
             --ios_sdk ${{ needs.prepare_matrix.outputs.mobile_test_on }} \
@@ -750,6 +750,7 @@ jobs:
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps
       - name: Run Desktop integration tests
         run: python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
+        env: USE_FIRESTORE_FIRESTORE: true
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
       - name: Prepare results summary artifact
@@ -831,6 +832,7 @@ jobs:
             --android_device "${{ matrix.android_device }}" \
             --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}" \
             --ci
+        env: USE_FIRESTORE_EMULATOR: true
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
       - name: Install Cloud SDK
@@ -923,6 +925,7 @@ jobs:
             --ios_device "${{ matrix.ios_device }}" \
             --logfile_name "ios-macos-latest-${{ matrix.ios_device }}" \
             --ci
+        env: USE_FIRESTORE_EMULATOR: true
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
       - name: Install Cloud SDK
