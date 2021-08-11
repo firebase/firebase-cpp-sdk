@@ -4,7 +4,6 @@
 
 #include "firebase/firestore.h"
 
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 namespace firebase {
@@ -83,6 +82,6 @@ TEST_F(SettingsTest, Equality) {
   EXPECT_TRUE(settings4 != settings5);
 }
 
-}  // anonymous namespace
+}  // namespace
 }  // namespace firestore
 }  // namespace firebase
