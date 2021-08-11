@@ -4,6 +4,7 @@
 
 #include "firebase/firestore.h"
 #include "firestore/src/common/wrapper_assertions.h"
+#include "firestore_integration_test.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/query_snapshot_android.h"
 #endif  // defined(__ANDROID__)
@@ -14,9 +15,9 @@
 namespace firebase {
 namespace firestore {
 
-#if defined(__ANDROID__)
+using QuerySnapshotTest = FirestoreIntegrationTest;
 
-using QuerySnapshotTest = testing::Test;
+#if defined(__ANDROID__)
 
 TEST_F(QuerySnapshotTest, Construction) {
   testutil::AssertWrapperConstructionContract<QuerySnapshot,
@@ -29,6 +30,43 @@ TEST_F(QuerySnapshotTest, Assignment) {
 }
 
 #endif  // defined(__ANDROID__)
+
+TEST_F(QuerySnapshotTest, TestCanQueryWithAndWithoutDocumentKey) {
+  CollectionReference collection =
+      Collection({{"a", {{"k", FieldValue::String("a")}}},
+                  {"b", {{"k", FieldValue::String("b")}}},
+                  {"c", {{"k", FieldValue::String("c")}}}});
+  QuerySnapshot snapshot1 = ReadDocuments(collection.Limit(2));
+  QuerySnapshot snapshot2 = ReadDocuments(collection.Limit(2));
+  QuerySnapshot snapshot3 = ReadDocuments(collection.Limit(1));
+  QuerySnapshot snapshot4 = ReadDocuments(collection);
+  QuerySnapshot snapshot5 =
+      ReadDocuments(collection.OrderBy("k", Query::Direction::kAscending));
+  QuerySnapshot snapshot6 =
+      ReadDocuments(collection.OrderBy("k", Query::Direction::kDescending));
+
+  EXPECT_TRUE(snapshot1 == snapshot1);
+  EXPECT_TRUE(snapshot1 == snapshot2);
+  EXPECT_TRUE(snapshot1 != snapshot3);
+  EXPECT_TRUE(snapshot1 != snapshot4);
+  EXPECT_TRUE(snapshot1 != snapshot5);
+  EXPECT_TRUE(snapshot1 != snapshot6);
+  EXPECT_TRUE(snapshot3 != snapshot4);
+  EXPECT_TRUE(snapshot3 != snapshot5);
+  EXPECT_TRUE(snapshot3 != snapshot6);
+  EXPECT_TRUE(snapshot5 != snapshot6);
+
+  EXPECT_FALSE(snapshot1 != snapshot1);
+  EXPECT_FALSE(snapshot1 != snapshot2);
+  EXPECT_FALSE(snapshot1 == snapshot3);
+  EXPECT_FALSE(snapshot1 == snapshot4);
+  EXPECT_FALSE(snapshot1 == snapshot5);
+  EXPECT_FALSE(snapshot1 == snapshot6);
+  EXPECT_FALSE(snapshot3 == snapshot4);
+  EXPECT_FALSE(snapshot3 == snapshot5);
+  EXPECT_FALSE(snapshot3 == snapshot6);
+  EXPECT_FALSE(snapshot5 == snapshot6);
+}
 
 }  // namespace firestore
 }  // namespace firebase

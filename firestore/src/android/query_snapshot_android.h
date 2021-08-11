@@ -65,6 +65,13 @@ class QuerySnapshotInternal : public Wrapper {
   std::size_t size() const;
 };
 
+bool operator==(const QuerySnapshotInternal& lhs,
+                const QuerySnapshotInternal& rhs);
+inline bool operator!=(const QuerySnapshotInternal& lhs,
+                       const QuerySnapshotInternal& rhs) {
+  return !(lhs == rhs);
+}
+
 }  // namespace firestore
 }  // namespace firebase
 

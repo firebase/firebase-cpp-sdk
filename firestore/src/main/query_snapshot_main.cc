@@ -62,5 +62,10 @@ std::vector<DocumentSnapshot> QuerySnapshotInternal::documents() const {
   return documents_.value();
 }
 
+bool operator==(const QuerySnapshotInternal& lhs,
+                const QuerySnapshotInternal& rhs) {
+  return lhs.snapshot_ == rhs.snapshot_;
+}
+
 }  // namespace firestore
 }  // namespace firebase

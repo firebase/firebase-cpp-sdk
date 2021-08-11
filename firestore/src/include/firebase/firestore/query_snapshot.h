@@ -164,6 +164,8 @@ class QuerySnapshot {
   bool is_valid() const { return internal_ != nullptr; }
 
  private:
+  friend bool operator==(const QuerySnapshot& lhs, const QuerySnapshot& rhs);
+
   friend class EventListenerInternal;
   friend class FirestoreInternal;
   friend struct ConverterImpl;
@@ -174,6 +176,14 @@ class QuerySnapshot {
 
   mutable QuerySnapshotInternal* internal_ = nullptr;
 };
+
+/** Checks `lhs` and `rhs` for equality. */
+bool operator==(const QuerySnapshot& lhs, const QuerySnapshot& rhs);
+
+/** Checks `lhs` and `rhs` for inequality. */
+inline bool operator!=(const QuerySnapshot& lhs, const QuerySnapshot& rhs) {
+  return !(lhs == rhs);
+}
 
 }  // namespace firestore
 }  // namespace firebase

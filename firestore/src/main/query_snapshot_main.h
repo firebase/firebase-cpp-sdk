@@ -38,6 +38,9 @@ class QuerySnapshotInternal {
 
   std::vector<DocumentSnapshot> documents() const;
 
+  friend bool operator==(const QuerySnapshotInternal& lhs,
+                         const QuerySnapshotInternal& rhs);
+
  private:
   api::QuerySnapshot snapshot_;
 
@@ -46,6 +49,11 @@ class QuerySnapshotInternal {
   mutable absl::optional<std::vector<DocumentSnapshot>> documents_;
   mutable bool changes_include_metadata_ = false;
 };
+
+inline bool operator!=(const QuerySnapshotInternal& lhs,
+                       const QuerySnapshotInternal& rhs) {
+  return !(lhs == rhs);
+}
 
 }  // namespace firestore
 }  // namespace firebase
