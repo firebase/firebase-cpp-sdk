@@ -43,6 +43,14 @@ void ExpectEqualityToWork(T* ptr) {
   EXPECT_FALSE(*ptr != T());
 }
 
+// Checks that `operator==` and `operator!=` work correctly by comparing to
+// a default-constructed instance.
+template <typename T>
+void ExpectEqualityToWork(const T& ref) {
+  EXPECT_TRUE(ref == T());
+  EXPECT_FALSE(ref != T());
+}
+
 // `ExpectAllMethodsAreNoOps` calls all the public API methods on the given
 // `ptr` and checks that the calls don't crash and, where applicable, return
 // value-initialized values.
@@ -122,8 +130,7 @@ void ExpectAllMethodsAreNoOps(DocumentSnapshot* ptr) {
   EXPECT_FALSE(ptr->exists());
 
   EXPECT_EQ(ptr->reference(), DocumentReference());
-  // TODO(b/137966104): implement == on `SnapshotMetadata`
-  ptr->metadata();
+  ExpectEqualityToWork(ptr->metadata());
 
   EXPECT_EQ(ptr->GetData(), MapFieldValue());
 
@@ -236,8 +243,7 @@ void ExpectAllMethodsAreNoOps(QuerySnapshot* ptr) {
 
   EXPECT_EQ(ptr->query(), Query());
 
-  // TODO(b/137966104): implement == on `SnapshotMetadata`
-  ptr->metadata();
+  ExpectEqualityToWork(ptr->metadata());
 
   EXPECT_TRUE(ptr->DocumentChanges().empty());
   EXPECT_TRUE(ptr->documents().empty());

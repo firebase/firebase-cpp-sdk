@@ -140,6 +140,19 @@ class SnapshotMetadata final {
   bool is_from_cache_ = false;
 };
 
+/** Checks `lhs` and `rhs` for equality. */
+inline bool operator==(const SnapshotMetadata& lhs,
+                       const SnapshotMetadata& rhs) {
+  return lhs.has_pending_writes() == rhs.has_pending_writes() &&
+         lhs.is_from_cache() == rhs.is_from_cache();
+}
+
+/** Checks `lhs` and `rhs` for inequality. */
+inline bool operator!=(const SnapshotMetadata& lhs,
+                       const SnapshotMetadata& rhs) {
+  return !(lhs == rhs);
+}
+
 }  // namespace firestore
 }  // namespace firebase
 

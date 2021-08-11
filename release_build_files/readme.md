@@ -567,6 +567,11 @@ code.
 
 ## Release Notes
 
+### 8.4.0
+-   Changes
+    -   Firestore: Added `operator==` and `operator!=` for `SnapshotMetadata`
+        and `Settings`.
+
 ### 8.3.0
 -   Changes
     -   General: This release adds tvOS C++ libraries that wrap the
