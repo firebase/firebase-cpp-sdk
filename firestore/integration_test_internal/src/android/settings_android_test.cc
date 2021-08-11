@@ -14,9 +14,9 @@ namespace {
 
 using jni::Env;
 
-using SettingsTest = FirestoreIntegrationTest;
+using SettingsTestAndroid = FirestoreIntegrationTest;
 
-TEST_F(SettingsTest, ConverterBoolsAllTrue) {
+TEST_F(SettingsTestAndroid, ConverterBoolsAllTrue) {
   Env env;
 
   Settings settings;
@@ -34,7 +34,7 @@ TEST_F(SettingsTest, ConverterBoolsAllTrue) {
   EXPECT_EQ(result.cache_size_bytes(), five_mb);
 }
 
-TEST_F(SettingsTest, ConverterBoolsAllFalse) {
+TEST_F(SettingsTestAndroid, ConverterBoolsAllFalse) {
   Env env;
 
   Settings settings;
