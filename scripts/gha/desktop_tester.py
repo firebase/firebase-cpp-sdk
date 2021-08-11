@@ -122,6 +122,7 @@ class Test(object):
         self.logs = e.output
     if result:
       self.logs = result.stdout
+      logging.info("Test result: %s", self.logs)
     logging.info("Finished running %s", self.testapp_path)
 
 
