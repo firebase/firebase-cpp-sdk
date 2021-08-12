@@ -334,7 +334,7 @@ int main(int argc, char* argv[]) {
 - (BOOL)application:(UIApplication *)app
             openURL:(NSURL *)url
             options:(NSDictionary<UIApplicationOpenURLOptionsKey, id> *)options {
-#if targetEnvironment(simulator)
+#if TARGET_OS_SIMULATOR
   setenv("USE_FIRESTORE_EMULATOR","true",1);
 #endif
 
