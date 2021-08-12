@@ -475,7 +475,6 @@ Message<google_firestore_v1_Value> UserDataConverter::ParseScalar(
                                "documents", key.ToString()})
               .CanonicalString();
 
-      Message<google_firestore_v1_Value> result;
       result->which_value_type = google_firestore_v1_Value_reference_value_tag;
       result->reference_value = nanopb::MakeBytesArray(reference_name);
     }
