@@ -95,6 +95,7 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS
     src/query_test.cc
     src/sanity_test.cc
     src/server_timestamp_test.cc
+    src/settings_test.cc
     src/smoke_test.cc
     src/source_test.cc
     src/transaction_test.cc
@@ -205,6 +206,7 @@ include_directories(${FIREBASE_CPP_SDK_DIR})
 # Additional public headers from Firestore core SDK.
 include_directories(${PROJECT_BINARY_DIR}/bin/external/src/firestore)
 include_directories(${PROJECT_BINARY_DIR}/bin/external/src/nanopb)
+include_directories(${PROJECT_BINARY_DIR}/bin/external/src/firestore/Firestore/Protos/nanopb)
 # Additional public headers for absl.
 include_directories(${ABSEIL_CPP_ROOT})
 # Allow testing internal Firebase APIs.
