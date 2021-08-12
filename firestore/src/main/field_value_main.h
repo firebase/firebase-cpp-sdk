@@ -27,7 +27,7 @@ namespace firestore {
 
 class FieldValueInternal {
  public:
-  FieldValueInternal() = default;
+  FieldValueInternal();
 
   explicit FieldValueInternal(bool value);
   explicit FieldValueInternal(int64_t value);

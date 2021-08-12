@@ -29,6 +29,12 @@ using Type = FieldValue::Type;
 
 // Constructors
 
+FieldValueInternal::FieldValueInternal() {
+  auto& value = absl::get<SharedMessage<google_firestore_v1_Value>>(value_);
+  value->which_value_type = google_firestore_v1_Value_map_value_tag;
+  value->map_value = {};
+}
+
 FieldValueInternal::FieldValueInternal(bool value) : type_{Type::kBoolean} {
   auto& proto = GetProtoValue();
   proto->which_value_type = google_firestore_v1_Value_boolean_value_tag;
