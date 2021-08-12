@@ -114,5 +114,11 @@ FieldValue DocumentSnapshotInternal::Get(const FieldPath& field,
   return FieldValueInternal::Create(env, field_value);
 }
 
+bool operator==(const DocumentSnapshotInternal& lhs,
+                const DocumentSnapshotInternal& rhs) {
+  Env env = FirestoreInternal::GetEnv();
+  return Object::Equals(env, lhs.ToJava(), rhs.ToJava());
+}
+
 }  // namespace firestore
 }  // namespace firebase

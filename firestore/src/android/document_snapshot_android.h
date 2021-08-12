@@ -50,6 +50,14 @@ class DocumentSnapshotInternal : public Wrapper {
   mutable std::string cached_id_;
 };
 
+bool operator==(const DocumentSnapshotInternal& lhs,
+                const DocumentSnapshotInternal& rhs);
+
+inline bool operator!=(const DocumentSnapshotInternal& lhs,
+                       const DocumentSnapshotInternal& rhs) {
+  return !(lhs == rhs);
+}
+
 }  // namespace firestore
 }  // namespace firebase
 #endif  // FIREBASE_FIRESTORE_SRC_ANDROID_DOCUMENT_SNAPSHOT_ANDROID_H_
