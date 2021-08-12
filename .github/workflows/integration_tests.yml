@@ -739,11 +739,9 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ env.pythonVersion }}
-      - name: Setup Firebase Emulators
+      - name: Setup Firestore Emulator
         run: |
-          curl -sL firebase.tools | bash
-          firebase setup:emulators:firestore
-          firebase emulators:start --only firestore &
+          scripts/run_firestore_emulator.sh &
       - name: Setup integration test deps
         run: |
           pip install -r scripts/gha/requirements.txt
@@ -817,11 +815,10 @@ jobs:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
         run: pip install -r scripts/gha/requirements.txt
-      - name: Setup Firebase Emulators
+      - name: Setup Firestore Emulator
+        if: steps.get-device-type.outputs.device_type == 'virtual'
         run: |
-          curl -sL firebase.tools | bash
-          firebase setup:emulators:firestore
-          firebase emulators:start --only firestore &
+          scripts/run_firestore_emulator.sh &
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.android_device }} )"
@@ -833,8 +830,6 @@ jobs:
             --android_device "${{ matrix.android_device }}" \
             --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}" \
             --ci
-        env:
-          USE_FIRESTORE_EMULATOR: true
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
       - name: Install Cloud SDK
@@ -912,10 +907,9 @@ jobs:
       - name: Install python deps
         run: pip install -r scripts/gha/requirements.txt
       - name: Setup Firebase Emulators
+        if: steps.get-device-type.outputs.device_type == 'virtual'
         run: |
-          curl -sL firebase.tools | bash
-          firebase setup:emulators:firestore
-          firebase emulators:start --only firestore &
+          scripts/run_firestore_emulator.sh &
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.ios_device }} )"
@@ -927,7 +921,7 @@ jobs:
             --ios_device "${{ matrix.ios_device }}" \
             --logfile_name "ios-macos-latest-${{ matrix.ios_device }}" \
             --ci
-        env: 
+        env:
           USE_FIRESTORE_EMULATOR: true
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
@@ -1007,9 +1001,7 @@ jobs:
         run: pip install -r scripts/gha/requirements.txt
       - name: Setup Firebase Emulators
         run: |
-          curl -sL firebase.tools | bash
-          firebase setup:emulators:firestore
-          firebase emulators:start --only firestore &
+          scripts/run_firestore_emulator.sh &
       - name: Run tvOS integration tests on Simulator locally
         timeout-minutes: 60
         run: |

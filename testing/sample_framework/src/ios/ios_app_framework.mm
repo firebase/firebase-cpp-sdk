@@ -334,7 +334,10 @@ int main(int argc, char* argv[]) {
 - (BOOL)application:(UIApplication *)app
             openURL:(NSURL *)url
             options:(NSDictionary<UIApplicationOpenURLOptionsKey, id> *)options {
+#if targetEnvironment(simulator)
   setenv("USE_FIRESTORE_EMULATOR","true",1);
+#endif
+
   if ([url.scheme isEqual:kGameLoopUrlPrefix]) {
     g_gameloop_launch = true;
     app_framework::StartLoggingToFile(GAMELOOP_DEFAULT_LOG_FILE);
