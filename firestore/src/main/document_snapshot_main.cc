@@ -95,6 +95,9 @@ FieldValue DocumentSnapshotInternal::ConvertAnyValue(
     const google_firestore_v1_Value& input, ServerTimestampBehavior stb) const {
   switch (input.which_value_type) {
     case google_firestore_v1_Value_map_value_tag:
+      if (IsServerTimestamp(input)) {
+        return ConvertServerTimestamp(input, stb);
+      }
       return ConvertObject(input.map_value, stb);
     case google_firestore_v1_Value_array_value_tag:
       return ConvertArray(input.array_value, stb);
@@ -131,10 +134,7 @@ FieldValue DocumentSnapshotInternal::ConvertScalar(
     const google_firestore_v1_Value& scalar,
     ServerTimestampBehavior stb) const {
   switch (scalar.which_value_type) {
-    case google_firestore_v1_Value_map_value_tag:
-      if (IsServerTimestamp(scalar)) {
-        return ConvertServerTimestamp(scalar, stb);
-      }
+    case google_firestore_v1_Value_null_value_tag:
       return FieldValue::Null();
     case google_firestore_v1_Value_boolean_value_tag:
       return FieldValue::Boolean(scalar.boolean_value);
