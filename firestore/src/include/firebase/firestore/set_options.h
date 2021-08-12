@@ -18,6 +18,7 @@
 #define FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_SET_OPTIONS_H_
 
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "firebase/firestore/field_path.h"
@@ -135,6 +136,7 @@ class SetOptions final {
   static SetOptions MergeFieldPaths(const std::vector<FieldPath>& fields);
 
  private:
+  friend bool operator==(const SetOptions& lhs, const SetOptions& rhs);
   friend class SetOptionsInternal;
 
   SetOptions(Type type, std::vector<FieldPath> fields);
@@ -142,6 +144,23 @@ class SetOptions final {
   Type type_ = Type::kOverwrite;
   std::vector<FieldPath> fields_;
 };
+
+/** Checks `lhs` and `rhs` for equality. */
+inline bool operator==(const SetOptions& lhs, const SetOptions& rhs) {
+  if (lhs.type_ != rhs.type_) {
+    return false;
+  }
+  std::unordered_set<FieldPath> lhs_field_set(lhs.fields_.begin(),
+                                              lhs.fields_.end());
+  std::unordered_set<FieldPath> rhs_field_set(rhs.fields_.begin(),
+                                              rhs.fields_.end());
+  return lhs_field_set == rhs_field_set;
+}
+
+/** Checks `lhs` and `rhs` for inequality. */
+inline bool operator!=(const SetOptions& lhs, const SetOptions& rhs) {
+  return !(lhs == rhs);
+}
 
 }  // namespace firestore
 }  // namespace firebase
