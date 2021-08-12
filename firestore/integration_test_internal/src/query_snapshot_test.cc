@@ -31,7 +31,7 @@ TEST_F(QuerySnapshotTest, Assignment) {
 
 #endif  // defined(__ANDROID__)
 
-TEST_F(QuerySnapshotTest, TestCanQueryWithAndWithoutDocumentKey) {
+TEST_F(QuerySnapshotTest, Equality) {
   CollectionReference collection =
       Collection({{"a", {{"k", FieldValue::String("a")}}},
                   {"b", {{"k", FieldValue::String("b")}}},
