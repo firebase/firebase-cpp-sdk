@@ -72,5 +72,11 @@ std::size_t QuerySnapshotInternal::size() const {
   return env.Call(obj_, kSize);
 }
 
+bool operator==(const QuerySnapshotInternal& lhs,
+                const QuerySnapshotInternal& rhs) {
+  Env env = FirestoreInternal::GetEnv();
+  return Object::Equals(env, lhs.ToJava(), rhs.ToJava());
+}
+
 }  // namespace firestore
 }  // namespace firebase

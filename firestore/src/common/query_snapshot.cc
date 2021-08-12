@@ -103,5 +103,13 @@ std::size_t QuerySnapshot::size() const {
   return internal_->size();
 }
 
+bool operator==(const QuerySnapshot& lhs, const QuerySnapshot& rhs) {
+  if (!lhs.internal_ || !rhs.internal_) {
+    return lhs.internal_ == rhs.internal_;
+  }
+
+  return lhs.internal_ == rhs.internal_ || *lhs.internal_ == *rhs.internal_;
+}
+
 }  // namespace firestore
 }  // namespace firebase
