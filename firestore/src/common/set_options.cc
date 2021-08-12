@@ -21,29 +21,30 @@
 namespace firebase {
 namespace firestore {
 
-SetOptions::SetOptions(Type type, std::vector<FieldPath> fields)
+SetOptions::SetOptions(Type type, std::unordered_set<FieldPath> fields)
     : type_(type), fields_(firebase::Move(fields)) {}
 
 SetOptions::~SetOptions() {}
 
 /* static */
 SetOptions SetOptions::Merge() {
-  return SetOptions{Type::kMergeAll, std::vector<FieldPath>{}};
+  return SetOptions{Type::kMergeAll, std::unordered_set<FieldPath>{}};
 }
 
 /* static */
 SetOptions SetOptions::MergeFields(const std::vector<std::string>& fields) {
-  std::vector<FieldPath> field_paths;
+  std::unordered_set<FieldPath> field_paths;
   field_paths.reserve(fields.size());
   for (const std::string& field : fields) {
-    field_paths.push_back(FieldPath::FromDotSeparatedString(field));
+    field_paths.insert(FieldPath::FromDotSeparatedString(field));
   }
   return SetOptions{Type::kMergeSpecific, firebase::Move(field_paths)};
 }
 
 /* static */
 SetOptions SetOptions::MergeFieldPaths(const std::vector<FieldPath>& fields) {
-  return SetOptions{Type::kMergeSpecific, fields};
+  return SetOptions{Type::kMergeSpecific, std::unordered_set<FieldPath>(
+                                              fields.begin(), fields.end())};
 }
 
 }  // namespace firestore

@@ -41,7 +41,10 @@ class SetOptionsInternal {
       : options_{std::move(options)} {}
 
   Type type() const { return options_.type_; }
-  const std::vector<FieldPath>& field_mask() const { return options_.fields_; }
+  const std::vector<FieldPath> field_mask() const {
+    return std::vector<FieldPath>(options_.fields_.begin(),
+                                  options_.fields_.end());
+  }
 
  private:
   SetOptions options_;
