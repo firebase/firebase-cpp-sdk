@@ -44,10 +44,7 @@ class GameLoopLauncherUITests: XCTestCase {
     let scenario = environment[Constants.gameLoopScenario] ?? "0"
     let bundleId = environment[Constants.gameLoopBundleId] ?? nil
     app.launchEnvironment[Constants.gameLoopScenario] = scenario
-    
-#if targetEnvironment(simulator)
-    app.launchEnvironment["USE_FIRESTORE_EMULATOR"] = "yes"
-#endif
+
     // Periodically check and dismiss dialogs with "Allow" or "OK"
     Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { (_) in
 #if os(iOS)
