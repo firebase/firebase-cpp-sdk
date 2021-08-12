@@ -45,6 +45,9 @@ TEST_F(QuerySnapshotTest, TestCanQueryWithAndWithoutDocumentKey) {
   QuerySnapshot snapshot6 =
       ReadDocuments(collection.OrderBy("k", Query::Direction::kDescending));
 
+  QuerySnapshot snapshot7 = QuerySnapshot();
+  QuerySnapshot snapshot8 = QuerySnapshot();
+
   EXPECT_TRUE(snapshot1 == snapshot1);
   EXPECT_TRUE(snapshot1 == snapshot2);
   EXPECT_TRUE(snapshot1 != snapshot3);
@@ -55,6 +58,13 @@ TEST_F(QuerySnapshotTest, TestCanQueryWithAndWithoutDocumentKey) {
   EXPECT_TRUE(snapshot3 != snapshot5);
   EXPECT_TRUE(snapshot3 != snapshot6);
   EXPECT_TRUE(snapshot5 != snapshot6);
+  EXPECT_TRUE(snapshot1 != snapshot7);
+  EXPECT_TRUE(snapshot2 != snapshot7);
+  EXPECT_TRUE(snapshot3 != snapshot7);
+  EXPECT_TRUE(snapshot4 != snapshot7);
+  EXPECT_TRUE(snapshot5 != snapshot7);
+  EXPECT_TRUE(snapshot6 != snapshot7);
+  EXPECT_TRUE(snapshot7 == snapshot8);
 
   EXPECT_FALSE(snapshot1 != snapshot1);
   EXPECT_FALSE(snapshot1 != snapshot2);
@@ -66,6 +76,13 @@ TEST_F(QuerySnapshotTest, TestCanQueryWithAndWithoutDocumentKey) {
   EXPECT_FALSE(snapshot3 == snapshot5);
   EXPECT_FALSE(snapshot3 == snapshot6);
   EXPECT_FALSE(snapshot5 == snapshot6);
+  EXPECT_FALSE(snapshot1 == snapshot7);
+  EXPECT_FALSE(snapshot2 == snapshot7);
+  EXPECT_FALSE(snapshot3 == snapshot7);
+  EXPECT_FALSE(snapshot4 == snapshot7);
+  EXPECT_FALSE(snapshot5 == snapshot7);
+  EXPECT_FALSE(snapshot6 == snapshot7);
+  EXPECT_FALSE(snapshot7 != snapshot8);
 }
 
 }  // namespace firestore
