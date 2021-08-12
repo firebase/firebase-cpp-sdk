@@ -40,6 +40,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
     val fileUri: Uri = FileProvider.getUriForFile(this, "com.google.firebase.gameloop.fileprovider", file)
 
     intent.setPackage(gamePackageName)
+      .putExtra("USE_FIRESTORE_EMULATOR", "true")
       .setDataAndType(fileUri, "application/javascript").flags = Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 
     startActivityForResult(intent, TEST_LOOP_REQUEST_CODE)
