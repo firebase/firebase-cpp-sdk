@@ -166,14 +166,14 @@ double FieldValueInternal::double_increment_value() const {
 
 FieldValue FieldValueInternal::Delete() {
   Message<google_firestore_v1_Value> value;
-  value->which_value_type = google_firestore_v1_Value_integer_value_tag;
+  value->which_value_type = google_firestore_v1_Value_map_value_tag;
   value->map_value = {};
   return MakePublic(FieldValueInternal{Type::kDelete, std::move(value)});
 }
 
 FieldValue FieldValueInternal::ServerTimestamp() {
   Message<google_firestore_v1_Value> value;
-  value->which_value_type = google_firestore_v1_Value_integer_value_tag;
+  value->which_value_type = google_firestore_v1_Value_map_value_tag;
   value->map_value = {};
   return MakePublic(
       FieldValueInternal{Type::kServerTimestamp, std::move(value)});
