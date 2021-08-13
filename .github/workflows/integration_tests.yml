@@ -319,7 +319,7 @@ jobs:
               additional_flags+=(--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON)
             fi
           fi
-          python scripts/gha/build_testapps.py --t firestore --p Desktop \
+          python scripts/gha/build_testapps.py --p Desktop \
             --t ${{ needs.prepare_matrix.outputs.apis }} \
             --output_directory "${{ github.workspace }}" \
             --artifact_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}" \
@@ -455,7 +455,7 @@ jobs:
             cd ..
             additional_flags+=(--packaged_sdk downloaded_sdk/firebase_cpp_sdk)
           fi
-          python scripts/gha/build_testapps.py --t firestore --p Android \
+          python scripts/gha/build_testapps.py --p Android \
             --t ${{ needs.prepare_matrix.outputs.apis }}  \
             --output_directory "${{ github.workspace }}" \
             --artifact_name "android-${{ matrix.os }}" \
@@ -559,7 +559,7 @@ jobs:
             cd ..
             additional_flags+=(--packaged_sdk downloaded_sdk/firebase_cpp_sdk)
           fi
-          python scripts/gha/build_testapps.py --t firestore --p iOS \
+          python scripts/gha/build_testapps.py --p iOS \
             --t ${{ needs.prepare_matrix.outputs.apis }}  \
             --output_directory "${{ github.workspace }}" \
             --ios_sdk ${{ needs.prepare_matrix.outputs.mobile_test_on }} \
@@ -739,9 +739,14 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ env.pythonVersion }}
+      - name: Set up Node (12)
+        uses: actions/setup-node@v2
+        with:
+          node-version: 12.x
       - name: Setup Firestore Emulator
         run: |
-          scripts/run_firestore_emulator.sh &
+          npm install -g firebase-tools
+          firebase emulators:start --only firestore --project demo-example &
       - name: Setup integration test deps
         run: |
           pip install -r scripts/gha/requirements.txt
@@ -750,8 +755,6 @@ jobs:
         run: python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
         env:
           USE_FIRESTORE_EMULATOR: true
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
@@ -818,10 +821,15 @@ jobs:
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.android_device }} )"
+      - name: Set up Node (12)
+        uses: actions/setup-node@v2
+        with:
+          node-version: 12.x
       - name: Setup Firestore Emulator
         if: steps.get-device-type.outputs.device_type == 'virtual'
         run: |
-          scripts/run_firestore_emulator.sh &
+          npm install -g firebase-tools
+          firebase emulators:start --only firestore --project demo-example &
       - name: Run Android integration tests on Emulator locally
         timeout-minutes: 60
         if: steps.get-device-type.outputs.device_type == 'virtual'
@@ -830,8 +838,6 @@ jobs:
             --android_device "${{ matrix.android_device }}" \
             --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}" \
             --ci
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
       - name: Install Cloud SDK
         if: steps.get-device-type.outputs.device_type == 'real'
         uses: google-github-actions/setup-gcloud@master
@@ -909,10 +915,15 @@ jobs:
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.ios_device }} )"
+      - name: Set up Node (12)
+        uses: actions/setup-node@v2
+        with:
+          node-version: 12.x
       - name: Setup Firestore Emulator
         if: steps.get-device-type.outputs.device_type == 'virtual'
         run: |
-          scripts/run_firestore_emulator.sh &
+          npm install -g firebase-tools
+          firebase emulators:start --only firestore --project demo-example &
       - name: Run iOS integration tests on Simulator locally
         timeout-minutes: 60
         if: steps.get-device-type.outputs.device_type == 'virtual'
@@ -921,10 +932,6 @@ jobs:
             --ios_device "${{ matrix.ios_device }}" \
             --logfile_name "ios-macos-latest-${{ matrix.ios_device }}" \
             --ci
-        env:
-          USE_FIRESTORE_EMULATOR: true
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
       - name: Install Cloud SDK
         if: steps.get-device-type.outputs.device_type == 'real'
         uses: google-github-actions/setup-gcloud@master
