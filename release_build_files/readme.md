@@ -570,8 +570,8 @@ code.
 ### 8.4.0
 -   Changes
     -   General: Updating Android and iOS dependencies to the latest.
-    -   Firestore: Added `operator==` and `operator!=` for `SnapshotMetadata`
-        and `Settings`.
+    -   Firestore: Added `operator==` and `operator!=` for `SnapshotMetadata`,
+        `Settings`, and `QuerySnapshot`.
 
 ### 8.3.0
 -   Changes
