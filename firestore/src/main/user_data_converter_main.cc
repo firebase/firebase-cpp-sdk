@@ -444,6 +444,7 @@ Message<google_firestore_v1_Value> UserDataConverter::ParseScalar(
       // Copy the blob so that pb_release can do the right thing.
       result->bytes_value =
           nanopb::MakeBytesArray(value.blob_value(), value.blob_size());
+      break;
     }
 
     case Type::kReference: {
