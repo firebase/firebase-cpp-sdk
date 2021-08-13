@@ -14,12 +14,17 @@
  * limitations under the License.
  */
 
+#include "firestore/src/android/exception_android.h"
+#include "firestore/src/android/wrapper.h"
+#include "firestore/src/jni/object.h"
+
 /**
  * Returns the result of `Object::Equals` for the given `lhs` and `rhs` in the
  * current Firestore `jni::Env`.
  */
 template <typename T>
 bool CompareJni(const T& lhs, const T& rhs) {
-  Env env = FirestoreInternal::GetEnv();
+  Env env;
+  env.SetUnhandledExceptionHandler(GlobalUnhandledExceptionHandler, nullptr);
   return Object::Equals(env, lhs.ToJava(), rhs.ToJava());
 }
