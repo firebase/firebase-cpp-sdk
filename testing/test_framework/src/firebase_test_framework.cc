@@ -352,7 +352,6 @@ char** EditMainArgsForGoogleTest(int* argc, char* argv[]) {
 
   // Add elements to the `modified_args` vector to specify to googletest.
   modified_args.push_back("--gtest_catch_exceptions=0");
-  modified_args.push_back("--gtest_filter=TransactionTest*");
 
   // Create a new `argv` with the elements from the `modified_args` vector and
   // write the new count back to `argc`. The memory leaks produced by
