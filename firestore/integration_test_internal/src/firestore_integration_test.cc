@@ -127,6 +127,7 @@ int WaitFor(const FutureBase& future) {
 
 FirestoreIntegrationTest::FirestoreIntegrationTest() {
   // Allocate the default Firestore eagerly.
+  Firestore::set_log_level(LogLevel::kLogLevelDebug);
   TestFirestore();
 }
 
