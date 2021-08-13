@@ -744,6 +744,7 @@ jobs:
         with:
           node-version: 12.x
       - name: Setup Firestore Emulator
+        if: ${{ matrix.os }} != windows
         run: |
           npm install -g firebase-tools
           firebase emulators:start --only firestore --project demo-example &
@@ -751,10 +752,14 @@ jobs:
         run: |
           pip install -r scripts/gha/requirements.txt
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps
-      - name: Run Desktop integration tests
+      - name: Run Desktop integration tests (Non-windows)
+        if: ${{ matrix.os }} != windows
         run: python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
         env:
           USE_FIRESTORE_EMULATOR: true
+      - name: Run Desktop integration tests (Windows)
+        if: ${{ matrix.os }} == windows
+        run: python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
