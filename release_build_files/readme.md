@@ -570,7 +570,7 @@ code.
 ### 8.4.0
 -   Changes
     -   Firestore: Added `operator==` and `operator!=` for `SnapshotMetadata`,
-        `Settings`, and `QuerySnapshot`.
+        `Settings`, and `QuerySnapshot`, `SetOptions`, and `DocumentChange`.
 
 ### 8.3.0
 -   Changes
