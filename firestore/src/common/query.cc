@@ -8,6 +8,7 @@
 #include "firestore/src/common/event_listener.h"
 #include "firestore/src/common/futures.h"
 #include "firestore/src/common/hard_assert_common.h"
+#include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
@@ -288,11 +289,7 @@ ListenerRegistration Query::AddSnapshotListener(
 }
 
 bool operator==(const Query& lhs, const Query& rhs) {
-  if (!lhs.internal_ || !rhs.internal_) {
-    return lhs.internal_ == rhs.internal_;
-  }
-
-  return lhs.internal_ == rhs.internal_ || *lhs.internal_ == *rhs.internal_;
+  return EqualityCompare(lhs.internal_, rhs.internal_);
 }
 
 }  // namespace firestore

@@ -6,6 +6,7 @@
 
 #include "firestore/src/common/cleanup.h"
 #include "firestore/src/common/hard_assert_common.h"
+#include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore/document_change.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #include "firestore/src/include/firebase/firestore/query.h"
@@ -104,11 +105,7 @@ std::size_t QuerySnapshot::size() const {
 }
 
 bool operator==(const QuerySnapshot& lhs, const QuerySnapshot& rhs) {
-  if (!lhs.internal_ || !rhs.internal_) {
-    return lhs.internal_ == rhs.internal_;
-  }
-
-  return lhs.internal_ == rhs.internal_ || *lhs.internal_ == *rhs.internal_;
+  return EqualityCompare(lhs.internal_, rhs.internal_);
 }
 
 }  // namespace firestore

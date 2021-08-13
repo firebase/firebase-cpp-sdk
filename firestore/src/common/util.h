@@ -13,6 +13,13 @@ namespace firestore {
 // a string to refer to.
 const std::string& EmptyString();
 
+// Returns true if the two given pointers are equal or the underlying objects
+// that they point to are equal. Returns false otherwise.
+template <typename T>
+bool EqualityCompare(T* lhs, T* rhs) {
+  return lhs == rhs || (lhs != nullptr && rhs != nullptr && *lhs == *rhs);
+}
+
 }  // namespace firestore
 }  // namespace firebase
 

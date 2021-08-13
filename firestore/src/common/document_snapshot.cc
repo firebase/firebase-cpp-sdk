@@ -142,11 +142,7 @@ std::ostream& operator<<(std::ostream& out, const DocumentSnapshot& document) {
 }
 
 bool operator==(const DocumentSnapshot& lhs, const DocumentSnapshot& rhs) {
-  if (!lhs.internal_ || !rhs.internal_) {
-    return lhs.internal_ == rhs.internal_;
-  }
-
-  return lhs.internal_ == rhs.internal_ || *lhs.internal_ == *rhs.internal_;
+  return EqualityCompare(lhs.internal_, rhs.internal_);
 }
 
 }  // namespace firestore

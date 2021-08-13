@@ -10,6 +10,7 @@
 #include "firestore/src/android/server_timestamp_behavior_android.h"
 #include "firestore/src/android/snapshot_metadata_android.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/jni/compare.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 
@@ -116,8 +117,7 @@ FieldValue DocumentSnapshotInternal::Get(const FieldPath& field,
 
 bool operator==(const DocumentSnapshotInternal& lhs,
                 const DocumentSnapshotInternal& rhs) {
-  Env env = FirestoreInternal::GetEnv();
-  return Object::Equals(env, lhs.ToJava(), rhs.ToJava());
+  return CompareJni(lhs, rhs);
 }
 
 }  // namespace firestore

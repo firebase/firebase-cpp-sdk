@@ -9,6 +9,7 @@
 #include "firestore/src/android/query_android.h"
 #include "firestore/src/android/snapshot_metadata_android.h"
 #include "firestore/src/android/util_android.h"
+#include "firestore/src/jni/compare.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/list.h"
 #include "firestore/src/jni/loader.h"
@@ -74,8 +75,7 @@ std::size_t QuerySnapshotInternal::size() const {
 
 bool operator==(const QuerySnapshotInternal& lhs,
                 const QuerySnapshotInternal& rhs) {
-  Env env = FirestoreInternal::GetEnv();
-  return Object::Equals(env, lhs.ToJava(), rhs.ToJava());
+  return CompareJni(lhs, rhs);
 }
 
 }  // namespace firestore
