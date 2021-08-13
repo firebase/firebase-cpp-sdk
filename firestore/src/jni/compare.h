@@ -16,6 +16,7 @@
 
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/wrapper.h"
+#include "firestore/src/jni/env.h"
 #include "firestore/src/jni/object.h"
 
 /**
