@@ -184,6 +184,14 @@ class DocumentChange {
   mutable DocumentChangeInternal* internal_ = nullptr;
 };
 
+/** Checks `lhs` and `rhs` for equality. */
+bool operator==(const DocumentChange& lhs, const DocumentChange& rhs);
+
+/** Checks `lhs` and `rhs` for inequality. */
+inline bool operator!=(const DocumentChange& lhs, const DocumentChange& rhs) {
+  return !(lhs == rhs);
+}
+
 }  // namespace firestore
 }  // namespace firebase
 
