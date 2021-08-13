@@ -749,7 +749,7 @@ jobs:
       - name: Run Desktop integration tests
         run: python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
         env:
-          USE_FIRESTORE_FIRESTORE: true
+          USE_FIRESTORE_EMULATOR: true
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
       - name: Prepare results summary artifact
@@ -815,13 +815,13 @@ jobs:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
         run: pip install -r scripts/gha/requirements.txt
+      - id: get-device-type
+        run: |
+          echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.android_device }} )"
       - name: Setup Firestore Emulator
         if: steps.get-device-type.outputs.device_type == 'virtual'
         run: |
           scripts/run_firestore_emulator.sh &
-      - id: get-device-type
-        run: |
-          echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.android_device }} )"
       - name: Run Android integration tests on Emulator locally
         timeout-minutes: 60
         if: steps.get-device-type.outputs.device_type == 'virtual'
@@ -906,13 +906,13 @@ jobs:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
         run: pip install -r scripts/gha/requirements.txt
-      - name: Setup Firebase Emulators
-        if: steps.get-device-type.outputs.device_type == 'virtual'
-        run: |
-          scripts/run_firestore_emulator.sh &
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.ios_device }} )"
+      - name: Setup Firestore Emulator
+        if: steps.get-device-type.outputs.device_type == 'virtual'
+        run: |
+          scripts/run_firestore_emulator.sh &
       - name: Run iOS integration tests on Simulator locally
         timeout-minutes: 60
         if: steps.get-device-type.outputs.device_type == 'virtual'
