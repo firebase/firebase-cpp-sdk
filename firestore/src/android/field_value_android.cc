@@ -371,7 +371,7 @@ FieldValue FieldValueInternal::DoubleIncrement(double by_value) {
 }
 
 bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs) {
-  return CompareJni(lhs, rhs);
+  return jni::EqualityCompare(lhs, rhs);
 }
 
 template <typename T>

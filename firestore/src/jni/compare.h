@@ -19,13 +19,21 @@
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/object.h"
 
+namespace firebase {
+namespace firestore {
+namespace jni {
+
 /**
  * Returns the result of `Object::Equals` for the given `lhs` and `rhs` in the
  * current Firestore `jni::Env`.
  */
 template <typename T>
-bool CompareJni(const T& lhs, const T& rhs) {
+bool EqualityCompare(const T& lhs, const T& rhs) {
   Env env;
   env.SetUnhandledExceptionHandler(GlobalUnhandledExceptionHandler, nullptr);
   return Object::Equals(env, lhs.ToJava(), rhs.ToJava());
 }
+
+}  // namespace jni
+}  // namespace firestore
+}  // namespace firebase

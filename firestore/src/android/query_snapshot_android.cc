@@ -75,7 +75,7 @@ std::size_t QuerySnapshotInternal::size() const {
 
 bool operator==(const QuerySnapshotInternal& lhs,
                 const QuerySnapshotInternal& rhs) {
-  return CompareJni(lhs, rhs);
+  return jni::EqualityCompare(lhs, rhs);
 }
 
 }  // namespace firestore
