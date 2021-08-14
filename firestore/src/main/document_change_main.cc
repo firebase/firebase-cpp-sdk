@@ -60,5 +60,10 @@ std::size_t DocumentChangeInternal::new_index() const {
   return change_.new_index();
 }
 
+bool operator==(const DocumentChangeInternal& lhs,
+                const DocumentChangeInternal& rhs) {
+  return lhs.change_ == rhs.change_;
+}
+
 }  // namespace firestore
 }  // namespace firebase

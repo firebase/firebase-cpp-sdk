@@ -41,9 +41,17 @@ class DocumentChangeInternal {
   std::size_t old_index() const;
   std::size_t new_index() const;
 
+  friend bool operator==(const DocumentChangeInternal& lhs,
+                         const DocumentChangeInternal& rhs);
+
  private:
   api::DocumentChange change_;
 };
+
+inline bool operator!=(const DocumentChangeInternal& lhs,
+                       const DocumentChangeInternal& rhs) {
+  return !(lhs == rhs);
+}
 
 }  // namespace firestore
 }  // namespace firebase

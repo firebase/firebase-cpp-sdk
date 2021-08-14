@@ -173,6 +173,8 @@ class DocumentChange {
   bool is_valid() const { return internal_ != nullptr; }
 
  private:
+  friend bool operator==(const DocumentChange& lhs, const DocumentChange& rhs);
+
   friend class FirestoreInternal;
   friend class Wrapper;
   friend struct ConverterImpl;

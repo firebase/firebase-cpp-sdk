@@ -69,5 +69,11 @@ std::size_t DocumentChangeInternal::new_index() const {
   return env.Call(obj_, kNewIndex);
 }
 
+bool operator==(const DocumentChangeInternal& lhs,
+                const DocumentChangeInternal& rhs) {
+  Env env = FirestoreInternal::GetEnv();
+  return Object::Equals(env, lhs.ToJava(), rhs.ToJava());
+}
+
 }  // namespace firestore
 }  // namespace firebase
