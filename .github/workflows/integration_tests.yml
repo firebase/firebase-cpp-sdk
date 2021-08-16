@@ -1013,7 +1013,8 @@ jobs:
         run: pip install -r scripts/gha/requirements.txt
       - name: Setup Firebase Emulators
         run: |
-          scripts/run_firestore_emulator.sh &
+          npm install -g firebase-tools
+          firebase emulators:start --only firestore --project demo-example &
       - name: Run tvOS integration tests on Simulator locally
         timeout-minutes: 60
         run: |
