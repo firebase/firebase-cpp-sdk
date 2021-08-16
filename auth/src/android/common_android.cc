@@ -115,7 +115,11 @@ static const ErrorCodeMapping kFirebaseAuthCodes[] = {
     {"ERROR_UNSUPPORTED_FIRST_FACTOR", kAuthErrorUnsupportedFirstFactor},
     {"ERROR_EMAIL_CHANGE_NEEDS_VERIFICATION",
      kAuthErrorEmailChangeNeedsVerification},
-    {"ERROR_USER_CANCELLED", kAuthErrorMissingOrInvalidNonce},
+    {"ERROR_MISSING_OR_INVALID_NONCE", kAuthErrorMissingOrInvalidNonce},
+    {"ERROR_USER_CANCELLED", kAuthErrorUserCancelled},
+    {"ERROR_UNSUPPORTED_PASSTHROUGH_OPERATION",
+     kAuthErrorUnsupportedPassthroughOperation},
+    {"ERROR_TOKEN_REFRESH_UNAVAILABLE", kAuthErrorTokenRefreshUnavailable},
     {nullptr},
 };
 
