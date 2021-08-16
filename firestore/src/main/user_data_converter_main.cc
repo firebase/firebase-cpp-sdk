@@ -492,9 +492,9 @@ Message<google_firestore_v1_Value> UserDataConverter::ParseScalar(
 
       result->which_value_type = google_firestore_v1_Value_reference_value_tag;
       result->reference_value = nanopb::MakeBytesArray(reference_name);
-    }
 
-    break;
+      break;
+    }
 
     case Type::kGeoPoint:
       result->which_value_type = google_firestore_v1_Value_geo_point_value_tag;
