@@ -27,7 +27,7 @@ on:
       mobile_test_on:
         description: 'Run mobile tests on real and/or virtual devices? (separated by commas)'
         default: 'real,virtual'
-        required: true 
+        required: true
       use_expanded_matrix:
         description: 'Use an expanded matrix? Note: above config will be ignored.'
         default: '0'
@@ -47,13 +47,14 @@ env:
   statusCommentIdentifier: "integration-test-status-comment"
   pythonVersion: '3.7'
   artifactRetentionDays: 2
+  CCACHE_DIR: ${{ github.workspace }}/ccache_dir
 
 jobs:
   check_trigger:
     ### This job runs when the workflow was triggered by 1) PR getting labeled
     ### 2) PR merged & closed 3) or manumlly triggered with Pull request #.
-    ### If triggered by label, then checks whether the label is a test-request 
-    ### trigger (cancelling the workflow if not). 
+    ### If triggered by label, then checks whether the label is a test-request
+    ### trigger (cancelling the workflow if not).
     ### It sets outputs to control the build_* matrix (full or quick) and to tell
     ### subsequent steps to update the labels as well.
     runs-on: ubuntu-latest
@@ -255,6 +256,13 @@ jobs:
         with:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ env.VCPKG_TRIPLET }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
+      - name: Cache ccache files
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        id: cache_ccache
+        uses: actions/cache@v2
+        with:
+          path: ccache_dir
+          key: integration-test-ccache-${{ matrix.os }}
       - name: Setup python
         uses: actions/setup-python@v2
         with:
@@ -326,6 +334,9 @@ jobs:
             --noadd_timestamp \
             --short_output_paths \
             ${additional_flags[*]}
+      - name: Stats for ccache (mac and linux)
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        run: ccache -s
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
@@ -413,6 +424,13 @@ jobs:
         with:
           path: /tmp/android-ndk-r16b
           key: android-ndk-${{ matrix.os }}-r16b
+      - name: Cache ccache files
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        id: cache_ccache
+        uses: actions/cache@v2
+        with:
+          path: ccache_dir
+          key: integration-test-ccache-${{ matrix.os }}
       - name: Setup python
         uses: actions/setup-python@v2
         with:
@@ -461,7 +479,10 @@ jobs:
             --artifact_name "android-${{ matrix.os }}" \
             --noadd_timestamp \
             --short_output_paths \
-            ${additional_flags[*]} 
+            ${additional_flags[*]}
+      - name: Stats for ccache (mac and linux)
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        run: ccache -s
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
@@ -534,6 +555,12 @@ jobs:
             # homebrew. This prevents errors arising from the shut down of
             # binutils, used by older version of homebrew for hosting packages.
             brew update
+      - name: Cache ccache files
+        id: cache_ccache
+        uses: actions/cache@v2
+        with:
+          path: ccache_dir
+          key: integration-test-ccache-${{ matrix.os }}
       - name: Install SDK iOS prerequisites
         run: build_scripts/ios/install_prereqs.sh
       - name: Prepare for integration tests
@@ -566,7 +593,9 @@ jobs:
             --artifact_name "ios-macos-latest" \
             --noadd_timestamp \
             --short_output_paths \
-            ${additional_flags[*]} 
+            ${additional_flags[*]}
+      - name: Stats for ccache (mac and linux)
+        run: ccache -s
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
@@ -670,7 +699,7 @@ jobs:
             --artifact_name "tvos-macos-latest" \
             --noadd_timestamp \
             --short_output_paths \
-            ${additional_flags[*]} 
+            ${additional_flags[*]}
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
@@ -773,7 +802,7 @@ jobs:
             --issue_number ${{needs.check_trigger.outputs.pr_number}}\
             --actor ${{github.actor}} \
             --commit ${{needs.prepare_matrix.outputs.github_ref}} \
-            --run_id ${{github.run_id}}       
+            --run_id ${{github.run_id}}
       - name: Summarize test results
         if: ${{ !cancelled() }}
         shell: bash
@@ -929,7 +958,7 @@ jobs:
         with:
           name: log-artifact
           path: testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}*
-          retention-days: ${{ env.artifactRetentionDays }}      
+          retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         uses: actions/download-artifact@v2.0.8
@@ -998,7 +1027,7 @@ jobs:
         with:
           name: log-artifact
           path: testapps/test-results-tvos-macos-latest-${{ matrix.tvos_device }}*
-          retention-days: ${{ env.artifactRetentionDays }}      
+          retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         uses: actions/download-artifact@v2.0.8
