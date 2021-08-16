@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google
+ * Copyright 2018 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -227,6 +227,19 @@ class Settings final {
   std::shared_ptr<const util::Executor> executor_;
 #endif
 };
+
+/** Checks `lhs` and `rhs` for equality. */
+inline bool operator==(const Settings& lhs, const Settings& rhs) {
+  return lhs.host() == rhs.host() &&
+         lhs.is_ssl_enabled() == rhs.is_ssl_enabled() &&
+         lhs.is_persistence_enabled() == rhs.is_persistence_enabled() &&
+         lhs.cache_size_bytes() == rhs.cache_size_bytes();
+}
+
+/** Checks `lhs` and `rhs` for inequality. */
+inline bool operator!=(const Settings& lhs, const Settings& rhs) {
+  return !(lhs == rhs);
+}
 
 }  // namespace firestore
 }  // namespace firebase

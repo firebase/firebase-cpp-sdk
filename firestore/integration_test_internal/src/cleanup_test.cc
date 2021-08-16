@@ -1,4 +1,18 @@
-// Copyright 2021 Google LLC
+/*
+ * Copyright 2021 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "app/src/include/firebase/internal/common.h"
 #include "firebase/firestore.h"
@@ -41,6 +55,14 @@ template <typename T>
 void ExpectEqualityToWork(T* ptr) {
   EXPECT_TRUE(*ptr == T());
   EXPECT_FALSE(*ptr != T());
+}
+
+// Checks that `operator==` and `operator!=` work correctly by comparing to
+// a default-constructed instance.
+template <typename T>
+void ExpectEqualityToWork(const T& ref) {
+  EXPECT_TRUE(ref == T());
+  EXPECT_FALSE(ref != T());
 }
 
 // `ExpectAllMethodsAreNoOps` calls all the public API methods on the given
@@ -122,8 +144,7 @@ void ExpectAllMethodsAreNoOps(DocumentSnapshot* ptr) {
   EXPECT_FALSE(ptr->exists());
 
   EXPECT_EQ(ptr->reference(), DocumentReference());
-  // TODO(b/137966104): implement == on `SnapshotMetadata`
-  ptr->metadata();
+  ExpectEqualityToWork(ptr->metadata());
 
   EXPECT_EQ(ptr->GetData(), MapFieldValue());
 
@@ -236,8 +257,7 @@ void ExpectAllMethodsAreNoOps(QuerySnapshot* ptr) {
 
   EXPECT_EQ(ptr->query(), Query());
 
-  // TODO(b/137966104): implement == on `SnapshotMetadata`
-  ptr->metadata();
+  ExpectEqualityToWork(ptr->metadata());
 
   EXPECT_TRUE(ptr->DocumentChanges().empty());
   EXPECT_TRUE(ptr->documents().empty());

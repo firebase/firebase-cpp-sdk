@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_LOAD_BUNDLE_TASK_ANDROID_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_LOAD_BUNDLE_TASK_ANDROID_H_
 

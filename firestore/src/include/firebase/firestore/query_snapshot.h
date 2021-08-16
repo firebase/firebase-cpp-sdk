@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google
+ * Copyright 2018 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -164,6 +164,8 @@ class QuerySnapshot {
   bool is_valid() const { return internal_ != nullptr; }
 
  private:
+  friend bool operator==(const QuerySnapshot& lhs, const QuerySnapshot& rhs);
+
   friend class EventListenerInternal;
   friend class FirestoreInternal;
   friend struct ConverterImpl;
@@ -174,6 +176,14 @@ class QuerySnapshot {
 
   mutable QuerySnapshotInternal* internal_ = nullptr;
 };
+
+/** Checks `lhs` and `rhs` for equality. */
+bool operator==(const QuerySnapshot& lhs, const QuerySnapshot& rhs);
+
+/** Checks `lhs` and `rhs` for inequality. */
+inline bool operator!=(const QuerySnapshot& lhs, const QuerySnapshot& rhs) {
+  return !(lhs == rhs);
+}
 
 }  // namespace firestore
 }  // namespace firebase
