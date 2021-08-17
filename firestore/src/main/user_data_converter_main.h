@@ -20,9 +20,10 @@
 #include <utility>
 #include <vector>
 
+#include "Firestore/Protos/nanopb/google/firestore/v1/document.nanopb.h"
 #include "Firestore/core/src/model/database_id.h"
 #include "Firestore/core/src/model/field_path.h"
-#include "Firestore/core/src/model/field_value.h"
+#include "Firestore/core/src/nanopb/message.h"
 #include "absl/types/optional.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
@@ -67,8 +68,8 @@ class UserDataConverter {
    * Parse a "query value" (e.g. value in a where filter or a value in a cursor
    * bound).
    */
-  model::FieldValue ParseQueryValue(const FieldValue& input,
-                                    bool allow_arrays = false) const;
+  nanopb::Message<google_firestore_v1_Value> ParseQueryValue(
+      const FieldValue& input, bool allow_arrays = false) const;
 
  private:
   using UpdateDataInput =
@@ -86,12 +87,12 @@ class UserDataConverter {
    * the function in that case will be the side effect of modifying the given
    * `context`.
    */
-  absl::optional<model::FieldValue> ParseData(
+  absl::optional<nanopb::Message<google_firestore_v1_Value>> ParseData(
       const FieldValue& input, core::ParseContext&& context) const;
-  model::FieldValue::Array ParseArray(const std::vector<FieldValue>& input,
-                                      core::ParseContext&& context) const;
-  model::ObjectValue ParseMap(const MapFieldValue& input,
-                              core::ParseContext&& context) const;
+  nanopb::Message<google_firestore_v1_Value> ParseArray(
+      const std::vector<FieldValue>& input, core::ParseContext&& context) const;
+  nanopb::Message<google_firestore_v1_Value> ParseMap(
+      const MapFieldValue& input, core::ParseContext&& context) const;
 
   /**
    * "Parses" the provided sentinel `FieldValue`, adding any necessary
@@ -101,10 +102,10 @@ class UserDataConverter {
                      core::ParseContext&& context) const;
 
   /** Parses a scalar value (i.e. not a container or a sentinel). */
-  model::FieldValue ParseScalar(const FieldValue& input,
-                                core::ParseContext&& context) const;
+  nanopb::Message<google_firestore_v1_Value> ParseScalar(
+      const FieldValue& input, core::ParseContext&& context) const;
 
-  model::FieldValue::Array ParseArrayTransformElements(
+  nanopb::Message<google_firestore_v1_ArrayValue> ParseArrayTransformElements(
       const FieldValue& value) const;
 
   // Storing `FieldValue`s as pointers in `UpdateDataInput` avoids copying them.
