@@ -27,7 +27,7 @@ on:
       mobile_test_on:
         description: 'Run mobile tests on real and/or virtual devices? (separated by commas)'
         default: 'real,virtual'
-        required: true 
+        required: true
       use_expanded_matrix:
         description: 'Use an expanded matrix? Note: above config will be ignored.'
         default: '0'
@@ -52,8 +52,8 @@ jobs:
   check_trigger:
     ### This job runs when the workflow was triggered by 1) PR getting labeled
     ### 2) PR merged & closed 3) or manumlly triggered with Pull request #.
-    ### If triggered by label, then checks whether the label is a test-request 
-    ### trigger (cancelling the workflow if not). 
+    ### If triggered by label, then checks whether the label is a test-request
+    ### trigger (cancelling the workflow if not).
     ### It sets outputs to control the build_* matrix (full or quick) and to tell
     ### subsequent steps to update the labels as well.
     runs-on: ubuntu-latest
@@ -461,7 +461,7 @@ jobs:
             --artifact_name "android-${{ matrix.os }}" \
             --noadd_timestamp \
             --short_output_paths \
-            ${additional_flags[*]} 
+            ${additional_flags[*]}
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
@@ -566,7 +566,7 @@ jobs:
             --artifact_name "ios-macos-latest" \
             --noadd_timestamp \
             --short_output_paths \
-            ${additional_flags[*]} 
+            ${additional_flags[*]}
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
@@ -670,7 +670,7 @@ jobs:
             --artifact_name "tvos-macos-latest" \
             --noadd_timestamp \
             --short_output_paths \
-            ${additional_flags[*]} 
+            ${additional_flags[*]}
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
@@ -739,12 +739,21 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ env.pythonVersion }}
+      - name: Set up Node (12)
+        uses: actions/setup-node@v2
+        with:
+          node-version: 12.x
+      - name: Setup Firestore Emulator
+        run: |
+          npm install -g firebase-tools
       - name: Setup integration test deps
         run: |
           pip install -r scripts/gha/requirements.txt
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps
       - name: Run Desktop integration tests
-        run: python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
+        run: firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"'
+        env:
+          USE_FIRESTORE_EMULATOR: true
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
@@ -773,7 +782,7 @@ jobs:
             --issue_number ${{needs.check_trigger.outputs.pr_number}}\
             --actor ${{github.actor}} \
             --commit ${{needs.prepare_matrix.outputs.github_ref}} \
-            --run_id ${{github.run_id}}       
+            --run_id ${{github.run_id}}
       - name: Summarize test results
         if: ${{ !cancelled() }}
         shell: bash
@@ -811,6 +820,15 @@ jobs:
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.android_device }} )"
+      - name: Set up Node (12)
+        uses: actions/setup-node@v2
+        with:
+          node-version: 12.x
+      - name: Setup Firestore Emulator
+        if: steps.get-device-type.outputs.device_type == 'virtual'
+        run: |
+          npm install -g firebase-tools
+          firebase emulators:start --only firestore --project demo-example &
       - name: Run Android integration tests on Emulator locally
         timeout-minutes: 60
         if: steps.get-device-type.outputs.device_type == 'virtual'
@@ -896,6 +914,15 @@ jobs:
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.ios_device }} )"
+      - name: Set up Node (12)
+        uses: actions/setup-node@v2
+        with:
+          node-version: 12.x
+      - name: Setup Firestore Emulator
+        if: steps.get-device-type.outputs.device_type == 'virtual'
+        run: |
+          npm install -g firebase-tools
+          firebase emulators:start --only firestore --project demo-example &
       - name: Run iOS integration tests on Simulator locally
         timeout-minutes: 60
         if: steps.get-device-type.outputs.device_type == 'virtual'
@@ -929,7 +956,7 @@ jobs:
         with:
           name: log-artifact
           path: testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}*
-          retention-days: ${{ env.artifactRetentionDays }}      
+          retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         uses: actions/download-artifact@v2.0.8
@@ -980,6 +1007,10 @@ jobs:
         run: pip install -r scripts/gha/requirements.txt
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
+      - name: Setup Firebase Emulators
+        run: |
+          npm install -g firebase-tools
+          firebase emulators:start --only firestore --project demo-example &
       - name: Run tvOS integration tests on Simulator locally
         timeout-minutes: 60
         run: |
@@ -1000,7 +1031,7 @@ jobs:
         with:
           name: log-artifact
           path: testapps/test-results-tvos-macos-latest-${{ matrix.tvos_device }}*
-          retention-days: ${{ env.artifactRetentionDays }}      
+          retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         uses: actions/download-artifact@v2.0.8

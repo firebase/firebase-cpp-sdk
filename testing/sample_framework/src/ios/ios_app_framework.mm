@@ -15,6 +15,7 @@
 #import <UIKit/UIKit.h>
 
 #include <pthread.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include <cassert>
@@ -333,6 +334,10 @@ int main(int argc, char* argv[]) {
 - (BOOL)application:(UIApplication *)app
             openURL:(NSURL *)url
             options:(NSDictionary<UIApplicationOpenURLOptionsKey, id> *)options {
+#if TARGET_OS_SIMULATOR
+  setenv("USE_FIRESTORE_EMULATOR","true",1);
+#endif
+
   if ([url.scheme isEqual:kGameLoopUrlPrefix]) {
     g_gameloop_launch = true;
     app_framework::StartLoggingToFile(GAMELOOP_DEFAULT_LOG_FILE);

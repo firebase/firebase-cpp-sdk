@@ -42,6 +42,10 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
     intent.setPackage(gamePackageName)
       .setDataAndType(fileUri, "application/javascript").flags = Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 
+    if (android.os.Build.FINGERPRINT.contains("generic")) {
+    	intent.putExtra("USE_FIRESTORE_EMULATOR", "true")
+    }
+
     startActivityForResult(intent, TEST_LOOP_REQUEST_CODE)
   }
 
