@@ -10,11 +10,11 @@ on:
     inputs:
       platforms:
         description: 'CSV of Desktop, Android, iOS and/or tvOS'
-        default: 'Desktop,Android,iOS,tvOS'
+        default: 'tvOS'
         required: true
       apis:
         description: 'CSV of apis to build and test'
-        default: 'admob,analytics,auth,database,dynamic_links,firestore,functions,installations,messaging,remote_config,storage'
+        default: 'firestore'
         required: true
       operating_systems:
         description: 'CSV of VMs to run on'
@@ -999,14 +999,14 @@ jobs:
         with:
           path: testapps
           name: testapps-tvos-macos-latest
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Setup python
         uses: actions/setup-python@v2
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
         run: pip install -r scripts/gha/requirements.txt
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
       - name: Setup Firebase Emulators
         run: |
           npm install -g firebase-tools
