@@ -45,6 +45,7 @@ TEST_F(QuerySnapshotTest, Assignment) {
 
 #endif  // defined(__ANDROID__)
 
+/*
 TEST_F(QuerySnapshotTest, Equality) {
   CollectionReference collection =
       Collection({{"a", {{"k", FieldValue::String("a")}}},
@@ -98,6 +99,7 @@ TEST_F(QuerySnapshotTest, Equality) {
   EXPECT_FALSE(snapshot6 == snapshot7);
   EXPECT_FALSE(snapshot7 != snapshot8);
 }
+*/
 
 }  // namespace firestore
 }  // namespace firebase
