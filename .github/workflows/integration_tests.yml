@@ -978,6 +978,8 @@ jobs:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
         run: pip install -r scripts/gha/requirements.txt
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Run tvOS integration tests on Simulator locally
         timeout-minutes: 60
         run: |
