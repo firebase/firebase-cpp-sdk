@@ -726,6 +726,7 @@
 					"\"$(SRCROOT)/external/googletest/src/googletest\"",
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
 					"\"$(SRCROOT)/Pods/FirebaseFirestore\"",
+					"\"$(SRCROOT)/Pods/FirebaseFirestore/Firestore/Protos/nanopb\"",
 					"\"$(SRCROOT)/../..\"",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
@@ -768,6 +769,7 @@
 					"\"$(SRCROOT)/external/googletest/src/googletest\"",
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
 					"\"$(SRCROOT)/Pods/FirebaseFirestore\"",
+					"\"$(SRCROOT)/Pods/FirebaseFirestore/Firestore/Protos/nanopb\"",
 					"\"$(SRCROOT)/../..\"",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
@@ -829,6 +831,7 @@
 					"\"$(SRCROOT)/external/googletest/src/googletest\"",
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
 					"\"$(SRCROOT)/Pods/FirebaseFirestore\"",
+					"\"$(SRCROOT)/Pods/FirebaseFirestore/Firestore/Protos/nanopb\"",
 					"\"$(SRCROOT)/../..\"",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
@@ -894,6 +897,7 @@
 					"\"$(SRCROOT)/external/googletest/src/googletest\"",
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
 					"\"$(SRCROOT)/Pods/FirebaseFirestore\"",
+					"\"$(SRCROOT)/Pods/FirebaseFirestore/Firestore/Protos/nanopb\"",
 					"\"$(SRCROOT)/../..\"",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";

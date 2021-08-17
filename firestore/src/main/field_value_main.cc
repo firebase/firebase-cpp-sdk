@@ -1,4 +1,18 @@
-// Copyright 2021 Google LLC
+/*
+ * Copyright 2021 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "firestore/src/main/field_value_main.h"
 
@@ -28,6 +42,12 @@ using Type = FieldValue::Type;
 }  // namespace
 
 // Constructors
+
+FieldValueInternal::FieldValueInternal() {
+  auto& value = absl::get<SharedMessage<google_firestore_v1_Value>>(value_);
+  value->which_value_type = google_firestore_v1_Value_map_value_tag;
+  value->map_value = {};
+}
 
 FieldValueInternal::FieldValueInternal(bool value) : type_{Type::kBoolean} {
   auto& proto = GetProtoValue();
@@ -165,13 +185,18 @@ double FieldValueInternal::double_increment_value() const {
 // Creating sentinels
 
 FieldValue FieldValueInternal::Delete() {
-  return MakePublic(
-      FieldValueInternal{Type::kDelete, Message<google_firestore_v1_Value>{}});
+  Message<google_firestore_v1_Value> value;
+  value->which_value_type = google_firestore_v1_Value_map_value_tag;
+  value->map_value = {};
+  return MakePublic(FieldValueInternal{Type::kDelete, std::move(value)});
 }
 
 FieldValue FieldValueInternal::ServerTimestamp() {
-  return MakePublic(FieldValueInternal{Type::kServerTimestamp,
-                                       Message<google_firestore_v1_Value>{}});
+  Message<google_firestore_v1_Value> value;
+  value->which_value_type = google_firestore_v1_Value_map_value_tag;
+  value->map_value = {};
+  return MakePublic(
+      FieldValueInternal{Type::kServerTimestamp, std::move(value)});
 }
 
 FieldValue FieldValueInternal::ArrayUnion(std::vector<FieldValue> elements) {
