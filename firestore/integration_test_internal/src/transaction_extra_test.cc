@@ -35,6 +35,7 @@ namespace firestore {
 /*
 using TransactionExtraTest = FirestoreIntegrationTest;
 
+/*
 TEST_F(TransactionExtraTest,
        TestRetriesWhenDocumentThatWasReadWithoutBeingWrittenChanges) {
   DocumentReference doc1 = TestFirestore()->Collection("counter").Document();
