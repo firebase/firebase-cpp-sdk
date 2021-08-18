@@ -105,9 +105,6 @@ FirestoreInternal::FirestoreInternal(
   ApplyDefaultSettings();
 
   App::RegisterLibrary("fire-fst", kFirestoreVersionString);
-
-  LogSetLevel(util::kLogLevelDebug);
-  firebase::SetLogLevel(kLogLevelVerbose);
 }
 
 FirestoreInternal::~FirestoreInternal() {
