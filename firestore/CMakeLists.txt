@@ -366,6 +366,11 @@ target_compile_definitions(firebase_firestore
     ${FIREBASE_FIRESTORE_CPP_DEFINES}
 )
 
+# Set the Nanopb preprocessor definitions to match those used by the iOS SDK.
+target_compile_definitions(firebase_firestore
+  PUBLIC -DPB_FIELD_32BIT -DPB_ENABLE_MALLOC -DPB_NO_PACKED_STRUCTS
+)
+
 if(ANDROID)
   firebase_cpp_proguard_file(firestore)
 
