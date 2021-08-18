@@ -20,10 +20,12 @@
 #include <cstdint>
 #include <vector>
 
+#include "Firestore/Protos/nanopb/google/firestore/v1/document.nanopb.h"
 #include "Firestore/core/src/api/query_core.h"
 #include "Firestore/core/src/core/bound.h"
 #include "Firestore/core/src/core/order_by.h"
 #include "Firestore/core/src/core/query.h"
+#include "Firestore/core/src/nanopb/message.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/query.h"
 #include "firestore/src/main/firestore_main.h"
@@ -192,8 +194,9 @@ class QueryInternal {
   Query WithBound(BoundPosition bound_pos,
                   const std::vector<FieldValue>& values) const;
 
-  model::FieldValue ConvertDocumentId(const model::FieldValue& from,
-                                      const core::Query& internal_query) const;
+  nanopb::Message<google_firestore_v1_Value> ConvertDocumentId(
+      const nanopb::Message<google_firestore_v1_Value>& from,
+      const core::Query& internal_query) const;
 
   static bool IsBefore(BoundPosition bound_pos);
 

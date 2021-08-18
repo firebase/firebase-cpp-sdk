@@ -281,7 +281,7 @@ target_link_libraries(firebase_firestore
 
 if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
   target_link_libraries(firebase_firestore
-    PRIVATE
+    PUBLIC
       firestore_core
       absl_variant
   )
@@ -364,6 +364,11 @@ endif()
 target_compile_definitions(firebase_firestore
   PRIVATE
     ${FIREBASE_FIRESTORE_CPP_DEFINES}
+)
+
+# Set the Nanopb preprocessor definitions to match those used by the iOS SDK.
+target_compile_definitions(firebase_firestore
+  PUBLIC -DPB_FIELD_32BIT -DPB_ENABLE_MALLOC -DPB_NO_PACKED_STRUCTS
 )
 
 if(ANDROID)

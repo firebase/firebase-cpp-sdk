@@ -18,12 +18,12 @@
 
 #include <future>  // NOLINT(build/c++11)
 #include <utility>
+#include <vector>
 
 #include "Firestore/core/src/core/user_data.h"
 #include "Firestore/core/src/model/document.h"
 #include "Firestore/core/src/model/document_key.h"
 #include "Firestore/core/src/model/field_path.h"
-#include "Firestore/core/src/model/maybe_document.h"
 #include "Firestore/core/src/util/exception.h"
 #include "Firestore/core/src/util/status.h"
 #include "Firestore/core/src/util/statusor.h"
@@ -43,7 +43,6 @@ namespace {
 using core::ParsedSetData;
 using core::ParsedUpdateData;
 using model::Document;
-using model::MaybeDocument;
 using util::Status;
 using util::StatusOr;
 using util::ThrowInvalidArgument;
@@ -55,23 +54,23 @@ const model::DocumentKey& GetKey(const DocumentReference& document) {
 DocumentSnapshot ConvertToSingleSnapshot(
     const std::shared_ptr<api::Firestore>& firestore,
     model::DocumentKey key,
-    const std::vector<MaybeDocument>& documents) {
+    const std::vector<Document>& documents) {
   SIMPLE_HARD_ASSERT(
       documents.size() == 1,
       "Expected core::Transaction::Lookup() to return a single document");
 
-  const MaybeDocument& doc = documents.front();
+  const Document& doc = documents.front();
 
-  if (doc.is_no_document()) {
-    api::DocumentSnapshot snapshot = api::DocumentSnapshot::FromNoDocument(
-        firestore, key,
+  if (doc->is_found_document()) {
+    api::DocumentSnapshot snapshot = api::DocumentSnapshot::FromDocument(
+        firestore, Document(doc),
         api::SnapshotMetadata{/*from_cache=*/false,
                               /*has_pending_writes=*/false});
     return MakePublic(std::move(snapshot));
 
-  } else if (doc.is_document()) {
-    api::DocumentSnapshot snapshot = api::DocumentSnapshot::FromDocument(
-        firestore, Document(doc),
+  } else if (doc->is_no_document()) {
+    api::DocumentSnapshot snapshot = api::DocumentSnapshot::FromNoDocument(
+        firestore, key,
         api::SnapshotMetadata{/*from_cache=*/false,
                               /*has_pending_writes=*/false});
     return MakePublic(std::move(snapshot));
@@ -84,7 +83,7 @@ DocumentSnapshot ConvertToSingleSnapshot(
     auto message = std::string(
                        "core::Transaction::Lookup() returned unexpected "
                        "document type: '") +
-                   std::to_string(static_cast<int>(doc.type())) + "'";
+                   doc.ToString() + "'";
     SIMPLE_HARD_FAIL(message);
   }
 }
@@ -141,7 +140,7 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
   model::DocumentKey key = GetKey(document);
 
   transaction_->Lookup(
-      {key}, [&](const util::StatusOr<std::vector<MaybeDocument>>& maybe_docs) {
+      {key}, [&](const util::StatusOr<std::vector<Document>>& maybe_docs) {
         if (maybe_docs.ok()) {
           DocumentSnapshot snapshot =
               ConvertToSingleSnapshot(firestore_internal_->firestore_core(),

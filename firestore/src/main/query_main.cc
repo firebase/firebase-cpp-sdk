@@ -24,6 +24,9 @@
 #include "Firestore/core/src/model/document_key.h"
 #include "Firestore/core/src/model/field_path.h"
 #include "Firestore/core/src/model/resource_path.h"
+#include "Firestore/core/src/model/server_timestamp_util.h"
+#include "Firestore/core/src/model/value_util.h"
+#include "Firestore/core/src/nanopb/nanopb_util.h"
 #include "Firestore/core/src/util/exception.h"
 #include "app/src/assert.h"
 #include "firestore/src/common/exception_common.h"
@@ -41,8 +44,18 @@
 namespace firebase {
 namespace firestore {
 
+using model::DeepClone;
 using model::DocumentKey;
+using model::GetTypeOrder;
+using model::IsServerTimestamp;
+using model::RefValue;
 using model::ResourcePath;
+using model::TypeOrder;
+using nanopb::CheckedSize;
+using nanopb::MakeArray;
+using nanopb::MakeString;
+using nanopb::Message;
+using nanopb::SharedMessage;
 
 QueryInternal::QueryInternal(api::Query&& query)
     : query_{std::move(query)},
@@ -85,7 +98,8 @@ Query QueryInternal::Where(const FieldPath& field_path,
                            Operator op,
                            const FieldValue& value) const {
   const model::FieldPath& path = GetInternal(field_path);
-  model::FieldValue parsed = user_data_converter_.ParseQueryValue(value);
+  Message<google_firestore_v1_Value> parsed =
+      user_data_converter_.ParseQueryValue(value);
   auto describer = [&value] { return Describe(value.type()); };
 
   api::Query decorated = query_.Filter(path, op, std::move(parsed), describer);
@@ -97,7 +111,7 @@ Query QueryInternal::Where(const FieldPath& field_path,
                            const std::vector<FieldValue>& values) const {
   const model::FieldPath& path = GetInternal(field_path);
   auto array_value = FieldValue::Array(values);
-  model::FieldValue parsed =
+  Message<google_firestore_v1_Value> parsed =
       user_data_converter_.ParseQueryValue(array_value, true);
   auto describer = [&array_value] { return Describe(array_value.type()); };
 
@@ -151,10 +165,14 @@ core::Bound QueryInternal::ToBound(
 
   const api::DocumentSnapshot& api_snapshot = GetCoreApi(public_snapshot);
   const model::DocumentKey& key =
-      api_snapshot.internal_document().value().key();
+      api_snapshot.internal_document().value()->key();
   const model::DatabaseId& database_id = firestore_internal()->database_id();
   const core::Query& internal_query = query_.query();
-  std::vector<model::FieldValue> components;
+
+  SharedMessage<google_firestore_v1_ArrayValue> components{{}};
+  components->values_count = CheckedSize(internal_query.order_bys().size());
+  components->values =
+      MakeArray<google_firestore_v1_Value>(components->values_count);
 
   // Because people expect to continue/end a query at the exact document
   // provided, we need to use the implicit sort order rather than the explicit
@@ -163,15 +181,17 @@ core::Bound QueryInternal::ToBound(
   // the provided document. Without the key (by using the explicit sort orders),
   // multiple documents could match the position, yielding duplicate results.
 
-  for (const core::OrderBy& order_by : internal_query.order_bys()) {
+  for (size_t i = 0; i < internal_query.order_bys().size(); ++i) {
+    const core::OrderBy& order_by = internal_query.order_bys()[i];
     const model::FieldPath& field_path = order_by.field();
 
     if (field_path.IsKeyFieldPath()) {
-      components.push_back(model::FieldValue::FromReference(database_id, key));
+      components->values[i] = *RefValue(database_id, key).release();
       continue;
     }
 
-    absl::optional<model::FieldValue> value = api_snapshot.GetValue(field_path);
+    absl::optional<google_firestore_v1_Value> value =
+        api_snapshot.GetValue(field_path);
     if (!value) {
       // TODO(b/147444199): use string formatting.
       // ThrowInvalidArgument(
@@ -186,7 +206,7 @@ core::Bound QueryInternal::ToBound(
       SimpleThrowInvalidArgument(message);
     }
 
-    if (value->type() == model::FieldValue::Type::ServerTimestamp) {
+    if (IsServerTimestamp(*value)) {
       // TODO(b/147444199): use string formatting.
       // ThrowInvalidArgument(
       //     "Invalid query. You are trying to start or end a query using a "
@@ -204,10 +224,10 @@ core::Bound QueryInternal::ToBound(
       SimpleThrowInvalidArgument(message);
     }
 
-    components.push_back(std::move(value).value());
+    components->values[i] = *DeepClone(*value).release();
   }
 
-  return core::Bound{std::move(components), IsBefore(bound_pos)};
+  return core::Bound::FromValue(std::move(components), IsBefore(bound_pos));
 }
 
 core::Bound QueryInternal::ToBound(
@@ -224,29 +244,35 @@ core::Bound QueryInternal::ToBound(
         "values than were specified in the order by.");
   }
 
-  std::vector<model::FieldValue> components;
+  SharedMessage<google_firestore_v1_ArrayValue> components{{}};
+  components->values_count = CheckedSize(field_values.size());
+  components->values =
+      MakeArray<google_firestore_v1_Value>(components->values_count);
 
   for (int i = 0; i != field_values.size(); ++i) {
-    model::FieldValue field_value =
+    Message<google_firestore_v1_Value> field_value =
         user_data_converter_.ParseQueryValue(field_values[i]);
     const core::OrderBy& order_by = explicit_order_bys[i];
     if (order_by.field().IsKeyFieldPath()) {
-      components.push_back(ConvertDocumentId(field_value, internal_query));
+      components->values[i] =
+          *ConvertDocumentId(field_value, internal_query).release();
     } else {
-      components.push_back(std::move(field_value));
+      components->values[i] = *field_value.release();
     }
   }
 
-  return core::Bound{std::move(components), IsBefore(bound_pos)};
+  return core::Bound::FromValue(std::move(components), IsBefore(bound_pos));
 }
 
-model::FieldValue QueryInternal::ConvertDocumentId(
-    const model::FieldValue& from, const core::Query& internal_query) const {
-  if (from.type() != model::FieldValue::Type::String) {
+Message<google_firestore_v1_Value> QueryInternal::ConvertDocumentId(
+    const Message<google_firestore_v1_Value>& from,
+    const core::Query& internal_query) const {
+  if (GetTypeOrder(*from) != TypeOrder::kString) {
     SimpleThrowInvalidArgument(
         "Invalid query. Expected a string for the document ID.");
   }
-  const std::string& document_id = from.string_value();
+
+  std::string document_id = MakeString(from->string_value);
 
   if (!internal_query.IsCollectionGroupQuery() &&
       document_id.find('/') != std::string::npos) {
@@ -283,8 +309,7 @@ model::FieldValue QueryInternal::ConvertDocumentId(
   }
 
   const model::DatabaseId& database_id = firestore_internal()->database_id();
-  return model::FieldValue::FromReference(database_id,
-                                          DocumentKey{std::move(path)});
+  return RefValue(database_id, DocumentKey{std::move(path)});
 }
 
 api::Query QueryInternal::CreateQueryWithBound(BoundPosition bound_pos,
