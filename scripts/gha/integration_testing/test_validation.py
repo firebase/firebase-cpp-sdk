@@ -80,7 +80,7 @@ def validate_results_unity(log_text):
     # After the result string comes a list of failing testapps.
     summary = log_text[results_match.start():]
   else:
-    summary = _tail(log_text, 1500000)
+    summary = _tail(log_text, 15)
   return TestResults(
       complete=bool(results_match),
       passes=0 if not results_match else int(match_dict["pass"]),
@@ -112,7 +112,7 @@ def validate_results_cpp(log_text):
     fails = re.search(r"\[  FAILED  \] (?P<count>[0-9]+) test", result_summary)
     skips = re.search(r"\[  SKIPPED \] (?P<count>[0-9]+) test", result_summary)
   else:
-    result_summary = _tail(log_text, 15000000)
+    result_summary = _tail(log_text, 15)
     passes = None
     fails = None
     skips = None
