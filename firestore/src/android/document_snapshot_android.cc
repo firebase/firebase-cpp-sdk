@@ -117,7 +117,7 @@ FieldValue DocumentSnapshotInternal::Get(const FieldPath& field,
 
 bool operator==(const DocumentSnapshotInternal& lhs,
                 const DocumentSnapshotInternal& rhs) {
-  return jni::EqualityCompare(lhs, rhs);
+  return jni::EqualityCompareJni(lhs, rhs);
 }
 
 }  // namespace firestore

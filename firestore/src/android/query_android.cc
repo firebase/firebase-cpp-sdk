@@ -333,7 +333,7 @@ Local<Array<Object>> QueryInternal::ConvertFieldValues(
 }
 
 bool operator==(const QueryInternal& lhs, const QueryInternal& rhs) {
-  return jni::EqualityCompare(lhs, rhs);
+  return jni::EqualityCompareJni(lhs, rhs);
 }
 
 }  // namespace firestore

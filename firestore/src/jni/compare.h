@@ -28,7 +28,7 @@ namespace jni {
  * current Firestore `jni::Env`.
  */
 template <typename T>
-bool EqualityCompare(const T& lhs, const T& rhs) {
+bool EqualityCompareJni(const T& lhs, const T& rhs) {
   Env env;
   env.SetUnhandledExceptionHandler(GlobalUnhandledExceptionHandler, nullptr);
   return Object::Equals(env, lhs.ToJava(), rhs.ToJava());
