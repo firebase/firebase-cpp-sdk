@@ -41,7 +41,7 @@ class SetOptionsInternal {
       : options_{std::move(options)} {}
 
   Type type() const { return options_.type_; }
-  const std::unordered_set<FieldPath> field_mask() const {
+  const std::unordered_set<FieldPath>& field_mask() const {
     return options_.fields_;
   }
 
