@@ -17,6 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_MAIN_SET_OPTIONS_MAIN_H_
 #define FIREBASE_FIRESTORE_SRC_MAIN_SET_OPTIONS_MAIN_H_
 
+#include <unordered_set>
 #include <utility>
 
 #include "firestore/src/include/firebase/firestore/set_options.h"
