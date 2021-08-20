@@ -144,14 +144,14 @@ TEST_F(DocumentChangeTest, Equality) {
 
   changes = snapshot.DocumentChanges();
   ASSERT_EQ(changes.size(), 1);
-  // third_change: Modified doc2.
-  auto third_change = changes[0];
-  EXPECT_TRUE(third_change != change1);
-  EXPECT_TRUE(third_change != change2);
-  EXPECT_TRUE(third_change != invalid_change_1);
-  EXPECT_FALSE(third_change == change1);
-  EXPECT_FALSE(third_change == change2);
-  EXPECT_FALSE(third_change == invalid_change_1);
+  // Third change: Modified doc2.
+  auto change3 = changes[0];
+  EXPECT_TRUE(change3 != change1);
+  EXPECT_TRUE(change3 != change2);
+  EXPECT_TRUE(change3 != invalid_change_1);
+  EXPECT_FALSE(change3 == change1);
+  EXPECT_FALSE(change3 == change2);
+  EXPECT_FALSE(change3 == invalid_change_1);
 }
 
 }  // namespace firestore
