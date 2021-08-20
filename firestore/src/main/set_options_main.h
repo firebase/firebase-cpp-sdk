@@ -17,6 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_MAIN_SET_OPTIONS_MAIN_H_
 #define FIREBASE_FIRESTORE_SRC_MAIN_SET_OPTIONS_MAIN_H_
 
+#include <unordered_set>
 #include <utility>
 
 #include "firestore/src/include/firebase/firestore/set_options.h"
@@ -41,7 +42,9 @@ class SetOptionsInternal {
       : options_{std::move(options)} {}
 
   Type type() const { return options_.type_; }
-  const std::vector<FieldPath>& field_mask() const { return options_.fields_; }
+  const std::unordered_set<FieldPath>& field_mask() const {
+    return options_.fields_;
+  }
 
  private:
   SetOptions options_;

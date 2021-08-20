@@ -17,6 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_MAIN_USER_DATA_CONVERTER_MAIN_H_
 #define FIREBASE_FIRESTORE_SRC_MAIN_USER_DATA_CONVERTER_MAIN_H_
 
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -78,7 +79,7 @@ class UserDataConverter {
   /** Parse document data from a merge `SetData` call. */
   core::ParsedSetData ParseMergeData(
       const MapFieldValue& input,
-      const absl::optional<std::vector<FieldPath>>& field_mask =
+      const absl::optional<std::unordered_set<FieldPath>>& field_mask =
           absl::nullopt) const;
 
   /**

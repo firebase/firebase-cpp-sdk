@@ -157,7 +157,7 @@ void ParseNumericIncrement(const FieldValue& value, ParseContext&& context) {
 }
 
 FieldMask CreateFieldMask(const ParseAccumulator& accumulator,
-                          const std::vector<FieldPath>& field_paths) {
+                          const std::unordered_set<FieldPath>& field_paths) {
   std::set<model::FieldPath> validated;
 
   for (const FieldPath& public_path : field_paths) {
@@ -240,7 +240,8 @@ ParsedSetData UserDataConverter::ParseSetData(
 
 ParsedSetData UserDataConverter::ParseMergeData(
     const MapFieldValue& input,
-    const absl::optional<std::vector<FieldPath>>& maybe_field_mask) const {
+    const absl::optional<std::unordered_set<FieldPath>>& maybe_field_mask)
+    const {
   ParseAccumulator accumulator{UserDataSource::MergeSet};
 
   auto update_data = ParseMap(input, accumulator.RootContext());
