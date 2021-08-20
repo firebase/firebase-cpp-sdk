@@ -155,5 +155,9 @@ std::ostream& operator<<(std::ostream& out, const DocumentSnapshot& document) {
   return out << document.ToString();
 }
 
+bool operator==(const DocumentSnapshot& lhs, const DocumentSnapshot& rhs) {
+  return EqualityCompare(lhs.internal_, rhs.internal_);
+}
+
 }  // namespace firestore
 }  // namespace firebase

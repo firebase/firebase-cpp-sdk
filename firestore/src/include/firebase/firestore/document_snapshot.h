@@ -261,6 +261,9 @@ class DocumentSnapshot {
                                   const DocumentSnapshot& document);
 
  private:
+  friend bool operator==(const DocumentSnapshot& lhs,
+                         const DocumentSnapshot& rhs);
+
   friend class DocumentChangeInternal;
   friend class EventListenerInternal;
   friend class FirestoreInternal;
@@ -275,6 +278,15 @@ class DocumentSnapshot {
 
   mutable DocumentSnapshotInternal* internal_ = nullptr;
 };
+
+/** Checks `lhs` and `rhs` for equality. */
+bool operator==(const DocumentSnapshot& lhs, const DocumentSnapshot& rhs);
+
+/** Checks `lhs` and `rhs` for inequality. */
+inline bool operator!=(const DocumentSnapshot& lhs,
+                       const DocumentSnapshot& rhs) {
+  return !(lhs == rhs);
+}
 
 }  // namespace firestore
 }  // namespace firebase

@@ -63,6 +63,9 @@ class DocumentSnapshotInternal {
 
   DocumentReference reference() const;
 
+  friend bool operator==(const DocumentSnapshotInternal& lhs,
+                         const DocumentSnapshotInternal& rhs);
+
  private:
   using ServerTimestampBehavior = DocumentSnapshot::ServerTimestampBehavior;
 
@@ -86,6 +89,11 @@ class DocumentSnapshotInternal {
 
   api::DocumentSnapshot snapshot_;
 };
+
+inline bool operator!=(const DocumentSnapshotInternal& lhs,
+                       const DocumentSnapshotInternal& rhs) {
+  return !(lhs == rhs);
+}
 
 }  // namespace firestore
 }  // namespace firebase

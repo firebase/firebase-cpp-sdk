@@ -25,6 +25,7 @@
 #include "firestore/src/jni/array_list.h"
 #include "firestore/src/jni/boolean.h"
 #include "firestore/src/jni/class.h"
+#include "firestore/src/jni/compare.h"
 #include "firestore/src/jni/double.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/hash_map.h"
@@ -384,8 +385,7 @@ FieldValue FieldValueInternal::DoubleIncrement(double by_value) {
 }
 
 bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs) {
-  Env env = FieldValueInternal::GetEnv();
-  return Object::Equals(env, lhs.object_, rhs.object_);
+  return jni::EqualityCompareJni(lhs, rhs);
 }
 
 template <typename T>

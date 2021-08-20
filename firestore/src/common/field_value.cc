@@ -25,6 +25,7 @@
 #include "firebase/firestore/timestamp.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/to_string.h"
+#include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/field_value_android.h"
@@ -341,9 +342,7 @@ std::string FieldValue::ToString() const {
 }
 
 bool operator==(const FieldValue& lhs, const FieldValue& rhs) {
-  return lhs.internal_ == rhs.internal_ ||
-         (lhs.internal_ != nullptr && rhs.internal_ != nullptr &&
-          *lhs.internal_ == *rhs.internal_);
+  return EqualityCompare(lhs.internal_, rhs.internal_);
 }
 
 std::ostream& operator<<(std::ostream& out, const FieldValue& value) {

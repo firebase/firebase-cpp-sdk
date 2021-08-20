@@ -24,6 +24,7 @@
 #include "firestore/src/android/server_timestamp_behavior_android.h"
 #include "firestore/src/android/snapshot_metadata_android.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/jni/compare.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 
@@ -126,6 +127,11 @@ FieldValue DocumentSnapshotInternal::Get(const FieldPath& field,
   Local<Object> java_stb = ServerTimestampBehaviorInternal::Create(env, stb);
   Local<Object> field_value = env.Call(obj_, kGet, java_field, java_stb);
   return FieldValueInternal::Create(env, field_value);
+}
+
+bool operator==(const DocumentSnapshotInternal& lhs,
+                const DocumentSnapshotInternal& rhs) {
+  return jni::EqualityCompareJni(lhs, rhs);
 }
 
 }  // namespace firestore

@@ -215,5 +215,10 @@ FieldValue DocumentSnapshotInternal::ConvertServerTimestamp(
   FIRESTORE_UNREACHABLE();
 }
 
+bool operator==(const DocumentSnapshotInternal& lhs,
+                const DocumentSnapshotInternal& rhs) {
+  return lhs.snapshot_ == rhs.snapshot_;
+}
+
 }  // namespace firestore
 }  // namespace firebase

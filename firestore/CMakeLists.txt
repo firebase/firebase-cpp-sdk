@@ -143,6 +143,7 @@ set(android_SRCS
     src/jni/class.h
     src/jni/collection.cc
     src/jni/collection.h
+    src/jni/compare.h
     src/jni/declaration.h
     src/jni/double.cc
     src/jni/double.h

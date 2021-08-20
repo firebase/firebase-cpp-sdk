@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,27 +14,26 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_FIRESTORE_SRC_COMMON_UTIL_H_
-#define FIREBASE_FIRESTORE_SRC_COMMON_UTIL_H_
-
-#include <string>
+#include "firestore/src/android/exception_android.h"
+#include "firestore/src/android/wrapper.h"
+#include "firestore/src/jni/env.h"
+#include "firestore/src/jni/object.h"
 
 namespace firebase {
 namespace firestore {
+namespace jni {
 
-// Returns a reference to an empty string. This is useful for functions that may
-// need to return the reference while being in a state where they don't have
-// a string to refer to.
-const std::string& EmptyString();
-
-// Returns true if the two given pointers are equal or the underlying objects
-// that they point to are equal. Returns false otherwise.
+/**
+ * Returns the result of `Object::Equals` for the given `lhs` and `rhs` in the
+ * current Firestore `jni::Env`.
+ */
 template <typename T>
-bool EqualityCompare(T* lhs, T* rhs) {
-  return lhs == rhs || (lhs != nullptr && rhs != nullptr && *lhs == *rhs);
+bool EqualityCompareJni(const T& lhs, const T& rhs) {
+  Env env;
+  env.SetUnhandledExceptionHandler(GlobalUnhandledExceptionHandler, nullptr);
+  return Object::Equals(env, lhs.ToJava(), rhs.ToJava());
 }
 
+}  // namespace jni
 }  // namespace firestore
 }  // namespace firebase
-
-#endif  // FIREBASE_FIRESTORE_SRC_COMMON_UTIL_H_

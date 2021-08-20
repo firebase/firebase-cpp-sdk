@@ -32,6 +32,7 @@
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/jni/array.h"
 #include "firestore/src/jni/array_list.h"
+#include "firestore/src/jni/compare.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 #include "firestore/src/jni/task.h"
@@ -346,8 +347,7 @@ Local<Array<Object>> QueryInternal::ConvertFieldValues(
 }
 
 bool operator==(const QueryInternal& lhs, const QueryInternal& rhs) {
-  Env env = FirestoreInternal::GetEnv();
-  return Object::Equals(env, lhs.ToJava(), rhs.ToJava());
+  return jni::EqualityCompareJni(lhs, rhs);
 }
 
 }  // namespace firestore
