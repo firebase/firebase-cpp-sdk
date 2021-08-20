@@ -59,7 +59,7 @@ TEST_F(DocumentChangeTest, TestDocumentChanges) {
   snapshot = listener.last_result();
 
   std::vector<DocumentChange> changes = snapshot.DocumentChanges();
-  EXPECT_EQ(changes.size(), 1);
+  ASSERT_EQ(changes.size(), 1);
 
   EXPECT_EQ(changes[0].type(), DocumentChange::Type::kAdded);
   EXPECT_EQ(changes[0].document().id(), doc1.id());
@@ -71,7 +71,7 @@ TEST_F(DocumentChangeTest, TestDocumentChanges) {
   snapshot = listener.last_result();
 
   changes = snapshot.DocumentChanges();
-  EXPECT_EQ(changes.size(), 1);
+  ASSERT_EQ(changes.size(), 1);
   EXPECT_EQ(changes[0].type(), DocumentChange::Type::kAdded);
   EXPECT_EQ(changes[0].document().id(), doc2.id());
   EXPECT_EQ(changes[0].old_index(), DocumentChange::npos);
@@ -83,7 +83,7 @@ TEST_F(DocumentChangeTest, TestDocumentChanges) {
   snapshot = listener.last_result();
 
   changes = snapshot.DocumentChanges();
-  EXPECT_EQ(changes.size(), 1);
+  ASSERT_EQ(changes.size(), 1);
   EXPECT_EQ(changes[0].type(), DocumentChange::Type::kModified);
   EXPECT_EQ(changes[0].document().id(), doc2.id());
   EXPECT_EQ(changes[0].old_index(), 1);
@@ -143,7 +143,7 @@ TEST_F(DocumentChangeTest, Equality) {
   snapshot = listener.last_result();
 
   changes = snapshot.DocumentChanges();
-  EXPECT_EQ(changes.size(), 1);
+  ASSERT_EQ(changes.size(), 1);
   // third_change: Modified doc2.
   auto third_change = changes[0];
   EXPECT_TRUE(third_change != change1);
