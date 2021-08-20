@@ -116,26 +116,26 @@ TEST_F(DocumentChangeTest, Equality) {
   snapshot = listener.last_result();
 
   std::vector<DocumentChange> changes = snapshot.DocumentChanges();
-  EXPECT_EQ(changes.size(), 1);
-  // first_change: Added doc1.
-  auto first_change = changes[0];
-  EXPECT_TRUE(first_change == first_change);
-  EXPECT_TRUE(first_change != invalid_change_1);
-  EXPECT_FALSE(first_change != first_change);
-  EXPECT_FALSE(first_change == invalid_change_1);
+  ASSERT_EQ(changes.size(), 1);
+  // First change: Added doc1.
+  auto change1 = changes[0];
+  EXPECT_TRUE(change1 == change1);
+  EXPECT_TRUE(change1 != invalid_change_1);
+  EXPECT_FALSE(change1 != change1);
+  EXPECT_FALSE(change1 == invalid_change_1);
 
   WriteDocument(doc2, MapFieldValue{{"a", FieldValue::Integer(2)}});
   Await(listener, 2);
   snapshot = listener.last_result();
 
   changes = snapshot.DocumentChanges();
-  EXPECT_EQ(changes.size(), 1);
-  // second_change: Added doc2.
-  auto second_change = changes[0];
-  EXPECT_TRUE(second_change != first_change);
-  EXPECT_TRUE(second_change != invalid_change_1);
-  EXPECT_FALSE(second_change == first_change);
-  EXPECT_FALSE(second_change == invalid_change_1);
+  ASSERT_EQ(changes.size(), 1);
+  // Second change: Added doc2.
+  auto change2 = changes[0];
+  EXPECT_TRUE(change2 != change1);
+  EXPECT_TRUE(change2 != invalid_change_1);
+  EXPECT_FALSE(change2 == change1);
+  EXPECT_FALSE(change2 == invalid_change_1);
 
   // Make doc2 ordered before doc1.
   WriteDocument(doc2, MapFieldValue{{"a", FieldValue::Integer(0)}});
@@ -146,11 +146,11 @@ TEST_F(DocumentChangeTest, Equality) {
   EXPECT_EQ(changes.size(), 1);
   // third_change: Modified doc2.
   auto third_change = changes[0];
-  EXPECT_TRUE(third_change != first_change);
-  EXPECT_TRUE(third_change != second_change);
+  EXPECT_TRUE(third_change != change1);
+  EXPECT_TRUE(third_change != change2);
   EXPECT_TRUE(third_change != invalid_change_1);
-  EXPECT_FALSE(third_change == first_change);
-  EXPECT_FALSE(third_change == second_change);
+  EXPECT_FALSE(third_change == change1);
+  EXPECT_FALSE(third_change == change2);
   EXPECT_FALSE(third_change == invalid_change_1);
 }
 

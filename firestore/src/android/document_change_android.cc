@@ -18,6 +18,7 @@
 
 #include "firestore/src/android/document_change_type_android.h"
 #include "firestore/src/android/document_snapshot_android.h"
+#include "firestore/src/jni/compare.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 
@@ -71,8 +72,7 @@ std::size_t DocumentChangeInternal::new_index() const {
 
 bool operator==(const DocumentChangeInternal& lhs,
                 const DocumentChangeInternal& rhs) {
-  Env env = FirestoreInternal::GetEnv();
-  return Object::Equals(env, lhs.ToJava(), rhs.ToJava());
+  return jni::EqualityCompareJni(lhs, rhs);
 }
 
 }  // namespace firestore
