@@ -354,6 +354,14 @@ char** EditMainArgsForGoogleTest(int* argc, char* argv[]) {
   // e.g. modified_args.push_back("--gtest_list_tests");
   // e.g. modified_args.push_back("--gtest_filter=MyTestFixture.MyTest");
 
+  // Disable googletest's exception handling logic when debugging test failures
+  // due to exceptions. This can be helpful because when exceptions are handled
+  // by googletest (the default) the stack traces are lost; however, when they
+  // are instead allowed to bubble up and crash the app then helpful stack
+  // traces are usually included as part of the crash dump.
+  // See https://goo.gle/2WcC3fV for details.
+  // modified_args.push_back("--gtest_catch_exceptions=0");
+
   // Create a new `argv` with the elements from the `modified_args` vector and
   // write the new count back to `argc`. The memory leaks produced by
   // `VectorToArgcArgv` acceptable because they last for the entire application.
