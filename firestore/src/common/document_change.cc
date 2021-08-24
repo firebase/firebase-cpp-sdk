@@ -20,6 +20,7 @@
 
 #include "firestore/src/common/cleanup.h"
 #include "firestore/src/common/hard_assert_common.h"
+#include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/document_change_android.h"
@@ -116,6 +117,10 @@ std::size_t DocumentChange::old_index() const {
 std::size_t DocumentChange::new_index() const {
   if (!internal_) return {};
   return internal_->new_index();
+}
+
+bool operator==(const DocumentChange& lhs, const DocumentChange& rhs) {
+  return EqualityCompare(lhs.internal_, rhs.internal_);
 }
 
 }  // namespace firestore

@@ -38,6 +38,14 @@ class DocumentChangeInternal : public Wrapper {
   std::size_t new_index() const;
 };
 
+bool operator==(const DocumentChangeInternal& lhs,
+                const DocumentChangeInternal& rhs);
+
+inline bool operator!=(const DocumentChangeInternal& lhs,
+                       const DocumentChangeInternal& rhs) {
+  return !(lhs == rhs);
+}
+
 }  // namespace firestore
 }  // namespace firebase
 
