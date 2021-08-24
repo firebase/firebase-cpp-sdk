@@ -180,7 +180,7 @@ void TransactionInternal::MarkPermanentlyFailed() {
 
 void TransactionInternal::ValidateReference(const DocumentReference& document) {
   auto* internal_doc = GetInternal(&document);
-  HARD_ASSERT(internal_doc, "Invalid document reference provided.");
+  SIMPLE_HARD_ASSERT(internal_doc, "Invalid document reference provided.");
 
   if (internal_doc->firestore() != firestore()) {
     ThrowInvalidArgument(
