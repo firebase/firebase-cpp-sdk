@@ -130,6 +130,7 @@ Method<Object> kAddSnapshotListener(
     "Lcom/google/firebase/firestore/MetadataChanges;"
     "Lcom/google/firebase/firestore/EventListener;)"
     "Lcom/google/firebase/firestore/ListenerRegistration;");
+Method<int32_t> kHashCode("hashCode", "()I");
 
 }  // namespace
 
@@ -139,7 +140,7 @@ void QueryInternal::Initialize(jni::Loader& loader) {
       kGreaterThan, kGreaterThanOrEqualTo, kArrayContains, kArrayContainsAny,
       kIn, kNotIn, kOrderBy, kLimit, kLimitToLast, kStartAtSnapshot, kStartAt,
       kStartAfterSnapshot, kStartAfter, kEndBeforeSnapshot, kEndBefore,
-      kEndAtSnapshot, kEndAt, kGet, kAddSnapshotListener);
+      kEndAtSnapshot, kEndAt, kGet, kAddSnapshotListener, kHashCode);
 }
 
 Firestore* QueryInternal::firestore() {
@@ -344,6 +345,11 @@ Local<Array<Object>> QueryInternal::ConvertFieldValues(
     result.Set(env, i, ToJava(field_values[i]));
   }
   return result;
+}
+
+size_t QueryInternal::Hash() const {
+  Env env = GetEnv();
+  return env.Call(obj_, kHashCode);
 }
 
 bool operator==(const QueryInternal& lhs, const QueryInternal& rhs) {

@@ -379,6 +379,8 @@ class QueryInternal : public Wrapper {
       EventListener<QuerySnapshot>* listener,
       bool passing_listener_ownership = false);
 
+  size_t Hash() const;
+
  protected:
   PromiseFactory<AsyncFn> promises_;
 

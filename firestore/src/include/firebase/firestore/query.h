@@ -650,7 +650,10 @@ class Query {
   bool is_valid() const { return internal_ != nullptr; }
 
  private:
+  size_t Hash() const;
+
   friend bool operator==(const Query& lhs, const Query& rhs);
+  friend size_t QueryHash(const Query& query);
 
   friend class FirestoreInternal;
   friend class QueryInternal;
