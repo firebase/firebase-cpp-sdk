@@ -28,6 +28,7 @@
 #include "Firestore/core/src/util/status.h"
 #include "Firestore/core/src/util/statusor.h"
 #include "absl/types/optional.h"
+#include "firestore/src/common/exception_common.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/main/converter_main.h"
 #include "firestore/src/main/document_reference_main.h"
@@ -45,7 +46,6 @@ using core::ParsedUpdateData;
 using model::Document;
 using util::Status;
 using util::StatusOr;
-using util::ThrowInvalidArgument;
 
 const model::DocumentKey& GetKey(const DocumentReference& document) {
   return GetInternal(&document)->key();
@@ -183,7 +183,7 @@ void TransactionInternal::ValidateReference(const DocumentReference& document) {
   SIMPLE_HARD_ASSERT(internal_doc, "Invalid document reference provided.");
 
   if (internal_doc->firestore() != firestore()) {
-    ThrowInvalidArgument(
+    SimpleThrowInvalidArgument(
         "Provided document reference is from a different Cloud Firestore "
         "instance.");
   }
