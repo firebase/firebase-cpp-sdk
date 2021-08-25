@@ -32,6 +32,10 @@ namespace firestore {
 
 using DocumentSnapshotTest = FirestoreIntegrationTest;
 
+std::size_t DocumentSnapshotHash(const DocumentSnapshot& snapshot) {
+  return snapshot.Hash();
+}
+
 #if defined(__ANDROID__)
 
 TEST_F(DocumentSnapshotTest, Construction) {
@@ -66,6 +70,22 @@ TEST_F(DocumentSnapshotTest, Equality) {
   EXPECT_FALSE(doc1_snap1 == doc2_snap1);
   EXPECT_FALSE(doc1_snap1 == snap3);
   EXPECT_FALSE(snap3 != snap4);
+}
+
+TEST_F(DocumentSnapshotTest, TestHashCode) {
+  DocumentReference doc1 = Collection("col1").Document();
+  DocumentReference doc2 = Collection("col1").Document();
+  DocumentSnapshot doc1_snap1 = ReadDocument(doc1);
+  DocumentSnapshot doc1_snap2 = ReadDocument(doc1);
+  DocumentSnapshot doc2_snap1 = ReadDocument(doc2);
+  DocumentSnapshot snap3 = DocumentSnapshot();
+  DocumentSnapshot snap4 = DocumentSnapshot();
+
+  EXPECT_EQ(DocumentSnapshotHash(doc1_snap1), DocumentSnapshotHash(doc1_snap1));
+  EXPECT_EQ(DocumentSnapshotHash(doc1_snap1), DocumentSnapshotHash(doc1_snap2));
+  EXPECT_NE(DocumentSnapshotHash(doc1_snap1), DocumentSnapshotHash(doc2_snap1));
+  EXPECT_NE(DocumentSnapshotHash(doc1_snap1), DocumentSnapshotHash(snap3));
+  EXPECT_EQ(DocumentSnapshotHash(snap3), DocumentSnapshotHash(snap4));
 }
 
 }  // namespace firestore

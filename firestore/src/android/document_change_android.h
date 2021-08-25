@@ -36,6 +36,8 @@ class DocumentChangeInternal : public Wrapper {
   DocumentSnapshot document() const;
   std::size_t old_index() const;
   std::size_t new_index() const;
+
+  std::size_t Hash() const;
 };
 
 bool operator==(const DocumentChangeInternal& lhs,

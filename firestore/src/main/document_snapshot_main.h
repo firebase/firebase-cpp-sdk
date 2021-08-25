@@ -63,6 +63,8 @@ class DocumentSnapshotInternal {
 
   DocumentReference reference() const;
 
+  std::size_t Hash() const { return snapshot_.Hash(); }
+
   friend bool operator==(const DocumentSnapshotInternal& lhs,
                          const DocumentSnapshotInternal& rhs);
 

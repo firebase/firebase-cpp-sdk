@@ -41,6 +41,8 @@ class DocumentChangeInternal {
   std::size_t old_index() const;
   std::size_t new_index() const;
 
+  std::size_t Hash() const { return change_.Hash(); }
+
   friend bool operator==(const DocumentChangeInternal& lhs,
                          const DocumentChangeInternal& rhs);
 
