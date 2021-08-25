@@ -35,6 +35,7 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "firebase/firestore/firestore_version.h"
+#include "firestore/src/common/exception_common.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/common/util.h"
@@ -55,7 +56,6 @@ using model::DatabaseId;
 using util::AsyncQueue;
 using util::Executor;
 using util::Status;
-using util::ThrowInvalidArgument;
 
 std::shared_ptr<AsyncQueue> CreateWorkerQueue() {
   auto executor = Executor::CreateSerial("com.google.firebase.firestore");
@@ -86,8 +86,12 @@ LoadBundleTaskProgress ToApiProgress(
 
 void ValidateDoubleSlash(const char* path) {
   if (std::strstr(path, "//") != nullptr) {
-    ThrowInvalidArgument(
-        "Invalid path (%s). Paths must not contain // in them.", path);
+    // TODO(b/147444199): use string formatting.
+    // ThrowInvalidArgument(
+    //     "Invalid path (%s). Paths must not contain // in them.", path);
+    auto message = std::string("Invalid path (") + path +
+                   "). Paths must not contain // in them.";
+    SimpleThrowInvalidArgument(message);
   }
 }
 
@@ -138,10 +142,14 @@ DocumentReference FirestoreInternal::Document(const char* document_path) const {
 
 Query FirestoreInternal::CollectionGroup(const char* collection_id) const {
   if (std::strchr(collection_id, '/') != nullptr) {
-    ThrowInvalidArgument(
-        "Invalid collection ID (%s). Collection IDs must not contain / in "
-        "them.",
-        collection_id);
+    // TODO(b/147444199): use string formatting.
+    // ThrowInvalidArgument(
+    //     "Invalid collection ID (%s). Collection IDs must not contain / in "
+    //     "them.",
+    //     collection_id);
+    auto message = std::string("Invalid collection ID (") + collection_id +
+                   "). Collection IDs must not contain / in them.";
+    SimpleThrowInvalidArgument(message);
   }
 
   core::Query core_query = firestore_core_->GetCollectionGroup(collection_id);
