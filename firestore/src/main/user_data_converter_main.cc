@@ -320,7 +320,7 @@ nanopb::Message<google_firestore_v1_Value> UserDataConverter::ParseArray(
     result->array_value.values[i] = *parsed->release();
   }
 
-  return std::move(result);
+  return result;
 }
 
 Message<google_firestore_v1_Value> UserDataConverter::ParseMap(
