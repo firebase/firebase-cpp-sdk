@@ -60,6 +60,8 @@ class DocumentSnapshotInternal : public Wrapper {
   FieldValue Get(const FieldPath& field,
                  DocumentSnapshot::ServerTimestampBehavior stb) const;
 
+  std::size_t Hash() const;
+
  private:
   mutable std::string cached_id_;
 };

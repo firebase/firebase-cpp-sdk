@@ -48,12 +48,13 @@ Method<List> kGetDocumentChanges(
     "(Lcom/google/firebase/firestore/MetadataChanges;)Ljava/util/List;");
 Method<List> kGetDocuments("getDocuments", "()Ljava/util/List;");
 Method<size_t> kSize("size", "()I");
+Method<int32_t> kHashCode("hashCode", "()I");
 
 }  // namespace
 
 void QuerySnapshotInternal::Initialize(jni::Loader& loader) {
   loader.LoadClass(kClassName, kGetQuery, kGetMetadata, kGetDocumentChanges,
-                   kGetDocuments, kSize);
+                   kGetDocuments, kSize, kHashCode);
 }
 
 Query QuerySnapshotInternal::query() const {
@@ -85,6 +86,11 @@ std::vector<DocumentSnapshot> QuerySnapshotInternal::documents() const {
 std::size_t QuerySnapshotInternal::size() const {
   Env env = GetEnv();
   return env.Call(obj_, kSize);
+}
+
+std::size_t QuerySnapshotInternal::Hash() const {
+  Env env = GetEnv();
+  return env.Call(obj_, kHashCode);
 }
 
 bool operator==(const QuerySnapshotInternal& lhs,

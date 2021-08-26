@@ -29,6 +29,10 @@ namespace firestore {
 
 using DocumentChangeTest = FirestoreIntegrationTest;
 
+std::size_t DocumentChangeHash(const DocumentChange& change) {
+  return change.Hash();
+}
+
 #if defined(__ANDROID__)
 
 TEST_F(DocumentChangeTest, Construction) {
@@ -92,12 +96,14 @@ TEST_F(DocumentChangeTest, TestDocumentChanges) {
 
 #endif  // defined(__ANDROID__)
 
-TEST_F(DocumentChangeTest, Equality) {
+TEST_F(DocumentChangeTest, EqualityAndHashCode) {
   DocumentChange invalid_change_1 = DocumentChange();
   DocumentChange invalid_change_2 = DocumentChange();
 
   EXPECT_TRUE(invalid_change_1 == invalid_change_2);
   EXPECT_FALSE(invalid_change_1 != invalid_change_2);
+  EXPECT_EQ(DocumentChangeHash(invalid_change_1),
+            DocumentChangeHash(invalid_change_2));
 
   CollectionReference collection = Collection();
   Query query = collection.OrderBy("a");
@@ -123,6 +129,8 @@ TEST_F(DocumentChangeTest, Equality) {
   EXPECT_TRUE(change1 != invalid_change_1);
   EXPECT_FALSE(change1 != change1);
   EXPECT_FALSE(change1 == invalid_change_1);
+  EXPECT_EQ(DocumentChangeHash(change1), DocumentChangeHash(change1));
+  EXPECT_NE(DocumentChangeHash(change1), DocumentChangeHash(invalid_change_1));
 
   WriteDocument(doc2, MapFieldValue{{"a", FieldValue::Integer(2)}});
   Await(listener, 2);
@@ -136,6 +144,8 @@ TEST_F(DocumentChangeTest, Equality) {
   EXPECT_TRUE(change2 != invalid_change_1);
   EXPECT_FALSE(change2 == change1);
   EXPECT_FALSE(change2 == invalid_change_1);
+  EXPECT_NE(DocumentChangeHash(change2), DocumentChangeHash(change1));
+  EXPECT_NE(DocumentChangeHash(change2), DocumentChangeHash(invalid_change_1));
 
   // Make doc2 ordered before doc1.
   WriteDocument(doc2, MapFieldValue{{"a", FieldValue::Integer(0)}});
@@ -152,6 +162,9 @@ TEST_F(DocumentChangeTest, Equality) {
   EXPECT_FALSE(change3 == change1);
   EXPECT_FALSE(change3 == change2);
   EXPECT_FALSE(change3 == invalid_change_1);
+  EXPECT_NE(DocumentChangeHash(change3), DocumentChangeHash(change1));
+  EXPECT_NE(DocumentChangeHash(change3), DocumentChangeHash(change2));
+  EXPECT_NE(DocumentChangeHash(change3), DocumentChangeHash(invalid_change_1));
 }
 
 }  // namespace firestore

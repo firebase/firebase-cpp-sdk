@@ -173,7 +173,10 @@ class DocumentChange {
   bool is_valid() const { return internal_ != nullptr; }
 
  private:
+  std::size_t Hash() const;
+
   friend bool operator==(const DocumentChange& lhs, const DocumentChange& rhs);
+  friend std::size_t DocumentChangeHash(const DocumentChange& change);
 
   friend class FirestoreInternal;
   friend class Wrapper;

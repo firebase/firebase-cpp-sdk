@@ -119,6 +119,11 @@ std::size_t DocumentChange::new_index() const {
   return internal_->new_index();
 }
 
+size_t DocumentChange::Hash() const {
+  if (!internal_) return {};
+  return internal_->Hash();
+}
+
 bool operator==(const DocumentChange& lhs, const DocumentChange& rhs) {
   return EqualityCompare(lhs.internal_, rhs.internal_);
 }

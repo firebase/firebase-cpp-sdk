@@ -41,11 +41,12 @@ Method<Object> kDocument(
     "getDocument", "()Lcom/google/firebase/firestore/QueryDocumentSnapshot;");
 Method<size_t> kOldIndex("getOldIndex", "()I");
 Method<size_t> kNewIndex("getNewIndex", "()I");
+Method<int32_t> kHashCode("hashCode", "()I");
 
 }  // namespace
 
 void DocumentChangeInternal::Initialize(jni::Loader& loader) {
-  loader.LoadClass(kClass, kType, kDocument, kOldIndex, kNewIndex);
+  loader.LoadClass(kClass, kType, kDocument, kOldIndex, kNewIndex, kHashCode);
 }
 
 Type DocumentChangeInternal::type() const {
@@ -68,6 +69,11 @@ std::size_t DocumentChangeInternal::old_index() const {
 std::size_t DocumentChangeInternal::new_index() const {
   Env env = GetEnv();
   return env.Call(obj_, kNewIndex);
+}
+
+std::size_t DocumentChangeInternal::Hash() const {
+  Env env = GetEnv();
+  return env.Call(obj_, kHashCode);
 }
 
 bool operator==(const DocumentChangeInternal& lhs,

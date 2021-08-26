@@ -151,6 +151,11 @@ std::string DocumentSnapshot::ToString() const {
          ", doc=" + ::firebase::firestore::ToString(GetData()) + ')';
 }
 
+size_t DocumentSnapshot::Hash() const {
+  if (!internal_) return {};
+  return internal_->Hash();
+}
+
 std::ostream& operator<<(std::ostream& out, const DocumentSnapshot& document) {
   return out << document.ToString();
 }

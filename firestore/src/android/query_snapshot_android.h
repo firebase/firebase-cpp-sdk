@@ -77,6 +77,8 @@ class QuerySnapshotInternal : public Wrapper {
    * @return The number of documents in the QuerySnapshot.
    */
   std::size_t size() const;
+
+  std::size_t Hash() const;
 };
 
 bool operator==(const QuerySnapshotInternal& lhs,
