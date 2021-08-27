@@ -142,21 +142,6 @@ struct AdRequest {
   const KeyValuePair *extras;
   /// The number of entries in the array referenced by extras.
   unsigned int extras_count;
-  /// The day the user was born. Specify the user's birthday to increase ad
-  /// relevancy.
-  int birthday_day;
-  /// The month the user was born. Specify the user's birthday to increase ad
-  /// relevancy.
-  int birthday_month;
-  /// The year the user was born. Specify the user's birthday to increase ad
-  /// relevancy.
-  int birthday_year;
-  /// The user's @ref Gender. Specify the user's gender to increase ad
-  /// relevancy.
-  Gender gender;
-  /// Specifies whether the request should be considered as child-directed for
-  /// purposes of the Children’s Online Privacy Protection Act (COPPA).
-  ChildDirectedTreatmentState tagged_for_child_directed_treatment;
 };
 
 /// @brief The screen location and dimensions of an ad view once it has been

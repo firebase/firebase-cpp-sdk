@@ -17,9 +17,15 @@
 package com.google.firebase.admob.internal.cpp;
 
 import android.app.Activity;
-import com.google.android.gms.ads.AdListener;
+
+import com.google.android.gms.ads.AdError;
 import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.InterstitialAd;
+import com.google.android.gms.ads.FullScreenContentCallback;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.interstitial.InterstitialAd;
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
+
+import android.util.Log;
 
 /**
  * Helper class to make interactions between the AdMob C++ wrapper and Java {@link InterstitialAd}
@@ -45,6 +51,7 @@ public class InterstitialAdHelper {
 
   // The GMA SDK {@link InterstitialAd} associated with this helper.
   private InterstitialAd mInterstitial;
+
   // Synchronization object for thread safe access to:
   // * mInterstitial
   // * mInterstitialAdInternalPtr
@@ -82,6 +89,7 @@ public class InterstitialAdHelper {
    * InterstitialAd} object and sets it up.
    */
   public void initialize(final long callbackDataPtr, Activity activity, String adUnitID) {
+    /// TODO, move adUnitId to the load method.
     mActivity = activity;
     mAdUnitId = adUnitID;
 
@@ -93,9 +101,6 @@ public class InterstitialAdHelper {
             String errorMessage;
             if (mInterstitial == null) {
               try {
-                mInterstitial = new InterstitialAd(mActivity);
-                mInterstitial.setAdUnitId(mAdUnitId);
-                mInterstitial.setAdListener(new InterstitialAdListener());
                 errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
                 errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
               } catch (IllegalStateException e) {
@@ -109,7 +114,6 @@ public class InterstitialAdHelper {
               errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
 
             }
-
             completeInterstitialAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
           }
         });
@@ -126,8 +130,11 @@ public class InterstitialAdHelper {
           @Override
           public void run() {
             synchronized (mInterstitialLock) {
-              mInterstitial.setAdListener(null);
-              mInterstitial = null;
+              if( mInterstitial != null) {
+                mInterstitial.setFullScreenContentCallback(null);
+                mInterstitial.setOnPaidEventListener(null);
+                mInterstitial = null;
+              }
             }
           }
         });
@@ -151,7 +158,7 @@ public class InterstitialAdHelper {
         new Runnable() {
           @Override
           public void run() {
-            if (mInterstitial == null) {
+            if (mAdUnitId == null) {
               synchronized (mInterstitialLock) {
                 completeInterstitialAdFutureCallback(
                     mLoadAdCallbackDataPtr,
@@ -161,7 +168,7 @@ public class InterstitialAdHelper {
               }
             } else {
               try {
-                mInterstitial.loadAd(request);
+                InterstitialAd.load(mActivity, mAdUnitId, request, new InterstitialAdListener());
               } catch (IllegalStateException e) {
                 synchronized (mInterstitialLock) {
                   completeInterstitialAdFutureCallback(
@@ -185,19 +192,17 @@ public class InterstitialAdHelper {
             synchronized (mInterstitialLock) {
               int errorCode;
               String errorMessage;
-              if (mInterstitial == null) {
+              if (mAdUnitId == null) {
                 errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
                 errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
-              } else if (!mInterstitial.isLoaded()) {
+              } else if (mInterstitial == null) {
                 errorCode = ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS;
                 errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS;
               } else {
                 errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
                 errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-                mInterstitial.show();
-                mCurrentPresentationState = PRESENTATION_STATE_COVERING_UI;
+                mInterstitial.show(mActivity);
               }
-
               completeInterstitialAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
             }
           }
@@ -209,21 +214,39 @@ public class InterstitialAdHelper {
     return mCurrentPresentationState;
   }
 
-  private class InterstitialAdListener extends AdListener {
+  private class InterstitialAdFullScreenContentListener extends FullScreenContentCallback {
     @Override
-    public void onAdClosed() {
+    public void onAdDismissedFullScreenContent() {
       synchronized (mInterstitialLock) {
         mCurrentPresentationState = PRESENTATION_STATE_HIDDEN;
         notifyPresentationStateChanged(mInterstitialAdInternalPtr, mCurrentPresentationState);
       }
-      super.onAdClosed();
     }
 
     @Override
-    public void onAdFailedToLoad(int errorCode) {
+    public void onAdFailedToShowFullScreenContent(AdError error) {
+      // TODO. 
+    }
+
+    @Override
+    public void onAdImpression() {
+      // TODO. 
+    }
+    @Override
+    public void onAdShowedFullScreenContent() {
+      synchronized (mInterstitialLock) {
+        mCurrentPresentationState = PRESENTATION_STATE_COVERING_UI;
+        notifyPresentationStateChanged(mInterstitialAdInternalPtr, mCurrentPresentationState);
+      }
+    }
+  }
+
+  private class InterstitialAdListener extends InterstitialAdLoadCallback {
+    @Override
+    public void onAdFailedToLoad(LoadAdError loadAdError) {
       int callbackErrorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
       String callbackErrorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-      switch (errorCode) {
+      switch (loadAdError.getCode()) {
         case AdRequest.ERROR_CODE_INTERNAL_ERROR:
           callbackErrorCode = ConstantsHelper.CALLBACK_ERROR_INTERNAL_ERROR;
           callbackErrorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_INTERNAL_ERROR;
@@ -250,28 +273,19 @@ public class InterstitialAdHelper {
             mLoadAdCallbackDataPtr, callbackErrorCode, callbackErrorMessage);
         mLoadAdCallbackDataPtr = CPP_NULLPTR;
       }
-
-      super.onAdFailedToLoad(errorCode);
     }
 
     @Override
-    public void onAdLoaded() {
+    public void onAdLoaded(InterstitialAd ad) {
       synchronized (mInterstitialLock) {
+        mInterstitial = ad;
+        mInterstitial.setFullScreenContentCallback(new InterstitialAdFullScreenContentListener());
         completeInterstitialAdFutureCallback(
             mLoadAdCallbackDataPtr,
             ConstantsHelper.CALLBACK_ERROR_NONE,
             ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
         mLoadAdCallbackDataPtr = CPP_NULLPTR;
       }
-      super.onAdLoaded();
-    }
-
-    @Override
-    public void onAdOpened() {
-      synchronized (mInterstitialLock) {
-        notifyPresentationStateChanged(mInterstitialAdInternalPtr, mCurrentPresentationState);
-      }
-      super.onAdOpened();
     }
   }
 

@@ -20,6 +20,9 @@
 #include "admob/src/common/interstitial_ad_internal.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
+#include "app_framework.h"
+
+using app_framework::LogDebug;
 
 namespace firebase {
 namespace admob {
@@ -30,6 +33,7 @@ const char kUninitializedError[] =
 InterstitialAd::InterstitialAd() {
   FIREBASE_ASSERT(admob::IsInitialized());
   internal_ = internal::InterstitialAdInternal::CreateInstance(this);
+
   GetOrCreateCleanupNotifier()->RegisterObject(this, [](void* object) {
     FIREBASE_ASSERT_MESSAGE(
         false, "InterstitialAd must be deleted before admob::Terminate.");

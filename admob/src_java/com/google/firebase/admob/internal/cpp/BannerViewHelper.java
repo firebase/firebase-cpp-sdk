@@ -29,6 +29,7 @@ import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.LoadAdError;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -570,10 +571,10 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     }
 
     @Override
-    public void onAdFailedToLoad(int errorCode) {
+    public void onAdFailedToLoad(LoadAdError loadAdError) {
       int callbackErrorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
       String callbackErrorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-      switch (errorCode) {
+      switch (loadAdError.getCode()) {
         case AdRequest.ERROR_CODE_INTERNAL_ERROR:
           callbackErrorCode = ConstantsHelper.CALLBACK_ERROR_INTERNAL_ERROR;
           callbackErrorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_INTERNAL_ERROR;
@@ -598,15 +599,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
         mLoadAdCallbackDataPtr = CPP_NULLPTR;
       }
 
-      super.onAdFailedToLoad(errorCode);
-    }
-
-    @Override
-    public void onAdLeftApplication() {
-      mCurrentPresentationState = ConstantsHelper.AD_VIEW_PRESENTATION_STATE_COVERING_UI;
-      notifyStateChanged(
-          mBannerViewInternalPtr, ConstantsHelper.AD_VIEW_CHANGED_PRESENTATION_STATE);
-      super.onAdLeftApplication();
+      super.onAdFailedToLoad(loadAdError);
     }
 
     @Override
