@@ -60,6 +60,7 @@ android {
     versionName '1.0'
     externalNativeBuild.cmake {
       arguments "-DFIREBASE_CPP_SDK_DIR=$gradle.firebase_cpp_sdk_dir"
+      targets 'firebase_firestore', 'firebase_auth', 'android_integration_test_main'
     }
     multiDexEnabled true
   }
