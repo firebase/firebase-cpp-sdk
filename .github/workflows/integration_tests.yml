@@ -337,6 +337,9 @@ jobs:
             --noadd_timestamp \
             --short_output_paths \
             ${additional_flags[*]}
+      - name: Stats for ccache
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        run: ccache -s
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
