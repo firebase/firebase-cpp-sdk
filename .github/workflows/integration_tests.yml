@@ -263,9 +263,6 @@ jobs:
         with:
           path: ccache_dir
           key: integration-test-ccache-${{ matrix.os }}
-#       - name: List ccache files
-#         run: |
-#           ls ccache_dir
       - name: Setup python
         uses: actions/setup-python@v2
         with:
@@ -339,7 +336,10 @@ jobs:
             ${additional_flags[*]}
       - name: Stats for ccache
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
-        run: ccache -s
+        run: |
+          ccache -s
+          ls ccache_dir
+          cat ccache_dir/ccache.conf
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
