@@ -47,6 +47,7 @@ env:
   statusCommentIdentifier: "integration-test-status-comment"
   pythonVersion: '3.7'
   artifactRetentionDays: 2
+  CCACHE_DIR: ${{ github.workspace }}/ccache_dir
 
 jobs:
   check_trigger:
