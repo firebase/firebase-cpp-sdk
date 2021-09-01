@@ -261,7 +261,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ccache_dir
-          key: integration-test-ccache-linux-$GITHUB_REF
+          key: integration-test-ccache-linux-${{ github.ref }}
       - name: Setup python
         uses: actions/setup-python@v2
         with:
