@@ -255,6 +255,16 @@ jobs:
         with:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ env.VCPKG_TRIPLET }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
+      - name: Cache ccache files
+        if: startsWith(matrix.os, 'ubuntu')
+        id: cache_ccache
+        uses: actions/cache@v2
+        with:
+          path: ccache_dir
+          key: integration-test-ccache-${{ matrix.os }}
+      - name: List ccache files
+        run: |
+          ls ccache_dir
       - name: Setup python
         uses: actions/setup-python@v2
         with:
