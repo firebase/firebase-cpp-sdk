@@ -49,11 +49,6 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   // C++ nullptr for use with the callbacks.
   private static final long CPP_NULLPTR = 0;
 
-  // Ad Size Types (matches the AdSizeType enumeration in the public C++
-  // API). There is only one possible value right now, but this will likely
-  // increase.
-  public static final int ADSIZETYPE_STANDARD = 0;
-
   // The number of milliseconds to wait before attempting to create a PopUpWindow to hold an ad.
   private static final int WEBVIEW_DELAY_MILLISECONDS = 200;
 
@@ -120,8 +115,9 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   private int mDesiredY;
 
   /** Constructor. */
-  public BannerViewHelper(long bannerViewInternalPtr) {
+  public BannerViewHelper(long bannerViewInternalPtr, AdView adView) {
     mBannerViewInternalPtr = bannerViewInternalPtr;
+    mAdView = adView;
     mCurrentPresentationState = ConstantsHelper.AD_VIEW_PRESENTATION_STATE_HIDDEN;
     mDesiredPosition = ConstantsHelper.AD_VIEW_POSITION_TOP_LEFT;
     mShouldUseXYForPosition = false;
@@ -137,47 +133,12 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   }
 
   /**
-   * Initializes the {@link BannerView}. This creates the corresponding GMA SDK {@link AdView}
-   * object and sets it up.
+   * Initializes the {@link BannerView}. This stores the activity for use with
+   * callback and load operations.
    */
-  public void initialize(
-      final long callbackDataPtr,
-      Activity activity,
-      String adUnitID,
-      int adSizeType,
-      int width,
-      int height) {
-
-    // There is only one ad size type right now, which is why that parameter goes unused.
-    mAdSize = new AdSize(width, height);
-    mActivity = activity;
-    mAdUnitId = adUnitID;
-    synchronized (mPopUpLock) {
-      mPopUpRunnable = null;
-    }
-
-    // Create the AdView on the UI thread.
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            int errorCode;
-            String errorMessage;
-            if (mAdView == null) {
-              errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
-              errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-              mAdView = new AdView(mActivity);
-              mAdView.setAdUnitId(mAdUnitId);
-              mAdView.setAdSize(mAdSize);
-              mAdView.setAdListener(new AdViewListener());
-            } else {
-              errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
-              errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
-            }
-
-            completeBannerViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
-          }
-        });
+   
+  public void initialize(Activity activity) {
+      mActivity = activity;
   }
 
   /** Destroy/deallocate the {@link PopupWindow} and {@link AdView}. */
@@ -239,7 +200,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
 
       mLoadAdCallbackDataPtr = callbackDataPtr;
     }
-
+    
     mActivity.runOnUiThread(
         new Runnable() {
           @Override
@@ -560,7 +521,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     return true;
   }
 
-  private class AdViewListener extends AdListener {
+  public class AdViewListener extends AdListener {
     @Override
     public void onAdClosed() {
       mCurrentPresentationState = ConstantsHelper.AD_VIEW_PRESENTATION_STATE_VISIBLE_WITH_AD;
