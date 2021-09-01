@@ -47,7 +47,6 @@ env:
   statusCommentIdentifier: "integration-test-status-comment"
   pythonVersion: '3.7'
   artifactRetentionDays: 2
-  CCACHE_DIR: ${{ github.workspace }}/ccache_dir
 
 jobs:
   check_trigger:
@@ -262,7 +261,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ccache_dir
-          key: integration-test-ccache-${{ matrix.os }}
+          key: integration-test-ccache-linux-${{needs.prepare_matrix.outputs.github_ref}}
       - name: Setup python
         uses: actions/setup-python@v2
         with:
@@ -311,6 +310,8 @@ jobs:
           run_id: ${{ github.event.inputs.test_packaged_sdk }}
       - name: Build integration tests
         shell: bash
+        env: 
+          CCACHE_DIR: ${{ github.workspace }}/ccache_dir
         run: |
           declare -a additional_flags
           if [[ -n "${{ github.event.inputs.test_packaged_sdk }}" ]]; then
@@ -334,12 +335,6 @@ jobs:
             --noadd_timestamp \
             --short_output_paths \
             ${additional_flags[*]}
-      - name: Stats for ccache
-        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
-        run: |
-          ccache -s
-          ls ccache_dir
-          cat ccache_dir/ccache.conf
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
