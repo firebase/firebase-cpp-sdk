@@ -263,9 +263,9 @@ jobs:
         with:
           path: ccache_dir
           key: integration-test-ccache-${{ matrix.os }}
-      - name: List ccache files
-        run: |
-          ls ccache_dir
+#       - name: List ccache files
+#         run: |
+#           ls ccache_dir
       - name: Setup python
         uses: actions/setup-python@v2
         with:
