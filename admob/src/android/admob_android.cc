@@ -130,10 +130,13 @@ InitResult Initialize(JNIEnv* env, jobject activity) {
 
   if (!(mobile_ads::CacheMethodIds(env, activity) &&
         ad_request_builder::CacheMethodIds(env, activity) &&
+        ad_size::CacheMethodIds(env, activity) &&
+        ad_view::CacheMethodIds(env, activity) &&
         request_config_builder::CacheMethodIds(env, activity) &&
         banner_view_helper::CacheClassFromFiles(env, activity,
                                                 &embedded_files) != nullptr &&
         banner_view_helper::CacheMethodIds(env, activity) &&
+        banner_view_helper_ad_view_listener::CacheMethodIds(env, activity) &&
         interstitial_ad_helper::CacheClassFromFiles(
             env, activity, &embedded_files) != nullptr &&
         interstitial_ad_helper::CacheMethodIds(env, activity) &&
@@ -156,8 +159,11 @@ InitResult Initialize(JNIEnv* env, jobject activity) {
 void ReleaseClasses(JNIEnv* env) {
   mobile_ads::ReleaseClass(env);
   ad_request_builder::ReleaseClass(env);
+  ad_size::ReleaseClass(env);
+  ad_view::ReleaseClass(env);
   request_config_builder::ReleaseClass(env);
   banner_view_helper::ReleaseClass(env);
+  banner_view_helper_ad_view_listener::ReleaseClass(env);
   interstitial_ad_helper::ReleaseClass(env);
 }
 
