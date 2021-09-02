@@ -261,8 +261,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ccache_dir
-          key: integration-test-ccache-linux-${{ github.ref }}-${{ hashFiles('ccache_dir/ccache.conf') }}
-          restore-keys: integration-test-ccache-linux-${{ github.ref }}-
+          key: integration-test-ccache-linux-${{ matrix.ssl_variant }}-${{ needs.prepare_matrix.outputs.apis }}-${{needs.prepare_matrix.outputs.github_ref}}
       - name: Setup python
         uses: actions/setup-python@v2
         with:
