@@ -310,6 +310,8 @@ jobs:
           run_id: ${{ github.event.inputs.test_packaged_sdk }}
       - name: Build integration tests
         shell: bash
+        env: 
+          CCACHE_DIR: ${{ github.workspace }}/ccache_dir
         run: |
           declare -a additional_flags
           if [[ -n "${{ github.event.inputs.test_packaged_sdk }}" ]]; then
