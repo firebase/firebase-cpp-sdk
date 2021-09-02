@@ -256,12 +256,12 @@ jobs:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ env.VCPKG_TRIPLET }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
       - name: Cache ccache files
-        if: startsWith(matrix.os, 'ubuntu')
+        if: startsWith(matrix.os, 'ubuntu') && matrix.ssl_variant == 'openssl'
         id: cache_ccache
         uses: actions/cache@v2
         with:
           path: ccache_dir
-          key: integration-test-ccache-linux-${{ matrix.ssl_variant }}-${{ needs.prepare_matrix.outputs.apis }}-${{needs.prepare_matrix.outputs.github_ref}}
+          key: integration-test-ccache-linux-openssl-${{needs.prepare_matrix.outputs.github_ref}}
       - name: Setup python
         uses: actions/setup-python@v2
         with:
