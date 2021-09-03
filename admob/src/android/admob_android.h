@@ -66,7 +66,7 @@ METHOD_LOOKUP_DECLARATION(request_config_builder,
                           REQUESTCONFIGURATIONBUILDER_METHODS);
 
 // Change codes used when receiving state change callbacks from the Java
-// BannerViewHelper and NativeExpressAdViewHelper objects.
+// BannerViewHelperHelper object.
 enum AdViewChangeCode {
   // The callback indicates the presentation state has changed.
   kChangePresentationState = 0,

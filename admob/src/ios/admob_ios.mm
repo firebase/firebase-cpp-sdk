@@ -36,35 +36,13 @@ InitResult Initialize() {
   return kInitResultSuccess;
 }
 
-InitResult Initialize(const char* admob_app_id) {
-  if (g_initialized) {
-    LogWarning("AdMob is already initialized.");
-    return kInitResultSuccess;
-  }
-  g_initialized = true;
-#if 0  // This currently crashes. b/32668185
-  if (admob_app_id) {
-    [GADMobileAds configureWithApplicationID:@(admob_app_id)];
-  }
-#endif
-  RegisterTerminateOnDefaultAppDestroy();
-  return kInitResultSuccess;
-}
-
-InitResult Initialize(const ::firebase::App& app) { return Initialize(app, nullptr); }
-
-InitResult Initialize(const ::firebase::App& app, const char* admob_app_id) {
-  if (g_initialized) {
+InitResult Initialize(const ::firebase::App& app) { 
+   if (g_initialized) {
     LogWarning("AdMob is already initialized.");
     return kInitResultSuccess;
   }
   g_initialized = true;
   g_app = &app;
-#if 0  // This currently crashes. b/32668185
-  if (admob_app_id) {
-    [GADMobileAds configureWithApplicationID:@(admob_app_id)];
-  }
-#endif
   RegisterTerminateOnDefaultAppDestroy();
   return kInitResultSuccess;
 }

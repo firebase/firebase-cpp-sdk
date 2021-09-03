@@ -23,21 +23,12 @@
 		4AE90E0D1DBEC0F300865A75 /* banner_view_internal_ios.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90DFB1DBEC0F300865A75 /* banner_view_internal_ios.mm */; };
 		4AE90E0E1DBEC0F300865A75 /* FADBannerView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90DFD1DBEC0F300865A75 /* FADBannerView.mm */; };
 		4AE90E0F1DBEC0F300865A75 /* FADInterstitialDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90DFF1DBEC0F300865A75 /* FADInterstitialDelegate.mm */; };
-		4AE90E101DBEC0F300865A75 /* FADNativeExpressAdView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E011DBEC0F300865A75 /* FADNativeExpressAdView.mm */; };
 		4AE90E111DBEC0F300865A75 /* FADRequest.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E031DBEC0F300865A75 /* FADRequest.mm */; };
-		4AE90E121DBEC0F300865A75 /* FADRewardBasedVideoAdDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E051DBEC0F300865A75 /* FADRewardBasedVideoAdDelegate.mm */; };
 		4AE90E131DBEC0F300865A75 /* interstitial_ad_internal_ios.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E071DBEC0F300865A75 /* interstitial_ad_internal_ios.mm */; };
-		4AE90E141DBEC0F300865A75 /* native_express_ad_view_internal_ios.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E091DBEC0F300865A75 /* native_express_ad_view_internal_ios.mm */; };
-		4AE90E151DBEC0F300865A75 /* rewarded_video_internal_ios.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E0B1DBEC0F300865A75 /* rewarded_video_internal_ios.mm */; };
 		4AE90E241DBEC10700865A75 /* admob_common.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E161DBEC10700865A75 /* admob_common.cc */; };
 		4AE90E251DBEC10700865A75 /* banner_view_internal.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E181DBEC10700865A75 /* banner_view_internal.cc */; };
 		4AE90E261DBEC10700865A75 /* banner_view.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E1A1DBEC10700865A75 /* banner_view.cc */; };
 		4AE90E271DBEC10700865A75 /* interstitial_ad_internal.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E1B1DBEC10700865A75 /* interstitial_ad_internal.cc */; };
-		4AE90E281DBEC10700865A75 /* interstitial_ad.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E1D1DBEC10700865A75 /* interstitial_ad.cc */; };
-		4AE90E291DBEC10700865A75 /* native_express_ad_view_internal.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E1E1DBEC10700865A75 /* native_express_ad_view_internal.cc */; };
-		4AE90E2A1DBEC10700865A75 /* native_express_ad_view.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E201DBEC10700865A75 /* native_express_ad_view.cc */; };
-		4AE90E2B1DBEC10700865A75 /* rewarded_video_internal.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E211DBEC10700865A75 /* rewarded_video_internal.cc */; };
-		4AE90E2C1DBEC10700865A75 /* rewarded_video.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E231DBEC10700865A75 /* rewarded_video.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -69,18 +60,10 @@
 		4AE90DFD1DBEC0F300865A75 /* FADBannerView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = FADBannerView.mm; path = ../../../src/ios/FADBannerView.mm; sourceTree = "<group>"; };
 		4AE90DFE1DBEC0F300865A75 /* FADInterstitialDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FADInterstitialDelegate.h; path = ../../../src/ios/FADInterstitialDelegate.h; sourceTree = "<group>"; };
 		4AE90DFF1DBEC0F300865A75 /* FADInterstitialDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = FADInterstitialDelegate.mm; path = ../../../src/ios/FADInterstitialDelegate.mm; sourceTree = "<group>"; };
-		4AE90E001DBEC0F300865A75 /* FADNativeExpressAdView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FADNativeExpressAdView.h; path = ../../../src/ios/FADNativeExpressAdView.h; sourceTree = "<group>"; };
-		4AE90E011DBEC0F300865A75 /* FADNativeExpressAdView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = FADNativeExpressAdView.mm; path = ../../../src/ios/FADNativeExpressAdView.mm; sourceTree = "<group>"; };
 		4AE90E021DBEC0F300865A75 /* FADRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FADRequest.h; path = ../../../src/ios/FADRequest.h; sourceTree = "<group>"; };
 		4AE90E031DBEC0F300865A75 /* FADRequest.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = FADRequest.mm; path = ../../../src/ios/FADRequest.mm; sourceTree = "<group>"; };
-		4AE90E041DBEC0F300865A75 /* FADRewardBasedVideoAdDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FADRewardBasedVideoAdDelegate.h; path = ../../../src/ios/FADRewardBasedVideoAdDelegate.h; sourceTree = "<group>"; };
-		4AE90E051DBEC0F300865A75 /* FADRewardBasedVideoAdDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = FADRewardBasedVideoAdDelegate.mm; path = ../../../src/ios/FADRewardBasedVideoAdDelegate.mm; sourceTree = "<group>"; };
 		4AE90E061DBEC0F300865A75 /* interstitial_ad_internal_ios.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = interstitial_ad_internal_ios.h; path = ../../../src/ios/interstitial_ad_internal_ios.h; sourceTree = "<group>"; };
 		4AE90E071DBEC0F300865A75 /* interstitial_ad_internal_ios.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = interstitial_ad_internal_ios.mm; path = ../../../src/ios/interstitial_ad_internal_ios.mm; sourceTree = "<group>"; };
-		4AE90E081DBEC0F300865A75 /* native_express_ad_view_internal_ios.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = native_express_ad_view_internal_ios.h; path = ../../../src/ios/native_express_ad_view_internal_ios.h; sourceTree = "<group>"; };
-		4AE90E091DBEC0F300865A75 /* native_express_ad_view_internal_ios.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = native_express_ad_view_internal_ios.mm; path = ../../../src/ios/native_express_ad_view_internal_ios.mm; sourceTree = "<group>"; };
-		4AE90E0A1DBEC0F300865A75 /* rewarded_video_internal_ios.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = rewarded_video_internal_ios.h; path = ../../../src/ios/rewarded_video_internal_ios.h; sourceTree = "<group>"; };
-		4AE90E0B1DBEC0F300865A75 /* rewarded_video_internal_ios.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = rewarded_video_internal_ios.mm; path = ../../../src/ios/rewarded_video_internal_ios.mm; sourceTree = "<group>"; };
 		4AE90E161DBEC10700865A75 /* admob_common.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = admob_common.cc; path = ../../../src/common/admob_common.cc; sourceTree = "<group>"; };
 		4AE90E171DBEC10700865A75 /* admob_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = admob_common.h; path = ../../../src/common/admob_common.h; sourceTree = "<group>"; };
 		4AE90E181DBEC10700865A75 /* banner_view_internal.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = banner_view_internal.cc; path = ../../../src/common/banner_view_internal.cc; sourceTree = "<group>"; };
@@ -89,16 +72,8 @@
 		4AE90E1B1DBEC10700865A75 /* interstitial_ad_internal.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = interstitial_ad_internal.cc; path = ../../../src/common/interstitial_ad_internal.cc; sourceTree = "<group>"; };
 		4AE90E1C1DBEC10700865A75 /* interstitial_ad_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = interstitial_ad_internal.h; path = ../../../src/common/interstitial_ad_internal.h; sourceTree = "<group>"; };
 		4AE90E1D1DBEC10700865A75 /* interstitial_ad.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = interstitial_ad.cc; path = ../../../src/common/interstitial_ad.cc; sourceTree = "<group>"; };
-		4AE90E1E1DBEC10700865A75 /* native_express_ad_view_internal.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = native_express_ad_view_internal.cc; path = ../../../src/common/native_express_ad_view_internal.cc; sourceTree = "<group>"; };
-		4AE90E1F1DBEC10700865A75 /* native_express_ad_view_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = native_express_ad_view_internal.h; path = ../../../src/common/native_express_ad_view_internal.h; sourceTree = "<group>"; };
-		4AE90E201DBEC10700865A75 /* native_express_ad_view.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = native_express_ad_view.cc; path = ../../../src/common/native_express_ad_view.cc; sourceTree = "<group>"; };
-		4AE90E211DBEC10700865A75 /* rewarded_video_internal.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rewarded_video_internal.cc; path = ../../../src/common/rewarded_video_internal.cc; sourceTree = "<group>"; };
-		4AE90E221DBEC10700865A75 /* rewarded_video_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = rewarded_video_internal.h; path = ../../../src/common/rewarded_video_internal.h; sourceTree = "<group>"; };
-		4AE90E231DBEC10700865A75 /* rewarded_video.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rewarded_video.cc; path = ../../../src/common/rewarded_video.cc; sourceTree = "<group>"; };
 		4AE90E2D1DBEC12000865A75 /* banner_view_internal_stub.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = banner_view_internal_stub.h; path = ../../../src/stub/banner_view_internal_stub.h; sourceTree = "<group>"; };
 		4AE90E2E1DBEC12000865A75 /* interstitial_ad_internal_stub.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = interstitial_ad_internal_stub.h; path = ../../../src/stub/interstitial_ad_internal_stub.h; sourceTree = "<group>"; };
-		4AE90E2F1DBEC12000865A75 /* native_express_ad_view_internal_stub.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = native_express_ad_view_internal_stub.h; path = ../../../src/stub/native_express_ad_view_internal_stub.h; sourceTree = "<group>"; };
-		4AE90E301DBEC12000865A75 /* rewarded_video_internal_stub.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = rewarded_video_internal_stub.h; path = ../../../src/stub/rewarded_video_internal_stub.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -124,12 +99,6 @@
 				4AE90E1B1DBEC10700865A75 /* interstitial_ad_internal.cc */,
 				4AE90E1C1DBEC10700865A75 /* interstitial_ad_internal.h */,
 				4AE90E1D1DBEC10700865A75 /* interstitial_ad.cc */,
-				4AE90E1E1DBEC10700865A75 /* native_express_ad_view_internal.cc */,
-				4AE90E1F1DBEC10700865A75 /* native_express_ad_view_internal.h */,
-				4AE90E201DBEC10700865A75 /* native_express_ad_view.cc */,
-				4AE90E211DBEC10700865A75 /* rewarded_video_internal.cc */,
-				4AE90E221DBEC10700865A75 /* rewarded_video_internal.h */,
-				4AE90E231DBEC10700865A75 /* rewarded_video.cc */,
 			);
 			name = common;
 			sourceTree = "<group>";
@@ -144,18 +113,10 @@
 				4AE90DFD1DBEC0F300865A75 /* FADBannerView.mm */,
 				4AE90DFE1DBEC0F300865A75 /* FADInterstitialDelegate.h */,
 				4AE90DFF1DBEC0F300865A75 /* FADInterstitialDelegate.mm */,
-				4AE90E001DBEC0F300865A75 /* FADNativeExpressAdView.h */,
-				4AE90E011DBEC0F300865A75 /* FADNativeExpressAdView.mm */,
 				4AE90E021DBEC0F300865A75 /* FADRequest.h */,
 				4AE90E031DBEC0F300865A75 /* FADRequest.mm */,
-				4AE90E041DBEC0F300865A75 /* FADRewardBasedVideoAdDelegate.h */,
-				4AE90E051DBEC0F300865A75 /* FADRewardBasedVideoAdDelegate.mm */,
 				4AE90E061DBEC0F300865A75 /* interstitial_ad_internal_ios.h */,
 				4AE90E071DBEC0F300865A75 /* interstitial_ad_internal_ios.mm */,
-				4AE90E081DBEC0F300865A75 /* native_express_ad_view_internal_ios.h */,
-				4AE90E091DBEC0F300865A75 /* native_express_ad_view_internal_ios.mm */,
-				4AE90E0A1DBEC0F300865A75 /* rewarded_video_internal_ios.h */,
-				4AE90E0B1DBEC0F300865A75 /* rewarded_video_internal_ios.mm */,
 			);
 			name = ios;
 			sourceTree = "<group>";
@@ -165,8 +126,6 @@
 			children = (
 				4AE90E2D1DBEC12000865A75 /* banner_view_internal_stub.h */,
 				4AE90E2E1DBEC12000865A75 /* interstitial_ad_internal_stub.h */,
-				4AE90E2F1DBEC12000865A75 /* native_express_ad_view_internal_stub.h */,
-				4AE90E301DBEC12000865A75 /* rewarded_video_internal_stub.h */,
 			);
 			name = stub;
 			sourceTree = "<group>";
@@ -320,22 +279,17 @@
 			buildActionMask = 2147483647;
 			files = (
 				4AE90DF71DBEC0DC00865A75 /* reference_counted_future_impl.cc in Sources */,
-				4AE90E291DBEC10700865A75 /* native_express_ad_view_internal.cc in Sources */,
 				4AE90DF61DBEC0DC00865A75 /* log.cc in Sources */,
-				4AE90E2A1DBEC10700865A75 /* native_express_ad_view.cc in Sources */,
 				4AE90E281DBEC10700865A75 /* interstitial_ad.cc in Sources */,
-				4AE90E151DBEC0F300865A75 /* rewarded_video_internal_ios.mm in Sources */,
 				4AE90DEE1DBEC0AA00865A75 /* log_ios.mm in Sources */,
 				4AE90DF81DBEC0DC00865A75 /* util_ios.mm in Sources */,
-				4AD13EA51CC9763C00AB0ACF /* AppDelegate.m in Sources */,
-				4AE90E2C1DBEC10700865A75 /* rewarded_video.cc in Sources */,
+				4AD13EA51CC9763C00AB0ACF /* AppDelegate.m in Sources */,,
 				4AE90E261DBEC10700865A75 /* banner_view.cc in Sources */,
 				4AE90E241DBEC10700865A75 /* admob_common.cc in Sources */,
 				4AE90E271DBEC10700865A75 /* interstitial_ad_internal.cc in Sources */,
 				4AE90E0D1DBEC0F300865A75 /* banner_view_internal_ios.mm in Sources */,
 				4AD13EAC1CC9763C00AB0ACF /* ViewController.mm in Sources */,
 				4AE90E0E1DBEC0F300865A75 /* FADBannerView.mm in Sources */,
-				4AE90E2B1DBEC10700865A75 /* rewarded_video_internal.cc in Sources */,
 				4AD13EA91CC9763C00AB0ACF /* game_engine.cpp in Sources */,
 				4AE90E111DBEC0F300865A75 /* FADRequest.mm in Sources */,
 				4AE90E0F1DBEC0F300865A75 /* FADInterstitialDelegate.mm in Sources */,
@@ -343,9 +297,7 @@
 				4AE90E121DBEC0F300865A75 /* FADRewardBasedVideoAdDelegate.mm in Sources */,
 				4AE90E251DBEC10700865A75 /* banner_view_internal.cc in Sources */,
 				4AE90E0C1DBEC0F300865A75 /* admob_ios.mm in Sources */,
-				4AE90E101DBEC0F300865A75 /* FADNativeExpressAdView.mm in Sources */,
 				4AD13EAB1CC9763C00AB0ACF /* main.m in Sources */,
-				4AE90E141DBEC0F300865A75 /* native_express_ad_view_internal_ios.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
