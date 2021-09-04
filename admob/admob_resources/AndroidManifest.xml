@@ -3,10 +3,4 @@
           package="com.google.FirebaseCppSdkBuild">
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-sdk android:minSdkVersion="3"/>
-   <application>
-        <!-- Sample AdMob App ID: ca-app-pub-3940256099942544~3347511713 -->
-        <meta-data
-            android:name="com.google.android.gms.ads.1:190496035492:android:1bc9896c15afba0c"
-            android:value="ca-app-pub-3940256099942544~3347511713"/>
-    </application>
 </manifest>

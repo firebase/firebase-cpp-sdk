@@ -50,4 +50,4 @@ class AdRequestConverter {
 }  // namespace admob
 }  // namespace firebase
 
-#endif // FIREBASE_ADMOB_SRC_ANDROID_AD_REQUEST_CONVERTER_H_
+#endif  // FIREBASE_ADMOB_SRC_ANDROID_AD_REQUEST_CONVERTER_H_
