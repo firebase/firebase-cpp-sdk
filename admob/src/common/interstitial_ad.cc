@@ -20,9 +20,6 @@
 #include "admob/src/common/interstitial_ad_internal.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
-#include "app_framework.h"
-
-using app_framework::LogDebug;
 
 namespace firebase {
 namespace admob {
