@@ -21,6 +21,8 @@
 
 #include <cstdarg>
 #include <cstddef>
+#include <string>
+#include <vector>
 
 #include "admob/admob_resources.h"
 #include "admob/src/android/admob_android.h"

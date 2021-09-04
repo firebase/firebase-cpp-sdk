@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_CLIENT_CPP_SRC_ANDROID_ADMOB_ANDROID_H_
-#define FIREBASE_ADMOB_CLIENT_CPP_SRC_ANDROID_ADMOB_ANDROID_H_
+#ifndef FIREBASE_ADMOB_SRC_ANDROID_ADMOB_ANDROID_H_
+#define FIREBASE_ADMOB_SRC_ANDROID_ADMOB_ANDROID_H_
 
 #include <jni.h>
 
@@ -40,11 +40,11 @@ namespace admob {
 // clang-format on
 
 // clang-format off
-#define MOBILEADS_METHODS(X)                                                   \
-  X(Initialize, "initialize",                                                  \
-    "(Landroid/content/Context;)V", util::kMethodTypeStatic),                  \
-  X(SetRequestConfiguration, "setRequestConfiguration",                        \
-    "(Lcom/google/android/gms/ads/RequestConfiguration;)V",                     \
+#define MOBILEADS_METHODS(X)                                                 \
+  X(Initialize, "initialize",                                                \
+    "(Landroid/content/Context;)V", util::kMethodTypeStatic),                \
+  X(SetRequestConfiguration, "setRequestConfiguration",                      \
+    "(Lcom/google/android/gms/ads/RequestConfiguration;)V",                  \
     util::kMethodTypeStatic)
 // clang-format on
 
@@ -52,7 +52,7 @@ namespace admob {
 #define REQUESTCONFIGURATIONBUILDER_METHODS(X)                               \
   X(Constructor, "<init>", "()V"),                                           \
   X(Build, "build",                                                          \
-    "()Lcom/google/android/gms/ads/RequestConfiguration;"),          \
+    "()Lcom/google/android/gms/ads/RequestConfiguration;"),                  \
   X(SetTagForChildDirectedTreatment, "setTagForChildDirectedTreatment",      \
       "(I)Lcom/google/android/gms/ads/RequestConfiguration$Builder;"),       \
   X(SetTestDeviceIds, "setTestDeviceIds",                                    \
@@ -90,4 +90,4 @@ void ReleaseClasses(JNIEnv* env);
 }  // namespace admob
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_CLIENT_CPP_SRC_ANDROID_ADMOB_ANDROID_H_
+#endif  // FIREBASE_ADMOB_SRC_ANDROID_ADMOB_ANDROID_H_
