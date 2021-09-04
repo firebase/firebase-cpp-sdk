@@ -283,7 +283,7 @@
 				4AE90E281DBEC10700865A75 /* interstitial_ad.cc in Sources */,
 				4AE90DEE1DBEC0AA00865A75 /* log_ios.mm in Sources */,
 				4AE90DF81DBEC0DC00865A75 /* util_ios.mm in Sources */,
-				4AD13EA51CC9763C00AB0ACF /* AppDelegate.m in Sources */,,
+				4AD13EA51CC9763C00AB0ACF /* AppDelegate.m in Sources */,
 				4AE90E261DBEC10700865A75 /* banner_view.cc in Sources */,
 				4AE90E241DBEC10700865A75 /* admob_common.cc in Sources */,
 				4AE90E271DBEC10700865A75 /* interstitial_ad_internal.cc in Sources */,
