@@ -17,6 +17,7 @@ on:
 
 env:
   branchPrefix: "workflow/auto-update-deps-"
+  triggerTestsLabel: "tests-requested: quick"
 
 jobs:
   update_dependencies:
@@ -77,8 +78,20 @@ jobs:
       - name: Create pull request on branch
         if: steps.push-branch.branch_changed
         run: |
-          
+          python scripts/gha/create_pull_request.py --token ${{github.token}} --head "${NEW_BRANCH}" --base "${{ github.event.inputs.baseBranch }}" --title "Update dependencies"
 
+      - name: Get token for triggering tests as firebase-workflow-trigger
+        uses: tibdex/github-app-token@v1
+        if: ${{ github.event.inputs.triggerTests && steps.push-branch.branch_changed }}
+        id: generate-token
+        with:
+          app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
+          private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
 
-      # As firebase-workflow-trigger, label the PR to trigger integration tests.
-
+      - name: Set test trigger label.
+        if: ${{ github.event.inputs.triggerTests && steps.push-branch.branch_changed }}
+        uses: buildsville/add-remove-label@v1
+        with:
+        token: ${{ steps.generate-token.outputs.token }}
+        label: "${{ env.triggerTestsLabel }}"
+        type: add
