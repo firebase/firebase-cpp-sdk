@@ -23,7 +23,9 @@ jobs:
         with:
           python-version: 3.7
       - name: Install prerequisites
-        run: python scripts/gha/install_prereqs_desktop.py
+        run: |
+          cd firebase
+          python scripts/gha/install_prereqs_desktop.py
       - name: Install prerequisites
         run: |
           python3 -m pip install unidiff
