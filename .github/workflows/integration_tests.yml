@@ -102,6 +102,7 @@ jobs:
     ### Fail the workflow if the user does not have admin access to run the tests.
     - name: Check if user has permission to trigger tests
       uses: lannonbr/repo-permission-check-action@2.0.0
+      if: ${{ github.actor != 'firebase-workflow-trigger' }}
       with:
         permission: "admin"
       env:

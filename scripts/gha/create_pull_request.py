@@ -21,6 +21,8 @@ USAGE:
     --base main \
     --title 'Title of the pull request' \
     [--body 'Body text for the pull request']
+
+  Creates the pull request, and outputs the new PR number to stdout.
 """
 
 import datetime
@@ -62,6 +64,8 @@ def main(argv):
     # Find the most recent pull_request with the given base and head, that's ours.
     pull_requests = github.list_pull_requests(FLAGS.token, "open", FLAGS.head, FLAGS.base)
     print(pull_requests[0]['number'])
+  else:
+    exit(1)
 
 
 if __name__ == "__main__":

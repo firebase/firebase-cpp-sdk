@@ -24,6 +24,13 @@ jobs:
     name: update-deps
     runs-on: ubuntu-latest
     steps:
+      - name: Get token for firebase-workflow-trigger
+        uses: tibdex/github-app-token@v1
+        id: generate-token
+        with:
+          app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
+          private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+
       - name: Setup python
         uses: actions/setup-python@v2
         with:
@@ -87,20 +94,12 @@ jobs:
             # Push branch
             git push --set-upstream origin "${NEW_BRANCH}"
             # Create pull request
-            pr_number=$(python scripts/gha/create_pull_request.py --token ${{github.token}} --head "${NEW_BRANCH}" --base "${{ github.event.inputs.baseBranch }}" --title "Update ${CHOSEN_DEPS} dependencies - ${date_str}" --body "Automatically updated by [workflow]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID).")
+            pr_number=$(python scripts/gha/create_pull_request.py --token ${{ steps.generate-token.outputs.token }} --head "${NEW_BRANCH}" --base "${{ github.event.inputs.baseBranch }}" --title "Update ${CHOSEN_DEPS} dependencies - ${date_str}" --body "Automatically updated by [workflow]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID).")
             echo "::set-output name=created_pr_number::${pr_number}"
           else
             echo "::warning ::No changes detected, won't create pull request."
             echo "::set-output name=branch_pushed::0"
           fi
-
-      - name: Get token for triggering tests as firebase-workflow-trigger
-        uses: tibdex/github-app-token@v1
-        if: ${{ github.event.inputs.triggerTests == 1 && steps.push-branch.outputs.branch_pushed == 1 }}
-        id: generate-token
-        with:
-          app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
-          private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
 
       - name: Set test trigger label.
         uses: actions-ecosystem/action-add-labels@v1
