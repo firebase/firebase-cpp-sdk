@@ -4,3 +4,10 @@ on:
     inputs:
 
 jobs:
+  update_dependencies
+    name: update-dependencies
+    runs-on: ubuntu-latest
+    steps:
+      name: Placeholder step
+      run: true
+
