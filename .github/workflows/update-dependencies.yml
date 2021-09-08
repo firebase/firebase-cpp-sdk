@@ -42,7 +42,8 @@ jobs:
           
       - name: Name new branch
         run: |
-          echo "NEW_BRANCH=${{env.branchPrefix}}${{github.run_number}}" >> $GITHUB_ENV
+          date_str=$(date "+%Y%m%d-%H%M%S")
+          echo "NEW_BRANCH=${{env.branchPrefix}}${{github.run_number}}-${date_str}" >> $GITHUB_ENV
       - name: Create new branch
         run: |
           git remote update
