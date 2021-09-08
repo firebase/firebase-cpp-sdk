@@ -108,12 +108,3 @@ jobs:
           github_token: ${{ steps.generate-token.outputs.token }}
           number: ${{ steps.push-branch.outputs.created_pr_number }}
           labels: "${{ env.triggerTestsLabel }}" 
-
-      - name: Set test trigger label.
-        uses: actions-ecosystem/action-add-labels@v1
-        if: ${{ steps.push-branch.outputs.branch_pushed == 1 }}
-        with:
-          github_token: ${{ steps.generate-token.outputs.token }}
-          number: ${{ steps.push-branch.outputs.created_pr_number }}
-          labels: "cla: yes"
-
