@@ -211,3 +211,14 @@ def workflow_dispatch(token, workflow_id, ref, inputs):
   with requests.post(url, headers=headers, data=json.dumps(data),
                     stream=True, timeout=TIMEOUT) as response:
     logging.info("workflow_dispatch: %s response: %s", url, response)
+
+
+def create_pull_request(token, head, base, title, body, maintainer_can_modify):
+  """https://docs.github.com/en/rest/reference/pulls#create-a-pull-request"""
+  url = f'{FIREBASE_URL}/pulls'
+  headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
+  data = {'head': head, 'base': base, 'title': title, 'body': body,
+          'maintainer_can_modify': maintainer_can_modify}
+  with requests.post(url, headers=headers, data=json.dumps(data),
+                    stream=True, timeout=TIMEOUT) as response:
+    logging.info("create_pull_request: %s response: %s", head, response)
