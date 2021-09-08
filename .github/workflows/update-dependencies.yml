@@ -78,6 +78,8 @@ jobs:
         run: |
           if ! git update-index --refresh; then
             date_str=$(date "+%a %b %d %Y")
+            git config user.email nobody@google.com
+            git config user.name Googler
             git commit -a -m "Update ${CHOSEN_DEPS} dependencies - ${date_str}"
             echo "::set-output name=branch_pushed::1"
             # Show changes in git log
@@ -105,4 +107,12 @@ jobs:
         with:
           token: ${{ steps.generate-token.outputs.token }}
           label: "${{ env.triggerTestsLabel }}"
+          type: add
+
+      - name: Set CLA label, since we know this commit is OK.
+        if: ${{ github.event.inputs.triggerTests == 1 && steps.push-branch.outputs.branch_pushed == 1 }}
+        uses: buildsville/add-remove-label@v1
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          label: "cla: yes"
           type: add
