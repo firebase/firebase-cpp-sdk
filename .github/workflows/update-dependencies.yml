@@ -92,6 +92,6 @@ jobs:
         if: ${{ github.event.inputs.triggerTests && steps.push-branch.branch_changed }}
         uses: buildsville/add-remove-label@v1
         with:
-        token: ${{ steps.generate-token.outputs.token }}
-        label: "${{ env.triggerTestsLabel }}"
-        type: add
+          token: ${{ steps.generate-token.outputs.token }}
+          label: "${{ env.triggerTestsLabel }}"
+          type: add
