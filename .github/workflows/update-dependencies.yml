@@ -48,15 +48,17 @@ jobs:
           git remote update
           git checkout -b "${NEW_BRANCH}"
 
-      - name: Run update script and push changes
+      - name: Run update script
         run: |
           if [[ ${{ github.event.inputs.updateiOS }} -eq 1 ]]; then
             if [[ ${{ github.event.inputs.updateAndroid }} -eq 1 ]]; then
               # Update both
+              echo "Updating all dependencies"
               python scripts/update_android_ios_dependencies.py
               echo "CHOSEN_DEPS=" >> $GITHUB_ENV
             else
               # Update iOS only
+              echo "Updating iOS dependencies only"
               python scripts/update_android_ios_dependencies.py --skip_android
               echo "CHOSEN_DEPS=iOS " >> $GITHUB_ENV
             fi
@@ -65,24 +67,26 @@ jobs:
             sed -i~ "s/^set(version [^)]*)/set(version CocoaPods-${firestore_version})/i" cmake/external/firestore.cmake
           elif [[ ${{ github.event.inputs.updateAndroid }} -eq 1 ]]; then
             # Update Android only
-              echo "CHOSEN_DEPS=Android " >> $GITHUB_ENV
+              echo "Updating Android dependencies only"
               python scripts/update_android_ios_dependencies.py --skip_ios
+              echo "CHOSEN_DEPS=Android " >> $GITHUB_ENV
           fi
           
       - name: Push branch if there are changes
         id: push-branch
         run: |
           if ! git update-index --refresh; then
+            date_str=$(date "+%a %b %d %Y")
+            git commit -a -m "Update ${CHOSEN_DEPS} dependencies - ${date_str}"
             echo "::set-output name=branch_pushed::1"
             # Show changes in git log
             git diff
             # Push branch
             git push --set-upstream origin "${NEW_BRANCH}"
             # Create pull request
-            date_str=$(date "+%a %b %d %Y")
-            python scripts/gha/create_pull_request.py --token ${{github.token}} --head "${NEW_BRANCH}" --base "${{ github.event.inputs.baseBranch }}" --title "Update ${CHOSEN_DEPS} dependencies ${date_str}"
+            python scripts/gha/create_pull_request.py --token ${{github.token}} --head "${NEW_BRANCH}" --base "${{ github.event.inputs.baseBranch }}" --title "Update ${CHOSEN_DEPS} dependencies - ${date_str}" --body "Automatically updated by [workflow]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
           else
-            echo "::warning ::No changes detected, won't create pull request"
+            echo "::warning ::No changes detected, won't create pull request."
             echo "::set-output name=branch_pushed::0"
           fi
 
