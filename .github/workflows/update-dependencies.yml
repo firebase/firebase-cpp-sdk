@@ -23,6 +23,11 @@ jobs:
     name: update-deps
     runs-on: ubuntu-latest
     steps:
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
       - name: Check out base branch
         uses: actions/checkout@v2.3.1
         with:
@@ -30,13 +35,33 @@ jobs:
           ref: ${{ github.event.inputs.baseBranch }}
           
       - name: Create new branch
-        run: git checkout -b ${{env.branchPrefix}}${{github.run_number}}
+        run: |
+          git remote update
+          git checkout -b ${{env.branchPrefix}}${{github.run_number}}
 
       - name:  Run Android update script
         if: ${{ github.event.inputs.updateAndroid }}
-        run: 
-      # Run iOS update script.
-      # Push branch (force push if necessary).
-      # Create PR from that branch.
+        run: |
+          python scripts/update_android_ios_dependencies.py --skip_ios
+
+      - name:  Run iOS update script
+        if: ${{ github.event.inputs.updateiOS }}
+        run: |
+          python scripts/update_android_ios_dependencies.py --skip_android
+          # Update Firestore external version to match Firestore Cocoapod version.
+          firestore_version=$(grep "pod 'Firebase/Firestore'" ios_pod/Podfile | sed "s/.*'\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)'.*/\1/")
+          sed -i~ "s/^set(version [^)]*)/set(version CocoaPods-${firestore_version})/i" cmake/external/firestore.cmake
+          
+      - name:  Push branch if there are changes
+        if: ${{ github.event.inputs.updateiOS || github.event.inputs.updateAndroid }}
+        run: |
+          if git update-index --refresh; then
+            echo "BRANCH_CHANGED=0" >> $GITHUB_ENV
+          else
+            echo "BRANCH_CHANGED=1" >> $GITHUB_ENV
+            echo git push --set-upstream origin ${{env.branchPrefix}}${{github.run_number}}
+            git diff
+          fi
+
       # As firebase-workflow-trigger, label the PR to trigger integration tests.
 
