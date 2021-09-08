@@ -67,7 +67,7 @@ jobs:
         run: |
           if git update-index --refresh; then
             echo "::set-output name=branch_changed::0"
-            echo "BRANCH_CHANGED=0 >> $GITHUB_ENV
+            echo "BRANCH_CHANGED=0" >> $GITHUB_ENV
           else
             echo "::set-output name=branch_changed::1"
             echo "BRANCH_CHANGED=1" >> $GITHUB_ENV
