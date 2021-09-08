@@ -37,6 +37,7 @@ jobs:
       - name: Install prerequisites
         run: |
           python scripts/gha/install_prereqs_desktop.py
+          python -m pip install requests
           
       - name: Create new branch
         run: |
