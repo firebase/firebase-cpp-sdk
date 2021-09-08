@@ -64,6 +64,5 @@ def main(argv):
 if __name__ == "__main__":
   flags.mark_flag_as_required("token")
   flags.mark_flag_as_required("head")
-  flags.mark_flag_as_required("base")
   flags.mark_flag_as_required("title")
   app.run(main)
