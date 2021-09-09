@@ -55,20 +55,20 @@ jobs:
         run: |
           git remote update
           git checkout -b "${NEW_BRANCH}"
+          echo "UPDATE_LOGFILE=update_log.txt" >> $GITHUB_ENV
 
       - name: Run update script
         run: |
-          logfile=update_log.txt
           if [[ ${{ github.event.inputs.updateiOS }} -eq 1 ]]; then
             if [[ ${{ github.event.inputs.updateAndroid }} -eq 1 ]]; then
               # Update both
               echo "Updating all dependencies"
-              python scripts/update_android_ios_dependencies.py --logfile=${logfile}
+              python scripts/update_android_ios_dependencies.py --logfile=${UPDATE_LOGFILE}
               echo "CHOSEN_DEPS=" >> $GITHUB_ENV
             else
               # Update iOS only
               echo "Updating iOS dependencies only"
-              python scripts/update_android_ios_dependencies.py --skip_android --logfile=${logfile}
+              python scripts/update_android_ios_dependencies.py --skip_android --logfile=${UPDATE_LOGFILE}
               echo "CHOSEN_DEPS=iOS " >> $GITHUB_ENV
             fi
             # iOS: Update Firestore external version to match Firestore Cocoapod version.
@@ -77,7 +77,7 @@ jobs:
           elif [[ ${{ github.event.inputs.updateAndroid }} -eq 1 ]]; then
             # Update Android only
               echo "Updating Android dependencies only"
-              python scripts/update_android_ios_dependencies.py --skip_ios --logfile=${logfile}
+              python scripts/update_android_ios_dependencies.py --skip_ios --logfile=${UPDATE_LOGFILE}
               echo "CHOSEN_DEPS=Android " >> $GITHUB_ENV
           fi
           
@@ -85,10 +85,10 @@ jobs:
         id: push-branch
         run: |
           if ! git update-index --refresh; then
-            cat ${logfile}
+            cat ${UPDATE_LOGFILE}
             date_str=$(date "+%a %b %d %Y")
             commit_title="Update ${CHOSEN_DEPS}dependencies - ${date_str}"
-            commit_body="$(cat ${logfile})
+            commit_body="$(cat ${UPDATE_LOGFILE})
 
             Automatically updated by [workflow]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
             git config user.email "firebase-workflow-trigger-bot@google.com"
