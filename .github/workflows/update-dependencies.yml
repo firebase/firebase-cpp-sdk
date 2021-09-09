@@ -58,7 +58,7 @@ jobs:
 
       - name: Run update script
         run: |
-          logfile=/tmp/update_log.txt
+          logfile=update_log.txt
           if [[ ${{ github.event.inputs.updateiOS }} -eq 1 ]]; then
             if [[ ${{ github.event.inputs.updateAndroid }} -eq 1 ]]; then
               # Update both
@@ -85,8 +85,9 @@ jobs:
         id: push-branch
         run: |
           if ! git update-index --refresh; then
+            cat ${logfile}
             date_str=$(date "+%a %b %d %Y")
-            commit_title="Update ${CHOSEN_DEPS} dependencies - ${date_str}"
+            commit_title="Update ${CHOSEN_DEPS}dependencies - ${date_str}"
             commit_body="$(cat ${logfile})
 
             Automatically updated by [workflow]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
