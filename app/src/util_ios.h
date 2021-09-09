@@ -192,6 +192,10 @@ void ForEachAppDelegateClass(void (^block)(Class));
 NSMutableArray *StringVectorToNSMutableArray(
     const std::vector<std::string> &vector);
 
+// Convert a NSArray into a vector of strings.  Asserts if a non NSString
+// object is found in the array.
+void NSArrayToStdStringVector(NSArray* array, std::vector<std::string>* vector);
+
 // Convert a string map to NSDictionary.
 NSDictionary *StringMapToNSDictionary(
     const std::map<std::string, std::string> &string_map);

@@ -24,16 +24,6 @@ namespace admob {
 GADRequest *GADRequestFromCppAdRequest(AdRequest adRequest) {
   // Create the GADRequest.
   GADRequest *request = [GADRequest request];
-
-  // Test devices.
-  if (adRequest.test_device_id_count > 0) {
-    NSMutableArray *testDevices = [[NSMutableArray alloc] init];
-    for (int i = 0; i < adRequest.test_device_id_count; i++) {
-      [testDevices addObject:@(adRequest.test_device_ids[i])];
-    }
-    request.testDevices = testDevices;
-  }
-
   // Keywords.
   if (adRequest.keyword_count > 0) {
     NSMutableArray *keywords = [[NSMutableArray alloc] init];

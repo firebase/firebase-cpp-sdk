@@ -19,6 +19,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <vector>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/admob.h"
@@ -66,6 +67,10 @@ const char* kInterstitialAdUnit = "ca-app-pub-3940256099942544/1033173712";
 const char* kBannerAdUnit = "ca-app-pub-3940256099942544/2934735716";
 const char* kInterstitialAdUnit = "ca-app-pub-3940256099942544/4411468910";
 #endif
+
+// Sample test device IDs to use in making the request.
+const std::vector<std::string> kTestDeviceIDs = {
+    "2077ef9a63d2b398840261c8221a0c9b", "098fe087d987c9a878965454a65654d7"};
 
 using app_framework::LogDebug;
 using app_framework::ProcessEvents;
@@ -137,17 +142,27 @@ FirebaseAdMobTest::FirebaseAdMobTest() {}
 
 FirebaseAdMobTest::~FirebaseAdMobTest() {}
 
-void FirebaseAdMobTest::SetUp() { FirebaseTest::SetUp(); }
+void FirebaseAdMobTest::SetUp() {
+  FirebaseTest::SetUp();
+
+  // This example uses ad units that are specially configured to return test ads
+  // for every request. When using your own ad unit IDs, however, it's important
+  // to register the device IDs associated with any devices that will be used to
+  // test the app. This ensures that regardless of the ad unit ID, those
+  // devices will always receive test ads in compliance with AdMob policy.
+  //
+  // Device IDs can be obtained by checking the logcat or the Xcode log while
+  // debugging. They appear as a long string of hex characters.
+  firebase::admob::RequestConfiguration request_configuration;
+  request_configuration.test_device_ids = kTestDeviceIDs;
+  firebase::admob::SetRequestConfiguration(request_configuration);
+}
 
 void FirebaseAdMobTest::TearDown() { FirebaseTest::TearDown(); }
 
 firebase::admob::AdRequest FirebaseAdMobTest::GetAdRequest() {
   // Sample keywords to use in making the request.
   static const char* kKeywords[] = {"AdMob", "C++", "Fun"};
-
-  // Sample test device IDs to use in making the request.
-  static const char* kTestDeviceIDs[] = {"2077ef9a63d2b398840261c8221a0c9b",
-                                         "098fe087d987c9a878965454a65654d7"};
 
   firebase::admob::AdRequest request;
 
@@ -162,17 +177,6 @@ firebase::admob::AdRequest FirebaseAdMobTest::GetAdRequest() {
   request.extras_count = sizeof(kRequestExtras) / sizeof(kRequestExtras[0]);
   request.extras = kRequestExtras;
 
-  // This example uses ad units that are specially configured to return test ads
-  // for every request. When using your own ad unit IDs, however, it's important
-  // to register the device IDs associated with any devices that will be used to
-  // test the app. This ensures that regardless of the ad unit ID, those
-  // devices will always receive test ads in compliance with AdMob policy.
-  //
-  // Device IDs can be obtained by checking the logcat or the Xcode log while
-  // debugging. They appear as a long string of hex characters.
-  request.test_device_id_count =
-      sizeof(kTestDeviceIDs) / sizeof(kTestDeviceIDs[0]);
-  request.test_device_ids = kTestDeviceIDs;
   return request;
 }
 

@@ -79,6 +79,19 @@ InitResult Initialize(JNIEnv* jni_env, jobject activity);
 InitResult Initialize();
 #endif  // !defined(__ANDROID__) || defined(DOXYGEN)
 
+/// Sets the global @ref RequestConfiguration that will be used for
+/// every @ref AdRequest during the app's session.
+///
+/// @param[in] configuration The request configuration that should be applied
+/// to all ad requests.
+void SetRequestConfiguration(const RequestConfiguration& request_configuration);
+
+/// Gets the global RequestConfiguration.
+///
+/// @return the currently active @ref RequestConfiguration that's being
+/// used for every ad request.
+RequestConfiguration GetRequestConfiguration();
+
 /// @brief Terminate AdMob.
 ///
 /// Frees resources associated with AdMob that were allocated during

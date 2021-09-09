@@ -17,6 +17,9 @@
 #ifndef FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_TYPES_H_
 #define FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_TYPES_H_
 
+#include <string>
+#include <vector>
+
 #include "firebase/internal/platform.h"
 
 #if FIREBASE_PLATFORM_ANDROID
@@ -94,28 +97,6 @@ struct AdSize {
   int width;
 };
 
-/// @brief Gender information used as part of the
-/// @ref firebase::admob::AdRequest struct.
-enum Gender {
-  /// The gender of the current user is unknown or unspecified by the publisher.
-  kGenderUnknown = 0,
-  /// The current user is known to be male.
-  kGenderMale,
-  /// The current user is known to be female.
-  kGenderFemale
-};
-
-/// @brief Indicates whether an ad request is considered tagged for
-/// child-directed treatment.
-enum ChildDirectedTreatmentState {
-  /// The child-directed status for the request is not indicated.
-  kChildDirectedTreatmentStateUnknown = 0,
-  /// The request is tagged for child-directed treatment.
-  kChildDirectedTreatmentStateTagged,
-  /// The request is not tagged for child-directed treatment.
-  kChildDirectedTreatmentStateNotTagged
-};
-
 /// @brief Generic Key-Value container used for the "extras" values in an
 /// @ref firebase::admob::AdRequest.
 struct KeyValuePair {
@@ -127,11 +108,6 @@ struct KeyValuePair {
 
 /// @brief The information needed to request an ad.
 struct AdRequest {
-  /// An array of test device IDs specifying devices that test ads will be
-  /// returned for.
-  const char **test_device_ids;
-  /// The number of entries in the array referenced by test_device_ids.
-  unsigned int test_device_id_count;
   /// An array of keywords or phrases describing the current user activity, such
   /// as "Sports Scores" or "Football."
   const char **keywords;
@@ -157,6 +133,134 @@ struct BoundingBox {
   int x;
   /// Vertical position of the ad in pixels from the top.
   int y;
+};
+
+/// @brief Global configuration that will be used for every @ref AdRequest.
+/// Set the configuration via @ref SetRequestConfiguration.
+struct RequestConfiguration {
+  /// A maximum ad content rating, which may be configured via
+  /// @ref SetMaxAdContentRating
+  enum MaxAdContentRating {
+    /// No content rating has been specified.
+    kMaxAdContentRatingUnspecified = 0,
+
+    /// Content suitable for general audiences, including families.
+    kMaxAdContentRatingG,
+
+    /// Content suitable only for mature audiences.
+    kMaxAdContentRatingMA,
+
+    /// Content suitable for most audiences with parental guidance.
+    kMaxAdContentRatingPG,
+
+    /// Content suitable for teen and older audiences.
+    kMaxAdContentRatingT
+  };
+
+  /// Specify whether you would like your app to be treated as child-directed
+  /// for purposes of the Children’s Online Privacy Protection Act (COPPA).
+  /// Values defined here should be set via
+  /// @ref SetTagForChildDirectedTreatment.
+  enum TagForChildDirectedTreatment {
+    /// Indicates that the publisher has not specified whether the ad request
+    /// should receive treatment for users in the European Economic Area (EEA)
+    /// under the age of consent.
+    kChildDirectedTreatmentUnspecified = 0,
+
+    /// Indicates the publisher specified that the ad request should not receive
+    /// treatment for users in the European Economic Area (EEA) under the age of
+    /// consent.
+    kChildDirectedTreatmentFalse,
+
+    /// Indicates the publisher specified that the ad request should receive
+    /// treatment for users in the European Economic Area (EEA) under the age of
+    /// consent.
+    kChildDirectedTreatmentTrue
+  };
+
+  /// Configuration values to mark your app to receive treatment for users in
+  /// the European Economic Area (EEA) under the age of consent. Values defined
+  /// here should be set via @ref SetTagForUnderAgeOfConsent.
+  enum TagForUnderAgeOfConsent {
+    /// Indicates that the publisher has not specified whether the ad request
+    /// should receive treatment for users in the European Economic Area (EEA)
+    /// under the age of consent.
+    kUnderAgeOfConsentUnspecified = 0,
+
+    /// Indicates the publisher specified that the ad request should not receive
+    /// treatment for users in the European Economic Area (EEA) under the age of
+    /// consent.
+    kUnderAgeOfConsentFalse,
+
+    /// Indicates the publisher specified that the ad request should receive
+    /// treatment for users in the European Economic Area (EEA) under the age of
+    /// consent.
+    kUnderAgeOfConsentTrue
+  };
+
+  /// Sets a maximum ad content rating. AdMob ads returned for your app will
+  /// have a content rating at or below that level.
+  MaxAdContentRating max_ad_content_rating;
+
+  /// @brief Allows you to specify whether you would like your app
+  /// to be treated as child-directed for purposes of the Children’s Online
+  /// Privacy Protection Act (COPPA) -
+  /// http://business.ftc.gov/privacy-and-security/childrens-privacy.
+  ///
+  /// If you set this value to kChildDirectedTreatmentTrue, you will indicate
+  /// that your app should be treated as child-directed for purposes of the
+  /// Children’s Online Privacy Protection Act (COPPA).
+  ///
+  /// If you set this value to kChildDirectedTreatmentFalse, you will indicate
+  /// that your app should not be treated as child-directed for purposes of the
+  /// Children’s Online Privacy Protection Act (COPPA).
+  ///
+  /// If you do not set this value, or set this value to
+  /// kChildDirectedTreatmentUnspecified, ad requests will include no indication
+  /// of how you would like your app treated with respect to COPPA.
+  ///
+  /// By setting this value, you certify that this notification is accurate and
+  /// you are authorized to act on behalf of the owner of the app. You
+  /// understand that abuse of this setting may result in termination of your
+  /// Google account.
+  ///
+  /// @note: it may take some time for this designation to be fully implemented
+  /// in applicable Google services.
+  ///
+  TagForChildDirectedTreatment tag_for_child_directed_treatment;
+
+  /// This value allows you to mark your app to receive treatment for users in
+  /// the European Economic Area (EEA) under the age of consent. This feature is
+  /// designed to help facilitate compliance with the General Data Protection
+  /// Regulation (GDPR). Note that you may have other legal obligations under
+  /// GDPR. Please review the European Union's guidance and consult with your
+  /// own legal counsel. Please remember that Google's tools are designed to
+  /// facilitate compliance and do not relieve any particular publisher of its
+  /// obligations under the law.
+  ///
+  /// When using this feature, a Tag For Users under the Age of Consent in
+  /// Europe (TFUA) parameter will be included in all ad requests. This
+  /// parameter disables personalized advertising, including remarketing, for
+  /// that specific ad request. It also disables requests to third-party ad
+  /// vendors, such as ad measurement pixels and third-party ad servers.
+  ///
+  /// If you set this value to RequestConfiguration.kUnderAgeOfConsentTrue, you
+  /// will indicate that you want your app to be handled in a manner suitable
+  /// for users under the age of consent.
+  ///
+  /// If you set this value to RequestConfiguration.kUnderAgeOfConsentFalse,
+  /// you will indicate that you don't want your app to be handled in a manner
+  /// suitable for users under the age of consent.
+  ///
+  /// If you do not set this value, or set this value to
+  /// kUnderAgeOfConsentUnspecified, your app will include no indication of how
+  /// you would like your app to be handled in a manner suitable for users under
+  /// the age of consent.
+  TagForUnderAgeOfConsent tag_for_under_age_of_consent;
+
+  /// Sets a list of test device IDs corresponding to test devices which will
+  /// always request test ads.
+  std::vector<std::string> test_device_ids;
 };
 
 }  // namespace admob

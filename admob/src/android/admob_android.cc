@@ -169,6 +169,14 @@ void ReleaseClasses(JNIEnv* env) {
 
 bool IsInitialized() { return g_initialized; }
 
+void SetRequestConfiguration(const RequestConfiguration& RequestConfiguration) {
+
+}
+
+RequestConfiguration GetRequestConfiguration() {
+  return RequestConfiguration();
+}
+
 void Terminate() {
   if (!g_initialized) {
     LogWarning("AdMob already shut down");
