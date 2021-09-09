@@ -85,17 +85,31 @@ jobs:
         id: push-branch
         run: |
           if ! git update-index --refresh; then
-            cat ${UPDATE_LOGFILE}
+            # Do a bit of post-processing on the update log to split it by platform.
+            UPDATE_LOGFILE_PROCESSED=update_log_processed.txt
+            if cat ${UPDATE_LOGFILE} | grep -q ^Android:; then
+              echo "# Android" >> "${UPDATE_LOGFILE_PROCESSED}"
+              echo "" >> "${UPDATE_LOGFILE_PROCESSED}"
+              grep ^Android: ${UPDATE_LOGFILE} | cut -d: -f2- > ${UPDATE_LOGFILE_PROCESSED}
+              echo "" >> "${UPDATE_LOGFILE_PROCESSED}"
+            fi
+            if cat ${UPDATE_LOGFILE} | grep -q ^iOS:; then
+              echo "# iOS" >> "${UPDATE_LOGFILE_PROCESSED}"
+              echo "" >> "${UPDATE_LOGFILE_PROCESSED}"
+              grep ^iOS: ${UPDATE_LOGFILE} | cut -d: -f2- > ${UPDATE_LOGFILE_PROCESSED}
+              echo "" >> "${UPDATE_LOGFILE_PROCESSED}"
+            fi
+              
             date_str=$(date "+%a %b %d %Y")
             commit_title="Update ${CHOSEN_DEPS}dependencies - ${date_str}"
-            commit_body="$(cat ${UPDATE_LOGFILE})
+            commit_body="$(cat ${UPDATE_LOGFILE_PROCESSED})
 
-            Automatically updated by [workflow]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
+Automatically updated by [workflow]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
             git config user.email "firebase-workflow-trigger-bot@google.com"
             git config user.name "firebase-workflow-trigger-bot"
             git commit -a -m "${commit_title}
 
-            ${commit_body}"
+${commit_body}"
             echo "::set-output name=branch_pushed::1"
             # Show changes in git log
             git diff
