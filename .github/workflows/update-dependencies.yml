@@ -104,12 +104,12 @@ jobs:
             commit_title="Update ${CHOSEN_DEPS}dependencies - ${date_str}"
             commit_body="$(cat ${UPDATE_LOGFILE_PROCESSED})
 
-Automatically updated by [workflow]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
+          Automatically updated by [workflow]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
             git config user.email "firebase-workflow-trigger-bot@google.com"
             git config user.name "firebase-workflow-trigger-bot"
             git commit -a -m "${commit_title}
 
-${commit_body}"
+          ${commit_body}"
             echo "::set-output name=branch_pushed::1"
             # Show changes in git log
             git diff
