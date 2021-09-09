@@ -101,7 +101,7 @@ jobs:
             # Push branch
             git push --set-upstream origin "${NEW_BRANCH}"
             # Create pull request
-            pr_number=$(python scripts/gha/create_pull_request.py --token ${{ steps.generate-token.outputs.token }} --head "${NEW_BRANCH}" --base "${{ github.event.inputs.baseBranch }}" --title "${commit_title}" --body "${commit_body}"
+            pr_number=$(python scripts/gha/create_pull_request.py --token ${{ steps.generate-token.outputs.token }} --head "${NEW_BRANCH}" --base "${{ github.event.inputs.baseBranch }}" --title "${commit_title}" --body "${commit_body}")
             echo "::set-output name=created_pr_number::${pr_number}"
           else
             echo "::warning ::No changes detected, won't create pull request."
