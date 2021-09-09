@@ -774,7 +774,7 @@ def main():
 
     if args.logfile:
       with open(args.logfile, 'w') as logfile_file:
-        logfile_file.writelines("\n".join(sorted(list(logfile_lines))))
+        logfile_file.write("\n".join(sorted(list(logfile_lines))))
       
 if __name__ == '__main__':
   main()
