@@ -87,16 +87,16 @@ jobs:
           if ! git update-index --refresh; then
             # Do a bit of post-processing on the update log to split it by platform.
             UPDATE_LOGFILE_PROCESSED=update_log_processed.txt
-            if cat ${UPDATE_LOGFILE} | grep -q ^Android:; then
-              echo "# Android" >> "${UPDATE_LOGFILE_PROCESSED}"
+            if grep -q ^Android: "${UPDATE_LOGFILE}"; then
+              echo "### Android" >> "${UPDATE_LOGFILE_PROCESSED}"
               echo "" >> "${UPDATE_LOGFILE_PROCESSED}"
-              grep ^Android: ${UPDATE_LOGFILE} | cut -d: -f2- > ${UPDATE_LOGFILE_PROCESSED}
+              sed 's/^Android: /- /' ${UPDATE_LOGFILE} > ${UPDATE_LOGFILE_PROCESSED}
               echo "" >> "${UPDATE_LOGFILE_PROCESSED}"
             fi
-            if cat ${UPDATE_LOGFILE} | grep -q ^iOS:; then
-              echo "# iOS" >> "${UPDATE_LOGFILE_PROCESSED}"
+            if grep -q ^iOS: "${UPDATE_LOGFILE}"; then
+              echo "### iOS" >> "${UPDATE_LOGFILE_PROCESSED}"
               echo "" >> "${UPDATE_LOGFILE_PROCESSED}"
-              grep ^iOS: ${UPDATE_LOGFILE} | cut -d: -f2- > ${UPDATE_LOGFILE_PROCESSED}
+              sed 's/^iOS: /- /' ${UPDATE_LOGFILE} > ${UPDATE_LOGFILE_PROCESSED}
               echo "" >> "${UPDATE_LOGFILE_PROCESSED}"
             fi
               
