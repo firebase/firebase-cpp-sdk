@@ -49,7 +49,7 @@ jobs:
           
       - name: Name new branch
         run: |
-          date_str=$(date "+%Y%m%d-%H%M%S")
+          date_str=$(TZ=US/Pacific date "+%Y%m%d-%H%M%S")
           echo "NEW_BRANCH=${{env.branchPrefix}}${{github.run_number}}-${date_str}" >> $GITHUB_ENV
       - name: Create new branch
         run: |
@@ -84,7 +84,7 @@ jobs:
         id: push-branch
         run: |
           if ! git update-index --refresh; then
-            date_str=$(date "+%a %b %d %Y")
+            date_str=$(TZ=US/Pacific date "+%a %b %d %Y")
             git config user.email github-firebase-workflow-trigger-bot@google.com
             git config user.name "Firebase Workflow Bot"
             git commit -a -m "Update ${CHOSEN_DEPS} dependencies - ${date_str}"
