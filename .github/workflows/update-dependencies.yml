@@ -46,11 +46,12 @@ jobs:
         run: |
           python scripts/gha/install_prereqs_desktop.py
           python -m pip install requests
-          
+
       - name: Name new branch
         run: |
           date_str=$(date "+%Y%m%d-%H%M%S")
           echo "NEW_BRANCH=${{env.branchPrefix}}${{github.run_number}}-${date_str}" >> $GITHUB_ENV
+
       - name: Create new branch
         run: |
           git remote update
@@ -64,23 +65,26 @@ jobs:
               # Update both
               echo "Updating all dependencies"
               python scripts/update_android_ios_dependencies.py --logfile=${UPDATE_LOGFILE}
-              echo "CHOSEN_DEPS=" >> $GITHUB_ENV
+              echo "CHOSEN_DEPS=Android and iOS" >> $GITHUB_ENV
             else
               # Update iOS only
               echo "Updating iOS dependencies only"
               python scripts/update_android_ios_dependencies.py --skip_android --logfile=${UPDATE_LOGFILE}
-              echo "CHOSEN_DEPS=iOS " >> $GITHUB_ENV
+              echo "CHOSEN_DEPS=iOS" >> $GITHUB_ENV
             fi
             # iOS: Update Firestore external version to match Firestore Cocoapod version.
             firestore_version=$(grep "pod 'Firebase/Firestore'" ios_pod/Podfile | sed "s/.*'\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)'.*/\1/")
             sed -i~ "s/^set(version [^)]*)/set(version CocoaPods-${firestore_version})/i" cmake/external/firestore.cmake
           elif [[ ${{ github.event.inputs.updateAndroid }} -eq 1 ]]; then
             # Update Android only
-              echo "Updating Android dependencies only"
-              python scripts/update_android_ios_dependencies.py --skip_ios --logfile=${UPDATE_LOGFILE}
-              echo "CHOSEN_DEPS=Android " >> $GITHUB_ENV
+            echo "Updating Android dependencies only"
+            python scripts/update_android_ios_dependencies.py --skip_ios --logfile=${UPDATE_LOGFILE}
+            echo "CHOSEN_DEPS=Android" >> $GITHUB_ENV
+          else
+            echo "::error ::Neither Android nor iOS selected. Exiting."
+            exit 1
           fi
-          
+
       - name: Push branch if there are changes
         id: push-branch
         run: |
@@ -99,9 +103,9 @@ jobs:
               sed 's/^iOS: /- /' ${UPDATE_LOGFILE} >> ${UPDATE_LOGFILE_PROCESSED}
               echo "" >> "${UPDATE_LOGFILE_PROCESSED}"
             fi
-              
+
             date_str=$(date "+%a %b %d %Y")
-            commit_title="Update ${CHOSEN_DEPS}dependencies - ${date_str}"
+            commit_title="Update ${CHOSEN_DEPS} dependencies - ${date_str}"
             commit_body="$(cat ${UPDATE_LOGFILE_PROCESSED})
 
           Automatically updated by [workflow]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
@@ -130,4 +134,4 @@ jobs:
         with:
           github_token: ${{ steps.generate-token.outputs.token }}
           number: ${{ steps.push-branch.outputs.created_pr_number }}
-          labels: "${{ env.triggerTestsLabel }}" 
+          labels: "${{ env.triggerTestsLabel }}"
