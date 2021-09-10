@@ -65,7 +65,7 @@ jobs:
               # Update both
               echo "Updating all dependencies"
               python scripts/update_android_ios_dependencies.py --logfile=${UPDATE_LOGFILE}
-              echo "CHOSEN_DEPS=Android and iOS" >> $GITHUB_ENV
+              echo "CHOSEN_DEPS=mobile" >> $GITHUB_ENV
             else
               # Update iOS only
               echo "Updating iOS dependencies only"
