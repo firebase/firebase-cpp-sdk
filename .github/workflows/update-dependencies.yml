@@ -1,13 +1,137 @@
-name: Update Android and iOS dependencies (placeholder)
+name: Update Android and iOS dependencies
 on:
   workflow_dispatch:
     inputs:
+      updateAndroid:
+        description: 'update Android dependencies?'
+        default: 1
+      updateiOS:
+        description: 'update iOS dependencies?'
+        default: 1
+      triggerTests:
+        description: 'trigger tests on PR?'
+        default: 1
+      baseBranch:
+        description: 'create the new branch from this base'
+        default: 'main'
+
+env:
+  branchPrefix: "workflow/auto-update-deps-"
+  triggerTestsLabel: "tests-requested: quick"
 
 jobs:
   update_dependencies:
-    name: update-dependencies
+    name: update-deps
     runs-on: ubuntu-latest
     steps:
-      - name: Placeholder step
+      - name: Get token for firebase-workflow-trigger
+        uses: tibdex/github-app-token@v1
+        id: generate-token
+        with:
+          app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
+          private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: Check out base branch
+        uses: actions/checkout@v2.3.1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.baseBranch }}
+
+      - name: Install prerequisites
         run: |
-          true
+          python scripts/gha/install_prereqs_desktop.py
+          python -m pip install requests
+
+      - name: Name new branch
+        run: |
+          date_str=$(date "+%Y%m%d-%H%M%S")
+          echo "NEW_BRANCH=${{env.branchPrefix}}${{github.run_number}}-${date_str}" >> $GITHUB_ENV
+
+      - name: Create new branch
+        run: |
+          git remote update
+          git checkout -b "${NEW_BRANCH}"
+          echo "UPDATE_LOGFILE=update_log.txt" >> $GITHUB_ENV
+
+      - name: Run update script
+        run: |
+          if [[ ${{ github.event.inputs.updateiOS }} -eq 1 ]]; then
+            if [[ ${{ github.event.inputs.updateAndroid }} -eq 1 ]]; then
+              # Update both
+              echo "Updating all dependencies"
+              python scripts/update_android_ios_dependencies.py --logfile=${UPDATE_LOGFILE}
+              echo "CHOSEN_DEPS=mobile" >> $GITHUB_ENV
+            else
+              # Update iOS only
+              echo "Updating iOS dependencies only"
+              python scripts/update_android_ios_dependencies.py --skip_android --logfile=${UPDATE_LOGFILE}
+              echo "CHOSEN_DEPS=iOS" >> $GITHUB_ENV
+            fi
+            # iOS: Update Firestore external version to match Firestore Cocoapod version.
+            firestore_version=$(grep "pod 'Firebase/Firestore'" ios_pod/Podfile | sed "s/.*'\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)'.*/\1/")
+            sed -i~ "s/^set(version [^)]*)/set(version CocoaPods-${firestore_version})/i" cmake/external/firestore.cmake
+          elif [[ ${{ github.event.inputs.updateAndroid }} -eq 1 ]]; then
+            # Update Android only
+            echo "Updating Android dependencies only"
+            python scripts/update_android_ios_dependencies.py --skip_ios --logfile=${UPDATE_LOGFILE}
+            echo "CHOSEN_DEPS=Android" >> $GITHUB_ENV
+          else
+            echo "::error ::Neither Android nor iOS selected. Exiting."
+            exit 1
+          fi
+
+      - name: Push branch if there are changes
+        id: push-branch
+        run: |
+          if ! git update-index --refresh; then
+            # Do a bit of post-processing on the update log to split it by platform.
+            UPDATE_LOGFILE_PROCESSED=update_log_processed.txt
+            if grep -q ^Android: "${UPDATE_LOGFILE}"; then
+              echo "### Android" >> "${UPDATE_LOGFILE_PROCESSED}"
+              echo "" >> "${UPDATE_LOGFILE_PROCESSED}"
+              sed 's/^Android: /- /' ${UPDATE_LOGFILE} >> ${UPDATE_LOGFILE_PROCESSED}
+              echo "" >> "${UPDATE_LOGFILE_PROCESSED}"
+            fi
+            if grep -q ^iOS: "${UPDATE_LOGFILE}"; then
+              echo "### iOS" >> "${UPDATE_LOGFILE_PROCESSED}"
+              echo "" >> "${UPDATE_LOGFILE_PROCESSED}"
+              sed 's/^iOS: /- /' ${UPDATE_LOGFILE} >> ${UPDATE_LOGFILE_PROCESSED}
+              echo "" >> "${UPDATE_LOGFILE_PROCESSED}"
+            fi
+
+            date_str=$(date "+%a %b %d %Y")
+            commit_title="Update ${CHOSEN_DEPS} dependencies - ${date_str}"
+            commit_body="$(cat ${UPDATE_LOGFILE_PROCESSED})
+
+          > Created by [${{github.workflow}} workflow]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
+            git config user.email "firebase-workflow-trigger-bot@google.com"
+            git config user.name "firebase-workflow-trigger-bot"
+            git config core.commentChar "%"  # so we can use # in git commit messages
+            git commit -a -m "${commit_title}
+
+          ${commit_body}"
+            echo "::set-output name=branch_pushed::1"
+            # Show changes in git log
+            git diff
+            # Push branch
+            git push --set-upstream origin "${NEW_BRANCH}"
+            # Create pull request
+            pr_number=$(python scripts/gha/create_pull_request.py --token ${{ steps.generate-token.outputs.token }} --head "${NEW_BRANCH}" --base "${{ github.event.inputs.baseBranch }}" --title "${commit_title}" --body "${commit_body}")
+            echo "::set-output name=created_pr_number::${pr_number}"
+          else
+            echo "::warning ::No changes detected, won't create pull request."
+            echo "::set-output name=branch_pushed::0"
+          fi
+
+      - name: Set test trigger label.
+        uses: actions-ecosystem/action-add-labels@v1
+        if: ${{ github.event.inputs.triggerTests == 1 && steps.push-branch.outputs.branch_pushed == 1 }}
+        with:
+          github_token: ${{ steps.generate-token.outputs.token }}
+          number: ${{ steps.push-branch.outputs.created_pr_number }}
+          labels: "${{ env.triggerTestsLabel }}"

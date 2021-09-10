@@ -211,3 +211,39 @@ def workflow_dispatch(token, workflow_id, ref, inputs):
   with requests.post(url, headers=headers, data=json.dumps(data),
                     stream=True, timeout=TIMEOUT) as response:
     logging.info("workflow_dispatch: %s response: %s", url, response)
+
+
+def create_pull_request(token, head, base, title, body, maintainer_can_modify):
+  """https://docs.github.com/en/rest/reference/pulls#create-a-pull-request"""
+  url = f'{FIREBASE_URL}/pulls'
+  headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
+  data = {'head': head, 'base': base, 'title': title, 'body': body,
+          'maintainer_can_modify': maintainer_can_modify}
+  with requests.post(url, headers=headers, data=json.dumps(data),
+                    stream=True, timeout=TIMEOUT) as response:
+    logging.info("create_pull_request: %s response: %s", head, response)
+    return True if response.status_code == 201 else False
+
+def list_pull_requests(token, state, head, base):
+  """https://docs.github.com/en/rest/reference/pulls#list-pull-requests"""
+  url = f'{FIREBASE_URL}/pulls'
+  headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
+  page = 1
+  per_page = 100
+  results = []
+  keep_going = True
+  while keep_going:
+    params = {'per_page': per_page, 'page': page}
+    if state: params.update({'state': state})
+    if head: params.update({'head': head})
+    if base: params.update({'base': base})
+    page = page + 1
+    keep_going = False
+    with requests_retry_session().get(url, headers=headers, params=params,
+                      stream=True, timeout=TIMEOUT) as response:
+      logging.info("get_reviews: %s response: %s", url, response)
+      results = results + response.json()
+      # If exactly per_page results were retrieved, read the next page.
+      keep_going = (len(response.json()) == per_page)
+  return results
+

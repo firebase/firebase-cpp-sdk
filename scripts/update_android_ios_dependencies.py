@@ -62,6 +62,9 @@ Other similar flags:
 --depfiles
 --readmefiles
 
+Log updated version numbers to a text file:
+--logfile=my_log_filename.txt
+
 These "files" flags can take a list of paths (files and directories).
 If directories are provided, they are scanned for known file types.
 """
@@ -321,6 +324,7 @@ def modify_pod_file(pod_file, pod_version_map, dryrun=True):
       dryrun (bool, optional): Just print the substitutions.
                                Do not write to file. Defaults to True.
   """
+  global logfile_lines
   to_update = False
   existing_lines = []
   with open(pod_file, "r") as podfile:
@@ -345,6 +349,7 @@ def modify_pod_file(pod_file, pod_version_map, dryrun=True):
           substituted_pairs.append((line, substituted_line))
           existing_lines[idx] = substituted_line
           to_update = True
+          logfile_lines.add('iOS: %s → %s' % (pod_name, latest_version))
 
   if to_update:
     print('Updating contents of {0}'.format(pod_file))
@@ -491,6 +496,7 @@ def modify_dependency_file(dependency_filepath, version_map, dryrun=True):
     dryrun (bool, optional): Just print the substitutions.
       Do not write to file. Defaults to True.
   """
+  global logfile_lines
   logging.debug('Reading dependency file: {0}'.format(dependency_filepath))
   lines = None
   with open(dependency_filepath, "r") as dependency_file:
@@ -523,6 +529,9 @@ def modify_dependency_file(dependency_filepath, version_map, dryrun=True):
     if substituted_line != line:
       substituted_pairs.append((line, substituted_line))
       to_update = True
+      log_match = re.search(RE_GENERIC_DEPENDENCY_MODULE, line)
+      log_pkg = log_match.group('pkg').replace('-', '_').replace(':', '.')
+      logfile_lines.add('Android: %s → %s' % (log_pkg, version_map[log_pkg]))
 
   if to_update:
     print('Updating contents of {0}'.format(dependency_filepath))
@@ -705,6 +714,7 @@ def parse_cmdline_args():
             default=('release_build_files/readme.md',),
             help= 'List of release readme markdown files or directories'
                   'containing them.')
+  parser.add_argument('--logfile', help='Log to text file')
 
   args = parser.parse_args()
 
@@ -725,6 +735,7 @@ def parse_cmdline_args():
   logging.getLogger(__name__)
   return args
 
+logfile_lines = set()
 
 def main():
   args = parse_cmdline_args()
@@ -761,5 +772,9 @@ def main():
     for gradle_file in gradle_files:
       modify_gradle_file(gradle_file, latest_android_versions_map, args.dryrun)
 
+    if args.logfile:
+      with open(args.logfile, 'w') as logfile_file:
+        logfile_file.write("\n".join(sorted(list(logfile_lines))) + "\n")
+      
 if __name__ == '__main__':
   main()
