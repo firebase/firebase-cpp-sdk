@@ -56,6 +56,9 @@ class BannerViewInternalIOS : public BannerViewInternal {
   /// closures).
   FutureHandle future_handle_for_load_;
 
+  /// Prevents duplicate invocations of initailize on the BannerView.
+  bool initialized_;
+
   /// The FADBannerView object. Declared as an "id" type to avoid referencing an
   /// Objective-C++ class in this header.
   id banner_view_;

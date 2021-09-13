@@ -177,7 +177,6 @@ firebase::admob::AdRequest FirebaseAdMobTest::GetAdRequest() {
 }
 
 // Test cases below.
-
 TEST_F(FirebaseAdMobTest, TestGetAdRequest) { GetAdRequest(); }
 
 // A simple listener to help test changes to a BannerView.
@@ -352,6 +351,29 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
               banner_listener.bounding_box_changes_.back().width == 0 &&
               banner_listener.bounding_box_changes_.back().height == 0);
 #endif
+}
+
+TEST_F(FirebaseAdMobTest, TestBannerViewAlreadyInitialized) {
+  static const int kBannerWidth = 320;
+  static const int kBannerHeight = 50;
+
+  firebase::admob::AdSize banner_ad_size;
+  banner_ad_size.ad_size_type = firebase::admob::kAdSizeStandard;
+  banner_ad_size.width = kBannerWidth;
+  banner_ad_size.height = kBannerHeight;
+
+  firebase::admob::BannerView* banner = new firebase::admob::BannerView();
+
+  firebase::Future<void> first_initialize = banner->Initialize(
+      app_framework::GetWindowContext(), kBannerAdUnit, banner_ad_size);
+  firebase::Future<void> second_initialize = banner->Initialize(
+      app_framework::GetWindowContext(), kBannerAdUnit, banner_ad_size);
+
+  WaitForCompletion(second_initialize, "Second Initialize",
+                    firebase::admob::kAdMobErrorAlreadyInitialized);
+  WaitForCompletion(first_initialize, "First Initialize");
+
+  delete banner;
 }
 
 // A simple listener to help test changes to a InterstitialAd.

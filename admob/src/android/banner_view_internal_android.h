@@ -53,8 +53,9 @@ METHOD_LOOKUP_DECLARATION(banner_view_helper_ad_view_listener,
 // clang-format off
 #define AD_VIEW_METHODS(X)                                             \
   X(Constructor, "<init>", "(Landroid/content/Context;)V"),            \
+  X(GetAdUnitId, "getAdUnitId", "()Ljava/lang/String;"),               \
   X(SetAdSize, "setAdSize", "(Lcom/google/android/gms/ads/AdSize;)V"), \
-  X(SetAdUnitId, "setAdUnitId", "(Ljava/lang/String;)V"),               \
+  X(SetAdUnitId, "setAdUnitId", "(Ljava/lang/String;)V"),              \
   X(SetAdListener, "setAdListener",                                    \
     "(Lcom/google/android/gms/ads/AdListener;)V")
 // clang-format on
