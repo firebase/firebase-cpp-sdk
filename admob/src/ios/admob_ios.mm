@@ -139,6 +139,7 @@ RequestConfiguration GetRequestConfiguration() {
     RequestConfiguration::kUnderAgeOfConsentUnspecified;
   request_configuration.tag_for_child_directed_treatment =
     RequestConfiguration::kChildDirectedTreatmentUnspecified;
+
   util::NSArrayToStdStringVector(
     GADMobileAds.sharedInstance.requestConfiguration.testDeviceIdentifiers,
     &request_configuration.test_device_ids);

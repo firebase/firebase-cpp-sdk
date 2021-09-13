@@ -201,6 +201,67 @@ class TestBannerViewListener : public firebase::admob::BannerView::Listener {
   std::vector<firebase::admob::BoundingBox> bounding_box_changes_;
 };
 
+TEST_F(FirebaseAdMobTest, TestQueryOfUnsetRequestConfiguration) {
+  firebase::admob::RequestConfiguration set_configuration;
+  firebase::admob::SetRequestConfiguration(set_configuration);
+  firebase::admob::RequestConfiguration retrieved_configuration =
+      firebase::admob::GetRequestConfiguration();
+
+  EXPECT_EQ(
+      retrieved_configuration.max_ad_content_rating,
+      firebase::admob::RequestConfiguration::kMaxAdContentRatingUnspecified);
+  EXPECT_EQ(retrieved_configuration.tag_for_child_directed_treatment,
+            firebase::admob::RequestConfiguration::
+                kChildDirectedTreatmentUnspecified);
+  EXPECT_EQ(
+      retrieved_configuration.tag_for_under_age_of_consent,
+      firebase::admob::RequestConfiguration::kUnderAgeOfConsentUnspecified);
+  EXPECT_EQ(retrieved_configuration.test_device_ids.size(), 0);
+}
+
+TEST_F(FirebaseAdMobTest, TestRequestConfigurationSetGet) {
+  firebase::admob::RequestConfiguration set_configuration;
+  set_configuration.max_ad_content_rating =
+      firebase::admob::RequestConfiguration::kMaxAdContentRatingPG;
+  set_configuration.tag_for_child_directed_treatment =
+      firebase::admob::RequestConfiguration::kChildDirectedTreatmentTrue;
+  set_configuration.tag_for_under_age_of_consent =
+      firebase::admob::RequestConfiguration::kUnderAgeOfConsentFalse;
+  set_configuration.test_device_ids.push_back("1");
+  set_configuration.test_device_ids.push_back("2");
+  set_configuration.test_device_ids.push_back("3");
+  firebase::admob::SetRequestConfiguration(set_configuration);
+
+  firebase::admob::RequestConfiguration retrieved_configuration =
+      firebase::admob::GetRequestConfiguration();
+
+  EXPECT_EQ(retrieved_configuration.max_ad_content_rating,
+            firebase::admob::RequestConfiguration::kMaxAdContentRatingPG);
+
+#if defined(__ANDROID__)
+  EXPECT_EQ(retrieved_configuration.tag_for_child_directed_treatment,
+            firebase::admob::RequestConfiguration::kChildDirectedTreatmentTrue);
+  EXPECT_EQ(retrieved_configuration.tag_for_under_age_of_consent,
+            firebase::admob::RequestConfiguration::kUnderAgeOfConsentFalse);
+#else  // iOS
+  // iOS doesn't allow for the querying of these values.
+  EXPECT_EQ(retrieved_configuration.tag_for_child_directed_treatment,
+            firebase::admob::RequestConfiguration::
+                kChildDirectedTreatmentUnspecified);
+  EXPECT_EQ(
+      retrieved_configuration.tag_for_under_age_of_consent,
+      firebase::admob::RequestConfiguration::kUnderAgeOfConsentUnspecified);
+#endif
+
+  EXPECT_EQ(retrieved_configuration.test_device_ids.size(), 3);
+  EXPECT_TRUE(std::count(retrieved_configuration.test_device_ids.begin(),
+                         retrieved_configuration.test_device_ids.end(), "1"));
+  EXPECT_TRUE(std::count(retrieved_configuration.test_device_ids.begin(),
+                         retrieved_configuration.test_device_ids.end(), "2"));
+  EXPECT_TRUE(std::count(retrieved_configuration.test_device_ids.begin(),
+                         retrieved_configuration.test_device_ids.end(), "3"));
+}
+
 TEST_F(FirebaseAdMobTest, TestBannerView) {
   // AdMob cannot be tested on Firebase Test Lab, so disable tests on FTL.
   TEST_REQUIRES_USER_INTERACTION;
