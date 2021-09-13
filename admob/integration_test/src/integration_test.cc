@@ -220,6 +220,8 @@ TEST_F(FirebaseAdMobTest, TestQueryOfUnsetRequestConfiguration) {
 }
 
 TEST_F(FirebaseAdMobTest, TestRequestConfigurationSetGet) {
+  SKIP_TEST_ON_DESKTOP;
+
   firebase::admob::RequestConfiguration set_configuration;
   set_configuration.max_ad_content_rating =
       firebase::admob::RequestConfiguration::kMaxAdContentRatingPG;
