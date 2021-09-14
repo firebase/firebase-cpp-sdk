@@ -567,6 +567,10 @@ code.
 
 ## Release Notes
 
+### 8.5.0
+-   Changes
+    -   General: Updating Android and iOS dependencies to the latest.
+
 ### 8.4.0
 -   Changes
     -   General: Updating Android and iOS dependencies to the latest.
