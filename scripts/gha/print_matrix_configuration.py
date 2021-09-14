@@ -67,6 +67,7 @@ from integration_testing import config_reader
 # if there is no direct match for a key.
 DEFAULT_WORKFLOW = "desktop"
 EXPANDED_KEY = "expanded"
+MINIMAL_KEY = "minimal"
 
 PARAMETERS = {
   "desktop": {
@@ -115,6 +116,12 @@ PARAMETERS = {
       "ndk_version": ["r22b"],
       "platform_version": ["28"],
       "build_tools_version": ["28.0.3"],
+
+      MINIMAL_KEY: {
+        "os": ["ubuntu-latest"],
+        "platform": ["Desktop"],
+        "apis": ["firestore"]
+      },
 
       EXPANDED_KEY: {
         "ssl_lib": ["openssl", "boringssl"],
@@ -171,12 +178,12 @@ TEST_DEVICES = {
  
 
 
-def get_value(workflow, use_expanded, parm_key, config_parms_only=False):
+def get_value(workflow, test_matrix, parm_key, config_parms_only=False):
   """ Fetch value from configuration
 
   Args:
       workflow (str): Key corresponding to the github workflow.
-      use_expanded (bool): Use expanded configuration for the workflow?
+      test_matrix (str): Use EXPANDED_KEY or MINIMAL_KEY configuration for the workflow?
       parm_key (str): Exact key name to fetch from configuration.
       config_parms_only (bool): Search in config blocks if True, else matrix
                                 blocks.
@@ -196,8 +203,8 @@ def get_value(workflow, use_expanded, parm_key, config_parms_only=False):
   default_workflow_block = PARAMETERS.get(DEFAULT_WORKFLOW)
   default_workflow_parm_block = default_workflow_block.get(parm_type_key)
   search_blocks.insert(0, default_workflow_parm_block)
-  if use_expanded and EXPANDED_KEY in default_workflow_parm_block:
-    search_blocks.insert(0, default_workflow_parm_block[EXPANDED_KEY])
+  if test_matrix in default_workflow_parm_block:
+    search_blocks.insert(0, default_workflow_parm_block[test_matrix])
 
   if workflow != DEFAULT_WORKFLOW:
     workflow_block = PARAMETERS.get(workflow)
@@ -205,8 +212,8 @@ def get_value(workflow, use_expanded, parm_key, config_parms_only=False):
       workflow_parm_block = workflow_block.get(parm_type_key)
       if workflow_parm_block:
         search_blocks.insert(0, workflow_parm_block)
-        if use_expanded and EXPANDED_KEY in workflow_parm_block:
-          search_blocks.insert(0, workflow_parm_block[EXPANDED_KEY])
+        if test_matrix in workflow_parm_block:
+          search_blocks.insert(0, workflow_parm_block[test_matrix])
 
   for search_block in search_blocks:
     if parm_key in search_block:
@@ -214,10 +221,10 @@ def get_value(workflow, use_expanded, parm_key, config_parms_only=False):
 
   else:
     raise KeyError("Parameter key: '{0}' of type '{1}' not found "\
-                   "for workflow '{2}' (expanded = {3}) .".format(parm_key,
+                   "for workflow '{2}' (test_matrix = {3}) .".format(parm_key,
                                                                 parm_type_key,
                                                                 workflow,
-                                                                use_expanded))
+                                                                test_matrix))
 
 
 def filter_devices(devices, device_type):
@@ -364,7 +371,11 @@ def main():
     print(TEST_DEVICES.get(args.parm_key).get("type"))
     return 
 
-  value = get_value(args.workflow, args.expanded, args.parm_key, args.config)
+  if args.expanded:
+    test_matrix = EXPANDED_KEY
+  elif args.minimal:
+    test_matrix = MINIMAL_KEY
+  value = get_value(args.workflow, test_matrix, args.parm_key, args.config)
   if args.workflow == "integration_tests" and (args.parm_key == "android_device" or args.parm_key == "ios_device"):
     value = filter_devices(value, args.device_type)
   if args.auto_diff:
@@ -376,6 +387,7 @@ def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Query matrix and config parameters used in Github workflows.')
   parser.add_argument('-c', '--config', action='store_true', help='Query parameter used for Github workflow/dispatch configurations.')
   parser.add_argument('-w', '--workflow', default=DEFAULT_WORKFLOW, help='Config key for Github workflow.')
+  parser.add_argument('-m', '--minimal', type=bool, default=False, help='Use minimal matrix')
   parser.add_argument('-e', '--expanded', type=bool, default=False, help='Use expanded matrix')
   parser.add_argument('-k', '--parm_key', required=True, help='Print the value of specified key from matrix or config maps.')
   parser.add_argument('-a', '--auto_diff', metavar='BRANCH', help='Compare with specified base branch to automatically set matrix options')
