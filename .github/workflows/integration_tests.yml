@@ -123,15 +123,15 @@ jobs:
     ### If it's not a defined trigger, cancel workflow
     ### e.g. Triggered by non-"test-request" label; triggered by not merged PR close event.
     - name: Cancel workflow
-      if: steps.set_outputs.outputs.trigger == "" 
+      if: ${{ !steps.set_outputs.outputs.trigger }}
       uses: andymckay/cancel-action@0.2
     - name: Wait for workflow cancellation
-      if: steps.set_outputs.outputs.trigger == "" 
+      if: ${{ !steps.set_outputs.outputs.trigger }} 
       run: |
         sleep 300
         exit 1  # fail out if the cancellation above somehow failed.
     - name: Cancel previous runs on the same PR
-      if: steps.set_outputs.outputs.trigger == "presubmit_trigger" 
+      if: steps.set_outputs.outputs.trigger == 'presubmit_trigger' 
       uses: styfle/cancel-workflow-action@0.8.0
       with:
         access_token: ${{ github.token }}
@@ -1082,7 +1082,7 @@ jobs:
             --run_id ${{github.run_id}} \
             --new_token ${{steps.generate-token.outputs.token}}
       - name: Update Daily Report
-        if: ${{ needs.check_and_prepare.outputs.trigger == 'scheduled_trigger'}}
+        if: needs.check_and_prepare.outputs.trigger == 'scheduled_trigger'
         shell: bash
         run: |
           if [[ "${{ github.event.inputs.test_pull_request }}" == "sdk" ]]; then
