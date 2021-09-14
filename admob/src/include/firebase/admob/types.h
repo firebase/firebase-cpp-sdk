@@ -142,7 +142,7 @@ struct RequestConfiguration {
   /// @ref SetMaxAdContentRating
   enum MaxAdContentRating {
     /// No content rating has been specified.
-    kMaxAdContentRatingUnspecified = 0,
+    kMaxAdContentRatingUnspecified = -1,
 
     /// Content suitable for general audiences, including families.
     kMaxAdContentRatingG,
@@ -165,7 +165,7 @@ struct RequestConfiguration {
     /// Indicates that the publisher has not specified whether the ad request
     /// should receive treatment for users in the European Economic Area (EEA)
     /// under the age of consent.
-    kChildDirectedTreatmentUnspecified = 0,
+    kChildDirectedTreatmentUnspecified = -1,
 
     /// Indicates the publisher specified that the ad request should not receive
     /// treatment for users in the European Economic Area (EEA) under the age of
@@ -185,7 +185,7 @@ struct RequestConfiguration {
     /// Indicates that the publisher has not specified whether the ad request
     /// should receive treatment for users in the European Economic Area (EEA)
     /// under the age of consent.
-    kUnderAgeOfConsentUnspecified = 0,
+    kUnderAgeOfConsentUnspecified = -1,
 
     /// Indicates the publisher specified that the ad request should not receive
     /// treatment for users in the European Economic Area (EEA) under the age of
