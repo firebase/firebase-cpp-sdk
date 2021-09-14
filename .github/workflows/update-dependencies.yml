@@ -94,13 +94,13 @@ jobs:
             if grep -q ^Android: "${UPDATE_LOGFILE}"; then
               echo "### Android" >> "${UPDATE_LOGFILE_PROCESSED}"
               echo "" >> "${UPDATE_LOGFILE_PROCESSED}"
-              sed 's/^Android: /- /' ${UPDATE_LOGFILE} >> ${UPDATE_LOGFILE_PROCESSED}
+              grep ^Android: "${UPDATE_LOGFILE}" | sed 's/^Android: /- /' >> ${UPDATE_LOGFILE_PROCESSED}
               echo "" >> "${UPDATE_LOGFILE_PROCESSED}"
             fi
             if grep -q ^iOS: "${UPDATE_LOGFILE}"; then
               echo "### iOS" >> "${UPDATE_LOGFILE_PROCESSED}"
               echo "" >> "${UPDATE_LOGFILE_PROCESSED}"
-              sed 's/^iOS: /- /' ${UPDATE_LOGFILE} >> ${UPDATE_LOGFILE_PROCESSED}
+              grep ^iOS: "${UPDATE_LOGFILE}" | sed 's/^iOS: /- /' >> ${UPDATE_LOGFILE_PROCESSED}
               echo "" >> "${UPDATE_LOGFILE_PROCESSED}"
             fi
 
