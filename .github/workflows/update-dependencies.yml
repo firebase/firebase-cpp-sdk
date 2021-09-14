@@ -14,6 +14,9 @@ on:
       baseBranch:
         description: 'create the new branch from this base'
         default: 'main'
+      comment:
+        description: 'extra comment for PR'
+        default: ''
 
 env:
   branchPrefix: "workflow/auto-update-deps-"
@@ -109,6 +112,11 @@ jobs:
             commit_body="$(cat ${UPDATE_LOGFILE_PROCESSED})
 
           > Created by [${{github.workflow}} workflow]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
+            if [[ -n '${{ github.event.inputs.comment }}' ]]; then
+              commit_body="${commit_body}
+          > "'${{ github.event.inputs.comment }}'
+              commit_title="${commit_title} "'(${{ github.event.inputs.comment }})'
+            fi
             git config user.email "firebase-workflow-trigger-bot@google.com"
             git config user.name "firebase-workflow-trigger-bot"
             git config core.commentChar "%"  # so we can use # in git commit messages
