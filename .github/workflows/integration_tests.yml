@@ -105,17 +105,17 @@ jobs:
         elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
           echo "::set-output name=github_ref::$GITHUB_SHA"
           echo "::set-output name=pr_number::${{ github.event.pull_request.number }}"
-          if [[ "${{ github.event.action }}" == "labeled" && "${{ github.event.action }}" && "${{ github.event.label.name }}" == "${{ env.triggerLabelPrefix }}"* ]]; then
+          if [[ "${{ github.event.action }}" == "labeled" && "${{ github.event.action }}" && "${{ github.event.label.name }}" == ${{ env.triggerLabelPrefix }}* ]]; then
             echo "::set-output name=trigger::label_trigger"
             if [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelQuick }}" ]]; then
               echo "::set-output name=requested_tests::auto"
             else
               echo "::set-output name=requested_tests::expanded"
             fi
-          elif [[ "${{ github.event.action }}" == "closed" && "${{ github.event.pull_request.merged }}"]]; then
+          elif [[ "${{ github.event.action }}" == "closed" && ${{ github.event.pull_request.merged }}]]; then
             echo "::set-output name=trigger::postsubmit_trigger"
             echo "::set-output name=requested_tests::auto"
-          elif [[ "opened,reopened,synchronize" == *"${{ github.event.action }}"*  ]]; then
+          elif [[ "opened,reopened,synchronize" == *${{ github.event.action }}*  ]]; then
             echo "::set-output name=trigger::presubmit_trigger"
             echo "::set-output name=requested_tests::minimal"
           fi
