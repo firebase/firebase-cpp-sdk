@@ -1082,7 +1082,7 @@ jobs:
             --run_id ${{github.run_id}} \
             --new_token ${{steps.generate-token.outputs.token}}
       - name: Update Daily Report
-        if: ${{ check_and_prepare.outputs.trigger == 'scheduled_trigger'}}
+        if: ${{ needs.check_and_prepare.outputs.trigger == 'scheduled_trigger'}}
         shell: bash
         run: |
           if [[ "${{ github.event.inputs.test_pull_request }}" == "sdk" ]]; then
