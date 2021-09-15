@@ -18,3 +18,4 @@ target 'GetPods' do
   pod 'Firebase/Storage', '8.7.0'
 
 end
+
