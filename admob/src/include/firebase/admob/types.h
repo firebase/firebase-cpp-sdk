@@ -139,7 +139,7 @@ struct BoundingBox {
 /// Set the configuration via @ref SetRequestConfiguration.
 struct RequestConfiguration {
   /// A maximum ad content rating, which may be configured via
-  /// @ref SetMaxAdContentRating
+  /// @ref max_ad_content_rating.
   enum MaxAdContentRating {
     /// No content rating has been specified.
     kMaxAdContentRatingUnspecified = -1,
@@ -159,8 +159,8 @@ struct RequestConfiguration {
 
   /// Specify whether you would like your app to be treated as child-directed
   /// for purposes of the Children’s Online Privacy Protection Act (COPPA).
-  /// Values defined here should be set via
-  /// @ref SetTagForChildDirectedTreatment.
+  /// Values defined here may be configured via
+  /// @ref tag_for_child_directed_treatment.
   enum TagForChildDirectedTreatment {
     /// Indicates that the publisher has not specified whether the ad request
     /// should receive treatment for users in the European Economic Area (EEA)
@@ -180,7 +180,7 @@ struct RequestConfiguration {
 
   /// Configuration values to mark your app to receive treatment for users in
   /// the European Economic Area (EEA) under the age of consent. Values defined
-  /// here should be set via @ref SetTagForUnderAgeOfConsent.
+  /// here should be configured via @ref tag_for_under_age_of_consent.
   enum TagForUnderAgeOfConsent {
     /// Indicates that the publisher has not specified whether the ad request
     /// should receive treatment for users in the European Economic Area (EEA)
@@ -190,7 +190,7 @@ struct RequestConfiguration {
     /// Indicates the publisher specified that the ad request should not receive
     /// treatment for users in the European Economic Area (EEA) under the age of
     /// consent.
-    kUnderAgeOfConsentFalse,
+    kUnderAgeOfConsentUnspecified,
 
     /// Indicates the publisher specified that the ad request should receive
     /// treatment for users in the European Economic Area (EEA) under the age of

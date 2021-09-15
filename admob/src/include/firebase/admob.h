@@ -82,7 +82,7 @@ InitResult Initialize();
 /// Sets the global @ref RequestConfiguration that will be used for
 /// every @ref AdRequest during the app's session.
 ///
-/// @param[in] configuration The request configuration that should be applied
+/// @param[in] request_configuration The request configuration that should be applied
 /// to all ad requests.
 void SetRequestConfiguration(const RequestConfiguration& request_configuration);
 
