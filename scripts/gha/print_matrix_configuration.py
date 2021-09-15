@@ -195,22 +195,17 @@ def get_value(workflow, test_matrix, parm_key, config_parms_only=False):
       (str|list): Matched value for the given key.
   """
   # Search for a given key happens in the following sequential order
-  # Expanded block (if use_expanded) -> Standard block
-  # -> Expanded default block (if_use_expanded) -> Default standard block
+  # Minimal/Expanded block (if test_matrix) -> Standard block
   search_blocks = []
 
   parm_type_key = "config" if config_parms_only else "matrix"
   workflow_block = PARAMETERS.get(workflow)
   if workflow_block:
-    workflow_parm_block = workflow_block.get(parm_type_key)
-    if workflow_parm_block:
-      search_blocks.insert(0, workflow_parm_block)
-      if test_matrix and test_matrix in workflow_parm_block:
-        search_blocks.insert(0, workflow_parm_block[test_matrix])
-
-  for search_block in search_blocks:
-    if parm_key in search_block:
-      return search_block[parm_key]
+    if test_matrix and test_matrix in workflow_block["matrix"]:
+      if parm_key in workflow_block["matrix"][test_matrix]:
+        return workflow_block["matrix"][test_matrix][parm_key]
+    
+    return workflow_block[parm_type_key][parm_key]
 
   else:
     raise KeyError("Parameter key: '{0}' of type '{1}' not found "\
