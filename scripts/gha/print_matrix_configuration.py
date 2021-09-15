@@ -120,7 +120,7 @@ PARAMETERS = {
       MINIMAL_KEY: {
         "os": ["ubuntu-latest"],
         "platform": ["Desktop"],
-        "apis": ["firestore"]
+        "apis": "firestore"
       },
 
       EXPANDED_KEY: {
@@ -196,7 +196,6 @@ def get_value(workflow, test_matrix, parm_key, config_parms_only=False):
   """
   # Search for a given key happens in the following sequential order
   # Minimal/Expanded block (if test_matrix) -> Standard block
-  search_blocks = []
 
   parm_type_key = "config" if config_parms_only else "matrix"
   workflow_block = PARAMETERS.get(workflow)
