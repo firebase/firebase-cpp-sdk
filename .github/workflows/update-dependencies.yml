@@ -14,6 +14,9 @@ on:
       baseBranch:
         description: 'create the new branch from this base'
         default: 'main'
+      comment:
+        description: 'optional comment to add to PR'
+        default: ''
 
 env:
   branchPrefix: "workflow/auto-update-deps-"
@@ -106,7 +109,14 @@ jobs:
 
             date_str=$(date "+%a %b %d %Y")
             commit_title="Update ${CHOSEN_DEPS} dependencies - ${date_str}"
-            commit_body="$(cat ${UPDATE_LOGFILE_PROCESSED})
+            commit_body=
+            if [[ -n '${{ github.event.inputs.comment }}' ]]; then
+              # If a comment was provided, start with that instead of blank.
+              commit_body='${{ github.event.inputs.comment }}
+
+            '
+            fi
+            commit_body="${commit_body}$(cat ${UPDATE_LOGFILE_PROCESSED})
 
           > Created by [${{github.workflow}} workflow]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
             git config user.email "firebase-workflow-trigger-bot@google.com"
