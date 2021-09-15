@@ -570,12 +570,12 @@ code.
 ### 8.5.0
 -   Changes
     -   General: Updating Android and iOS dependencies to the latest.
+    -   General: Fix the generating of proguard file 
+        ([#664](https://github.com/firebase/firebase-cpp-sdk/pull/664)).
 
 ### 8.4.0
 -   Changes
     -   General: Updating Android and iOS dependencies to the latest.
-    -   General: Fix the generating of proguard file 
-        ([#664](https://github.com/firebase/firebase-cpp-sdk/pull/664)).
     -   Firestore: Added `operator==` and `operator!=` for `SnapshotMetadata`,
         `Settings`, `QuerySnapshot`, `DocumentSnapshot`, `SetOptions`, and
         `DocumentChange`.
