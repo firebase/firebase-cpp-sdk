@@ -4,14 +4,14 @@ source 'https://github.com/CocoaPods/Specs.git'
 
 target 'integration_test' do
   platform :ios, '10.0'
-  pod 'Firebase/Firestore', '8.6.0'
-  pod 'Firebase/Auth', '8.6.0'
+  pod 'Firebase/Firestore', '8.7.0'
+  pod 'Firebase/Auth', '8.7.0'
 end
 
 target 'integration_test_tvos' do
   platform :tvos, '10.0'
-  pod 'Firebase/Firestore', '8.6.0'
-  pod 'Firebase/Auth', '8.6.0'
+  pod 'Firebase/Firestore', '8.7.0'
+  pod 'Firebase/Auth', '8.7.0'
 end
 
 post_install do |installer|
