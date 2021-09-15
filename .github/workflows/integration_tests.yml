@@ -50,17 +50,10 @@ env:
 
 jobs:
   check_and_prepare:
-    ### This job runs when the workflow was triggered by 1) PR getting labeled
-    ### 2) PR merged & closed 3) or manumlly triggered with Pull request #.
-    ### If triggered by label, then checks whether the label is a test-request
-    ### trigger (cancelling the workflow if not).
-    ### It sets outputs to control the build_* matrix (full or quick) and to tell
-    ### subsequent steps to update the labels as well.
     runs-on: ubuntu-latest
     outputs:
-      github_ref: ${{ steps.set_outputs.outputs.github_ref }}
       trigger: ${{ steps.set_outputs.outputs.trigger }}
-      requested_tests: ${{ steps.set_outputs.outputs.requested_tests }}
+      github_ref: ${{ steps.set_outputs.outputs.github_ref }}
       pr_number: ${{ steps.set_outputs.outputs.pr_number }}
       matrix_platform: ${{ steps.matrix_config.outputs.matrix_platform }}
       matrix_os: ${{ steps.matrix_config.outputs.matrix_os }}
@@ -78,45 +71,51 @@ jobs:
         permission: "admin"
       env:
         GITHUB_TOKEN: ${{ github.token }}
+    ### It sets "github_ref,trigger,pr_number,requested_tests" outputs to control the following jobs and steps
     - id: set_outputs
       run: |
         if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then 
           if [[ "${{ github.event.inputs.test_pull_request }}" != "sdk" ]]; then
+            # Triggered manually
+            echo "::set-output name=trigger::manual_trigger"
+            if [[ "${{ github.event.inputs.use_expanded_matrix }}" == "1" ]]; then
+              echo "::set-output name=requested_tests::expanded"
+            fi
             if [[ -z "${{github.event.inputs.test_pull_request}}" ]]; then
+              # test_pull_request not specified
               echo "::set-output name=github_ref::$GITHUB_SHA"
             elif [[ "${{github.event.inputs.test_pull_request}}" == *:* ]]; then
               # If specified as pr:commit_hash, split them.
-              echo "::set-output name=pr_number::$(echo ${{ github.event.inputs.test_pull_request }} | cut -d: -f1)"
               echo "::set-output name=github_ref::$(echo ${{ github.event.inputs.test_pull_request }} | cut -d: -f2)"
+              echo "::set-output name=pr_number::$(echo ${{ github.event.inputs.test_pull_request }} | cut -d: -f1)"
             else
               # Just the PR specified, use refs/pull/<number>/merge as the ref.
-              echo "::set-output name=pr_number::${{ github.event.inputs.test_pull_request }}"
               echo "::set-output name=github_ref::refs/pull/${{github.event.inputs.test_pull_request}}/merge"
+              echo "::set-output name=pr_number::${{ github.event.inputs.test_pull_request }}"
             fi
-            echo "::set-output name=trigger::manual_trigger"
           elif [[ "${{ github.event.inputs.test_pull_request }}" == "sdk" ]]; then
             # Triggered by scheduled packaging SDK workflow.
-            echo "::set-output name=github_ref::$GITHUB_SHA"
             echo "::set-output name=trigger::scheduled_trigger"
+            echo "::set-output name=github_ref::$GITHUB_SHA"
             echo "::set-output name=requested_tests::expanded"
           fi
         elif [[ "${{ github.event_name }}" == "schedule" ]]; then
-          echo "::set-output name=github_ref::$GITHUB_SHA"
           echo "::set-output name=trigger::scheduled_trigger"
+          echo "::set-output name=github_ref::$GITHUB_SHA"
           echo "::set-output name=requested_tests::expanded"
         elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
           echo "::set-output name=github_ref::$GITHUB_SHA"
-          if [[ "${{ github.event.action }}" == "labeled" && "${{ github.event.action }}" && "${{ github.event.label.name }}" == "${{ env.triggerLabelPrefix }}"* ]]; then
-            echo "::set-output name=pr_number::${{ github.event.pull_request.number }}"
+          if [[ "${{ github.event.action }}" == "labeled" && "${{ github.event.label.name }}" == "${{ env.triggerLabelPrefix }}"* ]]; then
             echo "::set-output name=trigger::label_trigger"
+            echo "::set-output name=pr_number::${{ github.event.pull_request.number }}"
             if [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelQuick }}" ]]; then
               echo "::set-output name=requested_tests::auto"
             else
               echo "::set-output name=requested_tests::expanded"
             fi
           elif [[ "${{ github.event.action }}" == "closed" && "${{ github.event.pull_request.merged }}" == "true" ]]; then
-            echo "::set-output name=pr_number::${{ github.event.pull_request.number }}"
             echo "::set-output name=trigger::postsubmit_trigger"
+            echo "::set-output name=pr_number::${{ github.event.pull_request.number }}"
             echo "::set-output name=requested_tests::auto"
           elif [[ "opened,reopened,synchronize" == *"${{ github.event.action }}"*  ]]; then
             echo "::set-output name=trigger::presubmit_trigger"
