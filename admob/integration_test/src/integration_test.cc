@@ -201,7 +201,9 @@ class TestBannerViewListener : public firebase::admob::BannerView::Listener {
   std::vector<firebase::admob::BoundingBox> bounding_box_changes_;
 };
 
-TEST_F(FirebaseAdMobTest, TestQueryOfUnsetRequestConfiguration) {
+TEST_F(FirebaseAdMobTest, TestRequestConfigurationSetGetEmptyConfig) {
+  SKIP_TEST_ON_DESKTOP;
+
   firebase::admob::RequestConfiguration set_configuration;
   firebase::admob::SetRequestConfiguration(set_configuration);
   firebase::admob::RequestConfiguration retrieved_configuration =
@@ -267,6 +269,7 @@ TEST_F(FirebaseAdMobTest, TestRequestConfigurationSetGet) {
 TEST_F(FirebaseAdMobTest, TestBannerView) {
   // AdMob cannot be tested on Firebase Test Lab, so disable tests on FTL.
   TEST_REQUIRES_USER_INTERACTION;
+  SKIP_TEST_ON_DESKTOP;
 
   static const int kBannerWidth = 320;
   static const int kBannerHeight = 50;
@@ -436,6 +439,7 @@ class TestInterstitialAdListener
 
 TEST_F(FirebaseAdMobTest, TestInterstitialAd) {
   TEST_REQUIRES_USER_INTERACTION;
+  SKIP_TEST_ON_DESKTOP;
 
   firebase::admob::InterstitialAd* interstitial =
       new firebase::admob::InterstitialAd();
