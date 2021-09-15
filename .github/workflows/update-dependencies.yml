@@ -112,13 +112,16 @@ jobs:
 
             date_str=$(date "+%a %b %d %Y")
             commit_title="Update ${CHOSEN_DEPS} dependencies - ${date_str}"
-            commit_body="$(cat ${UPDATE_LOGFILE_PROCESSED})
+            commit_body=
+            if [[ -n '${{ github.event.inputs.comment }}' ]]; then
+              # If a comment was provided, start with that instead of blank.
+              commit_body='${{ github.event.inputs.comment }}
+
+            '
+            fi
+            commit_body="${commit_body}$(cat ${UPDATE_LOGFILE_PROCESSED})
 
           > Created by [${{github.workflow}} workflow]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
-            if [[ -n '${{ github.event.inputs.comment }}' ]]; then
-              commit_body="${commit_body}
-          > "'${{ github.event.inputs.comment }}'
-            fi
             git config user.email "firebase-workflow-trigger-bot@google.com"
             git config user.name "firebase-workflow-trigger-bot"
             git config core.commentChar "%"  # so we can use # in git commit messages
