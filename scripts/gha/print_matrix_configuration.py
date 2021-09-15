@@ -200,20 +200,13 @@ def get_value(workflow, test_matrix, parm_key, config_parms_only=False):
   search_blocks = []
 
   parm_type_key = "config" if config_parms_only else "matrix"
-  default_workflow_block = PARAMETERS.get(DEFAULT_WORKFLOW)
-  default_workflow_parm_block = default_workflow_block.get(parm_type_key)
-  search_blocks.insert(0, default_workflow_parm_block)
-  if test_matrix and test_matrix in default_workflow_parm_block:
-    search_blocks.insert(0, default_workflow_parm_block[test_matrix])
-
-  if workflow != DEFAULT_WORKFLOW:
-    workflow_block = PARAMETERS.get(workflow)
-    if workflow_block:
-      workflow_parm_block = workflow_block.get(parm_type_key)
-      if workflow_parm_block:
-        search_blocks.insert(0, workflow_parm_block)
-        if test_matrix and test_matrix in workflow_parm_block:
-          search_blocks.insert(0, workflow_parm_block[test_matrix])
+  workflow_block = PARAMETERS.get(workflow)
+  if workflow_block:
+    workflow_parm_block = workflow_block.get(parm_type_key)
+    if workflow_parm_block:
+      search_blocks.insert(0, workflow_parm_block)
+      if test_matrix and test_matrix in workflow_parm_block:
+        search_blocks.insert(0, workflow_parm_block[test_matrix])
 
   for search_block in search_blocks:
     if parm_key in search_block:
