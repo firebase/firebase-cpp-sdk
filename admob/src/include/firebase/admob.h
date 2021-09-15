@@ -23,6 +23,8 @@
 #include <jni.h>
 #endif  // FIREBASE_PLATFORM_ANDROID
 
+#include <vector>
+
 #include "firebase/admob/banner_view.h"
 #include "firebase/admob/interstitial_ad.h"
 #include "firebase/admob/types.h"
@@ -82,19 +84,19 @@ InitResult Initialize();
 /// Sets the global @ref RequestConfiguration that will be used for
 /// every @ref AdRequest during the app's session.
 ///
-/// @param[in] request_configuration The request configuration that should be applied
-/// to all ad requests.
+/// @param[in] request_configuration The request configuration that should be
+/// applied to all ad requests.
 void SetRequestConfiguration(const RequestConfiguration& request_configuration);
 
 /// Gets the global RequestConfiguration.
 ///
 /// @return the currently active @ref RequestConfiguration that's being
-/// used for every ad request.  
-/// @note: on iOS, the 
+/// used for every ad request.
+/// @note: on iOS, the
 /// @ref RequestConfiguration::tag_for_child_directed_treatment and 
 /// @ref RequestConfiguration::tag_for_under_age_of_consent fields will be set
-/// set to kChildDirectedTreatmentUnspecified, and kUnderAgeOfConsentUnspecified,
-/// respectfully.
+/// set to kChildDirectedTreatmentUnspecified, and
+/// kUnderAgeOfConsentUnspecified, respectfully.
 RequestConfiguration GetRequestConfiguration();
 
 /// @brief Terminate AdMob.
