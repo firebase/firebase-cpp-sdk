@@ -375,6 +375,8 @@ def main():
     test_matrix = EXPANDED_KEY
   elif args.minimal:
     test_matrix = MINIMAL_KEY
+  else:
+    test_matrix = ""
   value = get_value(args.workflow, test_matrix, args.parm_key, args.config)
   if args.workflow == "integration_tests" and (args.parm_key == "android_device" or args.parm_key == "ios_device"):
     value = filter_devices(value, args.device_type)
