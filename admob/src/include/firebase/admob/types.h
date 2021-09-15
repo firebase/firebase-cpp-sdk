@@ -190,7 +190,7 @@ struct RequestConfiguration {
     /// Indicates the publisher specified that the ad request should not receive
     /// treatment for users in the European Economic Area (EEA) under the age of
     /// consent.
-    kUnderAgeOfConsentUnspecified,
+    kUnderAgeOfConsentFalse,
 
     /// Indicates the publisher specified that the ad request should receive
     /// treatment for users in the European Economic Area (EEA) under the age of
