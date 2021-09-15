@@ -93,7 +93,7 @@ void SetRequestConfiguration(const RequestConfiguration& request_configuration);
 /// @return the currently active @ref RequestConfiguration that's being
 /// used for every ad request.
 /// @note: on iOS, the
-/// @ref RequestConfiguration::tag_for_child_directed_treatment and 
+/// @ref RequestConfiguration::tag_for_child_directed_treatment and
 /// @ref RequestConfiguration::tag_for_under_age_of_consent fields will be set
 /// set to kChildDirectedTreatmentUnspecified, and
 /// kUnderAgeOfConsentUnspecified, respectfully.

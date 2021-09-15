@@ -164,13 +164,13 @@ NSMutableArray *StringVectorToNSMutableArray(const std::vector<std::string> &vec
   return array;
 }
 
-void NSArrayToStdStringVector(NSArray* array, std::vector<std::string>* vector) {
-  vector->reserve(array.count);
+void NSArrayToStdStringVector(NSArray* array, std::vector<std::string>* string_vector) {
+  string_vector->reserve(array.count);
   for (id object in array) {
     if(![object isKindOfClass:[NSString class]]) {
       FIREBASE_ASSERT_MESSAGE(false, "Object in Array is not of type NSString");
     } else {
-      vector->push_back(NSStringToString((NSString*)object));
+      string_vector->push_back(NSStringToString((NSString*)object));
     }
   }
 }
