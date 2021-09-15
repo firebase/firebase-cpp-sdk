@@ -608,7 +608,7 @@ jobs:
     name: build-tvos-macos-latest
     needs: [check_and_prepare]
     runs-on: macos-latest
-    if: contains(needs.check_and_prepare.outputs.matrix_platform, 'tvOS') && contains(needs.check_and_prepare.outputs.matrix_os, 'macos-latest') && needs.prepare_matrix.outputs.apis != '' && !cancelled() && !failure()
+    if: contains(needs.check_and_prepare.outputs.matrix_platform, 'tvOS') && needs.prepare_matrix.outputs.apis != '' && !cancelled() && !failure()
     strategy:
       fail-fast: false
     steps:
