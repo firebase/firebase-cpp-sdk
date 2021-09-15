@@ -93,6 +93,7 @@ jobs:
         run: |
           touch update_log.txt
           touch update_log_processed.txt
+          echo >> ios_pod/Podfile
           if true; then #! git update-index --refresh; then
             # Do a bit of post-processing on the update log to split it by platform.
             UPDATE_LOGFILE_PROCESSED=update_log_processed.txt
