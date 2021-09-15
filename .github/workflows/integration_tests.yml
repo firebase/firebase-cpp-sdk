@@ -82,7 +82,9 @@ jobs:
       run: |
         if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then 
           if [[ "${{ github.event.inputs.test_pull_request }}" != "sdk" ]]; then
-            if [[ "${{github.event.inputs.test_pull_request}}" == *:* ]]; then
+            if [[ -z "${{github.event.inputs.test_pull_request}}" ]]; then
+              echo "::set-output name=github_ref::$GITHUB_SHA"
+            elif [[ "${{github.event.inputs.test_pull_request}}" == *:* ]]; then
               # If specified as pr:commit_hash, split them.
               echo "::set-output name=pr_number::$(echo ${{ github.event.inputs.test_pull_request }} | cut -d: -f1)"
               echo "::set-output name=github_ref::$(echo ${{ github.event.inputs.test_pull_request }} | cut -d: -f2)"
@@ -112,7 +114,7 @@ jobs:
             else
               echo "::set-output name=requested_tests::expanded"
             fi
-          elif [[ "${{ github.event.action }}" == "closed" && -n "${{ github.event.pull_request.merged }}" ]]; then
+          elif [[ "${{ github.event.action }}" == "closed" && "${{ github.event.pull_request.merged }}" == "true" ]]; then
             echo "::set-output name=pr_number::${{ github.event.pull_request.number }}"
             echo "::set-output name=trigger::postsubmit_trigger"
             echo "::set-output name=requested_tests::auto"
