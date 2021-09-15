@@ -112,7 +112,7 @@ jobs:
             else
               echo "::set-output name=requested_tests::expanded"
             fi
-          elif [[ "${{ github.event.action }}" == "closed" && ${{ github.event.pull_request.merged }}]]; then
+          elif [[ "${{ github.event.action }}" == "closed" && ${{ github.event.pull_request.merged }} ]]; then
             echo "::set-output name=trigger::postsubmit_trigger"
             echo "::set-output name=requested_tests::auto"
           elif [[ "opened,reopened,synchronize" == *"${{ github.event.action }}"*  ]]; then
