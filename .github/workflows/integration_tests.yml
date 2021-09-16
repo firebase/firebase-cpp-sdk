@@ -72,6 +72,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ github.token }}
     ### It sets "github_ref,trigger,pr_number,requested_tests" outputs to control the following jobs and steps
+    ### trigger value: manual_trigger, scheduled_trigger, label_trigger, postsubmit_trigger, presubmit_trigger
     - id: set_outputs
       run: |
         if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then 
@@ -113,7 +114,7 @@ jobs:
             else
               echo "::set-output name=requested_tests::expanded"
             fi
-          elif [[ "${{ github.event.action }}" == "closed" && "${{ github.event.pull_request.merged }}" == "true" ]]; then
+          elif [[ "${{ github.event.action }}" == "closed" && ${{ github.event.pull_request.merged }} ]]; then
             echo "::set-output name=trigger::postsubmit_trigger"
             echo "::set-output name=pr_number::${{ github.event.pull_request.number }}"
             echo "::set-output name=requested_tests::auto"
