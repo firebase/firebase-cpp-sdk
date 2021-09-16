@@ -549,8 +549,8 @@ def _create_and_boot_emulator(sdk_id):
   logging.info("Wait for emulator to boot: %s", " ".join(args))
   subprocess.run(args=args, check=True)
   if FLAGS.ci: 
-    # wait extra 90 seconds to ensure emulator booted.
-    time.sleep(90)
+    # wait extra 90 seconds to ensure emulator fully booted.
+    time.sleep(180)
   else:
     time.sleep(45)
 
