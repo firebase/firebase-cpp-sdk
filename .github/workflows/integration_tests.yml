@@ -94,7 +94,7 @@ jobs:
               echo "::set-output name=github_ref::refs/pull/${{github.event.inputs.test_pull_request}}/merge"
               echo "::set-output name=pr_number::${{ github.event.inputs.test_pull_request }}"
             fi
-          elif [[ "${{ github.event.inputs.test_pull_request }}" == "sdk" ]]; then
+          elif [[ "${{ github.event.inputs.test_pull_request }}" == "nightly-packaging" ]]; then
             # Triggered by scheduled packaging SDK workflow.
             echo "::set-output name=trigger::scheduled_trigger"
             echo "::set-output name=github_ref::$GITHUB_SHA"
