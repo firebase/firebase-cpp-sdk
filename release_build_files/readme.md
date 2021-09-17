@@ -567,10 +567,16 @@ code.
 
 ## Release Notes
 
+### Future Release
+-   Changes
+    -   Messaging (Android): Fixes an issue to receive token when
+        initialize the app. 
+        ([#667](https://github.com/firebase/firebase-cpp-sdk/pull/667)).
+        
 ### 8.5.0
 -   Changes
     -   General: Updating Android and iOS dependencies to the latest.
-    -   General: Fix the generating of proguard file 
+    -   General: Fixes an issue with generating Proguard files. 
         ([#664](https://github.com/firebase/firebase-cpp-sdk/pull/664)).
 
 ### 8.4.0

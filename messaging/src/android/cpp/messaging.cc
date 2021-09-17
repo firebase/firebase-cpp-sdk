@@ -713,21 +713,13 @@ void Terminate() {
 static void InstallationsGetToken() {
   FIREBASE_ASSERT_MESSAGE_RETURN_VOID(internal::IsInitialized(),
                                       kMessagingNotInitializedError);
-  JNIEnv* env = g_app->GetJNIEnv();
+  Future<std::string> result = GetToken();
 
-  // Intent intent = new Intent(this, RegistrationIntentService.class);
-  jobject new_intent = env->NewObject(
-      util::intent::GetClass(),
-      util::intent::GetMethodId(util::intent::kConstructor), g_app->activity(),
-      registration_intent_service::GetClass());
-
-  // startService(intent);
-  jobject component_name = env->CallObjectMethod(
-      g_app->activity(),
-      util::context::GetMethodId(util::context::kStartService), new_intent);
-  assert(env->ExceptionCheck() == false);
-  env->DeleteLocalRef(component_name);
-  env->DeleteLocalRef(new_intent);
+  result.OnCompletion(
+      [](const Future<std::string>& result, void* voidptr) {
+        NotifyListenerOnTokenReceived(result.result()->c_str());
+      },
+      nullptr);
 }
 
 static void SubscriptionUpdateComplete(JNIEnv* env, jobject result,
