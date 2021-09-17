@@ -67,7 +67,9 @@ AdSize AdSize::GetAnchoredAdaptiveBannerAdSize(uint32_t width,
   AdSize ad_size(width, 0);
   ad_size.type_ = AdSize::kTypeAnchoredAdaptive;
   ad_size.orientation_ = orientation;
+  return ad_size;
 }
+
 AdSize AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(uint32_t width) {
   return GetAnchoredAdaptiveBannerAdSize(width, AdSize::kOrientationLandscape);
 }

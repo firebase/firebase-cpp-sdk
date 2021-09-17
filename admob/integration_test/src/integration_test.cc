@@ -22,6 +22,7 @@
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/admob.h"
+#include "firebase/admob/types.h"
 #include "firebase/app.h"
 #include "firebase/util.h"
 #include "firebase_test_framework.h"  // NOLINT
@@ -195,6 +196,71 @@ class TestBannerViewListener : public firebase::admob::BannerView::Listener {
       presentation_states_;
   std::vector<firebase::admob::BoundingBox> bounding_box_changes_;
 };
+
+TEST_F(FirebaseAdMobTest, TestAdSize) {
+  uint32_t kWidth = 50;
+  uint32_t kHeight = 10;
+
+  using firebase::admob::AdSize;
+
+  const AdSize adaptive_landscape =
+      AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(kWidth);
+  EXPECT_EQ(adaptive_landscape.width(), kWidth);
+  EXPECT_EQ(adaptive_landscape.height(), 0);
+  EXPECT_EQ(adaptive_landscape.type(), AdSize::kTypeAnchoredAdaptive);
+  EXPECT_EQ(adaptive_landscape.orientation(), AdSize::kOrientationLandscape);
+
+  const AdSize adaptive_portrait =
+      AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(kWidth);
+  EXPECT_EQ(adaptive_portrait.width(), kWidth);
+  EXPECT_EQ(adaptive_portrait.height(), 0);
+  EXPECT_EQ(adaptive_portrait.type(), AdSize::kTypeAnchoredAdaptive);
+  EXPECT_EQ(adaptive_portrait.orientation(), AdSize::kOrientationPortrait);
+
+  EXPECT_FALSE(adaptive_portrait == adaptive_landscape);
+  EXPECT_TRUE(adaptive_portrait != adaptive_landscape);
+
+  const firebase::admob::AdSize adaptive_current =
+      AdSize::GetCurrentOrientationAnchoredAdaptiveBannerAdSize(kWidth);
+  EXPECT_EQ(adaptive_current.width(), kWidth);
+  EXPECT_EQ(adaptive_current.height(), 0);
+  EXPECT_EQ(adaptive_current.type(), AdSize::kTypeAnchoredAdaptive);
+  EXPECT_EQ(adaptive_current.orientation(), AdSize::kOrientationCurrent);
+
+  const firebase::admob::AdSize custom_ad_size(kWidth, kHeight);
+  EXPECT_EQ(custom_ad_size.width(), kWidth);
+  EXPECT_EQ(custom_ad_size.height(), kHeight);
+  EXPECT_EQ(custom_ad_size.type(), AdSize::kTypeStandard);
+  EXPECT_EQ(custom_ad_size.orientation(), AdSize::kOrientationCurrent);
+
+  const AdSize custom_ad_size_2(kWidth, kHeight);
+  EXPECT_TRUE(custom_ad_size == custom_ad_size_2);
+  EXPECT_FALSE(custom_ad_size != custom_ad_size_2);
+
+  const AdSize banner = AdSize::kBanner;
+  EXPECT_EQ(banner.width(), 320);
+  EXPECT_EQ(banner.height(), 50);
+  EXPECT_EQ(banner.type(), AdSize::kTypeStandard);
+  EXPECT_EQ(banner.orientation(), AdSize::kOrientationCurrent);
+
+  const AdSize fullbanner = AdSize::kFullBanner;
+  EXPECT_EQ(fullbanner.width(), 468);
+  EXPECT_EQ(fullbanner.height(), 60);
+  EXPECT_EQ(fullbanner.type(), AdSize::kTypeStandard);
+  EXPECT_EQ(fullbanner.orientation(), AdSize::kOrientationCurrent);
+
+  const AdSize leaderboard = AdSize::kLeaderBoard;
+  EXPECT_EQ(leaderboard.width(), 728);
+  EXPECT_EQ(leaderboard.height(), 90);
+  EXPECT_EQ(leaderboard.type(), AdSize::kTypeStandard);
+  EXPECT_EQ(leaderboard.orientation(), AdSize::kOrientationCurrent);
+
+  const AdSize medium_rectangle = AdSize::kMediumRectangle;
+  EXPECT_EQ(medium_rectangle.width(), 300);
+  EXPECT_EQ(medium_rectangle.height(), 250);
+  EXPECT_EQ(medium_rectangle.type(), AdSize::kTypeStandard);
+  EXPECT_EQ(medium_rectangle.orientation(), AdSize::kOrientationCurrent);
+}
 
 TEST_F(FirebaseAdMobTest, TestBannerView) {
   // AdMob cannot be tested on Firebase Test Lab, so disable tests on FTL.

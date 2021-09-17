@@ -339,10 +339,12 @@ jobject CreateJavaAdSize(JNIEnv* env, jobject j_activity,
                                  ad_size::GetMethodId(ad_size::kConstructor),
                                  adsize.width(), adsize.height());
       break;
+    default:
+      FIREBASE_ASSERT_MESSAGE(true, "Uknown AdSize Type");
   }
   bool jni_exception = util::CheckAndClearJniExceptions(env);
   FIREBASE_ASSERT(!jni_exception);
-  FIREBASE_ASSERT(j_ad_size == nullptr);
+  FIREBASE_ASSERT(j_ad_size);
   return j_ad_size;
 }
 

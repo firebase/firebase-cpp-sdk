@@ -162,7 +162,7 @@ void InitializeBannerViewOnMainThread(void* data) {
 
   jobject ad_size =
       CreateJavaAdSize(env, call_data->activity_global, call_data->ad_size);
-  FIREBASE_ASSERT(!ad_size);
+  FIREBASE_ASSERT(ad_size);
   env->CallVoidMethod(call_data->ad_view,
                       ad_view::GetMethodId(ad_view::kSetAdSize), ad_size);
   jni_exception = util::CheckAndClearJniExceptions(env);
