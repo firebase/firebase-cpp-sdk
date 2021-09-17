@@ -203,11 +203,7 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
   static const int kBannerWidth = 320;
   static const int kBannerHeight = 50;
 
-  firebase::admob::AdSize banner_ad_size;
-  banner_ad_size.ad_size_type = firebase::admob::kAdSizeStandard;
-  banner_ad_size.width = kBannerWidth;
-  banner_ad_size.height = kBannerHeight;
-
+  firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::admob::BannerView* banner = new firebase::admob::BannerView();
   WaitForCompletion(banner->Initialize(app_framework::GetWindowContext(),
                                        kBannerAdUnit, banner_ad_size),
@@ -357,11 +353,7 @@ TEST_F(FirebaseAdMobTest, TestBannerViewAlreadyInitialized) {
   static const int kBannerWidth = 320;
   static const int kBannerHeight = 50;
 
-  firebase::admob::AdSize banner_ad_size;
-  banner_ad_size.ad_size_type = firebase::admob::kAdSizeStandard;
-  banner_ad_size.width = kBannerWidth;
-  banner_ad_size.height = kBannerHeight;
-
+  firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::admob::BannerView* banner = new firebase::admob::BannerView();
 
   firebase::Future<void> first_initialize = banner->Initialize(
@@ -454,10 +446,7 @@ TEST_F(FirebaseAdMobTest, TestBannerViewMultithreadDeletion) {
   static const int kBannerWidth = 320;
   static const int kBannerHeight = 50;
 
-  firebase::admob::AdSize banner_ad_size;
-  banner_ad_size.ad_size_type = firebase::admob::kAdSizeStandard;
-  banner_ad_size.width = kBannerWidth;
-  banner_ad_size.height = kBannerHeight;
+  firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
 
   for (int i = 0; i < 5; ++i) {
     firebase::admob::BannerView* banner = new firebase::admob::BannerView();

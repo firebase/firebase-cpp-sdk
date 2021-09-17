@@ -44,6 +44,11 @@ METHOD_LOOKUP_DEFINITION(mobile_ads,
                          "com/google/android/gms/ads/MobileAds",
                          MOBILEADS_METHODS);
 
+METHOD_LOOKUP_DEFINITION(ad_size,
+                         PROGUARD_KEEP_CLASS
+                         "com/google/android/gms/ads/AdSize",
+                         ADSIZE_METHODS);
+
 static JavaVM* g_java_vm = nullptr;
 static const ::firebase::App* g_app = nullptr;
 static jobject g_activity;
@@ -294,6 +299,51 @@ bool RegisterNatives() {
          interstitial_ad_helper::RegisterNatives(
              env, kInterstitialMethods,
              FIREBASE_ARRAYSIZE(kInterstitialMethods));
+}
+
+jobject CreateJavaAdSize(JNIEnv* env, jobject j_activity,
+                         const AdSize& adsize) {
+  FIREBASE_ASSERT(env);
+  FIREBASE_ASSERT(j_activity);
+
+  jobject j_ad_size = nullptr;
+  switch (adsize.type()) {
+    case AdSize::kTypeAnchoredAdaptive:
+      switch (adsize.orientation()) {
+        case AdSize::kOrientationLandscape:
+          j_ad_size = env->CallStaticObjectMethod(
+              ad_size::GetClass(),
+              ad_size::GetMethodId(
+                  ad_size::kGetCurrentOrientationAnchoredAdaptiveBannerAdSize),
+              j_activity, adsize.width());
+          break;
+        case AdSize::kOrientationPortrait:
+          j_ad_size = env->CallStaticObjectMethod(
+              ad_size::GetClass(),
+              ad_size::GetMethodId(
+                  ad_size::kGetLandscapeAnchoredAdaptiveBannerAdSize),
+              j_activity, adsize.width());
+          break;
+        case AdSize::kOrientationCurrent:
+          j_ad_size = env->CallStaticObjectMethod(
+              ad_size::GetClass(),
+              ad_size::GetMethodId(
+                  ad_size::kGetCurrentOrientationAnchoredAdaptiveBannerAdSize),
+              j_activity, adsize.width());
+
+        default:
+          FIREBASE_ASSERT_MESSAGE(true, "Uknown AdSize Orientation");
+      }
+    case AdSize::kTypeStandard:
+      j_ad_size = env->NewObject(ad_size::GetClass(),
+                                 ad_size::GetMethodId(ad_size::kConstructor),
+                                 adsize.width(), adsize.height());
+      break;
+  }
+  bool jni_exception = util::CheckAndClearJniExceptions(env);
+  FIREBASE_ASSERT(!jni_exception);
+  FIREBASE_ASSERT(j_ad_size == nullptr);
+  return j_ad_size;
 }
 
 }  // namespace admob

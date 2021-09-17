@@ -23,6 +23,7 @@
 #include "admob/src/include/firebase/admob.h"
 #include "admob/src/include/firebase/admob/banner_view.h"
 #include "admob/src/include/firebase/admob/interstitial_ad.h"
+#include "admob/src/include/firebase/admob/types.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/util.h"
@@ -48,6 +49,46 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseAdMob);
 
 static CleanupNotifier* g_cleanup_notifier = nullptr;
 const char kAdMobModuleName[] = "admob";
+
+const AdSize AdSize::kBanner(/*width=*/320, /*height=*/50);
+const AdSize AdSize::kFullBanner(468, 60);
+const AdSize AdSize::kLargeBanner(320, 100);
+const AdSize AdSize::kLeaderBoard(728, 90);
+const AdSize AdSize::kMediumRectangle(300, 250);
+
+AdSize::AdSize(uint32_t width, uint32_t height)
+    : width_(width),
+      height_(height),
+      type_(AdSize::kTypeStandard),
+      orientation_(AdSize::kOrientationCurrent) {}
+
+AdSize AdSize::GetAnchoredAdaptiveBannerAdSize(uint32_t width,
+                                               Orientation orientation) {
+  AdSize ad_size(width, 0);
+  ad_size.type_ = AdSize::kTypeAnchoredAdaptive;
+  ad_size.orientation_ = orientation;
+}
+AdSize AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(uint32_t width) {
+  return GetAnchoredAdaptiveBannerAdSize(width, AdSize::kOrientationLandscape);
+}
+
+AdSize AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(uint32_t width) {
+  return GetAnchoredAdaptiveBannerAdSize(width, AdSize::kOrientationPortrait);
+}
+
+AdSize AdSize::GetCurrentOrientationAnchoredAdaptiveBannerAdSize(
+    uint32_t width) {
+  return GetAnchoredAdaptiveBannerAdSize(width, AdSize::kOrientationCurrent);
+}
+
+bool AdSize::is_equal(const AdSize& ad_size) const {
+  return (type_ == ad_size.type_) && (width_ == ad_size.width_) &&
+         (height_ == ad_size.height_) && (orientation_ == ad_size.orientation_);
+}
+
+bool AdSize::operator==(const AdSize& rhs) const { return is_equal(rhs); }
+
+bool AdSize::operator!=(const AdSize& rhs) const { return !is_equal(rhs); }
 
 void RegisterTerminateOnDefaultAppDestroy() {
   if (!AppCallback::GetEnabledByName(kAdMobModuleName)) {
