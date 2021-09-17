@@ -161,7 +161,7 @@ BUILD_CONFIGS = {
 
 TEST_DEVICES = {
   "android_min": {"type": "real", "model":"Nexus10", "version":"19"},
-  "android_target": {"type": "real", "model":"Pixel2", "version":"28"},
+  "android_target": {"type": "real", "model":"blueline", "version":"28"},
   "android_latest": {"type": "real", "model":"flame", "version":"29"},
   "emulator_min": {"type": "virtual", "image":"system-images;android-18;google_apis;x86"},
   "emulator_target": {"type": "virtual", "image":"system-images;android-28;google_apis;x86_64"},
