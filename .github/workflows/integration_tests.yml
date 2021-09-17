@@ -76,7 +76,7 @@ jobs:
     - id: set_outputs
       run: |
         if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then 
-          if [[ "${{ github.event.inputs.test_pull_request }}" != "sdk" ]]; then
+          if [[ "${{ github.event.inputs.test_pull_request }}" != "nightly-packaging" ]]; then
             # Triggered manually
             echo "::set-output name=trigger::manual_trigger"
             if [[ "${{ github.event.inputs.use_expanded_matrix }}" == "1" ]]; then
@@ -1087,7 +1087,7 @@ jobs:
         if: needs.check_and_prepare.outputs.trigger == 'scheduled_trigger'
         shell: bash
         run: |
-          if [[ "${{ github.event.inputs.test_pull_request }}" == "sdk" ]]; then
+          if [[ "${{ github.event.inputs.test_pull_request }}" == "nightly-packaging" ]]; then
             additional_flags=(--build_against sdk)
           else
             additional_flags=(--build_against repo)
