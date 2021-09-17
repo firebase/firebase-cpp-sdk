@@ -76,7 +76,7 @@ jobs:
     - id: set_outputs
       run: |
         if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then 
-          if [[ "${{ github.event.inputs.test_pull_request }}" != "sdk" ]]; then
+          if [[ "${{ github.event.inputs.test_pull_request }}" != "nightly-packaging" ]]; then
             # Triggered manually
             echo "::set-output name=trigger::manual_trigger"
             if [[ "${{ github.event.inputs.use_expanded_matrix }}" == "1" ]]; then
@@ -94,7 +94,7 @@ jobs:
               echo "::set-output name=github_ref::refs/pull/${{github.event.inputs.test_pull_request}}/merge"
               echo "::set-output name=pr_number::${{ github.event.inputs.test_pull_request }}"
             fi
-          elif [[ "${{ github.event.inputs.test_pull_request }}" == "sdk" ]]; then
+          elif [[ "${{ github.event.inputs.test_pull_request }}" == "nightly-packaging" ]]; then
             # Triggered by scheduled packaging SDK workflow.
             echo "::set-output name=trigger::scheduled_trigger"
             echo "::set-output name=github_ref::$GITHUB_SHA"
@@ -114,7 +114,7 @@ jobs:
             else
               echo "::set-output name=requested_tests::expanded"
             fi
-          elif [[ "${{ github.event.action }}" == "closed" && ${{ github.event.pull_request.merged }} ]]; then
+          elif [[ "${{ github.event.action }}" == "closed" && ${{ github.event.pull_request.merged == true }} ]]; then
             echo "::set-output name=trigger::postsubmit_trigger"
             echo "::set-output name=pr_number::${{ github.event.pull_request.number }}"
             echo "::set-output name=requested_tests::auto"
@@ -1087,7 +1087,7 @@ jobs:
         if: needs.check_and_prepare.outputs.trigger == 'scheduled_trigger'
         shell: bash
         run: |
-          if [[ "${{ github.event.inputs.test_pull_request }}" == "sdk" ]]; then
+          if [[ "${{ github.event.inputs.test_pull_request }}" == "nightly-packaging" ]]; then
             additional_flags=(--build_against sdk)
           else
             additional_flags=(--build_against repo)
