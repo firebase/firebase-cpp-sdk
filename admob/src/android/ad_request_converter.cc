@@ -138,12 +138,12 @@ AdRequestConverter::~AdRequestConverter() {
 jobject AdRequestConverter::GetJavaRequestObject() { return java_request_; }
 
 void AdRequestConverter::ConvertRequestConfiguration(AdRequest request) const {
-  JNIEnv* env = ::firebase::admob::GetJNI();
-  jobject builder = env->NewObject(request_config_builder::GetClass(),
-                                   request_config_builder::GetMethodId(
-                                       request_config_builder::kConstructor));
-  // Test DeviceIds
   if (request.test_device_id_count > 0) {
+    JNIEnv* env = ::firebase::admob::GetJNI();
+    jobject builder = env->NewObject(request_config_builder::GetClass(),
+                                     request_config_builder::GetMethodId(
+                                         request_config_builder::kConstructor));
+
     std::vector<std::string> test_devices_vector;
     for (int i = 0; i < request.test_device_id_count; i++) {
       test_devices_vector.push_back(request.test_device_ids[i]);
@@ -167,6 +167,7 @@ void AdRequestConverter::ConvertRequestConfiguration(AdRequest request) const {
         mobile_ads::GetClass(),
         mobile_ads::GetMethodId(mobile_ads::kSetRequestConfiguration),
         request_configuration);
+    env->DeleteLocalRef(request_configuration);
   }
 }
 
