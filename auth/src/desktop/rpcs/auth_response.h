@@ -40,6 +40,7 @@ class AuthResponse
   bool IsSuccessful() const;
 
   std::string error_message() const {
+    LogWarning("zzyzx AuthResponse(uid=%d).error_message(); application_data_ is %s", uid_, application_data_ ? "non-null" : "null");
     return application_data_->error ? application_data_->error->message
                                     : std::string();
   }

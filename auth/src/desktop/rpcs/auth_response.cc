@@ -20,6 +20,7 @@ namespace firebase {
 namespace auth {
 
 AuthError AuthResponse::error_code() const {
+  LogWarning("zzyzx AuthResponse(uid=%d).error_code(); application_data_ is %s", uid_, application_data_ ? "non-null" : "null");
   if (IsSuccessful()) {
     return kAuthErrorNone;
   }
@@ -34,6 +35,7 @@ AuthError AuthResponse::error_code() const {
 }
 
 bool AuthResponse::IsSuccessful() const {
+  LogWarning("zzyzx AuthResponse(uid=%d).IsSuccessful(); application_data_ is %s", uid_, application_data_ ? "non-null" : "null");
   return status() == rest::util::HttpSuccess;
 }
 
