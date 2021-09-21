@@ -83,7 +83,7 @@ def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, use_openssl
     - build vcpkg executable
     - install packages via vcpkg.
   Args:
-    arch (str): Architecture (eg: 'x86', 'x64').
+    arch (str): Architecture (eg: 'x86', 'x64', 'arm64').
     msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
     use_openssl (bool): Use OpenSSL based vcpkg response files.
   """
@@ -123,7 +123,7 @@ def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, cleanup=True
   installation twice, a second time after attempting to auto fix known issues.
 
   Args:
-    arch (str): Architecture (eg: 'x86', 'x64').
+    arch (str): Architecture (eg: 'x86', 'x64', 'arm64').
     msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
     cleanup (bool): Clean up intermediate files used during installation.
     use_openssl (bool): Use OpenSSL based vcpkg response files.
@@ -158,7 +158,7 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='l
 
   Args:
    build_dir (str): Output build directory.
-   arch (str): Platform Architecture (example: 'x64').
+   arch (str): Platform Architecture (example: 'x64', 'x86', 'arm64').
    msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
    linux_abi (str): Linux ABI (eg: 'legacy', 'c++11').
    build_tests (bool): Build cpp unit tests.
@@ -208,6 +208,12 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='l
     # Use our special cmake flag to specify /MD vs /MT
     if msvc_runtime_library == "static":
       cmd.append('-DMSVC_RUNTIME_LIBRARY_STATIC=ON')
+
+  if utils.is_mac_os():
+    if (arch == 'arm64'):
+      cmd.append('-DCMAKE_OSX_ARCHITECTURES=arm64')
+    else:
+      cmd.append('-DCMAKE_OSX_ARCHITECTURES=x86_64')
 
   if utils.is_linux_os() and linux_abi == 'c++11':
       cmd.append('-DFIREBASE_LINUX_USE_CXX11_ABI=TRUE')
@@ -270,7 +276,7 @@ def main():
 
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Install Prerequisites for building cpp sdk')
-  parser.add_argument('-a', '--arch', default='x64', help='Platform architecture (x64, x86)')
+  parser.add_argument('-a', '--arch', default='x64', help='Platform architecture (x64, x86, arm64)')
   parser.add_argument('--msvc_runtime_library', default='static',
                       help='Runtime library for MSVC (static(/MT) or dynamic(/MD)')
   parser.add_argument('--linux_abi', default='legacy',
