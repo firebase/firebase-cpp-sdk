@@ -124,9 +124,9 @@ jobs:
           echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}" >> $GITHUB_ENV
           # If a toolchain file is being used (linux_32 or macos_arm64), also hash its contents into the key.
           if [[ '${{matrix.architecture}}-${{env.VCPKG_SUFFIX}}' == 'x86-linux' ]]; then
-            echo VCPKG_EXTRA_HASH="-${{hashFiles(format('{0}', external/vcpkg_custom_data/toolchains/linux_32.cmake))}}" >> $GITHUB_ENV
+            echo VCPKG_EXTRA_HASH="-${{hashFiles(format('{0}', 'external/vcpkg_custom_data/toolchains/linux_32.cmake'))}}" >> $GITHUB_ENV
           elif [[ '${{matrix.architecture}}-${{env.VCPKG_SUFFIX}}' == 'arm64-osx' ]]; then
-            echo VCPKG_EXTRA_HASH="-${{hashFiles(format('{0}', external/vcpkg_custom_data/toolchains/macos_arm64.cmake))}}" >> $GITHUB_ENV
+            echo VCPKG_EXTRA_HASH="-${{hashFiles(format('{0}', 'external/vcpkg_custom_data/toolchains/macos_arm64.cmake'))}}" >> $GITHUB_ENV
           else
             echo VCPKG_EXTRA_HASH=>> $GITHUB_ENV
           fi
