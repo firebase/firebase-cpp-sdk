@@ -364,16 +364,32 @@ TEST_F(FirebaseAdMobTest, TestBannerViewAlreadyInitialized) {
 
   firebase::admob::BannerView* banner = new firebase::admob::BannerView();
 
-  firebase::Future<void> first_initialize = banner->Initialize(
+  {
+    firebase::Future<void> first_initialize = banner->Initialize(
       app_framework::GetWindowContext(), kBannerAdUnit, banner_ad_size);
-  firebase::Future<void> second_initialize = banner->Initialize(
+    firebase::Future<void> second_initialize = banner->Initialize(
       app_framework::GetWindowContext(), kBannerAdUnit, banner_ad_size);
 
-  WaitForCompletion(second_initialize, "Second Initialize",
+    WaitForCompletion(second_initialize, "Second Initialize 1",
+                      firebase::admob::kAdMobErrorAlreadyInitialized);
+    WaitForCompletion(first_initialize, "First Initialize 1");
+    delete banner;
+  }
+
+  // Reverse the order completion waits.
+  {
+    banner = new firebase::admob::BannerView();
+
+    firebase::Future<void> first_initialize = banner->Initialize(
+        app_framework::GetWindowContext(), kBannerAdUnit, banner_ad_size);
+    firebase::Future<void> second_initialize = banner->Initialize(
+        app_framework::GetWindowContext(), kBannerAdUnit, banner_ad_size);
+
+    WaitForCompletion(first_initialize, "First Initialize - reverse test");
+    WaitForCompletion(second_initialize, "Second Initialize - reverse test",
                     firebase::admob::kAdMobErrorAlreadyInitialized);
-  WaitForCompletion(first_initialize, "First Initialize");
-
-  delete banner;
+    delete banner;
+  }
 }
 
 // A simple listener to help test changes to a InterstitialAd.
