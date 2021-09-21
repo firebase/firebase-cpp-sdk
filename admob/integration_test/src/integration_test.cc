@@ -354,6 +354,8 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
 }
 
 TEST_F(FirebaseAdMobTest, TestBannerViewAlreadyInitialized) {
+  SKIP_TEST_ON_DESKTOP;
+
   static const int kBannerWidth = 320;
   static const int kBannerHeight = 50;
 
