@@ -76,6 +76,11 @@ jobs:
             xcode_version: "12.4"
           - os: windows-latest
             xcode_version: "12.4"
+          # arm64 is only for macos
+          - os: ubuntu-latest
+            architecture: "arm64"
+          - os: windows-latest
+            architecture: "arm64"
     steps:                
       - name: Setup Xcode version (macos)
         if: runner.os == 'macOS'
@@ -193,7 +198,7 @@ jobs:
 
       - name: Run unit tests (windows & macos)
         # TODO: Enable tests for x86 once they are all working
-        if: (startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')) && matrix.architecture != 'x86'
+        if: (startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')) && matrix.architecture != 'x86' && matrix.architecture != 'arm64'
         env:
           LANG: en_US
         run: |

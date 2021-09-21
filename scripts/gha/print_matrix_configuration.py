@@ -74,7 +74,7 @@ PARAMETERS = {
     "matrix": {
       "os": ["ubuntu-latest", "macos-latest"],
       "build_type": ["Release", "Debug"],
-      "architecture": ["x64", "x86"],
+      "architecture": ["x64", "x86", "arm64"],
       "msvc_runtime": ["static","dynamic"],
       "xcode_version": ["11.7"],
       "python_version": ["3.7"],
