@@ -122,21 +122,13 @@ jobs:
           echo "VCPKG_SUFFIX: ${{env.VCPKG_SUFFIX}}"
           echo "VCPKG_RESPONSE_FILE=external/vcpkg_custom_data/response_files/${{ matrix.architecture }}-${{ env.VCPKG_SUFFIX }}.txt" >> $GITHUB_ENV
           echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}" >> $GITHUB_ENV
-          # If a toolchain file is being used (linux_32 or macos_arm64), also hash its contents into the key.
-          if [[ '${{matrix.architecture}}-${{env.VCPKG_SUFFIX}}' == 'x86-linux' ]]; then
-            echo VCPKG_EXTRA_HASH="-${{hashFiles(format('{0}', 'external/vcpkg_custom_data/toolchains/linux_32.cmake'))}}" >> $GITHUB_ENV
-          elif [[ '${{matrix.architecture}}-${{env.VCPKG_SUFFIX}}' == 'arm64-osx' ]]; then
-            echo VCPKG_EXTRA_HASH="-${{hashFiles(format('{0}', 'external/vcpkg_custom_data/toolchains/macos_arm64.cmake'))}}" >> $GITHUB_ENV
-          else
-            echo VCPKG_EXTRA_HASH=>> $GITHUB_ENV
-          fi
 
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
         uses: actions/cache@v2
         with:
           path: external/vcpkg/installed
-          key: dev-vcpkg-${{ matrix.architecture }}-${{ env.VCPKG_SUFFIX }}-${{ matrix.msvc_runtime }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}${{env.VCPKG_EXTRA_HASH}}
+          key: dev-vcpkg-${{ matrix.architecture }}-${{ env.VCPKG_SUFFIX }}-${{ matrix.msvc_runtime }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
 
       - name: Cache ccache files
         if: (startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos'))
