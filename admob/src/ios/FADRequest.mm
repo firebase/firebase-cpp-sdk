@@ -25,34 +25,6 @@ GADRequest *GADRequestFromCppAdRequest(AdRequest adRequest) {
   // Create the GADRequest.
   GADRequest *request = [GADRequest request];
 
-  // Gender.
-  switch (adRequest.gender) {
-    case kGenderUnknown:
-      request.gender = kGADGenderUnknown;
-      break;
-    case kGenderMale:
-      request.gender = kGADGenderMale;
-      break;
-    case kGenderFemale:
-      request.gender = kGADGenderFemale;
-      break;
-    default:
-      request.gender = kGADGenderUnknown;
-      break;
-  }
-
-  // Child-directed treatment.
-  switch (adRequest.tagged_for_child_directed_treatment) {
-    case kChildDirectedTreatmentStateTagged:
-      [request tagForChildDirectedTreatment:YES];
-      break;
-    case kChildDirectedTreatmentStateNotTagged:
-      [request tagForChildDirectedTreatment:NO];
-      break;
-    case kChildDirectedTreatmentStateUnknown:
-      break;
-  }
-
   // Test devices.
   if (adRequest.test_device_id_count > 0) {
     NSMutableArray *testDevices = [[NSMutableArray alloc] init];
@@ -83,13 +55,6 @@ GADRequest *GADRequestFromCppAdRequest(AdRequest adRequest) {
     extras.additionalParameters = additionalParameters;
     [request registerAdNetworkExtras:extras];
   }
-
-  // Birthday.
-  NSDateComponents *components = [[NSDateComponents alloc] init];
-  components.month = adRequest.birthday_month;
-  components.day = adRequest.birthday_day;
-  components.year = adRequest.birthday_year;
-  request.birthday = [[NSCalendar currentCalendar] dateFromComponents:components];
 
   // Set the request agent string so requests originating from this library can
   // be tracked and reported on as a group.

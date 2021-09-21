@@ -27,9 +27,8 @@ namespace admob {
 // time spent looking up methods by string.
 // clang-format off
 #define BANNERVIEWHELPER_METHODS(X)                                            \
-  X(Constructor, "<init>", "(J)V"),                                            \
-  X(Initialize, "initialize",                                                  \
-    "(JLandroid/app/Activity;Ljava/lang/String;III)V"),                        \
+  X(Constructor, "<init>", "(JLcom/google/android/gms/ads/AdView;)V"),         \
+  X(Initialize, "initialize", "(Landroid/app/Activity;)V"),                    \
   X(LoadAd, "loadAd", "(JLcom/google/android/gms/ads/AdRequest;)V"),           \
   X(Hide, "hide", "(J)V"),                                                     \
   X(Show, "show", "(J)V"),                                                     \
@@ -43,6 +42,32 @@ namespace admob {
 // clang-format on
 
 METHOD_LOOKUP_DECLARATION(banner_view_helper, BANNERVIEWHELPER_METHODS);
+
+#define BANNERVIEWHELPER_ADVIEWLISTENER_METHODS(X) \
+  X(Constructor, "<init>",                         \
+    "(Lcom/google/firebase/admob/internal/cpp/BannerViewHelper;)V")
+
+METHOD_LOOKUP_DECLARATION(banner_view_helper_ad_view_listener,
+                          BANNERVIEWHELPER_ADVIEWLISTENER_METHODS);
+
+// clang-format off
+#define AD_VIEW_METHODS(X)                                             \
+  X(Constructor, "<init>", "(Landroid/content/Context;)V"),            \
+  X(GetAdUnitId, "getAdUnitId", "()Ljava/lang/String;"),               \
+  X(SetAdSize, "setAdSize", "(Lcom/google/android/gms/ads/AdSize;)V"), \
+  X(SetAdUnitId, "setAdUnitId", "(Ljava/lang/String;)V"),              \
+  X(SetAdListener, "setAdListener",                                    \
+    "(Lcom/google/android/gms/ads/AdListener;)V")
+// clang-format on
+
+METHOD_LOOKUP_DECLARATION(ad_view, AD_VIEW_METHODS);
+
+// clang-format off
+#define AD_SIZE_METHODS(X)                                            \
+  X(Constructor, "<init>", "(II)V")
+// clang-format on
+
+METHOD_LOOKUP_DECLARATION(ad_size, AD_SIZE_METHODS);
 
 namespace internal {
 
@@ -69,6 +94,11 @@ class BannerViewInternalAndroid : public BannerViewInternal {
   // Reference to the Java helper object used to interact with the Mobile Ads
   // SDK.
   jobject helper_;
+
+  // Reference to the Android AdView object used to display BannerView ads.
+  jobject ad_view_;
+
+  bool initialized_;
 
   // The banner view's current BoundingBox. This value is returned if the banner
   // view is hidden and the publisher calls GetBoundingBox().

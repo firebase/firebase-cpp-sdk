@@ -25,39 +25,6 @@
 namespace firebase {
 namespace admob {
 
-// Used to setup the cache of AdRequestBuilder class method IDs to reduce
-// time spent looking up methods by string.
-// clang-format off
-#define ADREQUESTBUILDER_METHODS(X)                                          \
-  X(Constructor, "<init>", "()V"),                                           \
-  X(Build, "build", "()Lcom/google/android/gms/ads/AdRequest;"),             \
-  X(AddKeyword, "addKeyword",                                                \
-      "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;"), \
-  X(AddTestDevice, "addTestDevice",                                          \
-      "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;"), \
-  X(SetBirthday, "setBirthday",                                              \
-      "(Ljava/util/Date;)Lcom/google/android/gms/ads/AdRequest$Builder;"),   \
-  X(SetGender, "setGender",                                                  \
-      "(I)Lcom/google/android/gms/ads/AdRequest$Builder;"),                  \
-  X(SetRequestAgent, "setRequestAgent",                                      \
-      "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;"), \
-  X(TagForChildDirectedTreatment, "tagForChildDirectedTreatment",            \
-      "(Z)Lcom/google/android/gms/ads/AdRequest$Builder;"),                  \
-  X(AddNetworkExtrasBundle, "addNetworkExtrasBundle",                        \
-      "(Ljava/lang/Class;Landroid/os/Bundle;)"                               \
-      "Lcom/google/android/gms/ads/AdRequest$Builder;")
-// clang-format on
-
-// clang-format off
-#define ADREQUESTHELPER_METHODS(X)                                           \
-  X(Constructor, "<init>", "()V"),                                           \
-  X(CreateDate, "createDate", "(III)Ljava/util/Date;")
-// clang-format on
-
-METHOD_LOOKUP_DECLARATION(ad_request_builder, ADREQUESTBUILDER_METHODS);
-
-METHOD_LOOKUP_DECLARATION(ad_request_helper, ADREQUESTHELPER_METHODS);
-
 /// Converts instances of the AdRequest struct used by the C++ wrapper to
 /// jobject references to Mobile Ads SDK AdRequest objects.
 class AdRequestConverter {
@@ -76,6 +43,7 @@ class AdRequestConverter {
   jobject GetJavaRequestObject();
 
  private:
+  void ConvertRequestConfiguration(AdRequest request) const;
   jobject java_request_;
 };
 

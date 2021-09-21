@@ -6,16 +6,12 @@
 
 #include "app/src/assert.h"
 
-namespace rewarded_video = firebase::admob::rewarded_video;
-
 // AdMob app ID.
 const char* kAdMobAppID = "ca-app-pub-3940256099942544~1458002511";
 
 // AdMob ad unit IDs.
 const char* kBannerAdUnit = "ca-app-pub-3940256099942544/2934735716";
-const char* kNativeExpressAdUnit = "ca-app-pub-3940256099942544/2562852117";
 const char* kInterstitialAdUnit = "ca-app-pub-3940256099942544/4411468910";
-const char* kRewardedVideoAdUnit = "ca-app-pub-2618531387707574/6671583249";
 
 // A simple listener that logs changes to a BannerView.
 class LoggingBannerViewListener : public firebase::admob::BannerView::Listener {
@@ -35,27 +31,6 @@ class LoggingBannerViewListener : public firebase::admob::BannerView::Listener {
   }
 };
 
-// A simple listener that logs changes to a NativeExpressAdView.
-class LoggingNativeExpressAdViewListener
-    : public firebase::admob::NativeExpressAdView::Listener {
- public:
-  LoggingNativeExpressAdViewListener() {}
-  void OnPresentationStateChanged(
-      firebase::admob::NativeExpressAdView* native_express_view,
-      firebase::admob::NativeExpressAdView::PresentationState state) override {
-    LogMessage("NativeExpressAdView PresentationState has changed to %d.",
-               state);
-  }
-  void OnBoundingBoxChanged(
-      firebase::admob::NativeExpressAdView* native_express_view,
-      firebase::admob::BoundingBox box) override {
-    LogMessage(
-        "NativeExpressAd BoundingBox has changed to (x: %d, y: %d, width: %d, "
-        "height %d)",
-        box.x, box.y, box.width, box.height);
-  }
-};
-
 // A simple listener that logs changes to an InterstitialAd.
 class LoggingInterstitialAdListener
     : public firebase::admob::InterstitialAd::Listener {
@@ -68,38 +43,15 @@ class LoggingInterstitialAdListener
   }
 };
 
-// A simple listener that logs changes to rewarded video state.
-class LoggingRewardedVideoListener : public rewarded_video::Listener {
- public:
-  LoggingRewardedVideoListener() {}
-  void OnRewarded(rewarded_video::RewardItem reward) override {
-    LogMessage("Reward user with %f %s.", reward.amount,
-               reward.reward_type.c_str());
-  }
-  void OnPresentationStateChanged(
-      rewarded_video::PresentationState state) override {
-    LogMessage("Rewarded video PresentationState has changed to %d.", state);
-  }
-};
-
 // The listeners for logging changes to the AdMob ad formats.
 LoggingBannerViewListener banner_listener;
-LoggingNativeExpressAdViewListener native_express_listener;
 LoggingInterstitialAdListener interstitial_listener;
-LoggingRewardedVideoListener rewarded_listener;
 
 // GameEngine constructor.
 GameEngine::GameEngine() {}
 
 // Sets up AdMob C++.
 void GameEngine::Initialize(firebase::admob::AdParent ad_parent) {
-  FIREBASE_ASSERT(kTestBannerView != kTestNativeExpressAdView &&
-                  "kTestBannerView and kTestNativeExpressAdView cannot both be "
-                  "true/false at the same time.");
-  FIREBASE_ASSERT(kTestInterstitialAd != kTestRewardedVideo &&
-                  "kTestInterstitialAd and kTestRewardedVideo cannot both be "
-                  "true/false at the same time.");
-
   firebase::admob::Initialize(kAdMobAppID);
   parent_view_ = ad_parent;
 
@@ -112,34 +64,11 @@ void GameEngine::Initialize(firebase::admob::AdParent ad_parent) {
     banner_view_->Initialize(parent_view_, kBannerAdUnit, bannerAdSize);
     banner_view_listener_set_ = false;
   }
-
-  if (kTestNativeExpressAdView) {
-    // Create an ad size and initialize the NativeExpressAdView.
-    firebase::admob::AdSize nativeExpressAdSize;
-    nativeExpressAdSize.width = 320;
-    nativeExpressAdSize.height = 220;
-    native_express_view_ = new firebase::admob::NativeExpressAdView();
-    native_express_view_->Initialize(parent_view_, kNativeExpressAdUnit,
-                                     nativeExpressAdSize);
-    native_express_ad_view_listener_set_ = false;
-  }
-
   if (kTestInterstitialAd) {
     // Initialize the InterstitialAd.
     interstitial_ad_ = new firebase::admob::InterstitialAd();
     interstitial_ad_->Initialize(parent_view_, kInterstitialAdUnit);
     interstitial_ad_listener_set_ = false;
-  }
-
-  if (kTestRewardedVideo) {
-    // Initialize the rewarded_video:: namespace.
-    rewarded_video::Initialize();
-    // If you want to poll the reward, uncomment the poll_listener_ code in the
-    // update() function. When the poll_listener_code is commented out in
-    // update(), then the LoggingRewardedVideoListener is used to log changes to
-    // the rewarded video state.
-    poll_listener_ = nullptr;
-    rewarded_video_listener_set_ = false;
   }
 }
 
@@ -196,18 +125,6 @@ void GameEngine::onUpdate() {
     }
   }
 
-  if (kTestNativeExpressAdView) {
-    // Set the native express ad view listener.
-    if (native_express_view_->InitializeLastResult().Status() ==
-            firebase::kFutureStatusComplete &&
-        native_express_view_->InitializeLastResult().Error() ==
-            firebase::admob::kAdMobErrorNone &&
-        !native_express_ad_view_listener_set_) {
-      native_express_view_->SetListener(&native_express_listener);
-      native_express_ad_view_listener_set_ = true;
-    }
-  }
-
   if (kTestInterstitialAd) {
     // Set the interstitial ad listener.
     if (interstitial_ad_->InitializeLastResult().Status() ==
@@ -232,35 +149,6 @@ void GameEngine::onUpdate() {
       interstitial_ad_ = new firebase::admob::InterstitialAd();
       interstitial_ad_->Initialize(parent_view_, kInterstitialAdUnit);
       interstitial_ad_listener_set_ = false;
-    }
-  }
-
-  if (kTestRewardedVideo) {
-    // Set the rewarded video listener.
-    if (rewarded_video::InitializeLastResult().Status() ==
-            firebase::kFutureStatusComplete &&
-        rewarded_video::InitializeLastResult().Error() ==
-            firebase::admob::kAdMobErrorNone &&
-        !rewarded_video_listener_set_) {
-      //        && poll_listener == nullptr) {
-      rewarded_video::SetListener(&rewarded_listener);
-      rewarded_video_listener_set_ = true;
-      //      poll_listener_ = new
-      //      firebase::admob::rewarded_video::PollableRewardListener();
-      //      rewarded_video::SetListener(poll_listener_);
-    }
-
-    // Once the rewarded video ad has been displayed to and dismissed by the
-    // user, create a new rewarded video ad.
-    if (rewarded_video::ShowLastResult().Status() ==
-            firebase::kFutureStatusComplete &&
-        rewarded_video::ShowLastResult().Error() ==
-            firebase::admob::kAdMobErrorNone &&
-        rewarded_video::GetPresentationState() ==
-            firebase::admob::rewarded_video::kPresentationStateHidden) {
-      rewarded_video::Destroy();
-      rewarded_video::Initialize();
-      rewarded_video_listener_set_ = false;
     }
   }
 
@@ -292,7 +180,7 @@ void GameEngine::onTap(float x, float y) {
     }
   }
 
-  // The BannerView or NativeExpressAdView's bounding box.
+  // The BannerView's bounding box.
   firebase::admob::BoundingBox box;
 
   switch (button_number) {
@@ -304,15 +192,6 @@ void GameEngine::onTap(float x, float y) {
             banner_view_->InitializeLastResult().Error() ==
                 firebase::admob::kAdMobErrorNone) {
           banner_view_->LoadAd(createRequest());
-        }
-      }
-      if (kTestNativeExpressAdView) {
-        // Load the native express ad.
-        if (native_express_view_->InitializeLastResult().Status() ==
-                firebase::kFutureStatusComplete &&
-            native_express_view_->InitializeLastResult().Error() ==
-                firebase::admob::kAdMobErrorNone) {
-          native_express_view_->LoadAd(createRequest());
         }
       }
       break;
@@ -334,26 +213,6 @@ void GameEngine::onTap(float x, float y) {
           banner_view_->Hide();
         }
       }
-      if (kTestNativeExpressAdView) {
-        // Show/Hide the NativeExpressAdView.
-        if (native_express_view_->LoadAdLastResult().Status() ==
-                firebase::kFutureStatusComplete &&
-            native_express_view_->LoadAdLastResult().Error() ==
-                firebase::admob::kAdMobErrorNone &&
-            native_express_view_->GetPresentationState() ==
-                firebase::admob::NativeExpressAdView::
-                    kPresentationStateHidden) {
-          native_express_view_->Show();
-        } else if (native_express_view_->LoadAdLastResult().Status() ==
-                       firebase::kFutureStatusComplete &&
-                   native_express_view_->LoadAdLastResult().Error() ==
-                       firebase::admob::kAdMobErrorNone &&
-                   native_express_view_->GetPresentationState() ==
-                       firebase::admob::NativeExpressAdView::
-                           kPresentationStateVisibleWithAd) {
-          native_express_view_->Hide();
-        }
-      }
       break;
     case 2:
       if (kTestBannerView) {
@@ -363,16 +222,6 @@ void GameEngine::onTap(float x, float y) {
             banner_view_->LoadAdLastResult().Error() ==
                 firebase::admob::kAdMobErrorNone) {
           banner_view_->MoveTo(firebase::admob::BannerView::kPositionBottom);
-        }
-      }
-      if (kTestNativeExpressAdView) {
-        // Move the NativeExpressAdView to a predefined position.
-        if (native_express_view_->LoadAdLastResult().Status() ==
-                firebase::kFutureStatusComplete &&
-            native_express_view_->LoadAdLastResult().Error() ==
-                firebase::admob::kAdMobErrorNone) {
-          native_express_view_->MoveTo(
-              firebase::admob::NativeExpressAdView::kPositionBottom);
         }
       }
       break;
@@ -388,26 +237,6 @@ void GameEngine::onTap(float x, float y) {
           banner_view_->MoveTo(x, y);
         }
       }
-      if (kTestNativeExpressAdView) {
-        // Move the NativeExpressAdView to a specific x and y coordinate.
-        if (native_express_view_->LoadAdLastResult().Status() ==
-                firebase::kFutureStatusComplete &&
-            native_express_view_->LoadAdLastResult().Error() ==
-                firebase::admob::kAdMobErrorNone) {
-          int x = 100;
-          int y = 200;
-          native_express_view_->MoveTo(x, y);
-        }
-      }
-      if (kTestRewardedVideo) {
-        // Poll the reward.
-        if (poll_listener_ != nullptr) {
-          while (poll_listener_->PollReward(&reward_)) {
-            LogMessage("Reward user with %f %s.", reward_.amount,
-                       reward_.reward_type.c_str());
-          }
-        }
-      }
       break;
     case 4:
       if (kTestInterstitialAd) {
@@ -417,15 +246,6 @@ void GameEngine::onTap(float x, float y) {
             interstitial_ad_->InitializeLastResult().Error() ==
                 firebase::admob::kAdMobErrorNone) {
           interstitial_ad_->LoadAd(createRequest());
-        }
-      }
-      if (kTestRewardedVideo) {
-        // Load the rewarded video ad.
-        if (rewarded_video::InitializeLastResult().Status() ==
-                firebase::kFutureStatusComplete &&
-            rewarded_video::InitializeLastResult().Error() ==
-                firebase::admob::kAdMobErrorNone) {
-          rewarded_video::LoadAd(kRewardedVideoAdUnit, createRequest());
         }
       }
       break;
@@ -439,17 +259,6 @@ void GameEngine::onTap(float x, float y) {
             interstitial_ad_->ShowLastResult().Status() !=
                 firebase::kFutureStatusComplete) {
           interstitial_ad_->Show();
-        }
-      }
-      if (kTestRewardedVideo) {
-        // Show the rewarded video ad.
-        if (rewarded_video::LoadAdLastResult().Status() ==
-                firebase::kFutureStatusComplete &&
-            rewarded_video::LoadAdLastResult().Error() ==
-                firebase::admob::kAdMobErrorNone &&
-            rewarded_video::ShowLastResult().Status() !=
-                firebase::kFutureStatusComplete) {
-          rewarded_video::Show(parent_view_);
         }
       }
       break;

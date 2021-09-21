@@ -30,6 +30,7 @@ const char kUninitializedError[] =
 InterstitialAd::InterstitialAd() {
   FIREBASE_ASSERT(admob::IsInitialized());
   internal_ = internal::InterstitialAdInternal::CreateInstance(this);
+
   GetOrCreateCleanupNotifier()->RegisterObject(this, [](void* object) {
     FIREBASE_ASSERT_MESSAGE(
         false, "InterstitialAd must be deleted before admob::Terminate.");

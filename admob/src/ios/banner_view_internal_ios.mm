@@ -28,6 +28,7 @@ namespace internal {
 BannerViewInternalIOS::BannerViewInternalIOS(BannerView* base)
     : BannerViewInternal(base),
       future_handle_for_load_(ReferenceCountedFutureImpl::kInvalidHandle),
+      initialized_(false),
       banner_view_(nil),
       destroy_mutex_(Mutex::kModeNonRecursive) {}
 
@@ -39,15 +40,24 @@ BannerViewInternalIOS::~BannerViewInternalIOS() {
 
 Future<void> BannerViewInternalIOS::Initialize(AdParent parent, const char* ad_unit_id,
                                                AdSize size) {
-  const firebase::FutureHandle handle = CreateFuture(kBannerViewFnInitialize, &future_data_);
-  dispatch_async(dispatch_get_main_queue(), ^{
-    banner_view_ = [[FADBannerView alloc] initWithView:parent
+  FutureCallbackData* callback_data =
+      CreateFutureCallbackData(&future_data_, kBannerViewFnInitialize);
+  if(initialized_) {
+    future_data_.future_impl.Complete(callback_data->future_handle,
+                                      kAdMobErrorAlreadyInitialized,
+                                      "Ad is already initialized.");
+  } else {
+    initialized_ = true;
+    dispatch_async(dispatch_get_main_queue(), ^{
+      banner_view_ = [[FADBannerView alloc] initWithView:parent
                                               adUnitID:@(ad_unit_id)
                                                 adSize:size
                                     internalBannerView:this];
-    CompleteFuture(kAdMobErrorNone, nullptr, handle, &future_data_);
-  });
-  return GetLastResult(kBannerViewFnInitialize);
+    future_data_.future_impl.Complete(callback_data->future_handle,
+                                      kAdMobErrorNone);
+    });
+  }
+  return Future<void>(&future_data_.future_impl, callback_data->future_handle);
 }
 
 Future<void> BannerViewInternalIOS::LoadAd(const AdRequest& request) {

@@ -46,14 +46,12 @@ InterstitialAdInternalAndroid::InterstitialAdInternalAndroid(
     InterstitialAd* base)
     : InterstitialAdInternal(base), helper_(nullptr) {
   JNIEnv* env = ::firebase::admob::GetJNI();
-
   jobject helper_ref = env->NewObject(
       interstitial_ad_helper::GetClass(),
       interstitial_ad_helper::GetMethodId(interstitial_ad_helper::kConstructor),
       reinterpret_cast<jlong>(this));
 
   FIREBASE_ASSERT(helper_ref);
-
   helper_ = env->NewGlobalRef(helper_ref);
   FIREBASE_ASSERT(helper_);
   env->DeleteLocalRef(helper_ref);
@@ -61,7 +59,6 @@ InterstitialAdInternalAndroid::InterstitialAdInternalAndroid(
 
 InterstitialAdInternalAndroid::~InterstitialAdInternalAndroid() {
   JNIEnv* env = ::firebase::admob::GetJNI();
-
   // Since it's currently not possible to destroy the intersitial ad, just
   // disconnect from it so the listener doesn't initiate callbacks with stale
   // data.
