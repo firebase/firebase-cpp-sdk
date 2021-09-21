@@ -140,7 +140,7 @@ RequestConfiguration GetRequestConfiguration() {
   request_configuration.tag_for_child_directed_treatment =
     RequestConfiguration::kChildDirectedTreatmentUnspecified;
 
-  util::NSArrayToStdStringVector(
+  util::NSArrayOfNSStringToVectorOfString(
     GADMobileAds.sharedInstance.requestConfiguration.testDeviceIdentifiers,
     &request_configuration.test_device_ids);
 
