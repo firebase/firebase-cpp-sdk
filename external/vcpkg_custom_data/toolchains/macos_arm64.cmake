@@ -13,7 +13,12 @@
 # limitations under the License.
 
 # Toolchain settings for building ARM64 MacOS libraries
-set(VCPKG_OSX_ARCHITECTURES "arm64")
+set(VCPKG_TARGET_ARCHITECTURE arm64)
+set(VCPKG_CRT_LINKAGE dynamic)
+set(VCPKG_LIBRARY_LINKAGE static)
+
+set(VCPKG_CMAKE_SYSTEM_NAME Darwin)
+set(VCPKG_OSX_ARCHITECTURES arm64)
 
 # From this line onwards, everything is a copy of the standard toolchain file
 # shipped with vcpkg (vcpkg/scripts/buildsystems/vcpkg.cmake). This way, we can
