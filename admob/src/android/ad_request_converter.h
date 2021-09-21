@@ -43,6 +43,7 @@ class AdRequestConverter {
   jobject GetJavaRequestObject();
 
  private:
+  void ConvertRequestConfiguration(AdRequest request) const;
   jobject java_request_;
 };
 

@@ -144,7 +144,18 @@ void InitializeBannerViewOnMainThread(void* data) {
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env != nullptr);
 
-  jstring ad_unit_id_str = env->NewStringUTF(call_data->ad_unit_id.c_str());
+  jstring ad_unit_id_str =
+      static_cast<jstring>(::firebase::admob::GetJNI()->CallObjectMethod(
+          call_data->ad_view, ad_view::GetMethodId(ad_view::kGetAdUnitId)));
+  if (ad_unit_id_str != nullptr) {
+    env->DeleteLocalRef(ad_unit_id_str);
+    CompleteFuture(kAdMobErrorAlreadyInitialized, "Ad is already initialized.",
+                   call_data->callback_data->future_handle,
+                   call_data->callback_data->future_data);
+    return;
+  }
+
+  ad_unit_id_str = env->NewStringUTF(call_data->ad_unit_id.c_str());
   env->CallVoidMethod(call_data->ad_view,
                       ad_view::GetMethodId(ad_view::kSetAdUnitId),
                       ad_unit_id_str);
@@ -206,10 +217,14 @@ Future<void> BannerViewInternalAndroid::Initialize(AdParent parent,
       CreateFutureCallbackData(&future_data_, kBannerViewFnInitialize);
 
   if (initialized_) {
-    CompleteFuture(kAdMobErrorAlreadyInitialized, "Ad is already initialized.",
-                   callback_data->future_handle, callback_data->future_data);
-    return GetLastResult(kBannerViewFnInitialize);
+    future_data_.future_impl.Complete(callback_data->future_handle,
+                                      kAdMobErrorAlreadyInitialized,
+                                      "Ad is already initialized.");
+    return Future<void>(&future_data_.future_impl,
+                        callback_data->future_handle);
   }
+
+  initialized_ = true;
 
   JNIEnv* env = ::firebase::admob::GetJNI();
   jobject activity = ::firebase::admob::GetActivity();
