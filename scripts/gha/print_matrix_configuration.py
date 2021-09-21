@@ -76,7 +76,7 @@ PARAMETERS = {
       "build_type": ["Release", "Debug"],
       "architecture": ["x64", "x86", "arm64"],
       "msvc_runtime": ["static","dynamic"],
-      "xcode_version": ["11.7"],
+      "xcode_version": ["12.4"],
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {

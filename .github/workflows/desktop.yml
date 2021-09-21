@@ -81,6 +81,9 @@ jobs:
             architecture: "arm64"
           - os: windows-latest
             architecture: "arm64"
+          # arm64 can't be built on Xcode 11
+          - xcode_version: "11.7"
+            architecture: "arm64"
     steps:                
       - name: Setup Xcode version (macos)
         if: runner.os == 'macOS'
