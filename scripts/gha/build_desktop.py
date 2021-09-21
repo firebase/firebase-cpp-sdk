@@ -190,6 +190,9 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='l
       # Use a separate cmake toolchain for cross compiling linux x86 builds
       vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external', 'vcpkg',
                                                'scripts', 'buildsystems', 'linux_32.cmake')
+    elif utils.is_mac_os() and arch == 'arm64':
+      vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external', 'vcpkg',
+                                               'scripts', 'buildsystems', 'macos_arm64.cmake')
     else:
       vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external',
                                                'vcpkg', 'scripts',
