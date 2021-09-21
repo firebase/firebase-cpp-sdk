@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Toolchain settings for building ARM64 MacOS libraries
-set(CMAKE_OSX_ARCHITECTURES arm64)
+set(VCPKG_OSX_ARCHITECTURES "arm64")
 
 # From this line onwards, everything is a copy of the standard toolchain file
 # shipped with vcpkg (vcpkg/scripts/buildsystems/vcpkg.cmake). This way, we can
