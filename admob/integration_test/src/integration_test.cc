@@ -366,9 +366,9 @@ TEST_F(FirebaseAdMobTest, TestBannerViewAlreadyInitialized) {
 
   {
     firebase::Future<void> first_initialize = banner->Initialize(
-      app_framework::GetWindowContext(), kBannerAdUnit, banner_ad_size);
+        app_framework::GetWindowContext(), kBannerAdUnit, banner_ad_size);
     firebase::Future<void> second_initialize = banner->Initialize(
-      app_framework::GetWindowContext(), kBannerAdUnit, banner_ad_size);
+        app_framework::GetWindowContext(), kBannerAdUnit, banner_ad_size);
 
     WaitForCompletion(second_initialize, "Second Initialize 1",
                       firebase::admob::kAdMobErrorAlreadyInitialized);
@@ -387,7 +387,7 @@ TEST_F(FirebaseAdMobTest, TestBannerViewAlreadyInitialized) {
 
     WaitForCompletion(first_initialize, "First Initialize - reverse test");
     WaitForCompletion(second_initialize, "Second Initialize - reverse test",
-                    firebase::admob::kAdMobErrorAlreadyInitialized);
+                      firebase::admob::kAdMobErrorAlreadyInitialized);
     delete banner;
   }
 }
