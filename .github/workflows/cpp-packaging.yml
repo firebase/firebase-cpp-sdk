@@ -34,7 +34,7 @@ env:
   hashCommand: "sha256sum"
   # Xcode version 12 is the version we build the SDK with.
   # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
-  xcodeVersion: "12.4"
+  xcodeVersion: "12"
   # LLVM version with ARM MachO support has no version number yet.
   llvmVer: "5f187f0afaad33013ba03454c4749d99b1362534"
 
