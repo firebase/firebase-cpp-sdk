@@ -43,15 +43,7 @@ METHOD_LOOKUP_DEFINITION(ad_request_builder,
                          "com/google/android/gms/ads/AdRequest$Builder",
                          ADREQUESTBUILDER_METHODS);
 
-METHOD_LOOKUP_DEFINITION(
-    request_config_builder,
-    PROGUARD_KEEP_CLASS
-    "com/google/android/gms/ads/RequestConfiguration$Builder",
-    REQUESTCONFIGURATIONBUILDER_METHODS);
-
 AdRequestConverter::AdRequestConverter(AdRequest request) {
-  ConvertRequestConfiguration(request);
-
   JNIEnv* env = ::firebase::admob::GetJNI();
   jobject builder = env->NewObject(
       ad_request_builder::GetClass(),
@@ -136,40 +128,6 @@ AdRequestConverter::~AdRequestConverter() {
 }
 
 jobject AdRequestConverter::GetJavaRequestObject() { return java_request_; }
-
-void AdRequestConverter::ConvertRequestConfiguration(AdRequest request) const {
-  if (request.test_device_id_count > 0) {
-    JNIEnv* env = ::firebase::admob::GetJNI();
-    jobject builder = env->NewObject(request_config_builder::GetClass(),
-                                     request_config_builder::GetMethodId(
-                                         request_config_builder::kConstructor));
-
-    std::vector<std::string> test_devices_vector;
-    for (int i = 0; i < request.test_device_id_count; i++) {
-      test_devices_vector.push_back(request.test_device_ids[i]);
-    }
-    jobject test_device_list =
-        util::StdVectorToJavaList(env, test_devices_vector);
-    builder = util::ContinueBuilder(
-        env, builder,
-        env->CallObjectMethod(builder,
-                              request_config_builder::GetMethodId(
-                                  request_config_builder::kSetTestDeviceIds),
-                              test_device_list));
-    env->DeleteLocalRef(test_device_list);
-
-    // Build request configuration.
-    jobject request_configuration = env->CallObjectMethod(
-        builder,
-        request_config_builder::GetMethodId(request_config_builder::kBuild));
-    env->DeleteLocalRef(builder);
-    env->CallStaticVoidMethod(
-        mobile_ads::GetClass(),
-        mobile_ads::GetMethodId(mobile_ads::kSetRequestConfiguration),
-        request_configuration);
-    env->DeleteLocalRef(request_configuration);
-  }
-}
 
 }  // namespace admob
 }  // namespace firebase

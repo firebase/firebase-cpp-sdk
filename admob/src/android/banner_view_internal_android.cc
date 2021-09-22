@@ -148,6 +148,7 @@ void InitializeBannerViewOnMainThread(void* data) {
       static_cast<jstring>(::firebase::admob::GetJNI()->CallObjectMethod(
           call_data->ad_view, ad_view::GetMethodId(ad_view::kGetAdUnitId)));
   if (ad_unit_id_str != nullptr) {
+    env->DeleteLocalRef(ad_unit_id_str);
     CompleteFuture(kAdMobErrorAlreadyInitialized, "Ad is already initialized.",
                    call_data->callback_data->future_handle,
                    call_data->callback_data->future_data);

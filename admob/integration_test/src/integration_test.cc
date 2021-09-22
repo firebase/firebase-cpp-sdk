@@ -19,6 +19,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <vector>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/admob.h"
@@ -66,6 +67,10 @@ const char* kInterstitialAdUnit = "ca-app-pub-3940256099942544/1033173712";
 const char* kBannerAdUnit = "ca-app-pub-3940256099942544/2934735716";
 const char* kInterstitialAdUnit = "ca-app-pub-3940256099942544/4411468910";
 #endif
+
+// Sample test device IDs to use in making the request.
+const std::vector<std::string> kTestDeviceIDs = {
+    "2077ef9a63d2b398840261c8221a0c9b", "098fe087d987c9a878965454a65654d7"};
 
 using app_framework::LogDebug;
 using app_framework::ProcessEvents;
@@ -137,17 +142,27 @@ FirebaseAdMobTest::FirebaseAdMobTest() {}
 
 FirebaseAdMobTest::~FirebaseAdMobTest() {}
 
-void FirebaseAdMobTest::SetUp() { FirebaseTest::SetUp(); }
+void FirebaseAdMobTest::SetUp() {
+  FirebaseTest::SetUp();
+
+  // This example uses ad units that are specially configured to return test ads
+  // for every request. When using your own ad unit IDs, however, it's important
+  // to register the device IDs associated with any devices that will be used to
+  // test the app. This ensures that regardless of the ad unit ID, those
+  // devices will always receive test ads in compliance with AdMob policy.
+  //
+  // Device IDs can be obtained by checking the logcat or the Xcode log while
+  // debugging. They appear as a long string of hex characters.
+  firebase::admob::RequestConfiguration request_configuration;
+  request_configuration.test_device_ids = kTestDeviceIDs;
+  firebase::admob::SetRequestConfiguration(request_configuration);
+}
 
 void FirebaseAdMobTest::TearDown() { FirebaseTest::TearDown(); }
 
 firebase::admob::AdRequest FirebaseAdMobTest::GetAdRequest() {
   // Sample keywords to use in making the request.
   static const char* kKeywords[] = {"AdMob", "C++", "Fun"};
-
-  // Sample test device IDs to use in making the request.
-  static const char* kTestDeviceIDs[] = {"2077ef9a63d2b398840261c8221a0c9b",
-                                         "098fe087d987c9a878965454a65654d7"};
 
   firebase::admob::AdRequest request;
 
@@ -162,17 +177,6 @@ firebase::admob::AdRequest FirebaseAdMobTest::GetAdRequest() {
   request.extras_count = sizeof(kRequestExtras) / sizeof(kRequestExtras[0]);
   request.extras = kRequestExtras;
 
-  // This example uses ad units that are specially configured to return test ads
-  // for every request. When using your own ad unit IDs, however, it's important
-  // to register the device IDs associated with any devices that will be used to
-  // test the app. This ensures that regardless of the ad unit ID, those
-  // devices will always receive test ads in compliance with AdMob policy.
-  //
-  // Device IDs can be obtained by checking the logcat or the Xcode log while
-  // debugging. They appear as a long string of hex characters.
-  request.test_device_id_count =
-      sizeof(kTestDeviceIDs) / sizeof(kTestDeviceIDs[0]);
-  request.test_device_ids = kTestDeviceIDs;
   return request;
 }
 
@@ -196,9 +200,75 @@ class TestBannerViewListener : public firebase::admob::BannerView::Listener {
   std::vector<firebase::admob::BoundingBox> bounding_box_changes_;
 };
 
+TEST_F(FirebaseAdMobTest, TestRequestConfigurationSetGetEmptyConfig) {
+  SKIP_TEST_ON_DESKTOP;
+
+  firebase::admob::RequestConfiguration set_configuration;
+  firebase::admob::SetRequestConfiguration(set_configuration);
+  firebase::admob::RequestConfiguration retrieved_configuration =
+      firebase::admob::GetRequestConfiguration();
+
+  EXPECT_EQ(
+      retrieved_configuration.max_ad_content_rating,
+      firebase::admob::RequestConfiguration::kMaxAdContentRatingUnspecified);
+  EXPECT_EQ(retrieved_configuration.tag_for_child_directed_treatment,
+            firebase::admob::RequestConfiguration::
+                kChildDirectedTreatmentUnspecified);
+  EXPECT_EQ(
+      retrieved_configuration.tag_for_under_age_of_consent,
+      firebase::admob::RequestConfiguration::kUnderAgeOfConsentUnspecified);
+  EXPECT_EQ(retrieved_configuration.test_device_ids.size(), 0);
+}
+
+TEST_F(FirebaseAdMobTest, TestRequestConfigurationSetGet) {
+  SKIP_TEST_ON_DESKTOP;
+
+  firebase::admob::RequestConfiguration set_configuration;
+  set_configuration.max_ad_content_rating =
+      firebase::admob::RequestConfiguration::kMaxAdContentRatingPG;
+  set_configuration.tag_for_child_directed_treatment =
+      firebase::admob::RequestConfiguration::kChildDirectedTreatmentTrue;
+  set_configuration.tag_for_under_age_of_consent =
+      firebase::admob::RequestConfiguration::kUnderAgeOfConsentFalse;
+  set_configuration.test_device_ids.push_back("1");
+  set_configuration.test_device_ids.push_back("2");
+  set_configuration.test_device_ids.push_back("3");
+  firebase::admob::SetRequestConfiguration(set_configuration);
+
+  firebase::admob::RequestConfiguration retrieved_configuration =
+      firebase::admob::GetRequestConfiguration();
+
+  EXPECT_EQ(retrieved_configuration.max_ad_content_rating,
+            firebase::admob::RequestConfiguration::kMaxAdContentRatingPG);
+
+#if defined(__ANDROID__)
+  EXPECT_EQ(retrieved_configuration.tag_for_child_directed_treatment,
+            firebase::admob::RequestConfiguration::kChildDirectedTreatmentTrue);
+  EXPECT_EQ(retrieved_configuration.tag_for_under_age_of_consent,
+            firebase::admob::RequestConfiguration::kUnderAgeOfConsentFalse);
+#else  // iOS
+  // iOS doesn't allow for the querying of these values.
+  EXPECT_EQ(retrieved_configuration.tag_for_child_directed_treatment,
+            firebase::admob::RequestConfiguration::
+                kChildDirectedTreatmentUnspecified);
+  EXPECT_EQ(
+      retrieved_configuration.tag_for_under_age_of_consent,
+      firebase::admob::RequestConfiguration::kUnderAgeOfConsentUnspecified);
+#endif
+
+  EXPECT_EQ(retrieved_configuration.test_device_ids.size(), 3);
+  EXPECT_TRUE(std::count(retrieved_configuration.test_device_ids.begin(),
+                         retrieved_configuration.test_device_ids.end(), "1"));
+  EXPECT_TRUE(std::count(retrieved_configuration.test_device_ids.begin(),
+                         retrieved_configuration.test_device_ids.end(), "2"));
+  EXPECT_TRUE(std::count(retrieved_configuration.test_device_ids.begin(),
+                         retrieved_configuration.test_device_ids.end(), "3"));
+}
+
 TEST_F(FirebaseAdMobTest, TestBannerView) {
   // AdMob cannot be tested on Firebase Test Lab, so disable tests on FTL.
   TEST_REQUIRES_USER_INTERACTION;
+  SKIP_TEST_ON_DESKTOP;
 
   static const int kBannerWidth = 320;
   static const int kBannerHeight = 50;
@@ -409,6 +479,7 @@ class TestInterstitialAdListener
 
 TEST_F(FirebaseAdMobTest, TestInterstitialAd) {
   TEST_REQUIRES_USER_INTERACTION;
+  SKIP_TEST_ON_DESKTOP;
 
   firebase::admob::InterstitialAd* interstitial =
       new firebase::admob::InterstitialAd();
