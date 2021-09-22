@@ -17,6 +17,11 @@
 #ifndef FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_TYPES_H_
 #define FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_TYPES_H_
 
+#include <map>
+#include <string>
+#include <unordered_set>
+#include <vector>
+
 #include "firebase/internal/platform.h"
 
 #if FIREBASE_PLATFORM_ANDROID
@@ -240,6 +245,7 @@ struct KeyValuePair {
   const char *value;
 };
 
+#if 0
 /// @brief The information needed to request an ad.
 struct AdRequest {
   /// An array of test device IDs specifying devices that test ads will be
@@ -258,6 +264,74 @@ struct AdRequest {
   /// The number of entries in the array referenced by extras.
   unsigned int extras_count;
 };
+#else
+class AdRequest {
+ public:
+  /// Creates an @ref AdRequest with no custom configuration.
+  AdRequest();
+
+  /// Creates an @ref AdRequest with the optional content URL.
+  ///
+  /// When requesting an ad, apps may pass the URL of the content they are
+  /// serving. This enables keyword targeting to match the ad with the content.
+  ///
+  /// The URL is ignored if null or the number of characters exceeds 512.
+  ///
+  /// @param[in] content_url the url of the content being viewed.
+  AdRequest(const char *content_url);
+
+  ~AdRequest();
+
+  /// The content URL targeting information.
+  ///
+  /// @return the content URL for the @ref AdRequest. The string will be empty
+  /// if no content URL has been configured.
+  const std::string &content_url() const { return content_url_; }
+
+  /// A Map of ad network adapters to their collection of extra parameters, as
+  /// configured via @ref add_extra.
+  const std::map<std::string, std::map<std::string, std::string> > &extras()
+      const {
+    return extras_;
+  }
+
+  /// Keywords which will help Admob to provide targeted ads, as added by
+  /// @ref add_keyword.
+  const std::unordered_set<std::string> &keywords() const { return keywords_; }
+
+  /// Add a network extra for the associated ad_network.
+  ///
+  /// Appends an extra to the corresponding list of extras for the ad_network.
+  /// Each ad network can have multiple extra strings.
+  ///
+  /// @param[in] ad_network the ad network for which to add the extra.
+  /// @param[in] extra_key a key which will be passed to the corresponding ad
+  /// network adapter.
+  /// @param[in] extra_value the value associated with @ref extra_key.
+  void add_extra(const char *ad_network, const char *extra_key,
+                 const char *extra_value);
+
+  /// Adds a keyword for targeting purposes.
+  ///
+  /// Multiple keywords may be added via repeated invocations of this method.
+  ///
+  /// @param[in] a string that Admob will use to aid in targeting ads.
+  void add_keyword(const char *keyword);
+
+  /// When requesting an ad, apps may pass the URL of the content they are
+  /// serving. This enables keyword targeting to match the ad with the content.
+  ///
+  /// The URL is ignored if null or the number of characters exceeds 512.
+  ///
+  /// @param[in] content_url the url of the content being viewed.
+  void set_content_url(const char *content_url);
+
+ private:
+  std::string content_url_;
+  std::map<std::string, std::map<std::string, std::string> > extras_;
+  std::unordered_set<std::string> keywords_;
+};
+#endif
 
 /// @brief The screen location and dimensions of an ad view once it has been
 /// initialized.

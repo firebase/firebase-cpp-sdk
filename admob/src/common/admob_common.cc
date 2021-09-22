@@ -92,6 +92,34 @@ bool AdSize::operator==(const AdSize& rhs) const { return is_equal(rhs); }
 
 bool AdSize::operator!=(const AdSize& rhs) const { return !is_equal(rhs); }
 
+AdRequest::AdRequest() {}
+
+AdRequest::AdRequest(const char* content_url) { set_content_url(content_url); }
+
+void AdRequest::add_extra(const char* ad_network, const char* extra_key,
+                          const char* extra_value) {
+  if (ad_network != nullptr && extra_key != nullptr && extra_value != nullptr) {
+    extras_[std::string(ad_network)][std::string(extra_key)] =
+        std::string(extra_value);
+  }
+}
+
+void AdRequest::add_keyword(const char* keyword) {
+  if (keyword != nullptr) {
+    keywords_.insert(std::string(keyword));
+  }
+}
+
+void AdRequest::set_content_url(const char* content_url) {
+  if (content_url == nullptr) {
+    return;
+  }
+  std::string url(content_url);
+  if (url.size() <= 512) {
+    content_url_ = url;
+  }
+}
+
 void RegisterTerminateOnDefaultAppDestroy() {
   if (!AppCallback::GetEnabledByName(kAdMobModuleName)) {
     // It's possible to initialize AdMob without firebase::App so only register

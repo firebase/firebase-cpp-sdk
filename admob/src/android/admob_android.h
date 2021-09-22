@@ -34,11 +34,13 @@ class AdSize;
   X(Build, "build", "()Lcom/google/android/gms/ads/AdRequest;"),             \
   X(AddKeyword, "addKeyword",                                                \
       "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;"), \
-  X(SetRequestAgent, "setRequestAgent",                                      \
-      "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;"), \
   X(AddNetworkExtrasBundle, "addNetworkExtrasBundle",                        \
       "(Ljava/lang/Class;Landroid/os/Bundle;)"                               \
-      "Lcom/google/android/gms/ads/AdRequest$Builder;")
+      "Lcom/google/android/gms/ads/AdRequest$Builder;"),                     \
+  X(SetContentUrl, "setContentUrl",                                          \
+      "(Ljava/lang/String;)V"),                                              \
+  X(SetRequestAgent, "setRequestAgent",                                      \
+      "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;")
 // clang-format on
 
 // clang-format off

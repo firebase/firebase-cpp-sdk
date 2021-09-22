@@ -22,6 +22,7 @@
 #include <cstdarg>
 #include <cstddef>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "admob/admob_resources.h"
@@ -49,17 +50,16 @@ METHOD_LOOKUP_DEFINITION(
     "com/google/android/gms/ads/RequestConfiguration$Builder",
     REQUESTCONFIGURATIONBUILDER_METHODS);
 
-AdRequestConverter::AdRequestConverter(AdRequest request) {
-  ConvertRequestConfiguration(request);
-
+AdRequestConverter::AdRequestConverter(const AdRequest& request) {
   JNIEnv* env = ::firebase::admob::GetJNI();
   jobject builder = env->NewObject(
       ad_request_builder::GetClass(),
       ad_request_builder::GetMethodId(ad_request_builder::kConstructor));
 
   // Keywords.
-  for (int i = 0; i < request.keyword_count; i++) {
-    jstring keyword_str = env->NewStringUTF(request.keywords[i]);
+  const std::unordered_set<std::string>& keywords = request.keywords();
+  for (auto keyword = keywords.begin(); keyword != keywords.end(); ++keyword) {
+    jstring keyword_str = env->NewStringUTF((*keyword).c_str());
     builder = util::ContinueBuilder(
         env, builder,
         env->CallObjectMethod(
@@ -70,14 +70,29 @@ AdRequestConverter::AdRequestConverter(AdRequest request) {
   }
 
   // Network Extras.
-  if (request.extras_count > 0) {
+  const std::map<std::string, std::map<std::string, std::string>>& extras =
+      request.extras();
+  for (auto adapter_iter = extras.begin(); adapter_iter != extras.end();
+       ++adapter_iter) {
+    std::string adapter_name = adapter_iter->first;
+
+    jclass adapter_class = util::FindClass(env, adapter_name.c_str());
+    // If the adapter wasn't found correctly, the app has a serious problem.
+    FIREBASE_ASSERT_MESSAGE(
+        adapter_class,
+        "Failed to locate adapter class for extras. Check that \"%s\""
+        " is present in your APK.",
+        adapter_name.c_str());
+    continue;
+
     jobject extras_bundle =
         env->NewObject(util::bundle::GetClass(),
                        util::bundle::GetMethodId(util::bundle::kConstructor));
 
-    for (int i = 0; i < request.extras_count; i++) {
-      jstring extra_key_str = env->NewStringUTF(request.extras[i].key);
-      jstring extra_value_str = env->NewStringUTF(request.extras[i].value);
+    for (auto extra_iter = adapter_iter->second.begin();
+         extra_iter != adapter_iter->second.end(); ++extra_iter) {
+      jstring extra_key_str = env->NewStringUTF(extra_iter->first.c_str());
+      jstring extra_value_str = env->NewStringUTF(extra_iter->second.c_str());
       env->CallVoidMethod(extras_bundle,
                           util::bundle::GetMethodId(util::bundle::kPutString),
                           extra_key_str, extra_value_str);
@@ -85,28 +100,27 @@ AdRequestConverter::AdRequestConverter(AdRequest request) {
       env->DeleteLocalRef(extra_key_str);
     }
 
-    jclass admob_adapter_class =
-        util::FindClass(env, admob::GetActivity(), kAdMobAdapterClassName);
-
-    // If the adapter wasn't found correctly, the app has a serious problem.
-    FIREBASE_ASSERT_MESSAGE(
-        admob_adapter_class,
-        "Failed to locate the AdMobAdapter class for extras. Check that "
-        "com.google.ads.mediation.admob.AdMobAdapter is present in your APK.");
-    if (!admob_adapter_class) {
-      env->DeleteLocalRef(extras_bundle);
-      return;
-    }
-
     builder = util::ContinueBuilder(
         env, builder,
         env->CallObjectMethod(builder,
                               ad_request_builder::GetMethodId(
                                   ad_request_builder::kAddNetworkExtrasBundle),
-                              admob_adapter_class, extras_bundle));
+                              adapter_class, extras_bundle));
 
     env->DeleteLocalRef(extras_bundle);
-    env->DeleteLocalRef(admob_adapter_class);
+    env->DeleteLocalRef(adapter_class);
+  }
+
+  // Content URL
+  if (!request.content_url().empty()) {
+    jstring content_url = env->NewStringUTF(request.content_url().c_str());
+    builder = util::ContinueBuilder(
+        env, builder,
+        env->CallObjectMethod(
+            builder,
+            ad_request_builder::GetMethodId(ad_request_builder::kSetContentUrl),
+            content_url));
+    env->DeleteLocalRef(content_url);
   }
 
   // Set the request agent string so requests originating from this library can
@@ -136,39 +150,6 @@ AdRequestConverter::~AdRequestConverter() {
 }
 
 jobject AdRequestConverter::GetJavaRequestObject() { return java_request_; }
-
-void AdRequestConverter::ConvertRequestConfiguration(AdRequest request) const {
-  JNIEnv* env = ::firebase::admob::GetJNI();
-  jobject builder = env->NewObject(request_config_builder::GetClass(),
-                                   request_config_builder::GetMethodId(
-                                       request_config_builder::kConstructor));
-  // Test DeviceIds
-  if (request.test_device_id_count > 0) {
-    std::vector<std::string> test_devices_vector;
-    for (int i = 0; i < request.test_device_id_count; i++) {
-      test_devices_vector.push_back(request.test_device_ids[i]);
-    }
-    jobject test_device_list =
-        util::StdVectorToJavaList(env, test_devices_vector);
-    builder = util::ContinueBuilder(
-        env, builder,
-        env->CallObjectMethod(builder,
-                              request_config_builder::GetMethodId(
-                                  request_config_builder::kSetTestDeviceIds),
-                              test_device_list));
-    env->DeleteLocalRef(test_device_list);
-
-    // Build request configuration.
-    jobject request_configuration = env->CallObjectMethod(
-        builder,
-        request_config_builder::GetMethodId(request_config_builder::kBuild));
-    env->DeleteLocalRef(builder);
-    env->CallStaticVoidMethod(
-        mobile_ads::GetClass(),
-        mobile_ads::GetMethodId(mobile_ads::kSetRequestConfiguration),
-        request_configuration);
-  }
-}
 
 }  // namespace admob
 }  // namespace firebase
