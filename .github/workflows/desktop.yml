@@ -131,7 +131,7 @@ jobs:
           key: dev-vcpkg-${{ matrix.architecture }}-${{ env.VCPKG_SUFFIX }}-${{ matrix.msvc_runtime }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
 
       - name: Cache ccache files
-        if: (startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos'))
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
         id: cache_ccache
         uses: actions/cache@v2
         with:
