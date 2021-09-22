@@ -27,7 +27,7 @@ on:
         required: true
 
 env:
-co  # Packaging prerequisites
+  # Packaging prerequisites
   # Demumble 1.1.0 released Nov 13, 2018
   demumbleVer: "1.1.0"
   # Use SHA256 for hashing files.
