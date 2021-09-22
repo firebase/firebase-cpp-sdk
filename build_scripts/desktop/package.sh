@@ -228,13 +228,20 @@ readonly -a rename_namespaces=(flatbuffers flexbuffers reflection ZLib bssl uWS 
 readonly rename_string=f_b_
 
 readonly demangle_cmds=${tools_path}/c++filt,${tools_path}/demumble
-readonly binutils_objcopy=${tools_path}/objcopy
+binutils_objcopy=${tools_path}/objcopy
 if [[ -x ${tools_path}/nm-new ]] ; then
-    readonly binutils_nm=${tools_path}/nm-new
+    binutils_nm=${tools_path}/nm-new
 else
-    readonly binutils_nm=${tools_path}/nm
+    binutils_nm=${tools_path}/nm
 fi
 readonly binutils_ar=${tools_path}/ar
+
+if [[ "${platform}" == "darwin" ]]; then
+    # If targeting Darwin, use LLVM tools instead.
+    binutils_objcopy=${tools_path}/llvm-objcopy
+    binutils_nm=${tools_path}/llvm-nm
+    binutils_ar=${tools_path}/llvm-ar
+fi
 
 cache_file=/tmp/merge_libraries_cache.$$
 # Clean up cache file after script is finished.
