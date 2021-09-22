@@ -18,6 +18,7 @@ options:
   -f, binutils format                             default: [auto-detect]
   -j, run merge_libraries jobs in parallel
   -v, enable verbose mode
+  -L, use LLVM binutils
 example:
   build_scripts/desktop/package.sh -b firebase-cpp-sdk-linux -p linux -o package_out -v x86 -j"
 }
@@ -35,6 +36,7 @@ built_sdk_tarfile=
 binutils_format=
 temp_dir=
 run_in_parallel=0
+use_llvm_binutils=0
 
 . "${root_dir}/build_scripts/packaging.conf"
 
@@ -48,7 +50,7 @@ abspath(){
     fi
 }
 
-while getopts "f:b:o:p:d:m:P:t:hjv" opt; do
+while getopts "f:b:o:p:d:m:P:t:hjLv" opt; do
     case $opt in
         f)
             binutils_format=$OPTARG
@@ -72,6 +74,9 @@ while getopts "f:b:o:p:d:m:P:t:hjv" opt; do
             ;;
         v)
             verbose=1
+            ;;
+        L)
+            use_llvm_binutils=1
             ;;
         d)
             variant=$OPTARG
@@ -228,19 +233,18 @@ readonly -a rename_namespaces=(flatbuffers flexbuffers reflection ZLib bssl uWS 
 readonly rename_string=f_b_
 
 readonly demangle_cmds=${tools_path}/c++filt,${tools_path}/demumble
-binutils_objcopy=${tools_path}/objcopy
-if [[ -x ${tools_path}/nm-new ]] ; then
-    binutils_nm=${tools_path}/nm-new
-else
-    binutils_nm=${tools_path}/nm
-fi
-readonly binutils_ar=${tools_path}/ar
-
-if [[ "${platform}" == "darwin" ]]; then
-    # If targeting Darwin, use LLVM tools instead.
-    binutils_objcopy=${tools_path}/llvm-objcopy
-    binutils_nm=${tools_path}/llvm-nm
-    binutils_ar=${tools_path}/llvm-ar
+if [[ ${use_llvm_binutils} -eq 1 ]]; then
+    readonly binutils_objcopy=${tools_path}/llvm-objcopy
+    readonly binutils_nm=${tools_path}/llvm-nm
+    readonly binutils_ar=${tools_path}/llvm-ar
+else    
+    readonly binutils_objcopy=${tools_path}/objcopy
+    if [[ -x ${tools_path}/nm-new ]] ; then
+        readonly binutils_nm=${tools_path}/nm-new
+    else
+	readonly binutils_nm=${tools_path}/nm
+    fi
+    readonly binutils_ar=${tools_path}/ar
 fi
 
 cache_file=/tmp/merge_libraries_cache.$$
