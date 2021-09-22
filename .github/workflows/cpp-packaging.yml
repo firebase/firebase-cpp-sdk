@@ -339,7 +339,7 @@ jobs:
         uses: microsoft/setup-msbuild@v1.0.2
 
       - name: Cache vcpkg C++ dependencies
-        if: !startsWith(matrix.os, 'macos')
+        if: ${{!startsWith(matrix.os, 'macos')}}
         id: cache_vcpkg
         uses: actions/cache@v2
         with:
