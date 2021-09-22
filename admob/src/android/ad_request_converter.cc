@@ -44,12 +44,6 @@ METHOD_LOOKUP_DEFINITION(ad_request_builder,
                          "com/google/android/gms/ads/AdRequest$Builder",
                          ADREQUESTBUILDER_METHODS);
 
-METHOD_LOOKUP_DEFINITION(
-    request_config_builder,
-    PROGUARD_KEEP_CLASS
-    "com/google/android/gms/ads/RequestConfiguration$Builder",
-    REQUESTCONFIGURATIONBUILDER_METHODS);
-
 AdRequestConverter::AdRequestConverter(const AdRequest& request) {
   JNIEnv* env = ::firebase::admob::GetJNI();
   jobject builder = env->NewObject(

@@ -67,6 +67,9 @@ class AdSize;
     "(Landroid/content/Context;)V", util::kMethodTypeStatic),                \
   X(SetRequestConfiguration, "setRequestConfiguration",                      \
     "(Lcom/google/android/gms/ads/RequestConfiguration;)V",                  \
+    util::kMethodTypeStatic),                                                \
+  X(GetRequestConfiguration, "getRequestConfiguration",                      \
+    "()Lcom/google/android/gms/ads/RequestConfiguration;",                  \
     util::kMethodTypeStatic)
 // clang-format on
 
@@ -75,15 +78,32 @@ class AdSize;
   X(Constructor, "<init>", "()V"),                                           \
   X(Build, "build",                                                          \
     "()Lcom/google/android/gms/ads/RequestConfiguration;"),                  \
+  X(SetMaxAdContentRating, "setMaxAdContentRating",                          \
+    "(Ljava/lang/String;)"                                                   \
+    "Lcom/google/android/gms/ads/RequestConfiguration$Builder;"),            \
   X(SetTagForChildDirectedTreatment, "setTagForChildDirectedTreatment",      \
-      "(I)Lcom/google/android/gms/ads/RequestConfiguration$Builder;"),       \
+    "(I)Lcom/google/android/gms/ads/RequestConfiguration$Builder;"),         \
+  X(SetTagForUnderAgeOfConsent, "setTagForUnderAgeOfConsent",                \
+    "(I)Lcom/google/android/gms/ads/RequestConfiguration$Builder;"),         \
   X(SetTestDeviceIds, "setTestDeviceIds",                                    \
       "(Ljava/util/List;)"                                                   \
       "Lcom/google/android/gms/ads/RequestConfiguration$Builder;")
 // clang-format on
 
+// clang-format off
+#define REQUESTCONFIGURATION_METHODS(X)                                      \
+  X(GetMaxAdContentRating , "getMaxAdContentRating",                         \
+  "()Ljava/lang/String;"),                                                   \
+  X(GetTagForChildDirectedTreatment , "getTagForChildDirectedTreatment",     \
+  "()I"),                                                                    \
+  X(GetTagForUnderAgeOfConsent , "getTagForUnderAgeOfConsent", "()I"),       \
+  X(GetTestDeviceIds , "getTestDeviceIds", "()Ljava/util/List;")
+
+
 METHOD_LOOKUP_DECLARATION(ad_request_builder, ADREQUESTBUILDER_METHODS);
 METHOD_LOOKUP_DECLARATION(mobile_ads, MOBILEADS_METHODS);
+METHOD_LOOKUP_DECLARATION(request_config,
+                          REQUESTCONFIGURATION_METHODS);
 METHOD_LOOKUP_DECLARATION(request_config_builder,
                           REQUESTCONFIGURATIONBUILDER_METHODS);
 METHOD_LOOKUP_DECLARATION(ad_size, ADSIZE_METHODS);

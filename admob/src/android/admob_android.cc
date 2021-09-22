@@ -21,6 +21,7 @@
 
 #include <cstdarg>
 #include <cstddef>
+#include <string>
 
 #include "admob/admob_resources.h"
 #include "admob/src/android/ad_request_converter.h"
@@ -43,11 +44,20 @@ METHOD_LOOKUP_DEFINITION(mobile_ads,
                          PROGUARD_KEEP_CLASS
                          "com/google/android/gms/ads/MobileAds",
                          MOBILEADS_METHODS);
-
 METHOD_LOOKUP_DEFINITION(ad_size,
                          PROGUARD_KEEP_CLASS
                          "com/google/android/gms/ads/AdSize",
                          ADSIZE_METHODS);
+METHOD_LOOKUP_DEFINITION(request_config,
+                         PROGUARD_KEEP_CLASS
+                         "com/google/android/gms/ads/RequestConfiguration",
+                         REQUESTCONFIGURATION_METHODS);
+
+METHOD_LOOKUP_DEFINITION(
+    request_config_builder,
+    PROGUARD_KEEP_CLASS
+    "com/google/android/gms/ads/RequestConfiguration$Builder",
+    REQUESTCONFIGURATIONBUILDER_METHODS);
 
 static JavaVM* g_java_vm = nullptr;
 static const ::firebase::App* g_app = nullptr;
@@ -137,6 +147,7 @@ InitResult Initialize(JNIEnv* env, jobject activity) {
         ad_request_builder::CacheMethodIds(env, activity) &&
         ad_size::CacheMethodIds(env, activity) &&
         ad_view::CacheMethodIds(env, activity) &&
+        request_config::CacheMethodIds(env, activity) &&
         request_config_builder::CacheMethodIds(env, activity) &&
         banner_view_helper::CacheClassFromFiles(env, activity,
                                                 &embedded_files) != nullptr &&
@@ -160,12 +171,233 @@ InitResult Initialize(JNIEnv* env, jobject activity) {
   return kInitResultSuccess;
 }
 
+void SetRequestConfiguration(
+    const RequestConfiguration& request_configuration) {
+  JNIEnv* env = ::firebase::admob::GetJNI();
+  jobject builder = env->NewObject(request_config_builder::GetClass(),
+                                   request_config_builder::GetMethodId(
+                                       request_config_builder::kConstructor));
+  bool jni_exception = util::CheckAndClearJniExceptions(env);
+  FIREBASE_ASSERT(!jni_exception);
+
+  // Test DeviceIds
+  if (request_configuration.test_device_ids.size() > 0) {
+    jobject test_device_list =
+        util::StdVectorToJavaList(env, request_configuration.test_device_ids);
+    builder = util::ContinueBuilder(
+        env, builder,
+        env->CallObjectMethod(builder,
+                              request_config_builder::GetMethodId(
+                                  request_config_builder::kSetTestDeviceIds),
+                              test_device_list));
+    jni_exception = util::CheckAndClearJniExceptions(env);
+    FIREBASE_ASSERT(!jni_exception);
+    env->DeleteLocalRef(test_device_list);
+  }
+
+  jstring j_string_max_ad_rating = nullptr;
+  switch (request_configuration.max_ad_content_rating) {
+    case RequestConfiguration::kMaxAdContentRatingG:
+      j_string_max_ad_rating = env->NewStringUTF("G");
+      break;
+    case RequestConfiguration::kMaxAdContentRatingPG:
+      j_string_max_ad_rating = env->NewStringUTF("PG");
+      break;
+    case RequestConfiguration::kMaxAdContentRatingT:
+      j_string_max_ad_rating = env->NewStringUTF("T");
+      break;
+    case RequestConfiguration::kMaxAdContentRatingMA:
+      j_string_max_ad_rating = env->NewStringUTF("MA");
+      break;
+    case RequestConfiguration::kMaxAdContentRatingUnspecified:
+    default:
+      j_string_max_ad_rating = env->NewStringUTF("");
+      break;
+  }
+  builder = util::ContinueBuilder(
+      env, builder,
+      env->CallObjectMethod(builder,
+                            request_config_builder::GetMethodId(
+                                request_config_builder::kSetMaxAdContentRating),
+                            j_string_max_ad_rating));
+  jni_exception = util::CheckAndClearJniExceptions(env);
+  FIREBASE_ASSERT(!jni_exception);
+  env->DeleteLocalRef(j_string_max_ad_rating);
+
+  int child_directed_treatment_tag;
+  switch (request_configuration.tag_for_child_directed_treatment) {
+    case RequestConfiguration::kChildDirectedTreatmentFalse:
+      child_directed_treatment_tag = 0;
+      break;
+    case RequestConfiguration::kChildDirectedTreatmentTrue:
+      child_directed_treatment_tag = 1;
+      break;
+    default:
+    case RequestConfiguration::kChildDirectedTreatmentUnspecified:
+      child_directed_treatment_tag = -1;
+      break;
+  }
+  builder = util::ContinueBuilder(
+      env, builder,
+      env->CallObjectMethod(
+          builder,
+          request_config_builder::GetMethodId(
+              request_config_builder::kSetTagForChildDirectedTreatment),
+          child_directed_treatment_tag));
+  jni_exception = util::CheckAndClearJniExceptions(env);
+  FIREBASE_ASSERT(!jni_exception);
+
+  int under_age_of_consent_tag;
+  switch (request_configuration.tag_for_under_age_of_consent) {
+    case RequestConfiguration::kUnderAgeOfConsentFalse:
+      under_age_of_consent_tag = 0;
+      break;
+    case RequestConfiguration::kUnderAgeOfConsentTrue:
+      under_age_of_consent_tag = 1;
+      break;
+    default:
+    case RequestConfiguration::kUnderAgeOfConsentUnspecified:
+      under_age_of_consent_tag = -1;
+      break;
+  }
+  builder = util::ContinueBuilder(
+      env, builder,
+      env->CallObjectMethod(
+          builder,
+          request_config_builder::GetMethodId(
+              request_config_builder::kSetTagForUnderAgeOfConsent),
+          under_age_of_consent_tag));
+  jni_exception = util::CheckAndClearJniExceptions(env);
+  FIREBASE_ASSERT(!jni_exception);
+
+  // Build request configuration.
+  jobject j_request_configuration = env->CallObjectMethod(
+      builder,
+      request_config_builder::GetMethodId(request_config_builder::kBuild));
+  jni_exception = util::CheckAndClearJniExceptions(env);
+  FIREBASE_ASSERT(!jni_exception);
+  env->DeleteLocalRef(builder);
+
+  // Set the request configuration.
+  env->CallStaticVoidMethod(
+      mobile_ads::GetClass(),
+      mobile_ads::GetMethodId(mobile_ads::kSetRequestConfiguration),
+      j_request_configuration);
+
+  env->DeleteLocalRef(j_request_configuration);
+}
+
+RequestConfiguration GetRequestConfiguration() {
+  JNIEnv* env = ::firebase::admob::GetJNI();
+  RequestConfiguration request_configuration;
+  jobject j_request_config = env->CallStaticObjectMethod(
+      mobile_ads::GetClass(),
+      mobile_ads::GetMethodId(mobile_ads::kGetRequestConfiguration));
+  bool jni_exception = util::CheckAndClearJniExceptions(env);
+  FIREBASE_ASSERT(!jni_exception);
+  FIREBASE_ASSERT(j_request_config != nullptr);
+
+  // Max Ad Content Rating.
+  const jstring j_max_ad_content_rating =
+      static_cast<jstring>(env->CallObjectMethod(
+          j_request_config,
+          request_config::GetMethodId(request_config::kGetMaxAdContentRating)));
+  jni_exception = util::CheckAndClearJniExceptions(env);
+  FIREBASE_ASSERT(!jni_exception);
+  FIREBASE_ASSERT(j_max_ad_content_rating != nullptr);
+  const std::string max_ad_content_rating =
+      env->GetStringUTFChars(j_max_ad_content_rating, nullptr);
+  FIREBASE_ASSERT(!jni_exception);
+  if (max_ad_content_rating == "G") {
+    request_configuration.max_ad_content_rating =
+        RequestConfiguration::kMaxAdContentRatingG;
+  } else if (max_ad_content_rating == "PG") {
+    request_configuration.max_ad_content_rating =
+        RequestConfiguration::kMaxAdContentRatingPG;
+  } else if (max_ad_content_rating == "MA") {
+    request_configuration.max_ad_content_rating =
+        RequestConfiguration::kMaxAdContentRatingMA;
+  } else if (max_ad_content_rating == "T") {
+    request_configuration.max_ad_content_rating =
+        RequestConfiguration::kMaxAdContentRatingT;
+  } else if (max_ad_content_rating == "") {
+    request_configuration.max_ad_content_rating =
+        RequestConfiguration::kMaxAdContentRatingUnspecified;
+  } else {
+    FIREBASE_ASSERT_MESSAGE(false,
+                            "RequestConfiguration unknown MaxAdContentRating");
+  }
+  env->DeleteLocalRef(j_max_ad_content_rating);
+
+  // Tag For Child Directed Treatment
+  const jint j_child_directed_treatment_tag = env->CallIntMethod(
+      j_request_config, request_config::GetMethodId(
+                            request_config::kGetTagForChildDirectedTreatment));
+  jni_exception = util::CheckAndClearJniExceptions(env);
+  FIREBASE_ASSERT(!jni_exception);
+  switch (j_child_directed_treatment_tag) {
+    case -1:
+      request_configuration.tag_for_child_directed_treatment =
+          RequestConfiguration::kChildDirectedTreatmentUnspecified;
+      break;
+    case 0:
+      request_configuration.tag_for_child_directed_treatment =
+          RequestConfiguration::kChildDirectedTreatmentFalse;
+      break;
+    case 1:
+      request_configuration.tag_for_child_directed_treatment =
+          RequestConfiguration::kChildDirectedTreatmentTrue;
+      break;
+    default:
+      FIREBASE_ASSERT_MESSAGE(
+          false, "RequestConfiguration unknown TagForChildDirectedTreatment");
+  }
+
+  // Tag For Under Age Of Consent
+  const jint j_under_age_of_consent_tag = env->CallIntMethod(
+      j_request_config,
+      request_config::GetMethodId(request_config::kGetTagForUnderAgeOfConsent));
+  jni_exception = util::CheckAndClearJniExceptions(env);
+  FIREBASE_ASSERT(!jni_exception);
+  switch (j_under_age_of_consent_tag) {
+    case -1:
+      request_configuration.tag_for_under_age_of_consent =
+          RequestConfiguration::kUnderAgeOfConsentUnspecified;
+      break;
+    case 0:
+      request_configuration.tag_for_under_age_of_consent =
+          RequestConfiguration::kUnderAgeOfConsentFalse;
+      break;
+    case 1:
+      request_configuration.tag_for_under_age_of_consent =
+          RequestConfiguration::kUnderAgeOfConsentTrue;
+      break;
+    default:
+      FIREBASE_ASSERT_MESSAGE(
+          false, "RequestConfiguration unknown TagForUnderAgeOfConsent");
+  }
+
+  // Test Device Ids
+  const jobject j_test_device_id_list = env->CallObjectMethod(
+      j_request_config,
+      request_config::GetMethodId(request_config::kGetTestDeviceIds));
+  jni_exception = util::CheckAndClearJniExceptions(env);
+  FIREBASE_ASSERT(!jni_exception);
+  FIREBASE_ASSERT(j_test_device_id_list != nullptr);
+  util::JavaListToStdStringVector(env, &request_configuration.test_device_ids,
+                                  j_test_device_id_list);
+  env->DeleteLocalRef(j_test_device_id_list);
+
+  return request_configuration;
+}
+
 // Release classes registered by this module.
 void ReleaseClasses(JNIEnv* env) {
   mobile_ads::ReleaseClass(env);
   ad_request_builder::ReleaseClass(env);
   ad_size::ReleaseClass(env);
   ad_view::ReleaseClass(env);
+  request_config::ReleaseClass(env);
   request_config_builder::ReleaseClass(env);
   banner_view_helper::ReleaseClass(env);
   banner_view_helper_ad_view_listener::ReleaseClass(env);

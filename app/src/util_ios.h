@@ -24,6 +24,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include "app/src/include/firebase/variant.h"
 
@@ -191,6 +192,11 @@ void ForEachAppDelegateClass(void (^block)(Class));
 // Convert a string array into an NSMutableArray.
 NSMutableArray *StringVectorToNSMutableArray(
     const std::vector<std::string> &vector);
+
+// Convert a NSArray into a vector of strings.  Asserts if a non NSString
+// object is found in the array.
+void NSArrayOfNSStringToVectorOfString(NSArray* array,
+    std::vector<std::string>* string_vector);
 
 // Convert a string map to NSDictionary.
 NSDictionary *StringMapToNSDictionary(

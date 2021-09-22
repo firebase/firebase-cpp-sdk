@@ -56,6 +56,13 @@ InitResult Initialize() {
 
 bool IsInitialized() { return g_initialized; }
 
+void SetRequestConfiguration(
+    const RequestConfiguration& request_configuration) {}
+
+RequestConfiguration GetRequestConfiguration() {
+  return RequestConfiguration();
+}
+
 void Terminate() {
   UnregisterTerminateOnDefaultAppDestroy();
   DestroyCleanupNotifier();
