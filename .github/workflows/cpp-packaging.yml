@@ -295,7 +295,7 @@ jobs:
           sdk_platform: "linux"
         - os: macos-latest
           vcpkg_triplet_suffix: "osx"
-          additional_build_flags: "--target_format libraries --disable_vcpkg"
+          additional_build_flags: "--target_format libraries"
           sdk_platform: "darwin"
 
         exclude:
