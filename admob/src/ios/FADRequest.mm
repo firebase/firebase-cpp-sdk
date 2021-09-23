@@ -19,6 +19,8 @@
 #include "admob/src/common/admob_common.h"
 #include "app/src/util_ios.h"
 
+#include "app/src/log.h"
+
 namespace firebase {
 namespace admob {
 
@@ -42,13 +44,10 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest) {
   for (auto adapter_iter = extras.begin(); adapter_iter != extras.end(); 
        ++adapter_iter) {
     const std::string adapterClassName = adapter_iter->first;
-
     // Attempt to resolve the custom class.
     Class extrasClass = NSClassFromString(util::StringToNSString(adapterClassName));
     if (extrasClass == nil ) {
-      FIREBASE_ASSERT_MESSAGE(
-        true,
-        "Failed to resolve extras class: \"%s\"", adapterClassName.c_str());
+      LogError("Failed to resolve extras class: \"%s\"", adapterClassName.c_str());
       continue;
     }
 
@@ -56,13 +55,10 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest) {
     // of an expected type.
     id gadExtrasId = [[extrasClass alloc] init];
     if (![gadExtrasId isKindOfClass:[GADExtras class]]) {
-      FIREBASE_ASSERT_MESSAGE(
-        true,
-        "Failed to load extras class inherited from GADExtras: \"%s\"",
+      LogError("Failed to load extras class inherited from GADExtras: \"%s\"",
           adapterClassName.c_str());
       continue;
     }
-    
 
     // Add the key/value dictionary to the object.
     // adpter_iter->second is a std::map of the key/value pairs.

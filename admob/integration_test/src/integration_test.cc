@@ -80,7 +80,8 @@ static const std::vector<std::string> kKeywords({"AdMob", "C++", "Fun"});
 // "Extra" key value pairs can be added to the request as well. Typically
 // these are used when testing new features.
 static const std::map<std::string, std::string> kAdMobAdapterExtras = {
-    {"the_name_of_an_extra", "the_value_for_that_extra"}};
+    {"the_name_of_an_extra", "the_value_for_that_extra"},
+    {"heres", "a second example"}};
 
 #if defined(__ANDROID__)
 static const char* kAdNetworkExtrasClassName =
@@ -88,6 +89,8 @@ static const char* kAdNetworkExtrasClassName =
 #else
 static const char* kAdNetworkExtrasClassName = "GADExtras";
 #endif
+
+static const std::string kContentUrl = "http://www.firebase.com";
 
 using app_framework::LogDebug;
 using app_framework::ProcessEvents;
@@ -192,11 +195,57 @@ firebase::admob::AdRequest FirebaseAdMobTest::GetAdRequest() {
                       extras_iter->second.c_str());
   }
 
+  request.set_content_url(kContentUrl.c_str());
+
   return request;
 }
 
 // Test cases below.
 TEST_F(FirebaseAdMobTest, TestGetAdRequest) { GetAdRequest(); }
+
+TEST_F(FirebaseAdMobTest, TestGetAdRequestValues) {
+  SKIP_TEST_ON_DESKTOP;
+
+  const firebase::admob::AdRequest request = GetAdRequest();
+
+  // Content URL.
+  EXPECT_TRUE(request.content_url() == kContentUrl);
+
+  // Extras.
+  std::map<std::string, std::map<std::string, std::string> > configured_extras =
+      request.extras();
+
+  EXPECT_EQ(configured_extras.size(), 1);
+  for (auto extras_name_iter = configured_extras.begin();
+       extras_name_iter != configured_extras.end(); ++extras_name_iter) {
+    // Confirm class name.
+    const std::string class_name = extras_name_iter->first;
+    EXPECT_EQ(class_name, kAdNetworkExtrasClassName);
+
+    // Grab the extras.
+    const std::map<std::string, std::string>& configured_extras =
+        extras_name_iter->second;
+    EXPECT_EQ(configured_extras.size(), kAdMobAdapterExtras.size());
+
+    // Check the extra key value pairs.
+    for (auto constant_extras_iter = kAdMobAdapterExtras.begin();
+         constant_extras_iter != kAdMobAdapterExtras.end();
+         ++constant_extras_iter) {
+      // Ensure the configured value matches the constant for the same key.
+      EXPECT_EQ(configured_extras.at(constant_extras_iter->first),
+                constant_extras_iter->second);
+    }
+  }
+
+  const std::unordered_set<std::string> configured_keywords =
+      request.keywords();
+  EXPECT_EQ(configured_keywords.size(), kKeywords.size());
+  for (auto keyword_iter = kKeywords.begin(); keyword_iter != kKeywords.end();
+       ++keyword_iter) {
+    EXPECT_TRUE(configured_keywords.find(*keyword_iter) !=
+                configured_keywords.end());
+  }
+}
 
 // A simple listener to help test changes to a BannerView.
 class TestBannerViewListener : public firebase::admob::BannerView::Listener {
