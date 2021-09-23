@@ -475,7 +475,12 @@ if(DESKTOP)
       # NanoPB has a FindNanopb which defines the function to generate files,
       # so add it to the module path, and use that.
       list(APPEND CMAKE_MODULE_PATH ${NANOPB_SOURCE_DIR}/extra)
-      find_package(NANOPB)
+      if(DESKTOP AND APPLE)
+        # For some reason, Apple desktop wants this to be named all-caps.
+        find_package(NANOPB)
+      else()
+        find_package(Nanopb)
+      endif()
 
       target_compile_definitions(
         protobuf-nanopb-static
