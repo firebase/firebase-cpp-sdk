@@ -116,6 +116,8 @@ class FirebaseAdMobTest : public FirebaseTest {
 
 firebase::App* FirebaseAdMobTest::shared_app_ = nullptr;
 
+void BrieflyPauseForVisualInspection() { app_framework::ProcessEvents(100); }
+
 void FirebaseAdMobTest::SetUpTestSuite() {
   LogDebug("Initialize Firebase App.");
 
@@ -426,13 +428,16 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
 
-  // Move to each of the six pre-defined positions.
+  BrieflyPauseForVisualInspection();
 
+  // Move to each of the six pre-defined positions.
   WaitForCompletion(banner->MoveTo(firebase::admob::BannerView::kPositionTop),
                     "MoveTo(Top)");
   expected_presentation_states.push_back(
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
+
+  BrieflyPauseForVisualInspection();
 
   WaitForCompletion(
       banner->MoveTo(firebase::admob::BannerView::kPositionTopLeft),
@@ -441,12 +446,16 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
 
+  BrieflyPauseForVisualInspection();
+
   WaitForCompletion(
       banner->MoveTo(firebase::admob::BannerView::kPositionTopRight),
       "MoveTo(TopRight)");
   expected_presentation_states.push_back(
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
+
+  BrieflyPauseForVisualInspection();
 
   WaitForCompletion(
       banner->MoveTo(firebase::admob::BannerView::kPositionBottom),
@@ -455,12 +464,16 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
 
+  BrieflyPauseForVisualInspection();
+
   WaitForCompletion(
       banner->MoveTo(firebase::admob::BannerView::kPositionBottomLeft),
       "MoveTo(BottomLeft)");
   expected_presentation_states.push_back(
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
+
+  BrieflyPauseForVisualInspection();
 
   WaitForCompletion(
       banner->MoveTo(firebase::admob::BannerView::kPositionBottomRight),
@@ -469,26 +482,36 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
 
+  BrieflyPauseForVisualInspection();
+
   // Move to some coordinates.
   WaitForCompletion(banner->MoveTo(100, 300), "MoveTo(x0, y0)");
   expected_presentation_states.push_back(
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
 
+  BrieflyPauseForVisualInspection();
+
   WaitForCompletion(banner->MoveTo(100, 400), "MoveTo(x1, y1)");
   expected_presentation_states.push_back(
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
+
+  BrieflyPauseForVisualInspection();
 
   // Try hiding and showing the BannerView.
   WaitForCompletion(banner->Hide(), "Hide 1");
   expected_presentation_states.push_back(
       firebase::admob::BannerView::kPresentationStateHidden);
 
+  BrieflyPauseForVisualInspection();
+
   WaitForCompletion(banner->Show(), "Show 1");
   expected_presentation_states.push_back(
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
+
+  BrieflyPauseForVisualInspection();
 
   // Move again after hiding/showing.
   WaitForCompletion(banner->MoveTo(100, 300), "MoveTo(x2, y2)");
@@ -496,10 +519,14 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
 
+  BrieflyPauseForVisualInspection();
+
   WaitForCompletion(banner->MoveTo(100, 400), "Moveto(x3, y3)");
   expected_presentation_states.push_back(
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
+
+  BrieflyPauseForVisualInspection();
 
   WaitForCompletion(banner->Hide(), "Hide 2");
   expected_presentation_states.push_back(

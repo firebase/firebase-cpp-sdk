@@ -38,7 +38,7 @@ class AdSize;
       "(Ljava/lang/Class;Landroid/os/Bundle;)"                               \
       "Lcom/google/android/gms/ads/AdRequest$Builder;"),                     \
   X(SetContentUrl, "setContentUrl",                                          \
-      "(Ljava/lang/String;)V"),                                              \
+      "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;"), \
   X(SetRequestAgent, "setRequestAgent",                                      \
       "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;")
 // clang-format on

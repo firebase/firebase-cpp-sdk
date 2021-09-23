@@ -68,13 +68,13 @@ AdRequestConverter::AdRequestConverter(const AdRequest& request) {
     std::string adapter_name = adapter_iter->first;
 
     jclass adapter_class = util::FindClass(env, adapter_name.c_str());
-    // If the adapter wasn't found correctly, the app has a serious problem.
-    FIREBASE_ASSERT_MESSAGE(
-        adapter_class,
-        "Failed to locate adapter class for extras. Check that \"%s\""
-        " is present in your APK.",
-        adapter_name.c_str());
-    continue;
+    if (adapter_class == nullptr) {
+      LogError(
+          "Failed to resolve extras class. Check that \"%s\""
+          " is present in your APK.",
+          adapter_name.c_str());
+      continue;
+    }
 
     jobject extras_bundle =
         env->NewObject(util::bundle::GetClass(),
