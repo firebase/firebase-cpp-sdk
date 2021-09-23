@@ -124,12 +124,27 @@ jobs:
           path: llvm-src
           ref: ${{ env.llvmVer }}
 
+      - name: make LLVM build directory (Mac only)
+        if: runner.os == 'macOS'
+        run: mkdir llvm-src/llvm/build
+
+      - name: Cache LLVM (Mac only)
+        if: runner.os == 'macOS'
+        id: cache_llvm
+        uses: actions/cache@v2
+        with:
+          path: llvm-src/llvm/build
+          key: llvm-${{env.xcodeVersion}-${{env.llvmVer}}
+
       - name: build LLVM (Mac only)
         if: runner.os == 'macOS'
         run: |
-          mkdir llvm-src/llvm/build
           cd llvm-src/llvm/build
-          cmake -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release ..
+          if [[ ! -r CMakeCache.txt ]]; then
+            # If there is already a CMakeCache file, it was retrieved from the Cache LLVM step above.
+            # Don't run cmake in that case.
+            cmake -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release ..
+          fi
           cmake --build . -j 3 --target llvm-objcopy --target llvm-nm --target llvm-ar
           cd -
           mkdir -p packaging-tools
