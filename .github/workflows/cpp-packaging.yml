@@ -93,7 +93,7 @@ jobs:
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
 
-      - name: fetch and build binutils (Linux only)
+      - name: fetch and build binutils
         if: runner.os != 'macOS'
         run: |
           set +e
@@ -142,7 +142,7 @@ jobs:
           cd llvm-src/llvm/build
           if [[ ! -r CMakeCache.txt ]]; then
             # If there is already a CMakeCache file, it was retrieved from the Cache LLVM step above.
-            # Don't run cmake in that case.
+            # Don't run cmake configure in that case, go straight to build.
             cmake -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release ..
           fi
           cmake --build . -j 3 --target llvm-objcopy --target llvm-nm --target llvm-ar
