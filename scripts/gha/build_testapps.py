@@ -106,6 +106,9 @@ _TVOS = "tvOS"
 _DESKTOP = "Desktop"
 _SUPPORTED_PLATFORMS = (_ANDROID, _IOS, _TVOS, _DESKTOP)
 
+# Architecture
+_SUPPORTED_ARCHITECTURES = ("x64", "arm64")  # TODO: add x86
+
 # Values for iOS SDK flag (where the iOS app will run)
 _APPLE_SDK_DEVICE = "real"
 _APPLE_SDK_SIMULATOR = "virtual"
@@ -167,6 +170,10 @@ flags.DEFINE_string(
     "(Desktop only) Specify the compiler with CMake during the testapps build."
     " Check the config file to see valid choices for this flag."
     " If none, will invoke cmake without specifying a compiler.")
+
+flags.DEFINE_string(
+    "arch", "x64",
+    "(Desktop only) Which architecture to build: x64 (all) or arm64 (Mac only).")
 
 flags.DEFINE_multi_string(
     "cmake_flag", None,
@@ -236,13 +243,21 @@ def main(argv):
   # Building from source requires building the underlying SDK libraries,
   # so we need to use VCPKG as well.
   if _DESKTOP in platforms and not FLAGS.packaged_sdk:
+    vcpkg_arch = FLAGS.arch
     installer = os.path.join(repo_dir, "scripts", "gha", "build_desktop.py")
-    _run([sys.executable, installer, "--vcpkg_step_only"])
+    _run([sys.executable, installer, "--vcpkg_step_only", "--arch", vcpkg_arch])
     toolchain_file = os.path.join(
         repo_dir, "external", "vcpkg", "scripts", "buildsystems", "vcpkg.cmake")
+    if utils.is_mac_os() and FLAGS.arch == "arm64":
+      toolchain_file = os.path.join(
+          repo_dir, "external", "vcpkg", "scripts", "buildsystems", "macos_arm64.cmake")
+    if utils.is_linux_os() and FLAGS.arch == "x86":
+      toolchain_file = os.path.join(
+          repo_dir, "external", "vcpkg", "scripts", "buildsystems", "linux_32.cmake")
+
     cmake_flags.extend((
         "-DCMAKE_TOOLCHAIN_FILE=%s" % toolchain_file,
-        "-DVCPKG_TARGET_TRIPLET=%s" % utils.get_vcpkg_triplet(arch="x64")
+        "-DVCPKG_TARGET_TRIPLET=%s" % utils.get_vcpkg_triplet(arch=vcpkg_arch)
     ))
 
   if FLAGS.cmake_flag:
@@ -435,6 +450,10 @@ def _build_desktop(sdk_dir, cmake_flags):
                                        "-DFIREBASE_CPP_SDK_DIR=" + sdk_dir]
   if utils.is_windows_os():
     cmake_configure_cmd += ["-A", "x64"]
+  elif utils.is_mac_os():
+    # Ensure that correct Mac architecture is built.
+    cmake_configure_cmd += ["-DCMAKE_OSX_ARCHITECTURES=%s" %
+                            ("arm64" if FLAGS.arch == "arm64" else "x86_64")]
   _run(cmake_configure_cmd + cmake_flags)
   _run(["cmake", "--build", ".", "--config", "Debug"])
 
