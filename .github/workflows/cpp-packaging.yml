@@ -351,7 +351,7 @@ jobs:
           echo "SDK_NAME=${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}" >> $GITHUB_ENV
           if [[ '${{ matrix.sdk_platform }}' == 'darwin' ]]; then
             # If Mac, also hash vcpkg cache on Xcode version.
-            echo VCPKG_EXTRA_HASH=-${{env.xcodeVersion}} >> $GITHUB_ENV
+            echo VCPKG_EXTRA_HASH=-xcode${{env.xcodeVersion}} >> $GITHUB_ENV
           fi
 
       - name: Add msbuild to PATH (windows)
