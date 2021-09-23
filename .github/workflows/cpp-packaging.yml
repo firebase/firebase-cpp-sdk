@@ -134,7 +134,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: llvm-src/llvm/build
-          key: llvm-${{env.xcodeVersion}-${{env.llvmVer}}
+          key: llvm-${{env.xcodeVersion}}-${{env.llvmVer}}
 
       - name: build LLVM (Mac only)
         if: runner.os == 'macOS'
