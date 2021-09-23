@@ -370,7 +370,7 @@ Firebase Installations (stub)   | firebase_installations.xcframework
 Firebase Cloud Messaging (stub) | firebase_messaging.xcframework
 |                               | firebase.xcframework
 
-The provided libraries have been tested using Xcode 12.0. When building C++
+The provided libraries have been tested using Xcode 12.2. When building C++
 desktop apps on OS X, you will need to link the `gssapi_krb5` and `pthread`
 system libraries, as well as the `CoreFoundation`, `Foundation`, `GSS`, and
 `Security` OS X system frameworks (consult your compiler documentation for more
@@ -569,6 +569,8 @@ code.
 
 ### Future Release
 -   Changes
+    -   General (Desktop): MacOS SDKs are now built using Xcode 12.2,
+        and include support for ARM-based Mac.
     -   Messaging (Android): Fixes an issue to receive token when
         initialize the app. 
         ([#667](https://github.com/firebase/firebase-cpp-sdk/pull/667)).
