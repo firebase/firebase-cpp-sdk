@@ -138,9 +138,11 @@ endif()
 
 # For OSX, if the architectures we are building for do not match the current
 # host, treat it as cross-compiling.
-if(APPLE AND NOT "${CMAKE_OSX_ARCHITECTURES}" MATCHES "${CMAKE_HOST_SYSTEM_PROCESSOR}")
-  message("Cross-compiling ENABLED")
-  set(CMAKE_CROSSCOMPILING ON CACHE BOOL "" FORCE)
+if(DESKTOP AND APPLE)
+  if(NOT "${CMAKE_OSX_ARCHITECTURES}" MATCHES "${CMAKE_HOST_SYSTEM_PROCESSOR}")
+    message("Cross-compiling ENABLED")
+    set(CMAKE_CROSSCOMPILING ON CACHE BOOL "" FORCE)
+  endif()
 endif()
 
 if(DESKTOP AND NOT MSVC AND NOT APPLE)
