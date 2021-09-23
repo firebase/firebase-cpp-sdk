@@ -122,13 +122,17 @@ jobs:
           echo "VCPKG_SUFFIX: ${{env.VCPKG_SUFFIX}}"
           echo "VCPKG_RESPONSE_FILE=external/vcpkg_custom_data/response_files/${{ matrix.architecture }}-${{ env.VCPKG_SUFFIX }}.txt" >> $GITHUB_ENV
           echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}" >> $GITHUB_ENV
+          if [[ '${{ matrix.sdk_platform }}' == 'darwin' ]]; then
+            # If Mac, also hash vcpkg cache on Xcode version.
+            echo VCPKG_EXTRA_HASH-xcode${{matrix.xcode_version}} >> $GITHUB_ENV
+          fi
 
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
         uses: actions/cache@v2
         with:
           path: external/vcpkg/installed
-          key: dev-vcpkg-${{ matrix.architecture }}-${{ env.VCPKG_SUFFIX }}-${{ matrix.msvc_runtime }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
+          key: dev-vcpkg-${{ matrix.architecture }}-${{ env.VCPKG_SUFFIX }}-${{ matrix.msvc_runtime }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}${{ env.VCPKG_EXTRA_HASH }}
 
       - name: Cache ccache files
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
@@ -136,7 +140,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ccache_dir
-          key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
+          key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}${{ env.VCPKG_EXTRA_HASH }}
 
       - name: Setup python
         uses: actions/setup-python@v2

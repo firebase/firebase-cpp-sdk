@@ -463,12 +463,7 @@ if(DESKTOP)
   if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
     # The Firestore build includes protobuf and nanopb already
     list(APPEND CMAKE_MODULE_PATH ${NANOPB_SOURCE_DIR}/extra)
-    if(DESKTOP AND APPLE)
-      # For some reason, Apple desktop wants this to be named all-caps.
-      find_package(NANOPB)
-    else()
-      find_package(Nanopb)
-    endif()
+    find_package(Nanopb)
 
     set(PROTOBUF_FOUND ON)
   else()
@@ -480,12 +475,7 @@ if(DESKTOP)
       # NanoPB has a FindNanopb which defines the function to generate files,
       # so add it to the module path, and use that.
       list(APPEND CMAKE_MODULE_PATH ${NANOPB_SOURCE_DIR}/extra)
-      if(DESKTOP AND APPLE)
-        # For some reason, Apple desktop wants this to be named all-caps.
-        find_package(NANOPB)
-      else()
-        find_package(Nanopb)
-      endif()
+      find_package(Nanopb)
 
       target_compile_definitions(
         protobuf-nanopb-static
