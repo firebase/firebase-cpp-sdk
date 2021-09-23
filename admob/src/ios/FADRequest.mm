@@ -17,40 +17,80 @@
 #import "admob/src/ios/FADRequest.h"
 
 #include "admob/src/common/admob_common.h"
+#include "app/src/util_ios.h"
 
 namespace firebase {
 namespace admob {
 
-GADRequest *GADRequestFromCppAdRequest(AdRequest adRequest) {
+GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest) {
   // Create the GADRequest.
-  GADRequest *request = [GADRequest request];
+  GADRequest *gadRequest = [GADRequest request];
+
   // Keywords.
-  if (adRequest.keyword_count > 0) {
-    NSMutableArray *keywords = [[NSMutableArray alloc] init];
-    for (int i = 0; i < adRequest.keyword_count; i++) {
-      [keywords addObject:@(adRequest.keywords[i])];
+  const std::unordered_set<std::string>& keywords = adRequest.keywords();
+  if( keywords.size() > 0 ) {
+    NSMutableArray *gadKeywords = [[NSMutableArray alloc] init];
+    for (auto keyword = keywords.begin(); keyword != keywords.end(); ++keyword) {
+      [gadKeywords addObject: util::StringToNSString(*keyword)];
     }
-    request.keywords = keywords;
+    gadRequest.keywords = gadKeywords;
+  }
+  
+  // Extras.
+  const std::map<std::string, std::map<std::string, std::string>>& extras =
+      adRequest.extras();
+  for (auto adapter_iter = extras.begin(); adapter_iter != extras.end(); 
+       ++adapter_iter) {
+    const std::string adapterClassName = adapter_iter->first;
+
+    // Attempt to resolve the custom class.
+    Class extrasClass = NSClassFromString(util::StringToNSString(adapterClassName));
+    if (extrasClass == nil ) {
+      FIREBASE_ASSERT_MESSAGE(
+        true,
+        "Failed to resolve extras class: \"%s\"", adapterClassName.c_str());
+      continue;
+    }
+
+    // Attempt allocate a object of the class, and check to see if it's
+    // of an expected type.
+    id gadExtrasId = [[extrasClass alloc] init];
+    if (![gadExtrasId isKindOfClass:[GADExtras class]]) {
+      FIREBASE_ASSERT_MESSAGE(
+        true,
+        "Failed to load extras class inherited from GADExtras: \"%s\"",
+          adapterClassName.c_str());
+      continue;
+    }
+    
+
+    // Add the key/value dictionary to the object.
+    // adpter_iter->second is a std::map of the key/value pairs.
+    if (!adapter_iter->second.empty()) {
+      NSMutableDictionary *additionalParameters = [[NSMutableDictionary alloc] init];
+      for (auto extra_iter = adapter_iter->second.begin();
+           extra_iter != adapter_iter->second.end(); ++extra_iter) {
+        NSString *key = util::StringToNSString(extra_iter->first);
+        NSString *value = util::StringToNSString(extra_iter->second);
+        additionalParameters[key] = value;
+      }
+      
+      GADExtras* gadExtras = (GADExtras*)gadExtrasId;
+      gadExtras.additionalParameters = additionalParameters;
+      [gadRequest registerAdNetworkExtras:gadExtras];
+    }
   }
 
-  // Extras.
-  if (adRequest.extras_count > 0) {
-    NSMutableDictionary *additionalParameters = [[NSMutableDictionary alloc] init];
-    for (int i = 0; i < adRequest.extras_count; i++) {
-      NSString *key = @(adRequest.extras[i].key);
-      NSString *value = @(adRequest.extras[i].value);
-      additionalParameters[key] = value;
-    }
-    GADExtras *extras = [[GADExtras alloc] init];
-    extras.additionalParameters = additionalParameters;
-    [request registerAdNetworkExtras:extras];
+  // Content URL
+  if (!adRequest.content_url().empty()) {
+    gadRequest.contentURL = util::StringToNSString(adRequest.content_url());
   }
 
   // Set the request agent string so requests originating from this library can
   // be tracked and reported on as a group.
-  request.requestAgent = @(GetRequestAgentString());
+  gadRequest.requestAgent = @(GetRequestAgentString());
 
-  return request;
+  return gadRequest;
 }
 
 }

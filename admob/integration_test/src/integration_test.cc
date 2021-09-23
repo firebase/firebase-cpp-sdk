@@ -19,6 +19,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <map>
 #include <vector>
 
 #include "app_framework.h"  // NOLINT
@@ -72,6 +73,21 @@ const char* kInterstitialAdUnit = "ca-app-pub-3940256099942544/4411468910";
 // Sample test device IDs to use in making the request.
 const std::vector<std::string> kTestDeviceIDs = {
     "2077ef9a63d2b398840261c8221a0c9b", "098fe087d987c9a878965454a65654d7"};
+
+// Sample keywords to use in making the request.
+static const std::vector<std::string> kKeywords({"AdMob", "C++", "Fun"});
+
+// "Extra" key value pairs can be added to the request as well. Typically
+// these are used when testing new features.
+static const std::map<std::string, std::string> kAdMobAdapterExtras = {
+    {"the_name_of_an_extra", "the_value_for_that_extra"}};
+
+#if defined(__ANDROID__)
+static const char* kAdNetworkExtrasClassName =
+    "com/google/ads/mediation/admob/AdMobAdapter";
+#else
+static const char* kAdNetworkExtrasClassName = "GADExtras";
+#endif
 
 using app_framework::LogDebug;
 using app_framework::ProcessEvents;
@@ -162,21 +178,19 @@ void FirebaseAdMobTest::SetUp() {
 void FirebaseAdMobTest::TearDown() { FirebaseTest::TearDown(); }
 
 firebase::admob::AdRequest FirebaseAdMobTest::GetAdRequest() {
-  // Sample keywords to use in making the request.
-  static const char* kKeywords[] = {"AdMob", "C++", "Fun"};
-
   firebase::admob::AdRequest request;
 
   // Additional keywords to be used in targeting.
-  request.keyword_count = sizeof(kKeywords) / sizeof(kKeywords[0]);
-  request.keywords = kKeywords;
+  for (auto keyword_iter = kKeywords.begin(); keyword_iter != kKeywords.end();
+       ++keyword_iter) {
+    request.add_keyword((*keyword_iter).c_str());
+  }
 
-  // "Extra" key value pairs can be added to the request as well. Typically
-  // these are used when testing new features.
-  static const firebase::admob::KeyValuePair kRequestExtras[] = {
-      {"the_name_of_an_extra", "the_value_for_that_extra"}};
-  request.extras_count = sizeof(kRequestExtras) / sizeof(kRequestExtras[0]);
-  request.extras = kRequestExtras;
+  for (auto extras_iter = kAdMobAdapterExtras.begin();
+       extras_iter != kAdMobAdapterExtras.end(); ++extras_iter) {
+    request.add_extra(kAdNetworkExtrasClassName, extras_iter->first.c_str(),
+                      extras_iter->second.c_str());
+  }
 
   return request;
 }
@@ -339,7 +353,7 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
   static const int kBannerWidth = 320;
   static const int kBannerHeight = 50;
 
-  firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
+  const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::admob::BannerView* banner = new firebase::admob::BannerView();
   WaitForCompletion(banner->Initialize(app_framework::GetWindowContext(),
                                        kBannerAdUnit, banner_ad_size),
@@ -491,11 +505,7 @@ TEST_F(FirebaseAdMobTest, TestBannerViewAlreadyInitialized) {
   static const int kBannerWidth = 320;
   static const int kBannerHeight = 50;
 
-  firebase::admob::AdSize banner_ad_size;
-  banner_ad_size.ad_size_type = firebase::admob::kAdSizeStandard;
-  banner_ad_size.width = kBannerWidth;
-  banner_ad_size.height = kBannerHeight;
-
+  const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::admob::BannerView* banner = new firebase::admob::BannerView();
 
   {
@@ -605,7 +615,7 @@ TEST_F(FirebaseAdMobTest, TestBannerViewMultithreadDeletion) {
   static const int kBannerWidth = 320;
   static const int kBannerHeight = 50;
 
-  firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
+  const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
 
   for (int i = 0; i < 5; ++i) {
     firebase::admob::BannerView* banner = new firebase::admob::BannerView();

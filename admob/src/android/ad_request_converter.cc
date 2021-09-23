@@ -36,9 +36,6 @@
 namespace firebase {
 namespace admob {
 
-static const char* kAdMobAdapterClassName =
-    "com/google/ads/mediation/admob/AdMobAdapter";
-
 METHOD_LOOKUP_DEFINITION(ad_request_builder,
                          PROGUARD_KEEP_CLASS
                          "com/google/android/gms/ads/AdRequest$Builder",

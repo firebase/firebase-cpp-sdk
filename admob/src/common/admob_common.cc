@@ -93,6 +93,7 @@ bool AdSize::operator==(const AdSize& rhs) const { return is_equal(rhs); }
 bool AdSize::operator!=(const AdSize& rhs) const { return !is_equal(rhs); }
 
 AdRequest::AdRequest() {}
+AdRequest::~AdRequest() {}
 
 AdRequest::AdRequest(const char* content_url) { set_content_url(content_url); }
 
