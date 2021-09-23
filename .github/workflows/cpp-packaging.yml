@@ -93,7 +93,8 @@ jobs:
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
 
-      - name: fetch and build binutils
+      - name: fetch and build binutils (Linux only)
+        if: runner.os != 'macOS'
         run: |
           set +e
           # Retry up to 10 times because Curl has a tendency to timeout on
