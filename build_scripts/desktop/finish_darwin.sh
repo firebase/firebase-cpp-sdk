@@ -55,7 +55,7 @@ done
 # means that the lipo step has already occurred.
 if [[ ! -d "${packagepath}/libs/${os}/universal" ]]; then
     echo "Repackaging libraries using Mac libtool..."
-    for arch in "${architectures[*]}"; do
+    for arch in ${architectures[*]}; do
 	for lib in "${packagepath}/libs/${os}/${arch}"/*.a; do
 	    pushd $(dirname ${lib}) > /dev/null
 	    libname=$(basename "${lib}")
@@ -89,7 +89,7 @@ fi
 echo "Creating frameworks..."
 rm -rf "${packagepath}/frameworks/${os}"
 mkdir -p "${packagepath}/frameworks/${os}"
-for arch in universal "${architectures[*]}"; do
+for arch in universal ${architectures[*]}; do
     for f in "${packagepath}/libs/${os}/${arch}/"*.a; do
 	library=$f
 	framework=$(basename "${library}" | sed 's|^lib||' | sed 's|\.a$||')
