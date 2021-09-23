@@ -337,38 +337,39 @@ information).
 
 #### OS X libraries
 
-For OS X (Darwin), library versions are only provided for the 64-bit (x86_64)
-platform. See the table above (in the "Linux libraries" section) for the list of
-library dependencies. XCFrameworks are also provided for convenience.
+For OS X (Darwin), library versions are provided for both Intel (x86_64) and ARM
+(arm64) platforms, as well as universal libraries. See the table above (in the
+"Linux libraries" section) for the list of library dependencies. Frameworks are
+also provided for your convenience.
 
-Feature                         | Required XCFrameworks
+Feature                         | Required Frameworks
 ------------------------------- | ----------------------------------
-Firebase Authentication         | firebase_auth.xcframework
-|                               | firebase.xcframework
-Cloud Firestore                 | firebase_firestore.xcframework
-|                               | firebase_auth.xcframework
-|                               | firebase.xcframework
-Firebase Functions              | firebase_functions.xcframework
-|                               | firebase_auth.xcframework (optional)
-|                               | firebase.xcframework
-Firebase Realtime Database      | firebase_database.xcframework
-|                               | firebase_auth.xcframework
-|                               | firebase.xcframework
-Firebase Remote Config          | firebase_remote_config.xcframework
-|                               | firebase.xcframework
-Firebase Storage                | firebase_storage.xcframework
-|                               | firebase_auth.xcframework
-|                               | firebase.xcframework
-Firebase AdMob (stub)           | firebase_admob.xcframework
-|                               | firebase.xcframework
-Firebase Analytics (stub)       | firebase_analytics.xcframework
-|                               | firebase.xcframework
-Firebase Dynamic Links (stub)   | firebase_dynamic_links.xcframework
-|                               | firebase.xcframework
-Firebase Installations (stub)   | firebase_installations.xcframework
-|                               | firebase.xcframework
-Firebase Cloud Messaging (stub) | firebase_messaging.xcframework
-|                               | firebase.xcframework
+Firebase Authentication         | firebase_auth.framework
+|                               | firebase.framework
+Cloud Firestore                 | firebase_firestore.framework
+|                               | firebase_auth.framework
+|                               | firebase.framework
+Firebase Functions              | firebase_functions.framework
+|                               | firebase_auth.framework (optional)
+|                               | firebase.framework
+Firebase Realtime Database      | firebase_database.framework
+|                               | firebase_auth.framework
+|                               | firebase.framework
+Firebase Remote Config          | firebase_remote_config.framework
+|                               | firebase.framework
+Firebase Storage                | firebase_storage.framework
+|                               | firebase_auth.framework
+|                               | firebase.framework
+Firebase AdMob (stub)           | firebase_admob.framework
+|                               | firebase.framework
+Firebase Analytics (stub)       | firebase_analytics.framework
+|                               | firebase.framework
+Firebase Dynamic Links (stub)   | firebase_dynamic_links.framework
+|                               | firebase.framework
+Firebase Installations (stub)   | firebase_installations.framework
+|                               | firebase.framework
+Firebase Cloud Messaging (stub) | firebase_messaging.framework
+|                               | firebase.framework
 
 The provided libraries have been tested using Xcode 12.2. When building C++
 desktop apps on OS X, you will need to link the `gssapi_krb5` and `pthread`
@@ -570,7 +571,8 @@ code.
 ### Future Release
 -   Changes
     -   General (Desktop): MacOS SDKs are now built using Xcode 12.2,
-        and include support for ARM-based Mac.
+        and include support for ARM64-based Mac desktops.
+    -   General (iOS): iOS SDKs are now built using Xcode 12.2.
     -   Messaging (Android): Fixes an issue to receive token when
         initialize the app. 
         ([#667](https://github.com/firebase/firebase-cpp-sdk/pull/667)).
