@@ -129,7 +129,7 @@ jobs:
           mkdir llvm-src/llvm/build
           cd llvm-src/llvm/build
           cmake -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release ..
-          cmake --build . -j 2 --target llvm-objcopy --target llvm-nm --target llvm-ar
+          cmake --build . -j 3 --target llvm-objcopy --target llvm-nm --target llvm-ar
           cd -
           mkdir -p packaging-tools
           cp -af llvm-src/llvm/build/bin/* packaging-tools
