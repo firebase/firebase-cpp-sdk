@@ -35,7 +35,7 @@ namespace admob {
 /// @return On succes, a local reference to an Android object representing the
 /// AdRequest, or nullptr on error.
 jobject GetJavaAdRequestFromCPPAdRequest(const AdRequest& request,
-                                         admob::AdMobError& error);
+                                         admob::AdMobError* error);
 
 }  // namespace admob
 }  // namespace firebase

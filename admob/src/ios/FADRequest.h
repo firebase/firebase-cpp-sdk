@@ -25,7 +25,17 @@ namespace firebase {
 namespace admob {
 
 /// Returns a GADRequest from an admob::AdRequest.
-GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest, admob::AdMobError& error);
+/// Converts instances of the AdRequest struct used by the C++ wrapper to
+/// to Mobile Ads SDK GADRequest objects.
+///
+/// @param[in] request The AdRequest struct to be converted into a
+/// GAdRequest.
+/// @param[out] error kAdMobErrorNone on success, or another error if
+/// problems occurred.
+/// @return On succes, a pointer to a GADRequest object representing the
+/// AdRequest, or nullptr on error.
+GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
+                                       admob::AdMobError* error);
 
 }  // namespace admob
 }  // namespace firebase

@@ -24,8 +24,10 @@
 namespace firebase {
 namespace admob {
 
-GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest, admob::AdMobError& error) {
-  error = kAdMobErrorNone;
+GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest, 
+                                      admob::AdMobError* error) {
+  FIREBASE_ASSERT(error);
+  *error = kAdMobErrorNone;
 
   // Create the GADRequest.
   GADRequest *gadRequest = [GADRequest request];
@@ -50,7 +52,7 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest, admob::AdMobE
     Class extrasClass = NSClassFromString(util::StringToNSString(adapterClassName));
     if (extrasClass == nil ) {
       LogError("Failed to resolve extras class: \"%s\"", adapterClassName.c_str());
-      error = kAdMobErrorAdNetworkClassLoadError;
+      *error = kAdMobErrorAdNetworkClassLoadError;
       return nullptr;
     }
 
@@ -60,7 +62,7 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest, admob::AdMobE
     if (![gadExtrasId isKindOfClass:[GADExtras class]]) {
       LogError("Failed to load extras class inherited from GADExtras: \"%s\"",
           adapterClassName.c_str());
-      error = kAdMobErrorAdNetworkClassLoadError;
+      *error = kAdMobErrorAdNetworkClassLoadError;
       return nullptr;
     }
 

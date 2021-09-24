@@ -237,7 +237,7 @@ Future<void> BannerViewInternalAndroid::LoadAd(const AdRequest& request) {
       CreateFutureCallbackData(&future_data_, kBannerViewFnLoadAd);
 
   admob::AdMobError error = kAdMobErrorNone;
-  jobject request_ref = GetJavaAdRequestFromCPPAdRequest(request, error);
+  jobject request_ref = GetJavaAdRequestFromCPPAdRequest(request, &error);
 
   if (request_ref == nullptr) {
     if (error == kAdMobErrorNone) {

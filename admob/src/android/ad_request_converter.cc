@@ -43,8 +43,9 @@ METHOD_LOOKUP_DEFINITION(ad_request_builder,
                          ADREQUESTBUILDER_METHODS);
 
 jobject GetJavaAdRequestFromCPPAdRequest(const AdRequest& request,
-                                         admob::AdMobError& error) {
-  error = kAdMobErrorNone;
+                                         admob::AdMobError* error) {
+  FIREBASE_ASSERT(error);
+  *error = kAdMobErrorNone;
 
   JNIEnv* env = ::firebase::admob::GetJNI();
   jobject builder = env->NewObject(
@@ -64,7 +65,7 @@ jobject GetJavaAdRequestFromCPPAdRequest(const AdRequest& request,
           "Failed to resolve extras class. Check that \"%s\""
           " is present in your APK.",
           adapter_name.c_str());
-      error = kAdMobErrorAdNetworkClassLoadError;
+      *error = kAdMobErrorAdNetworkClassLoadError;
       env->DeleteLocalRef(builder);
       return nullptr;
     }
