@@ -571,7 +571,7 @@ code.
 ### Future Release
 -   Changes
     -   General (Desktop): MacOS SDKs are now built using Xcode 12.2,
-        and include support for ARM64-based Mac desktops.
+        and include support for ARM-based Mac systems.
     -   General (iOS): iOS SDKs are now built using Xcode 12.2.
     -   Messaging (Android): Fixes an issue to receive token when
         initialize the app. 
