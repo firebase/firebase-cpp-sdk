@@ -53,6 +53,8 @@ import summarize_test_results as summarize
 _REPORT_LABEL = "nightly-testing"
 _REPORT_TITLE = "Nightly Integration Testing Report"
 
+_LABEL_TRIGGER_FULL = "tests-requested: full"
+_LABEL_TRIGGER_QUICK = "tests-requested: quick"
 _LABEL_PROGRESS = "tests: in-progress"
 _LABEL_FAILED = "tests: failed"
 _LABEL_SUCCEED = "tests: succeeded"
@@ -122,7 +124,7 @@ flags.DEFINE_string(
 def test_start(token, issue_number, actor, commit, run_id):
   """In PR, when start testing, add comment and label \"tests: in-progress\""""
   github.add_label(token, issue_number, _LABEL_PROGRESS)
-  for label in [_LABEL_FAILED, _LABEL_SUCCEED]:
+  for label in [_LABEL_TRIGGER_FULL, _LABEL_TRIGGER_QUICK, _LABEL_FAILED, _LABEL_SUCCEED]:
     github.delete_label(token, issue_number, label)
 
   comment = (_COMMENT_TITLE_PROGESS +
