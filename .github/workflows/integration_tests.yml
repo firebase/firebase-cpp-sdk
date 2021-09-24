@@ -71,7 +71,8 @@ jobs:
         GITHUB_TOKEN: ${{ github.token }}
     ### It sets "github_ref,trigger,pr_number,requested_tests" outputs to control the following jobs and steps
     ### trigger value: manual_trigger, scheduled_trigger, label_trigger, postsubmit_trigger, presubmit_trigger
-    - id: set_outputs
+    - name: Check trigger
+      id: set_outputs
       run: |
         if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then 
           if [[ "${{ github.event.inputs.test_pull_request }}" != "nightly-packaging" ]]; then
@@ -149,7 +150,8 @@ jobs:
         python-version: ${{ env.pythonVersion }}
     - name: Install python deps
       run: pip install -r scripts/gha/requirements.txt
-    - id: matrix_config
+    - name: Set build & test martix config
+      id: matrix_config
       run: |
         if [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "expanded" ]]; then 
           TEST_MATRIX_PARAM=-e=1
@@ -209,7 +211,7 @@ jobs:
       if: steps.set_outputs.outputs.trigger == 'label_trigger' && contains(steps.matrix_config.outputs.matrix_platform, 'Desktop')
       shell: bash
       run: |
-        python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }}\ 
+        python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} \ 
           -w integration_tests.yml \
           -p test_pull_request ${{steps.set_outputs.outputs.pr_number}} \
           -p use_preset_matrix minimal \
