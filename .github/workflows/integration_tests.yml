@@ -80,7 +80,7 @@ jobs:
             echo "::set-output name=trigger::manual_trigger"
             if [[ "${{ github.event.inputs.use_preset_matrix }}" == "expanded" ]]; then
               echo "::set-output name=requested_tests::expanded"
-            elif [[ "${{ github.event.inputs.use_preset_matrix }}" == "expanded" ]]; then
+            elif [[ "${{ github.event.inputs.use_preset_matrix }}" == "minimal" ]]; then
               echo "::set-output name=requested_tests::minimal"
             fi
             if [[ -z "${{github.event.inputs.test_pull_request}}" ]]; then
