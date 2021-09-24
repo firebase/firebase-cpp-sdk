@@ -117,9 +117,10 @@ jobs:
           mv ./binutils-${{ matrix.binutils_version }} ./binutils-src
           mkdir binutils-output
           cd binutils-src
-          ./configure --enable-targets=all --prefix="${HOME}"/binutils-output
+          ./configure --enable-targets=all --prefix=../binutils-output
           make -j2
           make install
+          cd -
 
       - name: Package binutils output
         run: |
@@ -151,6 +152,7 @@ jobs:
           cmake -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release ..
           cmake --build . -j 3 --target llvm-objcopy --target llvm-nm --target llvm-ar
           cp -af llvm-src/llvm/build/bin/* ~/llvm-output
+          cd -
 
       - name: Package LLVM output (Mac only)
         if: matrix.tools_platform == 'darwin'
