@@ -93,9 +93,6 @@ jobs:
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
 
-      - name: make binutils output directory
-        run: 
-
       - name: Cache binutils
         id: cache_binutils
         uses: actions/cache@v2
@@ -120,7 +117,7 @@ jobs:
           mv ./binutils-${{ matrix.binutils_version }} ./binutils-src
           mkdir binutils-output
           cd binutils-src
-          ./configure --enable-targets=all --prefix=../binutils-output
+          ./configure --enable-targets=all --prefix="${HOME}"/binutils-output
           make -j2
           make install
 
@@ -130,15 +127,15 @@ jobs:
           cp -af binutils-output/bin/* packaging-tools
 
       - name: Cache LLVM (Mac only)
-        if: runner.os == 'macOS'
+        if: matrix.tools_platform == 'darwin'
         id: cache_llvm
         uses: actions/cache@v2
         with:
           path: llvm-output
-          key: llvm-output-${{env.xcodeVersion}}-${{env.llvmVer}}
+          key: llvm-output-${{matrix.tools_platform}}-${{env.xcodeVersion}}-${{env.llvmVer}}
 
       - name: Fetch LLVM source (Mac only)
-        if: ${{ runner.os == 'macOS' && !steps.cache_llvm.outputs.cache-hit }}
+        if: ${{ matrix.tools_platform == 'darwin' && !steps.cache_llvm.outputs.cache-hit }}
         uses: actions/checkout@v2.3.1
         with:
           repository: llvm/llvm-project
@@ -146,7 +143,7 @@ jobs:
           ref: ${{ env.llvmVer }}
 
       - name: Build LLVM (Mac only) 
-        if: ${{ runner.os == 'macOS' && !steps.cache_llvm.outputs.cache-hit }}
+        if: ${{ matrix.tools_platform == 'darwin' && !steps.cache_llvm.outputs.cache-hit }}
         run: |
           mkdir llvm-output
           cd llvm-src/llvm/build
@@ -156,6 +153,7 @@ jobs:
           cp -af llvm-src/llvm/build/bin/* ~/llvm-output
 
       - name: Package LLVM output (Mac only)
+        if: matrix.tools_platform == 'darwin'
         run: |
           mkdir -p packaging-tools
           cp -af llvm-output/* packaging-tools
