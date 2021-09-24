@@ -16,6 +16,7 @@
 
 #include "app/rest/response.h"
 
+#include <atomic>
 #include <string>
 
 #include "app/rest/util.h"
@@ -25,7 +26,8 @@ namespace firebase {
 namespace rest {
 
 Response::Response()
-    : status_(0),
+    : uid_(generate_uid()),
+      status_(0),
       header_completed_(false),
       body_completed_(false),
       sdk_error_code_(0),

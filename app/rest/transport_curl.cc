@@ -24,6 +24,7 @@
 #include "app/rest/util.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/platform.h"
+#include "app/src/log.h"
 #include "app/src/mutex.h"
 #include "app/src/semaphore.h"
 #include "app/src/thread.h"
@@ -412,14 +413,17 @@ BackgroundTransportCurl::~BackgroundTransportCurl() {
 void BackgroundTransportCurl::CompleteOperation() {
   if (complete_) complete_(this, complete_data_);
   if (canceled_) {
+    LogWarning("zzyzx BackgroundTransportCurl::CompleteOperation() response_->uid()=%d canceled_=true; calling response_->MarkFailed()", response_->uid());
     response_->set_status(rest::util::HttpNoContent);
     request_->MarkFailed();
     response_->MarkFailed();
   } else if (timed_out_) {
+    LogWarning("zzyzx BackgroundTransportCurl::CompleteOperation() response_->uid()=%d timed_out_=true; calling response_->MarkFailed()", response_->uid());
     response_->set_status(rest::util::HttpRequestTimeout);
     request_->MarkFailed();
     response_->MarkFailed();
   } else {
+    LogWarning("zzyzx BackgroundTransportCurl::CompleteOperation() response_->uid()=%d; calling response_->MarkCompleted()", response_->uid());
     request_->MarkCompleted();
     response_->MarkCompleted();
   }
