@@ -349,7 +349,7 @@ TEST_F(FirebaseMessagingTest, TestRequestPermission) {
   EXPECT_TRUE(RequestPermission());
 }
 
-TEST_F(FirebaseMessagingTest, TestReceiveToken) {
+TEST_F(FirebaseMessagingTest, TestReceiveInitToken) {
   TEST_REQUIRES_USER_INTERACTION_ON_IOS;
 
   EXPECT_TRUE(RequestPermission());
@@ -360,6 +360,26 @@ TEST_F(FirebaseMessagingTest, TestReceiveToken) {
 
   EXPECT_TRUE(WaitForToken());
   EXPECT_NE(*shared_token_, "");
+
+  if (*shared_token_ == "") {
+    ::firebase::messaging::Terminate();
+    ::firebase::messaging::Initialize(*shared_app_, shared_listener_, firebase::messaging::MessagingOptions());
+  }
+
+  FLAKY_TEST_SECTION_END();
+}
+
+TEST_F(FirebaseMessagingTest, TestRequestToken) {
+  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
+
+  EXPECT_TRUE(RequestPermission());
+
+  FLAKY_TEST_SECTION_BEGIN();
+
+  ::firebase::Future<std::string> tokenResult = ::firebase::messaging::GetToken();
+  EXPECT_TRUE(WaitForCompletion(tokenResult,
+                                "GetToken"));
+  EXPECT_NE(*(tokenResult.result()), "");
 
   FLAKY_TEST_SECTION_END();
 }
