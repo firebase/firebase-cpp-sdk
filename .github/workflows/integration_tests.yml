@@ -199,14 +199,14 @@ jobs:
           --commit ${{steps.set_outputs.outputs.github_ref}} \
           --run_id ${{github.run_id}}
     - name: Generate token for GitHub API for sanity check
-      if: ${{ steps.set_outputs.outputs.trigger == 'label_trigger' && contains(steps.set_outputs.outputs.matrix_platform, 'Desktop') }}
+      if: steps.set_outputs.outputs.trigger == 'label_trigger' && contains(steps.matrix_config.outputs.matrix_platform, 'Desktop')
       uses: tibdex/github-app-token@v1
       id: generate-token
       with:
         app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
         private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
     - name: Restart sanity check
-      if: ${{ steps.set_outputs.outputs.trigger == 'label_trigger' && contains(steps.set_outputs.outputs.matrix_platform, 'Desktop') }}
+      if: steps.set_outputs.outputs.trigger == 'label_trigger' && contains(steps.matrix_config.outputs.matrix_platform, 'Desktop')
       shell: bash
       run: |
         python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }}\ 
