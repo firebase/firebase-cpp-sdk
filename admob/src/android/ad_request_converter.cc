@@ -21,6 +21,7 @@
 
 #include <cstdarg>
 #include <cstddef>
+#include <map>
 #include <string>
 #include <unordered_set>
 #include <vector>

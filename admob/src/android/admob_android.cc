@@ -59,17 +59,6 @@ METHOD_LOOKUP_DEFINITION(
     "com/google/android/gms/ads/RequestConfiguration$Builder",
     REQUESTCONFIGURATIONBUILDER_METHODS);
 
-METHOD_LOOKUP_DEFINITION(request_config,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/android/gms/ads/RequestConfiguration",
-                         REQUESTCONFIGURATION_METHODS);
-
-METHOD_LOOKUP_DEFINITION(
-    request_config_builder,
-    PROGUARD_KEEP_CLASS
-    "com/google/android/gms/ads/RequestConfiguration$Builder",
-    REQUESTCONFIGURATIONBUILDER_METHODS);
-
 static JavaVM* g_java_vm = nullptr;
 static const ::firebase::App* g_app = nullptr;
 static jobject g_activity;

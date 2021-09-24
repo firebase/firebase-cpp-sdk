@@ -223,6 +223,7 @@ struct KeyValuePair {
   const char *value;
 };
 
+/// Contains targeting information used to fetch an ad.
 class AdRequest {
  public:
   /// Creates an @ref AdRequest with no custom configuration.
@@ -236,7 +237,7 @@ class AdRequest {
   /// The URL is ignored if null or the number of characters exceeds 512.
   ///
   /// @param[in] content_url the url of the content being viewed.
-  AdRequest(const char *content_url);
+  explicit AdRequest(const char *content_url);
 
   ~AdRequest();
 
@@ -265,7 +266,7 @@ class AdRequest {
   /// @param[in] ad_network the ad network for which to add the extra.
   /// @param[in] extra_key a key which will be passed to the corresponding ad
   /// network adapter.
-  /// @param[in] extra_value the value associated with @ref extra_key.
+  /// @param[in] extra_value the value associated with extra_key.
   void add_extra(const char *ad_network, const char *extra_key,
                  const char *extra_value);
 
@@ -273,7 +274,7 @@ class AdRequest {
   ///
   /// Multiple keywords may be added via repeated invocations of this method.
   ///
-  /// @param[in] a string that Admob will use to aid in targeting ads.
+  /// @param[in] keyword a string that Admob will use to aid in targeting ads.
   void add_keyword(const char *keyword);
 
   /// When requesting an ad, apps may pass the URL of the content they are

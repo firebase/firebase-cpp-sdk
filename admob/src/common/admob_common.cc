@@ -18,6 +18,7 @@
 
 #include <assert.h>
 
+#include <string>
 #include <vector>
 
 #include "admob/src/include/firebase/admob.h"

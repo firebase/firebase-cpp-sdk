@@ -90,7 +90,7 @@ static const char* kAdNetworkExtrasClassName =
 static const char* kAdNetworkExtrasClassName = "GADExtras";
 #endif
 
-static const std::string kContentUrl = "http://www.firebase.com";
+static const char* kContentUrl = "http://www.firebase.com";
 
 using app_framework::LogDebug;
 using app_framework::ProcessEvents;
@@ -197,7 +197,7 @@ firebase::admob::AdRequest FirebaseAdMobTest::GetAdRequest() {
                       extras_iter->second.c_str());
   }
 
-  request.set_content_url(kContentUrl.c_str());
+  request.set_content_url(kContentUrl);
 
   return request;
 }
@@ -211,7 +211,7 @@ TEST_F(FirebaseAdMobTest, TestGetAdRequestValues) {
   const firebase::admob::AdRequest request = GetAdRequest();
 
   // Content URL.
-  EXPECT_TRUE(request.content_url() == kContentUrl);
+  EXPECT_TRUE(request.content_url() == std::string(kContentUrl));
 
   // Extras.
   std::map<std::string, std::map<std::string, std::string> > configured_extras =
