@@ -32,9 +32,11 @@ env:
   demumbleVer: "1.1.0"
   # Use SHA256 for hashing files.
   hashCommand: "sha256sum"
-  # Xcode version 12 is the version we build the SDK with.
+  # Xcode version 12.2 is the version we build the SDK with.
   # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
-  xcodeVersion: "12"
+  xcodeVersion: "12.2"
+  # LLVM version with ARM MachO support has no version number yet.
+  llvmVer: "5f187f0afaad33013ba03454c4749d99b1362534"
 
 jobs:
   log_inputs:
@@ -91,7 +93,7 @@ jobs:
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
 
-      - name: fetch and build binutils
+      - name: Fetch and build binutils
         run: |
           set +e
           # Retry up to 10 times because Curl has a tendency to timeout on
@@ -105,13 +107,46 @@ jobs:
 
           tar -xf binutils.tar.xz
           mv ./binutils-${{ matrix.binutils_version }} ./binutils-src
+          mkdir /tmp/binutils-output
           cd binutils-src
-          ./configure --enable-targets=all --prefix=/tmp/binutils
-          make
+          ./configure --enable-targets=all --prefix=/tmp/binutils-output
+          make -j2
           make install
           cd -
           mkdir -p packaging-tools
-          cp -af /tmp/binutils/bin/* packaging-tools
+          cp -af /tmp/binutils-output/bin/* packaging-tools
+
+      - name: Cache LLVM (Mac only)
+        if: matrix.tools_platform == 'darwin'
+        id: cache_llvm
+        uses: actions/cache@v2
+        with:
+          path: llvm-src/llvm/build/bin
+          key: llvm-bin-${{matrix.tools_platform}}-${{env.xcodeVersion}}-${{env.llvmVer}}
+
+      - name: Fetch LLVM source (Mac only)
+        # Only fetch LLVM if we don't already have binaries from the cache.
+        if: ${{ matrix.tools_platform == 'darwin' && !steps.cache_llvm.outputs.cache-hit }}
+        uses: actions/checkout@v2.3.1
+        with:
+          repository: llvm/llvm-project
+          path: llvm-src
+          ref: ${{ env.llvmVer }}
+
+      - name: Build LLVM (Mac only) 
+        # Only build LLVM if we don't already have binaries from the cache.
+        if: ${{ matrix.tools_platform == 'darwin' && !steps.cache_llvm.outputs.cache-hit }}
+        run: |
+          mkdir llvm-src/llvm/build
+          cd llvm-src/llvm/build
+          cmake -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release ..
+          cmake --build . -j 3 --target llvm-objcopy --target llvm-nm --target llvm-ar
+
+      - name: Package LLVM output (Mac only)
+        if: matrix.tools_platform == 'darwin'
+        run: |
+          mkdir -p packaging-tools
+          cp -af llvm-src/llvm/build/bin/* packaging-tools
 
       - name: fetch demumble
         uses: actions/checkout@v2.3.1
@@ -127,7 +162,7 @@ jobs:
           cmake --build .
           python demumble_test.py
           cd -
-          mkdir -p packaging-tools-
+          mkdir -p packaging-tools
           cp -af demumble-src/demumble packaging-tools
 
       - name: archive tools
@@ -254,7 +289,7 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
         build_type: ["Release", "Debug"]
-        architecture: ["x64", "x86"]
+        architecture: ["x64", "x86", "arm64"]
         msvc_runtime: ["static", "dynamic"]
         linux_abi: ["legacy", "c++11"]
         python_version: [3.7]
@@ -292,6 +327,10 @@ jobs:
           msvc_runtime: "dynamic"
         - os: ubuntu-latest
           build_type: "Debug"
+        - os: ubuntu-latest
+          architecture: "arm64"
+        - os: windows-latest
+          architecture: "arm64"
 
     steps:
       - name: setup Xcode version (macos)
@@ -308,6 +347,10 @@ jobs:
           echo "VCPKG_RESPONSE_FILE=external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt" >> $GITHUB_ENV
           echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}" >> $GITHUB_ENV
           echo "SDK_NAME=${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}" >> $GITHUB_ENV
+          if [[ '${{ matrix.sdk_platform }}' == 'darwin' ]]; then
+            # If Mac, also hash vcpkg cache on Xcode version.
+            echo "VCPKG_EXTRA_HASH=-xcode${{env.xcodeVersion}}" >> $GITHUB_ENV
+          fi
 
       - name: Add msbuild to PATH (windows)
         if: startsWith(matrix.os, 'windows')
@@ -318,7 +361,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: external/vcpkg/installed
-          key: dev-vcpkg-${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
+          key: dev-vcpkg-${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}${{env.VCPKG_EXTRA_HASH}}
 
       - name: Cache ccache files
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
@@ -503,15 +546,15 @@ jobs:
             variant=$(sdk-src/build_scripts/desktop/get_variant.sh "${pkg}")
             additional_flags=(${verbose_flag})
             # Several build targets require explicitly-set binutils format to be passed
-            # to package.sh (and thus, to merge_libraries).
-            if [[ "${{ matrix.sdk_platform }}" == "darwin" && "${variant}" == "arm64" ]]; then
-              # MacOS ARM
-              additional_flags+=(-f mach-o-arm64)
+            # to package.sh (and thus, to merge_libraries), or use LLVM binutils.
+            if [[ "${{ matrix.sdk_platform }}" == "darwin" ]]; then
+              # MacOS: use LLVM binutils for both X64 and ARM64
+              additional_flags+=(-L)
             elif [[ "${{ matrix.sdk_platform }}" == "windows" && "${variant}" == *"/x64/"* ]]; then
-              # Windows x64
+              # Windows x64: force input and output target format
               additional_flags+=(-f pe-x86-64,pe-bigobj-x86-64)
             elif [[ "${{ matrix.sdk_platform }}" == "windows" && "${variant}" == *"/x86/"* ]]; then
-              # Windows x86
+              # Windows x86: force input and output target format
               additional_flags+=(-f pe-i386,pe-bigobj-i386)
             fi
             sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3 -j ${additional_flags[*]}

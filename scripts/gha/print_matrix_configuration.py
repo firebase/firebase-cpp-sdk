@@ -74,14 +74,14 @@ PARAMETERS = {
     "matrix": {
       "os": ["ubuntu-latest", "macos-latest"],
       "build_type": ["Release", "Debug"],
-      "architecture": ["x64", "x86"],
+      "architecture": ["x64", "x86", "arm64"],
       "msvc_runtime": ["static","dynamic"],
-      "xcode_version": ["11.7"],
+      "xcode_version": ["12.2"],
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
         "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
-        "xcode_version": ["11.7", "12.4"],
+        "xcode_version": ["11.7", "12.2", "12.5"],
       }
     }
   },
