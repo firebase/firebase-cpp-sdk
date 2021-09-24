@@ -134,7 +134,7 @@ jobs:
         sleep 300
         exit 1  # fail out if the cancellation above somehow failed.
     - name: Cancel previous runs on the same PR
-      if: steps.set_outputs.outputs.trigger == 'presubmit_trigger' 
+      if: steps.set_outputs.outputs.trigger == 'label_trigger' 
       uses: styfle/cancel-workflow-action@0.8.0
       with:
         access_token: ${{ github.token }}
