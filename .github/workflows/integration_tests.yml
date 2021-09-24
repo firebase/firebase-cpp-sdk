@@ -151,10 +151,10 @@ jobs:
       id: matrix_config
       run: |
         if [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "expanded" ]]; then 
-          TEST_MATRIX_PARAM=-e=1
+          TEST_MATRIX_PARAM=-m=expanded
           echo "::warning ::Running on the expanded matrix"
         elif [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "minimal" ]]; then 
-          TEST_MATRIX_PARAM=-m=1
+          TEST_MATRIX_PARAM=-m=minimal
           echo "::warning ::Running on the minimal matrix"
         elif [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "auto" ]]; then 
           # auto-diff only apply when running in a PR. 

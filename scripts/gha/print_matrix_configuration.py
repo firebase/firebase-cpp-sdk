@@ -74,14 +74,14 @@ PARAMETERS = {
     "matrix": {
       "os": ["ubuntu-latest", "macos-latest"],
       "build_type": ["Release", "Debug"],
-      "architecture": ["x64", "x86"],
+      "architecture": ["x64", "x86", "arm64"],
       "msvc_runtime": ["static","dynamic"],
-      "xcode_version": ["11.7"],
+      "xcode_version": ["12.2"],
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
         "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
-        "xcode_version": ["11.7", "12.4"],
+        "xcode_version": ["11.7", "12.2", "12.5"],
       }
     }
   },
@@ -178,12 +178,12 @@ TEST_DEVICES = {
  
 
 
-def get_value(workflow, test_matrix, parm_key, config_parms_only=False):
+def get_value(workflow, preset_matrix, parm_key, config_parms_only=False):
   """ Fetch value from configuration
 
   Args:
       workflow (str): Key corresponding to the github workflow.
-      test_matrix (str): Use EXPANDED_KEY or MINIMAL_KEY configuration for the workflow?
+      preset_matrix (str): Use EXPANDED_KEY or MINIMAL_KEY configuration for the workflow?
       parm_key (str): Exact key name to fetch from configuration.
       config_parms_only (bool): Search in config blocks if True, else matrix
                                 blocks.
@@ -195,23 +195,23 @@ def get_value(workflow, test_matrix, parm_key, config_parms_only=False):
       (str|list): Matched value for the given key.
   """
   # Search for a given key happens in the following sequential order
-  # Minimal/Expanded block (if test_matrix) -> Standard block
+  # Minimal/Expanded block (if preset_matrix) -> Standard block
 
   parm_type_key = "config" if config_parms_only else "matrix"
   workflow_block = PARAMETERS.get(workflow)
   if workflow_block:
-    if test_matrix and test_matrix in workflow_block["matrix"]:
-      if parm_key in workflow_block["matrix"][test_matrix]:
-        return workflow_block["matrix"][test_matrix][parm_key]
+    if preset_matrix and preset_matrix in workflow_block["matrix"]:
+      if parm_key in workflow_block["matrix"][preset_matrix]:
+        return workflow_block["matrix"][preset_matrix][parm_key]
     
     return workflow_block[parm_type_key][parm_key]
 
   else:
     raise KeyError("Parameter key: '{0}' of type '{1}' not found "\
-                   "for workflow '{2}' (test_matrix = {3}) .".format(parm_key,
+                   "for workflow '{2}' (preset_matrix = {3}) .".format(parm_key,
                                                                 parm_type_key,
                                                                 workflow,
-                                                                test_matrix))
+                                                                preset_matrix))
 
 
 def filter_devices(devices, device_type):
@@ -343,28 +343,23 @@ def filter_platforms_on_apis(platforms, apis):
 
 def main():
   args = parse_cmdline_args()
-  if args.override:
-    # If it is matrix parm, convert CSV string into a list
-    if not args.config:
-      args.override = args.override.split(',')
-    if args.parm_key == "platform" and args.apis:
-      # e.g. args.apis = "\"admob,analytics\""
-      args.override = filter_platforms_on_apis(args.override, args.apis.strip('"').split(','))
-
-    print_value(args.override)
-    return
-
   if args.device:
     print(TEST_DEVICES.get(args.parm_key).get("type"))
     return 
 
-  if args.expanded:
-    test_matrix = EXPANDED_KEY
-  elif args.minimal:
-    test_matrix = MINIMAL_KEY
-  else:
-    test_matrix = ""
-  value = get_value(args.workflow, test_matrix, args.parm_key, args.config)
+  # preset matrix in EXPANDED_KEY and MINIMAL_KEY has highest priority 
+  if not args.preset_matrix:
+    # manul input has second highest priority 
+    if args.override:
+      # If it is matrix parm, convert CSV string into a list
+      if not args.config:
+        args.override = args.override.split(',')
+      if args.parm_key == "platform" and args.apis:
+        # e.g. args.apis = "\"admob,analytics\""
+        args.override = filter_platforms_on_apis(args.override, args.apis.strip('"').split(','))
+      print_value(args.override)
+      return
+  value = get_value(args.workflow, args.preset_matrix, args.parm_key, args.config)
   if args.workflow == "integration_tests" and (args.parm_key == "android_device" or args.parm_key == "ios_device"):
     value = filter_devices(value, args.device_type)
   if args.auto_diff:
@@ -376,8 +371,7 @@ def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Query matrix and config parameters used in Github workflows.')
   parser.add_argument('-c', '--config', action='store_true', help='Query parameter used for Github workflow/dispatch configurations.')
   parser.add_argument('-w', '--workflow', default=DEFAULT_WORKFLOW, help='Config key for Github workflow.')
-  parser.add_argument('-m', '--minimal', type=bool, default=False, help='Use minimal matrix')
-  parser.add_argument('-e', '--expanded', type=bool, default=False, help='Use expanded matrix')
+  parser.add_argument('-m', '--preset_matrix', default=None, help='Use minimal/expanded matrix')
   parser.add_argument('-k', '--parm_key', required=True, help='Print the value of specified key from matrix or config maps.')
   parser.add_argument('-a', '--auto_diff', metavar='BRANCH', help='Compare with specified base branch to automatically set matrix options')
   parser.add_argument('-o', '--override', help='Override existing value with provided value')
