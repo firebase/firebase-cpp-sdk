@@ -125,6 +125,7 @@ jobs:
           key: llvm-output-${{matrix.tools_platform}}-${{env.xcodeVersion}}-${{env.llvmVer}}
 
       - name: Fetch LLVM source (Mac only)
+        # Only fetch LLVM if we don't already have binaries from the cache.
         if: ${{ matrix.tools_platform == 'darwin' && !steps.cache_llvm.outputs.cache-hit }}
         uses: actions/checkout@v2.3.1
         with:
@@ -133,14 +134,14 @@ jobs:
           ref: ${{ env.llvmVer }}
 
       - name: Build LLVM (Mac only) 
+        # Only build LLVM if we don't already have binaries from the cache.
         if: ${{ matrix.tools_platform == 'darwin' && !steps.cache_llvm.outputs.cache-hit }}
         run: |
           mkdir llvm-output
           cd llvm-src/llvm/build
-          # Only build LLVM if we don't already have binaries from the cache.
           cmake -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release ..
           cmake --build . -j 3 --target llvm-objcopy --target llvm-nm --target llvm-ar
-          cp -af llvm-src/llvm/build/bin/* ~/llvm-output
+          cp -af llvm-src/llvm/build/bin/* ../../../llvm-output
           cd -
 
       - name: Package LLVM output (Mac only)
