@@ -121,8 +121,8 @@ jobs:
         id: cache_llvm
         uses: actions/cache@v2
         with:
-          path: llvm-src/llvm/build
-          key: llvm-build-${{matrix.tools_platform}}-${{env.xcodeVersion}}-${{env.llvmVer}}
+          path: llvm-src/llvm/build/bin
+          key: llvm-bin-${{matrix.tools_platform}}-${{env.xcodeVersion}}-${{env.llvmVer}}
 
       - name: Fetch LLVM source (Mac only)
         # Only fetch LLVM if we don't already have binaries from the cache.
