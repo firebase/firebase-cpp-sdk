@@ -724,7 +724,6 @@ jobs:
           # reuse flag --test_pull_request=nightly-packaging to generate report
           generate_report=(-p test_pull_request nightly-packaging)
         fi
-        verbose_flag=
         if [[ -n "${{ github.event.inputs.verboseBuild }}" && "${{ github.event.inputs.verboseBuild }}" -ne 0 ]]; then
           verbose_flag=-v
         fi
