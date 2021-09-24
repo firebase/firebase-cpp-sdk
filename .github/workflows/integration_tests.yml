@@ -140,7 +140,7 @@ jobs:
       with:
         access_token: ${{ github.token }}
     - name: Checkout repo
-      uses: actions/checkout@v2.3.1
+      uses: actions/checkout@v2
     - name: Setup python
       uses: actions/setup-python@v2
       with:
@@ -208,6 +208,7 @@ jobs:
       if: steps.set_outputs.outputs.trigger == 'label_trigger' && contains(steps.matrix_config.outputs.matrix_platform, 'Desktop')
       shell: bash
       run: |
+        git switch ${{github.event.pull_request.head.ref}}
         python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} -w integration_tests.yml -p use_preset_matrix minimal -s 10 -A 
 
   build_desktop:
