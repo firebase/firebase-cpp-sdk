@@ -24,6 +24,8 @@
 namespace firebase {
 namespace admob {
 
+class AdSize;
+
 // Used to setup the cache of AdRequestBuilder class method IDs to reduce
 // time spent looking up methods by string.
 // clang-format off
@@ -32,11 +34,31 @@ namespace admob {
   X(Build, "build", "()Lcom/google/android/gms/ads/AdRequest;"),             \
   X(AddKeyword, "addKeyword",                                                \
       "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;"), \
-  X(SetRequestAgent, "setRequestAgent",                                      \
-      "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;"), \
   X(AddNetworkExtrasBundle, "addNetworkExtrasBundle",                        \
       "(Ljava/lang/Class;Landroid/os/Bundle;)"                               \
-      "Lcom/google/android/gms/ads/AdRequest$Builder;")
+      "Lcom/google/android/gms/ads/AdRequest$Builder;"),                     \
+  X(SetContentUrl, "setContentUrl",                                          \
+      "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;"), \
+  X(SetRequestAgent, "setRequestAgent",                                      \
+      "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;")
+// clang-format on
+
+// clang-format off
+#define ADSIZE_METHODS(X)                                                    \
+  X(Constructor, "<init>", "(II)V"),                                         \
+  X(GetCurrentOrientationAnchoredAdaptiveBannerAdSize,                       \
+    "getCurrentOrientationAnchoredAdaptiveBannerAdSize",                     \
+    "(Landroid/content/Context;I)Lcom/google/android/gms/ads/AdSize;",       \
+    util::kMethodTypeStatic),                                                \
+  X(GetLandscapeAnchoredAdaptiveBannerAdSize,                                \
+    "getLandscapeAnchoredAdaptiveBannerAdSize",                              \
+    "(Landroid/content/Context;I)Lcom/google/android/gms/ads/AdSize;",       \
+    util::kMethodTypeStatic),                                                \
+  X(GetPortraitAnchoredAdaptiveBannerAdSize,                                 \
+    "getPortraitAnchoredAdaptiveBannerAdSize",                               \
+    "(Landroid/content/Context;I)Lcom/google/android/gms/ads/AdSize;",       \
+    util::kMethodTypeStatic)
+
 // clang-format on
 
 // clang-format off
@@ -84,6 +106,7 @@ METHOD_LOOKUP_DECLARATION(request_config,
                           REQUESTCONFIGURATION_METHODS);
 METHOD_LOOKUP_DECLARATION(request_config_builder,
                           REQUESTCONFIGURATIONBUILDER_METHODS);
+METHOD_LOOKUP_DECLARATION(ad_size, ADSIZE_METHODS);
 
 // Change codes used when receiving state change callbacks from the Java
 // BannerViewHelperHelper object.
@@ -106,6 +129,11 @@ bool RegisterNatives();
 
 // Release classes registered by this module.
 void ReleaseClasses(JNIEnv* env);
+
+// Constructs a com.google.android.gms.ads.AdSize object from a C++ AdSize
+// counterpart.
+jobject CreateJavaAdSize(JNIEnv* env, jobject activity,
+                         const AdSize& an_ad_size);
 
 }  // namespace admob
 }  // namespace firebase

@@ -144,7 +144,7 @@ class BannerView {
   /// @param[in] parent The platform-specific UI element that will host the ad.
   /// @param[in] ad_unit_id The ad unit ID to use when requesting ads.
   /// @param[in] size The desired ad size for the banner.
-  Future<void> Initialize(AdParent parent, const char* ad_unit_id, AdSize size);
+  Future<void> Initialize(AdParent parent, const char* ad_unit_id, const AdSize& size);
 
   /// Returns a @ref Future that has the status of the last call to
   /// @ref Initialize.

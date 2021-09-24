@@ -40,6 +40,7 @@ set(android_SRCS
 
 # Source files used by the iOS implementation.
 set(ios_SRCS
+    src/ios/FADAdSize.mm
     src/ios/FADBannerView.mm
     src/ios/FADInterstitialDelegate.mm
     src/ios/FADRequest.mm

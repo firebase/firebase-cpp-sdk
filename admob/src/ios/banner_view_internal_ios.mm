@@ -39,7 +39,7 @@ BannerViewInternalIOS::~BannerViewInternalIOS() {
 }
 
 Future<void> BannerViewInternalIOS::Initialize(AdParent parent, const char* ad_unit_id,
-                                               AdSize size) {
+                                               const AdSize& size) {
   FutureCallbackData* callback_data =
       CreateFutureCallbackData(&future_data_, kBannerViewFnInitialize);
   if(initialized_) {
