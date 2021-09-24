@@ -93,15 +93,7 @@ jobs:
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
 
-      - name: Cache binutils
-        id: cache_binutils
-        uses: actions/cache@v2
-        with:
-          path: binutils-output
-          key: binutils-output-${{matrix.tools_platform}}-${{env.xcodeVersion}}-${{matrix.binutils_version}}
-
       - name: Fetch and build binutils
-        if: ${{ !steps.cache_binutils.outputs.cache-hit }}
         run: |
           set +e
           # Retry up to 10 times because Curl has a tendency to timeout on
@@ -115,17 +107,14 @@ jobs:
 
           tar -xf binutils.tar.xz
           mv ./binutils-${{ matrix.binutils_version }} ./binutils-src
-          mkdir binutils-output
+          mkdir /tmp/binutils-output
           cd binutils-src
-          ./configure --enable-targets=all --prefix=../binutils-output
+          ./configure --enable-targets=all --prefix=/tmp/binutils-output
           make -j2
           make install
           cd -
-
-      - name: Package binutils output
-        run: |
           mkdir -p packaging-tools
-          cp -af binutils-output/bin/* packaging-tools
+          cp -af /tmp/binutils-output/bin/* packaging-tools
 
       - name: Cache LLVM (Mac only)
         if: matrix.tools_platform == 'darwin'
