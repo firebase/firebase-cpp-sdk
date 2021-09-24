@@ -109,7 +109,7 @@ jobs:
           mv ./binutils-${{ matrix.binutils_version }} ./binutils-src
           cd binutils-src
           ./configure --enable-targets=all --prefix=/tmp/binutils
-          make
+          make -j2
           make install
           cd -
           mkdir -p packaging-tools
