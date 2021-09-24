@@ -27,24 +27,15 @@ namespace admob {
 
 /// Converts instances of the AdRequest struct used by the C++ wrapper to
 /// jobject references to Mobile Ads SDK AdRequest objects.
-class AdRequestConverter {
- public:
-  /// Constructor.
-  ///
-  /// @param request The AdRequest struct to be converted into a Java AdRequest.
-  explicit AdRequestConverter(const AdRequest& request);
-
-  /// Destructor.
-  ~AdRequestConverter();
-
-  /// Retrieves the Java AdRequest associated with this object.
-  ///
-  /// @return a jobject AdRequest reference.
-  jobject GetJavaRequestObject();
-
- private:
-  jobject java_request_;
-};
+///
+/// @param[in] request The AdRequest struct to be converted into a Java
+/// AdRequest.
+/// @param[out] error kAdMobErrorNone on success, or another error if
+/// problems occurred.
+/// @return On succes, a local reference to an Android object representing the
+/// AdRequest, or nullptr on error.
+jobject GetJavaAdRequestFromCPPAdRequest(const AdRequest& request,
+                                         admob::AdMobError& error);
 
 }  // namespace admob
 }  // namespace firebase

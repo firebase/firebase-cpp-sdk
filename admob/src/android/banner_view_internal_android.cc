@@ -236,13 +236,23 @@ Future<void> BannerViewInternalAndroid::LoadAd(const AdRequest& request) {
   FutureCallbackData* callback_data =
       CreateFutureCallbackData(&future_data_, kBannerViewFnLoadAd);
 
-  AdRequestConverter converter(request);
-  jobject request_ref = converter.GetJavaRequestObject();
+  admob::AdMobError error = kAdMobErrorNone;
+  jobject request_ref = GetJavaAdRequestFromCPPAdRequest(request, error);
 
-  ::firebase::admob::GetJNI()->CallVoidMethod(
-      helper_, banner_view_helper::GetMethodId(banner_view_helper::kLoadAd),
-      reinterpret_cast<jlong>(callback_data), request_ref);
-  return GetLastResult(kBannerViewFnLoadAd);
+  if (request_ref == nullptr) {
+    if (error == kAdMobErrorNone) {
+      error = kAdMobErrorInternalError;
+    }
+    CompleteFuture(error, "", callback_data->future_handle,
+                   callback_data->future_data);
+  } else {
+    ::firebase::admob::GetJNI()->CallVoidMethod(
+        helper_, banner_view_helper::GetMethodId(banner_view_helper::kLoadAd),
+        reinterpret_cast<jlong>(callback_data), request_ref);
+    ::firebase::admob::GetJNI()->DeleteLocalRef(request_ref);
+  }
+  return Future<void>(&callback_data->future_data->future_impl,
+                      callback_data->future_handle);
 }
 
 Future<void> BannerViewInternalAndroid::Hide() {

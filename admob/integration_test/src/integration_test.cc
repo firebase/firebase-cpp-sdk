@@ -90,6 +90,10 @@ static const char* kAdNetworkExtrasClassName =
 static const char* kAdNetworkExtrasClassName = "GADExtras";
 #endif
 
+// Used to detect kAdMobErrorAdNetworkClassLoadErrors when loading
+// ads.
+static const char* kAdNetworkExtrasInvalidClassName = "abc123321cba";
+
 static const char* kContentUrl = "http://www.firebase.com";
 
 using app_framework::LogDebug;
@@ -610,6 +614,26 @@ TEST_F(FirebaseAdMobTest, TestBannerViewAlreadyInitialized) {
                       firebase::admob::kAdMobErrorAlreadyInitialized);
     delete banner;
   }
+}
+
+TEST_F(FirebaseAdMobTest, TestBannerViewWithBadExtrasClassName) {
+  SKIP_TEST_ON_DESKTOP;
+
+  static const int kBannerWidth = 320;
+  static const int kBannerHeight = 50;
+
+  const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
+  firebase::admob::BannerView* banner = new firebase::admob::BannerView();
+  WaitForCompletion(banner->Initialize(app_framework::GetWindowContext(),
+                                       kBannerAdUnit, banner_ad_size),
+                    "Initialize");
+
+  // Load the banner ad.
+  firebase::admob::AdRequest request = GetAdRequest();
+  request.add_extra(kAdNetworkExtrasInvalidClassName, "shouldnot", "work");
+  WaitForCompletion(banner->LoadAd(request), "LoadAd",
+                    firebase::admob::kAdMobErrorAdNetworkClassLoadError);
+  delete banner;
 }
 
 // A simple listener to help test changes to a InterstitialAd.

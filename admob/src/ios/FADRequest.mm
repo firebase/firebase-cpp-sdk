@@ -24,7 +24,9 @@
 namespace firebase {
 namespace admob {
 
-GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest) {
+GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest, admob::AdMobError& error) {
+  error = kAdMobErrorNone;
+
   // Create the GADRequest.
   GADRequest *gadRequest = [GADRequest request];
 
@@ -48,7 +50,8 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest) {
     Class extrasClass = NSClassFromString(util::StringToNSString(adapterClassName));
     if (extrasClass == nil ) {
       LogError("Failed to resolve extras class: \"%s\"", adapterClassName.c_str());
-      continue;
+      error = kAdMobErrorAdNetworkClassLoadError;
+      return nullptr;
     }
 
     // Attempt allocate a object of the class, and check to see if it's
@@ -57,7 +60,8 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest) {
     if (![gadExtrasId isKindOfClass:[GADExtras class]]) {
       LogError("Failed to load extras class inherited from GADExtras: \"%s\"",
           adapterClassName.c_str());
-      continue;
+      error = kAdMobErrorAdNetworkClassLoadError;
+      return nullptr;
     }
 
     // Add the key/value dictionary to the object.

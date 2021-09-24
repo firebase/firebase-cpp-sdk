@@ -25,7 +25,7 @@ namespace firebase {
 namespace admob {
 
 /// Returns a GADRequest from an admob::AdRequest.
-GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest);
+GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest, admob::AdMobError& error);
 
 }  // namespace admob
 }  // namespace firebase

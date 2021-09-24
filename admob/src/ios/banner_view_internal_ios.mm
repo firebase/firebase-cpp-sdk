@@ -79,11 +79,19 @@ Future<void> BannerViewInternalIOS::LoadAd(const AdRequest& request) {
   AdRequest *request_copy = new AdRequest;
   *request_copy = request;
   dispatch_async(dispatch_get_main_queue(), ^{
-    // A GADRequest from an admob::AdRequest.
-    GADRequest *ad_request = GADRequestFromCppAdRequest(*request_copy);
+    // Create a GADRequest from an admob::AdRequest.
+    AdMobError error = kAdMobErrorNone;
+    GADRequest *ad_request = GADRequestFromCppAdRequest(*request_copy, error);
     delete request_copy;
-    // Make the banner view ad request.
-    [banner_view_ loadRequest:ad_request];
+    if(ad_request==nullptr) {
+      if(error==kAdMobErrorNone) {
+        error = kAdMobErrorInternalError;
+      }
+      CompleteLoadFuture(error, "");
+    } else {
+      // Make the banner view ad request.
+      [banner_view_ loadRequest:ad_request];
+    }
   });
   return GetLastResult(kBannerViewFnLoadAd);
 }
