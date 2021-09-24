@@ -139,11 +139,8 @@ jobs:
       uses: styfle/cancel-workflow-action@0.8.0
       with:
         access_token: ${{ github.token }}
-    - uses: actions/checkout@v2
-      with:
-        ref: ${{steps.set_outputs.outputs.github_ref}}
-        fetch-depth: 0
-        submodules: false
+    - name: Checkout repo
+      uses: actions/checkout@v2
     - name: Setup python
       uses: actions/setup-python@v2
       with:
@@ -211,7 +208,6 @@ jobs:
       if: steps.set_outputs.outputs.trigger == 'label_trigger' && contains(steps.matrix_config.outputs.matrix_platform, 'Desktop')
       run: |
         python scripts/gha/trigger_workflow.py --t ${{ steps.generate-token.outputs.token }} -w integration_tests.yml \
-          -b ${{github.event.pull_request.head.ref}}
           -p test_pull_request ${{steps.set_outputs.outputs.pr_number}} \
           -p use_preset_matrix minimal \
           -s 10
