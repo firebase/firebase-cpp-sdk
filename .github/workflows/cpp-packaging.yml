@@ -93,7 +93,18 @@ jobs:
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
 
-      - name: fetch and build binutils
+      - name: make binutils output directory
+        run: 
+
+      - name: Cache binutils
+        id: cache_binutils
+        uses: actions/cache@v2
+        with:
+          path: binutils-output
+          key: binutils-output-${{matrix.tools_platform}}-${{env.xcodeVersion}}-${{matrix.binutils_version}}
+
+      - name: Fetch and build binutils
+        if: ${{ !steps.cache_binutils.outputs.cache-hit }}
         run: |
           set +e
           # Retry up to 10 times because Curl has a tendency to timeout on
@@ -107,46 +118,47 @@ jobs:
 
           tar -xf binutils.tar.xz
           mv ./binutils-${{ matrix.binutils_version }} ./binutils-src
+          mkdir binutils-output
           cd binutils-src
-          ./configure --enable-targets=all --prefix=/tmp/binutils
+          ./configure --enable-targets=all --prefix=../binutils-output
           make -j2
           make install
-          cd -
+
+      - name: Package binutils output
+        run: |
           mkdir -p packaging-tools
-          cp -af /tmp/binutils/bin/* packaging-tools
-
-      - name: fetch LLVM (Mac only)
-        if: runner.os == 'macOS'
-        uses: actions/checkout@v2.3.1
-        with:
-          repository: llvm/llvm-project
-          path: llvm-src
-          ref: ${{ env.llvmVer }}
-
-      - name: make LLVM build directory (Mac only)
-        if: runner.os == 'macOS'
-        run: mkdir llvm-src/llvm/build
+          cp -af binutils-output/bin/* packaging-tools
 
       - name: Cache LLVM (Mac only)
         if: runner.os == 'macOS'
         id: cache_llvm
         uses: actions/cache@v2
         with:
-          path: llvm-src/llvm/build
-          key: llvm-${{env.xcodeVersion}}-${{env.llvmVer}}
+          path: llvm-output
+          key: llvm-output-${{env.xcodeVersion}}-${{env.llvmVer}}
 
-      - name: build LLVM (Mac only)
-        if: runner.os == 'macOS'
+      - name: Fetch LLVM source (Mac only)
+        if: ${{ runner.os == 'macOS' && !steps.cache_llvm.outputs.cache-hit }}
+        uses: actions/checkout@v2.3.1
+        with:
+          repository: llvm/llvm-project
+          path: llvm-src
+          ref: ${{ env.llvmVer }}
+
+      - name: Build LLVM (Mac only) 
+        if: ${{ runner.os == 'macOS' && !steps.cache_llvm.outputs.cache-hit }}
         run: |
+          mkdir llvm-output
           cd llvm-src/llvm/build
-          if [[ ! -r bin/llvm-objcopy || ! -r bin/llvm-ar || ! -r bin/llvm-nm ]]; then
-            # Only build LLVM if we don't already have binaries from the cache.
-            cmake -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release ..
-            cmake --build . -j 3 --target llvm-objcopy --target llvm-nm --target llvm-ar
-          fi
-          cd -
+          # Only build LLVM if we don't already have binaries from the cache.
+          cmake -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release ..
+          cmake --build . -j 3 --target llvm-objcopy --target llvm-nm --target llvm-ar
+          cp -af llvm-src/llvm/build/bin/* ~/llvm-output
+
+      - name: Package LLVM output (Mac only)
+        run: |
           mkdir -p packaging-tools
-          cp -af llvm-src/llvm/build/bin/* packaging-tools
+          cp -af llvm-output/* packaging-tools
 
       - name: fetch demumble
         uses: actions/checkout@v2.3.1
