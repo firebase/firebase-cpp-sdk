@@ -206,11 +206,13 @@ jobs:
         private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
     - name: Restart sanity check
       if: steps.set_outputs.outputs.trigger == 'label_trigger' && contains(steps.matrix_config.outputs.matrix_platform, 'Desktop')
+      shell: bash
       run: |
         python scripts/gha/trigger_workflow.py --t ${{ steps.generate-token.outputs.token }} -w integration_tests.yml \
           -p test_pull_request ${{steps.set_outputs.outputs.pr_number}} \
           -p use_preset_matrix minimal \
-          -s 10
+          -s 10 \
+          -A 
 
   build_desktop:
     name: build-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
