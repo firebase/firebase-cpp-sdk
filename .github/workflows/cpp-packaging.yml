@@ -121,8 +121,8 @@ jobs:
         id: cache_llvm
         uses: actions/cache@v2
         with:
-          path: llvm-output
-          key: llvm-output-${{matrix.tools_platform}}-${{env.xcodeVersion}}-${{env.llvmVer}}
+          path: llvm-src/llvm/build
+          key: llvm-build-${{matrix.tools_platform}}-${{env.xcodeVersion}}-${{env.llvmVer}}
 
       - name: Fetch LLVM source (Mac only)
         # Only fetch LLVM if we don't already have binaries from the cache.
@@ -137,18 +137,17 @@ jobs:
         # Only build LLVM if we don't already have binaries from the cache.
         if: ${{ matrix.tools_platform == 'darwin' && !steps.cache_llvm.outputs.cache-hit }}
         run: |
-          mkdir llvm-output
+          mkdir llvm-src/llvm/build
           cd llvm-src/llvm/build
           cmake -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release ..
           cmake --build . -j 3 --target llvm-objcopy --target llvm-nm --target llvm-ar
-          cp -af llvm-src/llvm/build/bin/* ../../../llvm-output
           cd -
 
       - name: Package LLVM output (Mac only)
         if: matrix.tools_platform == 'darwin'
         run: |
           mkdir -p packaging-tools
-          cp -af llvm-output/* packaging-tools
+          cp -af llvm-src/llvm/build/bin/* packaging-tools
 
       - name: fetch demumble
         uses: actions/checkout@v2.3.1
