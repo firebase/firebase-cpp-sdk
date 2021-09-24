@@ -65,6 +65,7 @@ class Response : public Transfer {
 
   // Mark the response completed for both header and body.
   void MarkCompleted() override {
+    LogWarning("zzyzx Response(uid=%d).MarkCompleted()", uid());
     // Make sure the fetch_time_ is always reasonable even when the response
     // does not have a valid Date header.
     if (fetch_time_ <= 0) {
@@ -77,6 +78,7 @@ class Response : public Transfer {
   // Marks the response as failed. There will never be a response, so stop
   // waiting for one.
   void MarkFailed() override {
+    LogWarning("zzyzx Response(uid=%d).MarkFailed()", uid());
     header_completed_ = false;
     body_completed_ = false;
   }
