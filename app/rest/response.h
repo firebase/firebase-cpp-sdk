@@ -30,6 +30,8 @@
 namespace firebase {
 namespace rest {
 
+int GenerateDebugUid();
+
 // The base class to deal with HTTP/REST response.
 class Response : public Transfer {
  public:
@@ -43,7 +45,7 @@ class Response : public Transfer {
   // case, applying move is more future-proof, in case one of the variables
   // which is now a fundamental gets changed to a user-defined type further on.
   Response(Response&& rhs)
-      : uid_(generate_uid()),                                 // NOLINT
+      : uid_(GenerateDebugUid()),                             // NOLINT
         status_(std::move(rhs.status_)),                      // NOLINT
         header_completed_(std::move(rhs.header_completed_)),  // NOLINT
         body_completed_(std::move(rhs.body_completed_)),      // NOLINT
@@ -108,11 +110,6 @@ class Response : public Transfer {
   virtual void GetBody(const char** data, size_t* size) const;
 
  private:
-  static int generate_uid() {
-    static std::atomic<int> next_uid(32100);
-    return ++next_uid;
-  }
-
   // A UID for this object; for debugging purposes only.
   int uid_;
   // The status code of the response.

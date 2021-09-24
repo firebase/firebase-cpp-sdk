@@ -26,7 +26,7 @@ namespace firebase {
 namespace rest {
 
 Response::Response()
-    : uid_(generate_uid()),
+    : uid_(GenerateDebugUid()),
       status_(0),
       header_completed_(false),
       body_completed_(false),
@@ -101,6 +101,11 @@ void Response::GetBody(const char** data, size_t* size) const {
   GetBody();
   *data = body_cache_.data();
   *size = body_cache_.length();
+}
+
+int GenerateDebugUid() {
+  static std::atomic<int> next_uid(32100);
+  return ++next_uid;
 }
 
 }  // namespace rest
