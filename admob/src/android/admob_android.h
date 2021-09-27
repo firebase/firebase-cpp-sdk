@@ -24,7 +24,7 @@
 namespace firebase {
 namespace admob {
 
-// Used to setup the cache of AdRequestBuilder class method IDs to reduce
+// Used to setup the cache of class method IDs to reduce
 // time spent looking up methods by string.
 // clang-format off
 #define ADREQUESTBUILDER_METHODS(X)                                          \

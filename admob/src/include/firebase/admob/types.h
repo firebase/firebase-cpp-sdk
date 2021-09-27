@@ -34,6 +34,10 @@ extern "C" {
 namespace firebase {
 namespace admob {
 
+struct AdResultInternal;
+class BannerView;
+class InterstitialAd;
+
 /// This is a platform specific datatype that is required to create an AdMob ad.
 ///
 /// The following defines the datatype on each platform:
@@ -52,6 +56,59 @@ typedef id AdParent;
 typedef void *AdParent;
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
+
+/// Information about why an ad operation failed.
+class AdResult {
+ public:
+  virtual ~AdResult();
+
+  // Copy constructor.
+  AdResult(const AdResult& ad_result_internal);
+
+  /// If the operation was successful then the other error reporting methods
+  /// of this object will return defaults.
+  bool is_successful() const;
+
+  /// Retrieves an AdResult which represents the cause of this error.
+  ///
+  /// @param[out] ad_result if this AdResult has a cause, the ad_result
+  /// pointer will be assigned a new AdResult object that contains
+  /// the cause data.  The pointer parameter will be assigned nullptr
+  /// if no cause exists.
+  ///
+  /// @return true if this AdResult had a cause, false otherwise.
+  bool GetCause(AdResult** ad_reult);
+
+  /// Gets the error's code.
+  int code();
+
+  /// Gets the domain of the error.
+  const std::string& domain();
+
+  /// Gets the message describing the error.
+  const std::string& message();
+
+  /// Returns a log friendly string version of this object.
+  virtual const std::string& ToString();
+
+  /// A domain string which represents an undefined error domain.
+  ///
+  /// The Admob SDK returns this domain for domain() method invocations when
+  /// converting error information from legacy mediation adapter callbacks.
+  static const char* kUndefinedDomain;
+
+ private:
+  AdResult(const AdResultInternal& internal);
+
+  // An internal, platform-specific implementation object that this class uses
+  // to interact with the Google Mobile Ads SDKs for iOS and Android.
+  AdResultInternal* internal_;
+
+  int code_;
+  std::string domain_;
+  std::string message_;
+  std::string to_string_;
+};
 
 #ifdef INTERNAL_EXPERIMENTAL
 // LINT.IfChange
@@ -101,21 +158,21 @@ struct AdSize {
 /// @ref firebase::admob::AdRequest.
 struct KeyValuePair {
   /// The name for an "extra."
-  const char *key;
+  const char* key;
   /// The value for an "extra."
-  const char *value;
+  const char* value;
 };
 
 /// @brief The information needed to request an ad.
 struct AdRequest {
   /// An array of keywords or phrases describing the current user activity, such
   /// as "Sports Scores" or "Football."
-  const char **keywords;
+  const char** keywords;
   /// The number of entries in the array referenced by keywords.
   unsigned int keyword_count;
   /// A @ref KeyValuePair specifying additional parameters accepted by an ad
   /// network.
-  const KeyValuePair *extras;
+  const KeyValuePair* extras;
   /// The number of entries in the array referenced by extras.
   unsigned int extras_count;
 };

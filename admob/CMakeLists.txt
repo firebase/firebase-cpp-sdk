@@ -34,6 +34,7 @@ binary_to_array("admob_resources"
 set(android_SRCS
     ${admob_resources_source}
     src/android/ad_request_converter.cc
+    src/android/ad_result_android.cc
     src/android/admob_android.cc
     src/android/banner_view_internal_android.cc
     src/android/interstitial_ad_internal_android.cc)
