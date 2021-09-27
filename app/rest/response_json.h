@@ -39,7 +39,7 @@ class ResponseJson : public Response {
  public:
   // Constructs from a FlatBuffer schema, which should match FbsType.
   explicit ResponseJson(const char* schema) {
-    LogWarning("zzyzx ResponseJson(uid=%d) created via the normal constructor (code A)", uid());
+    LogWarning("zzyzx ResponseJson(uid=%d) created via the normal constructor (code B)", uid());
     flatbuffers::IDLOptions fbs_options;
     fbs_options.skip_unexpected_fields_in_json = true;
     parser_.reset(new flatbuffers::Parser(fbs_options));
@@ -74,8 +74,23 @@ class ResponseJson : public Response {
     LogWarning("zzyzx ResponseJson(uid=%d).MarkCompleted() start", uid());
     // Body could be empty if request failed. Deal this case first since
     // flatbuffer parser does not allow empty input.
-    if (strlen(GetBody()) == 0) {
-      LogWarning("zzyzx ResponseJson(uid=%d).MarkCompleted(); strlen(GetBody()) == 0); setting application_data_ to new FbsTypeT()", uid());
+
+    auto body = GetBody();
+    std::string body_str(body);
+    {
+      LogWarning("zzyzx ResponseJson(uid=%d).MarkCompleted() strlen(body)==%d", uid(), strlen(body));
+      LogWarning("zzyzx ResponseJson(uid=%d).MarkCompleted() BODY START", uid());
+      decltype(body_str.size()) start = 0;
+      while (start < body_str.size()) {
+        std::string body_substr = body_str.substr(start, 500);
+        LogWarning("%s", body_substr.c_str());
+        start += body_substr.size();
+      }
+      LogWarning("zzyzx ResponseJson(uid=%d).MarkCompleted() BODY END", uid());
+    }
+
+    if (strlen(body) == 0) {
+      LogWarning("zzyzx ResponseJson(uid=%d).MarkCompleted(); strlen(body) == 0); setting application_data_ to new FbsTypeT()", uid());
       application_data_.reset(new FbsTypeT());
       Response::MarkCompleted();
       return;
@@ -83,9 +98,13 @@ class ResponseJson : public Response {
 
     // Parse and verify JSON string in body. FlatBuffer parser does not support
     // online parsing. So we only parse the body when we get everything.
-    bool parse_status = parser_->Parse(GetBody());
+    bool parse_status = parser_->Parse(body);
     LogWarning("zzyzx ResponseJson(uid=%d).MarkCompleted(); parse_status=%s", uid(), parse_status ? "true" : "false");
+    if (!parse_status) {
+      LogWarning("zzyzx ResponseJson(uid=%d).MarkCompleted(); parser_->error=%s", uid(), parser_->error_.c_str());
+    }
     FIREBASE_ASSERT_RETURN_VOID(parse_status);
+
     const flatbuffers::FlatBufferBuilder& builder = parser_->builder_;
     flatbuffers::Verifier verifier(builder.GetBufferPointer(),
                                    builder.GetSize());
