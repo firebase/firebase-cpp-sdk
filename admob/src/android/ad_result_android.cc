@@ -21,6 +21,8 @@
 
 #include <jni.h>
 
+#include <string>
+
 #include "admob/src/android/admob_android.h"
 #include "admob/src/common/admob_common.h"
 #include "admob/src/include/firebase/admob.h"
@@ -103,7 +105,7 @@ bool AdResult::GetCause(AdResult** ad_result) {
     env->DeleteLocalRef(j_ad_error);
     return true;
   }
-};
+}
 
 /// Gets the error's code.
 int AdResult::code() {

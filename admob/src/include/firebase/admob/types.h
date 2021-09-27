@@ -53,7 +53,7 @@ typedef jobject AdParent;
 typedef id AdParent;
 #else
 /// A void pointer for stub classes.
-typedef void *AdParent;
+typedef void* AdParent;
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
 
@@ -63,7 +63,7 @@ class AdResult {
   virtual ~AdResult();
 
   // Copy constructor.
-  AdResult(const AdResult& ad_result_internal);
+  AdResult(const AdResult& ad_result);
 
   /// If the operation was successful then the other error reporting methods
   /// of this object will return defaults.
@@ -77,7 +77,7 @@ class AdResult {
   /// if no cause exists.
   ///
   /// @return true if this AdResult had a cause, false otherwise.
-  bool GetCause(AdResult** ad_reult);
+  bool GetCause(AdResult** ad_result);
 
   /// Gets the error's code.
   int code();
@@ -98,7 +98,7 @@ class AdResult {
   static const char* kUndefinedDomain;
 
  private:
-  AdResult(const AdResultInternal& internal);
+  explict AdResult(const AdResultInternal& internal);
 
   // An internal, platform-specific implementation object that this class uses
   // to interact with the Google Mobile Ads SDKs for iOS and Android.

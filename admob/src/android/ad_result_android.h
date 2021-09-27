@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_ANDROID_AD_RESULT_ANDROID_H
-#define FIREBASE_ADMOB_SRC_ANDROID_AD_RESULT_ANDROID_H
+#ifndef FIREBASE_ADMOB_SRC_ANDROID_AD_RESULT_ANDROID_H_
+#define FIREBASE_ADMOB_SRC_ANDROID_AD_RESULT_ANDROID_H_
 
 #include "admob/src/common/banner_view_internal.h"
 #include "app/src/util_android.h"
@@ -40,4 +40,4 @@ METHOD_LOOKUP_DECLARATION(ad_error, ADERROR_METHODS);
 }  // namespace admob
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_ANDROID_AD_RESULT_ANDROID_H
+#endif  // FIREBASE_ADMOB_SRC_ANDROID_AD_RESULT_ANDROID_H_
