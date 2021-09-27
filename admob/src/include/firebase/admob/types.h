@@ -17,6 +17,7 @@
 #ifndef FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_TYPES_H_
 #define FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_TYPES_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -62,7 +63,7 @@ class AdResult {
  public:
   virtual ~AdResult();
 
-  // Copy constructor.
+  /// Copy constructor.
   AdResult(const AdResult& ad_result);
 
   /// If the operation was successful then the other error reporting methods

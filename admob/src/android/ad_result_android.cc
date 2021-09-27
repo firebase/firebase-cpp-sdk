@@ -21,6 +21,7 @@
 
 #include <jni.h>
 
+#include <memory>
 #include <string>
 
 #include "admob/src/android/admob_android.h"
