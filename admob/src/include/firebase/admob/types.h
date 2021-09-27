@@ -71,13 +71,10 @@ class AdResult {
 
   /// Retrieves an AdResult which represents the cause of this error.
   ///
-  /// @param[out] ad_result if this AdResult has a cause, the ad_result
-  /// pointer will be assigned a new AdResult object that contains
-  /// the cause data.  The pointer parameter will be assigned nullptr
-  /// if no cause exists.
-  ///
-  /// @return true if this AdResult had a cause, false otherwise.
-  bool GetCause(AdResult** ad_result);
+  /// @return a pointer to an AdResult which represents the cause of this
+  /// AdResult.  If there was no cause, or if this result was successful,
+  /// then nullptr is returned.
+  std::unique_ptr<AdResult> GetCause();
 
   /// Gets the error's code.
   int code();
@@ -98,7 +95,7 @@ class AdResult {
   static const char* kUndefinedDomain;
 
  private:
-  explict AdResult(const AdResultInternal& internal);
+  explicit AdResult(const AdResultInternal& internal);
 
   // An internal, platform-specific implementation object that this class uses
   // to interact with the Google Mobile Ads SDKs for iOS and Android.

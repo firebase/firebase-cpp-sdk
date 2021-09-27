@@ -42,12 +42,16 @@ struct AdResultInternal {
   Mutex mutex;
 };
 
+AdResult::kUndefinedDomain = "undefined";
+
 AdResult::AdResult(const AdResultInternal& ad_result_internal) {
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env);
 
   internal_ = new AdResultInternal();
   internal_->j_ad_error = env->NewGlobalRef(ad_result_internal.j_ad_error);
+
+  code_ = 0;
 }
 
 AdResult::~AdResult() {
@@ -84,15 +88,13 @@ bool AdResult::is_successful() const {
   return (internal_->j_ad_error == nullptr);
 }
 
-bool AdResult::GetCause(AdResult** ad_result) {
+std::unique_ptr<AdResult> AdResult::GetCause() {
   FIREBASE_ASSERT(internal_);
-  FIREBASE_ASSERT(ad_result);
 
   MutexLock(internal_->mutex);
 
   if (internal_->j_ad_error == nullptr) {
-    *ad_result = nullptr;
-    return false;
+    return std::unique_ptr<AdResult>(nullptr);
   } else {
     JNIEnv* env = GetJNI();
     FIREBASE_ASSERT(env);
@@ -101,9 +103,10 @@ bool AdResult::GetCause(AdResult** ad_result) {
 
     AdResultInternal ad_result_internal;
     ad_result_internal.j_ad_error = j_ad_error;
-    *ad_result = new AdResult(ad_result_internal);
+    std::unique_ptr<AdResult> ad_result =
+        std::unique_ptr<AdResult>(new AdResult(ad_result_internal));
     env->DeleteLocalRef(j_ad_error);
-    return true;
+    return ad_result;
   }
 }
 

@@ -44,12 +44,14 @@ set(ios_SRCS
     src/ios/FADBannerView.mm
     src/ios/FADInterstitialDelegate.mm
     src/ios/FADRequest.mm
+    src/ios/ad_result_ios.mm
     src/ios/admob_ios.mm
     src/ios/banner_view_internal_ios.mm
     src/ios/interstitial_ad_internal_ios.mm)
 
 # Source files used by the stub implementation.
 set(stub_SRCS
+    src/stub/ad_result_stub.cc
     src/stub/admob_stub.cc)
 
 if(ANDROID)
