@@ -772,9 +772,9 @@ def main():
     for gradle_file in gradle_files:
       modify_gradle_file(gradle_file, latest_android_versions_map, args.dryrun)
 
-    if args.logfile:
-      with open(args.logfile, 'w') as logfile_file:
-        logfile_file.write("\n".join(sorted(list(logfile_lines))) + "\n")
+  if args.logfile:
+    with open(args.logfile, 'w') as logfile_file:
+      logfile_file.write("\n".join(sorted(list(logfile_lines))) + "\n")
       
 if __name__ == '__main__':
   main()
