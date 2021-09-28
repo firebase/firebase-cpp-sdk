@@ -13,6 +13,7 @@
 # limitations under the License.
 
 # Download GoogleTest from GitHub as an external project.
+# Pin to 1.11.0 because we touch internal GoogleTest structures that could change in the future.
 
 # This CMake file is taken from:
 # https://github.com/google/googletest/blob/master/googletest/README.md#incorporating-into-an-existing-cmake-project
