@@ -738,6 +738,8 @@ def parse_cmdline_args():
 logfile_lines = set()
 
 def main():
+  global logfile_lines
+
   args = parse_cmdline_args()
   # Readme files have to be updated for both Android and iOS dependencies.
   readme_files = get_files(args.readmefiles, file_extension='.md',
