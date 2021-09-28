@@ -370,22 +370,22 @@ TEST_F(FirebaseMessagingTest, TestReceiveInitToken) {
   FLAKY_TEST_SECTION_END();
 }
 
-TEST_F(FirebaseMessagingTest, TestRequestToken) {
-  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
+// TEST_F(FirebaseMessagingTest, TestRequestToken) {
+//   TEST_REQUIRES_USER_INTERACTION_ON_IOS;
 
-  EXPECT_TRUE(RequestPermission());
+//   EXPECT_TRUE(RequestPermission());
 
-  EXPECT_TRUE(::firebase::messaging::IsTokenRegistrationOnInitEnabled());
+//   EXPECT_TRUE(::firebase::messaging::IsTokenRegistrationOnInitEnabled());
 
-  FLAKY_TEST_SECTION_BEGIN();
+//   FLAKY_TEST_SECTION_BEGIN();
 
-  ::firebase::Future<std::string> tokenResult =
-      ::firebase::messaging::GetToken();
-  EXPECT_TRUE(WaitForCompletion(tokenResult, "GetToken"));
-  EXPECT_NE(*(tokenResult.result()), "");
+//   ::firebase::Future<std::string> tokenResult =
+//       ::firebase::messaging::GetToken();
+//   EXPECT_TRUE(WaitForCompletion(tokenResult, "GetToken"));
+//   EXPECT_NE(*(tokenResult.result()), "");
 
-  FLAKY_TEST_SECTION_END();
-}
+//   FLAKY_TEST_SECTION_END();
+// }
 
 TEST_F(FirebaseMessagingTest, TestSubscribeAndUnsubscribe) {
   TEST_REQUIRES_USER_INTERACTION_ON_IOS;
