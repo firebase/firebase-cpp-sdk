@@ -106,7 +106,7 @@ jobs:
           echo "::set-output name=requested_tests::expanded"
         elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
           echo "::set-output name=github_ref::$GITHUB_SHA"
-          if [[ "${{ github.event.action }}" == "labeled" && "${{ github.event.label.name }}" == "${{ env.triggerLabelPrefix }}"* ]]; then
+          if [[ "${{ github.event.action }}" == "labeled" ]]; then
             echo "::set-output name=trigger::label_trigger"
             echo "::set-output name=pr_number::${{ github.event.pull_request.number }}"
             if [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelQuick }}" ]]; then
