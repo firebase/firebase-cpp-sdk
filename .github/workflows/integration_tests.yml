@@ -107,15 +107,17 @@ jobs:
         elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
           echo "::set-output name=github_ref::$GITHUB_SHA"
           if [[ "${{ github.event.action }}" == "labeled" ]]; then
-            echo "::set-output name=trigger::label_trigger"
             echo "::set-output name=pr_number::${{ github.event.pull_request.number }}"
             if [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelQuick }}" ]]; then
+              echo "::set-output name=trigger::label_trigger"
               echo "::set-output name=requested_tests::auto"
             elif [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelFull }}" ]]; then
+              echo "::set-output name=trigger::label_trigger"
               echo "::set-output name=requested_tests::expanded"
             else
               # e.g. label: "cla: yes" 
-              # Make sure sanity check (Linux desktop) is running. 
+              # Make sure sanity check (Linux desktop) is running and won't block the merge
+              echo "::set-output name=trigger::presubmit_trigger"
               echo "::set-output name=requested_tests::minimal"
             fi
           elif [[ "${{ github.event.action }}" == "closed" && ${{ github.event.pull_request.merged == true }} ]]; then
