@@ -568,7 +568,7 @@ code.
 
 ## Release Notes
 
-### Future Release
+### 8.6.0
 -   Changes
     -   General (Desktop): MacOS SDKs are now built using Xcode 12.2,
         and include support for ARM-based Mac systems.
