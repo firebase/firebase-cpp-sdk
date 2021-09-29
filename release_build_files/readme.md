@@ -578,7 +578,7 @@ code.
         ([#667](https://github.com/firebase/firebase-cpp-sdk/pull/667)).
     -   Auth (Desktop): Fix a crash that would occur if parsing the JSON
         response from the server failed
-        ([#XXX](https://github.com/firebase/firebase-cpp-sdk/pull/XXX)).
+        ([#692](https://github.com/firebase/firebase-cpp-sdk/pull/692)).
         
 ### 8.5.0
 -   Changes
