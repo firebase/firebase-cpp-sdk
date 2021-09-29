@@ -14,35 +14,35 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_ANDROID_AD_RESULT_ANDROID_H_
-#define FIREBASE_ADMOB_SRC_ANDROID_AD_RESULT_ANDROID_H_
+#ifndef FIREBASE_ADMOB_SRC_ANDROID_ADAPTER_RESPONSE_INFO_ANDROID_H
+#define FIREBASE_ADMOB_SRC_ANDROID_ADAPTER_RESPONSE_INFO_ANDROID_H
 
-#include "app/src/mutex.h"
+#include <jni.h>
+
+#include "admob/src/include/firebase/admob/types.h"
 #include "app/src/util_android.h"
 
 namespace firebase {
 namespace admob {
 
+struct AdapterResponseInfoInternal {
+  jobject j_adapter_response_info;
+};
+
 // Used to set up the cache of class method IDs to reduce
 // time spent looking up methods by string.
 // clang-format off
-#define ADERROR_METHODS(X)                                                   \
-  X(GetCause, "getCause",                                                    \
+#define ADAPTERRESPONSEINFO_METHODS(X)                                       \
+  X(GetAdError, "getAdError",                                                \
       "()Lcom/google/android/gms/ads/AdError;"),                             \
-  X(GetCode, "getCode", "()I"),                                              \
-  X(GetDomain, "getDomain", "()Ljava/lang/String;"),                         \
-  X(GetMessage, "getMessage", "()Ljava/lang/String;"),                       \
+  X(GetAdapterClassName, "getAdapterClassName", "()Ljava/lang/String;"),     \
+  X(GetLatencyMillis, "getLatencyMillis", "()J"),                            \
   X(ToString, "toString", "()Ljava/lang/String;")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(ad_error, ADERROR_METHODS);
-
-struct AdResultInternal {
-  jobject j_ad_error;
-  Mutex mutex;
-};
+METHOD_LOOKUP_DECLARATION(adapter_response_info, ADAPTERRESPONSEINFO_METHODS);
 
 }  // namespace admob
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_ANDROID_AD_RESULT_ANDROID_H_
+#endif  // FIREBASE_ADMOB_SRC_ANDROID_ADAPTER_RESPONSE_INFO_ANDROID_H

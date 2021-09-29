@@ -36,6 +36,9 @@ namespace firebase {
 namespace admob {
 
 struct AdResultInternal;
+struct AdapterResponseInfoInternal;
+struct ResponseInfoInternal;
+
 class BannerView;
 class InterstitialAd;
 
@@ -62,9 +65,6 @@ typedef void* AdParent;
 class AdResult {
  public:
   virtual ~AdResult();
-
-  /// Copy constructor.
-  AdResult(const AdResult& ad_result);
 
   /// If the operation was successful then the other error reporting methods
   /// of this object will return defaults.
@@ -96,7 +96,10 @@ class AdResult {
   static const char* kUndefinedDomain;
 
  private:
-  explicit AdResult(const AdResultInternal& internal);
+  friend class AdapterResponseInfo;
+
+  AdResult(const AdResultInternal& ad_result_internal);
+  AdResult& operator=(const AdResult& obj);
 
   // An internal, platform-specific implementation object that this class uses
   // to interact with the Google Mobile Ads SDKs for iOS and Android.
@@ -105,6 +108,41 @@ class AdResult {
   int code_;
   std::string domain_;
   std::string message_;
+  std::string to_string_;
+};
+
+/// @brief Response information for an individual ad network contained within
+/// a @ref ResponseInfo object.
+class AdapterResponseInfo {
+ public:
+  /// Information about the Ad Error, if one occurred.
+  ///
+  /// @return the error that occurred while rendering the ad.  If no error
+  /// occurred then the AdResults's successful method will return false.
+  AdResult ad_result() const { return ad_result_; }
+
+  /// Returns a string representation of a class name that identifies the ad
+  /// network adapter.
+  const std::string& adapter_class_name() const { return adapter_class_name_; }
+
+  /// Amount of time the ad network spent loading an ad.
+  ///
+  /// @return number of milliseconds the network spent loading an ad. This value
+  /// is 0 if the network did not make a load attempt.
+  long latency_in_millis() const { return latency_; }
+
+  /// A log friendly string version of this object.
+  const std::string& ToString() const { return to_string_; }
+
+ private:
+  friend class ResponseInfo;
+
+  /// Constructs an Adapter Response Info Object.
+  AdapterResponseInfo(const AdapterResponseInfoInternal& internal);
+
+  AdResult ad_result_;
+  std::string adapter_class_name_;
+  long latency_;
   std::string to_string_;
 };
 
@@ -188,6 +226,39 @@ struct BoundingBox {
   int x;
   /// Vertical position of the ad in pixels from the top.
   int y;
+};
+
+/// Information about an ad response.
+class ResponseInfo {
+ public:
+  /// Gets the AdaptorReponseInfo objects for the ad response.
+  ///
+  /// @return a vector of AdapterResponseInfo objects containing metadata for
+  ///   each adapter included in the ad response.
+  const std::vector<AdapterResponseInfo>& adapter_responses() const {
+    return adapter_responses_;
+  }
+
+  /// Future Milestone.
+  /// A class name that identifies the ad network that returned the ad.
+  /// Returns an empty string if the ad failed to load.
+  const std::string& mediation_adapter_class_name() const {
+    return mediation_adapter_class_name_;
+  }
+
+  /// Gets the response ID string for the loaded ad.
+  const std::string& response_id() const { return response_id_; }
+
+  /// Gets a log friendly string version of this object.
+  const std::string& ToString() const { return to_string_; }
+
+ private:
+  ResponseInfo(ResponseInfoInternal* internal);
+
+  std::vector<AdapterResponseInfo> adapter_responses_;
+  std::string mediation_adapter_class_name_;
+  std::string response_id_;
+  std::string to_string_;
 };
 
 /// @brief Global configuration that will be used for every @ref AdRequest.

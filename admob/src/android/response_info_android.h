@@ -14,35 +14,36 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_ANDROID_AD_RESULT_ANDROID_H_
-#define FIREBASE_ADMOB_SRC_ANDROID_AD_RESULT_ANDROID_H_
+#ifndef FIREBASE_ADMOB_SRC_ANDROID_RESPONSE_INFO_ANDROID_H
+#define FIREBASE_ADMOB_SRC_ANDROID_RESPONSE_INFO_ANDROID_H
 
-#include "app/src/mutex.h"
+#include <jni.h>
+
+#include "admob/src/include/firebase/admob/types.h"
 #include "app/src/util_android.h"
 
 namespace firebase {
 namespace admob {
 
+struct ResponseInfoInternal {
+  jobject j_response_info;
+};
+
 // Used to set up the cache of class method IDs to reduce
 // time spent looking up methods by string.
 // clang-format off
-#define ADERROR_METHODS(X)                                                   \
-  X(GetCause, "getCause",                                                    \
-      "()Lcom/google/android/gms/ads/AdError;"),                             \
-  X(GetCode, "getCode", "()I"),                                              \
-  X(GetDomain, "getDomain", "()Ljava/lang/String;"),                         \
-  X(GetMessage, "getMessage", "()Ljava/lang/String;"),                       \
+#define RESPONSEINFO_METHODS(X)                                              \
+  X(GetAdapterResponses, "getAdapterResponses",                              \
+    "()java/util/List;"),                                                    \
+  X(GetMediationAdapterClassName, "getMediationAdapterClassName",            \
+    "()Ljava/lang/String;"),                                                 \
+  X(GetResponseId, "getResponseId", "()Ljava/lang/String;"),                 \
   X(ToString, "toString", "()Ljava/lang/String;")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(ad_error, ADERROR_METHODS);
-
-struct AdResultInternal {
-  jobject j_ad_error;
-  Mutex mutex;
-};
+METHOD_LOOKUP_DECLARATION(response_info, RESPONSEINFO_METHODS);
 
 }  // namespace admob
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_ANDROID_AD_RESULT_ANDROID_H_
+#endif  // FIREBASE_ADMOB_SRC_ANDROID_RESPONSE_INFO_ANDROID_H

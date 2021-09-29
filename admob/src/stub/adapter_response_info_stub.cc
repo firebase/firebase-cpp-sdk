@@ -22,33 +22,14 @@
 namespace firebase {
 namespace admob {
 
-struct AdResultInternal {
-  char stub;
+struct AdapterResponseInfoInternal {
+  int stub;
 };
 
-AdResult::AdResult(const AdResultInternal& ad_result_internal) {}
+const char* AdResult::kUndefinedDomain = "undefined";
 
-AdResult::~AdResult() {}
-
-AdResult& AdResult::operator=(const AdResult& ad_result) { return *this; }
-
-bool AdResult::is_successful() const { return false; }
-
-std::unique_ptr<AdResult> AdResult::GetCause() {
-  return std::unique_ptr<AdResult>(nullptr);
-}
-
-/// Gets the error's code.
-int AdResult::code() { return 0; }
-
-/// Gets the domain of the error.
-const std::string& AdResult::domain() { return std::string(); }
-
-/// Gets the message describing the error.
-const std::string& AdResult::message() { return std::string(); }
-
-/// Returns a log friendly string version of this object.
-const std::string& AdResult::ToString() { return std::string(); }
+AdapterResponseInfo::AdapterResponseInfo(
+    const AdapterResponseInfoInternal& internal) {}
 
 }  // namespace admob
 }  // namespace firebase

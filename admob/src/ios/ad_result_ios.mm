@@ -23,17 +23,14 @@ extern "C" {
 #import <GoogleMobileAds/GoogleMobileAds.h>>
 
 #include "admob/src/include/firebase/admob.h"
-#include "admob/src/include/firebase/admob/types.h"
-#include "app/src/mutex.h"
+#include "admob/src/ios/ad_result_ios.h"
+
 #include "app/src/util_ios.h"
 
 namespace firebase {
 namespace admob {
 
-struct AdResultInternal {
-  NSError* ios_error;
-  Mutex mutex;
-};
+const char* AdResult::kUndefinedDomain = "undefined";
 
 AdResult::AdResult(const AdResultInternal& ad_result_internal) {
   internal_ = new AdResultInternal();
@@ -50,16 +47,29 @@ AdResult::~AdResult() {
   internal_ = nullptr;
 }
 
-AdResult::AdResult(const AdResult& ad_result) {
+AdResult& AdResult::operator=(const AdResult& ad_result) {
   FIREBASE_ASSERT(ad_result.internal_);
+  FIREBASE_ASSERT(internal_);
 
-  internal_ = new AdResultInternal();
-  internal_->ios_error = ad_result.internal_->ios_error;
+  AdResultInternal* preexisting_internal = internal_;
+  {
+    MutexLock(internal_->mutex);
+    internal_ = new AdResultInternal();
+    MutexLock(internal_->mutex);
 
-  code_ = ad_result.code_;
-  domain_ = ad_result.domain_;
-  message_ = ad_result.message_;
-  to_string_ = ad_result.to_string_;
+    internal_->ios_error = ad_result.internal_->ios_error;
+
+    code_ = ad_result.code_;
+    domain_ = ad_result.domain_;
+    message_ = ad_result.message_;
+    to_string_ = ad_result.to_string_;
+  }
+
+  // Deleting the internal deletes the mutex within it, so we have to delete
+  // the internal after the MutexLock leaves scope.
+  delete preexisting_internal;
+
+  return *this;
 }
 
 bool AdResult::is_successful() const {
@@ -137,10 +147,10 @@ const std::string& AdResult::ToString() {
     return to_string_;
   }
 
-  NSString *to_string = [[NSString alloc]initWithFormat:@"Received error with "
+  NSString* ns_to_string = [[NSString alloc]initWithFormat:@"Received error with "
         "domain: %@, code: %ld, message: %@", internal_->ios_error.domain,
         internal_->ios_error.code, internal_->ios_error.localizedDescription];
-  to_string_ = util::NSStringToString(to_string);
+  to_string_ = util::NSStringToString(ns_to_string);
   return to_string_;
 }
 

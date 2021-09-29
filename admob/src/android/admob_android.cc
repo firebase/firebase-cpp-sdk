@@ -26,6 +26,7 @@
 #include "admob/admob_resources.h"
 #include "admob/src/android/ad_request_converter.h"
 #include "admob/src/android/ad_result_android.h"
+#include "admob/src/android/adapter_response_info_android.h"
 #include "admob/src/android/banner_view_internal_android.h"
 #include "admob/src/android/interstitial_ad_internal_android.h"
 #include "admob/src/common/admob_common.h"
@@ -143,6 +144,7 @@ InitResult Initialize(JNIEnv* env, jobject activity) {
 
   if (!(mobile_ads::CacheMethodIds(env, activity) &&
         ad_request_builder::CacheMethodIds(env, activity) &&
+        adapter_response_info::CacheMethodIds(env, activity) &&
         ad_error::CacheMethodIds(env, activity) &&
         ad_size::CacheMethodIds(env, activity) &&
         ad_view::CacheMethodIds(env, activity) &&
@@ -394,6 +396,7 @@ RequestConfiguration GetRequestConfiguration() {
 void ReleaseClasses(JNIEnv* env) {
   mobile_ads::ReleaseClass(env);
   ad_request_builder::ReleaseClass(env);
+  adapter_response_info::ReleaseClass(env);
   ad_error::ReleaseClass(env);
   ad_size::ReleaseClass(env);
   ad_view::ReleaseClass(env);

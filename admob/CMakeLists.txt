@@ -35,15 +35,18 @@ set(android_SRCS
     ${admob_resources_source}
     src/android/ad_request_converter.cc
     src/android/ad_result_android.cc
+    src/android/adapter_response_info_android.cc
     src/android/admob_android.cc
     src/android/banner_view_internal_android.cc
-    src/android/interstitial_ad_internal_android.cc)
+    src/android/interstitial_ad_internal_android.cc
+    src/android/response_info_android.cc)
 
 # Source files used by the iOS implementation.
 set(ios_SRCS
     src/ios/FADBannerView.mm
     src/ios/FADInterstitialDelegate.mm
     src/ios/FADRequest.mm
+    src/ios/ad_response_info_ios.mm
     src/ios/ad_result_ios.mm
     src/ios/admob_ios.mm
     src/ios/banner_view_internal_ios.mm

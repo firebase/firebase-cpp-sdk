@@ -28,7 +28,6 @@
 #include "admob/src/common/admob_common.h"
 #include "admob/src/include/firebase/admob.h"
 #include "admob/src/include/firebase/admob/types.h"
-#include "app/src/mutex.h"
 
 namespace firebase {
 namespace admob {
@@ -38,12 +37,7 @@ METHOD_LOOKUP_DEFINITION(ad_error,
                          "com/google/android/gms/ads/AdError",
                          ADERROR_METHODS);
 
-struct AdResultInternal {
-  jobject j_ad_error;
-  Mutex mutex;
-};
-
-AdResult::kUndefinedDomain = "undefined";
+const char* AdResult::kUndefinedDomain = "undefined";
 
 AdResult::AdResult(const AdResultInternal& ad_result_internal) {
   JNIEnv* env = GetJNI();
@@ -53,6 +47,35 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
   internal_->j_ad_error = env->NewGlobalRef(ad_result_internal.j_ad_error);
 
   code_ = 0;
+}
+
+AdResult& AdResult::operator=(const AdResult& ad_result) {
+  JNIEnv* env = GetJNI();
+  FIREBASE_ASSERT(env);
+  FIREBASE_ASSERT(ad_result.internal_);
+  FIREBASE_ASSERT(internal_);
+
+  AdResultInternal* preexisting_internal = internal_;
+  {
+    MutexLock(internal_->mutex);
+    internal_ = new AdResultInternal();
+    MutexLock(internal_->mutex);
+
+    internal_->j_ad_error = env->NewGlobalRef(ad_result.internal_->j_ad_error);
+
+    code_ = ad_result.code_;
+    domain_ = ad_result.domain_;
+    message_ = ad_result.message_;
+    to_string_ = ad_result.to_string_;
+
+    env->DeleteGlobalRef(preexisting_internal->j_ad_error);
+  }
+
+  // Deleting the internal deletes the mutex within it, so we have to delete
+  // the internal after the MutexLock leaves scope.
+  delete preexisting_internal;
+
+  return *this;
 }
 
 AdResult::~AdResult() {
@@ -66,22 +89,6 @@ AdResult::~AdResult() {
     delete internal_;
     internal_ = nullptr;
   }
-}
-
-AdResult::AdResult(const AdResult& ad_result) {
-  JNIEnv* env = GetJNI();
-  FIREBASE_ASSERT(env);
-  FIREBASE_ASSERT(ad_result.internal_);
-
-  jobject j_ad_error = env->NewGlobalRef(ad_result.internal_->j_ad_error);
-
-  internal_ = new AdResultInternal();
-  internal_->j_ad_error = j_ad_error;
-
-  code_ = ad_result.code_;
-  domain_ = ad_result.domain_;
-  message_ = ad_result.message_;
-  to_string_ = ad_result.to_string_;
 }
 
 bool AdResult::is_successful() const {
