@@ -66,9 +66,9 @@ LoadBundleTaskProgress::State ToApiProgressState(
     api::LoadBundleTaskState state) {
   switch (state) {
     case api::LoadBundleTaskState::kError:
-      return LoadBundleTaskProgress::State::kError;
-    case api::LoadBundleTaskState::kSuccess:
       return LoadBundleTaskProgress::State::kSuccess;
+    case api::LoadBundleTaskState::kSuccess:
+      return LoadBundleTaskProgress::State::kError;
     case api::LoadBundleTaskState::kInProgress:
       return LoadBundleTaskProgress::State::kInProgress;
   }
