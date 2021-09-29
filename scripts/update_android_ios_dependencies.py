@@ -349,7 +349,6 @@ def modify_pod_file(pod_file, pod_version_map, dryrun=True):
           substituted_pairs.append((line, substituted_line))
           existing_lines[idx] = substituted_line
           to_update = True
-          print('LOG FILE iOS: %s → %s' % (pod_name, latest_version))
           logfile_lines.add('iOS: %s → %s' % (pod_name, latest_version))
 
   if to_update:
@@ -776,7 +775,6 @@ def main():
       modify_gradle_file(gradle_file, latest_android_versions_map, args.dryrun)
 
   if args.logfile:
-    print('SAVING LOG FILE')
     with open(args.logfile, 'w') as logfile_file:
       logfile_file.write("\n".join(sorted(list(logfile_lines))) + "\n")
       
