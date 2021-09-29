@@ -103,14 +103,24 @@ class ResponseJson : public Response {
     if (!parse_status) {
       LogWarning("zzyzx ResponseJson(uid=%d).MarkCompleted(); parser_->error=%s", uid(), parser_->error_.c_str());
     }
-    FIREBASE_ASSERT_RETURN_VOID(parse_status);
+    FIREBASE_ASSERT_MESSAGE(parse_status, "parser_->Parse() failed: %s", parser_->error_.c_str());
+    if (! parse_status) {
+      application_data_.reset(new FbsTypeT());
+      Response::MarkCompleted();
+      return;
+    }
 
     const flatbuffers::FlatBufferBuilder& builder = parser_->builder_;
     flatbuffers::Verifier verifier(builder.GetBufferPointer(),
                                    builder.GetSize());
     bool verify_status = verifier.VerifyBuffer<FbsType>(nullptr);
     LogWarning("zzyzx ResponseJson(uid=%d).MarkCompleted(); verify_status=%s", uid(), verify_status ? "true" : "false");
-    FIREBASE_ASSERT_RETURN_VOID(verify_status);
+    FIREBASE_ASSERT_MESSAGE(verify_status, "verifier.VerifyBuffer<FbsType>() failed");
+    if (! verify_status) {
+      application_data_.reset(new FbsTypeT());
+      Response::MarkCompleted();
+      return;
+    }
 
     // UnPack application data object from FlatBuffer.
     const FbsType* body_fbs =
