@@ -738,6 +738,8 @@ def parse_cmdline_args():
 logfile_lines = set()
 
 def main():
+  global logfile_lines
+
   args = parse_cmdline_args()
   # Readme files have to be updated for both Android and iOS dependencies.
   readme_files = get_files(args.readmefiles, file_extension='.md',
@@ -772,9 +774,9 @@ def main():
     for gradle_file in gradle_files:
       modify_gradle_file(gradle_file, latest_android_versions_map, args.dryrun)
 
-    if args.logfile:
-      with open(args.logfile, 'w') as logfile_file:
-        logfile_file.write("\n".join(sorted(list(logfile_lines))) + "\n")
+  if args.logfile:
+    with open(args.logfile, 'w') as logfile_file:
+      logfile_file.write("\n".join(sorted(list(logfile_lines))) + "\n")
       
 if __name__ == '__main__':
   main()
