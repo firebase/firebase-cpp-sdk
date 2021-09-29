@@ -111,8 +111,12 @@ jobs:
             echo "::set-output name=pr_number::${{ github.event.pull_request.number }}"
             if [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelQuick }}" ]]; then
               echo "::set-output name=requested_tests::auto"
-            else
+            elif [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelFull }}" ]]; then
               echo "::set-output name=requested_tests::expanded"
+            else
+              # e.g. label: "cla: yes" 
+              # Make sure sanity check (Linux desktop) is running. 
+              echo "::set-output name=requested_tests::minimal"
             fi
           elif [[ "${{ github.event.action }}" == "closed" && ${{ github.event.pull_request.merged == true }} ]]; then
             echo "::set-output name=trigger::postsubmit_trigger"
@@ -124,7 +128,7 @@ jobs:
           fi
         fi
     ### If it's not a defined trigger, cancel workflow
-    ### e.g. Triggered by non-"test-request" label; triggered by not merged PR close event.
+    ### e.g. triggered by PR close event but PR not merged .
     - name: Cancel workflow
       if: ${{ !steps.set_outputs.outputs.trigger }}
       uses: andymckay/cancel-action@0.2
