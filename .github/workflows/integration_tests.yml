@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: "0 9 * * *"  # 9am UTC = 1am PST / 2am PDT
   pull_request:
-    types: [ labeled, closed, opened, reopened, synchronize ]
+    types: [ labeled, closed ]
 
   workflow_dispatch:
     inputs:
@@ -72,7 +72,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ github.token }}
     ### It sets "github_ref,trigger,pr_number,requested_tests" outputs to control the following jobs and steps
-    ### trigger value: manual_trigger, scheduled_trigger, label_trigger, postsubmit_trigger, presubmit_trigger
+    ### trigger value: manual_trigger, scheduled_trigger, label_trigger, postsubmit_trigger
     - id: set_outputs
       run: |
         if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then 
@@ -118,9 +118,6 @@ jobs:
             echo "::set-output name=trigger::postsubmit_trigger"
             echo "::set-output name=pr_number::${{ github.event.pull_request.number }}"
             echo "::set-output name=requested_tests::auto"
-          elif [[ "opened,reopened,synchronize" == *"${{ github.event.action }}"*  ]]; then
-            echo "::set-output name=trigger::presubmit_trigger"
-            echo "::set-output name=requested_tests::minimal"
           fi
         fi
     ### If it's not a defined trigger, cancel workflow
@@ -134,7 +131,7 @@ jobs:
         sleep 300
         exit 1  # fail out if the cancellation above somehow failed.
     - name: Cancel previous runs on the same PR
-      if: steps.set_outputs.outputs.trigger == 'presubmit_trigger' 
+      if: steps.set_outputs.outputs.trigger == 'label_trigger' 
       uses: styfle/cancel-workflow-action@0.8.0
       with:
         access_token: ${{ github.token }}
@@ -238,12 +235,6 @@ jobs:
         with:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ env.VCPKG_TRIPLET }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
-      - name: Cache ccache files
-        if: needs.check_and_prepare.outputs.trigger == 'presubmit_trigger'
-        uses: actions/cache@v2
-        with:
-          path: ccache_dir
-          key: presubmit-integration-test-ccache
       - name: Setup python
         uses: actions/setup-python@v2
         with:
