@@ -61,7 +61,7 @@ AdapterResponseInfo::AdapterResponseInfo(
   const jlong j_latency = env->CallLongMethod(
       j_adapter_response_info, adapter_response_info::GetMethodId(
                                    adapter_response_info::kGetLatencyMillis));
-  latency_ = (long)j_latency;
+  latency_ = (int64_t)j_latency;
 
   const jobject j_to_string = env->CallObjectMethod(
       j_adapter_response_info,

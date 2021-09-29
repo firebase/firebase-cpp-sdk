@@ -98,7 +98,7 @@ class AdResult {
  private:
   friend class AdapterResponseInfo;
 
-  AdResult(const AdResultInternal& ad_result_internal);
+  explicit AdResult(const AdResultInternal& ad_result_internal);
   AdResult& operator=(const AdResult& obj);
 
   // An internal, platform-specific implementation object that this class uses
@@ -129,7 +129,7 @@ class AdapterResponseInfo {
   ///
   /// @return number of milliseconds the network spent loading an ad. This value
   /// is 0 if the network did not make a load attempt.
-  long latency_in_millis() const { return latency_; }
+  int64_t latency_in_millis() const { return latency_; }
 
   /// A log friendly string version of this object.
   const std::string& ToString() const { return to_string_; }
@@ -138,11 +138,11 @@ class AdapterResponseInfo {
   friend class ResponseInfo;
 
   /// Constructs an Adapter Response Info Object.
-  AdapterResponseInfo(const AdapterResponseInfoInternal& internal);
+  explicit AdapterResponseInfo(const AdapterResponseInfoInternal& internal);
 
   AdResult ad_result_;
   std::string adapter_class_name_;
-  long latency_;
+  int64_t latency_;
   std::string to_string_;
 };
 
@@ -253,7 +253,7 @@ class ResponseInfo {
   const std::string& ToString() const { return to_string_; }
 
  private:
-  ResponseInfo(ResponseInfoInternal* internal);
+  explicit ResponseInfo(ResponseInfoInternal* internal);
 
   std::vector<AdapterResponseInfo> adapter_responses_;
   std::string mediation_adapter_class_name_;
