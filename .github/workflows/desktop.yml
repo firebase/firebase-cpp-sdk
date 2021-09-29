@@ -275,8 +275,10 @@ jobs:
             ~/Library/Logs/DiagnosticReports/*
             /tmp/bins/*
 
-  sanity_check: 
-    name: sanity-check-linux-openssl
+  local_integration_tests: 
+    ### This job run firestore integration test on Linux Dekstop as required by firestore team. 
+    ### It's possible to add more apps here once integration tests are less flaky.
+    name: local-integration-tests-linux-openssl
     needs: prepare_matrix
     runs-on: ubuntu-latest
     strategy:
@@ -300,19 +302,16 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ccache_dir
-          key: sanity-check-linux-openssl-ccache
+          key: local-integration-tests-linux-openssl-ccache
       - name: Setup python
         uses: actions/setup-python@v2
         with:
           python-version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version)[0] }}
-      - name: Install SDK Desktop prerequisites
-        run: |
-          python scripts/gha/install_prereqs_desktop.py
       - name: Prepare for integration tests
         run: |
           pip install -r scripts/gha/requirements.txt
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
-      - name: Install OpenSSL (Linux)
+      - name: Install OpenSSL
         run: |
           sudo apt install openssl
       - name: Build integration tests
@@ -352,7 +351,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat testapps-desktop-ubuntu-latest-openssl/test-results-desktop-desktop-ubuntu-latest-openssl.log
+          cat testapps-desktop-ubuntu-latest-openssl/test-results-desktop-ubuntu-latest-openssl.log
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
