@@ -74,12 +74,26 @@ class ResponseJson : public Response {
     // Parse and verify JSON string in body. FlatBuffer parser does not support
     // online parsing. So we only parse the body when we get everything.
     bool parse_status = parser_->Parse(GetBody());
-    FIREBASE_ASSERT_RETURN_VOID(parse_status);
+    FIREBASE_ASSERT_MESSAGE(parse_status,
+                            "flatbuffers::Parser::Parse() failed: %s",
+                            parser_->error_.c_str());
+    if (!parse_status) {
+      application_data_.reset(new FbsTypeT());
+      Response::MarkCompleted();
+      return;
+    }
+
     const flatbuffers::FlatBufferBuilder& builder = parser_->builder_;
     flatbuffers::Verifier verifier(builder.GetBufferPointer(),
                                    builder.GetSize());
     bool verify_status = verifier.VerifyBuffer<FbsType>(nullptr);
-    FIREBASE_ASSERT_RETURN_VOID(verify_status);
+    FIREBASE_ASSERT_MESSAGE(verify_status,
+                            "flatbuffers::Verifier::VerifyBuffer() failed");
+    if (!verify_status) {
+      application_data_.reset(new FbsTypeT());
+      Response::MarkCompleted();
+      return;
+    }
 
     // UnPack application data object from FlatBuffer.
     const FbsType* body_fbs =

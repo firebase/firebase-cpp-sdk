@@ -576,6 +576,9 @@ code.
     -   Messaging (Android): Fixes an issue to receive token when
         initialize the app. 
         ([#667](https://github.com/firebase/firebase-cpp-sdk/pull/667)).
+    -   Auth (Desktop): Fix a crash that would occur if parsing the JSON
+        response from the server failed
+        ([#XXX](https://github.com/firebase/firebase-cpp-sdk/pull/XXX)).
         
 ### 8.5.0
 -   Changes
