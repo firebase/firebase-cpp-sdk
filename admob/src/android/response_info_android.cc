@@ -16,9 +16,6 @@
 
 #include "admob/src/android/response_info_android.h"
 
-#include <string>
-#include <vector>
-
 #include "admob/src/android/ad_result_android.h"
 #include "admob/src/android/adapter_response_info_android.h"
 #include "admob/src/android/admob_android.h"
@@ -33,11 +30,10 @@ METHOD_LOOKUP_DEFINITION(response_info,
                          "com/google/android/gms/ads/ResponseInfo",
                          RESPONSEINFO_METHODS);
 
-ResponseInfo::ResponseInfo(ResponseInfoInternal* internal) {
-  FIREBASE_ASSERT(internal);
-  FIREBASE_ASSERT(internal->j_response_info);
+ResponseInfo::ResponseInfo(const ResponseInfoInternal& response_info_internal) {
+  FIREBASE_ASSERT(response_info_internal.j_response_info);
 
-  const jobject j_response_info = internal->j_response_info;
+  const jobject j_response_info = response_info_internal.j_response_info;
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env);
 
@@ -53,9 +49,9 @@ ResponseInfo::ResponseInfo(ResponseInfoInternal* internal) {
         env->CallObjectMethod(j_adapter_response_info_list,
                               util::list::GetMethodId(util::list::kGet), i);
     FIREBASE_ASSERT(j_adapter_response_info);
-    AdapterResponseInfoInternal internal;
-    internal.j_adapter_response_info = j_adapter_response_info;
-    adapter_responses_.push_back(AdapterResponseInfo(internal));
+    AdapterResponseInfoInternal adapter_response_internal;
+    adapter_response_internal.j_adapter_response_info = j_adapter_response_info;
+    adapter_responses_.push_back(AdapterResponseInfo(adapter_response_internal));
     env->DeleteLocalRef(j_adapter_response_info);
   }
 

@@ -14,26 +14,20 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_IOS_AD_RESULT_IOS_H_
-#define FIREBASE_ADMOB_SRC_IOS_AD_RESULT_IOS_H_
+#include <string>
 
-extern "C" {
-#include <objc/objc.h>
-}  // extern "C"
-
-#import <Foundation/Foundation.h>
-
-#include "app/src/mutex.h"
+#include "admob/src/include/firebase/admob.h"
+#include "admob/src/include/firebase/admob/types.h"
 
 namespace firebase {
 namespace admob {
 
-struct AdResultInternal {
-  NSError* ios_error;
-  Mutex mutex;
+struct ResponseInfoInternal {
+  int stub;
 };
+
+ResponseInfo::ResponseInfo(
+    const ResponseInfo& internal) {}
 
 }  // namespace admob
 }  // namespace firebase
-
-#endif  // FIREBASE_ADMOB_SRC_IOS_AD_RESULT_IOS_H_

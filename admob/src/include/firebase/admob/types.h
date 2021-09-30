@@ -37,6 +37,7 @@ namespace admob {
 
 struct AdResultInternal;
 struct AdapterResponseInfoInternal;
+struct LoadAdResultInternal;
 struct ResponseInfoInternal;
 
 class BannerView;
@@ -87,7 +88,7 @@ class AdResult {
   const std::string& message();
 
   /// Returns a log friendly string version of this object.
-  virtual const std::string& ToString();
+  const std::string& ToString();
 
   /// A domain string which represents an undefined error domain.
   ///
@@ -95,12 +96,18 @@ class AdResult {
   /// converting error information from legacy mediation adapter callbacks.
   static const char* kUndefinedDomain;
 
+protected:
+  explicit AdResult(const AdResultInternal& ad_result_internal);
+  
+  /// Sets the internally cached string. Used by the LoadAdError subclass.
+  void set_to_string(std::string to_string);
+
  private:
   friend class AdapterResponseInfo;
+  
 
-  explicit AdResult(const AdResultInternal& ad_result_internal);
   AdResult& operator=(const AdResult& obj);
-
+  
   // An internal, platform-specific implementation object that this class uses
   // to interact with the Google Mobile Ads SDKs for iOS and Android.
   AdResultInternal* internal_;
@@ -253,13 +260,31 @@ class ResponseInfo {
   const std::string& ToString() const { return to_string_; }
 
  private:
-  explicit ResponseInfo(ResponseInfoInternal* internal);
+  friend class LoadAdResult;
+
+  explicit ResponseInfo(const ResponseInfoInternal& internal);
 
   std::vector<AdapterResponseInfo> adapter_responses_;
   std::string mediation_adapter_class_name_;
   std::string response_id_;
   std::string to_string_;
 };
+
+/// @brief Information about why an ad load operation failed.
+class LoadAdResult : public AdResult {
+ public:
+  ~LoadAdResult();
+
+  /// Gets the ResponseInfo if an error occurred, with a collection of
+  /// information from each adapter.
+  const ResponseInfo& response_info() const { return response_info_; }
+
+private:
+  explicit LoadAdResult(const LoadAdResultInternal& load_ad_result_internal);
+
+  ResponseInfo response_info_;
+};
+
 
 /// @brief Global configuration that will be used for every @ref AdRequest.
 /// Set the configuration via @ref SetRequestConfiguration.

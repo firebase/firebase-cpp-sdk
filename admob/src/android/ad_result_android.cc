@@ -14,9 +14,6 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_COMMON_AD_RESULT_ANDROID_CC_
-#define FIREBASE_ADMOB_SRC_COMMON_AD_RESULT_ANDROID_CC_
-
 #include "admob/src/android/ad_result_android.h"
 
 #include <jni.h>
@@ -196,7 +193,9 @@ const std::string& AdResult::ToString() {
   return to_string_;
 }
 
+void AdResult::set_to_string(std::string to_string) {
+  to_string_ = to_string;
+}
+
 }  // namespace admob
 }  // namespace firebase
-
-#endif  // FIREBASE_ADMOB_SRC_COMMON_AD_RESULT_INTERNAL_ANDROID_H_

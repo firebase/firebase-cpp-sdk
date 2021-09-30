@@ -23,6 +23,7 @@ extern "C" {
 #import <GoogleMobileAds/GoogleMobileAds.h>>
 
 #include "admob/src/include/firebase/admob.h"
+#include "admob/src/include/firebase/admob/types.h"
 #include "admob/src/ios/ad_result_ios.h"
 
 #include "app/src/util_ios.h"

@@ -14,25 +14,23 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_IOS_AD_RESPONSE_INFO_IOS_H_
-#define FIREBASE_ADMOB_SRC_IOS_AD_RESPONSE_INFO_IOS_H_
+#ifndef FIREBASE_ADMOB_SRC_IOS_LOAD_AD_RESULT_IOS_H_
+#define FIREBASE_ADMOB_SRC_IOS_LOAD_AD_RESULT_IOS_H_
 
 extern "C" {
 #include <objc/objc.h>
 }  // extern "C"
 
-#import <GoogleMobileAds/GoogleMobileAds.h>>
-
-#include "admob/src/include/firebase/admob/types.h"
+#include "admob/src/ios/ad_result_ios.h"
 
 namespace firebase {
 namespace admob {
 
-struct AdapterResponseInfoInternal {
-  GADAdNetworkResponseInfo* ad_network_response_info;
+struct LoadAdResultInternal {
+  AdResultInternal ad_result_internal;
 };
 
 }  // namespace admob
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_IOS_AD_RESPONSE_INFO_IOS_H_
+#endif  // FIREBASE_ADMOB_SRC_IOS_LOAD_AD_RESULT_IOS_H_

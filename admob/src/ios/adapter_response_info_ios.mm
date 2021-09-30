@@ -22,7 +22,7 @@ extern "C" {
 
 #include "admob/src/include/firebase/admob.h"
 #include "admob/src/include/firebase/admob/types.h"
-#include "admob/src/ios/ad_response_info_ios.h"
+#include "admob/src/ios/adapter_response_info_ios.h"
 #include "admob/src/ios/ad_result_ios.h"
 #include "app/src/mutex.h"
 #include "app/src/util_ios.h"
