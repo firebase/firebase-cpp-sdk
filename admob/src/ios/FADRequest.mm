@@ -25,7 +25,8 @@ namespace firebase {
 namespace admob {
 
 GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest, 
-                                      admob::AdMobError* error) {
+                                      admob::AdMobError* error, 
+                                      std::string& error_message) {
   FIREBASE_ASSERT(error);
   *error = kAdMobErrorNone;
 
@@ -51,7 +52,9 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
     // Attempt to resolve the custom class.
     Class extrasClass = NSClassFromString(util::StringToNSString(adapterClassName));
     if (extrasClass == nil ) {
-      LogError("Failed to resolve extras class: \"%s\"", adapterClassName.c_str());
+      error_message = "Failed to resolve extras class: ";
+      error_message.append(adapterClassName);
+      LogError(error_message.c_str());
       *error = kAdMobErrorAdNetworkClassLoadError;
       return nullptr;
     }
@@ -60,8 +63,9 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
     // of an expected type.
     id gadExtrasId = [[extrasClass alloc] init];
     if (![gadExtrasId isKindOfClass:[GADExtras class]]) {
-      LogError("Failed to load extras class inherited from GADExtras: \"%s\"",
-          adapterClassName.c_str());
+      error_message = "Failed to load extras class inherited from GADExtras: ";
+      error_message.append(adapterClassName);
+      LogError(error_message.c_str());
       *error = kAdMobErrorAdNetworkClassLoadError;
       return nullptr;
     }

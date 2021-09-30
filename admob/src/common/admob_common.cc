@@ -51,6 +51,10 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseAdMob);
 static CleanupNotifier* g_cleanup_notifier = nullptr;
 const char kAdMobModuleName[] = "admob";
 
+// Hardcoded values are from publicly available documentation:
+// https://developers.google.com/android/reference/com/google/android/gms/ads/AdSize
+// A dynamic resolution of thes values creates a lot of Android code,
+// and these are standards that are not likely to change.
 const AdSize AdSize::kBanner(/*width=*/320, /*height=*/50);
 const AdSize AdSize::kFullBanner(468, 60);
 const AdSize AdSize::kLargeBanner(320, 100);

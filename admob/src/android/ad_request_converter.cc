@@ -53,6 +53,9 @@ jobject GetJavaAdRequestFromCPPAdRequest(const AdRequest& request,
       ad_request_builder::GetMethodId(ad_request_builder::kConstructor));
 
   // Network Extras.
+  // The map associates class names of mediation adapters with a 
+  // key value pairs, the extras, to send to those medation adapters.
+  // e.g. Mediation_Map < class name, Extras_Map < key, value > >
   const std::map<std::string, std::map<std::string, std::string>>& extras =
       request.extras();
   for (auto adapter_iter = extras.begin(); adapter_iter != extras.end();

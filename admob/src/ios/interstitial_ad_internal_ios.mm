@@ -77,15 +77,20 @@ Future<void> InterstitialAdInternalIOS::LoadAd(const AdRequest& request) {
   dispatch_async(dispatch_get_main_queue(), ^{
     // Create a GADRequest from an admob::AdRequest.
     AdMobError error = kAdMobErrorNone;
-    GADRequest *ad_request = GADRequestFromCppAdRequest(*request_copy, &error);
+    std::string error_message;
+    GADRequest *ad_request =
+     GADRequestFromCppAdRequest(*request_copy, &error, error_message);
     delete request_copy;
     if(ad_request==nullptr) {
       if(error==kAdMobErrorNone) {
         error = kAdMobErrorInternalError;
+        CompleteLoadFuture(error, 
+          "Internal error attempting to create GADRequest.");
+      } else {
+        CompleteLoadFuture(error, error_message.c_str());
       }
-      CompleteLoadFuture(error, "");
     } else {
-      // Make the interstitial ad request.
+  // Make the interstitial ad request.
       [interstitial_ loadRequest:ad_request];
     }
   });

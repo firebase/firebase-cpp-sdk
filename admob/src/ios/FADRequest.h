@@ -32,10 +32,13 @@ namespace admob {
 /// GAdRequest.
 /// @param[out] error kAdMobErrorNone on success, or another error if
 /// problems occurred.
+/// @param[out] error_message a string representation of any error that
+/// occurs.
 /// @return On succes, a pointer to a GADRequest object representing the
 /// AdRequest, or nullptr on error.
 GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
-                                       admob::AdMobError* error);
+                                       admob::AdMobError* error, 
+                                       std::string& error_message);
 
 }  // namespace admob
 }  // namespace firebase
