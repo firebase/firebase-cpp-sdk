@@ -26,8 +26,9 @@ namespace admob {
 
 GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest, 
                                       admob::AdMobError* error, 
-                                      std::string& error_message) {
+                                      std::string* error_message) {
   FIREBASE_ASSERT(error);
+  FIREBASE_ASSERT(error_message);
   *error = kAdMobErrorNone;
 
   // Create the GADRequest.
@@ -52,9 +53,9 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
     // Attempt to resolve the custom class.
     Class extrasClass = NSClassFromString(util::StringToNSString(adapterClassName));
     if (extrasClass == nil ) {
-      error_message = "Failed to resolve extras class: ";
-      error_message.append(adapterClassName);
-      LogError(error_message.c_str());
+      *error_message = "Failed to resolve extras class: ";
+      error_message->append(adapterClassName);
+      LogError(error_message->c_str());
       *error = kAdMobErrorAdNetworkClassLoadError;
       return nullptr;
     }
@@ -63,9 +64,9 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
     // of an expected type.
     id gadExtrasId = [[extrasClass alloc] init];
     if (![gadExtrasId isKindOfClass:[GADExtras class]]) {
-      error_message = "Failed to load extras class inherited from GADExtras: ";
-      error_message.append(adapterClassName);
-      LogError(error_message.c_str());
+      *error_message = "Failed to load extras class inherited from GADExtras: ";
+      error_message->append(adapterClassName);
+      LogError(error_message->c_str());
       *error = kAdMobErrorAdNetworkClassLoadError;
       return nullptr;
     }

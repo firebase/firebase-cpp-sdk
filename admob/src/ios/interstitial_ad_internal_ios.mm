@@ -79,7 +79,7 @@ Future<void> InterstitialAdInternalIOS::LoadAd(const AdRequest& request) {
     AdMobError error = kAdMobErrorNone;
     std::string error_message;
     GADRequest *ad_request =
-     GADRequestFromCppAdRequest(*request_copy, &error, error_message);
+     GADRequestFromCppAdRequest(*request_copy, &error, &error_message);
     delete request_copy;
     if(ad_request==nullptr) {
       if(error==kAdMobErrorNone) {

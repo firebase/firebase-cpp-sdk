@@ -17,6 +17,8 @@
 #import <Foundation/Foundation.h>
 #import <GoogleMobileAds/GoogleMobileAds.h>
 
+#include <string>
+
 #include "admob/src/include/firebase/admob/types.h"
 
 NS_ASSUME_NONNULL_BEGIN
@@ -37,8 +39,8 @@ namespace admob {
 /// @return On succes, a pointer to a GADRequest object representing the
 /// AdRequest, or nullptr on error.
 GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
-                                       admob::AdMobError* error, 
-                                       std::string& error_message);
+                                       admob::AdMobError* error,
+                                       std::string* error_message);
 
 }  // namespace admob
 }  // namespace firebase
