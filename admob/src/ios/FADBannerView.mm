@@ -16,6 +16,8 @@
 
 #include "admob/src/ios/FADBannerView.h"
 
+#import "admob/src/ios/FADAdSize.h"
+
 namespace admob = firebase::admob;
 
 @interface FADBannerView () <GADBannerViewDelegate> {
@@ -35,7 +37,7 @@ namespace admob = firebase::admob;
   NSString *_adUnitID;
 
   /// The banner view's ad size.
-  admob::AdSize _adSize;
+  GADAdSize _adSize;
 
   /// The BannerViewInternalIOS object.
   admob::internal::BannerViewInternalIOS *_cppBannerView;
@@ -52,14 +54,15 @@ namespace admob = firebase::admob;
 
 - (instancetype)initWithView:(UIView *)view
                     adUnitID:(NSString *)adUnitID
-                      adSize:(admob::AdSize)adSize
+                      adSize:(firebase::admob::AdSize)adSize
           internalBannerView:(firebase::admob::internal::BannerViewInternalIOS *)cppBannerView {
-  CGRect frame = CGRectMake(0, 0, adSize.width, adSize.height);
+  GADAdSize gadsize = GADSizeFromCppAdSize(adSize);
+  CGRect frame = CGRectMake(0, 0, gadsize.size.width, gadsize.size.height);
   self = [super initWithFrame:frame];
   if (self) {
     _parentView = view;
     _adUnitID = [adUnitID copy];
-    _adSize = adSize;
+    _adSize = gadsize;
     _cppBannerView = cppBannerView;
     _presentationState = admob::BannerView::kPresentationStateHidden;
     [self setUpBannerView];
@@ -69,8 +72,7 @@ namespace admob = firebase::admob;
 
 /// Called from the designated initializer. Sets up a banner view.
 - (void)setUpBannerView {
-  GADAdSize size = GADAdSizeFromCGSize(CGSizeMake(_adSize.width, _adSize.height));
-  _bannerView = [[GADBannerView alloc] initWithAdSize:size];
+  _bannerView = [[GADBannerView alloc] initWithAdSize:_adSize];
   _bannerView.adUnitID = _adUnitID;
   _bannerView.delegate = self;
 

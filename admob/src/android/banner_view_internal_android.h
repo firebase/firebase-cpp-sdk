@@ -62,13 +62,6 @@ METHOD_LOOKUP_DECLARATION(banner_view_helper_ad_view_listener,
 
 METHOD_LOOKUP_DECLARATION(ad_view, AD_VIEW_METHODS);
 
-// clang-format off
-#define AD_SIZE_METHODS(X)                                            \
-  X(Constructor, "<init>", "(II)V")
-// clang-format on
-
-METHOD_LOOKUP_DECLARATION(ad_size, AD_SIZE_METHODS);
-
 namespace internal {
 
 class BannerViewInternalAndroid : public BannerViewInternal {
@@ -77,7 +70,7 @@ class BannerViewInternalAndroid : public BannerViewInternal {
   ~BannerViewInternalAndroid() override;
 
   Future<void> Initialize(AdParent parent, const char* ad_unit_id,
-                          AdSize size) override;
+                          const AdSize& size) override;
   Future<void> LoadAd(const AdRequest& request) override;
   Future<void> Hide() override;
   Future<void> Show() override;

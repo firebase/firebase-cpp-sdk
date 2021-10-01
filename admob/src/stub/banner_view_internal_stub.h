@@ -34,7 +34,7 @@ class BannerViewInternalStub : public BannerViewInternal {
   ~BannerViewInternalStub() override {}
 
   Future<void> Initialize(AdParent parent, const char* ad_unit_id,
-                          AdSize size) override {
+                          const AdSize& size) override {
     return CreateAndCompleteFutureStub(kBannerViewFnInitialize);
   }
 

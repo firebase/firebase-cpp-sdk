@@ -19,10 +19,12 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <map>
 #include <vector>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/admob.h"
+#include "firebase/admob/types.h"
 #include "firebase/app.h"
 #include "firebase/util.h"
 #include "firebase_test_framework.h"  // NOLINT
@@ -72,6 +74,28 @@ const char* kInterstitialAdUnit = "ca-app-pub-3940256099942544/4411468910";
 const std::vector<std::string> kTestDeviceIDs = {
     "2077ef9a63d2b398840261c8221a0c9b", "098fe087d987c9a878965454a65654d7"};
 
+// Sample keywords to use in making the request.
+static const std::vector<std::string> kKeywords({"AdMob", "C++", "Fun"});
+
+// "Extra" key value pairs can be added to the request as well. Typically
+// these are used when testing new features.
+static const std::map<std::string, std::string> kAdMobAdapterExtras = {
+    {"the_name_of_an_extra", "the_value_for_that_extra"},
+    {"heres", "a second example"}};
+
+#if defined(__ANDROID__)
+static const char* kAdNetworkExtrasClassName =
+    "com/google/ads/mediation/admob/AdMobAdapter";
+#else
+static const char* kAdNetworkExtrasClassName = "GADExtras";
+#endif
+
+// Used to detect kAdMobErrorAdNetworkClassLoadErrors when loading
+// ads.
+static const char* kAdNetworkExtrasInvalidClassName = "abc123321cba";
+
+static const char* kContentUrl = "http://www.firebase.com";
+
 using app_framework::LogDebug;
 using app_framework::ProcessEvents;
 
@@ -95,6 +119,8 @@ class FirebaseAdMobTest : public FirebaseTest {
 };
 
 firebase::App* FirebaseAdMobTest::shared_app_ = nullptr;
+
+void BrieflyPauseForVisualInspection() { app_framework::ProcessEvents(100); }
 
 void FirebaseAdMobTest::SetUpTestSuite() {
   LogDebug("Initialize Firebase App.");
@@ -161,27 +187,71 @@ void FirebaseAdMobTest::SetUp() {
 void FirebaseAdMobTest::TearDown() { FirebaseTest::TearDown(); }
 
 firebase::admob::AdRequest FirebaseAdMobTest::GetAdRequest() {
-  // Sample keywords to use in making the request.
-  static const char* kKeywords[] = {"AdMob", "C++", "Fun"};
-
   firebase::admob::AdRequest request;
 
   // Additional keywords to be used in targeting.
-  request.keyword_count = sizeof(kKeywords) / sizeof(kKeywords[0]);
-  request.keywords = kKeywords;
+  for (auto keyword_iter = kKeywords.begin(); keyword_iter != kKeywords.end();
+       ++keyword_iter) {
+    request.add_keyword((*keyword_iter).c_str());
+  }
 
-  // "Extra" key value pairs can be added to the request as well. Typically
-  // these are used when testing new features.
-  static const firebase::admob::KeyValuePair kRequestExtras[] = {
-      {"the_name_of_an_extra", "the_value_for_that_extra"}};
-  request.extras_count = sizeof(kRequestExtras) / sizeof(kRequestExtras[0]);
-  request.extras = kRequestExtras;
+  for (auto extras_iter = kAdMobAdapterExtras.begin();
+       extras_iter != kAdMobAdapterExtras.end(); ++extras_iter) {
+    request.add_extra(kAdNetworkExtrasClassName, extras_iter->first.c_str(),
+                      extras_iter->second.c_str());
+  }
+
+  request.set_content_url(kContentUrl);
 
   return request;
 }
 
 // Test cases below.
 TEST_F(FirebaseAdMobTest, TestGetAdRequest) { GetAdRequest(); }
+
+TEST_F(FirebaseAdMobTest, TestGetAdRequestValues) {
+  SKIP_TEST_ON_DESKTOP;
+
+  const firebase::admob::AdRequest request = GetAdRequest();
+
+  // Content URL.
+  EXPECT_TRUE(request.content_url() == std::string(kContentUrl));
+
+  // Extras.
+  std::map<std::string, std::map<std::string, std::string> > configured_extras =
+      request.extras();
+
+  EXPECT_EQ(configured_extras.size(), 1);
+  for (auto extras_name_iter = configured_extras.begin();
+       extras_name_iter != configured_extras.end(); ++extras_name_iter) {
+    // Confirm class name.
+    const std::string class_name = extras_name_iter->first;
+    EXPECT_EQ(class_name, kAdNetworkExtrasClassName);
+
+    // Grab the extras.
+    const std::map<std::string, std::string>& configured_extras =
+        extras_name_iter->second;
+    EXPECT_EQ(configured_extras.size(), kAdMobAdapterExtras.size());
+
+    // Check the extra key value pairs.
+    for (auto constant_extras_iter = kAdMobAdapterExtras.begin();
+         constant_extras_iter != kAdMobAdapterExtras.end();
+         ++constant_extras_iter) {
+      // Ensure the configured value matches the constant for the same key.
+      EXPECT_EQ(configured_extras.at(constant_extras_iter->first),
+                constant_extras_iter->second);
+    }
+  }
+
+  const std::unordered_set<std::string> configured_keywords =
+      request.keywords();
+  EXPECT_EQ(configured_keywords.size(), kKeywords.size());
+  for (auto keyword_iter = kKeywords.begin(); keyword_iter != kKeywords.end();
+       ++keyword_iter) {
+    EXPECT_TRUE(configured_keywords.find(*keyword_iter) !=
+                configured_keywords.end());
+  }
+}
 
 // A simple listener to help test changes to a BannerView.
 class TestBannerViewListener : public firebase::admob::BannerView::Listener {
@@ -199,6 +269,71 @@ class TestBannerViewListener : public firebase::admob::BannerView::Listener {
       presentation_states_;
   std::vector<firebase::admob::BoundingBox> bounding_box_changes_;
 };
+
+TEST_F(FirebaseAdMobTest, TestAdSize) {
+  uint32_t kWidth = 50;
+  uint32_t kHeight = 10;
+
+  using firebase::admob::AdSize;
+
+  const AdSize adaptive_landscape =
+      AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(kWidth);
+  EXPECT_EQ(adaptive_landscape.width(), kWidth);
+  EXPECT_EQ(adaptive_landscape.height(), 0);
+  EXPECT_EQ(adaptive_landscape.type(), AdSize::kTypeAnchoredAdaptive);
+  EXPECT_EQ(adaptive_landscape.orientation(), AdSize::kOrientationLandscape);
+
+  const AdSize adaptive_portrait =
+      AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(kWidth);
+  EXPECT_EQ(adaptive_portrait.width(), kWidth);
+  EXPECT_EQ(adaptive_portrait.height(), 0);
+  EXPECT_EQ(adaptive_portrait.type(), AdSize::kTypeAnchoredAdaptive);
+  EXPECT_EQ(adaptive_portrait.orientation(), AdSize::kOrientationPortrait);
+
+  EXPECT_FALSE(adaptive_portrait == adaptive_landscape);
+  EXPECT_TRUE(adaptive_portrait != adaptive_landscape);
+
+  const firebase::admob::AdSize adaptive_current =
+      AdSize::GetCurrentOrientationAnchoredAdaptiveBannerAdSize(kWidth);
+  EXPECT_EQ(adaptive_current.width(), kWidth);
+  EXPECT_EQ(adaptive_current.height(), 0);
+  EXPECT_EQ(adaptive_current.type(), AdSize::kTypeAnchoredAdaptive);
+  EXPECT_EQ(adaptive_current.orientation(), AdSize::kOrientationCurrent);
+
+  const firebase::admob::AdSize custom_ad_size(kWidth, kHeight);
+  EXPECT_EQ(custom_ad_size.width(), kWidth);
+  EXPECT_EQ(custom_ad_size.height(), kHeight);
+  EXPECT_EQ(custom_ad_size.type(), AdSize::kTypeStandard);
+  EXPECT_EQ(custom_ad_size.orientation(), AdSize::kOrientationCurrent);
+
+  const AdSize custom_ad_size_2(kWidth, kHeight);
+  EXPECT_TRUE(custom_ad_size == custom_ad_size_2);
+  EXPECT_FALSE(custom_ad_size != custom_ad_size_2);
+
+  const AdSize banner = AdSize::kBanner;
+  EXPECT_EQ(banner.width(), 320);
+  EXPECT_EQ(banner.height(), 50);
+  EXPECT_EQ(banner.type(), AdSize::kTypeStandard);
+  EXPECT_EQ(banner.orientation(), AdSize::kOrientationCurrent);
+
+  const AdSize fullbanner = AdSize::kFullBanner;
+  EXPECT_EQ(fullbanner.width(), 468);
+  EXPECT_EQ(fullbanner.height(), 60);
+  EXPECT_EQ(fullbanner.type(), AdSize::kTypeStandard);
+  EXPECT_EQ(fullbanner.orientation(), AdSize::kOrientationCurrent);
+
+  const AdSize leaderboard = AdSize::kLeaderBoard;
+  EXPECT_EQ(leaderboard.width(), 728);
+  EXPECT_EQ(leaderboard.height(), 90);
+  EXPECT_EQ(leaderboard.type(), AdSize::kTypeStandard);
+  EXPECT_EQ(leaderboard.orientation(), AdSize::kOrientationCurrent);
+
+  const AdSize medium_rectangle = AdSize::kMediumRectangle;
+  EXPECT_EQ(medium_rectangle.width(), 300);
+  EXPECT_EQ(medium_rectangle.height(), 250);
+  EXPECT_EQ(medium_rectangle.type(), AdSize::kTypeStandard);
+  EXPECT_EQ(medium_rectangle.orientation(), AdSize::kOrientationCurrent);
+}
 
 TEST_F(FirebaseAdMobTest, TestRequestConfigurationSetGetEmptyConfig) {
   SKIP_TEST_ON_DESKTOP;
@@ -273,11 +408,7 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
   static const int kBannerWidth = 320;
   static const int kBannerHeight = 50;
 
-  firebase::admob::AdSize banner_ad_size;
-  banner_ad_size.ad_size_type = firebase::admob::kAdSizeStandard;
-  banner_ad_size.width = kBannerWidth;
-  banner_ad_size.height = kBannerHeight;
-
+  const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::admob::BannerView* banner = new firebase::admob::BannerView();
   WaitForCompletion(banner->Initialize(app_framework::GetWindowContext(),
                                        kBannerAdUnit, banner_ad_size),
@@ -301,13 +432,16 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
 
-  // Move to each of the six pre-defined positions.
+  BrieflyPauseForVisualInspection();
 
+  // Move to each of the six pre-defined positions.
   WaitForCompletion(banner->MoveTo(firebase::admob::BannerView::kPositionTop),
                     "MoveTo(Top)");
   expected_presentation_states.push_back(
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
+
+  BrieflyPauseForVisualInspection();
 
   WaitForCompletion(
       banner->MoveTo(firebase::admob::BannerView::kPositionTopLeft),
@@ -316,12 +450,16 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
 
+  BrieflyPauseForVisualInspection();
+
   WaitForCompletion(
       banner->MoveTo(firebase::admob::BannerView::kPositionTopRight),
       "MoveTo(TopRight)");
   expected_presentation_states.push_back(
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
+
+  BrieflyPauseForVisualInspection();
 
   WaitForCompletion(
       banner->MoveTo(firebase::admob::BannerView::kPositionBottom),
@@ -330,12 +468,16 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
 
+  BrieflyPauseForVisualInspection();
+
   WaitForCompletion(
       banner->MoveTo(firebase::admob::BannerView::kPositionBottomLeft),
       "MoveTo(BottomLeft)");
   expected_presentation_states.push_back(
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
+
+  BrieflyPauseForVisualInspection();
 
   WaitForCompletion(
       banner->MoveTo(firebase::admob::BannerView::kPositionBottomRight),
@@ -344,26 +486,36 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
 
+  BrieflyPauseForVisualInspection();
+
   // Move to some coordinates.
   WaitForCompletion(banner->MoveTo(100, 300), "MoveTo(x0, y0)");
   expected_presentation_states.push_back(
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
 
+  BrieflyPauseForVisualInspection();
+
   WaitForCompletion(banner->MoveTo(100, 400), "MoveTo(x1, y1)");
   expected_presentation_states.push_back(
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
+
+  BrieflyPauseForVisualInspection();
 
   // Try hiding and showing the BannerView.
   WaitForCompletion(banner->Hide(), "Hide 1");
   expected_presentation_states.push_back(
       firebase::admob::BannerView::kPresentationStateHidden);
 
+  BrieflyPauseForVisualInspection();
+
   WaitForCompletion(banner->Show(), "Show 1");
   expected_presentation_states.push_back(
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
+
+  BrieflyPauseForVisualInspection();
 
   // Move again after hiding/showing.
   WaitForCompletion(banner->MoveTo(100, 300), "MoveTo(x2, y2)");
@@ -371,10 +523,14 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
 
+  BrieflyPauseForVisualInspection();
+
   WaitForCompletion(banner->MoveTo(100, 400), "Moveto(x3, y3)");
   expected_presentation_states.push_back(
       firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
+
+  BrieflyPauseForVisualInspection();
 
   WaitForCompletion(banner->Hide(), "Hide 2");
   expected_presentation_states.push_back(
@@ -429,11 +585,7 @@ TEST_F(FirebaseAdMobTest, TestBannerViewAlreadyInitialized) {
   static const int kBannerWidth = 320;
   static const int kBannerHeight = 50;
 
-  firebase::admob::AdSize banner_ad_size;
-  banner_ad_size.ad_size_type = firebase::admob::kAdSizeStandard;
-  banner_ad_size.width = kBannerWidth;
-  banner_ad_size.height = kBannerHeight;
-
+  const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::admob::BannerView* banner = new firebase::admob::BannerView();
 
   {
@@ -462,6 +614,26 @@ TEST_F(FirebaseAdMobTest, TestBannerViewAlreadyInitialized) {
                       firebase::admob::kAdMobErrorAlreadyInitialized);
     delete banner;
   }
+}
+
+TEST_F(FirebaseAdMobTest, TestBannerViewWithBadExtrasClassName) {
+  SKIP_TEST_ON_DESKTOP;
+
+  static const int kBannerWidth = 320;
+  static const int kBannerHeight = 50;
+
+  const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
+  firebase::admob::BannerView* banner = new firebase::admob::BannerView();
+  WaitForCompletion(banner->Initialize(app_framework::GetWindowContext(),
+                                       kBannerAdUnit, banner_ad_size),
+                    "Initialize");
+
+  // Load the banner ad.
+  firebase::admob::AdRequest request = GetAdRequest();
+  request.add_extra(kAdNetworkExtrasInvalidClassName, "shouldnot", "work");
+  WaitForCompletion(banner->LoadAd(request), "LoadAd",
+                    firebase::admob::kAdMobErrorAdNetworkClassLoadError);
+  delete banner;
 }
 
 // A simple listener to help test changes to a InterstitialAd.
@@ -543,10 +715,7 @@ TEST_F(FirebaseAdMobTest, TestBannerViewMultithreadDeletion) {
   static const int kBannerWidth = 320;
   static const int kBannerHeight = 50;
 
-  firebase::admob::AdSize banner_ad_size;
-  banner_ad_size.ad_size_type = firebase::admob::kAdSizeStandard;
-  banner_ad_size.width = kBannerWidth;
-  banner_ad_size.height = kBannerHeight;
+  const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
 
   for (int i = 0; i < 5; ++i) {
     firebase::admob::BannerView* banner = new firebase::admob::BannerView();
