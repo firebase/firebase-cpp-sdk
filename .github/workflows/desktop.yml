@@ -274,3 +274,84 @@ jobs:
           path: |
             ~/Library/Logs/DiagnosticReports/*
             /tmp/bins/*
+
+  local_integration_tests: 
+    ### This job run firestore integration test on Linux Dekstop as required by firestore team. 
+    ### It's possible to add more apps here once integration tests are less flaky.
+    name: local-integration-tests-linux-openssl
+    needs: prepare_matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{needs.check_and_prepare.outputs.github_ref}}
+          submodules: true
+      - name: Set env vars
+        run: |
+          echo "VCPKG_TRIPLET=x64-linux" >> $GITHUB_ENV
+          echo "VCPKG_RESPONSE_FILE=external/vcpkg_${{ env.VCPKG_TRIPLET }}_response_file.txt" >> $GITHUB_ENV
+      - name: Cache vcpkg C++ dependencies
+        id: cache_vcpkg
+        uses: actions/cache@v2
+        with:
+          path: external/vcpkg/installed
+          key: dev-vcpkg-${{ env.VCPKG_TRIPLET }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
+      - name: Cache ccache files
+        uses: actions/cache@v2
+        with:
+          path: ccache_dir
+          key: local-integration-tests-linux-openssl-ccache
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version)[0] }}
+      - name: Prepare for integration tests
+        run: |
+          pip install -r scripts/gha/requirements.txt
+          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
+      - name: Install OpenSSL
+        run: |
+          sudo apt install openssl
+      - name: Build integration tests
+        shell: bash
+        env: 
+          CCACHE_DIR: ${{ github.workspace }}/ccache_dir
+        run: |
+          apis=$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k apis -m=1 )
+          python scripts/gha/build_testapps.py --p Desktop \
+            --t ${apis} \
+            --output_directory "${{ github.workspace }}" \
+            --artifact_name "desktop-ubuntu-latest-openssl" \
+            --noadd_timestamp \
+            --short_output_paths 
+      - name: Summarize build results
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          cat build-results-desktop-ubuntu-latest-openssl.log
+          if [[ "${{ job.status }}" != "success" ]]; then
+            exit 1
+          fi
+      - name: Set up Node (12)
+        uses: actions/setup-node@v2
+        with:
+          node-version: 12.x
+      - name: Setup Firestore Emulator
+        run: |
+          npm install -g firebase-tools
+      - name: Run Desktop integration tests
+        run: |
+          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps-desktop-ubuntu-latest-openssl
+          firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps-desktop-ubuntu-latest-openssl --logfile_name "desktop-ubuntu-latest-openssl"'
+        env:
+          USE_FIRESTORE_EMULATOR: true
+      - name: Summarize test results
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          cat testapps-desktop-ubuntu-latest-openssl/test-results-desktop-ubuntu-latest-openssl.log
+          if [[ "${{ job.status }}" != "success" ]]; then
+            exit 1
+          fi
