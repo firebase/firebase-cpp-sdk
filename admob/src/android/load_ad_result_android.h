@@ -21,7 +21,6 @@
 #include "app/src/mutex.h"
 #include "app/src/util_android.h"
 
-
 namespace firebase {
 namespace admob {
 

@@ -41,7 +41,7 @@ BannerViewInternalIOS::~BannerViewInternalIOS() {
 Future<void> BannerViewInternalIOS::Initialize(AdParent parent, const char* ad_unit_id,
                                                AdSize size) {
   FutureCallbackData* callback_data =
-      CreateFutureCallbackData(&future_data_, kBannerViewFnInitialize);
+      CreateFutureCallbackDataVoid(&future_data_, kBannerViewFnInitialize);
   if(initialized_) {
     future_data_.future_impl.Complete(callback_data->future_handle,
                                       kAdMobErrorAlreadyInitialized,

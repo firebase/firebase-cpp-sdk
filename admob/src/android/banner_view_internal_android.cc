@@ -133,7 +133,7 @@ struct BannerViewInternalInitializeData {
   std::string ad_unit_id;
   jobject ad_view;
   jobject banner_view_helper;
-  FutureCallbackData* callback_data;
+  FutureCallbackDataVoid* callback_data;
 };
 
 // This function is run on the main thread and is called in the
@@ -213,8 +213,8 @@ void InitializeBannerViewOnMainThread(void* data) {
 Future<void> BannerViewInternalAndroid::Initialize(AdParent parent,
                                                    const char* ad_unit_id,
                                                    AdSize size) {
-  FutureCallbackData* callback_data =
-      CreateFutureCallbackData(&future_data_, kBannerViewFnInitialize);
+  FutureCallbackDataVoid* callback_data =
+      CreateFutureCallbackDataVoid(&future_data_, kBannerViewFnInitialize);
 
   if (initialized_) {
     future_data_.future_impl.Complete(callback_data->future_handle,
@@ -243,9 +243,13 @@ Future<void> BannerViewInternalAndroid::Initialize(AdParent parent,
   return GetLastResult(kBannerViewFnInitialize);
 }
 
-Future<void> BannerViewInternalAndroid::LoadAd(const AdRequest& request) {
-  FutureCallbackData* callback_data =
-      CreateFutureCallbackData(&future_data_, kBannerViewFnLoadAd);
+Future<LoadAdResult> BannerViewInternalAndroid::LoadAd(
+    const AdRequest& request) {
+  FutureCallbackData<LoadAdResult>* callback_data =
+      new FutureCallbackData<LoadAdResult>();
+  callback_data->future_handle =
+      future_data_.future_impl.SafeAlloc(kBannerViewFnLoadAd, LoadAdResult());
+  callback_data->future_data = &future_data_;
 
   AdRequestConverter converter(request);
   jobject request_ref = converter.GetJavaRequestObject();
@@ -253,7 +257,8 @@ Future<void> BannerViewInternalAndroid::LoadAd(const AdRequest& request) {
   ::firebase::admob::GetJNI()->CallVoidMethod(
       helper_, banner_view_helper::GetMethodId(banner_view_helper::kLoadAd),
       reinterpret_cast<jlong>(callback_data), request_ref);
-  return GetLastResult(kBannerViewFnLoadAd);
+
+  return MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 }
 
 Future<void> BannerViewInternalAndroid::Hide() {
@@ -278,8 +283,8 @@ Future<void> BannerViewInternalAndroid::Destroy() {
 }
 
 Future<void> BannerViewInternalAndroid::MoveTo(int x, int y) {
-  FutureCallbackData* callback_data =
-      CreateFutureCallbackData(&future_data_, kBannerViewFnMoveTo);
+  FutureCallbackDataVoid* callback_data =
+      CreateFutureCallbackDataVoid(&future_data_, kBannerViewFnMoveTo);
 
   ::firebase::admob::GetJNI()->CallVoidMethod(
       helper_, banner_view_helper::GetMethodId(banner_view_helper::kMoveToXY),
@@ -289,8 +294,8 @@ Future<void> BannerViewInternalAndroid::MoveTo(int x, int y) {
 }
 
 Future<void> BannerViewInternalAndroid::MoveTo(BannerView::Position position) {
-  FutureCallbackData* callback_data =
-      CreateFutureCallbackData(&future_data_, kBannerViewFnMoveTo);
+  FutureCallbackDataVoid* callback_data =
+      CreateFutureCallbackDataVoid(&future_data_, kBannerViewFnMoveTo);
 
   ::firebase::admob::GetJNI()->CallVoidMethod(
       helper_,
@@ -346,8 +351,8 @@ BoundingBox BannerViewInternalAndroid::GetBoundingBox() const {
 
 Future<void> BannerViewInternalAndroid::InvokeNullary(
     BannerViewFn fn, banner_view_helper::Method method) {
-  FutureCallbackData* callback_data =
-      CreateFutureCallbackData(&future_data_, fn);
+  FutureCallbackDataVoid* callback_data =
+      CreateFutureCallbackDataVoid(&future_data_, fn);
 
   ::firebase::admob::GetJNI()->CallVoidMethod(
       helper_, banner_view_helper::GetMethodId(method),

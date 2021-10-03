@@ -54,7 +54,7 @@ class BannerViewInternal {
                                   AdSize size) = 0;
 
   // Initiates an ad request.
-  virtual Future<void> LoadAd(const AdRequest& request) = 0;
+  virtual Future<LoadAdResult> LoadAd(const AdRequest& request) = 0;
 
   // Hides the banner view.
   virtual Future<void> Hide() = 0;

@@ -38,26 +38,40 @@ METHOD_LOOKUP_DEFINITION(load_ad_error,
                          "com/google/android/gms/ads/LoadAdError",
                          LOADADERROR_METHODS);
 
-LoadAdResult::LoadAdResult(const LoadAdResultInternal& load_ad_result_internal) : 
-  AdResult(load_ad_result_internal.ad_result_internal), response_info_(ResponseInfoInternal()) {
+LoadAdResult::LoadAdResult()
+    : AdResult(AdResultInternal()), response_info_(ResponseInfoInternal()) {
+  // Default constructor for templated Future creation.
+}
+
+LoadAdResult::LoadAdResult(const LoadAdResultInternal& load_ad_result_internal)
+    : AdResult(load_ad_result_internal.ad_result_internal),
+      response_info_(ResponseInfoInternal()) {
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env);
-  FIREBASE_ASSERT(load_ad_result_internal.ad_result_internal.j_ad_error);
 
-  jobject j_load_ad_error = load_ad_result_internal.ad_result_internal.j_ad_error;
-  
-  jobject j_response_info = env->CallObjectMethod(
-        j_load_ad_error, load_ad_error::GetMethodId(load_ad_error::kGetResponseInfo));
+  if (!load_ad_result_internal.ad_result_internal.is_successful &&
+      !load_ad_result_internal.ad_result_internal.is_wrapper_error) {
+    FIREBASE_ASSERT(load_ad_result_internal.ad_result_internal.j_ad_error);
 
-  ResponseInfoInternal response_info_internal;
-  response_info_internal.j_response_info = j_response_info;
-  response_info_ = ResponseInfo(response_info_internal);
-  env->DeleteLocalRef(j_response_info);
+    jobject j_load_ad_error =
+        load_ad_result_internal.ad_result_internal.j_ad_error;
 
-  jobject j_to_string = env->CallObjectMethod(
+    jobject j_response_info = env->CallObjectMethod(
+        j_load_ad_error,
+        load_ad_error::GetMethodId(load_ad_error::kGetResponseInfo));
+
+    if (j_response_info != nullptr) {
+      ResponseInfoInternal response_info_internal;
+      response_info_internal.j_response_info = j_response_info;
+      response_info_ = ResponseInfo(response_info_internal);
+      env->DeleteLocalRef(j_response_info);
+    }
+
+    jobject j_to_string = env->CallObjectMethod(
         j_load_ad_error, load_ad_error::GetMethodId(load_ad_error::kToString));
-  set_to_string(util::JStringToString(env, j_to_string));
-  env->DeleteLocalRef(j_to_string);
+    set_to_string(util::JStringToString(env, j_to_string));
+    env->DeleteLocalRef(j_to_string);
+  }
 }
 
 }  // namespace admob

@@ -40,6 +40,7 @@ struct AdapterResponseInfoInternal;
 struct LoadAdResultInternal;
 struct ResponseInfoInternal;
 
+class AdmobInternal;
 class BannerView;
 class InterstitialAd;
 
@@ -69,26 +70,26 @@ class AdResult {
 
   /// If the operation was successful then the other error reporting methods
   /// of this object will return defaults.
-  bool is_successful() const;
+  virtual bool is_successful() const;
 
   /// Retrieves an AdResult which represents the cause of this error.
   ///
   /// @return a pointer to an AdResult which represents the cause of this
   /// AdResult.  If there was no cause, or if this result was successful,
   /// then nullptr is returned.
-  std::unique_ptr<AdResult> GetCause();
+  virtual std::unique_ptr<AdResult> GetCause();
 
   /// Gets the error's code.
-  int code();
+  virtual int code();
 
   /// Gets the domain of the error.
-  const std::string& domain();
+  virtual const std::string& domain();
 
   /// Gets the message describing the error.
-  const std::string& message();
+  virtual const std::string& message();
 
   /// Returns a log friendly string version of this object.
-  const std::string& ToString();
+  virtual const std::string& ToString();
 
   /// A domain string which represents an undefined error domain.
   ///
@@ -96,22 +97,25 @@ class AdResult {
   /// converting error information from legacy mediation adapter callbacks.
   static const char* kUndefinedDomain;
 
-protected:
+ protected:
+  friend class AdMobInternal;
+
+  AdResult();
   explicit AdResult(const AdResultInternal& ad_result_internal);
-  
+
+  AdResult& operator=(const AdResult& obj);
+
   /// Sets the internally cached string. Used by the LoadAdError subclass.
   void set_to_string(std::string to_string);
 
  private:
   friend class AdapterResponseInfo;
-  
 
-  AdResult& operator=(const AdResult& obj);
-  
   // An internal, platform-specific implementation object that this class uses
   // to interact with the Google Mobile Ads SDKs for iOS and Android.
   AdResultInternal* internal_;
 
+  bool is_successful_;
   int code_;
   std::string domain_;
   std::string message_;
@@ -238,6 +242,9 @@ struct BoundingBox {
 /// Information about an ad response.
 class ResponseInfo {
  public:
+  /// Constructor creates an uninitialized ResponseInfo.
+  ResponseInfo();
+
   /// Gets the AdaptorReponseInfo objects for the ad response.
   ///
   /// @return a vector of AdapterResponseInfo objects containing metadata for
@@ -273,18 +280,19 @@ class ResponseInfo {
 /// @brief Information about why an ad load operation failed.
 class LoadAdResult : public AdResult {
  public:
-  ~LoadAdResult();
+  LoadAdResult();
 
   /// Gets the ResponseInfo if an error occurred, with a collection of
   /// information from each adapter.
   const ResponseInfo& response_info() const { return response_info_; }
 
-private:
+ private:
+  friend class AdmobInternal;
+
   explicit LoadAdResult(const LoadAdResultInternal& load_ad_result_internal);
 
   ResponseInfo response_info_;
 };
-
 
 /// @brief Global configuration that will be used for every @ref AdRequest.
 /// Set the configuration via @ref SetRequestConfiguration.

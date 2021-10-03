@@ -114,6 +114,13 @@ void CompleteFuture(int error, const char* error_msg, FutureHandle handle,
   future_data->future_impl.Complete(handle, error, error_msg);
 }
 
+template <class T>
+void CompleteSafeFutureHandle(int error, const char* error_msg,
+                              SafeFutureHandle<T> handle,
+                              FutureData* future_data) {
+  future_data->future_impl.Complete(handle, error, error_msg);
+}
+
 // For calls that aren't asynchronous, we can create and complete at the
 // same time.
 void CreateAndCompleteFuture(int fn_idx, int error, const char* error_msg,
@@ -122,10 +129,19 @@ void CreateAndCompleteFuture(int fn_idx, int error, const char* error_msg,
   CompleteFuture(error, error_msg, handle, future_data);
 }
 
-FutureCallbackData* CreateFutureCallbackData(FutureData* future_data,
-                                             int fn_idx) {
-  FutureCallbackData* callback_data = new FutureCallbackData();
+FutureCallbackDataVoid* CreateFutureCallbackDataVoid(FutureData* future_data,
+                                                     int fn_idx) {
+  FutureCallbackDataVoid* callback_data = new FutureCallbackDataVoid();
   callback_data->future_handle = future_data->future_impl.Alloc<void>(fn_idx);
+  callback_data->future_data = future_data;
+  return callback_data;
+}
+
+template <typename T>
+FutureCallbackData<T>* CreateFutureCallbackData(FutureData* future_data,
+                                                int fn_idx) {
+  FutureCallbackData<T>* callback_data = new FutureCallbackData<T>();
+  callback_data->future_handle = future_data->future_impl.Alloc<T>(fn_idx);
   callback_data->future_data = future_data;
   return callback_data;
 }

@@ -36,40 +36,71 @@ METHOD_LOOKUP_DEFINITION(ad_error,
 
 const char* AdResult::kUndefinedDomain = "undefined";
 
+AdResult::AdResult() {
+  // Default constructor is only made available for Future creation.
+  // Initialize it with some helpful debug values in case we encounter a
+  // scenario where an AdResult makes it to the application in such a state.
+  internal_ = new AdResultInternal();
+  internal_->is_successful = false;
+  internal_->is_wrapper_error = true;
+  internal_->code = kAdMobErrorInternalError;
+  internal_->domain = "Internal";
+  internal_->message = "This AdResult has not be initialized.";
+  internal_->to_string = internal_->message;
+}
+
 AdResult::AdResult(const AdResultInternal& ad_result_internal) {
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env);
 
   internal_ = new AdResultInternal();
-  internal_->j_ad_error = env->NewGlobalRef(ad_result_internal.j_ad_error);
+  internal_->is_successful = ad_result_internal.is_successful;
 
-  code_ = 0;
+  if (internal_->is_wrapper_error) {
+    // Wrapper errors come with prepopulated code, domain, etc, fields.
+    internal_->code = ad_result_internal.code;
+    internal_->domain = ad_result_internal.domain;
+    internal_->message = ad_result_internal.message;
+    internal_->to_string = ad_result_internal.to_string;
+  } else {
+    FIREBASE_ASSERT(ad_result_internal.j_ad_error);
+    // AdResults based on Admob Android SDK errors will fetch code, domain,
+    // message, and to_string values from the Java object, as required.
+    internal_->j_ad_error = env->NewGlobalRef(ad_result_internal.j_ad_error);
+  }
 }
 
 AdResult& AdResult::operator=(const AdResult& ad_result) {
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env);
-  FIREBASE_ASSERT(ad_result.internal_);
   FIREBASE_ASSERT(internal_);
+  FIREBASE_ASSERT(ad_result.internal_);
 
   AdResultInternal* preexisting_internal = internal_;
   {
+    MutexLock(ad_result.internal_->mutex);
     MutexLock(internal_->mutex);
     internal_ = new AdResultInternal();
     MutexLock(internal_->mutex);
 
-    internal_->j_ad_error = env->NewGlobalRef(ad_result.internal_->j_ad_error);
+    internal_->is_successful = ad_result.internal_->is_successful;
+    internal_->is_wrapper_error = ad_result.internal_->is_wrapper_error;
+    internal_->code = ad_result.internal_->code;
+    internal_->domain = ad_result.internal_->domain;
+    internal_->message = ad_result.internal_->message;
+    if (ad_result.internal_->j_ad_error != nullptr) {
+      internal_->j_ad_error =
+          env->NewGlobalRef(ad_result.internal_->j_ad_error);
+    }
 
-    code_ = ad_result.code_;
-    domain_ = ad_result.domain_;
-    message_ = ad_result.message_;
-    to_string_ = ad_result.to_string_;
-
-    env->DeleteGlobalRef(preexisting_internal->j_ad_error);
+    if (preexisting_internal->j_ad_error) {
+      env->DeleteGlobalRef(preexisting_internal->j_ad_error);
+      preexisting_internal->j_ad_error = nullptr;
+    }
   }
 
-  // Deleting the internal deletes the mutex within it, so we have to delete
-  // the internal after the MutexLock leaves scope.
+  // Deleting the internal deletes the mutex within it, so we wait for complete
+  // deletion until after the mutex leaves scope.
   delete preexisting_internal;
 
   return *this;
@@ -77,36 +108,35 @@ AdResult& AdResult::operator=(const AdResult& ad_result) {
 
 AdResult::~AdResult() {
   FIREBASE_ASSERT(internal_);
-  MutexLock(internal_->mutex);
-
   if (internal_->j_ad_error != nullptr) {
     JNIEnv* env = GetJNI();
     FIREBASE_ASSERT(env);
     env->DeleteGlobalRef(internal_->j_ad_error);
-    delete internal_;
-    internal_ = nullptr;
   }
+  delete internal_;
+  internal_ = nullptr;
 }
 
 bool AdResult::is_successful() const {
   FIREBASE_ASSERT(internal_);
-  return (internal_->j_ad_error == nullptr);
+  return internal_->is_successful;
 }
 
 std::unique_ptr<AdResult> AdResult::GetCause() {
   FIREBASE_ASSERT(internal_);
 
-  MutexLock(internal_->mutex);
-
-  if (internal_->j_ad_error == nullptr) {
+  if (internal_->is_wrapper_error) {
     return std::unique_ptr<AdResult>(nullptr);
   } else {
+    FIREBASE_ASSERT(internal_->j_ad_error);
     JNIEnv* env = GetJNI();
     FIREBASE_ASSERT(env);
+
     jobject j_ad_error = env->CallObjectMethod(
         internal_->j_ad_error, ad_error::GetMethodId(ad_error::kGetCause));
 
     AdResultInternal ad_result_internal;
+    ad_result_internal.is_wrapper_error = false;
     ad_result_internal.j_ad_error = j_ad_error;
     std::unique_ptr<AdResult> ad_result =
         std::unique_ptr<AdResult>(new AdResult(ad_result_internal));
@@ -120,10 +150,8 @@ int AdResult::code() {
   FIREBASE_ASSERT(internal_);
   MutexLock(internal_->mutex);
 
-  if (internal_->j_ad_error == nullptr) {
-    return 0;
-  } else if (code_ != 0) {
-    return code_;
+  if (internal_->is_wrapper_error || internal_->code != 0) {
+    return internal_->code;
   }
 
   JNIEnv* env = ::firebase::admob::GetJNI();
@@ -138,10 +166,8 @@ const std::string& AdResult::domain() {
   FIREBASE_ASSERT(internal_);
   MutexLock(internal_->mutex);
 
-  if (internal_->j_ad_error == nullptr) {
-    return std::string();
-  } else if (!domain_.empty()) {
-    return domain_;
+  if (internal_->is_wrapper_error || !internal_->domain.empty()) {
+    return internal_->domain;
   }
 
   JNIEnv* env = ::firebase::admob::GetJNI();
@@ -158,10 +184,8 @@ const std::string& AdResult::message() {
   FIREBASE_ASSERT(internal_);
   MutexLock(internal_->mutex);
 
-  if (internal_->j_ad_error == nullptr) {
-    return std::string();
-  } else if (!message_.empty()) {
-    return message_;
+  if (internal_->is_wrapper_error || !internal_->message.empty()) {
+    return internal_->message;
   }
 
   JNIEnv* env = ::firebase::admob::GetJNI();
@@ -178,10 +202,8 @@ const std::string& AdResult::ToString() {
   FIREBASE_ASSERT(internal_);
   MutexLock(internal_->mutex);
 
-  if (internal_->j_ad_error == nullptr) {
-    return std::string();
-  } else if (!to_string_.empty()) {
-    return to_string_;
+  if (internal_->is_wrapper_error || !internal_->to_string.empty()) {
+    return internal_->to_string;
   }
 
   JNIEnv* env = ::firebase::admob::GetJNI();
@@ -194,8 +216,8 @@ const std::string& AdResult::ToString() {
 }
 
 void AdResult::set_to_string(std::string to_string) {
-  to_string_ = to_string;
+  FIREBASE_ASSERT(internal_);
+  internal_->to_string = to_string;
 }
-
 }  // namespace admob
 }  // namespace firebase

@@ -154,7 +154,7 @@ class BannerView {
   /// automatically be displayed in the BannerView.
   /// @param[in] request An AdRequest struct with information about the request
   ///                    to be made (such as targeting info).
-  Future<void> LoadAd(const AdRequest& request);
+  Future<LoadAdResult> LoadAd(const AdRequest& request);
 
   /// Returns a @ref Future containing the status of the last call to
   /// @ref LoadAd.

@@ -26,8 +26,7 @@ struct ResponseInfoInternal {
   int stub;
 };
 
-ResponseInfo::ResponseInfo(
-    const ResponseInfo& internal) {}
+ResponseInfo::ResponseInfo(const ResponseInfo& internal) {}
 
 }  // namespace admob
 }  // namespace firebase

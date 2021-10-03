@@ -78,7 +78,7 @@ class BannerViewInternalAndroid : public BannerViewInternal {
 
   Future<void> Initialize(AdParent parent, const char* ad_unit_id,
                           AdSize size) override;
-  Future<void> LoadAd(const AdRequest& request) override;
+  Future<LoadAdResult> LoadAd(const AdRequest& request) override;
   Future<void> Hide() override;
   Future<void> Show() override;
   Future<void> Pause() override;

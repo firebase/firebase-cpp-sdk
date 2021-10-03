@@ -70,8 +70,8 @@ InterstitialAdInternalAndroid::~InterstitialAdInternalAndroid() {
 
 Future<void> InterstitialAdInternalAndroid::Initialize(AdParent parent,
                                                        const char* ad_unit_id) {
-  FutureCallbackData* callback_data =
-      CreateFutureCallbackData(&future_data_, kInterstitialAdFnInitialize);
+  FutureCallbackDataVoid* callback_data =
+      CreateFutureCallbackDataVoid(&future_data_, kInterstitialAdFnInitialize);
   JNIEnv* env = ::firebase::admob::GetJNI();
 
   jstring ad_unit_str = env->NewStringUTF(ad_unit_id);
@@ -85,8 +85,8 @@ Future<void> InterstitialAdInternalAndroid::Initialize(AdParent parent,
 }
 
 Future<void> InterstitialAdInternalAndroid::LoadAd(const AdRequest& request) {
-  FutureCallbackData* callback_data =
-      CreateFutureCallbackData(&future_data_, kInterstitialAdFnLoadAd);
+  FutureCallbackDataVoid* callback_data =
+      CreateFutureCallbackDataVoid(&future_data_, kInterstitialAdFnLoadAd);
 
   AdRequestConverter converter(request);
   jobject request_ref = converter.GetJavaRequestObject();
@@ -99,8 +99,8 @@ Future<void> InterstitialAdInternalAndroid::LoadAd(const AdRequest& request) {
 }
 
 Future<void> InterstitialAdInternalAndroid::Show() {
-  FutureCallbackData* callback_data =
-      CreateFutureCallbackData(&future_data_, kInterstitialAdFnShow);
+  FutureCallbackDataVoid* callback_data =
+      CreateFutureCallbackDataVoid(&future_data_, kInterstitialAdFnShow);
 
   ::firebase::admob::GetJNI()->CallVoidMethod(
       helper_,

@@ -19,6 +19,7 @@
 
 #include <jni.h>
 
+#include "admob/src/common/admob_common.h"
 #include "app/src/util_android.h"
 
 namespace firebase {

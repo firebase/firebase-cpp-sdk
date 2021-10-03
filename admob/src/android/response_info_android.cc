@@ -30,6 +30,10 @@ METHOD_LOOKUP_DEFINITION(response_info,
                          "com/google/android/gms/ads/ResponseInfo",
                          RESPONSEINFO_METHODS);
 
+ResponseInfo::ResponseInfo() {
+  to_string_ = "This ResponseInfo has not been initialized.";
+}
+
 ResponseInfo::ResponseInfo(const ResponseInfoInternal& response_info_internal) {
   FIREBASE_ASSERT(response_info_internal.j_response_info);
 
@@ -51,7 +55,8 @@ ResponseInfo::ResponseInfo(const ResponseInfoInternal& response_info_internal) {
     FIREBASE_ASSERT(j_adapter_response_info);
     AdapterResponseInfoInternal adapter_response_internal;
     adapter_response_internal.j_adapter_response_info = j_adapter_response_info;
-    adapter_responses_.push_back(AdapterResponseInfo(adapter_response_internal));
+    adapter_responses_.push_back(
+        AdapterResponseInfo(adapter_response_internal));
     env->DeleteLocalRef(j_adapter_response_info);
   }
 
