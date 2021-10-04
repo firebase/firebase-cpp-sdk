@@ -463,11 +463,11 @@ static void CompleteAdFutureCallback(JNIEnv* env, jclass clazz, jlong data_ptr,
 
   const char* error_msg = env->GetStringUTFChars(error_message, nullptr);
 
-  firebase::admob::FutureCallbackDataVoid* callback_data =
-      reinterpret_cast<firebase::admob::FutureCallbackDataVoid*>(data_ptr);
+  firebase::admob::FutureCallbackData<void>* callback_data =
+      reinterpret_cast<firebase::admob::FutureCallbackData<void>*>(data_ptr);
 
-  CompleteFuture(static_cast<int>(error_code), error_msg,
-                 callback_data->future_handle, callback_data->future_data);
+  callback_data->future_data->future_impl.Complete(
+      callback_data->future_handle, static_cast<int>(error_code), error_msg);
 
   env->ReleaseStringUTFChars(error_message, error_msg);
 

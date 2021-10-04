@@ -71,34 +71,16 @@ FutureHandle CreateFuture(int fn_idx, FutureData* future_data);
 void CompleteFuture(int error, const char* error_msg, FutureHandle handle,
                     FutureData* future_data);
 
-// Mark a future as complete.
-template <class T>
-void CompleteSafeFutureHandle(int error, const char* error_msg,
-                              SafeFutureHandle<T> handle,
-                              FutureData* future_data);
-
 // For calls that aren't asynchronous, create and complete the future at the
 // same time.
 void CreateAndCompleteFuture(int fn_idx, int error, const char* error_msg,
                              FutureData* future_data);
 
-struct FutureCallbackDataVoid {
-  FutureData* future_data;
-  FutureHandle future_handle;
-};
-
 template <class T>
-class FutureCallbackData {
- public:
+struct FutureCallbackData {
   FutureData* future_data;
   SafeFutureHandle<T> future_handle;
 };
-
-FutureCallbackDataVoid* CreateFutureCallbackDataVoid(FutureData* future_data,
-                                                     int fn_idx);
-template <typename T>
-FutureCallbackData<T>* CreateFutureCallbackData(FutureData* future_data,
-                                                int fn_idx);
 
 // A class that allows access to private/protected Admob structures for Java
 // callbacks.  This is achieved via friend relationships with those classes.

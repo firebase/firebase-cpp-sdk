@@ -66,7 +66,7 @@ typedef void* AdParent;
 /// Information about why an ad operation failed.
 class AdResult {
  public:
-   // Copy Constructor
+  // Copy Constructor
   AdResult(const AdResult& ad_result);
 
   virtual ~AdResult();
