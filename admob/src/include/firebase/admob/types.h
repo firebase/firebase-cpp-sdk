@@ -66,30 +66,34 @@ typedef void* AdParent;
 /// Information about why an ad operation failed.
 class AdResult {
  public:
+   // Copy Constructor
+  AdResult(const AdResult& ad_result);
+
   virtual ~AdResult();
+  AdResult& operator=(const AdResult& obj);
 
   /// If the operation was successful then the other error reporting methods
   /// of this object will return defaults.
-  virtual bool is_successful() const;
+  bool is_successful() const;
 
   /// Retrieves an AdResult which represents the cause of this error.
   ///
   /// @return a pointer to an AdResult which represents the cause of this
   /// AdResult.  If there was no cause, or if this result was successful,
   /// then nullptr is returned.
-  virtual std::unique_ptr<AdResult> GetCause();
+  std::unique_ptr<AdResult> GetCause();
 
   /// Gets the error's code.
-  virtual int code();
+  int code();
 
   /// Gets the domain of the error.
-  virtual const std::string& domain();
+  const std::string& domain();
 
   /// Gets the message describing the error.
-  virtual const std::string& message();
+  const std::string& message();
 
   /// Returns a log friendly string version of this object.
-  virtual const std::string& ToString();
+  const std::string& ToString();
 
   /// A domain string which represents an undefined error domain.
   ///
@@ -98,30 +102,24 @@ class AdResult {
   static const char* kUndefinedDomain;
 
  protected:
-  friend class AdMobInternal;
-
+  // Internal initialization of AdResult.  Should only be used to create
+  // AdResults in futures, etc, which will later be supplied with the result
+  // specifics in the internal callback handlers.
   AdResult();
-  explicit AdResult(const AdResultInternal& ad_result_internal);
 
-  // Copy Constructor
-  AdResult(const AdResult& ad_result);
-  AdResult& operator=(const AdResult& obj);
+  // Constructor used when building results in Load Ad callbacks.
+  explicit AdResult(const AdResultInternal& ad_result_internal);
 
   /// Sets the internally cached string. Used by the LoadAdError subclass.
   void set_to_string(std::string to_string);
 
+ private:
+  friend class AdapterResponseInfo;
+  friend class AdMobInternal;
+
   // An internal, platform-specific implementation object that this class uses
   // to interact with the Google Mobile Ads SDKs for iOS and Android.
   AdResultInternal* internal_;
-
- private:
-  friend class AdapterResponseInfo;
-
-  bool is_successful_;
-  int code_;
-  std::string domain_;
-  std::string message_;
-  std::string to_string_;
 };
 
 /// @brief Response information for an individual ad network contained within

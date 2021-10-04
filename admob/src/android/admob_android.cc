@@ -16,6 +16,7 @@
 
 #include "admob/src/android/admob_android.h"
 
+#include <android/log.h>
 #include <jni.h>
 #include <stddef.h>
 
@@ -39,8 +40,6 @@
 #include "app/src/include/google_play_services/availability.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
-
-#include <android/log.h>
 
 namespace firebase {
 namespace admob {
@@ -451,14 +450,9 @@ void AdmobInternal::CompleteLoadAdFuture(
     FutureCallbackData<LoadAdResult>* callback_data, int error_code,
     const std::string& error_message,
     const LoadAdResultInternal& load_ad_result_internal) {
-
-  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "CompleteLoadAdFuture AdResult");
-  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "CompleteLoadAdFuture AdResult load_ad_result_internal.is_successful: %d\n", load_ad_result_internal.ad_result_internal.is_successful);
-  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "CompleteLoadAdFuture AdResult load_ad_result_internal.j_ad_error: %p\n", load_ad_result_internal.ad_result_internal.j_ad_error);
   callback_data->future_data->future_impl.CompleteWithResult(
       callback_data->future_handle, static_cast<int>(error_code),
       error_message.c_str(), LoadAdResult(load_ad_result_internal));
-  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "CompleteLoadAdFuture AdResult Complete");
   // This method is responsible for disposing of the callback data struct.
   delete callback_data;
 }
@@ -486,8 +480,6 @@ Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeLoadAd(
     JNIEnv* env, jclass clazz, jlong data_ptr, jint error_code,
     jstring error_message, jobject j_load_ad_error) {
   FIREBASE_ASSERT(data_ptr);
-  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeLoadAd");
-  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeLoadAd, j_load_ad_error: %p", j_load_ad_error);
   firebase::admob::FutureCallbackData<LoadAdResult>* callback_data =
       reinterpret_cast<firebase::admob::FutureCallbackData<LoadAdResult>*>(
           data_ptr);
@@ -501,17 +493,14 @@ Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeLoadAd(
   adr->is_wrapper_error = false;
   adr->code = static_cast<int>(error_code);
 
-  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeLoadAd j_load_ad_error: %p", j_load_ad_error );
   // Futher result configuration is based on success/failure.
   if (j_load_ad_error != nullptr) {
     // The Android SDK returned an error.  CompleteLoadAdFuture will use the
     // j_ad_error obect to populate a LoadAdResult with the erorr specifics.
-    __android_log_print(ANDROID_LOG_ERROR, "DEDB", "Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeLoadAd Android SDK error");
     adr->is_successful = false;
     future_error_message =
         "AdMob Service error. Check LoadAdResult for more details.";
   } else if (adr->code != kAdMobErrorNone) {
-    __android_log_print(ANDROID_LOG_ERROR, "DEDB", "Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeLoadAd Wrapper Error");
     // C++ Android AdMob Wrapper encountered an error.
     adr->is_wrapper_error = true;
     adr->is_successful = false;
@@ -519,13 +508,8 @@ Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeLoadAd(
     adr->domain = "Internal error.";
     adr->to_string = std::string("Internal error: ") + adr->message;
     future_error_message = adr->message;
-  } else {
-    __android_log_print(ANDROID_LOG_ERROR, "DEDB", "Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeLoadAd No error");
   }
 
-  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeLoadAd load_ad_result_internal is_successful: %d", load_ad_result_internal.ad_result_internal.is_successful);
-  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeLoadAd load_ad_result_internal j_ad_error: %p", load_ad_result_internal.ad_result_internal.j_ad_error);
-  
   AdmobInternal::CompleteLoadAdFuture(
       callback_data, adr->code, future_error_message, load_ad_result_internal);
 }
