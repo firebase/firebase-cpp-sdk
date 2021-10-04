@@ -23,6 +23,8 @@
 #include "admob/src/common/admob_common.h"
 #include "admob/src/include/firebase/admob.h"
 
+#include <android/log.h>
+
 namespace firebase {
 namespace admob {
 
@@ -32,8 +34,8 @@ METHOD_LOOKUP_DEFINITION(adapter_response_info,
                          ADAPTERRESPONSEINFO_METHODS);
 
 AdapterResponseInfo::AdapterResponseInfo(
-    const AdapterResponseInfoInternal& internal)
-    : ad_result_(AdResultInternal()) {
+    const AdapterResponseInfoInternal& internal) {
+  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "AdapterResponseInfo Constructor");
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(internal.j_adapter_response_info);
@@ -47,7 +49,10 @@ AdapterResponseInfo::AdapterResponseInfo(
       adapter_response_info::GetMethodId(adapter_response_info::kGetAdError));
   FIREBASE_ASSERT(ad_result_internal.j_ad_error);
 
+  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "Adpter Response Info creating AdResult");
   ad_result_ = AdResult(ad_result_internal);
+  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "Adpter Response Info created");
+
   env->DeleteLocalRef(ad_result_internal.j_ad_error);
 
   const jobject j_adapter_class_name =
@@ -70,6 +75,7 @@ AdapterResponseInfo::AdapterResponseInfo(
   to_string_ = util::JStringToString(env, j_to_string);
   env->DeleteLocalRef(j_to_string);
   env->DeleteLocalRef(j_adapter_response_info);
+  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "AdapterResponseInfo Constructor end");
 }
 
 }  // namespace admob

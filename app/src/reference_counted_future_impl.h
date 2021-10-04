@@ -25,6 +25,7 @@
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/mutex.h"
 
+#include <android/log.h>
 
 #include "app/src/include/firebase/future.h"
 
@@ -534,7 +535,11 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   void CompleteWithResultInternal(const FutureHandle& handle, int error,
                                   const char* error_msg, const T& result) {
     CompleteInternal<T>(handle, error, error_msg,
-                        [result](T* data) { *data = result; });
+                        [result](T* data) { 
+                          __android_log_print(ANDROID_LOG_ERROR, "DEDB", "CompleteWithResultInternal data: %p", data);
+                          *data = result; 
+                          __android_log_print(ANDROID_LOG_ERROR, "DEDB", "CompleteWithResultInternal assign complete: %p", data);
+                          });
   }
 
   // See Complete.

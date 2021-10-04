@@ -35,6 +35,8 @@
 #include "app/src/semaphore.h"
 #include "app/src/util_android.h"
 
+#include <android/log.h>
+
 namespace firebase {
 namespace admob {
 
@@ -245,10 +247,13 @@ Future<void> BannerViewInternalAndroid::Initialize(AdParent parent,
 
 Future<LoadAdResult> BannerViewInternalAndroid::LoadAd(
     const AdRequest& request) {
+  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "BannerViewInternalAndroid::LoadAd constructing callback data");
   FutureCallbackData<LoadAdResult>* callback_data =
       new FutureCallbackData<LoadAdResult>();
+  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "BannerViewInternalAndroid::LoadAd constructed callback data");
   callback_data->future_handle =
       future_data_.future_impl.SafeAlloc(kBannerViewFnLoadAd, LoadAdResult());
+  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "BannerViewInternalAndroid::LoadAd created future handle");
   callback_data->future_data = &future_data_;
 
   AdRequestConverter converter(request);

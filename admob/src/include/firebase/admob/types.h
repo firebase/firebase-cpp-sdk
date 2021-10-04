@@ -103,17 +103,19 @@ class AdResult {
   AdResult();
   explicit AdResult(const AdResultInternal& ad_result_internal);
 
+  // Copy Constructor
+  AdResult(const AdResult& ad_result);
   AdResult& operator=(const AdResult& obj);
 
   /// Sets the internally cached string. Used by the LoadAdError subclass.
   void set_to_string(std::string to_string);
 
- private:
-  friend class AdapterResponseInfo;
-
   // An internal, platform-specific implementation object that this class uses
   // to interact with the Google Mobile Ads SDKs for iOS and Android.
   AdResultInternal* internal_;
+
+ private:
+  friend class AdapterResponseInfo;
 
   bool is_successful_;
   int code_;
@@ -281,6 +283,9 @@ class ResponseInfo {
 class LoadAdResult : public AdResult {
  public:
   LoadAdResult();
+
+  // Copy Consturctor.
+  LoadAdResult(const LoadAdResult& load_ad_result);
 
   /// Gets the ResponseInfo if an error occurred, with a collection of
   /// information from each adapter.

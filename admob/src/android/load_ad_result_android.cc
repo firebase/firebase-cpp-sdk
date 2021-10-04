@@ -30,6 +30,8 @@
 #include "admob/src/include/firebase/admob.h"
 #include "admob/src/include/firebase/admob/types.h"
 
+#include <android/log.h>
+
 namespace firebase {
 namespace admob {
 
@@ -39,18 +41,22 @@ METHOD_LOOKUP_DEFINITION(load_ad_error,
                          LOADADERROR_METHODS);
 
 LoadAdResult::LoadAdResult()
-    : AdResult(AdResultInternal()), response_info_(ResponseInfoInternal()) {
-  // Default constructor for templated Future creation.
+    : AdResult(), response_info_() {
+  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "LoadAdResult::LoadAdResult() default constructor, this: %p", this);
+  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "LoadAdResult::LoadAdResult() default constructor end, j_ad_error: %p", internal_->j_ad_error);
 }
 
 LoadAdResult::LoadAdResult(const LoadAdResultInternal& load_ad_result_internal)
-    : AdResult(load_ad_result_internal.ad_result_internal),
-      response_info_(ResponseInfoInternal()) {
+    : AdResult(load_ad_result_internal.ad_result_internal) {
+  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "LoadAdResult::LoadAdResult(LoadAdResultInternal) , this: %p", this);
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env);
 
+  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "LoadAdResult::LoadAdResult(LoadAdResultInternal)load_ad_result_internal is_successful: %d", load_ad_result_internal.ad_result_internal.is_successful);
+  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "LoadAdResult::LoadAdResult(LoadAdResultInternal) load_ad_result_internal is_wrapper_error: %d", load_ad_result_internal.ad_result_internal.is_wrapper_error);
   if (!load_ad_result_internal.ad_result_internal.is_successful &&
       !load_ad_result_internal.ad_result_internal.is_wrapper_error) {
+    __android_log_print(ANDROID_LOG_ERROR, "DEDB", "LoadAdResult::LoadAdResult(LoadAdResultInternal) load_ad_result_internal j_ad_error: %p", load_ad_result_internal.ad_result_internal.j_ad_error);
     FIREBASE_ASSERT(load_ad_result_internal.ad_result_internal.j_ad_error);
 
     jobject j_load_ad_error =
@@ -72,6 +78,14 @@ LoadAdResult::LoadAdResult(const LoadAdResultInternal& load_ad_result_internal)
     set_to_string(util::JStringToString(env, j_to_string));
     env->DeleteLocalRef(j_to_string);
   }
+  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "LoadAdResult::LoadAdResult(LoadAdResultInternal) final j_ad_error: %p", internal_->j_ad_error);
+  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "LoadAdResult::LoadAdResult(LoadAdResultInternal) end");
+}
+
+LoadAdResult::LoadAdResult(const LoadAdResult& load_ad_result) : AdResult(load_ad_result) {
+  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "LoadAdResult::LoadAdResult() copy constructor, this: %p", this);
+  response_info_ = load_ad_result.response_info_;
+  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "LoadAdResult::LoadAdResult() copy constructor, j_ad_error: %p", internal_->j_ad_error);
 }
 
 }  // namespace admob
