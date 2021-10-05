@@ -87,6 +87,8 @@ jobs:
             echo "::error ::Neither Android nor iOS selected. Exiting."
             exit 1
           fi
+          touch ${UPDATE_LOGFILE}  # In case it wasn't generated before
+          cat ${UPDATE_LOGFILE}
 
       - name: Push branch if there are changes
         id: push-branch
@@ -94,6 +96,7 @@ jobs:
           if ! git update-index --refresh; then
             # Do a bit of post-processing on the update log to split it by platform.
             UPDATE_LOGFILE_PROCESSED=update_log_processed.txt
+            touch "${UPDATE_LOGFILE_PROCESSED}"
             if grep -q ^Android: "${UPDATE_LOGFILE}"; then
               echo "### Android" >> "${UPDATE_LOGFILE_PROCESSED}"
               echo "" >> "${UPDATE_LOGFILE_PROCESSED}"
