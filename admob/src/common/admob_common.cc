@@ -18,6 +18,7 @@
 
 #include <assert.h>
 
+#include <string>
 #include <vector>
 
 #include "admob/src/include/firebase/admob.h"
@@ -49,6 +50,81 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseAdMob);
 
 static CleanupNotifier* g_cleanup_notifier = nullptr;
 const char kAdMobModuleName[] = "admob";
+
+// Hardcoded values are from publicly available documentation:
+// https://developers.google.com/android/reference/com/google/android/gms/ads/AdSize
+// A dynamic resolution of thes values creates a lot of Android code,
+// and these are standards that are not likely to change.
+const AdSize AdSize::kBanner(/*width=*/320, /*height=*/50);
+const AdSize AdSize::kFullBanner(468, 60);
+const AdSize AdSize::kLargeBanner(320, 100);
+const AdSize AdSize::kLeaderBoard(728, 90);
+const AdSize AdSize::kMediumRectangle(300, 250);
+
+AdSize::AdSize(uint32_t width, uint32_t height)
+    : width_(width),
+      height_(height),
+      type_(AdSize::kTypeStandard),
+      orientation_(AdSize::kOrientationCurrent) {}
+
+AdSize AdSize::GetAnchoredAdaptiveBannerAdSize(uint32_t width,
+                                               Orientation orientation) {
+  AdSize ad_size(width, 0);
+  ad_size.type_ = AdSize::kTypeAnchoredAdaptive;
+  ad_size.orientation_ = orientation;
+  return ad_size;
+}
+
+AdSize AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(uint32_t width) {
+  return GetAnchoredAdaptiveBannerAdSize(width, AdSize::kOrientationLandscape);
+}
+
+AdSize AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(uint32_t width) {
+  return GetAnchoredAdaptiveBannerAdSize(width, AdSize::kOrientationPortrait);
+}
+
+AdSize AdSize::GetCurrentOrientationAnchoredAdaptiveBannerAdSize(
+    uint32_t width) {
+  return GetAnchoredAdaptiveBannerAdSize(width, AdSize::kOrientationCurrent);
+}
+
+bool AdSize::is_equal(const AdSize& ad_size) const {
+  return (type_ == ad_size.type_) && (width_ == ad_size.width_) &&
+         (height_ == ad_size.height_) && (orientation_ == ad_size.orientation_);
+}
+
+bool AdSize::operator==(const AdSize& rhs) const { return is_equal(rhs); }
+
+bool AdSize::operator!=(const AdSize& rhs) const { return !is_equal(rhs); }
+
+AdRequest::AdRequest() {}
+AdRequest::~AdRequest() {}
+
+AdRequest::AdRequest(const char* content_url) { set_content_url(content_url); }
+
+void AdRequest::add_extra(const char* ad_network, const char* extra_key,
+                          const char* extra_value) {
+  if (ad_network != nullptr && extra_key != nullptr && extra_value != nullptr) {
+    extras_[std::string(ad_network)][std::string(extra_key)] =
+        std::string(extra_value);
+  }
+}
+
+void AdRequest::add_keyword(const char* keyword) {
+  if (keyword != nullptr) {
+    keywords_.insert(std::string(keyword));
+  }
+}
+
+void AdRequest::set_content_url(const char* content_url) {
+  if (content_url == nullptr) {
+    return;
+  }
+  std::string url(content_url);
+  if (url.size() <= 512) {
+    content_url_ = url;
+  }
+}
 
 void RegisterTerminateOnDefaultAppDestroy() {
   if (!AppCallback::GetEnabledByName(kAdMobModuleName)) {
@@ -110,31 +186,36 @@ SafeFutureHandle<T> CreateFuture(int fn_idx, FutureData* future_data) {
 }
 
 // Mark a future as complete.
-void CompleteFuture(int error, const char* error_msg, SafeFutureHandle<void> handle,
-                    FutureData* future_data) {
+void CompleteFuture(int error, const char* error_msg,
+                    SafeFutureHandle<void> handle, FutureData* future_data) {
   future_data->future_impl.Complete(handle, error, error_msg);
 }
 
 template <class T>
-void CompleteFuture(int error, const char* error_msg, SafeFutureHandle<T> handle,
-                    FutureData* future_data, const T& result) {
-  future_data->future_impl.Complete(handle, error, error_msg);
+void CompleteFuture(int error, const char* error_msg,
+                    SafeFutureHandle<T> handle, FutureData* future_data,
+                    const T& result) {
+  future_data->future_impl.CompleteWithResult(handle, error, error_msg, result);
 }
 
 // For calls that aren't asynchronous, we can create and complete at the
 // same time.
-Future<void> CreateAndCompleteFuture(int fn_idx, int error, const char* error_msg,
-                             FutureData* future_data) {
+Future<void> CreateAndCompleteFuture(int fn_idx, int error,
+                                     const char* error_msg,
+                                     FutureData* future_data) {
   SafeFutureHandle<void> handle = CreateFuture<void>(fn_idx, future_data);
   CompleteFuture(error, error_msg, handle, future_data);
   return MakeFuture(&future_data->future_impl, handle);
 }
 
 template <class T>
-Future<T> CreateAndCompleteFutureWithResult(int fn_idx, int error, const char* error_msg, FutureData* future_data, const T& result) {
-  //SafeFutureHandle<T> handle = future_data->future_impl.SafeAlloc<T>(fn_idx);
+Future<T> CreateAndCompleteFutureWithResult(int fn_idx, int error,
+                                            const char* error_msg,
+                                            FutureData* future_data,
+                                            const T& result) {
+  // SafeFutureHandle<T> handle = future_data->future_impl.SafeAlloc<T>(fn_idx);
   SafeFutureHandle<T> handle = CreateFuture<T>(fn_idx, future_data);
-  //future_data->future_impl.Complete(handle, error, error_msg, result);
+  // future_data->future_impl.Complete(handle, error, error_msg, result);
   CompleteFuture(error, error_msg, handle, future_data, result);
   return MakeFuture(&future_data->future_impl, handle);
 }

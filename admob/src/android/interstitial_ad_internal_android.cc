@@ -91,13 +91,22 @@ Future<void> InterstitialAdInternalAndroid::LoadAd(const AdRequest& request) {
       &future_data_,
       future_data_.future_impl.SafeAlloc<void>(kInterstitialAdFnLoadAd)};
 
-  AdRequestConverter converter(request);
-  jobject request_ref = converter.GetJavaRequestObject();
+  admob::AdMobError error = kAdMobErrorNone;
+  jobject request_ref = GetJavaAdRequestFromCPPAdRequest(request, &error);
 
-  ::firebase::admob::GetJNI()->CallVoidMethod(
-      helper_,
-      interstitial_ad_helper::GetMethodId(interstitial_ad_helper::kLoadAd),
-      reinterpret_cast<jlong>(callback_data), request_ref);
+  if (request_ref == nullptr) {
+    if (error == kAdMobErrorNone) {
+      error = kAdMobErrorInternalError;
+    }
+    CompleteFuture(error, "Could Not Parse AdRequest object",
+                   callback_data->future_handle, callback_data->future_data);
+  } else {
+    ::firebase::admob::GetJNI()->CallVoidMethod(
+        helper_,
+        interstitial_ad_helper::GetMethodId(interstitial_ad_helper::kLoadAd),
+        reinterpret_cast<jlong>(callback_data), request_ref);
+    ::firebase::admob::GetJNI()->DeleteLocalRef(request_ref);
+  }
   return MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 }
 

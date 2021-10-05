@@ -69,22 +69,27 @@ template <class T>
 SafeFutureHandle<T> CreateFuture(int fn_idx, FutureData* future_data);
 
 // Mark a future as complete.
-void CompleteFuture(int error, const char* error_msg, SafeFutureHandle<void> handle,
-                    FutureData* future_data);
+void CompleteFuture(int error, const char* error_msg,
+                    SafeFutureHandle<void> handle, FutureData* future_data);
 
 template <class T>
-void CompleteFuture(int error, const char* error_msg, SafeFutureHandle<T> handle,
-                    FutureData* future_data, const T& result);
+void CompleteFuture(int error, const char* error_msg,
+                    SafeFutureHandle<T> handle, FutureData* future_data,
+                    const T& result);
 
 // For calls that aren't asynchronous, create and complete the future at the
 // same time.
-Future<void> CreateAndCompleteFuture(int fn_idx, int error, const char* error_msg,
-                             FutureData* future_data);
+Future<void> CreateAndCompleteFuture(int fn_idx, int error,
+                                     const char* error_msg,
+                                     FutureData* future_data);
 
 // For calls that aren't asynchronous, create and complete a future with a
 // result at the same time.
 template <class T>
-Future<T> CreateAndCompleteFutureWithResult(int fn_idx, int error, const char* error_msg, FutureData* future_data, const T& result);
+Future<T> CreateAndCompleteFutureWithResult(int fn_idx, int error,
+                                            const char* error_msg,
+                                            FutureData* future_data,
+                                            const T& result);
 
 template <class T>
 struct FutureCallbackData {

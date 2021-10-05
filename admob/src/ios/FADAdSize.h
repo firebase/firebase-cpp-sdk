@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,6 @@
 #import <Foundation/Foundation.h>
 #import <GoogleMobileAds/GoogleMobileAds.h>
 
-#include <string>
-
 #include "admob/src/include/firebase/admob/types.h"
 
 NS_ASSUME_NONNULL_BEGIN
@@ -26,21 +24,8 @@ NS_ASSUME_NONNULL_BEGIN
 namespace firebase {
 namespace admob {
 
-/// Returns a GADRequest from an admob::AdRequest.
-/// Converts instances of the AdRequest struct used by the C++ wrapper to
-/// to Mobile Ads SDK GADRequest objects.
-///
-/// @param[in] request The AdRequest struct to be converted into a
-/// GAdRequest.
-/// @param[out] error kAdMobErrorNone on success, or another error if
-/// problems occurred.
-/// @param[out] error_message a string representation of any error that
-/// occurs.
-/// @return On succes, a pointer to a GADRequest object representing the
-/// AdRequest, or nullptr on error.
-GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
-                                       admob::AdMobError* error,
-                                       std::string* error_message);
+/// Returns a GADAdSize from an admob::AdSize.
+GADAdSize GADSizeFromCppAdSize(const AdSize& ad_size);
 
 }  // namespace admob
 }  // namespace firebase

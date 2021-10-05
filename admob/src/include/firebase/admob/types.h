@@ -17,8 +17,10 @@
 #ifndef FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_TYPES_H_
 #define FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_TYPES_H_
 
+#include <map>
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "firebase/internal/platform.h"
@@ -181,6 +183,9 @@ enum AdMobError {
   /// An attempt has been made to show an ad on an Android Activity that has
   /// no window token (such as one that's not done initializing).
   kAdMobErrorNoWindowToken,
+  /// An attempt to load an Ad Network extras class for an ad request has
+  /// failed.
+  kAdMobErrorAdNetworkClassLoadError,
   /// Fallback error for any unidentified cases.
   kAdMobErrorUnknown,
 };
@@ -188,17 +193,132 @@ enum AdMobError {
 // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src_java/com/google/firebase/admob/internal/cpp/ConstantsHelper.java)
 #endif  // INTERNAL_EXPERIMENTAL
 
-/// @brief Types of ad sizes.
-enum AdSizeType { kAdSizeStandard = 0 };
+/// The size of a banner ad.
+class AdSize {
+ public:
+  ///  Denotes the orientation of the AdSize.
+  enum Orientation {
+    /// AdSize should reflect the current orientation of the device.
+    kOrientationCurrent = 0,
 
-/// @brief An ad size value to be used in requesting ads.
-struct AdSize {
-  /// The type of ad size.
-  AdSizeType ad_size_type;
-  /// Height of the ad (in points or dp).
-  int height;
-  /// Width of the ad (in points or dp).
-  int width;
+    /// AdSize will be adaptively formatted in Landscape mode.
+    kOrientationLandscape,
+
+    /// AdSize will be adaptively formatted in Portrait mode.
+    kOrientationPortrait
+  };
+
+  /// Denotes the type size object that the @ref AdSize represents.
+  enum Type {
+    /// The standard AdSize type of a set height and width.
+    kTypeStandard = 0,
+
+    /// An adaptive size anchored to a portion of the screen.
+    kTypeAnchoredAdaptive,
+  };
+
+  /// Mobile Marketing Association (MMA) banner ad size (320x50
+  /// density-independent pixels).
+  static const AdSize kBanner;
+
+  /// Interactive Advertising Bureau (IAB) full banner ad size
+  /// (468x60 density-independent pixels).
+  static const AdSize kFullBanner;
+
+  /// Taller version of kGADAdSizeBanner. Typically 320x100.
+  static const AdSize kLargeBanner;
+
+  /// Interactive Advertising Bureau (IAB) leaderboard ad size
+  /// (728x90 density-independent pixels).
+  static const AdSize kLeaderBoard;
+
+  /// Interactive Advertising Bureau (IAB) medium rectangle ad size
+  /// (300x250 density-independent pixels).
+  static const AdSize kMediumRectangle;
+
+  /// Creates a new AdSize.
+  ///
+  /// @param[in] width The width of the ad in density-independent pixels.
+  /// @param[in] height The height of the ad in density-independent pixels.
+  AdSize(uint32_t width, uint32_t height);
+
+  /// @brief Creates an AdSize with the given width and a Google-optimized
+  /// height to create a banner ad in landscape mode.
+  ///
+  /// @param[in] width The width of the ad in density-independent pixels.
+  ///
+  /// @return an AdSize with the given width and a Google-optimized height
+  /// to create a banner ad. The size returned will have an aspect ratio
+  /// similar to BANNER, suitable for anchoring near the top or bottom of
+  /// your app.
+  static AdSize GetLandscapeAnchoredAdaptiveBannerAdSize(uint32_t width);
+
+  /// @brief Creates an AdSize with the given width and a Google-optimized
+  /// height to create a banner ad in portrait mode.
+  ///
+  /// @param[in] width The width of the ad in density-independent pixels.
+  ///
+  /// @return an AdSize with the given width and a Google-optimized height
+  /// to create a banner ad. The size returned will have an aspect ratio
+  /// similar to BANNER, suitable for anchoring near the top or bottom
+  /// of your app.
+  static AdSize GetPortraitAnchoredAdaptiveBannerAdSize(uint32_t width);
+
+  /// @brief Creates an AdSize with the given width and a Google-optimized
+  /// height to create a banner ad given the current orientation.
+  ///
+  /// @param[in] width The width of the ad in density-independent pixels.
+  ///
+  /// @return an AdSize with the given width and a Google-optimized height
+  /// to create a banner ad. The size returned will have an aspect ratio
+  /// similar to AdSize, suitable for anchoring near the top or bottom of
+  /// your app.
+  static AdSize GetCurrentOrientationAnchoredAdaptiveBannerAdSize(
+      uint32_t width);
+
+  /// Comparison operator.
+  ///
+  /// @return true if `rhs` refers to the same AdSize as `this`.
+  bool operator==(const AdSize& rhs) const;
+
+  /// Comparison operator.
+  ///
+  /// @returns true if `rhs` refers to a different AdSize as `this`.
+  bool operator!=(const AdSize& rhs) const;
+
+  /// The width of the region represented by this AdSize.  Value is in
+  /// density-independent pixels.
+  uint32_t width() const { return width_; }
+
+  /// The height of the region represented by this AdSize. Value is in
+  /// density-independent pixels.
+  uint32_t height() const { return height_; }
+
+  /// The AdSize orientation.
+  Orientation orientation() const { return orientation_; }
+
+  /// The AdSize type, either standard size or adaptive.
+  Type type() const { return type_; }
+
+ private:
+  /// Returns an Anchor Adpative AdSize Object given a width and orientation.
+  static AdSize GetAnchoredAdaptiveBannerAdSize(uint32_t width,
+                                                Orientation orientation);
+
+  /// Returns true if the AdSize parameter is equivalient to this AdSize object.
+  bool is_equal(const AdSize& ad_size) const;
+
+  /// Denotes the orientation for anchored adaptive AdSize objects.
+  Orientation orientation_;
+
+  /// Advertisement width in platform-indepenent pixels.
+  uint32_t width_;
+
+  /// Advertisement width in platform-indepenent pixels.
+  uint32_t height_;
+
+  /// The type of AdSize (standard or adaptive)
+  Type type_;
 };
 
 /// @brief Generic Key-Value container used for the "extras" values in an
@@ -210,18 +330,72 @@ struct KeyValuePair {
   const char* value;
 };
 
-/// @brief The information needed to request an ad.
-struct AdRequest {
-  /// An array of keywords or phrases describing the current user activity, such
-  /// as "Sports Scores" or "Football."
-  const char** keywords;
-  /// The number of entries in the array referenced by keywords.
-  unsigned int keyword_count;
-  /// A @ref KeyValuePair specifying additional parameters accepted by an ad
-  /// network.
-  const KeyValuePair* extras;
-  /// The number of entries in the array referenced by extras.
-  unsigned int extras_count;
+/// Contains targeting information used to fetch an ad.
+class AdRequest {
+ public:
+  /// Creates an @ref AdRequest with no custom configuration.
+  AdRequest();
+
+  /// Creates an @ref AdRequest with the optional content URL.
+  ///
+  /// When requesting an ad, apps may pass the URL of the content they are
+  /// serving. This enables keyword targeting to match the ad with the content.
+  ///
+  /// The URL is ignored if null or the number of characters exceeds 512.
+  ///
+  /// @param[in] content_url the url of the content being viewed.
+  explicit AdRequest(const char* content_url);
+
+  ~AdRequest();
+
+  /// The content URL targeting information.
+  ///
+  /// @return the content URL for the @ref AdRequest. The string will be empty
+  /// if no content URL has been configured.
+  const std::string& content_url() const { return content_url_; }
+
+  /// A Map of ad network adapters to their collection of extra parameters, as
+  /// configured via @ref add_extra.
+  const std::map<std::string, std::map<std::string, std::string> >& extras()
+      const {
+    return extras_;
+  }
+
+  /// Keywords which will help Admob to provide targeted ads, as added by
+  /// @ref add_keyword.
+  const std::unordered_set<std::string>& keywords() const { return keywords_; }
+
+  /// Add a network extra for the associated ad_network.
+  ///
+  /// Appends an extra to the corresponding list of extras for the ad_network.
+  /// Each ad network can have multiple extra strings.
+  ///
+  /// @param[in] ad_network the ad network for which to add the extra.
+  /// @param[in] extra_key a key which will be passed to the corresponding ad
+  /// network adapter.
+  /// @param[in] extra_value the value associated with extra_key.
+  void add_extra(const char* ad_network, const char* extra_key,
+                 const char* extra_value);
+
+  /// Adds a keyword for targeting purposes.
+  ///
+  /// Multiple keywords may be added via repeated invocations of this method.
+  ///
+  /// @param[in] keyword a string that Admob will use to aid in targeting ads.
+  void add_keyword(const char* keyword);
+
+  /// When requesting an ad, apps may pass the URL of the content they are
+  /// serving. This enables keyword targeting to match the ad with the content.
+  ///
+  /// The URL is ignored if null or the number of characters exceeds 512.
+  ///
+  /// @param[in] content_url the url of the content being viewed.
+  void set_content_url(const char* content_url);
+
+ private:
+  std::string content_url_;
+  std::map<std::string, std::map<std::string, std::string> > extras_;
+  std::unordered_set<std::string> keywords_;
 };
 
 /// @brief The screen location and dimensions of an ad view once it has been

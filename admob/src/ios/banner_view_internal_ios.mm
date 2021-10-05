@@ -39,7 +39,7 @@ BannerViewInternalIOS::~BannerViewInternalIOS() {
 }
 
 Future<void> BannerViewInternalIOS::Initialize(AdParent parent, const char* ad_unit_id,
-                                               AdSize size) {
+                                               const AdSize& size) {
   FutureCallbackData* callback_data =
       CreateFutureCallbackDataVoid(&future_data_, kBannerViewFnInitialize);
   if(initialized_) {
@@ -79,11 +79,24 @@ Future<void> BannerViewInternalIOS::LoadAd(const AdRequest& request) {
   AdRequest *request_copy = new AdRequest;
   *request_copy = request;
   dispatch_async(dispatch_get_main_queue(), ^{
-    // A GADRequest from an admob::AdRequest.
-    GADRequest *ad_request = GADRequestFromCppAdRequest(*request_copy);
+    // Create a GADRequest from an admob::AdRequest.
+    AdMobError error = kAdMobErrorNone;
+    std::string error_message;
+    GADRequest *ad_request =
+     GADRequestFromCppAdRequest(*request_copy, &error, &error_message);
     delete request_copy;
-    // Make the banner view ad request.
-    [banner_view_ loadRequest:ad_request];
+    if(ad_request==nullptr) {
+      if(error==kAdMobErrorNone) {
+        error = kAdMobErrorInternalError;
+        CompleteLoadFuture(error, 
+          "Internal error attempting to create GADRequest.");
+      } else {
+        CompleteLoadFuture(error, error_message.c_str());
+      }
+    } else {
+      // Make the banner view ad request.
+      [banner_view_ loadRequest:ad_request];
+    }
   });
   return GetLastResult(kBannerViewFnLoadAd);
 }

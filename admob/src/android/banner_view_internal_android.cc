@@ -52,9 +52,6 @@ METHOD_LOOKUP_DEFINITION(
 METHOD_LOOKUP_DEFINITION(ad_view, "com/google/android/gms/ads/AdView",
                          AD_VIEW_METHODS);
 
-METHOD_LOOKUP_DEFINITION(ad_size, "com/google/android/gms/ads/AdSize",
-                         AD_SIZE_METHODS);
-
 namespace internal {
 
 BannerViewInternalAndroid::BannerViewInternalAndroid(BannerView* base)
@@ -121,7 +118,8 @@ struct BannerViewInternalInitializeData {
   BannerViewInternalInitializeData()
       : activity_global(nullptr),
         ad_view(nullptr),
-        banner_view_helper(nullptr) {}
+        banner_view_helper(nullptr),
+        ad_size(0, 0) {}
   ~BannerViewInternalInitializeData() {
     JNIEnv* env = GetJNI();
     env->DeleteGlobalRef(activity_global);
@@ -161,29 +159,23 @@ void InitializeBannerViewOnMainThread(void* data) {
   env->CallVoidMethod(call_data->ad_view,
                       ad_view::GetMethodId(ad_view::kSetAdUnitId),
                       ad_unit_id_str);
-  env->DeleteLocalRef(ad_unit_id_str);
-
   bool jni_exception = util::CheckAndClearJniExceptions(env);
   FIREBASE_ASSERT(!jni_exception);
+  env->DeleteLocalRef(ad_unit_id_str);
 
-  jobject ad_size = env->NewObject(
-      ad_size::GetClass(), ad_size::GetMethodId(ad_size::kConstructor),
-      call_data->ad_size.width, call_data->ad_size.height);
-
-  jni_exception = util::CheckAndClearJniExceptions(env);
-  FIREBASE_ASSERT(!jni_exception);
-
+  jobject ad_size =
+      CreateJavaAdSize(env, call_data->activity_global, call_data->ad_size);
+  FIREBASE_ASSERT(ad_size);
   env->CallVoidMethod(call_data->ad_view,
                       ad_view::GetMethodId(ad_view::kSetAdSize), ad_size);
-
   jni_exception = util::CheckAndClearJniExceptions(env);
   FIREBASE_ASSERT(!jni_exception);
+  env->DeleteLocalRef(ad_size);
 
   env->CallVoidMethod(
       call_data->banner_view_helper,
       banner_view_helper::GetMethodId(banner_view_helper::kInitialize),
       call_data->activity_global);
-
   jni_exception = util::CheckAndClearJniExceptions(env);
   FIREBASE_ASSERT(!jni_exception);
 
@@ -193,17 +185,14 @@ void InitializeBannerViewOnMainThread(void* data) {
                      banner_view_helper_ad_view_listener::GetMethodId(
                          banner_view_helper_ad_view_listener::kConstructor),
                      call_data->banner_view_helper);
-
   jni_exception = util::CheckAndClearJniExceptions(env);
   FIREBASE_ASSERT(!jni_exception);
 
   env->CallVoidMethod(call_data->ad_view,
                       ad_view::GetMethodId(ad_view::kSetAdListener),
                       ad_listener);
-
   jni_exception = util::CheckAndClearJniExceptions(env);
   FIREBASE_ASSERT(!jni_exception);
-
   env->DeleteLocalRef(ad_listener);
 
   call_data->callback_data->future_data->future_impl.Complete(
@@ -214,7 +203,7 @@ void InitializeBannerViewOnMainThread(void* data) {
 
 Future<void> BannerViewInternalAndroid::Initialize(AdParent parent,
                                                    const char* ad_unit_id,
-                                                   AdSize size) {
+                                                   const AdSize& size) {
   FutureCallbackData<void>* callback_data = new FutureCallbackData<void>{
       &future_data_,
       future_data_.future_impl.SafeAlloc<void>(kBannerViewFnInitialize)};
@@ -251,13 +240,22 @@ Future<LoadAdResult> BannerViewInternalAndroid::LoadAd(
       new FutureCallbackData<LoadAdResult>{
           &future_data_, future_data_.future_impl.SafeAlloc<LoadAdResult>(
                              kBannerViewFnLoadAd, LoadAdResult())};
-  AdRequestConverter converter(request);
-  jobject request_ref = converter.GetJavaRequestObject();
 
-  ::firebase::admob::GetJNI()->CallVoidMethod(
-      helper_, banner_view_helper::GetMethodId(banner_view_helper::kLoadAd),
-      reinterpret_cast<jlong>(callback_data), request_ref);
+  admob::AdMobError error = kAdMobErrorNone;
+  jobject request_ref = GetJavaAdRequestFromCPPAdRequest(request, &error);
 
+  if (request_ref == nullptr) {
+    if (error == kAdMobErrorNone) {
+      error = kAdMobErrorInternalError;
+    }
+    future_data_.future_impl.CompleteWithResult(
+        callback_data->future_handle, error, "Could Not Parse AdRequest object",
+        LoadAdResult());
+  } else {
+    ::firebase::admob::GetJNI()->CallVoidMethod(
+        helper_, banner_view_helper::GetMethodId(banner_view_helper::kLoadAd),
+        reinterpret_cast<jlong>(callback_data), request_ref);
+  }
   return MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 }
 
