@@ -38,8 +38,8 @@ class BannerViewInternalStub : public BannerViewInternal {
     return CreateAndCompleteFutureStub(kBannerViewFnInitialize);
   }
 
-  Future<void> LoadAd(const AdRequest& request) override {
-    return CreateAndCompleteFutureStub(kBannerViewFnLoadAd);
+  Future<LoadAdResult> LoadAd(const AdRequest& request) override {
+    return CreateAndCompleteLoadAdResultFutureStub(kBannerViewFnLoadAd);
   }
 
   Future<void> Hide() override {
@@ -78,8 +78,10 @@ class BannerViewInternalStub : public BannerViewInternal {
 
  private:
   Future<void> CreateAndCompleteFutureStub(BannerViewFn fn) {
-    CreateAndCompleteFuture(fn, kAdMobErrorNone, nullptr, &future_data_);
-    return GetLastResult(fn);
+    return CreateAndCompleteFuture(fn, kAdMobErrorNone, nullptr, &future_data_);
+  }
+  Future<LoadAdResult> CreateAndCompleteLoadAdResultFutureStub(BannerViewFn fn) {
+    return CreateAndCompleteFutureWithResult(fn, kAdMobErrorNone, nullptr, &future_data_, LoadAdResult());
   }
 };
 

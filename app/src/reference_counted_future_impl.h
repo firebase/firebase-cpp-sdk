@@ -25,8 +25,6 @@
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/mutex.h"
 
-#include <android/log.h>
-
 #include "app/src/include/firebase/future.h"
 
 namespace firebase {

@@ -104,22 +104,39 @@ const char* GetRequestAgentString() {
 }
 
 // Create a future and update the corresponding last result.
-FutureHandle CreateFuture(int fn_idx, FutureData* future_data) {
-  return future_data->future_impl.Alloc<void>(fn_idx);
+template <class T>
+SafeFutureHandle<T> CreateFuture(int fn_idx, FutureData* future_data) {
+  return future_data->future_impl.SafeAlloc<T>(fn_idx);
 }
 
 // Mark a future as complete.
-void CompleteFuture(int error, const char* error_msg, FutureHandle handle,
+void CompleteFuture(int error, const char* error_msg, SafeFutureHandle<void> handle,
                     FutureData* future_data) {
+  future_data->future_impl.Complete(handle, error, error_msg);
+}
+
+template <class T>
+void CompleteFuture(int error, const char* error_msg, SafeFutureHandle<T> handle,
+                    FutureData* future_data, const T& result) {
   future_data->future_impl.Complete(handle, error, error_msg);
 }
 
 // For calls that aren't asynchronous, we can create and complete at the
 // same time.
-void CreateAndCompleteFuture(int fn_idx, int error, const char* error_msg,
+Future<void> CreateAndCompleteFuture(int fn_idx, int error, const char* error_msg,
                              FutureData* future_data) {
-  FutureHandle handle = CreateFuture(fn_idx, future_data);
+  SafeFutureHandle<void> handle = CreateFuture<void>(fn_idx, future_data);
   CompleteFuture(error, error_msg, handle, future_data);
+  return MakeFuture(&future_data->future_impl, handle);
+}
+
+template <class T>
+Future<T> CreateAndCompleteFutureWithResult(int fn_idx, int error, const char* error_msg, FutureData* future_data, const T& result) {
+  //SafeFutureHandle<T> handle = future_data->future_impl.SafeAlloc<T>(fn_idx);
+  SafeFutureHandle<T> handle = CreateFuture<T>(fn_idx, future_data);
+  //future_data->future_impl.Complete(handle, error, error_msg, result);
+  CompleteFuture(error, error_msg, handle, future_data, result);
+  return MakeFuture(&future_data->future_impl, handle);
 }
 
 // Non-inline implementation of the Listeners' virtual destructors, to prevent
