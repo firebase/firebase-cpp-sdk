@@ -81,7 +81,7 @@ function(setup_pod_headers target_name)
       # Add pod name twice as some frameworks moved includes inside a folder with
       # the pod name
       target_include_directories(${target_name}
-        PRIVATE
+        PUBLIC
           ${FIREBASE_POD_HEADER_DIR}/${pod}
           ${FIREBASE_POD_HEADER_DIR}/${pod}/${pod}
       )
@@ -90,7 +90,7 @@ function(setup_pod_headers target_name)
         # we need to include the top-level Private directory as a header path. This only affects Firestore at the moment, as
         # no other C++ library includes a private Pod header.
         target_include_directories(${target_name}
-          PRIVATE
+          PUBLIC
             ${FIREBASE_POD_PRIVATE_HEADER_DIR}/
             ${FIREBASE_POD_PRIVATE_HEADER_DIR}/${pod}
             ${FIREBASE_POD_PRIVATE_HEADER_DIR}/${pod}/${pod}
