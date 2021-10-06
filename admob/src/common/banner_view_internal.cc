@@ -74,6 +74,11 @@ Future<void> BannerViewInternal::GetLastResult(BannerViewFn fn) {
       future_data_.future_impl.LastResult(fn));
 }
 
+Future<LoadAdResult> BannerViewInternal::GetLoadAdLastResult() {
+  return static_cast<const Future<LoadAdResult>&>(
+      future_data_.future_impl.LastResult(kBannerViewFnLoadAd));
+}
+
 }  // namespace internal
 }  // namespace admob
 }  // namespace firebase

@@ -62,7 +62,6 @@ LoadAdResult::LoadAdResult(const LoadAdResultInternal& load_ad_result_internal)
       response_info_ = ResponseInfo(response_info_internal);
       env->DeleteLocalRef(j_response_info);
     }
-
     jobject j_to_string = env->CallObjectMethod(
         j_load_ad_error, load_ad_error::GetMethodId(load_ad_error::kToString));
     set_to_string(util::JStringToString(env, j_to_string));

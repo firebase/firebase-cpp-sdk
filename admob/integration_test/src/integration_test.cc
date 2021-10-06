@@ -70,6 +70,13 @@ const char* kBannerAdUnit = "ca-app-pub-3940256099942544/2934735716";
 const char* kInterstitialAdUnit = "ca-app-pub-3940256099942544/4411468910";
 #endif
 
+// Test which sends an errant ad unit id.
+const char* kBadAdUnit = "oops";
+
+// Standard Banner Size.
+static const int kBannerWidth = 320;
+static const int kBannerHeight = 50;
+
 // Sample test device IDs to use in making the request.
 const std::vector<std::string> kTestDeviceIDs = {
     "2077ef9a63d2b398840261c8221a0c9b", "098fe087d987c9a878965454a65654d7"};
@@ -405,9 +412,6 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
   TEST_REQUIRES_USER_INTERACTION;
   SKIP_TEST_ON_DESKTOP;
 
-  static const int kBannerWidth = 320;
-  static const int kBannerHeight = 50;
-
   const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::admob::BannerView* banner = new firebase::admob::BannerView();
   WaitForCompletion(banner->Initialize(app_framework::GetWindowContext(),
@@ -420,7 +424,18 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
 
   // Load the banner ad.
   firebase::admob::AdRequest request = GetAdRequest();
-  WaitForCompletion(banner->LoadAd(request), "LoadAd");
+  firebase::Future<firebase::admob::LoadAdResult> load_ad_future =
+      banner->LoadAd(request);
+  WaitForCompletion(load_ad_future, "LoadAd");
+
+  const firebase::admob::LoadAdResult* result_ptr = load_ad_future.result();
+  EXPECT_TRUE(result_ptr->is_successful());
+  EXPECT_EQ(result_ptr->code(), firebase::admob::kAdMobErrorNone);
+  EXPECT_TRUE(result_ptr->message().empty());
+  EXPECT_TRUE(result_ptr->domain().empty());
+  const firebase::admob::ResponseInfo response_info =
+      result_ptr->response_info();
+  EXPECT_TRUE(response_info.adapter_responses().empty());
 
   std::vector<firebase::admob::BannerView::PresentationState>
       expected_presentation_states;
@@ -579,11 +594,8 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
 #endif
 }
 
-TEST_F(FirebaseAdMobTest, TestBannerViewAlreadyInitialized) {
+TEST_F(FirebaseAdMobTest, TestBannerViewErrorAlreadyInitialized) {
   SKIP_TEST_ON_DESKTOP;
-
-  static const int kBannerWidth = 320;
-  static const int kBannerHeight = 50;
 
   const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::admob::BannerView* banner = new firebase::admob::BannerView();
@@ -616,11 +628,64 @@ TEST_F(FirebaseAdMobTest, TestBannerViewAlreadyInitialized) {
   }
 }
 
-TEST_F(FirebaseAdMobTest, TestBannerViewWithBadExtrasClassName) {
+TEST_F(FirebaseAdMobTest, TestBannerViewErrorLoadInProgress) {
+  const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
+  firebase::admob::BannerView* banner = new firebase::admob::BannerView();
+  WaitForCompletion(banner->Initialize(app_framework::GetWindowContext(),
+                                       kBannerAdUnit, banner_ad_size),
+                    "Initialize");
+
+  // Load the banner ad.
+  firebase::admob::AdRequest request = GetAdRequest();
+  firebase::Future<firebase::admob::LoadAdResult> first_load_ad =
+      banner->LoadAd(request);
+  firebase::Future<firebase::admob::LoadAdResult> second_load_ad =
+      banner->LoadAd(request);
+
+  WaitForCompletion(second_load_ad, "Second LoadAd",
+                    firebase::admob::kAdMobErrorLoadInProgress);
+  WaitForCompletion(first_load_ad, "First LoadAd");
+
+  const firebase::admob::LoadAdResult* result_ptr = second_load_ad.result();
+  EXPECT_FALSE(result_ptr->is_successful());
+  EXPECT_EQ(result_ptr->code(), firebase::admob::kAdMobErrorLoadInProgress);
+  EXPECT_TRUE(result_ptr->message() == "Ad is currently loading.");
+  EXPECT_TRUE(result_ptr->domain() == "SDK");
+  const firebase::admob::ResponseInfo response_info =
+      result_ptr->response_info();
+  EXPECT_TRUE(response_info.adapter_responses().empty());
+  delete banner;
+}
+
+TEST_F(FirebaseAdMobTest, TestBannerViewErrorBadAdUnitId) {
   SKIP_TEST_ON_DESKTOP;
 
-  static const int kBannerWidth = 320;
-  static const int kBannerHeight = 50;
+  const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
+  firebase::admob::BannerView* banner = new firebase::admob::BannerView();
+  WaitForCompletion(banner->Initialize(app_framework::GetWindowContext(),
+                                       kBadAdUnit, banner_ad_size),
+                    "Initialize");
+
+  // Load the banner ad.
+  firebase::admob::AdRequest request = GetAdRequest();
+  firebase::Future<firebase::admob::LoadAdResult> load_ad =
+      banner->LoadAd(request);
+  WaitForCompletion(load_ad, "LoadAd",
+                    firebase::admob::kAdMobErrorInvalidRequest);
+
+  const firebase::admob::LoadAdResult* result_ptr = load_ad.result();
+  EXPECT_FALSE(result_ptr->is_successful());
+  EXPECT_EQ(result_ptr->code(), 1);
+  EXPECT_TRUE(result_ptr->message() == "Error building request URL.");
+  EXPECT_TRUE(result_ptr->domain() == "com.google.android.gms.ads");
+  const firebase::admob::ResponseInfo response_info =
+      result_ptr->response_info();
+  EXPECT_TRUE(response_info.adapter_responses().empty());
+  delete banner;
+}
+
+TEST_F(FirebaseAdMobTest, TestBannerViewWithBadExtrasClassName) {
+  SKIP_TEST_ON_DESKTOP;
 
   const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::admob::BannerView* banner = new firebase::admob::BannerView();
@@ -711,9 +776,6 @@ TEST_F(FirebaseAdMobTest, TestBannerViewMultithreadDeletion) {
                         // disabled on all platforms due to flakiness
                         // on Android. Once it's fixed, this test should
                         // be re-enabled on mobile.
-
-  static const int kBannerWidth = 320;
-  static const int kBannerHeight = 50;
 
   const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
 

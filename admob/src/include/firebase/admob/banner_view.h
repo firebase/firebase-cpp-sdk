@@ -159,7 +159,7 @@ class BannerView {
 
   /// Returns a @ref Future containing the status of the last call to
   /// @ref LoadAd.
-  Future<void> LoadAdLastResult() const;
+  Future<LoadAdResult> LoadAdLastResult() const;
 
   /// Hides the BannerView.
   Future<void> Hide();

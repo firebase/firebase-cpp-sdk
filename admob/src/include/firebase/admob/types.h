@@ -83,19 +83,19 @@ class AdResult {
   /// @return a pointer to an AdResult which represents the cause of this
   /// AdResult.  If there was no cause, or if this result was successful,
   /// then nullptr is returned.
-  std::unique_ptr<AdResult> GetCause();
+  std::unique_ptr<AdResult> GetCause() const;
 
   /// Gets the error's code.
-  int code();
+  int code() const;
 
   /// Gets the domain of the error.
-  const std::string& domain();
+  const std::string& domain() const;
 
   /// Gets the message describing the error.
-  const std::string& message();
+  const std::string& message() const;
 
   /// Returns a log friendly string version of this object.
-  const std::string& ToString();
+  const std::string& ToString() const;
 
   /// A domain string which represents an undefined error domain.
   ///
@@ -427,14 +427,14 @@ class ResponseInfo {
     return adapter_responses_;
   }
 
-  /// Future Milestone.
   /// A class name that identifies the ad network that returned the ad.
   /// Returns an empty string if the ad failed to load.
   const std::string& mediation_adapter_class_name() const {
     return mediation_adapter_class_name_;
   }
 
-  /// Gets the response ID string for the loaded ad.
+  /// Gets the response ID string for the loaded ad.  Returns an empty
+  /// string if the ad fails to load.
   const std::string& response_id() const { return response_id_; }
 
   /// Gets a log friendly string version of this object.
@@ -465,6 +465,7 @@ class LoadAdResult : public AdResult {
 
  private:
   friend class AdmobInternal;
+  friend class BannerView;
 
   explicit LoadAdResult(const LoadAdResultInternal& load_ad_result_internal);
 

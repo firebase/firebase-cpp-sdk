@@ -69,9 +69,9 @@ Future<LoadAdResult> BannerView::LoadAd(const AdRequest& request) {
   return internal_->LoadAd(request);
 }
 
-Future<void> BannerView::LoadAdLastResult() const {
-  if (!CheckIsInitialized(internal_)) return Future<void>();
-  return internal_->GetLastResult(internal::kBannerViewFnLoadAd);
+Future<LoadAdResult> BannerView::LoadAdLastResult() const {
+  if (!CheckIsInitialized(internal_)) return Future<LoadAdResult>();
+  return internal_->GetLoadAdLastResult();
 }
 
 Future<void> BannerView::Hide() {

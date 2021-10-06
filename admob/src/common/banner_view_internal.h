@@ -100,6 +100,9 @@ class BannerViewInternal {
   // Retrieves the most recent Future for a given function.
   Future<void> GetLastResult(BannerViewFn fn);
 
+  // Retrieves the most recent LoadAdResult future for the LoadAd function.
+  Future<LoadAdResult> GetLoadAdLastResult();
+
  protected:
   // Used by CreateInstance() to create an appropriate one for the current
   // platform.

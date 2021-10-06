@@ -63,17 +63,19 @@ ResponseInfo::ResponseInfo(const ResponseInfoInternal& response_info_internal) {
   const jobject j_medation_adapter_classname = env->CallObjectMethod(
       j_response_info,
       response_info::GetMethodId(response_info::kGetMediationAdapterClassName));
-  FIREBASE_ASSERT(j_medation_adapter_classname);
-  mediation_adapter_class_name_ =
-      util::JStringToString(env, j_medation_adapter_classname);
-  env->DeleteLocalRef(j_medation_adapter_classname);
+  if (j_medation_adapter_classname != nullptr) {
+    mediation_adapter_class_name_ =
+        util::JStringToString(env, j_medation_adapter_classname);
+    env->DeleteLocalRef(j_medation_adapter_classname);
+  }
 
   const jobject j_response_id = env->CallObjectMethod(
       j_response_info,
       response_info::GetMethodId(response_info::kGetResponseId));
-  FIREBASE_ASSERT(j_response_id);
-  mediation_adapter_class_name_ = util::JStringToString(env, j_response_id);
-  env->DeleteLocalRef(j_response_id);
+  if (j_response_id != nullptr) {
+    response_id_ = util::JStringToString(env, j_response_id);
+    env->DeleteLocalRef(j_response_id);
+  }
 
   const jobject j_to_string = env->CallObjectMethod(
       j_response_info, response_info::GetMethodId(response_info::kToString));

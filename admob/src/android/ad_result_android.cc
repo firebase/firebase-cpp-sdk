@@ -43,8 +43,8 @@ AdResult::AdResult() {
   internal_ = new AdResultInternal();
   internal_->is_successful = false;
   internal_->is_wrapper_error = true;
-  internal_->code = kAdMobErrorInternalError;
-  internal_->domain = "Internal";
+  internal_->code = kAdMobErrorUninitialized;
+  internal_->domain = "SDK";
   internal_->message = "This AdResult has not be initialized.";
   internal_->to_string = internal_->message;
   internal_->j_ad_error = nullptr;
@@ -55,8 +55,9 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
   FIREBASE_ASSERT(env);
 
   internal_ = new AdResultInternal();
-  internal_->j_ad_error = nullptr;
   internal_->is_successful = ad_result_internal.is_successful;
+  internal_->is_wrapper_error = ad_result_internal.is_wrapper_error;
+  internal_->j_ad_error = nullptr;
 
   if (internal_->is_successful) {
     internal_->code = kAdMobErrorNone;
@@ -69,9 +70,33 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
     internal_->to_string = ad_result_internal.to_string;
   } else {
     FIREBASE_ASSERT(ad_result_internal.j_ad_error);
+
     // AdResults based on Admob Android SDK errors will fetch code, domain,
     // message, and to_string values from the Java object, as required.
     internal_->j_ad_error = env->NewGlobalRef(ad_result_internal.j_ad_error);
+
+    JNIEnv* env = ::firebase::admob::GetJNI();
+    FIREBASE_ASSERT(env);
+    internal_->code = (int)env->CallIntMethod(
+        internal_->j_ad_error, ad_error::GetMethodId(ad_error::kGetCode));
+
+    jobject j_domain = env->CallObjectMethod(
+        internal_->j_ad_error, ad_error::GetMethodId(ad_error::kGetDomain));
+    FIREBASE_ASSERT(j_domain);
+    internal_->domain = util::JStringToString(env, j_domain);
+    env->DeleteLocalRef(j_domain);
+
+    jobject j_message = env->CallObjectMethod(
+        internal_->j_ad_error, ad_error::GetMethodId(ad_error::kGetMessage));
+    FIREBASE_ASSERT(j_message);
+    internal_->message = util::JStringToString(env, j_message);
+    env->DeleteLocalRef(j_message);
+
+    jobject j_to_string = env->CallObjectMethod(
+        internal_->j_ad_error, ad_error::GetMethodId(ad_error::kToString));
+    FIREBASE_ASSERT(j_to_string);
+    internal_->to_string = util::JStringToString(env, j_to_string);
+    env->DeleteLocalRef(j_to_string);
   }
 }
 
@@ -82,7 +107,6 @@ AdResult::AdResult(const AdResult& ad_result) : AdResult() {
 
 AdResult& AdResult::operator=(const AdResult& ad_result) {
   if (&ad_result == this) {
-    // Prevent mutex deadlock.
     return *this;
   }
 
@@ -116,6 +140,7 @@ AdResult& AdResult::operator=(const AdResult& ad_result) {
   // Deleting the internal deletes the mutex within it, so we wait for complete
   // deletion until after the mutex leaves scope.
   delete preexisting_internal;
+
   return *this;
 }
 
@@ -136,7 +161,7 @@ bool AdResult::is_successful() const {
   return internal_->is_successful;
 }
 
-std::unique_ptr<AdResult> AdResult::GetCause() {
+std::unique_ptr<AdResult> AdResult::GetCause() const {
   FIREBASE_ASSERT(internal_);
 
   if (internal_->is_wrapper_error) {
@@ -160,72 +185,26 @@ std::unique_ptr<AdResult> AdResult::GetCause() {
 }
 
 /// Gets the error's code.
-int AdResult::code() {
+int AdResult::code() const {
   FIREBASE_ASSERT(internal_);
-  MutexLock(internal_->mutex);
-
-  if (internal_->is_wrapper_error || internal_->code != 0) {
-    return internal_->code;
-  }
-
-  JNIEnv* env = ::firebase::admob::GetJNI();
-  FIREBASE_ASSERT(env);
-  internal_->code = (int)env->CallIntMethod(
-      internal_->j_ad_error, ad_error::GetMethodId(ad_error::kGetCode));
   return internal_->code;
 }
 
 /// Gets the domain of the error.
-const std::string& AdResult::domain() {
+const std::string& AdResult::domain() const {
   FIREBASE_ASSERT(internal_);
-  MutexLock(internal_->mutex);
-
-  if (internal_->is_wrapper_error || !internal_->domain.empty()) {
-    return internal_->domain;
-  }
-
-  JNIEnv* env = ::firebase::admob::GetJNI();
-  FIREBASE_ASSERT(env);
-  jobject j_domain = env->CallObjectMethod(
-      internal_->j_ad_error, ad_error::GetMethodId(ad_error::kGetDomain));
-  internal_->domain = util::JStringToString(env, j_domain);
-  env->DeleteLocalRef(j_domain);
   return internal_->domain;
 }
 
 /// Gets the message describing the error.
-const std::string& AdResult::message() {
+const std::string& AdResult::message() const {
   FIREBASE_ASSERT(internal_);
-  MutexLock(internal_->mutex);
-
-  if (internal_->is_wrapper_error || !internal_->message.empty()) {
-    return internal_->message;
-  }
-
-  JNIEnv* env = ::firebase::admob::GetJNI();
-  FIREBASE_ASSERT(env);
-  jobject j_message = env->CallObjectMethod(
-      internal_->j_ad_error, ad_error::GetMethodId(ad_error::kGetMessage));
-  internal_->message = util::JStringToString(env, j_message);
-  env->DeleteLocalRef(j_message);
   return internal_->message;
 }
 
 /// Returns a log friendly string version of this object.
-const std::string& AdResult::ToString() {
+const std::string& AdResult::ToString() const {
   FIREBASE_ASSERT(internal_);
-  MutexLock(internal_->mutex);
-
-  if (internal_->is_wrapper_error || !internal_->to_string.empty()) {
-    return internal_->to_string;
-  }
-
-  JNIEnv* env = ::firebase::admob::GetJNI();
-  FIREBASE_ASSERT(env);
-  jobject j_to_string = env->CallObjectMethod(
-      internal_->j_ad_error, ad_error::GetMethodId(ad_error::kToString));
-  internal_->to_string = util::JStringToString(env, j_to_string);
-  env->DeleteLocalRef(j_to_string);
   return internal_->to_string;
 }
 

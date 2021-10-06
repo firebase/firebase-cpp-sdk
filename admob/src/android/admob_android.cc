@@ -31,6 +31,7 @@
 #include "admob/src/android/banner_view_internal_android.h"
 #include "admob/src/android/interstitial_ad_internal_android.h"
 #include "admob/src/android/load_ad_result_android.h"
+#include "admob/src/android/response_info_android.h"
 #include "admob/src/common/admob_common.h"
 #include "admob/src/include/firebase/admob.h"
 #include "admob/src/include/firebase/admob/types.h"
@@ -155,6 +156,7 @@ InitResult Initialize(JNIEnv* env, jobject activity) {
         ad_view::CacheMethodIds(env, activity) &&
         request_config::CacheMethodIds(env, activity) &&
         request_config_builder::CacheMethodIds(env, activity) &&
+        response_info::CacheMethodIds(env, activity) &&
         banner_view_helper::CacheClassFromFiles(env, activity,
                                                 &embedded_files) != nullptr &&
         banner_view_helper::CacheMethodIds(env, activity) &&
@@ -162,6 +164,7 @@ InitResult Initialize(JNIEnv* env, jobject activity) {
         interstitial_ad_helper::CacheClassFromFiles(
             env, activity, &embedded_files) != nullptr &&
         interstitial_ad_helper::CacheMethodIds(env, activity) &&
+        load_ad_error::CacheMethodIds(env, activity) &&
         admob::RegisterNatives())) {
     ReleaseClasses(env);
     util::Terminate(env);
@@ -407,9 +410,11 @@ void ReleaseClasses(JNIEnv* env) {
   ad_view::ReleaseClass(env);
   request_config::ReleaseClass(env);
   request_config_builder::ReleaseClass(env);
+  response_info::ReleaseClass(env);
   banner_view_helper::ReleaseClass(env);
   banner_view_helper_ad_view_listener::ReleaseClass(env);
   interstitial_ad_helper::ReleaseClass(env);
+  load_ad_error::ReleaseClass(env);
 }
 
 bool IsInitialized() { return g_initialized; }
@@ -496,21 +501,36 @@ Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeLoadAd(
   adr->is_wrapper_error = false;
   adr->code = static_cast<int>(error_code);
 
+  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "j_ad_error: %p",
+                      adr->j_ad_error);
+  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "adr->is_successful: %d",
+                      adr->is_successful);
+  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "adr->is_wrapper_error: %d",
+                      adr->is_wrapper_error);
+  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "adr->adr->code: %d",
+                      adr->code);
+
   // Futher result configuration is based on success/failure.
   if (j_load_ad_error != nullptr) {
+    __android_log_print(ANDROID_LOG_ERROR, "DEDB",
+                        "formatting j_load_ad_error");
     // The Android SDK returned an error.  CompleteLoadAdFuture will use the
     // j_ad_error obect to populate a LoadAdResult with the erorr specifics.
     adr->is_successful = false;
     future_error_message =
         "AdMob Service error. Check LoadAdResult for more details.";
   } else if (adr->code != kAdMobErrorNone) {
+    __android_log_print(ANDROID_LOG_ERROR, "DEDB", "formatting wrapper error");
     // C++ Android AdMob Wrapper encountered an error.
     adr->is_wrapper_error = true;
     adr->is_successful = false;
     adr->message = util::JStringToString(env, error_message);
-    adr->domain = "Internal error.";
+    adr->domain = "SDK";
     adr->to_string = std::string("Internal error: ") + adr->message;
     future_error_message = adr->message;
+  } else {
+    __android_log_print(ANDROID_LOG_ERROR, "DEDB",
+                        "formatting successful result.");
   }
 
   AdmobInternal::CompleteLoadAdFuture(
