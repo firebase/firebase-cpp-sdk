@@ -81,6 +81,8 @@ function(setup_pod_headers target_name)
       # Add pod name twice as some frameworks moved includes inside a folder with
       # the pod name
       target_include_directories(${target_name}
+        # Link the Pods publicly, so that dependent libraries can access the necessary header files as well.
+        # Same for the below workaround.
         PUBLIC
           ${FIREBASE_POD_HEADER_DIR}/${pod}
           ${FIREBASE_POD_HEADER_DIR}/${pod}/${pod}
