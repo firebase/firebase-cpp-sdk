@@ -26,7 +26,11 @@ struct AdResultInternal {
   char stub;
 };
 
+AdResult::AdResult() {}
+
 AdResult::AdResult(const AdResultInternal& ad_result_internal) {}
+
+AdResult::AdResult(const AdResult& ad_result) : AdResult() {}
 
 AdResult::~AdResult() {}
 
@@ -34,21 +38,21 @@ AdResult& AdResult::operator=(const AdResult& ad_result) { return *this; }
 
 bool AdResult::is_successful() const { return false; }
 
-std::unique_ptr<AdResult> AdResult::GetCause() {
+std::unique_ptr<AdResult> AdResult::GetCause() const {
   return std::unique_ptr<AdResult>(nullptr);
 }
 
 /// Gets the error's code.
-int AdResult::code() { return 0; }
+int AdResult::code() const { return 0; }
 
 /// Gets the domain of the error.
-const std::string& AdResult::domain() { return std::string(); }
+const std::string& AdResult::domain() const { return std::string(); }
 
 /// Gets the message describing the error.
-const std::string& AdResult::message() { return std::string(); }
+const std::string& AdResult::message() const { return std::string(); }
 
 /// Returns a log friendly string version of this object.
-const std::string& AdResult::ToString() { return std::string(); }
+const std::string& AdResult::ToString() const { return std::string(); }
 
 }  // namespace admob
 }  // namespace firebase

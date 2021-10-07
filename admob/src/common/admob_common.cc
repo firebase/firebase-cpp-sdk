@@ -208,14 +208,11 @@ Future<void> CreateAndCompleteFuture(int fn_idx, int error,
   return MakeFuture(&future_data->future_impl, handle);
 }
 
-template <class T>
-Future<T> CreateAndCompleteFutureWithResult(int fn_idx, int error,
-                                            const char* error_msg,
-                                            FutureData* future_data,
-                                            const T& result) {
-  // SafeFutureHandle<T> handle = future_data->future_impl.SafeAlloc<T>(fn_idx);
-  SafeFutureHandle<T> handle = CreateFuture<T>(fn_idx, future_data);
-  // future_data->future_impl.Complete(handle, error, error_msg, result);
+Future<LoadAdResult> CreateAndCompleteFutureWithResult(
+    int fn_idx, int error, const char* error_msg, FutureData* future_data,
+    const LoadAdResult& result) {
+  SafeFutureHandle<LoadAdResult> handle =
+      CreateFuture<LoadAdResult>(fn_idx, future_data);
   CompleteFuture(error, error_msg, handle, future_data, result);
   return MakeFuture(&future_data->future_impl, handle);
 }

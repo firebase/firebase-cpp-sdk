@@ -189,11 +189,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
 
     synchronized (mLoadAdCallbackDataPtrLock) {
       if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
-        // completeBannerViewFutureCallback(
-        // callbackDataPtr,
-        // ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS,
-        // ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS);
-        completeLoadAd(
+        completeLoadAdCallback(
           callbackDataPtr,
           ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS,
           ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS,
@@ -210,15 +206,11 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
           public void run() {
             if (mAdView == null) {
               synchronized (mLoadAdCallbackDataPtrLock) {
-                completeLoadAd(
+                completeLoadAdCallback(
                   mLoadAdCallbackDataPtr,
                   ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
                   ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED,
                   null);
-                // completeBannerViewFutureCallback(
-                //   mLoadAdCallbackDataPtr,
-                //    ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
-                //    ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
                 mLoadAdCallbackDataPtr = CPP_NULLPTR;
               }
             } else {
@@ -563,10 +555,8 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
       }
 
       synchronized (mLoadAdCallbackDataPtrLock) {
-        completeLoadAd(
+        completeLoadAdCallback(
           mLoadAdCallbackDataPtr, callbackErrorCode, callbackErrorMessage, loadAdError);
-        // completeBannerViewFutureCallback(
-        //   mLoadAdCallbackDataPtr, callbackErrorCode, callbackErrorMessage);
         mLoadAdCallbackDataPtr = CPP_NULLPTR;
       }
 
@@ -577,14 +567,10 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     public void onAdLoaded() {
       mAdViewContainsAd = true;
       synchronized (mLoadAdCallbackDataPtrLock) {
-        completeLoadAd(mLoadAdCallbackDataPtr, 
+        completeLoadAdCallback(mLoadAdCallbackDataPtr, 
           ConstantsHelper.CALLBACK_ERROR_NONE,
           ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE,
           null);
-        //completeBannerViewFutureCallback(
-        //    mLoadAdCallbackDataPtr,
-        //    ConstantsHelper.CALLBACK_ERROR_NONE,
-        //    ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
         mLoadAdCallbackDataPtr = CPP_NULLPTR;
       }
       // Only update the presentation state if the banner view is already visible.
@@ -637,9 +623,8 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
    * Native callback when an ad has completed loading. loadAdError may be null
    * if no error occurred.
    */
-  public static native void completeLoadAd(long nativeInternalPtr, 
-                                           int errorCode, String errorMessage,
-                                           LoadAdError loadAdError);
+  public static native void completeLoadAdCallback(
+    long nativeInternalPtr, int errorCode, String errorMessage, LoadAdError loadAdError);
 
   /** Native callback to notify the C++ wrapper that a state change has occurred. */
   public static native void notifyStateChanged(long nativeInternalPtr, int changeCode);

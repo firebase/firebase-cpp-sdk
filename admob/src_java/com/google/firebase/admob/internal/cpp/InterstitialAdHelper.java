@@ -88,10 +88,8 @@ public class InterstitialAdHelper {
    * Initializes the {@link InterstitialAd}. This creates the corresponding GMA SDK {@link
    * InterstitialAd} object and sets it up.
    */
-  public void initialize(final long callbackDataPtr, Activity activity, String adUnitID) {
-    /// TODO, move adUnitId to the load method.
+  public void initialize(final long callbackDataPtr, Activity activity) {
     mActivity = activity;
-    mAdUnitId = adUnitID;
 
     mActivity.runOnUiThread(
         new Runnable() {
@@ -141,29 +139,35 @@ public class InterstitialAdHelper {
   }
 
   /** Loads an ad for the underlying {@link InterstitialAd} object. */
-  public void loadAd(long callbackDataPtr, final AdRequest request) {
+  public void loadAd(long callbackDataPtr, String adUnitId, final AdRequest request) {
+    if(mActivity == null) {
+      return;
+    }
     synchronized (mInterstitialLock) {
       if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
-        completeInterstitialAdFutureCallback(
-            callbackDataPtr,
-            ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS,
-            ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS);
+        completeLoadAdCallback(
+          callbackDataPtr,
+          ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS,
+          ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS,
+          null);
         return;
       }
-
       mLoadAdCallbackDataPtr = callbackDataPtr;
     }
+
+    mAdUnitId = adUnitId;
 
     mActivity.runOnUiThread(
         new Runnable() {
           @Override
           public void run() {
-            if (mAdUnitId == null) {
+            if (mActivity == null) {
               synchronized (mInterstitialLock) {
-                completeInterstitialAdFutureCallback(
-                    mLoadAdCallbackDataPtr,
-                    ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
-                    ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
+                completeLoadAdCallback(
+                  mLoadAdCallbackDataPtr,
+                  ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
+                  ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED,
+                  null);
                 mLoadAdCallbackDataPtr = CPP_NULLPTR;
               }
             } else {
@@ -171,10 +175,11 @@ public class InterstitialAdHelper {
                 InterstitialAd.load(mActivity, mAdUnitId, request, new InterstitialAdListener());
               } catch (IllegalStateException e) {
                 synchronized (mInterstitialLock) {
-                  completeInterstitialAdFutureCallback(
-                      mLoadAdCallbackDataPtr,
-                      ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
-                      ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
+                  completeLoadAdCallback(
+                    mLoadAdCallbackDataPtr,
+                    ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
+                    ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED,
+                    null);
                   mLoadAdCallbackDataPtr = CPP_NULLPTR;
                 }
               }
@@ -269,8 +274,8 @@ public class InterstitialAdHelper {
       }
 
       synchronized (mInterstitialLock) {
-        completeInterstitialAdFutureCallback(
-            mLoadAdCallbackDataPtr, callbackErrorCode, callbackErrorMessage);
+        completeLoadAdCallback(
+          mLoadAdCallbackDataPtr, callbackErrorCode, callbackErrorMessage, loadAdError);
         mLoadAdCallbackDataPtr = CPP_NULLPTR;
       }
     }
@@ -280,10 +285,10 @@ public class InterstitialAdHelper {
       synchronized (mInterstitialLock) {
         mInterstitial = ad;
         mInterstitial.setFullScreenContentCallback(new InterstitialAdFullScreenContentListener());
-        completeInterstitialAdFutureCallback(
-            mLoadAdCallbackDataPtr,
-            ConstantsHelper.CALLBACK_ERROR_NONE,
-            ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
+        completeLoadAdCallback(mLoadAdCallbackDataPtr,
+          ConstantsHelper.CALLBACK_ERROR_NONE,
+          ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE,
+          null);
         mLoadAdCallbackDataPtr = CPP_NULLPTR;
       }
     }
@@ -292,6 +297,13 @@ public class InterstitialAdHelper {
   /** Native callback to instruct the C++ wrapper to complete the corresponding future. */
   public static native void completeInterstitialAdFutureCallback(
       long nativeInternalPtr, int errorCode, String errorMessage);
+
+  /**
+   * Native callback when an ad has completed loading. loadAdError may be null
+   * if no error occurred.
+   */
+  public static native void completeLoadAdCallback(
+    long nativeInternalPtr, int errorCode, String errorMessage, LoadAdError loadAdError);
 
   /** Native callback to notify the C++ wrapper that a state change has occurred. */
   public static native void notifyPresentationStateChanged(long nativeInternalPtr, int state);

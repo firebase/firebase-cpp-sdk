@@ -116,8 +116,7 @@ class InterstitialAd {
 
   /// Initialize the @ref InterstitialAd object.
   /// @param[in] parent The platform-specific UI element that will host the ad.
-  /// @param[in] ad_unit_id The ad unit ID to use in loading the ad.
-  Future<void> Initialize(AdParent parent, const char* ad_unit_id);
+  Future<void> Initialize(AdParent parent);
 
   /// Returns a @ref Future containing the status of the last call to
   /// @ref Initialize.
@@ -126,13 +125,14 @@ class InterstitialAd {
   /// Begins an asynchronous request for an ad. The
   /// @ref InterstitialAd::presentation_state method can be used to track the
   /// progress of the request.
+  /// @param[in] ad_unit_id The ad unit ID to use in loading the ad.
   /// @param[in] request An AdRequest struct with information about the request
   ///                    to be made (such as targeting info).
-  Future<void> LoadAd(const AdRequest& request);
+  Future<LoadAdResult> LoadAd(const char* ad_unit_id, const AdRequest& request);
 
   /// Returns a @ref Future containing the status of the last call to
   /// @ref LoadAd.
-  Future<void> LoadAdLastResult() const;
+  Future<LoadAdResult> LoadAdLastResult() const;
 
   /// Shows the @ref InterstitialAd. This should not be called unless an ad has
   /// already been loaded.

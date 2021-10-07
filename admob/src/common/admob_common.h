@@ -85,11 +85,9 @@ Future<void> CreateAndCompleteFuture(int fn_idx, int error,
 
 // For calls that aren't asynchronous, create and complete a future with a
 // result at the same time.
-template <class T>
-Future<T> CreateAndCompleteFutureWithResult(int fn_idx, int error,
-                                            const char* error_msg,
-                                            FutureData* future_data,
-                                            const T& result);
+Future<LoadAdResult> CreateAndCompleteFutureWithResult(
+    int fn_idx, int error, const char* error_msg, FutureData* future_data,
+    const LoadAdResult& result);
 
 template <class T>
 struct FutureCallbackData {

@@ -56,23 +56,23 @@ static bool CheckIsInitialized(internal::InterstitialAdInternal* internal) {
   return true;
 }
 
-Future<void> InterstitialAd::Initialize(AdParent parent,
-                                        const char* ad_unit_id) {
-  return internal_->Initialize(parent, ad_unit_id);
+Future<void> InterstitialAd::Initialize(AdParent parent) {
+  return internal_->Initialize(parent);
 }
 
 Future<void> InterstitialAd::InitializeLastResult() const {
   return internal_->GetLastResult(internal::kInterstitialAdFnInitialize);
 }
 
-Future<void> InterstitialAd::LoadAd(const AdRequest& request) {
-  if (!CheckIsInitialized(internal_)) return Future<void>();
-  return internal_->LoadAd(request);
+Future<LoadAdResult> InterstitialAd::LoadAd(const char* ad_unit_id,
+                                            const AdRequest& request) {
+  if (!CheckIsInitialized(internal_)) return Future<LoadAdResult>();
+  return internal_->LoadAd(ad_unit_id, request);
 }
 
-Future<void> InterstitialAd::LoadAdLastResult() const {
-  if (!CheckIsInitialized(internal_)) return Future<void>();
-  return internal_->GetLastResult(internal::kInterstitialAdFnLoadAd);
+Future<LoadAdResult> InterstitialAd::LoadAdLastResult() const {
+  if (!CheckIsInitialized(internal_)) return Future<LoadAdResult>();
+  return internal_->GetLoadAdLastResult();
 }
 
 Future<void> InterstitialAd::Show() {

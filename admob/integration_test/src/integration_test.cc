@@ -684,7 +684,7 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorBadAdUnitId) {
   delete banner;
 }
 
-TEST_F(FirebaseAdMobTest, TestBannerViewWithBadExtrasClassName) {
+TEST_F(FirebaseAdMobTest, TestBannerViewErrorBadExtrasClassName) {
   SKIP_TEST_ON_DESKTOP;
 
   const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
@@ -714,23 +714,42 @@ class TestInterstitialAdListener
       presentation_states_;
 };
 
-TEST_F(FirebaseAdMobTest, TestInterstitialAd) {
+TEST_F(FirebaseAdMobTest, TestInterstitialAdLoad) {
+  SKIP_TEST_ON_DESKTOP;
+
+  // Note: while showing an ad requires user interaction (below),
+  // we test that we can simply load an ad first.
+
+  firebase::admob::InterstitialAd* interstitial =
+      new firebase::admob::InterstitialAd();
+
+  WaitForCompletion(interstitial->Initialize(app_framework::GetWindowContext()),
+                    "Initialize");
+
+  // When the InterstitialAd is initialized, load an ad.
+  firebase::admob::AdRequest request = GetAdRequest();
+  WaitForCompletion(interstitial->LoadAd(kInterstitialAdUnit, request),
+                    "LoadAd");
+  delete interstitial;
+}
+
+TEST_F(FirebaseAdMobTest, TestInterstitialAdLoadAndShow) {
   TEST_REQUIRES_USER_INTERACTION;
   SKIP_TEST_ON_DESKTOP;
 
   firebase::admob::InterstitialAd* interstitial =
       new firebase::admob::InterstitialAd();
 
-  WaitForCompletion(interstitial->Initialize(app_framework::GetWindowContext(),
-                                             kInterstitialAdUnit),
+  WaitForCompletion(interstitial->Initialize(app_framework::GetWindowContext()),
                     "Initialize");
 
   TestInterstitialAdListener interstitial_listener;
   interstitial->SetListener(&interstitial_listener);
 
-  firebase::admob::AdRequest request = GetAdRequest();
   // When the InterstitialAd is initialized, load an ad.
-  WaitForCompletion(interstitial->LoadAd(request), "LoadAd");
+  firebase::admob::AdRequest request = GetAdRequest();
+  WaitForCompletion(interstitial->LoadAd(kInterstitialAdUnit, request),
+                    "LoadAd");
 
   std::vector<firebase::admob::InterstitialAd::PresentationState>
       expected_presentation_states;
@@ -753,6 +772,113 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAd) {
             expected_presentation_states);
 #endif
   delete interstitial;
+}
+
+TEST_F(FirebaseAdMobTest, TesInterstitialAdErrorAlreadyInitialized) {
+  SKIP_TEST_ON_DESKTOP;
+
+  firebase::admob::InterstitialAd* interstitial_ad =
+      new firebase::admob::InterstitialAd();
+  {
+    firebase::Future<void> first_initialize =
+        interstitial_ad->Initialize(app_framework::GetWindowContext());
+    firebase::Future<void> second_initialize =
+        interstitial_ad->Initialize(app_framework::GetWindowContext());
+
+    WaitForCompletion(second_initialize, "Second Initialize 1",
+                      firebase::admob::kAdMobErrorAlreadyInitialized);
+    WaitForCompletion(first_initialize, "First Initialize 1");
+    delete interstitial_ad;
+  }
+
+  // Reverse the order completion waits.
+  {
+    interstitial_ad = new firebase::admob::InterstitialAd();
+
+    firebase::Future<void> first_initialize =
+        interstitial_ad->Initialize(app_framework::GetWindowContext());
+    firebase::Future<void> second_initialize =
+        interstitial_ad->Initialize(app_framework::GetWindowContext());
+
+    WaitForCompletion(first_initialize, "First Initialize - reverse test");
+    WaitForCompletion(second_initialize, "Second Initialize - reverse test",
+                      firebase::admob::kAdMobErrorAlreadyInitialized);
+    delete interstitial_ad;
+  }
+}
+
+TEST_F(FirebaseAdMobTest, TestInterstitialAdErrorLoadInProgress) {
+  firebase::admob::InterstitialAd* interstitial_ad =
+      new firebase::admob::InterstitialAd();
+  WaitForCompletion(
+      interstitial_ad->Initialize(app_framework::GetWindowContext()),
+      "Initialize");
+
+  // Load the interstitial ad.
+  firebase::admob::AdRequest request = GetAdRequest();
+  firebase::Future<firebase::admob::LoadAdResult> first_load_ad =
+      interstitial_ad->LoadAd(kInterstitialAdUnit, request);
+  firebase::Future<firebase::admob::LoadAdResult> second_load_ad =
+      interstitial_ad->LoadAd(kInterstitialAdUnit, request);
+
+  WaitForCompletion(second_load_ad, "Second LoadAd",
+                    firebase::admob::kAdMobErrorLoadInProgress);
+  WaitForCompletion(first_load_ad, "First LoadAd");
+
+  const firebase::admob::LoadAdResult* result_ptr = second_load_ad.result();
+  EXPECT_FALSE(result_ptr->is_successful());
+  EXPECT_EQ(result_ptr->code(), firebase::admob::kAdMobErrorLoadInProgress);
+  EXPECT_TRUE(result_ptr->message() == "Ad is currently loading.");
+  EXPECT_TRUE(result_ptr->domain() == "SDK");
+  const firebase::admob::ResponseInfo response_info =
+      result_ptr->response_info();
+  EXPECT_TRUE(response_info.adapter_responses().empty());
+  delete interstitial_ad;
+}
+
+TEST_F(FirebaseAdMobTest, TestInterstiailAdErrorBadAdUnitId) {
+  SKIP_TEST_ON_DESKTOP;
+
+  firebase::admob::InterstitialAd* interstitial_ad =
+      new firebase::admob::InterstitialAd();
+  WaitForCompletion(
+      interstitial_ad->Initialize(app_framework::GetWindowContext()),
+      "Initialize");
+
+  // Load the interstitial ad.
+  firebase::admob::AdRequest request = GetAdRequest();
+  firebase::Future<firebase::admob::LoadAdResult> load_ad =
+      interstitial_ad->LoadAd(kBadAdUnit, request);
+  WaitForCompletion(load_ad, "LoadAd",
+                    firebase::admob::kAdMobErrorInvalidRequest);
+
+  const firebase::admob::LoadAdResult* result_ptr = load_ad.result();
+  EXPECT_FALSE(result_ptr->is_successful());
+  EXPECT_EQ(result_ptr->code(), 1);
+  EXPECT_TRUE(result_ptr->message() == "Error building request URL.");
+  EXPECT_TRUE(result_ptr->domain() == "com.google.android.gms.ads");
+  const firebase::admob::ResponseInfo response_info =
+      result_ptr->response_info();
+  EXPECT_TRUE(response_info.adapter_responses().empty());
+  delete interstitial_ad;
+}
+
+TEST_F(FirebaseAdMobTest, TestInterstiailAdErrorBadExtrasClassName) {
+  SKIP_TEST_ON_DESKTOP;
+
+  firebase::admob::InterstitialAd* interstitial_ad =
+      new firebase::admob::InterstitialAd();
+  WaitForCompletion(
+      interstitial_ad->Initialize(app_framework::GetWindowContext()),
+      "Initialize");
+
+  // Load the interstitial ad.
+  firebase::admob::AdRequest request = GetAdRequest();
+  request.add_extra(kAdNetworkExtrasInvalidClassName, "shouldnot", "work");
+  WaitForCompletion(interstitial_ad->LoadAd(kInterstitialAdUnit, request),
+                    "LoadAd",
+                    firebase::admob::kAdMobErrorAdNetworkClassLoadError);
+  delete interstitial_ad;
 }
 
 #if defined(ANDROID) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)

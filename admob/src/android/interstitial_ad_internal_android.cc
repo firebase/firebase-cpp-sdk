@@ -44,7 +44,7 @@ namespace internal {
 
 InterstitialAdInternalAndroid::InterstitialAdInternalAndroid(
     InterstitialAd* base)
-    : InterstitialAdInternal(base), helper_(nullptr) {
+    : InterstitialAdInternal(base), helper_(nullptr), initialized_(false) {
   JNIEnv* env = ::firebase::admob::GetJNI();
   jobject helper_ref = env->NewObject(
       interstitial_ad_helper::GetClass(),
@@ -68,44 +68,57 @@ InterstitialAdInternalAndroid::~InterstitialAdInternalAndroid() {
   helper_ = nullptr;
 }
 
-Future<void> InterstitialAdInternalAndroid::Initialize(AdParent parent,
-                                                       const char* ad_unit_id) {
+Future<void> InterstitialAdInternalAndroid::Initialize(AdParent parent) {
   FutureCallbackData<void>* callback_data = new FutureCallbackData<void>{
       &future_data_,
       future_data_.future_impl.SafeAlloc<void>(kInterstitialAdFnInitialize)};
 
-  JNIEnv* env = ::firebase::admob::GetJNI();
+  if (initialized_) {
+    future_data_.future_impl.Complete(callback_data->future_handle,
+                                      kAdMobErrorAlreadyInitialized,
+                                      "Ad is already initialized.");
+    return MakeFuture(&future_data_.future_impl, callback_data->future_handle);
+  } else {
+    initialized_ = true;
+  }
 
-  jstring ad_unit_str = env->NewStringUTF(ad_unit_id);
+  JNIEnv* env = ::firebase::admob::GetJNI();
+  FIREBASE_ASSERT(env);
   env->CallVoidMethod(
       helper_,
       interstitial_ad_helper::GetMethodId(interstitial_ad_helper::kInitialize),
-      reinterpret_cast<jlong>(callback_data), parent, ad_unit_str);
+      reinterpret_cast<jlong>(callback_data), parent);
 
-  env->DeleteLocalRef(ad_unit_str);
   return MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 }
 
-Future<void> InterstitialAdInternalAndroid::LoadAd(const AdRequest& request) {
-  FutureCallbackData<void>* callback_data = new FutureCallbackData<void>{
-      &future_data_,
-      future_data_.future_impl.SafeAlloc<void>(kInterstitialAdFnLoadAd)};
+Future<LoadAdResult> InterstitialAdInternalAndroid::LoadAd(
+    const char* ad_unit_id, const AdRequest& request) {
+  FutureCallbackData<LoadAdResult>* callback_data =
+      new FutureCallbackData<LoadAdResult>{
+          &future_data_, future_data_.future_impl.SafeAlloc<LoadAdResult>(
+                             kInterstitialAdFnLoadAd, LoadAdResult())};
 
   admob::AdMobError error = kAdMobErrorNone;
-  jobject request_ref = GetJavaAdRequestFromCPPAdRequest(request, &error);
+  jobject j_request = GetJavaAdRequestFromCPPAdRequest(request, &error);
 
-  if (request_ref == nullptr) {
+  if (j_request == nullptr) {
     if (error == kAdMobErrorNone) {
       error = kAdMobErrorInternalError;
     }
-    CompleteFuture(error, "Could Not Parse AdRequest object",
-                   callback_data->future_handle, callback_data->future_data);
+    future_data_.future_impl.CompleteWithResult(
+        callback_data->future_handle, error, "Could Not Parse AdRequest object",
+        LoadAdResult());
   } else {
+    JNIEnv* env = GetJNI();
+    FIREBASE_ASSERT(env);
+
+    jstring j_ad_unit_str = env->NewStringUTF(ad_unit_id);
     ::firebase::admob::GetJNI()->CallVoidMethod(
         helper_,
         interstitial_ad_helper::GetMethodId(interstitial_ad_helper::kLoadAd),
-        reinterpret_cast<jlong>(callback_data), request_ref);
-    ::firebase::admob::GetJNI()->DeleteLocalRef(request_ref);
+        reinterpret_cast<jlong>(callback_data), j_ad_unit_str, j_request);
+    env->DeleteLocalRef(j_ad_unit_str);
   }
   return MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 }

@@ -28,9 +28,10 @@ namespace admob {
 // clang-format off
 #define INTERSTITIALADHELPER_METHODS(X)                                        \
   X(Constructor, "<init>", "(J)V"),                                            \
-  X(Initialize, "initialize", "(JLandroid/app/Activity;Ljava/lang/String;)V"), \
+  X(Initialize, "initialize", "(JLandroid/app/Activity;)V"),                   \
   X(Show, "show", "(J)V"),                                                     \
-  X(LoadAd, "loadAd", "(JLcom/google/android/gms/ads/AdRequest;)V"),           \
+  X(LoadAd, "loadAd",                                                          \
+    "(JLjava/lang/String;Lcom/google/android/gms/ads/AdRequest;)V"),           \
   X(GetPresentationState, "getPresentationState", "()I"),                      \
   X(Disconnect, "disconnect", "()V")
 // clang-format on
@@ -44,8 +45,9 @@ class InterstitialAdInternalAndroid : public InterstitialAdInternal {
   InterstitialAdInternalAndroid(InterstitialAd* base);
   ~InterstitialAdInternalAndroid() override;
 
-  Future<void> Initialize(AdParent parent, const char* ad_unit_id) override;
-  Future<void> LoadAd(const AdRequest& request) override;
+  Future<void> Initialize(AdParent parent) override;
+  Future<LoadAdResult> LoadAd(const char* ad_unit_id,
+                              const AdRequest& request) override;
   Future<void> Show() override;
 
   InterstitialAd::PresentationState GetPresentationState() const override;
@@ -54,6 +56,9 @@ class InterstitialAdInternalAndroid : public InterstitialAdInternal {
   // Reference to the Java helper object used to interact with the Mobile Ads
   // SDK.
   jobject helper_;
+
+  // Tracks if this Interstial Ad has been initialized.
+  bool initialized_;
 };
 
 }  // namespace internal
