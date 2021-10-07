@@ -499,26 +499,12 @@ void CompleteLoadAdCallback(JNIEnv* env, jlong data_ptr, jint error_code,
   adr->is_wrapper_error = false;
   adr->code = static_cast<int>(error_code);
 
-  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "j_ad_error: %p",
-                      adr->j_ad_error);
-  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "adr->is_successful: %d",
-                      adr->is_successful);
-  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "adr->is_wrapper_error: %d",
-                      adr->is_wrapper_error);
-  __android_log_print(ANDROID_LOG_ERROR, "DEDB", "adr->adr->code: %d",
-                      adr->code);
-
   // Futher result configuration is based on success/failure.
   if (j_load_ad_error != nullptr) {
-    __android_log_print(ANDROID_LOG_ERROR, "DEDB",
-                        "formatting j_load_ad_error");
     // The Android SDK returned an error.  CompleteLoadAdFuture will use the
-    // j_ad_error obect to populate a LoadAdResult with the erorr specifics.
+    // j_ad_error object to populate a LoadAdResult with the erorr specifics.
     adr->is_successful = false;
-    future_error_message =
-        "AdMob Service error. Check LoadAdResult for more details.";
   } else if (adr->code != kAdMobErrorNone) {
-    __android_log_print(ANDROID_LOG_ERROR, "DEDB", "formatting wrapper error");
     // C++ Android AdMob Wrapper encountered an error.
     adr->is_wrapper_error = true;
     adr->is_successful = false;
@@ -526,9 +512,6 @@ void CompleteLoadAdCallback(JNIEnv* env, jlong data_ptr, jint error_code,
     adr->domain = "SDK";
     adr->to_string = std::string("Internal error: ") + adr->message;
     future_error_message = adr->message;
-  } else {
-    __android_log_print(ANDROID_LOG_ERROR, "DEDB",
-                        "formatting successful result.");
   }
 
   AdmobInternal::CompleteLoadAdFuture(

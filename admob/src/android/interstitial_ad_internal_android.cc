@@ -94,11 +94,6 @@ Future<void> InterstitialAdInternalAndroid::Initialize(AdParent parent) {
 
 Future<LoadAdResult> InterstitialAdInternalAndroid::LoadAd(
     const char* ad_unit_id, const AdRequest& request) {
-  FutureCallbackData<LoadAdResult>* callback_data =
-      new FutureCallbackData<LoadAdResult>{
-          &future_data_, future_data_.future_impl.SafeAlloc<LoadAdResult>(
-                             kInterstitialAdFnLoadAd, LoadAdResult())};
-
   admob::AdMobError error = kAdMobErrorNone;
   jobject j_request = GetJavaAdRequestFromCPPAdRequest(request, &error);
 
@@ -106,20 +101,24 @@ Future<LoadAdResult> InterstitialAdInternalAndroid::LoadAd(
     if (error == kAdMobErrorNone) {
       error = kAdMobErrorInternalError;
     }
-    future_data_.future_impl.CompleteWithResult(
-        callback_data->future_handle, error, "Could Not Parse AdRequest object",
-        LoadAdResult());
-  } else {
-    JNIEnv* env = GetJNI();
-    FIREBASE_ASSERT(env);
-
-    jstring j_ad_unit_str = env->NewStringUTF(ad_unit_id);
-    ::firebase::admob::GetJNI()->CallVoidMethod(
-        helper_,
-        interstitial_ad_helper::GetMethodId(interstitial_ad_helper::kLoadAd),
-        reinterpret_cast<jlong>(callback_data), j_ad_unit_str, j_request);
-    env->DeleteLocalRef(j_ad_unit_str);
+    return CreateAndCompleteFutureWithResult(kInterstitialAdFnLoadAd, error,
+                                             "Could Not Parse AdRequest object",
+                                             &future_data_, LoadAdResult());
   }
+  FutureCallbackData<LoadAdResult>* callback_data =
+      new FutureCallbackData<LoadAdResult>{
+          &future_data_, future_data_.future_impl.SafeAlloc<LoadAdResult>(
+                             kInterstitialAdFnLoadAd, LoadAdResult())};
+
+  JNIEnv* env = GetJNI();
+  FIREBASE_ASSERT(env);
+
+  jstring j_ad_unit_str = env->NewStringUTF(ad_unit_id);
+  ::firebase::admob::GetJNI()->CallVoidMethod(
+      helper_,
+      interstitial_ad_helper::GetMethodId(interstitial_ad_helper::kLoadAd),
+      reinterpret_cast<jlong>(callback_data), j_ad_unit_str, j_request);
+  env->DeleteLocalRef(j_ad_unit_str);
   return MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 }
 

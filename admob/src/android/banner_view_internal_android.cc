@@ -237,11 +237,6 @@ Future<void> BannerViewInternalAndroid::Initialize(AdParent parent,
 
 Future<LoadAdResult> BannerViewInternalAndroid::LoadAd(
     const AdRequest& request) {
-  FutureCallbackData<LoadAdResult>* callback_data =
-      new FutureCallbackData<LoadAdResult>{
-          &future_data_, future_data_.future_impl.SafeAlloc<LoadAdResult>(
-                             kBannerViewFnLoadAd, LoadAdResult())};
-
   admob::AdMobError error = kAdMobErrorNone;
   jobject request_ref = GetJavaAdRequestFromCPPAdRequest(request, &error);
 
@@ -249,14 +244,18 @@ Future<LoadAdResult> BannerViewInternalAndroid::LoadAd(
     if (error == kAdMobErrorNone) {
       error = kAdMobErrorInternalError;
     }
-    future_data_.future_impl.CompleteWithResult(
-        callback_data->future_handle, error, "Could Not Parse AdRequest object",
-        LoadAdResult());
-  } else {
-    ::firebase::admob::GetJNI()->CallVoidMethod(
-        helper_, banner_view_helper::GetMethodId(banner_view_helper::kLoadAd),
-        reinterpret_cast<jlong>(callback_data), request_ref);
+    return CreateAndCompleteFutureWithResult(kBannerViewFnLoadAd, error,
+                                             "Could Not Parse AdRequest object",
+                                             &future_data_, LoadAdResult());
   }
+
+  FutureCallbackData<LoadAdResult>* callback_data =
+      new FutureCallbackData<LoadAdResult>{
+          &future_data_, future_data_.future_impl.SafeAlloc<LoadAdResult>(
+                             kBannerViewFnLoadAd, LoadAdResult())};
+  ::firebase::admob::GetJNI()->CallVoidMethod(
+      helper_, banner_view_helper::GetMethodId(banner_view_helper::kLoadAd),
+      reinterpret_cast<jlong>(callback_data), request_ref);
   return MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 }
 
