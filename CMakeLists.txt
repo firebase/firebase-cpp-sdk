@@ -52,6 +52,9 @@ option(FIREBASE_INCLUDE_INSTALLATIONS
 option(FIREBASE_INCLUDE_MESSAGING
        "Include the Firebase Cloud Messaging library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
+option(FIREBASE_INCLUDE_PERFORMANCE
+       "Include the Firebase Performance library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_REMOTE_CONFIG
        "Include the Firebase Remote Config library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
@@ -619,6 +622,9 @@ if (FIREBASE_INCLUDE_INSTALLATIONS)
 endif()
 if (FIREBASE_INCLUDE_MESSAGING)
   add_subdirectory(messaging)
+endif()
+if (FIREBASE_INCLUDE_PERFORMANCE)
+  add_subdirectory(performance)
 endif()
 if (FIREBASE_INCLUDE_REMOTE_CONFIG)
   add_subdirectory(remote_config)

@@ -14,6 +14,7 @@ target 'GetPods' do
   pod 'Firebase/Functions', '8.8.0'
   pod 'Firebase/Installations', '8.8.0'
   pod 'Firebase/Messaging', '8.8.0'
+  pod 'Firebase/Performance', '8.8.0'
   pod 'Firebase/RemoteConfig', '8.8.0'
   pod 'Firebase/Storage', '8.8.0'
 
