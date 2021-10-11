@@ -18,6 +18,7 @@
 
 #import "admob/src/ios/FADRequest.h"
 
+#import "admob/src/ios/admob_ios.h"
 #include "app/src/util_ios.h"
 
 namespace firebase {
@@ -25,9 +26,9 @@ namespace admob {
 namespace internal {
 
 InterstitialAdInternalIOS::InterstitialAdInternalIOS(InterstitialAd* base)
-    : InterstitialAdInternal(base),
+    : InterstitialAdInternal(base), initialized_(false),
     presentation_state_(InterstitialAd::kPresentationStateHidden),
-    future_handle_for_load_(ReferenceCountedFutureImpl::kInvalidHandle), interstitial_(nil),
+    ad_load_callback_data_(nil), interstitial_(nil),
     parent_view_(nil), interstitial_delegate_(nil) {}
 
 InterstitialAdInternalIOS::~InterstitialAdInternalIOS() {
@@ -39,6 +40,10 @@ InterstitialAdInternalIOS::~InterstitialAdInternalIOS() {
     ((GADInterstitial *)interstitial_).delegate = nil;
     interstitial_delegate_ = nil;
     interstitial_ = nil;
+    if(ad_load_callback_data_ != nil) {
+      delete ad_load_callback_data_;
+      ad_load_callback_data_ = nil;
+    }
     mutex_in_block->Release();
   };
   util::DispatchAsyncSafeMainQueue(destroyBlock);
@@ -46,112 +51,104 @@ InterstitialAdInternalIOS::~InterstitialAdInternalIOS() {
   mutex.Release();
 }
 
-Future<void> InterstitialAdInternalIOS::Initialize(AdParent parent, const char* ad_unit_id) {
-  parent_view_ = (UIView *)parent;
-  interstitial_ = [[GADInterstitial alloc] initWithAdUnitID:@(ad_unit_id)];
-  interstitial_delegate_ = [[FADInterstitialDelegate alloc] initWithInternalInterstitialAd:this];
-  ((GADInterstitial *)interstitial_).delegate = interstitial_delegate_;
-  CreateAndCompleteFuture(kInterstitialAdFnInitialize, kAdMobErrorNone, nullptr, &future_data_);
-  return GetLastResult(kInterstitialAdFnInitialize);
+Future<void> InterstitialAdInternalIOS::Initialize(AdParent parent) {
+  const SafeFutureHandle<void> future_handle =
+    future_data_.future_impl.SafeAlloc<void>(kInterstitialAdFnInitialize);
+
+  if(initialized_) {
+    CompleteFuture(kAdMobErrorAlreadyInitialized,
+      kAdAlreadyInitializedErrorMessage, future_handle, &future_data_);
+  } else {
+    initialized_ = true;
+    parent_view_ = (UIView *)parent;
+    CompleteFuture(kAdMobErrorNone, nullptr, future_handle, &future_data_);
+  }
+  return MakeFuture(&future_data_.future_impl, future_handle);
 }
 
-Future<void> InterstitialAdInternalIOS::LoadAd(const AdRequest& request) {
-  if (future_handle_for_load_ != ReferenceCountedFutureImpl::kInvalidHandle) {
-    // Checks if an outstanding Future exists.
-    // It is safe to call the LoadAd method concurrently on multiple threads; however, the second
-    // call will gracefully fail to make sure that only one call to the Mobile Ads SDK's
-    // loadRequest: method is made at a time.
-    CreateAndCompleteFuture(kInterstitialAdFnLoadAd, kAdMobErrorLoadInProgress,
-                            kAdLoadInProgressErrorMessage, &future_data_);
-    return GetLastResult(kInterstitialAdFnLoadAd);
+Future<LoadAdResult> InterstitialAdInternalIOS::LoadAd(
+    const char* ad_unit_id, const AdRequest& request) {
+  FutureCallbackData<LoadAdResult>* callback_data =
+      CreateLoadAdResultFutureCallbackData(kInterstitialAdFnLoadAd,
+          &future_data_);
+  SafeFutureHandle<LoadAdResult> future_handle = callback_data->future_handle;
+
+  if (ad_load_callback_data_ != nil) {
+    CompleteLoadAdInternalResult(callback_data, kAdMobErrorLoadInProgress,
+        kAdLoadInProgressErrorMessage);
+    return MakeFuture(&future_data_.future_impl, future_handle);
   }
-  // The LoadAd() future is created here, but is completed in the CompleteLoadFuture() method. If
-  // the ad request successfully received the ad, CompleteLoadFuture() is called in the
-  // InterstitialDidReceiveAd() method with AdMobError equal to admob::kAdMobErrorNone. If the ad
-  // request failed, CompleteLoadFuture() is called in the
-  // InterstitialDidFailToReceiveAdWithError() method with an AdMobError that's not equal to
-  // admob::kAdMobErrorNone.
-  future_handle_for_load_ = CreateFuture(kInterstitialAdFnLoadAd, &future_data_);
-  AdRequest *request_copy = new AdRequest;
-  *request_copy = request;
+
+  // Persist a pointer to the callback data so that we may use it after the iOS
+  // SDK returns the LoadAdResult.
+  ad_load_callback_data_ = callback_data;
+
+  interstitial_ = [[GADInterstitial alloc] initWithAdUnitID:@(ad_unit_id)];
+  interstitial_delegate_ =
+      [[FADInterstitialDelegate alloc] initWithInternalInterstitialAd:this];
+  ((GADInterstitial *)interstitial_).delegate = interstitial_delegate_;
+
   dispatch_async(dispatch_get_main_queue(), ^{
     // Create a GADRequest from an admob::AdRequest.
-    AdMobError error = kAdMobErrorNone;
+    AdMobError error_code = kAdMobErrorNone;
     std::string error_message;
     GADRequest *ad_request =
-     GADRequestFromCppAdRequest(*request_copy, &error, &error_message);
-    delete request_copy;
-    if(ad_request==nullptr) {
-      if(error==kAdMobErrorNone) {
-        error = kAdMobErrorInternalError;
-        CompleteLoadFuture(error, 
-          "Internal error attempting to create GADRequest.");
-      } else {
-        CompleteLoadFuture(error, error_message.c_str());
+     GADRequestFromCppAdRequest(request, &error_code, &error_message);
+    if (ad_request == nullptr) {
+      if (error_code == kAdMobErrorNone) {
+        error_code = kAdMobErrorInternalError;
+        error_message = "Internal error attempting to create GADRequest.";
       }
+      CompleteLoadAdInternalResult(ad_load_callback_data_, error_code,
+          error_message.c_str());
+      ad_load_callback_data_ = nil;
     } else {
-  // Make the interstitial ad request.
+      // Make the interstitial ad request.
       [interstitial_ loadRequest:ad_request];
     }
   });
 
-  return GetLastResult(kInterstitialAdFnLoadAd);
+  return MakeFuture(&future_data_.future_impl, future_handle);
 }
 
 Future<void> InterstitialAdInternalIOS::Show() {
-  const firebase::FutureHandle handle = CreateFuture(kInterstitialAdFnShow, &future_data_);
+  const firebase::SafeFutureHandle<void> handle =
+    future_data_.future_impl.SafeAlloc<void>(kInterstitialAdFnShow);
   dispatch_async(dispatch_get_main_queue(), ^{
-    AdMobError api_error = kAdMobErrorLoadInProgress;
-    const char* error_msg = kAdLoadInProgressErrorMessage;
-    if ([interstitial_ isReady]) {
-      [interstitial_ presentFromRootViewController:[parent_view_ window].rootViewController];
-      api_error = kAdMobErrorNone;
-      error_msg = nullptr;
+    AdMobError error_code = kAdMobErrorLoadInProgress;
+    const char* error_message = kAdLoadInProgressErrorMessage;
+    if (interstitial_ == nil) {
+      error_code = kAdMobErrorUninitialized;
+      error_message = kAdUninitializedErrorMessage;
+    } else if ([interstitial_ isReady]) {
+      [interstitial_ presentFromRootViewController:[
+          parent_view_ window].rootViewController];
+      error_code = kAdMobErrorNone;
+      error_message = nullptr;
     }
-    CompleteFuture(api_error, error_msg, handle, &future_data_);
+    CompleteFuture(error_code, error_message, handle, &future_data_);
   });
-  return GetLastResult(kInterstitialAdFnShow);
+  return MakeFuture(&future_data_.future_impl, handle);
 }
 
 InterstitialAd::PresentationState InterstitialAdInternalIOS::GetPresentationState() const {
   return presentation_state_;
 }
 
-void InterstitialAdInternalIOS::CompleteLoadFuture(AdMobError error, const char* error_msg) {
-  CompleteFuture(error, error_msg, future_handle_for_load_, &future_data_);
-  future_handle_for_load_ = ReferenceCountedFutureImpl::kInvalidHandle;
-}
-
 void InterstitialAdInternalIOS::InterstitialDidReceiveAd(GADInterstitial *interstitial) {
-  CompleteLoadFuture(kAdMobErrorNone, nullptr);
+  if (ad_load_callback_data_ != nil) {
+    CompleteLoadAdInternalResult(ad_load_callback_data_, kAdMobErrorNone,
+        /*error_message=*/"");
+    ad_load_callback_data_ = nil;
+  }
 }
 
-void InterstitialAdInternalIOS::InterstitialDidFailToReceiveAdWithError(
-    GADInterstitial *interstitial, GADRequestError *error) {
-  AdMobError api_error;
-  const char* error_msg = error.localizedDescription.UTF8String;
-  switch (error.code) {
-    case kGADErrorInvalidRequest:
-      api_error = kAdMobErrorInvalidRequest;
-      break;
-    case kGADErrorNoFill:
-      api_error = kAdMobErrorNoFill;
-      break;
-    case kGADErrorNetworkError:
-      api_error = kAdMobErrorNetworkError;
-      break;
-    case kGADErrorInternalError:
-      api_error = kAdMobErrorInternalError;
-      break;
-    default:
-      // NOTE: Changes in the iOS SDK can result in new error codes being added. Fall back to
-      // admob::kAdMobErrorInternalError if this SDK doesn't handle error.code.
-      LogDebug("Unknown error code %d. Defaulting to internal error.", error.code);
-      api_error = kAdMobErrorInternalError;
-      error_msg = kInternalSDKErrorMesage;
-      break;
+void InterstitialAdInternalIOS::InterstitialDidFailToReceiveAdWithError(GADRequestError *gad_error) {
+  FIREBASE_ASSERT(gad_error);
+  if (ad_load_callback_data_ != nil) {
+    CompleteLoadAdIOSResult(ad_load_callback_data_, gad_error);
+    ad_load_callback_data_ = nil;
   }
-  CompleteLoadFuture(api_error, error_msg);
 }
 
 void InterstitialAdInternalIOS::InterstitialWillPresentScreen(GADInterstitial *interstitial) {

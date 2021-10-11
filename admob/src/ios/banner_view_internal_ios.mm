@@ -16,6 +16,7 @@
 
 #include "admob/src/ios/banner_view_internal_ios.h"
 
+#import "admob/src/ios/admob_ios.h"
 #import "admob/src/ios/FADBannerView.h"
 #import "admob/src/ios/FADRequest.h"
 
@@ -27,7 +28,7 @@ namespace internal {
 
 BannerViewInternalIOS::BannerViewInternalIOS(BannerView* base)
     : BannerViewInternal(base),
-      future_handle_for_load_(ReferenceCountedFutureImpl::kInvalidHandle),
+      ad_load_callback_data_(nil),
       initialized_(false),
       banner_view_(nil),
       destroy_mutex_(Mutex::kModeNonRecursive) {}
@@ -40,12 +41,12 @@ BannerViewInternalIOS::~BannerViewInternalIOS() {
 
 Future<void> BannerViewInternalIOS::Initialize(AdParent parent, const char* ad_unit_id,
                                                const AdSize& size) {
-  FutureCallbackData* callback_data =
-      CreateFutureCallbackDataVoid(&future_data_, kBannerViewFnInitialize);
+  const SafeFutureHandle<void> future_handle =
+    future_data_.future_impl.SafeAlloc<void>(kBannerViewFnInitialize);
+
   if(initialized_) {
-    future_data_.future_impl.Complete(callback_data->future_handle,
-                                      kAdMobErrorAlreadyInitialized,
-                                      "Ad is already initialized.");
+    CompleteFuture(kAdMobErrorAlreadyInitialized,
+      kAdAlreadyInitializedErrorMessage, future_handle, &future_data_);
   } else {
     initialized_ = true;
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -53,92 +54,90 @@ Future<void> BannerViewInternalIOS::Initialize(AdParent parent, const char* ad_u
                                               adUnitID:@(ad_unit_id)
                                                 adSize:size
                                     internalBannerView:this];
-    future_data_.future_impl.Complete(callback_data->future_handle,
-                                      kAdMobErrorNone);
+    CompleteFuture(kAdMobErrorNone, nullptr, future_handle, &future_data_);
     });
   }
-  return Future<void>(&future_data_.future_impl, callback_data->future_handle);
+  return MakeFuture(&future_data_.future_impl, future_handle);
 }
 
-Future<void> BannerViewInternalIOS::LoadAd(const AdRequest& request) {
-  if (future_handle_for_load_ != ReferenceCountedFutureImpl::kInvalidHandle) {
-    // Checks if an outstanding Future exists.
-    // It is safe to call the LoadAd method concurrently on multiple threads; however, the second
-    // call will gracefully fail to make sure that only one call to the Mobile Ads SDK's
-    // loadRequest: method is made at a time.
-    CreateAndCompleteFuture(kBannerViewFnLoadAd, kAdMobErrorLoadInProgress,
-                            kAdLoadInProgressErrorMessage, &future_data_);
-    return GetLastResult(kBannerViewFnLoadAd);
+Future<LoadAdResult> BannerViewInternalIOS::LoadAd(const AdRequest& request) {
+  FutureCallbackData<LoadAdResult>* callback_data =
+    CreateLoadAdResultFutureCallbackData(kBannerViewFnLoadAd,
+                                         &future_data_);
+  SafeFutureHandle<LoadAdResult> future_handle = callback_data->future_handle;
+
+  if (ad_load_callback_data_ != nil) {
+    CompleteLoadAdInternalResult(callback_data, kAdMobErrorLoadInProgress,
+      kAdLoadInProgressErrorMessage);
+    return MakeFuture(&future_data_.future_impl, future_handle);
   }
-  // The LoadAd() future is created here, but is completed in the CompleteLoadFuture() method. If
-  // the ad request successfully received the ad, CompleteLoadFuture() is called in the
-  // adViewDidReceiveAd: callback with AdMobError equal to admob::kAdMobErrorNone. If the ad request
-  // failed, CompleteLoadFuture() is called in the adView:didFailToReceiveAdWithError: callback with
-  // an AdMobError that's not equal to admob::kAdMobErrorNone.
-  future_handle_for_load_ = CreateFuture(kBannerViewFnLoadAd, &future_data_);
-  AdRequest *request_copy = new AdRequest;
-  *request_copy = request;
+  // Persist a pointer to the callback data so that we may use it after the iOS
+  // SDK returns the LoadAdResult.
+  ad_load_callback_data_ = callback_data;
+
   dispatch_async(dispatch_get_main_queue(), ^{
-    // Create a GADRequest from an admob::AdRequest.
-    AdMobError error = kAdMobErrorNone;
+    AdMobError error_code = kAdMobErrorNone;
     std::string error_message;
+
+    // Create a GADRequest from an admob::AdRequest.
     GADRequest *ad_request =
-     GADRequestFromCppAdRequest(*request_copy, &error, &error_message);
-    delete request_copy;
+     GADRequestFromCppAdRequest(request, &error_code, &error_message);
     if(ad_request==nullptr) {
-      if(error==kAdMobErrorNone) {
-        error = kAdMobErrorInternalError;
-        CompleteLoadFuture(error, 
-          "Internal error attempting to create GADRequest.");
-      } else {
-        CompleteLoadFuture(error, error_message.c_str());
+      if(error_code==kAdMobErrorNone) {
+        error_code = kAdMobErrorInternalError;
+        error_message = kAdCouldNotParseAdRequestErrorMessage;
       }
+      CompleteLoadAdInternalResult(ad_load_callback_data_, error_code,
+                                   error_message.c_str());
+      ad_load_callback_data_ = nil;
     } else {
       // Make the banner view ad request.
       [banner_view_ loadRequest:ad_request];
     }
   });
-  return GetLastResult(kBannerViewFnLoadAd);
+  return MakeFuture(&future_data_.future_impl, future_handle);
 }
 
 Future<void> BannerViewInternalIOS::Hide() {
-  const firebase::FutureHandle handle = CreateFuture(kBannerViewFnHide, &future_data_);
+  const SafeFutureHandle<void> handle =
+    future_data_.future_impl.SafeAlloc<void>(kBannerViewFnHide);
   dispatch_async(dispatch_get_main_queue(), ^{
     [banner_view_ hide];
     CompleteFuture(kAdMobErrorNone, nullptr, handle, &future_data_);
     NotifyListenerOfPresentationStateChange([banner_view_ presentationState]);
   });
-  return GetLastResult(kBannerViewFnHide);
+  return MakeFuture(&future_data_.future_impl, handle);
 }
 
 Future<void> BannerViewInternalIOS::Show() {
-  const firebase::FutureHandle handle = CreateFuture(kBannerViewFnShow, &future_data_);
+  const firebase::SafeFutureHandle<void> handle =
+    future_data_.future_impl.SafeAlloc<void>(kBannerViewFnShow);
   dispatch_async(dispatch_get_main_queue(), ^{
     [banner_view_ show];
     CompleteFuture(kAdMobErrorNone, nullptr, handle, &future_data_);
     NotifyListenerOfPresentationStateChange([banner_view_ presentationState]);
     NotifyListenerOfBoundingBoxChange([banner_view_ boundingBox]);
   });
-  return GetLastResult(kBannerViewFnShow);
+  return MakeFuture(&future_data_.future_impl, handle);
 }
 
 /// This method is part of the C++ interface and is used only on Android.
 Future<void> BannerViewInternalIOS::Pause() {
   // Required method. No-op.
-  CreateAndCompleteFuture(kBannerViewFnPause, kAdMobErrorNone, nullptr, &future_data_);
-  return GetLastResult(kBannerViewFnPause);
+  return CreateAndCompleteFuture(kBannerViewFnPause, kAdMobErrorNone, nullptr,
+    &future_data_);
 }
 
 /// This method is part of the C++ interface and is used only on Android.
 Future<void> BannerViewInternalIOS::Resume() {
   // Required method. No-op.
-  CreateAndCompleteFuture(kBannerViewFnResume, kAdMobErrorNone, nullptr, &future_data_);
-  return GetLastResult(kBannerViewFnResume);
+  return CreateAndCompleteFuture(kBannerViewFnResume, kAdMobErrorNone, nullptr, &future_data_);
 }
 
 /// Cleans up any resources created in BannerViewInternalIOS.
 Future<void> BannerViewInternalIOS::Destroy() {
-  const firebase::FutureHandle handle = CreateFuture(kBannerViewFnDestroy, &future_data_);
+  const firebase::SafeFutureHandle<void> handle =
+     future_data_.future_impl.SafeAlloc<void>(kBannerViewFnDestroy);
   destroy_mutex_.Acquire();
   void (^destroyBlock)() = ^{
     [banner_view_ destroy];
@@ -149,15 +148,20 @@ Future<void> BannerViewInternalIOS::Destroy() {
       NotifyListenerOfBoundingBoxChange([banner_view_ boundingBox]);
       banner_view_ = nil;
     }
+    if(ad_load_callback_data_ != nil) {
+      delete ad_load_callback_data_;
+      ad_load_callback_data_ = nil;
+    }
     CompleteFuture(kAdMobErrorNone, nullptr, handle, &future_data_);
     destroy_mutex_.Release();
   };
   util::DispatchAsyncSafeMainQueue(destroyBlock);
-  return GetLastResult(kBannerViewFnDestroy);
+  return MakeFuture(&future_data_.future_impl, handle);
 }
 
 Future<void> BannerViewInternalIOS::MoveTo(int x, int y) {
-  const firebase::FutureHandle handle = CreateFuture(kBannerViewFnMoveTo, &future_data_);
+  const firebase::SafeFutureHandle<void> handle =
+    future_data_.future_impl.SafeAlloc<void>(kBannerViewFnMoveTo);
   dispatch_async(dispatch_get_main_queue(), ^{
     AdMobError error = kAdMobErrorUninitialized;
     const char* error_msg = kAdUninitializedErrorMessage;
@@ -169,11 +173,12 @@ Future<void> BannerViewInternalIOS::MoveTo(int x, int y) {
     }
     CompleteFuture(error, error_msg, handle, &future_data_);
   });
-  return GetLastResult(kBannerViewFnMoveTo);
+  return MakeFuture(&future_data_.future_impl, handle);
 }
 
 Future<void> BannerViewInternalIOS::MoveTo(BannerView::Position position) {
-  const firebase::FutureHandle handle = CreateFuture(kBannerViewFnMoveTo, &future_data_);
+  const firebase::SafeFutureHandle<void> handle =
+    future_data_.future_impl.SafeAlloc<void>(kBannerViewFnMoveTo);
   dispatch_async(dispatch_get_main_queue(), ^{
     AdMobError error = kAdMobErrorUninitialized;
     const char* error_msg = kAdUninitializedErrorMessage;
@@ -185,7 +190,7 @@ Future<void> BannerViewInternalIOS::MoveTo(BannerView::Position position) {
     }
     CompleteFuture(error, error_msg, handle, &future_data_);
   });
-  return GetLastResult(kBannerViewFnMoveTo);
+  return MakeFuture(&future_data_.future_impl, handle);
 }
 
 BannerView::PresentationState BannerViewInternalIOS::GetPresentationState() const {
@@ -196,9 +201,19 @@ BoundingBox BannerViewInternalIOS::GetBoundingBox() const {
   return [banner_view_ boundingBox];
 }
 
-void BannerViewInternalIOS::CompleteLoadFuture(AdMobError error, const char* error_msg) {
-  CompleteFuture(error, error_msg, future_handle_for_load_, &future_data_);
-  future_handle_for_load_ = ReferenceCountedFutureImpl::kInvalidHandle;
+void BannerViewInternalIOS::BannerViewDidReceiveAd(GADBannerView *banner_view) {
+  if(ad_load_callback_data_ != nil) {
+    CompleteLoadAdInternalResult(ad_load_callback_data_, kAdMobErrorNone, /*error_message=*/"");
+    ad_load_callback_data_ = nil;
+  }
+}
+
+void BannerViewInternalIOS::BannerViewDidFailToReceiveAdWithError(GADRequestError *gad_error) {
+  FIREBASE_ASSERT(gad_error);
+  if(ad_load_callback_data_ != nil) {
+    CompleteLoadAdIOSResult(ad_load_callback_data_, gad_error);
+    ad_load_callback_data_ = nil;
+  }
 }
 
 }  // namespace internal

@@ -17,6 +17,7 @@
 #ifndef FIREBASE_ADMOB_SRC_ANDROID_AD_RESULT_ANDROID_H_
 #define FIREBASE_ADMOB_SRC_ANDROID_AD_RESULT_ANDROID_H_
 
+#include "admob/src/include/firebase/admob/types.h"
 #include "app/src/mutex.h"
 #include "app/src/util_android.h"
 
@@ -46,7 +47,7 @@ struct AdResultInternal {
   bool is_successful;
 
   // An error code
-  int code;
+  AdMobError code;
 
   // A cached value of com.google.android.gms.ads.AdError.domain
   std::string domain;

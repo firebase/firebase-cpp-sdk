@@ -46,7 +46,7 @@
 }
 
 - (void)interstitial:(GADInterstitial *)ad didFailToReceiveAdWithError:(GADRequestError *)error {
-  _interstitialAd->InterstitialDidFailToReceiveAdWithError(ad, error);
+  _interstitialAd->InterstitialDidFailToReceiveAdWithError(error);
 }
 
 - (void)interstitialWillPresentScreen:(GADInterstitial *)ad {

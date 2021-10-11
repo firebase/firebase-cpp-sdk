@@ -30,6 +30,9 @@
 namespace firebase {
 namespace admob {
 
+ResponseInfo::ResponseInfo() {
+  to_string_ = "This ResponseInfo has not been initialized.";
+}
 
 ResponseInfo::ResponseInfo(const ResponseInfoInternal& response_info_internal) {
   if (response_info_internal.gad_response_info == nil) {

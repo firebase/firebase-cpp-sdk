@@ -77,6 +77,13 @@ const char* kBadAdUnit = "oops";
 static const int kBannerWidth = 320;
 static const int kBannerHeight = 50;
 
+// Error Domains vary across phone SDKs.
+#if defined(__ANDROID__)
+const char* kErrorDomain = "com.google.android.gms.ads";
+#else
+const char* kErrorDomain = "com.google.admob";
+#endif
+
 // Sample test device IDs to use in making the request.
 const std::vector<std::string> kTestDeviceIDs = {
     "2077ef9a63d2b398840261c8221a0c9b", "098fe087d987c9a878965454a65654d7"};
@@ -436,6 +443,7 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
   const firebase::admob::ResponseInfo response_info =
       result_ptr->response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());
+  load_ad_future.Release();
 
   std::vector<firebase::admob::BannerView::PresentationState>
       expected_presentation_states;
@@ -609,6 +617,10 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorAlreadyInitialized) {
     WaitForCompletion(second_initialize, "Second Initialize 1",
                       firebase::admob::kAdMobErrorAlreadyInitialized);
     WaitForCompletion(first_initialize, "First Initialize 1");
+
+    first_initialize.Release();
+    second_initialize.Release();
+
     delete banner;
   }
 
@@ -624,6 +636,10 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorAlreadyInitialized) {
     WaitForCompletion(first_initialize, "First Initialize - reverse test");
     WaitForCompletion(second_initialize, "Second Initialize - reverse test",
                       firebase::admob::kAdMobErrorAlreadyInitialized);
+
+    first_initialize.Release();
+    second_initialize.Release();
+
     delete banner;
   }
 }
@@ -649,11 +665,15 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorLoadInProgress) {
   const firebase::admob::LoadAdResult* result_ptr = second_load_ad.result();
   EXPECT_FALSE(result_ptr->is_successful());
   EXPECT_EQ(result_ptr->code(), firebase::admob::kAdMobErrorLoadInProgress);
-  EXPECT_TRUE(result_ptr->message() == "Ad is currently loading.");
-  EXPECT_TRUE(result_ptr->domain() == "SDK");
+  EXPECT_EQ(result_ptr->message(), "Ad is currently loading.");
+  EXPECT_EQ(result_ptr->domain(), "SDK");
   const firebase::admob::ResponseInfo response_info =
       result_ptr->response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());
+
+  first_load_ad.Release();
+  second_load_ad.Release();
+
   delete banner;
 }
 
@@ -675,9 +695,11 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorBadAdUnitId) {
 
   const firebase::admob::LoadAdResult* result_ptr = load_ad.result();
   EXPECT_FALSE(result_ptr->is_successful());
-  EXPECT_EQ(result_ptr->code(), 1);
-  EXPECT_TRUE(result_ptr->message() == "Error building request URL.");
-  EXPECT_TRUE(result_ptr->domain() == "com.google.android.gms.ads");
+  EXPECT_EQ(result_ptr->code(), firebase::admob::kAdMobErrorInvalidRequest);
+
+  EXPECT_FALSE(result_ptr->message().empty());
+  EXPECT_EQ(result_ptr->domain(), kErrorDomain);
+
   const firebase::admob::ResponseInfo response_info =
       result_ptr->response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());
@@ -854,9 +876,9 @@ TEST_F(FirebaseAdMobTest, TestInterstiailAdErrorBadAdUnitId) {
 
   const firebase::admob::LoadAdResult* result_ptr = load_ad.result();
   EXPECT_FALSE(result_ptr->is_successful());
-  EXPECT_EQ(result_ptr->code(), 1);
-  EXPECT_TRUE(result_ptr->message() == "Error building request URL.");
-  EXPECT_TRUE(result_ptr->domain() == "com.google.android.gms.ads");
+  EXPECT_EQ(result_ptr->code(), firebase::admob::kAdMobErrorInvalidRequest);
+  EXPECT_FALSE(result_ptr->message().empty());
+  EXPECT_EQ(result_ptr->domain(), kErrorDomain);
   const firebase::admob::ResponseInfo response_info =
       result_ptr->response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());

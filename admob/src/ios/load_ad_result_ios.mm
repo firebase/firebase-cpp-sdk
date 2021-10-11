@@ -25,15 +25,26 @@
 namespace firebase {
 namespace admob {
 
+LoadAdResult::LoadAdResult() : AdResult(), response_info_() {}
+
 LoadAdResult::LoadAdResult(const LoadAdResultInternal& load_ad_result_internal)
   : AdResult(load_ad_result_internal.ad_result_internal), 
     response_info_(ResponseInfoInternal( {nil} ) ) {
 
-  FIREBASE_ASSERT(load_ad_result_internal.ad_result_internal.ios_error);
-  ResponseInfoInternal response_info_internal = ResponseInfoInternal( {
-    load_ad_result_internal.ad_result_internal.ios_error.userInfo[GADErrorUserInfoKeyResponseInfo] 
-  });
-  response_info_ = ResponseInfo(response_info_internal);
+  if (!load_ad_result_internal.ad_result_internal.is_successful &&
+      !load_ad_result_internal.ad_result_internal.is_wrapper_error) {
+
+    FIREBASE_ASSERT(load_ad_result_internal.ad_result_internal.ios_error);
+    ResponseInfoInternal response_info_internal = ResponseInfoInternal( {
+      load_ad_result_internal.ad_result_internal.ios_error.userInfo[GADErrorUserInfoKeyResponseInfo]
+    });
+    response_info_ = ResponseInfo(response_info_internal);
+  }
+}
+
+LoadAdResult::LoadAdResult(const LoadAdResult& load_ad_result)
+    : AdResult(load_ad_result) {
+  response_info_ = load_ad_result.response_info_;
 }
 
 }  // namespace admob

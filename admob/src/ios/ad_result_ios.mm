@@ -18,12 +18,11 @@ extern "C" {
 #include <objc/objc.h>
 }  // extern "C"
 
+#import "admob/src/ios/FADRequest.h"
+
 #include <string>
 
-#import <GoogleMobileAds/GoogleMobileAds.h>>
-
 #include "admob/src/include/firebase/admob.h"
-#include "admob/src/include/firebase/admob/types.h"
 #include "admob/src/ios/ad_result_ios.h"
 
 #include "app/src/util_ios.h"
@@ -33,9 +32,57 @@ namespace admob {
 
 const char* AdResult::kUndefinedDomain = "undefined";
 
+AdResult::AdResult() {
+  // Default constructor is available for Future creation.
+  // Initialize it with some helpful debug values in case we encounter a
+  // scenario where an AdResult makes it to the application in such a state.
+  internal_ = new AdResultInternal();
+  internal_->is_successful = false;
+  internal_->is_wrapper_error = true;
+  internal_->code = kAdMobErrorUninitialized;
+  internal_->domain = "SDK";
+  internal_->message = "This AdResult has not be initialized.";
+  internal_->to_string = internal_->message;
+  internal_->ios_error = nullptr;
+}
+
 AdResult::AdResult(const AdResultInternal& ad_result_internal) {
   internal_ = new AdResultInternal();
-  internal_->ios_error = ad_result_internal.ios_error;
+
+  internal_->is_successful = ad_result_internal.is_successful;
+  internal_->is_wrapper_error = ad_result_internal.is_wrapper_error;
+  internal_->ios_error = nullptr;
+
+  if (internal_->is_successful) {
+    internal_->code = kAdMobErrorNone;
+    internal_->is_wrapper_error = false;
+  } else if (internal_->is_wrapper_error) {
+    // Wrapper errors come with prepopulated code, domain, etc, fields.
+    internal_->code = ad_result_internal.code;
+    internal_->domain = ad_result_internal.domain;
+    internal_->message = ad_result_internal.message;
+    internal_->to_string = ad_result_internal.to_string;
+  } else {
+    FIREBASE_ASSERT(ad_result_internal.ios_error);
+
+    // AdResults based on Admob iOS SDK errors will fetch code, domain,
+    // message, and to_string values from the ObjC object.
+    internal_->ios_error = ad_result_internal.ios_error;
+    internal_->code = MapGADErrorCodeToCPPErrorCode(internal_->ios_error.code);
+    internal_->domain = util::NSStringToString(internal_->ios_error.domain);
+    internal_->message =
+      util::NSStringToString(internal_->ios_error.localizedDescription);
+
+    NSString* ns_to_string = [[NSString alloc]initWithFormat:@"Received error with "
+        "domain: %@, code: %ld, message: %@", internal_->ios_error.domain,
+        internal_->ios_error.code, internal_->ios_error.localizedDescription];
+    internal_->to_string = util::NSStringToString(ns_to_string);
+  }
+}
+
+AdResult::AdResult(const AdResult& ad_result) : AdResult() {
+  // Reuse the assignment operator.
+  *this = ad_result;
 }
 
 AdResult::~AdResult() {
@@ -54,20 +101,22 @@ AdResult& AdResult::operator=(const AdResult& ad_result) {
 
   AdResultInternal* preexisting_internal = internal_;
   {
+    MutexLock(ad_result.internal_->mutex);
     MutexLock(internal_->mutex);
     internal_ = new AdResultInternal();
-    MutexLock(internal_->mutex);
 
     internal_->ios_error = ad_result.internal_->ios_error;
 
-    code_ = ad_result.code_;
-    domain_ = ad_result.domain_;
-    message_ = ad_result.message_;
-    to_string_ = ad_result.to_string_;
+    internal_->is_successful = ad_result.internal_->is_successful;
+    internal_->code = ad_result.internal_->code;
+    internal_->domain = ad_result.internal_->domain;
+    internal_->message = ad_result.internal_->message;
+    internal_->to_string = ad_result.internal_->to_string;
   }
 
   // Deleting the internal deletes the mutex within it, so we have to delete
   // the internal after the MutexLock leaves scope.
+  preexisting_internal->ios_error = nullptr;
   delete preexisting_internal;
 
   return *this;
@@ -75,13 +124,12 @@ AdResult& AdResult::operator=(const AdResult& ad_result) {
 
 bool AdResult::is_successful() const {
   FIREBASE_ASSERT(internal_);
-  return (internal_->ios_error == nil);
+  return internal_->is_successful;
 }
 
-std::unique_ptr<AdResult> AdResult::GetCause() {
+std::unique_ptr<AdResult> AdResult::GetCause() const {
   FIREBASE_ASSERT(internal_);
 
-  MutexLock(internal_->mutex);
   NSError* cause = internal_->ios_error.userInfo[NSUnderlyingErrorKey];
   if (cause == nil) {
     return std::unique_ptr<AdResult>(nullptr);
@@ -93,66 +141,27 @@ std::unique_ptr<AdResult> AdResult::GetCause() {
 }
 
 /// Gets the error's code.
-int AdResult::code() {
+AdMobError AdResult::code() const {
   FIREBASE_ASSERT(internal_);
-  MutexLock(internal_->mutex);
-
-  if (internal_->ios_error == nullptr) {
-    return 0;
-  } else if (code_ != 0) {
-    return code_;
-  }
-
-  code_ = internal_->ios_error.code;
-  return code_;
+  return internal_->code;
 }
 
 /// Gets the domain of the error.
-const std::string& AdResult::domain() {
+const std::string& AdResult::domain() const {
   FIREBASE_ASSERT(internal_);
-  MutexLock(internal_->mutex);
-
-  if (internal_->ios_error == nullptr) {
-    return std::string();
-  } else if (!domain_.empty()) {
-    return domain_;
-  }
-
-  domain_ = util::NSStringToString(internal_->ios_error.domain);
-  return domain_;
+  return internal_->domain;
 }
 
 /// Gets the message describing the error.
-const std::string& AdResult::message() {
-    FIREBASE_ASSERT(internal_);
-  MutexLock(internal_->mutex);
-
-  if (internal_->ios_error == nullptr) {
-    return std::string();
-  } else if (!message_.empty()) {
-    return message_;
-  }
-
-  message_ = util::NSStringToString(internal_->ios_error.localizedDescription);
-  return message_;
+const std::string& AdResult::message() const {
+  FIREBASE_ASSERT(internal_);
+  return internal_->message;
 }
 
 /// Returns a log friendly string version of this object.
-const std::string& AdResult::ToString() {
+const std::string& AdResult::ToString() const {
   FIREBASE_ASSERT(internal_);
-  MutexLock(internal_->mutex);
-
-  if (internal_->ios_error == nullptr) {
-    return std::string();
-  } else if(!to_string_.empty()) {
-    return to_string_;
-  }
-
-  NSString* ns_to_string = [[NSString alloc]initWithFormat:@"Received error with "
-        "domain: %@, code: %ld, message: %@", internal_->ios_error.domain,
-        internal_->ios_error.code, internal_->ios_error.localizedDescription];
-  to_string_ = util::NSStringToString(ns_to_string);
-  return to_string_;
+  return internal_->to_string;
 }
 
 }  // namespace admob

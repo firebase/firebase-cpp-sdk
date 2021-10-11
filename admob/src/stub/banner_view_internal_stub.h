@@ -80,6 +80,7 @@ class BannerViewInternalStub : public BannerViewInternal {
   Future<void> CreateAndCompleteFutureStub(BannerViewFn fn) {
     return CreateAndCompleteFuture(fn, kAdMobErrorNone, nullptr, &future_data_);
   }
+
   Future<LoadAdResult> CreateAndCompleteLoadAdResultFutureStub(
       BannerViewFn fn) {
     return CreateAndCompleteFutureWithResult(fn, kAdMobErrorNone, nullptr,

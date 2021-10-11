@@ -16,7 +16,10 @@
 
 #include "admob/src/ios/FADBannerView.h"
 
+#import "admob/src/ios/admob_ios.h"
 #import "admob/src/ios/FADAdSize.h"
+
+
 
 namespace admob = firebase::admob;
 
@@ -262,7 +265,7 @@ namespace admob = firebase::admob;
 
 - (void)adViewDidReceiveAd:(GADBannerView *)bannerView {
   _adLoaded = YES;
-  _cppBannerView->CompleteLoadFuture(admob::kAdMobErrorNone, nullptr);
+  _cppBannerView->BannerViewDidReceiveAd(bannerView);
   // Only update the presentation state if the FADBannerView is already visible.
   if (!self.hidden) {
     _presentationState = admob::BannerView::kPresentationStateVisibleWithAd;
@@ -272,31 +275,8 @@ namespace admob = firebase::admob;
   }
 }
 
-- (void)adView:(GADBannerView *)bannerView didFailToReceiveAdWithError:(GADRequestError *)error {
-  admob::AdMobError api_error;
-  const char* error_msg = error.localizedDescription.UTF8String;
-  switch (error.code) {
-    case kGADErrorInvalidRequest:
-      api_error = admob::kAdMobErrorInvalidRequest;
-      break;
-    case kGADErrorNoFill:
-      api_error = admob::kAdMobErrorNoFill;
-      break;
-    case kGADErrorNetworkError:
-      api_error = admob::kAdMobErrorNetworkError;
-      break;
-    case kGADErrorInternalError:
-      api_error = admob::kAdMobErrorInternalError;
-      break;
-    default:
-      // NOTE: Changes in the iOS SDK can result in new error codes being added. Fall back to
-      // admob::kAdMobErrorInternalError if this SDK doesn't handle error.code.
-      firebase::LogDebug("Unknown error code %d. Defaulting to internal error.", error.code);
-      api_error = admob::kAdMobErrorInternalError;
-      error_msg = admob::kInternalSDKErrorMesage;
-      break;
-  }
-  _cppBannerView->CompleteLoadFuture(api_error, error_msg);
+- (void)adView:(GADBannerView *)bannerView didFailToReceiveAdWithError:(GADRequestError *)gad_error {
+  _cppBannerView->BannerViewDidFailToReceiveAdWithError(gad_error);
 }
 
 - (void)adViewWillPresentScreen:(GADBannerView *)bannerView {

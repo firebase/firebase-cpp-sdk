@@ -14,13 +14,21 @@
  * limitations under the License.
  */
 
+#import "admob/src/ios/admob_ios.h"
+
 #include "admob/src/include/firebase/admob.h"
 
 #import <GoogleMobileAds/GADRequestConfiguration.h>
 #import <GoogleMobileAds/GoogleMobileAds.h>
 
+#import "admob/src/ios/FADRequest.h"
+
 #include "admob/src/common/admob_common.h"
 #include "admob/src/include/firebase/admob/types.h"
+#include "admob/src/ios/ad_result_ios.h"
+#include "admob/src/ios/adapter_response_info_ios.h"
+#include "admob/src/ios/load_ad_result_ios.h"
+#include "admob/src/ios/response_info_ios.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/log.h"
 #include "app/src/util_ios.h"
@@ -155,6 +163,73 @@ void Terminate() {
 }
 
 const ::firebase::App* GetApp() { return g_app; }
+
+void AdmobInternal::CompleteLoadAdFuture(
+    FutureCallbackData<LoadAdResult>* callback_data, int error_code,
+    const std::string& error_message,
+    const LoadAdResultInternal& load_ad_result_internal) {
+  callback_data->future_data->future_impl.CompleteWithResult(
+      callback_data->future_handle, static_cast<int>(error_code),
+      error_message.c_str(), LoadAdResult(load_ad_result_internal));
+  // This method is responsible for disposing of the callback data struct.
+  delete callback_data;
+}
+
+// Constructs AdResult objects based on the encountered result, beit a
+// successful result, and C++ SDK Wrapper error, or an error returned from
+// the iOS Admob SDK.
+void CompleteLoadAdResult(FutureCallbackData<LoadAdResult>* callback_data,
+                          GADRequestError *gad_error, AdMobError error_code,
+                          const char* error_message) {
+  FIREBASE_ASSERT(callback_data);
+  FIREBASE_ASSERT(error_message);
+
+  std::string future_error_message;
+  LoadAdResultInternal load_ad_result_internal;
+  AdResultInternal* adr = &(load_ad_result_internal.ad_result_internal);
+
+  adr->ios_error = gad_error;
+  adr->is_successful = true;  // assume until proven otherwise.
+  adr->is_wrapper_error = false;
+  adr->code = error_code;
+
+  // Futher result configuration is based on success/failure.
+  if (gad_error != nullptr) {
+    // The iOS SDK returned an error.  The GADRequestError object
+    // will be used by the LoadAdError implementation to populate
+    // it's fields.
+    adr->is_successful = false;
+  } else if (adr->code != kAdMobErrorNone) {
+    // C++ SDK iOS AdMob Wrapper encountered an error.
+    adr->is_wrapper_error = true;
+    adr->is_successful = false;
+    adr->message = std::string(error_message);
+    adr->domain = "SDK";
+    adr->to_string = std::string("Internal error: ") + adr->message;
+    future_error_message = adr->message;
+  }
+
+  AdmobInternal::CompleteLoadAdFuture(
+      callback_data, adr->code, future_error_message, load_ad_result_internal);
+}
+
+void CompleteLoadAdInternalResult(
+    FutureCallbackData<LoadAdResult>* callback_data,
+    AdMobError error_code, const char* error_message) {
+  FIREBASE_ASSERT(callback_data);
+  FIREBASE_ASSERT(error_message);
+
+  CompleteLoadAdResult(callback_data, /*gad_error=*/nullptr, error_code, error_message);
+}
+
+void CompleteLoadAdIOSResult(FutureCallbackData<LoadAdResult>* callback_data,
+                             GADRequestError *gad_error) {
+  FIREBASE_ASSERT(callback_data);
+
+  AdMobError error_code = MapGADErrorCodeToCPPErrorCode(gad_error.code);
+  CompleteLoadAdResult(callback_data, gad_error, error_code,
+                       /*error_message=*/"");
+}
 
 }  // namespace admob
 }  // namespace firebase

@@ -30,9 +30,10 @@ namespace admob {
 
 // Error messages used for completing futures. These match the error codes in
 // the AdMobError enumeration in the C++ API.
-extern const char* kAdUninitializedErrorMessage;
+extern const char* kAdAlreadyInitializedErrorMessage;
+extern const char* kAdCouldNotParseAdRequestErrorMessage;
 extern const char* kAdLoadInProgressErrorMessage;
-extern const char* kInternalSDKErrorMesage;
+extern const char* kAdUninitializedErrorMessage;
 
 // Determine whether admob is initialized.
 bool IsInitialized();
@@ -94,6 +95,16 @@ struct FutureCallbackData {
   FutureData* future_data;
   SafeFutureHandle<T> future_handle;
 };
+
+// Constructs a FutureCallbbackData instance to handle operations that return
+// void Futures.
+FutureCallbackData<void>* CreateVoidFutureCallbackData(int fn_idx,
+                                                       FutureData* future_data);
+
+// Constructs a FutureCallbackData instance to handle results from LoadAd.
+// requests.
+FutureCallbackData<LoadAdResult>* CreateLoadAdResultFutureCallbackData(
+    int fn_idx, FutureData* future_data);
 
 // A class that allows access to private/protected Admob structures for Java
 // callbacks.  This is achieved via friend relationships with those classes.

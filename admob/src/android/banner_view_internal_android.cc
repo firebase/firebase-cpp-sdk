@@ -204,35 +204,34 @@ void InitializeBannerViewOnMainThread(void* data) {
 Future<void> BannerViewInternalAndroid::Initialize(AdParent parent,
                                                    const char* ad_unit_id,
                                                    const AdSize& size) {
-  FutureCallbackData<void>* callback_data = new FutureCallbackData<void>{
-      &future_data_,
-      future_data_.future_impl.SafeAlloc<void>(kBannerViewFnInitialize)};
+  FutureCallbackData<void>* callback_data =
+      CreateVoidFutureCallbackData(kBannerViewFnInitialize, &future_data_);
+  SafeFutureHandle<void> future_handle = callback_data->future_handle;
 
   if (initialized_) {
-    future_data_.future_impl.Complete(callback_data->future_handle,
-                                      kAdMobErrorAlreadyInitialized,
-                                      "Ad is already initialized.");
-    return MakeFuture(&future_data_.future_impl, callback_data->future_handle);
+    CompleteFuture(kAdMobErrorAlreadyInitialized,
+                   kAdAlreadyInitializedErrorMessage, future_handle,
+                   &future_data_);
   } else {
     initialized_ = true;
+
+    JNIEnv* env = ::firebase::admob::GetJNI();
+    FIREBASE_ASSERT(env);
+
+    jobject activity = ::firebase::admob::GetActivity();
+    BannerViewInternalInitializeData* call_data =
+        new BannerViewInternalInitializeData();
+    call_data->activity_global = env->NewGlobalRef(activity);
+    call_data->ad_size = size;
+    call_data->ad_unit_id = ad_unit_id;
+    call_data->ad_view = env->NewGlobalRef(ad_view_);
+    call_data->banner_view_helper = env->NewGlobalRef(helper_);
+    call_data->callback_data = callback_data;
+    util::RunOnMainThread(env, activity, InitializeBannerViewOnMainThread,
+                          call_data);
   }
 
-  JNIEnv* env = ::firebase::admob::GetJNI();
-  FIREBASE_ASSERT(env);
-
-  jobject activity = ::firebase::admob::GetActivity();
-  BannerViewInternalInitializeData* call_data =
-      new BannerViewInternalInitializeData();
-  call_data->activity_global = env->NewGlobalRef(activity);
-  call_data->ad_size = size;
-  call_data->ad_unit_id = ad_unit_id;
-  call_data->ad_view = env->NewGlobalRef(ad_view_);
-  call_data->banner_view_helper = env->NewGlobalRef(helper_);
-  call_data->callback_data = callback_data;
-  util::RunOnMainThread(env, activity, InitializeBannerViewOnMainThread,
-                        call_data);
-
-  return MakeFuture(&future_data_.future_impl, callback_data->future_handle);
+  return MakeFuture(&future_data_.future_impl, future_handle);
 }
 
 Future<LoadAdResult> BannerViewInternalAndroid::LoadAd(
@@ -244,19 +243,20 @@ Future<LoadAdResult> BannerViewInternalAndroid::LoadAd(
     if (error == kAdMobErrorNone) {
       error = kAdMobErrorInternalError;
     }
-    return CreateAndCompleteFutureWithResult(kBannerViewFnLoadAd, error,
-                                             "Could Not Parse AdRequest object",
-                                             &future_data_, LoadAdResult());
+    return CreateAndCompleteFutureWithResult(
+        kBannerViewFnLoadAd, error, kAdCouldNotParseAdRequestErrorMessage,
+        &future_data_, LoadAdResult());
   }
 
   FutureCallbackData<LoadAdResult>* callback_data =
-      new FutureCallbackData<LoadAdResult>{
-          &future_data_, future_data_.future_impl.SafeAlloc<LoadAdResult>(
-                             kBannerViewFnLoadAd, LoadAdResult())};
+      CreateLoadAdResultFutureCallbackData(kBannerViewFnLoadAd, &future_data_);
+  SafeFutureHandle<LoadAdResult> future_handle = callback_data->future_handle;
+
   ::firebase::admob::GetJNI()->CallVoidMethod(
       helper_, banner_view_helper::GetMethodId(banner_view_helper::kLoadAd),
       reinterpret_cast<jlong>(callback_data), request_ref);
-  return MakeFuture(&future_data_.future_impl, callback_data->future_handle);
+
+  return MakeFuture(&future_data_.future_impl, future_handle);
 }
 
 Future<void> BannerViewInternalAndroid::Hide() {
@@ -281,28 +281,28 @@ Future<void> BannerViewInternalAndroid::Destroy() {
 }
 
 Future<void> BannerViewInternalAndroid::MoveTo(int x, int y) {
-  FutureCallbackData<void>* callback_data = new FutureCallbackData<void>{
-      &future_data_,
-      future_data_.future_impl.SafeAlloc<void>(kBannerViewFnMoveTo)};
+  FutureCallbackData<void>* callback_data =
+      CreateVoidFutureCallbackData(kBannerViewFnMoveTo, &future_data_);
+  SafeFutureHandle<void> future_handle = callback_data->future_handle;
 
   ::firebase::admob::GetJNI()->CallVoidMethod(
       helper_, banner_view_helper::GetMethodId(banner_view_helper::kMoveToXY),
       reinterpret_cast<jlong>(callback_data), x, y);
 
-  return MakeFuture(&future_data_.future_impl, callback_data->future_handle);
+  return MakeFuture(&future_data_.future_impl, future_handle);
 }
 
 Future<void> BannerViewInternalAndroid::MoveTo(BannerView::Position position) {
-  FutureCallbackData<void>* callback_data = new FutureCallbackData<void>{
-      &future_data_,
-      future_data_.future_impl.SafeAlloc<void>(kBannerViewFnMoveTo)};
+  FutureCallbackData<void>* callback_data =
+      CreateVoidFutureCallbackData(kBannerViewFnMoveTo, &future_data_);
+  SafeFutureHandle<void> future_handle = callback_data->future_handle;
 
   ::firebase::admob::GetJNI()->CallVoidMethod(
       helper_,
       banner_view_helper::GetMethodId(banner_view_helper::kMoveToPosition),
       reinterpret_cast<jlong>(callback_data), static_cast<int>(position));
 
-  return MakeFuture(&future_data_.future_impl, callback_data->future_handle);
+  return MakeFuture(&future_data_.future_impl, future_handle);
 }
 
 BannerView::PresentationState BannerViewInternalAndroid::GetPresentationState()
@@ -351,14 +351,15 @@ BoundingBox BannerViewInternalAndroid::GetBoundingBox() const {
 
 Future<void> BannerViewInternalAndroid::InvokeNullary(
     BannerViewFn fn, banner_view_helper::Method method) {
-  FutureCallbackData<void>* callback_data = new FutureCallbackData<void>{
-      &future_data_, future_data_.future_impl.SafeAlloc<void>(fn)};
+  FutureCallbackData<void>* callback_data =
+      CreateVoidFutureCallbackData(fn, &future_data_);
+  SafeFutureHandle<void> future_handle = callback_data->future_handle;
 
   ::firebase::admob::GetJNI()->CallVoidMethod(
       helper_, banner_view_helper::GetMethodId(method),
       reinterpret_cast<jlong>(callback_data));
 
-  return MakeFuture(&future_data_.future_impl, callback_data->future_handle);
+  return MakeFuture(&future_data_.future_impl, future_handle);
 }
 
 void BannerViewInternalAndroid::DestroyInternalData() {

@@ -189,13 +189,11 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
 
     synchronized (mLoadAdCallbackDataPtrLock) {
       if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
-        completeLoadAdCallback(
+        completeBannerViewLoadAdInternalError(
           callbackDataPtr,
           ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS,
-          ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS,
-          null);
+          ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS);
         return;
-            
       }
       mLoadAdCallbackDataPtr = callbackDataPtr;
      }
@@ -206,11 +204,10 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
           public void run() {
             if (mAdView == null) {
               synchronized (mLoadAdCallbackDataPtrLock) {
-                completeLoadAdCallback(
+                completeBannerViewLoadAdInternalError(
                   mLoadAdCallbackDataPtr,
                   ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
-                  ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED,
-                  null);
+                  ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
                 mLoadAdCallbackDataPtr = CPP_NULLPTR;
               }
             } else {
@@ -533,30 +530,8 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
 
     @Override
     public void onAdFailedToLoad(LoadAdError loadAdError) {
-      int callbackErrorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
-      String callbackErrorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-      switch (loadAdError.getCode()) {
-        case AdRequest.ERROR_CODE_INTERNAL_ERROR:
-          callbackErrorCode = ConstantsHelper.CALLBACK_ERROR_INTERNAL_ERROR;
-          callbackErrorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_INTERNAL_ERROR;
-          break;
-        case AdRequest.ERROR_CODE_INVALID_REQUEST:
-          callbackErrorCode = ConstantsHelper.CALLBACK_ERROR_INVALID_REQUEST;
-          callbackErrorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_INVALID_REQUEST;
-          break;
-        case AdRequest.ERROR_CODE_NETWORK_ERROR:
-          callbackErrorCode = ConstantsHelper.CALLBACK_ERROR_NETWORK_ERROR;
-          callbackErrorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NETWORK_ERROR;
-          break;
-        case AdRequest.ERROR_CODE_NO_FILL:
-          callbackErrorCode = ConstantsHelper.CALLBACK_ERROR_NO_FILL;
-          callbackErrorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NO_FILL;
-          break;
-      }
-
       synchronized (mLoadAdCallbackDataPtrLock) {
-        completeLoadAdCallback(
-          mLoadAdCallbackDataPtr, callbackErrorCode, callbackErrorMessage, loadAdError);
+        completeBannerViewLoadAdError(mLoadAdCallbackDataPtr, loadAdError, loadAdError.getCode(), loadAdError.getMessage());
         mLoadAdCallbackDataPtr = CPP_NULLPTR;
       }
 
@@ -567,10 +542,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     public void onAdLoaded() {
       mAdViewContainsAd = true;
       synchronized (mLoadAdCallbackDataPtrLock) {
-        completeLoadAdCallback(mLoadAdCallbackDataPtr, 
-          ConstantsHelper.CALLBACK_ERROR_NONE,
-          ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE,
-          null);
+        completeBannerViewLoadedAd(mLoadAdCallbackDataPtr);
         mLoadAdCallbackDataPtr = CPP_NULLPTR;
       }
       // Only update the presentation state if the banner view is already visible.
@@ -619,12 +591,24 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   public static native void completeBannerViewFutureCallback(
       long nativeInternalPtr, int errorCode, String errorMessage);
 
+  /** Native callback invoked upon successfully loading an ad. */
+  public static native void completeBannerViewLoadedAd(long nativeInternalPtr);
+
   /**
-   * Native callback when an ad has completed loading. loadAdError may be null
-   * if no error occurred.
+   * Native callback upon encountering an error loading an Ad Request. Returns
+   * Android Admob SDK error codes.
+   **/
+  public static native void completeBannerViewLoadAdError(
+    long nativeInternalPtr, LoadAdError error, int errorCode, String errorMessage);
+
+  /**
+   * Native callback upon encountering a wrapper/internal error when
+   *  processing a Load Ad Request. Returns an integer representing
+   *  firebase::admob::AdMobError codes.
    */
-  public static native void completeLoadAdCallback(
-    long nativeInternalPtr, int errorCode, String errorMessage, LoadAdError loadAdError);
+  public static native void completeBannerViewLoadAdInternalError(
+    long nativeInternalPtr, int admobErrorCode, String errorMessage);
+
 
   /** Native callback to notify the C++ wrapper that a state change has occurred. */
   public static native void notifyStateChanged(long nativeInternalPtr, int changeCode);

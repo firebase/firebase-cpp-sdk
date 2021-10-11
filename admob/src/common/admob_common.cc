@@ -169,9 +169,11 @@ void DestroyCleanupNotifier() {
 
 // Error messages used for completing futures. These match the error codes in
 // the AdMobError enumeration in the C++ API.
-const char* kAdUninitializedErrorMessage = "Ad has not been fully initialized.";
+const char* kAdAlreadyInitializedErrorMessage = "Ad is already initialized.";
+const char* kAdCouldNotParseAdRequestErrorMessage =
+    "Could Not Parse AdRequest.";
 const char* kAdLoadInProgressErrorMessage = "Ad is currently loading.";
-const char* kInternalSDKErrorMesage = "An internal SDK error occurred.";
+const char* kAdUninitializedErrorMessage = "Ad has not been fully initialized.";
 
 const char* GetRequestAgentString() {
   // This is a string that can be used to uniquely identify requests coming
@@ -215,6 +217,19 @@ Future<LoadAdResult> CreateAndCompleteFutureWithResult(
       CreateFuture<LoadAdResult>(fn_idx, future_data);
   CompleteFuture(error, error_msg, handle, future_data, result);
   return MakeFuture(&future_data->future_impl, handle);
+}
+
+FutureCallbackData<void>* CreateVoidFutureCallbackData(
+    int fn_idx, FutureData* future_data) {
+  return new FutureCallbackData<void>{
+      future_data, future_data->future_impl.SafeAlloc<void>(fn_idx)};
+}
+
+FutureCallbackData<LoadAdResult>* CreateLoadAdResultFutureCallbackData(
+    int fn_idx, FutureData* future_data) {
+  return new FutureCallbackData<LoadAdResult>{
+      future_data,
+      future_data->future_impl.SafeAlloc<LoadAdResult>(fn_idx, LoadAdResult())};
 }
 
 // Non-inline implementation of the Listeners' virtual destructors, to prevent

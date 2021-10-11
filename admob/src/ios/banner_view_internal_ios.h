@@ -21,6 +21,10 @@ extern "C" {
 #include <objc/objc.h>
 }  // extern "C"
 
+#ifdef __OBJC__
+#import <GoogleMobileAds/GoogleMobileAds.h>
+#endif  // __OBJC__
+
 #include "admob/src/common/banner_view_internal.h"
 
 namespace firebase {
@@ -34,7 +38,7 @@ class BannerViewInternalIOS : public BannerViewInternal {
 
   Future<void> Initialize(AdParent parent, const char* ad_unit_id,
                           const AdSize& size) override;
-  Future<void> LoadAd(const AdRequest& request) override;
+  Future<LoadAdResult> LoadAd(const AdRequest& request) override;
   Future<void> Hide() override;
   Future<void> Show() override;
   Future<void> Pause() override;
@@ -46,15 +50,14 @@ class BannerViewInternalIOS : public BannerViewInternal {
   BannerView::PresentationState GetPresentationState() const override;
   BoundingBox GetBoundingBox() const override;
 
-  /// Completes the future for the LoadAd function.
-  void CompleteLoadFuture(admob::AdMobError error, const char* error_msg);
+#ifdef __OBJC__
+  void BannerViewDidReceiveAd(GADBannerView *banner_view);
+  void BannerViewDidFailToReceiveAdWithError(GADRequestError *gad_error);
+#endif  // __OBJC__
 
  private:
-  /// The handle to the future for the last call to LoadAd. This call is
-  /// different than the other asynchronous calls because it's completed in
-  /// separate functions (the others are completed by blocks a.k.a. lambdas or
-  /// closures).
-  FutureHandle future_handle_for_load_;
+  /// Contains information to asynchronously complete the LoadAd Future.
+  FutureCallbackData<LoadAdResult>* ad_load_callback_data_;
 
   /// Prevents duplicate invocations of initailize on the BannerView.
   bool initialized_;

@@ -65,6 +65,71 @@ typedef void* AdParent;
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
 
+#ifdef INTERNAL_EXPERIMENTAL
+// LINT.IfChange
+#endif  // INTERNAL_EXPERIMENTAL
+/// Error codes returned by Future::error().
+enum AdMobError {
+  /// Call completed successfully.
+  kAdMobErrorNone,
+  /// The ad has not been fully initialized.
+  kAdMobErrorUninitialized,
+  /// The ad is already initialized (repeat call).
+  kAdMobErrorAlreadyInitialized,
+  /// A call has failed because an ad is currently loading.
+  kAdMobErrorLoadInProgress,
+  /// A call to load an ad has failed due to an internal SDK error.
+  kAdMobErrorInternalError,
+  /// A call to load an ad has failed due to an invalid request.
+  kAdMobErrorInvalidRequest,
+  /// A call to load an ad has failed due to a network error.
+  kAdMobErrorNetworkError,
+  /// A call to load an ad has failed because no ad was available to serve.
+  kAdMobErrorNoFill,
+  /// An attempt has been made to show an ad on an Android Activity that has
+  /// no window token (such as one that's not done initializing).
+  kAdMobErrorNoWindowToken,
+  /// An attempt to load an Ad Network extras class for an ad request has
+  /// failed.
+  kAdMobErrorAdNetworkClassLoadError,
+  /// The ad server experienced a failure processing the request.
+  kAdMobErrorServerError,
+  /// The current device’s OS is below the minimum required version.
+  kAdMobErrorOSVersionTooLow,
+  /// The request was unable to be loaded before being timed out.
+  kAdMobErrorTimeout,
+  /// Will not send request because the interstitial object has already been
+  /// used.
+  kAdMobErrorInterstitialAlreadyUsed,
+  /// The mediation response was invalid.
+  kAdMobErrorMediationDataError,
+  /// Error finding or creating a mediation ad network adapter.
+  kAdMobErrorMediationAdapterError,
+  /// Attempting to pass an invalid ad size to an adapter.
+  kAdMobErrorMediationInvalidAdSize,
+  /// Invalid argument error.
+  kAdMobErrorInvalidArgument,
+  /// Received invalid response.
+  kAdMobErrorReceivedInvalidResponse,
+  /// Will not send request because the rewarded ad object has already been
+  /// used.
+  kAdMobErrorRewardedAdAlreadyUsed,
+  /// A mediation ad network adapter received an ad request, but did not fill.
+  /// The adapter’s error is included as an underlyingError.
+  kAdMobErrorMediationNoFill,
+  /// Will not send request because the ad object has already been used.
+  kAdMobErrorAdAlreadyUsed,
+  /// Will not send request because the application identifier is missing.
+  kAdMobErrorApplicationIdentifierMissing,
+  /// Anbdroid Ad String is invalid.
+  kAdMobErrorInvalidAdString,
+  /// Fallback error for any unidentified cases.
+  kAdMobErrorUnknown,
+};
+#ifdef INTERNAL_EXPERIMENTAL
+// LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src_java/com/google/firebase/admob/internal/cpp/ConstantsHelper.java)
+#endif  // INTERNAL_EXPERIMENTAL
+
 /// Information about why an ad operation failed.
 class AdResult {
  public:
@@ -86,7 +151,7 @@ class AdResult {
   std::unique_ptr<AdResult> GetCause() const;
 
   /// Gets the error's code.
-  int code() const;
+  AdMobError code() const;
 
   /// Gets the domain of the error.
   const std::string& domain() const;
@@ -158,40 +223,6 @@ class AdapterResponseInfo {
   int64_t latency_;
   std::string to_string_;
 };
-
-#ifdef INTERNAL_EXPERIMENTAL
-// LINT.IfChange
-#endif  // INTERNAL_EXPERIMENTAL
-/// Error codes returned by Future::error().
-enum AdMobError {
-  /// Call completed successfully.
-  kAdMobErrorNone,
-  /// The ad has not been fully initialized.
-  kAdMobErrorUninitialized,
-  /// The ad is already initialized (repeat call).
-  kAdMobErrorAlreadyInitialized,
-  /// A call has failed because an ad is currently loading.
-  kAdMobErrorLoadInProgress,
-  /// A call to load an ad has failed due to an internal SDK error.
-  kAdMobErrorInternalError,
-  /// A call to load an ad has failed due to an invalid request.
-  kAdMobErrorInvalidRequest,
-  /// A call to load an ad has failed due to a network error.
-  kAdMobErrorNetworkError,
-  /// A call to load an ad has failed because no ad was available to serve.
-  kAdMobErrorNoFill,
-  /// An attempt has been made to show an ad on an Android Activity that has
-  /// no window token (such as one that's not done initializing).
-  kAdMobErrorNoWindowToken,
-  /// An attempt to load an Ad Network extras class for an ad request has
-  /// failed.
-  kAdMobErrorAdNetworkClassLoadError,
-  /// Fallback error for any unidentified cases.
-  kAdMobErrorUnknown,
-};
-#ifdef INTERNAL_EXPERIMENTAL
-// LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src_java/com/google/firebase/admob/internal/cpp/ConstantsHelper.java)
-#endif  // INTERNAL_EXPERIMENTAL
 
 /// The size of a banner ad.
 class AdSize {

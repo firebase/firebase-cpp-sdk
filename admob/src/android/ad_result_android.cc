@@ -21,10 +21,10 @@
 #include <memory>
 #include <string>
 
+#include "admob/src/android/ad_request_converter.h"
 #include "admob/src/android/admob_android.h"
 #include "admob/src/common/admob_common.h"
 #include "admob/src/include/firebase/admob.h"
-#include "admob/src/include/firebase/admob/types.h"
 
 namespace firebase {
 namespace admob {
@@ -72,13 +72,14 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
     FIREBASE_ASSERT(ad_result_internal.j_ad_error);
 
     // AdResults based on Admob Android SDK errors will fetch code, domain,
-    // message, and to_string values from the Java object, as required.
+    // message, and to_string values from the Java object.
     internal_->j_ad_error = env->NewGlobalRef(ad_result_internal.j_ad_error);
 
     JNIEnv* env = ::firebase::admob::GetJNI();
     FIREBASE_ASSERT(env);
-    internal_->code = (int)env->CallIntMethod(
-        internal_->j_ad_error, ad_error::GetMethodId(ad_error::kGetCode));
+    internal_->code =
+        MapAndroidAdRequestErrorCodeToCPPErrorCode(env->CallIntMethod(
+            internal_->j_ad_error, ad_error::GetMethodId(ad_error::kGetCode)));
 
     jobject j_domain = env->CallObjectMethod(
         internal_->j_ad_error, ad_error::GetMethodId(ad_error::kGetDomain));
@@ -140,7 +141,6 @@ AdResult& AdResult::operator=(const AdResult& ad_result) {
   // Deleting the internal deletes the mutex within it, so we wait for complete
   // deletion until after the mutex leaves scope.
   delete preexisting_internal;
-
   return *this;
 }
 
@@ -185,7 +185,7 @@ std::unique_ptr<AdResult> AdResult::GetCause() const {
 }
 
 /// Gets the error's code.
-int AdResult::code() const {
+AdMobError AdResult::code() const {
   FIREBASE_ASSERT(internal_);
   return internal_->code;
 }

@@ -144,5 +144,30 @@ jobject GetJavaAdRequestFromCPPAdRequest(const AdRequest& request,
   return java_request_ref;
 }
 
+AdMobError MapAndroidAdRequestErrorCodeToCPPErrorCode(jint j_error_code) {
+  // Android error code sourced from
+  // https://developers.google.com/android/reference/com/google/android/gms/ads/AdRequest
+  switch (j_error_code) {
+    case 0:  // ERROR_CODE_INTERNAL_ERROR
+      return kAdMobErrorInternalError;
+    case 1:  // ERROR_CODE_INVALID_REQUEST
+      return kAdMobErrorInvalidRequest;
+    case 2:  // ERROR_CODE_NETWORK_ERROR
+      return kAdMobErrorNetworkError;
+    case 3:  // ERROR_CODE_NO_FILL
+      return kAdMobErrorNoFill;
+    case 8:  // ERROR_CODE_APP_ID_MISSING
+      return kAdMobErrorApplicationIdentifierMissing;
+    case 9:  // ERROR_CODE_MEDIATION_NO_FILL
+      return kAdMobErrorMediationNoFill;
+    case 10:  // ERROR_CODE_REQUEST_ID_MISMATCH
+      return kAdMobErrorInvalidRequest;
+    case 11:  // ERROR_CODE_INVALID_AD_STRING
+      return kAdMobErrorInvalidAdString;
+    default:
+      return kAdMobErrorUnknown;
+  }
+}
+
 }  // namespace admob
 }  // namespace firebase
