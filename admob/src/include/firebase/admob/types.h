@@ -111,7 +111,7 @@ enum AdMobError {
   kAdMobErrorInvalidArgument,
   /// Received invalid response.
   kAdMobErrorReceivedInvalidResponse,
-  /// Will not send request because the rewarded ad object has already been
+  /// Will not send a request because the rewarded ad object has already been
   /// used.
   kAdMobErrorRewardedAdAlreadyUsed,
   /// A mediation ad network adapter received an ad request, but did not fill.
@@ -121,11 +121,12 @@ enum AdMobError {
   kAdMobErrorAdAlreadyUsed,
   /// Will not send request because the application identifier is missing.
   kAdMobErrorApplicationIdentifierMissing,
-  /// Anbdroid Ad String is invalid.
+  /// Android Ad String is invalid.
   kAdMobErrorInvalidAdString,
   /// Fallback error for any unidentified cases.
   kAdMobErrorUnknown,
 };
+
 #ifdef INTERNAL_EXPERIMENTAL
 // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src_java/com/google/firebase/admob/internal/cpp/ConstantsHelper.java)
 #endif  // INTERNAL_EXPERIMENTAL
@@ -177,7 +178,7 @@ class AdResult {
   // specifics in the internal callback handlers.
   AdResult();
 
-  // Constructor used when building results in Load Ad callbacks.
+  /// Constructor used when building results in Load Ad callbacks.
   explicit AdResult(const AdResultInternal& ad_result_internal);
 
   /// Sets the internally cached string. Used by the LoadAdError subclass.

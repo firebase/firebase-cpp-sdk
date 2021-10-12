@@ -16,7 +16,6 @@
 
 #include "admob/src/android/admob_android.h"
 
-#include <android/log.h>
 #include <jni.h>
 #include <stddef.h>
 
@@ -547,7 +546,7 @@ void CompleteLoadAdInternalResult(
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeBannerViewLoadedAd(
+Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeBannerViewLoadedAd(  // NOLINT
     JNIEnv* env, jclass clazz, jlong data_ptr) {
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
@@ -561,7 +560,7 @@ Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeBannerViewL
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeBannerViewLoadAdError(
+Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeBannerViewLoadAdError(  // NOLINT
     JNIEnv* env, jclass clazz, jlong data_ptr, jobject j_load_ad_error,
     jint j_error_code, jstring j_error_message) {
   FIREBASE_ASSERT(env);
@@ -577,7 +576,7 @@ Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeBannerViewL
 
 // Internal Errors use AdMobError codes.
 extern "C" JNIEXPORT void JNICALL
-Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeBannerViewLoadAdInternalError(
+Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeBannerViewLoadAdInternalError(  // NOLINT
     JNIEnv* env, jclass clazz, jlong data_ptr, jint j_error_code,
     jstring j_error_message) {
   FIREBASE_ASSERT(env);
@@ -591,14 +590,14 @@ Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeBannerViewL
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeBannerViewFutureCallback(
+Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeBannerViewFutureCallback(  // NOLINT
     JNIEnv* env, jclass clazz, jlong data_ptr, jint error_code,
     jstring error_message) {
   CompleteAdFutureCallback(env, clazz, data_ptr, error_code, error_message);
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyStateChanged(
+Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyStateChanged(  // NOLINT
     JNIEnv* env, jclass clazz, jlong data_ptr, jint change_code) {
   if (data_ptr == 0) return;  // test call only
 
@@ -620,14 +619,14 @@ Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyStateChanged(
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_completeInterstitialAdFutureCallback(
+Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_completeInterstitialAdFutureCallback(  // NOLINT
     JNIEnv* env, jclass clazz, jlong data_ptr, jint error_code,
     jstring error_message) {
   CompleteAdFutureCallback(env, clazz, data_ptr, error_code, error_message);
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_completeInterstitialLoadedAd(
+Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_completeInterstitialLoadedAd(  // NOLINT
     JNIEnv* env, jclass clazz, jlong data_ptr) {
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
@@ -641,7 +640,7 @@ Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_completeInterst
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_completeInterstitialLoadAdError(
+Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_completeInterstitialLoadAdError(  // NOLINT
     JNIEnv* env, jclass clazz, jlong data_ptr, jobject j_load_ad_error,
     jint j_error_code, jstring j_error_message) {
   FIREBASE_ASSERT(env);
@@ -657,7 +656,7 @@ Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_completeInterst
 
 // Internal Errors use AdMobError codes.
 extern "C" JNIEXPORT void JNICALL
-Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_completeInterstitialLoadAdInternalError(
+Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_completeInterstitialLoadAdInternalError(  // NOLINT
     JNIEnv* env, jclass clazz, jlong data_ptr, jint j_error_code,
     jstring j_error_message) {
   FIREBASE_ASSERT(env);
@@ -672,7 +671,7 @@ Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_completeInterst
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_notifyPresentationStateChanged(
+Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_notifyPresentationStateChanged(  // NOLINT
     JNIEnv* env, jclass clazz, jlong data_ptr, jint state) {
   if (data_ptr == 0) return;  // test call only
 
