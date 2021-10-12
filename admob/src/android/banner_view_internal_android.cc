@@ -16,7 +16,6 @@
 
 #include "admob/src/android/banner_view_internal_android.h"
 
-#include <android/log.h>
 #include <assert.h>
 #include <jni.h>
 

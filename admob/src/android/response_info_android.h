@@ -34,7 +34,7 @@ struct ResponseInfoInternal {
 // clang-format off
 #define RESPONSEINFO_METHODS(X)                                              \
   X(GetAdapterResponses, "getAdapterResponses",                              \
-    "()Ljava/util/List;"),                                                    \
+    "()Ljava/util/List;"),                                                   \
   X(GetMediationAdapterClassName, "getMediationAdapterClassName",            \
     "()Ljava/lang/String;"),                                                 \
   X(GetResponseId, "getResponseId", "()Ljava/lang/String;"),                 \

@@ -43,7 +43,7 @@ std::unique_ptr<AdResult> AdResult::GetCause() const {
 }
 
 /// Gets the error's code.
-int AdResult::code() const { return 0; }
+AdMobError AdResult::code() const { return kAdMobErrorNone; }
 
 /// Gets the domain of the error.
 const std::string& AdResult::domain() const { return std::string(); }

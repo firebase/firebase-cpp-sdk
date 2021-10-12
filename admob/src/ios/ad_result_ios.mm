@@ -34,8 +34,8 @@ const char* AdResult::kUndefinedDomain = "undefined";
 
 AdResult::AdResult() {
   // Default constructor is available for Future creation.
-  // Initialize it with some helpful debug values in case we encounter a
-  // scenario where an AdResult makes it to the application in such a state.
+  // Initialize it with some helpful debug values in the case
+  // an AdResult makes it to the application in this default state.
   internal_ = new AdResultInternal();
   internal_->is_successful = false;
   internal_->is_wrapper_error = true;
@@ -115,7 +115,7 @@ AdResult& AdResult::operator=(const AdResult& ad_result) {
   }
 
   // Deleting the internal deletes the mutex within it, so we have to delete
-  // the internal after the MutexLock leaves scope.
+  // the internal after the mutex lock leaves scope.
   preexisting_internal->ios_error = nullptr;
   delete preexisting_internal;
 

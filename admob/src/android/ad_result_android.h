@@ -17,6 +17,8 @@
 #ifndef FIREBASE_ADMOB_SRC_ANDROID_AD_RESULT_ANDROID_H_
 #define FIREBASE_ADMOB_SRC_ANDROID_AD_RESULT_ANDROID_H_
 
+#include <string>
+
 #include "admob/src/include/firebase/admob/types.h"
 #include "app/src/mutex.h"
 #include "app/src/util_android.h"
@@ -59,7 +61,7 @@ struct AdResultInternal {
   std::string to_string;
 
   // If this is not a successful result, or if it's a wrapper error, then
-  // j_ad_error is reference to a com.google.android.gms.ads.AdError produced
+  // j_ad_error is a reference to a com.google.android.gms.ads.AdError produced
   // by the Admob Android SDK.
   jobject j_ad_error;
 

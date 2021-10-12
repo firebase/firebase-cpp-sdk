@@ -624,7 +624,7 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorAlreadyInitialized) {
     delete banner;
   }
 
-  // Reverse the order completion waits.
+  // Reverse the order of the completion waits.
   {
     banner = new firebase::admob::BannerView();
 
@@ -813,7 +813,7 @@ TEST_F(FirebaseAdMobTest, TesInterstitialAdErrorAlreadyInitialized) {
     delete interstitial_ad;
   }
 
-  // Reverse the order completion waits.
+  // Reverse the order of the completion waits.
   {
     interstitial_ad = new firebase::admob::InterstitialAd();
 
@@ -850,8 +850,8 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdErrorLoadInProgress) {
   const firebase::admob::LoadAdResult* result_ptr = second_load_ad.result();
   EXPECT_FALSE(result_ptr->is_successful());
   EXPECT_EQ(result_ptr->code(), firebase::admob::kAdMobErrorLoadInProgress);
-  EXPECT_TRUE(result_ptr->message() == "Ad is currently loading.");
-  EXPECT_TRUE(result_ptr->domain() == "SDK");
+  EXPECT_EQ(result_ptr->message(), "Ad is currently loading.");
+  EXPECT_EQ(result_ptr->domain(), "SDK");
   const firebase::admob::ResponseInfo response_info =
       result_ptr->response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());

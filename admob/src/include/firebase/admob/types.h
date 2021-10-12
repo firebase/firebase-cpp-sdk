@@ -133,10 +133,13 @@ enum AdMobError {
 /// Information about why an ad operation failed.
 class AdResult {
  public:
-  // Copy Constructor
+  /// Copy Constructor.
   AdResult(const AdResult& ad_result);
 
+  /// Destructor.
   virtual ~AdResult();
+
+  /// Assignment operator.
   AdResult& operator=(const AdResult& obj);
 
   /// If the operation was successful then the other error reporting methods
@@ -485,9 +488,10 @@ class ResponseInfo {
 /// @brief Information about why an ad load operation failed.
 class LoadAdResult : public AdResult {
  public:
+  /// Default constructor.
   LoadAdResult();
 
-  // Copy Consturctor.
+  /// Copy Constructor.
   LoadAdResult(const LoadAdResult& load_ad_result);
 
   /// Gets the ResponseInfo if an error occurred, with a collection of

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 #ifndef FIREBASE_ADMOB_SRC_COMMON_AD_RESULT_INTERNAL_H_
 #define FIREBASE_ADMOB_SRC_COMMON_AD_RESULT_INTERNAL_H_
+
+#include <string>
 
 #include "admob/src/common/admob_common.h"
 #include "admob/src/include/firebase/admob/types.h"

@@ -122,9 +122,9 @@ Future<LoadAdResult> InterstitialAdInternalAndroid::LoadAd(
 }
 
 Future<void> InterstitialAdInternalAndroid::Show() {
-  FutureCallbackData<void>* callback_data = new FutureCallbackData<void>{
-      &future_data_,
-      future_data_.future_impl.SafeAlloc<void>(kInterstitialAdFnShow)};
+  FutureCallbackData<LoadAdResult>* callback_data =
+      CreateLoadAdResultFutureCallbackData(kInterstitialAdFnLoadAd,
+                                           &future_data_);
   SafeFutureHandle<void> future_handle = callback_data->future_handle;
 
   ::firebase::admob::GetJNI()->CallVoidMethod(

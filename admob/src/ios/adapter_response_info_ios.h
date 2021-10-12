@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_IOS_ADAPTER_RESPONSE_INFO_IOS_H
-#define FIREBASE_ADMOB_SRC_IOS_ADAPTER_RESPONSE_INFO_IOS_H
+#ifndef FIREBASE_ADMOB_SRC_IOS_ADAPTER_RESPONSE_INFO_IOS_H_
+#define FIREBASE_ADMOB_SRC_IOS_ADAPTER_RESPONSE_INFO_IOS_H_
 
 extern "C" {
 #include <objc/objc.h>
@@ -33,4 +33,4 @@ struct AdapterResponseInfoInternal {
 }  // namespace admob
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_IOS_ADAPTER_RESPONSE_INFO_IOS_H
+#endif  // FIREBASE_ADMOB_SRC_IOS_ADAPTER_RESPONSE_INFO_IOS_H_
