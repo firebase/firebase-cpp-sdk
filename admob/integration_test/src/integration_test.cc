@@ -645,6 +645,8 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorAlreadyInitialized) {
 }
 
 TEST_F(FirebaseAdMobTest, TestBannerViewErrorLoadInProgress) {
+  SKIP_TEST_ON_DESKTOP;
+
   const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::admob::BannerView* banner = new firebase::admob::BannerView();
   WaitForCompletion(banner->Initialize(app_framework::GetWindowContext(),
@@ -830,6 +832,8 @@ TEST_F(FirebaseAdMobTest, TesInterstitialAdErrorAlreadyInitialized) {
 }
 
 TEST_F(FirebaseAdMobTest, TestInterstitialAdErrorLoadInProgress) {
+  SKIP_TEST_ON_DESKTOP;
+
   firebase::admob::InterstitialAd* interstitial_ad =
       new firebase::admob::InterstitialAd();
   WaitForCompletion(
