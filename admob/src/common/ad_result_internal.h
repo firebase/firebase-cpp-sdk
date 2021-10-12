@@ -28,7 +28,7 @@ namespace internal {
 
 class AdResultInternal {
  public:
-  /// Returns true if the Ad Result was successfull.
+  /// Returns true if the AdResult represents a successful result.
   virtual bool is_successful() const = 0;
 
   /// Retrieves an AdResult which represents the cause of this error.

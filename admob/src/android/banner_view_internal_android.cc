@@ -150,7 +150,7 @@ void InitializeBannerViewOnMainThread(void* data) {
     env->DeleteLocalRef(ad_unit_id_str);
     call_data->callback_data->future_data->future_impl.Complete(
         call_data->callback_data->future_handle, kAdMobErrorAlreadyInitialized,
-        "Ad is already initialized.");
+        kAdAlreadyInitializedErrorMessage);
     return;
   }
 

@@ -42,7 +42,6 @@ LoadAdResult::LoadAdResult() : AdResult(), response_info_() {}
 
 LoadAdResult::LoadAdResult(const LoadAdResultInternal& load_ad_result_internal)
     : AdResult(load_ad_result_internal.ad_result_internal) {
-
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env);
 
@@ -50,9 +49,15 @@ LoadAdResult::LoadAdResult(const LoadAdResultInternal& load_ad_result_internal)
       !load_ad_result_internal.ad_result_internal.is_wrapper_error) {
     FIREBASE_ASSERT(load_ad_result_internal.ad_result_internal.j_ad_error);
 
+    // Marshalling the data of a LoadAdResult from the AdMob Android SDK is
+    // delegated to the AdResult constructor (already invoked above) and
+    // the ResponseInfo constructor below.
     jobject j_load_ad_error =
         load_ad_result_internal.ad_result_internal.j_ad_error;
 
+    // Grab a reference to the ResponseInfo AdMob Android SDK object within
+    // the AdError, and construct a C++ SDK analog of the ResponseInfo if the
+    // reference is non-null.
     jobject j_response_info = env->CallObjectMethod(
         j_load_ad_error,
         load_ad_error::GetMethodId(load_ad_error::kGetResponseInfo));
@@ -64,6 +69,9 @@ LoadAdResult::LoadAdResult(const LoadAdResultInternal& load_ad_result_internal)
       env->DeleteLocalRef(j_response_info);
     }
 
+    // A to_string value of this LoadAdError.  Invoke the set_to_string
+    // protected method of the AdResult parent class to overwrite whatever
+    // it parsed.
     jobject j_to_string = env->CallObjectMethod(
         j_load_ad_error, load_ad_error::GetMethodId(load_ad_error::kToString));
     set_to_string(util::JStringToString(env, j_to_string));

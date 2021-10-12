@@ -19,8 +19,6 @@
 #import "admob/src/ios/admob_ios.h"
 #import "admob/src/ios/FADAdSize.h"
 
-
-
 namespace admob = firebase::admob;
 
 @interface FADBannerView () <GADBannerViewDelegate> {

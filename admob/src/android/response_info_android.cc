@@ -41,6 +41,8 @@ ResponseInfo::ResponseInfo(const ResponseInfoInternal& response_info_internal) {
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env);
 
+  // The list of AdapterResponseInfos which contains response information
+  // for each of the adapters that attempted to fulfill the AdMob operation.
   const jobject j_adapter_response_info_list = env->CallObjectMethod(
       j_response_info,
       response_info::GetMethodId(response_info::kGetAdapterResponses));
@@ -49,6 +51,7 @@ ResponseInfo::ResponseInfo(const ResponseInfoInternal& response_info_internal) {
   const int list_size = (int)env->CallIntMethod(
       j_adapter_response_info_list, util::list::GetMethodId(util::list::kSize));
   for (int i = 0; i < list_size; ++i) {
+    // AdatperResponseInfo for this adapter.
     jobject j_adapter_response_info =
         env->CallObjectMethod(j_adapter_response_info_list,
                               util::list::GetMethodId(util::list::kGet), i);
@@ -60,6 +63,7 @@ ResponseInfo::ResponseInfo(const ResponseInfoInternal& response_info_internal) {
     env->DeleteLocalRef(j_adapter_response_info);
   }
 
+  // The Mediation Adapter class name.
   const jobject j_medation_adapter_classname = env->CallObjectMethod(
       j_response_info,
       response_info::GetMethodId(response_info::kGetMediationAdapterClassName));
@@ -69,6 +73,7 @@ ResponseInfo::ResponseInfo(const ResponseInfoInternal& response_info_internal) {
     env->DeleteLocalRef(j_medation_adapter_classname);
   }
 
+  // The Response ID for this adapter response.
   const jobject j_response_id = env->CallObjectMethod(
       j_response_info,
       response_info::GetMethodId(response_info::kGetResponseId));
@@ -77,6 +82,7 @@ ResponseInfo::ResponseInfo(const ResponseInfoInternal& response_info_internal) {
     env->DeleteLocalRef(j_response_id);
   }
 
+  // A String representation of the ResponseInfo.
   const jobject j_to_string = env->CallObjectMethod(
       j_response_info, response_info::GetMethodId(response_info::kToString));
   FIREBASE_ASSERT(j_to_string);

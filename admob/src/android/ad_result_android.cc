@@ -59,6 +59,9 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
   internal_->is_wrapper_error = ad_result_internal.is_wrapper_error;
   internal_->j_ad_error = nullptr;
 
+  // AdResults can be returned on success, or for errors encountered in the C++
+  // SDK wrapper, or in the Android AdMob SDK.  The stucture is populated
+  // differently across these three scenarios.
   if (internal_->is_successful) {
     internal_->code = kAdMobErrorNone;
     internal_->is_wrapper_error = false;
@@ -77,22 +80,28 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
 
     JNIEnv* env = ::firebase::admob::GetJNI();
     FIREBASE_ASSERT(env);
+
+    // Error Code.  Map the Android AdMob SDK error codes to our
+    // platform-independent C++ SDK error codes.
     internal_->code =
         MapAndroidAdRequestErrorCodeToCPPErrorCode(env->CallIntMethod(
             internal_->j_ad_error, ad_error::GetMethodId(ad_error::kGetCode)));
 
+    // Error domain string.
     jobject j_domain = env->CallObjectMethod(
         internal_->j_ad_error, ad_error::GetMethodId(ad_error::kGetDomain));
     FIREBASE_ASSERT(j_domain);
     internal_->domain = util::JStringToString(env, j_domain);
     env->DeleteLocalRef(j_domain);
 
+    // Error message.
     jobject j_message = env->CallObjectMethod(
         internal_->j_ad_error, ad_error::GetMethodId(ad_error::kGetMessage));
     FIREBASE_ASSERT(j_message);
     internal_->message = util::JStringToString(env, j_message);
     env->DeleteLocalRef(j_message);
 
+    // To string.
     jobject j_to_string = env->CallObjectMethod(
         internal_->j_ad_error, ad_error::GetMethodId(ad_error::kToString));
     FIREBASE_ASSERT(j_to_string);
@@ -118,6 +127,7 @@ AdResult& AdResult::operator=(const AdResult& ad_result) {
 
   AdResultInternal* preexisting_internal = internal_;
   {
+    // Lock the parties so they're not deleted while the copying takes place.
     MutexLock(ad_result.internal_->mutex);
     MutexLock(internal_->mutex);
     internal_ = new AdResultInternal();
@@ -138,8 +148,8 @@ AdResult& AdResult::operator=(const AdResult& ad_result) {
     }
   }
 
-  // Deleting the internal deletes the mutex within it, so we wait for complete
-  // deletion until after the mutex lock leaves scope.
+  // Deleting the internal_ deletes the mutex within it, so we wait for
+  // complete deletion until after the mutex lock leaves scope.
   delete preexisting_internal;
   return *this;
 }
@@ -164,6 +174,10 @@ bool AdResult::is_successful() const {
 std::unique_ptr<AdResult> AdResult::GetCause() const {
   FIREBASE_ASSERT(internal_);
 
+  // AdResults my contain another AdResult which points to the cause of this
+  // error.  However, this is only possible if this AdResult represents
+  // and Android AdMob SDK error and not a wrapper error or a successful
+  // result.
   if (internal_->is_wrapper_error) {
     return std::unique_ptr<AdResult>(nullptr);
   } else {
@@ -208,6 +222,8 @@ const std::string& AdResult::ToString() const {
   return internal_->to_string;
 }
 
+/// Protected method used by LoadAdResult, a subclass which constructs its
+/// to_string representation programatically after the AdResult construction.
 void AdResult::set_to_string(std::string to_string) {
   FIREBASE_ASSERT(internal_);
   internal_->to_string = to_string;

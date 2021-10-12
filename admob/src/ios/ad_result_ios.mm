@@ -53,6 +53,9 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
   internal_->is_wrapper_error = ad_result_internal.is_wrapper_error;
   internal_->ios_error = nullptr;
 
+  // AdResults can be returned on success, or for errors encountered in the C++
+  // SDK wrapper, or in the iOS AdMob SDK.  The stucture is populated
+  // differently across these three scenarios.
   if (internal_->is_successful) {
     internal_->code = kAdMobErrorNone;
     internal_->is_wrapper_error = false;
@@ -68,7 +71,11 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
     // AdResults based on Admob iOS SDK errors will fetch code, domain,
     // message, and to_string values from the ObjC object.
     internal_->ios_error = ad_result_internal.ios_error;
+
+    // Error Code.  Map the iOS AdMob SDK error codes to our
+    // platform-independent C++ SDK error codes.
     internal_->code = MapGADErrorCodeToCPPErrorCode(internal_->ios_error.code);
+
     internal_->domain = util::NSStringToString(internal_->ios_error.domain);
     internal_->message =
       util::NSStringToString(internal_->ios_error.localizedDescription);

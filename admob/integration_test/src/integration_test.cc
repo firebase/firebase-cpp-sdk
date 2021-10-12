@@ -70,14 +70,14 @@ const char* kBannerAdUnit = "ca-app-pub-3940256099942544/2934735716";
 const char* kInterstitialAdUnit = "ca-app-pub-3940256099942544/4411468910";
 #endif
 
-// Test which sends an errant ad unit id.
+// Used in a test to send an errant ad unit id.
 const char* kBadAdUnit = "oops";
 
 // Standard Banner Size.
 static const int kBannerWidth = 320;
 static const int kBannerHeight = 50;
 
-// Error Domains vary across phone SDKs.
+// Error domains vary across phone SDKs.
 #if defined(__ANDROID__)
 const char* kErrorDomain = "com.google.android.gms.ads";
 #else

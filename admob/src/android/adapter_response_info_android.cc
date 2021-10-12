@@ -37,19 +37,21 @@ AdapterResponseInfo::AdapterResponseInfo(
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(internal.j_adapter_response_info);
 
+  // Parse the fields of the AdMob Android SDK's AdapterResponseInfo using the
+  // reference in the internal structure.
   const jobject j_adapter_response_info =
       env->NewLocalRef(internal.j_adapter_response_info);
 
+  // Construct an AdResultInternal from the AdError in the AdapterResponseInfo.
   AdResultInternal ad_result_internal;
   ad_result_internal.j_ad_error = env->CallObjectMethod(
       j_adapter_response_info,
       adapter_response_info::GetMethodId(adapter_response_info::kGetAdError));
   FIREBASE_ASSERT(ad_result_internal.j_ad_error);
-
   ad_result_ = AdResult(ad_result_internal);
-
   env->DeleteLocalRef(ad_result_internal.j_ad_error);
 
+  // The class name of the adapter.
   const jobject j_adapter_class_name =
       env->CallObjectMethod(j_adapter_response_info,
                             adapter_response_info::GetMethodId(
@@ -58,11 +60,13 @@ AdapterResponseInfo::AdapterResponseInfo(
   adapter_class_name_ = util::JStringToString(env, j_adapter_class_name);
   env->DeleteLocalRef(j_adapter_class_name);
 
+  // The latenency in milliseconds of time between request and response.
   const jlong j_latency = env->CallLongMethod(
       j_adapter_response_info, adapter_response_info::GetMethodId(
                                    adapter_response_info::kGetLatencyMillis));
   latency_ = (int64_t)j_latency;
 
+  // A string represenation of the AdapterResponseInfo.
   const jobject j_to_string = env->CallObjectMethod(
       j_adapter_response_info,
       adapter_response_info::GetMethodId(adapter_response_info::kToString));

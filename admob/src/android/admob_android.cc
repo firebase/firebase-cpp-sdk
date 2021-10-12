@@ -497,7 +497,7 @@ void CompleteLoadAdCallback(FutureCallbackData<LoadAdResult>* callback_data,
   adr->is_wrapper_error = false;
   adr->code = error_code;
 
-  // Futher result configuration is based on success/failure.
+  // Further result configuration is based on success/failure.
   if (j_load_ad_error != nullptr) {
     // The Android SDK returned an error.  Use the j_ad_error object
     // to populate a LoadAdResult with the error specifics.
@@ -512,6 +512,8 @@ void CompleteLoadAdCallback(FutureCallbackData<LoadAdResult>* callback_data,
     future_error_message = adr->message;
   }
 
+  // Invoke a friend of LoadAdResult to have it invoke the LoadAdResult
+  // protected constructor with teh LoadAdResultInternal data.
   AdmobInternal::CompleteLoadAdFuture(
       callback_data, adr->code, future_error_message, load_ad_result_internal);
 }

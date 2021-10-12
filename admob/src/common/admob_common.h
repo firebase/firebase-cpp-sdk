@@ -18,6 +18,7 @@
 #define FIREBASE_ADMOB_SRC_COMMON_ADMOB_COMMON_H_
 
 #include <stdarg.h>
+
 #include <string>
 #include <vector>
 
