@@ -37,7 +37,7 @@ InterstitialAdInternalIOS::~InterstitialAdInternalIOS() {
   __block Mutex *mutex_in_block = &mutex;
   mutex.Acquire();
   void (^destroyBlock)() = ^{
-    ((GADInterstitial *)interstitial_).delegate = nil;
+    ((GADInterstitialAd*)interstitial_).fullScreenContentDelegate = nil;
     interstitial_delegate_ = nil;
     interstitial_ = nil;
     if(ad_load_callback_data_ != nil) {
@@ -83,10 +83,8 @@ Future<LoadAdResult> InterstitialAdInternalIOS::LoadAd(
   // SDK returns the LoadAdResult.
   ad_load_callback_data_ = callback_data;
 
-  interstitial_ = [[GADInterstitial alloc] initWithAdUnitID:@(ad_unit_id)];
   interstitial_delegate_ =
-      [[FADInterstitialDelegate alloc] initWithInternalInterstitialAd:this];
-  ((GADInterstitial *)interstitial_).delegate = interstitial_delegate_;
+    [[FADInterstitialDelegate alloc] initWithInternalInterstitialAd:this];
 
   dispatch_async(dispatch_get_main_queue(), ^{
     // Create a GADRequest from an admob::AdRequest.
@@ -97,14 +95,23 @@ Future<LoadAdResult> InterstitialAdInternalIOS::LoadAd(
     if (ad_request == nullptr) {
       if (error_code == kAdMobErrorNone) {
         error_code = kAdMobErrorInternalError;
-        error_message = "Internal error attempting to create GADRequest.";
+        error_message = kAdCouldNotParseAdRequestErrorMessage;
       }
       CompleteLoadAdInternalResult(ad_load_callback_data_, error_code,
           error_message.c_str());
       ad_load_callback_data_ = nil;
     } else {
       // Make the interstitial ad request.
-      [interstitial_ loadRequest:ad_request];
+      [GADInterstitialAd loadWithAdUnitID:@(ad_unit_id)
+                                  request:ad_request
+                        completionHandler:^(GADInterstitialAd *ad, NSError *error)  // NO LINT
+        {
+          if (error) {
+            InterstitialDidFailToReceiveAdWithError(error);
+          } else {
+            InterstitialDidReceiveAd(ad);
+          }
+      }];
     }
   });
 
@@ -120,7 +127,7 @@ Future<void> InterstitialAdInternalIOS::Show() {
     if (interstitial_ == nil) {
       error_code = kAdMobErrorUninitialized;
       error_message = kAdUninitializedErrorMessage;
-    } else if ([interstitial_ isReady]) {
+    } else {
       [interstitial_ presentFromRootViewController:[
           parent_view_ window].rootViewController];
       error_code = kAdMobErrorNone;
@@ -135,7 +142,10 @@ InterstitialAd::PresentationState InterstitialAdInternalIOS::GetPresentationStat
   return presentation_state_;
 }
 
-void InterstitialAdInternalIOS::InterstitialDidReceiveAd(GADInterstitial *interstitial) {
+void InterstitialAdInternalIOS::InterstitialDidReceiveAd(GADInterstitialAd* ad) {
+  ad.fullScreenContentDelegate = interstitial_delegate_;
+  interstitial_ = ad;
+
   if (ad_load_callback_data_ != nil) {
     CompleteLoadAdInternalResult(ad_load_callback_data_, kAdMobErrorNone,
         /*error_message=*/"");
@@ -143,7 +153,7 @@ void InterstitialAdInternalIOS::InterstitialDidReceiveAd(GADInterstitial *inters
   }
 }
 
-void InterstitialAdInternalIOS::InterstitialDidFailToReceiveAdWithError(GADRequestError *gad_error) {
+void InterstitialAdInternalIOS::InterstitialDidFailToReceiveAdWithError(NSError *gad_error) {
   FIREBASE_ASSERT(gad_error);
   if (ad_load_callback_data_ != nil) {
     CompleteLoadAdIOSResult(ad_load_callback_data_, gad_error);
@@ -151,12 +161,12 @@ void InterstitialAdInternalIOS::InterstitialDidFailToReceiveAdWithError(GADReque
   }
 }
 
-void InterstitialAdInternalIOS::InterstitialWillPresentScreen(GADInterstitial *interstitial) {
+void InterstitialAdInternalIOS::InterstitialWillPresentScreen() {
   presentation_state_ = InterstitialAd::kPresentationStateCoveringUI;
   NotifyListenerOfPresentationStateChange(presentation_state_);
 }
 
-void InterstitialAdInternalIOS::InterstitialDidDismissScreen(GADInterstitial *interstitial) {
+void InterstitialAdInternalIOS::InterstitialDidDismissScreen() {
   presentation_state_ = InterstitialAd::kPresentationStateHidden;
   NotifyListenerOfPresentationStateChange(presentation_state_);
 }

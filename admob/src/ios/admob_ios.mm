@@ -179,7 +179,7 @@ void AdmobInternal::CompleteLoadAdFuture(
 // successful result, and C++ SDK Wrapper error, or an error returned from
 // the iOS Admob SDK.
 void CompleteLoadAdResult(FutureCallbackData<LoadAdResult>* callback_data,
-                          GADRequestError *gad_error, AdMobError error_code,
+                          NSError *error, AdMobError error_code,
                           const char* error_message) {
   FIREBASE_ASSERT(callback_data);
   FIREBASE_ASSERT(error_message);
@@ -188,14 +188,14 @@ void CompleteLoadAdResult(FutureCallbackData<LoadAdResult>* callback_data,
   LoadAdResultInternal load_ad_result_internal;
   AdResultInternal* adr = &(load_ad_result_internal.ad_result_internal);
 
-  adr->ios_error = gad_error;
+  adr->ios_error = error;
   adr->is_successful = true;  // assume until proven otherwise.
   adr->is_wrapper_error = false;
   adr->code = error_code;
 
   // Futher result configuration is based on success/failure.
-  if (gad_error != nullptr) {
-    // The iOS SDK returned an error.  The GADRequestError object
+  if (error != nullptr) {
+    // The iOS SDK returned an error.  The NSError object
     // will be used by the LoadAdError implementation to populate
     // it's fields.
     adr->is_successful = false;
@@ -219,14 +219,14 @@ void CompleteLoadAdInternalResult(
   FIREBASE_ASSERT(callback_data);
   FIREBASE_ASSERT(error_message);
 
-  CompleteLoadAdResult(callback_data, /*gad_error=*/nullptr, error_code, error_message);
+  CompleteLoadAdResult(callback_data, /*error=*/nullptr, error_code, error_message);
 }
 
 void CompleteLoadAdIOSResult(FutureCallbackData<LoadAdResult>* callback_data,
-                             GADRequestError *gad_error) {
+                             NSError *gad_error) {
   FIREBASE_ASSERT(callback_data);
 
-  AdMobError error_code = MapGADErrorCodeToCPPErrorCode(gad_error.code);
+  AdMobError error_code = MapADErrorCodeToCPPErrorCode(gad_error.code);
   CompleteLoadAdResult(callback_data, gad_error, error_code,
                        /*error_message=*/"");
 }

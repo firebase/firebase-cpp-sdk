@@ -44,10 +44,10 @@ class InterstitialAdInternalIOS : public InterstitialAdInternal {
   InterstitialAd::PresentationState GetPresentationState() const override;
 
 #ifdef __OBJC__
-  void InterstitialDidReceiveAd(GADInterstitial *interstitial);
-  void InterstitialDidFailToReceiveAdWithError(GADRequestError *gad_error);
-  void InterstitialWillPresentScreen(GADInterstitial *interstitial);
-  void InterstitialDidDismissScreen(GADInterstitial *interstitial);
+  void InterstitialDidReceiveAd(GADInterstitialAd* ad);
+  void InterstitialDidFailToReceiveAdWithError(NSError *gad_error);
+  void InterstitialWillPresentScreen();
+  void InterstitialDidDismissScreen();
 #endif  // __OBJC__
 
  private:
@@ -60,7 +60,7 @@ class InterstitialAdInternalIOS : public InterstitialAdInternal {
   /// The presentation state of the interstitial ad.
   InterstitialAd::PresentationState presentation_state_;
 
-  /// The GADInterstitial object. Declared as an "id" type to avoid referencing
+  /// The GADInterstitialAd object. Declared as an "id" type to avoid referencing
   /// an Objective-C class in this header.
   id interstitial_;
 

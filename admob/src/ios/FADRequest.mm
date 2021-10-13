@@ -100,10 +100,10 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
   return gadRequest;
 }
 
-AdMobError MapGADErrorCodeToCPPErrorCode(const int gad_error_code) {
+AdMobError MapADErrorCodeToCPPErrorCode(const int error_code) {
   // iOS error code sourced from
-  // https://developers.google.com/admob/ios/api/reference/Enums/GADMediationErrorCode
-  switch(gad_error_code)
+  // https://developers.google.com/admob/ios/api/reference/Enums/GADErrorCode
+  switch(error_code)
   {
     case kGADErrorInvalidRequest:               // 0
       return kAdMobErrorInvalidRequest;

@@ -82,7 +82,7 @@ Future<LoadAdResult> BannerViewInternalIOS::LoadAd(const AdRequest& request) {
     // Create a GADRequest from an admob::AdRequest.
     GADRequest *ad_request =
      GADRequestFromCppAdRequest(request, &error_code, &error_message);
-    if(ad_request==nullptr) {
+    if (ad_request == nullptr) {
       if(error_code==kAdMobErrorNone) {
         error_code = kAdMobErrorInternalError;
         error_message = kAdCouldNotParseAdRequestErrorMessage;
@@ -201,17 +201,17 @@ BoundingBox BannerViewInternalIOS::GetBoundingBox() const {
   return [banner_view_ boundingBox];
 }
 
-void BannerViewInternalIOS::BannerViewDidReceiveAd(GADBannerView *banner_view) {
+void BannerViewInternalIOS::BannerViewDidReceiveAd() {
   if(ad_load_callback_data_ != nil) {
     CompleteLoadAdInternalResult(ad_load_callback_data_, kAdMobErrorNone, /*error_message=*/"");
     ad_load_callback_data_ = nil;
   }
 }
 
-void BannerViewInternalIOS::BannerViewDidFailToReceiveAdWithError(GADRequestError *gad_error) {
-  FIREBASE_ASSERT(gad_error);
+void BannerViewInternalIOS::BannerViewDidFailToReceiveAdWithError(NSError *error) {
+  FIREBASE_ASSERT(error);
   if(ad_load_callback_data_ != nil) {
-    CompleteLoadAdIOSResult(ad_load_callback_data_, gad_error);
+    CompleteLoadAdIOSResult(ad_load_callback_data_, error);
     ad_load_callback_data_ = nil;
   }
 }

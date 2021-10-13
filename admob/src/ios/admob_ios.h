@@ -36,10 +36,10 @@ void CompleteLoadAdInternalResult(
   FutureCallbackData<LoadAdResult>* callback_data, AdMobError error_code,
   const char* error_message);
 
-// Parses information from the GadRequestError to populate a LoadAdResult
+// Parses information from the NSError to populate a LoadAdResult
 // and completes the LoadAdResult Future on iOS.
 void CompleteLoadAdIOSResult(FutureCallbackData<LoadAdResult>* callback_data,
-                             GADRequestError *gad_error);
+                             NSError *error);
 
 
 }  // namespace admob
