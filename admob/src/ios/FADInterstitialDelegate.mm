@@ -39,22 +39,29 @@
   return self;
 }
 
-#pragma mark - GADInterstitialDelegate
+#pragma mark - GADFullScreenContentDelegate
 
-- (void)interstitialDidReceiveAd:(GADInterstitial *)ad {
-  _interstitialAd->InterstitialDidReceiveAd(ad);
+- (void)adDidRecordImpression:(nonnull id<GADFullScreenPresentingAd>)ad {
+  _interstitialAd->InterstitialWillPresentScreen();
 }
 
-- (void)interstitial:(GADInterstitial *)ad didFailToReceiveAdWithError:(GADRequestError *)error {
-  _interstitialAd->InterstitialDidFailToReceiveAdWithError(error);
+- (void)adDidRecordClick:(nonnull id<GADFullScreenPresentingAd>)ad {
+  // todo.
 }
 
-- (void)interstitialWillPresentScreen:(GADInterstitial *)ad {
-  _interstitialAd->InterstitialWillPresentScreen(ad);
+- (void)ad:(nonnull id<GADFullScreenPresentingAd>)ad
+    didFailToPresentFullScreenContentWithError:(nonnull NSError *)error {
+  // todo.
 }
 
-- (void)interstitialDidDismissScreen:(GADInterstitial *)ad {
-  _interstitialAd->InterstitialDidDismissScreen(ad);
+/// Tells the delegate that the ad presented full screen content.
+- (void)adDidPresentFullScreenContent:(nonnull id<GADFullScreenPresentingAd>)ad {
+  // todo.
+}
+
+/// Tells the delegate that the ad dismissed full screen content.
+- (void)adDidDismissFullScreenContent:(nonnull id<GADFullScreenPresentingAd>)ad {
+  _interstitialAd->InterstitialDidDismissScreen();
 }
 
 @end

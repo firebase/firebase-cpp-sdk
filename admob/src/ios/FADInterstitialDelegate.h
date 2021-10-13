@@ -32,7 +32,7 @@ class InterstitialAdInternalIOS;
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface FADInterstitialDelegate : NSObject<GADInterstitialDelegate>
+@interface FADInterstitialDelegate : NSObject<GADFullScreenContentDelegate>
 
 /// Returns a FADInterstitialDelegate object with InterstitialAdInternalIOS.
 - (FADInterstitialDelegate *)initWithInternalInterstitialAd:

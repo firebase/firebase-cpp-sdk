@@ -261,9 +261,9 @@ namespace admob = firebase::admob;
 
 #pragma mark - GADBannerViewDelegate
 
-- (void)adViewDidReceiveAd:(GADBannerView *)bannerView {
+- (void)bannerViewDidReceiveAd:(GADBannerView *)bannerView {
   _adLoaded = YES;
-  _cppBannerView->BannerViewDidReceiveAd(bannerView);
+  _cppBannerView->BannerViewDidReceiveAd();
   // Only update the presentation state if the FADBannerView is already visible.
   if (!self.hidden) {
     _presentationState = admob::BannerView::kPresentationStateVisibleWithAd;
@@ -273,31 +273,27 @@ namespace admob = firebase::admob;
   }
 }
 
-- (void)adView:(GADBannerView *)bannerView didFailToReceiveAdWithError:(GADRequestError *)gad_error {
-  _cppBannerView->BannerViewDidFailToReceiveAdWithError(gad_error);
+- (void)bannerView:(GADBannerView *)bannerView didFailToReceiveAdWithError:(NSError *)error {
+  _cppBannerView->BannerViewDidFailToReceiveAdWithError(error);
 }
 
-- (void)adViewWillPresentScreen:(GADBannerView *)bannerView {
+- (void)bannerViewDidRecordImpression:(GADBannerView *)bannerView {
+  // Todo.
+}
+
+- (void)bannerViewWillPresentScreen:(GADBannerView *)bannerView {
   _presentationState = admob::BannerView::kPresentationStateCoveringUI;
   _cppBannerView->NotifyListenerOfPresentationStateChange(_presentationState);
   _cppBannerView->NotifyListenerOfBoundingBoxChange(self.boundingBox);
 }
 
-- (void)adViewDidDismissScreen:(GADBannerView *)bannerView {
+- (void)bannerViewWillDismissScreen:(GADBannerView *)bannerView {
+  // Todo.
+}
+
+- (void)bannerViewDidDismissScreen:(GADBannerView *)bannerView {
   _presentationState = admob::BannerView::kPresentationStateVisibleWithAd;
   _cppBannerView->NotifyListenerOfPresentationStateChange(_presentationState);
   _cppBannerView->NotifyListenerOfBoundingBoxChange(self.boundingBox);
 }
-
-- (void)adViewWillLeaveApplication:(GADBannerView *)bannerView {
-  _presentationState = admob::BannerView::kPresentationStateCoveringUI;
-  _cppBannerView->NotifyListenerOfPresentationStateChange(_presentationState);
-  // The FADBannerView object will need to get notified when the application becomes active again so
-  // it can update the GADBannerView's presentation state.
-  [[NSNotificationCenter defaultCenter] addObserver:self
-                                           selector:@selector(applicationDidBecomeActive:)
-                                               name:UIApplicationDidBecomeActiveNotification
-                                             object:nil];
-}
-
 @end

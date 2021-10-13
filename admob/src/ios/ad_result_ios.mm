@@ -74,7 +74,7 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
 
     // Error Code.  Map the iOS AdMob SDK error codes to our
     // platform-independent C++ SDK error codes.
-    internal_->code = MapGADErrorCodeToCPPErrorCode(internal_->ios_error.code);
+    internal_->code = MapADErrorCodeToCPPErrorCode(internal_->ios_error.code);
 
     internal_->domain = util::NSStringToString(internal_->ios_error.domain);
     internal_->message =

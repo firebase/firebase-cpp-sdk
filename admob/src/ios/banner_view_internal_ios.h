@@ -51,8 +51,8 @@ class BannerViewInternalIOS : public BannerViewInternal {
   BoundingBox GetBoundingBox() const override;
 
 #ifdef __OBJC__
-  void BannerViewDidReceiveAd(GADBannerView *banner_view);
-  void BannerViewDidFailToReceiveAdWithError(GADRequestError *gad_error);
+  void BannerViewDidReceiveAd();
+  void BannerViewDidFailToReceiveAdWithError(NSError *gad_error);
 #endif  // __OBJC__
 
  private:
