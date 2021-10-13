@@ -60,8 +60,8 @@ class InterstitialAdInternalIOS : public InterstitialAdInternal {
   /// The presentation state of the interstitial ad.
   InterstitialAd::PresentationState presentation_state_;
 
-  /// The GADInterstitialAd object. Declared as an "id" type to avoid referencing
-  /// an Objective-C class in this header.
+  /// The GADInterstitialAd object. Declared as an "id" type to avoid
+  /// referencing an Objective-C class in this header.
   id interstitial_;
 
   /// The publisher-provided view (UIView) that's the parent view of the
