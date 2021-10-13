@@ -21,7 +21,7 @@ extern "C" {
 #include <objc/objc.h>
 }  // extern "C"
 
-#import <GoogleMobileAds/GoogleMobileAds.h>>
+#import <GoogleMobileAds/GoogleMobileAds.h>
 
 namespace firebase {
 namespace admob {

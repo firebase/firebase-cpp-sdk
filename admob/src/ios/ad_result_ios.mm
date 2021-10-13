@@ -82,7 +82,8 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
 
     NSString* ns_to_string = [[NSString alloc]initWithFormat:@"Received error with "
         "domain: %@, code: %ld, message: %@", internal_->ios_error.domain,
-        internal_->ios_error.code, internal_->ios_error.localizedDescription];
+        (long)internal_->ios_error.code,
+        internal_->ios_error.localizedDescription];
     internal_->to_string = util::NSStringToString(ns_to_string);
   }
 }
