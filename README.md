@@ -52,7 +52,7 @@ The following prerequisites are required for all platforms.  Be sure to add any
 directories to your PATH as needed.
 
 - [CMake](https://cmake.org/), version 3.1, or newer
-- [Python](https://www.python.com/), version of 3.6, or newer
+- [Python](https://www.python.com/), version of 3.7, or newer
 - [Abseil-py](https://github.com/abseil/abseil-py)
 
 Note: Once python is installed you can use the following commands to install
