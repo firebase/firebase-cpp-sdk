@@ -52,7 +52,7 @@ The following prerequisites are required for all platforms.  Be sure to add any
 directories to your PATH as needed.
 
 - [CMake](https://cmake.org/), version 3.1, or newer
-- [Python2](https://www.python.com/), version of 2.7, or newer
+- [Python](https://www.python.com/), version of 3.7, or newer
 - [Abseil-py](https://github.com/abseil/abseil-py)
 
 Note: Once python is installed you can use the following commands to install
@@ -97,7 +97,7 @@ Home brew can be used to install required dependencies:
 # https://github.com/protocolbuffers/protobuf/blob/master/kokoro/macos/prepare_build_macos_rc#L20
 ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 source $HOME/.rvm/scripts/rvm
-brew install cmake protobuf python2
+brew install cmake protobuf python3
 sudo chown -R $(whoami) /usr/local
 ```
 
