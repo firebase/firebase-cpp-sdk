@@ -310,7 +310,6 @@ jobs:
       - name: Prepare for integration tests
         run: |
           pip install -r scripts/gha/requirements.txt
-          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
       - name: Install OpenSSL
         run: |
           sudo apt install openssl
@@ -343,7 +342,6 @@ jobs:
           npm install -g firebase-tools
       - name: Run Desktop integration tests
         run: |
-          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps-desktop-ubuntu-latest-openssl
           firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps-desktop-ubuntu-latest-openssl --logfile_name "desktop-ubuntu-latest-openssl"'
         env:
           USE_FIRESTORE_EMULATOR: true
