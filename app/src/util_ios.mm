@@ -391,7 +391,7 @@ void ClassMethodImplementationCache::ReplaceOrAddMethod(Class clazz, SEL name, I
     }
   } else if (add_method) {
     if (GetLogLevel() <= kLogLevelDebug) {
-      NSLog("Adding method for %s selector %s", class_name, selector_name);
+      NSLog(@"Adding method for %s selector %s", class_name, selector_name);
     }
     // The class doesn't implement the selector so simply install our method implementation.
     if (!class_addMethod(clazz, name, imp, type_encoding)) {
