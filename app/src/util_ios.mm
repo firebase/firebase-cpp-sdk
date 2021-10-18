@@ -102,8 +102,12 @@ void ForEachAppDelegateClass(void (^block)(Class)) {
         }
       }
       if (!blacklisted) {
-        ::firebase::LogDebug("Firebase: Found UIApplicationDelegate class %s",
-                             class_name);
+        if (GetLogLevel() <= kLogLevelDebug) {
+	  // Call NSLog directly because we may be in a +load method,
+	  // and C++ classes may not be constructed yet.
+          NSLog(@"Firebase: Found UIApplicationDelegate class %s",
+		class_name);
+	}
         block(clazz);
       }
     }
@@ -355,7 +359,9 @@ void ClassMethodImplementationCache::ReplaceOrAddMethod(Class clazz, SEL name, I
   FIREBASE_ASSERT(type_encoding);
 
   NSString *new_method_name_nsstring = nil;
-  ::firebase::LogDebug("Registering method for %s selector %s", class_name, selector_name);
+  if (GetLogLevel() <= kLogLevelDebug) {
+    NSLog(@"Registering method for %s selector %s", class_name, selector_name);
+  }
   if (original_method_implementation) {
     // Try adding a method with randomized prefix on the name.
     int retry = kRandomNameGenerationRetries;
@@ -370,27 +376,32 @@ void ClassMethodImplementationCache::ReplaceOrAddMethod(Class clazz, SEL name, I
     }
     const char *new_method_name = new_method_name_nsstring.UTF8String;
     if (retry == 0) {
-      LogError("Failed to add method %s on class %s as the %s method already exists on the class. "
-               "To resolve this issue, change the name of the method %s on the class %s.",
+      NSLog(@"Failed to add method %s on class %s as the %s method already exists on the class. To resolve this issue, change the name of the method %s on the class %s.",
                new_method_name, class_name, new_method_name, new_method_name, class_name);
       return;
     }
     method_setImplementation(method, imp);
     // Save the selector name that points at the original method implementation.
     SetMethod(name, new_method_name_nsstring);
-    ::firebase::LogDebug("Registered method for %s selector %s (original method %s 0x%08x)",
-                         class_name, selector_name, new_method_name,
-                         static_cast<int>(reinterpret_cast<intptr_t>(
-                             original_method_implementation)));
+    if (GetLogLevel() <= kLogLevelDebug) {
+      NSLog(@"Registered method for %s selector %s (original method %s 0x%08x)",
+			   class_name, selector_name, new_method_name,
+			   static_cast<int>(reinterpret_cast<intptr_t>(
+								       original_method_implementation)));
+    }
   } else if (add_method) {
-    ::firebase::LogDebug("Adding method for %s selector %s", class_name, selector_name);
+    if (GetLogLevel() <= kLogLevelDebug) {
+      NSLog("Adding method for %s selector %s", class_name, selector_name);
+    }
     // The class doesn't implement the selector so simply install our method implementation.
     if (!class_addMethod(clazz, name, imp, type_encoding)) {
-      LogError("Failed to add new method %s on class %s.", selector_name, class_name);
+      NSLog(@"Failed to add new method %s on class %s.", selector_name, class_name);
     }
   } else {
-    ::firebase::LogDebug("Method implementation for %s selector %s not found, ignoring.",
-                         class_name, selector_name);
+    if (GetLogLevel() <= kLogLevelDebug) {
+      NSLog(@"Method implementation for %s selector %s not found, ignoring.",
+			   class_name, selector_name);
+    }
   }
 }
 
