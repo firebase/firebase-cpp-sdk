@@ -46,17 +46,17 @@
 }
 
 - (void)adDidRecordClick:(nonnull id<GADFullScreenPresentingAd>)ad {
-  // todo.
+  // TODO(b/202001231)
 }
 
 - (void)ad:(nonnull id<GADFullScreenPresentingAd>)ad
     didFailToPresentFullScreenContentWithError:(nonnull NSError *)error {
-  // todo.
+  // TODO(b/202001231)
 }
 
 /// Tells the delegate that the ad presented full screen content.
 - (void)adDidPresentFullScreenContent:(nonnull id<GADFullScreenPresentingAd>)ad {
-  // todo.
+  // TODO(b/202001231)
 }
 
 /// Tells the delegate that the ad dismissed full screen content.

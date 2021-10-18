@@ -53,7 +53,7 @@ struct AdResultInternal {
   std::string to_string;
 
   // If this is not a successful result, or if it's a wrapper error, then
-  // ios_error is pointer to an NSError produced by the Admob iOS SDK.
+  // ios_error is a pointer to an NSError produced by the Admob iOS SDK.
   const NSError* ios_error;
 
   Mutex mutex;

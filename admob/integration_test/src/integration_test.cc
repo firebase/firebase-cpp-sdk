@@ -440,6 +440,7 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
   EXPECT_EQ(result_ptr->code(), firebase::admob::kAdMobErrorNone);
   EXPECT_TRUE(result_ptr->message().empty());
   EXPECT_TRUE(result_ptr->domain().empty());
+  EXPECT_TRUE(result_ptr->ToString().empty());
   const firebase::admob::ResponseInfo response_info =
       result_ptr->response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());
@@ -654,6 +655,10 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorLoadInProgress) {
                     "Initialize");
 
   // Load the banner ad.
+  // Note potential flake: this test assumes the attempt to load an ad
+  // won't resolve immediately.  If it does then the result may be two
+  // successful ad loads instead of the expected
+  // kAdMobErrorLoadInProgress error.
   firebase::admob::AdRequest request = GetAdRequest();
   firebase::Future<firebase::admob::LoadAdResult> first_load_ad =
       banner->LoadAd(request);
@@ -705,6 +710,7 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorBadAdUnitId) {
   const firebase::admob::ResponseInfo response_info =
       result_ptr->response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());
+  load_ad.Release();
   delete banner;
 }
 
@@ -841,6 +847,10 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdErrorLoadInProgress) {
       "Initialize");
 
   // Load the interstitial ad.
+  // Note potential flake: this test assumes the attempt to load an ad
+  // won't resolve immediately.  If it does then the result may be two
+  // successful ad loads instead of the expected
+  // kAdMobErrorLoadInProgress error.
   firebase::admob::AdRequest request = GetAdRequest();
   firebase::Future<firebase::admob::LoadAdResult> first_load_ad =
       interstitial_ad->LoadAd(kInterstitialAdUnit, request);
@@ -862,7 +872,7 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdErrorLoadInProgress) {
   delete interstitial_ad;
 }
 
-TEST_F(FirebaseAdMobTest, TestInterstiailAdErrorBadAdUnitId) {
+TEST_F(FirebaseAdMobTest, TestInterstitialAdErrorBadAdUnitId) {
   SKIP_TEST_ON_DESKTOP;
 
   firebase::admob::InterstitialAd* interstitial_ad =

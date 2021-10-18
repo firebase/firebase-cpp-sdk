@@ -59,6 +59,9 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
   if (internal_->is_successful) {
     internal_->code = kAdMobErrorNone;
     internal_->is_wrapper_error = false;
+    internal_->message = "";
+    internal_->domain = "";
+    internal_->to_string = "";
   } else if (internal_->is_wrapper_error) {
     // Wrapper errors come with prepopulated code, domain, etc, fields.
     internal_->code = ad_result_internal.code;

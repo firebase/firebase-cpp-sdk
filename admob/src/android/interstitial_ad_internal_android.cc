@@ -117,6 +117,7 @@ Future<LoadAdResult> InterstitialAdInternalAndroid::LoadAd(
       interstitial_ad_helper::GetMethodId(interstitial_ad_helper::kLoadAd),
       reinterpret_cast<jlong>(callback_data), j_ad_unit_str, j_request);
   env->DeleteLocalRef(j_ad_unit_str);
+  env->DeleteLocalRef(j_request);
 
   return MakeFuture(&future_data_.future_impl, future_handle);
 }

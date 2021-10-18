@@ -278,7 +278,7 @@ namespace admob = firebase::admob;
 }
 
 - (void)bannerViewDidRecordImpression:(GADBannerView *)bannerView {
-  // Todo.
+  // TODO(b/202001231)
 }
 
 - (void)bannerViewWillPresentScreen:(GADBannerView *)bannerView {
@@ -288,7 +288,7 @@ namespace admob = firebase::admob;
 }
 
 - (void)bannerViewWillDismissScreen:(GADBannerView *)bannerView {
-  // Todo.
+  // TODO(b/202001231)
 }
 
 - (void)bannerViewDidDismissScreen:(GADBannerView *)bannerView {

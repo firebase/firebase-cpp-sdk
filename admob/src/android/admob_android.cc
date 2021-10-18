@@ -512,7 +512,7 @@ void CompleteLoadAdCallback(FutureCallbackData<LoadAdResult>* callback_data,
   }
 
   // Invoke a friend of LoadAdResult to have it invoke the LoadAdResult
-  // protected constructor with teh LoadAdResultInternal data.
+  // protected constructor with the LoadAdResultInternal data.
   AdmobInternal::CompleteLoadAdFuture(
       callback_data, adr->code, future_error_message, load_ad_result_internal);
 }

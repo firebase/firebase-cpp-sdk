@@ -60,11 +60,14 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
   internal_->j_ad_error = nullptr;
 
   // AdResults can be returned on success, or for errors encountered in the C++
-  // SDK wrapper, or in the Android AdMob SDK.  The stucture is populated
+  // SDK wrapper, or in the Android AdMob SDK.  The structure is populated
   // differently across these three scenarios.
   if (internal_->is_successful) {
     internal_->code = kAdMobErrorNone;
     internal_->is_wrapper_error = false;
+    internal_->message = "";
+    internal_->domain = "";
+    internal_->to_string = "";
   } else if (internal_->is_wrapper_error) {
     // Wrapper errors come with prepopulated code, domain, etc, fields.
     internal_->code = ad_result_internal.code;
