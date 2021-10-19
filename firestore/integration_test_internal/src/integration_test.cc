@@ -272,7 +272,6 @@ void FirebaseFirestoreBasicTest::TerminateFirestore() {
 }
 
 void FirebaseFirestoreBasicTest::SignIn() {
-  SKIP_TEST_ON_LINUX;
   if (shared_auth_->current_user() != nullptr) {
     // Already signed in.
     return;
@@ -346,7 +345,7 @@ TEST_F(FirebaseFirestoreBasicTest, TestInitializeAndTerminate) {
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestSignIn) {
-  SKIP_TEST_ON_LINUX;
+  SKIP_TEST_ON_QUICK_CHECK;
   EXPECT_NE(shared_auth_->current_user(), nullptr);
 }
 
@@ -387,7 +386,7 @@ TEST_F(FirebaseFirestoreBasicTest, TestDocument) {
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestSetGet) {
-  SKIP_TEST_ON_LINUX;
+  SKIP_TEST_ON_QUICK_CHECK;
   SignIn();
 
   firebase::firestore::DocumentReference document = Doc();
@@ -408,6 +407,7 @@ TEST_F(FirebaseFirestoreBasicTest, TestSetGet) {
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestSetUpdateGet) {
+  SKIP_TEST_ON_QUICK_CHECK;
   SignIn();
 
   firebase::firestore::DocumentReference document = Doc();
@@ -432,6 +432,7 @@ TEST_F(FirebaseFirestoreBasicTest, TestSetUpdateGet) {
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestSetDelete) {
+  SKIP_TEST_ON_QUICK_CHECK;
   SignIn();
 
   firebase::firestore::DocumentReference document = Doc();
@@ -453,6 +454,7 @@ TEST_F(FirebaseFirestoreBasicTest, TestSetDelete) {
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestDocumentListener) {
+  SKIP_TEST_ON_QUICK_CHECK;
   SignIn();
 
   firebase::firestore::DocumentReference document = Doc();
@@ -492,6 +494,7 @@ TEST_F(FirebaseFirestoreBasicTest, TestDocumentListener) {
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestBatchWrite) {
+  SKIP_TEST_ON_QUICK_CHECK;
   SignIn();
 
   firebase::firestore::DocumentReference document1 = Doc("1");
@@ -521,6 +524,7 @@ TEST_F(FirebaseFirestoreBasicTest, TestBatchWrite) {
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestRunTransaction) {
+  SKIP_TEST_ON_QUICK_CHECK;
   SignIn();
 
   WaitForCompletion(
@@ -606,6 +610,7 @@ TEST_F(FirebaseFirestoreBasicTest, TestRunTransaction) {
 // TODO: Add test for failing transaction.
 
 TEST_F(FirebaseFirestoreBasicTest, TestQuery) {
+  SKIP_TEST_ON_QUICK_CHECK;
   SignIn();
 
   firebase::firestore::CollectionReference collection = GetTestCollection();

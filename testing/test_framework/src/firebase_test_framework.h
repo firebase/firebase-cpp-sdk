@@ -178,6 +178,18 @@ namespace firebase_test_framework {
 #define SKIP_TEST_IF_USING_STLPORT ((void)0)
 #endif  // defined(STLPORT)
 
+// TODO: will make change here later
+#if defined(__linux__)
+#define SKIP_TEST_ON_QUICK_CHECK                                               \
+  {                                                                       \
+    app_framework::LogInfo("Skipping %s on quick check.", test_info_->name()); \
+    GTEST_SKIP();                                                         \
+    return;                                                               \
+  }
+#else
+#define SKIP_TEST_ON_QUICK_CHECK ((void)0)
+#endif  // defined(__linux__)
+
 #define KNOWN_FAILURE(explanation) \
   { FAIL() << test_info_->name() << " has a known failure: " << explanation; }
 
