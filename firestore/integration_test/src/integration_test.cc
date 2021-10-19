@@ -345,6 +345,7 @@ TEST_F(FirebaseFirestoreBasicTest, TestInitializeAndTerminate) {
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestSignIn) {
+  SKIP_TEST_ON_LINUX;
   EXPECT_NE(shared_auth_->current_user(), nullptr);
 }
 
