@@ -10,7 +10,7 @@
       "client_info": {
         "mobilesdk_app_id": "1",
         "android_client_info": {
-          "package_name": "com.google.firebase.cpp.firestore.testapp"
+          "package_name": "1"
         }
       },
       "oauth_client": [
