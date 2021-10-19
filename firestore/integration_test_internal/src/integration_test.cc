@@ -673,6 +673,7 @@ TEST_F(FirebaseFirestoreBasicTest,
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestInvalidatingReferencesWhenDeletingApp) {
+  SKIP_TEST_ON_QUICK_CHECK;
   delete shared_app_;
   shared_app_ = nullptr;
   // TODO: Ensure existing Firestore objects are invalidated.
