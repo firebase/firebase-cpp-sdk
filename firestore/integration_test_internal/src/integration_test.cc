@@ -272,6 +272,7 @@ void FirebaseFirestoreBasicTest::TerminateFirestore() {
 }
 
 void FirebaseFirestoreBasicTest::SignIn() {
+  SKIP_TEST_ON_LINUX;
   if (shared_auth_->current_user() != nullptr) {
     // Already signed in.
     return;
@@ -386,6 +387,7 @@ TEST_F(FirebaseFirestoreBasicTest, TestDocument) {
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestSetGet) {
+  SKIP_TEST_ON_LINUX;
   SignIn();
 
   firebase::firestore::DocumentReference document = Doc();
