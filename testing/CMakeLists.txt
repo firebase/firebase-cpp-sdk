@@ -152,7 +152,10 @@ target_include_directories(firebase_testing
 )
 
 # if(FIREBASE_QUICK_TEST)
-target_compile_definitions(firebase_testing 
+set(test_framework
+    test_framework/src/firebase_test_framework.h
+)
+target_compile_definitions(test_framework 
     PUBLIC 
         QUICK_CHECK
 )
