@@ -151,16 +151,6 @@ target_include_directories(firebase_testing
         ${FIREBASE_GEN_FILE_DIR}
 )
 
-# if(FIREBASE_QUICK_TEST)
-set(test_framework
-    test_framework/src/firebase_test_framework.h
-)
-target_compile_definitions(test_framework 
-    PUBLIC 
-        QUICK_CHECK
-)
-# endif()
-
 target_link_libraries(firebase_testing
     PRIVATE
         gtest
