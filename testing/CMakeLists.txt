@@ -151,12 +151,12 @@ target_include_directories(firebase_testing
         ${FIREBASE_GEN_FILE_DIR}
 )
 
-if(FIREBASE_QUICK_TEST)
-    target_compile_definitions(firebase_testing 
-        PUBLIC 
-            QUICK_CHECK
-    )
-endif()
+# if(FIREBASE_QUICK_TEST)
+target_compile_definitions(firebase_testing 
+    PUBLIC 
+        QUICK_CHECK
+)
+# endif()
 
 target_link_libraries(firebase_testing
     PRIVATE
