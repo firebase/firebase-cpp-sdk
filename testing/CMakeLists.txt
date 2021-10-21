@@ -131,6 +131,10 @@ else()
     set(util_SRCS "")
 endif()
 
+if(FIREBASE_QUICK_TEST)
+    target_compile_definitions(firebase_testing PUBLIC QUICK_CHECK)
+endif()
+
 set(json_util_SRCS
     json_util.h
     json_util.cc)
@@ -155,9 +159,4 @@ target_link_libraries(firebase_testing
     PRIVATE
         gtest
         gmock
-)
-
-target_compile_definitions(firebase_testing 
-    PUBLIC 
-        QUICK_CHECK
 )

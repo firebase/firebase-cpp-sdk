@@ -178,7 +178,6 @@ namespace firebase_test_framework {
 #define SKIP_TEST_IF_USING_STLPORT ((void)0)
 #endif  // defined(STLPORT)
 
-// TODO: will make change here later
 #if defined(QUICK_CHECK)
 #define SKIP_TEST_ON_QUICK_CHECK                                               \
   {                                                                       \
