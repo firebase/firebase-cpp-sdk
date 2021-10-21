@@ -156,3 +156,8 @@ target_link_libraries(firebase_testing
         gtest
         gmock
 )
+
+target_compile_definitions(firebase_testing 
+    PUBLIC 
+        QUICK_CHECK
+)
