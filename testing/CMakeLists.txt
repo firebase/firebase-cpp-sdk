@@ -131,10 +131,6 @@ else()
     set(util_SRCS "")
 endif()
 
-if(FIREBASE_QUICK_TEST)
-    target_compile_definitions(firebase_testing PUBLIC QUICK_CHECK)
-endif()
-
 set(json_util_SRCS
     json_util.h
     json_util.cc)
@@ -154,6 +150,13 @@ target_include_directories(firebase_testing
         ${FIREBASE_CPP_SDK_ROOT_DIR}
         ${FIREBASE_GEN_FILE_DIR}
 )
+
+if(FIREBASE_QUICK_TEST)
+    target_compile_definitions(firebase_testing 
+        PUBLIC 
+            QUICK_CHECK
+    )
+endif()
 
 target_link_libraries(firebase_testing
     PRIVATE
