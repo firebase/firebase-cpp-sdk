@@ -137,35 +137,29 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     if (mActivity == null) {
       return;
     }
+
     // Stop any attempts to show the popup window.
     synchronized (mPopUpLock) {
       mPopUpRunnable = null;
     }
 
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            if (mAdView != null) {
-              mAdView.destroy();
-              mAdView = null;
-            }
+    if (mAdView != null) {
+      mAdView.destroy();
+      mAdView = null;
+    }
 
-            synchronized (mPopUpLock) {
-              if (mPopUp != null) {
-                mPopUp.dismiss();
-                mPopUp = null;
-              }
-            }
+    synchronized (mPopUpLock) {
+      if (mPopUp != null) {
+        mPopUp.dismiss();
+        mPopUp = null;
+      }
+    }
 
-            notifyBoundingBoxChanged(mBannerViewInternalPtr);
-            completeBannerViewFutureCallback(
-               callbackDataPtr,
-               ConstantsHelper.CALLBACK_ERROR_NONE,
-               ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
-            mNotifyBoundingBoxListenerOnNextDraw.set(true);
-          }
-        });
+    notifyBoundingBoxChanged(mBannerViewInternalPtr);
+    completeBannerViewFutureCallback(callbackDataPtr,
+      ConstantsHelper.CALLBACK_ERROR_NONE,
+      ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
+    mNotifyBoundingBoxListenerOnNextDraw.set(true);
   }
 
   /** Loads an ad for the underlying AdView object. */
@@ -204,33 +198,25 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
       return;
     }
 
-    // Stop any attempts to show the popup window.
+    int errorCode;
+    String errorMessage;
+
     synchronized (mPopUpLock) {
+      // Stop any attempts to show the popup window.
       mPopUpRunnable = null;
+
+      if (mAdView == null || mPopUp == null) {
+        errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
+        errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
+      } else {
+        errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
+        errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
+        mPopUp.dismiss();
+        mPopUp = null;
+      }
     }
 
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            int errorCode;
-            String errorMessage;
-
-            synchronized (mPopUpLock) {
-              if (mAdView == null || mPopUp == null) {
-                errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
-                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
-              } else {
-                errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
-                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-                mPopUp.dismiss();
-                mPopUp = null;
-              }
-            }
-
-            completeBannerViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
-          }
-        });
+    completeBannerViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
   }
 
   /** Shows the {@link BannerView}. */
@@ -238,7 +224,6 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     if (mActivity == null) {
       return;
     }
-
     updatePopUpLocation(callbackDataPtr);
   }
 
@@ -246,42 +231,25 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   public void pause(final long callbackDataPtr) {
     if (mActivity == null) {
       return;
+    } else if (mAdView != null) {
+      mAdView.pause();
     }
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            if (mAdView != null) {
-              mAdView.pause();
-            }
-
-            completeBannerViewFutureCallback(
-                callbackDataPtr,
-                ConstantsHelper.CALLBACK_ERROR_NONE,
-                ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
-          }
-        });
+    completeBannerViewFutureCallback(callbackDataPtr,
+      ConstantsHelper.CALLBACK_ERROR_NONE,
+      ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
   }
 
   /** Resume the {@link BannerView} (from a pause). */
   public void resume(final long callbackDataPtr) {
     if (mActivity == null) {
       return;
+    } else if (mAdView != null) {
+      mAdView.resume();
     }
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            if (mAdView != null) {
-              mAdView.resume();
-            }
 
-            completeBannerViewFutureCallback(
-                callbackDataPtr,
-                ConstantsHelper.CALLBACK_ERROR_NONE,
-                ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
-          }
-        });
+    completeBannerViewFutureCallback(callbackDataPtr,
+        ConstantsHelper.CALLBACK_ERROR_NONE,
+        ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
   }
 
   /** Moves the {@link BannerView} to the provided (x,y) screen coordinates. */
@@ -291,12 +259,9 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     }
 
     synchronized (mPopUpLock) {
-      // Not technically the popup, but these are used as a set, and shouldn't
-      // be halfway modified when mPopUpRunnable calls showAtLocation.
       mShouldUseXYForPosition = true;
       mDesiredX = x;
       mDesiredY = y;
-
       if (mPopUp != null) {
         updatePopUpLocation(callbackDataPtr);
       }
@@ -310,11 +275,8 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     }
 
     synchronized (mPopUpLock) {
-      // Not technically the popup, but these are used as a set, and shouldn't
-      // be halfway modified when mPopUpRunnable calls showAtLocation.
       mShouldUseXYForPosition = false;
       mDesiredPosition = position;
-
       if (mPopUp != null) {
         updatePopUpLocation(callbackDataPtr);
       }
