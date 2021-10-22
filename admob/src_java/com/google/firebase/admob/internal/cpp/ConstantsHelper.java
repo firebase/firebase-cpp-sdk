@@ -96,14 +96,14 @@ public final class ConstantsHelper {
   public static final int AD_VIEW_PRESENTATION_STATE_OPENED_PARTIAL_OVERLAY = 3;
 
   public static final int AD_VIEW_PRESENTATION_STATE_COVERING_UI = 4;
-  // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src/include/firebase/admob/banner_view.h,
-  // //depot_firebase_cpp/admob/client/cpp/src/include/firebase/admob/native_express_ad_view.h)
-
+  // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src/include/firebase/admob/banner_view.h)
   /**
    * Ad view positions (matches the BannerView::Position and NativeExpressAdView::Position
    * enumerations in the public C++ API).
    */
   // LINT.IfChange
+  public static final int AD_VIEW_POSITION_UNDEFINED = -1;
+
   public static final int AD_VIEW_POSITION_TOP = 0;
 
   public static final int AD_VIEW_POSITION_BOTTOM = 1;
@@ -115,7 +115,5 @@ public final class ConstantsHelper {
   public static final int AD_VIEW_POSITION_BOTTOM_LEFT = 4;
 
   public static final int AD_VIEW_POSITION_BOTTOM_RIGHT = 5;
-  // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src/include/firebase/admob/banner_view.h,
-  // //depot_firebase_cpp/admob/client/cpp/src/include/firebase/admob/native_express_ad_view.h)
-
+  // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src/include/firebase/admob/types.h)
 }

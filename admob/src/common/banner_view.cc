@@ -64,6 +64,34 @@ Future<void> BannerView::InitializeLastResult() const {
   return internal_->GetLastResult(internal::kBannerViewFnInitialize);
 }
 
+void BannerView::SetAdListener(AdListener* listener) {
+  internal_->SetAdListener(listener);
+}
+
+void BannerView::SetBoundingBoxListener(AdViewBoundingBoxListener* listener) {
+  internal_->SetBoundingBoxListener(listener);
+}
+
+void BannerView::SetPaidEventListener(PaidEventListener* listener) {
+  internal_->SetPaidEventListener(listener);
+}
+
+Future<void> BannerView::SetPosition(int x, int y) {
+  // TODO(@ddb): these should return failed futures, not empty futures.
+  if (!CheckIsInitialized(internal_)) return Future<void>();
+  return internal_->SetPosition(x, y);
+}
+
+Future<void> BannerView::SetPosition(Position position) {
+  if (!CheckIsInitialized(internal_)) return Future<void>();
+  return internal_->SetPosition(position);
+}
+
+Future<void> BannerView::SetPositionLastResult() const {
+  if (!CheckIsInitialized(internal_)) return Future<void>();
+  return internal_->GetLastResult(internal::kBannerViewFnSetPosition);
+}
+
 Future<LoadAdResult> BannerView::LoadAd(const AdRequest& request) {
   if (!CheckIsInitialized(internal_)) return Future<LoadAdResult>();
   return internal_->LoadAd(request);
@@ -124,34 +152,9 @@ Future<void> BannerView::DestroyLastResult() const {
   return internal_->GetLastResult(internal::kBannerViewFnDestroy);
 }
 
-Future<void> BannerView::MoveTo(int x, int y) {
-  if (!CheckIsInitialized(internal_)) return Future<void>();
-  return internal_->MoveTo(x, y);
-}
-
-Future<void> BannerView::MoveTo(Position position) {
-  if (!CheckIsInitialized(internal_)) return Future<void>();
-  return internal_->MoveTo(position);
-}
-
-Future<void> BannerView::MoveToLastResult() const {
-  if (!CheckIsInitialized(internal_)) return Future<void>();
-  return internal_->GetLastResult(internal::kBannerViewFnMoveTo);
-}
-
-BannerView::PresentationState BannerView::presentation_state() const {
-  if (!CheckIsInitialized(internal_)) return kPresentationStateHidden;
-  return internal_->GetPresentationState();
-}
-
 BoundingBox BannerView::bounding_box() const {
   if (!CheckIsInitialized(internal_)) return BoundingBox();
-  return internal_->GetBoundingBox();
-}
-
-void BannerView::SetListener(Listener* listener) {
-  if (!CheckIsInitialized(internal_)) return;
-  internal_->SetListener(listener);
+  return internal_->bounding_box();
 }
 
 }  // namespace admob

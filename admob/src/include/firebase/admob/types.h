@@ -23,6 +23,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "firebase/future.h"
 #include "firebase/internal/platform.h"
 
 #if FIREBASE_PLATFORM_ANDROID
@@ -39,12 +40,16 @@ namespace admob {
 
 struct AdResultInternal;
 struct AdapterResponseInfoInternal;
+struct BoundingBox;
 struct LoadAdResultInternal;
 struct ResponseInfoInternal;
 
+class AdViewBoundingBoxListener;
 class AdmobInternal;
+class AdViewInternal;
 class BannerView;
 class InterstitialAd;
+class PaidEventListener;
 
 /// This is a platform specific datatype that is required to create an AdMob ad.
 ///
@@ -130,6 +135,25 @@ enum AdMobError {
 #ifdef INTERNAL_EXPERIMENTAL
 // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src_java/com/google/firebase/admob/internal/cpp/ConstantsHelper.java)
 #endif  // INTERNAL_EXPERIMENTAL
+
+/// A listener for receiving notifications during the lifecycle of a BannerAd.
+class AdListener {
+ public:
+  virtual ~AdListener();
+
+  /// Called when a click is recorded for an ad.
+  virtual void OnAdClicked();
+
+  /// Called when the user is about to return to the application after clicking
+  /// on an ad.
+  virtual void OnAdClosed();
+
+  /// Called when an impression is recorded for an ad.
+  virtual void OnAdImpression();
+
+  /// Called when an ad opens an overlay that covers the screen.
+  virtual void OnAdOpened();
+};
 
 /// Information about why an ad operation failed.
 class AdResult {
@@ -433,11 +457,184 @@ class AdRequest {
   std::unordered_set<std::string> keywords_;
 };
 
+/// The monetary value earned from an ad.
+class AdValue {
+ public:
+  enum PrecisionType {
+    /// An ad value with unknown precision.
+    kdValuePrecisionUnknown = 0,
+    /// An ad value estimated from aggregated data.
+    kAdValuePrecisionEstimated,
+    /// A publisher-provided ad value, such as manual CPMs in a mediation group.
+    kAdValuePrecisionPublisherProvided = 2,
+    /// The precise value paid for this ad.
+    kAdValuePrecisionPrecise = 3
+  };
+
+  /// Constructor
+  AdValue(const char* currency_code, PrecisionType precision_type,
+          int64_t value_micros)
+      : currency_code_(currency_code),
+        precision_type_(precision_type),
+        value_micros_(value_micros) {}
+
+  /// The value's ISO 4217 currency code.
+  const std::string& currency_code() const { return currency_code_; }
+
+  /// The precision of the reported ad value.
+  PrecisionType precision_type() const { return precision_type_; }
+
+  /// The ad's value in micro-units, where 1,000,000 micro-units equal one
+  /// unit of the currency.
+  int64_t value_micros() const { return value_micros_; }
+
+ private:
+  const std::string currency_code_;
+  const PrecisionType precision_type_;
+  const int64_t value_micros_;
+};
+
+/// @brief Base of all Admob Banner Views.
+class AdView {
+ public:
+  /// The possible screen positions for a @ref AdView, configured via
+  /// @ref SetPosition.
+  enum Position {
+    /// The position isn't one of the predefined screen locations.
+    kPositionUndefined = -1,
+    /// Top of the screen, horizontally centered.
+    kPositionTop = 0,
+    /// Bottom of the screen, horizontally centered.
+    kPositionBottom,
+    /// Top-left corner of the screen.
+    kPositionTopLeft,
+    /// Top-right corner of the screen.
+    kPositionTopRight,
+    /// Bottom-left corner of the screen.
+    kPositionBottomLeft,
+    /// Bottom-right corner of the screen.
+    kPositionBottomRight,
+  };
+
+  virtual ~AdView();
+
+  /// Retrieves the @ref AdView's current onscreen size and location.
+  ///
+  /// @return The current size and location. Values are in pixels, and location
+  ///         coordinates originate from the top-left corner of the screen.
+  virtual BoundingBox bounding_box() const = 0;
+
+  /// Sets an AdListener for this ad view.
+  ///
+  /// param[in] listener A listener object which will be invoked when lifecycle
+  /// events occur on this AdView.
+  virtual void SetAdListener(AdListener* listener) = 0;
+
+  /// Sets a listener to be invoked when the Ad's bounding box
+  /// changes size or location.
+  ///
+  /// param[in] listener A listener object which will be invoked when the ad
+  /// changes size, shape, or position.
+  virtual void SetBoundingBoxListener(AdViewBoundingBoxListener* listener) = 0;
+
+  /// Sets a listener to be invoked when this ad is estimated to have earned
+  /// money.
+  ///
+  /// param[in] A listener object to be invoked when a paid event occurs on the
+  /// ad.
+  virtual void SetPaidEventListener(PaidEventListener* listener) = 0;
+
+  /// Moves the @ref AdView so that its top-left corner is located at
+  /// (x, y). Coordinates are in pixels from the top-left corner of the screen.
+  ///
+  /// When built for Android, the library will not display an ad on top of or
+  /// beneath an Activity's status bar. If a call to MoveTo would result in an
+  /// overlap, the @ref AdView is placed just below the status bar, so no
+  /// overlap occurs.
+  /// @param[in] x The desired horizontal coordinate.
+  /// @param[in] y The desired vertical coordinate.
+  ///
+  /// @return a @ref Future which will be completed when this move operation
+  /// completes.
+  virtual Future<void> SetPosition(int x, int y) = 0;
+
+  /// Moves the @ref AdView so that it's located at the given predefined
+  /// position.
+  ///
+  /// @param[in] position The predefined position to which to move the
+  ///   @ref AdView.
+  ///
+  /// @return a @ref Future which will be completed when this move operation
+  /// completes.
+  virtual Future<void> SetPosition(Position position) = 0;
+
+  /// Returns a @ref Future containing the status of the last call to either
+  /// version of @ref SetPosition.
+  virtual Future<void> SetPositionLastResult() const = 0;
+
+  /// Hides the AdView.
+  virtual Future<void> Hide() = 0;
+
+  /// Returns a @ref Future containing the status of the last call to
+  /// @ref Hide.
+  virtual Future<void> HideLastResult() const = 0;
+
+  /// Shows the @ref AdView.
+  virtual Future<void> Show() = 0;
+
+  /// Returns a @ref Future containing the status of the last call to
+  /// @ref Show.
+  virtual Future<void> ShowLastResult() const = 0;
+
+  /// Pauses the @ref AdView. Should be called whenever the C++ engine
+  /// pauses or the application loses focus.
+  virtual Future<void> Pause() = 0;
+
+  /// Returns a @ref Future containing the status of the last call to
+  /// @ref Pause.
+  virtual Future<void> PauseLastResult() const = 0;
+
+  /// Resumes the @ref AdView after pausing.
+  virtual Future<void> Resume() = 0;
+
+  /// Returns a @ref Future containing the status of the last call to
+  /// @ref Resume.
+  virtual Future<void> ResumeLastResult() const = 0;
+
+  /// Cleans up and deallocates any resources used by the @ref BannerView.
+  virtual Future<void> Destroy() = 0;
+
+  /// Returns a @ref Future containing the status of the last call to
+  /// @ref Destroy.
+  virtual Future<void> DestroyLastResult() const = 0;
+
+ protected:
+  AdListener* ad_listener_;
+  AdViewBoundingBoxListener* ad_view_bounding_box_listener_;
+  PaidEventListener* paid_event_listener_;
+};
+
+/// A listener class that developers can extend and pass to a @ref AdView
+/// object's @ref SetBoundingBoxListener method to be notified of changes to
+/// the size of the Ad's bounding box.
+class AdViewBoundingBoxListener {
+ public:
+  virtual ~AdViewBoundingBoxListener();
+
+  /// This method is called when the @ref AdView object's bounding box
+  /// changes.
+  ///
+  /// @param[in] ad_view The view whose bounding box changed.
+  /// @param[in] box The new bounding box.
+  virtual void OnBoundingBoxChanged(AdView* ad_view, BoundingBox box) = 0;
+};
+
 /// @brief The screen location and dimensions of an ad view once it has been
 /// initialized.
 struct BoundingBox {
   /// Default constructor which initializes all member variables to 0.
-  BoundingBox() : height(0), width(0), x(0), y(0) {}
+  BoundingBox()
+      : height(0), width(0), x(0), y(0), position(AdView::kPositionUndefined) {}
   /// Height of the ad in pixels.
   int height;
   /// Width of the ad in pixels.
@@ -446,6 +643,10 @@ struct BoundingBox {
   int x;
   /// Vertical position of the ad in pixels from the top.
   int y;
+
+  /// The position of the AdView if one has been set as the target position, or
+  /// kPositionUndefined otherwise.
+  AdView::Position position;
 };
 
 /// Information about an ad response.
@@ -506,6 +707,15 @@ class LoadAdResult : public AdResult {
   explicit LoadAdResult(const LoadAdResultInternal& load_ad_result_internal);
 
   ResponseInfo response_info_;
+};
+
+/// Listener to be invoked when ads have been estimated to earn money.
+class PaidEventListener {
+ public:
+  virtual ~PaidEventListener();
+
+  /// Called when an ad is estimated to have earned money.
+  virtual void OnPaidEvent(const AdValue& value) = 0;
 };
 
 /// @brief Global configuration that will be used for every @ref AdRequest.

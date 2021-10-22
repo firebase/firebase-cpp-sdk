@@ -51,6 +51,16 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseAdMob);
 static CleanupNotifier* g_cleanup_notifier = nullptr;
 const char kAdMobModuleName[] = "admob";
 
+// AdListener
+// Default no-op implementations so applications need only implement
+// the methods they're interested in.
+AdListener::~AdListener() {}
+void AdListener::OnAdClicked() {}
+void AdListener::OnAdClosed() {}
+void AdListener::OnAdImpression() {}
+void AdListener::OnAdOpened() {}
+
+// AdSize
 // Hardcoded values are from publicly available documentation:
 // https://developers.google.com/android/reference/com/google/android/gms/ads/AdSize
 // A dynamic resolution of thes values creates a lot of Android code,
@@ -97,6 +107,7 @@ bool AdSize::operator==(const AdSize& rhs) const { return is_equal(rhs); }
 
 bool AdSize::operator!=(const AdSize& rhs) const { return !is_equal(rhs); }
 
+// AdRequest
 AdRequest::AdRequest() {}
 AdRequest::~AdRequest() {}
 
@@ -125,6 +136,25 @@ void AdRequest::set_content_url(const char* content_url) {
     content_url_ = url;
   }
 }
+
+void AdView::SetAdListener(AdListener* listener) { ad_listener_ = listener; }
+
+void AdView::SetBoundingBoxListener(AdViewBoundingBoxListener* listener) {
+  ad_view_bounding_box_listener_ = listener;
+}
+
+void AdView::SetPaidEventListener(PaidEventListener* listener) {
+  paid_event_listener_ = listener;
+}
+
+// Misc
+
+// Non-inline implementation of the Listeners' virtual destructors, to prevent
+// their vtables from being emitted in each translation unit.
+AdView::~AdView() {}
+AdViewBoundingBoxListener::~AdViewBoundingBoxListener() {}
+InterstitialAd::Listener::~Listener() {}
+PaidEventListener::~PaidEventListener() {}
 
 void RegisterTerminateOnDefaultAppDestroy() {
   if (!AppCallback::GetEnabledByName(kAdMobModuleName)) {
@@ -181,6 +211,7 @@ const char* GetRequestAgentString() {
   return "firebase-cpp-api." FIREBASE_VERSION_NUMBER_STRING;
 }
 
+// Futures
 // Create a future and update the corresponding last result.
 template <class T>
 SafeFutureHandle<T> CreateFuture(int fn_idx, FutureData* future_data) {
@@ -231,11 +262,6 @@ FutureCallbackData<LoadAdResult>* CreateLoadAdResultFutureCallbackData(
       future_data,
       future_data->future_impl.SafeAlloc<LoadAdResult>(fn_idx, LoadAdResult())};
 }
-
-// Non-inline implementation of the Listeners' virtual destructors, to prevent
-// their vtables from being emitted in each translation unit.
-BannerView::Listener::~Listener() {}
-InterstitialAd::Listener::~Listener() {}
 
 }  // namespace admob
 }  // namespace firebase

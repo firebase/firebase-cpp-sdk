@@ -36,7 +36,11 @@ namespace admob {
 namespace internal {
 
 BannerViewInternal::BannerViewInternal(BannerView* base)
-    : base_(base), future_data_(kBannerViewFnCount), listener_(nullptr) {}
+    : base_(base),
+      future_data_(kBannerViewFnCount),
+      ad_listener_(nullptr),
+      bounding_box_listener_(nullptr),
+      paid_event_listener_(nullptr) {}
 
 BannerViewInternal* BannerViewInternal::CreateInstance(BannerView* base) {
 #if FIREBASE_PLATFORM_ANDROID
@@ -49,23 +53,62 @@ BannerViewInternal* BannerViewInternal::CreateInstance(BannerView* base) {
         // FIREBASE_PLATFORM_TVOS
 }
 
-void BannerViewInternal::SetListener(BannerView::Listener* listener) {
+void BannerViewInternal::SetAdListener(AdListener* listener) {
   MutexLock lock(listener_mutex_);
-  listener_ = listener;
+  ad_listener_ = listener;
 }
 
-void BannerViewInternal::NotifyListenerOfPresentationStateChange(
-    BannerView::PresentationState state) {
+void BannerViewInternal::SetBoundingBoxListener(
+    AdViewBoundingBoxListener* listener) {
   MutexLock lock(listener_mutex_);
-  if (listener_ != nullptr) {
-    listener_->OnPresentationStateChanged(base_, state);
-  }
+  bounding_box_listener_ = listener;
+}
+
+void BannerViewInternal::SetPaidEventListener(PaidEventListener* listener) {
+  MutexLock lock(listener_mutex_);
+  paid_event_listener_ = listener;
 }
 
 void BannerViewInternal::NotifyListenerOfBoundingBoxChange(BoundingBox box) {
   MutexLock lock(listener_mutex_);
-  if (listener_ != nullptr) {
-    listener_->OnBoundingBoxChanged(base_, box);
+  if (bounding_box_listener_ != nullptr) {
+    bounding_box_listener_->OnBoundingBoxChanged(base_, box);
+  }
+}
+
+void BannerViewInternal::NotifyListenerAdClicked() {
+  MutexLock lock(listener_mutex_);
+  if (ad_listener_ != nullptr) {
+    ad_listener_->OnAdClicked();
+  }
+}
+
+void BannerViewInternal::NotifyListenerAdClosed() {
+  MutexLock lock(listener_mutex_);
+  if (ad_listener_ != nullptr) {
+    ad_listener_->OnAdClosed();
+  }
+}
+
+void BannerViewInternal::NotifyListenerAdImpression() {
+  MutexLock lock(listener_mutex_);
+  if (ad_listener_ != nullptr) {
+    ad_listener_->OnAdImpression();
+  }
+}
+
+void BannerViewInternal::NotifyListenerAdOpened() {
+  MutexLock lock(listener_mutex_);
+  if (ad_listener_ != nullptr) {
+    ad_listener_->OnAdOpened();
+  }
+}
+
+void BannerViewInternal::NotifyListenerOfPaidEvent(const AdValue& ad_value) {
+  MutexLock lock(listener_mutex_);
+
+  if (paid_event_listener_ != nullptr) {
+    paid_event_listener_->OnPaidEvent(ad_value);
   }
 }
 

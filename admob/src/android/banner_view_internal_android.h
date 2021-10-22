@@ -37,8 +37,8 @@ namespace admob {
   X(Destroy, "destroy", "(J)V"),                                               \
   X(MoveToPosition, "moveTo", "(JI)V"),                                        \
   X(MoveToXY, "moveTo", "(JII)V"),                                             \
-  X(GetPresentationState, "getPresentationState", "()I"),                      \
-  X(GetBoundingBox, "getBoundingBox", "()[I")
+  X(GetBoundingBox, "getBoundingBox", "()[I"),                                 \
+  X(GetPosition, "getPosition", "()I")
 // clang-format on
 
 METHOD_LOOKUP_DECLARATION(banner_view_helper, BANNERVIEWHELPER_METHODS);
@@ -57,7 +57,9 @@ METHOD_LOOKUP_DECLARATION(banner_view_helper_ad_view_listener,
   X(SetAdSize, "setAdSize", "(Lcom/google/android/gms/ads/AdSize;)V"), \
   X(SetAdUnitId, "setAdUnitId", "(Ljava/lang/String;)V"),              \
   X(SetAdListener, "setAdListener",                                    \
-    "(Lcom/google/android/gms/ads/AdListener;)V")
+    "(Lcom/google/android/gms/ads/AdListener;)V"),                     \
+  X(SetOnPaidEventListener, "setOnPaidEventListener",                  \
+    "(Lcom/google/android/gms/ads/OnPaidEventListener;)V")
 // clang-format on
 
 METHOD_LOOKUP_DECLARATION(ad_view, AD_VIEW_METHODS);
@@ -72,16 +74,15 @@ class BannerViewInternalAndroid : public BannerViewInternal {
   Future<void> Initialize(AdParent parent, const char* ad_unit_id,
                           const AdSize& size) override;
   Future<LoadAdResult> LoadAd(const AdRequest& request) override;
+
+  BoundingBox bounding_box() const override;
+  Future<void> SetPosition(int x, int y) override;
+  Future<void> SetPosition(AdView::Position position) override;
   Future<void> Hide() override;
   Future<void> Show() override;
   Future<void> Pause() override;
   Future<void> Resume() override;
   Future<void> Destroy() override;
-  Future<void> MoveTo(int x, int y) override;
-  Future<void> MoveTo(BannerView::Position position) override;
-
-  BannerView::PresentationState GetPresentationState() const override;
-  BoundingBox GetBoundingBox() const override;
 
  private:
   // Reference to the Java helper object used to interact with the Mobile Ads
@@ -94,17 +95,10 @@ class BannerViewInternalAndroid : public BannerViewInternal {
   // Tracks if this BannerView has been initialized.
   bool initialized_;
 
-  // The banner view's current BoundingBox. This value is returned if the banner
-  // view is hidden and the publisher calls GetBoundingBox().
-  mutable BoundingBox bounding_box_;
-
   // Convenience method to "dry" the JNI calls that don't take parameters beyond
   // the future callback pointer.
   Future<void> InvokeNullary(BannerViewFn fn,
                              banner_view_helper::Method method);
-
-  // Cleans up any C++ side data before invoking the Android SDK to do the same.
-  void DestroyInternalData();
 };
 
 }  // namespace internal

@@ -18,6 +18,7 @@
 #define FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_BANNER_VIEW_H_
 
 #include "firebase/admob/types.h"
+
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 
@@ -41,8 +42,8 @@ class BannerViewInternal;
 /// their current state through Futures. Methods like @ref Initialize,
 /// @ref LoadAd, and @ref Hide each have a corresponding @ref Future from which
 /// the result of the last call can be determined. The two variants of
-/// @ref MoveTo share a single result @ref Future, since they're essentially the
-/// same action.
+/// @ref SetPosition share a single result @ref Future, since they're
+/// essentially the same action.
 ///
 /// In addition, applications can create their own subclasses of
 /// @ref BannerView::Listener, pass an instance to the @ref SetListener method,
@@ -68,72 +69,8 @@ class BannerViewInternal;
 ///   banner_view->LoadAd(your_ad_request);
 /// }
 /// @endcode
-class BannerView {
+class BannerView : public AdView {
  public:
-#ifdef INTERNAL_EXPERIMENTAL
-// LINT.IfChange
-#endif  // INTERNAL_EXPERIMENTAL
-  /// The presentation state of a @ref BannerView.
-  enum PresentationState {
-    /// BannerView is currently hidden.
-    kPresentationStateHidden = 0,
-    /// BannerView is visible, but does not contain an ad.
-    kPresentationStateVisibleWithoutAd,
-    /// BannerView is visible and contains an ad.
-    kPresentationStateVisibleWithAd,
-    /// BannerView is visible and has opened a partial overlay on the screen.
-    kPresentationStateOpenedPartialOverlay,
-    /// BannerView is completely covering the screen or has caused focus to
-    /// leave the application (for example, when opening an external browser
-    /// during a clickthrough).
-    kPresentationStateCoveringUI,
-  };
-#ifdef INTERNAL_EXPERIMENTAL
-// LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src_java/com/google/firebase/admob/internal/cpp/ConstantsHelper.java)
-#endif  // INTERNAL_EXPERIMENTAL
-
-#ifdef INTERNAL_EXPERIMENTAL
-// LINT.IfChange
-#endif  // INTERNAL_EXPERIMENTAL
-  /// The possible screen positions for a @ref BannerView.
-  enum Position {
-    /// Top of the screen, horizontally centered.
-    kPositionTop = 0,
-    /// Bottom of the screen, horizontally centered.
-    kPositionBottom,
-    /// Top-left corner of the screen.
-    kPositionTopLeft,
-    /// Top-right corner of the screen.
-    kPositionTopRight,
-    /// Bottom-left corner of the screen.
-    kPositionBottomLeft,
-    /// Bottom-right corner of the screen.
-    kPositionBottomRight,
-  };
-#ifdef INTERNAL_EXPERIMENTAL
-// LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src_java/com/google/firebase/admob/internal/cpp/ConstantsHelper.java)
-#endif  // INTERNAL_EXPERIMENTAL
-
-  /// A listener class that developers can extend and pass to a @ref BannerView
-  /// object's @ref SetListener method to be notified of changes to the
-  /// presentation state and bounding box.
-  class Listener {
-   public:
-    /// This method is called when the @ref BannerView object's presentation
-    /// state changes.
-    /// @param[in] banner_view The banner view whose presentation state changed.
-    /// @param[in] state The new presentation state.
-    virtual void OnPresentationStateChanged(BannerView* banner_view,
-                                            PresentationState state) = 0;
-    /// This method is called when the @ref BannerView object's bounding box
-    /// changes.
-    /// @param[in] banner_view The banner view whose bounding box changed.
-    /// @param[in] box The new bounding box.
-    virtual void OnBoundingBoxChanged(BannerView* banner_view,
-                                      BoundingBox box) = 0;
-    virtual ~Listener();
-  };
-
   /// Creates an uninitialized @ref BannerView object.
   /// @ref Initialize must be called before the object is used.
   BannerView();
@@ -161,75 +98,93 @@ class BannerView {
   /// @ref LoadAd.
   Future<LoadAdResult> LoadAdLastResult() const;
 
-  /// Hides the BannerView.
-  Future<void> Hide();
+  /// Retrieves the @ref AdView's current onscreen size and location.
+  ///
+  /// @return The current size and location. Values are in pixels, and location
+  ///         coordinates originate from the top-left corner of the screen.
+  BoundingBox bounding_box() const override;
 
-  /// Returns a @ref Future containing the status of the last call to
-  /// @ref Hide.
-  Future<void> HideLastResult() const;
+  /// Sets an AdListener for this ad view.
+  ///
+  /// param[in] listener A listener object which will be invoked when lifecycle
+  /// events occur on this AdView.
+  void SetAdListener(AdListener *listener) override;
 
-  /// Shows the @ref BannerView.
-  Future<void> Show();
+  /// Sets a listener to be invoked when the Ad's bounding box
+  /// changes size or location.
+  ///
+  /// param[in] listener A listener object which will be invoked when the ad
+  /// changes size, shape, or position.
+  void SetBoundingBoxListener(AdViewBoundingBoxListener *listener) override;
 
-  /// Returns a @ref Future containing the status of the last call to
-  /// @ref Show.
-  Future<void> ShowLastResult() const;
-
-  /// Pauses the @ref BannerView. Should be called whenever the C++ engine
-  /// pauses or the application loses focus.
-  Future<void> Pause();
-
-  /// Returns a @ref Future containing the status of the last call to
-  /// @ref Pause.
-  Future<void> PauseLastResult() const;
-
-  /// Resumes the @ref BannerView after pausing.
-  Future<void> Resume();
-
-  /// Returns a @ref Future containing the status of the last call to
-  /// @ref Resume.
-  Future<void> ResumeLastResult() const;
-
-  /// Cleans up and deallocates any resources used by the @ref BannerView.
-  Future<void> Destroy();
-
-  /// Returns a @ref Future containing the status of the last call to
-  /// @ref Destroy.
-  Future<void> DestroyLastResult() const;
+  /// Sets a listener to be invoked when this ad is estimated to have earned
+  /// money.
+  ///
+  /// param[in] A listener object to be invoked when a paid event occurs on the
+  /// ad.
+  void SetPaidEventListener(PaidEventListener *listener) override;
 
   /// Moves the @ref BannerView so that its top-left corner is located at
   /// (x, y). Coordinates are in pixels from the top-left corner of the screen.
   ///
   /// When built for Android, the library will not display an ad on top of or
   /// beneath an Activity's status bar. If a call to MoveTo would result in an
-  /// overlap, the @ref BannerView is placed just below the status bar, so no
+  /// overlap, the @ref AdView is placed just below the status bar, so no
   /// overlap occurs.
   /// @param[in] x The desired horizontal coordinate.
   /// @param[in] y The desired vertical coordinate.
-  Future<void> MoveTo(int x, int y);
+  ///
+  /// @return a @ref Future which will be completed when this move operation completes.
+  Future<void> SetPosition(int x, int y) override;
 
-  /// Moves the @ref BannerView so that it's located at the given pre-defined
+  /// Moves the @ref AdView so that it's located at the given predefined
   /// position.
-  /// @param[in] position The pre-defined position to which to move the
-  ///                     @ref BannerView.
-  Future<void> MoveTo(Position position);
+  ///
+  /// @param[in] position The predefined position to which to move the
+  ///   @ref AdView.
+  ///
+  /// @return a @ref Future which will be completed when this move operation completes.
+  Future<void> SetPosition(Position position) override;
 
   /// Returns a @ref Future containing the status of the last call to either
-  /// version of @ref MoveTo.
-  Future<void> MoveToLastResult() const;
+  /// version of @ref SetPosition.
+  Future<void> SetPositionLastResult() const override;
 
-  /// Returns the current presentation state of the @ref BannerView.
-  /// @return The current presentation state.
-  PresentationState presentation_state() const;
+  /// Hides the BannerView.
+  Future<void> Hide() override;
 
-  /// Retrieves the @ref BannerView's current onscreen size and location.
-  /// @return The current size and location. Values are in pixels, and location
-  ///         coordinates originate from the top-left corner of the screen.
-  BoundingBox bounding_box() const;
+  /// Returns a @ref Future containing the status of the last call to
+  /// @ref Hide.
+  Future<void> HideLastResult() const override;
 
-  /// Sets the @ref Listener for this object.
-  /// @param[in] listener A valid BannerView::Listener to receive callbacks.
-  void SetListener(Listener* listener);
+  /// Shows the @ref BannerView.
+  Future<void> Show() override;
+
+  /// Returns a @ref Future containing the status of the last call to
+  /// @ref Show.
+  Future<void> ShowLastResult() const override;
+
+  /// Pauses the @ref BannerView. Should be called whenever the C++ engine
+  /// pauses or the application loses focus.
+  Future<void> Pause() override;
+
+  /// Returns a @ref Future containing the status of the last call to
+  /// @ref Pause.
+  Future<void> PauseLastResult() const override;
+
+  /// Resumes the @ref BannerView after pausing.
+  Future<void> Resume() override;
+
+  /// Returns a @ref Future containing the status of the last call to
+  /// @ref Resume.
+  Future<void> ResumeLastResult() const override;
+
+  /// Cleans up and deallocates any resources used by the @ref BannerView.
+  Future<void> Destroy() override;
+
+  /// Returns a @ref Future containing the status of the last call to
+  /// @ref Destroy.
+  Future<void> DestroyLastResult() const override;
 
  private:
   // An internal, platform-specific implementation object that this class uses

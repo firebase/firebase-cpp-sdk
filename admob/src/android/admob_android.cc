@@ -597,25 +597,84 @@ Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeBannerViewF
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyStateChanged(  // NOLINT
-    JNIEnv* env, jclass clazz, jlong data_ptr, jint change_code) {
-  if (data_ptr == 0) return;  // test call only
+Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyBoundingBoxChanged(  // NOLINT
+    JNIEnv* env, jclass clazz, jlong data_ptr) {
+  firebase::admob::internal::BannerViewInternal* internal =
+      reinterpret_cast<firebase::admob::internal::BannerViewInternal*>(
+          data_ptr);
+  internal->NotifyListenerOfBoundingBoxChange(internal->bounding_box());
+}
 
+extern "C" JNIEXPORT void JNICALL
+Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyAdClicked(
+    JNIEnv* env, jclass clazz, jlong data_ptr) {
+  firebase::admob::internal::BannerViewInternal* internal =
+      reinterpret_cast<firebase::admob::internal::BannerViewInternal*>(
+          data_ptr);
+  internal->NotifyListenerAdClicked();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyAdClosed(
+    JNIEnv* env, jclass clazz, jlong data_ptr) {
+  firebase::admob::internal::BannerViewInternal* internal =
+      reinterpret_cast<firebase::admob::internal::BannerViewInternal*>(
+          data_ptr);
+  internal->NotifyListenerAdClosed();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyAdImpression(  // NOLINT
+    JNIEnv* env, jclass clazz, jlong data_ptr) {
+  firebase::admob::internal::BannerViewInternal* internal =
+      reinterpret_cast<firebase::admob::internal::BannerViewInternal*>(
+          data_ptr);
+  internal->NotifyListenerAdImpression();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyAdOpened(
+    JNIEnv* env, jclass clazz, jlong data_ptr) {
+  firebase::admob::internal::BannerViewInternal* internal =
+      reinterpret_cast<firebase::admob::internal::BannerViewInternal*>(
+          data_ptr);
+  internal->NotifyListenerAdOpened();
+}
+
+AdValue::PrecisionType ConvertAndroidPrecisionTypeToCPPPrecisionType(
+    const jint j_precision_type) {
+  // Values taken from:
+  // https://firebase.google.com/docs/reference/android/com/google/android/gms/ads/AdValue.PrecisionType
+  // // NOLINT
+  switch (j_precision_type) {
+    default:
+      LogWarning("Could not convert AdValue precisionType: %l",
+                 j_precision_type);
+    case 0:
+      return AdValue::kdValuePrecisionUnknown;
+    case 1:  // ESTIMATED
+      return AdValue::kAdValuePrecisionEstimated;
+    case 2:  // PUBLISHER_PROVIDED
+      return AdValue::kAdValuePrecisionPublisherProvided;
+    case 3:  // PRECISE
+      return AdValue::kAdValuePrecisionPrecise;
+  }
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyPaidEvent(  // NOLINT
+    JNIEnv* env, jclass clazz, jlong data_ptr, jstring j_currency_code,
+    jint j_precision_type, jlong j_value_micros) {
+  FIREBASE_ASSERT(data_ptr);
   firebase::admob::internal::BannerViewInternal* internal =
       reinterpret_cast<firebase::admob::internal::BannerViewInternal*>(
           data_ptr);
 
-  switch (static_cast<firebase::admob::AdViewChangeCode>(change_code)) {
-    case kChangePresentationState:
-      internal->NotifyListenerOfPresentationStateChange(
-          internal->GetPresentationState());
-      break;
-    case kChangeBoundingBox:
-      internal->NotifyListenerOfBoundingBoxChange(internal->GetBoundingBox());
-      break;
-    default:
-      break;
-  }
+  const char* currency_code = env->GetStringUTFChars(j_currency_code, nullptr);
+  const AdValue::PrecisionType precision_type =
+      ConvertAndroidPrecisionTypeToCPPPrecisionType(j_precision_type);
+  AdValue ad_value(currency_code, precision_type, (int64_t)j_value_micros);
+  internal->NotifyListenerOfPaidEvent(ad_value);
 }
 
 extern "C" JNIEXPORT void JNICALL
@@ -698,9 +757,24 @@ bool RegisterNatives() {
       {"completeBannerViewLoadAdInternalError", "(JILjava/lang/String;)V",
        reinterpret_cast<void*>(
            &Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeBannerViewLoadAdInternalError)},  // NOLINT
-      {"notifyStateChanged", "(JI)V",
+      {"notifyBoundingBoxChanged", "(J)V",
        reinterpret_cast<void*>(
-           &Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyStateChanged)},  // NOLINT
+           &Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyBoundingBoxChanged)},  // NOLINT
+      {"notifyAdClicked", "(J)V",
+       reinterpret_cast<void*>(
+           &Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyAdClicked)},  // NOLINT
+      {"notifyAdClosed", "(J)V",
+       reinterpret_cast<void*>(
+           &Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyAdClosed)},  // NOLINT
+      {"notifyAdImpression", "(J)V",
+       reinterpret_cast<void*>(
+           &Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyAdImpression)},  // NOLINT
+      {"notifyAdOpened", "(J)V",
+       reinterpret_cast<void*>(
+           &Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyAdOpened)},  // NOLINT
+      {"notifyPaidEvent", "(JLjava/lang/String;IJ)V",
+       reinterpret_cast<void*>(
+           &Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyPaidEvent)},  // NOLINT
   };
   static const JNINativeMethod kInterstitialMethods[] = {
       {"completeInterstitialAdFutureCallback", "(JILjava/lang/String;)V",

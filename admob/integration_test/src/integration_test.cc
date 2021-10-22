@@ -77,6 +77,14 @@ const char* kBadAdUnit = "oops";
 static const int kBannerWidth = 320;
 static const int kBannerHeight = 50;
 
+enum AdCallbackEvent {
+  AdCallbackEventClicked = 0,
+  AdCallbackEventClosed,
+  AdCallbackEventAdImpression,
+  AdCallbackEventOpened,
+  AdCallbackEventPaidEvent
+};
+
 // Error domains vary across phone SDKs.
 #if defined(__ANDROID__)
 const char* kErrorDomain = "com.google.android.gms.ads";
@@ -134,7 +142,7 @@ class FirebaseAdMobTest : public FirebaseTest {
 
 firebase::App* FirebaseAdMobTest::shared_app_ = nullptr;
 
-void BrieflyPauseForVisualInspection() { app_framework::ProcessEvents(100); }
+void BrieflyPauseForVisualInspection() { app_framework::ProcessEvents(300); }
 
 void FirebaseAdMobTest::SetUpTestSuite() {
   LogDebug("Initialize Firebase App.");
@@ -267,21 +275,46 @@ TEST_F(FirebaseAdMobTest, TestGetAdRequestValues) {
   }
 }
 
-// A simple listener to help test changes to a BannerView.
-class TestBannerViewListener : public firebase::admob::BannerView::Listener {
+class TestBoundingBoxListener
+    : public firebase::admob::AdViewBoundingBoxListener {
  public:
-  void OnPresentationStateChanged(
-      firebase::admob::BannerView* banner_view,
-      firebase::admob::BannerView::PresentationState state) override {
-    presentation_states_.push_back(state);
-  }
-  void OnBoundingBoxChanged(firebase::admob::BannerView* banner_view,
+  void OnBoundingBoxChanged(firebase::admob::AdView* ad_view,
                             firebase::admob::BoundingBox box) override {
+    LogDebug(
+        "TestBoundingBoxListener OnBoundingBoxChanged: x: %d y: %d w: %d h: %d",
+        box.x, box.y, box.width, box.height);
     bounding_box_changes_.push_back(box);
   }
-  std::vector<firebase::admob::BannerView::PresentationState>
-      presentation_states_;
   std::vector<firebase::admob::BoundingBox> bounding_box_changes_;
+};
+
+// A simple listener to help test changes an Ad.
+class TestAdListener : public firebase::admob::AdListener {
+ public:
+  TestAdListener()
+      : num_on_ad_clicked_(0),
+        num_on_ad_closed_(0),
+        num_on_ad_impression_(0),
+        num_on_ad_opened_(0) {}
+
+  void OnAdClicked() override { num_on_ad_clicked_++; }
+  void OnAdClosed() override { num_on_ad_closed_++; }
+  void OnAdImpression() override { num_on_ad_impression_++; }
+  void OnAdOpened() override { num_on_ad_opened_++; }
+
+  int num_on_ad_clicked_;
+  int num_on_ad_closed_;
+  int num_on_ad_impression_;
+  int num_on_ad_opened_;
+};
+
+class TestPaidEventListener : public firebase::admob::PaidEventListener {
+ public:
+  TestPaidEventListener() : num_on_paid_event_(0) {}
+  void OnPaidEvent(const firebase::admob::AdValue& value) override {
+    ++num_on_paid_event_;
+  }
+  int num_on_paid_event_;
 };
 
 TEST_F(FirebaseAdMobTest, TestAdSize) {
@@ -426,8 +459,8 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
                     "Initialize");
 
   // Set the listener.
-  TestBannerViewListener banner_listener;
-  banner->SetListener(&banner_listener);
+  TestBoundingBoxListener bounding_box_listener;
+  banner->SetBoundingBoxListener(&bounding_box_listener);
 
   // Load the banner ad.
   firebase::admob::AdRequest request = GetAdRequest();
@@ -445,134 +478,109 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
       result_ptr->response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());
   load_ad_future.Release();
-
-  std::vector<firebase::admob::BannerView::PresentationState>
-      expected_presentation_states;
   int expected_num_bounding_box_changes = 0;
 
   // Make the BannerView visible.
   WaitForCompletion(banner->Show(), "Show 0");
-  expected_presentation_states.push_back(
-      firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
 
   BrieflyPauseForVisualInspection();
 
   // Move to each of the six pre-defined positions.
-  WaitForCompletion(banner->MoveTo(firebase::admob::BannerView::kPositionTop),
-                    "MoveTo(Top)");
-  expected_presentation_states.push_back(
-      firebase::admob::BannerView::kPresentationStateVisibleWithAd);
+  WaitForCompletion(banner->SetPosition(firebase::admob::AdView::kPositionTop),
+                    "SetPosition(Top)");
+  EXPECT_EQ(banner->bounding_box().position,
+            firebase::admob::AdView::kPositionTop);
   expected_num_bounding_box_changes++;
 
   BrieflyPauseForVisualInspection();
 
   WaitForCompletion(
-      banner->MoveTo(firebase::admob::BannerView::kPositionTopLeft),
-      "MoveTo(TopLeft)");
-  expected_presentation_states.push_back(
-      firebase::admob::BannerView::kPresentationStateVisibleWithAd);
+      banner->SetPosition(firebase::admob::AdView::kPositionTopLeft),
+      "SetPosition(TopLeft)");
   expected_num_bounding_box_changes++;
-
+  EXPECT_EQ(banner->bounding_box().position,
+            firebase::admob::AdView::kPositionTopLeft);
   BrieflyPauseForVisualInspection();
 
   WaitForCompletion(
-      banner->MoveTo(firebase::admob::BannerView::kPositionTopRight),
-      "MoveTo(TopRight)");
-  expected_presentation_states.push_back(
-      firebase::admob::BannerView::kPresentationStateVisibleWithAd);
+      banner->SetPosition(firebase::admob::AdView::kPositionTopRight),
+      "SetPosition(TopRight)");
   expected_num_bounding_box_changes++;
-
+  EXPECT_EQ(banner->bounding_box().position,
+            firebase::admob::AdView::kPositionTopRight);
   BrieflyPauseForVisualInspection();
 
   WaitForCompletion(
-      banner->MoveTo(firebase::admob::BannerView::kPositionBottom),
-      "Moveto(Bottom)");
-  expected_presentation_states.push_back(
-      firebase::admob::BannerView::kPresentationStateVisibleWithAd);
+      banner->SetPosition(firebase::admob::AdView::kPositionBottom),
+      "SetPosition(Bottom)");
   expected_num_bounding_box_changes++;
-
+  EXPECT_EQ(banner->bounding_box().position,
+            firebase::admob::AdView::kPositionBottom);
   BrieflyPauseForVisualInspection();
 
   WaitForCompletion(
-      banner->MoveTo(firebase::admob::BannerView::kPositionBottomLeft),
-      "MoveTo(BottomLeft)");
-  expected_presentation_states.push_back(
-      firebase::admob::BannerView::kPresentationStateVisibleWithAd);
+      banner->SetPosition(firebase::admob::AdView::kPositionBottomLeft),
+      "SetPosition(BottomLeft)");
   expected_num_bounding_box_changes++;
-
+  EXPECT_EQ(banner->bounding_box().position,
+            firebase::admob::AdView::kPositionBottomLeft);
   BrieflyPauseForVisualInspection();
 
   WaitForCompletion(
-      banner->MoveTo(firebase::admob::BannerView::kPositionBottomRight),
-      "MoveTo(BottomRight)");
-  expected_presentation_states.push_back(
-      firebase::admob::BannerView::kPresentationStateVisibleWithAd);
+      banner->SetPosition(firebase::admob::AdView::kPositionBottomRight),
+      "SetPosition(BottomRight)");
   expected_num_bounding_box_changes++;
-
+  EXPECT_EQ(banner->bounding_box().position,
+            firebase::admob::AdView::kPositionBottomRight);
   BrieflyPauseForVisualInspection();
 
   // Move to some coordinates.
-  WaitForCompletion(banner->MoveTo(100, 300), "MoveTo(x0, y0)");
-  expected_presentation_states.push_back(
-      firebase::admob::BannerView::kPresentationStateVisibleWithAd);
+  WaitForCompletion(banner->SetPosition(100, 300), "SetPosition(x0, y0)");
   expected_num_bounding_box_changes++;
-
+  EXPECT_EQ(banner->bounding_box().position,
+            firebase::admob::AdView::kPositionUndefined);
   BrieflyPauseForVisualInspection();
 
-  WaitForCompletion(banner->MoveTo(100, 400), "MoveTo(x1, y1)");
-  expected_presentation_states.push_back(
-      firebase::admob::BannerView::kPresentationStateVisibleWithAd);
+  WaitForCompletion(banner->SetPosition(100, 400), "SetPosition(x1, y1)");
+  EXPECT_EQ(banner->bounding_box().position,
+            firebase::admob::AdView::kPositionUndefined);
   expected_num_bounding_box_changes++;
-
   BrieflyPauseForVisualInspection();
 
   // Try hiding and showing the BannerView.
   WaitForCompletion(banner->Hide(), "Hide 1");
-  expected_presentation_states.push_back(
-      firebase::admob::BannerView::kPresentationStateHidden);
 
   BrieflyPauseForVisualInspection();
 
   WaitForCompletion(banner->Show(), "Show 1");
-  expected_presentation_states.push_back(
-      firebase::admob::BannerView::kPresentationStateVisibleWithAd);
   expected_num_bounding_box_changes++;
 
   BrieflyPauseForVisualInspection();
 
   // Move again after hiding/showing.
-  WaitForCompletion(banner->MoveTo(100, 300), "MoveTo(x2, y2)");
-  expected_presentation_states.push_back(
-      firebase::admob::BannerView::kPresentationStateVisibleWithAd);
+  WaitForCompletion(banner->SetPosition(100, 300), "SetPosition(x2, y2)");
   expected_num_bounding_box_changes++;
-
+  EXPECT_EQ(banner->bounding_box().position,
+            firebase::admob::AdView::kPositionUndefined);
   BrieflyPauseForVisualInspection();
 
-  WaitForCompletion(banner->MoveTo(100, 400), "Moveto(x3, y3)");
-  expected_presentation_states.push_back(
-      firebase::admob::BannerView::kPresentationStateVisibleWithAd);
+  WaitForCompletion(banner->SetPosition(100, 400), "SetPosition(x3, y3)");
   expected_num_bounding_box_changes++;
-
+  EXPECT_EQ(banner->bounding_box().position,
+            firebase::admob::AdView::kPositionUndefined);
   BrieflyPauseForVisualInspection();
 
   WaitForCompletion(banner->Hide(), "Hide 2");
-  expected_presentation_states.push_back(
-      firebase::admob::BannerView::kPresentationStateHidden);
-  delete banner;
-
-  expected_presentation_states.push_back(
-      firebase::admob::BannerView::kPresentationStateHidden);
   expected_num_bounding_box_changes++;
 
-#if defined(__ANDROID__) || TARGET_OS_IPHONE
-  // Ensure that we got all the presentation state changes.
-  EXPECT_EQ(banner_listener.presentation_states_, expected_presentation_states);
+  delete banner;
 
+#if defined(__ANDROID__) || TARGET_OS_IPHONE
   // For the bounding box, check that we got the number of bounding box events
   // we expect, since we don't know the exact bounding box coordinates to
   // expect.
-  EXPECT_EQ(banner_listener.bounding_box_changes_.size(),
+  EXPECT_EQ(bounding_box_listener.bounding_box_changes_.size(),
             expected_num_bounding_box_changes);
 
   // As an extra check, all bounding boxes except the last should have the same
@@ -582,25 +590,75 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
   double kAspectRatioAllowedError = 0.02;  // Allow about 2% of error.
   double expected_aspect_ratio =
       static_cast<double>(kBannerWidth) / static_cast<double>(kBannerHeight);
-  for (int i = 0; i < banner_listener.bounding_box_changes_.size() - 1; ++i) {
+  for (int i = 0; i < bounding_box_listener.bounding_box_changes_.size() - 1;
+       ++i) {
     double actual_aspect_ratio =
-        static_cast<double>(banner_listener.bounding_box_changes_[i].width) /
-        static_cast<double>(banner_listener.bounding_box_changes_[i].height);
+        static_cast<double>(
+            bounding_box_listener.bounding_box_changes_[i].width) /
+        static_cast<double>(
+            bounding_box_listener.bounding_box_changes_[i].height);
     EXPECT_NEAR(actual_aspect_ratio, expected_aspect_ratio,
                 kAspectRatioAllowedError)
-        << "Banner size " << banner_listener.bounding_box_changes_[i].width
-        << "x" << banner_listener.bounding_box_changes_[i].height
+        << "Banner size "
+        << bounding_box_listener.bounding_box_changes_[i].width << "x"
+        << bounding_box_listener.bounding_box_changes_[i].height
         << " does not have the same aspect ratio as requested size "
         << kBannerWidth << "x" << kBannerHeight << ".";
   }
 
   // And finally, the last bounding box change, when the banner is deleted,
-  // should be (0,0,0,0).
-  EXPECT_TRUE(banner_listener.bounding_box_changes_.back().x == 0 &&
-              banner_listener.bounding_box_changes_.back().y == 0 &&
-              banner_listener.bounding_box_changes_.back().width == 0 &&
-              banner_listener.bounding_box_changes_.back().height == 0);
+  // should have invalid values (-1,-1, -1, -1).
+  EXPECT_TRUE(bounding_box_listener.bounding_box_changes_.back().x == -1 &&
+              bounding_box_listener.bounding_box_changes_.back().y == -1 &&
+              bounding_box_listener.bounding_box_changes_.back().width == -1 &&
+              bounding_box_listener.bounding_box_changes_.back().height == -1);
 #endif
+}
+
+TEST_F(FirebaseAdMobTest, TestBannerViewAdOpenedAdClosed) {
+  SKIP_TEST_ON_DESKTOP;
+  TEST_REQUIRES_USER_INTERACTION;
+
+  const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
+  firebase::admob::BannerView* banner = new firebase::admob::BannerView();
+  WaitForCompletion(banner->Initialize(app_framework::GetWindowContext(),
+                                       kBannerAdUnit, banner_ad_size),
+                    "Initialize");
+
+  // Set the listener.
+  TestAdListener ad_listener;
+  banner->SetAdListener(&ad_listener);
+
+  TestPaidEventListener paid_event_listener;
+  banner->SetPaidEventListener(&paid_event_listener);
+
+  // Load the banner ad.
+  firebase::admob::AdRequest request = GetAdRequest();
+  firebase::Future<firebase::admob::LoadAdResult> load_ad_future =
+      banner->LoadAd(request);
+  WaitForCompletion(load_ad_future, "LoadAd");
+  WaitForCompletion(banner->Show(), "Show 0");
+
+  LogDebug("Click the Ad, and then close the ad to continue");
+  while (ad_listener.num_on_ad_opened_ == 0) {
+    app_framework::ProcessEvents(1000);
+  }
+
+  while (ad_listener.num_on_ad_closed_ == 0) {
+    app_framework::ProcessEvents(1000);
+  }
+  load_ad_future.Release();
+  delete banner;
+
+  // TODO(DDB): These events require custom events to be enabled on the
+  // admob project (in the backend).
+  EXPECT_EQ(ad_listener.num_on_ad_clicked_, 0);
+
+  // Ensure expected events were triggered.
+  EXPECT_EQ(ad_listener.num_on_ad_impression_, 1);
+  EXPECT_EQ(ad_listener.num_on_ad_opened_, 1);
+  EXPECT_EQ(ad_listener.num_on_ad_closed_, 1);
+  EXPECT_EQ(paid_event_listener.num_on_paid_event_, 1);
 }
 
 TEST_F(FirebaseAdMobTest, TestBannerViewErrorAlreadyInitialized) {

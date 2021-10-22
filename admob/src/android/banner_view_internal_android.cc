@@ -54,10 +54,7 @@ METHOD_LOOKUP_DEFINITION(ad_view, "com/google/android/gms/ads/AdView",
 namespace internal {
 
 BannerViewInternalAndroid::BannerViewInternalAndroid(BannerView* base)
-    : BannerViewInternal(base),
-      helper_(nullptr),
-      initialized_(false),
-      bounding_box_() {
+    : BannerViewInternal(base), helper_(nullptr), initialized_(false) {
   JNIEnv* env = ::firebase::admob::GetJNI();
   FIREBASE_ASSERT(env);
 
@@ -96,8 +93,6 @@ void DestroyOnDeleteCallback(const Future<void>& result, void* sem_data) {
 }
 
 BannerViewInternalAndroid::~BannerViewInternalAndroid() {
-  DestroyInternalData();
-
   Semaphore semaphore(0);
   InvokeNullary(kBannerViewFnDestroyOnDelete, banner_view_helper::kDestroy)
       .OnCompletion(DestroyOnDeleteCallback, &semaphore);
@@ -151,6 +146,7 @@ void InitializeBannerViewOnMainThread(void* data) {
     call_data->callback_data->future_data->future_impl.Complete(
         call_data->callback_data->future_handle, kAdMobErrorAlreadyInitialized,
         kAdAlreadyInitializedErrorMessage);
+    delete call_data->callback_data;
     return;
   }
 
@@ -192,6 +188,13 @@ void InitializeBannerViewOnMainThread(void* data) {
                       ad_listener);
   jni_exception = util::CheckAndClearJniExceptions(env);
   FIREBASE_ASSERT(!jni_exception);
+
+  env->CallVoidMethod(call_data->ad_view,
+                      ad_view::GetMethodId(ad_view::kSetOnPaidEventListener),
+                      ad_listener);
+  jni_exception = util::CheckAndClearJniExceptions(env);
+  FIREBASE_ASSERT(!jni_exception);
+
   env->DeleteLocalRef(ad_listener);
 
   call_data->callback_data->future_data->future_impl.Complete(
@@ -233,93 +236,69 @@ Future<void> BannerViewInternalAndroid::Initialize(AdParent parent,
   return MakeFuture(&future_data_.future_impl, future_handle);
 }
 
-Future<LoadAdResult> BannerViewInternalAndroid::LoadAd(
-    const AdRequest& request) {
-  admob::AdMobError error = kAdMobErrorNone;
-  jobject request_ref = GetJavaAdRequestFromCPPAdRequest(request, &error);
+struct LoadAdOnMainThreadData {
+  // Thread-safe call data.
+  LoadAdOnMainThreadData()
+      : ad_request(), callback_data(nullptr), banner_view_helper(nullptr) {}
+  ~LoadAdOnMainThreadData() {
+    JNIEnv* env = GetJNI();
+    env->DeleteGlobalRef(banner_view_helper);
+  }
+  AdRequest ad_request;
+  jobject banner_view_helper;
+  FutureCallbackData<LoadAdResult>* callback_data;
+};
 
-  if (request_ref == nullptr) {
+// This function is run on the main thread and is called in the
+// BannerViewInternalAndroid::LoadAd() method.
+void LoadAdOnMainThread(void* data) {
+  LoadAdOnMainThreadData* call_data =
+      reinterpret_cast<LoadAdOnMainThreadData*>(data);
+  JNIEnv* env = GetJNI();
+  FIREBASE_ASSERT(env);
+
+  admob::AdMobError error = kAdMobErrorNone;
+  jobject j_ad_request =
+      GetJavaAdRequestFromCPPAdRequest(call_data->ad_request, &error);
+
+  if (j_ad_request == nullptr) {
     if (error == kAdMobErrorNone) {
       error = kAdMobErrorInternalError;
     }
-    return CreateAndCompleteFutureWithResult(
-        kBannerViewFnLoadAd, error, kAdCouldNotParseAdRequestErrorMessage,
-        &future_data_, LoadAdResult());
+    call_data->callback_data->future_data->future_impl.CompleteWithResult(
+        call_data->callback_data->future_handle, error,
+        kAdCouldNotParseAdRequestErrorMessage, LoadAdResult());
+    delete call_data->callback_data;
+  } else {
+    ::firebase::admob::GetJNI()->CallVoidMethod(
+        call_data->banner_view_helper,
+        banner_view_helper::GetMethodId(banner_view_helper::kLoadAd),
+        reinterpret_cast<jlong>(call_data->callback_data), j_ad_request);
+    env->DeleteLocalRef(j_ad_request);
   }
+}
 
+Future<LoadAdResult> BannerViewInternalAndroid::LoadAd(
+    const AdRequest& request) {
   FutureCallbackData<LoadAdResult>* callback_data =
       CreateLoadAdResultFutureCallbackData(kBannerViewFnLoadAd, &future_data_);
   SafeFutureHandle<LoadAdResult> future_handle = callback_data->future_handle;
 
-  ::firebase::admob::GetJNI()->CallVoidMethod(
-      helper_, banner_view_helper::GetMethodId(banner_view_helper::kLoadAd),
-      reinterpret_cast<jlong>(callback_data), request_ref);
+  JNIEnv* env = GetJNI();
+  FIREBASE_ASSERT(env);
+
+  LoadAdOnMainThreadData* call_data = new LoadAdOnMainThreadData();
+  call_data->ad_request = request;
+  call_data->callback_data = callback_data;
+  call_data->banner_view_helper = env->NewGlobalRef(helper_);
+
+  jobject activity = ::firebase::admob::GetActivity();
+  util::RunOnMainThread(env, activity, LoadAdOnMainThread, call_data);
 
   return MakeFuture(&future_data_.future_impl, future_handle);
 }
 
-Future<void> BannerViewInternalAndroid::Hide() {
-  return InvokeNullary(kBannerViewFnHide, banner_view_helper::kHide);
-}
-
-Future<void> BannerViewInternalAndroid::Show() {
-  return InvokeNullary(kBannerViewFnShow, banner_view_helper::kShow);
-}
-
-Future<void> BannerViewInternalAndroid::Pause() {
-  return InvokeNullary(kBannerViewFnPause, banner_view_helper::kPause);
-}
-
-Future<void> BannerViewInternalAndroid::Resume() {
-  return InvokeNullary(kBannerViewFnResume, banner_view_helper::kResume);
-}
-
-Future<void> BannerViewInternalAndroid::Destroy() {
-  DestroyInternalData();
-  return InvokeNullary(kBannerViewFnDestroy, banner_view_helper::kDestroy);
-}
-
-Future<void> BannerViewInternalAndroid::MoveTo(int x, int y) {
-  FutureCallbackData<void>* callback_data =
-      CreateVoidFutureCallbackData(kBannerViewFnMoveTo, &future_data_);
-  SafeFutureHandle<void> future_handle = callback_data->future_handle;
-
-  ::firebase::admob::GetJNI()->CallVoidMethod(
-      helper_, banner_view_helper::GetMethodId(banner_view_helper::kMoveToXY),
-      reinterpret_cast<jlong>(callback_data), x, y);
-
-  return MakeFuture(&future_data_.future_impl, future_handle);
-}
-
-Future<void> BannerViewInternalAndroid::MoveTo(BannerView::Position position) {
-  FutureCallbackData<void>* callback_data =
-      CreateVoidFutureCallbackData(kBannerViewFnMoveTo, &future_data_);
-  SafeFutureHandle<void> future_handle = callback_data->future_handle;
-
-  ::firebase::admob::GetJNI()->CallVoidMethod(
-      helper_,
-      banner_view_helper::GetMethodId(banner_view_helper::kMoveToPosition),
-      reinterpret_cast<jlong>(callback_data), static_cast<int>(position));
-
-  return MakeFuture(&future_data_.future_impl, future_handle);
-}
-
-BannerView::PresentationState BannerViewInternalAndroid::GetPresentationState()
-    const {
-  jint state = ::firebase::admob::GetJNI()->CallIntMethod(
-      helper_, banner_view_helper::GetMethodId(
-                   banner_view_helper::kGetPresentationState));
-  assert((static_cast<int>(state) >= 0));
-  return static_cast<BannerView::PresentationState>(state);
-}
-
-BoundingBox BannerViewInternalAndroid::GetBoundingBox() const {
-  // If the banner view is hidden and the publisher polls the bounding box, we
-  // return the current bounding box.
-  if (GetPresentationState() == BannerView::kPresentationStateHidden) {
-    return bounding_box_;
-  }
-
+BoundingBox BannerViewInternalAndroid::bounding_box() const {
   // This JNI integer array consists of the BoundingBox's width, height,
   // x-coordinate, and y-coordinate.
   JNIEnv* env = ::firebase::admob::GetJNI();
@@ -340,12 +319,60 @@ BoundingBox BannerViewInternalAndroid::GetBoundingBox() const {
   box.height = static_cast<int>(bounding_box_elements[1]);
   box.x = static_cast<int>(bounding_box_elements[2]);
   box.y = static_cast<int>(bounding_box_elements[3]);
-  bounding_box_ = box;
-
+  jint j_position = env->CallIntMethod(
+      helper_,
+      banner_view_helper::GetMethodId(banner_view_helper::kGetPosition));
+  box.position = static_cast<AdView::Position>(j_position);
   env->ReleaseIntArrayElements(jni_int_array, bounding_box_elements, 0);
   env->DeleteLocalRef(jni_int_array);
 
   return box;
+}
+
+Future<void> BannerViewInternalAndroid::Hide() {
+  return InvokeNullary(kBannerViewFnHide, banner_view_helper::kHide);
+}
+
+Future<void> BannerViewInternalAndroid::Show() {
+  return InvokeNullary(kBannerViewFnShow, banner_view_helper::kShow);
+}
+
+Future<void> BannerViewInternalAndroid::Pause() {
+  return InvokeNullary(kBannerViewFnPause, banner_view_helper::kPause);
+}
+
+Future<void> BannerViewInternalAndroid::Resume() {
+  return InvokeNullary(kBannerViewFnResume, banner_view_helper::kResume);
+}
+
+Future<void> BannerViewInternalAndroid::Destroy() {
+  return InvokeNullary(kBannerViewFnDestroy, banner_view_helper::kDestroy);
+}
+
+Future<void> BannerViewInternalAndroid::SetPosition(int x, int y) {
+  FutureCallbackData<void>* callback_data =
+      CreateVoidFutureCallbackData(kBannerViewFnSetPosition, &future_data_);
+  SafeFutureHandle<void> future_handle = callback_data->future_handle;
+
+  ::firebase::admob::GetJNI()->CallVoidMethod(
+      helper_, banner_view_helper::GetMethodId(banner_view_helper::kMoveToXY),
+      reinterpret_cast<jlong>(callback_data), x, y);
+
+  return MakeFuture(&future_data_.future_impl, future_handle);
+}
+
+Future<void> BannerViewInternalAndroid::SetPosition(
+    BannerView::Position position) {
+  FutureCallbackData<void>* callback_data =
+      CreateVoidFutureCallbackData(kBannerViewFnSetPosition, &future_data_);
+  SafeFutureHandle<void> future_handle = callback_data->future_handle;
+
+  ::firebase::admob::GetJNI()->CallVoidMethod(
+      helper_,
+      banner_view_helper::GetMethodId(banner_view_helper::kMoveToPosition),
+      reinterpret_cast<jlong>(callback_data), static_cast<int>(position));
+
+  return MakeFuture(&future_data_.future_impl, future_handle);
 }
 
 Future<void> BannerViewInternalAndroid::InvokeNullary(
@@ -359,11 +386,6 @@ Future<void> BannerViewInternalAndroid::InvokeNullary(
       reinterpret_cast<jlong>(callback_data));
 
   return MakeFuture(&future_data_.future_impl, future_handle);
-}
-
-void BannerViewInternalAndroid::DestroyInternalData() {
-  // The bounding box is zeroed on destroy.
-  bounding_box_ = {};
 }
 
 }  // namespace internal

@@ -70,10 +70,6 @@ class BannerViewInternalStub : public BannerViewInternal {
     return CreateAndCompleteFutureStub(kBannerViewFnMoveTo);
   }
 
-  BannerView::PresentationState GetPresentationState() const override {
-    return BannerView::PresentationState::kPresentationStateHidden;
-  }
-
   BoundingBox GetBoundingBox() const override { return BoundingBox(); }
 
  private:
