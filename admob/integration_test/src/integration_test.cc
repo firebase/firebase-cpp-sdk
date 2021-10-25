@@ -983,7 +983,7 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdErrorBadAdUnitId) {
   delete interstitial_ad;
 }
 
-TEST_F(FirebaseAdMobTest, TestInterstiailAdErrorBadExtrasClassName) {
+TEST_F(FirebaseAdMobTest, TestInterstitialAdErrorBadExtrasClassName) {
   SKIP_TEST_ON_DESKTOP;
 
   firebase::admob::InterstitialAd* interstitial_ad =
