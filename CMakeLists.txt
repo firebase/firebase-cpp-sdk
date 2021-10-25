@@ -78,6 +78,9 @@ option(FIREBASE_USE_LINUX_CXX11_ABI
 option(FIREBASE_GITHUB_ACTION_BUILD
        "Indicates that this build was created from a GitHub Action" OFF)
 
+option(FIREBASE_QUICK_TEST
+       "Enable quick tests will skip tests which requires access to the SECRET" OFF)
+
 set(FIREBASE_ANDROID_STL "" CACHE STRING "STL implementation to use.")
 if (NOT FIREBASE_ANDROID_STL STREQUAL "")
   set(ANDROID_STL ${FIREBASE_ANDROID_STL})
