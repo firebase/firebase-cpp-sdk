@@ -36,19 +36,11 @@ class BannerViewInternal;
 /// are methods to load an ad, move it, show it and hide it, and retrieve the
 /// bounds of the ad onscreen.
 ///
-/// BannerView objects maintain a presentation state that indicates whether
-/// or not they're currently onscreen, as well as a set of bounds (stored in a
-/// @ref BoundingBox struct), but otherwise provide information about
-/// their current state through Futures. Methods like @ref Initialize,
-/// @ref LoadAd, and @ref Hide each have a corresponding @ref Future from which
-/// the result of the last call can be determined. The two variants of
-/// @ref SetPosition share a single result @ref Future, since they're
-/// essentially the same action.
-///
-/// In addition, applications can create their own subclasses of
-/// @ref BannerView::Listener, pass an instance to the @ref SetListener method,
-/// and receive callbacks whenever the presentation state or bounding box of the
-/// ad changes.
+/// BannerView objects provide information about their current state through
+/// Futures. Methods like @ref Initialize, @ref LoadAd, and @ref Hide each have
+/// a corresponding @ref Future from which the result of the last call can be
+/// determined. The two variants of @ref SetPosition share a single result
+/// @ref Future, since they're essentially the same action.
 ///
 /// For example, you could initialize, load, and show a banner view while
 /// checking the result of the previous action at each step as follows:

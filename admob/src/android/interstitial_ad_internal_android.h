@@ -32,7 +32,6 @@ namespace admob {
   X(Show, "show", "(J)V"),                                                     \
   X(LoadAd, "loadAd",                                                          \
     "(JLjava/lang/String;Lcom/google/android/gms/ads/AdRequest;)V"),           \
-  X(GetPresentationState, "getPresentationState", "()I"),                      \
   X(Disconnect, "disconnect", "()V")
 // clang-format on
 
@@ -49,8 +48,6 @@ class InterstitialAdInternalAndroid : public InterstitialAdInternal {
   Future<LoadAdResult> LoadAd(const char* ad_unit_id,
                               const AdRequest& request) override;
   Future<void> Show() override;
-
-  InterstitialAd::PresentationState GetPresentationState() const override;
 
  private:
   // Reference to the Java helper object used to interact with the Mobile Ads

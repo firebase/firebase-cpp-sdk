@@ -34,15 +34,10 @@ class InterstitialAdInternal;
 /// @ref InterstitialAd is a single-use object that can load and show a
 /// single AdMob interstitial ad.
 ///
-/// InterstitialAd objects maintain a presentation state that indicates whether
-/// or not they're currently onscreen, but otherwise provide information about
-/// their current state through Futures. @ref Initialize, @ref LoadAd, and
-/// @ref Show each have a corresponding @ref Future from which you can determine
-/// result of the previous call.
-///
-/// In addition, applications can create their own subclasses of
-/// @ref InterstitialAd::Listener, pass an instance to the @ref SetListener
-/// method, and receive callbacks whenever the presentation state changes.
+/// InterstitialAd objects provide information about their current state
+/// through Futures. @ref Initialize, @ref LoadAd, and @ref Show each have a
+/// corresponding @ref Future from which you can determine result of the
+// previous call.
 ///
 /// Here's how one might initialize, load, and show an interstitial ad while
 /// checking against the result of the previous action at each step:
@@ -76,38 +71,6 @@ class InterstitialAdInternal;
 /// @endcode
 class InterstitialAd {
  public:
-#ifdef INTERNAL_EXPERIMENTAL
-// LINT.IfChange
-#endif  // INTERNAL_EXPERIMENTAL
-  /// The presentation states of an @ref InterstitialAd.
-  enum PresentationState {
-    /// InterstitialAd is not currently being shown.
-    kPresentationStateHidden = 0,
-    /// InterstitialAd is being shown or has caused focus to leave the
-    /// application (for example, when opening an external browser during a
-    /// clickthrough).
-    kPresentationStateCoveringUI,
-  };
-#ifdef INTERNAL_EXPERIMENTAL
-// LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src_java/com/google/firebase/admob/internal/cpp/InterstitialAdHelper.java)
-#endif  // INTERNAL_EXPERIMENTAL
-
-  /// A listener class that developers can extend and pass to an
-  /// @ref InterstitialAd object's @ref SetListener method to be notified of
-  /// presentation state changes. This is useful for changes caused by user
-  /// interaction, such as when the user closes an interstitial.
-  class Listener {
-   public:
-    /// This method is called when the @ref InterstitialAd object's presentation
-    /// state changes.
-    /// @param[in] interstitial_ad The interstitial ad whose presentation state
-    ///                            changed.
-    /// @param[in] state The new presentation state.
-    virtual void OnPresentationStateChanged(InterstitialAd* interstitial_ad,
-                                            PresentationState state) = 0;
-    virtual ~Listener();
-  };
-
   /// Creates an uninitialized @ref InterstitialAd object.
   /// @ref Initialize must be called before the object is used.
   InterstitialAd();
@@ -122,9 +85,8 @@ class InterstitialAd {
   /// @ref Initialize.
   Future<void> InitializeLastResult() const;
 
-  /// Begins an asynchronous request for an ad. The
-  /// @ref InterstitialAd::presentation_state method can be used to track the
-  /// progress of the request.
+  /// Begins an asynchronous request for an ad.
+  ///
   /// @param[in] ad_unit_id The ad unit ID to use in loading the ad.
   /// @param[in] request An AdRequest struct with information about the request
   ///                    to be made (such as targeting info).
@@ -141,15 +103,17 @@ class InterstitialAd {
   /// Returns a @ref Future containing the status of the last call to @ref Show.
   Future<void> ShowLastResult() const;
 
-  /// Returns the current presentation state of the @ref InterstitialAd.
+  /// Sets the @ref FullScreenContentListener for this @ref InterstitialAd.
   ///
-  /// @return The current presentation state.
-  PresentationState presentation_state() const;
-
-  /// Sets the @ref Listener for this @ref InterstitialAd.
-  /// @param[in] listener A valid InterstititalAd::Listener to receive
+  /// @param[in] listener A valid @ref FullScreenContentListener to receive
   ///                     callbacks.
-  void SetListener(Listener* listener);
+  void SetFullScreenContentListener(FullScreenContentListener* listener);
+
+  /// Registers a callback to be invoked when this ad is estimated to have
+  /// earned money
+  ///
+  /// @param[in] listener A valid @ref OnPaidEventListener to receive callbacks.
+  void SetPaidEventListener(PaidEventListener* listener);
 
  private:
   // An internal, platform-specific implementation object that this class uses

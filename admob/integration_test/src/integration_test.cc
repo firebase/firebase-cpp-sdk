@@ -308,11 +308,47 @@ class TestAdListener : public firebase::admob::AdListener {
   int num_on_ad_opened_;
 };
 
+class TestFullScreenContentListener
+    : public firebase::admob::FullScreenContentListener {
+ public:
+  TestFullScreenContentListener()
+      : num_on_ad_dismissed_full_screen_content_(0),
+        num_on_ad_failed_to_show_full_screen_content_(0),
+        num_on_ad_impression_(0),
+        num_on_ad_showed_full_screen_content_(0) {}
+
+  void OnAdDismissedFullScreenContent() override {
+    num_on_ad_dismissed_full_screen_content_++;
+  }
+
+  void OnAdFailedToShowFullScreenContent(
+      const firebase::admob::AdResult& ad_result) override {
+    num_on_ad_failed_to_show_full_screen_content_++;
+  }
+
+  void OnAdImpression() override { num_on_ad_impression_++; }
+
+  void OnAdShowedFullScreenContent() override {
+    num_on_ad_showed_full_screen_content_++;
+  }
+
+  int num_on_ad_dismissed_full_screen_content_;
+  int num_on_ad_failed_to_show_full_screen_content_;
+  int num_on_ad_impression_;
+  int num_on_ad_showed_full_screen_content_;
+};
+
 class TestPaidEventListener : public firebase::admob::PaidEventListener {
  public:
   TestPaidEventListener() : num_on_paid_event_(0) {}
   void OnPaidEvent(const firebase::admob::AdValue& value) override {
     ++num_on_paid_event_;
+    // These are the values for AdMob test ads.  If they change then we should
+    // alter the test to match the new expected values.
+    EXPECT_EQ(value.currency_code(), "USD");
+    EXPECT_EQ(value.precision_type(),
+              firebase::admob::AdValue::kdValuePrecisionUnknown);
+    EXPECT_EQ(value.value_micros(), 0);
   }
   int num_on_paid_event_;
 };
@@ -789,19 +825,6 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorBadExtrasClassName) {
   delete banner;
 }
 
-// A simple listener to help test changes to a InterstitialAd.
-class TestInterstitialAdListener
-    : public firebase::admob::InterstitialAd::Listener {
- public:
-  void OnPresentationStateChanged(
-      firebase::admob::InterstitialAd* interstitial_ad,
-      firebase::admob::InterstitialAd::PresentationState state) override {
-    presentation_states_.push_back(state);
-  }
-  std::vector<firebase::admob::InterstitialAd::PresentationState>
-      presentation_states_;
-};
-
 TEST_F(FirebaseAdMobTest, TestInterstitialAdLoad) {
   SKIP_TEST_ON_DESKTOP;
 
@@ -831,34 +854,37 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdLoadAndShow) {
   WaitForCompletion(interstitial->Initialize(app_framework::GetWindowContext()),
                     "Initialize");
 
-  TestInterstitialAdListener interstitial_listener;
-  interstitial->SetListener(&interstitial_listener);
+  TestFullScreenContentListener full_screen_content_listener;
+  interstitial->SetFullScreenContentListener(&full_screen_content_listener);
+
+  TestPaidEventListener paid_event_listener;
+  interstitial->SetPaidEventListener(&paid_event_listener);
 
   // When the InterstitialAd is initialized, load an ad.
   firebase::admob::AdRequest request = GetAdRequest();
   WaitForCompletion(interstitial->LoadAd(kInterstitialAdUnit, request),
                     "LoadAd");
 
-  std::vector<firebase::admob::InterstitialAd::PresentationState>
-      expected_presentation_states;
+  int expected_full_screen_show_events = 1;
+  int expected_ad_impression_events = 1;
+  int expected_paid_events = 1;
+
   WaitForCompletion(interstitial->Show(), "Show");
-  expected_presentation_states.push_back(
-      firebase::admob::InterstitialAd::PresentationState::
-          kPresentationStateCoveringUI);
-  // Wait for the user to close the interstitial ad.
-  while (interstitial->presentation_state() !=
-         firebase::admob::InterstitialAd::PresentationState::
-             kPresentationStateHidden) {
+
+  // Wait until the ad has been closed.
+  while (
+      full_screen_content_listener.num_on_ad_dismissed_full_screen_content_ ==
+      0) {
     app_framework::ProcessEvents(1000);
   }
 
-  expected_presentation_states.push_back(
-      firebase::admob::InterstitialAd::PresentationState::
-          kPresentationStateHidden);
-#if defined(__ANDROID__) || TARGET_OS_IPHONE
-  EXPECT_EQ(interstitial_listener.presentation_states_,
-            expected_presentation_states);
-#endif
+  EXPECT_EQ(full_screen_content_listener.num_on_ad_showed_full_screen_content_,
+            1);
+  EXPECT_EQ(full_screen_content_listener.num_on_ad_impression_, 1);
+  EXPECT_EQ(paid_event_listener.num_on_paid_event_, 1);
+  EXPECT_EQ(
+      full_screen_content_listener.num_on_ad_dismissed_full_screen_content_, 1);
+
   delete interstitial;
 }
 

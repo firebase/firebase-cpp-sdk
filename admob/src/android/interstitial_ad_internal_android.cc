@@ -135,15 +135,6 @@ Future<void> InterstitialAdInternalAndroid::Show() {
   return MakeFuture(&future_data_.future_impl, future_handle);
 }
 
-InterstitialAd::PresentationState
-InterstitialAdInternalAndroid::GetPresentationState() const {
-  jint state = ::firebase::admob::GetJNI()->CallIntMethod(
-      helper_, interstitial_ad_helper::GetMethodId(
-                   interstitial_ad_helper::kGetPresentationState));
-  assert((static_cast<int>(state) >= 0));
-  return static_cast<InterstitialAd::PresentationState>(state);
-}
-
 }  // namespace internal
 }  // namespace admob
 }  // namespace firebase

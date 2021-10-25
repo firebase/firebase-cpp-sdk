@@ -109,12 +109,13 @@ FutureCallbackData<LoadAdResult>* CreateLoadAdResultFutureCallbackData(
 
 // A class that allows access to private/protected Admob structures for Java
 // callbacks.  This is achieved via friend relationships with those classes.
-class AdmobInternal {
+class AdMobInternal {
  public:
   static void CompleteLoadAdFuture(
       FutureCallbackData<LoadAdResult>* callback_data, int error_code,
       const std::string& error_message,
       const LoadAdResultInternal& load_ad_result_internal);
+  static AdResult CreateAdResult(const AdResultInternal& ad_result_internal);
 };
 
 }  // namespace admob

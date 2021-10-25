@@ -164,7 +164,7 @@ void Terminate() {
 
 const ::firebase::App* GetApp() { return g_app; }
 
-void AdmobInternal::CompleteLoadAdFuture(
+void AdMobInternal::CompleteLoadAdFuture(
     FutureCallbackData<LoadAdResult>* callback_data, int error_code,
     const std::string& error_message,
     const LoadAdResultInternal& load_ad_result_internal) {
@@ -209,7 +209,7 @@ void CompleteLoadAdResult(FutureCallbackData<LoadAdResult>* callback_data,
     future_error_message = adr->message;
   }
 
-  AdmobInternal::CompleteLoadAdFuture(
+  AdMobInternal::CompleteLoadAdFuture(
       callback_data, adr->code, future_error_message, load_ad_result_internal);
 }
 

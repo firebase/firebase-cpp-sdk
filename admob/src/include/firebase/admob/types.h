@@ -45,7 +45,7 @@ struct LoadAdResultInternal;
 struct ResponseInfoInternal;
 
 class AdViewBoundingBoxListener;
-class AdmobInternal;
+class AdMobInternal;
 class AdViewInternal;
 class BannerView;
 class InterstitialAd;
@@ -202,7 +202,7 @@ class AdResult {
   // specifics in the internal callback handlers.
   AdResult();
 
-  /// Constructor used when building results in Load Ad callbacks.
+  /// Constructor used when building results in Ad event callbacks.
   explicit AdResult(const AdResultInternal& ad_result_internal);
 
   /// Sets the internally cached string. Used by the LoadAdError subclass.
@@ -701,12 +701,34 @@ class LoadAdResult : public AdResult {
   const ResponseInfo& response_info() const { return response_info_; }
 
  private:
-  friend class AdmobInternal;
+  friend class AdMobInternal;
   friend class BannerView;
 
   explicit LoadAdResult(const LoadAdResultInternal& load_ad_result_internal);
 
   ResponseInfo response_info_;
+};
+
+/// @brief Listener to be invoked when ads show and dismiss full screen content,
+/// such as a fullscreen ad experience or an in-app browser.
+class FullScreenContentListener {
+ public:
+  virtual ~FullScreenContentListener();
+
+  /// Called when the ad dismissed full screen content.
+  virtual void OnAdDismissedFullScreenContent() = 0;
+
+  /// Called when the ad failed to show full screen content.
+  ///
+  /// param[in] ad_result An object containing detailed information
+  /// about the error.
+  virtual void OnAdFailedToShowFullScreenContent(const AdResult& ad_result) = 0;
+
+  /// Called when an impression is recorded for an ad.
+  virtual void OnAdImpression() = 0;
+
+  /// Called when the ad showed the full screen content.
+  virtual void OnAdShowedFullScreenContent() = 0;
 };
 
 /// Listener to be invoked when ads have been estimated to earn money.

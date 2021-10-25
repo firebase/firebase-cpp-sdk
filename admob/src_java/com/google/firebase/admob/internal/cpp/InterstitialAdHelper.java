@@ -20,8 +20,10 @@ import android.app.Activity;
 
 import com.google.android.gms.ads.AdError;
 import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdValue;
 import com.google.android.gms.ads.FullScreenContentCallback;
 import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.OnPaidEventListener;
 import com.google.android.gms.ads.interstitial.InterstitialAd;
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
 
@@ -34,13 +36,6 @@ import android.util.Log;
  * convert the Java listener patterns into game engine-friendly state machine polling.
  */
 public class InterstitialAdHelper {
-
-  // Presentation states (matches the InterstitialAd::PresentationState
-  // enumeration in the public C++ API).
-  // LINT.IfChange
-  public static final int PRESENTATION_STATE_HIDDEN = 0;
-  public static final int PRESENTATION_STATE_COVERING_UI = 1;
-  // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src/include/firebase/admob/interstitial_ad.h)
 
   // C++ nullptr for use with the callbacks.
   private static final long CPP_NULLPTR = 0;
@@ -58,9 +53,6 @@ public class InterstitialAdHelper {
   // * mLoadAdCallbackDataPtr
   private final Object mInterstitialLock;
 
-  // The current presentation state.
-  private int mCurrentPresentationState;
-
   // The {@link Activity} this helper uses to display its
   // {@link InterstitialAd}.
   private Activity mActivity;
@@ -75,13 +67,11 @@ public class InterstitialAdHelper {
   /** Constructor. */
   public InterstitialAdHelper(long interstitialAdInternalPtr) {
     mInterstitialAdInternalPtr = interstitialAdInternalPtr;
-    mCurrentPresentationState = PRESENTATION_STATE_HIDDEN;
     mInterstitialLock = new Object();
 
     // Test the callbacks and fail quickly if something's wrong.
     completeInterstitialAdFutureCallback(
         CPP_NULLPTR, 0, ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
-    notifyPresentationStateChanged(CPP_NULLPTR, mCurrentPresentationState);
   }
 
   /**
@@ -211,35 +201,41 @@ public class InterstitialAdHelper {
         });
   }
 
-  /** Retrieves the presentation state of this InterstitialAdHelper. */
-  public int getPresentationState() {
-    return mCurrentPresentationState;
-  }
 
-  private class InterstitialAdFullScreenContentListener extends FullScreenContentCallback {
+  private class InterstitialAdFullScreenContentListener
+    extends FullScreenContentCallback implements OnPaidEventListener {
     @Override
     public void onAdDismissedFullScreenContent() {
       synchronized (mInterstitialLock) {
-        mCurrentPresentationState = PRESENTATION_STATE_HIDDEN;
-        notifyPresentationStateChanged(mInterstitialAdInternalPtr, mCurrentPresentationState);
+        notifyAdDismissedFullScreenContentEvent(mInterstitialAdInternalPtr);
       }
     }
 
     @Override
     public void onAdFailedToShowFullScreenContent(AdError error) {
-      // TODO. 
+      synchronized (mInterstitialLock) {
+        notifyAdFailedToShowFullScreenContentEvent(mInterstitialAdInternalPtr, error);
+      }
     }
 
     @Override
     public void onAdImpression() {
-      // TODO. 
+      synchronized (mInterstitialLock) {
+        notifyAdImpressionEvent(mInterstitialAdInternalPtr);
+      }
     }
 
     @Override
     public void onAdShowedFullScreenContent() {
       synchronized (mInterstitialLock) {
-        mCurrentPresentationState = PRESENTATION_STATE_COVERING_UI;
-        notifyPresentationStateChanged(mInterstitialAdInternalPtr, mCurrentPresentationState);
+        notifyAdShowedFullScreenContentEvent(mInterstitialAdInternalPtr);
+      }
+    }
+
+    public void onPaidEvent(AdValue value) {
+      synchronized (mInterstitialLock) {
+        notifyPaidEvent(mInterstitialAdInternalPtr, value.getCurrencyCode(),
+          value.getPrecisionType(), value.getValueMicros());
       }
     }
   }
@@ -248,7 +244,9 @@ public class InterstitialAdHelper {
     @Override
     public void onAdFailedToLoad(LoadAdError loadAdError) {
       synchronized (mInterstitialLock) {
-        completeInterstitialLoadAdError(mLoadAdCallbackDataPtr, loadAdError, loadAdError.getCode(), loadAdError.getMessage());
+        completeInterstitialLoadAdError(
+          mLoadAdCallbackDataPtr, loadAdError, loadAdError.getCode(),
+          loadAdError.getMessage());
         mLoadAdCallbackDataPtr = CPP_NULLPTR;
       }
     }
@@ -257,7 +255,9 @@ public class InterstitialAdHelper {
     public void onAdLoaded(InterstitialAd ad) {
       synchronized (mInterstitialLock) {
         mInterstitial = ad;
-        mInterstitial.setFullScreenContentCallback(new InterstitialAdFullScreenContentListener());
+        InterstitialAdFullScreenContentListener listener = new InterstitialAdFullScreenContentListener();
+        mInterstitial.setFullScreenContentCallback(listener);
+        mInterstitial.setOnPaidEventListener(listener);
         completeInterstitialLoadedAd(mLoadAdCallbackDataPtr);
         mLoadAdCallbackDataPtr = CPP_NULLPTR;
       }
@@ -284,6 +284,12 @@ public class InterstitialAdHelper {
   public static native void completeInterstitialLoadAdInternalError(
     long nativeInternalPtr, int admobErrorCode, String errorMessage);
 
-  /** Native callback to notify the C++ wrapper that a state change has occurred. */
-  public static native void notifyPresentationStateChanged(long nativeInternalPtr, int state);
+  /** Native callbacks to notify the C++ wrapper of ad events */
+  public static native void notifyAdDismissedFullScreenContentEvent(long nativeInternalPtr);
+  public static native void notifyAdFailedToShowFullScreenContentEvent(long nativeInternalPtr,
+    AdError adError);
+  public static native void notifyAdImpressionEvent(long nativeInternalPtr);
+  public static native void notifyAdShowedFullScreenContentEvent(long nativeInternalPtr);
+  public static native void notifyPaidEvent(long nativeInternalPtr, String currencyCode,
+    int precisionType, long valueMicros);
 }

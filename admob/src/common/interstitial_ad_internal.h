@@ -53,16 +53,24 @@ class InterstitialAdInternal {
   // Displays an interstitial ad.
   virtual Future<void> Show() = 0;
 
-  // Returns the current presentation state of the interstitial ad.
-  virtual InterstitialAd::PresentationState GetPresentationState() const = 0;
+  /// Sets the @ref FullScreenContentListener to receive events about UI
+  // and presentation state.
+  void SetFullScreenContentListener(FullScreenContentListener* listener);
 
-  // Sets the listener that should be informed of presentation state changes.
-  void SetListener(InterstitialAd::Listener* listener);
+  /// Sets the @ref PaidEventListener to receive information about paid events.
+  void SetPaidEventListener(PaidEventListener* listener);
 
-  // Notifies the listener (if one exists) that the presentation state has
-  // changed.
-  void NotifyListenerOfPresentationStateChange(
-      InterstitialAd::PresentationState state);
+  // Notifies the FullScreenContentListener (if one exists) that an even has
+  // occurred.
+  void NotifyListenerOfAdDismissedFullScreenContent();
+  void NotifyListenerOfAdFailedToShowFullScreenContent(
+      const AdResult& ad_result);
+  void NotifyListenerOfAdImpression();
+  void NotifyListenerOfAdShowedFullScreenContent();
+
+  // Notifies the Paid Event listener (if one exists) that a paid event has
+  // occurred.
+  void NotifyListenerOfPaidEvent(const AdValue& ad_value);
 
   // Retrieves the most recent Future for a given function.
   Future<void> GetLastResult(InterstitialAdFn fn);
@@ -81,8 +89,13 @@ class InterstitialAdInternal {
   // Future data used to synchronize asynchronous calls.
   FutureData future_data_;
 
-  // Reference to the listener to which this object sends callbacks.
-  InterstitialAd::Listener* listener_;
+  // Reference to the listener to which this object sends callbacks for screen
+  // events.
+  FullScreenContentListener* full_screen_content_listener_;
+
+  // Reference to the listener to which this object sends callbacks for ad
+  // payout events.
+  PaidEventListener* paid_event_listener_;
 
   // Lock object for accessing listener_.
   Mutex listener_mutex_;

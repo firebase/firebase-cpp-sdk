@@ -85,14 +85,15 @@ Future<void> InterstitialAd::ShowLastResult() const {
   return internal_->GetLastResult(internal::kInterstitialAdFnShow);
 }
 
-InterstitialAd::PresentationState InterstitialAd::presentation_state() const {
-  if (!CheckIsInitialized(internal_)) return kPresentationStateHidden;
-  return internal_->GetPresentationState();
+void InterstitialAd::SetFullScreenContentListener(
+    FullScreenContentListener* listener) {
+  if (!CheckIsInitialized(internal_)) return;
+  internal_->SetFullScreenContentListener(listener);
 }
 
-void InterstitialAd::SetListener(Listener* listener) {
+void InterstitialAd::SetPaidEventListener(PaidEventListener* listener) {
   if (!CheckIsInitialized(internal_)) return;
-  internal_->SetListener(listener);
+  internal_->SetPaidEventListener(listener);
 }
 
 }  // namespace admob

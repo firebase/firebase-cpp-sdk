@@ -106,7 +106,6 @@ void BannerViewInternal::NotifyListenerAdOpened() {
 
 void BannerViewInternal::NotifyListenerOfPaidEvent(const AdValue& ad_value) {
   MutexLock lock(listener_mutex_);
-
   if (paid_event_listener_ != nullptr) {
     paid_event_listener_->OnPaidEvent(ad_value);
   }

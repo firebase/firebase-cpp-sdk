@@ -153,7 +153,7 @@ void AdView::SetPaidEventListener(PaidEventListener* listener) {
 // their vtables from being emitted in each translation unit.
 AdView::~AdView() {}
 AdViewBoundingBoxListener::~AdViewBoundingBoxListener() {}
-InterstitialAd::Listener::~Listener() {}
+FullScreenContentListener::~FullScreenContentListener() {}
 PaidEventListener::~PaidEventListener() {}
 
 void RegisterTerminateOnDefaultAppDestroy() {
