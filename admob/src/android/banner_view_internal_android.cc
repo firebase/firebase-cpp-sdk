@@ -168,6 +168,10 @@ void InitializeBannerViewOnMainThread(void* data) {
       reinterpret_cast<InitializeOnMainThreadData*>(data);
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env);
+  FIREBASE_ASSERT(call_data);
+  FIREBASE_ASSERT(call_data->ad_view);
+  FIREBASE_ASSERT(call_data->banner_view_helper);
+  FIREBASE_ASSERT(call_data->callback_data);
 
   jstring ad_unit_id_str =
       static_cast<jstring>(::firebase::admob::GetJNI()->CallObjectMethod(
@@ -179,6 +183,7 @@ void InitializeBannerViewOnMainThread(void* data) {
         call_data->callback_data->future_handle, kAdMobErrorAlreadyInitialized,
         kAdAlreadyInitializedErrorMessage);
     delete call_data->callback_data;
+    delete call_data;
     return;
   }
 
@@ -232,6 +237,7 @@ void InitializeBannerViewOnMainThread(void* data) {
   call_data->callback_data->future_data->future_impl.Complete(
       call_data->callback_data->future_handle, kAdMobErrorNone, "");
 
+  delete call_data->callback_data;
   delete call_data;
 }
 
