@@ -46,9 +46,7 @@ class InterstitialAdInternalStub : public InterstitialAdInternal {
     return CreateAndCompleteFutureStub(kInterstitialAdFnShow);
   }
 
-  InterstitialAd::PresentationState GetPresentationState() const override {
-    return InterstitialAd::PresentationState::kPresentationStateHidden;
-  }
+  bool is_initialized() const override { return true; }
 
  private:
   Future<void> CreateAndCompleteFutureStub(InterstitialAdFn fn) {

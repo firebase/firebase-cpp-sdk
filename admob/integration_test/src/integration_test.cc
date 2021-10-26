@@ -912,12 +912,13 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdStress) {
   TEST_REQUIRES_USER_INTERACTION;
   SKIP_TEST_ON_DESKTOP;
 
-  for(int i = 0; i < 10; ++i) {
+  for (int i = 0; i < 10; ++i) {
     firebase::admob::InterstitialAd* interstitial =
-      new firebase::admob::InterstitialAd();
+        new firebase::admob::InterstitialAd();
 
-    WaitForCompletion(interstitial->Initialize(app_framework::GetWindowContext()),
-                      "TestInterstitialAdStress Initialize");
+    WaitForCompletion(
+        interstitial->Initialize(app_framework::GetWindowContext()),
+        "TestInterstitialAdStress Initialize");
 
     TestFullScreenContentListener full_screen_content_listener;
     interstitial->SetFullScreenContentListener(&full_screen_content_listener);

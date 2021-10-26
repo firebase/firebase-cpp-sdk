@@ -114,6 +114,7 @@ class BannerViewInternal {
   // Retrieves the most recent LoadAdResult future for the LoadAd function.
   Future<LoadAdResult> GetLoadAdLastResult();
 
+  // Returns if the BannerAd has been initialized.
   virtual bool is_initialized() const = 0;
 
  protected:
