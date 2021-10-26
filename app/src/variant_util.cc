@@ -55,7 +55,9 @@ static bool VariantToJson(const Variant& variant, bool prettyPrint,
       break;
     }
     case Variant::kTypeDouble: {
-      *ss << variant.double_value();
+      // IEEE 754 double-precision binary floating-point format: binary64 — The 53-bit significand precision gives from 15 to 17 significant decimal digits
+      // Default 32-bit only keeps 7 digit precision
+      *ss << std::setprecision(16) << variant.double_value();
       break;
     }
     case Variant::kTypeBool: {
