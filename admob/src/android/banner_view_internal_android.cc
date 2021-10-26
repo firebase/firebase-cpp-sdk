@@ -57,7 +57,7 @@ namespace internal {
 struct InitializeOnMainThreadData {
   // Thread-safe call data.
   InitializeOnMainThreadData()
-      : activity_global(nullptr),
+      : ad_parent(nullptr),
         ad_size(0, 0),
         ad_unit_id(),
         ad_view(nullptr),
@@ -65,12 +65,12 @@ struct InitializeOnMainThreadData {
         callback_data(nullptr) {}
   ~InitializeOnMainThreadData() {
     JNIEnv* env = GetJNI();
-    env->DeleteGlobalRef(activity_global);
+    env->DeleteGlobalRef(ad_parent);
     env->DeleteGlobalRef(ad_view);
     env->DeleteGlobalRef(banner_view_helper);
   }
 
-  jobject activity_global;
+  AdParent ad_parent;
   AdSize ad_size;
   std::string ad_unit_id;
   jobject ad_view;
@@ -179,10 +179,12 @@ void InitializeBannerViewOnMainThread(void* data) {
 
   if (ad_unit_id_str != nullptr) {
     env->DeleteLocalRef(ad_unit_id_str);
+
     call_data->callback_data->future_data->future_impl.Complete(
         call_data->callback_data->future_handle, kAdMobErrorAlreadyInitialized,
         kAdAlreadyInitializedErrorMessage);
     delete call_data->callback_data;
+    call_data->callback_data = nullptr;
     delete call_data;
     return;
   }
@@ -196,7 +198,7 @@ void InitializeBannerViewOnMainThread(void* data) {
   env->DeleteLocalRef(ad_unit_id_str);
 
   jobject ad_size =
-      CreateJavaAdSize(env, call_data->activity_global, call_data->ad_size);
+      CreateJavaAdSize(env, call_data->ad_parent, call_data->ad_size);
   FIREBASE_ASSERT(ad_size);
   env->CallVoidMethod(call_data->ad_view,
                       ad_view::GetMethodId(ad_view::kSetAdSize), ad_size);
@@ -207,7 +209,7 @@ void InitializeBannerViewOnMainThread(void* data) {
   env->CallVoidMethod(
       call_data->banner_view_helper,
       banner_view_helper::GetMethodId(banner_view_helper::kInitialize),
-      call_data->activity_global);
+      call_data->ad_parent);
   jni_exception = util::CheckAndClearJniExceptions(env);
   FIREBASE_ASSERT(!jni_exception);
 
@@ -238,6 +240,7 @@ void InitializeBannerViewOnMainThread(void* data) {
       call_data->callback_data->future_handle, kAdMobErrorNone, "");
 
   delete call_data->callback_data;
+  call_data->callback_data = nullptr;
   delete call_data;
 }
 
@@ -260,7 +263,7 @@ Future<void> BannerViewInternalAndroid::Initialize(AdParent parent,
 
     jobject activity = ::firebase::admob::GetActivity();
     InitializeOnMainThreadData* call_data = new InitializeOnMainThreadData();
-    call_data->activity_global = env->NewGlobalRef(activity);
+    call_data->ad_parent = env->NewGlobalRef(parent);
     call_data->ad_size = size;
     call_data->ad_unit_id = ad_unit_id;
     call_data->ad_view = env->NewGlobalRef(ad_view_);
@@ -293,6 +296,7 @@ void LoadAdOnMainThread(void* data) {
         call_data->callback_data->future_handle, error,
         kAdCouldNotParseAdRequestErrorMessage, LoadAdResult());
     delete call_data->callback_data;
+    call_data->callback_data = nullptr;
   } else {
     ::firebase::admob::GetJNI()->CallVoidMethod(
         call_data->banner_view_helper,
@@ -300,6 +304,7 @@ void LoadAdOnMainThread(void* data) {
         reinterpret_cast<jlong>(call_data->callback_data), j_ad_request);
     env->DeleteLocalRef(j_ad_request);
   }
+  delete call_data;
 }
 
 Future<LoadAdResult> BannerViewInternalAndroid::LoadAd(
@@ -412,6 +417,8 @@ void InvokeNulleryOnMainThread(void* data) {
       call_data->banner_view_helper,
       banner_view_helper::GetMethodId(call_data->method),
       reinterpret_cast<jlong>(call_data->callback_data));
+  call_data->callback_data = nullptr;
+  delete call_data;
 }
 
 Future<void> BannerViewInternalAndroid::InvokeNullary(

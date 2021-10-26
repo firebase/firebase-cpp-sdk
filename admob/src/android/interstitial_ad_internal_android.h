@@ -48,6 +48,7 @@ class InterstitialAdInternalAndroid : public InterstitialAdInternal {
   Future<LoadAdResult> LoadAd(const char* ad_unit_id,
                               const AdRequest& request) override;
   Future<void> Show() override;
+  bool is_initialized() const override { return initialized_; }
 
  private:
   // Reference to the Java helper object used to interact with the Mobile Ads

@@ -280,9 +280,6 @@ class TestBoundingBoxListener
  public:
   void OnBoundingBoxChanged(firebase::admob::AdView* ad_view,
                             firebase::admob::BoundingBox box) override {
-    LogDebug(
-        "TestBoundingBoxListener OnBoundingBoxChanged: x: %d y: %d w: %d h: %d",
-        box.x, box.y, box.width, box.height);
     bounding_box_changes_.push_back(box);
   }
   std::vector<firebase::admob::BoundingBox> bounding_box_changes_;
@@ -651,6 +648,29 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
 #endif
 }
 
+TEST_F(FirebaseAdMobTest, TestBannerViewStress) {
+  // AdMob cannot be tested on Firebase Test Lab, so disable tests on FTL.
+  TEST_REQUIRES_USER_INTERACTION;
+  SKIP_TEST_ON_DESKTOP;
+
+  for (int i = 0; i < 10; ++i) {
+    const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
+    firebase::admob::BannerView* banner = new firebase::admob::BannerView();
+    WaitForCompletion(banner->Initialize(app_framework::GetWindowContext(),
+                                         kBannerAdUnit, banner_ad_size),
+                      "TestBannerViewStress Initialize");
+
+    // Set the listener.
+    TestBoundingBoxListener bounding_box_listener;
+    banner->SetBoundingBoxListener(&bounding_box_listener);
+
+    // Load the banner ad.
+    firebase::admob::AdRequest request = GetAdRequest();
+    WaitForCompletion(banner->LoadAd(request), "TestBannerViewStress LoadAd");
+    delete banner;
+  }
+}
+
 TEST_F(FirebaseAdMobTest, TestBannerViewAdOpenedAdClosed) {
   SKIP_TEST_ON_DESKTOP;
   TEST_REQUIRES_USER_INTERACTION;
@@ -886,6 +906,31 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdLoadAndShow) {
       full_screen_content_listener.num_on_ad_dismissed_full_screen_content_, 1);
 
   delete interstitial;
+}
+
+TEST_F(FirebaseAdMobTest, TestInterstitialAdStress) {
+  TEST_REQUIRES_USER_INTERACTION;
+  SKIP_TEST_ON_DESKTOP;
+
+  for(int i = 0; i < 10; ++i) {
+    firebase::admob::InterstitialAd* interstitial =
+      new firebase::admob::InterstitialAd();
+
+    WaitForCompletion(interstitial->Initialize(app_framework::GetWindowContext()),
+                      "TestInterstitialAdStress Initialize");
+
+    TestFullScreenContentListener full_screen_content_listener;
+    interstitial->SetFullScreenContentListener(&full_screen_content_listener);
+
+    TestPaidEventListener paid_event_listener;
+    interstitial->SetPaidEventListener(&paid_event_listener);
+
+    // When the InterstitialAd is initialized, load an ad.
+    firebase::admob::AdRequest request = GetAdRequest();
+    WaitForCompletion(interstitial->LoadAd(kInterstitialAdUnit, request),
+                      "TestInterstitialAdStress LoadAd");
+    delete interstitial;
+  }
 }
 
 TEST_F(FirebaseAdMobTest, TesInterstitialAdErrorAlreadyInitialized) {

@@ -74,7 +74,6 @@ class BannerViewInternalAndroid : public BannerViewInternal {
   Future<void> Initialize(AdParent parent, const char* ad_unit_id,
                           const AdSize& size) override;
   Future<LoadAdResult> LoadAd(const AdRequest& request) override;
-
   BoundingBox bounding_box() const override;
   Future<void> SetPosition(int x, int y) override;
   Future<void> SetPosition(AdView::Position position) override;
@@ -83,6 +82,8 @@ class BannerViewInternalAndroid : public BannerViewInternal {
   Future<void> Pause() override;
   Future<void> Resume() override;
   Future<void> Destroy() override;
+
+  bool is_initialized() const override { return initialized_; }
 
  private:
   // Reference to the Java helper object used to interact with the Mobile Ads

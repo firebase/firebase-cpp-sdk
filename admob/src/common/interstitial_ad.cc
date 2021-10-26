@@ -48,12 +48,7 @@ InterstitialAd::~InterstitialAd() {
 // Initialize must be called before any other methods in the namespace. This
 // method asserts that Initialize() has been invoked and allowed to complete.
 static bool CheckIsInitialized(internal::InterstitialAdInternal* internal) {
-  bool initialized =
-      internal != nullptr &&
-      internal->GetLastResult(internal::kInterstitialAdFnInitialize).status() ==
-          kFutureStatusComplete;
-  FIREBASE_ASSERT_MESSAGE_RETURN(false, initialized, kUninitializedError);
-  return true;
+  return internal != nullptr && internal->is_initialized();
 }
 
 Future<void> InterstitialAd::Initialize(AdParent parent) {

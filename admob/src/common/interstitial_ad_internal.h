@@ -52,6 +52,7 @@ class InterstitialAdInternal {
 
   // Displays an interstitial ad.
   virtual Future<void> Show() = 0;
+  virtual bool is_initialized() const = 0;
 
   /// Sets the @ref FullScreenContentListener to receive events about UI
   // and presentation state.
