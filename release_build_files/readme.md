@@ -567,6 +567,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Next Release
+-   Changes
+    -   Database: Double precision digit now support 64-bit.
+        ([#1133](https://github.com/firebase/quickstart-unity/issues/1133)).
 
 ### 8.6.0
 -   Changes
