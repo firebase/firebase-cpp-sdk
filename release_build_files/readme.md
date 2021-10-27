@@ -569,7 +569,7 @@ code.
 ## Release Notes
 ### Next Release
 -   Changes
-    -   Database: Double precision digit now support 64-bit.
+    -   General: Variant double type now support 64-bit while saving to json.
         ([#1133](https://github.com/firebase/quickstart-unity/issues/1133)).
 
 ### 8.6.0
