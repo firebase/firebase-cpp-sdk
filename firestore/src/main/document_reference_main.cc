@@ -19,6 +19,7 @@
 #include "Firestore/core/src/api/listener_registration.h"
 #include "Firestore/core/src/core/listen_options.h"
 #include "Firestore/core/src/core/user_data.h"
+#include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/main/document_snapshot_main.h"
 #include "firestore/src/main/listener_main.h"
@@ -57,20 +58,28 @@ CollectionReference DocumentReferenceInternal::Collection(
 }
 
 Future<DocumentSnapshot> DocumentReferenceInternal::Get(Source source) {
+  auto start =
+      UnityIssue1154TestAppCpp::Log("DocumentReferenceInternal::Get() start");
   auto promise =
       promise_factory_.CreatePromise<DocumentSnapshot>(AsyncApis::kGet);
   auto listener = ListenerWithPromise<api::DocumentSnapshot>(promise);
   reference_.GetDocument(ToCoreApi(source), std::move(listener));
-  return promise.future();
+  auto result = promise.future();
+  UnityIssue1154TestAppCpp::Log(start, "DocumentReferenceInternal::Get() done");
+  return result;
 }
 
 Future<void> DocumentReferenceInternal::Set(const MapFieldValue& data,
                                             const SetOptions& options) {
+  auto start =
+      UnityIssue1154TestAppCpp::Log("DocumentReferenceInternal::Set() start");
   auto promise = promise_factory_.CreatePromise<void>(AsyncApis::kSet);
   auto callback = StatusCallbackWithPromise(promise);
   ParsedSetData parsed = user_data_converter_.ParseSetData(data, options);
   reference_.SetData(std::move(parsed), std::move(callback));
-  return promise.future();
+  auto result = promise.future();
+  UnityIssue1154TestAppCpp::Log(start, "DocumentReferenceInternal::Set() done");
+  return result;
 }
 
 Future<void> DocumentReferenceInternal::Update(const MapFieldValue& data) {

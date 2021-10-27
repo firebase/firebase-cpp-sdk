@@ -150,14 +150,28 @@ CollectionReference DocumentReference::Collection(
 }
 
 Future<DocumentSnapshot> DocumentReference::Get(Source source) const {
-  if (!internal_) return FailedFuture<DocumentSnapshot>();
-  return internal_->Get(source);
+  auto start = UnityIssue1154TestAppCpp::Log("DocumentReference::Get() start");
+  if (!internal_) {
+    UnityIssue1154TestAppCpp::Log(start,
+                                  "DocumentReference::Get() done (!internal_)");
+    return FailedFuture<DocumentSnapshot>();
+  }
+  auto result = internal_->Get(source);
+  UnityIssue1154TestAppCpp::Log(start, "DocumentReference::Get() done");
+  return result;
 }
 
 Future<void> DocumentReference::Set(const MapFieldValue& data,
                                     const SetOptions& options) {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->Set(data, options);
+  auto start = UnityIssue1154TestAppCpp::Log("DocumentReference::Set() start");
+  if (!internal_) {
+    UnityIssue1154TestAppCpp::Log(start,
+                                  "DocumentReference::Set() done (!internal_)");
+    return FailedFuture<void>();
+  }
+  auto result = internal_->Set(data, options);
+  UnityIssue1154TestAppCpp::Log(start, "DocumentReference::Set() done");
+  return result;
 }
 
 Future<void> DocumentReference::Update(const MapFieldValue& data) {
