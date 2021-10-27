@@ -143,7 +143,8 @@ firebase::App* FirebaseFirestoreBasicTest::shared_app_;
 firebase::auth::Auth* FirebaseFirestoreBasicTest::shared_auth_;
 
 void FirebaseFirestoreBasicTest::SetUpTestSuite() {
-  firebase::firestore::Firestore::set_log_level(firebase::LogLevel::kLogLevelInfo);
+  firebase::firestore::Firestore::set_log_level(
+      firebase::LogLevel::kLogLevelInfo);
   InitializeAppAndAuth();
 }
 
