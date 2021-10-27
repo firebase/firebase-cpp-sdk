@@ -142,7 +142,10 @@ class FirebaseFirestoreBasicTest : public FirebaseTest {
 firebase::App* FirebaseFirestoreBasicTest::shared_app_;
 firebase::auth::Auth* FirebaseFirestoreBasicTest::shared_auth_;
 
-void FirebaseFirestoreBasicTest::SetUpTestSuite() { InitializeAppAndAuth(); }
+void FirebaseFirestoreBasicTest::SetUpTestSuite() {
+  firebase::firestore::Firestore::set_log_level(firebase::LogLevel::kLogLevelInfo);
+  InitializeAppAndAuth();
+}
 
 void FirebaseFirestoreBasicTest::InitializeAppAndAuth() {
   LogDebug("Initialize Firebase App.");
