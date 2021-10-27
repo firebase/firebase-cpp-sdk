@@ -465,7 +465,7 @@ TEST_F(FirebaseDatabaseTest, TestSetAndGetSimpleValues) {
                 TimestampIsNear(current_time_milliseconds));
     EXPECT_EQ(f6.result()->value().AsInt64(), kSimpleInt);
     EXPECT_EQ(f6.result()->priority().AsInt64(), kSimplePriority);
-    EXPECT_EQ(f7.result()->priority().AsInt64(), kLongDouble);
+    EXPECT_EQ(f7.result()->value().AsDouble(), kLongDouble);
   }
 }
 
