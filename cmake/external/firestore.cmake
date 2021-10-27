@@ -18,14 +18,14 @@ if(TARGET firestore)
   return()
 endif()
 
-set(version CocoaPods-8.8.0)
 ExternalProject_Add(
   firestore
 
   DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
-  URL https://github.com/firebase/firebase-ios-sdk/archive/${version}.tar.gz
-
   PREFIX ${PROJECT_BINARY_DIR}
+
+  GIT_REPOSITORY https://github.com/firebase/firebase-ios-sdk
+  GIT_TAG 43b7865d9ff6b22ff3faf179cbdabe4f22da3d9e
 
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
