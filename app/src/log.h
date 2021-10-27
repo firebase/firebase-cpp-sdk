@@ -19,6 +19,10 @@
 
 #include <stdarg.h>
 
+#include <chrono>
+#include <sstream>
+#include <string>
+
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/log.h"
 
@@ -70,5 +74,46 @@ void LogInitialize();
 
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase
+
+namespace UnityIssue1154TestAppCpp {
+
+std::string FormattedTimestamp();
+std::string FormattedElapsedTime(
+    std::chrono::time_point<std::chrono::steady_clock> start);
+
+inline void Log0(std::ostringstream& ss) {
+  std::string message = ss.str();
+  firebase::LogInfo(message.c_str());
+}
+
+template <typename T>
+void Log0(std::ostringstream& ss, T message) {
+  ss << message;
+  Log0(ss);
+}
+
+template <typename T, typename... U>
+void Log0(std::ostringstream& ss, T message, U... rest) {
+  ss << message;
+  Log0(ss, rest...);
+}
+
+template <typename... T>
+std::chrono::time_point<std::chrono::steady_clock> Log(T... messages) {
+  std::ostringstream ss;
+  Log0(ss, messages...);
+  return std::chrono::steady_clock::now();
+}
+
+template <typename... T>
+void Log(std::chrono::time_point<std::chrono::steady_clock> start_time,
+         T... messages) {
+  std::string suffix = " (elapsed time: ";
+  suffix += FormattedElapsedTime(start_time);
+  suffix += ")";
+  Log(messages..., suffix);
+}
+
+}  // namespace UnityIssue1154TestAppCpp
 
 #endif  // FIREBASE_APP_SRC_LOG_H_

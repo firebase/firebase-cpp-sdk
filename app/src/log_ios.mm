@@ -89,3 +89,13 @@ void LogMessageV(LogLevel log_level, const char* format, va_list args) {
 }
 
 }  // namespace firebase
+
+namespace UnityIssue1154TestAppCpp {
+
+std::string FormattedTimestamp() { return "TIMESTAMP_FILLER"; }
+
+std::string FormattedElapsedTime(std::chrono::time_point<std::chrono::steady_clock> start) {
+  return "ELAPSED_TIME_FILLER";
+}
+
+}  // namespace UnityIssue1154TestAppCpp
