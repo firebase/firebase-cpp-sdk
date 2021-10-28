@@ -453,22 +453,6 @@ JNIEnv* GetJNI() {
 
 jobject GetActivity() { return (g_app) ? g_app->activity() : g_activity; }
 
-void AdMobInternal::CompleteLoadAdFuture(
-    FutureCallbackData<LoadAdResult>* callback_data, int error_code,
-    const std::string& error_message,
-    const LoadAdResultInternal& load_ad_result_internal) {
-  callback_data->future_data->future_impl.CompleteWithResult(
-      callback_data->future_handle, static_cast<int>(error_code),
-      error_message.c_str(), LoadAdResult(load_ad_result_internal));
-  // This method is responsible for disposing of the callback data struct.
-  delete callback_data;
-}
-
-AdResult AdMobInternal::CreateAdResult(
-    const AdResultInternal& ad_result_internal) {
-  return AdResult(ad_result_internal);
-}
-
 static void CompleteAdFutureCallback(JNIEnv* env, jclass clazz, jlong data_ptr,
                                      jint error_code, jstring error_message) {
   if (data_ptr == 0) return;  // test call only
@@ -735,6 +719,17 @@ Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_completeInterst
 }
 
 extern "C" JNIEXPORT void JNICALL
+Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_notifyAdClickedFullScreenContentEvent(  // NOLINT
+    JNIEnv* env, jclass clazz, jlong data_ptr) {
+  FIREBASE_ASSERT(env);
+  FIREBASE_ASSERT(data_ptr);
+  firebase::admob::internal::InterstitialAdInternal* internal =
+      reinterpret_cast<firebase::admob::internal::InterstitialAdInternal*>(
+          data_ptr);
+  internal->NotifyListenerOfAdClickedFullScreenContent();
+}
+
+extern "C" JNIEXPORT void JNICALL
 Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_notifyAdDismissedFullScreenContentEvent(  // NOLINT
     JNIEnv* env, jclass clazz, jlong data_ptr) {
   FIREBASE_ASSERT(env);
@@ -850,6 +845,9 @@ bool RegisterNatives() {
       {"completeInterstitialLoadAdInternalError", "(JILjava/lang/String;)V",
        reinterpret_cast<void*>(
            &Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_completeInterstitialLoadAdInternalError)},  // NOLINT
+      {"notifyAdClickedFullScreenContentEvent", "(J)V",
+       reinterpret_cast<void*>(
+           &Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_notifyAdClickedFullScreenContentEvent)},  // NOLINT
       {"notifyAdDismissedFullScreenContentEvent", "(J)V",
        reinterpret_cast<void*>(
            &Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_notifyAdDismissedFullScreenContentEvent)},  // NOLINT

@@ -204,6 +204,13 @@ public class InterstitialAdHelper {
 
   private class InterstitialAdFullScreenContentListener
     extends FullScreenContentCallback implements OnPaidEventListener {
+
+    public void onAdClicked() {
+      synchronized (mInterstitialLock) {
+        notifyAdClickedFullScreenContentEvent(mInterstitialAdInternalPtr);
+      }
+    }
+
     @Override
     public void onAdDismissedFullScreenContent() {
       synchronized (mInterstitialLock) {
@@ -285,6 +292,7 @@ public class InterstitialAdHelper {
     long nativeInternalPtr, int admobErrorCode, String errorMessage);
 
   /** Native callbacks to notify the C++ wrapper of ad events */
+  public static native void notifyAdClickedFullScreenContentEvent(long nativeInternalPtr);
   public static native void notifyAdDismissedFullScreenContentEvent(long nativeInternalPtr);
   public static native void notifyAdFailedToShowFullScreenContentEvent(long nativeInternalPtr,
     AdError adError);

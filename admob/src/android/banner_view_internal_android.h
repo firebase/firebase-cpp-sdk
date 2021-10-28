@@ -82,7 +82,6 @@ class BannerViewInternalAndroid : public BannerViewInternal {
   Future<void> Pause() override;
   Future<void> Resume() override;
   Future<void> Destroy() override;
-
   bool is_initialized() const override { return initialized_; }
 
  private:

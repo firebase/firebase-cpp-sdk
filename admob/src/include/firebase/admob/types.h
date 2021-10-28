@@ -635,6 +635,7 @@ struct BoundingBox {
   /// Default constructor which initializes all member variables to 0.
   BoundingBox()
       : height(0), width(0), x(0), y(0), position(AdView::kPositionUndefined) {}
+
   /// Height of the ad in pixels.
   int height;
   /// Width of the ad in pixels.
@@ -715,20 +716,23 @@ class FullScreenContentListener {
  public:
   virtual ~FullScreenContentListener();
 
+  /// Called when the user clicked the ad.
+  virtual void OnAdClicked();
+
   /// Called when the ad dismissed full screen content.
-  virtual void OnAdDismissedFullScreenContent() = 0;
+  virtual void OnAdDismissedFullScreenContent();
 
   /// Called when the ad failed to show full screen content.
   ///
   /// param[in] ad_result An object containing detailed information
   /// about the error.
-  virtual void OnAdFailedToShowFullScreenContent(const AdResult& ad_result) = 0;
+  virtual void OnAdFailedToShowFullScreenContent(const AdResult& ad_result);
 
   /// Called when an impression is recorded for an ad.
-  virtual void OnAdImpression() = 0;
+  virtual void OnAdImpression();
 
   /// Called when the ad showed the full screen content.
-  virtual void OnAdShowedFullScreenContent() = 0;
+  virtual void OnAdShowedFullScreenContent();
 };
 
 /// Listener to be invoked when ads have been estimated to earn money.

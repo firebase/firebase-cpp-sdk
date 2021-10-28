@@ -60,6 +60,23 @@ void AdListener::OnAdClosed() {}
 void AdListener::OnAdImpression() {}
 void AdListener::OnAdOpened() {}
 
+// AdMobInternal
+void AdMobInternal::CompleteLoadAdFuture(
+    FutureCallbackData<LoadAdResult>* callback_data, int error_code,
+    const std::string& error_message,
+    const LoadAdResultInternal& load_ad_result_internal) {
+  callback_data->future_data->future_impl.CompleteWithResult(
+      callback_data->future_handle, static_cast<int>(error_code),
+      error_message.c_str(), LoadAdResult(load_ad_result_internal));
+  // This method is responsible for disposing of the callback data struct.
+  delete callback_data;
+}
+
+AdResult AdMobInternal::CreateAdResult(
+    const AdResultInternal& ad_result_internal) {
+  return AdResult(ad_result_internal);
+}
+
 // AdSize
 // Hardcoded values are from publicly available documentation:
 // https://developers.google.com/android/reference/com/google/android/gms/ads/AdSize
@@ -137,6 +154,7 @@ void AdRequest::set_content_url(const char* content_url) {
   }
 }
 
+// AdView
 void AdView::SetAdListener(AdListener* listener) { ad_listener_ = listener; }
 
 void AdView::SetBoundingBoxListener(AdViewBoundingBoxListener* listener) {
@@ -147,13 +165,22 @@ void AdView::SetPaidEventListener(PaidEventListener* listener) {
   paid_event_listener_ = listener;
 }
 
+// FullScreenContentListener
+FullScreenContentListener::~FullScreenContentListener() {}
+void FullScreenContentListener::OnAdClicked() {}
+void FullScreenContentListener::OnAdDismissedFullScreenContent() {}
+void FullScreenContentListener::OnAdFailedToShowFullScreenContent(
+    const AdResult& ad_result) {}
+void FullScreenContentListener::OnAdImpression() {}
+void FullScreenContentListener::OnAdShowedFullScreenContent() {}
+
 // Misc
 
 // Non-inline implementation of the Listeners' virtual destructors, to prevent
 // their vtables from being emitted in each translation unit.
 AdView::~AdView() {}
 AdViewBoundingBoxListener::~AdViewBoundingBoxListener() {}
-FullScreenContentListener::~FullScreenContentListener() {}
+
 PaidEventListener::~PaidEventListener() {}
 
 void RegisterTerminateOnDefaultAppDestroy() {

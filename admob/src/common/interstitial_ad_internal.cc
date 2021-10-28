@@ -62,6 +62,13 @@ void InterstitialAdInternal::SetPaidEventListener(PaidEventListener* listener) {
   paid_event_listener_ = listener;
 }
 
+void InterstitialAdInternal::NotifyListenerOfAdClickedFullScreenContent() {
+  MutexLock lock(listener_mutex_);
+  if (full_screen_content_listener_ != nullptr) {
+    full_screen_content_listener_->OnAdClicked();
+  }
+}
+
 void InterstitialAdInternal::NotifyListenerOfAdDismissedFullScreenContent() {
   MutexLock lock(listener_mutex_);
   if (full_screen_content_listener_ != nullptr) {

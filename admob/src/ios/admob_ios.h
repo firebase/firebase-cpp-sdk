@@ -42,6 +42,10 @@ void CompleteLoadAdIOSResult(FutureCallbackData<LoadAdResult>* callback_data,
                              NSError *error);
 
 
+// Converts the iOS Admob GADAdValue structure into a CPP
+// firebase::admob::Advalue structure.
+AdValue ConvertGADAdValueToCppAdValue(GADAdValue* gad_value);
+
 }  // namespace admob
 }  // namespace firebase
 

@@ -26,9 +26,6 @@ NS_ASSUME_NONNULL_BEGIN
 /// The banner view's BoundingBox.
 @property(nonatomic, readonly) firebase::admob::BoundingBox boundingBox;
 
-/// The banner view's presentation state.
-@property(nonatomic, readonly) firebase::admob::BannerView::PresentationState presentationState;
-
 /// Unavailable (NSObject).
 - (instancetype)init NS_UNAVAILABLE;
 
@@ -63,6 +60,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// Moves the banner view to a BannerView::Position.
 - (void)moveBannerViewToPosition:(firebase::admob::BannerView::Position)position;
+
 
 @end
 

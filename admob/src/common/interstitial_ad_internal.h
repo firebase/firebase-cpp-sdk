@@ -62,6 +62,7 @@ class InterstitialAdInternal {
 
   // Notifies the FullScreenContentListener (if one exists) that an even has
   // occurred.
+  void NotifyListenerOfAdClickedFullScreenContent();
   void NotifyListenerOfAdDismissedFullScreenContent();
   void NotifyListenerOfAdFailedToShowFullScreenContent(
       const AdResult& ad_result);

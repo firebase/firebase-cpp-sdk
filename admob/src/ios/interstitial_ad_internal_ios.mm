@@ -27,7 +27,6 @@ namespace internal {
 
 InterstitialAdInternalIOS::InterstitialAdInternalIOS(InterstitialAd* base)
     : InterstitialAdInternal(base), initialized_(false),
-    presentation_state_(InterstitialAd::kPresentationStateHidden),
     ad_load_callback_data_(nil), interstitial_(nil),
     parent_view_(nil), interstitial_delegate_(nil) {}
 
@@ -138,13 +137,13 @@ Future<void> InterstitialAdInternalIOS::Show() {
   return MakeFuture(&future_data_.future_impl, handle);
 }
 
-InterstitialAd::PresentationState InterstitialAdInternalIOS::GetPresentationState() const {
-  return presentation_state_;
-}
-
 void InterstitialAdInternalIOS::InterstitialDidReceiveAd(GADInterstitialAd* ad) {
-  ad.fullScreenContentDelegate = interstitial_delegate_;
   interstitial_ = ad;
+  ad.fullScreenContentDelegate = interstitial_delegate_;
+  ad.paidEventHandler = ^void(GADAdValue *_Nonnull adValue) {
+    NotifyListenerOfPaidEvent(
+      firebase::admob::ConvertGADAdValueToCppAdValue(adValue));
+  };
 
   if (ad_load_callback_data_ != nil) {
     CompleteLoadAdInternalResult(ad_load_callback_data_, kAdMobErrorNone,
@@ -159,16 +158,6 @@ void InterstitialAdInternalIOS::InterstitialDidFailToReceiveAdWithError(NSError 
     CompleteLoadAdIOSResult(ad_load_callback_data_, gad_error);
     ad_load_callback_data_ = nil;
   }
-}
-
-void InterstitialAdInternalIOS::InterstitialWillPresentScreen() {
-  presentation_state_ = InterstitialAd::kPresentationStateCoveringUI;
-  NotifyListenerOfPresentationStateChange(presentation_state_);
-}
-
-void InterstitialAdInternalIOS::InterstitialDidDismissScreen() {
-  presentation_state_ = InterstitialAd::kPresentationStateHidden;
-  NotifyListenerOfPresentationStateChange(presentation_state_);
 }
 
 }  // namespace internal
