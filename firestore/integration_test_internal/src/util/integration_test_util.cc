@@ -17,7 +17,7 @@
 #include <chrono>  // NOLINT(build/c++11)
 #include <thread>  // NOLINT(build/c++11)
 
-#include "Firestore/core/src/auth/empty_credentials_provider.h"
+#include "Firestore/core/src/credentials/empty_credentials_provider.h"
 #include "absl/memory/memory.h"
 #include "app_framework.h"
 #include "firebase/app.h"
@@ -33,13 +33,13 @@
 namespace firebase {
 namespace firestore {
 
-using auth::EmptyCredentialsProvider;
+using credentials::EmptyAuthCredentialsProvider;
 
 struct TestFriend {
   static FirestoreInternal* CreateTestFirestoreInternal(App* app) {
 #if !defined(__ANDROID__)
-    return new FirestoreInternal(app,
-                                 absl::make_unique<EmptyCredentialsProvider>());
+    return new FirestoreInternal(
+        app, absl::make_unique<EmptyAuthCredentialsProvider>());
 #else
     return new FirestoreInternal(app);
 #endif  // !defined(__ANDROID__)
