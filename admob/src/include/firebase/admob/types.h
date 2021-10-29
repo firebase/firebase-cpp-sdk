@@ -460,6 +460,7 @@ class AdRequest {
 /// The monetary value earned from an ad.
 class AdValue {
  public:
+  /// Allowed constants for @ref precision_type().
   enum PrecisionType {
     /// An ad value with unknown precision.
     kdValuePrecisionUnknown = 0,
