@@ -984,6 +984,7 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdStress) {
 
 TEST_F(FirebaseAdMobTest, TesInterstitialAdErrorAlreadyInitialized) {
   SKIP_TEST_ON_DESKTOP;
+  FLAKY_TEST_SECTION_BEGIN();
 
   firebase::admob::InterstitialAd* interstitial_ad =
       new firebase::admob::InterstitialAd();
@@ -1013,6 +1014,7 @@ TEST_F(FirebaseAdMobTest, TesInterstitialAdErrorAlreadyInitialized) {
                       firebase::admob::kAdMobErrorAlreadyInitialized);
     delete interstitial_ad;
   }
+  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseAdMobTest, TestInterstitialAdErrorLoadInProgress) {
