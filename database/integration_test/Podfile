@@ -9,7 +9,7 @@ target 'integration_test' do
 end
 
 target 'integration_test_tvos' do
-  platform :tvos, '10.0'
+  platform :tvos, '12.0'
   pod 'Firebase/Database', '8.9.0'
   pod 'Firebase/Auth', '8.9.0'
 end
