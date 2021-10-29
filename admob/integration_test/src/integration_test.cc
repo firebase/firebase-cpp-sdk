@@ -764,42 +764,25 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorAlreadyInitialized) {
   SKIP_TEST_ON_DESKTOP;
 
   const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
-  firebase::admob::BannerView* banner = new firebase::admob::BannerView();
 
-  {
+  for(int i =0; i < 5; ++i) {
+    firebase::admob::BannerView* banner = new firebase::admob::BannerView();
     firebase::Future<void> first_initialize = banner->Initialize(
-        app_framework::GetWindowContext(), kBannerAdUnit, banner_ad_size);
+      app_framework::GetWindowContext(), kBannerAdUnit, banner_ad_size);
     firebase::Future<void> second_initialize = banner->Initialize(
-        app_framework::GetWindowContext(), kBannerAdUnit, banner_ad_size);
+      app_framework::GetWindowContext(), kBannerAdUnit, banner_ad_size);
+        
+    WaitForCompletionAnyResult(second_initialize, "Second Initialize");
+    WaitForCompletionAnyResult(first_initialize, "First Initialize");
 
-    WaitForCompletion(second_initialize, "Second Initialize 1",
-                      firebase::admob::kAdMobErrorAlreadyInitialized);
-    WaitForCompletion(first_initialize, "First Initialize 1");
-
+    if(first_initialize.error() == firebase::admob::kAdMobErrorNone) {
+      EXPECT_EQ(second_initialize.error(), firebase::admob::kAdMobErrorAlreadyInitialized);
+    } else {
+      EXPECT_EQ(first_initialize.error(), firebase::admob::kAdMobErrorAlreadyInitialized);
+      EXPECT_EQ(second_initialize.error(), firebase::admob::kAdMobErrorNone);
+    }
     first_initialize.Release();
     second_initialize.Release();
-
-    WaitForCompletion(banner->Destroy(), "Destroy BannerView");
-    delete banner;
-  }
-
-  // Reverse the order of the completion waits.
-  {
-    banner = new firebase::admob::BannerView();
-
-    firebase::Future<void> first_initialize = banner->Initialize(
-        app_framework::GetWindowContext(), kBannerAdUnit, banner_ad_size);
-    firebase::Future<void> second_initialize = banner->Initialize(
-        app_framework::GetWindowContext(), kBannerAdUnit, banner_ad_size);
-
-    WaitForCompletion(first_initialize, "First Initialize - reverse test");
-    WaitForCompletion(second_initialize, "Second Initialize - reverse test",
-                      firebase::admob::kAdMobErrorAlreadyInitialized);
-
-    first_initialize.Release();
-    second_initialize.Release();
-
-    WaitForCompletion(banner->Destroy(), "Destroy BannerView");
     delete banner;
   }
 }
@@ -984,37 +967,28 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdStress) {
 
 TEST_F(FirebaseAdMobTest, TesInterstitialAdErrorAlreadyInitialized) {
   SKIP_TEST_ON_DESKTOP;
-  FLAKY_TEST_SECTION_BEGIN();
 
-  firebase::admob::InterstitialAd* interstitial_ad =
+  for(int i =0; i < 5; ++i) {
+    firebase::admob::InterstitialAd* interstitial_ad =
       new firebase::admob::InterstitialAd();
-  {
     firebase::Future<void> first_initialize =
         interstitial_ad->Initialize(app_framework::GetWindowContext());
     firebase::Future<void> second_initialize =
         interstitial_ad->Initialize(app_framework::GetWindowContext());
 
-    WaitForCompletion(second_initialize, "Second Initialize 1",
-                      firebase::admob::kAdMobErrorAlreadyInitialized);
-    WaitForCompletion(first_initialize, "First Initialize 1");
+    WaitForCompletionAnyResult(second_initialize, "Second Initialize");
+    WaitForCompletionAnyResult(first_initialize, "First Initialize");
+
+    if(first_initialize.error() == firebase::admob::kAdMobErrorNone) {
+      EXPECT_EQ(second_initialize.error(), firebase::admob::kAdMobErrorAlreadyInitialized);
+    } else {
+      EXPECT_EQ(first_initialize.error(), firebase::admob::kAdMobErrorAlreadyInitialized);
+      EXPECT_EQ(second_initialize.error(), firebase::admob::kAdMobErrorNone);
+    }
+    first_initialize.Release();
+    second_initialize.Release();
     delete interstitial_ad;
   }
-
-  // Reverse the order of the completion waits.
-  {
-    interstitial_ad = new firebase::admob::InterstitialAd();
-
-    firebase::Future<void> first_initialize =
-        interstitial_ad->Initialize(app_framework::GetWindowContext());
-    firebase::Future<void> second_initialize =
-        interstitial_ad->Initialize(app_framework::GetWindowContext());
-
-    WaitForCompletion(first_initialize, "First Initialize - reverse test");
-    WaitForCompletion(second_initialize, "Second Initialize - reverse test",
-                      firebase::admob::kAdMobErrorAlreadyInitialized);
-    delete interstitial_ad;
-  }
-  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseAdMobTest, TestInterstitialAdErrorLoadInProgress) {
