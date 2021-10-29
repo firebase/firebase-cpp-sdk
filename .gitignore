@@ -8,6 +8,7 @@ __pycache__/
 ### Gradle ###
 .gradle
 **/build/
+local.properties
 
 # Unencrypted secret files
 google-services.json
@@ -20,6 +21,7 @@ gcs_key_file.json
 *_build/
 *cmake-build-debug/
 testing/test_framework/external/
+**/.externalNativeBuild/
 
 # XCode user specific folders
 **/xcuserdata/
