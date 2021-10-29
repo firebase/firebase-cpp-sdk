@@ -18,7 +18,6 @@
 #define FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_BANNER_VIEW_H_
 
 #include "firebase/admob/types.h"
-
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 

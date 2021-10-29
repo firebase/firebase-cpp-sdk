@@ -148,6 +148,8 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     }
 
     if (mAdView != null) {
+      mAdView.setAdListener(null);
+      mAdView.setOnPaidEventListener(null);
       mAdView.destroy();
       mAdView = null;
     }
@@ -459,7 +461,9 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     @Override
     public void onAdClicked() {
       synchronized (mBannerViewLock) {
-        notifyAdClicked(mBannerViewInternalPtr);
+        if (mAdView != null) {
+          notifyAdClicked(mBannerViewInternalPtr);
+        }
       }
       super.onAdClicked();
     }
@@ -467,8 +471,10 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     @Override
     public void onAdClosed() {
       synchronized (mBannerViewLock) {
-        notifyAdClosed(mBannerViewInternalPtr);
-        mNotifyBoundingBoxListenerOnNextDraw.set(true);
+        if (mAdView != null) {
+          notifyAdClosed(mBannerViewInternalPtr);
+          mNotifyBoundingBoxListenerOnNextDraw.set(true);
+        }
       }
       super.onAdClosed();
     }
@@ -476,7 +482,9 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     @Override
     public void onAdFailedToLoad(LoadAdError loadAdError) {
       synchronized (mBannerViewLock) {
-        completeBannerViewLoadAdError(mLoadAdCallbackDataPtr, loadAdError, loadAdError.getCode(), loadAdError.getMessage());
+        if (mAdView != null) {
+          completeBannerViewLoadAdError(mLoadAdCallbackDataPtr, loadAdError, loadAdError.getCode(), loadAdError.getMessage());
+        }
         mLoadAdCallbackDataPtr = CPP_NULLPTR;
       }
       super.onAdFailedToLoad(loadAdError);
@@ -485,7 +493,9 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     @Override
     public void onAdImpression() {
       synchronized (mBannerViewLock) {
-        notifyAdImpression(mBannerViewInternalPtr);
+        if (mAdView != null) {
+          notifyAdImpression(mBannerViewInternalPtr);
+        }
       }
       super.onAdImpression();
     }
@@ -493,13 +503,15 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     @Override
     public void onAdLoaded() {
       synchronized (mBannerViewLock) {
-        mAdViewContainsAd = true;
-        completeBannerViewLoadedAd(mLoadAdCallbackDataPtr);
-        mLoadAdCallbackDataPtr = CPP_NULLPTR;
-        // Only update the bounding box if the banner view is already visible.
-        if (mPopUp != null && mPopUp.isShowing()) {
-         // Loading an ad can sometimes cause the bounds to change.
-          mNotifyBoundingBoxListenerOnNextDraw.set(true);
+        if (mAdView != null) {
+          mAdViewContainsAd = true;
+          completeBannerViewLoadedAd(mLoadAdCallbackDataPtr);
+          mLoadAdCallbackDataPtr = CPP_NULLPTR;
+          // Only update the bounding box if the banner view is already visible.
+          if (mPopUp != null && mPopUp.isShowing()) {
+          // Loading an ad can sometimes cause the bounds to change.
+            mNotifyBoundingBoxListenerOnNextDraw.set(true);
+          }
         }
       }
       super.onAdLoaded();
@@ -508,15 +520,21 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     @Override
     public void onAdOpened() {
       synchronized (mBannerViewLock) {
-        notifyAdOpened(mBannerViewInternalPtr);
-        mNotifyBoundingBoxListenerOnNextDraw.set(true);
+        if (mAdView != null) {
+          notifyAdOpened(mBannerViewInternalPtr);
+          mNotifyBoundingBoxListenerOnNextDraw.set(true);
+        }
       }
       super.onAdOpened();
     }
 
     public void onPaidEvent(AdValue value) {
-      notifyPaidEvent(mBannerViewInternalPtr, value.getCurrencyCode(),
-        value.getPrecisionType(), value.getValueMicros());
+      synchronized (mBannerViewLock) {
+        if (mAdView != null) {
+          notifyPaidEvent(mBannerViewInternalPtr, value.getCurrencyCode(),
+            value.getPrecisionType(), value.getValueMicros());
+        }
+      }
     }
   }
 
@@ -534,7 +552,9 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   @Override
   public boolean onPreDraw() {
     if (mNotifyBoundingBoxListenerOnNextDraw.compareAndSet(true, false)) {
-      notifyBoundingBoxChanged(mBannerViewInternalPtr);
+      if (mAdView != null) {
+        notifyBoundingBoxChanged(mBannerViewInternalPtr);
+      }
     }
 
     // Returning true tells Android to continue the draw as normal.

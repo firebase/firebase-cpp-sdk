@@ -51,9 +51,17 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseAdMob);
 static CleanupNotifier* g_cleanup_notifier = nullptr;
 const char kAdMobModuleName[] = "admob";
 
+// Error messages used for completing futures. These match the error codes in
+// the AdMobError enumeration in the C++ API.
+const char* kAdAlreadyInitializedErrorMessage = "Ad is already initialized.";
+const char* kAdCouldNotParseAdRequestErrorMessage =
+    "Could Not Parse AdRequest.";
+const char* kAdLoadInProgressErrorMessage = "Ad is currently loading.";
+const char* kAdUninitializedErrorMessage = "Ad has not been fully initialized.";
+
 // AdListener
-// Default no-op implementations so applications need only implement
-// the methods they're interested in.
+// Default no-op implementation for each listener method so that applications
+// need only implement the methods they're interested in.
 AdListener::~AdListener() {}
 void AdListener::OnAdClicked() {}
 void AdListener::OnAdClosed() {}
@@ -125,11 +133,11 @@ bool AdSize::operator==(const AdSize& rhs) const { return is_equal(rhs); }
 bool AdSize::operator!=(const AdSize& rhs) const { return !is_equal(rhs); }
 
 // AdRequest
+// Method implementations of AdRequest which are platform independent.
 AdRequest::AdRequest() {}
 AdRequest::~AdRequest() {}
 
 AdRequest::AdRequest(const char* content_url) { set_content_url(content_url); }
-
 void AdRequest::add_extra(const char* ad_network, const char* extra_key,
                           const char* extra_value) {
   if (ad_network != nullptr && extra_key != nullptr && extra_value != nullptr) {
@@ -155,6 +163,7 @@ void AdRequest::set_content_url(const char* content_url) {
 }
 
 // AdView
+// Method implementations of AdView which are platform independent.
 void AdView::SetAdListener(AdListener* listener) { ad_listener_ = listener; }
 
 void AdView::SetBoundingBoxListener(AdViewBoundingBoxListener* listener) {
@@ -166,6 +175,8 @@ void AdView::SetPaidEventListener(PaidEventListener* listener) {
 }
 
 // FullScreenContentListener
+// Default no-op implementation for each listener method so that applications
+// need only implement the methods they're interested in.
 FullScreenContentListener::~FullScreenContentListener() {}
 void FullScreenContentListener::OnAdClicked() {}
 void FullScreenContentListener::OnAdDismissedFullScreenContent() {}
@@ -174,13 +185,12 @@ void FullScreenContentListener::OnAdFailedToShowFullScreenContent(
 void FullScreenContentListener::OnAdImpression() {}
 void FullScreenContentListener::OnAdShowedFullScreenContent() {}
 
-// Misc
+// Misc - other default destructors, and application helpers.
 
 // Non-inline implementation of the Listeners' virtual destructors, to prevent
 // their vtables from being emitted in each translation unit.
 AdView::~AdView() {}
 AdViewBoundingBoxListener::~AdViewBoundingBoxListener() {}
-
 PaidEventListener::~PaidEventListener() {}
 
 void RegisterTerminateOnDefaultAppDestroy() {
@@ -223,14 +233,6 @@ void DestroyCleanupNotifier() {
   delete g_cleanup_notifier;
   g_cleanup_notifier = nullptr;
 }
-
-// Error messages used for completing futures. These match the error codes in
-// the AdMobError enumeration in the C++ API.
-const char* kAdAlreadyInitializedErrorMessage = "Ad is already initialized.";
-const char* kAdCouldNotParseAdRequestErrorMessage =
-    "Could Not Parse AdRequest.";
-const char* kAdLoadInProgressErrorMessage = "Ad is currently loading.";
-const char* kAdUninitializedErrorMessage = "Ad has not been fully initialized.";
 
 const char* GetRequestAgentString() {
   // This is a string that can be used to uniquely identify requests coming

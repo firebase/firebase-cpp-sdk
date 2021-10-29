@@ -47,7 +47,7 @@ class BannerViewInternal {
   static BannerViewInternal* CreateInstance(BannerView* base);
 
   // Virtual destructor is required.
-  virtual ~BannerViewInternal() = default;
+  virtual ~BannerViewInternal();
 
   // Initializes this object and any platform-specific helpers that it uses.
   virtual Future<void> Initialize(AdParent parent, const char* ad_unit_id,
@@ -98,7 +98,7 @@ class BannerViewInternal {
   // bounding box has changed.
   void NotifyListenerOfBoundingBoxChange(BoundingBox box);
 
-  // Notifies the Ad listener (if one exists) that an even has occurred.
+  // Notifies the Ad listener (if one exists) that an event has occurred.
   void NotifyListenerAdClicked();
   void NotifyListenerAdClosed();
   void NotifyListenerAdImpression();

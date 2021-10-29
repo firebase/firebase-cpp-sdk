@@ -627,6 +627,11 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
   EXPECT_EQ(expected_num_bounding_box_changes,
             bounding_box_listener.bounding_box_changes_.size());
 
+  LogDebug("Waiting for a moment to ensure all callbacks are recorded.");
+  app_framework::ProcessEvents(2000);
+
+  WaitForCompletion(banner->Destroy(), "Destroy BannerView");
+  banner->SetBoundingBoxListener(nullptr);
   delete banner;
 
   BrieflyPauseForVisualInspection();
@@ -634,12 +639,6 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
             bounding_box_listener.bounding_box_changes_.size());
 
 #if defined(__ANDROID__) || TARGET_OS_IPHONE
-  // For the bounding box, check that we got the number of bounding box events
-  // we expect, since we don't know the exact bounding box coordinates to
-  // expect.
-  EXPECT_EQ(bounding_box_listener.bounding_box_changes_.size(),
-            expected_num_bounding_box_changes);
-
   // As an extra check, all bounding boxes except the last should have the same
   // size aspect ratio that we requested. For example if you requested a 320x50
   // banner, you can get one with the size 960x150. Use EXPECT_NEAR because the
@@ -684,13 +683,10 @@ TEST_F(FirebaseAdMobTest, TestBannerViewStress) {
                                          kBannerAdUnit, banner_ad_size),
                       "TestBannerViewStress Initialize");
 
-    // Set the listener.
-    TestBoundingBoxListener bounding_box_listener;
-    banner->SetBoundingBoxListener(&bounding_box_listener);
-
     // Load the banner ad.
     firebase::admob::AdRequest request = GetAdRequest();
     WaitForCompletion(banner->LoadAd(request), "TestBannerViewStress LoadAd");
+    WaitForCompletion(banner->Destroy(), "Destroy BannerView");
     delete banner;
   }
 }
@@ -746,8 +742,8 @@ TEST_F(FirebaseAdMobTest, TestBannerViewAdOpenedAdClosed) {
     app_framework::ProcessEvents(1000);
   }
 
-  LogDebug("Waiting for a moment.");
-  app_framework::ProcessEvents(5000);
+  LogDebug("Waiting for a moment to ensure all callbacks are recorded.");
+  app_framework::ProcessEvents(3000);
 
   // Ensure all of the expected events were triggered on iOS.
   EXPECT_EQ(ad_listener.num_on_ad_clicked_, 1);
@@ -758,6 +754,9 @@ TEST_F(FirebaseAdMobTest, TestBannerViewAdOpenedAdClosed) {
 #endif
 
   load_ad_future.Release();
+  banner->SetAdListener(nullptr);
+  banner->SetPaidEventListener(nullptr);
+  WaitForCompletion(banner->Destroy(), "Destroy BannerView");
   delete banner;
 }
 
@@ -780,6 +779,7 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorAlreadyInitialized) {
     first_initialize.Release();
     second_initialize.Release();
 
+    WaitForCompletion(banner->Destroy(), "Destroy BannerView");
     delete banner;
   }
 
@@ -799,6 +799,7 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorAlreadyInitialized) {
     first_initialize.Release();
     second_initialize.Release();
 
+    WaitForCompletion(banner->Destroy(), "Destroy BannerView");
     delete banner;
   }
 }
@@ -839,6 +840,7 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorLoadInProgress) {
   first_load_ad.Release();
   second_load_ad.Release();
 
+  WaitForCompletion(banner->Destroy(), "Destroy BannerView");
   delete banner;
 }
 
@@ -869,6 +871,8 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorBadAdUnitId) {
       result_ptr->response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());
   load_ad.Release();
+
+  WaitForCompletion(banner->Destroy(), "Destroy BannerView");
   delete banner;
 }
 
@@ -886,6 +890,7 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorBadExtrasClassName) {
   request.add_extra(kAdNetworkExtrasInvalidClassName, "shouldnot", "work");
   WaitForCompletion(banner->LoadAd(request), "LoadAd",
                     firebase::admob::kAdMobErrorAdNetworkClassLoadError);
+  WaitForCompletion(banner->Destroy(), "Destroy BannerView");
   delete banner;
 }
 
@@ -905,6 +910,7 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdLoad) {
   firebase::admob::AdRequest request = GetAdRequest();
   WaitForCompletion(interstitial->LoadAd(kInterstitialAdUnit, request),
                     "LoadAd");
+
   delete interstitial;
 }
 
@@ -929,30 +935,8 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdLoadAndShow) {
   WaitForCompletion(interstitial->LoadAd(kInterstitialAdUnit, request),
                     "LoadAd");
 
-  int expected_full_screen_show_events = 1;
-  int expected_ad_impression_events = 1;
-  int expected_paid_events = 1;
-
   WaitForCompletion(interstitial->Show(), "Show");
 
-#if defined(ANDROID)
-  LogDebug("Click the Ad, and then return to the app to continue");
-
-  // Wait until the ad has been closed.
-  while (
-      full_screen_content_listener.num_on_ad_dismissed_full_screen_content_ ==
-      0) {
-    app_framework::ProcessEvents(1000);
-  }
-
-  EXPECT_EQ(full_screen_content_listener.num_on_ad_clicked_, 1);
-  EXPECT_EQ(full_screen_content_listener.num_on_ad_showed_full_screen_content_,
-            1);
-  EXPECT_EQ(full_screen_content_listener.num_on_ad_impression_, 1);
-  EXPECT_EQ(paid_event_listener.num_on_paid_event_, 1);
-  EXPECT_EQ(
-      full_screen_content_listener.num_on_ad_dismissed_full_screen_content_, 1);
-#else
   LogDebug("Click the Ad, and then return to the app to continue");
 
   while (
@@ -961,8 +945,8 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdLoadAndShow) {
     app_framework::ProcessEvents(1000);
   }
 
-  LogDebug("Waiting for a moment.");
-  app_framework::ProcessEvents(2000);
+  LogDebug("Waiting for a moment to ensure all callbacks are recorded.");
+  app_framework::ProcessEvents(3000);
 
   EXPECT_EQ(full_screen_content_listener.num_on_ad_clicked_, 1);
   EXPECT_EQ(full_screen_content_listener.num_on_ad_showed_full_screen_content_,
@@ -971,7 +955,9 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdLoadAndShow) {
   EXPECT_EQ(paid_event_listener.num_on_paid_event_, 1);
   EXPECT_EQ(
       full_screen_content_listener.num_on_ad_dismissed_full_screen_content_, 1);
-#endif
+
+  interstitial->SetFullScreenContentListener(nullptr);
+  interstitial->SetPaidEventListener(nullptr);
 
   delete interstitial;
 }
@@ -987,12 +973,6 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdStress) {
     WaitForCompletion(
         interstitial->Initialize(app_framework::GetWindowContext()),
         "TestInterstitialAdStress Initialize");
-
-    TestFullScreenContentListener full_screen_content_listener;
-    interstitial->SetFullScreenContentListener(&full_screen_content_listener);
-
-    TestPaidEventListener paid_event_listener;
-    interstitial->SetPaidEventListener(&paid_event_listener);
 
     // When the InterstitialAd is initialized, load an ad.
     firebase::admob::AdRequest request = GetAdRequest();

@@ -42,6 +42,12 @@ BannerViewInternal::BannerViewInternal(BannerView* base)
       bounding_box_listener_(nullptr),
       paid_event_listener_(nullptr) {}
 
+BannerViewInternal::~BannerViewInternal() {
+  ad_listener_ = nullptr;
+  bounding_box_listener_ = nullptr;
+  paid_event_listener_ = nullptr;
+}
+
 BannerViewInternal* BannerViewInternal::CreateInstance(BannerView* base) {
 #if FIREBASE_PLATFORM_ANDROID
   return new BannerViewInternalAndroid(base);

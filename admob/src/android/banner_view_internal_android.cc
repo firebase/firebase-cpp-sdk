@@ -93,6 +93,8 @@ struct LoadAdOnMainThreadData {
   jobject banner_view_helper;
 };
 
+// Data to process various method calls which don't have prameters and
+// return Future<void> results.
 struct NulleryInvocationOnMainThreadData {
   // Thread-safe call data.
   NulleryInvocationOnMainThreadData()
