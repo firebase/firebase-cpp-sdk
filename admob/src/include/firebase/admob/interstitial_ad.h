@@ -100,7 +100,8 @@ class InterstitialAd {
   /// already been loaded.
   Future<void> Show();
 
-  /// Returns a @ref Future containing the status of the last call to @ref Show.
+  /// Returns a @ref Future containing the status of the last call to
+  /// @ref Show.
   Future<void> ShowLastResult() const;
 
   /// Sets the @ref FullScreenContentListener for this @ref InterstitialAd.
@@ -112,7 +113,7 @@ class InterstitialAd {
   /// Registers a callback to be invoked when this ad is estimated to have
   /// earned money
   ///
-  /// @param[in] listener A valid @ref OnPaidEventListener to receive callbacks.
+  /// @param[in] listener A valid @ref PaidEventListener to receive callbacks.
   void SetPaidEventListener(PaidEventListener* listener);
 
  private:

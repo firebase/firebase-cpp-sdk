@@ -40,7 +40,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithView:(UIView *)view
                     adUnitID:(NSString *)adUnitID
                       adSize:(firebase::admob::AdSize)adSize
-          internalBannerView:(firebase::admob::internal::BannerViewInternalIOS *)cppBannerView
+          internalBannerView:(firebase::admob::internal::BannerViewInternalIOS *)cppBannerView  // NOLINT
     NS_DESIGNATED_INITIALIZER;
 
 /// Requests a banner ad.
@@ -59,7 +59,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)moveBannerViewToXCoordinate:(int)x yCoordinate:(int)y;
 
 /// Moves the banner view to a BannerView::Position.
-- (void)moveBannerViewToPosition:(firebase::admob::BannerView::Position)position;
+- (void)moveBannerViewToPosition:(firebase::admob::BannerView::Position)position; // NOLINT
 
 
 @end

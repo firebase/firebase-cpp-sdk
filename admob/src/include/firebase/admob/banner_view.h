@@ -125,7 +125,8 @@ class BannerView : public AdView {
   /// @param[in] x The desired horizontal coordinate.
   /// @param[in] y The desired vertical coordinate.
   ///
-  /// @return a @ref Future which will be completed when this move operation completes.
+  /// @return a @ref Future which will be completed when this move operation
+  /// completes.
   Future<void> SetPosition(int x, int y) override;
 
   /// Moves the @ref AdView so that it's located at the given predefined
@@ -134,7 +135,8 @@ class BannerView : public AdView {
   /// @param[in] position The predefined position to which to move the
   ///   @ref AdView.
   ///
-  /// @return a @ref Future which will be completed when this move operation completes.
+  /// @return a @ref Future which will be completed when this move operation
+  /// completes.
   Future<void> SetPosition(Position position) override;
 
   /// Returns a @ref Future containing the status of the last call to either

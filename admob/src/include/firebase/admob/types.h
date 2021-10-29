@@ -609,14 +609,19 @@ class AdView {
   virtual Future<void> DestroyLastResult() const = 0;
 
  protected:
+  /// Pointer to a listener for AdListener events.
   AdListener* ad_listener_;
+
+  /// Pointer to a listener for BoundingBox events.
   AdViewBoundingBoxListener* ad_view_bounding_box_listener_;
+
+  /// Pointer to a listener for Paid events.
   PaidEventListener* paid_event_listener_;
 };
 
 /// A listener class that developers can extend and pass to a @ref AdView
-/// object's @ref SetBoundingBoxListener method to be notified of changes to
-/// the size of the Ad's bounding box.
+/// object's @ref AdView::SetBoundingBoxListener method to be notified of
+/// changes to the size of the Ad's bounding box.
 class AdViewBoundingBoxListener {
  public:
   virtual ~AdViewBoundingBoxListener();
