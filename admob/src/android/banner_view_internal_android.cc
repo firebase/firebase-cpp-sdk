@@ -31,7 +31,6 @@
 #include "admob/src/include/firebase/admob/banner_view.h"
 #include "admob/src/include/firebase/admob/types.h"
 #include "app/src/assert.h"
-#include "app/src/mutex.h"
 #include "app/src/semaphore.h"
 #include "app/src/util_android.h"
 
@@ -249,17 +248,21 @@ void InitializeBannerViewOnMainThread(void* data) {
 Future<void> BannerViewInternalAndroid::Initialize(AdParent parent,
                                                    const char* ad_unit_id,
                                                    const AdSize& size) {
+  firebase::MutexLock lock(mutex_);
+
   if (initialized_) {
-    return CreateAndCompleteFuture(
-        internal::kBannerViewFnInitialize, kAdMobErrorAlreadyInitialized,
-        kAdAlreadyInitializedErrorMessage, &future_data_);
+    const SafeFutureHandle<void> future_handle =
+        future_data_.future_impl.SafeAlloc<void>(kBannerViewFnInitialize);
+    CompleteFuture(kAdMobErrorAlreadyInitialized,
+                   kAdAlreadyInitializedErrorMessage, future_handle,
+                   &future_data_);
+    return MakeFuture(&future_data_.future_impl, future_handle);
   }
 
-  FutureCallbackData<void>* callback_data =
-      CreateVoidFutureCallbackData(kBannerViewFnInitialize, &future_data_);
-  SafeFutureHandle<void> future_handle = callback_data->future_handle;
-
   initialized_ = true;
+
+  FutureCallbackData<void>* callback_data =
+      CreateVoidFutureCallbackData(kBannerViewFnSetPosition, &future_data_);
 
   JNIEnv* env = ::firebase::admob::GetJNI();
   FIREBASE_ASSERT(env);
@@ -275,7 +278,7 @@ Future<void> BannerViewInternalAndroid::Initialize(AdParent parent,
   util::RunOnMainThread(env, activity, InitializeBannerViewOnMainThread,
                         call_data);
 
-  return MakeFuture(&future_data_.future_impl, future_handle);
+  return MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 }
 
 // This function is run on the main thread and is called in the

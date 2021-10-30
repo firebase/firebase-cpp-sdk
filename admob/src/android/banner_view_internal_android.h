@@ -18,6 +18,7 @@
 #define FIREBASE_ADMOB_SRC_ANDROID_BANNER_VIEW_INTERNAL_ANDROID_H_
 
 #include "admob/src/common/banner_view_internal.h"
+#include "app/src/mutex.h"
 #include "app/src/util_android.h"
 
 namespace firebase {
@@ -94,6 +95,9 @@ class BannerViewInternalAndroid : public BannerViewInternal {
 
   // Tracks if this BannerView has been initialized.
   bool initialized_;
+
+  // Mutex to guard against duplicate initializations.
+  Mutex mutex_;
 
   // Convenience method to "dry" the JNI calls that don't take parameters beyond
   // the future callback pointer.
