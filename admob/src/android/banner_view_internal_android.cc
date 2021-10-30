@@ -110,6 +110,8 @@ struct NulleryInvocationOnMainThreadData {
 
 BannerViewInternalAndroid::BannerViewInternalAndroid(BannerView* base)
     : BannerViewInternal(base), helper_(nullptr), initialized_(false) {
+  firebase::MutexLock lock(mutex_);
+
   JNIEnv* env = ::firebase::admob::GetJNI();
   FIREBASE_ASSERT(env);
 
@@ -148,6 +150,8 @@ void DestroyOnDeleteCallback(const Future<void>& result, void* sem_data) {
 }
 
 BannerViewInternalAndroid::~BannerViewInternalAndroid() {
+  firebase::MutexLock lock(mutex_);
+
   Semaphore semaphore(0);
   InvokeNullary(kBannerViewFnDestroyOnDelete, banner_view_helper::kDestroy)
       .OnCompletion(DestroyOnDeleteCallback, &semaphore);
@@ -314,6 +318,8 @@ void LoadAdOnMainThread(void* data) {
 
 Future<LoadAdResult> BannerViewInternalAndroid::LoadAd(
     const AdRequest& request) {
+  firebase::MutexLock lock(mutex_);
+
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env);
 
@@ -364,26 +370,33 @@ BoundingBox BannerViewInternalAndroid::bounding_box() const {
 }
 
 Future<void> BannerViewInternalAndroid::Hide() {
+  firebase::MutexLock lock(mutex_);
   return InvokeNullary(kBannerViewFnHide, banner_view_helper::kHide);
 }
 
 Future<void> BannerViewInternalAndroid::Show() {
+  firebase::MutexLock lock(mutex_);
   return InvokeNullary(kBannerViewFnShow, banner_view_helper::kShow);
 }
 
 Future<void> BannerViewInternalAndroid::Pause() {
+  firebase::MutexLock lock(mutex_);
   return InvokeNullary(kBannerViewFnPause, banner_view_helper::kPause);
 }
 
 Future<void> BannerViewInternalAndroid::Resume() {
+  firebase::MutexLock lock(mutex_);
   return InvokeNullary(kBannerViewFnResume, banner_view_helper::kResume);
 }
 
 Future<void> BannerViewInternalAndroid::Destroy() {
+  firebase::MutexLock lock(mutex_);
   return InvokeNullary(kBannerViewFnDestroy, banner_view_helper::kDestroy);
 }
 
 Future<void> BannerViewInternalAndroid::SetPosition(int x, int y) {
+  firebase::MutexLock lock(mutex_);
+
   FutureCallbackData<void>* callback_data =
       CreateVoidFutureCallbackData(kBannerViewFnSetPosition, &future_data_);
   SafeFutureHandle<void> future_handle = callback_data->future_handle;
@@ -397,6 +410,8 @@ Future<void> BannerViewInternalAndroid::SetPosition(int x, int y) {
 
 Future<void> BannerViewInternalAndroid::SetPosition(
     BannerView::Position position) {
+  firebase::MutexLock lock(mutex_);
+
   FutureCallbackData<void>* callback_data =
       CreateVoidFutureCallbackData(kBannerViewFnSetPosition, &future_data_);
   SafeFutureHandle<void> future_handle = callback_data->future_handle;
