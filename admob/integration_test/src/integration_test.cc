@@ -436,6 +436,7 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
   WaitForCompletion(load_ad_future, "LoadAd");
 
   const firebase::admob::LoadAdResult* result_ptr = load_ad_future.result();
+  ASSERT_NE(result_ptr, nullptr);
   EXPECT_TRUE(result_ptr->is_successful());
   EXPECT_EQ(result_ptr->code(), firebase::admob::kAdMobErrorNone);
   EXPECT_TRUE(result_ptr->message().empty());
@@ -670,6 +671,7 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorLoadInProgress) {
   WaitForCompletion(first_load_ad, "First LoadAd");
 
   const firebase::admob::LoadAdResult* result_ptr = second_load_ad.result();
+  ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
   EXPECT_EQ(result_ptr->code(), firebase::admob::kAdMobErrorLoadInProgress);
   EXPECT_EQ(result_ptr->message(), "Ad is currently loading.");
@@ -701,6 +703,7 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorBadAdUnitId) {
                     firebase::admob::kAdMobErrorInvalidRequest);
 
   const firebase::admob::LoadAdResult* result_ptr = load_ad.result();
+  ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
   EXPECT_EQ(result_ptr->code(), firebase::admob::kAdMobErrorInvalidRequest);
 
@@ -862,6 +865,7 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdErrorLoadInProgress) {
   WaitForCompletion(first_load_ad, "First LoadAd");
 
   const firebase::admob::LoadAdResult* result_ptr = second_load_ad.result();
+  ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
   EXPECT_EQ(result_ptr->code(), firebase::admob::kAdMobErrorLoadInProgress);
   EXPECT_EQ(result_ptr->message(), "Ad is currently loading.");
@@ -889,6 +893,7 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdErrorBadAdUnitId) {
                     firebase::admob::kAdMobErrorInvalidRequest);
 
   const firebase::admob::LoadAdResult* result_ptr = load_ad.result();
+  ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
   EXPECT_EQ(result_ptr->code(), firebase::admob::kAdMobErrorInvalidRequest);
   EXPECT_FALSE(result_ptr->message().empty());
