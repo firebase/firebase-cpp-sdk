@@ -249,31 +249,31 @@ void InitializeBannerViewOnMainThread(void* data) {
 Future<void> BannerViewInternalAndroid::Initialize(AdParent parent,
                                                    const char* ad_unit_id,
                                                    const AdSize& size) {
+  if (initialized_) {
+    return CreateAndCompleteFuture(
+        internal::kBannerViewFnInitialize, kAdMobErrorAlreadyInitialized,
+        kAdAlreadyInitializedErrorMessage, &future_data_);
+  }
+
   FutureCallbackData<void>* callback_data =
       CreateVoidFutureCallbackData(kBannerViewFnInitialize, &future_data_);
   SafeFutureHandle<void> future_handle = callback_data->future_handle;
 
-  if (initialized_) {
-    CompleteFuture(kAdMobErrorAlreadyInitialized,
-                   kAdAlreadyInitializedErrorMessage, future_handle,
-                   &future_data_);
-  } else {
-    initialized_ = true;
+  initialized_ = true;
 
-    JNIEnv* env = ::firebase::admob::GetJNI();
-    FIREBASE_ASSERT(env);
+  JNIEnv* env = ::firebase::admob::GetJNI();
+  FIREBASE_ASSERT(env);
 
-    jobject activity = ::firebase::admob::GetActivity();
-    InitializeOnMainThreadData* call_data = new InitializeOnMainThreadData();
-    call_data->ad_parent = env->NewGlobalRef(parent);
-    call_data->ad_size = size;
-    call_data->ad_unit_id = ad_unit_id;
-    call_data->ad_view = env->NewGlobalRef(ad_view_);
-    call_data->banner_view_helper = env->NewGlobalRef(helper_);
-    call_data->callback_data = callback_data;
-    util::RunOnMainThread(env, activity, InitializeBannerViewOnMainThread,
-                          call_data);
-  }
+  jobject activity = ::firebase::admob::GetActivity();
+  InitializeOnMainThreadData* call_data = new InitializeOnMainThreadData();
+  call_data->ad_parent = env->NewGlobalRef(parent);
+  call_data->ad_size = size;
+  call_data->ad_unit_id = ad_unit_id;
+  call_data->ad_view = env->NewGlobalRef(ad_view_);
+  call_data->banner_view_helper = env->NewGlobalRef(helper_);
+  call_data->callback_data = callback_data;
+  util::RunOnMainThread(env, activity, InitializeBannerViewOnMainThread,
+                        call_data);
 
   return MakeFuture(&future_data_.future_impl, future_handle);
 }

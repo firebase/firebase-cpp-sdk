@@ -775,6 +775,9 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorAlreadyInitialized) {
     WaitForCompletionAnyResult(second_initialize, "Second Initialize");
     WaitForCompletionAnyResult(first_initialize, "First Initialize");
 
+    LogDebug("first_initialize.error(): %d", first_initialize.error());
+    LogDebug("second_initialize.error(): %d", second_initialize.error());
+
     if (first_initialize.error() == firebase::admob::kAdMobErrorNone) {
       EXPECT_EQ(second_initialize.error(),
                 firebase::admob::kAdMobErrorAlreadyInitialized);
@@ -980,6 +983,9 @@ TEST_F(FirebaseAdMobTest, TesInterstitialAdErrorAlreadyInitialized) {
 
     WaitForCompletionAnyResult(second_initialize, "Second Initialize");
     WaitForCompletionAnyResult(first_initialize, "First Initialize");
+
+    LogDebug("first_initialize.error(): %d", first_initialize.error());
+    LogDebug("second_initialize.error(): %d", second_initialize.error());
 
     if (first_initialize.error() == firebase::admob::kAdMobErrorNone) {
       EXPECT_EQ(second_initialize.error(),
