@@ -55,10 +55,12 @@ InterstitialAdInternal* InterstitialAdInternal::CreateInstance(
 
 void InterstitialAdInternal::SetFullScreenContentListener(
     FullScreenContentListener* listener) {
+  MutexLock lock(listener_mutex_);
   full_screen_content_listener_ = listener;
 }
 
 void InterstitialAdInternal::SetPaidEventListener(PaidEventListener* listener) {
+  MutexLock lock(listener_mutex_);
   paid_event_listener_ = listener;
 }
 

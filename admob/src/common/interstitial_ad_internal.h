@@ -60,7 +60,7 @@ class InterstitialAdInternal {
   /// Sets the @ref PaidEventListener to receive information about paid events.
   void SetPaidEventListener(PaidEventListener* listener);
 
-  // Notifies the FullScreenContentListener (if one exists) that an even has
+  // Notifies the FullScreenContentListener (if one exists) that an event has
   // occurred.
   void NotifyListenerOfAdClickedFullScreenContent();
   void NotifyListenerOfAdDismissedFullScreenContent();
@@ -69,7 +69,7 @@ class InterstitialAdInternal {
   void NotifyListenerOfAdImpression();
   void NotifyListenerOfAdShowedFullScreenContent();
 
-  // Notifies the Paid Event listener (if one exists) that a paid event has
+  // Notifies the PaidEventListener (if one exists) that a paid event has
   // occurred.
   void NotifyListenerOfPaidEvent(const AdValue& ad_value);
 
@@ -79,7 +79,7 @@ class InterstitialAdInternal {
   // Retrieves the most recent LoadAdResult future for the LoadAd function.
   Future<LoadAdResult> GetLoadAdLastResult();
 
-  // Returns if the InterstitialAd has been initialized.
+  // Returns true if the InterstitialAd has been initialized.
   virtual bool is_initialized() const = 0;
 
  protected:
@@ -93,12 +93,12 @@ class InterstitialAdInternal {
   // Future data used to synchronize asynchronous calls.
   FutureData future_data_;
 
-  // Reference to the listener to which this object sends callbacks for screen
-  // events.
+  // Reference to the listener to which this object sends full screen event
+  // callbacks.
   FullScreenContentListener* full_screen_content_listener_;
 
-  // Reference to the listener to which this object sends callbacks for ad
-  // payout events.
+  // Reference to the listener to which this object sends ad payout
+  // event callbacks.
   PaidEventListener* paid_event_listener_;
 
   // Lock object for accessing listener_.

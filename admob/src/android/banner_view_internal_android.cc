@@ -52,9 +52,8 @@ METHOD_LOOKUP_DEFINITION(ad_view, "com/google/android/gms/ads/AdView",
 
 namespace internal {
 
-// Contains data to invoke Initailize from the main thread.
+// Contains data to invoke Initialize from the main thread.
 struct InitializeOnMainThreadData {
-  // Thread-safe call data.
   InitializeOnMainThreadData()
       : ad_parent(nullptr),
         ad_size(0, 0),
@@ -92,8 +91,9 @@ struct LoadAdOnMainThreadData {
   jobject banner_view_helper;
 };
 
-// Data to process various method calls which don't have prameters and
-// return Future<void> results.
+// Contains data to facilitate various method calls on the main thraed.
+// Thoe corresponding methods have no patamters and return Future<void>
+// results.
 struct NulleryInvocationOnMainThreadData {
   // Thread-safe call data.
   NulleryInvocationOnMainThreadData()

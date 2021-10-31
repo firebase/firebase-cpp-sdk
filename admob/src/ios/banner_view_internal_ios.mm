@@ -182,8 +182,8 @@ Future<void> BannerViewInternalIOS::Destroy() {
     // Remove the FADBannerView (i.e. the container view of GADBannerView) from the superview.
     [banner_view_ removeFromSuperview];
     if (banner_view_) {
-      // Keep consistency with Android SDK which returns a final bounding box
-      // upon deletion.
+      // Keep consistent with Android SDK which returns a final bounding box of
+      // -1 values upon deletion.
       bounding_box_.width = bounding_box_.height =
         bounding_box_.x = bounding_box_.y = -1;
       bounding_box_.position = AdView::kPositionUndefined;

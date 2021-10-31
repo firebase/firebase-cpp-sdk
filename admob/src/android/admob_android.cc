@@ -651,7 +651,7 @@ AdValue::PrecisionType ConvertAndroidPrecisionTypeToCPPPrecisionType(
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyPaidEvent(  // NOLINT
+Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyPaidEvent(
     JNIEnv* env, jclass clazz, jlong data_ptr, jstring j_currency_code,
     jint j_precision_type, jlong j_value_micros) {
   FIREBASE_ASSERT(data_ptr);

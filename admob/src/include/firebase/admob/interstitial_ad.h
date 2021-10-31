@@ -37,7 +37,7 @@ class InterstitialAdInternal;
 /// InterstitialAd objects provide information about their current state
 /// through Futures. @ref Initialize, @ref LoadAd, and @ref Show each have a
 /// corresponding @ref Future from which you can determine result of the
-// previous call.
+/// previous call.
 ///
 /// Here's how one might initialize, load, and show an interstitial ad while
 /// checking against the result of the previous action at each step:
@@ -45,7 +45,7 @@ class InterstitialAdInternal;
 /// @code
 /// namespace admob = ::firebase::admob;
 /// admob::InterstitialAd* interstitial = new admob::InterstitialAd();
-/// interstitial->Initialize(ad_parent, "YOUR_AD_UNIT_ID")
+/// interstitial->Initialize(ad_parent);
 /// @endcode
 ///
 /// Then, later:
@@ -55,7 +55,7 @@ class InterstitialAdInternal;
 ///     ::firebase::kFutureStatusComplete &&
 ///     interstitial->InitializeLastResult().error() ==
 ///     firebase::admob::kAdMobErrorNone) {
-///   interstitial->LoadAd(my_ad_request);
+///   interstitial->LoadAd(my_ad_unit)id, my_ad_request);
 /// }
 /// @endcode
 ///

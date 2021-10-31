@@ -509,7 +509,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
           mLoadAdCallbackDataPtr = CPP_NULLPTR;
           // Only update the bounding box if the banner view is already visible.
           if (mPopUp != null && mPopUp.isShowing()) {
-          // Loading an ad can sometimes cause the bounds to change.
+            // Loading an ad can sometimes cause the bounds to change.
             mNotifyBoundingBoxListenerOnNextDraw.set(true);
           }
         }
