@@ -764,30 +764,38 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorAlreadyInitialized) {
   SKIP_TEST_ON_DESKTOP;
 
   const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
-
-  for (int i = 0; i < 5; ++i) {
+  {
     firebase::admob::BannerView* banner = new firebase::admob::BannerView();
     firebase::Future<void> first_initialize = banner->Initialize(
         app_framework::GetWindowContext(), kBannerAdUnit, banner_ad_size);
     firebase::Future<void> second_initialize = banner->Initialize(
         app_framework::GetWindowContext(), kBannerAdUnit, banner_ad_size);
 
-    WaitForCompletionAnyResult(second_initialize, "Second Initialize");
-    WaitForCompletionAnyResult(first_initialize, "First Initialize");
+    WaitForCompletion(first_initialize, "First Initialize 1");
+    WaitForCompletion(second_initialize, "Second Initialize 1",
+                      firebase::admob::kAdMobErrorAlreadyInitialized);
 
-    LogDebug("first_initialize.error(): %d", first_initialize.error());
-    LogDebug("second_initialize.error(): %d", second_initialize.error());
-
-    if (first_initialize.error() == firebase::admob::kAdMobErrorNone) {
-      EXPECT_EQ(second_initialize.error(),
-                firebase::admob::kAdMobErrorAlreadyInitialized);
-    } else {
-      EXPECT_EQ(first_initialize.error(),
-                firebase::admob::kAdMobErrorAlreadyInitialized);
-      EXPECT_EQ(second_initialize.error(), firebase::admob::kAdMobErrorNone);
-    }
     first_initialize.Release();
     second_initialize.Release();
+
+    delete banner;
+  }
+
+  // Reverse the order of the completion waits.
+  {
+    firebase::admob::BannerView* banner = new firebase::admob::BannerView();
+    firebase::Future<void> first_initialize = banner->Initialize(
+        app_framework::GetWindowContext(), kBannerAdUnit, banner_ad_size);
+    firebase::Future<void> second_initialize = banner->Initialize(
+        app_framework::GetWindowContext(), kBannerAdUnit, banner_ad_size);
+
+    WaitForCompletion(second_initialize, "Second Initialize 1",
+                      firebase::admob::kAdMobErrorAlreadyInitialized);
+    WaitForCompletion(first_initialize, "First Initialize 1");
+
+    first_initialize.Release();
+    second_initialize.Release();
+
     delete banner;
   }
 }
