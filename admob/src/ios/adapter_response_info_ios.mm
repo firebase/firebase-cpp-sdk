@@ -43,7 +43,7 @@ AdapterResponseInfo::AdapterResponseInfo(
     internal.ad_network_response_info.adNetworkClassName);
   
   // ObjC latency is an NSInterval, which is in seconds.  Convert to millis.
-  latency_ = (int64_t)NSInteger(internal.ad_network_response_info.latency) *
+  latency_ = (int64_t)(internal.ad_network_response_info.latency) *
     (int64_t)1000;
 
   NSString *to_string = [[NSString alloc]initWithFormat:@"AdapterResponseInfo"

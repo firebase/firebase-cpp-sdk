@@ -277,7 +277,6 @@ firebase::admob::BannerView::Position _position;
   admob::BoundingBox bounding_box = self.boundingBox;
 }
 - (void)bannerView:(nonnull GADBannerView *)bannerView didFailToReceiveAdWithError:(nonnull NSError *)error {
-  firebase::LogError("DEDB didFailToReceiveAdWithError in FADBannerView.mm");
   _cppBannerView->BannerViewDidFailToReceiveAdWithError(error);
 }
 

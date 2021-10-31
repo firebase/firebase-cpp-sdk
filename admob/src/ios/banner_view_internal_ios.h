@@ -26,6 +26,7 @@ extern "C" {
 #endif  // __OBJC__
 
 #include "admob/src/common/banner_view_internal.h"
+#include "app/src/mutex.h"
 
 namespace firebase {
 namespace admob {
@@ -67,6 +68,9 @@ class BannerViewInternalIOS : public BannerViewInternal {
   /// The FADBannerView object. Declared as an "id" type to avoid referencing an
   /// Objective-C++ class in this header.
   id banner_view_;
+
+  // Mutex to guard against concurrent operations;
+  Mutex mutex_;
 
   /// A mutex used to handle the destroy behavior, as it is asynchronous,
   /// and needs to be waited on in the destructor.

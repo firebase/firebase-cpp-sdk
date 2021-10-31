@@ -981,7 +981,7 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdStress) {
 TEST_F(FirebaseAdMobTest, TesInterstitialAdErrorAlreadyInitialized) {
   SKIP_TEST_ON_DESKTOP;
 
-  for (int i = 0; i < 5; ++i) {
+  {
     firebase::admob::InterstitialAd* interstitial_ad =
         new firebase::admob::InterstitialAd();
     firebase::Future<void> first_initialize =
@@ -989,22 +989,32 @@ TEST_F(FirebaseAdMobTest, TesInterstitialAdErrorAlreadyInitialized) {
     firebase::Future<void> second_initialize =
         interstitial_ad->Initialize(app_framework::GetWindowContext());
 
-    WaitForCompletionAnyResult(second_initialize, "Second Initialize");
-    WaitForCompletionAnyResult(first_initialize, "First Initialize");
+    WaitForCompletion(first_initialize, "First Initialize 1");
+    WaitForCompletion(second_initialize, "Second Initialize 1",
+                      firebase::admob::kAdMobErrorAlreadyInitialized);
 
-    LogDebug("first_initialize.error(): %d", first_initialize.error());
-    LogDebug("second_initialize.error(): %d", second_initialize.error());
-
-    if (first_initialize.error() == firebase::admob::kAdMobErrorNone) {
-      EXPECT_EQ(second_initialize.error(),
-                firebase::admob::kAdMobErrorAlreadyInitialized);
-    } else {
-      EXPECT_EQ(first_initialize.error(),
-                firebase::admob::kAdMobErrorAlreadyInitialized);
-      EXPECT_EQ(second_initialize.error(), firebase::admob::kAdMobErrorNone);
-    }
     first_initialize.Release();
     second_initialize.Release();
+
+    delete interstitial_ad;
+  }
+
+  // Reverse the order of the completion waits.
+  {
+    firebase::admob::InterstitialAd* interstitial_ad =
+        new firebase::admob::InterstitialAd();
+    firebase::Future<void> first_initialize =
+        interstitial_ad->Initialize(app_framework::GetWindowContext());
+    firebase::Future<void> second_initialize =
+        interstitial_ad->Initialize(app_framework::GetWindowContext());
+
+    WaitForCompletion(second_initialize, "Second Initialize 1",
+                      firebase::admob::kAdMobErrorAlreadyInitialized);
+    WaitForCompletion(first_initialize, "First Initialize 1");
+
+    first_initialize.Release();
+    second_initialize.Release();
+
     delete interstitial_ad;
   }
 }

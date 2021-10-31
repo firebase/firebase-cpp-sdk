@@ -18,6 +18,7 @@
 #define FIREBASE_ADMOB_SRC_ANDROID_INTERSTITIAL_AD_INTERNAL_ANDROID_H_
 
 #include "admob/src/common/interstitial_ad_internal.h"
+#include "app/src/mutex.h"
 #include "app/src/util_android.h"
 
 namespace firebase {
@@ -57,6 +58,9 @@ class InterstitialAdInternalAndroid : public InterstitialAdInternal {
 
   // Tracks if this Interstial Ad has been initialized.
   bool initialized_;
+
+  // Mutex to guard against concurrent operations;
+  Mutex mutex_;
 };
 
 }  // namespace internal

@@ -26,6 +26,7 @@ extern "C" {
 }  // extern "C"
 
 #include "admob/src/common/interstitial_ad_internal.h"
+#include "app/src/mutex.h"
 
 namespace firebase {
 namespace admob {
@@ -70,6 +71,9 @@ class InterstitialAdInternalIOS : public InterstitialAdInternal {
   /// GADInterstitialDelegate protocol. Declared as an "id" type to avoid
   /// referencing an Objective-C++ class in this header.
   id interstitial_delegate_;
+
+  // Mutex to guard against concurrent operations;
+  Mutex mutex_;
 };
 
 }  // namespace internal

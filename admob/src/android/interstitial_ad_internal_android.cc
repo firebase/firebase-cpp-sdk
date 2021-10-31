@@ -45,6 +45,7 @@ namespace internal {
 InterstitialAdInternalAndroid::InterstitialAdInternalAndroid(
     InterstitialAd* base)
     : InterstitialAdInternal(base), helper_(nullptr), initialized_(false) {
+  firebase::MutexLock lock(mutex_);
   JNIEnv* env = ::firebase::admob::GetJNI();
   jobject helper_ref = env->NewObject(
       interstitial_ad_helper::GetClass(),
@@ -58,6 +59,7 @@ InterstitialAdInternalAndroid::InterstitialAdInternalAndroid(
 }
 
 InterstitialAdInternalAndroid::~InterstitialAdInternalAndroid() {
+  firebase::MutexLock lock(mutex_);
   JNIEnv* env = ::firebase::admob::GetJNI();
   // Since it's currently not possible to destroy the intersitial ad, just
   // disconnect from it so the listener doesn't initiate callbacks with stale
@@ -69,6 +71,7 @@ InterstitialAdInternalAndroid::~InterstitialAdInternalAndroid() {
 }
 
 Future<void> InterstitialAdInternalAndroid::Initialize(AdParent parent) {
+  firebase::MutexLock lock(mutex_);
   FutureCallbackData<void>* callback_data =
       CreateVoidFutureCallbackData(kInterstitialAdFnInitialize, &future_data_);
   SafeFutureHandle<void> future_handle = callback_data->future_handle;
@@ -92,6 +95,7 @@ Future<void> InterstitialAdInternalAndroid::Initialize(AdParent parent) {
 
 Future<LoadAdResult> InterstitialAdInternalAndroid::LoadAd(
     const char* ad_unit_id, const AdRequest& request) {
+  firebase::MutexLock lock(mutex_);
   admob::AdMobError error = kAdMobErrorNone;
   jobject j_request = GetJavaAdRequestFromCPPAdRequest(request, &error);
 
@@ -123,6 +127,7 @@ Future<LoadAdResult> InterstitialAdInternalAndroid::LoadAd(
 }
 
 Future<void> InterstitialAdInternalAndroid::Show() {
+  firebase::MutexLock lock(mutex_);
   FutureCallbackData<void>* callback_data =
       CreateVoidFutureCallbackData(kInterstitialAdFnLoadAd, &future_data_);
   SafeFutureHandle<void> future_handle = callback_data->future_handle;

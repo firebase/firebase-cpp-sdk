@@ -96,7 +96,7 @@ class BannerViewInternalAndroid : public BannerViewInternal {
   // Tracks if this BannerView has been initialized.
   bool initialized_;
 
-  // Mutex to guard against duplicate initializations.
+  // Mutex to guard against concurrent operations;
   Mutex mutex_;
 
   // Convenience method to "dry" the JNI calls that don't take parameters beyond
