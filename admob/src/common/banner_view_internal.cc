@@ -70,8 +70,14 @@ void BannerViewInternal::NotifyListenerOfBoundingBoxChange(BoundingBox box) {
 }
 
 Future<void> BannerViewInternal::GetLastResult(BannerViewFn fn) {
+  FIREBASE_ASSERT(fn != kBannerViewFnLoadAd);
   return static_cast<const Future<void>&>(
       future_data_.future_impl.LastResult(fn));
+}
+
+Future<LoadAdResult> BannerViewInternal::GetLoadAdLastResult() {
+  return static_cast<const Future<LoadAdResult>&>(
+      future_data_.future_impl.LastResult(kBannerViewFnLoadAd));
 }
 
 }  // namespace internal

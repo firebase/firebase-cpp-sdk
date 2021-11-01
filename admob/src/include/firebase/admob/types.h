@@ -18,6 +18,7 @@
 #define FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_TYPES_H_
 
 #include <map>
+#include <memory>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -36,6 +37,14 @@ extern "C" {
 namespace firebase {
 namespace admob {
 
+struct AdResultInternal;
+struct AdapterResponseInfoInternal;
+struct ResponseInfoInternal;
+
+class AdmobInternal;
+class BannerView;
+class InterstitialAd;
+
 /// This is a platform specific datatype that is required to create an AdMob ad.
 ///
 /// The following defines the datatype on each platform:
@@ -51,7 +60,7 @@ typedef jobject AdParent;
 typedef id AdParent;
 #else
 /// A void pointer for stub classes.
-typedef void *AdParent;
+typedef void* AdParent;
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
 
@@ -82,12 +91,141 @@ enum AdMobError {
   /// An attempt to load an Ad Network extras class for an ad request has
   /// failed.
   kAdMobErrorAdNetworkClassLoadError,
+  /// The ad server experienced a failure processing the request.
+  kAdMobErrorServerError,
+  /// The current device’s OS is below the minimum required version.
+  kAdMobErrorOSVersionTooLow,
+  /// The request was unable to be loaded before being timed out.
+  kAdMobErrorTimeout,
+  /// Will not send request because the interstitial object has already been
+  /// used.
+  kAdMobErrorInterstitialAlreadyUsed,
+  /// The mediation response was invalid.
+  kAdMobErrorMediationDataError,
+  /// Error finding or creating a mediation ad network adapter.
+  kAdMobErrorMediationAdapterError,
+  /// Attempting to pass an invalid ad size to an adapter.
+  kAdMobErrorMediationInvalidAdSize,
+  /// Invalid argument error.
+  kAdMobErrorInvalidArgument,
+  /// Received invalid response.
+  kAdMobErrorReceivedInvalidResponse,
+  /// Will not send a request because the rewarded ad object has already been
+  /// used.
+  kAdMobErrorRewardedAdAlreadyUsed,
+  /// A mediation ad network adapter received an ad request, but did not fill.
+  /// The adapter’s error is included as an underlyingError.
+  kAdMobErrorMediationNoFill,
+  /// Will not send request because the ad object has already been used.
+  kAdMobErrorAdAlreadyUsed,
+  /// Will not send request because the application identifier is missing.
+  kAdMobErrorApplicationIdentifierMissing,
+  /// Android Ad String is invalid.
+  kAdMobErrorInvalidAdString,
   /// Fallback error for any unidentified cases.
   kAdMobErrorUnknown,
 };
+
 #ifdef INTERNAL_EXPERIMENTAL
 // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src_java/com/google/firebase/admob/internal/cpp/ConstantsHelper.java)
 #endif  // INTERNAL_EXPERIMENTAL
+
+/// Information about why an ad operation failed.
+class AdResult {
+ public:
+  /// Copy Constructor.
+  AdResult(const AdResult& ad_result);
+
+  /// Destructor.
+  virtual ~AdResult();
+
+  /// Assignment operator.
+  AdResult& operator=(const AdResult& obj);
+
+  /// If the operation was successful then the other error reporting methods
+  /// of this object will return defaults.
+  bool is_successful() const;
+
+  /// Retrieves an AdResult which represents the cause of this error.
+  ///
+  /// @return a pointer to an AdResult which represents the cause of this
+  /// AdResult.  If there was no cause, or if this result was successful,
+  /// then nullptr is returned.
+  std::unique_ptr<AdResult> GetCause() const;
+
+  /// Gets the error's code.
+  AdMobError code() const;
+
+  /// Gets the domain of the error.
+  const std::string& domain() const;
+
+  /// Gets the message describing the error.
+  const std::string& message() const;
+
+  /// Returns a log friendly string version of this object.
+  const std::string& ToString() const;
+
+  /// A domain string which represents an undefined error domain.
+  ///
+  /// The Admob SDK returns this domain for domain() method invocations when
+  /// converting error information from legacy mediation adapter callbacks.
+  static const char* const kUndefinedDomain;
+
+ protected:
+  // Internal initialization of AdResult.  Should only be used to create
+  // AdResults in futures, etc, which will later be supplied with the result
+  // specifics in the internal callback handlers.
+  AdResult();
+
+  /// Constructor used when building results in Load Ad callbacks.
+  explicit AdResult(const AdResultInternal& ad_result_internal);
+
+  /// Sets the internally cached string. Used by the LoadAdError subclass.
+  void set_to_string(std::string to_string);
+
+ private:
+  friend class AdapterResponseInfo;
+  friend class AdMobInternal;
+
+  // An internal, platform-specific implementation object that this class uses
+  // to interact with the Google Mobile Ads SDKs for iOS and Android.
+  AdResultInternal* internal_;
+};
+
+/// @brief Response information for an individual ad network contained within
+/// a @ref ResponseInfo object.
+class AdapterResponseInfo {
+ public:
+  /// Information about the Ad Error, if one occurred.
+  ///
+  /// @return the error that occurred while rendering the ad.  If no error
+  /// occurred then the AdResults's successful method will return false.
+  AdResult ad_result() const { return ad_result_; }
+
+  /// Returns a string representation of a class name that identifies the ad
+  /// network adapter.
+  const std::string& adapter_class_name() const { return adapter_class_name_; }
+
+  /// Amount of time the ad network spent loading an ad.
+  ///
+  /// @return number of milliseconds the network spent loading an ad. This value
+  /// is 0 if the network did not make a load attempt.
+  int64_t latency_in_millis() const { return latency_; }
+
+  /// A log friendly string version of this object.
+  const std::string& ToString() const { return to_string_; }
+
+ private:
+  friend class ResponseInfo;
+
+  /// Constructs an Adapter Response Info Object.
+  explicit AdapterResponseInfo(const AdapterResponseInfoInternal& internal);
+
+  AdResult ad_result_;
+  std::string adapter_class_name_;
+  int64_t latency_;
+  std::string to_string_;
+};
 
 /// The size of a banner ad.
 class AdSize {
@@ -175,12 +313,12 @@ class AdSize {
   /// Comparison operator.
   ///
   /// @return true if `rhs` refers to the same AdSize as `this`.
-  bool operator==(const AdSize &rhs) const;
+  bool operator==(const AdSize& rhs) const;
 
   /// Comparison operator.
   ///
   /// @returns true if `rhs` refers to a different AdSize as `this`.
-  bool operator!=(const AdSize &rhs) const;
+  bool operator!=(const AdSize& rhs) const;
 
   /// The width of the region represented by this AdSize.  Value is in
   /// density-independent pixels.
@@ -202,7 +340,7 @@ class AdSize {
                                                 Orientation orientation);
 
   /// Returns true if the AdSize parameter is equivalient to this AdSize object.
-  bool is_equal(const AdSize &ad_size) const;
+  bool is_equal(const AdSize& ad_size) const;
 
   /// Denotes the orientation for anchored adaptive AdSize objects.
   Orientation orientation_;
@@ -221,9 +359,9 @@ class AdSize {
 /// @ref firebase::admob::AdRequest.
 struct KeyValuePair {
   /// The name for an "extra."
-  const char *key;
+  const char* key;
   /// The value for an "extra."
-  const char *value;
+  const char* value;
 };
 
 /// Contains targeting information used to fetch an ad.
@@ -240,7 +378,7 @@ class AdRequest {
   /// The URL is ignored if null or the number of characters exceeds 512.
   ///
   /// @param[in] content_url the url of the content being viewed.
-  explicit AdRequest(const char *content_url);
+  explicit AdRequest(const char* content_url);
 
   ~AdRequest();
 
@@ -248,18 +386,18 @@ class AdRequest {
   ///
   /// @return the content URL for the @ref AdRequest. The string will be empty
   /// if no content URL has been configured.
-  const std::string &content_url() const { return content_url_; }
+  const std::string& content_url() const { return content_url_; }
 
   /// A Map of ad network adapters to their collection of extra parameters, as
   /// configured via @ref add_extra.
-  const std::map<std::string, std::map<std::string, std::string> > &extras()
+  const std::map<std::string, std::map<std::string, std::string> >& extras()
       const {
     return extras_;
   }
 
   /// Keywords which will help Admob to provide targeted ads, as added by
   /// @ref add_keyword.
-  const std::unordered_set<std::string> &keywords() const { return keywords_; }
+  const std::unordered_set<std::string>& keywords() const { return keywords_; }
 
   /// Add a network extra for the associated ad_network.
   ///
@@ -270,15 +408,15 @@ class AdRequest {
   /// @param[in] extra_key a key which will be passed to the corresponding ad
   /// network adapter.
   /// @param[in] extra_value the value associated with extra_key.
-  void add_extra(const char *ad_network, const char *extra_key,
-                 const char *extra_value);
+  void add_extra(const char* ad_network, const char* extra_key,
+                 const char* extra_value);
 
   /// Adds a keyword for targeting purposes.
   ///
   /// Multiple keywords may be added via repeated invocations of this method.
   ///
   /// @param[in] keyword a string that Admob will use to aid in targeting ads.
-  void add_keyword(const char *keyword);
+  void add_keyword(const char* keyword);
 
   /// When requesting an ad, apps may pass the URL of the content they are
   /// serving. This enables keyword targeting to match the ad with the content.
@@ -286,7 +424,7 @@ class AdRequest {
   /// The URL is ignored if null or the number of characters exceeds 512.
   ///
   /// @param[in] content_url the url of the content being viewed.
-  void set_content_url(const char *content_url);
+  void set_content_url(const char* content_url);
 
  private:
   std::string content_url_;
@@ -307,6 +445,66 @@ struct BoundingBox {
   int x;
   /// Vertical position of the ad in pixels from the top.
   int y;
+};
+
+/// Information about an ad response.
+class ResponseInfo {
+ public:
+  /// Constructor creates an uninitialized ResponseInfo.
+  ResponseInfo();
+
+  /// Gets the AdaptorReponseInfo objects for the ad response.
+  ///
+  /// @return a vector of AdapterResponseInfo objects containing metadata for
+  ///   each adapter included in the ad response.
+  const std::vector<AdapterResponseInfo>& adapter_responses() const {
+    return adapter_responses_;
+  }
+
+  /// A class name that identifies the ad network that returned the ad.
+  /// Returns an empty string if the ad failed to load.
+  const std::string& mediation_adapter_class_name() const {
+    return mediation_adapter_class_name_;
+  }
+
+  /// Gets the response ID string for the loaded ad.  Returns an empty
+  /// string if the ad fails to load.
+  const std::string& response_id() const { return response_id_; }
+
+  /// Gets a log friendly string version of this object.
+  const std::string& ToString() const { return to_string_; }
+
+ private:
+  friend class LoadAdResult;
+
+  explicit ResponseInfo(const ResponseInfoInternal& internal);
+
+  std::vector<AdapterResponseInfo> adapter_responses_;
+  std::string mediation_adapter_class_name_;
+  std::string response_id_;
+  std::string to_string_;
+};
+
+/// @brief Information about why an ad load operation failed.
+class LoadAdResult : public AdResult {
+ public:
+  /// Default constructor.
+  LoadAdResult();
+
+  /// Copy Constructor.
+  LoadAdResult(const LoadAdResult& load_ad_result);
+
+  /// Gets the ResponseInfo if an error occurred, with a collection of
+  /// information from each adapter.
+  const ResponseInfo& response_info() const { return response_info_; }
+
+ private:
+  friend class AdmobInternal;
+  friend class BannerView;
+
+  explicit LoadAdResult(const AdResultInternal& ad_result_internal);
+
+  ResponseInfo response_info_;
 };
 
 /// @brief Global configuration that will be used for every @ref AdRequest.

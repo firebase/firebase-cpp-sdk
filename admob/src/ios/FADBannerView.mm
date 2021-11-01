@@ -16,6 +16,7 @@
 
 #include "admob/src/ios/FADBannerView.h"
 
+#import "admob/src/ios/admob_ios.h"
 #import "admob/src/ios/FADAdSize.h"
 
 namespace admob = firebase::admob;
@@ -260,9 +261,9 @@ namespace admob = firebase::admob;
 
 #pragma mark - GADBannerViewDelegate
 
-- (void)adViewDidReceiveAd:(GADBannerView *)bannerView {
+- (void)bannerViewDidReceiveAd:(GADBannerView *)bannerView {
   _adLoaded = YES;
-  _cppBannerView->CompleteLoadFuture(admob::kAdMobErrorNone, nullptr);
+  _cppBannerView->BannerViewDidReceiveAd();
   // Only update the presentation state if the FADBannerView is already visible.
   if (!self.hidden) {
     _presentationState = admob::BannerView::kPresentationStateVisibleWithAd;
@@ -272,54 +273,27 @@ namespace admob = firebase::admob;
   }
 }
 
-- (void)adView:(GADBannerView *)bannerView didFailToReceiveAdWithError:(GADRequestError *)error {
-  admob::AdMobError api_error;
-  const char* error_msg = error.localizedDescription.UTF8String;
-  switch (error.code) {
-    case kGADErrorInvalidRequest:
-      api_error = admob::kAdMobErrorInvalidRequest;
-      break;
-    case kGADErrorNoFill:
-      api_error = admob::kAdMobErrorNoFill;
-      break;
-    case kGADErrorNetworkError:
-      api_error = admob::kAdMobErrorNetworkError;
-      break;
-    case kGADErrorInternalError:
-      api_error = admob::kAdMobErrorInternalError;
-      break;
-    default:
-      // NOTE: Changes in the iOS SDK can result in new error codes being added. Fall back to
-      // admob::kAdMobErrorInternalError if this SDK doesn't handle error.code.
-      firebase::LogDebug("Unknown error code %d. Defaulting to internal error.", error.code);
-      api_error = admob::kAdMobErrorInternalError;
-      error_msg = admob::kInternalSDKErrorMesage;
-      break;
-  }
-  _cppBannerView->CompleteLoadFuture(api_error, error_msg);
+- (void)bannerView:(GADBannerView *)bannerView didFailToReceiveAdWithError:(NSError *)error {
+  _cppBannerView->BannerViewDidFailToReceiveAdWithError(error);
 }
 
-- (void)adViewWillPresentScreen:(GADBannerView *)bannerView {
+- (void)bannerViewDidRecordImpression:(GADBannerView *)bannerView {
+  // TODO(b/202001231)
+}
+
+- (void)bannerViewWillPresentScreen:(GADBannerView *)bannerView {
   _presentationState = admob::BannerView::kPresentationStateCoveringUI;
   _cppBannerView->NotifyListenerOfPresentationStateChange(_presentationState);
   _cppBannerView->NotifyListenerOfBoundingBoxChange(self.boundingBox);
 }
 
-- (void)adViewDidDismissScreen:(GADBannerView *)bannerView {
+- (void)bannerViewWillDismissScreen:(GADBannerView *)bannerView {
+  // TODO(b/202001231)
+}
+
+- (void)bannerViewDidDismissScreen:(GADBannerView *)bannerView {
   _presentationState = admob::BannerView::kPresentationStateVisibleWithAd;
   _cppBannerView->NotifyListenerOfPresentationStateChange(_presentationState);
   _cppBannerView->NotifyListenerOfBoundingBoxChange(self.boundingBox);
 }
-
-- (void)adViewWillLeaveApplication:(GADBannerView *)bannerView {
-  _presentationState = admob::BannerView::kPresentationStateCoveringUI;
-  _cppBannerView->NotifyListenerOfPresentationStateChange(_presentationState);
-  // The FADBannerView object will need to get notified when the application becomes active again so
-  // it can update the GADBannerView's presentation state.
-  [[NSNotificationCenter defaultCenter] addObserver:self
-                                           selector:@selector(applicationDidBecomeActive:)
-                                               name:UIApplicationDidBecomeActiveNotification
-                                             object:nil];
-}
-
 @end

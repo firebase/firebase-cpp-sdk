@@ -37,6 +37,10 @@ namespace admob {
 jobject GetJavaAdRequestFromCPPAdRequest(const AdRequest& request,
                                          admob::AdMobError* error);
 
+// Converts the Android AdRequest error codes to the CPP
+// platform-independent error codes defined in AdMobError.
+AdMobError MapAndroidAdRequestErrorCodeToCPPErrorCode(jint j_error_code);
+
 }  // namespace admob
 }  // namespace firebase
 

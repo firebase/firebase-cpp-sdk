@@ -44,10 +44,11 @@ class InterstitialAdInternal {
   virtual ~InterstitialAdInternal() = default;
 
   // Initializes this object and any platform-specific helpers that it uses.
-  virtual Future<void> Initialize(AdParent parent, const char* ad_unit_id) = 0;
+  virtual Future<void> Initialize(AdParent parent) = 0;
 
   // Initiates an ad request.
-  virtual Future<void> LoadAd(const AdRequest& request) = 0;
+  virtual Future<LoadAdResult> LoadAd(const char* ad_unit_id,
+                                      const AdRequest& request) = 0;
 
   // Displays an interstitial ad.
   virtual Future<void> Show() = 0;
@@ -65,6 +66,9 @@ class InterstitialAdInternal {
 
   // Retrieves the most recent Future for a given function.
   Future<void> GetLastResult(InterstitialAdFn fn);
+
+  // Retrieves the most recent LoadAdResult future for the LoadAd function.
+  Future<LoadAdResult> GetLoadAdLastResult();
 
  protected:
   // Used by CreateInstance() to create an appropriate one for the current

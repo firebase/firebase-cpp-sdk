@@ -33,12 +33,13 @@ class InterstitialAdInternalStub : public InterstitialAdInternal {
 
   ~InterstitialAdInternalStub() override {}
 
-  Future<void> Initialize(AdParent parent, const char* ad_unit_id) override {
+  Future<void> Initialize(AdParent parent) override {
     return CreateAndCompleteFutureStub(kInterstitialAdFnInitialize);
   }
 
-  Future<void> LoadAd(const AdRequest& request) override {
-    return CreateAndCompleteFutureStub(kInterstitialAdFnLoadAd);
+  Future<LoadAdResult> LoadAd(const char* ad_unit_id,
+                              const AdRequest& request) override {
+    return CreateAndCompleteLoadAdResultFutureStub(kInterstitialAdFnLoadAd);
   }
 
   Future<void> Show() override {
@@ -53,6 +54,12 @@ class InterstitialAdInternalStub : public InterstitialAdInternal {
   Future<void> CreateAndCompleteFutureStub(InterstitialAdFn fn) {
     CreateAndCompleteFuture(fn, kAdMobErrorNone, nullptr, &future_data_);
     return GetLastResult(fn);
+  }
+
+  Future<LoadAdResult> CreateAndCompleteLoadAdResultFutureStub(
+      InterstitialAdFn fn) {
+    return CreateAndCompleteFutureWithResult(fn, kAdMobErrorNone, nullptr,
+                                             &future_data_, LoadAdResult());
   }
 };
 

@@ -54,7 +54,7 @@ class BannerViewInternal {
                                   const AdSize& size) = 0;
 
   // Initiates an ad request.
-  virtual Future<void> LoadAd(const AdRequest& request) = 0;
+  virtual Future<LoadAdResult> LoadAd(const AdRequest& request) = 0;
 
   // Hides the banner view.
   virtual Future<void> Hide() = 0;
@@ -99,6 +99,9 @@ class BannerViewInternal {
 
   // Retrieves the most recent Future for a given function.
   Future<void> GetLastResult(BannerViewFn fn);
+
+  // Retrieves the most recent LoadAdResult future for the LoadAd function.
+  Future<LoadAdResult> GetLoadAdLastResult();
 
  protected:
   // Used by CreateInstance() to create an appropriate one for the current

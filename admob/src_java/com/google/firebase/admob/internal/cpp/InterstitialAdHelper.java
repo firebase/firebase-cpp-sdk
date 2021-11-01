@@ -72,7 +72,9 @@ public class InterstitialAdHelper {
   // complete the Future associated with the latest call to LoadAd.
   private long mLoadAdCallbackDataPtr;
 
-  /** Constructor. */
+  /**
+   * Constructor.
+   */
   public InterstitialAdHelper(long interstitialAdInternalPtr) {
     mInterstitialAdInternalPtr = interstitialAdInternalPtr;
     mCurrentPresentationState = PRESENTATION_STATE_HIDDEN;
@@ -88,10 +90,8 @@ public class InterstitialAdHelper {
    * Initializes the {@link InterstitialAd}. This creates the corresponding GMA SDK {@link
    * InterstitialAd} object and sets it up.
    */
-  public void initialize(final long callbackDataPtr, Activity activity, String adUnitID) {
-    /// TODO, move adUnitId to the load method.
+  public void initialize(final long callbackDataPtr, Activity activity) {
     mActivity = activity;
-    mAdUnitId = adUnitID;
 
     mActivity.runOnUiThread(
         new Runnable() {
@@ -119,7 +119,9 @@ public class InterstitialAdHelper {
         });
   }
 
-  /** Disconnect the helper from the interstital ad. */
+  /**
+   * Disconnect the helper from the interstital ad.
+   */
   public void disconnect() {
     synchronized (mInterstitialLock) {
       mInterstitialAdInternalPtr = CPP_NULLPTR;
@@ -130,7 +132,7 @@ public class InterstitialAdHelper {
           @Override
           public void run() {
             synchronized (mInterstitialLock) {
-              if( mInterstitial != null) {
+              if (mInterstitial != null) {
                 mInterstitial.setFullScreenContentCallback(null);
                 mInterstitial.setOnPaidEventListener(null);
                 mInterstitial = null;
@@ -140,27 +142,33 @@ public class InterstitialAdHelper {
         });
   }
 
-  /** Loads an ad for the underlying {@link InterstitialAd} object. */
-  public void loadAd(long callbackDataPtr, final AdRequest request) {
+  /**
+   * Loads an ad for the underlying {@link InterstitialAd} object.
+   */
+  public void loadAd(long callbackDataPtr, String adUnitId, final AdRequest request) {
+    if (mActivity == null) {
+      return;
+    }
     synchronized (mInterstitialLock) {
       if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
-        completeInterstitialAdFutureCallback(
+        completeInterstitialLoadAdInternalError(
             callbackDataPtr,
             ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS,
             ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS);
         return;
       }
-
       mLoadAdCallbackDataPtr = callbackDataPtr;
     }
+
+    mAdUnitId = adUnitId;
 
     mActivity.runOnUiThread(
         new Runnable() {
           @Override
           public void run() {
-            if (mAdUnitId == null) {
+            if (mActivity == null) {
               synchronized (mInterstitialLock) {
-                completeInterstitialAdFutureCallback(
+                completeInterstitialLoadAdInternalError(
                     mLoadAdCallbackDataPtr,
                     ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
                     ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
@@ -171,7 +179,7 @@ public class InterstitialAdHelper {
                 InterstitialAd.load(mActivity, mAdUnitId, request, new InterstitialAdListener());
               } catch (IllegalStateException e) {
                 synchronized (mInterstitialLock) {
-                  completeInterstitialAdFutureCallback(
+                  completeInterstitialLoadAdInternalError(
                       mLoadAdCallbackDataPtr,
                       ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
                       ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
@@ -183,7 +191,9 @@ public class InterstitialAdHelper {
         });
   }
 
-  /** Shows a previously loaded ad. */
+  /**
+   * Shows a previously loaded ad.
+   */
   public void show(final long callbackDataPtr) {
     mActivity.runOnUiThread(
         new Runnable() {
@@ -209,7 +219,9 @@ public class InterstitialAdHelper {
         });
   }
 
-  /** Retrieves the presentation state of this InterstitialAdHelper. */
+  /**
+   * Retrieves the presentation state of this InterstitialAdHelper.
+   */
   public int getPresentationState() {
     return mCurrentPresentationState;
   }
@@ -225,13 +237,14 @@ public class InterstitialAdHelper {
 
     @Override
     public void onAdFailedToShowFullScreenContent(AdError error) {
-      // TODO. 
+      // TODO.
     }
 
     @Override
     public void onAdImpression() {
-      // TODO. 
+      // TODO.
     }
+
     @Override
     public void onAdShowedFullScreenContent() {
       synchronized (mInterstitialLock) {
@@ -244,33 +257,8 @@ public class InterstitialAdHelper {
   private class InterstitialAdListener extends InterstitialAdLoadCallback {
     @Override
     public void onAdFailedToLoad(LoadAdError loadAdError) {
-      int callbackErrorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
-      String callbackErrorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-      switch (loadAdError.getCode()) {
-        case AdRequest.ERROR_CODE_INTERNAL_ERROR:
-          callbackErrorCode = ConstantsHelper.CALLBACK_ERROR_INTERNAL_ERROR;
-          callbackErrorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_INTERNAL_ERROR;
-          break;
-        case AdRequest.ERROR_CODE_INVALID_REQUEST:
-          callbackErrorCode = ConstantsHelper.CALLBACK_ERROR_INVALID_REQUEST;
-          callbackErrorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_INVALID_REQUEST;
-          break;
-        case AdRequest.ERROR_CODE_NETWORK_ERROR:
-          callbackErrorCode = ConstantsHelper.CALLBACK_ERROR_NETWORK_ERROR;
-          callbackErrorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NETWORK_ERROR;
-          break;
-        case AdRequest.ERROR_CODE_NO_FILL:
-          callbackErrorCode = ConstantsHelper.CALLBACK_ERROR_NO_FILL;
-          callbackErrorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NO_FILL;
-          break;
-        default:
-          callbackErrorCode = ConstantsHelper.CALLBACK_ERROR_UNKNOWN;
-          callbackErrorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNKNOWN;
-      }
-
       synchronized (mInterstitialLock) {
-        completeInterstitialAdFutureCallback(
-            mLoadAdCallbackDataPtr, callbackErrorCode, callbackErrorMessage);
+        completeInterstitialLoadAdError(mLoadAdCallbackDataPtr, loadAdError, loadAdError.getCode(), loadAdError.getMessage());
         mLoadAdCallbackDataPtr = CPP_NULLPTR;
       }
     }
@@ -280,19 +268,40 @@ public class InterstitialAdHelper {
       synchronized (mInterstitialLock) {
         mInterstitial = ad;
         mInterstitial.setFullScreenContentCallback(new InterstitialAdFullScreenContentListener());
-        completeInterstitialAdFutureCallback(
-            mLoadAdCallbackDataPtr,
-            ConstantsHelper.CALLBACK_ERROR_NONE,
-            ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
+        completeInterstitialLoadedAd(mLoadAdCallbackDataPtr);
         mLoadAdCallbackDataPtr = CPP_NULLPTR;
       }
     }
   }
 
-  /** Native callback to instruct the C++ wrapper to complete the corresponding future. */
+  /**
+   * Native callback to instruct the C++ wrapper to complete the corresponding future.
+   */
   public static native void completeInterstitialAdFutureCallback(
       long nativeInternalPtr, int errorCode, String errorMessage);
 
-  /** Native callback to notify the C++ wrapper that a state change has occurred. */
+  /**
+   * Native callback invoked upon successfully loading an ad.
+   */
+  public static native void completeInterstitialLoadedAd(long nativeInternalPtr);
+
+  /**
+   * Native callback upon encountering an error loading an Ad Request. Returns
+   * Android Admob SDK error codes.
+   **/
+  public static native void completeInterstitialLoadAdError(
+      long nativeInternalPtr, LoadAdError error, int errorCode, String errorMessage);
+
+  /**
+   * Native callback upon encountering a wrapper/internal error when
+   * processing an Ad Request. Returns integers representing
+   * firebase::admob::AdMobError codes.
+   */
+  public static native void completeInterstitialLoadAdInternalError(
+      long nativeInternalPtr, int admobErrorCode, String errorMessage);
+
+  /**
+   * Native callback to notify the C++ wrapper that a state change has occurred.
+   */
   public static native void notifyPresentationStateChanged(long nativeInternalPtr, int state);
 }
