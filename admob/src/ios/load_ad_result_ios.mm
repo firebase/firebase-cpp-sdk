@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-#include "admob/src/ios/load_ad_result_ios.h"
-
 #import <GoogleMobileAds/GoogleMobileAds.h>
 
 #include "admob/src/include/firebase/admob.h"
+#include "admob/src/include/firebase/admob/types.h"
+#include "admob/src/ios/ad_result_ios.h"
 #include "admob/src/ios/response_info_ios.h"
 #include "app/src/util_ios.h"
 
@@ -27,16 +27,16 @@ namespace admob {
 
 LoadAdResult::LoadAdResult() : AdResult(), response_info_() {}
 
-LoadAdResult::LoadAdResult(const LoadAdResultInternal& load_ad_result_internal)
-  : AdResult(load_ad_result_internal.ad_result_internal), 
+LoadAdResult::LoadAdResult(const AdResultInternal& ad_result_internal)
+  : AdResult(ad_result_internal),
     response_info_(ResponseInfoInternal( {nil} ) ) {
 
-  if (!load_ad_result_internal.ad_result_internal.is_successful &&
-      !load_ad_result_internal.ad_result_internal.is_wrapper_error) {
+  if (!ad_result_internal.is_successful &&
+      !ad_result_internal.is_wrapper_error) {
 
-    FIREBASE_ASSERT(load_ad_result_internal.ad_result_internal.ios_error);
+    FIREBASE_ASSERT(ad_result_internal.ios_error);
     ResponseInfoInternal response_info_internal = ResponseInfoInternal( {
-      load_ad_result_internal.ad_result_internal.ios_error.userInfo[GADErrorUserInfoKeyResponseInfo]
+      ad_result_internal.ios_error.userInfo[GADErrorUserInfoKeyResponseInfo]
     });
     response_info_ = ResponseInfo(response_info_internal);
   }

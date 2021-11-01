@@ -39,7 +39,6 @@ namespace admob {
 
 struct AdResultInternal;
 struct AdapterResponseInfoInternal;
-struct LoadAdResultInternal;
 struct ResponseInfoInternal;
 
 class AdmobInternal;
@@ -503,7 +502,7 @@ class LoadAdResult : public AdResult {
   friend class AdmobInternal;
   friend class BannerView;
 
-  explicit LoadAdResult(const LoadAdResultInternal& load_ad_result_internal);
+  explicit LoadAdResult(const AdResultInternal& ad_result_internal);
 
   ResponseInfo response_info_;
 };

@@ -40,20 +40,19 @@ METHOD_LOOKUP_DEFINITION(load_ad_error,
 
 LoadAdResult::LoadAdResult() : AdResult(), response_info_() {}
 
-LoadAdResult::LoadAdResult(const LoadAdResultInternal& load_ad_result_internal)
-    : AdResult(load_ad_result_internal.ad_result_internal) {
+LoadAdResult::LoadAdResult(const AdResultInternal& ad_result_internal)
+    : AdResult(ad_result_internal) {
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env);
 
-  if (!load_ad_result_internal.ad_result_internal.is_successful &&
-      !load_ad_result_internal.ad_result_internal.is_wrapper_error) {
-    FIREBASE_ASSERT(load_ad_result_internal.ad_result_internal.j_ad_error);
+  if (!ad_result_internal.is_successful &&
+      !ad_result_internal.is_wrapper_error) {
+    FIREBASE_ASSERT(ad_result_internal.j_ad_error);
 
     // Marshalling the data of a LoadAdResult from the AdMob Android SDK is
     // delegated to the AdResult constructor (already invoked above) and
     // the ResponseInfo constructor below.
-    jobject j_load_ad_error =
-        load_ad_result_internal.ad_result_internal.j_ad_error;
+    jobject j_load_ad_error = ad_result_internal.j_ad_error;
 
     // Grab a reference to the ResponseInfo AdMob Android SDK object within
     // the AdError, and construct a C++ SDK analog of the ResponseInfo if the

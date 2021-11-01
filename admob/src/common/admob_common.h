@@ -114,7 +114,7 @@ class AdmobInternal {
   static void CompleteLoadAdFuture(
       FutureCallbackData<LoadAdResult>* callback_data, int error_code,
       const std::string& error_message,
-      const LoadAdResultInternal& load_ad_result_internal);
+      const AdResultInternal& ad_result_internal);
 };
 
 }  // namespace admob
