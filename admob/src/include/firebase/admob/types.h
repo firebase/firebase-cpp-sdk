@@ -655,6 +655,40 @@ struct BoundingBox {
   AdView::Position position;
 };
 
+/// @brief Listener to be invoked when ads show and dismiss full screen content,
+/// such as a fullscreen ad experience or an in-app browser.
+class FullScreenContentListener {
+ public:
+  virtual ~FullScreenContentListener();
+
+  /// Called when the user clicked the ad.
+  virtual void OnAdClicked();
+
+  /// Called when the ad dismissed full screen content.
+  virtual void OnAdDismissedFullScreenContent();
+
+  /// Called when the ad failed to show full screen content.
+  ///
+  /// param[in] ad_result An object containing detailed information
+  /// about the error.
+  virtual void OnAdFailedToShowFullScreenContent(const AdResult& ad_result);
+
+  /// Called when an impression is recorded for an ad.
+  virtual void OnAdImpression();
+
+  /// Called when the ad showed the full screen content.
+  virtual void OnAdShowedFullScreenContent();
+};
+
+/// Listener to be invoked when ads have been estimated to earn money.
+class PaidEventListener {
+ public:
+  virtual ~PaidEventListener();
+
+  /// Called when an ad is estimated to have earned money.
+  virtual void OnPaidEvent(const AdValue& value) = 0;
+};
+
 /// Information about an ad response.
 class ResponseInfo {
  public:
@@ -713,40 +747,6 @@ class LoadAdResult : public AdResult {
   explicit LoadAdResult(const AdResultInternal& ad_result_internal);
 
   ResponseInfo response_info_;
-};
-
-/// @brief Listener to be invoked when ads show and dismiss full screen content,
-/// such as a fullscreen ad experience or an in-app browser.
-class FullScreenContentListener {
- public:
-  virtual ~FullScreenContentListener();
-
-  /// Called when the user clicked the ad.
-  virtual void OnAdClicked();
-
-  /// Called when the ad dismissed full screen content.
-  virtual void OnAdDismissedFullScreenContent();
-
-  /// Called when the ad failed to show full screen content.
-  ///
-  /// param[in] ad_result An object containing detailed information
-  /// about the error.
-  virtual void OnAdFailedToShowFullScreenContent(const AdResult& ad_result);
-
-  /// Called when an impression is recorded for an ad.
-  virtual void OnAdImpression();
-
-  /// Called when the ad showed the full screen content.
-  virtual void OnAdShowedFullScreenContent();
-};
-
-/// Listener to be invoked when ads have been estimated to earn money.
-class PaidEventListener {
- public:
-  virtual ~PaidEventListener();
-
-  /// Called when an ad is estimated to have earned money.
-  virtual void OnPaidEvent(const AdValue& value) = 0;
 };
 
 /// @brief Global configuration that will be used for every @ref AdRequest.

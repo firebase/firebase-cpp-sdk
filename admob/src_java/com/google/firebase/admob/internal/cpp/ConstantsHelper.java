@@ -16,7 +16,7 @@
 
 package com.google.firebase.admob.internal.cpp;
 
-/**ß
+/**
  * Helper class containing constants that are shared across the various AdMob ad formats.
  */
 public final class ConstantsHelper {

@@ -940,7 +940,6 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdLoad) {
   firebase::admob::AdRequest request = GetAdRequest();
   WaitForCompletion(interstitial->LoadAd(kInterstitialAdUnit, request),
                     "LoadAd");
-
   delete interstitial;
 }
 
