@@ -170,7 +170,7 @@ class AdResult {
   ///
   /// The Admob SDK returns this domain for domain() method invocations when
   /// converting error information from legacy mediation adapter callbacks.
-  static const char* kUndefinedDomain;
+  static const char* const kUndefinedDomain;
 
  protected:
   // Internal initialization of AdResult.  Should only be used to create
