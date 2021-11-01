@@ -53,7 +53,7 @@ android {
 
   defaultConfig {
     // This is the platform API where NativeActivity was introduced.
-    minSdkVersion 9
+    minSdkVersion 19
     targetSdkVersion 28
     versionCode 1
     versionName "1.0"
