@@ -775,7 +775,9 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorNotInitialized) {
   firebase::admob::AdView::Position position;
   WaitForCompletion(banner->SetPosition(position), "SetPosition(position)",
                     firebase::admob::kAdMobErrorUninitialized);
+
   WaitForCompletion(banner->SetPosition(0, 0), "SetPosition(x,y)",
+                    firebase::admob::kAdMobErrorUninitialized);
 
   WaitForCompletion(banner->Hide(), "Hide",
                     firebase::admob::kAdMobErrorUninitialized);

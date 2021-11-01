@@ -634,7 +634,6 @@ AdValue::PrecisionType ConvertAndroidPrecisionTypeToCPPPrecisionType(
     const jint j_precision_type) {
   // Values taken from:
   // https://firebase.google.com/docs/reference/android/com/google/android/gms/ads/AdValue.PrecisionType
-  // // NOLINT
   switch (j_precision_type) {
     default:
       LogWarning("Could not convert AdValue precisionType: %l",
@@ -753,6 +752,7 @@ Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_notifyAdFailedT
   ad_result_internal.is_wrapper_error = false;
   ad_result_internal.is_successful = false;
   ad_result_internal.j_ad_error = j_ad_error;
+
   // Invoke AdMobInternal, a friend of AdResult, to have it access its
   // protected constructor with the AdError data.
   const AdResult& ad_result = AdMobInternal::CreateAdResult(ad_result_internal);

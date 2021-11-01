@@ -39,8 +39,8 @@ BannerViewInternalIOS::~BannerViewInternalIOS() {
   destroy_mutex_.Release();
 }
 
-Future<void> BannerViewInternalIOS::Initialize(AdParent parent, const char* ad_unit_id,
-                                               const AdSize& size) {
+Future<void> BannerViewInternalIOS::Initialize(AdParent parent,
+      const char* ad_unit_id, const AdSize& size) {
   firebase::MutexLock lock(mutex_);
   const SafeFutureHandle<void> future_handle =
     future_data_.future_impl.SafeAlloc<void>(kBannerViewFnInitialize);
@@ -168,7 +168,8 @@ Future<void> BannerViewInternalIOS::Pause() {
 Future<void> BannerViewInternalIOS::Resume() {
   firebase::MutexLock lock(mutex_);
   // Required method. No-op.
-  return CreateAndCompleteFuture(kBannerViewFnResume, kAdMobErrorNone, nullptr, &future_data_);
+  return CreateAndCompleteFuture(kBannerViewFnResume, kAdMobErrorNone, nullptr,
+    &future_data_);
 }
 
 /// Cleans up any resources created in BannerViewInternalIOS.
@@ -179,10 +180,11 @@ Future<void> BannerViewInternalIOS::Destroy() {
   destroy_mutex_.Acquire();
   void (^destroyBlock)() = ^{
     [banner_view_ destroy];
-    // Remove the FADBannerView (i.e. the container view of GADBannerView) from the superview.
+    // Remove the FADBannerView (i.e. the container view of GADBannerView)
+    // from the superview.
     [banner_view_ removeFromSuperview];
     if (banner_view_) {
-      // Keep consistent with Android SDK which returns a final bounding box of
+      // Consistent with Android SDK which returns a final bounding box of
       // -1 values upon deletion.
       bounding_box_.width = bounding_box_.height =
         bounding_box_.x = bounding_box_.y = -1;
@@ -208,7 +210,8 @@ BoundingBox BannerViewInternalIOS::bounding_box() const {
 void BannerViewInternalIOS::BannerViewDidReceiveAd() {
   firebase::MutexLock lock(mutex_);
   if(ad_load_callback_data_ != nil) {
-    CompleteLoadAdInternalResult(ad_load_callback_data_, kAdMobErrorNone, /*error_message=*/"");
+    CompleteLoadAdInternalResult(ad_load_callback_data_, kAdMobErrorNone,
+      /*error_message=*/"");
     ad_load_callback_data_ = nil;
   }
 }

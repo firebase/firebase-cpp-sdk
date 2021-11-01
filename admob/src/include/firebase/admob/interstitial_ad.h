@@ -55,7 +55,7 @@ class InterstitialAdInternal;
 ///     ::firebase::kFutureStatusComplete &&
 ///     interstitial->InitializeLastResult().error() ==
 ///     firebase::admob::kAdMobErrorNone) {
-///   interstitial->LoadAd(my_ad_unit)id, my_ad_request);
+///   interstitial->LoadAd( "YOUR_AD_UNIT_ID", my_ad_request);
 /// }
 /// @endcode
 ///
