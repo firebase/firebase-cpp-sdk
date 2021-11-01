@@ -22,13 +22,9 @@
 namespace firebase {
 namespace admob {
 
-struct LoadAdResultInternal {
-  char stub;
-};
-
 LoadAdResult::LoadAdResult() : AdResult(), response_info_() {}
 
-LoadAdResult::LoadAdResult(const LoadAdResultInternal& load_ad_result_internal)
+LoadAdResult::LoadAdResult(const AdResultInternal& ad_result_internal)
     : AdResult() {}
 
 LoadAdResult::LoadAdResult(const LoadAdResult& load_ad_result) : AdResult() {}

@@ -111,10 +111,13 @@ FutureCallbackData<LoadAdResult>* CreateLoadAdResultFutureCallbackData(
 // callbacks.  This is achieved via friend relationships with those classes.
 class AdMobInternal {
  public:
+  // Completes a LoadAdResult future given the AdResultInternal object.
   static void CompleteLoadAdFuture(
       FutureCallbackData<LoadAdResult>* callback_data, int error_code,
       const std::string& error_message,
-      const LoadAdResultInternal& load_ad_result_internal);
+      const AdResultInternal& ad_result_internal);
+
+  // Constructs and returns an AdResult object given an AdResultInteral object.
   static AdResult CreateAdResult(const AdResultInternal& ad_result_internal);
 };
 

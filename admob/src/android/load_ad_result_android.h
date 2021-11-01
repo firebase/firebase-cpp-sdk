@@ -35,10 +35,6 @@ namespace admob {
 
 METHOD_LOOKUP_DECLARATION(load_ad_error, LOADADERROR_METHODS);
 
-struct LoadAdResultInternal {
-  AdResultInternal ad_result_internal;
-};
-
 }  // namespace admob
 }  // namespace firebase
 

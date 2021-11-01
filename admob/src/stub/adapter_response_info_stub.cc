@@ -26,7 +26,7 @@ struct AdapterResponseInfoInternal {
   int stub;
 };
 
-const char* AdResult::kUndefinedDomain = "undefined";
+const char* const AdResult::kUndefinedDomain = "undefined";
 
 AdapterResponseInfo::AdapterResponseInfo(
     const AdapterResponseInfoInternal& internal) {}

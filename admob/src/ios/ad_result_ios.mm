@@ -30,7 +30,7 @@ extern "C" {
 namespace firebase {
 namespace admob {
 
-const char* AdResult::kUndefinedDomain = "undefined";
+const char* const AdResult::kUndefinedDomain = "undefined";
 
 AdResult::AdResult() {
   // Default constructor is available for Future creation.

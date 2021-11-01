@@ -477,33 +477,33 @@ void CompleteLoadAdCallback(FutureCallbackData<LoadAdResult>* callback_data,
   FIREBASE_ASSERT(callback_data);
 
   std::string future_error_message;
-  LoadAdResultInternal load_ad_result_internal;
-  AdResultInternal* adr = &(load_ad_result_internal.ad_result_internal);
+  AdResultInternal ad_result_internal;
 
-  adr->j_ad_error = j_load_ad_error;
-  adr->is_successful = true;  // assume until proven otherwise.
-  adr->is_wrapper_error = false;
-  adr->code = error_code;
+  ad_result_internal.j_ad_error = j_load_ad_error;
+  ad_result_internal.is_successful = true;  // assume until proven otherwise.
+  ad_result_internal.is_wrapper_error = false;
+  ad_result_internal.code = error_code;
 
   // Further result configuration is based on success/failure.
   if (j_load_ad_error != nullptr) {
     // The Android SDK returned an error.  Use the j_ad_error object
     // to populate a LoadAdResult with the error specifics.
-    adr->is_successful = false;
-  } else if (adr->code != kAdMobErrorNone) {
+    ad_result_internal.is_successful = false;
+  } else if (ad_result_internal.code != kAdMobErrorNone) {
     // C++ SDK Android AdMob Wrapper encountered an error.
-    adr->is_wrapper_error = true;
-    adr->is_successful = false;
-    adr->message = error_message;
-    adr->domain = "SDK";
-    adr->to_string = std::string("Internal error: ") + adr->message;
-    future_error_message = adr->message;
+    ad_result_internal.is_wrapper_error = true;
+    ad_result_internal.is_successful = false;
+    ad_result_internal.message = error_message;
+    ad_result_internal.domain = "SDK";
+    ad_result_internal.to_string =
+        std::string("Internal error: ") + ad_result_internal.message;
+    future_error_message = ad_result_internal.message;
   }
 
   // Invoke a friend of LoadAdResult to have it invoke the LoadAdResult
-  // protected constructor with the LoadAdResultInternal data.
-  AdMobInternal::CompleteLoadAdFuture(
-      callback_data, adr->code, future_error_message, load_ad_result_internal);
+  // protected constructor with the AdResultInternal data.
+  AdMobInternal::CompleteLoadAdFuture(callback_data, ad_result_internal.code,
+                                      future_error_message, ad_result_internal);
 }
 
 void CompleteLoadAdAndroidErrorResult(JNIEnv* env, jlong data_ptr,

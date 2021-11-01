@@ -72,10 +72,10 @@ void AdListener::OnAdOpened() {}
 void AdMobInternal::CompleteLoadAdFuture(
     FutureCallbackData<LoadAdResult>* callback_data, int error_code,
     const std::string& error_message,
-    const LoadAdResultInternal& load_ad_result_internal) {
+    const AdResultInternal& ad_result_internal) {
   callback_data->future_data->future_impl.CompleteWithResult(
       callback_data->future_handle, static_cast<int>(error_code),
-      error_message.c_str(), LoadAdResult(load_ad_result_internal));
+      error_message.c_str(), LoadAdResult(ad_result_internal));
   // This method is responsible for disposing of the callback data struct.
   delete callback_data;
 }

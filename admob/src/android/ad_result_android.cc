@@ -34,7 +34,7 @@ METHOD_LOOKUP_DEFINITION(ad_error,
                          "com/google/android/gms/ads/AdError",
                          ADERROR_METHODS);
 
-const char* AdResult::kUndefinedDomain = "undefined";
+const char* const AdResult::kUndefinedDomain = "undefined";
 
 AdResult::AdResult() {
   // Default constructor is available for Future creation.

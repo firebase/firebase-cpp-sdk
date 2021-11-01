@@ -16,7 +16,9 @@
 
 package com.google.firebase.admob.internal.cpp;
 
-/** Helper class containing constants that are shared across the various AdMob ad formats. */
+/**ß
+ * Helper class containing constants that are shared across the various AdMob ad formats.
+ */
 public final class ConstantsHelper {
 
   /**
@@ -74,7 +76,9 @@ public final class ConstantsHelper {
   public static final String CALLBACK_ERROR_MESSAGE_UNKNOWN = "Unknown error occurred.";
   // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src/include/firebase/admob/types.h)
 
-  /** Types of notifications to send back to the C++ side for listeners updates. */
+  /**
+   * Types of notifications to send back to the C++ side for listeners updates.
+   */
   // LINT.IfChange
   public static final int AD_VIEW_CHANGED_PRESENTATION_STATE = 0;
 

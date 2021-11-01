@@ -41,7 +41,6 @@ namespace admob {
 struct AdResultInternal;
 struct AdapterResponseInfoInternal;
 struct BoundingBox;
-struct LoadAdResultInternal;
 struct ResponseInfoInternal;
 
 class AdViewBoundingBoxListener;
@@ -194,7 +193,7 @@ class AdResult {
   ///
   /// The Admob SDK returns this domain for domain() method invocations when
   /// converting error information from legacy mediation adapter callbacks.
-  static const char* kUndefinedDomain;
+  static const char* const kUndefinedDomain;
 
  protected:
   // Internal initialization of AdResult.  Should only be used to create
@@ -711,7 +710,7 @@ class LoadAdResult : public AdResult {
   friend class AdMobInternal;
   friend class BannerView;
 
-  explicit LoadAdResult(const LoadAdResultInternal& load_ad_result_internal);
+  explicit LoadAdResult(const AdResultInternal& ad_result_internal);
 
   ResponseInfo response_info_;
 };
