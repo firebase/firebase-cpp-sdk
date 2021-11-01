@@ -51,7 +51,7 @@ git clone https://github.com/firebase/firebase-cpp-sdk.git
 The following prerequisites are required for all platforms.  Be sure to add any
 directories to your PATH as needed.
 
-- [CMake](https://cmake.org/), version 3.1, or newer
+- [CMake](https://cmake.org/), version 3.7, or newer
 - [Python](https://www.python.com/), version of 3.7, or newer
 - [Abseil-py](https://github.com/abseil/abseil-py)
 
