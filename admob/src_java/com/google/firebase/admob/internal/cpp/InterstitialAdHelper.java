@@ -113,6 +113,11 @@ public class InterstitialAdHelper {
       mInterstitialAdInternalPtr = CPP_NULLPTR;
       mLoadAdCallbackDataPtr = CPP_NULLPTR;
     }
+
+    if(mActivity == null) {
+      return;
+    }
+
     mActivity.runOnUiThread(
         new Runnable() {
           @Override

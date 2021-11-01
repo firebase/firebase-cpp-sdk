@@ -47,7 +47,8 @@ BannerView::~BannerView() {
 // Initialize must be called before any other methods in the namespace. This
 // method asserts that Initialize() has been invoked and allowed to complete.
 static bool CheckIsInitialized(internal::BannerViewInternal* internal) {
-  return internal != nullptr && internal->is_initialized();
+  FIREBASE_ASSERT(internal);
+  return internal->is_initialized();
 }
 
 Future<void> BannerView::Initialize(AdParent parent, const char* ad_unit_id,
@@ -72,78 +73,132 @@ void BannerView::SetPaidEventListener(PaidEventListener* listener) {
 }
 
 Future<void> BannerView::SetPosition(int x, int y) {
-  // TODO(@ddb): these should return failed futures, not empty futures.
-  if (!CheckIsInitialized(internal_)) return Future<void>();
+  if (!CheckIsInitialized(internal_)) {
+    return CreateAndCompleteFuture(
+        firebase::admob::internal::kBannerViewFnSetPosition,
+        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        &internal_->future_data_);
+  }
   return internal_->SetPosition(x, y);
 }
 
 Future<void> BannerView::SetPosition(Position position) {
-  if (!CheckIsInitialized(internal_)) return Future<void>();
+  if (!CheckIsInitialized(internal_)) {
+    return CreateAndCompleteFuture(
+        firebase::admob::internal::kBannerViewFnSetPosition,
+        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        &internal_->future_data_);
+  }
   return internal_->SetPosition(position);
 }
 
 Future<void> BannerView::SetPositionLastResult() const {
-  if (!CheckIsInitialized(internal_)) return Future<void>();
+  if (!CheckIsInitialized(internal_)) {
+    return CreateAndCompleteFuture(
+        firebase::admob::internal::kBannerViewFnSetPosition,
+        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        &internal_->future_data_);
+  }
   return internal_->GetLastResult(internal::kBannerViewFnSetPosition);
 }
 
 Future<LoadAdResult> BannerView::LoadAd(const AdRequest& request) {
-  if (!CheckIsInitialized(internal_)) return Future<LoadAdResult>();
+  if (!CheckIsInitialized(internal_)) {
+    return CreateAndCompleteFutureWithResult(
+        firebase::admob::internal::kBannerViewFnLoadAd,
+        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        &internal_->future_data_, LoadAdResult());
+  }
   return internal_->LoadAd(request);
 }
 
 Future<LoadAdResult> BannerView::LoadAdLastResult() const {
-  if (!CheckIsInitialized(internal_)) return Future<LoadAdResult>();
+  if (!CheckIsInitialized(internal_)) {
+    return CreateAndCompleteFutureWithResult(
+        firebase::admob::internal::kBannerViewFnLoadAd,
+        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        &(internal_->future_data_), LoadAdResult());
+  }
   return internal_->GetLoadAdLastResult();
 }
 
 Future<void> BannerView::Hide() {
-  if (!CheckIsInitialized(internal_)) return Future<void>();
+  if (!CheckIsInitialized(internal_)) {
+    return CreateAndCompleteFuture(
+        firebase::admob::internal::kBannerViewFnHide, kAdMobErrorUninitialized,
+        kAdUninitializedErrorMessage, &internal_->future_data_);
+  }
   return internal_->Hide();
 }
 
 Future<void> BannerView::HideLastResult() const {
-  if (!CheckIsInitialized(internal_)) return Future<void>();
+  if (!CheckIsInitialized(internal_)) {
+    return CreateAndCompleteFuture(
+        firebase::admob::internal::kBannerViewFnHide, kAdMobErrorUninitialized,
+        kAdUninitializedErrorMessage, &internal_->future_data_);
+  }
   return internal_->GetLastResult(internal::kBannerViewFnHide);
 }
 
 Future<void> BannerView::Show() {
-  if (!CheckIsInitialized(internal_)) return Future<void>();
+  if (!CheckIsInitialized(internal_)) {
+    return CreateAndCompleteFuture(
+        firebase::admob::internal::kBannerViewFnShow, kAdMobErrorUninitialized,
+        kAdUninitializedErrorMessage, &internal_->future_data_);
+  }
   return internal_->Show();
 }
 
 Future<void> BannerView::ShowLastResult() const {
-  if (!CheckIsInitialized(internal_)) return Future<void>();
+  if (!CheckIsInitialized(internal_)) {
+    return CreateAndCompleteFuture(
+        firebase::admob::internal::kBannerViewFnShow, kAdMobErrorUninitialized,
+        kAdUninitializedErrorMessage, &internal_->future_data_);
+  }
   return internal_->GetLastResult(internal::kBannerViewFnShow);
 }
 
 Future<void> BannerView::Pause() {
-  if (!CheckIsInitialized(internal_)) return Future<void>();
+  if (!CheckIsInitialized(internal_)) {
+    return CreateAndCompleteFuture(
+        firebase::admob::internal::kBannerViewFnPause, kAdMobErrorUninitialized,
+        kAdUninitializedErrorMessage, &internal_->future_data_);
+  }
   return internal_->Pause();
 }
 
 Future<void> BannerView::PauseLastResult() const {
-  if (!CheckIsInitialized(internal_)) return Future<void>();
+  if (!CheckIsInitialized(internal_)) {
+    return CreateAndCompleteFuture(
+        firebase::admob::internal::kBannerViewFnPause, kAdMobErrorUninitialized,
+        kAdUninitializedErrorMessage, &internal_->future_data_);
+  }
   return internal_->GetLastResult(internal::kBannerViewFnPause);
 }
 
 Future<void> BannerView::Resume() {
-  if (!CheckIsInitialized(internal_)) return Future<void>();
+  if (!CheckIsInitialized(internal_)) {
+    return CreateAndCompleteFuture(
+        firebase::admob::internal::kBannerViewFnResume,
+        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        &internal_->future_data_);
+  }
   return internal_->Resume();
 }
 
 Future<void> BannerView::ResumeLastResult() const {
-  if (!CheckIsInitialized(internal_)) return Future<void>();
+  if (!CheckIsInitialized(internal_)) {
+    return CreateAndCompleteFuture(
+        firebase::admob::internal::kBannerViewFnResume,
+        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        &internal_->future_data_);
+  }
   return internal_->GetLastResult(internal::kBannerViewFnResume);
 }
 
-Future<void> BannerView::Destroy() {
-  if (!CheckIsInitialized(internal_)) return Future<void>();
-  return internal_->Destroy();
-}
+Future<void> BannerView::Destroy() { return internal_->Destroy(); }
 
 Future<void> BannerView::DestroyLastResult() const {
-  if (!CheckIsInitialized(internal_)) return Future<void>();
   return internal_->GetLastResult(internal::kBannerViewFnDestroy);
 }
 

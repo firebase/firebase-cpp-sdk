@@ -72,33 +72,43 @@ InterstitialAdInternalAndroid::~InterstitialAdInternalAndroid() {
 
 Future<void> InterstitialAdInternalAndroid::Initialize(AdParent parent) {
   firebase::MutexLock lock(mutex_);
-  FutureCallbackData<void>* callback_data =
-      CreateVoidFutureCallbackData(kInterstitialAdFnInitialize, &future_data_);
-  SafeFutureHandle<void> future_handle = callback_data->future_handle;
+
   if (initialized_) {
+    const SafeFutureHandle<void> future_handle =
+        future_data_.future_impl.SafeAlloc<void>(kInterstitialAdFnInitialize);
     CompleteFuture(kAdMobErrorAlreadyInitialized,
                    kAdAlreadyInitializedErrorMessage, future_handle,
                    &future_data_);
-  } else {
-    initialized_ = true;
-
-    JNIEnv* env = ::firebase::admob::GetJNI();
-    FIREBASE_ASSERT(env);
-    env->CallVoidMethod(helper_,
-                        interstitial_ad_helper::GetMethodId(
-                            interstitial_ad_helper::kInitialize),
-                        reinterpret_cast<jlong>(callback_data), parent);
+    return MakeFuture(&future_data_.future_impl, future_handle);
   }
 
-  return MakeFuture(&future_data_.future_impl, future_handle);
+  initialized_ = true;
+  JNIEnv* env = ::firebase::admob::GetJNI();
+  FIREBASE_ASSERT(env);
+
+  FutureCallbackData<void>* callback_data =
+      CreateVoidFutureCallbackData(kInterstitialAdFnInitialize, &future_data_);
+  env->CallVoidMethod(
+      helper_,
+      interstitial_ad_helper::GetMethodId(interstitial_ad_helper::kInitialize),
+      reinterpret_cast<jlong>(callback_data), parent);
+  return MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 }
 
 Future<LoadAdResult> InterstitialAdInternalAndroid::LoadAd(
     const char* ad_unit_id, const AdRequest& request) {
   firebase::MutexLock lock(mutex_);
+
+  if (!initialized_) {
+    SafeFutureHandle<LoadAdResult> handle =
+        CreateFuture<LoadAdResult>(kInterstitialAdFnLoadAd, &future_data_);
+    CompleteFuture(kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+                   handle, &future_data_, LoadAdResult());
+    return MakeFuture(&future_data_.future_impl, handle);
+  }
+
   admob::AdMobError error = kAdMobErrorNone;
   jobject j_request = GetJavaAdRequestFromCPPAdRequest(request, &error);
-
   if (j_request == nullptr) {
     if (error == kAdMobErrorNone) {
       error = kAdMobErrorInternalError;
@@ -107,13 +117,11 @@ Future<LoadAdResult> InterstitialAdInternalAndroid::LoadAd(
         kInterstitialAdFnLoadAd, error, kAdCouldNotParseAdRequestErrorMessage,
         &future_data_, LoadAdResult());
   }
+  JNIEnv* env = GetJNI();
+  FIREBASE_ASSERT(env);
   FutureCallbackData<LoadAdResult>* callback_data =
       CreateLoadAdResultFutureCallbackData(kInterstitialAdFnLoadAd,
                                            &future_data_);
-  SafeFutureHandle<LoadAdResult> future_handle = callback_data->future_handle;
-
-  JNIEnv* env = GetJNI();
-  FIREBASE_ASSERT(env);
 
   jstring j_ad_unit_str = env->NewStringUTF(ad_unit_id);
   ::firebase::admob::GetJNI()->CallVoidMethod(
@@ -123,13 +131,21 @@ Future<LoadAdResult> InterstitialAdInternalAndroid::LoadAd(
   env->DeleteLocalRef(j_ad_unit_str);
   env->DeleteLocalRef(j_request);
 
-  return MakeFuture(&future_data_.future_impl, future_handle);
+  return MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 }
 
 Future<void> InterstitialAdInternalAndroid::Show() {
   firebase::MutexLock lock(mutex_);
+  if (!initialized_) {
+    const SafeFutureHandle<void> future_handle =
+        future_data_.future_impl.SafeAlloc<void>(kInterstitialAdFnShow);
+    CompleteFuture(kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+                   future_handle, &future_data_);
+    return MakeFuture(&future_data_.future_impl, future_handle);
+  }
+
   FutureCallbackData<void>* callback_data =
-      CreateVoidFutureCallbackData(kInterstitialAdFnLoadAd, &future_data_);
+      CreateVoidFutureCallbackData(kInterstitialAdFnShow, &future_data_);
   SafeFutureHandle<void> future_handle = callback_data->future_handle;
 
   ::firebase::admob::GetJNI()->CallVoidMethod(

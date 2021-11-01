@@ -118,6 +118,8 @@ class BannerViewInternal {
   virtual bool is_initialized() const = 0;
 
  protected:
+  friend class firebase::admob::BannerView;
+
   // Used by CreateInstance() to create an appropriate one for the current
   // platform.
   explicit BannerViewInternal(BannerView* base);

@@ -764,6 +764,31 @@ TEST_F(FirebaseAdMobTest, TestBannerViewAdOpenedAdClosed) {
   delete banner;
 }
 
+TEST_F(FirebaseAdMobTest, TestBannerViewErrorNotInitialized) {
+  SKIP_TEST_ON_DESKTOP;
+
+  firebase::admob::BannerView* banner = new firebase::admob::BannerView();
+
+  WaitForCompletion(banner->LoadAd(GetAdRequest()), "LoadAd",
+                    firebase::admob::kAdMobErrorUninitialized);
+
+  firebase::admob::AdView::Position position;
+  WaitForCompletion(banner->SetPosition(position), "SetPosition(position)",
+                    firebase::admob::kAdMobErrorUninitialized);
+  WaitForCompletion(banner->SetPosition(0, 0), "SetPosition(x,y)",
+
+  WaitForCompletion(banner->Hide(), "Hide",
+                    firebase::admob::kAdMobErrorUninitialized);
+  WaitForCompletion(banner->Show(), "Show",
+                    firebase::admob::kAdMobErrorUninitialized);
+  WaitForCompletion(banner->Pause(), "Pause",
+                    firebase::admob::kAdMobErrorUninitialized);
+  WaitForCompletion(banner->Resume(), "Resume",
+                    firebase::admob::kAdMobErrorUninitialized);
+  WaitForCompletion(banner->Destroy(), "Destroy BannerView");
+  delete banner;
+}
+
 TEST_F(FirebaseAdMobTest, TestBannerViewErrorAlreadyInitialized) {
   SKIP_TEST_ON_DESKTOP;
 
@@ -980,6 +1005,21 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdStress) {
                       "TestInterstitialAdStress LoadAd");
     delete interstitial;
   }
+}
+
+TEST_F(FirebaseAdMobTest, TestInterstitialAdErrorNotInitialized) {
+  SKIP_TEST_ON_DESKTOP;
+
+  firebase::admob::InterstitialAd* interstitial_ad =
+      new firebase::admob::InterstitialAd();
+
+  firebase::admob::AdRequest request = GetAdRequest();
+  WaitForCompletion(interstitial_ad->LoadAd(kInterstitialAdUnit, request),
+                    "LoadAd", firebase::admob::kAdMobErrorUninitialized);
+  WaitForCompletion(interstitial_ad->Show(), "Show",
+                    firebase::admob::kAdMobErrorUninitialized);
+
+  delete interstitial_ad;
 }
 
 TEST_F(FirebaseAdMobTest, TesInterstitialAdErrorAlreadyInitialized) {

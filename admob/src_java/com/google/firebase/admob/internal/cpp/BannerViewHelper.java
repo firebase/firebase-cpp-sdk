@@ -139,6 +139,9 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   public void destroy(final long callbackDataPtr) {
     // If the Activity isn't initialized, there is nothing to destroy.
     if (mActivity == null) {
+      completeBannerViewFutureCallback(callbackDataPtr,
+        ConstantsHelper.CALLBACK_ERROR_NONE,
+        ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
       return;
     }
 
