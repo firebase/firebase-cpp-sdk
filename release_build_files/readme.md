@@ -83,7 +83,7 @@ Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
 Firebase AdMob             | libfirebase_admob.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:19.0.2 
+|                          | com.google.firebase:firebase-analytics:20.0.0 
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-ads:19.8.0 
 |                          | (Maven package)
@@ -91,33 +91,33 @@ Firebase AdMob             | libfirebase_admob.a
 |                          | (Maven package)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:19.0.2 
+|                          | com.google.firebase:firebase-analytics:20.0.0 
 |                          | (Maven package)
 Firebase Authentication    | libfirebase_auth.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:19.0.2 
+|                          | com.google.firebase:firebase-analytics:20.0.0 
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-auth:21.0.1 
 |                          | (Maven package)
 Firebase Dynamic Links     | libfirebase_dynamic_links.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:19.0.2 
+|                          | com.google.firebase:firebase-analytics:20.0.0 
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-dynamic-links:20.1.1
+|                          | com.google.firebase:firebase-dynamic-links:21.0.0
 |                          | (Maven package)
 Cloud Firestore            | libfirebase_firestore.a
 |                          | libfirebase_auth.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:19.0.2
+|                          | com.google.firebase:firebase-analytics:20.0.0
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-firestore:23.0.4
+|                          | com.google.firebase:firebase-firestore:24.0.0
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-auth:21.0.1
 |                          | (Maven package)
 Firebase Functions         | libfirebase_functions
 |                          | libfirebase_auth.a (optional)
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:19.0.2
+|                          | com.google.firebase:firebase-analytics:20.0.0
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-functions:20.0.1
 |                          | (Maven package)
@@ -129,16 +129,16 @@ Firebase Installations     | libfirebase_installations.a
 |                          | (Maven package)
 Firebase Messaging         | libfirebase_messaging.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:19.0.2
+|                          | com.google.firebase:firebase-analytics:20.0.0
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-messaging:22.0.0
+|                          | com.google.firebase:firebase-messaging:23.0.0
 |                          | (Maven package)
 |                          | libmessaging_java.jar (Android service)
-|                          | androidx.core:core:1.6.0  (Maven package)
+|                          | androidx.core:core:1.7.0  (Maven package)
 Firebase Realtime Database | libfirebase_database.a
 |                          | libfirebase_auth.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:19.0.2
+|                          | com.google.firebase:firebase-analytics:20.0.0
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-database:20.0.2
 |                          | (Maven package)
@@ -146,14 +146,14 @@ Firebase Realtime Database | libfirebase_database.a
 |                          | (Maven package)
 Firebase Remote Config     | libfirebase_remote_config.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:19.0.2
+|                          | com.google.firebase:firebase-analytics:20.0.0
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-config:21.0.1
 |                          | (Maven package)
 Firebase Storage           | libfirebase_storage.a
 |                          | libfirebase_auth.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:19.0.2
+|                          | com.google.firebase:firebase-analytics:20.0.0
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-storage:20.0.0
 |                          | (Maven package)
