@@ -227,7 +227,7 @@ void CompleteLoadAdIOSResult(FutureCallbackData<LoadAdResult>* callback_data,
 
   AdMobError error_code = MapADErrorCodeToCPPErrorCode(gad_error.code);
   CompleteLoadAdResult(callback_data, gad_error, error_code,
-                       /*error_message=*/"");
+    util::NSStringToString(gad_error.localizedDescription).c_str());
 }
 
 }  // namespace admob

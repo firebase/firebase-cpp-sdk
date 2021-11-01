@@ -46,7 +46,7 @@ AdapterResponseInfo::AdapterResponseInfo(
   latency_ = (int64_t)NSInteger(internal.ad_network_response_info.latency) *
     (int64_t)1000;
 
-  NSString *to_string = [[NSString alloc]initWithFormat:@"AdapterResponseInfo"
+  NSString *to_string = [NSString stringWithFormat:@"AdapterResponseInfo"
         "class name: %@, latency : %ld, ad result: %@", 
         internal.ad_network_response_info.adNetworkClassName,
         internal.ad_network_response_info.latency,
