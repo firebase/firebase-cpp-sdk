@@ -281,10 +281,10 @@ jobs:
           pod repo list
           if [[ -d ~/.cocoapods/repos/cocoapods ]]; then
             cd ~/.cocoapods/repos/cocoapods
-            git remote set-url origin https://${GITHUB_TOKEN}@github.com/CocoaPods/Specs.git
+            git remote set-url origin https://${{ github.token }}@github.com/CocoaPods/Specs.git
             cd -
           else
-            pod repo add cocoapods https://${GITHUB_TOKEN}@github.com/CocoaPods/Specs.git
+            pod repo add cocoapods https://${{ github.token }}@github.com/CocoaPods/Specs.git
           fi
 
       - name: Fetch prebuilt packaged SDK from previous run

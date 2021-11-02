@@ -37,6 +37,7 @@ env:
   xcodeVersion: "12.2"
   # LLVM version with ARM MachO support has no version number yet.
   llvmVer: "5f187f0afaad33013ba03454c4749d99b1362534"
+  GITHUB_TOKEN: ${{ github.token }}
 
 jobs:
   log_inputs:
@@ -408,10 +409,10 @@ jobs:
           pod repo list
           if [[ -d ~/.cocoapods/repos/cocoapods ]]; then
             cd ~/.cocoapods/repos/cocoapods
-            git remote set-url origin https://${GITHUB_TOKEN}@github.com/CocoaPods/Specs.git
+            git remote set-url origin https://${{ github.token}}@github.com/CocoaPods/Specs.git
             cd -
           else
-            pod repo add cocoapods ${GITHUB_TOKEN}/@github.com/CocoaPods/Specs.git
+            pod repo add cocoapods https://${{ github.token }}@github.com/CocoaPods/Specs.git
           fi
 
       # Run the build in the host OS default shell since Windows can't handle long path names in bash.
