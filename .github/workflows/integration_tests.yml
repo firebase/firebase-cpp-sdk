@@ -274,26 +274,6 @@ jobs:
             startsWith(matrix.os, 'ubuntu')
         run: |
           sudo apt install openssl
-      - name: Fetch Cocoapods repo with github token (macos)
-        if: runner.os == 'macOS'
-        run: |
-          # Temporarily modify the remote URL for this pod repo to include the GitHub token,
-          # then perform a repo update, to ensure the latest repo (not throttled by GitHub).
-          pod repo list
-          if [[ ! -d ~/.cocoapods/repos/cocoapods ]]; then
-            # Get the pod repo first, if it doesn't exist already.
-            pod repo add cocoapods https://${{ github.token }}@github.com/CocoaPods/Specs.git
-          else
-            # Temporarily set it to use the token, and use that to update.
-            cd ~/.cocoapods/repos/cocoapods
-            git remote set-url origin https://${{ github.token }}@github.com/CocoaPods/Specs.git
-            pod repo update
-            cd -
-          fi
-          # Set the source back to non-token URL.
-          cd ~/.cocoapods/repos/cocoapods
-          git remote set-url origin https://github.com/CocoaPods/Specs.git
-          cd -
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
@@ -536,6 +516,26 @@ jobs:
             # homebrew. This prevents errors arising from the shut down of
             # binutils, used by older version of homebrew for hosting packages.
             brew update
+      - name: Fetch Cocoapods repo with github token (macos)
+        if: runner.os == 'macOS'
+        run: |
+          # Temporarily modify the remote URL for this pod repo to include the GitHub token,
+          # then perform a repo update, to ensure the latest repo (not throttled by GitHub).
+          pod repo list
+          if [[ ! -d ~/.cocoapods/repos/cocoapods ]]; then
+            # Get the pod repo first, if it doesn't exist already.
+            pod repo add cocoapods https://${{ github.token }}@github.com/CocoaPods/Specs.git
+          else
+            # Temporarily set it to use the token, and use that to update.
+            cd ~/.cocoapods/repos/cocoapods
+            git remote set-url origin https://${{ github.token }}@github.com/CocoaPods/Specs.git
+            pod repo update
+            cd -
+          fi
+          # Set the source back to non-token URL.
+          cd ~/.cocoapods/repos/cocoapods
+          git remote set-url origin https://github.com/CocoaPods/Specs.git
+          cd -
       - name: Install SDK iOS prerequisites
         run: build_scripts/ios/install_prereqs.sh
       - name: Prepare for integration tests
