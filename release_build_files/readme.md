@@ -180,11 +180,11 @@ Feature                    | Required Frameworks and Cocoapods
 -------------------------- | ---------------------------------------
 Firebase AdMob             | firebase_admob.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Analytics Cocoapod (8.9.0)
+|                          | Firebase/Analytics Cocoapod (8.9.1)
 |                          | Google-Mobile-Ads-SDK Cocoapod (7.69.0-cppsdk)
 Firebase Analytics         | firebase_analytics.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Analytics Cocoapod (8.9.0)
+|                          | Firebase/Analytics Cocoapod (8.9.1)
 Firebase Authentication    | firebase_auth.xcframework
 |                          | firebase.xcframework
 |                          | Firebase/Auth Cocoapod (8.9.0)
@@ -194,7 +194,7 @@ Firebase Dynamic Links     | firebase_dynamic_links.xcframework
 Cloud Firestore            | firebase_firestore.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Firestore Cocoapod (8.9.0)
+|                          | Firebase/Firestore Cocoapod (8.9.1)
 |                          | Firebase/Auth Cocoapod (8.9.0)
 Firebase Functions         | firebase_functions.xcframework
 |                          | firebase_auth.xcframework (optional)
@@ -240,11 +240,11 @@ Feature                    | Required Libraries and Cocoapods
 -------------------------- | -----------------------------------------
 Firebase AdMob             | libfirebase_admob.a
 |                          | libfirebase_app.a
-|                          | Firebase/Analytics Cocoapod (8.9.0)
+|                          | Firebase/Analytics Cocoapod (8.9.1)
 |                          | Google-Mobile-Ads-SDK Cocoapod (7.69.0-cppsdk)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
-|                          | Firebase/Analytics Cocoapod (8.9.0)
+|                          | Firebase/Analytics Cocoapod (8.9.1)
 Firebase Authentication    | libfirebase_auth.a
 |                          | libfirebase_app.a
 |                          | Firebase/Auth Cocoapod (8.9.0)
@@ -254,7 +254,7 @@ Firebase Dynamic Links     | libfirebase_dynamic_links.a
 Cloud Firestore            | libfirebase_firestore.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Firestore Cocoapod (8.9.0)
+|                          | Firebase/Firestore Cocoapod (8.9.1)
 |                          | Firebase/Auth Cocoapod (8.9.0)
 Firebase Functions         | libfirebase_functions.a
 |                          | libfirebase_app.a
