@@ -517,7 +517,7 @@ jobs:
             # binutils, used by older version of homebrew for hosting packages.
             brew update
       - name: Fetch Cocoapods repo with github token (macos)
-        if: runner.os == 'macOS'
+        if: startsWith(matrix.os, 'macos')
         run: |
           # Temporarily modify the remote URL for this pod repo to include the GitHub token,
           # then perform a repo update, to ensure the latest repo (not throttled by GitHub).
