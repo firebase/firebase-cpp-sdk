@@ -197,6 +197,25 @@ jobs:
         with:
           python-version: 3.7
 
+      - name: Fetch Cocoapods repo with github token (macos)
+        run: |
+          # Temporarily modify the remote URL for this pod repo to include the GitHub token,
+          # then perform a repo update, to ensure the latest repo (not throttled by GitHub).
+          if [[ ! -d ~/.cocoapods/repos/cocoapods ]]; then
+            # Get the pod repo first, if it doesn't exist already.
+            pod repo add cocoapods https://${{ github.token }}@github.com/CocoaPods/Specs.git
+          else
+            # Temporarily set it to use the token, and use that to update.
+            cd ~/.cocoapods/repos/cocoapods
+            git remote set-url origin https://${{ github.token }}@github.com/CocoaPods/Specs.git
+            pod repo update
+            cd -
+          fi
+          # Set the source back to non-token URL.
+          cd ~/.cocoapods/repos/cocoapods
+          git remote set-url origin https://github.com/CocoaPods/Specs.git
+          cd -
+
       - name: install prerequisites
         run: sdk-src/build_scripts/ios/install_prereqs.sh
 
@@ -402,26 +421,6 @@ jobs:
           fi
           echo "VERBOSE_FLAG=${verbose_flag}" >> $GITHUB_ENV
       
-      - name: Fetch Cocoapods repo with github token (macos)
-        if: runner.os == 'macOS'
-        run: |
-          # Temporarily modify the remote URL for this pod repo to include the GitHub token,
-          # then perform a repo update, to ensure the latest repo (not throttled by GitHub).
-          if [[ ! -d ~/.cocoapods/repos/cocoapods ]]; then
-            # Get the pod repo first, if it doesn't exist already.
-            pod repo add cocoapods https://${{ github.token }}@github.com/CocoaPods/Specs.git
-          else
-            # Temporarily set it to use the token, and use that to update.
-            cd ~/.cocoapods/repos/cocoapods
-            git remote set-url origin https://${{ github.token }}@github.com/CocoaPods/Specs.git
-            pod repo update
-            cd -
-          fi
-          # Set the source back to non-token URL.
-          cd ~/.cocoapods/repos/cocoapods
-          git remote set-url origin https://github.com/CocoaPods/Specs.git
-          cd -
-
       # Run the build in the host OS default shell since Windows can't handle long path names in bash.
       - name: Build desktop SDK
         run: |
