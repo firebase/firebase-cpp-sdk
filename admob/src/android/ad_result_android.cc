@@ -26,7 +26,6 @@
 #include "admob/src/android/response_info_android.h"
 #include "admob/src/common/admob_common.h"
 #include "admob/src/include/firebase/admob.h"
-#include "app/src/log.h"
 
 namespace firebase {
 namespace admob {
