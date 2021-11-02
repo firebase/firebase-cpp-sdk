@@ -274,6 +274,19 @@ jobs:
             startsWith(matrix.os, 'ubuntu')
         run: |
           sudo apt install openssl
+      - name: add GitHub token to Cocoapods repo (macos)
+        if: runner.os == 'macOS'
+        run: |
+          # Change the remote URL for this pod repo to include the GitHub token.
+          pod repo list
+          if [[ -d ~/.cocoapods/repos/cocoapods ]]; then
+            cd ~/.cocoapods/repos/cocoapods
+            git remote set-url origin https://${GITHUB_TOKEN}@github.com/CocoaPods/Specs.git
+            cd -
+          else
+            pod repo add cocoapods https://${GITHUB_TOKEN}@github.com/CocoaPods/Specs.git
+          fi
+
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}

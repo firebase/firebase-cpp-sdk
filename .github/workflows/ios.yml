@@ -53,6 +53,18 @@ jobs:
         run: |
           build_scripts/ios/install_prereqs.sh
 
+      - name: add GitHub token to Cocoapods repo (macos)
+        run: |
+          # Change the remote URL for this pod repo to include the GitHub token.
+          pod repo list
+          if [[ -d ~/.cocoapods/repos/cocoapods ]]; then
+            cd ~/.cocoapods/repos/cocoapods
+            git remote set-url origin https://${GITHUB_TOKEN}@github.com/CocoaPods/Specs.git
+            cd -
+          else
+            pod repo add cocoapods ${GITHUB_TOKEN}/@github.com/CocoaPods/Specs.git
+          fi
+
       - name: Build SDK
         run: |
           build_scripts/ios/build.sh -b ios_build -s .

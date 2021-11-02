@@ -401,6 +401,19 @@ jobs:
           fi
           echo "VERBOSE_FLAG=${verbose_flag}" >> $GITHUB_ENV
       
+      - name: add GitHub token to Cocoapods repo (macos)
+        if: runner.os == 'macOS'
+        run: |
+          # Change the remote URL for this pod repo to include the GitHub token.
+          pod repo list
+          if [[ -d ~/.cocoapods/repos/cocoapods ]]; then
+            cd ~/.cocoapods/repos/cocoapods
+            git remote set-url origin https://${GITHUB_TOKEN}@github.com/CocoaPods/Specs.git
+            cd -
+          else
+            pod repo add cocoapods ${GITHUB_TOKEN}/@github.com/CocoaPods/Specs.git
+          fi
+
       # Run the build in the host OS default shell since Windows can't handle long path names in bash.
       - name: Build desktop SDK
         run: |
