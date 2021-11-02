@@ -47,6 +47,7 @@ env:
   statusCommentIdentifier: "integration-test-status-comment"
   pythonVersion: '3.7'
   artifactRetentionDays: 2
+  GITHUB_TOKEN: ${{ github.token }}
 
 jobs:
   check_and_prepare:
@@ -69,8 +70,6 @@ jobs:
       uses: lannonbr/repo-permission-check-action@2.0.0
       with:
         permission: "admin"
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
     ### It sets "github_ref,trigger,pr_number,requested_tests" outputs to control the following jobs and steps
     ### trigger value: manual_trigger, scheduled_trigger, label_trigger, postsubmit_trigger
     - id: set_outputs

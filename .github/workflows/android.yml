@@ -12,6 +12,7 @@ on:
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
+  GITHUB_TOKEN: ${{ github.token }}
 
 jobs:
   prepare_matrix:

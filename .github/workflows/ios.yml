@@ -9,6 +9,10 @@ on:
         description: 'Use an expanded matrix?'
         default: '0'
         required: true
+
+env:
+  GITHUB_TOKEN: ${{ github.token }}
+
 jobs:
   prepare_matrix:
     runs-on: ubuntu-latest
