@@ -569,10 +569,14 @@ code.
 ## Release Notes
 ### 8.7.0
 -   Changes
+    -   Firestore: Released to general availability (no longer beta).
     -   General (Android): Minimum SDK version is now 19.
     -   General: Variant double type now support 64-bit while saving to json.
         ([#1133](https://github.com/firebase/quickstart-unity/issues/1133)).
     -   Analytics (tvOS): Analytics is now supported on tvOS.
+    -   Firestore (iOS): Fix a crash when `Transaction.GetSnapshotAsync()` was
+        invoked after `FirebaseFirestore.TerminateAsync()`
+        ([#8760](https://github.com/firebase/firebase-ios-sdk/pull/8760)).
 
 ### 8.6.0
 -   Changes
