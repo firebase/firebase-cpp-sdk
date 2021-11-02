@@ -169,12 +169,14 @@ AdResult& AdResult::operator=(const AdResult& ad_result) {
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(internal_);
   FIREBASE_ASSERT(ad_result.internal_);
+  FIREBASE_ASSERT(response_info_);
+  FIREBASE_ASSERT(ad_result.response_info_);
 
   AdResultInternal* preexisting_internal = internal_;
   {
     // Lock the parties so they're not deleted while the copying takes place.
-    MutexLock(ad_result.internal_->mutex);
-    MutexLock(internal_->mutex);
+    MutexLock ad_result_lock(ad_result.internal_->mutex);
+    MutexLock lock(internal_->mutex);
     internal_ = new AdResultInternal();
 
     internal_->is_successful = ad_result.internal_->is_successful;
@@ -191,7 +193,7 @@ AdResult& AdResult::operator=(const AdResult& ad_result) {
       env->DeleteGlobalRef(preexisting_internal->j_ad_error);
       preexisting_internal->j_ad_error = nullptr;
     }
-    FIREBASE_ASSERT(ad_result.response_info_);
+
     *response_info_ = *ad_result.response_info_;
   }
 
@@ -204,16 +206,18 @@ AdResult& AdResult::operator=(const AdResult& ad_result) {
 
 AdResult::~AdResult() {
   FIREBASE_ASSERT(internal_);
+  FIREBASE_ASSERT(response_info_);
+
   if (internal_->j_ad_error != nullptr) {
     JNIEnv* env = GetJNI();
     FIREBASE_ASSERT(env);
     env->DeleteGlobalRef(internal_->j_ad_error);
     internal_->j_ad_error = nullptr;
   }
+
   delete internal_;
   internal_ = nullptr;
 
-  FIREBASE_ASSERT(response_info_);
   delete response_info_;
   response_info_ = nullptr;
 }

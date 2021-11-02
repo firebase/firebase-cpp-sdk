@@ -24,6 +24,7 @@ extern "C" {
 
 #include "admob/src/include/firebase/admob.h"
 #include "admob/src/ios/ad_result_ios.h"
+#include "admob/src/ios/response_info_ios.h"
 
 #include "app/src/util_ios.h"
 
@@ -39,11 +40,17 @@ AdResult::AdResult() {
   internal_ = new AdResultInternal();
   internal_->is_successful = false;
   internal_->is_wrapper_error = true;
+  internal_->is_load_ad_error = false;
   internal_->code = kAdMobErrorUninitialized;
   internal_->domain = "SDK";
   internal_->message = "This AdResult has not be initialized.";
   internal_->to_string = internal_->message;
   internal_->ios_error = nullptr;
+
+  // While most data is passed into this object through the AdResultInternal
+  // structure (above), the response_info_ is constructed when parsing
+  // the j_ad_error itself.
+  response_info_ = new ResponseInfo();
 }
 
 AdResult::AdResult(const AdResultInternal& ad_result_internal) {
@@ -51,7 +58,9 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
 
   internal_->is_successful = ad_result_internal.is_successful;
   internal_->is_wrapper_error = ad_result_internal.is_wrapper_error;
+  internal_->is_load_ad_error = ad_result_internal.is_load_ad_error;
   internal_->ios_error = nullptr;
+  response_info_ = new ResponseInfo();
 
   // AdResults can be returned on success, or for errors encountered in the C++
   // SDK wrapper, or in the iOS AdMob SDK.  The stucture is populated
@@ -83,6 +92,15 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
     internal_->message =
       util::NSStringToString(internal_->ios_error.localizedDescription);
 
+    // Errors from LoadAd attempts have extra data pertaining to adapter
+    // responses.
+    if (internal_->is_load_ad_error) {
+      ResponseInfoInternal response_info_internal = ResponseInfoInternal( {
+        ad_result_internal.ios_error.userInfo[GADErrorUserInfoKeyResponseInfo]
+      });
+      *response_info_ = ResponseInfo(response_info_internal);
+    }
+
     NSString* ns_to_string = [[NSString alloc]initWithFormat:@"Received error with "
         "domain: %@, code: %ld, message: %@", internal_->ios_error.domain,
         (long)internal_->ios_error.code,
@@ -93,22 +111,27 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
 
 AdResult::AdResult(const AdResult& ad_result) : AdResult() {
   // Reuse the assignment operator.
+  this->response_info_ = new ResponseInfo();
   *this = ad_result;
 }
 
 AdResult::~AdResult() {
   FIREBASE_ASSERT(internal_);
-  {
-    MutexLock(internal_->mutex);
-    internal_->ios_error = nil;
-  }
+  FIREBASE_ASSERT(response_info_);
+
+  internal_->ios_error = nil;
   delete internal_;
   internal_ = nullptr;
+
+  delete response_info_;
+  response_info_ = nullptr;
 }
 
 AdResult& AdResult::operator=(const AdResult& ad_result) {
   FIREBASE_ASSERT(ad_result.internal_);
   FIREBASE_ASSERT(internal_);
+  FIREBASE_ASSERT(response_info_);
+  FIREBASE_ASSERT(ad_result.response_info_);
 
   AdResultInternal* preexisting_internal = internal_;
   {
@@ -123,6 +146,8 @@ AdResult& AdResult::operator=(const AdResult& ad_result) {
     internal_->domain = ad_result.internal_->domain;
     internal_->message = ad_result.internal_->message;
     internal_->to_string = ad_result.internal_->to_string;
+
+    *response_info_ = *ad_result.response_info_;
   }
 
   // Deleting the internal deletes the mutex within it, so we have to delete
@@ -167,6 +192,11 @@ const std::string& AdResult::domain() const {
 const std::string& AdResult::message() const {
   FIREBASE_ASSERT(internal_);
   return internal_->message;
+}
+
+const ResponseInfo& AdResult::response_info() const {
+  FIREBASE_ASSERT(response_info_);
+  return *response_info_;
 }
 
 /// Returns a log friendly string version of this object.

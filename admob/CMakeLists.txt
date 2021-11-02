@@ -52,7 +52,6 @@ set(ios_SRCS
     src/ios/admob_ios.mm
     src/ios/banner_view_internal_ios.mm
     src/ios/interstitial_ad_internal_ios.mm
-    src/ios/load_ad_result_ios.mm
     src/ios/response_info_ios.mm)
 
 # Source files used by the stub implementation.

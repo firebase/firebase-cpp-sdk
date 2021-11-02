@@ -66,7 +66,7 @@ Future<AdResult> BannerViewInternalIOS::LoadAd(const AdRequest& request) {
   FutureCallbackData<AdResult>* callback_data =
     CreateAdResultFutureCallbackData(kBannerViewFnLoadAd,
                                      &future_data_);
-  SafeFutureHandle<LAdResult> future_handle = callback_data->future_handle;
+  SafeFutureHandle<AdResult> future_handle = callback_data->future_handle;
 
   if (ad_load_callback_data_ != nil) {
     CompleteLoadAdInternalResult(callback_data, kAdMobErrorLoadInProgress,
@@ -220,7 +220,7 @@ void BannerViewInternalIOS::BannerViewDidFailToReceiveAdWithError(NSError *error
   firebase::MutexLock lock(mutex_);
   FIREBASE_ASSERT(error);
   if(ad_load_callback_data_ != nil) {
-    CompleteLoadAdIOSResult(ad_load_callback_data_, error);
+    CompleteAdResultIOS(ad_load_callback_data_, error);
     ad_load_callback_data_ = nil;
   }
 }

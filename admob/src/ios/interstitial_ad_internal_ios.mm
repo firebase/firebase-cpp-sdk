@@ -76,7 +76,7 @@ Future<AdResult> InterstitialAdInternalIOS::LoadAd(
   SafeFutureHandle<AdResult> future_handle = callback_data->future_handle;
 
   if (ad_load_callback_data_ != nil) {
-    CompleteAdInternalResult(callback_data, kAdMobErrorLoadInProgress,
+    CompleteLoadAdInternalResult(callback_data, kAdMobErrorLoadInProgress,
         kAdLoadInProgressErrorMessage);
     return MakeFuture(&future_data_.future_impl, future_handle);
   }
@@ -161,7 +161,7 @@ void InterstitialAdInternalIOS::InterstitialDidFailToReceiveAdWithError(NSError 
   firebase::MutexLock lock(mutex_);
   FIREBASE_ASSERT(gad_error);
   if (ad_load_callback_data_ != nil) {
-    CompleteLoadAdIOSResult(ad_load_callback_data_, gad_error);
+    CompleteAdResultIOS(ad_load_callback_data_, gad_error);
     ad_load_callback_data_ = nil;
   }
 }
