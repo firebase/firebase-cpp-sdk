@@ -54,7 +54,7 @@ android {
 
   defaultConfig {
     applicationId 'com.google.firebase.fis.testapp'
-    minSdkVersion 16
+    minSdkVersion 19
     targetSdkVersion 28
     versionCode 1
     versionName '1.0'
