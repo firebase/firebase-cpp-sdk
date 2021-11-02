@@ -61,12 +61,12 @@ Future<void> BannerViewInternalIOS::Initialize(AdParent parent,
   return MakeFuture(&future_data_.future_impl, future_handle);
 }
 
-Future<LoadAdResult> BannerViewInternalIOS::LoadAd(const AdRequest& request) {
+Future<AdResult> BannerViewInternalIOS::LoadAd(const AdRequest& request) {
   firebase::MutexLock lock(mutex_);
-  FutureCallbackData<LoadAdResult>* callback_data =
-    CreateLoadAdResultFutureCallbackData(kBannerViewFnLoadAd,
-                                         &future_data_);
-  SafeFutureHandle<LoadAdResult> future_handle = callback_data->future_handle;
+  FutureCallbackData<AdResult>* callback_data =
+    CreateAdResultFutureCallbackData(kBannerViewFnLoadAd,
+                                     &future_data_);
+  SafeFutureHandle<LAdResult> future_handle = callback_data->future_handle;
 
   if (ad_load_callback_data_ != nil) {
     CompleteLoadAdInternalResult(callback_data, kAdMobErrorLoadInProgress,
@@ -74,7 +74,7 @@ Future<LoadAdResult> BannerViewInternalIOS::LoadAd(const AdRequest& request) {
     return MakeFuture(&future_data_.future_impl, future_handle);
   }
   // Persist a pointer to the callback data so that we may use it after the iOS
-  // SDK returns the LoadAdResult.
+  // SDK returns the AdResult.
   ad_load_callback_data_ = callback_data;
 
   dispatch_async(dispatch_get_main_queue(), ^{

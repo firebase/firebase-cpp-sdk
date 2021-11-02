@@ -39,7 +39,6 @@ set(android_SRCS
     src/android/admob_android.cc
     src/android/banner_view_internal_android.cc
     src/android/interstitial_ad_internal_android.cc
-    src/android/load_ad_result_android.cc
     src/android/response_info_android.cc)
 
 # Source files used by the iOS implementation.

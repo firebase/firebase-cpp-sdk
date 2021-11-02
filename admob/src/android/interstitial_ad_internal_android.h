@@ -46,8 +46,8 @@ class InterstitialAdInternalAndroid : public InterstitialAdInternal {
   ~InterstitialAdInternalAndroid() override;
 
   Future<void> Initialize(AdParent parent) override;
-  Future<LoadAdResult> LoadAd(const char* ad_unit_id,
-                              const AdRequest& request) override;
+  Future<AdResult> LoadAd(const char* ad_unit_id,
+                          const AdRequest& request) override;
   Future<void> Show() override;
   bool is_initialized() const override { return initialized_; }
 

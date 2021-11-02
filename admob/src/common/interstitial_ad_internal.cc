@@ -113,8 +113,8 @@ Future<void> InterstitialAdInternal::GetLastResult(InterstitialAdFn fn) {
       future_data_.future_impl.LastResult(fn));
 }
 
-Future<LoadAdResult> InterstitialAdInternal::GetLoadAdLastResult() {
-  return static_cast<const Future<LoadAdResult>&>(
+Future<AdResult> InterstitialAdInternal::GetLoadAdLastResult() {
+  return static_cast<const Future<AdResult>&>(
       future_data_.future_impl.LastResult(kInterstitialAdFnLoadAd));
 }
 

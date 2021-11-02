@@ -70,12 +70,12 @@ void AdListener::OnAdOpened() {}
 
 // AdMobInternal
 void AdMobInternal::CompleteLoadAdFuture(
-    FutureCallbackData<LoadAdResult>* callback_data, int error_code,
+    FutureCallbackData<AdResult>* callback_data, int error_code,
     const std::string& error_message,
     const AdResultInternal& ad_result_internal) {
   callback_data->future_data->future_impl.CompleteWithResult(
       callback_data->future_handle, static_cast<int>(error_code),
-      error_message.c_str(), LoadAdResult(ad_result_internal));
+      error_message.c_str(), AdResult(ad_result_internal));
   // This method is responsible for disposing of the callback data struct.
   delete callback_data;
 }
@@ -270,11 +270,12 @@ Future<void> CreateAndCompleteFuture(int fn_idx, int error,
   return MakeFuture(&future_data->future_impl, handle);
 }
 
-Future<LoadAdResult> CreateAndCompleteFutureWithResult(
-    int fn_idx, int error, const char* error_msg, FutureData* future_data,
-    const LoadAdResult& result) {
-  SafeFutureHandle<LoadAdResult> handle =
-      CreateFuture<LoadAdResult>(fn_idx, future_data);
+Future<AdResult> CreateAndCompleteFutureWithResult(int fn_idx, int error,
+                                                   const char* error_msg,
+                                                   FutureData* future_data,
+                                                   const AdResult& result) {
+  SafeFutureHandle<AdResult> handle =
+      CreateFuture<AdResult>(fn_idx, future_data);
   CompleteFuture(error, error_msg, handle, future_data, result);
   return MakeFuture(&future_data->future_impl, handle);
 }
@@ -285,11 +286,11 @@ FutureCallbackData<void>* CreateVoidFutureCallbackData(
       future_data, future_data->future_impl.SafeAlloc<void>(fn_idx)};
 }
 
-FutureCallbackData<LoadAdResult>* CreateLoadAdResultFutureCallbackData(
+FutureCallbackData<AdResult>* CreateAdResultFutureCallbackData(
     int fn_idx, FutureData* future_data) {
-  return new FutureCallbackData<LoadAdResult>{
+  return new FutureCallbackData<AdResult>{
       future_data,
-      future_data->future_impl.SafeAlloc<LoadAdResult>(fn_idx, LoadAdResult())};
+      future_data->future_impl.SafeAlloc<AdResult>(fn_idx, AdResult())};
 }
 
 }  // namespace admob

@@ -67,22 +67,22 @@ Future<void> InterstitialAdInternalIOS::Initialize(AdParent parent) {
   return MakeFuture(&future_data_.future_impl, future_handle);
 }
 
-Future<LoadAdResult> InterstitialAdInternalIOS::LoadAd(
+Future<AdResult> InterstitialAdInternalIOS::LoadAd(
     const char* ad_unit_id, const AdRequest& request) {
   firebase::MutexLock lock(mutex_);
-  FutureCallbackData<LoadAdResult>* callback_data =
-      CreateLoadAdResultFutureCallbackData(kInterstitialAdFnLoadAd,
+  FutureCallbackData<AdResult>* callback_data =
+      CreateAdResultFutureCallbackData(kInterstitialAdFnLoadAd,
           &future_data_);
-  SafeFutureHandle<LoadAdResult> future_handle = callback_data->future_handle;
+  SafeFutureHandle<AdResult> future_handle = callback_data->future_handle;
 
   if (ad_load_callback_data_ != nil) {
-    CompleteLoadAdInternalResult(callback_data, kAdMobErrorLoadInProgress,
+    CompleteAdInternalResult(callback_data, kAdMobErrorLoadInProgress,
         kAdLoadInProgressErrorMessage);
     return MakeFuture(&future_data_.future_impl, future_handle);
   }
 
   // Persist a pointer to the callback data so that we may use it after the iOS
-  // SDK returns the LoadAdResult.
+  // SDK returns the AdResult.
   ad_load_callback_data_ = callback_data;
 
   interstitial_delegate_ =

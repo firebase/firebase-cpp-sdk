@@ -54,7 +54,7 @@ class BannerViewInternal {
                                   const AdSize& size) = 0;
 
   // Initiates an ad request.
-  virtual Future<LoadAdResult> LoadAd(const AdRequest& request) = 0;
+  virtual Future<AdResult> LoadAd(const AdRequest& request) = 0;
 
   // Retrieves the @ref AdView's current onscreen size and location.
   virtual BoundingBox bounding_box() const = 0;
@@ -111,8 +111,8 @@ class BannerViewInternal {
   // Retrieves the most recent Future for a given function.
   Future<void> GetLastResult(BannerViewFn fn);
 
-  // Retrieves the most recent LoadAdResult future for the LoadAd function.
-  Future<LoadAdResult> GetLoadAdLastResult();
+  // Retrieves the most recent AdResult future for the LoadAd function.
+  Future<AdResult> GetLoadAdLastResult();
 
   // Returns if the BannerAd has been initialized.
   virtual bool is_initialized() const = 0;
