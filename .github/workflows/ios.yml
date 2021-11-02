@@ -62,12 +62,13 @@ jobs:
             # Get the pod repo first, if it doesn't exist already.
             pod repo add cocoapods https://${{ github.token }}@github.com/CocoaPods/Specs.git
           else
+            # Temporarily set it to use the token, and use that to update.
             cd ~/.cocoapods/repos/cocoapods
             git remote set-url origin https://${{ github.token }}@github.com/CocoaPods/Specs.git
+            pod repo update
             cd -
           fi
-          # Temporarily set it to use the token, and use that to update.
-          pod repo update
+          # Set the source back to non-token URL.
           cd ~/.cocoapods/repos/cocoapods
           git remote set-url origin https://github.com/CocoaPods/Specs.git
           cd -
