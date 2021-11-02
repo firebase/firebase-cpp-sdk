@@ -567,7 +567,7 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Next Release
+### 8.7.0
 -   Changes
     -   General (Android): Minimum SDK version is now 19.
     -   General: Variant double type now support 64-bit while saving to json.
