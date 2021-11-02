@@ -60,7 +60,6 @@ set(stub_SRCS
     src/stub/ad_result_stub.cc
     src/stub/adapter_response_info_stub.cc
     src/stub/admob_stub.cc
-    src/stub/load_ad_result_stub.cc
     src/stub/response_info_stub.cc)
 
 if(ANDROID)
