@@ -438,7 +438,19 @@ def _install_apple_app(app_path, device_id):
   """Install integration_test app into the simulator."""
   args = ["xcrun", "simctl", "install", device_id, app_path]
   logging.info("Install testapp: %s", " ".join(args))
-  subprocess.run(args=args, check=True)
+  result = subprocess.run(args=args, check=False)
+  if result.returncode != 0:
+    logging.info("Install testapp %s failed, Reset Simualtor now...", app_path)
+    _shutdown_simulator()
+    args = ["xcrun", "simctl", "erase", device_id]
+    logging.info("Erase my simulator: %s", " ".join(args))
+    subprocess.run(args=args, check=True)
+    args = ["xcrun", "simctl", "boot", device_id]
+    logging.info("Reboot my simulator: %s", " ".join(args))
+    subprocess.run(args=args, check=True)
+    args = ["xcrun", "simctl", "install", device_id, app_path]
+    logging.info("Reinstall testapp: %s", " ".join(args))
+    subprocess.run(args=args, check=True)
 
 
 def _uninstall_apple_app(bundle_id, device_id):
