@@ -53,28 +53,11 @@ jobs:
           python-version: 3.7
           architecture: "x64"
 
-      - name: Fetch Cocoapods repo with github token (macos)
+      - name: Store git credentials for all git commands
         run: |
-          git config --global credential.helper store
-          cat ~/.git-credentials || true
+          git config --global --get-regexp .
+          git config --global credential.helper 'store --file ~/.git-credentials'
           echo 'https://${{ github.token }}@github.com' > ~/.git-credentials
-          exit
-          # Temporarily modify the remote URL for this pod repo to include the GitHub token,
-          # then perform a repo update, to ensure the latest repo (not throttled by GitHub).
-          if [[ ! -d ~/.cocoapods/repos/cocoapods ]]; then
-            # Get the pod repo first, if it doesn't exist already.
-            pod repo add cocoapods https://${{ github.token }}@github.com/CocoaPods/Specs.git
-          else
-            # Temporarily set it to use the token, and use that to update.
-            cd ~/.cocoapods/repos/cocoapods
-            git remote set-url origin https://${{ github.token }}@github.com/CocoaPods/Specs.git
-            pod repo update
-            cd -
-          fi
-          # Set the source back to non-token URL.
-          cd ~/.cocoapods/repos/cocoapods
-          git remote set-url origin https://github.com/CocoaPods/Specs.git
-          cd -
 
       - name: Install prerequisites
         run: |
