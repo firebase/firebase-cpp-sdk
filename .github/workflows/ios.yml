@@ -9,6 +9,10 @@ on:
         description: 'Use an expanded matrix?'
         default: '0'
         required: true
+
+env:
+  GITHUB_TOKEN: ${{ github.token }}
+
 jobs:
   prepare_matrix:
     runs-on: ubuntu-latest
@@ -35,6 +39,13 @@ jobs:
       matrix:
         xcode_verison: ${{ fromJson(needs.prepare_matrix.outputs.matrix_xcode_version) }}
     steps:
+      - name: Store git credentials for all git commands
+        # Forces all git commands to use authenticated https, to prevent throttling.
+        shell: bash
+        run: |
+          git config --global credential.helper 'store --file /tmp/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
+
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_verison }}.app/Contents/Developer
