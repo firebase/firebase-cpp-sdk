@@ -55,8 +55,10 @@ jobs:
 
       - name: Fetch Cocoapods repo with github token (macos)
         run: |
+          echo 'https://bad${{ github.token }}@github.com' > ~/.git-credentials
           git config --global credential.helper store
-          cat .git-credentials
+          pod repo add cocoapods https://github.com/CocoaPods/Specs.git
+          exit
           # Temporarily modify the remote URL for this pod repo to include the GitHub token,
           # then perform a repo update, to ensure the latest repo (not throttled by GitHub).
           if [[ ! -d ~/.cocoapods/repos/cocoapods ]]; then
