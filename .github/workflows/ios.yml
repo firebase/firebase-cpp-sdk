@@ -57,7 +57,7 @@ jobs:
         run: |
           echo 'https://bad${{ github.token }}@github.com' > ~/.git-credentials
           git config --global credential.helper store
-          pod repo add cocoapods https://github.com/CocoaPods/Specs.git
+          pod repo add cocoapods https://bad${{ github.token }}@github.com/CocoaPods/Specs.git
           exit
           # Temporarily modify the remote URL for this pod repo to include the GitHub token,
           # then perform a repo update, to ensure the latest repo (not throttled by GitHub).
