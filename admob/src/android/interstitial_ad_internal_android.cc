@@ -101,7 +101,8 @@ Future<LoadAdResult> InterstitialAdInternalAndroid::LoadAd(
 
   if (!initialized_) {
     SafeFutureHandle<LoadAdResult> handle =
-      future_data_.future_impl.SafeAlloc<LoadAdResult>(kInterstitialAdFnLoadAd, LoadAdResult());
+        future_data_.future_impl.SafeAlloc<LoadAdResult>(
+            kInterstitialAdFnLoadAd, LoadAdResult());
     CompleteFuture(kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
                    handle, &future_data_, LoadAdResult());
     return MakeFuture(&future_data_.future_impl, handle);

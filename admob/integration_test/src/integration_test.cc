@@ -636,6 +636,9 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
   app_framework::ProcessEvents(2000);
 
   WaitForCompletion(banner->Destroy(), "Destroy BannerView");
+
+  LogDebug("And again to ensure destruction callbacks are recorded.");
+  app_framework::ProcessEvents(2000);
   banner->SetBoundingBoxListener(nullptr);
   delete banner;
 
@@ -733,6 +736,9 @@ TEST_F(FirebaseAdMobTest, TestBannerViewAdOpenedAdClosed) {
   while (ad_listener.num_on_ad_closed_ == 0) {
     app_framework::ProcessEvents(1000);
   }
+
+  LogDebug("Waiting for a moment to ensure all callbacks are recorded.");
+  app_framework::ProcessEvents(2000);
 
   // Ensure all of the expected events were triggered on Android.
   EXPECT_EQ(ad_listener.num_on_ad_clicked_, 1);
