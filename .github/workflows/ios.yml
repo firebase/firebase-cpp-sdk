@@ -58,6 +58,7 @@ jobs:
           git config --global --get-regexp .
           git config --global credential.helper 'store --file ~/.git-credentials'
           echo 'https://${{ github.token }}@github.com' > ~/.git-credentials
+          git config --global --get-regexp .
 
       - name: Install prerequisites
         run: |
