@@ -190,8 +190,9 @@ class AdResult {
   /// Gets the message describing the error.
   const std::string& message() const;
 
-  /// Gets the ResponseInfo if an loadAd error occurred, with a collection of
-  /// information from each adapter.
+  /// Gets the ResponseInfo if an error occurred during a loadAd operation.
+  /// The ResponseInfo will have empty fields if no error occurred, or if this
+  /// AdResult does not represent an error stemming from a loadAd operation.
   const ResponseInfo& response_info() const;
 
   /// Returns a log friendly string version of this object.
