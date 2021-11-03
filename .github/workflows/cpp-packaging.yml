@@ -183,6 +183,13 @@ jobs:
     runs-on: macos-latest
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     steps:
+      - name: Store git credentials for all git commands
+        # Forces all git commands to use authenticated https, to prevent throttling.
+        shell: bash
+        run: |
+          git config --global credential.helper 'store --file $TMPDIR/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > $TMPDIR/git-credentials
+
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
@@ -196,25 +203,6 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.7
-
-      - name: Fetch Cocoapods repo with github token (macos)
-        run: |
-          # Temporarily modify the remote URL for this pod repo to include the GitHub token,
-          # then perform a repo update, to ensure the latest repo (not throttled by GitHub).
-          if [[ ! -d ~/.cocoapods/repos/cocoapods ]]; then
-            # Get the pod repo first, if it doesn't exist already.
-            pod repo add cocoapods https://${{ github.token }}@github.com/CocoaPods/Specs.git
-          else
-            # Temporarily set it to use the token, and use that to update.
-            cd ~/.cocoapods/repos/cocoapods
-            git remote set-url origin https://${{ github.token }}@github.com/CocoaPods/Specs.git
-            pod repo update
-            cd -
-          fi
-          # Set the source back to non-token URL.
-          cd ~/.cocoapods/repos/cocoapods
-          git remote set-url origin https://github.com/CocoaPods/Specs.git
-          cd -
 
       - name: install prerequisites
         run: sdk-src/build_scripts/ios/install_prereqs.sh
@@ -261,6 +249,13 @@ jobs:
         uses: actions/checkout@v2.3.1
         with:
           path: sdk-src
+
+      - name: Store git credentials for all git commands
+        # Forces all git commands to use authenticated https, to prevent throttling.
+        shell: bash
+        run: |
+          git config --global credential.helper 'store --file $TMPDIR/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > $TMPDIR/git-credentials
 
       - name: Cache NDK
         id: cache_ndk
@@ -353,6 +348,13 @@ jobs:
           architecture: "arm64"
 
     steps:
+      - name: Store git credentials for all git commands
+        # Forces all git commands to use authenticated https, to prevent throttling.
+        shell: bash
+        run: |
+          git config --global credential.helper 'store --file $TMPDIR/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > $TMPDIR/git-credentials
+
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer

@@ -86,6 +86,13 @@ jobs:
           - xcode_version: "11.7"
             architecture: "arm64"
     steps:                
+      - name: Store git credentials for all git commands
+        # Forces all git commands to use authenticated https, to prevent throttling.
+        shell: bash
+        run: |
+          git config --global credential.helper 'store --file $TMPDIR/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > $TMPDIR/git-credentials
+
       - name: Setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer

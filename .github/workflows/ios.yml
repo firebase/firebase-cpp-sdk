@@ -39,6 +39,13 @@ jobs:
       matrix:
         xcode_verison: ${{ fromJson(needs.prepare_matrix.outputs.matrix_xcode_version) }}
     steps:
+      - name: Store git credentials for all git commands
+        # Forces all git commands to use authenticated https, to prevent throttling.
+        shell: bash
+        run: |
+          git config --global credential.helper 'store --file $TMPDIR/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > $TMPDIR/git-credentials
+
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_verison }}.app/Contents/Developer
@@ -52,13 +59,6 @@ jobs:
         with:
           python-version: 3.7
           architecture: "x64"
-
-      - name: Store git credentials for all git commands
-        run: |
-          git config --global --get-regexp .
-          git config --global credential.helper 'store --file ~/.git-credentials'
-          echo 'https://${{ github.token }}@github.com' > ~/.git-credentials
-          git config --global --get-regexp .
 
       - name: Install prerequisites
         run: |
