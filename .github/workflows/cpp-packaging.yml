@@ -187,8 +187,8 @@ jobs:
         # Forces all git commands to use authenticated https, to prevent throttling.
         shell: bash
         run: |
-          git config --global credential.helper 'store --file $TMPDIR/git-credentials'
-          echo 'https://${{ github.token }}@github.com' > $TMPDIR/git-credentials
+          git config --global credential.helper 'store --file /tmp/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
 
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
@@ -254,8 +254,8 @@ jobs:
         # Forces all git commands to use authenticated https, to prevent throttling.
         shell: bash
         run: |
-          git config --global credential.helper 'store --file $TMPDIR/git-credentials'
-          echo 'https://${{ github.token }}@github.com' > $TMPDIR/git-credentials
+          git config --global credential.helper 'store --file /tmp/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
 
       - name: Cache NDK
         id: cache_ndk
@@ -352,8 +352,8 @@ jobs:
         # Forces all git commands to use authenticated https, to prevent throttling.
         shell: bash
         run: |
-          git config --global credential.helper 'store --file $TMPDIR/git-credentials'
-          echo 'https://${{ github.token }}@github.com' > $TMPDIR/git-credentials
+          git config --global credential.helper 'store --file /tmp/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
 
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'

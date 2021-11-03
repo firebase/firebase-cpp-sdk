@@ -216,8 +216,8 @@ jobs:
         # Forces all git commands to use authenticated https, to prevent throttling.
         shell: bash
         run: |
-          git config --global credential.helper 'store --file $TMPDIR/git-credentials'
-          echo 'https://${{ github.token }}@github.com' > $TMPDIR/git-credentials
+          git config --global credential.helper 'store --file /tmp/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
       - name: Set env vars (Linux)
         if: startsWith(matrix.os, 'ubuntu')
         run: echo "VCPKG_TRIPLET=x64-linux" >> $GITHUB_ENV
@@ -395,8 +395,8 @@ jobs:
         # Forces all git commands to use authenticated https, to prevent throttling.
         shell: bash
         run: |
-          git config --global credential.helper 'store --file $TMPDIR/git-credentials'
-          echo 'https://${{ github.token }}@github.com' > $TMPDIR/git-credentials
+          git config --global credential.helper 'store --file /tmp/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
       - name: Add msbuild to PATH (Windows)
         if: startsWith(matrix.os, 'windows')
         uses: microsoft/setup-msbuild@v1.0.2
@@ -516,8 +516,8 @@ jobs:
         # Forces all git commands to use authenticated https, to prevent throttling.
         shell: bash
         run: |
-          git config --global credential.helper 'store --file $TMPDIR/git-credentials'
-          echo 'https://${{ github.token }}@github.com' > $TMPDIR/git-credentials
+          git config --global credential.helper 'store --file /tmp/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
       - name: Setup python
         uses: actions/setup-python@v2
         with:
