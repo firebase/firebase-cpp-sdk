@@ -217,7 +217,8 @@ public class InterstitialAdHelper {
   private class InterstitialAdFullScreenContentListener
       extends FullScreenContentCallback implements OnPaidEventListener {
 
-    public void onAdClicked() {
+    @Override
+    public void onAdClicked () {
       synchronized (mInterstitialLock) {
         notifyAdClickedFullScreenContentEvent(mInterstitialAdInternalPtr);
       }
