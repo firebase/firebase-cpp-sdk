@@ -85,7 +85,7 @@ Firebase AdMob             | libfirebase_admob.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics:19.0.0 
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-ads:20.4.0 
+|                          | com.google.firebase:firebase-ads:19.8.0 
 |                          | (Maven package)
 |                          | com.google.android.gms:play-services-base:17.6.0 
 |                          | (Maven package)
@@ -163,6 +163,11 @@ Firebase Storage           | libfirebase_storage.a
 Important: Each version of the Firebase C++ SDK supports specific Firebase
 Android SDK module versions. Please ensure that you reference the correct
 version of each Maven package listed above in your Gradle file.
+
+Note: AdMob C++ is not currently compatible with the latest Firebase AdMob
+Android SDK (20.x.x). Please ensure that you use firebase-ads version 19.8.0 in
+conjunction with the latest firebase-analytics version to maintain
+compatibility.
 
 ### iOS Dependencies
 
