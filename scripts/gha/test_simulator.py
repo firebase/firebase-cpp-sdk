@@ -59,12 +59,12 @@ available tools with the following commands:
 Device Information is stored in TEST_DEVICES in print_matrix_configuration.py
 Example:
 sdk id "system-images;android-29;google_apis;x86":
-  --android_sdk "system-images;android-29;google_apis;x86" --build_tools_version "28.0.3"
+  --android_sdk "system-images;android-29;google_apis;x86" --build_tools_version "29.0.2"
 
 Alternatively, to set an Android device, use the one of the values below:
 [emulator_min, emulator_target, emulator_latest]
 Example:
-  --android_device "emulator_target" --build_tools_version "28.0.3"
+  --android_device "emulator_target" --build_tools_version "29.0.2"
 
 Returns:
    1: No iOS/Android integration_test apps found
@@ -129,7 +129,7 @@ flags.DEFINE_string(
     "android_sdk", "system-images;android-29;google_apis;x86",
     "See module docstring for details on how to set and get this id.")
 flags.DEFINE_string(
-    "build_tools_version", "28.0.3",
+    "build_tools_version", "29.0.2",
     "android build_tools_version")
 flags.DEFINE_string(
     "logfile_name", "simulator-test",
