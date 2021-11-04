@@ -549,8 +549,8 @@ def _create_and_boot_emulator(sdk_id):
   logging.info("Wait for emulator to boot: %s", " ".join(args))
   subprocess.run(args=args, check=True)
   if FLAGS.ci: 
-    # wait extra 180 seconds to ensure emulator fully booted.
-    time.sleep(180)
+    # wait extra 210 seconds to ensure emulator fully booted.
+    time.sleep(210)
   else:
     time.sleep(45)
 
@@ -564,8 +564,8 @@ def _reset_emulator_on_error():
   logging.info("Wait for emulator to boot: %s", " ".join(args))
   subprocess.run(args=args, check=True)
   if FLAGS.ci: 
-    # wait extra 180 seconds to ensure emulator booted.
-    time.sleep(180)
+    # wait extra 210 seconds to ensure emulator booted.
+    time.sleep(210)
   else:
     time.sleep(45)
 
