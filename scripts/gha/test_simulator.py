@@ -280,7 +280,7 @@ def main(argv):
     _create_and_boot_emulator(sdk_id)
 
     android_gameloop_project = os.path.join(current_dir, "integration_testing", "gameloop_android")
-    _install_android_gameloop_app(android_gameloop_project)
+    _install_android_gameloop_app(android_gameloop_project, _TEST_RETRY)
 
     for app_path in android_testapps:
       package_name = _get_package_name(app_path)
@@ -580,10 +580,10 @@ def _get_package_name(app_path):
 
 def _run_android_gameloop_test(package_name, app_path, gameloop_project, retry=1): 
   logging.info("Running android gameloop test: %s, %s, %s", package_name, app_path, gameloop_project)
-  _install_android_app(app_path)
+  _install_android_app(app_path, _TEST_RETRY)
   _run_instrumented_test()
   log = _get_android_test_log(package_name)
-  _uninstall_android_app(package_name)
+  _uninstall_android_app(package_name, _TEST_RETRY)
   if retry > 1:
     result = test_validation.validate_results(log, test_validation.CPP)
     if not result.complete:
@@ -593,30 +593,34 @@ def _run_android_gameloop_test(package_name, app_path, gameloop_project, retry=1
   return log
 
 
-def _install_android_app(app_path):
+def _install_android_app(app_path, retry=1):
   """Install integration_test app into the emulator."""
   args = ["adb", "install", app_path]
   logging.info("Install testapp: %s", " ".join(args))
-  result = subprocess.run(args=args, check=False)
+  check = (retry <= 1)
+  result = subprocess.run(args=args, check=check)
   if result.returncode != 0:
-    logging.info("Install testapp %s failed, Reset Emualtor now...", app_path)
+    logging.info("Install testapp %s failed, Reset Emualtor now... Remaining retry: %s", app_path, retry-1)
     args = ["adb", "shell", "recovery", "--wipe_data"]
     logging.info("Erase my Emualtor: %s", " ".join(args))
     subprocess.run(args=args, check=True)
     _reset_emulator_on_error()
-    args = ["adb", "install", app_path]
-    logging.info("Reinstall testapp: %s", " ".join(args))
-    subprocess.run(args=args, check=True)
+    _install_android_app(app_path, retry-1)
 
 
-def _uninstall_android_app(package_name):
+def _uninstall_android_app(package_name, retry=1):
   """Uninstall integration_test app from the emulator."""
   args = ["adb", "uninstall", package_name]
   logging.info("Uninstall testapp: %s", " ".join(args))
-  subprocess.run(args=args, check=False)
+  check = (retry <= 1)
+  result = subprocess.run(args=args, check=check)
+  if result.returncode != 0:
+    logging.info("Uninstall testapp %s failed, Reset Emualtor now... Remaining retry: %s", package_name, retry-1)
+    _reset_emulator_on_error()
+    _uninstall_android_app(package_name, retry-1)
 
 
-def _install_android_gameloop_app(gameloop_project):
+def _install_android_gameloop_app(gameloop_project, retry=1):
   os.chdir(gameloop_project)
   logging.info("CD to gameloop_project: %s", gameloop_project)
   _uninstall_android_app("com.google.firebase.gameloop")
@@ -625,7 +629,12 @@ def _install_android_gameloop_app(gameloop_project):
   subprocess.run(args=args, check=False)
   args = ["./gradlew", "installDebug", "installDebugAndroidTest"]
   logging.info("Installing game-loop app and test: %s", " ".join(args))
-  subprocess.run(args=args, check=True)
+  check = (retry <= 1)
+  result = subprocess.run(args=args, check=check)
+  if result.returncode != 0:
+    logging.info("Install gameloop_project failed, Reset Emualtor now... Remaining retry: %s", retry-1)
+    _reset_emulator_on_error()
+    _install_android_gameloop_app(gameloop_project, retry-1)
 
 
 def _run_instrumented_test():
