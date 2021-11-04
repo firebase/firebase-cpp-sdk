@@ -421,10 +421,10 @@ def _get_bundle_id(app_path, config):
 def _run_apple_gameloop_test(bundle_id, app_path, gameloop_app, device_id, retry=1):
   """Run gameloop test and collect test result."""
   logging.info("Running apple gameloop test: %s, %s, %s, %s", bundle_id, app_path, gameloop_app, device_id)
-  _install_apple_app(app_path, device_id)
+  _install_apple_app(app_path, device_id, _TEST_RETRY)
   _run_xctest(gameloop_app, device_id)
   log = _get_apple_test_log(bundle_id, app_path, device_id)
-  _uninstall_apple_app(bundle_id, device_id)
+  _uninstall_apple_app(bundle_id, device_id, _TEST_RETRY)
   if retry > 1:
     result = test_validation.validate_results(log, test_validation.CPP)
     if not result.complete:
@@ -434,30 +434,35 @@ def _run_apple_gameloop_test(bundle_id, app_path, gameloop_app, device_id, retry
   return log
   
 
-def _install_apple_app(app_path, device_id):
+def _install_apple_app(app_path, device_id, retry=1):
   """Install integration_test app into the simulator."""
   args = ["xcrun", "simctl", "install", device_id, app_path]
   logging.info("Install testapp: %s", " ".join(args))
-  result = subprocess.run(args=args, check=False)
+  check = (retry <= 1)
+  result = subprocess.run(args=args, check=check)
   if result.returncode != 0:
-    logging.info("Install testapp %s failed, Reset Simualtor now...", app_path)
-    _shutdown_simulator()
+    logging.info("Install testapp %s failed, Reset Simualtor now... Remaining retry: %s", app_path, retry-1)
     args = ["xcrun", "simctl", "erase", device_id]
     logging.info("Erase my simulator: %s", " ".join(args))
     subprocess.run(args=args, check=True)
     args = ["xcrun", "simctl", "boot", device_id]
     logging.info("Reboot my simulator: %s", " ".join(args))
     subprocess.run(args=args, check=True)
-    args = ["xcrun", "simctl", "install", device_id, app_path]
-    logging.info("Reinstall testapp: %s", " ".join(args))
-    subprocess.run(args=args, check=True)
+    _install_apple_app(app_path, device_id, retry=retry-1)
 
 
-def _uninstall_apple_app(bundle_id, device_id):
+def _uninstall_apple_app(bundle_id, device_id, retry=1):
   """Uninstall integration_test app from the simulator."""
   args = ["xcrun", "simctl", "uninstall", device_id, bundle_id]
   logging.info("Uninstall testapp: %s", " ".join(args))
-  subprocess.run(args=args, check=True)
+  check = (retry <= 1)
+  result = subprocess.run(args=args, check=check)
+  if result.returncode != 0:
+    logging.info("Uninstall testapp %s failed, Reset Simualtor now... Remaining retry: %s", bundle_id, retry-1)
+    args = ["xcrun", "simctl", "boot", device_id]
+    logging.info("Reboot my simulator: %s", " ".join(args))
+    subprocess.run(args=args, check=True)
+    _uninstall_apple_app(bundle_id, device_id, retry=retry-1)
 
 
 def _get_apple_test_log(bundle_id, app_path, device_id):
