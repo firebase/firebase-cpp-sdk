@@ -37,6 +37,7 @@ env:
   xcodeVersion: "12.2"
   # LLVM version with ARM MachO support has no version number yet.
   llvmVer: "5f187f0afaad33013ba03454c4749d99b1362534"
+  GITHUB_TOKEN: ${{ github.token }}
 
 jobs:
   log_inputs:
@@ -182,6 +183,13 @@ jobs:
     runs-on: macos-latest
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     steps:
+      - name: Store git credentials for all git commands
+        # Forces all git commands to use authenticated https, to prevent throttling.
+        shell: bash
+        run: |
+          git config --global credential.helper 'store --file /tmp/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
+
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
@@ -241,6 +249,13 @@ jobs:
         uses: actions/checkout@v2.3.1
         with:
           path: sdk-src
+
+      - name: Store git credentials for all git commands
+        # Forces all git commands to use authenticated https, to prevent throttling.
+        shell: bash
+        run: |
+          git config --global credential.helper 'store --file /tmp/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
 
       - name: Cache NDK
         id: cache_ndk
@@ -333,6 +348,13 @@ jobs:
           architecture: "arm64"
 
     steps:
+      - name: Store git credentials for all git commands
+        # Forces all git commands to use authenticated https, to prevent throttling.
+        shell: bash
+        run: |
+          git config --global credential.helper 'store --file /tmp/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
+
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer

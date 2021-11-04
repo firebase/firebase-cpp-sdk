@@ -569,7 +569,8 @@ code.
 ## Release Notes
 ### 8.7.0
 -   Changes
-    -   Firestore: Released to general availability (no longer beta).
+    -   Firestore: Released to general availability for Android and iOS (desktop
+        support remains in beta).
     -   General (Android): Minimum SDK version is now 19.
     -   General: Variant double type now support 64-bit while saving to json.
         ([#1133](https://github.com/firebase/quickstart-unity/issues/1133)).
