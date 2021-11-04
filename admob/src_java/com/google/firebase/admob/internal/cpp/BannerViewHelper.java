@@ -483,7 +483,6 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   public class AdViewListener extends AdListener implements OnPaidEventListener {
     @Override
     public void onAdClicked() {
-      Log.e("DEDB", "onAdClicked, mAdView:" + mAdView);
       synchronized (mBannerViewLock) {
         if (mAdView != null) {
           notifyAdClicked(mBannerViewInternalPtr);
@@ -494,7 +493,6 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
 
     @Override
     public void onAdClosed() {
-      Log.e("DEDB", "onAdClosed, mAdView:" + mAdView);
       synchronized (mBannerViewLock) {
         if (mAdView != null) {
           notifyAdClosed(mBannerViewInternalPtr);
@@ -506,7 +504,6 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
 
     @Override
     public void onAdFailedToLoad(LoadAdError loadAdError) {
-      Log.e("DEDB", "onAdFailedToLoad, mAdView:" + mAdView);
       synchronized (mBannerViewLock) {
         if (mAdView != null) {
           completeBannerViewLoadAdError(mLoadAdCallbackDataPtr, loadAdError, loadAdError.getCode(), loadAdError.getMessage());
@@ -518,7 +515,6 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
 
     @Override
     public void onAdImpression() {
-      Log.e("DEDB", "onAdImpression, mAdView:" + mAdView);
       synchronized (mBannerViewLock) {
         if (mAdView != null) {
           notifyAdImpression(mBannerViewInternalPtr);
@@ -529,7 +525,6 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
 
     @Override
     public void onAdLoaded() {
-      Log.e("DEDB", "onAdLoaded, mAdView:" + mAdView);
       synchronized (mBannerViewLock) {
         if (mAdView != null) {
           mAdViewContainsAd = true;
@@ -547,7 +542,6 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
 
     @Override
     public void onAdOpened() {
-      Log.e("DEDB", "onAdOpened, mAdView:" + mAdView);
       synchronized (mBannerViewLock) {
         if (mAdView != null) {
           notifyAdOpened(mBannerViewInternalPtr);
@@ -558,7 +552,6 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     }
 
     public void onPaidEvent(AdValue value) {
-      Log.e("DEDB", "onPaidEvent, mAdView:" + mAdView);
       synchronized (mBannerViewLock) {
         if (mAdView != null) {
           notifyPaidEvent(mBannerViewInternalPtr, value.getCurrencyCode(),

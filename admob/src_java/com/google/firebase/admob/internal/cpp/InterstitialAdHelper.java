@@ -219,7 +219,6 @@ public class InterstitialAdHelper {
 
     @Override
     public void onAdClicked () {
-      Log.e("DEDB", "onAdClicked");
       synchronized (mInterstitialLock) {
         notifyAdClickedFullScreenContentEvent(mInterstitialAdInternalPtr);
       }
@@ -227,7 +226,6 @@ public class InterstitialAdHelper {
 
     @Override
     public void onAdDismissedFullScreenContent() {
-      Log.e("DEDB", "onAdDismissedFullScreenContent");
       synchronized (mInterstitialLock) {
         notifyAdDismissedFullScreenContentEvent(mInterstitialAdInternalPtr);
       }
@@ -235,7 +233,6 @@ public class InterstitialAdHelper {
 
     @Override
     public void onAdFailedToShowFullScreenContent(AdError error) {
-      Log.e("DEDB", "onAdFailedToShowFullScreenContent");
       synchronized (mInterstitialLock) {
         notifyAdFailedToShowFullScreenContentEvent(mInterstitialAdInternalPtr, error);
       }
@@ -243,7 +240,6 @@ public class InterstitialAdHelper {
 
     @Override
     public void onAdImpression() {
-      Log.e("DEDB", "onAdFailedToShowFullScreenContent");
       synchronized (mInterstitialLock) {
         notifyAdImpressionEvent(mInterstitialAdInternalPtr);
       }
@@ -251,14 +247,12 @@ public class InterstitialAdHelper {
 
     @Override
     public void onAdShowedFullScreenContent() {
-      Log.e("DEDB", "onAdShowedFullScreenContent");
       synchronized (mInterstitialLock) {
         notifyAdShowedFullScreenContentEvent(mInterstitialAdInternalPtr);
       }
     }
 
     public void onPaidEvent(AdValue value) {
-      Log.e("DEDB", "onPaidEvent");
       synchronized (mInterstitialLock) {
         notifyPaidEvent(mInterstitialAdInternalPtr, value.getCurrencyCode(),
             value.getPrecisionType(), value.getValueMicros());
@@ -269,7 +263,6 @@ public class InterstitialAdHelper {
   private class InterstitialAdListener extends InterstitialAdLoadCallback {
     @Override
     public void onAdFailedToLoad(LoadAdError loadAdError) {
-      Log.e("DEDB", "onAdFailedToLoad");
       synchronized (mInterstitialLock) {
         completeInterstitialLoadAdError(
             mLoadAdCallbackDataPtr, loadAdError, loadAdError.getCode(),
@@ -280,7 +273,6 @@ public class InterstitialAdHelper {
 
     @Override
     public void onAdLoaded(InterstitialAd ad) {
-      Log.e("DEDB", "onAdLoaded");
       synchronized (mInterstitialLock) {
         mInterstitial = ad;
         InterstitialAdFullScreenContentListener listener = new InterstitialAdFullScreenContentListener();
