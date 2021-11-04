@@ -549,27 +549,25 @@ def _create_and_boot_emulator(sdk_id):
   logging.info("Wait for emulator to boot: %s", " ".join(args))
   subprocess.run(args=args, check=True)
   if FLAGS.ci: 
-    # wait extra 90 seconds to ensure emulator fully booted.
+    # wait extra 180 seconds to ensure emulator fully booted.
     time.sleep(180)
   else:
     time.sleep(45)
 
 
-def _reset_emulator_on_error(instrumented_test_result):
-  logging.info("game-loop test result: %s", instrumented_test_result)
-  if "FAILURES!!!" in instrumented_test_result:
-    logging.info("game-loop test error!!! reboot emualtor...")
-    args = ["adb", "-e", "reboot"]
-    logging.info("Reboot android emulator: %s", " ".join(args))
-    subprocess.run(args=args, check=True)
-    args = ["adb", "wait-for-device"]
-    logging.info("Wait for emulator to boot: %s", " ".join(args))
-    subprocess.run(args=args, check=True)
-    if FLAGS.ci: 
-      # wait extra 90 seconds to ensure emulator booted.
-      time.sleep(90)
-    else:
-      time.sleep(45)
+def _reset_emulator_on_error():
+  logging.info("game-loop test error!!! reboot emualtor...")
+  args = ["adb", "-e", "reboot"]
+  logging.info("Reboot android emulator: %s", " ".join(args))
+  subprocess.run(args=args, check=True)
+  args = ["adb", "wait-for-device"]
+  logging.info("Wait for emulator to boot: %s", " ".join(args))
+  subprocess.run(args=args, check=True)
+  if FLAGS.ci: 
+    # wait extra 180 seconds to ensure emulator booted.
+    time.sleep(180)
+  else:
+    time.sleep(45)
 
 
 def _get_package_name(app_path):
@@ -599,7 +597,16 @@ def _install_android_app(app_path):
   """Install integration_test app into the emulator."""
   args = ["adb", "install", app_path]
   logging.info("Install testapp: %s", " ".join(args))
-  subprocess.run(args=args, check=False)
+  result = subprocess.run(args=args, check=False)
+  if result.returncode != 0:
+    logging.info("Install testapp %s failed, Reset Emualtor now...", app_path)
+    args = ["adb", "shell", "recovery", "--wipe_data"]
+    logging.info("Erase my Emualtor: %s", " ".join(args))
+    subprocess.run(args=args, check=True)
+    _reset_emulator_on_error()
+    args = ["adb", "install", app_path]
+    logging.info("Reinstall testapp: %s", " ".join(args))
+    subprocess.run(args=args, check=True)
 
 
 def _uninstall_android_app(package_name):
@@ -629,7 +636,9 @@ def _run_instrumented_test():
     "-w", "%s.test/androidx.test.runner.AndroidJUnitRunner" % _GAMELOOP_PACKAGE] 
   logging.info("Running game-loop test: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=False) 
-  _reset_emulator_on_error(result.stdout)
+  if "FAILURES!!!" in result.stdout:
+    logging.info("game-loop test result: %s", result.stdout)
+    _reset_emulator_on_error()
 
 
 def _get_android_test_log(test_package):
