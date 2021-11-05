@@ -618,9 +618,8 @@ def _uninstall_android_app(package_name, retry=1):
   """Uninstall integration_test app from the emulator."""
   args = ["adb", "uninstall", package_name]
   logging.info("Uninstall testapp: %s", " ".join(args))
-  check = (retry <= 1)
-  result = subprocess.run(args=args, check=check, timeout=_CMD_TIMEOUT)
-  if result.returncode != 0:
+  result = subprocess.run(args=args, check=False, timeout=_CMD_TIMEOUT)
+  if retry > 1 and result.returncode != 0:
     logging.info("Uninstall testapp %s failed, Reset Emualtor now... Remaining retry: %s", package_name, retry-1)
     _reset_emulator_on_error()
     _uninstall_android_app(package_name, retry-1)
