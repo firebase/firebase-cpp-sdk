@@ -513,7 +513,14 @@ def _setup_android(platform_version, build_tool_version, sdk_id, retry=1):
 
   command = "yes | sdkmanager --licenses"
   logging.info("Accept all licenses: %s", command)
-  subprocess.run(command, shell=True, check=False)
+  if retry > 1:
+    try:
+      subprocess.run(command, shell=True, check=False, timeout=_CMD_TIMEOUT)
+    except:
+      _setup_android(platform_version, build_tool_version, sdk_id, retry-1)
+      return
+  else:
+    subprocess.run(command, shell=True, check=False, timeout=_CMD_TIMEOUT)
 
   args = ["sdkmanager", sdk_id]
   logging.info("Download an emulator: %s", " ".join(args))
@@ -524,12 +531,18 @@ def _setup_android(platform_version, build_tool_version, sdk_id, retry=1):
       _setup_android(platform_version, build_tool_version, sdk_id, retry-1)
       return
   else:
-      subprocess.run(args=args, check=True, timeout=_CMD_TIMEOUT)
+    subprocess.run(args=args, check=True, timeout=_CMD_TIMEOUT)
 
   args = ["sdkmanager", "--update"]
   logging.info("Update all installed packages: %s", " ".join(args))
-  subprocess.run(args=args, check=False)
-
+  if retry > 1:
+    try:
+      subprocess.run(args=args, check=False, timeout=_CMD_TIMEOUT)
+    except:
+      _setup_android(platform_version, build_tool_version, sdk_id, retry-1)
+      return
+  else:
+    subprocess.run(args=args, check=False, timeout=_CMD_TIMEOUT)
 
 def _shutdown_emulator():
   command = "adb devices | grep emulator | cut -f1 | while read line; do adb -s $line emu kill; done"
