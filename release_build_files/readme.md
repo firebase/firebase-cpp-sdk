@@ -567,6 +567,12 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Next Release
+-   Changes
+    -   Auth (Desktop): Fixed a crash in `error_code()` when a request
+        is cancelled or times out.
+	([#737](https://github.com/firebase/firebase-cpp-sdk/issues/737))
+
 ### 8.7.0
 -   Changes
     -   Firestore: Released to general availability for Android and iOS (desktop
