@@ -40,8 +40,10 @@ class AuthResponse
   bool IsSuccessful() const;
 
   std::string error_message() const {
-    return application_data_->error ? application_data_->error->message
-                                    : std::string();
+    if (application_data_ && application_data_->error)
+      return application_data_->error->message;
+    else
+      return std::string();
   }
 };
 
