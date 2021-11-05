@@ -644,7 +644,17 @@ def _uninstall_android_app(package_name, retry=1):
 def _install_android_gameloop_app(gameloop_project, retry=1):
   os.chdir(gameloop_project)
   logging.info("cd to gameloop_project: %s", gameloop_project)
-  _uninstall_android_app("com.google.firebase.gameloop")
+  args = ["adb", "uninstall", "com.google.firebase.gameloop"]
+  if retry > 1:
+    try:
+      subprocess.run(args=args, check=False, timeout=_CMD_TIMEOUT)
+    except:
+      logging.info("Uninstall gameloop_project timeout, Reset Emualtor now... Remaining retry: %s", retry-1)
+      _reset_emulator_on_error()
+      _install_android_gameloop_app(gameloop_project, retry-1)
+      return
+  else:
+    subprocess.run(args=args, check=False, timeout=_CMD_TIMEOUT)
   args = ["./gradlew", "clean"]
   logging.info("Clean game-loop cache: %s", " ".join(args))
   subprocess.run(args=args, check=False)
