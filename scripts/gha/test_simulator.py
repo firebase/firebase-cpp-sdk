@@ -489,7 +489,6 @@ def _check_java_version():
 
 
 def _setup_android(platform_version, build_tool_version, sdk_id, retry=1):
-  check = (retry <= 1)
   android_home = os.environ["ANDROID_HOME"]
   pathlist = [os.path.join(android_home, "emulator"), 
     os.path.join(android_home, "tools"), 
@@ -503,9 +502,14 @@ def _setup_android(platform_version, build_tool_version, sdk_id, retry=1):
     "platforms;%s" % platform_version, 
     "build-tools;%s" % build_tool_version]
   logging.info("Install packages: %s", " ".join(args))
-  result = subprocess.run(args=args, check=check, timeout=_CMD_TIMEOUT)
-  if result.returncode != 0:
-    _setup_android(platform_version, build_tool_version, sdk_id, retry-1)
+  if retry > 1:
+    try:
+      subprocess.run(args=args, check=True, timeout=_CMD_TIMEOUT)
+    except:
+      _setup_android(platform_version, build_tool_version, sdk_id, retry-1)
+      return
+  else:
+    subprocess.run(args=args, check=True, timeout=_CMD_TIMEOUT)
 
   command = "yes | sdkmanager --licenses"
   logging.info("Accept all licenses: %s", command)
@@ -513,9 +517,14 @@ def _setup_android(platform_version, build_tool_version, sdk_id, retry=1):
 
   args = ["sdkmanager", sdk_id]
   logging.info("Download an emulator: %s", " ".join(args))
-  result = subprocess.run(args=args, check=check, timeout=_CMD_TIMEOUT)
-  if result.returncode != 0:
-    _setup_android(platform_version, build_tool_version, sdk_id, retry-1)
+  if retry > 1:
+    try:
+      subprocess.run(args=args, check=True, timeout=_CMD_TIMEOUT)
+    except:
+      _setup_android(platform_version, build_tool_version, sdk_id, retry-1)
+      return
+  else:
+      subprocess.run(args=args, check=True, timeout=_CMD_TIMEOUT)
 
   args = ["sdkmanager", "--update"]
   logging.info("Update all installed packages: %s", " ".join(args))
@@ -603,26 +612,33 @@ def _install_android_app(app_path, retry=1):
   """Install integration_test app into the emulator."""
   args = ["adb", "install", app_path]
   logging.info("Install testapp: %s", " ".join(args))
-  check = (retry <= 1)
-  result = subprocess.run(args=args, check=check, timeout=_CMD_TIMEOUT)
-  if result.returncode != 0:
-    logging.info("Install testapp %s failed, Reset Emualtor now... Remaining retry: %s", app_path, retry-1)
-    args = ["adb", "shell", "recovery", "--wipe_data"]
-    logging.info("Erase my Emualtor: %s", " ".join(args))
-    subprocess.run(args=args, check=True)
-    _reset_emulator_on_error()
-    _install_android_app(app_path, retry-1)
+  if retry > 1:
+    try:
+      subprocess.run(args=args, check=True, timeout=_CMD_TIMEOUT)
+    except:
+      logging.info("Install testapp %s failed, Reset Emualtor now... Remaining retry: %s", app_path, retry-1)
+      args = ["adb", "shell", "recovery", "--wipe_data"]
+      logging.info("Erase my Emualtor: %s", " ".join(args))
+      subprocess.run(args=args, check=True)
+      _reset_emulator_on_error()
+      _install_android_app(app_path, retry-1)
+  else:
+    subprocess.run(args=args, check=True, timeout=_CMD_TIMEOUT)
 
 
 def _uninstall_android_app(package_name, retry=1):
   """Uninstall integration_test app from the emulator."""
   args = ["adb", "uninstall", package_name]
   logging.info("Uninstall testapp: %s", " ".join(args))
-  result = subprocess.run(args=args, check=False, timeout=_CMD_TIMEOUT)
-  if retry > 1 and result.returncode != 0:
-    logging.info("Uninstall testapp %s failed, Reset Emualtor now... Remaining retry: %s", package_name, retry-1)
-    _reset_emulator_on_error()
-    _uninstall_android_app(package_name, retry-1)
+  if retry > 1:
+    try:
+      subprocess.run(args=args, check=True, timeout=_CMD_TIMEOUT)
+    except:
+      logging.info("Uninstall testapp %s failed, Reset Emualtor now... Remaining retry: %s", package_name, retry-1)
+      _reset_emulator_on_error()
+      _uninstall_android_app(package_name, retry-1)
+  else:
+    subprocess.run(args=args, check=True, timeout=_CMD_TIMEOUT)
 
 
 def _install_android_gameloop_app(gameloop_project, retry=1):
@@ -634,12 +650,15 @@ def _install_android_gameloop_app(gameloop_project, retry=1):
   subprocess.run(args=args, check=False)
   args = ["./gradlew", "installDebug", "installDebugAndroidTest"]
   logging.info("Installing game-loop app and test: %s", " ".join(args))
-  check = (retry <= 1)
-  result = subprocess.run(args=args, check=check, timeout=_CMD_TIMEOUT)
-  if result.returncode != 0:
-    logging.info("Install gameloop_project failed, Reset Emualtor now... Remaining retry: %s", retry-1)
-    _reset_emulator_on_error()
-    _install_android_gameloop_app(gameloop_project, retry-1)
+  if retry > 1:
+    try:
+      subprocess.run(args=args, check=True, timeout=_CMD_TIMEOUT)
+    except:
+      logging.info("Install gameloop_project failed, Reset Emualtor now... Remaining retry: %s", retry-1)
+      _reset_emulator_on_error()
+      _install_android_gameloop_app(gameloop_project, retry-1)
+  else:
+    subprocess.run(args=args, check=True, timeout=_CMD_TIMEOUT)
 
 
 def _run_instrumented_test():
@@ -649,9 +668,13 @@ def _run_instrumented_test():
   args = ["adb", "shell", "am", "instrument",
     "-w", "%s.test/androidx.test.runner.AndroidJUnitRunner" % _GAMELOOP_PACKAGE] 
   logging.info("Running game-loop test: %s", " ".join(args))
-  result = subprocess.run(args=args, capture_output=True, text=True, check=False, timeout=_CMD_TIMEOUT) 
-  if "FAILURES!!!" in result.stdout:
-    logging.info("game-loop test result: %s", result.stdout)
+  try:
+    result = subprocess.run(args=args, capture_output=True, text=True, check=False, timeout=800) 
+    if "FAILURES!!!" in result.stdout:
+      logging.info("game-loop test result: %s", result.stdout)
+      _reset_emulator_on_error()
+  except:
+    logging.info("Running game-loop test except: timeout")
     _reset_emulator_on_error()
 
 
