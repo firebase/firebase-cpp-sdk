@@ -657,7 +657,16 @@ def _install_android_gameloop_app(gameloop_project, retry=1):
     subprocess.run(args=args, check=False, timeout=_CMD_TIMEOUT)
   args = ["./gradlew", "clean"]
   logging.info("Clean game-loop cache: %s", " ".join(args))
-  subprocess.run(args=args, check=False)
+  if retry > 1:
+    try:
+      subprocess.run(args=args, check=False, timeout=_CMD_TIMEOUT)
+    except:
+      logging.info("Clean game-loop cache timeout, Reset Emualtor now... Remaining retry: %s", retry-1)
+      _reset_emulator_on_error()
+      _install_android_gameloop_app(gameloop_project, retry-1)
+      return
+  else:
+    subprocess.run(args=args, check=False, timeout=_CMD_TIMEOUT)
   args = ["./gradlew", "installDebug", "installDebugAndroidTest"]
   logging.info("Installing game-loop app and test: %s", " ".join(args))
   if retry > 1:
