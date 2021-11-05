@@ -567,6 +567,12 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Next Release
+-   Changes
+    -   Auth (Desktop): Fixed a crash in `error_code()` when a request
+        is cancelled or times out.
+        ([#737](https://github.com/firebase/firebase-cpp-sdk/issues/737))
+
 ### 8.7.0
 -   Changes
     -   Firestore: Released to general availability for Android and iOS (desktop
@@ -666,7 +672,7 @@ code.
         ([#429](https://github.com/firebase/firebase-cpp-sdk/pull/429)).
     -   AdMob (iOS): Temporarily pinned AdMob dependency to a special version of the
         Google-Mobile-Ads-SDK Cocoapod, "7.69.0-cppsdk", to maintain compatibility
-	with version 8.x of the Firebase iOS SDK.
+        with version 8.x of the Firebase iOS SDK.
     -   General (iOS): A Database URL is no longer required to be present in
         GoogleService-Info.plist when not using the Real Time Database.
     -   Firestore: Added `Firestore::LoadBundle` to enable loading Firestore Data
