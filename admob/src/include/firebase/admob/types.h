@@ -386,15 +386,6 @@ class AdSize {
   Type type_;
 };
 
-/// @brief Generic Key-Value container used for the "extras" values in an
-/// @ref firebase::admob::AdRequest.
-struct KeyValuePair {
-  /// The name for an "extra."
-  const char* key;
-  /// The value for an "extra."
-  const char* value;
-};
-
 /// Contains targeting information used to fetch an ad.
 class AdRequest {
  public:
