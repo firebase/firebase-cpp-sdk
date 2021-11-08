@@ -18,6 +18,7 @@
 #define FIREBASE_ADMOB_SRC_ANDROID_INTERSTITIAL_AD_INTERNAL_ANDROID_H_
 
 #include "admob/src/common/interstitial_ad_internal.h"
+#include "app/src/mutex.h"
 #include "app/src/util_android.h"
 
 namespace firebase {
@@ -32,7 +33,6 @@ namespace admob {
   X(Show, "show", "(J)V"),                                                     \
   X(LoadAd, "loadAd",                                                          \
     "(JLjava/lang/String;Lcom/google/android/gms/ads/AdRequest;)V"),           \
-  X(GetPresentationState, "getPresentationState", "()I"),                      \
   X(Disconnect, "disconnect", "()V")
 // clang-format on
 
@@ -49,8 +49,7 @@ class InterstitialAdInternalAndroid : public InterstitialAdInternal {
   Future<LoadAdResult> LoadAd(const char* ad_unit_id,
                               const AdRequest& request) override;
   Future<void> Show() override;
-
-  InterstitialAd::PresentationState GetPresentationState() const override;
+  bool is_initialized() const override { return initialized_; }
 
  private:
   // Reference to the Java helper object used to interact with the Mobile Ads
@@ -59,6 +58,9 @@ class InterstitialAdInternalAndroid : public InterstitialAdInternal {
 
   // Tracks if this Interstial Ad has been initialized.
   bool initialized_;
+
+  // Mutex to guard against concurrent operations;
+  Mutex mutex_;
 };
 
 }  // namespace internal

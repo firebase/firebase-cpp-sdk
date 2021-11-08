@@ -107,16 +107,6 @@ METHOD_LOOKUP_DECLARATION(request_config_builder,
                           REQUESTCONFIGURATIONBUILDER_METHODS);
 METHOD_LOOKUP_DECLARATION(ad_size, ADSIZE_METHODS);
 
-// Change codes used when receiving state change callbacks from the Java
-// BannerViewHelperHelper object.
-enum AdViewChangeCode {
-  // The callback indicates the presentation state has changed.
-  kChangePresentationState = 0,
-  // The callback indicates the bounding box has changed.
-  kChangeBoundingBox,
-  kChangeCount
-};
-
 // Needed when AdMob is initialized without Firebase.
 JNIEnv* GetJNI();
 

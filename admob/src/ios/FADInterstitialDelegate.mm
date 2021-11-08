@@ -16,13 +16,13 @@
 
 #import "admob/src/ios/FADInterstitialDelegate.h"
 
+#include "admob/src/ios/ad_result_ios.h"
 #include "admob/src/ios/interstitial_ad_internal_ios.h"
 
 @interface FADInterstitialDelegate () {
   /// The InterstitialAdInternalIOS object.
   firebase::admob::internal::InterstitialAdInternalIOS *_interstitialAd;
 }
-
 @end
 
 @implementation FADInterstitialDelegate : NSObject
@@ -41,27 +41,34 @@
 
 #pragma mark - GADFullScreenContentDelegate
 
+// Capture AdMob iOS Full screen events and forward them to our C++
+// translation layer.
 - (void)adDidRecordImpression:(nonnull id<GADFullScreenPresentingAd>)ad {
-  _interstitialAd->InterstitialWillPresentScreen();
+  _interstitialAd->NotifyListenerOfAdImpression();
 }
 
 - (void)adDidRecordClick:(nonnull id<GADFullScreenPresentingAd>)ad {
-  // TODO(b/202001231)
+  _interstitialAd->NotifyListenerOfAdClickedFullScreenContent();
 }
 
 - (void)ad:(nonnull id<GADFullScreenPresentingAd>)ad
-    didFailToPresentFullScreenContentWithError:(nonnull NSError *)error {
-  // TODO(b/202001231)
+didFailToPresentFullScreenContentWithError:(nonnull NSError *)error {
+  firebase::admob::AdResultInternal ad_result_internal;
+  ad_result_internal.is_wrapper_error = false;
+  ad_result_internal.is_successful = false;
+  ad_result_internal.ios_error = error;
+  // Invoke AdMobInternal, a friend of AdResult, to have it access its
+  // protected constructor with the AdError data.
+  const firebase::admob::AdResult& ad_result = firebase::admob::AdMobInternal::CreateAdResult(ad_result_internal);
+  _interstitialAd->NotifyListenerOfAdFailedToShowFullScreenContent(ad_result);
 }
 
-/// Tells the delegate that the ad presented full screen content.
 - (void)adDidPresentFullScreenContent:(nonnull id<GADFullScreenPresentingAd>)ad {
-  // TODO(b/202001231)
+  _interstitialAd->NotifyListenerOfAdShowedFullScreenContent();
 }
 
-/// Tells the delegate that the ad dismissed full screen content.
 - (void)adDidDismissFullScreenContent:(nonnull id<GADFullScreenPresentingAd>)ad {
-  _interstitialAd->InterstitialDidDismissScreen();
+  _interstitialAd->NotifyListenerOfAdDismissedFullScreenContent();
 }
 
 @end

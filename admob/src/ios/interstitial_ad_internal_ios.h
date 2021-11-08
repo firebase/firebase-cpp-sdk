@@ -26,6 +26,7 @@ extern "C" {
 }  // extern "C"
 
 #include "admob/src/common/interstitial_ad_internal.h"
+#include "app/src/mutex.h"
 
 namespace firebase {
 namespace admob {
@@ -41,8 +42,6 @@ class InterstitialAdInternalIOS : public InterstitialAdInternal {
                               const AdRequest& request) override;
   Future<void> Show() override;
 
-  InterstitialAd::PresentationState GetPresentationState() const override;
-
 #ifdef __OBJC__
   void InterstitialDidReceiveAd(GADInterstitialAd* ad);
   void InterstitialDidFailToReceiveAdWithError(NSError *gad_error);
@@ -50,15 +49,14 @@ class InterstitialAdInternalIOS : public InterstitialAdInternal {
   void InterstitialDidDismissScreen();
 #endif  // __OBJC__
 
+  bool is_initialized() const override { return initialized_; }
+
  private:
   /// Prevents duplicate invocations of initailize on the Interstitial Ad.
   bool initialized_;
 
   /// Contains information to asynchronously complete the LoadAd Future.
   FutureCallbackData<LoadAdResult>* ad_load_callback_data_;
-
-  /// The presentation state of the interstitial ad.
-  InterstitialAd::PresentationState presentation_state_;
 
   /// The GADInterstitialAd object. Declared as an "id" type to avoid
   /// referencing an Objective-C class in this header.
@@ -73,6 +71,9 @@ class InterstitialAdInternalIOS : public InterstitialAdInternal {
   /// GADInterstitialDelegate protocol. Declared as an "id" type to avoid
   /// referencing an Objective-C++ class in this header.
   id interstitial_delegate_;
+
+  // Mutex to guard against concurrent operations;
+  Mutex mutex_;
 };
 
 }  // namespace internal

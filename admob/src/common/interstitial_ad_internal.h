@@ -53,16 +53,25 @@ class InterstitialAdInternal {
   // Displays an interstitial ad.
   virtual Future<void> Show() = 0;
 
-  // Returns the current presentation state of the interstitial ad.
-  virtual InterstitialAd::PresentationState GetPresentationState() const = 0;
+  /// Sets the @ref FullScreenContentListener to receive events about UI
+  // and presentation state.
+  void SetFullScreenContentListener(FullScreenContentListener* listener);
 
-  // Sets the listener that should be informed of presentation state changes.
-  void SetListener(InterstitialAd::Listener* listener);
+  /// Sets the @ref PaidEventListener to receive information about paid events.
+  void SetPaidEventListener(PaidEventListener* listener);
 
-  // Notifies the listener (if one exists) that the presentation state has
-  // changed.
-  void NotifyListenerOfPresentationStateChange(
-      InterstitialAd::PresentationState state);
+  // Notifies the FullScreenContentListener (if one exists) that an event has
+  // occurred.
+  void NotifyListenerOfAdClickedFullScreenContent();
+  void NotifyListenerOfAdDismissedFullScreenContent();
+  void NotifyListenerOfAdFailedToShowFullScreenContent(
+      const AdResult& ad_result);
+  void NotifyListenerOfAdImpression();
+  void NotifyListenerOfAdShowedFullScreenContent();
+
+  // Notifies the PaidEventListener (if one exists) that a paid event has
+  // occurred.
+  void NotifyListenerOfPaidEvent(const AdValue& ad_value);
 
   // Retrieves the most recent Future for a given function.
   Future<void> GetLastResult(InterstitialAdFn fn);
@@ -70,7 +79,12 @@ class InterstitialAdInternal {
   // Retrieves the most recent LoadAdResult future for the LoadAd function.
   Future<LoadAdResult> GetLoadAdLastResult();
 
+  // Returns true if the InterstitialAd has been initialized.
+  virtual bool is_initialized() const = 0;
+
  protected:
+  friend class firebase::admob::InterstitialAd;
+
   // Used by CreateInstance() to create an appropriate one for the current
   // platform.
   explicit InterstitialAdInternal(InterstitialAd* base);
@@ -81,8 +95,13 @@ class InterstitialAdInternal {
   // Future data used to synchronize asynchronous calls.
   FutureData future_data_;
 
-  // Reference to the listener to which this object sends callbacks.
-  InterstitialAd::Listener* listener_;
+  // Reference to the listener to which this object sends full screen event
+  // callbacks.
+  FullScreenContentListener* full_screen_content_listener_;
+
+  // Reference to the listener to which this object sends ad payout
+  // event callbacks.
+  PaidEventListener* paid_event_listener_;
 
   // Lock object for accessing listener_.
   Mutex listener_mutex_;

@@ -28,11 +28,14 @@ import android.widget.PopupWindow;
 
 import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.AdSize;
+import com.google.android.gms.ads.AdValue;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.OnPaidEventListener;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import android.util.Log;
 
 /**
  * Helper class to make interactions between the AdMob C++ wrapper and Java AdView objects cleaner.
@@ -60,15 +63,12 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   // The GMA SDK AdView associated with this helper.
   private AdView mAdView;
 
-  // The current presentation state.
-  private int mCurrentPresentationState;
-
   // Flag indicating whether an ad is showing in mAdView.
   private boolean mAdViewContainsAd;
 
   // Flag indicating that the Bounding Box listener callback should be invoked
   // the next time mAdView's OnPreDrawListener gets an OnPreDraw event.
-  private AtomicBoolean mNotifyListenerOnNextDraw;
+  private AtomicBoolean mNotifyBoundingBoxListenerOnNextDraw;
 
   // The {@link Activity} this helper uses to display its {@link AdView}.
   private Activity mActivity;
@@ -80,11 +80,10 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   // complete the Future associated with the latest call to LoadAd.
   private long mLoadAdCallbackDataPtr;
 
-  // Synchronization object for threadsafing access to mLoadAdCallbackDataPtr.
-  private final Object mLoadAdCallbackDataPtrLock;
-
-  // AdSize to use in creating the {@link AdView}.
-  private AdSize mAdSize;
+  // Synchronization object for thread safe access to:
+  // * mBannerViewInternalPtr
+  // * mLoadAdCallbackDataPtr
+  private final Object mBannerViewLock;
 
   // {@link PopupWindow } that will contain the {@link AdView}. This is done to
   // guarantee the ad is drawn properly even when the application uses a
@@ -122,16 +121,13 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   public BannerViewHelper(long bannerViewInternalPtr, AdView adView) {
     mBannerViewInternalPtr = bannerViewInternalPtr;
     mAdView = adView;
-    mCurrentPresentationState = ConstantsHelper.AD_VIEW_PRESENTATION_STATE_HIDDEN;
     mDesiredPosition = ConstantsHelper.AD_VIEW_POSITION_TOP_LEFT;
     mShouldUseXYForPosition = false;
     mAdViewContainsAd = false;
-    mNotifyListenerOnNextDraw = new AtomicBoolean(false);
-    mLoadAdCallbackDataPtrLock = new Object();
+    mNotifyBoundingBoxListenerOnNextDraw = new AtomicBoolean(false);
+    mBannerViewLock = new Object();
     mPopUpLock = new Object();
     mPopUpShowRetryCount = 0;
-
-    notifyStateChanged(CPP_NULLPTR, 0);
   }
 
   /**
@@ -149,42 +145,39 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   public void destroy(final long callbackDataPtr) {
     // If the Activity isn't initialized, there is nothing to destroy.
     if (mActivity == null) {
+      completeBannerViewFutureCallback(callbackDataPtr,
+          ConstantsHelper.CALLBACK_ERROR_NONE,
+          ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
       return;
     }
+
     // Stop any attempts to show the popup window.
     synchronized (mPopUpLock) {
       mPopUpRunnable = null;
     }
 
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            if (mAdView != null) {
-              mAdView.destroy();
-              mAdView = null;
-            }
+    if (mAdView != null) {
+      mAdView.setAdListener(null);
+      mAdView.setOnPaidEventListener(null);
+      mAdView.destroy();
+      mAdView = null;
+    }
 
-            synchronized (mPopUpLock) {
-              if (mPopUp != null) {
-                mPopUp.dismiss();
-                mPopUp = null;
-              }
-            }
+    synchronized (mPopUpLock) {
+      if (mPopUp != null) {
+        mPopUp.dismiss();
+        mPopUp = null;
+      }
+    }
 
-            mCurrentPresentationState = ConstantsHelper.AD_VIEW_PRESENTATION_STATE_HIDDEN;
+    synchronized (mBannerViewLock) {
+      notifyBoundingBoxChanged(mBannerViewInternalPtr);
+    }
 
-            notifyStateChanged(
-                mBannerViewInternalPtr, ConstantsHelper.AD_VIEW_CHANGED_PRESENTATION_STATE);
-            notifyStateChanged(
-                mBannerViewInternalPtr, ConstantsHelper.AD_VIEW_CHANGED_BOUNDING_BOX);
-            completeBannerViewFutureCallback(
-                callbackDataPtr,
-                ConstantsHelper.CALLBACK_ERROR_NONE,
-                ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
-            mNotifyListenerOnNextDraw.set(true);
-          }
-        });
+    completeBannerViewFutureCallback(callbackDataPtr,
+        ConstantsHelper.CALLBACK_ERROR_NONE,
+        ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
+    mNotifyBoundingBoxListenerOnNextDraw.set(true);
   }
 
   /**
@@ -195,7 +188,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
       return;
     }
 
-    synchronized (mLoadAdCallbackDataPtrLock) {
+    synchronized (mBannerViewLock) {
       if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
         completeBannerViewLoadAdInternalError(
             callbackDataPtr,
@@ -206,23 +199,17 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
       mLoadAdCallbackDataPtr = callbackDataPtr;
     }
 
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            if (mAdView == null) {
-              synchronized (mLoadAdCallbackDataPtrLock) {
-                completeBannerViewLoadAdInternalError(
-                    mLoadAdCallbackDataPtr,
-                    ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
-                    ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
-                mLoadAdCallbackDataPtr = CPP_NULLPTR;
-              }
-            } else {
-              mAdView.loadAd(request);
-            }
-          }
-        });
+    if (mAdView == null) {
+      synchronized (mBannerViewLock) {
+        completeBannerViewLoadAdInternalError(
+            mLoadAdCallbackDataPtr,
+            ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
+            ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
+        mLoadAdCallbackDataPtr = CPP_NULLPTR;
+      }
+    } else {
+      mAdView.loadAd(request);
+    }
   }
 
   /**
@@ -233,36 +220,25 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
       return;
     }
 
-    // Stop any attempts to show the popup window.
+    int errorCode;
+    String errorMessage;
+
     synchronized (mPopUpLock) {
+      // Stop any attempts to show the popup window.
       mPopUpRunnable = null;
+
+      if (mAdView == null || mPopUp == null) {
+        errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
+        errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
+      } else {
+        errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
+        errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
+        mPopUp.dismiss();
+        mPopUp = null;
+      }
     }
 
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            int errorCode;
-            String errorMessage;
-
-            synchronized (mPopUpLock) {
-              if (mAdView == null || mPopUp == null) {
-                errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
-                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
-              } else {
-                errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
-                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-                mPopUp.dismiss();
-                mPopUp = null;
-                mCurrentPresentationState = ConstantsHelper.AD_VIEW_PRESENTATION_STATE_HIDDEN;
-              }
-            }
-
-            completeBannerViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
-            notifyStateChanged(
-                mBannerViewInternalPtr, ConstantsHelper.AD_VIEW_CHANGED_PRESENTATION_STATE);
-          }
-        });
+    completeBannerViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
   }
 
   /**
@@ -272,7 +248,6 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     if (mActivity == null) {
       return;
     }
-
     updatePopUpLocation(callbackDataPtr);
   }
 
@@ -282,21 +257,12 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   public void pause(final long callbackDataPtr) {
     if (mActivity == null) {
       return;
+    } else if (mAdView != null) {
+      mAdView.pause();
     }
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            if (mAdView != null) {
-              mAdView.pause();
-            }
-
-            completeBannerViewFutureCallback(
-                callbackDataPtr,
-                ConstantsHelper.CALLBACK_ERROR_NONE,
-                ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
-          }
-        });
+    completeBannerViewFutureCallback(callbackDataPtr,
+        ConstantsHelper.CALLBACK_ERROR_NONE,
+        ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
   }
 
   /**
@@ -305,21 +271,13 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   public void resume(final long callbackDataPtr) {
     if (mActivity == null) {
       return;
+    } else if (mAdView != null) {
+      mAdView.resume();
     }
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            if (mAdView != null) {
-              mAdView.resume();
-            }
 
-            completeBannerViewFutureCallback(
-                callbackDataPtr,
-                ConstantsHelper.CALLBACK_ERROR_NONE,
-                ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
-          }
-        });
+    completeBannerViewFutureCallback(callbackDataPtr,
+        ConstantsHelper.CALLBACK_ERROR_NONE,
+        ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
   }
 
   /**
@@ -331,12 +289,9 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     }
 
     synchronized (mPopUpLock) {
-      // Not technically the popup, but these are used as a set, and shouldn't
-      // be halfway modified when mPopUpRunnable calls showAtLocation.
       mShouldUseXYForPosition = true;
       mDesiredX = x;
       mDesiredY = y;
-
       if (mPopUp != null) {
         updatePopUpLocation(callbackDataPtr);
       }
@@ -352,22 +307,12 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     }
 
     synchronized (mPopUpLock) {
-      // Not technically the popup, but these are used as a set, and shouldn't
-      // be halfway modified when mPopUpRunnable calls showAtLocation.
       mShouldUseXYForPosition = false;
       mDesiredPosition = position;
-
       if (mPopUp != null) {
         updatePopUpLocation(callbackDataPtr);
       }
     }
-  }
-
-  /**
-   * Returns the current PresentationState of the {@link BannerView}.
-   */
-  public int getPresentationState() {
-    return mCurrentPresentationState;
   }
 
   /**
@@ -397,6 +342,16 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
       }
       return new int[]{width, height, x, y};
     }
+  }
+
+  /**
+   * Returns an integer representation of the BannerView's position.
+   */
+  public int getPosition() {
+    if (mAdView == null || mShouldUseXYForPosition) {
+      return ConstantsHelper.AD_VIEW_POSITION_UNDEFINED;
+    }
+    return mDesiredPosition;
   }
 
   /**
@@ -461,10 +416,9 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
                       mPopUpShowRetryCount++;
                       new Handler().postDelayed(mPopUpRunnable, 10);
                       return;
-                    } else {
-                      errorCode = ConstantsHelper.CALLBACK_ERROR_NO_WINDOW_TOKEN;
-                      errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NO_WINDOW_TOKEN;
                     }
+                    errorCode = ConstantsHelper.CALLBACK_ERROR_NO_WINDOW_TOKEN;
+                    errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NO_WINDOW_TOKEN;
                   }
                 }
               }
@@ -477,9 +431,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
               if (errorCode != ConstantsHelper.CALLBACK_ERROR_NONE) {
                 completeBannerViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
                 return;
-              }
-
-              if (mPopUp == null) {
+              } else if (mPopUp == null) {
                 mPopUp =
                     new PopupWindow(mAdView, LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
                 mPopUp.setBackgroundDrawable(new ColorDrawable(0xFF000000)); // Black
@@ -514,20 +466,8 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
                 }
               }
 
-              if (errorCode == ConstantsHelper.CALLBACK_ERROR_NO_WINDOW_TOKEN) {
-                mCurrentPresentationState = ConstantsHelper.AD_VIEW_PRESENTATION_STATE_HIDDEN;
-              } else if (mAdViewContainsAd) {
-                mCurrentPresentationState =
-                    ConstantsHelper.AD_VIEW_PRESENTATION_STATE_VISIBLE_WITH_AD;
-              } else {
-                mCurrentPresentationState =
-                    ConstantsHelper.AD_VIEW_PRESENTATION_STATE_VISIBLE_WITHOUT_AD;
-              }
-
               completeBannerViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
-              notifyStateChanged(
-                  mBannerViewInternalPtr, ConstantsHelper.AD_VIEW_CHANGED_PRESENTATION_STATE);
-              mNotifyListenerOnNextDraw.set(true);
+              mNotifyBoundingBoxListenerOnNextDraw.set(true);
             }
           };
     }
@@ -540,51 +480,84 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     return true;
   }
 
-  public class AdViewListener extends AdListener {
+  public class AdViewListener extends AdListener implements OnPaidEventListener {
+    @Override
+    public void onAdClicked() {
+      synchronized (mBannerViewLock) {
+        if (mAdView != null) {
+          notifyAdClicked(mBannerViewInternalPtr);
+        }
+      }
+      super.onAdClicked();
+    }
+
     @Override
     public void onAdClosed() {
-      mCurrentPresentationState = ConstantsHelper.AD_VIEW_PRESENTATION_STATE_VISIBLE_WITH_AD;
-      notifyStateChanged(
-          mBannerViewInternalPtr, ConstantsHelper.AD_VIEW_CHANGED_PRESENTATION_STATE);
-      mNotifyListenerOnNextDraw.set(true);
+      synchronized (mBannerViewLock) {
+        if (mAdView != null) {
+          notifyAdClosed(mBannerViewInternalPtr);
+          mNotifyBoundingBoxListenerOnNextDraw.set(true);
+        }
+      }
       super.onAdClosed();
     }
 
     @Override
     public void onAdFailedToLoad(LoadAdError loadAdError) {
-      synchronized (mLoadAdCallbackDataPtrLock) {
-        completeBannerViewLoadAdError(mLoadAdCallbackDataPtr, loadAdError, loadAdError.getCode(), loadAdError.getMessage());
+      synchronized (mBannerViewLock) {
+        if (mAdView != null) {
+          completeBannerViewLoadAdError(mLoadAdCallbackDataPtr, loadAdError, loadAdError.getCode(), loadAdError.getMessage());
+        }
         mLoadAdCallbackDataPtr = CPP_NULLPTR;
       }
-
       super.onAdFailedToLoad(loadAdError);
     }
 
     @Override
-    public void onAdLoaded() {
-      mAdViewContainsAd = true;
-      synchronized (mLoadAdCallbackDataPtrLock) {
-        completeBannerViewLoadedAd(mLoadAdCallbackDataPtr);
-        mLoadAdCallbackDataPtr = CPP_NULLPTR;
+    public void onAdImpression() {
+      synchronized (mBannerViewLock) {
+        if (mAdView != null) {
+          notifyAdImpression(mBannerViewInternalPtr);
+        }
       }
-      // Only update the presentation state if the banner view is already visible.
-      if (mPopUp != null && mPopUp.isShowing()) {
-        mCurrentPresentationState = ConstantsHelper.AD_VIEW_PRESENTATION_STATE_VISIBLE_WITH_AD;
-        notifyStateChanged(
-            mBannerViewInternalPtr, ConstantsHelper.AD_VIEW_CHANGED_PRESENTATION_STATE);
-        // Loading an ad can sometimes cause the bounds to change.
-        mNotifyListenerOnNextDraw.set(true);
+      super.onAdImpression();
+    }
+
+    @Override
+    public void onAdLoaded() {
+      synchronized (mBannerViewLock) {
+        if (mAdView != null) {
+          mAdViewContainsAd = true;
+          completeBannerViewLoadedAd(mLoadAdCallbackDataPtr);
+          mLoadAdCallbackDataPtr = CPP_NULLPTR;
+          // Only update the bounding box if the banner view is already visible.
+          if (mPopUp != null && mPopUp.isShowing()) {
+            // Loading an ad can sometimes cause the bounds to change.
+            mNotifyBoundingBoxListenerOnNextDraw.set(true);
+          }
+        }
       }
       super.onAdLoaded();
     }
 
     @Override
     public void onAdOpened() {
-      mCurrentPresentationState = ConstantsHelper.AD_VIEW_PRESENTATION_STATE_COVERING_UI;
-      notifyStateChanged(
-          mBannerViewInternalPtr, ConstantsHelper.AD_VIEW_CHANGED_PRESENTATION_STATE);
-      mNotifyListenerOnNextDraw.set(true);
+      synchronized (mBannerViewLock) {
+        if (mAdView != null) {
+          notifyAdOpened(mBannerViewInternalPtr);
+          mNotifyBoundingBoxListenerOnNextDraw.set(true);
+        }
+      }
       super.onAdOpened();
+    }
+
+    public void onPaidEvent(AdValue value) {
+      synchronized (mBannerViewLock) {
+        if (mAdView != null) {
+          notifyPaidEvent(mBannerViewInternalPtr, value.getCurrencyCode(),
+              value.getPrecisionType(), value.getValueMicros());
+        }
+      }
     }
   }
 
@@ -601,8 +574,10 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
    */
   @Override
   public boolean onPreDraw() {
-    if (mNotifyListenerOnNextDraw.compareAndSet(true, false)) {
-      notifyStateChanged(mBannerViewInternalPtr, ConstantsHelper.AD_VIEW_CHANGED_BOUNDING_BOX);
+    if (mNotifyBoundingBoxListenerOnNextDraw.compareAndSet(true, false)) {
+      if (mAdView != null) {
+        notifyBoundingBoxChanged(mBannerViewInternalPtr);
+      }
     }
 
     // Returning true tells Android to continue the draw as normal.
@@ -635,9 +610,34 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   public static native void completeBannerViewLoadAdInternalError(
       long nativeInternalPtr, int admobErrorCode, String errorMessage);
 
+  /**
+   * Native callback to notify the C++ wrapper that the Ad's Bounding Box has changed.
+   */
+  public static native void notifyBoundingBoxChanged(long nativeInternalPtr);
 
   /**
-   * Native callback to notify the C++ wrapper that a state change has occurred.
+   * Native callback to notify the C++ wrapper of an ad clicked event
    */
-  public static native void notifyStateChanged(long nativeInternalPtr, int changeCode);
+  public static native void notifyAdClicked(long nativeInternalPtr);
+
+  /**
+   * Native callback to notify the C++ wrapper of an ad closed event
+   */
+  public static native void notifyAdClosed(long nativeInternalPtr);
+
+  /**
+   * Native callback to notify the C++ wrapper of an ad impression event
+   */
+  public static native void notifyAdImpression(long nativeInternalPtr);
+
+  /**
+   * Native callback to notify the C++ wrapper of an ad opened event
+   */
+  public static native void notifyAdOpened(long nativeInternalPtr);
+
+  /**
+   * Native callback to notify the C++ wrapper that a paid event has occurred.
+   */
+  public static native void notifyPaidEvent(long nativeInternalPtr, String currencyCode,
+                                            int precisionType, long valueMicros);
 }

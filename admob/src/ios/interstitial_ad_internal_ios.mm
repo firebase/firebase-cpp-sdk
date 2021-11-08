@@ -27,11 +27,11 @@ namespace internal {
 
 InterstitialAdInternalIOS::InterstitialAdInternalIOS(InterstitialAd* base)
     : InterstitialAdInternal(base), initialized_(false),
-    presentation_state_(InterstitialAd::kPresentationStateHidden),
     ad_load_callback_data_(nil), interstitial_(nil),
     parent_view_(nil), interstitial_delegate_(nil) {}
 
 InterstitialAdInternalIOS::~InterstitialAdInternalIOS() {
+  firebase::MutexLock lock(mutex_);
   // Clean up any resources created in InterstitialAdInternalIOS.
   Mutex mutex(Mutex::kModeNonRecursive);
   __block Mutex *mutex_in_block = &mutex;
@@ -52,6 +52,7 @@ InterstitialAdInternalIOS::~InterstitialAdInternalIOS() {
 }
 
 Future<void> InterstitialAdInternalIOS::Initialize(AdParent parent) {
+  firebase::MutexLock lock(mutex_);
   const SafeFutureHandle<void> future_handle =
     future_data_.future_impl.SafeAlloc<void>(kInterstitialAdFnInitialize);
 
@@ -68,6 +69,7 @@ Future<void> InterstitialAdInternalIOS::Initialize(AdParent parent) {
 
 Future<LoadAdResult> InterstitialAdInternalIOS::LoadAd(
     const char* ad_unit_id, const AdRequest& request) {
+  firebase::MutexLock lock(mutex_);
   FutureCallbackData<LoadAdResult>* callback_data =
       CreateLoadAdResultFutureCallbackData(kInterstitialAdFnLoadAd,
           &future_data_);
@@ -119,6 +121,7 @@ Future<LoadAdResult> InterstitialAdInternalIOS::LoadAd(
 }
 
 Future<void> InterstitialAdInternalIOS::Show() {
+  firebase::MutexLock lock(mutex_);
   const firebase::SafeFutureHandle<void> handle =
     future_data_.future_impl.SafeAlloc<void>(kInterstitialAdFnShow);
   dispatch_async(dispatch_get_main_queue(), ^{
@@ -138,13 +141,14 @@ Future<void> InterstitialAdInternalIOS::Show() {
   return MakeFuture(&future_data_.future_impl, handle);
 }
 
-InterstitialAd::PresentationState InterstitialAdInternalIOS::GetPresentationState() const {
-  return presentation_state_;
-}
-
 void InterstitialAdInternalIOS::InterstitialDidReceiveAd(GADInterstitialAd* ad) {
-  ad.fullScreenContentDelegate = interstitial_delegate_;
+  firebase::MutexLock lock(mutex_);
   interstitial_ = ad;
+  ad.fullScreenContentDelegate = interstitial_delegate_;
+  ad.paidEventHandler = ^void(GADAdValue *_Nonnull adValue) {
+    NotifyListenerOfPaidEvent(
+      firebase::admob::ConvertGADAdValueToCppAdValue(adValue));
+  };
 
   if (ad_load_callback_data_ != nil) {
     CompleteLoadAdInternalResult(ad_load_callback_data_, kAdMobErrorNone,
@@ -154,21 +158,12 @@ void InterstitialAdInternalIOS::InterstitialDidReceiveAd(GADInterstitialAd* ad) 
 }
 
 void InterstitialAdInternalIOS::InterstitialDidFailToReceiveAdWithError(NSError *gad_error) {
+  firebase::MutexLock lock(mutex_);
   FIREBASE_ASSERT(gad_error);
   if (ad_load_callback_data_ != nil) {
     CompleteLoadAdIOSResult(ad_load_callback_data_, gad_error);
     ad_load_callback_data_ = nil;
   }
-}
-
-void InterstitialAdInternalIOS::InterstitialWillPresentScreen() {
-  presentation_state_ = InterstitialAd::kPresentationStateCoveringUI;
-  NotifyListenerOfPresentationStateChange(presentation_state_);
-}
-
-void InterstitialAdInternalIOS::InterstitialDidDismissScreen() {
-  presentation_state_ = InterstitialAd::kPresentationStateHidden;
-  NotifyListenerOfPresentationStateChange(presentation_state_);
 }
 
 }  // namespace internal

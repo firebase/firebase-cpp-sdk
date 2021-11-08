@@ -163,17 +163,6 @@ void Terminate() {
 
 const ::firebase::App* GetApp() { return g_app; }
 
-void AdmobInternal::CompleteLoadAdFuture(
-    FutureCallbackData<LoadAdResult>* callback_data, int error_code,
-    const std::string& error_message,
-    const AdResultInternal& ad_result_internal) {
-  callback_data->future_data->future_impl.CompleteWithResult(
-      callback_data->future_handle, static_cast<int>(error_code),
-      error_message.c_str(), LoadAdResult(ad_result_internal));
-  // This method is responsible for disposing of the callback data struct.
-  delete callback_data;
-}
-
 // Constructs AdResult objects based on the encountered result, beit a
 // successful result, and C++ SDK Wrapper error, or an error returned from
 // the iOS Admob SDK.
@@ -208,7 +197,7 @@ void CompleteLoadAdResult(FutureCallbackData<LoadAdResult>* callback_data,
     future_error_message = ad_result_internal.message;
   }
 
-  AdmobInternal::CompleteLoadAdFuture(
+  AdMobInternal::CompleteLoadAdFuture(
       callback_data, ad_result_internal.code, future_error_message, ad_result_internal);
 }
 
@@ -225,9 +214,34 @@ void CompleteLoadAdIOSResult(FutureCallbackData<LoadAdResult>* callback_data,
                              NSError *gad_error) {
   FIREBASE_ASSERT(callback_data);
 
-  AdMobError error_code = MapADErrorCodeToCPPErrorCode(gad_error.code);
+  AdMobError error_code = MapADErrorCodeToCPPErrorCode((GADErrorCode)gad_error.code);
   CompleteLoadAdResult(callback_data, gad_error, error_code,
     util::NSStringToString(gad_error.localizedDescription).c_str());
+}
+
+AdValue ConvertGADAdValueToCppAdValue(GADAdValue* gad_value) {
+  FIREBASE_ASSERT(gad_value);
+
+  AdValue::PrecisionType precision_type;
+  switch(gad_value.precision) {
+    default:
+    case GADAdValuePrecisionUnknown:
+      precision_type = AdValue::kdValuePrecisionUnknown;
+      break;
+    case GADAdValuePrecisionEstimated:
+      precision_type = AdValue::kAdValuePrecisionEstimated;
+      break;
+    case GADAdValuePrecisionPublisherProvided:
+      precision_type = AdValue::kAdValuePrecisionPublisherProvided;
+      break;
+    case GADAdValuePrecisionPrecise:
+      precision_type = AdValue::kAdValuePrecisionPrecise;
+      break;
+  }
+
+  return AdValue(util::NSStringToString(gad_value.currencyCode).c_str(),
+    precision_type, (int64_t)gad_value.value.longLongValue);
+
 }
 
 }  // namespace admob

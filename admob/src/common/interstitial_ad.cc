@@ -48,12 +48,8 @@ InterstitialAd::~InterstitialAd() {
 // Initialize must be called before any other methods in the namespace. This
 // method asserts that Initialize() has been invoked and allowed to complete.
 static bool CheckIsInitialized(internal::InterstitialAdInternal* internal) {
-  bool initialized =
-      internal != nullptr &&
-      internal->GetLastResult(internal::kInterstitialAdFnInitialize).status() ==
-          kFutureStatusComplete;
-  FIREBASE_ASSERT_MESSAGE_RETURN(false, initialized, kUninitializedError);
-  return true;
+  FIREBASE_ASSERT(internal);
+  return internal->is_initialized();
 }
 
 Future<void> InterstitialAd::Initialize(AdParent parent) {
@@ -66,33 +62,53 @@ Future<void> InterstitialAd::InitializeLastResult() const {
 
 Future<LoadAdResult> InterstitialAd::LoadAd(const char* ad_unit_id,
                                             const AdRequest& request) {
-  if (!CheckIsInitialized(internal_)) return Future<LoadAdResult>();
+  if (!CheckIsInitialized(internal_)) {
+    return CreateAndCompleteFutureWithResult(
+        firebase::admob::internal::kInterstitialAdFnLoadAd,
+        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        &internal_->future_data_, LoadAdResult());
+  }
+
   return internal_->LoadAd(ad_unit_id, request);
 }
 
 Future<LoadAdResult> InterstitialAd::LoadAdLastResult() const {
-  if (!CheckIsInitialized(internal_)) return Future<LoadAdResult>();
+  if (!CheckIsInitialized(internal_)) {
+    return CreateAndCompleteFutureWithResult(
+        firebase::admob::internal::kInterstitialAdFnLoadAd,
+        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        &internal_->future_data_, LoadAdResult());
+  }
   return internal_->GetLoadAdLastResult();
 }
 
 Future<void> InterstitialAd::Show() {
-  if (!CheckIsInitialized(internal_)) return Future<void>();
+  if (!CheckIsInitialized(internal_)) {
+    return CreateAndCompleteFuture(
+        firebase::admob::internal::kInterstitialAdFnShow,
+        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        &internal_->future_data_);
+  }
   return internal_->Show();
 }
 
 Future<void> InterstitialAd::ShowLastResult() const {
-  if (!CheckIsInitialized(internal_)) return Future<void>();
+  if (!CheckIsInitialized(internal_)) {
+    return CreateAndCompleteFuture(
+        firebase::admob::internal::kInterstitialAdFnShow,
+        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        &internal_->future_data_);
+  }
   return internal_->GetLastResult(internal::kInterstitialAdFnShow);
 }
 
-InterstitialAd::PresentationState InterstitialAd::presentation_state() const {
-  if (!CheckIsInitialized(internal_)) return kPresentationStateHidden;
-  return internal_->GetPresentationState();
+void InterstitialAd::SetFullScreenContentListener(
+    FullScreenContentListener* listener) {
+  internal_->SetFullScreenContentListener(listener);
 }
 
-void InterstitialAd::SetListener(Listener* listener) {
-  if (!CheckIsInitialized(internal_)) return;
-  internal_->SetListener(listener);
+void InterstitialAd::SetPaidEventListener(PaidEventListener* listener) {
+  internal_->SetPaidEventListener(listener);
 }
 
 }  // namespace admob

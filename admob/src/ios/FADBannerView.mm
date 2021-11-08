@@ -51,6 +51,8 @@ namespace admob = firebase::admob;
 
 @implementation FADBannerView
 
+firebase::admob::BannerView::Position _position;
+
 #pragma mark - Initialization
 
 - (instancetype)initWithView:(UIView *)view
@@ -65,7 +67,6 @@ namespace admob = firebase::admob;
     _adUnitID = [adUnitID copy];
     _adSize = gadsize;
     _cppBannerView = cppBannerView;
-    _presentationState = admob::BannerView::kPresentationStateHidden;
     [self setUpBannerView];
   }
   return self;
@@ -76,6 +77,15 @@ namespace admob = firebase::admob;
   _bannerView = [[GADBannerView alloc] initWithAdSize:_adSize];
   _bannerView.adUnitID = _adUnitID;
   _bannerView.delegate = self;
+  __unsafe_unretained typeof(self) weakSelf = self;
+  _bannerView.paidEventHandler = ^void(GADAdValue *_Nonnull adValue) {
+    // Establish the strong self reference
+    __strong typeof(self) strongSelf = weakSelf;
+    if (strongSelf) {
+      strongSelf->_cppBannerView->NotifyListenerOfPaidEvent(
+          firebase::admob::ConvertGADAdValueToCppAdValue(adValue));
+    }
+  };
 
   // The FADBannerView is hidden until the publisher calls Show().
   self.hidden = YES;
@@ -122,6 +132,7 @@ namespace admob = firebase::admob;
   box.height = standardizedRect.size.height * scale;
   box.x = standardizedRect.origin.x * scale;
   box.y = standardizedRect.origin.y * scale;
+  box.position = _position;
   return box;
 }
 
@@ -134,33 +145,30 @@ namespace admob = firebase::admob;
 
 - (void)hide {
   self.hidden = YES;
-  _presentationState = admob::BannerView::kPresentationStateHidden;
 }
 
 - (void)show {
   self.hidden = NO;
-  if (_adLoaded) {
-    _presentationState = admob::BannerView::kPresentationStateVisibleWithAd;
-  } else {
-    _presentationState = admob::BannerView::kPresentationStateVisibleWithoutAd;
-  }
+  admob::BoundingBox bounding_box = self.boundingBox;
+  _cppBannerView->set_bounding_box(bounding_box);
+  _cppBannerView->NotifyListenerOfBoundingBoxChange(bounding_box);
 }
 
 - (void)destroy {
   [_bannerView removeFromSuperview];
   _bannerView.delegate = nil;
   _bannerView = nil;
-  _presentationState = admob::BannerView::kPresentationStateHidden;
 }
 
 - (void)moveBannerViewToXCoordinate:(int)x yCoordinate:(int)y {
   // The moveBannerViewToXCoordinate:yCoordinate: method gets the x-coordinate and y-coordinate in
   // pixels. Need to convert the pixels to points before updating the banner view's layout
   // constraints.
+  _position = firebase::admob::AdView::kPositionUndefined;
   CGFloat scale = [UIScreen mainScreen].scale;
   CGFloat xPoints = x / scale;
   CGFloat yPoints = y / scale;
-  [self updateBannerViewLayoutConstraintsWithPosition:(admob::BannerView::kPositionTopLeft)
+  [self updateBannerViewLayoutConstraintsWithPosition:(_position)
                                           xCoordinate:xPoints
                                           yCoordinate:yPoints];
 }
@@ -180,6 +188,7 @@ namespace admob = firebase::admob;
   NSLayoutAttribute verticalLayoutAttribute = NSLayoutAttributeNotAnAttribute;
   NSLayoutAttribute horizontalLayoutAttribute = NSLayoutAttributeNotAnAttribute;
 
+  _position = position;
   switch (position) {
     case admob::BannerView::kPositionTop:
       verticalLayoutAttribute = NSLayoutAttributeTop;
@@ -189,6 +198,7 @@ namespace admob = firebase::admob;
       verticalLayoutAttribute = NSLayoutAttributeBottom;
       horizontalLayoutAttribute = NSLayoutAttributeCenterX;
       break;
+    case admob::BannerView::kPositionUndefined:
     case admob::BannerView::kPositionTopLeft:
       verticalLayoutAttribute = NSLayoutAttributeTop;
       horizontalLayoutAttribute = NSLayoutAttributeLeft;
@@ -240,12 +250,10 @@ namespace admob = firebase::admob;
   [self setNeedsLayout];
 }
 
-/// Updates the presentation state of the banner view. This method gets called when the observer is
-/// notified that the application is active again (i.e. when the user returns to the application
-/// from Safari or the App Store).
+/// This method gets called when the observer is notified that the application
+/// is active again (i.e. when the user returns to the application from Safari
+/// or the App Store).
 - (void)applicationDidBecomeActive:(NSNotification *)notification {
-  _presentationState = admob::BannerView::kPresentationStateVisibleWithAd;
-  _cppBannerView->NotifyListenerOfPresentationStateChange(_presentationState);
   // Remove the observer that was registered in the adViewWillLeaveApplication: callback.
   [[NSNotificationCenter defaultCenter] removeObserver:self
                                                   name:UIApplicationDidBecomeActiveNotification
@@ -256,44 +264,45 @@ namespace admob = firebase::admob;
 
 - (void)layoutSubviews {
   [super layoutSubviews];
-  _cppBannerView->NotifyListenerOfBoundingBoxChange(self.boundingBox);
+  admob::BoundingBox bounding_box = self.boundingBox;
+  _cppBannerView->set_bounding_box(bounding_box);
+  _cppBannerView->NotifyListenerOfBoundingBoxChange(bounding_box);
 }
 
 #pragma mark - GADBannerViewDelegate
 
-- (void)bannerViewDidReceiveAd:(GADBannerView *)bannerView {
+- (void)bannerViewDidReceiveAd:(nonnull GADBannerView *)bannerView {
   _adLoaded = YES;
   _cppBannerView->BannerViewDidReceiveAd();
-  // Only update the presentation state if the FADBannerView is already visible.
-  if (!self.hidden) {
-    _presentationState = admob::BannerView::kPresentationStateVisibleWithAd;
-    _cppBannerView->NotifyListenerOfPresentationStateChange(_presentationState);
-    // Loading an ad can sometimes cause the bounds to change.
-    _cppBannerView->NotifyListenerOfBoundingBoxChange(self.boundingBox);
-  }
+  admob::BoundingBox bounding_box = self.boundingBox;
 }
-
-- (void)bannerView:(GADBannerView *)bannerView didFailToReceiveAdWithError:(NSError *)error {
+- (void)bannerView:(nonnull GADBannerView *)bannerView didFailToReceiveAdWithError:(nonnull NSError *)error {
   _cppBannerView->BannerViewDidFailToReceiveAdWithError(error);
 }
 
-- (void)bannerViewDidRecordImpression:(GADBannerView *)bannerView {
-  // TODO(b/202001231)
+- (void)bannerViewDidRecordClick:(nonnull GADBannerView *)bannerView {
+   _cppBannerView->NotifyListenerAdClicked();
 }
 
-- (void)bannerViewWillPresentScreen:(GADBannerView *)bannerView {
-  _presentationState = admob::BannerView::kPresentationStateCoveringUI;
-  _cppBannerView->NotifyListenerOfPresentationStateChange(_presentationState);
-  _cppBannerView->NotifyListenerOfBoundingBoxChange(self.boundingBox);
+- (void)bannerViewDidRecordImpression:(nonnull GADBannerView *)bannerView {
+  _cppBannerView->NotifyListenerAdImpression();
 }
 
-- (void)bannerViewWillDismissScreen:(GADBannerView *)bannerView {
-  // TODO(b/202001231)
+// Note that the following callbacks are only called on in-app overlay events. 
+// See https://www.googblogs.com/google-mobile-ads-sdk-a-note-on-ad-click-events/
+// and https://groups.google.com/g/google-admob-ads-sdk/c/lzdt5szxSVU
+- (void)bannerViewWillPresentScreen:(nonnull GADBannerView *)bannerView {
+  admob::BoundingBox bounding_box = self.boundingBox;
+  _cppBannerView->set_bounding_box(bounding_box);
+  _cppBannerView->NotifyListenerOfBoundingBoxChange(bounding_box);
+  _cppBannerView->NotifyListenerAdOpened();
 }
 
-- (void)bannerViewDidDismissScreen:(GADBannerView *)bannerView {
-  _presentationState = admob::BannerView::kPresentationStateVisibleWithAd;
-  _cppBannerView->NotifyListenerOfPresentationStateChange(_presentationState);
-  _cppBannerView->NotifyListenerOfBoundingBoxChange(self.boundingBox);
+- (void)bannerViewDidDismissScreen:(nonnull GADBannerView *)bannerView {
+  admob::BoundingBox bounding_box = self.boundingBox;
+  _cppBannerView->set_bounding_box(bounding_box);
+  _cppBannerView->NotifyListenerOfBoundingBoxChange(bounding_box);
+  _cppBannerView->NotifyListenerAdClosed();
 }
+
 @end

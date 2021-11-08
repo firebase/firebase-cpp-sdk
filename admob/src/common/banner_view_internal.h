@@ -36,7 +36,7 @@ enum BannerViewFn {
   kBannerViewFnResume,
   kBannerViewFnDestroy,
   kBannerViewFnDestroyOnDelete,
-  kBannerViewFnMoveTo,
+  kBannerViewFnSetPosition,
   kBannerViewFnCount
 };
 
@@ -47,7 +47,7 @@ class BannerViewInternal {
   static BannerViewInternal* CreateInstance(BannerView* base);
 
   // Virtual destructor is required.
-  virtual ~BannerViewInternal() = default;
+  virtual ~BannerViewInternal();
 
   // Initializes this object and any platform-specific helpers that it uses.
   virtual Future<void> Initialize(AdParent parent, const char* ad_unit_id,
@@ -55,6 +55,29 @@ class BannerViewInternal {
 
   // Initiates an ad request.
   virtual Future<LoadAdResult> LoadAd(const AdRequest& request) = 0;
+
+  // Retrieves the @ref AdView's current onscreen size and location.
+  virtual BoundingBox bounding_box() const = 0;
+
+  // Sets an AdListener for this ad view.
+  virtual void SetAdListener(AdListener* listener);
+
+  // Sets a listener to be invoked when the Ad's bounding box
+  // changes size or location.
+  virtual void SetBoundingBoxListener(AdViewBoundingBoxListener* listener);
+
+  // Sets a listener to be invoked when this ad is estimated to have earned
+  // money.
+  virtual void SetPaidEventListener(PaidEventListener* listener);
+
+  /// Moves the @ref AdView so that its top-left corner is located at
+  /// (x, y). Coordinates are in pixels from the top-left corner of the screen.
+  ///
+  virtual Future<void> SetPosition(int x, int y) = 0;
+
+  /// Moves the @ref AdView so that it's located at the given predefined
+  /// position.
+  virtual Future<void> SetPosition(AdView::Position position) = 0;
 
   // Hides the banner view.
   virtual Future<void> Hide() = 0;
@@ -71,31 +94,19 @@ class BannerViewInternal {
   // Cleans up any resources used by this object in preparation for a delete.
   virtual Future<void> Destroy() = 0;
 
-  // Moves the banner view so that its top-left corner is located at (x, y).
-  virtual Future<void> MoveTo(int x, int y) = 0;
-
-  // Moves the banner view so that it's located at the given pre-defined
-  // position.
-  virtual Future<void> MoveTo(BannerView::Position position) = 0;
-
-  // Returns the current presentation state of the banner view.
-  virtual BannerView::PresentationState GetPresentationState() const = 0;
-
-  // Retrieves the banner view's current on-screen size and location.
-  virtual BoundingBox GetBoundingBox() const = 0;
-
-  // Sets the listener that should be informed of presentation state and
-  // bounding box changes.
-  void SetListener(BannerView::Listener* listener);
-
-  // Notifies the listener (if one exists) that the presentation state has
-  // changed.
-  void NotifyListenerOfPresentationStateChange(
-      BannerView::PresentationState state);
-
-  // Notifies the listener (if one exists) that the banner view's bounding box
-  // has changed.
+  // Notifies the Bounding Box listener (if one exists) that the banner view's
+  // bounding box has changed.
   void NotifyListenerOfBoundingBoxChange(BoundingBox box);
+
+  // Notifies the Ad listener (if one exists) that an event has occurred.
+  void NotifyListenerAdClicked();
+  void NotifyListenerAdClosed();
+  void NotifyListenerAdImpression();
+  void NotifyListenerAdOpened();
+
+  // Notifies the Paid Event listener (if one exists) that a paid event has
+  // occurred.
+  void NotifyListenerOfPaidEvent(const AdValue& ad_value);
 
   // Retrieves the most recent Future for a given function.
   Future<void> GetLastResult(BannerViewFn fn);
@@ -103,7 +114,12 @@ class BannerViewInternal {
   // Retrieves the most recent LoadAdResult future for the LoadAd function.
   Future<LoadAdResult> GetLoadAdLastResult();
 
+  // Returns if the BannerAd has been initialized.
+  virtual bool is_initialized() const = 0;
+
  protected:
+  friend class firebase::admob::BannerView;
+
   // Used by CreateInstance() to create an appropriate one for the current
   // platform.
   explicit BannerViewInternal(BannerView* base);
@@ -114,8 +130,9 @@ class BannerViewInternal {
   // Future data used to synchronize asynchronous calls.
   FutureData future_data_;
 
-  // Reference to the listener to which this object sends callbacks.
-  BannerView::Listener* listener_;
+  AdListener* ad_listener_;
+  AdViewBoundingBoxListener* bounding_box_listener_;
+  PaidEventListener* paid_event_listener_;
 
   // Lock object for accessing listener_.
   Mutex listener_mutex_;

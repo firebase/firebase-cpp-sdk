@@ -100,44 +100,41 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
   return gadRequest;
 }
 
-AdMobError MapADErrorCodeToCPPErrorCode(const int error_code) {
+AdMobError MapADErrorCodeToCPPErrorCode(GADErrorCode error_code) {
   // iOS error code sourced from
   // https://developers.google.com/admob/ios/api/reference/Enums/GADErrorCode
   switch(error_code)
   {
-    case kGADErrorInvalidRequest:               // 0
+    case GADErrorInvalidRequest:               // 0
       return kAdMobErrorInvalidRequest;
-    case kGADErrorNoFill:                       // 1
+    case GADErrorNoFill:                       // 1
       return kAdMobErrorNoFill;
-    case kGADErrorNetworkError:                 // 2
+    case GADErrorNetworkError:                 // 2
       return kAdMobErrorNetworkError;
-    case kGADErrorServerError:                  // 3
+    case GADErrorServerError:                  // 3
       return kAdMobErrorServerError;
-    case kGADErrorOSVersionTooLow:              // 4
+    case GADErrorOSVersionTooLow:              // 4
       return kAdMobErrorOSVersionTooLow;
-    case kGADErrorTimeout:                      // 5
+    case GADErrorTimeout:                      // 5
       return kAdMobErrorTimeout;
-    case kGADErrorInterstitialAlreadyUsed:      // 6
-      return kAdMobErrorInterstitialAlreadyUsed;
-    case kGADErrorMediationDataError:           // 7
+    // no error 6.
+    case GADErrorMediationDataError:           // 7
       return kAdMobErrorMediationDataError;
-    case kGADErrorMediationAdapterError:        // 8
+    case GADErrorMediationAdapterError:        // 8
       return kAdMobErrorMediationAdapterError;
-    case kGADErrorMediationNoFill:              // 9
+    case GADErrorMediationNoFill:              // 9
       return kAdMobErrorMediationNoFill;
-    case kGADErrorMediationInvalidAdSize:       // 10
+    case GADErrorMediationInvalidAdSize:       // 10
       return kAdMobErrorMediationInvalidAdSize;
-    case kGADErrorInternalError:                // 11
+    case GADErrorInternalError:                // 11
       return kAdMobErrorInternalError;
-    case kGADErrorInvalidArgument:              // 12
+    case GADErrorInvalidArgument:              // 12
       return kAdMobErrorInvalidArgument;
-    case kGADErrorReceivedInvalidResponse:      // 13
+    case GADErrorReceivedInvalidResponse:      // 13
       return kAdMobErrorReceivedInvalidResponse;
-    case kGADErrorRewardedAdAlreadyUsed:        // 14
-      return kAdMobErrorRewardedAdAlreadyUsed;
-    case kGADErrorAdAlreadyUsed:                // 19 (no error #s 15-18)
+    case GADErrorAdAlreadyUsed:                // 19 (no error #s 14-18)
       return kAdMobErrorAdAlreadyUsed;
-    case kGADErrorApplicationIdentifierMissing: // 20
+    case GADErrorApplicationIdentifierMissing: // 20
       return kAdMobErrorApplicationIdentifierMissing;
     default:
       return kAdMobErrorUnknown;

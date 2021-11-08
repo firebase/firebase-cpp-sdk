@@ -44,7 +44,7 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
 
 // Converts the iOS error codes to the CPP platform independent error codes
 // defined in AdMobError.
-AdMobError MapADErrorCodeToCPPErrorCode(const int error_code);
+AdMobError MapADErrorCodeToCPPErrorCode(GADErrorCode error_code);
 
 }  // namespace admob
 }  // namespace firebase

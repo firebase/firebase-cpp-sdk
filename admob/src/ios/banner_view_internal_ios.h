@@ -26,6 +26,7 @@ extern "C" {
 #endif  // __OBJC__
 
 #include "admob/src/common/banner_view_internal.h"
+#include "app/src/mutex.h"
 
 namespace firebase {
 namespace admob {
@@ -39,16 +40,18 @@ class BannerViewInternalIOS : public BannerViewInternal {
   Future<void> Initialize(AdParent parent, const char* ad_unit_id,
                           const AdSize& size) override;
   Future<LoadAdResult> LoadAd(const AdRequest& request) override;
+  BoundingBox bounding_box() const override;
+  Future<void> SetPosition(int x, int y) override;
+  Future<void> SetPosition(BannerView::Position position) override;
   Future<void> Hide() override;
   Future<void> Show() override;
   Future<void> Pause() override;
   Future<void> Resume() override;
   Future<void> Destroy() override;
-  Future<void> MoveTo(int x, int y) override;
-  Future<void> MoveTo(BannerView::Position position) override;
-
-  BannerView::PresentationState GetPresentationState() const override;
-  BoundingBox GetBoundingBox() const override;
+  bool is_initialized() const override { return initialized_; }
+  void set_bounding_box(const BoundingBox& bounding_box) {
+    bounding_box_ = bounding_box;
+  }
 
 #ifdef __OBJC__
   void BannerViewDidReceiveAd();
@@ -66,9 +69,16 @@ class BannerViewInternalIOS : public BannerViewInternal {
   /// Objective-C++ class in this header.
   id banner_view_;
 
+  // Mutex to guard against concurrent operations;
+  Mutex mutex_;
+
   /// A mutex used to handle the destroy behavior, as it is asynchronous,
   /// and needs to be waited on in the destructor.
   Mutex destroy_mutex_;
+
+  /// A cached bounding box from the last update, accessible for processes
+  /// running on non-UI threads.
+  BoundingBox bounding_box_;
 };
 
 }  // namespace internal

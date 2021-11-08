@@ -36,7 +36,10 @@ namespace admob {
 namespace internal {
 
 InterstitialAdInternal::InterstitialAdInternal(InterstitialAd* base)
-    : base_(base), future_data_(kInterstitialAdFnCount), listener_(nullptr) {}
+    : base_(base),
+      future_data_(kInterstitialAdFnCount),
+      full_screen_content_listener_(nullptr),
+      paid_event_listener_(nullptr) {}
 
 InterstitialAdInternal* InterstitialAdInternal::CreateInstance(
     InterstitialAd* base) {
@@ -50,16 +53,58 @@ InterstitialAdInternal* InterstitialAdInternal::CreateInstance(
         // FIREBASE_PLATFORM_TVOS
 }
 
-void InterstitialAdInternal::SetListener(InterstitialAd::Listener* listener) {
+void InterstitialAdInternal::SetFullScreenContentListener(
+    FullScreenContentListener* listener) {
   MutexLock lock(listener_mutex_);
-  listener_ = listener;
+  full_screen_content_listener_ = listener;
 }
 
-void InterstitialAdInternal::NotifyListenerOfPresentationStateChange(
-    InterstitialAd::PresentationState state) {
+void InterstitialAdInternal::SetPaidEventListener(PaidEventListener* listener) {
   MutexLock lock(listener_mutex_);
-  if (listener_ != nullptr) {
-    listener_->OnPresentationStateChanged(base_, state);
+  paid_event_listener_ = listener;
+}
+
+void InterstitialAdInternal::NotifyListenerOfAdClickedFullScreenContent() {
+  MutexLock lock(listener_mutex_);
+  if (full_screen_content_listener_ != nullptr) {
+    full_screen_content_listener_->OnAdClicked();
+  }
+}
+
+void InterstitialAdInternal::NotifyListenerOfAdDismissedFullScreenContent() {
+  MutexLock lock(listener_mutex_);
+  if (full_screen_content_listener_ != nullptr) {
+    full_screen_content_listener_->OnAdDismissedFullScreenContent();
+  }
+}
+
+void InterstitialAdInternal::NotifyListenerOfAdFailedToShowFullScreenContent(
+    const AdResult& ad_result) {
+  MutexLock lock(listener_mutex_);
+  if (full_screen_content_listener_ != nullptr) {
+    full_screen_content_listener_->OnAdFailedToShowFullScreenContent(ad_result);
+  }
+}
+
+void InterstitialAdInternal::NotifyListenerOfAdImpression() {
+  MutexLock lock(listener_mutex_);
+  if (full_screen_content_listener_ != nullptr) {
+    full_screen_content_listener_->OnAdImpression();
+  }
+}
+
+void InterstitialAdInternal::NotifyListenerOfAdShowedFullScreenContent() {
+  MutexLock lock(listener_mutex_);
+  if (full_screen_content_listener_ != nullptr) {
+    full_screen_content_listener_->OnAdShowedFullScreenContent();
+  }
+}
+
+void InterstitialAdInternal::NotifyListenerOfPaidEvent(
+    const AdValue& ad_value) {
+  MutexLock lock(listener_mutex_);
+  if (paid_event_listener_ != nullptr) {
+    paid_event_listener_->OnPaidEvent(ad_value);
   }
 }
 
