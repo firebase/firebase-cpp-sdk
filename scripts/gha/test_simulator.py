@@ -59,12 +59,12 @@ available tools with the following commands:
 Device Information is stored in TEST_DEVICES in print_matrix_configuration.py
 Example:
 sdk id "system-images;android-29;google_apis;x86":
-  --android_sdk "system-images;android-29;google_apis;x86" --build_tools_version "28.0.3"
+  --android_sdk "system-images;android-29;google_apis;x86" --build_tools_version "29.0.2"
 
 Alternatively, to set an Android device, use the one of the values below:
 [emulator_min, emulator_target, emulator_latest]
 Example:
-  --android_device "emulator_target" --build_tools_version "28.0.3"
+  --android_device "emulator_target" --build_tools_version "29.0.2"
 
 Returns:
    1: No iOS/Android integration_test apps found
@@ -92,6 +92,14 @@ from print_matrix_configuration import TEST_DEVICES
 _GAMELOOP_PACKAGE = "com.google.firebase.gameloop"
 _RESULT_FILE = "Results1.json"
 _TEST_RETRY = 3
+_CMD_TIMEOUT = 300
+
+_DEVICE_NONE = "None"
+_DEVICE_ANDROID = "Android"
+_DEVICE_APPLE = "Apple"
+
+_RESET_TYPE_REBOOT = 1
+_RESET_TYPE_WIPE_REBOOT = 2
 
 FLAGS = flags.FLAGS
 
@@ -129,7 +137,7 @@ flags.DEFINE_string(
     "android_sdk", "system-images;android-29;google_apis;x86",
     "See module docstring for details on how to set and get this id.")
 flags.DEFINE_string(
-    "build_tools_version", "28.0.3",
+    "build_tools_version", "29.0.2",
     "android build_tools_version")
 flags.DEFINE_string(
     "logfile_name", "simulator-test",
@@ -518,19 +526,19 @@ def _setup_android(platform_version, build_tool_version, sdk_id):
     "platforms;%s" % platform_version, 
     "build-tools;%s" % build_tool_version]
   logging.info("Install packages: %s", " ".join(args))
-  subprocess.run(args=args, check=True)
+  _run_with_retry(args)
 
   command = "yes | sdkmanager --licenses"
   logging.info("Accept all licenses: %s", command)
-  subprocess.run(command, shell=True, check=False)
+  _run_with_retry(command, shell=True, check=False)
 
   args = ["sdkmanager", sdk_id]
   logging.info("Download an emulator: %s", " ".join(args))
-  subprocess.run(args=args, check=True)
+  _run_with_retry(args)
 
   args = ["sdkmanager", "--update"]
   logging.info("Update all installed packages: %s", " ".join(args))
-  subprocess.run(args=args, check=True)
+  _run_with_retry(args, check=False)
 
 
 def _shutdown_emulator():
@@ -566,27 +574,44 @@ def _create_and_boot_emulator(sdk_id):
   logging.info("Wait for emulator to boot: %s", " ".join(args))
   subprocess.run(args=args, check=True)
   if FLAGS.ci: 
-    # wait extra 90 seconds to ensure emulator fully booted.
-    time.sleep(180)
+    # wait extra 210 seconds to ensure emulator fully booted.
+    time.sleep(210)
   else:
     time.sleep(45)
 
+def _run_with_retry(args, shell=False, check=True, timeout=_CMD_TIMEOUT, retry_time=_TEST_RETRY, device=_DEVICE_NONE, type=_RESET_TYPE_REBOOT):
+  if retry_time > 1:
+    try:
+      subprocess.run(args, shell=shell, check=check, timeout=timeout)
+    except:
+      if device == _DEVICE_ANDROID:
+        _reset_emulator_on_error(type)
+      _run_with_retry(args, shell, check, timeout, retry_time-1, device, type)
+  else:
+    subprocess.run(args, shell=shell, check=check, timeout=timeout)
 
-def _reset_emulator_on_error(instrumented_test_result):
-  logging.info("game-loop test result: %s", instrumented_test_result)
-  if "FAILURES!!!" in instrumented_test_result:
-    logging.info("game-loop test error!!! reboot emualtor...")
-    args = ["adb", "-e", "reboot"]
-    logging.info("Reboot android emulator: %s", " ".join(args))
+
+def _reset_emulator_on_error(type=_RESET_TYPE_REBOOT):
+  if type == _RESET_TYPE_WIPE_REBOOT:
+    # wipe emulator data
+    args = ["adb", "shell", "recovery", "--wipe_data"]
+    logging.info("Erase my Emulator: %s", " ".join(args))
     subprocess.run(args=args, check=True)
-    args = ["adb", "wait-for-device"]
-    logging.info("Wait for emulator to boot: %s", " ".join(args))
-    subprocess.run(args=args, check=True)
-    if FLAGS.ci: 
-      # wait extra 90 seconds to ensure emulator booted.
-      time.sleep(90)
-    else:
-      time.sleep(45)
+    _reset_emulator_on_error()
+
+  # reboot emulator: _RESET_TYPE_WIPE_REBOOT, _RESET_TYPE_REBOOT
+  logging.info("game-loop test error!!! reboot emualtor...")
+  args = ["adb", "-e", "reboot"]
+  logging.info("Reboot android emulator: %s", " ".join(args))
+  subprocess.run(args=args, check=True)
+  args = ["adb", "wait-for-device"]
+  logging.info("Wait for emulator to boot: %s", " ".join(args))
+  subprocess.run(args=args, check=True)
+  if FLAGS.ci: 
+    # wait extra 210 seconds to ensure emulator booted.
+    time.sleep(210)
+  else:
+    time.sleep(45)
 
 
 def _get_package_name(app_path):
@@ -616,26 +641,29 @@ def _install_android_app(app_path):
   """Install integration_test app into the emulator."""
   args = ["adb", "install", app_path]
   logging.info("Install testapp: %s", " ".join(args))
-  subprocess.run(args=args, check=False)
+  _run_with_retry(args, device=_DEVICE_ANDROID, type=_RESET_TYPE_WIPE_REBOOT)
 
 
 def _uninstall_android_app(package_name):
   """Uninstall integration_test app from the emulator."""
   args = ["adb", "uninstall", package_name]
   logging.info("Uninstall testapp: %s", " ".join(args))
-  subprocess.run(args=args, check=False)
+  _run_with_retry(args, device=_DEVICE_ANDROID, type=_RESET_TYPE_REBOOT)
 
 
 def _install_android_gameloop_app(gameloop_project):
   os.chdir(gameloop_project)
-  logging.info("CD to gameloop_project: %s", gameloop_project)
-  _uninstall_android_app("com.google.firebase.gameloop")
+  logging.info("cd to gameloop_project: %s", gameloop_project)
+  args = ["adb", "uninstall", "com.google.firebase.gameloop"]
+  _run_with_retry(args, check=False, device=_DEVICE_ANDROID, type=_RESET_TYPE_REBOOT)
+
   args = ["./gradlew", "clean"]
   logging.info("Clean game-loop cache: %s", " ".join(args))
-  subprocess.run(args=args, check=False)
+  _run_with_retry(args, check=False, device=_DEVICE_ANDROID, type=_RESET_TYPE_REBOOT)
+
   args = ["./gradlew", "installDebug", "installDebugAndroidTest"]
   logging.info("Installing game-loop app and test: %s", " ".join(args))
-  subprocess.run(args=args, check=True)
+  _run_with_retry(args, device=_DEVICE_ANDROID, type=_RESET_TYPE_REBOOT)
 
 
 def _run_instrumented_test():
@@ -646,7 +674,8 @@ def _run_instrumented_test():
     "-w", "%s.test/androidx.test.runner.AndroidJUnitRunner" % _GAMELOOP_PACKAGE] 
   logging.info("Running game-loop test: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=False) 
-  _reset_emulator_on_error(result.stdout)
+  if "FAILURES!!!" in result.stdout:
+    _reset_emulator_on_error(_RESET_TYPE_REBOOT)
 
 
 def _get_android_test_log(test_package):
