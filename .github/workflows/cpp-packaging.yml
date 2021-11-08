@@ -671,7 +671,7 @@ jobs:
     name: final-merge-packages
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
-    needs: [build_and_package_ios_tvos, build_and_package_android, package_desktop, log_inputs]
+    needs: [package_desktop, log_inputs]
     steps:
       - name: fetch SDK
         uses: actions/checkout@v2.3.1
