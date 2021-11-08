@@ -94,7 +94,10 @@ _RESULT_FILE = "Results1.json"
 _TEST_RETRY = 3
 _CMD_TIMEOUT = 300
 
-_RESET_TYPE_NONE = 0
+_DEVICE_NONE = "None"
+_DEVICE_ANDROID = "Android"
+_DEVICE_APPLE = "Apple"
+
 _RESET_TYPE_REBOOT = 1
 _RESET_TYPE_WIPE_REBOOT = 2
 
@@ -559,21 +562,19 @@ def _create_and_boot_emulator(sdk_id):
   else:
     time.sleep(45)
 
-def _run_with_retry(args, shell=False, check=True, timeout=_CMD_TIMEOUT, retry_time=_TEST_RETRY, retry_with=_RESET_TYPE_NONE):
+def _run_with_retry(args, shell=False, check=True, timeout=_CMD_TIMEOUT, retry_time=_TEST_RETRY, device=_DEVICE_NONE, type=_RESET_TYPE_REBOOT):
   if retry_time > 1:
     try:
       subprocess.run(args, shell=shell, check=check, timeout=timeout)
     except:
-      _reset_emulator_on_error(retry_with)
-      _run_with_retry(args, shell, check, timeout, retry_time-1, retry_with)
+      if device == _DEVICE_ANDROID:
+        _reset_emulator_on_error(type)
+      _run_with_retry(args, shell, check, timeout, retry_time-1, device, type)
   else:
     subprocess.run(args, shell=shell, check=check, timeout=timeout)
 
 
-def _reset_emulator_on_error(type=_RESET_TYPE_NONE):
-  if type == _RESET_TYPE_NONE:
-    return
-
+def _reset_emulator_on_error(type=_RESET_TYPE_REBOOT):
   if type == _RESET_TYPE_WIPE_REBOOT:
     # wipe emulator data
     args = ["adb", "shell", "recovery", "--wipe_data"]
@@ -623,29 +624,29 @@ def _install_android_app(app_path):
   """Install integration_test app into the emulator."""
   args = ["adb", "install", app_path]
   logging.info("Install testapp: %s", " ".join(args))
-  _run_with_retry(args, retry_with=_RESET_TYPE_WIPE_REBOOT)
+  _run_with_retry(args, device=_DEVICE_ANDROID, type=_RESET_TYPE_WIPE_REBOOT)
 
 
 def _uninstall_android_app(package_name):
   """Uninstall integration_test app from the emulator."""
   args = ["adb", "uninstall", package_name]
   logging.info("Uninstall testapp: %s", " ".join(args))
-  _run_with_retry(args, retry_with=_RESET_TYPE_REBOOT)
+  _run_with_retry(args, device=_DEVICE_ANDROID, type=_RESET_TYPE_REBOOT)
 
 
 def _install_android_gameloop_app(gameloop_project):
   os.chdir(gameloop_project)
   logging.info("cd to gameloop_project: %s", gameloop_project)
   args = ["adb", "uninstall", "com.google.firebase.gameloop"]
-  _run_with_retry(args, check=False, retry_with=_RESET_TYPE_REBOOT)
+  _run_with_retry(args, check=False, device=_DEVICE_ANDROID, type=_RESET_TYPE_REBOOT)
 
   args = ["./gradlew", "clean"]
   logging.info("Clean game-loop cache: %s", " ".join(args))
-  _run_with_retry(args, check=False, retry_with=_RESET_TYPE_REBOOT)
+  _run_with_retry(args, check=False, device=_DEVICE_ANDROID, type=_RESET_TYPE_REBOOT)
 
   args = ["./gradlew", "installDebug", "installDebugAndroidTest"]
   logging.info("Installing game-loop app and test: %s", " ".join(args))
-  _run_with_retry(args, retry_with=_RESET_TYPE_REBOOT)
+  _run_with_retry(args, device=_DEVICE_ANDROID, type=_RESET_TYPE_REBOOT)
 
 
 def _run_instrumented_test():
