@@ -38,7 +38,14 @@ namespace admob {
   X(ToString, "toString", "()Ljava/lang/String;")
 // clang-format on
 
+#define LOADADERROR_METHODS(X)                      \
+  X(GetResponseInfo, "getResponseInfo",             \
+    "()Lcom/google/android/gms/ads/ResponseInfo;"), \
+      X(ToString, "toString", "()Ljava/lang/String;")
+// clang-format on
+
 METHOD_LOOKUP_DECLARATION(ad_error, ADERROR_METHODS);
+METHOD_LOOKUP_DECLARATION(load_ad_error, LOADADERROR_METHODS);
 
 struct AdResultInternal {
   // True if the result contains an error originating from C++/Java wrapper
@@ -48,13 +55,16 @@ struct AdResultInternal {
   // True if this was a successful result.
   bool is_successful;
 
-  // An error code
+  // True if this error data represents a result from a LoadAd request.
+  bool is_load_ad_error;
+
+  // An error code.
   AdMobError code;
 
-  // A cached value of com.google.android.gms.ads.AdError.domain
+  // A cached value of com.google.android.gms.ads.AdError.domain.
   std::string domain;
 
-  // A cached value of com.google.android.gms.ads.AdError.message
+  // A cached value of com.google.android.gms.ads.AdError.message.
   std::string message;
 
   // A cached result from invoking com.google.android.gms.ads.AdError.ToString.

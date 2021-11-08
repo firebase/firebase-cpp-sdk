@@ -40,6 +40,9 @@ struct AdResultInternal {
   // True if this was a successful result.
   bool is_successful;
 
+  // True if this error data represents a result from a LoadAd request.
+  bool is_load_ad_error;
+
   // An error code
   AdMobError code;
 

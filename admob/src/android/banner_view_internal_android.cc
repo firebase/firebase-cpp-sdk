@@ -87,7 +87,7 @@ struct LoadAdOnMainThreadData {
   }
 
   AdRequest ad_request;
-  FutureCallbackData<LoadAdResult>* callback_data;
+  FutureCallbackData<AdResult>* callback_data;
   jobject banner_view_helper;
 };
 
@@ -303,7 +303,7 @@ void LoadAdOnMainThread(void* data) {
     }
     call_data->callback_data->future_data->future_impl.CompleteWithResult(
         call_data->callback_data->future_handle, error,
-        kAdCouldNotParseAdRequestErrorMessage, LoadAdResult());
+        kAdCouldNotParseAdRequestErrorMessage, AdResult());
     delete call_data->callback_data;
     call_data->callback_data = nullptr;
   } else {
@@ -316,16 +316,15 @@ void LoadAdOnMainThread(void* data) {
   delete call_data;
 }
 
-Future<LoadAdResult> BannerViewInternalAndroid::LoadAd(
-    const AdRequest& request) {
+Future<AdResult> BannerViewInternalAndroid::LoadAd(const AdRequest& request) {
   firebase::MutexLock lock(mutex_);
 
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env);
 
-  FutureCallbackData<LoadAdResult>* callback_data =
-      CreateLoadAdResultFutureCallbackData(kBannerViewFnLoadAd, &future_data_);
-  SafeFutureHandle<LoadAdResult> future_handle = callback_data->future_handle;
+  FutureCallbackData<AdResult>* callback_data =
+      CreateAdResultFutureCallbackData(kBannerViewFnLoadAd, &future_data_);
+  SafeFutureHandle<AdResult> future_handle = callback_data->future_handle;
 
   LoadAdOnMainThreadData* call_data = new LoadAdOnMainThreadData();
   call_data->ad_request = request;

@@ -33,13 +33,13 @@ namespace admob {
 // Resolves LoadAd errors that exist in the C++ SDK before they reach the iOS
 // SDK.
 void CompleteLoadAdInternalResult(
-  FutureCallbackData<LoadAdResult>* callback_data, AdMobError error_code,
+  FutureCallbackData<AdResult>* callback_data, AdMobError error_code,
   const char* error_message);
 
-// Parses information from the NSError to populate a LoadAdResult
-// and completes the LoadAdResult Future on iOS.
-void CompleteLoadAdIOSResult(FutureCallbackData<LoadAdResult>* callback_data,
-                             NSError *error);
+// Parses information from the NSError to populate an AdResult
+// and completes the AdResult Future on iOS.
+void CompleteAdResultIOS(FutureCallbackData<AdResult>* callback_data,
+                         NSError *error);
 
 
 // Converts the iOS Admob GADAdValue structure into a CPP

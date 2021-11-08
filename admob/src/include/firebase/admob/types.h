@@ -49,6 +49,7 @@ class AdViewInternal;
 class BannerView;
 class InterstitialAd;
 class PaidEventListener;
+class ResponseInfo;
 
 /// This is a platform specific datatype that is required to create an AdMob ad.
 ///
@@ -157,6 +158,9 @@ class AdListener {
 /// Information about why an ad operation failed.
 class AdResult {
  public:
+  /// Default Constructor.
+  AdResult();
+
   /// Copy Constructor.
   AdResult(const AdResult& ad_result);
 
@@ -186,6 +190,11 @@ class AdResult {
   /// Gets the message describing the error.
   const std::string& message() const;
 
+  /// Gets the ResponseInfo if an error occurred during a loadAd operation.
+  /// The ResponseInfo will have empty fields if no error occurred, or if this
+  /// AdResult does not represent an error stemming from a loadAd operation.
+  const ResponseInfo& response_info() const;
+
   /// Returns a log friendly string version of this object.
   const std::string& ToString() const;
 
@@ -196,20 +205,18 @@ class AdResult {
   static const char* const kUndefinedDomain;
 
  protected:
-  // Internal initialization of AdResult.  Should only be used to create
-  // AdResults in futures, etc, which will later be supplied with the result
-  // specifics in the internal callback handlers.
-  AdResult();
-
   /// Constructor used when building results in Ad event callbacks.
   explicit AdResult(const AdResultInternal& ad_result_internal);
-
-  /// Sets the internally cached string. Used by the LoadAdError subclass.
-  void set_to_string(std::string to_string);
 
  private:
   friend class AdapterResponseInfo;
   friend class AdMobInternal;
+  friend class BannerView;
+  friend class InterstitialAd;
+
+  // Collection of response from adapters if this Result is due to a loadAd
+  // operation.
+  ResponseInfo* response_info_;
 
   // An internal, platform-specific implementation object that this class uses
   // to interact with the Google Mobile Ads SDKs for iOS and Android.
@@ -708,7 +715,7 @@ class ResponseInfo {
   const std::string& ToString() const { return to_string_; }
 
  private:
-  friend class LoadAdResult;
+  friend class AdResult;
 
   explicit ResponseInfo(const ResponseInfoInternal& internal);
 
@@ -716,28 +723,6 @@ class ResponseInfo {
   std::string mediation_adapter_class_name_;
   std::string response_id_;
   std::string to_string_;
-};
-
-/// @brief Information about why an ad load operation failed.
-class LoadAdResult : public AdResult {
- public:
-  /// Default constructor.
-  LoadAdResult();
-
-  /// Copy Constructor.
-  LoadAdResult(const LoadAdResult& load_ad_result);
-
-  /// Gets the ResponseInfo if an error occurred, with a collection of
-  /// information from each adapter.
-  const ResponseInfo& response_info() const { return response_info_; }
-
- private:
-  friend class AdMobInternal;
-  friend class BannerView;
-
-  explicit LoadAdResult(const AdResultInternal& ad_result_internal);
-
-  ResponseInfo response_info_;
 };
 
 /// @brief Global configuration that will be used for every @ref AdRequest.

@@ -509,12 +509,12 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
 
   // Load the banner ad.
   firebase::admob::AdRequest request = GetAdRequest();
-  firebase::Future<firebase::admob::LoadAdResult> load_ad_future =
+  firebase::Future<firebase::admob::AdResult> load_ad_future =
       banner->LoadAd(request);
   WaitForCompletion(load_ad_future, "LoadAd");
   EXPECT_EQ(expected_num_bounding_box_changes,
             bounding_box_listener.bounding_box_changes_.size());
-  const firebase::admob::LoadAdResult* result_ptr = load_ad_future.result();
+  const firebase::admob::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_TRUE(result_ptr->is_successful());
   EXPECT_EQ(result_ptr->code(), firebase::admob::kAdMobErrorNone);
@@ -636,9 +636,6 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
   app_framework::ProcessEvents(2000);
 
   WaitForCompletion(banner->Destroy(), "Destroy BannerView");
-
-  LogDebug("And again to ensure destruction callbacks are recorded.");
-  app_framework::ProcessEvents(2000);
   banner->SetBoundingBoxListener(nullptr);
   delete banner;
 
@@ -718,7 +715,7 @@ TEST_F(FirebaseAdMobTest, TestBannerViewAdOpenedAdClosed) {
 
   // Load the banner ad.
   firebase::admob::AdRequest request = GetAdRequest();
-  firebase::Future<firebase::admob::LoadAdResult> load_ad_future =
+  firebase::Future<firebase::admob::AdResult> load_ad_future =
       banner->LoadAd(request);
   WaitForCompletion(load_ad_future, "LoadAd");
   WaitForCompletion(banner->Show(), "Show 0");
@@ -736,9 +733,6 @@ TEST_F(FirebaseAdMobTest, TestBannerViewAdOpenedAdClosed) {
   while (ad_listener.num_on_ad_closed_ == 0) {
     app_framework::ProcessEvents(1000);
   }
-
-  LogDebug("Waiting for a moment to ensure all callbacks are recorded.");
-  app_framework::ProcessEvents(2000);
 
   // Ensure all of the expected events were triggered on Android.
   EXPECT_EQ(ad_listener.num_on_ad_clicked_, 1);
@@ -853,16 +847,16 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorLoadInProgress) {
   // successful ad loads instead of the expected
   // kAdMobErrorLoadInProgress error.
   firebase::admob::AdRequest request = GetAdRequest();
-  firebase::Future<firebase::admob::LoadAdResult> first_load_ad =
+  firebase::Future<firebase::admob::AdResult> first_load_ad =
       banner->LoadAd(request);
-  firebase::Future<firebase::admob::LoadAdResult> second_load_ad =
+  firebase::Future<firebase::admob::AdResult> second_load_ad =
       banner->LoadAd(request);
 
   WaitForCompletion(second_load_ad, "Second LoadAd",
                     firebase::admob::kAdMobErrorLoadInProgress);
   WaitForCompletion(first_load_ad, "First LoadAd");
 
-  const firebase::admob::LoadAdResult* result_ptr = second_load_ad.result();
+  const firebase::admob::AdResult* result_ptr = second_load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
   EXPECT_EQ(result_ptr->code(), firebase::admob::kAdMobErrorLoadInProgress);
@@ -890,12 +884,11 @@ TEST_F(FirebaseAdMobTest, TestBannerViewErrorBadAdUnitId) {
 
   // Load the banner ad.
   firebase::admob::AdRequest request = GetAdRequest();
-  firebase::Future<firebase::admob::LoadAdResult> load_ad =
-      banner->LoadAd(request);
+  firebase::Future<firebase::admob::AdResult> load_ad = banner->LoadAd(request);
   WaitForCompletion(load_ad, "LoadAd",
                     firebase::admob::kAdMobErrorInvalidRequest);
 
-  const firebase::admob::LoadAdResult* result_ptr = load_ad.result();
+  const firebase::admob::AdResult* result_ptr = load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
   EXPECT_EQ(result_ptr->code(), firebase::admob::kAdMobErrorInvalidRequest);
@@ -1088,16 +1081,16 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdErrorLoadInProgress) {
   // successful ad loads instead of the expected
   // kAdMobErrorLoadInProgress error.
   firebase::admob::AdRequest request = GetAdRequest();
-  firebase::Future<firebase::admob::LoadAdResult> first_load_ad =
+  firebase::Future<firebase::admob::AdResult> first_load_ad =
       interstitial_ad->LoadAd(kInterstitialAdUnit, request);
-  firebase::Future<firebase::admob::LoadAdResult> second_load_ad =
+  firebase::Future<firebase::admob::AdResult> second_load_ad =
       interstitial_ad->LoadAd(kInterstitialAdUnit, request);
 
   WaitForCompletion(second_load_ad, "Second LoadAd",
                     firebase::admob::kAdMobErrorLoadInProgress);
   WaitForCompletion(first_load_ad, "First LoadAd");
 
-  const firebase::admob::LoadAdResult* result_ptr = second_load_ad.result();
+  const firebase::admob::AdResult* result_ptr = second_load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
   EXPECT_EQ(result_ptr->code(), firebase::admob::kAdMobErrorLoadInProgress);
@@ -1120,12 +1113,12 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdErrorBadAdUnitId) {
 
   // Load the interstitial ad.
   firebase::admob::AdRequest request = GetAdRequest();
-  firebase::Future<firebase::admob::LoadAdResult> load_ad =
+  firebase::Future<firebase::admob::AdResult> load_ad =
       interstitial_ad->LoadAd(kBadAdUnit, request);
   WaitForCompletion(load_ad, "LoadAd",
                     firebase::admob::kAdMobErrorInvalidRequest);
 
-  const firebase::admob::LoadAdResult* result_ptr = load_ad.result();
+  const firebase::admob::AdResult* result_ptr = load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
   EXPECT_EQ(result_ptr->code(), firebase::admob::kAdMobErrorInvalidRequest);

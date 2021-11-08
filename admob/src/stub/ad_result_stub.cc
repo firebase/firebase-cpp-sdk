@@ -51,6 +51,10 @@ const std::string& AdResult::domain() const { return std::string(); }
 /// Gets the message describing the error.
 const std::string& AdResult::message() const { return std::string(); }
 
+/// Gets the ResponseInfo if an loadAd error occurred, with a collection of
+/// information from each adapter.
+const ResponseInfo& AdResult::response_info() const { return ResponseInfo(); }
+
 /// Returns a log friendly string version of this object.
 const std::string& AdResult::ToString() const { return std::string(); }
 

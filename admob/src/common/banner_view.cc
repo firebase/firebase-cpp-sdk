@@ -102,22 +102,22 @@ Future<void> BannerView::SetPositionLastResult() const {
   return internal_->GetLastResult(internal::kBannerViewFnSetPosition);
 }
 
-Future<LoadAdResult> BannerView::LoadAd(const AdRequest& request) {
+Future<AdResult> BannerView::LoadAd(const AdRequest& request) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
         firebase::admob::internal::kBannerViewFnLoadAd,
         kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
-        &internal_->future_data_, LoadAdResult());
+        &internal_->future_data_, AdResult());
   }
   return internal_->LoadAd(request);
 }
 
-Future<LoadAdResult> BannerView::LoadAdLastResult() const {
+Future<AdResult> BannerView::LoadAdLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
         firebase::admob::internal::kBannerViewFnLoadAd,
         kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
-        &(internal_->future_data_), LoadAdResult());
+        &(internal_->future_data_), AdResult());
   }
   return internal_->GetLoadAdLastResult();
 }

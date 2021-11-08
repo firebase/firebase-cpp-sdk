@@ -39,7 +39,7 @@ class BannerViewInternalIOS : public BannerViewInternal {
 
   Future<void> Initialize(AdParent parent, const char* ad_unit_id,
                           const AdSize& size) override;
-  Future<LoadAdResult> LoadAd(const AdRequest& request) override;
+  Future<AdResult> LoadAd(const AdRequest& request) override;
   BoundingBox bounding_box() const override;
   Future<void> SetPosition(int x, int y) override;
   Future<void> SetPosition(BannerView::Position position) override;
@@ -60,7 +60,7 @@ class BannerViewInternalIOS : public BannerViewInternal {
 
  private:
   /// Contains information to asynchronously complete the LoadAd Future.
-  FutureCallbackData<LoadAdResult>* ad_load_callback_data_;
+  FutureCallbackData<AdResult>* ad_load_callback_data_;
 
   /// Prevents duplicate invocations of initailize on the BannerView.
   bool initialized_;

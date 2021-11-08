@@ -87,9 +87,10 @@ Future<void> CreateAndCompleteFuture(int fn_idx, int error,
 
 // For calls that aren't asynchronous, create and complete a future with a
 // result at the same time.
-Future<LoadAdResult> CreateAndCompleteFutureWithResult(
-    int fn_idx, int error, const char* error_msg, FutureData* future_data,
-    const LoadAdResult& result);
+Future<AdResult> CreateAndCompleteFutureWithResult(int fn_idx, int error,
+                                                   const char* error_msg,
+                                                   FutureData* future_data,
+                                                   const AdResult& result);
 
 template <class T>
 struct FutureCallbackData {
@@ -104,18 +105,18 @@ FutureCallbackData<void>* CreateVoidFutureCallbackData(int fn_idx,
 
 // Constructs a FutureCallbackData instance to handle results from LoadAd.
 // requests.
-FutureCallbackData<LoadAdResult>* CreateLoadAdResultFutureCallbackData(
+FutureCallbackData<AdResult>* CreateAdResultFutureCallbackData(
     int fn_idx, FutureData* future_data);
 
 // A class that allows access to private/protected Admob structures for Java
 // callbacks.  This is achieved via friend relationships with those classes.
 class AdMobInternal {
  public:
-  // Completes a LoadAdResult future given the AdResultInternal object.
-  static void CompleteLoadAdFuture(
-      FutureCallbackData<LoadAdResult>* callback_data, int error_code,
-      const std::string& error_message,
-      const AdResultInternal& ad_result_internal);
+  // Completes an AdResult future given the AdResultInternal object.
+  static void CompleteLoadAdFuture(FutureCallbackData<AdResult>* callback_data,
+                                   int error_code,
+                                   const std::string& error_message,
+                                   const AdResultInternal& ad_result_internal);
 
   // Constructs and returns an AdResult object given an AdResultInteral object.
   static AdResult CreateAdResult(const AdResultInternal& ad_result_internal);
