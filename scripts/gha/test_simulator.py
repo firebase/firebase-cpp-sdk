@@ -419,6 +419,20 @@ def _delete_simulator(device_id):
   subprocess.run(args=args, check=True)
 
 
+def _reset_simulator_on_error(device_id, type=_RESET_TYPE_REBOOT):
+  _shutdown_simulator()
+
+  if type == _RESET_TYPE_WIPE_REBOOT:
+    args = ["xcrun", "simctl", "erase", device_id]
+    logging.info("Erase my simulator: %s", " ".join(args))
+    subprocess.run(args=args, check=True)
+
+  # reboot simulator: _RESET_TYPE_WIPE_REBOOT, _RESET_TYPE_REBOOT
+  args = ["xcrun", "simctl", "boot", device_id]
+  logging.info("Reboot my simulator: %s", " ".join(args))
+  subprocess.run(args=args, check=True)
+
+
 def _get_bundle_id(app_path, config):
   """Get app bundle id from build_testapps.json file."""
   for api in config["apis"]:
@@ -429,10 +443,10 @@ def _get_bundle_id(app_path, config):
 def _run_apple_gameloop_test(bundle_id, app_path, gameloop_app, device_id, retry=1):
   """Run gameloop test and collect test result."""
   logging.info("Running apple gameloop test: %s, %s, %s, %s", bundle_id, app_path, gameloop_app, device_id)
-  _install_apple_app(app_path, device_id, _TEST_RETRY)
+  _install_apple_app(app_path, device_id)
   _run_xctest(gameloop_app, device_id)
   log = _get_apple_test_log(bundle_id, app_path, device_id)
-  _uninstall_apple_app(bundle_id, device_id, _TEST_RETRY)
+  _uninstall_apple_app(bundle_id, device_id)
   if retry > 1:
     result = test_validation.validate_results(log, test_validation.CPP)
     if not result.complete:
@@ -442,35 +456,18 @@ def _run_apple_gameloop_test(bundle_id, app_path, gameloop_app, device_id, retry
   return log
   
 
-def _install_apple_app(app_path, device_id, retry=1):
+def _install_apple_app(app_path, device_id):
   """Install integration_test app into the simulator."""
   args = ["xcrun", "simctl", "install", device_id, app_path]
   logging.info("Install testapp: %s", " ".join(args))
-  check = (retry <= 1)
-  result = subprocess.run(args=args, check=check)
-  if result.returncode != 0:
-    logging.info("Install testapp %s failed, Reset Simualtor now... Remaining retry: %s", app_path, retry-1)
-    args = ["xcrun", "simctl", "erase", device_id]
-    logging.info("Erase my simulator: %s", " ".join(args))
-    subprocess.run(args=args, check=True)
-    args = ["xcrun", "simctl", "boot", device_id]
-    logging.info("Reboot my simulator: %s", " ".join(args))
-    subprocess.run(args=args, check=True)
-    _install_apple_app(app_path, device_id, retry=retry-1)
+  _run_with_retry(args, device=device_id, type=_RESET_TYPE_WIPE_REBOOT)
 
 
-def _uninstall_apple_app(bundle_id, device_id, retry=1):
+def _uninstall_apple_app(bundle_id, device_id):
   """Uninstall integration_test app from the simulator."""
   args = ["xcrun", "simctl", "uninstall", device_id, bundle_id]
   logging.info("Uninstall testapp: %s", " ".join(args))
-  check = (retry <= 1)
-  result = subprocess.run(args=args, check=check)
-  if result.returncode != 0:
-    logging.info("Uninstall testapp %s failed, Reset Simualtor now... Remaining retry: %s", bundle_id, retry-1)
-    args = ["xcrun", "simctl", "boot", device_id]
-    logging.info("Reboot my simulator: %s", " ".join(args))
-    subprocess.run(args=args, check=True)
-    _uninstall_apple_app(bundle_id, device_id, retry=retry-1)
+  _run_with_retry(args, device=device_id, type=_RESET_TYPE_REBOOT)
 
 
 def _get_apple_test_log(bundle_id, app_path, device_id):
@@ -579,17 +576,6 @@ def _create_and_boot_emulator(sdk_id):
   else:
     time.sleep(45)
 
-def _run_with_retry(args, shell=False, check=True, timeout=_CMD_TIMEOUT, retry_time=_TEST_RETRY, device=_DEVICE_NONE, type=_RESET_TYPE_REBOOT):
-  if retry_time > 1:
-    try:
-      subprocess.run(args, shell=shell, check=check, timeout=timeout)
-    except:
-      if device == _DEVICE_ANDROID:
-        _reset_emulator_on_error(type)
-      _run_with_retry(args, shell, check, timeout, retry_time-1, device, type)
-  else:
-    subprocess.run(args, shell=shell, check=check, timeout=timeout)
-
 
 def _reset_emulator_on_error(type=_RESET_TYPE_REBOOT):
   if type == _RESET_TYPE_WIPE_REBOOT:
@@ -687,6 +673,24 @@ def _get_android_test_log(test_package):
   result = subprocess.run(args=args, capture_output=True, text=True, check=False)
   logging.info("Android test result: %s", result.stdout)
   return result.stdout
+
+
+def _run_with_retry(args, shell=False, check=True, timeout=_CMD_TIMEOUT, retry_time=_TEST_RETRY, device=_DEVICE_NONE, type=_RESET_TYPE_REBOOT):
+  if retry_time > 1:
+    try:
+      subprocess.run(args, shell=shell, check=check, timeout=timeout)
+    except:
+      if device == _DEVICE_NONE:
+        pass
+      elif device == _DEVICE_ANDROID:
+        # Android
+        _reset_emulator_on_error(type)
+      else:
+        # Apple
+        _reset_simulator_on_error(device, type)
+      _run_with_retry(args, shell, check, timeout, retry_time-1, device, type)
+  else:
+    subprocess.run(args, shell=shell, check=check, timeout=timeout)
 
 
 if __name__ == '__main__':
