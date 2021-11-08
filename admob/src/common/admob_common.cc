@@ -60,15 +60,6 @@ const char* kAdCouldNotParseAdRequestErrorMessage =
 const char* kAdLoadInProgressErrorMessage = "Ad is currently loading.";
 const char* kAdUninitializedErrorMessage = "Ad has not been fully initialized.";
 
-// AdListener
-// Default no-op implementation for each listener method so that applications
-// need only implement the methods they're interested in.
-AdListener::~AdListener() {}
-void AdListener::OnAdClicked() {}
-void AdListener::OnAdClosed() {}
-void AdListener::OnAdImpression() {}
-void AdListener::OnAdOpened() {}
-
 // AdMobInternal
 void AdMobInternal::CompleteLoadAdFuture(
     FutureCallbackData<LoadAdResult>* callback_data, int error_code,
@@ -175,24 +166,14 @@ void AdView::SetPaidEventListener(PaidEventListener* listener) {
   paid_event_listener_ = listener;
 }
 
-// FullScreenContentListener
-// Default no-op implementation for each listener method so that applications
-// need only implement the methods they're interested in.
-FullScreenContentListener::~FullScreenContentListener() {}
-void FullScreenContentListener::OnAdClicked() {}
-void FullScreenContentListener::OnAdDismissedFullScreenContent() {}
-void FullScreenContentListener::OnAdFailedToShowFullScreenContent(
-    const AdResult& ad_result) {}
-void FullScreenContentListener::OnAdImpression() {}
-void FullScreenContentListener::OnAdShowedFullScreenContent() {}
-
-// Misc - other default destructors, and application helpers.
-
-// Non-inline implementation of the Listeners' virtual destructors, to prevent
+// Non-inline implementation of the virtual destructors, to prevent
 // their vtables from being emitted in each translation unit.
+AdListener::~AdListener() {}
 AdView::~AdView() {}
 AdViewBoundingBoxListener::~AdViewBoundingBoxListener() {}
+FullScreenContentListener::~FullScreenContentListener() {}
 PaidEventListener::~PaidEventListener() {}
+UserEarnedRewardListener::~UserEarnedRewardListener() {}
 
 void RegisterTerminateOnDefaultAppDestroy() {
   if (!AppCallback::GetEnabledByName(kAdMobModuleName)) {
