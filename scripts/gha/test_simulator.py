@@ -580,7 +580,6 @@ def _reset_emulator_on_error(type=_RESET_TYPE_REBOOT):
     args = ["adb", "shell", "recovery", "--wipe_data"]
     logging.info("Erase my Emulator: %s", " ".join(args))
     subprocess.run(args=args, check=True)
-    _reset_emulator_on_error()
 
   # reboot emulator: _RESET_TYPE_WIPE_REBOOT, _RESET_TYPE_REBOOT
   logging.info("game-loop test error!!! reboot emualtor...")
