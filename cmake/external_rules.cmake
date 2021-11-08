@@ -67,6 +67,15 @@ function(download_external_sources)
     set(FIREBASE_DOWNLOAD_GTEST OFF)
   endif()
 
+  # If a GITHUB_TOKEN is present, use it for all external project downloads.
+  # This will prevent GitHub runners from being throttled by GitHub.
+  if(DEFINED ENV{GITHUB_TOKEN})
+    set(EXTERNAL_PROJECT_HTTP_HEADER "Authorization: token $ENV{GITHUB_TOKEN}")
+    message("Adding GITHUB_TOKEN header to ExternalProject downloads.")
+  else()
+    set(EXTERNAL_PROJECT_HTTP_HEADER "")
+  endif()
+
   execute_process(
     COMMAND
       ${ENV_COMMAND} ${CMAKE_COMMAND}
@@ -86,6 +95,7 @@ function(download_external_sources)
       -DDOWNLOAD_UWEBSOCKETS=${DOWNLOAD_UWEBSOCKETS}
       -DDOWNLOAD_ZLIB=${DOWNLOAD_ZLIB}
       -DDOWNLOAD_FIREBASE_IOS_SDK=${DOWNLOAD_FIREBASE_IOS_SDK}
+      -DEXTERNAL_PROJECT_HTTP_HEADER=${EXTERNAL_PROJECT_HTTP_HEADER}
       -DFIREBASE_CPP_BUILD_TESTS=${FIREBASE_CPP_BUILD_TESTS}
       -DFIREBASE_CPP_BUILD_STUB_TESTS=${FIREBASE_CPP_BUILD_STUB_TESTS}
       ${PROJECT_SOURCE_DIR}/cmake/external

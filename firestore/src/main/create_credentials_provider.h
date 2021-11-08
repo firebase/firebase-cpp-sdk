@@ -19,7 +19,7 @@
 
 #include <memory>
 
-#include "Firestore/core/src/auth/credentials_provider.h"
+#include "Firestore/core/src/credentials/credentials_fwd.h"
 
 #if defined(__ANDROID__)
 #error "This header should not be used on Android."
@@ -31,7 +31,8 @@ class App;
 
 namespace firestore {
 
-std::unique_ptr<auth::CredentialsProvider> CreateCredentialsProvider(App& app);
+std::unique_ptr<credentials::AuthCredentialsProvider> CreateCredentialsProvider(
+    App& app);
 
 }  // namespace firestore
 }  // namespace firebase
