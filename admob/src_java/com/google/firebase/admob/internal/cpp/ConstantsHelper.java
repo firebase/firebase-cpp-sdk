@@ -77,31 +77,6 @@ public final class ConstantsHelper {
   // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src/include/firebase/admob/types.h)
 
   /**
-   * Types of notifications to send back to the C++ side for listeners updates.
-   */
-  // LINT.IfChange
-  public static final int AD_VIEW_CHANGED_PRESENTATION_STATE = 0;
-
-  public static final int AD_VIEW_CHANGED_BOUNDING_BOX = 1;
-  // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src_java/com/google/firebase/admob/internal/cpp/BannerViewHelper.java,
-  // //depot_firebase_cpp/admob/client/cpp/src_java/com/google/firebase/admob/internal/cpp/NativeExpressAdViewHelper.java)
-
-  /**
-   * Presentation states (matches the BannerView::PresentationState and
-   * NativeExpressAdView::PresentationState enumerations in the public C++ API).
-   */
-  // LINT.IfChange
-  public static final int AD_VIEW_PRESENTATION_STATE_HIDDEN = 0;
-
-  public static final int AD_VIEW_PRESENTATION_STATE_VISIBLE_WITHOUT_AD = 1;
-
-  public static final int AD_VIEW_PRESENTATION_STATE_VISIBLE_WITH_AD = 2;
-
-  public static final int AD_VIEW_PRESENTATION_STATE_OPENED_PARTIAL_OVERLAY = 3;
-
-  public static final int AD_VIEW_PRESENTATION_STATE_COVERING_UI = 4;
-  // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src/include/firebase/admob/banner_view.h)
-  /**
    * Ad view positions (matches the BannerView::Position and NativeExpressAdView::Position
    * enumerations in the public C++ API).
    */

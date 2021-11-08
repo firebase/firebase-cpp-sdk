@@ -20,7 +20,9 @@ set(common_SRCS
     src/common/banner_view.cc
     src/common/banner_view_internal.cc
     src/common/interstitial_ad.cc
-    src/common/interstitial_ad_internal.cc)
+    src/common/interstitial_ad_internal.cc
+    src/common/rewarded_ad.cc
+    src/common/rewarded_ad_internal.cc)
 
 # Define the resource build needed for Android
 firebase_cpp_gradle(":admob:admob_resources:generateDexJarRelease"
@@ -40,7 +42,8 @@ set(android_SRCS
     src/android/banner_view_internal_android.cc
     src/android/interstitial_ad_internal_android.cc
     src/android/load_ad_result_android.cc
-    src/android/response_info_android.cc)
+    src/android/response_info_android.cc
+    src/android/rewarded_ad_internal_android.cc)
 
 # Source files used by the iOS implementation.
 set(ios_SRCS

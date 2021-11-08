@@ -447,6 +447,24 @@ class AdRequest {
   std::unordered_set<std::string> keywords_;
 };
 
+/// Describes a reward credited to a user for interacting with a RewardedAd.
+class AdReward {
+ public:
+  /// Creates an @ref AdReward.
+  AdReward(const std::string& type, int64_t amount)
+      : type_(type), amount_(amount) {}
+
+  /// Returns the reward amount.
+  int64_t amount() const { return amount_; }
+
+  /// Returns the type of the reward.
+  const std::string& type() const { return type_; }
+
+ private:
+  const int64_t amount_;
+  const std::string type_;
+};
+
 /// The monetary value earned from an ad.
 class AdValue {
  public:
@@ -866,6 +884,16 @@ struct RequestConfiguration {
   /// Sets a list of test device IDs corresponding to test devices which will
   /// always request test ads.
   std::vector<std::string> test_device_ids;
+};
+
+/// Listener to be invoked when the user earned a reward.
+class UserEarnedRewardListener {
+ public:
+  /// Called when the user earned a reward. The app is responsible for
+  /// crediting the user with the reward.
+  ///
+  /// param[in] reward the @ref AdReward that should be granted to the user.
+  virtual void OnUserEarnedReward(const AdReward& reward) = 0;
 };
 
 }  // namespace admob

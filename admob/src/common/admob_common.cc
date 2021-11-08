@@ -24,6 +24,7 @@
 #include "admob/src/include/firebase/admob.h"
 #include "admob/src/include/firebase/admob/banner_view.h"
 #include "admob/src/include/firebase/admob/interstitial_ad.h"
+#include "admob/src/include/firebase/admob/rewarded_ad.h"
 #include "admob/src/include/firebase/admob/types.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/version.h"
