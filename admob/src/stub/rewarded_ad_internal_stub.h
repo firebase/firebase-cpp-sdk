@@ -64,4 +64,4 @@ class RewardedAdInternalStub : public RewardedAdInternal {
 }  // namespace admob
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_STUB_INTERSTITIAL_AD_INTERNAL_STUB_H_
+#endif  // FIREBASE_ADMOB_SRC_STUB_REWARDED_AD_INTERNAL_STUB_H_

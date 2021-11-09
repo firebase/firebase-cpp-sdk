@@ -1233,6 +1233,7 @@ TEST_F(FirebaseAdMobTest, TestRewardedAdErrorNotInitialized) {
 
 TEST_F(FirebaseAdMobTest, TesRewardedAdErrorAlreadyInitialized) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_IOS;
 
   {
     firebase::admob::RewardedAd* rewarded = new firebase::admob::RewardedAd();

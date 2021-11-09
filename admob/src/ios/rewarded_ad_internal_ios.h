@@ -67,4 +67,4 @@ class RewardedAdInternalIOS : public RewardedAdInternal {
 }  // namespace admob
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_IOS_INTERSTITIAL_AD_INTERNAL_IOS_H_
+#endif  // FIREBASE_ADMOB_SRC_IOS_REWARDED_AD_INTERNAL_IOS_H_

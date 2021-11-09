@@ -21,6 +21,7 @@ set(common_SRCS
     src/common/banner_view_internal.cc
     src/common/interstitial_ad.cc
     src/common/interstitial_ad_internal.cc
+    src/common/full_screen_ad_event_listener.cc
     src/common/rewarded_ad.cc
     src/common/rewarded_ad_internal.cc)
 

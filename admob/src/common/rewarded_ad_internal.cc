@@ -31,6 +31,8 @@
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
 
+#include <string>
+
 namespace firebase {
 namespace admob {
 namespace internal {
@@ -38,8 +40,6 @@ namespace internal {
 RewardedAdInternal::RewardedAdInternal(RewardedAd* base)
     : base_(base),
       future_data_(kRewardedAdFnCount),
-      full_screen_content_listener_(nullptr),
-      paid_event_listener_(nullptr),
       user_earned_reward_listener_(nullptr) {}
 
 RewardedAdInternal* RewardedAdInternal::CreateInstance(RewardedAd* base) {
@@ -53,65 +53,11 @@ RewardedAdInternal* RewardedAdInternal::CreateInstance(RewardedAd* base) {
         // FIREBASE_PLATFORM_TVOS
 }
 
-void RewardedAdInternal::SetFullScreenContentListener(
-    FullScreenContentListener* listener) {
-  MutexLock lock(listener_mutex_);
-  full_screen_content_listener_ = listener;
-}
-
-void RewardedAdInternal::SetPaidEventListener(PaidEventListener* listener) {
-  MutexLock lock(listener_mutex_);
-  paid_event_listener_ = listener;
-}
-
 void RewardedAdInternal::NotifyListenerOfUserEarnedReward(
     const std::string& type, int64_t amount) {
   MutexLock lock(listener_mutex_);
   if (user_earned_reward_listener_ != nullptr) {
     user_earned_reward_listener_->OnUserEarnedReward(AdReward(type, amount));
-  }
-}
-
-void RewardedAdInternal::NotifyListenerOfAdClickedFullScreenContent() {
-  MutexLock lock(listener_mutex_);
-  if (full_screen_content_listener_ != nullptr) {
-    full_screen_content_listener_->OnAdClicked();
-  }
-}
-
-void RewardedAdInternal::NotifyListenerOfAdDismissedFullScreenContent() {
-  MutexLock lock(listener_mutex_);
-  if (full_screen_content_listener_ != nullptr) {
-    full_screen_content_listener_->OnAdDismissedFullScreenContent();
-  }
-}
-
-void RewardedAdInternal::NotifyListenerOfAdFailedToShowFullScreenContent(
-    const AdResult& ad_result) {
-  MutexLock lock(listener_mutex_);
-  if (full_screen_content_listener_ != nullptr) {
-    full_screen_content_listener_->OnAdFailedToShowFullScreenContent(ad_result);
-  }
-}
-
-void RewardedAdInternal::NotifyListenerOfAdImpression() {
-  MutexLock lock(listener_mutex_);
-  if (full_screen_content_listener_ != nullptr) {
-    full_screen_content_listener_->OnAdImpression();
-  }
-}
-
-void RewardedAdInternal::NotifyListenerOfAdShowedFullScreenContent() {
-  MutexLock lock(listener_mutex_);
-  if (full_screen_content_listener_ != nullptr) {
-    full_screen_content_listener_->OnAdShowedFullScreenContent();
-  }
-}
-
-void RewardedAdInternal::NotifyListenerOfPaidEvent(const AdValue& ad_value) {
-  MutexLock lock(listener_mutex_);
-  if (paid_event_listener_ != nullptr) {
-    paid_event_listener_->OnPaidEvent(ad_value);
   }
 }
 

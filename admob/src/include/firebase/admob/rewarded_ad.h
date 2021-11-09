@@ -128,4 +128,4 @@ class RewardedAd {
 }  // namespace admob
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_INTERSTITIAL_AD_H_
+#endif  // FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_REWARDED_AD_H_

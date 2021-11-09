@@ -17,10 +17,12 @@
 #ifndef FIREBASE_ADMOB_SRC_COMMON_REWARDED_AD_INTERNAL_H_
 #define FIREBASE_ADMOB_SRC_COMMON_REWARDED_AD_INTERNAL_H_
 
+#include <string>
+
 #include "admob/src/common/admob_common.h"
+#include "admob/src/common/full_screen_ad_event_listener.h"
 #include "admob/src/include/firebase/admob/rewarded_ad.h"
 #include "app/src/include/firebase/future.h"
-#include "app/src/mutex.h"
 
 namespace firebase {
 namespace admob {
@@ -34,7 +36,7 @@ enum RewardedAdFn {
   kRewardedAdFnCount
 };
 
-class RewardedAdInternal {
+class RewardedAdInternal : public FullScreenAdEventListener {
  public:
   // Create an instance of whichever subclass of RewardedAdInternal is
   // appropriate for the current platform.
@@ -53,30 +55,10 @@ class RewardedAdInternal {
   // Displays an interstitial ad.
   virtual Future<void> Show(UserEarnedRewardListener* listener) = 0;
 
-  /// Sets the @ref FullScreenContentListener to receive events about UI
-  // and presentation state.
-  void SetFullScreenContentListener(FullScreenContentListener* listener);
-
-  /// Sets the @ref PaidEventListener to receive information about paid events.
-  void SetPaidEventListener(PaidEventListener* listener);
-
   /// Notifies the UserEarnedRewardListener (if one exists) than a reward
   /// event has occurred.
   void NotifyListenerOfUserEarnedReward(const std::string& type,
                                         int64_t amount);
-
-  // Notifies the FullScreenContentListener (if one exists) that an event has
-  // occurred.
-  void NotifyListenerOfAdClickedFullScreenContent();
-  void NotifyListenerOfAdDismissedFullScreenContent();
-  void NotifyListenerOfAdFailedToShowFullScreenContent(
-      const AdResult& ad_result);
-  void NotifyListenerOfAdImpression();
-  void NotifyListenerOfAdShowedFullScreenContent();
-
-  // Notifies the PaidEventListener (if one exists) that a paid event has
-  // occurred.
-  void NotifyListenerOfPaidEvent(const AdValue& ad_value);
 
   // Retrieves the most recent Future for a given function.
   Future<void> GetLastResult(RewardedAdFn fn);
@@ -100,20 +82,9 @@ class RewardedAdInternal {
   // Future data used to synchronize asynchronous calls.
   FutureData future_data_;
 
-  // Reference to the listener to which this object sends full screen event
-  // callbacks.
-  FullScreenContentListener* full_screen_content_listener_;
-
-  // Reference to the listener to which this object sends ad payout
-  // event callbacks.
-  PaidEventListener* paid_event_listener_;
-
   // Reference to the listener to which this object sends user earned
   // reward event callbacks.
   UserEarnedRewardListener* user_earned_reward_listener_;
-
-  // Lock object for accessing listener_.
-  Mutex listener_mutex_;
 };
 
 }  // namespace internal
