@@ -68,7 +68,6 @@ Future<AdResult> RewardedAd::LoadAd(const char* ad_unit_id,
         kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
         &internal_->future_data_, AdResult());
   }
-
   return internal_->LoadAd(ad_unit_id, request);
 }
 

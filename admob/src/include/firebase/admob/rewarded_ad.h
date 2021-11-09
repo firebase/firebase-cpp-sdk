@@ -66,7 +66,7 @@ class RewardedAdInternal;
 ///     ::firebase::kFutureStatusComplete &&
 ///     rewarded->LoadAdLastResult().error() ==
 ///     firebase::admob::kAdMobErrorNone)) {
-///   rewarded->Show();
+///   rewarded->Show(&my_user_earned_reward_listener);
 /// }
 /// @endcode
 class RewardedAd {

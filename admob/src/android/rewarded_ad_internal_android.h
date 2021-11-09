@@ -27,7 +27,7 @@ namespace admob {
 // Used to set up the cache of RewardedAdHelper class method IDs to reduce
 // time spent looking up methods by string.
 // clang-format off
-#define REWARDEDADHELPER_METHODS(X)                                        \
+#define REWARDEDADHELPER_METHODS(X)                                            \
   X(Constructor, "<init>", "(J)V"),                                            \
   X(Initialize, "initialize", "(JLandroid/app/Activity;)V"),                   \
   X(Show, "show", "(J)V"),                                                     \
