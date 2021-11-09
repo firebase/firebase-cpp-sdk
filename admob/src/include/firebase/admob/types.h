@@ -226,6 +226,8 @@ class AdResult {
 /// A snapshot of a mediation adapter's initialization status.
   class AdapterStatus {
   public:
+    AdapterStatus() : is_initialized_(false), latency_(0) {}
+
     /// Detailed description of the status.
     ///
     /// This method should only be used for informational purposes, such as
@@ -246,7 +248,7 @@ class AdResult {
       return latency_;
     }
   private:
-    friend class AdmobInternal;
+    friend class AdMobInternal;
     std::string description_;
     bool is_initialized_;
     int latency_;
@@ -258,11 +260,11 @@ class AdapterInitializationStatus {
   public:    
     /// Initialization status of each known ad network, keyed by its adapter's class name.
     const std::map<std::string, AdapterStatus>& GetAdapterStatusMap() const {
-      return adapter_status_;
+      return adapter_status_map_;
     }
   private:
-    friend class AdmobInternal;
-    std::map<std::string, AdapterStatus> adapter_status_;
+    friend class AdMobInternal;
+    std::map<std::string, AdapterStatus> adapter_status_map_;
 };
 
 /// @brief Response information for an individual ad network contained within

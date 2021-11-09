@@ -120,6 +120,21 @@ class AdMobInternal {
 
   // Constructs and returns an AdResult object given an AdResultInteral object.
   static AdResult CreateAdResult(const AdResultInternal& ad_result_internal);
+
+  // Construct and return an AdapterStatus with the given values.
+  static AdapterStatus CreateAdapterStatus(std::string description, bool is_initialized, int latency) {
+    AdapterStatus status;
+    status.description_ = description;
+    status.is_initialized_ = is_initialized;
+    status.latency_ = latency;
+    return status;
+  }
+  // Construct and return an AdapterInitializationStatus with the given statuses.
+  static AdapterInitializationStatus CreateAdapterInitializationStatus(std::map<std::string, AdapterStatus> status_map) {
+    AdapterInitializationStatus init_status;
+    init_status.adapter_status_map_ = status_map;
+    return init_status;
+  }
 };
 
 }  // namespace admob
