@@ -108,13 +108,15 @@ void InitializeGoogleMobileAds(JNIEnv* env) {
                         call_data);
 }
 
-Future<AdapterInitializationStatus> Initialize(const ::firebase::App& app, InitResult* init_result_out) {
+Future<AdapterInitializationStatus> Initialize(const ::firebase::App& app,
+                                               InitResult* init_result_out) {
   FIREBASE_ASSERT(!g_initialized);
   g_app = &app;
   return Initialize(g_app->GetJNIEnv(), g_app->activity(), init_result_out);
 }
 
-Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity, InitResult* init_result_out) {
+Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
+                                               InitResult* init_result_out) {
   FIREBASE_ASSERT(!g_initialized);
 
   if (g_java_vm == nullptr) {

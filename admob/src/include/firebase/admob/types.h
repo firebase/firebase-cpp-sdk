@@ -246,8 +246,8 @@ class AdapterStatus {
   // Equality operator for testing.
   bool operator==(const AdapterStatus& rhs) const {
     return (description() == rhs.description() &&
-	    is_initialized() == rhs.is_initialized() &&
-	    latency() == rhs.latency());
+            is_initialized() == rhs.is_initialized() &&
+            latency() == rhs.latency());
   }
 #endif  // DOXYGEN
  private:

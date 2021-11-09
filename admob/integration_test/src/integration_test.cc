@@ -239,14 +239,16 @@ TEST_F(FirebaseAdMobTest, TestInitializationStatus) {
   auto initialize_future = firebase::admob::InitializeLastResult();
   WaitForCompletion(initialize_future, "admob::Initialize");
   ASSERT_NE(initialize_future.result(), nullptr);
-  EXPECT_EQ(*initialize_future.result(), firebase::admob::GetInitializationStatus());
+  EXPECT_EQ(*initialize_future.result(),
+            firebase::admob::GetInitializationStatus());
 
-  for (auto adapter_status : initialize_future.result()->GetAdapterStatusMap()) {
+  for (auto adapter_status :
+       initialize_future.result()->GetAdapterStatusMap()) {
     LogInfo("AdMob Mediation Adapter '%s' %s (latency %d ms): %s",
-	    adapter_status.first.c_str(),
-	    (adapter_status.second.is_initialized() ? "loaded" : "NOT loaded"),
-	    adapter_status.second.latency(),
-	    adapter_status.second.description().c_str());
+            adapter_status.first.c_str(),
+            (adapter_status.second.is_initialized() ? "loaded" : "NOT loaded"),
+            adapter_status.second.latency(),
+            adapter_status.second.description().c_str());
   }
 }
 
