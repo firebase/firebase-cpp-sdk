@@ -41,6 +41,8 @@ enum AdMobFn {
 static ReferenceCountedFutureImpl* future_impl_ = nullptr;
 
 static Future<AdapterInitializationStatus> CreateAndCompleteInitializeStub() {
+  FIREBASE_ASSERT(future_impl_);
+
   // Return an AdapterInitializationStatus with one placeholder adapter.
   SafeFutureHandle<AdapterInitializationStatus> handle =
       future_impl_->SafeAlloc<AdapterInitializationStatus>(kAdMobFnInitialize);
@@ -56,7 +58,7 @@ static Future<AdapterInitializationStatus> CreateAndCompleteInitializeStub() {
 
 Future<AdapterInitializationStatus> Initialize(const ::firebase::App& app,
                                                InitResult* init_result_out) {
-  FIREBASE_ASSERT(future_impl_ == nullptr);
+  FIREBASE_ASSERT(!g_initialized);
   future_impl_ = new ReferenceCountedFutureImpl(kAdMobFnCount);
 
   (void)app;
@@ -70,7 +72,7 @@ Future<AdapterInitializationStatus> Initialize(const ::firebase::App& app,
 }
 
 Future<AdapterInitializationStatus> Initialize(InitResult* init_result_out) {
-  FIREBASE_ASSERT(future_impl_ == nullptr);
+  FIREBASE_ASSERT(!g_initialized);
   future_impl_ = new ReferenceCountedFutureImpl(kAdMobFnCount);
 
   g_initialized = true;
@@ -83,8 +85,9 @@ Future<AdapterInitializationStatus> Initialize(InitResult* init_result_out) {
 }
 
 Future<AdapterInitializationStatus> InitializeLastResult() {
-  return static_cast<const Future<AdapterInitializationStatus>&>(
-      future_impl_->LastResult(kAdMobFnInitialize));
+  return future_impl_ ? static_cast<const Future<AdapterInitializationStatus>&>(
+                            future_impl_->LastResult(kAdMobFnInitialize))
+                      : Future<AdapterInitializationStatus>();
 }
 
 AdapterInitializationStatus GetInitializationStatus() {
