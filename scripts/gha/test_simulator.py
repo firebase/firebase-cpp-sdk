@@ -676,6 +676,7 @@ def _get_android_test_log(test_package):
 
 
 def _run_with_retry(args, shell=False, check=True, timeout=_CMD_TIMEOUT, retry_time=_TEST_RETRY, device=_DEVICE_NONE, type=_RESET_TYPE_REBOOT):
+  logging.info("run_with_retry: %s; remaining retry: %s", args, retry_time)
   if retry_time > 1:
     try:
       subprocess.run(args, shell=shell, check=check, timeout=timeout)
