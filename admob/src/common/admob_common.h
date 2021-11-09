@@ -21,6 +21,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include "admob/src/include/firebase/admob/types.h"
 #include "app/src/cleanup_notifier.h"
