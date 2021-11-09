@@ -41,7 +41,6 @@ set(android_SRCS
     src/android/admob_android.cc
     src/android/banner_view_internal_android.cc
     src/android/interstitial_ad_internal_android.cc
-    src/android/load_ad_result_android.cc
     src/android/response_info_android.cc
     src/android/rewarded_ad_internal_android.cc)
 
@@ -56,7 +55,6 @@ set(ios_SRCS
     src/ios/admob_ios.mm
     src/ios/banner_view_internal_ios.mm
     src/ios/interstitial_ad_internal_ios.mm
-    src/ios/load_ad_result_ios.mm
     src/ios/response_info_ios.mm)
 
 # Source files used by the stub implementation.
@@ -64,7 +62,6 @@ set(stub_SRCS
     src/stub/ad_result_stub.cc
     src/stub/adapter_response_info_stub.cc
     src/stub/admob_stub.cc
-    src/stub/load_ad_result_stub.cc
     src/stub/response_info_stub.cc)
 
 if(ANDROID)

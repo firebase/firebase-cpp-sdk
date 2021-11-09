@@ -29,7 +29,6 @@
 #include "admob/src/android/adapter_response_info_android.h"
 #include "admob/src/android/banner_view_internal_android.h"
 #include "admob/src/android/interstitial_ad_internal_android.h"
-#include "admob/src/android/load_ad_result_android.h"
 #include "admob/src/android/response_info_android.h"
 #include "admob/src/android/rewarded_ad_internal_android.h"
 #include "admob/src/common/admob_common.h"
@@ -476,7 +475,7 @@ static void CompleteAdFutureCallback(JNIEnv* env, jclass clazz, jlong data_ptr,
   delete callback_data;
 }
 
-void CompleteLoadAdCallback(FutureCallbackData<LoadAdResult>* callback_data,
+void CompleteLoadAdCallback(FutureCallbackData<AdResult>* callback_data,
                             jobject j_load_ad_error, AdMobError error_code,
                             const std::string& error_message) {
   FIREBASE_ASSERT(callback_data);
@@ -485,6 +484,7 @@ void CompleteLoadAdCallback(FutureCallbackData<LoadAdResult>* callback_data,
   AdResultInternal ad_result_internal;
 
   ad_result_internal.j_ad_error = j_load_ad_error;
+  ad_result_internal.is_load_ad_error = true;
   ad_result_internal.is_successful = true;  // assume until proven otherwise.
   ad_result_internal.is_wrapper_error = false;
   ad_result_internal.code = error_code;
@@ -492,7 +492,7 @@ void CompleteLoadAdCallback(FutureCallbackData<LoadAdResult>* callback_data,
   // Further result configuration is based on success/failure.
   if (j_load_ad_error != nullptr) {
     // The Android SDK returned an error.  Use the j_ad_error object
-    // to populate a LoadAdResult with the error specifics.
+    // to populate a AdResult with the error specifics.
     ad_result_internal.is_successful = false;
   } else if (ad_result_internal.code != kAdMobErrorNone) {
     // C++ SDK Android AdMob Wrapper encountered an error.
@@ -505,7 +505,7 @@ void CompleteLoadAdCallback(FutureCallbackData<LoadAdResult>* callback_data,
     future_error_message = ad_result_internal.message;
   }
 
-  // Invoke a friend of LoadAdResult to have it invoke the LoadAdResult
+  // Invoke a friend of AdResult to have it invoke the AdResult
   // protected constructor with the AdResultInternal data.
   AdMobInternal::CompleteLoadAdFuture(callback_data, ad_result_internal.code,
                                       future_error_message, ad_result_internal);
@@ -519,8 +519,8 @@ void CompleteLoadAdAndroidErrorResult(JNIEnv* env, jlong data_ptr,
   FIREBASE_ASSERT(data_ptr);
   FIREBASE_ASSERT(j_error_message);
 
-  FutureCallbackData<LoadAdResult>* callback_data =
-      reinterpret_cast<firebase::admob::FutureCallbackData<LoadAdResult>*>(
+  FutureCallbackData<AdResult>* callback_data =
+      reinterpret_cast<firebase::admob::FutureCallbackData<AdResult>*>(
           data_ptr);
 
   std::string error_message = util::JStringToString(env, j_error_message);
@@ -529,9 +529,9 @@ void CompleteLoadAdAndroidErrorResult(JNIEnv* env, jlong data_ptr,
                          error_message);
 }
 
-void CompleteLoadAdInternalResult(
-    FutureCallbackData<LoadAdResult>* callback_data, AdMobError error_code,
-    const char* error_message) {
+void CompleteLoadAdInternalResult(FutureCallbackData<AdResult>* callback_data,
+                                  AdMobError error_code,
+                                  const char* error_message) {
   FIREBASE_ASSERT(callback_data);
   FIREBASE_ASSERT(error_message);
 
@@ -545,8 +545,8 @@ Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeBannerViewL
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
 
-  FutureCallbackData<LoadAdResult>* callback_data =
-      reinterpret_cast<firebase::admob::FutureCallbackData<LoadAdResult>*>(
+  FutureCallbackData<AdResult>* callback_data =
+      reinterpret_cast<firebase::admob::FutureCallbackData<AdResult>*>(
           data_ptr);
 
   CompleteLoadAdInternalResult(callback_data, kAdMobErrorNone,
@@ -683,8 +683,8 @@ Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_completeInterst
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
 
-  FutureCallbackData<LoadAdResult>* callback_data =
-      reinterpret_cast<firebase::admob::FutureCallbackData<LoadAdResult>*>(
+  FutureCallbackData<AdResult>* callback_data =
+      reinterpret_cast<firebase::admob::FutureCallbackData<AdResult>*>(
           data_ptr);
 
   CompleteLoadAdInternalResult(callback_data, kAdMobErrorNone,
@@ -756,6 +756,7 @@ Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_notifyAdFailedT
   AdResultInternal ad_result_internal;
   ad_result_internal.is_wrapper_error = false;
   ad_result_internal.is_successful = false;
+  ad_result_internal.is_load_ad_error = false;
   ad_result_internal.j_ad_error = j_ad_error;
 
   // Invoke AdMobInternal, a friend of AdResult, to have it access its
@@ -816,8 +817,8 @@ Java_com_google_firebase_admob_internal_cpp_RewardedAdHelper_completeRewardedLoa
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
 
-  FutureCallbackData<LoadAdResult>* callback_data =
-      reinterpret_cast<firebase::admob::FutureCallbackData<LoadAdResult>*>(
+  FutureCallbackData<AdResult>* callback_data =
+      reinterpret_cast<firebase::admob::FutureCallbackData<AdResult>*>(
           data_ptr);
 
   CompleteLoadAdInternalResult(callback_data, kAdMobErrorNone,

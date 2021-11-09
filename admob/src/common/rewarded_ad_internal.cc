@@ -120,8 +120,8 @@ Future<void> RewardedAdInternal::GetLastResult(RewardedAdFn fn) {
       future_data_.future_impl.LastResult(fn));
 }
 
-Future<LoadAdResult> RewardedAdInternal::GetLoadAdLastResult() {
-  return static_cast<const Future<LoadAdResult>&>(
+Future<AdResult> RewardedAdInternal::GetLoadAdLastResult() {
+  return static_cast<const Future<AdResult>&>(
       future_data_.future_impl.LastResult(kRewardedAdFnLoadAd));
 }
 

@@ -38,8 +38,18 @@ class BannerViewInternalStub : public BannerViewInternal {
     return CreateAndCompleteFutureStub(kBannerViewFnInitialize);
   }
 
-  Future<LoadAdResult> LoadAd(const AdRequest& request) override {
-    return CreateAndCompleteLoadAdResultFutureStub(kBannerViewFnLoadAd);
+  Future<AdResult> LoadAd(const AdRequest& request) override {
+    return CreateAndCompleteAdResultFutureStub(kBannerViewFnLoadAd);
+  }
+
+  BoundingBox bounding_box() const override { return BoundingBox(); }
+
+  Future<void> SetPosition(int x, int y) override {
+    return CreateAndCompleteFutureStub(kBannerViewFnSetPosition);
+  }
+
+  Future<void> SetPosition(BannerView::Position position) override {
+    return CreateAndCompleteFutureStub(kBannerViewFnSetPosition);
   }
 
   BoundingBox bounding_box() const override { return BoundingBox(); }
@@ -79,10 +89,9 @@ class BannerViewInternalStub : public BannerViewInternal {
     return CreateAndCompleteFuture(fn, kAdMobErrorNone, nullptr, &future_data_);
   }
 
-  Future<LoadAdResult> CreateAndCompleteLoadAdResultFutureStub(
-      BannerViewFn fn) {
+  Future<AdResult> CreateAndCompleteAdResultFutureStub(BannerViewFn fn) {
     return CreateAndCompleteFutureWithResult(fn, kAdMobErrorNone, nullptr,
-                                             &future_data_, LoadAdResult());
+                                             &future_data_, AdResult());
   }
 };
 

@@ -96,16 +96,16 @@ Future<void> RewardedAdInternalAndroid::Initialize(AdParent parent) {
   return MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 }
 
-Future<LoadAdResult> RewardedAdInternalAndroid::LoadAd(
-    const char* ad_unit_id, const AdRequest& request) {
+Future<AdResult> RewardedAdInternalAndroid::LoadAd(const char* ad_unit_id,
+                                                   const AdRequest& request) {
   firebase::MutexLock lock(mutex_);
 
   if (!initialized_) {
-    SafeFutureHandle<LoadAdResult> handle =
-        future_data_.future_impl.SafeAlloc<LoadAdResult>(kRewardedAdFnLoadAd,
-                                                         LoadAdResult());
+    SafeFutureHandle<AdResult> handle =
+        future_data_.future_impl.SafeAlloc<AdResult>(kRewardedAdFnLoadAd,
+                                                     AdResult());
     CompleteFuture(kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
-                   handle, &future_data_, LoadAdResult());
+                   handle, &future_data_, AdResult());
     return MakeFuture(&future_data_.future_impl, handle);
   }
 
@@ -117,12 +117,12 @@ Future<LoadAdResult> RewardedAdInternalAndroid::LoadAd(
     }
     return CreateAndCompleteFutureWithResult(
         kRewardedAdFnLoadAd, error, kAdCouldNotParseAdRequestErrorMessage,
-        &future_data_, LoadAdResult());
+        &future_data_, AdResult());
   }
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env);
-  FutureCallbackData<LoadAdResult>* callback_data =
-      CreateLoadAdResultFutureCallbackData(kRewardedAdFnLoadAd, &future_data_);
+  FutureCallbackData<AdResult>* callback_data =
+      CreateAdResultFutureCallbackData(kRewardedAdFnLoadAd, &future_data_);
 
   jstring j_ad_unit_str = env->NewStringUTF(ad_unit_id);
   ::firebase::admob::GetJNI()->CallVoidMethod(

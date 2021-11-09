@@ -90,11 +90,11 @@ class RewardedAd {
   /// @param[in] ad_unit_id The ad unit ID to use in loading the ad.
   /// @param[in] request An AdRequest struct with information about the request
   ///                    to be made (such as targeting info).
-  Future<LoadAdResult> LoadAd(const char* ad_unit_id, const AdRequest& request);
+  Future<AdResult> LoadAd(const char* ad_unit_id, const AdRequest& request);
 
   /// Returns a @ref Future containing the status of the last call to
   /// @ref LoadAd.
-  Future<LoadAdResult> LoadAdLastResult() const;
+  Future<AdResult> LoadAdLastResult() const;
 
   /// Shows the @ref RewardedAd. This should not be called unless an ad has
   /// already been loaded.

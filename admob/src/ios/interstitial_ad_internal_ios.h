@@ -38,8 +38,8 @@ class InterstitialAdInternalIOS : public InterstitialAdInternal {
   ~InterstitialAdInternalIOS();
 
   Future<void> Initialize(AdParent parent) override;
-  Future<LoadAdResult> LoadAd(const char* ad_unit_id,
-                              const AdRequest& request) override;
+  Future<AdResult> LoadAd(const char* ad_unit_id,
+                          const AdRequest& request) override;
   Future<void> Show() override;
 
 #ifdef __OBJC__
@@ -56,7 +56,7 @@ class InterstitialAdInternalIOS : public InterstitialAdInternal {
   bool initialized_;
 
   /// Contains information to asynchronously complete the LoadAd Future.
-  FutureCallbackData<LoadAdResult>* ad_load_callback_data_;
+  FutureCallbackData<AdResult>* ad_load_callback_data_;
 
   /// The GADInterstitialAd object. Declared as an "id" type to avoid
   /// referencing an Objective-C class in this header.

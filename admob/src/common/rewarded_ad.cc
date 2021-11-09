@@ -60,24 +60,24 @@ Future<void> RewardedAd::InitializeLastResult() const {
   return internal_->GetLastResult(internal::kRewardedAdFnInitialize);
 }
 
-Future<LoadAdResult> RewardedAd::LoadAd(const char* ad_unit_id,
-                                        const AdRequest& request) {
+Future<AdResult> RewardedAd::LoadAd(const char* ad_unit_id,
+                                    const AdRequest& request) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
         firebase::admob::internal::kRewardedAdFnLoadAd,
         kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
-        &internal_->future_data_, LoadAdResult());
+        &internal_->future_data_, AdResult());
   }
 
   return internal_->LoadAd(ad_unit_id, request);
 }
 
-Future<LoadAdResult> RewardedAd::LoadAdLastResult() const {
+Future<AdResult> RewardedAd::LoadAdLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
         firebase::admob::internal::kRewardedAdFnLoadAd,
         kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
-        &internal_->future_data_, LoadAdResult());
+        &internal_->future_data_, AdResult());
   }
   return internal_->GetLoadAdLastResult();
 }
