@@ -20,8 +20,8 @@
 #include "admob/src/common/admob_common.h"
 #include "admob/src/include/firebase/admob.h"
 #include "app/src/include/firebase/app.h"
-#include "app/src/include/firebase/version.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/include/firebase/version.h"
 #include "app/src/mutex.h"
 
 namespace firebase {
@@ -43,16 +43,19 @@ static ReferenceCountedFutureImpl* future_impl_ = nullptr;
 static Future<AdapterInitializationStatus> CreateAndCompleteInitializeStub() {
   // Return an AdapterInitializationStatus with one placeholder adapter.
   SafeFutureHandle<AdapterInitializationStatus> handle =
-    future_impl_->SafeAlloc<AdapterInitializationStatus>(kAdMobFnInitialize);
+      future_impl_->SafeAlloc<AdapterInitializationStatus>(kAdMobFnInitialize);
   std::map<std::string, AdapterStatus> adapter_map;
-  adapter_map["stub"] = AdMobInternal::CreateAdapterStatus("stub adapter", true, 100);
+  adapter_map["stub"] =
+      AdMobInternal::CreateAdapterStatus("stub adapter", true, 100);
 
-  AdapterInitializationStatus adapter_init_status = AdMobInternal::CreateAdapterInitializationStatus(adapter_map);
+  AdapterInitializationStatus adapter_init_status =
+      AdMobInternal::CreateAdapterInitializationStatus(adapter_map);
   future_impl_->CompleteWithResult(handle, 0, "", adapter_init_status);
   return MakeFuture(future_impl_, handle);
 }
-  
-Future<AdapterInitializationStatus> Initialize(const ::firebase::App& app, InitResult* init_result_out) {
+
+Future<AdapterInitializationStatus> Initialize(const ::firebase::App& app,
+                                               InitResult* init_result_out) {
   FIREBASE_ASSERT(future_impl_ == nullptr);
   future_impl_ = new ReferenceCountedFutureImpl(kAdMobFnCount);
 
@@ -80,7 +83,8 @@ Future<AdapterInitializationStatus> Initialize(InitResult* init_result_out) {
 }
 
 Future<AdapterInitializationStatus> InitializeLastResult() {
-  return static_cast<const Future<AdapterInitializationStatus>&>(future_impl_->LastResult(kAdMobFnInitialize));
+  return static_cast<const Future<AdapterInitializationStatus>&>(
+      future_impl_->LastResult(kAdMobFnInitialize));
 }
 
 AdapterInitializationStatus GetInitializationStatus() {

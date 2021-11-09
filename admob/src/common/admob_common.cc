@@ -33,9 +33,9 @@ FIREBASE_APP_REGISTER_CALLBACKS(
     admob,
     {
       if (app == ::firebase::App::GetInstance()) {
-	firebase::InitResult result;
-	firebase::admob::Initialize(*app, &result);
-	return result;
+        firebase::InitResult result;
+        firebase::admob::Initialize(*app, &result);
+        return result;
       }
       return kInitResultSuccess;
     },
