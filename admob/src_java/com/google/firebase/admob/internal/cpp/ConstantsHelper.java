@@ -24,7 +24,6 @@ public final class ConstantsHelper {
   /**
    * Error codes used in completing futures. These match the AdMobError enumeration in the C++ API.
    */
-  // LINT.IfChange
   public static final int CALLBACK_ERROR_NONE = 0;
 
   public static final int CALLBACK_ERROR_UNINITIALIZED = 1;
@@ -44,13 +43,11 @@ public final class ConstantsHelper {
   public static final int CALLBACK_ERROR_NO_WINDOW_TOKEN = 8;
 
   public static final int CALLBACK_ERROR_UNKNOWN = 9;
-  // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src/include/firebase/admob/types.h)
 
   /**
    * Error messages used for completing futures. These match the error codes in the AdMobError
    * enumeration in the C++ API.
    */
-  // LINT.IfChange
   public static final String CALLBACK_ERROR_MESSAGE_NONE = "";
 
   public static final String CALLBACK_ERROR_MESSAGE_UNINITIALIZED =
@@ -74,38 +71,11 @@ public final class ConstantsHelper {
       "Android Activity does not have a window token.";
 
   public static final String CALLBACK_ERROR_MESSAGE_UNKNOWN = "Unknown error occurred.";
-  // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src/include/firebase/admob/types.h)
 
-  /**
-   * Types of notifications to send back to the C++ side for listeners updates.
-   */
-  // LINT.IfChange
-  public static final int AD_VIEW_CHANGED_PRESENTATION_STATE = 0;
-
-  public static final int AD_VIEW_CHANGED_BOUNDING_BOX = 1;
-  // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src_java/com/google/firebase/admob/internal/cpp/BannerViewHelper.java,
-  // //depot_firebase_cpp/admob/client/cpp/src_java/com/google/firebase/admob/internal/cpp/NativeExpressAdViewHelper.java)
-
-  /**
-   * Presentation states (matches the BannerView::PresentationState and
-   * NativeExpressAdView::PresentationState enumerations in the public C++ API).
-   */
-  // LINT.IfChange
-  public static final int AD_VIEW_PRESENTATION_STATE_HIDDEN = 0;
-
-  public static final int AD_VIEW_PRESENTATION_STATE_VISIBLE_WITHOUT_AD = 1;
-
-  public static final int AD_VIEW_PRESENTATION_STATE_VISIBLE_WITH_AD = 2;
-
-  public static final int AD_VIEW_PRESENTATION_STATE_OPENED_PARTIAL_OVERLAY = 3;
-
-  public static final int AD_VIEW_PRESENTATION_STATE_COVERING_UI = 4;
-  // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src/include/firebase/admob/banner_view.h)
   /**
    * Ad view positions (matches the BannerView::Position and NativeExpressAdView::Position
    * enumerations in the public C++ API).
    */
-  // LINT.IfChange
   public static final int AD_VIEW_POSITION_UNDEFINED = -1;
 
   public static final int AD_VIEW_POSITION_TOP = 0;
@@ -119,5 +89,4 @@ public final class ConstantsHelper {
   public static final int AD_VIEW_POSITION_BOTTOM_LEFT = 4;
 
   public static final int AD_VIEW_POSITION_BOTTOM_RIGHT = 5;
-  // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src/include/firebase/admob/types.h)
 }
