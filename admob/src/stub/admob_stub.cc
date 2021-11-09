@@ -49,7 +49,7 @@ static Future<AdapterInitializationStatus> CreateAndCompleteInitializeStub() {
       AdMobInternal::CreateAdapterStatus("stub adapter", true, 100);
 
   AdapterInitializationStatus adapter_init_status =
-      AdMobInternal::CreateAdapterInitializationStatus(adapter_map);
+      AdMobInternal::CreateAdapterInitializationStatus(std::move(adapter_map));
   future_impl_->CompleteWithResult(handle, 0, "", adapter_init_status);
   return MakeFuture(future_impl_, handle);
 }
