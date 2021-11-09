@@ -233,6 +233,14 @@ firebase::admob::AdRequest FirebaseAdMobTest::GetAdRequest() {
 }
 
 // Test cases below.
+TEST_F(FirebaseAdMobTest, TestInitializationStatus) {
+  // Ensure Initialize()'s result matches GetInitializationStatus().
+  auto initialize_future = firebase::admob::InitializeLastResult();
+  WaitForCompletion(initialize_future, "admob::Initialize");
+  ASSERT_NE(initialize_future.result(), nullptr);
+  EXPECT_EQ(*initialize_future.result(), firebase::admob::GetInitializationStatus());
+}
+
 TEST_F(FirebaseAdMobTest, TestGetAdRequest) { GetAdRequest(); }
 
 TEST_F(FirebaseAdMobTest, TestGetAdRequestValues) {

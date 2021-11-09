@@ -108,16 +108,15 @@ void InitializeGoogleMobileAds(JNIEnv* env) {
                         call_data);
 }
 
-InitResult Initialize(const ::firebase::App& app) {
-  if (g_initialized) {
-    LogWarning("AdMob is already initialized.");
-    return kInitResultSuccess;
-  }
+Future<AdapterInitializationStatus> Initialize(const ::firebase::App& app, InitResult* init_result_out) {
+  FIREBASE_ASSERT(!g_initialized);
   g_app = &app;
-  return Initialize(g_app->GetJNIEnv(), g_app->activity());
+  return Initialize(g_app->GetJNIEnv(), g_app->activity(), init_result_out);
 }
 
-InitResult Initialize(JNIEnv* env, jobject activity) {
+Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity, InitResult* init_result_out) {
+  FIREBASE_ASSERT(!g_initialized);
+
   if (g_java_vm == nullptr) {
     env->GetJavaVM(&g_java_vm);
   }
@@ -127,16 +126,17 @@ InitResult Initialize(JNIEnv* env, jobject activity) {
   if (!util::FindClass(env, "com/google/android/gms/ads/internal/ClientApi") &&
       google_play_services::CheckAvailability(env, activity) !=
           google_play_services::kAvailabilityAvailable) {
-    return kInitResultFailedMissingDependency;
-  }
-
-  if (g_initialized) {
-    LogWarning("AdMob is already initialized.");
-    return kInitResultSuccess;
+    if (init_result_out) {
+      *init_result_out = kInitResultFailedMissingDependency;
+    }
+    return Future<AdapterInitializationStatus>();
   }
 
   if (!util::Initialize(env, activity)) {
-    return kInitResultFailedMissingDependency;
+    if (init_result_out) {
+      *init_result_out = kInitResultFailedMissingDependency;
+    }
+    return Future<AdapterInitializationStatus>();
   }
 
   const std::vector<firebase::internal::EmbeddedFile> embedded_files =
@@ -166,7 +166,10 @@ InitResult Initialize(JNIEnv* env, jobject activity) {
         admob::RegisterNatives())) {
     ReleaseClasses(env);
     util::Terminate(env);
-    return kInitResultFailedMissingDependency;
+    if (init_result_out) {
+      *init_result_out = kInitResultFailedMissingDependency;
+    }
+    return Future<AdapterInitializationStatus>();
   }
 
   g_initialized = true;
@@ -175,7 +178,10 @@ InitResult Initialize(JNIEnv* env, jobject activity) {
   InitializeGoogleMobileAds(env);
   RegisterTerminateOnDefaultAppDestroy();
 
-  return kInitResultSuccess;
+  if (init_result_out) {
+    *init_result_out = kInitResultSuccess;
+  }
+  return Future<AdapterInitializationStatus>();
 }
 
 void SetRequestConfiguration(

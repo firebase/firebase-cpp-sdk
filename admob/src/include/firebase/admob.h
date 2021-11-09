@@ -87,7 +87,6 @@ Future<AdapterInitializationStatus> Initialize(
 /// initialization status of each one.
 Future<AdapterInitializationStatus> Initialize(
     JNIEnv* jni_env, jobject activity, InitResult* init_result_out = nullptr);
-);
 
 #endif  // defined(__ANDROID__) || defined(DOXYGEN)
 #if !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)

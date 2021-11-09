@@ -85,9 +85,10 @@ Future<AdapterInitializationStatus> Initialize(InitResult* init_result_out) {
 }
 
 Future<AdapterInitializationStatus> InitializeLastResult() {
-  return g_future_impl ? static_cast<const Future<AdapterInitializationStatus>&>(
-                            g_future_impl->LastResult(kAdMobFnInitialize))
-                      : Future<AdapterInitializationStatus>();
+  return g_future_impl
+             ? static_cast<const Future<AdapterInitializationStatus>&>(
+                   g_future_impl->LastResult(kAdMobFnInitialize))
+             : Future<AdapterInitializationStatus>();
 }
 
 AdapterInitializationStatus GetInitializationStatus() {
@@ -109,6 +110,8 @@ RequestConfiguration GetRequestConfiguration() {
 }
 
 void Terminate() {
+  FIREBASE_ASSERT(g_initialized);
+
   delete g_future_impl;
   g_future_impl = nullptr;
 
