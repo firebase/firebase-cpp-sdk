@@ -38,28 +38,28 @@ enum AdMobFn {
   kAdMobFnCount,
 };
 
-static ReferenceCountedFutureImpl* future_impl_ = nullptr;
+static ReferenceCountedFutureImpl* g_future_impl = nullptr;
 
 static Future<AdapterInitializationStatus> CreateAndCompleteInitializeStub() {
-  FIREBASE_ASSERT(future_impl_);
+  FIREBASE_ASSERT(g_future_impl);
 
   // Return an AdapterInitializationStatus with one placeholder adapter.
   SafeFutureHandle<AdapterInitializationStatus> handle =
-      future_impl_->SafeAlloc<AdapterInitializationStatus>(kAdMobFnInitialize);
+      g_future_impl->SafeAlloc<AdapterInitializationStatus>(kAdMobFnInitialize);
   std::map<std::string, AdapterStatus> adapter_map;
   adapter_map["stub"] =
       AdMobInternal::CreateAdapterStatus("stub adapter", true, 100);
 
   AdapterInitializationStatus adapter_init_status =
       AdMobInternal::CreateAdapterInitializationStatus(std::move(adapter_map));
-  future_impl_->CompleteWithResult(handle, 0, "", adapter_init_status);
-  return MakeFuture(future_impl_, handle);
+  g_future_impl->CompleteWithResult(handle, 0, "", adapter_init_status);
+  return MakeFuture(g_future_impl, handle);
 }
 
 Future<AdapterInitializationStatus> Initialize(const ::firebase::App& app,
                                                InitResult* init_result_out) {
   FIREBASE_ASSERT(!g_initialized);
-  future_impl_ = new ReferenceCountedFutureImpl(kAdMobFnCount);
+  g_future_impl = new ReferenceCountedFutureImpl(kAdMobFnCount);
 
   (void)app;
   g_app = &app;
@@ -73,7 +73,7 @@ Future<AdapterInitializationStatus> Initialize(const ::firebase::App& app,
 
 Future<AdapterInitializationStatus> Initialize(InitResult* init_result_out) {
   FIREBASE_ASSERT(!g_initialized);
-  future_impl_ = new ReferenceCountedFutureImpl(kAdMobFnCount);
+  g_future_impl = new ReferenceCountedFutureImpl(kAdMobFnCount);
 
   g_initialized = true;
   g_app = nullptr;
@@ -85,8 +85,8 @@ Future<AdapterInitializationStatus> Initialize(InitResult* init_result_out) {
 }
 
 Future<AdapterInitializationStatus> InitializeLastResult() {
-  return future_impl_ ? static_cast<const Future<AdapterInitializationStatus>&>(
-                            future_impl_->LastResult(kAdMobFnInitialize))
+  return g_future_impl ? static_cast<const Future<AdapterInitializationStatus>&>(
+                            g_future_impl->LastResult(kAdMobFnInitialize))
                       : Future<AdapterInitializationStatus>();
 }
 
@@ -109,8 +109,8 @@ RequestConfiguration GetRequestConfiguration() {
 }
 
 void Terminate() {
-  delete future_impl_;
-  future_impl_ = nullptr;
+  delete g_future_impl;
+  g_future_impl = nullptr;
 
   UnregisterTerminateOnDefaultAppDestroy();
   DestroyCleanupNotifier();
