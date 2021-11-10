@@ -136,10 +136,10 @@ class AdMobInternal {
   static AdResult CreateAdResult(const AdResultInternal& ad_result_internal);
 
   // Construct and return an AdapterStatus with the given values.
-  static AdapterStatus CreateAdapterStatus(std::string&& description,
+  static AdapterStatus CreateAdapterStatus(const std::string& description,
                                            bool is_initialized, int latency) {
     AdapterStatus status;
-    status.description_ = std::move(description);
+    status.description_ = description;
     status.is_initialized_ = is_initialized;
     status.latency_ = latency;
     return status;
@@ -147,9 +147,9 @@ class AdMobInternal {
   // Construct and return an AdapterInitializationStatus with the given
   // statuses.
   static AdapterInitializationStatus CreateAdapterInitializationStatus(
-      std::map<std::string, AdapterStatus>&& status_map) {
+      const std::map<std::string, AdapterStatus>& status_map) {
     AdapterInitializationStatus init_status;
-    init_status.adapter_status_map_ = std::move(status_map);
+    init_status.adapter_status_map_ = status_map;
     return init_status;
   }
 };
