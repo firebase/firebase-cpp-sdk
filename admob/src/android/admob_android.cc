@@ -140,6 +140,7 @@ static AdapterStatus ConvertFromJavaAdapterStatus(jobject j_adapter_status) {
                j_adapter_status,
                adapter_status::GetMethodId(adapter_status::kGetDescription)));
   util::CheckAndClearJniExceptions(env);
+
   int latency = env->CallIntMethod(
       j_adapter_status,
       adapter_status::GetMethodId(adapter_status::kGetLatency));
@@ -148,10 +149,12 @@ static AdapterStatus ConvertFromJavaAdapterStatus(jobject j_adapter_status) {
   jobject j_state_current = env->CallObjectMethod(
       j_adapter_status, adapter_status::GetMethodId(adapter_status::kGetState));
   util::CheckAndClearJniExceptions(env);
+
   jobject j_state_ready = env->GetStaticObjectField(
       adapter_status::GetClass(),
       adapter_status::GetFieldId(adapter_status::kReady));
   util::CheckAndClearJniExceptions(env);
+
   bool is_initialized = env->CallBooleanMethod(
       j_state_current, util::enum_class::GetMethodId(util::enum_class::kEquals),
       j_state_ready);
@@ -159,7 +162,6 @@ static AdapterStatus ConvertFromJavaAdapterStatus(jobject j_adapter_status) {
 
   env->DeleteLocalRef(j_state_current);
   env->DeleteLocalRef(j_state_ready);
-
   env->DeleteLocalRef(j_adapter_status);
   return AdMobInternal::CreateAdapterStatus(std::move(description),
                                             is_initialized, latency);
@@ -177,25 +179,30 @@ static AdapterInitializationStatus PopulateAdapterInitializationStatus(
       j_init_status, initialization_status::GetMethodId(
                          initialization_status::kGetAdapterStatusMap));
   util::CheckAndClearJniExceptions(env);
+
   // Extract keys and values from the map.
   jobject j_key_set =
       env->CallObjectMethod(j_map, util::map::GetMethodId(util::map::kKeySet));
   util::CheckAndClearJniExceptions(env);
+
   jobject j_iter = env->CallObjectMethod(
       j_key_set, util::set::GetMethodId(util::set::kIterator));
   util::CheckAndClearJniExceptions(env);
+
   while (env->CallBooleanMethod(
       j_iter, util::iterator::GetMethodId(util::iterator::kHasNext))) {
     jobject j_adapter_name = env->CallObjectMethod(
         j_iter, util::iterator::GetMethodId(util::iterator::kNext));
     util::CheckAndClearJniExceptions(env);
+
     jobject j_adapter_status = env->CallObjectMethod(
         j_map, util::map::GetMethodId(util::map::kGet), j_adapter_name);
     util::CheckAndClearJniExceptions(env);
 
-    std::string key = util::JStringToString(env, j_adapter_name);  // deletes it
+    std::string key =
+        util::JStringToString(env, j_adapter_name);  // deletes name
     AdapterStatus value =
-        ConvertFromJavaAdapterStatus(j_adapter_status);  // deletes it
+        ConvertFromJavaAdapterStatus(j_adapter_status);  // deletes status
 
     adapter_status_map[key] = value;
   }
@@ -203,6 +210,7 @@ static AdapterInitializationStatus PopulateAdapterInitializationStatus(
   env->DeleteLocalRef(j_iter);
   env->DeleteLocalRef(j_key_set);
   env->DeleteLocalRef(j_map);
+  LogInfo("FFFFFFFFFFFFFFFFFFFF");
   return AdMobInternal::CreateAdapterInitializationStatus(
       std::move(adapter_status_map));
 }
@@ -277,6 +285,8 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
         request_config::CacheMethodIds(env, activity) &&
         request_config_builder::CacheMethodIds(env, activity) &&
         response_info::CacheMethodIds(env, activity) &&
+        adapter_status::CacheMethodIds(env, activity) &&
+        adapter_status::CacheFieldIds(env, activity) &&
         initialization_status::CacheMethodIds(env, activity) &&
         admob_initialization_helper::CacheClassFromFiles(
             env, activity, &embedded_files) != nullptr &&
@@ -571,6 +581,7 @@ void ReleaseClasses(JNIEnv* env) {
   request_config::ReleaseClass(env);
   request_config_builder::ReleaseClass(env);
   response_info::ReleaseClass(env);
+  adapter_status::ReleaseClass(env);
   initialization_status::ReleaseClass(env);
   admob_initialization_helper::ReleaseClass(env);
   banner_view_helper::ReleaseClass(env);
@@ -822,6 +833,7 @@ AdValue::PrecisionType ConvertAndroidPrecisionTypeToCPPPrecisionType(
 
 static void JNICALL AdMobInitializationHelper_initializationCompleteCallback(
     JNIEnv* env, jclass clazz, jobject j_initialization_status) {
+  LogInfo("AdMobInitializationHelper_initializationCompleteCallback called");
   AdapterInitializationStatus adapter_status =
       PopulateAdapterInitializationStatus(j_initialization_status);
   {
