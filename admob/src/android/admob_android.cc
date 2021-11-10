@@ -277,6 +277,8 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
     if (init_result_out) {
       *init_result_out = kInitResultFailedMissingDependency;
     }
+    // Need to return an invalid Future, because without AdMob initialized,
+    // there is no ReferenceCountedFutureImpl to hold an actual Future instance.
     return Future<AdapterInitializationStatus>();
   }
 
@@ -284,6 +286,8 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
     if (init_result_out) {
       *init_result_out = kInitResultFailedMissingDependency;
     }
+    // Need to return an invalid Future, because without AdMob initialized,
+    // there is no ReferenceCountedFutureImpl to hold an actual Future instance.
     return Future<AdapterInitializationStatus>();
   }
 

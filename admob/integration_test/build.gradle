@@ -61,7 +61,6 @@ android {
     externalNativeBuild.cmake {
       arguments "-DFIREBASE_CPP_SDK_DIR=$gradle.firebase_cpp_sdk_dir"
     }
-    multiDexEnabled true
   }
   externalNativeBuild.cmake {
     path 'CMakeLists.txt'
@@ -72,10 +71,6 @@ android {
       proguardFile getDefaultProguardFile('proguard-android.txt')
       proguardFile file('proguard.pro')
     }
-  }
-
-  dependencies {
-    implementation 'com.google.android.ads:mediation-test-suite:2.0.0'
   }
 }
 
