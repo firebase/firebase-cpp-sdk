@@ -65,8 +65,8 @@ static AdapterInitializationStatus PopulateAdapterInitializationStatus(
     GADAdapterStatus* status = [status_dict objectForKey:key];
     AdapterStatus adapter_status =
       AdMobInternal::CreateAdapterStatus(util::NSStringToString(status.description),
-					 status.state == GADAdapterInitializationStateReady,
-					 status.latency);
+                                         status.state == GADAdapterInitializationStateReady,
+                                         status.latency);
     adapter_status_map[util::NSStringToString(key)] = adapter_status;
   }
   return AdMobInternal::CreateAdapterInitializationStatus(adapter_status_map);
@@ -82,12 +82,12 @@ static Future<AdapterInitializationStatus> InitializeAdMob() {
       // GAD initialization has completed, with adapter initialization status.
       AdapterInitializationStatus adapter_status = PopulateAdapterInitializationStatus(status);
       {
-	MutexLock lock(g_future_impl_mutex);
-	// Check if g_future_impl still exists; if not, Terminate() was called, ignore the
-	// result of this callback.
-	if (g_future_impl) {
-	  g_future_impl->CompleteWithResult(handle, 0, "", adapter_status);
-	}
+        MutexLock lock(g_future_impl_mutex);
+        // Check if g_future_impl still exists; if not, Terminate() was called, ignore the
+        // result of this callback.
+        if (g_future_impl) {
+          g_future_impl->CompleteWithResult(handle, 0, "", adapter_status);
+        }
       }
     }];
   return MakeFuture(g_future_impl, handle);
