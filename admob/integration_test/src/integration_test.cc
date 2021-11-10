@@ -119,7 +119,6 @@ static const char* kAdNetworkExtrasInvalidClassName = "abc123321cba";
 static const char* kContentUrl = "http://www.firebase.com";
 
 using app_framework::LogDebug;
-using app_framework::LogInfo;
 using app_framework::ProcessEvents;
 
 using firebase_test_framework::FirebaseTest;
@@ -248,7 +247,7 @@ TEST_F(FirebaseAdMobTest, TestInitializationStatus) {
 
   for (auto adapter_status :
        initialize_future.result()->GetAdapterStatusMap()) {
-    LogInfo("AdMob Mediation Adapter '%s' %s (latency %d ms): %s",
+    LogDebug("AdMob Mediation Adapter '%s' %s (latency %d ms): %s",
             adapter_status.first.c_str(),
             (adapter_status.second.is_initialized() ? "loaded" : "NOT loaded"),
             adapter_status.second.latency(),
