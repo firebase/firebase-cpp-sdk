@@ -110,6 +110,18 @@ FutureCallbackData<void>* CreateVoidFutureCallbackData(int fn_idx,
 FutureCallbackData<AdResult>* CreateAdResultFutureCallbackData(
     int fn_idx, FutureData* future_data);
 
+// Template function implementations.
+template <class T>
+SafeFutureHandle<T> CreateFuture(int fn_idx, FutureData* future_data) {
+  return future_data->future_impl.SafeAlloc<T>(fn_idx);
+}
+template <class T>
+void CompleteFuture(int error, const char* error_msg,
+                    SafeFutureHandle<T> handle, FutureData* future_data,
+                    const T& result) {
+  future_data->future_impl.CompleteWithResult(handle, error, error_msg, result);
+}
+
 // A class that allows access to private/protected Admob structures for Java
 // callbacks.  This is achieved via friend relationships with those classes.
 class AdMobInternal {
