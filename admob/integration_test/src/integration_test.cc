@@ -246,7 +246,7 @@ TEST_F(FirebaseAdMobTest, TestInitializationStatus) {
             firebase::admob::GetInitializationStatus());
 
   for (auto adapter_status :
-       initialize_future.result()->GetAdapterStatusMap()) {
+       firebase::admob::GetInitializationStatus().GetAdapterStatusMap()) {
     LogDebug("AdMob Mediation Adapter '%s' %s (latency %d ms): %s",
             adapter_status.first.c_str(),
             (adapter_status.second.is_initialized() ? "loaded" : "NOT loaded"),
