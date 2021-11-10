@@ -116,7 +116,7 @@ namespace admob {
 // clang-format on
 
 // clang-format off
-#define ADAPTER_STATUS_FIELDS(X)                                             \
+#define ADAPTER_STATUS_STATE_FIELDS(X)                                       \
   X(NotReady, "NOT_READY",                                                   \
     "Lcom/google/android/gms/ads/initialization/AdapterStatus$State;",       \
     util::kFieldTypeStatic),                                                 \
@@ -138,8 +138,8 @@ METHOD_LOOKUP_DECLARATION(request_config_builder,
                           REQUESTCONFIGURATIONBUILDER_METHODS);
 METHOD_LOOKUP_DECLARATION(ad_size, ADSIZE_METHODS);
 METHOD_LOOKUP_DECLARATION(initialization_status, INITIALIZATION_STATUS_METHODS);
-METHOD_LOOKUP_DECLARATION(adapter_status, ADAPTER_STATUS_METHODS,
-                          ADAPTER_STATUS_FIELDS);
+METHOD_LOOKUP_DECLARATION(adapter_status, ADAPTER_STATUS_METHODS);
+METHOD_LOOKUP_DECLARATION(adapter_status_state, METHOD_LOOKUP_NONE, ADAPTER_STATUS_STATE_FIELDS);
 METHOD_LOOKUP_DECLARATION(admob_initialization_helper,
                           ADMOB_INITIALIZATION_HELPER_METHODS);
 

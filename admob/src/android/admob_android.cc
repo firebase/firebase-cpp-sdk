@@ -75,7 +75,13 @@ METHOD_LOOKUP_DEFINITION(
     adapter_status,
     PROGUARD_KEEP_CLASS
     "com/google/android/gms/ads/initialization/AdapterStatus",
-    ADAPTER_STATUS_METHODS, ADAPTER_STATUS_FIELDS);
+    ADAPTER_STATUS_METHODS);
+
+METHOD_LOOKUP_DEFINITION(
+    adapter_status_state,
+    PROGUARD_KEEP_CLASS
+    "com/google/android/gms/ads/initialization/AdapterStatus$State",
+    METHOD_LOOKUP_NONE, ADAPTER_STATUS_STATE_FIELDS);
 
 METHOD_LOOKUP_DEFINITION(
     admob_initialization_helper,
@@ -152,10 +158,11 @@ static AdapterStatus ConvertFromJavaAdapterStatus(jobject j_adapter_status) {
   util::CheckAndClearJniExceptions(env);
 
   jobject j_state_ready = env->GetStaticObjectField(
-      adapter_status::GetClass(),
-      adapter_status::GetFieldId(adapter_status::kReady));
+      adapter_status_state::GetClass(),
+      adapter_status_state::GetFieldId(adapter_status_state::kReady));
   util::CheckAndClearJniExceptions(env);
 
+  // is_initialized = (status.getInitializationStatus() == AdapterState.State.READY)
   bool is_initialized = env->CallBooleanMethod(
       j_state_current, util::enum_class::GetMethodId(util::enum_class::kEquals),
       j_state_ready);
@@ -182,20 +189,25 @@ static AdapterInitializationStatus PopulateAdapterInitializationStatus(
   util::CheckAndClearJniExceptions(env);
 
   // Extract keys and values from the map.
+  // key_set = map.keySet();
   jobject j_key_set =
       env->CallObjectMethod(j_map, util::map::GetMethodId(util::map::kKeySet));
   util::CheckAndClearJniExceptions(env);
 
+  // iter = key_set.iterator();
   jobject j_iter = env->CallObjectMethod(
       j_key_set, util::set::GetMethodId(util::set::kIterator));
   util::CheckAndClearJniExceptions(env);
 
+  // while (iter.hasNext()) {
   while (env->CallBooleanMethod(
       j_iter, util::iterator::GetMethodId(util::iterator::kHasNext))) {
+    // adapter_name = iter.next();
     jobject j_adapter_name = env->CallObjectMethod(
         j_iter, util::iterator::GetMethodId(util::iterator::kNext));
     util::CheckAndClearJniExceptions(env);
 
+    // adapter_status = map.get(adapter_name);
     jobject j_adapter_status = env->CallObjectMethod(
         j_map, util::map::GetMethodId(util::map::kGet), j_adapter_name);
     util::CheckAndClearJniExceptions(env);
@@ -287,7 +299,7 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
         request_config_builder::CacheMethodIds(env, activity) &&
         response_info::CacheMethodIds(env, activity) &&
         adapter_status::CacheMethodIds(env, activity) &&
-        adapter_status::CacheFieldIds(env, activity) &&
+        adapter_status_state::CacheFieldIds(env, activity) &&
         initialization_status::CacheMethodIds(env, activity) &&
         admob_initialization_helper::CacheClassFromFiles(
             env, activity, &embedded_files) != nullptr &&
@@ -337,7 +349,7 @@ Future<AdapterInitializationStatus> InitializeLastResult() {
 AdapterInitializationStatus GetInitializationStatus() {
   if (g_initialized) {
     JNIEnv* env = ::firebase::admob::GetJNI();
-    jobject j_status = env->CallObjectMethod(
+    jobject j_status = env->CallStaticObjectMethod(
         mobile_ads::GetClass(),
         mobile_ads::GetMethodId(mobile_ads::kGetInitializationStatus));
     util::CheckAndClearJniExceptions(env);
@@ -583,6 +595,7 @@ void ReleaseClasses(JNIEnv* env) {
   request_config_builder::ReleaseClass(env);
   response_info::ReleaseClass(env);
   adapter_status::ReleaseClass(env);
+  adapter_status_state::ReleaseClass(env);
   initialization_status::ReleaseClass(env);
   admob_initialization_helper::ReleaseClass(env);
   banner_view_helper::ReleaseClass(env);
