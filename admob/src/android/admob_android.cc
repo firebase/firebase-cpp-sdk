@@ -147,7 +147,8 @@ static AdapterStatus ConvertFromJavaAdapterStatus(jobject j_adapter_status) {
   util::CheckAndClearJniExceptions(env);
 
   jobject j_state_current = env->CallObjectMethod(
-      j_adapter_status, adapter_status::GetMethodId(adapter_status::kGetState));
+      j_adapter_status,
+      adapter_status::GetMethodId(adapter_status::kGetInitializationState));
   util::CheckAndClearJniExceptions(env);
 
   jobject j_state_ready = env->GetStaticObjectField(

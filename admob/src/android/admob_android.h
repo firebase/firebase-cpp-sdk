@@ -111,7 +111,7 @@ namespace admob {
 #define ADAPTER_STATUS_METHODS(X)                                            \
   X(GetDescription, "getDescription", "()Ljava/lang/String;"),               \
   X(GetLatency, "getLatency", "()I"),                                        \
-  X(GetState, "getState",                                                    \
+  X(GetInitializationState, "getInitializationState",			     \
     "()Lcom/google/android/gms/ads/initialization/AdapterStatus$State;")
 // clang-format on
 
