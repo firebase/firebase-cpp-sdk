@@ -260,7 +260,7 @@ TEST_F(FirebaseAdMobTest, TestInitializationStatus) {
       Contains(Pair(
 #if defined(__ANDROID__)
           "com.google.android.gms.ads.MobileAds",
-#elif TARGET_OS_IPHONE
+#elif defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
           "GADMobileAds",
 #else  // desktop
           "stub",
