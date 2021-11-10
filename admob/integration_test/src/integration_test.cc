@@ -124,6 +124,10 @@ using app_framework::ProcessEvents;
 
 using firebase_test_framework::FirebaseTest;
 
+using testing::Contains;
+using testing::Pair;
+using testing::Property;
+
 class FirebaseAdMobTest : public FirebaseTest {
  public:
   FirebaseAdMobTest();
@@ -250,6 +254,26 @@ TEST_F(FirebaseAdMobTest, TestInitializationStatus) {
             adapter_status.second.latency(),
             adapter_status.second.description().c_str());
   }
+#if defined(__ANDROID__)
+  EXPECT_THAT(
+      initialize_future.result()->GetAdapterStatusMap(),
+      Contains(Pair(
+          "com.google.android.gms.ads.MobileAds",
+          Property(&firebase::admob::AdapterStatus::is_initialized, true))));
+
+#elif TARGET_OS_IPHONE
+  EXPECT_THAT(
+      initialize_future.result()->GetAdapterStatusMap(),
+      Contains(Pair(
+          "GADMobileAds",
+          Property(&firebase::admob::AdapterStatus::is_initialized, true))));
+#else  // Desktop uses a stub, ensure it loads correctly.
+  EXPECT_THAT(
+      initialize_future.result()->GetAdapterStatusMap(),
+      Contains(Pair(
+          "stub",
+          Property(&firebase::admob::AdapterStatus::is_initialized, true))));
+#endif  // defined(__ANDROID__), TARGET_OS_IPHONE
 }
 
 TEST_F(FirebaseAdMobTest, TestGetAdRequest) { GetAdRequest(); }
