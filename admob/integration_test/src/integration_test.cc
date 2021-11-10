@@ -248,10 +248,10 @@ TEST_F(FirebaseAdMobTest, TestInitializationStatus) {
   for (auto adapter_status :
        firebase::admob::GetInitializationStatus().GetAdapterStatusMap()) {
     LogDebug("AdMob Mediation Adapter '%s' %s (latency %d ms): %s",
-            adapter_status.first.c_str(),
-            (adapter_status.second.is_initialized() ? "loaded" : "NOT loaded"),
-            adapter_status.second.latency(),
-            adapter_status.second.description().c_str());
+             adapter_status.first.c_str(),
+             (adapter_status.second.is_initialized() ? "loaded" : "NOT loaded"),
+             adapter_status.second.latency(),
+             adapter_status.second.description().c_str());
   }
 
   // Confirm that the base Google Mobile Ads SDK shows up in the list.
