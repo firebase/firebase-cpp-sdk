@@ -172,8 +172,8 @@ static AdapterStatus ConvertFromJavaAdapterStatus(jobject j_adapter_status) {
   env->DeleteLocalRef(j_state_current);
   env->DeleteLocalRef(j_state_ready);
   env->DeleteLocalRef(j_adapter_status);
-  return AdMobInternal::CreateAdapterStatus(std::move(description),
-                                            is_initialized, latency);
+  return AdMobInternal::CreateAdapterStatus(description, is_initialized,
+                                            latency);
 }
 
 static AdapterInitializationStatus PopulateAdapterInitializationStatus(
@@ -225,8 +225,7 @@ static AdapterInitializationStatus PopulateAdapterInitializationStatus(
   env->DeleteLocalRef(j_key_set);
   env->DeleteLocalRef(j_map);
 
-  return AdMobInternal::CreateAdapterInitializationStatus(
-      std::move(adapter_status_map));
+  return AdMobInternal::CreateAdapterInitializationStatus(adapter_status_map);
 }
 
 // Initializes the Google Mobile Ads SDK using the MobileAds.initialize()

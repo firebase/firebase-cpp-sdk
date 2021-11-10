@@ -69,7 +69,7 @@ static AdapterInitializationStatus PopulateAdapterInitializationStatus(
 					 status.latency);
     adapter_status_map[util::NSStringToString(key)] = adapter_status;
   }
-  return AdMobInternal::CreateAdapterInitializationStatus(std::move(adapter_status_map));
+  return AdMobInternal::CreateAdapterInitializationStatus(adapter_status_map);
 }
   
 static Future<AdapterInitializationStatus> InitializeAdMob() {

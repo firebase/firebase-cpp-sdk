@@ -268,8 +268,8 @@ TEST_F(FirebaseAdMobTest, TestInitializationStatus) {
       initialize_future.result()->GetAdapterStatusMap(),
       Contains(Pair(
           kAdMobClassName,
-          Property(&firebase::admob::AdapterStatus::is_initialized, true)))) <<
-    "Expected adapter class '" << kAdMobClassName << "' is not loaded.";
+          Property(&firebase::admob::AdapterStatus::is_initialized, true))))
+      << "Expected adapter class '" << kAdMobClassName << "' is not loaded.";
 }
 
 TEST_F(FirebaseAdMobTest, TestGetAdRequest) { GetAdRequest(); }
