@@ -33,7 +33,9 @@ FIREBASE_APP_REGISTER_CALLBACKS(
     admob,
     {
       if (app == ::firebase::App::GetInstance()) {
-        return firebase::admob::Initialize(*app);
+        firebase::InitResult result;
+        firebase::admob::Initialize(*app, &result);
+        return result;
       }
       return kInitResultSuccess;
     },
@@ -240,24 +242,10 @@ const char* GetRequestAgentString() {
   return "firebase-cpp-api." FIREBASE_VERSION_NUMBER_STRING;
 }
 
-// Futures
-// Create a future and update the corresponding last result.
-template <class T>
-SafeFutureHandle<T> CreateFuture(int fn_idx, FutureData* future_data) {
-  return future_data->future_impl.SafeAlloc<T>(fn_idx);
-}
-
 // Mark a future as complete.
 void CompleteFuture(int error, const char* error_msg,
                     SafeFutureHandle<void> handle, FutureData* future_data) {
   future_data->future_impl.Complete(handle, error, error_msg);
-}
-
-template <class T>
-void CompleteFuture(int error, const char* error_msg,
-                    SafeFutureHandle<T> handle, FutureData* future_data,
-                    const T& result) {
-  future_data->future_impl.CompleteWithResult(handle, error, error_msg, result);
 }
 
 // For calls that aren't asynchronous, we can create and complete at the

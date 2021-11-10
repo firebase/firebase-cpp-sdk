@@ -21,7 +21,10 @@
 
 #include <cstdarg>
 #include <cstddef>
+#include <map>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "admob/admob_resources.h"
 #include "admob/src/android/ad_request_converter.h"
@@ -62,11 +65,46 @@ METHOD_LOOKUP_DEFINITION(
     "com/google/android/gms/ads/RequestConfiguration$Builder",
     REQUESTCONFIGURATIONBUILDER_METHODS);
 
+METHOD_LOOKUP_DEFINITION(
+    initialization_status,
+    PROGUARD_KEEP_CLASS
+    "com/google/android/gms/ads/initialization/InitializationStatus",
+    INITIALIZATION_STATUS_METHODS);
+
+METHOD_LOOKUP_DEFINITION(
+    adapter_status,
+    PROGUARD_KEEP_CLASS
+    "com/google/android/gms/ads/initialization/AdapterStatus",
+    ADAPTER_STATUS_METHODS);
+
+METHOD_LOOKUP_DEFINITION(
+    adapter_status_state,
+    PROGUARD_KEEP_CLASS
+    "com/google/android/gms/ads/initialization/AdapterStatus$State",
+    METHOD_LOOKUP_NONE, ADAPTER_STATUS_STATE_FIELDS);
+
+METHOD_LOOKUP_DEFINITION(
+    admob_initialization_helper,
+    "com/google/firebase/admob/internal/cpp/AdMobInitializationHelper",
+    ADMOB_INITIALIZATION_HELPER_METHODS);
+
+// Constants representing each AdMob function that returns a Future.
+enum AdMobFn {
+  kAdMobFnInitialize,
+  kAdMobFnCount,
+};
+
 static JavaVM* g_java_vm = nullptr;
 static const ::firebase::App* g_app = nullptr;
 static jobject g_activity;
 
-bool g_initialized = false;
+static bool g_initialized = false;
+
+static ReferenceCountedFutureImpl* g_future_impl = nullptr;
+// Mutex for creation/deletion of a g_future_impl.
+static Mutex g_future_impl_mutex;  // NOLINT
+static SafeFutureHandle<AdapterInitializationStatus> g_initialization_handle =
+    SafeFutureHandle<AdapterInitializationStatus>::kInvalidHandle;  // NOLINT
 
 struct MobileAdsCallData {
   // Thread-safe call data.
@@ -88,8 +126,9 @@ void CallInitializeGoogleMobileAds(void* data) {
   FIREBASE_ASSERT(jni_env_exists);
 
   jobject activity = call_data->activity_global;
-  env->CallStaticVoidMethod(mobile_ads::GetClass(),
-                            mobile_ads::GetMethodId(mobile_ads::kInitialize),
+  env->CallStaticVoidMethod(admob_initialization_helper::GetClass(),
+                            admob_initialization_helper::GetMethodId(
+                                admob_initialization_helper::kInitializeAdMob),
                             activity);
   // Check if there is a JNI exception since the MobileAds.initialize method can
   // throw an IllegalArgumentException if the pub passes null for the activity.
@@ -99,25 +138,131 @@ void CallInitializeGoogleMobileAds(void* data) {
   delete call_data;
 }
 
+static AdapterStatus ConvertFromJavaAdapterStatus(jobject j_adapter_status) {
+  JNIEnv* env = ::firebase::admob::GetJNI();
+
+  std::string description = util::JniStringToString(
+      env, env->CallObjectMethod(
+               j_adapter_status,
+               adapter_status::GetMethodId(adapter_status::kGetDescription)));
+  util::CheckAndClearJniExceptions(env);
+
+  int latency = env->CallIntMethod(
+      j_adapter_status,
+      adapter_status::GetMethodId(adapter_status::kGetLatency));
+  util::CheckAndClearJniExceptions(env);
+
+  jobject j_state_current = env->CallObjectMethod(
+      j_adapter_status,
+      adapter_status::GetMethodId(adapter_status::kGetInitializationState));
+  util::CheckAndClearJniExceptions(env);
+
+  jobject j_state_ready = env->GetStaticObjectField(
+      adapter_status_state::GetClass(),
+      adapter_status_state::GetFieldId(adapter_status_state::kReady));
+  util::CheckAndClearJniExceptions(env);
+
+  // is_initialized = (status.getInitializationStatus() ==
+  // AdapterState.State.READY)
+  bool is_initialized = env->CallBooleanMethod(
+      j_state_current, util::enum_class::GetMethodId(util::enum_class::kEquals),
+      j_state_ready);
+  util::CheckAndClearJniExceptions(env);
+
+  env->DeleteLocalRef(j_state_current);
+  env->DeleteLocalRef(j_state_ready);
+  env->DeleteLocalRef(j_adapter_status);
+  return AdMobInternal::CreateAdapterStatus(description, is_initialized,
+                                            latency);
+}
+
+static AdapterInitializationStatus PopulateAdapterInitializationStatus(
+    jobject j_init_status) {
+  if (!j_init_status)
+    return AdMobInternal::CreateAdapterInitializationStatus({});
+
+  JNIEnv* env = ::firebase::admob::GetJNI();
+  std::map<std::string, AdapterStatus> adapter_status_map;
+  // Map<String, AdapterStatus>
+  jobject j_map = env->CallObjectMethod(
+      j_init_status, initialization_status::GetMethodId(
+                         initialization_status::kGetAdapterStatusMap));
+  util::CheckAndClearJniExceptions(env);
+
+  // Extract keys and values from the map.
+  // key_set = map.keySet();
+  jobject j_key_set =
+      env->CallObjectMethod(j_map, util::map::GetMethodId(util::map::kKeySet));
+  util::CheckAndClearJniExceptions(env);
+
+  // iter = key_set.iterator();
+  jobject j_iter = env->CallObjectMethod(
+      j_key_set, util::set::GetMethodId(util::set::kIterator));
+  util::CheckAndClearJniExceptions(env);
+
+  // while (iter.hasNext()) {
+  while (env->CallBooleanMethod(
+      j_iter, util::iterator::GetMethodId(util::iterator::kHasNext))) {
+    // adapter_name = iter.next();
+    jobject j_adapter_name = env->CallObjectMethod(
+        j_iter, util::iterator::GetMethodId(util::iterator::kNext));
+    util::CheckAndClearJniExceptions(env);
+
+    // adapter_status = map.get(adapter_name);
+    jobject j_adapter_status = env->CallObjectMethod(
+        j_map, util::map::GetMethodId(util::map::kGet), j_adapter_name);
+    util::CheckAndClearJniExceptions(env);
+
+    std::string key =
+        util::JniStringToString(env, j_adapter_name);  // deletes name
+    AdapterStatus value =
+        ConvertFromJavaAdapterStatus(j_adapter_status);  // deletes status
+
+    adapter_status_map[key] = value;
+  }
+
+  env->DeleteLocalRef(j_iter);
+  env->DeleteLocalRef(j_key_set);
+  env->DeleteLocalRef(j_map);
+
+  return AdMobInternal::CreateAdapterInitializationStatus(adapter_status_map);
+}
+
 // Initializes the Google Mobile Ads SDK using the MobileAds.initialize()
 // method. The AdMob app ID to retreived from the App's android manifest.
-void InitializeGoogleMobileAds(JNIEnv* env) {
+Future<AdapterInitializationStatus> InitializeGoogleMobileAds(JNIEnv* env) {
+  Future<AdapterInitializationStatus> future_to_return;
+  {
+    MutexLock lock(g_future_impl_mutex);
+    FIREBASE_ASSERT(g_future_impl);
+    FIREBASE_ASSERT(
+        g_initialization_handle.get() ==
+        SafeFutureHandle<AdapterInitializationStatus>::kInvalidHandle.get());
+    g_initialization_handle =
+        g_future_impl->SafeAlloc<AdapterInitializationStatus>(
+            kAdMobFnInitialize);
+    future_to_return = MakeFuture(g_future_impl, g_initialization_handle);
+  }
+
   MobileAdsCallData* call_data = new MobileAdsCallData();
   call_data->activity_global = env->NewGlobalRef(g_activity);
   util::RunOnMainThread(env, g_activity, CallInitializeGoogleMobileAds,
                         call_data);
+
+  return future_to_return;
 }
 
-InitResult Initialize(const ::firebase::App& app) {
-  if (g_initialized) {
-    LogWarning("AdMob is already initialized.");
-    return kInitResultSuccess;
-  }
+Future<AdapterInitializationStatus> Initialize(const ::firebase::App& app,
+                                               InitResult* init_result_out) {
+  FIREBASE_ASSERT(!g_initialized);
   g_app = &app;
-  return Initialize(g_app->GetJNIEnv(), g_app->activity());
+  return Initialize(g_app->GetJNIEnv(), g_app->activity(), init_result_out);
 }
 
-InitResult Initialize(JNIEnv* env, jobject activity) {
+Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
+                                               InitResult* init_result_out) {
+  FIREBASE_ASSERT(!g_initialized);
+
   if (g_java_vm == nullptr) {
     env->GetJavaVM(&g_java_vm);
   }
@@ -127,16 +272,21 @@ InitResult Initialize(JNIEnv* env, jobject activity) {
   if (!util::FindClass(env, "com/google/android/gms/ads/internal/ClientApi") &&
       google_play_services::CheckAvailability(env, activity) !=
           google_play_services::kAvailabilityAvailable) {
-    return kInitResultFailedMissingDependency;
-  }
-
-  if (g_initialized) {
-    LogWarning("AdMob is already initialized.");
-    return kInitResultSuccess;
+    if (init_result_out) {
+      *init_result_out = kInitResultFailedMissingDependency;
+    }
+    // Need to return an invalid Future, because without AdMob initialized,
+    // there is no ReferenceCountedFutureImpl to hold an actual Future instance.
+    return Future<AdapterInitializationStatus>();
   }
 
   if (!util::Initialize(env, activity)) {
-    return kInitResultFailedMissingDependency;
+    if (init_result_out) {
+      *init_result_out = kInitResultFailedMissingDependency;
+    }
+    // Need to return an invalid Future, because without AdMob initialized,
+    // there is no ReferenceCountedFutureImpl to hold an actual Future instance.
+    return Future<AdapterInitializationStatus>();
   }
 
   const std::vector<firebase::internal::EmbeddedFile> embedded_files =
@@ -155,6 +305,12 @@ InitResult Initialize(JNIEnv* env, jobject activity) {
         request_config::CacheMethodIds(env, activity) &&
         request_config_builder::CacheMethodIds(env, activity) &&
         response_info::CacheMethodIds(env, activity) &&
+        adapter_status::CacheMethodIds(env, activity) &&
+        adapter_status_state::CacheFieldIds(env, activity) &&
+        initialization_status::CacheMethodIds(env, activity) &&
+        admob_initialization_helper::CacheClassFromFiles(
+            env, activity, &embedded_files) != nullptr &&
+        admob_initialization_helper::CacheMethodIds(env, activity) &&
         banner_view_helper::CacheClassFromFiles(env, activity,
                                                 &embedded_files) != nullptr &&
         banner_view_helper::CacheMethodIds(env, activity) &&
@@ -166,16 +322,52 @@ InitResult Initialize(JNIEnv* env, jobject activity) {
         admob::RegisterNatives())) {
     ReleaseClasses(env);
     util::Terminate(env);
-    return kInitResultFailedMissingDependency;
+    if (init_result_out) {
+      *init_result_out = kInitResultFailedMissingDependency;
+    }
+    return Future<AdapterInitializationStatus>();
+  }
+
+  {
+    MutexLock lock(g_future_impl_mutex);
+    g_future_impl = new ReferenceCountedFutureImpl(kAdMobFnCount);
   }
 
   g_initialized = true;
   g_activity = env->NewGlobalRef(activity);
 
-  InitializeGoogleMobileAds(env);
+  Future<AdapterInitializationStatus> future = InitializeGoogleMobileAds(env);
   RegisterTerminateOnDefaultAppDestroy();
 
-  return kInitResultSuccess;
+  if (init_result_out) {
+    *init_result_out = kInitResultSuccess;
+  }
+  return future;
+}
+
+Future<AdapterInitializationStatus> InitializeLastResult() {
+  MutexLock lock(g_future_impl_mutex);
+  return g_future_impl
+             ? static_cast<const Future<AdapterInitializationStatus>&>(
+                   g_future_impl->LastResult(kAdMobFnInitialize))
+             : Future<AdapterInitializationStatus>();
+}
+
+AdapterInitializationStatus GetInitializationStatus() {
+  if (g_initialized) {
+    JNIEnv* env = ::firebase::admob::GetJNI();
+    jobject j_status = env->CallStaticObjectMethod(
+        mobile_ads::GetClass(),
+        mobile_ads::GetMethodId(mobile_ads::kGetInitializationStatus));
+    util::CheckAndClearJniExceptions(env);
+    AdapterInitializationStatus status =
+        PopulateAdapterInitializationStatus(j_status);
+    env->DeleteLocalRef(j_status);
+    return status;
+  } else {
+    // Returns an empty map.
+    return PopulateAdapterInitializationStatus(nullptr);
+  }
 }
 
 void SetRequestConfiguration(
@@ -409,6 +601,10 @@ void ReleaseClasses(JNIEnv* env) {
   request_config::ReleaseClass(env);
   request_config_builder::ReleaseClass(env);
   response_info::ReleaseClass(env);
+  adapter_status::ReleaseClass(env);
+  adapter_status_state::ReleaseClass(env);
+  initialization_status::ReleaseClass(env);
+  admob_initialization_helper::ReleaseClass(env);
   banner_view_helper::ReleaseClass(env);
   banner_view_helper_ad_view_listener::ReleaseClass(env);
   interstitial_ad_helper::ReleaseClass(env);
@@ -421,6 +617,13 @@ void Terminate() {
   if (!g_initialized) {
     LogWarning("AdMob already shut down");
     return;
+  }
+  {
+    MutexLock lock(g_future_impl_mutex);
+    g_initialization_handle =
+        SafeFutureHandle<AdapterInitializationStatus>::kInvalidHandle;
+    delete g_future_impl;
+    g_future_impl = nullptr;
   }
   UnregisterTerminateOnDefaultAppDestroy();
   DestroyCleanupNotifier();
@@ -649,6 +852,26 @@ AdValue::PrecisionType ConvertAndroidPrecisionTypeToCPPPrecisionType(
   }
 }
 
+static void JNICALL AdMobInitializationHelper_initializationCompleteCallback(
+    JNIEnv* env, jclass clazz, jobject j_initialization_status) {
+  AdapterInitializationStatus adapter_status =
+      PopulateAdapterInitializationStatus(j_initialization_status);
+  {
+    MutexLock lock(g_future_impl_mutex);
+    // Check if g_future_impl still exists; if not, Terminate() was called,
+    // ignore the result of this callback.
+    if (g_future_impl &&
+        g_initialization_handle.get() !=
+            SafeFutureHandle<AdapterInitializationStatus>::kInvalidHandle
+                .get()) {
+      g_future_impl->CompleteWithResult(g_initialization_handle, 0, "",
+                                        adapter_status);
+      g_initialization_handle =
+          SafeFutureHandle<AdapterInitializationStatus>::kInvalidHandle;
+    }
+  }
+}
+
 extern "C" JNIEXPORT void JNICALL
 Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyPaidEvent(
     JNIEnv* env, jclass clazz, jlong data_ptr, jstring j_currency_code,
@@ -866,6 +1089,12 @@ bool RegisterNatives() {
        reinterpret_cast<void*>(
            &Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_notifyPaidEvent)},  // NOLINT
   };
+  static const JNINativeMethod kAdMobInitializationMethods[] = {
+      {"initializationCompleteCallback",
+       "(Lcom/google/android/gms/ads/initialization/InitializationStatus;)V",
+       reinterpret_cast<void*>(
+           &AdMobInitializationHelper_initializationCompleteCallback)}  // NOLINT
+  };
 
   JNIEnv* env = GetJNI();
   return banner_view_helper::RegisterNatives(
@@ -873,7 +1102,11 @@ bool RegisterNatives() {
 
          interstitial_ad_helper::RegisterNatives(
              env, kInterstitialMethods,
-             FIREBASE_ARRAYSIZE(kInterstitialMethods));
+             FIREBASE_ARRAYSIZE(kInterstitialMethods)) &&
+
+         admob_initialization_helper::RegisterNatives(
+             env, kAdMobInitializationMethods,
+             FIREBASE_ARRAYSIZE(kAdMobInitializationMethods));
 }
 
 jobject CreateJavaAdSize(JNIEnv* env, jobject j_activity,

@@ -223,6 +223,62 @@ class AdResult {
   AdResultInternal* internal_;
 };
 
+/// A snapshot of a mediation adapter's initialization status.
+class AdapterStatus {
+ public:
+  AdapterStatus() : is_initialized_(false), latency_(0) {}
+
+  /// Detailed description of the status.
+  ///
+  /// This method should only be used for informational purposes, such as
+  /// logging. Use @ref is_initialized to make logical decisions regarding an
+  /// adapter's status.
+  const std::string& description() const { return description_; }
+
+  /// Returns the adapter's initialization state.
+  bool is_initialized() const { return is_initialized_; }
+
+  /// The adapter's initialization latency in milliseconds.
+  /// 0 if initialization has not yet ended.
+  int latency() const { return latency_; }
+
+#if !defined(DOXYGEN)
+  // Equality operator for testing.
+  bool operator==(const AdapterStatus& rhs) const {
+    return (description() == rhs.description() &&
+            is_initialized() == rhs.is_initialized() &&
+            latency() == rhs.latency());
+  }
+#endif  // !defined(DOXYGEN)
+
+ private:
+  friend class AdMobInternal;
+  std::string description_;
+  bool is_initialized_;
+  int latency_;
+};
+
+/// An immutable snapshot of the Admob SDK’s initialization status, categorized
+/// by mediation adapter.
+class AdapterInitializationStatus {
+ public:
+  /// Initialization status of each known ad network, keyed by its adapter's
+  /// class name.
+  std::map<std::string, AdapterStatus> GetAdapterStatusMap() const {
+    return adapter_status_map_;
+  }
+#if !defined(DOXYGEN)
+  // Equality operator for testing.
+  bool operator==(const AdapterInitializationStatus& rhs) const {
+    return (GetAdapterStatusMap() == rhs.GetAdapterStatusMap());
+  }
+#endif  // !defined(DOXYGEN)
+
+ private:
+  friend class AdMobInternal;
+  std::map<std::string, AdapterStatus> adapter_status_map_;
+};
+
 /// @brief Response information for an individual ad network contained within
 /// a @ref ResponseInfo object.
 class AdapterResponseInfo {
