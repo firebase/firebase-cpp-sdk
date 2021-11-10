@@ -299,16 +299,16 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
     return Future<AdapterInitializationStatus>();
   }
 
+  {
+    MutexLock lock(g_future_impl_mutex);
+    g_future_impl = new ReferenceCountedFutureImpl(kAdMobFnCount);
+  }
+
   g_initialized = true;
   g_activity = env->NewGlobalRef(activity);
 
   Future<AdapterInitializationStatus> future = InitializeGoogleMobileAds(env);
   RegisterTerminateOnDefaultAppDestroy();
-
-  {
-    MutexLock lock(g_future_impl_mutex);
-    g_future_impl = new ReferenceCountedFutureImpl(kAdMobFnCount);
-  }
 
   if (init_result_out) {
     *init_result_out = kInitResultSuccess;
