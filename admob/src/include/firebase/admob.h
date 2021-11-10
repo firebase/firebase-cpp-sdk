@@ -58,8 +58,7 @@ namespace admob {
 /// @return If init_result_out is kInitResultSuccess, this Future will contain
 /// the initialization status of each adapter once initialization is complete.
 /// Otherwise, the returned Future will have kFutureStatusInvalid.
-Future<AdapterInitializationStatus> Initialize(g
-    const ::firebase::App& app, InitResult* init_result_out = nullptr);
+Future<AdapterInitializationStatus> Initialize(const ::firebase::App& app, InitResult* init_result_out = nullptr);
 
 #if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 /// Initializes AdMob without Firebase for Android.
