@@ -141,7 +141,7 @@ void CallInitializeGoogleMobileAds(void* data) {
 static AdapterStatus ConvertFromJavaAdapterStatus(jobject j_adapter_status) {
   JNIEnv* env = ::firebase::admob::GetJNI();
 
-  std::string description = util::JStringToString(
+  std::string description = util::JniStringToString(
       env, env->CallObjectMethod(
                j_adapter_status,
                adapter_status::GetMethodId(adapter_status::kGetDescription)));
@@ -214,7 +214,7 @@ static AdapterInitializationStatus PopulateAdapterInitializationStatus(
     util::CheckAndClearJniExceptions(env);
 
     std::string key =
-        util::JStringToString(env, j_adapter_name);  // deletes name
+        util::JniStringToString(env, j_adapter_name);  // deletes name
     AdapterStatus value =
         ConvertFromJavaAdapterStatus(j_adapter_status);  // deletes status
 
