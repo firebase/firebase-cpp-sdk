@@ -267,7 +267,7 @@ TEST_F(FirebaseAdMobTest, TestInitializationStatus) {
   // Confirm that the default Google Mobile Ads SDK class name shows up in the
   // list. It should either be is_initialized = true, or description should say
   // "Timeout" (this is a special case we are using to deflake this test on
-  // Android).
+  // Android emulator).
   EXPECT_THAT(
       initialize_future.result()->GetAdapterStatusMap(),
       Contains(Pair(
