@@ -238,11 +238,9 @@ Future<AdapterInitializationStatus> InitializeGoogleMobileAds(JNIEnv* env) {
     FIREBASE_ASSERT(
         g_initialization_handle.get() ==
         SafeFutureHandle<AdapterInitializationStatus>::kInvalidHandle.get());
-    SafeFutureHandle<AdapterInitializationStatus> handle =
-        g_initialization_handle =
-            g_future_impl->SafeAlloc<AdapterInitializationStatus>(
-                kAdMobFnInitialize);
-    future_to_return = MakeFuture(g_future_impl, handle);
+    g_initialization_handle =
+      g_future_impl->SafeAlloc<AdapterInitializationStatus>(kAdMobFnInitialize);
+    future_to_return = MakeFuture(g_future_impl, g_initialization_handle);
   }
 
   MobileAdsCallData* call_data = new MobileAdsCallData();
