@@ -128,7 +128,7 @@ namespace admob {
 // clang-format off
 #define ADMOB_INITIALIZATION_HELPER_METHODS(X)                               \
   X(InitializeAdMob, "initializeAdMob", "(Landroid/content/Context;)V",      \
-    util::kFieldTypeStatic)
+    util::kMethodTypeStatic)
 // clang-format on
 
 METHOD_LOOKUP_DECLARATION(ad_request_builder, ADREQUESTBUILDER_METHODS);
