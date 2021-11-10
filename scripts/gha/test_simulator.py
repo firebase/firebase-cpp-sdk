@@ -576,6 +576,17 @@ def _create_and_boot_emulator(sdk_id):
   else:
     time.sleep(45)
 
+def _run_with_retry(args, shell=False, check=True, timeout=_CMD_TIMEOUT, retry_time=_TEST_RETRY, device=_DEVICE_NONE, type=_RESET_TYPE_REBOOT):
+  if retry_time > 1:
+    try:
+      subprocess.run(args, shell=shell, check=check, timeout=timeout)
+    except:
+      if device == _DEVICE_ANDROID:
+        _reset_emulator_on_error(type)
+      _run_with_retry(args, shell, check, timeout, retry_time-1, device, type)
+  else:
+    subprocess.run(args, shell=shell, check=check, timeout=timeout)
+
 
 def _reset_emulator_on_error(type=_RESET_TYPE_REBOOT):
   if type == _RESET_TYPE_WIPE_REBOOT:
@@ -583,7 +594,6 @@ def _reset_emulator_on_error(type=_RESET_TYPE_REBOOT):
     args = ["adb", "shell", "recovery", "--wipe_data"]
     logging.info("Erase my Emulator: %s", " ".join(args))
     subprocess.run(args=args, check=True)
-    _reset_emulator_on_error()
 
   # reboot emulator: _RESET_TYPE_WIPE_REBOOT, _RESET_TYPE_REBOOT
   logging.info("game-loop test error!!! reboot emualtor...")
