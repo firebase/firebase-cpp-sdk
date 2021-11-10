@@ -853,7 +853,6 @@ AdValue::PrecisionType ConvertAndroidPrecisionTypeToCPPPrecisionType(
 
 static void JNICALL AdMobInitializationHelper_initializationCompleteCallback(
     JNIEnv* env, jclass clazz, jobject j_initialization_status) {
-  LogInfo("AdMobInitializationHelper_initializationCompleteCallback called");
   AdapterInitializationStatus adapter_status =
       PopulateAdapterInitializationStatus(j_initialization_status);
   {
