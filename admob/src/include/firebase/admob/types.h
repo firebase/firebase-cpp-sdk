@@ -242,14 +242,15 @@ class AdapterStatus {
   /// 0 if initialization has not yet ended.
   int latency() const { return latency_; }
 
-#ifndef DOXYGEN
+#if !defined(DOXYGEN)
   // Equality operator for testing.
   bool operator==(const AdapterStatus& rhs) const {
     return (description() == rhs.description() &&
             is_initialized() == rhs.is_initialized() &&
             latency() == rhs.latency());
   }
-#endif  // DOXYGEN
+#endif  // !defined(DOXYGEN)
+
  private:
   friend class AdMobInternal;
   std::string description_;
@@ -266,12 +267,12 @@ class AdapterInitializationStatus {
   const std::map<std::string, AdapterStatus>& GetAdapterStatusMap() const {
     return adapter_status_map_;
   }
-#ifndef DOXYGEN
+#if !defined(DOXYGEN)
   // Equality operator for testing.
   bool operator==(const AdapterInitializationStatus& rhs) const {
     return (GetAdapterStatusMap() == rhs.GetAdapterStatusMap());
   }
-#endif  // DOXYGEN
+#endif  // !defined(DOXYGEN)
 
  private:
   friend class AdMobInternal;

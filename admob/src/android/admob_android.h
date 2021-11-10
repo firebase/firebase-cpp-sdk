@@ -68,7 +68,10 @@ namespace admob {
     "(Lcom/google/android/gms/ads/RequestConfiguration;)V",                  \
     util::kMethodTypeStatic),                                                \
   X(GetRequestConfiguration, "getRequestConfiguration",                      \
-    "()Lcom/google/android/gms/ads/RequestConfiguration;",                  \
+    "()Lcom/google/android/gms/ads/RequestConfiguration;",                   \
+    util::kMethodTypeStatic),                                                \
+  X(GetInitializationStatus, "getInitializationStatus",                      \
+    "()Lcom/google/android/gms/ads/initialization/InitializationStatus;",    \
     util::kMethodTypeStatic)
 // clang-format on
 
@@ -99,6 +102,35 @@ namespace admob {
   X(GetTestDeviceIds , "getTestDeviceIds", "()Ljava/util/List;")
 
 
+// clang-format off
+#define INITIALIZATION_STATUS_METHODS(X)                                     \
+  X(GetAdapterStatusMap, "getAdapterStatusMap", "()Ljava/util/Map;")
+// clang-format on
+
+// clang-format off
+#define ADAPTER_STATUS_METHODS(X)                                            \
+  X(GetDescription, "getDescription", "()Ljava/lang/String;"),               \
+  X(GetLatency, "getLatency", "()I"),                                        \
+  X(GetState, "getState",                                                    \
+    "()Lcom/google/android/gms/ads/initialization/AdapterStatus$State;")
+// clang-format on
+
+// clang-format off
+#define ADAPTER_STATUS_FIELDS(X)                                             \
+  X(NotReady, "NOT_READY",                                                   \
+    "Lcom/google/android/gms/ads/initialization/AdapterStatus$State;",       \
+    util::kFieldTypeStatic),                                                 \
+  X(Ready, "READY",                                                          \
+    "Lcom/google/android/gms/ads/initialization/AdapterStatus$State;",       \
+    util::kFieldTypeStatic)
+// clang-format on
+
+// clang-format off
+#define ADMOB_INITIALIZATION_HELPER_METHODS(X)                               \
+  X(InitializeAdMob, "initializeAdMob", "(Landroid/content/Context;)V")
+// clang-format on
+
+
 METHOD_LOOKUP_DECLARATION(ad_request_builder, ADREQUESTBUILDER_METHODS);
 METHOD_LOOKUP_DECLARATION(mobile_ads, MOBILEADS_METHODS);
 METHOD_LOOKUP_DECLARATION(request_config,
@@ -106,6 +138,9 @@ METHOD_LOOKUP_DECLARATION(request_config,
 METHOD_LOOKUP_DECLARATION(request_config_builder,
                           REQUESTCONFIGURATIONBUILDER_METHODS);
 METHOD_LOOKUP_DECLARATION(ad_size, ADSIZE_METHODS);
+METHOD_LOOKUP_DECLARATION(initialization_status, INITIALIZATION_STATUS_METHODS);
+METHOD_LOOKUP_DECLARATION(adapter_status, ADAPTER_STATUS_METHODS, ADAPTER_STATUS_FIELDS);
+METHOD_LOOKUP_DECLARATION(admob_initialization_helper, ADMOB_INITIALIZATION_HELPER_METHODS);
 
 // Needed when AdMob is initialized without Firebase.
 JNIEnv* GetJNI();
