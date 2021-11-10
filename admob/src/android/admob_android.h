@@ -130,17 +130,17 @@ namespace admob {
   X(InitializeAdMob, "initializeAdMob", "(Landroid/content/Context;)V")
 // clang-format on
 
-
 METHOD_LOOKUP_DECLARATION(ad_request_builder, ADREQUESTBUILDER_METHODS);
 METHOD_LOOKUP_DECLARATION(mobile_ads, MOBILEADS_METHODS);
-METHOD_LOOKUP_DECLARATION(request_config,
-                          REQUESTCONFIGURATION_METHODS);
+METHOD_LOOKUP_DECLARATION(request_config, REQUESTCONFIGURATION_METHODS);
 METHOD_LOOKUP_DECLARATION(request_config_builder,
                           REQUESTCONFIGURATIONBUILDER_METHODS);
 METHOD_LOOKUP_DECLARATION(ad_size, ADSIZE_METHODS);
 METHOD_LOOKUP_DECLARATION(initialization_status, INITIALIZATION_STATUS_METHODS);
-METHOD_LOOKUP_DECLARATION(adapter_status, ADAPTER_STATUS_METHODS, ADAPTER_STATUS_FIELDS);
-METHOD_LOOKUP_DECLARATION(admob_initialization_helper, ADMOB_INITIALIZATION_HELPER_METHODS);
+METHOD_LOOKUP_DECLARATION(adapter_status, ADAPTER_STATUS_METHODS,
+                          ADAPTER_STATUS_FIELDS);
+METHOD_LOOKUP_DECLARATION(admob_initialization_helper,
+                          ADMOB_INITIALIZATION_HELPER_METHODS);
 
 // Needed when AdMob is initialized without Firebase.
 JNIEnv* GetJNI();
