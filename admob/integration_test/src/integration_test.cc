@@ -50,7 +50,7 @@
 namespace firebase_testapp_automated {
 
 // The AdMob app IDs for the test app.
-#if defined(__ANDROID__)
+#if defined(ANDROID)
 // If you change the AdMob app ID for your Android app, make sure to change it
 // in AndroidManifest.xml as well.
 const char* kAdMobAppID = "ca-app-pub-3940256099942544~3347511713";
@@ -62,7 +62,7 @@ const char* kAdMobAppID = "ca-app-pub-3940256099942544~1458002511";
 
 // These ad units IDs have been created specifically for testing, and will
 // always return test ads.
-#if defined(__ANDROID__)
+#if defined(ANDROID)
 const char* kBannerAdUnit = "ca-app-pub-3940256099942544/6300978111";
 const char* kInterstitialAdUnit = "ca-app-pub-3940256099942544/1033173712";
 #else
@@ -86,7 +86,7 @@ enum AdCallbackEvent {
 };
 
 // Error domains vary across phone SDKs.
-#if defined(__ANDROID__)
+#if defined(ANDROID)
 const char* kErrorDomain = "com.google.android.gms.ads";
 #else
 const char* kErrorDomain = "com.google.admob";
@@ -105,7 +105,7 @@ static const std::map<std::string, std::string> kAdMobAdapterExtras = {
     {"the_name_of_an_extra", "the_value_for_that_extra"},
     {"heres", "a second example"}};
 
-#if defined(__ANDROID__)
+#if defined(ANDROID)
 static const char* kAdNetworkExtrasClassName =
     "com/google/ads/mediation/admob/AdMobAdapter";
 #else
@@ -155,12 +155,12 @@ void FirebaseAdMobTest::SetUpTestSuite() {
 
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 
-#if defined(__ANDROID__)
+#if defined(ANDROID)
   shared_app_ = ::firebase::App::Create(app_framework::GetJniEnv(),
                                         app_framework::GetActivity());
 #else
   shared_app_ = ::firebase::App::Create();
-#endif  // defined(__ANDROID__)
+#endif  // defined(ANDROID)
 
   LogDebug("Initializing AdMob.");
 
@@ -258,9 +258,9 @@ TEST_F(FirebaseAdMobTest, TestInitializationStatus) {
   EXPECT_THAT(
       initialize_future.result()->GetAdapterStatusMap(),
       Contains(Pair(
-#if defined(__ANDROID__)
+#if defined(ANDROID)
           "com.google.android.gms.ads.MobileAds",
-#elif defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+#elif TARGET_OS_IPHONE
           "GADMobileAds",
 #else  // desktop
           "stub",
@@ -502,7 +502,7 @@ TEST_F(FirebaseAdMobTest, TestRequestConfigurationSetGet) {
   EXPECT_EQ(retrieved_configuration.max_ad_content_rating,
             firebase::admob::RequestConfiguration::kMaxAdContentRatingPG);
 
-#if defined(__ANDROID__)
+#if defined(ANDROID)
   EXPECT_EQ(retrieved_configuration.tag_for_child_directed_treatment,
             firebase::admob::RequestConfiguration::kChildDirectedTreatmentTrue);
   EXPECT_EQ(retrieved_configuration.tag_for_under_age_of_consent,
@@ -680,7 +680,7 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
   EXPECT_EQ(++expected_num_bounding_box_changes,
             bounding_box_listener.bounding_box_changes_.size());
 
-#if defined(__ANDROID__) || TARGET_OS_IPHONE
+#if defined(ANDROID) || TARGET_OS_IPHONE
   // As an extra check, all bounding boxes except the last should have the same
   // size aspect ratio that we requested. For example if you requested a 320x50
   // banner, you can get one with the size 960x150. Use EXPECT_NEAR because the
