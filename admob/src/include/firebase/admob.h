@@ -55,9 +55,10 @@ namespace admob {
 /// Note that this does not include the adapter initialization status, which is
 /// returned in the Future.
 ///
-/// @return Once adapters are all initialized, this will contain the
-/// initialization status of each one.
-Future<AdapterInitializationStatus> Initialize(
+/// @return If init_result_out is kInitResultSuccess, this Future will contain
+/// the initialization status of each adapter once initialization is complete.
+/// Otherwise, the returned Future will have kFutureStatusInvalid.
+Future<AdapterInitializationStatus> Initialize(g
     const ::firebase::App& app, InitResult* init_result_out = nullptr);
 
 #if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
@@ -83,8 +84,9 @@ Future<AdapterInitializationStatus> Initialize(
 /// Note that this does not include the adapter initialization status, which is
 /// returned in the Future.
 ///
-/// @return Once adapters are all initialized, this will contain the
-/// initialization status of each one.
+/// @return If init_result_out is kInitResultSuccess, this Future will contain
+/// the initialization status of each adapter once initialization is complete.
+/// Otherwise, the returned Future will have kFutureStatusInvalid.
 Future<AdapterInitializationStatus> Initialize(
     JNIEnv* jni_env, jobject activity, InitResult* init_result_out = nullptr);
 
@@ -100,8 +102,9 @@ Future<AdapterInitializationStatus> Initialize(
 /// Note that this does not include the adapter initialization status, which is
 /// returned in the Future.
 ///
-/// @return Once adapters are all initialized, this will contain the
-/// initialization status of each one.
+/// @return If init_result_out is kInitResultSuccess, this Future will contain
+/// the initialization status of each adapter once initialization is complete.
+/// Otherwise, the returned Future will have kFutureStatusInvalid.
 Future<AdapterInitializationStatus> Initialize(
     InitResult* init_result_out = nullptr);
 #endif  // !defined(__ANDROID__) || defined(DOXYGEN)
