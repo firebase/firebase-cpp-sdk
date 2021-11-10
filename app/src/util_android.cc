@@ -471,6 +471,7 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
         date::CacheMethodIds(env, activity_object) &&
         dex_class_loader::CacheMethodIds(env, activity_object) &&
         double_class::CacheMethodIds(env, activity_object) &&
+        enum_class::CacheMethodIds(env, activity_object) &&
         file::CacheMethodIds(env, activity_object) &&
         file_output_stream::CacheMethodIds(env, activity_object) &&
         float_class::CacheMethodIds(env, activity_object) &&

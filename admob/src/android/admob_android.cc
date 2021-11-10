@@ -176,7 +176,6 @@ static AdapterInitializationStatus PopulateAdapterInitializationStatus(
   jobject j_map = env->CallObjectMethod(
       j_init_status, initialization_status::GetMethodId(
                          initialization_status::kGetAdapterStatusMap));
-
   util::CheckAndClearJniExceptions(env);
   // Extract keys and values from the map.
   jobject j_key_set =
