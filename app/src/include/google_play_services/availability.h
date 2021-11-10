@@ -22,7 +22,7 @@
 #if !defined(SWIG_BUILD)
 #include <jni.h>
 #endif
-#include "app/src/include/firebase/future.h"
+#include "firebase/future.h"
 
 /// @brief Google Play services APIs included with the Firebase C++ SDK.
 /// These APIs are Android-specific.

@@ -12,6 +12,7 @@ on:
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
+  GITHUB_TOKEN: ${{ github.token }}
 
 jobs:
   prepare_matrix:
@@ -76,7 +77,22 @@ jobs:
             xcode_version: "12.4"
           - os: windows-latest
             xcode_version: "12.4"
+          # arm64 is only for macos
+          - os: ubuntu-latest
+            architecture: "arm64"
+          - os: windows-latest
+            architecture: "arm64"
+          # arm64 can't be built on Xcode 11
+          - xcode_version: "11.7"
+            architecture: "arm64"
     steps:                
+      - name: Store git credentials for all git commands
+        # Forces all git commands to use authenticated https, to prevent throttling.
+        shell: bash
+        run: |
+          git config --global credential.helper 'store --file /tmp/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
+
       - name: Setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer
@@ -114,13 +130,17 @@ jobs:
           echo "VCPKG_SUFFIX: ${{env.VCPKG_SUFFIX}}"
           echo "VCPKG_RESPONSE_FILE=external/vcpkg_custom_data/response_files/${{ matrix.architecture }}-${{ env.VCPKG_SUFFIX }}.txt" >> $GITHUB_ENV
           echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}" >> $GITHUB_ENV
+          if [[ '${{ matrix.sdk_platform }}' == 'darwin' ]]; then
+            # If Mac, also hash vcpkg cache on Xcode version.
+            echo "VCPKG_EXTRA_HASH=-xcode${{matrix.xcode_version}}" >> $GITHUB_ENV
+          fi
 
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
         uses: actions/cache@v2
         with:
           path: external/vcpkg/installed
-          key: dev-vcpkg-${{ matrix.architecture }}-${{ env.VCPKG_SUFFIX }}-${{ matrix.msvc_runtime }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
+          key: dev-vcpkg-${{ matrix.architecture }}-${{ env.VCPKG_SUFFIX }}-${{ matrix.msvc_runtime }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}${{ env.VCPKG_EXTRA_HASH }}
 
       - name: Cache ccache files
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
@@ -128,7 +148,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ccache_dir
-          key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
+          key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}${{ env.VCPKG_EXTRA_HASH }}
 
       - name: Setup python
         uses: actions/setup-python@v2
@@ -193,7 +213,7 @@ jobs:
 
       - name: Run unit tests (windows & macos)
         # TODO: Enable tests for x86 once they are all working
-        if: (startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')) && matrix.architecture != 'x86'
+        if: (startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')) && matrix.architecture != 'x86' && matrix.architecture != 'arm64'
         env:
           LANG: en_US
         run: |
@@ -262,3 +282,84 @@ jobs:
           path: |
             ~/Library/Logs/DiagnosticReports/*
             /tmp/bins/*
+
+  local_integration_tests: 
+    ### This job run firestore integration test on Linux Dekstop as required by firestore team. 
+    ### It's possible to add more apps here once integration tests are less flaky.
+    name: local-integration-tests-linux-openssl
+    needs: prepare_matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{needs.check_and_prepare.outputs.github_ref}}
+          submodules: true
+      - name: Set env vars
+        run: |
+          echo "VCPKG_TRIPLET=x64-linux" >> $GITHUB_ENV
+          echo "VCPKG_RESPONSE_FILE=external/vcpkg_${{ env.VCPKG_TRIPLET }}_response_file.txt" >> $GITHUB_ENV
+      - name: Cache vcpkg C++ dependencies
+        id: cache_vcpkg
+        uses: actions/cache@v2
+        with:
+          path: external/vcpkg/installed
+          key: dev-vcpkg-${{ env.VCPKG_TRIPLET }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
+      - name: Cache ccache files
+        uses: actions/cache@v2
+        with:
+          path: ccache_dir
+          key: local-integration-tests-linux-openssl-ccache
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version)[0] }}
+      - name: Prepare for integration tests
+        run: |
+          pip install -r scripts/gha/requirements.txt
+      - name: Install OpenSSL
+        run: |
+          sudo apt install openssl
+      - name: Build integration tests
+        shell: bash
+        env: 
+          CCACHE_DIR: ${{ github.workspace }}/ccache_dir
+        run: |
+          apis=$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k apis -m=1 )
+          python scripts/gha/build_testapps.py --p Desktop \
+            --t ${apis} \
+            --output_directory "${{ github.workspace }}" \
+            --artifact_name "desktop-ubuntu-latest-openssl" \
+            --noadd_timestamp \
+            --short_output_paths \
+            --cmake_flag=-DFIREBASE_QUICK_TEST=ON
+      - name: Summarize build results
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          cat build-results-desktop-ubuntu-latest-openssl.log
+          if [[ "${{ job.status }}" != "success" ]]; then
+            exit 1
+          fi
+      - name: Set up Node (12)
+        uses: actions/setup-node@v2
+        with:
+          node-version: 12.x
+      - name: Setup Firestore Emulator
+        run: |
+          npm install -g firebase-tools
+      - name: Run Desktop integration tests
+        run: |
+          cp scripts/gha/integration_testing/google-services.json testapps-desktop-ubuntu-latest-openssl/firestore/google-services.json
+          firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps-desktop-ubuntu-latest-openssl --logfile_name "desktop-ubuntu-latest-openssl"'
+        env:
+          USE_FIRESTORE_EMULATOR: true
+      - name: Summarize test results
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          cat testapps-desktop-ubuntu-latest-openssl/test-results-desktop-ubuntu-latest-openssl.log
+          if [[ "${{ job.status }}" != "success" ]]; then
+            exit 1
+          fi

@@ -18,7 +18,7 @@ if(TARGET firestore)
   return()
 endif()
 
-set(version CocoaPods-8.5.0)
+set(version CocoaPods-8.9.1)
 ExternalProject_Add(
   firestore
 
@@ -31,4 +31,5 @@ ExternalProject_Add(
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
   TEST_COMMAND ""
+  HTTP_HEADER "${EXTERNAL_PROJECT_HTTP_HEADER}"
 )

@@ -145,6 +145,8 @@ class QueryInternal {
     return WithBound(BoundPosition::kEndAt, values);
   }
 
+  size_t Hash() const { return query_.Hash(); }
+
   friend bool operator==(const QueryInternal& lhs, const QueryInternal& rhs);
 
  protected:

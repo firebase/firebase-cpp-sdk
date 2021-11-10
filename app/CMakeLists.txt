@@ -347,6 +347,13 @@ target_compile_definitions(firebase_app
     -DINTERNAL_EXPERIMENTAL=1
 )
 
+if(FIREBASE_QUICK_TEST)
+  target_compile_definitions(firebase_app 
+      PUBLIC 
+          QUICK_CHECK
+  )
+endif()
+
 # firebase_app has a dependency on flatbuffers, which needs to be included.
 target_link_libraries(firebase_app
   PRIVATE

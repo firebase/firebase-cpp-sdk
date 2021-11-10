@@ -59,12 +59,13 @@ Method<Object> kGet("get",
                     "(Lcom/google/firebase/firestore/FieldPath;"
                     "Lcom/google/firebase/firestore/DocumentSnapshot$"
                     "ServerTimestampBehavior;)Ljava/lang/Object;");
+Method<int32_t> kHashCode("hashCode", "()I");
 
 }  // namespace
 
 void DocumentSnapshotInternal::Initialize(jni::Loader& loader) {
   loader.LoadClass(kClass, kGetId, kGetReference, kGetMetadata, kExists,
-                   kGetData, kContains, kGet);
+                   kGetData, kContains, kGet, kHashCode);
 }
 
 Firestore* DocumentSnapshotInternal::firestore() const {
@@ -127,6 +128,11 @@ FieldValue DocumentSnapshotInternal::Get(const FieldPath& field,
   Local<Object> java_stb = ServerTimestampBehaviorInternal::Create(env, stb);
   Local<Object> field_value = env.Call(obj_, kGet, java_field, java_stb);
   return FieldValueInternal::Create(env, field_value);
+}
+
+std::size_t DocumentSnapshotInternal::Hash() const {
+  Env env = GetEnv();
+  return env.Call(obj_, kHashCode);
 }
 
 bool operator==(const DocumentSnapshotInternal& lhs,

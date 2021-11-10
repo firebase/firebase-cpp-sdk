@@ -24,7 +24,7 @@
 #include <unordered_set>
 
 #include "Firestore/core/src/api/firestore.h"
-#include "Firestore/core/src/auth/credentials_provider.h"
+#include "Firestore/core/src/credentials/credentials_provider.h"
 #include "Firestore/core/src/model/database_id.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
@@ -147,11 +147,13 @@ class FirestoreInternal {
     kCount,
   };
 
-  FirestoreInternal(App* app,
-                    std::unique_ptr<auth::CredentialsProvider> credentials);
+  FirestoreInternal(
+      App* app,
+      std::unique_ptr<credentials::AuthCredentialsProvider> credentials);
 
   std::shared_ptr<api::Firestore> CreateFirestore(
-      App* app, std::unique_ptr<auth::CredentialsProvider> credentials);
+      App* app,
+      std::unique_ptr<credentials::AuthCredentialsProvider> credentials);
 
   // Gets the reference-counted Future implementation of this instance, which
   // can be used to create a Future.

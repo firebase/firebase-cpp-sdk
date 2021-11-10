@@ -71,6 +71,20 @@ std::vector<MapFieldValue> AllDocsExcept(
 
 }  // namespace
 
+size_t QueryHash(const Query& query) { return query.Hash(); }
+
+TEST_F(QueryTest, TestHashCode) {
+  CollectionReference collection =
+      Collection({{"a", {{"k", FieldValue::String("a")}}},
+                  {"b", {{"k", FieldValue::String("b")}}}});
+  Query query1 =
+      collection.Limit(2).OrderBy("sort", Query::Direction::kAscending);
+  Query query2 =
+      collection.Limit(2).OrderBy("sort", Query::Direction::kDescending);
+  EXPECT_NE(QueryHash(query1), QueryHash(query2));
+  EXPECT_EQ(QueryHash(query1), QueryHash(query1));
+}
+
 TEST_F(QueryTest, TestLimitQueries) {
   CollectionReference collection =
       Collection({{"a", {{"k", FieldValue::String("a")}}},

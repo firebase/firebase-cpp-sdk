@@ -49,8 +49,8 @@ android {
 }
 
 dependencies {
-  implementation 'com.google.firebase:firebase-analytics:19.0.0'
-  implementation 'com.google.firebase:firebase-dynamic-links:20.1.1'
+  implementation 'com.google.firebase:firebase-analytics:20.0.0'
+  implementation 'com.google.firebase:firebase-dynamic-links:21.0.0'
   implementation project(':app:app_resources')
 }
 
