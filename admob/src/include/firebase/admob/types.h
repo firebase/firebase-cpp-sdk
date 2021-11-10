@@ -264,7 +264,7 @@ class AdapterInitializationStatus {
  public:
   /// Initialization status of each known ad network, keyed by its adapter's
   /// class name.
-  const std::map<std::string, AdapterStatus>& GetAdapterStatusMap() const {
+  std::map<std::string, AdapterStatus> GetAdapterStatusMap() const {
     return adapter_status_map_;
   }
 #if !defined(DOXYGEN)
