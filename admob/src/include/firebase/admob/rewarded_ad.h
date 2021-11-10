@@ -71,6 +71,16 @@ class RewardedAdInternal;
 /// @endcode
 class RewardedAd {
  public:
+  /// Options for RewardedAd server-side verification callbacks. Set options on
+  /// a RewardedAd object using the SetServerSideVerificationOptions.
+  struct ServerSideVerificationOptions {
+    /// Custom data to be included in server-side verification callbacks.
+    std::string custom_data;
+
+    /// User id to be used in server-to-server reward callbacks.
+    std::string user_id;
+  };
+
   /// Creates an uninitialized @ref RewardedAd object.
   /// @ref Initialize must be called before the object is used.
   RewardedAd();
@@ -118,6 +128,14 @@ class RewardedAd {
   ///
   /// @param[in] listener A valid @ref PaidEventListener to receive callbacks.
   void SetPaidEventListener(PaidEventListener* listener);
+
+  /// Sets the server side verification options.
+  ///
+  /// @param[in] serverSideVerificationOptions A @ref
+  /// ServerSideVerificationOptions object containing custom data and a user
+  /// Id.
+  void SetServerSideVerificationOptions(
+      const ServerSideVerificationOptions &serverSideVerificationOptions);
 
  private:
   // An internal, platform-specific implementation object that this class uses

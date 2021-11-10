@@ -108,5 +108,10 @@ void RewardedAd::SetPaidEventListener(PaidEventListener* listener) {
   internal_->SetPaidEventListener(listener);
 }
 
+void RewardedAd::SetServerSideVerificationOptions(
+    const ServerSideVerificationOptions& options) {
+  internal_->SetServerSideVerificationOptions(options);
+}
+
 }  // namespace admob
 }  // namespace firebase

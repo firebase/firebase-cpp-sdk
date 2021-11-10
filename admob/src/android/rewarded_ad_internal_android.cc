@@ -49,6 +49,7 @@ RewardedAdInternalAndroid::RewardedAdInternalAndroid(RewardedAd* base)
       rewarded_ad_helper::GetClass(),
       rewarded_ad_helper::GetMethodId(rewarded_ad_helper::kConstructor),
       reinterpret_cast<jlong>(this));
+  util::CheckAndClearJniExceptions(env);
 
   FIREBASE_ASSERT(helper_ref);
   helper_ = env->NewGlobalRef(helper_ref);
@@ -64,6 +65,7 @@ RewardedAdInternalAndroid::~RewardedAdInternalAndroid() {
   // data.
   env->CallVoidMethod(helper_, rewarded_ad_helper::GetMethodId(
                                    rewarded_ad_helper::kDisconnect));
+  util::CheckAndClearJniExceptions(env);
   env->DeleteGlobalRef(helper_);
 
   helper_ = nullptr;
@@ -74,7 +76,6 @@ RewardedAdInternalAndroid::~RewardedAdInternalAndroid() {
 
 Future<void> RewardedAdInternalAndroid::Initialize(AdParent parent) {
   firebase::MutexLock lock(mutex_);
-
   if (initialized_) {
     const SafeFutureHandle<void> future_handle =
         future_data_.future_impl.SafeAlloc<void>(kRewardedAdFnInitialize);
@@ -85,21 +86,21 @@ Future<void> RewardedAdInternalAndroid::Initialize(AdParent parent) {
   }
 
   initialized_ = true;
-  JNIEnv* env = ::firebase::admob::GetJNI();
-  FIREBASE_ASSERT(env);
-
   FutureCallbackData<void>* callback_data =
       CreateVoidFutureCallbackData(kRewardedAdFnInitialize, &future_data_);
+
+  JNIEnv* env = ::firebase::admob::GetJNI();
+  FIREBASE_ASSERT(env);
   env->CallVoidMethod(
       helper_, rewarded_ad_helper::GetMethodId(rewarded_ad_helper::kInitialize),
       reinterpret_cast<jlong>(callback_data), parent);
+  util::CheckAndClearJniExceptions(env);
   return MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 }
 
 Future<AdResult> RewardedAdInternalAndroid::LoadAd(const char* ad_unit_id,
                                                    const AdRequest& request) {
   firebase::MutexLock lock(mutex_);
-
   if (!initialized_) {
     SafeFutureHandle<AdResult> handle =
         future_data_.future_impl.SafeAlloc<AdResult>(kRewardedAdFnLoadAd,
@@ -119,15 +120,16 @@ Future<AdResult> RewardedAdInternalAndroid::LoadAd(const char* ad_unit_id,
         kRewardedAdFnLoadAd, error, kAdCouldNotParseAdRequestErrorMessage,
         &future_data_, AdResult());
   }
-  JNIEnv* env = GetJNI();
-  FIREBASE_ASSERT(env);
   FutureCallbackData<AdResult>* callback_data =
       CreateAdResultFutureCallbackData(kRewardedAdFnLoadAd, &future_data_);
 
+  JNIEnv* env = GetJNI();
+  FIREBASE_ASSERT(env);
   jstring j_ad_unit_str = env->NewStringUTF(ad_unit_id);
-  ::firebase::admob::GetJNI()->CallVoidMethod(
+  env->CallVoidMethod(
       helper_, rewarded_ad_helper::GetMethodId(rewarded_ad_helper::kLoadAd),
       reinterpret_cast<jlong>(callback_data), j_ad_unit_str, j_request);
+  util::CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(j_ad_unit_str);
   env->DeleteLocalRef(j_request);
 
@@ -151,9 +153,19 @@ Future<void> RewardedAdInternalAndroid::Show(
       CreateVoidFutureCallbackData(kRewardedAdFnShow, &future_data_);
   SafeFutureHandle<void> future_handle = callback_data->future_handle;
 
-  ::firebase::admob::GetJNI()->CallVoidMethod(
+  JNIEnv* env = GetJNI();
+  FIREBASE_ASSERT(env);
+  jstring j_verification_custom_data =
+      env->NewStringUTF(serverSideVerificationOptions_.custom_data.c_str());
+  jstring j_verification_user_id =
+      env->NewStringUTF(serverSideVerificationOptions_.user_id.c_str());
+  env->CallVoidMethod(
       helper_, rewarded_ad_helper::GetMethodId(rewarded_ad_helper::kShow),
-      reinterpret_cast<jlong>(callback_data));
+      reinterpret_cast<jlong>(callback_data), j_verification_custom_data,
+      j_verification_user_id);
+  util::CheckAndClearJniExceptions(env);
+  env->DeleteLocalRef(j_verification_custom_data);
+  env->DeleteLocalRef(j_verification_user_id);
 
   return MakeFuture(&future_data_.future_impl, future_handle);
 }

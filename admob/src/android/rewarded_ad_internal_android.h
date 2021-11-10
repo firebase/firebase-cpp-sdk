@@ -30,7 +30,7 @@ namespace admob {
 #define REWARDEDADHELPER_METHODS(X)                                            \
   X(Constructor, "<init>", "(J)V"),                                            \
   X(Initialize, "initialize", "(JLandroid/app/Activity;)V"),                   \
-  X(Show, "show", "(J)V"),                                                     \
+  X(Show, "show", "(JLjava/lang/String;Ljava/lang/String;)V"),                 \
   X(LoadAd, "loadAd",                                                          \
     "(JLjava/lang/String;Lcom/google/android/gms/ads/AdRequest;)V"),           \
   X(Disconnect, "disconnect", "()V")

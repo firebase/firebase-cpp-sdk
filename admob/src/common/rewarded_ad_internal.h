@@ -69,6 +69,11 @@ class RewardedAdInternal : public FullScreenAdEventListener {
   // Returns true if the RewardedAd has been initialized.
   virtual bool is_initialized() const = 0;
 
+  /// Sets the server side verification options.
+  void SetServerSideVerificationOptions(
+      const RewardedAd::ServerSideVerificationOptions&
+          serverSideVerificationOptions);
+
  protected:
   friend class firebase::admob::RewardedAd;
 
@@ -85,6 +90,9 @@ class RewardedAdInternal : public FullScreenAdEventListener {
   // Reference to the listener to which this object sends user earned
   // reward event callbacks.
   UserEarnedRewardListener* user_earned_reward_listener_;
+
+  // Options for RewardedAd server-side verification callbacks.
+  RewardedAd::ServerSideVerificationOptions serverSideVerificationOptions_;
 };
 
 }  // namespace internal

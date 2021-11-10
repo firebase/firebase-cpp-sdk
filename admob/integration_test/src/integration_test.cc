@@ -696,6 +696,14 @@ TEST_F(FirebaseAdMobTest, TestRewardedAdLoadAndShow) {
   firebase::admob::AdRequest request = GetAdRequest();
   WaitForCompletion(rewarded->LoadAd(kRewardedAdUnit, request), "LoadAd");
 
+  firebase::admob::RewardedAd::ServerSideVerificationOptions options;
+  // We cannot programmatically verify that the AdMob phone SDKs marshal
+  // these values properly (there are no get methods). At least invoke the
+  // method to ensure least we can set them without any exceptions occurring.
+  options.custom_data = "custom data";
+  options.user_id = "123456";
+  rewarded->SetServerSideVerificationOptions(options);
+
   TestUserEarnedRewardListener user_earned_reward_listener;
   WaitForCompletion(rewarded->Show(&user_earned_reward_listener), "Show");
 

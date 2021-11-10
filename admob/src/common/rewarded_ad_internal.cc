@@ -71,6 +71,12 @@ Future<AdResult> RewardedAdInternal::GetLoadAdLastResult() {
       future_data_.future_impl.LastResult(kRewardedAdFnLoadAd));
 }
 
+void RewardedAdInternal::SetServerSideVerificationOptions(
+    const RewardedAd::ServerSideVerificationOptions&
+        serverSideVerificationOptions) {
+  serverSideVerificationOptions_ = serverSideVerificationOptions;
+}
+
 }  // namespace internal
 }  // namespace admob
 }  // namespace firebase

@@ -25,6 +25,7 @@ import com.google.android.gms.ads.FullScreenContentCallback;
 import com.google.android.gms.ads.LoadAdError;
 import com.google.android.gms.ads.OnPaidEventListener;
 import com.google.android.gms.ads.OnUserEarnedRewardListener;
+import com.google.android.gms.ads.rewarded.ServerSideVerificationOptions;
 import com.google.android.gms.ads.rewarded.RewardedAd;
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 import com.google.android.gms.ads.rewarded.RewardItem;
@@ -190,7 +191,8 @@ public class RewardedAdHelper {
   /**
    * Shows a previously loaded ad.
    */
-  public void show(final long callbackDataPtr) {
+  public void show(final long callbackDataPtr, final String verificationCustomData,
+                   final String verificationUserId) {
     mActivity.runOnUiThread(
         new Runnable() {
           @Override
@@ -207,6 +209,13 @@ public class RewardedAdHelper {
               } else {
                 errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
                 errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
+                if (!verificationCustomData.isEmpty() || !verificationUserId.isEmpty()) {
+                  ServerSideVerificationOptions options =
+                      new ServerSideVerificationOptions.Builder()
+                          .setCustomData(verificationCustomData)
+                          .setUserId(verificationUserId).build();
+                  mRewarded.setServerSideVerificationOptions(options);
+                }
                 mRewarded.show(
                     mActivity,
                     new UserEarnedRewardListener());
