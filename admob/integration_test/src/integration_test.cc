@@ -255,17 +255,25 @@ TEST_F(FirebaseAdMobTest, TestInitializationStatus) {
   }
 
   // Confirm that the base Google Mobile Ads SDK shows up in the list.
+#if defined(ANDROID)
   EXPECT_THAT(
       initialize_future.result()->GetAdapterStatusMap(),
       Contains(Pair(
-#if defined(ANDROID)
           "com.google.android.gms.ads.MobileAds",
-#elif TARGET_OS_IPHONE
-          "GADMobileAds",
-#else  // desktop
-          "stub",
-#endif
           Property(&firebase::admob::AdapterStatus::is_initialized, true))));
+#elif defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+  EXPECT_THAT(
+      initialize_future.result()->GetAdapterStatusMap(),
+      Contains(Pair(
+          "GADMobileAds",
+          Property(&firebase::admob::AdapterStatus::is_initialized, true))));
+#else  // desktop
+  EXPECT_THAT(
+      initialize_future.result()->GetAdapterStatusMap(),
+      Contains(Pair(
+          "stub",
+          Property(&firebase::admob::AdapterStatus::is_initialized, true))));
+#endif
 }
 
 TEST_F(FirebaseAdMobTest, TestGetAdRequest) { GetAdRequest(); }
