@@ -21,6 +21,8 @@
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 
+#include <string>
+
 namespace firebase {
 namespace admob {
 
