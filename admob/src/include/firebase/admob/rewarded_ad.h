@@ -17,11 +17,11 @@
 #ifndef FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_REWARDED_AD_H_
 #define FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_REWARDED_AD_H_
 
+#include <string>
+
 #include "firebase/admob/types.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
-
-#include <string>
 
 namespace firebase {
 namespace admob {
