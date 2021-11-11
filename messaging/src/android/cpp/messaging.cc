@@ -704,6 +704,7 @@ void Terminate() {
   g_firebase_messaging = nullptr;
   SetListener(nullptr);
   ReleaseClasses(env);
+  util::CancelCallbacks(env, kApiIdentifier);
   util::Terminate(env);
   FutureData::Destroy();
 }
