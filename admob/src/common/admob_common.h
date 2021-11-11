@@ -19,7 +19,9 @@
 
 #include <stdarg.h>
 
+#include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "admob/src/include/firebase/admob/types.h"
@@ -108,6 +110,18 @@ FutureCallbackData<void>* CreateVoidFutureCallbackData(int fn_idx,
 FutureCallbackData<AdResult>* CreateAdResultFutureCallbackData(
     int fn_idx, FutureData* future_data);
 
+// Template function implementations.
+template <class T>
+SafeFutureHandle<T> CreateFuture(int fn_idx, FutureData* future_data) {
+  return future_data->future_impl.SafeAlloc<T>(fn_idx);
+}
+template <class T>
+void CompleteFuture(int error, const char* error_msg,
+                    SafeFutureHandle<T> handle, FutureData* future_data,
+                    const T& result) {
+  future_data->future_impl.CompleteWithResult(handle, error, error_msg, result);
+}
+
 // A class that allows access to private/protected Admob structures for Java
 // callbacks.  This is achieved via friend relationships with those classes.
 class AdMobInternal {
@@ -120,6 +134,24 @@ class AdMobInternal {
 
   // Constructs and returns an AdResult object given an AdResultInteral object.
   static AdResult CreateAdResult(const AdResultInternal& ad_result_internal);
+
+  // Construct and return an AdapterStatus with the given values.
+  static AdapterStatus CreateAdapterStatus(const std::string& description,
+                                           bool is_initialized, int latency) {
+    AdapterStatus status;
+    status.description_ = description;
+    status.is_initialized_ = is_initialized;
+    status.latency_ = latency;
+    return status;
+  }
+  // Construct and return an AdapterInitializationStatus with the given
+  // statuses.
+  static AdapterInitializationStatus CreateAdapterInitializationStatus(
+      const std::map<std::string, AdapterStatus>& status_map) {
+    AdapterInitializationStatus init_status;
+    init_status.adapter_status_map_ = status_map;
+    return init_status;
+  }
 };
 
 }  // namespace admob

@@ -50,7 +50,7 @@
 namespace firebase_testapp_automated {
 
 // The AdMob app IDs for the test app.
-#if defined(__ANDROID__)
+#if defined(ANDROID)
 // If you change the AdMob app ID for your Android app, make sure to change it
 // in AndroidManifest.xml as well.
 const char* kAdMobAppID = "ca-app-pub-3940256099942544~3347511713";
@@ -62,7 +62,7 @@ const char* kAdMobAppID = "ca-app-pub-3940256099942544~1458002511";
 
 // These ad units IDs have been created specifically for testing, and will
 // always return test ads.
-#if defined(__ANDROID__)
+#if defined(ANDROID)
 const char* kBannerAdUnit = "ca-app-pub-3940256099942544/6300978111";
 const char* kInterstitialAdUnit = "ca-app-pub-3940256099942544/1033173712";
 const char* kRewardedAdUnit = "ca-app-pub-3940256099942544/5224354917";
@@ -88,7 +88,7 @@ enum AdCallbackEvent {
 };
 
 // Error domains vary across phone SDKs.
-#if defined(__ANDROID__)
+#if defined(ANDROID)
 const char* kErrorDomain = "com.google.android.gms.ads";
 #else
 const char* kErrorDomain = "com.google.admob";
@@ -107,7 +107,7 @@ static const std::map<std::string, std::string> kAdMobAdapterExtras = {
     {"the_name_of_an_extra", "the_value_for_that_extra"},
     {"heres", "a second example"}};
 
-#if defined(__ANDROID__)
+#if defined(ANDROID)
 static const char* kAdNetworkExtrasClassName =
     "com/google/ads/mediation/admob/AdMobAdapter";
 #else
@@ -124,6 +124,12 @@ using app_framework::LogDebug;
 using app_framework::ProcessEvents;
 
 using firebase_test_framework::FirebaseTest;
+
+using testing::AnyOf;
+using testing::Contains;
+using testing::HasSubstr;
+using testing::Pair;
+using testing::Property;
 
 class FirebaseAdMobTest : public FirebaseTest {
  public:
@@ -153,12 +159,12 @@ void FirebaseAdMobTest::SetUpTestSuite() {
 
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 
-#if defined(__ANDROID__)
+#if defined(ANDROID)
   shared_app_ = ::firebase::App::Create(app_framework::GetJniEnv(),
                                         app_framework::GetActivity());
 #else
   shared_app_ = ::firebase::App::Create();
-#endif  // defined(__ANDROID__)
+#endif  // defined(ANDROID)
 
   LogDebug("Initializing AdMob.");
 
@@ -166,7 +172,9 @@ void FirebaseAdMobTest::SetUpTestSuite() {
   initializer.Initialize(shared_app_, nullptr,
                          [](::firebase::App* app, void* /* userdata */) {
                            LogDebug("Try to initialize AdMob");
-                           return ::firebase::admob::Initialize(*app);
+                           firebase::InitResult result;
+                           ::firebase::admob::Initialize(*app, &result);
+                           return result;
                          });
 
   WaitForCompletion(initializer.InitializeLastResult(), "Initialize");
@@ -233,6 +241,45 @@ firebase::admob::AdRequest FirebaseAdMobTest::GetAdRequest() {
 }
 
 // Test cases below.
+TEST_F(FirebaseAdMobTest, TestInitializationStatus) {
+  // Ensure Initialize()'s result matches GetInitializationStatus().
+  auto initialize_future = firebase::admob::InitializeLastResult();
+  WaitForCompletion(initialize_future, "admob::Initialize");
+  ASSERT_NE(initialize_future.result(), nullptr);
+  EXPECT_EQ(*initialize_future.result(),
+            firebase::admob::GetInitializationStatus());
+
+  for (auto adapter_status :
+       firebase::admob::GetInitializationStatus().GetAdapterStatusMap()) {
+    LogDebug("AdMob Mediation Adapter '%s' %s (latency %d ms): %s",
+             adapter_status.first.c_str(),
+             (adapter_status.second.is_initialized() ? "loaded" : "NOT loaded"),
+             adapter_status.second.latency(),
+             adapter_status.second.description().c_str());
+  }
+
+#if defined(ANDROID)
+  const char kAdMobClassName[] = "com.google.android.gms.ads.MobileAds";
+#elif defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+  const char kAdMobClassName[] = "GADMobileAds";
+#else  // desktop
+  const char kAdMobClassName[] = "stub";
+#endif
+
+  // Confirm that the default Google Mobile Ads SDK class name shows up in the
+  // list. It should either be is_initialized = true, or description should say
+  // "Timeout" (this is a special case we are using to deflake this test on
+  // Android emulator).
+  EXPECT_THAT(
+      initialize_future.result()->GetAdapterStatusMap(),
+      Contains(Pair(
+          kAdMobClassName,
+          AnyOf(Property(&firebase::admob::AdapterStatus::is_initialized, true),
+                Property(&firebase::admob::AdapterStatus::description,
+                         HasSubstr("Timeout"))))))
+      << "Expected adapter class '" << kAdMobClassName << "' is not loaded.";
+}
+
 TEST_F(FirebaseAdMobTest, TestGetAdRequest) { GetAdRequest(); }
 
 TEST_F(FirebaseAdMobTest, TestGetAdRequestValues) {
@@ -482,7 +529,7 @@ TEST_F(FirebaseAdMobTest, TestRequestConfigurationSetGet) {
   EXPECT_EQ(retrieved_configuration.max_ad_content_rating,
             firebase::admob::RequestConfiguration::kMaxAdContentRatingPG);
 
-#if defined(__ANDROID__)
+#if defined(ANDROID)
   EXPECT_EQ(retrieved_configuration.tag_for_child_directed_treatment,
             firebase::admob::RequestConfiguration::kChildDirectedTreatmentTrue);
   EXPECT_EQ(retrieved_configuration.tag_for_under_age_of_consent,
@@ -891,7 +938,7 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
   EXPECT_EQ(++expected_num_bounding_box_changes,
             bounding_box_listener.bounding_box_changes_.size());
 
-#if defined(__ANDROID__) || TARGET_OS_IPHONE
+#if defined(ANDROID) || TARGET_OS_IPHONE
   // As an extra check, all bounding boxes except the last should have the same
   // size aspect ratio that we requested. For example if you requested a 320x50
   // banner, you can get one with the size 960x150. Use EXPECT_NEAR because the

@@ -609,6 +609,15 @@ METHOD_LOOKUP_DECLARATION(hash_map, HASHMAP_METHODS);
 METHOD_LOOKUP_DECLARATION(double_class, DOUBLE_METHODS);
 
 // clang-format off
+#define ENUM_METHODS(X)             \
+  X(Equals, "equals",               \
+    "(Ljava/lang/Object;)Z"),       \
+  X(Name, "name",                   \
+    "()Ljava/lang/String;")         \
+// clang-format on
+METHOD_LOOKUP_DECLARATION(enum_class, ENUM_METHODS);
+
+// clang-format off
 #define BOOLEAN_METHODS(X)            \
     X(Constructor, "<init>", "(Z)V"), \
     X(Value, "booleanValue", "()Z")

@@ -46,13 +46,21 @@ namespace admob {
 
 /// Initializes AdMob via Firebase.
 ///
-/// @param app The Firebase app for which to initialize mobile ads.
+/// @param[in] app The Firebase app for which to initialize mobile ads.
 ///
-/// @return kInitResultSuccess if initialization succeeded, or
+/// @param[out] init_result_out Optional: If provided, write the basic init
+/// result here. kInitResultSuccess if initialization succeeded, or
 /// kInitResultFailedMissingDependency on Android if Google Play services is not
 /// available on the current device and the Google Mobile Ads SDK requires
 /// Google Play services (for example, when using 'play-services-ads-lite').
-InitResult Initialize(const ::firebase::App& app);
+/// Note that this does not include the adapter initialization status, which is
+/// returned in the Future.
+///
+/// @return If init_result_out is kInitResultSuccess, this Future will contain
+/// the initialization status of each adapter once initialization is complete.
+/// Otherwise, the returned Future will have kFutureStatusInvalid.
+Future<AdapterInitializationStatus> Initialize(
+    const ::firebase::App& app, InitResult* init_result_out = nullptr);
 
 #if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 /// Initializes AdMob without Firebase for Android.
@@ -69,18 +77,45 @@ InitResult Initialize(const ::firebase::App& app);
 ///
 /// @param[in] jni_env JNIEnv pointer.
 /// @param[in] activity Activity used to start the application.
-///
-/// @return kInitResultSuccess if initialization succeeded, or
+/// @param[out] init_result_out Optional: If provided, write the basic init
+/// result here. kInitResultSuccess if initialization succeeded, or
 /// kInitResultFailedMissingDependency on Android if Google Play services is not
-/// available on the current device and the AdMob SDK requires
-/// Google Play services (for example when using 'play-services-ads-lite').
-InitResult Initialize(JNIEnv* jni_env, jobject activity);
+/// available on the current device and the Google Mobile Ads SDK requires
+/// Google Play services (for example, when using 'play-services-ads-lite').
+/// Note that this does not include the adapter initialization status, which is
+/// returned in the Future.
+///
+/// @return If init_result_out is kInitResultSuccess, this Future will contain
+/// the initialization status of each adapter once initialization is complete.
+/// Otherwise, the returned Future will have kFutureStatusInvalid.
+Future<AdapterInitializationStatus> Initialize(
+    JNIEnv* jni_env, jobject activity, InitResult* init_result_out = nullptr);
 
 #endif  // defined(__ANDROID__) || defined(DOXYGEN)
 #if !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 /// Initializes AdMob without Firebase for iOS.
-InitResult Initialize();
+///
+/// @param[out] init_result_out Optional: If provided, write the basic init
+/// result here. kInitResultSuccess if initialization succeeded, or
+/// kInitResultFailedMissingDependency on Android if Google Play services is not
+/// available on the current device and the Google Mobile Ads SDK requires
+/// Google Play services (for example, when using 'play-services-ads-lite').
+/// Note that this does not include the adapter initialization status, which is
+/// returned in the Future.
+///
+/// @return If init_result_out is kInitResultSuccess, this Future will contain
+/// the initialization status of each adapter once initialization is complete.
+/// Otherwise, the returned Future will have kFutureStatusInvalid.
+Future<AdapterInitializationStatus> Initialize(
+    InitResult* init_result_out = nullptr);
 #endif  // !defined(__ANDROID__) || defined(DOXYGEN)
+
+/// Get the Future returned by a previous call to Initialize.
+Future<AdapterInitializationStatus> InitializeLastResult();
+
+/// Get the current adapter initialization status. You can poll this method to
+/// check which adapters have been initialized.
+AdapterInitializationStatus GetInitializationStatus();
 
 /// Sets the global @ref RequestConfiguration that will be used for
 /// every @ref AdRequest during the app's session.
