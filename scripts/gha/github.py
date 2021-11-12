@@ -182,6 +182,7 @@ def dismiss_review(token, pull_number, review_id, message):
     logging.info("dismiss_review: %s response: %s", url, response)
     return response.json()
 
+
 def get_reviews(token, pull_number):
   """https://docs.github.com/en/rest/reference/pulls#list-reviews-for-a-pull-request"""
   url = f'{FIREBASE_URL}/pulls/{pull_number}/reviews'
@@ -203,14 +204,27 @@ def get_reviews(token, pull_number):
   return results
 
 
-def workflow_dispatch(token, workflow_id, ref, inputs):
+def create_workflow_dispatch(token, workflow_id, ref, inputs):
   """https://docs.github.com/en/rest/reference/actions#create-a-workflow-dispatch-event"""
   url = f'{FIREBASE_URL}/actions/workflows/{workflow_id}/dispatches'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
   data = {'ref': ref, 'inputs': inputs}
   with requests.post(url, headers=headers, data=json.dumps(data),
                     stream=True, timeout=TIMEOUT) as response:
-    logging.info("workflow_dispatch: %s response: %s", url, response)
+    logging.info("create_workflow_dispatch: %s response: %s", url, response)
+    # Response Status: 204 No Content
+    return True if response.status_code == 204 else False
+
+
+def list_workflows(token, workflow_id, branch):
+  """https://docs.github.com/en/rest/reference/actions#list-workflow-runs-for-a-repository"""
+  url = f'{FIREBASE_URL}/actions/workflows/{workflow_id}/runs'
+  headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
+  data = {'event': 'workflow_dispatch', 'branch': branch}
+  with requests.get(url, headers=headers, data=json.dumps(data),
+                    stream=True, timeout=TIMEOUT) as response:
+    logging.info("list_workflows: %s response: %s", url, response)
+    return response.json()
 
 
 def create_pull_request(token, head, base, title, body, maintainer_can_modify):
@@ -223,6 +237,7 @@ def create_pull_request(token, head, base, title, body, maintainer_can_modify):
                     stream=True, timeout=TIMEOUT) as response:
     logging.info("create_pull_request: %s response: %s", head, response)
     return True if response.status_code == 201 else False
+
 
 def list_pull_requests(token, state, head, base):
   """https://docs.github.com/en/rest/reference/pulls#list-pull-requests"""
