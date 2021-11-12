@@ -29,9 +29,6 @@ If -c is unspecified, uses the current HEAD.
 """
 
 import argparse
-import json
-import os
-import re
 import subprocess
 import time
 import urllib.parse
@@ -42,16 +39,11 @@ def main():
   if args.branch is None:
     args.branch=subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD']).decode('utf-8').rstrip('\n')
     print('autodetected branch: %s' % args.branch)
-  if args.repo:
-    if not args.repo.startswith('https://github.com/'):
-      print('Error, only https://github.com/ repositories are allowed.')
+  if args.repo: # else use default firebase/firebase-cpp-sdk repo
+    if not github.set_repo_url(args.repo):
       exit(2)
     else:
-      (repo_owner, repo_name) = re.match(r'https://github\.com/([^/]+)/([^/.]+)', args.repo).groups()
-      github.OWNER = repo_owner
-      github.REPO = repo_name
-      github.GITHUB_API_URL = '%s/repos/%s/%s' % (github.BASE_URL, github.OWNER, github.REPO)
-      print('set repo url: %s' % github.GITHUB_API_URL)
+      print('set repo url to: %s' % github.GITHUB_API_URL)
 
   json_params = {}
   for param in args.param:

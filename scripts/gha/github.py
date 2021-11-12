@@ -21,6 +21,7 @@ This script handles GitHub Issue, Pull Request, Comment, Label and Artifact
 import requests
 import json
 import shutil
+import re
 
 from absl import logging
 from requests.adapters import HTTPAdapter
@@ -37,6 +38,21 @@ REPO = 'firebase-cpp-sdk'
 BASE_URL = 'https://api.github.com'
 GITHUB_API_URL = '%s/repos/%s/%s' % (BASE_URL, OWNER, REPO)
 logging.set_verbosity(logging.INFO)
+
+
+def set_repo_url(repo):  
+  match = re.match(r'https://github\.com/([^/]+)/([^/.]+)', repo)
+  if not match:
+    logging.info('Error, only pattern https://github.com/\{repo_owner\}/\{repo_name\} are allowed.')
+    return False
+
+  (repo_owner, repo_name) = match.groups()
+  global OWNER, REPO, GITHUB_API_URL
+  OWNER = repo_owner
+  REPO = repo_name
+  GITHUB_API_URL = '%s/repos/%s/%s' % (BASE_URL, OWNER, REPO)
+  return True
+
 
 def requests_retry_session(retries=RETRIES,
                            backoff_factor=BACKOFF,
