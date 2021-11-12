@@ -50,13 +50,14 @@ def main():
       (repo_owner, repo_name) = re.match(r'https://github\.com/([^/]+)/([^/.]+)', args.repo).groups()
       github.OWNER = repo_owner
       github.REPO = repo_name
-      print('set repo url: %s' % github.FIREBASE_URL)
+      github.GITHUB_API_URL = '%s/repos/%s/%s' % (github.BASE_URL, github.OWNER, github.REPO)
+      print('set repo url: %s' % github.GITHUB_API_URL)
 
   json_params = {}
   for param in args.param:
     json_params[param[0]] = param[1]
   if args.verbose or args.dryrun:
-    print(f'request_url: {github.FIREBASE_URL}/actions/workflows/{args.workflow}/dispatches')
+    print(f'request_url: {github.GITHUB_API_URL}/actions/workflows/{args.workflow}/dispatches')
     print(f'request_body: ref: {args.branch}, inputs: {json_params}')
   if args.dryrun:
     return(0)
@@ -89,7 +90,7 @@ def main():
   else:
     # Couldn't get a run ID, use a generic URL.
     workflow_url = '/%s/actions/workflows/%s?query=%s+%s' % (
-      github.FIREBASE_URL, args.workflow,
+      github.GITHUB_API_URL, args.workflow,
       urllib.parse.quote('event:workflow_dispatch', safe=''),
       urllib.parse.quote('branch:'+args.branch, safe=''))
   print('%sStarted workflow %s: %s' % ('::warning ::' if args.in_github_action else '',
