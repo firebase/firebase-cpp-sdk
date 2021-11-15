@@ -32,8 +32,7 @@ RewardedAd::RewardedAd() {
   internal_ = internal::RewardedAdInternal::CreateInstance(this);
 
   GetOrCreateCleanupNotifier()->RegisterObject(this, [](void* object) {
-    FIREBASE_ASSERT_MESSAGE(
-        false, "RewardedAd must be deleted before admob::Terminate.");
+    LogWarning("RewardedAd must be deleted before admob::Terminate.");
     RewardedAd* rewarded_ad = reinterpret_cast<RewardedAd*>(object);
     delete rewarded_ad->internal_;
     rewarded_ad->internal_ = nullptr;

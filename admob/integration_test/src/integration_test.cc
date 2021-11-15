@@ -607,8 +607,8 @@ TEST_F(FirebaseAdMobTest, TestRewardedAdLoad) {
 // Interactive test section.  These have been placed up front so that the
 // tester doesn't get bored waiting for them.
 TEST_F(FirebaseAdMobTest, TestBannerViewAdOpenedAdClosed) {
-  SKIP_TEST_ON_DESKTOP;
   TEST_REQUIRES_USER_INTERACTION;
+  SKIP_TEST_ON_DESKTOP;
 
   const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::admob::BannerView* banner = new firebase::admob::BannerView();
@@ -755,8 +755,8 @@ TEST_F(FirebaseAdMobTest, TestRewardedAdLoadAndShow) {
   WaitForCompletion(rewarded->Show(&user_earned_reward_listener), "Show");
 
   LogDebug(
-      "Click the Install button in the ad, "
-      "return to the ad, and close the ad to continue");
+      "Wait for the Ad to finish playing, click the ad, return to the ad, "
+      "then close the ad to continue.");
 
   while (
       full_screen_content_listener.num_on_ad_dismissed_full_screen_content_ ==
@@ -785,8 +785,6 @@ TEST_F(FirebaseAdMobTest, TestRewardedAdLoadAndShow) {
 // Other Banner View Tests
 
 TEST_F(FirebaseAdMobTest, TestBannerView) {
-  // AdMob cannot be tested on Firebase Test Lab, so disable tests on FTL.
-  TEST_REQUIRES_USER_INTERACTION;
   SKIP_TEST_ON_DESKTOP;
 
   const firebase::admob::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
@@ -1406,8 +1404,6 @@ TEST_F(FirebaseAdMobTest, TestRewardedAdErrorBadExtrasClassName) {
 
 // Stress tests.  These take a while so run them near the end.
 TEST_F(FirebaseAdMobTest, TestBannerViewStress) {
-  // AdMob cannot be tested on Firebase Test Lab, so disable tests on FTL.
-  TEST_REQUIRES_USER_INTERACTION;
   SKIP_TEST_ON_DESKTOP;
 
   for (int i = 0; i < 10; ++i) {
@@ -1426,7 +1422,6 @@ TEST_F(FirebaseAdMobTest, TestBannerViewStress) {
 }
 
 TEST_F(FirebaseAdMobTest, TestInterstitialAdStress) {
-  TEST_REQUIRES_USER_INTERACTION;
   SKIP_TEST_ON_DESKTOP;
 
   for (int i = 0; i < 10; ++i) {
@@ -1446,7 +1441,6 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdStress) {
 }
 
 TEST_F(FirebaseAdMobTest, TestRewardedAdStress) {
-  TEST_REQUIRES_USER_INTERACTION;
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_IOS;
 

@@ -31,8 +31,7 @@ BannerView::BannerView() {
   FIREBASE_ASSERT(admob::IsInitialized());
   internal_ = internal::BannerViewInternal::CreateInstance(this);
   GetOrCreateCleanupNotifier()->RegisterObject(this, [](void* object) {
-    FIREBASE_ASSERT_MESSAGE(
-        false, "BannerView must be deleted before admob::Terminate.");
+    LogWarning("BannerView must be deleted before admob::Terminate.");
     BannerView* banner_view = reinterpret_cast<BannerView*>(object);
     delete banner_view->internal_;
     banner_view->internal_ = nullptr;

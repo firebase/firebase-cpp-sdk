@@ -32,8 +32,7 @@ InterstitialAd::InterstitialAd() {
   internal_ = internal::InterstitialAdInternal::CreateInstance(this);
 
   GetOrCreateCleanupNotifier()->RegisterObject(this, [](void* object) {
-    FIREBASE_ASSERT_MESSAGE(
-        false, "InterstitialAd must be deleted before admob::Terminate.");
+    LogWarning("InterstitialAd must be deleted before admob::Terminate.");
     InterstitialAd* interstitial_ad = reinterpret_cast<InterstitialAd*>(object);
     delete interstitial_ad->internal_;
     interstitial_ad->internal_ = nullptr;

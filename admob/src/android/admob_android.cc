@@ -781,33 +781,16 @@ static void JNICALL AdMobInitializationHelper_initializationCompleteCallback(
   }
 }
 
-extern "C" JNIEXPORT void JNICALL
-Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyPaidEvent(
-    JNIEnv* env, jclass clazz, jlong data_ptr, jstring j_currency_code,
-    jint j_precision_type, jlong j_value_micros) {
-  FIREBASE_ASSERT(data_ptr);
-  firebase::admob::internal::BannerViewInternal* internal =
-      reinterpret_cast<firebase::admob::internal::BannerViewInternal*>(
-          data_ptr);
-
-  const char* currency_code = env->GetStringUTFChars(j_currency_code, nullptr);
-  const AdValue::PrecisionType precision_type =
-      ConvertAndroidPrecisionTypeToCPPPrecisionType(j_precision_type);
-  AdValue ad_value(currency_code, precision_type, (int64_t)j_value_micros);
-  internal->NotifyListenerOfPaidEvent(ad_value);
-}
+namespace {
 
 // Common JNI methods
 //
-extern "C" JNIEXPORT void JNICALL
-JNI_completeAdFutureCallback(JNIEnv* env, jclass clazz, jlong data_ptr,
-                             jint error_code, jstring error_message) {
+void JNI_completeAdFutureCallback(JNIEnv* env, jclass clazz, jlong data_ptr,
+                                  jint error_code, jstring error_message) {
   CompleteAdFutureCallback(env, clazz, data_ptr, error_code, error_message);
 }
 
-extern "C" JNIEXPORT void JNICALL JNI_completeLoadedAd(JNIEnv* env,
-                                                       jclass clazz,
-                                                       jlong data_ptr) {
+void JNI_completeLoadedAd(JNIEnv* env, jclass clazz, jlong data_ptr) {
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
   FutureCallbackData<AdResult>* callback_data =
@@ -816,9 +799,9 @@ extern "C" JNIEXPORT void JNICALL JNI_completeLoadedAd(JNIEnv* env,
                                /*error_message=*/"");
 }
 
-extern "C" JNIEXPORT void JNICALL JNI_completeLoadAdError(
-    JNIEnv* env, jclass clazz, jlong data_ptr, jobject j_load_ad_error,
-    jint j_error_code, jstring j_error_message) {
+void JNI_completeLoadAdError(JNIEnv* env, jclass clazz, jlong data_ptr,
+                             jobject j_load_ad_error, jint j_error_code,
+                             jstring j_error_message) {
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
   FIREBASE_ASSERT(j_error_message);
@@ -829,9 +812,9 @@ extern "C" JNIEXPORT void JNICALL JNI_completeLoadAdError(
 }
 
 // Internal Errors use AdMobError codes.
-extern "C" JNIEXPORT void JNICALL
-JNI_completeLoadAdInternalError(JNIEnv* env, jclass clazz, jlong data_ptr,
-                                jint j_error_code, jstring j_error_message) {
+void JNI_completeLoadAdInternalError(JNIEnv* env, jclass clazz, jlong data_ptr,
+                                     jint j_error_code,
+                                     jstring j_error_message) {
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
   FIREBASE_ASSERT(j_error_message);
@@ -840,8 +823,8 @@ JNI_completeLoadAdInternalError(JNIEnv* env, jclass clazz, jlong data_ptr,
                                    error_code, j_error_message);
 }
 
-extern "C" JNIEXPORT void JNICALL JNI_notifyAdClickedFullScreenContentEvent(
-    JNIEnv* env, jclass clazz, jlong data_ptr) {
+void JNI_notifyAdClickedFullScreenContentEvent(JNIEnv* env, jclass clazz,
+                                               jlong data_ptr) {
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
   internal::FullScreenAdEventListener* listener =
@@ -849,8 +832,8 @@ extern "C" JNIEXPORT void JNICALL JNI_notifyAdClickedFullScreenContentEvent(
   listener->NotifyListenerOfAdClickedFullScreenContent();
 }
 
-extern "C" JNIEXPORT void JNICALL JNI_notifyAdDismissedFullScreenContentEvent(
-    JNIEnv* env, jclass clazz, jlong data_ptr) {
+void JNI_notifyAdDismissedFullScreenContentEvent(JNIEnv* env, jclass clazz,
+                                                 jlong data_ptr) {
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
   internal::FullScreenAdEventListener* listener =
@@ -858,10 +841,9 @@ extern "C" JNIEXPORT void JNICALL JNI_notifyAdDismissedFullScreenContentEvent(
   listener->NotifyListenerOfAdDismissedFullScreenContent();
 }
 
-extern "C" JNIEXPORT void JNICALL
-JNI_notifyAdFailedToShowFullScreenContentEvent(JNIEnv* env, jclass clazz,
-                                               jlong data_ptr,
-                                               jobject j_ad_error) {
+void JNI_notifyAdFailedToShowFullScreenContentEvent(JNIEnv* env, jclass clazz,
+                                                    jlong data_ptr,
+                                                    jobject j_ad_error) {
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
   FIREBASE_ASSERT(j_ad_error);
@@ -879,9 +861,7 @@ JNI_notifyAdFailedToShowFullScreenContentEvent(JNIEnv* env, jclass clazz,
   listener->NotifyListenerOfAdFailedToShowFullScreenContent(ad_result);
 }
 
-extern "C" JNIEXPORT void JNICALL JNI_notifyAdImpressionEvent(JNIEnv* env,
-                                                              jclass clazz,
-                                                              jlong data_ptr) {
+void JNI_notifyAdImpressionEvent(JNIEnv* env, jclass clazz, jlong data_ptr) {
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
   internal::FullScreenAdEventListener* listener =
@@ -889,8 +869,8 @@ extern "C" JNIEXPORT void JNICALL JNI_notifyAdImpressionEvent(JNIEnv* env,
   listener->NotifyListenerOfAdImpression();
 }
 
-extern "C" JNIEXPORT void JNICALL JNI_notifyAdShowedFullScreenContentEvent(
-    JNIEnv* env, jclass clazz, jlong data_ptr) {
+void JNI_notifyAdShowedFullScreenContentEvent(JNIEnv* env, jclass clazz,
+                                              jlong data_ptr) {
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
   internal::FullScreenAdEventListener* listener =
@@ -898,9 +878,9 @@ extern "C" JNIEXPORT void JNICALL JNI_notifyAdShowedFullScreenContentEvent(
   listener->NotifyListenerOfAdShowedFullScreenContent();
 }
 
-extern "C" JNIEXPORT void JNICALL JNI_notifyAdPaidEvent(
-    JNIEnv* env, jclass clazz, jlong data_ptr, jstring j_currency_code,
-    jint j_precision_type, jlong j_value_micros) {
+void JNI_notifyAdPaidEvent(JNIEnv* env, jclass clazz, jlong data_ptr,
+                           jstring j_currency_code, jint j_precision_type,
+                           jlong j_value_micros) {
   FIREBASE_ASSERT(data_ptr);
   internal::FullScreenAdEventListener* listener =
       reinterpret_cast<internal::FullScreenAdEventListener*>(data_ptr);
@@ -914,49 +894,51 @@ extern "C" JNIEXPORT void JNICALL JNI_notifyAdPaidEvent(
 
 // JNI functions specific to BannerViews
 //
-extern "C" JNIEXPORT void JNICALL JNI_BannerViewHelper_notifyBoundingBoxChanged(
-    JNIEnv* env, jclass clazz, jlong data_ptr) {
+void JNI_BannerViewHelper_notifyBoundingBoxChanged(JNIEnv* env, jclass clazz,
+                                                   jlong data_ptr) {
   firebase::admob::internal::BannerViewInternal* internal =
       reinterpret_cast<firebase::admob::internal::BannerViewInternal*>(
           data_ptr);
   internal->NotifyListenerOfBoundingBoxChange(internal->bounding_box());
 }
 
-extern "C" JNIEXPORT void JNICALL JNI_BannerViewHelper_notifyAdClicked(
-    JNIEnv* env, jclass clazz, jlong data_ptr) {
+void JNI_BannerViewHelper_notifyAdClicked(JNIEnv* env, jclass clazz,
+                                          jlong data_ptr) {
   firebase::admob::internal::BannerViewInternal* internal =
       reinterpret_cast<firebase::admob::internal::BannerViewInternal*>(
           data_ptr);
   internal->NotifyListenerAdClicked();
 }
 
-extern "C" JNIEXPORT void JNICALL
-JNI_BannerViewHelper_notifyAdClosed(JNIEnv* env, jclass clazz, jlong data_ptr) {
+void JNI_BannerViewHelper_notifyAdClosed(JNIEnv* env, jclass clazz,
+                                         jlong data_ptr) {
   firebase::admob::internal::BannerViewInternal* internal =
       reinterpret_cast<firebase::admob::internal::BannerViewInternal*>(
           data_ptr);
   internal->NotifyListenerAdClosed();
 }
 
-extern "C" JNIEXPORT void JNICALL JNI_BannerViewHelper_notifyAdImpression(
-    JNIEnv* env, jclass clazz, jlong data_ptr) {
+void JNI_BannerViewHelper_notifyAdImpression(JNIEnv* env, jclass clazz,
+                                             jlong data_ptr) {
   firebase::admob::internal::BannerViewInternal* internal =
       reinterpret_cast<firebase::admob::internal::BannerViewInternal*>(
           data_ptr);
   internal->NotifyListenerAdImpression();
 }
 
-extern "C" JNIEXPORT void JNICALL
-JNI_BannerViewHelper_notifyAdOpened(JNIEnv* env, jclass clazz, jlong data_ptr) {
+void JNI_BannerViewHelper_notifyAdOpened(JNIEnv* env, jclass clazz,
+                                         jlong data_ptr) {
   firebase::admob::internal::BannerViewInternal* internal =
       reinterpret_cast<firebase::admob::internal::BannerViewInternal*>(
           data_ptr);
   internal->NotifyListenerAdOpened();
 }
 
-extern "C" JNIEXPORT void JNICALL JNI_BannerViewHelper_notifyAdPaidEvent(
-    JNIEnv* env, jclass clazz, jlong data_ptr, jstring j_currency_code,
-    jint j_precision_type, jlong j_value_micros) {
+void JNI_BannerViewHelper_notifyAdPaidEvent(JNIEnv* env, jclass clazz,
+                                            jlong data_ptr,
+                                            jstring j_currency_code,
+                                            jint j_precision_type,
+                                            jlong j_value_micros) {
   FIREBASE_ASSERT(data_ptr);
   internal::BannerViewInternal* internal =
       reinterpret_cast<internal::BannerViewInternal*>(data_ptr);
@@ -970,9 +952,8 @@ extern "C" JNIEXPORT void JNICALL JNI_BannerViewHelper_notifyAdPaidEvent(
 
 // JNI functions specific to RewardedAds
 //
-extern "C" JNIEXPORT void JNICALL
-JNI_RewardedAd_UserEarnedReward(JNIEnv* env, jclass clazz, jlong data_ptr,
-                                jstring reward_type, jint amount) {
+void JNI_RewardedAd_UserEarnedReward(JNIEnv* env, jclass clazz, jlong data_ptr,
+                                     jstring reward_type, jint amount) {
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
   internal::RewardedAdInternal* internal =
@@ -980,6 +961,8 @@ JNI_RewardedAd_UserEarnedReward(JNIEnv* env, jclass clazz, jlong data_ptr,
   internal->NotifyListenerOfUserEarnedReward(
       util::JStringToString(env, reward_type), (int64_t)amount);
 }
+
+}  // namespace
 
 bool RegisterNatives() {
   static const JNINativeMethod kBannerMethods[] = {
