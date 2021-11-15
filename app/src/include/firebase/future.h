@@ -20,9 +20,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <mutex>
 #include <utility>
 
-#include "app/src/mutex.h"
 #include "firebase/internal/common.h"
 
 #ifdef FIREBASE_USE_STD_FUNCTION
@@ -310,7 +310,7 @@ class FutureBase {
 
   /// Returns true if the two Futures reference the same result.
   bool operator==(const FutureBase& rhs) const {
-    MutexLock lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     return api_ == rhs.api_ && handle_ == rhs.handle_;
   }
 
@@ -320,7 +320,7 @@ class FutureBase {
 #if defined(INTERNAL_EXPERIMENTAL)
   /// Returns the API-specific handle. Should only be called by the API.
   FutureHandle GetHandle() const {
-    MutexLock lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     return handle_;
   }
 #endif  // defined(INTERNAL_EXPERIMENTAL)
@@ -328,7 +328,7 @@ class FutureBase {
  protected:
   /// @cond FIREBASE_APP_INTERNAL
 
-  mutable Mutex mutex_;
+  mutable std::mutex mutex_;
 
   /// Backpointer to the issuing API class.
   /// Set to nullptr when Future is invalidated.
