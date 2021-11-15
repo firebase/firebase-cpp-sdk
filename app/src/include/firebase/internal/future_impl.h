@@ -207,7 +207,6 @@ inline FutureBase::FutureBase(const FutureBase& rhs)
     : api_(NULL)  // NOLINT
 {                 // NOLINT
   *this = rhs;
-  detail::RegisterForCleanup(api_, this);
 }
 
 inline FutureBase& FutureBase::operator=(const FutureBase& rhs) {
@@ -239,12 +238,7 @@ inline FutureBase& FutureBase::operator=(const FutureBase& rhs) {
 inline FutureBase::FutureBase(FutureBase&& rhs) noexcept
     : api_(NULL)  // NOLINT
 {
-  {
-    MutexLock lock(rhs.mutex_);
-    detail::UnregisterForCleanup(rhs.api_, &rhs);
-    *this = std::move(rhs);
-  }
-  detail::RegisterForCleanup(api_, this);
+  *this = std::move(rhs);
 }
 
 inline FutureBase& FutureBase::operator=(FutureBase&& rhs) noexcept {
