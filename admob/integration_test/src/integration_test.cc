@@ -937,6 +937,9 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
             bounding_box_listener.bounding_box_changes_.size());
 
 #if defined(ANDROID) || TARGET_OS_IPHONE
+  // Simulators have varying aspect ratios.
+  TEST_REQUIRES_USER_INTERACTION;
+
   // As an extra check, all bounding boxes except the last should have the same
   // size aspect ratio that we requested. For example if you requested a 320x50
   // banner, you can get one with the size 960x150. Use EXPECT_NEAR because the
