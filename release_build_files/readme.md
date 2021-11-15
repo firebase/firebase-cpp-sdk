@@ -569,8 +569,8 @@ code.
 ## Release Notes
 ### Next Release
 -   Changes
-    -   All Products (Android): Fixed a data race that could manifest as null
-        pointer dereference in FutureBase::Release().
+    -   General (Android): Fixed a data race that could manifest as null pointer
+        dereference in `FutureBase::Release()`.
         ([#747](https://github.com/firebase/firebase-cpp-sdk/pull/747))
     -   Auth (Desktop): Fixed a crash in `error_code()` when a request
         is cancelled or times out.
