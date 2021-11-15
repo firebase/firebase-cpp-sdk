@@ -255,9 +255,9 @@ inline FutureBase& FutureBase::operator=(FutureBase&& rhs) noexcept {
   {
     MutexLock lock(rhs.mutex_);
     detail::UnregisterForCleanup(rhs.api_, &rhs);
-    rhs.api_ = NULL;  // NOLINT
     new_api = rhs.api_;
     new_handle = rhs.handle_;
+    rhs.api_ = NULL;  // NOLINT
   }
 
   MutexLock lock(mutex_);
