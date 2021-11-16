@@ -1405,6 +1405,7 @@ TEST_F(FirebaseAdMobTest, TestRewardedAdErrorBadExtrasClassName) {
 
 // Stress tests.  These take a while so run them near the end.
 TEST_F(FirebaseAdMobTest, TestBannerViewStress) {
+  TEST_REQUIRES_USER_INTERACTION;
   SKIP_TEST_ON_DESKTOP;
 
   for (int i = 0; i < 10; ++i) {
@@ -1423,6 +1424,7 @@ TEST_F(FirebaseAdMobTest, TestBannerViewStress) {
 }
 
 TEST_F(FirebaseAdMobTest, TestInterstitialAdStress) {
+  TEST_REQUIRES_USER_INTERACTION;
   SKIP_TEST_ON_DESKTOP;
 
   for (int i = 0; i < 10; ++i) {
@@ -1442,6 +1444,7 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdStress) {
 }
 
 TEST_F(FirebaseAdMobTest, TestRewardedAdStress) {
+  TEST_REQUIRES_USER_INTERACTION;
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_IOS;
 
