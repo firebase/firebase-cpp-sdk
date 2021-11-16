@@ -387,6 +387,9 @@ TEST_F(FirebaseFirestoreBasicTest, TestDocument) {
 
 TEST_F(FirebaseFirestoreBasicTest, TestSetGet) {
   SKIP_TEST_ON_QUICK_CHECK;
+
+  firebase::firestore::Firestore::set_log_level(firebase::LogLevel::kLogLevelDebug);
+
   SignIn();
 
   firebase::firestore::DocumentReference document = Doc();
