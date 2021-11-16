@@ -27,6 +27,7 @@
 
 #include "firebase/admob/banner_view.h"
 #include "firebase/admob/interstitial_ad.h"
+#include "firebase/admob/rewarded_ad.h"
 #include "firebase/admob/types.h"
 #include "firebase/app.h"
 #include "firebase/internal/common.h"

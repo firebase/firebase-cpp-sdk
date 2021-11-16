@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,50 +14,67 @@
  * limitations under the License.
  */
 
-#include "admob/src/common/interstitial_ad_internal.h"
+#include "admob/src/common/rewarded_ad_internal.h"
 
-#include "admob/src/include/firebase/admob/interstitial_ad.h"
+#include "admob/src/include/firebase/admob/rewarded_ad.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 
 #if FIREBASE_PLATFORM_ANDROID
-#include "admob/src/android/interstitial_ad_internal_android.h"
+#include "admob/src/android/rewarded_ad_internal_android.h"
 #elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
-#include "admob/src/ios/interstitial_ad_internal_ios.h"
+#include "admob/src/ios/rewarded_ad_internal_ios.h"
 #else
-#include "admob/src/stub/interstitial_ad_internal_stub.h"
+#include "admob/src/stub/rewarded_ad_internal_stub.h"
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
+
+#include <string>
 
 namespace firebase {
 namespace admob {
 namespace internal {
 
-InterstitialAdInternal::InterstitialAdInternal(InterstitialAd* base)
-    : base_(base), future_data_(kInterstitialAdFnCount) {}
+RewardedAdInternal::RewardedAdInternal(RewardedAd* base)
+    : base_(base),
+      future_data_(kRewardedAdFnCount),
+      user_earned_reward_listener_(nullptr) {}
 
-InterstitialAdInternal* InterstitialAdInternal::CreateInstance(
-    InterstitialAd* base) {
+RewardedAdInternal* RewardedAdInternal::CreateInstance(RewardedAd* base) {
 #if FIREBASE_PLATFORM_ANDROID
-  return new InterstitialAdInternalAndroid(base);
+  return new RewardedAdInternalAndroid(base);
 #elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
-  return new InterstitialAdInternalIOS(base);
+  return new RewardedAdInternalIOS(base);
 #else
-  return new InterstitialAdInternalStub(base);
+  return new RewardedAdInternalStub(base);
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
 }
 
-Future<void> InterstitialAdInternal::GetLastResult(InterstitialAdFn fn) {
+void RewardedAdInternal::NotifyListenerOfUserEarnedReward(
+    const std::string& type, int64_t amount) {
+  MutexLock lock(listener_mutex_);
+  if (user_earned_reward_listener_ != nullptr) {
+    user_earned_reward_listener_->OnUserEarnedReward(AdReward(type, amount));
+  }
+}
+
+Future<void> RewardedAdInternal::GetLastResult(RewardedAdFn fn) {
   return static_cast<const Future<void>&>(
       future_data_.future_impl.LastResult(fn));
 }
 
-Future<AdResult> InterstitialAdInternal::GetLoadAdLastResult() {
+Future<AdResult> RewardedAdInternal::GetLoadAdLastResult() {
   return static_cast<const Future<AdResult>&>(
-      future_data_.future_impl.LastResult(kInterstitialAdFnLoadAd));
+      future_data_.future_impl.LastResult(kRewardedAdFnLoadAd));
+}
+
+void RewardedAdInternal::SetServerSideVerificationOptions(
+    const RewardedAd::ServerSideVerificationOptions&
+        serverSideVerificationOptions) {
+  serverSideVerificationOptions_ = serverSideVerificationOptions;
 }
 
 }  // namespace internal

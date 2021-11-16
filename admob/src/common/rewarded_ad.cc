@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-#include "admob/src/include/firebase/admob/interstitial_ad.h"
+#include "admob/src/include/firebase/admob/rewarded_ad.h"
 
 #include "admob/src/common/admob_common.h"
-#include "admob/src/common/interstitial_ad_internal.h"
+#include "admob/src/common/rewarded_ad_internal.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
 
@@ -27,87 +27,89 @@ namespace admob {
 const char kUninitializedError[] =
     "Initialize() must be called before this method.";
 
-InterstitialAd::InterstitialAd() {
+RewardedAd::RewardedAd() {
   FIREBASE_ASSERT(admob::IsInitialized());
-  internal_ = internal::InterstitialAdInternal::CreateInstance(this);
+  internal_ = internal::RewardedAdInternal::CreateInstance(this);
 
   GetOrCreateCleanupNotifier()->RegisterObject(this, [](void* object) {
-    LogWarning("InterstitialAd must be deleted before admob::Terminate.");
-    InterstitialAd* interstitial_ad = reinterpret_cast<InterstitialAd*>(object);
-    delete interstitial_ad->internal_;
-    interstitial_ad->internal_ = nullptr;
+    LogWarning("RewardedAd must be deleted before admob::Terminate.");
+    RewardedAd* rewarded_ad = reinterpret_cast<RewardedAd*>(object);
+    delete rewarded_ad->internal_;
+    rewarded_ad->internal_ = nullptr;
   });
 }
 
-InterstitialAd::~InterstitialAd() {
+RewardedAd::~RewardedAd() {
   GetOrCreateCleanupNotifier()->UnregisterObject(this);
   delete internal_;
 }
 
 // Initialize must be called before any other methods in the namespace. This
 // method asserts that Initialize() has been invoked and allowed to complete.
-static bool CheckIsInitialized(internal::InterstitialAdInternal* internal) {
+static bool CheckIsInitialized(internal::RewardedAdInternal* internal) {
   FIREBASE_ASSERT(internal);
   return internal->is_initialized();
 }
 
-Future<void> InterstitialAd::Initialize(AdParent parent) {
+Future<void> RewardedAd::Initialize(AdParent parent) {
   return internal_->Initialize(parent);
 }
 
-Future<void> InterstitialAd::InitializeLastResult() const {
-  return internal_->GetLastResult(internal::kInterstitialAdFnInitialize);
+Future<void> RewardedAd::InitializeLastResult() const {
+  return internal_->GetLastResult(internal::kRewardedAdFnInitialize);
 }
 
-Future<AdResult> InterstitialAd::LoadAd(const char* ad_unit_id,
-                                        const AdRequest& request) {
+Future<AdResult> RewardedAd::LoadAd(const char* ad_unit_id,
+                                    const AdRequest& request) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::admob::internal::kInterstitialAdFnLoadAd,
+        firebase::admob::internal::kRewardedAdFnLoadAd,
         kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
         &internal_->future_data_, AdResult());
   }
-
   return internal_->LoadAd(ad_unit_id, request);
 }
 
-Future<AdResult> InterstitialAd::LoadAdLastResult() const {
+Future<AdResult> RewardedAd::LoadAdLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::admob::internal::kInterstitialAdFnLoadAd,
+        firebase::admob::internal::kRewardedAdFnLoadAd,
         kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
         &internal_->future_data_, AdResult());
   }
   return internal_->GetLoadAdLastResult();
 }
 
-Future<void> InterstitialAd::Show() {
+Future<void> RewardedAd::Show(UserEarnedRewardListener* listener) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::admob::internal::kInterstitialAdFnShow,
-        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
-        &internal_->future_data_);
+        firebase::admob::internal::kRewardedAdFnShow, kAdMobErrorUninitialized,
+        kAdUninitializedErrorMessage, &internal_->future_data_);
   }
-  return internal_->Show();
+  return internal_->Show(listener);
 }
 
-Future<void> InterstitialAd::ShowLastResult() const {
+Future<void> RewardedAd::ShowLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::admob::internal::kInterstitialAdFnShow,
-        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
-        &internal_->future_data_);
+        firebase::admob::internal::kRewardedAdFnShow, kAdMobErrorUninitialized,
+        kAdUninitializedErrorMessage, &internal_->future_data_);
   }
-  return internal_->GetLastResult(internal::kInterstitialAdFnShow);
+  return internal_->GetLastResult(internal::kRewardedAdFnShow);
 }
 
-void InterstitialAd::SetFullScreenContentListener(
+void RewardedAd::SetFullScreenContentListener(
     FullScreenContentListener* listener) {
   internal_->SetFullScreenContentListener(listener);
 }
 
-void InterstitialAd::SetPaidEventListener(PaidEventListener* listener) {
+void RewardedAd::SetPaidEventListener(PaidEventListener* listener) {
   internal_->SetPaidEventListener(listener);
+}
+
+void RewardedAd::SetServerSideVerificationOptions(
+    const ServerSideVerificationOptions& options) {
+  internal_->SetServerSideVerificationOptions(options);
 }
 
 }  // namespace admob

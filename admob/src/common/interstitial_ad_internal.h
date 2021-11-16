@@ -18,6 +18,7 @@
 #define FIREBASE_ADMOB_SRC_COMMON_INTERSTITIAL_AD_INTERNAL_H_
 
 #include "admob/src/common/admob_common.h"
+#include "admob/src/common/full_screen_ad_event_listener.h"
 #include "admob/src/include/firebase/admob/interstitial_ad.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/mutex.h"
@@ -34,7 +35,7 @@ enum InterstitialAdFn {
   kInterstitialAdFnCount
 };
 
-class InterstitialAdInternal {
+class InterstitialAdInternal : public FullScreenAdEventListener {
  public:
   // Create an instance of whichever subclass of InterstitialAdInternal is
   // appropriate for the current platform.
@@ -52,26 +53,6 @@ class InterstitialAdInternal {
 
   // Displays an interstitial ad.
   virtual Future<void> Show() = 0;
-
-  /// Sets the @ref FullScreenContentListener to receive events about UI
-  // and presentation state.
-  void SetFullScreenContentListener(FullScreenContentListener* listener);
-
-  /// Sets the @ref PaidEventListener to receive information about paid events.
-  void SetPaidEventListener(PaidEventListener* listener);
-
-  // Notifies the FullScreenContentListener (if one exists) that an event has
-  // occurred.
-  void NotifyListenerOfAdClickedFullScreenContent();
-  void NotifyListenerOfAdDismissedFullScreenContent();
-  void NotifyListenerOfAdFailedToShowFullScreenContent(
-      const AdResult& ad_result);
-  void NotifyListenerOfAdImpression();
-  void NotifyListenerOfAdShowedFullScreenContent();
-
-  // Notifies the PaidEventListener (if one exists) that a paid event has
-  // occurred.
-  void NotifyListenerOfPaidEvent(const AdValue& ad_value);
 
   // Retrieves the most recent Future for a given function.
   Future<void> GetLastResult(InterstitialAdFn fn);
@@ -94,17 +75,6 @@ class InterstitialAdInternal {
 
   // Future data used to synchronize asynchronous calls.
   FutureData future_data_;
-
-  // Reference to the listener to which this object sends full screen event
-  // callbacks.
-  FullScreenContentListener* full_screen_content_listener_;
-
-  // Reference to the listener to which this object sends ad payout
-  // event callbacks.
-  PaidEventListener* paid_event_listener_;
-
-  // Lock object for accessing listener_.
-  Mutex listener_mutex_;
 };
 
 }  // namespace internal
