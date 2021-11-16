@@ -16,7 +16,6 @@
 
 #ifndef FIREBASE_APP_SRC_MUTEX_H_
 #define FIREBASE_APP_SRC_MUTEX_H_
-#include <errno.h>
 
 #include "app/src/include/firebase/internal/platform.h"
 
@@ -25,8 +24,6 @@
 #else
 #include <windows.h>
 #endif  // !FIREBASE_PLATFORM_WINDOWS
-
-#include "app/src/assert.h"
 
 namespace firebase {
 
@@ -39,58 +36,15 @@ class Mutex {
     kModeRecursive = (1 << 0),
   };
 
-  Mutex() { Initialize(kModeRecursive); }
+  Mutex() : Mutex(kModeRecursive) {}
 
-  explicit Mutex(Mode mode) { Initialize(mode); }
+  explicit Mutex(Mode mode);
 
-  ~Mutex() {
-#if !FIREBASE_PLATFORM_WINDOWS
-    int ret = pthread_mutex_destroy(&mutex_);
-    FIREBASE_ASSERT(ret == 0);
-    (void)ret;
-#else
-    CloseHandle(synchronization_object_);
-#endif  // !FIREBASE_PLATFORM_WINDOWS
-  }
+  ~Mutex();
 
-  void Acquire() {
-#if !FIREBASE_PLATFORM_WINDOWS
-    int ret = pthread_mutex_lock(&mutex_);
-    if (ret == EINVAL) {
-      return;
-    }
-#if defined(__APPLE__)
-    // Lock / unlock will fail in a static initializer on OSX and iOS.
-    FIREBASE_ASSERT(ret == 0 || ret == EINVAL);
-#else
-    FIREBASE_ASSERT(ret == 0);
-#endif  // defined(__APPLE__)
-    (void)ret;
-#else
-    DWORD ret = WaitForSingleObject(synchronization_object_, INFINITE);
-    FIREBASE_ASSERT(ret == WAIT_OBJECT_0);
-    (void)ret;
-#endif  // !FIREBASE_PLATFORM_WINDOWS
-  }
+  void Acquire();
 
-  void Release() {
-#if !FIREBASE_PLATFORM_WINDOWS
-    int ret = pthread_mutex_unlock(&mutex_);
-#if defined(__APPLE__)
-    // Lock / unlock will fail in a static initializer on OSX and iOS.
-    FIREBASE_ASSERT(ret == 0 || ret == EINVAL);
-#else
-    FIREBASE_ASSERT(ret == 0);
-#endif  // defined(__APPLE__)
-    (void)ret;
-#else
-    if (mode_ & kModeRecursive) {
-      ReleaseMutex(synchronization_object_);
-    } else {
-      ReleaseSemaphore(synchronization_object_, 1, 0);
-    }
-#endif  // !FIREBASE_PLATFORM_WINDOWS
-  }
+  void Release();
 
 // Returns the implementation-defined native mutex handle.
 // Used by firebase::Thread implementation.
@@ -103,29 +57,6 @@ class Mutex {
  private:
   Mutex(const Mutex&) = delete;
   Mutex& operator=(const Mutex&) = delete;
-
-  void Initialize(Mode mode) {
-#if !FIREBASE_PLATFORM_WINDOWS
-    pthread_mutexattr_t attr;
-    int ret = pthread_mutexattr_init(&attr);
-    FIREBASE_ASSERT(ret == 0);
-    if (mode & kModeRecursive) {
-      ret = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-      FIREBASE_ASSERT(ret == 0);
-    }
-    ret = pthread_mutex_init(&mutex_, &attr);
-    FIREBASE_ASSERT(ret == 0);
-    ret = pthread_mutexattr_destroy(&attr);
-    FIREBASE_ASSERT(ret == 0);
-#else
-    mode_ = mode;
-    if (mode & kModeRecursive) {
-      synchronization_object_ = CreateMutex(nullptr, FALSE, nullptr);
-    } else {
-      synchronization_object_ = CreateSemaphore(nullptr, 1, 1, nullptr);
-    }
-#endif  // !FIREBASE_PLATFORM_WINDOWS
-  }
 
 #if !FIREBASE_PLATFORM_WINDOWS
   pthread_mutex_t mutex_;

@@ -14,6 +14,8 @@
 
 #include "app/src/secure/user_secure_windows_internal.h"
 
+#include "app/src/log.h"
+
 #define NOMINMAX
 #include <wincred.h>
 
