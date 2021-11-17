@@ -261,8 +261,11 @@ class DocumentSnapshot {
                                   const DocumentSnapshot& document);
 
  private:
+  std::size_t Hash() const;
+
   friend bool operator==(const DocumentSnapshot& lhs,
                          const DocumentSnapshot& rhs);
+  friend std::size_t DocumentSnapshotHash(const DocumentSnapshot& snapshot);
 
   friend class DocumentChangeInternal;
   friend class EventListenerInternal;

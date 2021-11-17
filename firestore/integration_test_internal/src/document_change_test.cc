@@ -27,9 +27,13 @@
 namespace firebase {
 namespace firestore {
 
-#if defined(__ANDROID__)
-
 using DocumentChangeTest = FirestoreIntegrationTest;
+
+std::size_t DocumentChangeHash(const DocumentChange& change) {
+  return change.Hash();
+}
+
+#if defined(__ANDROID__)
 
 TEST_F(DocumentChangeTest, Construction) {
   testutil::AssertWrapperConstructionContract<DocumentChange,
@@ -59,7 +63,7 @@ TEST_F(DocumentChangeTest, TestDocumentChanges) {
   snapshot = listener.last_result();
 
   std::vector<DocumentChange> changes = snapshot.DocumentChanges();
-  EXPECT_EQ(changes.size(), 1);
+  ASSERT_EQ(changes.size(), 1);
 
   EXPECT_EQ(changes[0].type(), DocumentChange::Type::kAdded);
   EXPECT_EQ(changes[0].document().id(), doc1.id());
@@ -71,7 +75,7 @@ TEST_F(DocumentChangeTest, TestDocumentChanges) {
   snapshot = listener.last_result();
 
   changes = snapshot.DocumentChanges();
-  EXPECT_EQ(changes.size(), 1);
+  ASSERT_EQ(changes.size(), 1);
   EXPECT_EQ(changes[0].type(), DocumentChange::Type::kAdded);
   EXPECT_EQ(changes[0].document().id(), doc2.id());
   EXPECT_EQ(changes[0].old_index(), DocumentChange::npos);
@@ -83,7 +87,7 @@ TEST_F(DocumentChangeTest, TestDocumentChanges) {
   snapshot = listener.last_result();
 
   changes = snapshot.DocumentChanges();
-  EXPECT_EQ(changes.size(), 1);
+  ASSERT_EQ(changes.size(), 1);
   EXPECT_EQ(changes[0].type(), DocumentChange::Type::kModified);
   EXPECT_EQ(changes[0].document().id(), doc2.id());
   EXPECT_EQ(changes[0].old_index(), 1);
@@ -91,6 +95,77 @@ TEST_F(DocumentChangeTest, TestDocumentChanges) {
 }
 
 #endif  // defined(__ANDROID__)
+
+TEST_F(DocumentChangeTest, EqualityAndHashCode) {
+  DocumentChange invalid_change_1 = DocumentChange();
+  DocumentChange invalid_change_2 = DocumentChange();
+
+  EXPECT_TRUE(invalid_change_1 == invalid_change_2);
+  EXPECT_FALSE(invalid_change_1 != invalid_change_2);
+  EXPECT_EQ(DocumentChangeHash(invalid_change_1),
+            DocumentChangeHash(invalid_change_2));
+
+  CollectionReference collection = Collection();
+  Query query = collection.OrderBy("a");
+
+  DocumentReference doc1 = collection.Document("1");
+  DocumentReference doc2 = collection.Document("2");
+
+  TestEventListener<QuerySnapshot> listener("TestDocumentChanges");
+  ListenerRegistration registration = listener.AttachTo(&query);
+  Await(listener);
+  QuerySnapshot snapshot = listener.last_result();
+  EXPECT_EQ(snapshot.size(), 0);
+
+  WriteDocument(doc1, MapFieldValue{{"a", FieldValue::Integer(1)}});
+  Await(listener);
+  snapshot = listener.last_result();
+
+  std::vector<DocumentChange> changes = snapshot.DocumentChanges();
+  ASSERT_EQ(changes.size(), 1);
+  // First change: Added doc1.
+  auto change1 = changes[0];
+  EXPECT_TRUE(change1 == change1);
+  EXPECT_TRUE(change1 != invalid_change_1);
+  EXPECT_FALSE(change1 != change1);
+  EXPECT_FALSE(change1 == invalid_change_1);
+  EXPECT_EQ(DocumentChangeHash(change1), DocumentChangeHash(change1));
+  EXPECT_NE(DocumentChangeHash(change1), DocumentChangeHash(invalid_change_1));
+
+  WriteDocument(doc2, MapFieldValue{{"a", FieldValue::Integer(2)}});
+  Await(listener, 2);
+  snapshot = listener.last_result();
+
+  changes = snapshot.DocumentChanges();
+  ASSERT_EQ(changes.size(), 1);
+  // Second change: Added doc2.
+  auto change2 = changes[0];
+  EXPECT_TRUE(change2 != change1);
+  EXPECT_TRUE(change2 != invalid_change_1);
+  EXPECT_FALSE(change2 == change1);
+  EXPECT_FALSE(change2 == invalid_change_1);
+  EXPECT_NE(DocumentChangeHash(change2), DocumentChangeHash(change1));
+  EXPECT_NE(DocumentChangeHash(change2), DocumentChangeHash(invalid_change_1));
+
+  // Make doc2 ordered before doc1.
+  WriteDocument(doc2, MapFieldValue{{"a", FieldValue::Integer(0)}});
+  Await(listener, 3);
+  snapshot = listener.last_result();
+
+  changes = snapshot.DocumentChanges();
+  ASSERT_EQ(changes.size(), 1);
+  // Third change: Modified doc2.
+  auto change3 = changes[0];
+  EXPECT_TRUE(change3 != change1);
+  EXPECT_TRUE(change3 != change2);
+  EXPECT_TRUE(change3 != invalid_change_1);
+  EXPECT_FALSE(change3 == change1);
+  EXPECT_FALSE(change3 == change2);
+  EXPECT_FALSE(change3 == invalid_change_1);
+  EXPECT_NE(DocumentChangeHash(change3), DocumentChangeHash(change1));
+  EXPECT_NE(DocumentChangeHash(change3), DocumentChangeHash(change2));
+  EXPECT_NE(DocumentChangeHash(change3), DocumentChangeHash(invalid_change_1));
+}
 
 }  // namespace firestore
 }  // namespace firebase

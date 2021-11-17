@@ -78,6 +78,9 @@ option(FIREBASE_USE_LINUX_CXX11_ABI
 option(FIREBASE_GITHUB_ACTION_BUILD
        "Indicates that this build was created from a GitHub Action" OFF)
 
+option(FIREBASE_QUICK_TEST
+       "Enable quick tests will skip tests which requires access to the SECRET" OFF)
+
 set(FIREBASE_ANDROID_STL "" CACHE STRING "STL implementation to use.")
 if (NOT FIREBASE_ANDROID_STL STREQUAL "")
   set(ANDROID_STL ${FIREBASE_ANDROID_STL})
@@ -118,9 +121,8 @@ if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)
 endif()
 
 if (PLATFORM STREQUAL TVOS OR PLATFORM STREQUAL SIMULATOR_TVOS)
-  # Analytics, AdMob, FDL are not supported on tvOS.
+  # AdMob and FDL are not supported on tvOS.
   set(FIREBASE_INCLUDE_ADMOB OFF)
-  set(FIREBASE_INCLUDE_ANALYTICS OFF)
   set(FIREBASE_INCLUDE_DYNAMIC_LINKS OFF)
 endif()
 
@@ -134,6 +136,15 @@ if(NOT ANDROID AND NOT IOS)
   set(DESKTOP ON)
 else()
   set(DESKTOP OFF)
+endif()
+
+# For OSX, if the architectures we are building for do not match the current
+# host, treat it as cross-compiling.
+if(DESKTOP AND APPLE)
+  if(NOT "${CMAKE_OSX_ARCHITECTURES}" MATCHES "${CMAKE_HOST_SYSTEM_PROCESSOR}")
+    message("Cross-compiling ENABLED")
+    set(CMAKE_CROSSCOMPILING ON CACHE BOOL "" FORCE)
+  endif()
 endif()
 
 if(DESKTOP AND NOT MSVC AND NOT APPLE)
@@ -305,6 +316,12 @@ endif()
 
 # Include Firestore's external build early to resolve conflicts on packages.
 if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
+  if(APPLE)
+    # On Apple, set GRPC_BAZEL_BUILD to fix an issue with __thread.
+    # Setting this define makes gRPC use pthread's thread-local storage
+    # instead of GCC's.
+    add_definitions(-DGRPC_BAZEL_BUILD=1)
+  endif()
   set(FIRESTORE_BINARY_DIR ${FIRESTORE_SOURCE_DIR}-build)
 
   if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)
@@ -329,7 +346,7 @@ set(FLATBUFFERS_FLATHASH OFF CACHE BOOL "")
 set(LEVELDB_BUILD_TESTS OFF CACHE BOOL "")
 
 # Disable building flatc if cross compiling
-if(IOS OR ANDROID)
+if(IOS OR ANDROID OR CMAKE_CROSSCOMPILING)
   set(FLATBUFFERS_BUILD_FLATC OFF CACHE BOOL "")
 endif()
 
@@ -367,6 +384,14 @@ if(DESKTOP)
   set(CMAKE_USE_LIBSSH2 OFF)
   set(HTTP_ONLY ON)
   set(BUILD_TESTING OFF)
+  if(APPLE AND CMAKE_CROSSCOMPILING AND NOT CMAKE_TOOLCHAIN_FILE)
+    # curl's CMake file checks for CMAKE_TOOLCHAIN_FILE rather than checking
+    # CMAKE_CROSSCOMPILING when determining whether we are cross-compiling.
+    # So if CMAKE_CROSSCOMPILING is set and we don't have a CMAKE_TOOLCHAIN_FILE,
+    # just add a null one now so curl is happy. This only happens on Mac when
+    # building for arm64/x86_64 on the opposite machine.
+    set(CMAKE_TOOLCHAIN_FILE /dev/null)
+  endif()
   add_external_library(curl)
 
   add_external_library(libuv)
@@ -402,6 +427,7 @@ if(DESKTOP)
         ${UWEBSOCKETS_SOURCE_DIR}/src/WebSocket.cpp)
     if(MSVC)
       set(websockets_additional_defines
+        ${websockets_additional_defines}
         -DWIN32_LEAN_AND_MEAN # Ensure that windows doesn't include winsock.h by
                               # default, as it can cause issues when libraries try
                               # to include winsock2.h later on in the process.
@@ -409,6 +435,7 @@ if(DESKTOP)
       )
     elseif(APPLE)
       set(websockets_additional_defines
+        ${websockets_additional_defines}
         -DUSE_LIBUV=1
       )
     endif()
@@ -440,7 +467,7 @@ if(DESKTOP)
   if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
     # The Firestore build includes protobuf and nanopb already
     list(APPEND CMAKE_MODULE_PATH ${NANOPB_SOURCE_DIR}/extra)
-    find_package(Nanopb REQUIRED)
+    find_package(Nanopb)
 
     set(PROTOBUF_FOUND ON)
   else()
@@ -462,7 +489,7 @@ if(DESKTOP)
   endif()
 endif()
 
-if(DESKTOP)
+if(DESKTOP AND NOT CMAKE_CROSSCOMPILING)
   # Desktop platforms do not need to declare this dependency, as they will build
   # flatc correctly when needed.
   set(FIREBASE_FLATBUFFERS_DEPENDENCIES "")

@@ -52,6 +52,8 @@ class QuerySnapshotInternal {
 
   std::vector<DocumentSnapshot> documents() const;
 
+  std::size_t Hash() const { return snapshot_.Hash(); }
+
   friend bool operator==(const QuerySnapshotInternal& lhs,
                          const QuerySnapshotInternal& rhs);
 

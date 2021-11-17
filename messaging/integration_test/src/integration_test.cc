@@ -354,6 +354,8 @@ TEST_F(FirebaseMessagingTest, TestReceiveToken) {
 
   EXPECT_TRUE(RequestPermission());
 
+  EXPECT_TRUE(::firebase::messaging::IsTokenRegistrationOnInitEnabled());
+
   FLAKY_TEST_SECTION_BEGIN();
 
   EXPECT_TRUE(WaitForToken());
