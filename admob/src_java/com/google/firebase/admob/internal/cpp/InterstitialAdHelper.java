@@ -32,8 +32,7 @@ import android.util.Log;
 /**
  * Helper class to make interactions between the AdMob C++ wrapper and Java {@link InterstitialAd}
  * objects cleaner. It's designed to wrap and adapt a single instance of {@link InterstitialAd},
- * translate calls coming from C++ into their (typically more complicated) Java equivalents, and
- * convert the Java listener patterns into game engine-friendly state machine polling.
+ * translate calls coming from C++ into their (typically more complicated) Java equivalents.
  */
 public class InterstitialAdHelper {
 
@@ -216,7 +215,8 @@ public class InterstitialAdHelper {
 
   private class InterstitialAdFullScreenContentListener
       extends FullScreenContentCallback implements OnPaidEventListener {
-
+    
+    @Override
     public void onAdClicked() {
       synchronized (mInterstitialLock) {
         if (mInterstitialAdInternalPtr != CPP_NULLPTR) {

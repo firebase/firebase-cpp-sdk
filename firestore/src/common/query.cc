@@ -302,6 +302,11 @@ ListenerRegistration Query::AddSnapshotListener(
                                         firebase::Move(callback));
 }
 
+size_t Query::Hash() const {
+  if (!internal_) return {};
+  return internal_->Hash();
+}
+
 bool operator==(const Query& lhs, const Query& rhs) {
   return EqualityCompare(lhs.internal_, rhs.internal_);
 }

@@ -24,6 +24,7 @@
 #include "admob/src/include/firebase/admob.h"
 #include "admob/src/include/firebase/admob/banner_view.h"
 #include "admob/src/include/firebase/admob/interstitial_ad.h"
+#include "admob/src/include/firebase/admob/rewarded_ad.h"
 #include "admob/src/include/firebase/admob/types.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/version.h"
@@ -33,7 +34,9 @@ FIREBASE_APP_REGISTER_CALLBACKS(
     admob,
     {
       if (app == ::firebase::App::GetInstance()) {
-        return firebase::admob::Initialize(*app);
+        firebase::InitResult result;
+        firebase::admob::Initialize(*app, &result);
+        return result;
       }
       return kInitResultSuccess;
     },
@@ -58,15 +61,6 @@ const char* kAdCouldNotParseAdRequestErrorMessage =
     "Could Not Parse AdRequest.";
 const char* kAdLoadInProgressErrorMessage = "Ad is currently loading.";
 const char* kAdUninitializedErrorMessage = "Ad has not been fully initialized.";
-
-// AdListener
-// Default no-op implementation for each listener method so that applications
-// need only implement the methods they're interested in.
-AdListener::~AdListener() {}
-void AdListener::OnAdClicked() {}
-void AdListener::OnAdClosed() {}
-void AdListener::OnAdImpression() {}
-void AdListener::OnAdOpened() {}
 
 // AdMobInternal
 void AdMobInternal::CompleteLoadAdFuture(
@@ -174,24 +168,14 @@ void AdView::SetPaidEventListener(PaidEventListener* listener) {
   paid_event_listener_ = listener;
 }
 
-// FullScreenContentListener
-// Default no-op implementation for each listener method so that applications
-// need only implement the methods they're interested in.
-FullScreenContentListener::~FullScreenContentListener() {}
-void FullScreenContentListener::OnAdClicked() {}
-void FullScreenContentListener::OnAdDismissedFullScreenContent() {}
-void FullScreenContentListener::OnAdFailedToShowFullScreenContent(
-    const AdResult& ad_result) {}
-void FullScreenContentListener::OnAdImpression() {}
-void FullScreenContentListener::OnAdShowedFullScreenContent() {}
-
-// Misc - other default destructors, and application helpers.
-
-// Non-inline implementation of the Listeners' virtual destructors, to prevent
+// Non-inline implementation of the virtual destructors, to prevent
 // their vtables from being emitted in each translation unit.
+AdListener::~AdListener() {}
 AdView::~AdView() {}
 AdViewBoundingBoxListener::~AdViewBoundingBoxListener() {}
+FullScreenContentListener::~FullScreenContentListener() {}
 PaidEventListener::~PaidEventListener() {}
+UserEarnedRewardListener::~UserEarnedRewardListener() {}
 
 void RegisterTerminateOnDefaultAppDestroy() {
   if (!AppCallback::GetEnabledByName(kAdMobModuleName)) {
@@ -240,24 +224,10 @@ const char* GetRequestAgentString() {
   return "firebase-cpp-api." FIREBASE_VERSION_NUMBER_STRING;
 }
 
-// Futures
-// Create a future and update the corresponding last result.
-template <class T>
-SafeFutureHandle<T> CreateFuture(int fn_idx, FutureData* future_data) {
-  return future_data->future_impl.SafeAlloc<T>(fn_idx);
-}
-
 // Mark a future as complete.
 void CompleteFuture(int error, const char* error_msg,
                     SafeFutureHandle<void> handle, FutureData* future_data) {
   future_data->future_impl.Complete(handle, error, error_msg);
-}
-
-template <class T>
-void CompleteFuture(int error, const char* error_msg,
-                    SafeFutureHandle<T> handle, FutureData* future_data,
-                    const T& result) {
-  future_data->future_impl.CompleteWithResult(handle, error, error_msg, result);
 }
 
 // For calls that aren't asynchronous, we can create and complete at the

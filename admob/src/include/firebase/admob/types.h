@@ -142,17 +142,17 @@ class AdListener {
   virtual ~AdListener();
 
   /// Called when a click is recorded for an ad.
-  virtual void OnAdClicked();
+  virtual void OnAdClicked() {}
 
   /// Called when the user is about to return to the application after clicking
   /// on an ad.
-  virtual void OnAdClosed();
+  virtual void OnAdClosed() {}
 
   /// Called when an impression is recorded for an ad.
-  virtual void OnAdImpression();
+  virtual void OnAdImpression() {}
 
   /// Called when an ad opens an overlay that covers the screen.
-  virtual void OnAdOpened();
+  virtual void OnAdOpened() {}
 };
 
 /// Information about why an ad operation failed.
@@ -221,6 +221,62 @@ class AdResult {
   // An internal, platform-specific implementation object that this class uses
   // to interact with the Google Mobile Ads SDKs for iOS and Android.
   AdResultInternal* internal_;
+};
+
+/// A snapshot of a mediation adapter's initialization status.
+class AdapterStatus {
+ public:
+  AdapterStatus() : is_initialized_(false), latency_(0) {}
+
+  /// Detailed description of the status.
+  ///
+  /// This method should only be used for informational purposes, such as
+  /// logging. Use @ref is_initialized to make logical decisions regarding an
+  /// adapter's status.
+  const std::string& description() const { return description_; }
+
+  /// Returns the adapter's initialization state.
+  bool is_initialized() const { return is_initialized_; }
+
+  /// The adapter's initialization latency in milliseconds.
+  /// 0 if initialization has not yet ended.
+  int latency() const { return latency_; }
+
+#if !defined(DOXYGEN)
+  // Equality operator for testing.
+  bool operator==(const AdapterStatus& rhs) const {
+    return (description() == rhs.description() &&
+            is_initialized() == rhs.is_initialized() &&
+            latency() == rhs.latency());
+  }
+#endif  // !defined(DOXYGEN)
+
+ private:
+  friend class AdMobInternal;
+  std::string description_;
+  bool is_initialized_;
+  int latency_;
+};
+
+/// An immutable snapshot of the Admob SDK’s initialization status, categorized
+/// by mediation adapter.
+class AdapterInitializationStatus {
+ public:
+  /// Initialization status of each known ad network, keyed by its adapter's
+  /// class name.
+  std::map<std::string, AdapterStatus> GetAdapterStatusMap() const {
+    return adapter_status_map_;
+  }
+#if !defined(DOXYGEN)
+  // Equality operator for testing.
+  bool operator==(const AdapterInitializationStatus& rhs) const {
+    return (GetAdapterStatusMap() == rhs.GetAdapterStatusMap());
+  }
+#endif  // !defined(DOXYGEN)
+
+ private:
+  friend class AdMobInternal;
+  std::map<std::string, AdapterStatus> adapter_status_map_;
 };
 
 /// @brief Response information for an individual ad network contained within
@@ -454,6 +510,24 @@ class AdRequest {
   std::unordered_set<std::string> keywords_;
 };
 
+/// Describes a reward credited to a user for interacting with a RewardedAd.
+class AdReward {
+ public:
+  /// Creates an @ref AdReward.
+  AdReward(const std::string& type, int64_t amount)
+      : type_(type), amount_(amount) {}
+
+  /// Returns the reward amount.
+  int64_t amount() const { return amount_; }
+
+  /// Returns the type of the reward.
+  const std::string& type() const { return type_; }
+
+ private:
+  const int64_t amount_;
+  const std::string type_;
+};
+
 /// The monetary value earned from an ad.
 class AdValue {
  public:
@@ -660,22 +734,22 @@ class FullScreenContentListener {
   virtual ~FullScreenContentListener();
 
   /// Called when the user clicked the ad.
-  virtual void OnAdClicked();
+  virtual void OnAdClicked() {}
 
   /// Called when the ad dismissed full screen content.
-  virtual void OnAdDismissedFullScreenContent();
+  virtual void OnAdDismissedFullScreenContent() {}
 
   /// Called when the ad failed to show full screen content.
   ///
   /// param[in] ad_result An object containing detailed information
   /// about the error.
-  virtual void OnAdFailedToShowFullScreenContent(const AdResult& ad_result);
+  virtual void OnAdFailedToShowFullScreenContent(const AdResult& ad_result) {}
 
   /// Called when an impression is recorded for an ad.
-  virtual void OnAdImpression();
+  virtual void OnAdImpression() {}
 
   /// Called when the ad showed the full screen content.
-  virtual void OnAdShowedFullScreenContent();
+  virtual void OnAdShowedFullScreenContent() {}
 };
 
 /// Listener to be invoked when ads have been estimated to earn money.
@@ -684,7 +758,7 @@ class PaidEventListener {
   virtual ~PaidEventListener();
 
   /// Called when an ad is estimated to have earned money.
-  virtual void OnPaidEvent(const AdValue& value) = 0;
+  virtual void OnPaidEvent(const AdValue& value) {}
 };
 
 /// Information about an ad response.
@@ -851,6 +925,17 @@ struct RequestConfiguration {
   /// Sets a list of test device IDs corresponding to test devices which will
   /// always request test ads.
   std::vector<std::string> test_device_ids;
+};
+
+/// Listener to be invoked when the user earned a reward.
+class UserEarnedRewardListener {
+ public:
+  virtual ~UserEarnedRewardListener();
+  /// Called when the user earned a reward. The app is responsible for
+  /// crediting the user with the reward.
+  ///
+  /// param[in] reward the @ref AdReward that should be granted to the user.
+  virtual void OnUserEarnedReward(const AdReward& reward) {}
 };
 
 }  // namespace admob

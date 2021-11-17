@@ -164,7 +164,10 @@ class QuerySnapshot {
   bool is_valid() const { return internal_ != nullptr; }
 
  private:
+  std::size_t Hash() const;
+
   friend bool operator==(const QuerySnapshot& lhs, const QuerySnapshot& rhs);
+  friend std::size_t QuerySnapshotHash(const QuerySnapshot& snapshot);
 
   friend class EventListenerInternal;
   friend class FirestoreInternal;

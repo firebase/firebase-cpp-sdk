@@ -22,6 +22,7 @@
 
 #include "Firestore/core/src/api/document_reference.h"
 #include "Firestore/core/src/api/query_core.h"
+#include "Firestore/core/src/credentials/empty_credentials_provider.h"
 #include "Firestore/core/src/model/database_id.h"
 #include "Firestore/core/src/model/resource_path.h"
 #include "Firestore/core/src/util/async_queue.h"
@@ -35,6 +36,7 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "firebase/firestore/firestore_version.h"
+#include "firestore/src/common/exception_common.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/common/util.h"
@@ -50,12 +52,12 @@ namespace firebase {
 namespace firestore {
 namespace {
 
-using auth::CredentialsProvider;
+using credentials::AuthCredentialsProvider;
+using credentials::EmptyAppCheckCredentialsProvider;
 using model::DatabaseId;
 using util::AsyncQueue;
 using util::Executor;
 using util::Status;
-using util::ThrowInvalidArgument;
 
 std::shared_ptr<AsyncQueue> CreateWorkerQueue() {
   auto executor = Executor::CreateSerial("com.google.firebase.firestore");
@@ -86,8 +88,12 @@ LoadBundleTaskProgress ToApiProgress(
 
 void ValidateDoubleSlash(const char* path) {
   if (std::strstr(path, "//") != nullptr) {
-    ThrowInvalidArgument(
-        "Invalid path (%s). Paths must not contain // in them.", path);
+    // TODO(b/147444199): use string formatting.
+    // ThrowInvalidArgument(
+    //     "Invalid path (%s). Paths must not contain // in them.", path);
+    auto message = std::string("Invalid path (") + path +
+                   "). Paths must not contain // in them.";
+    SimpleThrowInvalidArgument(message);
   }
 }
 
@@ -97,7 +103,7 @@ FirestoreInternal::FirestoreInternal(App* app)
     : FirestoreInternal{app, CreateCredentialsProvider(*app)} {}
 
 FirestoreInternal::FirestoreInternal(
-    App* app, std::unique_ptr<CredentialsProvider> credentials)
+    App* app, std::unique_ptr<AuthCredentialsProvider> credentials)
     : app_(NOT_NULL(app)),
       firestore_core_(CreateFirestore(app, std::move(credentials))),
       transaction_executor_(absl::ShareUniquePtr(Executor::CreateConcurrent(
@@ -114,11 +120,12 @@ FirestoreInternal::~FirestoreInternal() {
 }
 
 std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
-    App* app, std::unique_ptr<CredentialsProvider> credentials) {
+    App* app, std::unique_ptr<AuthCredentialsProvider> credentials) {
   const AppOptions& opt = app->options();
   return std::make_shared<api::Firestore>(
       DatabaseId{opt.project_id()}, app->name(), std::move(credentials),
-      CreateWorkerQueue(), CreateFirebaseMetadataProvider(*app), this);
+      std::make_shared<EmptyAppCheckCredentialsProvider>(), CreateWorkerQueue(),
+      CreateFirebaseMetadataProvider(*app), this);
 }
 
 CollectionReference FirestoreInternal::Collection(
@@ -138,10 +145,14 @@ DocumentReference FirestoreInternal::Document(const char* document_path) const {
 
 Query FirestoreInternal::CollectionGroup(const char* collection_id) const {
   if (std::strchr(collection_id, '/') != nullptr) {
-    ThrowInvalidArgument(
-        "Invalid collection ID (%s). Collection IDs must not contain / in "
-        "them.",
-        collection_id);
+    // TODO(b/147444199): use string formatting.
+    // ThrowInvalidArgument(
+    //     "Invalid collection ID (%s). Collection IDs must not contain / in "
+    //     "them.",
+    //     collection_id);
+    auto message = std::string("Invalid collection ID (") + collection_id +
+                   "). Collection IDs must not contain / in them.";
+    SimpleThrowInvalidArgument(message);
   }
 
   core::Query core_query = firestore_core_->GetCollectionGroup(collection_id);

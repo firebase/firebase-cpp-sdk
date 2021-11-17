@@ -20,7 +20,9 @@
 #include "admob/src/common/admob_common.h"
 #include "admob/src/include/firebase/admob.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/version.h"
+#include "app/src/mutex.h"
 
 namespace firebase {
 namespace admob {
@@ -30,28 +32,72 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseAdMob);
 static const firebase::App* g_app = nullptr;
 static bool g_initialized = false;
 
-InitResult Initialize(const ::firebase::App& app) {
+// Constants representing each AdMob function that returns a Future.
+enum AdMobFn {
+  kAdMobFnInitialize,
+  kAdMobFnCount,
+};
+
+static ReferenceCountedFutureImpl* g_future_impl = nullptr;
+
+static Future<AdapterInitializationStatus> CreateAndCompleteInitializeStub() {
+  FIREBASE_ASSERT(g_future_impl);
+
+  // Return an AdapterInitializationStatus with one placeholder adapter.
+  SafeFutureHandle<AdapterInitializationStatus> handle =
+      g_future_impl->SafeAlloc<AdapterInitializationStatus>(kAdMobFnInitialize);
+  std::map<std::string, AdapterStatus> adapter_map;
+  adapter_map["stub"] =
+      AdMobInternal::CreateAdapterStatus("stub adapter", true, 100);
+
+  AdapterInitializationStatus adapter_init_status =
+      AdMobInternal::CreateAdapterInitializationStatus(adapter_map);
+  g_future_impl->CompleteWithResult(handle, 0, "", adapter_init_status);
+  return MakeFuture(g_future_impl, handle);
+}
+
+Future<AdapterInitializationStatus> Initialize(const ::firebase::App& app,
+                                               InitResult* init_result_out) {
+  FIREBASE_ASSERT(!g_initialized);
+  g_future_impl = new ReferenceCountedFutureImpl(kAdMobFnCount);
+
   (void)app;
   g_app = &app;
   g_initialized = true;
   RegisterTerminateOnDefaultAppDestroy();
-  return kInitResultSuccess;
+  if (init_result_out) {
+    *init_result_out = kInitResultSuccess;
+  }
+  return CreateAndCompleteInitializeStub();
 }
 
-InitResult Initialize(const ::firebase::App& app, const char* admob_app_id) {
-  (void)app;
-  (void)admob_app_id;
-  g_app = &app;
-  g_initialized = true;
-  RegisterTerminateOnDefaultAppDestroy();
-  return kInitResultSuccess;
-}
+Future<AdapterInitializationStatus> Initialize(InitResult* init_result_out) {
+  FIREBASE_ASSERT(!g_initialized);
+  g_future_impl = new ReferenceCountedFutureImpl(kAdMobFnCount);
 
-InitResult Initialize() {
   g_initialized = true;
   g_app = nullptr;
   RegisterTerminateOnDefaultAppDestroy();
-  return kInitResultSuccess;
+  if (init_result_out) {
+    *init_result_out = kInitResultSuccess;
+  }
+  return CreateAndCompleteInitializeStub();
+}
+
+Future<AdapterInitializationStatus> InitializeLastResult() {
+  return g_future_impl
+             ? static_cast<const Future<AdapterInitializationStatus>&>(
+                   g_future_impl->LastResult(kAdMobFnInitialize))
+             : Future<AdapterInitializationStatus>();
+}
+
+AdapterInitializationStatus GetInitializationStatus() {
+  Future<AdapterInitializationStatus> result = InitializeLastResult();
+  if (result.status() != firebase::kFutureStatusComplete) {
+    return AdMobInternal::CreateAdapterInitializationStatus({});
+  } else {
+    return *result.result();
+  }
 }
 
 bool IsInitialized() { return g_initialized; }
@@ -64,6 +110,11 @@ RequestConfiguration GetRequestConfiguration() {
 }
 
 void Terminate() {
+  FIREBASE_ASSERT(g_initialized);
+
+  delete g_future_impl;
+  g_future_impl = nullptr;
+
   UnregisterTerminateOnDefaultAppDestroy();
   DestroyCleanupNotifier();
   g_initialized = false;

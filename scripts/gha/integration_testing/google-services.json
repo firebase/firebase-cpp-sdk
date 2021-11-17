@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "1",
+    "firebase_url": "1",
+    "project_id": "cpp-firestore-test-app",
+    "storage_bucket": "1"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1",
+        "android_client_info": {
+          "package_name": "1"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "1"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

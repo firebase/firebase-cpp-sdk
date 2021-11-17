@@ -31,6 +31,10 @@ namespace firestore {
 
 using QuerySnapshotTest = FirestoreIntegrationTest;
 
+std::size_t QuerySnapshotHash(const QuerySnapshot& snapshot) {
+  return snapshot.Hash();
+}
+
 #if defined(__ANDROID__)
 
 TEST_F(QuerySnapshotTest, Construction) {
@@ -97,6 +101,42 @@ TEST_F(QuerySnapshotTest, Equality) {
   EXPECT_FALSE(snapshot5 == snapshot7);
   EXPECT_FALSE(snapshot6 == snapshot7);
   EXPECT_FALSE(snapshot7 != snapshot8);
+}
+
+TEST_F(QuerySnapshotTest, TestHashCode) {
+  CollectionReference collection =
+      Collection({{"a", {{"k", FieldValue::String("a")}}},
+                  {"b", {{"k", FieldValue::String("b")}}},
+                  {"c", {{"k", FieldValue::String("c")}}}});
+  QuerySnapshot snapshot1 = ReadDocuments(collection.Limit(2));
+  QuerySnapshot snapshot2 = ReadDocuments(collection.Limit(2));
+  QuerySnapshot snapshot3 = ReadDocuments(collection.Limit(1));
+  QuerySnapshot snapshot4 = ReadDocuments(collection);
+  QuerySnapshot snapshot5 =
+      ReadDocuments(collection.OrderBy("k", Query::Direction::kAscending));
+  QuerySnapshot snapshot6 =
+      ReadDocuments(collection.OrderBy("k", Query::Direction::kDescending));
+
+  QuerySnapshot snapshot7 = QuerySnapshot();
+  QuerySnapshot snapshot8 = QuerySnapshot();
+
+  EXPECT_EQ(QuerySnapshotHash(snapshot1), QuerySnapshotHash(snapshot1));
+  EXPECT_EQ(QuerySnapshotHash(snapshot1), QuerySnapshotHash(snapshot2));
+  EXPECT_NE(QuerySnapshotHash(snapshot1), QuerySnapshotHash(snapshot3));
+  EXPECT_NE(QuerySnapshotHash(snapshot1), QuerySnapshotHash(snapshot4));
+  EXPECT_NE(QuerySnapshotHash(snapshot1), QuerySnapshotHash(snapshot5));
+  EXPECT_NE(QuerySnapshotHash(snapshot1), QuerySnapshotHash(snapshot6));
+  EXPECT_NE(QuerySnapshotHash(snapshot3), QuerySnapshotHash(snapshot4));
+  EXPECT_NE(QuerySnapshotHash(snapshot3), QuerySnapshotHash(snapshot5));
+  EXPECT_NE(QuerySnapshotHash(snapshot3), QuerySnapshotHash(snapshot6));
+  EXPECT_NE(QuerySnapshotHash(snapshot5), QuerySnapshotHash(snapshot6));
+  EXPECT_NE(QuerySnapshotHash(snapshot1), QuerySnapshotHash(snapshot7));
+  EXPECT_NE(QuerySnapshotHash(snapshot2), QuerySnapshotHash(snapshot7));
+  EXPECT_NE(QuerySnapshotHash(snapshot3), QuerySnapshotHash(snapshot7));
+  EXPECT_NE(QuerySnapshotHash(snapshot4), QuerySnapshotHash(snapshot7));
+  EXPECT_NE(QuerySnapshotHash(snapshot5), QuerySnapshotHash(snapshot7));
+  EXPECT_NE(QuerySnapshotHash(snapshot6), QuerySnapshotHash(snapshot7));
+  EXPECT_EQ(QuerySnapshotHash(snapshot7), QuerySnapshotHash(snapshot8));
 }
 
 }  // namespace firestore

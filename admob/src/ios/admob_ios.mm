@@ -18,6 +18,7 @@
 
 #include "admob/src/include/firebase/admob.h"
 
+#import <Foundation/Foundation.h>
 #import <GoogleMobileAds/GADRequestConfiguration.h>
 #import <GoogleMobileAds/GoogleMobileAds.h>
 
@@ -29,7 +30,9 @@
 #include "admob/src/ios/adapter_response_info_ios.h"
 #include "admob/src/ios/response_info_ios.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/future.h"
 #include "app/src/log.h"
+#include "app/src/mutex.h"
 #include "app/src/util_ios.h"
 
 namespace firebase {
@@ -39,21 +42,86 @@ static const ::firebase::App* g_app = nullptr;
 
 static bool g_initialized = false;
 
-InitResult Initialize() {
+// Constants representing each AdMob function that returns a Future.
+enum AdMobFn {
+  kAdMobFnInitialize,
+  kAdMobFnCount,
+};
+
+static ReferenceCountedFutureImpl* g_future_impl = nullptr;
+// Mutex for creation/deletion of a g_future_impl.
+static Mutex g_future_impl_mutex;  // NOLINT
+
+// Take an iOS GADInitializationStatus object and populate our own
+// AdapterInitializationStatus class.
+static AdapterInitializationStatus PopulateAdapterInitializationStatus(
+  GADInitializationStatus *init_status) {
+  if (!init_status) return AdMobInternal::CreateAdapterInitializationStatus({});
+
+  std::map<std::string, AdapterStatus> adapter_status_map;
+
+  NSDictionary<NSString *, GADAdapterStatus*> *status_dict = init_status.adapterStatusesByClassName;
+  for (NSString* key in status_dict) {
+    GADAdapterStatus* status = [status_dict objectForKey:key];
+    AdapterStatus adapter_status =
+      AdMobInternal::CreateAdapterStatus(util::NSStringToString(status.description),
+                                         status.state == GADAdapterInitializationStateReady,
+                                         status.latency);
+    adapter_status_map[util::NSStringToString(key)] = adapter_status;
+  }
+  return AdMobInternal::CreateAdapterInitializationStatus(adapter_status_map);
+}
+  
+static Future<AdapterInitializationStatus> InitializeAdMob() {
+  MutexLock lock(g_future_impl_mutex);
+  FIREBASE_ASSERT(g_future_impl);
+
+  SafeFutureHandle<AdapterInitializationStatus> handle =
+    g_future_impl->SafeAlloc<AdapterInitializationStatus>(kAdMobFnInitialize);
+  [GADMobileAds.sharedInstance startWithCompletionHandler:^(GADInitializationStatus *_Nonnull status){
+      // GAD initialization has completed, with adapter initialization status.
+      AdapterInitializationStatus adapter_status = PopulateAdapterInitializationStatus(status);
+      {
+        MutexLock lock(g_future_impl_mutex);
+        // Check if g_future_impl still exists; if not, Terminate() was called, ignore the
+        // result of this callback.
+        if (g_future_impl) {
+          g_future_impl->CompleteWithResult(handle, 0, "", adapter_status);
+        }
+      }
+    }];
+  return MakeFuture(g_future_impl, handle);
+}
+ 
+Future<AdapterInitializationStatus> Initialize(InitResult *init_result_out) {
+  FIREBASE_ASSERT(!g_initialized);
   g_initialized = true;
+
+  {
+    MutexLock lock(g_future_impl_mutex);
+    g_future_impl = new ReferenceCountedFutureImpl(kAdMobFnCount);
+  }
+
   RegisterTerminateOnDefaultAppDestroy();
-  return kInitResultSuccess;
+  if (init_result_out) {
+    *init_result_out = kInitResultSuccess;
+  }
+  return InitializeAdMob();
 }
 
-InitResult Initialize(const ::firebase::App& app) { 
-   if (g_initialized) {
-    LogWarning("AdMob is already initialized.");
-    return kInitResultSuccess;
-  }
+Future<AdapterInitializationStatus> Initialize(const ::firebase::App& app, InitResult *init_result_out) { 
+  FIREBASE_ASSERT(!g_initialized);
   g_initialized = true;
+  {
+    MutexLock lock(g_future_impl_mutex);
+    g_future_impl = new ReferenceCountedFutureImpl(kAdMobFnCount);
+  }
   g_app = &app;
   RegisterTerminateOnDefaultAppDestroy();
-  return kInitResultSuccess;
+  if (init_result_out) {
+    *init_result_out = kInitResultSuccess;
+  }
+  return InitializeAdMob();
 }
 
 bool IsInitialized() { return g_initialized; }
@@ -154,7 +222,33 @@ RequestConfiguration GetRequestConfiguration() {
   return request_configuration;
 }
 
+Future<AdapterInitializationStatus> InitializeLastResult() {
+  MutexLock lock(g_future_impl_mutex);
+  return g_future_impl ? static_cast<const Future<AdapterInitializationStatus>&>(
+                            g_future_impl->LastResult(kAdMobFnInitialize))
+                      : Future<AdapterInitializationStatus>();
+}
+
+AdapterInitializationStatus GetInitializationStatus() {
+  if (g_initialized) {
+    GADInitializationStatus* status = GADMobileAds.sharedInstance.initializationStatus;
+    return PopulateAdapterInitializationStatus(status);
+  }
+  else {
+    // Returns an empty map.
+    return PopulateAdapterInitializationStatus(nil);
+  }
+}
+
 void Terminate() {
+  FIREBASE_ASSERT(g_initialized);
+
+  {
+    MutexLock lock(g_future_impl_mutex);
+    delete g_future_impl;
+    g_future_impl = nullptr;
+  }
+
   UnregisterTerminateOnDefaultAppDestroy();
   DestroyCleanupNotifier();
   g_initialized = false;

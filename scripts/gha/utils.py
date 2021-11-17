@@ -117,7 +117,7 @@ def get_vcpkg_triplet(arch, msvc_runtime_library='static'):
   """ Get vcpkg target triplet (platform definition).
 
   Args:
-    arch (str): Architecture (eg: 'x86', 'x64').
+    arch (str): Architecture (eg: 'x86', 'x64', 'arm64').
     msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
 
   Raises:

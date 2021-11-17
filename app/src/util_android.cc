@@ -193,6 +193,7 @@ METHOD_LOOKUP_DEFINITION(context, "android/content/Context", CONTEXT_METHODS)
 METHOD_LOOKUP_DEFINITION(cursor, "android/database/Cursor", CURSOR_METHODS)
 METHOD_LOOKUP_DEFINITION(date, "java/util/Date", DATE_METHODS);
 METHOD_LOOKUP_DEFINITION(double_class, "java/lang/Double", DOUBLE_METHODS)
+METHOD_LOOKUP_DEFINITION(enum_class, "java/lang/Enum", ENUM_METHODS)
 METHOD_LOOKUP_DEFINITION(file, "java/io/File", FILE_METHODS)
 METHOD_LOOKUP_DEFINITION(float_class, "java/lang/Float", FLOAT_METHODS)
 METHOD_LOOKUP_DEFINITION(hash_map, "java/util/HashMap", HASHMAP_METHODS)
@@ -372,6 +373,7 @@ static void ReleaseClasses(JNIEnv* env) {
   date::ReleaseClass(env);
   dex_class_loader::ReleaseClass(env);
   double_class::ReleaseClass(env);
+  enum_class::ReleaseClass(env);
   file::ReleaseClass(env);
   file_output_stream::ReleaseClass(env);
   float_class::ReleaseClass(env);
@@ -469,6 +471,7 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
         date::CacheMethodIds(env, activity_object) &&
         dex_class_loader::CacheMethodIds(env, activity_object) &&
         double_class::CacheMethodIds(env, activity_object) &&
+        enum_class::CacheMethodIds(env, activity_object) &&
         file::CacheMethodIds(env, activity_object) &&
         file_output_stream::CacheMethodIds(env, activity_object) &&
         float_class::CacheMethodIds(env, activity_object) &&
