@@ -219,35 +219,45 @@ public class InterstitialAdHelper {
     @Override
     public void onAdClicked() {
       synchronized (mInterstitialLock) {
-        notifyAdClickedFullScreenContentEvent(mInterstitialAdInternalPtr);
+        if (mInterstitialAdInternalPtr != CPP_NULLPTR) {
+          notifyAdClickedFullScreenContentEvent(mInterstitialAdInternalPtr);
+        }
       }
     }
 
     @Override
     public void onAdDismissedFullScreenContent() {
       synchronized (mInterstitialLock) {
-        notifyAdDismissedFullScreenContentEvent(mInterstitialAdInternalPtr);
+        if (mInterstitialAdInternalPtr != CPP_NULLPTR) {
+          notifyAdDismissedFullScreenContentEvent(mInterstitialAdInternalPtr);
+        }
       }
     }
 
     @Override
     public void onAdFailedToShowFullScreenContent(AdError error) {
       synchronized (mInterstitialLock) {
-        notifyAdFailedToShowFullScreenContentEvent(mInterstitialAdInternalPtr, error);
+        if (mInterstitialAdInternalPtr != CPP_NULLPTR) {
+          notifyAdFailedToShowFullScreenContentEvent(mInterstitialAdInternalPtr, error);
+        }
       }
     }
 
     @Override
     public void onAdImpression() {
       synchronized (mInterstitialLock) {
-        notifyAdImpressionEvent(mInterstitialAdInternalPtr);
+        if (mInterstitialAdInternalPtr != CPP_NULLPTR) {
+          notifyAdImpressionEvent(mInterstitialAdInternalPtr);
+        }
       }
     }
 
     @Override
     public void onAdShowedFullScreenContent() {
       synchronized (mInterstitialLock) {
-        notifyAdShowedFullScreenContentEvent(mInterstitialAdInternalPtr);
+        if (mInterstitialAdInternalPtr != CPP_NULLPTR) {
+          notifyAdShowedFullScreenContentEvent(mInterstitialAdInternalPtr);
+        }
       }
     }
 
@@ -263,10 +273,12 @@ public class InterstitialAdHelper {
     @Override
     public void onAdFailedToLoad(LoadAdError loadAdError) {
       synchronized (mInterstitialLock) {
-        completeInterstitialLoadAdError(
-            mLoadAdCallbackDataPtr, loadAdError, loadAdError.getCode(),
-            loadAdError.getMessage());
-        mLoadAdCallbackDataPtr = CPP_NULLPTR;
+        if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
+          completeInterstitialLoadAdError(
+              mLoadAdCallbackDataPtr, loadAdError, loadAdError.getCode(),
+              loadAdError.getMessage());
+          mLoadAdCallbackDataPtr = CPP_NULLPTR;
+        }
       }
     }
 
@@ -277,8 +289,10 @@ public class InterstitialAdHelper {
         InterstitialAdFullScreenContentListener listener = new InterstitialAdFullScreenContentListener();
         mInterstitial.setFullScreenContentCallback(listener);
         mInterstitial.setOnPaidEventListener(listener);
-        completeInterstitialLoadedAd(mLoadAdCallbackDataPtr);
-        mLoadAdCallbackDataPtr = CPP_NULLPTR;
+        if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
+          completeInterstitialLoadedAd(mLoadAdCallbackDataPtr);
+          mLoadAdCallbackDataPtr = CPP_NULLPTR;
+        }
       }
     }
   }

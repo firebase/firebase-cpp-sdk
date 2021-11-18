@@ -177,7 +177,6 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     completeBannerViewFutureCallback(callbackDataPtr,
         ConstantsHelper.CALLBACK_ERROR_NONE,
         ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
-    mNotifyBoundingBoxListenerOnNextDraw.set(true);
   }
 
   /**
@@ -484,7 +483,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     @Override
     public void onAdClicked() {
       synchronized (mBannerViewLock) {
-        if (mAdView != null) {
+        if (mBannerViewInternalPtr != CPP_NULLPTR) {
           notifyAdClicked(mBannerViewInternalPtr);
         }
       }
@@ -494,7 +493,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     @Override
     public void onAdClosed() {
       synchronized (mBannerViewLock) {
-        if (mAdView != null) {
+        if (mBannerViewInternalPtr != CPP_NULLPTR) {
           notifyAdClosed(mBannerViewInternalPtr);
           mNotifyBoundingBoxListenerOnNextDraw.set(true);
         }
@@ -505,10 +504,10 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     @Override
     public void onAdFailedToLoad(LoadAdError loadAdError) {
       synchronized (mBannerViewLock) {
-        if (mAdView != null) {
+        if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
           completeBannerViewLoadAdError(mLoadAdCallbackDataPtr, loadAdError, loadAdError.getCode(), loadAdError.getMessage());
+          mLoadAdCallbackDataPtr = CPP_NULLPTR;
         }
-        mLoadAdCallbackDataPtr = CPP_NULLPTR;
       }
       super.onAdFailedToLoad(loadAdError);
     }
@@ -516,7 +515,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     @Override
     public void onAdImpression() {
       synchronized (mBannerViewLock) {
-        if (mAdView != null) {
+        if (mBannerViewInternalPtr != CPP_NULLPTR) {
           notifyAdImpression(mBannerViewInternalPtr);
         }
       }
@@ -528,13 +527,15 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
       synchronized (mBannerViewLock) {
         if (mAdView != null) {
           mAdViewContainsAd = true;
+        }
+        if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
           completeBannerViewLoadedAd(mLoadAdCallbackDataPtr);
           mLoadAdCallbackDataPtr = CPP_NULLPTR;
-          // Only update the bounding box if the banner view is already visible.
-          if (mPopUp != null && mPopUp.isShowing()) {
-            // Loading an ad can sometimes cause the bounds to change.
-            mNotifyBoundingBoxListenerOnNextDraw.set(true);
-          }
+        }
+        // Only update the bounding box if the banner view is already visible.
+        if (mPopUp != null && mPopUp.isShowing()) {
+          // Loading an ad can sometimes cause the bounds to change.
+          mNotifyBoundingBoxListenerOnNextDraw.set(true);
         }
       }
       super.onAdLoaded();
@@ -543,17 +544,17 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     @Override
     public void onAdOpened() {
       synchronized (mBannerViewLock) {
-        if (mAdView != null) {
+        if (mBannerViewInternalPtr != CPP_NULLPTR) {
           notifyAdOpened(mBannerViewInternalPtr);
-          mNotifyBoundingBoxListenerOnNextDraw.set(true);
         }
+        mNotifyBoundingBoxListenerOnNextDraw.set(true);
       }
       super.onAdOpened();
     }
 
     public void onPaidEvent(AdValue value) {
       synchronized (mBannerViewLock) {
-        if (mAdView != null) {
+        if (mBannerViewInternalPtr != CPP_NULLPTR) {
           notifyPaidEvent(mBannerViewInternalPtr, value.getCurrencyCode(),
               value.getPrecisionType(), value.getValueMicros());
         }
@@ -575,7 +576,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   @Override
   public boolean onPreDraw() {
     if (mNotifyBoundingBoxListenerOnNextDraw.compareAndSet(true, false)) {
-      if (mAdView != null) {
+      if (mAdView != null && mBannerViewInternalPtr != CPP_NULLPTR) {
         notifyBoundingBoxChanged(mBannerViewInternalPtr);
       }
     }
