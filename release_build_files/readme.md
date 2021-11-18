@@ -577,6 +577,8 @@ code.
         ([#737](https://github.com/firebase/firebase-cpp-sdk/issues/737))
     -   Messaging (Android): Fixed crash during termination.
         ([#739](https://github.com/firebase/firebase-cpp-sdk/pull/739))
+        ([#745](https://github.com/firebase/firebase-cpp-sdk/pull/745))
+
 
 ### 8.7.0
 -   Changes

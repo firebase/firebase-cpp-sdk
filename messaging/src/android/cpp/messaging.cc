@@ -677,6 +677,7 @@ void Terminate() {
   }
   internal::UnregisterTerminateOnDefaultAppDestroy();
   JNIEnv* env = g_app->GetJNIEnv();
+  util::CancelCallbacks(env, kApiIdentifier);
   // Dereference the app.
   {
     MutexLock lock(g_app_mutex);
