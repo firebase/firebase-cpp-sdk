@@ -588,7 +588,6 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdLoad) {
 
 TEST_F(FirebaseAdMobTest, TestRewardedAdLoad) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_IOS;
 
   // Note: while showing an ad requires user interaction (below),
   // we test that we can simply load an ad first.
@@ -726,7 +725,6 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdLoadAndShow) {
 TEST_F(FirebaseAdMobTest, TestRewardedAdLoadAndShow) {
   TEST_REQUIRES_USER_INTERACTION;
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_IOS;
 
   firebase::admob::RewardedAd* rewarded = new firebase::admob::RewardedAd();
 
@@ -1272,7 +1270,6 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdErrorBadExtrasClassName) {
 
 TEST_F(FirebaseAdMobTest, TestRewardedAdErrorNotInitialized) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_IOS;
 
   firebase::admob::RewardedAd* rewarded_ad = new firebase::admob::RewardedAd();
 
@@ -1287,7 +1284,6 @@ TEST_F(FirebaseAdMobTest, TestRewardedAdErrorNotInitialized) {
 
 TEST_F(FirebaseAdMobTest, TesRewardedAdErrorAlreadyInitialized) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_IOS;
 
   {
     firebase::admob::RewardedAd* rewarded = new firebase::admob::RewardedAd();
@@ -1327,7 +1323,6 @@ TEST_F(FirebaseAdMobTest, TesRewardedAdErrorAlreadyInitialized) {
 
 TEST_F(FirebaseAdMobTest, TestRewardedAdErrorLoadInProgress) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_IOS;
 
   firebase::admob::RewardedAd* rewarded = new firebase::admob::RewardedAd();
   WaitForCompletion(rewarded->Initialize(app_framework::GetWindowContext()),
@@ -1362,7 +1357,6 @@ TEST_F(FirebaseAdMobTest, TestRewardedAdErrorLoadInProgress) {
 
 TEST_F(FirebaseAdMobTest, TestRewardedAdErrorBadAdUnitId) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_IOS;
 
   firebase::admob::RewardedAd* rewarded = new firebase::admob::RewardedAd();
   WaitForCompletion(rewarded->Initialize(app_framework::GetWindowContext()),
@@ -1389,7 +1383,6 @@ TEST_F(FirebaseAdMobTest, TestRewardedAdErrorBadAdUnitId) {
 
 TEST_F(FirebaseAdMobTest, TestRewardedAdErrorBadExtrasClassName) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_IOS;
 
   firebase::admob::RewardedAd* rewarded = new firebase::admob::RewardedAd();
   WaitForCompletion(rewarded->Initialize(app_framework::GetWindowContext()),
@@ -1446,7 +1439,6 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdStress) {
 TEST_F(FirebaseAdMobTest, TestRewardedAdStress) {
   TEST_REQUIRES_USER_INTERACTION;
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_IOS;
 
   for (int i = 0; i < 10; ++i) {
     firebase::admob::RewardedAd* rewarded = new firebase::admob::RewardedAd();

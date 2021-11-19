@@ -17,6 +17,10 @@
 #ifndef FIREBASE_ADMOB_SRC_IOS_REWARDED_AD_INTERNAL_IOS_H_
 #define FIREBASE_ADMOB_SRC_IOS_REWARDED_AD_INTERNAL_IOS_H_
 
+#ifdef __OBJC__
+#import "admob/src/ios/FADRewardedAdDelegate.h"
+#endif  // __OBJC__
+
 extern "C" {
 #include <objc/objc.h>
 }  // extern "C"
@@ -39,8 +43,15 @@ class RewardedAdInternalIOS : public RewardedAdInternal {
   Future<void> Show(UserEarnedRewardListener* listener) override;
   bool is_initialized() const override { return initialized_; }
 
+#ifdef __OBJC__
+  void RewardedAdDidReceiveAd(GADRewardedAd* ad);
+  void RewardedAdDidFailToReceiveAdWithError(NSError *gad_error);
+  void RewardedAdWillPresentScreen();
+  void RewardedAdDidDismissScreen();
+#endif  // __OBJC__
+
  private:
-  /// Prevents duplicate invocations of initailize on the Interstitial Ad.
+  /// Prevents duplicate invocations of initailize on the Rewarded Ad.
   bool initialized_;
 
   /// Contains information to asynchronously complete the LoadAd Future.
