@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-// An Objective-C++ wrapper class that conforms to the GADRewardedAdDelegate protocol. When the
-// delegate for receiving state change messages from a GADRewardedAd is notified, this wrapper
-// class forwards the notification to the RewardedAdInternalIOS object to handle the state
-// changes for an rewarded ad.
+// An Objective-C++ wrapper class that conforms to the
+// GADRewardedAdDelegate protocol. When the delegate for receiving state
+// change messages from a GADRewardedAd is notified, this wrapper class
+// forwards the notification to the RewardedAdInternalIOS object to handle
+// the state changes for an rewarded ad.
 
 #import <Foundation/Foundation.h>
 #import <GoogleMobileAds/GoogleMobileAds.h>
