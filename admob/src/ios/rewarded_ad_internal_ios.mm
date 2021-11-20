@@ -124,7 +124,6 @@ Future<void> RewardedAdInternalIOS::Show(UserEarnedRewardListener* listener) {
   firebase::MutexLock lock(mutex_);
   const firebase::SafeFutureHandle<void> handle =
     future_data_.future_impl.SafeAlloc<void>(kRewardedAdFnShow);
-
   user_earned_reward_listener_ = listener;
 
   dispatch_async(dispatch_get_main_queue(), ^{
@@ -137,9 +136,7 @@ Future<void> RewardedAdInternalIOS::Show(UserEarnedRewardListener* listener) {
       [rewarded_ad_
         presentFromRootViewController:[parent_view_ window].rootViewController
         userDidEarnRewardHandler:^{
-          NSLog(@"DEDB user did earn reward");
           GADAdReward *reward = ((GADRewardedAd*)rewarded_ad_).adReward;
-
           NotifyListenerOfUserEarnedReward(
             util::NSStringToString(reward.type),
             reward.amount.integerValue);
