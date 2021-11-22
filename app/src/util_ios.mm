@@ -58,8 +58,7 @@
 }
 - (void)application:(UIApplication *)application
     didReceiveRemoteNotification:(NSDictionary *)userInfo
-          fetchCompletionHandler:
-              (void (^)(UIBackgroundFetchResult result))handler {
+          fetchCompletionHandler:(void (^)(UIBackgroundFetchResult result))handler {
 }
 #if defined(__IPHONE_12_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_12_0
 - (BOOL)application:(UIApplication *)application
@@ -74,7 +73,7 @@
       restorationHandler:(void (^)(NSArray *))restorationHandler {
   return NO;
 }
-#endif // defined(__IPHONE_12_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_12_0
+#endif  // defined(__IPHONE_12_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_12_0
 @end
 
 namespace firebase {
@@ -103,11 +102,10 @@ void ForEachAppDelegateClass(void (^block)(Class)) {
       }
       if (!blacklisted) {
         if (GetLogLevel() <= kLogLevelDebug) {
-	  // Call NSLog directly because we may be in a +load method,
-	  // and C++ classes may not be constructed yet.
-          NSLog(@"Firebase: Found UIApplicationDelegate class %s",
-		class_name);
-	}
+          // Call NSLog directly because we may be in a +load method,
+          // and C++ classes may not be constructed yet.
+          NSLog(@"Firebase: Found UIApplicationDelegate class %s", class_name);
+        }
         block(clazz);
       }
     }
@@ -115,8 +113,7 @@ void ForEachAppDelegateClass(void (^block)(Class)) {
   free(classes);
 }
 
-NSDictionary *StringMapToNSDictionary(
-    const std::map<std::string, std::string> &string_map) {
+NSDictionary *StringMapToNSDictionary(const std::map<std::string, std::string> &string_map) {
   NSMutableDictionary *dictionary = [[NSMutableDictionary alloc] init];
   for (auto &kv : string_map) {
     dictionary[[NSString stringWithUTF8String:kv.first.c_str()]] =
@@ -125,8 +122,7 @@ NSDictionary *StringMapToNSDictionary(
   return dictionary;
 }
 
-NSDictionary *CharArrayMapToNSDictionary(
-    const std::map<const char *, const char *> &string_map) {
+NSDictionary *CharArrayMapToNSDictionary(const std::map<const char *, const char *> &string_map) {
   NSMutableDictionary *dictionary = [[NSMutableDictionary alloc] init];
   for (auto &kv : string_map) {
     dictionary[[NSString stringWithUTF8String:kv.first]] =
@@ -147,17 +143,14 @@ std::string NSDataToString(NSData *data) {
   return std::string(static_cast<const char *>(data.bytes), data.length);
 }
 
-NSString *StringToNSString(const std::string &str) {
-  return CStringToNSString(str.c_str());
-}
+NSString *StringToNSString(const std::string &str) { return CStringToNSString(str.c_str()); }
 
 NSString *CStringToNSString(const char *c_str) {
   return [NSString stringWithCString:c_str encoding:NSUTF8StringEncoding];
 }
 
 std::string NSStringToString(NSString *str) {
-  return str ? std::string([str cStringUsingEncoding:NSUTF8StringEncoding]) :
-    std::string();
+  return str ? std::string([str cStringUsingEncoding:NSUTF8StringEncoding]) : std::string();
 }
 
 NSMutableArray *StringVectorToNSMutableArray(const std::vector<std::string> &vector) {
@@ -168,41 +161,37 @@ NSMutableArray *StringVectorToNSMutableArray(const std::vector<std::string> &vec
   return array;
 }
 
-NSMutableArray* StdVectorToNSMutableArray(const std::vector<Variant>& vector) {
-  NSMutableArray* array =
-      [[NSMutableArray alloc] initWithCapacity:vector.size()];
-  for (auto& variant : vector) {
+NSMutableArray *StdVectorToNSMutableArray(const std::vector<Variant> &vector) {
+  NSMutableArray *array = [[NSMutableArray alloc] initWithCapacity:vector.size()];
+  for (auto &variant : vector) {
     [array addObject:VariantToId(variant)];
   }
   return array;
 }
 
-NSMutableDictionary* StdMapToNSMutableDictionary(
-    const std::map<Variant, Variant>& map) {
-  NSMutableDictionary* dictionary =
-      [[NSMutableDictionary alloc] initWithCapacity:map.size()];
-  for (auto& pair : map) {
-    [dictionary setObject:VariantToId(pair.second)
-                   forKey:VariantToId(pair.first)];
+NSMutableDictionary *StdMapToNSMutableDictionary(const std::map<Variant, Variant> &map) {
+  NSMutableDictionary *dictionary = [[NSMutableDictionary alloc] initWithCapacity:map.size()];
+  for (auto &pair : map) {
+    [dictionary setObject:VariantToId(pair.second) forKey:VariantToId(pair.first)];
   }
   return dictionary;
 }
 
-void NSArrayToStdVector(NSArray *array, std::vector<Variant>* vector) {
+void NSArrayToStdVector(NSArray *array, std::vector<Variant> *vector) {
   vector->reserve(array.count);
   for (id object in array) {
     vector->push_back(IdToVariant(object));
   }
 }
 
-void NSDictionaryToStdMap(NSDictionary *dictionary, std::map<Variant, Variant>* map) {
+void NSDictionaryToStdMap(NSDictionary *dictionary, std::map<Variant, Variant> *map) {
   for (id key in dictionary) {
     id value = [dictionary objectForKey:key];
     map->insert(std::make_pair(IdToVariant(key), IdToVariant(value)));
   }
 }
 
-id VariantToId(const Variant& variant) {
+id VariantToId(const Variant &variant) {
   switch (variant.type()) {
     case Variant::kTypeNull: {
       return [NSNull null];
@@ -235,22 +224,18 @@ id VariantToId(const Variant& variant) {
 
 static bool IdIsBoolean(id value) {
   if ([value isKindOfClass:[NSNumber class]]) {
-    const char* type = [value objCType];
-    return strcmp(type, @encode(BOOL)) == 0 ||
-           strcmp(type, @encode(signed char)) == 0;
+    const char *type = [value objCType];
+    return strcmp(type, @encode(BOOL)) == 0 || strcmp(type, @encode(signed char)) == 0;
   }
   return false;
 }
 
 static bool IdIsInteger(id value) {
   if ([value isKindOfClass:[NSNumber class]]) {
-    const char* type = [value objCType];
-    return strcmp(type, @encode(int)) == 0 ||
-           strcmp(type, @encode(short)) == 0 ||
-           strcmp(type, @encode(long)) == 0 ||
-           strcmp(type, @encode(long long)) == 0 ||
-           strcmp(type, @encode(unsigned char)) == 0 ||
-           strcmp(type, @encode(unsigned int)) == 0 ||
+    const char *type = [value objCType];
+    return strcmp(type, @encode(int)) == 0 || strcmp(type, @encode(short)) == 0 ||
+           strcmp(type, @encode(long)) == 0 || strcmp(type, @encode(long long)) == 0 ||
+           strcmp(type, @encode(unsigned char)) == 0 || strcmp(type, @encode(unsigned int)) == 0 ||
            strcmp(type, @encode(unsigned short)) == 0 ||
            strcmp(type, @encode(unsigned long)) == 0 ||
            strcmp(type, @encode(unsigned long long)) == 0;
@@ -260,9 +245,8 @@ static bool IdIsInteger(id value) {
 
 static bool IdIsFloatingPoint(id value) {
   if ([value isKindOfClass:[NSNumber class]]) {
-    const char* type = [value objCType];
-    return strcmp(type, @encode(float)) == 0 ||
-           strcmp(type, @encode(double)) == 0;
+    const char *type = [value objCType];
+    return strcmp(type, @encode(float)) == 0 || strcmp(type, @encode(double)) == 0;
   }
   return false;
 }
@@ -311,15 +295,13 @@ void DispatchAsyncSafeMainQueue(void (^block)(void)) {
   }
 }
 
-void RunOnMainThread(void (*function_ptr)(void *function_data),
-                     void *function_data) {
+void RunOnMainThread(void (*function_ptr)(void *function_data), void *function_data) {
   dispatch_async(dispatch_get_main_queue(), ^{
     function_ptr(function_data);
   });
 }
 
-void RunOnBackgroundThread(void (*function_ptr)(void *function_data),
-                           void *function_data) {
+void RunOnBackgroundThread(void (*function_ptr)(void *function_data), void *function_data) {
   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
     function_ptr(function_data);
   });
@@ -354,8 +336,8 @@ void ClassMethodImplementationCache::ReplaceOrAddMethod(Class clazz, SEL name, I
 
   // Get the type encoding of the selector from a type_encoding_class (which is a class which
   // implements a stub for the method).
-  const char *type_encoding = method_getTypeEncoding(
-      class_getInstanceMethod(type_encoding_class, name));
+  const char *type_encoding =
+      method_getTypeEncoding(class_getInstanceMethod(type_encoding_class, name));
   FIREBASE_ASSERT(type_encoding);
 
   NSString *new_method_name_nsstring = nil;
@@ -376,18 +358,18 @@ void ClassMethodImplementationCache::ReplaceOrAddMethod(Class clazz, SEL name, I
     }
     const char *new_method_name = new_method_name_nsstring.UTF8String;
     if (retry == 0) {
-      NSLog(@"Failed to add method %s on class %s as the %s method already exists on the class. To resolve this issue, change the name of the method %s on the class %s.",
-               new_method_name, class_name, new_method_name, new_method_name, class_name);
+      NSLog(@"Failed to add method %s on class %s as the %s method already exists on the class. To "
+            @"resolve this issue, change the name of the method %s on the class %s.",
+            new_method_name, class_name, new_method_name, new_method_name, class_name);
       return;
     }
     method_setImplementation(method, imp);
     // Save the selector name that points at the original method implementation.
     SetMethod(name, new_method_name_nsstring);
     if (GetLogLevel() <= kLogLevelDebug) {
-      NSLog(@"Registered method for %s selector %s (original method %s 0x%08x)",
-			   class_name, selector_name, new_method_name,
-			   static_cast<int>(reinterpret_cast<intptr_t>(
-								       original_method_implementation)));
+      NSLog(@"Registered method for %s selector %s (original method %s 0x%08x)", class_name,
+            selector_name, new_method_name,
+            static_cast<int>(reinterpret_cast<intptr_t>(original_method_implementation)));
     }
   } else if (add_method) {
     if (GetLogLevel() <= kLogLevelDebug) {
@@ -399,8 +381,8 @@ void ClassMethodImplementationCache::ReplaceOrAddMethod(Class clazz, SEL name, I
     }
   } else {
     if (GetLogLevel() <= kLogLevelDebug) {
-      NSLog(@"Method implementation for %s selector %s not found, ignoring.",
-			   class_name, selector_name);
+      NSLog(@"Method implementation for %s selector %s not found, ignoring.", class_name,
+            selector_name);
     }
   }
 }
@@ -431,10 +413,10 @@ IMP ClassMethodImplementationCache::GetMethod(Class clazz, SEL name) {
     const char *selector_implementation_name = selector_implementation_name_nsstring.UTF8String;
     SEL selector_implementation = NSSelectorFromString(selector_implementation_name_nsstring);
     search_class = clazz;
-    for ( ; search_class; search_class = class_getSuperclass(search_class)) {
+    for (; search_class; search_class = class_getSuperclass(search_class)) {
       const char *search_class_name = class_getName(search_class);
-      firebase::LogDebug("Searching for selector %s (%s) on class %s",
-                         selector_name, selector_implementation_name, search_class_name);
+      firebase::LogDebug("Searching for selector %s (%s) on class %s", selector_name,
+                         selector_implementation_name, search_class_name);
       Method method = class_getInstanceMethod(search_class, selector_implementation);
       method_implementation = method ? method_getImplementation(method) : nil;
       if (method_implementation) break;
@@ -442,8 +424,8 @@ IMP ClassMethodImplementationCache::GetMethod(Class clazz, SEL name) {
     if (method_implementation) break;
   }
   if (!method_implementation) {
-    firebase::LogDebug("Class %s does not respond to selector %s (%s)", class_name,
-                       selector_name, selector_implementation_name_nsstring.UTF8String);
+    firebase::LogDebug("Class %s does not respond to selector %s (%s)", class_name, selector_name,
+                       selector_implementation_name_nsstring.UTF8String);
     return nil;
   }
   firebase::LogDebug("Found %s (%s, 0x%08x) on class %s (%s)", selector_name,
@@ -483,8 +465,8 @@ NSString *ClassMethodImplementationCache::GenerateRandomSelectorName(SEL name) {
   while (retry--) {
     // Cache the old method implementation in a new method so that we can lookup the original
     // implementation from the instance of the class.
-    NSString *random_selector_name = [[NSString alloc] initWithFormat:@"FIRA%x%@", arc4random(),
-                                                       selector_name];
+    NSString *random_selector_name =
+        [[NSString alloc] initWithFormat:@"FIRA%x%@", arc4random(), selector_name];
     if (!implementation_selector_names[random_selector_name]) {
       return random_selector_name;
     }
