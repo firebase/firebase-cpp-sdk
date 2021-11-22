@@ -22,7 +22,6 @@ import com.google.firebase.auth.FirebaseAuth;
  * Implements IdTokenListener by redirecting calls into C++.
  */
 public class JniIdTokenListener implements FirebaseAuth.IdTokenListener {
-
   /**
    * Lock that controls access to authData.
    */
@@ -54,15 +53,15 @@ public class JniIdTokenListener implements FirebaseAuth.IdTokenListener {
   @Override
   public void onIdTokenChanged(FirebaseAuth auth) {
     AuthCommon.safeRunNativeMethod(new Runnable() {
-        @Override
-        public void run() {
-          synchronized (lock) {
-            if (cppAuthData != 0) {
-              nativeOnIdTokenChanged(cppAuthData);
-            }
+      @Override
+      public void run() {
+        synchronized (lock) {
+          if (cppAuthData != 0) {
+            nativeOnIdTokenChanged(cppAuthData);
           }
         }
-      });
+      }
+    });
   }
 
   /**

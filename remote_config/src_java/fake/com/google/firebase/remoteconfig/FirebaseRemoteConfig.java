@@ -30,7 +30,6 @@ import java.util.TreeSet;
 
 /** Fake FirebaseRemoteConfig */
 public class FirebaseRemoteConfig {
-
   private static final String FN_GET_LONG = "FirebaseRemoteConfig.getLong";
   private static final String FN_GET_STRING = "FirebaseRemoteConfig.getString";
   private static final String FN_GET_BOOLEAN = "FirebaseRemoteConfig.getBoolean";
@@ -216,5 +215,4 @@ public class FirebaseRemoteConfig {
     }
     return Arrays.asList(arr);
   }
-
 }

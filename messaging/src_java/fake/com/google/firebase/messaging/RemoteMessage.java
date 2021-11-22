@@ -20,7 +20,6 @@ import java.util.Map;
  * Fake RemoteMessage class.
  */
 public class RemoteMessage {
-
   public final String from;
   public final String to;
   public final Map<String, String> data;
@@ -40,7 +39,6 @@ public class RemoteMessage {
    * Fake Builder class.
    */
   public static class Builder {
-
     private final String to;
     private Map<String, String> data;
     private Integer ttl;

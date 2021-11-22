@@ -22,7 +22,6 @@ import com.google.firebase.auth.FirebaseAuth;
  * Implements AuthStateListener by redirecting calls into C++.
  */
 public class JniAuthStateListener implements FirebaseAuth.AuthStateListener {
-
   /**
    * Lock that controls access to authData.
    */
@@ -54,15 +53,15 @@ public class JniAuthStateListener implements FirebaseAuth.AuthStateListener {
   @Override
   public void onAuthStateChanged(FirebaseAuth auth) {
     AuthCommon.safeRunNativeMethod(new Runnable() {
-        @Override
-        public void run() {
-          synchronized (lock) {
-            if (cppAuthData != 0) {
-              nativeOnAuthStateChanged(cppAuthData);
-            }
+      @Override
+      public void run() {
+        synchronized (lock) {
+          if (cppAuthData != 0) {
+            nativeOnAuthStateChanged(cppAuthData);
           }
         }
-      });
+      }
+    });
   }
 
   /**

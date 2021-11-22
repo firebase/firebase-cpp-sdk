@@ -20,7 +20,6 @@ import java.util.List;
 
 /** Fake SignInMethodQueryResult */
 public final class SignInMethodQueryResult {
-
   List<String> getSignInMethods() {
     return null;
   }

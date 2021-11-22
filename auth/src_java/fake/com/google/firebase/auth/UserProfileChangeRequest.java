@@ -20,7 +20,6 @@ import android.net.Uri;
 
 /** Fake UserProfileChangeRequest$Builder */
 public final class UserProfileChangeRequest {
-
   /** Builder */
   public static class Builder {
     public Builder setDisplayName(String displayName) {

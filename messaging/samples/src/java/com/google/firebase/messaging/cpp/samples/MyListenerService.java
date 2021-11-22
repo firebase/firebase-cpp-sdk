@@ -22,12 +22,11 @@ package com.google.firebase.messaging.cpp.samples;
 
 import android.util.Log;
 import com.google.firebase.messaging.RemoteMessage;
-
 // [START messaging_extend_listener_service]
 import com.google.firebase.messaging.cpp.ListenerService;
 
 class MyListenerService extends ListenerService {
-// [END messaging_extend_listener_service]
+  // [END messaging_extend_listener_service]
   private static final String TAG = "MyListenerService";
 
   // [START messaging_on_message_received_override]
