@@ -85,7 +85,7 @@ bool CallbackTicker::Initialize(NSString* config_key) {
         [NSString stringWithUTF8String:row->futuregeneric()->exceptionmsg()->c_str()];
     error_ = [NSError errorWithDomain:config_key
                                  code:error_code_
-                             userInfo:@{@"Error reason":errorMsg}];
+                             userInfo:@{@"Error reason" : errorMsg}];
     return false;
   } else {
     return true;
@@ -103,19 +103,16 @@ void CallbackTickerManager::Add(NSString* config_key, Callback completion, int e
       std::shared_ptr<CallbackTicker>(new CallbackTicker(config_key, completion, error)));
 }
 
-
 // Deprecated.
 void CallbackTickerManager::Add(NSString* config_key, ParamCallback completion, id param) {
-  tickers_.push_back(
-      std::shared_ptr<CallbackTicker>(new CallbackTicker(config_key, completion, param,
-                                                         DEPRECATED_DEFAULT_ERROR_VALUE)));
+  tickers_.push_back(std::shared_ptr<CallbackTicker>(
+      new CallbackTicker(config_key, completion, param, DEPRECATED_DEFAULT_ERROR_VALUE)));
 }
 
 // Deprecated.
 void CallbackTickerManager::Add(NSString* config_key, Callback completion) {
-  tickers_.push_back(
-      std::shared_ptr<CallbackTicker>(new CallbackTicker(config_key, completion,
-                                                         DEPRECATED_DEFAULT_ERROR_VALUE)));
+  tickers_.push_back(std::shared_ptr<CallbackTicker>(
+      new CallbackTicker(config_key, completion, DEPRECATED_DEFAULT_ERROR_VALUE)));
 }
 }  // namespace cppsdk
 }  // namespace testing

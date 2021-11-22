@@ -32,7 +32,7 @@
 // PhoneAuth is not supported on non-iOS Apple platforms (eg: tvOS).
 // We are using stub implementation for these platforms (just like on desktop).
 #import "FIRPhoneAuthProvider.h"
-#endif //FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_IOS
 
 #import "FIRTwitterAuthProvider.h"
 
@@ -41,7 +41,7 @@
 // @ref VerifyPhoneNumber. It exists for as long as one of those two lives. We use Objective-C
 // for reference counting.
 @interface PhoneListenerDataObjC : NSObject {
-@public
+ @public
   // Back-pointer to the PhoneAuthProvider::Listener, or nullptr if it has been deleted.
   // This lets the VerifyPhoneNumber block know when its Listener has been deleted so it should
   // become a no-op.
@@ -53,7 +53,7 @@
 @end
 @implementation PhoneListenerDataObjC
 @end
-#endif //FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_IOS
 
 namespace firebase {
 namespace auth {
@@ -90,14 +90,14 @@ Credential& Credential::operator=(const Credential& rhs) {
 bool Credential::is_valid() const { return CredentialFromImpl(impl_) != NULL; }
 
 std::string Credential::provider() const {
-  return impl_ == nullptr ? std::string("") :
-    util::StringFromNSString(CredentialFromImpl(impl_).provider);
+  return impl_ == nullptr ? std::string("")
+                          : util::StringFromNSString(CredentialFromImpl(impl_).provider);
 }
 
 // static
 Credential EmailAuthProvider::GetCredential(const char* email, const char* password) {
   FIREBASE_ASSERT_RETURN(Credential(), email && password);
-  FIRAuthCredential *credential = [FIREmailAuthProvider credentialWithEmail:@(email)
+  FIRAuthCredential* credential = [FIREmailAuthProvider credentialWithEmail:@(email)
                                                                    password:@(password)];
   return Credential(new FIRAuthCredentialPointer(credential));
 }
@@ -105,7 +105,7 @@ Credential EmailAuthProvider::GetCredential(const char* email, const char* passw
 // static
 Credential FacebookAuthProvider::GetCredential(const char* access_token) {
   FIREBASE_ASSERT_RETURN(Credential(), access_token);
-  FIRAuthCredential *credential =
+  FIRAuthCredential* credential =
       [FIRFacebookAuthProvider credentialWithAccessToken:@(access_token)];
   return Credential(new FIRAuthCredentialPointer(credential));
 }
@@ -113,7 +113,7 @@ Credential FacebookAuthProvider::GetCredential(const char* access_token) {
 // static
 Credential GitHubAuthProvider::GetCredential(const char* token) {
   FIREBASE_ASSERT_RETURN(Credential(), token);
-  FIRAuthCredential *credential = [FIRGitHubAuthProvider credentialWithToken:@(token)];
+  FIRAuthCredential* credential = [FIRGitHubAuthProvider credentialWithToken:@(token)];
   return Credential(new FIRAuthCredentialPointer(credential));
 }
 
@@ -121,8 +121,8 @@ Credential GitHubAuthProvider::GetCredential(const char* token) {
 Credential GoogleAuthProvider::GetCredential(const char* id_token, const char* access_token) {
   NSString* ns_id_token = id_token ? @(id_token) : nil;
   NSString* ns_access_token = access_token ? @(access_token) : nil;
-  FIRAuthCredential* credential =
-      [FIRGoogleAuthProvider credentialWithIDToken:ns_id_token accessToken:ns_access_token];
+  FIRAuthCredential* credential = [FIRGoogleAuthProvider credentialWithIDToken:ns_id_token
+                                                                   accessToken:ns_access_token];
   return Credential(new FIRAuthCredentialPointer(credential));
 }
 
@@ -137,14 +137,14 @@ Credential PlayGamesAuthProvider::GetCredential(const char* server_auth_code) {
 // static
 Credential TwitterAuthProvider::GetCredential(const char* token, const char* secret) {
   FIREBASE_ASSERT_RETURN(Credential(), token && secret);
-  FIRAuthCredential *credential = [FIRTwitterAuthProvider credentialWithToken:@(token)
+  FIRAuthCredential* credential = [FIRTwitterAuthProvider credentialWithToken:@(token)
                                                                        secret:@(secret)];
   return Credential(new FIRAuthCredentialPointer(credential));
 }
 
 // static
-Credential OAuthProvider::GetCredential(
-    const char* provider_id, const char* id_token, const char* access_token) {
+Credential OAuthProvider::GetCredential(const char* provider_id, const char* id_token,
+                                        const char* access_token) {
   FIREBASE_ASSERT_RETURN(Credential(), provider_id && id_token && access_token);
   FIRAuthCredential* credential =
       (FIRAuthCredential*)[FIROAuthProvider credentialWithProviderID:@(provider_id)
@@ -154,10 +154,8 @@ Credential OAuthProvider::GetCredential(
 }
 
 // static
-Credential OAuthProvider::GetCredential(const char* provider_id,
-                                        const char* id_token,
-                                        const char* raw_nonce,
-                                        const char* access_token) {
+Credential OAuthProvider::GetCredential(const char* provider_id, const char* id_token,
+                                        const char* raw_nonce, const char* access_token) {
   FIREBASE_ASSERT_RETURN(Credential(), provider_id && id_token && raw_nonce);
 
   NSString* access_token_string =
@@ -182,12 +180,12 @@ Future<Credential> GameCenterAuthProvider::GetCredential() {
    checking whether the APP that consuming our SDK has linked GameKit.framework. If not, will
    complete with kAuthErrorInvalidCredential error.
    **/
-  GKLocalPlayer *_Nullable optionalLocalPlayer = [[NSClassFromString(@"GKLocalPlayer") alloc] init];
+  GKLocalPlayer* _Nullable optionalLocalPlayer = [[NSClassFromString(@"GKLocalPlayer") alloc] init];
 
   // Early-out if GameKit is not linked
   if (!optionalLocalPlayer) {
     future_api->Complete(handle, kAuthErrorInvalidCredential,
-                       "GameCenter authentication is unavailable - missing GameKit capability.");
+                         "GameCenter authentication is unavailable - missing GameKit capability.");
     return MakeFuture(future_api, handle);
   }
 
@@ -195,14 +193,14 @@ Future<Credential> GameCenterAuthProvider::GetCredential() {
                                                            NSError* _Nullable error) {
     Credential result(new FIRAuthCredentialPointer(credential));
     future_api->CompleteWithResult(handle, AuthErrorFromNSError(error),
-                                  util::NSStringToString(error.localizedDescription).c_str(),
-                                  result);
+                                   util::NSStringToString(error.localizedDescription).c_str(),
+                                   result);
   }];
 
   return MakeFuture(future_api, handle);
 }
 
-  // static
+// static
 Future<Credential> GameCenterAuthProvider::GetCredentialLastResult() {
   auto future_api = GetCredentialFutureImpl();
   FIREBASE_ASSERT(future_api != nullptr);
@@ -210,7 +208,6 @@ Future<Credential> GameCenterAuthProvider::GetCredentialLastResult() {
   auto last_result = future_api->LastResult(kCredentialFn_GameCenterGetCredential);
   return static_cast<const Future<Credential>&>(last_result);
 }
-
 
 // static
 bool GameCenterAuthProvider::IsPlayerAuthenticated() {
@@ -220,28 +217,31 @@ bool GameCenterAuthProvider::IsPlayerAuthenticated() {
    checking whether the APP that consuming our SDK has linked GameKit.framework. If not,
    early out.
    **/
-  GKLocalPlayer *_Nullable optionalLocalPlayer = [[NSClassFromString(@"GKLocalPlayer") alloc] init];
+  GKLocalPlayer* _Nullable optionalLocalPlayer = [[NSClassFromString(@"GKLocalPlayer") alloc] init];
   // If the GameKit Framework isn't linked - early out.
   if (!optionalLocalPlayer) {
     return false;
   }
-  __weak GKLocalPlayer *localPlayer = [[optionalLocalPlayer class] localPlayer];
+  __weak GKLocalPlayer* localPlayer = [[optionalLocalPlayer class] localPlayer];
   return localPlayer.isAuthenticated;
 }
 
 // We skip the implementation of ForceResendingTokenData since it is not needed.
 // The ForceResendingToken class for iOS is empty.
-PhoneAuthProvider::ForceResendingToken::ForceResendingToken()
-    : data_(nullptr) {}
+PhoneAuthProvider::ForceResendingToken::ForceResendingToken() : data_(nullptr) {}
 PhoneAuthProvider::ForceResendingToken::~ForceResendingToken() {}
-PhoneAuthProvider::ForceResendingToken::ForceResendingToken(
-    const ForceResendingToken&) : data_(nullptr) {}
-PhoneAuthProvider::ForceResendingToken& PhoneAuthProvider::ForceResendingToken::
-operator=(const ForceResendingToken&) { return *this; }
-bool PhoneAuthProvider::ForceResendingToken::operator==(
-    const ForceResendingToken&) const { return true; }
-bool PhoneAuthProvider::ForceResendingToken::operator!=(
-    const ForceResendingToken&) const { return false; }
+PhoneAuthProvider::ForceResendingToken::ForceResendingToken(const ForceResendingToken&)
+    : data_(nullptr) {}
+PhoneAuthProvider::ForceResendingToken& PhoneAuthProvider::ForceResendingToken::operator=(
+    const ForceResendingToken&) {
+  return *this;
+}
+bool PhoneAuthProvider::ForceResendingToken::operator==(const ForceResendingToken&) const {
+  return true;
+}
+bool PhoneAuthProvider::ForceResendingToken::operator!=(const ForceResendingToken&) const {
+  return false;
+}
 
 #if FIREBASE_PLATFORM_IOS
 // This implementation of PhoneListenerData is specific to iOS.
@@ -255,10 +255,10 @@ PhoneAuthProvider::Listener::Listener() : data_(new PhoneListenerData) {
   data_->objc = [[PhoneListenerDataObjC alloc] init];
   data_->objc->active_listener = this;
 }
-#else // non-iOS Apple platforms (eg: tvOS)
+#else   // non-iOS Apple platforms (eg: tvOS)
 // Stub for tvOS and other non-iOS apple platforms.
 PhoneAuthProvider::Listener::Listener() : data_(nullptr) {}
-#endif // FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_IOS
 
 #if FIREBASE_PLATFORM_IOS
 PhoneAuthProvider::Listener::~Listener() {
@@ -271,9 +271,9 @@ PhoneAuthProvider::Listener::~Listener() {
   data_->objc = nil;
   delete data_;
 }
-#else // non-iOS Apple platforms (eg: tvOS)
+#else   // non-iOS Apple platforms (eg: tvOS)
 PhoneAuthProvider::Listener::~Listener() {}
-#endif // FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_IOS
 
 #if FIREBASE_PLATFORM_IOS
 // This implementation of PhoneAuthProviderData is specific to iOS.
@@ -285,42 +285,43 @@ struct PhoneAuthProviderData {
   // The wrapped provider in Objective-C.
   FIRPhoneAuthProvider* objc_provider;
 };
-#endif // FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_IOS
 
 PhoneAuthProvider::PhoneAuthProvider() : data_(nullptr) {}
 
 #if FIREBASE_PLATFORM_IOS
 PhoneAuthProvider::~PhoneAuthProvider() { delete data_; }
-#else // non-iOS Apple platforms (eg: tvOS)
+#else   // non-iOS Apple platforms (eg: tvOS)
 PhoneAuthProvider::~PhoneAuthProvider() {}
-#endif // FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_IOS
 
 #if FIREBASE_PLATFORM_IOS
-void PhoneAuthProvider::VerifyPhoneNumber(
-    const char* phone_number, uint32_t /*auto_verify_time_out_ms*/,
-    const ForceResendingToken* /*force_resending_token*/, Listener* listener) {
+void PhoneAuthProvider::VerifyPhoneNumber(const char* phone_number,
+                                          uint32_t /*auto_verify_time_out_ms*/,
+                                          const ForceResendingToken* /*force_resending_token*/,
+                                          Listener* listener) {
   FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
   const PhoneAuthProvider::ForceResendingToken invalid_resending_token;
   PhoneListenerDataObjC* objc_listener_data = listener->data_->objc;
 
-  [data_->objc_provider verifyPhoneNumber:@(phone_number)
-                               UIDelegate:nil
-                               completion:^(NSString *_Nullable verificationID,
-                                            NSError *_Nullable error) {
-                          MutexLock lock(objc_listener_data->listener_mutex);
+  [data_->objc_provider
+      verifyPhoneNumber:@(phone_number)
+             UIDelegate:nil
+             completion:^(NSString* _Nullable verificationID, NSError* _Nullable error) {
+               MutexLock lock(objc_listener_data->listener_mutex);
 
-                          // If the listener has been deleted before this callback, do nothing.
-                          if (objc_listener_data->active_listener == nullptr) return;
+               // If the listener has been deleted before this callback, do nothing.
+               if (objc_listener_data->active_listener == nullptr) return;
 
-                          // Call OnVerificationFailed() or OnCodeSent() as appropriate.
-                          if (verificationID == nullptr) {
-                            listener->OnVerificationFailed(
-                                util::StringFromNSString(error.localizedDescription));
-                          } else {
-                            listener->OnCodeSent(util::StringFromNSString(verificationID),
-                                                 invalid_resending_token);
-                          }
-                        }];
+               // Call OnVerificationFailed() or OnCodeSent() as appropriate.
+               if (verificationID == nullptr) {
+                 listener->OnVerificationFailed(
+                     util::StringFromNSString(error.localizedDescription));
+               } else {
+                 listener->OnCodeSent(util::StringFromNSString(verificationID),
+                                      invalid_resending_token);
+               }
+             }];
 
   // Only call the callback when protected by the mutex.
   {
@@ -330,10 +331,11 @@ void PhoneAuthProvider::VerifyPhoneNumber(
     }
   }
 }
-#else // non-iOS Apple platforms (eg: tvOS)
-void PhoneAuthProvider::VerifyPhoneNumber(
-    const char* /*phone_number*/, uint32_t /*auto_verify_time_out_ms*/,
-    const ForceResendingToken* force_resending_token, Listener* listener) {
+#else   // non-iOS Apple platforms (eg: tvOS)
+void PhoneAuthProvider::VerifyPhoneNumber(const char* /*phone_number*/,
+                                          uint32_t /*auto_verify_time_out_ms*/,
+                                          const ForceResendingToken* force_resending_token,
+                                          Listener* listener) {
   FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
 
   // Mock the tokens by sending a new one whenever it's unspecified.
@@ -345,26 +347,27 @@ void PhoneAuthProvider::VerifyPhoneNumber(
   listener->OnCodeAutoRetrievalTimeOut(kMockVerificationId);
   listener->OnCodeSent(kMockVerificationId, token);
 }
-#endif // FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_IOS
 
 #if FIREBASE_PLATFORM_IOS
 Credential PhoneAuthProvider::GetCredential(const char* verification_id,
                                             const char* verification_code) {
   FIREBASE_ASSERT_RETURN(Credential(), verification_id && verification_code);
-  FIRPhoneAuthCredential *credential =
+  FIRPhoneAuthCredential* credential =
       [data_->objc_provider credentialWithVerificationID:@(verification_id)
                                         verificationCode:@(verification_code)];
   return Credential(new FIRAuthCredentialPointer((FIRAuthCredential*)credential));
 }
-#else // non-iOS Apple platforms (eg: tvOS)
+#else   // non-iOS Apple platforms (eg: tvOS)
 Credential PhoneAuthProvider::GetCredential(const char* verification_id,
                                             const char* verification_code) {
-  FIREBASE_ASSERT_MESSAGE_RETURN(Credential(nullptr), false,
-                                 "Phone Auth is not supported on non iOS Apple platforms (eg:tvOS).");
+  FIREBASE_ASSERT_MESSAGE_RETURN(
+      Credential(nullptr), false,
+      "Phone Auth is not supported on non iOS Apple platforms (eg:tvOS).");
 
   return Credential(nullptr);
 }
-#endif // FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_IOS
 
 #if FIREBASE_PLATFORM_IOS
 // static
@@ -379,21 +382,21 @@ PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
   }
   return provider;
 }
-#else // non-iOS Apple platforms (eg: tvOS)
+#else   // non-iOS Apple platforms (eg: tvOS)
 // static
 PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
   return auth->auth_data_->phone_auth_provider;
 }
-#endif // FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_IOS
 
 // FederatedAuthHandlers
-FederatedOAuthProvider::FederatedOAuthProvider() { }
+FederatedOAuthProvider::FederatedOAuthProvider() {}
 
 FederatedOAuthProvider::FederatedOAuthProvider(const FederatedOAuthProviderData& provider_data) {
   provider_data_ = provider_data;
 }
 
-FederatedOAuthProvider::~FederatedOAuthProvider() { }
+FederatedOAuthProvider::~FederatedOAuthProvider() {}
 
 void FederatedOAuthProvider::SetProviderData(const FederatedOAuthProviderData& provider_data) {
   provider_data_ = provider_data;
@@ -450,9 +453,8 @@ void ReauthenticateWithProviderGetCredentialCallback(FIRAuthCredential* _Nullabl
 
 Future<SignInResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
   assert(auth_data);
-  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
-  const auto handle =
-      futures.SafeAlloc<SignInResult>(kAuthFn_SignInWithProvider, SignInResult());
+  ReferenceCountedFutureImpl& futures = auth_data->future_impl;
+  const auto handle = futures.SafeAlloc<SignInResult>(kAuthFn_SignInWithProvider, SignInResult());
   FIROAuthProvider* ios_provider = (FIROAuthProvider*)[FIROAuthProvider
       providerWithProviderID:@(provider_data_.provider_id.c_str())
                         auth:AuthImpl(auth_data)];
@@ -470,17 +472,16 @@ Future<SignInResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
   } else {
     Future<SignInResult> future = MakeFuture(&futures, handle);
     futures.CompleteWithResult(handle, kAuthErrorFailure, "Internal error constructing provider.",
-                           SignInResult());
+                               SignInResult());
     return future;
   }
 }
 
 Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
   assert(auth_data);
-  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
-  auto handle =
-      futures.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider, SignInResult());
-  #if FIREBASE_PLATFORM_IOS
+  ReferenceCountedFutureImpl& futures = auth_data->future_impl;
+  auto handle = futures.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider, SignInResult());
+#if FIREBASE_PLATFORM_IOS
   FIROAuthProvider* ios_provider = (FIROAuthProvider*)[FIROAuthProvider
       providerWithProviderID:@(provider_data_.provider_id.c_str())
                         auth:AuthImpl(auth_data)];
@@ -489,13 +490,12 @@ Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
     ios_provider.scopes = util::StringVectorToNSMutableArray(provider_data_.scopes);
     // TODO(b/138788092) invoke FIRUser linkWithProvider instead, once that method is added to the
     // iOS SDK.
-    [ios_provider
-        getCredentialWithUIDelegate:nullptr
-                         completion:^(FIRAuthCredential* _Nullable credential,
-                                      NSError* _Nullable error) {
-                           LinkWithProviderGetCredentialCallback(
-                               credential, error, handle, auth_data, ios_provider);
-                         }];
+    [ios_provider getCredentialWithUIDelegate:nullptr
+                                   completion:^(FIRAuthCredential* _Nullable credential,
+                                                NSError* _Nullable error) {
+                                     LinkWithProviderGetCredentialCallback(
+                                         credential, error, handle, auth_data, ios_provider);
+                                   }];
     return MakeFuture(&futures, handle);
   } else {
     Future<SignInResult> future = MakeFuture(&futures, handle);
@@ -504,20 +504,18 @@ Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
     return future;
   }
 
-  #else // non-iOS Apple platforms (eg: tvOS)
+#else   // non-iOS Apple platforms (eg: tvOS)
   Future<SignInResult> future = MakeFuture(&futures, handle);
   futures.Complete(handle, kAuthErrorApiNotAvailable,
-    "OAuth provider linking is not supported on non-iOS Apple platforms.");
-  #endif // FIREBASE_PLATFORM_IOS
-
+                   "OAuth provider linking is not supported on non-iOS Apple platforms.");
+#endif  // FIREBASE_PLATFORM_IOS
 }
 
 Future<SignInResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data) {
   assert(auth_data);
-  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
-  auto handle =
-      futures.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider, SignInResult());
-  #if FIREBASE_PLATFORM_IOS
+  ReferenceCountedFutureImpl& futures = auth_data->future_impl;
+  auto handle = futures.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider, SignInResult());
+#if FIREBASE_PLATFORM_IOS
   FIROAuthProvider* ios_provider = (FIROAuthProvider*)[FIROAuthProvider
       providerWithProviderID:@(provider_data_.provider_id.c_str())
                         auth:AuthImpl(auth_data)];
@@ -526,13 +524,12 @@ Future<SignInResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data)
     ios_provider.scopes = util::StringVectorToNSMutableArray(provider_data_.scopes);
     // TODO(b/138788092) invoke FIRUser:reuthenticateWithProvider instead, once that method is added
     // to the iOS SDK.
-    [ios_provider
-        getCredentialWithUIDelegate:nullptr
-                         completion:^(FIRAuthCredential* _Nullable credential,
-                                      NSError* _Nullable error) {
-                           ReauthenticateWithProviderGetCredentialCallback(
-                               credential, error, handle, auth_data, ios_provider);
-                         }];
+    [ios_provider getCredentialWithUIDelegate:nullptr
+                                   completion:^(FIRAuthCredential* _Nullable credential,
+                                                NSError* _Nullable error) {
+                                     ReauthenticateWithProviderGetCredentialCallback(
+                                         credential, error, handle, auth_data, ios_provider);
+                                   }];
     return MakeFuture(&futures, handle);
   } else {
     Future<SignInResult> future = MakeFuture(&futures, handle);
@@ -541,11 +538,11 @@ Future<SignInResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data)
     return future;
   }
 
-  #else // non-iOS Apple platforms (eg: tvOS)
+#else   // non-iOS Apple platforms (eg: tvOS)
   Future<SignInResult> future = MakeFuture(&futures, handle);
   futures.Complete(handle, kAuthErrorApiNotAvailable,
-    "OAuth reauthentication is not supported on non-iOS Apple platforms.");
-  #endif // FIREBASE_PLATFORM_IOS
+                   "OAuth reauthentication is not supported on non-iOS Apple platforms.");
+#endif  // FIREBASE_PLATFORM_IOS
 }
 
 }  // namespace auth
