@@ -1462,6 +1462,7 @@ TEST_F(FirestoreIntegrationTest, DomainObjectsReferToSameFirestoreInstance) {
 }
 
 TEST_F(FirestoreIntegrationTest, AuthWorks) {
+  SKIP_TEST_ON_QUICK_CHECK;
   // This app instance is managed by the text fixture.
   App* app = GetApp();
   EXPECT_NE(app, nullptr);

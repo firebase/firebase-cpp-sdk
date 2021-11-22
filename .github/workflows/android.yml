@@ -12,6 +12,7 @@ on:
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
+  GITHUB_TOKEN: ${{ github.token }}
 
 jobs:
   prepare_matrix:
@@ -45,6 +46,13 @@ jobs:
         architecture: ${{ fromJson(needs.prepare_matrix.outputs.matrix_architecture) }}
         python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
     steps:
+      - name: Store git credentials for all git commands
+        # Forces all git commands to use authenticated https, to prevent throttling.
+        shell: bash
+        run: |
+          git config --global credential.helper 'store --file /tmp/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
+
       - name: Check expanded matrix config
         if: github.event.inputs.expanded_matrix == '1'
         run: |

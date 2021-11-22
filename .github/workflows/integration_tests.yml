@@ -47,6 +47,7 @@ env:
   statusCommentIdentifier: "integration-test-status-comment"
   pythonVersion: '3.7'
   artifactRetentionDays: 2
+  GITHUB_TOKEN: ${{ github.token }}
 
 jobs:
   check_and_prepare:
@@ -69,8 +70,6 @@ jobs:
       uses: lannonbr/repo-permission-check-action@2.0.0
       with:
         permission: "admin"
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
     ### It sets "github_ref,trigger,pr_number,requested_tests" outputs to control the following jobs and steps
     ### trigger value: manual_trigger, scheduled_trigger, label_trigger, postsubmit_trigger
     - id: set_outputs
@@ -213,6 +212,12 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
+      - name: Store git credentials for all git commands
+        # Forces all git commands to use authenticated https, to prevent throttling.
+        shell: bash
+        run: |
+          git config --global credential.helper 'store --file /tmp/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
       - name: Set env vars (Linux)
         if: startsWith(matrix.os, 'ubuntu')
         run: echo "VCPKG_TRIPLET=x64-linux" >> $GITHUB_ENV
@@ -386,6 +391,12 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
+      - name: Store git credentials for all git commands
+        # Forces all git commands to use authenticated https, to prevent throttling.
+        shell: bash
+        run: |
+          git config --global credential.helper 'store --file /tmp/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
       - name: Add msbuild to PATH (Windows)
         if: startsWith(matrix.os, 'windows')
         uses: microsoft/setup-msbuild@v1.0.2
@@ -501,6 +512,12 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
+      - name: Store git credentials for all git commands
+        # Forces all git commands to use authenticated https, to prevent throttling.
+        shell: bash
+        run: |
+          git config --global credential.helper 'store --file /tmp/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
       - name: Setup python
         uses: actions/setup-python@v2
         with:
@@ -812,7 +829,7 @@ jobs:
           npm install -g firebase-tools
           firebase emulators:start --only firestore --project demo-example &
       - name: Run Android integration tests on Emulator locally
-        timeout-minutes: 60
+        timeout-minutes: 90
         if: steps.get-device-type.outputs.device_type == 'virtual'
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \

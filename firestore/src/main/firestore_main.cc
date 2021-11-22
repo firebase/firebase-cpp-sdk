@@ -22,6 +22,7 @@
 
 #include "Firestore/core/src/api/document_reference.h"
 #include "Firestore/core/src/api/query_core.h"
+#include "Firestore/core/src/credentials/empty_credentials_provider.h"
 #include "Firestore/core/src/model/database_id.h"
 #include "Firestore/core/src/model/resource_path.h"
 #include "Firestore/core/src/util/async_queue.h"
@@ -51,7 +52,8 @@ namespace firebase {
 namespace firestore {
 namespace {
 
-using auth::CredentialsProvider;
+using credentials::AuthCredentialsProvider;
+using credentials::EmptyAppCheckCredentialsProvider;
 using model::DatabaseId;
 using util::AsyncQueue;
 using util::Executor;
@@ -101,7 +103,7 @@ FirestoreInternal::FirestoreInternal(App* app)
     : FirestoreInternal{app, CreateCredentialsProvider(*app)} {}
 
 FirestoreInternal::FirestoreInternal(
-    App* app, std::unique_ptr<CredentialsProvider> credentials)
+    App* app, std::unique_ptr<AuthCredentialsProvider> credentials)
     : app_(NOT_NULL(app)),
       firestore_core_(CreateFirestore(app, std::move(credentials))),
       transaction_executor_(absl::ShareUniquePtr(Executor::CreateConcurrent(
@@ -118,11 +120,12 @@ FirestoreInternal::~FirestoreInternal() {
 }
 
 std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
-    App* app, std::unique_ptr<CredentialsProvider> credentials) {
+    App* app, std::unique_ptr<AuthCredentialsProvider> credentials) {
   const AppOptions& opt = app->options();
   return std::make_shared<api::Firestore>(
       DatabaseId{opt.project_id()}, app->name(), std::move(credentials),
-      CreateWorkerQueue(), CreateFirebaseMetadataProvider(*app), this);
+      std::make_shared<EmptyAppCheckCredentialsProvider>(), CreateWorkerQueue(),
+      CreateFirebaseMetadataProvider(*app), this);
 }
 
 CollectionReference FirestoreInternal::Collection(

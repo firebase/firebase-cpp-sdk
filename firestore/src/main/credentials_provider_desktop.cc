@@ -31,10 +31,10 @@ namespace firebase {
 namespace firestore {
 namespace {
 
-using auth::CredentialChangeListener;
-using auth::Token;
-using auth::TokenListener;
-using auth::User;
+using credentials::AuthToken;
+using credentials::CredentialChangeListener;
+using credentials::TokenListener;
+using credentials::User;
 using firebase::auth::AuthError;
 using util::Status;
 using util::StatusOr;
@@ -102,7 +102,7 @@ User GetCurrentUser(App& app) {
   return User(uid);
 }
 
-StatusOr<Token> ConvertToken(const Future<std::string>& future, App& app) {
+StatusOr<AuthToken> ConvertToken(const Future<std::string>& future, App& app) {
   if (future.error() != Error::kErrorOk) {
     // `AuthError` is a different error domain from go/canonical-codes that
     // `Status` uses. We map `AuthError` values to Firestore `Error` values in
@@ -112,18 +112,19 @@ StatusOr<Token> ConvertToken(const Future<std::string>& future, App& app) {
                       std::to_string(future.error()) + ")");
   }
 
-  return Token(*future.result(), GetCurrentUser(app));
+  return AuthToken(*future.result(), GetCurrentUser(app));
 }
 
-// Converts the result of the given future into an `firestore::auth::Token`
-// and invokes the `listener` with the token. If the future is failed, invokes
-// the `listener` with the error. If the current token generation is higher
-// than `expected_generation`, will invoke the `listener` with "aborted"
-// error. `future_token` must be a completed future.
+// Converts the result of the given future into an
+// `firestore::credentials::AuthToken` and invokes the `listener` with the
+// token. If the future is failed, invokes the `listener` with the error. If the
+// current token generation is higher than `expected_generation`, will invoke
+// the `listener` with "aborted" error. `future_token` must be a completed
+// future.
 void OnToken(const Future<std::string>& future_token,
              App& app,
              int token_generation,
-             const TokenListener& listener,
+             const TokenListener<AuthToken>& listener,
              int expected_generation) {
   SIMPLE_HARD_ASSERT(
       future_token.status() == FutureStatus::kFutureStatusComplete,
@@ -151,7 +152,7 @@ FirebaseCppCredentialsProvider::~FirebaseCppCredentialsProvider() {
 }
 
 void FirebaseCppCredentialsProvider::SetCredentialChangeListener(
-    CredentialChangeListener listener) {
+    CredentialChangeListener<User> listener) {
   {
     std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
 
@@ -176,13 +177,14 @@ void FirebaseCppCredentialsProvider::SetCredentialChangeListener(
   AddAuthStateListener();
 }
 
-void FirebaseCppCredentialsProvider::GetToken(TokenListener listener) {
+void FirebaseCppCredentialsProvider::GetToken(
+    TokenListener<AuthToken> listener) {
   std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
 
   if (IsSignedIn()) {
     RequestToken(std::move(listener));
   } else {
-    listener(Token::Unauthenticated());
+    listener(AuthToken::Unauthenticated());
   }
 }
 
@@ -223,7 +225,8 @@ void FirebaseCppCredentialsProvider::OnAuthStateChanged(void* context) {
 
 // Private member functions
 
-void FirebaseCppCredentialsProvider::RequestToken(TokenListener listener) {
+void FirebaseCppCredentialsProvider::RequestToken(
+    TokenListener<AuthToken> listener) {
   SIMPLE_HARD_ASSERT(IsSignedIn(),
                      "Cannot get token when there is no signed-in user");
 

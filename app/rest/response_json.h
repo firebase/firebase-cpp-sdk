@@ -102,6 +102,12 @@ class ResponseJson : public Response {
     Response::MarkCompleted();
   }
 
+  // When the response fails, ensure that application_data_ is set.
+  void MarkFailed() override {
+    application_data_.reset(new FbsTypeT());
+    Response::MarkFailed();
+  }
+
  protected:
   // The FlatBuffer parser used to parse the response JSON string.
   flatbuffers::unique_ptr<flatbuffers::Parser> parser_;

@@ -169,6 +169,7 @@ PODSPEC_REPOSITORY = 'https://github.com/CocoaPods/Specs.git'
 
 # List of Pods that we are interested in.
 PODS = (
+  'Firebase',
   'FirebaseCore',
   'FirebaseAdMob',
   'FirebaseAnalytics',
@@ -340,8 +341,8 @@ def modify_pod_file(pod_file, pod_version_map, dryrun=True):
     match = re.match(RE_PODFILE_VERSION, line)
     if match:
       pod_name = match['pod_name']
-      # Firebase/Auth -> FirebaseAuth
-      pod_name_key = pod_name.replace('/', '')
+      # Firebase/Auth -> Firestore (due to being a subspec)
+      pod_name_key = re.sub(r'/.*$', '', pod_name)
       if pod_name_key in pod_version_map:
         latest_version = pod_version_map[pod_name_key]
         substituted_line = line.replace(match['version'], latest_version)
@@ -395,7 +396,7 @@ def modify_readme_file_pods(readme_filepath, version_map, dryrun=True):
   def replace_pod_line(m):
     if not m.group('pod_name'):
       return m.group(0)
-    pod_key = m.group('pod_name').replace('/', '')
+    pod_key = re.sub(r'/.*$', '', m.group('pod_name'))
     if pod_key not in version_map:
       return m.group(0)
     repl = '|%s| %s Cocoapod (%s)' % (m.group('spaces'),

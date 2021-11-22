@@ -677,6 +677,7 @@ void Terminate() {
   }
   internal::UnregisterTerminateOnDefaultAppDestroy();
   JNIEnv* env = g_app->GetJNIEnv();
+  util::CancelCallbacks(env, kApiIdentifier);
   // Dereference the app.
   {
     MutexLock lock(g_app_mutex);
@@ -704,8 +705,8 @@ void Terminate() {
   g_firebase_messaging = nullptr;
   SetListener(nullptr);
   ReleaseClasses(env);
-  FutureData::Destroy();
   util::Terminate(env);
+  FutureData::Destroy();
 }
 
 // Start a service which will communicate with the Firebase Cloud Messaging

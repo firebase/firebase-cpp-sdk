@@ -29,70 +29,43 @@ If -c is unspecified, uses the current HEAD.
 """
 
 import argparse
-import json
-import os
-import re
 import subprocess
 import time
 import urllib.parse
+import github
 
 def main():
   args = parse_cmdline_args()
-  if args.repo is None:
-      args.repo=subprocess.check_output(['git', 'config', '--get', 'remote.origin.url']).decode('utf-8').rstrip('\n').lower()
-      print('autodetected repo: %s' % args.repo)
   if args.branch is None:
-      args.branch=subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD']).decode('utf-8').rstrip('\n')
-      print('autodetected branch: %s' % args.branch)
-  if not args.repo.startswith('https://github.com/'):
-      print('Error, only https://github.com/ repositories are allowed.')
+    args.branch=subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD']).decode('utf-8').rstrip('\n')
+    print('autodetected branch: %s' % args.branch)
+  if args.repo: # else use default firebase/firebase-cpp-sdk repo
+    if not github.set_repo_url(args.repo):
       exit(2)
-  (repo_owner, repo_name) = re.match(r'https://github\.com/([^/]+)/([^/.]+)', args.repo).groups()
+    else:
+      print('set repo url to: %s' % github.GITHUB_API_URL)
 
-  # POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches
-  request_url = 'https://api.github.com/repos/%s/%s/actions/workflows/%s/dispatches' % (repo_owner, repo_name, args.workflow)
   json_params = {}
   for param in args.param:
-      json_params[param[0]] = param[1]
-  json_text = '{"ref":%s,"inputs":%s}' % (json.dumps(args.branch), json.dumps(json_params))
+    json_params[param[0]] = param[1]
   if args.verbose or args.dryrun:
-    print('request_url: %s' % request_url)
-    print('request_body: %s' % json_text)
+    print(f'request_url: {github.GITHUB_API_URL}/actions/workflows/{args.workflow}/dispatches')
+    print(f'request_body: ref: {args.branch}, inputs: {json_params}')
   if args.dryrun:
     return(0)
 
   print('Sending request to GitHub API...')
-  run_output = subprocess.check_output([args.curl,
-                                        '-s', '-o', '-', '-w', '\nHTTP status %{http_code}\n',
-                                        '-X', 'POST',
-                                        '-H', 'Accept: application/vnd.github.v3+json',
-                                        '-H', 'Authorization: token %s' % args.token,
-                                        request_url, '-d', json_text]
-                                      + ([] if not args.verbose else ['-v'])).decode('utf-8').rstrip('\n')
-  if args.verbose:
-    print(run_output)
-  if not re.search('HTTP status 2[0-9][0-9]$', run_output):
-    if not args.verbose:
-      print(run_output)
-    # Super quick and dirty way to get the message text since the appended status code means that
-    # the contents are not valid JSON.
-    error_message = re.search(r'"message": "([^"]+)"', run_output).group(1)
-    print('%sFailed to trigger workflow %s: %s' % (
-      '::error ::' if args.in_github_action else '', args.workflow, error_message))
+  if not github.create_workflow_dispatch(args.token, args.workflow, args.branch, json_params):
+    print('%sFailed to trigger workflow %s' % (
+      '::error ::' if args.in_github_action else '', args.workflow))
     return(-1)
 
   print('Success!')
   time.sleep(args.sleep)  # Give a few seconds for the job to become queued.
   # Unfortunately, the GitHub REST API doesn't return the new workflow's run ID.
   # Query the list of workflows to find the one we just added.
-  request_url = 'https://api.github.com/repos/%s/%s/actions/workflows/%s/runs?event=workflow_dispatch&branch=%s' % (repo_owner, repo_name, args.workflow, args.branch)
-  run_output = subprocess.check_output([args.curl,
-                                          '-s', '-X', 'GET',
-                                          '-H', 'Accept: application/vnd.github.v3+json',
-                                          '-H', 'Authorization: token %s' % args.token,
-                                          request_url]).decode('utf-8').rstrip('\n')
+  workflows = github.list_workflows(args.token, args.workflow, args.branch)
   run_id = 0
-  workflows = json.loads(run_output)
   if "workflow_runs" in workflows:
     branch_sha = subprocess.check_output(['git', 'rev-parse', args.branch]).decode('utf-8').rstrip('\n')
     for workflow in workflows['workflow_runs']:
@@ -108,8 +81,8 @@ def main():
     workflow_url = 'https://github.com/firebase/firebase-cpp-sdk/actions/runs/%s' % (run_id)
   else:
     # Couldn't get a run ID, use a generic URL.
-    workflow_url = 'https://github.com/%s/%s/actions/workflows/%s?query=%s+%s' % (
-      repo_owner, repo_name, args.workflow,
+    workflow_url = '/%s/actions/workflows/%s?query=%s+%s' % (
+      github.GITHUB_API_URL, args.workflow,
       urllib.parse.quote('event:workflow_dispatch', safe=''),
       urllib.parse.quote('branch:'+args.branch, safe=''))
   print('%sStarted workflow %s: %s' % ('::warning ::' if args.in_github_action else '',

@@ -12,6 +12,7 @@ on:
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
+  GITHUB_TOKEN: ${{ github.token }}
 
 jobs:
   prepare_matrix:
@@ -85,6 +86,13 @@ jobs:
           - xcode_version: "11.7"
             architecture: "arm64"
     steps:                
+      - name: Store git credentials for all git commands
+        # Forces all git commands to use authenticated https, to prevent throttling.
+        shell: bash
+        run: |
+          git config --global credential.helper 'store --file /tmp/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
+
       - name: Setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer
@@ -310,7 +318,6 @@ jobs:
       - name: Prepare for integration tests
         run: |
           pip install -r scripts/gha/requirements.txt
-          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
       - name: Install OpenSSL
         run: |
           sudo apt install openssl
@@ -325,7 +332,8 @@ jobs:
             --output_directory "${{ github.workspace }}" \
             --artifact_name "desktop-ubuntu-latest-openssl" \
             --noadd_timestamp \
-            --short_output_paths 
+            --short_output_paths \
+            --cmake_flag=-DFIREBASE_QUICK_TEST=ON
       - name: Summarize build results
         if: ${{ !cancelled() }}
         shell: bash
@@ -343,7 +351,7 @@ jobs:
           npm install -g firebase-tools
       - name: Run Desktop integration tests
         run: |
-          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps-desktop-ubuntu-latest-openssl
+          cp scripts/gha/integration_testing/google-services.json testapps-desktop-ubuntu-latest-openssl/firestore/google-services.json
           firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps-desktop-ubuntu-latest-openssl --logfile_name "desktop-ubuntu-latest-openssl"'
         env:
           USE_FIRESTORE_EMULATOR: true
