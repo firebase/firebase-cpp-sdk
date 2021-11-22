@@ -54,7 +54,7 @@ flags.DEFINE_boolean("verbose", False, 'Execute in verbose mode.')
 flags.DEFINE_boolean("github_log", False, 'Pring special github log format items.')
 
 # Constants:
-FILE_TYPE_EXTENSIONS = ('.cpp', '.cc', '.c', '.h', '.m', '.mm')
+FILE_TYPE_EXTENSIONS = ('.cpp', '.cc', '.c', '.h', '.m', '.mm', '.java')
 """Tuple: The file types to run clang-format on.
 Used to filter out results when searching across directories or git diffs.
 """
