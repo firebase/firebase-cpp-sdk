@@ -87,7 +87,7 @@ AdResult AdMobInternal::CreateAdResult(
 const AdSize AdSize::kBanner(/*width=*/320, /*height=*/50);
 const AdSize AdSize::kFullBanner(468, 60);
 const AdSize AdSize::kLargeBanner(320, 100);
-const AdSize AdSize::kLeaderBoard(728, 90);
+const AdSize AdSize::kLeaderboard(728, 90);
 const AdSize AdSize::kMediumRectangle(300, 250);
 
 AdSize::AdSize(uint32_t width, uint32_t height)
