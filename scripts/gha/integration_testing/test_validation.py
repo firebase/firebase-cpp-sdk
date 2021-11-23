@@ -196,11 +196,7 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
         flaky_testapps.append((test, results))
       else:
         errors_exclude_flakiness.append((test, results))
-      if test.testapp_path in summary:
-        testapp_path = test.testapp_path+".retry"
-      else:
-        testapp_path = test.testapp_path
-      summary.append("%s:" % testapp_path)
+      summary.append("%s:" % test.testapp_path)
       if hasattr(test, "ftl_link") and test.ftl_link:
         summary.append("ftl_link: %s" % test.ftl_link)
       if hasattr(test, "raw_result_link") and test.raw_result_link:
@@ -219,11 +215,7 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
         flaky_testapps.append((test, results))
       else:
         failures_exclude_flakiness.append((test, results))
-      if test.testapp_path in summary:
-        testapp_path = test.testapp_path+".retry"
-      else:
-        testapp_path = test.testapp_path
-      summary.append("%s:" % testapp_path)
+      summary.append("%s:" % test.testapp_path)
       if hasattr(test, "ftl_link") and test.ftl_link:
         summary.append("ftl_link: %s" % test.ftl_link)
       if hasattr(test, "raw_result_link") and test.raw_result_link:
