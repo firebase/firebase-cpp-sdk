@@ -243,14 +243,14 @@ def summarize_logs(dir, markdown=False, github_log=False):
           else:
             log_data.setdefault(testapp, {}).setdefault("test", {}).setdefault("flakiness", {}).setdefault("TEST.ERROR", []).append(configs)
 
+  if success_or_only_flakiness and not log_data:
+    # No failures and no flakiness occurred, nothing to log.
+    return (success_or_only_flakiness, None)
+
+  # if failures (include flakiness) exist:
   # log_results format:
   #   { testapps: {configs: [failed tests]} }
   log_results = reorganize_log(log_data)
-
-  if success_or_only_flakiness:
-    # No failures occurred, nothing to log.
-    return (success_or_only_flakiness, None)
-
   log_lines = []
   if markdown:
     log_lines = print_markdown_table(log_results)
