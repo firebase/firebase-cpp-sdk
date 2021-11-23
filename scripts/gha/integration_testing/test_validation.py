@@ -233,7 +233,7 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
       "%d TESTAPPS TOTAL: %d PASSES, %d FAILURES, %d ERRORS"
       % (len(tests), len(successes), len(failures), len(errors)))
 
-  if len(flaky_testapps) == len(failures) + len(errors):
+  if len(flaky_testapps) > 0 and len(flaky_testapps) == len(failures) + len(errors):
     logging.info("All failures and errors are due to flakiness")
     summary.append("ALL THE FOLLOWING FAILURES AND ERRORS ARE FLAKINESS:(")
 
@@ -253,17 +253,17 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
     testapp = get_name(test.testapp_path)
     summary_json["errors"][testapp]["logs"].append(results.summary)
     if hasattr(test, "ftl_link") and test.ftl_link:
-      summary_json["errors"][testapp]["ftl_link"].append(test.ftl_link)
+      summary_json["errors"][testapp]["ftl_links"].append(test.ftl_link)
     if hasattr(test, "raw_result_link") and test.raw_result_link:
-      summary_json["errors"][testapp]["raw_result_link"].append(test.raw_result_link)
-  summary_json["failures"] = {get_name(test.testapp_path):{"logs": [], "failed_tests": dict()} for (test, _) in failures_exclude_flakiness}
+      summary_json["errors"][testapp]["raw_result_links"].append(test.raw_result_link)
+  summary_json["failures"] = {get_name(test.testapp_path):{"logs": [], "ftl_links": [], "raw_result_links": [], "failed_tests": dict()} for (test, _) in failures_exclude_flakiness}
   for (test, results) in failures_exclude_flakiness:
     testapp = get_name(test.testapp_path)
     summary_json["failures"][testapp]["logs"].append(results.summary)
     if hasattr(test, "ftl_link") and test.ftl_link:
-      summary_json["failures"][testapp]["ftl_link"].append(test.ftl_link)
+      summary_json["failures"][testapp]["ftl_links"].append(test.ftl_link)
     if hasattr(test, "raw_result_link") and test.raw_result_link:
-      summary_json["failures"][testapp]["raw_result_link"].append(test.raw_result_link)
+      summary_json["failures"][testapp]["raw_result_links"].append(test.raw_result_link)
     failed_tests = re.findall(r"\[  FAILED  \] (.+)[.](.+)", results.summary)
     for failed_test in failed_tests:
       failed_test = failed_test[0] + "." + failed_test[1]
@@ -271,14 +271,14 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
       failure_log = re.search(pattern, test.logs, re.MULTILINE | re.DOTALL)
       summary_json["failures"][testapp]["failed_tests"][failed_test] = failure_log.group()
       summary.append("\n%s FAILED:\n%s\n" % (failed_test, failure_log.group()))
-  summary_json["flakiness"] = {get_name(test.testapp_path):{"logs": [], "flaky_tests": dict()} for (test, _) in flaky_testapps}
+  summary_json["flakiness"] = {get_name(test.testapp_path):{"logs": [], "ftl_links": [], "raw_result_links": [], "flaky_tests": dict()} for (test, _) in flaky_testapps}
   for (test, results) in flaky_testapps:
     testapp = get_name(test.testapp_path)
     summary_json["flakiness"][testapp]["logs"].append(results.summary)
     if hasattr(test, "ftl_link") and test.ftl_link:
-      summary_json["flakiness"][testapp]["ftl_link"].append(test.ftl_link)
+      summary_json["flakiness"][testapp]["ftl_links"].append(test.ftl_link)
     if hasattr(test, "raw_result_link") and test.raw_result_link:
-      summary_json["flakiness"][testapp]["raw_result_link"].append(test.raw_result_link)
+      summary_json["flakiness"][testapp]["raw_result_links"].append(test.raw_result_link)
     flaky_tests = re.findall(r"\[  FAILED  \] (.+)[.](.+)", results.summary)
     for flaky_test in flaky_tests:
       flaky_test = flaky_test[0] + "." + flaky_test[1]

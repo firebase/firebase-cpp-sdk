@@ -189,7 +189,7 @@ def main(argv):
             results_dir=gcs_base_dir + "/" + name))
 
   logging.info("Sending testapps to FTL")
-  tests = _run_test_on_ftl(tests, tests)
+  tests = _run_test_on_ftl(tests, [])
 
   # Useful diagnostic information to debug unexpected errors involving things
   # not being where they're supposed to be. This will show everything generated
@@ -206,32 +206,34 @@ def main(argv):
       extra_info=" (ON REAL DEVICE VIA FTL)")
 
 
-def _run_test_on_ftl(all_tests, run_tests, retry=3):
+def _run_test_on_ftl(tests, tested_tests, retry=3):
   threads = []
-  for test in run_tests:
+  for test in tests:
+    logging.info("Start running testapp: %s" % test.testapp_path)
     thread = threading.Thread(target=test.run)
     threads.append(thread)
     thread.start()
+    tested_tests.append(test)
   for thread in threads:
     thread.join()
 
   if retry > 1:
     failed_tests = []
-    for test in run_tests:
+    for test in tests:
       result = test_validation.validate_results(test.logs, test_validation.CPP)
       if not result.complete or result.fails != 0:
+        logging.info("Failure(s) occurred, testapp: %s" % test.testapp_path)
         failed_test = Test(
               device=test.device,
               platform=test.platform,
               testapp_path=test.testapp_path,
               results_dir=test.results_dir + "retry")
         failed_tests.append(failed_test)
-        all_tests.append(failed_test)
-    if not failed_tests:
+    if failed_tests:
       logging.info("Failure(s) occurred, retry test(s) on FTL.")
-      return _run_test_on_ftl(all_tests, failed_tests, retry=retry-1)
+      return _run_test_on_ftl(failed_tests, tested_tests, retry=retry-1)
     
-  return all_tests
+  return tested_tests
 
 
 def _install_gcloud_beta():
