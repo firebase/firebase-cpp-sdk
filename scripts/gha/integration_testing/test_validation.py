@@ -191,12 +191,12 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
   if errors:
     summary.append("\n%d TESTAPPS EXPERIENCED ERRORS:" % len(errors))
     for test, results in errors:
+      summary.append("\n%s:" % test.testapp_path)
       if test.testapp_path in success_testapp_paths:
-        summary.append("BELOW IS A FLAKY TESTAPP")
+        summary.append("THIS IS A FLAKY TESTAPP")
         flaky_testapps.append((test, results))
       else:
         errors_exclude_flakiness.append((test, results))
-      summary.append("%s:" % test.testapp_path)
       if hasattr(test, "ftl_link") and test.ftl_link:
         summary.append("ftl_link: %s" % test.ftl_link)
       if hasattr(test, "raw_result_link") and test.raw_result_link:
@@ -210,12 +210,12 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
   if failures:
     summary.append("\n%d TESTAPPS FAILED:" % len(failures))
     for test, results in failures:
+      summary.append("\n%s:" % test.testapp_path)
       if test.testapp_path in success_testapp_paths:
-        summary.append("THIS IS A FLAKY TESTAPP:")
+        summary.append("THIS IS A FLAKY TESTAPP")
         flaky_testapps.append((test, results))
       else:
         failures_exclude_flakiness.append((test, results))
-      summary.append("%s:" % test.testapp_path)
       if hasattr(test, "ftl_link") and test.ftl_link:
         summary.append("ftl_link: %s" % test.ftl_link)
       if hasattr(test, "raw_result_link") and test.raw_result_link:
