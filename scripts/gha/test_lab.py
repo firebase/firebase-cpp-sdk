@@ -318,7 +318,7 @@ class Test(object):
         "--app", self.testapp_path,
         "--results-bucket", gcs.PROJECT_ID,
         "--results-dir", self.results_dir,
-        "--timeout", "900s"
+        "--timeout", "600s"
     ]
 
   def _get_testapp_log_text_from_gcs(self):
