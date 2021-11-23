@@ -205,7 +205,8 @@ def summarize_logs(dir, markdown=False, github_log=False):
   # log_data format:
   #   { testapps: {"build": [configs]},
   #               {"test": {"errors": [configs]},
-  #                        {"failures": {failed_test: [configs]}}}}
+  #                        {"failures": {failed_test: [configs]}},
+  #                        {"flakiness": {flaky_test: [configs]}}}}
   for build_log_file in build_log_files:
     configs = get_configs_from_file_name(build_log_file, build_log_name_re)
     with open(build_log_file, "r") as log_reader:
@@ -236,8 +237,11 @@ def summarize_logs(dir, markdown=False, github_log=False):
             success_or_only_flakiness = False
             log_data.setdefault(testapp, {}).setdefault("test", {}).setdefault("failures", {}).setdefault(test, []).append(configs)
         for (testapp, flakiness) in log_reader_data["flakiness"].items():
-          for (test, _) in flakiness["flaky_tests"].items():
-            log_data.setdefault(testapp, {}).setdefault("test", {}).setdefault("flakiness", {}).setdefault(test, []).append(configs)
+          if flakiness["flaky_tests"].items():
+            for (test, _) in flakiness["flaky_tests"].items():
+              log_data.setdefault(testapp, {}).setdefault("test", {}).setdefault("flakiness", {}).setdefault(test, []).append(configs)
+          else:
+            log_data.setdefault(testapp, {}).setdefault("test", {}).setdefault("flakiness", {}).setdefault("TEST.ERROR", []).append(configs)
 
   # log_results format:
   #   { testapps: {configs: [failed tests]} }
