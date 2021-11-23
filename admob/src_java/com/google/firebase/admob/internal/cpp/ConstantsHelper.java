@@ -18,7 +18,6 @@ package com.google.firebase.admob.internal.cpp;
 
 /** Helper class containing constants that are shared across the various AdMob ad formats. */
 public final class ConstantsHelper {
-
   /**
    * Error codes used in completing futures. These match the AdMobError enumeration in the C++ API.
    */
@@ -117,5 +116,4 @@ public final class ConstantsHelper {
   public static final int AD_VIEW_POSITION_BOTTOM_RIGHT = 5;
   // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src/include/firebase/admob/banner_view.h,
   // //depot_firebase_cpp/admob/client/cpp/src/include/firebase/admob/native_express_ad_view.h)
-
 }

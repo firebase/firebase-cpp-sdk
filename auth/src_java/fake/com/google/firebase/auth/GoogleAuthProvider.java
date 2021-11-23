@@ -18,7 +18,6 @@ package com.google.firebase.auth;
 
 /** Fake GoogleAuthProvider */
 public final class GoogleAuthProvider {
-
   public static AuthCredential getCredential(String idToken, String accessToken) {
     return new AuthCredential("google.com");
   }

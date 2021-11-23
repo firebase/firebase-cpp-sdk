@@ -33,7 +33,6 @@ import org.mockito.MockitoAnnotations;
 
 @RunWith(GoogleRobolectricTestRunner.class)
 public final class MessageForwardingServiceTest {
-
   @Mock private Context context;
   @Mock private MessageWriter messageWriter;
 

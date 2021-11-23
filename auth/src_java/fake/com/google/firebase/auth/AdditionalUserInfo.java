@@ -20,7 +20,6 @@ import java.util.Map;
 
 /** Fake AdditionalUserInfo */
 public final class AdditionalUserInfo {
-
   public String getProviderId() {
     return "fake provider id";
   }

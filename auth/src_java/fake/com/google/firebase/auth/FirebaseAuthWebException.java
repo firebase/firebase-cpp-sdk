@@ -18,7 +18,6 @@ package com.google.firebase.auth;
 
 /** Fake FirebaseAuthWebException */
 public class FirebaseAuthWebException extends FirebaseAuthException {
-
   public FirebaseAuthWebException(String code, String message) {
     super(code, message);
   }

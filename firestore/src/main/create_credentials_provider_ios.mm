@@ -16,12 +16,12 @@
 
 #include "firestore/src/main/create_credentials_provider.h"
 
-#import "FirebaseCoreInternal.h"
 #import "FIRAuthInterop.h"
+#import "FirebaseCoreInternal.h"
 
-#include "app/src/include/firebase/app.h"
-#include "absl/memory/memory.h"
 #include "Firestore/core/src/credentials/firebase_auth_credentials_provider_apple.h"
+#include "absl/memory/memory.h"
+#include "app/src/include/firebase/app.h"
 
 namespace firebase {
 namespace firestore {

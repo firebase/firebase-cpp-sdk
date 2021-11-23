@@ -64,53 +64,20 @@ public class MessageWriter {
       linkUri = notification.getLink();
     }
     String link = (linkUri != null) ? linkUri.toString() : null;
-    DebugLogging.log(
-        TAG,
-        String.format(
-            "onMessageReceived from=%s message_id=%s, data=%s, notification=%s",
-            from,
-            messageId,
-            (data == null ? "(null)" : data.toString()),
+    DebugLogging.log(TAG,
+        String.format("onMessageReceived from=%s message_id=%s, data=%s, notification=%s", from,
+            messageId, (data == null ? "(null)" : data.toString()),
             (notification == null ? "(null)" : notification.toString())));
-    writeMessageToInternalStorage(
-        context,
-        from,
-        to,
-        messageId,
-        messageType,
-        null,
-        data,
-        rawData,
-        notification,
-        notificationOpened,
-        link,
-        collapseKey,
-        priority,
-        originalPriority,
-        sentTime,
+    writeMessageToInternalStorage(context, from, to, messageId, messageType, null, data, rawData,
+        notification, notificationOpened, link, collapseKey, priority, originalPriority, sentTime,
         timeToLive);
   }
 
   /** Writes an event associated with a message to internal storage. */
   void writeMessageEventToInternalStorage(
       Context context, String messageId, String messageType, String error) {
-    writeMessageToInternalStorage(
-        context,
-        null,
-        null,
-        messageId,
-        messageType,
-        null,
-        null,
-        null,
-        null,
-        false,
-        null,
-        null,
-        0,
-        0,
-        0,
-        0);
+    writeMessageToInternalStorage(context, null, null, messageId, messageType, null, null, null,
+        null, false, null, null, 0, 0, 0, 0);
   }
 
   /**
@@ -122,40 +89,13 @@ public class MessageWriter {
    * whenever it gets around to it.
    */
   @SuppressWarnings("CatchAndPrintStackTrace")
-  void writeMessageToInternalStorage(
-      Context context,
-      String from,
-      String to,
-      String messageId,
-      String messageType,
-      String error,
-      Map<String, String> data,
-      byte[] rawData,
-      Notification notification,
-      boolean notificationOpened,
-      String link,
-      String collapseKey,
-      int priority,
-      int originalPriority,
-      long sentTime,
-      int timeToLive) {
-    byte[] buffer =
-        generateMessageByteBuffer(
-            from,
-            to,
-            messageId,
-            messageType,
-            error,
-            data,
-            rawData,
-            notification,
-            notificationOpened,
-            link,
-            collapseKey,
-            priority,
-            originalPriority,
-            sentTime,
-            timeToLive);
+  void writeMessageToInternalStorage(Context context, String from, String to, String messageId,
+      String messageType, String error, Map<String, String> data, byte[] rawData,
+      Notification notification, boolean notificationOpened, String link, String collapseKey,
+      int priority, int originalPriority, long sentTime, int timeToLive) {
+    byte[] buffer = generateMessageByteBuffer(from, to, messageId, messageType, error, data,
+        rawData, notification, notificationOpened, link, collapseKey, priority, originalPriority,
+        sentTime, timeToLive);
     ByteBuffer sizeBuffer = ByteBuffer.allocate(4);
     // Write out the buffer length into the first four bytes.
     sizeBuffer.order(ByteOrder.LITTLE_ENDIAN);
@@ -202,22 +142,10 @@ public class MessageWriter {
     }
   }
 
-  private static byte[] generateMessageByteBuffer(
-      String from,
-      String to,
-      String messageId,
-      String messageType,
-      String error,
-      Map<String, String> data,
-      byte[] rawData,
-      Notification notification,
-      boolean notificationOpened,
-      String link,
-      String collapseKey,
-      int priority,
-      int originalPriority,
-      long sentTime,
-      int timeToLive) {
+  private static byte[] generateMessageByteBuffer(String from, String to, String messageId,
+      String messageType, String error, Map<String, String> data, byte[] rawData,
+      Notification notification, boolean notificationOpened, String link, String collapseKey,
+      int priority, int originalPriority, long sentTime, int timeToLive) {
     FlatBufferBuilder builder = new FlatBufferBuilder(0);
     int fromOffset = builder.createString(emptyIfNull(from));
     int toOffset = builder.createString(emptyIfNull(to));

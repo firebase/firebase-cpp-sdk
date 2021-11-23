@@ -22,17 +22,17 @@ import java.util.concurrent.Executors;
 
 /** Runs a native C++ function on an alternate thread. */
 public class CppThreadDispatcher {
-  private static final ExecutorService executor = Executors.newSingleThreadExecutor(
-      Executors.defaultThreadFactory());
+  private static final ExecutorService executor =
+      Executors.newSingleThreadExecutor(Executors.defaultThreadFactory());
 
   /** Runs a C++ function on the main thread using the executor. */
   public static void runOnMainThread(Activity activity, final CppThreadDispatcherContext context) {
     Object unused = executor.submit(new Runnable() {
-        @Override
-        public void run() {
-          context.execute();
-        }
-      });
+      @Override
+      public void run() {
+        context.execute();
+      }
+    });
   }
 
   /** Runs a C++ function on a new Java background thread. */

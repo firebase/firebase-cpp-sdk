@@ -16,9 +16,9 @@
 
 #include "firestore/src/main/create_firebase_metadata_provider.h"
 
-#include "app/src/include/firebase/app.h"
 #include "Firestore/core/src/remote/firebase_metadata_provider_apple.h"
 #include "absl/memory/memory.h"
+#include "app/src/include/firebase/app.h"
 
 namespace firebase {
 namespace firestore {
@@ -26,7 +26,8 @@ namespace firestore {
 using remote::FirebaseMetadataProvider;
 using remote::FirebaseMetadataProviderApple;
 
-std::unique_ptr<FirebaseMetadataProvider> CreateFirebaseMetadataProvider(App& app) {
+std::unique_ptr<FirebaseMetadataProvider> CreateFirebaseMetadataProvider(
+    App& app) {
   return absl::make_unique<FirebaseMetadataProviderApple>(app.GetPlatformApp());
 }
 

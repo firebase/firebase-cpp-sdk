@@ -18,7 +18,6 @@ package com.google.firebase.auth;
 
 /** Fake FirebaseAuthInvalidUserException */
 public final class FirebaseAuthInvalidUserException extends FirebaseAuthException {
-
   public FirebaseAuthInvalidUserException(String code, String message) {
     super(code, message);
   }

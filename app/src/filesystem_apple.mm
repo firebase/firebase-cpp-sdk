@@ -53,11 +53,11 @@ std::string AppDataDir(const char* app_name, bool should_create, std::string* ou
   }
 
 #if TARGET_OS_IOS || TARGET_OS_OSX
-  NSArray<NSString*>* directories = NSSearchPathForDirectoriesInDomains(
-      NSApplicationSupportDirectory, NSUserDomainMask, YES);
+  NSArray<NSString*>* directories =
+      NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES);
 #elif TARGET_OS_TV
-  NSArray<NSString*>* directories = NSSearchPathForDirectoriesInDomains(
-      NSCachesDirectory, NSUserDomainMask, YES);
+  NSArray<NSString*>* directories =
+      NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
 #else
 #error "Don't know where to store documents on this platform."
 #endif

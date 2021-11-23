@@ -41,6 +41,7 @@ IGNORE_LINT_WARNINGS = [
   'build/include_subdir',
   'readability/casting',
   'whitespace/indent',
+  'whitespace/line_length'
 ]
 # Exclude files within the following paths (specified as regexes)
 EXCLUDE_PATH_REGEX = [

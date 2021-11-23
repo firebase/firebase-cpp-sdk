@@ -46,13 +46,12 @@ public final class FirebaseUser extends UserInfo {
 
     ConfigRow row = ConfigAndroid.get(configKey);
     if (!row.futuregeneric().throwexception()) {
-      result.addListener(
-          new FakeListener<Void>() {
-            @Override
-            public void onSuccess(Void res) {
-              FirebaseUser.this.email = email;
-            }
-          });
+      result.addListener(new FakeListener<Void>() {
+        @Override
+        public void onSuccess(Void res) {
+          FirebaseUser.this.email = email;
+        }
+      });
     }
 
     TickerAndroid.register(result);
@@ -180,7 +179,6 @@ public final class FirebaseUser extends UserInfo {
     TickerAndroid.register(result);
     return result;
   }
-
 
   public Task<Void> delete() {
     Task<Void> result = Task.forResult("FirebaseUser.delete", null);

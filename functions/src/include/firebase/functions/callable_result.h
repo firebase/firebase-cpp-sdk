@@ -15,8 +15,8 @@
 #ifndef FIREBASE_FUNCTIONS_SRC_INCLUDE_FIREBASE_FUNCTIONS_CALLABLE_RESULT_H_
 #define FIREBASE_FUNCTIONS_SRC_INCLUDE_FIREBASE_FUNCTIONS_CALLABLE_RESULT_H_
 
-#include "firebase/variant.h"
 #include "firebase/functions/common.h"
+#include "firebase/variant.h"
 
 namespace firebase {
 namespace functions {

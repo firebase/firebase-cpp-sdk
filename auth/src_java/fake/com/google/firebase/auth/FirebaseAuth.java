@@ -106,15 +106,13 @@ public final class FirebaseAuth {
 
   public void addAuthStateListener(final AuthStateListener listener) {
     authStateListeners.add(listener);
-    new Thread(
-            new Runnable() {
-              @Override
-              public void run() {
-                randomDelayThread();
-                listener.onAuthStateChanged(FirebaseAuth.this);
-              }
-            })
-        .start();
+    new Thread(new Runnable() {
+      @Override
+      public void run() {
+        randomDelayThread();
+        listener.onAuthStateChanged(FirebaseAuth.this);
+      }
+    }).start();
   }
 
   public void removeAuthStateListener(AuthStateListener listener) {
@@ -123,15 +121,13 @@ public final class FirebaseAuth {
 
   public void addIdTokenListener(final IdTokenListener listener) {
     idTokenListeners.add(listener);
-    new Thread(
-            new Runnable() {
-              @Override
-              public void run() {
-                randomDelayThread();
-                listener.onIdTokenChanged(FirebaseAuth.this);
-              }
-            })
-        .start();
+    new Thread(new Runnable() {
+      @Override
+      public void run() {
+        randomDelayThread();
+        listener.onIdTokenChanged(FirebaseAuth.this);
+      }
+    }).start();
   }
 
   public void removeIdTokenListener(IdTokenListener listener) {
@@ -152,7 +148,7 @@ public final class FirebaseAuth {
 
   /** Sets the user-facing language code to be the default app language. */
   public void useAppLanguage() {
-     languageCode = "en-US";
+    languageCode = "en-US";
   }
 
   public Task<SignInMethodQueryResult> fetchSignInMethodsForEmail(String email) {

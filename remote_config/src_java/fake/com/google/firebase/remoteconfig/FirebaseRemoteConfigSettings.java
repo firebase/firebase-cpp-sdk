@@ -20,7 +20,6 @@ import com.google.firebase.testing.cppsdk.FakeReporter;
 
 /** Fake FirebaseRemoteConfigSettings */
 public class FirebaseRemoteConfigSettings {
-
   private static final String FN_GET_FETCH_TIMEOUT =
       "FirebaseRemoteConfig.getFetchTimeoutInSeconds";
   private static final String FN_GET_MIN_FETCH_INTERVAL =

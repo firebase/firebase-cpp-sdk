@@ -20,8 +20,8 @@
 #include <memory>
 #include <vector>
 
-#include "testing/ticker_ios.h"
 #include "testing/config_ios.h"
+#include "testing/ticker_ios.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -35,11 +35,9 @@ typedef void (^Callback)(NSError* _Nullable error);
 // A test helper class to make tickers which call back at certain ticks.
 class CallbackTicker : public firebase::testing::cppsdk::TickerObserver {
  public:
-  explicit CallbackTicker(NSString* config_key, ParamCallback completion,
-                          id param, int error_code);
+  explicit CallbackTicker(NSString* config_key, ParamCallback completion, id param, int error_code);
 
-  explicit CallbackTicker(NSString* config_key, Callback completion,
-                          int error_code);
+  explicit CallbackTicker(NSString* config_key, Callback completion, int error_code);
 
   void Elapse() override;
 

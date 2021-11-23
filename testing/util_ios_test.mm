@@ -16,11 +16,11 @@
 
 #include <string>
 
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "testing/config.h"
 #include "testing/ticker.h"
 #include "testing/util_ios.h"
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
 
 namespace firebase {
 namespace testing {
@@ -28,25 +28,38 @@ namespace cppsdk {
 
 TEST(TickerTest, TestCallbackTicker) {
   TickerReset();
-  ConfigSet(
-      "{"
-      "  config:["
-      "    {fake:'a',futuregeneric:{throwexception:false,ticker:1}},"
-      "    {fake:'b',futuregeneric:{throwexception:true,exceptionmsg:'failed',ticker:2}},"
-      "    {fake:'c',futuregeneric:{throwexception:false,ticker:3}},"
-      "    {fake:'d',futuregeneric:{throwexception:true,exceptionmsg:'failed',ticker:4}}"
-      "  ]"
-      "}");
+  ConfigSet("{"
+            "  config:["
+            "    {fake:'a',futuregeneric:{throwexception:false,ticker:1}},"
+            "    {fake:'b',futuregeneric:{throwexception:true,exceptionmsg:'failed',ticker:2}},"
+            "    {fake:'c',futuregeneric:{throwexception:false,ticker:3}},"
+            "    {fake:'d',futuregeneric:{throwexception:true,exceptionmsg:'failed',ticker:4}}"
+            "  ]"
+            "}");
 
   __block int count = 0;
   // Now we create four fake objects on the fly; all are managed by manager.
   CallbackTickerManager manager;
   // Without param.
-  manager.Add(@"a", ^(NSError* _Nullable error) { if (!error) count++; });
-  manager.Add(@"b", ^(NSError* _Nullable error) { if (!error) count++; });
+  manager.Add(@"a", ^(NSError* _Nullable error) {
+    if (!error) count++;
+  });
+  manager.Add(@"b", ^(NSError* _Nullable error) {
+    if (!error) count++;
+  });
   // With param.
-  manager.Add(@"c", ^(NSString* param, NSError* _Nullable error) { if (!error) count++; }, @"par");
-  manager.Add(@"d", ^(NSString* param, NSError* _Nullable error) { if (!error) count++; }, @"par");
+  manager.Add(
+      @"c",
+      ^(NSString* param, NSError* _Nullable error) {
+        if (!error) count++;
+      },
+      @"par");
+  manager.Add(
+      @"d",
+      ^(NSString* param, NSError* _Nullable error) {
+        if (!error) count++;
+      },
+      @"par");
 
   // nothing happens so far.
   EXPECT_EQ(0, count);
