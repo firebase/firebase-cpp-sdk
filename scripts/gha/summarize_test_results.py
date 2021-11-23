@@ -200,7 +200,7 @@ def summarize_logs(dir, markdown=False, github_log=False):
   test_log_name_re = re.escape(
       os.path.join(dir,TEST_FILE_PATTERN)).replace("\\*", "(.*)")
 
-  any_failures = False
+  success_or_only_flakiness = True
   log_data = {}
   # log_data format:
   #   { testapps: {"build": [configs]},
@@ -211,12 +211,12 @@ def summarize_logs(dir, markdown=False, github_log=False):
     with open(build_log_file, "r") as log_reader:
       log_text = log_reader.read()
       if "__SUMMARY_MISSING__" in log_text:
-        any_failures = True
+        success_or_only_flakiness = False
         log_data.setdefault(MISSING_LOG, {}).setdefault("build", []).append(configs)
       else:
         log_reader_data = json.loads(log_text)
-        for (testapp, error) in log_reader_data["errors"].items():
-          any_failures = True
+        for (testapp, _) in log_reader_data["errors"].items():
+          success_or_only_flakiness = False
           log_data.setdefault(testapp, {}).setdefault("build", []).append(configs)
 
   for test_log_file in test_log_files:
@@ -224,25 +224,28 @@ def summarize_logs(dir, markdown=False, github_log=False):
     with open(test_log_file, "r") as log_reader:
       log_text = log_reader.read()
       if "__SUMMARY_MISSING__" in log_text:
-        any_failures = True
+        success_or_only_flakiness = False
         log_data.setdefault(MISSING_LOG, {}).setdefault("test", {}).setdefault("errors", []).append(configs)
       else:
         log_reader_data = json.loads(log_text)
-        for (testapp, error) in log_reader_data["errors"].items():
-          any_failures = True
+        for (testapp, _) in log_reader_data["errors"].items():
+          success_or_only_flakiness = False
           log_data.setdefault(testapp, {}).setdefault("test", {}).setdefault("errors", []).append(configs)
         for (testapp, failures) in log_reader_data["failures"].items():
-          for (test, failure) in failures["failed_tests"].items():
-            any_failures = True
+          for (test, _) in failures["failed_tests"].items():
+            success_or_only_flakiness = False
             log_data.setdefault(testapp, {}).setdefault("test", {}).setdefault("failures", {}).setdefault(test, []).append(configs)
+        for (testapp, flakiness) in log_reader_data["flakiness"].items():
+          for (test, _) in flakiness["flaky_tests"].items():
+            log_data.setdefault(testapp, {}).setdefault("test", {}).setdefault("flakiness", {}).setdefault(test, []).append(configs)
 
   # log_results format:
   #   { testapps: {configs: [failed tests]} }
   log_results = reorganize_log(log_data)
 
-  if not any_failures:
+  if success_or_only_flakiness:
     # No failures occurred, nothing to log.
-    return(0)
+    return (success_or_only_flakiness, None)
 
   log_lines = []
   if markdown:
@@ -255,7 +258,7 @@ def summarize_logs(dir, markdown=False, github_log=False):
 
   log_summary = "\n".join(log_lines)
   print(log_summary)
-  return log_summary
+  return (success_or_only_flakiness, log_summary)
 
 
 def get_configs_from_file_name(file_name, file_name_re):
@@ -291,6 +294,13 @@ def reorganize_log(log_data):
       for (platform, configs) in combined_configs.items():
         for config in configs:
           all_configs = [["TEST"], ["FAILURE"], [CAPITALIZATIONS[platform]]]
+          all_configs.extend(config)
+          log_results.setdefault(testapp, {}).setdefault(flat_config(all_configs), []).append(test)
+    for (test, configs) in errors.get("test",{}).get("flakiness",{}).items():
+      combined_configs = combine_configs(configs)
+      for (platform, configs) in combined_configs.items():
+        for config in configs:
+          all_configs = [["TEST"], ["FLAKINESS"], [CAPITALIZATIONS[platform]]]
           all_configs.extend(config)
           log_results.setdefault(testapp, {}).setdefault(flat_config(all_configs), []).append(test)
   
