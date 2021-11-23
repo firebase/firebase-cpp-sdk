@@ -51,9 +51,8 @@ class AppInternal;
 }  // namespace internal
 
 #if FIREBASE_PLATFORM_ANDROID && defined(__GLIBCXX__)
-#warning \
-    "Firebase support for gnustl is deprecated and will be removed in \
-    the next major release. Please use libc++ instead."
+#warning "Firebase support for gnustl is deprecated and will be removed in "
+#warning "the next major release. Please use libc++ instead."
 #endif
 
 /// @brief Reports whether a Firebase module initialized successfully.
