@@ -284,8 +284,9 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
       flaky_test = flaky_test[0] + "." + flaky_test[1]
       pattern = fr'\[ RUN      \] {flaky_test}(.*?)\[  FAILED  \] {flaky_test}'
       failure_log = re.search(pattern, test.logs, re.MULTILINE | re.DOTALL)
-      summary_json["flakiness"][testapp]["flaky_tests"][flaky_test] = failure_log.group()
-      summary.append("\n%s FAILED:\n%s\n" % (flaky_test, failure_log.group()))
+      if failure_log:
+        summary_json["flakiness"][testapp]["flaky_tests"][flaky_test] = failure_log.group()
+        summary.append("\n%s FAILED:\n%s\n" % (flaky_test, failure_log.group()))
 
   with open(os.path.join(summary_dir, file_name+".json"), "a") as f:
     f.write(json.dumps(summary_json, indent=2))
