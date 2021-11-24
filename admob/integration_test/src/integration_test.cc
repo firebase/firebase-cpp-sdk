@@ -475,7 +475,7 @@ TEST_F(FirebaseAdMobTest, TestAdSize) {
   EXPECT_EQ(fullbanner.type(), AdSize::kTypeStandard);
   EXPECT_EQ(fullbanner.orientation(), AdSize::kOrientationCurrent);
 
-  const AdSize leaderboard = AdSize::kLeaderBoard;
+  const AdSize leaderboard = AdSize::kLeaderboard;
   EXPECT_EQ(leaderboard.width(), 728);
   EXPECT_EQ(leaderboard.height(), 90);
   EXPECT_EQ(leaderboard.type(), AdSize::kTypeStandard);

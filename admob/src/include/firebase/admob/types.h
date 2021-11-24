@@ -351,7 +351,7 @@ class AdSize {
 
   /// Interactive Advertising Bureau (IAB) leaderboard ad size
   /// (728x90 density-independent pixels).
-  static const AdSize kLeaderBoard;
+  static const AdSize kLeaderboard;
 
   /// Interactive Advertising Bureau (IAB) medium rectangle ad size
   /// (300x250 density-independent pixels).
