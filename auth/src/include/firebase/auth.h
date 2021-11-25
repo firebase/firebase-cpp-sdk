@@ -20,9 +20,9 @@
 #include <vector>
 
 #include "firebase/app.h"
+#include "firebase/auth/user.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
-#include "firebase/auth/user.h"
 
 #if !defined(DOXYGEN)
 #ifndef SWIG

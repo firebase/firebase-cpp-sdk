@@ -22,14 +22,12 @@ import android.os.Bundle;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.testing.cppsdk.FakeReporter;
 import com.google.firebase.testing.cppsdk.TickerAndroid;
-
 import java.util.TreeSet;
 
 /**
  * Fake for FirebaseAnalytics.
  */
 public final class FirebaseAnalytics {
-
   public static FirebaseAnalytics getInstance(Context context) {
     FakeReporter.addReport("FirebaseAnalytics.getInstance");
     return new FirebaseAnalytics();
@@ -43,8 +41,8 @@ public final class FirebaseAnalytics {
   }
 
   public void setAnalyticsCollectionEnabled(boolean enabled) {
-    FakeReporter.addReport("FirebaseAnalytics.setAnalyticsCollectionEnabled",
-        Boolean.toString(enabled));
+    FakeReporter.addReport(
+        "FirebaseAnalytics.setAnalyticsCollectionEnabled", Boolean.toString(enabled));
   }
 
   public void logEvent(String name, Bundle params) {
@@ -73,13 +71,12 @@ public final class FirebaseAnalytics {
   }
 
   public void setMinimumSessionDuration(long milliseconds) {
-    FakeReporter.addReport("FirebaseAnalytics.setMinimumSessionDuration",
-        Long.toString(milliseconds));
+    FakeReporter.addReport(
+        "FirebaseAnalytics.setMinimumSessionDuration", Long.toString(milliseconds));
   }
 
   public void setSessionTimeoutDuration(long milliseconds) {
-    FakeReporter.addReport("FirebaseAnalytics.setSessionTimeoutDuration",
-        Long.toString(milliseconds));
+    FakeReporter.addReport(
+        "FirebaseAnalytics.setSessionTimeoutDuration", Long.toString(milliseconds));
   }
-
 }

@@ -23,11 +23,9 @@
 
 #include "app/src/assert.h"
 #include "app/src/cleanup_notifier.h"
+#include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/mutex.h"
-
-
-#include "app/src/include/firebase/future.h"
 
 namespace firebase {
 

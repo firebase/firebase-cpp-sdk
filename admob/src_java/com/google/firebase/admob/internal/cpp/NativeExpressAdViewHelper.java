@@ -38,7 +38,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * convert the Java listener patterns into game engine-friendly state machine polling.
  */
 public class NativeExpressAdViewHelper implements ViewTreeObserver.OnPreDrawListener {
-
   // It's possible to attempt to show a popup when an activity doesn't have focus. This value
   // controls the number of times the NativeExpressAdViewHelper object checks for activity window
   // focus before timing out. Assuming 10ms per retry this value attempts to retry for 2 minutes
@@ -140,14 +139,8 @@ public class NativeExpressAdViewHelper implements ViewTreeObserver.OnPreDrawList
    * Initializes the {@link NativeExpressAdView}. This creates the corresponding GMA SDK {@link
    * NativeExpressAdView} object and sets it up.
    */
-  public void initialize(
-      final long callbackDataPtr,
-      Activity activity,
-      String adUnitID,
-      int adSizeType,
-      int width,
-      int height) {
-
+  public void initialize(final long callbackDataPtr, Activity activity, String adUnitID,
+      int adSizeType, int width, int height) {
     // There is only one ad size type right now, which is why that parameter goes unused.
     mAdSize = new AdSize(width, height);
     mActivity = activity;
@@ -157,27 +150,26 @@ public class NativeExpressAdViewHelper implements ViewTreeObserver.OnPreDrawList
     }
 
     // Create the NativeExpressAdView on the UI thread.
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            int errorCode;
-            String errorMessage;
-            if (mNativeExpressAdView == null) {
-              errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
-              errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-              mNativeExpressAdView = new NativeExpressAdView(mActivity);
-              mNativeExpressAdView.setAdUnitId(mAdUnitId);
-              mNativeExpressAdView.setAdSize(mAdSize);
-              mNativeExpressAdView.setAdListener(new AdViewListener());
-            } else {
-              errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
-              errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
-            }
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        int errorCode;
+        String errorMessage;
+        if (mNativeExpressAdView == null) {
+          errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
+          errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
+          mNativeExpressAdView = new NativeExpressAdView(mActivity);
+          mNativeExpressAdView.setAdUnitId(mAdUnitId);
+          mNativeExpressAdView.setAdSize(mAdSize);
+          mNativeExpressAdView.setAdListener(new AdViewListener());
+        } else {
+          errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
+          errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
+        }
 
-            completeNativeExpressAdViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
-          }
-        });
+        completeNativeExpressAdViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
+      }
+    });
   }
 
   /** Destroy/deallocate the {@link PopupWindow} and {@link AdView}. */
@@ -191,36 +183,32 @@ public class NativeExpressAdViewHelper implements ViewTreeObserver.OnPreDrawList
       mPopUpRunnable = null;
     }
 
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            if (mNativeExpressAdView != null) {
-              mNativeExpressAdView.destroy();
-              mNativeExpressAdView = null;
-            }
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        if (mNativeExpressAdView != null) {
+          mNativeExpressAdView.destroy();
+          mNativeExpressAdView = null;
+        }
 
-            synchronized (mPopUpLock) {
-              if (mPopUp != null) {
-                mPopUp.dismiss();
-                mPopUp = null;
-              }
-            }
-
-            mCurrentPresentationState = ConstantsHelper.AD_VIEW_PRESENTATION_STATE_HIDDEN;
-
-            notifyStateChanged(
-                mNativeExpressAdViewInternalPtr,
-                ConstantsHelper.AD_VIEW_CHANGED_PRESENTATION_STATE);
-            notifyStateChanged(
-                mNativeExpressAdViewInternalPtr, ConstantsHelper.AD_VIEW_CHANGED_BOUNDING_BOX);
-            completeNativeExpressAdViewFutureCallback(
-                callbackDataPtr,
-                ConstantsHelper.CALLBACK_ERROR_NONE,
-                ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
-            mNotifyListenerOnNextDraw.set(true);
+        synchronized (mPopUpLock) {
+          if (mPopUp != null) {
+            mPopUp.dismiss();
+            mPopUp = null;
           }
-        });
+        }
+
+        mCurrentPresentationState = ConstantsHelper.AD_VIEW_PRESENTATION_STATE_HIDDEN;
+
+        notifyStateChanged(
+            mNativeExpressAdViewInternalPtr, ConstantsHelper.AD_VIEW_CHANGED_PRESENTATION_STATE);
+        notifyStateChanged(
+            mNativeExpressAdViewInternalPtr, ConstantsHelper.AD_VIEW_CHANGED_BOUNDING_BOX);
+        completeNativeExpressAdViewFutureCallback(callbackDataPtr,
+            ConstantsHelper.CALLBACK_ERROR_NONE, ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
+        mNotifyListenerOnNextDraw.set(true);
+      }
+    });
   }
 
   /** Loads an ad for the underlying NativeExpressAdView object. */
@@ -231,8 +219,7 @@ public class NativeExpressAdViewHelper implements ViewTreeObserver.OnPreDrawList
 
     synchronized (mLoadAdCallbackDataPtrLock) {
       if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
-        completeNativeExpressAdViewFutureCallback(
-            callbackDataPtr,
+        completeNativeExpressAdViewFutureCallback(callbackDataPtr,
             ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS,
             ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS);
         return;
@@ -241,23 +228,21 @@ public class NativeExpressAdViewHelper implements ViewTreeObserver.OnPreDrawList
       mLoadAdCallbackDataPtr = callbackDataPtr;
     }
 
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            if (mNativeExpressAdView == null) {
-              synchronized (mLoadAdCallbackDataPtrLock) {
-                completeNativeExpressAdViewFutureCallback(
-                    mLoadAdCallbackDataPtr,
-                    ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
-                    ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
-                mLoadAdCallbackDataPtr = CPP_NULLPTR;
-              }
-            } else {
-              mNativeExpressAdView.loadAd(request);
-            }
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        if (mNativeExpressAdView == null) {
+          synchronized (mLoadAdCallbackDataPtrLock) {
+            completeNativeExpressAdViewFutureCallback(mLoadAdCallbackDataPtr,
+                ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
+                ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
+            mLoadAdCallbackDataPtr = CPP_NULLPTR;
           }
-        });
+        } else {
+          mNativeExpressAdView.loadAd(request);
+        }
+      }
+    });
   }
 
   /** Hides the {@link NativeExpressAdView}. */
@@ -271,32 +256,30 @@ public class NativeExpressAdViewHelper implements ViewTreeObserver.OnPreDrawList
       mPopUpRunnable = null;
     }
 
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            int errorCode;
-            String errorMessage;
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        int errorCode;
+        String errorMessage;
 
-            synchronized (mPopUpLock) {
-              if (mNativeExpressAdView == null || mPopUp == null) {
-                errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
-                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
-              } else {
-                errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
-                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-                mPopUp.dismiss();
-                mPopUp = null;
-                mCurrentPresentationState = ConstantsHelper.AD_VIEW_PRESENTATION_STATE_HIDDEN;
-              }
-            }
-
-            completeNativeExpressAdViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
-            notifyStateChanged(
-                mNativeExpressAdViewInternalPtr,
-                ConstantsHelper.AD_VIEW_CHANGED_PRESENTATION_STATE);
+        synchronized (mPopUpLock) {
+          if (mNativeExpressAdView == null || mPopUp == null) {
+            errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
+          } else {
+            errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
+            mPopUp.dismiss();
+            mPopUp = null;
+            mCurrentPresentationState = ConstantsHelper.AD_VIEW_PRESENTATION_STATE_HIDDEN;
           }
-        });
+        }
+
+        completeNativeExpressAdViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
+        notifyStateChanged(
+            mNativeExpressAdViewInternalPtr, ConstantsHelper.AD_VIEW_CHANGED_PRESENTATION_STATE);
+      }
+    });
   }
 
   /** Shows the {@link NativeExpressAdView}. */
@@ -313,20 +296,17 @@ public class NativeExpressAdViewHelper implements ViewTreeObserver.OnPreDrawList
     if (mActivity == null) {
       return;
     }
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            if (mNativeExpressAdView != null) {
-              mNativeExpressAdView.pause();
-            }
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        if (mNativeExpressAdView != null) {
+          mNativeExpressAdView.pause();
+        }
 
-            completeNativeExpressAdViewFutureCallback(
-                callbackDataPtr,
-                ConstantsHelper.CALLBACK_ERROR_NONE,
-                ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
-          }
-        });
+        completeNativeExpressAdViewFutureCallback(callbackDataPtr,
+            ConstantsHelper.CALLBACK_ERROR_NONE, ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
+      }
+    });
   }
 
   /** Resume the {@link NativeExpressAdView} (from a pause). */
@@ -334,20 +314,17 @@ public class NativeExpressAdViewHelper implements ViewTreeObserver.OnPreDrawList
     if (mActivity == null) {
       return;
     }
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            if (mNativeExpressAdView != null) {
-              mNativeExpressAdView.resume();
-            }
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        if (mNativeExpressAdView != null) {
+          mNativeExpressAdView.resume();
+        }
 
-            completeNativeExpressAdViewFutureCallback(
-                callbackDataPtr,
-                ConstantsHelper.CALLBACK_ERROR_NONE,
-                ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
-          }
-        });
+        completeNativeExpressAdViewFutureCallback(callbackDataPtr,
+            ConstantsHelper.CALLBACK_ERROR_NONE, ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
+      }
+    });
   }
 
   /** Moves the {@link NativeExpressAdView} to the provided (x,y) screen coordinates. */
@@ -450,113 +427,107 @@ public class NativeExpressAdViewHelper implements ViewTreeObserver.OnPreDrawList
 
     synchronized (mPopUpLock) {
       if (mPopUp != null) {
-        mActivity.runOnUiThread(
-            new Runnable() {
-              @Override
-              public void run() {
-                synchronized (mPopUpLock) {
-                  // Any change in visibility or position results in the dismissal of the popup (if
-                  // one is being displayed) and creation of a fresh one.
-                  mPopUp.dismiss();
-                  mPopUp = null;
-                }
-              }
-            });
+        mActivity.runOnUiThread(new Runnable() {
+          @Override
+          public void run() {
+            synchronized (mPopUpLock) {
+              // Any change in visibility or position results in the dismissal of the popup (if
+              // one is being displayed) and creation of a fresh one.
+              mPopUp.dismiss();
+              mPopUp = null;
+            }
+          }
+        });
       }
 
       mPopUpShowRetryCount = 0;
-      mPopUpRunnable =
-          new Runnable() {
-            @Override
-            public void run() {
-              int errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
-              String errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-              // If the Activity's window doesn't currently have focus it's not
-              // possible to display the popup window. Poll the focus after a delay of 10ms and try
-              // to show the popup again.
-              if (!mActivity.hasWindowFocus()) {
-                synchronized (mPopUpLock) {
-                  if (mPopUpRunnable == null) {
-                    errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
-                    errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
-                  } else {
-                    if (mPopUpShowRetryCount < POPUP_SHOW_RETRY_COUNT) {
-                      mPopUpShowRetryCount++;
-                      new Handler().postDelayed(mPopUpRunnable, 10);
-                      return;
-                    } else {
-                      errorCode = ConstantsHelper.CALLBACK_ERROR_NO_WINDOW_TOKEN;
-                      errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NO_WINDOW_TOKEN;
-                    }
-                  }
-                }
-              }
-
-              if (mNativeExpressAdView == null) {
+      mPopUpRunnable = new Runnable() {
+        @Override
+        public void run() {
+          int errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
+          String errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
+          // If the Activity's window doesn't currently have focus it's not
+          // possible to display the popup window. Poll the focus after a delay of 10ms and try
+          // to show the popup again.
+          if (!mActivity.hasWindowFocus()) {
+            synchronized (mPopUpLock) {
+              if (mPopUpRunnable == null) {
                 errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
                 errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
-              }
-
-              if (errorCode != ConstantsHelper.CALLBACK_ERROR_NONE) {
-                completeNativeExpressAdViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
-                return;
-              }
-
-              if (mPopUp == null) {
-                mPopUp =
-                    new PopupWindow(
-                        mNativeExpressAdView, LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-                mPopUp.setBackgroundDrawable(new ColorDrawable(0xFF000000)); // Black
-                mNativeExpressAdView
-                    .getViewTreeObserver()
-                    .addOnPreDrawListener(NativeExpressAdViewHelper.this);
-
-                if (mShouldUseXYForPosition) {
-                  mPopUp.showAtLocation(root, Gravity.NO_GRAVITY, mDesiredX, mDesiredY);
+              } else {
+                if (mPopUpShowRetryCount < POPUP_SHOW_RETRY_COUNT) {
+                  mPopUpShowRetryCount++;
+                  new Handler().postDelayed(mPopUpRunnable, 10);
+                  return;
                 } else {
-                  switch (mDesiredPosition) {
-                    case ConstantsHelper.AD_VIEW_POSITION_TOP:
-                      mPopUp.showAtLocation(root, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 0);
-                      break;
-                    case ConstantsHelper.AD_VIEW_POSITION_BOTTOM:
-                      mPopUp.showAtLocation(root, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
-                      break;
-                    case ConstantsHelper.AD_VIEW_POSITION_TOP_LEFT:
-                      mPopUp.showAtLocation(root, Gravity.TOP | Gravity.LEFT, 0, 0);
-                      break;
-                    case ConstantsHelper.AD_VIEW_POSITION_TOP_RIGHT:
-                      mPopUp.showAtLocation(root, Gravity.TOP | Gravity.RIGHT, 0, 0);
-                      break;
-                    case ConstantsHelper.AD_VIEW_POSITION_BOTTOM_LEFT:
-                      mPopUp.showAtLocation(root, Gravity.BOTTOM | Gravity.LEFT, 0, 0);
-                      break;
-                    case ConstantsHelper.AD_VIEW_POSITION_BOTTOM_RIGHT:
-                      mPopUp.showAtLocation(root, Gravity.BOTTOM | Gravity.RIGHT, 0, 0);
-                      break;
-                    default:
-                      mPopUp.showAtLocation(root, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 0);
-                      break;
-                  }
+                  errorCode = ConstantsHelper.CALLBACK_ERROR_NO_WINDOW_TOKEN;
+                  errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NO_WINDOW_TOKEN;
                 }
               }
-
-              if (errorCode == ConstantsHelper.CALLBACK_ERROR_NO_WINDOW_TOKEN) {
-                mCurrentPresentationState = ConstantsHelper.AD_VIEW_PRESENTATION_STATE_HIDDEN;
-              } else if (mNativeExpressAdViewContainsAd) {
-                mCurrentPresentationState =
-                    ConstantsHelper.AD_VIEW_PRESENTATION_STATE_VISIBLE_WITH_AD;
-              } else {
-                mCurrentPresentationState =
-                    ConstantsHelper.AD_VIEW_PRESENTATION_STATE_VISIBLE_WITHOUT_AD;
-              }
-
-              completeNativeExpressAdViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
-              notifyStateChanged(
-                  mNativeExpressAdViewInternalPtr,
-                  ConstantsHelper.AD_VIEW_CHANGED_PRESENTATION_STATE);
-              mNotifyListenerOnNextDraw.set(true);
             }
-          };
+          }
+
+          if (mNativeExpressAdView == null) {
+            errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
+          }
+
+          if (errorCode != ConstantsHelper.CALLBACK_ERROR_NONE) {
+            completeNativeExpressAdViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
+            return;
+          }
+
+          if (mPopUp == null) {
+            mPopUp = new PopupWindow(
+                mNativeExpressAdView, LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+            mPopUp.setBackgroundDrawable(new ColorDrawable(0xFF000000)); // Black
+            mNativeExpressAdView.getViewTreeObserver().addOnPreDrawListener(
+                NativeExpressAdViewHelper.this);
+
+            if (mShouldUseXYForPosition) {
+              mPopUp.showAtLocation(root, Gravity.NO_GRAVITY, mDesiredX, mDesiredY);
+            } else {
+              switch (mDesiredPosition) {
+                case ConstantsHelper.AD_VIEW_POSITION_TOP:
+                  mPopUp.showAtLocation(root, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 0);
+                  break;
+                case ConstantsHelper.AD_VIEW_POSITION_BOTTOM:
+                  mPopUp.showAtLocation(root, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
+                  break;
+                case ConstantsHelper.AD_VIEW_POSITION_TOP_LEFT:
+                  mPopUp.showAtLocation(root, Gravity.TOP | Gravity.LEFT, 0, 0);
+                  break;
+                case ConstantsHelper.AD_VIEW_POSITION_TOP_RIGHT:
+                  mPopUp.showAtLocation(root, Gravity.TOP | Gravity.RIGHT, 0, 0);
+                  break;
+                case ConstantsHelper.AD_VIEW_POSITION_BOTTOM_LEFT:
+                  mPopUp.showAtLocation(root, Gravity.BOTTOM | Gravity.LEFT, 0, 0);
+                  break;
+                case ConstantsHelper.AD_VIEW_POSITION_BOTTOM_RIGHT:
+                  mPopUp.showAtLocation(root, Gravity.BOTTOM | Gravity.RIGHT, 0, 0);
+                  break;
+                default:
+                  mPopUp.showAtLocation(root, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 0);
+                  break;
+              }
+            }
+          }
+
+          if (errorCode == ConstantsHelper.CALLBACK_ERROR_NO_WINDOW_TOKEN) {
+            mCurrentPresentationState = ConstantsHelper.AD_VIEW_PRESENTATION_STATE_HIDDEN;
+          } else if (mNativeExpressAdViewContainsAd) {
+            mCurrentPresentationState = ConstantsHelper.AD_VIEW_PRESENTATION_STATE_VISIBLE_WITH_AD;
+          } else {
+            mCurrentPresentationState =
+                ConstantsHelper.AD_VIEW_PRESENTATION_STATE_VISIBLE_WITHOUT_AD;
+          }
+
+          completeNativeExpressAdViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
+          notifyStateChanged(
+              mNativeExpressAdViewInternalPtr, ConstantsHelper.AD_VIEW_CHANGED_PRESENTATION_STATE);
+          mNotifyListenerOnNextDraw.set(true);
+        }
+      };
     }
 
     // TODO(b/31391149): This delay is a workaround for b/31391149, and should be removed once
@@ -621,10 +592,8 @@ public class NativeExpressAdViewHelper implements ViewTreeObserver.OnPreDrawList
     public void onAdLoaded() {
       mNativeExpressAdViewContainsAd = true;
       synchronized (mLoadAdCallbackDataPtrLock) {
-        completeNativeExpressAdViewFutureCallback(
-            mLoadAdCallbackDataPtr,
-            ConstantsHelper.CALLBACK_ERROR_NONE,
-            ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
+        completeNativeExpressAdViewFutureCallback(mLoadAdCallbackDataPtr,
+            ConstantsHelper.CALLBACK_ERROR_NONE, ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
         mLoadAdCallbackDataPtr = CPP_NULLPTR;
       }
       // Only update the presentation state if the native express ad view is already visible.

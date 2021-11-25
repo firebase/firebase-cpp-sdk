@@ -119,7 +119,7 @@ class ObjCPointer {
    public:                                                                \
     class_name() {}                                                       \
     explicit class_name(                                                  \
-        const firebase::util::ObjCPointer<objc_type_name>& obj)           \
+        const firebase::util::ObjCPointer<objc_type_name> &obj)           \
         : firebase::util::ObjCPointer<objc_type_name>(obj) {}             \
     explicit class_name(objc_type_name *_Nullable objc_object)            \
         : firebase::util::ObjCPointer<objc_type_name>(objc_object) {}     \

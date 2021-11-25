@@ -42,11 +42,10 @@ public class DynamicLinksNativeWrapper {
   // Message that describes the failure to find a native method and a potential resolution.
   private static final String NATIVE_METHOD_MISSING_MESSAGE =
       "Native method not found, unable to send %s message to the application. "
-          + "Make sure Firebase was not shut down while a Dynamic Links fetch operation "
-          + "was in progress. (%s)";
+      + "Make sure Firebase was not shut down while a Dynamic Links fetch operation "
+      + "was in progress. (%s)";
 
   public DynamicLinksNativeWrapper(long nativePtr, Activity incomingActivity) {
-
     nativeInternalPtr = nativePtr;
     // Call our JNI function (passing in 0 as the nativeInternalPtr) so we can verify that
     // they are all hooked up properly.
@@ -69,40 +68,36 @@ public class DynamicLinksNativeWrapper {
   // Fetch Dynamic Links - this function is called from JNI to trigger checking for dynamic links.
   public boolean fetchDynamicLink() {
     try {
-      activity.runOnUiThread(
-          new Runnable() {
-            @Override
-            public void run() {
-              FirebaseDynamicLinks.getInstance()
-                  .getDynamicLink(activity.getIntent())
-                  .addOnSuccessListener(
-                      activity,
-                      new OnSuccessListener<PendingDynamicLinkData>() {
-                        @Override
-                        public void onSuccess(PendingDynamicLinkData pendingDynamicLinkData) {
-                          // Get deep link from result (may be null if no link is found)
-                          Uri deepLink = null;
-                          String deepLinkString = null;
-                          if (pendingDynamicLinkData != null) {
-                            deepLink = pendingDynamicLinkData.getLink();
-                            if (deepLink != null) {
-                              deepLinkString = deepLink.toString();
-                            }
-                          }
-                          safeReceivedDynamicLinkCallback(nativeInternalPtr, deepLinkString, 0, "");
+      activity.runOnUiThread(new Runnable() {
+        @Override
+        public void run() {
+          FirebaseDynamicLinks.getInstance()
+              .getDynamicLink(activity.getIntent())
+              .addOnSuccessListener(activity,
+                  new OnSuccessListener<PendingDynamicLinkData>() {
+                    @Override
+                    public void onSuccess(PendingDynamicLinkData pendingDynamicLinkData) {
+                      // Get deep link from result (may be null if no link is found)
+                      Uri deepLink = null;
+                      String deepLinkString = null;
+                      if (pendingDynamicLinkData != null) {
+                        deepLink = pendingDynamicLinkData.getLink();
+                        if (deepLink != null) {
+                          deepLinkString = deepLink.toString();
                         }
-                      })
-                  .addOnFailureListener(
-                      activity,
-                      new OnFailureListener() {
-                        @Override
-                        public void onFailure(Exception e) {
-                          safeReceivedDynamicLinkCallback(
-                              nativeInternalPtr, "", Activity.RESULT_CANCELED, e.toString());
-                        }
-                      });
-            }
-          });
+                      }
+                      safeReceivedDynamicLinkCallback(nativeInternalPtr, deepLinkString, 0, "");
+                    }
+                  })
+              .addOnFailureListener(activity, new OnFailureListener() {
+                @Override
+                public void onFailure(Exception e) {
+                  safeReceivedDynamicLinkCallback(
+                      nativeInternalPtr, "", Activity.RESULT_CANCELED, e.toString());
+                }
+              });
+        }
+      });
       return true;
     } catch (Exception e) {
       // Failed to start fetching invites. The client code will handle this when we return false..
@@ -115,10 +110,8 @@ public class DynamicLinksNativeWrapper {
     try {
       receivedDynamicLinkCallback(nativeInternalPtr, deepLinkUrl, resultCode, errorString);
     } catch (UnsatisfiedLinkError e) {
-      String missingDetails =
-          String.format(
-              "received url=%s (code=%d, message=%s)",
-              String.valueOf(deepLinkUrl), resultCode, errorString);
+      String missingDetails = String.format("received url=%s (code=%d, message=%s)",
+          String.valueOf(deepLinkUrl), resultCode, errorString);
       Log.e(TAG, String.format(NATIVE_METHOD_MISSING_MESSAGE, missingDetails, e.toString()));
     }
   }

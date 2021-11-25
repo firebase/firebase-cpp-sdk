@@ -51,8 +51,8 @@ class AppInternal;
 }  // namespace internal
 
 #if FIREBASE_PLATFORM_ANDROID && defined(__GLIBCXX__)
-#warning "Firebase support for gnustl is deprecated and will be removed in \
-    the next major release. Please use libc++ instead."
+#warning \
+    "Firebase support for gnustl is deprecated and will be removed in the next major release. Please use libc++ instead."
 #endif
 
 /// @brief Reports whether a Firebase module initialized successfully.
@@ -720,23 +720,24 @@ class App {
   /// @return Reference to the FIRApp object owned by this app.
   FIRApp* GetPlatformApp() const;
 #endif  // __OBJC__
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS, FIREBASE_PLATFORM_TVOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
 #endif  // INTERNAL_EXPERIMENTAL
 
  private:
   /// Construct the object.
-  App() :
+  App()
+      :
 #if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
-    activity_(nullptr),
+        activity_(nullptr),
 #endif
-    internal_(nullptr) {
+        internal_(nullptr) {
     Initialize();
 
 #ifdef FIREBASE_LINUX_BUILD_CONFIG_STRING
-  CheckCompilerString(FIREBASE_LINUX_BUILD_CONFIG_STRING);
+    CheckCompilerString(FIREBASE_LINUX_BUILD_CONFIG_STRING);
 #endif  // FIREBASE_LINUX_BUILD_CONFIG_STRING
   }
-
 
   /// Initialize internal implementation
   void Initialize();

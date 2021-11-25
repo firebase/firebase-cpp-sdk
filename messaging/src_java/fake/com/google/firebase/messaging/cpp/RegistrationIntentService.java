@@ -17,5 +17,4 @@ package com.google.firebase.messaging.cpp;
 /**
  * Fake RegistrationIntentService class.
  */
-public class RegistrationIntentService {
-}
+public class RegistrationIntentService {}

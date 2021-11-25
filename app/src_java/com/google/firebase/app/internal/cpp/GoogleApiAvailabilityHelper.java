@@ -16,7 +16,6 @@
 
 package com.google.firebase.app.internal.cpp;
 
-
 import android.app.Activity;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -79,29 +78,25 @@ public class GoogleApiAvailabilityHelper {
       if (task == null) {
         return false;
       }
-      task.addOnSuccessListener(
-          new OnSuccessListener<Void>() {
-            @Override
-            public void onSuccess(Void result) {
-              GoogleApiAvailabilityHelper.onComplete(SUCCESS, "Success");
-            }
-          });
-      task.addOnFailureListener(
-          new OnFailureListener() {
-            @Override
-            public void onFailure(Exception exception) {
-              GoogleApiAvailabilityHelper.onComplete(
-                  FAILURE_COULD_NOT_UPDATE,
-                  "Couldn't make Google Play services available: " + exception.getMessage());
-            }
-          });
-      task.addOnCanceledListener(
-          new OnCanceledListener() {
-            @Override
-            public void onCanceled() {
-              GoogleApiAvailabilityHelper.onComplete(FAILURE_CANCELED, "User canceled the update");
-            }
-          });
+      task.addOnSuccessListener(new OnSuccessListener<Void>() {
+        @Override
+        public void onSuccess(Void result) {
+          GoogleApiAvailabilityHelper.onComplete(SUCCESS, "Success");
+        }
+      });
+      task.addOnFailureListener(new OnFailureListener() {
+        @Override
+        public void onFailure(Exception exception) {
+          GoogleApiAvailabilityHelper.onComplete(FAILURE_COULD_NOT_UPDATE,
+              "Couldn't make Google Play services available: " + exception.getMessage());
+        }
+      });
+      task.addOnCanceledListener(new OnCanceledListener() {
+        @Override
+        public void onCanceled() {
+          GoogleApiAvailabilityHelper.onComplete(FAILURE_CANCELED, "User canceled the update");
+        }
+      });
       return true;
     }
   }

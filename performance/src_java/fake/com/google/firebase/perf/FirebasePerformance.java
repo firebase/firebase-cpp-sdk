@@ -13,17 +13,8 @@ public class FirebasePerformance {
   private static boolean performanceCollectionEnabled = true;
 
   /** Valid HttpMethods for manual network APIs */
-  @StringDef({
-    HttpMethod.GET,
-    HttpMethod.PUT,
-    HttpMethod.POST,
-    HttpMethod.DELETE,
-    HttpMethod.HEAD,
-    HttpMethod.PATCH,
-    HttpMethod.OPTIONS,
-    HttpMethod.TRACE,
-    HttpMethod.CONNECT
-  })
+  @StringDef({HttpMethod.GET, HttpMethod.PUT, HttpMethod.POST, HttpMethod.DELETE, HttpMethod.HEAD,
+      HttpMethod.PATCH, HttpMethod.OPTIONS, HttpMethod.TRACE, HttpMethod.CONNECT})
   @Retention(RetentionPolicy.SOURCE)
   public @interface HttpMethod {
     String GET = "GET";
