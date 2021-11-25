@@ -630,6 +630,8 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener,
       pthread_create(&g_poll_thread, nullptr, MessageProcessingThread, nullptr);
   FIREBASE_ASSERT(result == 0);
 
+  FutureData::Create();
+
   if (g_registration_token_request_state !=
       kRegistrationTokenRequestStateNone) {
     // Calling this again, now that we're initialized.
@@ -646,8 +648,6 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener,
         g_delivery_metrics_export_to_big_query_state ==
         kDeliveryMetricsExportToBigQueryEnable);
   }
-
-  FutureData::Create();
 
   // Supposedly App creation also creates a registration token, but this seems
   // to happen before the C++ listeners are able to capture it.
