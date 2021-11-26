@@ -71,37 +71,33 @@ public class LoggingUtils {
     window.setContentView(linearLayout);
 
     // Force the TextView to stay scrolled to the bottom.
-    textView.addTextChangedListener(
-        new TextWatcher() {
-          @Override
-          public void afterTextChanged(Editable e) {
-            // If the user never interacted with the screen, scroll to bottom.
-            if (scrollView != null && !didTouch) {
-              new Handler(Looper.getMainLooper())
-                  .post(
-                      new Runnable() {
-                        @Override
-                        public void run() {
-                          scrollView.fullScroll(View.FOCUS_DOWN);
-                        }
-                      });
+    textView.addTextChangedListener(new TextWatcher() {
+      @Override
+      public void afterTextChanged(Editable e) {
+        // If the user never interacted with the screen, scroll to bottom.
+        if (scrollView != null && !didTouch) {
+          new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+              scrollView.fullScroll(View.FOCUS_DOWN);
             }
-          }
+          });
+        }
+      }
 
-          @Override
-          public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+      @Override
+      public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
-          @Override
-          public void onTextChanged(CharSequence s, int start, int count, int after) {}
-        });
-    textView.setOnTouchListener(
-        new View.OnTouchListener() {
-          @Override
-          public boolean onTouch(View v, MotionEvent event) {
-            didTouch = true;
-            return false;
-          }
-        });
+      @Override
+      public void onTextChanged(CharSequence s, int start, int count, int after) {}
+    });
+    textView.setOnTouchListener(new View.OnTouchListener() {
+      @Override
+      public boolean onTouch(View v, MotionEvent event) {
+        didTouch = true;
+        return false;
+      }
+    });
 
     Intent launchIntent = activity.getIntent();
     // Check if we are running on Firebase Test Lab, and set up a log file if we are.
@@ -112,23 +108,21 @@ public class LoggingUtils {
 
   /** Adds some text to the log window. */
   public static void addLogText(final String text) {
-    new Handler(Looper.getMainLooper())
-        .post(
-            new Runnable() {
-              @Override
-              public void run() {
-                if (textView != null) {
-                  textView.append(text);
-                  if (logFileStream != null) {
-                    try {
-                      logFileStream.writeBytes(text);
-                    } catch (IOException e) {
-                      // It doesn't really matter if something went wrong writing to the test log.
-                    }
-                  }
-                }
-              }
-            });
+    new Handler(Looper.getMainLooper()).post(new Runnable() {
+      @Override
+      public void run() {
+        if (textView != null) {
+          textView.append(text);
+          if (logFileStream != null) {
+            try {
+              logFileStream.writeBytes(text);
+            } catch (IOException e) {
+              // It doesn't really matter if something went wrong writing to the test log.
+            }
+          }
+        }
+      }
+    });
   }
 
   /**

@@ -75,7 +75,6 @@ public class Log {
    * See android.util.Log.wtf().
    */
   public static int wtf(String tag, String msg) {
-
     safeNativeLog(android.util.Log.ERROR, tag, msg);
     return 0;
   }
@@ -125,9 +124,9 @@ public class Log {
         nativeLog(level, tag, msg);
       } catch (UnsatisfiedLinkError e) {
         nativeLogAvailable = false;
-        android.util.Log.w(
-            TAG, String.format("nativeLog not registered, falling back to android.util.Log (%s)",
-                e.toString()));
+        android.util.Log.w(TAG,
+            String.format(
+                "nativeLog not registered, falling back to android.util.Log (%s)", e.toString()));
       }
     }
     if (!nativeLogAvailable) {

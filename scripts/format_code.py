@@ -54,7 +54,7 @@ flags.DEFINE_boolean("verbose", False, 'Execute in verbose mode.')
 flags.DEFINE_boolean("github_log", False, 'Pring special github log format items.')
 
 # Constants:
-FILE_TYPE_EXTENSIONS = ('.cpp', '.cc', '.c', '.h')
+FILE_TYPE_EXTENSIONS = ('.cpp', '.cc', '.c', '.h', '.m', '.mm', '.java')
 """Tuple: The file types to run clang-format on.
 Used to filter out results when searching across directories or git diffs.
 """
@@ -202,30 +202,6 @@ def validate_arguments():
       return False
   return True
 
-def is_file_objc_header(filename):
-  """Checks the contents of the file to determine if it contains language 
-  constructs that appear in obj-c but not in C/C++.
-  
-  Args:
-    filename (string): the name of the file to check
-  
-  Returns:
-    bool: True if the header file contains known obj-c language definitions.
-    Returns False otherwise.
-  """
-  _, ext = os.path.splitext(filename)
-  if ext != '.h':
-   return False  
-  objective_c_tags = ('@end', '@class', '#import')
-  
-  with open(filename) as header_file:
-   lines = header_file.readlines()
-   for line in lines:
-    for tag in objective_c_tags:
-      if tag in line:
-        return True
-  return False
-
 def main(argv):
   if not validate_arguments():
     sys.exit(2)
@@ -252,14 +228,10 @@ def main(argv):
     count = 0
     for filename in filenames:
         if does_file_need_formatting(filename):
-          if is_file_objc_header(filename):
-            if FLAGS.verbose:
-              print('  - IGNORE OBJC: "{0}"'.format(filename))
-          else:
-            if FLAGS.verbose:
-              print('  - FRMT: "{0}"'.format(filename))
-            format_file(filename)
-            count += 1
+          if FLAGS.verbose:
+            print('  - FRMT: "{0}"'.format(filename))
+          format_file(filename)
+          count += 1
         else:
           if FLAGS.verbose:
             print('  - OK:   "{0}"'.format(filename))
@@ -268,7 +240,7 @@ def main(argv):
     github_log = ['::error ::FILE FORMATTING ERRORS:','']
     count = 0
     for filename in filenames:
-      if does_file_need_formatting(filename) and not is_file_objc_header(filename):
+      if does_file_need_formatting(filename):
         exit_code = 1
         count += 1
         github_log.append('- Requires reformatting: "{0}"'.format(filename))

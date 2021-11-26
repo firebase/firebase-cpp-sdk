@@ -32,7 +32,6 @@ import org.mockito.MockitoAnnotations;
 
 @RunWith(GoogleRobolectricTestRunner.class)
 public final class ListenerServiceTest {
-
   @Mock private MessageWriter messageWriter;
 
   private ListenerService listenerService;
@@ -47,11 +46,8 @@ public final class ListenerServiceTest {
   public void testOnDeletedMessages() throws Exception {
     listenerService.onDeletedMessages();
     verify(messageWriter)
-        .writeMessageEventToInternalStorage(
-            eq(listenerService),
-            (String) isNull(),
-            eq(ListenerService.MESSAGE_TYPE_DELETED),
-            (String) isNull());
+        .writeMessageEventToInternalStorage(eq(listenerService), (String) isNull(),
+            eq(ListenerService.MESSAGE_TYPE_DELETED), (String) isNull());
   }
 
   @Test
@@ -65,11 +61,8 @@ public final class ListenerServiceTest {
   public void testOnMessageSent() {
     listenerService.onMessageSent("message_id");
     verify(messageWriter)
-        .writeMessageEventToInternalStorage(
-            eq(listenerService),
-            eq("message_id"),
-            eq(ListenerService.MESSAGE_TYPE_SEND_EVENT),
-            (String) isNull());
+        .writeMessageEventToInternalStorage(eq(listenerService), eq("message_id"),
+            eq(ListenerService.MESSAGE_TYPE_SEND_EVENT), (String) isNull());
   }
 
   @Test
@@ -77,9 +70,7 @@ public final class ListenerServiceTest {
     listenerService.onSendError(
         "message_id", RemoteMessageUtil.sendException("service_not_available"));
     verify(messageWriter)
-        .writeMessageEventToInternalStorage(
-            eq(listenerService),
-            eq("message_id"),
+        .writeMessageEventToInternalStorage(eq(listenerService), eq("message_id"),
             eq(ListenerService.MESSAGE_TYPE_SEND_ERROR),
             eq("com.google.firebase.messaging.SendException: service_not_available"));
   }

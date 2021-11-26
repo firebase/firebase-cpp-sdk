@@ -665,6 +665,7 @@ jobs:
     - name: Use GitHub API to start workflow
       shell: bash
       run: |
+        pip install -r scripts/gha/requirements.txt
         if [[ -z ${USE_EXPANDED_MATRIX} ]]; then
           USE_EXPANDED_MATRIX=0
         fi

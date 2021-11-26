@@ -102,8 +102,7 @@ public class CppByteUploader extends InputStream {
     int spaceAvailable = bytes.length - bytesOffset;
     if (numBytes < 0 || bytesOffset < 0 || numBytes > spaceAvailable) {
       throw new IndexOutOfBoundsException(
-          String.format(
-              "Attempt to read %d bytes into byte array with %d bytes in space available",
+          String.format("Attempt to read %d bytes into byte array with %d bytes in space available",
               numBytes, spaceAvailable));
     }
     // Clamp the number of bytes to read by the data remaining in C++ buffer.
@@ -153,11 +152,6 @@ public class CppByteUploader extends InputStream {
    * <p>This method should return the number of bytes copied into the Java byte array, -1 if at the
    * of the stream or < -1 if an error occurred or streaming was aborted.
    */
-  private static native int readBytes(
-      long cppBufferPointer,
-      long cppBufferSize,
-      long cppBufferOffset,
-      byte[] bytes,
-      int bytesOffset,
-      int numBytesToRead);
+  private static native int readBytes(long cppBufferPointer, long cppBufferSize,
+      long cppBufferOffset, byte[] bytes, int bytesOffset, int numBytesToRead);
 };

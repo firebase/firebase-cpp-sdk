@@ -48,7 +48,6 @@ import com.google.android.gms.ads.reward.RewardedVideoAdListener;
  * still running (in which case the new call gracefully fails).
  */
 public class RewardedVideoHelper {
-
   // Presentation states (matches the rewarded_video::PresentationState
   // enumeration in the public C++ API).
   // LINT.IfChange
@@ -131,18 +130,15 @@ public class RewardedVideoHelper {
    *     call.
    */
   public void initialize(final long callbackDataPtr) {
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            RewardedVideoAd ad = MobileAds.getRewardedVideoAdInstance(mActivity);
-            ad.setRewardedVideoAdListener(new RewardedListener());
-            completeRewardedVideoFutureCallback(
-                callbackDataPtr,
-                ConstantsHelper.CALLBACK_ERROR_NONE,
-                ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
-          }
-        });
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        RewardedVideoAd ad = MobileAds.getRewardedVideoAdInstance(mActivity);
+        ad.setRewardedVideoAdListener(new RewardedListener());
+        completeRewardedVideoFutureCallback(callbackDataPtr, ConstantsHelper.CALLBACK_ERROR_NONE,
+            ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
+      }
+    });
   }
 
   /**
@@ -161,8 +157,7 @@ public class RewardedVideoHelper {
   public void loadAd(long callbackDataPtr, final String adUnitId, final AdRequest request) {
     synchronized (mRewardedVideoLock) {
       if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
-        completeRewardedVideoFutureCallback(
-            callbackDataPtr,
+        completeRewardedVideoFutureCallback(callbackDataPtr,
             ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS,
             ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS);
         return;
@@ -171,14 +166,13 @@ public class RewardedVideoHelper {
       mLoadAdCallbackDataPtr = callbackDataPtr;
     }
 
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            RewardedVideoAd ad = MobileAds.getRewardedVideoAdInstance(mActivity);
-            ad.loadAd(adUnitId, request);
-          }
-        });
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        RewardedVideoAd ad = MobileAds.getRewardedVideoAdInstance(mActivity);
+        ad.loadAd(adUnitId, request);
+      }
+    });
   }
 
   /**
@@ -189,25 +183,24 @@ public class RewardedVideoHelper {
    *     call.
    */
   public void show(final long callbackDataPtr) {
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            int errorCode;
-            String errorMessage;
-            RewardedVideoAd ad = MobileAds.getRewardedVideoAdInstance(mActivity);
-            if (!ad.isLoaded()) {
-              errorCode = ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS;
-              errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS;
-            } else {
-              errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
-              errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-              ad.show();
-            }
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        int errorCode;
+        String errorMessage;
+        RewardedVideoAd ad = MobileAds.getRewardedVideoAdInstance(mActivity);
+        if (!ad.isLoaded()) {
+          errorCode = ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS;
+          errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS;
+        } else {
+          errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
+          errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
+          ad.show();
+        }
 
-            completeRewardedVideoFutureCallback(callbackDataPtr, errorCode, errorMessage);
-          }
-        });
+        completeRewardedVideoFutureCallback(callbackDataPtr, errorCode, errorMessage);
+      }
+    });
   }
 
   /**
@@ -223,25 +216,22 @@ public class RewardedVideoHelper {
    *     call.
    */
   public void destroy(final long callbackDataPtr) {
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            RewardedVideoAd ad = MobileAds.getRewardedVideoAdInstance(mActivity);
-            ad.destroy(mActivity);
-            completeRewardedVideoFutureCallback(
-                callbackDataPtr,
-                ConstantsHelper.CALLBACK_ERROR_NONE,
-                ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        RewardedVideoAd ad = MobileAds.getRewardedVideoAdInstance(mActivity);
+        ad.destroy(mActivity);
+        completeRewardedVideoFutureCallback(callbackDataPtr, ConstantsHelper.CALLBACK_ERROR_NONE,
+            ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
 
-            // With this set, there should be no further callbacks made to the
-            // C++ side. This is synchronized to ensure that all callbacks
-            // currently running are completed before this method returns.
-            synchronized (mRewardedVideoLock) {
-              mDisconnected = true;
-            }
-          }
-        });
+        // With this set, there should be no further callbacks made to the
+        // C++ side. This is synchronized to ensure that all callbacks
+        // currently running are completed before this method returns.
+        synchronized (mRewardedVideoLock) {
+          mDisconnected = true;
+        }
+      }
+    });
   }
 
   /**
@@ -252,18 +242,15 @@ public class RewardedVideoHelper {
    *     call.
    */
   public void pause(final long callbackDataPtr) {
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            RewardedVideoAd ad = MobileAds.getRewardedVideoAdInstance(mActivity);
-            ad.pause(mActivity);
-            completeRewardedVideoFutureCallback(
-                callbackDataPtr,
-                ConstantsHelper.CALLBACK_ERROR_NONE,
-                ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
-          }
-        });
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        RewardedVideoAd ad = MobileAds.getRewardedVideoAdInstance(mActivity);
+        ad.pause(mActivity);
+        completeRewardedVideoFutureCallback(callbackDataPtr, ConstantsHelper.CALLBACK_ERROR_NONE,
+            ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
+      }
+    });
   }
 
   /**
@@ -274,18 +261,15 @@ public class RewardedVideoHelper {
    *     call.
    */
   public void resume(final long callbackDataPtr) {
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            RewardedVideoAd ad = MobileAds.getRewardedVideoAdInstance(mActivity);
-            ad.resume(mActivity);
-            completeRewardedVideoFutureCallback(
-                callbackDataPtr,
-                ConstantsHelper.CALLBACK_ERROR_NONE,
-                ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
-          }
-        });
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        RewardedVideoAd ad = MobileAds.getRewardedVideoAdInstance(mActivity);
+        ad.resume(mActivity);
+        completeRewardedVideoFutureCallback(callbackDataPtr, ConstantsHelper.CALLBACK_ERROR_NONE,
+            ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
+      }
+    });
   }
 
   /** Retrieves the presentation state of this RewardedVideoHelper. */
@@ -350,10 +334,8 @@ public class RewardedVideoHelper {
     @Override
     public void onRewardedVideoAdLoaded() {
       synchronized (mRewardedVideoLock) {
-        completeRewardedVideoFutureCallback(
-            mLoadAdCallbackDataPtr,
-            ConstantsHelper.CALLBACK_ERROR_NONE,
-            ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
+        completeRewardedVideoFutureCallback(mLoadAdCallbackDataPtr,
+            ConstantsHelper.CALLBACK_ERROR_NONE, ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
         mLoadAdCallbackDataPtr = CPP_NULLPTR;
       }
     }

@@ -25,7 +25,6 @@ import java.util.Date;
  * into their (typically more complicated) Java equivalents.
  */
 public class AdRequestHelper {
-
   public AdRequestHelper() {}
 
   /**

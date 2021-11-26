@@ -34,7 +34,7 @@ OBJ_C_PTR_WRAPPER(NSString);
   NSStringPointer pointer;
   XCTAssertEqual(cpp.get(), nil);
   XCTAssertEqual(handle.get(), nil);
-  XCTAssertEqual(pointer.get(),  nil);
+  XCTAssertEqual(pointer.get(), nil);
 }
 
 - (void)testConstructWithObjectAndGet {
@@ -45,12 +45,12 @@ OBJ_C_PTR_WRAPPER(NSString);
   NSStringHandle from_base_type(cpp);
   XCTAssertEqual(cpp.get(), nsstring);
   XCTAssertEqual(handle.get(), nsstring);
-  XCTAssertEqual(pointer.get(),  nsstring);
+  XCTAssertEqual(pointer.get(), nsstring);
   XCTAssertEqual(from_base_type.get(), nsstring);
 }
 
 - (void)testRelease {
-  NSString *nsstring = @"hello";
+  NSString* nsstring = @"hello";
   NSStringCpp cpp(nsstring);
   XCTAssertEqual(cpp.get(), nsstring);
   cpp.release();
@@ -297,14 +297,12 @@ using ::firebase::util::VariantToId;
   {
     // NSArray containing an NSArray and an NSDictionary to an std::vector
     // holding an std::vector and std::map
-    id array = @[ @[ @1, @2, @3 ], @{ @4 : @5, @6 : @7, @8 : @9 } ];
+    id array = @[ @[ @1, @2, @3 ], @{@4 : @5, @6 : @7, @8 : @9} ];
     std::vector<Variant> vector_element{1, 2, 3};
-    std::map<Variant, Variant> map_element{
-        std::make_pair(Variant(4), Variant(5)),
-        std::make_pair(Variant(6), Variant(7)),
-        std::make_pair(Variant(8), Variant(9))};
-    std::vector<Variant> expected{Variant(vector_element),
-                                  Variant(map_element)};
+    std::map<Variant, Variant> map_element{std::make_pair(Variant(4), Variant(5)),
+                                           std::make_pair(Variant(6), Variant(7)),
+                                           std::make_pair(Variant(8), Variant(9))};
+    std::vector<Variant> expected{Variant(vector_element), Variant(map_element)};
     Variant variant = IdToVariant(array);
     XCTAssertTrue(variant.is_vector());
     XCTAssertTrue(variant.vector() == expected);
@@ -323,18 +321,10 @@ using ::firebase::util::VariantToId;
   {
     // Check that a NSDictionary of strings to numbers maps to a std::map of
     // string variants to number variants.
-    id dictionary = @{
-      @"test1" : @1,
-      @"test2" : @2,
-      @"test3" : @3,
-      @"test4" : @4,
-      @"test5" : @5
-    };
+    id dictionary = @{@"test1" : @1, @"test2" : @2, @"test3" : @3, @"test4" : @4, @"test5" : @5};
     std::map<Variant, Variant> expected{
-        std::make_pair(Variant("test1"), Variant(1)),
-        std::make_pair(Variant("test2"), Variant(2)),
-        std::make_pair(Variant("test3"), Variant(3)),
-        std::make_pair(Variant("test4"), Variant(4)),
+        std::make_pair(Variant("test1"), Variant(1)), std::make_pair(Variant("test2"), Variant(2)),
+        std::make_pair(Variant("test3"), Variant(3)), std::make_pair(Variant("test4"), Variant(4)),
         std::make_pair(Variant("test5"), Variant(5))};
     Variant variant = IdToVariant(dictionary);
     XCTAssertTrue(variant.is_map());
@@ -343,11 +333,10 @@ using ::firebase::util::VariantToId;
   {
     // Check that a NSDictionary of various types maps to a std::map of variants
     // holding various types.
-    id dictionary = @{ @20 : @"Different types", @6.28 : @10, @"Blah" : @3.14 };
-    std::map<Variant, Variant> expected{
-        std::make_pair(Variant(20), Variant("Different types")),
-        std::make_pair(Variant(6.28), Variant(10)),
-        std::make_pair(Variant("Blah"), Variant(3.14))};
+    id dictionary = @{@20 : @"Different types", @6.28 : @10, @"Blah" : @3.14};
+    std::map<Variant, Variant> expected{std::make_pair(Variant(20), Variant("Different types")),
+                                        std::make_pair(Variant(6.28), Variant(10)),
+                                        std::make_pair(Variant("Blah"), Variant(3.14))};
     Variant variant = IdToVariant(dictionary);
     XCTAssertTrue(variant.is_map());
     XCTAssertTrue(variant.map() == expected);
@@ -355,12 +344,11 @@ using ::firebase::util::VariantToId;
   {
     // Check that a NSDictionary of NSArray-to-NSDictionary maps to an std::map
     // of vector-to-map
-    id dictionary = @{ @[ @1, @2, @3 ] : @{@4 : @5, @6 : @7, @8 : @9} };
+    id dictionary = @{@[ @1, @2, @3 ] : @{@4 : @5, @6 : @7, @8 : @9}};
     std::vector<Variant> vector_element{1, 2, 3};
-    std::map<Variant, Variant> map_element{
-        std::make_pair(Variant(4), Variant(5)),
-        std::make_pair(Variant(6), Variant(7)),
-        std::make_pair(Variant(8), Variant(9))};
+    std::map<Variant, Variant> map_element{std::make_pair(Variant(4), Variant(5)),
+                                           std::make_pair(Variant(6), Variant(7)),
+                                           std::make_pair(Variant(8), Variant(9))};
     std::map<Variant, Variant> expected{
         std::make_pair(Variant(vector_element), Variant(map_element))};
     Variant variant = IdToVariant(dictionary);
@@ -550,8 +538,7 @@ using ::firebase::util::VariantToId;
   }
   {
     // std::vector of static and mutable strings to NSArray of NSStrings.
-    std::vector<Variant> vector{"This", std::string("is"), "a",
-                                std::string("test.")};
+    std::vector<Variant> vector{"This", std::string("is"), "a", std::string("test.")};
     id expected = @[ @"This", @"is", @"a", @"test." ];
     Variant variant(vector);
     id array = VariantToId(variant);
@@ -571,12 +558,11 @@ using ::firebase::util::VariantToId;
     // std::vector containing a vector and map to an NSArray containing an
     // NSArray and an NSDictionary.
     std::vector<Variant> vector_element{1, 2, 3};
-    std::map<Variant, Variant> map_element{
-        std::make_pair(Variant(4), Variant(5)),
-        std::make_pair(Variant(6), Variant(7)),
-        std::make_pair(Variant(8), Variant(9))};
+    std::map<Variant, Variant> map_element{std::make_pair(Variant(4), Variant(5)),
+                                           std::make_pair(Variant(6), Variant(7)),
+                                           std::make_pair(Variant(8), Variant(9))};
     std::vector<Variant> vector{Variant(vector_element), Variant(map_element)};
-    id expected = @[ @[ @1, @2, @3 ], @{ @4 : @5, @6 : @7, @8 : @9 } ];
+    id expected = @[ @[ @1, @2, @3 ], @{@4 : @5, @6 : @7, @8 : @9} ];
     Variant variant(vector);
     id array = VariantToId(variant);
     XCTAssertTrue([array isKindOfClass:[NSArray class]]);
@@ -599,18 +585,10 @@ using ::firebase::util::VariantToId;
     // Check that an std::map of strings to numbers maps to an NSDictionary of
     // NSString to NSNumbers.
     std::map<Variant, Variant> map{
-        std::make_pair(Variant("test1"), Variant(1)),
-        std::make_pair(Variant("test2"), Variant(2)),
-        std::make_pair(Variant("test3"), Variant(3)),
-        std::make_pair(Variant("test4"), Variant(4)),
+        std::make_pair(Variant("test1"), Variant(1)), std::make_pair(Variant("test2"), Variant(2)),
+        std::make_pair(Variant("test3"), Variant(3)), std::make_pair(Variant("test4"), Variant(4)),
         std::make_pair(Variant("test5"), Variant(5))};
-    id expected = @{
-      @"test1" : @1,
-      @"test2" : @2,
-      @"test3" : @3,
-      @"test4" : @4,
-      @"test5" : @5
-    };
+    id expected = @{@"test1" : @1, @"test2" : @2, @"test3" : @3, @"test4" : @4, @"test5" : @5};
     Variant variant(map);
     id dictionary = VariantToId(variant);
     XCTAssertTrue([dictionary isKindOfClass:[NSDictionary class]]);
@@ -621,9 +599,8 @@ using ::firebase::util::VariantToId;
     // various types.
     std::map<Variant, Variant> map{
         std::make_pair(Variant(20), Variant(std::string("Different types"))),
-        std::make_pair(Variant(6.28), Variant(10)),
-        std::make_pair(Variant("Blah"), Variant(3.14))};
-    id expected = @{ @20 : @"Different types", @6.28 : @10, @"Blah" : @3.14 };
+        std::make_pair(Variant(6.28), Variant(10)), std::make_pair(Variant("Blah"), Variant(3.14))};
+    id expected = @{@20 : @"Different types", @6.28 : @10, @"Blah" : @3.14};
     Variant variant(map);
     id dictionary = VariantToId(variant);
     XCTAssertTrue([dictionary isKindOfClass:[NSDictionary class]]);
@@ -633,13 +610,11 @@ using ::firebase::util::VariantToId;
     // Check that an std::map of vector-to-map maps to a NSDictionary of
     // NSArray-to-NSDictionary
     std::vector<Variant> vector_element{1, 2, 3};
-    std::map<Variant, Variant> map_element{
-        std::make_pair(Variant(4), Variant(5)),
-        std::make_pair(Variant(6), Variant(7)),
-        std::make_pair(Variant(8), Variant(9))};
-    std::map<Variant, Variant> map{
-        std::make_pair(Variant(vector_element), Variant(map_element))};
-    id expected = @{ @[ @1, @2, @3 ] : @{@4 : @5, @6 : @7, @8 : @9} };
+    std::map<Variant, Variant> map_element{std::make_pair(Variant(4), Variant(5)),
+                                           std::make_pair(Variant(6), Variant(7)),
+                                           std::make_pair(Variant(8), Variant(9))};
+    std::map<Variant, Variant> map{std::make_pair(Variant(vector_element), Variant(map_element))};
+    id expected = @{@[ @1, @2, @3 ] : @{@4 : @5, @6 : @7, @8 : @9}};
     Variant variant(map);
     id dictionary = VariantToId(variant);
     XCTAssertTrue([dictionary isKindOfClass:[NSDictionary class]]);

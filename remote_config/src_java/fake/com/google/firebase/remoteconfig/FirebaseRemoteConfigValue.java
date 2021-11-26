@@ -22,7 +22,6 @@ import com.google.firebase.testing.cppsdk.FakeReporter;
 
 /** Fake FirebaseRemoteConfigValue */
 public class FirebaseRemoteConfigValue {
-
   public FirebaseRemoteConfigValue() {}
 
   public long asLong() {

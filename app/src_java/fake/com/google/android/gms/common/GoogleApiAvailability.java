@@ -22,7 +22,6 @@ import com.google.firebase.testing.cppsdk.ConfigRow;
 
 /** Fake gms/common/GoogleApiAvailability.java for unit testing. */
 public final class GoogleApiAvailability {
-
   private static final GoogleApiAvailability INSTANCE = new GoogleApiAvailability();
 
   public static GoogleApiAvailability getInstance() {

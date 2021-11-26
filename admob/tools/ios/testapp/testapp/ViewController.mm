@@ -52,7 +52,7 @@
 
   // Set up the UITapGestureRecognizer for the GLKView.
   UITapGestureRecognizer *tapRecognizer =
-  [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
+      [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
   tapRecognizer.numberOfTapsRequired = 1;
   [self.view addGestureRecognizer:tapRecognizer];
 }
@@ -123,7 +123,7 @@
 #pragma mark - Log Message
 
 // Log a message that can be viewed in the console.
-int LogMessage(const char* format, ...) {
+int LogMessage(const char *format, ...) {
   va_list list;
   int rc = 0;
   va_start(list, format);
