@@ -432,6 +432,8 @@ class Firestore {
   void DeleteInternal();
 
   mutable FirestoreInternal* internal_ = nullptr;
+ 
+  int dummy_change_ = 0;
 };
 
 }  // namespace firestore
