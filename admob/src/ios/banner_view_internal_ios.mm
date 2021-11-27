@@ -44,6 +44,7 @@ Future<void> BannerViewInternalIOS::Initialize(AdParent parent,
   firebase::MutexLock lock(mutex_);
   const SafeFutureHandle<void> future_handle =
     future_data_.future_impl.SafeAlloc<void>(kBannerViewFnInitialize);
+  Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
   if(initialized_) {
     CompleteFuture(kAdMobErrorAlreadyInitialized,
@@ -58,7 +59,7 @@ Future<void> BannerViewInternalIOS::Initialize(AdParent parent,
     CompleteFuture(kAdMobErrorNone, nullptr, future_handle, &future_data_);
     });
   }
-  return MakeFuture(&future_data_.future_impl, future_handle);
+  return future;
 }
 
 Future<AdResult> BannerViewInternalIOS::LoadAd(const AdRequest& request) {
@@ -66,12 +67,13 @@ Future<AdResult> BannerViewInternalIOS::LoadAd(const AdRequest& request) {
   FutureCallbackData<AdResult>* callback_data =
     CreateAdResultFutureCallbackData(kBannerViewFnLoadAd,
                                      &future_data_);
-  SafeFutureHandle<AdResult> future_handle = callback_data->future_handle;
+  Future<AdResult> future = MakeFuture(&future_data_.future_impl,
+    callback_data->future_handle);
 
   if (ad_load_callback_data_ != nil) {
     CompleteLoadAdInternalResult(callback_data, kAdMobErrorLoadInProgress,
       kAdLoadInProgressErrorMessage);
-    return MakeFuture(&future_data_.future_impl, future_handle);
+    return future;
   }
   // Persist a pointer to the callback data so that we may use it after the iOS
   // SDK returns the AdResult.
@@ -97,13 +99,15 @@ Future<AdResult> BannerViewInternalIOS::LoadAd(const AdRequest& request) {
       [banner_view_ loadRequest:ad_request];
     }
   });
-  return MakeFuture(&future_data_.future_impl, future_handle);
+  return future;
 }
 
 Future<void> BannerViewInternalIOS::SetPosition(int x, int y) {
   firebase::MutexLock lock(mutex_);
-  const firebase::SafeFutureHandle<void> handle =
+  const firebase::SafeFutureHandle<void> future_handle =
     future_data_.future_impl.SafeAlloc<void>(kBannerViewFnSetPosition);
+  Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
+
   dispatch_async(dispatch_get_main_queue(), ^{
     AdMobError error = kAdMobErrorUninitialized;
     const char* error_msg = kAdUninitializedErrorMessage;
@@ -112,15 +116,17 @@ Future<void> BannerViewInternalIOS::SetPosition(int x, int y) {
       error = kAdMobErrorNone;
       error_msg = nullptr;
     }
-    CompleteFuture(error, error_msg, handle, &future_data_);
+    CompleteFuture(error, error_msg, future_handle, &future_data_);
   });
-  return MakeFuture(&future_data_.future_impl, handle);
+  return future;
 }
 
 Future<void> BannerViewInternalIOS::SetPosition(BannerView::Position position) {
   firebase::MutexLock lock(mutex_);
-  const firebase::SafeFutureHandle<void> handle =
+  const firebase::SafeFutureHandle<void> future_handle =
     future_data_.future_impl.SafeAlloc<void>(kBannerViewFnSetPosition);
+  Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
+
   dispatch_async(dispatch_get_main_queue(), ^{
     AdMobError error = kAdMobErrorUninitialized;
     const char* error_msg = kAdUninitializedErrorMessage;
@@ -129,31 +135,35 @@ Future<void> BannerViewInternalIOS::SetPosition(BannerView::Position position) {
       error = kAdMobErrorNone;
       error_msg = nullptr;
     }
-    CompleteFuture(error, error_msg, handle, &future_data_);
+    CompleteFuture(error, error_msg, future_handle, &future_data_);
   });
-  return MakeFuture(&future_data_.future_impl, handle);
+  return future;
 }
 
 Future<void> BannerViewInternalIOS::Hide() {
   firebase::MutexLock lock(mutex_);
-  const SafeFutureHandle<void> handle =
+  const SafeFutureHandle<void> future_handle =
     future_data_.future_impl.SafeAlloc<void>(kBannerViewFnHide);
+  Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
+
   dispatch_async(dispatch_get_main_queue(), ^{
     [banner_view_ hide];
-    CompleteFuture(kAdMobErrorNone, nullptr, handle, &future_data_);
+    CompleteFuture(kAdMobErrorNone, nullptr, future_handle, &future_data_);
   });
-  return MakeFuture(&future_data_.future_impl, handle);
+  return future;
 }
 
 Future<void> BannerViewInternalIOS::Show() {
   firebase::MutexLock lock(mutex_);
-  const firebase::SafeFutureHandle<void> handle =
+  const firebase::SafeFutureHandle<void> future_handle =
     future_data_.future_impl.SafeAlloc<void>(kBannerViewFnShow);
+  Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
+
   dispatch_async(dispatch_get_main_queue(), ^{
     [banner_view_ show];
-    CompleteFuture(kAdMobErrorNone, nullptr, handle, &future_data_);
+    CompleteFuture(kAdMobErrorNone, nullptr, future_handle, &future_data_);
   });
-  return MakeFuture(&future_data_.future_impl, handle);
+  return future;
 }
 
 /// This method is part of the C++ interface and is used only on Android.
@@ -175,8 +185,9 @@ Future<void> BannerViewInternalIOS::Resume() {
 /// Cleans up any resources created in BannerViewInternalIOS.
 Future<void> BannerViewInternalIOS::Destroy() {
   firebase::MutexLock lock(mutex_);
-  const firebase::SafeFutureHandle<void> handle =
+  const firebase::SafeFutureHandle<void> future_handle =
      future_data_.future_impl.SafeAlloc<void>(kBannerViewFnDestroy);
+  Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
   destroy_mutex_.Acquire();
   void (^destroyBlock)() = ^{
     [banner_view_ destroy];
@@ -196,11 +207,11 @@ Future<void> BannerViewInternalIOS::Destroy() {
       delete ad_load_callback_data_;
       ad_load_callback_data_ = nil;
     }
-    CompleteFuture(kAdMobErrorNone, nullptr, handle, &future_data_);
+    CompleteFuture(kAdMobErrorNone, nullptr, future_handle, &future_data_);
     destroy_mutex_.Release();
   };
   util::DispatchAsyncSafeMainQueue(destroyBlock);
-  return MakeFuture(&future_data_.future_impl, handle);
+  return future;
 }
 
 BoundingBox BannerViewInternalIOS::bounding_box() const {
