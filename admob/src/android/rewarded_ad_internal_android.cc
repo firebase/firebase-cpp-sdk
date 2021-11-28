@@ -89,7 +89,8 @@ Future<void> RewardedAdInternalAndroid::Initialize(AdParent parent) {
   initialized_ = true;
   FutureCallbackData<void>* callback_data =
       CreateVoidFutureCallbackData(kRewardedAdFnInitialize, &future_data_);
-  Future<void> future = MakeFuture(&future_data_.future_impl, callback_data->future_handle);
+  Future<void> future =
+      MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 
   JNIEnv* env = ::firebase::admob::GetJNI();
   FIREBASE_ASSERT(env);
@@ -107,7 +108,8 @@ Future<AdResult> RewardedAdInternalAndroid::LoadAd(const char* ad_unit_id,
     SafeFutureHandle<AdResult> future_handle =
         future_data_.future_impl.SafeAlloc<AdResult>(kRewardedAdFnLoadAd,
                                                      AdResult());
-    Future<AdResult> future = MakeFuture(&future_data_.future_impl, future_handle); 
+    Future<AdResult> future =
+        MakeFuture(&future_data_.future_impl, future_handle);
     CompleteFuture(kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
                    future_handle, &future_data_, AdResult());
     return future;
@@ -125,7 +127,8 @@ Future<AdResult> RewardedAdInternalAndroid::LoadAd(const char* ad_unit_id,
   }
   FutureCallbackData<AdResult>* callback_data =
       CreateAdResultFutureCallbackData(kRewardedAdFnLoadAd, &future_data_);
-  Future<AdResult> future = MakeFuture(&future_data_.future_impl, callback_data->future_handle);
+  Future<AdResult> future =
+      MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env);
@@ -156,7 +159,8 @@ Future<void> RewardedAdInternalAndroid::Show(
 
   FutureCallbackData<void>* callback_data =
       CreateVoidFutureCallbackData(kRewardedAdFnShow, &future_data_);
-  Future<void> future = MakeFuture(&future_data_.future_impl, callback_data->future_handle);
+  Future<void> future =
+      MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env);

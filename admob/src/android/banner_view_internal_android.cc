@@ -31,7 +31,6 @@
 #include "admob/src/include/firebase/admob/banner_view.h"
 #include "admob/src/include/firebase/admob/types.h"
 #include "app/src/assert.h"
-#include "app/src/semaphore.h"
 #include "app/src/util_android.h"
 
 namespace firebase {
@@ -142,22 +141,16 @@ BannerViewInternalAndroid::BannerViewInternalAndroid(BannerView* base)
   env->DeleteLocalRef(helper_ref);
 }
 
-void DestroyOnDeleteCallback(const Future<void>& result, void* sem_data) {
-  if (sem_data != nullptr) {
-    Semaphore* semaphore = static_cast<Semaphore*>(sem_data);
-    semaphore->Post();
-  }
-}
-
 BannerViewInternalAndroid::~BannerViewInternalAndroid() {
   firebase::MutexLock lock(mutex_);
-
-  Semaphore semaphore(0);
-  InvokeNullary(kBannerViewFnDestroyOnDelete, banner_view_helper::kDestroy)
-      .OnCompletion(DestroyOnDeleteCallback, &semaphore);
-  semaphore.Wait();
-
   JNIEnv* env = ::firebase::admob::GetJNI();
+
+  // The application should have invoked Destroy already, but
+  // invoke it now just in case they haven't in the hope that
+  // we can prevent leaking memory.
+  env->CallVoidMethod(
+      helper_, banner_view_helper::GetMethodId(banner_view_helper::kDestroy),
+      nullptr);
 
   env->DeleteGlobalRef(ad_view_);
   ad_view_ = nullptr;
@@ -268,7 +261,8 @@ Future<void> BannerViewInternalAndroid::Initialize(AdParent parent,
 
   FutureCallbackData<void>* callback_data =
       CreateVoidFutureCallbackData(kBannerViewFnSetPosition, &future_data_);
-  Future<void> future = MakeFuture(&future_data_.future_impl, callback_data->future_handle);
+  Future<void> future =
+      MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 
   JNIEnv* env = ::firebase::admob::GetJNI();
   FIREBASE_ASSERT(env);
@@ -325,7 +319,8 @@ Future<AdResult> BannerViewInternalAndroid::LoadAd(const AdRequest& request) {
 
   FutureCallbackData<AdResult>* callback_data =
       CreateAdResultFutureCallbackData(kBannerViewFnLoadAd, &future_data_);
-  Future<AdResult> future = MakeFuture(&future_data_.future_impl, callback_data->future_handle);
+  Future<AdResult> future =
+      MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 
   LoadAdOnMainThreadData* call_data = new LoadAdOnMainThreadData();
   call_data->ad_request = request;
@@ -399,7 +394,8 @@ Future<void> BannerViewInternalAndroid::SetPosition(int x, int y) {
 
   FutureCallbackData<void>* callback_data =
       CreateVoidFutureCallbackData(kBannerViewFnSetPosition, &future_data_);
-  Future<void> future = MakeFuture(&future_data_.future_impl, callback_data->future_handle);
+  Future<void> future =
+      MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 
   ::firebase::admob::GetJNI()->CallVoidMethod(
       helper_, banner_view_helper::GetMethodId(banner_view_helper::kMoveToXY),
@@ -414,7 +410,8 @@ Future<void> BannerViewInternalAndroid::SetPosition(
 
   FutureCallbackData<void>* callback_data =
       CreateVoidFutureCallbackData(kBannerViewFnSetPosition, &future_data_);
-  Future<void> future = MakeFuture(&future_data_.future_impl, callback_data->future_handle);
+  Future<void> future =
+      MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 
   ::firebase::admob::GetJNI()->CallVoidMethod(
       helper_,
@@ -450,7 +447,8 @@ Future<void> BannerViewInternalAndroid::InvokeNullary(
 
   FutureCallbackData<void>* callback_data =
       CreateVoidFutureCallbackData(fn, &future_data_);
-  Future<void> future = MakeFuture(&future_data_.future_impl, callback_data->future_handle);
+  Future<void> future =
+      MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 
   NulleryInvocationOnMainThreadData* call_data =
       new NulleryInvocationOnMainThreadData();

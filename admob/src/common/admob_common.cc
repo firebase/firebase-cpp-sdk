@@ -227,7 +227,9 @@ const char* GetRequestAgentString() {
 // Mark a future as complete.
 void CompleteFuture(int error, const char* error_msg,
                     SafeFutureHandle<void> handle, FutureData* future_data) {
-  future_data->future_impl.Complete(handle, error, error_msg);
+  if (future_data->future_impl.ValidFuture(handle)) {
+    future_data->future_impl.Complete(handle, error, error_msg);
+  }
 }
 
 // For calls that aren't asynchronous, we can create and complete at the

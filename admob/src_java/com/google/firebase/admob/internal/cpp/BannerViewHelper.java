@@ -1,4 +1,4 @@
-/*
+`/*
  * Copyright 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.firebase.admob.internal.cpp;
+    package com.google.firebase.admob.internal.cpp;
 
 import android.app.Activity;
 import android.graphics.drawable.ColorDrawable;
@@ -143,40 +143,50 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
    * Destroy/deallocate the {@link PopupWindow} and {@link AdView}.
    */
   public void destroy(final long callbackDataPtr) {
-    // If the Activity isn't initialized, there is nothing to destroy.
-    if (mActivity == null) {
-      completeBannerViewFutureCallback(callbackDataPtr,
-          ConstantsHelper.CALLBACK_ERROR_NONE,
-          ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
-      return;
-    }
+    // If the Activity isn't initialized, or already Destroyed, then there's
+    // nothing to destroy.
+    if (mActivity != null) {
+      mActivity.runOnUiThread(
+          new Runnable() {
+            @Override
+            public void run() {
+              // Stop any attempts to show the popup window.
+              synchronized (mPopUpLock) {
+                mPopUpRunnable = null;
+              }
 
-    // Stop any attempts to show the popup window.
-    synchronized (mPopUpLock) {
-      mPopUpRunnable = null;
-    }
+              if (mAdView != null) {
+                mAdView.setAdListener(null);
+                mAdView.setOnPaidEventListener(null);
+                mAdView.destroy();
+                mAdView = null;
+              }
 
-    if (mAdView != null) {
-      mAdView.setAdListener(null);
-      mAdView.setOnPaidEventListener(null);
-      mAdView.destroy();
-      mAdView = null;
-    }
+              synchronized (mPopUpLock) {
+                if (mPopUp != null) {
+                  mPopUp.dismiss();
+                  mPopUp = null;
+                }
+              }
+              synchronized (mBannerViewLock) {
+                notifyBoundingBoxChanged(mBannerViewInternalPtr);
+                mBannerViewInternalPtr = CPP_NULLPTR;
+              }
+              mActivity = null;
+            }
 
-    synchronized (mPopUpLock) {
-      if (mPopUp != null) {
-        mPopUp.dismiss();
-        mPopUp = null;
-      }
-    }
+            // BannerView's C++ destructor does not pass a future
+            // to callback and complete, since that would cause the destructor
+            // to block.
+        if(callbackDataPtr !=CPP_NULLPTR)
 
-    synchronized (mBannerViewLock) {
-      notifyBoundingBoxChanged(mBannerViewInternalPtr);
+            {
+              completeBannerViewFutureCallback(callbackDataPtr,
+                  ConstantsHelper.CALLBACK_ERROR_NONE,
+                  ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
+            }
+          });
     }
-
-    completeBannerViewFutureCallback(callbackDataPtr,
-        ConstantsHelper.CALLBACK_ERROR_NONE,
-        ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
   }
 
   /**
@@ -580,7 +590,6 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
         notifyBoundingBoxChanged(mBannerViewInternalPtr);
       }
     }
-
     // Returning true tells Android to continue the draw as normal.
     return true;
   }
@@ -642,3 +651,4 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   public static native void notifyPaidEvent(long nativeInternalPtr, String currencyCode,
                                             int precisionType, long valueMicros);
 }
+`
