@@ -150,7 +150,7 @@ BannerViewInternalAndroid::~BannerViewInternalAndroid() {
   // we can prevent leaking memory.
   env->CallVoidMethod(
       helper_, banner_view_helper::GetMethodId(banner_view_helper::kDestroy),
-      nullptr);
+      /*callbackDataPtr=*/nullptr, /*destructor_invocation=*/true);
 
   env->DeleteGlobalRef(ad_view_);
   ad_view_ = nullptr;
@@ -386,7 +386,14 @@ Future<void> BannerViewInternalAndroid::Resume() {
 
 Future<void> BannerViewInternalAndroid::Destroy() {
   firebase::MutexLock lock(mutex_);
-  return InvokeNullary(kBannerViewFnDestroy, banner_view_helper::kDestroy);
+  FutureCallbackData<void>* callback_data =
+      CreateVoidFutureCallbackData(kBannerViewFnDestroy, &future_data_);
+  Future<void> future =
+      MakeFuture(&future_data_.future_impl, callback_data->future_handle);
+  ::firebase::admob::GetJNI()->CallVoidMethod(
+      helper_, banner_view_helper::GetMethodId(banner_view_helper::kDestroy),
+      reinterpret_cast<jlong>(callback_data), /*destructor_invocation=*/false);
+  return future;
 }
 
 Future<void> BannerViewInternalAndroid::SetPosition(int x, int y) {
