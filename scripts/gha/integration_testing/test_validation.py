@@ -226,8 +226,8 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
       % (len(tests), len(successes), len(failures), len(errors)))
 
   if len(flaky_testapps) > 0 and len(flaky_testapps) == len(failures) + len(errors):
-    logging.info("All failures and errors are due to flakiness")
-    summary.append("ALL THE FOLLOWING FAILURES AND ERRORS ARE FLAKINESS:(")
+    logging.info("All failures and errors are due to flakiness.")
+    summary.append("ALL THE FOLLOWING FAILURES AND ERRORS ARE DUE TO FLAKINESS:(")
 
   # summary_json format:
   #   { "type": "test",

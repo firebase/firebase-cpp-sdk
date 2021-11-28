@@ -229,8 +229,9 @@ def _run_test_on_ftl(tests, tested_tests, retry=3):
               testapp_path=test.testapp_path,
               results_dir=test.results_dir + "retry")
         failed_tests.append(failed_test)
+
     if failed_tests:
-      logging.info("Failure(s) occurred, retry test(s) on FTL.")
+      logging.info("Failure(s) occurred, retrying test(s) on FTL.")
       return _run_test_on_ftl(failed_tests, tested_tests, retry=retry-1)
     
   return tested_tests
