@@ -142,7 +142,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   /**
    * Destroy/deallocate the {@link PopupWindow} and {@link AdView}.
    */
-  public void destroy(final long callbackDataPtr) {
+  public void destroy(final long callbackDataPtr, final boolean destructor_invocation) {
     // If the Activity isn't initialized, or already Destroyed, then there's
     // nothing to destroy.
     if (mActivity != null) {
@@ -169,7 +169,9 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
                 }
               }
               synchronized (mBannerViewLock) {
-                notifyBoundingBoxChanged(mBannerViewInternalPtr);
+                if(destructor_invocation == false) {
+                  notifyBoundingBoxChanged(mBannerViewInternalPtr);
+                }
                 mBannerViewInternalPtr = CPP_NULLPTR;
               }
               mActivity = null;
