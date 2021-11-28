@@ -179,16 +179,22 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
               // BannerView's C++ destructor does not pass a future
               // to callback and complete, since that would cause the destructor
               // to block.
-              if(callbackDataPtr !=CPP_NULLPTR)
-              {
+              if(callbackDataPtr != CPP_NULLPTR) {
                 completeBannerViewFutureCallback(callbackDataPtr,
                   ConstantsHelper.CALLBACK_ERROR_NONE,
                   ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
               }
             }
           });
+    } else {
+      if(callbackDataPtr !=CPP_NULLPTR) {
+        completeBannerViewFutureCallback(callbackDataPtr,
+          ConstantsHelper.CALLBACK_ERROR_NONE,
+          ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
+      }
     }
   }
+  
 
   /**
    * Loads an ad for the underlying AdView object.
