@@ -245,7 +245,11 @@ def main():
   if not args.disable_vcpkg:
     utils.run_command(['git', 'submodule', 'init'])
     utils.run_command(['git', 'submodule', 'update'])
-
+    if utils.is_windows_os():
+      utils.run_command(['external\vcpkg\bootstrap_vcpkg.bat', '-disableMetrics'])
+    else
+      utils.run_command(['external\vcpkg\bootstrap_vcpkg.sh', '-disableMetrics'])
+    
   # To build x86 on x86_64 linux hosts, we also need x86 support libraries
   if args.arch == 'x86' and utils.is_linux_os():
     install_x86_support_libraries()
