@@ -94,7 +94,7 @@ def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, use_openssl
   if not found_vcpkg_executable:
     script_absolute_path = utils.get_vcpkg_installation_script_path()
     # Example: ./external/vcpkg/bootstrap-sh
-    utils.run_command([script_absolute_path], merge_stderr=True)
+    utils.run_command([script_absolute_path])
 
   # Copy any of our custom defined vcpkg data to vcpkg submodule directory
   utils.copy_vcpkg_custom_data()
