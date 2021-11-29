@@ -66,8 +66,8 @@ def install_x86_support_libraries():
                 'libselinux1-dev:i386', 'libsecret-1-0:i386', 'gir1.2-secret-1:i386',
                 'libmount1:i386', 'libselinux1:i386', 'libselinux1:i386',
                 'libpcre2-dev:i386', 'libpcre2-8-0:i386', 'libpcre2-posix2:i386',
-                'pkg-config:i386']
-    
+                'pkg-config:i386', 'libglib2.0-dev-bin:i386', 'libdpkg-perl:i386']
+    #libgssapi-krb5-2 openssl debconf libselinux1 fontconfig-config libglib2.0-dev-bin:i386
     # First check if these packages exist on the machine already
     devnull = open(os.devnull, "w")
     process = subprocess.run(["dpkg", "-s"] + packages, stdout=devnull, stderr=subprocess.STDOUT)
