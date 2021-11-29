@@ -61,12 +61,12 @@ def install_x86_support_libraries():
   if utils.is_linux_os():
     packages = ['gcc-multilib', 'g++-multilib', 'libglib2.0-dev:i386',
                 'libsecret-1-dev:i386', 'libpthread-stubs0-dev:i386',
-                'libssl-dev:i386']
-                #, 'libglib2.0-0:i386', 'libmount-dev:i386',
-                #'libselinux1-dev:i386', 'libsecret-1-0:i386', 'gir1.2-secret-1:i386',
-                #'libmount1:i386', 'libselinux1:i386', 'libselinux1:i386',
-                #'libpcre2-dev:i386', 'libpcre2-8-0:i386', 'libpcre2-posix2:i386',
-                #'pkg-config:i386']
+                'libssl-dev:i386' #]
+                , 'libglib2.0-0:i386', 'libmount-dev:i386',
+                'libselinux1-dev:i386', 'libsecret-1-0:i386', 'gir1.2-secret-1:i386',
+                'libmount1:i386', 'libselinux1:i386', 'libselinux1:i386',
+                'libpcre2-dev:i386', 'libpcre2-8-0:i386', 'libpcre2-posix2:i386',
+                'pkg-config:i386']
     
     # First check if these packages exist on the machine already
     devnull = open(os.devnull, "w")
@@ -80,8 +80,8 @@ def install_x86_support_libraries():
       utils.run_command(['apt-mark', 'showhold'], as_root=True, check=True)
       #for package in packages:
       #  utils.run_command(['apt-get', '-y', 'upgrade', '--with-new-pkgs', package], as_root=True, check=True)
-      #utils.run_command(['apt', 'install', '-y'] + packages, as_root=True, check=True)
-      utils.run_command(['apt-get', '-V', '-f', '-y', 'dist-upgrade', '--with-new-pkgs'] + packages, as_root=True, check=True)
+      utils.run_command(['apt', 'install', '-V', '-f', '-y', '--allow-change-held-packages'] + packages, as_root=True, check=True)
+      #utils.run_command(['apt-get', '-V', '-f', '-y', 'upgrade', '--with-new-pkgs'] + packages, as_root=True, check=True)
 
 
 def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, use_openssl=False):
