@@ -32,23 +32,13 @@ InterstitialAdInternalIOS::InterstitialAdInternalIOS(InterstitialAd* base)
 
 InterstitialAdInternalIOS::~InterstitialAdInternalIOS() {
   firebase::MutexLock lock(mutex_);
-  // Clean up any resources created in InterstitialAdInternalIOS.
-  Mutex mutex(Mutex::kModeNonRecursive);
-  __block Mutex *mutex_in_block = &mutex;
-  mutex.Acquire();
-  void (^destroyBlock)() = ^{
-    ((GADInterstitialAd*)interstitial_).fullScreenContentDelegate = nil;
-    interstitial_delegate_ = nil;
-    interstitial_ = nil;
-    if(ad_load_callback_data_ != nil) {
-      delete ad_load_callback_data_;
-      ad_load_callback_data_ = nil;
-    }
-    mutex_in_block->Release();
-  };
-  util::DispatchAsyncSafeMainQueue(destroyBlock);
-  mutex.Acquire();
-  mutex.Release();
+  ((GADInterstitialAd*)interstitial_).fullScreenContentDelegate = nil;
+  interstitial_delegate_ = nil;
+  interstitial_ = nil;
+  if(ad_load_callback_data_ != nil) {
+    delete ad_load_callback_data_;
+    ad_load_callback_data_ = nil;
+  }
 }
 
 Future<void> InterstitialAdInternalIOS::Initialize(AdParent parent) {
