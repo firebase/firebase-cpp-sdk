@@ -72,7 +72,8 @@ def install_x86_support_libraries():
       # Install them.
       utils.run_command(['dpkg', '--add-architecture', 'i386'], as_root=True, check=True)
       utils.run_command(['apt', 'update'], as_root=True, check=True)
-      utils.run_command(['apt-get', 'install', '-y', '-f'] + packages, as_root=True, check=True)
+      utils.run_command(['apt', 'upgrade', '-y'], as_root=True, check=True)
+      utils.run_command(['apt', 'install', '-y'] + packages, as_root=True, check=True)
 
 
 def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, use_openssl=False):
