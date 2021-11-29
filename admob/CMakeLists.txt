@@ -51,6 +51,7 @@ set(ios_SRCS
     src/ios/FADBannerView.mm
     src/ios/FADInterstitialDelegate.mm
     src/ios/FADRequest.mm
+    src/ios/FADRewardedAdDelegate.mm
     src/ios/ad_result_ios.mm
     src/ios/adapter_response_info_ios.mm
     src/ios/admob_ios.mm
