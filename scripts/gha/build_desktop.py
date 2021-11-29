@@ -79,7 +79,7 @@ def install_x86_support_libraries():
       utils.run_command(['apt', 'update'], as_root=True, check=True)
       utils.run_command(['apt-mark', 'showhold'], as_root=True, check=True)
       for package in packages:
-        utils.run_command(['apt', 'install', '-y', package], as_root=True, check=True)
+        utils.run_command(['apt-get', 'install', '-V', '-y', '--allow-change-held-packages', package], as_root=True, check=True)
       #utils.run_command(['apt', 'install', '-y'] + packages, as_root=True, check=True)
 
 
