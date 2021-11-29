@@ -142,41 +142,57 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   /**
    * Destroy/deallocate the {@link PopupWindow} and {@link AdView}.
    */
-  public void destroy(final long callbackDataPtr) {
-    // If the Activity isn't initialized, there is nothing to destroy.
-    if (mActivity == null) {
-      completeBannerViewFutureCallback(callbackDataPtr,
-          ConstantsHelper.CALLBACK_ERROR_NONE,
-          ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
-      return;
-    }
+  public void destroy(final long callbackDataPtr, final boolean destructor_invocation) {
+    // If the Activity isn't initialized, or already Destroyed, then there's
+    // nothing to destroy.
+    if (mActivity != null) {
+      mActivity.runOnUiThread(
+          new Runnable() {
+            @Override
+            public void run() {
+              // Stop any attempts to show the popup window.
+              synchronized (mPopUpLock) {
+                mPopUpRunnable = null;
+              }
 
-    // Stop any attempts to show the popup window.
-    synchronized (mPopUpLock) {
-      mPopUpRunnable = null;
-    }
+              if (mAdView != null) {
+                mAdView.setAdListener(null);
+                mAdView.setOnPaidEventListener(null);
+                mAdView.destroy();
+                mAdView = null;
+              }
 
-    if (mAdView != null) {
-      mAdView.setAdListener(null);
-      mAdView.setOnPaidEventListener(null);
-      mAdView.destroy();
-      mAdView = null;
-    }
+              synchronized (mPopUpLock) {
+                if (mPopUp != null) {
+                  mPopUp.dismiss();
+                  mPopUp = null;
+                }
+              }
+              synchronized (mBannerViewLock) {
+                if (destructor_invocation == false) {
+                  notifyBoundingBoxChanged(mBannerViewInternalPtr);
+                }
+                mBannerViewInternalPtr = CPP_NULLPTR;
+              }
+              mActivity = null;
 
-    synchronized (mPopUpLock) {
-      if (mPopUp != null) {
-        mPopUp.dismiss();
-        mPopUp = null;
+              // BannerView's C++ destructor does not pass a future
+              // to callback and complete, since that would cause the destructor
+              // to block.
+              if (callbackDataPtr != CPP_NULLPTR) {
+                completeBannerViewFutureCallback(callbackDataPtr,
+                    ConstantsHelper.CALLBACK_ERROR_NONE,
+                    ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
+              }
+            }
+          });
+    } else {
+      if (callbackDataPtr != CPP_NULLPTR) {
+        completeBannerViewFutureCallback(callbackDataPtr,
+            ConstantsHelper.CALLBACK_ERROR_NONE,
+            ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
       }
     }
-
-    synchronized (mBannerViewLock) {
-      notifyBoundingBoxChanged(mBannerViewInternalPtr);
-    }
-
-    completeBannerViewFutureCallback(callbackDataPtr,
-        ConstantsHelper.CALLBACK_ERROR_NONE,
-        ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
   }
 
   /**
@@ -580,7 +596,6 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
         notifyBoundingBoxChanged(mBannerViewInternalPtr);
       }
     }
-
     // Returning true tells Android to continue the draw as normal.
     return true;
   }

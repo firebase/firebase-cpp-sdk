@@ -79,15 +79,18 @@ Future<void> RewardedAdInternalAndroid::Initialize(AdParent parent) {
   if (initialized_) {
     const SafeFutureHandle<void> future_handle =
         future_data_.future_impl.SafeAlloc<void>(kRewardedAdFnInitialize);
+    Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
     CompleteFuture(kAdMobErrorAlreadyInitialized,
                    kAdAlreadyInitializedErrorMessage, future_handle,
                    &future_data_);
-    return MakeFuture(&future_data_.future_impl, future_handle);
+    return future;
   }
 
   initialized_ = true;
   FutureCallbackData<void>* callback_data =
       CreateVoidFutureCallbackData(kRewardedAdFnInitialize, &future_data_);
+  Future<void> future =
+      MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 
   JNIEnv* env = ::firebase::admob::GetJNI();
   FIREBASE_ASSERT(env);
@@ -95,19 +98,21 @@ Future<void> RewardedAdInternalAndroid::Initialize(AdParent parent) {
       helper_, rewarded_ad_helper::GetMethodId(rewarded_ad_helper::kInitialize),
       reinterpret_cast<jlong>(callback_data), parent);
   util::CheckAndClearJniExceptions(env);
-  return MakeFuture(&future_data_.future_impl, callback_data->future_handle);
+  return future;
 }
 
 Future<AdResult> RewardedAdInternalAndroid::LoadAd(const char* ad_unit_id,
                                                    const AdRequest& request) {
   firebase::MutexLock lock(mutex_);
   if (!initialized_) {
-    SafeFutureHandle<AdResult> handle =
+    SafeFutureHandle<AdResult> future_handle =
         future_data_.future_impl.SafeAlloc<AdResult>(kRewardedAdFnLoadAd,
                                                      AdResult());
+    Future<AdResult> future =
+        MakeFuture(&future_data_.future_impl, future_handle);
     CompleteFuture(kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
-                   handle, &future_data_, AdResult());
-    return MakeFuture(&future_data_.future_impl, handle);
+                   future_handle, &future_data_, AdResult());
+    return future;
   }
 
   admob::AdMobError error = kAdMobErrorNone;
@@ -122,6 +127,8 @@ Future<AdResult> RewardedAdInternalAndroid::LoadAd(const char* ad_unit_id,
   }
   FutureCallbackData<AdResult>* callback_data =
       CreateAdResultFutureCallbackData(kRewardedAdFnLoadAd, &future_data_);
+  Future<AdResult> future =
+      MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env);
@@ -133,7 +140,7 @@ Future<AdResult> RewardedAdInternalAndroid::LoadAd(const char* ad_unit_id,
   env->DeleteLocalRef(j_ad_unit_str);
   env->DeleteLocalRef(j_request);
 
-  return MakeFuture(&future_data_.future_impl, callback_data->future_handle);
+  return future;
 }
 
 Future<void> RewardedAdInternalAndroid::Show(
@@ -142,16 +149,18 @@ Future<void> RewardedAdInternalAndroid::Show(
   if (!initialized_) {
     const SafeFutureHandle<void> future_handle =
         future_data_.future_impl.SafeAlloc<void>(kRewardedAdFnShow);
+    Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
     CompleteFuture(kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
                    future_handle, &future_data_);
-    return MakeFuture(&future_data_.future_impl, future_handle);
+    return future;
   }
 
   user_earned_reward_listener_ = listener;
 
   FutureCallbackData<void>* callback_data =
       CreateVoidFutureCallbackData(kRewardedAdFnShow, &future_data_);
-  SafeFutureHandle<void> future_handle = callback_data->future_handle;
+  Future<void> future =
+      MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env);
@@ -167,7 +176,7 @@ Future<void> RewardedAdInternalAndroid::Show(
   env->DeleteLocalRef(j_verification_custom_data);
   env->DeleteLocalRef(j_verification_user_id);
 
-  return MakeFuture(&future_data_.future_impl, future_handle);
+  return future;
 }
 
 }  // namespace internal
