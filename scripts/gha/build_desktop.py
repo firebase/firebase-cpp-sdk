@@ -61,7 +61,8 @@ def install_x86_support_libraries():
   if utils.is_linux_os():
     packages = ['gcc-multilib', 'g++-multilib', 'libglib2.0-dev:i386',
                 'libsecret-1-dev:i386', 'libpthread-stubs0-dev:i386',
-                'libssl-dev:i386']
+                'libssl-dev:i386', 'libglib2.0-0:i386', 'libmount-dev:i386',
+                'libselinux1-dev:i386', 'libsecret-1-0:i386', 'gir1.2-secret-1:i386']
 
     # First check if these packages exist on the machine already
     devnull = open(os.devnull, "w")
