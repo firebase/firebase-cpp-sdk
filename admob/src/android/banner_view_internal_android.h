@@ -35,7 +35,7 @@ namespace admob {
   X(Show, "show", "(J)V"),                                                     \
   X(Pause, "pause", "(J)V"),                                                   \
   X(Resume, "resume", "(J)V"),                                                 \
-  X(Destroy, "destroy", "(JZ)V"),                                               \
+  X(Destroy, "destroy", "(JZ)V"),                                              \
   X(MoveToPosition, "moveTo", "(JI)V"),                                        \
   X(MoveToXY, "moveTo", "(JII)V"),                                             \
   X(GetBoundingBox, "getBoundingBox", "()[I"),                                 \
