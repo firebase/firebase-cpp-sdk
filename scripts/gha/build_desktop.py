@@ -81,7 +81,7 @@ def install_x86_support_libraries():
       #for package in packages:
       #  utils.run_command(['apt-get', '-y', 'upgrade', '--with-new-pkgs', package], as_root=True, check=True)
       #utils.run_command(['apt', 'install', '-y'] + packages, as_root=True, check=True)
-      utils.run_command(['apt-get', '-V', '-f', '-y', 'upgrade', '--allow-change-held-packages', '--with-new-pkgs'] + packages, as_root=True, check=True)
+      utils.run_command(['apt-get', '-V', '-f', '-y', 'dist-upgrade', '--with-new-pkgs'] + packages, as_root=True, check=True)
 
 
 def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, use_openssl=False):
