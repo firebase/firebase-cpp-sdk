@@ -383,7 +383,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: external/vcpkg/installed
-          key: dev-vcpkg-${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}${{env.VCPKG_EXTRA_HASH}}
+          key: dev-vcpkg-${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}${{env.VCPKG_EXTRA_HASH}}-2
 
       - name: Cache ccache files
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
