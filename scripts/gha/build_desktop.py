@@ -71,9 +71,9 @@ def install_x86_support_libraries():
     if process.returncode != 0:
       # This implies not all of the required packages are already installed on user's machine
       # Install them.
-      utils.run_command(['dpkg', '--add-architecture', 'i386'], as_root=True)
-      utils.run_command(['apt', 'update'], as_root=True)
-      utils.run_command(['apt', 'install', '-y'] + packages, as_root=True)
+      utils.run_command(['dpkg', '--add-architecture', 'i386'], as_root=True, check=True)
+      utils.run_command(['apt', 'update'], as_root=True, check=True)
+      utils.run_command(['apt', 'install', '-y'] + packages, as_root=True, check=True)
 
 
 def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, use_openssl=False):
@@ -95,10 +95,7 @@ def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, use_openssl
   if not found_vcpkg_executable:
     script_absolute_path = utils.get_vcpkg_installation_script_path()
     # Example: ./external/vcpkg/bootstrap-sh
-    retval = utils.run_command([script_absolute_path], merge_stderr=True)
-    if retval.returncode != 0:
-      print("vcpkg bootstrap failed!")
-      exit(1)
+    retval = utils.run_command([script_absolute_path], check=True)
 
   # Copy any of our custom defined vcpkg data to vcpkg submodule directory
   utils.copy_vcpkg_custom_data()
@@ -118,11 +115,8 @@ def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, use_openssl
   # --disable-metrics
   retval = utils.run_command([vcpkg_executable_file_path, 'install',
                               '@' + vcpkg_response_file_path, '--disable-metrics'],
-                             merge_stderr=True)
-  if retval.returncode != 0:
-    print("vcpkg bootstrap failed!")
-    exit(2)
-  
+                             check=True)
+
 
 def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, cleanup=True,
                                         use_openssl=False):
@@ -252,8 +246,8 @@ def main():
   # Ensure that the submodules are initialized and updated
   # Example: vcpkg is a submodule (external/vcpkg)
   if not args.disable_vcpkg:
-    utils.run_command(['git', 'submodule', 'init'])
-    utils.run_command(['git', 'submodule', 'update'])
+    utils.run_command(['git', 'submodule', 'init'], check=True)
+    utils.run_command(['git', 'submodule', 'update'], check=True)
 
   # To build x86 on x86_64 linux hosts, we also need x86 support libraries
   if args.arch == 'x86' and utils.is_linux_os():

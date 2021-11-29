@@ -23,12 +23,11 @@ import distutils.spawn
 import platform
 import shutil
 import subprocess
-import sys
 import os
 import urllib.request
 
 def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False,
-                print_cmd=True, merge_stderr=False):
+                print_cmd=True):
  """Run a command.
 
  Args:
@@ -40,7 +39,6 @@ def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False,
   check (bool): Raises a CalledProcessError if True and the command errored out
   as_root (bool): Run command as root user with admin priveleges (supported on mac and linux).
   print_cmd (bool): Print the command we are running to stdout.
-  merge_stderr(bool): If this is true and capture_output=False, merge stderr to stdout.
 
  Raises:
   (subprocess.CalledProcessError): If command errored out and `text=True`
@@ -59,8 +57,7 @@ def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False,
  # If capture_output is requested, we also set text=True to store the returned value of the
  # command as a string instead of bytes object
  return subprocess.run(cmd, capture_output=capture_output, cwd=cwd,
-                       check=check, text=capture_output,
-                       stderr=(subprocess.STDOUT if (merge_stderr and not capture_output) else None))
+                       check=check, text=capture_output)
 
 
 def is_command_installed(tool):
