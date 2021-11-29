@@ -78,10 +78,9 @@ def install_x86_support_libraries():
       # Install them.
       utils.run_command(['dpkg', '--add-architecture', 'i386'], as_root=True, check=True)
       utils.run_command(['apt', 'update'], as_root=True, check=True)
-      utils.run_command(['apt-mark', 'showhold'], as_root=True, check=True)
       #for package in packages:
       #  utils.run_command(['apt-get', '-y', 'upgrade', '--with-new-pkgs', package], as_root=True, check=True)
-      utils.run_command(['apt', 'install', '-V', '-f', '-y', '--allow-change-held-packages'] + packages, as_root=True, check=True)
+      utils.run_command(['apt', 'install', '-V', '-f', '-y', '--allow-downgrades'] + packages, as_root=True, check=True)
       #utils.run_command(['apt-get', '-V', '-f', '-y', 'upgrade', '--with-new-pkgs'] + packages, as_root=True, check=True)
 
 
