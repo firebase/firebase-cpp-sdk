@@ -440,7 +440,10 @@ jobs:
           tar -xvzf artifacts/packaging-tools-${tools_platform}/packaging-tools.tgz -C bin
           chmod -R u+x bin
           # To save space, delete any artifacts that we don't need for packaging.
+          echo "zzyzx GOT HERE"
           for pkg in artifacts/firebase-cpp-sdk-*; do
+            echo "zzyzx pkg: $pkg"
+            echo "zzyzx " 'artifacts/firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}: ' "artifacts/firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}"
             if [[ "${pkg}" != "artifacts/firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}"* ]]; then
               echo "Deleting unneeded artifact: ${pkg}"
               rm  -rf "${pkg}"
