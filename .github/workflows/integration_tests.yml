@@ -924,7 +924,6 @@ jobs:
           npm install -g firebase-tools
           firebase emulators:start --only firestore --project demo-example &
       - name: Run iOS integration tests on Simulator locally
-        # max 3 retry and 10m timeout for each testapp, plus other steps
         timeout-minutes: 60
         if: steps.get-device-type.outputs.device_type == 'virtual'
         run: |
@@ -936,6 +935,7 @@ jobs:
         if: steps.get-device-type.outputs.device_type == 'real'
         uses: google-github-actions/setup-gcloud@master
       - name: Run iOS integration tests on Real Device via FTL
+        # max 3 retry and 10m timeout for each testapp, plus other steps
         timeout-minutes: 60 
         if: steps.get-device-type.outputs.device_type == 'real'
         run: |
