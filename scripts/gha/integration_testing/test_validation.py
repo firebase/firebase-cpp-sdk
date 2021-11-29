@@ -193,7 +193,7 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
     for test, results in errors:
       summary.append("\n%s:" % test.testapp_path)
       if test.testapp_path in success_testapp_paths:
-        summary.append("THIS IS A FLAKY TESTAPP")
+        summary.append("THIS TESTAPP IS FLAKY")
         flaky_testapps.append((test, results))
       else:
         errors_exclude_flakiness.append((test, results))
@@ -212,7 +212,7 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
     for test, results in failures:
       summary.append("\n%s:" % test.testapp_path)
       if test.testapp_path in success_testapp_paths:
-        summary.append("THIS IS A FLAKY TESTAPP")
+        summary.append("THIS TESTAPP IS FLAKY")
         flaky_testapps.append((test, results))
       else:
         failures_exclude_flakiness.append((test, results))

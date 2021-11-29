@@ -241,7 +241,7 @@ def summarize_logs(dir, markdown=False, github_log=False):
             for (test, _) in flakiness["flaky_tests"].items():
               log_data.setdefault(testapp, {}).setdefault("test", {}).setdefault("flakiness", {}).setdefault(test, []).append(configs)
           else:
-            log_data.setdefault(testapp, {}).setdefault("test", {}).setdefault("flakiness", {}).setdefault("TEST.ERROR", []).append(configs)
+            log_data.setdefault(testapp, {}).setdefault("test", {}).setdefault("flakiness", {}).setdefault("CRASH/TIMEOUT", []).append(configs)
 
   if success_or_only_flakiness and not log_data:
     # No failures and no flakiness occurred, nothing to log.
