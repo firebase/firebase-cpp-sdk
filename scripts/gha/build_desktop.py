@@ -68,7 +68,8 @@ def install_x86_support_libraries():
                 'libpcre2-dev:i386', 'libpcre2-8-0:i386', 'libpcre2-posix2:i386',
                 'pkg-config:i386', 'libglib2.0-dev-bin:i386', 'libdpkg-perl:i386',
                 'libgssapi-krb5-2','openssl','debconf', 'libselinux1', 'fontconfig-config',
-                'python3-distutils:i386', 'libgd3', 'libxslt1.1', 'libxml2']
+                'python3-distutils:i386', 'libgd3', 'libxslt1.1', 'libxml2',
+                'libpcre2-8-0=10.34-7']
     # First check if these packages exist on the machine already
     devnull = open(os.devnull, "w")
     process = subprocess.run(["dpkg", "-s"] + packages, stdout=devnull, stderr=subprocess.STDOUT)
@@ -78,10 +79,8 @@ def install_x86_support_libraries():
       # Install them.
       utils.run_command(['dpkg', '--add-architecture', 'i386'], as_root=True, check=True)
       utils.run_command(['apt', 'update'], as_root=True, check=True)
-      #for package in packages:
-      #  utils.run_command(['apt-get', '-y', 'upgrade', '--with-new-pkgs', package], as_root=True, check=True)
-      utils.run_command(['apt', 'install', '-V', '-f', '-y', '--allow-downgrades'] + packages, as_root=True, check=True)
-      #utils.run_command(['apt-get', '-V', '-f', '-y', 'upgrade', '--with-new-pkgs'] + packages, as_root=True, check=True)
+      utils.run_command(['apt', 'install', '-V', '-f', '-y', '--allow-downgrades']
+                        + packages, as_root=True, check=True)
 
 
 def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, use_openssl=False):
