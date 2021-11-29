@@ -97,10 +97,6 @@ def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, use_openssl
     retval = utils.run_command([script_absolute_path], merge_stderr=True)
     if retval.returncode != 0:
       print("vcpkg bootstrap failed!")
-      print("out log:")
-      utils.run_command(['cat', '/home/runner/work/firebase-cpp-sdk/firebase-cpp-sdk/external/vcpkg/buildtrees/detect_compiler/config-x86-linux-rel-out.log'])
-      print("err log:")
-      utils.run_command(['cat', '/home/runner/work/firebase-cpp-sdk/firebase-cpp-sdk/external/vcpkg/buildtrees/detect_compiler/config-x86-linux-rel-err.log'])
       exit(1)
 
   # Copy any of our custom defined vcpkg data to vcpkg submodule directory
