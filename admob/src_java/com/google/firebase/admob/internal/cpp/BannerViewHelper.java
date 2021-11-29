@@ -195,9 +195,6 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     }
   }
 
-  a
-
-
   /**
    * Loads an ad for the underlying AdView object.
    */
