@@ -795,6 +795,8 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
   // Set the listener.
   TestBoundingBoxListener bounding_box_listener;
   banner->SetBoundingBoxListener(&bounding_box_listener);
+  PauseForVisualInspectionAndCallbacks();
+
   int expected_num_bounding_box_changes = 0;
   EXPECT_EQ(expected_num_bounding_box_changes,
             bounding_box_listener.bounding_box_changes_.size());
