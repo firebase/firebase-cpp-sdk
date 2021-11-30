@@ -75,8 +75,8 @@ def install_x86_support_libraries(gha_build=False):
       # presumably be fixed in a future Ubuntu update. (Also include
       # libsecret-1-dev (64-bit) here to ensure it stays installed, otherwise
       # the downgrade can remove it.)
-      packages = ['--allow-downgrades'] + packages + ['libpcre2-8-0=10.34-7',
-                                                      'libsecret-1-dev']
+      packages = (['--allow-downgrades'] + packages +
+                  ['libpcre2-8-0=10.34-7', 'libsecret-1-dev=0.20.2-1'])
 
     # First check if these packages exist on the machine already
     devnull = open(os.devnull, "w")
@@ -87,7 +87,7 @@ def install_x86_support_libraries(gha_build=False):
       # Install them.
       utils.run_command(['dpkg', '--add-architecture', 'i386'], as_root=True, check=True)
       utils.run_command(['apt', 'update'], as_root=True, check=True)
-      utils.run_command(['apt', 'install', '-y'] + packages, as_root=True, check=True)
+      utils.run_command(['apt', 'install', '-V', '-y'] + packages, as_root=True, check=True)
 
 
 def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, use_openssl=False):
