@@ -66,8 +66,8 @@ def install_x86_support_libraries(gha_build=False):
   """
   if utils.is_linux_os():
     packages = ['gcc-multilib', 'g++-multilib', 'libglib2.0-dev:i386',
-                'libsecret-1-dev:i386', 'libpthread-stubs0-dev:i386',
-                'libssl-dev:i386']
+                'libsecret-1-dev:i386', 'libsecret-1-dev',
+                'libpthread-stubs0-dev:i386', 'libssl-dev:i386']
     if gha_build:
       # Workaround for GitHub runners - they have an incompatibility between the 64-bit
       # and 32-bit versions of libpcre2-8-0. Downgrade the installed 64-bit version
