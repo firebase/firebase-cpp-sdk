@@ -56,20 +56,19 @@ def append_line_to_file(path, line):
       file.write("\n" + line + "\n")
 
 
-def install_x86_support_libraries():
+def install_x86_support_libraries(gha_build=False):
   """Install support libraries needed to build x86 on x86_64 hosts."""
   if utils.is_linux_os():
     packages = ['gcc-multilib', 'g++-multilib', 'libglib2.0-dev:i386',
                 'libsecret-1-dev:i386', 'libpthread-stubs0-dev:i386',
-                'libssl-dev:i386' #]
-                , 'libglib2.0-0:i386', 'libmount-dev:i386',
-                'libselinux1-dev:i386', 'libsecret-1-0:i386', 'gir1.2-secret-1:i386',
-                'libmount1:i386', 'libselinux1:i386', 'libselinux1:i386',
-                'libpcre2-dev:i386', 'libpcre2-8-0:i386', 'libpcre2-posix2:i386',
-                'pkg-config:i386', 'libglib2.0-dev-bin:i386', 'libdpkg-perl:i386',
-                'libgssapi-krb5-2','openssl','debconf', 'libselinux1', 'fontconfig-config',
-                'python3-distutils:i386', 'libgd3', 'libxslt1.1', 'libxml2',
-                'libpcre2-8-0=10.34-7']
+                'libssl-dev:i386']
+    if gha_build:
+      # Workaround for GitHub runners - they have an incompatibility between the 64-bit
+      # and 32-bit versions of libpcre2-8-0. Downgrade the installed 64-bit version
+      # of the library to get around this issue. This will presumably be fixed in a future
+      # Ubuntu update.
+      packages = ['--allow-downgrades'] + packages + ['libpcre2-8-0=10.34-7']
+
     # First check if these packages exist on the machine already
     devnull = open(os.devnull, "w")
     process = subprocess.run(["dpkg", "-s"] + packages, stdout=devnull, stderr=subprocess.STDOUT)
@@ -79,8 +78,7 @@ def install_x86_support_libraries():
       # Install them.
       utils.run_command(['dpkg', '--add-architecture', 'i386'], as_root=True, check=True)
       utils.run_command(['apt', 'update'], as_root=True, check=True)
-      utils.run_command(['apt', 'install', '-V', '-f', '-y', '--allow-downgrades']
-                        + packages, as_root=True, check=True)
+      utils.run_command(['apt', 'install', '-y'] + packages, as_root=True, check=True)
 
 
 def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, use_openssl=False):
@@ -258,7 +256,7 @@ def main():
 
   # To build x86 on x86_64 linux hosts, we also need x86 support libraries
   if args.arch == 'x86' and utils.is_linux_os():
-    install_x86_support_libraries()
+    install_x86_support_libraries(args.gha_build)
 
   # Install C++ dependencies using vcpkg
   if not args.disable_vcpkg:
@@ -303,7 +301,7 @@ def parse_cmdline_args():
   parser.add_argument('--target', nargs='+', help='A list of CMake build targets (eg: firebase_app firebase_auth)')
   parser.add_argument('--target_format', default=None, help='(Mac only) whether to output frameworks (default) or libraries.')
   parser.add_argument('--use_openssl', action='store_true', default=None, help='Use openssl for build instead of boringssl')
-  parser.add_argument('--gha_build', action='store_true', default=None, help='Set to true when building on GitHub, for metric tracking purposes')
+  parser.add_argument('--gha_build', action='store_true', default=None, help='Set to true when building on GitHub, for metric tracking purposes (also changes some prereq installing behavior)')
   args = parser.parse_args()
   return args
 
