@@ -18,7 +18,6 @@ package com.google.firebase.auth;
 
 /** Fake GetTokenResult */
 public final class GetTokenResult {
-
   public String getToken() {
     return "a fake token";
   }

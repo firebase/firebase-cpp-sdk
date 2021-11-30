@@ -18,7 +18,6 @@ package com.google.firebase.auth;
 
 /** Fake TwitterAuthProvider */
 public final class TwitterAuthProvider {
-
   public static AuthCredential getCredential(String token, String secret) {
     return new AuthCredential("twitter.com");
   }

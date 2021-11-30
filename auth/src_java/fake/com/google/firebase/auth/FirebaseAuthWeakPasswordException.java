@@ -18,7 +18,6 @@ package com.google.firebase.auth;
 
 /** Fake FirebaseAuthWeakPasswordException */
 public class FirebaseAuthWeakPasswordException extends FirebaseAuthInvalidCredentialsException {
-
   public FirebaseAuthWeakPasswordException(String code, String message) {
     super(code, message);
   }

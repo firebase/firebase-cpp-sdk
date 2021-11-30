@@ -30,9 +30,9 @@ public class MessageForwardingService extends JobIntentService {
   public static final String ACTION_REMOTE_INTENT = "com.google.android.c2dm.intent.RECEIVE";
 
   /**
-  * Convenience wrapper over enqueueWork to either directly start the service (when running on
-  * pre-O platforms) or enqueue work for it as a job (when running on Android O and later).
-  */
+   * Convenience wrapper over enqueueWork to either directly start the service (when running on
+   * pre-O platforms) or enqueue work for it as a job (when running on Android O and later).
+   */
   public static void enqueueWork(Context context, Intent intent) {
     enqueueWork(context, MessageForwardingService.class, JobIds.MESSAGE_FORWARDING_SERVICE, intent);
   }
@@ -46,14 +46,11 @@ public class MessageForwardingService extends JobIntentService {
   // TODO(b/79994182): see go/objecttostring-lsc
   @SuppressWarnings("ObjectToString")
   static void handleIntent(Context context, Intent intent, MessageWriter messageWriter) {
-    DebugLogging.log(
-        TAG,
+    DebugLogging.log(TAG,
         "onHandleIntent "
-            + (intent == null
-                ? "null intent"
-                : (intent.getAction() == null ? "(null)" : intent.getAction())));
-    if (intent != null
-        && intent.getAction() != null
+            + (intent == null ? "null intent"
+                              : (intent.getAction() == null ? "(null)" : intent.getAction())));
+    if (intent != null && intent.getAction() != null
         && intent.getAction().equals(ACTION_REMOTE_INTENT)) {
       Bundle extras = intent.getExtras();
       DebugLogging.log(TAG, "extras: " + (extras == null ? "(null)" : extras.toString()));

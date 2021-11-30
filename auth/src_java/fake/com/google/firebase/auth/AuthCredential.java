@@ -20,8 +20,10 @@ package com.google.firebase.auth;
 public final class AuthCredential {
   private String provider;
 
-  /** C++ code does not rely on any constructor. This is solely for fake to specify provider and
-   *  does not map to a constructor in the real AuthCredential. */
+  /**
+   * C++ code does not rely on any constructor. This is solely for fake to specify provider and
+   *  does not map to a constructor in the real AuthCredential.
+   */
   AuthCredential(String provider) {
     this.provider = provider;
   }

@@ -18,7 +18,6 @@ package com.google.firebase.auth;
 
 /** Fake FirebaseAuthEmailException */
 public class FirebaseAuthEmailException extends FirebaseAuthException {
-
   public FirebaseAuthEmailException(String code, String message) {
     super(code, message);
   }

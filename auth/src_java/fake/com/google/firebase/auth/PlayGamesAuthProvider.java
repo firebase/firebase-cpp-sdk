@@ -16,9 +16,8 @@
 
 package com.google.firebase.auth;
 
-/** Fake PlayGamesAuthProvider */ 
+/** Fake PlayGamesAuthProvider */
 class PlayGamesAuthProvider {
-
   public static AuthCredential getCredential(String authCode) {
     return new AuthCredential("playgames.google.com");
   }

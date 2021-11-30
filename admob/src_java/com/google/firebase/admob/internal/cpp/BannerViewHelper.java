@@ -44,7 +44,6 @@ import android.util.Log;
  * game engine-friendly state machine polling.
  */
 public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
-
   // It's possible to attempt to show a popup when an activity doesn't have focus. This value
   // controls the number of times the BannerViewHelper object checks for activity window focus
   // before timing out. Assuming 10ms per retry this value attempts to retry for 2 minutes before
@@ -397,18 +396,17 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
 
     synchronized (mPopUpLock) {
       if (mPopUp != null) {
-        mActivity.runOnUiThread(
-            new Runnable() {
-              @Override
-              public void run() {
-                synchronized (mPopUpLock) {
-                  // Any change in visibility or position results in the dismissal of the popup (if
-                  // one is being displayed) and creation of a fresh one.
-                  mPopUp.dismiss();
-                  mPopUp = null;
-                }
-              }
-            });
+        mActivity.runOnUiThread(new Runnable() {
+          @Override
+          public void run() {
+            synchronized (mPopUpLock) {
+              // Any change in visibility or position results in the dismissal of the popup (if
+              // one is being displayed) and creation of a fresh one.
+              mPopUp.dismiss();
+              mPopUp = null;
+            }
+          }
+        });
       }
 
       mPopUpShowRetryCount = 0;
@@ -455,36 +453,75 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
                 if (mShouldUseXYForPosition) {
                   mPopUp.showAtLocation(root, Gravity.NO_GRAVITY, mDesiredX, mDesiredY);
                 } else {
-                  switch (mDesiredPosition) {
-                    case ConstantsHelper.AD_VIEW_POSITION_TOP:
-                      mPopUp.showAtLocation(root, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 0);
-                      break;
-                    case ConstantsHelper.AD_VIEW_POSITION_BOTTOM:
-                      mPopUp.showAtLocation(root, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
-                      break;
-                    case ConstantsHelper.AD_VIEW_POSITION_TOP_LEFT:
-                      mPopUp.showAtLocation(root, Gravity.TOP | Gravity.LEFT, 0, 0);
-                      break;
-                    case ConstantsHelper.AD_VIEW_POSITION_TOP_RIGHT:
-                      mPopUp.showAtLocation(root, Gravity.TOP | Gravity.RIGHT, 0, 0);
-                      break;
-                    case ConstantsHelper.AD_VIEW_POSITION_BOTTOM_LEFT:
-                      mPopUp.showAtLocation(root, Gravity.BOTTOM | Gravity.LEFT, 0, 0);
-                      break;
-                    case ConstantsHelper.AD_VIEW_POSITION_BOTTOM_RIGHT:
-                      mPopUp.showAtLocation(root, Gravity.BOTTOM | Gravity.RIGHT, 0, 0);
-                      break;
-                    default:
-                      mPopUp.showAtLocation(root, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 0);
-                      break;
-                  }
+                  errorCode = ConstantsHelper.CALLBACK_ERROR_NO_WINDOW_TOKEN;
+                  errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NO_WINDOW_TOKEN;
                 }
               }
 
               completeBannerViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
               mNotifyBoundingBoxListenerOnNextDraw.set(true);
             }
-          };
+          }
+
+          if (mAdView == null) {
+            errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
+          }
+
+          if (errorCode != ConstantsHelper.CALLBACK_ERROR_NONE) {
+            completeBannerViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
+            return;
+          }
+
+          if (mPopUp == null) {
+            mPopUp = new PopupWindow(mAdView, LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+            mPopUp.setBackgroundDrawable(new ColorDrawable(0xFF000000)); // Black
+            mAdView.getViewTreeObserver().addOnPreDrawListener(BannerViewHelper.this);
+
+            if (mShouldUseXYForPosition) {
+              mPopUp.showAtLocation(root, Gravity.NO_GRAVITY, mDesiredX, mDesiredY);
+            } else {
+              switch (mDesiredPosition) {
+                case ConstantsHelper.AD_VIEW_POSITION_TOP:
+                  mPopUp.showAtLocation(root, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 0);
+                  break;
+                case ConstantsHelper.AD_VIEW_POSITION_BOTTOM:
+                  mPopUp.showAtLocation(root, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
+                  break;
+                case ConstantsHelper.AD_VIEW_POSITION_TOP_LEFT:
+                  mPopUp.showAtLocation(root, Gravity.TOP | Gravity.LEFT, 0, 0);
+                  break;
+                case ConstantsHelper.AD_VIEW_POSITION_TOP_RIGHT:
+                  mPopUp.showAtLocation(root, Gravity.TOP | Gravity.RIGHT, 0, 0);
+                  break;
+                case ConstantsHelper.AD_VIEW_POSITION_BOTTOM_LEFT:
+                  mPopUp.showAtLocation(root, Gravity.BOTTOM | Gravity.LEFT, 0, 0);
+                  break;
+                case ConstantsHelper.AD_VIEW_POSITION_BOTTOM_RIGHT:
+                  mPopUp.showAtLocation(root, Gravity.BOTTOM | Gravity.RIGHT, 0, 0);
+                  break;
+                default:
+                  mPopUp.showAtLocation(root, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 0);
+                  break;
+              }
+            }
+          }
+
+          if (errorCode == ConstantsHelper.CALLBACK_ERROR_NO_WINDOW_TOKEN) {
+            mCurrentPresentationState = ConstantsHelper.AD_VIEW_PRESENTATION_STATE_HIDDEN;
+          } else if (mAdViewContainsAd) {
+            mCurrentPresentationState = ConstantsHelper.AD_VIEW_PRESENTATION_STATE_VISIBLE_WITH_AD;
+          } else {
+            mCurrentPresentationState =
+                ConstantsHelper.AD_VIEW_PRESENTATION_STATE_VISIBLE_WITHOUT_AD;
+          }
+
+          completeBannerViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
+          notifyStateChanged(
+              mBannerViewInternalPtr, ConstantsHelper.AD_VIEW_CHANGED_PRESENTATION_STATE);
+          mNotifyListenerOnNextDraw.set(true);
+        }
+      };
     }
 
     // TODO(b/31391149): This delay is a workaround for b/31391149, and should be removed once

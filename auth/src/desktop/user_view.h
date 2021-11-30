@@ -17,6 +17,7 @@
 
 #include <memory>
 #include <utility>
+
 #include "app/src/assert.h"
 #include "app/src/mutex.h"
 #include "auth/src/common.h"

@@ -105,7 +105,14 @@ public class InterstitialAdHelper {
             }
             completeInterstitialAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
           }
-        });
+        } else {
+          errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
+          errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
+        }
+
+        completeInterstitialAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
+      }
+    });
   }
 
   /**
@@ -182,7 +189,9 @@ public class InterstitialAdHelper {
               }
             }
           }
-        });
+        }
+      }
+    });
   }
 
   /**
@@ -210,7 +219,11 @@ public class InterstitialAdHelper {
               completeInterstitialAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
             }
           }
-        });
+
+          completeInterstitialAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
+        }
+      }
+    });
   }
 
   private class InterstitialAdFullScreenContentListener

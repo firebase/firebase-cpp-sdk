@@ -74,10 +74,6 @@ public class CppTransactionHandler implements Transaction.Handler {
       long databaseObject, long transactionObject, MutableData currentData);
 
   /** This native function is implemented in the Firebase Database C++ library (util_android.cc). */
-  private static native void nativeOnComplete(
-      long databaseObject,
-      long transactionObject,
-      DatabaseError error,
-      boolean committed,
-      DataSnapshot currentData);
+  private static native void nativeOnComplete(long databaseObject, long transactionObject,
+      DatabaseError error, boolean committed, DataSnapshot currentData);
 }
