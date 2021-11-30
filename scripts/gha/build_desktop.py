@@ -66,14 +66,17 @@ def install_x86_support_libraries(gha_build=False):
   """
   if utils.is_linux_os():
     packages = ['gcc-multilib', 'g++-multilib', 'libglib2.0-dev:i386',
-                'libsecret-1-dev:i386', 'libsecret-1-dev',
-                'libpthread-stubs0-dev:i386', 'libssl-dev:i386']
+                'libsecret-1-dev:i386', 'libpthread-stubs0-dev:i386',
+                'libssl-dev:i386']
     if gha_build:
-      # Workaround for GitHub runners - they have an incompatibility between the 64-bit
-      # and 32-bit versions of libpcre2-8-0. Downgrade the installed 64-bit version
-      # of the library to get around this issue. This will presumably be fixed in a future
-      # Ubuntu update.
-      packages = ['--allow-downgrades'] + packages + ['libpcre2-8-0=10.34-7']
+      # Workaround for GitHub runners, which have an incompatibility between the
+      # 64-bit and 32-bit versions of libpcre2-8-0. Downgrade the installed
+      # 64-bit version of the library to get around this issue. This will
+      # presumably be fixed in a future Ubuntu update. (Also include
+      # libsecret-1-dev (64-bit) here to ensure it stays installed, otherwise
+      # the downgrade can remove it.)
+      packages = ['--allow-downgrades'] + packages + ['libpcre2-8-0=10.34-7',
+                                                      'libsecret-1-dev']
 
     # First check if these packages exist on the machine already
     devnull = open(os.devnull, "w")
