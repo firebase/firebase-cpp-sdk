@@ -21,7 +21,6 @@ import com.google.firebase.testing.cppsdk.TickerAndroid;
 
 /** Mock FirebaseInstallations. */
 public class FirebaseInstallations {
-
   private static final String FN_GET_ID = "FirebaseInstallations.getId";
   private static final String FN_GEI_TOKEN = "FirebaseInstallations.getToken";
   private static final String FN_DELETE = "FirebaseInstallations.delete";

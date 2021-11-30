@@ -16,7 +16,6 @@ package com.google.firebase.installations;
 
 /** Mock InstallationTokenResult */
 public class InstallationTokenResult {
-
   private InstallationTokenResult() {}
 
   public static synchronized InstallationTokenResult getInstance() {

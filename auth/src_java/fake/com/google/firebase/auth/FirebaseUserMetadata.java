@@ -18,7 +18,6 @@ package com.google.firebase.auth;
 
 /** Holds the user metadata for the current {@link FirebaseUser} */
 public class FirebaseUserMetadata {
-
   /** Fake timestamp returned that's non-zero. */
   public long getLastSignInTimestamp() {
     return 1;

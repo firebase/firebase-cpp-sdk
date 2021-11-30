@@ -16,7 +16,6 @@ package com.google.firebase.messaging;
 
 /** Unique ids for JobIntentServices. */
 public final class JobIds {
-
   private JobIds() {}
 
   public static final int MESSAGE_FORWARDING_SERVICE = 1000;

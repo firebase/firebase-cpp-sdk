@@ -28,4 +28,3 @@ void Uuid::Generate() {
 
 }  // namespace internal
 }  // namespace firebase
-

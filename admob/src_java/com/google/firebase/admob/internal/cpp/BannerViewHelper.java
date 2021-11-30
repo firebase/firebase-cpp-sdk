@@ -20,22 +20,19 @@ import android.app.Activity;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 import android.view.ViewTreeObserver;
 import android.widget.PopupWindow;
-
 import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdValue;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.LoadAdError;
 import com.google.android.gms.ads.OnPaidEventListener;
-
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import android.util.Log;
 
 /**
  * Helper class to make interactions between the AdMob C++ wrapper and Java AdView objects cleaner.
@@ -44,7 +41,6 @@ import android.util.Log;
  * game engine-friendly state machine polling.
  */
 public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
-
   // It's possible to attempt to show a popup when an activity doesn't have focus. This value
   // controls the number of times the BannerViewHelper object checks for activity window focus
   // before timing out. Assuming 10ms per retry this value attempts to retry for 2 minutes before
@@ -146,50 +142,47 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     // If the Activity isn't initialized, or already Destroyed, then there's
     // nothing to destroy.
     if (mActivity != null) {
-      mActivity.runOnUiThread(
-          new Runnable() {
-            @Override
-            public void run() {
-              // Stop any attempts to show the popup window.
-              synchronized (mPopUpLock) {
-                mPopUpRunnable = null;
-              }
+      mActivity.runOnUiThread(new Runnable() {
+        @Override
+        public void run() {
+          // Stop any attempts to show the popup window.
+          synchronized (mPopUpLock) {
+            mPopUpRunnable = null;
+          }
 
-              if (mAdView != null) {
-                mAdView.setAdListener(null);
-                mAdView.setOnPaidEventListener(null);
-                mAdView.destroy();
-                mAdView = null;
-              }
+          if (mAdView != null) {
+            mAdView.setAdListener(null);
+            mAdView.setOnPaidEventListener(null);
+            mAdView.destroy();
+            mAdView = null;
+          }
 
-              synchronized (mPopUpLock) {
-                if (mPopUp != null) {
-                  mPopUp.dismiss();
-                  mPopUp = null;
-                }
-              }
-              synchronized (mBannerViewLock) {
-                if (destructor_invocation == false) {
-                  notifyBoundingBoxChanged(mBannerViewInternalPtr);
-                }
-                mBannerViewInternalPtr = CPP_NULLPTR;
-              }
-              mActivity = null;
-
-              // BannerView's C++ destructor does not pass a future
-              // to callback and complete, since that would cause the destructor
-              // to block.
-              if (callbackDataPtr != CPP_NULLPTR) {
-                completeBannerViewFutureCallback(callbackDataPtr,
-                    ConstantsHelper.CALLBACK_ERROR_NONE,
-                    ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
-              }
+          synchronized (mPopUpLock) {
+            if (mPopUp != null) {
+              mPopUp.dismiss();
+              mPopUp = null;
             }
-          });
+          }
+          synchronized (mBannerViewLock) {
+            if (destructor_invocation == false) {
+              notifyBoundingBoxChanged(mBannerViewInternalPtr);
+            }
+            mBannerViewInternalPtr = CPP_NULLPTR;
+          }
+          mActivity = null;
+
+          // BannerView's C++ destructor does not pass a future
+          // to callback and complete, since that would cause the destructor
+          // to block.
+          if (callbackDataPtr != CPP_NULLPTR) {
+            completeBannerViewFutureCallback(callbackDataPtr, ConstantsHelper.CALLBACK_ERROR_NONE,
+                ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
+          }
+        }
+      });
     } else {
       if (callbackDataPtr != CPP_NULLPTR) {
-        completeBannerViewFutureCallback(callbackDataPtr,
-            ConstantsHelper.CALLBACK_ERROR_NONE,
+        completeBannerViewFutureCallback(callbackDataPtr, ConstantsHelper.CALLBACK_ERROR_NONE,
             ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
       }
     }
@@ -205,8 +198,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
 
     synchronized (mBannerViewLock) {
       if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
-        completeBannerViewLoadAdInternalError(
-            callbackDataPtr,
+        completeBannerViewLoadAdInternalError(callbackDataPtr,
             ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS,
             ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS);
         return;
@@ -216,8 +208,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
 
     if (mAdView == null) {
       synchronized (mBannerViewLock) {
-        completeBannerViewLoadAdInternalError(
-            mLoadAdCallbackDataPtr,
+        completeBannerViewLoadAdInternalError(mLoadAdCallbackDataPtr,
             ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
             ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
         mLoadAdCallbackDataPtr = CPP_NULLPTR;
@@ -275,8 +266,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     } else if (mAdView != null) {
       mAdView.pause();
     }
-    completeBannerViewFutureCallback(callbackDataPtr,
-        ConstantsHelper.CALLBACK_ERROR_NONE,
+    completeBannerViewFutureCallback(callbackDataPtr, ConstantsHelper.CALLBACK_ERROR_NONE,
         ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
   }
 
@@ -290,8 +280,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
       mAdView.resume();
     }
 
-    completeBannerViewFutureCallback(callbackDataPtr,
-        ConstantsHelper.CALLBACK_ERROR_NONE,
+    completeBannerViewFutureCallback(callbackDataPtr, ConstantsHelper.CALLBACK_ERROR_NONE,
         ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
   }
 
@@ -355,7 +344,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
           }
         }
       }
-      return new int[]{width, height, x, y};
+      return new int[] {width, height, x, y};
     }
   }
 
@@ -397,94 +386,91 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
 
     synchronized (mPopUpLock) {
       if (mPopUp != null) {
-        mActivity.runOnUiThread(
-            new Runnable() {
-              @Override
-              public void run() {
-                synchronized (mPopUpLock) {
-                  // Any change in visibility or position results in the dismissal of the popup (if
-                  // one is being displayed) and creation of a fresh one.
-                  mPopUp.dismiss();
-                  mPopUp = null;
-                }
-              }
-            });
+        mActivity.runOnUiThread(new Runnable() {
+          @Override
+          public void run() {
+            synchronized (mPopUpLock) {
+              // Any change in visibility or position results in the dismissal of the popup (if
+              // one is being displayed) and creation of a fresh one.
+              mPopUp.dismiss();
+              mPopUp = null;
+            }
+          }
+        });
       }
 
       mPopUpShowRetryCount = 0;
-      mPopUpRunnable =
-          new Runnable() {
-            @Override
-            public void run() {
-              int errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
-              String errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-              // If the Activity's window doesn't currently have focus it's not
-              // possible to display the popup window. Poll the focus after a delay of 10ms and try
-              // to show the popup again.
-              if (!mActivity.hasWindowFocus()) {
-                synchronized (mPopUpLock) {
-                  if (mPopUpRunnable == null) {
-                    errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
-                    errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
-                  } else {
-                    if (mPopUpShowRetryCount < POPUP_SHOW_RETRY_COUNT) {
-                      mPopUpShowRetryCount++;
-                      new Handler().postDelayed(mPopUpRunnable, 10);
-                      return;
-                    }
-                    errorCode = ConstantsHelper.CALLBACK_ERROR_NO_WINDOW_TOKEN;
-                    errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NO_WINDOW_TOKEN;
-                  }
-                }
-              }
-
-              if (mAdView == null) {
+      mPopUpRunnable = new Runnable() {
+        @Override
+        public void run() {
+          int errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
+          String errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
+          // If the Activity's window doesn't currently have focus it's not
+          // possible to display the popup window. Poll the focus after a delay of 10ms and try
+          // to show the popup again.
+          if (!mActivity.hasWindowFocus()) {
+            synchronized (mPopUpLock) {
+              if (mPopUpRunnable == null) {
                 errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
                 errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
-              }
-
-              if (errorCode != ConstantsHelper.CALLBACK_ERROR_NONE) {
-                completeBannerViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
-                return;
-              } else if (mPopUp == null) {
-                mPopUp =
-                    new PopupWindow(mAdView, LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-                mPopUp.setBackgroundDrawable(new ColorDrawable(0xFF000000)); // Black
-                mAdView.getViewTreeObserver().addOnPreDrawListener(BannerViewHelper.this);
-
-                if (mShouldUseXYForPosition) {
-                  mPopUp.showAtLocation(root, Gravity.NO_GRAVITY, mDesiredX, mDesiredY);
-                } else {
-                  switch (mDesiredPosition) {
-                    case ConstantsHelper.AD_VIEW_POSITION_TOP:
-                      mPopUp.showAtLocation(root, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 0);
-                      break;
-                    case ConstantsHelper.AD_VIEW_POSITION_BOTTOM:
-                      mPopUp.showAtLocation(root, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
-                      break;
-                    case ConstantsHelper.AD_VIEW_POSITION_TOP_LEFT:
-                      mPopUp.showAtLocation(root, Gravity.TOP | Gravity.LEFT, 0, 0);
-                      break;
-                    case ConstantsHelper.AD_VIEW_POSITION_TOP_RIGHT:
-                      mPopUp.showAtLocation(root, Gravity.TOP | Gravity.RIGHT, 0, 0);
-                      break;
-                    case ConstantsHelper.AD_VIEW_POSITION_BOTTOM_LEFT:
-                      mPopUp.showAtLocation(root, Gravity.BOTTOM | Gravity.LEFT, 0, 0);
-                      break;
-                    case ConstantsHelper.AD_VIEW_POSITION_BOTTOM_RIGHT:
-                      mPopUp.showAtLocation(root, Gravity.BOTTOM | Gravity.RIGHT, 0, 0);
-                      break;
-                    default:
-                      mPopUp.showAtLocation(root, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 0);
-                      break;
-                  }
+              } else {
+                if (mPopUpShowRetryCount < POPUP_SHOW_RETRY_COUNT) {
+                  mPopUpShowRetryCount++;
+                  new Handler().postDelayed(mPopUpRunnable, 10);
+                  return;
                 }
+                errorCode = ConstantsHelper.CALLBACK_ERROR_NO_WINDOW_TOKEN;
+                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NO_WINDOW_TOKEN;
               }
-
-              completeBannerViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
-              mNotifyBoundingBoxListenerOnNextDraw.set(true);
             }
-          };
+          }
+
+          if (mAdView == null) {
+            errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
+          }
+
+          if (errorCode != ConstantsHelper.CALLBACK_ERROR_NONE) {
+            completeBannerViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
+            return;
+          } else if (mPopUp == null) {
+            mPopUp = new PopupWindow(mAdView, LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+            mPopUp.setBackgroundDrawable(new ColorDrawable(0xFF000000)); // Black
+            mAdView.getViewTreeObserver().addOnPreDrawListener(BannerViewHelper.this);
+
+            if (mShouldUseXYForPosition) {
+              mPopUp.showAtLocation(root, Gravity.NO_GRAVITY, mDesiredX, mDesiredY);
+            } else {
+              switch (mDesiredPosition) {
+                case ConstantsHelper.AD_VIEW_POSITION_TOP:
+                  mPopUp.showAtLocation(root, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 0);
+                  break;
+                case ConstantsHelper.AD_VIEW_POSITION_BOTTOM:
+                  mPopUp.showAtLocation(root, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0);
+                  break;
+                case ConstantsHelper.AD_VIEW_POSITION_TOP_LEFT:
+                  mPopUp.showAtLocation(root, Gravity.TOP | Gravity.LEFT, 0, 0);
+                  break;
+                case ConstantsHelper.AD_VIEW_POSITION_TOP_RIGHT:
+                  mPopUp.showAtLocation(root, Gravity.TOP | Gravity.RIGHT, 0, 0);
+                  break;
+                case ConstantsHelper.AD_VIEW_POSITION_BOTTOM_LEFT:
+                  mPopUp.showAtLocation(root, Gravity.BOTTOM | Gravity.LEFT, 0, 0);
+                  break;
+                case ConstantsHelper.AD_VIEW_POSITION_BOTTOM_RIGHT:
+                  mPopUp.showAtLocation(root, Gravity.BOTTOM | Gravity.RIGHT, 0, 0);
+                  break;
+                default:
+                  mPopUp.showAtLocation(root, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 0);
+                  break;
+              }
+            }
+          }
+
+          completeBannerViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
+          mNotifyBoundingBoxListenerOnNextDraw.set(true);
+        }
+      };
     }
 
     // TODO(b/31391149): This delay is a workaround for b/31391149, and should be removed once
@@ -521,7 +507,8 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     public void onAdFailedToLoad(LoadAdError loadAdError) {
       synchronized (mBannerViewLock) {
         if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
-          completeBannerViewLoadAdError(mLoadAdCallbackDataPtr, loadAdError, loadAdError.getCode(), loadAdError.getMessage());
+          completeBannerViewLoadAdError(
+              mLoadAdCallbackDataPtr, loadAdError, loadAdError.getCode(), loadAdError.getMessage());
           mLoadAdCallbackDataPtr = CPP_NULLPTR;
         }
       }
@@ -571,8 +558,8 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     public void onPaidEvent(AdValue value) {
       synchronized (mBannerViewLock) {
         if (mBannerViewInternalPtr != CPP_NULLPTR) {
-          notifyPaidEvent(mBannerViewInternalPtr, value.getCurrencyCode(),
-              value.getPrecisionType(), value.getValueMicros());
+          notifyPaidEvent(mBannerViewInternalPtr, value.getCurrencyCode(), value.getPrecisionType(),
+              value.getValueMicros());
         }
       }
     }
@@ -654,6 +641,6 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   /**
    * Native callback to notify the C++ wrapper that a paid event has occurred.
    */
-  public static native void notifyPaidEvent(long nativeInternalPtr, String currencyCode,
-                                            int precisionType, long valueMicros);
+  public static native void notifyPaidEvent(
+      long nativeInternalPtr, String currencyCode, int precisionType, long valueMicros);
 }

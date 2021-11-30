@@ -24,7 +24,6 @@
 #include <functional>
 #endif
 
-
 /// @cond FIREBASE_APP_INTERNAL
 
 /// This file is intended for use with the C# interfaces, to allow registration

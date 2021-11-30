@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 
 /** Fake PhoneAuthProvider */
 public class PhoneAuthProvider {
-
   /** Fake OnVerificationStateChangedCallbacks */
   public abstract static class OnVerificationStateChangedCallbacks {
     public abstract void onVerificationCompleted(PhoneAuthCredential credential);
@@ -41,16 +40,10 @@ public class PhoneAuthProvider {
     return null;
   }
 
-  public static PhoneAuthCredential getCredential(
-      String verificationId, String smsCode) {
+  public static PhoneAuthCredential getCredential(String verificationId, String smsCode) {
     return null;
   }
 
-  public void verifyPhoneNumber(
-      String phoneNumber,
-      long timeout,
-      TimeUnit unit,
-      Activity activity,
-      OnVerificationStateChangedCallbacks callbacks,
-      ForceResendingToken forceResendingToken) {}
+  public void verifyPhoneNumber(String phoneNumber, long timeout, TimeUnit unit, Activity activity,
+      OnVerificationStateChangedCallbacks callbacks, ForceResendingToken forceResendingToken) {}
 }

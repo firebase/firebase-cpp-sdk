@@ -156,11 +156,6 @@ public class JniResultCallback<TResult> {
   }
 
   /** This function is implemented in the App C++ library (util_android.cc). */
-  private native void nativeOnResult(
-      Object result,
-      boolean success,
-      boolean cancelled,
-      String statusString,
-      long callbackFn,
-      long callbackData);
+  private native void nativeOnResult(Object result, boolean success, boolean cancelled,
+      String statusString, long callbackFn, long callbackData);
 }

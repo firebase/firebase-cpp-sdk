@@ -433,6 +433,8 @@ jobs:
         run: |
           cd out-sdk
           find .. -type f -print > src_file_list.txt
+          # Remove intermediate build files (.o and .obj) files to save space.
+          find . -type f -name '*.o' -or -name '*.obj' -print0 | xargs -0 rm -f --
           tar -czhf ../firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz .
 
       - name: Print built libraries
@@ -782,6 +784,7 @@ jobs:
     - name: Use GitHub API to start workflow
       shell: bash
       run: |
+        pip install -r scripts/gha/requirements.txt
         if [[ -z ${USE_EXPANDED_MATRIX} ]]; then
           USE_EXPANDED_MATRIX=0
         fi

@@ -18,7 +18,6 @@ package com.google.firebase.auth;
 
 /** Fake FirebaseAuthUserCollisionException */
 public class FirebaseAuthUserCollisionException extends FirebaseAuthException {
-
   public FirebaseAuthUserCollisionException(String code, String message) {
     super(code, message);
   }
