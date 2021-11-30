@@ -60,9 +60,9 @@ def install_x86_support_libraries(gha_build=False):
   """Install support libraries needed to build x86 on x86_64 hosts.
 
   Args:
-    gha_build: Pass in True if running on a GitHub runner; this will workarounds
-               that might be undesirable on a personal system (e.g. downgrading
-               packages).
+    gha_build: Pass in True if running on a GitHub runner; this will activate
+               workarounds that might be undesirable on a personal system (e.g.
+               downgrading Ubuntu packages).
   """
   if utils.is_linux_os():
     packages = ['gcc-multilib', 'g++-multilib', 'libglib2.0-dev:i386',
