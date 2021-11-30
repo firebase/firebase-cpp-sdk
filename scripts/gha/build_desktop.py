@@ -75,7 +75,7 @@ def install_x86_support_libraries(gha_build=False):
       # to get around this issue. This will presumably be fixed in a future
       # Ubuntu update.
       packages = (['--allow-downgrades'] + packages +
-                  ['libpcre2-8-0=10.34-7', 'libsecret-1-dev=0.20.4-0ubuntu1'])
+                  ['libpcre2-8-0=10.34-7'])
 
     # First check if these packages exist on the machine already
     devnull = open(os.devnull, "w")
@@ -87,6 +87,8 @@ def install_x86_support_libraries(gha_build=False):
       utils.run_command(['dpkg', '--add-architecture', 'i386'], as_root=True, check=True)
       utils.run_command(['apt', 'update'], as_root=True, check=True)
       utils.run_command(['apt', 'install', '-V', '-y'] + packages, as_root=True, check=True)
+      utils.run_command(['apt', 'install', '-f', '-V', '-y', 'libsecret-1-dev'],
+                        as_root=True, check=True)
 
 
 def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, use_openssl=False):
