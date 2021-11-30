@@ -679,6 +679,23 @@ jobject StdVectorToJavaList(JNIEnv* env,
   return java_list;
 }
 
+// Converts a `std::unordered_set<std::string>` to a `java.util.ArrayList<String>`
+// Returns a local ref to a List.
+jobject StdUnorderedSetToJavaList(JNIEnv* env,
+                            const std::unordered_set<std::string>& string_set) {
+  jobject java_list =
+      env->NewObject(array_list::GetClass(),
+                     array_list::GetMethodId(array_list::kConstructor));
+  jmethodID add_method = array_list::GetMethodId(array_list::kAdd);
+  for (auto it = string_set.begin(); it != string_set.end(); ++it) {
+    jstring value = env->NewStringUTF(it->c_str());
+    env->CallBooleanMethod(java_list, add_method, value);
+    CheckAndClearJniExceptions(env);
+    env->DeleteLocalRef(value);
+  }
+  return java_list;
+}
+
 // Converts a `std::map<Variant, Variant>` to a `java.util.Map<Object, Object>`.
 // Returns a local ref to a Map.
 jobject VariantMapToJavaMap(JNIEnv* env,

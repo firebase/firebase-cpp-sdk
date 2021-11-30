@@ -124,6 +124,20 @@ jobject GetJavaAdRequestFromCPPAdRequest(const AdRequest& request,
     env->DeleteLocalRef(content_url);
   }
 
+  // Neighboring Content Urls.
+  if (!request.neighboring_content_urls().empty()) {
+    jobject url_list = util::StdUnorderedSetToJavaList(
+        env, request.neighboring_content_urls());
+    builder = util::ContinueBuilder(
+        env, builder,
+        env->CallObjectMethod(
+            builder,
+            ad_request_builder::GetMethodId(
+                ad_request_builder::kSetNeighboringContentUrls),
+            url_list));
+    env->DeleteLocalRef(url_list);
+  }
+
   // Set the request agent string so requests originating from this library can
   // be tracked and reported on as a group.
   jstring agent_str =

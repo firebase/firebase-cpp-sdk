@@ -164,6 +164,15 @@ NSMutableArray *StringVectorToNSMutableArray(const std::vector<std::string> &vec
   return array;
 }
 
+NSMutableArray *StringUnorderedSetToNSMutableArray(
+    const std::unordered_set<std::string> &set) {
+  NSMutableArray<NSString *> *array = [[NSMutableArray alloc] initWithCapacity:set.size()];
+  for (auto &element : set) {
+    [array addObject:StringToNSString(element)];
+  }
+  return array;
+}
+
 void NSArrayOfNSStringToVectorOfString(NSArray* array, std::vector<std::string>* string_vector) {
   string_vector->reserve(array.count);
   for (id object in array) {

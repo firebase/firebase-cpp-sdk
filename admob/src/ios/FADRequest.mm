@@ -93,6 +93,12 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
     gadRequest.contentURL = util::StringToNSString(adRequest.content_url());
   }
 
+  // Neighboring Content URLs
+  if (!adRequest.neighboring_content_urls().empty()) {
+    gadRequest.neighboringContentURLStrings =
+      util::StringUnorderedSetToNSMutableArray(adRequest.neighboring_content_urls());
+  }
+
   // Set the request agent string so requests originating from this library can
   // be tracked and reported on as a group.
   gadRequest.requestAgent = @(GetRequestAgentString());

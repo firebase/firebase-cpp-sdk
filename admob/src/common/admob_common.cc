@@ -132,10 +132,12 @@ AdRequest::AdRequest() {}
 AdRequest::~AdRequest() {}
 
 AdRequest::AdRequest(const char* content_url) { set_content_url(content_url); }
-void AdRequest::add_extra(const char* ad_network, const char* extra_key,
+
+void AdRequest::add_extra(const char* adapter_class_name, const char* extra_key,
                           const char* extra_value) {
-  if (ad_network != nullptr && extra_key != nullptr && extra_value != nullptr) {
-    extras_[std::string(ad_network)][std::string(extra_key)] =
+  if (adapter_class_name != nullptr && extra_key != nullptr &&
+      extra_value != nullptr) {
+    extras_[std::string(adapter_class_name)][std::string(extra_key)] =
         std::string(extra_value);
   }
 }
@@ -153,6 +155,14 @@ void AdRequest::set_content_url(const char* content_url) {
   std::string url(content_url);
   if (url.size() <= 512) {
     content_url_ = url;
+  }
+}
+
+void AdRequest::add_neighboring_content_urls(
+    const std::vector<std::string>& neighboring_content_urls) {
+  for (auto urls = neighboring_content_urls.begin();
+       urls != neighboring_content_urls.end(); ++urls) {
+    neighboring_content_urls_.insert(*urls);
   }
 }
 
