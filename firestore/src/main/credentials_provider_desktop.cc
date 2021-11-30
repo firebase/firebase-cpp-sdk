@@ -188,11 +188,6 @@ void FirebaseCppCredentialsProvider::GetToken(
   }
 }
 
-void FirebaseCppCredentialsProvider::InvalidateToken() {
-  std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
-  force_refresh_token_ = true;
-}
-
 void FirebaseCppCredentialsProvider::AddAuthStateListener() {
   App& app = contents_->app;
   auto callback = reinterpret_cast<void*>(OnAuthStateChanged);
@@ -234,8 +229,8 @@ void FirebaseCppCredentialsProvider::RequestToken(
   // can fail if there is a token change while the request is outstanding.
   int expected_generation = contents_->token_generation;
 
-  bool force_refresh = force_refresh_token_;
-  force_refresh_token_ = false;
+  bool force_refresh = force_refresh_;
+  force_refresh_ = false;
   auto future = GetAuthTokenAsync(contents_->app, force_refresh);
 
   std::weak_ptr<Contents> weak_contents(contents_);
