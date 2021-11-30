@@ -71,9 +71,9 @@ def install_x86_support_libraries(gha_build=False):
     if gha_build:
       # Workaround for GitHub runners, which have an incompatibility between the
       # 64-bit and 32-bit versions of the Ubuntu package libpcre2-8-0. Downgrade
-      # the installed 64-bit version of the library to get around this
-      # issue. This will presumably be fixed in a future Ubuntu update. (If you
-      # remove it, remove the workaround further down this function as well.)
+      # the installed 64-bit version of the library to get around this issue.
+      # This will presumably be fixed in a future Ubuntu update. (If you remove
+      # it, remove the workaround further down this function as well.)
       packages = ['--allow-downgrades'] + packages + ['libpcre2-8-0=10.34-7']
 
     # First check if these packages exist on the machine already
