@@ -161,15 +161,15 @@ BUILD_CONFIGS = {
 
 TEST_DEVICES = {
   "android_min": {"type": "real", "model":"Nexus10", "version":"19"},
-  "android_target": {"type": "real", "model":"blueline", "version":"28"},
-  "android_latest": {"type": "real", "model":"flame", "version":"29"},
+  "android_target": {"type": "real", "model":"gts4lltevzw", "version":"28"},
+  "android_latest": {"type": "real", "model":"redfin", "version":"30"},
   "emulator_min": {"type": "virtual", "image":"system-images;android-18;google_apis;x86"},
   "emulator_target": {"type": "virtual", "image":"system-images;android-28;google_apis;x86_64"},
   "emulator_latest": {"type": "virtual", "image":"system-images;android-30;google_apis;x86_64"},
   "emulator_32bit": {"type": "virtual", "image":"system-images;android-30;google_apis;x86"},
   "ios_min": {"type": "real", "model":"iphone8", "version":"11.4"},
   "ios_target": {"type": "real", "model":"iphone8plus", "version":"12.0"},
-  "ios_latest": {"type": "real", "model":"iphone11", "version":"13.6"},
+  "ios_latest": {"type": "real", "model":"iphone11pro", "version":"14.7"},
   "simulator_min": {"type": "virtual", "name":"iPhone 6", "version":"11.4"},
   "simulator_target": {"type": "virtual", "name":"iPhone 8", "version":"12.0"},
   "simulator_latest": {"type": "virtual", "name":"iPhone 11", "version":"14.4"},
