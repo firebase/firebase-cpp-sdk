@@ -343,11 +343,6 @@ TEST_F(FirebaseAdMobTest, TestGetAdRequestValues) {
     EXPECT_TRUE(configured_neighboring_content_urls.find(*url_iter) !=
                 configured_neighboring_content_urls.end());
   }
-
-  // Attempt to add duplicate content urls.
-  request.add_neighboring_content_urls(kNeighboringContentURLs);
-  EXPECT_EQ(configured_neighboring_content_urls.size(),
-            kNeighboringContentURLs.size());
 }
 
 // A simple listener to help test changes to a AdViews.
