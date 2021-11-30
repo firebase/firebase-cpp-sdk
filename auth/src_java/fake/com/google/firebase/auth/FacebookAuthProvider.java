@@ -18,7 +18,6 @@ package com.google.firebase.auth;
 
 /** Fake FacebookAuthProvider */
 public final class FacebookAuthProvider {
-
   public static AuthCredential getCredential(String accessToken) {
     return new AuthCredential("facebook.com");
   }

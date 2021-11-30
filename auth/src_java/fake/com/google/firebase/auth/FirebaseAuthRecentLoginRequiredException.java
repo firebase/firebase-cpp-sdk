@@ -18,7 +18,6 @@ package com.google.firebase.auth;
 
 /** Fake FirebaseAuthRecentLoginRequiredException */
 public class FirebaseAuthRecentLoginRequiredException extends FirebaseAuthException {
-
   public FirebaseAuthRecentLoginRequiredException(String code, String message) {
     super(code, message);
   }

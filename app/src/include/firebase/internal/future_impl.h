@@ -27,7 +27,6 @@
 #include <utility>
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
-
 namespace firebase {
 
 class ReferenceCountedFutureImpl;

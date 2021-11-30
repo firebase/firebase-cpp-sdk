@@ -35,53 +35,47 @@ public class TextEntryField {
       final Activity activity, final String title, final String message, final String placeholder) {
     resultText = null;
     // Show the alert dialog on the main thread.
-    activity.runOnUiThread(
-        new Runnable() {
+    activity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        AlertDialog.Builder alertBuilder = new AlertDialog.Builder(activity);
+        alertBuilder.setTitle(title);
+        alertBuilder.setMessage(message);
+
+        // Set up and add the text field.
+        final EditText textField = new EditText(activity);
+        textField.setHint(placeholder);
+        alertBuilder.setView(textField);
+
+        alertBuilder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
           @Override
-          public void run() {
-            AlertDialog.Builder alertBuilder = new AlertDialog.Builder(activity);
-            alertBuilder.setTitle(title);
-            alertBuilder.setMessage(message);
-
-            // Set up and add the text field.
-            final EditText textField = new EditText(activity);
-            textField.setHint(placeholder);
-            alertBuilder.setView(textField);
-
-            alertBuilder.setPositiveButton(
-                "OK",
-                new DialogInterface.OnClickListener() {
-                  @Override
-                  public void onClick(DialogInterface dialog, int whichButton) {
-                    synchronized (lock) {
-                      resultText = textField.getText().toString();
-                    }
-                  }
-                });
-
-            alertBuilder.setNegativeButton(
-                "Cancel",
-                new DialogInterface.OnClickListener() {
-                  @Override
-                  public void onClick(DialogInterface dialog, int whichButton) {
-                    synchronized (lock) {
-                      resultText = "";
-                    }
-                  }
-                });
-
-            alertBuilder.setOnCancelListener(
-                new DialogInterface.OnCancelListener() {
-                  @Override
-                  public void onCancel(DialogInterface dialog) {
-                    synchronized (lock) {
-                      resultText = "";
-                    }
-                  }
-                });
-            alertBuilder.show();
+          public void onClick(DialogInterface dialog, int whichButton) {
+            synchronized (lock) {
+              resultText = textField.getText().toString();
+            }
           }
         });
+
+        alertBuilder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+          @Override
+          public void onClick(DialogInterface dialog, int whichButton) {
+            synchronized (lock) {
+              resultText = "";
+            }
+          }
+        });
+
+        alertBuilder.setOnCancelListener(new DialogInterface.OnCancelListener() {
+          @Override
+          public void onCancel(DialogInterface dialog) {
+            synchronized (lock) {
+              resultText = "";
+            }
+          }
+        });
+        alertBuilder.show();
+      }
+    });
 
     // In our original thread, wait for the dialog to finish, then return its result.
     while (true) {

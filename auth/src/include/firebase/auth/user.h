@@ -20,11 +20,11 @@
 #include <string>
 #include <vector>
 
+#include "firebase/auth/credential.h"
+#include "firebase/auth/types.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 #include "firebase/variant.h"
-#include "firebase/auth/credential.h"
-#include "firebase/auth/types.h"
 
 namespace firebase {
 namespace auth {
