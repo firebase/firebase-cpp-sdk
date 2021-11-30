@@ -234,7 +234,7 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
   #     "testapps": [testapp],
   #     "errors": {testapp:{"logs": [error_log], "ftl_links": [ftl_link], "raw_result_links": [raw_result_link]}},
   #     "failures": {testapp:{"logs": [error_log], "ftl_links": [ftl_link], "raw_result_links": [raw_result_link],
-  #                           "failed_tests": {falied_test: test_log}}},
+  #                           "failed_tests": {failed_test: test_log}}},
   #     "flakiness": {testapp:{"logs": [error_log], "ftl_links": [ftl_link], "raw_result_links": [raw_result_link],
   #                           "flaky_tests": {flaky_test: test_log}}}}
   summary_json = {}
