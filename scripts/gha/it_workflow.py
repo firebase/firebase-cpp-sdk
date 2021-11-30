@@ -146,10 +146,10 @@ def test_progress(token, issue_number, actor, commit, run_id):
     return
   else:
     if success_or_only_flakiness:
-      # all faliures/errors are due to flakiness (succeeded after retry)
+      # all failures/errors are due to flakiness (succeeded after retry)
       title = _COMMENT_TITLE_PROGESS_FLAKY
     else:
-      # faliures/errors still exist after retry
+      # failures/errors still exist after retry
       title = _COMMENT_TITLE_PROGESS_FAIL
       github.add_label(token, issue_number, _LABEL_FAILED)
     comment = (title +
@@ -174,11 +174,11 @@ def test_end(token, issue_number, actor, commit, run_id, new_token):
     _update_comment(token, issue_number, comment)
   else:
     if success_or_only_flakiness:
-      # all faliures/errors are due to flakiness (succeeded after retry)
+      # all failures/errors are due to flakiness (succeeded after retry)
       title = _COMMENT_TITLE_FLAKY
       github.add_label(token, issue_number, _LABEL_SUCCEED)
     else:
-      # faliures/errors still exist after retry
+      # failures/errors still exist after retry
       title = _COMMENT_TITLE_FAIL
       github.add_label(token, issue_number, _LABEL_FAILED)
     comment = (title +
@@ -206,10 +206,10 @@ def test_report(token, actor, commit, run_id, build_against):
     comment = title + _get_description(actor, commit, run_id)
   else:
     if success_or_only_flakiness:
-      # all faliures/errors are due to flakiness (succeeded after retry)
+      # all failures/errors are due to flakiness (succeeded after retry)
       title = _COMMENT_TITLE_FLAKY_REPO if build_against==_BUILD_AGAINST_REPO else _COMMENT_TITLE_FLAKY_SDK
     else:
-      # faliures/errors still exist after retry
+      # failures/errors still exist after retry
       title = _COMMENT_TITLE_FAIL_REPO if build_against==_BUILD_AGAINST_REPO else _COMMENT_TITLE_FAIL_SDK
     comment = title + _get_description(actor, commit, run_id) + log_summary + _COMMENT_FLAKY_TRACKER
   
