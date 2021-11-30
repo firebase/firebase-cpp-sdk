@@ -57,7 +57,13 @@ def append_line_to_file(path, line):
 
 
 def install_x86_support_libraries(gha_build=False):
-  """Install support libraries needed to build x86 on x86_64 hosts."""
+  """Install support libraries needed to build x86 on x86_64 hosts.
+
+  Args:
+    gha_build: Pass in True if running on a GitHub runner; this will workarounds
+               that might be undesirable on a personal system (e.g. downgrading
+               packages).
+  """
   if utils.is_linux_os():
     packages = ['gcc-multilib', 'g++-multilib', 'libglib2.0-dev:i386',
                 'libsecret-1-dev:i386', 'libpthread-stubs0-dev:i386',
@@ -301,7 +307,7 @@ def parse_cmdline_args():
   parser.add_argument('--target', nargs='+', help='A list of CMake build targets (eg: firebase_app firebase_auth)')
   parser.add_argument('--target_format', default=None, help='(Mac only) whether to output frameworks (default) or libraries.')
   parser.add_argument('--use_openssl', action='store_true', default=None, help='Use openssl for build instead of boringssl')
-  parser.add_argument('--gha_build', action='store_true', default=None, help='Set to true when building on GitHub, for metric tracking purposes (also changes some prereq installing behavior)')
+  parser.add_argument('--gha_build', action='store_true', default=None, help='Set to true when building on GitHub, for metric tracking purposes (also changes some prerequisite installation behavior).')
   args = parser.parse_args()
   return args
 
