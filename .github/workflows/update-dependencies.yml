@@ -90,7 +90,7 @@ jobs:
               # header from there.
               podtmp="$(mktemp -d)"
               cd "${podtmp}"
-              # Generate a CocoaPod for Firebase/Analytics. Use the Specs.git
+              # Generate a Podfile for Firebase/Analytics. Use the Specs.git
               # source to avoid any propagation delays due to CocoaPods mirror.
               echo "source 'https://github.com/CocoaPods/Specs.git'" > Podfile
               echo "platform :ios, '14.0'" >> Podfile
