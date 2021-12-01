@@ -78,6 +78,23 @@ jobs:
             # iOS: Update Firestore external version to match Firestore Cocoapod version.
             firestore_version=$(grep "pod 'Firebase/Firestore'" ios_pod/Podfile | sed "s/.*'\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)'.*/\1/")
             sed -i~ "s/^set(version [^)]*)/set(version CocoaPods-${firestore_version})/i" cmake/external/firestore.cmake
+            # iOS: Update Analytics header files, used for generating constants.
+            analytics_version=$(grep "pod 'Firebase/Analytics ios_pod/Podfile | sed "s/.*'\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)'.*/\1/")
+            # Download the Firebase Analytics cocoapod.
+            podtmp=$(mktemp -d)
+            cd ${podtmp}
+            echo "platform :ios, '14.0'" > Podfile
+            echo "pod 'Firebase/Analytics', '${analytics_version}'" >> Podfile
+            pod repo update
+            pod install || true # ignore error since there is no Xcode project
+            declare -a header_dirs
+            header_dirs=(Pods/FirebaseAnalytics/Frameworks/FirebaseAnalytics.xcframework/*/FirebaseAnalytics.framework/Headers)
+            header_dir="${header_dirs[0]}"  # headers should all be the same
+            cd -
+            for ios_header in FIREventNames.h FIRParameterNames.h FIRUserPropertyNames.h; do
+              cp -vf ${podtmp}/${header_dir}/${ios_header} analytics/ios_headers/${ios_header}
+            done
+            rm -rf ${podtmp}
           elif [[ ${{ github.event.inputs.updateAndroid }} -eq 1 ]]; then
             # Update Android only
             echo "Updating Android dependencies only"
