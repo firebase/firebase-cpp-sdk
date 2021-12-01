@@ -5,12 +5,12 @@ platform :ios, '10.0'
 
 target 'integration_test' do
   platform :ios, '10.0'
-  pod 'Firebase/Analytics', '8.9.1'
+  pod 'Firebase/Analytics', '8.10.0'
 end
 
 target 'integration_test_tvos' do
   platform :tvos, '12.0'
-  pod 'Firebase/Analytics', '8.9.1'
+  pod 'Firebase/Analytics', '8.10.0'
 end
 
 post_install do |installer|
