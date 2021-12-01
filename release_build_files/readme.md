@@ -567,7 +567,7 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Next Release
+### 8.8.0
 -   Changes
     -   General: Fixed a data race that could manifest as null pointer
         dereference in `FutureBase::Release()`.
