@@ -580,6 +580,9 @@ code.
         ([#745](https://github.com/firebase/firebase-cpp-sdk/pull/745))
     -   Messaging (Android): Fixed crash during initialization.
         ([#760](https://github.com/firebase/firebase-cpp-sdk/pull/760))
+    - Remote config (Desktop): Fixed cache expiration time value used by
+      FetchAndActivate().
+      ([#767](https://github.com/firebase/firebase-cpp-sdk/pull/767))
 
 
 ### 8.7.0
