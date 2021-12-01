@@ -394,7 +394,7 @@ jobs:
     steps:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
-        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Contents/Developer
+        run: sudo xcode-select -s /Applications/Xcode_${{ needs.check_and_prepare.outputs.xcode_version }}.app/Contents/Developer
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
@@ -518,7 +518,7 @@ jobs:
     steps:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
-        run: sudo xcode-select -s /Applications/Xcode_${{ needs.check_and_prepare.xcode_version }}.app/Contents/Developer
+        run: sudo xcode-select -s /Applications/Xcode_${{ needs.check_and_prepare.outputs.xcode_version }}.app/Contents/Developer
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
