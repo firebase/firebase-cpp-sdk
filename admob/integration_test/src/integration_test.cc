@@ -280,6 +280,14 @@ TEST_F(FirebaseAdMobTest, TestInitializationStatus) {
       << "Expected adapter class '" << kAdMobClassName << "' is not loaded.";
 }
 
+TEST_F(FirebaseAdMobTest, TestDisableSDKCrashReporting) {
+  firebase::admob::DisableSDKCrashReporting();
+}
+
+TEST_F(FirebaseAdMobTest, TestDisableMediationInitialization) {
+  firebase::admob::DisableMediationInitialization();
+}
+
 TEST_F(FirebaseAdMobTest, TestGetAdRequest) { GetAdRequest(); }
 
 TEST_F(FirebaseAdMobTest, TestGetAdRequestValues) {

@@ -117,6 +117,24 @@ Future<AdapterInitializationStatus> InitializeLastResult();
 /// check which adapters have been initialized.
 AdapterInitializationStatus GetInitializationStatus();
 
+/// Disables automated SDK crash reporting on iOS. If not called, the SDK
+/// records the original exception handler if available and registers a new
+/// exception handler. The new exception handler only reports SDK related
+/// exceptions and calls the recorded original exception handler.
+///
+/// This method has no effect on Android.
+void DisableSDKCrashReporting();
+
+/// Disables mediation adapter initialization on iOS during initialization of
+/// the AdMob SDK. Calling this method may negatively impact your ad
+/// performance and should only be called if you will not use AdMob SDK
+/// controlled mediation during this app session. This method must be called
+/// before initializing the AdMob SDK or loading ads and has no effect once the
+/// SDK has been initialized.
+///
+/// This method has no effect on Android.
+void DisableMediationInitialization();
+
 /// Sets the global @ref RequestConfiguration that will be used for
 /// every @ref AdRequest during the app's session.
 ///

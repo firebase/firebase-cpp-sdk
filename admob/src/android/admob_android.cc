@@ -374,6 +374,10 @@ AdapterInitializationStatus GetInitializationStatus() {
   }
 }
 
+void DisableSDKCrashReporting() {}
+
+void DisableMediationInitialization() {}
+
 void SetRequestConfiguration(
     const RequestConfiguration& request_configuration) {
   JNIEnv* env = ::firebase::admob::GetJNI();

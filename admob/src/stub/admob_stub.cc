@@ -100,6 +100,10 @@ AdapterInitializationStatus GetInitializationStatus() {
   }
 }
 
+void DisableSDKCrashReporting() {}
+
+void DisableMediationInitialization() {}
+
 bool IsInitialized() { return g_initialized; }
 
 void SetRequestConfiguration(
