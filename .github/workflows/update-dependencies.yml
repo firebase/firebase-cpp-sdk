@@ -80,21 +80,33 @@ jobs:
             sed -i~ "s/^set(version [^)]*)/set(version CocoaPods-${firestore_version})/i" cmake/external/firestore.cmake
             # iOS: Update Analytics header files, used for generating constants.
             analytics_version=$(grep "pod 'Firebase/Analytics'" ios_pod/Podfile | sed "s/.*'\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)'.*/\1/")
-            # Download the Firebase Analytics cocoapod.
-            podtmp="$(mktemp -d)"
-            cd "${podtmp}"
-            echo "platform :ios, '14.0'" > Podfile
-            echo "pod 'Firebase/Analytics', '${analytics_version}'" >> Podfile
-            pod repo update
-            pod install || true # ignore error since there is no Xcode project
-            declare -a header_dirs
-            header_dirs=(Pods/FirebaseAnalytics/Frameworks/FirebaseAnalytics.xcframework/*/FirebaseAnalytics.framework/Headers)
-            header_dir="${header_dirs[0]}"  # headers should all be the same
-            cd -
-            for ios_header in FIREventNames.h FIRParameterNames.h FIRUserPropertyNames.h; do
-              cp -vf ${podtmp}/${header_dir}/${ios_header} analytics/ios_headers/${ios_header}
-            done
-            rm -rf ${podtmp}
+            if [[ "$(uname)" == "Darwin"* ]]; then
+              # Unfortunately we can't just download these headers from GitHub, as
+              # Analytics is closed-source. If it becomes open-source, we could just
+              # download the header files from the iOS SDK's release branch. So instead,
+              # download the Firebase Analytics cocoapod (via a stub project) and get the
+              # header from there.
+              podtmp="$(mktemp -d)"
+              cd "${podtmp}"
+              echo "platform :ios, '14.0'" > Podfile
+              echo "pod 'Firebase/Analytics', '${analytics_version}'" >> Podfile
+              pod repo update
+              pod install || true # ignore error since there is no Xcode project
+              declare -a header_dirs
+              # Get all of the framework header directories from the xcframework.
+              header_dirs=(Pods/FirebaseAnalytics/Frameworks/FirebaseAnalytics.xcframework/*/FirebaseAnalytics.framework/Headers)
+              # Just use the first directory found, the headers should be the same across
+              # all of the frameworks.
+              header_dir="${header_dirs[0]}"
+              cd -
+              cd analytics/ios_headers
+              for ios_header in *.h; do
+                # Each file in this directory matches a file in the Analytics iOS SDK.
+                cp -vf "${podtmp}/${header_dir}/${ios_header}" .
+              done
+              cd -
+              rm -rf "${podtmp}"
+            fi
           elif [[ ${{ github.event.inputs.updateAndroid }} -eq 1 ]]; then
             # Update Android only
             echo "Updating Android dependencies only"
