@@ -581,7 +581,7 @@ code.
     -   Messaging (Android): Fixed crash during initialization.
         ([#760](https://github.com/firebase/firebase-cpp-sdk/pull/760))
     -   General (iOS): iOS SDKs are now built using Xcode 12.4.
-    -   General (Desktop): MacOS SDKs are now built using Xcode 12.4.
+    -   General (Desktop): macOS SDKs are now built using Xcode 12.4.
 
 
 ### 8.7.0
