@@ -87,7 +87,7 @@ jobs:
               # Analytics is closed-source. If it becomes open-source, we could just
               # download the header files from the iOS SDK's release branch. So instead,
               # download the Firebase Analytics cocoapod (via a stub project) and get the
-              # header from there.
+              # header from there. This will only work on macOS.
               podtmp="$(mktemp -d)"
               cd "${podtmp}"
               # Generate a Podfile for Firebase/Analytics. Use the Specs.git
