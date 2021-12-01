@@ -105,6 +105,10 @@ jobs:
               for ios_header in *.h; do
                 # Each file in this directory matches a file in the Analytics iOS SDK.
                 cp -vf "${podtmp}/${header_dir}/${ios_header}" .
+                # Add a note to each file about its source.
+                sed -i~ 's|^/// @file|// Copied from Firebase Analytics iOS SDK '${analytics_version}'.\n\n/// @file|' "${ios_header}"
+                rm -f "${ios_header}~" # remove backup file that sed generated
+                ../../scripts/gha/format_code.py --f "${ios_header}"
               done
               cd -
               rm -rf "${podtmp}"
