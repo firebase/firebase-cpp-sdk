@@ -79,10 +79,10 @@ jobs:
             firestore_version=$(grep "pod 'Firebase/Firestore'" ios_pod/Podfile | sed "s/.*'\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)'.*/\1/")
             sed -i~ "s/^set(version [^)]*)/set(version CocoaPods-${firestore_version})/i" cmake/external/firestore.cmake
             # iOS: Update Analytics header files, used for generating constants.
-            analytics_version=$(grep "pod 'Firebase/Analytics ios_pod/Podfile | sed "s/.*'\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)'.*/\1/")
+            analytics_version=$(grep "pod 'Firebase/Analytics'" ios_pod/Podfile | sed "s/.*'\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)'.*/\1/")
             # Download the Firebase Analytics cocoapod.
-            podtmp=$(mktemp -d)
-            cd ${podtmp}
+            podtmp="$(mktemp -d)"
+            cd "${podtmp}"
             echo "platform :ios, '14.0'" > Podfile
             echo "pod 'Firebase/Analytics', '${analytics_version}'" >> Podfile
             pod repo update
