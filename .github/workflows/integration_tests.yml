@@ -184,6 +184,7 @@ jobs:
         echo "::set-output name=mobile_test_on::${mobile_test_on}"
         echo "::set-output name=android_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k android_device -t ${mobile_test_on} )"
         echo "::set-output name=xcode_version::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k xcode_version -t ${mobile_test_on} )"
+        echo "xcode version: ${xcode_version}"
         echo "::set-output name=ios_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k ios_device -t ${mobile_test_on} )"
         echo "::set-output name=tvos_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k tvos_device -t ${mobile_test_on} )"
     - name: Update PR label and comment
