@@ -869,7 +869,8 @@ extern "C" void FirebaseMessagingHookAppDelegate(Class app_delegate) {
 // http://www.opensource.apple.com/source/objc4/objc4-274/runtime/objc-runtime.m)
 @implementation UIApplication (FIRFCM)
 + (void)load {
-  ::firebase::LogInfo("FCM: Loading UIApplication FIRFCM category");
+  // C++ constructors may not be called yet so call NSLog rather than LogInfo.
+  NSLog(@"FCM: Loading UIApplication FIRFCM category");
   ::firebase::util::ForEachAppDelegateClass(^(Class clazz) {
     FirebaseMessagingHookAppDelegate(clazz);
   });

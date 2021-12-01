@@ -20,7 +20,6 @@ package com.google.firebase.admob.internal.cpp;
  * Helper class containing constants that are shared across the various AdMob ad formats.
  */
 public final class ConstantsHelper {
-
   /**
    * Error codes used in completing futures. These match the AdMobError enumeration in the C++ API.
    */

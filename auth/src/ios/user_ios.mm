@@ -33,33 +33,19 @@ class IOSWrappedUserInfo : public UserInfoInterface {
  public:
   explicit IOSWrappedUserInfo(id<FIRUserInfo> user_info) : user_info_(user_info) {}
 
-  virtual ~IOSWrappedUserInfo() {
-    user_info_ = nil;
-  }
+  virtual ~IOSWrappedUserInfo() { user_info_ = nil; }
 
-  virtual std::string uid() const {
-    return StringFromNSString(user_info_.uid);
-  }
+  virtual std::string uid() const { return StringFromNSString(user_info_.uid); }
 
-  virtual std::string email() const {
-    return StringFromNSString(user_info_.email);
-  }
+  virtual std::string email() const { return StringFromNSString(user_info_.email); }
 
-  virtual std::string display_name() const {
-    return StringFromNSString(user_info_.displayName);
-  }
+  virtual std::string display_name() const { return StringFromNSString(user_info_.displayName); }
 
-  virtual std::string phone_number() const {
-    return StringFromNSString(user_info_.phoneNumber);
-  }
+  virtual std::string phone_number() const { return StringFromNSString(user_info_.phoneNumber); }
 
-  virtual std::string photo_url() const {
-    return StringFromNSUrl(user_info_.photoURL);
-  }
+  virtual std::string photo_url() const { return StringFromNSUrl(user_info_.photoURL); }
 
-  virtual std::string provider_id() const {
-    return StringFromNSString(user_info_.providerID);
-  }
+  virtual std::string provider_id() const { return StringFromNSString(user_info_.providerID); }
 
  private:
   /// Pointer to the main class.
@@ -78,21 +64,21 @@ Future<std::string> User::GetToken(bool force_refresh) {
   if (!ValidUser(auth_data_)) {
     return Future<std::string>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<std::string>(kUserFn_GetToken);
   [UserImpl(auth_data_)
       getIDTokenForcingRefresh:force_refresh
                     completion:^(NSString *_Nullable token, NSError *_Nullable error) {
-                        futures.Complete(
-                            handle, AuthErrorFromNSError(error),
-                            [error.localizedDescription UTF8String], [token](std::string* data) {
-                              data->assign(token == nullptr ? "" : [token UTF8String]);
-                            });
-                        }];
+                      futures.Complete(handle, AuthErrorFromNSError(error),
+                                       [error.localizedDescription UTF8String],
+                                       [token](std::string *data) {
+                                         data->assign(token == nullptr ? "" : [token UTF8String]);
+                                       });
+                    }];
   return MakeFuture(&futures, handle);
 }
 
-const std::vector<UserInfoInterface*>& User::provider_data() const {
+const std::vector<UserInfoInterface *> &User::provider_data() const {
   ClearUserInfos(auth_data_);
 
   if (ValidUser(auth_data_)) {
@@ -113,13 +99,13 @@ Future<void> User::UpdateEmail(const char *email) {
   if (!ValidUser(auth_data_)) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_UpdateEmail);
   [UserImpl(auth_data_) updateEmail:@(email)
                          completion:^(NSError *_Nullable error) {
-                             futures.Complete(handle, AuthErrorFromNSError(error),
-                                              [error.localizedDescription UTF8String]);
-                           }];
+                           futures.Complete(handle, AuthErrorFromNSError(error),
+                                            [error.localizedDescription UTF8String]);
+                         }];
   return MakeFuture(&futures, handle);
 }
 
@@ -127,22 +113,21 @@ Future<void> User::UpdatePassword(const char *password) {
   if (!ValidUser(auth_data_)) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_UpdatePassword);
-  [UserImpl(auth_data_)
-      updatePassword:@(password)
-          completion:^(NSError *_Nullable error) {
-              futures.Complete(handle, AuthErrorFromNSError(error),
-                               [error.localizedDescription UTF8String]);
-            }];
+  [UserImpl(auth_data_) updatePassword:@(password)
+                            completion:^(NSError *_Nullable error) {
+                              futures.Complete(handle, AuthErrorFromNSError(error),
+                                               [error.localizedDescription UTF8String]);
+                            }];
   return MakeFuture(&futures, handle);
 }
 
-Future<void> User::UpdateUserProfile(const UserProfile& profile) {
+Future<void> User::UpdateUserProfile(const UserProfile &profile) {
   if (!ValidUser(auth_data_)) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_UpdateUserProfile);
   // Create and populate the change request.
   FIRUserProfileChangeRequest *request = [UserImpl(auth_data_) profileChangeRequest];
@@ -151,15 +136,15 @@ Future<void> User::UpdateUserProfile(const UserProfile& profile) {
   }
   if (profile.photo_url != nullptr) {
     NSString *photo_url_string = @(profile.photo_url);
-    request.photoURL = [NSURL URLWithString:[photo_url_string
-                            stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+    request.photoURL =
+        [NSURL URLWithString:[photo_url_string
+                                 stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
   }
 
   // Execute the change request.
   [request commitChangesWithCompletion:^(NSError *_Nullable error) {
-                             futures.Complete(handle, AuthErrorFromNSError(error),
-                                              [error.localizedDescription UTF8String]);
-                           }];
+    futures.Complete(handle, AuthErrorFromNSError(error), [error.localizedDescription UTF8String]);
+  }];
   return MakeFuture(&futures, handle);
 }
 
@@ -167,21 +152,20 @@ Future<void> User::SendEmailVerification() {
   if (!ValidUser(auth_data_)) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_SendEmailVerification);
   [UserImpl(auth_data_) sendEmailVerificationWithCompletion:^(NSError *_Nullable error) {
-    futures.Complete(handle, AuthErrorFromNSError(error),
-                     [error.localizedDescription UTF8String]);
+    futures.Complete(handle, AuthErrorFromNSError(error), [error.localizedDescription UTF8String]);
   }];
   return MakeFuture(&futures, handle);
 }
 
-Future<User*> User::LinkWithCredential(const Credential &credential) {
+Future<User *> User::LinkWithCredential(const Credential &credential) {
   if (!ValidUser(auth_data_)) {
-    return Future<User*>();
+    return Future<User *>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<User*>(kUserFn_LinkWithCredential);
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  const auto handle = futures.SafeAlloc<User *>(kUserFn_LinkWithCredential);
   [UserImpl(auth_data_)
       linkWithCredential:CredentialFromImpl(credential.impl_)
               completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
@@ -194,61 +178,59 @@ Future<SignInResult> User::LinkAndRetrieveDataWithCredential(const Credential &c
   if (!ValidUser(auth_data_)) {
     return Future<SignInResult>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = auth_data_->future_impl.SafeAlloc<SignInResult>(
-    kUserFn_LinkAndRetrieveDataWithCredential, SignInResult());
+      kUserFn_LinkAndRetrieveDataWithCredential, SignInResult());
   [UserImpl(auth_data_)
       linkWithCredential:CredentialFromImpl(credential.impl_)
-              completion:^(FIRAuthDataResult *_Nullable auth_result,
-                           NSError *_Nullable error) {
-      SignInResultCallback(auth_result, error, handle, auth_data_);
-    }];
+              completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
+                SignInResultCallback(auth_result, error, handle, auth_data_);
+              }];
   return MakeFuture(&futures, handle);
 }
 
-Future<SignInResult> User::LinkWithProvider(FederatedAuthProvider* provider) const {
+Future<SignInResult> User::LinkWithProvider(FederatedAuthProvider *provider) const {
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
   return provider->Link(auth_data_);
 }
 
-Future<User*> User::Unlink(const char *provider) {
+Future<User *> User::Unlink(const char *provider) {
   if (!ValidUser(auth_data_)) {
-    return Future<User*>();
+    return Future<User *>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<User*>(kUserFn_Unlink);
-  [UserImpl(auth_data_)
-      unlinkFromProvider:@(provider)
-              completion:^(FIRUser *_Nullable user, NSError *_Nullable error) {
-                  SignInCallback(user, error, handle, auth_data_);
-                }];
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  const auto handle = futures.SafeAlloc<User *>(kUserFn_Unlink);
+  [UserImpl(auth_data_) unlinkFromProvider:@(provider)
+                                completion:^(FIRUser *_Nullable user, NSError *_Nullable error) {
+                                  SignInCallback(user, error, handle, auth_data_);
+                                }];
   return MakeFuture(&futures, handle);
 }
 
-Future<User*> User::UpdatePhoneNumberCredential(const Credential& credential) {
+Future<User *> User::UpdatePhoneNumberCredential(const Credential &credential) {
   if (!ValidUser(auth_data_)) {
-    return Future<User*>();
+    return Future<User *>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<User*>(kUserFn_UpdatePhoneNumberCredential);
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  const auto handle = futures.SafeAlloc<User *>(kUserFn_UpdatePhoneNumberCredential);
 
-  #if FIREBASE_PLATFORM_IOS
+#if FIREBASE_PLATFORM_IOS
   FIRAuthCredential *objc_credential = CredentialFromImpl(credential.impl_);
   if ([objc_credential isKindOfClass:[FIRPhoneAuthCredential class]]) {
     [UserImpl(auth_data_)
-         updatePhoneNumberCredential:(FIRPhoneAuthCredential*)objc_credential
-                          completion:^(NSError *_Nullable error) {
-                              futures.Complete(handle, AuthErrorFromNSError(error),
-                                               [error.localizedDescription UTF8String]);
-                            }];
+        updatePhoneNumberCredential:(FIRPhoneAuthCredential *)objc_credential
+                         completion:^(NSError *_Nullable error) {
+                           futures.Complete(handle, AuthErrorFromNSError(error),
+                                            [error.localizedDescription UTF8String]);
+                         }];
   } else {
     futures.Complete(handle, kAuthErrorInvalidCredential, kInvalidCredentialMessage);
   }
 
-  #else // non iOS Apple platforms (eg: tvOS).
+#else   // non iOS Apple platforms (eg: tvOS).
   futures.Complete(handle, kAuthErrorApiNotAvailable,
                    "Phone Auth is not supported on non-iOS apple platforms.");
-  #endif // FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_IOS
 
   return MakeFuture(&futures, handle);
 }
@@ -257,21 +239,20 @@ Future<void> User::Reload() {
   if (!ValidUser(auth_data_)) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_Reload);
 
   [UserImpl(auth_data_) reloadWithCompletion:^(NSError *_Nullable error) {
-    futures.Complete(handle, AuthErrorFromNSError(error),
-                     [error.localizedDescription UTF8String]);
+    futures.Complete(handle, AuthErrorFromNSError(error), [error.localizedDescription UTF8String]);
   }];
   return MakeFuture(&futures, handle);
 }
 
-Future<void> User::Reauthenticate(const Credential& credential) {
+Future<void> User::Reauthenticate(const Credential &credential) {
   if (!ValidUser(auth_data_)) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_Reauthenticate);
 
   [UserImpl(auth_data_)
@@ -284,11 +265,11 @@ Future<void> User::Reauthenticate(const Credential& credential) {
   return MakeFuture(&futures, handle);
 }
 
-Future<SignInResult> User::ReauthenticateAndRetrieveData(const Credential& credential) {
+Future<SignInResult> User::ReauthenticateAndRetrieveData(const Credential &credential) {
   if (!ValidUser(auth_data_)) {
     return Future<SignInResult>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = auth_data_->future_impl.SafeAlloc<SignInResult>(
       kUserFn_ReauthenticateAndRetrieveData, SignInResult());
 
@@ -296,12 +277,12 @@ Future<SignInResult> User::ReauthenticateAndRetrieveData(const Credential& crede
       reauthenticateWithCredential:CredentialFromImpl(credential.impl_)
                         completion:^(FIRAuthDataResult *_Nullable auth_result,
                                      NSError *_Nullable error) {
-      SignInResultCallback(auth_result, error, handle, auth_data_);
-    }];
+                          SignInResultCallback(auth_result, error, handle, auth_data_);
+                        }];
   return MakeFuture(&futures, handle);
 }
 
-Future<SignInResult> User::ReauthenticateWithProvider(FederatedAuthProvider* provider) const {
+Future<SignInResult> User::ReauthenticateWithProvider(FederatedAuthProvider *provider) const {
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
   return provider->Reauthenticate(auth_data_);
 }
@@ -310,7 +291,7 @@ Future<void> User::Delete() {
   if (!ValidUser(auth_data_)) {
     return Future<void>();
   }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_Delete);
 
   [UserImpl(auth_data_) deleteWithCompletion:^(NSError *_Nullable error) {

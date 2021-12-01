@@ -52,11 +52,11 @@ public class JniAuthPhoneListener extends OnVerificationStateChangedCallbacks {
     synchronized (lock) {
       if (cListener != CPP_NULLPTR) {
         AuthCommon.safeRunNativeMethod(new Runnable() {
-            @Override
-            public void run() {
-              nativeOnVerificationCompleted(cListener, credential);
-            }
-          });
+          @Override
+          public void run() {
+            nativeOnVerificationCompleted(cListener, credential);
+          }
+        });
       }
     }
   }
@@ -66,11 +66,11 @@ public class JniAuthPhoneListener extends OnVerificationStateChangedCallbacks {
     synchronized (lock) {
       if (cListener != CPP_NULLPTR) {
         AuthCommon.safeRunNativeMethod(new Runnable() {
-            @Override
-            public void run() {
-              nativeOnVerificationFailed(cListener, exception.getMessage());
-            }
-          });
+          @Override
+          public void run() {
+            nativeOnVerificationFailed(cListener, exception.getMessage());
+          }
+        });
       }
     }
   }
@@ -80,11 +80,11 @@ public class JniAuthPhoneListener extends OnVerificationStateChangedCallbacks {
     synchronized (lock) {
       if (cListener != CPP_NULLPTR) {
         AuthCommon.safeRunNativeMethod(new Runnable() {
-            @Override
-            public void run() {
-              nativeOnCodeSent(cListener, verificationId, token);
-            }
-          });
+          @Override
+          public void run() {
+            nativeOnCodeSent(cListener, verificationId, token);
+          }
+        });
       }
     }
   }
@@ -94,11 +94,11 @@ public class JniAuthPhoneListener extends OnVerificationStateChangedCallbacks {
     synchronized (lock) {
       if (cListener != CPP_NULLPTR) {
         AuthCommon.safeRunNativeMethod(new Runnable() {
-            @Override
-            public void run() {
-              nativeOnCodeAutoRetrievalTimeOut(cListener, verificationId);
-            }
-          });
+          @Override
+          public void run() {
+            nativeOnCodeAutoRetrievalTimeOut(cListener, verificationId);
+          }
+        });
       }
     }
   }
@@ -106,10 +106,9 @@ public class JniAuthPhoneListener extends OnVerificationStateChangedCallbacks {
   /**
    * This function is implemented in the Auth C++ library (credential_android.cc).
    */
-  private native void nativeOnVerificationCompleted(long cListener,
-                                                    PhoneAuthCredential credential);
+  private native void nativeOnVerificationCompleted(long cListener, PhoneAuthCredential credential);
   private native void nativeOnVerificationFailed(long cListener, String exceptionMessage);
-  private native void nativeOnCodeSent(long cListener, String verificationId,
-                                       ForceResendingToken forceResendingToken);
+  private native void nativeOnCodeSent(
+      long cListener, String verificationId, ForceResendingToken forceResendingToken);
   private native void nativeOnCodeAutoRetrievalTimeOut(long cListener, String verificationId);
 }

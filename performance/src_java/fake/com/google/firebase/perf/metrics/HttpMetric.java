@@ -1,7 +1,7 @@
 package com.google.firebase.perf.metrics;
 
-import androidx.annotation.Nullable;
 import android.util.Log;
+import androidx.annotation.Nullable;
 import com.google.apps.tiktok.testing.errorprone.SuppressViolation;
 import com.google.firebase.perf.FirebasePerformance.HttpMethod;
 import com.google.firebase.perf.FirebasePerformanceAttributable;
@@ -15,7 +15,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * request/response. This class is not thread safe.
  */
 public class HttpMetric implements FirebasePerformanceAttributable {
-
   private static final String LOG_TAG = "FirebasePerformanceFake";
 
   private final Map<String, String> attributes;

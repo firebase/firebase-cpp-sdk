@@ -24,7 +24,7 @@ import com.google.android.gms.ads.initialization.OnInitializationCompleteListene
 /**
  * Helper class for initializing the AdMob SDK.
  */
-public final class AdMobInitializationHelper { 
+public final class AdMobInitializationHelper {
   public static void initializeAdMob(Context context) {
     MobileAds.initialize(context, new OnInitializationCompleteListener() {
       @Override
@@ -32,7 +32,8 @@ public final class AdMobInitializationHelper {
         initializationCompleteCallback(initializationStatus);
       }
     });
-  }      
-      
-  public static native void initializationCompleteCallback(InitializationStatus initializationStatus);
+  }
+
+  public static native void initializationCompleteCallback(
+      InitializationStatus initializationStatus);
 }

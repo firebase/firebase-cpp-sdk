@@ -21,6 +21,7 @@ This script handles GitHub Issue, Pull Request, Comment, Label and Artifact
 import requests
 import json
 import shutil
+import re
 
 from absl import logging
 from requests.adapters import HTTPAdapter
@@ -35,8 +36,23 @@ OWNER = 'firebase'
 REPO = 'firebase-cpp-sdk'
 
 BASE_URL = 'https://api.github.com'
-FIREBASE_URL = '%s/repos/%s/%s' % (BASE_URL, OWNER, REPO)
+GITHUB_API_URL = '%s/repos/%s/%s' % (BASE_URL, OWNER, REPO)
 logging.set_verbosity(logging.INFO)
+
+
+def set_repo_url(repo):  
+  match = re.match(r'https://github\.com/([^/]+)/([^/.]+)', repo)
+  if not match:
+    logging.info('Error, only pattern https://github.com/\{repo_owner\}/\{repo_name\} are allowed.')
+    return False
+
+  (repo_owner, repo_name) = match.groups()
+  global OWNER, REPO, GITHUB_API_URL
+  OWNER = repo_owner
+  REPO = repo_name
+  GITHUB_API_URL = '%s/repos/%s/%s' % (BASE_URL, OWNER, REPO)
+  return True
+
 
 def requests_retry_session(retries=RETRIES,
                            backoff_factor=BACKOFF,
@@ -54,7 +70,7 @@ def requests_retry_session(retries=RETRIES,
 
 def create_issue(token, title, label, body):
   """Create an issue: https://docs.github.com/en/rest/reference/issues#create-an-issue"""
-  url = f'{FIREBASE_URL}/issues'
+  url = f'{GITHUB_API_URL}/issues'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
   data = {'title': title, 'labels': [label], 'body': body}
   with requests.post(url, headers=headers, data=json.dumps(data), timeout=TIMEOUT) as response:
@@ -64,7 +80,7 @@ def create_issue(token, title, label, body):
 
 def get_issue_body(token, issue_number):
   """https://docs.github.com/en/rest/reference/issues#get-an-issue-comment"""
-  url = f'{FIREBASE_URL}/issues/{issue_number}'
+  url = f'{GITHUB_API_URL}/issues/{issue_number}'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
   with requests_retry_session().get(url, headers=headers, timeout=TIMEOUT) as response:
     logging.info("get_issue_body: %s response: %s", url, response)
@@ -73,7 +89,7 @@ def get_issue_body(token, issue_number):
 
 def update_issue(token, issue_number, data):
   """Update an issue: https://docs.github.com/en/rest/reference/issues#update-an-issue"""
-  url = f'{FIREBASE_URL}/issues/{issue_number}'
+  url = f'{GITHUB_API_URL}/issues/{issue_number}'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
   with requests_retry_session().patch(url, headers=headers, data=json.dumps(data), timeout=TIMEOUT) as response:
     logging.info("update_issue: %s response: %s", url, response)
@@ -102,7 +118,7 @@ def search_issues_by_label(label):
 
 def list_comments(token, issue_number):
   """https://docs.github.com/en/rest/reference/issues#list-issue-comments"""
-  url = f'{FIREBASE_URL}/issues/{issue_number}/comments'
+  url = f'{GITHUB_API_URL}/issues/{issue_number}/comments'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
   with requests_retry_session().get(url, headers=headers, timeout=TIMEOUT) as response:
     logging.info("list_comments: %s response: %s", url, response)
@@ -111,7 +127,7 @@ def list_comments(token, issue_number):
 
 def add_comment(token, issue_number, comment):
   """https://docs.github.com/en/rest/reference/issues#create-an-issue-comment"""
-  url = f'{FIREBASE_URL}/issues/{issue_number}/comments'
+  url = f'{GITHUB_API_URL}/issues/{issue_number}/comments'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
   data = {'body': comment}
   with requests.post(url, headers=headers, data=json.dumps(data), timeout=TIMEOUT) as response:
@@ -120,7 +136,7 @@ def add_comment(token, issue_number, comment):
 
 def update_comment(token, comment_id, comment):
   """https://docs.github.com/en/rest/reference/issues#update-an-issue-comment"""
-  url = f'{FIREBASE_URL}/issues/comments/{comment_id}'
+  url = f'{GITHUB_API_URL}/issues/comments/{comment_id}'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
   data = {'body': comment}
   with requests_retry_session().patch(url, headers=headers, data=json.dumps(data), timeout=TIMEOUT) as response:
@@ -129,7 +145,7 @@ def update_comment(token, comment_id, comment):
 
 def delete_comment(token, comment_id):
   """https://docs.github.com/en/rest/reference/issues#delete-an-issue-comment"""
-  url = f'{FIREBASE_URL}/issues/comments/{comment_id}'
+  url = f'{GITHUB_API_URL}/issues/comments/{comment_id}'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
   with requests.delete(url, headers=headers, timeout=TIMEOUT) as response:
     logging.info("delete_comment: %s response: %s", url, response)
@@ -137,7 +153,7 @@ def delete_comment(token, comment_id):
 
 def add_label(token, issue_number, label):
   """https://docs.github.com/en/rest/reference/issues#add-labels-to-an-issue"""
-  url = f'{FIREBASE_URL}/issues/{issue_number}/labels'
+  url = f'{GITHUB_API_URL}/issues/{issue_number}/labels'
   headers={}
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
   data = [label]
@@ -147,7 +163,7 @@ def add_label(token, issue_number, label):
 
 def delete_label(token, issue_number, label):
   """https://docs.github.com/en/rest/reference/issues#delete-a-label"""
-  url = f'{FIREBASE_URL}/issues/{issue_number}/labels/{label}'
+  url = f'{GITHUB_API_URL}/issues/{issue_number}/labels/{label}'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
   with requests.delete(url, headers=headers, timeout=TIMEOUT) as response:
     logging.info("delete_label: %s response: %s", url, response)
@@ -155,7 +171,7 @@ def delete_label(token, issue_number, label):
 
 def list_artifacts(token, run_id):
   """https://docs.github.com/en/rest/reference/actions#list-workflow-run-artifacts"""
-  url = f'{FIREBASE_URL}/actions/runs/{run_id}/artifacts'
+  url = f'{GITHUB_API_URL}/actions/runs/{run_id}/artifacts'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
   with requests_retry_session().get(url, headers=headers, timeout=TIMEOUT) as response:
     logging.info("list_artifacts: %s response: %s", url, response)
@@ -164,7 +180,7 @@ def list_artifacts(token, run_id):
 
 def download_artifact(token, artifact_id, output_path):
   """https://docs.github.com/en/rest/reference/actions#download-an-artifact"""
-  url = f'{FIREBASE_URL}/actions/artifacts/{artifact_id}/zip'
+  url = f'{GITHUB_API_URL}/actions/artifacts/{artifact_id}/zip'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
   with requests.get(url, headers=headers, stream=True, timeout=TIMEOUT) as response:
     logging.info("download_artifact: %s response: %s", url, response)
@@ -174,7 +190,7 @@ def download_artifact(token, artifact_id, output_path):
 
 def dismiss_review(token, pull_number, review_id, message):
   """https://docs.github.com/en/rest/reference/pulls#dismiss-a-review-for-a-pull-request"""
-  url = f'{FIREBASE_URL}/pulls/{pull_number}/reviews/{review_id}/dismissals'
+  url = f'{GITHUB_API_URL}/pulls/{pull_number}/reviews/{review_id}/dismissals'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
   data = {'message': message}
   with requests_retry_session().put(url, headers=headers, data=json.dumps(data),
@@ -182,9 +198,10 @@ def dismiss_review(token, pull_number, review_id, message):
     logging.info("dismiss_review: %s response: %s", url, response)
     return response.json()
 
+
 def get_reviews(token, pull_number):
   """https://docs.github.com/en/rest/reference/pulls#list-reviews-for-a-pull-request"""
-  url = f'{FIREBASE_URL}/pulls/{pull_number}/reviews'
+  url = f'{GITHUB_API_URL}/pulls/{pull_number}/reviews'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
   page = 1
   per_page = 100
@@ -203,19 +220,32 @@ def get_reviews(token, pull_number):
   return results
 
 
-def workflow_dispatch(token, workflow_id, ref, inputs):
+def create_workflow_dispatch(token, workflow_id, ref, inputs):
   """https://docs.github.com/en/rest/reference/actions#create-a-workflow-dispatch-event"""
-  url = f'{FIREBASE_URL}/actions/workflows/{workflow_id}/dispatches'
+  url = f'{GITHUB_API_URL}/actions/workflows/{workflow_id}/dispatches'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
   data = {'ref': ref, 'inputs': inputs}
   with requests.post(url, headers=headers, data=json.dumps(data),
                     stream=True, timeout=TIMEOUT) as response:
-    logging.info("workflow_dispatch: %s response: %s", url, response)
+    logging.info("create_workflow_dispatch: %s response: %s", url, response)
+    # Response Status: 204 No Content
+    return True if response.status_code == 204 else False
+
+
+def list_workflows(token, workflow_id, branch):
+  """https://docs.github.com/en/rest/reference/actions#list-workflow-runs-for-a-repository"""
+  url = f'{GITHUB_API_URL}/actions/workflows/{workflow_id}/runs'
+  headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
+  data = {'event': 'workflow_dispatch', 'branch': branch}
+  with requests.get(url, headers=headers, data=json.dumps(data),
+                    stream=True, timeout=TIMEOUT) as response:
+    logging.info("list_workflows: %s response: %s", url, response)
+    return response.json()
 
 
 def create_pull_request(token, head, base, title, body, maintainer_can_modify):
   """https://docs.github.com/en/rest/reference/pulls#create-a-pull-request"""
-  url = f'{FIREBASE_URL}/pulls'
+  url = f'{GITHUB_API_URL}/pulls'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
   data = {'head': head, 'base': base, 'title': title, 'body': body,
           'maintainer_can_modify': maintainer_can_modify}
@@ -224,9 +254,10 @@ def create_pull_request(token, head, base, title, body, maintainer_can_modify):
     logging.info("create_pull_request: %s response: %s", head, response)
     return True if response.status_code == 201 else False
 
+
 def list_pull_requests(token, state, head, base):
   """https://docs.github.com/en/rest/reference/pulls#list-pull-requests"""
-  url = f'{FIREBASE_URL}/pulls'
+  url = f'{GITHUB_API_URL}/pulls'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
   page = 1
   per_page = 100

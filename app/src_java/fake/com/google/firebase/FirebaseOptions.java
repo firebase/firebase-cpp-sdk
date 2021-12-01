@@ -97,14 +97,13 @@ public final class FirebaseOptions {
   }
 
   public static FirebaseOptions fromResource(Context context) {
-    return new FirebaseOptions(
-        new Builder()
-            .setApiKey("fake api key from resource")
-            .setDatabaseUrl("fake database url from resource")
-            .setApplicationId("fake app id from resource")
-            .setGcmSenderId("fake messaging sender id from resource")
-            .setStorageBucket("fake storage bucket from resource")
-            .setProjectId("fake project id from resource"));
+    return new FirebaseOptions(new Builder()
+                                   .setApiKey("fake api key from resource")
+                                   .setDatabaseUrl("fake database url from resource")
+                                   .setApplicationId("fake app id from resource")
+                                   .setGcmSenderId("fake messaging sender id from resource")
+                                   .setStorageBucket("fake storage bucket from resource")
+                                   .setProjectId("fake project id from resource"));
   }
 
   public String getApiKey() {

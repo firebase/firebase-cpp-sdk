@@ -17,7 +17,7 @@
 package com.google.firebase.admob.internal.cpp;
 
 import android.app.Activity;
-
+import android.util.Log;
 import com.google.android.gms.ads.AdError;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdValue;
@@ -27,15 +27,12 @@ import com.google.android.gms.ads.OnPaidEventListener;
 import com.google.android.gms.ads.interstitial.InterstitialAd;
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
 
-import android.util.Log;
-
 /**
  * Helper class to make interactions between the AdMob C++ wrapper and Java {@link InterstitialAd}
  * objects cleaner. It's designed to wrap and adapt a single instance of {@link InterstitialAd},
  * translate calls coming from C++ into their (typically more complicated) Java equivalents.
  */
 public class InterstitialAdHelper {
-
   // C++ nullptr for use with the callbacks.
   private static final long CPP_NULLPTR = 0;
 
@@ -82,30 +79,28 @@ public class InterstitialAdHelper {
   public void initialize(final long callbackDataPtr, Activity activity) {
     mActivity = activity;
 
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            int errorCode;
-            String errorMessage;
-            if (mInterstitial == null) {
-              try {
-                errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
-                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-              } catch (IllegalStateException e) {
-                mInterstitial = null;
-                // This exception can be thrown if the ad unit ID was already set.
-                errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
-                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
-              }
-            } else {
-              errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
-              errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
-
-            }
-            completeInterstitialAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        int errorCode;
+        String errorMessage;
+        if (mInterstitial == null) {
+          try {
+            errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
+          } catch (IllegalStateException e) {
+            mInterstitial = null;
+            // This exception can be thrown if the ad unit ID was already set.
+            errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
           }
-        });
+        } else {
+          errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
+          errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
+        }
+        completeInterstitialAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
+      }
+    });
   }
 
   /**
@@ -121,19 +116,18 @@ public class InterstitialAdHelper {
       return;
     }
 
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            synchronized (mInterstitialLock) {
-              if (mInterstitial != null) {
-                mInterstitial.setFullScreenContentCallback(null);
-                mInterstitial.setOnPaidEventListener(null);
-                mInterstitial = null;
-              }
-            }
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        synchronized (mInterstitialLock) {
+          if (mInterstitial != null) {
+            mInterstitial.setFullScreenContentCallback(null);
+            mInterstitial.setOnPaidEventListener(null);
+            mInterstitial = null;
           }
-        });
+        }
+      }
+    });
   }
 
   /**
@@ -145,8 +139,7 @@ public class InterstitialAdHelper {
     }
     synchronized (mInterstitialLock) {
       if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
-        completeInterstitialLoadAdInternalError(
-            callbackDataPtr,
+        completeInterstitialLoadAdInternalError(callbackDataPtr,
             ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS,
             ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS);
         return;
@@ -156,66 +149,61 @@ public class InterstitialAdHelper {
 
     mAdUnitId = adUnitId;
 
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            if (mActivity == null) {
-              synchronized (mInterstitialLock) {
-                completeInterstitialLoadAdInternalError(
-                    mLoadAdCallbackDataPtr,
-                    ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
-                    ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
-                mLoadAdCallbackDataPtr = CPP_NULLPTR;
-              }
-            } else {
-              try {
-                InterstitialAd.load(mActivity, mAdUnitId, request, new InterstitialAdListener());
-              } catch (IllegalStateException e) {
-                synchronized (mInterstitialLock) {
-                  completeInterstitialLoadAdInternalError(
-                      mLoadAdCallbackDataPtr,
-                      ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
-                      ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
-                  mLoadAdCallbackDataPtr = CPP_NULLPTR;
-                }
-              }
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        if (mActivity == null) {
+          synchronized (mInterstitialLock) {
+            completeInterstitialLoadAdInternalError(mLoadAdCallbackDataPtr,
+                ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
+                ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
+            mLoadAdCallbackDataPtr = CPP_NULLPTR;
+          }
+        } else {
+          try {
+            InterstitialAd.load(mActivity, mAdUnitId, request, new InterstitialAdListener());
+          } catch (IllegalStateException e) {
+            synchronized (mInterstitialLock) {
+              completeInterstitialLoadAdInternalError(mLoadAdCallbackDataPtr,
+                  ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
+                  ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
+              mLoadAdCallbackDataPtr = CPP_NULLPTR;
             }
           }
-        });
+        }
+      }
+    });
   }
 
   /**
    * Shows a previously loaded ad.
    */
   public void show(final long callbackDataPtr) {
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            synchronized (mInterstitialLock) {
-              int errorCode;
-              String errorMessage;
-              if (mAdUnitId == null) {
-                errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
-                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
-              } else if (mInterstitial == null) {
-                errorCode = ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS;
-                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS;
-              } else {
-                errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
-                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-                mInterstitial.show(mActivity);
-              }
-              completeInterstitialAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
-            }
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        synchronized (mInterstitialLock) {
+          int errorCode;
+          String errorMessage;
+          if (mAdUnitId == null) {
+            errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
+          } else if (mInterstitial == null) {
+            errorCode = ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS;
+          } else {
+            errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
+            mInterstitial.show(mActivity);
           }
-        });
+          completeInterstitialAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
+        }
+      }
+    });
   }
 
   private class InterstitialAdFullScreenContentListener
       extends FullScreenContentCallback implements OnPaidEventListener {
-    
     @Override
     public void onAdClicked() {
       synchronized (mInterstitialLock) {
@@ -275,8 +263,7 @@ public class InterstitialAdHelper {
       synchronized (mInterstitialLock) {
         if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
           completeInterstitialLoadAdError(
-              mLoadAdCallbackDataPtr, loadAdError, loadAdError.getCode(),
-              loadAdError.getMessage());
+              mLoadAdCallbackDataPtr, loadAdError, loadAdError.getCode(), loadAdError.getMessage());
           mLoadAdCallbackDataPtr = CPP_NULLPTR;
         }
       }
@@ -286,7 +273,8 @@ public class InterstitialAdHelper {
     public void onAdLoaded(InterstitialAd ad) {
       synchronized (mInterstitialLock) {
         mInterstitial = ad;
-        InterstitialAdFullScreenContentListener listener = new InterstitialAdFullScreenContentListener();
+        InterstitialAdFullScreenContentListener listener =
+            new InterstitialAdFullScreenContentListener();
         mInterstitial.setFullScreenContentCallback(listener);
         mInterstitial.setOnPaidEventListener(listener);
         if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
@@ -330,13 +318,13 @@ public class InterstitialAdHelper {
 
   public static native void notifyAdDismissedFullScreenContentEvent(long nativeInternalPtr);
 
-  public static native void notifyAdFailedToShowFullScreenContentEvent(long nativeInternalPtr,
-                                                                       AdError adError);
+  public static native void notifyAdFailedToShowFullScreenContentEvent(
+      long nativeInternalPtr, AdError adError);
 
   public static native void notifyAdImpressionEvent(long nativeInternalPtr);
 
   public static native void notifyAdShowedFullScreenContentEvent(long nativeInternalPtr);
 
-  public static native void notifyPaidEvent(long nativeInternalPtr, String currencyCode,
-                                            int precisionType, long valueMicros);
+  public static native void notifyPaidEvent(
+      long nativeInternalPtr, String currencyCode, int precisionType, long valueMicros);
 }

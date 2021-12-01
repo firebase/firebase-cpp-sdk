@@ -137,7 +137,7 @@ class RewardedAd {
   /// ServerSideVerificationOptions object containing custom data and a user
   /// Id.
   void SetServerSideVerificationOptions(
-      const ServerSideVerificationOptions &serverSideVerificationOptions);
+      const ServerSideVerificationOptions& serverSideVerificationOptions);
 
  private:
   // An internal, platform-specific implementation object that this class uses

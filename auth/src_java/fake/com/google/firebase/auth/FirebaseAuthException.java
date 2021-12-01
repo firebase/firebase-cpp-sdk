@@ -20,7 +20,6 @@ import com.google.firebase.FirebaseException;
 
 /** Fake FirebaseAuthException */
 public class FirebaseAuthException extends FirebaseException {
-
   public FirebaseAuthException(String code, String message) {
     super(message);
     code_ = code;

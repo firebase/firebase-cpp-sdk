@@ -18,7 +18,6 @@ package com.google.firebase.auth;
 
 /** Fake EmailAuthProvider */
 public final class EmailAuthProvider {
-
   public static AuthCredential getCredential(String email, String password) {
     return new AuthCredential("password");
   }

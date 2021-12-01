@@ -172,9 +172,7 @@ void UserSecureDarwinInternal::DeleteUserData(const std::string& app_name) {
   DeleteData(app_name.c_str(), "DeleteUserData");
 }
 
-void UserSecureDarwinInternal::DeleteAllData() {
-  DeleteData(nullptr, "DeleteAllData");
-}
+void UserSecureDarwinInternal::DeleteAllData() { DeleteData(nullptr, "DeleteAllData"); }
 
 }  // namespace secure
 }  // namespace app

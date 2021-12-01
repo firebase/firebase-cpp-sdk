@@ -59,7 +59,6 @@ class FirebaseCppCredentialsProvider
   void GetToken(
       firestore::credentials::TokenListener<firestore::credentials::AuthToken>
           listener) override;
-  void InvalidateToken() override;
 
  private:
   void AddAuthStateListener();
@@ -109,14 +108,6 @@ class FirebaseCppCredentialsProvider
     int token_generation = 0;
   };
   std::shared_ptr<Contents> contents_;
-
-  // Affects the next `GetToken` request; if `true`, the token will be refreshed
-  // even if it hasn't expired yet.
-  bool force_refresh_token_ = false;
-
-  // Provided by the user code; may be an empty function.
-  firestore::credentials::CredentialChangeListener<firestore::credentials::User>
-      change_listener_;
 };
 
 }  // namespace firestore

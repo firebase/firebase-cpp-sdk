@@ -16,9 +16,10 @@
 #define FIREBASE_DATABASE_SRC_INCLUDE_FIREBASE_DATABASE_QUERY_H_
 
 #include <string>
+
+#include "firebase/database/listener.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
-#include "firebase/database/listener.h"
 
 namespace firebase {
 namespace database {

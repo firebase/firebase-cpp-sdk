@@ -6,7 +6,6 @@ import java.util.Map;
 
 /** Attribute functions needed for Traces and HttpMetrics */
 public interface FirebasePerformanceAttributable {
-
   /** Maximum allowed number of attributes allowed in a trace. */
   int MAX_TRACE_CUSTOM_ATTRIBUTES = 5;
   /** Maximum allowed length of the Key of the {@link Trace} attribute */
@@ -35,8 +34,7 @@ public interface FirebasePerformanceAttributable {
    * @param attribute name of the attribute to fetch the value for
    * @return The value of the attribute if it exists or null otherwise.
    */
-  @Nullable
-  String getAttribute(String attribute);
+  @Nullable String getAttribute(String attribute);
 
   /**
    * Removes the attribute from the list of attributes.
