@@ -140,7 +140,7 @@ Firebase Realtime Database | libfirebase_database.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics:20.0.0
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-database:20.0.2
+|                          | com.google.firebase:firebase-database:20.0.3
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-auth:21.0.1
 |                          | (Maven package)
