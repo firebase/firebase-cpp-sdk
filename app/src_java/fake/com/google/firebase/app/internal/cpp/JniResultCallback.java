@@ -27,7 +27,8 @@ public class JniResultCallback<TResult> {
     public void register();
 
     public void disconnect();
-  };
+  }
+  ;
 
   private long callbackFn;
   private long callbackData;
@@ -86,18 +87,12 @@ public class JniResultCallback<TResult> {
   private void onCompletion(
       Object result, boolean success, boolean cancelled, String statusMessage) {
     if (callbackHandler != null) {
-      nativeOnResult(
-          result, success, cancelled, statusMessage, callbackFn, callbackData);
+      nativeOnResult(result, success, cancelled, statusMessage, callbackFn, callbackData);
       callbackHandler.disconnect();
       callbackHandler = null;
     }
   }
 
-  private native void nativeOnResult(
-      Object result,
-      boolean success,
-      boolean cancelled,
-      String statusString,
-      long callbackFn,
-      long callbackData);
+  private native void nativeOnResult(Object result, boolean success, boolean cancelled,
+      String statusString, long callbackFn, long callbackData);
 }

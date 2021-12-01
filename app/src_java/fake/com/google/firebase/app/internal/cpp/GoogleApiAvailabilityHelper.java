@@ -33,16 +33,15 @@ public final class GoogleApiAvailabilityHelper {
     final ConfigRow row =
         ConfigAndroid.get("GoogleApiAvailabilityHelper.makeGooglePlayServicesAvailable");
     if (row != null) {
-      TickerAndroid.register(
-          new TickerObserver() {
-            @Override
-            public void elapse() {
-              if (TickerAndroid.now() == row.futureint().ticker()) {
-                int resultCode = row.futureint().value();
-                onCompleteNative(resultCode, "result code is " + resultCode);
-              }
-            }
-          });
+      TickerAndroid.register(new TickerObserver() {
+        @Override
+        public void elapse() {
+          if (TickerAndroid.now() == row.futureint().ticker()) {
+            int resultCode = row.futureint().value();
+            onCompleteNative(resultCode, "result code is " + resultCode);
+          }
+        }
+      });
       return row.futurebool().value() == FutureBoolResult.True;
     }
 

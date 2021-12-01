@@ -19,10 +19,10 @@
 #include <dispatch/dispatch.h>
 #include <string>
 
-#include "app/src/include/firebase/version.h"
 #include "app/src/app_common.h"
 #include "app/src/app_ios.h"
 #include "app/src/assert.h"
+#include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
 #include "app/src/mutex.h"
 #include "app/src/util.h"
@@ -37,11 +37,10 @@
 + (BOOL)isDefaultAppConfigured;
 // Internal method (should be part of the public API *soon*) that allows registration of a library
 // at the specified version which is added to the firebaseUserAgent string.
-+ (void)registerLibrary:(NSString *)library
-            withVersion:(NSString *)version;
++ (void)registerLibrary:(NSString*)library withVersion:(NSString*)version;
 // Use the private method firebaseUserAgent to get propagate the set of register libraries into
 // the C++ SDK.
-+ (NSString *)firebaseUserAgent;
++ (NSString*)firebaseUserAgent;
 @end
 
 namespace firebase {
@@ -51,8 +50,7 @@ DEFINE_FIREBASE_VERSION_STRING(Firebase);
 namespace {
 
 // Copy values of FIROptions into AppOptions.
-static void PlatformOptionsToAppOptions(FIROptions* platform_options,
-                                        AppOptions* app_options) {
+static void PlatformOptionsToAppOptions(FIROptions* platform_options, AppOptions* app_options) {
   if (!strlen(app_options->app_id())) {
     const char* value = platform_options.googleAppID.UTF8String;
     if (value) app_options->set_app_id(value);
@@ -93,8 +91,7 @@ static void PlatformOptionsToAppOptions(FIROptions* platform_options,
 
 // Copy AppOptions into a FIROptions instance.
 static FIROptions* AppOptionsToPlatformOptions(const AppOptions& app_options) {
-  FIROptions* platform_options = [[FIROptions alloc] initWithGoogleAppID:@""
-                                                        GCMSenderID:@""];
+  FIROptions* platform_options = [[FIROptions alloc] initWithGoogleAppID:@"" GCMSenderID:@""];
   if (strlen(app_options.app_id())) {
     platform_options.googleAppID = @(app_options.app_id());
   }
@@ -130,8 +127,8 @@ static FIRApp* GetPlatformAppByName(const char* name) {
   // Silence iOS SDKs warnings about FIRApp instances being missing.
   LogLevel log_level = GetLogLevel();
   SetLogLevel(kLogLevelAssert);
-  FIRApp *platform_app = app_common::IsDefaultAppName(name) ?
-                         [FIRApp defaultApp] : [FIRApp appNamed:@(name)];
+  FIRApp* platform_app =
+      app_common::IsDefaultAppName(name) ? [FIRApp defaultApp] : [FIRApp appNamed:@(name)];
   SetLogLevel(log_level);
   return platform_app;
 }
@@ -175,8 +172,7 @@ static FIRApp* CreatePlatformApp(const AppOptions& options, const char* name) {
 }
 
 // Create or get a iOS SDK FIRApp instance.
-static FIRApp* CreateOrGetPlatformApp(const AppOptions& options,
-                                      const char* name) {
+static FIRApp* CreateOrGetPlatformApp(const AppOptions& options, const char* name) {
   FIRApp* platform_app = GetPlatformAppByName(name);
   if (platform_app) {
     // If a FIRApp exists, make sure it has the requested options.
@@ -185,17 +181,19 @@ static FIRApp* CreateOrGetPlatformApp(const AppOptions& options,
     if (options != existing_options) {
       LogWarning("Existing instance of App %s found and options do not match "
                  "the requested options.  Deleting %s to attempt recreation "
-                 "with requested options.", name, name);
+                 "with requested options.",
+                 name, name);
       dispatch_semaphore_t block_semaphore = dispatch_semaphore_create(0);
       [platform_app deleteApp:^(BOOL /*success*/) {
-          // NOTE: The delete will always succeed if the app previously existed.
-          dispatch_semaphore_signal(block_semaphore);
-        }];
+        // NOTE: The delete will always succeed if the app previously existed.
+        dispatch_semaphore_signal(block_semaphore);
+      }];
       dispatch_semaphore_wait(block_semaphore, DISPATCH_TIME_FOREVER);
       platform_app = nil;
     }
   }
-  return platform_app ? platform_app : CreatePlatformApp(options, name);;
+  return platform_app ? platform_app : CreatePlatformApp(options, name);
+  ;
 }
 
 }  // namespace
@@ -215,7 +213,8 @@ AppOptions* AppOptions::LoadDefault(AppOptions* app_options) {
   } else {
     LogError("Failed to read Firebase options from the app's resources (%s). "
              "Either make sure GoogleService-Info.plist is included in your build or specify "
-             "options explicitly.", util::NSStringToString(error_message).c_str());
+             "options explicitly.",
+             util::NSStringToString(error_message).c_str());
   }
   return app_options;
 }
@@ -263,11 +262,9 @@ void App::RegisterLibrary(const char* library, const char* version) {
       util::NSStringToString([FIRApp firebaseUserAgent]).c_str());
 }
 
-const char* App::GetUserAgent() {
-  return app_common::GetUserAgent();
-}
+const char* App::GetUserAgent() { return app_common::GetUserAgent(); }
 
-void App::SetDefaultConfigPath(const char* path) { }
+void App::SetDefaultConfigPath(const char* path) {}
 
 void App::SetDataCollectionDefaultEnabled(bool enabled) {
   GetPlatformApp().dataCollectionDefaultEnabled = (enabled ? YES : NO);
@@ -277,8 +274,6 @@ bool App::IsDataCollectionDefaultEnabled() const {
   return GetPlatformApp().isDataCollectionDefaultEnabled ? true : false;
 }
 
-FIRApp* App::GetPlatformApp() const {
-  return internal_->get();
-}
+FIRApp* App::GetPlatformApp() const { return internal_->get(); }
 
 }  // namespace firebase

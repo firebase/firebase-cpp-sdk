@@ -99,21 +99,21 @@ class BannerView : public AdView {
   ///
   /// param[in] listener A listener object which will be invoked when lifecycle
   /// events occur on this AdView.
-  void SetAdListener(AdListener *listener) override;
+  void SetAdListener(AdListener* listener) override;
 
   /// Sets a listener to be invoked when the Ad's bounding box
   /// changes size or location.
   ///
   /// param[in] listener A listener object which will be invoked when the ad
   /// changes size, shape, or position.
-  void SetBoundingBoxListener(AdViewBoundingBoxListener *listener) override;
+  void SetBoundingBoxListener(AdViewBoundingBoxListener* listener) override;
 
   /// Sets a listener to be invoked when this ad is estimated to have earned
   /// money.
   ///
   /// param[in] A listener object to be invoked when a paid event occurs on the
   /// ad.
-  void SetPaidEventListener(PaidEventListener *listener) override;
+  void SetPaidEventListener(PaidEventListener* listener) override;
 
   /// Moves the @ref BannerView so that its top-left corner is located at
   /// (x, y). Coordinates are in pixels from the top-left corner of the screen.

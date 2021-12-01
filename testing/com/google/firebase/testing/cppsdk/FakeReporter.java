@@ -21,7 +21,6 @@ import java.util.Map;
 
 /** Report what function was called and with wich arguments. */
 public final class FakeReporter {
-
   private static Map<String, ReportRow> reports = new HashMap<String, ReportRow>();
 
   public static void reset() {
@@ -64,7 +63,6 @@ public final class FakeReporter {
 
   /** Report for each fake calling */
   public static class ReportRow {
-
     private String fake;
 
     private List<String> args;

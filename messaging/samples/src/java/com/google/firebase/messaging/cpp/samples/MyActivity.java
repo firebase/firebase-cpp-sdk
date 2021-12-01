@@ -23,7 +23,6 @@ package com.google.firebase.messaging.cpp.samples;
 import android.app.Activity;
 import android.content.Intent;
 import android.util.Log;
-
 // [START messaging_on_new_intent]
 import com.google.firebase.messaging.MessageForwardingService;
 

@@ -22,7 +22,6 @@ import com.google.firebase.messaging.RemoteMessage;
  * OnMessage function.
  */
 public class ListenerService extends FirebaseMessagingService {
-
   // TODO(amablue): Add an IfChange/ThenChange block around this, and the other copy of these
   // variables in com.google.firebase.messaging.RemoteMessageBuilder.
   public static final String MESSAGE_TYPE_DELETED = "deleted_messages";
@@ -61,8 +60,7 @@ public class ListenerService extends FirebaseMessagingService {
 
   @Override
   public void onSendError(String messageId, Exception exception) {
-    DebugLogging.log(
-        TAG,
+    DebugLogging.log(TAG,
         String.format("onSendError messageId=%s exception=%s", messageId, exception.toString()));
     messageWriter.writeMessageEventToInternalStorage(
         this, messageId, MESSAGE_TYPE_SEND_ERROR, exception.toString());

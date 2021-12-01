@@ -18,7 +18,6 @@ package com.google.firebase.auth;
 
 /** Fake FirebaseAuthActionCodeException */
 public class FirebaseAuthActionCodeException extends FirebaseAuthException {
-
   public FirebaseAuthActionCodeException(String code, String message) {
     super(code, message);
   }

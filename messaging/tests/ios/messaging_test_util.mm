@@ -44,14 +44,11 @@ static NSString *const kBadge = @"badge";
 // Dual purpose body text or data dictionary.
 static NSString *const kAlert = @"alert";
 
-
 void InitializeMessagingTest() {}
 
-void TerminateMessagingTest() {
-  [FIRMessaging messaging].FCMToken = nil;
-}
+void TerminateMessagingTest() { [FIRMessaging messaging].FCMToken = nil; }
 
-void OnTokenReceived(const char* tokenstr) {
+void OnTokenReceived(const char *tokenstr) {
   [FIRMessaging messaging].FCMToken = @(tokenstr);
   [[FIRMessaging messaging].delegate messaging:[FIRMessaging messaging]
                    didReceiveRegistrationToken:@(tokenstr)];
@@ -62,8 +59,8 @@ void SleepMessagingTest(double seconds) {
   [[NSRunLoop mainRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:seconds]];
 }
 
-void OnMessageReceived(const Message& message) {
-  NSMutableDictionary<NSString*, id>* userData = [NSMutableDictionary dictionary];
+void OnMessageReceived(const Message &message) {
+  NSMutableDictionary<NSString *, id> *userData = [NSMutableDictionary dictionary];
   userData[kMessageID] = @(message.message_id.c_str());
   userData[kTo] = @(message.to.c_str());
   userData[kFrom] = @(message.from.c_str());
@@ -73,15 +70,15 @@ void OnMessageReceived(const Message& message) {
   userData[kTimeToLive] = @(message.time_to_live);
   userData[kError] = @(message.error.c_str());
   userData[kErrorDescription] = @(message.error_description.c_str());
-  for (const auto& entry : message.data) {
+  for (const auto &entry : message.data) {
     userData[@(entry.first.c_str())] = @(entry.second.c_str());
   }
 
   if (message.notification) {
-    NSMutableDictionary<NSString*, id>* alert = [NSMutableDictionary dictionary];
+    NSMutableDictionary<NSString *, id> *alert = [NSMutableDictionary dictionary];
     alert[kTitle] = @(message.notification->title.c_str());
     alert[kBody] = @(message.notification->body.c_str());
-    NSMutableDictionary* aps = [NSMutableDictionary dictionary];
+    NSMutableDictionary *aps = [NSMutableDictionary dictionary];
     aps[kSound] = @(message.notification->sound.c_str());
     aps[kBadge] = @(message.notification->badge.c_str());
     aps[kAlert] = alert;
@@ -91,9 +88,9 @@ void OnMessageReceived(const Message& message) {
                                didReceiveRemoteNotification:userData];
 }
 
-void OnMessageSent(const char* message_id) {}
+void OnMessageSent(const char *message_id) {}
 
-void OnMessageSentError(const char* message_id, const char* error) {}
+void OnMessageSentError(const char *message_id, const char *error) {}
 
 }  // namespace messaging
 }  // namespace firebase

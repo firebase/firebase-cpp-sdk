@@ -20,7 +20,6 @@ import com.google.firebase.testing.cppsdk.FakeReporter;
 
 /** Fake FirebaseRemoteConfigInfo */
 public class FirebaseRemoteConfigInfo {
-
   public long getFetchTimeMillis() {
     ConfigRow row = ConfigAndroid.get("FirebaseRemoteConfigInfo.getFetchTimeMillis");
     long result = row.returnvalue().tlong();

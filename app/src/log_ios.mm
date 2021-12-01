@@ -31,14 +31,14 @@ static NSString* kLogLevelInfoPlistKey = @"FIRCPPLogLevel";
 
 // Maps C++ to iOS SDK log levels.
 static const FIRLoggerLevel kCppToIOSLogLevel[] = {
-  FIRLoggerLevelDebug, // kLogLevelVerbose = 0,
-  // Mapping C++ debug to Obj-C info is intentional.
-  // Info messages are intended to be shown only for debugging scenarios.
-  FIRLoggerLevelInfo, // kLogLevelDebug,
-  FIRLoggerLevelNotice,  // kLogLevelInfo,
-  FIRLoggerLevelWarning, // kLogLevelWarning,
-  FIRLoggerLevelError, // kLogLevelError,
-  FIRLoggerLevelError, // kLogLevelAssert,
+    FIRLoggerLevelDebug,  // kLogLevelVerbose = 0,
+    // Mapping C++ debug to Obj-C info is intentional.
+    // Info messages are intended to be shown only for debugging scenarios.
+    FIRLoggerLevelInfo,     // kLogLevelDebug,
+    FIRLoggerLevelNotice,   // kLogLevelInfo,
+    FIRLoggerLevelWarning,  // kLogLevelWarning,
+    FIRLoggerLevelError,    // kLogLevelError,
+    FIRLoggerLevelError,    // kLogLevelAssert,
 };
 
 // Initialize the logging system.
@@ -46,8 +46,8 @@ void LogInitialize() {
   static bool read_log_level_from_plist = false;
   if (read_log_level_from_plist) return;
   read_log_level_from_plist = true;
-  NSNumber* log_level_number = (NSNumber*)(
-      [[NSBundle mainBundle] objectForInfoDictionaryKey:kLogLevelInfoPlistKey]);
+  NSNumber* log_level_number =
+      (NSNumber*)([[NSBundle mainBundle] objectForInfoDictionaryKey:kLogLevelInfoPlistKey]);
   if (log_level_number) {
     int log_level_value = log_level_number.intValue;
     if (log_level_value >= kLogLevelVerbose && log_level_value <= kLogLevelAssert) {

@@ -24,7 +24,6 @@ import java.util.ArrayList;
  * Fake FirebaseMessaging class.
  */
 public class FirebaseMessaging {
-
   private static final String FN_GET_TOKEN = "FirebaseMessaging.getToken";
   private static final String FN_DELETE_TOKEN = "FirebaseMessaging.deleteToken";
 

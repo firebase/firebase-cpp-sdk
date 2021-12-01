@@ -64,42 +64,42 @@ void Terminate() {
 // Encode a URL from a C string.  If this fails, nil is returned.
 static NSURL* EncodeUrlFromString(const char* url_string) {
   // Try encoding without escaping as the URL may already be escaped correctly.
-  NSURL*url = [NSURL URLWithString:@(url_string)];
+  NSURL* url = [NSURL URLWithString:@(url_string)];
   if (url) return url;
   // If encoding without escaping fails, try again with percent encoding.
-  return [NSURL URLWithString:[@(url_string)
-                                  stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+  return [NSURL
+      URLWithString:[@(url_string) stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
 }
 
 // Add a warning to the list of warnings regarding failure to encode the specified
 // URL.
-static void AddUrlEncodingWarning(
-    std::vector<std::string>* warnings, const char* url, const char* field_description) {
-  warnings->push_back(std::string("Failed to encode URL for ") +
-                      std::string(field_description) + ", URL: " + url);
+static void AddUrlEncodingWarning(std::vector<std::string>* warnings, const char* url,
+                                  const char* field_description) {
+  warnings->push_back(std::string("Failed to encode URL for ") + std::string(field_description) +
+                      ", URL: " + url);
 }
 
 // Set a URL field of an iOS dynamic link components object from a C++ structure string field.
 #define FIR_DYNAMIC_LINK_PARAMS_SET_URL(fir_params_object, field, cpp_params_object, cpp_field, \
-                                        field_description, generated_link_warnings) \
-  { \
-    if ((cpp_params_object)->cpp_field) { \
-      NSURL* ns_url = EncodeUrlFromString((cpp_params_object)->cpp_field); \
-      if (ns_url) { \
-        (fir_params_object).field = ns_url; \
-      } else { \
-        AddUrlEncodingWarning(generated_link_warnings, (cpp_params_object)->cpp_field, \
-                              field_description); \
-      } \
-    } \
+                                        field_description, generated_link_warnings)             \
+  {                                                                                             \
+    if ((cpp_params_object)->cpp_field) {                                                       \
+      NSURL* ns_url = EncodeUrlFromString((cpp_params_object)->cpp_field);                      \
+      if (ns_url) {                                                                             \
+        (fir_params_object).field = ns_url;                                                     \
+      } else {                                                                                  \
+        AddUrlEncodingWarning(generated_link_warnings, (cpp_params_object)->cpp_field,          \
+                              field_description);                                               \
+      }                                                                                         \
+    }                                                                                           \
   }
 
 // Set a string field of an iOS dynamic link components object from a C++ structure string field.
 #define FIR_DYNAMIC_LINK_PARAMS_SET_STRING(fir_params_object, field, cpp_params_object, cpp_field) \
-  { \
-    if ((cpp_params_object)->cpp_field) { \
-      (fir_params_object).field = @((cpp_params_object)->cpp_field); \
-    } \
+  {                                                                                                \
+    if ((cpp_params_object)->cpp_field) {                                                          \
+      (fir_params_object).field = @((cpp_params_object)->cpp_field);                               \
+    }                                                                                              \
   }
 
 // Construct FIRDynamicLinkComponents and populate GeneratedDynamicLink from DynamicLinkComponents.
@@ -111,11 +111,10 @@ static FIRDynamicLinkComponents* GetFIRComponentsAndGeneratedLink(
     return nil;
   }
   if (!components.domain_uri_prefix || !*components.domain_uri_prefix) {
-    generated_link->error =
-        std::string("Domain URI Prefix ") + kMissingFieldPostfix;
+    generated_link->error = std::string("Domain URI Prefix ") + kMissingFieldPostfix;
     return nil;
   }
-  NSURL *link_url = EncodeUrlFromString(components.link);
+  NSURL* link_url = EncodeUrlFromString(components.link);
   if (!link_url) {
     generated_link->error = kUrlEncodingError;
     return nil;
@@ -172,8 +171,8 @@ static FIRDynamicLinkComponents* GetFIRComponentsAndGeneratedLink(
     auto* cpp_params = components.android_parameters;
     if (cpp_params) {
       if (!cpp_params->package_name) {
-        generated_link->error = std::string("Android parameters package name ") +
-            kMissingFieldPostfix;
+        generated_link->error =
+            std::string("Android parameters package name ") + kMissingFieldPostfix;
         return nil;
       }
       FIRDynamicLinkAndroidParameters* fir_params =
@@ -232,75 +231,68 @@ static FIRDynamicLinkComponentsOptions* ToFIRDynamicLinkComponentsOptions(
 }
 
 // Generate a short link from a long dynamic link.
-static Future<GeneratedDynamicLink> GetShortLink(NSURL *long_link_url,
+static Future<GeneratedDynamicLink> GetShortLink(NSURL* long_link_url,
                                                  const GeneratedDynamicLink& generated_link,
                                                  const DynamicLinkOptions& dynamic_link_options) {
-  FIREBASE_ASSERT_RETURN(Future<GeneratedDynamicLink>(),
-                         internal::IsInitialized());
+  FIREBASE_ASSERT_RETURN(Future<GeneratedDynamicLink>(), internal::IsInitialized());
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   const SafeFutureHandle<GeneratedDynamicLink> handle =
       api->SafeAlloc<GeneratedDynamicLink>(kDynamicLinksFnGetShortLink);
   if (long_link_url) {
     GeneratedDynamicLink* output_generated_link = new GeneratedDynamicLink();
     *output_generated_link = generated_link;
-    [FIRDynamicLinkComponents shortenURL:long_link_url
-                                 options:ToFIRDynamicLinkComponentsOptions(dynamic_link_options)
-                              completion:^(NSURL * _Nullable shortURL,
-                                           NSArray<NSString *> * _Nullable warnings,
-                                           NSError * _Nullable error) {
-        int error_code = kErrorCodeSuccess;
-        if (error) {
-          error_code = error.code ? static_cast<int>(error.code) : kErrorCodeFailed;
-          output_generated_link->error = util::NSStringToString(error.localizedDescription);
-        } else {
-          if (warnings) {
-            for (NSString* warning in warnings) {
-              output_generated_link->warnings.push_back(warning.UTF8String);
+    [FIRDynamicLinkComponents
+        shortenURL:long_link_url
+           options:ToFIRDynamicLinkComponentsOptions(dynamic_link_options)
+        completion:^(NSURL* _Nullable shortURL, NSArray<NSString*>* _Nullable warnings,
+                     NSError* _Nullable error) {
+          int error_code = kErrorCodeSuccess;
+          if (error) {
+            error_code = error.code ? static_cast<int>(error.code) : kErrorCodeFailed;
+            output_generated_link->error = util::NSStringToString(error.localizedDescription);
+          } else {
+            if (warnings) {
+              for (NSString* warning in warnings) {
+                output_generated_link->warnings.push_back(warning.UTF8String);
+              }
+            }
+            if (shortURL) {
+              output_generated_link->url = util::NSStringToString(shortURL.absoluteString);
+            } else {
+              error_code = kErrorCodeFailed;
+              output_generated_link->error =
+                  std::string("Failed to shorten link ") + output_generated_link->url;
             }
           }
-          if (shortURL) {
-            output_generated_link->url = util::NSStringToString(shortURL.absoluteString);
-          } else {
-            error_code = kErrorCodeFailed;
-            output_generated_link->error = std::string("Failed to shorten link ") +
-                output_generated_link->url;
-          }
-        }
-        FutureData::Get()->api()->CompleteWithResult(
-            handle, error_code, output_generated_link->error.c_str(), *output_generated_link);
-        delete output_generated_link;
-      }];
+          FutureData::Get()->api()->CompleteWithResult(
+              handle, error_code, output_generated_link->error.c_str(), *output_generated_link);
+          delete output_generated_link;
+        }];
   } else {
-    api->CompleteWithResult(handle, kErrorCodeFailed, generated_link.error.c_str(),
-                            generated_link);
+    api->CompleteWithResult(handle, kErrorCodeFailed, generated_link.error.c_str(), generated_link);
   }
   return MakeFuture(api, handle);
 }
 
-Future<GeneratedDynamicLink> GetShortLink(
-    const DynamicLinkComponents& components,
-    const DynamicLinkOptions& dynamic_link_options) {
-  FIREBASE_ASSERT_RETURN(Future<GeneratedDynamicLink>(),
-                         internal::IsInitialized());
+Future<GeneratedDynamicLink> GetShortLink(const DynamicLinkComponents& components,
+                                          const DynamicLinkOptions& dynamic_link_options) {
+  FIREBASE_ASSERT_RETURN(Future<GeneratedDynamicLink>(), internal::IsInitialized());
   GeneratedDynamicLink generated_link;
-  FIRDynamicLinkComponents* fir_components = GetFIRComponentsAndGeneratedLink(components,
-                                                                              &generated_link);
+  FIRDynamicLinkComponents* fir_components =
+      GetFIRComponentsAndGeneratedLink(components, &generated_link);
   return GetShortLink(fir_components ? fir_components.url : nil, generated_link,
                       dynamic_link_options);
 }
 
-Future<GeneratedDynamicLink> GetShortLink(
-    const DynamicLinkComponents& components) {
+Future<GeneratedDynamicLink> GetShortLink(const DynamicLinkComponents& components) {
   return GetShortLink(components, DynamicLinkOptions());
 }
 
-Future<GeneratedDynamicLink> GetShortLink(
-    const char* long_dynamic_link,
-    const DynamicLinkOptions& dynamic_link_options) {
-  FIREBASE_ASSERT_RETURN(Future<GeneratedDynamicLink>(),
-                         internal::IsInitialized());
+Future<GeneratedDynamicLink> GetShortLink(const char* long_dynamic_link,
+                                          const DynamicLinkOptions& dynamic_link_options) {
+  FIREBASE_ASSERT_RETURN(Future<GeneratedDynamicLink>(), internal::IsInitialized());
   GeneratedDynamicLink generated_link;
-  NSURL *link_url = EncodeUrlFromString(long_dynamic_link);
+  NSURL* link_url = EncodeUrlFromString(long_dynamic_link);
   if (!link_url) generated_link.error = kUrlEncodingError;
   return GetShortLink(link_url, generated_link, dynamic_link_options);
 }
@@ -310,8 +302,7 @@ Future<GeneratedDynamicLink> GetShortLink(const char* long_dynamic_link) {
 }
 
 Future<GeneratedDynamicLink> GetShortLinkLastResult() {
-  FIREBASE_ASSERT_RETURN(Future<GeneratedDynamicLink>(),
-                         internal::IsInitialized());
+  FIREBASE_ASSERT_RETURN(Future<GeneratedDynamicLink>(), internal::IsInitialized());
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   return static_cast<const Future<GeneratedDynamicLink>&>(
       api->LastResult(kDynamicLinksFnGetShortLink));
