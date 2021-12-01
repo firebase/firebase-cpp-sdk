@@ -200,8 +200,8 @@ NSMutableArray *StringUnorderedSetToNSMutableArray(
 
 // Convert a NSArray into a vector of strings.  Asserts if a non NSString
 // object is found in the array.
-void NSArrayOfNSStringToVectorOfString(NSArray* array,
-    std::vector<std::string>* string_vector);
+void NSArrayOfNSStringToVectorOfString(NSArray *array,
+                                       std::vector<std::string> *string_vector);
 
 // Convert a string map to NSDictionary.
 NSDictionary *StringMapToNSDictionary(

@@ -679,10 +679,10 @@ jobject StdVectorToJavaList(JNIEnv* env,
   return java_list;
 }
 
-// Converts a `std::unordered_set<std::string>` to a `java.util.ArrayList<String>`
-// Returns a local ref to a List.
-jobject StdUnorderedSetToJavaList(JNIEnv* env,
-                            const std::unordered_set<std::string>& string_set) {
+// Converts a `std::unordered_set<std::string>` to a
+// `java.util.ArrayList<String>` Returns a local ref to a List.
+jobject StdUnorderedSetToJavaList(
+    JNIEnv* env, const std::unordered_set<std::string>& string_set) {
   jobject java_list =
       env->NewObject(array_list::GetClass(),
                      array_list::GetMethodId(array_list::kConstructor));
