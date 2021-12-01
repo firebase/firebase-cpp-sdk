@@ -77,10 +77,12 @@ jobs:
             fi
             # iOS: Update Firestore external version to match Firestore Cocoapod version.
             firestore_version=$(grep "pod 'Firebase/Firestore'" ios_pod/Podfile | sed "s/.*'\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)'.*/\1/")
+            echo "Setting Firestore external version to ${firestore_version}"
             sed -i~ "s/^set(version [^)]*)/set(version CocoaPods-${firestore_version})/i" cmake/external/firestore.cmake
             # iOS: Update Analytics header files, used for generating constants.
             analytics_version=$(grep "pod 'Firebase/Analytics'" ios_pod/Podfile | sed "s/.*'\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)'.*/\1/")
             if [[ "$(uname)" == "Darwin"* ]]; then
+              echo "Updating Analytics iOS headers from version ${analytics_version}"
               # Unfortunately we can't just download these headers from GitHub, as
               # Analytics is closed-source. If it becomes open-source, we could just
               # download the header files from the iOS SDK's release branch. So instead,
