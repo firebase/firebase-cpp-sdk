@@ -111,7 +111,7 @@ jobs:
                 # Add a note to each file about its source.
                 sed -i~ 's|^/// @file|// Copied from Firebase Analytics iOS SDK '${analytics_version}'.\n\n/// @file|' "${ios_header}"
                 rm -f "${ios_header}~" # remove backup file that sed generated
-                ../../scripts/gha/format_code.py --f "${ios_header}"
+                python ../../scripts/format_code.py --f "${ios_header}"
               done
               cd -
               rm -rf "${podtmp}"
