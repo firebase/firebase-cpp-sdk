@@ -62,7 +62,7 @@ jobs:
       apis: ${{ steps.matrix_config.outputs.apis }}
       mobile_test_on: ${{ steps.matrix_config.outputs.mobile_test_on }}
       android_device: ${{ steps.matrix_config.outputs.android_device }}
-      xcode_version: fromJson(${{ steps.matrix_config.outputs.xcode_version }})
+      xcode_version: ${{ steps.matrix_config.outputs.xcode_version }}
       ios_device: ${{ steps.matrix_config.outputs.ios_device }}
       tvos_device: ${{ steps.matrix_config.outputs.tvos_device }}
     steps:
@@ -212,7 +212,7 @@ jobs:
     steps:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
-        run: sudo xcode-select -s /Applications/Xcode_${{ needs.check_and_prepare.xcode_version }}.app/Contents/Developer
+        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.xcode_version)[0] }}.app/Contents/Developer
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
@@ -394,7 +394,7 @@ jobs:
     steps:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
-        run: sudo xcode-select -s /Applications/Xcode_${{ needs.check_and_prepare.xcode_version }}.app/Contents/Developer
+        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.xcode_version)[0] }}.app/Contents/Developer
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
