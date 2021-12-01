@@ -630,6 +630,9 @@ jobs:
     strategy:
       fail-fast: false
     steps:
+      - name: setup Xcode version (macos)
+        if: runner.os == 'macOS'
+        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Contents/Developer
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
