@@ -1,3 +1,4 @@
+// Copyright 2018 Google LLC
 
 // Copied from Firebase Analytics iOS SDK 8.10.0.
 
