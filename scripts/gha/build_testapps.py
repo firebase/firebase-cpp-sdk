@@ -114,6 +114,8 @@ _APPLE_SDK_DEVICE = "real"
 _APPLE_SDK_SIMULATOR = "virtual"
 _SUPPORTED_APPLE_SDK = (_APPLE_SDK_DEVICE, _APPLE_SDK_SIMULATOR)
 
+_DEFAULT_RUN_TIMEOUT_SECONDS = 4800  # 1 hour 20 min
+
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string(
@@ -637,7 +639,7 @@ def _run_setup_script(root_dir, testapp_dir):
   _run([sys.executable, script_path, testapp_dir])
 
 
-def _run(args, timeout=2400, capture_output=False, text=None, check=True):
+def _run(args, timeout=_DEFAULT_RUN_TIMEOUT_SECONDS, capture_output=False, text=None, check=True):
   """Executes a command in a subprocess."""
   logging.info("Running in subprocess: %s", " ".join(args))
   return subprocess.run(
