@@ -109,7 +109,7 @@ jobs:
                 # Each file in this directory matches a file in the Analytics iOS SDK.
                 cp -vf "${podtmp}/${header_dir}/${ios_header}" .
                 # If the file doesn't have a Google copyright, add one.
-                if ! grep -q '^// Copyright ' "${ios_header}"; then
+                if ! grep -q "^// Copyright [0-9]* Google LLC" "${ios_header}"; then
                   copyright_line="// Copyright $(date +%Y) Google LLC\n"
                 else
                   copyright_line=
