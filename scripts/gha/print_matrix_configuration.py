@@ -173,7 +173,7 @@ TEST_DEVICES = {
   "simulator_min": {"type": "virtual", "name":"iPhone 6", "version":"11.4"},
   "simulator_target": {"type": "virtual", "name":"iPhone 8", "version":"12.0"},
   "simulator_latest": {"type": "virtual", "name":"iPhone 11", "version":"14.4"},
-  "tvos_simulator": {"type": "virtual", "name":"Apple TV", "version":"14.0"},
+  "tvos_simulator": {"type": "virtual", "name":"Apple TV", "version":"14.3"},
 }
  
 
