@@ -13,6 +13,7 @@ on:
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
   GITHUB_TOKEN: ${{ github.token }}
+  xcodeVersion: "12.4"  # Only affects Mac runners, and only for prerequisites.
 
 jobs:
   prepare_matrix:
@@ -46,6 +47,10 @@ jobs:
         architecture: ${{ fromJson(needs.prepare_matrix.outputs.matrix_architecture) }}
         python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
     steps:
+      - name: setup Xcode version (macos)
+        if: runner.os == 'macOS'
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+
       - name: Store git credentials for all git commands
         # Forces all git commands to use authenticated https, to prevent throttling.
         shell: bash
