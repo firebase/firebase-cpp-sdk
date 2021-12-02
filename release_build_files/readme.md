@@ -572,16 +572,18 @@ code.
     -   General: Fixed a data race that could manifest as null pointer
         dereference in `FutureBase::Release()`.
         ([#747](https://github.com/firebase/firebase-cpp-sdk/pull/747))
+    -   General (iOS): iOS SDKs are now built using Xcode 12.4.
+    -   General (Desktop): macOS SDKs are now built using Xcode 12.4.
     -   Auth (Desktop): Fixed a crash in `error_code()` when a request
         is cancelled or times out.
         ([#737](https://github.com/firebase/firebase-cpp-sdk/issues/737))
+    -   Firestore: Fix "unaligned pointers" build error on macOS Monterey
+        ([#712](https://github.com/firebase/firebase-cpp-sdk/issues/712)).
     -   Messaging (Android): Fixed crash during termination.
         ([#739](https://github.com/firebase/firebase-cpp-sdk/pull/739))
         ([#745](https://github.com/firebase/firebase-cpp-sdk/pull/745))
     -   Messaging (Android): Fixed crash during initialization.
         ([#760](https://github.com/firebase/firebase-cpp-sdk/pull/760))
-    -   General (iOS): iOS SDKs are now built using Xcode 12.4.
-    -   General (Desktop): macOS SDKs are now built using Xcode 12.4.
 
 
 ### 8.7.0
