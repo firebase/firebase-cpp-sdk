@@ -76,12 +76,12 @@ PARAMETERS = {
       "build_type": ["Release", "Debug"],
       "architecture": ["x64", "x86", "arm64"],
       "msvc_runtime": ["static","dynamic"],
-      "xcode_version": ["12.2"],
+      "xcode_version": ["12.4"],
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
         "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
-        "xcode_version": ["11.7", "12.2", "12.5"],
+        "xcode_version": ["11.7", "12.4", "12.5.1"],
       }
     }
   },
@@ -112,7 +112,7 @@ PARAMETERS = {
       "msvc_runtime": ["dynamic"],
       "cpp_compiler_windows": ["VisualStudio2019"],
       "cpp_compiler_linux": ["clang-11.0"],
-      "xcode_version": ["12"],
+      "xcode_version": ["12.4"],  # only the first one is used
       "ndk_version": ["r22b"],
       "platform_version": ["28"],
       "build_tools_version": ["28.0.3"],
@@ -138,10 +138,10 @@ PARAMETERS = {
 
   "ios": {
     "matrix": {
-      "xcode_version": ["12"],
+      "xcode_version": ["12.4"],
 
       EXPANDED_KEY: {
-        "xcode_version": ["12", "12.4"]
+        "xcode_version": ["12.4", "12.5.1"]
       }
     }
   },
@@ -173,7 +173,7 @@ TEST_DEVICES = {
   "simulator_min": {"type": "virtual", "name":"iPhone 6", "version":"11.4"},
   "simulator_target": {"type": "virtual", "name":"iPhone 8", "version":"12.0"},
   "simulator_latest": {"type": "virtual", "name":"iPhone 11", "version":"14.4"},
-  "tvos_simulator": {"type": "virtual", "name":"Apple TV", "version":"14.0"},
+  "tvos_simulator": {"type": "virtual", "name":"Apple TV", "version":"14.3"},
 }
  
 
