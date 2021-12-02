@@ -25,7 +25,7 @@ env:
 jobs:
   update_dependencies:
     name: update-deps
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - name: Get token for firebase-workflow-trigger
         uses: tibdex/github-app-token@v1
@@ -77,7 +77,45 @@ jobs:
             fi
             # iOS: Update Firestore external version to match Firestore Cocoapod version.
             firestore_version=$(grep "pod 'Firebase/Firestore'" ios_pod/Podfile | sed "s/.*'\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)'.*/\1/")
+            echo "Setting Firestore external version to ${firestore_version}"
             sed -i~ "s/^set(version [^)]*)/set(version CocoaPods-${firestore_version})/i" cmake/external/firestore.cmake
+            # iOS: Update Analytics header files, used for generating constants.
+            analytics_version=$(grep "pod 'Firebase/Analytics'" ios_pod/Podfile | sed "s/.*'\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)'.*/\1/")
+            if [[ "$(uname)" == "Darwin"* ]]; then
+              echo "Updating Analytics iOS headers from version ${analytics_version}"
+              # Unfortunately we can't just download these headers from GitHub, as
+              # Analytics is closed-source. If it becomes open-source, we could just
+              # download the header files from the iOS SDK's release branch. So instead,
+              # download the Firebase Analytics cocoapod (via a stub project) and get the
+              # header from there. This will only work on macOS.
+              podtmp="$(mktemp -d)"
+              cd "${podtmp}"
+              # Generate a Podfile for Firebase/Analytics. Use the Specs.git
+              # source to avoid any propagation delays due to CocoaPods mirror.
+              echo "source 'https://github.com/CocoaPods/Specs.git'" > Podfile
+              echo "platform :ios, '14.0'" >> Podfile
+              echo "pod 'Firebase/Analytics', '${analytics_version}'" >> Podfile
+              pod repo update
+              pod install || true # ignore error since there is no Xcode project
+              declare -a header_dirs
+              # Get all of the framework header directories from the xcframework.
+              header_dirs=(Pods/FirebaseAnalytics/Frameworks/FirebaseAnalytics.xcframework/*/FirebaseAnalytics.framework/Headers)
+              # Just use the first directory found, the headers should be the same across
+              # all of the frameworks.
+              header_dir="${header_dirs[0]}"
+              cd -
+              cd analytics/ios_headers
+              for ios_header in *.h; do
+                # Each file in this directory matches a file in the Analytics iOS SDK.
+                cp -vf "${podtmp}/${header_dir}/${ios_header}" .
+                # Add a note to each file about its source.
+                sed -i~ 's|^/// @file|// Copied from Firebase Analytics iOS SDK '"${analytics_version}"'.\n\n/// @file|' "${ios_header}"
+                rm -f "${ios_header}~" # remove backup file that sed generated
+                python ../../scripts/format_code.py --f "${ios_header}"
+              done
+              cd -
+              rm -rf "${podtmp}"
+            fi
           elif [[ ${{ github.event.inputs.updateAndroid }} -eq 1 ]]; then
             # Update Android only
             echo "Updating Android dependencies only"
