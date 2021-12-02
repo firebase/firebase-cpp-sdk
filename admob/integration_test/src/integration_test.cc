@@ -121,7 +121,7 @@ static const char* kAdNetworkExtrasInvalidClassName = "abc123321cba";
 static const char* kContentUrl = "http://www.firebase.com";
 
 static const std::vector<std::string> kNeighboringContentURLs = {
-    "https://test_url1.com", "https://test_url2.com", "https://test_url3.com"};
+    "test_url1", "test_url2", "test_url3"};
 
 using app_framework::LogDebug;
 using app_framework::ProcessEvents;
