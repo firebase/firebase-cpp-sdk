@@ -49,6 +49,7 @@ from absl import flags
 from absl import logging
 from print_matrix_configuration import PARAMETERS
 from print_matrix_configuration import BUILD_CONFIGS
+from print_matrix_configuration import TEST_DEVICES
 
 import glob
 import re
@@ -355,12 +356,15 @@ def combine_config(config, platform, k):
     # config_name = test_device here
     k = -1
   config_name = BUILD_CONFIGS[platform][k]
-  config_value = PARAMETERS["integration_tests"]["matrix"][config_name]
+  if PARAMETERS["integration_tests"]["matrix"]["expanded"].get(config_name):
+    config_value = PARAMETERS["integration_tests"]["matrix"]["expanded"][config_name]
+  else:
+    config_value = PARAMETERS["integration_tests"]["matrix"][config_name]
   if len(config_value) > 1 and len(config) == len(config_value):
     config = ["All %s" % config_name]
   elif config_name == "ios_device":
-    ftl_devices = {"ios_min", "ios_target", "ios_latest"}
-    simulators = {"simulator_min", "simulator_target", "simulator_latest"}
+    ftl_devices = set(filter(lambda device: TEST_DEVICES.get(device).get("type") in "real", config_value))
+    simulators = set(filter(lambda device: TEST_DEVICES.get(device).get("type") in "virtual", config_value))
     if ftl_devices.issubset(set(config)):
       config.insert(0, "All FTL Devices")
       config = [x for x in config if (x not in ftl_devices)]
@@ -368,8 +372,8 @@ def combine_config(config, platform, k):
       config.insert(0, "All Simulators")
       config = [x for x in config if (x not in simulators)]
   elif config_name == "android_device":
-    ftl_devices = {"android_min", "android_target", "android_latest"}
-    emulators = {"emulator_min", "emulator_target", "emulator_latest"}
+    ftl_devices = set(filter(lambda device: TEST_DEVICES.get(device).get("type") in "real", config_value))
+    emulators = set(filter(lambda device: TEST_DEVICES.get(device).get("type") in "virtual", config_value))
     if ftl_devices.issubset(set(config)):
       config.insert(0, "All FTL Devices")
       config = [x for x in config if (x not in ftl_devices)]
