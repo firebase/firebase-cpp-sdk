@@ -284,7 +284,7 @@ BOOL InvitesIosStartup::ContinueUserActivity(UIApplication *application,
 // http://www.opensource.apple.com/source/objc4/objc4-274/runtime/objc-runtime.m)
 @implementation UIApplication (FIRFBI)
 + (void)load {
-  ::firebase::LogDebug("Loading UIApplication FIRFBI category");
+  NSLog(@"Loading UIApplication FIRFBI category");
   ::firebase::util::ForEachAppDelegateClass(^(Class clazz) {
     ::firebase::invites::HookAppDelegateMethods(clazz);
   });
