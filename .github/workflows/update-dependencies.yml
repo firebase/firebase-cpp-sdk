@@ -109,7 +109,7 @@ jobs:
                 # Each file in this directory matches a file in the Analytics iOS SDK.
                 cp -vf "${podtmp}/${header_dir}/${ios_header}" .
                 # Add a note to each file about its source.
-                sed -i~ 's|^/// @file|\n// Copied from Firebase Analytics iOS SDK '"${analytics_version}"'.\n\n/// @file|' "${ios_header}"
+                sed -i~ 's|^/// @file|// Copyright '"$(date +%Y)"' Google LLC\n\n// Copied from Firebase Analytics iOS SDK '"${analytics_version}"'.\n\n/// @file|' "${ios_header}"
                 rm -f "${ios_header}~" # remove backup file that sed generated
                 python ../../scripts/format_code.py --f "${ios_header}"
               done
