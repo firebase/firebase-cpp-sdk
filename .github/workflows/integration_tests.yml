@@ -740,7 +740,9 @@ jobs:
         os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
         ssl_variant: ${{ fromJson(needs.check_and_prepare.outputs.matrix_ssl) }}
     steps:
-      - uses: actions/checkout@v2
+      - name: setup Xcode version (macos)
+        if: runner.os == 'macOS'
+        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Cont      - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download Desktop integration tests artifact
@@ -816,7 +818,9 @@ jobs:
         build_os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
         android_device: ${{ fromJson(needs.check_and_prepare.outputs.android_device) }}
     steps:
-      - uses: actions/checkout@v2
+      - name: setup Xcode version (macos)
+        if: runner.os == 'macOS'
+        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Cont      - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download Android integration tests artifact
@@ -911,7 +915,9 @@ jobs:
       matrix:
         ios_device: ${{ fromJson(needs.check_and_prepare.outputs.ios_device) }}
     steps:
-      - uses: actions/checkout@v2
+      - name: setup Xcode version (macos)
+        if: runner.os == 'macOS'
+        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Cont      - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download iOS integration tests artifact
@@ -1007,7 +1013,9 @@ jobs:
       matrix:
         tvos_device: ${{ fromJson(needs.check_and_prepare.outputs.tvos_device) }}
     steps:
-      - uses: actions/checkout@v2
+      - name: setup Xcode version (macos)
+        if: runner.os == 'macOS'
+        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Cont      - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download tvOS integration tests artifact
