@@ -361,24 +361,24 @@ def combine_config(config, platform, k):
   else:
     config_value = PARAMETERS["integration_tests"]["matrix"][config_name]
   if len(config_value) > 1 and len(config) == len(config_value):
-    config = ["All %s" % config_name]
+    config = ["All %d %s" % (len(config_value), config_name)]
   elif config_name == "ios_device":
     ftl_devices = set(filter(lambda device: TEST_DEVICES.get(device).get("type") in "real", config_value))
     simulators = set(filter(lambda device: TEST_DEVICES.get(device).get("type") in "virtual", config_value))
     if ftl_devices.issubset(set(config)):
-      config.insert(0, "All FTL Devices")
+      config.insert(0, "All %d FTL Devices" % len(ftl_devices))
       config = [x for x in config if (x not in ftl_devices)]
     elif simulators.issubset(set(config)):
-      config.insert(0, "All Simulators")
+      config.insert(0, "All %d Simulators" % len(simulators))
       config = [x for x in config if (x not in simulators)]
   elif config_name == "android_device":
     ftl_devices = set(filter(lambda device: TEST_DEVICES.get(device).get("type") in "real", config_value))
     emulators = set(filter(lambda device: TEST_DEVICES.get(device).get("type") in "virtual", config_value))
     if ftl_devices.issubset(set(config)):
-      config.insert(0, "All FTL Devices")
+      config.insert(0, "All %d FTL Devices" % len(ftl_devices))
       config = [x for x in config if (x not in ftl_devices)]
     elif emulators.issubset(set(config)):
-      config.insert(0, "All Emulators")
+      config.insert(0, "All %d Emulators" % len(emulators))
       config = [x for x in config if (x not in emulators)]
 
   return config
