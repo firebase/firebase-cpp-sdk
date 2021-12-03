@@ -70,6 +70,13 @@ void FirebaseAnalyticsTest::TearDownTestSuite() {
   firebase::analytics::Terminate();
   delete shared_app_;
   shared_app_ = nullptr;
+
+  // The Analytics integration test is too fast for FTL, so pause a few seconds here.
+  ProcessEvents(1000);
+  ProcessEvents(1000);
+  ProcessEvents(1000);
+  ProcessEvents(1000);
+  ProcessEvents(1000);
 }
 
 TEST_F(FirebaseAnalyticsTest, TestSetCollectionEnabled) {
