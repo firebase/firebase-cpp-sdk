@@ -140,7 +140,7 @@ Firebase Realtime Database | libfirebase_database.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics:20.0.0
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-database:20.0.2
+|                          | com.google.firebase:firebase-database:20.0.3
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-auth:21.0.1
 |                          | (Maven package)
@@ -180,46 +180,46 @@ Feature                    | Required Frameworks and Cocoapods
 -------------------------- | ---------------------------------------
 Firebase AdMob             | firebase_admob.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Analytics Cocoapod (8.9.1)
+|                          | Firebase/Analytics Cocoapod (8.10.0)
 |                          | Google-Mobile-Ads-SDK Cocoapod (7.69.0-cppsdk)
 Firebase Analytics         | firebase_analytics.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Analytics Cocoapod (8.9.1)
+|                          | Firebase/Analytics Cocoapod (8.10.0)
 Firebase Authentication    | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Auth Cocoapod (8.9.1)
+|                          | Firebase/Auth Cocoapod (8.10.0)
 Firebase Dynamic Links     | firebase_dynamic_links.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/DynamicLinks Cocoapod (8.9.1)
+|                          | Firebase/DynamicLinks Cocoapod (8.10.0)
 Cloud Firestore            | firebase_firestore.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Firestore Cocoapod (8.9.1)
-|                          | Firebase/Auth Cocoapod (8.9.1)
+|                          | Firebase/Firestore Cocoapod (8.10.0)
+|                          | Firebase/Auth Cocoapod (8.10.0)
 Firebase Functions         | firebase_functions.xcframework
 |                          | firebase_auth.xcframework (optional)
 |                          | firebase.xcframework
-|                          | Firebase/Functions Cocoapod (8.9.1)
-|                          | Firebase/Auth Cocoapod (8.9.1)
+|                          | Firebase/Functions Cocoapod (8.10.0)
+|                          | Firebase/Auth Cocoapod (8.10.0)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
-|                          | FirebaseInstallations Cocoapod (8.9.0)
+|                          | FirebaseInstallations Cocoapod (8.10.0)
 Firebase Cloud Messaging   | firebase_messaging.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Messaging Cocoapod (8.9.1)
+|                          | Firebase/Messaging Cocoapod (8.10.0)
 Firebase Realtime Database | firebase_database.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Database Cocoapod (8.9.1)
-|                          | Firebase/Auth Cocoapod (8.9.1)
+|                          | Firebase/Database Cocoapod (8.10.0)
+|                          | Firebase/Auth Cocoapod (8.10.0)
 Firebase Remote Config     | firebase_remote_config.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/RemoteConfig Cocoapod (8.9.1)
+|                          | Firebase/RemoteConfig Cocoapod (8.10.0)
 Firebase Storage           | firebase_storage.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Storage Cocoapod (8.9.1)
-|                          | Firebase/Auth Cocoapod (8.9.1)
+|                          | Firebase/Storage Cocoapod (8.10.0)
+|                          | Firebase/Auth Cocoapod (8.10.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
 the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
@@ -240,46 +240,46 @@ Feature                    | Required Libraries and Cocoapods
 -------------------------- | -----------------------------------------
 Firebase AdMob             | libfirebase_admob.a
 |                          | libfirebase_app.a
-|                          | Firebase/Analytics Cocoapod (8.9.1)
+|                          | Firebase/Analytics Cocoapod (8.10.0)
 |                          | Google-Mobile-Ads-SDK Cocoapod (7.69.0-cppsdk)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
-|                          | Firebase/Analytics Cocoapod (8.9.1)
+|                          | Firebase/Analytics Cocoapod (8.10.0)
 Firebase Authentication    | libfirebase_auth.a
 |                          | libfirebase_app.a
-|                          | Firebase/Auth Cocoapod (8.9.1)
+|                          | Firebase/Auth Cocoapod (8.10.0)
 Firebase Dynamic Links     | libfirebase_dynamic_links.a
 |                          | libfirebase_app.a
-|                          | Firebase/DynamicLinks Cocoapod (8.9.1)
+|                          | Firebase/DynamicLinks Cocoapod (8.10.0)
 Cloud Firestore            | libfirebase_firestore.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Firestore Cocoapod (8.9.1)
-|                          | Firebase/Auth Cocoapod (8.9.1)
+|                          | Firebase/Firestore Cocoapod (8.10.0)
+|                          | Firebase/Auth Cocoapod (8.10.0)
 Firebase Functions         | libfirebase_functions.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a (optional)
-|                          | Firebase/Functions Cocoapod (8.9.1)
-|                          | Firebase/Auth Cocoapod (8.9.1)
+|                          | Firebase/Functions Cocoapod (8.10.0)
+|                          | Firebase/Auth Cocoapod (8.10.0)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
-|                          | FirebaseInstallations Cocoapod (8.9.0)
+|                          | FirebaseInstallations Cocoapod (8.10.0)
 Firebase Cloud Messaging   | libfirebase_messaging.a
 |                          | libfirebase_app.a
-|                          | Firebase/CloudMessaging Cocoapod (8.9.1)
+|                          | Firebase/CloudMessaging Cocoapod (8.10.0)
 Firebase Realtime Database | libfirebase_database.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Database Cocoapod (8.9.1)
-|                          | Firebase/Auth Cocoapod (8.9.1)
+|                          | Firebase/Database Cocoapod (8.10.0)
+|                          | Firebase/Auth Cocoapod (8.10.0)
 Firebase Remote Config     | libfirebase_remote_config.a
 |                          | libfirebase_app.a
-|                          | Firebase/RemoteConfig Cocoapod (8.9.1)
+|                          | Firebase/RemoteConfig Cocoapod (8.10.0)
 Firebase Storage           | libfirebase_storage.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Storage Cocoapod (8.9.1)
-|                          | Firebase/Auth Cocoapod (8.9.1)
+|                          | Firebase/Storage Cocoapod (8.10.0)
+|                          | Firebase/Auth Cocoapod (8.10.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
 the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
@@ -371,7 +371,7 @@ Firebase Installations (stub)   | firebase_installations.framework
 Firebase Cloud Messaging (stub) | firebase_messaging.framework
 |                               | firebase.framework
 
-The provided libraries have been tested using Xcode 12.2. When building C++
+The provided libraries have been tested using Xcode 12.4. When building C++
 desktop apps on OS X, you will need to link the `gssapi_krb5` and `pthread`
 system libraries, as well as the `CoreFoundation`, `Foundation`, `GSS`, and
 `Security` OS X system frameworks (consult your compiler documentation for more
@@ -569,18 +569,31 @@ code.
 ## Release Notes
 ### Next Release
 -   Changes
+    -   General (iOS): Fixed an intermittent crash on iOS 15 caused by
+        constructing C++ objects during Objective-C's `+load` method.
+	([#706](https://github.com/firebase/firebase-cpp-sdk/pull/706))
+	([#783](https://github.com/firebase/firebase-cpp-sdk/pull/783))
+
+### 8.8.0
+-   Changes
     -   General: Fixed a data race that could manifest as null pointer
         dereference in `FutureBase::Release()`.
         ([#747](https://github.com/firebase/firebase-cpp-sdk/pull/747))
+    -   General (iOS): iOS SDKs are now built using Xcode 12.4.
+    -   General (Desktop): macOS SDKs are now built using Xcode 12.4.
     -   Auth (Desktop): Fixed a crash in `error_code()` when a request
         is cancelled or times out.
         ([#737](https://github.com/firebase/firebase-cpp-sdk/issues/737))
+    -   Firestore: Fix "unaligned pointers" build error on macOS Monterey
+        ([#712](https://github.com/firebase/firebase-cpp-sdk/issues/712)).
     -   Messaging (Android): Fixed crash during termination.
         ([#739](https://github.com/firebase/firebase-cpp-sdk/pull/739))
         ([#745](https://github.com/firebase/firebase-cpp-sdk/pull/745))
     -   Messaging (Android): Fixed crash during initialization.
         ([#760](https://github.com/firebase/firebase-cpp-sdk/pull/760))
-
+    -   Remote Config (Desktop): Fixed cache expiration time value used by
+        `RemoteConfig::FetchAndActivate()`.
+        ([#767](https://github.com/firebase/firebase-cpp-sdk/pull/767))
 
 ### 8.7.0
 -   Changes

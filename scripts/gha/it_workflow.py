@@ -60,13 +60,17 @@ _LABEL_FAILED = "tests: failed"
 _LABEL_SUCCEED = "tests: succeeded"
 
 _COMMENT_TITLE_PROGESS = "### ⏳&nbsp; Integration test in progress...\n"
+_COMMENT_TITLE_PROGESS_FLAKY = "### Integration test with FLAKINESS (but still ⏳&nbsp; in progress)\n" 
 _COMMENT_TITLE_PROGESS_FAIL = "### ❌&nbsp; Integration test FAILED (but still ⏳&nbsp; in progress)\n" 
+_COMMENT_TITLE_FLAKY = "### Integration test with FLAKINESS (succeeded after retry)\n"
 _COMMENT_TITLE_FAIL = "### ❌&nbsp; Integration test FAILED\n"
 _COMMENT_TITLE_SUCCEED = "### ✅&nbsp; Integration test succeeded!\n"
-_COMMENT_TITLE_FAIL_SDK = "\n***\n### ❌&nbsp; Integration test FAILED (build against SDK)\n"
-_COMMENT_TITLE_SUCCEED_SDK = "\n***\n### ✅&nbsp; Integration test succeeded! (build against SDK)\n"
-_COMMENT_TITLE_FAIL_REPO = "### ❌&nbsp; Integration test FAILED (build against repo)\n"
-_COMMENT_TITLE_SUCCEED_REPO = "### ✅&nbsp; Integration test succeeded! (build against repo)\n"
+_COMMENT_TITLE_FLAKY_SDK = "\n***\n### [build against SDK] Integration test with FLAKINESS (succeeded after retry)\n"
+_COMMENT_TITLE_FAIL_SDK = "\n***\n### ❌&nbsp; [build against SDK] Integration test FAILED\n"
+_COMMENT_TITLE_SUCCEED_SDK = "\n***\n### ✅&nbsp; [build against SDK] Integration test succeeded!\n"
+_COMMENT_TITLE_FLAKY_REPO = "### [build against repo] Integration test with FLAKINESS (succeeded after retry)\n"
+_COMMENT_TITLE_FAIL_REPO = "### ❌&nbsp; [build against repo] Integration test FAILED\n"
+_COMMENT_TITLE_SUCCEED_REPO = "### ✅&nbsp; [build against repo] Integration test succeeded!\n"
 
 _COMMENT_FLAKY_TRACKER = "\n\nAdd flaky tests to **[go/fpl-cpp-flake-tracker](http://go/fpl-cpp-flake-tracker)**\n"
 
@@ -136,12 +140,19 @@ def test_start(token, issue_number, actor, commit, run_id):
 def test_progress(token, issue_number, actor, commit, run_id):
   """In PR, when some test failed, update failure info and 
   add label \"tests: failed\""""
-  log_summary = _get_summary_talbe(token, run_id)
-  if log_summary == 0:
+  success_or_only_flakiness, log_summary = _get_summary_table(token, run_id)
+  if success_or_only_flakiness and not log_summary:
+    # succeeded (without flakiness)
     return
   else:
-    github.add_label(token, issue_number, _LABEL_FAILED)
-    comment = (_COMMENT_TITLE_PROGESS_FAIL +
+    if success_or_only_flakiness:
+      # all failures/errors are due to flakiness (succeeded after retry)
+      title = _COMMENT_TITLE_PROGESS_FLAKY
+    else:
+      # failures/errors still exist after retry
+      title = _COMMENT_TITLE_PROGESS_FAIL
+      github.add_label(token, issue_number, _LABEL_FAILED)
+    comment = (title +
                _get_description(actor, commit, run_id) +
                log_summary +
                _COMMENT_FLAKY_TRACKER +
@@ -153,16 +164,24 @@ def test_end(token, issue_number, actor, commit, run_id, new_token):
   """In PR, when some test end, update Test Result Report and 
   update label: add \"tests: failed\" if test failed, add label
   \"tests: succeeded\" if test succeed"""
-  log_summary = _get_summary_talbe(token, run_id)
-  if log_summary == 0:
+  success_or_only_flakiness, log_summary = _get_summary_table(token, run_id)
+  if success_or_only_flakiness and not log_summary:
+    # succeeded (without flakiness)
     github.add_label(token, issue_number, _LABEL_SUCCEED)
     comment = (_COMMENT_TITLE_SUCCEED +
                _get_description(actor, commit, run_id) +
                _COMMENT_SUFFIX)
     _update_comment(token, issue_number, comment)
   else:
-    github.add_label(token, issue_number, _LABEL_FAILED)
-    comment = (_COMMENT_TITLE_FAIL +
+    if success_or_only_flakiness:
+      # all failures/errors are due to flakiness (succeeded after retry)
+      title = _COMMENT_TITLE_FLAKY
+      github.add_label(token, issue_number, _LABEL_SUCCEED)
+    else:
+      # failures/errors still exist after retry
+      title = _COMMENT_TITLE_FAIL
+      github.add_label(token, issue_number, _LABEL_FAILED)
+    comment = (title +
                _get_description(actor, commit, run_id) +
                log_summary +
                _COMMENT_FLAKY_TRACKER +
@@ -180,12 +199,18 @@ def test_report(token, actor, commit, run_id, build_against):
   issue_number = _get_issue_number(token, _REPORT_TITLE, _REPORT_LABEL)
   previous_comment = github.get_issue_body(token, issue_number)
   [previous_comment_repo, previous_comment_sdk] = previous_comment.split(_COMMENT_SUFFIX)
-  log_summary = _get_summary_talbe(token, run_id)
-  if log_summary == 0:
+  success_or_only_flakiness, log_summary = _get_summary_table(token, run_id)
+  if success_or_only_flakiness and not log_summary:
+    # succeeded (without flakiness)
     title = _COMMENT_TITLE_SUCCEED_REPO if build_against==_BUILD_AGAINST_REPO else _COMMENT_TITLE_SUCCEED_SDK
     comment = title + _get_description(actor, commit, run_id)
   else:
-    title = _COMMENT_TITLE_FAIL_REPO if build_against==_BUILD_AGAINST_REPO else _COMMENT_TITLE_FAIL_SDK
+    if success_or_only_flakiness:
+      # all failures/errors are due to flakiness (succeeded after retry)
+      title = _COMMENT_TITLE_FLAKY_REPO if build_against==_BUILD_AGAINST_REPO else _COMMENT_TITLE_FLAKY_SDK
+    else:
+      # failures/errors still exist after retry
+      title = _COMMENT_TITLE_FAIL_REPO if build_against==_BUILD_AGAINST_REPO else _COMMENT_TITLE_FAIL_SDK
     comment = title + _get_description(actor, commit, run_id) + log_summary + _COMMENT_FLAKY_TRACKER
   
   if build_against==_BUILD_AGAINST_REPO:
@@ -239,16 +264,10 @@ def _get_datetime():
   return pst_now.strftime("%a %b %e %H:%M %Z %G")
 
 
-def _get_summary_talbe(token, run_id):
+def _get_summary_table(token, run_id):
   """Test Result Report Body, which is failed test table with markdown format"""
-  # artifact_id only exist after workflow finishs running
-  # Thus, "down artifact" logic is in the workflow 
-  # artifact_id = _get_artifact_id(token, run_id, _LOG_ARTIFACT_NAME)
-  # artifact_path = _LOG_ARTIFACT_NAME + ".zip"
-  # github.download_artifact(token, artifact_id, artifact_path)
-  # shutil.unpack_archive(artifact_path, _LOG_OUTPUT_DIR)
-  summary_talbe = summarize.summarize_logs(dir=_LOG_OUTPUT_DIR, markdown=True)
-  return summary_talbe
+  # return (success_or_only_flakiness, failed_test_summary_table)
+  return summarize.summarize_logs(dir=_LOG_OUTPUT_DIR, markdown=True)
 
 
 def _get_artifact_id(token, run_id, name):

@@ -74,9 +74,13 @@ jobs:
             architecture: "x86"
           # Xcode excludes -- allow only one on osx and linux
           - os: ubuntu-latest
-            xcode_version: "12.4"
+            xcode_version: "11.7"
           - os: windows-latest
-            xcode_version: "12.4"
+            xcode_version: "11.7"
+          - os: ubuntu-latest
+            xcode_version: "12.5.1"
+          - os: windows-latest
+            xcode_version: "12.5.1"
           # arm64 is only for macos
           - os: ubuntu-latest
             architecture: "arm64"

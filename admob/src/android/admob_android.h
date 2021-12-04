@@ -38,6 +38,8 @@ namespace admob {
       "Lcom/google/android/gms/ads/AdRequest$Builder;"),                     \
   X(SetContentUrl, "setContentUrl",                                          \
       "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;"), \
+  X(SetNeighboringContentUrls, "setNeighboringContentUrls",                  \
+      "(Ljava/util/List;)Lcom/google/android/gms/ads/AdRequest$Builder;"),   \
   X(SetRequestAgent, "setRequestAgent",                                      \
       "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;")
 // clang-format on
