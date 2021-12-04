@@ -173,18 +173,17 @@ NSMutableArray *StringUnorderedSetToNSMutableArray(
 void NSArrayOfNSStringToVectorOfString(NSArray* array, std::vector<std::string>* string_vector) {
   string_vector->reserve(array.count);
   for (id object in array) {
-    if(![object isKindOfClass:[NSString class]]) {
+    if (![object isKindOfClass:[NSString class]]) {
       FIREBASE_ASSERT_MESSAGE(false, "Object in Array is not of type NSString");
     } else {
-      string_vector->push_back(NSStringToString((NSString*)object));
+      string_vector->push_back(NSStringToString((NSString *)object));
     }
   }
 }
 
-NSMutableArray* StdVectorToNSMutableArray(const std::vector<Variant>& vector) {
-  NSMutableArray* array =
-      [[NSMutableArray alloc] initWithCapacity:vector.size()];
-  for (auto& variant : vector) {
+NSMutableArray *StdVectorToNSMutableArray(const std::vector<Variant> &vector) {
+  NSMutableArray *array = [[NSMutableArray alloc] initWithCapacity:vector.size()];
+  for (auto &variant : vector) {
     [array addObject:VariantToId(variant)];
   }
   return array;

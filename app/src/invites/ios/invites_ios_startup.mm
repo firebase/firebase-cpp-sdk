@@ -284,7 +284,8 @@ BOOL InvitesIosStartup::ContinueUserActivity(UIApplication *application,
 // http://www.opensource.apple.com/source/objc4/objc4-274/runtime/objc-runtime.m)
 @implementation UIApplication (FIRFBI)
 + (void)load {
-  ::firebase::LogDebug("Loading UIApplication FIRFBI category");
+  // C++ constructors may not be called yet so call NSLog rather than LogDebug.
+  NSLog(@"Loading UIApplication category for Firebase App");
   ::firebase::util::ForEachAppDelegateClass(^(Class clazz) {
     ::firebase::invites::HookAppDelegateMethods(clazz);
   });
