@@ -22,6 +22,7 @@
 
 #include <map>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "app/src/assert.h"
@@ -816,6 +817,11 @@ std::string JObjectClassName(JNIEnv* env, jobject obj);
 // Returns a local ref to a List.
 jobject StdVectorToJavaList(JNIEnv* env,
                             const std::vector<std::string>& string_vector);
+
+// Converts a `std::unordered_set<std::string>` to a `java.util.ArrayList<String>`
+// Returns a local ref to a List.
+jobject StdUnorderedSetToJavaList(JNIEnv* env,
+                            const std::unordered_set<std::string>& string_set);
 
 // Converts an `std::map<const char*, const char*>` to a
 // `java.util.Map<String, String>`.

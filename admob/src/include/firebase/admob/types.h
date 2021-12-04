@@ -466,7 +466,7 @@ class AdRequest {
   /// if no content URL has been configured.
   const std::string& content_url() const { return content_url_; }
 
-  /// A Map of ad network adapters to their collection of extra parameters, as
+  /// A Map of adapter class names to their collection of extra parameters, as
   /// configured via @ref add_extra.
   const std::map<std::string, std::map<std::string, std::string> >& extras()
       const {
@@ -477,16 +477,23 @@ class AdRequest {
   /// @ref add_keyword.
   const std::unordered_set<std::string>& keywords() const { return keywords_; }
 
+  /// Returns the set of neighboring content URLs or an empty set if no URLs
+  /// were set via @ref add_neighboring_content_urls().
+  const std::unordered_set<std::string>& neighboring_content_urls() const {
+    return neighboring_content_urls_;
+  }
+
   /// Add a network extra for the associated ad_network.
   ///
   /// Appends an extra to the corresponding list of extras for the ad_network.
   /// Each ad network can have multiple extra strings.
   ///
-  /// @param[in] ad_network the ad network for which to add the extra.
+  /// @param[in] adapter_class_name the ad network adapter for which to add the
+  /// extra.
   /// @param[in] extra_key a key which will be passed to the corresponding ad
   /// network adapter.
   /// @param[in] extra_value the value associated with extra_key.
-  void add_extra(const char* ad_network, const char* extra_key,
+  void add_extra(const char* adapter_class_name, const char* extra_key,
                  const char* extra_value);
 
   /// Adds a keyword for targeting purposes.
@@ -504,10 +511,23 @@ class AdRequest {
   /// @param[in] content_url the url of the content being viewed.
   void set_content_url(const char* content_url);
 
+  /// Adds to the list of URLs which represent web content near an ad.
+  ///
+  /// Promotes brand safety and allows displayed ads to have an app level
+  /// rating (MA, T, PG, etc) that is more appropriate to neighboring content.
+  ///
+  /// Subsequent invocations append to the existing list.
+  ///
+  /// @param[in] neighboring_content_urls neighboring content URLs to be
+  /// attached to the existing neighboring content URLs.
+  void add_neighboring_content_urls(
+      const std::vector<std::string>& neighboring_content_urls);
+
  private:
   std::string content_url_;
   std::map<std::string, std::map<std::string, std::string> > extras_;
   std::unordered_set<std::string> keywords_;
+  std::unordered_set<std::string> neighboring_content_urls_;
 };
 
 /// Describes a reward credited to a user for interacting with a RewardedAd.

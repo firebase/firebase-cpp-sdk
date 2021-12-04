@@ -120,6 +120,9 @@ static const char* kAdNetworkExtrasInvalidClassName = "abc123321cba";
 
 static const char* kContentUrl = "http://www.firebase.com";
 
+static const std::vector<std::string> kNeighboringContentURLs = {
+    "test_url1", "test_url2", "test_url3"};
+
 using app_framework::LogDebug;
 using app_framework::ProcessEvents;
 
@@ -235,7 +238,11 @@ firebase::admob::AdRequest FirebaseAdMobTest::GetAdRequest() {
                       extras_iter->second.c_str());
   }
 
+  // Content URL
   request.set_content_url(kContentUrl);
+
+  // Neighboring Content URLs
+  request.add_neighboring_content_urls(kNeighboringContentURLs);
 
   return request;
 }
@@ -285,7 +292,7 @@ TEST_F(FirebaseAdMobTest, TestGetAdRequest) { GetAdRequest(); }
 TEST_F(FirebaseAdMobTest, TestGetAdRequestValues) {
   SKIP_TEST_ON_DESKTOP;
 
-  const firebase::admob::AdRequest request = GetAdRequest();
+  firebase::admob::AdRequest request = GetAdRequest();
 
   // Content URL.
   EXPECT_TRUE(request.content_url() == std::string(kContentUrl));
@@ -323,6 +330,16 @@ TEST_F(FirebaseAdMobTest, TestGetAdRequestValues) {
        ++keyword_iter) {
     EXPECT_TRUE(configured_keywords.find(*keyword_iter) !=
                 configured_keywords.end());
+  }
+
+  const std::unordered_set<std::string> configured_neighboring_content_urls =
+      request.neighboring_content_urls();
+  EXPECT_EQ(configured_neighboring_content_urls.size(),
+            kNeighboringContentURLs.size());
+  for (auto url_iter = kNeighboringContentURLs.begin();
+       url_iter != kNeighboringContentURLs.end(); ++url_iter) {
+    EXPECT_TRUE(configured_neighboring_content_urls.find(*url_iter) !=
+                configured_neighboring_content_urls.end());
   }
 }
 
