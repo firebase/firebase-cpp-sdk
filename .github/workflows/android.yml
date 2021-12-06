@@ -91,6 +91,17 @@ jobs:
           path: /tmp/android-ndk-r16b
           key: android-ndk-${{ matrix.os }}-r16b
 
+      - name: Check cached NDK
+        shell: bash
+        if: steps.cache_ndk.outputs.cache-hit != 'true'
+        run: |
+          # If the NDK failed to download from the cache, but there is a
+          # /tmp/android-ndk-r16b directory, it's incomplete, so remove it.
+          if [[ -d "/tmp/android-ndk-r16b" ]]; then
+            echo "Removing incomplete download of NDK"
+            rm -rf /tmp/android-ndk-r16b
+          fi
+
       - name: Update homebrew (avoid bintray errors)
         uses: nick-invision/retry@v2
         if: startsWith(matrix.os, 'macos')
