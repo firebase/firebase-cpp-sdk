@@ -145,7 +145,12 @@ jobs:
       with:
         python-version: ${{ env.pythonVersion }}
     - name: Install python deps
-      run: pip install -r scripts/gha/requirements.txt
+      uses: nick-invision/retry@v2
+      with:
+        timeout_minutes: 1
+        max_attempts: 3
+        shell: bash
+        command: pip install -r scripts/gha/requirements.txt
     - id: matrix_config
       run: |
         if [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "expanded" ]]; then 
@@ -260,30 +265,40 @@ jobs:
             # homebrew. This prevents errors arising from the shut down of
             # binutils, used by older version of homebrew for hosting packages.
             brew update
-      - name: Install SDK Desktop prerequisites
-        run: |
-          python scripts/gha/install_prereqs_desktop.py
-      - name: Prepare for integration tests
-        run: |
-          pip install -r scripts/gha/requirements.txt
-          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
+      - name: Install Desktop SDK & integration tests prerequisites
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 2
+          max_attempts: 3
+          command: |
+            python scripts/gha/install_prereqs_desktop.py
+            pip install -r scripts/gha/requirements.txt
+            python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
       - name: Install OpenSSL (Windows)
-        if: matrix.ssl_variant == 'openssl' &&
-            startsWith(matrix.os, 'windows')
-        run: |
-          choco install openssl -r
+        if: matrix.ssl_variant == 'openssl' && startsWith(matrix.os, 'windows')
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 4
+          max_attempts: 3
+          shell: bash
+          command: choco install openssl -r
       - name: Install OpenSSL (macOS)
-        if: matrix.ssl_variant == 'openssl' &&
-            startsWith(matrix.os, 'macos')
-        run: |
-          brew install openssl
-          # brew won't overwrite MacOS system default OpenSSL, so force it here.
-          echo "OPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1" >> $GITHUB_ENV
+        if: matrix.ssl_variant == 'openssl' && startsWith(matrix.os, 'macos')
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 2
+          max_attempts: 3
+          command: |
+            brew install openssl
+            # brew won't overwrite MacOS system default OpenSSL, so force it here.
+            echo "OPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1" >> $GITHUB_ENV
       - name: Install OpenSSL (Linux)
-        if: matrix.ssl_variant == 'openssl' &&
-            startsWith(matrix.os, 'ubuntu')
-        run: |
-          sudo apt install openssl
+        if: matrix.ssl_variant == 'openssl' && startsWith(matrix.os, 'ubuntu')
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 2
+          max_attempts: 3
+          command: sudo apt install openssl
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
@@ -429,14 +444,16 @@ jobs:
             # homebrew. This prevents errors arising from the shut down of
             # binutils, used by older version of homebrew for hosting packages.
             brew update
-      - name: Install SDK Android prerequisites
-        shell: bash
-        run: |
-          build_scripts/android/install_prereqs.sh
-      - name: Prepare for integration tests
-        run: |
-          pip install -r scripts/gha/requirements.txt
-          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
+      - name: Install Android SDK & integration tests prerequisites
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          shell: bash
+          command: |
+            build_scripts/android/install_prereqs.sh
+            pip install -r scripts/gha/requirements.txt
+            python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
@@ -544,12 +561,15 @@ jobs:
             # homebrew. This prevents errors arising from the shut down of
             # binutils, used by older version of homebrew for hosting packages.
             brew update
-      - name: Install SDK iOS prerequisites
-        run: build_scripts/ios/install_prereqs.sh
-      - name: Prepare for integration tests
-        run: |
-          pip install -r scripts/gha/requirements.txt
-          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
+      - name: Install iOS SDK & integration tests prerequisites
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 2
+          max_attempts: 3
+          command: |
+            build_scripts/ios/install_prereqs.sh
+            pip install -r scripts/gha/requirements.txt
+            python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
@@ -652,12 +672,15 @@ jobs:
             # homebrew. This prevents errors arising from the shut down of
             # binutils, used by older version of homebrew for hosting packages.
             brew update
-      - name: Install SDK tvOS prerequisites
-        run: build_scripts/tvos/install_prereqs.sh
-      - name: Prepare for integration tests
-        run: |
-          pip install -r scripts/gha/requirements.txt
-          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
+      - name: Install tvOS SDK & integration tests prerequisites
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 2
+          max_attempts: 3
+          command: |
+            build_scripts/tvos/install_prereqs.sh
+            pip install -r scripts/gha/requirements.txt
+            python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
@@ -763,9 +786,14 @@ jobs:
         run: |
           npm install -g firebase-tools
       - name: Setup integration test deps
-        run: |
-          pip install -r scripts/gha/requirements.txt
-          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 2
+          max_attempts: 3
+          shell: bash
+          command: |
+            pip install -r scripts/gha/requirements.txt
+            python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps
       - name: Run Desktop integration tests
         run: firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"'
         env:
@@ -835,7 +863,12 @@ jobs:
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
-        run: pip install -r scripts/gha/requirements.txt
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 1
+          max_attempts: 3
+          shell: bash
+          command: pip install -r scripts/gha/requirements.txt
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.android_device }} )"
@@ -933,7 +966,11 @@ jobs:
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
-        run: pip install -r scripts/gha/requirements.txt
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 1
+          max_attempts: 3
+          command: pip install -r scripts/gha/requirements.txt
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.ios_device }} )"
@@ -1032,7 +1069,11 @@ jobs:
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
-        run: pip install -r scripts/gha/requirements.txt
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 1
+          max_attempts: 3
+          command: pip install -r scripts/gha/requirements.txt
       - name: Setup Firebase Emulators
         run: |
           npm install -g firebase-tools
