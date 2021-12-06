@@ -93,7 +93,7 @@ jobs:
 
       - name: Check cached NDK
         shell: bash
-        if: !steps.cache_ndk.outputs.cache-hit
+        if: steps.cache_ndk.outputs.cache-hit != 'true'
         run: |
           # If the NDK failed to download from the cache, but there is a
           # /tmp/android-ndk-r16b directory, it's incomplete, so remove it.
