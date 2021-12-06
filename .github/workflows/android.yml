@@ -96,7 +96,7 @@ jobs:
         run: |
           # If the NDK failed to download from the cache, force it to download.
           # (build_scripts/android/install_prereqs.sh uses this env variable.)
-          if [[ {{ steps.cache_ndk.outputs.cache-hit }} -eq 0 ]]; then
+          if [[ ${{ steps.cache_ndk.outputs.cache-hit }} -eq 0 ]]; then
             echo "Removing incomplete download of NDK"
             rm -rf /tmp/android-ndk-r16b
           fi
