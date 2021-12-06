@@ -36,7 +36,9 @@ class MyActivity extends Activity {
     message.setAction(MessageForwardingService.ACTION_REMOTE_INTENT);
     message.putExtras(intent);
     message.setData(intent.getData());
-    startService(message);
+    // For older versions of Firebase C++ SDK (< 7.1.0), use `startService`.
+    // startService(message);
+    MessageForwardingService.enqueueWork(this, message);
   }
 }
 // [END messaging_on_new_intent]
