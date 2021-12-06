@@ -93,10 +93,11 @@ jobs:
 
       - name: Check cached NDK
         shell: bash
+        if: ${{ !steps.cache_ndk.outputs.cache-hit }}
         run: |
-          # If the NDK failed to download from the cache, force it to download.
-          # (build_scripts/android/install_prereqs.sh uses this env variable.)
-          if [[ ${{ steps.cache_ndk.outputs.cache-hit }} -eq 0 ]]; then
+          # If the NDK failed to download from the cache, but there is a
+          # /tmp/android-ndk-r16b directory, it's incomplete, so remove it.
+          if [[ -d "/tmp/android-ndk-r16b" ]]; then
             echo "Removing incomplete download of NDK"
             rm -rf /tmp/android-ndk-r16b
           fi
