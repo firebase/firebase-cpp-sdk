@@ -62,6 +62,13 @@
           </intent-filter>
         </service>
         <!-- [END messaging_add_custom_listener_service] -->
+
+        <!-- [START messaging_forwarding_service] -->
+        <service android:name="com.google.firebase.messaging.MessageForwardingService"
+             android:permission="android.permission.BIND_JOB_SERVICE"
+             android:exported="false" >
+        </service>
+        <!-- [END messaging_forwarding_service] -->
     </application>
 
     <uses-permission android:name="android.permission.INTERNET"/>
