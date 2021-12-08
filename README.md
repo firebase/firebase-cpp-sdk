@@ -28,7 +28,7 @@ Firebase C++ SDK can be found at <https://github.com/firebase/quickstart-cpp>.
 1. [Prerequisites](#prerequisites)
    1. [Prerequisites for Desktop](#prerequisites-for-desktop)
    1. [Prerequisites for Android](#prerequisites-for-android)
-   1. [Prerequisites for iOS](#prerequisites-for-ios)
+   1. [Prerequisites for iOS/tvOS](#prerequisites-for-iostvos)
 1. [Building](#building)
    1. [Building with CMake](#building-with-cmake)
       1. [Building with CMake for iOS](#building-with-cmake-for-ios)

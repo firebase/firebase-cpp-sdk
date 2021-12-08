@@ -49,6 +49,7 @@ from absl import flags
 from absl import logging
 from print_matrix_configuration import PARAMETERS
 from print_matrix_configuration import BUILD_CONFIGS
+from print_matrix_configuration import TEST_DEVICES
 
 import glob
 import re
@@ -200,23 +201,24 @@ def summarize_logs(dir, markdown=False, github_log=False):
   test_log_name_re = re.escape(
       os.path.join(dir,TEST_FILE_PATTERN)).replace("\\*", "(.*)")
 
-  any_failures = False
+  success_or_only_flakiness = True
   log_data = {}
   # log_data format:
   #   { testapps: {"build": [configs]},
   #               {"test": {"errors": [configs]},
-  #                        {"failures": {failed_test: [configs]}}}}
+  #                        {"failures": {failed_test: [configs]}},
+  #                        {"flakiness": {flaky_test: [configs]}}}}
   for build_log_file in build_log_files:
     configs = get_configs_from_file_name(build_log_file, build_log_name_re)
     with open(build_log_file, "r") as log_reader:
       log_text = log_reader.read()
       if "__SUMMARY_MISSING__" in log_text:
-        any_failures = True
+        success_or_only_flakiness = False
         log_data.setdefault(MISSING_LOG, {}).setdefault("build", []).append(configs)
       else:
         log_reader_data = json.loads(log_text)
-        for (testapp, error) in log_reader_data["errors"].items():
-          any_failures = True
+        for (testapp, _) in log_reader_data["errors"].items():
+          success_or_only_flakiness = False
           log_data.setdefault(testapp, {}).setdefault("build", []).append(configs)
 
   for test_log_file in test_log_files:
@@ -224,26 +226,32 @@ def summarize_logs(dir, markdown=False, github_log=False):
     with open(test_log_file, "r") as log_reader:
       log_text = log_reader.read()
       if "__SUMMARY_MISSING__" in log_text:
-        any_failures = True
+        success_or_only_flakiness = False
         log_data.setdefault(MISSING_LOG, {}).setdefault("test", {}).setdefault("errors", []).append(configs)
       else:
         log_reader_data = json.loads(log_text)
-        for (testapp, error) in log_reader_data["errors"].items():
-          any_failures = True
+        for (testapp, _) in log_reader_data["errors"].items():
+          success_or_only_flakiness = False
           log_data.setdefault(testapp, {}).setdefault("test", {}).setdefault("errors", []).append(configs)
         for (testapp, failures) in log_reader_data["failures"].items():
-          for (test, failure) in failures["failed_tests"].items():
-            any_failures = True
+          for (test, _) in failures["failed_tests"].items():
+            success_or_only_flakiness = False
             log_data.setdefault(testapp, {}).setdefault("test", {}).setdefault("failures", {}).setdefault(test, []).append(configs)
+        for (testapp, flakiness) in log_reader_data["flakiness"].items():
+          if flakiness["flaky_tests"].items():
+            for (test, _) in flakiness["flaky_tests"].items():
+              log_data.setdefault(testapp, {}).setdefault("test", {}).setdefault("flakiness", {}).setdefault(test, []).append(configs)
+          else:
+            log_data.setdefault(testapp, {}).setdefault("test", {}).setdefault("flakiness", {}).setdefault("CRASH/TIMEOUT", []).append(configs)
 
+  if success_or_only_flakiness and not log_data:
+    # No failures and no flakiness occurred, nothing to log.
+    return (success_or_only_flakiness, None)
+
+  # if failures (include flakiness) exist:
   # log_results format:
   #   { testapps: {configs: [failed tests]} }
   log_results = reorganize_log(log_data)
-
-  if not any_failures:
-    # No failures occurred, nothing to log.
-    return(0)
-
   log_lines = []
   if markdown:
     log_lines = print_markdown_table(log_results)
@@ -255,7 +263,7 @@ def summarize_logs(dir, markdown=False, github_log=False):
 
   log_summary = "\n".join(log_lines)
   print(log_summary)
-  return log_summary
+  return (success_or_only_flakiness, log_summary)
 
 
 def get_configs_from_file_name(file_name, file_name_re):
@@ -291,6 +299,13 @@ def reorganize_log(log_data):
       for (platform, configs) in combined_configs.items():
         for config in configs:
           all_configs = [["TEST"], ["FAILURE"], [CAPITALIZATIONS[platform]]]
+          all_configs.extend(config)
+          log_results.setdefault(testapp, {}).setdefault(flat_config(all_configs), []).append(test)
+    for (test, configs) in errors.get("test",{}).get("flakiness",{}).items():
+      combined_configs = combine_configs(configs)
+      for (platform, configs) in combined_configs.items():
+        for config in configs:
+          all_configs = [["TEST"], ["FLAKINESS"], [CAPITALIZATIONS[platform]]]
           all_configs.extend(config)
           log_results.setdefault(testapp, {}).setdefault(flat_config(all_configs), []).append(test)
   
@@ -341,26 +356,29 @@ def combine_config(config, platform, k):
     # config_name = test_device here
     k = -1
   config_name = BUILD_CONFIGS[platform][k]
-  config_value = PARAMETERS["integration_tests"]["matrix"][config_name]
+  if PARAMETERS["integration_tests"]["matrix"]["expanded"].get(config_name):
+    config_value = PARAMETERS["integration_tests"]["matrix"]["expanded"][config_name]
+  else:
+    config_value = PARAMETERS["integration_tests"]["matrix"][config_name]
   if len(config_value) > 1 and len(config) == len(config_value):
-    config = ["All %s" % config_name]
+    config = ["All %d %s" % (len(config_value), config_name)]
   elif config_name == "ios_device":
-    ftl_devices = {"ios_min", "ios_target", "ios_latest"}
-    simulators = {"simulator_min", "simulator_target", "simulator_latest"}
+    ftl_devices = set(filter(lambda device: TEST_DEVICES.get(device).get("type") in "real", config_value))
+    simulators = set(filter(lambda device: TEST_DEVICES.get(device).get("type") in "virtual", config_value))
     if ftl_devices.issubset(set(config)):
-      config.insert(0, "All FTL Devices")
+      config.insert(0, "All %d FTL Devices" % len(ftl_devices))
       config = [x for x in config if (x not in ftl_devices)]
     elif simulators.issubset(set(config)):
-      config.insert(0, "All Simulators")
+      config.insert(0, "All %d Simulators" % len(simulators))
       config = [x for x in config if (x not in simulators)]
   elif config_name == "android_device":
-    ftl_devices = {"android_min", "android_target", "android_latest"}
-    emulators = {"emulator_min", "emulator_target", "emulator_latest"}
+    ftl_devices = set(filter(lambda device: TEST_DEVICES.get(device).get("type") in "real", config_value))
+    emulators = set(filter(lambda device: TEST_DEVICES.get(device).get("type") in "virtual", config_value))
     if ftl_devices.issubset(set(config)):
-      config.insert(0, "All FTL Devices")
+      config.insert(0, "All %d FTL Devices" % len(ftl_devices))
       config = [x for x in config if (x not in ftl_devices)]
     elif emulators.issubset(set(config)):
-      config.insert(0, "All Emulators")
+      config.insert(0, "All %d Emulators" % len(emulators))
       config = [x for x in config if (x not in emulators)]
 
   return config

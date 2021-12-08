@@ -62,6 +62,7 @@ jobs:
       apis: ${{ steps.matrix_config.outputs.apis }}
       mobile_test_on: ${{ steps.matrix_config.outputs.mobile_test_on }}
       android_device: ${{ steps.matrix_config.outputs.android_device }}
+      xcode_version: ${{ steps.matrix_config.outputs.xcode_version }}
       ios_device: ${{ steps.matrix_config.outputs.ios_device }}
       tvos_device: ${{ steps.matrix_config.outputs.tvos_device }}
     steps:
@@ -144,7 +145,12 @@ jobs:
       with:
         python-version: ${{ env.pythonVersion }}
     - name: Install python deps
-      run: pip install -r scripts/gha/requirements.txt
+      uses: nick-invision/retry@v2
+      with:
+        timeout_minutes: 1
+        max_attempts: 3
+        shell: bash
+        command: pip install -r scripts/gha/requirements.txt
     - id: matrix_config
       run: |
         if [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "expanded" ]]; then 
@@ -182,6 +188,7 @@ jobs:
         mobile_test_on=$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k mobile_test_on -o "${{github.event.inputs.mobile_test_on}}")
         echo "::set-output name=mobile_test_on::${mobile_test_on}"
         echo "::set-output name=android_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k android_device -t ${mobile_test_on} )"
+        echo "::set-output name=xcode_version::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k xcode_version)"
         echo "::set-output name=ios_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k ios_device -t ${mobile_test_on} )"
         echo "::set-output name=tvos_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k tvos_device -t ${mobile_test_on} )"
     - name: Update PR label and comment
@@ -208,6 +215,9 @@ jobs:
         os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
         ssl_variant: ${{ fromJson(needs.check_and_prepare.outputs.matrix_ssl) }}
     steps:
+      - name: setup Xcode version (macos)
+        if: runner.os == 'macOS'
+        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Contents/Developer
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
@@ -255,30 +265,40 @@ jobs:
             # homebrew. This prevents errors arising from the shut down of
             # binutils, used by older version of homebrew for hosting packages.
             brew update
-      - name: Install SDK Desktop prerequisites
-        run: |
-          python scripts/gha/install_prereqs_desktop.py
-      - name: Prepare for integration tests
-        run: |
-          pip install -r scripts/gha/requirements.txt
-          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
+      - name: Install Desktop SDK & integration tests prerequisites
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 2
+          max_attempts: 3
+          command: |
+            python scripts/gha/install_prereqs_desktop.py
+            pip install -r scripts/gha/requirements.txt
+            python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
       - name: Install OpenSSL (Windows)
-        if: matrix.ssl_variant == 'openssl' &&
-            startsWith(matrix.os, 'windows')
-        run: |
-          choco install openssl -r
+        if: matrix.ssl_variant == 'openssl' && startsWith(matrix.os, 'windows')
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 4
+          max_attempts: 3
+          shell: bash
+          command: choco install openssl -r
       - name: Install OpenSSL (macOS)
-        if: matrix.ssl_variant == 'openssl' &&
-            startsWith(matrix.os, 'macos')
-        run: |
-          brew install openssl
-          # brew won't overwrite MacOS system default OpenSSL, so force it here.
-          echo "OPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1" >> $GITHUB_ENV
+        if: matrix.ssl_variant == 'openssl' && startsWith(matrix.os, 'macos')
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 2
+          max_attempts: 3
+          command: |
+            brew install openssl
+            # brew won't overwrite MacOS system default OpenSSL, so force it here.
+            echo "OPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1" >> $GITHUB_ENV
       - name: Install OpenSSL (Linux)
-        if: matrix.ssl_variant == 'openssl' &&
-            startsWith(matrix.os, 'ubuntu')
-        run: |
-          sudo apt install openssl
+        if: matrix.ssl_variant == 'openssl' && startsWith(matrix.os, 'ubuntu')
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 2
+          max_attempts: 3
+          command: sudo apt install openssl
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
@@ -387,6 +407,9 @@ jobs:
       matrix:
         os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
     steps:
+      - name: setup Xcode version (macos)
+        if: runner.os == 'macOS'
+        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Contents/Developer
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
@@ -421,14 +444,16 @@ jobs:
             # homebrew. This prevents errors arising from the shut down of
             # binutils, used by older version of homebrew for hosting packages.
             brew update
-      - name: Install SDK Android prerequisites
-        shell: bash
-        run: |
-          build_scripts/android/install_prereqs.sh
-      - name: Prepare for integration tests
-        run: |
-          pip install -r scripts/gha/requirements.txt
-          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
+      - name: Install Android SDK & integration tests prerequisites
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          shell: bash
+          command: |
+            build_scripts/android/install_prereqs.sh
+            pip install -r scripts/gha/requirements.txt
+            python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
@@ -508,6 +533,9 @@ jobs:
     strategy:
       fail-fast: false
     steps:
+      - name: setup Xcode version (macos)
+        if: runner.os == 'macOS'
+        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Contents/Developer
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
@@ -533,12 +561,15 @@ jobs:
             # homebrew. This prevents errors arising from the shut down of
             # binutils, used by older version of homebrew for hosting packages.
             brew update
-      - name: Install SDK iOS prerequisites
-        run: build_scripts/ios/install_prereqs.sh
-      - name: Prepare for integration tests
-        run: |
-          pip install -r scripts/gha/requirements.txt
-          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
+      - name: Install iOS SDK & integration tests prerequisites
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 2
+          max_attempts: 3
+          command: |
+            build_scripts/ios/install_prereqs.sh
+            pip install -r scripts/gha/requirements.txt
+            python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
@@ -619,6 +650,9 @@ jobs:
     strategy:
       fail-fast: false
     steps:
+      - name: setup Xcode version (macos)
+        if: runner.os == 'macOS'
+        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Contents/Developer
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
@@ -638,12 +672,15 @@ jobs:
             # homebrew. This prevents errors arising from the shut down of
             # binutils, used by older version of homebrew for hosting packages.
             brew update
-      - name: Install SDK tvOS prerequisites
-        run: build_scripts/tvos/install_prereqs.sh
-      - name: Prepare for integration tests
-        run: |
-          pip install -r scripts/gha/requirements.txt
-          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
+      - name: Install tvOS SDK & integration tests prerequisites
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 2
+          max_attempts: 3
+          command: |
+            build_scripts/tvos/install_prereqs.sh
+            pip install -r scripts/gha/requirements.txt
+            python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
@@ -726,6 +763,9 @@ jobs:
         os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
         ssl_variant: ${{ fromJson(needs.check_and_prepare.outputs.matrix_ssl) }}
     steps:
+      - name: setup Xcode version (macos)
+        if: runner.os == 'macOS'
+        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Contents/Developer
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
@@ -746,9 +786,14 @@ jobs:
         run: |
           npm install -g firebase-tools
       - name: Setup integration test deps
-        run: |
-          pip install -r scripts/gha/requirements.txt
-          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 2
+          max_attempts: 3
+          shell: bash
+          command: |
+            pip install -r scripts/gha/requirements.txt
+            python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps
       - name: Run Desktop integration tests
         run: firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"'
         env:
@@ -802,6 +847,9 @@ jobs:
         build_os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
         android_device: ${{ fromJson(needs.check_and_prepare.outputs.android_device) }}
     steps:
+      - name: setup Xcode version (macos)
+        if: runner.os == 'macOS'
+        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Contents/Developer
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
@@ -815,7 +863,12 @@ jobs:
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
-        run: pip install -r scripts/gha/requirements.txt
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 1
+          max_attempts: 3
+          shell: bash
+          command: pip install -r scripts/gha/requirements.txt
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.android_device }} )"
@@ -840,6 +893,7 @@ jobs:
         if: steps.get-device-type.outputs.device_type == 'real'
         uses: google-github-actions/setup-gcloud@master
       - name: Run Android integration tests on Real Device via FTL
+        timeout-minutes: 60
         if: steps.get-device-type.outputs.device_type == 'real'
         run: |
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
@@ -896,6 +950,9 @@ jobs:
       matrix:
         ios_device: ${{ fromJson(needs.check_and_prepare.outputs.ios_device) }}
     steps:
+      - name: setup Xcode version (macos)
+        if: runner.os == 'macOS'
+        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Contents/Developer
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
@@ -909,7 +966,11 @@ jobs:
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
-        run: pip install -r scripts/gha/requirements.txt
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 1
+          max_attempts: 3
+          command: pip install -r scripts/gha/requirements.txt
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.ios_device }} )"
@@ -934,6 +995,8 @@ jobs:
         if: steps.get-device-type.outputs.device_type == 'real'
         uses: google-github-actions/setup-gcloud@master
       - name: Run iOS integration tests on Real Device via FTL
+        # max 3 retry and 10m timeout for each testapp, plus other steps
+        timeout-minutes: 60 
         if: steps.get-device-type.outputs.device_type == 'real'
         run: |
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
@@ -990,6 +1053,9 @@ jobs:
       matrix:
         tvos_device: ${{ fromJson(needs.check_and_prepare.outputs.tvos_device) }}
     steps:
+      - name: setup Xcode version (macos)
+        if: runner.os == 'macOS'
+        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Contents/Developer
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
@@ -1003,7 +1069,11 @@ jobs:
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
-        run: pip install -r scripts/gha/requirements.txt
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 1
+          max_attempts: 3
+          command: pip install -r scripts/gha/requirements.txt
       - name: Setup Firebase Emulators
         run: |
           npm install -g firebase-tools
