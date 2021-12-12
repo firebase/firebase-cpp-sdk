@@ -686,14 +686,15 @@ void CompleteLoadAdCallback(FutureCallbackData<AdResult>* callback_data,
   std::string future_error_message;
   AdResultInternal ad_result_internal;
 
-  ad_result_internal.j_ad_error = j_load_ad_error;
-  ad_result_internal.ad_result_type = AdResultInternal::kAdResultInternalLoadAdError;
+  ad_result_internal.native_ad_error = j_load_ad_error;
+  ad_result_internal.ad_result_type =
+      AdResultInternal::kAdResultInternalLoadAdError;
   ad_result_internal.is_successful = true;  // assume until proven otherwise.
   ad_result_internal.code = error_code;
 
   // Further result configuration is based on success/failure.
   if (j_load_ad_error != nullptr) {
-    // The Android SDK returned an error.  Use the j_ad_error object
+    // The Android SDK returned an error.  Use the native_ad_error object
     // to populate a AdResult with the error specifics.
     ad_result_internal.is_successful = false;
   } else if (ad_result_internal.code != kAdMobErrorNone) {
@@ -852,7 +853,7 @@ void JNI_notifyAdFailedToShowFullScreenContentEvent(JNIEnv* env, jclass clazz,
   AdResultInternal ad_result_internal;
   ad_result_internal.ad_result_type =
       AdResultInternal::kAdResultInternalFullScreenContentError;
-  ad_result_internal.j_ad_error = j_ad_error;
+  ad_result_internal.native_ad_error = j_ad_error;
 
   // Invoke AdMobInternal, a friend of AdResult, to have it access its
   // protected constructor with the AdError data.

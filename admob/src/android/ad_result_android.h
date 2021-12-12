@@ -19,6 +19,7 @@
 
 #include <string>
 
+#include "admob/src/common/ad_result_internal.h"
 #include "admob/src/include/firebase/admob/types.h"
 #include "app/src/mutex.h"
 #include "app/src/util_android.h"
@@ -46,52 +47,6 @@ namespace admob {
 
 METHOD_LOOKUP_DECLARATION(ad_error, ADERROR_METHODS);
 METHOD_LOOKUP_DECLARATION(load_ad_error, LOADADERROR_METHODS);
-
-struct AdResultInternal {
-  // The type of AdResult, based on the operation that was requested.
-  enum AdResultInternalType {
-    // Standard AdResult type for most Ad operations.
-    kAdResultInternalStandard = 0,
-    // AdResult represents an error the GMA SDK wrapper.
-    kAdResultInternalWrapperError,
-    // AdResult resulting from a LoadAd operation.
-    kAdResultInternalLoadAdError,
-    // ADResult resulting from an attempt to show a full screen ad.
-    kAdResultInternalFullScreenContentError,
-  };
-
-  // Default constructor.
-  AdResultInternal() {
-    ad_result_type = kAdResultInternalStandard;
-    code = kAdMobErrorNone;
-    j_ad_error = nullptr;
-  }
-
-  // The type of AdResult, based on the operation that was requested.
-  AdResultInternalType ad_result_type;
-
-  // True if this was a successful result.
-  bool is_successful;
-
-  // An error code.
-  AdMobError code;
-
-  // A cached value of com.google.android.gms.ads.AdError.domain.
-  std::string domain;
-
-  // A cached value of com.google.android.gms.ads.AdError.message.
-  std::string message;
-
-  // A cached result from invoking com.google.android.gms.ads.AdError.ToString.
-  std::string to_string;
-
-  // If this is not a successful result, or if it's a wrapper error, then
-  // j_ad_error is a reference to a com.google.android.gms.ads.AdError produced
-  // by the Admob Android SDK.
-  jobject j_ad_error;
-
-  Mutex mutex;
-};
 
 }  // namespace admob
 }  // namespace firebase
