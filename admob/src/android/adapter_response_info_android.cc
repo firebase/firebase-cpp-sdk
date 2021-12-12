@@ -44,7 +44,6 @@ AdapterResponseInfo::AdapterResponseInfo(
 
   // Construct an AdResultInternal from the AdError in the AdapterResponseInfo.
   AdResultInternal ad_result_internal;
-  ad_result_internal.is_load_ad_error = false;
   ad_result_internal.j_ad_error = env->CallObjectMethod(
       j_adapter_response_info,
       adapter_response_info::GetMethodId(adapter_response_info::kGetAdError));

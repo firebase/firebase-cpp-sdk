@@ -48,15 +48,30 @@ METHOD_LOOKUP_DECLARATION(ad_error, ADERROR_METHODS);
 METHOD_LOOKUP_DECLARATION(load_ad_error, LOADADERROR_METHODS);
 
 struct AdResultInternal {
-  // True if the result contains an error originating from C++/Java wrapper
-  // code. If false, then an Admob Android AdError has occurred.
-  bool is_wrapper_error;
+  // The type of AdResult, based on the operation that was requested.
+  enum AdResultInternalType {
+    // Standard AdResult type for most Ad operations.
+    kAdResultInternalStandard = 0,
+    // AdResult represents an error the GMA SDK wrapper.
+    kAdResultInternalWrapperError,
+    // AdResult resulting from a LoadAd operation.
+    kAdResultInternalLoadAdError,
+    // ADResult resulting from an attempt to show a full screen ad.
+    kAdResultInternalFullScreenContentError,
+  };
+
+  // Default constructor.
+  AdResultInternal() {
+    ad_result_type = kAdResultInternalStandard;
+    code = kAdMobErrorNone;
+    j_ad_error = nullptr;
+  }
+
+  // The type of AdResult, based on the operation that was requested.
+  AdResultInternalType ad_result_type;
 
   // True if this was a successful result.
   bool is_successful;
-
-  // True if this error data represents a result from a LoadAd request.
-  bool is_load_ad_error;
 
   // An error code.
   AdMobError code;

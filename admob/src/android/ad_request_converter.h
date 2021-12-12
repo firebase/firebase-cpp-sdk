@@ -41,6 +41,11 @@ jobject GetJavaAdRequestFromCPPAdRequest(const AdRequest& request,
 // platform-independent error codes defined in AdMobError.
 AdMobError MapAndroidAdRequestErrorCodeToCPPErrorCode(jint j_error_code);
 
+// Converts the Android FullScreenContentCallback error codes to the CPP
+// platform-independent error codes defined in AdMobError.
+AdMobError MapAndroidFullScreenContentErrorCodeToCPPErrorCode(
+    jint j_error_code);
+
 }  // namespace admob
 }  // namespace firebase
 

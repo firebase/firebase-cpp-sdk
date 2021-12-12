@@ -47,9 +47,7 @@ AdResult::AdResult() {
   // Initialize it with some helpful debug values in the case
   // an AdResult makes it to the application in this default state.
   internal_ = new AdResultInternal();
-  internal_->is_successful = false;
-  internal_->is_wrapper_error = true;
-  internal_->is_load_ad_error = false;
+  internal_->ad_result_type = AdResultInternal::kAdResultInternalWrapperError;
   internal_->code = kAdMobErrorUninitialized;
   internal_->domain = "SDK";
   internal_->message = "This AdResult has not be initialized.";
@@ -68,8 +66,7 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
 
   internal_ = new AdResultInternal();
   internal_->is_successful = ad_result_internal.is_successful;
-  internal_->is_wrapper_error = ad_result_internal.is_wrapper_error;
-  internal_->is_load_ad_error = ad_result_internal.is_load_ad_error;
+  internal_->ad_result_type = ad_result_internal.ad_result_type;
   internal_->j_ad_error = nullptr;
   response_info_ = new ResponseInfo();
 
@@ -78,11 +75,11 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
   // differently across these three scenarios.
   if (internal_->is_successful) {
     internal_->code = kAdMobErrorNone;
-    internal_->is_wrapper_error = false;
     internal_->message = "";
     internal_->domain = "";
     internal_->to_string = "";
-  } else if (internal_->is_wrapper_error) {
+  } else if (internal_->ad_result_type ==
+             AdResultInternal::kAdResultInternalWrapperError) {
     // Wrapper errors come with prepopulated code, domain, etc, fields.
     internal_->code = ad_result_internal.code;
     internal_->domain = ad_result_internal.domain;
@@ -100,9 +97,18 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
 
     // Error Code.  Map the Android AdMob SDK error codes to our
     // platform-independent C++ SDK error codes.
-    internal_->code =
-        MapAndroidAdRequestErrorCodeToCPPErrorCode(env->CallIntMethod(
-            internal_->j_ad_error, ad_error::GetMethodId(ad_error::kGetCode)));
+    jint j_error_code = env->CallIntMethod(
+        internal_->j_ad_error, ad_error::GetMethodId(ad_error::kGetCode));
+    switch (internal_->ad_result_type) {
+      case AdResultInternal::kAdResultInternalFullScreenContentError:
+        // Full screen content errors have their own error codes.
+        internal_->code =
+            MapAndroidFullScreenContentErrorCodeToCPPErrorCode(j_error_code);
+        break;
+      default:
+        internal_->code =
+            MapAndroidAdRequestErrorCodeToCPPErrorCode(j_error_code);
+    }
 
     // Error domain string.
     jobject j_domain = env->CallObjectMethod(
@@ -120,15 +126,9 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
 
     // Differentiate between a com.google.android.gms.ads.AdError or its
     // com.google.android.gms.ads.LoadAdError subclass.
-    if (!internal_->is_load_ad_error) {
-      // AdError.
-      jobject j_to_string = env->CallObjectMethod(
-          internal_->j_ad_error, ad_error::GetMethodId(ad_error::kToString));
-      FIREBASE_ASSERT(j_to_string);
-      internal_->to_string = util::JStringToString(env, j_to_string);
-      env->DeleteLocalRef(j_to_string);
-    } else {
-      // LoadAdError.
+    if (internal_->ad_result_type ==
+        AdResultInternal::kAdResultInternalLoadAdError) {
+      // LoadAdError object.
       jobject j_response_info = env->CallObjectMethod(
           internal_->j_ad_error,
           load_ad_error::GetMethodId(load_ad_error::kGetResponseInfo));
@@ -146,6 +146,13 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
       jobject j_to_string = env->CallObjectMethod(
           internal_->j_ad_error,
           load_ad_error::GetMethodId(load_ad_error::kToString));
+      internal_->to_string = util::JStringToString(env, j_to_string);
+      env->DeleteLocalRef(j_to_string);
+    } else {
+      // AdError object.
+      jobject j_to_string = env->CallObjectMethod(
+          internal_->j_ad_error, ad_error::GetMethodId(ad_error::kToString));
+      FIREBASE_ASSERT(j_to_string);
       internal_->to_string = util::JStringToString(env, j_to_string);
       env->DeleteLocalRef(j_to_string);
     }
@@ -179,8 +186,7 @@ AdResult& AdResult::operator=(const AdResult& ad_result) {
     internal_ = new AdResultInternal();
 
     internal_->is_successful = ad_result.internal_->is_successful;
-    internal_->is_wrapper_error = ad_result.internal_->is_wrapper_error;
-    internal_->is_load_ad_error = ad_result.internal_->is_load_ad_error;
+    internal_->ad_result_type = ad_result.internal_->ad_result_type;
     internal_->code = ad_result.internal_->code;
     internal_->domain = ad_result.internal_->domain;
     internal_->message = ad_result.internal_->message;
@@ -233,7 +239,8 @@ std::unique_ptr<AdResult> AdResult::GetCause() const {
   // error.  However, this is only possible if this AdResult represents
   // and Android AdMob SDK error and not a wrapper error or a successful
   // result.
-  if (internal_->is_wrapper_error) {
+  if (internal_->ad_result_type ==
+      AdResultInternal::kAdResultInternalWrapperError) {
     return std::unique_ptr<AdResult>(nullptr);
   } else {
     FIREBASE_ASSERT(internal_->j_ad_error);
@@ -244,8 +251,6 @@ std::unique_ptr<AdResult> AdResult::GetCause() const {
         internal_->j_ad_error, ad_error::GetMethodId(ad_error::kGetCause));
 
     AdResultInternal ad_result_internal;
-    ad_result_internal.is_wrapper_error = false;
-    ad_result_internal.is_load_ad_error = false;
     ad_result_internal.j_ad_error = j_ad_error;
 
     std::unique_ptr<AdResult> ad_result =

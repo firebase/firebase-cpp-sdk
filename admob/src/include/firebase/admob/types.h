@@ -128,6 +128,19 @@ enum AdMobError {
   kAdMobErrorApplicationIdentifierMissing,
   /// Android Ad String is invalid.
   kAdMobErrorInvalidAdString,
+  /// The ad has already been shown.
+  kAdMobErrorAdReused,
+  /// The ad can not be shown when app is not in the foreground.
+  kAdMobErrorAppNotInForeground,
+  /// A mediation adapter failed to show the ad.
+  kAdMobErrorMediationShowError,
+  /// The ad is not ready to be shown.
+  kAdMobErrorAdNotReady,
+  /// Ad is too large for the scene.
+  kAdMobErrorAdTooLarge,
+  /// Attempted to present ad from a non-main thread. This is an internal
+  /// error which should be reported to support if encountered.
+  kAdMobErrorNotMainThread,
   /// Fallback error for any unidentified cases.
   kAdMobErrorUnknown,
 };
