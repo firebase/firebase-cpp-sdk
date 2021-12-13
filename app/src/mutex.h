@@ -91,7 +91,6 @@ class MutexLock {
   Mutex* mutex_;
 };
 
-// NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase
 
 #endif  // FIREBASE_APP_SRC_MUTEX_H_
