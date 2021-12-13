@@ -19,11 +19,11 @@
 
 #include "app/src/include/firebase/internal/platform.h"
 
-#if !FIREBASE_PLATFORM_WINDOWS
-#include <pthread.h>
-#else
+#if FIREBASE_PLATFORM_WINDOWS
 #include <windows.h>
-#endif  // !FIREBASE_PLATFORM_WINDOWS
+#else
+#include <pthread.h>
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 namespace firebase {
 
@@ -50,22 +50,22 @@ class Mutex {
 
 // Returns the implementation-defined native mutex handle.
 // Used by firebase::Thread implementation.
-#if !FIREBASE_PLATFORM_WINDOWS
-  pthread_mutex_t* native_handle() { return &mutex_; }
-#else
+#if FIREBASE_PLATFORM_WINDOWS
   HANDLE* native_handle() { return &synchronization_object_; }
-#endif
+#else
+  pthread_mutex_t* native_handle() { return &mutex_; }
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
  private:
   Mutex(const Mutex&) = delete;
   Mutex& operator=(const Mutex&) = delete;
 
-#if !FIREBASE_PLATFORM_WINDOWS
-  pthread_mutex_t mutex_;
-#else
+#if FIREBASE_PLATFORM_WINDOWS
   HANDLE synchronization_object_;
   Mode mode_;
-#endif  // !FIREBASE_PLATFORM_WINDOWS
+#else
+  pthread_mutex_t mutex_;
+#endif  // FIREBASE_PLATFORM_WINDOWS
 };
 
 /// @brief Acquire and hold a /ref Mutex, while in scope.
