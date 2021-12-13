@@ -191,7 +191,7 @@ AdMobError MapAndroidFullScreenContentErrorCodeToCPPErrorCode(
     case 0:  // ERROR_CODE_INTERNAL_ERROR
       return kAdMobErrorInternalError;
     case 1:  // ERROR_CODE_AD_REUSED
-      return kAdMobErrorAdReused;
+      return kAdMobErrorAdAlreadyUsed;
     case 2:  // ERROR_CODE_NOT_READY
       return kAdMobErrorAdNotReady;
     case 3:  // ERROR_CODE_APP_NOT_FOREGROUND

@@ -106,7 +106,7 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
   return gadRequest;
 }
 
-AdMobError MapADErrorCodeToCPPErrorCode(GADErrorCode error_code) {
+AdMobError MapAdRequestErrorCodeToCPPErrorCode(GADErrorCode error_code) {
   // iOS error code sourced from
   // https://developers.google.com/admob/ios/api/reference/Enums/GADErrorCode
   switch(error_code)
@@ -147,5 +147,27 @@ AdMobError MapADErrorCodeToCPPErrorCode(GADErrorCode error_code) {
   }
 }
 
+AdMobError MapFullScreenContentErrorCodeToCPPErrorCode(GADPresentationErrorCode error_code) {
+  // iOS error code sourced from
+  // https://developers.google.com/admob/ios/api/reference/Enums/GADPresentationErrorCode
+  switch(error_code)
+  {
+    case GADPresentationErrorCodeAdNotReady:     // 15
+      return kAdMobErrorAdNotReady;
+    case GADPresentationErrorCodeAdTooLarge:     // 16
+      return kAdMobErrorAdTooLarge;
+    case GADPresentationErrorCodeInternal:       // 17
+      return kAdMobErrorInternalError;
+    case GADPresentationErrorCodeAdAlreadyUsed:  // 18
+      return kAdMobErrorAdAlreadyUsed;
+    case GADPresentationErrorNotMainThread:      // 21
+      return kAdMobErrorNotMainThread;
+    case GADPresentationErrorMediation:          // 22
+      return kAdMobErrorMediationShowError;
+    default:
+      return kAdMobErrorUnknown;
+  }
 }
-}
+
+}  // namespace admob
+}  // namespace firebase

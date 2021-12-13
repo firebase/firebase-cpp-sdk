@@ -154,7 +154,7 @@ void InterstitialAdInternalIOS::InterstitialDidFailToReceiveAdWithError(NSError 
   firebase::MutexLock lock(mutex_);
   FIREBASE_ASSERT(gad_error);
   if (ad_load_callback_data_ != nil) {
-    CompleteAdResultIOS(ad_load_callback_data_, gad_error);
+    CompleteAdResultError(ad_load_callback_data_, gad_error, /*is_load_ad_error=*/true);
     ad_load_callback_data_ = nil;
   }
 }

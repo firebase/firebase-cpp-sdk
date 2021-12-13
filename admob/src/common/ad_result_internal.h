@@ -37,7 +37,7 @@ struct AdResultInternal {
   // The type of AdResult, based on the operation that was requested.
   enum AdResultInternalType {
     // Standard AdResult type for most Ad operations.
-    kAdResultInternalStandard = 0,
+    kAdResultInternalAdError = 1,
     // AdResult represents an error the GMA SDK wrapper.
     kAdResultInternalWrapperError,
     // AdResult resulting from a LoadAd operation.
@@ -48,7 +48,7 @@ struct AdResultInternal {
 
   // Default constructor.
   AdResultInternal() {
-    ad_result_type = kAdResultInternalStandard;
+    ad_result_type = kAdResultInternalAdError;
     code = kAdMobErrorNone;
     native_ad_error = nullptr;
   }

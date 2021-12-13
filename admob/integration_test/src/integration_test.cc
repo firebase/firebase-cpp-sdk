@@ -394,6 +394,7 @@ class TestFullScreenContentListener
   void OnAdFailedToShowFullScreenContent(
       const firebase::admob::AdResult& ad_result) override {
     num_on_ad_failed_to_show_full_screen_content_++;
+    failure_codes_.push_back(ad_result.code());
   }
 
   void OnAdImpression() override { num_on_ad_impression_++; }
@@ -407,6 +408,7 @@ class TestFullScreenContentListener
   int num_on_ad_failed_to_show_full_screen_content_;
   int num_on_ad_impression_;
   int num_on_ad_showed_full_screen_content_;
+  std::vector<firebase::admob::AdMobError> failure_codes_;
 };
 
 // A simple listener track UserEarnedReward events.
@@ -729,9 +731,22 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdLoadAndShow) {
   EXPECT_EQ(full_screen_content_listener.num_on_ad_showed_full_screen_content_,
             1);
   EXPECT_EQ(full_screen_content_listener.num_on_ad_impression_, 1);
+  EXPECT_EQ(full_screen_content_listener
+                .num_on_ad_failed_to_show_full_screen_content_,
+            0);
   EXPECT_EQ(paid_event_listener.num_on_paid_event_, 1);
   EXPECT_EQ(
       full_screen_content_listener.num_on_ad_dismissed_full_screen_content_, 1);
+
+  // Show the Ad again
+  LogDebug("Attempting to show ad again, checking for correct error result.");
+  WaitForCompletion(interstitial->Show(), "Show");
+  app_framework::ProcessEvents(2000);
+  EXPECT_EQ(full_screen_content_listener.failure_codes_.size(), 1);
+  if (full_screen_content_listener.failure_codes_.size() != 0) {
+    EXPECT_EQ(full_screen_content_listener.failure_codes_[0],
+              firebase::admob::kAdMobErrorAdAlreadyUsed);
+  }
 
   interstitial->SetFullScreenContentListener(nullptr);
   interstitial->SetPaidEventListener(nullptr);
@@ -788,8 +803,21 @@ TEST_F(FirebaseAdMobTest, TestRewardedAdLoadAndShow) {
   EXPECT_EQ(full_screen_content_listener.num_on_ad_impression_, 1);
   EXPECT_EQ(
       full_screen_content_listener.num_on_ad_dismissed_full_screen_content_, 1);
+  EXPECT_EQ(full_screen_content_listener
+                .num_on_ad_failed_to_show_full_screen_content_,
+            0);
   EXPECT_EQ(user_earned_reward_listener.num_on_user_earned_reward_, 1);
   EXPECT_EQ(paid_event_listener.num_on_paid_event_, 1);
+
+  // Show the Ad again
+  LogDebug("Attempting to show ad again, checking for correct error result.");
+  WaitForCompletion(rewarded->Show(&user_earned_reward_listener), "Show");
+  app_framework::ProcessEvents(2000);
+  EXPECT_EQ(full_screen_content_listener.failure_codes_.size(), 1);
+  if (full_screen_content_listener.failure_codes_.size() != 0) {
+    EXPECT_EQ(full_screen_content_listener.failure_codes_[0],
+              firebase::admob::kAdMobErrorAdAlreadyUsed);
+  }
 
   rewarded->SetFullScreenContentListener(nullptr);
   rewarded->SetPaidEventListener(nullptr);

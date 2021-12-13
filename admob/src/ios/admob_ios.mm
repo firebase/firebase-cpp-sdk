@@ -261,7 +261,7 @@ const ::firebase::App* GetApp() { return g_app; }
 // successful result, and C++ SDK Wrapper error, or an error returned from
 // the iOS Admob SDK.
 void CompleteAdResult(FutureCallbackData<AdResult>* callback_data,
-                      NSError *error, bool is_load_ad_result,
+                      NSError *error, bool is_load_ad_error,
                       AdMobError error_code,
                       const char* error_message) {
   FIREBASE_ASSERT(callback_data);
@@ -270,10 +270,8 @@ void CompleteAdResult(FutureCallbackData<AdResult>* callback_data,
   std::string future_error_message;
   AdResultInternal ad_result_internal;
 
-  ad_result_internal.ios_error = error;
-  ad_result_internal.is_load_ad_error = is_load_ad_result;
+  ad_result_internal.native_ad_error = error;
   ad_result_internal.is_successful = true;  // assume until proven otherwise.
-  ad_result_internal.is_wrapper_error = false;
   ad_result_internal.code = error_code;
 
   // Futher result configuration is based on success/failure.
@@ -282,9 +280,17 @@ void CompleteAdResult(FutureCallbackData<AdResult>* callback_data,
     // will be used by the AdError implementation to populate
     // it's fields.
     ad_result_internal.is_successful = false;
+    if (is_load_ad_error) {
+      ad_result_internal.ad_result_type ==
+        AdResultInternal::kAdResultInternalLoadAdError;
+    } else {
+      ad_result_internal.ad_result_type ==
+        AdResultInternal::kAdResultInternalAdError;
+    }
   } else if (ad_result_internal.code != kAdMobErrorNone) {
     // C++ SDK iOS AdMob Wrapper encountered an error.
-    ad_result_internal.is_wrapper_error = true;
+    ad_result_internal.ad_result_type =
+      AdResultInternal::kAdResultInternalWrapperError;
     ad_result_internal.is_successful = false;
     ad_result_internal.message = std::string(error_message);
     ad_result_internal.domain = "SDK";
@@ -297,6 +303,7 @@ void CompleteAdResult(FutureCallbackData<AdResult>* callback_data,
       callback_data, ad_result_internal.code, future_error_message, ad_result_internal);
 }
 
+
 void CompleteLoadAdInternalResult(
     FutureCallbackData<AdResult>* callback_data,
     AdMobError error_code, const char* error_message) {
@@ -304,15 +311,16 @@ void CompleteLoadAdInternalResult(
   FIREBASE_ASSERT(error_message);
 
   CompleteAdResult(callback_data, /*error=*/nullptr,
-    /*is_load_ad_result=*/true, error_code, error_message);
+    /*is_load_ad_error=*/false, error_code, error_message);
 }
 
-void CompleteAdResultIOS(FutureCallbackData<AdResult>* callback_data,
-                        NSError *gad_error) {
+void CompleteAdResultError(FutureCallbackData<AdResult>* callback_data,
+                           NSError *gad_error, bool is_load_ad_error) {
   FIREBASE_ASSERT(callback_data);
 
-  AdMobError error_code = MapADErrorCodeToCPPErrorCode((GADErrorCode)gad_error.code);
-  CompleteAdResult(callback_data, gad_error, /*is_load_ad_result=*/false,
+  AdMobError error_code =
+    MapAdRequestErrorCodeToCPPErrorCode((GADErrorCode)gad_error.code);
+  CompleteAdResult(callback_data, gad_error, is_load_ad_error,
     error_code, util::NSStringToString(gad_error.localizedDescription).c_str());
 }
 

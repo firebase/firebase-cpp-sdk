@@ -24,45 +24,6 @@ extern "C" {
 #import <Foundation/Foundation.h>
 #import <GoogleMobileAds/GoogleMobileAds.h>
 
-#include <string>
-
-#include "admob/src/include/firebase/admob/types.h"
-#include "app/src/mutex.h"
-
-namespace firebase {
-namespace admob {
-
-struct AdResultInternal {
-  // True if the result contains an error originating from C++/Java wrapper
-  // code. If false, then an Admob Android AdError has occurred.
-  bool is_wrapper_error;
-
-  // True if this was a successful result.
-  bool is_successful;
-
-  // True if this error data represents a result from a LoadAd request.
-  bool is_load_ad_error;
-
-  // An error code
-  AdMobError code;
-
-  // A cached value of com.google.android.gms.ads.AdError.domain
-  std::string domain;
-
-  // A cached value of com.google.android.gms.ads.AdError.message
-  std::string message;
-
-  // A cached result from invoking com.google.android.gms.ads.AdError.ToString.
-  std::string to_string;
-
-  // If this is not a successful result, or if it's a wrapper error, then
-  // ios_error is a pointer to an NSError produced by the Admob iOS SDK.
-  const NSError* ios_error;
-
-  Mutex mutex;
-};
-
-}  // namespace admob
-}  // namespace firebase
+#include "admob/src/common/ad_result_internal.h"
 
 #endif  // FIREBASE_ADMOB_SRC_IOS_AD_RESULT_IOS_H_
