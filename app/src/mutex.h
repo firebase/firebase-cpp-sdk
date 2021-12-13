@@ -42,8 +42,10 @@ class Mutex {
 
   ~Mutex();
 
+  // Acquires the lock for this mutex, blocking until it is available.
   void Acquire();
 
+  // Releases the lock for this mutex acquired by a previous `Acquire()` call.
   void Release();
 
 // Returns the implementation-defined native mutex handle.
