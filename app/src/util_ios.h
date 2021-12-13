@@ -17,15 +17,15 @@
 #ifndef FIREBASE_APP_SRC_UTIL_IOS_H_
 #define FIREBASE_APP_SRC_UTIL_IOS_H_
 
-#ifdef __OBJC__
-
-#import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
-
 #include <map>
 #include <string>
 #include <unordered_set>
 #include <vector>
+
+#ifdef __OBJC__
+
+#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
 
 #include "app/src/include/firebase/variant.h"
 
