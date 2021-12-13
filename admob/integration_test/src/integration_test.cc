@@ -288,10 +288,16 @@ TEST_F(FirebaseAdMobTest, TestInitializationStatus) {
 }
 
 TEST_F(FirebaseAdMobTest, TestDisableSDKCrashReporting) {
+  // We can't test to see if this method successfully reconfigures crash
+  // reporting, but we're still calling it as a sanity check and to ensure
+  // the symbol exists in the library.
   firebase::admob::DisableSDKCrashReporting();
 }
 
 TEST_F(FirebaseAdMobTest, TestDisableMediationInitialization) {
+  // We can't test to see if this method successfully disables mediation
+  // initialization, but we're sill calling it as a sanity check and to
+  // ensure the symbol exists in the library.
   firebase::admob::DisableMediationInitialization();
 }
 
