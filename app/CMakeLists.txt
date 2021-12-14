@@ -227,6 +227,7 @@ set(internal_HDRS
     src/include/firebase/future.h
     src/include/firebase/internal/common.h
     src/include/firebase/internal/future_impl.h
+    src/include/firebase/internal/mutex.h
     src/include/firebase/internal/type_traits.h
     src/include/firebase/log.h
     src/include/firebase/util.h
@@ -247,7 +248,6 @@ set(utility_common_HDRS
     src/log.h
     src/heartbeat_date_storage_desktop.h
     src/heartbeat_info_desktop.h
-    src/mutex.h
     src/optional.h
     src/path.h
     src/pthread_condvar.h

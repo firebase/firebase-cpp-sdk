@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_SRC_MUTEX_H_
-#define FIREBASE_APP_SRC_MUTEX_H_
+#ifndef FIREBASE_APP_SRC_INCLUDE_FIREBASE_INTERNAL_MUTEX_H_
+#define FIREBASE_APP_SRC_INCLUDE_FIREBASE_INTERNAL_MUTEX_H_
 
-#include "app/src/include/firebase/internal/platform.h"
+#include "firebase/internal/platform.h"
 
 #if FIREBASE_PLATFORM_WINDOWS
 #include <windows.h>
@@ -93,4 +93,4 @@ class MutexLock {
 
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_SRC_MUTEX_H_
+#endif  // FIREBASE_APP_SRC_INCLUDE_FIREBASE_INTERNAL_MUTEX_H_
