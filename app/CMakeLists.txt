@@ -136,6 +136,12 @@ set(common_SRCS
     src/variant.cc
     src/base64.cc)
 
+if (MSVC)
+  set(mutex_SRCS src/mutex_windows.cc)
+else()
+  set(mutex_SRCS src/mutex_pthread.cc)
+endif()
+
 set(invites_SRCS
     src/invites/cached_receiver.cc
     src/invites/invites_receiver_internal.cc)
@@ -313,6 +319,7 @@ add_library(firebase_app STATIC
     ${log_HDRS}
     ${common_SRCS}
     ${invites_SRCS}
+    ${mutex_SRCS}
     ${app_platform_SRCS}
     ${internal_HDRS}
     ${utility_HDRS}
