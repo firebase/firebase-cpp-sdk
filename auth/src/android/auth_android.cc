@@ -19,8 +19,8 @@
 
 #include "app/src/assert.h"
 #include "app/src/embedded_file.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
-#include "app/src/mutex.h"
 #include "app/src/util_android.h"
 #include "auth/auth_resources.h"
 #include "auth/src/android/common_android.h"

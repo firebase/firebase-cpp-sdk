@@ -22,7 +22,7 @@
 #include <vector>
 
 #include "app/rest/transport_interface.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/semaphore.h"
 #include "flatbuffers/stl_emulation.h"
 

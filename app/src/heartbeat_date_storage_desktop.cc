@@ -20,7 +20,7 @@
 #include <utility>
 
 #include "app/src/filesystem.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 
 namespace firebase {
 

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "app/src/include/firebase/future.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "auth/src/desktop/auth_desktop.h"
 #include "auth/src/desktop/sign_in_flow.h"
 #include "auth/src/include/firebase/auth.h"

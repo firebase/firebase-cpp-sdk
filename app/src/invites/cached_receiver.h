@@ -20,7 +20,7 @@
 #include <string>
 
 #include "app/src/invites/receiver_interface.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 
 namespace firebase {
 namespace invites {
