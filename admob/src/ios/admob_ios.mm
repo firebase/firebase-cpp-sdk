@@ -126,6 +126,14 @@ Future<AdapterInitializationStatus> Initialize(const ::firebase::App& app, InitR
 
 bool IsInitialized() { return g_initialized; }
 
+void DisableSDKCrashReporting() {
+  [GADMobileAds.sharedInstance disableSDKCrashReporting];
+}
+
+void DisableMediationInitialization() {
+  [GADMobileAds.sharedInstance disableMediationInitialization];
+}
+
 void SetRequestConfiguration(const RequestConfiguration& request_configuration)
 {
   GADMobileAds.sharedInstance.requestConfiguration.testDeviceIdentifiers =

@@ -17,15 +17,15 @@
 #ifndef FIREBASE_APP_SRC_UTIL_IOS_H_
 #define FIREBASE_APP_SRC_UTIL_IOS_H_
 
-#ifdef __OBJC__
-
-#import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
-
 #include <map>
 #include <string>
 #include <unordered_set>
 #include <vector>
+
+#ifdef __OBJC__
+
+#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
 
 #include "app/src/include/firebase/variant.h"
 
@@ -200,8 +200,8 @@ NSMutableArray *StringUnorderedSetToNSMutableArray(
 
 // Convert a NSArray into a vector of strings.  Asserts if a non NSString
 // object is found in the array.
-void NSArrayOfNSStringToVectorOfString(
-  NSArray *array, std::vector<std::string> *string_vector);
+void NSArrayOfNSStringToVectorOfString(NSArray *array,
+                                       std::vector<std::string> *string_vector);
 
 // Convert a string map to NSDictionary.
 NSDictionary *StringMapToNSDictionary(
