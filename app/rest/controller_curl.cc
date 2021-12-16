@@ -20,8 +20,8 @@
 
 #include "app/rest/transport_curl.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
-#include "app/src/mutex.h"
 
 namespace firebase {
 namespace rest {

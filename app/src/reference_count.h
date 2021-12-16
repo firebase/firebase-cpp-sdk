@@ -17,7 +17,7 @@
 #ifndef FIREBASE_APP_SRC_REFERENCE_COUNT_H_
 #define FIREBASE_APP_SRC_REFERENCE_COUNT_H_
 
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 
 namespace firebase {
 namespace internal {

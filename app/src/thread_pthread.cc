@@ -19,7 +19,7 @@
 #if defined(_STLPORT_VERSION)
 
 #include "app/src/assert.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/pthread_condvar.h"
 
 namespace firebase {

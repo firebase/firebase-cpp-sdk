@@ -15,7 +15,7 @@
 #include "installations/src/include/firebase/installations.h"
 
 #include "app/src/cleanup_notifier.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "installations/src/installations_internal.h"
 
 namespace firebase {

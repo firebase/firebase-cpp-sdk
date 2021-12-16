@@ -20,7 +20,7 @@
 #include <utility>
 
 #include "app/memory/unique_ptr.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/thread.h"
 #include "app/src/time.h"
 #include "gmock/gmock.h"

@@ -30,7 +30,7 @@
 #include "firestore/src/jni/task.h"
 #endif  // defined(__ANDROID__)
 
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "auth/src/include/firebase/auth.h"
 #include "firestore/src/common/macros.h"
 #include "firestore_integration_test.h"

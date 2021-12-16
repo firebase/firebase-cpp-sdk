@@ -37,7 +37,7 @@
 #include <cassert>
 
 #if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/pthread_condvar.h"
 #endif  //  FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS ||
         //  FIREBASE_PLATFORM_TVOS
