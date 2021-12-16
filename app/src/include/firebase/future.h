@@ -114,7 +114,7 @@ class FutureHandle {
 ///     pointers to its Futures. Therefore, all Futures must be destroyed
 ///     *before* the API is destroyed.
 ///   - Futures can be moved or copied. Call results are reference counted,
-///     and are destroyed when they are long longer referenced by any Futures.
+///     and are destroyed when they are no longer referenced by any Futures.
 ///   - The actual `Status`, `Error`, and `Result` values are kept inside the
 ///     API. This makes synchronization and data management easier.
 ///
