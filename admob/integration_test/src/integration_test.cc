@@ -298,14 +298,17 @@ TEST_F(FirebaseAdMobPreInitializationTests,
   // binrary if we ever wish to test mediation in this application.
   firebase::admob::DisableMediationInitialization();
 
-#if (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-  // DisableMediationInitialization is only implemented on iOS.
+  // Ensure that AdMob can initialize.
   InitializeAdMob(shared_app_);
   auto initialize_future = firebase::admob::InitializeLastResult();
   WaitForCompletion(initialize_future, "admob::Initialize");
   ASSERT_NE(initialize_future.result(), nullptr);
   EXPECT_EQ(*initialize_future.result(),
             firebase::admob::GetInitializationStatus());
+
+#if (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
+  // Check to see that only one Adapter was initialized, the base GMA adapter.
+  // Note: DisableMediationInitialization is only implemented on iOS.
   std::map<std::string, firebase::admob::AdapterStatus> adapter_status =
       firebase::admob::GetInitializationStatus().GetAdapterStatusMap();
   EXPECT_EQ(adapter_status.size(), 1);
