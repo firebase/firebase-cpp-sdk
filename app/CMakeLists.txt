@@ -227,6 +227,7 @@ set(internal_HDRS
     src/include/firebase/future.h
     src/include/firebase/internal/common.h
     src/include/firebase/internal/future_impl.h
+    src/include/firebase/internal/mutex.h
     src/include/firebase/internal/type_traits.h
     src/include/firebase/log.h
     src/include/firebase/util.h

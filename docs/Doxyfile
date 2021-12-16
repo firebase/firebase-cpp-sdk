@@ -22,7 +22,7 @@ REFERENCES_LINK_SOURCE = NO
 EXTRACT_STATIC = YES  # Required for constant headers in firebase/analytics.
 
 ENABLED_SECTIONS=cpp_examples
-EXCLUDE_SYMBOLS = internal
+EXCLUDE = app/src/include/firebase/internal
 
 #WARN_IF_UNDOCUMENTED = YES
 WARN_IF_DOC_ERROR = YES
