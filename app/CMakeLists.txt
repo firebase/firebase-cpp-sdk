@@ -248,6 +248,7 @@ set(utility_common_HDRS
     src/log.h
     src/heartbeat_date_storage_desktop.h
     src/heartbeat_info_desktop.h
+    src/mutex.h
     src/optional.h
     src/path.h
     src/pthread_condvar.h
