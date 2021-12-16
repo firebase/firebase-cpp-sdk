@@ -130,6 +130,7 @@ using firebase_test_framework::FirebaseTest;
 
 using testing::AnyOf;
 using testing::Contains;
+using testing::ElementsAre;
 using testing::HasSubstr;
 using testing::Pair;
 using testing::Property;
@@ -763,7 +764,7 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAdLoadAndShow) {
   WaitForCompletion(interstitial->Show(), "Show");
   app_framework::ProcessEvents(5000);
   EXPECT_THAT(content_listener.failure_codes(),
-              testing::ElementsAre(firebase::admob::kAdMobErrorAdAlreadyUsed));
+              ElementsAre(firebase::admob::kAdMobErrorAdAlreadyUsed));
 #endif
 
   interstitial->SetFullScreenContentListener(nullptr);
