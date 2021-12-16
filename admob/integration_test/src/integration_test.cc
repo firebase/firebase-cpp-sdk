@@ -114,6 +114,15 @@ static const char* kAdNetworkExtrasClassName =
 static const char* kAdNetworkExtrasClassName = "GADExtras";
 #endif
 
+// Class nname of the GMA SDK returned in initialization results.
+#if defined(ANDROID)
+const char kAdMobClassName[] = "com.google.android.gms.ads.MobileAds";
+#elif defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+const char kAdMobClassName[] = "GADMobileAds";
+#else  // desktop
+const char kAdMobClassName[] = "stub";
+#endif
+
 // Used to detect kAdMobErrorAdNetworkClassLoadErrors when loading
 // ads.
 static const char* kAdNetworkExtrasInvalidClassName = "abc123321cba";
@@ -151,10 +160,43 @@ class FirebaseAdMobTest : public FirebaseTest {
   static firebase::App* shared_app_;
 };
 
+// Runs AdMob Tests on methods and functions that should be run
+// before AdMob initializes.
+class FirebaseAdMobPreInitializationTests : public FirebaseAdMobTest {
+ public:
+  FirebaseAdMobPreInitializationTests();
+  ~FirebaseAdMobPreInitializationTests() override;
+
+  static void SetUpTestSuite();
+
+  void SetUp() override;
+};
+
 firebase::App* FirebaseAdMobTest::shared_app_ = nullptr;
 
 void PauseForVisualInspectionAndCallbacks() {
   app_framework::ProcessEvents(300);
+}
+
+void InitializeAdMob(firebase::App* shared_app) {
+  LogDebug("Initializing AdMob.");
+
+  ::firebase::ModuleInitializer initializer;
+  initializer.Initialize(shared_app, nullptr,
+                         [](::firebase::App* app, void* /* userdata */) {
+                           LogDebug("Try to initialize AdMob");
+                           firebase::InitResult result;
+                           ::firebase::admob::Initialize(*app, &result);
+                           return result;
+                         });
+
+  FirebaseAdMobTest::WaitForCompletion(initializer.InitializeLastResult(),
+                                       "Initialize");
+
+  ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
+      << initializer.InitializeLastResult().error_message();
+
+  LogDebug("Successfully initialized AdMob.");
 }
 
 void FirebaseAdMobTest::SetUpTestSuite() {
@@ -169,23 +211,7 @@ void FirebaseAdMobTest::SetUpTestSuite() {
   shared_app_ = ::firebase::App::Create();
 #endif  // defined(ANDROID)
 
-  LogDebug("Initializing AdMob.");
-
-  ::firebase::ModuleInitializer initializer;
-  initializer.Initialize(shared_app_, nullptr,
-                         [](::firebase::App* app, void* /* userdata */) {
-                           LogDebug("Try to initialize AdMob");
-                           firebase::InitResult result;
-                           ::firebase::admob::Initialize(*app, &result);
-                           return result;
-                         });
-
-  WaitForCompletion(initializer.InitializeLastResult(), "Initialize");
-
-  ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
-      << initializer.InitializeLastResult().error_message();
-
-  LogDebug("Successfully initialized AdMob.");
+  InitializeAdMob(shared_app_);
 }
 
 void FirebaseAdMobTest::TearDownTestSuite() {
@@ -247,7 +273,51 @@ firebase::admob::AdRequest FirebaseAdMobTest::GetAdRequest() {
   return request;
 }
 
+FirebaseAdMobPreInitializationTests::FirebaseAdMobPreInitializationTests() {}
+
+FirebaseAdMobPreInitializationTests::~FirebaseAdMobPreInitializationTests() {}
+
+void FirebaseAdMobPreInitializationTests::SetUp() { FirebaseTest::SetUp(); }
+
+void FirebaseAdMobPreInitializationTests::SetUpTestSuite() {
+  LogDebug("Initialize Firebase App.");
+  FindFirebaseConfig(FIREBASE_CONFIG_STRING);
+#if defined(ANDROID)
+  shared_app_ = ::firebase::App::Create(app_framework::GetJniEnv(),
+                                        app_framework::GetActivity());
+#else
+  shared_app_ = ::firebase::App::Create();
+#endif  // defined(ANDROID)
+}
+
 // Test cases below.
+
+TEST_F(FirebaseAdMobPreInitializationTests,
+       TestDisableMediationInitialization) {
+  // Note: This test should be disabled or put in an entirely different test
+  // binrary if we ever wish to test mediation in this application.
+  firebase::admob::DisableMediationInitialization();
+
+#if (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
+  // DisableMediationInitialization is only implemented on iOS.
+  InitializeAdMob(shared_app_);
+  auto initialize_future = firebase::admob::InitializeLastResult();
+  WaitForCompletion(initialize_future, "admob::Initialize");
+  ASSERT_NE(initialize_future.result(), nullptr);
+  EXPECT_EQ(*initialize_future.result(),
+            firebase::admob::GetInitializationStatus());
+  std::map<std::string, firebase::admob::AdapterStatus> adapter_status =
+      firebase::admob::GetInitializationStatus().GetAdapterStatusMap();
+  EXPECT_EQ(adapter_status.size(), 1);
+  EXPECT_THAT(
+      adapter_status,
+      Contains(Pair(
+          kAdMobClassName,
+          Property(&firebase::admob::AdapterStatus::is_initialized, true))))
+      << "Expected adapter class '" << kAdMobClassName << "' is not loaded.";
+#endif
+}
+
 TEST_F(FirebaseAdMobTest, TestInitializationStatus) {
   // Ensure Initialize()'s result matches GetInitializationStatus().
   auto initialize_future = firebase::admob::InitializeLastResult();
@@ -265,14 +335,6 @@ TEST_F(FirebaseAdMobTest, TestInitializationStatus) {
              adapter_status.second.description().c_str());
   }
 
-#if defined(ANDROID)
-  const char kAdMobClassName[] = "com.google.android.gms.ads.MobileAds";
-#elif defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
-  const char kAdMobClassName[] = "GADMobileAds";
-#else  // desktop
-  const char kAdMobClassName[] = "stub";
-#endif
-
   // Confirm that the default Google Mobile Ads SDK class name shows up in the
   // list. It should either be is_initialized = true, or description should say
   // "Timeout" (this is a special case we are using to deflake this test on
@@ -287,18 +349,11 @@ TEST_F(FirebaseAdMobTest, TestInitializationStatus) {
       << "Expected adapter class '" << kAdMobClassName << "' is not loaded.";
 }
 
-TEST_F(FirebaseAdMobTest, TestDisableSDKCrashReporting) {
+TEST_F(FirebaseAdMobPreInitializationTests, TestDisableSDKCrashReporting) {
   // We can't test to see if this method successfully reconfigures crash
   // reporting, but we're still calling it as a sanity check and to ensure
   // the symbol exists in the library.
   firebase::admob::DisableSDKCrashReporting();
-}
-
-TEST_F(FirebaseAdMobTest, TestDisableMediationInitialization) {
-  // We can't test to see if this method successfully disables mediation
-  // initialization, but we're sill calling it as a sanity check and to
-  // ensure the symbol exists in the library.
-  firebase::admob::DisableMediationInitialization();
 }
 
 TEST_F(FirebaseAdMobTest, TestGetAdRequest) { GetAdRequest(); }
