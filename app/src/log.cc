@@ -22,7 +22,7 @@
 #include <cstdlib>
 
 #include "app/src/assert.h"
-#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/mutex.h"
 
 #if !defined(FIREBASE_LOG_DEBUG)
 #define FIREBASE_LOG_DEBUG 0

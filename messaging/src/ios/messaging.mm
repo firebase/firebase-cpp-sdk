@@ -27,9 +27,9 @@
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
-#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/mutex.h"
 #include "app/src/util_ios.h"
 #include "messaging/src/common.h"
 

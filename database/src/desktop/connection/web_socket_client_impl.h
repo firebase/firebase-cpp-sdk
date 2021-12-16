@@ -20,8 +20,8 @@
 
 #include "app/memory/atomic.h"
 #include "app/memory/unique_ptr.h"
-#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/logger.h"
+#include "app/src/mutex.h"
 #include "app/src/safe_reference.h"
 #include "app/src/scheduler.h"
 #include "app/src/thread.h"

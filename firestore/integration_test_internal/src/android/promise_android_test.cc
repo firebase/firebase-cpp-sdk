@@ -23,7 +23,7 @@
 #include "android/firestore_integration_test_android.h"
 #include "android/task_completion_source.h"
 #include "app/src/assert.h"
-#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/mutex.h"
 #include "app_framework.h"
 #include "firebase/firestore/firestore_errors.h"
 #include "firebase_test_framework.h"

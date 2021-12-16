@@ -18,7 +18,7 @@
 #include "app/rest/transport_curl.h"
 #include "app/rest/transport_mock.h"
 #include "app/src/include/firebase/app.h"
-#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/mutex.h"
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "auth/src/desktop/auth_desktop.h"
 #include "auth/src/include/firebase/auth.h"

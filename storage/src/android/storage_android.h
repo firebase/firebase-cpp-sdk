@@ -24,7 +24,7 @@
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
-#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/mutex.h"
 #include "app/src/util_android.h"
 #include "storage/src/android/storage_android.h"
 #include "storage/src/include/firebase/storage/common.h"

@@ -22,7 +22,7 @@
 #include "app/rest/request.h"
 #include "app/rest/transport_curl.h"
 #include "app/src/cleanup_notifier.h"
-#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/mutex.h"
 #include "storage/src/desktop/controller_desktop.h"
 #include "storage/src/desktop/curl_requests.h"
 #include "storage/src/desktop/storage_desktop.h"

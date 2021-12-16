@@ -18,7 +18,7 @@
 
 #include "android/firestore_integration_test_android.h"
 #include "app/memory/atomic.h"
-#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/mutex.h"
 #include "firestore/src/jni/declaration.h"
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/ownership.h"

@@ -22,9 +22,9 @@
 #include "app/src/app_common.h"
 #include "app/src/app_ios.h"
 #include "app/src/assert.h"
-#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/mutex.h"
 #include "app/src/util.h"
 #include "app/src/util_ios.h"
 

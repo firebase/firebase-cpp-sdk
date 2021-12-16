@@ -22,9 +22,9 @@
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
-#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/intrusive_list.h"
 #include "app/src/log.h"
+#include "app/src/mutex.h"
 
 // Set this to 1 to enable verbose logging in this module.
 #if !defined(FIREBASE_FUTURE_TRACE_ENABLE)

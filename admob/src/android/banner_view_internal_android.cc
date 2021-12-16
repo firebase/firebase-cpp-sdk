@@ -30,7 +30,7 @@
 #include "admob/src/include/firebase/admob/banner_view.h"
 #include "admob/src/include/firebase/admob/types.h"
 #include "app/src/assert.h"
-#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/mutex.h"
 #include "app/src/semaphore.h"
 #include "app/src/util_android.h"
 

@@ -23,9 +23,9 @@
 
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
-#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/google_play_services/availability.h"
+#include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 
 namespace firebase {

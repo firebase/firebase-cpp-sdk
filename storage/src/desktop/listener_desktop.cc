@@ -16,7 +16,7 @@
 
 #include <stdint.h>
 
-#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/mutex.h"
 #include "storage/src/desktop/rest_operation.h"
 #include "storage/src/include/firebase/storage/listener.h"
 

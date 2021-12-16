@@ -24,7 +24,7 @@
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
-#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/mutex.h"
 #include "app/src/util_ios.h"
 #include "storage/src/include/firebase/storage/storage_reference.h"
 

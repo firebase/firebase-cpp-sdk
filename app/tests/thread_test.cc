@@ -16,7 +16,7 @@
 
 #include "app/src/thread.h"
 
-#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/mutex.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 

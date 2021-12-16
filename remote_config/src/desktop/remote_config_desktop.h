@@ -19,7 +19,7 @@
 #include <string>
 #include <thread>  // NOLINT
 
-#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/safe_reference.h"
 #include "app/src/scheduler.h"

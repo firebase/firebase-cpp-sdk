@@ -27,7 +27,7 @@
 #include <windows.h>
 #endif  // FIREBASE_PLATFORM_WINDOWS
 
-#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/mutex.h"
 
 namespace firebase {
 

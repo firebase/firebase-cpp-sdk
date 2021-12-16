@@ -20,7 +20,7 @@
 #include "admob/src/common/rewarded_video_internal.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
-#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/mutex.h"
 
 namespace firebase {
 namespace admob {

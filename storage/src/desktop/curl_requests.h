@@ -22,7 +22,7 @@
 #include "app/rest/response_binary.h"
 #include "app/rest/transport_builder.h"
 #include "app/rest/util.h"
-#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/semaphore.h"
 #include "storage/src/desktop/listener_desktop.h"

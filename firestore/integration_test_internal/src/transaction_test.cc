@@ -17,7 +17,7 @@
 #include <utility>
 #include <vector>
 
-#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/mutex.h"
 #include "app/src/semaphore.h"
 #include "app/src/time.h"
 

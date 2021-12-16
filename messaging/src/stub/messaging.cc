@@ -33,7 +33,7 @@
 
 #include <sstream>
 
-#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/mutex.h"
 #endif  // FIREBASE_MESSAGING_TEST_ENABLED
 
 namespace firebase {
