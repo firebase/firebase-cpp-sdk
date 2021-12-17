@@ -201,14 +201,6 @@ jobs:
           vcpkg_triplet_suffix: "windows-static-md"
           additional_build_flags: "--build_tests"
           sdk_platform: "windows"
-        - os: ubuntu-latest
-          vcpkg_triplet_suffix: "linux"
-          additional_build_flags: ""
-          sdk_platform: "linux"
-        - os: macos-latest
-          vcpkg_triplet_suffix: "osx"
-          additional_build_flags: "--target_format libraries"
-          sdk_platform: "darwin"
 
         exclude:
         - os: windows-latest
@@ -379,8 +371,6 @@ jobs:
         - sdk_platform: windows
           suffix: '-x64-Debug-dynamic'
           runs_on_platform: ubuntu-latest
-        - sdk_platform: darwin
-          runs_on_platform: macos-latest
         exclude:
         - sdk_platform: windows
           suffix: ''
