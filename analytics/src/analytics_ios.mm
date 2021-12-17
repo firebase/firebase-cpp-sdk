@@ -22,9 +22,9 @@
 
 #include "analytics/src/analytics_common.h"
 #include "app/src/assert.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
-#include "app/src/mutex.h"
 #include "app/src/thread.h"
 #include "app/src/time.h"
 #include "app/src/util.h"

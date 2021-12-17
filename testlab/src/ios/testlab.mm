@@ -18,8 +18,8 @@
 #import <objc/runtime.h>
 
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
-#include "app/src/mutex.h"
 #include "app/src/reference_count.h"
 #include "app/src/util_ios.h"
 #include "testlab/src/common/common.h"

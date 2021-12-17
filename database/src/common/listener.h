@@ -18,7 +18,7 @@
 #include <algorithm>
 #include <map>
 
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "database/src/common/query_spec.h"
 
 namespace firebase {

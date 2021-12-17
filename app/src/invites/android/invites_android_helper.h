@@ -22,8 +22,8 @@
 #include <jni.h>
 
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/invites/sender_receiver_interface.h"
-#include "app/src/mutex.h"
 #include "app/src/util_android.h"
 
 namespace firebase {

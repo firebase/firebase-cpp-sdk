@@ -17,7 +17,7 @@
 
 #include "app/meta/move.h"
 #include "app/src/include/firebase/internal/common.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/reference_count.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
