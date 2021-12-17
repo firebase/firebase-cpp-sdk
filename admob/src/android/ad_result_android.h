@@ -19,6 +19,7 @@
 
 #include <string>
 
+#include "admob/src/common/ad_result_internal.h"
 #include "admob/src/include/firebase/admob/types.h"
 #include "app/src/mutex.h"
 #include "app/src/util_android.h"
@@ -46,37 +47,6 @@ namespace admob {
 
 METHOD_LOOKUP_DECLARATION(ad_error, ADERROR_METHODS);
 METHOD_LOOKUP_DECLARATION(load_ad_error, LOADADERROR_METHODS);
-
-struct AdResultInternal {
-  // True if the result contains an error originating from C++/Java wrapper
-  // code. If false, then an Admob Android AdError has occurred.
-  bool is_wrapper_error;
-
-  // True if this was a successful result.
-  bool is_successful;
-
-  // True if this error data represents a result from a LoadAd request.
-  bool is_load_ad_error;
-
-  // An error code.
-  AdMobError code;
-
-  // A cached value of com.google.android.gms.ads.AdError.domain.
-  std::string domain;
-
-  // A cached value of com.google.android.gms.ads.AdError.message.
-  std::string message;
-
-  // A cached result from invoking com.google.android.gms.ads.AdError.ToString.
-  std::string to_string;
-
-  // If this is not a successful result, or if it's a wrapper error, then
-  // j_ad_error is a reference to a com.google.android.gms.ads.AdError produced
-  // by the Admob Android SDK.
-  jobject j_ad_error;
-
-  Mutex mutex;
-};
 
 }  // namespace admob
 }  // namespace firebase

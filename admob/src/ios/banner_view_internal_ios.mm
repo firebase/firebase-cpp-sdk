@@ -231,7 +231,8 @@ void BannerViewInternalIOS::BannerViewDidFailToReceiveAdWithError(NSError *error
   firebase::MutexLock lock(mutex_);
   FIREBASE_ASSERT(error);
   if(ad_load_callback_data_ != nil) {
-    CompleteAdResultIOS(ad_load_callback_data_, error);
+    CompleteAdResultError(ad_load_callback_data_, error,
+                          /*is_load_ad_error=*/true);
     ad_load_callback_data_ = nil;
   }
 }

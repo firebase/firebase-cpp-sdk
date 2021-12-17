@@ -54,9 +54,10 @@
 - (void)ad:(nonnull id<GADFullScreenPresentingAd>)ad
 didFailToPresentFullScreenContentWithError:(nonnull NSError *)error {
   firebase::admob::AdResultInternal ad_result_internal;
-  ad_result_internal.is_wrapper_error = false;
+  ad_result_internal.ad_result_type =
+    firebase::admob::AdResultInternal::kAdResultInternalFullScreenContentError;
   ad_result_internal.is_successful = false;
-  ad_result_internal.ios_error = error;
+  ad_result_internal.native_ad_error = error;
   // Invoke AdMobInternal, a friend of AdResult, to have it access its
   // protected constructor with the AdError data.
   const firebase::admob::AdResult& ad_result = firebase::admob::AdMobInternal::CreateAdResult(ad_result_internal);

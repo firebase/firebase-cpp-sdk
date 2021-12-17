@@ -183,5 +183,25 @@ AdMobError MapAndroidAdRequestErrorCodeToCPPErrorCode(jint j_error_code) {
   }
 }
 
+AdMobError MapAndroidFullScreenContentErrorCodeToCPPErrorCode(
+    jint j_error_code) {
+  // Android error code sourced from
+  // https://developers.google.com/android/reference/com/google/android/gms/ads/FullScreenContentCallback
+  switch (j_error_code) {
+    case 0:  // ERROR_CODE_INTERNAL_ERROR
+      return kAdMobErrorInternalError;
+    case 1:  // ERROR_CODE_AD_REUSED
+      return kAdMobErrorAdAlreadyUsed;
+    case 2:  // ERROR_CODE_NOT_READY
+      return kAdMobErrorAdNotReady;
+    case 3:  // ERROR_CODE_APP_NOT_FOREGROUND
+      return kAdMobErrorAppNotInForeground;
+    case 4:  // ERROR_CODE_MEDIATION_SHOW_ERROR
+      return kAdMobErrorMediationShowError;
+    default:
+      return kAdMobErrorUnknown;
+  }
+}
+
 }  // namespace admob
 }  // namespace firebase

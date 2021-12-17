@@ -42,9 +42,13 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
                                        admob::AdMobError* error,
                                        std::string* error_message);
 
-// Converts the iOS error codes to the CPP platform independent error codes
-// defined in AdMobError.
-AdMobError MapADErrorCodeToCPPErrorCode(GADErrorCode error_code);
+// Converts the iOS error codes from an AdRequest to the CPP platform
+// independent error codes defined in AdMobError.
+AdMobError MapAdRequestErrorCodeToCPPErrorCode(GADErrorCode error_code);
+
+// Converts the iOS error codes from attempting to show a full screen
+// ad into the platform independent error codes defined in AdMobError.
+AdMobError MapFullScreenContentErrorCodeToCPPErrorCode(GADPresentationErrorCode error_code);
 
 }  // namespace admob
 }  // namespace firebase

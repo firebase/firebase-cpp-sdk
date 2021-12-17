@@ -16,15 +16,12 @@
 
 #include <string>
 
+#include "admob/src/common/ad_result_internal.h"
 #include "admob/src/include/firebase/admob.h"
 #include "admob/src/include/firebase/admob/types.h"
 
 namespace firebase {
 namespace admob {
-
-struct AdResultInternal {
-  char stub;
-};
 
 AdResult::AdResult() {}
 

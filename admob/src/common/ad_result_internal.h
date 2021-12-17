@@ -24,34 +24,61 @@
 
 namespace firebase {
 namespace admob {
-namespace internal {
 
-class AdResultInternal {
- public:
-  /// Returns true if the AdResult represents a successful result.
-  virtual bool is_successful() const = 0;
+#if FIREBASE_PLATFORM_ANDROID
+typedef jobject NativeSdkAdError;
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+typedef const NSError* NativeSdkAdError;
+#else
+typedef void* NativeSdkAdError;
+#endif
 
-  /// Retrieves an AdResult which represents the cause of this error.
-  ///
-  /// @return an AdResult which represents the cause of this AdResult.
-  /// If there was no cause then the methods of the result will return
-  /// defaults.
-  virtual AdResult GetCause() const = 0;
+struct AdResultInternal {
+  // The type of AdResult, based on the operation that was requested.
+  enum AdResultInternalType {
+    // Standard AdResult type for most Ad operations.
+    kAdResultInternalAdError = 1,
+    // AdResult represents an error the GMA SDK wrapper.
+    kAdResultInternalWrapperError,
+    // AdResult resulting from a LoadAd operation.
+    kAdResultInternalLoadAdError,
+    // ADResult resulting from an attempt to show a full screen ad.
+    kAdResultInternalFullScreenContentError,
+  };
 
-  /// Gets the error's code.
-  virtual int code() const = 0;
+  // Default constructor.
+  AdResultInternal() {
+    ad_result_type = kAdResultInternalAdError;
+    code = kAdMobErrorNone;
+    native_ad_error = nullptr;
+  }
 
-  /// Gets the domain of the error.
-  virtual const std::string& domain() const = 0;
+  // The type of AdResult, based on the operation that was requested.
+  AdResultInternalType ad_result_type;
 
-  /// Gets the message describing the error.
-  virtual const std::string& message() const = 0;
+  // True if this was a successful result.
+  bool is_successful;
 
-  /// Returns a log friendly string version of this object.
-  virtual const std::string& ToString() const = 0;
+  // An error code.
+  AdMobError code;
+
+  // A cached value of com.google.android.gms.ads.AdError.domain.
+  std::string domain;
+
+  // A cached value of com.google.android.gms.ads.AdError.message.
+  std::string message;
+
+  // A cached result from invoking com.google.android.gms.ads.AdError.ToString.
+  std::string to_string;
+
+  // If this is not a successful result, or if it's a wrapper error, then
+  // native_ad_error is a reference to a error object returned by the iOS or
+  // Android GMA SDK.
+  NativeSdkAdError native_ad_error;
+
+  Mutex mutex;
 };
 
-}  // namespace internal
 }  // namespace admob
 }  // namespace firebase
 

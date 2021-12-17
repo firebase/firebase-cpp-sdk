@@ -36,7 +36,7 @@ AdapterResponseInfo::AdapterResponseInfo(
   FIREBASE_ASSERT(internal.ad_network_response_info);
 
   AdResultInternal ad_result_internal;
-  ad_result_internal.ios_error = internal.ad_network_response_info.error;
+  ad_result_internal.native_ad_error = internal.ad_network_response_info.error;
   ad_result_ = AdResult(ad_result_internal);
   
   adapter_class_name_ = util::NSStringToString(

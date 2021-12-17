@@ -38,8 +38,8 @@ void CompleteLoadAdInternalResult(
 
 // Parses information from the NSError to populate an AdResult
 // and completes the AdResult Future on iOS.
-void CompleteAdResultIOS(FutureCallbackData<AdResult>* callback_data,
-                         NSError *error);
+void CompleteAdResultError(FutureCallbackData<AdResult>* callback_data,
+                         NSError *error, bool is_load_ad_error);
 
 
 // Converts the iOS Admob GADAdValue structure into a CPP
