@@ -25,7 +25,7 @@ ExternalProject_Add(
   PREFIX ${PROJECT_BINARY_DIR}
 
   GIT_REPOSITORY https://github.com/firebase/firebase-ios-sdk
-  GIT_TAG a55baee847a56d8ac2afe06319c6efd60110b76c
+  GIT_TAG a9868fe9c0c09e902bd80e0c32e23b3c2030cc5f
 
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
