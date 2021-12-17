@@ -350,7 +350,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        sdk_platform: [linux, darwin, windows]
+        sdk_platform: [windows]
         suffix: ['']
         runs_on_platform: [ubuntu-latest]
         include:
