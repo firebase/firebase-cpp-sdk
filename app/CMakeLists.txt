@@ -520,7 +520,7 @@ if (IOS)
 
   list(APPEND framework_HDRS
     src/include/firebase/internal/platform.h
-    ${admob_HDRS}
+    #${admob_HDRS}
     ${analytics_HDRS}
     ${auth_HDRS}
     ${database_HDRS}
