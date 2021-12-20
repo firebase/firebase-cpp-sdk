@@ -573,6 +573,8 @@ code.
         constructing C++ objects during Objective-C's `+load` method.
 	([#706](https://github.com/firebase/firebase-cpp-sdk/pull/706))
 	([#783](https://github.com/firebase/firebase-cpp-sdk/pull/783))
+    -   Firestore: Fix race conditions in `Future` handling.
+        ([#799](https://github.com/firebase/firebase-cpp-sdk/pull/799)).
 
 ### 8.8.0
 -   Changes
