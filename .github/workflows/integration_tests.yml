@@ -58,6 +58,7 @@ jobs:
       pr_number: ${{ steps.set_outputs.outputs.pr_number }}
       matrix_platform: ${{ steps.matrix_config.outputs.matrix_platform }}
       matrix_os: ${{ steps.matrix_config.outputs.matrix_os }}
+      matrix_arch_mac: ${{ steps.matrix_config.outputs.matrix_arch_mac }}
       matrix_ssl: ${{ steps.matrix_config.outputs.matrix_ssl }}
       apis: ${{ steps.matrix_config.outputs.apis }}
       mobile_test_on: ${{ steps.matrix_config.outputs.mobile_test_on }}
@@ -75,7 +76,7 @@ jobs:
     ### trigger value: manual_trigger, scheduled_trigger, label_trigger, postsubmit_trigger
     - id: set_outputs
       run: |
-        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then 
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
           if [[ "${{ github.event.inputs.test_pull_request }}" != "nightly-packaging" ]]; then
             # Triggered manually
             echo "::set-output name=trigger::manual_trigger"
@@ -126,12 +127,12 @@ jobs:
       if: ${{ !steps.set_outputs.outputs.trigger }}
       uses: andymckay/cancel-action@0.2
     - name: Wait for workflow cancellation
-      if: ${{ !steps.set_outputs.outputs.trigger }} 
+      if: ${{ !steps.set_outputs.outputs.trigger }}
       run: |
         sleep 300
         exit 1  # fail out if the cancellation above somehow failed.
     - name: Cancel previous runs on the same PR
-      if: steps.set_outputs.outputs.trigger == 'label_trigger' 
+      if: steps.set_outputs.outputs.trigger == 'label_trigger'
       uses: styfle/cancel-workflow-action@0.8.0
       with:
         access_token: ${{ github.token }}
@@ -153,14 +154,14 @@ jobs:
         command: pip install -r scripts/gha/requirements.txt
     - id: matrix_config
       run: |
-        if [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "expanded" ]]; then 
+        if [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "expanded" ]]; then
           TEST_MATRIX_PARAM=-e=1
           echo "::warning ::Running on the expanded matrix"
-        elif [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "minimal" ]]; then 
+        elif [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "minimal" ]]; then
           TEST_MATRIX_PARAM=-m=1
           echo "::warning ::Running on the minimal matrix"
-        elif [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "auto" ]]; then 
-          # auto-diff only apply when running in a PR. 
+        elif [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "auto" ]]; then
+          # auto-diff only apply when running in a PR.
           # diff against the PR's base. "git merge-base main branch_name" will give the common ancestor of both branches.
           MERGE_BASE=$(git merge-base origin/${{github.event.pull_request.head.ref}} origin/${{github.event.pull_request.base.ref}} || true)
           # If origin/<branch> is no longer valid, then just run all tests.
@@ -177,6 +178,7 @@ jobs:
         echo "::set-output name=apis::${apis}"
         echo "::set-output name=matrix_platform::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k platform -o "${{github.event.inputs.platforms}}" --apis ${apis} )"
         echo "::set-output name=matrix_os::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k os -o "${{github.event.inputs.operating_systems}}")"
+        echo "::set-output name=matrix_arch_mac::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k architecture_macos)"
         # If building against a packaged SDK, only use boringssl.
         if [[ -n "${{ github.event.inputs.test_packaged_sdk }}" ]]; then
           echo "::warning ::Downloading SDK package from previous run: https://github.com/${{github.repository}}/actions/runs/${{ github.event.inputs.test_packaged_sdk }}"
@@ -203,7 +205,7 @@ jobs:
           --run_id ${{github.run_id}}
 
   build_desktop:
-    name: build-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+    name: build-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}-${{ matrix.arch }}
     needs: [check_and_prepare]
     runs-on: ${{ matrix.os }}
     # Skip this if there is an empty matrix (which can happen if "auto" was set above).
@@ -213,7 +215,14 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
+        arch: ${{ fromJson(needs.check_and_prepare.outputs.matrix_arch_mac) }}
         ssl_variant: ${{ fromJson(needs.check_and_prepare.outputs.matrix_ssl) }}
+      exclude:
+      # Only build for arm64 on Mac.
+      - os: ubuntu-latest
+        arch: arm64
+      - os: windows-latest
+        arch: arm64
     steps:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
@@ -307,8 +316,9 @@ jobs:
           workflow: 'cpp-packaging.yml'
           run_id: ${{ github.event.inputs.test_packaged_sdk }}
       - name: Build integration tests
+        id: build-tests
         shell: bash
-        env: 
+        env:
           CCACHE_DIR: ${{ github.workspace }}/ccache_dir
         run: |
           declare -a additional_flags
@@ -326,10 +336,19 @@ jobs:
               additional_flags+=(--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON)
             fi
           fi
+
+          # Special handling for MacOS ARM build.
+          artifact_os=${{ matrix.os }}
+          if [[ "${{ matrix.os }}" == "macos-latest" && "${{ matrix.arch }}" == "arm64" ]]; then
+            artifact_os=macosarm-latest
+            additional_flags+=(--arch arm64)
+          fi
+          echo "::set-output name=artifact_name::desktop-${artifact_os}-${{ matrix.ssl_variant }}"
+
           python scripts/gha/build_testapps.py --p Desktop \
             --t ${{ needs.check_and_prepare.outputs.apis }} \
             --output_directory "${{ github.workspace }}" \
-            --artifact_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}" \
+            --artifact_name "desktop-${artifact_os}-${{ matrix.ssl_variant }}" \
             --noadd_timestamp \
             --short_output_paths \
             ${additional_flags[*]}
@@ -337,28 +356,28 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          if [ ! -f build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json ]; then
+          if [ ! -f build-results-${{ steps.build-tests.artifact_name }}.log.json ]; then
             # No summary was created, make a placeholder one.
-            echo "__SUMMARY_MISSING__" > build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json
+            echo "__SUMMARY_MISSING__" > ${{ steps.build-tests.artifact_name }}.log.json
           fi
       - name: Upload Desktop integration tests artifact
         uses: actions/upload-artifact@v2.2.2
         if: ${{ !cancelled() }}
         with:
-          name: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
-          path: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+          name: testapps-${{ steps.build-tests.artifact_name }}
+          path: testapps-${{ steps.build-tests.artifact_name }}
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Upload Desktop build results artifact
         uses: actions/upload-artifact@v2.2.2
         if: ${{ !cancelled() }}
         with:
           name: log-artifact
-          path: build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}*
+          path: build-results-${{ steps.build-tests.artifact_name }}
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Cleanup Local Copies of Uploaded Artifacts
         shell: bash
         run: |
-          rm -rf testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+          rm -rf testapps-${{ steps.build-tests.artifact_name }}
       - name: Set CLOUDSDK_PYTHON (Windows)
         shell: bash
         if: startsWith(matrix.os, 'windows') && !cancelled()
@@ -392,7 +411,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
+          cat build-results-${{ steps.build-tests.artifact_name }}
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
@@ -752,6 +771,73 @@ jobs:
             exit 1
           fi
 
+  test_desktop_macos_arm:
+    name: test-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+    needs: [check_and_prepare, build_desktop]
+    runs-on: [self-hosted, macOS, ${{ matrix.os }}]
+    if: |
+      ${{
+        contains(needs.check_and_prepare.outputs.matrix_platform, 'Desktop') &&
+        contains(needs.check_and_prepare.outputs.matrix_os, 'macos-latest') &&
+        github.event_name == 'workflow_dispatch' &&
+        needs.check_and_prepare.outputs.apis != '' &&
+        !cancelled()
+      }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ macosarm-selfhosted ]
+        ssl_variant: ${{ fromJson(needs.check_and_prepare.outputs.matrix_ssl) }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{needs.check_and_prepare.outputs.github_ref}}
+      - name: Download Desktop integration tests artifact
+        uses: actions/download-artifact@v2.0.8
+        with:
+          path: testapps
+          name: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+      - name: Run Desktop integration tests
+        run: arch -arm64 python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
+      - name: Prepare results summary artifact
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          if [ ! -f testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json ]; then
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json
+          fi
+      - name: Upload Desktop test results artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v2.2.2
+        with:
+          name: log-artifact
+          path: testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}*
+          retention-days: ${{ env.artifactRetentionDays }}
+      - name: Download log artifacts
+        if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
+        uses: actions/download-artifact@v2.0.8
+        with:
+          path: test_results
+          name: log-artifact
+      - name: Update PR label and comment
+        if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
+        run: |
+          python scripts/gha/it_workflow.py --stage progress \
+            --token ${{github.token}} \
+            --issue_number ${{needs.check_and_prepare.outputs.pr_number}}\
+            --actor ${{github.actor}} \
+            --commit ${{needs.check_and_prepare.outputs.github_ref}} \
+            --run_id ${{github.run_id}}
+      - name: Summarize test results
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          cat testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
+          if [[ "${{ job.status }}" != "success" ]]; then
+            exit 1
+          fi
+
+
   test_desktop:
     name: test-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
     needs: [check_and_prepare, build_desktop]
@@ -996,7 +1082,7 @@ jobs:
         uses: google-github-actions/setup-gcloud@master
       - name: Run iOS integration tests on Real Device via FTL
         # max 3 retry and 10m timeout for each testapp, plus other steps
-        timeout-minutes: 60 
+        timeout-minutes: 60
         if: steps.get-device-type.outputs.device_type == 'real'
         run: |
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"

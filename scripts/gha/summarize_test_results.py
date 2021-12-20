@@ -75,6 +75,7 @@ LIST_MAX = 3
 
 CAPITALIZATIONS = {
     "macos": "MacOS",
+    "macosarm": "MacOS-ARM",
     "ubuntu": "Linux",
     "windows": "Windows",
     "ios": "iOS",
