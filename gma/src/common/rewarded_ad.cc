@@ -16,10 +16,10 @@
 
 #include "gma/src/include/firebase/gma/rewarded_ad.h"
 
-#include "gma/src/common/gma_common.h"
-#include "gma/src/common/rewarded_ad_internal.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
+#include "gma/src/common/gma_common.h"
+#include "gma/src/common/rewarded_ad_internal.h"
 
 namespace firebase {
 namespace gma {
@@ -63,9 +63,8 @@ Future<AdResult> RewardedAd::LoadAd(const char* ad_unit_id,
                                     const AdRequest& request) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::gma::internal::kRewardedAdFnLoadAd,
-        kAdErrorUninitialized, kAdUninitializedErrorMessage,
-        &internal_->future_data_, AdResult());
+        firebase::gma::internal::kRewardedAdFnLoadAd, kAdErrorUninitialized,
+        kAdUninitializedErrorMessage, &internal_->future_data_, AdResult());
   }
   return internal_->LoadAd(ad_unit_id, request);
 }
@@ -73,9 +72,8 @@ Future<AdResult> RewardedAd::LoadAd(const char* ad_unit_id,
 Future<AdResult> RewardedAd::LoadAdLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::gma::internal::kRewardedAdFnLoadAd,
-        kAdErrorUninitialized, kAdUninitializedErrorMessage,
-        &internal_->future_data_, AdResult());
+        firebase::gma::internal::kRewardedAdFnLoadAd, kAdErrorUninitialized,
+        kAdUninitializedErrorMessage, &internal_->future_data_, AdResult());
   }
   return internal_->GetLoadAdLastResult();
 }

@@ -26,13 +26,13 @@
 #include <unordered_set>
 #include <vector>
 
+#include "app/src/log.h"
+#include "app/src/util_android.h"
 #include "gma/gma_resources.h"
 #include "gma/src/android/gma_android.h"
 #include "gma/src/common/gma_common.h"
 #include "gma/src/include/firebase/gma.h"
 #include "gma/src/include/firebase/gma/types.h"
-#include "app/src/log.h"
-#include "app/src/util_android.h"
 
 namespace firebase {
 namespace gma {
@@ -140,8 +140,7 @@ jobject GetJavaAdRequestFromCPPAdRequest(const AdRequest& request,
 
   // Set the request agent string so requests originating from this library can
   // be tracked and reported on as a group.
-  jstring agent_str =
-      env->NewStringUTF(firebase::gma::GetRequestAgentString());
+  jstring agent_str = env->NewStringUTF(firebase::gma::GetRequestAgentString());
   builder = util::ContinueBuilder(
       env, builder,
       env->CallObjectMethod(
@@ -183,8 +182,7 @@ AdError MapAndroidAdRequestErrorCodeToCPPErrorCode(jint j_error_code) {
   }
 }
 
-AdError MapAndroidFullScreenContentErrorCodeToCPPErrorCode(
-    jint j_error_code) {
+AdError MapAndroidFullScreenContentErrorCodeToCPPErrorCode(jint j_error_code) {
   // Android error code sourced from
   // https://developers.google.com/android/reference/com/google/android/gms/ads/FullScreenContentCallback
   switch (j_error_code) {

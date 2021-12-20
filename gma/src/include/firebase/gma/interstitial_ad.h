@@ -17,8 +17,8 @@
 #ifndef FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_INTERSTITIAL_AD_H_
 #define FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_INTERSTITIAL_AD_H_
 
-#include "firebase/gma/types.h"
 #include "firebase/future.h"
+#include "firebase/gma/types.h"
 #include "firebase/internal/common.h"
 
 namespace firebase {

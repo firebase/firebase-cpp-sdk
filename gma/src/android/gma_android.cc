@@ -26,6 +26,12 @@
 #include <utility>
 #include <vector>
 
+#include "app/src/assert.h"
+#include "app/src/embedded_file.h"
+#include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/google_play_services/availability.h"
+#include "app/src/reference_counted_future_impl.h"
+#include "app/src/util_android.h"
 #include "gma/gma_resources.h"
 #include "gma/src/android/ad_request_converter.h"
 #include "gma/src/android/ad_result_android.h"
@@ -37,12 +43,6 @@
 #include "gma/src/common/gma_common.h"
 #include "gma/src/include/firebase/gma.h"
 #include "gma/src/include/firebase/gma/types.h"
-#include "app/src/assert.h"
-#include "app/src/embedded_file.h"
-#include "app/src/include/firebase/internal/common.h"
-#include "app/src/include/google_play_services/availability.h"
-#include "app/src/reference_counted_future_impl.h"
-#include "app/src/util_android.h"
 
 namespace firebase {
 namespace gma {
@@ -173,14 +173,12 @@ static AdapterStatus ConvertFromJavaAdapterStatus(jobject j_adapter_status) {
   env->DeleteLocalRef(j_state_current);
   env->DeleteLocalRef(j_state_ready);
   env->DeleteLocalRef(j_adapter_status);
-  return GmaInternal::CreateAdapterStatus(description, is_initialized,
-                                            latency);
+  return GmaInternal::CreateAdapterStatus(description, is_initialized, latency);
 }
 
 static AdapterInitializationStatus PopulateAdapterInitializationStatus(
     jobject j_init_status) {
-  if (!j_init_status)
-    return GmaInternal::CreateAdapterInitializationStatus({});
+  if (!j_init_status) return GmaInternal::CreateAdapterInitializationStatus({});
 
   JNIEnv* env = ::firebase::gma::GetJNI();
   std::map<std::string, AdapterStatus> adapter_status_map;
@@ -240,8 +238,7 @@ Future<AdapterInitializationStatus> InitializeGoogleMobileAds(JNIEnv* env) {
         g_initialization_handle.get() ==
         SafeFutureHandle<AdapterInitializationStatus>::kInvalidHandle.get());
     g_initialization_handle =
-        g_future_impl->SafeAlloc<AdapterInitializationStatus>(
-            kGmaFnInitialize);
+        g_future_impl->SafeAlloc<AdapterInitializationStatus>(kGmaFnInitialize);
     future_to_return = MakeFuture(g_future_impl, g_initialization_handle);
   }
 
@@ -716,7 +713,7 @@ void CompleteLoadAdCallback(FutureCallbackData<AdResult>* callback_data,
   // Invoke a friend of AdResult to have it invoke the AdResult
   // protected constructor with the AdResultInternal data.
   GmaInternal::CompleteLoadAdFuture(callback_data, ad_result_internal.code,
-                                      future_error_message, ad_result_internal);
+                                    future_error_message, ad_result_internal);
 }
 
 void CompleteLoadAdAndroidErrorResult(JNIEnv* env, jlong data_ptr,
@@ -728,8 +725,7 @@ void CompleteLoadAdAndroidErrorResult(JNIEnv* env, jlong data_ptr,
   FIREBASE_ASSERT(j_error_message);
 
   FutureCallbackData<AdResult>* callback_data =
-      reinterpret_cast<firebase::gma::FutureCallbackData<AdResult>*>(
-          data_ptr);
+      reinterpret_cast<firebase::gma::FutureCallbackData<AdResult>*>(data_ptr);
 
   std::string error_message = util::JStringToString(env, j_error_message);
 
@@ -901,40 +897,35 @@ void JNI_notifyAdPaidEvent(JNIEnv* env, jclass clazz, jlong data_ptr,
 void JNI_BannerViewHelper_notifyBoundingBoxChanged(JNIEnv* env, jclass clazz,
                                                    jlong data_ptr) {
   firebase::gma::internal::BannerViewInternal* internal =
-      reinterpret_cast<firebase::gma::internal::BannerViewInternal*>(
-          data_ptr);
+      reinterpret_cast<firebase::gma::internal::BannerViewInternal*>(data_ptr);
   internal->NotifyListenerOfBoundingBoxChange(internal->bounding_box());
 }
 
 void JNI_BannerViewHelper_notifyAdClicked(JNIEnv* env, jclass clazz,
                                           jlong data_ptr) {
   firebase::gma::internal::BannerViewInternal* internal =
-      reinterpret_cast<firebase::gma::internal::BannerViewInternal*>(
-          data_ptr);
+      reinterpret_cast<firebase::gma::internal::BannerViewInternal*>(data_ptr);
   internal->NotifyListenerAdClicked();
 }
 
 void JNI_BannerViewHelper_notifyAdClosed(JNIEnv* env, jclass clazz,
                                          jlong data_ptr) {
   firebase::gma::internal::BannerViewInternal* internal =
-      reinterpret_cast<firebase::gma::internal::BannerViewInternal*>(
-          data_ptr);
+      reinterpret_cast<firebase::gma::internal::BannerViewInternal*>(data_ptr);
   internal->NotifyListenerAdClosed();
 }
 
 void JNI_BannerViewHelper_notifyAdImpression(JNIEnv* env, jclass clazz,
                                              jlong data_ptr) {
   firebase::gma::internal::BannerViewInternal* internal =
-      reinterpret_cast<firebase::gma::internal::BannerViewInternal*>(
-          data_ptr);
+      reinterpret_cast<firebase::gma::internal::BannerViewInternal*>(data_ptr);
   internal->NotifyListenerAdImpression();
 }
 
 void JNI_BannerViewHelper_notifyAdOpened(JNIEnv* env, jclass clazz,
                                          jlong data_ptr) {
   firebase::gma::internal::BannerViewInternal* internal =
-      reinterpret_cast<firebase::gma::internal::BannerViewInternal*>(
-          data_ptr);
+      reinterpret_cast<firebase::gma::internal::BannerViewInternal*>(data_ptr);
   internal->NotifyListenerAdOpened();
 }
 

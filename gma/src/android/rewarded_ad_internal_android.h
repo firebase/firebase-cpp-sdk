@@ -17,9 +17,9 @@
 #ifndef FIREBASE_GMA_SRC_ANDROID_REWARDED_AD_INTERNAL_ANDROID_H_
 #define FIREBASE_GMA_SRC_ANDROID_REWARDED_AD_INTERNAL_ANDROID_H_
 
-#include "gma/src/common/rewarded_ad_internal.h"
 #include "app/src/mutex.h"
 #include "app/src/util_android.h"
+#include "gma/src/common/rewarded_ad_internal.h"
 
 namespace firebase {
 namespace gma {

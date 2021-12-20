@@ -25,11 +25,11 @@
 
 #include <vector>
 
+#include "firebase/app.h"
 #include "firebase/gma/banner_view.h"
 #include "firebase/gma/interstitial_ad.h"
 #include "firebase/gma/rewarded_ad.h"
 #include "firebase/gma/types.h"
-#include "firebase/app.h"
 #include "firebase/internal/common.h"
 
 #if !defined(DOXYGEN) && !defined(SWIG)

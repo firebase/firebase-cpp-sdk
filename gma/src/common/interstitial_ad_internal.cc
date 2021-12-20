@@ -16,11 +16,11 @@
 
 #include "gma/src/common/interstitial_ad_internal.h"
 
-#include "gma/src/include/firebase/gma/interstitial_ad.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "gma/src/include/firebase/gma/interstitial_ad.h"
 
 #if FIREBASE_PLATFORM_ANDROID
 #include "gma/src/android/interstitial_ad_internal_android.h"

@@ -17,10 +17,10 @@
 #ifndef FIREBASE_GMA_SRC_COMMON_BANNER_VIEW_INTERNAL_H_
 #define FIREBASE_GMA_SRC_COMMON_BANNER_VIEW_INTERNAL_H_
 
-#include "gma/src/common/gma_common.h"
-#include "gma/src/include/firebase/gma/banner_view.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/mutex.h"
+#include "gma/src/common/gma_common.h"
+#include "gma/src/include/firebase/gma/banner_view.h"
 
 namespace firebase {
 namespace gma {

@@ -17,11 +17,11 @@
 #ifndef FIREBASE_GMA_SRC_COMMON_INTERSTITIAL_AD_INTERNAL_H_
 #define FIREBASE_GMA_SRC_COMMON_INTERSTITIAL_AD_INTERNAL_H_
 
-#include "gma/src/common/gma_common.h"
-#include "gma/src/common/full_screen_ad_event_listener.h"
-#include "gma/src/include/firebase/gma/interstitial_ad.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/mutex.h"
+#include "gma/src/common/full_screen_ad_event_listener.h"
+#include "gma/src/common/gma_common.h"
+#include "gma/src/include/firebase/gma/interstitial_ad.h"
 
 namespace firebase {
 namespace gma {

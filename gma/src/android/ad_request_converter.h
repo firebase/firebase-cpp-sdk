@@ -19,8 +19,8 @@
 
 #include <jni.h>
 
-#include "gma/src/include/firebase/gma/types.h"
 #include "app/src/util_android.h"
+#include "gma/src/include/firebase/gma/types.h"
 
 namespace firebase {
 namespace gma {
@@ -43,8 +43,7 @@ AdError MapAndroidAdRequestErrorCodeToCPPErrorCode(jint j_error_code);
 
 // Converts the Android FullScreenContentCallback error codes to the CPP
 // platform-independent error codes defined in AdError.
-AdError MapAndroidFullScreenContentErrorCodeToCPPErrorCode(
-    jint j_error_code);
+AdError MapAndroidFullScreenContentErrorCodeToCPPErrorCode(jint j_error_code);
 
 }  // namespace gma
 }  // namespace firebase

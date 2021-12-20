@@ -21,14 +21,14 @@
 #include <string>
 #include <vector>
 
+#include "app/src/cleanup_notifier.h"
+#include "app/src/include/firebase/version.h"
+#include "app/src/util.h"
 #include "gma/src/include/firebase/gma.h"
 #include "gma/src/include/firebase/gma/banner_view.h"
 #include "gma/src/include/firebase/gma/interstitial_ad.h"
 #include "gma/src/include/firebase/gma/rewarded_ad.h"
 #include "gma/src/include/firebase/gma/types.h"
-#include "app/src/cleanup_notifier.h"
-#include "app/src/include/firebase/version.h"
-#include "app/src/util.h"
 
 FIREBASE_APP_REGISTER_CALLBACKS(
     gma,

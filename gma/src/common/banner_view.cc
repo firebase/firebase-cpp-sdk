@@ -16,10 +16,10 @@
 
 #include "gma/src/include/firebase/gma/banner_view.h"
 
-#include "gma/src/common/gma_common.h"
-#include "gma/src/common/banner_view_internal.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
+#include "gma/src/common/banner_view_internal.h"
+#include "gma/src/common/gma_common.h"
 
 namespace firebase {
 namespace gma {
@@ -104,9 +104,8 @@ Future<void> BannerView::SetPositionLastResult() const {
 Future<AdResult> BannerView::LoadAd(const AdRequest& request) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::gma::internal::kBannerViewFnLoadAd,
-        kAdErrorUninitialized, kAdUninitializedErrorMessage,
-        &internal_->future_data_, AdResult());
+        firebase::gma::internal::kBannerViewFnLoadAd, kAdErrorUninitialized,
+        kAdUninitializedErrorMessage, &internal_->future_data_, AdResult());
   }
   return internal_->LoadAd(request);
 }
@@ -114,9 +113,8 @@ Future<AdResult> BannerView::LoadAd(const AdRequest& request) {
 Future<AdResult> BannerView::LoadAdLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::gma::internal::kBannerViewFnLoadAd,
-        kAdErrorUninitialized, kAdUninitializedErrorMessage,
-        &(internal_->future_data_), AdResult());
+        firebase::gma::internal::kBannerViewFnLoadAd, kAdErrorUninitialized,
+        kAdUninitializedErrorMessage, &(internal_->future_data_), AdResult());
   }
   return internal_->GetLoadAdLastResult();
 }
@@ -178,9 +176,8 @@ Future<void> BannerView::PauseLastResult() const {
 Future<void> BannerView::Resume() {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kBannerViewFnResume,
-        kAdErrorUninitialized, kAdUninitializedErrorMessage,
-        &internal_->future_data_);
+        firebase::gma::internal::kBannerViewFnResume, kAdErrorUninitialized,
+        kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->Resume();
 }
@@ -188,9 +185,8 @@ Future<void> BannerView::Resume() {
 Future<void> BannerView::ResumeLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kBannerViewFnResume,
-        kAdErrorUninitialized, kAdUninitializedErrorMessage,
-        &internal_->future_data_);
+        firebase::gma::internal::kBannerViewFnResume, kAdErrorUninitialized,
+        kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->GetLastResult(internal::kBannerViewFnResume);
 }

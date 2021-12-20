@@ -23,6 +23,8 @@
 #include <cstddef>
 #include <string>
 
+#include "app/src/assert.h"
+#include "app/src/util_android.h"
 #include "gma/gma_resources.h"
 #include "gma/src/android/ad_request_converter.h"
 #include "gma/src/android/gma_android.h"
@@ -30,15 +32,12 @@
 #include "gma/src/include/firebase/gma.h"
 #include "gma/src/include/firebase/gma/banner_view.h"
 #include "gma/src/include/firebase/gma/types.h"
-#include "app/src/assert.h"
-#include "app/src/util_android.h"
 
 namespace firebase {
 namespace gma {
 
 METHOD_LOOKUP_DEFINITION(
-    banner_view_helper,
-    "com/google/firebase/gma/internal/cpp/BannerViewHelper",
+    banner_view_helper, "com/google/firebase/gma/internal/cpp/BannerViewHelper",
     BANNERVIEWHELPER_METHODS);
 
 METHOD_LOOKUP_DEFINITION(

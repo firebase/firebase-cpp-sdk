@@ -19,8 +19,8 @@
 
 #include <jni.h>
 
-#include "gma/src/common/gma_common.h"
 #include "app/src/util_android.h"
+#include "gma/src/common/gma_common.h"
 
 namespace firebase {
 namespace gma {

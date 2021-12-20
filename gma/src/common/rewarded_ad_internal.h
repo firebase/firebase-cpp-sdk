@@ -19,10 +19,10 @@
 
 #include <string>
 
-#include "gma/src/common/gma_common.h"
-#include "gma/src/common/full_screen_ad_event_listener.h"
-#include "gma/src/include/firebase/gma/rewarded_ad.h"
 #include "app/src/include/firebase/future.h"
+#include "gma/src/common/full_screen_ad_event_listener.h"
+#include "gma/src/common/gma_common.h"
+#include "gma/src/include/firebase/gma/rewarded_ad.h"
 
 namespace firebase {
 namespace gma {

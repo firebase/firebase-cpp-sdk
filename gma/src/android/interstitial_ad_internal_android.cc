@@ -22,6 +22,8 @@
 #include <cstdarg>
 #include <cstddef>
 
+#include "app/src/assert.h"
+#include "app/src/util_android.h"
 #include "gma/gma_resources.h"
 #include "gma/src/android/ad_request_converter.h"
 #include "gma/src/android/gma_android.h"
@@ -29,8 +31,6 @@
 #include "gma/src/include/firebase/gma.h"
 #include "gma/src/include/firebase/gma/interstitial_ad.h"
 #include "gma/src/include/firebase/gma/types.h"
-#include "app/src/assert.h"
-#include "app/src/util_android.h"
 
 namespace firebase {
 namespace gma {

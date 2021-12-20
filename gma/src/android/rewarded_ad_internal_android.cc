@@ -22,21 +22,20 @@
 #include <cstdarg>
 #include <cstddef>
 
+#include "app/src/assert.h"
+#include "app/src/util_android.h"
 #include "gma/gma_resources.h"
 #include "gma/src/android/ad_request_converter.h"
 #include "gma/src/android/gma_android.h"
 #include "gma/src/common/gma_common.h"
 #include "gma/src/include/firebase/gma.h"
 #include "gma/src/include/firebase/gma/types.h"
-#include "app/src/assert.h"
-#include "app/src/util_android.h"
 
 namespace firebase {
 namespace gma {
 
 METHOD_LOOKUP_DEFINITION(
-    rewarded_ad_helper,
-    "com/google/firebase/gma/internal/cpp/RewardedAdHelper",
+    rewarded_ad_helper, "com/google/firebase/gma/internal/cpp/RewardedAdHelper",
     REWARDEDADHELPER_METHODS);
 
 namespace internal {

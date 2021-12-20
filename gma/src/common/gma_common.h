@@ -24,9 +24,9 @@
 #include <utility>
 #include <vector>
 
-#include "gma/src/include/firebase/gma/types.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "gma/src/include/firebase/gma/types.h"
 
 namespace firebase {
 namespace gma {

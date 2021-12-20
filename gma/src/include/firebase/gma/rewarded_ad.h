@@ -19,8 +19,8 @@
 
 #include <string>
 
-#include "firebase/gma/types.h"
 #include "firebase/future.h"
+#include "firebase/gma/types.h"
 #include "firebase/internal/common.h"
 
 namespace firebase {
