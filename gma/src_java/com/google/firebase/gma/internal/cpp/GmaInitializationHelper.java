@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.firebase.admob.internal.cpp;
+package com.google.firebase.gma.internal.cpp;
 
 import android.content.Context;
 import com.google.android.gms.ads.MobileAds;
@@ -22,10 +22,10 @@ import com.google.android.gms.ads.initialization.InitializationStatus;
 import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
 
 /**
- * Helper class for initializing the AdMob SDK.
+ * Helper class for initializing the Google Mobile Ads SDK.
  */
-public final class AdMobInitializationHelper {
-  public static void initializeAdMob(Context context) {
+public final class GmaInitializationHelper {
+  public static void initializeGma(Context context) {
     MobileAds.initialize(context, new OnInitializationCompleteListener() {
       @Override
       public void onInitializationComplete(InitializationStatus initializationStatus) {

@@ -24,11 +24,11 @@
 #import <GoogleMobileAds/GoogleMobileAds.h>
 
 namespace firebase {
-namespace admob {
+namespace gma {
 namespace internal {
 class RewardedAdInternalIOS;
 }  // namespace internal
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
 NS_ASSUME_NONNULL_BEGIN
@@ -37,7 +37,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// Returns a FADInterstitialDelegate object with InterstitialAdInternalIOS.
 - (FADRewardedAdDelegate *)initWithInternalRewardedAd:
-    (firebase::admob::internal::RewardedAdInternalIOS *)rewardedAd;
+    (firebase::gma::internal::RewardedAdInternalIOS *)rewardedAd;
 
 @end
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_IOS_INTERSTITIAL_AD_INTERNAL_IOS_H_
-#define FIREBASE_ADMOB_SRC_IOS_INTERSTITIAL_AD_INTERNAL_IOS_H_
+#ifndef FIREBASE_GMA_SRC_IOS_INTERSTITIAL_AD_INTERNAL_IOS_H_
+#define FIREBASE_GMA_SRC_IOS_INTERSTITIAL_AD_INTERNAL_IOS_H_
 
 #ifdef __OBJC__
-#import "admob/src/ios/FADInterstitialDelegate.h"
+#import "gma/src/ios/FADInterstitialDelegate.h"
 #endif  // __OBJC__
 
 extern "C" {
 #include <objc/objc.h>
 }  // extern "C"
 
-#include "admob/src/common/interstitial_ad_internal.h"
+#include "gma/src/common/interstitial_ad_internal.h"
 #include "app/src/mutex.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 namespace internal {
 
 class InterstitialAdInternalIOS : public InterstitialAdInternal {
@@ -77,7 +77,7 @@ class InterstitialAdInternalIOS : public InterstitialAdInternal {
 };
 
 }  // namespace internal
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_IOS_INTERSTITIAL_AD_INTERNAL_IOS_H_
+#endif  // FIREBASE_GMA_SRC_IOS_INTERSTITIAL_AD_INTERNAL_IOS_H_

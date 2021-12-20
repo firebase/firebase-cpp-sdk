@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_COMMON_BANNER_VIEW_INTERNAL_H_
-#define FIREBASE_ADMOB_SRC_COMMON_BANNER_VIEW_INTERNAL_H_
+#ifndef FIREBASE_GMA_SRC_COMMON_BANNER_VIEW_INTERNAL_H_
+#define FIREBASE_GMA_SRC_COMMON_BANNER_VIEW_INTERNAL_H_
 
-#include "admob/src/common/admob_common.h"
-#include "admob/src/include/firebase/admob/banner_view.h"
+#include "gma/src/common/gma_common.h"
+#include "gma/src/include/firebase/gma/banner_view.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/mutex.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 namespace internal {
 
 // Constants representing each BannerView function that returns a Future.
@@ -118,7 +118,7 @@ class BannerViewInternal {
   virtual bool is_initialized() const = 0;
 
  protected:
-  friend class firebase::admob::BannerView;
+  friend class firebase::gma::BannerView;
 
   // Used by CreateInstance() to create an appropriate one for the current
   // platform.
@@ -139,7 +139,7 @@ class BannerViewInternal {
 };
 
 }  // namespace internal
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_COMMON_BANNER_VIEW_INTERNAL_H_
+#endif  // FIREBASE_GMA_SRC_COMMON_BANNER_VIEW_INTERNAL_H_

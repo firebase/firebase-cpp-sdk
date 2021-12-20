@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_STUB_REWARDED_AD_INTERNAL_STUB_H_
-#define FIREBASE_ADMOB_SRC_STUB_REWARDED_AD_INTERNAL_STUB_H_
+#ifndef FIREBASE_GMA_SRC_STUB_REWARDED_AD_INTERNAL_STUB_H_
+#define FIREBASE_GMA_SRC_STUB_REWARDED_AD_INTERNAL_STUB_H_
 
-#include "admob/src/common/rewarded_ad_internal.h"
+#include "gma/src/common/rewarded_ad_internal.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 namespace internal {
 
-/// Stub version of RewardedAdInternal, for use on desktop platforms. AdMob
+/// Stub version of RewardedAdInternal, for use on desktop platforms. GMA
 /// is forbidden on desktop, so this version creates and immediately completes
 /// the Future for each method.
 class RewardedAdInternalStub : public RewardedAdInternal {
@@ -50,18 +50,18 @@ class RewardedAdInternalStub : public RewardedAdInternal {
 
  private:
   Future<void> CreateAndCompleteFutureStub(RewardedAdFn fn) {
-    CreateAndCompleteFuture(fn, kAdMobErrorNone, nullptr, &future_data_);
+    CreateAndCompleteFuture(fn, kAdErrorNone, nullptr, &future_data_);
     return GetLastResult(fn);
   }
 
   Future<AdResult> CreateAndCompleteAdResultFutureStub(RewardedAdFn fn) {
-    return CreateAndCompleteFutureWithResult(fn, kAdMobErrorNone, nullptr,
+    return CreateAndCompleteFutureWithResult(fn, kAdErrorNone, nullptr,
                                              &future_data_, AdResult());
   }
 };
 
 }  // namespace internal
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_STUB_REWARDED_AD_INTERNAL_STUB_H_
+#endif  // FIREBASE_GMA_SRC_STUB_REWARDED_AD_INTERNAL_STUB_H_

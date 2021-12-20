@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-#include "admob/src/ios/rewarded_ad_internal_ios.h"
+#include "gma/src/ios/rewarded_ad_internal_ios.h"
 
-#import "admob/src/ios/FADRequest.h"
+#import "gma/src/ios/FADRequest.h"
 
-#import "admob/src/ios/admob_ios.h"
+#import "gma/src/ios/gma_ios.h"
 #include "app/src/util_ios.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 namespace internal {
 
 RewardedAdInternalIOS::RewardedAdInternalIOS(RewardedAd* base)
@@ -48,12 +48,12 @@ Future<void> RewardedAdInternalIOS::Initialize(AdParent parent) {
     future_data_.future_impl.SafeAlloc<void>(kRewardedAdFnInitialize);
 
   if(initialized_) {
-    CompleteFuture(kAdMobErrorAlreadyInitialized,
+    CompleteFuture(kAdErrorAlreadyInitialized,
       kAdAlreadyInitializedErrorMessage, future_handle, &future_data_);
   } else {
     initialized_ = true;
     parent_view_ = (UIView *)parent;
-    CompleteFuture(kAdMobErrorNone, nullptr, future_handle, &future_data_);
+    CompleteFuture(kAdErrorNone, nullptr, future_handle, &future_data_);
   }
   return MakeFuture(&future_data_.future_impl, future_handle);
 }
@@ -67,7 +67,7 @@ Future<AdResult> RewardedAdInternalIOS::LoadAd(
   SafeFutureHandle<AdResult> future_handle = callback_data->future_handle;
 
   if (ad_load_callback_data_ != nil) {
-    CompleteLoadAdInternalResult(callback_data, kAdMobErrorLoadInProgress,
+    CompleteLoadAdInternalResult(callback_data, kAdErrorLoadInProgress,
         kAdLoadInProgressErrorMessage);
     return MakeFuture(&future_data_.future_impl, future_handle);
   }
@@ -80,14 +80,14 @@ Future<AdResult> RewardedAdInternalIOS::LoadAd(
     [[FADRewardedAdDelegate alloc] initWithInternalRewardedAd:this];
 
   dispatch_async(dispatch_get_main_queue(), ^{
-    // Create a GADRequest from an admob::AdRequest.
-    AdMobError error_code = kAdMobErrorNone;
+    // Create a GADRequest from an gma::AdRequest.
+    AdError error_code = kAdErrorNone;
     std::string error_message;
     GADRequest *ad_request =
      GADRequestFromCppAdRequest(request, &error_code, &error_message);
     if (ad_request == nullptr) {
-      if (error_code == kAdMobErrorNone) {
-        error_code = kAdMobErrorInternalError;
+      if (error_code == kAdErrorNone) {
+        error_code = kAdErrorInternalError;
         error_message = kAdCouldNotParseAdRequestErrorMessage;
       }
       CompleteLoadAdInternalResult(ad_load_callback_data_, error_code,
@@ -118,10 +118,10 @@ Future<void> RewardedAdInternalIOS::Show(UserEarnedRewardListener* listener) {
   user_earned_reward_listener_ = listener;
 
   dispatch_async(dispatch_get_main_queue(), ^{
-    AdMobError error_code = kAdMobErrorLoadInProgress;
+    AdError error_code = kAdErrorLoadInProgress;
     const char* error_message = kAdLoadInProgressErrorMessage;
     if (rewarded_ad_ == nil) {
-      error_code = kAdMobErrorUninitialized;
+      error_code = kAdErrorUninitialized;
       error_message = kAdUninitializedErrorMessage;
     } else {
       [rewarded_ad_
@@ -132,7 +132,7 @@ Future<void> RewardedAdInternalIOS::Show(UserEarnedRewardListener* listener) {
             util::NSStringToString(reward.type),
             reward.amount.integerValue);
         }];
-      error_code = kAdMobErrorNone;
+      error_code = kAdErrorNone;
       error_message = nullptr;
     }
     CompleteFuture(error_code, error_message, handle, &future_data_);
@@ -146,11 +146,11 @@ void RewardedAdInternalIOS::RewardedAdDidReceiveAd(GADRewardedAd* ad) {
   ad.fullScreenContentDelegate = rewarded_ad_delegate_;
   ad.paidEventHandler = ^void(GADAdValue *_Nonnull adValue) {
     NotifyListenerOfPaidEvent(
-      firebase::admob::ConvertGADAdValueToCppAdValue(adValue));
+      firebase::gma::ConvertGADAdValueToCppAdValue(adValue));
   };
 
   if (ad_load_callback_data_ != nil) {
-    CompleteLoadAdInternalResult(ad_load_callback_data_, kAdMobErrorNone,
+    CompleteLoadAdInternalResult(ad_load_callback_data_, kAdErrorNone,
         /*error_message=*/"");
     ad_load_callback_data_ = nil;
   }
@@ -167,5 +167,5 @@ void RewardedAdInternalIOS::RewardedAdDidFailToReceiveAdWithError(NSError *gad_e
 }
 
 }  // namespace internal
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

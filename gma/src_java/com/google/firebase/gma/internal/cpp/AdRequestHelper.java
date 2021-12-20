@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package com.google.firebase.admob.internal.cpp;
+package com.google.firebase.gma.internal.cpp;
 
 import java.util.Calendar;
 import java.util.Date;
 
 /**
- * Helper class to make interactions between the AdMob C++ wrapper and Java
+ * Helper class to make interactions between the GMA C++ wrapper and Java
  * AdRequest objects cleaner. This involves translating calls coming from C++
  * into their (typically more complicated) Java equivalents.
  */

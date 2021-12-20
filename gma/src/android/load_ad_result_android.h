@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_ANDROID_LOAD_AD_RESULT_ANDROID_H_
-#define FIREBASE_ADMOB_SRC_ANDROID_LOAD_AD_RESULT_ANDROID_H_
+#ifndef FIREBASE_GMA_SRC_ANDROID_LOAD_AD_RESULT_ANDROID_H_
+#define FIREBASE_GMA_SRC_ANDROID_LOAD_AD_RESULT_ANDROID_H_
 
-#include "admob/src/android/ad_result_android.h"
+#include "gma/src/android/ad_result_android.h"
 #include "app/src/mutex.h"
 #include "app/src/util_android.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 // Used to set up the cache of class method IDs to reduce
 // time spent looking up methods by string.
@@ -35,7 +35,7 @@ namespace admob {
 
 METHOD_LOOKUP_DECLARATION(load_ad_error, LOADADERROR_METHODS);
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_ANDROID_LOAD_AD_RESULT_ANDROID_H_
+#endif  // FIREBASE_GMA_SRC_ANDROID_LOAD_AD_RESULT_ANDROID_H_

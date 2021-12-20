@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,39 +14,39 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_ANDROID_AD_REQUEST_CONVERTER_H_
-#define FIREBASE_ADMOB_SRC_ANDROID_AD_REQUEST_CONVERTER_H_
+#ifndef FIREBASE_GMA_SRC_ANDROID_AD_REQUEST_CONVERTER_H_
+#define FIREBASE_GMA_SRC_ANDROID_AD_REQUEST_CONVERTER_H_
 
 #include <jni.h>
 
-#include "admob/src/include/firebase/admob/types.h"
+#include "gma/src/include/firebase/gma/types.h"
 #include "app/src/util_android.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 /// Converts instances of the AdRequest struct used by the C++ wrapper to
 /// jobject references to Mobile Ads SDK AdRequest objects.
 ///
 /// @param[in] request The AdRequest struct to be converted into a Java
 /// AdRequest.
-/// @param[out] error kAdMobErrorNone on success, or another error if
+/// @param[out] error kAdErrorNone on success, or another error if
 /// problems occurred.
 /// @return On succes, a local reference to an Android object representing the
 /// AdRequest, or nullptr on error.
 jobject GetJavaAdRequestFromCPPAdRequest(const AdRequest& request,
-                                         admob::AdMobError* error);
+                                         gma::AdError* error);
 
 // Converts the Android AdRequest error codes to the CPP
-// platform-independent error codes defined in AdMobError.
-AdMobError MapAndroidAdRequestErrorCodeToCPPErrorCode(jint j_error_code);
+// platform-independent error codes defined in AdError.
+AdError MapAndroidAdRequestErrorCodeToCPPErrorCode(jint j_error_code);
 
 // Converts the Android FullScreenContentCallback error codes to the CPP
-// platform-independent error codes defined in AdMobError.
-AdMobError MapAndroidFullScreenContentErrorCodeToCPPErrorCode(
+// platform-independent error codes defined in AdError.
+AdError MapAndroidFullScreenContentErrorCodeToCPPErrorCode(
     jint j_error_code);
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_ANDROID_AD_REQUEST_CONVERTER_H_
+#endif  // FIREBASE_GMA_SRC_ANDROID_AD_REQUEST_CONVERTER_H_

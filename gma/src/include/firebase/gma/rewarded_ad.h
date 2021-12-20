@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,70 +14,82 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_INTERSTITIAL_AD_H_
-#define FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_INTERSTITIAL_AD_H_
+#ifndef FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_REWARDED_AD_H_
+#define FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_REWARDED_AD_H_
 
-#include "firebase/admob/types.h"
+#include <string>
+
+#include "firebase/gma/types.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 namespace internal {
 // Forward declaration for platform-specific data, implemented in each library.
-class InterstitialAdInternal;
+class RewardedAdInternal;
 }  // namespace internal
 
-/// @brief Loads and displays AdMob interstitial ads.
+/// @brief Loads and displays Google Mobile Ads rewarded ads.
 ///
-/// @ref InterstitialAd is a single-use object that can load and show a
-/// single AdMob interstitial ad.
+/// @ref RewardedAd is a single-use object that can load and show a
+/// single GMA rewarded ad.
 ///
-/// InterstitialAd objects provide information about their current state
+/// RewardedAd objects provide information about their current state
 /// through Futures. @ref Initialize, @ref LoadAd, and @ref Show each have a
 /// corresponding @ref Future from which you can determine result of the
 /// previous call.
 ///
-/// Here's how one might initialize, load, and show an interstitial ad while
+/// Here's how one might initialize, load, and show an rewarded ad while
 /// checking against the result of the previous action at each step:
 ///
 /// @code
-/// namespace admob = ::firebase::admob;
-/// admob::InterstitialAd* interstitial = new admob::InterstitialAd();
-/// interstitial->Initialize(ad_parent);
+/// namespace gma = ::firebase::gma;
+/// gma::RewardedAd* rewarded = new gma::RewardedAd();
+/// rewarded->Initialize(ad_parent);
 /// @endcode
 ///
 /// Then, later:
 ///
 /// @code
-/// if (interstitial->InitializeLastResult().status() ==
+/// if (rewarded->InitializeLastResult().status() ==
 ///     ::firebase::kFutureStatusComplete &&
-///     interstitial->InitializeLastResult().error() ==
-///     firebase::admob::kAdMobErrorNone) {
-///   interstitial->LoadAd( "YOUR_AD_UNIT_ID", my_ad_request);
+///     rewarded->InitializeLastResult().error() ==
+///     firebase::gma::kAdErrorNone) {
+///   rewarded->LoadAd( "YOUR_AD_UNIT_ID", my_ad_request);
 /// }
 /// @endcode
 ///
 /// And after that:
 ///
 /// @code
-/// if (interstitial->LoadAdLastResult().status() ==
+/// if (rewarded->LoadAdLastResult().status() ==
 ///     ::firebase::kFutureStatusComplete &&
-///     interstitial->LoadAdLastResult().error() ==
-///     firebase::admob::kAdMobErrorNone)) {
-///   interstitial->Show();
+///     rewarded->LoadAdLastResult().error() ==
+///     firebase::gma::kAdErrorNone)) {
+///   rewarded->Show(&my_user_earned_reward_listener);
 /// }
 /// @endcode
-class InterstitialAd {
+class RewardedAd {
  public:
-  /// Creates an uninitialized @ref InterstitialAd object.
+  /// Options for RewardedAd server-side verification callbacks. Set options on
+  /// a RewardedAd object using the SetServerSideVerificationOptions.
+  struct ServerSideVerificationOptions {
+    /// Custom data to be included in server-side verification callbacks.
+    std::string custom_data;
+
+    /// User id to be used in server-to-server reward callbacks.
+    std::string user_id;
+  };
+
+  /// Creates an uninitialized @ref RewardedAd object.
   /// @ref Initialize must be called before the object is used.
-  InterstitialAd();
+  RewardedAd();
 
-  ~InterstitialAd();
+  ~RewardedAd();
 
-  /// Initialize the @ref InterstitialAd object.
+  /// Initialize the @ref RewardedAd object.
   /// @param[in] parent The platform-specific UI element that will host the ad.
   Future<void> Initialize(AdParent parent);
 
@@ -96,15 +108,18 @@ class InterstitialAd {
   /// @ref LoadAd.
   Future<AdResult> LoadAdLastResult() const;
 
-  /// Shows the @ref InterstitialAd. This should not be called unless an ad has
+  /// Shows the @ref RewardedAd. This should not be called unless an ad has
   /// already been loaded.
-  Future<void> Show();
+  ///
+  /// param[in] listener The @ref UserEarnedRewardListener to be notified when
+  /// user earns a reward.
+  Future<void> Show(UserEarnedRewardListener* listener);
 
   /// Returns a @ref Future containing the status of the last call to
   /// @ref Show.
   Future<void> ShowLastResult() const;
 
-  /// Sets the @ref FullScreenContentListener for this @ref InterstitialAd.
+  /// Sets the @ref FullScreenContentListener for this @ref RewardedAd.
   ///
   /// @param[in] listener A valid @ref FullScreenContentListener to receive
   ///                     callbacks.
@@ -116,13 +131,21 @@ class InterstitialAd {
   /// @param[in] listener A valid @ref PaidEventListener to receive callbacks.
   void SetPaidEventListener(PaidEventListener* listener);
 
+  /// Sets the server side verification options.
+  ///
+  /// @param[in] serverSideVerificationOptions A @ref
+  /// ServerSideVerificationOptions object containing custom data and a user
+  /// Id.
+  void SetServerSideVerificationOptions(
+      const ServerSideVerificationOptions& serverSideVerificationOptions);
+
  private:
   // An internal, platform-specific implementation object that this class uses
   // to interact with the Google Mobile Ads SDKs for iOS and Android.
-  internal::InterstitialAdInternal* internal_;
+  internal::RewardedAdInternal* internal_;
 };
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_INTERSTITIAL_AD_H_
+#endif  // FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_REWARDED_AD_H_

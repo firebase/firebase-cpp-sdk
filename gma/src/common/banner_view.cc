@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,24 +14,24 @@
  * limitations under the License.
  */
 
-#include "admob/src/include/firebase/admob/banner_view.h"
+#include "gma/src/include/firebase/gma/banner_view.h"
 
-#include "admob/src/common/admob_common.h"
-#include "admob/src/common/banner_view_internal.h"
+#include "gma/src/common/gma_common.h"
+#include "gma/src/common/banner_view_internal.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 const char kUninitializedError[] =
     "Initialize() must be called before this method.";
 
 BannerView::BannerView() {
-  FIREBASE_ASSERT(admob::IsInitialized());
+  FIREBASE_ASSERT(gma::IsInitialized());
   internal_ = internal::BannerViewInternal::CreateInstance(this);
   GetOrCreateCleanupNotifier()->RegisterObject(this, [](void* object) {
-    LogWarning("BannerView must be deleted before admob::Terminate.");
+    LogWarning("BannerView must be deleted before gma::Terminate.");
     BannerView* banner_view = reinterpret_cast<BannerView*>(object);
     delete banner_view->internal_;
     banner_view->internal_ = nullptr;
@@ -74,8 +74,8 @@ void BannerView::SetPaidEventListener(PaidEventListener* listener) {
 Future<void> BannerView::SetPosition(int x, int y) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::admob::internal::kBannerViewFnSetPosition,
-        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        firebase::gma::internal::kBannerViewFnSetPosition,
+        kAdErrorUninitialized, kAdUninitializedErrorMessage,
         &internal_->future_data_);
   }
   return internal_->SetPosition(x, y);
@@ -84,8 +84,8 @@ Future<void> BannerView::SetPosition(int x, int y) {
 Future<void> BannerView::SetPosition(Position position) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::admob::internal::kBannerViewFnSetPosition,
-        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        firebase::gma::internal::kBannerViewFnSetPosition,
+        kAdErrorUninitialized, kAdUninitializedErrorMessage,
         &internal_->future_data_);
   }
   return internal_->SetPosition(position);
@@ -94,8 +94,8 @@ Future<void> BannerView::SetPosition(Position position) {
 Future<void> BannerView::SetPositionLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::admob::internal::kBannerViewFnSetPosition,
-        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        firebase::gma::internal::kBannerViewFnSetPosition,
+        kAdErrorUninitialized, kAdUninitializedErrorMessage,
         &internal_->future_data_);
   }
   return internal_->GetLastResult(internal::kBannerViewFnSetPosition);
@@ -104,8 +104,8 @@ Future<void> BannerView::SetPositionLastResult() const {
 Future<AdResult> BannerView::LoadAd(const AdRequest& request) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::admob::internal::kBannerViewFnLoadAd,
-        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        firebase::gma::internal::kBannerViewFnLoadAd,
+        kAdErrorUninitialized, kAdUninitializedErrorMessage,
         &internal_->future_data_, AdResult());
   }
   return internal_->LoadAd(request);
@@ -114,8 +114,8 @@ Future<AdResult> BannerView::LoadAd(const AdRequest& request) {
 Future<AdResult> BannerView::LoadAdLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::admob::internal::kBannerViewFnLoadAd,
-        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        firebase::gma::internal::kBannerViewFnLoadAd,
+        kAdErrorUninitialized, kAdUninitializedErrorMessage,
         &(internal_->future_data_), AdResult());
   }
   return internal_->GetLoadAdLastResult();
@@ -124,7 +124,7 @@ Future<AdResult> BannerView::LoadAdLastResult() const {
 Future<void> BannerView::Hide() {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::admob::internal::kBannerViewFnHide, kAdMobErrorUninitialized,
+        firebase::gma::internal::kBannerViewFnHide, kAdErrorUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->Hide();
@@ -133,7 +133,7 @@ Future<void> BannerView::Hide() {
 Future<void> BannerView::HideLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::admob::internal::kBannerViewFnHide, kAdMobErrorUninitialized,
+        firebase::gma::internal::kBannerViewFnHide, kAdErrorUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->GetLastResult(internal::kBannerViewFnHide);
@@ -142,7 +142,7 @@ Future<void> BannerView::HideLastResult() const {
 Future<void> BannerView::Show() {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::admob::internal::kBannerViewFnShow, kAdMobErrorUninitialized,
+        firebase::gma::internal::kBannerViewFnShow, kAdErrorUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->Show();
@@ -151,7 +151,7 @@ Future<void> BannerView::Show() {
 Future<void> BannerView::ShowLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::admob::internal::kBannerViewFnShow, kAdMobErrorUninitialized,
+        firebase::gma::internal::kBannerViewFnShow, kAdErrorUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->GetLastResult(internal::kBannerViewFnShow);
@@ -160,7 +160,7 @@ Future<void> BannerView::ShowLastResult() const {
 Future<void> BannerView::Pause() {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::admob::internal::kBannerViewFnPause, kAdMobErrorUninitialized,
+        firebase::gma::internal::kBannerViewFnPause, kAdErrorUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->Pause();
@@ -169,7 +169,7 @@ Future<void> BannerView::Pause() {
 Future<void> BannerView::PauseLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::admob::internal::kBannerViewFnPause, kAdMobErrorUninitialized,
+        firebase::gma::internal::kBannerViewFnPause, kAdErrorUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->GetLastResult(internal::kBannerViewFnPause);
@@ -178,8 +178,8 @@ Future<void> BannerView::PauseLastResult() const {
 Future<void> BannerView::Resume() {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::admob::internal::kBannerViewFnResume,
-        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        firebase::gma::internal::kBannerViewFnResume,
+        kAdErrorUninitialized, kAdUninitializedErrorMessage,
         &internal_->future_data_);
   }
   return internal_->Resume();
@@ -188,8 +188,8 @@ Future<void> BannerView::Resume() {
 Future<void> BannerView::ResumeLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::admob::internal::kBannerViewFnResume,
-        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        firebase::gma::internal::kBannerViewFnResume,
+        kAdErrorUninitialized, kAdUninitializedErrorMessage,
         &internal_->future_data_);
   }
   return internal_->GetLastResult(internal::kBannerViewFnResume);
@@ -206,5 +206,5 @@ BoundingBox BannerView::bounding_box() const {
   return internal_->bounding_box();
 }
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

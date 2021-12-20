@@ -123,6 +123,14 @@ Firebase Functions         | libfirebase_functions
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-auth:21.0.1
 |                          | (Maven package)
+Firebase Google Mobile Ads | libfirebase_gma.a
+|                          | libfirebase_app.a
+|                          | com.google.firebase:firebase-analytics:20.0.0 
+|                          | (Maven package)
+|                          | com.google.firebase:firebase-ads:19.8.0 
+|                          | (Maven package)
+|                          | com.google.android.gms:play-services-base:17.6.0 
+|                          | (Maven package)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-installations:17.0.0
@@ -201,6 +209,10 @@ Firebase Functions         | firebase_functions.xcframework
 |                          | firebase.xcframework
 |                          | Firebase/Functions Cocoapod (8.10.0)
 |                          | Firebase/Auth Cocoapod (8.10.0)
+Firebase Google Mobile Ads | firebase_gma.xcframework
+|                          | firebase.xcframework
+|                          | Firebase/Analytics Cocoapod (8.10.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (7.69.0-cppsdk)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
 |                          | FirebaseInstallations Cocoapod (8.10.0)
@@ -325,6 +337,8 @@ Firebase Analytics (stub)       | libfirebase_analytics.a
 |                               | libfirebase_app.a
 Firebase Dynamic Links (stub)   | libfirebase_dynamic_links.a
 |                               | libfirebase_app.a
+Firebase Google Mobile Ads      | libfirebase_gma.a
+| (stub)                        | libfirebase_app.a
 Firebase Installations (stub)   | libfirebase_installations.a
 |                               | libfirebase_app.a
 Firebase Cloud Messaging (stub) | libfirebase_messaging.a
@@ -408,6 +422,8 @@ Firebase Analytics (stub)       | firebase_analytics.lib
 |                               | firebase_app.lib
 Firebase Dynamic Links (stub)   | firebase_dynamic_links.lib
 |                               | firebase_app.lib
+Firebase Google Mobile Ads      | firebase_gma.lib
+| (stub)                        | firebase_app.lib
 Firebase Installations (stub)   | firebase_installations.lib
 |                               | firebase_app.lib
 Firebase Cloud Messaging (stub) | firebase_messaging.lib
@@ -525,11 +541,12 @@ Firestore            | Required
 Functions            | Required
 Installations        | Not Required
 Instance ID          | Required
+Google Mobile Ads    | Not required (usually; see below)
 Realtime Database    | Required
 Remote Config        | Required
 Storage              | Required
 
-#### A note on AdMob and Google Play services
+#### A note on AdMob, Google Mobile Ads and Google Play services
 
 Most versions of the Google Mobile Ads SDK for Android can work properly without
 Google Play services. However, if you are using the
@@ -537,8 +554,8 @@ Google Play services. However, if you are using the
 standard `com.google.firebase:firebase-ads` dependency, Google Play services
 WILL be required in your specific case.
 
-AdMob initialization will only return `kInitResultFailedMissingDependency` when
-Google Play services is unavailable AND you are using
+AdMob and GMA initialization will only return `kInitResultFailedMissingDependency`
+when Google Play services is unavailable AND you are using
 `com.google.android.gms:play-services-ads-lite`.
 
 ### Desktop project setup

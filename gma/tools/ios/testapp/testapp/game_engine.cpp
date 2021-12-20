@@ -1,6 +1,6 @@
-//  Copyright © 2016 Google. All rights reserved.
+//  Copyright © 2021 Google. All rights reserved.
 
-#include "admob/tools/ios/testapp/testapp/game_engine.h"
+#include "gma/tools/ios/testapp/testapp/game_engine.h"
 
 #include <cstddef>
 
@@ -14,16 +14,16 @@ const char* kBannerAdUnit = "ca-app-pub-3940256099942544/2934735716";
 const char* kInterstitialAdUnit = "ca-app-pub-3940256099942544/4411468910";
 
 // A simple listener that logs changes to a BannerView.
-class LoggingBannerViewListener : public firebase::admob::BannerView::Listener {
+class LoggingBannerViewListener : public firebase::gma::BannerView::Listener {
  public:
   LoggingBannerViewListener() {}
   void OnPresentationStateChanged(
-      firebase::admob::BannerView* banner_view,
-      firebase::admob::BannerView::PresentationState state) override {
+      firebase::gma::BannerView* banner_view,
+      firebase::gma::BannerView::PresentationState state) override {
     LogMessage("BannerView PresentationState has changed to %d.", state);
   }
-  void OnBoundingBoxChanged(firebase::admob::BannerView* banner_view,
-                            firebase::admob::BoundingBox box) override {
+  void OnBoundingBoxChanged(firebase::gma::BannerView* banner_view,
+                            firebase::gma::BoundingBox box) override {
     LogMessage(
         "BannerView BoundingBox has changed to (x: %d, y: %d, width: %d, "
         "height %d)",
@@ -33,12 +33,12 @@ class LoggingBannerViewListener : public firebase::admob::BannerView::Listener {
 
 // A simple listener that logs changes to an InterstitialAd.
 class LoggingInterstitialAdListener
-    : public firebase::admob::InterstitialAd::Listener {
+    : public firebase::gma::InterstitialAd::Listener {
  public:
   LoggingInterstitialAdListener() {}
   void OnPresentationStateChanged(
-      firebase::admob::InterstitialAd* interstitial_ad,
-      firebase::admob::InterstitialAd::PresentationState state) override {
+      firebase::gma::InterstitialAd* interstitial_ad,
+      firebase::gma::InterstitialAd::PresentationState state) override {
     LogMessage("InterstitialAd PresentationState has changed to %d.", state);
   }
 };
@@ -50,32 +50,32 @@ LoggingInterstitialAdListener interstitial_listener;
 // GameEngine constructor.
 GameEngine::GameEngine() {}
 
-// Sets up AdMob C++.
-void GameEngine::Initialize(firebase::admob::AdParent ad_parent) {
-  firebase::admob::Initialize(kAdMobAppID);
+// Sets up GMA C++.
+void GameEngine::Initialize(firebase::gma::AdParent ad_parent) {
+  firebase::gma::Initialize(kAdMobAppID);
   parent_view_ = ad_parent;
 
   if (kTestBannerView) {
     // Create an ad size and initialize the BannerView.
-    firebase::admob::AdSize bannerAdSize;
+    firebase::gma::AdSize bannerAdSize;
     bannerAdSize.width = 320;
     bannerAdSize.height = 50;
-    banner_view_ = new firebase::admob::BannerView();
+    banner_view_ = new firebase::gma::BannerView();
     banner_view_->Initialize(parent_view_, kBannerAdUnit, bannerAdSize);
     banner_view_listener_set_ = false;
   }
   if (kTestInterstitialAd) {
     // Initialize the InterstitialAd.
-    interstitial_ad_ = new firebase::admob::InterstitialAd();
+    interstitial_ad_ = new firebase::gma::InterstitialAd();
     interstitial_ad_->Initialize(parent_view_, kInterstitialAdUnit);
     interstitial_ad_listener_set_ = false;
   }
 }
 
-// Creates the AdMob C++ ad request.
-firebase::admob::AdRequest GameEngine::createRequest() {
+// Creates the GMA C++ ad request.
+firebase::gma::AdRequest GameEngine::createRequest() {
   // Sample keywords to use in making the request.
-  static const char* kKeywords[] = {"AdMob", "C++", "Fun"};
+  static const char* kKeywords[] = {"GMA", "C++", "Fun"};
 
   // Sample test device IDs to use in making the request.
   static const char* kTestDeviceIDs[] = {"2077ef9a63d2b398840261c8221a0c9b",
@@ -86,11 +86,11 @@ firebase::admob::AdRequest GameEngine::createRequest() {
   static const int kBirthdayMonth = 11;
   static const int kBirthdayYear = 1976;
 
-  firebase::admob::AdRequest request;
-  request.gender = firebase::admob::kGenderUnknown;
+  firebase::gma::AdRequest request;
+  request.gender = firebase::gma::kGenderUnknown;
 
   request.tagged_for_child_directed_treatment =
-      firebase::admob::kChildDirectedTreatmentStateTagged;
+      firebase::gma::kChildDirectedTreatmentStateTagged;
 
   request.birthday_day = kBirthdayDay;
   request.birthday_month = kBirthdayMonth;
@@ -99,7 +99,7 @@ firebase::admob::AdRequest GameEngine::createRequest() {
   request.keyword_count = sizeof(kKeywords) / sizeof(kKeywords[0]);
   request.keywords = kKeywords;
 
-  static const firebase::admob::KeyValuePair kRequestExtras[] = {
+  static const firebase::gma::KeyValuePair kRequestExtras[] = {
       {"the_name_of_an_extra", "the_value_for_that_extra"}};
   request.extras_count = sizeof(kRequestExtras) / sizeof(kRequestExtras[0]);
   request.extras = kRequestExtras;
@@ -118,7 +118,7 @@ void GameEngine::onUpdate() {
     if (banner_view_->InitializeLastResult().Status() ==
             firebase::kFutureStatusComplete &&
         banner_view_->InitializeLastResult().Error() ==
-            firebase::admob::kAdMobErrorNone &&
+            firebase::gma::kAdErrorNone &&
         !banner_view_listener_set_) {
       banner_view_->SetListener(&banner_listener);
       banner_view_listener_set_ = true;
@@ -130,7 +130,7 @@ void GameEngine::onUpdate() {
     if (interstitial_ad_->InitializeLastResult().Status() ==
             firebase::kFutureStatusComplete &&
         interstitial_ad_->InitializeLastResult().Error() ==
-            firebase::admob::kAdMobErrorNone &&
+            firebase::gma::kAdErrorNone &&
         !interstitial_ad_listener_set_) {
       interstitial_ad_->SetListener(&interstitial_listener);
       interstitial_ad_listener_set_ = true;
@@ -141,12 +141,12 @@ void GameEngine::onUpdate() {
     if (interstitial_ad_->ShowLastResult().Status() ==
             firebase::kFutureStatusComplete &&
         interstitial_ad_->ShowLastResult().Error() ==
-            firebase::admob::kAdMobErrorNone &&
+            firebase::gma::kAdErrorNone &&
         interstitial_ad_->GetPresentationState() ==
-            firebase::admob::InterstitialAd::kPresentationStateHidden) {
+            firebase::gma::InterstitialAd::kPresentationStateHidden) {
       delete interstitial_ad_;
       interstitial_ad_ = nullptr;
-      interstitial_ad_ = new firebase::admob::InterstitialAd();
+      interstitial_ad_ = new firebase::gma::InterstitialAd();
       interstitial_ad_->Initialize(parent_view_, kInterstitialAdUnit);
       interstitial_ad_listener_set_ = false;
     }
@@ -181,7 +181,7 @@ void GameEngine::onTap(float x, float y) {
   }
 
   // The BannerView's bounding box.
-  firebase::admob::BoundingBox box;
+  firebase::gma::BoundingBox box;
 
   switch (button_number) {
     case 0:
@@ -190,7 +190,7 @@ void GameEngine::onTap(float x, float y) {
         if (banner_view_->InitializeLastResult().Status() ==
                 firebase::kFutureStatusComplete &&
             banner_view_->InitializeLastResult().Error() ==
-                firebase::admob::kAdMobErrorNone) {
+                firebase::gma::kAdErrorNone) {
           banner_view_->LoadAd(createRequest());
         }
       }
@@ -201,14 +201,14 @@ void GameEngine::onTap(float x, float y) {
         if (banner_view_->LoadAdLastResult().Status() ==
                 firebase::kFutureStatusComplete &&
             banner_view_->LoadAdLastResult().Error() ==
-                firebase::admob::kAdMobErrorNone &&
+                firebase::gma::kAdErrorNone &&
             banner_view_->GetPresentationState() ==
-                firebase::admob::BannerView::kPresentationStateHidden) {
+                firebase::gma::BannerView::kPresentationStateHidden) {
           banner_view_->Show();
         } else if (banner_view_->LoadAdLastResult().Status() ==
                        firebase::kFutureStatusComplete &&
                    banner_view_->GetPresentationState() ==
-                       firebase::admob::BannerView::
+                       firebase::gma::BannerView::
                            kPresentationStateVisibleWithAd) {
           banner_view_->Hide();
         }
@@ -220,8 +220,8 @@ void GameEngine::onTap(float x, float y) {
         if (banner_view_->LoadAdLastResult().Status() ==
                 firebase::kFutureStatusComplete &&
             banner_view_->LoadAdLastResult().Error() ==
-                firebase::admob::kAdMobErrorNone) {
-          banner_view_->MoveTo(firebase::admob::BannerView::kPositionBottom);
+                firebase::gma::kAdErrorNone) {
+          banner_view_->MoveTo(firebase::gma::BannerView::kPositionBottom);
         }
       }
       break;
@@ -231,7 +231,7 @@ void GameEngine::onTap(float x, float y) {
         if (banner_view_->LoadAdLastResult().Status() ==
                 firebase::kFutureStatusComplete &&
             banner_view_->LoadAdLastResult().Error() ==
-                firebase::admob::kAdMobErrorNone) {
+                firebase::gma::kAdErrorNone) {
           int x = 100;
           int y = 200;
           banner_view_->MoveTo(x, y);
@@ -244,7 +244,7 @@ void GameEngine::onTap(float x, float y) {
         if (interstitial_ad_->InitializeLastResult().Status() ==
                 firebase::kFutureStatusComplete &&
             interstitial_ad_->InitializeLastResult().Error() ==
-                firebase::admob::kAdMobErrorNone) {
+                firebase::gma::kAdErrorNone) {
           interstitial_ad_->LoadAd(createRequest());
         }
       }
@@ -255,7 +255,7 @@ void GameEngine::onTap(float x, float y) {
         if (interstitial_ad_->LoadAdLastResult().Status() ==
                 firebase::kFutureStatusComplete &&
             interstitial_ad_->LoadAdLastResult().Error() ==
-                firebase::admob::kAdMobErrorNone &&
+                firebase::gma::kAdErrorNone &&
             interstitial_ad_->ShowLastResult().Status() !=
                 firebase::kFutureStatusComplete) {
           interstitial_ad_->Show();

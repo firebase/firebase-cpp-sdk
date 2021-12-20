@@ -1,11 +1,11 @@
-//  Copyright © 2016 Google. All rights reserved.
+//  Copyright © 2021 Google. All rights reserved.
 
-#import "admob/tools/ios/testapp/testapp/ViewController.h"
+#import "gma/tools/ios/testapp/testapp/ViewController.h"
 
-#import "admob/tools/ios/testapp/testapp/game_engine.h"
+#import "gma/tools/ios/testapp/testapp/game_engine.h"
 
 @interface ViewController () <GLKViewDelegate, GLKViewControllerDelegate> {
-  /// The AdMob C++ Wrapper Game Engine.
+  /// The GMA C++ Wrapper Game Engine.
   GameEngine *_gameEngine;
 
   /// The GLKView provides a default implementation of an OpenGL ES view.

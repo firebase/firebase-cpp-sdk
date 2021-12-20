@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-#import "admob/src/ios/FADRequest.h"
+#import "gma/src/ios/FADRequest.h"
 
-#include "admob/src/common/admob_common.h"
+#include "gma/src/common/gma_common.h"
 #include "app/src/util_ios.h"
 
 #include "app/src/log.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest, 
-                                      admob::AdMobError* error, 
+                                      gma::AdError* error, 
                                       std::string* error_message) {
   FIREBASE_ASSERT(error);
   FIREBASE_ASSERT(error_message);
-  *error = kAdMobErrorNone;
+  *error = kAdErrorNone;
 
   // Create the GADRequest.
   GADRequest *gadRequest = [GADRequest request];
@@ -56,7 +56,7 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
       *error_message = "Failed to resolve extras class: ";
       error_message->append(adapterClassName);
       LogError(error_message->c_str());
-      *error = kAdMobErrorAdNetworkClassLoadError;
+      *error = kAdErrorAdNetworkClassLoadError;
       return nullptr;
     }
 
@@ -67,7 +67,7 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
       *error_message = "Failed to load extras class inherited from GADExtras: ";
       error_message->append(adapterClassName);
       LogError(error_message->c_str());
-      *error = kAdMobErrorAdNetworkClassLoadError;
+      *error = kAdErrorAdNetworkClassLoadError;
       return nullptr;
     }
 
@@ -106,68 +106,68 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
   return gadRequest;
 }
 
-AdMobError MapAdRequestErrorCodeToCPPErrorCode(GADErrorCode error_code) {
+AdError MapAdRequestErrorCodeToCPPErrorCode(GADErrorCode error_code) {
   // iOS error code sourced from
   // https://developers.google.com/admob/ios/api/reference/Enums/GADErrorCode
   switch(error_code)
   {
     case GADErrorInvalidRequest:               // 0
-      return kAdMobErrorInvalidRequest;
+      return kAdErrorInvalidRequest;
     case GADErrorNoFill:                       // 1
-      return kAdMobErrorNoFill;
+      return kAdErrorNoFill;
     case GADErrorNetworkError:                 // 2
-      return kAdMobErrorNetworkError;
+      return kAdErrorNetworkError;
     case GADErrorServerError:                  // 3
-      return kAdMobErrorServerError;
+      return kAdErrorServerError;
     case GADErrorOSVersionTooLow:              // 4
-      return kAdMobErrorOSVersionTooLow;
+      return kAdErrorOSVersionTooLow;
     case GADErrorTimeout:                      // 5
-      return kAdMobErrorTimeout;
+      return kAdErrorTimeout;
     // no error 6.
     case GADErrorMediationDataError:           // 7
-      return kAdMobErrorMediationDataError;
+      return kAdErrorMediationDataError;
     case GADErrorMediationAdapterError:        // 8
-      return kAdMobErrorMediationAdapterError;
+      return kAdErrorMediationAdapterError;
     case GADErrorMediationNoFill:              // 9
-      return kAdMobErrorMediationNoFill;
+      return kAdErrorMediationNoFill;
     case GADErrorMediationInvalidAdSize:       // 10
-      return kAdMobErrorMediationInvalidAdSize;
+      return kAdErrorMediationInvalidAdSize;
     case GADErrorInternalError:                // 11
-      return kAdMobErrorInternalError;
+      return kAdErrorInternalError;
     case GADErrorInvalidArgument:              // 12
-      return kAdMobErrorInvalidArgument;
+      return kAdErrorInvalidArgument;
     case GADErrorReceivedInvalidResponse:      // 13
-      return kAdMobErrorReceivedInvalidResponse;
+      return kAdErrorReceivedInvalidResponse;
     case GADErrorAdAlreadyUsed:                // 19 (no error #s 14-18)
-      return kAdMobErrorAdAlreadyUsed;
+      return kAdErrorAdAlreadyUsed;
     case GADErrorApplicationIdentifierMissing: // 20
-      return kAdMobErrorApplicationIdentifierMissing;
+      return kAdErrorApplicationIdentifierMissing;
     default:
-      return kAdMobErrorUnknown;
+      return kAdErrorUnknown;
   }
 }
 
-AdMobError MapFullScreenContentErrorCodeToCPPErrorCode(GADPresentationErrorCode error_code) {
+AdError MapFullScreenContentErrorCodeToCPPErrorCode(GADPresentationErrorCode error_code) {
   // iOS error code sourced from
   // https://developers.google.com/admob/ios/api/reference/Enums/GADPresentationErrorCode
   switch(error_code)
   {
     case GADPresentationErrorCodeAdNotReady:     // 15
-      return kAdMobErrorAdNotReady;
+      return kAdErrorAdNotReady;
     case GADPresentationErrorCodeAdTooLarge:     // 16
-      return kAdMobErrorAdTooLarge;
+      return kAdErrorAdTooLarge;
     case GADPresentationErrorCodeInternal:       // 17
-      return kAdMobErrorInternalError;
+      return kAdErrorInternalError;
     case GADPresentationErrorCodeAdAlreadyUsed:  // 18
-      return kAdMobErrorAdAlreadyUsed;
+      return kAdErrorAdAlreadyUsed;
     case GADPresentationErrorNotMainThread:      // 21
-      return kAdMobErrorNotMainThread;
+      return kAdErrorNotMainThread;
     case GADPresentationErrorMediation:          // 22
-      return kAdMobErrorMediationShowError;
+      return kAdErrorMediationShowError;
     default:
-      return kAdMobErrorUnknown;
+      return kAdErrorUnknown;
   }
 }
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

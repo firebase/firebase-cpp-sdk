@@ -1,4 +1,4 @@
-//  Copyright © 2016 Google. All rights reserved.
+//  Copyright © 2021 Google. All rights reserved.
 
 #ifndef GAME_ENGINE_H_
 #define GAME_ENGINE_H_
@@ -6,10 +6,10 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <OpenGLES/ES2/gl.h>
 
-#include "firebase/admob.h"
-#include "firebase/admob/banner_view.h"
-#include "firebase/admob/interstitial_ad.h"
-#include "firebase/admob/types.h"
+#include "firebase/gma.h"
+#include "firebase/gma/banner_view.h"
+#include "firebase/gma/interstitial_ad.h"
+#include "firebase/gma/types.h"
 
 #ifndef __cplusplus
 #error Header file supports C++ only
@@ -28,7 +28,7 @@ class GameEngine {
  public:
   GameEngine();
 
-  void Initialize(firebase::admob::AdParent ad_parent);
+  void Initialize(firebase::gma::AdParent ad_parent);
   void onUpdate();
   void onTap(float x, float y);
   void onSurfaceCreated();
@@ -36,15 +36,15 @@ class GameEngine {
   void onDrawFrame();
 
  private:
-  firebase::admob::AdRequest createRequest();
+  firebase::gma::AdRequest createRequest();
 
-  firebase::admob::BannerView* banner_view_;
-  firebase::admob::InterstitialAd* interstitial_ad_;
+  firebase::gma::BannerView* banner_view_;
+  firebase::gma::InterstitialAd* interstitial_ad_;
 
   bool banner_view_listener_set_;
   bool interstitial_ad_listener_set_;
 
-  firebase::admob::AdParent parent_view_;
+  firebase::gma::AdParent parent_view_;
 
   bool bg_intensity_increasing_;
   float bg_intensity_;

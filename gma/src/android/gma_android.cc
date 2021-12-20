@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "admob/src/android/admob_android.h"
+#include "gma/src/android/gma_android.h"
 
 #include <jni.h>
 #include <stddef.h>
@@ -26,17 +26,17 @@
 #include <utility>
 #include <vector>
 
-#include "admob/admob_resources.h"
-#include "admob/src/android/ad_request_converter.h"
-#include "admob/src/android/ad_result_android.h"
-#include "admob/src/android/adapter_response_info_android.h"
-#include "admob/src/android/banner_view_internal_android.h"
-#include "admob/src/android/interstitial_ad_internal_android.h"
-#include "admob/src/android/response_info_android.h"
-#include "admob/src/android/rewarded_ad_internal_android.h"
-#include "admob/src/common/admob_common.h"
-#include "admob/src/include/firebase/admob.h"
-#include "admob/src/include/firebase/admob/types.h"
+#include "gma/gma_resources.h"
+#include "gma/src/android/ad_request_converter.h"
+#include "gma/src/android/ad_result_android.h"
+#include "gma/src/android/adapter_response_info_android.h"
+#include "gma/src/android/banner_view_internal_android.h"
+#include "gma/src/android/interstitial_ad_internal_android.h"
+#include "gma/src/android/response_info_android.h"
+#include "gma/src/android/rewarded_ad_internal_android.h"
+#include "gma/src/common/gma_common.h"
+#include "gma/src/include/firebase/gma.h"
+#include "gma/src/include/firebase/gma/types.h"
 #include "app/src/assert.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/internal/common.h"
@@ -45,7 +45,7 @@
 #include "app/src/util_android.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 METHOD_LOOKUP_DEFINITION(mobile_ads,
                          PROGUARD_KEEP_CLASS
@@ -85,14 +85,14 @@ METHOD_LOOKUP_DEFINITION(
     METHOD_LOOKUP_NONE, ADAPTER_STATUS_STATE_FIELDS);
 
 METHOD_LOOKUP_DEFINITION(
-    admob_initialization_helper,
-    "com/google/firebase/admob/internal/cpp/AdMobInitializationHelper",
-    ADMOB_INITIALIZATION_HELPER_METHODS);
+    gma_initialization_helper,
+    "com/google/firebase/gma/internal/cpp/GmaInitializationHelper",
+    GMA_INITIALIZATION_HELPER_METHODS);
 
-// Constants representing each AdMob function that returns a Future.
-enum AdMobFn {
-  kAdMobFnInitialize,
-  kAdMobFnCount,
+// Constants representing each GMA function that returns a Future.
+enum GmaFn {
+  kGmaFnInitialize,
+  kGmaFnCount,
 };
 
 static JavaVM* g_java_vm = nullptr;
@@ -127,9 +127,9 @@ void CallInitializeGoogleMobileAds(void* data) {
   FIREBASE_ASSERT(jni_env_exists);
 
   jobject activity = call_data->activity_global;
-  env->CallStaticVoidMethod(admob_initialization_helper::GetClass(),
-                            admob_initialization_helper::GetMethodId(
-                                admob_initialization_helper::kInitializeAdMob),
+  env->CallStaticVoidMethod(gma_initialization_helper::GetClass(),
+                            gma_initialization_helper::GetMethodId(
+                                gma_initialization_helper::kInitializeGma),
                             activity);
   // Check if there is a JNI exception since the MobileAds.initialize method can
   // throw an IllegalArgumentException if the pub passes null for the activity.
@@ -140,7 +140,7 @@ void CallInitializeGoogleMobileAds(void* data) {
 }
 
 static AdapterStatus ConvertFromJavaAdapterStatus(jobject j_adapter_status) {
-  JNIEnv* env = ::firebase::admob::GetJNI();
+  JNIEnv* env = ::firebase::gma::GetJNI();
 
   std::string description = util::JniStringToString(
       env, env->CallObjectMethod(
@@ -173,16 +173,16 @@ static AdapterStatus ConvertFromJavaAdapterStatus(jobject j_adapter_status) {
   env->DeleteLocalRef(j_state_current);
   env->DeleteLocalRef(j_state_ready);
   env->DeleteLocalRef(j_adapter_status);
-  return AdMobInternal::CreateAdapterStatus(description, is_initialized,
+  return GmaInternal::CreateAdapterStatus(description, is_initialized,
                                             latency);
 }
 
 static AdapterInitializationStatus PopulateAdapterInitializationStatus(
     jobject j_init_status) {
   if (!j_init_status)
-    return AdMobInternal::CreateAdapterInitializationStatus({});
+    return GmaInternal::CreateAdapterInitializationStatus({});
 
-  JNIEnv* env = ::firebase::admob::GetJNI();
+  JNIEnv* env = ::firebase::gma::GetJNI();
   std::map<std::string, AdapterStatus> adapter_status_map;
   // Map<String, AdapterStatus>
   jobject j_map = env->CallObjectMethod(
@@ -226,11 +226,11 @@ static AdapterInitializationStatus PopulateAdapterInitializationStatus(
   env->DeleteLocalRef(j_key_set);
   env->DeleteLocalRef(j_map);
 
-  return AdMobInternal::CreateAdapterInitializationStatus(adapter_status_map);
+  return GmaInternal::CreateAdapterInitializationStatus(adapter_status_map);
 }
 
 // Initializes the Google Mobile Ads SDK using the MobileAds.initialize()
-// method. The AdMob app ID to retreived from the App's android manifest.
+// method. The GMA app ID is retreived from the App's android manifest.
 Future<AdapterInitializationStatus> InitializeGoogleMobileAds(JNIEnv* env) {
   Future<AdapterInitializationStatus> future_to_return;
   {
@@ -241,7 +241,7 @@ Future<AdapterInitializationStatus> InitializeGoogleMobileAds(JNIEnv* env) {
         SafeFutureHandle<AdapterInitializationStatus>::kInvalidHandle.get());
     g_initialization_handle =
         g_future_impl->SafeAlloc<AdapterInitializationStatus>(
-            kAdMobFnInitialize);
+            kGmaFnInitialize);
     future_to_return = MakeFuture(g_future_impl, g_initialization_handle);
   }
 
@@ -268,7 +268,7 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
     env->GetJavaVM(&g_java_vm);
   }
 
-  // AdMob requires Google Play services if the class
+  // GMA requires Google Play services if the class
   // "com.google.android.gms.ads.internal.ClientApi" does not exist.
   if (!util::FindClass(env, "com/google/android/gms/ads/internal/ClientApi") &&
       google_play_services::CheckAvailability(env, activity) !=
@@ -276,7 +276,7 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
     if (init_result_out) {
       *init_result_out = kInitResultFailedMissingDependency;
     }
-    // Need to return an invalid Future, because without AdMob initialized,
+    // Need to return an invalid Future, because without GMA initialized,
     // there is no ReferenceCountedFutureImpl to hold an actual Future instance.
     return Future<AdapterInitializationStatus>();
   }
@@ -285,7 +285,7 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
     if (init_result_out) {
       *init_result_out = kInitResultFailedMissingDependency;
     }
-    // Need to return an invalid Future, because without AdMob initialized,
+    // Need to return an invalid Future, because without GMA initialized,
     // there is no ReferenceCountedFutureImpl to hold an actual Future instance.
     return Future<AdapterInitializationStatus>();
   }
@@ -293,9 +293,9 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
   const std::vector<firebase::internal::EmbeddedFile> embedded_files =
       util::CacheEmbeddedFiles(env, activity,
                                firebase::internal::EmbeddedFile::ToVector(
-                                   firebase_admob::admob_resources_filename,
-                                   firebase_admob::admob_resources_data,
-                                   firebase_admob::admob_resources_size));
+                                   firebase_gma::gma_resources_filename,
+                                   firebase_gma::gma_resources_data,
+                                   firebase_gma::gma_resources_size));
 
   if (!(mobile_ads::CacheMethodIds(env, activity) &&
         ad_request_builder::CacheMethodIds(env, activity) &&
@@ -309,9 +309,9 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
         adapter_status::CacheMethodIds(env, activity) &&
         adapter_status_state::CacheFieldIds(env, activity) &&
         initialization_status::CacheMethodIds(env, activity) &&
-        admob_initialization_helper::CacheClassFromFiles(
+        gma_initialization_helper::CacheClassFromFiles(
             env, activity, &embedded_files) != nullptr &&
-        admob_initialization_helper::CacheMethodIds(env, activity) &&
+        gma_initialization_helper::CacheMethodIds(env, activity) &&
         banner_view_helper::CacheClassFromFiles(env, activity,
                                                 &embedded_files) != nullptr &&
         banner_view_helper::CacheMethodIds(env, activity) &&
@@ -323,7 +323,7 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
                                                 &embedded_files) != nullptr &&
         rewarded_ad_helper::CacheMethodIds(env, activity) &&
         load_ad_error::CacheMethodIds(env, activity) &&
-        admob::RegisterNatives())) {
+        gma::RegisterNatives())) {
     ReleaseClasses(env);
     util::Terminate(env);
     if (init_result_out) {
@@ -334,7 +334,7 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
 
   {
     MutexLock lock(g_future_impl_mutex);
-    g_future_impl = new ReferenceCountedFutureImpl(kAdMobFnCount);
+    g_future_impl = new ReferenceCountedFutureImpl(kGmaFnCount);
   }
 
   g_initialized = true;
@@ -353,13 +353,13 @@ Future<AdapterInitializationStatus> InitializeLastResult() {
   MutexLock lock(g_future_impl_mutex);
   return g_future_impl
              ? static_cast<const Future<AdapterInitializationStatus>&>(
-                   g_future_impl->LastResult(kAdMobFnInitialize))
+                   g_future_impl->LastResult(kGmaFnInitialize))
              : Future<AdapterInitializationStatus>();
 }
 
 AdapterInitializationStatus GetInitializationStatus() {
   if (g_initialized) {
-    JNIEnv* env = ::firebase::admob::GetJNI();
+    JNIEnv* env = ::firebase::gma::GetJNI();
     jobject j_status = env->CallStaticObjectMethod(
         mobile_ads::GetClass(),
         mobile_ads::GetMethodId(mobile_ads::kGetInitializationStatus));
@@ -380,7 +380,7 @@ void DisableMediationInitialization() {}
 
 void SetRequestConfiguration(
     const RequestConfiguration& request_configuration) {
-  JNIEnv* env = ::firebase::admob::GetJNI();
+  JNIEnv* env = ::firebase::gma::GetJNI();
   jobject builder = env->NewObject(request_config_builder::GetClass(),
                                    request_config_builder::GetMethodId(
                                        request_config_builder::kConstructor));
@@ -495,7 +495,7 @@ void SetRequestConfiguration(
 }
 
 RequestConfiguration GetRequestConfiguration() {
-  JNIEnv* env = ::firebase::admob::GetJNI();
+  JNIEnv* env = ::firebase::gma::GetJNI();
   RequestConfiguration request_configuration;
   jobject j_request_config = env->CallStaticObjectMethod(
       mobile_ads::GetClass(),
@@ -612,7 +612,7 @@ void ReleaseClasses(JNIEnv* env) {
   adapter_status::ReleaseClass(env);
   adapter_status_state::ReleaseClass(env);
   initialization_status::ReleaseClass(env);
-  admob_initialization_helper::ReleaseClass(env);
+  gma_initialization_helper::ReleaseClass(env);
   banner_view_helper::ReleaseClass(env);
   banner_view_helper_ad_view_listener::ReleaseClass(env);
   interstitial_ad_helper::ReleaseClass(env);
@@ -624,7 +624,7 @@ bool IsInitialized() { return g_initialized; }
 
 void Terminate() {
   if (!g_initialized) {
-    LogWarning("AdMob already shut down");
+    LogWarning("GMA already shut down");
     return;
   }
   {
@@ -670,8 +670,8 @@ static void CompleteAdFutureCallback(JNIEnv* env, jclass clazz, jlong data_ptr,
 
   const char* error_msg = env->GetStringUTFChars(error_message, nullptr);
 
-  firebase::admob::FutureCallbackData<void>* callback_data =
-      reinterpret_cast<firebase::admob::FutureCallbackData<void>*>(data_ptr);
+  firebase::gma::FutureCallbackData<void>* callback_data =
+      reinterpret_cast<firebase::gma::FutureCallbackData<void>*>(data_ptr);
 
   callback_data->future_data->future_impl.Complete(
       callback_data->future_handle, static_cast<int>(error_code), error_msg);
@@ -683,7 +683,7 @@ static void CompleteAdFutureCallback(JNIEnv* env, jclass clazz, jlong data_ptr,
 }
 
 void CompleteLoadAdCallback(FutureCallbackData<AdResult>* callback_data,
-                            jobject j_load_ad_error, AdMobError error_code,
+                            jobject j_load_ad_error, AdError error_code,
                             const std::string& error_message) {
   FIREBASE_ASSERT(callback_data);
 
@@ -701,8 +701,8 @@ void CompleteLoadAdCallback(FutureCallbackData<AdResult>* callback_data,
     // The Android SDK returned an error.  Use the native_ad_error object
     // to populate a AdResult with the error specifics.
     ad_result_internal.is_successful = false;
-  } else if (ad_result_internal.code != kAdMobErrorNone) {
-    // C++ SDK Android AdMob Wrapper encountered an error.
+  } else if (ad_result_internal.code != kAdErrorNone) {
+    // C++ SDK Android GMA Wrapper encountered an error.
     ad_result_internal.ad_result_type =
         AdResultInternal::kAdResultInternalWrapperError;
     ad_result_internal.is_successful = false;
@@ -715,20 +715,20 @@ void CompleteLoadAdCallback(FutureCallbackData<AdResult>* callback_data,
 
   // Invoke a friend of AdResult to have it invoke the AdResult
   // protected constructor with the AdResultInternal data.
-  AdMobInternal::CompleteLoadAdFuture(callback_data, ad_result_internal.code,
+  GmaInternal::CompleteLoadAdFuture(callback_data, ad_result_internal.code,
                                       future_error_message, ad_result_internal);
 }
 
 void CompleteLoadAdAndroidErrorResult(JNIEnv* env, jlong data_ptr,
                                       jobject j_load_ad_error,
-                                      AdMobError error_code,
+                                      AdError error_code,
                                       jstring j_error_message) {
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
   FIREBASE_ASSERT(j_error_message);
 
   FutureCallbackData<AdResult>* callback_data =
-      reinterpret_cast<firebase::admob::FutureCallbackData<AdResult>*>(
+      reinterpret_cast<firebase::gma::FutureCallbackData<AdResult>*>(
           data_ptr);
 
   std::string error_message = util::JStringToString(env, j_error_message);
@@ -738,7 +738,7 @@ void CompleteLoadAdAndroidErrorResult(JNIEnv* env, jlong data_ptr,
 }
 
 void CompleteLoadAdInternalResult(FutureCallbackData<AdResult>* callback_data,
-                                  AdMobError error_code,
+                                  AdError error_code,
                                   const char* error_message) {
   FIREBASE_ASSERT(callback_data);
   FIREBASE_ASSERT(error_message);
@@ -766,7 +766,7 @@ AdValue::PrecisionType ConvertAndroidPrecisionTypeToCPPPrecisionType(
   }
 }
 
-static void JNICALL AdMobInitializationHelper_initializationCompleteCallback(
+static void JNICALL GmaInitializationHelper_initializationCompleteCallback(
     JNIEnv* env, jclass clazz, jobject j_initialization_status) {
   AdapterInitializationStatus adapter_status =
       PopulateAdapterInitializationStatus(j_initialization_status);
@@ -800,7 +800,7 @@ void JNI_completeLoadedAd(JNIEnv* env, jclass clazz, jlong data_ptr) {
   FIREBASE_ASSERT(data_ptr);
   FutureCallbackData<AdResult>* callback_data =
       reinterpret_cast<FutureCallbackData<AdResult>*>(data_ptr);
-  CompleteLoadAdInternalResult(callback_data, kAdMobErrorNone,
+  CompleteLoadAdInternalResult(callback_data, kAdErrorNone,
                                /*error_message=*/"");
 }
 
@@ -810,20 +810,20 @@ void JNI_completeLoadAdError(JNIEnv* env, jclass clazz, jlong data_ptr,
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
   FIREBASE_ASSERT(j_error_message);
-  const AdMobError error_code =
+  const AdError error_code =
       MapAndroidAdRequestErrorCodeToCPPErrorCode(j_error_code);
   CompleteLoadAdAndroidErrorResult(env, data_ptr, j_load_ad_error, error_code,
                                    j_error_message);
 }
 
-// Internal Errors use AdMobError codes.
+// Internal Errors use AdError codes.
 void JNI_completeLoadAdInternalError(JNIEnv* env, jclass clazz, jlong data_ptr,
                                      jint j_error_code,
                                      jstring j_error_message) {
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
   FIREBASE_ASSERT(j_error_message);
-  const AdMobError error_code = static_cast<AdMobError>(j_error_code);
+  const AdError error_code = static_cast<AdError>(j_error_code);
   CompleteLoadAdAndroidErrorResult(env, data_ptr, /*j_load_ad_error=*/nullptr,
                                    error_code, j_error_message);
 }
@@ -859,9 +859,9 @@ void JNI_notifyAdFailedToShowFullScreenContentEvent(JNIEnv* env, jclass clazz,
       AdResultInternal::kAdResultInternalFullScreenContentError;
   ad_result_internal.native_ad_error = j_ad_error;
 
-  // Invoke AdMobInternal, a friend of AdResult, to have it access its
+  // Invoke GmaInternal, a friend of AdResult, to have it access its
   // protected constructor with the AdError data.
-  const AdResult& ad_result = AdMobInternal::CreateAdResult(ad_result_internal);
+  const AdResult& ad_result = GmaInternal::CreateAdResult(ad_result_internal);
   listener->NotifyListenerOfAdFailedToShowFullScreenContent(ad_result);
 }
 
@@ -900,40 +900,40 @@ void JNI_notifyAdPaidEvent(JNIEnv* env, jclass clazz, jlong data_ptr,
 //
 void JNI_BannerViewHelper_notifyBoundingBoxChanged(JNIEnv* env, jclass clazz,
                                                    jlong data_ptr) {
-  firebase::admob::internal::BannerViewInternal* internal =
-      reinterpret_cast<firebase::admob::internal::BannerViewInternal*>(
+  firebase::gma::internal::BannerViewInternal* internal =
+      reinterpret_cast<firebase::gma::internal::BannerViewInternal*>(
           data_ptr);
   internal->NotifyListenerOfBoundingBoxChange(internal->bounding_box());
 }
 
 void JNI_BannerViewHelper_notifyAdClicked(JNIEnv* env, jclass clazz,
                                           jlong data_ptr) {
-  firebase::admob::internal::BannerViewInternal* internal =
-      reinterpret_cast<firebase::admob::internal::BannerViewInternal*>(
+  firebase::gma::internal::BannerViewInternal* internal =
+      reinterpret_cast<firebase::gma::internal::BannerViewInternal*>(
           data_ptr);
   internal->NotifyListenerAdClicked();
 }
 
 void JNI_BannerViewHelper_notifyAdClosed(JNIEnv* env, jclass clazz,
                                          jlong data_ptr) {
-  firebase::admob::internal::BannerViewInternal* internal =
-      reinterpret_cast<firebase::admob::internal::BannerViewInternal*>(
+  firebase::gma::internal::BannerViewInternal* internal =
+      reinterpret_cast<firebase::gma::internal::BannerViewInternal*>(
           data_ptr);
   internal->NotifyListenerAdClosed();
 }
 
 void JNI_BannerViewHelper_notifyAdImpression(JNIEnv* env, jclass clazz,
                                              jlong data_ptr) {
-  firebase::admob::internal::BannerViewInternal* internal =
-      reinterpret_cast<firebase::admob::internal::BannerViewInternal*>(
+  firebase::gma::internal::BannerViewInternal* internal =
+      reinterpret_cast<firebase::gma::internal::BannerViewInternal*>(
           data_ptr);
   internal->NotifyListenerAdImpression();
 }
 
 void JNI_BannerViewHelper_notifyAdOpened(JNIEnv* env, jclass clazz,
                                          jlong data_ptr) {
-  firebase::admob::internal::BannerViewInternal* internal =
-      reinterpret_cast<firebase::admob::internal::BannerViewInternal*>(
+  firebase::gma::internal::BannerViewInternal* internal =
+      reinterpret_cast<firebase::gma::internal::BannerViewInternal*>(
           data_ptr);
   internal->NotifyListenerAdOpened();
 }
@@ -1045,11 +1045,11 @@ bool RegisterNatives() {
       {"notifyPaidEvent", "(JLjava/lang/String;IJ)V",
        reinterpret_cast<void*>(&JNI_notifyAdPaidEvent)},
   };
-  static const JNINativeMethod kAdMobInitializationMethods[] = {
+  static const JNINativeMethod kGmaInitializationMethods[] = {
       {"initializationCompleteCallback",
        "(Lcom/google/android/gms/ads/initialization/InitializationStatus;)V",
        reinterpret_cast<void*>(
-           &AdMobInitializationHelper_initializationCompleteCallback)}  // NOLINT
+           &GmaInitializationHelper_initializationCompleteCallback)}  // NOLINT
   };
 
   JNIEnv* env = GetJNI();
@@ -1060,9 +1060,9 @@ bool RegisterNatives() {
              FIREBASE_ARRAYSIZE(kInterstitialMethods)) &&
          rewarded_ad_helper::RegisterNatives(
              env, kRewardedAdMethods, FIREBASE_ARRAYSIZE(kRewardedAdMethods)) &&
-         admob_initialization_helper::RegisterNatives(
-             env, kAdMobInitializationMethods,
-             FIREBASE_ARRAYSIZE(kAdMobInitializationMethods));
+         gma_initialization_helper::RegisterNatives(
+             env, kGmaInitializationMethods,
+             FIREBASE_ARRAYSIZE(kGmaInitializationMethods));
 }
 
 jobject CreateJavaAdSize(JNIEnv* env, jobject j_activity,
@@ -1112,5 +1112,5 @@ jobject CreateJavaAdSize(JNIEnv* env, jobject j_activity,
   return j_ad_size;
 }
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

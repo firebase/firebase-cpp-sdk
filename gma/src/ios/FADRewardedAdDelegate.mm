@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#import "admob/src/ios/FADRewardedAdDelegate.h"
+#import "gma/src/ios/FADRewardedAdDelegate.h"
 
-#include "admob/src/ios/ad_result_ios.h"
-#include "admob/src/ios/rewarded_ad_internal_ios.h"
+#include "gma/src/ios/ad_result_ios.h"
+#include "gma/src/ios/rewarded_ad_internal_ios.h"
 
 @interface FADRewardedAdDelegate () {
   /// The RewardedAdInternalIOS object.
-  firebase::admob::internal::RewardedAdInternalIOS *_rewardedAd;
+  firebase::gma::internal::RewardedAdInternalIOS *_rewardedAd;
 }
 @end
 
@@ -30,7 +30,7 @@
 #pragma mark - Initialization
 
 - (instancetype)initWithInternalRewardedAd:
-    (firebase::admob::internal::RewardedAdInternalIOS *)rewardedAd {
+    (firebase::gma::internal::RewardedAdInternalIOS *)rewardedAd {
   self = [super init];
   if (self) {
     _rewardedAd = rewardedAd;
@@ -41,7 +41,7 @@
 
 #pragma mark - GADFullScreenContentDelegate
 
-// Capture AdMob iOS Full screen events and forward them to our C++
+// Capture GMA iOS Full screen events and forward them to our C++
 // translation layer.
 - (void)adDidRecordImpression:(nonnull id<GADFullScreenPresentingAd>)ad {
   _rewardedAd->NotifyListenerOfAdImpression();
@@ -53,14 +53,14 @@
 
 - (void)ad:(nonnull id<GADFullScreenPresentingAd>)ad
 didFailToPresentFullScreenContentWithError:(nonnull NSError *)error {
-  firebase::admob::AdResultInternal ad_result_internal;
+  firebase::gma::AdResultInternal ad_result_internal;
   ad_result_internal.ad_result_type =
-    firebase::admob::AdResultInternal::kAdResultInternalFullScreenContentError;
+    firebase::gma::AdResultInternal::kAdResultInternalFullScreenContentError;
   ad_result_internal.is_successful = false;
   ad_result_internal.native_ad_error = error;
-  // Invoke AdMobInternal, a friend of AdResult, to have it access its
+  // Invoke GmaInternal, a friend of AdResult, to have it access its
   // protected constructor with the AdError data.
-  const firebase::admob::AdResult& ad_result = firebase::admob::AdMobInternal::CreateAdResult(ad_result_internal);
+  const firebase::gma::AdResult& ad_result = firebase::gma::GmaInternal::CreateAdResult(ad_result_internal);
   _rewardedAd->NotifyListenerOfAdFailedToShowFullScreenContent(ad_result);
 }
 

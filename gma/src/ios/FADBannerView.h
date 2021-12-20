@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,14 +17,14 @@
 #import <Foundation/Foundation.h>
 #import <GoogleMobileAds/GoogleMobileAds.h>
 
-#include "admob/src/ios/banner_view_internal_ios.h"
+#include "gma/src/ios/banner_view_internal_ios.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 @interface FADBannerView : UIView
 
 /// The banner view's BoundingBox.
-@property(nonatomic, readonly) firebase::admob::BoundingBox boundingBox;
+@property(nonatomic, readonly) firebase::gma::BoundingBox boundingBox;
 
 /// Unavailable (NSObject).
 - (instancetype)init NS_UNAVAILABLE;
@@ -39,8 +39,8 @@ NS_ASSUME_NONNULL_BEGIN
 /// parent view of FADBannerView), ad unit ID, ad size, and BannerViewInternalIOS object.
 - (instancetype)initWithView:(UIView *)view
                     adUnitID:(NSString *)adUnitID
-                      adSize:(firebase::admob::AdSize)adSize
-          internalBannerView:(firebase::admob::internal::BannerViewInternalIOS *)cppBannerView  // NOLINT
+                      adSize:(firebase::gma::AdSize)adSize
+          internalBannerView:(firebase::gma::internal::BannerViewInternalIOS *)cppBannerView  // NOLINT
     NS_DESIGNATED_INITIALIZER;
 
 /// Requests a banner ad.
@@ -59,7 +59,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)moveBannerViewToXCoordinate:(int)x yCoordinate:(int)y;
 
 /// Moves the banner view to a BannerView::Position.
-- (void)moveBannerViewToPosition:(firebase::admob::BannerView::Position)position; // NOLINT
+- (void)moveBannerViewToPosition:(firebase::gma::BannerView::Position)position; // NOLINT
 
 
 @end

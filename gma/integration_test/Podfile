@@ -1,6 +1,6 @@
 source 'https://github.com/CocoaPods/Specs.git'
 platform :ios, '10.0'
-# Firebase AdMob test application.
+# Firebase GMA test application.
 
 target 'integration_test' do
   pod 'Google-Mobile-Ads-SDK', '8.12.0'

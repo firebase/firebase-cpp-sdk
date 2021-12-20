@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ android {
     main {
       manifest.srcFile 'AndroidManifest.xml'
       java {
-        srcDirs = ['../src_java/com/google/firebase/admob/internal/cpp']
+        srcDirs = ['../src_java/com/google/firebase/gma/internal/cpp']
       }
     }
   }
@@ -54,4 +54,4 @@ afterEvaluate {
 }
 
 apply from: "$rootDir/android_build_files/extract_and_dex.gradle"
-extractAndDexAarFile('admob_resources')
+extractAndDexAarFile('gma_resources')

@@ -20,15 +20,15 @@ extern "C" {
 
 #include <string>
 
-#include "admob/src/include/firebase/admob.h"
-#include "admob/src/include/firebase/admob/types.h"
-#include "admob/src/ios/adapter_response_info_ios.h"
-#include "admob/src/ios/ad_result_ios.h"
+#include "gma/src/include/firebase/gma.h"
+#include "gma/src/include/firebase/gma/types.h"
+#include "gma/src/ios/adapter_response_info_ios.h"
+#include "gma/src/ios/ad_result_ios.h"
 #include "app/src/mutex.h"
 #include "app/src/util_ios.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 AdapterResponseInfo::AdapterResponseInfo(
   const AdapterResponseInfoInternal& internal) : ad_result_(AdResultInternal())
@@ -54,5 +54,5 @@ AdapterResponseInfo::AdapterResponseInfo(
   to_string_ = util::NSStringToString(to_string);
 }
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

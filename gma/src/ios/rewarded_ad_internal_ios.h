@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_IOS_REWARDED_AD_INTERNAL_IOS_H_
-#define FIREBASE_ADMOB_SRC_IOS_REWARDED_AD_INTERNAL_IOS_H_
+#ifndef FIREBASE_GMA_SRC_IOS_REWARDED_AD_INTERNAL_IOS_H_
+#define FIREBASE_GMA_SRC_IOS_REWARDED_AD_INTERNAL_IOS_H_
 
 #ifdef __OBJC__
-#import "admob/src/ios/FADRewardedAdDelegate.h"
+#import "gma/src/ios/FADRewardedAdDelegate.h"
 #endif  // __OBJC__
 
 extern "C" {
 #include <objc/objc.h>
 }  // extern "C"
 
-#include "admob/src/common/rewarded_ad_internal.h"
+#include "gma/src/common/rewarded_ad_internal.h"
 #include "app/src/mutex.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 namespace internal {
 
 class RewardedAdInternalIOS : public RewardedAdInternal {
@@ -75,7 +75,7 @@ class RewardedAdInternalIOS : public RewardedAdInternal {
 };
 
 }  // namespace internal
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_IOS_REWARDED_AD_INTERNAL_IOS_H_
+#endif  // FIREBASE_GMA_SRC_IOS_REWARDED_AD_INTERNAL_IOS_H_

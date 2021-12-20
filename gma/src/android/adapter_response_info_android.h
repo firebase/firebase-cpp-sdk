@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_ANDROID_ADAPTER_RESPONSE_INFO_ANDROID_H_
-#define FIREBASE_ADMOB_SRC_ANDROID_ADAPTER_RESPONSE_INFO_ANDROID_H_
+#ifndef FIREBASE_GMA_SRC_ANDROID_ADAPTER_RESPONSE_INFO_ANDROID_H_
+#define FIREBASE_GMA_SRC_ANDROID_ADAPTER_RESPONSE_INFO_ANDROID_H_
 
 #include <jni.h>
 
-#include "admob/src/include/firebase/admob/types.h"
+#include "gma/src/include/firebase/gma/types.h"
 #include "app/src/util_android.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 struct AdapterResponseInfoInternal {
   jobject j_adapter_response_info;
@@ -42,7 +42,7 @@ struct AdapterResponseInfoInternal {
 
 METHOD_LOOKUP_DECLARATION(adapter_response_info, ADAPTERRESPONSEINFO_METHODS);
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_ANDROID_ADAPTER_RESPONSE_INFO_ANDROID_H_
+#endif  // FIREBASE_GMA_SRC_ANDROID_ADAPTER_RESPONSE_INFO_ANDROID_H_

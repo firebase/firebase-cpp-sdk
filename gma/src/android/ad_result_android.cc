@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-#include "admob/src/android/ad_result_android.h"
+#include "gma/src/android/ad_result_android.h"
 
 #include <jni.h>
 
 #include <memory>
 #include <string>
 
-#include "admob/src/android/ad_request_converter.h"
-#include "admob/src/android/admob_android.h"
-#include "admob/src/android/response_info_android.h"
-#include "admob/src/common/admob_common.h"
-#include "admob/src/include/firebase/admob.h"
+#include "gma/src/android/ad_request_converter.h"
+#include "gma/src/android/gma_android.h"
+#include "gma/src/android/response_info_android.h"
+#include "gma/src/common/gma_common.h"
+#include "gma/src/include/firebase/gma.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 METHOD_LOOKUP_DEFINITION(ad_error,
                          PROGUARD_KEEP_CLASS
@@ -48,7 +48,7 @@ AdResult::AdResult() {
   // an AdResult makes it to the application in this default state.
   internal_ = new AdResultInternal();
   internal_->ad_result_type = AdResultInternal::kAdResultInternalWrapperError;
-  internal_->code = kAdMobErrorUninitialized;
+  internal_->code = kAdErrorUninitialized;
   internal_->domain = "SDK";
   internal_->message = "This AdResult has not be initialized.";
   internal_->to_string = internal_->message;
@@ -71,10 +71,10 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
   response_info_ = new ResponseInfo();
 
   // AdResults can be returned on success, or for errors encountered in the C++
-  // SDK wrapper, or in the Android AdMob SDK.  The structure is populated
+  // SDK wrapper, or in the Android GMA SDK.  The structure is populated
   // differently across these three scenarios.
   if (internal_->is_successful) {
-    internal_->code = kAdMobErrorNone;
+    internal_->code = kAdErrorNone;
     internal_->message = "";
     internal_->domain = "";
     internal_->to_string = "";
@@ -88,15 +88,15 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
   } else {
     FIREBASE_ASSERT(ad_result_internal.native_ad_error != nullptr);
 
-    // AdResults based on Admob Android SDK errors will fetch code, domain,
+    // AdResults based on GMA Android SDK errors will fetch code, domain,
     // message, and to_string values from the Java object.
     internal_->native_ad_error =
         env->NewGlobalRef(ad_result_internal.native_ad_error);
 
-    JNIEnv* env = ::firebase::admob::GetJNI();
+    JNIEnv* env = ::firebase::gma::GetJNI();
     FIREBASE_ASSERT(env);
 
-    // Error Code.  Map the Android AdMob SDK error codes to our
+    // Error Code.  Map the Android GMA SDK error codes to our
     // platform-independent C++ SDK error codes.
     jint j_error_code = env->CallIntMethod(
         internal_->native_ad_error, ad_error::GetMethodId(ad_error::kGetCode));
@@ -241,7 +241,7 @@ std::unique_ptr<AdResult> AdResult::GetCause() const {
 
   // AdResults my contain another AdResult which points to the cause of this
   // error.  However, this is only possible if this AdResult represents
-  // and Android AdMob SDK error and not a wrapper error or a successful
+  // and Android GMA SDK error and not a wrapper error or a successful
   // result.
   if (internal_->ad_result_type ==
       AdResultInternal::kAdResultInternalWrapperError) {
@@ -265,7 +265,7 @@ std::unique_ptr<AdResult> AdResult::GetCause() const {
 }
 
 /// Gets the error's code.
-AdMobError AdResult::code() const {
+AdError AdResult::code() const {
   FIREBASE_ASSERT(internal_);
   return internal_->code;
 }
@@ -293,5 +293,5 @@ const std::string& AdResult::ToString() const {
   return internal_->to_string;
 }
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,25 +17,25 @@
 #include <cstdarg>
 #include <cstddef>
 
-#include "admob/src/common/admob_common.h"
-#include "admob/src/include/firebase/admob.h"
+#include "gma/src/common/gma_common.h"
+#include "gma/src/include/firebase/gma.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/mutex.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
-DEFINE_FIREBASE_VERSION_STRING(FirebaseAdMob);
+DEFINE_FIREBASE_VERSION_STRING(FirebaseGma);
 
 static const firebase::App* g_app = nullptr;
 static bool g_initialized = false;
 
-// Constants representing each AdMob function that returns a Future.
-enum AdMobFn {
-  kAdMobFnInitialize,
-  kAdMobFnCount,
+// Constants representing each GMA function that returns a Future.
+enum GmaFn {
+  kGmaFnInitialize,
+  kGmaFnCount,
 };
 
 static ReferenceCountedFutureImpl* g_future_impl = nullptr;
@@ -45,13 +45,13 @@ static Future<AdapterInitializationStatus> CreateAndCompleteInitializeStub() {
 
   // Return an AdapterInitializationStatus with one placeholder adapter.
   SafeFutureHandle<AdapterInitializationStatus> handle =
-      g_future_impl->SafeAlloc<AdapterInitializationStatus>(kAdMobFnInitialize);
+      g_future_impl->SafeAlloc<AdapterInitializationStatus>(kGmaFnInitialize);
   std::map<std::string, AdapterStatus> adapter_map;
   adapter_map["stub"] =
-      AdMobInternal::CreateAdapterStatus("stub adapter", true, 100);
+      GmaInternal::CreateAdapterStatus("stub adapter", true, 100);
 
   AdapterInitializationStatus adapter_init_status =
-      AdMobInternal::CreateAdapterInitializationStatus(adapter_map);
+      GmaInternal::CreateAdapterInitializationStatus(adapter_map);
   g_future_impl->CompleteWithResult(handle, 0, "", adapter_init_status);
   return MakeFuture(g_future_impl, handle);
 }
@@ -59,7 +59,7 @@ static Future<AdapterInitializationStatus> CreateAndCompleteInitializeStub() {
 Future<AdapterInitializationStatus> Initialize(const ::firebase::App& app,
                                                InitResult* init_result_out) {
   FIREBASE_ASSERT(!g_initialized);
-  g_future_impl = new ReferenceCountedFutureImpl(kAdMobFnCount);
+  g_future_impl = new ReferenceCountedFutureImpl(kGmaFnCount);
 
   (void)app;
   g_app = &app;
@@ -73,7 +73,7 @@ Future<AdapterInitializationStatus> Initialize(const ::firebase::App& app,
 
 Future<AdapterInitializationStatus> Initialize(InitResult* init_result_out) {
   FIREBASE_ASSERT(!g_initialized);
-  g_future_impl = new ReferenceCountedFutureImpl(kAdMobFnCount);
+  g_future_impl = new ReferenceCountedFutureImpl(kGmaFnCount);
 
   g_initialized = true;
   g_app = nullptr;
@@ -87,14 +87,14 @@ Future<AdapterInitializationStatus> Initialize(InitResult* init_result_out) {
 Future<AdapterInitializationStatus> InitializeLastResult() {
   return g_future_impl
              ? static_cast<const Future<AdapterInitializationStatus>&>(
-                   g_future_impl->LastResult(kAdMobFnInitialize))
+                   g_future_impl->LastResult(kGmaFnInitialize))
              : Future<AdapterInitializationStatus>();
 }
 
 AdapterInitializationStatus GetInitializationStatus() {
   Future<AdapterInitializationStatus> result = InitializeLastResult();
   if (result.status() != firebase::kFutureStatusComplete) {
-    return AdMobInternal::CreateAdapterInitializationStatus({});
+    return GmaInternal::CreateAdapterInitializationStatus({});
   } else {
     return *result.result();
   }
@@ -127,5 +127,5 @@ void Terminate() {
 
 const ::firebase::App* GetApp() { return g_app; }
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

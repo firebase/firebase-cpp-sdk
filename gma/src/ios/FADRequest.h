@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,38 +19,38 @@
 
 #include <string>
 
-#include "admob/src/include/firebase/admob/types.h"
+#include "gma/src/include/firebase/gma/types.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
-/// Returns a GADRequest from an admob::AdRequest.
+/// Returns a GADRequest from an gma::AdRequest.
 /// Converts instances of the AdRequest struct used by the C++ wrapper to
 /// to Mobile Ads SDK GADRequest objects.
 ///
 /// @param[in] request The AdRequest struct to be converted into a
 /// GAdRequest.
-/// @param[out] error kAdMobErrorNone on success, or another error if
+/// @param[out] error kAdErrorNone on success, or another error if
 /// problems occurred.
 /// @param[out] error_message a string representation of any error that
 /// occurs.
 /// @return On succes, a pointer to a GADRequest object representing the
 /// AdRequest, or nullptr on error.
 GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
-                                       admob::AdMobError* error,
+                                       gma::AdError* error,
                                        std::string* error_message);
 
 // Converts the iOS error codes from an AdRequest to the CPP platform
-// independent error codes defined in AdMobError.
-AdMobError MapAdRequestErrorCodeToCPPErrorCode(GADErrorCode error_code);
+// independent error codes defined in AdError.
+AdError MapAdRequestErrorCodeToCPPErrorCode(GADErrorCode error_code);
 
 // Converts the iOS error codes from attempting to show a full screen
-// ad into the platform independent error codes defined in AdMobError.
-AdMobError MapFullScreenContentErrorCodeToCPPErrorCode(GADPresentationErrorCode error_code);
+// ad into the platform independent error codes defined in AdError.
+AdError MapFullScreenContentErrorCodeToCPPErrorCode(GADPresentationErrorCode error_code);
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
 NS_ASSUME_NONNULL_END

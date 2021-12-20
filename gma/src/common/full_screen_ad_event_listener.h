@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_COMMON_FULL_SCREEN_AD_EVENT_LISTENER_H_
-#define FIREBASE_ADMOB_SRC_COMMON_FULL_SCREEN_AD_EVENT_LISTENER_H_
+#ifndef FIREBASE_GMA_SRC_COMMON_FULL_SCREEN_AD_EVENT_LISTENER_H_
+#define FIREBASE_GMA_SRC_COMMON_FULL_SCREEN_AD_EVENT_LISTENER_H_
 
-#include "admob/src/common/admob_common.h"
+#include "gma/src/common/gma_common.h"
 #include "app/src/mutex.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 namespace internal {
 
 // Listener class used by both InterstitialAds and RewardedAds.
@@ -64,7 +64,7 @@ class FullScreenAdEventListener {
 };
 
 }  // namespace internal
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_COMMON_FULL_SCREEN_AD_EVENT_LISTENER_H_
+#endif  // FIREBASE_GMA_SRC_COMMON_FULL_SCREEN_AD_EVENT_LISTENER_H_

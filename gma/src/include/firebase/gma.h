@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_H_
-#define FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_H_
+#ifndef FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_H_
+#define FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_H_
 
 #include "firebase/internal/platform.h"
 
@@ -25,26 +25,26 @@
 
 #include <vector>
 
-#include "firebase/admob/banner_view.h"
-#include "firebase/admob/interstitial_ad.h"
-#include "firebase/admob/rewarded_ad.h"
-#include "firebase/admob/types.h"
+#include "firebase/gma/banner_view.h"
+#include "firebase/gma/interstitial_ad.h"
+#include "firebase/gma/rewarded_ad.h"
+#include "firebase/gma/types.h"
 #include "firebase/app.h"
 #include "firebase/internal/common.h"
 
 #if !defined(DOXYGEN) && !defined(SWIG)
-FIREBASE_APP_REGISTER_CALLBACKS_REFERENCE(admob)
+FIREBASE_APP_REGISTER_CALLBACKS_REFERENCE(gma)
 #endif  // !defined(DOXYGEN) && !defined(SWIG)
 
 namespace firebase {
 
-/// @brief API for AdMob with Firebase.
+/// @brief API for Google Mobile Ads with Firebase.
 ///
-/// The AdMob API allows you to load and display mobile ads using the Google
+/// The GMA API allows you to load and display mobile ads using the Google
 /// Mobile Ads SDK. Each ad format has its own header file.
-namespace admob {
+namespace gma {
 
-/// Initializes AdMob via Firebase.
+/// Initializes Google Mobile Ads (GMA) via Firebase.
 ///
 /// @param[in] app The Firebase app for which to initialize mobile ads.
 ///
@@ -63,15 +63,15 @@ Future<AdapterInitializationStatus> Initialize(
     const ::firebase::App& app, InitResult* init_result_out = nullptr);
 
 #if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
-/// Initializes AdMob without Firebase for Android.
+/// Initializes Google Mobile Ads (GMA) without Firebase for Android.
 ///
 /// The arguments to @ref Initialize are platform-specific so the caller must do
 /// something like this:
 /// @code
 /// #if defined(__ANDROID__)
-/// firebase::admob::Initialize(jni_env, activity);
+/// firebase::gma::Initialize(jni_env, activity);
 /// #else
-/// firebase::admob::Initialize();
+/// firebase::gma::Initialize();
 /// #endif
 /// @endcode
 ///
@@ -93,7 +93,7 @@ Future<AdapterInitializationStatus> Initialize(
 
 #endif  // defined(__ANDROID__) || defined(DOXYGEN)
 #if !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
-/// Initializes AdMob without Firebase for iOS.
+/// Initializes Google Mobile Ads (GMA) without Firebase for iOS.
 ///
 /// @param[out] init_result_out Optional: If provided, write the basic init
 /// result here. kInitResultSuccess if initialization succeeded, or
@@ -126,10 +126,10 @@ AdapterInitializationStatus GetInitializationStatus();
 void DisableSDKCrashReporting();
 
 /// Disables mediation adapter initialization on iOS during initialization of
-/// the AdMob SDK. Calling this method may negatively impact your ad
-/// performance and should only be called if you will not use AdMob SDK
+/// the GMA SDK. Calling this method may negatively impact your ad
+/// performance and should only be called if you will not use GMA SDK
 /// controlled mediation during this app session. This method must be called
-/// before initializing the AdMob SDK or loading ads and has no effect once the
+/// before initializing the GMA SDK or loading ads and has no effect once the
 /// SDK has been initialized.
 ///
 /// This method has no effect on Android.
@@ -153,13 +153,13 @@ void SetRequestConfiguration(const RequestConfiguration& request_configuration);
 /// respectfully.
 RequestConfiguration GetRequestConfiguration();
 
-/// @brief Terminate AdMob.
+/// @brief Terminate GMA.
 ///
-/// Frees resources associated with AdMob that were allocated during
-/// @ref firebase::admob::Initialize().
+/// Frees resources associated with GMA that were allocated during
+/// @ref firebase::gma::Initialize().
 void Terminate();
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_H_
+#endif  // FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_H_

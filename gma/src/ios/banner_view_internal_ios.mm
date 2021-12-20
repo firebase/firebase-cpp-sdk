@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-#include "admob/src/ios/banner_view_internal_ios.h"
+#include "gma/src/ios/banner_view_internal_ios.h"
 
-#import "admob/src/ios/admob_ios.h"
-#import "admob/src/ios/FADBannerView.h"
-#import "admob/src/ios/FADRequest.h"
+#import "gma/src/ios/gma_ios.h"
+#import "gma/src/ios/FADBannerView.h"
+#import "gma/src/ios/FADRequest.h"
 
 #include "app/src/util_ios.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 namespace internal {
 
 BannerViewInternalIOS::BannerViewInternalIOS(BannerView* base)
@@ -47,7 +47,7 @@ Future<void> BannerViewInternalIOS::Initialize(AdParent parent,
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
   if(initialized_) {
-    CompleteFuture(kAdMobErrorAlreadyInitialized,
+    CompleteFuture(kAdErrorAlreadyInitialized,
       kAdAlreadyInitializedErrorMessage, future_handle, &future_data_);
   } else {
     initialized_ = true;
@@ -56,7 +56,7 @@ Future<void> BannerViewInternalIOS::Initialize(AdParent parent,
                                               adUnitID:@(ad_unit_id)
                                                 adSize:size
                                     internalBannerView:this];
-    CompleteFuture(kAdMobErrorNone, nullptr, future_handle, &future_data_);
+    CompleteFuture(kAdErrorNone, nullptr, future_handle, &future_data_);
     });
   }
   return future;
@@ -71,7 +71,7 @@ Future<AdResult> BannerViewInternalIOS::LoadAd(const AdRequest& request) {
     callback_data->future_handle);
 
   if (ad_load_callback_data_ != nil) {
-    CompleteLoadAdInternalResult(callback_data, kAdMobErrorLoadInProgress,
+    CompleteLoadAdInternalResult(callback_data, kAdErrorLoadInProgress,
       kAdLoadInProgressErrorMessage);
     return future;
   }
@@ -80,15 +80,15 @@ Future<AdResult> BannerViewInternalIOS::LoadAd(const AdRequest& request) {
   ad_load_callback_data_ = callback_data;
 
   dispatch_async(dispatch_get_main_queue(), ^{
-    AdMobError error_code = kAdMobErrorNone;
+    AdError error_code = kAdErrorNone;
     std::string error_message;
 
-    // Create a GADRequest from an admob::AdRequest.
+    // Create a GADRequest from an gma::AdRequest.
     GADRequest *ad_request =
      GADRequestFromCppAdRequest(request, &error_code, &error_message);
     if (ad_request == nullptr) {
-      if(error_code==kAdMobErrorNone) {
-        error_code = kAdMobErrorInternalError;
+      if(error_code==kAdErrorNone) {
+        error_code = kAdErrorInternalError;
         error_message = kAdCouldNotParseAdRequestErrorMessage;
       }
       CompleteLoadAdInternalResult(ad_load_callback_data_, error_code,
@@ -109,11 +109,11 @@ Future<void> BannerViewInternalIOS::SetPosition(int x, int y) {
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
   dispatch_async(dispatch_get_main_queue(), ^{
-    AdMobError error = kAdMobErrorUninitialized;
+    AdError error = kAdErrorUninitialized;
     const char* error_msg = kAdUninitializedErrorMessage;
     if (banner_view_) {
       [banner_view_ moveBannerViewToXCoordinate:x yCoordinate:y];
-      error = kAdMobErrorNone;
+      error = kAdErrorNone;
       error_msg = nullptr;
     }
     CompleteFuture(error, error_msg, future_handle, &future_data_);
@@ -128,11 +128,11 @@ Future<void> BannerViewInternalIOS::SetPosition(BannerView::Position position) {
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
   dispatch_async(dispatch_get_main_queue(), ^{
-    AdMobError error = kAdMobErrorUninitialized;
+    AdError error = kAdErrorUninitialized;
     const char* error_msg = kAdUninitializedErrorMessage;
     if (banner_view_) {
       [banner_view_ moveBannerViewToPosition:position];
-      error = kAdMobErrorNone;
+      error = kAdErrorNone;
       error_msg = nullptr;
     }
     CompleteFuture(error, error_msg, future_handle, &future_data_);
@@ -148,7 +148,7 @@ Future<void> BannerViewInternalIOS::Hide() {
 
   dispatch_async(dispatch_get_main_queue(), ^{
     [banner_view_ hide];
-    CompleteFuture(kAdMobErrorNone, nullptr, future_handle, &future_data_);
+    CompleteFuture(kAdErrorNone, nullptr, future_handle, &future_data_);
   });
   return future;
 }
@@ -161,7 +161,7 @@ Future<void> BannerViewInternalIOS::Show() {
 
   dispatch_async(dispatch_get_main_queue(), ^{
     [banner_view_ show];
-    CompleteFuture(kAdMobErrorNone, nullptr, future_handle, &future_data_);
+    CompleteFuture(kAdErrorNone, nullptr, future_handle, &future_data_);
   });
   return future;
 }
@@ -170,7 +170,7 @@ Future<void> BannerViewInternalIOS::Show() {
 Future<void> BannerViewInternalIOS::Pause() {
   firebase::MutexLock lock(mutex_);
   // Required method. No-op.
-  return CreateAndCompleteFuture(kBannerViewFnPause, kAdMobErrorNone, nullptr,
+  return CreateAndCompleteFuture(kBannerViewFnPause, kAdErrorNone, nullptr,
     &future_data_);
 }
 
@@ -178,7 +178,7 @@ Future<void> BannerViewInternalIOS::Pause() {
 Future<void> BannerViewInternalIOS::Resume() {
   firebase::MutexLock lock(mutex_);
   // Required method. No-op.
-  return CreateAndCompleteFuture(kBannerViewFnResume, kAdMobErrorNone, nullptr,
+  return CreateAndCompleteFuture(kBannerViewFnResume, kAdErrorNone, nullptr,
     &future_data_);
 }
 
@@ -207,7 +207,7 @@ Future<void> BannerViewInternalIOS::Destroy() {
       delete ad_load_callback_data_;
       ad_load_callback_data_ = nil;
     }
-    CompleteFuture(kAdMobErrorNone, nullptr, future_handle, &future_data_);
+    CompleteFuture(kAdErrorNone, nullptr, future_handle, &future_data_);
     destroy_mutex_.Release();
   };
   util::DispatchAsyncSafeMainQueue(destroyBlock);
@@ -221,7 +221,7 @@ BoundingBox BannerViewInternalIOS::bounding_box() const {
 void BannerViewInternalIOS::BannerViewDidReceiveAd() {
   firebase::MutexLock lock(mutex_);
   if(ad_load_callback_data_ != nil) {
-    CompleteLoadAdInternalResult(ad_load_callback_data_, kAdMobErrorNone,
+    CompleteLoadAdInternalResult(ad_load_callback_data_, kAdErrorNone,
       /*error_message=*/"");
     ad_load_callback_data_ = nil;
   }
@@ -238,5 +238,5 @@ void BannerViewInternalIOS::BannerViewDidFailToReceiveAdWithError(NSError *error
 }
 
 }  // namespace internal
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

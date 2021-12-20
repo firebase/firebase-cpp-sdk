@@ -16,11 +16,11 @@
 
 #include <string>
 
-#include "admob/src/include/firebase/admob.h"
-#include "admob/src/include/firebase/admob/types.h"
+#include "gma/src/include/firebase/gma.h"
+#include "gma/src/include/firebase/gma/types.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 struct ResponseInfoInternal {
   int stub;
@@ -31,5 +31,5 @@ ResponseInfo::ResponseInfo() {}
 ResponseInfo::ResponseInfo(const ResponseInfoInternal& response_info_internal) {
 }
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_IOS_RESPONSE_INFO_IOS_H_
-#define FIREBASE_ADMOB_SRC_IOS_RESPONSE_INFO_IOS_H_
+#ifndef FIREBASE_GMA_SRC_IOS_RESPONSE_INFO_IOS_H_
+#define FIREBASE_GMA_SRC_IOS_RESPONSE_INFO_IOS_H_
 
 #import <GoogleMobileAds/GoogleMobileAds.h>
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 struct ResponseInfoInternal {
   GADResponseInfo* gad_response_info;
 };
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_IOS_RESPONSE_INFO_IOS_H_
+#endif  // FIREBASE_GMA_SRC_IOS_RESPONSE_INFO_IOS_H_

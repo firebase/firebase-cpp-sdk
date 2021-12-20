@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_COMMON_ADMOB_COMMON_H_
-#define FIREBASE_ADMOB_SRC_COMMON_ADMOB_COMMON_H_
+#ifndef FIREBASE_GMA_SRC_COMMON_GMA_COMMON_H_
+#define FIREBASE_GMA_SRC_COMMON_GMA_COMMON_H_
 
 #include <stdarg.h>
 
@@ -24,21 +24,21 @@
 #include <utility>
 #include <vector>
 
-#include "admob/src/include/firebase/admob/types.h"
+#include "gma/src/include/firebase/gma/types.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/reference_counted_future_impl.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 // Error messages used for completing futures. These match the error codes in
-// the AdMobError enumeration in the C++ API.
+// the AdError enumeration in the C++ API.
 extern const char* kAdAlreadyInitializedErrorMessage;
 extern const char* kAdCouldNotParseAdRequestErrorMessage;
 extern const char* kAdLoadInProgressErrorMessage;
 extern const char* kAdUninitializedErrorMessage;
 
-// Determine whether admob is initialized.
+// Determine whether GMA is initialized.
 bool IsInitialized();
 
 // Registers a cleanup task for this module if auto-initialization is disabled.
@@ -48,8 +48,8 @@ void RegisterTerminateOnDefaultAppDestroy();
 // disabled.
 void UnregisterTerminateOnDefaultAppDestroy();
 
-// Get the cleanup notifier for the AdMob module, creating one if it doesn't
-// exist.  This allows all objects that depend upon AdMob's lifecycle to be
+// Get the cleanup notifier for the GMA module, creating one if it doesn't
+// exist.  This allows all objects that depend upon GMA's lifecycle to be
 // cleaned up if the module is terminated.
 CleanupNotifier* GetOrCreateCleanupNotifier();
 
@@ -122,9 +122,9 @@ void CompleteFuture(int error, const char* error_msg,
   future_data->future_impl.CompleteWithResult(handle, error, error_msg, result);
 }
 
-// A class that allows access to private/protected Admob structures for Java
+// A class that allows access to private/protected GMA structures for Java
 // callbacks.  This is achieved via friend relationships with those classes.
-class AdMobInternal {
+class GmaInternal {
  public:
   // Completes an AdResult future given the AdResultInternal object.
   static void CompleteLoadAdFuture(FutureCallbackData<AdResult>* callback_data,
@@ -154,7 +154,7 @@ class AdMobInternal {
   }
 };
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_COMMON_ADMOB_COMMON_H_
+#endif  // FIREBASE_GMA_SRC_COMMON_GMA_COMMON_H_

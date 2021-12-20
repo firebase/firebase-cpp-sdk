@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.firebase.admob.internal.cpp;
+package com.google.firebase.gma.internal.cpp;
 
 import android.app.Activity;
 import android.graphics.drawable.ColorDrawable;
@@ -35,7 +35,7 @@ import com.google.android.gms.ads.OnPaidEventListener;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Helper class to make interactions between the AdMob C++ wrapper and Java AdView objects cleaner.
+ * Helper class to make interactions between the GMA C++ wrapper and Java AdView objects cleaner.
  * It's designed to wrap and adapt a single instance of AdView, translate calls coming from C++ into
  * their (typically more complicated) Java equivalents, and convert the Java listener patterns into
  * game engine-friendly state machine polling.
@@ -600,7 +600,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
 
   /**
    * Native callback upon encountering an error loading an Ad Request. Returns
-   * Android Admob SDK error codes.
+   * Android Google Mobile Ads SDK error codes.
    **/
   public static native void completeBannerViewLoadAdError(
       long nativeInternalPtr, LoadAdError error, int errorCode, String errorMessage);
@@ -608,10 +608,10 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   /**
    * Native callback upon encountering a wrapper/internal error when
    * processing a Load Ad Request. Returns an integer representing
-   * firebase::admob::AdMobError codes.
+   * firebase::gma::AdError codes.
    */
   public static native void completeBannerViewLoadAdInternalError(
-      long nativeInternalPtr, int admobErrorCode, String errorMessage);
+      long nativeInternalPtr, int gmaErrorCode, String errorMessage);
 
   /**
    * Native callback to notify the C++ wrapper that the Ad's Bounding Box has changed.

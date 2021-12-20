@@ -18,19 +18,19 @@ extern "C" {
 #include <objc/objc.h>
 }  // extern "C"
 
-#import "admob/src/ios/FADRequest.h"
+#import "gma/src/ios/FADRequest.h"
 
 #include <string>
 
-#include "admob/src/common/ad_result_internal.h"
-#include "admob/src/include/firebase/admob.h"
-#include "admob/src/ios/ad_result_ios.h"
-#include "admob/src/ios/response_info_ios.h"
+#include "gma/src/common/ad_result_internal.h"
+#include "gma/src/include/firebase/gma.h"
+#include "gma/src/ios/ad_result_ios.h"
+#include "gma/src/ios/response_info_ios.h"
 
 #include "app/src/util_ios.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 const char* const AdResult::kUndefinedDomain = "undefined";
 
@@ -41,7 +41,7 @@ AdResult::AdResult() {
   internal_ = new AdResultInternal();
   internal_->is_successful = false;
   internal_->ad_result_type = AdResultInternal::kAdResultInternalWrapperError;
-  internal_->code = kAdMobErrorUninitialized;
+  internal_->code = kAdErrorUninitialized;
   internal_->domain = "SDK";
   internal_->message = "This AdResult has not be initialized.";
   internal_->to_string = internal_->message;
@@ -62,10 +62,10 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
   response_info_ = new ResponseInfo();
 
   // AdResults can be returned on success, or for errors encountered in the C++
-  // SDK wrapper, or in the iOS AdMob SDK.  The stucture is populated
+  // SDK wrapper, or in the iOS GMA SDK.  The stucture is populated
   // differently across these three scenarios.
   if (internal_->is_successful) {
-    internal_->code = kAdMobErrorNone;
+    internal_->code = kAdErrorNone;
     internal_->message = "";
     internal_->domain = "";
     internal_->to_string = "";
@@ -79,11 +79,11 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
   } else {
     FIREBASE_ASSERT(ad_result_internal.native_ad_error);
 
-    // AdResults based on Admob iOS SDK errors will fetch code, domain,
+    // AdResults based on GMA iOS SDK errors will fetch code, domain,
     // message, and to_string values from the ObjC object.
     internal_->native_ad_error = ad_result_internal.native_ad_error;
 
-    // Error Code.  Map the iOS AdMob SDK error codes to our
+    // Error Code.  Map the iOS GMA SDK error codes to our
     // platform-independent C++ SDK error codes.
     switch (internal_->ad_result_type) {
       case AdResultInternal::kAdResultInternalFullScreenContentError:
@@ -186,7 +186,7 @@ std::unique_ptr<AdResult> AdResult::GetCause() const {
 }
 
 /// Gets the error's code.
-AdMobError AdResult::code() const {
+AdError AdResult::code() const {
   FIREBASE_ASSERT(internal_);
   return internal_->code;
 }
@@ -214,5 +214,5 @@ const std::string& AdResult::ToString() const {
   return internal_->to_string;
 }
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

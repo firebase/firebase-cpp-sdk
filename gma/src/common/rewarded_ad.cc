@@ -14,25 +14,25 @@
  * limitations under the License.
  */
 
-#include "admob/src/include/firebase/admob/rewarded_ad.h"
+#include "gma/src/include/firebase/gma/rewarded_ad.h"
 
-#include "admob/src/common/admob_common.h"
-#include "admob/src/common/rewarded_ad_internal.h"
+#include "gma/src/common/gma_common.h"
+#include "gma/src/common/rewarded_ad_internal.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 const char kUninitializedError[] =
     "Initialize() must be called before this method.";
 
 RewardedAd::RewardedAd() {
-  FIREBASE_ASSERT(admob::IsInitialized());
+  FIREBASE_ASSERT(gma::IsInitialized());
   internal_ = internal::RewardedAdInternal::CreateInstance(this);
 
   GetOrCreateCleanupNotifier()->RegisterObject(this, [](void* object) {
-    LogWarning("RewardedAd must be deleted before admob::Terminate.");
+    LogWarning("RewardedAd must be deleted before gma::Terminate.");
     RewardedAd* rewarded_ad = reinterpret_cast<RewardedAd*>(object);
     delete rewarded_ad->internal_;
     rewarded_ad->internal_ = nullptr;
@@ -63,8 +63,8 @@ Future<AdResult> RewardedAd::LoadAd(const char* ad_unit_id,
                                     const AdRequest& request) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::admob::internal::kRewardedAdFnLoadAd,
-        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        firebase::gma::internal::kRewardedAdFnLoadAd,
+        kAdErrorUninitialized, kAdUninitializedErrorMessage,
         &internal_->future_data_, AdResult());
   }
   return internal_->LoadAd(ad_unit_id, request);
@@ -73,8 +73,8 @@ Future<AdResult> RewardedAd::LoadAd(const char* ad_unit_id,
 Future<AdResult> RewardedAd::LoadAdLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::admob::internal::kRewardedAdFnLoadAd,
-        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        firebase::gma::internal::kRewardedAdFnLoadAd,
+        kAdErrorUninitialized, kAdUninitializedErrorMessage,
         &internal_->future_data_, AdResult());
   }
   return internal_->GetLoadAdLastResult();
@@ -83,7 +83,7 @@ Future<AdResult> RewardedAd::LoadAdLastResult() const {
 Future<void> RewardedAd::Show(UserEarnedRewardListener* listener) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::admob::internal::kRewardedAdFnShow, kAdMobErrorUninitialized,
+        firebase::gma::internal::kRewardedAdFnShow, kAdErrorUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->Show(listener);
@@ -92,7 +92,7 @@ Future<void> RewardedAd::Show(UserEarnedRewardListener* listener) {
 Future<void> RewardedAd::ShowLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::admob::internal::kRewardedAdFnShow, kAdMobErrorUninitialized,
+        firebase::gma::internal::kRewardedAdFnShow, kAdErrorUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->GetLastResult(internal::kRewardedAdFnShow);
@@ -112,5 +112,5 @@ void RewardedAd::SetServerSideVerificationOptions(
   internal_->SetServerSideVerificationOptions(options);
 }
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

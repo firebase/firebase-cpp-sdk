@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.firebase.admob.internal.cpp;
+package com.google.firebase.gma.internal.cpp;
 
 import android.app.Activity;
 import android.util.Log;
@@ -28,7 +28,7 @@ import com.google.android.gms.ads.interstitial.InterstitialAd;
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
 
 /**
- * Helper class to make interactions between the AdMob C++ wrapper and Java {@link InterstitialAd}
+ * Helper class to make interactions between the GMA C++ wrapper and Java {@link InterstitialAd}
  * objects cleaner. It's designed to wrap and adapt a single instance of {@link InterstitialAd},
  * translate calls coming from C++ into their (typically more complicated) Java equivalents.
  */
@@ -298,7 +298,7 @@ public class InterstitialAdHelper {
 
   /**
    * Native callback upon encountering an error loading an Ad Request. Returns
-   * Android Admob SDK error codes.
+   * Android Google Mobile Ads SDK error codes.
    **/
   public static native void completeInterstitialLoadAdError(
       long nativeInternalPtr, LoadAdError error, int errorCode, String errorMessage);
@@ -306,10 +306,10 @@ public class InterstitialAdHelper {
   /**
    * Native callback upon encountering a wrapper/internal error when
    * processing an Ad Request. Returns integers representing
-   * firebase::admob::AdMobError codes.
+   * firebase::gma::AdError codes.
    */
   public static native void completeInterstitialLoadAdInternalError(
-      long nativeInternalPtr, int admobErrorCode, String errorMessage);
+      long nativeInternalPtr, int gmaErrorCode, String errorMessage);
 
   /**
    * Native callbacks to notify the C++ wrapper of ad events

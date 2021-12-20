@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.firebase.admob.internal.cpp;
+package com.google.firebase.gma.internal.cpp;
 
 import android.app.Activity;
 import android.util.Log;
@@ -31,7 +31,7 @@ import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 import com.google.android.gms.ads.rewarded.ServerSideVerificationOptions;
 
 /**
- * Helper class to make interactions between the AdMob C++ wrapper and Java {@link RewardedAd}
+ * Helper class to make interactions between the GMA C++ wrapper and Java {@link RewardedAd}
  * objects cleaner. It's designed to wrap and adapt a single instance of {@link RewardedAd},
  * translate calls coming from C++ into their (typically more complicated) Java equivalents.
  */
@@ -321,7 +321,7 @@ public class RewardedAdHelper {
 
   /**
    * Native callback upon encountering an error loading an Ad Request. Returns
-   * Android Admob SDK error codes.
+   * Android Google Mobile Ads SDK error codes.
    **/
   public static native void completeRewardedLoadAdError(
       long nativeInternalPtr, LoadAdError error, int errorCode, String errorMessage);
@@ -329,10 +329,10 @@ public class RewardedAdHelper {
   /**
    * Native callback upon encountering a wrapper/internal error when
    * processing an Ad Request. Returns integers representing
-   * firebase::admob::AdMobError codes.
+   * firebase::gma::AdError codes.
    */
   public static native void completeRewardedLoadAdInternalError(
-      long nativeInternalPtr, int admobErrorCode, String errorMessage);
+      long nativeInternalPtr, int gmaErrorCode, String errorMessage);
 
   /**
    * Native callbacks to notify the C++ wrapper of ad events

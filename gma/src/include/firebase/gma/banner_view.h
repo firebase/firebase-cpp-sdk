@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,24 +14,24 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_BANNER_VIEW_H_
-#define FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_BANNER_VIEW_H_
+#ifndef FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_BANNER_VIEW_H_
+#define FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_BANNER_VIEW_H_
 
-#include "firebase/admob/types.h"
+#include "firebase/gma/types.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 namespace internal {
 // Forward declaration for platform-specific data, implemented in each library.
 class BannerViewInternal;
 }  // namespace internal
 
-/// @brief Loads and displays AdMob banner ads.
+/// @brief Loads and displays Google Mobile Ads banner ads.
 ///
-/// Each BannerView object corresponds to a single AdMob banner placement. There
+/// Each BannerView object corresponds to a single GMA banner placement. There
 /// are methods to load an ad, move it, show it and hide it, and retrieve the
 /// bounds of the ad onscreen.
 ///
@@ -45,8 +45,8 @@ class BannerViewInternal;
 /// checking the result of the previous action at each step as follows:
 ///
 /// @code
-/// namespace admob = ::firebase::admob;
-/// admob::BannerView* banner_view = new admob::BannerView();
+/// namespace gma = ::firebase::gma;
+/// gma::BannerView* banner_view = new gma::BannerView();
 /// banner_view->Initialize(ad_parent, "YOUR_AD_UNIT_ID", desired_ad_size)
 /// @endcode
 ///
@@ -56,7 +56,7 @@ class BannerViewInternal;
 /// if (banner_view->InitializeLastResult().status() ==
 ///     ::firebase::kFutureStatusComplete &&
 ///     banner_view->InitializeLastResult().error() ==
-///     firebase::admob::kAdMobErrorNone) {
+///     firebase::gma::kAdErrorNone) {
 ///   banner_view->LoadAd(your_ad_request);
 /// }
 /// @endcode
@@ -185,7 +185,7 @@ class BannerView : public AdView {
   internal::BannerViewInternal* internal_;
 };
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_BANNER_VIEW_H_
+#endif  // FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_BANNER_VIEW_H_

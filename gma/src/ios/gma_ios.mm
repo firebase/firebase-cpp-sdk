@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-#import "admob/src/ios/admob_ios.h"
+#import "gma/src/ios/gma_ios.h"
 
-#include "admob/src/include/firebase/admob.h"
+#include "gma/src/include/firebase/gma.h"
 
 #import <Foundation/Foundation.h>
 #import <GoogleMobileAds/GADRequestConfiguration.h>
 #import <GoogleMobileAds/GoogleMobileAds.h>
 
-#import "admob/src/ios/FADRequest.h"
+#import "gma/src/ios/FADRequest.h"
 
-#include "admob/src/common/admob_common.h"
-#include "admob/src/include/firebase/admob/types.h"
-#include "admob/src/ios/ad_result_ios.h"
-#include "admob/src/ios/adapter_response_info_ios.h"
-#include "admob/src/ios/response_info_ios.h"
+#include "gma/src/common/gma_common.h"
+#include "gma/src/include/firebase/gma/types.h"
+#include "gma/src/ios/ad_result_ios.h"
+#include "gma/src/ios/adapter_response_info_ios.h"
+#include "gma/src/ios/response_info_ios.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/log.h"
@@ -36,16 +36,16 @@
 #include "app/src/util_ios.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 static const ::firebase::App* g_app = nullptr;
 
 static bool g_initialized = false;
 
-// Constants representing each AdMob function that returns a Future.
-enum AdMobFn {
-  kAdMobFnInitialize,
-  kAdMobFnCount,
+// Constants representing each GMA function that returns a Future.
+enum GmaFn {
+  kGmaFnInitialize,
+  kGmaFnCount,
 };
 
 static ReferenceCountedFutureImpl* g_future_impl = nullptr;
@@ -56,7 +56,7 @@ static Mutex g_future_impl_mutex;  // NOLINT
 // AdapterInitializationStatus class.
 static AdapterInitializationStatus PopulateAdapterInitializationStatus(
   GADInitializationStatus *init_status) {
-  if (!init_status) return AdMobInternal::CreateAdapterInitializationStatus({});
+  if (!init_status) return GmaInternal::CreateAdapterInitializationStatus({});
 
   std::map<std::string, AdapterStatus> adapter_status_map;
 
@@ -64,20 +64,20 @@ static AdapterInitializationStatus PopulateAdapterInitializationStatus(
   for (NSString* key in status_dict) {
     GADAdapterStatus* status = [status_dict objectForKey:key];
     AdapterStatus adapter_status =
-      AdMobInternal::CreateAdapterStatus(util::NSStringToString(status.description),
+      GmaInternal::CreateAdapterStatus(util::NSStringToString(status.description),
                                          status.state == GADAdapterInitializationStateReady,
                                          status.latency);
     adapter_status_map[util::NSStringToString(key)] = adapter_status;
   }
-  return AdMobInternal::CreateAdapterInitializationStatus(adapter_status_map);
+  return GmaInternal::CreateAdapterInitializationStatus(adapter_status_map);
 }
   
-static Future<AdapterInitializationStatus> InitializeAdMob() {
+static Future<AdapterInitializationStatus> InitializeGma() {
   MutexLock lock(g_future_impl_mutex);
   FIREBASE_ASSERT(g_future_impl);
 
   SafeFutureHandle<AdapterInitializationStatus> handle =
-    g_future_impl->SafeAlloc<AdapterInitializationStatus>(kAdMobFnInitialize);
+    g_future_impl->SafeAlloc<AdapterInitializationStatus>(kGmaFnInitialize);
   [GADMobileAds.sharedInstance startWithCompletionHandler:^(GADInitializationStatus *_Nonnull status){
       // GAD initialization has completed, with adapter initialization status.
       AdapterInitializationStatus adapter_status = PopulateAdapterInitializationStatus(status);
@@ -99,14 +99,14 @@ Future<AdapterInitializationStatus> Initialize(InitResult *init_result_out) {
 
   {
     MutexLock lock(g_future_impl_mutex);
-    g_future_impl = new ReferenceCountedFutureImpl(kAdMobFnCount);
+    g_future_impl = new ReferenceCountedFutureImpl(kGmaFnCount);
   }
 
   RegisterTerminateOnDefaultAppDestroy();
   if (init_result_out) {
     *init_result_out = kInitResultSuccess;
   }
-  return InitializeAdMob();
+  return InitializeGma();
 }
 
 Future<AdapterInitializationStatus> Initialize(const ::firebase::App& app, InitResult *init_result_out) { 
@@ -114,14 +114,14 @@ Future<AdapterInitializationStatus> Initialize(const ::firebase::App& app, InitR
   g_initialized = true;
   {
     MutexLock lock(g_future_impl_mutex);
-    g_future_impl = new ReferenceCountedFutureImpl(kAdMobFnCount);
+    g_future_impl = new ReferenceCountedFutureImpl(kGmaFnCount);
   }
   g_app = &app;
   RegisterTerminateOnDefaultAppDestroy();
   if (init_result_out) {
     *init_result_out = kInitResultSuccess;
   }
-  return InitializeAdMob();
+  return InitializeGma();
 }
 
 bool IsInitialized() { return g_initialized; }
@@ -233,7 +233,7 @@ RequestConfiguration GetRequestConfiguration() {
 Future<AdapterInitializationStatus> InitializeLastResult() {
   MutexLock lock(g_future_impl_mutex);
   return g_future_impl ? static_cast<const Future<AdapterInitializationStatus>&>(
-                            g_future_impl->LastResult(kAdMobFnInitialize))
+                            g_future_impl->LastResult(kGmaFnInitialize))
                       : Future<AdapterInitializationStatus>();
 }
 
@@ -267,10 +267,10 @@ const ::firebase::App* GetApp() { return g_app; }
 
 // Constructs AdResult objects based on the encountered result, beit a
 // successful result, and C++ SDK Wrapper error, or an error returned from
-// the iOS Admob SDK.
+// the iOS GMA SDK.
 void CompleteAdResult(FutureCallbackData<AdResult>* callback_data,
                       NSError *error, bool is_load_ad_error,
-                      AdMobError error_code,
+                      AdError error_code,
                       const char* error_message) {
   FIREBASE_ASSERT(callback_data);
   FIREBASE_ASSERT(error_message);
@@ -295,8 +295,8 @@ void CompleteAdResult(FutureCallbackData<AdResult>* callback_data,
       ad_result_internal.ad_result_type ==
         AdResultInternal::kAdResultInternalAdError;
     }
-  } else if (ad_result_internal.code != kAdMobErrorNone) {
-    // C++ SDK iOS AdMob Wrapper encountered an error.
+  } else if (ad_result_internal.code != kAdErrorNone) {
+    // C++ SDK iOS GMA Wrapper encountered an error.
     ad_result_internal.ad_result_type =
       AdResultInternal::kAdResultInternalWrapperError;
     ad_result_internal.is_successful = false;
@@ -307,14 +307,14 @@ void CompleteAdResult(FutureCallbackData<AdResult>* callback_data,
     future_error_message = ad_result_internal.message;
   }
 
-  AdMobInternal::CompleteLoadAdFuture(
+  GmaInternal::CompleteLoadAdFuture(
       callback_data, ad_result_internal.code, future_error_message, ad_result_internal);
 }
 
 
 void CompleteLoadAdInternalResult(
     FutureCallbackData<AdResult>* callback_data,
-    AdMobError error_code, const char* error_message) {
+    AdError error_code, const char* error_message) {
   FIREBASE_ASSERT(callback_data);
   FIREBASE_ASSERT(error_message);
 
@@ -326,7 +326,7 @@ void CompleteAdResultError(FutureCallbackData<AdResult>* callback_data,
                            NSError *gad_error, bool is_load_ad_error) {
   FIREBASE_ASSERT(callback_data);
 
-  AdMobError error_code =
+  AdError error_code =
     MapAdRequestErrorCodeToCPPErrorCode((GADErrorCode)gad_error.code);
   CompleteAdResult(callback_data, gad_error, is_load_ad_error,
     error_code, util::NSStringToString(gad_error.localizedDescription).c_str());
@@ -357,5 +357,5 @@ AdValue ConvertGADAdValueToCppAdValue(GADAdValue* gad_value) {
 
 }
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

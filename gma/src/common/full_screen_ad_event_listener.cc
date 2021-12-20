@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-#include "admob/src/common/full_screen_ad_event_listener.h"
+#include "gma/src/common/full_screen_ad_event_listener.h"
 
 #include "app/src/mutex.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 namespace internal {
 
 void FullScreenAdEventListener::SetFullScreenContentListener(
@@ -79,5 +79,5 @@ void FullScreenAdEventListener::NotifyListenerOfPaidEvent(
 }
 
 }  // namespace internal
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

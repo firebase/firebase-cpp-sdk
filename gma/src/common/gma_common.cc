@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,56 +14,56 @@
  * limitations under the License.
  */
 
-#include "admob/src/common/admob_common.h"
+#include "gma/src/common/gma_common.h"
 
 #include <assert.h>
 
 #include <string>
 #include <vector>
 
-#include "admob/src/include/firebase/admob.h"
-#include "admob/src/include/firebase/admob/banner_view.h"
-#include "admob/src/include/firebase/admob/interstitial_ad.h"
-#include "admob/src/include/firebase/admob/rewarded_ad.h"
-#include "admob/src/include/firebase/admob/types.h"
+#include "gma/src/include/firebase/gma.h"
+#include "gma/src/include/firebase/gma/banner_view.h"
+#include "gma/src/include/firebase/gma/interstitial_ad.h"
+#include "gma/src/include/firebase/gma/rewarded_ad.h"
+#include "gma/src/include/firebase/gma/types.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/util.h"
 
 FIREBASE_APP_REGISTER_CALLBACKS(
-    admob,
+    gma,
     {
       if (app == ::firebase::App::GetInstance()) {
         firebase::InitResult result;
-        firebase::admob::Initialize(*app, &result);
+        firebase::gma::Initialize(*app, &result);
         return result;
       }
       return kInitResultSuccess;
     },
     {
       if (app == ::firebase::App::GetInstance()) {
-        firebase::admob::Terminate();
+        firebase::gma::Terminate();
       }
     });
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
-DEFINE_FIREBASE_VERSION_STRING(FirebaseAdMob);
+DEFINE_FIREBASE_VERSION_STRING(FirebaseGma);
 
 static CleanupNotifier* g_cleanup_notifier = nullptr;
-const char kAdMobModuleName[] = "admob";
+const char kGmaModuleName[] = "gma";
 
 // Error messages used for completing futures. These match the error codes in
-// the AdMobError enumeration in the C++ API.
+// the AdError enumeration in the C++ API.
 const char* kAdAlreadyInitializedErrorMessage = "Ad is already initialized.";
 const char* kAdCouldNotParseAdRequestErrorMessage =
     "Could Not Parse AdRequest.";
 const char* kAdLoadInProgressErrorMessage = "Ad is currently loading.";
 const char* kAdUninitializedErrorMessage = "Ad has not been fully initialized.";
 
-// AdMobInternal
-void AdMobInternal::CompleteLoadAdFuture(
+// GmaInternal
+void GmaInternal::CompleteLoadAdFuture(
     FutureCallbackData<AdResult>* callback_data, int error_code,
     const std::string& error_message,
     const AdResultInternal& ad_result_internal) {
@@ -74,7 +74,7 @@ void AdMobInternal::CompleteLoadAdFuture(
   delete callback_data;
 }
 
-AdResult AdMobInternal::CreateAdResult(
+AdResult GmaInternal::CreateAdResult(
     const AdResultInternal& ad_result_internal) {
   return AdResult(ad_result_internal);
 }
@@ -188,17 +188,17 @@ PaidEventListener::~PaidEventListener() {}
 UserEarnedRewardListener::~UserEarnedRewardListener() {}
 
 void RegisterTerminateOnDefaultAppDestroy() {
-  if (!AppCallback::GetEnabledByName(kAdMobModuleName)) {
-    // It's possible to initialize AdMob without firebase::App so only register
+  if (!AppCallback::GetEnabledByName(kGmaModuleName)) {
+    // It's possible to initialize GMA without firebase::App so only register
     // for cleanup notifications if the default app exists.
     App* app = App::GetInstance();
     if (app) {
       CleanupNotifier* cleanup_notifier = CleanupNotifier::FindByOwner(app);
       assert(cleanup_notifier);
-      cleanup_notifier->RegisterObject(const_cast<char*>(kAdMobModuleName),
+      cleanup_notifier->RegisterObject(const_cast<char*>(kGmaModuleName),
                                        [](void*) {
-                                         if (firebase::admob::IsInitialized()) {
-                                           firebase::admob::Terminate();
+                                         if (firebase::gma::IsInitialized()) {
+                                           firebase::gma::Terminate();
                                          }
                                        });
     }
@@ -206,12 +206,12 @@ void RegisterTerminateOnDefaultAppDestroy() {
 }
 
 void UnregisterTerminateOnDefaultAppDestroy() {
-  if (!AppCallback::GetEnabledByName(kAdMobModuleName)) {
+  if (!AppCallback::GetEnabledByName(kGmaModuleName)) {
     App* app = App::GetInstance();
     if (app) {
       CleanupNotifier* cleanup_notifier = CleanupNotifier::FindByOwner(app);
       assert(cleanup_notifier);
-      cleanup_notifier->UnregisterObject(const_cast<char*>(kAdMobModuleName));
+      cleanup_notifier->UnregisterObject(const_cast<char*>(kGmaModuleName));
     }
   }
 }
@@ -275,5 +275,5 @@ FutureCallbackData<AdResult>* CreateAdResultFutureCallbackData(
       future_data->future_impl.SafeAlloc<AdResult>(fn_idx, AdResult())};
 }
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

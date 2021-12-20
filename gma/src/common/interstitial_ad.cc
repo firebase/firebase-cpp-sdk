@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,25 +14,25 @@
  * limitations under the License.
  */
 
-#include "admob/src/include/firebase/admob/interstitial_ad.h"
+#include "gma/src/include/firebase/gma/interstitial_ad.h"
 
-#include "admob/src/common/admob_common.h"
-#include "admob/src/common/interstitial_ad_internal.h"
+#include "gma/src/common/gma_common.h"
+#include "gma/src/common/interstitial_ad_internal.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 const char kUninitializedError[] =
     "Initialize() must be called before this method.";
 
 InterstitialAd::InterstitialAd() {
-  FIREBASE_ASSERT(admob::IsInitialized());
+  FIREBASE_ASSERT(gma::IsInitialized());
   internal_ = internal::InterstitialAdInternal::CreateInstance(this);
 
   GetOrCreateCleanupNotifier()->RegisterObject(this, [](void* object) {
-    LogWarning("InterstitialAd must be deleted before admob::Terminate.");
+    LogWarning("InterstitialAd must be deleted before gma::Terminate.");
     InterstitialAd* interstitial_ad = reinterpret_cast<InterstitialAd*>(object);
     delete interstitial_ad->internal_;
     interstitial_ad->internal_ = nullptr;
@@ -63,8 +63,8 @@ Future<AdResult> InterstitialAd::LoadAd(const char* ad_unit_id,
                                         const AdRequest& request) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::admob::internal::kInterstitialAdFnLoadAd,
-        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        firebase::gma::internal::kInterstitialAdFnLoadAd,
+        kAdErrorUninitialized, kAdUninitializedErrorMessage,
         &internal_->future_data_, AdResult());
   }
 
@@ -74,8 +74,8 @@ Future<AdResult> InterstitialAd::LoadAd(const char* ad_unit_id,
 Future<AdResult> InterstitialAd::LoadAdLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::admob::internal::kInterstitialAdFnLoadAd,
-        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        firebase::gma::internal::kInterstitialAdFnLoadAd,
+        kAdErrorUninitialized, kAdUninitializedErrorMessage,
         &internal_->future_data_, AdResult());
   }
   return internal_->GetLoadAdLastResult();
@@ -84,8 +84,8 @@ Future<AdResult> InterstitialAd::LoadAdLastResult() const {
 Future<void> InterstitialAd::Show() {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::admob::internal::kInterstitialAdFnShow,
-        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        firebase::gma::internal::kInterstitialAdFnShow,
+        kAdErrorUninitialized, kAdUninitializedErrorMessage,
         &internal_->future_data_);
   }
   return internal_->Show();
@@ -94,8 +94,8 @@ Future<void> InterstitialAd::Show() {
 Future<void> InterstitialAd::ShowLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::admob::internal::kInterstitialAdFnShow,
-        kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+        firebase::gma::internal::kInterstitialAdFnShow,
+        kAdErrorUninitialized, kAdUninitializedErrorMessage,
         &internal_->future_data_);
   }
   return internal_->GetLastResult(internal::kInterstitialAdFnShow);
@@ -110,5 +110,5 @@ void InterstitialAd::SetPaidEventListener(PaidEventListener* listener) {
   internal_->SetPaidEventListener(listener);
 }
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-#include "admob/src/android/response_info_android.h"
+#include "gma/src/android/response_info_android.h"
 
-#include "admob/src/android/ad_result_android.h"
-#include "admob/src/android/adapter_response_info_android.h"
-#include "admob/src/android/admob_android.h"
-#include "admob/src/common/admob_common.h"
-#include "admob/src/include/firebase/admob.h"
+#include "gma/src/android/ad_result_android.h"
+#include "gma/src/android/adapter_response_info_android.h"
+#include "gma/src/android/gma_android.h"
+#include "gma/src/common/gma_common.h"
+#include "gma/src/include/firebase/gma.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 METHOD_LOOKUP_DEFINITION(response_info,
                          PROGUARD_KEEP_CLASS
@@ -42,7 +42,7 @@ ResponseInfo::ResponseInfo(const ResponseInfoInternal& response_info_internal) {
   FIREBASE_ASSERT(env);
 
   // The list of AdapterResponseInfos which contains response information
-  // for each of the adapters that attempted to fulfill the AdMob operation.
+  // for each of the adapters that attempted to fulfill the GMA operation.
   const jobject j_adapter_response_info_list = env->CallObjectMethod(
       j_response_info,
       response_info::GetMethodId(response_info::kGetAdapterResponses));
@@ -90,5 +90,5 @@ ResponseInfo::ResponseInfo(const ResponseInfoInternal& response_info_internal) {
   env->DeleteLocalRef(j_to_string);
 }
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

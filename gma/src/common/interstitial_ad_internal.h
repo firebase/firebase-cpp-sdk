@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_COMMON_INTERSTITIAL_AD_INTERNAL_H_
-#define FIREBASE_ADMOB_SRC_COMMON_INTERSTITIAL_AD_INTERNAL_H_
+#ifndef FIREBASE_GMA_SRC_COMMON_INTERSTITIAL_AD_INTERNAL_H_
+#define FIREBASE_GMA_SRC_COMMON_INTERSTITIAL_AD_INTERNAL_H_
 
-#include "admob/src/common/admob_common.h"
-#include "admob/src/common/full_screen_ad_event_listener.h"
-#include "admob/src/include/firebase/admob/interstitial_ad.h"
+#include "gma/src/common/gma_common.h"
+#include "gma/src/common/full_screen_ad_event_listener.h"
+#include "gma/src/include/firebase/gma/interstitial_ad.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/mutex.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 namespace internal {
 
 // Constants representing each InterstitialAd function that returns a Future.
@@ -64,7 +64,7 @@ class InterstitialAdInternal : public FullScreenAdEventListener {
   virtual bool is_initialized() const = 0;
 
  protected:
-  friend class firebase::admob::InterstitialAd;
+  friend class firebase::gma::InterstitialAd;
 
   // Used by CreateInstance() to create an appropriate one for the current
   // platform.
@@ -78,7 +78,7 @@ class InterstitialAdInternal : public FullScreenAdEventListener {
 };
 
 }  // namespace internal
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_COMMON_INTERSTITIAL_AD_INTERNAL_H_
+#endif  // FIREBASE_GMA_SRC_COMMON_INTERSTITIAL_AD_INTERNAL_H_

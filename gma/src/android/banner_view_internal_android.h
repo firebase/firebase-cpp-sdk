@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_ANDROID_BANNER_VIEW_INTERNAL_ANDROID_H_
-#define FIREBASE_ADMOB_SRC_ANDROID_BANNER_VIEW_INTERNAL_ANDROID_H_
+#ifndef FIREBASE_GMA_SRC_ANDROID_BANNER_VIEW_INTERNAL_ANDROID_H_
+#define FIREBASE_GMA_SRC_ANDROID_BANNER_VIEW_INTERNAL_ANDROID_H_
 
-#include "admob/src/common/banner_view_internal.h"
+#include "gma/src/common/banner_view_internal.h"
 #include "app/src/mutex.h"
 #include "app/src/util_android.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 // Used to set up the cache of BannerViewHelper class method IDs to reduce
 // time spent looking up methods by string.
@@ -46,7 +46,7 @@ METHOD_LOOKUP_DECLARATION(banner_view_helper, BANNERVIEWHELPER_METHODS);
 
 #define BANNERVIEWHELPER_ADVIEWLISTENER_METHODS(X) \
   X(Constructor, "<init>",                         \
-    "(Lcom/google/firebase/admob/internal/cpp/BannerViewHelper;)V")
+    "(Lcom/google/firebase/gma/internal/cpp/BannerViewHelper;)V")
 
 METHOD_LOOKUP_DECLARATION(banner_view_helper_ad_view_listener,
                           BANNERVIEWHELPER_ADVIEWLISTENER_METHODS);
@@ -106,7 +106,7 @@ class BannerViewInternalAndroid : public BannerViewInternal {
 };
 
 }  // namespace internal
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_ANDROID_BANNER_VIEW_INTERNAL_ANDROID_H_
+#endif  // FIREBASE_GMA_SRC_ANDROID_BANNER_VIEW_INTERNAL_ANDROID_H_

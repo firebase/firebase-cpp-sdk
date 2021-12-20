@@ -14,27 +14,27 @@
  * limitations under the License.
  */
 
-#include "admob/src/common/rewarded_ad_internal.h"
+#include "gma/src/common/rewarded_ad_internal.h"
 
-#include "admob/src/include/firebase/admob/rewarded_ad.h"
+#include "gma/src/include/firebase/gma/rewarded_ad.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 
 #if FIREBASE_PLATFORM_ANDROID
-#include "admob/src/android/rewarded_ad_internal_android.h"
+#include "gma/src/android/rewarded_ad_internal_android.h"
 #elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
-#include "admob/src/ios/rewarded_ad_internal_ios.h"
+#include "gma/src/ios/rewarded_ad_internal_ios.h"
 #else
-#include "admob/src/stub/rewarded_ad_internal_stub.h"
+#include "gma/src/stub/rewarded_ad_internal_stub.h"
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
 
 #include <string>
 
 namespace firebase {
-namespace admob {
+namespace gma {
 namespace internal {
 
 RewardedAdInternal::RewardedAdInternal(RewardedAd* base)
@@ -78,5 +78,5 @@ void RewardedAdInternal::SetServerSideVerificationOptions(
 }
 
 }  // namespace internal
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

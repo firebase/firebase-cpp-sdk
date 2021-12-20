@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-#include "admob/src/ios/response_info_ios.h"
+#include "gma/src/ios/response_info_ios.h"
 
 #include <string>
 #include <vector>
 
-#include "admob/src/include/firebase/admob.h"
-#include "admob/src/include/firebase/admob/types.h"
-#include "admob/src/ios/adapter_response_info_ios.h"
+#include "gma/src/include/firebase/gma.h"
+#include "gma/src/include/firebase/gma/types.h"
+#include "gma/src/ios/adapter_response_info_ios.h"
 
-#include "admob/src/ios/ad_result_ios.h"
+#include "gma/src/ios/ad_result_ios.h"
 #include "app/src/mutex.h"
 #include "app/src/util_ios.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 ResponseInfo::ResponseInfo() {
   to_string_ = "This ResponseInfo has not been initialized.";
@@ -67,5 +67,5 @@ ResponseInfo::ResponseInfo(const ResponseInfoInternal& response_info_internal) {
   to_string_ = util::NSStringToString(to_string);
 }
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package com.google.firebase.admob.internal.cpp;
+package com.google.firebase.gma.internal.cpp;
 
 /**
- * Helper class containing constants that are shared across the various AdMob ad formats.
+ * Helper class containing constants that are shared across the various GMA ad formats.
  */
 public final class ConstantsHelper {
   /**
-   * Error codes used in completing futures. These match the AdMobError enumeration in the C++ API.
+   * Error codes used in completing futures. These match the AdError enumeration in the C++ API.
    */
   public static final int CALLBACK_ERROR_NONE = 0;
 
@@ -44,7 +44,7 @@ public final class ConstantsHelper {
   public static final int CALLBACK_ERROR_UNKNOWN = 9;
 
   /**
-   * Error messages used for completing futures. These match the error codes in the AdMobError
+   * Error messages used for completing futures. These match the error codes in the AdError
    * enumeration in the C++ API.
    */
   public static final String CALLBACK_ERROR_MESSAGE_NONE = "";

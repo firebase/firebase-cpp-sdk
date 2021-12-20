@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-#include "admob/src/android/adapter_response_info_android.h"
+#include "gma/src/android/adapter_response_info_android.h"
 
 #include <string>
 
-#include "admob/src/android/ad_result_android.h"
-#include "admob/src/android/admob_android.h"
-#include "admob/src/common/admob_common.h"
-#include "admob/src/include/firebase/admob.h"
+#include "gma/src/android/ad_result_android.h"
+#include "gma/src/android/gma_android.h"
+#include "gma/src/common/gma_common.h"
+#include "gma/src/include/firebase/gma.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 METHOD_LOOKUP_DEFINITION(adapter_response_info,
                          PROGUARD_KEEP_CLASS
@@ -37,7 +37,7 @@ AdapterResponseInfo::AdapterResponseInfo(
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(internal.j_adapter_response_info);
 
-  // Parse the fields of the AdMob Android SDK's AdapterResponseInfo using the
+  // Parse the fields of the GMA Android SDK's AdapterResponseInfo using the
   // reference in the internal structure.
   const jobject j_adapter_response_info =
       env->NewLocalRef(internal.j_adapter_response_info);
@@ -76,5 +76,5 @@ AdapterResponseInfo::AdapterResponseInfo(
   env->DeleteLocalRef(j_adapter_response_info);
 }
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

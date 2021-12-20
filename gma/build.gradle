@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -65,15 +65,15 @@ android {
 
     externalNativeBuild {
       cmake {
-        targets 'firebase_admob'
+        targets 'firebase_gma'
         // Args are: Re-use app library prebuilt by app gradle project.
         //           Don't configure all the cmake subprojects.
         //           Only include needed project.
         arguments '-DFIREBASE_CPP_USE_PRIOR_GRADLE_BUILD=ON',
                 '-DFIREBASE_INCLUDE_LIBRARY_DEFAULT=OFF',
-                '-DFIREBASE_INCLUDE_ADMOB=ON',
-		"-DFIREBASE_ANDROID_STL=${firebaseAndroidStl}"
-	}
+                '-DFIREBASE_INCLUDE_GMA=ON',
+		            "-DFIREBASE_ANDROID_STL=${firebaseAndroidStl}"
+	    }
     }
   }
 
@@ -89,6 +89,6 @@ apply from: "$rootDir/android_build_files/android_abis.gradle"
 apply from: "$rootDir/android_build_files/extract_and_dex.gradle"
 apply from: "$rootDir/android_build_files/generate_proguard.gradle"
 project.afterEvaluate {
-  generateProguardFile('admob')
-  setupDexDependencies(':admob:admob_resources')
+  generateProguardFile('gma')
+  setupDexDependencies(':gma:gma_resources')
 }

@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_COMMON_AD_RESULT_INTERNAL_H_
-#define FIREBASE_ADMOB_SRC_COMMON_AD_RESULT_INTERNAL_H_
+#ifndef FIREBASE_GMA_SRC_COMMON_AD_RESULT_INTERNAL_H_
+#define FIREBASE_GMA_SRC_COMMON_AD_RESULT_INTERNAL_H_
 
 #include <string>
 
-#include "admob/src/common/admob_common.h"
-#include "admob/src/include/firebase/admob/types.h"
+#include "gma/src/common/gma_common.h"
+#include "gma/src/include/firebase/gma/types.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 #if FIREBASE_PLATFORM_ANDROID
 typedef jobject NativeSdkAdError;
@@ -49,7 +49,7 @@ struct AdResultInternal {
   // Default constructor.
   AdResultInternal() {
     ad_result_type = kAdResultInternalAdError;
-    code = kAdMobErrorNone;
+    code = kAdErrorNone;
     native_ad_error = nullptr;
   }
 
@@ -60,7 +60,7 @@ struct AdResultInternal {
   bool is_successful;
 
   // An error code.
-  AdMobError code;
+  AdError code;
 
   // A cached value of com.google.android.gms.ads.AdError.domain.
   std::string domain;
@@ -79,7 +79,7 @@ struct AdResultInternal {
   Mutex mutex;
 };
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_COMMON_AD_RESULT_INTERNAL_H_
+#endif  // FIREBASE_GMA_SRC_COMMON_AD_RESULT_INTERNAL_H_

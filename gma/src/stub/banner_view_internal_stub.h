@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_STUB_BANNER_VIEW_INTERNAL_STUB_H_
-#define FIREBASE_ADMOB_SRC_STUB_BANNER_VIEW_INTERNAL_STUB_H_
+#ifndef FIREBASE_GMA_SRC_STUB_BANNER_VIEW_INTERNAL_STUB_H_
+#define FIREBASE_GMA_SRC_STUB_BANNER_VIEW_INTERNAL_STUB_H_
 
-#include "admob/src/common/banner_view_internal.h"
+#include "gma/src/common/banner_view_internal.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 namespace internal {
 
-/// Stub version of BannerViewInternal, for use on desktop platforms. AdMob is
+/// Stub version of BannerViewInternal, for use on desktop platforms. GMA is
 /// forbidden on desktop, so this version creates and immediately completes the
 /// Future for each method.
 class BannerViewInternalStub : public BannerViewInternal {
@@ -76,17 +76,17 @@ class BannerViewInternalStub : public BannerViewInternal {
 
  private:
   Future<void> CreateAndCompleteFutureStub(BannerViewFn fn) {
-    return CreateAndCompleteFuture(fn, kAdMobErrorNone, nullptr, &future_data_);
+    return CreateAndCompleteFuture(fn, kAdErrorNone, nullptr, &future_data_);
   }
 
   Future<AdResult> CreateAndCompleteAdResultFutureStub(BannerViewFn fn) {
-    return CreateAndCompleteFutureWithResult(fn, kAdMobErrorNone, nullptr,
+    return CreateAndCompleteFutureWithResult(fn, kAdErrorNone, nullptr,
                                              &future_data_, AdResult());
   }
 };
 
 }  // namespace internal
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_STUB_BANNER_VIEW_INTERNAL_STUB_H_
+#endif  // FIREBASE_GMA_SRC_STUB_BANNER_VIEW_INTERNAL_STUB_H_

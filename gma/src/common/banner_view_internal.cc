@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,25 +14,25 @@
  * limitations under the License.
  */
 
-#include "admob/src/common/banner_view_internal.h"
+#include "gma/src/common/banner_view_internal.h"
 
-#include "admob/src/include/firebase/admob/banner_view.h"
+#include "gma/src/include/firebase/gma/banner_view.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 
 #if FIREBASE_PLATFORM_ANDROID
-#include "admob/src/android/banner_view_internal_android.h"
+#include "gma/src/android/banner_view_internal_android.h"
 #elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
-#include "admob/src/ios/banner_view_internal_ios.h"
+#include "gma/src/ios/banner_view_internal_ios.h"
 #else
-#include "admob/src/stub/banner_view_internal_stub.h"
+#include "gma/src/stub/banner_view_internal_stub.h"
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
 
 namespace firebase {
-namespace admob {
+namespace gma {
 namespace internal {
 
 BannerViewInternal::BannerViewInternal(BannerView* base)
@@ -129,5 +129,5 @@ Future<AdResult> BannerViewInternal::GetLoadAdLastResult() {
 }
 
 }  // namespace internal
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

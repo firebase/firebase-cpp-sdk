@@ -17,17 +17,17 @@
 #import <Foundation/Foundation.h>
 #import <GoogleMobileAds/GoogleMobileAds.h>
 
-#include "admob/src/include/firebase/admob/types.h"
+#include "gma/src/include/firebase/gma/types.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
-/// Returns a GADAdSize from an admob::AdSize.
+/// Returns a GADAdSize from an gma::AdSize.
 GADAdSize GADSizeFromCppAdSize(const AdSize& ad_size);
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
 NS_ASSUME_NONNULL_END

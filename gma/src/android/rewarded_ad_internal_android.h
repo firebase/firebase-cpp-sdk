@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_ANDROID_REWARDED_AD_INTERNAL_ANDROID_H_
-#define FIREBASE_ADMOB_SRC_ANDROID_REWARDED_AD_INTERNAL_ANDROID_H_
+#ifndef FIREBASE_GMA_SRC_ANDROID_REWARDED_AD_INTERNAL_ANDROID_H_
+#define FIREBASE_GMA_SRC_ANDROID_REWARDED_AD_INTERNAL_ANDROID_H_
 
-#include "admob/src/common/rewarded_ad_internal.h"
+#include "gma/src/common/rewarded_ad_internal.h"
 #include "app/src/mutex.h"
 #include "app/src/util_android.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 // Used to set up the cache of RewardedAdHelper class method IDs to reduce
 // time spent looking up methods by string.
@@ -64,7 +64,7 @@ class RewardedAdInternalAndroid : public RewardedAdInternal {
 };
 
 }  // namespace internal
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_ANDROID_REWARDED_AD_INTERNAL_ANDROID_H_
+#endif  // FIREBASE_GMA_SRC_ANDROID_REWARDED_AD_INTERNAL_ANDROID_H_

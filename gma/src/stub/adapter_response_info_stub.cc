@@ -16,11 +16,11 @@
 
 #include <string>
 
-#include "admob/src/include/firebase/admob.h"
-#include "admob/src/include/firebase/admob/types.h"
+#include "gma/src/include/firebase/gma.h"
+#include "gma/src/include/firebase/gma/types.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 struct AdapterResponseInfoInternal {
   int stub;
@@ -31,5 +31,5 @@ const char* const AdResult::kUndefinedDomain = "undefined";
 AdapterResponseInfo::AdapterResponseInfo(
     const AdapterResponseInfoInternal& internal) {}
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

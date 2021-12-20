@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "admob/src/android/rewarded_ad_internal_android.h"
+#include "gma/src/android/rewarded_ad_internal_android.h"
 
 #include <assert.h>
 #include <jni.h>
@@ -22,21 +22,21 @@
 #include <cstdarg>
 #include <cstddef>
 
-#include "admob/admob_resources.h"
-#include "admob/src/android/ad_request_converter.h"
-#include "admob/src/android/admob_android.h"
-#include "admob/src/common/admob_common.h"
-#include "admob/src/include/firebase/admob.h"
-#include "admob/src/include/firebase/admob/types.h"
+#include "gma/gma_resources.h"
+#include "gma/src/android/ad_request_converter.h"
+#include "gma/src/android/gma_android.h"
+#include "gma/src/common/gma_common.h"
+#include "gma/src/include/firebase/gma.h"
+#include "gma/src/include/firebase/gma/types.h"
 #include "app/src/assert.h"
 #include "app/src/util_android.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 METHOD_LOOKUP_DEFINITION(
     rewarded_ad_helper,
-    "com/google/firebase/admob/internal/cpp/RewardedAdHelper",
+    "com/google/firebase/gma/internal/cpp/RewardedAdHelper",
     REWARDEDADHELPER_METHODS);
 
 namespace internal {
@@ -44,7 +44,7 @@ namespace internal {
 RewardedAdInternalAndroid::RewardedAdInternalAndroid(RewardedAd* base)
     : RewardedAdInternal(base), helper_(nullptr), initialized_(false) {
   firebase::MutexLock lock(mutex_);
-  JNIEnv* env = ::firebase::admob::GetJNI();
+  JNIEnv* env = ::firebase::gma::GetJNI();
   jobject helper_ref = env->NewObject(
       rewarded_ad_helper::GetClass(),
       rewarded_ad_helper::GetMethodId(rewarded_ad_helper::kConstructor),
@@ -59,7 +59,7 @@ RewardedAdInternalAndroid::RewardedAdInternalAndroid(RewardedAd* base)
 
 RewardedAdInternalAndroid::~RewardedAdInternalAndroid() {
   firebase::MutexLock lock(mutex_);
-  JNIEnv* env = ::firebase::admob::GetJNI();
+  JNIEnv* env = ::firebase::gma::GetJNI();
   // Since it's currently not possible to destroy the rewarded ad, just
   // disconnect from it so the listener doesn't initiate callbacks with stale
   // data.
@@ -80,7 +80,7 @@ Future<void> RewardedAdInternalAndroid::Initialize(AdParent parent) {
     const SafeFutureHandle<void> future_handle =
         future_data_.future_impl.SafeAlloc<void>(kRewardedAdFnInitialize);
     Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
-    CompleteFuture(kAdMobErrorAlreadyInitialized,
+    CompleteFuture(kAdErrorAlreadyInitialized,
                    kAdAlreadyInitializedErrorMessage, future_handle,
                    &future_data_);
     return future;
@@ -92,7 +92,7 @@ Future<void> RewardedAdInternalAndroid::Initialize(AdParent parent) {
   Future<void> future =
       MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 
-  JNIEnv* env = ::firebase::admob::GetJNI();
+  JNIEnv* env = ::firebase::gma::GetJNI();
   FIREBASE_ASSERT(env);
   env->CallVoidMethod(
       helper_, rewarded_ad_helper::GetMethodId(rewarded_ad_helper::kInitialize),
@@ -110,16 +110,16 @@ Future<AdResult> RewardedAdInternalAndroid::LoadAd(const char* ad_unit_id,
                                                      AdResult());
     Future<AdResult> future =
         MakeFuture(&future_data_.future_impl, future_handle);
-    CompleteFuture(kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+    CompleteFuture(kAdErrorUninitialized, kAdUninitializedErrorMessage,
                    future_handle, &future_data_, AdResult());
     return future;
   }
 
-  admob::AdMobError error = kAdMobErrorNone;
+  gma::AdError error = kAdErrorNone;
   jobject j_request = GetJavaAdRequestFromCPPAdRequest(request, &error);
   if (j_request == nullptr) {
-    if (error == kAdMobErrorNone) {
-      error = kAdMobErrorInternalError;
+    if (error == kAdErrorNone) {
+      error = kAdErrorInternalError;
     }
     return CreateAndCompleteFutureWithResult(
         kRewardedAdFnLoadAd, error, kAdCouldNotParseAdRequestErrorMessage,
@@ -150,7 +150,7 @@ Future<void> RewardedAdInternalAndroid::Show(
     const SafeFutureHandle<void> future_handle =
         future_data_.future_impl.SafeAlloc<void>(kRewardedAdFnShow);
     Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
-    CompleteFuture(kAdMobErrorUninitialized, kAdUninitializedErrorMessage,
+    CompleteFuture(kAdErrorUninitialized, kAdUninitializedErrorMessage,
                    future_handle, &future_data_);
     return future;
   }
@@ -180,5 +180,5 @@ Future<void> RewardedAdInternalAndroid::Show(
 }
 
 }  // namespace internal
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-#include "admob/src/ios/FADBannerView.h"
+#include "gma/src/ios/FADBannerView.h"
 
-#import "admob/src/ios/admob_ios.h"
-#import "admob/src/ios/FADAdSize.h"
+#import "gma/src/ios/gma_ios.h"
+#import "gma/src/ios/FADAdSize.h"
 
-namespace admob = firebase::admob;
+namespace gma = firebase::gma;
 
 @interface FADBannerView () <GADBannerViewDelegate> {
   /// The publisher-provided view that is the parent view of the banner view.
@@ -41,7 +41,7 @@ namespace admob = firebase::admob;
   GADAdSize _adSize;
 
   /// The BannerViewInternalIOS object.
-  admob::internal::BannerViewInternalIOS *_cppBannerView;
+  gma::internal::BannerViewInternalIOS *_cppBannerView;
 
   /// Indicates if the ad loaded.
   BOOL _adLoaded;
@@ -51,14 +51,14 @@ namespace admob = firebase::admob;
 
 @implementation FADBannerView
 
-firebase::admob::BannerView::Position _position;
+firebase::gma::BannerView::Position _position;
 
 #pragma mark - Initialization
 
 - (instancetype)initWithView:(UIView *)view
                     adUnitID:(NSString *)adUnitID
-                      adSize:(firebase::admob::AdSize)adSize
-          internalBannerView:(firebase::admob::internal::BannerViewInternalIOS *)cppBannerView {
+                      adSize:(firebase::gma::AdSize)adSize
+          internalBannerView:(firebase::gma::internal::BannerViewInternalIOS *)cppBannerView {
   GADAdSize gadsize = GADSizeFromCppAdSize(adSize);
   CGRect frame = CGRectMake(0, 0, gadsize.size.width, gadsize.size.height);
   self = [super initWithFrame:frame];
@@ -83,7 +83,7 @@ firebase::admob::BannerView::Position _position;
     __strong typeof(self) strongSelf = weakSelf;
     if (strongSelf) {
       strongSelf->_cppBannerView->NotifyListenerOfPaidEvent(
-          firebase::admob::ConvertGADAdValueToCppAdValue(adValue));
+          firebase::gma::ConvertGADAdValueToCppAdValue(adValue));
     }
   };
 
@@ -112,15 +112,15 @@ firebase::admob::BannerView::Position _position;
   _bannerView.rootViewController = strongView.window.rootViewController;
   [strongView addSubview:self];
   self.translatesAutoresizingMaskIntoConstraints = NO;
-  [self updateBannerViewLayoutConstraintsWithPosition:(admob::BannerView::kPositionTopLeft)
+  [self updateBannerViewLayoutConstraintsWithPosition:(gma::BannerView::kPositionTopLeft)
                                           xCoordinate:0
                                           yCoordinate:0];
 }
 
 #pragma mark - Property Accessor Methods
 
-- (admob::BoundingBox)boundingBox {
-  admob::BoundingBox box;
+- (gma::BoundingBox)boundingBox {
+  gma::BoundingBox box;
   if (!_bannerView) {
     return box;
   }
@@ -149,7 +149,7 @@ firebase::admob::BannerView::Position _position;
 
 - (void)show {
   self.hidden = NO;
-  admob::BoundingBox bounding_box = self.boundingBox;
+  gma::BoundingBox bounding_box = self.boundingBox;
   _cppBannerView->set_bounding_box(bounding_box);
   _cppBannerView->NotifyListenerOfBoundingBoxChange(bounding_box);
 }
@@ -164,7 +164,7 @@ firebase::admob::BannerView::Position _position;
   // The moveBannerViewToXCoordinate:yCoordinate: method gets the x-coordinate and y-coordinate in
   // pixels. Need to convert the pixels to points before updating the banner view's layout
   // constraints.
-  _position = firebase::admob::AdView::kPositionUndefined;
+  _position = firebase::gma::AdView::kPositionUndefined;
   CGFloat scale = [UIScreen mainScreen].scale;
   CGFloat xPoints = x / scale;
   CGFloat yPoints = y / scale;
@@ -173,7 +173,7 @@ firebase::admob::BannerView::Position _position;
                                           yCoordinate:yPoints];
 }
 
-- (void)moveBannerViewToPosition:(admob::BannerView::Position)position {
+- (void)moveBannerViewToPosition:(gma::BannerView::Position)position {
   [self updateBannerViewLayoutConstraintsWithPosition:position
                                           xCoordinate:0
                                           yCoordinate:0];
@@ -182,7 +182,7 @@ firebase::admob::BannerView::Position _position;
 #pragma mark - Private Methods
 
 /// Updates the layout constraints for the banner view.
-- (void)updateBannerViewLayoutConstraintsWithPosition:(admob::BannerView::Position)position
+- (void)updateBannerViewLayoutConstraintsWithPosition:(gma::BannerView::Position)position
                                           xCoordinate:(CGFloat)x
                                           yCoordinate:(CGFloat)y {
   NSLayoutAttribute verticalLayoutAttribute = NSLayoutAttributeNotAnAttribute;
@@ -190,28 +190,28 @@ firebase::admob::BannerView::Position _position;
 
   _position = position;
   switch (position) {
-    case admob::BannerView::kPositionTop:
+    case gma::BannerView::kPositionTop:
       verticalLayoutAttribute = NSLayoutAttributeTop;
       horizontalLayoutAttribute = NSLayoutAttributeCenterX;
       break;
-    case admob::BannerView::kPositionBottom:
+    case gma::BannerView::kPositionBottom:
       verticalLayoutAttribute = NSLayoutAttributeBottom;
       horizontalLayoutAttribute = NSLayoutAttributeCenterX;
       break;
-    case admob::BannerView::kPositionUndefined:
-    case admob::BannerView::kPositionTopLeft:
+    case gma::BannerView::kPositionUndefined:
+    case gma::BannerView::kPositionTopLeft:
       verticalLayoutAttribute = NSLayoutAttributeTop;
       horizontalLayoutAttribute = NSLayoutAttributeLeft;
       break;
-    case admob::BannerView::kPositionTopRight:
+    case gma::BannerView::kPositionTopRight:
       verticalLayoutAttribute = NSLayoutAttributeTop;
       horizontalLayoutAttribute = NSLayoutAttributeRight;
       break;
-    case admob::BannerView::kPositionBottomLeft:
+    case gma::BannerView::kPositionBottomLeft:
       verticalLayoutAttribute = NSLayoutAttributeBottom;
       horizontalLayoutAttribute = NSLayoutAttributeLeft;
       break;
-    case admob::BannerView::kPositionBottomRight:
+    case gma::BannerView::kPositionBottomRight:
       verticalLayoutAttribute = NSLayoutAttributeBottom;
       horizontalLayoutAttribute = NSLayoutAttributeRight;
       break;
@@ -264,7 +264,7 @@ firebase::admob::BannerView::Position _position;
 
 - (void)layoutSubviews {
   [super layoutSubviews];
-  admob::BoundingBox bounding_box = self.boundingBox;
+  gma::BoundingBox bounding_box = self.boundingBox;
   _cppBannerView->set_bounding_box(bounding_box);
   _cppBannerView->NotifyListenerOfBoundingBoxChange(bounding_box);
 }
@@ -274,7 +274,7 @@ firebase::admob::BannerView::Position _position;
 - (void)bannerViewDidReceiveAd:(nonnull GADBannerView *)bannerView {
   _adLoaded = YES;
   _cppBannerView->BannerViewDidReceiveAd();
-  admob::BoundingBox bounding_box = self.boundingBox;
+  gma::BoundingBox bounding_box = self.boundingBox;
 }
 - (void)bannerView:(nonnull GADBannerView *)bannerView didFailToReceiveAdWithError:(nonnull NSError *)error {
   _cppBannerView->BannerViewDidFailToReceiveAdWithError(error);
@@ -292,14 +292,14 @@ firebase::admob::BannerView::Position _position;
 // See https://www.googblogs.com/google-mobile-ads-sdk-a-note-on-ad-click-events/
 // and https://groups.google.com/g/google-admob-ads-sdk/c/lzdt5szxSVU
 - (void)bannerViewWillPresentScreen:(nonnull GADBannerView *)bannerView {
-  admob::BoundingBox bounding_box = self.boundingBox;
+  gma::BoundingBox bounding_box = self.boundingBox;
   _cppBannerView->set_bounding_box(bounding_box);
   _cppBannerView->NotifyListenerOfBoundingBoxChange(bounding_box);
   _cppBannerView->NotifyListenerAdOpened();
 }
 
 - (void)bannerViewDidDismissScreen:(nonnull GADBannerView *)bannerView {
-  admob::BoundingBox bounding_box = self.boundingBox;
+  gma::BoundingBox bounding_box = self.boundingBox;
   _cppBannerView->set_bounding_box(bounding_box);
   _cppBannerView->NotifyListenerOfBoundingBoxChange(bounding_box);
   _cppBannerView->NotifyListenerAdClosed();

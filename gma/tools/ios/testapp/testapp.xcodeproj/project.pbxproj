@@ -19,13 +19,13 @@
 		4AE90DF61DBEC0DC00865A75 /* log.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90DEF1DBEC0DC00865A75 /* log.cc */; };
 		4AE90DF71DBEC0DC00865A75 /* reference_counted_future_impl.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90DF21DBEC0DC00865A75 /* reference_counted_future_impl.cc */; };
 		4AE90DF81DBEC0DC00865A75 /* util_ios.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90DF51DBEC0DC00865A75 /* util_ios.mm */; };
-		4AE90E0C1DBEC0F300865A75 /* admob_ios.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90DF91DBEC0F300865A75 /* admob_ios.mm */; };
+		4AE90E0C1DBEC0F300865A75 /* gma_ios.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90DF91DBEC0F300865A75 /* gma_ios.mm */; };
 		4AE90E0D1DBEC0F300865A75 /* banner_view_internal_ios.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90DFB1DBEC0F300865A75 /* banner_view_internal_ios.mm */; };
 		4AE90E0E1DBEC0F300865A75 /* FADBannerView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90DFD1DBEC0F300865A75 /* FADBannerView.mm */; };
 		4AE90E0F1DBEC0F300865A75 /* FADInterstitialDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90DFF1DBEC0F300865A75 /* FADInterstitialDelegate.mm */; };
 		4AE90E111DBEC0F300865A75 /* FADRequest.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E031DBEC0F300865A75 /* FADRequest.mm */; };
 		4AE90E131DBEC0F300865A75 /* interstitial_ad_internal_ios.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E071DBEC0F300865A75 /* interstitial_ad_internal_ios.mm */; };
-		4AE90E241DBEC10700865A75 /* admob_common.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E161DBEC10700865A75 /* admob_common.cc */; };
+		4AE90E241DBEC10700865A75 /* gma_common.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E161DBEC10700865A75 /* gma_common.cc */; };
 		4AE90E251DBEC10700865A75 /* banner_view_internal.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E181DBEC10700865A75 /* banner_view_internal.cc */; };
 		4AE90E261DBEC10700865A75 /* banner_view.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E1A1DBEC10700865A75 /* banner_view.cc */; };
 		4AE90E271DBEC10700865A75 /* interstitial_ad_internal.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4AE90E1B1DBEC10700865A75 /* interstitial_ad_internal.cc */; };
@@ -53,7 +53,7 @@
 		4AE90DF31DBEC0DC00865A75 /* reference_counted_future_impl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = reference_counted_future_impl.h; path = ../../../../../../app/client/cpp/src/reference_counted_future_impl.h; sourceTree = "<group>"; };
 		4AE90DF41DBEC0DC00865A75 /* util_ios.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = util_ios.h; path = ../../../../../../app/client/cpp/src/util_ios.h; sourceTree = "<group>"; };
 		4AE90DF51DBEC0DC00865A75 /* util_ios.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = util_ios.mm; path = ../../../../../../app/client/cpp/src/util_ios.mm; sourceTree = "<group>"; };
-		4AE90DF91DBEC0F300865A75 /* admob_ios.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = admob_ios.mm; path = ../../../src/ios/admob_ios.mm; sourceTree = "<group>"; };
+		4AE90DF91DBEC0F300865A75 /* gma_ios.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = gma_ios.mm; path = ../../../src/ios/gma_ios.mm; sourceTree = "<group>"; };
 		4AE90DFA1DBEC0F300865A75 /* banner_view_internal_ios.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = banner_view_internal_ios.h; path = ../../../src/ios/banner_view_internal_ios.h; sourceTree = "<group>"; };
 		4AE90DFB1DBEC0F300865A75 /* banner_view_internal_ios.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = banner_view_internal_ios.mm; path = ../../../src/ios/banner_view_internal_ios.mm; sourceTree = "<group>"; };
 		4AE90DFC1DBEC0F300865A75 /* FADBannerView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FADBannerView.h; path = ../../../src/ios/FADBannerView.h; sourceTree = "<group>"; };
@@ -64,8 +64,8 @@
 		4AE90E031DBEC0F300865A75 /* FADRequest.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = FADRequest.mm; path = ../../../src/ios/FADRequest.mm; sourceTree = "<group>"; };
 		4AE90E061DBEC0F300865A75 /* interstitial_ad_internal_ios.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = interstitial_ad_internal_ios.h; path = ../../../src/ios/interstitial_ad_internal_ios.h; sourceTree = "<group>"; };
 		4AE90E071DBEC0F300865A75 /* interstitial_ad_internal_ios.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = interstitial_ad_internal_ios.mm; path = ../../../src/ios/interstitial_ad_internal_ios.mm; sourceTree = "<group>"; };
-		4AE90E161DBEC10700865A75 /* admob_common.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = admob_common.cc; path = ../../../src/common/admob_common.cc; sourceTree = "<group>"; };
-		4AE90E171DBEC10700865A75 /* admob_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = admob_common.h; path = ../../../src/common/admob_common.h; sourceTree = "<group>"; };
+		4AE90E161DBEC10700865A75 /* gma_common.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = gma_common.cc; path = ../../../src/common/gma_common.cc; sourceTree = "<group>"; };
+		4AE90E171DBEC10700865A75 /* gma_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gma_common.h; path = ../../../src/common/gma_common.h; sourceTree = "<group>"; };
 		4AE90E181DBEC10700865A75 /* banner_view_internal.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = banner_view_internal.cc; path = ../../../src/common/banner_view_internal.cc; sourceTree = "<group>"; };
 		4AE90E191DBEC10700865A75 /* banner_view_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = banner_view_internal.h; path = ../../../src/common/banner_view_internal.h; sourceTree = "<group>"; };
 		4AE90E1A1DBEC10700865A75 /* banner_view.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = banner_view.cc; path = ../../../src/common/banner_view.cc; sourceTree = "<group>"; };
@@ -91,8 +91,8 @@
 		4A1DEF141D0B27FC0002D14A /* common */ = {
 			isa = PBXGroup;
 			children = (
-				4AE90E161DBEC10700865A75 /* admob_common.cc */,
-				4AE90E171DBEC10700865A75 /* admob_common.h */,
+				4AE90E161DBEC10700865A75 /* gma_common.cc */,
+				4AE90E171DBEC10700865A75 /* gma_common.h */,
 				4AE90E181DBEC10700865A75 /* banner_view_internal.cc */,
 				4AE90E191DBEC10700865A75 /* banner_view_internal.h */,
 				4AE90E1A1DBEC10700865A75 /* banner_view.cc */,
@@ -106,7 +106,7 @@
 		4A1DEF151D0B28030002D14A /* ios */ = {
 			isa = PBXGroup;
 			children = (
-				4AE90DF91DBEC0F300865A75 /* admob_ios.mm */,
+				4AE90DF91DBEC0F300865A75 /* gma_ios.mm */,
 				4AE90DFA1DBEC0F300865A75 /* banner_view_internal_ios.h */,
 				4AE90DFB1DBEC0F300865A75 /* banner_view_internal_ios.mm */,
 				4AE90DFC1DBEC0F300865A75 /* FADBannerView.h */,
@@ -134,7 +134,7 @@
 			isa = PBXGroup;
 			children = (
 				4AA542A41CC822BC00973957 /* firebase */,
-				4AA5427F1CC6B70F00973957 /* firebase_admob */,
+				4AA5427F1CC6B70F00973957 /* firebase_gma */,
 				4AA541B11CC6A3FE00973957 /* testapp */,
 				4AA541C91CC6A5F500973957 /* Frameworks */,
 				4AA541B01CC6A3FE00973957 /* Products */,
@@ -183,14 +183,14 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		4AA5427F1CC6B70F00973957 /* firebase_admob */ = {
+		4AA5427F1CC6B70F00973957 /* firebase_gma */ = {
 			isa = PBXGroup;
 			children = (
 				4A1DEF151D0B28030002D14A /* ios */,
 				4A1DEF141D0B27FC0002D14A /* common */,
 				4A242D501D45D5B500A98845 /* stub */,
 			);
-			name = firebase_admob;
+			name = firebase_gma;
 			sourceTree = "<group>";
 		};
 		4AA542A41CC822BC00973957 /* firebase */ = {
@@ -285,7 +285,7 @@
 				4AE90DF81DBEC0DC00865A75 /* util_ios.mm in Sources */,
 				4AD13EA51CC9763C00AB0ACF /* AppDelegate.m in Sources */,
 				4AE90E261DBEC10700865A75 /* banner_view.cc in Sources */,
-				4AE90E241DBEC10700865A75 /* admob_common.cc in Sources */,
+				4AE90E241DBEC10700865A75 /* gma_common.cc in Sources */,
 				4AE90E271DBEC10700865A75 /* interstitial_ad_internal.cc in Sources */,
 				4AE90E0D1DBEC0F300865A75 /* banner_view_internal_ios.mm in Sources */,
 				4AD13EAC1CC9763C00AB0ACF /* ViewController.mm in Sources */,
@@ -296,7 +296,7 @@
 				4AE90E131DBEC0F300865A75 /* interstitial_ad_internal_ios.mm in Sources */,
 				4AE90E121DBEC0F300865A75 /* FADRewardBasedVideoAdDelegate.mm in Sources */,
 				4AE90E251DBEC10700865A75 /* banner_view_internal.cc in Sources */,
-				4AE90E0C1DBEC0F300865A75 /* admob_ios.mm in Sources */,
+				4AE90E0C1DBEC0F300865A75 /* gma_ios.mm in Sources */,
 				4AD13EAB1CC9763C00AB0ACF /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -371,7 +371,7 @@
 				);
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)//../../../../../../../ $(SRCROOT)/../../../../../../../firebase/admob/client/cpp/src $(SRCROOT)//../../../../../../../firebase/admob/client/cpp/src/include $(SRCROOT)/../../../../../../../firebase/app/client/cpp/src $(SRCROOT)/../../../../../../../firebase/app/client/cpp/src/include $(SRCROOT)/../../../../../../../firebase/app/client/cpp/src/include/firebase";
+				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)//../../../../../../../ $(SRCROOT)/../../../../../../../firebase/gma/client/cpp/src $(SRCROOT)//../../../../../../../firebase/gma/client/cpp/src/include $(SRCROOT)/../../../../../../../firebase/app/client/cpp/src $(SRCROOT)/../../../../../../../firebase/app/client/cpp/src/include $(SRCROOT)/../../../../../../../firebase/app/client/cpp/src/include/firebase";
 			};
 			name = Debug;
 		};
@@ -416,7 +416,7 @@
 				);
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)//../../../../../../../ $(SRCROOT)/../../../../../../../firebase/admob/client/cpp/src $(SRCROOT)//../../../../../../../firebase/admob/client/cpp/src/include $(SRCROOT)/../../../../../../../firebase/app/client/cpp/src $(SRCROOT)/../../../../../../../firebase/app/client/cpp/src/include $(SRCROOT)/../../../../../../../firebase/app/client/cpp/src/include/firebase";
+				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)//../../../../../../../ $(SRCROOT)/../../../../../../../firebase/gma/client/cpp/src $(SRCROOT)//../../../../../../../firebase/gma/client/cpp/src/include $(SRCROOT)/../../../../../../../firebase/app/client/cpp/src $(SRCROOT)/../../../../../../../firebase/app/client/cpp/src/include $(SRCROOT)/../../../../../../../firebase/app/client/cpp/src/include/firebase";
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -430,7 +430,7 @@
 				INFOPLIST_FILE = testapp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = com.google.ios.admob.testapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.google.ios.gma.testapp;
 				PRODUCT_NAME = testapp;
 			};
 			name = Debug;
@@ -444,7 +444,7 @@
 				INFOPLIST_FILE = testapp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = com.google.ios.admob.testapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.google.ios.gma.testapp;
 				PRODUCT_NAME = testapp;
 			};
 			name = Release;

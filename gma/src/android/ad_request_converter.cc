@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "admob/src/android/ad_request_converter.h"
+#include "gma/src/android/ad_request_converter.h"
 
 #include <assert.h>
 #include <jni.h>
@@ -26,16 +26,16 @@
 #include <unordered_set>
 #include <vector>
 
-#include "admob/admob_resources.h"
-#include "admob/src/android/admob_android.h"
-#include "admob/src/common/admob_common.h"
-#include "admob/src/include/firebase/admob.h"
-#include "admob/src/include/firebase/admob/types.h"
+#include "gma/gma_resources.h"
+#include "gma/src/android/gma_android.h"
+#include "gma/src/common/gma_common.h"
+#include "gma/src/include/firebase/gma.h"
+#include "gma/src/include/firebase/gma/types.h"
 #include "app/src/log.h"
 #include "app/src/util_android.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 METHOD_LOOKUP_DEFINITION(ad_request_builder,
                          PROGUARD_KEEP_CLASS
@@ -43,11 +43,11 @@ METHOD_LOOKUP_DEFINITION(ad_request_builder,
                          ADREQUESTBUILDER_METHODS);
 
 jobject GetJavaAdRequestFromCPPAdRequest(const AdRequest& request,
-                                         admob::AdMobError* error) {
+                                         gma::AdError* error) {
   FIREBASE_ASSERT(error);
-  *error = kAdMobErrorNone;
+  *error = kAdErrorNone;
 
-  JNIEnv* env = ::firebase::admob::GetJNI();
+  JNIEnv* env = ::firebase::gma::GetJNI();
   jobject builder = env->NewObject(
       ad_request_builder::GetClass(),
       ad_request_builder::GetMethodId(ad_request_builder::kConstructor));
@@ -68,7 +68,7 @@ jobject GetJavaAdRequestFromCPPAdRequest(const AdRequest& request,
           "Failed to resolve extras class. Check that \"%s\""
           " is present in your APK.",
           adapter_name.c_str());
-      *error = kAdMobErrorAdNetworkClassLoadError;
+      *error = kAdErrorAdNetworkClassLoadError;
       env->DeleteLocalRef(builder);
       return nullptr;
     }
@@ -141,7 +141,7 @@ jobject GetJavaAdRequestFromCPPAdRequest(const AdRequest& request,
   // Set the request agent string so requests originating from this library can
   // be tracked and reported on as a group.
   jstring agent_str =
-      env->NewStringUTF(firebase::admob::GetRequestAgentString());
+      env->NewStringUTF(firebase::gma::GetRequestAgentString());
   builder = util::ContinueBuilder(
       env, builder,
       env->CallObjectMethod(
@@ -158,50 +158,50 @@ jobject GetJavaAdRequestFromCPPAdRequest(const AdRequest& request,
   return java_request_ref;
 }
 
-AdMobError MapAndroidAdRequestErrorCodeToCPPErrorCode(jint j_error_code) {
+AdError MapAndroidAdRequestErrorCodeToCPPErrorCode(jint j_error_code) {
   // Android error code sourced from
   // https://developers.google.com/android/reference/com/google/android/gms/ads/AdRequest
   switch (j_error_code) {
     case 0:  // ERROR_CODE_INTERNAL_ERROR
-      return kAdMobErrorInternalError;
+      return kAdErrorInternalError;
     case 1:  // ERROR_CODE_INVALID_REQUEST
-      return kAdMobErrorInvalidRequest;
+      return kAdErrorInvalidRequest;
     case 2:  // ERROR_CODE_NETWORK_ERROR
-      return kAdMobErrorNetworkError;
+      return kAdErrorNetworkError;
     case 3:  // ERROR_CODE_NO_FILL
-      return kAdMobErrorNoFill;
+      return kAdErrorNoFill;
     case 8:  // ERROR_CODE_APP_ID_MISSING
-      return kAdMobErrorApplicationIdentifierMissing;
+      return kAdErrorApplicationIdentifierMissing;
     case 9:  // ERROR_CODE_MEDIATION_NO_FILL
-      return kAdMobErrorMediationNoFill;
+      return kAdErrorMediationNoFill;
     case 10:  // ERROR_CODE_REQUEST_ID_MISMATCH
-      return kAdMobErrorInvalidRequest;
+      return kAdErrorInvalidRequest;
     case 11:  // ERROR_CODE_INVALID_AD_STRING
-      return kAdMobErrorInvalidAdString;
+      return kAdErrorInvalidAdString;
     default:
-      return kAdMobErrorUnknown;
+      return kAdErrorUnknown;
   }
 }
 
-AdMobError MapAndroidFullScreenContentErrorCodeToCPPErrorCode(
+AdError MapAndroidFullScreenContentErrorCodeToCPPErrorCode(
     jint j_error_code) {
   // Android error code sourced from
   // https://developers.google.com/android/reference/com/google/android/gms/ads/FullScreenContentCallback
   switch (j_error_code) {
     case 0:  // ERROR_CODE_INTERNAL_ERROR
-      return kAdMobErrorInternalError;
+      return kAdErrorInternalError;
     case 1:  // ERROR_CODE_AD_REUSED
-      return kAdMobErrorAdAlreadyUsed;
+      return kAdErrorAdAlreadyUsed;
     case 2:  // ERROR_CODE_NOT_READY
-      return kAdMobErrorAdNotReady;
+      return kAdErrorAdNotReady;
     case 3:  // ERROR_CODE_APP_NOT_FOREGROUND
-      return kAdMobErrorAppNotInForeground;
+      return kAdErrorAppNotInForeground;
     case 4:  // ERROR_CODE_MEDIATION_SHOW_ERROR
-      return kAdMobErrorMediationShowError;
+      return kAdErrorMediationShowError;
     default:
-      return kAdMobErrorUnknown;
+      return kAdErrorUnknown;
   }
 }
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_TYPES_H_
-#define FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_TYPES_H_
+#ifndef FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_TYPES_H_
+#define FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_TYPES_H_
 
 #include <map>
 #include <memory>
@@ -36,7 +36,7 @@ extern "C" {
         // FIREBASE_PLATFORM_TVOS
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 struct AdResultInternal;
 struct AdapterResponseInfoInternal;
@@ -44,14 +44,15 @@ struct BoundingBox;
 struct ResponseInfoInternal;
 
 class AdViewBoundingBoxListener;
-class AdMobInternal;
+class GmaInternal;
 class AdViewInternal;
 class BannerView;
 class InterstitialAd;
 class PaidEventListener;
 class ResponseInfo;
 
-/// This is a platform specific datatype that is required to create an AdMob ad.
+/// This is a platform specific datatype that is required to create
+/// a Google Mobile Ads ad.
 ///
 /// The following defines the datatype on each platform:
 /// <ul>
@@ -74,78 +75,74 @@ typedef void* AdParent;
 // LINT.IfChange
 #endif  // INTERNAL_EXPERIMENTAL
 /// Error codes returned by Future::error().
-enum AdMobError {
+enum AdError {
   /// Call completed successfully.
-  kAdMobErrorNone,
+  kAdErrorNone,
   /// The ad has not been fully initialized.
-  kAdMobErrorUninitialized,
+  kAdErrorUninitialized,
   /// The ad is already initialized (repeat call).
-  kAdMobErrorAlreadyInitialized,
+  kAdErrorAlreadyInitialized,
   /// A call has failed because an ad is currently loading.
-  kAdMobErrorLoadInProgress,
+  kAdErrorLoadInProgress,
   /// A call to load an ad has failed due to an internal SDK error.
-  kAdMobErrorInternalError,
+  kAdErrorInternalError,
   /// A call to load an ad has failed due to an invalid request.
-  kAdMobErrorInvalidRequest,
+  kAdErrorInvalidRequest,
   /// A call to load an ad has failed due to a network error.
-  kAdMobErrorNetworkError,
+  kAdErrorNetworkError,
   /// A call to load an ad has failed because no ad was available to serve.
-  kAdMobErrorNoFill,
+  kAdErrorNoFill,
   /// An attempt has been made to show an ad on an Android Activity that has
   /// no window token (such as one that's not done initializing).
-  kAdMobErrorNoWindowToken,
+  kAdErrorNoWindowToken,
   /// An attempt to load an Ad Network extras class for an ad request has
   /// failed.
-  kAdMobErrorAdNetworkClassLoadError,
+  kAdErrorAdNetworkClassLoadError,
   /// The ad server experienced a failure processing the request.
-  kAdMobErrorServerError,
+  kAdErrorServerError,
   /// The current device’s OS is below the minimum required version.
-  kAdMobErrorOSVersionTooLow,
+  kAdErrorOSVersionTooLow,
   /// The request was unable to be loaded before being timed out.
-  kAdMobErrorTimeout,
+  kAdErrorTimeout,
   /// Will not send request because the interstitial object has already been
   /// used.
-  kAdMobErrorInterstitialAlreadyUsed,
+  kAdErrorInterstitialAlreadyUsed,
   /// The mediation response was invalid.
-  kAdMobErrorMediationDataError,
+  kAdErrorMediationDataError,
   /// Error finding or creating a mediation ad network adapter.
-  kAdMobErrorMediationAdapterError,
+  kAdErrorMediationAdapterError,
   /// Attempting to pass an invalid ad size to an adapter.
-  kAdMobErrorMediationInvalidAdSize,
+  kAdErrorMediationInvalidAdSize,
   /// Invalid argument error.
-  kAdMobErrorInvalidArgument,
+  kAdErrorInvalidArgument,
   /// Received invalid response.
-  kAdMobErrorReceivedInvalidResponse,
+  kAdErrorReceivedInvalidResponse,
   /// Will not send a request because the rewarded ad object has already been
   /// used.
-  kAdMobErrorRewardedAdAlreadyUsed,
+  kAdErrorRewardedAdAlreadyUsed,
   /// A mediation ad network adapter received an ad request, but did not fill.
   /// The adapter’s error is included as an underlyingError.
-  kAdMobErrorMediationNoFill,
+  kAdErrorMediationNoFill,
   /// Will not send request because the ad object has already been used.
-  kAdMobErrorAdAlreadyUsed,
+  kAdErrorAdAlreadyUsed,
   /// Will not send request because the application identifier is missing.
-  kAdMobErrorApplicationIdentifierMissing,
+  kAdErrorApplicationIdentifierMissing,
   /// Android Ad String is invalid.
-  kAdMobErrorInvalidAdString,
+  kAdErrorInvalidAdString,
   /// The ad can not be shown when app is not in the foreground.
-  kAdMobErrorAppNotInForeground,
+  kAdErrorAppNotInForeground,
   /// A mediation adapter failed to show the ad.
-  kAdMobErrorMediationShowError,
+  kAdErrorMediationShowError,
   /// The ad is not ready to be shown.
-  kAdMobErrorAdNotReady,
+  kAdErrorAdNotReady,
   /// Ad is too large for the scene.
-  kAdMobErrorAdTooLarge,
+  kAdErrorAdTooLarge,
   /// Attempted to present ad from a non-main thread. This is an internal
   /// error which should be reported to support if encountered.
-  kAdMobErrorNotMainThread,
+  kAdErrorNotMainThread,
   /// Fallback error for any unidentified cases.
-  kAdMobErrorUnknown,
+  kAdErrorUnknown,
 };
-
-#ifdef INTERNAL_EXPERIMENTAL
-// LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src_java/com/google/firebase/admob/internal/cpp/ConstantsHelper.java)
-#endif  // INTERNAL_EXPERIMENTAL
 
 /// A listener for receiving notifications during the lifecycle of a BannerAd.
 class AdListener {
@@ -193,7 +190,7 @@ class AdResult {
   std::unique_ptr<AdResult> GetCause() const;
 
   /// Gets the error's code.
-  AdMobError code() const;
+  AdError code() const;
 
   /// Gets the domain of the error.
   const std::string& domain() const;
@@ -211,7 +208,7 @@ class AdResult {
 
   /// A domain string which represents an undefined error domain.
   ///
-  /// The Admob SDK returns this domain for domain() method invocations when
+  /// The GMA SDK returns this domain for domain() method invocations when
   /// converting error information from legacy mediation adapter callbacks.
   static const char* const kUndefinedDomain;
 
@@ -221,7 +218,7 @@ class AdResult {
 
  private:
   friend class AdapterResponseInfo;
-  friend class AdMobInternal;
+  friend class GmaInternal;
   friend class BannerView;
   friend class InterstitialAd;
 
@@ -263,13 +260,13 @@ class AdapterStatus {
 #endif  // !defined(DOXYGEN)
 
  private:
-  friend class AdMobInternal;
+  friend class GmaInternal;
   std::string description_;
   bool is_initialized_;
   int latency_;
 };
 
-/// An immutable snapshot of the Admob SDK’s initialization status, categorized
+/// An immutable snapshot of the GMA SDK’s initialization status, categorized
 /// by mediation adapter.
 class AdapterInitializationStatus {
  public:
@@ -286,7 +283,7 @@ class AdapterInitializationStatus {
 #endif  // !defined(DOXYGEN)
 
  private:
-  friend class AdMobInternal;
+  friend class GmaInternal;
   std::map<std::string, AdapterStatus> adapter_status_map_;
 };
 
@@ -484,7 +481,7 @@ class AdRequest {
     return extras_;
   }
 
-  /// Keywords which will help Admob to provide targeted ads, as added by
+  /// Keywords which will help GMA to provide targeted ads, as added by
   /// @ref add_keyword.
   const std::unordered_set<std::string>& keywords() const { return keywords_; }
 
@@ -511,7 +508,7 @@ class AdRequest {
   ///
   /// Multiple keywords may be added via repeated invocations of this method.
   ///
-  /// @param[in] keyword a string that Admob will use to aid in targeting ads.
+  /// @param[in] keyword a string that GMA will use to aid in targeting ads.
   void add_keyword(const char* keyword);
 
   /// When requesting an ad, apps may pass the URL of the content they are
@@ -597,7 +594,7 @@ class AdValue {
   const int64_t value_micros_;
 };
 
-/// @brief Base of all Admob Banner Views.
+/// @brief Base of all GMA Banner Views.
 class AdView {
  public:
   /// The possible screen positions for a @ref AdView, configured via
@@ -893,7 +890,7 @@ struct RequestConfiguration {
     kUnderAgeOfConsentTrue
   };
 
-  /// Sets a maximum ad content rating. AdMob ads returned for your app will
+  /// Sets a maximum ad content rating. GMA ads returned for your app will
   /// have a content rating at or below that level.
   MaxAdContentRating max_ad_content_rating;
 
@@ -969,7 +966,7 @@ class UserEarnedRewardListener {
   virtual void OnUserEarnedReward(const AdReward& reward) {}
 };
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_TYPES_H_
+#endif  // FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_TYPES_H_

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google LLC
+ * Copyright 2021 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_ANDROID_ADMOB_ANDROID_H_
-#define FIREBASE_ADMOB_SRC_ANDROID_ADMOB_ANDROID_H_
+#ifndef FIREBASE_GMA_SRC_ANDROID_GMA_ANDROID_H_
+#define FIREBASE_GMA_SRC_ANDROID_GMA_ANDROID_H_
 
 #include <jni.h>
 
-#include "admob/src/common/admob_common.h"
+#include "gma/src/common/gma_common.h"
 #include "app/src/util_android.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 // Used to setup the cache of class method IDs to reduce
 // time spent looking up methods by string.
@@ -128,8 +128,8 @@ namespace admob {
 // clang-format on
 
 // clang-format off
-#define ADMOB_INITIALIZATION_HELPER_METHODS(X)                               \
-  X(InitializeAdMob, "initializeAdMob", "(Landroid/content/Context;)V",      \
+#define GMA_INITIALIZATION_HELPER_METHODS(X)                               \
+  X(InitializeGma, "initializeGma", "(Landroid/content/Context;)V",      \
     util::kMethodTypeStatic)
 // clang-format on
 
@@ -143,13 +143,13 @@ METHOD_LOOKUP_DECLARATION(initialization_status, INITIALIZATION_STATUS_METHODS);
 METHOD_LOOKUP_DECLARATION(adapter_status, ADAPTER_STATUS_METHODS);
 METHOD_LOOKUP_DECLARATION(adapter_status_state, METHOD_LOOKUP_NONE,
                           ADAPTER_STATUS_STATE_FIELDS);
-METHOD_LOOKUP_DECLARATION(admob_initialization_helper,
-                          ADMOB_INITIALIZATION_HELPER_METHODS);
+METHOD_LOOKUP_DECLARATION(gma_initialization_helper,
+                          GMA_INITIALIZATION_HELPER_METHODS);
 
-// Needed when AdMob is initialized without Firebase.
+// Needed when GMA is initialized without Firebase.
 JNIEnv* GetJNI();
 
-// Retrieves the activity used to initalize AdMob.
+// Retrieves the activity used to initalize GMA.
 jobject GetActivity();
 
 // Register the native callbacks needed by the Futures.
@@ -163,7 +163,7 @@ void ReleaseClasses(JNIEnv* env);
 jobject CreateJavaAdSize(JNIEnv* env, jobject activity,
                          const AdSize& an_ad_size);
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_ANDROID_ADMOB_ANDROID_H_
+#endif  // FIREBASE_GMA_SRC_ANDROID_GMA_ANDROID_H_

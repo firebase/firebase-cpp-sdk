@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_SRC_IOS_ADMOB_IOS_H_
-#define FIREBASE_ADMOB_SRC_IOS_ADMOB_IOS_H_
+#ifndef FIREBASE_GMA_SRC_IOS_GMA_IOS_H_
+#define FIREBASE_GMA_SRC_IOS_GMA_IOS_H_
 
 extern "C" {
 #include <objc/objc.h>
@@ -24,16 +24,16 @@ extern "C" {
 #import <Foundation/Foundation.h>
 #import <GoogleMobileAds/GoogleMobileAds.h>
 
-#include "admob/src/common/admob_common.h"
-#include "admob/src/include/firebase/admob/types.h"
+#include "gma/src/common/gma_common.h"
+#include "gma/src/include/firebase/gma/types.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 // Resolves LoadAd errors that exist in the C++ SDK before they reach the iOS
 // SDK.
 void CompleteLoadAdInternalResult(
-  FutureCallbackData<AdResult>* callback_data, AdMobError error_code,
+  FutureCallbackData<AdResult>* callback_data, AdError error_code,
   const char* error_message);
 
 // Parses information from the NSError to populate an AdResult
@@ -41,12 +41,11 @@ void CompleteLoadAdInternalResult(
 void CompleteAdResultError(FutureCallbackData<AdResult>* callback_data,
                          NSError *error, bool is_load_ad_error);
 
-
-// Converts the iOS Admob GADAdValue structure into a CPP
-// firebase::admob::Advalue structure.
+// Converts the iOS GMA GADAdValue structure into a CPP
+// firebase::gma::Advalue structure.
 AdValue ConvertGADAdValueToCppAdValue(GADAdValue* gad_value);
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_SRC_IOS_ADMOB_IOS_H_
+#endif  // FIREBASE_GMA_SRC_IOS_GMA_IOS_H_

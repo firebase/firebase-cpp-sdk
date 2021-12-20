@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-#import "admob/src/ios/FADAdSize.h"
+#import "gma/src/ios/FADAdSize.h"
 
-#include "admob/src/common/admob_common.h"
+#include "gma/src/common/gma_common.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 GADAdSize GADSizeFromCppAdSize(const AdSize& ad_size) {
   switch (ad_size.type()) {
@@ -45,5 +45,5 @@ GADAdSize GADSizeFromCppAdSize(const AdSize& ad_size) {
   }
 }
 
-}
-}
+}  // namespace gma
+}  // namespace firebase

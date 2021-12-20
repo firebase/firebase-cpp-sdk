@@ -16,12 +16,12 @@
 
 #include <string>
 
-#include "admob/src/common/ad_result_internal.h"
-#include "admob/src/include/firebase/admob.h"
-#include "admob/src/include/firebase/admob/types.h"
+#include "gma/src/common/ad_result_internal.h"
+#include "gma/src/include/firebase/gma.h"
+#include "gma/src/include/firebase/gma/types.h"
 
 namespace firebase {
-namespace admob {
+namespace gma {
 
 AdResult::AdResult() {}
 
@@ -40,7 +40,7 @@ std::unique_ptr<AdResult> AdResult::GetCause() const {
 }
 
 /// Gets the error's code.
-AdMobError AdResult::code() const { return kAdMobErrorNone; }
+AdError AdResult::code() const { return kAdErrorNone; }
 
 /// Gets the domain of the error.
 const std::string& AdResult::domain() const {
@@ -67,5 +67,5 @@ const std::string& AdResult::ToString() const {
   return empty;
 }
 
-}  // namespace admob
+}  // namespace gma
 }  // namespace firebase
