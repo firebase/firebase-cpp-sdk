@@ -217,12 +217,12 @@ jobs:
         os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
         arch: ${{ fromJson(needs.check_and_prepare.outputs.matrix_arch_mac) }}
         ssl_variant: ${{ fromJson(needs.check_and_prepare.outputs.matrix_ssl) }}
+        # Only build for arm64 on Mac.
         exclude:
-      # Only build for arm64 on Mac.
         - os: ubuntu-latest
           arch: arm64
         - os: windows-latest
-         arch: arm64
+          arch: arm64
     steps:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
