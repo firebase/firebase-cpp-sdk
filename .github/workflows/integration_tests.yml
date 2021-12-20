@@ -340,7 +340,7 @@ jobs:
           # Special handling for MacOS ARM build.
           artifact_os=${{ matrix.os }}
           if [[ "${{ matrix.os }}" == "macos-latest" && "${{ matrix.arch }}" == "arm64" ]]; then
-            artifact_os=macosarm-latest
+            artifact_os=macosarm-selfhosted
             additional_flags+=(--arch arm64)
           fi
           echo "::set-output name=artifact_name::desktop-${artifact_os}-${{ matrix.ssl_variant }}"
@@ -774,13 +774,15 @@ jobs:
   test_desktop_macos_arm:
     name: test-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
     needs: [check_and_prepare, build_desktop]
-    runs-on: [self-hosted, macOS, ${{ matrix.os }}]
+    runs-on: [self-hosted, macOS, macosarm-selfhosted]
     if: |
+      ${{
         contains(needs.check_and_prepare.outputs.matrix_platform, 'Desktop') &&
         contains(needs.check_and_prepare.outputs.matrix_os, 'macos-latest') &&
         github.event_name == 'workflow_dispatch' &&
         needs.check_and_prepare.outputs.apis != '' &&
         !cancelled()
+      }}
     strategy:
       fail-fast: false
       matrix:
