@@ -776,13 +776,11 @@ jobs:
     needs: [check_and_prepare, build_desktop]
     runs-on: [self-hosted, macOS, ${{ matrix.os }}]
     if: |
-      ${{
         contains(needs.check_and_prepare.outputs.matrix_platform, 'Desktop') &&
         contains(needs.check_and_prepare.outputs.matrix_os, 'macos-latest') &&
         github.event_name == 'workflow_dispatch' &&
         needs.check_and_prepare.outputs.apis != '' &&
         !cancelled()
-      }}
     strategy:
       fail-fast: false
       matrix:
