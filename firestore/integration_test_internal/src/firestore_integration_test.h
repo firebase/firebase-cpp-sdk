@@ -28,7 +28,7 @@
 #include "app/meta/move.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/common.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app_framework.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "gtest/gtest.h"

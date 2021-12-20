@@ -18,7 +18,7 @@
 #include <cstdint>
 #include <cstdlib>
 
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "flatbuffers/idl.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"

@@ -16,8 +16,8 @@
 
 #include "app/src/callback.h"
 #include "app/src/filesystem.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
-#include "app/src/mutex.h"
 #include "app/src/scheduler.h"
 #include "app/src/variant_util.h"
 #include "database/src/desktop/connection/persistent_connection.h"

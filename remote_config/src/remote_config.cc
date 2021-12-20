@@ -17,7 +17,7 @@
 #include <cstdint>
 
 #include "app/src/cleanup_notifier.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/semaphore.h"
 #include "include/firebase/remote_config.h"
 #include "remote_config/src/common.h"

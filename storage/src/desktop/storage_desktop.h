@@ -19,7 +19,7 @@
 #include <vector>
 
 #include "app/src/future_manager.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "storage/src/desktop/storage_path.h"
 #include "storage/src/desktop/storage_reference_desktop.h"
 #include "storage/src/include/firebase/storage/common.h"
