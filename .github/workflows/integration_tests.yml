@@ -789,6 +789,9 @@ jobs:
         os: [ macosarm-selfhosted ]
         ssl_variant: ${{ fromJson(needs.check_and_prepare.outputs.matrix_ssl) }}
     steps:
+      - name: Clear directory
+        shell: bash
+        run: rm -rf firebase-cpp-sdk testapps
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
