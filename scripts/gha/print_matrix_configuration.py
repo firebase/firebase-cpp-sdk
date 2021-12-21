@@ -108,7 +108,7 @@ PARAMETERS = {
       "tvos_device": ["tvos_simulator"],
       "build_type": ["Debug"],
       "architecture_windows_linux": ["x64"],
-      "architecture_macos": ["x64", "arm64"],
+      "architecture_macos": ["x64"],
       "msvc_runtime": ["dynamic"],
       "cpp_compiler_windows": ["VisualStudio2019"],
       "cpp_compiler_linux": ["clang-11.0"],
