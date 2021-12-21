@@ -779,14 +779,12 @@ jobs:
       # OS that this testapp was built on.
       build_os: ${{ matrix.build_os }}
     if: |
-      ${{
         contains(needs.check_and_prepare.outputs.matrix_platform, 'Desktop') &&
-        contains(needs.check_and_prepare.outputs.matrix_os, env.build_os) &&
+        contains(needs.check_and_prepare.outputs.matrix_os, 'macos-latest') &&
         github.event_name == 'workflow_dispatch' &&
         needs.check_and_prepare.outputs.apis != '' &&
         !cancelled() &&
         !failure()
-      }}
     strategy:
       fail-fast: false
       matrix:
