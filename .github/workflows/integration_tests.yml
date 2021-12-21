@@ -807,7 +807,7 @@ jobs:
         if: ${{ contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         run: |
           echo "Cleaning up previous run"
-          rm -rf "${{ github.workspace }}"
+          rm -rf "${{ github.workspace }}"/*
       - uses: actions/checkout@v2
         if: ${{ contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         with:
@@ -818,39 +818,53 @@ jobs:
         with:
           path: testapps
           name: testapps-desktop-${{ matrix.runner_label }}-${{ matrix.ssl_variant }}
+      - name: Setup Firestore Emulator
+        if: ${{ contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
+        run: |
+          npm install -g firebase-tools
+      - name: Create keychain (macOS)
+        if: ${{ runner.os == 'macOS' && contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
+        shell: bash
+        run: |
+          pwd
+          echo "Creating temporary keychain"
+          # Create a local keychain on Mac:
+          # Clean up previous temp keychain, if any.
+          security delete-keychain tmp-keychain || true
+          # Create temp keychain file.
+          security create-keychain -p '${{ secrets.TEST_SECRET }}' tmp-keychain
+          # Change the keychain list to the temp keychain.
+          security list-keychains -d user -s tmp-keychain
+          # Remove unlock timeout for temp keychain.
+          security set-keychain-settings tmp-keychain
+          # Unlock the keychain.
+          security unlock-keychain '${{ secrets.TEST_SECRET }}' tmp-keychain
+      - name: Restore google-services files
+        if: ${{ contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
+        shell: bash
+        run: python scripts/gha/restore_secrets.py --passphrase '${{ secrets.TEST_SECRET }}' --artifact testapps
       - name: Run Desktop integration tests
         if: ${{ contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         shell: bash
         run: |
-          if [[ '${{ runner.os }}' == "macOS" ]]; then
-            echo "Creating temporary keychain"
-            # Create a local keychain on Mac:
-            # Clean up previous temp keychain, if any.
-            security delete-keychain tmp-keychain || true
-            # Create temp keychain file.
-            security create-keychain -p "${{ secrets.TEST_SECRET }}" tmp-keychain
-            # Change the keychain list to the temp keychain.
-            security list-keychains -d user -s tmp-keychain
-            # Remove unlock timeout for temp keychain.
-            security set-keychain-settings tmp-keychain
-            # Unlock the keychain.
-            security unlock-keychain "${{ secrets.TEST_SECRET }}" tmp-keychain
-
-            # Use arch -arm64 prefix to ensure running on arm64.
-            cmd_prefix="arch -${{ matrix.arch }}"
-          fi
-          # Restore google-services files.
-          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps
-          set -x
-          ${cmd_prefix} python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.runner_label }}-${{ matrix.ssl_variant }}"
-          set +x
           if [[ '${{ runner.os }}' == 'macOS' ]]; then
-            # Remove the local keychain on Mac:
-            # Set back to the default login keychain.
-            security list-keychains -d user -s login.keychain
-            # Delete the keychain.
-            security delete-keychain tmp-keychain
+            # Use arch -arm64 prefix to ensure running on arm64.
+            cmd_prefix='arch -${{ matrix.arch }}'
           fi
+          set -x
+          ${cmd_prefix} firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.runner_label }}-${{ matrix.ssl_variant }}"'
+          set +x
+        env:
+          USE_FIRESTORE_EMULATOR: true
+      - name: Delete keychain (macOS)
+        if: ${{ runner.os == 'macOS' && contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
+        shell: bash
+        run: |
+          # Remove the local keychain on Mac:
+          # Set back to the default login keychain.
+          security list-keychains -d user -s login.keychain
+          # Delete the keychain, if it exists.
+          security delete-keychain tmp-keychain || true
       - name: Prepare results summary artifact
         if: ${{ !cancelled() && contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         shell: bash
@@ -888,6 +902,12 @@ jobs:
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
+      - name: Clean up after this run
+        shell: bash
+        if: ${{ always() && contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
+        run: |
+          echo "Cleaning up after this run"
+          rm -rf "${{ github.workspace }}"/*
 
 
   test_desktop:
