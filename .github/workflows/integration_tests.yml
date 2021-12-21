@@ -48,6 +48,7 @@ env:
   pythonVersion: '3.7'
   artifactRetentionDays: 2
   GITHUB_TOKEN: ${{ github.token }}
+  runnerTagMacArm: 'macosarm-selfhosted'
 
 jobs:
   check_and_prepare:
@@ -66,10 +67,7 @@ jobs:
       xcode_version: ${{ steps.matrix_config.outputs.xcode_version }}
       ios_device: ${{ steps.matrix_config.outputs.ios_device }}
       tvos_device: ${{ steps.matrix_config.outputs.tvos_device }}
-      # This must consist of two words separated by a hyphen.
-      # The first word will be used in reports, the second
-      # will be removed.
-      runner_tag_mac_arm: 'macosarm-custom'
+      runner_tag_mac_arm: ${{ steps.matrix_config.outputs.runner_tag_mac_arm }}
   steps:
     ### Fail the workflow if the user does not have admin access to run the tests.
     - name: Check if user has permission to trigger tests
@@ -80,6 +78,7 @@ jobs:
     ### trigger value: manual_trigger, scheduled_trigger, label_trigger, postsubmit_trigger
     - id: set_outputs
       run: |
+        echo "::set-output name=runner_tag_mac_arm::${{env.runnerTagMacArm}}"
         if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
           if [[ "${{ github.event.inputs.test_pull_request }}" != "nightly-packaging" ]]; then
             # Triggered manually
