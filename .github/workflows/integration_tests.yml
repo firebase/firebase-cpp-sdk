@@ -316,7 +316,7 @@ jobs:
           workflow: 'cpp-packaging.yml'
           run_id: ${{ github.event.inputs.test_packaged_sdk }}
       - name: Build integration tests
-        id: build-tests
+        id: build_tests
         shell: bash
         env:
           CCACHE_DIR: ${{ github.workspace }}/ccache_dir
@@ -356,28 +356,28 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          if [ ! -f build-results-${{ steps.build-tests.artifact_name }}.log.json ]; then
+          if [ ! -f build-results-${{ steps.build_tests.outputs.artifact_name }}.log.json ]; then
             # No summary was created, make a placeholder one.
-            echo "__SUMMARY_MISSING__" > ${{ steps.build-tests.artifact_name }}.log.json
+            echo "__SUMMARY_MISSING__" > ${{ steps.build_tests.outputs.artifact_name }}.log.json
           fi
       - name: Upload Desktop integration tests artifact
         uses: actions/upload-artifact@v2.2.2
         if: ${{ !cancelled() }}
         with:
-          name: testapps-${{ steps.build-tests.artifact_name }}
-          path: testapps-${{ steps.build-tests.artifact_name }}
+          name: testapps-${{ steps.build_tests.outputs.artifact_name }}
+          path: testapps-${{ steps.build_tests.outputs.artifact_name }}
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Upload Desktop build results artifact
         uses: actions/upload-artifact@v2.2.2
         if: ${{ !cancelled() }}
         with:
           name: log-artifact
-          path: build-results-${{ steps.build-tests.artifact_name }}
+          path: build-results-${{ steps.build_tests.outputs.artifact_name }}
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Cleanup Local Copies of Uploaded Artifacts
         shell: bash
         run: |
-          rm -rf testapps-${{ steps.build-tests.artifact_name }}
+          rm -rf testapps-${{ steps.build_tests.outputs.artifact_name }}
       - name: Set CLOUDSDK_PYTHON (Windows)
         shell: bash
         if: startsWith(matrix.os, 'windows') && !cancelled()
@@ -411,7 +411,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat build-results-${{ steps.build-tests.artifact_name }}
+          cat build-results-${{ steps.build_tests.outputs.artifact_name }}
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
