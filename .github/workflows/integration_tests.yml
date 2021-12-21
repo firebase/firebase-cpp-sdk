@@ -774,11 +774,11 @@ jobs:
   test_desktop_macos_arm:
     name: test-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
     needs: [check_and_prepare, build_desktop]
-    runs-on: [self-hosted, macOS, '${{ matrix.os }}' ]
+    runs-on: [self-hosted, '${{ matrix.os }}' ]
     if: |
       ${{
         contains(needs.check_and_prepare.outputs.matrix_platform, 'Desktop') &&
-        contains(needs.check_and_prepare.outputs.matrix_os, 'macos-latest') &&
+        contains(needs.check_and_prepare.outputs.matrix_os, matrix.built_on) &&
         github.event_name == 'workflow_dispatch' &&
         needs.check_and_prepare.outputs.apis != '' &&
         !cancelled() &&
@@ -787,8 +787,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ macosarm-selfhosted ]
         ssl_variant: ${{ fromJson(needs.check_and_prepare.outputs.matrix_ssl) }}
+        include:
+        - os: macosarm-selfhosted
+          built_on: macos-latest
     steps:
       - name: Clear directory
         shell: bash
