@@ -108,7 +108,7 @@ PARAMETERS = {
       "tvos_device": ["tvos_simulator"],
       "build_type": ["Debug"],
       "architecture_windows_linux": ["x64"],
-      "architecture_macos": ["x64"],
+      "architecture_macos": ["x64", "arm64"],
       "msvc_runtime": ["dynamic"],
       "cpp_compiler_windows": ["VisualStudio2019"],
       "cpp_compiler_linux": ["clang-11.0"],
@@ -121,6 +121,9 @@ PARAMETERS = {
         "os": ["ubuntu-latest"],
         "platform": ["Desktop"],
         "apis": "firestore",
+        # Ensure only one architecture is built.
+        "architecture_windows_linux": ["x64"],
+        "architecture_macos": ["x64"],
       },
 
       EXPANDED_KEY: {
@@ -128,7 +131,6 @@ PARAMETERS = {
         "android_device": ["android_target", "android_latest", "emulator_target", "emulator_latest", "emulator_32bit"],
         "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"],
         "tvos_device": ["tvos_simulator"],
-        "architecture_macos": ["x64", "arm64"]
       }
     },
     "config": {
