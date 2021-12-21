@@ -18,7 +18,7 @@ usage(){
    -g, generate Makefiles      default: true
    -c, CMake build             default: true
  example: 
-   build_scripts/ios/build.sh -b ios_build -s . -a arm64,x86_64 -t firebase_admob,firebase_auth -c false"
+   build_scripts/ios/build.sh -b ios_build -s . -a arm64,x86_64 -t firebase_gma,firebase_auth -c false"
 }
 
 set -e
@@ -27,7 +27,8 @@ readonly SUPPORTED_PLATFORMS=(device simulator)
 readonly SUPPORTED_ARCHITECTURES=(arm64 armv7 x86_64 i386)
 readonly DEVICE_ARCHITECTURES=(arm64 armv7)
 readonly SIMULATOR_ARCHITECTURES=(arm64 x86_64 i386)
-readonly SUPPORTED_TARGETS=(firebase_admob firebase_analytics firebase_auth firebase_database firebase_dynamic_links firebase_firestore firebase_functions firebase_installations firebase_messaging firebase_remote_config firebase_storage)
+#TODO(drsanta) add firebase_admob back in.
+readonly SUPPORTED_TARGETS=(firebase_analytics firebase_auth firebase_database firebase_dynamic_links firebase_firestore firebase_functions firebase_gma firebase_installations firebase_messaging firebase_remote_config firebase_storage)
 
 # build default value
 buildpath="ios_build"

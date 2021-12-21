@@ -86,13 +86,15 @@ endfunction()
 
 # Define targets for all the Firebase libraries
 add_firebase_target(firebase_app)
-add_firebase_target(firebase_admob)
+# TODO(drsanta): add firebase_admob back in.
+# add_firebase_target(firebase_admob)
 add_firebase_target(firebase_analytics)
 add_firebase_target(firebase_auth)
 add_firebase_target(firebase_database)
 add_firebase_target(firebase_dynamic_links)
 add_firebase_target(firebase_firestore)
 add_firebase_target(firebase_functions)
+add_firebase_target(firebase_gma)
 add_firebase_target(firebase_installations)
 add_firebase_target(firebase_messaging)
 add_firebase_target(firebase_performance)

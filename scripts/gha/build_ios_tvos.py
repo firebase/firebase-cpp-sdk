@@ -46,14 +46,15 @@ import utils
 
 
 # Configuration for supported os's, and platforms.
+# TODO(drsanta): add firebase_admob back into supported_targets
 CONFIG = {
   'ios': {
-    'supported_targets' : ('firebase_admob', 'firebase_analytics',
+    'supported_targets' : ('firebase_analytics',
                            'firebase_auth', 'firebase_database',
                            'firebase_dynamic_links', 'firebase_firestore',
-                           'firebase_functions', 'firebase_installations',
-                           'firebase_messaging', 'firebase_remote_config',
-                           'firebase_storage'),
+                           'firebase_functions', 'firebase_gma',
+                           'firebase_installations', 'firebase_messaging',
+                           'firebase_remote_config', 'firebase_storage'),
     'device': {
       'architectures' : ('arm64', 'armv7'),
       'toolchain' : 'cmake/toolchains/ios.cmake',
@@ -587,12 +588,13 @@ def parse_cmdline_args():
     default=('arm64', 'armv7', 'x86_64', 'i386'),
     help='List of architectures to build for.')
   parser.add_argument('-t', '--target', nargs='+',
-    default=('firebase_admob', 'firebase_analytics',
+  # TODO(drsanta): add firebase_admob back in.
+    default=( 'firebase_analytics',
               'firebase_auth', 'firebase_database',
               'firebase_dynamic_links', 'firebase_firestore',
-              'firebase_functions', 'firebase_installations',
-              'firebase_messaging', 'firebase_remote_config',
-              'firebase_storage'),
+              'firebase_functions', 'firebase_gma',
+              'firebase_installations', 'firebase_messaging',
+              'firebase_remote_config', 'firebase_storage'),
     help='List of CMake build targets')
   parser.add_argument('-o', '--os', nargs='+', default=('ios', 'tvos'),
     help='List of operating systems to build for.')
