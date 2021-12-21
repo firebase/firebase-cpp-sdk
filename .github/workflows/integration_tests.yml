@@ -778,7 +778,7 @@ jobs:
     if: |
       ${{
         contains(needs.check_and_prepare.outputs.matrix_platform, 'Desktop') &&
-        contains(needs.check_and_prepare.outputs.matrix_os, matrix.built_on) &&
+        contains(needs.check_and_prepare.outputs.matrix_os, strategy.matrix.built_on) &&
         github.event_name == 'workflow_dispatch' &&
         needs.check_and_prepare.outputs.apis != '' &&
         !cancelled() &&
