@@ -587,7 +587,8 @@ def parse_cmdline_args():
     default=('arm64', 'armv7', 'x86_64', 'i386'),
     help='List of architectures to build for.')
   parser.add_argument('-t', '--target', nargs='+',
-    default=('firebase_admob', 'firebase_analytics',
+  # TODO(drsanta): add firebase_admob.
+    default=( 'firebase_analytics',
               'firebase_auth', 'firebase_database',
               'firebase_dynamic_links', 'firebase_firestore',
               'firebase_functions', 'firebase_gma',
