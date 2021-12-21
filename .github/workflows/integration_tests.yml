@@ -781,7 +781,8 @@ jobs:
         contains(needs.check_and_prepare.outputs.matrix_os, 'macos-latest') &&
         github.event_name == 'workflow_dispatch' &&
         needs.check_and_prepare.outputs.apis != '' &&
-        !cancelled()
+        !cancelled() &&
+        !failure()
       }}
     strategy:
       fail-fast: false
@@ -800,6 +801,13 @@ jobs:
         with:
           path: testapps
           name: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+      - name: Restore google-services files
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 2
+          max_attempts: 3
+          shell: bash
+          command: python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps
       - name: Run Desktop integration tests
         run: arch -arm64 python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
       - name: Prepare results summary artifact
