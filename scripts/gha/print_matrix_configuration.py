@@ -120,7 +120,8 @@ PARAMETERS = {
       MINIMAL_KEY: {
         "os": ["ubuntu-latest"],
         "platform": ["Desktop"],
-        "apis": "firestore"
+        "apis": "firestore",
+        "architecture_macos": ["x64"],
       },
 
       EXPANDED_KEY: {
@@ -128,6 +129,7 @@ PARAMETERS = {
         "android_device": ["android_target", "android_latest", "emulator_target", "emulator_latest", "emulator_32bit"],
         "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"],
         "tvos_device": ["tvos_simulator"],
+        "architecture_macos": ["x64", "arm64"]
       }
     },
     "config": {
