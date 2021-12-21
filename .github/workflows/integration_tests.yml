@@ -796,9 +796,10 @@ jobs:
         # Unlike the other matrices, we don't set a matrix.os here. Instead,
         # specify the tag of the self-hosted runner (and of the testapps to run),
         # and the OS that the testapps were built on originally.
-        - runner_tag: '${{ needs.check_and_prepare.outputs.runner_tag_mac_arm64}}'
+        - runner_tag: '${{ needs.check_and_prepare.outputs.runner_tag_mac_arm64 }}'
           # Only run the steps if build_os was included in the list of target OSes.
           build_os: macos-latest
+          arch: arm64
     steps:
       - name: Clean up previous run
         shell: bash
@@ -820,8 +821,35 @@ jobs:
         if: ${{ contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         shell: bash
         run: |
+          if [[ '${{ runner.os }}' == "macOS" ]]; then
+            echo "Creating temporary keychain"
+            # Create a local keychain on Mac:
+            # Clean up previous temp keychain, if any.
+            security delete-keychain tmp-keychain || true
+            # Create temp keychain file.
+            security create-keychain -p "${{ secrets.TEST_SECRET }}" tmp-keychain
+            # Change the keychain list to the temp keychain.
+            security list-keychains -d user -s tmp-keychain
+            # Remove unlock timeout for temp keychain.
+            security set-keychain-settings tmp-keychain
+            # Unlock the keychain.
+            security unlock-keychain "${{ secrets.TEST_SECRET }}" tmp-keychain
+
+            # Use arch -arm64 prefix to ensure running on arm64.
+            cmd_prefix="arch -${{ matrix.arch }}"
+          fi
+          # Restore google-services files.
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps
-          arch -arm64 python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.runner_tag }}-${{ matrix.ssl_variant }}"
+          set -x
+          ${cmd_prefix} python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.runner_tag }}-${{ matrix.ssl_variant }}"
+          set +x
+          if [[ '${{ runner.os }}' == 'macOS' ]]; then
+            # Remove the local keychain on Mac:
+            # Set back to the default login keychain.
+            security list-keychains -d user -s login.keychain
+            # Delete the keychain.
+            security delete-keychain tmp-keychain
+          fi
       - name: Prepare results summary artifact
         if: ${{ !cancelled() && contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         shell: bash
