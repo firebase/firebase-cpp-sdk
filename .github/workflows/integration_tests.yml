@@ -48,6 +48,10 @@ env:
   pythonVersion: '3.7'
   artifactRetentionDays: 2
   GITHUB_TOKEN: ${{ github.token }}
+  # This must consist of two words separated by a hyphen.
+  # The first word will be used in reports, the second
+  # will be removed.
+  armMacRunerTag: 'macosarm-internal'
 
 jobs:
   check_and_prepare:
@@ -340,7 +344,7 @@ jobs:
           # Special handling for MacOS ARM build.
           artifact_os=${{ matrix.os }}
           if [[ "${{ matrix.os }}" == "macos-latest" && "${{ matrix.arch }}" == "arm64" ]]; then
-            artifact_os=macosarm-selfhosted
+            artifact_os='${{ env.armMacRunerTag }}'
             additional_flags+=(--arch arm64)
           fi
           echo "::set-output name=artifact_name::desktop-${artifact_os}-${{ matrix.ssl_variant }}"
@@ -771,8 +775,10 @@ jobs:
             exit 1
           fi
 
-  test_desktop_macos_arm:
-    name: test-desktop-${{ matrix.runner_tag }}-${{ matrix.ssl_variant }}
+  # Run tests that depend on special self-hosted runners.
+  # For now, this is only ARM Mac builds.
+  test_desktop_special_runners:
+    name: test-desktop-self-hosted-${{ matrix.runner_tag }}-${{ matrix.ssl_variant }}
     needs: [check_and_prepare, build_desktop]
     runs-on: [self-hosted, '${{ matrix.runner_tag }}' ]
     # Unfortunately, we can't use matrix.build_os on the first contains() below.
@@ -792,7 +798,7 @@ jobs:
         # Unlike the other matrices, we don't set a matrix.os here. Instead,
         # specify the tag of the self-hosted runner (and of the testapps to run),
         # and the OS that the testapps were built on originally.
-        - runner_tag: macosarm-selfhosted
+        - runner_tag: ${{ env.armMacRunerTag }}
           # Only run the steps if build_os was included in the list of target OSes.
           build_os: macos-latest
     steps:
