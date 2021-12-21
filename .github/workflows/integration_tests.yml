@@ -775,12 +775,12 @@ jobs:
     name: test-desktop-${{ matrix.runner_tag }}-${{ matrix.ssl_variant }}
     needs: [check_and_prepare, build_desktop]
     runs-on: [self-hosted, '${{ matrix.runner_tag }}' ]
+    # Unfortunately, we can't use matrix.build_os on the first contains() below.
+    # If we ever have other self-hosted runner OSes, we'll need to expand it
+    # to include other platforms.
     if: |
-        contains(needs.check_and_prepare.outputs.matrix_platform, 'Desktop') &&
-        # Unfortunately, we can't use matrix.build_os on the following contains().
-        # If we ever have other self-hosted runner OSes, we'll need to expand it
-        # to include other platforms.
         contains(needs.check_and_prepare.outputs.matrix_os, 'macos-latest') &&
+        contains(needs.check_and_prepare.outputs.matrix_platform, 'Desktop') &&
         github.event_name == 'workflow_dispatch' &&
         needs.check_and_prepare.outputs.apis != '' &&
         !cancelled() &&
