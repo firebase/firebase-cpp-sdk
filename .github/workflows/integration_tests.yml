@@ -774,7 +774,7 @@ jobs:
   test_desktop_macos_arm:
     name: test-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
     needs: [check_and_prepare, build_desktop]
-    runs-on: [self-hosted, macOS, macosarm-selfhosted]
+    runs-on: [self-hosted, macOS, '${{ matrix.os }}' ]
     if: |
       ${{
         contains(needs.check_and_prepare.outputs.matrix_platform, 'Desktop') &&
