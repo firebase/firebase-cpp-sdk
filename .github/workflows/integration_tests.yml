@@ -819,9 +819,6 @@ jobs:
           path: testapps
           name: testapps-desktop-${{ matrix.runner_label }}-${{ matrix.ssl_variant }}
       - name: Setup Firestore Emulator
-        if: ${{ contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
-        run: |
-          npm install -g firebase-tools
       - name: Create keychain (macOS)
         if: ${{ runner.os == 'macOS' && contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         shell: bash
