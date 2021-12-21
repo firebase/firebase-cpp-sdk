@@ -48,7 +48,7 @@ env:
   pythonVersion: '3.7'
   artifactRetentionDays: 2
   GITHUB_TOKEN: ${{ github.token }}
-  runnerTagMacArm: 'macosarm-selfhosted'
+  runnerTagMacArm64: 'macosarm-selfhosted'
 
 jobs:
   check_and_prepare:
@@ -67,7 +67,8 @@ jobs:
       xcode_version: ${{ steps.matrix_config.outputs.xcode_version }}
       ios_device: ${{ steps.matrix_config.outputs.ios_device }}
       tvos_device: ${{ steps.matrix_config.outputs.tvos_device }}
-  steps:
+      runner_tag_mac_arm64: ${{ env.runnerTagMacArm64 }}
+    steps:
     ### Fail the workflow if the user does not have admin access to run the tests.
     - name: Check if user has permission to trigger tests
       uses: lannonbr/repo-permission-check-action@2.0.0
@@ -77,7 +78,6 @@ jobs:
     ### trigger value: manual_trigger, scheduled_trigger, label_trigger, postsubmit_trigger
     - id: set_outputs
       run: |
-        echo "::set-output name=runner_tag_mac_arm::${{env.runnerTagMacArm}}"
         if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
           if [[ "${{ github.event.inputs.test_pull_request }}" != "nightly-packaging" ]]; then
             # Triggered manually
@@ -342,7 +342,7 @@ jobs:
           # Special handling for MacOS ARM build.
           artifact_os=${{ matrix.os }}
           if [[ "${{ matrix.os }}" == "macos-latest" && "${{ matrix.arch }}" == "arm64" ]]; then
-            artifact_os='${{ env.runnerTagMacArm }}'
+            artifact_os='${{ needs.check_and_prepare.outputs.runner_tag_mac_arm64 }}'
             additional_flags+=(--arch arm64)
           fi
           echo "::set-output name=artifact_name::desktop-${artifact_os}-${{ matrix.ssl_variant }}"
@@ -796,7 +796,7 @@ jobs:
         # Unlike the other matrices, we don't set a matrix.os here. Instead,
         # specify the tag of the self-hosted runner (and of the testapps to run),
         # and the OS that the testapps were built on originally.
-        - runner_tag: macosarm-selfhosted
+        - runner_tag: '${{ needs.check_and_prepare.outputs.runner_tag_mac_arm64}}'
           # Only run the steps if build_os was included in the list of target OSes.
           build_os: macos-latest
     steps:
