@@ -372,7 +372,7 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           name: log-artifact
-          path: build-results-${{ steps.build_tests.outputs.artifact_name }}
+          path: build-results-${{ steps.build_tests.outputs.artifact_name }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Cleanup Local Copies of Uploaded Artifacts
         shell: bash
