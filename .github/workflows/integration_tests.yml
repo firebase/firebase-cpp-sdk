@@ -818,7 +818,6 @@ jobs:
         with:
           path: testapps
           name: testapps-desktop-${{ matrix.runner_label }}-${{ matrix.ssl_variant }}
-      - name: Setup Firestore Emulator
       - name: Create keychain (macOS)
         if: ${{ runner.os == 'macOS' && contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         shell: bash
