@@ -782,7 +782,6 @@ jobs:
         contains(needs.check_and_prepare.outputs.matrix_os, 'macos-latest') &&
         contains(needs.check_and_prepare.outputs.matrix_platform, 'Desktop') &&
         needs.check_and_prepare.outputs.apis != '' &&
-        (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') &&
         !cancelled() &&
         !failure()
     strategy:
