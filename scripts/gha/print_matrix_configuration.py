@@ -121,7 +121,6 @@ PARAMETERS = {
         "os": ["ubuntu-latest"],
         "platform": ["Desktop"],
         "apis": "firestore",
-        "architecture_macos": ["x64"],
       },
 
       EXPANDED_KEY: {
