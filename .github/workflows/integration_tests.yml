@@ -358,7 +358,7 @@ jobs:
         run: |
           if [ ! -f build-results-${{ steps.build_tests.outputs.artifact_name }}.log.json ]; then
             # No summary was created, make a placeholder one.
-            echo "__SUMMARY_MISSING__" > ${{ steps.build_tests.outputs.artifact_name }}.log.json
+            echo "__SUMMARY_MISSING__" > build-results-${{ steps.build_tests.outputs.artifact_name }}.log.json
           fi
       - name: Upload Desktop integration tests artifact
         uses: actions/upload-artifact@v2.2.2
@@ -411,7 +411,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat build-results-${{ steps.build_tests.outputs.artifact_name }}
+          cat build-results-${{ steps.build_tests.outputs.artifact_name }}.log
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
