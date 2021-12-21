@@ -48,7 +48,7 @@ env:
   pythonVersion: '3.7'
   artifactRetentionDays: 2
   GITHUB_TOKEN: ${{ github.token }}
-  runnerTagMacArm64: 'macosarm-selfhosted'
+  runnerLabelMacArm64: 'macosarm-custom'
 
 jobs:
   check_and_prepare:
@@ -67,7 +67,7 @@ jobs:
       xcode_version: ${{ steps.matrix_config.outputs.xcode_version }}
       ios_device: ${{ steps.matrix_config.outputs.ios_device }}
       tvos_device: ${{ steps.matrix_config.outputs.tvos_device }}
-      runner_tag_mac_arm64: ${{ env.runnerTagMacArm64 }}
+      runner_label_mac_arm64: ${{ env.runnerLabelMacArm64 }}
     steps:
     ### Fail the workflow if the user does not have admin access to run the tests.
     - name: Check if user has permission to trigger tests
@@ -342,7 +342,7 @@ jobs:
           # Special handling for MacOS ARM build.
           artifact_os=${{ matrix.os }}
           if [[ "${{ matrix.os }}" == "macos-latest" && "${{ matrix.arch }}" == "arm64" ]]; then
-            artifact_os='${{ needs.check_and_prepare.outputs.runner_tag_mac_arm64 }}'
+            artifact_os='${{ needs.check_and_prepare.outputs.runner_label_mac_arm64 }}'
             additional_flags+=(--arch arm64)
           fi
           echo "::set-output name=artifact_name::desktop-${artifact_os}-${{ matrix.ssl_variant }}"
@@ -773,12 +773,12 @@ jobs:
             exit 1
           fi
 
-  # Run tests that depend on special self-hosted runners.
-  # For now, this is only ARM Mac builds.
-  test_desktop_special_runners:
-    name: test-desktop-self-hosted-${{ matrix.runner_tag }}-${{ matrix.ssl_variant }}
+  # Run tests that depend on custom (self-hosted) runners.
+  # For now, this is only used for ARM Mac builds.
+  test_desktop_custom_runners:
+    name: test-desktop-custom-${{ matrix.runner_label }}-${{ matrix.ssl_variant }}
     needs: [check_and_prepare, build_desktop]
-    runs-on: [self-hosted, '${{ matrix.runner_tag }}' ]
+    runs-on: [self-hosted, '${{ matrix.runner_label }}' ]
     # Unfortunately, we can't use matrix.build_os on the first contains() below.
     # If we ever have other self-hosted runner OSes, we'll need to expand it
     # to include other platforms.
@@ -794,9 +794,10 @@ jobs:
         ssl_variant: ${{ fromJson(needs.check_and_prepare.outputs.matrix_ssl) }}
         include:
         # Unlike the other matrices, we don't set a matrix.os here. Instead,
-        # specify the tag of the self-hosted runner (and of the testapps to run),
-        # and the OS that the testapps were built on originally.
-        - runner_tag: '${{ needs.check_and_prepare.outputs.runner_tag_mac_arm64 }}'
+        # specify the label for the self-hosted runner. This should be the
+        # same as the label used in the artifact name. Also specify the OS that
+        # the testapps were built on originally, and the architecture to run on.
+        - runner_label: '${{ needs.check_and_prepare.outputs.runner_label_mac_arm64 }}'
           # Only run the steps if build_os was included in the list of target OSes.
           build_os: macos-latest
           arch: arm64
@@ -816,7 +817,7 @@ jobs:
         uses: actions/download-artifact@v2.0.8
         with:
           path: testapps
-          name: testapps-desktop-${{ matrix.runner_tag }}-${{ matrix.ssl_variant }}
+          name: testapps-desktop-${{ matrix.runner_label }}-${{ matrix.ssl_variant }}
       - name: Run Desktop integration tests
         if: ${{ contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         shell: bash
@@ -841,7 +842,7 @@ jobs:
           # Restore google-services files.
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps
           set -x
-          ${cmd_prefix} python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.runner_tag }}-${{ matrix.ssl_variant }}"
+          ${cmd_prefix} python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.runner_label }}-${{ matrix.ssl_variant }}"
           set +x
           if [[ '${{ runner.os }}' == 'macOS' ]]; then
             # Remove the local keychain on Mac:
@@ -854,15 +855,15 @@ jobs:
         if: ${{ !cancelled() && contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         shell: bash
         run: |
-          if [ ! -f testapps/test-results-desktop-${{ matrix.runner_tag }}-${{ matrix.ssl_variant }}.log.json ]; then
-            mkdir -p testapps && echo "__SUMMARY_MISSING__" > testapps/test-results-desktop-${{ matrix.runner_tag }}-${{ matrix.ssl_variant }}.log.json
+          if [ ! -f testapps/test-results-desktop-${{ matrix.runner_label }}-${{ matrix.ssl_variant }}.log.json ]; then
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > testapps/test-results-desktop-${{ matrix.runner_label }}-${{ matrix.ssl_variant }}.log.json
           fi
       - name: Upload Desktop test results artifact
         if: ${{ !cancelled() && contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         uses: actions/upload-artifact@v2.2.2
         with:
           name: log-artifact
-          path: testapps/test-results-desktop-${{ matrix.runner_tag }}-${{ matrix.ssl_variant }}*
+          path: testapps/test-results-desktop-${{ matrix.runner_label }}-${{ matrix.ssl_variant }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() && contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
@@ -883,7 +884,7 @@ jobs:
         if: ${{ !cancelled() && contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         shell: bash
         run: |
-          cat testapps/test-results-desktop-${{ matrix.runner_tag }}-${{ matrix.ssl_variant }}.log
+          cat testapps/test-results-desktop-${{ matrix.runner_label }}-${{ matrix.ssl_variant }}.log
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
