@@ -799,6 +799,7 @@ jobs:
     steps:
       - name: Clean up previous run
         shell: bash
+        if: ${{ contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         run: |
           echo "Cleaning up previous run"
           rm -rf "${{ github.workspace }}"
