@@ -20,7 +20,7 @@
 #include "admob/src/common/admob_common.h"
 #include "admob/src/include/firebase/admob/native_express_ad_view.h"
 #include "app/src/include/firebase/future.h"
-#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/mutex.h"
 
 namespace firebase {
 namespace admob {

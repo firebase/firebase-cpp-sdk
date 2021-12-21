@@ -88,7 +88,9 @@ target_include_directories(firebase_admob
     ${CMAKE_CURRENT_LIST_DIR}/src/include
   PRIVATE
     ${FIREBASE_CPP_SDK_ROOT_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}/admob_resources/ios_headers
 )
+
 target_compile_definitions(firebase_admob
   PRIVATE
     -DINTERNAL_EXPERIMENTAL=1
@@ -109,16 +111,6 @@ elseif(IOS)
                          PUBLIC "-fobjc-arc" "-fembed-bitcode")
   target_link_libraries(firebase_admob
                         PUBLIC "-fembed-bitcode")
-
-  setup_pod_headers(
-    firebase_admob
-    POD_NAMES
-      Google-Mobile-Ads-SDK
-  )
-
-  # AdMob expects the header files to be in a subfolder, so set up a symlink to
-  # accomplish that.
-  symlink_pod_headers(firebase_admob Google-Mobile-Ads-SDK GoogleMobileAds)
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
     set_target_properties(firebase_admob PROPERTIES

@@ -18,8 +18,8 @@
 
 #include "admob/src/include/firebase/admob/rewarded_video.h"
 #include "app/src/include/firebase/future.h"
-#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/internal/platform.h"
+#include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 
 #if FIREBASE_PLATFORM_ANDROID
