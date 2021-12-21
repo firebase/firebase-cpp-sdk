@@ -67,7 +67,6 @@ jobs:
       xcode_version: ${{ steps.matrix_config.outputs.xcode_version }}
       ios_device: ${{ steps.matrix_config.outputs.ios_device }}
       tvos_device: ${{ steps.matrix_config.outputs.tvos_device }}
-      runner_tag_mac_arm: ${{ steps.matrix_config.outputs.runner_tag_mac_arm }}
   steps:
     ### Fail the workflow if the user does not have admin access to run the tests.
     - name: Check if user has permission to trigger tests
@@ -343,7 +342,7 @@ jobs:
           # Special handling for MacOS ARM build.
           artifact_os=${{ matrix.os }}
           if [[ "${{ matrix.os }}" == "macos-latest" && "${{ matrix.arch }}" == "arm64" ]]; then
-            artifact_os='${{ needs.check_and_prepare.outputs.runner_tag_mac_arm }}'
+            artifact_os='${{ env.runnerTagMacArm }}'
             additional_flags+=(--arch arm64)
           fi
           echo "::set-output name=artifact_name::desktop-${artifact_os}-${{ matrix.ssl_variant }}"
@@ -797,7 +796,7 @@ jobs:
         # Unlike the other matrices, we don't set a matrix.os here. Instead,
         # specify the tag of the self-hosted runner (and of the testapps to run),
         # and the OS that the testapps were built on originally.
-        - runner_tag: '${{ needs.check_and_prepare.outputs.runner_tag_mac_arm }}'
+        - runner_tag: macosarm-selfhosted
           # Only run the steps if build_os was included in the list of target OSes.
           build_os: macos-latest
     steps:
