@@ -48,6 +48,10 @@ env:
   pythonVersion: '3.7'
   artifactRetentionDays: 2
   GITHUB_TOKEN: ${{ github.token }}
+  # All self-hosted ARM Mac runners should have this label. Due to how
+  # our custom reporting works, it must be exactly two words separated
+  # by a hyphen, and the second word will be omitted from the summary
+  # log.
   runnerLabelMacArm64: 'macosarm-custom'
 
 jobs:
@@ -67,6 +71,7 @@ jobs:
       xcode_version: ${{ steps.matrix_config.outputs.xcode_version }}
       ios_device: ${{ steps.matrix_config.outputs.ios_device }}
       tvos_device: ${{ steps.matrix_config.outputs.tvos_device }}
+      # Copy the runner label here because matrix specifiers cannot see env.
       runner_label_mac_arm64: ${{ env.runnerLabelMacArm64 }}
     steps:
     ### Fail the workflow if the user does not have admin access to run the tests.
@@ -795,12 +800,11 @@ jobs:
         include:
         # Unlike the other matrices, we don't set a matrix.os here. Instead,
         # specify the label for the self-hosted runner. This should be the
-        # same as the label used in the artifact name. Also specify the OS that
-        # the testapps were built on originally, and the architecture to run on.
+        # same as the label used in the artifact name in build_desktop above.
         - runner_label: '${{ needs.check_and_prepare.outputs.runner_label_mac_arm64 }}'
-          # Only run the steps if build_os was included in the list of target OSes.
+          # Also specify the OS that the testapps were built on originally.
+          # (We won't run any tests unless that OS was included in the build matrix.)
           build_os: macos-latest
-          arch: arm64
     steps:
       - name: Clean up previous run
         shell: bash
@@ -818,6 +822,8 @@ jobs:
         with:
           path: testapps
           name: testapps-desktop-${{ matrix.runner_label }}-${{ matrix.ssl_variant }}
+      # Omit all of the prerequisites steps; we ensure that our self-hosted runners
+      # are configured with all prereqs already installed.
       - name: Create keychain (macOS)
         if: ${{ runner.os == 'macOS' && contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         shell: bash
@@ -843,9 +849,9 @@ jobs:
         if: ${{ contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         shell: bash
         run: |
-          if [[ '${{ runner.os }}' == 'macOS' ]]; then
-            # Use arch -arm64 prefix to ensure running on arm64.
-            cmd_prefix='arch -${{ matrix.arch }}'
+          if [[ '${{ matrix.runner_label }}' == '${{ needs.check_and_prepare.outputs.runner_label_mac_arm64 }}' ]]; then
+            # Mac ARM64 only: Use arch -arm64 prefix to ensure that the app is running on arm64.
+            cmd_prefix='arch -arm64'
           fi
           set -x
           ${cmd_prefix} firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.runner_label }}-${{ matrix.ssl_variant }}"'
