@@ -772,12 +772,15 @@ jobs:
           fi
 
   test_desktop_macos_arm:
-    name: test-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+    name: test-desktop-${{ matrix.runner_tag }}-${{ matrix.ssl_variant }}
     needs: [check_and_prepare, build_desktop]
-    runs-on: [self-hosted, '${{ matrix.os }}' ]
+    runs-on: [self-hosted, '${{ matrix.runner_tag }}' ]
     if: |
         contains(needs.check_and_prepare.outputs.matrix_platform, 'Desktop') &&
-        contains(needs.check_and_prepare.outputs.matrix_os, job.strategy.matrix.build_os) &&
+        # Unfortunately, we can't use matrix.build_os on the following contains().
+        # If we ever have other self-hosted runner OSes, we'll need to expand it
+        # to include other platforms.
+        contains(needs.check_and_prepare.outputs.matrix_os, 'macos-latest') &&
         github.event_name == 'workflow_dispatch' &&
         needs.check_and_prepare.outputs.apis != '' &&
         !cancelled() &&
@@ -787,51 +790,56 @@ jobs:
       matrix:
         ssl_variant: ${{ fromJson(needs.check_and_prepare.outputs.matrix_ssl) }}
         include:
-        - os: macosarm-selfhosted
+        # Unlike the other matrices, we don't set a matrix.os here. Instead,
+        # specify the tag of the self-hosted runner (and of the testapps to run),
+        # and the OS that the testapps were built on originally.
+        - runner_tag: macosarm-selfhosted
+          # Only run the steps if build_os was included in the list of target OSes.
           build_os: macos-latest
     steps:
-      - name: Clear directory
+      - name: Clean up previous run
         shell: bash
-        run: rm -rf firebase-cpp-sdk testapps
+        run: |
+          echo "Cleaning up previous run"
+          rm -rf "${{ github.workspace }}"
       - uses: actions/checkout@v2
+        if: ${{ contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download Desktop integration tests artifact
+        if: ${{ contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         uses: actions/download-artifact@v2.0.8
         with:
           path: testapps
-          name: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
-      - name: Restore google-services files
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 2
-          max_attempts: 3
-          shell: bash
-          command: python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps
+          name: testapps-desktop-${{ matrix.runner_tag }}-${{ matrix.ssl_variant }}
       - name: Run Desktop integration tests
-        run: arch -arm64 python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
-      - name: Prepare results summary artifact
-        if: ${{ !cancelled() }}
+        if: ${{ contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         shell: bash
         run: |
-          if [ ! -f testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json ]; then
-            mkdir -p testapps && echo "__SUMMARY_MISSING__" > testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json
+          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps
+          arch -arm64 python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.runner_tag }}-${{ matrix.ssl_variant }}"
+      - name: Prepare results summary artifact
+        if: ${{ !cancelled() && contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
+        shell: bash
+        run: |
+          if [ ! -f testapps/test-results-desktop-${{ matrix.runner_tag }}-${{ matrix.ssl_variant }}.log.json ]; then
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > testapps/test-results-desktop-${{ matrix.runner_tag }}-${{ matrix.ssl_variant }}.log.json
           fi
       - name: Upload Desktop test results artifact
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         uses: actions/upload-artifact@v2.2.2
         with:
           name: log-artifact
-          path: testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}*
+          path: testapps/test-results-desktop-${{ matrix.runner_tag }}-${{ matrix.ssl_variant }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
-        if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
+        if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() && contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         uses: actions/download-artifact@v2.0.8
         with:
           path: test_results
           name: log-artifact
       - name: Update PR label and comment
-        if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
+        if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() && contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
@@ -840,10 +848,10 @@ jobs:
             --commit ${{needs.check_and_prepare.outputs.github_ref}} \
             --run_id ${{github.run_id}}
       - name: Summarize test results
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         shell: bash
         run: |
-          cat testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
+          cat testapps/test-results-desktop-${{ matrix.runner_tag }}-${{ matrix.ssl_variant }}.log
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
