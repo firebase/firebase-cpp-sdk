@@ -799,7 +799,7 @@ jobs:
   test_desktop_custom_runners:
     name: test-desktop-custom-${{ matrix.runner_label }}-${{ matrix.ssl_variant }}
     needs: [check_and_prepare, build_desktop]
-    runs-on: [self-hosted, '${{ matrix.runner_label }}' ]
+    runs-on: [self-hosted, firebase-cpp, '${{ matrix.runner_label }}' ]
     # Unfortunately, we can't use matrix.build_os in the contains() expressions
     # below. If we ever have other self-hosted runner OSes, we'll need to modify
     # the 'if' here to include other platforms.
@@ -813,15 +813,17 @@ jobs:
       fail-fast: false
       matrix:
         ssl_variant: ${{ fromJson(needs.check_and_prepare.outputs.matrix_ssl) }}
+        build_os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
         include:
         # Unlike the other matrices, we don't set a matrix.os here. Instead,
         # specify the label for the self-hosted runner. This should be the
         # same as the label used in the artifact name in build_desktop above.
-        - runner_label: '${{ needs.check_and_prepare.outputs.runner_label_mac_arm64 }}'
-          # Also specify the OS that the testapps were built on originally.
-          # (We won't run any tests unless that OS was included in the build matrix.)
-          build_os: macos-latest
+        - build_os: macos-latest
+          runner_label: '${{ needs.check_and_prepare.outputs.runner_label_mac_arm64 }}'
         exclude:
+        # No custom tests for Linux or Windows ... for now.
+        - build_os: ubuntu-latest
+        - build_os: windows-latest
         # Until we support building openssl from source, we can't link to system
         # openssl when cross-compiling, so exclude openssl from mac arm64 testing.
         - build_os: macos-latest
