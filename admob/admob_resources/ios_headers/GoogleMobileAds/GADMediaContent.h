@@ -31,7 +31,7 @@
 
 @end
 
-@interface GADMediaContent (NativeAd)
+@interface GADMediaContent ( NativeAd )
 
 /// The main image to be displayed when the media content doesn't contain video. Only available to
 /// native ads.

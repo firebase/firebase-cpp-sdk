@@ -21,6 +21,7 @@
 
 #include <cstdarg>
 #include <cstddef>
+#include <vector>
 
 #include "admob/admob_resources.h"
 #include "admob/src/android/ad_request_converter.h"
@@ -32,7 +33,6 @@
 #include "admob/src/include/firebase/admob.h"
 #include "admob/src/include/firebase/admob/types.h"
 #include "app/src/assert.h"
-//#include "app/src/common.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/google_play_services/availability.h"
 #include "app/src/reference_counted_future_impl.h"

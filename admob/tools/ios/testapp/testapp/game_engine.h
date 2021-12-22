@@ -1,7 +1,7 @@
 //  Copyright © 2016 Google. All rights reserved.
 
-#ifndef GAME_ENGINE_H_
-#define GAME_ENGINE_H_
+#ifndef FIREBASE_ADMOB_TOOLS_IOS_TESTAPP_TESTAPP_GAME_ENGINE_H_
+#define FIREBASE_ADMOB_TOOLS_IOS_TESTAPP_TESTAPP_GAME_ENGINE_H_
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <OpenGLES/ES2/gl.h>
@@ -71,4 +71,4 @@ class GameEngine {
   GLfloat vertices_[kNumberOfButtons * 8];
 };
 
-#endif  // GAME_ENGINE_H_
+#endif  // FIREBASE_ADMOB_TOOLS_IOS_TESTAPP_TESTAPP_GAME_ENGINE_H_

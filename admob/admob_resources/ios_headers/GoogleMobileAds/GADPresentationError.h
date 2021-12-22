@@ -11,7 +11,6 @@
 /// Error codes in the Google Mobile Ads SDK domain that surface due to errors when attempting to
 /// present an ad.
 typedef NS_ENUM(NSInteger, GADPresentationErrorCode) {
-
   /// Ad isn't ready to be shown.
   GADPresentationErrorCodeAdNotReady = 15,
 

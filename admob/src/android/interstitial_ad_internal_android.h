@@ -41,7 +41,7 @@ namespace internal {
 
 class InterstitialAdInternalAndroid : public InterstitialAdInternal {
  public:
-  InterstitialAdInternalAndroid(InterstitialAd* base);
+  InterstitialAdInternalAndroid(InterstitialAd* base) explicit;
   ~InterstitialAdInternalAndroid() override;
 
   Future<void> Initialize(AdParent parent, const char* ad_unit_id) override;
