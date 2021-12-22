@@ -39,7 +39,7 @@ typedef void (^GADRewardedAdLoadCompletionHandler)(GADRequestError *_Nullable er
 @property(nonatomic, readonly, nonnull) NSString *adUnitID;
 
 /// Indicates whether the rewarded ad is ready to be presented.
-@property(nonatomic, readonly, getter=isReady) BOOL ready;
+@property(nonatomic, readonly, getter = isReady) BOOL ready;
 
 /// Information about the ad response that returned the current ad or an error. Nil until the first
 /// ad request succeeds or fails.
