@@ -821,6 +821,11 @@ jobs:
           # Also specify the OS that the testapps were built on originally.
           # (We won't run any tests unless that OS was included in the build matrix.)
           build_os: macos-latest
+        exclude:
+        # Until we support building openssl from source, we can't link to system
+        # openssl when cross-compiling, so exclude openssl from mac arm64 testing.
+        - build_os: macos-latest
+          ssl_variant: openssl
     steps:
       - name: Clean up previous run
         shell: bash
