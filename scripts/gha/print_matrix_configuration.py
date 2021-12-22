@@ -132,7 +132,7 @@ PARAMETERS = {
       }
     },
     "config": {
-      "apis": "auth", #admob,analytics,auth,database,dynamic_links,firestore,functions,installations,messaging,remote_config,storage",
+      "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,installations,messaging,remote_config,storage",
       "mobile_test_on": "real,virtual"
     }
   },
@@ -155,6 +155,7 @@ BUILD_CONFIGS = {
   "windows": ["ssl_lib", "build_type", "architecture_windows_linux", "msvc_runtime", "cpp_compiler_windows"],
   "ubuntu": ["ssl_lib", "build_type", "architecture_windows_linux", "cpp_compiler_linux"],
   "macos": ["ssl_lib", "architecture_macos", "xcode_version"],
+  "macosarm": ["ssl_lib", "architecture_macos", "xcode_version"],
   "android": ["os", "ndk_version", "build_tools", "platform_version", "android_device"],
   "ios": ["os", "xcode_version", "ios_device"],
   "tvos": ["os", "xcode_version", "tvos_device"]
