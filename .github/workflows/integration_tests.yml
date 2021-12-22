@@ -848,14 +848,16 @@ jobs:
           # Create a local keychain on Mac:
           # Clean up previous temp keychain, if any.
           security delete-keychain tmp-keychain 2> /dev/null || true
-          # Create temp keychain file.
-          security create-keychain -p '${{ secrets.TEST_SECRET }}' tmp-keychain
+          # Create temp keychain file and unlock it.
+          # (Avoid passing in -p on command line by using interactive mode.)
+          # Also set it to default settings so there is no unlock timeout.
+          security -i <<EOF
+          create-keychain -p ${{ secrets.TEST_SECRET }} tmp-keychain
+          set-keychain-settings tmp-keychain
+          unlock-keychain -p ${{ secrets.TEST_SECRET }} tmp-keychain
+          EOF
           # Change the keychain list to the temp keychain.
           security list-keychains -d user -s tmp-keychain
-          # Remove unlock timeout for temp keychain.
-          security set-keychain-settings tmp-keychain
-          # Unlock the keychain.
-          security unlock-keychain -p '${{ secrets.TEST_SECRET }}' tmp-keychain
       - name: Restore google-services files
         if: ${{ contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         shell: bash
@@ -880,7 +882,7 @@ jobs:
           # Remove the local keychain on Mac:
           # Set back to the default login keychain.
           security list-keychains -d user -s login.keychain
-          # Delete the keychain, if it exists.
+          # Delete the temp keychain, if it exists.
           security delete-keychain tmp-keychain || true
       - name: Prepare results summary artifact
         if: ${{ !cancelled() && contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
