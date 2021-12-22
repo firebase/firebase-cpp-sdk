@@ -1308,7 +1308,7 @@ jobs:
 
   summarize_results:
     name: "summarize-results"
-    needs: [check_and_prepare, test_desktop, test_android, test_ios, test_tvos]
+    needs: [check_and_prepare, test_desktop, test_desktop_custom_runners, test_android, test_ios, test_tvos]
     runs-on: ubuntu-latest
     if: ${{ !cancelled() }}
     steps:
