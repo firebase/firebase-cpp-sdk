@@ -806,8 +806,7 @@ jobs:
         contains(needs.check_and_prepare.outputs.matrix_os, 'macos-latest') &&
         contains(needs.check_and_prepare.outputs.matrix_arch_combined, 'arm64') &&
         needs.check_and_prepare.outputs.apis != '' &&
-        !cancelled() &&
-        !failure()
+        !cancelled()
     strategy:
       fail-fast: false
       matrix:
