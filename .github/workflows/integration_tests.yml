@@ -843,7 +843,6 @@ jobs:
         if: ${{ runner.os == 'macOS' && contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         shell: bash
         run: |
-          pwd
           echo "Creating temporary keychain"
           # Create a local keychain on Mac:
           # Clean up previous temp keychain, if any.
