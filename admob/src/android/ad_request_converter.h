@@ -65,7 +65,7 @@ class AdRequestConverter {
   /// Constructor.
   ///
   /// @param request The AdRequest struct to be converted into a Java AdRequest.
-  AdRequestConverter(AdRequest request) explicit;
+  explicit AdRequestConverter(AdRequest request);
 
   /// Destructor.
   ~AdRequestConverter();
