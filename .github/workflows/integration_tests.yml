@@ -221,7 +221,7 @@ jobs:
           --run_id ${{github.run_id}}
 
   build_desktop:
-    name: build-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}-${{ matrix.arch }}
+    name: build-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
     needs: [check_and_prepare]
     runs-on: ${{ matrix.os }}
     # Skip this if there is an empty matrix (which can happen if "auto" was set above).
