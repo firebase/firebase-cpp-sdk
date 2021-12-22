@@ -408,7 +408,7 @@ jobs:
         run: echo "CLOUDSDK_PYTHON=${{env.pythonLocation}}\python.exe" >> $GITHUB_ENV
       - name: Install Cloud SDK
         if: ${{ !cancelled() }}
-        uses: google-github-actions/setup-gcloud@master
+        uses: google-github-actions/setup-gcloud@main
       - name: Upload Desktop Artifacts to GCS
         shell: bash
         if: ${{ !cancelled() }}
@@ -1082,7 +1082,7 @@ jobs:
             --ci
       - name: Install Cloud SDK
         if: steps.get-device-type.outputs.device_type == 'real'
-        uses: google-github-actions/setup-gcloud@master
+        uses: google-github-actions/setup-gcloud@main
       - name: Run Android integration tests on Real Device via FTL
         timeout-minutes: 60
         if: steps.get-device-type.outputs.device_type == 'real'
@@ -1184,7 +1184,7 @@ jobs:
             --ci
       - name: Install Cloud SDK
         if: steps.get-device-type.outputs.device_type == 'real'
-        uses: google-github-actions/setup-gcloud@master
+        uses: google-github-actions/setup-gcloud@main
       - name: Run iOS integration tests on Real Device via FTL
         # max 3 retry and 10m timeout for each testapp, plus other steps
         timeout-minutes: 60
