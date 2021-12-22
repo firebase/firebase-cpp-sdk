@@ -847,7 +847,7 @@ jobs:
           echo "Creating temporary keychain"
           # Create a local keychain on Mac:
           # Clean up previous temp keychain, if any.
-          security delete-keychain tmp-keychain || true
+          security delete-keychain tmp-keychain 2> /dev/null || true
           # Create temp keychain file.
           security create-keychain -p '${{ secrets.TEST_SECRET }}' tmp-keychain
           # Change the keychain list to the temp keychain.
