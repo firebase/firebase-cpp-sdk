@@ -861,7 +861,10 @@ jobs:
       - name: Restore google-services files
         if: ${{ contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         shell: bash
-        run: python scripts/gha/restore_secrets.py --passphrase '${{ secrets.TEST_SECRET }}' --artifact testapps
+        run: |
+          python scripts/gha/restore_secrets.py --passphrase_file=- --artifact testapps <<EOF
+          ${{ secrets.TEST_SECRET }}
+          EOF
       - name: Run Desktop integration tests
         if: ${{ contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         shell: bash
