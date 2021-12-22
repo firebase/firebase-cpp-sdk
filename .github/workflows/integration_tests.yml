@@ -421,7 +421,6 @@ jobs:
         shell: bash
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         run: |
-          pushd ${{env.GCS_UPLOAD_DIR}}
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
             --issue_number ${{needs.check_and_prepare.outputs.pr_number}}\
