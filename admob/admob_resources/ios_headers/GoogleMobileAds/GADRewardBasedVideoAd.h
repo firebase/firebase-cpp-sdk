@@ -25,7 +25,7 @@ GAD_DEPRECATED_MSG_ATTRIBUTE(
 @property(nonatomic, weak, nullable) id<GADRewardBasedVideoAdDelegate> delegate;
 
 /// Indicates whether the receiver is ready to be presented full screen.
-@property(nonatomic, readonly, getter = isReady) BOOL ready;
+@property(nonatomic, readonly, getter=isReady) BOOL ready;
 
 /// The ad network class name that fetched the current ad. Returns nil while the latest ad request
 /// is in progress or if the latest ad request failed. For both standard and mediated Google AdMob

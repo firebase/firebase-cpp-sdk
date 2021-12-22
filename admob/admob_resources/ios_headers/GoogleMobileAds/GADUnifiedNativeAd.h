@@ -72,7 +72,7 @@
 @property(nonatomic, nullable, copy) GADPaidEventHandler paidEventHandler;
 
 /// Indicates whether custom Mute This Ad is available for the native ad.
-@property(nonatomic, readonly, getter = isCustomMuteThisAdAvailable) BOOL customMuteThisAdAvailable;
+@property(nonatomic, readonly, getter=isCustomMuteThisAdAvailable) BOOL customMuteThisAdAvailable;
 
 /// An array of Mute This Ad reasons used to render customized mute ad survey. Use this array to
 /// implement your own Mute This Ad feature only when customMuteThisAdAvailable is YES.

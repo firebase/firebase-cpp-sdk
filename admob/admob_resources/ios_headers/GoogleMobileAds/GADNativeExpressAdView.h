@@ -54,7 +54,7 @@ GAD_DEPRECATED_ATTRIBUTE
 
 /// A Boolean value that determines whether autoloading of ads in the receiver is enabled. If
 /// enabled, you do not need to call the loadRequest: method to load ads.
-@property(nonatomic, assign, getter = isAutoloadEnabled) IBInspectable BOOL autoloadEnabled;
+@property(nonatomic, assign, getter=isAutoloadEnabled) IBInspectable BOOL autoloadEnabled;
 
 /// Sets options that configure ad loading.
 ///
