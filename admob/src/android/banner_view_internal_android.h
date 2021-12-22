@@ -48,7 +48,7 @@ namespace internal {
 
 class BannerViewInternalAndroid : public BannerViewInternal {
  public:
-  BannerViewInternalAndroid(BannerView* base) explicit;
+  explicit BannerViewInternalAndroid(BannerView* base);
   ~BannerViewInternalAndroid() override;
 
   Future<void> Initialize(AdParent parent, const char* ad_unit_id,

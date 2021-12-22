@@ -49,7 +49,7 @@ namespace internal {
 
 class NativeExpressAdViewInternalAndroid : public NativeExpressAdViewInternal {
  public:
-  NativeExpressAdViewInternalAndroid(NativeExpressAdView* base) explicit;
+  explicit NativeExpressAdViewInternalAndroid(NativeExpressAdView* base);
   ~NativeExpressAdViewInternalAndroid() override;
 
   Future<void> Initialize(AdParent parent, const char* ad_unit_id,
