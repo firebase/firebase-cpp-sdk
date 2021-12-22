@@ -797,7 +797,7 @@ jobs:
   # Run tests that depend on custom (self-hosted) runners.
   # For now, this is only used for ARM Mac builds.
   test_desktop_custom_runners:
-    name: test-desktop-custom-${{ matrix.runner_label }}-${{ matrix.ssl_variant }}
+    name: test-desktop-selfhosted-${{ matrix.runner_label }}-${{ matrix.ssl_variant }}
     needs: [check_and_prepare, build_desktop]
     runs-on: [self-hosted, firebase-cpp, '${{ matrix.runner_label }}' ]
     # Unfortunately, we can't use matrix.build_os in the contains() expressions
