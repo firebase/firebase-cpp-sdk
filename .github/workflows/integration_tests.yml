@@ -975,6 +975,7 @@ jobs:
     steps:
       - name: set artifact name
         id: set_name
+        run: |
           if [[ "${{ matrix.arch }}" == "x86" ]]; then
             artifact_os=""
             echo "::set-output name=artifact_os::$(echo ${{matrix.os}} | sed s/-/32-/)"
