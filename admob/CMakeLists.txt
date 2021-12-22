@@ -88,8 +88,14 @@ target_include_directories(firebase_admob
     ${CMAKE_CURRENT_LIST_DIR}/src/include
   PRIVATE
     ${FIREBASE_CPP_SDK_ROOT_DIR}
-    ${CMAKE_CURRENT_LIST_DIR}/admob_resources/ios_headers
 )
+
+if(IOS)
+  target_include_directories(firebase_admob
+    PRIVATE
+      ${CMAKE_CURRENT_LIST_DIR}/admob_resources/ios_headers
+  )
+endif()
 
 target_compile_definitions(firebase_admob
   PRIVATE
