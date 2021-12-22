@@ -107,7 +107,7 @@ _DESKTOP = "Desktop"
 _SUPPORTED_PLATFORMS = (_ANDROID, _IOS, _TVOS, _DESKTOP)
 
 # Architecture
-_SUPPORTED_ARCHITECTURES = ("x64", "arm64")  # TODO: add x86
+_SUPPORTED_ARCHITECTURES = ("x64", "x86", "arm64")
 
 # Values for iOS SDK flag (where the iOS app will run)
 _APPLE_SDK_DEVICE = "real"
@@ -451,7 +451,7 @@ def _build_desktop(sdk_dir, cmake_flags):
   cmake_configure_cmd = ["cmake", ".", "-DCMAKE_BUILD_TYPE=Debug",
                                        "-DFIREBASE_CPP_SDK_DIR=" + sdk_dir]
   if utils.is_windows_os():
-    cmake_configure_cmd += ["-A", "x64"]
+    cmake_configure_cmd += ["-A", FLAGS.arch]  # x64 or x86
   elif utils.is_mac_os():
     # Ensure that correct Mac architecture is built.
     cmake_configure_cmd += ["-DCMAKE_OSX_ARCHITECTURES=%s" %

@@ -128,6 +128,7 @@ PARAMETERS = {
         "android_device": ["android_target", "android_latest", "emulator_target", "emulator_latest", "emulator_32bit"],
         "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"],
         "tvos_device": ["tvos_simulator"],
+        "architecture_windows_linux": ["x64", "x86"],
         "architecture_macos": ["x64", "arm64"]
       }
     },

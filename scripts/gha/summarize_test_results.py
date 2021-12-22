@@ -78,6 +78,8 @@ CAPITALIZATIONS = {
     "macosarm": "MacOS-ARM",
     "ubuntu": "Linux",
     "windows": "Windows",
+    "windows32": "Windows-x86",
+    "ubuntu32": "Linux-x86",
     "ios": "iOS",
     "tvos": "tvOS",
     "android": "Android",
