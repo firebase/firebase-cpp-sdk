@@ -855,7 +855,7 @@ jobs:
           # Remove unlock timeout for temp keychain.
           security set-keychain-settings tmp-keychain
           # Unlock the keychain.
-          security unlock-keychain '${{ secrets.TEST_SECRET }}' tmp-keychain
+          security unlock-keychain -p '${{ secrets.TEST_SECRET }}' tmp-keychain
       - name: Restore google-services files
         if: ${{ contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         shell: bash
