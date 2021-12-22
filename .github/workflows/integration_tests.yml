@@ -890,7 +890,7 @@ jobs:
         env:
           USE_FIRESTORE_EMULATOR: true
       - name: Delete keychain (macOS)
-        if: ${{ runner.os == 'macOS' && contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
+        if: ${{ always() && runner.os == 'macOS' && contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         shell: bash
         run: |
           # Remove the local keychain on Mac:
