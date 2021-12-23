@@ -205,6 +205,10 @@ flags.DEFINE_bool(
     "Use short directory names for output paths. Useful to avoid hitting file "
     "path limits on Windows.")
 
+flags.DEFINE_bool(
+    "gha_build", False,
+    "Set to true if this is a GitHub actions build.")
+
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
@@ -247,7 +251,10 @@ def main(argv):
   if _DESKTOP in platforms and not FLAGS.packaged_sdk:
     vcpkg_arch = FLAGS.arch
     installer = os.path.join(repo_dir, "scripts", "gha", "build_desktop.py")
-    _run([sys.executable, installer, "--vcpkg_step_only", "--arch", vcpkg_arch])
+    # --gha_build may be required to enable x86 Linux GitHub workarounds.
+    additional_flags = ["--gha_build"] if FLAGS.gha_build else []
+    _run([sys.executable, installer, "--vcpkg_step_only", "--arch", vcpkg_arch]
+         + additional_flags)
     toolchain_file = os.path.join(
         repo_dir, "external", "vcpkg", "scripts", "buildsystems", "vcpkg.cmake")
     if utils.is_mac_os() and FLAGS.arch == "arm64":
