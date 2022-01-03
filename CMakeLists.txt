@@ -597,7 +597,7 @@ else()
 endif()
 
 if (FIREBASE_INCLUDE_ADMOB)
-  # add_subdirectory(admob)
+  add_subdirectory(admob)
 endif()
 if (FIREBASE_INCLUDE_ANALYTICS)
   add_subdirectory(analytics)

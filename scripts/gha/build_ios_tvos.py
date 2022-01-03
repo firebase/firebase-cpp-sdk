@@ -46,10 +46,9 @@ import utils
 
 
 # Configuration for supported os's, and platforms.
-# TODO(drsanta): add firebase_admob back into supported_targets
 CONFIG = {
   'ios': {
-    'supported_targets' : ('firebase_analytics',
+    'supported_targets' : ('firebase_admob', 'firebase_analytics',
                            'firebase_auth', 'firebase_database',
                            'firebase_dynamic_links', 'firebase_firestore',
                            'firebase_functions', 'firebase_gma',
@@ -588,8 +587,7 @@ def parse_cmdline_args():
     default=('arm64', 'armv7', 'x86_64', 'i386'),
     help='List of architectures to build for.')
   parser.add_argument('-t', '--target', nargs='+',
-  # TODO(drsanta): add firebase_admob back in.
-    default=( 'firebase_analytics',
+    default=( 'firebase_admob', 'firebase_analytics',
               'firebase_auth', 'firebase_database',
               'firebase_dynamic_links', 'firebase_firestore',
               'firebase_functions', 'firebase_gma',

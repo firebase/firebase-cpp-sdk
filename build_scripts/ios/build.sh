@@ -27,8 +27,7 @@ readonly SUPPORTED_PLATFORMS=(device simulator)
 readonly SUPPORTED_ARCHITECTURES=(arm64 armv7 x86_64 i386)
 readonly DEVICE_ARCHITECTURES=(arm64 armv7)
 readonly SIMULATOR_ARCHITECTURES=(arm64 x86_64 i386)
-#TODO(drsanta) add firebase_admob back in.
-readonly SUPPORTED_TARGETS=(firebase_analytics firebase_auth firebase_database firebase_dynamic_links firebase_firestore firebase_functions firebase_gma firebase_installations firebase_messaging firebase_remote_config firebase_storage)
+readonly SUPPORTED_TARGETS=(firebase_admob firebase_analytics firebase_auth firebase_database firebase_dynamic_links firebase_firestore firebase_functions firebase_gma firebase_installations firebase_messaging firebase_remote_config firebase_storage)
 
 # build default value
 buildpath="ios_build"
