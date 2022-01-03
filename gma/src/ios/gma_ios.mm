@@ -230,6 +230,10 @@ RequestConfiguration GetRequestConfiguration() {
   return request_configuration;
 }
 
+void OpenAdInspector(AdInspectorClosedListener* listener) { }
+
+void OpenDebugMenu(const char* ad_unit_id) { }
+
 Future<AdapterInitializationStatus> InitializeLastResult() {
   MutexLock lock(g_future_impl_mutex);
   return g_future_impl ? static_cast<const Future<AdapterInitializationStatus>&>(

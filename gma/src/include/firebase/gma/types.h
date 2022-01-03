@@ -287,6 +287,15 @@ class AdapterInitializationStatus {
   std::map<std::string, AdapterStatus> adapter_status_map_;
 };
 
+/// Listener to be invoked when the Ad Inspector has been closed.
+class AdInspectorClosedListener {
+ public:
+  virtual ~AdInspectorClosedListener();
+
+  /// Called when the user clicked the ad.
+  virtual void OnAdInspectorClosed() { }
+};
+
 /// @brief Response information for an individual ad network contained within
 /// a @ref ResponseInfo object.
 class AdapterResponseInfo {

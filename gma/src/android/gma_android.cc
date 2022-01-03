@@ -595,6 +595,15 @@ RequestConfiguration GetRequestConfiguration() {
   return request_configuration;
 }
 
+void OpenAdInspector(AdInspectorClosedListener* listener) {
+  
+}
+
+void OpenDebugMenu(const char* ad_unit_id) {
+  // This is a no-op on Android.
+}
+
+
 // Release classes registered by this module.
 void ReleaseClasses(JNIEnv* env) {
   mobile_ads::ReleaseClass(env);
