@@ -224,10 +224,5 @@ add_subdirectory(${FIREBASE_CPP_SDK_DIR} bin/ EXCLUDE_FROM_ALL)
 set(firebase_libs firebase_gma firebase_app)
 set(gtest_libs gtest gmock)
 
-set_property(GLOBAL PROPERTY JOB_POOLS one_job=1)
-set_property(TARGET ${integration_test_target_name} PROPERTY JOB_POOL_COMPILE one_job)
-set_property(TARGET ${integration_test_target_name} PROPERTY JOB_POOL_LINK one_job)
-set(CTEST_BUILD_FLAGS -j1)
-set(ctest_test_args ${ctest_test_args} PARALLEL_LEVEL 1)
 target_link_libraries(${integration_test_target_name} ${firebase_libs}
   ${gtest_libs} ${ADDITIONAL_LIBS})
