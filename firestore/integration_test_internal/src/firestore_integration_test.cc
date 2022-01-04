@@ -1,4 +1,18 @@
-// Copyright 2021 Google LLC
+/*
+ * Copyright 2021 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "firestore_integration_test.h"
 
@@ -110,6 +124,11 @@ FirestoreIntegrationTest::FirestoreIntegrationTest() {
 
 Firestore* FirestoreIntegrationTest::TestFirestore(
     const std::string& name) const {
+  return TestFirestoreWithProjectId(name, /*project_id=*/"");
+}
+
+Firestore* FirestoreIntegrationTest::TestFirestoreWithProjectId(
+    const std::string& name, const std::string& project_id) const {
   for (const auto& entry : firestores_) {
     const FirestoreInfo& firestore_info = entry.second;
     if (firestore_info.name() == name) {
@@ -117,7 +136,7 @@ Firestore* FirestoreIntegrationTest::TestFirestore(
     }
   }
 
-  App* app = GetApp(name.c_str());
+  App* app = GetApp(name.c_str(), project_id);
   if (apps_.find(app) == apps_.end()) {
     apps_[app] = std::unique_ptr<App>(app);
   }

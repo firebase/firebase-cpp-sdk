@@ -1,4 +1,18 @@
-// Copyright 2020 Google LLC
+/*
+ * Copyright 2020 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "firestore/src/android/field_value_android.h"
 
@@ -11,6 +25,7 @@
 #include "firestore/src/jni/array_list.h"
 #include "firestore/src/jni/boolean.h"
 #include "firestore/src/jni/class.h"
+#include "firestore/src/jni/compare.h"
 #include "firestore/src/jni/double.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/hash_map.h"
@@ -370,8 +385,7 @@ FieldValue FieldValueInternal::DoubleIncrement(double by_value) {
 }
 
 bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs) {
-  Env env = FieldValueInternal::GetEnv();
-  return Object::Equals(env, lhs.object_, rhs.object_);
+  return jni::EqualityCompareJni(lhs, rhs);
 }
 
 template <typename T>

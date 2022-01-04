@@ -8,6 +8,7 @@ iOS, and desktop platforms. It includes the following Firebase libraries:
 - [Firebase Authentication](https://firebase.google.com/docs/auth/)
 - [Firebase Realtime Database](https://firebase.google.com/docs/database/)
 - [Firebase Dynamic Links](https://firebase.google.com/docs/dynamic-links/)
+- [Cloud Firestore](https://firebase.google.com/docs/firestore/)
 - [Cloud Functions for Firebase](https://firebase.google.com/docs/functions/)
 - [Firebase Invites](https://firebase.google.com/docs/invites/)
 - [Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging/)
@@ -27,7 +28,7 @@ Firebase C++ SDK can be found at <https://github.com/firebase/quickstart-cpp>.
 1. [Prerequisites](#prerequisites)
    1. [Prerequisites for Desktop](#prerequisites-for-desktop)
    1. [Prerequisites for Android](#prerequisites-for-android)
-   1. [Prerequisites for iOS](#prerequisites-for-ios)
+   1. [Prerequisites for iOS/tvOS](#prerequisites-for-iostvos)
 1. [Building](#building)
    1. [Building with CMake](#building-with-cmake)
       1. [Building with CMake for iOS](#building-with-cmake-for-ios)
@@ -50,8 +51,8 @@ git clone https://github.com/firebase/firebase-cpp-sdk.git
 The following prerequisites are required for all platforms.  Be sure to add any
 directories to your PATH as needed.
 
-- [CMake](https://cmake.org/), version 3.1, or newer
-- [Python2](https://www.python.com/), version of 2.7, or newer
+- [CMake](https://cmake.org/), version 3.7, or newer
+- [Python](https://www.python.com/), version of 3.7, or newer
 - [Abseil-py](https://github.com/abseil/abseil-py)
 
 Note: Once python is installed you can use the following commands to install
@@ -65,7 +66,7 @@ required packages:
 The following prerequisites are required when building the libraries for
 desktop platforms.
 
-- [OpenSSL](https://www.openssl.org/), needed for Realtime Database
+- [OpenSSL](https://www.openssl.org/), needed for Realtime Database and Cloud Firestore
 - [Protobuf](https://github.com/protocolbuffers/protobuf/blob/master/src/README.md),
   needed for Remote Config
 
@@ -96,7 +97,7 @@ Home brew can be used to install required dependencies:
 # https://github.com/protocolbuffers/protobuf/blob/master/kokoro/macos/prepare_build_macos_rc#L20
 ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 source $HOME/.rvm/scripts/rvm
-brew install cmake protobuf python2
+brew install cmake protobuf python3
 sudo chown -R $(whoami) /usr/local
 ```
 
@@ -117,8 +118,8 @@ Android.
 Note that we include the Gradle wrapper, which if used will acquire the
 necessary version of Gradle for you.
 
-### Prerequisites for iOS
-The following prerequisites are required when building the libraries for iOS.
+### Prerequisites for iOS/tvOS
+The following prerequisites are required when building the libraries for iOS or tvOS.
 - [Cocoapods](https://cocoapods.org/)
 
 ## Building
@@ -135,6 +136,7 @@ The CMake following targets are available to build and link with:
 | Firebase Authentication | firebase_auth |
 | Firebase Realtime Database | firebase_database |
 | Firebase Dynamic Links | firebase_dynamic_links |
+| Cloud Firestore | firebase_firestore |
 | Cloud Functions for Firebase | firebase_functions |
 | Firebase Invites | firebase_invites |
 | Firebase Cloud Messaging | firebase_messaging |
@@ -192,14 +194,39 @@ Currently, the third party libraries that can be provided this way are:
 The Firebase C++ SDK comes with a CMake config file to build the library for
 iOS platforms, [cmake/toolchains/ios.cmake](/cmake/toolchains/ios.cmake).  In
 order to build with it, when running the CMake configuration pass it in with
-the CMAKE_TOOLCHAIN_FILE definition.  For example, to build the Analytics
+the CMAKE_TOOLCHAIN_FILE definition.  For example, to build the Auth
 library for iOS, you could run the following commands:
 
 ``` bash
 mkdir ios_build && cd ios_build
 cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/ios.cmake ..
-cmake --build . --target firebase_analytics
+cmake --build . --target firebase_auth
 ```
+
+#### Building with CMake for tvOS
+The Firebase C++ SDK comes with a CMake config file to build the library for
+tvOS platforms, [cmake/toolchains/apple.toolchain.cmake](/cmake/toolchains/apple.toolchain.cmake).  In
+order to build with it, when running the CMake configuration pass it in with
+the CMAKE_TOOLCHAIN_FILE definition.  For example, to build the Auth
+library for tvOS, you could run the following commands:
+
+``` bash
+mkdir tvos_build && cd tvos_build
+cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/apple.toolchain.cmake -DPLATFORM=TVOS ..
+cmake --build . --target firebase_auth
+```
+
+#### Building XCFrameworks for both iOS and tvOS
+The Firebase C++ SDK comes with a helper Python script to build XCFrameworks
+that work for both iOS and tvOS. This is helpful as we can use the same
+deliverable for both iOS and tvOS targets in the same XCode project.
+
+``` bash
+# Install prereqs (like cocoapods)
+./build_scripts/tvos/install_prereqs.sh
+python scripts/gha/build_ios_tvos.py -s . -b ios_tvos_build
+```
+
 
 ### Building with Gradle for Android
 When building the Firebase C++ SDK for Android, gradle is used in combination
@@ -215,6 +242,7 @@ release version of each Firebase library is:
 | Firebase Authentication | :auth:assembleRelease |
 | Firebase Realtime Database | :database:assembleRelease |
 | Firebase Dynamic Links | :dynamic_links:assembleRelease |
+| Cloud Firestore | :firestore:assembleRelease |
 | Cloud Functions for Firebase | :functions:assembleRelease |
 | Firebase Invites | :invites:assembleRelease |
 | Firebase Cloud Messaging | :messaging:assembleRelease |

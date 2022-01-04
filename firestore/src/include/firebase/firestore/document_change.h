@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google
+ * Copyright 2018 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -173,6 +173,11 @@ class DocumentChange {
   bool is_valid() const { return internal_ != nullptr; }
 
  private:
+  std::size_t Hash() const;
+
+  friend bool operator==(const DocumentChange& lhs, const DocumentChange& rhs);
+  friend std::size_t DocumentChangeHash(const DocumentChange& change);
+
   friend class FirestoreInternal;
   friend class Wrapper;
   friend struct ConverterImpl;
@@ -183,6 +188,14 @@ class DocumentChange {
 
   mutable DocumentChangeInternal* internal_ = nullptr;
 };
+
+/** Checks `lhs` and `rhs` for equality. */
+bool operator==(const DocumentChange& lhs, const DocumentChange& rhs);
+
+/** Checks `lhs` and `rhs` for inequality. */
+inline bool operator!=(const DocumentChange& lhs, const DocumentChange& rhs) {
+  return !(lhs == rhs);
+}
 
 }  // namespace firestore
 }  // namespace firebase

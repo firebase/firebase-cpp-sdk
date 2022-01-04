@@ -1,4 +1,18 @@
-// Copyright 2021 Google LLC
+/*
+ * Copyright 2021 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #ifndef FIREBASE_FIRESTORE_SRC_MAIN_QUERY_MAIN_H_
 #define FIREBASE_FIRESTORE_SRC_MAIN_QUERY_MAIN_H_
@@ -6,15 +20,21 @@
 #include <cstdint>
 #include <vector>
 
+#include "Firestore/Protos/nanopb/google/firestore/v1/document.nanopb.h"
 #include "Firestore/core/src/api/query_core.h"
 #include "Firestore/core/src/core/bound.h"
 #include "Firestore/core/src/core/order_by.h"
 #include "Firestore/core/src/core/query.h"
+#include "Firestore/core/src/nanopb/message.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/query.h"
 #include "firestore/src/main/firestore_main.h"
 #include "firestore/src/main/promise_factory_main.h"
 #include "firestore/src/main/user_data_converter_main.h"
+
+#if defined(__ANDROID__)
+#error "This header should not be used on Android."
+#endif
 
 namespace firebase {
 namespace firestore {
@@ -125,6 +145,8 @@ class QueryInternal {
     return WithBound(BoundPosition::kEndAt, values);
   }
 
+  size_t Hash() const { return query_.Hash(); }
+
   friend bool operator==(const QueryInternal& lhs, const QueryInternal& rhs);
 
  protected:
@@ -174,8 +196,9 @@ class QueryInternal {
   Query WithBound(BoundPosition bound_pos,
                   const std::vector<FieldValue>& values) const;
 
-  model::FieldValue ConvertDocumentId(const model::FieldValue& from,
-                                      const core::Query& internal_query) const;
+  nanopb::Message<google_firestore_v1_Value> ConvertDocumentId(
+      const nanopb::Message<google_firestore_v1_Value>& from,
+      const core::Query& internal_query) const;
 
   static bool IsBefore(BoundPosition bound_pos);
 

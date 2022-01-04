@@ -21,7 +21,6 @@ import java.util.Map;
 
 /** Fake FakeOAuthProvider */
 public final class OAuthProvider extends FederatedAuthProvider {
-
   public static AuthCredential getCredential(
       String providerId, String idToken, String accessToken) {
     return new AuthCredential(providerId);
@@ -37,7 +36,6 @@ public final class OAuthProvider extends FederatedAuthProvider {
 
   /** Class used to create instances of {@link OAuthProvider}. */
   public static class Builder {
-
     /* Fake constructor */
     private Builder() {}
 
@@ -91,7 +89,6 @@ public final class OAuthProvider extends FederatedAuthProvider {
 
   /** Builder class to initialize {@link AuthCredential}'s. */
   public static class CredentialBuilder {
-
     private final String providerId;
 
     /**

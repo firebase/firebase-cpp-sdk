@@ -1,4 +1,18 @@
-// Copyright 2021 Google LLC
+/*
+ * Copyright 2021 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "firestore/src/android/promise_android.h"
 
@@ -9,7 +23,7 @@
 #include "android/firestore_integration_test_android.h"
 #include "android/task_completion_source.h"
 #include "app/src/assert.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app_framework.h"
 #include "firebase/firestore/firestore_errors.h"
 #include "firebase_test_framework.h"
@@ -387,6 +401,24 @@ TEST_F(PromiseTest, FutureNonVoidShouldCallCompletionWhenTaskCancels) {
   EXPECT_EQ(completion.error_code(), Error::kErrorCancelled);
   EXPECT_EQ(completion.error_message(), "cancelled");
   EXPECT_EQ(completion.result(), nullptr);
+}
+
+TEST_F(PromiseTest, RegisterForTaskShouldNotCrashIfFirestoreWasDeleted) {
+  jni::Env env = GetEnv();
+  auto promise = promises().MakePromise<void>();
+  DeleteFirestore(TestFirestore());
+
+  promise.RegisterForTask(env, AsyncFn::kFn, GetTask());
+}
+
+TEST_F(PromiseTest, GetFutureShouldNotCrashIfFirestoreWasDeleted) {
+  jni::Env env = GetEnv();
+  auto promise = promises().MakePromise<void>();
+  promise.RegisterForTask(env, AsyncFn::kFn, GetTask());
+  DeleteFirestore(TestFirestore());
+
+  auto future = promise.GetFuture();
+  EXPECT_EQ(future.status(), FutureStatus::kFutureStatusInvalid);
 }
 
 }  // namespace

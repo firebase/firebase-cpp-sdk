@@ -12,6 +12,8 @@ on:
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
+  GITHUB_TOKEN: ${{ github.token }}
+  xcodeVersion: "12.4"  # Only affects Mac runners, and only for prerequisites.
 
 jobs:
   prepare_matrix:
@@ -45,6 +47,17 @@ jobs:
         architecture: ${{ fromJson(needs.prepare_matrix.outputs.matrix_architecture) }}
         python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
     steps:
+      - name: setup Xcode version (macos)
+        if: runner.os == 'macOS'
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+
+      - name: Store git credentials for all git commands
+        # Forces all git commands to use authenticated https, to prevent throttling.
+        shell: bash
+        run: |
+          git config --global credential.helper 'store --file /tmp/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
+
       - name: Check expanded matrix config
         if: github.event.inputs.expanded_matrix == '1'
         run: |
@@ -77,6 +90,17 @@ jobs:
         with:
           path: /tmp/android-ndk-r16b
           key: android-ndk-${{ matrix.os }}-r16b
+
+      - name: Check cached NDK
+        shell: bash
+        if: steps.cache_ndk.outputs.cache-hit != 'true'
+        run: |
+          # If the NDK failed to download from the cache, but there is a
+          # /tmp/android-ndk-r16b directory, it's incomplete, so remove it.
+          if [[ -d "/tmp/android-ndk-r16b" ]]; then
+            echo "Removing incomplete download of NDK"
+            rm -rf /tmp/android-ndk-r16b
+          fi
 
       - name: Update homebrew (avoid bintray errors)
         uses: nick-invision/retry@v2

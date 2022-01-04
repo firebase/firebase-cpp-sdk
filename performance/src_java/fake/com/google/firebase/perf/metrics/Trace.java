@@ -1,8 +1,8 @@
 package com.google.firebase.perf.metrics;
 
 import android.support.annotation.Keep;
-import androidx.annotation.Nullable;
 import android.util.Log;
+import androidx.annotation.Nullable;
 import com.google.firebase.perf.FirebasePerformanceAttributable;
 import com.google.firebase.testing.cppsdk.FakeReporter;
 import java.util.Date;
@@ -117,18 +117,14 @@ public class Trace implements FirebasePerformanceAttributable {
   public void putMetric(String metricName, long value) {
     FakeReporter.addReport("Trace.putMetric", metricName, Long.toString(value));
     if (!hasStarted()) {
-      Log.w(
-          LOG_TAG,
-          String.format(
-              "Cannot set value for metric '%s' for trace '%s' because it's not started",
+      Log.w(LOG_TAG,
+          String.format("Cannot set value for metric '%s' for trace '%s' because it's not started",
               metricName, name));
       return;
     }
     if (isStopped()) {
-      Log.w(
-          LOG_TAG,
-          String.format(
-              "Cannot set value for metric '%s' for trace '%s' because it's been stopped",
+      Log.w(LOG_TAG,
+          String.format("Cannot set value for metric '%s' for trace '%s' because it's been stopped",
               metricName, name));
       return;
     }
@@ -144,8 +140,7 @@ public class Trace implements FirebasePerformanceAttributable {
     try {
       // If trace is started but not stopped when it reaches finalize(), log a warning msg.
       if (isActive()) {
-        Log.w(
-            LOG_TAG,
+        Log.w(LOG_TAG,
             String.format("Trace '%s' is started but not stopped when it is destructed!", name));
       }
     } finally {
@@ -199,8 +194,7 @@ public class Trace implements FirebasePerformanceAttributable {
       attribute = attribute.trim();
       value = value.trim();
     } catch (Exception e) {
-      Log.e(
-          LOG_TAG,
+      Log.e(LOG_TAG,
           String.format(
               "Can not set attribute %s with value %s (%s)", attribute, value, e.getMessage()));
       noError = false;

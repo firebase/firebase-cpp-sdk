@@ -33,10 +33,8 @@
   testing::UnitTest* unit_test = testing::UnitTest::GetInstance();
   NSLog(@"Tests finished.\n  passed tests: %d\n  failed tests: %d\n"
          "  disabled tests: %d\n  total tests: %d",
-        unit_test->successful_test_count(),
-        unit_test->failed_test_count(),
-        unit_test->disabled_test_count(),
-        unit_test->total_test_count());
+        unit_test->successful_test_count(), unit_test->failed_test_count(),
+        unit_test->disabled_test_count(), unit_test->total_test_count());
 
   // Run test could succeed trivially if the test case is not linked.
   XCTAssertGreaterThan(unit_test->total_test_count(), 0);

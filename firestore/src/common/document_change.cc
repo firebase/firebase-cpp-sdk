@@ -1,11 +1,26 @@
-// Copyright 2020 Google LLC
+/*
+ * Copyright 2020 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "firestore/src/include/firebase/firestore/document_change.h"
 
 #include <utility>
 
-#include "app/src/assert.h"
 #include "firestore/src/common/cleanup.h"
+#include "firestore/src/common/hard_assert_common.h"
+#include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/document_change_android.h"
@@ -44,7 +59,7 @@ DocumentChange::DocumentChange(DocumentChange&& value) {
 
 DocumentChange::DocumentChange(DocumentChangeInternal* internal)
     : internal_(internal) {
-  FIREBASE_ASSERT(internal != nullptr);
+  SIMPLE_HARD_ASSERT(internal != nullptr);
   CleanupFnDocumentChange::Register(this, internal_);
 }
 
@@ -102,6 +117,15 @@ std::size_t DocumentChange::old_index() const {
 std::size_t DocumentChange::new_index() const {
   if (!internal_) return {};
   return internal_->new_index();
+}
+
+size_t DocumentChange::Hash() const {
+  if (!internal_) return {};
+  return internal_->Hash();
+}
+
+bool operator==(const DocumentChange& lhs, const DocumentChange& rhs) {
+  return EqualityCompare(lhs.internal_, rhs.internal_);
 }
 
 }  // namespace firestore

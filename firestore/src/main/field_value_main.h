@@ -1,13 +1,29 @@
-// Copyright 2021 Google LLC
+/*
+ * Copyright 2021 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #ifndef FIREBASE_FIRESTORE_SRC_MAIN_FIELD_VALUE_MAIN_H_
 #define FIREBASE_FIRESTORE_SRC_MAIN_FIELD_VALUE_MAIN_H_
 
 #include <cstdint>
 #include <string>
+#include <utility>
 #include <vector>
 
-#include "Firestore/core/src/model/field_value.h"
+#include "Firestore/Protos/nanopb/google/firestore/v1/document.nanopb.h"
+#include "Firestore/core/src/nanopb/message.h"
 #include "absl/types/variant.h"
 #include "app/src/assert.h"
 #include "firebase/firestore/geo_point.h"
@@ -16,12 +32,16 @@
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #include "firestore/src/main/firestore_main.h"
 
+#if defined(__ANDROID__)
+#error "This header should not be used on Android."
+#endif
+
 namespace firebase {
 namespace firestore {
 
 class FieldValueInternal {
  public:
-  FieldValueInternal() = default;
+  FieldValueInternal();
 
   explicit FieldValueInternal(bool value);
   explicit FieldValueInternal(int64_t value);
@@ -72,12 +92,22 @@ class FieldValueInternal {
   explicit FieldValueInternal(FieldValue::Type type, T value)
       : type_{type}, value_{std::move(value)} {}
 
+  /** Returns the underlying value as a google_firestore_v1_Value proto. */
+  const nanopb::SharedMessage<google_firestore_v1_Value>& GetProtoValue() const;
+
+  /** Returns the underlying value as a google_firestore_v1_Value proto. */
+  nanopb::SharedMessage<google_firestore_v1_Value>& GetProtoValue();
+
   FieldValue::Type type_ = FieldValue::Type::kNull;
   // Note: it's impossible to roundtrip between a `DocumentReference` and
-  // `model::FieldValue::reference_value`, because the latter omits some
+  // `google_firestore_v1_ReferenceValue`, because the latter omits some
   // information from the former (`shared_ptr` to the Firestore instance). For
   // that reason, just store the `DocumentReference` directly in the `variant`.
-  absl::variant<model::FieldValue, DocumentReference, ArrayT, MapT> value_;
+  absl::variant<nanopb::SharedMessage<google_firestore_v1_Value>,
+                DocumentReference,
+                ArrayT,
+                MapT>
+      value_ = nanopb::MakeSharedMessage<google_firestore_v1_Value>({});
 };
 
 bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs);

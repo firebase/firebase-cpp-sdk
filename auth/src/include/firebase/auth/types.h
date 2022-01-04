@@ -419,6 +419,14 @@ enum AuthError {
   /// IDP sign-in.
   kAuthErrorUserCancelled,
 
+  /// Indicates that a request was made to an unsupported backend endpoint in
+  /// passthrough mode.
+  kAuthErrorUnsupportedPassthroughOperation,
+
+  /// Indicates that a token refresh was requested, but neither a refresh token
+  /// nor a custom token provider is available.
+  kAuthErrorTokenRefreshUnavailable,
+
 #endif  // INTERNAL_EXEPERIMENTAL
 };
 

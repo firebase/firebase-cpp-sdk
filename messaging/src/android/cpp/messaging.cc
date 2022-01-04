@@ -31,9 +31,9 @@
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
-#include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util.h"
 #include "app/src/util_android.h"
@@ -630,6 +630,8 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener,
       pthread_create(&g_poll_thread, nullptr, MessageProcessingThread, nullptr);
   FIREBASE_ASSERT(result == 0);
 
+  FutureData::Create();
+
   if (g_registration_token_request_state !=
       kRegistrationTokenRequestStateNone) {
     // Calling this again, now that we're initialized.
@@ -646,8 +648,6 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener,
         g_delivery_metrics_export_to_big_query_state ==
         kDeliveryMetricsExportToBigQueryEnable);
   }
-
-  FutureData::Create();
 
   // Supposedly App creation also creates a registration token, but this seems
   // to happen before the C++ listeners are able to capture it.
@@ -677,6 +677,7 @@ void Terminate() {
   }
   internal::UnregisterTerminateOnDefaultAppDestroy();
   JNIEnv* env = g_app->GetJNIEnv();
+  util::CancelCallbacks(env, kApiIdentifier);
   // Dereference the app.
   {
     MutexLock lock(g_app_mutex);
@@ -704,8 +705,8 @@ void Terminate() {
   g_firebase_messaging = nullptr;
   SetListener(nullptr);
   ReleaseClasses(env);
-  FutureData::Destroy();
   util::Terminate(env);
+  FutureData::Destroy();
 }
 
 // Start a service which will communicate with the Firebase Cloud Messaging
@@ -713,21 +714,13 @@ void Terminate() {
 static void InstallationsGetToken() {
   FIREBASE_ASSERT_MESSAGE_RETURN_VOID(internal::IsInitialized(),
                                       kMessagingNotInitializedError);
-  JNIEnv* env = g_app->GetJNIEnv();
+  Future<std::string> result = GetToken();
 
-  // Intent intent = new Intent(this, RegistrationIntentService.class);
-  jobject new_intent = env->NewObject(
-      util::intent::GetClass(),
-      util::intent::GetMethodId(util::intent::kConstructor), g_app->activity(),
-      registration_intent_service::GetClass());
-
-  // startService(intent);
-  jobject component_name = env->CallObjectMethod(
-      g_app->activity(),
-      util::context::GetMethodId(util::context::kStartService), new_intent);
-  assert(env->ExceptionCheck() == false);
-  env->DeleteLocalRef(component_name);
-  env->DeleteLocalRef(new_intent);
+  result.OnCompletion(
+      [](const Future<std::string>& result, void* voidptr) {
+        NotifyListenerOnTokenReceived(result.result()->c_str());
+      },
+      nullptr);
 }
 
 static void SubscriptionUpdateComplete(JNIEnv* env, jobject result,

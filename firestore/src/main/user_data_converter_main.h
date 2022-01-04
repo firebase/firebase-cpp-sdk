@@ -1,18 +1,38 @@
-// Copyright 2021 Google LLC
+/*
+ * Copyright 2021 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #ifndef FIREBASE_FIRESTORE_SRC_MAIN_USER_DATA_CONVERTER_MAIN_H_
 #define FIREBASE_FIRESTORE_SRC_MAIN_USER_DATA_CONVERTER_MAIN_H_
 
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
+#include "Firestore/Protos/nanopb/google/firestore/v1/document.nanopb.h"
 #include "Firestore/core/src/model/database_id.h"
 #include "Firestore/core/src/model/field_path.h"
-#include "Firestore/core/src/model/field_value.h"
+#include "Firestore/core/src/nanopb/message.h"
 #include "absl/types/optional.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #include "firestore/src/include/firebase/firestore/map_field_value.h"
+
+#if defined(__ANDROID__)
+#error "This header should not be used on Android."
+#endif
 
 namespace firebase {
 namespace firestore {
@@ -49,8 +69,8 @@ class UserDataConverter {
    * Parse a "query value" (e.g. value in a where filter or a value in a cursor
    * bound).
    */
-  model::FieldValue ParseQueryValue(const FieldValue& input,
-                                    bool allow_arrays = false) const;
+  nanopb::Message<google_firestore_v1_Value> ParseQueryValue(
+      const FieldValue& input, bool allow_arrays = false) const;
 
  private:
   using UpdateDataInput =
@@ -59,7 +79,7 @@ class UserDataConverter {
   /** Parse document data from a merge `SetData` call. */
   core::ParsedSetData ParseMergeData(
       const MapFieldValue& input,
-      const absl::optional<std::vector<FieldPath>>& field_mask =
+      const absl::optional<std::unordered_set<FieldPath>>& field_mask =
           absl::nullopt) const;
 
   /**
@@ -68,12 +88,12 @@ class UserDataConverter {
    * the function in that case will be the side effect of modifying the given
    * `context`.
    */
-  absl::optional<model::FieldValue> ParseData(
+  absl::optional<nanopb::Message<google_firestore_v1_Value>> ParseData(
       const FieldValue& input, core::ParseContext&& context) const;
-  model::FieldValue::Array ParseArray(const std::vector<FieldValue>& input,
-                                      core::ParseContext&& context) const;
-  model::ObjectValue ParseMap(const MapFieldValue& input,
-                              core::ParseContext&& context) const;
+  nanopb::Message<google_firestore_v1_Value> ParseArray(
+      const std::vector<FieldValue>& input, core::ParseContext&& context) const;
+  nanopb::Message<google_firestore_v1_Value> ParseMap(
+      const MapFieldValue& input, core::ParseContext&& context) const;
 
   /**
    * "Parses" the provided sentinel `FieldValue`, adding any necessary
@@ -83,10 +103,10 @@ class UserDataConverter {
                      core::ParseContext&& context) const;
 
   /** Parses a scalar value (i.e. not a container or a sentinel). */
-  model::FieldValue ParseScalar(const FieldValue& input,
-                                core::ParseContext&& context) const;
+  nanopb::Message<google_firestore_v1_Value> ParseScalar(
+      const FieldValue& input, core::ParseContext&& context) const;
 
-  model::FieldValue::Array ParseArrayTransformElements(
+  nanopb::Message<google_firestore_v1_ArrayValue> ParseArrayTransformElements(
       const FieldValue& value) const;
 
   // Storing `FieldValue`s as pointers in `UpdateDataInput` avoids copying them.

@@ -1,4 +1,18 @@
-// Copyright 2021 Google LLC
+/*
+ * Copyright 2021 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #ifndef FIREBASE_FIRESTORE_INTEGRATION_TEST_INTERNAL_SRC_FIRESTORE_INTEGRATION_TEST_H_
 #define FIREBASE_FIRESTORE_INTEGRATION_TEST_INTERNAL_SRC_FIRESTORE_INTEGRATION_TEST_H_
@@ -15,7 +29,7 @@
 #include "app/meta/move.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/common.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app_framework.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "gtest/gtest.h"
@@ -38,7 +52,7 @@ FirestoreInternal* CreateTestFirestoreInternal(App* app);
 void InitializeFirestore(Firestore* instance);
 
 App* GetApp();
-App* GetApp(const char* name);
+App* GetApp(const char* name, const std::string& override_project_id);
 bool ProcessEvents(int msec);
 
 // Converts a Firestore error code to a human-friendly name. The `error_code`
@@ -189,6 +203,11 @@ class FirestoreIntegrationTest : public testing::Test {
   // from the cache by a call to `DeleteFirestore()` or `DisownFirestore()`, or
   // if `DeleteApp()` is called with the `App` of the returned `Firestore`.
   Firestore* TestFirestore(const std::string& name = kDefaultAppName) const;
+
+  // Returns a Firestore instance for an app with the given `name`, associated
+  // with the database with the given `project_id`.
+  Firestore* TestFirestoreWithProjectId(const std::string& name,
+                                        const std::string& project_id) const;
 
   // Deletes the given `Firestore` instance, which must have been returned by a
   // previous invocation of `TestFirestore()`, and removes it from the cache of

@@ -18,7 +18,6 @@ import android.os.Bundle;
 
 /** */
 public class RemoteMessageUtil {
-
   private RemoteMessageUtil() {} // Utility class.
 
   public static RemoteMessage remoteMessage(Bundle bundle) {

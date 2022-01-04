@@ -391,6 +391,7 @@ static const int kSimpleInt = 2;
 static const int kSimplePriority = 100;
 static const double kSimpleDouble = 3.4;
 static const bool kSimpleBool = true;
+static const double kLongDouble = 0.123456789876543;
 
 TEST_F(FirebaseDatabaseTest, TestSetAndGetSimpleValues) {
   const char* test_name = test_info_->name();
@@ -415,12 +416,15 @@ TEST_F(FirebaseDatabaseTest, TestSetAndGetSimpleValues) {
         ref.Child(test_name)
             .Child("IntAndPriority")
             .SetValueAndPriority(kSimpleInt, kSimplePriority);
+    firebase::Future<void> f7 =
+        ref.Child(test_name).Child("LongDouble").SetValue(kLongDouble);
     WaitForCompletion(f1, "SetSimpleString");
     WaitForCompletion(f2, "SetSimpleInt");
     WaitForCompletion(f3, "SetSimpleDouble");
     WaitForCompletion(f4, "SetSimpleBool");
     WaitForCompletion(f5, "SetSimpleTimestamp");
     WaitForCompletion(f6, "SetSimpleIntAndPriority");
+    WaitForCompletion(f7, "SetLongDouble");
   }
 
   // Get the values that we just set, and confirm that they match what we
@@ -439,12 +443,15 @@ TEST_F(FirebaseDatabaseTest, TestSetAndGetSimpleValues) {
         ref.Child(test_name).Child("Timestamp").GetValue();
     firebase::Future<firebase::database::DataSnapshot> f6 =
         ref.Child(test_name).Child("IntAndPriority").GetValue();
+    firebase::Future<firebase::database::DataSnapshot> f7 =
+        ref.Child(test_name).Child("LongDouble").GetValue();
     WaitForCompletion(f1, "GetSimpleString");
     WaitForCompletion(f2, "GetSimpleInt");
     WaitForCompletion(f3, "GetSimpleDouble");
     WaitForCompletion(f4, "GetSimpleBool");
     WaitForCompletion(f5, "GetSimpleTimestamp");
     WaitForCompletion(f6, "GetSimpleIntAndPriority");
+    WaitForCompletion(f7, "GetLongDouble");
 
     // Get the current time to compare to the Timestamp.
     int64_t current_time_milliseconds =
@@ -458,6 +465,7 @@ TEST_F(FirebaseDatabaseTest, TestSetAndGetSimpleValues) {
                 TimestampIsNear(current_time_milliseconds));
     EXPECT_EQ(f6.result()->value().AsInt64(), kSimpleInt);
     EXPECT_EQ(f6.result()->priority().AsInt64(), kSimplePriority);
+    EXPECT_EQ(f7.result()->value().AsDouble(), kLongDouble);
   }
 }
 
@@ -1266,9 +1274,17 @@ TEST_F(FirebaseDatabaseTest, TestInvalidatingReferencesWhenDeletingApp) {
 
 TEST_F(FirebaseDatabaseTest, TestInfoConnected) {
   SignIn();
+
+  // The entire test can be a bit flaky on iOS, as the iOS SDK's
+  // .info/connected is not quite perfect.
+#if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+  FLAKY_TEST_SECTION_BEGIN();
+#endif  // defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+
   firebase::database::DatabaseReference ref = CreateWorkingPath();
   // Force getting a value so that we are connected to the database.
   WaitForCompletion(ref.GetValue(), "GetValue 1 [ignored]");
+
   firebase::database::DatabaseReference info =
       database_->GetReference(".info").Child("connected");
   {
@@ -1299,6 +1315,10 @@ TEST_F(FirebaseDatabaseTest, TestInfoConnected) {
     WaitForCompletion(reconnected, "GetValue 5");
     EXPECT_EQ(reconnected.result()->value(), true);
   }
+
+#if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+  FLAKY_TEST_SECTION_END();
+#endif  // defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
 }
 
 TEST_F(FirebaseDatabaseTest, TestGetReferenceWillNullArgument) {

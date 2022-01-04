@@ -1,11 +1,25 @@
-// Copyright 2021 Google LLC
+/*
+ * Copyright 2021 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "firestore/src/include/firebase/firestore/settings.h"
 
 #include <dispatch/dispatch.h>
 
-#include "absl/memory/memory.h"
 #include "Firestore/core/src/util/executor_libdispatch.h"
+#include "absl/memory/memory.h"
 
 namespace firebase {
 namespace firestore {
@@ -21,7 +35,8 @@ using util::ExecutorLibdispatch;
 
 Settings::Settings()
     : host_(kDefaultHost),
-      executor_(Executor::CreateSerial("com.google.firebase.firestore.callback")) {}
+      executor_(
+          Executor::CreateSerial("com.google.firebase.firestore.callback")) {}
 
 std::unique_ptr<Executor> Settings::CreateExecutor() const {
   return absl::make_unique<ExecutorLibdispatch>(dispatch_queue());
@@ -31,7 +46,8 @@ dispatch_queue_t Settings::dispatch_queue() const {
   if (!executor_) {
     return dispatch_get_main_queue();
   }
-  auto* executor_libdispatch = static_cast<const ExecutorLibdispatch*>(executor_.get());
+  auto* executor_libdispatch =
+      static_cast<const ExecutorLibdispatch*>(executor_.get());
   return executor_libdispatch->dispatch_queue();
 }
 

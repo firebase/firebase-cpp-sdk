@@ -17,9 +17,9 @@
 
 #include <cstdint>
 
+#include "flatbuffers/idl.h"
 #include "testing/testdata_config_generated.h"
 #include "testing/testdata_config_resource.h"
-#include "flatbuffers/idl.h"
 
 #import <Foundation/Foundation.h>
 
@@ -38,8 +38,7 @@ void ConfigSet(const char* test_data_in_json) {
   NSCAssert(parser.Parse(test_data_in_json), @"Invalid JSON:%s", parser.error_.c_str());
 
   // Assign
-  internal::ConfigSetImpl(parser.builder_.GetBufferPointer(),
-                          parser.builder_.GetSize());
+  internal::ConfigSetImpl(parser.builder_.GetBufferPointer(), parser.builder_.GetSize());
 }
 
 void ConfigReset() { internal::ConfigSetImpl(nullptr, 0); }
@@ -60,8 +59,7 @@ const ConfigRow* ConfigGet(const char* fake) {
 }
 
 namespace internal {
-void ConfigSetImpl(const uint8_t* test_data_binary,
-                   flatbuffers::uoffset_t size) {
+void ConfigSetImpl(const uint8_t* test_data_binary, flatbuffers::uoffset_t size) {
   delete[] g_test_data_config;
   if (test_data_binary != nullptr && size > 0) {
     g_test_data_config = new uint8_t[size];

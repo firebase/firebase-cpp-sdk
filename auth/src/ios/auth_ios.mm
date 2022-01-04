@@ -17,14 +17,14 @@
 #import "FIRAdditionalUserInfo.h"
 #import "FIRAuthDataResult.h"
 #import "FIRAuthErrors.h"
-#import "FIROptions.h"
 #import "FIROAuthCredential.h"
+#import "FIROptions.h"
 
 #include "app/src/app_ios.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
-#include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_ios.h"
 #include "auth/src/ios/common_ios.h"
@@ -126,12 +126,10 @@ class ServiceUpdatedCredentialProvider {
  public:
   // Construct a Credential given a preexisting FIRAuthCredential wrapped by a
   // FIRAuthCredentialPointer.
-  static Credential GetCredential(FIRAuthCredentialPointer* impl) {
-    return Credential(impl);
-  }
+  static Credential GetCredential(FIRAuthCredentialPointer *impl) { return Credential(impl); }
 };
 
-template<typename T>
+template <typename T>
 struct ListenerHandleHolder {
   explicit ListenerHandleHolder(T handle) : handle(handle) {}
   T handle;
@@ -150,7 +148,7 @@ void *CreatePlatformAuth(App *app) {
 }
 
 // Grab the user value from the iOS API and remember it locally.
-void UpdateCurrentUser(AuthData* auth_data) {
+void UpdateCurrentUser(AuthData *auth_data) {
   MutexLock lock(auth_data->future_impl.mutex());
   FIRUser *user = [AuthImpl(auth_data) currentUser];
   SetUserImpl(auth_data, user);
@@ -158,36 +156,31 @@ void UpdateCurrentUser(AuthData* auth_data) {
 
 // Platform-specific method to initialize AuthData.
 void Auth::InitPlatformAuth(AuthData *auth_data) {
-  FIRCPPAuthListenerHandle* listener_cpp_handle =
-      [[FIRCPPAuthListenerHandle alloc] init];
+  FIRCPPAuthListenerHandle *listener_cpp_handle = [[FIRCPPAuthListenerHandle alloc] init];
   listener_cpp_handle.authData = auth_data;
-  reinterpret_cast<AuthDataIos*>(auth_data->auth_impl)->listener_handle = listener_cpp_handle;
+  reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle = listener_cpp_handle;
   // Register a listening block that will notify all the C++ listeners on
   // auth state change.
-  FIRAuthStateDidChangeListenerHandle listener_handle =
-      [AuthImpl(auth_data)
-          addAuthStateDidChangeListener:^(FIRAuth * _Nonnull __strong,
-                                          FIRUser * _Nullable __strong) {
-            @synchronized (listener_cpp_handle) {
-              AuthData* data = listener_cpp_handle.authData;
-              if (data) {
-                UpdateCurrentUser(data);
-                NotifyAuthStateListeners(data);
-              }
-            }
-          }];
-  FIRIDTokenDidChangeListenerHandle id_token_listener_handle =
-      [AuthImpl(auth_data)
-          addIDTokenDidChangeListener:^(FIRAuth * _Nonnull __strong,
-                                        FIRUser * _Nullable __strong) {
-            @synchronized (listener_cpp_handle) {
-              AuthData* data = listener_cpp_handle.authData;
-              if (data) {
-                UpdateCurrentUser(data);
-                NotifyIdTokenListeners(data);
-              }
-            }
-          }];
+  FIRAuthStateDidChangeListenerHandle listener_handle = [AuthImpl(auth_data)
+      addAuthStateDidChangeListener:^(FIRAuth *_Nonnull __strong, FIRUser *_Nullable __strong) {
+        @synchronized(listener_cpp_handle) {
+          AuthData *data = listener_cpp_handle.authData;
+          if (data) {
+            UpdateCurrentUser(data);
+            NotifyAuthStateListeners(data);
+          }
+        }
+      }];
+  FIRIDTokenDidChangeListenerHandle id_token_listener_handle = [AuthImpl(auth_data)
+      addIDTokenDidChangeListener:^(FIRAuth *_Nonnull __strong, FIRUser *_Nullable __strong) {
+        @synchronized(listener_cpp_handle) {
+          AuthData *data = listener_cpp_handle.authData;
+          if (data) {
+            UpdateCurrentUser(data);
+            NotifyIdTokenListeners(data);
+          }
+        }
+      }];
 
   auth_data->listener_impl =
       new ListenerHandleHolder<FIRAuthStateDidChangeListenerHandle>(listener_handle);
@@ -203,23 +196,22 @@ void Auth::InitPlatformAuth(AuthData *auth_data) {
 // Platform-specific method to destroy the wrapped Auth class.
 void Auth::DestroyPlatformAuth(AuthData *auth_data) {
   // Remove references from listener blocks.
-  AuthDataIos* auth_data_ios = reinterpret_cast<AuthDataIos *>(auth_data->auth_impl);
+  AuthDataIos *auth_data_ios = reinterpret_cast<AuthDataIos *>(auth_data->auth_impl);
   FIRCPPAuthListenerHandle *listener_cpp_handle = auth_data_ios->listener_handle.get();
-  @synchronized (listener_cpp_handle) {
+  @synchronized(listener_cpp_handle) {
     listener_cpp_handle.authData = nullptr;
   }
 
   // Unregister the listeners.
-  ListenerHandleHolder<FIRAuthStateDidChangeListenerHandle>* handle_holder =
-      reinterpret_cast<
-          ListenerHandleHolder<FIRAuthStateDidChangeListenerHandle>*>(auth_data->listener_impl);
+  ListenerHandleHolder<FIRAuthStateDidChangeListenerHandle> *handle_holder =
+      reinterpret_cast<ListenerHandleHolder<FIRAuthStateDidChangeListenerHandle> *>(
+          auth_data->listener_impl);
   [AuthImpl(auth_data) removeAuthStateDidChangeListener:handle_holder->handle];
   delete handle_holder;
   auth_data->listener_impl = nullptr;
-  ListenerHandleHolder<FIRIDTokenDidChangeListenerHandle>* id_token_listener_handle_holder =
-      reinterpret_cast<
-          ListenerHandleHolder<FIRIDTokenDidChangeListenerHandle>*>(
-              auth_data->id_token_listener_impl);
+  ListenerHandleHolder<FIRIDTokenDidChangeListenerHandle> *id_token_listener_handle_holder =
+      reinterpret_cast<ListenerHandleHolder<FIRIDTokenDidChangeListenerHandle> *>(
+          auth_data->id_token_listener_impl);
   [AuthImpl(auth_data) removeIDTokenDidChangeListener:id_token_listener_handle_holder->handle];
   delete id_token_listener_handle_holder;
   auth_data->id_token_listener_impl = nullptr;
@@ -239,21 +231,21 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(const char *emai
   const auto handle =
       futures.SafeAlloc<FetchProvidersResult>(kAuthFn_FetchProvidersForEmail, initial_data);
 
-  [AuthImpl(auth_data_)
-      fetchSignInMethodsForEmail:@(email)
-                      completion:^(NSArray<NSString *> *_Nullable providers,
-                                   NSError *_Nullable error) {
-      futures.Complete<FetchProvidersResult>(
-          handle, AuthErrorFromNSError(error),
-          [error.localizedDescription UTF8String],
-          [providers](FetchProvidersResult* data) {
-            // Copy data to our result format.
-            data->providers.resize(providers.count);
-            for (size_t i = 0; i < providers.count; ++i) {
-              data->providers[i] = util::StringFromNSString(providers[i]);
-            }
-          });
-    }];
+  [AuthImpl(auth_data_) fetchSignInMethodsForEmail:@(email)
+                                        completion:^(NSArray<NSString *> *_Nullable providers,
+                                                     NSError *_Nullable error) {
+                                          futures.Complete<FetchProvidersResult>(
+                                              handle, AuthErrorFromNSError(error),
+                                              [error.localizedDescription UTF8String],
+                                              [providers](FetchProvidersResult *data) {
+                                                // Copy data to our result format.
+                                                data->providers.resize(providers.count);
+                                                for (size_t i = 0; i < providers.count; ++i) {
+                                                  data->providers[i] =
+                                                      util::StringFromNSString(providers[i]);
+                                                }
+                                              });
+                                        }];
 
   return MakeFuture(&futures, handle);
 }
@@ -272,7 +264,7 @@ User *Auth::current_user() {
   return user;
 }
 
-static User* AssignUser(FIRUser *_Nullable user, AuthData *auth_data) {
+static User *AssignUser(FIRUser *_Nullable user, AuthData *auth_data) {
   // Update our pointer to the iOS user that we're wrapping.
   MutexLock lock(auth_data->future_impl.mutex());
   if (user) {
@@ -318,14 +310,13 @@ AuthError AuthErrorFromNSError(NSError *_Nullable error) {
 }
 
 void SignInCallback(FIRUser *_Nullable user, NSError *_Nullable error,
-                    SafeFutureHandle<User*> handle, AuthData *auth_data) {
-  User* result = AssignUser(user, auth_data);
+                    SafeFutureHandle<User *> handle, AuthData *auth_data) {
+  User *result = AssignUser(user, auth_data);
 
   // Finish off the asynchronous call so that the caller can read it.
   ReferenceCountedFutureImpl &futures = auth_data->future_impl;
   futures.CompleteWithResult(handle, AuthErrorFromNSError(error),
-                             util::NSStringToString(error.localizedDescription).c_str(),
-                             result);
+                             util::NSStringToString(error.localizedDescription).c_str(), result);
 }
 
 void SignInResultWithProviderCallback(
@@ -340,7 +331,7 @@ void SignInResultWithProviderCallback(
 
 void SignInResultCallback(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error,
                           SafeFutureHandle<SignInResult> handle, AuthData *auth_data) {
-  User* user = AssignUser(auth_result.user, auth_data);
+  User *user = AssignUser(auth_result.user, auth_data);
 
   SignInResult result;
   result.user = user;
@@ -356,7 +347,7 @@ void SignInResultCallback(FIRAuthDataResult *_Nullable auth_result, NSError *_Nu
     if (error.userInfo[FIRAuthErrorUserInfoUpdatedCredentialKey] != nullptr) {
       result.info.updated_credential = ServiceUpdatedCredentialProvider::GetCredential(
           new FIRAuthCredentialPointer(error.userInfo[FIRAuthErrorUserInfoUpdatedCredentialKey]));
-     }
+    }
   }
 
   ReferenceCountedFutureImpl &futures = auth_data->future_impl;
@@ -390,22 +381,21 @@ Future<User *> Auth::SignInWithCredential(const Credential &credential) {
   return MakeFuture(&futures, handle);
 }
 
-Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential(
-    const Credential& credential) {
+Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential(const Credential &credential) {
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle =
       futures.SafeAlloc<SignInResult>(kAuthFn_SignInAndRetrieveDataWithCredential, SignInResult());
 
-  [AuthImpl(auth_data_) signInWithCredential:CredentialFromImpl(credential.impl_)
-                                  completion:^(FIRAuthDataResult *_Nullable auth_result,
-                                               NSError *_Nullable error) {
-      SignInResultCallback(auth_result, error, handle, auth_data_);
-    }];
+  [AuthImpl(auth_data_)
+      signInWithCredential:CredentialFromImpl(credential.impl_)
+                completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
+                  SignInResultCallback(auth_result, error, handle, auth_data_);
+                }];
 
   return MakeFuture(&futures, handle);
 }
 
-Future<SignInResult> Auth::SignInWithProvider(FederatedAuthProvider* provider) {
+Future<SignInResult> Auth::SignInWithProvider(FederatedAuthProvider *provider) {
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
   return provider->SignIn(auth_data_);
 }
@@ -442,8 +432,7 @@ Future<User *> Auth::SignInWithEmailAndPassword(const char *email, const char *p
 
 Future<User *> Auth::CreateUserWithEmailAndPassword(const char *email, const char *password) {
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle =
-      futures.SafeAlloc<User *>(kAuthFn_CreateUserWithEmailAndPassword, nullptr);
+  const auto handle = futures.SafeAlloc<User *>(kAuthFn_CreateUserWithEmailAndPassword, nullptr);
   if (!email || strlen(email) == 0) {
     futures.Complete(handle, kAuthErrorMissingEmail, "Empty email is not allowed.");
   } else if (!password || strlen(password) == 0) {
@@ -472,17 +461,16 @@ Future<void> Auth::SendPasswordResetEmail(const char *email) {
 
   [AuthImpl(auth_data_) sendPasswordResetWithEmail:@(email)
                                         completion:^(NSError *_Nullable error) {
-                                            futures.Complete(
-                                               handle, AuthErrorFromNSError(error),
-                                               [error.localizedDescription UTF8String]);
-                                          }];
+                                          futures.Complete(handle, AuthErrorFromNSError(error),
+                                                           [error.localizedDescription UTF8String]);
+                                        }];
 
   return MakeFuture(&futures, handle);
 }
 
 // Remap iOS SDK errors reported by the UIDelegate. While these errors seem like
 // user interaction errors, they are actually caused by bad provider ids.
-NSError* RemapBadProviderIDErrors(NSError* _Nonnull error) {
+NSError *RemapBadProviderIDErrors(NSError *_Nonnull error) {
   if (error.code == FIRAuthErrorCodeWebSignInUserInteractionFailure &&
       [error.domain isEqualToString:@"FIRAuthErrorDomain"]) {
     return [[NSError alloc] initWithDomain:error.domain

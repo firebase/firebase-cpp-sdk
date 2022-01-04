@@ -901,11 +901,14 @@ TEST_F(FirebaseStorageTest, TestInvalidatingReferencesWhenDeletingStorage) {
       CreateFolder().Child("TestFile-InvalidateReferencesDeletingStorage.txt");
   // Don't clean up, will be manually deleted.
 
-  WaitForCompletion(ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size()),
+  WaitForCompletion(RunWithRetry([&]() {
+                      return ref.PutBytes(&kSimpleTestFile[0],
+                                          kSimpleTestFile.size());
+                    }),
                     "PutBytes");
   ASSERT_NE(ref.PutBytesLastResult().result(), nullptr);
   firebase::storage::Metadata metadata = *ref.PutBytesLastResult().result();
-  WaitForCompletion(ref.Delete(), "Delete");
+  WaitForCompletion(RunWithRetry([&]() { return ref.Delete(); }), "Delete");
 
   ASSERT_TRUE(ref.is_valid());
   ASSERT_TRUE(metadata.is_valid());
@@ -924,11 +927,14 @@ TEST_F(FirebaseStorageTest, TestInvalidatingReferencesWhenDeletingApp) {
       CreateFolder().Child("TestFile-InvalidateReferencesDeletingApp.txt");
   // Don't clean up, will be manually deleted.
 
-  WaitForCompletion(ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size()),
+  WaitForCompletion(RunWithRetry([&]() {
+                      return ref.PutBytes(&kSimpleTestFile[0],
+                                          kSimpleTestFile.size());
+                    }),
                     "PutBytes");
   ASSERT_NE(ref.PutBytesLastResult().result(), nullptr);
   firebase::storage::Metadata metadata = *ref.PutBytesLastResult().result();
-  WaitForCompletion(ref.Delete(), "Delete");
+  WaitForCompletion(RunWithRetry([&]() { return ref.Delete(); }), "Delete");
 
   ASSERT_TRUE(ref.is_valid());
   ASSERT_TRUE(metadata.is_valid());

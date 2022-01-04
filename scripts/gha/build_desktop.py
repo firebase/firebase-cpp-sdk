@@ -56,12 +56,25 @@ def append_line_to_file(path, line):
       file.write("\n" + line + "\n")
 
 
-def install_x86_support_libraries():
-  """Install support libraries needed to build x86 on x86_64 hosts."""
+def install_x86_support_libraries(gha_build=False):
+  """Install support libraries needed to build x86 on x86_64 hosts.
+
+  Args:
+    gha_build: Pass in True if running on a GitHub runner; this will activate
+               workarounds that might be undesirable on a personal system (e.g.
+               downgrading Ubuntu packages).
+  """
   if utils.is_linux_os():
     packages = ['gcc-multilib', 'g++-multilib', 'libglib2.0-dev:i386',
                 'libsecret-1-dev:i386', 'libpthread-stubs0-dev:i386',
                 'libssl-dev:i386']
+    if gha_build:
+      # Workaround for GitHub runners, which have an incompatibility between the
+      # 64-bit and 32-bit versions of the Ubuntu package libpcre2-8-0. Downgrade
+      # the installed 64-bit version of the library to get around this issue.
+      # This will presumably be fixed in a future Ubuntu update. (If you remove
+      # it, remove the workaround further down this function as well.)
+      packages = ['--allow-downgrades'] + packages + ['libpcre2-8-0=10.34-7']
 
     # First check if these packages exist on the machine already
     devnull = open(os.devnull, "w")
@@ -70,9 +83,19 @@ def install_x86_support_libraries():
     if process.returncode != 0:
       # This implies not all of the required packages are already installed on user's machine
       # Install them.
-      utils.run_command(['dpkg', '--add-architecture', 'i386'], as_root=True)
-      utils.run_command(['apt', 'update'], as_root=True)
-      utils.run_command(['apt', 'install', '-y'] + packages, as_root=True)
+      utils.run_command(['dpkg', '--add-architecture', 'i386'], as_root=True, check=True)
+      utils.run_command(['apt', 'update'], as_root=True, check=True)
+      utils.run_command(['apt', 'install', '-V', '-y'] + packages, as_root=True, check=True)
+
+    if gha_build:
+      # One more workaround: downgrading libpcre2-8-0 above may have uninstalled
+      # libsecret, which is required for the Linux build. Force it to be
+      # reinstalled, but do it as a separate command to ensure that held
+      # packages aren't modified. (Once the workaround above is removed, this can
+      # be removed as well.)
+      # Note: "-f" = "fix" - let apt do what it needs to do to fix dependencies.
+      utils.run_command(['apt', 'install', '-f', '-V', '-y', 'libsecret-1-dev'],
+                        as_root=True, check=True)
 
 
 def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, use_openssl=False):
@@ -83,7 +106,7 @@ def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, use_openssl
     - build vcpkg executable
     - install packages via vcpkg.
   Args:
-    arch (str): Architecture (eg: 'x86', 'x64').
+    arch (str): Architecture (eg: 'x86', 'x64', 'arm64').
     msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
     use_openssl (bool): Use OpenSSL based vcpkg response files.
   """
@@ -94,7 +117,7 @@ def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, use_openssl
   if not found_vcpkg_executable:
     script_absolute_path = utils.get_vcpkg_installation_script_path()
     # Example: ./external/vcpkg/bootstrap-sh
-    utils.run_command([script_absolute_path])
+    utils.run_command([script_absolute_path], check=True)
 
   # Copy any of our custom defined vcpkg data to vcpkg submodule directory
   utils.copy_vcpkg_custom_data()
@@ -113,7 +136,9 @@ def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, use_openssl
   # Eg: ./external/vcpkg/vcpkg install @external/vcpkg_x64-osx_response_file.txt
   # --disable-metrics
   utils.run_command([vcpkg_executable_file_path, 'install',
-                     '@' + vcpkg_response_file_path, '--disable-metrics'])
+                     '@' + vcpkg_response_file_path, '--disable-metrics'],
+                    check=True)
+
 
 def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, cleanup=True,
                                         use_openssl=False):
@@ -123,7 +148,7 @@ def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, cleanup=True
   installation twice, a second time after attempting to auto fix known issues.
 
   Args:
-    arch (str): Architecture (eg: 'x86', 'x64').
+    arch (str): Architecture (eg: 'x86', 'x64', 'arm64').
     msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
     cleanup (bool): Clean up intermediate files used during installation.
     use_openssl (bool): Use OpenSSL based vcpkg response files.
@@ -158,7 +183,7 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='l
 
   Args:
    build_dir (str): Output build directory.
-   arch (str): Platform Architecture (example: 'x64').
+   arch (str): Platform Architecture (example: 'x64', 'x86', 'arm64').
    msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
    linux_abi (str): Linux ABI (eg: 'legacy', 'c++11').
    build_tests (bool): Build cpp unit tests.
@@ -190,6 +215,9 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='l
       # Use a separate cmake toolchain for cross compiling linux x86 builds
       vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external', 'vcpkg',
                                                'scripts', 'buildsystems', 'linux_32.cmake')
+    elif utils.is_mac_os() and arch == 'arm64':
+      vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external', 'vcpkg',
+                                               'scripts', 'buildsystems', 'macos_arm64.cmake')
     else:
       vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external',
                                                'vcpkg', 'scripts',
@@ -208,6 +236,12 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='l
     # Use our special cmake flag to specify /MD vs /MT
     if msvc_runtime_library == "static":
       cmd.append('-DMSVC_RUNTIME_LIBRARY_STATIC=ON')
+
+  if utils.is_mac_os():
+    if (arch == 'arm64'):
+      cmd.append('-DCMAKE_OSX_ARCHITECTURES=arm64')
+    else:
+      cmd.append('-DCMAKE_OSX_ARCHITECTURES=x86_64')
 
   if utils.is_linux_os() and linux_abi == 'c++11':
       cmd.append('-DFIREBASE_LINUX_USE_CXX11_ABI=TRUE')
@@ -234,12 +268,12 @@ def main():
   # Ensure that the submodules are initialized and updated
   # Example: vcpkg is a submodule (external/vcpkg)
   if not args.disable_vcpkg:
-    utils.run_command(['git', 'submodule', 'init'])
-    utils.run_command(['git', 'submodule', 'update'])
+    utils.run_command(['git', 'submodule', 'init'], check=True)
+    utils.run_command(['git', 'submodule', 'update'], check=True)
 
   # To build x86 on x86_64 linux hosts, we also need x86 support libraries
   if args.arch == 'x86' and utils.is_linux_os():
-    install_x86_support_libraries()
+    install_x86_support_libraries(args.gha_build)
 
   # Install C++ dependencies using vcpkg
   if not args.disable_vcpkg:
@@ -270,7 +304,7 @@ def main():
 
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Install Prerequisites for building cpp sdk')
-  parser.add_argument('-a', '--arch', default='x64', help='Platform architecture (x64, x86)')
+  parser.add_argument('-a', '--arch', default='x64', help='Platform architecture (x64, x86, arm64)')
   parser.add_argument('--msvc_runtime_library', default='static',
                       help='Runtime library for MSVC (static(/MT) or dynamic(/MD)')
   parser.add_argument('--linux_abi', default='legacy',
@@ -284,7 +318,7 @@ def parse_cmdline_args():
   parser.add_argument('--target', nargs='+', help='A list of CMake build targets (eg: firebase_app firebase_auth)')
   parser.add_argument('--target_format', default=None, help='(Mac only) whether to output frameworks (default) or libraries.')
   parser.add_argument('--use_openssl', action='store_true', default=None, help='Use openssl for build instead of boringssl')
-  parser.add_argument('--gha_build', action='store_true', default=None, help='Set to true when building on GitHub, for metric tracking purposes')
+  parser.add_argument('--gha_build', action='store_true', default=None, help='Set to true when building on GitHub, for metric tracking purposes (also changes some prerequisite installation behavior).')
   args = parser.parse_args()
   return args
 

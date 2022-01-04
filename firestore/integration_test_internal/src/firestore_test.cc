@@ -1,13 +1,24 @@
-// Copyright 2021 Google LLC
+/*
+ * Copyright 2021 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "firebase/firestore.h"
 
 #include <algorithm>
+#include <future>
 #include <memory>
-
-#if !defined(__ANDROID__)
-#include <future>  // NOLINT(build/c++11)
-#endif
 #include <stdexcept>
 
 #if defined(__ANDROID__)
@@ -19,7 +30,7 @@
 #include "firestore/src/jni/task.h"
 #endif  // defined(__ANDROID__)
 
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "auth/src/include/firebase/auth.h"
 #include "firestore/src/common/macros.h"
 #include "firestore_integration_test.h"
@@ -1451,6 +1462,7 @@ TEST_F(FirestoreIntegrationTest, DomainObjectsReferToSameFirestoreInstance) {
 }
 
 TEST_F(FirestoreIntegrationTest, AuthWorks) {
+  SKIP_TEST_ON_QUICK_CHECK;
   // This app instance is managed by the text fixture.
   App* app = GetApp();
   EXPECT_NE(app, nullptr);
@@ -1489,12 +1501,11 @@ TEST_F(FirestoreIntegrationTest, AuthWorks) {
   WriteDocument(doc, MapFieldValue{{"foo", FieldValue::Integer(43)}});
 }
 
-#if !defined(__ANDROID__)
 // This test is to ensure b/172986326 doesn't regress.
 // Note: this test only exists in C++.
-TEST_F(FirestoreIntegrationTest, FirestoreCanBeDeletedFromTransaction) {
-  auto* app = App::Create(this->app()->options(), "foo");
-  auto* db = Firestore::GetInstance(app);
+TEST_F(FirestoreIntegrationTest, FirestoreCanBeDeletedFromTransactionAsync) {
+  Firestore* db = TestFirestore();
+  DisownFirestore(db);
 
   auto future = db->RunTransaction(
       [](Transaction&, std::string&) { return Error::kErrorOk; });
@@ -1511,7 +1522,26 @@ TEST_F(FirestoreIntegrationTest, FirestoreCanBeDeletedFromTransaction) {
   callback_done.wait();
   deletion.wait();
 }
-#endif  // #if !defined(__ANDROID__)
+
+// This test is to ensure b/172986326 doesn't regress.
+// Note: this test only exists in C++.
+TEST_F(FirestoreIntegrationTest, FirestoreCanBeDeletedFromTransaction) {
+  Firestore* db = TestFirestore();
+  DisownFirestore(db);
+
+  auto future = db->RunTransaction(
+      [](Transaction&, std::string&) { return Error::kErrorOk; });
+
+  std::promise<void> callback_done_promise;
+  auto callback_done = callback_done_promise.get_future();
+  future.AddOnCompletion([&](const Future<void>&) mutable {
+    delete db;
+    callback_done_promise.set_value();
+  });
+
+  Await(future);
+  callback_done.wait();
+}
 
 #if defined(__ANDROID__)
 TEST_F(FirestoreAndroidIntegrationTest,

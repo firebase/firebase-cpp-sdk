@@ -40,7 +40,6 @@ import org.mockito.MockitoAnnotations;
 
 @RunWith(GoogleRobolectricTestRunner.class)
 public final class MessageWriterTest {
-
   private static final Path STORAGE_FILE_PATH = Paths.get("/tmp/" + MessageWriter.STORAGE_FILE);
 
   @Mock private Context context;
@@ -71,7 +70,7 @@ public final class MessageWriterTest {
     RemoteMessage message = RemoteMessageUtil.remoteMessage(bundle);
     messageWriter.writeMessage(context, message, false, null);
     ByteBuffer byteBuffer = ByteBuffer.wrap(readStorageFile()).order(ByteOrder.LITTLE_ENDIAN);
-    byteBuffer.getInt();  // Discard size.
+    byteBuffer.getInt(); // Discard size.
     SerializedEvent event = SerializedEvent.getRootAsSerializedEvent(byteBuffer);
     SerializedMessage result = (SerializedMessage) event.event(new SerializedMessage());
     assertThat(result.from()).isEqualTo("my_from");

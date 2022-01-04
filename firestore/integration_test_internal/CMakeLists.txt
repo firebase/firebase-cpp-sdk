@@ -95,6 +95,8 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS
     src/query_test.cc
     src/sanity_test.cc
     src/server_timestamp_test.cc
+    src/set_options_test.cc
+    src/settings_test.cc
     src/smoke_test.cc
     src/source_test.cc
     src/transaction_test.cc
@@ -110,6 +112,7 @@ set(FIREBASE_INTEGRATION_TEST_ANDROID_TEST_SRCS
     src/android/geo_point_android_test.cc
     src/android/jni_runnable_android_test.cc
     src/android/promise_android_test.cc
+    src/android/promise_factory_android_test.cc
     src/android/settings_android_test.cc
     src/android/snapshot_metadata_android_test.cc
     src/android/timestamp_android_test.cc
@@ -203,6 +206,8 @@ include_directories(src)
 include_directories(${FIREBASE_CPP_SDK_DIR})
 # Additional public headers from Firestore core SDK.
 include_directories(${PROJECT_BINARY_DIR}/bin/external/src/firestore)
+include_directories(${PROJECT_BINARY_DIR}/bin/external/src/nanopb)
+include_directories(${PROJECT_BINARY_DIR}/bin/external/src/firestore/Firestore/Protos/nanopb)
 # Additional public headers for absl.
 include_directories(${ABSEIL_CPP_ROOT})
 # Allow testing internal Firebase APIs.
@@ -378,5 +383,9 @@ add_subdirectory(${FIREBASE_CPP_SDK_DIR} bin/ EXCLUDE_FROM_ALL)
 # Note that firebase_app needs to be last in the list.
 set(firebase_libs firebase_firestore firebase_auth firebase_app)
 set(gtest_libs gtest gmock)
+# Validation tests need exceptions to be enabled in order to run. The only
+# library that explicitly disables exceptions is App (but it gets propagated
+# everywhere), so overriding that effectively reenables exceptions.
+target_compile_options(firebase_app PUBLIC -fexceptions)
 target_link_libraries(${integration_test_target_name} ${firebase_libs}
   ${gtest_libs} ${ADDITIONAL_LIBS})

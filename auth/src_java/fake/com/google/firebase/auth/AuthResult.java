@@ -18,7 +18,6 @@ package com.google.firebase.auth;
 
 /** Fake AuthResult */
 public final class AuthResult {
-
   FirebaseUser getUser() {
     return new FirebaseUser();
   }

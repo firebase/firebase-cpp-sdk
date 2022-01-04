@@ -1,4 +1,18 @@
-// Copyright 2020 Google LLC
+/*
+ * Copyright 2020 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "firestore/src/android/query_android.h"
 
@@ -18,6 +32,7 @@
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/jni/array.h"
 #include "firestore/src/jni/array_list.h"
+#include "firestore/src/jni/compare.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 #include "firestore/src/jni/task.h"
@@ -115,6 +130,7 @@ Method<Object> kAddSnapshotListener(
     "Lcom/google/firebase/firestore/MetadataChanges;"
     "Lcom/google/firebase/firestore/EventListener;)"
     "Lcom/google/firebase/firestore/ListenerRegistration;");
+Method<int32_t> kHashCode("hashCode", "()I");
 
 }  // namespace
 
@@ -124,7 +140,7 @@ void QueryInternal::Initialize(jni::Loader& loader) {
       kGreaterThan, kGreaterThanOrEqualTo, kArrayContains, kArrayContainsAny,
       kIn, kNotIn, kOrderBy, kLimit, kLimitToLast, kStartAtSnapshot, kStartAt,
       kStartAfterSnapshot, kStartAfter, kEndBeforeSnapshot, kEndBefore,
-      kEndAtSnapshot, kEndAt, kGet, kAddSnapshotListener);
+      kEndAtSnapshot, kEndAt, kGet, kAddSnapshotListener, kHashCode);
 }
 
 Firestore* QueryInternal::firestore() {
@@ -331,9 +347,13 @@ Local<Array<Object>> QueryInternal::ConvertFieldValues(
   return result;
 }
 
+size_t QueryInternal::Hash() const {
+  Env env = GetEnv();
+  return env.Call(obj_, kHashCode);
+}
+
 bool operator==(const QueryInternal& lhs, const QueryInternal& rhs) {
-  Env env = FirestoreInternal::GetEnv();
-  return Object::Equals(env, lhs.ToJava(), rhs.ToJava());
+  return jni::EqualityCompareJni(lhs, rhs);
 }
 
 }  // namespace firestore

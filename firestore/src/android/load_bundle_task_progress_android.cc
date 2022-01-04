@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include "firestore/src/android/load_bundle_task_progress_android.h"
 
 #include "firestore/src/jni/env.h"

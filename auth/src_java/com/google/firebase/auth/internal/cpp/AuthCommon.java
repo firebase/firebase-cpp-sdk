@@ -31,8 +31,10 @@ public class AuthCommon {
     try {
       runnable.run();
     } catch (UnsatisfiedLinkError e) {
-      Log.e(TAG, String.format("Failed to execute native method, perhaps Auth shut down "
-                               + "prematurely? (%s)", e.toString()));
+      Log.e(TAG,
+          String.format("Failed to execute native method, perhaps Auth shut down "
+                  + "prematurely? (%s)",
+              e.toString()));
     }
   }
 }

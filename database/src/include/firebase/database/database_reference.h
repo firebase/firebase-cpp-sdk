@@ -17,12 +17,13 @@
 
 #include <map>
 #include <string>
-#include "firebase/future.h"
-#include "firebase/internal/common.h"
-#include "firebase/variant.h"
+
 #include "firebase/database/disconnection.h"
 #include "firebase/database/query.h"
 #include "firebase/database/transaction.h"
+#include "firebase/future.h"
+#include "firebase/internal/common.h"
+#include "firebase/variant.h"
 
 namespace firebase {
 namespace database {

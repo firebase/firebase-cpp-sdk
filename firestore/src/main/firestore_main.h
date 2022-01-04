@@ -1,4 +1,18 @@
-// Copyright 2021 Google LLC
+/*
+ * Copyright 2021 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #ifndef FIREBASE_FIRESTORE_SRC_MAIN_FIRESTORE_MAIN_H_
 #define FIREBASE_FIRESTORE_SRC_MAIN_FIRESTORE_MAIN_H_
@@ -10,7 +24,7 @@
 #include <unordered_set>
 
 #include "Firestore/core/src/api/firestore.h"
-#include "Firestore/core/src/auth/credentials_provider.h"
+#include "Firestore/core/src/credentials/credentials_provider.h"
 #include "Firestore/core/src/model/database_id.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
@@ -21,6 +35,10 @@
 #include "firestore/src/include/firebase/firestore/load_bundle_task_progress.h"
 #include "firestore/src/include/firebase/firestore/settings.h"
 #include "firestore/src/main/promise_factory_main.h"
+
+#if defined(__ANDROID__)
+#error "This header should not be used on Android."
+#endif
 
 namespace firebase {
 namespace firestore {
@@ -129,11 +147,13 @@ class FirestoreInternal {
     kCount,
   };
 
-  FirestoreInternal(App* app,
-                    std::unique_ptr<auth::CredentialsProvider> credentials);
+  FirestoreInternal(
+      App* app,
+      std::unique_ptr<credentials::AuthCredentialsProvider> credentials);
 
   std::shared_ptr<api::Firestore> CreateFirestore(
-      App* app, std::unique_ptr<auth::CredentialsProvider> credentials);
+      App* app,
+      std::unique_ptr<credentials::AuthCredentialsProvider> credentials);
 
   // Gets the reference-counted Future implementation of this instance, which
   // can be used to create a Future.

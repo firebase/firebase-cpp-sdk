@@ -16,9 +16,7 @@ package com.google.firebase.remoteconfig;
 
 /** Fake FirebaseRemoteConfigFetchThrottledException */
 public class FirebaseRemoteConfigFetchThrottledException {
-
-    public long getThrottleEndTimeMillis() {
-        return 0;
-    }
-
+  public long getThrottleEndTimeMillis() {
+    return 0;
+  }
 }

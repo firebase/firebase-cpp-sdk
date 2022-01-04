@@ -1,15 +1,30 @@
-// Copyright 2020 Google LLC
+/*
+ * Copyright 2020 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 
 #include <ostream>
 
 #include "app/meta/move.h"
-#include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
 #include "firestore/src/common/cleanup.h"
 #include "firestore/src/common/event_listener.h"
+#include "firestore/src/common/exception_common.h"
 #include "firestore/src/common/futures.h"
+#include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore/collection_reference.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
@@ -42,7 +57,7 @@ DocumentReference::DocumentReference(DocumentReference&& reference) {
 
 DocumentReference::DocumentReference(DocumentReferenceInternal* internal)
     : internal_(internal) {
-  FIREBASE_ASSERT(internal != nullptr);
+  SIMPLE_HARD_ASSERT(internal != nullptr);
   CleanupFnDocumentReference::Register(this, internal_);
 }
 
@@ -87,7 +102,7 @@ const Firestore* DocumentReference::firestore() const {
   if (!internal_) return {};
 
   const Firestore* firestore = internal_->firestore();
-  FIREBASE_ASSERT(firestore);
+  SIMPLE_HARD_ASSERT(firestore);
   return firestore;
 }
 
@@ -113,12 +128,23 @@ CollectionReference DocumentReference::Parent() const {
 
 CollectionReference DocumentReference::Collection(
     const char* collection_path) const {
+  if (!collection_path) {
+    SimpleThrowInvalidArgument("Collection path cannot be null.");
+  }
+  if (collection_path[0] == '\0') {
+    SimpleThrowInvalidArgument("Collection path cannot be empty.");
+  }
+
   if (!internal_) return {};
   return internal_->Collection(collection_path);
 }
 
 CollectionReference DocumentReference::Collection(
     const std::string& collection_path) const {
+  if (collection_path.empty()) {
+    SimpleThrowInvalidArgument("Collection path cannot be empty.");
+  }
+
   if (!internal_) return {};
   return internal_->Collection(collection_path);
 }
@@ -160,7 +186,10 @@ ListenerRegistration DocumentReference::AddSnapshotListener(
     MetadataChanges metadata_changes,
     std::function<void(const DocumentSnapshot&, Error, const std::string&)>
         callback) {
-  FIREBASE_ASSERT_MESSAGE(callback, "invalid callback parameter is passed in.");
+  SIMPLE_HARD_ASSERT(
+      callback,
+      "Snapshot listener callback parameter cannot be an empty function.");
+
   if (!internal_) return {};
   return internal_->AddSnapshotListener(metadata_changes,
                                         firebase::Move(callback));

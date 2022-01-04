@@ -17,8 +17,9 @@
 
 #include <memory>
 #include <utility>
+
 #include "app/src/assert.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "auth/src/common.h"
 #include "auth/src/data.h"
 #include "auth/src/desktop/provider_user_info.h"

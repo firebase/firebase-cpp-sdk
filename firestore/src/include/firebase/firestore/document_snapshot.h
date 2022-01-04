@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google
+ * Copyright 2018 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -261,6 +261,12 @@ class DocumentSnapshot {
                                   const DocumentSnapshot& document);
 
  private:
+  std::size_t Hash() const;
+
+  friend bool operator==(const DocumentSnapshot& lhs,
+                         const DocumentSnapshot& rhs);
+  friend std::size_t DocumentSnapshotHash(const DocumentSnapshot& snapshot);
+
   friend class DocumentChangeInternal;
   friend class EventListenerInternal;
   friend class FirestoreInternal;
@@ -275,6 +281,15 @@ class DocumentSnapshot {
 
   mutable DocumentSnapshotInternal* internal_ = nullptr;
 };
+
+/** Checks `lhs` and `rhs` for equality. */
+bool operator==(const DocumentSnapshot& lhs, const DocumentSnapshot& rhs);
+
+/** Checks `lhs` and `rhs` for inequality. */
+inline bool operator!=(const DocumentSnapshot& lhs,
+                       const DocumentSnapshot& rhs) {
+  return !(lhs == rhs);
+}
 
 }  // namespace firestore
 }  // namespace firebase

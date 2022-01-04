@@ -15,6 +15,7 @@
 #import <UIKit/UIKit.h>
 
 #include <pthread.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include <cassert>
@@ -23,12 +24,12 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
-#include <vector>
 #include <string>
+#include <vector>
 
 #include "app_framework.h"
 
-@interface AppDelegate : UIResponder<UIApplicationDelegate>
+@interface AppDelegate : UIResponder <UIApplicationDelegate>
 
 @property(nonatomic, strong) UIWindow *window;
 
@@ -40,18 +41,14 @@
 
 @end
 
-static NSString * const kGameLoopUrlPrefix= @"firebase-game-loop";
-static NSString * const kGameLoopCompleteUrlScheme= @"firebase-game-loop-complete://";
+static NSString *const kGameLoopUrlPrefix = @"firebase-game-loop";
+static NSString *const kGameLoopCompleteUrlScheme = @"firebase-game-loop-complete://";
 static const float kGameLoopSecondsToPauseBeforeQuitting = 5.0f;
 
 // Test Loop on iOS doesn't provide the app under test a path to save logs to, so set it here.
 #define GAMELOOP_DEFAULT_LOG_FILE "Results1.json"
 
-enum class RunningState {
-  kRunning,
-  kShuttingDown,
-  kShutDown
-};
+enum class RunningState { kRunning, kShuttingDown, kShutDown };
 
 // Note: g_running_state and g_exit_status must only be accessed while holding the lock from
 // g_running_state_condition; also, any changes to these values should be followed up with a
@@ -102,7 +99,7 @@ static NSString *g_file_url_path;
 namespace app_framework {
 
 bool ProcessEvents(int msec) {
-  NSDate* endDate = [NSDate dateWithTimeIntervalSinceNow:static_cast<float>(msec) / 1000.0f];
+  NSDate *endDate = [NSDate dateWithTimeIntervalSinceNow:static_cast<float>(msec) / 1000.0f];
   [g_running_state_condition lock];
 
   if (g_running_state == RunningState::kRunning) {
@@ -124,9 +121,7 @@ std::string PathForResource() {
       [[documentsDirectory stringByStandardizingPath] stringByAppendingString:@"/"].UTF8String);
 }
 
-WindowContext GetWindowContext() {
-  return g_parent_view;
-}
+WindowContext GetWindowContext() { return g_parent_view; }
 
 // Log a message that can be viewed in the console.
 void LogMessageV(bool suppress, const char *format, va_list list) {
@@ -154,7 +149,7 @@ void LogMessage(const char *format, ...) {
 static bool g_save_full_log = false;
 static std::vector<std::string> g_full_logs;  // NOLINT
 
-void AddToFullLog(const char* str) { g_full_logs.push_back(std::string(str)); }
+void AddToFullLog(const char *str) { g_full_logs.push_back(std::string(str)); }
 
 bool GetPreserveFullLog() { return g_save_full_log; }
 void SetPreserveFullLog(bool b) { g_save_full_log = b; }
@@ -190,7 +185,6 @@ void AddToTextView(const char *str) {
       [data writeToFile:g_file_url_path atomically:YES];
     }
   }
-
 }
 
 // Remove all lines starting with these strings.
@@ -224,10 +218,10 @@ void *stdout_logger(void *filedes_ptr) {
   return nullptr;
 }
 
-void RunOnBackgroundThread(void* (*func)(void*), void* data) {
+void RunOnBackgroundThread(void *(*func)(void *), void *data) {
   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-      func(data);
-    });
+    func(data);
+  });
 }
 
 // Create an alert dialog via UIAlertController, and prompt the user to enter a line of text.
@@ -304,7 +298,7 @@ bool StartLoggingToFile(const char *file_path) {
 
 }  // namespace app_framework
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   // Pipe stdout to call LogToTextView so we can see the gtest output.
   int filedes[2];
   assert(pipe(filedes) != -1);
@@ -333,6 +327,10 @@ int main(int argc, char* argv[]) {
 - (BOOL)application:(UIApplication *)app
             openURL:(NSURL *)url
             options:(NSDictionary<UIApplicationOpenURLOptionsKey, id> *)options {
+#if TARGET_OS_SIMULATOR
+  setenv("USE_FIRESTORE_EMULATOR", "true", 1);
+#endif
+
   if ([url.scheme isEqual:kGameLoopUrlPrefix]) {
     g_gameloop_launch = true;
     app_framework::StartLoggingToFile(GAMELOOP_DEFAULT_LOG_FILE);
@@ -343,8 +341,8 @@ int main(int argc, char* argv[]) {
   return NO;
 }
 
-- (BOOL)application:(UIApplication*)application
-    didFinishLaunchingWithOptions:(NSDictionary*)launchOptions {
+- (BOOL)application:(UIApplication *)application
+    didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
   g_running_state_condition = [[NSCondition alloc] init];
 
   self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
@@ -357,7 +355,7 @@ int main(int argc, char* argv[]) {
   g_text_view.accessibilityIdentifier = @"Logger";
 #if TARGET_OS_IOS
   g_text_view.editable = NO;
-#endif //TARGET_OS_IOS
+#endif  // TARGET_OS_IOS
   g_text_view.scrollEnabled = YES;
   g_text_view.userInteractionEnabled = YES;
   g_text_view.font = [UIFont fontWithName:@"Courier" size:10];

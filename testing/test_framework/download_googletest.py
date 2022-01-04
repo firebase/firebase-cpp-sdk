@@ -35,9 +35,10 @@ except ImportError:
 SRC_DIR = os.path.relpath(os.path.dirname(__file__))
 TAG = os.path.basename(__file__)
 
-GOOGLETEST_ZIP = 'https://github.com/google/googletest/archive/refs/tags/release-1.10.0.zip'
+# Pin to 1.11.0 because we touch internal GoogleTest structures that could change in the future.
+GOOGLETEST_ZIP = 'https://github.com/google/googletest/archive/refs/tags/release-1.11.0.zip'
 # Top-level directory inside the zip file to ignore.
-GOOGLETEST_DIR = os.path.join('googletest-release-1.10.0')
+GOOGLETEST_DIR = os.path.join('googletest-release-1.11.0')
 
 # The GoogleTest code is copied into this subdirectory.
 # This structure matches where the files are placed by CMake.

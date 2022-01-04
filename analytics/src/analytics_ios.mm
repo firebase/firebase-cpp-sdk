@@ -21,12 +21,12 @@
 #include "analytics/src/include/firebase/analytics.h"
 
 #include "analytics/src/analytics_common.h"
-#include "app/src/include/firebase/version.h"
 #include "app/src/assert.h"
+#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
-#include "app/src/mutex.h"
-#include "app/src/time.h"
 #include "app/src/thread.h"
+#include "app/src/time.h"
 #include "app/src/util.h"
 #include "app/src/util_ios.h"
 
@@ -41,6 +41,7 @@ class AnalyticsDataResetter {
     kResetStateRequested,
     kResetStateRetry,
   };
+
  public:
   // Initialize the class.
   AnalyticsDataResetter() : reset_state_(kResetStateNone), reset_timestamp_(0) {}
@@ -114,7 +115,7 @@ const uint64_t AnalyticsDataResetter::kResetTimeoutMilliseconds = 5000;
 static const double kMillisecondsPerSecond = 1000.0;
 static Mutex g_mutex;  // NOLINT
 static bool g_initialized = false;
-static AnalyticsDataResetter *g_resetter = nullptr;
+static AnalyticsDataResetter* g_resetter = nullptr;
 
 // Initialize the API.
 void Initialize(const ::firebase::App& app) {
@@ -213,10 +214,9 @@ void LogEvent(const char* name, const Parameter* parameters, size_t number_of_pa
       [parameters_dict setObject:[NSNumber numberWithLongLong:0] forKey:parameter_name];
     } else {
       // Vector or Map were passed in.
-      LogError(
-          "LogEvent(%s): %s is not a valid parameter value type. "
-          "Container types are not allowed. No event was logged.",
-          parameter.name, Variant::TypeName(parameter.value.type()));
+      LogError("LogEvent(%s): %s is not a valid parameter value type. "
+               "Container types are not allowed. No event was logged.",
+               parameter.name, Variant::TypeName(parameter.value.type()));
     }
   }
   [FIRAnalytics logEventWithName:@(name) parameters:parameters_dict];
@@ -253,25 +253,26 @@ Future<std::string> GetAnalyticsInstanceId() {
   MutexLock lock(g_mutex);
   FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
   auto* api = internal::FutureData::Get()->api();
-  const auto future_handle = api->SafeAlloc<std::string>(
-      internal::kAnalyticsFnGetAnalyticsInstanceId);
+  const auto future_handle =
+      api->SafeAlloc<std::string>(internal::kAnalyticsFnGetAnalyticsInstanceId);
   static int kPollTimeMs = 100;
-  Thread get_id_thread([](SafeFutureHandle<std::string>* handle) {
-      for ( ; ; ) {
-        {
-          MutexLock lock(g_mutex);
-          if (!internal::IsInitialized()) break;
-          std::string instance_id = g_resetter->GetInstanceId();
-          if (!instance_id.empty()) {
-            internal::FutureData::Get()->api()->CompleteWithResult(
-                *handle, 0, "", instance_id);
-            break;
+  Thread get_id_thread(
+      [](SafeFutureHandle<std::string>* handle) {
+        for (;;) {
+          {
+            MutexLock lock(g_mutex);
+            if (!internal::IsInitialized()) break;
+            std::string instance_id = g_resetter->GetInstanceId();
+            if (!instance_id.empty()) {
+              internal::FutureData::Get()->api()->CompleteWithResult(*handle, 0, "", instance_id);
+              break;
+            }
           }
+          firebase::internal::Sleep(kPollTimeMs);
         }
-        firebase::internal::Sleep(kPollTimeMs);
-      }
-      delete handle;
-    }, new SafeFutureHandle<std::string>(future_handle));
+        delete handle;
+      },
+      new SafeFutureHandle<std::string>(future_handle));
   get_id_thread.Detach();
   return Future<std::string>(api, future_handle.get());
 }
@@ -280,8 +281,7 @@ Future<std::string> GetAnalyticsInstanceIdLastResult() {
   MutexLock lock(g_mutex);
   FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
   return static_cast<const Future<std::string>&>(
-      internal::FutureData::Get()->api()->LastResult(
-          internal::kAnalyticsFnGetAnalyticsInstanceId));
+      internal::FutureData::Get()->api()->LastResult(internal::kAnalyticsFnGetAnalyticsInstanceId));
 }
 
 }  // namespace measurement

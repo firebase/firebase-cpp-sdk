@@ -44,6 +44,7 @@ def generateCppProguard(File library, String outCppPro) {
 //   proguardSet: The set of proguard files to use.
 //   outputProguard: The path to the output proguard file.
 def generateFinalProguard(Set<File> proguardSet, String outputProguard) {
+
   Set<String> proguardLineSet = new HashSet<String>()
   for (File pro : proguardSet) {
     for (String line : pro.text.split("[\\r\\n]+")) {
@@ -79,9 +80,12 @@ def defineGenerateProguardFile(String subproject, String buildType,
       Set<File> librarySet = fileTree("$nativeBuildDir")
           .matching({ include "**/*firebase_${subproject}*" }).getFiles()
       String cppProguard = "$buildDir/cpp_${subproject}.pro"
-      if (!librarySet.isEmpty()) {
+      while (!librarySet.isEmpty()) {
         File lib = librarySet.iterator().next()
-        generateCppProguard(lib, cppProguard)
+        librarySet.remove(lib)
+        if (lib.name.endsWith(".a")) {
+          generateCppProguard(lib, cppProguard)
+        }
       }
 
       // Combine the proguard files into a single file.

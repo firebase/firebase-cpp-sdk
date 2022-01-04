@@ -28,7 +28,7 @@ supply it with the --key_file flag.
 
 Usage:
 
-  python test_lab.py --testapp_dir ~/testapps --code_platform unity \
+  python test_lab.py --testapp_dir ~/testapps --code_platform cpp \
     --key_file scripts/gha-encrypted/gcs_key_file.json
 
 This will recursively search ~/testapps for apks and ipas,
@@ -189,13 +189,7 @@ def main(argv):
             results_dir=gcs_base_dir + "/" + name))
 
   logging.info("Sending testapps to FTL")
-  threads = []
-  for test in tests:
-    thread = threading.Thread(target=test.run)
-    threads.append(thread)
-    thread.start()
-  for thread in threads:
-    thread.join()
+  tests = _run_test_on_ftl(tests, [])
 
   # Useful diagnostic information to debug unexpected errors involving things
   # not being where they're supposed to be. This will show everything generated
@@ -210,6 +204,37 @@ def main(argv):
       testapp_dir, 
       file_name="test-results-" + FLAGS.logfile_name + ".log",
       extra_info=" (ON REAL DEVICE VIA FTL)")
+
+
+def _run_test_on_ftl(tests, tested_tests, retry=3):
+  threads = []
+  for test in tests:
+    logging.info("Start running testapp: %s" % test.testapp_path)
+    thread = threading.Thread(target=test.run)
+    threads.append(thread)
+    thread.start()
+    tested_tests.append(test)
+  for thread in threads:
+    thread.join()
+
+  if retry > 1:
+    failed_tests = []
+    for test in tests:
+      result = test_validation.validate_results(test.logs, test_validation.CPP)
+      if not result.complete or result.fails != 0:
+        logging.info("Failure(s) occurred, testapp: %s" % test.testapp_path)
+        failed_test = Test(
+              device=test.device,
+              platform=test.platform,
+              testapp_path=test.testapp_path,
+              results_dir=test.results_dir + "retry")
+        failed_tests.append(failed_test)
+
+    if failed_tests:
+      logging.info("Failure(s) occurred, retrying test(s) on FTL.")
+      return _run_test_on_ftl(failed_tests, tested_tests, retry=retry-1)
+    
+  return tested_tests
 
 
 def _install_gcloud_beta():
@@ -278,6 +303,7 @@ class Test(object):
       self.raw_result_link = raw_result_link.group(1)
 
     self.logs = self._get_testapp_log_text_from_gcs()
+    logging.info("Test result: %s", self.logs)
 
   @property
   def _gcloud_command(self):
@@ -293,7 +319,7 @@ class Test(object):
         "--app", self.testapp_path,
         "--results-bucket", gcs.PROJECT_ID,
         "--results-dir", self.results_dir,
-        "--timeout", "900s"
+        "--timeout", "600s"
     ]
 
   def _get_testapp_log_text_from_gcs(self):

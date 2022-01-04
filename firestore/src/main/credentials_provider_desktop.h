@@ -1,4 +1,18 @@
-// Copyright 2021 Google LLC
+/*
+ * Copyright 2021 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #ifndef FIREBASE_FIRESTORE_SRC_MAIN_CREDENTIALS_PROVIDER_DESKTOP_H_
 #define FIREBASE_FIRESTORE_SRC_MAIN_CREDENTIALS_PROVIDER_DESKTOP_H_
@@ -7,12 +21,17 @@
 #include <mutex>  // NOLINT(build/c++11)
 #include <string>
 
-#include "Firestore/core/src/auth/credentials_provider.h"
-#include "Firestore/core/src/auth/token.h"
-#include "Firestore/core/src/auth/user.h"
+#include "Firestore/core/src/credentials/auth_token.h"
+#include "Firestore/core/src/credentials/credentials_fwd.h"
+#include "Firestore/core/src/credentials/credentials_provider.h"
+#include "Firestore/core/src/credentials/user.h"
 #include "Firestore/core/src/util/statusor.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
+
+#if defined(__ANDROID__)
+#error "This header should not be used on Android."
+#endif
 
 namespace firebase {
 namespace firestore {
@@ -20,10 +39,10 @@ namespace firestore {
 // Glues together C++ Firebase Auth and Firestore: allows Firestore to listen to
 // Auth events and to retrieve auth tokens. Thread-safe.
 //
-// This is a language-specific implementation of `CredentialsProvider` that
+// This is a language-specific implementation of `AuthCredentialsProvider` that
 // works with the public C++ Auth.
 class FirebaseCppCredentialsProvider
-    : public firestore::auth::CredentialsProvider {
+    : public firestore::credentials::AuthCredentialsProvider {
  public:
   explicit FirebaseCppCredentialsProvider(App& app);
   ~FirebaseCppCredentialsProvider() override;
@@ -33,11 +52,13 @@ class FirebaseCppCredentialsProvider
   FirebaseCppCredentialsProvider& operator=(
       const FirebaseCppCredentialsProvider&) = delete;
 
-  // `firestore::auth::CredentialsProvider` interface.
+  // `firestore::credentials::AuthCredentialsProvider` interface.
   void SetCredentialChangeListener(
-      firestore::auth::CredentialChangeListener listener) override;
-  void GetToken(firestore::auth::TokenListener listener) override;
-  void InvalidateToken() override;
+      firestore::credentials::CredentialChangeListener<
+          firestore::credentials::User> listener) override;
+  void GetToken(
+      firestore::credentials::TokenListener<firestore::credentials::AuthToken>
+          listener) override;
 
  private:
   void AddAuthStateListener();
@@ -50,8 +71,10 @@ class FirebaseCppCredentialsProvider
   // Requests an auth token for the currently signed-in user asynchronously; the
   // given `listener` will eventually be invoked with the token (or an error).
   // If there is no signed-in user, immediately invokes the `listener` with
-  // `Token::Unauthenticated()`.
-  void RequestToken(firestore::auth::TokenListener listener);
+  // `AuthToken::Unauthenticated()`.
+  void RequestToken(
+      firestore::credentials::TokenListener<firestore::credentials::AuthToken>
+          listener);
 
   bool IsSignedIn() const;
 
@@ -85,13 +108,6 @@ class FirebaseCppCredentialsProvider
     int token_generation = 0;
   };
   std::shared_ptr<Contents> contents_;
-
-  // Affects the next `GetToken` request; if `true`, the token will be refreshed
-  // even if it hasn't expired yet.
-  bool force_refresh_token_ = false;
-
-  // Provided by the user code; may be an empty function.
-  firestore::auth::CredentialChangeListener change_listener_;
 };
 
 }  // namespace firestore

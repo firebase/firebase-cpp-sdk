@@ -18,7 +18,6 @@ package com.google.firebase;
 
 /** Fake FirebaseApiNotAvailableException */
 public class FirebaseApiNotAvailableException extends FirebaseException {
-
   public FirebaseApiNotAvailableException(String message) {
     super(message);
   }

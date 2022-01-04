@@ -32,9 +32,12 @@ env:
   demumbleVer: "1.1.0"
   # Use SHA256 for hashing files.
   hashCommand: "sha256sum"
-  # Xcode version 12 is the version we build the SDK with.
+  # Xcode version 12.4 is the version we build the SDK with.
   # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
-  xcodeVersion: "12"
+  xcodeVersion: "12.4"
+  # LLVM version with ARM MachO support has no version number yet.
+  llvmVer: "5f187f0afaad33013ba03454c4749d99b1362534"
+  GITHUB_TOKEN: ${{ github.token }}
 
 jobs:
   log_inputs:
@@ -91,7 +94,7 @@ jobs:
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
 
-      - name: fetch and build binutils
+      - name: Fetch and build binutils
         run: |
           set +e
           # Retry up to 10 times because Curl has a tendency to timeout on
@@ -105,13 +108,46 @@ jobs:
 
           tar -xf binutils.tar.xz
           mv ./binutils-${{ matrix.binutils_version }} ./binutils-src
+          mkdir /tmp/binutils-output
           cd binutils-src
-          ./configure --enable-targets=all --prefix=/tmp/binutils
-          make
+          ./configure --enable-targets=all --prefix=/tmp/binutils-output
+          make -j2
           make install
           cd -
           mkdir -p packaging-tools
-          cp -af /tmp/binutils/bin/* packaging-tools
+          cp -af /tmp/binutils-output/bin/* packaging-tools
+
+      - name: Cache LLVM (Mac only)
+        if: matrix.tools_platform == 'darwin'
+        id: cache_llvm
+        uses: actions/cache@v2
+        with:
+          path: llvm-src/llvm/build/bin
+          key: llvm-bin-${{matrix.tools_platform}}-${{env.xcodeVersion}}-${{env.llvmVer}}
+
+      - name: Fetch LLVM source (Mac only)
+        # Only fetch LLVM if we don't already have binaries from the cache.
+        if: ${{ matrix.tools_platform == 'darwin' && !steps.cache_llvm.outputs.cache-hit }}
+        uses: actions/checkout@v2.3.1
+        with:
+          repository: llvm/llvm-project
+          path: llvm-src
+          ref: ${{ env.llvmVer }}
+
+      - name: Build LLVM (Mac only) 
+        # Only build LLVM if we don't already have binaries from the cache.
+        if: ${{ matrix.tools_platform == 'darwin' && !steps.cache_llvm.outputs.cache-hit }}
+        run: |
+          mkdir llvm-src/llvm/build
+          cd llvm-src/llvm/build
+          cmake -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release ..
+          cmake --build . -j 3 --target llvm-objcopy --target llvm-nm --target llvm-ar
+
+      - name: Package LLVM output (Mac only)
+        if: matrix.tools_platform == 'darwin'
+        run: |
+          mkdir -p packaging-tools
+          cp -af llvm-src/llvm/build/bin/* packaging-tools
 
       - name: fetch demumble
         uses: actions/checkout@v2.3.1
@@ -127,7 +163,7 @@ jobs:
           cmake --build .
           python demumble_test.py
           cd -
-          mkdir -p packaging-tools-
+          mkdir -p packaging-tools
           cp -af demumble-src/demumble packaging-tools
 
       - name: archive tools
@@ -142,11 +178,18 @@ jobs:
           name: packaging-tools-${{ matrix.tools_platform }}
           path: packaging-tools.tgz
 
-  build_and_package_ios:
-    name: build-and-package-ios
+  build_and_package_ios_tvos:
+    name: build-and-package-ios-tvos
     runs-on: macos-latest
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     steps:
+      - name: Store git credentials for all git commands
+        # Forces all git commands to use authenticated https, to prevent throttling.
+        shell: bash
+        run: |
+          git config --global credential.helper 'store --file /tmp/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
+
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
@@ -156,15 +199,21 @@ jobs:
         with:
           path: sdk-src
 
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
       - name: install prerequisites
         run: sdk-src/build_scripts/ios/install_prereqs.sh
 
       - name: build sdk
         run: |
-          sdk-src/build_scripts/ios/build.sh -b firebase-cpp-sdk-ios-build -s sdk-src
-          sdk-src/build_scripts/ios/package.sh firebase-cpp-sdk-ios-build firebase-cpp-sdk-ios-package
-          cd firebase-cpp-sdk-ios-package
-          tar -czhf ../firebase-cpp-sdk-ios-package.tgz .
+          python sdk-src/scripts/gha/build_ios_tvos.py -b firebase-cpp-sdk-ios-tvos-build -s sdk-src
+          sdk-src/build_scripts/ios/package.sh firebase-cpp-sdk-ios-tvos-build firebase-cpp-sdk-ios-tvos-package
+          sdk-src/build_scripts/tvos/package.sh firebase-cpp-sdk-ios-tvos-build firebase-cpp-sdk-ios-tvos-package
+          cd firebase-cpp-sdk-ios-tvos-package
+          tar -czhf ../firebase-cpp-sdk-ios-tvos-package.tgz .
 
       - name: Print built libraries
         shell: bash
@@ -184,8 +233,8 @@ jobs:
       - name: upload artifacts
         uses: actions/upload-artifact@v2.2.2
         with:
-          name: firebase-cpp-sdk-ios-package
-          path: firebase-cpp-sdk-ios-package.tgz
+          name: firebase-cpp-sdk-ios-tvos-package
+          path: firebase-cpp-sdk-ios-tvos-package.tgz
 
   build_and_package_android:
     name: build-and-package-android-${{matrix.stl}}
@@ -200,6 +249,13 @@ jobs:
         uses: actions/checkout@v2.3.1
         with:
           path: sdk-src
+
+      - name: Store git credentials for all git commands
+        # Forces all git commands to use authenticated https, to prevent throttling.
+        shell: bash
+        run: |
+          git config --global credential.helper 'store --file /tmp/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
 
       - name: Cache NDK
         id: cache_ndk
@@ -248,7 +304,7 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
         build_type: ["Release", "Debug"]
-        architecture: ["x64", "x86"]
+        architecture: ["x64", "x86", "arm64"]
         msvc_runtime: ["static", "dynamic"]
         linux_abi: ["legacy", "c++11"]
         python_version: [3.7]
@@ -286,8 +342,19 @@ jobs:
           msvc_runtime: "dynamic"
         - os: ubuntu-latest
           build_type: "Debug"
+        - os: ubuntu-latest
+          architecture: "arm64"
+        - os: windows-latest
+          architecture: "arm64"
 
     steps:
+      - name: Store git credentials for all git commands
+        # Forces all git commands to use authenticated https, to prevent throttling.
+        shell: bash
+        run: |
+          git config --global credential.helper 'store --file /tmp/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
+
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
@@ -302,6 +369,10 @@ jobs:
           echo "VCPKG_RESPONSE_FILE=external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt" >> $GITHUB_ENV
           echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}" >> $GITHUB_ENV
           echo "SDK_NAME=${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}" >> $GITHUB_ENV
+          if [[ '${{ matrix.sdk_platform }}' == 'darwin' ]]; then
+            # If Mac, also hash vcpkg cache on Xcode version.
+            echo "VCPKG_EXTRA_HASH=-xcode${{env.xcodeVersion}}" >> $GITHUB_ENV
+          fi
 
       - name: Add msbuild to PATH (windows)
         if: startsWith(matrix.os, 'windows')
@@ -312,7 +383,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: external/vcpkg/installed
-          key: dev-vcpkg-${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
+          key: dev-vcpkg-${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}${{env.VCPKG_EXTRA_HASH}}
 
       - name: Cache ccache files
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
@@ -362,6 +433,8 @@ jobs:
         run: |
           cd out-sdk
           find .. -type f -print > src_file_list.txt
+          # Remove intermediate build files (.o and .obj) files to save space.
+          find . -type f -name '*.o' -or -name '*.obj' -print0 | xargs -0 rm -f --
           tar -czhf ../firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz .
 
       - name: Print built libraries
@@ -497,15 +570,15 @@ jobs:
             variant=$(sdk-src/build_scripts/desktop/get_variant.sh "${pkg}")
             additional_flags=(${verbose_flag})
             # Several build targets require explicitly-set binutils format to be passed
-            # to package.sh (and thus, to merge_libraries).
-            if [[ "${{ matrix.sdk_platform }}" == "darwin" && "${variant}" == "arm64" ]]; then
-              # MacOS ARM
-              additional_flags+=(-f mach-o-arm64)
+            # to package.sh (and thus, to merge_libraries), or use LLVM binutils.
+            if [[ "${{ matrix.sdk_platform }}" == "darwin" ]]; then
+              # MacOS: use LLVM binutils for both X64 and ARM64
+              additional_flags+=(-L)
             elif [[ "${{ matrix.sdk_platform }}" == "windows" && "${variant}" == *"/x64/"* ]]; then
-              # Windows x64
+              # Windows x64: force input and output target format
               additional_flags+=(-f pe-x86-64,pe-bigobj-x86-64)
             elif [[ "${{ matrix.sdk_platform }}" == "windows" && "${variant}" == *"/x86/"* ]]; then
-              # Windows x86
+              # Windows x86: force input and output target format
               additional_flags+=(-f pe-i386,pe-bigobj-i386)
             fi
             sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3 -j ${additional_flags[*]}
@@ -600,7 +673,7 @@ jobs:
     name: final-merge-packages
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
-    needs: [build_and_package_ios, build_and_package_android, package_desktop, log_inputs]
+    needs: [build_and_package_ios_tvos, build_and_package_android, package_desktop, log_inputs]
     steps:
       - name: fetch SDK
         uses: actions/checkout@v2.3.1
@@ -711,12 +784,17 @@ jobs:
     - name: Use GitHub API to start workflow
       shell: bash
       run: |
+        pip install -r scripts/gha/requirements.txt
         if [[ -z ${USE_EXPANDED_MATRIX} ]]; then
           USE_EXPANDED_MATRIX=0
+        fi
+        if [[ "${{ github.event_name }}" == "schedule" ]]; then
+          # reuse flag --test_pull_request=nightly-packaging to generate report
+          generate_report=(-p test_pull_request nightly-packaging)
         fi
         verbose_flag=
         if [[ -n "${{ github.event.inputs.verboseBuild }}" && "${{ github.event.inputs.verboseBuild }}" -ne 0 ]]; then
           verbose_flag=-v
         fi
         set -e
-        python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} -w integration_tests.yml -p test_packaged_sdk ${{ github.run_id }} -p use_expanded_matrix ${USE_EXPANDED_MATRIX} -s 10 -A ${verbose_flag}
+        python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} -w integration_tests.yml -p test_packaged_sdk ${{ github.run_id }} -p use_expanded_matrix ${USE_EXPANDED_MATRIX} ${generate_report[*]} -s 10 -A ${verbose_flag}

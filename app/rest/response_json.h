@@ -22,6 +22,7 @@
 
 #include "app/rest/response.h"
 #include "app/src/assert.h"
+#include "app/src/log.h"
 #include "flatbuffers/idl.h"
 #include "flatbuffers/stl_emulation.h"
 
@@ -74,12 +75,24 @@ class ResponseJson : public Response {
     // Parse and verify JSON string in body. FlatBuffer parser does not support
     // online parsing. So we only parse the body when we get everything.
     bool parse_status = parser_->Parse(GetBody());
-    FIREBASE_ASSERT_RETURN_VOID(parse_status);
+    if (!parse_status) {
+      LogError("flatbuffers::Parser::Parse() failed: %s",
+               parser_->error_.c_str());
+      application_data_.reset(new FbsTypeT());
+      Response::MarkCompleted();
+      return;
+    }
+
     const flatbuffers::FlatBufferBuilder& builder = parser_->builder_;
     flatbuffers::Verifier verifier(builder.GetBufferPointer(),
                                    builder.GetSize());
     bool verify_status = verifier.VerifyBuffer<FbsType>(nullptr);
-    FIREBASE_ASSERT_RETURN_VOID(verify_status);
+    if (!verify_status) {
+      LogError("flatbuffers::Verifier::VerifyBuffer() failed");
+      application_data_.reset(new FbsTypeT());
+      Response::MarkCompleted();
+      return;
+    }
 
     // UnPack application data object from FlatBuffer.
     const FbsType* body_fbs =
@@ -87,6 +100,12 @@ class ResponseJson : public Response {
     application_data_.reset(body_fbs->UnPack());
 
     Response::MarkCompleted();
+  }
+
+  // When the response fails, ensure that application_data_ is set.
+  void MarkFailed() override {
+    application_data_.reset(new FbsTypeT());
+    Response::MarkFailed();
   }
 
  protected:

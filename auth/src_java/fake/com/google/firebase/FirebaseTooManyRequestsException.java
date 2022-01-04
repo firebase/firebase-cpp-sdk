@@ -18,7 +18,6 @@ package com.google.firebase;
 
 /** Fake FirebaseTooManyRequestsException */
 public class FirebaseTooManyRequestsException extends FirebaseException {
-
   public FirebaseTooManyRequestsException(String message) {
     super(message);
   }

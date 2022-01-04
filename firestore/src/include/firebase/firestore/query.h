@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google
+ * Copyright 2018 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -650,7 +650,10 @@ class Query {
   bool is_valid() const { return internal_ != nullptr; }
 
  private:
+  size_t Hash() const;
+
   friend bool operator==(const Query& lhs, const Query& rhs);
+  friend size_t QueryHash(const Query& query);
 
   friend class FirestoreInternal;
   friend class QueryInternal;

@@ -1,16 +1,18 @@
-// Copyright 2019 Google Inc. All rights reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*
+ * Copyright 2019 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 /*
    IMPORTANT: This file is used by both the regular and the internal Firestore
@@ -343,6 +345,7 @@ TEST_F(FirebaseFirestoreBasicTest, TestInitializeAndTerminate) {
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestSignIn) {
+  SKIP_TEST_ON_QUICK_CHECK;
   EXPECT_NE(shared_auth_->current_user(), nullptr);
 }
 
@@ -383,6 +386,7 @@ TEST_F(FirebaseFirestoreBasicTest, TestDocument) {
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestSetGet) {
+  SKIP_TEST_ON_QUICK_CHECK;
   SignIn();
 
   firebase::firestore::DocumentReference document = Doc();
@@ -403,6 +407,7 @@ TEST_F(FirebaseFirestoreBasicTest, TestSetGet) {
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestSetUpdateGet) {
+  SKIP_TEST_ON_QUICK_CHECK;
   SignIn();
 
   firebase::firestore::DocumentReference document = Doc();
@@ -427,6 +432,7 @@ TEST_F(FirebaseFirestoreBasicTest, TestSetUpdateGet) {
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestSetDelete) {
+  SKIP_TEST_ON_QUICK_CHECK;
   SignIn();
 
   firebase::firestore::DocumentReference document = Doc();
@@ -448,6 +454,7 @@ TEST_F(FirebaseFirestoreBasicTest, TestSetDelete) {
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestDocumentListener) {
+  SKIP_TEST_ON_QUICK_CHECK;
   SignIn();
 
   firebase::firestore::DocumentReference document = Doc();
@@ -487,6 +494,7 @@ TEST_F(FirebaseFirestoreBasicTest, TestDocumentListener) {
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestBatchWrite) {
+  SKIP_TEST_ON_QUICK_CHECK;
   SignIn();
 
   firebase::firestore::DocumentReference document1 = Doc("1");
@@ -516,6 +524,7 @@ TEST_F(FirebaseFirestoreBasicTest, TestBatchWrite) {
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestRunTransaction) {
+  SKIP_TEST_ON_QUICK_CHECK;
   SignIn();
 
   WaitForCompletion(
@@ -601,6 +610,7 @@ TEST_F(FirebaseFirestoreBasicTest, TestRunTransaction) {
 // TODO: Add test for failing transaction.
 
 TEST_F(FirebaseFirestoreBasicTest, TestQuery) {
+  SKIP_TEST_ON_QUICK_CHECK;
   SignIn();
 
   firebase::firestore::CollectionReference collection = GetTestCollection();
@@ -663,6 +673,7 @@ TEST_F(FirebaseFirestoreBasicTest,
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestInvalidatingReferencesWhenDeletingApp) {
+  SKIP_TEST_ON_QUICK_CHECK;
   delete shared_app_;
   shared_app_ = nullptr;
   // TODO: Ensure existing Firestore objects are invalidated.

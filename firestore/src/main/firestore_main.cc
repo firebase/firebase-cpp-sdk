@@ -1,16 +1,33 @@
-// Copyright 2021 Google LLC
+/*
+ * Copyright 2021 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "firestore/src/main/firestore_main.h"
 
+#include <cstring>
 #include <sstream>
 #include <utility>
 
 #include "Firestore/core/src/api/document_reference.h"
 #include "Firestore/core/src/api/query_core.h"
+#include "Firestore/core/src/credentials/empty_credentials_provider.h"
 #include "Firestore/core/src/model/database_id.h"
 #include "Firestore/core/src/model/resource_path.h"
 #include "Firestore/core/src/util/async_queue.h"
 #include "Firestore/core/src/util/byte_stream_cpp.h"
+#include "Firestore/core/src/util/exception.h"
 #include "Firestore/core/src/util/executor.h"
 #include "Firestore/core/src/util/log.h"
 #include "Firestore/core/src/util/status.h"
@@ -19,6 +36,7 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "firebase/firestore/firestore_version.h"
+#include "firestore/src/common/exception_common.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/common/util.h"
@@ -34,9 +52,9 @@ namespace firebase {
 namespace firestore {
 namespace {
 
-using auth::CredentialsProvider;
+using credentials::AuthCredentialsProvider;
+using credentials::EmptyAppCheckCredentialsProvider;
 using model::DatabaseId;
-using model::ResourcePath;
 using util::AsyncQueue;
 using util::Executor;
 using util::Status;
@@ -56,6 +74,7 @@ LoadBundleTaskProgress::State ToApiProgressState(
     case api::LoadBundleTaskState::kInProgress:
       return LoadBundleTaskProgress::State::kInProgress;
   }
+  UNREACHABLE();
 }
 
 LoadBundleTaskProgress ToApiProgress(
@@ -67,13 +86,24 @@ LoadBundleTaskProgress ToApiProgress(
           ToApiProgressState(internal_progress.state())};
 }
 
+void ValidateDoubleSlash(const char* path) {
+  if (std::strstr(path, "//") != nullptr) {
+    // TODO(b/147444199): use string formatting.
+    // ThrowInvalidArgument(
+    //     "Invalid path (%s). Paths must not contain // in them.", path);
+    auto message = std::string("Invalid path (") + path +
+                   "). Paths must not contain // in them.";
+    SimpleThrowInvalidArgument(message);
+  }
+}
+
 }  // namespace
 
 FirestoreInternal::FirestoreInternal(App* app)
     : FirestoreInternal{app, CreateCredentialsProvider(*app)} {}
 
 FirestoreInternal::FirestoreInternal(
-    App* app, std::unique_ptr<CredentialsProvider> credentials)
+    App* app, std::unique_ptr<AuthCredentialsProvider> credentials)
     : app_(NOT_NULL(app)),
       firestore_core_(CreateFirestore(app, std::move(credentials))),
       transaction_executor_(absl::ShareUniquePtr(Executor::CreateConcurrent(
@@ -90,25 +120,41 @@ FirestoreInternal::~FirestoreInternal() {
 }
 
 std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
-    App* app, std::unique_ptr<CredentialsProvider> credentials) {
+    App* app, std::unique_ptr<AuthCredentialsProvider> credentials) {
   const AppOptions& opt = app->options();
   return std::make_shared<api::Firestore>(
       DatabaseId{opt.project_id()}, app->name(), std::move(credentials),
-      CreateWorkerQueue(), CreateFirebaseMetadataProvider(*app), this);
+      std::make_shared<EmptyAppCheckCredentialsProvider>(), CreateWorkerQueue(),
+      CreateFirebaseMetadataProvider(*app), this);
 }
 
 CollectionReference FirestoreInternal::Collection(
     const char* collection_path) const {
+  ValidateDoubleSlash(collection_path);
+
   auto result = firestore_core_->GetCollection(collection_path);
   return MakePublic(std::move(result));
 }
 
 DocumentReference FirestoreInternal::Document(const char* document_path) const {
+  ValidateDoubleSlash(document_path);
+
   auto result = firestore_core_->GetDocument(document_path);
   return MakePublic(std::move(result));
 }
 
 Query FirestoreInternal::CollectionGroup(const char* collection_id) const {
+  if (std::strchr(collection_id, '/') != nullptr) {
+    // TODO(b/147444199): use string formatting.
+    // ThrowInvalidArgument(
+    //     "Invalid collection ID (%s). Collection IDs must not contain / in "
+    //     "them.",
+    //     collection_id);
+    auto message = std::string("Invalid collection ID (") + collection_id +
+                   "). Collection IDs must not contain / in them.";
+    SimpleThrowInvalidArgument(message);
+  }
+
   core::Query core_query = firestore_core_->GetCollectionGroup(collection_id);
   api::Query api_query(std::move(core_query), firestore_core_);
   return MakePublic(std::move(api_query));

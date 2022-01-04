@@ -18,7 +18,6 @@ package com.google.firebase;
 
 /** Fake FirebaseNetworkException */
 public class FirebaseNetworkException extends FirebaseException {
-
   public FirebaseNetworkException(String message) {
     super(message);
   }
