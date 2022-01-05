@@ -115,13 +115,13 @@ static SafeFutureHandle<AdapterInitializationStatus> g_initialization_handle =
 struct OpenAdInspectorCallData {
   // Thread-safe call data.
   OpenAdInspectorCallData()
-      : vm(g_java_vm), activity_global(nullptr), listener(nullptr) {}
+      : vm(g_java_vm), ad_parent(nullptr), listener(nullptr) {}
   ~OpenAdInspectorCallData() {
     JNIEnv* env = firebase::util::GetThreadsafeJNIEnv(vm);
-    env->DeleteGlobalRef(activity_global);
+    env->DeleteGlobalRef(ad_parent);
   }
   JavaVM* vm;
-  jobject activity_global;
+  AdParent ad_parent;
   AdInspectorClosedListener* listener;
 };
 
@@ -634,8 +634,8 @@ void CallOpenAdInspector(void* data) {
 
   env->CallStaticVoidMethod(
       mobile_ads::GetClass(),
-      mobile_ads::GetMethodId(mobile_ads::kOpenAdInspector), g_activity,
-      ad_inspector_helper_ref);
+      mobile_ads::GetMethodId(mobile_ads::kOpenAdInspector),
+      call_data->ad_parent, ad_inspector_helper_ref);
   util::CheckAndClearJniExceptions(env);
 
   jni_exception = util::CheckAndClearJniExceptions(env);
@@ -645,14 +645,14 @@ void CallOpenAdInspector(void* data) {
   delete call_data;
 }
 
-void OpenAdInspector(AdInspectorClosedListener* listener) {
+void OpenAdInspector(AdParent parent, AdInspectorClosedListener* listener) {
   JNIEnv* env = ::firebase::gma::GetJNI();
   FIREBASE_ASSERT(env);
 
   OpenAdInspectorCallData* call_data = new OpenAdInspectorCallData();
-  call_data->activity_global = env->NewGlobalRef(g_activity);
+  call_data->ad_parent = env->NewGlobalRef(parent);
   call_data->listener = listener;
-
+  jobject activity = ::firebase::gma::GetActivity();
   util::RunOnMainThread(env, g_activity, CallOpenAdInspector, call_data);
 }
 

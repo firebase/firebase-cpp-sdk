@@ -443,7 +443,7 @@ TEST_F(FirebaseGmaTest, TestAdInspector) {
   TEST_REQUIRES_USER_INTERACTION;
   TestAdInspectorClosedListener listener;
 
-  firebase::gma::OpenAdInspector(&listener);
+  firebase::gma::OpenAdInspector(app_framework::GetWindowContext(), &listener);
 
   // Call OpenAdInspector on Desktop just to ensure the stub links correctly.
   // The rest of this test is behavioral and shouldn't be executed on desktops.
@@ -452,7 +452,7 @@ TEST_F(FirebaseGmaTest, TestAdInspector) {
   // Open the inspector twice to generate a kAdErrorInsepctorAlreadyOpen
   // result.
   app_framework::ProcessEvents(2000);
-  firebase::gma::OpenAdInspector(&listener);
+  firebase::gma::OpenAdInspector(app_framework::GetWindowContext(), &listener);
 
   while (listener.num_closed_events() < 2) {
     app_framework::ProcessEvents(2000);

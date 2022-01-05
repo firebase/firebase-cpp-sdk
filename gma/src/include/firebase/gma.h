@@ -155,9 +155,11 @@ RequestConfiguration GetRequestConfiguration();
 
 /// Opens the ad inspector UI.
 ///
-/// param[in] listener The listener will be invoked when the user closes
+/// @param[in] parent The platform-specific UI element that will host the
+/// ad inspector.
+/// @param[in] listener The listener will be invoked when the user closes
 /// the ad inspector UI. Initialize must be called prior to this function.
-void OpenAdInspector(AdInspectorClosedListener* listener);
+void OpenAdInspector(AdParent parent, AdInspectorClosedListener* listener);
 
 /// @brief Terminate GMA.
 ///

@@ -44,7 +44,6 @@ public final class AdInspectorHelper implements OnAdInspectorClosedListener {
    * has been closed.
    */
   public void onAdInspectorClosed(AdInspectorError error) {
-    Log.e("DEDB", "onAdInspectorClosed, error: " + error);
     adInspectorClosedCallback(mNativeCallbackPtr, error);
   }
 
@@ -52,6 +51,5 @@ public final class AdInspectorHelper implements OnAdInspectorClosedListener {
    * Native callback to which will signal the customer's application
    * that the AdInsepctor has been closed.  A null AdError signifies success.
    */
-  public static native void adInspectorClosedCallback(
-      long nativeCallbackPtr, AdError error);
+  public static native void adInspectorClosedCallback(long nativeCallbackPtr, AdError error);
 }
