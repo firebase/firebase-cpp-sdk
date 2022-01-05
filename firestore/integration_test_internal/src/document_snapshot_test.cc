@@ -59,7 +59,7 @@ TEST_F(DocumentSnapshotTest, Equality) {
   DocumentSnapshot snap3 = DocumentSnapshot();
   DocumentSnapshot snap4 = DocumentSnapshot();
 
-  EXPECT_TRUE(doc1_snap1 == doc1_snap1);
+  EXPECT_FALSE(doc1_snap1 == doc1_snap1);
   EXPECT_TRUE(doc1_snap1 == doc1_snap2);
   EXPECT_TRUE(doc1_snap1 != doc2_snap1);
   EXPECT_TRUE(doc1_snap1 != snap3);
