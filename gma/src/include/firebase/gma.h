@@ -159,14 +159,6 @@ RequestConfiguration GetRequestConfiguration();
 /// the ad inspector UI. Initialize must be called prior to this function.
 void OpenAdInspector(AdInspectorClosedListener* listener);
 
-/// Opens the debug menu.
-///
-/// Initialize must be called prior to this function.  This is a no-op
-/// on iOS.
-///
-/// param[in] Any Ad Manager ad unit ID associated with your app.
-void OpenDebugMenu(const char* ad_unit_id);
-
 /// @brief Terminate GMA.
 ///
 /// Frees resources associated with GMA that were allocated during

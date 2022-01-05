@@ -656,10 +656,6 @@ void OpenAdInspector(AdInspectorClosedListener* listener) {
   util::RunOnMainThread(env, g_activity, CallOpenAdInspector, call_data);
 }
 
-void OpenDebugMenu(const char* ad_unit_id) {
-  // This is a no-op on Android.
-}
-
 // Release classes registered by this module.
 void ReleaseClasses(JNIEnv* env) {
   mobile_ads::ReleaseClass(env);
