@@ -40,10 +40,12 @@ struct AdResultInternal {
     kAdResultInternalAdError = 1,
     // AdResult represents an error the GMA SDK wrapper.
     kAdResultInternalWrapperError,
-    // AdResult resulting from a LoadAd operation.
+    // AdResult from a LoadAd operation.
     kAdResultInternalLoadAdError,
-    // ADResult resulting from an attempt to show a full screen ad.
+    // AdResult from an attempt to show a full screen ad.
     kAdResultInternalFullScreenContentError,
+    // Ad Result from OpenAdInspector operations.
+    kAdResultInternalOpenAdInspectorError
   };
 
   // Default constructor.

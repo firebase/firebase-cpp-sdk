@@ -415,6 +415,52 @@ TEST_F(FirebaseGmaTest, TestGetAdRequestValues) {
   }
 }
 
+class TestAdInspectorClosedListener
+    : public firebase::gma::AdInspectorClosedListener {
+ public:
+  TestAdInspectorClosedListener()
+      : num_closed_events_(0), num_successful_results_(0) {}
+  /// Called when the user clicked the ad.
+  void OnAdInspectorClosed(const firebase::gma::AdResult& ad_result) override {
+    ++num_closed_events_;
+    if (ad_result.is_successful()) {
+      ++num_successful_results_;
+    } else {
+      EXPECT_EQ(ad_result.code(), firebase::gma::kAdErrorInsepctorAlreadyOpen);
+    }
+  }
+
+  uint8_t num_closed_events() const { return num_closed_events_; }
+  uint8_t num_successful_results() const { return num_successful_results_; }
+
+ private:
+  uint8_t num_closed_events_;
+  uint8_t num_successful_results_;
+};
+
+// Ensure that we can open the ad inspector and listen to the close events.
+TEST_F(FirebaseGmaTest, TestAdInspector) {
+  TEST_REQUIRES_USER_INTERACTION;
+  TestAdInspectorClosedListener listener;
+
+  firebase::gma::OpenAdInspector(&listener);
+
+  // Call OpenAdInspector on Desktop just to ensure the stub links correctly.
+  // The rest of this test is behavioral and shouldn't be executed on desktops.
+  SKIP_TEST_ON_DESKTOP;
+
+  // Open the inspector twice to generate a kAdErrorInsepctorAlreadyOpen
+  // result.
+  app_framework::ProcessEvents(2000);
+  firebase::gma::OpenAdInspector(&listener);
+
+  while (listener.num_closed_events() < 2) {
+    app_framework::ProcessEvents(2000);
+  }
+
+  EXPECT_EQ(listener.num_successful_results(), 1);
+}
+
 // A simple listener to help test changes to a AdViews.
 class TestBoundingBoxListener
     : public firebase::gma::AdViewBoundingBoxListener {

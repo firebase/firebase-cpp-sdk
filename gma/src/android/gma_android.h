@@ -28,6 +28,11 @@ namespace gma {
 // Used to setup the cache of class method IDs to reduce
 // time spent looking up methods by string.
 // clang-format off
+#define AD_INSPECTOR_HELPER_METHODS(X)                                       \
+  X(Constructor, "<init>", "(J)V")
+// clang-format on
+
+// clang-format off
 #define ADREQUESTBUILDER_METHODS(X)                                          \
   X(Constructor, "<init>", "()V"),                                           \
   X(Build, "build", "()Lcom/google/android/gms/ads/AdRequest;"),             \
@@ -66,6 +71,10 @@ namespace gma {
 #define MOBILEADS_METHODS(X)                                                 \
   X(Initialize, "initialize",                                                \
     "(Landroid/content/Context;)V", util::kMethodTypeStatic),                \
+  X(OpenAdInspector, "openAdInspector",                                      \
+    "(Landroid/content/Context;"                                             \
+    "Lcom/google/android/gms/ads/OnAdInspectorClosedListener;)V",            \
+     util::kMethodTypeStatic),                                               \
   X(SetRequestConfiguration, "setRequestConfiguration",                      \
     "(Lcom/google/android/gms/ads/RequestConfiguration;)V",                  \
     util::kMethodTypeStatic),                                                \
@@ -128,8 +137,8 @@ namespace gma {
 // clang-format on
 
 // clang-format off
-#define GMA_INITIALIZATION_HELPER_METHODS(X)                               \
-  X(InitializeGma, "initializeGma", "(Landroid/content/Context;)V",      \
+#define GMA_INITIALIZATION_HELPER_METHODS(X)                                 \
+  X(InitializeGma, "initializeGma", "(Landroid/content/Context;)V",          \
     util::kMethodTypeStatic)
 // clang-format on
 
@@ -143,6 +152,8 @@ METHOD_LOOKUP_DECLARATION(initialization_status, INITIALIZATION_STATUS_METHODS);
 METHOD_LOOKUP_DECLARATION(adapter_status, ADAPTER_STATUS_METHODS);
 METHOD_LOOKUP_DECLARATION(adapter_status_state, METHOD_LOOKUP_NONE,
                           ADAPTER_STATUS_STATE_FIELDS);
+
+METHOD_LOOKUP_DECLARATION(ad_inspector_helper, AD_INSPECTOR_HELPER_METHODS);
 METHOD_LOOKUP_DECLARATION(gma_initialization_helper,
                           GMA_INITIALIZATION_HELPER_METHODS);
 

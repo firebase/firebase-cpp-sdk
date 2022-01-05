@@ -140,6 +140,12 @@ enum AdError {
   /// Attempted to present ad from a non-main thread. This is an internal
   /// error which should be reported to support if encountered.
   kAdErrorNotMainThread,
+  /// A debug operation failed because the device is not in test mode.
+  kAdErrorNotInTestMode,
+  /// An attempt to load the Ad Inspector failed.
+  kAdErrorInspectorFailedToLoad,
+  /// The request to show the Ad Inspector failed because it's already open.
+  kAdErrorInsepctorAlreadyOpen,
   /// Fallback error for any unidentified cases.
   kAdErrorUnknown,
 };
@@ -292,8 +298,10 @@ class AdInspectorClosedListener {
  public:
   virtual ~AdInspectorClosedListener();
 
-  /// Called when the user clicked the ad.
-  virtual void OnAdInspectorClosed() { }
+  /// Called when the user clicked the ad.  The AdError contantains
+  /// the status of the operation, including details of the error
+  /// if one occurred.
+  virtual void OnAdInspectorClosed(const AdResult& ad_result) = 0;
 };
 
 /// @brief Response information for an individual ad network contained within
