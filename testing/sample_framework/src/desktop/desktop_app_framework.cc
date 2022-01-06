@@ -148,6 +148,7 @@ void OutputFullLog() {
 }
 
 WindowContext GetWindowContext() { return nullptr; }
+WindowContext GetWindowController() { return nullptr; }
 
 // Change the current working directory to the directory containing the
 // specified file.
