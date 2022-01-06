@@ -59,6 +59,7 @@ static int g_exit_status = -1;
 
 static UITextView *g_text_view;
 static UIView *g_parent_view;
+static UIViewController *g_parent_view_controller;
 static FTAViewController *g_view_controller;
 static bool g_gameloop_launch = false;
 static NSURL *g_results_url;
@@ -70,6 +71,16 @@ static NSString *g_file_url_path;
 - (void)viewDidLoad {
   [super viewDidLoad];
   g_parent_view = self.view;
+  g_parent_view_controller = nil;
+  UIResponder *responder = [g_parent_view nextResponder];
+  while (responder != nil) {
+    if ([responder isKindOfClass:[UIViewController class]]) {
+      g_parent_view_controller = (UIViewController *)responder;
+      break;
+    }
+    responder = [responder nextResponder];
+  }
+
   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
     // Copy the app name into a non-const array, as googletest requires that
     // main() take non-const char* argv[] so it can modify the arguments.
@@ -122,6 +133,7 @@ std::string PathForResource() {
 }
 
 WindowContext GetWindowContext() { return g_parent_view; }
+WindowContext GetWindowController() { return g_parent_view_controller; }
 
 // Log a message that can be viewed in the console.
 void LogMessageV(bool suppress, const char *format, va_list list) {

@@ -113,7 +113,7 @@ RequestConfiguration GetRequestConfiguration() {
   return RequestConfiguration();
 }
 
-void OpenAdInspector(AdInspectorClosedListener* listener) {}
+void OpenAdInspector(AdParent parent, AdInspectorClosedListener* listener) {}
 
 void Terminate() {
   FIREBASE_ASSERT(g_initialized);

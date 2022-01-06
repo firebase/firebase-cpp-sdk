@@ -78,6 +78,10 @@ jobject GetActivity() { return g_app_state->activity->clazz; }
 // Get the window context. For Android, it's a jobject pointing to the Activity.
 jobject GetWindowContext() { return g_app_state->activity->clazz; }
 
+// Get the window controller. For Android, this is the same as the
+// WindowContext.
+jobject GetWindowController() { return GetWindowContext(); }
+
 // Find a class, attempting to load the class if it's not found.
 jclass FindClass(JNIEnv* env, jobject activity_object, const char* class_name) {
   jclass class_object = env->FindClass(class_name);

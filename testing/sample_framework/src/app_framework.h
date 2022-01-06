@@ -116,6 +116,12 @@ bool StartLoggingToFile(const char* path);
 // to the root view of the view controller.
 WindowContext GetWindowContext();
 
+// Returns a variable that describes the controller of the app's UI. On Android
+// this will be a jobject pointing to the Activity, the same as
+// GetWindowContext(). On iOS, it's an id pointing to the UIViewController of
+// the parent UIView.
+WindowContext GetWindowController();
+
 // Run the given function on a detached background thread.
 void RunOnBackgroundThread(void* (*func)(void* data), void* data);
 

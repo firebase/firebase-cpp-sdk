@@ -420,13 +420,20 @@ class TestAdInspectorClosedListener
  public:
   TestAdInspectorClosedListener()
       : num_closed_events_(0), num_successful_results_(0) {}
-  /// Called when the user clicked the ad.
+  // Called when the user clicked the ad.
   void OnAdInspectorClosed(const firebase::gma::AdResult& ad_result) override {
     ++num_closed_events_;
     if (ad_result.is_successful()) {
       ++num_successful_results_;
     } else {
+#if defined(ANDROID)
       EXPECT_EQ(ad_result.code(), firebase::gma::kAdErrorInsepctorAlreadyOpen);
+#else
+      // The iOS GMA SDK returns internal errors for all AdInspector failures.
+      EXPECT_EQ(ad_result.code(), firebase::gma::kAdErrorInternalError);
+#endif
+      LogDebug("OnAdInspectorClosed Error Message: %s",
+               ad_result.message().c_str());
     }
   }
 
@@ -443,7 +450,8 @@ TEST_F(FirebaseGmaTest, TestAdInspector) {
   TEST_REQUIRES_USER_INTERACTION;
   TestAdInspectorClosedListener listener;
 
-  firebase::gma::OpenAdInspector(app_framework::GetWindowContext(), &listener);
+  firebase::gma::OpenAdInspector(app_framework::GetWindowController(),
+                                 &listener);
 
   // Call OpenAdInspector on Desktop just to ensure the stub links correctly.
   // The rest of this test is behavioral and shouldn't be executed on desktops.
@@ -452,7 +460,9 @@ TEST_F(FirebaseGmaTest, TestAdInspector) {
   // Open the inspector twice to generate a kAdErrorInsepctorAlreadyOpen
   // result.
   app_framework::ProcessEvents(2000);
-  firebase::gma::OpenAdInspector(app_framework::GetWindowContext(), &listener);
+
+  firebase::gma::OpenAdInspector(app_framework::GetWindowController(),
+                                 &listener);
 
   while (listener.num_closed_events() < 2) {
     app_framework::ProcessEvents(2000);
