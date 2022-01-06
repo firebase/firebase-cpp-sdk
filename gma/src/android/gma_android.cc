@@ -623,7 +623,7 @@ void CallOpenAdInspector(void* data) {
       reinterpret_cast<OpenAdInspectorCallData*>(data);
   JNIEnv* env = firebase::util::GetThreadsafeJNIEnv(call_data->vm);
   bool jni_env_exists = (env != nullptr);
-  jlong jlistener = (long)call_data->listener;
+  jlong jlistener = (jlong)call_data->listener;
 
   jobject ad_inspector_helper_ref = env->NewObject(
       ad_inspector_helper::GetClass(),
