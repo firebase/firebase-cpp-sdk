@@ -415,17 +415,22 @@ TEST_F(FirebaseGmaTest, TestGetAdRequestValues) {
   }
 }
 
+// A listener to detect when the AdInspector has been closed. Additionally,
+// checks for errors when opening the AdInspector while it's already open.
 class TestAdInspectorClosedListener
     : public firebase::gma::AdInspectorClosedListener {
  public:
   TestAdInspectorClosedListener()
       : num_closed_events_(0), num_successful_results_(0) {}
+
   // Called when the user clicked the ad.
   void OnAdInspectorClosed(const firebase::gma::AdResult& ad_result) override {
     ++num_closed_events_;
     if (ad_result.is_successful()) {
       ++num_successful_results_;
     } else {
+      LogDebug("OnAdInspectorClosed error message: \"%s\"",
+               ad_result.message());
 #if defined(ANDROID)
       EXPECT_EQ(ad_result.code(), firebase::gma::kAdErrorInsepctorAlreadyOpen);
 #else
@@ -445,7 +450,7 @@ class TestAdInspectorClosedListener
   uint8_t num_successful_results_;
 };
 
-// Ensure that we can open the ad inspector and listen to the close events.
+// Ensure we can open the AdInspector and listen to its events.
 TEST_F(FirebaseGmaTest, TestAdInspector) {
   TEST_REQUIRES_USER_INTERACTION;
   TestAdInspectorClosedListener listener;
@@ -453,12 +458,12 @@ TEST_F(FirebaseGmaTest, TestAdInspector) {
   firebase::gma::OpenAdInspector(app_framework::GetWindowController(),
                                  &listener);
 
-  // Call OpenAdInspector on Desktop just to ensure the stub links correctly.
-  // The rest of this test is behavioral and shouldn't be executed on desktops.
+  // Call OpenAdInspector, even on Desktop (above), to ensure the stub linked
+  // correctly. However, the rest of the testing is mobile-only beahvior.
   SKIP_TEST_ON_DESKTOP;
 
-  // Open the inspector twice to generate a kAdErrorInsepctorAlreadyOpen
-  // result.
+  // Open the inspector a second time to generate a
+  // kAdErrorInsepctorAlreadyOpen result.
   app_framework::ProcessEvents(2000);
 
   firebase::gma::OpenAdInspector(app_framework::GetWindowController(),

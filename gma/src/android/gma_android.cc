@@ -856,8 +856,8 @@ static void JNICALL AdInspectorHelper_adInspectorClosedCallback(
   ad_result_internal.native_ad_error = j_ad_error;
   ad_result_internal.is_successful = (j_ad_error == nullptr);
 
-  // Invoke GmaInternal, a friend of AdResult, to have it access its
-  // protected constructor with the error data.
+  // Invoke GmaInternal, a friend of AdResult, to have it access AdResult's
+  // protected constructor.
   const AdResult& ad_result = GmaInternal::CreateAdResult(ad_result_internal);
   listener->OnAdInspectorClosed(ad_result);
 }

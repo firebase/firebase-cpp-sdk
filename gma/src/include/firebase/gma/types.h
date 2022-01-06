@@ -298,9 +298,8 @@ class AdInspectorClosedListener {
  public:
   virtual ~AdInspectorClosedListener();
 
-  /// Called when the user clicked the ad.  The AdError contantains
-  /// the status of the operation, including details of the error
-  /// if one occurred.
+  /// Called when the user clicked the ad.  The AdError contains the status of
+  /// the operation, including details of the error if one occurred.
   virtual void OnAdInspectorClosed(const AdResult& ad_result) = 0;
 };
 

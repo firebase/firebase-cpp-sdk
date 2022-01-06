@@ -44,7 +44,7 @@ struct AdResultInternal {
     kAdResultInternalLoadAdError,
     // AdResult from an attempt to show a full screen ad.
     kAdResultInternalFullScreenContentError,
-    // Ad Result from OpenAdInspector operations.
+    // Ad Result from an attempt to show the AdInspector.
     kAdResultInternalOpenAdInspectorError
   };
 

@@ -303,9 +303,8 @@ void CompleteAdResult(FutureCallbackData<AdResult>* callback_data,
 
   // Futher result configuration is based on success/failure.
   if (error != nullptr) {
-    // The iOS SDK returned an error.  The NSError object
-    // will be used by the AdError implementation to populate
-    // it's fields.
+    // The iOS SDK returned an error.  The NSError object will be used by the
+    // AdError implementation to populate its fields.
     ad_result_internal.is_successful = false;
     if (is_load_ad_error) {
       ad_result_internal.ad_result_type =

@@ -183,7 +183,7 @@ AdError MapAndroidAdRequestErrorCodeToCPPErrorCode(jint j_error_code) {
 }
 
 AdError MapAndroidFullScreenContentErrorCodeToCPPErrorCode(jint j_error_code) {
-  // Android FullScreenContent error codes sourced from
+  // Android FullScreenContent error codes sourced from:
   // https://developers.google.com/android/reference/com/google/android/gms/ads/FullScreenContentCallback
   switch (j_error_code) {
     case 0:  // ERROR_CODE_INTERNAL_ERROR
