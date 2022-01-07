@@ -429,16 +429,16 @@ class TestAdInspectorClosedListener
     if (ad_result.is_successful()) {
       ++num_successful_results_;
     } else {
-      LogDebug("OnAdInspectorClosed error message: \"%s\"",
-               ad_result.message());
 #if defined(ANDROID)
       EXPECT_EQ(ad_result.code(), firebase::gma::kAdErrorInsepctorAlreadyOpen);
+      EXPECT_STREQ(ad_result.message().c_str(),
+                   "Ad inspector cannot be opened because it is already open.");
 #else
       // The iOS GMA SDK returns internal errors for all AdInspector failures.
       EXPECT_EQ(ad_result.code(), firebase::gma::kAdErrorInternalError);
+      EXPECT_STREQ(ad_result.message().c_str(),
+                   "Ad Inspector cannot be opened because it is already open.");
 #endif
-      LogDebug("OnAdInspectorClosed Error Message: %s",
-               ad_result.message().c_str());
     }
   }
 
