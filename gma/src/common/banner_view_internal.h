@@ -14,40 +14,40 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_GMA_SRC_COMMON_BANNER_VIEW_INTERNAL_H_
-#define FIREBASE_GMA_SRC_COMMON_BANNER_VIEW_INTERNAL_H_
+#ifndef FIREBASE_GMA_SRC_COMMON_AD_VIEW_INTERNAL_H_
+#define FIREBASE_GMA_SRC_COMMON_AD_VIEW_INTERNAL_H_
 
 #include "app/src/include/firebase/future.h"
 #include "app/src/mutex.h"
 #include "gma/src/common/gma_common.h"
-#include "gma/src/include/firebase/gma/banner_view.h"
+#include "gma/src/include/firebase/gma/ad_view.h"
 
 namespace firebase {
 namespace gma {
 namespace internal {
 
-// Constants representing each BannerView function that returns a Future.
-enum BannerViewFn {
-  kBannerViewFnInitialize,
-  kBannerViewFnLoadAd,
-  kBannerViewFnHide,
-  kBannerViewFnShow,
-  kBannerViewFnPause,
-  kBannerViewFnResume,
-  kBannerViewFnDestroy,
-  kBannerViewFnDestroyOnDelete,
-  kBannerViewFnSetPosition,
-  kBannerViewFnCount
+// Constants representing each AdView function that returns a Future.
+enum AdViewFn {
+  kAdViewFnInitialize,
+  kAdViewFnLoadAd,
+  kAdViewFnHide,
+  kAdViewFnShow,
+  kAdViewFnPause,
+  kAdViewFnResume,
+  kAdViewFnDestroy,
+  kAdViewFnDestroyOnDelete,
+  kAdViewFnSetPosition,
+  kAdViewFnCount
 };
 
-class BannerViewInternal {
+class AdViewInternal {
  public:
-  // Create an instance of whichever subclass of BannerViewInternal is
+  // Create an instance of whichever subclass of AdViewInternal is
   // appropriate for the current platform.
-  static BannerViewInternal* CreateInstance(BannerView* base);
+  static AdViewInternal* CreateInstance(AdView* base);
 
   // Virtual destructor is required.
-  virtual ~BannerViewInternal();
+  virtual ~AdViewInternal();
 
   // Initializes this object and any platform-specific helpers that it uses.
   virtual Future<void> Initialize(AdParent parent, const char* ad_unit_id,
@@ -79,13 +79,13 @@ class BannerViewInternal {
   /// position.
   virtual Future<void> SetPosition(AdView::Position position) = 0;
 
-  // Hides the banner view.
+  // Hides the AdView.
   virtual Future<void> Hide() = 0;
 
-  // Displays a banner view.
+  // Displays the AdView.
   virtual Future<void> Show() = 0;
 
-  // Pauses any background processes associated with the banner view.
+  // Pauses any background processes associated with the AdView.
   virtual Future<void> Pause() = 0;
 
   // Resumes from a pause.
@@ -94,7 +94,7 @@ class BannerViewInternal {
   // Cleans up any resources used by this object in preparation for a delete.
   virtual Future<void> Destroy() = 0;
 
-  // Notifies the Bounding Box listener (if one exists) that the banner view's
+  // Notifies the Bounding Box listener (if one exists) that the AdView's
   // bounding box has changed.
   void NotifyListenerOfBoundingBoxChange(BoundingBox box);
 
@@ -109,23 +109,23 @@ class BannerViewInternal {
   void NotifyListenerOfPaidEvent(const AdValue& ad_value);
 
   // Retrieves the most recent Future for a given function.
-  Future<void> GetLastResult(BannerViewFn fn);
+  Future<void> GetLastResult(AdViewFn fn);
 
   // Retrieves the most recent AdResult future for the LoadAd function.
   Future<AdResult> GetLoadAdLastResult();
 
-  // Returns if the BannerAd has been initialized.
+  // Returns if the AdView has been initialized.
   virtual bool is_initialized() const = 0;
 
  protected:
-  friend class firebase::gma::BannerView;
+  friend class firebase::gma::AdView;
 
   // Used by CreateInstance() to create an appropriate one for the current
   // platform.
-  explicit BannerViewInternal(BannerView* base);
+  explicit AdViewInternal(AdView* base);
 
-  // A pointer back to the BannerView class that created us.
-  BannerView* base_;
+  // A pointer back to the AdView class that created us.
+  AdView* base_;
 
   // Future data used to synchronize asynchronous calls.
   FutureData future_data_;
@@ -142,4 +142,4 @@ class BannerViewInternal {
 }  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_GMA_SRC_COMMON_BANNER_VIEW_INTERNAL_H_
+#endif  // FIREBASE_GMA_SRC_COMMON_AD_VIEW_INTERNAL_H_

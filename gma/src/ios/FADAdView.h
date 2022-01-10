@@ -17,11 +17,11 @@
 #import <Foundation/Foundation.h>
 #import <GoogleMobileAds/GoogleMobileAds.h>
 
-#include "gma/src/ios/banner_view_internal_ios.h"
+#include "gma/src/ios/ad_view_internal_ios.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface FADBannerView : UIView
+@interface FADAdView : UIView
 
 /// The banner view's BoundingBox.
 @property(nonatomic, readonly) firebase::gma::BoundingBox boundingBox;
@@ -35,12 +35,12 @@ NS_ASSUME_NONNULL_BEGIN
 /// Unavailable (UIView).
 - (instancetype)initWithCoder:(NSCoder *)coder NS_UNAVAILABLE;
 
-/// Designated Initializer. Returns a FADBannerView object with the publisher-provided UIView (the
-/// parent view of FADBannerView), ad unit ID, ad size, and BannerViewInternalIOS object.
+/// Designated Initializer. Returns a FADAdView object with the publisher-provided UIView (the
+/// parent view of FADAdView), ad unit ID, ad size, and AdViewInternalIOS object.
 - (instancetype)initWithView:(UIView *)view
                     adUnitID:(NSString *)adUnitID
                       adSize:(firebase::gma::AdSize)adSize
-          internalBannerView:(firebase::gma::internal::BannerViewInternalIOS *)cppBannerView  // NOLINT
+          internalAdView:(firebase::gma::internal::AdViewInternalIOS *)cppAdView  // NOLINT
     NS_DESIGNATED_INITIALIZER;
 
 /// Requests a banner ad.
@@ -56,10 +56,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)destroy;
 
 /// Moves the banner view to an X coordinate and a Y coordinate.
-- (void)moveBannerViewToXCoordinate:(int)x yCoordinate:(int)y;
+- (void)moveAdViewToXCoordinate:(int)x yCoordinate:(int)y;
 
-/// Moves the banner view to a BannerView::Position.
-- (void)moveBannerViewToPosition:(firebase::gma::BannerView::Position)position; // NOLINT
+/// Moves the banner view to a AdView::Position.
+- (void)moveAdViewToPosition:(firebase::gma::AdView::Position)position; // NOLINT
 
 
 @end

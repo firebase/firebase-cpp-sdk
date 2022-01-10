@@ -17,8 +17,8 @@
 # Common source files used by all platforms
 set(common_SRCS
     src/common/gma_common.cc
-    src/common/banner_view.cc
-    src/common/banner_view_internal.cc
+    src/common/ad_view.cc
+    src/common/ad_view_internal.cc
     src/common/interstitial_ad.cc
     src/common/interstitial_ad_internal.cc
     src/common/full_screen_ad_event_listener.cc
@@ -40,7 +40,7 @@ set(android_SRCS
     src/android/ad_result_android.cc
     src/android/adapter_response_info_android.cc
     src/android/gma_android.cc
-    src/android/banner_view_internal_android.cc
+    src/android/ad_view_internal_android.cc
     src/android/interstitial_ad_internal_android.cc
     src/android/response_info_android.cc
     src/android/rewarded_ad_internal_android.cc)
@@ -48,14 +48,14 @@ set(android_SRCS
 # Source files used by the iOS implementation.
 set(ios_SRCS
     src/ios/FADAdSize.mm
-    src/ios/FADBannerView.mm
+    src/ios/FADAdView.mm
     src/ios/FADInterstitialDelegate.mm
     src/ios/FADRequest.mm
     src/ios/FADRewardedAdDelegate.mm
     src/ios/ad_result_ios.mm
     src/ios/adapter_response_info_ios.mm
     src/ios/gma_ios.mm
-    src/ios/banner_view_internal_ios.mm
+    src/ios/ad_view_internal_ios.mm
     src/ios/interstitial_ad_internal_ios.mm
     src/ios/response_info_ios.mm
     src/ios/rewarded_ad_internal_ios.mm)

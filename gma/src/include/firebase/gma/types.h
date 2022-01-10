@@ -46,7 +46,7 @@ struct ResponseInfoInternal;
 class AdViewBoundingBoxListener;
 class GmaInternal;
 class AdViewInternal;
-class BannerView;
+class AdView;
 class InterstitialAd;
 class PaidEventListener;
 class ResponseInfo;
@@ -225,7 +225,7 @@ class AdResult {
  private:
   friend class AdapterResponseInfo;
   friend class GmaInternal;
-  friend class BannerView;
+  friend class AdView;
   friend class InterstitialAd;
 
   // Collection of response from adapters if this Result is due to a loadAd
@@ -608,131 +608,6 @@ class AdValue {
   const std::string currency_code_;
   const PrecisionType precision_type_;
   const int64_t value_micros_;
-};
-
-/// @brief Base of all GMA Banner Views.
-class AdView {
- public:
-  /// The possible screen positions for a @ref AdView, configured via
-  /// @ref SetPosition.
-  enum Position {
-    /// The position isn't one of the predefined screen locations.
-    kPositionUndefined = -1,
-    /// Top of the screen, horizontally centered.
-    kPositionTop = 0,
-    /// Bottom of the screen, horizontally centered.
-    kPositionBottom,
-    /// Top-left corner of the screen.
-    kPositionTopLeft,
-    /// Top-right corner of the screen.
-    kPositionTopRight,
-    /// Bottom-left corner of the screen.
-    kPositionBottomLeft,
-    /// Bottom-right corner of the screen.
-    kPositionBottomRight,
-  };
-
-  virtual ~AdView();
-
-  /// Retrieves the @ref AdView's current onscreen size and location.
-  ///
-  /// @return The current size and location. Values are in pixels, and location
-  ///         coordinates originate from the top-left corner of the screen.
-  virtual BoundingBox bounding_box() const = 0;
-
-  /// Sets an AdListener for this ad view.
-  ///
-  /// param[in] listener A listener object which will be invoked when lifecycle
-  /// events occur on this AdView.
-  virtual void SetAdListener(AdListener* listener) = 0;
-
-  /// Sets a listener to be invoked when the Ad's bounding box
-  /// changes size or location.
-  ///
-  /// param[in] listener A listener object which will be invoked when the ad
-  /// changes size, shape, or position.
-  virtual void SetBoundingBoxListener(AdViewBoundingBoxListener* listener) = 0;
-
-  /// Sets a listener to be invoked when this ad is estimated to have earned
-  /// money.
-  ///
-  /// param[in] A listener object to be invoked when a paid event occurs on the
-  /// ad.
-  virtual void SetPaidEventListener(PaidEventListener* listener) = 0;
-
-  /// Moves the @ref AdView so that its top-left corner is located at
-  /// (x, y). Coordinates are in pixels from the top-left corner of the screen.
-  ///
-  /// When built for Android, the library will not display an ad on top of or
-  /// beneath an Activity's status bar. If a call to MoveTo would result in an
-  /// overlap, the @ref AdView is placed just below the status bar, so no
-  /// overlap occurs.
-  /// @param[in] x The desired horizontal coordinate.
-  /// @param[in] y The desired vertical coordinate.
-  ///
-  /// @return a @ref Future which will be completed when this move operation
-  /// completes.
-  virtual Future<void> SetPosition(int x, int y) = 0;
-
-  /// Moves the @ref AdView so that it's located at the given predefined
-  /// position.
-  ///
-  /// @param[in] position The predefined position to which to move the
-  ///   @ref AdView.
-  ///
-  /// @return a @ref Future which will be completed when this move operation
-  /// completes.
-  virtual Future<void> SetPosition(Position position) = 0;
-
-  /// Returns a @ref Future containing the status of the last call to either
-  /// version of @ref SetPosition.
-  virtual Future<void> SetPositionLastResult() const = 0;
-
-  /// Hides the AdView.
-  virtual Future<void> Hide() = 0;
-
-  /// Returns a @ref Future containing the status of the last call to
-  /// @ref Hide.
-  virtual Future<void> HideLastResult() const = 0;
-
-  /// Shows the @ref AdView.
-  virtual Future<void> Show() = 0;
-
-  /// Returns a @ref Future containing the status of the last call to
-  /// @ref Show.
-  virtual Future<void> ShowLastResult() const = 0;
-
-  /// Pauses the @ref AdView. Should be called whenever the C++ engine
-  /// pauses or the application loses focus.
-  virtual Future<void> Pause() = 0;
-
-  /// Returns a @ref Future containing the status of the last call to
-  /// @ref Pause.
-  virtual Future<void> PauseLastResult() const = 0;
-
-  /// Resumes the @ref AdView after pausing.
-  virtual Future<void> Resume() = 0;
-
-  /// Returns a @ref Future containing the status of the last call to
-  /// @ref Resume.
-  virtual Future<void> ResumeLastResult() const = 0;
-
-  /// Cleans up and deallocates any resources used by the @ref BannerView.
-  virtual Future<void> Destroy() = 0;
-
-  /// Returns a @ref Future containing the status of the last call to
-  /// @ref Destroy.
-  virtual Future<void> DestroyLastResult() const = 0;
-
- protected:
-  /// Pointer to a listener for AdListener events.
-  AdListener* ad_listener_;
-
-  /// Pointer to a listener for BoundingBox events.
-  AdViewBoundingBoxListener* ad_view_bounding_box_listener_;
-
-  /// Pointer to a listener for Paid events.
-  PaidEventListener* paid_event_listener_;
 };
 
 /// A listener class that developers can extend and pass to a @ref AdView
