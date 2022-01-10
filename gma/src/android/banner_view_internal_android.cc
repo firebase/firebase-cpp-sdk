@@ -107,7 +107,10 @@ struct NulleryInvocationOnMainThreadData {
 };
 
 BannerViewInternalAndroid::BannerViewInternalAndroid(BannerView* base)
-    : BannerViewInternal(base), helper_(nullptr), initialized_(false) {
+    : BannerViewInternal(base),
+      helper_(nullptr),
+      initialized_(false),
+      destroyed_(false) {
   firebase::MutexLock lock(mutex_);
 
   JNIEnv* env = ::firebase::gma::GetJNI();
@@ -378,6 +381,7 @@ Future<void> BannerViewInternalAndroid::Resume() {
 
 Future<void> BannerViewInternalAndroid::Destroy() {
   firebase::MutexLock lock(mutex_);
+  destroyed_ = true;
   FutureCallbackData<void>* callback_data =
       CreateVoidFutureCallbackData(kBannerViewFnDestroy, &future_data_);
   Future<void> future =
