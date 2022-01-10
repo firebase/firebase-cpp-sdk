@@ -144,13 +144,6 @@ BannerViewInternalAndroid::~BannerViewInternalAndroid() {
   firebase::MutexLock lock(mutex_);
   JNIEnv* env = ::firebase::gma::GetJNI();
 
-  // The application should have invoked Destroy already, but
-  // invoke it now just in case they haven't in the hope that
-  // we can prevent leaking memory.
-  env->CallVoidMethod(
-      helper_, banner_view_helper::GetMethodId(banner_view_helper::kDestroy),
-      /*callbackDataPtr=*/nullptr, /*destructor_invocation=*/true);
-
   env->DeleteGlobalRef(ad_view_);
   ad_view_ = nullptr;
 
