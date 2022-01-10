@@ -145,8 +145,13 @@ BannerViewInternalAndroid::BannerViewInternalAndroid(BannerView* base)
 
 BannerViewInternalAndroid::~BannerViewInternalAndroid() {
   firebase::MutexLock lock(mutex_);
-  JNIEnv* env = ::firebase::gma::GetJNI();
+  if (!destroyed_) {
+    LogWarning(
+        "Warning: AdView destructor invoked before the application "
+        " called Destroy() on the object. A Memory Leak may occur.");
+  }
 
+  JNIEnv* env = ::firebase::gma::GetJNI();
   env->DeleteGlobalRef(ad_view_);
   ad_view_ = nullptr;
 
