@@ -173,6 +173,8 @@ class BannerView : public AdView {
   Future<void> ResumeLastResult() const override;
 
   /// Cleans up and deallocates any resources used by the @ref BannerView.
+  /// You must call this asynchronous operation before this object's destructor
+  /// is invoked or risk leaking device resources.
   Future<void> Destroy() override;
 
   /// Returns a @ref Future containing the status of the last call to
