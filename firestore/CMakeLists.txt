@@ -351,6 +351,7 @@ if (MSVC AND NOT ANDROID AND NOT IOS)
   # On Windows, gRPC gives a compiler error in firebase_metadata_provider_desktop.cc
   # unless _WIN32_WINNT is defined to this value (0x0600, Windows Vista).
   # Also set -DNOMINMAX for both Firestore and Firestore Core.
+  message("SET -DNOMINMAX for firestore cpp build")
   set(FIREBASE_FIRESTORE_CPP_DEFINES ${FIREBASE_FIRESTORE_CPP_DEFINES} -D_WIN32_WINNT=0x0600 -DNOMINMAX)
   # Special handling for the absl time zone library, define _LIBCPP_VERSION on
   # Windows to avoid the shenanigans they do with Windows mangled symbols to

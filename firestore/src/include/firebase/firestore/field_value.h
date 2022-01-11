@@ -376,6 +376,7 @@ class FieldValue final {
   static FieldValue Increment(T by_value) {
     // Note: Doxygen will run into trouble if this function's definition is
     // moved outside the class body.
+    #undef max
     static_assert(
         std::numeric_limits<T>::max() <= std::numeric_limits<double>::max(),
         "The floating point type you provided is larger than can fit in a "
