@@ -348,7 +348,7 @@ class FieldValue final {
     // Note: Doxygen will run into trouble if this function's definition is
     // moved outside the class body.
     static_assert(
-        std::numeric_limits<T>::max() <= std::numeric_limits<int64_t>::max(),
+        (std::numeric_limits<T>::max)() <= (std::numeric_limits<int64_t>::max)(),
         "The integer type you provided is larger than can fit in an int64_t. "
         "If you are sure the value will not be truncated, please explicitly "
         "cast to int64_t before passing it to FieldValue::Increment().");
