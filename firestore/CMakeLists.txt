@@ -363,7 +363,6 @@ if (MSVC AND NOT ANDROID AND NOT IOS)
     _LIBCPP_VERSION=99)
 endif()
 
-message("FIREBASE_FIRESTORE_CPP_DEFINES is ${FIREBASE_FIRESTORE_CPP_DEFINES}")
 target_compile_definitions(firebase_firestore
   PRIVATE
     ${FIREBASE_FIRESTORE_CPP_DEFINES}
@@ -402,6 +401,9 @@ elseif(IOS)
     )
   endif()
 endif()
+
+get_target_property(_compile_defs firebase_firestore COMPILE_DEFINITIONS)
+message("firebase_firestore compile define is ${_compile_defs}")
 
 cpp_pack_library(firebase_firestore "")
 cpp_pack_public_headers()
