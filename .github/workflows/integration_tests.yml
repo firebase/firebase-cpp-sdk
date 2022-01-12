@@ -41,10 +41,6 @@ env:
   triggerLabelPrefix: "tests-requested: "
   triggerLabelFull: "tests-requested: full"
   triggerLabelQuick: "tests-requested: quick"
-  statusLabelInProgress: "tests: in-progress"
-  statusLabelFailed: "tests: failed"
-  statusLabelSucceeded: "tests: succeeded"
-  statusCommentIdentifier: "integration-test-status-comment"
   pythonVersion: '3.7'
   artifactRetentionDays: 2
   GITHUB_TOKEN: ${{ github.token }}
