@@ -27,7 +27,7 @@ namespace gma {
 // Used to set up the cache of AdViewHelper class method IDs to reduce
 // time spent looking up methods by string.
 // clang-format off
-#define AdVIEWHELPER_METHODS(X)                                                \
+#define ADVIEWHELPER_METHODS(X)                                                \
   X(Constructor, "<init>", "(JLcom/google/android/gms/ads/AdView;)V"),         \
   X(Initialize, "initialize", "(Landroid/app/Activity;)V"),                    \
   X(LoadAd, "loadAd", "(JLcom/google/android/gms/ads/AdRequest;)V"),           \

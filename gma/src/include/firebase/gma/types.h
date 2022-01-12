@@ -610,42 +610,6 @@ class AdValue {
   const int64_t value_micros_;
 };
 
-/// A listener class that developers can extend and pass to a @ref AdView
-/// object's @ref AdView::SetBoundingBoxListener method to be notified of
-/// changes to the size of the Ad's bounding box.
-class AdViewBoundingBoxListener {
- public:
-  virtual ~AdViewBoundingBoxListener();
-
-  /// This method is called when the @ref AdView object's bounding box
-  /// changes.
-  ///
-  /// @param[in] ad_view The view whose bounding box changed.
-  /// @param[in] box The new bounding box.
-  virtual void OnBoundingBoxChanged(AdView* ad_view, BoundingBox box) = 0;
-};
-
-/// @brief The screen location and dimensions of an ad view once it has been
-/// initialized.
-struct BoundingBox {
-  /// Default constructor which initializes all member variables to 0.
-  BoundingBox()
-      : height(0), width(0), x(0), y(0), position(AdView::kPositionUndefined) {}
-
-  /// Height of the ad in pixels.
-  int height;
-  /// Width of the ad in pixels.
-  int width;
-  /// Horizontal position of the ad in pixels from the left.
-  int x;
-  /// Vertical position of the ad in pixels from the top.
-  int y;
-
-  /// The position of the AdView if one has been set as the target position, or
-  /// kPositionUndefined otherwise.
-  AdView::Position position;
-};
-
 /// @brief Listener to be invoked when ads show and dismiss full screen content,
 /// such as a fullscreen ad experience or an in-app browser.
 class FullScreenContentListener {

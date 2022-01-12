@@ -203,7 +203,7 @@ void InitializeAdViewOnMainThread(void* data) {
   FIREBASE_ASSERT(!jni_exception);
   env->DeleteLocalRef(ad_size);
 
-  env->CallVoidMethod(call_data->adview_helper,
+  env->CallVoidMethod(call_data->ad_view_helper,
                       ad_view_helper::GetMethodId(ad_view_helper::kInitialize),
                       call_data->ad_parent);
   jni_exception = util::CheckAndClearJniExceptions(env);

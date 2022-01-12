@@ -1634,7 +1634,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
 // Test runs & compiles for phones only.
 
 struct ThreadArgs {
-  firebase::gma::Adiew* ad_view;
+  firebase::gma::AdView* ad_view;
   sem_t* semaphore;
 };
 

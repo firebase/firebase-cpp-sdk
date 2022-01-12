@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
+#include "gma/src/include/firebase/gma/ad_view.h"
+
 #include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
 #include "gma/src/common/ad_view_internal.h"
 #include "gma/src/common/gma_common.h"
-#include "gma/src/include/firebase/gma/ad_view.h"
 
 namespace firebase {
 namespace gma {

@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
+#include "gma/src/common/ad_view_internal.h"
+
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
-#include "gma/src/common/ad_view_internal.h"
 #include "gma/src/include/firebase/gma/ad_view.h"
 
 #if FIREBASE_PLATFORM_ANDROID

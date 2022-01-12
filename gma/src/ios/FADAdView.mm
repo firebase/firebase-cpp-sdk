@@ -21,12 +21,12 @@
 
 namespace gma = firebase::gma;
 
-@interface FADAdView () <GADAdViewDelegate> {
+@interface FADAdView () <GADBannerViewDelegate> {
   /// The publisher-provided view that is the parent view of the banner view.
   UIView *__weak _parentView;
 
   /// The banner view.
-  GADAdView *_AdView;
+  GADBannerView *_AdView;
 
   /// The current horizontal layout constraint for the banner view.
   NSLayoutConstraint *_AdViewHorizontalLayoutConstraint;
@@ -74,7 +74,7 @@ firebase::gma::AdView::Position _position;
 
 /// Called from the designated initializer. Sets up a banner view.
 - (void)setUpAdView {
-  _AdView = [[GADAdView alloc] initWithAdSize:_adSize];
+  _AdView = [[GADBannerView alloc] initWithAdSize:_adSize];
   _AdView.adUnitID = _adUnitID;
   _AdView.delegate = self;
   __unsafe_unretained typeof(self) weakSelf = self;
@@ -269,36 +269,36 @@ firebase::gma::AdView::Position _position;
   _cppAdView->NotifyListenerOfBoundingBoxChange(bounding_box);
 }
 
-#pragma mark - GADAdViewDelegate
+#pragma mark - GADBannerViewDelegate
 
-- (void)AdViewDidReceiveAd:(nonnull GADAdView *)AdView {
+- (void)AdViewDidReceiveAd:(nonnull GADBannerView *)AdView {
   _adLoaded = YES;
   _cppAdView->AdViewDidReceiveAd();
   gma::BoundingBox bounding_box = self.boundingBox;
 }
-- (void)AdView:(nonnull GADAdView *)AdView didFailToReceiveAdWithError:(nonnull NSError *)error {
+- (void)AdView:(nonnull GADBannerView *)AdView didFailToReceiveAdWithError:(nonnull NSError *)error {
   _cppAdView->AdViewDidFailToReceiveAdWithError(error);
 }
 
-- (void)AdViewDidRecordClick:(nonnull GADAdView *)AdView {
+- (void)AdViewDidRecordClick:(nonnull GADBannerView *)AdView {
    _cppAdView->NotifyListenerAdClicked();
 }
 
-- (void)AdViewDidRecordImpression:(nonnull GADAdView *)AdView {
+- (void)AdViewDidRecordImpression:(nonnull GADBannerView *)AdView {
   _cppAdView->NotifyListenerAdImpression();
 }
 
 // Note that the following callbacks are only called on in-app overlay events. 
 // See https://www.googblogs.com/google-mobile-ads-sdk-a-note-on-ad-click-events/
 // and https://groups.google.com/g/google-admob-ads-sdk/c/lzdt5szxSVU
-- (void)AdViewWillPresentScreen:(nonnull GADAdView *)AdView {
+- (void)AdViewWillPresentScreen:(nonnull GADBannerView *)AdView {
   gma::BoundingBox bounding_box = self.boundingBox;
   _cppAdView->set_bounding_box(bounding_box);
   _cppAdView->NotifyListenerOfBoundingBoxChange(bounding_box);
   _cppAdView->NotifyListenerAdOpened();
 }
 
-- (void)AdViewDidDismissScreen:(nonnull GADAdView *)AdView {
+- (void)AdViewDidDismissScreen:(nonnull GADBannerView *)AdView {
   gma::BoundingBox bounding_box = self.boundingBox;
   _cppAdView->set_bounding_box(bounding_box);
   _cppAdView->NotifyListenerOfBoundingBoxChange(bounding_box);
