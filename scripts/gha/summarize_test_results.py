@@ -383,6 +383,7 @@ def combine_config(platform, config, config_value, k):
     # config_name = test_device here
     k = -1
   config_name = BUILD_CONFIGS[platform][k]
+  # if certain config failed for all values, add message "All *"
   if len(config_value) > 1 and len(config) == len(config_value):
     config = ["All %d %s" % (len(config_value), config_name)]
   elif config_name == "ios_device":
@@ -403,7 +404,8 @@ def combine_config(platform, config, config_value, k):
     elif emulators.issubset(set(config)):
       config.insert(0, "All %d Emulators" % len(emulators))
       config = [x for x in config if (x not in emulators)]
-  if config_before_combination == config:
+  # if certain config failed for more than 1 value but not all, add message "x/y" which means "x" out of "y" configs has errors.
+  if len(config_value) > 1 and config_before_combination == config:
     config = ["%d/%d %s: %s" % (len(config), len(config_value), config_name, flat_config(config))]
 
   return config
