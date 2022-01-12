@@ -183,7 +183,7 @@ AdError MapAndroidAdRequestErrorCodeToCPPErrorCode(jint j_error_code) {
 }
 
 AdError MapAndroidFullScreenContentErrorCodeToCPPErrorCode(jint j_error_code) {
-  // Android error code sourced from
+  // Android FullScreenContent error codes sourced from:
   // https://developers.google.com/android/reference/com/google/android/gms/ads/FullScreenContentCallback
   switch (j_error_code) {
     case 0:  // ERROR_CODE_INTERNAL_ERROR
@@ -196,6 +196,27 @@ AdError MapAndroidFullScreenContentErrorCodeToCPPErrorCode(jint j_error_code) {
       return kAdErrorAppNotInForeground;
     case 4:  // ERROR_CODE_MEDIATION_SHOW_ERROR
       return kAdErrorMediationShowError;
+    default:
+      return kAdErrorUnknown;
+  }
+}
+
+AdError MapAndroidOpenAdInspectorErrorCodeToCPPErrorCode(int j_error_code) {
+  // Android AdInspector error codes sourced from:
+  // https://developers.google.com/android/reference/com/google/android/gms/ads/AdInspectorError#constants
+  switch (j_error_code) {
+    case 0:  // ERROR_CODE_INTERNAL_ERROR
+      return kAdErrorInternalError;
+      break;
+    case 1:  // ERROR_CODE_FAILED_TO_LOAD
+      return kAdErrorInspectorFailedToLoad;
+      break;
+    case 2:  // ERROR_CODE_NOT_IN_TEST_MODE
+      return kAdErrorNotInTestMode;
+      break;
+    case 3:  // ERROR_CODE_ALREADY_OPEN
+      return kAdErrorInsepctorAlreadyOpen;
+      break;
     default:
       return kAdErrorUnknown;
   }

@@ -45,6 +45,10 @@ AdError MapAndroidAdRequestErrorCodeToCPPErrorCode(jint j_error_code);
 // platform-independent error codes defined in AdError.
 AdError MapAndroidFullScreenContentErrorCodeToCPPErrorCode(jint j_error_code);
 
+// Converts the Android OpenAdInspector error codes to the CPP
+// platform-independent error codes defined in AdError.
+AdError MapAndroidOpenAdInspectorErrorCodeToCPPErrorCode(jint j_error_code);
+
 }  // namespace gma
 }  // namespace firebase
 

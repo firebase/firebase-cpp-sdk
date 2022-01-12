@@ -91,6 +91,10 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
         internal_->code =
             MapFullScreenContentErrorCodeToCPPErrorCode((GADPresentationErrorCode)internal_->native_ad_error.code);
         break;
+      case AdResultInternal::kAdResultInternalOpenAdInspectorError:
+        // OpenAdInspector errors are all internal errors on iOS.
+        internal_->code = kAdErrorInternalError;
+        break;
       default:
         internal_->code =
             MapAdRequestErrorCodeToCPPErrorCode((GADErrorCode)internal_->native_ad_error.code);

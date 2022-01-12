@@ -153,6 +153,15 @@ void SetRequestConfiguration(const RequestConfiguration& request_configuration);
 /// respectfully.
 RequestConfiguration GetRequestConfiguration();
 
+/// Opens the ad inspector UI.
+///
+/// @param[in] parent The platform-specific UI element that will host the
+/// ad inspector.  For iOS this should be the window's UIViewController.
+/// For Android this is the Activity Context which the GMA SDK is running in.
+/// @param[in] listener The listener will be invoked when the user closes
+/// the ad inspector UI. Initialize must be called prior to this function.
+void OpenAdInspector(AdParent parent, AdInspectorClosedListener* listener);
+
 /// @brief Terminate GMA.
 ///
 /// Frees resources associated with GMA that were allocated during

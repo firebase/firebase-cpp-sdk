@@ -230,6 +230,25 @@ RequestConfiguration GetRequestConfiguration() {
   return request_configuration;
 }
 
+void OpenAdInspector(AdParent ad_parent, AdInspectorClosedListener* listener) {
+  dispatch_async(dispatch_get_main_queue(), ^{
+    [GADMobileAds.sharedInstance presentAdInspectorFromViewController:(UIViewController*)ad_parent
+      completionHandler:^(NSError *error) {
+        // Error will be non-nil if there was an issue and the inspector was not displayed.  
+        AdResultInternal ad_result_internal;
+        ad_result_internal.ad_result_type =
+          AdResultInternal::kAdResultInternalOpenAdInspectorError;
+        ad_result_internal.native_ad_error = error;
+        ad_result_internal.is_successful = (error == nullptr);      
+
+        const firebase::gma::AdResult& ad_result =
+          firebase::gma::GmaInternal::CreateAdResult(ad_result_internal);
+
+        listener->OnAdInspectorClosed(ad_result);
+      }];
+  });  
+}
+
 Future<AdapterInitializationStatus> InitializeLastResult() {
   MutexLock lock(g_future_impl_mutex);
   return g_future_impl ? static_cast<const Future<AdapterInitializationStatus>&>(
@@ -284,15 +303,14 @@ void CompleteAdResult(FutureCallbackData<AdResult>* callback_data,
 
   // Futher result configuration is based on success/failure.
   if (error != nullptr) {
-    // The iOS SDK returned an error.  The NSError object
-    // will be used by the AdError implementation to populate
-    // it's fields.
+    // The iOS SDK returned an error.  The NSError object will be used by the
+    // AdError implementation to populate its fields.
     ad_result_internal.is_successful = false;
     if (is_load_ad_error) {
-      ad_result_internal.ad_result_type ==
+      ad_result_internal.ad_result_type =
         AdResultInternal::kAdResultInternalLoadAdError;
     } else {
-      ad_result_internal.ad_result_type ==
+      ad_result_internal.ad_result_type =
         AdResultInternal::kAdResultInternalAdError;
     }
   } else if (ad_result_internal.code != kAdErrorNone) {

@@ -79,6 +79,9 @@ AdResult GmaInternal::CreateAdResult(
   return AdResult(ad_result_internal);
 }
 
+// AdInspectorClosedListener
+AdInspectorClosedListener::~AdInspectorClosedListener() {}
+
 // AdSize
 // Hardcoded values are from publicly available documentation:
 // https://developers.google.com/android/reference/com/google/android/gms/ads/AdSize

@@ -106,6 +106,11 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
         internal_->code =
             MapAndroidFullScreenContentErrorCodeToCPPErrorCode(j_error_code);
         break;
+      case AdResultInternal::kAdResultInternalOpenAdInspectorError:
+        // AdInspector errors have their own error codes.
+        internal_->code =
+            MapAndroidOpenAdInspectorErrorCodeToCPPErrorCode(j_error_code);
+        break;
       default:
         internal_->code =
             MapAndroidAdRequestErrorCodeToCPPErrorCode(j_error_code);

@@ -415,6 +415,67 @@ TEST_F(FirebaseGmaTest, TestGetAdRequestValues) {
   }
 }
 
+// A listener to detect when the AdInspector has been closed. Additionally,
+// checks for errors when opening the AdInspector while it's already open.
+class TestAdInspectorClosedListener
+    : public firebase::gma::AdInspectorClosedListener {
+ public:
+  TestAdInspectorClosedListener()
+      : num_closed_events_(0), num_successful_results_(0) {}
+
+  // Called when the user clicked the ad.
+  void OnAdInspectorClosed(const firebase::gma::AdResult& ad_result) override {
+    ++num_closed_events_;
+    if (ad_result.is_successful()) {
+      ++num_successful_results_;
+    } else {
+#if defined(ANDROID)
+      EXPECT_EQ(ad_result.code(), firebase::gma::kAdErrorInsepctorAlreadyOpen);
+      EXPECT_STREQ(ad_result.message().c_str(),
+                   "Ad inspector cannot be opened because it is already open.");
+#else
+      // The iOS GMA SDK returns internal errors for all AdInspector failures.
+      EXPECT_EQ(ad_result.code(), firebase::gma::kAdErrorInternalError);
+      EXPECT_STREQ(ad_result.message().c_str(),
+                   "Ad Inspector cannot be opened because it is already open.");
+#endif
+    }
+  }
+
+  uint8_t num_closed_events() const { return num_closed_events_; }
+  uint8_t num_successful_results() const { return num_successful_results_; }
+
+ private:
+  uint8_t num_closed_events_;
+  uint8_t num_successful_results_;
+};
+
+// Ensure we can open the AdInspector and listen to its events.
+TEST_F(FirebaseGmaTest, TestAdInspector) {
+  TEST_REQUIRES_USER_INTERACTION;
+  TestAdInspectorClosedListener listener;
+
+  firebase::gma::OpenAdInspector(app_framework::GetWindowController(),
+                                 &listener);
+
+  // Call OpenAdInspector, even on Desktop (above), to ensure the stub linked
+  // correctly. However, the rest of the testing is mobile-only beahvior.
+  SKIP_TEST_ON_DESKTOP;
+
+  // Open the inspector a second time to generate a
+  // kAdErrorInsepctorAlreadyOpen result.
+  app_framework::ProcessEvents(2000);
+
+  firebase::gma::OpenAdInspector(app_framework::GetWindowController(),
+                                 &listener);
+
+  while (listener.num_closed_events() < 2) {
+    app_framework::ProcessEvents(2000);
+  }
+
+  EXPECT_EQ(listener.num_successful_results(), 1);
+}
+
 // A simple listener to help test changes to a AdViews.
 class TestBoundingBoxListener
     : public firebase::gma::AdViewBoundingBoxListener {

@@ -85,6 +85,11 @@ METHOD_LOOKUP_DEFINITION(
     METHOD_LOOKUP_NONE, ADAPTER_STATUS_STATE_FIELDS);
 
 METHOD_LOOKUP_DEFINITION(
+    ad_inspector_helper,
+    "com/google/firebase/gma/internal/cpp/AdInspectorHelper",
+    AD_INSPECTOR_HELPER_METHODS);
+
+METHOD_LOOKUP_DEFINITION(
     gma_initialization_helper,
     "com/google/firebase/gma/internal/cpp/GmaInitializationHelper",
     GMA_INITIALIZATION_HELPER_METHODS);
@@ -106,6 +111,19 @@ static ReferenceCountedFutureImpl* g_future_impl = nullptr;
 static Mutex g_future_impl_mutex;  // NOLINT
 static SafeFutureHandle<AdapterInitializationStatus> g_initialization_handle =
     SafeFutureHandle<AdapterInitializationStatus>::kInvalidHandle;  // NOLINT
+
+struct OpenAdInspectorCallData {
+  // Thread-safe call data.
+  OpenAdInspectorCallData()
+      : vm(g_java_vm), ad_parent(nullptr), listener(nullptr) {}
+  ~OpenAdInspectorCallData() {
+    JNIEnv* env = firebase::util::GetThreadsafeJNIEnv(vm);
+    env->DeleteGlobalRef(ad_parent);
+  }
+  JavaVM* vm;
+  AdParent ad_parent;
+  AdInspectorClosedListener* listener;
+};
 
 struct MobileAdsCallData {
   // Thread-safe call data.
@@ -306,6 +324,9 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
         adapter_status::CacheMethodIds(env, activity) &&
         adapter_status_state::CacheFieldIds(env, activity) &&
         initialization_status::CacheMethodIds(env, activity) &&
+        ad_inspector_helper::CacheClassFromFiles(env, activity,
+                                                 &embedded_files) != nullptr &&
+        ad_inspector_helper::CacheMethodIds(env, activity) &&
         gma_initialization_helper::CacheClassFromFiles(
             env, activity, &embedded_files) != nullptr &&
         gma_initialization_helper::CacheMethodIds(env, activity) &&
@@ -595,6 +616,46 @@ RequestConfiguration GetRequestConfiguration() {
   return request_configuration;
 }
 
+// This function is run on the main thread and is called in the
+// OpenAdInspector() function.
+void CallOpenAdInspector(void* data) {
+  OpenAdInspectorCallData* call_data =
+      reinterpret_cast<OpenAdInspectorCallData*>(data);
+  JNIEnv* env = firebase::util::GetThreadsafeJNIEnv(call_data->vm);
+  bool jni_env_exists = (env != nullptr);
+  jlong jlistener = (jlong)call_data->listener;
+
+  jobject ad_inspector_helper_ref = env->NewObject(
+      ad_inspector_helper::GetClass(),
+      ad_inspector_helper::GetMethodId(ad_inspector_helper::kConstructor),
+      jlistener);
+  bool jni_exception = util::CheckAndClearJniExceptions(env);
+  FIREBASE_ASSERT(!jni_exception);
+
+  env->CallStaticVoidMethod(
+      mobile_ads::GetClass(),
+      mobile_ads::GetMethodId(mobile_ads::kOpenAdInspector),
+      call_data->ad_parent, ad_inspector_helper_ref);
+  util::CheckAndClearJniExceptions(env);
+
+  jni_exception = util::CheckAndClearJniExceptions(env);
+  FIREBASE_ASSERT(!jni_exception);
+
+  env->DeleteLocalRef(ad_inspector_helper_ref);
+  delete call_data;
+}
+
+void OpenAdInspector(AdParent parent, AdInspectorClosedListener* listener) {
+  JNIEnv* env = ::firebase::gma::GetJNI();
+  FIREBASE_ASSERT(env);
+
+  OpenAdInspectorCallData* call_data = new OpenAdInspectorCallData();
+  call_data->ad_parent = env->NewGlobalRef(parent);
+  call_data->listener = listener;
+  jobject activity = ::firebase::gma::GetActivity();
+  util::RunOnMainThread(env, g_activity, CallOpenAdInspector, call_data);
+}
+
 // Release classes registered by this module.
 void ReleaseClasses(JNIEnv* env) {
   mobile_ads::ReleaseClass(env);
@@ -609,6 +670,7 @@ void ReleaseClasses(JNIEnv* env) {
   adapter_status::ReleaseClass(env);
   adapter_status_state::ReleaseClass(env);
   initialization_status::ReleaseClass(env);
+  ad_inspector_helper::ReleaseClass(env);
   gma_initialization_helper::ReleaseClass(env);
   banner_view_helper::ReleaseClass(env);
   banner_view_helper_ad_view_listener::ReleaseClass(env);
@@ -780,6 +842,24 @@ static void JNICALL GmaInitializationHelper_initializationCompleteCallback(
           SafeFutureHandle<AdapterInitializationStatus>::kInvalidHandle;
     }
   }
+}
+
+static void JNICALL AdInspectorHelper_adInspectorClosedCallback(
+    JNIEnv* env, jclass clazz, jlong native_callback_ptr, jobject j_ad_error) {
+  firebase::gma::AdInspectorClosedListener* listener =
+      reinterpret_cast<firebase::gma::AdInspectorClosedListener*>(
+          native_callback_ptr);
+
+  AdResultInternal ad_result_internal;
+  ad_result_internal.ad_result_type =
+      AdResultInternal::kAdResultInternalOpenAdInspectorError;
+  ad_result_internal.native_ad_error = j_ad_error;
+  ad_result_internal.is_successful = (j_ad_error == nullptr);
+
+  // Invoke GmaInternal, a friend of AdResult, to have it access AdResult's
+  // protected constructor.
+  const AdResult& ad_result = GmaInternal::CreateAdResult(ad_result_internal);
+  listener->OnAdInspectorClosed(ad_result);
 }
 
 namespace {
@@ -1042,9 +1122,17 @@ bool RegisterNatives() {
        reinterpret_cast<void*>(
            &GmaInitializationHelper_initializationCompleteCallback)}  // NOLINT
   };
+  static const JNINativeMethod kAdInspectorHelperMethods[] = {
+      {"adInspectorClosedCallback", "(JLcom/google/android/gms/ads/AdError;)V",
+       reinterpret_cast<void*>(
+           &AdInspectorHelper_adInspectorClosedCallback)}  // NOLINT
+  };
 
   JNIEnv* env = GetJNI();
-  return banner_view_helper::RegisterNatives(
+  return ad_inspector_helper::RegisterNatives(
+             env, kAdInspectorHelperMethods,
+             FIREBASE_ARRAYSIZE(kAdInspectorHelperMethods)) &&
+         banner_view_helper::RegisterNatives(
              env, kBannerMethods, FIREBASE_ARRAYSIZE(kBannerMethods)) &&
          interstitial_ad_helper::RegisterNatives(
              env, kInterstitialMethods,
