@@ -377,7 +377,7 @@ def combine_configs(error_configs, all_configs):
 
 
 def combine_config(platform, config, config_value, k):
-  config_before_combination = config
+  config_before_combination = config.copy()
   logging.info("platform: %s; config: %s; config_value: %s", platform, config, config_value)
   if k == 1 and platform in ("android", "ios", "tvos"):
     # config_name = test_device here
@@ -389,19 +389,19 @@ def combine_config(platform, config, config_value, k):
   elif config_name == "ios_device":
     ftl_devices = set(filter(lambda device: TEST_DEVICES.get(device).get("type") in "real", config_value))
     simulators = set(filter(lambda device: TEST_DEVICES.get(device).get("type") in "virtual", config_value))
-    if ftl_devices.issubset(set(config)):
+    if len(ftl_devices) > 1 and ftl_devices.issubset(set(config)):
       config.insert(0, "All %d FTL Devices" % len(ftl_devices))
       config = [x for x in config if (x not in ftl_devices)]
-    elif simulators.issubset(set(config)):
+    if len(simulators) > 1 and simulators.issubset(set(config)):
       config.insert(0, "All %d Simulators" % len(simulators))
       config = [x for x in config if (x not in simulators)]
   elif config_name == "android_device":
     ftl_devices = set(filter(lambda device: TEST_DEVICES.get(device).get("type") in "real", config_value))
     emulators = set(filter(lambda device: TEST_DEVICES.get(device).get("type") in "virtual", config_value))
-    if ftl_devices.issubset(set(config)):
+    if len(ftl_devices) > 1 and ftl_devices.issubset(set(config)):
       config.insert(0, "All %d FTL Devices" % len(ftl_devices))
       config = [x for x in config if (x not in ftl_devices)]
-    elif emulators.issubset(set(config)):
+    if len(emulators) > 1 and emulators.issubset(set(config)):
       config.insert(0, "All %d Emulators" % len(emulators))
       config = [x for x in config if (x not in emulators)]
   # if certain config failed for more than 1 value but not all, add message "x/y" which means "x" out of "y" configs has errors.
