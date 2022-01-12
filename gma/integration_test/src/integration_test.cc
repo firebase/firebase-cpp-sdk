@@ -677,6 +677,7 @@ TEST_F(FirebaseGmaTest, TestBannerViewLoadAd) {
                                        kBannerAdUnit, banner_ad_size),
                     "Initialize");
   WaitForCompletion(banner->LoadAd(GetAdRequest()), "LoadAd");
+  WaitForCompletion(banner->Destroy(), "Destroy");
   delete banner;
 }
 
@@ -904,7 +905,18 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoadAndShow) {
   delete rewarded;
 }
 
-// Other Banner View Tests
+// Other Banner View Tests.
+TEST_F(FirebaseGmaTest, TestBannerViewLoadAdDestroyNotCalled) {
+  SKIP_TEST_ON_DESKTOP;
+
+  const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
+  firebase::gma::BannerView* banner = new firebase::gma::BannerView();
+  WaitForCompletion(banner->Initialize(app_framework::GetWindowContext(),
+                                       kBannerAdUnit, banner_ad_size),
+                    "Initialize");
+  WaitForCompletion(banner->LoadAd(GetAdRequest()), "LoadAd");
+  delete banner;
+}
 
 TEST_F(FirebaseGmaTest, TestBannerView) {
   TEST_REQUIRES_USER_INTERACTION;

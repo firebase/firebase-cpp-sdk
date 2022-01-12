@@ -945,6 +945,13 @@ void JNI_BannerViewHelper_notifyAdPaidEvent(JNIEnv* env, jclass clazz,
   internal->NotifyListenerOfPaidEvent(ad_value);
 }
 
+void JNI_BannerViewHelper_releaseGlobalReference(JNIEnv* env, jclass clazz,
+                                                 jlong data_ptr) {
+  FIREBASE_ASSERT(data_ptr);
+  jobject ad_view = reinterpret_cast<jobject>(data_ptr);
+  env->DeleteGlobalRef(ad_view);
+}
+
 // JNI functions specific to RewardedAds
 //
 void JNI_RewardedAd_UserEarnedReward(JNIEnv* env, jclass clazz, jlong data_ptr,
@@ -982,7 +989,8 @@ bool RegisterNatives() {
        reinterpret_cast<void*>(&JNI_BannerViewHelper_notifyAdOpened)},
       {"notifyPaidEvent", "(JLjava/lang/String;IJ)V",
        reinterpret_cast<void*>(&JNI_BannerViewHelper_notifyAdPaidEvent)},
-  };
+      {"releaseBannerViewGlobalReferenceCallback", "(J)V",
+       reinterpret_cast<void*>(&JNI_BannerViewHelper_releaseGlobalReference)}};
   static const JNINativeMethod kInterstitialMethods[] = {
       {"completeInterstitialAdFutureCallback", "(JILjava/lang/String;)V",
        reinterpret_cast<void*>(&JNI_completeAdFutureCallback)},
