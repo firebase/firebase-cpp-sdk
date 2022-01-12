@@ -208,8 +208,10 @@ def summarize_logs(dir, markdown=False, github_log=False):
   #               {"test": {"errors": [configs]},
   #                        {"failures": {failed_test: [configs]}},
   #                        {"flakiness": {flaky_test: [configs]}}}}
+  all_tested_configs = { "build_configs": [], "test_configs": []}
   for build_log_file in build_log_files:
     configs = get_configs_from_file_name(build_log_file, build_log_name_re)
+    all_tested_configs["build_configs"].append(configs)
     with open(build_log_file, "r") as log_reader:
       log_text = log_reader.read()
       if "__SUMMARY_MISSING__" in log_text:
@@ -223,6 +225,7 @@ def summarize_logs(dir, markdown=False, github_log=False):
 
   for test_log_file in test_log_files:
     configs = get_configs_from_file_name(test_log_file, test_log_name_re)
+    all_tested_configs["test_configs"].append(configs)
     with open(test_log_file, "r") as log_reader:
       log_text = log_reader.read()
       if "__SUMMARY_MISSING__" in log_text:
@@ -251,7 +254,9 @@ def summarize_logs(dir, markdown=False, github_log=False):
   # if failures (include flakiness) exist:
   # log_results format:
   #   { testapps: {configs: [failed tests]} }
-  log_results = reorganize_log(log_data)
+  all_tested_configs = reorganize_all_tested_configs(all_tested_configs)
+  logging.info("all_tested_configs: %s", all_tested_configs)
+  log_results = reorganize_log(log_data, all_tested_configs)
   log_lines = []
   if markdown:
     log_lines = print_markdown_table(log_results)
@@ -276,11 +281,19 @@ def get_configs_from_file_name(file_name, file_name_re):
   if "desktop" in configs: configs.remove("desktop")
   return configs
 
-def reorganize_log(log_data):
+
+def reorganize_all_tested_configs(tested_configs):
+  build_configs = reorganize_configs(tested_configs["build_configs"])
+  test_configs = reorganize_configs(tested_configs["test_configs"])
+  return { "build_configs": build_configs, "test_configs": test_configs}
+
+
+def reorganize_log(log_data, all_tested_configs):
   log_results = {}
   for (testapp, errors) in log_data.items():
     if errors.get("build"):
-      combined_configs = combine_configs(errors.get("build"))
+      reorganized_configs = reorganize_configs(errors.get("build"))
+      combined_configs = combine_configs(reorganized_configs, all_tested_configs["build_configs"])
       for (platform, configs) in combined_configs.items():
         for config in configs:
           all_configs = [["BUILD"], ["ERROR"], [CAPITALIZATIONS[platform]]]
@@ -288,21 +301,24 @@ def reorganize_log(log_data):
           log_results.setdefault(testapp, {}).setdefault(flat_config(all_configs), [])
           
     if errors.get("test",{}).get("errors"):
-      combined_configs = combine_configs(errors.get("test",{}).get("errors"))
+      reorganized_configs = reorganize_configs(errors.get("test",{}).get("errors"))
+      combined_configs = combine_configs(reorganized_configs, all_tested_configs["test_configs"])
       for (platform, configs) in combined_configs.items():
         for config in configs:
           all_configs = [["TEST"], ["ERROR"], [CAPITALIZATIONS[platform]]]
           all_configs.extend(config)
           log_results.setdefault(testapp, {}).setdefault(flat_config(all_configs), [])
     for (test, configs) in errors.get("test",{}).get("failures",{}).items():
-      combined_configs = combine_configs(configs)
+      reorganized_configs = reorganize_configs(configs)
+      combined_configs = combine_configs(reorganized_configs, all_tested_configs["test_configs"])
       for (platform, configs) in combined_configs.items():
         for config in configs:
           all_configs = [["TEST"], ["FAILURE"], [CAPITALIZATIONS[platform]]]
           all_configs.extend(config)
           log_results.setdefault(testapp, {}).setdefault(flat_config(all_configs), []).append(test)
     for (test, configs) in errors.get("test",{}).get("flakiness",{}).items():
-      combined_configs = combine_configs(configs)
+      reorganized_configs = reorganize_configs(configs)
+      combined_configs = combine_configs(reorganized_configs, all_tested_configs["test_configs"])
       for (platform, configs) in combined_configs.items():
         for config in configs:
           all_configs = [["TEST"], ["FLAKINESS"], [CAPITALIZATIONS[platform]]]
@@ -312,11 +328,11 @@ def reorganize_log(log_data):
   return log_results
 
 
-# Combine Config Lists
+# Reorganize Config Lists
 # e.g.
 #     [['macos', 'simulator_min'], ['macos', 'simulator_target']]
 #     -> [[['macos'], ['simulator_min', 'simulator_target']]]
-def combine_configs(configs):
+def reorganize_configs(configs):
   platform_configs = {}
   for config in configs:
     platform = config[0]
@@ -339,27 +355,34 @@ def combine_configs(configs):
             if equals(configs_i, configs_j):
               remove_configs.append(configs_list[j])
               configk.append(configs_list[j][k])
-        configk = combine_config(configk, platform, k)
+        # configk = combine_config(configk, platform, k)
         configs_list[i][k] = configk
       for config in remove_configs:
         configs_list.remove(config)
 
   return platform_configs
 
-
 # If possible, combine kth config to "All *"
 # e.g.
 #     ['ubuntu', 'windows', 'macos']
-#     -> ['All os']
-def combine_config(config, platform, k):
+#     -> ['All 3 os']
+#     ['ubuntu', 'windows']
+#     -> ['2/3 os: ubuntu,windows': ]
+def combine_configs(error_configs, all_configs):
+  for (platform, configs_list) in error_configs.items():
+    for i in range(len(configs_list)):
+      for j in range(len(configs_list[i])):
+        configs_list[i][j] = combine_config(platform, configs_list[i][j], all_configs[platform][0][j], j)
+  return error_configs
+
+
+def combine_config(platform, config, config_value, k):
+  config_before_combination = config
+  logging.info("platform: %s; config: %s; config_value: %s", platform, config, config_value)
   if k == 1 and platform in ("android", "ios", "tvos"):
     # config_name = test_device here
     k = -1
   config_name = BUILD_CONFIGS[platform][k]
-  if PARAMETERS["integration_tests"]["matrix"]["expanded"].get(config_name):
-    config_value = PARAMETERS["integration_tests"]["matrix"]["expanded"][config_name]
-  else:
-    config_value = PARAMETERS["integration_tests"]["matrix"][config_name]
   if len(config_value) > 1 and len(config) == len(config_value):
     config = ["All %d %s" % (len(config_value), config_name)]
   elif config_name == "ios_device":
@@ -380,6 +403,8 @@ def combine_config(config, platform, k):
     elif emulators.issubset(set(config)):
       config.insert(0, "All %d Emulators" % len(emulators))
       config = [x for x in config if (x not in emulators)]
+  if config_before_combination == config:
+    config = ["%d/%d %s: %s" % (len(config), len(config_value), config_name, flat_config(config))]
 
   return config
 
