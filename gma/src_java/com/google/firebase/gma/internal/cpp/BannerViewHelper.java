@@ -170,11 +170,12 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
             mBannerViewInternalPtr = CPP_NULLPTR;
           }
           mActivity = null;
-
-          // BannerView's C++ destructor does not pass a future
-          // to callback and complete, since that would cause the destructor
-          // to block.
-          if (callbackDataPtr != CPP_NULLPTR) {
+          if (destructor_invocation) {
+            // BannerView's C++ destructor does not pass a future
+            // to callback and complete, but the reference to this object
+            // which should be released.
+            releaseBannerViewGlobalReferenceCallback(callbackDataPtr);
+          } else {
             completeBannerViewFutureCallback(callbackDataPtr, ConstantsHelper.CALLBACK_ERROR_NONE,
                 ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
           }
@@ -592,6 +593,12 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
    */
   public static native void completeBannerViewFutureCallback(
       long nativeInternalPtr, int errorCode, String errorMessage);
+
+  /**
+   * Native callback to instruct the C++ wrapper to release its global reference on this
+   * object.
+   */
+  public static native void releaseBannerViewGlobalReferenceCallback(long nativeInternalPtr);
 
   /**
    * Native callback invoked upon successfully loading an ad.

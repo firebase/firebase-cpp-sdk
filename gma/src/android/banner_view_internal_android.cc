@@ -107,7 +107,10 @@ struct NulleryInvocationOnMainThreadData {
 };
 
 BannerViewInternalAndroid::BannerViewInternalAndroid(BannerView* base)
-    : BannerViewInternal(base), helper_(nullptr), initialized_(false) {
+    : BannerViewInternal(base),
+      helper_(nullptr),
+      initialized_(false),
+      destroyed_(false) {
   firebase::MutexLock lock(mutex_);
 
   JNIEnv* env = ::firebase::gma::GetJNI();
@@ -143,15 +146,21 @@ BannerViewInternalAndroid::BannerViewInternalAndroid(BannerView* base)
 BannerViewInternalAndroid::~BannerViewInternalAndroid() {
   firebase::MutexLock lock(mutex_);
   JNIEnv* env = ::firebase::gma::GetJNI();
+  if (!destroyed_) {
+    // The application should have invoked Destroy already, but
+    // invoke it to prevent leaking memory.
+    LogWarning(
+        "Warning: AdView destructor invoked before the application "
+        " called Destroy() on the object.");
 
-  // The application should have invoked Destroy already, but
-  // invoke it now just in case they haven't in the hope that
-  // we can prevent leaking memory.
-  env->CallVoidMethod(
-      helper_, banner_view_helper::GetMethodId(banner_view_helper::kDestroy),
-      /*callbackDataPtr=*/nullptr, /*destructor_invocation=*/true);
+    env->CallVoidMethod(
+        helper_, banner_view_helper::GetMethodId(banner_view_helper::kDestroy),
+        /*callbackDataPtr=*/reinterpret_cast<jlong>(ad_view_),
+        /*destructor_invocation=*/true);
+  } else {
+    env->DeleteGlobalRef(ad_view_);
+  }
 
-  env->DeleteGlobalRef(ad_view_);
   ad_view_ = nullptr;
 
   env->DeleteGlobalRef(helper_);
@@ -385,6 +394,7 @@ Future<void> BannerViewInternalAndroid::Resume() {
 
 Future<void> BannerViewInternalAndroid::Destroy() {
   firebase::MutexLock lock(mutex_);
+  destroyed_ = true;
   FutureCallbackData<void>* callback_data =
       CreateVoidFutureCallbackData(kBannerViewFnDestroy, &future_data_);
   Future<void> future =
