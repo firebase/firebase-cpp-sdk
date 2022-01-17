@@ -99,6 +99,9 @@ class AdViewInternalAndroid : public AdViewInternal {
   // Mutex to guard against concurrent operations;
   Mutex mutex_;
 
+  // Marks if Destroy() was called on the object.
+  bool destroyed_;
+
   // Convenience method to "dry" the JNI calls that don't take parameters beyond
   // the future callback pointer.
   Future<void> InvokeNullary(AdViewFn fn, ad_view_helper::Method method);

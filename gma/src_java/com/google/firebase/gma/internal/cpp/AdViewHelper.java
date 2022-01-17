@@ -170,11 +170,12 @@ public class AdViewHelper implements ViewTreeObserver.OnPreDrawListener {
             mAdViewInternalPtr = CPP_NULLPTR;
           }
           mActivity = null;
-
-          // AdView's C++ destructor does not pass a future
-          // to callback and complete, since that would cause the destructor
-          // to block.
-          if (callbackDataPtr != CPP_NULLPTR) {
+          if (destructor_invocation) {
+            // AdViews's C++ destructor does not pass a future
+            // to callback and complete, but the reference to this object
+            // which should be released.
+            releaseAdViewGlobalReferenceCallback(callbackDataPtr);
+          } else {
             completeAdViewFutureCallback(callbackDataPtr, ConstantsHelper.CALLBACK_ERROR_NONE,
                 ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
           }
@@ -592,6 +593,12 @@ public class AdViewHelper implements ViewTreeObserver.OnPreDrawListener {
    */
   public static native void completeAdViewFutureCallback(
       long nativeInternalPtr, int errorCode, String errorMessage);
+
+  /**
+   * Native callback to instruct the C++ wrapper to release its global reference on this
+   * object.
+   */
+  public static native void releaseAdViewGlobalReferenceCallback(long nativeInternalPtr);
 
   /**
    * Native callback invoked upon successfully loading an ad.

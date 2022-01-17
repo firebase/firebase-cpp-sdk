@@ -1024,6 +1024,13 @@ void JNI_AdViewHelper_notifyAdPaidEvent(JNIEnv* env, jclass clazz,
   internal->NotifyListenerOfPaidEvent(ad_value);
 }
 
+void JNI_AdViewHelper_releaseGlobalReference(JNIEnv* env, jclass clazz,
+                                                 jlong data_ptr) {
+  FIREBASE_ASSERT(data_ptr);
+  jobject ad_view = reinterpret_cast<jobject>(data_ptr);
+  env->DeleteGlobalRef(ad_view);
+}
+
 // JNI functions specific to RewardedAds
 //
 void JNI_RewardedAd_UserEarnedReward(JNIEnv* env, jclass clazz, jlong data_ptr,
@@ -1039,7 +1046,7 @@ void JNI_RewardedAd_UserEarnedReward(JNIEnv* env, jclass clazz, jlong data_ptr,
 }  // namespace
 
 bool RegisterNatives() {
-  static const JNINativeMethod kBannerMethods[] = {
+  static const JNINativeMethod kAdViewMethods[] = {
       {"completeAdViewFutureCallback", "(JILjava/lang/String;)V",
        reinterpret_cast<void*>(&JNI_completeAdFutureCallback)},
       {"completeAdViewLoadedAd", "(J)V",
@@ -1061,7 +1068,8 @@ bool RegisterNatives() {
        reinterpret_cast<void*>(&JNI_AdViewHelper_notifyAdOpened)},
       {"notifyPaidEvent", "(JLjava/lang/String;IJ)V",
        reinterpret_cast<void*>(&JNI_AdViewHelper_notifyAdPaidEvent)},
-  };
+      {"releaseAdViewGlobalReferenceCallback", "(J)V",
+       reinterpret_cast<void*>(&JNI_AdViewHelper_releaseGlobalReference)}};
   static const JNINativeMethod kInterstitialMethods[] = {
       {"completeInterstitialAdFutureCallback", "(JILjava/lang/String;)V",
        reinterpret_cast<void*>(&JNI_completeAdFutureCallback)},
@@ -1131,8 +1139,8 @@ bool RegisterNatives() {
   return ad_inspector_helper::RegisterNatives(
              env, kAdInspectorHelperMethods,
              FIREBASE_ARRAYSIZE(kAdInspectorHelperMethods)) &&
-         ad_view_helper::RegisterNatives(env, kBannerMethods,
-                                         FIREBASE_ARRAYSIZE(kBannerMethods)) &&
+         ad_view_helper::RegisterNatives(env, kAdViewMethods,
+                                         FIREBASE_ARRAYSIZE(kAdViewMethods)) &&
          interstitial_ad_helper::RegisterNatives(
              env, kInterstitialMethods,
              FIREBASE_ARRAYSIZE(kInterstitialMethods)) &&

@@ -738,6 +738,7 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAd) {
                                         kBannerAdUnit, banner_ad_size),
                     "Initialize");
   WaitForCompletion(ad_view->LoadAd(GetAdRequest()), "LoadAd");
+  WaitForCompletion(ad_view->Destroy(), "Destroy");
   delete ad_view;
 }
 
@@ -966,7 +967,17 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoadAndShow) {
 }
 
 // Other AdView Tests
+TEST_F(FirebaseGmaTest, TestAdViewLoadAdDestroyNotCalled) {
+  SKIP_TEST_ON_DESKTOP;
 
+  const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
+  firebase::gma::AdView* ad_view = new firebase::gma::AdView();
+  WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
+                                       kBannerAdUnit, banner_ad_size),
+                    "Initialize");
+  WaitForCompletion(ad_view->LoadAd(GetAdRequest()), "LoadAd");
+  delete ad_view;
+}
 TEST_F(FirebaseGmaTest, TestAdView) {
   TEST_REQUIRES_USER_INTERACTION;
   SKIP_TEST_ON_DESKTOP;

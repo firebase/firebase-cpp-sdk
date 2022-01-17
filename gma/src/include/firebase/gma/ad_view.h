@@ -195,6 +195,8 @@ class AdView {
   Future<void> ResumeLastResult() const;
 
   /// Cleans up and deallocates any resources used by the @ref AdView.
+  /// You must call this asynchronous operation before this object's destructor
+  /// is invoked or risk leaking device resources.
   Future<void> Destroy();
 
   /// Returns a @ref Future containing the status of the last call to
