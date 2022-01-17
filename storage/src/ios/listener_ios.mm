@@ -14,7 +14,7 @@
 
 #include "storage/src/ios/listener_ios.h"
 
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "storage/src/include/firebase/storage/controller.h"
 #include "storage/src/ios/controller_ios.h"
 #include "storage/src/ios/storage_ios.h"

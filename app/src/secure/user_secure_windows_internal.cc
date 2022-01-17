@@ -17,6 +17,8 @@
 #define NOMINMAX
 #include <wincred.h>
 
+#include "app/src/log.h"
+
 namespace firebase {
 namespace app {
 namespace secure {

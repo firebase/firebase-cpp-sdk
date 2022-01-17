@@ -347,7 +347,7 @@ add_custom_target(
 # are guarded by this flag, such as GetUserAgent and function_registry.
 set(FIREBASE_FIRESTORE_CPP_DEFINES -DINTERNAL_EXPERIMENTAL=1)
 
-if (WIN32 AND NOT ANDROID AND NOT IOS)
+if (MSVC AND NOT ANDROID AND NOT IOS)
   # On Windows, gRPC gives a compiler error in firebase_metadata_provider_desktop.cc
   # unless _WIN32_WINNT is defined to this value (0x0600, Windows Vista).
   # Also set -DNOMINMAX for both Firestore and Firestore Core.

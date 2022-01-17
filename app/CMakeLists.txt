@@ -136,6 +136,12 @@ set(common_SRCS
     src/variant.cc
     src/base64.cc)
 
+if (MSVC)
+  set(mutex_SRCS src/mutex_windows.cc)
+else()
+  set(mutex_SRCS src/mutex_pthread.cc)
+endif()
+
 set(invites_SRCS
     src/invites/cached_receiver.cc
     src/invites/invites_receiver_internal.cc)
@@ -221,6 +227,7 @@ set(internal_HDRS
     src/include/firebase/future.h
     src/include/firebase/internal/common.h
     src/include/firebase/internal/future_impl.h
+    src/include/firebase/internal/mutex.h
     src/include/firebase/internal/type_traits.h
     src/include/firebase/log.h
     src/include/firebase/util.h
@@ -241,7 +248,6 @@ set(utility_common_HDRS
     src/log.h
     src/heartbeat_date_storage_desktop.h
     src/heartbeat_info_desktop.h
-    src/mutex.h
     src/optional.h
     src/path.h
     src/pthread_condvar.h
@@ -313,6 +319,7 @@ add_library(firebase_app STATIC
     ${log_HDRS}
     ${common_SRCS}
     ${invites_SRCS}
+    ${mutex_SRCS}
     ${app_platform_SRCS}
     ${internal_HDRS}
     ${utility_HDRS}

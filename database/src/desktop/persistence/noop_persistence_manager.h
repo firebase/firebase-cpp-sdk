@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "app/memory/unique_ptr.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/cache_policy.h"
