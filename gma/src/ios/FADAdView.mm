@@ -26,13 +26,13 @@ namespace gma = firebase::gma;
   UIView *__weak _parentView;
 
   /// The banner view.
-  GADBannerView *_AdView;
+  GADBannerView *_adView;
 
   /// The current horizontal layout constraint for the banner view.
-  NSLayoutConstraint *_AdViewHorizontalLayoutConstraint;
+  NSLayoutConstraint *_adViewHorizontalLayoutConstraint;
 
   /// The current vertical layout constraint for the banner view.
-  NSLayoutConstraint *_AdViewVerticalLayoutConstraint;
+  NSLayoutConstraint *_adViewVerticalLayoutConstraint;
 
   /// The banner view's ad unit ID.
   NSString *_adUnitID;
@@ -74,11 +74,11 @@ firebase::gma::AdView::Position _position;
 
 /// Called from the designated initializer. Sets up a banner view.
 - (void)setUpAdView {
-  _AdView = [[GADBannerView alloc] initWithAdSize:_adSize];
-  _AdView.adUnitID = _adUnitID;
-  _AdView.delegate = self;
+  _adView = [[GADBannerView alloc] initWithAdSize:_adSize];
+  _adView.adUnitID = _adUnitID;
+  _adView.delegate = self;
   __unsafe_unretained typeof(self) weakSelf = self;
-  _AdView.paidEventHandler = ^void(GADAdValue *_Nonnull adValue) {
+  _adView.paidEventHandler = ^void(GADAdValue *_Nonnull adValue) {
     // Establish the strong self reference
     __strong typeof(self) strongSelf = weakSelf;
     if (strongSelf) {
@@ -90,26 +90,26 @@ firebase::gma::AdView::Position _position;
   // The FADAdView is hidden until the publisher calls Show().
   self.hidden = YES;
 
-  [self addSubview:_AdView];
-  _AdView.translatesAutoresizingMaskIntoConstraints = NO;
+  [self addSubview:_adView];
+  _adView.translatesAutoresizingMaskIntoConstraints = NO;
 
   // Add layout constraints to center the banner view vertically and horizontally.
-  NSDictionary *viewDictionary = NSDictionaryOfVariableBindings(_AdView);
+  NSDictionary *viewDictionary = NSDictionaryOfVariableBindings(_adView);
   NSArray *verticalConstraints =
-      [NSLayoutConstraint constraintsWithVisualFormat:@"V:|[_AdView]|"
+      [NSLayoutConstraint constraintsWithVisualFormat:@"V:|[_adView]|"
                                               options:0
                                               metrics:nil
                                                 views:viewDictionary];
   [self addConstraints:verticalConstraints];
   NSArray *horizontalConstraints =
-      [NSLayoutConstraint constraintsWithVisualFormat:@"H:|[_AdView]|"
+      [NSLayoutConstraint constraintsWithVisualFormat:@"H:|[_adView]|"
                                               options:0
                                               metrics:nil
                                                 views:viewDictionary];
   [self addConstraints:horizontalConstraints];
 
   UIView *strongView = _parentView;
-  _AdView.rootViewController = strongView.window.rootViewController;
+  _adView.rootViewController = strongView.window.rootViewController;
   [strongView addSubview:self];
   self.translatesAutoresizingMaskIntoConstraints = NO;
   [self updateAdViewLayoutConstraintsWithPosition:(gma::AdView::kPositionTopLeft)
@@ -121,7 +121,7 @@ firebase::gma::AdView::Position _position;
 
 - (gma::BoundingBox)boundingBox {
   gma::BoundingBox box;
-  if (!_AdView) {
+  if (!_adView) {
     return box;
   }
   // Map the width and height and the x and y coordinates of the BoundingBox to pixel values using
@@ -139,8 +139,8 @@ firebase::gma::AdView::Position _position;
 #pragma mark - Public Methods
 
 - (void)loadRequest:(GADRequest *)request {
-  // Make the banner ad request.
-  [_AdView loadRequest:request];
+  // Make the ad request.
+  [_adView loadRequest:request];
 }
 
 - (void)hide {
@@ -155,14 +155,14 @@ firebase::gma::AdView::Position _position;
 }
 
 - (void)destroy {
-  [_AdView removeFromSuperview];
-  _AdView.delegate = nil;
-  _AdView = nil;
+  [_adView removeFromSuperview];
+  _adView.delegate = nil;
+  _adView = nil;
 }
 
 - (void)moveAdViewToXCoordinate:(int)x yCoordinate:(int)y {
   // The moveAdViewToXCoordinate:yCoordinate: method gets the x-coordinate and y-coordinate in
-  // pixels. Need to convert the pixels to points before updating the banner view's layout
+  // pixels. Need to convert the pixels to points before updating the view's layout
   // constraints.
   _position = firebase::gma::AdView::kPositionUndefined;
   CGFloat scale = [UIScreen mainScreen].scale;
@@ -181,7 +181,7 @@ firebase::gma::AdView::Position _position;
 
 #pragma mark - Private Methods
 
-/// Updates the layout constraints for the banner view.
+/// Updates the layout constraints for the view.
 - (void)updateAdViewLayoutConstraintsWithPosition:(gma::AdView::Position)position
                                           xCoordinate:(CGFloat)x
                                           yCoordinate:(CGFloat)y {
@@ -222,14 +222,14 @@ firebase::gma::AdView::Position _position;
   // Remove the existing vertical and horizontal layout constraints for the banner view, if they
   // exist.
   UIView *strongView = _parentView;
-  if (_AdViewVerticalLayoutConstraint && _AdViewHorizontalLayoutConstraint) {
-    NSArray *AdViewLayoutConstraints = @[ _AdViewVerticalLayoutConstraint,
-                                              _AdViewHorizontalLayoutConstraint ];
+  if (_adViewVerticalLayoutConstraint && _adViewHorizontalLayoutConstraint) {
+    NSArray *AdViewLayoutConstraints = @[ _adViewVerticalLayoutConstraint,
+                                              _adViewHorizontalLayoutConstraint ];
     [strongView removeConstraints:AdViewLayoutConstraints];
   }
 
   // Set the vertical and horizontal layout constraints for the banner view.
-  _AdViewVerticalLayoutConstraint =
+  _adViewVerticalLayoutConstraint =
       [NSLayoutConstraint constraintWithItem:self
                                    attribute:verticalLayoutAttribute
                                    relatedBy:NSLayoutRelationEqual
@@ -237,8 +237,8 @@ firebase::gma::AdView::Position _position;
                                    attribute:verticalLayoutAttribute
                                   multiplier:1
                                     constant:y];
-  [strongView addConstraint:_AdViewVerticalLayoutConstraint];
-  _AdViewHorizontalLayoutConstraint =
+  [strongView addConstraint:_adViewVerticalLayoutConstraint];
+  _adViewHorizontalLayoutConstraint =
       [NSLayoutConstraint constraintWithItem:self
                                    attribute:horizontalLayoutAttribute
                                    relatedBy:NSLayoutRelationEqual
@@ -246,7 +246,7 @@ firebase::gma::AdView::Position _position;
                                    attribute:horizontalLayoutAttribute
                                   multiplier:1
                                     constant:x];
-  [strongView addConstraint:_AdViewHorizontalLayoutConstraint];
+  [strongView addConstraint:_adViewHorizontalLayoutConstraint];
   [self setNeedsLayout];
 }
 
@@ -271,34 +271,34 @@ firebase::gma::AdView::Position _position;
 
 #pragma mark - GADBannerViewDelegate
 
-- (void)AdViewDidReceiveAd:(nonnull GADBannerView *)AdView {
+- (void)bannerViewDidReceiveAd:(nonnull GADBannerView *)bannerView {
   _adLoaded = YES;
   _cppAdView->AdViewDidReceiveAd();
   gma::BoundingBox bounding_box = self.boundingBox;
 }
-- (void)AdView:(nonnull GADBannerView *)AdView didFailToReceiveAdWithError:(nonnull NSError *)error {
+- (void)bannerView:(nonnull GADBannerView *)bannerView didFailToReceiveAdWithError:(nonnull NSError *)error {
   _cppAdView->AdViewDidFailToReceiveAdWithError(error);
 }
 
-- (void)AdViewDidRecordClick:(nonnull GADBannerView *)AdView {
+- (void)bannerViewDidRecordClick:(nonnull GADBannerView *)bannerView {
    _cppAdView->NotifyListenerAdClicked();
 }
 
-- (void)AdViewDidRecordImpression:(nonnull GADBannerView *)AdView {
+- (void)bannerViewDidRecordImpression:(nonnull GADBannerView *)bannerView {
   _cppAdView->NotifyListenerAdImpression();
 }
 
 // Note that the following callbacks are only called on in-app overlay events. 
 // See https://www.googblogs.com/google-mobile-ads-sdk-a-note-on-ad-click-events/
 // and https://groups.google.com/g/google-admob-ads-sdk/c/lzdt5szxSVU
-- (void)AdViewWillPresentScreen:(nonnull GADBannerView *)AdView {
+- (void)bannerViewWillPresentScreen:(nonnull GADBannerView *)bannerView {
   gma::BoundingBox bounding_box = self.boundingBox;
   _cppAdView->set_bounding_box(bounding_box);
   _cppAdView->NotifyListenerOfBoundingBoxChange(bounding_box);
   _cppAdView->NotifyListenerAdOpened();
 }
 
-- (void)AdViewDidDismissScreen:(nonnull GADBannerView *)AdView {
+- (void)bannerViewDidDismissScreen:(nonnull GADBannerView *)bannerView {
   gma::BoundingBox bounding_box = self.boundingBox;
   _cppAdView->set_bounding_box(bounding_box);
   _cppAdView->NotifyListenerOfBoundingBoxChange(bounding_box);
