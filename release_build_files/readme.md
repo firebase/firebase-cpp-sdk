@@ -203,7 +203,7 @@ Firebase Functions         | firebase_functions.xcframework
 |                          | Firebase/Auth Cocoapod (8.10.0)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
-|                          | FirebaseInstallations Cocoapod (8.10.0)
+|                          | FirebaseInstallations Cocoapod (8.11.0)
 Firebase Cloud Messaging   | firebase_messaging.xcframework
 |                          | firebase.xcframework
 |                          | Firebase/Messaging Cocoapod (8.10.0)
@@ -263,7 +263,7 @@ Firebase Functions         | libfirebase_functions.a
 |                          | Firebase/Auth Cocoapod (8.10.0)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
-|                          | FirebaseInstallations Cocoapod (8.10.0)
+|                          | FirebaseInstallations Cocoapod (8.11.0)
 Firebase Cloud Messaging   | libfirebase_messaging.a
 |                          | libfirebase_app.a
 |                          | Firebase/CloudMessaging Cocoapod (8.10.0)
