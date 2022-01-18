@@ -973,7 +973,7 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdDestroyNotCalled) {
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::gma::AdView* ad_view = new firebase::gma::AdView();
   WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
-                                       kBannerAdUnit, banner_ad_size),
+                                        kBannerAdUnit, banner_ad_size),
                     "Initialize");
   WaitForCompletion(ad_view->LoadAd(GetAdRequest()), "LoadAd");
   delete ad_view;

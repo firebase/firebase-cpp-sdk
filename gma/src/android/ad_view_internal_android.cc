@@ -107,7 +107,10 @@ struct NulleryInvocationOnMainThreadData {
 };
 
 AdViewInternalAndroid::AdViewInternalAndroid(AdView* base)
-    : AdViewInternal(base), helper_(nullptr), initialized_(false), destroyed_(false) {
+    : AdViewInternal(base),
+      helper_(nullptr),
+      initialized_(false),
+      destroyed_(false) {
   firebase::MutexLock lock(mutex_);
 
   JNIEnv* env = ::firebase::gma::GetJNI();
@@ -150,10 +153,10 @@ AdViewInternalAndroid::~AdViewInternalAndroid() {
         "Warning: AdView destructor invoked before the application "
         " called Destroy() on the object.");
 
-    env->CallVoidMethod(
-        helper_, ad_view_helper::GetMethodId(ad_view_helper::kDestroy),
-        /*callbackDataPtr=*/reinterpret_cast<jlong>(ad_view_),
-        /*destructor_invocation=*/true);
+    env->CallVoidMethod(helper_,
+                        ad_view_helper::GetMethodId(ad_view_helper::kDestroy),
+                        /*callbackDataPtr=*/reinterpret_cast<jlong>(ad_view_),
+                        /*destructor_invocation=*/true);
   } else {
     env->DeleteGlobalRef(ad_view_);
   }

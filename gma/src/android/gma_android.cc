@@ -1025,7 +1025,7 @@ void JNI_AdViewHelper_notifyAdPaidEvent(JNIEnv* env, jclass clazz,
 }
 
 void JNI_AdViewHelper_releaseGlobalReference(JNIEnv* env, jclass clazz,
-                                                 jlong data_ptr) {
+                                             jlong data_ptr) {
   FIREBASE_ASSERT(data_ptr);
   jobject ad_view = reinterpret_cast<jobject>(data_ptr);
   env->DeleteGlobalRef(ad_view);
