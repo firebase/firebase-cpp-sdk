@@ -185,7 +185,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest]
+        os: [windows-latest, macos-latest]
         build_type: ["Release", "Debug"]
         architecture: ["x64", "x86", "arm64"]
         msvc_runtime: ["static", "dynamic"]
@@ -201,6 +201,10 @@ jobs:
           vcpkg_triplet_suffix: "windows-static-md"
           additional_build_flags: "--build_tests"
           sdk_platform: "windows"
+        - os: macos-latest
+          vcpkg_triplet_suffix: "osx"
+          additional_build_flags: "--target_format libraries"
+          sdk_platform: "darwin"
 
         exclude:
         - os: windows-latest
@@ -342,7 +346,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        sdk_platform: [windows]
+        sdk_platform: [darwin, windows]
         suffix: ['']
         runs_on_platform: [ubuntu-latest]
         include:
@@ -371,6 +375,8 @@ jobs:
         - sdk_platform: windows
           suffix: '-x64-Debug-dynamic'
           runs_on_platform: ubuntu-latest
+        - sdk_platform: darwin
+          runs_on_platform: macos-latest
         exclude:
         - sdk_platform: windows
           suffix: ''
