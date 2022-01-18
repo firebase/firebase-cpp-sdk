@@ -69,7 +69,7 @@ namespace internal {
 
 class AdViewInternalAndroid : public AdViewInternal {
  public:
-  AdViewInternalAndroid(AdView* base);
+  explicit AdViewInternalAndroid(AdView* base);
   ~AdViewInternalAndroid() override;
 
   Future<void> Initialize(AdParent parent, const char* ad_unit_id,

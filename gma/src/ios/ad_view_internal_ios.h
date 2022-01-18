@@ -34,7 +34,7 @@ namespace internal {
 
 class AdViewInternalIOS : public AdViewInternal {
  public:
-  AdViewInternalIOS(AdView* base);
+  explicit AdViewInternalIOS(AdView* base);
   ~AdViewInternalIOS();
 
   Future<void> Initialize(AdParent parent, const char* ad_unit_id,
