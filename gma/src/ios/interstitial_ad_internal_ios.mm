@@ -48,12 +48,12 @@ Future<void> InterstitialAdInternalIOS::Initialize(AdParent parent) {
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
   if(initialized_) {
-    CompleteFuture(kAdErrorAlreadyInitialized,
+    CompleteFuture(kAdErrorCodeAlreadyInitialized,
       kAdAlreadyInitializedErrorMessage, future_handle, &future_data_);
   } else {
     initialized_ = true;
     parent_view_ = (UIView *)parent;
-    CompleteFuture(kAdErrorNone, nullptr, future_handle, &future_data_);
+    CompleteFuture(kAdErrorCodeNone, nullptr, future_handle, &future_data_);
   }
   return future;
 }
@@ -68,7 +68,7 @@ Future<AdResult> InterstitialAdInternalIOS::LoadAd(
       callback_data->future_handle);
 
   if (ad_load_callback_data_ != nil) {
-    CompleteLoadAdInternalResult(callback_data, kAdErrorLoadInProgress,
+    CompleteLoadAdInternalResult(callback_data, kAdErrorCodeLoadInProgress,
         kAdLoadInProgressErrorMessage);
     return future;
   }
@@ -82,13 +82,13 @@ Future<AdResult> InterstitialAdInternalIOS::LoadAd(
 
   dispatch_async(dispatch_get_main_queue(), ^{
     // Create a GADRequest from an gma::AdRequest.
-    AdError error_code = kAdErrorNone;
+    AdErrorCode error_code = kAdErrorCodeNone;
     std::string error_message;
     GADRequest *ad_request =
      GADRequestFromCppAdRequest(request, &error_code, &error_message);
     if (ad_request == nullptr) {
-      if (error_code == kAdErrorNone) {
-        error_code = kAdErrorInternalError;
+      if (error_code == kAdErrorCodeNone) {
+        error_code = kAdErrorCodeInternalError;
         error_message = kAdCouldNotParseAdRequestErrorMessage;
       }
       CompleteLoadAdInternalResult(ad_load_callback_data_, error_code,
@@ -118,15 +118,15 @@ Future<void> InterstitialAdInternalIOS::Show() {
     future_data_.future_impl.SafeAlloc<void>(kInterstitialAdFnShow);
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
   dispatch_async(dispatch_get_main_queue(), ^{
-    AdError error_code = kAdErrorLoadInProgress;
+    AdErrorCode error_code = kAdErrorCodeLoadInProgress;
     const char* error_message = kAdLoadInProgressErrorMessage;
     if (interstitial_ == nil) {
-      error_code = kAdErrorUninitialized;
+      error_code = kAdErrorCodeUninitialized;
       error_message = kAdUninitializedErrorMessage;
     } else {
       [interstitial_ presentFromRootViewController:[
           parent_view_ window].rootViewController];
-      error_code = kAdErrorNone;
+      error_code = kAdErrorCodeNone;
       error_message = nullptr;
     }
     CompleteFuture(error_code, error_message, future_handle, &future_data_);
@@ -144,7 +144,7 @@ void InterstitialAdInternalIOS::InterstitialDidReceiveAd(GADInterstitialAd* ad) 
   };
 
   if (ad_load_callback_data_ != nil) {
-    CompleteLoadAdInternalResult(ad_load_callback_data_, kAdErrorNone,
+    CompleteLoadAdInternalResult(ad_load_callback_data_, kAdErrorCodeNone,
         /*error_message=*/"");
     ad_load_callback_data_ = nil;
   }

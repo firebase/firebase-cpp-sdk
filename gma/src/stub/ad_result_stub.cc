@@ -40,7 +40,7 @@ std::unique_ptr<AdResult> AdResult::GetCause() const {
 }
 
 /// Gets the error's code.
-AdError AdResult::code() const { return kAdErrorNone; }
+AdErrorCode AdResult::code() const { return kAdErrorCodeNone; }
 
 /// Gets the domain of the error.
 const std::string& AdResult::domain() const {

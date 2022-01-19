@@ -50,12 +50,12 @@ class RewardedAdInternalStub : public RewardedAdInternal {
 
  private:
   Future<void> CreateAndCompleteFutureStub(RewardedAdFn fn) {
-    CreateAndCompleteFuture(fn, kAdErrorNone, nullptr, &future_data_);
+    CreateAndCompleteFuture(fn, kAdErrorCodeNone, nullptr, &future_data_);
     return GetLastResult(fn);
   }
 
   Future<AdResult> CreateAndCompleteAdResultFutureStub(RewardedAdFn fn) {
-    return CreateAndCompleteFutureWithResult(fn, kAdErrorNone, nullptr,
+    return CreateAndCompleteFutureWithResult(fn, kAdErrorCodeNone, nullptr,
                                              &future_data_, AdResult());
   }
 };

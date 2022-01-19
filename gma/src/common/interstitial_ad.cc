@@ -63,8 +63,9 @@ Future<AdResult> InterstitialAd::LoadAd(const char* ad_unit_id,
                                         const AdRequest& request) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::gma::internal::kInterstitialAdFnLoadAd, kAdErrorUninitialized,
-        kAdUninitializedErrorMessage, &internal_->future_data_, AdResult());
+        firebase::gma::internal::kInterstitialAdFnLoadAd,
+        kAdErrorCodeUninitialized, kAdUninitializedErrorMessage,
+        &internal_->future_data_, AdResult());
   }
 
   return internal_->LoadAd(ad_unit_id, request);
@@ -73,8 +74,9 @@ Future<AdResult> InterstitialAd::LoadAd(const char* ad_unit_id,
 Future<AdResult> InterstitialAd::LoadAdLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::gma::internal::kInterstitialAdFnLoadAd, kAdErrorUninitialized,
-        kAdUninitializedErrorMessage, &internal_->future_data_, AdResult());
+        firebase::gma::internal::kInterstitialAdFnLoadAd,
+        kAdErrorCodeUninitialized, kAdUninitializedErrorMessage,
+        &internal_->future_data_, AdResult());
   }
   return internal_->GetLoadAdLastResult();
 }
@@ -82,8 +84,9 @@ Future<AdResult> InterstitialAd::LoadAdLastResult() const {
 Future<void> InterstitialAd::Show() {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kInterstitialAdFnShow, kAdErrorUninitialized,
-        kAdUninitializedErrorMessage, &internal_->future_data_);
+        firebase::gma::internal::kInterstitialAdFnShow,
+        kAdErrorCodeUninitialized, kAdUninitializedErrorMessage,
+        &internal_->future_data_);
   }
   return internal_->Show();
 }
@@ -91,8 +94,9 @@ Future<void> InterstitialAd::Show() {
 Future<void> InterstitialAd::ShowLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kInterstitialAdFnShow, kAdErrorUninitialized,
-        kAdUninitializedErrorMessage, &internal_->future_data_);
+        firebase::gma::internal::kInterstitialAdFnShow,
+        kAdErrorCodeUninitialized, kAdUninitializedErrorMessage,
+        &internal_->future_data_);
   }
   return internal_->GetLastResult(internal::kInterstitialAdFnShow);
 }

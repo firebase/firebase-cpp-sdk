@@ -187,7 +187,7 @@ void InitializeAdViewOnMainThread(void* data) {
     env->DeleteLocalRef(ad_unit_id_str);
 
     call_data->callback_data->future_data->future_impl.Complete(
-        call_data->callback_data->future_handle, kAdErrorAlreadyInitialized,
+        call_data->callback_data->future_handle, kAdErrorCodeAlreadyInitialized,
         kAdAlreadyInitializedErrorMessage);
     delete call_data->callback_data;
     call_data->callback_data = nullptr;
@@ -242,7 +242,7 @@ void InitializeAdViewOnMainThread(void* data) {
   env->DeleteLocalRef(ad_listener);
 
   call_data->callback_data->future_data->future_impl.Complete(
-      call_data->callback_data->future_handle, kAdErrorNone, "");
+      call_data->callback_data->future_handle, kAdErrorCodeNone, "");
 
   delete call_data->callback_data;
   call_data->callback_data = nullptr;
@@ -258,7 +258,7 @@ Future<void> AdViewInternalAndroid::Initialize(AdParent parent,
     const SafeFutureHandle<void> future_handle =
         future_data_.future_impl.SafeAlloc<void>(kAdViewFnInitialize);
     Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
-    CompleteFuture(kAdErrorAlreadyInitialized,
+    CompleteFuture(kAdErrorCodeAlreadyInitialized,
                    kAdAlreadyInitializedErrorMessage, future_handle,
                    &future_data_);
     return future;
@@ -294,13 +294,13 @@ void LoadAdOnMainThread(void* data) {
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env);
 
-  gma::AdError error = kAdErrorNone;
+  gma::AdErrorCode error = kAdErrorCodeNone;
   jobject j_ad_request =
       GetJavaAdRequestFromCPPAdRequest(call_data->ad_request, &error);
 
   if (j_ad_request == nullptr) {
-    if (error == kAdErrorNone) {
-      error = kAdErrorInternalError;
+    if (error == kAdErrorCodeNone) {
+      error = kAdErrorCodeInternalError;
     }
     call_data->callback_data->future_data->future_impl.CompleteWithResult(
         call_data->callback_data->future_handle, error,

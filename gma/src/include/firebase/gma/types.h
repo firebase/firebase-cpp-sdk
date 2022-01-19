@@ -71,83 +71,80 @@ typedef void* AdParent;
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
 
-#ifdef INTERNAL_EXPERIMENTAL
-// LINT.IfChange
-#endif  // INTERNAL_EXPERIMENTAL
 /// Error codes returned by Future::error().
-enum AdError {
+enum AdErrorCode {
   /// Call completed successfully.
-  kAdErrorNone,
+  kAdErrorCodeNone,
   /// The ad has not been fully initialized.
-  kAdErrorUninitialized,
+  kAdErrorCodeUninitialized,
   /// The ad is already initialized (repeat call).
-  kAdErrorAlreadyInitialized,
+  kAdErrorCodeAlreadyInitialized,
   /// A call has failed because an ad is currently loading.
-  kAdErrorLoadInProgress,
+  kAdErrorCodeLoadInProgress,
   /// A call to load an ad has failed due to an internal SDK error.
-  kAdErrorInternalError,
+  kAdErrorCodeInternalError,
   /// A call to load an ad has failed due to an invalid request.
-  kAdErrorInvalidRequest,
+  kAdErrorCodeInvalidRequest,
   /// A call to load an ad has failed due to a network error.
-  kAdErrorNetworkError,
+  kAdErrorCodeNetworkError,
   /// A call to load an ad has failed because no ad was available to serve.
-  kAdErrorNoFill,
+  kAdErrorCodeNoFill,
   /// An attempt has been made to show an ad on an Android Activity that has
   /// no window token (such as one that's not done initializing).
-  kAdErrorNoWindowToken,
+  kAdErrorCodeNoWindowToken,
   /// An attempt to load an Ad Network extras class for an ad request has
   /// failed.
-  kAdErrorAdNetworkClassLoadError,
+  kAdErrorCodeAdNetworkClassLoadError,
   /// The ad server experienced a failure processing the request.
-  kAdErrorServerError,
+  kAdErrorCodeServerError,
   /// The current device’s OS is below the minimum required version.
-  kAdErrorOSVersionTooLow,
+  kAdErrorCodeOSVersionTooLow,
   /// The request was unable to be loaded before being timed out.
-  kAdErrorTimeout,
+  kAdErrorCodeTimeout,
   /// Will not send request because the interstitial object has already been
   /// used.
-  kAdErrorInterstitialAlreadyUsed,
+  kAdErrorCodeInterstitialAlreadyUsed,
   /// The mediation response was invalid.
-  kAdErrorMediationDataError,
+  kAdErrorCodeMediationDataError,
   /// Error finding or creating a mediation ad network adapter.
-  kAdErrorMediationAdapterError,
+  kAdErrorCodeMediationAdapterError,
   /// Attempting to pass an invalid ad size to an adapter.
-  kAdErrorMediationInvalidAdSize,
+  kAdErrorCodeMediationInvalidAdSize,
   /// Invalid argument error.
-  kAdErrorInvalidArgument,
+  kAdErrorCodeInvalidArgument,
   /// Received invalid response.
-  kAdErrorReceivedInvalidResponse,
+  kAdErrorCodeReceivedInvalidResponse,
   /// Will not send a request because the rewarded ad object has already been
   /// used.
-  kAdErrorRewardedAdAlreadyUsed,
+  kAdErrorCodeRewardedAdAlreadyUsed,
   /// A mediation ad network adapter received an ad request, but did not fill.
   /// The adapter’s error is included as an underlyingError.
-  kAdErrorMediationNoFill,
+  kAdErrorCodeMediationNoFill,
   /// Will not send request because the ad object has already been used.
-  kAdErrorAdAlreadyUsed,
+  kAdErrorCodeAdAlreadyUsed,
   /// Will not send request because the application identifier is missing.
-  kAdErrorApplicationIdentifierMissing,
+  kAdErrorCodeApplicationIdentifierMissing,
   /// Android Ad String is invalid.
-  kAdErrorInvalidAdString,
+  kAdErrorCodeInvalidAdString,
   /// The ad can not be shown when app is not in the foreground.
-  kAdErrorAppNotInForeground,
+  kAdErrorCodeAppNotInForeground,
   /// A mediation adapter failed to show the ad.
-  kAdErrorMediationShowError,
+  kAdErrorCodeMediationShowError,
   /// The ad is not ready to be shown.
-  kAdErrorAdNotReady,
+  kAdErrorCodeAdNotReady,
   /// Ad is too large for the scene.
-  kAdErrorAdTooLarge,
+  kAdErrorCodeAdTooLarge,
   /// Attempted to present ad from a non-main thread. This is an internal
   /// error which should be reported to support if encountered.
-  kAdErrorNotMainThread,
+  kAdErrorCodeNotMainThread,
   /// A debug operation failed because the device is not in test mode.
-  kAdErrorNotInTestMode,
+  kAdErrorCodeNotInTestMode,
   /// An attempt to load the Ad Inspector failed.
-  kAdErrorInspectorFailedToLoad,
+  kAdErrorCodeInspectorFailedToLoad,
   /// The request to show the Ad Inspector failed because it's already open.
-  kAdErrorInsepctorAlreadyOpen,
+  kAdErrorCodeInsepctorAlreadyOpen,
   /// Fallback error for any unidentified cases.
-  kAdErrorUnknown,
+  kAdErrorCodeUnknown,
 };
 
 /// A listener for receiving notifications during the lifecycle of a BannerAd.
@@ -196,7 +193,7 @@ class AdResult {
   std::unique_ptr<AdResult> GetCause() const;
 
   /// Gets the error's code.
-  AdError code() const;
+  AdErrorCode code() const;
 
   /// Gets the domain of the error.
   const std::string& domain() const;

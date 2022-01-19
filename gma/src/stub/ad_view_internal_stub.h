@@ -75,11 +75,12 @@ class AdViewInternalStub : public AdViewInternal {
 
  private:
   Future<void> CreateAndCompleteFutureStub(AdViewFn fn) {
-    return CreateAndCompleteFuture(fn, kAdErrorNone, nullptr, &future_data_);
+    return CreateAndCompleteFuture(fn, kAdErrorCodeNone, nullptr,
+                                   &future_data_);
   }
 
   Future<AdResult> CreateAndCompleteAdResultFutureStub(AdViewFn fn) {
-    return CreateAndCompleteFutureWithResult(fn, kAdErrorNone, nullptr,
+    return CreateAndCompleteFutureWithResult(fn, kAdErrorCodeNone, nullptr,
                                              &future_data_, AdResult());
   }
 };

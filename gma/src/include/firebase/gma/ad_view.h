@@ -59,7 +59,7 @@ struct BoundingBox;
 /// if (ad_view->InitializeLastResult().status() ==
 ///     ::firebase::kFutureStatusComplete &&
 ///     ad_view->InitializeLastResult().error() ==
-///     firebase::gma::kAdErrorNone) {
+///     firebase::gma::kAdErrorCodeNone) {
 ///   ad_view->LoadAd(your_ad_request);
 /// }
 /// @endcode

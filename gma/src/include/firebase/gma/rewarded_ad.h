@@ -56,7 +56,7 @@ class RewardedAdInternal;
 /// if (rewarded->InitializeLastResult().status() ==
 ///     ::firebase::kFutureStatusComplete &&
 ///     rewarded->InitializeLastResult().error() ==
-///     firebase::gma::kAdErrorNone) {
+///     firebase::gma::kAdErrorCodeNone) {
 ///   rewarded->LoadAd( "YOUR_AD_UNIT_ID", my_ad_request);
 /// }
 /// @endcode
@@ -67,7 +67,7 @@ class RewardedAdInternal;
 /// if (rewarded->LoadAdLastResult().status() ==
 ///     ::firebase::kFutureStatusComplete &&
 ///     rewarded->LoadAdLastResult().error() ==
-///     firebase::gma::kAdErrorNone)) {
+///     firebase::gma::kAdErrorCodeNone)) {
 ///   rewarded->Show(&my_user_earned_reward_listener);
 /// }
 /// @endcode

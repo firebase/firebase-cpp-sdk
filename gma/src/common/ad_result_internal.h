@@ -51,7 +51,7 @@ struct AdResultInternal {
   // Default constructor.
   AdResultInternal() {
     ad_result_type = kAdResultInternalAdError;
-    code = kAdErrorNone;
+    code = kAdErrorCodeNone;
     native_ad_error = nullptr;
   }
 
@@ -62,7 +62,7 @@ struct AdResultInternal {
   bool is_successful;
 
   // An error code.
-  AdError code;
+  AdErrorCode code;
 
   // A cached value of com.google.android.gms.ads.AdError.domain.
   std::string domain;

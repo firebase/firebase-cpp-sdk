@@ -742,7 +742,7 @@ static void CompleteAdFutureCallback(JNIEnv* env, jclass clazz, jlong data_ptr,
 }
 
 void CompleteLoadAdCallback(FutureCallbackData<AdResult>* callback_data,
-                            jobject j_load_ad_error, AdError error_code,
+                            jobject j_load_ad_error, AdErrorCode error_code,
                             const std::string& error_message) {
   FIREBASE_ASSERT(callback_data);
 
@@ -760,7 +760,7 @@ void CompleteLoadAdCallback(FutureCallbackData<AdResult>* callback_data,
     // The Android SDK returned an error.  Use the native_ad_error object
     // to populate a AdResult with the error specifics.
     ad_result_internal.is_successful = false;
-  } else if (ad_result_internal.code != kAdErrorNone) {
+  } else if (ad_result_internal.code != kAdErrorCodeNone) {
     // C++ SDK Android GMA Wrapper encountered an error.
     ad_result_internal.ad_result_type =
         AdResultInternal::kAdResultInternalWrapperError;
@@ -780,7 +780,7 @@ void CompleteLoadAdCallback(FutureCallbackData<AdResult>* callback_data,
 
 void CompleteLoadAdAndroidErrorResult(JNIEnv* env, jlong data_ptr,
                                       jobject j_load_ad_error,
-                                      AdError error_code,
+                                      AdErrorCode error_code,
                                       jstring j_error_message) {
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
@@ -796,7 +796,7 @@ void CompleteLoadAdAndroidErrorResult(JNIEnv* env, jlong data_ptr,
 }
 
 void CompleteLoadAdInternalResult(FutureCallbackData<AdResult>* callback_data,
-                                  AdError error_code,
+                                  AdErrorCode error_code,
                                   const char* error_message) {
   FIREBASE_ASSERT(callback_data);
   FIREBASE_ASSERT(error_message);
@@ -876,7 +876,7 @@ void JNI_completeLoadedAd(JNIEnv* env, jclass clazz, jlong data_ptr) {
   FIREBASE_ASSERT(data_ptr);
   FutureCallbackData<AdResult>* callback_data =
       reinterpret_cast<FutureCallbackData<AdResult>*>(data_ptr);
-  CompleteLoadAdInternalResult(callback_data, kAdErrorNone,
+  CompleteLoadAdInternalResult(callback_data, kAdErrorCodeNone,
                                /*error_message=*/"");
 }
 
@@ -886,7 +886,7 @@ void JNI_completeLoadAdError(JNIEnv* env, jclass clazz, jlong data_ptr,
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
   FIREBASE_ASSERT(j_error_message);
-  const AdError error_code =
+  const AdErrorCode error_code =
       MapAndroidAdRequestErrorCodeToCPPErrorCode(j_error_code);
   CompleteLoadAdAndroidErrorResult(env, data_ptr, j_load_ad_error, error_code,
                                    j_error_message);
@@ -899,7 +899,7 @@ void JNI_completeLoadAdInternalError(JNIEnv* env, jclass clazz, jlong data_ptr,
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
   FIREBASE_ASSERT(j_error_message);
-  const AdError error_code = static_cast<AdError>(j_error_code);
+  const AdErrorCode error_code = static_cast<AdErrorCode>(j_error_code);
   CompleteLoadAdAndroidErrorResult(env, data_ptr, /*j_load_ad_error=*/nullptr,
                                    error_code, j_error_message);
 }
@@ -936,7 +936,7 @@ void JNI_notifyAdFailedToShowFullScreenContentEvent(JNIEnv* env, jclass clazz,
   ad_result_internal.native_ad_error = j_ad_error;
 
   // Invoke GmaInternal, a friend of AdResult, to have it access its
-  // protected constructor with the AdError data.
+  // protected constructor with the AdErrorCode data.
   const AdResult& ad_result = GmaInternal::CreateAdResult(ad_result_internal);
   listener->NotifyListenerOfAdFailedToShowFullScreenContent(ad_result);
 }

@@ -79,7 +79,7 @@ Future<void> RewardedAdInternalAndroid::Initialize(AdParent parent) {
     const SafeFutureHandle<void> future_handle =
         future_data_.future_impl.SafeAlloc<void>(kRewardedAdFnInitialize);
     Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
-    CompleteFuture(kAdErrorAlreadyInitialized,
+    CompleteFuture(kAdErrorCodeAlreadyInitialized,
                    kAdAlreadyInitializedErrorMessage, future_handle,
                    &future_data_);
     return future;
@@ -109,16 +109,16 @@ Future<AdResult> RewardedAdInternalAndroid::LoadAd(const char* ad_unit_id,
                                                      AdResult());
     Future<AdResult> future =
         MakeFuture(&future_data_.future_impl, future_handle);
-    CompleteFuture(kAdErrorUninitialized, kAdUninitializedErrorMessage,
+    CompleteFuture(kAdErrorCodeUninitialized, kAdUninitializedErrorMessage,
                    future_handle, &future_data_, AdResult());
     return future;
   }
 
-  gma::AdError error = kAdErrorNone;
+  gma::AdErrorCode error = kAdErrorCodeNone;
   jobject j_request = GetJavaAdRequestFromCPPAdRequest(request, &error);
   if (j_request == nullptr) {
-    if (error == kAdErrorNone) {
-      error = kAdErrorInternalError;
+    if (error == kAdErrorCodeNone) {
+      error = kAdErrorCodeInternalError;
     }
     return CreateAndCompleteFutureWithResult(
         kRewardedAdFnLoadAd, error, kAdCouldNotParseAdRequestErrorMessage,
@@ -149,7 +149,7 @@ Future<void> RewardedAdInternalAndroid::Show(
     const SafeFutureHandle<void> future_handle =
         future_data_.future_impl.SafeAlloc<void>(kRewardedAdFnShow);
     Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
-    CompleteFuture(kAdErrorUninitialized, kAdUninitializedErrorMessage,
+    CompleteFuture(kAdErrorCodeUninitialized, kAdUninitializedErrorMessage,
                    future_handle, &future_data_);
     return future;
   }

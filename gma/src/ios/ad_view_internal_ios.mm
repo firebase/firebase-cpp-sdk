@@ -47,7 +47,7 @@ Future<void> AdViewInternalIOS::Initialize(AdParent parent,
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
   if(initialized_) {
-    CompleteFuture(kAdErrorAlreadyInitialized,
+    CompleteFuture(kAdErrorCodeAlreadyInitialized,
       kAdAlreadyInitializedErrorMessage, future_handle, &future_data_);
   } else {
     initialized_ = true;
@@ -56,7 +56,7 @@ Future<void> AdViewInternalIOS::Initialize(AdParent parent,
                                               adUnitID:@(ad_unit_id)
                                                 adSize:size
                                     internalAdView:this];
-    CompleteFuture(kAdErrorNone, nullptr, future_handle, &future_data_);
+    CompleteFuture(kAdErrorCodeNone, nullptr, future_handle, &future_data_);
     });
   }
   return future;
@@ -71,7 +71,7 @@ Future<AdResult> AdViewInternalIOS::LoadAd(const AdRequest& request) {
     callback_data->future_handle);
 
   if (ad_load_callback_data_ != nil) {
-    CompleteLoadAdInternalResult(callback_data, kAdErrorLoadInProgress,
+    CompleteLoadAdInternalResult(callback_data, kAdErrorCodeLoadInProgress,
       kAdLoadInProgressErrorMessage);
     return future;
   }
@@ -80,15 +80,15 @@ Future<AdResult> AdViewInternalIOS::LoadAd(const AdRequest& request) {
   ad_load_callback_data_ = callback_data;
 
   dispatch_async(dispatch_get_main_queue(), ^{
-    AdError error_code = kAdErrorNone;
+    AdErrorCode error_code = kAdErrorCodeNone;
     std::string error_message;
 
     // Create a GADRequest from an gma::AdRequest.
     GADRequest *ad_request =
      GADRequestFromCppAdRequest(request, &error_code, &error_message);
     if (ad_request == nullptr) {
-      if(error_code==kAdErrorNone) {
-        error_code = kAdErrorInternalError;
+      if(error_code==kAdErrorCodeNone) {
+        error_code = kAdErrorCodeInternalError;
         error_message = kAdCouldNotParseAdRequestErrorMessage;
       }
       CompleteLoadAdInternalResult(ad_load_callback_data_, error_code,
@@ -109,11 +109,11 @@ Future<void> AdViewInternalIOS::SetPosition(int x, int y) {
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
   dispatch_async(dispatch_get_main_queue(), ^{
-    AdError error = kAdErrorUninitialized;
+    AdErrorCode error = kAdErrorCodeUninitialized;
     const char* error_msg = kAdUninitializedErrorMessage;
     if (ad_view_) {
       [ad_view_ moveAdViewToXCoordinate:x yCoordinate:y];
-      error = kAdErrorNone;
+      error = kAdErrorCodeNone;
       error_msg = nullptr;
     }
     CompleteFuture(error, error_msg, future_handle, &future_data_);
@@ -128,11 +128,11 @@ Future<void> AdViewInternalIOS::SetPosition(AdView::Position position) {
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
   dispatch_async(dispatch_get_main_queue(), ^{
-    AdError error = kAdErrorUninitialized;
+    AdErrorCode error = kAdErrorCodeUninitialized;
     const char* error_msg = kAdUninitializedErrorMessage;
     if (ad_view_) {
       [ad_view_ moveAdViewToPosition:position];
-      error = kAdErrorNone;
+      error = kAdErrorCodeNone;
       error_msg = nullptr;
     }
     CompleteFuture(error, error_msg, future_handle, &future_data_);
@@ -148,7 +148,7 @@ Future<void> AdViewInternalIOS::Hide() {
 
   dispatch_async(dispatch_get_main_queue(), ^{
     [ad_view_ hide];
-    CompleteFuture(kAdErrorNone, nullptr, future_handle, &future_data_);
+    CompleteFuture(kAdErrorCodeNone, nullptr, future_handle, &future_data_);
   });
   return future;
 }
@@ -161,7 +161,7 @@ Future<void> AdViewInternalIOS::Show() {
 
   dispatch_async(dispatch_get_main_queue(), ^{
     [ad_view_ show];
-    CompleteFuture(kAdErrorNone, nullptr, future_handle, &future_data_);
+    CompleteFuture(kAdErrorCodeNone, nullptr, future_handle, &future_data_);
   });
   return future;
 }
@@ -170,7 +170,7 @@ Future<void> AdViewInternalIOS::Show() {
 Future<void> AdViewInternalIOS::Pause() {
   firebase::MutexLock lock(mutex_);
   // Required method. No-op.
-  return CreateAndCompleteFuture(kAdViewFnPause, kAdErrorNone, nullptr,
+  return CreateAndCompleteFuture(kAdViewFnPause, kAdErrorCodeNone, nullptr,
     &future_data_);
 }
 
@@ -178,7 +178,7 @@ Future<void> AdViewInternalIOS::Pause() {
 Future<void> AdViewInternalIOS::Resume() {
   firebase::MutexLock lock(mutex_);
   // Required method. No-op.
-  return CreateAndCompleteFuture(kAdViewFnResume, kAdErrorNone, nullptr,
+  return CreateAndCompleteFuture(kAdViewFnResume, kAdErrorCodeNone, nullptr,
     &future_data_);
 }
 
@@ -207,7 +207,7 @@ Future<void> AdViewInternalIOS::Destroy() {
       delete ad_load_callback_data_;
       ad_load_callback_data_ = nil;
     }
-    CompleteFuture(kAdErrorNone, nullptr, future_handle, &future_data_);
+    CompleteFuture(kAdErrorCodeNone, nullptr, future_handle, &future_data_);
     destroy_mutex_.Release();
   };
   util::DispatchAsyncSafeMainQueue(destroyBlock);
@@ -221,7 +221,7 @@ BoundingBox AdViewInternalIOS::bounding_box() const {
 void AdViewInternalIOS::AdViewDidReceiveAd() {
   firebase::MutexLock lock(mutex_);
   if(ad_load_callback_data_ != nil) {
-    CompleteLoadAdInternalResult(ad_load_callback_data_, kAdErrorNone,
+    CompleteLoadAdInternalResult(ad_load_callback_data_, kAdErrorCodeNone,
       /*error_message=*/"");
     ad_load_callback_data_ = nil;
   }

@@ -289,7 +289,7 @@ const ::firebase::App* GetApp() { return g_app; }
 // the iOS GMA SDK.
 void CompleteAdResult(FutureCallbackData<AdResult>* callback_data,
                       NSError *error, bool is_load_ad_error,
-                      AdError error_code,
+                      AdErrorCode error_code,
                       const char* error_message) {
   FIREBASE_ASSERT(callback_data);
   FIREBASE_ASSERT(error_message);
@@ -313,7 +313,7 @@ void CompleteAdResult(FutureCallbackData<AdResult>* callback_data,
       ad_result_internal.ad_result_type =
         AdResultInternal::kAdResultInternalAdError;
     }
-  } else if (ad_result_internal.code != kAdErrorNone) {
+  } else if (ad_result_internal.code != kAdErrorCodeNone) {
     // C++ SDK iOS GMA Wrapper encountered an error.
     ad_result_internal.ad_result_type =
       AdResultInternal::kAdResultInternalWrapperError;
@@ -332,7 +332,7 @@ void CompleteAdResult(FutureCallbackData<AdResult>* callback_data,
 
 void CompleteLoadAdInternalResult(
     FutureCallbackData<AdResult>* callback_data,
-    AdError error_code, const char* error_message) {
+    AdErrorCode error_code, const char* error_message) {
   FIREBASE_ASSERT(callback_data);
   FIREBASE_ASSERT(error_message);
 
@@ -344,7 +344,7 @@ void CompleteAdResultError(FutureCallbackData<AdResult>* callback_data,
                            NSError *gad_error, bool is_load_ad_error) {
   FIREBASE_ASSERT(callback_data);
 
-  AdError error_code =
+  AdErrorCode error_code =
     MapAdRequestErrorCodeToCPPErrorCode((GADErrorCode)gad_error.code);
   CompleteAdResult(callback_data, gad_error, is_load_ad_error,
     error_code, util::NSStringToString(gad_error.localizedDescription).c_str());
