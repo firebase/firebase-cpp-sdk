@@ -17,7 +17,7 @@
 #ifndef FIREBASE_GMA_SRC_ANDROID_LOAD_AD_RESULT_ANDROID_H_
 #define FIREBASE_GMA_SRC_ANDROID_LOAD_AD_RESULT_ANDROID_H_
 
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_android.h"
 #include "gma/src/android/ad_result_android.h"
 

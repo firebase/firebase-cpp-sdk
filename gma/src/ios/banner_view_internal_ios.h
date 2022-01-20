@@ -26,7 +26,7 @@ extern "C" {
 #endif  // __OBJC__
 
 #include "gma/src/common/banner_view_internal.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 
 namespace firebase {
 namespace gma {
