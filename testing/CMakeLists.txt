@@ -148,6 +148,7 @@ target_include_directories(firebase_testing
         ${FLATBUFFERS_SOURCE_DIR}/include
     PRIVATE
         ${FIREBASE_CPP_SDK_ROOT_DIR}
+        ${FIREBASE_CPP_SDK_ROOT_DIR}/app/src/include
         ${FIREBASE_GEN_FILE_DIR}
 )
 
