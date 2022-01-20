@@ -110,7 +110,7 @@ Cloud Firestore            | libfirebase_firestore.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics:20.0.2
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-firestore:24.0.0
+|                          | com.google.firebase:firebase-firestore:24.0.1
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-auth:21.0.1
 |                          | (Maven package)

@@ -25,7 +25,7 @@ def firebaseDependenciesMap = [
   'auth' : ['com.google.firebase:firebase-auth:21.0.1'],
   'database' : ['com.google.firebase:firebase-database:20.0.3'],
   'dynamic_links' : ['com.google.firebase:firebase-dynamic-links:21.0.0'],
-  'firestore' : ['com.google.firebase:firebase-firestore:24.0.0'],
+  'firestore' : ['com.google.firebase:firebase-firestore:24.0.1'],
   'functions' : ['com.google.firebase:firebase-functions:20.0.1'],
   'installations' : ['com.google.firebase:firebase-installations:17.0.0',
                      'com.google.android.gms:play-services-base:18.0.1'],
