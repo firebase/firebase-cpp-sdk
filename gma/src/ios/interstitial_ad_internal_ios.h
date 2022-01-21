@@ -26,7 +26,7 @@ extern "C" {
 }  // extern "C"
 
 #include "gma/src/common/interstitial_ad_internal.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 
 namespace firebase {
 namespace gma {

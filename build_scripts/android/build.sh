@@ -57,9 +57,11 @@ set +e
 # Retry the build up to 10 times, because the build fetches files from
 # maven and elsewhere, and occasionally the GitHub runners have
 # network connectivity issues that cause the download to fail.
+gradleparams="-Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false\
+ -Dmaven.wagon.httpconnectionManager.ttlSeconds=120"
 for retry in {1..10} error; do
     if [[ $retry == "error" ]]; then exit 5; fi
-    ./gradlew assembleRelease && break
+    ./gradlew assembleRelease "${gradleparams}" && break
     sleep 300
 done
 set -e

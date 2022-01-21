@@ -19,8 +19,8 @@
 
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/version.h"
-#include "app/src/mutex.h"
 #include "gma/src/common/gma_common.h"
 #include "gma/src/include/firebase/gma.h"
 

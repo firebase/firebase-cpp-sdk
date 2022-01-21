@@ -17,7 +17,7 @@
 #include <memory>
 
 #include "app/rest/transport_curl.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "storage/src/desktop/controller_desktop.h"
 #include "storage/src/desktop/curl_requests.h"
 #include "storage/src/desktop/storage_desktop.h"
