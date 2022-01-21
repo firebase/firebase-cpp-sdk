@@ -17,7 +17,7 @@
 #ifndef FIREBASE_GMA_SRC_COMMON_FULL_SCREEN_AD_EVENT_LISTENER_H_
 #define FIREBASE_GMA_SRC_COMMON_FULL_SCREEN_AD_EVENT_LISTENER_H_
 
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "gma/src/common/gma_common.h"
 
 namespace firebase {

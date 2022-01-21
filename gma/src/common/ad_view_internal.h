@@ -18,7 +18,7 @@
 #define FIREBASE_GMA_SRC_COMMON_AD_VIEW_INTERNAL_H_
 
 #include "app/src/include/firebase/future.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "gma/src/common/gma_common.h"
 #include "gma/src/include/firebase/gma/ad_view.h"
 

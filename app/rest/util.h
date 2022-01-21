@@ -19,8 +19,8 @@
 
 #include <string>
 
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/variant.h"
-#include "app/src/mutex.h"
 #include "flatbuffers/idl.h"
 
 namespace firebase {

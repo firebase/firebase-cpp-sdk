@@ -34,9 +34,9 @@ struct BoundingBox;
 
 /// @brief Loads and displays Google Mobile Ads AdView ads.
 ///
-/// Each AdView object corresponds to a single GMA ad placement. There
-/// are methods to load an ad, move it, show it and hide it, and retrieve the
-/// bounds of the ad onscreen.
+/// Each AdView object corresponds to a single GMA ad placement of a specified
+/// size. There are methods to load an ad, move it, show it and hide it, and
+/// retrieve the bounds of the ad onscreen.
 ///
 /// AdView objects provide information about their current state through
 /// Futures. Methods like @ref Initialize, @ref LoadAd, and @ref Hide each have

@@ -23,10 +23,10 @@
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/invites/invites_receiver_internal.h"
 #include "app/src/invites/ios/invites_ios_startup.h"
 #include "app/src/log.h"
-#include "app/src/mutex.h"
 #include "app/src/util_ios.h"
 
 #include "FIRDynamicLink.h"

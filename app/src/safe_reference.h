@@ -16,7 +16,7 @@
 #define FIREBASE_APP_SRC_SAFE_REFERENCE_H_
 
 #include "app/memory/shared_ptr.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 
 namespace firebase {
 namespace internal {

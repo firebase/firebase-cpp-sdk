@@ -19,7 +19,7 @@
 
 #include <string>
 
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_android.h"
 #include "gma/src/common/ad_result_internal.h"
 #include "gma/src/include/firebase/gma/types.h"

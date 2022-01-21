@@ -483,6 +483,9 @@ def _build_android(project_dir, sdk_dir):
   gradle_properties = os.path.join(project_dir, "gradle.properties")
   with open(gradle_properties, "a+") as f:
     f.write("systemProp.firebase_cpp_sdk.dir=" + sdk_dir + "\n")
+    f.write("http.keepAlive=false\n")
+    f.write("maven.wagon.http.pool=false\n")
+    f.write("maven.wagon.httpconnectionManager.ttlSeconds=120")
   # This will log the versions of dependencies for debugging purposes.
   _run([gradlew, "dependencies", "--configuration", "debugCompileClasspath"])
   _run([gradlew, "assembleDebug", "--stacktrace"])

@@ -22,7 +22,7 @@
 #include "app/rest/controller_interface.h"
 #include "app/rest/response.h"
 #include "app/src/include/firebase/internal/common.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 
 namespace firebase {
 namespace rest {
