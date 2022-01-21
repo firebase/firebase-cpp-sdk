@@ -30,9 +30,9 @@
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
-#include "app/src/mutex.h"
 #include "app/src/util.h"
 
 // strtok_r is strtok_s on Windows.

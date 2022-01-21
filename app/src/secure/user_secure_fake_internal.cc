@@ -15,6 +15,7 @@
 #include "app/src/secure/user_secure_fake_internal.h"
 
 #include "app/src/include/firebase/internal/platform.h"
+#include "app/src/log.h"
 
 #if FIREBASE_PLATFORM_WINDOWS
 #include <direct.h>

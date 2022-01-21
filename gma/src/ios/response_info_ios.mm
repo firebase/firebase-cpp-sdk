@@ -24,7 +24,7 @@
 #include "gma/src/ios/adapter_response_info_ios.h"
 
 #include "gma/src/ios/ad_result_ios.h"
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_ios.h"
 
 namespace firebase {

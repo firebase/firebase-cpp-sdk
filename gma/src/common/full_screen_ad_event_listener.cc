@@ -16,7 +16,7 @@
 
 #include "gma/src/common/full_screen_ad_event_listener.h"
 
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 
 namespace firebase {
 namespace gma {

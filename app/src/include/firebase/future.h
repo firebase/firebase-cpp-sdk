@@ -20,10 +20,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <mutex>
 #include <utility>
 
 #include "firebase/internal/common.h"
+#include "firebase/internal/mutex.h"
 
 #ifdef FIREBASE_USE_STD_FUNCTION
 #include <functional>
@@ -114,7 +114,7 @@ class FutureHandle {
 ///     pointers to its Futures. Therefore, all Futures must be destroyed
 ///     *before* the API is destroyed.
 ///   - Futures can be moved or copied. Call results are reference counted,
-///     and are destroyed when they are long longer referenced by any Futures.
+///     and are destroyed when they are no longer referenced by any Futures.
 ///   - The actual `Status`, `Error`, and `Result` values are kept inside the
 ///     API. This makes synchronization and data management easier.
 ///
@@ -310,7 +310,7 @@ class FutureBase {
 
   /// Returns true if the two Futures reference the same result.
   bool operator==(const FutureBase& rhs) const {
-    std::lock_guard<std::mutex> lock(mutex_);
+    MutexLock lock(mutex_);
     return api_ == rhs.api_ && handle_ == rhs.handle_;
   }
 
@@ -320,7 +320,7 @@ class FutureBase {
 #if defined(INTERNAL_EXPERIMENTAL)
   /// Returns the API-specific handle. Should only be called by the API.
   FutureHandle GetHandle() const {
-    std::lock_guard<std::mutex> lock(mutex_);
+    MutexLock lock(mutex_);
     return handle_;
   }
 #endif  // defined(INTERNAL_EXPERIMENTAL)
@@ -328,7 +328,7 @@ class FutureBase {
  protected:
   /// @cond FIREBASE_APP_INTERNAL
 
-  mutable std::mutex mutex_;
+  mutable Mutex mutex_;
 
   /// Backpointer to the issuing API class.
   /// Set to nullptr when Future is invalidated.
