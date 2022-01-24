@@ -25,7 +25,7 @@ extern "C" {
 #import <GoogleMobileAds/GoogleMobileAds.h>
 #endif  // __OBJC__
 
-#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "gma/src/common/ad_view_internal.h"
 
 namespace firebase {
