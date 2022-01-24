@@ -418,8 +418,8 @@ IMP ClassMethodImplementationCache::GetMethod(Class clazz, SEL name) {
     for (; search_class; search_class = class_getSuperclass(search_class)) {
       const char *search_class_name = class_getName(search_class);
       if (GetLogLevel() <= kLogLevelDebug) {
-	NSLog(@"Searching for selector %s (%s) on class %s", selector_name,
-	      selector_implementation_name, search_class_name);
+        NSLog(@"Searching for selector %s (%s) on class %s", selector_name,
+              selector_implementation_name, search_class_name);
       }
       Method method = class_getInstanceMethod(search_class, selector_implementation);
       method_implementation = method ? method_getImplementation(method) : nil;
@@ -430,15 +430,15 @@ IMP ClassMethodImplementationCache::GetMethod(Class clazz, SEL name) {
   if (!method_implementation) {
     if (GetLogLevel() <= kLogLevelDebug) {
       NSLog(@"Class %s does not respond to selector %s (%s)", class_name, selector_name,
-	    selector_implementation_name_nsstring.UTF8String);
+            selector_implementation_name_nsstring.UTF8String);
     }
     return nil;
   }
   if (GetLogLevel() <= kLogLevelDebug) {
     NSLog(@"Found %s (%s, 0x%08x) on class %s (%s)", selector_name,
-	  selector_implementation_name_nsstring.UTF8String,
-	  static_cast<int>(reinterpret_cast<intptr_t>(method_implementation)),
-	  class_name, class_getName(search_class));
+          selector_implementation_name_nsstring.UTF8String,
+          static_cast<int>(reinterpret_cast<intptr_t>(method_implementation)), class_name,
+          class_getName(search_class));
   }
   return method_implementation;
 }
