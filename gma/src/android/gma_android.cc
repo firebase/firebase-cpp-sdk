@@ -35,8 +35,8 @@
 #include "gma/gma_resources.h"
 #include "gma/src/android/ad_request_converter.h"
 #include "gma/src/android/ad_result_android.h"
+#include "gma/src/android/ad_view_internal_android.h"
 #include "gma/src/android/adapter_response_info_android.h"
-#include "gma/src/android/banner_view_internal_android.h"
 #include "gma/src/android/interstitial_ad_internal_android.h"
 #include "gma/src/android/response_info_android.h"
 #include "gma/src/android/rewarded_ad_internal_android.h"
@@ -330,10 +330,10 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
         gma_initialization_helper::CacheClassFromFiles(
             env, activity, &embedded_files) != nullptr &&
         gma_initialization_helper::CacheMethodIds(env, activity) &&
-        banner_view_helper::CacheClassFromFiles(env, activity,
-                                                &embedded_files) != nullptr &&
-        banner_view_helper::CacheMethodIds(env, activity) &&
-        banner_view_helper_ad_view_listener::CacheMethodIds(env, activity) &&
+        ad_view_helper::CacheClassFromFiles(env, activity, &embedded_files) !=
+            nullptr &&
+        ad_view_helper::CacheMethodIds(env, activity) &&
+        ad_view_helper_ad_view_listener::CacheMethodIds(env, activity) &&
         interstitial_ad_helper::CacheClassFromFiles(
             env, activity, &embedded_files) != nullptr &&
         interstitial_ad_helper::CacheMethodIds(env, activity) &&
@@ -672,8 +672,8 @@ void ReleaseClasses(JNIEnv* env) {
   initialization_status::ReleaseClass(env);
   ad_inspector_helper::ReleaseClass(env);
   gma_initialization_helper::ReleaseClass(env);
-  banner_view_helper::ReleaseClass(env);
-  banner_view_helper_ad_view_listener::ReleaseClass(env);
+  ad_view_helper::ReleaseClass(env);
+  ad_view_helper_ad_view_listener::ReleaseClass(env);
   interstitial_ad_helper::ReleaseClass(env);
   rewarded_ad_helper::ReleaseClass(env);
   load_ad_error::ReleaseClass(env);
@@ -972,51 +972,50 @@ void JNI_notifyAdPaidEvent(JNIEnv* env, jclass clazz, jlong data_ptr,
   listener->NotifyListenerOfPaidEvent(ad_value);
 }
 
-// JNI functions specific to BannerViews
+// JNI functions specific to AdViews
 //
-void JNI_BannerViewHelper_notifyBoundingBoxChanged(JNIEnv* env, jclass clazz,
-                                                   jlong data_ptr) {
-  firebase::gma::internal::BannerViewInternal* internal =
-      reinterpret_cast<firebase::gma::internal::BannerViewInternal*>(data_ptr);
+void JNI_AdViewHelper_notifyBoundingBoxChanged(JNIEnv* env, jclass clazz,
+                                               jlong data_ptr) {
+  firebase::gma::internal::AdViewInternal* internal =
+      reinterpret_cast<firebase::gma::internal::AdViewInternal*>(data_ptr);
   internal->NotifyListenerOfBoundingBoxChange(internal->bounding_box());
 }
 
-void JNI_BannerViewHelper_notifyAdClicked(JNIEnv* env, jclass clazz,
-                                          jlong data_ptr) {
-  firebase::gma::internal::BannerViewInternal* internal =
-      reinterpret_cast<firebase::gma::internal::BannerViewInternal*>(data_ptr);
+void JNI_AdViewHelper_notifyAdClicked(JNIEnv* env, jclass clazz,
+                                      jlong data_ptr) {
+  firebase::gma::internal::AdViewInternal* internal =
+      reinterpret_cast<firebase::gma::internal::AdViewInternal*>(data_ptr);
   internal->NotifyListenerAdClicked();
 }
 
-void JNI_BannerViewHelper_notifyAdClosed(JNIEnv* env, jclass clazz,
-                                         jlong data_ptr) {
-  firebase::gma::internal::BannerViewInternal* internal =
-      reinterpret_cast<firebase::gma::internal::BannerViewInternal*>(data_ptr);
+void JNI_AdViewHelper_notifyAdClosed(JNIEnv* env, jclass clazz,
+                                     jlong data_ptr) {
+  firebase::gma::internal::AdViewInternal* internal =
+      reinterpret_cast<firebase::gma::internal::AdViewInternal*>(data_ptr);
   internal->NotifyListenerAdClosed();
 }
 
-void JNI_BannerViewHelper_notifyAdImpression(JNIEnv* env, jclass clazz,
-                                             jlong data_ptr) {
-  firebase::gma::internal::BannerViewInternal* internal =
-      reinterpret_cast<firebase::gma::internal::BannerViewInternal*>(data_ptr);
+void JNI_AdViewHelper_notifyAdImpression(JNIEnv* env, jclass clazz,
+                                         jlong data_ptr) {
+  firebase::gma::internal::AdViewInternal* internal =
+      reinterpret_cast<firebase::gma::internal::AdViewInternal*>(data_ptr);
   internal->NotifyListenerAdImpression();
 }
 
-void JNI_BannerViewHelper_notifyAdOpened(JNIEnv* env, jclass clazz,
-                                         jlong data_ptr) {
-  firebase::gma::internal::BannerViewInternal* internal =
-      reinterpret_cast<firebase::gma::internal::BannerViewInternal*>(data_ptr);
+void JNI_AdViewHelper_notifyAdOpened(JNIEnv* env, jclass clazz,
+                                     jlong data_ptr) {
+  firebase::gma::internal::AdViewInternal* internal =
+      reinterpret_cast<firebase::gma::internal::AdViewInternal*>(data_ptr);
   internal->NotifyListenerAdOpened();
 }
 
-void JNI_BannerViewHelper_notifyAdPaidEvent(JNIEnv* env, jclass clazz,
-                                            jlong data_ptr,
-                                            jstring j_currency_code,
-                                            jint j_precision_type,
-                                            jlong j_value_micros) {
+void JNI_AdViewHelper_notifyAdPaidEvent(JNIEnv* env, jclass clazz,
+                                        jlong data_ptr, jstring j_currency_code,
+                                        jint j_precision_type,
+                                        jlong j_value_micros) {
   FIREBASE_ASSERT(data_ptr);
-  internal::BannerViewInternal* internal =
-      reinterpret_cast<internal::BannerViewInternal*>(data_ptr);
+  internal::AdViewInternal* internal =
+      reinterpret_cast<internal::AdViewInternal*>(data_ptr);
 
   const char* currency_code = env->GetStringUTFChars(j_currency_code, nullptr);
   const AdValue::PrecisionType precision_type =
@@ -1025,8 +1024,8 @@ void JNI_BannerViewHelper_notifyAdPaidEvent(JNIEnv* env, jclass clazz,
   internal->NotifyListenerOfPaidEvent(ad_value);
 }
 
-void JNI_BannerViewHelper_releaseGlobalReference(JNIEnv* env, jclass clazz,
-                                                 jlong data_ptr) {
+void JNI_AdViewHelper_releaseGlobalReference(JNIEnv* env, jclass clazz,
+                                             jlong data_ptr) {
   FIREBASE_ASSERT(data_ptr);
   jobject ad_view = reinterpret_cast<jobject>(data_ptr);
   env->DeleteGlobalRef(ad_view);
@@ -1047,30 +1046,30 @@ void JNI_RewardedAd_UserEarnedReward(JNIEnv* env, jclass clazz, jlong data_ptr,
 }  // namespace
 
 bool RegisterNatives() {
-  static const JNINativeMethod kBannerMethods[] = {
-      {"completeBannerViewFutureCallback", "(JILjava/lang/String;)V",
+  static const JNINativeMethod kAdViewMethods[] = {
+      {"completeAdViewFutureCallback", "(JILjava/lang/String;)V",
        reinterpret_cast<void*>(&JNI_completeAdFutureCallback)},
-      {"completeBannerViewLoadedAd", "(J)V",
+      {"completeAdViewLoadedAd", "(J)V",
        reinterpret_cast<void*>(&JNI_completeLoadedAd)},
-      {"completeBannerViewLoadAdError",
+      {"completeAdViewLoadAdError",
        "(JLcom/google/android/gms/ads/LoadAdError;ILjava/lang/String;)V",
        reinterpret_cast<void*>(&JNI_completeLoadAdError)},
-      {"completeBannerViewLoadAdInternalError", "(JILjava/lang/String;)V",
+      {"completeAdViewLoadAdInternalError", "(JILjava/lang/String;)V",
        reinterpret_cast<void*>(&JNI_completeLoadAdInternalError)},
       {"notifyBoundingBoxChanged", "(J)V",
-       reinterpret_cast<void*>(&JNI_BannerViewHelper_notifyBoundingBoxChanged)},
+       reinterpret_cast<void*>(&JNI_AdViewHelper_notifyBoundingBoxChanged)},
       {"notifyAdClicked", "(J)V",
-       reinterpret_cast<void*>(&JNI_BannerViewHelper_notifyAdClicked)},
+       reinterpret_cast<void*>(&JNI_AdViewHelper_notifyAdClicked)},
       {"notifyAdClosed", "(J)V",
-       reinterpret_cast<void*>(&JNI_BannerViewHelper_notifyAdClosed)},
+       reinterpret_cast<void*>(&JNI_AdViewHelper_notifyAdClosed)},
       {"notifyAdImpression", "(J)V",
-       reinterpret_cast<void*>(&JNI_BannerViewHelper_notifyAdImpression)},
+       reinterpret_cast<void*>(&JNI_AdViewHelper_notifyAdImpression)},
       {"notifyAdOpened", "(J)V",
-       reinterpret_cast<void*>(&JNI_BannerViewHelper_notifyAdOpened)},
+       reinterpret_cast<void*>(&JNI_AdViewHelper_notifyAdOpened)},
       {"notifyPaidEvent", "(JLjava/lang/String;IJ)V",
-       reinterpret_cast<void*>(&JNI_BannerViewHelper_notifyAdPaidEvent)},
-      {"releaseBannerViewGlobalReferenceCallback", "(J)V",
-       reinterpret_cast<void*>(&JNI_BannerViewHelper_releaseGlobalReference)}};
+       reinterpret_cast<void*>(&JNI_AdViewHelper_notifyAdPaidEvent)},
+      {"releaseAdViewGlobalReferenceCallback", "(J)V",
+       reinterpret_cast<void*>(&JNI_AdViewHelper_releaseGlobalReference)}};
   static const JNINativeMethod kInterstitialMethods[] = {
       {"completeInterstitialAdFutureCallback", "(JILjava/lang/String;)V",
        reinterpret_cast<void*>(&JNI_completeAdFutureCallback)},
@@ -1140,8 +1139,8 @@ bool RegisterNatives() {
   return ad_inspector_helper::RegisterNatives(
              env, kAdInspectorHelperMethods,
              FIREBASE_ARRAYSIZE(kAdInspectorHelperMethods)) &&
-         banner_view_helper::RegisterNatives(
-             env, kBannerMethods, FIREBASE_ARRAYSIZE(kBannerMethods)) &&
+         ad_view_helper::RegisterNatives(env, kAdViewMethods,
+                                         FIREBASE_ARRAYSIZE(kAdViewMethods)) &&
          interstitial_ad_helper::RegisterNatives(
              env, kInterstitialMethods,
              FIREBASE_ARRAYSIZE(kInterstitialMethods)) &&

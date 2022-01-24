@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_GMA_SRC_IOS_BANNER_VIEW_INTERNAL_IOS_H_
-#define FIREBASE_GMA_SRC_IOS_BANNER_VIEW_INTERNAL_IOS_H_
+#ifndef FIREBASE_GMA_SRC_IOS_AD_VIEW_INTERNAL_IOS_H_
+#define FIREBASE_GMA_SRC_IOS_AD_VIEW_INTERNAL_IOS_H_
 
 extern "C" {
 #include <objc/objc.h>
@@ -25,24 +25,24 @@ extern "C" {
 #import <GoogleMobileAds/GoogleMobileAds.h>
 #endif  // __OBJC__
 
-#include "gma/src/common/banner_view_internal.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "gma/src/common/ad_view_internal.h"
 
 namespace firebase {
 namespace gma {
 namespace internal {
 
-class BannerViewInternalIOS : public BannerViewInternal {
+class AdViewInternalIOS : public AdViewInternal {
  public:
-  BannerViewInternalIOS(BannerView* base);
-  ~BannerViewInternalIOS();
+  explicit AdViewInternalIOS(AdView* base);
+  ~AdViewInternalIOS();
 
   Future<void> Initialize(AdParent parent, const char* ad_unit_id,
                           const AdSize& size) override;
   Future<AdResult> LoadAd(const AdRequest& request) override;
   BoundingBox bounding_box() const override;
   Future<void> SetPosition(int x, int y) override;
-  Future<void> SetPosition(BannerView::Position position) override;
+  Future<void> SetPosition(AdView::Position position) override;
   Future<void> Hide() override;
   Future<void> Show() override;
   Future<void> Pause() override;
@@ -54,20 +54,20 @@ class BannerViewInternalIOS : public BannerViewInternal {
   }
 
 #ifdef __OBJC__
-  void BannerViewDidReceiveAd();
-  void BannerViewDidFailToReceiveAdWithError(NSError *gad_error);
+  void AdViewDidReceiveAd();
+  void AdViewDidFailToReceiveAdWithError(NSError *gad_error);
 #endif  // __OBJC__
 
  private:
   /// Contains information to asynchronously complete the LoadAd Future.
   FutureCallbackData<AdResult>* ad_load_callback_data_;
 
-  /// Prevents duplicate invocations of initailize on the BannerView.
+  /// Prevents duplicate invocations of initailize on the AdView.
   bool initialized_;
 
-  /// The FADBannerView object. Declared as an "id" type to avoid referencing an
+  /// The FADAdView object. Declared as an "id" type to avoid referencing an
   /// Objective-C++ class in this header.
-  id banner_view_;
+  id ad_view_;
 
   // Mutex to guard against concurrent operations;
   Mutex mutex_;
@@ -85,4 +85,4 @@ class BannerViewInternalIOS : public BannerViewInternal {
 }  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_GMA_SRC_IOS_BANNER_VIEW_INTERNAL_IOS_H_
+#endif  // FIREBASE_GMA_SRC_IOS_AD_VIEW_INTERNAL_IOS_H_

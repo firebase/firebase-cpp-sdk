@@ -72,7 +72,7 @@ public final class ConstantsHelper {
   public static final String CALLBACK_ERROR_MESSAGE_UNKNOWN = "Unknown error occurred.";
 
   /**
-   * Ad view positions (matches the BannerView::Position and NativeExpressAdView::Position
+   * Ad view positions (matches the AdView::Position and NativeExpressAdView::Position
    * enumerations in the public C++ API).
    */
   public static final int AD_VIEW_POSITION_UNDEFINED = -1;

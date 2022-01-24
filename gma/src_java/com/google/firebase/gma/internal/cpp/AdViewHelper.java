@@ -40,9 +40,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * their (typically more complicated) Java equivalents, and convert the Java listener patterns into
  * game engine-friendly state machine polling.
  */
-public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
+public class AdViewHelper implements ViewTreeObserver.OnPreDrawListener {
   // It's possible to attempt to show a popup when an activity doesn't have focus. This value
-  // controls the number of times the BannerViewHelper object checks for activity window focus
+  // controls the number of times the AdViewHelper object checks for activity window focus
   // before timing out. Assuming 10ms per retry this value attempts to retry for 2 minutes before
   // timing out.
   private static final int POPUP_SHOW_RETRY_COUNT = 12000;
@@ -53,8 +53,8 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   // The number of milliseconds to wait before attempting to create a PopUpWindow to hold an ad.
   private static final int WEBVIEW_DELAY_MILLISECONDS = 200;
 
-  // Pointer to the BannerViewInternalAndroid object that created this object.
-  private long mBannerViewInternalPtr;
+  // Pointer to the AdViewInternalAndroid object that created this object.
+  private long mAdViewInternalPtr;
 
   // The GMA SDK AdView associated with this helper.
   private AdView mAdView;
@@ -77,9 +77,9 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   private long mLoadAdCallbackDataPtr;
 
   // Synchronization object for thread safe access to:
-  // * mBannerViewInternalPtr
+  // * mAdViewInternalPtr
   // * mLoadAdCallbackDataPtr
-  private final Object mBannerViewLock;
+  private final Object mAdViewLock;
 
   // {@link PopupWindow } that will contain the {@link AdView}. This is done to
   // guarantee the ad is drawn properly even when the application uses a
@@ -93,7 +93,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   // Lock used to synchronize the state of the popup window.
   private final Object mPopUpLock;
 
-  // Number of times the BannerViewHelper object has attempted to show the popup window before the
+  // Number of times the AdViewHelper object has attempted to show the popup window before the
   // activity has focus.
   private int mPopUpShowRetryCount;
 
@@ -114,20 +114,20 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   /**
    * Constructor.
    */
-  public BannerViewHelper(long bannerViewInternalPtr, AdView adView) {
-    mBannerViewInternalPtr = bannerViewInternalPtr;
+  public AdViewHelper(long AdViewInternalPtr, AdView adView) {
+    mAdViewInternalPtr = AdViewInternalPtr;
     mAdView = adView;
     mDesiredPosition = ConstantsHelper.AD_VIEW_POSITION_TOP_LEFT;
     mShouldUseXYForPosition = false;
     mAdViewContainsAd = false;
     mNotifyBoundingBoxListenerOnNextDraw = new AtomicBoolean(false);
-    mBannerViewLock = new Object();
+    mAdViewLock = new Object();
     mPopUpLock = new Object();
     mPopUpShowRetryCount = 0;
   }
 
   /**
-   * Initializes the {@link BannerView}. This stores the activity for use with
+   * Initializes the {@link AdView}. This stores the activity for use with
    * callback and load operations.
    */
 
@@ -163,27 +163,27 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
               mPopUp = null;
             }
           }
-          synchronized (mBannerViewLock) {
+          synchronized (mAdViewLock) {
             if (destructor_invocation == false) {
-              notifyBoundingBoxChanged(mBannerViewInternalPtr);
+              notifyBoundingBoxChanged(mAdViewInternalPtr);
             }
-            mBannerViewInternalPtr = CPP_NULLPTR;
+            mAdViewInternalPtr = CPP_NULLPTR;
           }
           mActivity = null;
           if (destructor_invocation) {
-            // BannerView's C++ destructor does not pass a future
+            // AdViews's C++ destructor does not pass a future
             // to callback and complete, but the reference to this object
             // which should be released.
-            releaseBannerViewGlobalReferenceCallback(callbackDataPtr);
+            releaseAdViewGlobalReferenceCallback(callbackDataPtr);
           } else {
-            completeBannerViewFutureCallback(callbackDataPtr, ConstantsHelper.CALLBACK_ERROR_NONE,
+            completeAdViewFutureCallback(callbackDataPtr, ConstantsHelper.CALLBACK_ERROR_NONE,
                 ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
           }
         }
       });
     } else {
       if (callbackDataPtr != CPP_NULLPTR) {
-        completeBannerViewFutureCallback(callbackDataPtr, ConstantsHelper.CALLBACK_ERROR_NONE,
+        completeAdViewFutureCallback(callbackDataPtr, ConstantsHelper.CALLBACK_ERROR_NONE,
             ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
       }
     }
@@ -197,9 +197,9 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
       return;
     }
 
-    synchronized (mBannerViewLock) {
+    synchronized (mAdViewLock) {
       if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
-        completeBannerViewLoadAdInternalError(callbackDataPtr,
+        completeAdViewLoadAdInternalError(callbackDataPtr,
             ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS,
             ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS);
         return;
@@ -208,8 +208,8 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     }
 
     if (mAdView == null) {
-      synchronized (mBannerViewLock) {
-        completeBannerViewLoadAdInternalError(mLoadAdCallbackDataPtr,
+      synchronized (mAdViewLock) {
+        completeAdViewLoadAdInternalError(mLoadAdCallbackDataPtr,
             ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
             ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
         mLoadAdCallbackDataPtr = CPP_NULLPTR;
@@ -220,7 +220,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   }
 
   /**
-   * Hides the {@link BannerView}.
+   * Hides the {@link AdView}.
    */
   public void hide(final long callbackDataPtr) {
     if (mActivity == null) {
@@ -245,11 +245,11 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
       }
     }
 
-    completeBannerViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
+    completeAdViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
   }
 
   /**
-   * Shows the {@link BannerView}.
+   * Shows the {@link AdView}.
    */
   public void show(final long callbackDataPtr) {
     if (mActivity == null) {
@@ -259,7 +259,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   }
 
   /**
-   * Pauses the {@link BannerView}.
+   * Pauses the {@link AdView}.
    */
   public void pause(final long callbackDataPtr) {
     if (mActivity == null) {
@@ -267,12 +267,12 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     } else if (mAdView != null) {
       mAdView.pause();
     }
-    completeBannerViewFutureCallback(callbackDataPtr, ConstantsHelper.CALLBACK_ERROR_NONE,
+    completeAdViewFutureCallback(callbackDataPtr, ConstantsHelper.CALLBACK_ERROR_NONE,
         ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
   }
 
   /**
-   * Resume the {@link BannerView} (from a pause).
+   * Resume the {@link AdView} (from a pause).
    */
   public void resume(final long callbackDataPtr) {
     if (mActivity == null) {
@@ -281,12 +281,12 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
       mAdView.resume();
     }
 
-    completeBannerViewFutureCallback(callbackDataPtr, ConstantsHelper.CALLBACK_ERROR_NONE,
+    completeAdViewFutureCallback(callbackDataPtr, ConstantsHelper.CALLBACK_ERROR_NONE,
         ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
   }
 
   /**
-   * Moves the {@link BannerView} to the provided (x,y) screen coordinates.
+   * Moves the {@link AdView} to the provided (x,y) screen coordinates.
    */
   public void moveTo(final long callbackDataPtr, int x, int y) {
     if (mActivity == null) {
@@ -304,7 +304,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   }
 
   /**
-   * Moves the {@link BannerView} to the provided screen position.
+   * Moves the {@link AdView} to the provided screen position.
    */
   public void moveTo(final long callbackDataPtr, final int position) {
     if (mActivity == null) {
@@ -322,7 +322,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
 
   /**
    * Returns an integer array consisting of the current onscreen width, height, x-coordinate, and
-   * y-coordinate of the {@link BannerView}. These values make up the BannerView's BoundingBox.
+   * y-coordinate of the {@link AdView}. These values make up the AdView's BoundingBox.
    */
   public int[] getBoundingBox() {
     synchronized (mPopUpLock) {
@@ -350,7 +350,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   }
 
   /**
-   * Returns an integer representation of the BannerView's position.
+   * Returns an integer representation of the AdView's position.
    */
   public int getPosition() {
     if (mAdView == null || mShouldUseXYForPosition) {
@@ -432,12 +432,12 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
           }
 
           if (errorCode != ConstantsHelper.CALLBACK_ERROR_NONE) {
-            completeBannerViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
+            completeAdViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
             return;
           } else if (mPopUp == null) {
             mPopUp = new PopupWindow(mAdView, LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
             mPopUp.setBackgroundDrawable(new ColorDrawable(0xFF000000)); // Black
-            mAdView.getViewTreeObserver().addOnPreDrawListener(BannerViewHelper.this);
+            mAdView.getViewTreeObserver().addOnPreDrawListener(AdViewHelper.this);
 
             if (mShouldUseXYForPosition) {
               mPopUp.showAtLocation(root, Gravity.NO_GRAVITY, mDesiredX, mDesiredY);
@@ -468,7 +468,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
             }
           }
 
-          completeBannerViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
+          completeAdViewFutureCallback(callbackDataPtr, errorCode, errorMessage);
           mNotifyBoundingBoxListenerOnNextDraw.set(true);
         }
       };
@@ -485,9 +485,9 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   public class AdViewListener extends AdListener implements OnPaidEventListener {
     @Override
     public void onAdClicked() {
-      synchronized (mBannerViewLock) {
-        if (mBannerViewInternalPtr != CPP_NULLPTR) {
-          notifyAdClicked(mBannerViewInternalPtr);
+      synchronized (mAdViewLock) {
+        if (mAdViewInternalPtr != CPP_NULLPTR) {
+          notifyAdClicked(mAdViewInternalPtr);
         }
       }
       super.onAdClicked();
@@ -495,9 +495,9 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
 
     @Override
     public void onAdClosed() {
-      synchronized (mBannerViewLock) {
-        if (mBannerViewInternalPtr != CPP_NULLPTR) {
-          notifyAdClosed(mBannerViewInternalPtr);
+      synchronized (mAdViewLock) {
+        if (mAdViewInternalPtr != CPP_NULLPTR) {
+          notifyAdClosed(mAdViewInternalPtr);
           mNotifyBoundingBoxListenerOnNextDraw.set(true);
         }
       }
@@ -506,9 +506,9 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
 
     @Override
     public void onAdFailedToLoad(LoadAdError loadAdError) {
-      synchronized (mBannerViewLock) {
+      synchronized (mAdViewLock) {
         if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
-          completeBannerViewLoadAdError(
+          completeAdViewLoadAdError(
               mLoadAdCallbackDataPtr, loadAdError, loadAdError.getCode(), loadAdError.getMessage());
           mLoadAdCallbackDataPtr = CPP_NULLPTR;
         }
@@ -518,9 +518,9 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
 
     @Override
     public void onAdImpression() {
-      synchronized (mBannerViewLock) {
-        if (mBannerViewInternalPtr != CPP_NULLPTR) {
-          notifyAdImpression(mBannerViewInternalPtr);
+      synchronized (mAdViewLock) {
+        if (mAdViewInternalPtr != CPP_NULLPTR) {
+          notifyAdImpression(mAdViewInternalPtr);
         }
       }
       super.onAdImpression();
@@ -528,12 +528,12 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
 
     @Override
     public void onAdLoaded() {
-      synchronized (mBannerViewLock) {
+      synchronized (mAdViewLock) {
         if (mAdView != null) {
           mAdViewContainsAd = true;
         }
         if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
-          completeBannerViewLoadedAd(mLoadAdCallbackDataPtr);
+          completeAdViewLoadedAd(mLoadAdCallbackDataPtr);
           mLoadAdCallbackDataPtr = CPP_NULLPTR;
         }
         // Only update the bounding box if the banner view is already visible.
@@ -547,9 +547,9 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
 
     @Override
     public void onAdOpened() {
-      synchronized (mBannerViewLock) {
-        if (mBannerViewInternalPtr != CPP_NULLPTR) {
-          notifyAdOpened(mBannerViewInternalPtr);
+      synchronized (mAdViewLock) {
+        if (mAdViewInternalPtr != CPP_NULLPTR) {
+          notifyAdOpened(mAdViewInternalPtr);
         }
         mNotifyBoundingBoxListenerOnNextDraw.set(true);
       }
@@ -557,9 +557,9 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
     }
 
     public void onPaidEvent(AdValue value) {
-      synchronized (mBannerViewLock) {
-        if (mBannerViewInternalPtr != CPP_NULLPTR) {
-          notifyPaidEvent(mBannerViewInternalPtr, value.getCurrencyCode(), value.getPrecisionType(),
+      synchronized (mAdViewLock) {
+        if (mAdViewInternalPtr != CPP_NULLPTR) {
+          notifyPaidEvent(mAdViewInternalPtr, value.getCurrencyCode(), value.getPrecisionType(),
               value.getValueMicros());
         }
       }
@@ -569,10 +569,10 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   /**
    * Implementation of ViewTreeObserver.OnPreDrawListener's onPreDraw method. This gets called when
    * mAdView is about to be redrawn, and checks a flag before invoking the native callback that
-   * tells the C++ side a Bounding Box change has occurred and the BannerView::Listener (if there is
+   * tells the C++ side a Bounding Box change has occurred and the AdView::Listener (if there is
    * one) needs to be notified.
    *
-   * <p>By invoking the listener callback here, hooked into the draw loop, the BannerViewHelper
+   * <p>By invoking the listener callback here, hooked into the draw loop, the AdViewHelper
    * object can be sure that any movements of mAdView have been completed and the layout and screen
    * position have been recalculated by the time the notification happens, preventing stale data
    * from getting to the Listener.
@@ -580,8 +580,8 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   @Override
   public boolean onPreDraw() {
     if (mNotifyBoundingBoxListenerOnNextDraw.compareAndSet(true, false)) {
-      if (mAdView != null && mBannerViewInternalPtr != CPP_NULLPTR) {
-        notifyBoundingBoxChanged(mBannerViewInternalPtr);
+      if (mAdView != null && mAdViewInternalPtr != CPP_NULLPTR) {
+        notifyBoundingBoxChanged(mAdViewInternalPtr);
       }
     }
     // Returning true tells Android to continue the draw as normal.
@@ -591,25 +591,25 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
   /**
    * Native callback to instruct the C++ wrapper to complete the corresponding future.
    */
-  public static native void completeBannerViewFutureCallback(
+  public static native void completeAdViewFutureCallback(
       long nativeInternalPtr, int errorCode, String errorMessage);
 
   /**
    * Native callback to instruct the C++ wrapper to release its global reference on this
    * object.
    */
-  public static native void releaseBannerViewGlobalReferenceCallback(long nativeInternalPtr);
+  public static native void releaseAdViewGlobalReferenceCallback(long nativeInternalPtr);
 
   /**
    * Native callback invoked upon successfully loading an ad.
    */
-  public static native void completeBannerViewLoadedAd(long nativeInternalPtr);
+  public static native void completeAdViewLoadedAd(long nativeInternalPtr);
 
   /**
    * Native callback upon encountering an error loading an Ad Request. Returns
    * Android Google Mobile Ads SDK error codes.
    **/
-  public static native void completeBannerViewLoadAdError(
+  public static native void completeAdViewLoadAdError(
       long nativeInternalPtr, LoadAdError error, int errorCode, String errorMessage);
 
   /**
@@ -617,7 +617,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
    * processing a Load Ad Request. Returns an integer representing
    * firebase::gma::AdError codes.
    */
-  public static native void completeBannerViewLoadAdInternalError(
+  public static native void completeAdViewLoadAdInternalError(
       long nativeInternalPtr, int gmaErrorCode, String errorMessage);
 
   /**

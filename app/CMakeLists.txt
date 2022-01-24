@@ -508,7 +508,7 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/common.h)
   set(gma_HDRS
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma.h
-    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/banner_view.h
+    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ad_view.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/interstitial_ad.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/rewarded_ad.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/types.h)

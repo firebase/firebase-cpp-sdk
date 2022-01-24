@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-#include "gma/src/common/banner_view_internal.h"
+#include "gma/src/common/ad_view_internal.h"
 
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/reference_counted_future_impl.h"
-#include "gma/src/include/firebase/gma/banner_view.h"
+#include "gma/src/include/firebase/gma/ad_view.h"
 
 #if FIREBASE_PLATFORM_ANDROID
-#include "gma/src/android/banner_view_internal_android.h"
+#include "gma/src/android/ad_view_internal_android.h"
 #elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
-#include "gma/src/ios/banner_view_internal_ios.h"
+#include "gma/src/ios/ad_view_internal_ios.h"
 #else
-#include "gma/src/stub/banner_view_internal_stub.h"
+#include "gma/src/stub/ad_view_internal_stub.h"
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
 
@@ -35,97 +35,97 @@ namespace firebase {
 namespace gma {
 namespace internal {
 
-BannerViewInternal::BannerViewInternal(BannerView* base)
+AdViewInternal::AdViewInternal(AdView* base)
     : base_(base),
-      future_data_(kBannerViewFnCount),
+      future_data_(kAdViewFnCount),
       ad_listener_(nullptr),
       bounding_box_listener_(nullptr),
       paid_event_listener_(nullptr) {}
 
-BannerViewInternal::~BannerViewInternal() {
+AdViewInternal::~AdViewInternal() {
   ad_listener_ = nullptr;
   bounding_box_listener_ = nullptr;
   paid_event_listener_ = nullptr;
 }
 
-BannerViewInternal* BannerViewInternal::CreateInstance(BannerView* base) {
+AdViewInternal* AdViewInternal::CreateInstance(AdView* base) {
 #if FIREBASE_PLATFORM_ANDROID
-  return new BannerViewInternalAndroid(base);
+  return new AdViewInternalAndroid(base);
 #elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
-  return new BannerViewInternalIOS(base);
+  return new AdViewInternalIOS(base);
 #else
-  return new BannerViewInternalStub(base);
+  return new AdViewInternalStub(base);
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
 }
 
-void BannerViewInternal::SetAdListener(AdListener* listener) {
+void AdViewInternal::SetAdListener(AdListener* listener) {
   MutexLock lock(listener_mutex_);
   ad_listener_ = listener;
 }
 
-void BannerViewInternal::SetBoundingBoxListener(
+void AdViewInternal::SetBoundingBoxListener(
     AdViewBoundingBoxListener* listener) {
   MutexLock lock(listener_mutex_);
   bounding_box_listener_ = listener;
 }
 
-void BannerViewInternal::SetPaidEventListener(PaidEventListener* listener) {
+void AdViewInternal::SetPaidEventListener(PaidEventListener* listener) {
   MutexLock lock(listener_mutex_);
   paid_event_listener_ = listener;
 }
 
-void BannerViewInternal::NotifyListenerOfBoundingBoxChange(BoundingBox box) {
+void AdViewInternal::NotifyListenerOfBoundingBoxChange(BoundingBox box) {
   MutexLock lock(listener_mutex_);
   if (bounding_box_listener_ != nullptr) {
     bounding_box_listener_->OnBoundingBoxChanged(base_, box);
   }
 }
 
-void BannerViewInternal::NotifyListenerAdClicked() {
+void AdViewInternal::NotifyListenerAdClicked() {
   MutexLock lock(listener_mutex_);
   if (ad_listener_ != nullptr) {
     ad_listener_->OnAdClicked();
   }
 }
 
-void BannerViewInternal::NotifyListenerAdClosed() {
+void AdViewInternal::NotifyListenerAdClosed() {
   MutexLock lock(listener_mutex_);
   if (ad_listener_ != nullptr) {
     ad_listener_->OnAdClosed();
   }
 }
 
-void BannerViewInternal::NotifyListenerAdImpression() {
+void AdViewInternal::NotifyListenerAdImpression() {
   MutexLock lock(listener_mutex_);
   if (ad_listener_ != nullptr) {
     ad_listener_->OnAdImpression();
   }
 }
 
-void BannerViewInternal::NotifyListenerAdOpened() {
+void AdViewInternal::NotifyListenerAdOpened() {
   MutexLock lock(listener_mutex_);
   if (ad_listener_ != nullptr) {
     ad_listener_->OnAdOpened();
   }
 }
 
-void BannerViewInternal::NotifyListenerOfPaidEvent(const AdValue& ad_value) {
+void AdViewInternal::NotifyListenerOfPaidEvent(const AdValue& ad_value) {
   MutexLock lock(listener_mutex_);
   if (paid_event_listener_ != nullptr) {
     paid_event_listener_->OnPaidEvent(ad_value);
   }
 }
 
-Future<void> BannerViewInternal::GetLastResult(BannerViewFn fn) {
-  FIREBASE_ASSERT(fn != kBannerViewFnLoadAd);
+Future<void> AdViewInternal::GetLastResult(AdViewFn fn) {
+  FIREBASE_ASSERT(fn != kAdViewFnLoadAd);
   return static_cast<const Future<void>&>(
       future_data_.future_impl.LastResult(fn));
 }
 
-Future<AdResult> BannerViewInternal::GetLoadAdLastResult() {
+Future<AdResult> AdViewInternal::GetLoadAdLastResult() {
   return static_cast<const Future<AdResult>&>(
-      future_data_.future_impl.LastResult(kBannerViewFnLoadAd));
+      future_data_.future_impl.LastResult(kAdViewFnLoadAd));
 }
 
 }  // namespace internal

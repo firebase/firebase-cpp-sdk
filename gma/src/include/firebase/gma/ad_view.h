@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_BANNER_VIEW_H_
-#define FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_BANNER_VIEW_H_
+#ifndef FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_AD_VIEW_H_
+#define FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_AD_VIEW_H_
 
 #include "firebase/future.h"
 #include "firebase/gma/types.h"
@@ -26,52 +26,74 @@ namespace gma {
 
 namespace internal {
 // Forward declaration for platform-specific data, implemented in each library.
-class BannerViewInternal;
+class AdViewInternal;
 }  // namespace internal
 
-/// @brief Loads and displays Google Mobile Ads banner ads.
+class AdViewBoundingBoxListener;
+struct BoundingBox;
+
+/// @brief Loads and displays Google Mobile Ads AdView ads.
 ///
-/// Each BannerView object corresponds to a single GMA banner placement. There
-/// are methods to load an ad, move it, show it and hide it, and retrieve the
-/// bounds of the ad onscreen.
+/// Each AdView object corresponds to a single GMA ad placement of a specified
+/// size. There are methods to load an ad, move it, show it and hide it, and
+/// retrieve the bounds of the ad onscreen.
 ///
-/// BannerView objects provide information about their current state through
+/// AdView objects provide information about their current state through
 /// Futures. Methods like @ref Initialize, @ref LoadAd, and @ref Hide each have
 /// a corresponding @ref Future from which the result of the last call can be
 /// determined. The two variants of @ref SetPosition share a single result
 /// @ref Future, since they're essentially the same action.
 ///
-/// For example, you could initialize, load, and show a banner view while
+/// For example, you could initialize, load, and show an AdView while
 /// checking the result of the previous action at each step as follows:
 ///
 /// @code
 /// namespace gma = ::firebase::gma;
-/// gma::BannerView* banner_view = new gma::BannerView();
-/// banner_view->Initialize(ad_parent, "YOUR_AD_UNIT_ID", desired_ad_size)
+/// gma::AdView* ad_view = new gma::AdView();
+/// ad_view->Initialize(ad_parent, "YOUR_AD_UNIT_ID", desired_ad_size)
 /// @endcode
 ///
 /// Then, later:
 ///
 /// @code
-/// if (banner_view->InitializeLastResult().status() ==
+/// if (ad_view->InitializeLastResult().status() ==
 ///     ::firebase::kFutureStatusComplete &&
-///     banner_view->InitializeLastResult().error() ==
+///     ad_view->InitializeLastResult().error() ==
 ///     firebase::gma::kAdErrorNone) {
-///   banner_view->LoadAd(your_ad_request);
+///   ad_view->LoadAd(your_ad_request);
 /// }
 /// @endcode
-class BannerView : public AdView {
+class AdView {
  public:
-  /// Creates an uninitialized @ref BannerView object.
+  /// The possible screen positions for a @ref AdView, configured via
+  /// @ref SetPosition.
+  enum Position {
+    /// The position isn't one of the predefined screen locations.
+    kPositionUndefined = -1,
+    /// Top of the screen, horizontally centered.
+    kPositionTop = 0,
+    /// Bottom of the screen, horizontally centered.
+    kPositionBottom,
+    /// Top-left corner of the screen.
+    kPositionTopLeft,
+    /// Top-right corner of the screen.
+    kPositionTopRight,
+    /// Bottom-left corner of the screen.
+    kPositionBottomLeft,
+    /// Bottom-right corner of the screen.
+    kPositionBottomRight,
+  };
+
+  /// Creates an uninitialized @ref AdView object.
   /// @ref Initialize must be called before the object is used.
-  BannerView();
+  AdView();
 
-  ~BannerView();
+  ~AdView();
 
-  /// Initializes the @ref BannerView object.
+  /// Initializes the @ref AdView object.
   /// @param[in] parent The platform-specific UI element that will host the ad.
   /// @param[in] ad_unit_id The ad unit ID to use when requesting ads.
-  /// @param[in] size The desired ad size for the banner.
+  /// @param[in] size The desired ad size for the ad.
   Future<void> Initialize(AdParent parent, const char* ad_unit_id,
                           const AdSize& size);
 
@@ -80,7 +102,7 @@ class BannerView : public AdView {
   Future<void> InitializeLastResult() const;
 
   /// Begins an asynchronous request for an ad. If successful, the ad will
-  /// automatically be displayed in the BannerView.
+  /// automatically be displayed in the AdView.
   /// @param[in] request An AdRequest struct with information about the request
   ///                    to be made (such as targeting info).
   Future<AdResult> LoadAd(const AdRequest& request);
@@ -93,29 +115,29 @@ class BannerView : public AdView {
   ///
   /// @return The current size and location. Values are in pixels, and location
   ///         coordinates originate from the top-left corner of the screen.
-  BoundingBox bounding_box() const override;
+  BoundingBox bounding_box() const;
 
   /// Sets an AdListener for this ad view.
   ///
   /// param[in] listener A listener object which will be invoked when lifecycle
   /// events occur on this AdView.
-  void SetAdListener(AdListener* listener) override;
+  void SetAdListener(AdListener* listener);
 
   /// Sets a listener to be invoked when the Ad's bounding box
   /// changes size or location.
   ///
   /// param[in] listener A listener object which will be invoked when the ad
   /// changes size, shape, or position.
-  void SetBoundingBoxListener(AdViewBoundingBoxListener* listener) override;
+  void SetBoundingBoxListener(AdViewBoundingBoxListener* listener);
 
   /// Sets a listener to be invoked when this ad is estimated to have earned
   /// money.
   ///
   /// param[in] A listener object to be invoked when a paid event occurs on the
   /// ad.
-  void SetPaidEventListener(PaidEventListener* listener) override;
+  void SetPaidEventListener(PaidEventListener* listener);
 
-  /// Moves the @ref BannerView so that its top-left corner is located at
+  /// Moves the @ref AdView so that its top-left corner is located at
   /// (x, y). Coordinates are in pixels from the top-left corner of the screen.
   ///
   /// When built for Android, the library will not display an ad on top of or
@@ -127,7 +149,7 @@ class BannerView : public AdView {
   ///
   /// @return a @ref Future which will be completed when this move operation
   /// completes.
-  Future<void> SetPosition(int x, int y) override;
+  Future<void> SetPosition(int x, int y);
 
   /// Moves the @ref AdView so that it's located at the given predefined
   /// position.
@@ -137,57 +159,103 @@ class BannerView : public AdView {
   ///
   /// @return a @ref Future which will be completed when this move operation
   /// completes.
-  Future<void> SetPosition(Position position) override;
+  Future<void> SetPosition(Position position);
 
   /// Returns a @ref Future containing the status of the last call to either
   /// version of @ref SetPosition.
-  Future<void> SetPositionLastResult() const override;
+  Future<void> SetPositionLastResult() const;
 
-  /// Hides the BannerView.
-  Future<void> Hide() override;
+  /// Hides the AdView.
+  Future<void> Hide();
 
   /// Returns a @ref Future containing the status of the last call to
   /// @ref Hide.
-  Future<void> HideLastResult() const override;
+  Future<void> HideLastResult() const;
 
-  /// Shows the @ref BannerView.
-  Future<void> Show() override;
+  /// Shows the @ref AdView.
+  Future<void> Show();
 
   /// Returns a @ref Future containing the status of the last call to
   /// @ref Show.
-  Future<void> ShowLastResult() const override;
+  Future<void> ShowLastResult() const;
 
-  /// Pauses the @ref BannerView. Should be called whenever the C++ engine
+  /// Pauses the @ref AdView. Should be called whenever the C++ engine
   /// pauses or the application loses focus.
-  Future<void> Pause() override;
+  Future<void> Pause();
 
   /// Returns a @ref Future containing the status of the last call to
   /// @ref Pause.
-  Future<void> PauseLastResult() const override;
+  Future<void> PauseLastResult() const;
 
-  /// Resumes the @ref BannerView after pausing.
-  Future<void> Resume() override;
+  /// Resumes the @ref AdView after pausing.
+  Future<void> Resume();
 
   /// Returns a @ref Future containing the status of the last call to
   /// @ref Resume.
-  Future<void> ResumeLastResult() const override;
+  Future<void> ResumeLastResult() const;
 
-  /// Cleans up and deallocates any resources used by the @ref BannerView.
+  /// Cleans up and deallocates any resources used by the @ref AdView.
   /// You must call this asynchronous operation before this object's destructor
   /// is invoked or risk leaking device resources.
-  Future<void> Destroy() override;
+  Future<void> Destroy();
 
   /// Returns a @ref Future containing the status of the last call to
   /// @ref Destroy.
-  Future<void> DestroyLastResult() const override;
+  Future<void> DestroyLastResult() const;
+
+ protected:
+  /// Pointer to a listener for AdListener events.
+  AdListener* ad_listener_;
+
+  /// Pointer to a listener for BoundingBox events.
+  AdViewBoundingBoxListener* ad_view_bounding_box_listener_;
+
+  /// Pointer to a listener for Paid events.
+  PaidEventListener* paid_event_listener_;
 
  private:
   // An internal, platform-specific implementation object that this class uses
   // to interact with the Google Mobile Ads SDKs for iOS and Android.
-  internal::BannerViewInternal* internal_;
+  internal::AdViewInternal* internal_;
+};
+
+/// A listener class that developers can extend and pass to a @ref AdView
+/// object's @ref AdView::SetBoundingBoxListener method to be notified of
+/// changes to the size of the Ad's bounding box.
+class AdViewBoundingBoxListener {
+ public:
+  virtual ~AdViewBoundingBoxListener();
+
+  /// This method is called when the @ref AdView object's bounding box
+  /// changes.
+  ///
+  /// @param[in] ad_view The view whose bounding box changed.
+  /// @param[in] box The new bounding box.
+  virtual void OnBoundingBoxChanged(AdView* ad_view, BoundingBox box) = 0;
+};
+
+/// @brief The screen location and dimensions of an ad view once it has been
+/// initialized.
+struct BoundingBox {
+  /// Default constructor which initializes all member variables to 0.
+  BoundingBox()
+      : height(0), width(0), x(0), y(0), position(AdView::kPositionUndefined) {}
+
+  /// Height of the ad in pixels.
+  int height;
+  /// Width of the ad in pixels.
+  int width;
+  /// Horizontal position of the ad in pixels from the left.
+  int x;
+  /// Vertical position of the ad in pixels from the top.
+  int y;
+
+  /// The position of the AdView if one has been set as the target position, or
+  /// kPositionUndefined otherwise.
+  AdView::Position position;
 };
 
 }  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_BANNER_VIEW_H_
+#endif  // FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_AD_VIEW_H_

@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-#include "gma/src/ios/banner_view_internal_ios.h"
+#include "gma/src/ios/ad_view_internal_ios.h"
 
 #import "gma/src/ios/gma_ios.h"
-#import "gma/src/ios/FADBannerView.h"
+#import "gma/src/ios/FADAdView.h"
 #import "gma/src/ios/FADRequest.h"
 
 #include "app/src/util_ios.h"
@@ -26,24 +26,24 @@ namespace firebase {
 namespace gma {
 namespace internal {
 
-BannerViewInternalIOS::BannerViewInternalIOS(BannerView* base)
-    : BannerViewInternal(base),
+AdViewInternalIOS::AdViewInternalIOS(AdView* base)
+    : AdViewInternal(base),
       ad_load_callback_data_(nil),
       initialized_(false),
-      banner_view_(nil),
+      ad_view_(nil),
       destroy_mutex_(Mutex::kModeNonRecursive) {}
 
-BannerViewInternalIOS::~BannerViewInternalIOS() {
+AdViewInternalIOS::~AdViewInternalIOS() {
   Destroy();
   destroy_mutex_.Acquire();
   destroy_mutex_.Release();
 }
 
-Future<void> BannerViewInternalIOS::Initialize(AdParent parent,
+Future<void> AdViewInternalIOS::Initialize(AdParent parent,
       const char* ad_unit_id, const AdSize& size) {
   firebase::MutexLock lock(mutex_);
   const SafeFutureHandle<void> future_handle =
-    future_data_.future_impl.SafeAlloc<void>(kBannerViewFnInitialize);
+    future_data_.future_impl.SafeAlloc<void>(kAdViewFnInitialize);
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
   if(initialized_) {
@@ -52,20 +52,20 @@ Future<void> BannerViewInternalIOS::Initialize(AdParent parent,
   } else {
     initialized_ = true;
     dispatch_async(dispatch_get_main_queue(), ^{
-      banner_view_ = [[FADBannerView alloc] initWithView:parent
+      ad_view_ = [[FADAdView alloc] initWithView:parent
                                               adUnitID:@(ad_unit_id)
                                                 adSize:size
-                                    internalBannerView:this];
+                                    internalAdView:this];
     CompleteFuture(kAdErrorNone, nullptr, future_handle, &future_data_);
     });
   }
   return future;
 }
 
-Future<AdResult> BannerViewInternalIOS::LoadAd(const AdRequest& request) {
+Future<AdResult> AdViewInternalIOS::LoadAd(const AdRequest& request) {
   firebase::MutexLock lock(mutex_);
   FutureCallbackData<AdResult>* callback_data =
-    CreateAdResultFutureCallbackData(kBannerViewFnLoadAd,
+    CreateAdResultFutureCallbackData(kAdViewFnLoadAd,
                                      &future_data_);
   Future<AdResult> future = MakeFuture(&future_data_.future_impl,
     callback_data->future_handle);
@@ -95,24 +95,24 @@ Future<AdResult> BannerViewInternalIOS::LoadAd(const AdRequest& request) {
                                    error_message.c_str());
       ad_load_callback_data_ = nil;
     } else {
-      // Make the banner view ad request.
-      [banner_view_ loadRequest:ad_request];
+      // Make the AdView ad request.
+      [ad_view_ loadRequest:ad_request];
     }
   });
   return future;
 }
 
-Future<void> BannerViewInternalIOS::SetPosition(int x, int y) {
+Future<void> AdViewInternalIOS::SetPosition(int x, int y) {
   firebase::MutexLock lock(mutex_);
   const firebase::SafeFutureHandle<void> future_handle =
-    future_data_.future_impl.SafeAlloc<void>(kBannerViewFnSetPosition);
+    future_data_.future_impl.SafeAlloc<void>(kAdViewFnSetPosition);
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
   dispatch_async(dispatch_get_main_queue(), ^{
     AdError error = kAdErrorUninitialized;
     const char* error_msg = kAdUninitializedErrorMessage;
-    if (banner_view_) {
-      [banner_view_ moveBannerViewToXCoordinate:x yCoordinate:y];
+    if (ad_view_) {
+      [ad_view_ moveAdViewToXCoordinate:x yCoordinate:y];
       error = kAdErrorNone;
       error_msg = nullptr;
     }
@@ -121,17 +121,17 @@ Future<void> BannerViewInternalIOS::SetPosition(int x, int y) {
   return future;
 }
 
-Future<void> BannerViewInternalIOS::SetPosition(BannerView::Position position) {
+Future<void> AdViewInternalIOS::SetPosition(AdView::Position position) {
   firebase::MutexLock lock(mutex_);
   const firebase::SafeFutureHandle<void> future_handle =
-    future_data_.future_impl.SafeAlloc<void>(kBannerViewFnSetPosition);
+    future_data_.future_impl.SafeAlloc<void>(kAdViewFnSetPosition);
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
   dispatch_async(dispatch_get_main_queue(), ^{
     AdError error = kAdErrorUninitialized;
     const char* error_msg = kAdUninitializedErrorMessage;
-    if (banner_view_) {
-      [banner_view_ moveBannerViewToPosition:position];
+    if (ad_view_) {
+      [ad_view_ moveAdViewToPosition:position];
       error = kAdErrorNone;
       error_msg = nullptr;
     }
@@ -140,68 +140,68 @@ Future<void> BannerViewInternalIOS::SetPosition(BannerView::Position position) {
   return future;
 }
 
-Future<void> BannerViewInternalIOS::Hide() {
+Future<void> AdViewInternalIOS::Hide() {
   firebase::MutexLock lock(mutex_);
   const SafeFutureHandle<void> future_handle =
-    future_data_.future_impl.SafeAlloc<void>(kBannerViewFnHide);
+    future_data_.future_impl.SafeAlloc<void>(kAdViewFnHide);
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
   dispatch_async(dispatch_get_main_queue(), ^{
-    [banner_view_ hide];
+    [ad_view_ hide];
     CompleteFuture(kAdErrorNone, nullptr, future_handle, &future_data_);
   });
   return future;
 }
 
-Future<void> BannerViewInternalIOS::Show() {
+Future<void> AdViewInternalIOS::Show() {
   firebase::MutexLock lock(mutex_);
   const firebase::SafeFutureHandle<void> future_handle =
-    future_data_.future_impl.SafeAlloc<void>(kBannerViewFnShow);
+    future_data_.future_impl.SafeAlloc<void>(kAdViewFnShow);
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
   dispatch_async(dispatch_get_main_queue(), ^{
-    [banner_view_ show];
+    [ad_view_ show];
     CompleteFuture(kAdErrorNone, nullptr, future_handle, &future_data_);
   });
   return future;
 }
 
 /// This method is part of the C++ interface and is used only on Android.
-Future<void> BannerViewInternalIOS::Pause() {
+Future<void> AdViewInternalIOS::Pause() {
   firebase::MutexLock lock(mutex_);
   // Required method. No-op.
-  return CreateAndCompleteFuture(kBannerViewFnPause, kAdErrorNone, nullptr,
+  return CreateAndCompleteFuture(kAdViewFnPause, kAdErrorNone, nullptr,
     &future_data_);
 }
 
 /// This method is part of the C++ interface and is used only on Android.
-Future<void> BannerViewInternalIOS::Resume() {
+Future<void> AdViewInternalIOS::Resume() {
   firebase::MutexLock lock(mutex_);
   // Required method. No-op.
-  return CreateAndCompleteFuture(kBannerViewFnResume, kAdErrorNone, nullptr,
+  return CreateAndCompleteFuture(kAdViewFnResume, kAdErrorNone, nullptr,
     &future_data_);
 }
 
-/// Cleans up any resources created in BannerViewInternalIOS.
-Future<void> BannerViewInternalIOS::Destroy() {
+/// Cleans up any resources created in AdViewInternalIOS.
+Future<void> AdViewInternalIOS::Destroy() {
   firebase::MutexLock lock(mutex_);
   const firebase::SafeFutureHandle<void> future_handle =
-     future_data_.future_impl.SafeAlloc<void>(kBannerViewFnDestroy);
+     future_data_.future_impl.SafeAlloc<void>(kAdViewFnDestroy);
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
   destroy_mutex_.Acquire();
   void (^destroyBlock)() = ^{
-    [banner_view_ destroy];
-    // Remove the FADBannerView (i.e. the container view of GADBannerView)
+    [ad_view_ destroy];
+    // Remove the FADAdView (i.e. the container view of GADAdView)
     // from the superview.
-    [banner_view_ removeFromSuperview];
-    if (banner_view_) {
+    [ad_view_ removeFromSuperview];
+    if (ad_view_) {
       // Consistent with Android SDK which returns a final bounding box of
       // -1 values upon deletion.
       bounding_box_.width = bounding_box_.height =
         bounding_box_.x = bounding_box_.y = -1;
       bounding_box_.position = AdView::kPositionUndefined;
       NotifyListenerOfBoundingBoxChange(bounding_box_);
-      banner_view_ = nil;
+      ad_view_ = nil;
     }
     if(ad_load_callback_data_ != nil) {
       delete ad_load_callback_data_;
@@ -214,11 +214,11 @@ Future<void> BannerViewInternalIOS::Destroy() {
   return future;
 }
 
-BoundingBox BannerViewInternalIOS::bounding_box() const {
+BoundingBox AdViewInternalIOS::bounding_box() const {
   return bounding_box_;
 }
 
-void BannerViewInternalIOS::BannerViewDidReceiveAd() {
+void AdViewInternalIOS::AdViewDidReceiveAd() {
   firebase::MutexLock lock(mutex_);
   if(ad_load_callback_data_ != nil) {
     CompleteLoadAdInternalResult(ad_load_callback_data_, kAdErrorNone,
@@ -227,7 +227,7 @@ void BannerViewInternalIOS::BannerViewDidReceiveAd() {
   }
 }
 
-void BannerViewInternalIOS::BannerViewDidFailToReceiveAdWithError(NSError *error) {
+void AdViewInternalIOS::AdViewDidFailToReceiveAdWithError(NSError *error) {
   firebase::MutexLock lock(mutex_);
   FIREBASE_ASSERT(error);
   if(ad_load_callback_data_ != nil) {

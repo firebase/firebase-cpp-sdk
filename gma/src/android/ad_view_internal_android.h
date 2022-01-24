@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_GMA_SRC_ANDROID_BANNER_VIEW_INTERNAL_ANDROID_H_
-#define FIREBASE_GMA_SRC_ANDROID_BANNER_VIEW_INTERNAL_ANDROID_H_
+#ifndef FIREBASE_GMA_SRC_ANDROID_AD_VIEW_INTERNAL_ANDROID_H_
+#define FIREBASE_GMA_SRC_ANDROID_AD_VIEW_INTERNAL_ANDROID_H_
 
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_android.h"
-#include "gma/src/common/banner_view_internal.h"
+#include "gma/src/common/ad_view_internal.h"
 
 namespace firebase {
 namespace gma {
 
-// Used to set up the cache of BannerViewHelper class method IDs to reduce
+// Used to set up the cache of AdViewHelper class method IDs to reduce
 // time spent looking up methods by string.
 // clang-format off
-#define BANNERVIEWHELPER_METHODS(X)                                            \
+#define ADVIEWHELPER_METHODS(X)                                                \
   X(Constructor, "<init>", "(JLcom/google/android/gms/ads/AdView;)V"),         \
   X(Initialize, "initialize", "(Landroid/app/Activity;)V"),                    \
   X(LoadAd, "loadAd", "(JLcom/google/android/gms/ads/AdRequest;)V"),           \
@@ -42,14 +42,14 @@ namespace gma {
   X(GetPosition, "getPosition", "()I")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(banner_view_helper, BANNERVIEWHELPER_METHODS);
+METHOD_LOOKUP_DECLARATION(ad_view_helper, ADVIEWHELPER_METHODS);
 
-#define BANNERVIEWHELPER_ADVIEWLISTENER_METHODS(X) \
-  X(Constructor, "<init>",                         \
-    "(Lcom/google/firebase/gma/internal/cpp/BannerViewHelper;)V")
+#define ADVIEWHELPER_ADVIEWLISTENER_METHODS(X) \
+  X(Constructor, "<init>",                     \
+    "(Lcom/google/firebase/gma/internal/cpp/AdViewHelper;)V")
 
-METHOD_LOOKUP_DECLARATION(banner_view_helper_ad_view_listener,
-                          BANNERVIEWHELPER_ADVIEWLISTENER_METHODS);
+METHOD_LOOKUP_DECLARATION(ad_view_helper_ad_view_listener,
+                          ADVIEWHELPER_ADVIEWLISTENER_METHODS);
 
 // clang-format off
 #define AD_VIEW_METHODS(X)                                             \
@@ -67,10 +67,10 @@ METHOD_LOOKUP_DECLARATION(ad_view, AD_VIEW_METHODS);
 
 namespace internal {
 
-class BannerViewInternalAndroid : public BannerViewInternal {
+class AdViewInternalAndroid : public AdViewInternal {
  public:
-  BannerViewInternalAndroid(BannerView* base);
-  ~BannerViewInternalAndroid() override;
+  explicit AdViewInternalAndroid(AdView* base);
+  ~AdViewInternalAndroid() override;
 
   Future<void> Initialize(AdParent parent, const char* ad_unit_id,
                           const AdSize& size) override;
@@ -90,10 +90,10 @@ class BannerViewInternalAndroid : public BannerViewInternal {
   // SDK.
   jobject helper_;
 
-  // Reference to the Android AdView object used to display BannerView ads.
+  // Reference to the Android AdView object used to display AdView ads.
   jobject ad_view_;
 
-  // Tracks if this BannerView has been initialized.
+  // Tracks if this AdView has been initialized.
   bool initialized_;
 
   // Mutex to guard against concurrent operations;
@@ -104,12 +104,11 @@ class BannerViewInternalAndroid : public BannerViewInternal {
 
   // Convenience method to "dry" the JNI calls that don't take parameters beyond
   // the future callback pointer.
-  Future<void> InvokeNullary(BannerViewFn fn,
-                             banner_view_helper::Method method);
+  Future<void> InvokeNullary(AdViewFn fn, ad_view_helper::Method method);
 };
 
 }  // namespace internal
 }  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_GMA_SRC_ANDROID_BANNER_VIEW_INTERNAL_ANDROID_H_
+#endif  // FIREBASE_GMA_SRC_ANDROID_AD_VIEW_INTERNAL_ANDROID_H_

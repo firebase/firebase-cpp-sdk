@@ -25,7 +25,7 @@
 #include "app/src/include/firebase/version.h"
 #include "app/src/util.h"
 #include "gma/src/include/firebase/gma.h"
-#include "gma/src/include/firebase/gma/banner_view.h"
+#include "gma/src/include/firebase/gma/ad_view.h"
 #include "gma/src/include/firebase/gma/interstitial_ad.h"
 #include "gma/src/include/firebase/gma/rewarded_ad.h"
 #include "gma/src/include/firebase/gma/types.h"
@@ -169,22 +169,9 @@ void AdRequest::add_neighboring_content_urls(
   }
 }
 
-// AdView
-// Method implementations of AdView which are platform independent.
-void AdView::SetAdListener(AdListener* listener) { ad_listener_ = listener; }
-
-void AdView::SetBoundingBoxListener(AdViewBoundingBoxListener* listener) {
-  ad_view_bounding_box_listener_ = listener;
-}
-
-void AdView::SetPaidEventListener(PaidEventListener* listener) {
-  paid_event_listener_ = listener;
-}
-
 // Non-inline implementation of the virtual destructors, to prevent
 // their vtables from being emitted in each translation unit.
 AdListener::~AdListener() {}
-AdView::~AdView() {}
 AdViewBoundingBoxListener::~AdViewBoundingBoxListener() {}
 FullScreenContentListener::~FullScreenContentListener() {}
 PaidEventListener::~PaidEventListener() {}

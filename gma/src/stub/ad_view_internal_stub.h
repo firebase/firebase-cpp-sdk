@@ -14,72 +14,71 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_GMA_SRC_STUB_BANNER_VIEW_INTERNAL_STUB_H_
-#define FIREBASE_GMA_SRC_STUB_BANNER_VIEW_INTERNAL_STUB_H_
+#ifndef FIREBASE_GMA_SRC_STUB_AD_VIEW_INTERNAL_STUB_H_
+#define FIREBASE_GMA_SRC_STUB_AD_VIEW_INTERNAL_STUB_H_
 
-#include "gma/src/common/banner_view_internal.h"
+#include "gma/src/common/ad_view_internal.h"
 
 namespace firebase {
 namespace gma {
 namespace internal {
 
-/// Stub version of BannerViewInternal, for use on desktop platforms. GMA is
+/// Stub version of AdViewInternal, for use on desktop platforms. GMA is
 /// forbidden on desktop, so this version creates and immediately completes the
 /// Future for each method.
-class BannerViewInternalStub : public BannerViewInternal {
+class AdViewInternalStub : public AdViewInternal {
  public:
-  explicit BannerViewInternalStub(BannerView* base)
-      : BannerViewInternal(base) {}
+  explicit AdViewInternalStub(AdView* base) : AdViewInternal(base) {}
 
-  ~BannerViewInternalStub() override {}
+  ~AdViewInternalStub() override {}
 
   Future<void> Initialize(AdParent parent, const char* ad_unit_id,
                           const AdSize& size) override {
-    return CreateAndCompleteFutureStub(kBannerViewFnInitialize);
+    return CreateAndCompleteFutureStub(kAdViewFnInitialize);
   }
 
   Future<AdResult> LoadAd(const AdRequest& request) override {
-    return CreateAndCompleteAdResultFutureStub(kBannerViewFnLoadAd);
+    return CreateAndCompleteAdResultFutureStub(kAdViewFnLoadAd);
   }
 
   BoundingBox bounding_box() const override { return BoundingBox(); }
 
   Future<void> SetPosition(int x, int y) override {
-    return CreateAndCompleteFutureStub(kBannerViewFnSetPosition);
+    return CreateAndCompleteFutureStub(kAdViewFnSetPosition);
   }
 
-  Future<void> SetPosition(BannerView::Position position) override {
-    return CreateAndCompleteFutureStub(kBannerViewFnSetPosition);
+  Future<void> SetPosition(AdView::Position position) override {
+    return CreateAndCompleteFutureStub(kAdViewFnSetPosition);
   }
 
   Future<void> Hide() override {
-    return CreateAndCompleteFutureStub(kBannerViewFnHide);
+    return CreateAndCompleteFutureStub(kAdViewFnHide);
   }
 
   Future<void> Show() override {
-    return CreateAndCompleteFutureStub(kBannerViewFnShow);
+    return CreateAndCompleteFutureStub(kAdViewFnShow);
   }
 
   Future<void> Pause() override {
-    return CreateAndCompleteFutureStub(kBannerViewFnPause);
+    return CreateAndCompleteFutureStub(kAdViewFnPause);
   }
 
   Future<void> Resume() override {
-    return CreateAndCompleteFutureStub(kBannerViewFnResume);
+    return CreateAndCompleteFutureStub(kAdViewFnResume);
   }
 
   Future<void> Destroy() override {
-    return CreateAndCompleteFutureStub(kBannerViewFnDestroy);
+    return CreateAndCompleteFutureStub(kAdViewFnDestroy);
   }
 
   bool is_initialized() const override { return true; }
 
  private:
-  Future<void> CreateAndCompleteFutureStub(BannerViewFn fn) {
+  Future<void> CreateAndCompleteFutureStub(AdViewFn fn) {
     return CreateAndCompleteFuture(fn, kAdErrorNone, nullptr, &future_data_);
   }
 
-  Future<AdResult> CreateAndCompleteAdResultFutureStub(BannerViewFn fn) {
+  Future<AdResult> CreateAndCompleteAdResultFutureStub(AdViewFn fn) {
     return CreateAndCompleteFutureWithResult(fn, kAdErrorNone, nullptr,
                                              &future_data_, AdResult());
   }
@@ -89,4 +88,4 @@ class BannerViewInternalStub : public BannerViewInternal {
 }  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_GMA_SRC_STUB_BANNER_VIEW_INTERNAL_STUB_H_
+#endif  // FIREBASE_GMA_SRC_STUB_AD_VIEW_INTERNAL_STUB_H_

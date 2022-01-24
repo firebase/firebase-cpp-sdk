@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-#include "gma/src/include/firebase/gma/banner_view.h"
+#include "gma/src/include/firebase/gma/ad_view.h"
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
-#include "gma/src/common/banner_view_internal.h"
+#include "gma/src/common/ad_view_internal.h"
 #include "gma/src/common/gma_common.h"
 
 namespace firebase {
@@ -27,177 +27,174 @@ namespace gma {
 const char kUninitializedError[] =
     "Initialize() must be called before this method.";
 
-BannerView::BannerView() {
+AdView::AdView() {
   FIREBASE_ASSERT(gma::IsInitialized());
-  internal_ = internal::BannerViewInternal::CreateInstance(this);
+  internal_ = internal::AdViewInternal::CreateInstance(this);
   GetOrCreateCleanupNotifier()->RegisterObject(this, [](void* object) {
-    LogWarning("BannerView must be deleted before gma::Terminate.");
-    BannerView* banner_view = reinterpret_cast<BannerView*>(object);
-    delete banner_view->internal_;
-    banner_view->internal_ = nullptr;
+    LogWarning("AdView must be deleted before gma::Terminate.");
+    AdView* ad_view = reinterpret_cast<AdView*>(object);
+    delete ad_view->internal_;
+    ad_view->internal_ = nullptr;
   });
 }
 
-BannerView::~BannerView() {
+AdView::~AdView() {
   GetOrCreateCleanupNotifier()->UnregisterObject(this);
   delete internal_;
 }
 
 // Initialize must be called before any other methods in the namespace. This
 // method asserts that Initialize() has been invoked and allowed to complete.
-static bool CheckIsInitialized(internal::BannerViewInternal* internal) {
+static bool CheckIsInitialized(internal::AdViewInternal* internal) {
   FIREBASE_ASSERT(internal);
   return internal->is_initialized();
 }
 
-Future<void> BannerView::Initialize(AdParent parent, const char* ad_unit_id,
-                                    const AdSize& size) {
+Future<void> AdView::Initialize(AdParent parent, const char* ad_unit_id,
+                                const AdSize& size) {
   return internal_->Initialize(parent, ad_unit_id, size);
 }
 
-Future<void> BannerView::InitializeLastResult() const {
-  return internal_->GetLastResult(internal::kBannerViewFnInitialize);
+Future<void> AdView::InitializeLastResult() const {
+  return internal_->GetLastResult(internal::kAdViewFnInitialize);
 }
 
-void BannerView::SetAdListener(AdListener* listener) {
+void AdView::SetAdListener(AdListener* listener) {
   internal_->SetAdListener(listener);
 }
 
-void BannerView::SetBoundingBoxListener(AdViewBoundingBoxListener* listener) {
+void AdView::SetBoundingBoxListener(AdViewBoundingBoxListener* listener) {
   internal_->SetBoundingBoxListener(listener);
 }
 
-void BannerView::SetPaidEventListener(PaidEventListener* listener) {
+void AdView::SetPaidEventListener(PaidEventListener* listener) {
   internal_->SetPaidEventListener(listener);
 }
 
-Future<void> BannerView::SetPosition(int x, int y) {
+Future<void> AdView::SetPosition(int x, int y) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kBannerViewFnSetPosition,
-        kAdErrorUninitialized, kAdUninitializedErrorMessage,
-        &internal_->future_data_);
+        firebase::gma::internal::kAdViewFnSetPosition, kAdErrorUninitialized,
+        kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->SetPosition(x, y);
 }
 
-Future<void> BannerView::SetPosition(Position position) {
+Future<void> AdView::SetPosition(Position position) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kBannerViewFnSetPosition,
-        kAdErrorUninitialized, kAdUninitializedErrorMessage,
-        &internal_->future_data_);
+        firebase::gma::internal::kAdViewFnSetPosition, kAdErrorUninitialized,
+        kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->SetPosition(position);
 }
 
-Future<void> BannerView::SetPositionLastResult() const {
+Future<void> AdView::SetPositionLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kBannerViewFnSetPosition,
-        kAdErrorUninitialized, kAdUninitializedErrorMessage,
-        &internal_->future_data_);
+        firebase::gma::internal::kAdViewFnSetPosition, kAdErrorUninitialized,
+        kAdUninitializedErrorMessage, &internal_->future_data_);
   }
-  return internal_->GetLastResult(internal::kBannerViewFnSetPosition);
+  return internal_->GetLastResult(internal::kAdViewFnSetPosition);
 }
 
-Future<AdResult> BannerView::LoadAd(const AdRequest& request) {
+Future<AdResult> AdView::LoadAd(const AdRequest& request) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::gma::internal::kBannerViewFnLoadAd, kAdErrorUninitialized,
+        firebase::gma::internal::kAdViewFnLoadAd, kAdErrorUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_, AdResult());
   }
   return internal_->LoadAd(request);
 }
 
-Future<AdResult> BannerView::LoadAdLastResult() const {
+Future<AdResult> AdView::LoadAdLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::gma::internal::kBannerViewFnLoadAd, kAdErrorUninitialized,
+        firebase::gma::internal::kAdViewFnLoadAd, kAdErrorUninitialized,
         kAdUninitializedErrorMessage, &(internal_->future_data_), AdResult());
   }
   return internal_->GetLoadAdLastResult();
 }
 
-Future<void> BannerView::Hide() {
+Future<void> AdView::Hide() {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kBannerViewFnHide, kAdErrorUninitialized,
+        firebase::gma::internal::kAdViewFnHide, kAdErrorUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->Hide();
 }
 
-Future<void> BannerView::HideLastResult() const {
+Future<void> AdView::HideLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kBannerViewFnHide, kAdErrorUninitialized,
+        firebase::gma::internal::kAdViewFnHide, kAdErrorUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
-  return internal_->GetLastResult(internal::kBannerViewFnHide);
+  return internal_->GetLastResult(internal::kAdViewFnHide);
 }
 
-Future<void> BannerView::Show() {
+Future<void> AdView::Show() {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kBannerViewFnShow, kAdErrorUninitialized,
+        firebase::gma::internal::kAdViewFnShow, kAdErrorUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->Show();
 }
 
-Future<void> BannerView::ShowLastResult() const {
+Future<void> AdView::ShowLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kBannerViewFnShow, kAdErrorUninitialized,
+        firebase::gma::internal::kAdViewFnShow, kAdErrorUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
-  return internal_->GetLastResult(internal::kBannerViewFnShow);
+  return internal_->GetLastResult(internal::kAdViewFnShow);
 }
 
-Future<void> BannerView::Pause() {
+Future<void> AdView::Pause() {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kBannerViewFnPause, kAdErrorUninitialized,
+        firebase::gma::internal::kAdViewFnPause, kAdErrorUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->Pause();
 }
 
-Future<void> BannerView::PauseLastResult() const {
+Future<void> AdView::PauseLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kBannerViewFnPause, kAdErrorUninitialized,
+        firebase::gma::internal::kAdViewFnPause, kAdErrorUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
-  return internal_->GetLastResult(internal::kBannerViewFnPause);
+  return internal_->GetLastResult(internal::kAdViewFnPause);
 }
 
-Future<void> BannerView::Resume() {
+Future<void> AdView::Resume() {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kBannerViewFnResume, kAdErrorUninitialized,
+        firebase::gma::internal::kAdViewFnResume, kAdErrorUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->Resume();
 }
 
-Future<void> BannerView::ResumeLastResult() const {
+Future<void> AdView::ResumeLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kBannerViewFnResume, kAdErrorUninitialized,
+        firebase::gma::internal::kAdViewFnResume, kAdErrorUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
-  return internal_->GetLastResult(internal::kBannerViewFnResume);
+  return internal_->GetLastResult(internal::kAdViewFnResume);
 }
 
-Future<void> BannerView::Destroy() { return internal_->Destroy(); }
+Future<void> AdView::Destroy() { return internal_->Destroy(); }
 
-Future<void> BannerView::DestroyLastResult() const {
-  return internal_->GetLastResult(internal::kBannerViewFnDestroy);
+Future<void> AdView::DestroyLastResult() const {
+  return internal_->GetLastResult(internal::kAdViewFnDestroy);
 }
 
-BoundingBox BannerView::bounding_box() const {
+BoundingBox AdView::bounding_box() const {
   if (!CheckIsInitialized(internal_)) return BoundingBox();
   return internal_->bounding_box();
 }
