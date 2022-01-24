@@ -450,6 +450,8 @@ jobs:
             build_scripts/android/install_prereqs.sh
             pip install -r scripts/gha/requirements.txt
             python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
+            ls -l /tmp/android-ndk-r19
+            ls -l /tmp
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
