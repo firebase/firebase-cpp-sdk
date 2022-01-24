@@ -507,18 +507,18 @@ def _validate_android_environment_variables():
   # Different environments may have different NDK env vars specified. We look
   # for these, in this order, and set the others to the first found.
   # If none are set, we check the default location for the ndk.
-  ndk_path = None
+  ndk_path = "/tmp/android-ndk-r19"
   ndk_vars = [_NDK_ROOT, _ANDROID_NDK_HOME]
-  for env_var in ndk_vars:
-    val = os.environ.get(env_var)
-    if val:
-      ndk_path = val
-      break
-  if not ndk_path:
-    if android_home:
-      default_ndk_path = os.path.join(android_home, "ndk-bundle")
-      if os.path.isdir(default_ndk_path):
-        ndk_path = default_ndk_path
+  #for env_var in ndk_vars:
+  #  val = os.environ.get(env_var)
+  #  if val:
+  #    ndk_path = val
+  #    break
+  #if not ndk_path:
+  #  if android_home:
+  #    default_ndk_path = os.path.join(android_home, "ndk-bundle")
+  #    if os.path.isdir(default_ndk_path):
+  #      ndk_path = default_ndk_path
   if ndk_path:
     logging.info("Found ndk: %s", ndk_path)
     for env_var in ndk_vars:

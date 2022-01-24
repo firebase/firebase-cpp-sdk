@@ -86,3 +86,18 @@ if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 16\." "${NDK_ROOT}/source.p
 	    echo "NDK r16b has been downloaded into /tmp/android-ndk-r16b"
     fi
 fi
+
+# Retry up to 10 times because Curl has a tendency to timeout on
+# Github runners.
+for retry in {1..10} error; do
+    if [[ $retry == "error" ]]; then exit 5; fi
+    curl --http1.1 -LSs \
+    "https://dl.google.com/android/repository/android-ndk-r19-${platform}-x86_64.zip" \
+    --output /tmp/android-ndk-r22.zip && break
+    sleep 300
+done
+
+set -e
+(cd /tmp && unzip -oq android-ndk-r22.zip && rm -f android-ndk-r22.zip)
+echo "NDK r19 has been downloaded into /tmp/android-ndk-r19"
+
