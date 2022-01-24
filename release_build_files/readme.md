@@ -567,12 +567,13 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Next Release
+### 8.9.0
 -   Changes
     -   General (iOS): Fixed an intermittent crash on iOS 15 caused by
         constructing C++ objects during Objective-C's `+load` method.
 	([#706](https://github.com/firebase/firebase-cpp-sdk/pull/706))
 	([#783](https://github.com/firebase/firebase-cpp-sdk/pull/783))
+    -   General: Internal changes to Mutex class.
 
 ### 8.8.0
 -   Changes
