@@ -102,3 +102,12 @@ set -e
 (cd /tmp && unzip -oq android-ndk-r19.zip && rm -f android-ndk-r19.zip)
 echo "NDK r19 has been downloaded into /tmp/android-ndk-r19"
 
+echo "Copying older NDK libs to new NDK download"
+echo "android 15"
+cp -r /tmp/android-ndk-r16b/platforms/android-15 /tmp/android-ndk-r19/platforms/android-15 
+ls -l /tmp/android-ndk-r19/platforms/android-15
+
+echo "android 14"
+cp -r /tmp/android-ndk-r16b/platforms/android-14 /tmp/android-ndk-r19/platforms/android-14 
+ls -l /tmp/android-ndk-r19/platforms/android-14
+echo "Done!"
