@@ -18,6 +18,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.google.android.analytics.testapp.lib" >
 
-    <uses-sdk android:minSdkVersion='14'/>
+    <uses-sdk android:minSdkVersion='16'/>
     <application />
 </manifest>
