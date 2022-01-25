@@ -249,6 +249,16 @@ void OpenAdInspector(AdParent ad_parent, AdInspectorClosedListener* listener) {
   });  
 }
 
+void SetIsSameAppKeyEnabled(bool is_enabled) {
+  dispatch_async(dispatch_get_main_queue(), ^{
+    if(is_enabled) {
+      [GADMobileAds.sharedInstance.requestConfiguration setSameAppKeyEnabled:YES];
+    } else {
+      [GADMobileAds.sharedInstance.requestConfiguration setSameAppKeyEnabled:NO];
+    }
+  });
+}
+
 Future<AdapterInitializationStatus> InitializeLastResult() {
   MutexLock lock(g_future_impl_mutex);
   return g_future_impl ? static_cast<const Future<AdapterInitializationStatus>&>(

@@ -359,6 +359,13 @@ TEST_F(FirebaseGmaPreInitializationTests, TestDisableSDKCrashReporting) {
   firebase::gma::DisableSDKCrashReporting();
 }
 
+TEST_F(FirebaseGmaTest, TestSetAppKeyEnabled) {
+  // We can't test to see if this method successfully enables/disables
+  // the app key, but we're still calling it as a sanity check and to
+  // ensure the symbol exists in the library.
+  firebase::gma::SetIsSameAppKeyEnabled(true);
+}
+
 TEST_F(FirebaseGmaTest, TestGetAdRequest) { GetAdRequest(); }
 
 TEST_F(FirebaseGmaTest, TestGetAdRequestValues) {

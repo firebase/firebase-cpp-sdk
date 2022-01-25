@@ -114,6 +114,7 @@ RequestConfiguration GetRequestConfiguration() {
 }
 
 void OpenAdInspector(AdParent parent, AdInspectorClosedListener* listener) {}
+void SetIsSameAppKeyEnabled(bool is_enabled) {}
 
 void Terminate() {
   FIREBASE_ASSERT(g_initialized);

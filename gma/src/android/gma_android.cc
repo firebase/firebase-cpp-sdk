@@ -656,6 +656,8 @@ void OpenAdInspector(AdParent parent, AdInspectorClosedListener* listener) {
   util::RunOnMainThread(env, g_activity, CallOpenAdInspector, call_data);
 }
 
+void SetIsSameAppKeyEnabled(bool is_enabled) {}
+
 // Release classes registered by this module.
 void ReleaseClasses(JNIEnv* env) {
   mobile_ads::ReleaseClass(env);
