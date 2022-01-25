@@ -27,6 +27,8 @@
 
 namespace firebase {
 
+#if !defined(DOXYGEN)
+
 /// @brief A simple synchronization lock. Only one thread at a time can Acquire.
 class Mutex {
  public:
@@ -90,6 +92,8 @@ class MutexLock {
 
   Mutex* mutex_;
 };
+
+#endif  // !defined(DOXYGEN)
 
 }  // namespace firebase
 
