@@ -40,6 +40,7 @@ namespace internal {
 enum StorageReferenceFn {
   kStorageReferenceFnDelete = 0,
   kStorageReferenceFnGetBytes,
+  kStorageReferenceFnGetBytesInternal,
   kStorageReferenceFnGetFile,
   kStorageReferenceFnGetDownloadUrl,
   kStorageReferenceFnGetMetadata,
@@ -279,18 +280,77 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
                                                   size_t buffer_size,
                                                   Listener* listener,
                                                   Controller* controller_out) {
-  auto* future_api = future();
-  auto handle = future_api->SafeAlloc<size_t>(kStorageReferenceFnGetBytes);
-
-  GetBytesResponse* response =
-      new GetBytesResponse(buffer, buffer_size, handle, future_api);
-
-  storage::internal::Request* request = new storage::internal::Request();
-  PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), rest::util::kGet);
-  RestCall(request, request->notifier(), response, handle.get(), listener,
-           controller_out);
-
+  auto handle = future()->SafeAlloc<size_t>(kStorageReferenceFnGetBytes);
+  std::thread async_get_bytes_thread(
+    &StorageReferenceInternal::AsyncGetBytesInternal,
+    this,
+    buffer, buffer_size, listener, controller_out, handle);
+  async_get_bytes_thread.detach();
   return GetBytesLastResult();
+}
+
+// In a separate thread, repeatedly send Rest requests until one succeeds or a
+// maximum amount of time has passed.
+void StorageReferenceInternal::AsyncGetBytesInternal(
+    void* buffer, size_t buffer_size, Listener* listener,
+    Controller* controller_out, SafeFutureHandle<size_t> final_handle) {
+  auto* future_api = future();
+  bool completed = false;
+  firebase::FutureBase internal_future;
+  double max_download_retry_time_seconds = storage_->max_download_retry_time();
+  auto end_time = std::chrono::steady_clock::now()
+    + std::chrono::duration<double>(max_download_retry_time_seconds);
+  // Create a local controller so that controller_out is guaranteed to not be null
+  Controller local_controller;
+  if (controller_out == nullptr) {
+    controller_out = &local_controller;
+  }
+
+  while (!completed) {
+    auto handle = future_api->SafeAlloc<size_t>(kStorageReferenceFnGetBytesInternal);
+    storage::internal::Request* request = new storage::internal::Request();
+    PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), rest::util::kGet);
+    GetBytesResponse* response =
+        new GetBytesResponse(buffer, buffer_size, handle, future_api);
+    RestCall(request, request->notifier(), response, handle.get(), listener,
+            controller_out);
+    internal_future = future_api->LastResult(kStorageReferenceFnGetBytesInternal);
+    // Wait for completion, then check status and error.
+    while (internal_future.status() == firebase::kFutureStatusPending) {
+      auto current_time = std::chrono::steady_clock::now();
+      if (current_time > end_time) {
+        // Cancel the request if the overall deadline is reached
+        controller_out->Cancel();
+        break;
+      }
+      app_framework::ProcessEvents(100);
+    }
+    if (internal_future.status() != firebase::kFutureStatusComplete) {
+      // TODO - handle unfinished or failed futures here
+    } else {
+      // Retry failed requests
+      // TODO - only retry for HTTP status codes that might represent transient failures
+      if (response->status() == 200) {
+        completed = true;
+      }
+    }
+    // Interrupt the loop if the deadline has been reached
+    auto current_time = std::chrono::steady_clock::now();
+    if (current_time > end_time) {
+      break;
+    }
+  // Copy from kStorageReferenceFnGetBytesInternal to kStorageReferenceFnGetBytes.
+  Future<size_t> buffer_index_future = static_cast<const Future<size_t>&>(
+      internal_future);
+  if (buffer_index_future.result() != nullptr) {
+    future_api->CompleteWithResult(final_handle,
+      internal_future.error(),
+      *(buffer_index_future.result()));
+  } else {
+    future_api->Complete(final_handle,
+      internal_future.error(),
+      internal_future.error_message());
+  }
 }
 
 // Returns the result of the most recent call to GetBytes();

@@ -134,6 +134,11 @@ class StorageReferenceInternal {
   StorageReference AsStorageReference() const;
 
  private:
+  // Repeatedly send GetBytes requests until one succeeds.
+  void AsyncGetBytesInternal(void* buffer, size_t buffer_size,
+                             Listener* listener, Controller* controller_out,
+                             SafeFutureHandle<size_t> final_handle);
+
   // Upload data without metadata.
   Future<Metadata> PutBytesInternal(const void* buffer, size_t buffer_size,
                                     Listener* listener,
