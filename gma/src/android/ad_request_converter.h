@@ -30,24 +30,25 @@ namespace gma {
 ///
 /// @param[in] request The AdRequest struct to be converted into a Java
 /// AdRequest.
-/// @param[out] error kAdErrorNone on success, or another error if
+/// @param[out] error kAdErrorCodeNone on success, or another error if
 /// problems occurred.
 /// @return On succes, a local reference to an Android object representing the
 /// AdRequest, or nullptr on error.
 jobject GetJavaAdRequestFromCPPAdRequest(const AdRequest& request,
-                                         gma::AdError* error);
+                                         gma::AdErrorCode* error);
 
 // Converts the Android AdRequest error codes to the CPP
-// platform-independent error codes defined in AdError.
-AdError MapAndroidAdRequestErrorCodeToCPPErrorCode(jint j_error_code);
+// platform-independent error codes defined in AdErrorCode.
+AdErrorCode MapAndroidAdRequestErrorCodeToCPPErrorCode(jint j_error_code);
 
 // Converts the Android FullScreenContentCallback error codes to the CPP
-// platform-independent error codes defined in AdError.
-AdError MapAndroidFullScreenContentErrorCodeToCPPErrorCode(jint j_error_code);
+// platform-independent error codes defined in AdErrorCode.
+AdErrorCode MapAndroidFullScreenContentErrorCodeToCPPErrorCode(
+    jint j_error_code);
 
 // Converts the Android OpenAdInspector error codes to the CPP
-// platform-independent error codes defined in AdError.
-AdError MapAndroidOpenAdInspectorErrorCodeToCPPErrorCode(jint j_error_code);
+// platform-independent error codes defined in AdErrorCode.
+AdErrorCode MapAndroidOpenAdInspectorErrorCodeToCPPErrorCode(jint j_error_code);
 
 }  // namespace gma
 }  // namespace firebase

@@ -123,7 +123,7 @@ const char kGmaClassName[] = "GADMobileAds";
 const char kGmaClassName[] = "stub";
 #endif
 
-// Used to detect kAdErrorAdNetworkClassLoadErrors when loading
+// Used to detect kAdErrorCodeAdNetworkClassLoadErrors when loading
 // ads.
 static const char* kAdNetworkExtrasInvalidClassName = "abc123321cba";
 
@@ -430,12 +430,13 @@ class TestAdInspectorClosedListener
       ++num_successful_results_;
     } else {
 #if defined(ANDROID)
-      EXPECT_EQ(ad_result.code(), firebase::gma::kAdErrorInsepctorAlreadyOpen);
+      EXPECT_EQ(ad_result.code(),
+                firebase::gma::kAdErrorCodeInsepctorAlreadyOpen);
       EXPECT_STREQ(ad_result.message().c_str(),
                    "Ad inspector cannot be opened because it is already open.");
 #else
       // The iOS GMA SDK returns internal errors for all AdInspector failures.
-      EXPECT_EQ(ad_result.code(), firebase::gma::kAdErrorInternalError);
+      EXPECT_EQ(ad_result.code(), firebase::gma::kAdErrorCodeInternalError);
       EXPECT_STREQ(ad_result.message().c_str(),
                    "Ad Inspector cannot be opened because it is already open.");
 #endif
@@ -463,7 +464,7 @@ TEST_F(FirebaseGmaTest, TestAdInspector) {
   SKIP_TEST_ON_DESKTOP;
 
   // Open the inspector a second time to generate a
-  // kAdErrorInsepctorAlreadyOpen result.
+  // kAdErrorCodeInsepctorAlreadyOpen result.
   app_framework::ProcessEvents(2000);
 
   firebase::gma::OpenAdInspector(app_framework::GetWindowController(),
@@ -548,7 +549,7 @@ class TestFullScreenContentListener
     num_on_ad_showed_full_screen_content_++;
   }
 
-  const std::vector<firebase::gma::AdError> failure_codes() const {
+  const std::vector<firebase::gma::AdErrorCode> failure_codes() const {
     return failure_codes_;
   }
 
@@ -559,7 +560,7 @@ class TestFullScreenContentListener
   int num_on_ad_impression_;
   int num_on_ad_showed_full_screen_content_;
 
-  std::vector<firebase::gma::AdError> failure_codes_;
+  std::vector<firebase::gma::AdErrorCode> failure_codes_;
 };
 
 // A simple listener track UserEarnedReward events.
@@ -895,7 +896,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdLoadAndShow) {
   WaitForCompletion(interstitial->Show(), "Show");
   app_framework::ProcessEvents(5000);
   EXPECT_THAT(content_listener.failure_codes(),
-              ElementsAre(firebase::gma::kAdErrorAdAlreadyUsed));
+              ElementsAre(firebase::gma::kAdErrorCodeAdAlreadyUsed));
 #endif
 
   interstitial->SetFullScreenContentListener(nullptr);
@@ -958,7 +959,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoadAndShow) {
   WaitForCompletion(rewarded->Show(&earned_reward_listener), "Show");
   app_framework::ProcessEvents(2000);
   EXPECT_THAT(content_listener.failure_codes(),
-              testing::ElementsAre(firebase::gma::kAdErrorAdAlreadyUsed));
+              testing::ElementsAre(firebase::gma::kAdErrorCodeAdAlreadyUsed));
 
   rewarded->SetFullScreenContentListener(nullptr);
   rewarded->SetPaidEventListener(nullptr);
@@ -1007,7 +1008,7 @@ TEST_F(FirebaseGmaTest, TestAdView) {
   const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_TRUE(result_ptr->is_successful());
-  EXPECT_EQ(result_ptr->code(), firebase::gma::kAdErrorNone);
+  EXPECT_EQ(result_ptr->code(), firebase::gma::kAdErrorCodeNone);
   EXPECT_TRUE(result_ptr->message().empty());
   EXPECT_TRUE(result_ptr->domain().empty());
   EXPECT_TRUE(result_ptr->ToString().empty());
@@ -1171,23 +1172,23 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorNotInitialized) {
   firebase::gma::AdView* ad_view = new firebase::gma::AdView();
 
   WaitForCompletion(ad_view->LoadAd(GetAdRequest()), "LoadAd",
-                    firebase::gma::kAdErrorUninitialized);
+                    firebase::gma::kAdErrorCodeUninitialized);
 
   firebase::gma::AdView::Position position;
   WaitForCompletion(ad_view->SetPosition(position), "SetPosition(position)",
-                    firebase::gma::kAdErrorUninitialized);
+                    firebase::gma::kAdErrorCodeUninitialized);
 
   WaitForCompletion(ad_view->SetPosition(0, 0), "SetPosition(x,y)",
-                    firebase::gma::kAdErrorUninitialized);
+                    firebase::gma::kAdErrorCodeUninitialized);
 
   WaitForCompletion(ad_view->Hide(), "Hide",
-                    firebase::gma::kAdErrorUninitialized);
+                    firebase::gma::kAdErrorCodeUninitialized);
   WaitForCompletion(ad_view->Show(), "Show",
-                    firebase::gma::kAdErrorUninitialized);
+                    firebase::gma::kAdErrorCodeUninitialized);
   WaitForCompletion(ad_view->Pause(), "Pause",
-                    firebase::gma::kAdErrorUninitialized);
+                    firebase::gma::kAdErrorCodeUninitialized);
   WaitForCompletion(ad_view->Resume(), "Resume",
-                    firebase::gma::kAdErrorUninitialized);
+                    firebase::gma::kAdErrorCodeUninitialized);
   WaitForCompletion(ad_view->Destroy(), "Destroy the AdView");
   delete ad_view;
 }
@@ -1205,7 +1206,7 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorAlreadyInitialized) {
 
     WaitForCompletion(first_initialize, "First Initialize 1");
     WaitForCompletion(second_initialize, "Second Initialize 1",
-                      firebase::gma::kAdErrorAlreadyInitialized);
+                      firebase::gma::kAdErrorCodeAlreadyInitialized);
 
     first_initialize.Release();
     second_initialize.Release();
@@ -1222,7 +1223,7 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorAlreadyInitialized) {
         app_framework::GetWindowContext(), kBannerAdUnit, banner_ad_size);
 
     WaitForCompletion(second_initialize, "Second Initialize 1",
-                      firebase::gma::kAdErrorAlreadyInitialized);
+                      firebase::gma::kAdErrorCodeAlreadyInitialized);
     WaitForCompletion(first_initialize, "First Initialize 1");
 
     first_initialize.Release();
@@ -1245,7 +1246,7 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorLoadInProgress) {
   // Note potential flake: this test assumes the attempt to load an ad
   // won't resolve immediately.  If it does then the result may be two
   // successful ad loads instead of the expected
-  // kAdErrorLoadInProgress error.
+  // kAdErrorCodeLoadInProgress error.
   firebase::gma::AdRequest request = GetAdRequest();
   firebase::Future<firebase::gma::AdResult> first_load_ad =
       ad_view->LoadAd(request);
@@ -1253,13 +1254,13 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorLoadInProgress) {
       ad_view->LoadAd(request);
 
   WaitForCompletion(second_load_ad, "Second LoadAd",
-                    firebase::gma::kAdErrorLoadInProgress);
+                    firebase::gma::kAdErrorCodeLoadInProgress);
   WaitForCompletion(first_load_ad, "First LoadAd");
 
   const firebase::gma::AdResult* result_ptr = second_load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
-  EXPECT_EQ(result_ptr->code(), firebase::gma::kAdErrorLoadInProgress);
+  EXPECT_EQ(result_ptr->code(), firebase::gma::kAdErrorCodeLoadInProgress);
   EXPECT_EQ(result_ptr->message(), "Ad is currently loading.");
   EXPECT_EQ(result_ptr->domain(), "SDK");
   const firebase::gma::ResponseInfo response_info = result_ptr->response_info();
@@ -1284,12 +1285,13 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorBadAdUnitId) {
   // Load the AdView ad.
   firebase::gma::AdRequest request = GetAdRequest();
   firebase::Future<firebase::gma::AdResult> load_ad = ad_view->LoadAd(request);
-  WaitForCompletion(load_ad, "LoadAd", firebase::gma::kAdErrorInvalidRequest);
+  WaitForCompletion(load_ad, "LoadAd",
+                    firebase::gma::kAdErrorCodeInvalidRequest);
 
   const firebase::gma::AdResult* result_ptr = load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
-  EXPECT_EQ(result_ptr->code(), firebase::gma::kAdErrorInvalidRequest);
+  EXPECT_EQ(result_ptr->code(), firebase::gma::kAdErrorCodeInvalidRequest);
 
   EXPECT_FALSE(result_ptr->message().empty());
   EXPECT_EQ(result_ptr->domain(), kErrorDomain);
@@ -1315,7 +1317,7 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorBadExtrasClassName) {
   firebase::gma::AdRequest request = GetAdRequest();
   request.add_extra(kAdNetworkExtrasInvalidClassName, "shouldnot", "work");
   WaitForCompletion(ad_view->LoadAd(request), "LoadAd",
-                    firebase::gma::kAdErrorAdNetworkClassLoadError);
+                    firebase::gma::kAdErrorCodeAdNetworkClassLoadError);
   WaitForCompletion(ad_view->Destroy(), "Destroy the AdView");
   delete ad_view;
 }
@@ -1330,9 +1332,9 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorNotInitialized) {
 
   firebase::gma::AdRequest request = GetAdRequest();
   WaitForCompletion(interstitial_ad->LoadAd(kInterstitialAdUnit, request),
-                    "LoadAd", firebase::gma::kAdErrorUninitialized);
+                    "LoadAd", firebase::gma::kAdErrorCodeUninitialized);
   WaitForCompletion(interstitial_ad->Show(), "Show",
-                    firebase::gma::kAdErrorUninitialized);
+                    firebase::gma::kAdErrorCodeUninitialized);
 
   delete interstitial_ad;
 }
@@ -1350,7 +1352,7 @@ TEST_F(FirebaseGmaTest, TesInterstitialAdErrorAlreadyInitialized) {
 
     WaitForCompletion(first_initialize, "First Initialize 1");
     WaitForCompletion(second_initialize, "Second Initialize 1",
-                      firebase::gma::kAdErrorAlreadyInitialized);
+                      firebase::gma::kAdErrorCodeAlreadyInitialized);
 
     first_initialize.Release();
     second_initialize.Release();
@@ -1368,7 +1370,7 @@ TEST_F(FirebaseGmaTest, TesInterstitialAdErrorAlreadyInitialized) {
         interstitial_ad->Initialize(app_framework::GetWindowContext());
 
     WaitForCompletion(second_initialize, "Second Initialize 1",
-                      firebase::gma::kAdErrorAlreadyInitialized);
+                      firebase::gma::kAdErrorCodeAlreadyInitialized);
     WaitForCompletion(first_initialize, "First Initialize 1");
 
     first_initialize.Release();
@@ -1391,7 +1393,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorLoadInProgress) {
   // Note potential flake: this test assumes the attempt to load an ad
   // won't resolve immediately.  If it does then the result may be two
   // successful ad loads instead of the expected
-  // kAdErrorLoadInProgress error.
+  // kAdErrorCodeLoadInProgress error.
   firebase::gma::AdRequest request = GetAdRequest();
   firebase::Future<firebase::gma::AdResult> first_load_ad =
       interstitial_ad->LoadAd(kInterstitialAdUnit, request);
@@ -1399,13 +1401,13 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorLoadInProgress) {
       interstitial_ad->LoadAd(kInterstitialAdUnit, request);
 
   WaitForCompletion(second_load_ad, "Second LoadAd",
-                    firebase::gma::kAdErrorLoadInProgress);
+                    firebase::gma::kAdErrorCodeLoadInProgress);
   WaitForCompletion(first_load_ad, "First LoadAd");
 
   const firebase::gma::AdResult* result_ptr = second_load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
-  EXPECT_EQ(result_ptr->code(), firebase::gma::kAdErrorLoadInProgress);
+  EXPECT_EQ(result_ptr->code(), firebase::gma::kAdErrorCodeLoadInProgress);
   EXPECT_EQ(result_ptr->message(), "Ad is currently loading.");
   EXPECT_EQ(result_ptr->domain(), "SDK");
   const firebase::gma::ResponseInfo response_info = result_ptr->response_info();
@@ -1426,12 +1428,13 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorBadAdUnitId) {
   firebase::gma::AdRequest request = GetAdRequest();
   firebase::Future<firebase::gma::AdResult> load_ad =
       interstitial_ad->LoadAd(kBadAdUnit, request);
-  WaitForCompletion(load_ad, "LoadAd", firebase::gma::kAdErrorInvalidRequest);
+  WaitForCompletion(load_ad, "LoadAd",
+                    firebase::gma::kAdErrorCodeInvalidRequest);
 
   const firebase::gma::AdResult* result_ptr = load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
-  EXPECT_EQ(result_ptr->code(), firebase::gma::kAdErrorInvalidRequest);
+  EXPECT_EQ(result_ptr->code(), firebase::gma::kAdErrorCodeInvalidRequest);
   EXPECT_FALSE(result_ptr->message().empty());
   EXPECT_EQ(result_ptr->domain(), kErrorDomain);
   const firebase::gma::ResponseInfo response_info = result_ptr->response_info();
@@ -1452,7 +1455,8 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorBadExtrasClassName) {
   firebase::gma::AdRequest request = GetAdRequest();
   request.add_extra(kAdNetworkExtrasInvalidClassName, "shouldnot", "work");
   WaitForCompletion(interstitial_ad->LoadAd(kInterstitialAdUnit, request),
-                    "LoadAd", firebase::gma::kAdErrorAdNetworkClassLoadError);
+                    "LoadAd",
+                    firebase::gma::kAdErrorCodeAdNetworkClassLoadError);
   delete interstitial_ad;
 }
 
@@ -1465,9 +1469,9 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorNotInitialized) {
 
   firebase::gma::AdRequest request = GetAdRequest();
   WaitForCompletion(rewarded_ad->LoadAd(kRewardedAdUnit, request), "LoadAd",
-                    firebase::gma::kAdErrorUninitialized);
+                    firebase::gma::kAdErrorCodeUninitialized);
   WaitForCompletion(rewarded_ad->Show(/*listener=*/nullptr), "Show",
-                    firebase::gma::kAdErrorUninitialized);
+                    firebase::gma::kAdErrorCodeUninitialized);
 
   delete rewarded_ad;
 }
@@ -1484,7 +1488,7 @@ TEST_F(FirebaseGmaTest, TesRewardedAdErrorAlreadyInitialized) {
 
     WaitForCompletion(first_initialize, "First Initialize 1");
     WaitForCompletion(second_initialize, "Second Initialize 1",
-                      firebase::gma::kAdErrorAlreadyInitialized);
+                      firebase::gma::kAdErrorCodeAlreadyInitialized);
 
     first_initialize.Release();
     second_initialize.Release();
@@ -1501,7 +1505,7 @@ TEST_F(FirebaseGmaTest, TesRewardedAdErrorAlreadyInitialized) {
         rewarded->Initialize(app_framework::GetWindowContext());
 
     WaitForCompletion(second_initialize, "Second Initialize 1",
-                      firebase::gma::kAdErrorAlreadyInitialized);
+                      firebase::gma::kAdErrorCodeAlreadyInitialized);
     WaitForCompletion(first_initialize, "First Initialize 1");
 
     first_initialize.Release();
@@ -1522,7 +1526,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorLoadInProgress) {
   // Note potential flake: this test assumes the attempt to load an ad
   // won't resolve immediately.  If it does then the result may be two
   // successful ad loads instead of the expected
-  // kAdErrorLoadInProgress error.
+  // kAdErrorCodeLoadInProgress error.
   firebase::gma::AdRequest request = GetAdRequest();
   firebase::Future<firebase::gma::AdResult> first_load_ad =
       rewarded->LoadAd(kRewardedAdUnit, request);
@@ -1530,13 +1534,13 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorLoadInProgress) {
       rewarded->LoadAd(kRewardedAdUnit, request);
 
   WaitForCompletion(second_load_ad, "Second LoadAd",
-                    firebase::gma::kAdErrorLoadInProgress);
+                    firebase::gma::kAdErrorCodeLoadInProgress);
   WaitForCompletion(first_load_ad, "First LoadAd");
 
   const firebase::gma::AdResult* result_ptr = second_load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
-  EXPECT_EQ(result_ptr->code(), firebase::gma::kAdErrorLoadInProgress);
+  EXPECT_EQ(result_ptr->code(), firebase::gma::kAdErrorCodeLoadInProgress);
   EXPECT_EQ(result_ptr->message(), "Ad is currently loading.");
   EXPECT_EQ(result_ptr->domain(), "SDK");
   const firebase::gma::ResponseInfo response_info = result_ptr->response_info();
@@ -1555,12 +1559,13 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadAdUnitId) {
   firebase::gma::AdRequest request = GetAdRequest();
   firebase::Future<firebase::gma::AdResult> load_ad =
       rewarded->LoadAd(kBadAdUnit, request);
-  WaitForCompletion(load_ad, "LoadAd", firebase::gma::kAdErrorInvalidRequest);
+  WaitForCompletion(load_ad, "LoadAd",
+                    firebase::gma::kAdErrorCodeInvalidRequest);
 
   const firebase::gma::AdResult* result_ptr = load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
-  EXPECT_EQ(result_ptr->code(), firebase::gma::kAdErrorInvalidRequest);
+  EXPECT_EQ(result_ptr->code(), firebase::gma::kAdErrorCodeInvalidRequest);
   EXPECT_FALSE(result_ptr->message().empty());
   EXPECT_EQ(result_ptr->domain(), kErrorDomain);
   const firebase::gma::ResponseInfo response_info = result_ptr->response_info();
@@ -1579,7 +1584,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadExtrasClassName) {
   firebase::gma::AdRequest request = GetAdRequest();
   request.add_extra(kAdNetworkExtrasInvalidClassName, "shouldnot", "work");
   WaitForCompletion(rewarded->LoadAd(kRewardedAdUnit, request), "LoadAd",
-                    firebase::gma::kAdErrorAdNetworkClassLoadError);
+                    firebase::gma::kAdErrorCodeAdNetworkClassLoadError);
   delete rewarded;
 }
 

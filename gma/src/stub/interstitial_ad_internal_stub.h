@@ -50,12 +50,12 @@ class InterstitialAdInternalStub : public InterstitialAdInternal {
 
  private:
   Future<void> CreateAndCompleteFutureStub(InterstitialAdFn fn) {
-    CreateAndCompleteFuture(fn, kAdErrorNone, nullptr, &future_data_);
+    CreateAndCompleteFuture(fn, kAdErrorCodeNone, nullptr, &future_data_);
     return GetLastResult(fn);
   }
 
   Future<AdResult> CreateAndCompleteAdResultFutureStub(InterstitialAdFn fn) {
-    return CreateAndCompleteFutureWithResult(fn, kAdErrorNone, nullptr,
+    return CreateAndCompleteFutureWithResult(fn, kAdErrorCodeNone, nullptr,
                                              &future_data_, AdResult());
   }
 };

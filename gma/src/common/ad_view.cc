@@ -74,8 +74,9 @@ void AdView::SetPaidEventListener(PaidEventListener* listener) {
 Future<void> AdView::SetPosition(int x, int y) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kAdViewFnSetPosition, kAdErrorUninitialized,
-        kAdUninitializedErrorMessage, &internal_->future_data_);
+        firebase::gma::internal::kAdViewFnSetPosition,
+        kAdErrorCodeUninitialized, kAdUninitializedErrorMessage,
+        &internal_->future_data_);
   }
   return internal_->SetPosition(x, y);
 }
@@ -83,8 +84,9 @@ Future<void> AdView::SetPosition(int x, int y) {
 Future<void> AdView::SetPosition(Position position) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kAdViewFnSetPosition, kAdErrorUninitialized,
-        kAdUninitializedErrorMessage, &internal_->future_data_);
+        firebase::gma::internal::kAdViewFnSetPosition,
+        kAdErrorCodeUninitialized, kAdUninitializedErrorMessage,
+        &internal_->future_data_);
   }
   return internal_->SetPosition(position);
 }
@@ -92,8 +94,9 @@ Future<void> AdView::SetPosition(Position position) {
 Future<void> AdView::SetPositionLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kAdViewFnSetPosition, kAdErrorUninitialized,
-        kAdUninitializedErrorMessage, &internal_->future_data_);
+        firebase::gma::internal::kAdViewFnSetPosition,
+        kAdErrorCodeUninitialized, kAdUninitializedErrorMessage,
+        &internal_->future_data_);
   }
   return internal_->GetLastResult(internal::kAdViewFnSetPosition);
 }
@@ -101,7 +104,7 @@ Future<void> AdView::SetPositionLastResult() const {
 Future<AdResult> AdView::LoadAd(const AdRequest& request) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::gma::internal::kAdViewFnLoadAd, kAdErrorUninitialized,
+        firebase::gma::internal::kAdViewFnLoadAd, kAdErrorCodeUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_, AdResult());
   }
   return internal_->LoadAd(request);
@@ -110,7 +113,7 @@ Future<AdResult> AdView::LoadAd(const AdRequest& request) {
 Future<AdResult> AdView::LoadAdLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::gma::internal::kAdViewFnLoadAd, kAdErrorUninitialized,
+        firebase::gma::internal::kAdViewFnLoadAd, kAdErrorCodeUninitialized,
         kAdUninitializedErrorMessage, &(internal_->future_data_), AdResult());
   }
   return internal_->GetLoadAdLastResult();
@@ -119,7 +122,7 @@ Future<AdResult> AdView::LoadAdLastResult() const {
 Future<void> AdView::Hide() {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kAdViewFnHide, kAdErrorUninitialized,
+        firebase::gma::internal::kAdViewFnHide, kAdErrorCodeUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->Hide();
@@ -128,7 +131,7 @@ Future<void> AdView::Hide() {
 Future<void> AdView::HideLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kAdViewFnHide, kAdErrorUninitialized,
+        firebase::gma::internal::kAdViewFnHide, kAdErrorCodeUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->GetLastResult(internal::kAdViewFnHide);
@@ -137,7 +140,7 @@ Future<void> AdView::HideLastResult() const {
 Future<void> AdView::Show() {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kAdViewFnShow, kAdErrorUninitialized,
+        firebase::gma::internal::kAdViewFnShow, kAdErrorCodeUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->Show();
@@ -146,7 +149,7 @@ Future<void> AdView::Show() {
 Future<void> AdView::ShowLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kAdViewFnShow, kAdErrorUninitialized,
+        firebase::gma::internal::kAdViewFnShow, kAdErrorCodeUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->GetLastResult(internal::kAdViewFnShow);
@@ -155,7 +158,7 @@ Future<void> AdView::ShowLastResult() const {
 Future<void> AdView::Pause() {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kAdViewFnPause, kAdErrorUninitialized,
+        firebase::gma::internal::kAdViewFnPause, kAdErrorCodeUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->Pause();
@@ -164,7 +167,7 @@ Future<void> AdView::Pause() {
 Future<void> AdView::PauseLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kAdViewFnPause, kAdErrorUninitialized,
+        firebase::gma::internal::kAdViewFnPause, kAdErrorCodeUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->GetLastResult(internal::kAdViewFnPause);
@@ -173,7 +176,7 @@ Future<void> AdView::PauseLastResult() const {
 Future<void> AdView::Resume() {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kAdViewFnResume, kAdErrorUninitialized,
+        firebase::gma::internal::kAdViewFnResume, kAdErrorCodeUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->Resume();
@@ -182,7 +185,7 @@ Future<void> AdView::Resume() {
 Future<void> AdView::ResumeLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kAdViewFnResume, kAdErrorUninitialized,
+        firebase::gma::internal::kAdViewFnResume, kAdErrorCodeUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->GetLastResult(internal::kAdViewFnResume);

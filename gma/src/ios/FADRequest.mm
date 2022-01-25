@@ -25,11 +25,11 @@ namespace firebase {
 namespace gma {
 
 GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest, 
-                                      gma::AdError* error, 
+                                      gma::AdErrorCode* error, 
                                       std::string* error_message) {
   FIREBASE_ASSERT(error);
   FIREBASE_ASSERT(error_message);
-  *error = kAdErrorNone;
+  *error = kAdErrorCodeNone;
 
   // Create the GADRequest.
   GADRequest *gadRequest = [GADRequest request];
@@ -56,7 +56,7 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
       *error_message = "Failed to resolve extras class: ";
       error_message->append(adapterClassName);
       LogError(error_message->c_str());
-      *error = kAdErrorAdNetworkClassLoadError;
+      *error = kAdErrorCodeAdNetworkClassLoadError;
       return nullptr;
     }
 
@@ -67,7 +67,7 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
       *error_message = "Failed to load extras class inherited from GADExtras: ";
       error_message->append(adapterClassName);
       LogError(error_message->c_str());
-      *error = kAdErrorAdNetworkClassLoadError;
+      *error = kAdErrorCodeAdNetworkClassLoadError;
       return nullptr;
     }
 
@@ -106,66 +106,66 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
   return gadRequest;
 }
 
-AdError MapAdRequestErrorCodeToCPPErrorCode(GADErrorCode error_code) {
+AdErrorCode MapAdRequestErrorCodeToCPPErrorCode(GADErrorCode error_code) {
   // iOS error code sourced from
   // https://developers.google.com/admob/ios/api/reference/Enums/GADErrorCode
   switch(error_code)
   {
     case GADErrorInvalidRequest:               // 0
-      return kAdErrorInvalidRequest;
+      return kAdErrorCodeInvalidRequest;
     case GADErrorNoFill:                       // 1
-      return kAdErrorNoFill;
+      return kAdErrorCodeNoFill;
     case GADErrorNetworkError:                 // 2
-      return kAdErrorNetworkError;
+      return kAdErrorCodeNetworkError;
     case GADErrorServerError:                  // 3
-      return kAdErrorServerError;
+      return kAdErrorCodeServerError;
     case GADErrorOSVersionTooLow:              // 4
-      return kAdErrorOSVersionTooLow;
+      return kAdErrorCodeOSVersionTooLow;
     case GADErrorTimeout:                      // 5
-      return kAdErrorTimeout;
+      return kAdErrorCodeTimeout;
     // no error 6.
     case GADErrorMediationDataError:           // 7
-      return kAdErrorMediationDataError;
+      return kAdErrorCodeMediationDataError;
     case GADErrorMediationAdapterError:        // 8
-      return kAdErrorMediationAdapterError;
+      return kAdErrorCodeMediationAdapterError;
     case GADErrorMediationNoFill:              // 9
-      return kAdErrorMediationNoFill;
+      return kAdErrorCodeMediationNoFill;
     case GADErrorMediationInvalidAdSize:       // 10
-      return kAdErrorMediationInvalidAdSize;
+      return kAdErrorCodeMediationInvalidAdSize;
     case GADErrorInternalError:                // 11
-      return kAdErrorInternalError;
+      return kAdErrorCodeInternalError;
     case GADErrorInvalidArgument:              // 12
-      return kAdErrorInvalidArgument;
+      return kAdErrorCodeInvalidArgument;
     case GADErrorReceivedInvalidResponse:      // 13
-      return kAdErrorReceivedInvalidResponse;
+      return kAdErrorCodeReceivedInvalidResponse;
     case GADErrorAdAlreadyUsed:                // 19 (no error #s 14-18)
-      return kAdErrorAdAlreadyUsed;
+      return kAdErrorCodeAdAlreadyUsed;
     case GADErrorApplicationIdentifierMissing: // 20
-      return kAdErrorApplicationIdentifierMissing;
+      return kAdErrorCodeApplicationIdentifierMissing;
     default:
-      return kAdErrorUnknown;
+      return kAdErrorCodeUnknown;
   }
 }
 
-AdError MapFullScreenContentErrorCodeToCPPErrorCode(GADPresentationErrorCode error_code) {
+AdErrorCode MapFullScreenContentErrorCodeToCPPErrorCode(GADPresentationErrorCode error_code) {
   // iOS error code sourced from
   // https://developers.google.com/admob/ios/api/reference/Enums/GADPresentationErrorCode
   switch(error_code)
   {
     case GADPresentationErrorCodeAdNotReady:     // 15
-      return kAdErrorAdNotReady;
+      return kAdErrorCodeAdNotReady;
     case GADPresentationErrorCodeAdTooLarge:     // 16
-      return kAdErrorAdTooLarge;
+      return kAdErrorCodeAdTooLarge;
     case GADPresentationErrorCodeInternal:       // 17
-      return kAdErrorInternalError;
+      return kAdErrorCodeInternalError;
     case GADPresentationErrorCodeAdAlreadyUsed:  // 18
-      return kAdErrorAdAlreadyUsed;
+      return kAdErrorCodeAdAlreadyUsed;
     case GADPresentationErrorNotMainThread:      // 21
-      return kAdErrorNotMainThread;
+      return kAdErrorCodeNotMainThread;
     case GADPresentationErrorMediation:          // 22
-      return kAdErrorMediationShowError;
+      return kAdErrorCodeMediationShowError;
     default:
-      return kAdErrorUnknown;
+      return kAdErrorCodeUnknown;
   }
 }
 

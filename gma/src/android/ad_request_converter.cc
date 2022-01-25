@@ -43,9 +43,9 @@ METHOD_LOOKUP_DEFINITION(ad_request_builder,
                          ADREQUESTBUILDER_METHODS);
 
 jobject GetJavaAdRequestFromCPPAdRequest(const AdRequest& request,
-                                         gma::AdError* error) {
+                                         gma::AdErrorCode* error) {
   FIREBASE_ASSERT(error);
-  *error = kAdErrorNone;
+  *error = kAdErrorCodeNone;
 
   JNIEnv* env = ::firebase::gma::GetJNI();
   jobject builder = env->NewObject(
@@ -68,7 +68,7 @@ jobject GetJavaAdRequestFromCPPAdRequest(const AdRequest& request,
           "Failed to resolve extras class. Check that \"%s\""
           " is present in your APK.",
           adapter_name.c_str());
-      *error = kAdErrorAdNetworkClassLoadError;
+      *error = kAdErrorCodeAdNetworkClassLoadError;
       env->DeleteLocalRef(builder);
       return nullptr;
     }
@@ -157,68 +157,69 @@ jobject GetJavaAdRequestFromCPPAdRequest(const AdRequest& request,
   return java_request_ref;
 }
 
-AdError MapAndroidAdRequestErrorCodeToCPPErrorCode(jint j_error_code) {
+AdErrorCode MapAndroidAdRequestErrorCodeToCPPErrorCode(jint j_error_code) {
   // Android error code sourced from
   // https://developers.google.com/android/reference/com/google/android/gms/ads/AdRequest
   switch (j_error_code) {
     case 0:  // ERROR_CODE_INTERNAL_ERROR
-      return kAdErrorInternalError;
+      return kAdErrorCodeInternalError;
     case 1:  // ERROR_CODE_INVALID_REQUEST
-      return kAdErrorInvalidRequest;
+      return kAdErrorCodeInvalidRequest;
     case 2:  // ERROR_CODE_NETWORK_ERROR
-      return kAdErrorNetworkError;
+      return kAdErrorCodeNetworkError;
     case 3:  // ERROR_CODE_NO_FILL
-      return kAdErrorNoFill;
+      return kAdErrorCodeNoFill;
     case 8:  // ERROR_CODE_APP_ID_MISSING
-      return kAdErrorApplicationIdentifierMissing;
+      return kAdErrorCodeApplicationIdentifierMissing;
     case 9:  // ERROR_CODE_MEDIATION_NO_FILL
-      return kAdErrorMediationNoFill;
+      return kAdErrorCodeMediationNoFill;
     case 10:  // ERROR_CODE_REQUEST_ID_MISMATCH
-      return kAdErrorInvalidRequest;
+      return kAdErrorCodeInvalidRequest;
     case 11:  // ERROR_CODE_INVALID_AD_STRING
-      return kAdErrorInvalidAdString;
+      return kAdErrorCodeInvalidAdString;
     default:
-      return kAdErrorUnknown;
+      return kAdErrorCodeUnknown;
   }
 }
 
-AdError MapAndroidFullScreenContentErrorCodeToCPPErrorCode(jint j_error_code) {
+AdErrorCode MapAndroidFullScreenContentErrorCodeToCPPErrorCode(
+    jint j_error_code) {
   // Android FullScreenContent error codes sourced from:
   // https://developers.google.com/android/reference/com/google/android/gms/ads/FullScreenContentCallback
   switch (j_error_code) {
     case 0:  // ERROR_CODE_INTERNAL_ERROR
-      return kAdErrorInternalError;
+      return kAdErrorCodeInternalError;
     case 1:  // ERROR_CODE_AD_REUSED
-      return kAdErrorAdAlreadyUsed;
+      return kAdErrorCodeAdAlreadyUsed;
     case 2:  // ERROR_CODE_NOT_READY
-      return kAdErrorAdNotReady;
+      return kAdErrorCodeAdNotReady;
     case 3:  // ERROR_CODE_APP_NOT_FOREGROUND
-      return kAdErrorAppNotInForeground;
+      return kAdErrorCodeAppNotInForeground;
     case 4:  // ERROR_CODE_MEDIATION_SHOW_ERROR
-      return kAdErrorMediationShowError;
+      return kAdErrorCodeMediationShowError;
     default:
-      return kAdErrorUnknown;
+      return kAdErrorCodeUnknown;
   }
 }
 
-AdError MapAndroidOpenAdInspectorErrorCodeToCPPErrorCode(int j_error_code) {
+AdErrorCode MapAndroidOpenAdInspectorErrorCodeToCPPErrorCode(int j_error_code) {
   // Android AdInspector error codes sourced from:
   // https://developers.google.com/android/reference/com/google/android/gms/ads/AdInspectorError#constants
   switch (j_error_code) {
     case 0:  // ERROR_CODE_INTERNAL_ERROR
-      return kAdErrorInternalError;
+      return kAdErrorCodeInternalError;
       break;
     case 1:  // ERROR_CODE_FAILED_TO_LOAD
-      return kAdErrorInspectorFailedToLoad;
+      return kAdErrorCodeInspectorFailedToLoad;
       break;
     case 2:  // ERROR_CODE_NOT_IN_TEST_MODE
-      return kAdErrorNotInTestMode;
+      return kAdErrorCodeNotInTestMode;
       break;
     case 3:  // ERROR_CODE_ALREADY_OPEN
-      return kAdErrorInsepctorAlreadyOpen;
+      return kAdErrorCodeInsepctorAlreadyOpen;
       break;
     default:
-      return kAdErrorUnknown;
+      return kAdErrorCodeUnknown;
   }
 }
 

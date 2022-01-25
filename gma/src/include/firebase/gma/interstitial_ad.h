@@ -54,7 +54,7 @@ class InterstitialAdInternal;
 /// if (interstitial->InitializeLastResult().status() ==
 ///     ::firebase::kFutureStatusComplete &&
 ///     interstitial->InitializeLastResult().error() ==
-///     firebase::gma::kAdErrorNone) {
+///     firebase::gma::kAdErrorCodeNone) {
 ///   interstitial->LoadAd( "YOUR_AD_UNIT_ID", my_ad_request);
 /// }
 /// @endcode
@@ -65,7 +65,7 @@ class InterstitialAdInternal;
 /// if (interstitial->LoadAdLastResult().status() ==
 ///     ::firebase::kFutureStatusComplete &&
 ///     interstitial->LoadAdLastResult().error() ==
-///     firebase::gma::kAdErrorNone)) {
+///     firebase::gma::kAdErrorCodeNone)) {
 ///   interstitial->Show();
 /// }
 /// @endcode

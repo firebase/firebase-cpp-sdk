@@ -32,23 +32,23 @@ namespace gma {
 ///
 /// @param[in] request The AdRequest struct to be converted into a
 /// GAdRequest.
-/// @param[out] error kAdErrorNone on success, or another error if
+/// @param[out] error kAdErrorCodeNone on success, or another error if
 /// problems occurred.
 /// @param[out] error_message a string representation of any error that
 /// occurs.
 /// @return On succes, a pointer to a GADRequest object representing the
 /// AdRequest, or nullptr on error.
 GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
-                                       gma::AdError* error,
+                                       gma::AdErrorCode* error,
                                        std::string* error_message);
 
 // Converts the iOS error codes from an AdRequest to the CPP platform
-// independent error codes defined in AdError.
-AdError MapAdRequestErrorCodeToCPPErrorCode(GADErrorCode error_code);
+// independent error codes defined in AdErrorCode.
+AdErrorCode MapAdRequestErrorCodeToCPPErrorCode(GADErrorCode error_code);
 
 // Converts the iOS error codes from attempting to show a full screen
 // ad into the platform independent error codes defined in AdError.
-AdError MapFullScreenContentErrorCodeToCPPErrorCode(GADPresentationErrorCode error_code);
+AdErrorCode MapFullScreenContentErrorCodeToCPPErrorCode(GADPresentationErrorCode error_code);
 
 }  // namespace gma
 }  // namespace firebase

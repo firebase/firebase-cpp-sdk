@@ -48,7 +48,7 @@ AdResult::AdResult() {
   // an AdResult makes it to the application in this default state.
   internal_ = new AdResultInternal();
   internal_->ad_result_type = AdResultInternal::kAdResultInternalWrapperError;
-  internal_->code = kAdErrorUninitialized;
+  internal_->code = kAdErrorCodeUninitialized;
   internal_->domain = "SDK";
   internal_->message = "This AdResult has not be initialized.";
   internal_->to_string = internal_->message;
@@ -74,7 +74,7 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
   // SDK wrapper, or in the Android GMA SDK.  The structure is populated
   // differently across these three scenarios.
   if (internal_->is_successful) {
-    internal_->code = kAdErrorNone;
+    internal_->code = kAdErrorCodeNone;
     internal_->message = "";
     internal_->domain = "";
     internal_->to_string = "";
@@ -270,7 +270,7 @@ std::unique_ptr<AdResult> AdResult::GetCause() const {
 }
 
 /// Gets the error's code.
-AdError AdResult::code() const {
+AdErrorCode AdResult::code() const {
   FIREBASE_ASSERT(internal_);
   return internal_->code;
 }

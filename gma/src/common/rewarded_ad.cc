@@ -63,7 +63,7 @@ Future<AdResult> RewardedAd::LoadAd(const char* ad_unit_id,
                                     const AdRequest& request) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::gma::internal::kRewardedAdFnLoadAd, kAdErrorUninitialized,
+        firebase::gma::internal::kRewardedAdFnLoadAd, kAdErrorCodeUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_, AdResult());
   }
   return internal_->LoadAd(ad_unit_id, request);
@@ -72,7 +72,7 @@ Future<AdResult> RewardedAd::LoadAd(const char* ad_unit_id,
 Future<AdResult> RewardedAd::LoadAdLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::gma::internal::kRewardedAdFnLoadAd, kAdErrorUninitialized,
+        firebase::gma::internal::kRewardedAdFnLoadAd, kAdErrorCodeUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_, AdResult());
   }
   return internal_->GetLoadAdLastResult();
@@ -81,7 +81,7 @@ Future<AdResult> RewardedAd::LoadAdLastResult() const {
 Future<void> RewardedAd::Show(UserEarnedRewardListener* listener) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kRewardedAdFnShow, kAdErrorUninitialized,
+        firebase::gma::internal::kRewardedAdFnShow, kAdErrorCodeUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->Show(listener);
@@ -90,7 +90,7 @@ Future<void> RewardedAd::Show(UserEarnedRewardListener* listener) {
 Future<void> RewardedAd::ShowLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFuture(
-        firebase::gma::internal::kRewardedAdFnShow, kAdErrorUninitialized,
+        firebase::gma::internal::kRewardedAdFnShow, kAdErrorCodeUninitialized,
         kAdUninitializedErrorMessage, &internal_->future_data_);
   }
   return internal_->GetLastResult(internal::kRewardedAdFnShow);
