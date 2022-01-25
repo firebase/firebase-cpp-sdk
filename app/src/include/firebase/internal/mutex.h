@@ -93,7 +93,7 @@ class MutexLock {
   Mutex* mutex_;
 };
 
-#endif // !defined(DOXYGEN)
+#endif  // !defined(DOXYGEN)
 
 }  // namespace firebase
 
