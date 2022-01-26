@@ -38,7 +38,7 @@ extern "C" {
 namespace firebase {
 namespace gma {
 
-struct AdResultInternal;
+struct AdErrorInternal;
 struct AdapterResponseInfoInternal;
 struct BoundingBox;
 struct ResponseInfoInternal;
@@ -167,30 +167,25 @@ class AdListener {
 };
 
 /// Information about why an ad operation failed.
-class AdResult {
+class AdError {
  public:
   /// Default Constructor.
-  AdResult();
+  AdError();
 
   /// Copy Constructor.
-  AdResult(const AdResult& ad_result);
+  AdError(const AdError& ad_error);
 
   /// Destructor.
-  virtual ~AdResult();
+  virtual ~AdError();
 
   /// Assignment operator.
-  AdResult& operator=(const AdResult& obj);
+  AdError& operator=(const AdError& obj);
 
-  /// If the operation was successful then the other error reporting methods
-  /// of this object will return defaults.
-  bool is_successful() const;
-
-  /// Retrieves an AdResult which represents the cause of this error.
+  /// Retrieves an AdError which represents the cause of this error.
   ///
-  /// @return a pointer to an AdResult which represents the cause of this
-  /// AdResult.  If there was no cause, or if this result was successful,
-  /// then nullptr is returned.
-  std::unique_ptr<AdResult> GetCause() const;
+  /// @return a pointer to an adError which represents the cause of this
+  /// AdError.  If there was no cause then nullptr is returned.
+  std::unique_ptr<AdError> GetCause() const;
 
   /// Gets the error's code.
   AdErrorCode code() const;
@@ -202,12 +197,12 @@ class AdResult {
   const std::string& message() const;
 
   /// Gets the ResponseInfo if an error occurred during a loadAd operation.
-  /// The ResponseInfo will have empty fields if no error occurred, or if this
-  /// AdResult does not represent an error stemming from a loadAd operation.
+  /// The ResponseInfo will have empty fields if this AdError does not
+  /// represent an error stemming from a loadAd operation.
   const ResponseInfo& response_info() const;
 
   /// Returns a log friendly string version of this object.
-  const std::string& ToString() const;
+  virtual const std::string& ToString() const;
 
   /// A domain string which represents an undefined error domain.
   ///
@@ -217,7 +212,7 @@ class AdResult {
 
  protected:
   /// Constructor used when building results in Ad event callbacks.
-  explicit AdResult(const AdResultInternal& ad_result_internal);
+  explicit AdError(const AdErrorInternal& ad_error_internal);
 
  private:
   friend class AdapterResponseInfo;
@@ -231,7 +226,37 @@ class AdResult {
 
   // An internal, platform-specific implementation object that this class uses
   // to interact with the Google Mobile Ads SDKs for iOS and Android.
-  AdResultInternal* internal_;
+  AdErrorInternal* internal_;
+};
+
+/// Information about the result of an ad operation.
+class AdResult {
+ public:
+  /// Default Constructor.
+  AdResult();
+
+  /// Constructor.
+  AdResult(const AdError& ad_error);
+
+  /// Destructor.
+  virtual ~AdResult();
+
+  /// Returns true if the operation was successful.
+  bool is_successful() const;
+
+  /// An object representing an error which occurred during an ad operation.
+  /// If the @ref AdResult::is_successful() returns true, then the @ref AdError
+  /// object returned via this method will have default values and empty
+  /// strings.
+  const AdError& ad_error() const;
+
+ private:
+  /// Denotes if the @ref AdResult represents a success or an error.
+  bool is_successful_;
+
+  /// Information about the error.  Will be a default-constructed @ref AdError
+  /// if this result represents a success.
+  AdError ad_error_;
 };
 
 /// A snapshot of a mediation adapter's initialization status.
@@ -304,6 +329,9 @@ class AdInspectorClosedListener {
 /// a @ref ResponseInfo object.
 class AdapterResponseInfo {
  public:
+  /// Destructor
+  ~AdapterResponseInfo();
+
   /// Information about the Ad Error, if one occurred.
   ///
   /// @return the error that occurred while rendering the ad.  If no error
@@ -621,9 +649,9 @@ class FullScreenContentListener {
 
   /// Called when the ad failed to show full screen content.
   ///
-  /// param[in] ad_result An object containing detailed information
+  /// param[in] ad_error An object containing detailed information
   /// about the error.
-  virtual void OnAdFailedToShowFullScreenContent(const AdResult& ad_result) {}
+  virtual void OnAdFailedToShowFullScreenContent(const AdError& ad_error) {}
 
   /// Called when an impression is recorded for an ad.
   virtual void OnAdImpression() {}
@@ -669,7 +697,7 @@ class ResponseInfo {
   const std::string& ToString() const { return to_string_; }
 
  private:
-  friend class AdResult;
+  friend class AdError;
 
   explicit ResponseInfo(const ResponseInfoInternal& internal);
 

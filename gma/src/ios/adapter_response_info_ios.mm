@@ -31,13 +31,13 @@ namespace firebase {
 namespace gma {
 
 AdapterResponseInfo::AdapterResponseInfo(
-  const AdapterResponseInfoInternal& internal) : ad_result_(AdResultInternal())
+  const AdapterResponseInfoInternal& internal) : ad_result_(AdErrorInternal())
 {
   FIREBASE_ASSERT(internal.ad_network_response_info);
 
-  AdResultInternal ad_result_internal;
-  ad_result_internal.native_ad_error = internal.ad_network_response_info.error;
-  ad_result_ = AdResult(ad_result_internal);
+  AdErrorInternal ad_error_internal;
+  ad_error_internal.native_ad_error = internal.ad_network_response_info.error;
+  ad_result_ = AdResult(ad_error_internal);
   
   adapter_class_name_ = util::NSStringToString(
     internal.ad_network_response_info.adNetworkClassName);

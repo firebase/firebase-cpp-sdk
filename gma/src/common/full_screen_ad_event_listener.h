@@ -42,7 +42,7 @@ class FullScreenAdEventListener {
   virtual void NotifyListenerOfAdClickedFullScreenContent();
   virtual void NotifyListenerOfAdDismissedFullScreenContent();
   virtual void NotifyListenerOfAdFailedToShowFullScreenContent(
-      const AdResult& ad_result);
+      const AdError& ad_error);
   virtual void NotifyListenerOfAdImpression();
   virtual void NotifyListenerOfAdShowedFullScreenContent();
 

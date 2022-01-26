@@ -430,14 +430,15 @@ class TestAdInspectorClosedListener
       ++num_successful_results_;
     } else {
 #if defined(ANDROID)
-      EXPECT_EQ(ad_result.code(),
+      EXPECT_EQ(ad_result.ad_error().code(),
                 firebase::gma::kAdErrorCodeInsepctorAlreadyOpen);
-      EXPECT_STREQ(ad_result.message().c_str(),
+      EXPECT_STREQ(ad_result.ad_error().message().c_str(),
                    "Ad inspector cannot be opened because it is already open.");
 #else
       // The iOS GMA SDK returns internal errors for all AdInspector failures.
-      EXPECT_EQ(ad_result.code(), firebase::gma::kAdErrorCodeInternalError);
-      EXPECT_STREQ(ad_result.message().c_str(),
+      EXPECT_EQ(ad_result.ad_error().code(),
+                firebase::gma::kAdErrorCodeInternalError);
+      EXPECT_STREQ(ad_result.ad_error().message().c_str(),
                    "Ad Inspector cannot be opened because it is already open.");
 #endif
     }
@@ -538,9 +539,9 @@ class TestFullScreenContentListener
   }
 
   void OnAdFailedToShowFullScreenContent(
-      const firebase::gma::AdResult& ad_result) override {
+      const firebase::gma::AdError& ad_error) override {
     num_on_ad_failed_to_show_full_screen_content_++;
-    failure_codes_.push_back(ad_result.code());
+    failure_codes_.push_back(ad_error.code());
   }
 
   void OnAdImpression() override { num_on_ad_impression_++; }
@@ -1008,11 +1009,12 @@ TEST_F(FirebaseGmaTest, TestAdView) {
   const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_TRUE(result_ptr->is_successful());
-  EXPECT_EQ(result_ptr->code(), firebase::gma::kAdErrorCodeNone);
-  EXPECT_TRUE(result_ptr->message().empty());
-  EXPECT_TRUE(result_ptr->domain().empty());
-  EXPECT_TRUE(result_ptr->ToString().empty());
-  const firebase::gma::ResponseInfo response_info = result_ptr->response_info();
+  EXPECT_EQ(result_ptr->ad_error().code(), firebase::gma::kAdErrorCodeNone);
+  EXPECT_TRUE(result_ptr->ad_error().message().empty());
+  EXPECT_TRUE(result_ptr->ad_error().domain().empty());
+  EXPECT_TRUE(result_ptr->ad_error().ToString().empty());
+  const firebase::gma::ResponseInfo response_info =
+      result_ptr->ad_error().response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());
   load_ad_future.Release();
 
@@ -1260,10 +1262,12 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorLoadInProgress) {
   const firebase::gma::AdResult* result_ptr = second_load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
-  EXPECT_EQ(result_ptr->code(), firebase::gma::kAdErrorCodeLoadInProgress);
-  EXPECT_EQ(result_ptr->message(), "Ad is currently loading.");
-  EXPECT_EQ(result_ptr->domain(), "SDK");
-  const firebase::gma::ResponseInfo response_info = result_ptr->response_info();
+  EXPECT_EQ(result_ptr->ad_error().code(),
+            firebase::gma::kAdErrorCodeLoadInProgress);
+  EXPECT_EQ(result_ptr->ad_error().message(), "Ad is currently loading.");
+  EXPECT_EQ(result_ptr->ad_error().domain(), "SDK");
+  const firebase::gma::ResponseInfo response_info =
+      result_ptr->ad_error().response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());
 
   first_load_ad.Release();
@@ -1291,12 +1295,14 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorBadAdUnitId) {
   const firebase::gma::AdResult* result_ptr = load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
-  EXPECT_EQ(result_ptr->code(), firebase::gma::kAdErrorCodeInvalidRequest);
+  EXPECT_EQ(result_ptr->ad_error().code(),
+            firebase::gma::kAdErrorCodeInvalidRequest);
 
-  EXPECT_FALSE(result_ptr->message().empty());
-  EXPECT_EQ(result_ptr->domain(), kErrorDomain);
+  EXPECT_FALSE(result_ptr->ad_error().message().empty());
+  EXPECT_EQ(result_ptr->ad_error().domain(), kErrorDomain);
 
-  const firebase::gma::ResponseInfo response_info = result_ptr->response_info();
+  const firebase::gma::ResponseInfo response_info =
+      result_ptr->ad_error().response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());
   load_ad.Release();
 
@@ -1407,10 +1413,12 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorLoadInProgress) {
   const firebase::gma::AdResult* result_ptr = second_load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
-  EXPECT_EQ(result_ptr->code(), firebase::gma::kAdErrorCodeLoadInProgress);
-  EXPECT_EQ(result_ptr->message(), "Ad is currently loading.");
-  EXPECT_EQ(result_ptr->domain(), "SDK");
-  const firebase::gma::ResponseInfo response_info = result_ptr->response_info();
+  EXPECT_EQ(result_ptr->ad_error().code(),
+            firebase::gma::kAdErrorCodeLoadInProgress);
+  EXPECT_EQ(result_ptr->ad_error().message(), "Ad is currently loading.");
+  EXPECT_EQ(result_ptr->ad_error().domain(), "SDK");
+  const firebase::gma::ResponseInfo response_info =
+      result_ptr->ad_error().response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());
   delete interstitial_ad;
 }
@@ -1434,10 +1442,12 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorBadAdUnitId) {
   const firebase::gma::AdResult* result_ptr = load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
-  EXPECT_EQ(result_ptr->code(), firebase::gma::kAdErrorCodeInvalidRequest);
-  EXPECT_FALSE(result_ptr->message().empty());
-  EXPECT_EQ(result_ptr->domain(), kErrorDomain);
-  const firebase::gma::ResponseInfo response_info = result_ptr->response_info();
+  EXPECT_EQ(result_ptr->ad_error().code(),
+            firebase::gma::kAdErrorCodeInvalidRequest);
+  EXPECT_FALSE(result_ptr->ad_error().message().empty());
+  EXPECT_EQ(result_ptr->ad_error().domain(), kErrorDomain);
+  const firebase::gma::ResponseInfo response_info =
+      result_ptr->ad_error().response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());
   delete interstitial_ad;
 }
@@ -1540,10 +1550,12 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorLoadInProgress) {
   const firebase::gma::AdResult* result_ptr = second_load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
-  EXPECT_EQ(result_ptr->code(), firebase::gma::kAdErrorCodeLoadInProgress);
-  EXPECT_EQ(result_ptr->message(), "Ad is currently loading.");
-  EXPECT_EQ(result_ptr->domain(), "SDK");
-  const firebase::gma::ResponseInfo response_info = result_ptr->response_info();
+  EXPECT_EQ(result_ptr->ad_error().code(),
+            firebase::gma::kAdErrorCodeLoadInProgress);
+  EXPECT_EQ(result_ptr->ad_error().message(), "Ad is currently loading.");
+  EXPECT_EQ(result_ptr->ad_error().domain(), "SDK");
+  const firebase::gma::ResponseInfo response_info =
+      result_ptr->ad_error().response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());
   delete rewarded;
 }
@@ -1565,10 +1577,12 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadAdUnitId) {
   const firebase::gma::AdResult* result_ptr = load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
-  EXPECT_EQ(result_ptr->code(), firebase::gma::kAdErrorCodeInvalidRequest);
-  EXPECT_FALSE(result_ptr->message().empty());
-  EXPECT_EQ(result_ptr->domain(), kErrorDomain);
-  const firebase::gma::ResponseInfo response_info = result_ptr->response_info();
+  EXPECT_EQ(result_ptr->ad_error().code(),
+            firebase::gma::kAdErrorCodeInvalidRequest);
+  EXPECT_FALSE(result_ptr->ad_error().message().empty());
+  EXPECT_EQ(result_ptr->ad_error().domain(), kErrorDomain);
+  const firebase::gma::ResponseInfo response_info =
+      result_ptr->ad_error().response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());
   delete rewarded;
 }

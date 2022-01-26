@@ -53,15 +53,15 @@
 
 - (void)ad:(nonnull id<GADFullScreenPresentingAd>)ad
 didFailToPresentFullScreenContentWithError:(nonnull NSError *)error {
-  firebase::gma::AdResultInternal ad_result_internal;
-  ad_result_internal.ad_result_type =
-    firebase::gma::AdResultInternal::kAdResultInternalFullScreenContentError;
-  ad_result_internal.is_successful = false;
-  ad_result_internal.native_ad_error = error;
+  firebase::gma::AdErrorInternal ad_error_internal;
+  ad_error_internal.ad_result_type =
+    firebase::gma::AdErrorInternal::kAdErrorInternalFullScreenContentError;
+  ad_error_internal.is_successful = false;
+  ad_error_internal.native_ad_error = error;
   // Invoke GmaInternal, a friend of AdResult, to have it access its
   // protected constructor with the AdError data.
-  const firebase::gma::AdResult& ad_result = firebase::gma::GmaInternal::CreateAdResult(ad_result_internal);
-  _interstitialAd->NotifyListenerOfAdFailedToShowFullScreenContent(ad_result);
+  const firebase::gma::AdError& ad_error = firebase::gma::GMAItnernal::CreateAdERror(ad_error_internal);
+  _interstitialAd->NotifyListenerOfAdFailedToShowFullScreenContent(ad_error);
 }
 
 - (void)adDidPresentFullScreenContent:(nonnull id<GADFullScreenPresentingAd>)ad {

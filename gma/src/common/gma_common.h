@@ -32,7 +32,7 @@ namespace firebase {
 namespace gma {
 
 // Error messages used for completing futures. These match the error codes in
-// the AdError enumeration in the C++ API.
+// the AdErrorCode enumeration in the C++ API.
 extern const char* kAdAlreadyInitializedErrorMessage;
 extern const char* kAdCouldNotParseAdRequestErrorMessage;
 extern const char* kAdLoadInProgressErrorMessage;
@@ -126,14 +126,17 @@ void CompleteFuture(int error, const char* error_msg,
 // callbacks.  This is achieved via friend relationships with those classes.
 class GmaInternal {
  public:
-  // Completes an AdResult future given the AdResultInternal object.
+  // Completes an AdResult future with a successful result.
+  static void CompleteLoadAdFuture(FutureCallbackData<AdResult>* callback_data);
+
+  // Completes an AdResult future given the AdErrorInternal object.
   static void CompleteLoadAdFuture(FutureCallbackData<AdResult>* callback_data,
                                    int error_code,
                                    const std::string& error_message,
-                                   const AdResultInternal& ad_result_internal);
+                                   const AdErrorInternal& ad_error_internal);
 
-  // Constructs and returns an AdResult object given an AdResultInteral object.
-  static AdResult CreateAdResult(const AdResultInternal& ad_result_internal);
+  // Constructs and returns an AdError object given an AdErrorInternal object.
+  static AdError CreateAdError(const AdErrorInternal& ad_error_internal);
 
   // Construct and return an AdapterStatus with the given values.
   static AdapterStatus CreateAdapterStatus(const std::string& description,

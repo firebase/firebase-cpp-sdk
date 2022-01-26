@@ -16,7 +16,7 @@
 
 #include "gma/src/android/response_info_android.h"
 
-#include "gma/src/android/ad_result_android.h"
+#include "gma/src/android/ad_error_android.h"
 #include "gma/src/android/adapter_response_info_android.h"
 #include "gma/src/android/gma_android.h"
 #include "gma/src/common/gma_common.h"

@@ -235,16 +235,16 @@ void OpenAdInspector(AdParent ad_parent, AdInspectorClosedListener* listener) {
     [GADMobileAds.sharedInstance presentAdInspectorFromViewController:(UIViewController*)ad_parent
       completionHandler:^(NSError *error) {
         // Error will be non-nil if there was an issue and the inspector was not displayed.  
-        AdResultInternal ad_result_internal;
-        ad_result_internal.ad_result_type =
-          AdResultInternal::kAdResultInternalOpenAdInspectorError;
-        ad_result_internal.native_ad_error = error;
-        ad_result_internal.is_successful = (error == nullptr);      
+        AdErrorInternal ad_error_internal;
+        ad_error_internal.ad_result_type =
+          AdErrorInternal::kAdErrorInternalOpenAdInspectorError;
+        ad_error_internal.native_ad_error = error;
+        ad_error_internal.is_successful = (error == nullptr);      
 
-        const firebase::gma::AdResult& ad_result =
-          firebase::gma::GmaInternal::CreateAdResult(ad_result_internal);
+        const firebase::gma::AdError& ad_error =
+          firebase::gma::GmaInternal::CreateAdError(ad_error_internal);
 
-        listener->OnAdInspectorClosed(ad_result);
+        listener->OnAdInspectorClosed(ad_error);
       }];
   });  
 }
@@ -295,40 +295,43 @@ void CompleteAdResult(FutureCallbackData<AdResult>* callback_data,
   FIREBASE_ASSERT(error_message);
 
   std::string future_error_message;
-  AdResultInternal ad_result_internal;
+  AdErrorInternal ad_error_internal;
 
-  ad_result_internal.native_ad_error = error;
-  ad_result_internal.is_successful = true;  // assume until proven otherwise.
-  ad_result_internal.code = error_code;
+  ad_error_internal.native_ad_error = error;
+  ad_error_internal.is_successful = true;  // assume until proven otherwise.
+  ad_error_internal.code = error_code;
 
   // Futher result configuration is based on success/failure.
   if (error != nullptr) {
     // The iOS SDK returned an error.  The NSError object will be used by the
     // AdError implementation to populate its fields.
-    ad_result_internal.is_successful = false;
+    ad_error_internal.is_successful = false;
     if (is_load_ad_error) {
-      ad_result_internal.ad_result_type =
-        AdResultInternal::kAdResultInternalLoadAdError;
+      ad_error_internal.ad_result_type =
+        AdErrorInternal::kAdErrorInternalLoadAdError;
     } else {
-      ad_result_internal.ad_result_type =
-        AdResultInternal::kAdResultInternalAdError;
+      ad_error_internal.ad_result_type =
+        AdErrorInternal::kAdErrorInternalAdError;
     }
-  } else if (ad_result_internal.code != kAdErrorCodeNone) {
+  } else if (ad_error_internal.code != kAdErrorCodeNone) {
     // C++ SDK iOS GMA Wrapper encountered an error.
-    ad_result_internal.ad_result_type =
-      AdResultInternal::kAdResultInternalWrapperError;
-    ad_result_internal.is_successful = false;
-    ad_result_internal.message = std::string(error_message);
-    ad_result_internal.domain = "SDK";
-    ad_result_internal.to_string = std::string("Internal error: ") +
-      ad_result_internal.message;
-    future_error_message = ad_result_internal.message;
+    ad_error_internal.ad_result_type =
+      AdErrorInternal::kAdErrorInternalWrapperError;
+    ad_error_internal.is_successful = false;
+    ad_error_internal.message = std::string(error_message);
+    ad_error_internal.domain = "SDK";
+    ad_error_internal.to_string = std::string("Internal error: ") +
+      ad_error_internal.message;
+    future_error_message = ad_error_internal.message;
   }
 
-  GmaInternal::CompleteLoadAdFuture(
-      callback_data, ad_result_internal.code, future_error_message, ad_result_internal);
+  if( ad_error_internal.is_successful ) {
+    GmaInternal::CompleteLoadAdFuture(callback_data);
+  } else {
+    GmaInternal::CompleteLoadAdFuture(
+      callback_data, ad_error_internal.code, future_error_message, ad_error_internal);
+  }
 }
-
 
 void CompleteLoadAdInternalResult(
     FutureCallbackData<AdResult>* callback_data,
