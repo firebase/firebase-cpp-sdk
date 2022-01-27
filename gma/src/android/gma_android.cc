@@ -876,8 +876,7 @@ void JNI_completeLoadedAd(JNIEnv* env, jclass clazz, jlong data_ptr) {
   FIREBASE_ASSERT(data_ptr);
   FutureCallbackData<AdResult>* callback_data =
       reinterpret_cast<FutureCallbackData<AdResult>*>(data_ptr);
-  CompleteLoadAdInternalResult(callback_data, kAdErrorCodeNone,
-                               /*error_message=*/"");
+  GmaInternal::CompleteLoadAdFuture(callback_data);
 }
 
 void JNI_completeLoadAdError(JNIEnv* env, jclass clazz, jlong data_ptr,
