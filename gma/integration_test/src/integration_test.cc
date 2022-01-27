@@ -1009,10 +1009,6 @@ TEST_F(FirebaseGmaTest, TestAdView) {
   const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_TRUE(result_ptr->is_successful());
-  EXPECT_EQ(result_ptr->ad_error().code(), firebase::gma::kAdErrorCodeNone);
-  EXPECT_TRUE(result_ptr->ad_error().message().empty());
-  EXPECT_TRUE(result_ptr->ad_error().domain().empty());
-  EXPECT_TRUE(result_ptr->ad_error().ToString().empty());
   const firebase::gma::ResponseInfo response_info =
       result_ptr->ad_error().response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());

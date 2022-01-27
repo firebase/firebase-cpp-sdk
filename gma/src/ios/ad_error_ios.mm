@@ -24,7 +24,7 @@ extern "C" {
 
 #include "gma/src/common/ad_error_internal.h"
 #include "gma/src/include/firebase/gma.h"
-#include "gma/src/ios/ad_result_ios.h"
+#include "gma/src/ios/ad_error_ios.h"
 #include "gma/src/ios/response_info_ios.h"
 
 #include "app/src/util_ios.h"

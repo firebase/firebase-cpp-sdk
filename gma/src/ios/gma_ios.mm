@@ -26,7 +26,7 @@
 
 #include "gma/src/common/gma_common.h"
 #include "gma/src/include/firebase/gma/types.h"
-#include "gma/src/ios/ad_result_ios.h"
+#include "gma/src/ios/ad_error_ios.h"
 #include "gma/src/ios/adapter_response_info_ios.h"
 #include "gma/src/ios/response_info_ios.h"
 #include "app/src/include/firebase/app.h"
@@ -235,16 +235,18 @@ void OpenAdInspector(AdParent ad_parent, AdInspectorClosedListener* listener) {
     [GADMobileAds.sharedInstance presentAdInspectorFromViewController:(UIViewController*)ad_parent
       completionHandler:^(NSError *error) {
         // Error will be non-nil if there was an issue and the inspector was not displayed.  
-        AdErrorInternal ad_error_internal;
-        ad_error_internal.ad_result_type =
-          AdErrorInternal::kAdErrorInternalOpenAdInspectorError;
-        ad_error_internal.native_ad_error = error;
-        ad_error_internal.is_successful = (error == nullptr);      
+        AdResult ad_result;
+        if(error != nil) {
+          AdErrorInternal ad_error_internal;
+          ad_error_internal.ad_result_type =
+            AdErrorInternal::kAdErrorInternalOpenAdInspectorError;
+          ad_error_internal.native_ad_error = error;
+          ad_error_internal.is_successful = false;
+          ad_result =
+            AdResult(GmaInternal::CreateAdError(ad_error_internal));
+        }
 
-        const firebase::gma::AdError& ad_error =
-          firebase::gma::GmaInternal::CreateAdError(ad_error_internal);
-
-        listener->OnAdInspectorClosed(ad_error);
+        listener->OnAdInspectorClosed(ad_result);
       }];
   });  
 }

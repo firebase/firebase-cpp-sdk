@@ -246,8 +246,8 @@ class AdResult {
 
   /// An object representing an error which occurred during an ad operation.
   /// If the @ref AdResult::is_successful() returns true, then the @ref AdError
-  /// object returned via this method will have default values and empty
-  /// strings.
+  /// object returned via this method will return error codes and strings
+  /// denoting that it is uninitialized.
   const AdError& ad_error() const;
 
  private:

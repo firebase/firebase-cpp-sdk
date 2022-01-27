@@ -850,16 +850,15 @@ static void JNICALL AdInspectorHelper_adInspectorClosedCallback(
       reinterpret_cast<firebase::gma::AdInspectorClosedListener*>(
           native_callback_ptr);
 
-  AdErrorInternal ad_error_internal;
-  ad_error_internal.ad_result_type =
-      AdErrorInternal::kAdErrorInternalOpenAdInspectorError;
-  ad_error_internal.native_ad_error = j_ad_error;
-  ad_error_internal.is_successful = (j_ad_error == nullptr);
-
-  // Invoke GmaInternal, a friend of AdError, to have it access AdError's
-  // protected constructor.
-  const AdResult& ad_result =
-      AdResult(GmaInternal::CreateAdError(ad_error_internal));
+  AdResult ad_result;
+  if (j_ad_error != nullptr) {
+    AdErrorInternal ad_error_internal;
+    ad_error_internal.ad_result_type =
+        AdErrorInternal::kAdErrorInternalOpenAdInspectorError;
+    ad_error_internal.native_ad_error = j_ad_error;
+    ad_error_internal.is_successful = false;
+    ad_result = AdResult(GmaInternal::CreateAdError(ad_error_internal));
+  }
   listener->OnAdInspectorClosed(ad_result);
 }
 

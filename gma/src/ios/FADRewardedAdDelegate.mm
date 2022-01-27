@@ -16,7 +16,7 @@
 
 #import "gma/src/ios/FADRewardedAdDelegate.h"
 
-#include "gma/src/ios/ad_result_ios.h"
+#include "gma/src/ios/ad_error_ios.h"
 #include "gma/src/ios/rewarded_ad_internal_ios.h"
 
 @interface FADRewardedAdDelegate () {
@@ -60,7 +60,8 @@ didFailToPresentFullScreenContentWithError:(nonnull NSError *)error {
   ad_error_internal.native_ad_error = error;
   // Invoke GmaInternal, a friend of AdResult, to have it access its
   // protected constructor with the AdError data.
-  const firebase::gma::AdError& ad_error = firebase::gma::AdError(ad_error_internal);
+  const firebase::gma::AdError& ad_error =
+    firebase::gma::GmaInternal::CreateAdError(ad_error_internal);
   _rewardedAd->NotifyListenerOfAdFailedToShowFullScreenContent(ad_error);
 }
 
