@@ -34,29 +34,29 @@ typedef void* NativeSdkAdError;
 #endif
 
 struct AdErrorInternal {
-  // The type of AdResult, based on the operation that was requested.
+  // The type of AdError, based on the operation that was requested.
   enum AdErrorInternalType {
-    // Standard AdResult type for most Ad operations.
+    // Standard AdError type for most Ad operations.
     kAdErrorInternalAdError = 1,
-    // AdResult represents an error the GMA SDK wrapper.
+    // AdError represents an error the GMA SDK wrapper.
     kAdErrorInternalWrapperError,
-    // AdResult from a LoadAd operation.
+    // AdError from a LoadAd operation.
     kAdErrorInternalLoadAdError,
-    // AdResult from an attempt to show a full screen ad.
+    // AdError from an attempt to show a full screen ad.
     kAdErrorInternalFullScreenContentError,
-    // Ad Result from an attempt to show the AdInspector.
+    // AdError from an attempt to show the AdInspector.
     kAdErrorInternalOpenAdInspectorError
   };
 
   // Default constructor.
   AdErrorInternal() {
-    ad_result_type = kAdErrorInternalAdError;
+    ad_error_type = kAdErrorInternalAdError;
     code = kAdErrorCodeNone;
     native_ad_error = nullptr;
   }
 
-  // The type of AdResult, based on the operation that was requested.
-  AdErrorInternalType ad_result_type;
+  // The type of AdError, based on the operation that was requested.
+  AdErrorInternalType ad_error_type;
 
   // True if this was a successful result.
   bool is_successful;

@@ -40,7 +40,7 @@ AdError::AdError() {
   // an AdError makes it to the application in this default state.
   internal_ = new AdErrorInternal();
   internal_->is_successful = false;
-  internal_->ad_result_type = AdErrorInternal::kAdErrorInternalWrapperError;
+  internal_->ad_error_type = AdErrorInternal::kAdErrorInternalWrapperError;
   internal_->code = kAdErrorCodeUninitialized;
   internal_->domain = "SDK";
   internal_->message = "This AdError has not be initialized.";
@@ -57,7 +57,7 @@ AdError::AdError(const AdErrorInternal& ad_error_internal) {
   internal_ = new AdErrorInternal();
 
   internal_->is_successful = ad_error_internal.is_successful;
-  internal_->ad_result_type = ad_error_internal.ad_result_type;
+  internal_->ad_error_type = ad_error_internal.ad_error_type;
   internal_->native_ad_error = nullptr;
   response_info_ = new ResponseInfo();
 
@@ -69,7 +69,7 @@ AdError::AdError(const AdErrorInternal& ad_error_internal) {
     internal_->message = "";
     internal_->domain = "";
     internal_->to_string = "";
-  } else if (internal_->ad_result_type ==
+  } else if (internal_->ad_error_type ==
              AdErrorInternal::kAdErrorInternalWrapperError) {
     // Wrapper errors come with prepopulated code, domain, etc, fields.
     internal_->code = ad_error_internal.code;
@@ -85,7 +85,7 @@ AdError::AdError(const AdErrorInternal& ad_error_internal) {
 
     // Error Code.  Map the iOS GMA SDK error codes to our
     // platform-independent C++ SDK error codes.
-    switch (internal_->ad_result_type) {
+    switch (internal_->ad_error_type) {
       case AdErrorInternal::kAdErrorInternalFullScreenContentError:
         // Full screen content errors have their own error codes.
         internal_->code =
@@ -106,7 +106,7 @@ AdError::AdError(const AdErrorInternal& ad_error_internal) {
 
     // Errors from LoadAd attempts have extra data pertaining to adapter
     // responses.
-    if (internal_->ad_result_type == AdErrorInternal::kAdErrorInternalLoadAdError) {
+    if (internal_->ad_error_type == AdErrorInternal::kAdErrorInternalLoadAdError) {
       ResponseInfoInternal response_info_internal = ResponseInfoInternal( {
         ad_error_internal.native_ad_error.userInfo[GADErrorUserInfoKeyResponseInfo]
       });
@@ -154,7 +154,7 @@ AdError& AdError::operator=(const AdError& ad_result) {
     internal_->native_ad_error = ad_result.internal_->native_ad_error;
 
     internal_->is_successful = ad_result.internal_->is_successful;
-    internal_->ad_result_type = ad_result.internal_->ad_result_type;
+    internal_->ad_error_type = ad_result.internal_->ad_error_type;
     internal_->code = ad_result.internal_->code;
     internal_->domain = ad_result.internal_->domain;
     internal_->message = ad_result.internal_->message;

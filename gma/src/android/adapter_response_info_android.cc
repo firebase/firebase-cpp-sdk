@@ -32,7 +32,8 @@ METHOD_LOOKUP_DEFINITION(adapter_response_info,
                          ADAPTERRESPONSEINFO_METHODS);
 
 AdapterResponseInfo::AdapterResponseInfo(
-    const AdapterResponseInfoInternal& internal) {
+    const AdapterResponseInfoInternal& internal)
+    : ad_result_() {
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(internal.j_adapter_response_info);
@@ -42,14 +43,15 @@ AdapterResponseInfo::AdapterResponseInfo(
   const jobject j_adapter_response_info =
       env->NewLocalRef(internal.j_adapter_response_info);
 
-  // Construct an AdErrorInternal from the AdError in the AdapterResponseInfo.
+  // Construct an AdErrorInternal from the Android SDK AdError object in the
+  // AdapterResponseInfo.
   AdErrorInternal ad_error_internal;
   ad_error_internal.native_ad_error = env->CallObjectMethod(
       j_adapter_response_info,
       adapter_response_info::GetMethodId(adapter_response_info::kGetAdError));
   FIREBASE_ASSERT(ad_error_internal.native_ad_error);
   AdError ad_error = AdError(ad_error_internal);
-  if (ad_error.code() == kAdErrorCodeNone) {
+  if (ad_error.code() != kAdErrorCodeNone) {
     ad_result_ = AdResult(ad_error);
   }
   env->DeleteLocalRef(ad_error_internal.native_ad_error);

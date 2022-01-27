@@ -54,7 +54,7 @@
 - (void)ad:(nonnull id<GADFullScreenPresentingAd>)ad
 didFailToPresentFullScreenContentWithError:(nonnull NSError *)error {
   firebase::gma::AdErrorInternal ad_error_internal;
-  ad_error_internal.ad_result_type =
+  ad_error_internal.ad_error_type =
     firebase::gma::AdErrorInternal::kAdErrorInternalFullScreenContentError;
   ad_error_internal.is_successful = false;
   ad_error_internal.native_ad_error = error;

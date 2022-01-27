@@ -236,7 +236,7 @@ class AdResult {
   AdResult();
 
   /// Constructor.
-  AdResult(const AdError& ad_error);
+  explicit AdResult(const AdError& ad_error);
 
   /// Destructor.
   virtual ~AdResult();
@@ -246,8 +246,7 @@ class AdResult {
 
   /// An object representing an error which occurred during an ad operation.
   /// If the @ref AdResult::is_successful() returns true, then the @ref AdError
-  /// object returned via this method will return error codes and strings
-  /// denoting that it is uninitialized.
+  /// object returned via this method will contain no contextual information.
   const AdError& ad_error() const;
 
  private:

@@ -238,7 +238,7 @@ void OpenAdInspector(AdParent ad_parent, AdInspectorClosedListener* listener) {
         AdResult ad_result;
         if(error != nil) {
           AdErrorInternal ad_error_internal;
-          ad_error_internal.ad_result_type =
+          ad_error_internal.ad_error_type =
             AdErrorInternal::kAdErrorInternalOpenAdInspectorError;
           ad_error_internal.native_ad_error = error;
           ad_error_internal.is_successful = false;
@@ -319,15 +319,15 @@ void CompleteAdResult(FutureCallbackData<AdResult>* callback_data,
     // AdError implementation to populate its fields.
     ad_error_internal.is_successful = false;
     if (is_load_ad_error) {
-      ad_error_internal.ad_result_type =
+      ad_error_internal.ad_error_type =
         AdErrorInternal::kAdErrorInternalLoadAdError;
     } else {
-      ad_error_internal.ad_result_type =
+      ad_error_internal.ad_error_type =
         AdErrorInternal::kAdErrorInternalAdError;
     }
   } else if (ad_error_internal.code != kAdErrorCodeNone) {
     // C++ SDK iOS GMA Wrapper encountered an error.
-    ad_error_internal.ad_result_type =
+    ad_error_internal.ad_error_type =
       AdErrorInternal::kAdErrorInternalWrapperError;
     ad_error_internal.is_successful = false;
     ad_error_internal.message = std::string(error_message);

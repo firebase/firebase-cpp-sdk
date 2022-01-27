@@ -37,7 +37,7 @@ AdapterResponseInfo::AdapterResponseInfo(
   AdErrorInternal ad_error_internal;
   ad_error_internal.native_ad_error = internal.ad_network_response_info.error;
   AdError ad_error = AdError(ad_error_internal);
-  if(ad_error.code() == kAdErrorCodeNone) {
+  if(ad_error.code() != kAdErrorCodeNone) {
     ad_result_ = AdResult(AdError(ad_error_internal));
   }
   

@@ -752,7 +752,7 @@ void CompleteLoadAdCallback(FutureCallbackData<AdResult>* callback_data,
   AdErrorInternal ad_error_internal;
 
   ad_error_internal.native_ad_error = j_load_ad_error;
-  ad_error_internal.ad_result_type =
+  ad_error_internal.ad_error_type =
       AdErrorInternal::kAdErrorInternalLoadAdError;
   ad_error_internal.is_successful = true;  // assume until proven otherwise.
   ad_error_internal.code = error_code;
@@ -764,7 +764,7 @@ void CompleteLoadAdCallback(FutureCallbackData<AdResult>* callback_data,
     ad_error_internal.is_successful = false;
   } else if (ad_error_internal.code != kAdErrorCodeNone) {
     // C++ SDK Android GMA Wrapper encountered an error.
-    ad_error_internal.ad_result_type =
+    ad_error_internal.ad_error_type =
         AdErrorInternal::kAdErrorInternalWrapperError;
     ad_error_internal.is_successful = false;
     ad_error_internal.message = error_message;
@@ -852,10 +852,11 @@ static void JNICALL AdInspectorHelper_adInspectorClosedCallback(
       reinterpret_cast<firebase::gma::AdInspectorClosedListener*>(
           native_callback_ptr);
 
+  // A default-constructed AdResult represents a successful result.
   AdResult ad_result;
   if (j_ad_error != nullptr) {
     AdErrorInternal ad_error_internal;
-    ad_error_internal.ad_result_type =
+    ad_error_internal.ad_error_type =
         AdErrorInternal::kAdErrorInternalOpenAdInspectorError;
     ad_error_internal.native_ad_error = j_ad_error;
     ad_error_internal.is_successful = false;
@@ -932,7 +933,7 @@ void JNI_notifyAdFailedToShowFullScreenContentEvent(JNIEnv* env, jclass clazz,
   internal::FullScreenAdEventListener* listener =
       reinterpret_cast<internal::FullScreenAdEventListener*>(data_ptr);
   AdErrorInternal ad_error_internal;
-  ad_error_internal.ad_result_type =
+  ad_error_internal.ad_error_type =
       AdErrorInternal::kAdErrorInternalFullScreenContentError;
   ad_error_internal.native_ad_error = j_ad_error;
 

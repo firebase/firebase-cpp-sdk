@@ -47,7 +47,7 @@ AdError::AdError() {
   // Initialize it with some helpful debug values in the case
   // an AdError makes it to the application in this default state.
   internal_ = new AdErrorInternal();
-  internal_->ad_result_type = AdErrorInternal::kAdErrorInternalWrapperError;
+  internal_->ad_error_type = AdErrorInternal::kAdErrorInternalWrapperError;
   internal_->code = kAdErrorCodeUninitialized;
   internal_->domain = "SDK";
   internal_->message = "This AdError has not be initialized.";
@@ -66,7 +66,7 @@ AdError::AdError(const AdErrorInternal& ad_error_internal) {
 
   internal_ = new AdErrorInternal();
   internal_->is_successful = ad_error_internal.is_successful;
-  internal_->ad_result_type = ad_error_internal.ad_result_type;
+  internal_->ad_error_type = ad_error_internal.ad_error_type;
   internal_->native_ad_error = nullptr;
   response_info_ = new ResponseInfo();
 
@@ -78,7 +78,7 @@ AdError::AdError(const AdErrorInternal& ad_error_internal) {
     internal_->message = "";
     internal_->domain = "";
     internal_->to_string = "";
-  } else if (internal_->ad_result_type ==
+  } else if (internal_->ad_error_type ==
              AdErrorInternal::kAdErrorInternalWrapperError) {
     // Wrapper errors come with prepopulated code, domain, etc, fields.
     internal_->code = ad_error_internal.code;
@@ -100,7 +100,7 @@ AdError::AdError(const AdErrorInternal& ad_error_internal) {
     // platform-independent C++ SDK error codes.
     jint j_error_code = env->CallIntMethod(
         internal_->native_ad_error, ad_error::GetMethodId(ad_error::kGetCode));
-    switch (internal_->ad_result_type) {
+    switch (internal_->ad_error_type) {
       case AdErrorInternal::kAdErrorInternalFullScreenContentError:
         // Full screen content errors have their own error codes.
         internal_->code =
@@ -134,7 +134,7 @@ AdError::AdError(const AdErrorInternal& ad_error_internal) {
 
     // Differentiate between a com.google.android.gms.ads.AdError or its
     // com.google.android.gms.ads.LoadAdError subclass.
-    if (internal_->ad_result_type ==
+    if (internal_->ad_error_type ==
         AdErrorInternal::kAdErrorInternalLoadAdError) {
       // LoadAdError object.
       jobject j_response_info = env->CallObjectMethod(
@@ -195,7 +195,7 @@ AdError& AdError::operator=(const AdError& ad_result) {
     internal_ = new AdErrorInternal();
 
     internal_->is_successful = ad_result.internal_->is_successful;
-    internal_->ad_result_type = ad_result.internal_->ad_result_type;
+    internal_->ad_error_type = ad_result.internal_->ad_error_type;
     internal_->code = ad_result.internal_->code;
     internal_->domain = ad_result.internal_->domain;
     internal_->message = ad_result.internal_->message;
@@ -242,7 +242,7 @@ std::unique_ptr<AdError> AdError::GetCause() const {
   // AdErrors my contain another AdError which points to the cause of this
   // error.  However, this is only possible if this AdError represents
   // and Android GMA SDK error and not a wrapper error.
-  if (internal_->ad_result_type ==
+  if (internal_->ad_error_type ==
       AdErrorInternal::kAdErrorInternalWrapperError) {
     return std::unique_ptr<AdError>(nullptr);
   } else {
