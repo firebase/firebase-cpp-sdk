@@ -52,6 +52,7 @@ import summarize_test_results as summarize
 
 _REPORT_LABEL = "nightly-testing"
 _REPORT_TITLE = "Nightly Integration Testing Report"
+_REPORT_TITLE_FIRESTORE = "Nightly Integration Testing Report for Firestore"
 
 _LABEL_TRIGGER_FULL = "tests-requested: full"
 _LABEL_TRIGGER_QUICK = "tests-requested: quick"
@@ -89,6 +90,10 @@ _BUILD_STAGES = [_BUILD_STAGES_START, _BUILD_STAGES_PROGRESS, _BUILD_STAGES_END,
 _BUILD_AGAINST_SDK = "sdk"
 _BUILD_AGAINST_REPO = "repo"
 
+_BUILD_API_ALL = "all"
+_BUILD_API_FIRESTORE = "firestore"
+_BUILD_API_ALL_EXCEPT_FIRESTORE = "all_except_firestore"
+
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string(
@@ -123,6 +128,10 @@ flags.DEFINE_string(
 flags.DEFINE_string(
     "build_against", None,
     "Integration testapps could either build against packaged SDK or repo")
+
+flags.DEFINE_string(
+    "build_apis", None,
+    "Generate spearate report for different apis.")
 
 
 def test_start(token, issue_number, actor, commit, run_id):
@@ -191,12 +200,16 @@ def test_end(token, issue_number, actor, commit, run_id, new_token):
   github.delete_label(new_token, issue_number, _LABEL_PROGRESS)
 
 
-def test_report(token, actor, commit, run_id, build_against):
+def test_report(token, actor, commit, run_id, build_against, build_apis):
   """Update (create if not exist) a Daily Report in Issue. 
   The Issue with title _REPORT_TITLE and label _REPORT_LABEL:
   https://github.com/firebase/firebase-cpp-sdk/issues?q=is%3Aissue+label%3Anightly-testing
   """
-  issue_number = _get_issue_number(token, _REPORT_TITLE, _REPORT_LABEL)
+  if build_apis == _BUILD_API_FIRESTORE:
+    report_title = _REPORT_TITLE_FIRESTORE
+  else:
+    report_title = _REPORT_TITLE
+  issue_number = _get_issue_number(token, report_title, _REPORT_LABEL)
   previous_comment = github.get_issue_body(token, issue_number)
   [previous_comment_repo, previous_comment_sdk] = previous_comment.split(_COMMENT_SUFFIX)
   success_or_only_flakiness, log_summary = _get_summary_table(token, run_id)
@@ -215,7 +228,7 @@ def test_report(token, actor, commit, run_id, build_against):
   
   if build_against==_BUILD_AGAINST_REPO:
     comment = comment + _COMMENT_SUFFIX + previous_comment_sdk
-  else:
+  elif build_against==_BUILD_AGAINST_SDK:
     comment = previous_comment_repo + _COMMENT_SUFFIX + comment
 
   if (_COMMENT_TITLE_SUCCEED_REPO in comment) and (_COMMENT_TITLE_SUCCEED_SDK in comment):
@@ -288,7 +301,7 @@ def main(argv):
   elif FLAGS.stage == _BUILD_STAGES_END:
     test_end(FLAGS.token, FLAGS.issue_number, FLAGS.actor, FLAGS.commit, FLAGS.run_id, FLAGS.new_token)
   elif FLAGS.stage == _BUILD_STAGES_REPORT:
-    test_report(FLAGS.token, FLAGS.actor, FLAGS.commit, FLAGS.run_id, FLAGS.build_against)
+    test_report(FLAGS.token, FLAGS.actor, FLAGS.commit, FLAGS.run_id, FLAGS.build_against, FLAGS.build_apis)
   else:
     print("Invalid stage value. Valid value: " + ",".join(_BUILD_STAGES))
 
