@@ -207,11 +207,16 @@ def test_report(token, actor, commit, run_id, build_against, build_apis):
   """
   if build_apis == _BUILD_API_FIRESTORE:
     report_title = _REPORT_TITLE_FIRESTORE
+    prefix = ""
   else:
     report_title = _REPORT_TITLE
+    firestore_issue_number = _get_issue_number(token, _REPORT_TITLE_FIRESTORE, _REPORT_LABEL)
+    firestore_issue_url = "https://github.com/firebase/firebase-cpp-sdk/issues/%s" % firestore_issue_number
+    prefix = "Note: This report excludes firestore. Please also check **[the report for firestore](%s)**\n***\n" % firestore_issue_url
+
   issue_number = _get_issue_number(token, report_title, _REPORT_LABEL)
   previous_comment = github.get_issue_body(token, issue_number)
-  [previous_comment_repo, previous_comment_sdk] = previous_comment.split(_COMMENT_SUFFIX)
+  [_, previous_comment_repo, previous_comment_sdk] = previous_comment.split(_COMMENT_SUFFIX)
   success_or_only_flakiness, log_summary = _get_summary_table(token, run_id)
   if success_or_only_flakiness and not log_summary:
     # succeeded (without flakiness)
@@ -227,9 +232,9 @@ def test_report(token, actor, commit, run_id, build_against, build_apis):
     comment = title + _get_description(actor, commit, run_id) + log_summary + _COMMENT_FLAKY_TRACKER
   
   if build_against==_BUILD_AGAINST_REPO:
-    comment = comment + _COMMENT_SUFFIX + previous_comment_sdk
+    comment = prefix + _COMMENT_SUFFIX + comment + _COMMENT_SUFFIX + previous_comment_sdk
   elif build_against==_BUILD_AGAINST_SDK:
-    comment = previous_comment_repo + _COMMENT_SUFFIX + comment
+    comment = prefix + _COMMENT_SUFFIX + previous_comment_repo + _COMMENT_SUFFIX + comment
 
   if (_COMMENT_TITLE_SUCCEED_REPO in comment) and (_COMMENT_TITLE_SUCCEED_SDK in comment):
     github.close_issue(token, issue_number)
