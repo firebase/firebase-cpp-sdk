@@ -162,6 +162,18 @@ RequestConfiguration GetRequestConfiguration();
 /// the ad inspector UI. Initialize must be called prior to this function.
 void OpenAdInspector(AdParent parent, AdInspectorClosedListener* listener);
 
+/// Controls whether the Google Mobile Ads SDK Same App Key is enabled.
+///
+/// This function must be invoked after GMA has been initialized. The value set
+/// persists across app sessions. The key is enabled by default.
+///
+/// This operation is supported on iOS only.  This is a no-op on Android
+/// systems.
+///
+/// @param[in] is_enabled whether the Google Mobile Ads SDK Same App Key is
+/// enabled.
+void SetIsSameAppKeyEnabled(bool is_enabled);
+
 /// @brief Terminate GMA.
 ///
 /// Frees resources associated with GMA that were allocated during
