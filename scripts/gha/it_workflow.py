@@ -250,7 +250,7 @@ def _get_issue_number(token, title, label):
     if issue["title"] == title:
       return issue["number"]
 
-  return github.create_issue(token, title, label, _COMMENT_SUFFIX)["number"]
+  return github.create_issue(token, title, label, _COMMENT_SUFFIX + " " + _COMMENT_SUFFIX)["number"]
 
 
 def _update_comment(token, issue_number, comment):
