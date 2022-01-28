@@ -793,30 +793,30 @@ jobs:
           verbose_flag=-v
         fi
         set -e
-        # if [[ "${{ github.event_name }}" == "schedule" ]]; then
-        # trigger integration tests and generate two reports for nightly workflow run: one for firestore, one for the rest.
-        python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} \
-          -w integration_tests.yml \
-          -p test_packaged_sdk ${{ github.run_id }} \
-          -p use_expanded_matrix ${USE_EXPANDED_MATRIX} \
-          -p apis "admob,analytics,auth,database,dynamic_links,functions,installations,messaging,remote_config,storage" \
-          -p test_pull_request nightly-packaging \
-          -s 10 \
-          -A ${verbose_flag}
-        python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} \
-          -w integration_tests.yml \
-          -p test_packaged_sdk ${{ github.run_id }} \
-          -p use_expanded_matrix ${USE_EXPANDED_MATRIX} \
-          -p apis "firestore" \
-          -p test_pull_request nightly-packaging \
-          -s 10 \
-          -A ${verbose_flag}
-        # else
-        #   # trigger integration tests
-        #   python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} \
-        #     -w integration_tests.yml \
-        #     -p test_packaged_sdk ${{ github.run_id }} \
-        #     -p use_expanded_matrix ${USE_EXPANDED_MATRIX} \
-        #     -s 10 \
-        #     -A ${verbose_flag}
-        # fi
+        if [[ "${{ github.event_name }}" == "schedule" ]]; then
+          # trigger integration tests and generate two reports for nightly workflow run: one for firestore, one for the rest.
+          python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} \
+            -w integration_tests.yml \
+            -p test_packaged_sdk ${{ github.run_id }} \
+            -p use_expanded_matrix ${USE_EXPANDED_MATRIX} \
+            -p apis "admob,analytics,auth,database,dynamic_links,functions,installations,messaging,remote_config,storage" \
+            -p test_pull_request nightly-packaging \
+            -s 10 \
+            -A ${verbose_flag}
+          python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} \
+            -w integration_tests.yml \
+            -p test_packaged_sdk ${{ github.run_id }} \
+            -p use_expanded_matrix ${USE_EXPANDED_MATRIX} \
+            -p apis "firestore" \
+            -p test_pull_request nightly-packaging \
+            -s 10 \
+            -A ${verbose_flag}
+        else
+          # trigger integration tests
+          python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} \
+            -w integration_tests.yml \
+            -p test_packaged_sdk ${{ github.run_id }} \
+            -p use_expanded_matrix ${USE_EXPANDED_MATRIX} \
+            -s 10 \
+            -A ${verbose_flag}
+        fi
