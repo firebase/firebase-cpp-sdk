@@ -37,7 +37,7 @@ binary_to_array("gma_resources"
 set(android_SRCS
     ${gma_resources_source}
     src/android/ad_request_converter.cc
-    src/android/ad_result_android.cc
+    src/android/ad_error_android.cc
     src/android/adapter_response_info_android.cc
     src/android/gma_android.cc
     src/android/ad_view_internal_android.cc
@@ -52,7 +52,7 @@ set(ios_SRCS
     src/ios/FADInterstitialDelegate.mm
     src/ios/FADRequest.mm
     src/ios/FADRewardedAdDelegate.mm
-    src/ios/ad_result_ios.mm
+    src/ios/ad_error_ios.mm
     src/ios/adapter_response_info_ios.mm
     src/ios/gma_ios.mm
     src/ios/ad_view_internal_ios.mm
@@ -62,7 +62,7 @@ set(ios_SRCS
 
 # Source files used by the stub implementation.
 set(stub_SRCS
-    src/stub/ad_result_stub.cc
+    src/stub/ad_error_stub.cc
     src/stub/adapter_response_info_stub.cc
     src/stub/gma_stub.cc
     src/stub/response_info_stub.cc)

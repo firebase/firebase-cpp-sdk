@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_GMA_SRC_IOS_AD_RESULT_IOS_H_
-#define FIREBASE_GMA_SRC_IOS_AD_RESULT_IOS_H_
+#ifndef FIREBASE_GMA_SRC_IOS_AD_ERROR_IOS_H_
+#define FIREBASE_GMA_SRC_IOS_AD_ERROR_IOS_H_
 
 extern "C" {
 #include <objc/objc.h>
@@ -24,6 +24,6 @@ extern "C" {
 #import <Foundation/Foundation.h>
 #import <GoogleMobileAds/GoogleMobileAds.h>
 
-#include "gma/src/common/ad_result_internal.h"
+#include "gma/src/common/ad_error_internal.h"
 
-#endif  // FIREBASE_GMA_SRC_IOS_AD_RESULT_IOS_H_
+#endif  // FIREBASE_GMA_SRC_IOS_AD_ERROR_IOS_H_

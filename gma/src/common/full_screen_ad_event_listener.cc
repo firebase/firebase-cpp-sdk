@@ -49,10 +49,10 @@ void FullScreenAdEventListener::NotifyListenerOfAdDismissedFullScreenContent() {
 }
 
 void FullScreenAdEventListener::NotifyListenerOfAdFailedToShowFullScreenContent(
-    const AdResult& ad_result) {
+    const AdError& ad_error) {
   MutexLock lock(listener_mutex_);
   if (full_screen_content_listener_ != nullptr) {
-    full_screen_content_listener_->OnAdFailedToShowFullScreenContent(ad_result);
+    full_screen_content_listener_->OnAdFailedToShowFullScreenContent(ad_error);
   }
 }
 

@@ -16,53 +16,53 @@
 
 #include <string>
 
-#include "gma/src/common/ad_result_internal.h"
+#include "gma/src/common/ad_error_internal.h"
 #include "gma/src/include/firebase/gma.h"
 #include "gma/src/include/firebase/gma/types.h"
 
 namespace firebase {
 namespace gma {
 
-AdResult::AdResult() {}
+const char* const AdError::kUndefinedDomain = "undefined";
 
-AdResult::AdResult(const AdResultInternal& ad_result_internal) {}
+AdError::AdError() {}
 
-AdResult::AdResult(const AdResult& ad_result) : AdResult() {}
+AdError::AdError(const AdErrorInternal& ad_error_internal) {}
 
-AdResult::~AdResult() {}
+AdError::AdError(const AdError& ad_result) : AdError() {}
 
-AdResult& AdResult::operator=(const AdResult& ad_result) { return *this; }
+AdError::~AdError() {}
 
-bool AdResult::is_successful() const { return false; }
+AdError& AdError::operator=(const AdError& ad_result) { return *this; }
 
-std::unique_ptr<AdResult> AdResult::GetCause() const {
-  return std::unique_ptr<AdResult>(nullptr);
+std::unique_ptr<AdError> AdError::GetCause() const {
+  return std::unique_ptr<AdError>(nullptr);
 }
 
 /// Gets the error's code.
-AdErrorCode AdResult::code() const { return kAdErrorCodeNone; }
+AdErrorCode AdError::code() const { return kAdErrorCodeNone; }
 
 /// Gets the domain of the error.
-const std::string& AdResult::domain() const {
+const std::string& AdError::domain() const {
   static const std::string empty;
   return empty;
 }
 
 /// Gets the message describing the error.
-const std::string& AdResult::message() const {
+const std::string& AdError::message() const {
   static const std::string empty;
   return empty;
 }
 
 /// Gets the ResponseInfo if an loadAd error occurred, with a collection of
 /// information from each adapter.
-const ResponseInfo& AdResult::response_info() const {
+const ResponseInfo& AdError::response_info() const {
   static const ResponseInfo empty;
   return empty;
 }
 
 /// Returns a log friendly string version of this object.
-const std::string& AdResult::ToString() const {
+const std::string& AdError::ToString() const {
   static const std::string empty;
   return empty;
 }

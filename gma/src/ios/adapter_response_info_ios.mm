@@ -23,7 +23,7 @@ extern "C" {
 #include "gma/src/include/firebase/gma.h"
 #include "gma/src/include/firebase/gma/types.h"
 #include "gma/src/ios/adapter_response_info_ios.h"
-#include "gma/src/ios/ad_result_ios.h"
+#include "gma/src/ios/ad_error_ios.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_ios.h"
 
@@ -31,13 +31,15 @@ namespace firebase {
 namespace gma {
 
 AdapterResponseInfo::AdapterResponseInfo(
-  const AdapterResponseInfoInternal& internal) : ad_result_(AdResultInternal())
-{
+  const AdapterResponseInfoInternal& internal) : ad_result_() {
   FIREBASE_ASSERT(internal.ad_network_response_info);
 
-  AdResultInternal ad_result_internal;
-  ad_result_internal.native_ad_error = internal.ad_network_response_info.error;
-  ad_result_ = AdResult(ad_result_internal);
+  AdErrorInternal ad_error_internal;
+  ad_error_internal.native_ad_error = internal.ad_network_response_info.error;
+  AdError ad_error = AdError(ad_error_internal);
+  if(ad_error.code() != kAdErrorCodeNone) {
+    ad_result_ = AdResult(AdError(ad_error_internal));
+  }
   
   adapter_class_name_ = util::NSStringToString(
     internal.ad_network_response_info.adNetworkClassName);

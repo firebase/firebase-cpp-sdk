@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gma/src/android/ad_result_android.h"
+#include "gma/src/android/ad_error_android.h"
 
 #include <jni.h>
 
@@ -40,37 +40,37 @@ METHOD_LOOKUP_DEFINITION(load_ad_error,
                          "com/google/android/gms/ads/LoadAdError",
                          LOADADERROR_METHODS);
 
-const char* const AdResult::kUndefinedDomain = "undefined";
+const char* const AdError::kUndefinedDomain = "undefined";
 
-AdResult::AdResult() {
+AdError::AdError() {
   // Default constructor is available for Future creation.
   // Initialize it with some helpful debug values in the case
-  // an AdResult makes it to the application in this default state.
-  internal_ = new AdResultInternal();
-  internal_->ad_result_type = AdResultInternal::kAdResultInternalWrapperError;
+  // an AdError makes it to the application in this default state.
+  internal_ = new AdErrorInternal();
+  internal_->ad_error_type = AdErrorInternal::kAdErrorInternalWrapperError;
   internal_->code = kAdErrorCodeUninitialized;
   internal_->domain = "SDK";
-  internal_->message = "This AdResult has not be initialized.";
+  internal_->message = "This AdError has not be initialized.";
   internal_->to_string = internal_->message;
   internal_->native_ad_error = nullptr;
 
-  // While most data is passed into this object through the AdResultInternal
+  // While most data is passed into this object through the AdErrorInternal
   // structure (above), the response_info_ is constructed when parsing
   // the native_ad_error itself.
   response_info_ = new ResponseInfo();
 }
 
-AdResult::AdResult(const AdResultInternal& ad_result_internal) {
+AdError::AdError(const AdErrorInternal& ad_error_internal) {
   JNIEnv* env = GetJNI();
   FIREBASE_ASSERT(env);
 
-  internal_ = new AdResultInternal();
-  internal_->is_successful = ad_result_internal.is_successful;
-  internal_->ad_result_type = ad_result_internal.ad_result_type;
+  internal_ = new AdErrorInternal();
+  internal_->is_successful = ad_error_internal.is_successful;
+  internal_->ad_error_type = ad_error_internal.ad_error_type;
   internal_->native_ad_error = nullptr;
   response_info_ = new ResponseInfo();
 
-  // AdResults can be returned on success, or for errors encountered in the C++
+  // AdErrors can be returned on success, or for errors encountered in the C++
   // SDK wrapper, or in the Android GMA SDK.  The structure is populated
   // differently across these three scenarios.
   if (internal_->is_successful) {
@@ -78,20 +78,20 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
     internal_->message = "";
     internal_->domain = "";
     internal_->to_string = "";
-  } else if (internal_->ad_result_type ==
-             AdResultInternal::kAdResultInternalWrapperError) {
+  } else if (internal_->ad_error_type ==
+             AdErrorInternal::kAdErrorInternalWrapperError) {
     // Wrapper errors come with prepopulated code, domain, etc, fields.
-    internal_->code = ad_result_internal.code;
-    internal_->domain = ad_result_internal.domain;
-    internal_->message = ad_result_internal.message;
-    internal_->to_string = ad_result_internal.to_string;
+    internal_->code = ad_error_internal.code;
+    internal_->domain = ad_error_internal.domain;
+    internal_->message = ad_error_internal.message;
+    internal_->to_string = ad_error_internal.to_string;
   } else {
-    FIREBASE_ASSERT(ad_result_internal.native_ad_error != nullptr);
+    FIREBASE_ASSERT(ad_error_internal.native_ad_error != nullptr);
 
-    // AdResults based on GMA Android SDK errors will fetch code, domain,
+    // AdErrors based on GMA Android SDK errors will fetch code, domain,
     // message, and to_string values from the Java object.
     internal_->native_ad_error =
-        env->NewGlobalRef(ad_result_internal.native_ad_error);
+        env->NewGlobalRef(ad_error_internal.native_ad_error);
 
     JNIEnv* env = ::firebase::gma::GetJNI();
     FIREBASE_ASSERT(env);
@@ -100,13 +100,13 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
     // platform-independent C++ SDK error codes.
     jint j_error_code = env->CallIntMethod(
         internal_->native_ad_error, ad_error::GetMethodId(ad_error::kGetCode));
-    switch (internal_->ad_result_type) {
-      case AdResultInternal::kAdResultInternalFullScreenContentError:
+    switch (internal_->ad_error_type) {
+      case AdErrorInternal::kAdErrorInternalFullScreenContentError:
         // Full screen content errors have their own error codes.
         internal_->code =
             MapAndroidFullScreenContentErrorCodeToCPPErrorCode(j_error_code);
         break;
-      case AdResultInternal::kAdResultInternalOpenAdInspectorError:
+      case AdErrorInternal::kAdErrorInternalOpenAdInspectorError:
         // AdInspector errors have their own error codes.
         internal_->code =
             MapAndroidOpenAdInspectorErrorCodeToCPPErrorCode(j_error_code);
@@ -134,8 +134,8 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
 
     // Differentiate between a com.google.android.gms.ads.AdError or its
     // com.google.android.gms.ads.LoadAdError subclass.
-    if (internal_->ad_result_type ==
-        AdResultInternal::kAdResultInternalLoadAdError) {
+    if (internal_->ad_error_type ==
+        AdErrorInternal::kAdErrorInternalLoadAdError) {
       // LoadAdError object.
       jobject j_response_info = env->CallObjectMethod(
           internal_->native_ad_error,
@@ -149,7 +149,7 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
       }
 
       // A to_string value of this LoadAdError.  Invoke the set_to_string
-      // protected method of the AdResult parent class to overwrite whatever
+      // protected method of the AdError parent class to overwrite whatever
       // it parsed.
       jobject j_to_string = env->CallObjectMethod(
           internal_->native_ad_error,
@@ -168,14 +168,14 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
   }
 }
 
-AdResult::AdResult(const AdResult& ad_result) : AdResult() {
+AdError::AdError(const AdError& ad_result) : AdError() {
   FIREBASE_ASSERT(ad_result.response_info_ != nullptr);
   // Reuse the assignment operator.
   this->response_info_ = new ResponseInfo();
   *this = ad_result;
 }
 
-AdResult& AdResult::operator=(const AdResult& ad_result) {
+AdError& AdError::operator=(const AdError& ad_result) {
   if (&ad_result == this) {
     return *this;
   }
@@ -187,15 +187,15 @@ AdResult& AdResult::operator=(const AdResult& ad_result) {
   FIREBASE_ASSERT(response_info_);
   FIREBASE_ASSERT(ad_result.response_info_);
 
-  AdResultInternal* preexisting_internal = internal_;
+  AdErrorInternal* preexisting_internal = internal_;
   {
     // Lock the parties so they're not deleted while the copying takes place.
     MutexLock ad_result_lock(ad_result.internal_->mutex);
     MutexLock lock(internal_->mutex);
-    internal_ = new AdResultInternal();
+    internal_ = new AdErrorInternal();
 
     internal_->is_successful = ad_result.internal_->is_successful;
-    internal_->ad_result_type = ad_result.internal_->ad_result_type;
+    internal_->ad_error_type = ad_result.internal_->ad_error_type;
     internal_->code = ad_result.internal_->code;
     internal_->domain = ad_result.internal_->domain;
     internal_->message = ad_result.internal_->message;
@@ -218,7 +218,7 @@ AdResult& AdResult::operator=(const AdResult& ad_result) {
   return *this;
 }
 
-AdResult::~AdResult() {
+AdError::~AdError() {
   FIREBASE_ASSERT(internal_);
   FIREBASE_ASSERT(response_info_);
 
@@ -236,21 +236,15 @@ AdResult::~AdResult() {
   response_info_ = nullptr;
 }
 
-bool AdResult::is_successful() const {
-  FIREBASE_ASSERT(internal_);
-  return internal_->is_successful;
-}
-
-std::unique_ptr<AdResult> AdResult::GetCause() const {
+std::unique_ptr<AdError> AdError::GetCause() const {
   FIREBASE_ASSERT(internal_);
 
-  // AdResults my contain another AdResult which points to the cause of this
-  // error.  However, this is only possible if this AdResult represents
-  // and Android GMA SDK error and not a wrapper error or a successful
-  // result.
-  if (internal_->ad_result_type ==
-      AdResultInternal::kAdResultInternalWrapperError) {
-    return std::unique_ptr<AdResult>(nullptr);
+  // AdErrors my contain another AdError which points to the cause of this
+  // error.  However, this is only possible if this AdError represents
+  // and Android GMA SDK error and not a wrapper error.
+  if (internal_->ad_error_type ==
+      AdErrorInternal::kAdErrorInternalWrapperError) {
+    return std::unique_ptr<AdError>(nullptr);
   } else {
     FIREBASE_ASSERT(internal_->native_ad_error);
     JNIEnv* env = GetJNI();
@@ -259,41 +253,41 @@ std::unique_ptr<AdResult> AdResult::GetCause() const {
     jobject native_ad_error = env->CallObjectMethod(
         internal_->native_ad_error, ad_error::GetMethodId(ad_error::kGetCause));
 
-    AdResultInternal ad_result_internal;
-    ad_result_internal.native_ad_error = native_ad_error;
+    AdErrorInternal ad_error_internal;
+    ad_error_internal.native_ad_error = native_ad_error;
 
-    std::unique_ptr<AdResult> ad_result =
-        std::unique_ptr<AdResult>(new AdResult(ad_result_internal));
+    std::unique_ptr<AdError> ad_result =
+        std::unique_ptr<AdError>(new AdError(ad_error_internal));
     env->DeleteLocalRef(native_ad_error);
     return ad_result;
   }
 }
 
 /// Gets the error's code.
-AdErrorCode AdResult::code() const {
+AdErrorCode AdError::code() const {
   FIREBASE_ASSERT(internal_);
   return internal_->code;
 }
 
 /// Gets the domain of the error.
-const std::string& AdResult::domain() const {
+const std::string& AdError::domain() const {
   FIREBASE_ASSERT(internal_);
   return internal_->domain;
 }
 
 /// Gets the message describing the error.
-const std::string& AdResult::message() const {
+const std::string& AdError::message() const {
   FIREBASE_ASSERT(internal_);
   return internal_->message;
 }
 
-const ResponseInfo& AdResult::response_info() const {
+const ResponseInfo& AdError::response_info() const {
   FIREBASE_ASSERT(response_info_ != nullptr);
   return *response_info_;
 }
 
 /// Returns a log friendly string version of this object.
-const std::string& AdResult::ToString() const {
+const std::string& AdError::ToString() const {
   FIREBASE_ASSERT(internal_);
   return internal_->to_string;
 }

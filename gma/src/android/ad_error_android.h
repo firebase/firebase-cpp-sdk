@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_GMA_SRC_ANDROID_AD_RESULT_ANDROID_H_
-#define FIREBASE_GMA_SRC_ANDROID_AD_RESULT_ANDROID_H_
+#ifndef FIREBASE_GMA_SRC_ANDROID_AD_ERROR_ANDROID_H_
+#define FIREBASE_GMA_SRC_ANDROID_AD_ERROR_ANDROID_H_
 
 #include <string>
 
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_android.h"
-#include "gma/src/common/ad_result_internal.h"
+#include "gma/src/common/ad_error_internal.h"
 #include "gma/src/include/firebase/gma/types.h"
 
 namespace firebase {
@@ -51,4 +51,4 @@ METHOD_LOOKUP_DECLARATION(load_ad_error, LOADADERROR_METHODS);
 }  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_GMA_SRC_ANDROID_AD_RESULT_ANDROID_H_
+#endif  // FIREBASE_GMA_SRC_ANDROID_AD_ERROR_ANDROID_H_

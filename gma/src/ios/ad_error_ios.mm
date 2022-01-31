@@ -22,9 +22,9 @@ extern "C" {
 
 #include <string>
 
-#include "gma/src/common/ad_result_internal.h"
+#include "gma/src/common/ad_error_internal.h"
 #include "gma/src/include/firebase/gma.h"
-#include "gma/src/ios/ad_result_ios.h"
+#include "gma/src/ios/ad_error_ios.h"
 #include "gma/src/ios/response_info_ios.h"
 
 #include "app/src/util_ios.h"
@@ -32,36 +32,36 @@ extern "C" {
 namespace firebase {
 namespace gma {
 
-const char* const AdResult::kUndefinedDomain = "undefined";
+const char* const AdError::kUndefinedDomain = "undefined";
 
-AdResult::AdResult() {
+AdError::AdError() {
   // Default constructor is available for Future creation.
   // Initialize it with some helpful debug values in the case
-  // an AdResult makes it to the application in this default state.
-  internal_ = new AdResultInternal();
+  // an AdError makes it to the application in this default state.
+  internal_ = new AdErrorInternal();
   internal_->is_successful = false;
-  internal_->ad_result_type = AdResultInternal::kAdResultInternalWrapperError;
+  internal_->ad_error_type = AdErrorInternal::kAdErrorInternalWrapperError;
   internal_->code = kAdErrorCodeUninitialized;
   internal_->domain = "SDK";
-  internal_->message = "This AdResult has not be initialized.";
+  internal_->message = "This AdError has not be initialized.";
   internal_->to_string = internal_->message;
   internal_->native_ad_error = nullptr;
 
-  // While most data is passed into this object through the AdResultInternal
+  // While most data is passed into this object through the AdErrorInternal
   // structure (above), the response_info_ is constructed when parsing
   // the j_ad_error itself.
   response_info_ = new ResponseInfo();
 }
 
-AdResult::AdResult(const AdResultInternal& ad_result_internal) {
-  internal_ = new AdResultInternal();
+AdError::AdError(const AdErrorInternal& ad_error_internal) {
+  internal_ = new AdErrorInternal();
 
-  internal_->is_successful = ad_result_internal.is_successful;
-  internal_->ad_result_type = ad_result_internal.ad_result_type;
+  internal_->is_successful = ad_error_internal.is_successful;
+  internal_->ad_error_type = ad_error_internal.ad_error_type;
   internal_->native_ad_error = nullptr;
   response_info_ = new ResponseInfo();
 
-  // AdResults can be returned on success, or for errors encountered in the C++
+  // AdErrors can be returned on success, or for errors encountered in the C++
   // SDK wrapper, or in the iOS GMA SDK.  The stucture is populated
   // differently across these three scenarios.
   if (internal_->is_successful) {
@@ -69,29 +69,29 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
     internal_->message = "";
     internal_->domain = "";
     internal_->to_string = "";
-  } else if (internal_->ad_result_type ==
-             AdResultInternal::kAdResultInternalWrapperError) {
+  } else if (internal_->ad_error_type ==
+             AdErrorInternal::kAdErrorInternalWrapperError) {
     // Wrapper errors come with prepopulated code, domain, etc, fields.
-    internal_->code = ad_result_internal.code;
-    internal_->domain = ad_result_internal.domain;
-    internal_->message = ad_result_internal.message;
-    internal_->to_string = ad_result_internal.to_string;
+    internal_->code = ad_error_internal.code;
+    internal_->domain = ad_error_internal.domain;
+    internal_->message = ad_error_internal.message;
+    internal_->to_string = ad_error_internal.to_string;
   } else {
-    FIREBASE_ASSERT(ad_result_internal.native_ad_error);
+    FIREBASE_ASSERT(ad_error_internal.native_ad_error);
 
-    // AdResults based on GMA iOS SDK errors will fetch code, domain,
+    // AdErrors based on GMA iOS SDK errors will fetch code, domain,
     // message, and to_string values from the ObjC object.
-    internal_->native_ad_error = ad_result_internal.native_ad_error;
+    internal_->native_ad_error = ad_error_internal.native_ad_error;
 
     // Error Code.  Map the iOS GMA SDK error codes to our
     // platform-independent C++ SDK error codes.
-    switch (internal_->ad_result_type) {
-      case AdResultInternal::kAdResultInternalFullScreenContentError:
+    switch (internal_->ad_error_type) {
+      case AdErrorInternal::kAdErrorInternalFullScreenContentError:
         // Full screen content errors have their own error codes.
         internal_->code =
             MapFullScreenContentErrorCodeToCPPErrorCode((GADPresentationErrorCode)internal_->native_ad_error.code);
         break;
-      case AdResultInternal::kAdResultInternalOpenAdInspectorError:
+      case AdErrorInternal::kAdErrorInternalOpenAdInspectorError:
         // OpenAdInspector errors are all internal errors on iOS.
         internal_->code = kAdErrorCodeInternalError;
         break;
@@ -106,9 +106,9 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
 
     // Errors from LoadAd attempts have extra data pertaining to adapter
     // responses.
-    if (internal_->ad_result_type == AdResultInternal::kAdResultInternalLoadAdError) {
+    if (internal_->ad_error_type == AdErrorInternal::kAdErrorInternalLoadAdError) {
       ResponseInfoInternal response_info_internal = ResponseInfoInternal( {
-        ad_result_internal.native_ad_error.userInfo[GADErrorUserInfoKeyResponseInfo]
+        ad_error_internal.native_ad_error.userInfo[GADErrorUserInfoKeyResponseInfo]
       });
       *response_info_ = ResponseInfo(response_info_internal);
     }
@@ -121,13 +121,13 @@ AdResult::AdResult(const AdResultInternal& ad_result_internal) {
   }
 }
 
-AdResult::AdResult(const AdResult& ad_result) : AdResult() {
+AdError::AdError(const AdError& ad_result) : AdError() {
   // Reuse the assignment operator.
   this->response_info_ = new ResponseInfo();
   *this = ad_result;
 }
 
-AdResult::~AdResult() {
+AdError::~AdError() {
   FIREBASE_ASSERT(internal_);
   FIREBASE_ASSERT(response_info_);
 
@@ -139,22 +139,22 @@ AdResult::~AdResult() {
   response_info_ = nullptr;
 }
 
-AdResult& AdResult::operator=(const AdResult& ad_result) {
+AdError& AdError::operator=(const AdError& ad_result) {
   FIREBASE_ASSERT(ad_result.internal_);
   FIREBASE_ASSERT(internal_);
   FIREBASE_ASSERT(response_info_);
   FIREBASE_ASSERT(ad_result.response_info_);
 
-  AdResultInternal* preexisting_internal = internal_;
+  AdErrorInternal* preexisting_internal = internal_;
   {
     MutexLock(ad_result.internal_->mutex);
     MutexLock(internal_->mutex);
-    internal_ = new AdResultInternal();
+    internal_ = new AdErrorInternal();
 
     internal_->native_ad_error = ad_result.internal_->native_ad_error;
 
     internal_->is_successful = ad_result.internal_->is_successful;
-    internal_->ad_result_type = ad_result.internal_->ad_result_type;
+    internal_->ad_error_type = ad_result.internal_->ad_error_type;
     internal_->code = ad_result.internal_->code;
     internal_->domain = ad_result.internal_->domain;
     internal_->message = ad_result.internal_->message;
@@ -171,49 +171,44 @@ AdResult& AdResult::operator=(const AdResult& ad_result) {
   return *this;
 }
 
-bool AdResult::is_successful() const {
-  FIREBASE_ASSERT(internal_);
-  return internal_->is_successful;
-}
-
-std::unique_ptr<AdResult> AdResult::GetCause() const {
+std::unique_ptr<AdError> AdError::GetCause() const {
   FIREBASE_ASSERT(internal_);
 
   NSError* cause = internal_->native_ad_error.userInfo[NSUnderlyingErrorKey];
   if (cause == nil) {
-    return std::unique_ptr<AdResult>(nullptr);
+    return std::unique_ptr<AdError>(nullptr);
   } else {
-    AdResultInternal ad_result_internal;
-    ad_result_internal.native_ad_error = cause;
-    return std::unique_ptr<AdResult>(new AdResult(ad_result_internal));
+    AdErrorInternal ad_error_internal;
+    ad_error_internal.native_ad_error = cause;
+    return std::unique_ptr<AdError>(new AdError(ad_error_internal));
   }
 }
 
 /// Gets the error's code.
-AdErrorCode AdResult::code() const {
+AdErrorCode AdError::code() const {
   FIREBASE_ASSERT(internal_);
   return internal_->code;
 }
 
 /// Gets the domain of the error.
-const std::string& AdResult::domain() const {
+const std::string& AdError::domain() const {
   FIREBASE_ASSERT(internal_);
   return internal_->domain;
 }
 
 /// Gets the message describing the error.
-const std::string& AdResult::message() const {
+const std::string& AdError::message() const {
   FIREBASE_ASSERT(internal_);
   return internal_->message;
 }
 
-const ResponseInfo& AdResult::response_info() const {
+const ResponseInfo& AdError::response_info() const {
   FIREBASE_ASSERT(response_info_);
   return *response_info_;
 }
 
 /// Returns a log friendly string version of this object.
-const std::string& AdResult::ToString() const {
+const std::string& AdError::ToString() const {
   FIREBASE_ASSERT(internal_);
   return internal_->to_string;
 }

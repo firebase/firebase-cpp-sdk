@@ -64,23 +64,38 @@ const char* kAdUninitializedErrorMessage = "Ad has not been fully initialized.";
 
 // GmaInternal
 void GmaInternal::CompleteLoadAdFuture(
+    FutureCallbackData<AdResult>* callback_data) {
+  callback_data->future_data->future_impl.CompleteWithResult(
+      callback_data->future_handle, static_cast<int>(kAdErrorCodeNone), "",
+      AdResult());
+  delete callback_data;
+}
+
+void GmaInternal::CompleteLoadAdFuture(
     FutureCallbackData<AdResult>* callback_data, int error_code,
     const std::string& error_message,
-    const AdResultInternal& ad_result_internal) {
+    const AdErrorInternal& ad_error_internal) {
   callback_data->future_data->future_impl.CompleteWithResult(
       callback_data->future_handle, static_cast<int>(error_code),
-      error_message.c_str(), AdResult(ad_result_internal));
+      error_message.c_str(), AdResult(CreateAdError(ad_error_internal)));
   // This method is responsible for disposing of the callback data struct.
   delete callback_data;
 }
 
-AdResult GmaInternal::CreateAdResult(
-    const AdResultInternal& ad_result_internal) {
-  return AdResult(ad_result_internal);
+AdError GmaInternal::CreateAdError(const AdErrorInternal& ad_error_internal) {
+  return AdError(ad_error_internal);
 }
 
 // AdInspectorClosedListener
 AdInspectorClosedListener::~AdInspectorClosedListener() {}
+
+// AdResult
+AdResult::AdResult() : is_successful_(true) {}
+AdResult::AdResult(const AdError& ad_error)
+    : is_successful_(false), ad_error_(ad_error) {}
+AdResult::~AdResult() {}
+bool AdResult::is_successful() const { return is_successful_; }
+const AdError& AdResult::ad_error() const { return ad_error_; }
 
 // AdSize
 // Hardcoded values are from publicly available documentation:
@@ -171,6 +186,7 @@ void AdRequest::add_neighboring_content_urls(
 
 // Non-inline implementation of the virtual destructors, to prevent
 // their vtables from being emitted in each translation unit.
+AdapterResponseInfo::~AdapterResponseInfo() {}
 AdListener::~AdListener() {}
 AdViewBoundingBoxListener::~AdViewBoundingBoxListener() {}
 FullScreenContentListener::~FullScreenContentListener() {}
