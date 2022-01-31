@@ -245,8 +245,9 @@ class AdResult {
   bool is_successful() const;
 
   /// An object representing an error which occurred during an ad operation.
-  /// If the @ref AdResult::is_successful() returns true, then the @ref AdError
-  /// object returned via this method will contain no contextual information.
+  /// If the @ref AdResult::is_successful() returned true, then the
+  /// @ref AdError object returned via this method will contain no contextual
+  /// information.
   const AdError& ad_error() const;
 
  private:
