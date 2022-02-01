@@ -172,8 +172,10 @@ jobs:
         # To feed input into the job matrix, we first need to convert to a JSON
         # list. Then we can use fromJson to define the field in the matrix for the tests job.
         if [[ "${{ github.event.schedule }}" == "0 9 * * *" ]]; then
+          # at 1am PST / 2am PDT. Running integration tests and generate test report for all testapps except firestore
           apis="admob,analytics,auth,database,dynamic_links,functions,installations,messaging,remote_config,storage"
         elif [[ "${{ github.event.schedule }}" == "0 10 * * *" ]]; then 
+          # at 2am PST / 3am PDT. Running integration tests for firestore and generate test report
           apis="firestore"
         else
           apis=$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k apis -o "${{github.event.inputs.apis}}" ${TEST_MATRIX_PARAM} )
