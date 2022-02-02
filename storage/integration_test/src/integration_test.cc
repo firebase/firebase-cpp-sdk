@@ -19,6 +19,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <thread>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
@@ -386,6 +387,104 @@ const std::string kSimpleTestFile =
     "pariatur. Excepteur sint occaecat cupidatat non proident, sunt in "
     "culpa qui officia deserunt mollit anim id est laborum.";
 
+TEST_F(FirebaseStorageTest, TestReadBytesWithMaxRetryDuration) {
+  int shorter_duration_sec = 2;
+  int longer_duration_sec = 6;
+  SignIn();
+  firebase::storage::StorageReference ref =
+      CreateFolder().Child("File1.txt");
+  LogDebug("Storage URL: gs://%s%s", ref.bucket().c_str(),
+           ref.full_path().c_str());
+  cleanup_files_.push_back(ref);
+
+  // Attempt to read a non-existent file
+  // Verify that GetBytes fails
+  {
+    LogDebug("Part 1: Download sample file to memory.");
+    const size_t kBufferSize = 1024;
+    char buffer[kBufferSize];
+    memset(buffer, 0, sizeof(buffer));
+    LogDebug("Ensuring file does not exist.");
+    storage_->set_max_download_retry_time(shorter_duration_sec);
+    firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
+    WaitForCompletion(future, "GetBytes",
+                      firebase::storage::kErrorObjectNotFound);
+  }
+
+  // Set max-retry-time to 20s and create the file in an async thread after 10 seconds
+  // Verify that GetBytes succeeds
+  // Write to a simple file.
+  ref = CreateFolder().Child("File2.txt");
+  LogDebug("Storage URL: gs://%s%s", ref.bucket().c_str(),
+           ref.full_path().c_str());
+  cleanup_files_.push_back(ref);
+  {
+    std::thread t1([&] {
+      LogDebug("Started async thread");
+      // Sleep 10s
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000 * shorter_duration_sec));
+      // Upload file
+      LogDebug("Upload sample file from memory.");
+      firebase::Future<firebase::storage::Metadata> future =
+          RunWithRetry<firebase::storage::Metadata>([&]() {
+            return ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size());
+          });
+      WaitForCompletion(future, "PutBytes");
+      auto metadata = future.result();
+      EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
+    });
+
+    LogDebug("Part 2: Download sample file to memory.");
+    const size_t kBufferSize = 1024;
+    char buffer[kBufferSize];
+    memset(buffer, 0, sizeof(buffer));
+    storage_->set_max_download_retry_time(longer_duration_sec);
+    firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
+    WaitForCompletion(future, "GetBytes");
+    ASSERT_NE(future.result(), nullptr);
+    size_t file_size = *future.result();
+    EXPECT_EQ(file_size, kSimpleTestFile.size());
+    EXPECT_THAT(kSimpleTestFile, ElementsAreArray(buffer, file_size))
+        << "Download failed, file contents did not match.";
+
+    t1.join();
+  }
+
+  // Set max-retry time to 10s and create the file in an async thread after 30 seconds
+  // Verify that GetBytes fails
+  ref = CreateFolder().Child("File3.txt");
+  LogDebug("Storage URL: gs://%s%s", ref.bucket().c_str(),
+           ref.full_path().c_str());
+  cleanup_files_.push_back(ref);
+  {
+    std::thread t1([&] {
+      LogDebug("Started async thread");
+      // Sleep 20s
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000 * longer_duration_sec));
+      // Upload file
+      LogDebug("Upload sample file from memory.");
+      firebase::Future<firebase::storage::Metadata> future =
+          RunWithRetry<firebase::storage::Metadata>([&]() {
+            return ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size());
+          });
+      WaitForCompletion(future, "PutBytes");
+      auto metadata = future.result();
+      EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
+    });
+
+    LogDebug("Part 3: Download sample file to memory.");
+    const size_t kBufferSize = 1024;
+    char buffer[kBufferSize];
+    memset(buffer, 0, sizeof(buffer));
+    LogDebug("Ensuring file does not exist.");
+    storage_->set_max_download_retry_time(shorter_duration_sec);
+    firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
+    WaitForCompletion(future, "GetBytes",
+                      firebase::storage::kErrorObjectNotFound);
+    t1.join();
+  }
+}
+
 TEST_F(FirebaseStorageTest, TestWriteAndReadByteBuffer) {
   SignIn();
 
@@ -625,6 +724,7 @@ TEST_F(FirebaseStorageTest, TestDeleteFile) {
   char buffer[kBufferSize];
   // Ensure the file was deleted.
   LogDebug("Ensuring file was deleted.");
+  storage_->set_max_download_retry_time(2); // ALMOSTMATT - remove this later
   firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
   WaitForCompletion(future, "GetBytes",
                     firebase::storage::kErrorObjectNotFound);
@@ -657,8 +757,8 @@ class StorageListener : public firebase::storage::Listener {
   }
 
   void OnProgress(firebase::storage::Controller* controller) override {
-    LogDebug("Transferred %lld of %lld", controller->bytes_transferred(),
-             controller->total_byte_count());
+    // LogDebug("Transferred %lld of %lld", controller->bytes_transferred(),
+    //          controller->total_byte_count());
     on_progress_was_called_ = true;
   }
 

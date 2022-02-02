@@ -14,9 +14,12 @@
 
 #include "storage/src/desktop/storage_reference_desktop.h"
 
+#include <chrono>
 #include <limits>
 #include <memory>
+#include <thread>
 
+#include "app_framework.h"
 #include "app/memory/unique_ptr.h"
 #include "app/rest/request.h"
 #include "app/rest/request_binary.h"
@@ -36,19 +39,6 @@
 namespace firebase {
 namespace storage {
 namespace internal {
-
-enum StorageReferenceFn {
-  kStorageReferenceFnDelete = 0,
-  kStorageReferenceFnGetBytes,
-  kStorageReferenceFnGetBytesInternal,
-  kStorageReferenceFnGetFile,
-  kStorageReferenceFnGetDownloadUrl,
-  kStorageReferenceFnGetMetadata,
-  kStorageReferenceFnUpdateMetadata,
-  kStorageReferenceFnPutBytes,
-  kStorageReferenceFnPutFile,
-  kStorageReferenceFnCount,
-};
 
 /**
  * Represents a reference to a Google Cloud Storage object. Developers can
@@ -256,16 +246,23 @@ void StorageReferenceInternal::PrepareRequest(rest::Request* request,
 Future<size_t> StorageReferenceInternal::GetFile(const char* path,
                                                  Listener* listener,
                                                  Controller* controller_out) {
-  auto* future_api = future();
-  auto handle = future_api->SafeAlloc<size_t>(kStorageReferenceFnGetFile);
+  auto handle = future()->SafeAlloc<size_t>(kStorageReferenceFnGetFile);
   std::string final_path = StripProtocol(path);
-  GetFileResponse* response =
-      new GetFileResponse(final_path.c_str(), handle, future_api);
-
-  storage::internal::Request* request = new storage::internal::Request();
-  PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), rest::util::kGet);
-  RestCall(request, request->notifier(), response, handle.get(), listener,
-           controller_out);
+  auto send_request_funct{[&, final_path, listener,
+                           controller_out]() -> BlockingResponse* {
+    auto* future_api = future();
+    auto handle =
+        future_api->SafeAlloc<size_t>(kStorageReferenceFnGetFileInternal);
+    storage::internal::Request* request = new storage::internal::Request();
+    PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), rest::util::kGet);
+    GetFileResponse* response =
+        new GetFileResponse(final_path.c_str(), handle, future_api);
+    RestCall(request, request->notifier(), response, handle.get(), listener,
+             controller_out);
+    return response;
+  }};
+  SendRequestWithRetry(kStorageReferenceFnGetFileInternal, send_request_funct,
+                       handle, storage_->max_download_retry_time());
 
   return GetFileLastResult();
 }
@@ -281,76 +278,92 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
                                                   Listener* listener,
                                                   Controller* controller_out) {
   auto handle = future()->SafeAlloc<size_t>(kStorageReferenceFnGetBytes);
-  std::thread async_get_bytes_thread(
-    &StorageReferenceInternal::AsyncGetBytesInternal,
-    this,
-    buffer, buffer_size, listener, controller_out, handle);
-  async_get_bytes_thread.detach();
-  return GetBytesLastResult();
-}
-
-// In a separate thread, repeatedly send Rest requests until one succeeds or a
-// maximum amount of time has passed.
-void StorageReferenceInternal::AsyncGetBytesInternal(
-    void* buffer, size_t buffer_size, Listener* listener,
-    Controller* controller_out, SafeFutureHandle<size_t> final_handle) {
-  auto* future_api = future();
-  bool completed = false;
-  firebase::FutureBase internal_future;
-  double max_download_retry_time_seconds = storage_->max_download_retry_time();
-  auto end_time = std::chrono::steady_clock::now()
-    + std::chrono::duration<double>(max_download_retry_time_seconds);
-  // Create a local controller so that controller_out is guaranteed to not be null
-  Controller local_controller;
-  if (controller_out == nullptr) {
-    controller_out = &local_controller;
-  }
-
-  while (!completed) {
-    auto handle = future_api->SafeAlloc<size_t>(kStorageReferenceFnGetBytesInternal);
+  auto send_request_funct{[&, buffer, buffer_size, listener,
+                           controller_out]() -> BlockingResponse* {
+    auto* future_api = future();
+    auto handle =
+        future_api->SafeAlloc<size_t>(kStorageReferenceFnGetBytesInternal);
     storage::internal::Request* request = new storage::internal::Request();
     PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), rest::util::kGet);
     GetBytesResponse* response =
         new GetBytesResponse(buffer, buffer_size, handle, future_api);
     RestCall(request, request->notifier(), response, handle.get(), listener,
-            controller_out);
-    internal_future = future_api->LastResult(kStorageReferenceFnGetBytesInternal);
+             controller_out);
+    return response;
+  }};
+  SendRequestWithRetry(kStorageReferenceFnGetBytesInternal, send_request_funct,
+                       handle, storage_->max_download_retry_time());
+  return GetBytesLastResult();
+}
+
+// Sends a rest request, and creates a separate thread to retry failures.
+void StorageReferenceInternal::SendRequestWithRetry(
+    StorageReferenceFn internal_function_reference,
+    SendRequestFunct send_request_funct, SafeFutureHandle<size_t> final_handle,
+    double max_retry_time_seconds) {
+  BlockingResponse* first_response = send_request_funct();
+  std::thread async_retry_thread(
+      &StorageReferenceInternal::AsyncSendRequestWithRetry, this,
+      internal_function_reference, send_request_funct, final_handle,
+      first_response, max_retry_time_seconds);
+  async_retry_thread.detach();
+}
+
+// In a separate thread, repeatedly send Rest requests until one succeeds or a
+// maximum amount of time has passed.
+void StorageReferenceInternal::AsyncSendRequestWithRetry(
+    StorageReferenceFn internal_function_reference,
+    SendRequestFunct send_request_funct, SafeFutureHandle<size_t> final_handle,
+    BlockingResponse* response, double max_retry_time_seconds) {
+  auto* future_api = future();
+  firebase::FutureBase internal_future;
+  auto end_time = std::chrono::steady_clock::now() +
+                  std::chrono::duration<double>(max_retry_time_seconds);
+  auto current_sleep_time = std::chrono::milliseconds(1000);
+  auto MAXIMUM_WAIT_TIME_MILLI = std::chrono::milliseconds(30000);
+  while (true) {
+    internal_future = future_api->LastResult(internal_function_reference);
     // Wait for completion, then check status and error.
     while (internal_future.status() == firebase::kFutureStatusPending) {
-      auto current_time = std::chrono::steady_clock::now();
-      if (current_time > end_time) {
-        // Cancel the request if the overall deadline is reached
-        controller_out->Cancel();
-        break;
-      }
-      app_framework::ProcessEvents(100);
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    if (internal_future.status() != firebase::kFutureStatusComplete) {
-      // TODO - handle unfinished or failed futures here
-    } else {
-      // Retry failed requests
-      // TODO - only retry for HTTP status codes that might represent transient failures
-      if (response->status() == 200) {
-        completed = true;
-      }
-    }
-    // Interrupt the loop if the deadline has been reached
-    auto current_time = std::chrono::steady_clock::now();
-    if (current_time > end_time) {
+    // For any request that succeeds or fails in a non-retryable way, don't
+    // bother retrying.
+    if (internal_future.status() != firebase::kFutureStatusComplete ||
+        !IsRetryableFailure(response->status())) {
       break;
     }
-  // Copy from kStorageReferenceFnGetBytesInternal to kStorageReferenceFnGetBytes.
-  Future<size_t> buffer_index_future = static_cast<const Future<size_t>&>(
-      internal_future);
-  if (buffer_index_future.result() != nullptr) {
-    future_api->CompleteWithResult(final_handle,
-      internal_future.error(),
-      *(buffer_index_future.result()));
-  } else {
-    future_api->Complete(final_handle,
-      internal_future.error(),
-      internal_future.error_message());
+    // Interrupt the loop if the retry deadline has been reached
+    auto current_time = std::chrono::steady_clock::now();
+    if (current_time + current_sleep_time > end_time) {
+      break;
+    }
+    // Sleep for an exponentially increasing duration, then retry the request.
+    std::this_thread::sleep_for(current_sleep_time);
+    if (current_sleep_time < MAXIMUM_WAIT_TIME_MILLI) {
+      current_sleep_time *= 2;
+    }
+    response = send_request_funct();
   }
+  // Copy from the internal future to the final future.
+  Future<size_t> buffer_index_future =
+      static_cast<const Future<size_t>&>(internal_future);
+  if (buffer_index_future.result() != nullptr) {
+    future_api->CompleteWithResult(final_handle, internal_future.error(),
+                                   *(buffer_index_future.result()));
+  } else {
+    future_api->Complete(final_handle, internal_future.error(),
+                         internal_future.error_message());
+  }
+}
+
+// Returns whether or not an http status represents a failure that should be retried.
+bool StorageReferenceInternal::IsRetryableFailure(int httpStatus) {
+  return (httpStatus >= 500 && httpStatus < 600)
+      || httpStatus == 429
+      // TODO(almostmatt): Note: temporarily retrying 404s to test. remove this.
+      || httpStatus == 404 
+      || httpStatus == 408;
 }
 
 // Returns the result of the most recent call to GetBytes();
