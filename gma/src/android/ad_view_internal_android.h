@@ -84,7 +84,7 @@ class AdViewInternalAndroid : public AdViewInternal {
   Future<void> Resume() override;
   Future<void> Destroy() override;
   bool is_initialized() const override { return initialized_; }
-  const AdSize& ad_size() const override { return ad_size_; }
+  AdSize ad_size() const override { return ad_size_; }
 
  private:
   // Convenience method to "dry" the JNI calls that don't take parameters beyond

@@ -52,7 +52,7 @@ class AdViewInternalIOS : public AdViewInternal {
   void set_bounding_box(const BoundingBox& bounding_box) {
     bounding_box_ = bounding_box;
   }
-  const AdSize& ad_size() const override { return ad_size_; }
+  AdSize ad_size() const override { return ad_size_; }
 
 #ifdef __OBJC__
   void AdViewDidReceiveAd();
