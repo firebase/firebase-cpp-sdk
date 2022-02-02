@@ -52,6 +52,7 @@ class AdViewInternalIOS : public AdViewInternal {
   void set_bounding_box(const BoundingBox& bounding_box) {
     bounding_box_ = bounding_box;
   }
+  const AdSize& ad_size() const override { return ad_size_; }
 
 #ifdef __OBJC__
   void AdViewDidReceiveAd();
@@ -62,23 +63,26 @@ class AdViewInternalIOS : public AdViewInternal {
   /// Contains information to asynchronously complete the LoadAd Future.
   FutureCallbackData<AdResult>* ad_load_callback_data_;
 
-  /// Prevents duplicate invocations of initailize on the AdView.
-  bool initialized_;
+  // The AdSize that was used to initialize the ad.
+  AdSize ad_size_;
 
   /// The FADAdView object. Declared as an "id" type to avoid referencing an
   /// Objective-C++ class in this header.
   id ad_view_;
 
-  // Mutex to guard against concurrent operations;
-  Mutex mutex_;
+  /// A cached bounding box from the last update, accessible for processes
+  /// running on non-UI threads.
+  BoundingBox bounding_box_;
 
   /// A mutex used to handle the destroy behavior, as it is asynchronous,
   /// and needs to be waited on in the destructor.
   Mutex destroy_mutex_;
 
-  /// A cached bounding box from the last update, accessible for processes
-  /// running on non-UI threads.
-  BoundingBox bounding_box_;
+  /// Prevents duplicate invocations of initailize on the AdView.
+  bool initialized_;
+
+  // Mutex to guard against concurrent operations;
+  Mutex mutex_;
 };
 
 }  // namespace internal

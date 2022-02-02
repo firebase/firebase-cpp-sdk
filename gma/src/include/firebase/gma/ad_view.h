@@ -203,6 +203,12 @@ class AdView {
   /// @ref Destroy.
   Future<void> DestroyLastResult() const;
 
+  /// Returns the AdSize of the AdView.
+  ///
+  /// @return An @ref AdSize object representing the size of the ad.  If this
+  /// view has not been initialized then the AdSize will be 0,0.
+  const AdSize& ad_size() const;
+
  protected:
   /// Pointer to a listener for AdListener events.
   AdListener* ad_listener_;

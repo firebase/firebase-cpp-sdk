@@ -202,5 +202,7 @@ BoundingBox AdView::bounding_box() const {
   return internal_->bounding_box();
 }
 
+const AdSize& AdView::ad_size() const { return internal_->ad_size(); }
+
 }  // namespace gma
 }  // namespace firebase

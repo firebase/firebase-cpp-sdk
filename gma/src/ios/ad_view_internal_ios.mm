@@ -29,9 +29,10 @@ namespace internal {
 AdViewInternalIOS::AdViewInternalIOS(AdView* base)
     : AdViewInternal(base),
       ad_load_callback_data_(nil),
-      initialized_(false),
+      ad_size_(0,0),
       ad_view_(nil),
-      destroy_mutex_(Mutex::kModeNonRecursive) {}
+      destroy_mutex_(Mutex::kModeNonRecursive),
+      initialized_(false) {}
 
 AdViewInternalIOS::~AdViewInternalIOS() {
   Destroy();
@@ -51,6 +52,7 @@ Future<void> AdViewInternalIOS::Initialize(AdParent parent,
       kAdAlreadyInitializedErrorMessage, future_handle, &future_data_);
   } else {
     initialized_ = true;
+    ad_size_ = size;
     dispatch_async(dispatch_get_main_queue(), ^{
       ad_view_ = [[FADAdView alloc] initWithView:parent
                                               adUnitID:@(ad_unit_id)

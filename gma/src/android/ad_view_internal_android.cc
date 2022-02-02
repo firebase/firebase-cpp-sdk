@@ -108,6 +108,7 @@ struct NulleryInvocationOnMainThreadData {
 
 AdViewInternalAndroid::AdViewInternalAndroid(AdView* base)
     : AdViewInternal(base),
+      ad_size_(0, 0),
       helper_(nullptr),
       initialized_(false),
       destroyed_(false) {
@@ -265,6 +266,7 @@ Future<void> AdViewInternalAndroid::Initialize(AdParent parent,
   }
 
   initialized_ = true;
+  ad_size_ = size;
 
   FutureCallbackData<void>* callback_data =
       CreateVoidFutureCallbackData(kAdViewFnSetPosition, &future_data_);

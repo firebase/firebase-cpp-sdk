@@ -84,27 +84,31 @@ class AdViewInternalAndroid : public AdViewInternal {
   Future<void> Resume() override;
   Future<void> Destroy() override;
   bool is_initialized() const override { return initialized_; }
+  const AdSize& ad_size() const override { return ad_size_; }
 
  private:
-  // Reference to the Java helper object used to interact with the Mobile Ads
-  // SDK.
-  jobject helper_;
+  // Convenience method to "dry" the JNI calls that don't take parameters beyond
+  // the future callback pointer.
+  Future<void> InvokeNullary(AdViewFn fn, ad_view_helper::Method method);
 
   // Reference to the Android AdView object used to display AdView ads.
   jobject ad_view_;
+
+  // The AdSize that was used to initialize the ad.
+  AdSize ad_size_;
+
+  // Marks if Destroy() was called on the object.
+  bool destroyed_;
+
+  // Reference to the Java helper object used to interact with the Mobile Ads
+  // SDK.
+  jobject helper_;
 
   // Tracks if this AdView has been initialized.
   bool initialized_;
 
   // Mutex to guard against concurrent operations;
   Mutex mutex_;
-
-  // Marks if Destroy() was called on the object.
-  bool destroyed_;
-
-  // Convenience method to "dry" the JNI calls that don't take parameters beyond
-  // the future callback pointer.
-  Future<void> InvokeNullary(AdViewFn fn, ad_view_helper::Method method);
 };
 
 }  // namespace internal

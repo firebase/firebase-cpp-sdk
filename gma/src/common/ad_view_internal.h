@@ -117,6 +117,9 @@ class AdViewInternal {
   // Returns if the AdView has been initialized.
   virtual bool is_initialized() const = 0;
 
+  // Returns the size of the loaded ad.
+  virtual const AdSize& ad_size() const = 0;
+
  protected:
   friend class firebase::gma::AdView;
 
