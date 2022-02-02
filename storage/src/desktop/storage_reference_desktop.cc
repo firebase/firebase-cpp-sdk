@@ -309,6 +309,9 @@ void StorageReferenceInternal::SendRequestWithRetry(
   async_retry_thread.detach();
 }
 
+const int kInitialSleepTimeMillis = 1000;
+const int kMaxSleepTimeMillis = 30000;
+
 // In a separate thread, repeatedly send Rest requests until one succeeds or a
 // maximum amount of time has passed.
 void StorageReferenceInternal::AsyncSendRequestWithRetry(
@@ -319,8 +322,7 @@ void StorageReferenceInternal::AsyncSendRequestWithRetry(
   firebase::FutureBase internal_future;
   auto end_time = std::chrono::steady_clock::now() +
                   std::chrono::duration<double>(max_retry_time_seconds);
-  auto current_sleep_time = std::chrono::milliseconds(1000);
-  auto MAXIMUM_WAIT_TIME_MILLI = std::chrono::milliseconds(30000);
+  auto current_sleep_time = std::chrono::milliseconds(kInitialSleepTimeMillis);
   while (true) {
     internal_future = future_api->LastResult(internal_function_reference);
     // Wait for completion, then check status and error.
@@ -340,7 +342,7 @@ void StorageReferenceInternal::AsyncSendRequestWithRetry(
     }
     // Sleep for an exponentially increasing duration, then retry the request.
     std::this_thread::sleep_for(current_sleep_time);
-    if (current_sleep_time < MAXIMUM_WAIT_TIME_MILLI) {
+    if (current_sleep_time < std::chrono::milliseconds(kMaxSleepTimeMillis)) {
       current_sleep_time *= 2;
     }
     response = send_request_funct();
