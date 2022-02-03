@@ -118,6 +118,12 @@ if(ANDROID)
   set(CMAKE_SHARED_LINKER_FLAGS
       "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
 
+  if(WIN32)
+    # On Windows, use the "lld" linker.
+    set(CMAKE_SHARED_LINKER_FLAGS
+        "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=lld")
+  endif()
+
   add_library(gtest STATIC
     ${GOOGLETEST_ROOT}/src/googletest/src/gtest-all.cc)
   target_include_directories(gtest
