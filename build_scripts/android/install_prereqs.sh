@@ -1,6 +1,21 @@
 #!/bin/bash -e
-
 # Copyright 2020 Google LLC
+
+# default ndk version
+ndk_version=r16b
+
+if [[ $1 == '-h' || $1 == '--help' ]]; then
+    echo "usage: install_prereqs.sh [ndk version string]"
+    echo "  (default ndk version: ${ndk_version})"
+    exit 1
+fi
+
+if [[ -n "$1" ]]; then
+    ndk_version=$1
+fi
+
+# extract out just the numeric portion of the version
+ndk_version_number=$(echo $ndk_version | sed s/[^0-9]//g)
 
 if [[ $(uname) == "Darwin" ]]; then
     platform=darwin
@@ -60,13 +75,13 @@ if [[ -z "${ANDROID_HOME}" ]]; then
     exit 1
 fi
 
-if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 16\." "${NDK_ROOT}/source.properties") ]]; then
-    if [[ -d /tmp/android-ndk-r16b && \
-	      -n $(grep "Pkg\.Revision = 16\." "/tmp/android-ndk-r16b/source.properties") ]]; then
-	    echo "Using NDK r16b in /tmp/android-ndk-r16b".
+if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = ${ndk_version_number}\." "${NDK_ROOT}/source.properties") ]]; then
+    if [[ -d /tmp/android-ndk-"${ndk_version}" && \
+	      -n $(grep "Pkg\.Revision = ${ndk_version_number}\." "/tmp/android-ndk-${ndk_version}/source.properties") ]]; then
+	    echo "Using NDK ${ndk_version} in /tmp/android-ndk-${ndk_version}".
     else
         echo "NDK_ROOT environment variable is not set, or NDK version is incorrect."
-        echo "This build requires NDK r16b for STLPort compatibility, downloading..."
+        echo "This build uses NDK ${ndk_version}, downloading..."
 	    if [[ -z $(which curl) ]]; then
 	        echo "Error, could not run 'curl' to download NDK. Is it in your PATH?"
 	        exit 1
@@ -77,12 +92,12 @@ if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 16\." "${NDK_ROOT}/source.p
 	    for retry in {1..10} error; do
 	        if [[ $retry == "error" ]]; then exit 5; fi
 	        curl --http1.1 -LSs \
-		    "https://dl.google.com/android/repository/android-ndk-r16b-${platform}-x86_64.zip" \
-		    --output /tmp/android-ndk-r16b.zip && break
+		    "https://dl.google.com/android/repository/android-ndk-${ndk_version}-${platform}-x86_64.zip" \
+		    --output /tmp/android-ndk-"${ndk_version}".zip && break
 	        sleep 300
 	    done
 	    set -e
-	    (cd /tmp && unzip -oq android-ndk-r16b.zip && rm -f android-ndk-r16b.zip)
-	    echo "NDK r16b has been downloaded into /tmp/android-ndk-r16b"
+	    (cd /tmp && unzip -oq android-ndk-"${ndk_version}".zip && rm -f android-ndk-"${ndk_version}".zip)
+	    echo "NDK ${ndk_version} has been downloaded into /tmp/android-ndk-${ndk_version}"
     fi
 fi
