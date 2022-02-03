@@ -55,6 +55,7 @@ def firebaseResourceDependenciesMap = [
   'auth' : [':auth:auth_resources'],
   'database' : [':database:database_resources'],
   'firestore' : [':firestore:firestore_resources'],
+  'gma' : [':gma:gma_resources'],
   'storage' : [':storage:storage_resources']
 ]
 
