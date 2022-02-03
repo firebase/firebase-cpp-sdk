@@ -488,7 +488,7 @@ def _build_android(project_dir, sdk_dir):
     f.write("maven.wagon.httpconnectionManager.ttlSeconds=120")
   # This will log the versions of dependencies for debugging purposes.
   _run([gradlew, "dependencies", "--configuration", "debugCompileClasspath"])
-  _run([gradlew, "assembleDebug", "--stacktrace", "--info"])
+  _run([gradlew, "assembleDebug", "--stacktrace"])
 
 
 def _validate_android_environment_variables():

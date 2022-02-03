@@ -59,7 +59,7 @@ android {
     versionCode 1
     versionName '1.0'
     externalNativeBuild.cmake {
-      arguments "-DFIREBASE_CPP_SDK_DIR=$gradle.firebase_cpp_sdk_dir", "-DANDROID_LD=lld", "-DCMAKE_VERBOSE_MAKEFILE=ON"
+      arguments "-DFIREBASE_CPP_SDK_DIR=$gradle.firebase_cpp_sdk_dir"
     }
   }
   externalNativeBuild.cmake {
