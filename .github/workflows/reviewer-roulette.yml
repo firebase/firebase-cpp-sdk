@@ -19,6 +19,16 @@ jobs:
           label: "${{ github.event.label.name }}"
           type: remove
 
+      - name: Get completed reviews
+        id: get-reviewers
+        run: |
+          url="https://api.github.com/repos/${{ github.event.pull_request.repository.owner.login }}/${{ github.event.pull_request.repository.name }}/pull_request/${{ github.event.pull_request.number }}/reviews"
+          response=$(curl -s -X GET \
+            '-H', 'Accept: application/vnd.github.v3+json', \
+            '-H', 'Authorization: token ${{ github.token }},' \
+            "${url}")
+          echo "${response}"
+
       - name: Create reviewer list
         id: get-reviewers
         run: |
@@ -26,18 +36,19 @@ jobs:
           # Duplicates don't matter, so get the list of requested reviewers *and* the list of
           # completed reviews.
           echo '${{ toJSON(github.event) }}'
-          current_reviewers='${{ join(github.event.pull_request.requested_reviewers.*.login, ' ') }} '
-          current_reviewers+='${{ join(github.event.pull_request.reviews.*.user.login, ' ') }} '
+          requested_reviewers='${{ join(github.event.pull_request.requested_reviewers.*.login, ' ') }} '
           author='${{ github.event.pull_request.user.login }}'
-          echo "Current reviewers: ${current_reviewers}"
+          echo "Requested reviews: ${requested_reviewers}"
+          echo Completed reviews: ${requested_reviewers}"
           echo "Author: ${author}"
+          all_reviewers="${requested_reviews} ${completed_reviews}"
 
           # Build a JSON list of reviewers to choose from.
           reviewer_list='['
           first=1
           for r in ${{ env.reviewerList }}; do
             # Don't include this reviewer if they are already reviewing the PR, or authored it.
-            if [[ " ${current_reviewers} " != *" $r "* && "$r" != "${author}" ]]; then
+            if [[ " ${all_reviewers} " != *" $r "* && "$r" != "${author}" ]]; then
               if [[ ${first} -eq 1 ]]; then
                 first=0
               else
