@@ -35,7 +35,7 @@ jobs:
               else
                 reviewer_list+=', '
               fi
-              reviewer_list+="'$r'"
+              reviewer_list+="\"$r\""
             fi
           done
           reviewer_list+=']'
