@@ -46,7 +46,8 @@ jobs:
       - name: Choose random reviewer
         id: choose-random
         uses: KhannaAbhinav/random-selector-action@v1
-        data: ${{ steps.get-reviewers.outputs.reviewer_list }}
+        with:
+          data: ${{ steps.get-reviewers.outputs.reviewer_list }}
 
       - name: Assign Reviewers to PR
         uses: itsOliverBott/assign-pr-reviewers@release
