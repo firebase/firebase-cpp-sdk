@@ -33,7 +33,7 @@ jobs:
           reviewer_list='['
           first=1
           for r in ${{ env.reviewerList }}; do
-            # Don't include this reviewer if they are already reviewing the PR.
+            # Don't include this reviewer if they are already reviewing the PR, or authored it.
             if [[ "${current_reviewers}" != *" $r "* && "$r" != "${author}" ]]; then
               if [[ ${first} -eq 1 ]]; then
                 first=0
