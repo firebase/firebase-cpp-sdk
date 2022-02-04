@@ -5,13 +5,12 @@ on:
     types: [ labeled ]
 
 env:
-  triggerLabel: "reviewer-roulette"
   GITHUB_TOKEN: ${{ github.token }}
   reviewerList: "jonsimantov a-maurice DellaBitta cynthiajoan chkuang-g"
 
 jobs:
   assign_random_reviewer:
-    if: ${{ github.event.action == 'labeled' && github.event.label.name == env.triggerLabel }}
+    if: github.event.action == 'labeled' && github.event.label.name == 'reviewer-roulette'
     runs-on: ubuntu-latest
     steps:
       - name: Unset label
