@@ -992,21 +992,37 @@ TEST_F(FirebaseGmaTest, TestAdViewAdSizeCompareOp) {
   using firebase::gma::AdSize;
   EXPECT_TRUE(AdSize(50, 100) == AdSize(50, 100));
   EXPECT_TRUE(AdSize(100, 50) == AdSize(100, 50));
-
+  EXPECT_FALSE(AdSize(50, 100) == AdSize(100, 50));
   EXPECT_FALSE(AdSize(10, 10) == AdSize(50, 50));
 
+  EXPECT_FALSE(AdSize(50, 100) != AdSize(50, 100));
+  EXPECT_FALSE(AdSize(100, 50) != AdSize(100, 50));
+  EXPECT_TRUE(AdSize(50, 100) != AdSize(100, 50));
+  EXPECT_TRUE(AdSize(10, 10) != AdSize(50, 50));
+
   EXPECT_TRUE(AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100) ==
+              AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100));
+  EXPECT_FALSE(AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100) !=
               AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100));
 
   EXPECT_TRUE(AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100) ==
               AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100));
+  EXPECT_FALSE(AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100) !=
+              AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100));
 
   EXPECT_FALSE(AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100) ==
+               AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100));
+  EXPECT_TRUE(AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100) !=
                AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100));
 
   EXPECT_FALSE(AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100) ==
                AdSize(100, 100));
+  EXPECT_TRUE(AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100) !=
+               AdSize(100, 100));
+  
   EXPECT_FALSE(AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100) ==
+               AdSize(100, 100));
+  EXPECT_TRUE(AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100) !=
                AdSize(100, 100));
 }
 
