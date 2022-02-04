@@ -26,7 +26,7 @@ jobs:
           current_reviewers=' ${{ join(github.event.pull_request.requested_reviewers.*.login, ' ') }} '
           author='${{ github.event.pull_request.user.login }}'
           echo "Current reviewers:${current_reviewers}"
-          echo Author:${author}"
+          echo "Author: ${author}"
           reviewer_list='['
           first=1
           for r in ${{ env.reviewerList }}; do
