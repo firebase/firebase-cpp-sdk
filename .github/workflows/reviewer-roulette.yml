@@ -11,7 +11,7 @@ env:
 
 jobs:
   assign_random_reviewer:
-    if: github.event.action == 'labeled' && github.event.label.name == env.triggerLabel
+    if: ${{ github.event.action == 'labeled' && github.event.label.name == env.triggerLabel }}
     runs-on: ubuntu-latest
     steps:
       - name: Unset label
