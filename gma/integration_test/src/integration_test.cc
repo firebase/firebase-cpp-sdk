@@ -987,6 +987,60 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdDestroyNotCalled) {
   WaitForCompletion(ad_view->LoadAd(GetAdRequest()), "LoadAd");
   delete ad_view;
 }
+
+TEST_F(FirebaseGmaTest, TestAdViewAdSizeCompareOp) {
+  using firebase::gma::AdSize;
+  EXPECT_TRUE(AdSize(50, 100) == AdSize(50, 100));
+  EXPECT_TRUE(AdSize(100, 50) == AdSize(100, 50));
+  EXPECT_FALSE(AdSize(50, 100) == AdSize(100, 50));
+  EXPECT_FALSE(AdSize(10, 10) == AdSize(50, 50));
+
+  EXPECT_FALSE(AdSize(50, 100) != AdSize(50, 100));
+  EXPECT_FALSE(AdSize(100, 50) != AdSize(100, 50));
+  EXPECT_TRUE(AdSize(50, 100) != AdSize(100, 50));
+  EXPECT_TRUE(AdSize(10, 10) != AdSize(50, 50));
+
+  EXPECT_TRUE(AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100) ==
+              AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100));
+  EXPECT_FALSE(AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100) !=
+               AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100));
+
+  EXPECT_TRUE(AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100) ==
+              AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100));
+  EXPECT_FALSE(AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100) !=
+               AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100));
+
+  EXPECT_FALSE(AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100) ==
+               AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100));
+  EXPECT_TRUE(AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100) !=
+              AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100));
+
+  EXPECT_FALSE(AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100) ==
+               AdSize(100, 100));
+  EXPECT_TRUE(AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100) !=
+              AdSize(100, 100));
+
+  EXPECT_FALSE(AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100) ==
+               AdSize(100, 100));
+  EXPECT_TRUE(AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100) !=
+              AdSize(100, 100));
+}
+
+TEST_F(FirebaseGmaTest, TestAdViewDestroyBeforeInitialization) {
+  SKIP_TEST_ON_DESKTOP;
+  firebase::gma::AdView* ad_view = new firebase::gma::AdView();
+  WaitForCompletion(ad_view->Destroy(), "Destroy AdView");
+}
+
+TEST_F(FirebaseGmaTest, TestAdViewAdSizeBeforeInitialization) {
+  SKIP_TEST_ON_DESKTOP;
+  firebase::gma::AdView* ad_view = new firebase::gma::AdView();
+  const firebase::gma::AdSize& ad_size = firebase::gma::AdSize(0, 0);
+  EXPECT_TRUE(ad_view->ad_size() == ad_size);
+
+  WaitForCompletion(ad_view->Destroy(), "Destroy AdView");
+}
+
 TEST_F(FirebaseGmaTest, TestAdView) {
   TEST_REQUIRES_USER_INTERACTION;
   SKIP_TEST_ON_DESKTOP;
@@ -996,6 +1050,7 @@ TEST_F(FirebaseGmaTest, TestAdView) {
   WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
                                         kBannerAdUnit, banner_ad_size),
                     "Initialize");
+  EXPECT_TRUE(ad_view->ad_size() == banner_ad_size);
 
   // Set the listener.
   TestBoundingBoxListener bounding_box_listener;

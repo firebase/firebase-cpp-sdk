@@ -73,6 +73,8 @@ class AdViewInternalStub : public AdViewInternal {
 
   bool is_initialized() const override { return true; }
 
+  AdSize ad_size() const override { return AdSize(0, 0); }
+
  private:
   Future<void> CreateAndCompleteFutureStub(AdViewFn fn) {
     return CreateAndCompleteFuture(fn, kAdErrorCodeNone, nullptr,
