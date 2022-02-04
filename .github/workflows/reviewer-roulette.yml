@@ -45,7 +45,7 @@ jobs:
           echo "Requested reviewers: ${requested_reviewers}"
           echo "Completed reviewers: ${completed_reviewers}"
           echo "Author: ${author}"
-          all_reviewers="${requested_reviews} ${completed_reviews}"
+          all_reviewers="${requested_reviewers} ${completed_reviewers}"
 
           # Build a JSON list of reviewers to choose from.
           reviewer_list='['
