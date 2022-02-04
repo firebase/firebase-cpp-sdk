@@ -56,7 +56,4 @@ jobs:
         uses: itsOliverBott/assign-pr-reviewers@release
         with:
           token: ${{ github.token }}
-          users: ${{ steps.choose-random.outputs.selectedValuesList[0] }}
-
-          
-
+          users: ${{ steps.choose-random.outputs.selectedValuesList }}
