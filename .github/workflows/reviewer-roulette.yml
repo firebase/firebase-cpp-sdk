@@ -23,10 +23,13 @@ jobs:
       - name: Create reviewer list
         id: get-reviewers
         run: |
+          # Get the current reviewers and the author of the PR, to exclude them from the list.
           current_reviewers=' ${{ join(github.event.pull_request.requested_reviewers.*.login, ' ') }} '
           author='${{ github.event.pull_request.user.login }}'
           echo "Current reviewers:${current_reviewers}"
           echo "Author: ${author}"
+
+          # Build a JSON list of reviewers to choose from.
           reviewer_list='['
           first=1
           for r in ${{ env.reviewerList }}; do
@@ -56,4 +59,4 @@ jobs:
         uses: itsOliverBott/assign-pr-reviewers@release
         with:
           token: ${{ github.token }}
-          users: ${{ steps.choose-random.outputs.selectedValuesList }}
+          users: ${{ toJSON(steps.choose-random.outputs.selectedValuesList)[0] }}
