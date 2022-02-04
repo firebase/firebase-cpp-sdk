@@ -46,6 +46,10 @@ jobs:
           reviewer_list+=']'
           echo "Reviewer list: ${reviewer_list}"
           echo "::set-output name=reviewer_list::${reviewer_list}"
+          # If the list is empty, print an error. The following steps won't run.
+          if [[ "${reviewer_list}" == "[]" ]]; then
+            echo "::error ::No reviewers available"
+          fi
 
       - name: Choose random reviewer
         if: ${{ steps.get-reviewers.outputs.reviewer_list != '[]' }}
