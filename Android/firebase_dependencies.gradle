@@ -58,7 +58,7 @@ def firebaseResourceDependenciesMap = [
 def setResourceDependencies(String subproject) {
   preDebugBuild.dependsOn gradle.includedBuild('firebase_cpp_sdk').task(
       "$subproject:generateDexJarDebug")
-  preDebugBuild.dependsOn gradle.includedBuild('firebase_cpp_sdk').task(
+  preReleaseBuild.dependsOn gradle.includedBuild('firebase_cpp_sdk').task(
       "$subproject:generateDexJarRelease")
 }
 
