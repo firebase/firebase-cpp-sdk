@@ -25,6 +25,7 @@ jobs:
           # Get the current reviewers and the author of the PR, to exclude them from the list.
           # Duplicates don't matter, so get the list of requested reviewers *and* the list of
           # completed reviews.
+          print '${{ toJSON(github.event.pull_request.reviews) }}'
           current_reviewers='${{ join(github.event.pull_request.requested_reviewers.*.login, ' ') }} '
           current_reviewers+='${{ join(github.event.pull_request.reviews.*.user.login, ' ') }} '
           author='${{ github.event.pull_request.user.login }}'
