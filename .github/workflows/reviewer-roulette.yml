@@ -20,14 +20,14 @@ jobs:
           type: remove
 
       - name: Get PR reviews
-        id: get-completed-reviews
+        # Put the JSON string for all the PR's completed reviews into env.PR_REVIEWS
         run: |
           url="${{ github.event.pull_request.url }}/reviews"
           echo "${url}"
           response=$(curl -s -X GET \
             -H 'Accept: application/vnd.github.v3+json' \
             -H 'Authorization: token ${{ github.token }}' \
-            "${url}")
+            "${url}?per_page=100")
           echo "${response}"
           echo "PR_REVIEWS<<EOF" >> $GITHUB_ENV
           echo "${response}" >> $GITHUB_ENV
