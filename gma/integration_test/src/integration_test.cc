@@ -1003,27 +1003,27 @@ TEST_F(FirebaseGmaTest, TestAdViewAdSizeCompareOp) {
   EXPECT_TRUE(AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100) ==
               AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100));
   EXPECT_FALSE(AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100) !=
-              AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100));
+               AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100));
 
   EXPECT_TRUE(AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100) ==
               AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100));
   EXPECT_FALSE(AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100) !=
+               AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100));
+
+  EXPECT_FALSE(AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100) ==
+               AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100));
+  EXPECT_TRUE(AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100) !=
               AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100));
 
   EXPECT_FALSE(AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100) ==
-               AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100));
+               AdSize(100, 100));
   EXPECT_TRUE(AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100) !=
-               AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100));
+              AdSize(100, 100));
 
-  EXPECT_FALSE(AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100) ==
-               AdSize(100, 100));
-  EXPECT_TRUE(AdSize::GetLandscapeAnchoredAdaptiveBannerAdSize(100) !=
-               AdSize(100, 100));
-  
   EXPECT_FALSE(AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100) ==
                AdSize(100, 100));
   EXPECT_TRUE(AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(100) !=
-               AdSize(100, 100));
+              AdSize(100, 100));
 }
 
 TEST_F(FirebaseGmaTest, TestAdViewDestroyBeforeInitialization) {
