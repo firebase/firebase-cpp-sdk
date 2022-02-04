@@ -22,10 +22,11 @@ jobs:
       - name: Get completed reviews
         id: get-reviewers
         run: |
-          url="https://api.github.com/repos/${{ github.event.pull_request.repository.owner.login }}/${{ github.event.pull_request.repository.name }}/pull_request/${{ github.event.pull_request.number }}/reviews"
+          url="https://api.github.com/repos/${{ github.event.pull_request.repository.owner.login }}/${{ github.event.pull_request.repository.name }}/pulls/${{ github.event.pull_request.number }}/reviews"
+          echo "${url}"
           response=$(curl -s -X GET \
-            '-H', 'Accept: application/vnd.github.v3+json', \
-            '-H', 'Authorization: token ${{ github.token }},' \
+            -H 'Accept: application/vnd.github.v3+json' \
+            -H 'Authorization: token ${{ github.token }}' \
             "${url}")
           echo "${response}"
 
