@@ -12,7 +12,7 @@ env:
 jobs:
   assign_random_reviewer:
     if: github.event.action == "labeled" && github.event.label.name == env.triggerLabelPrefix
-    runs_on: ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Unset label
         uses: buildsville/add-remove-label@v1
