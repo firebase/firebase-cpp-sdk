@@ -24,12 +24,14 @@ jobs:
         id: get-reviewers
         run: |
           current_reviewers=' ${{ join(github.event.pull_request.requested_reviewers.*.login, ' ') }} '
+          author='${{ github.event.pull_request.user.login }}'
           echo "Current reviewers:${current_reviewers}"
+          echo Author:${author}"
           reviewer_list='['
           first=1
           for r in ${{ env.reviewerList }}; do
             # Don't include this reviewer if they are already reviewing the PR.
-            if [[ "${current_reviewers}" != *" $r "* ]]; then
+            if [[ "${current_reviewers}" != *" $r "* && "$r" != "${author}" ]]; then
               if [[ ${first} -eq 1 ]]; then
                 first=0
               else
@@ -43,12 +45,14 @@ jobs:
           echo "::set-output name=reviewer_list::${reviewer_list}"
 
       - name: Choose random reviewer
+        if: ${{ steps.get-reviewers.outputs.reviewer_list != '[]' }}
         id: choose-random
         uses: KhannaAbhinav/random-selector-action@v1
         with:
           data: ${{ steps.get-reviewers.outputs.reviewer_list }}
 
       - name: Assign Reviewers to PR
+        if: ${{ steps.get-reviewers.outputs.reviewer_list != '[]' }}
         uses: itsOliverBott/assign-pr-reviewers@release
         with:
           token: ${{ github.token }}
