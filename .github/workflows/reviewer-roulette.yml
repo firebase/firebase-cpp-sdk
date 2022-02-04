@@ -20,9 +20,9 @@ jobs:
           type: remove
 
       - name: Get PR reviews
-        id: get-reviews
+        id: get-completed-reviews
         run: |
-          url="https://api.github.com/repos/${{ github.event.pull_request.repository.owner.login }}/${{ github.event.pull_request.repository.name }}/pulls/${{ github.event.pull_request.number }}/reviews"
+          url="${{ github.event.pull_request.url }}/reviews"
           echo "${url}"
           response=$(curl -s -X GET \
             -H 'Accept: application/vnd.github.v3+json' \
@@ -39,9 +39,10 @@ jobs:
           # completed reviews.
           echo '${{ toJSON(github.event) }}'
           requested_reviewers='${{ join(github.event.pull_request.requested_reviewers.*.login, ' ') }} '
+          completed_reviewers='${{ join(fromJSON(steps.get-completed-reviews.outputs.reviews).*.user.login, ' ') }} '
           author='${{ github.event.pull_request.user.login }}'
-          echo "Requested reviews: ${requested_reviewers}"
-          echo Completed reviews: ${requested_reviewers}"
+          echo "Requested reviewers: ${requested_reviewers}"
+          echo Completed reviewers: ${completed_reviewers}"
           echo "Author: ${author}"
           all_reviewers="${requested_reviews} ${completed_reviews}"
 
