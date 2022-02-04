@@ -24,7 +24,7 @@ jobs:
       - name: Create reviewer list
         id: get-reviewers
         run: |
-          current_reviewers=' ${{ join(github.event.pull_request.requested_reviewers.*.login, " ") }} '
+          current_reviewers=' ${{ join(github.event.pull_request.requested_reviewers.*.login, ' ') }} '
           echo "Current reviewers:${current_reviewers}"
           reviewer_list='['
           first=1
