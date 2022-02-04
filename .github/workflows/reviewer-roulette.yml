@@ -23,9 +23,12 @@ jobs:
         id: get-reviewers
         run: |
           # Get the current reviewers and the author of the PR, to exclude them from the list.
-          current_reviewers=' ${{ join(github.event.pull_request.requested_reviewers.*.login, ' ') }} '
+          # Duplicates don't matter, so get the list of requested reviewers *and* the list of
+          # completed reviews.
+          current_reviewers='${{ join(github.event.pull_request.requested_reviewers.*.login, ' ') }} '
+          current_reviewers+='${{ join(github.event.pull_request.reviews.*.user.login, ' ') }} '
           author='${{ github.event.pull_request.user.login }}'
-          echo "Current reviewers:${current_reviewers}"
+          echo "Current reviewers: ${current_reviewers}"
           echo "Author: ${author}"
 
           # Build a JSON list of reviewers to choose from.
@@ -33,7 +36,7 @@ jobs:
           first=1
           for r in ${{ env.reviewerList }}; do
             # Don't include this reviewer if they are already reviewing the PR, or authored it.
-            if [[ "${current_reviewers}" != *" $r "* && "$r" != "${author}" ]]; then
+            if [[ " ${current_reviewers} " != *" $r "* && "$r" != "${author}" ]]; then
               if [[ ${first} -eq 1 ]]; then
                 first=0
               else
