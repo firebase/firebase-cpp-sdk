@@ -29,7 +29,9 @@ jobs:
             -H 'Authorization: token ${{ github.token }}' \
             "${url}")
           echo "${response}"
-          echo "::set-output name=reviews::${response}"
+          echo "PR_REVIEWS<<EOF" >> $GITHUB_ENV
+          echo "${response}" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - name: Create reviewer list
         id: get-reviewers
@@ -39,7 +41,7 @@ jobs:
           # completed reviews.
           echo '${{ toJSON(github.event) }}'
           requested_reviewers='${{ join(github.event.pull_request.requested_reviewers.*.login, ' ') }} '
-          completed_reviewers='${{ join(fromJSON(steps.get-completed-reviews.outputs.reviews).*.user.login, ' ') }} '
+          completed_reviewers='${{ join(fromJSON(env.PR_REVIEWS).*.user.login, ' ') }} '
           author='${{ github.event.pull_request.user.login }}'
           echo "Requested reviewers: ${requested_reviewers}"
           echo Completed reviewers: ${completed_reviewers}"
