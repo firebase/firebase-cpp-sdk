@@ -5,7 +5,6 @@ on:
     types: [ labeled ]
 
 env:
-  GITHUB_TOKEN: ${{ github.token }}
   reviewerList: "jonsimantov a-maurice DellaBitta cynthiajoan chkuang-g"
 
 jobs:
