@@ -45,14 +45,14 @@ jobs:
           echo "Requested reviewers: ${requested_reviewers}"
           echo "Completed reviewers: ${completed_reviewers}"
           echo "Author: ${author}"
-          skip_users="${author} ${requested_reviewers} ${completed_reviewers}"
+          exclude_list="${author} ${requested_reviewers} ${completed_reviewers}"
 
           # Build a JSON list of reviewers to choose from.
           reviewer_list='['
           first=1
           for r in ${{ env.reviewerList }}; do
             # Don't include this reviewer if they are already reviewing the PR, or authored it.
-            if [[ " ${skip_users} " != *" $r "* ]]; then
+            if [[ " ${exclude_list} " != *" $r "* ]]; then
               if [[ ${first} -eq 1 ]]; then
                 first=0
               else
