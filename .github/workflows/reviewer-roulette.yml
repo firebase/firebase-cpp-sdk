@@ -1,0 +1,58 @@
+name: Reviewer Roulette
+
+on:
+  pull_request:
+    types: [ labeled ]
+
+env:
+  triggerLabel: "reviewer-roulette"
+  GITHUB_TOKEN: ${{ github.token }}
+  reviewerList: "jonsimantov a-maurice DellaBitta cynthiajoan chkuang-g"
+
+jobs:
+  assign_random_reviewer:
+    if: github.event.action == "labeled" && github.event.label.name == env.triggerLabelPrefix
+    runs_on: ubuntu-latest
+    steps:
+      - name: Unset label
+        uses: buildsville/add-remove-label@v1
+        with:
+          token: ${{ github.token }}
+          label: "${{ github.event.label.name }}"
+          type: remove
+
+      - name: Create reviewer list
+        id: get-reviewers
+        run: |
+          current_reviewers=' ${{ join(github.event.pull_request.requested_reviewers.*.login, " ") }} '
+          echo "Current reviewers:${current_reviewers}"
+          reviewer_list='['
+          first=1
+          for r in ${{ env.reviewerList }}; do
+            # Don't include this reviewer if they are already reviewing the PR.
+            if [[ "${current_reviewers}" != *" $r "*]]; then
+              if [[ ${first} -eq 1 ]]; then
+                first=0
+              else
+                reviewer_list+=', '
+              fi
+              reviewer_list+="'$r'"
+            fi
+          done
+          reviewer_list+=']'
+          echo "Reviewer list: ${reviewer_list}"
+          echo "::set-output name=reviewer_list::${reviewer_list}"
+
+      - name: Choose random reviewer
+        id: choose-random
+        uses: KhannaAbhinav/random-selector-action@v1
+        data: ${{ steps.get-reviewers.outputs.reviewer_list }}
+
+      - name: Assign Reviewers to PR
+        uses: itsOliverBott/assign-pr-reviewers@release
+        with:
+          token: ${{ github.token }}
+          users: steps.choose-random.outputs.selectedValuesList[0]
+
+          
+
