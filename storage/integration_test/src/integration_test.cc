@@ -19,7 +19,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
-#include <thread>
+#include <thread>  // NOLINT
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
@@ -40,6 +40,17 @@
 #else
 #define FIREBASE_CONFIG_STRING ""
 #endif  // FIREBASE_CONFIG
+
+// Allow integration tests to enable retrying of file-not-found errors.
+#if FIREBASE_PLATFORM_DESKTOP
+namespace firebase {
+namespace storage {
+namespace internal {
+extern bool g_retry_file_not_found__for_testing;
+}
+}  // namespace storage
+}  // namespace firebase
+#endif  // FIREBASE_PLATFORM_DESKTOP
 
 namespace firebase_testapp_automated {
 
@@ -387,9 +398,16 @@ const std::string kSimpleTestFile =
     "pariatur. Excepteur sint occaecat cupidatat non proident, sunt in "
     "culpa qui officia deserunt mollit anim id est laborum.";
 
-// TODO(almostmatt): Make this test only run on desktop.
+// Only test retries on desktop since Android and iOS don't have an option
+// to retry file-not-found errors and just pass-through to native
+// implementations.
+#if FIREBASE_PLATFORM_DESKTOP
 // Set a test-only flag to enable retrying 404s.
 TEST_F(FirebaseStorageTest, TestReadBytesWithMaxRetryDuration) {
+  // Enable retrying of file-not-found errors for testing.
+  bool old_value = firebase::storage::internal::g_retry_file_not_found__for_testing;
+  firebase::storage::internal::g_retry_file_not_found__for_testing = true;
+
   int shorter_duration_sec = 2;
   int longer_duration_sec = 6;
   SignIn();
@@ -397,15 +415,13 @@ TEST_F(FirebaseStorageTest, TestReadBytesWithMaxRetryDuration) {
   // Attempt to read a non-existent file, and verify that GetBytes fails.
   {
     LogDebug("Call GetBytes on a nonexistent ref.");
-    firebase::storage::StorageReference ref =
-        CreateFolder().Child("File1.txt");
+    firebase::storage::StorageReference ref = CreateFolder().Child("File1.txt");
     LogDebug("Storage URL: gs://%s%s", ref.bucket().c_str(),
-            ref.full_path().c_str());
+             ref.full_path().c_str());
     cleanup_files_.push_back(ref);
 
     const size_t kBufferSize = 1024;
     char buffer[kBufferSize];
-    memset(buffer, 0, sizeof(buffer));
     LogDebug("Ensuring file does not exist.");
     storage_->set_max_download_retry_time(shorter_duration_sec);
     firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
@@ -419,12 +435,13 @@ TEST_F(FirebaseStorageTest, TestReadBytesWithMaxRetryDuration) {
     LogDebug("Call PutBytes while GetBytes is retrying.");
     firebase::storage::StorageReference ref = CreateFolder().Child("File2.txt");
     LogDebug("Storage URL: gs://%s%s", ref.bucket().c_str(),
-            ref.full_path().c_str());
+             ref.full_path().c_str());
     cleanup_files_.push_back(ref);
 
     std::thread t1([&] {
       // PutBytes after a short delay.
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000 * shorter_duration_sec));
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(1000 * shorter_duration_sec));
       LogDebug("Upload sample file from memory.");
       firebase::Future<firebase::storage::Metadata> future =
           RunWithRetry<firebase::storage::Metadata>([&]() {
@@ -449,18 +466,19 @@ TEST_F(FirebaseStorageTest, TestReadBytesWithMaxRetryDuration) {
     t1.join();
   }
 
-  // Set max-retry time to 10s and create the file in an async thread after 30 seconds
-  // Verify that GetBytes fails
+  // Set max-retry time to 10s and create the file in an async thread after 30
+  // seconds Verify that GetBytes fails
   {
     LogDebug("Call PutBytes after the maximum retry deadline.");
     firebase::storage::StorageReference ref = CreateFolder().Child("File3.txt");
     LogDebug("Storage URL: gs://%s%s", ref.bucket().c_str(),
-            ref.full_path().c_str());
+             ref.full_path().c_str());
     cleanup_files_.push_back(ref);
-  
+
     std::thread t1([&] {
       // PutBytes after a long delay.
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000 * longer_duration_sec));
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(1000 * longer_duration_sec));
       LogDebug("Upload sample file from memory.");
       firebase::Future<firebase::storage::Metadata> future =
           RunWithRetry<firebase::storage::Metadata>([&]() {
@@ -481,7 +499,10 @@ TEST_F(FirebaseStorageTest, TestReadBytesWithMaxRetryDuration) {
                       firebase::storage::kErrorObjectNotFound);
     t1.join();
   }
+
+  firebase::storage::internal::g_retry_file_not_found__for_testing = old_value;
 }
+#endif // FIREBASE_PLATFORM_DESKTOP
 
 TEST_F(FirebaseStorageTest, TestWriteAndReadByteBuffer) {
   SignIn();

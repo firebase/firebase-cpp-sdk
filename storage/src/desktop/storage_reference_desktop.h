@@ -148,14 +148,19 @@ class StorageReferenceInternal {
   StorageReference AsStorageReference() const;
 
  private:
-  // Function type that sends a Rest Request and returns the BlockingResponse. 
+  // Function type that sends a Rest Request and returns the BlockingResponse.
   typedef std::function<BlockingResponse*()> SendRequestFunct;
 
-  void SendRequestWithRetry(
-    StorageReferenceFn internal_function_reference, SendRequestFunct send_request_funct, SafeFutureHandle<size_t> final_handle, double max_retry_time_seconds);
+  void SendRequestWithRetry(StorageReferenceFn internal_function_reference,
+                            SendRequestFunct send_request_funct,
+                            SafeFutureHandle<size_t> final_handle,
+                            double max_retry_time_seconds);
 
-  void AsyncSendRequestWithRetry(
-    StorageReferenceFn internal_function_reference, SendRequestFunct send_request_funct, SafeFutureHandle<size_t> final_handle, BlockingResponse* response, double max_retry_time_seconds);
+  void AsyncSendRequestWithRetry(StorageReferenceFn internal_function_reference,
+                                 SendRequestFunct send_request_funct,
+                                 SafeFutureHandle<size_t> final_handle,
+                                 BlockingResponse* response,
+                                 double max_retry_time_seconds);
 
   // Returns whether or not an HTTP status indicates a retryable failure.
   static bool IsRetryableFailure(int httpStatus);

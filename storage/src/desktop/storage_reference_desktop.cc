@@ -14,12 +14,11 @@
 
 #include "storage/src/desktop/storage_reference_desktop.h"
 
-#include <chrono>
+#include <chrono>  // NOLINT
 #include <limits>
 #include <memory>
-#include <thread>
+#include <thread>  // NOLINT
 
-#include "app_framework.h"
 #include "app/memory/unique_ptr.h"
 #include "app/rest/request.h"
 #include "app/rest/request_binary.h"
@@ -29,6 +28,7 @@
 #include "app/src/app_common.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/thread.h"
+#include "app_framework.h"
 #include "storage/src/common/common_internal.h"
 #include "storage/src/desktop/controller_desktop.h"
 #include "storage/src/desktop/metadata_desktop.h"
@@ -359,13 +359,14 @@ void StorageReferenceInternal::AsyncSendRequestWithRetry(
   }
 }
 
-// Returns whether or not an http status represents a failure that should be retried.
+static bool g_retry_file_not_found__for_testing = false;
+
+// Returns whether or not an http status represents a failure that should be
+// retried.
 bool StorageReferenceInternal::IsRetryableFailure(int httpStatus) {
-  return (httpStatus >= 500 && httpStatus < 600)
-      || httpStatus == 429
-      // TODO(almostmatt): Note: temporarily retrying 404s to test. remove this.
-      || httpStatus == 404 
-      || httpStatus == 408;
+  return (httpStatus >= 500 && httpStatus < 600) || httpStatus == 429 ||
+         httpStatus == 408 ||
+         (httpStatus == 404 && g_retry_file_not_found__for_testing);
 }
 
 // Returns the result of the most recent call to GetBytes();
