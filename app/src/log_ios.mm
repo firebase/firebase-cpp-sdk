@@ -20,6 +20,7 @@
 
 #import "FIRConfiguration.h"
 
+#include "app/src/app_ios.h"
 #include "app/src/include/firebase/internal/common.h"
 
 #include <stdarg.h>
@@ -61,7 +62,7 @@ void LogInitialize() {
 // Set the platform specific SDK log level.
 void LogSetPlatformLevel(LogLevel level) {
   assert(level < FIREBASE_ARRAYSIZE(kCppToIOSLogLevel));
-  [[FIRConfiguration sharedInstance] setLoggerLevel:kCppToIOSLogLevel[level]];
+  firebase::internal::SetFirConfigurationLoggerLevel(kCppToIOSLogLevel[level]);
 }
 
 // Log a firebase message.
