@@ -288,6 +288,8 @@ bool App::IsDataCollectionDefaultEnabled() const {
 
 FIRApp* App::GetPlatformApp() const { return internal_->get(); }
 
+namespace internal {
+
 void SetFirConfigurationLoggerLevel(FIRLoggerLevel level) {
   // Check if a FIRApp has been created. FIRApp.allApps will return a
   // list of all FIRApps, or nil if no FIRApp has been created yet.
@@ -302,5 +304,6 @@ void SetFirConfigurationLoggerLevel(FIRLoggerLevel level) {
     g_delayed_fir_configuration_logger_level_set = true;
   }
 }
+}  // namespace internal
 
 }  // namespace firebase
