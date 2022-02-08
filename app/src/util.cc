@@ -227,7 +227,13 @@ void AppCallback::AddCallback(AppCallback* callback) {
   }
   std::string name = callback->module_name();
   if (callbacks_->find(name) != callbacks_->end()) {
+    LogWarning(
+        "%s is already registered for callbacks on app initialization,  "
+        "ignoring.",
+        name.c_str());
   } else {
+    LogDebug("Registered app initializer %s (enabled: %d)", name.c_str(),
+             callback->enabled() ? 1 : 0);
     (*callbacks_)[name] = callback;
   }
 }

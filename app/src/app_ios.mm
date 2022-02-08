@@ -133,6 +133,10 @@ static FIRApp* GetPlatformAppByName(const char* name) {
   return platform_app;
 }
 
+// Settings cached by SetFirConfigurationLoggerLevel if App wasn't already initialized.
+static bool g_delayed_fir_configuration_logger_level_set = false;
+static FIRLoggerLevel g_delayed_fir_configuration_logger_level = FIRLoggerLevelWarning;
+
 // Create an iOS FIRApp instance.
 static FIRApp* CreatePlatformApp(const AppOptions& options, const char* name) {
   __block FIRApp* platform_app = nil;
@@ -155,6 +159,14 @@ static FIRApp* CreatePlatformApp(const AppOptions& options, const char* name) {
             [FIRApp configureWithName:@(name) options:platform_options];
           }
           platform_app = GetPlatformAppByName(name);
+          // If the logger level was cached due to logging happening prior to
+          // App's initialization, apply the delayed setting now, when FIRApp
+          // is guaranteed to exist and we are in the main thread.
+          if (g_delayed_fir_configuration_logger_level_set) {
+            g_delayed_fir_configuration_logger_level_set = false;
+            [[FIRConfiguration sharedInstance]
+                setLoggerLevel:g_delayed_fir_configuration_logger_level];
+          }
         } @catch (NSException* e) {
           LogError("Unable to configure Firebase app (%s)",
                    util::NSStringToString(e.reason).c_str());
@@ -275,5 +287,23 @@ bool App::IsDataCollectionDefaultEnabled() const {
 }
 
 FIRApp* App::GetPlatformApp() const { return internal_->get(); }
+
+namespace internal {
+
+void SetFirConfigurationLoggerLevel(FIRLoggerLevel level) {
+  // Check if a FIRApp has been created. FIRApp.allApps will return a
+  // list of all FIRApps, or nil if no FIRApp has been created yet.
+  if (FIRApp.allApps != nil) {
+    // FIRApp has already been initialized, it's safe to set this
+    // value now.
+    [[FIRConfiguration sharedInstance] setLoggerLevel:level];
+  } else {
+    // FIRApp has not yet been initialized. Cache this value to set
+    // later, in CreatePlatformApp().
+    g_delayed_fir_configuration_logger_level = level;
+    g_delayed_fir_configuration_logger_level_set = true;
+  }
+}
+}  // namespace internal
 
 }  // namespace firebase
