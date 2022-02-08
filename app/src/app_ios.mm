@@ -159,14 +159,14 @@ static FIRApp* CreatePlatformApp(const AppOptions& options, const char* name) {
             [FIRApp configureWithName:@(name) options:platform_options];
           }
           platform_app = GetPlatformAppByName(name);
-	  // If the logger level was cached due to logging happening prior to
-	  // App's initialization, apply the delayed setting now, when FIRApp
-	  // is guaranteed to exist and we are in the main thread.
-	  if (g_delayed_fir_configuration_logger_level_set) {
-	    g_delayed_fir_configuration_logger_level_set = false;
-	    [[FIRConfiguration sharedInstance]
-	      setLoggerLevel:g_delayed_fir_configuration_logger_level];
-	  }
+          // If the logger level was cached due to logging happening prior to
+          // App's initialization, apply the delayed setting now, when FIRApp
+          // is guaranteed to exist and we are in the main thread.
+          if (g_delayed_fir_configuration_logger_level_set) {
+            g_delayed_fir_configuration_logger_level_set = false;
+            [[FIRConfiguration sharedInstance]
+                setLoggerLevel:g_delayed_fir_configuration_logger_level];
+          }
         } @catch (NSException* e) {
           LogError("Unable to configure Firebase app (%s)",
                    util::NSStringToString(e.reason).c_str());
