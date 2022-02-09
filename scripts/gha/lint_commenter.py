@@ -47,7 +47,7 @@ IGNORE_LINT_WARNINGS = [
 ]
 # Exclude files within the following paths (specified as regexes).
 EXCLUDE_PATH_REGEX = [
-  # These files are copied from an external repo and our outside our control.
+  # These files are copied from an external repo and are outside our control.
   r'^analytics/ios_headers/'
 ]
 # The linter gives every error a confidence score.
