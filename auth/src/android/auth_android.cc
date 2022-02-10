@@ -313,8 +313,11 @@ void LogHeartbeat(Auth* auth) {
   // Calling the native getter is sufficient to cause a Heartbeat to be logged.
   JNIEnv* env = Env(auth->auth_data);
   jobject platform_app = auth->app()->GetPlatformApp();
-  env->CallStaticObjectMethod(
+  jobject j_auth_impl = env->CallStaticObjectMethod(
       auth::GetClass(), auth::GetMethodId(auth::kGetInstance), platform_app);
+  util::CheckAndClearJniExceptions(env);
+  env->DeleteLocalRef(platform_app);
+  env->DeleteLocalRef(j_auth_impl);
 }
 
 JNIEXPORT void JNICALL JniAuthStateListener_nativeOnAuthStateChanged(
