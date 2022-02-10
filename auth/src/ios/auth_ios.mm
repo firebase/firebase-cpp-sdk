@@ -135,11 +135,6 @@ struct ListenerHandleHolder {
   T handle;
 };
 
-void LogHeartbeat(Auth* auth) {
-  // Calling the native getter is sufficient to cause a Heartbeat to be logged.
-  [FIRAuth authWithApp:auth->app()->GetPlatformApp()];
-}
-
 // Platform-specific method to create the wrapped Auth class.
 void *CreatePlatformAuth(App *app) {
   // Grab the auth for our app.
@@ -226,6 +221,11 @@ void Auth::DestroyPlatformAuth(AuthData *auth_data) {
   // Release the FIRAuth* that we allocated in CreatePlatformAuth().
   delete auth_data_ios;
   auth_data->auth_impl = nullptr;
+}
+
+void LogHeartbeat(Auth* auth) {
+  // Calling the native getter is sufficient to cause a Heartbeat to be logged.
+  [FIRAuth authWithApp:auth->app()->GetPlatformApp()];
 }
 
 Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(const char *email) {

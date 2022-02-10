@@ -82,10 +82,6 @@ Future<ResultT> DoSignInWithCredential(Promise<ResultT> promise,
 
 }  // namespace
 
-void LogHeartbeat(Auth* const auth) {
-  // This is a stub until desktop implementation supports heartbeat logging.
-}
-
 void* CreatePlatformAuth(App* const app) {
   FIREBASE_ASSERT_RETURN(nullptr, app);
 
@@ -97,6 +93,9 @@ void* CreatePlatformAuth(App* const app) {
 
 void InitializeFunctionRegistryListener(AuthData* auth_data);
 void DestroyFunctionRegistryListener(AuthData* auth_data);
+
+// This is a stub until desktop implementation supports heartbeat logging.
+void LogHeartbeat(Auth* const auth) {}
 
 IdTokenRefreshListener::IdTokenRefreshListener() : token_timestamp_(0) {}
 

@@ -33,14 +33,14 @@ enum CredentialApiFunction {
 // Platform-specific method to create the wrapped Auth class.
 void* CreatePlatformAuth(App* app);
 
-// Platform-specific method that causes a heartbeat to be logged.
-void LogHeartbeat(Auth* auth);
-
 // Platform-specific method to initialize AuthData.
 void InitPlatformAuth(AuthData* auth_data);
 
 // Platform-specific method to destroy the wrapped Auth class.
 void DestroyPlatformAuth(AuthData* auth_data);
+
+// Platform-specific method that causes a heartbeat to be logged.
+void LogHeartbeat(Auth* auth);
 
 // All the result functions are similar.
 // Just return the local Future, cast to the proper result type.
