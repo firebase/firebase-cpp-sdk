@@ -1,6 +1,6 @@
 // Copyright 2022 Google LLC
 
-// Copied from Firebase Analytics iOS SDK 8.11.0.
+// Copied from Firebase Analytics iOS SDK 8.12.1.
 
 /// @file FIRUserPropertyNames.h
 ///
@@ -16,10 +16,6 @@
 
 #import <Foundation/Foundation.h>
 
-/// The method used to sign in. For example, "google", "facebook" or "twitter".
-static NSString *const kFIRUserPropertySignUpMethod
-    NS_SWIFT_NAME(AnalyticsUserPropertySignUpMethod) = @"sign_up_method";
-
 /// Indicates whether events logged by Google Analytics can be used to personalize ads for the user.
 /// Set to "YES" to enable, or "NO" to disable. Default is enabled. See the
 /// <a href="https://firebase.google.com/support/guides/disable-analytics">documentation</a> for
@@ -31,3 +27,7 @@ static NSString *const kFIRUserPropertySignUpMethod
 /// </pre>
 static NSString *const kFIRUserPropertyAllowAdPersonalizationSignals
     NS_SWIFT_NAME(AnalyticsUserPropertyAllowAdPersonalizationSignals) = @"allow_personalized_ads";
+
+/// The method used to sign in. For example, "google", "facebook" or "twitter".
+static NSString *const kFIRUserPropertySignUpMethod
+    NS_SWIFT_NAME(AnalyticsUserPropertySignUpMethod) = @"sign_up_method";
