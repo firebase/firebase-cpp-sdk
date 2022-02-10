@@ -46,7 +46,7 @@
 namespace firebase {
 namespace storage {
 namespace internal {
-extern bool g_retry_file_not_found__for_testing;
+extern bool g_retry_file_not_found_for_testing;
 }
 }  // namespace storage
 }  // namespace firebase
@@ -405,29 +405,13 @@ const std::string kSimpleTestFile =
 // Set a test-only flag to enable retrying 404s.
 TEST_F(FirebaseStorageTest, TestReadBytesWithMaxRetryDuration) {
   // Enable retrying of file-not-found errors for testing.
-  bool old_value = firebase::storage::internal::g_retry_file_not_found__for_testing;
-  firebase::storage::internal::g_retry_file_not_found__for_testing = true;
+  bool old_value =
+      firebase::storage::internal::g_retry_file_not_found_for_testing;
+  firebase::storage::internal::g_retry_file_not_found_for_testing = true;
 
   int shorter_duration_sec = 2;
   int longer_duration_sec = 6;
   SignIn();
-
-  // Attempt to read a non-existent file, and verify that GetBytes fails.
-  {
-    LogDebug("Call GetBytes on a nonexistent ref.");
-    firebase::storage::StorageReference ref = CreateFolder().Child("File1.txt");
-    LogDebug("Storage URL: gs://%s%s", ref.bucket().c_str(),
-             ref.full_path().c_str());
-    cleanup_files_.push_back(ref);
-
-    const size_t kBufferSize = 1024;
-    char buffer[kBufferSize];
-    LogDebug("Ensuring file does not exist.");
-    storage_->set_max_download_retry_time(shorter_duration_sec);
-    firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
-    WaitForCompletion(future, "GetBytes",
-                      firebase::storage::kErrorObjectNotFound);
-  }
 
   // Call GetBytes on a non-existent ref. Call PutBytes while the GetBytes is
   // still retrying. Verify that GetBytes succeeds.
@@ -466,8 +450,8 @@ TEST_F(FirebaseStorageTest, TestReadBytesWithMaxRetryDuration) {
     t1.join();
   }
 
-  // Set max-retry time to 10s and create the file in an async thread after 30
-  // seconds Verify that GetBytes fails
+  // Call GetBytes on a non-existent ref. Call PutBytes after GetBytes should
+  // have stopped retrying. Verify that GetBytes fails.
   {
     LogDebug("Call PutBytes after the maximum retry deadline.");
     firebase::storage::StorageReference ref = CreateFolder().Child("File3.txt");
@@ -491,7 +475,6 @@ TEST_F(FirebaseStorageTest, TestReadBytesWithMaxRetryDuration) {
 
     const size_t kBufferSize = 1024;
     char buffer[kBufferSize];
-    memset(buffer, 0, sizeof(buffer));
     LogDebug("Ensuring file does not exist.");
     storage_->set_max_download_retry_time(shorter_duration_sec);
     firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
@@ -500,9 +483,9 @@ TEST_F(FirebaseStorageTest, TestReadBytesWithMaxRetryDuration) {
     t1.join();
   }
 
-  firebase::storage::internal::g_retry_file_not_found__for_testing = old_value;
+  firebase::storage::internal::g_retry_file_not_found_for_testing = old_value;
 }
-#endif // FIREBASE_PLATFORM_DESKTOP
+#endif  // FIREBASE_PLATFORM_DESKTOP
 
 TEST_F(FirebaseStorageTest, TestWriteAndReadByteBuffer) {
   SignIn();

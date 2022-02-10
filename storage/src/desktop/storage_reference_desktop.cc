@@ -323,6 +323,7 @@ void StorageReferenceInternal::AsyncSendRequestWithRetry(
   auto end_time = std::chrono::steady_clock::now() +
                   std::chrono::duration<double>(max_retry_time_seconds);
   auto current_sleep_time = std::chrono::milliseconds(kInitialSleepTimeMillis);
+  auto max_sleep_time = std::chrono::milliseconds(kMaxSleepTimeMillis);
   while (true) {
     internal_future = future_api->LastResult(internal_function_reference);
     // Wait for completion, then check status and error.
@@ -342,8 +343,9 @@ void StorageReferenceInternal::AsyncSendRequestWithRetry(
     }
     // Sleep for an exponentially increasing duration, then retry the request.
     std::this_thread::sleep_for(current_sleep_time);
-    if (current_sleep_time < std::chrono::milliseconds(kMaxSleepTimeMillis)) {
-      current_sleep_time *= 2;
+    current_sleep_time *= 2;
+    if (current_sleep_time > max_sleep_time) {
+      current_sleep_time = max_sleep_time;
     }
     response = send_request_funct();
   }
@@ -359,14 +361,14 @@ void StorageReferenceInternal::AsyncSendRequestWithRetry(
   }
 }
 
-static bool g_retry_file_not_found__for_testing = false;
+static bool g_retry_file_not_found_for_testing = false;
 
 // Returns whether or not an http status represents a failure that should be
 // retried.
 bool StorageReferenceInternal::IsRetryableFailure(int httpStatus) {
   return (httpStatus >= 500 && httpStatus < 600) || httpStatus == 429 ||
          httpStatus == 408 ||
-         (httpStatus == 404 && g_retry_file_not_found__for_testing);
+         (httpStatus == 404 && g_retry_file_not_found_for_testing);
 }
 
 // Returns the result of the most recent call to GetBytes();
