@@ -68,6 +68,7 @@ Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
   Auth* existing_auth = FindAuth(app);
   if (existing_auth) {
     if (init_result_out != nullptr) *init_result_out = kInitResultSuccess;
+    LogHeartbeat(existing_auth);
     return existing_auth;
   }
 

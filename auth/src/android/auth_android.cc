@@ -193,6 +193,14 @@ static void ReleaseClasses(JNIEnv* env) {
   ReleaseCommonClasses(env);
 }
 
+void LogHeartbeat(Auth* auth) {
+  // Calling the native getter is sufficient to cause a Heartbeat to be logged.
+  JNIEnv* env = Env(auth->auth_data);
+  jobject platform_app = auth->app()->GetPlatformApp();
+  env->CallStaticObjectMethod(
+      auth::GetClass(), auth::GetMethodId(auth::kGetInstance), platform_app);
+}
+
 void* CreatePlatformAuth(App* app) {
   // Grab varous java objects from the app.
   JNIEnv* env = app->GetJNIEnv();

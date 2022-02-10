@@ -135,6 +135,11 @@ struct ListenerHandleHolder {
   T handle;
 };
 
+void LogHeartbeat(Auth* auth) {
+  // Calling the native getter is sufficient to cause a Heartbeat to be logged.
+  [FIRAuth authWithApp:auth->app()->GetPlatformApp()];
+}
+
 // Platform-specific method to create the wrapped Auth class.
 void *CreatePlatformAuth(App *app) {
   // Grab the auth for our app.
