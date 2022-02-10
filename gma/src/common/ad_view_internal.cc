@@ -39,6 +39,7 @@ AdViewInternal::AdViewInternal(AdView* base)
     : base_(base),
       future_data_(kAdViewFnCount),
       ad_listener_(nullptr),
+      ad_size_(0, 0),
       bounding_box_listener_(nullptr),
       paid_event_listener_(nullptr) {}
 
@@ -46,6 +47,7 @@ AdViewInternal::~AdViewInternal() {
   ad_listener_ = nullptr;
   bounding_box_listener_ = nullptr;
   paid_event_listener_ = nullptr;
+  base_ = nullptr;
 }
 
 AdViewInternal* AdViewInternal::CreateInstance(AdView* base) {
@@ -126,6 +128,11 @@ Future<void> AdViewInternal::GetLastResult(AdViewFn fn) {
 Future<AdResult> AdViewInternal::GetLoadAdLastResult() {
   return static_cast<const Future<AdResult>&>(
       future_data_.future_impl.LastResult(kAdViewFnLoadAd));
+}
+
+void AdViewInternal::update_ad_size_dimensions(int width, int height) {
+  ad_size_.width_ = width;
+  ad_size_.height_ = height;
 }
 
 }  // namespace internal

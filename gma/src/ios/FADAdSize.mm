@@ -27,16 +27,29 @@ GADAdSize GADSizeFromCppAdSize(const AdSize& ad_size) {
       switch (ad_size.orientation()) {
         case AdSize::kOrientationLandscape:
           return GADLandscapeAnchoredAdaptiveBannerAdSizeWithWidth(ad_size.width());
-          break;
         case AdSize::kOrientationPortrait:
           return GADPortraitAnchoredAdaptiveBannerAdSizeWithWidth(ad_size.width());
-          break;
         case AdSize::kOrientationCurrent:
           return GADCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(ad_size.width());
-          break;
         default:
           FIREBASE_ASSERT_MESSAGE(true, "Uknown AdSize Orientation");
       }
+      break;
+    case AdSize::kTypeInlineAdaptive:
+      if(ad_size.width() != 0) {
+        return GADInlineAdaptiveBannerAdSizeWithWidthAndMaxHeight(ad_size.width(), ad_size.height());
+      }
+      switch (ad_size.orientation()) {
+        case AdSize::kOrientationLandscape:
+          return GADLandscapeInlineAdaptiveBannerAdSizeWithWidth(ad_size.width());
+        case AdSize::kOrientationPortrait:
+          return GADPortraitInlineAdaptiveBannerAdSizeWithWidth(ad_size.width());
+        case AdSize::kOrientationCurrent:
+          return GADCurrentOrientationInlineAdaptiveBannerAdSizeWithWidth(ad_size.width());
+        default:
+          FIREBASE_ASSERT_MESSAGE(true, "Uknown AdSize Orientation");
+      }
+    break;
     case AdSize::kTypeStandard:
       return GADAdSizeFromCGSize(CGSizeMake(ad_size.width(), ad_size.height()));
       break;

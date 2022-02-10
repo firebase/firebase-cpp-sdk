@@ -272,8 +272,10 @@ firebase::gma::AdView::Position _position;
 #pragma mark - GADBannerViewDelegate
 
 - (void)bannerViewDidReceiveAd:(nonnull GADBannerView *)bannerView {
+  NSInteger width = (NSInteger) (floor(bannerView.intrinsicContentSize.width));
+  NSInteger height = (NSInteger) (floor(bannerView.intrinsicContentSize.height));
   _adLoaded = YES;
-  _cppAdView->AdViewDidReceiveAd();
+  _cppAdView->AdViewDidReceiveAd(width, height);
   gma::BoundingBox bounding_box = self.boundingBox;
 }
 - (void)bannerView:(nonnull GADBannerView *)bannerView didFailToReceiveAdWithError:(nonnull NSError *)error {

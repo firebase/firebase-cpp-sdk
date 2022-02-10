@@ -29,7 +29,6 @@ namespace internal {
 AdViewInternalIOS::AdViewInternalIOS(AdView* base)
     : AdViewInternal(base),
       ad_load_callback_data_(nil),
-      ad_size_(0,0),
       ad_view_(nil),
       destroy_mutex_(Mutex::kModeNonRecursive),
       initialized_(false) {}
@@ -220,8 +219,9 @@ BoundingBox AdViewInternalIOS::bounding_box() const {
   return bounding_box_;
 }
 
-void AdViewInternalIOS::AdViewDidReceiveAd() {
+void AdViewInternalIOS::AdViewDidReceiveAd(int width, int height) {
   firebase::MutexLock lock(mutex_);
+  update_ad_size_dimensions(width, height);
   if(ad_load_callback_data_ != nil) {
     CompleteLoadAdInternalResult(ad_load_callback_data_, kAdErrorCodeNone,
       /*error_message=*/"");

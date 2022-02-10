@@ -135,6 +135,33 @@ AdSize AdSize::GetCurrentOrientationAnchoredAdaptiveBannerAdSize(
   return GetAnchoredAdaptiveBannerAdSize(width, AdSize::kOrientationCurrent);
 }
 
+AdSize AdSize::GetCurrentOrientationInlineAdaptiveBannerAdSize(int width) {
+  AdSize ad_size(width, 0);
+  ad_size.type_ = AdSize::kTypeInlineAdaptive;
+  ad_size.orientation_ = AdSize::kOrientationCurrent;
+  return ad_size;
+}
+
+AdSize AdSize::GetInlineAdaptiveBannerAdSize(int width, int max_height) {
+  AdSize ad_size(width, max_height);
+  ad_size.type_ = AdSize::kTypeInlineAdaptive;
+  return ad_size;
+}
+
+AdSize AdSize::GetLandscapeInlineAdaptiveBannerAdSize(int width) {
+  AdSize ad_size(width, 0);
+  ad_size.type_ = AdSize::kTypeInlineAdaptive;
+  ad_size.orientation_ = AdSize::kOrientationLandscape;
+  return ad_size;
+}
+
+AdSize AdSize::GetPortraitInlineAdaptiveBannerAdSize(int width) {
+  AdSize ad_size(width, 0);
+  ad_size.type_ = AdSize::kTypeInlineAdaptive;
+  ad_size.orientation_ = AdSize::kOrientationPortrait;
+  return ad_size;
+}
+
 bool AdSize::is_equal(const AdSize& ad_size) const {
   return (type_ == ad_size.type_) && (width_ == ad_size.width_) &&
          (height_ == ad_size.height_) && (orientation_ == ad_size.orientation_);
