@@ -223,7 +223,7 @@ void Auth::DestroyPlatformAuth(AuthData *auth_data) {
   auth_data->auth_impl = nullptr;
 }
 
-void LogHeartbeat(Auth* auth) {
+void LogHeartbeat(Auth *auth) {
   // Calling the native getter is sufficient to cause a Heartbeat to be logged.
   [FIRAuth authWithApp:auth->app()->GetPlatformApp()];
 }
