@@ -50,7 +50,7 @@ extern bool g_retry_file_not_found_for_testing;
 }
 }  // namespace storage
 }  // namespace firebase
-#endif  // FIREBASE_PLATFORM_DESKTOP
+#endif
 
 namespace firebase_testapp_automated {
 
