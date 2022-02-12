@@ -30,15 +30,20 @@ namespace internal {
 
 enum StorageReferenceFn {
   kStorageReferenceFnDelete = 0,
+  kStorageReferenceFnDeleteInternal,
   kStorageReferenceFnGetBytes,
   kStorageReferenceFnGetBytesInternal,
   kStorageReferenceFnGetFile,
   kStorageReferenceFnGetFileInternal,
   kStorageReferenceFnGetDownloadUrl,
   kStorageReferenceFnGetMetadata,
+  kStorageReferenceFnGetMetadataInternal,
   kStorageReferenceFnUpdateMetadata,
+  kStorageReferenceFnUpdateMetadataInternal,
   kStorageReferenceFnPutBytes,
+  kStorageReferenceFnPutBytesInternal,
   kStorageReferenceFnPutFile,
+  kStorageReferenceFnPutFileInternal,
   kStorageReferenceFnCount,
 };
 
@@ -151,14 +156,16 @@ class StorageReferenceInternal {
   // Function type that sends a Rest Request and returns the BlockingResponse.
   typedef std::function<BlockingResponse*()> SendRequestFunct;
 
+  template <typename FutureType>
   void SendRequestWithRetry(StorageReferenceFn internal_function_reference,
                             SendRequestFunct send_request_funct,
-                            SafeFutureHandle<size_t> final_handle,
+                            SafeFutureHandle<FutureType> final_handle,
                             double max_retry_time_seconds);
 
+  template <typename FutureType>
   void AsyncSendRequestWithRetry(StorageReferenceFn internal_function_reference,
                                  SendRequestFunct send_request_funct,
-                                 SafeFutureHandle<size_t> final_handle,
+                                 SafeFutureHandle<FutureType> final_handle,
                                  BlockingResponse* response,
                                  double max_retry_time_seconds);
 
