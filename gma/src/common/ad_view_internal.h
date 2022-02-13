@@ -122,6 +122,7 @@ class AdViewInternal {
 
  protected:
   friend class firebase::gma::AdView;
+  friend class firebase::gma::GmaInternal;
 
   // Used by CreateInstance() to create an appropriate one for the current
   // platform.
@@ -136,7 +137,7 @@ class AdViewInternal {
   AdView* base_;
 
   // Future data used to synchronize asynchronous calls.
-  FutureData future_data_;
+  firebase::gma::FutureData future_data_;
 
   // Listener for AdView Lifecyle event callbacks.
   AdListener* ad_listener_;

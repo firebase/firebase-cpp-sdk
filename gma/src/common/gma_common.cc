@@ -24,6 +24,7 @@
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/util.h"
+#include "gma/src/common/ad_view_internal.h"
 #include "gma/src/include/firebase/gma.h"
 #include "gma/src/include/firebase/gma/ad_view.h"
 #include "gma/src/include/firebase/gma/interstitial_ad.h"
@@ -84,6 +85,12 @@ void GmaInternal::CompleteLoadAdFuture(
 
 AdError GmaInternal::CreateAdError(const AdErrorInternal& ad_error_internal) {
   return AdError(ad_error_internal);
+}
+
+void GmaInternal::UpdateAdViewInternalAdSizeDimensions(
+    internal::AdViewInternal* ad_view_internal, int width, int height) {
+  assert(ad_view_internal);
+  ad_view_internal->update_ad_size_dimensions(width, height);
 }
 
 // AdInspectorClosedListener

@@ -63,8 +63,23 @@ namespace gma {
   X(GetPortraitAnchoredAdaptiveBannerAdSize,                                 \
     "getPortraitAnchoredAdaptiveBannerAdSize",                               \
     "(Landroid/content/Context;I)Lcom/google/android/gms/ads/AdSize;",       \
+    util::kMethodTypeStatic),                                                \
+  X(GetInlineAdaptiveBannerAdSize,                                           \
+    "getInlineAdaptiveBannerAdSize",                                         \
+    "(II)Lcom/google/android/gms/ads/AdSize;",                               \
+    util::kMethodTypeStatic),                                                \
+  X(GetCurrentOrientationInlineAdaptiveBannerAdSize,                         \
+    "getCurrentOrientationInlineAdaptiveBannerAdSize",                       \
+    "(Landroid/content/Context;I)Lcom/google/android/gms/ads/AdSize;",       \
+    util::kMethodTypeStatic),                                                \
+  X(GetLandscapeInlineAdaptiveBannerAdSize,                                  \
+    "getLandscapeInlineAdaptiveBannerAdSize",                                \
+    "(Landroid/content/Context;I)Lcom/google/android/gms/ads/AdSize;",       \
+    util::kMethodTypeStatic),                                                \
+  X(GetPortraitInlineAdaptiveBannerAdSize,                                   \
+    "getPortraitInlineAdaptiveBannerAdSize",                                 \
+    "(Landroid/content/Context;I)Lcom/google/android/gms/ads/AdSize;",       \
     util::kMethodTypeStatic)
-
 // clang-format on
 
 // clang-format off

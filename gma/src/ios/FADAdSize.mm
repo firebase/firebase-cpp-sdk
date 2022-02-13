@@ -36,7 +36,7 @@ GADAdSize GADSizeFromCppAdSize(const AdSize& ad_size) {
       }
       break;
     case AdSize::kTypeInlineAdaptive:
-      if(ad_size.width() != 0) {
+      if(ad_size.height() != 0) {
         return GADInlineAdaptiveBannerAdSizeWithWidthAndMaxHeight(ad_size.width(), ad_size.height());
       }
       switch (ad_size.orientation()) {

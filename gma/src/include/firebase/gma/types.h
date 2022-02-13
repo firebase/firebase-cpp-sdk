@@ -455,20 +455,6 @@ class AdSize {
   static AdSize GetCurrentOrientationAnchoredAdaptiveBannerAdSize(
       uint32_t width);
 
-  /// @brief A convenience method to return InlineAdaptiveBannerAdSize given
-  /// the current interface orientation.
-  ///
-  /// This AdSize allows Google servers to choose an optimal ad size with a
-  /// height less than or equal to the height of the screen in the requested
-  /// orientation.
-  ///
-  /// @param[in] width The width of the ad in density-independent pixels.
-  ///
-  /// @return an AdSize with the given width and a height that is always 0.
-  /// The exact size of the ad returned can be retrieved by calling
-  /// AdView.ad_size() once the ad has been loaded.
-  static AdSize GetCurrentOrientationInlineAdaptiveBannerAdSize(int width);
-
   /// @brief This ad size is most suitable for banner ads given a maximum
   /// height.
   ///
@@ -512,6 +498,20 @@ class AdSize {
   /// The exact size of the ad returned can be retrieved by calling
   /// AdView.ad_size() once the ad has been loaded.
   static AdSize GetPortraitInlineAdaptiveBannerAdSize(int width);
+
+  /// @brief A convenience method to return InlineAdaptiveBannerAdSize given
+  /// the current interface orientation.
+  ///
+  /// This AdSize allows Google servers to choose an optimal ad size with a
+  /// height less than or equal to the height of the screen in the requested
+  /// orientation.
+  ///
+  /// @param[in] width The width of the ad in density-independent pixels.
+  ///
+  /// @return an AdSize with the given width and a height that is always 0.
+  /// The exact size of the ad returned can be retrieved by calling
+  /// AdView.ad_size() once the ad has been loaded.
+  static AdSize GetCurrentOrientationInlineAdaptiveBannerAdSize(int width);
 
   /// Comparison operator.
   ///

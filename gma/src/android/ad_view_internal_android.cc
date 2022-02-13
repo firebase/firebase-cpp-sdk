@@ -108,7 +108,6 @@ struct NulleryInvocationOnMainThreadData {
 
 AdViewInternalAndroid::AdViewInternalAndroid(AdView* base)
     : AdViewInternal(base),
-      ad_size_(0, 0),
       helper_(nullptr),
       initialized_(false),
       destroyed_(false) {
