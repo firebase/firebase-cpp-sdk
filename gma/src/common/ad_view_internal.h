@@ -137,7 +137,7 @@ class AdViewInternal {
   AdView* base_;
 
   // Future data used to synchronize asynchronous calls.
-  firebase::gma::FutureData future_data_;
+  FutureData future_data_;
 
   // Listener for AdView Lifecyle event callbacks.
   AdListener* ad_listener_;

@@ -427,7 +427,7 @@ class AdSize {
   /// to create a banner ad. The size returned will have an aspect ratio
   /// similar to BANNER, suitable for anchoring near the top or bottom of
   /// your app. The exact size of the ad returned can be retrieved by calling
-  /// AdView.ad_size() once the ad has been loaded.
+  /// @ref AdView::ad_size once the ad has been loaded.
   static AdSize GetLandscapeAnchoredAdaptiveBannerAdSize(uint32_t width);
 
   /// @brief Creates an AdSize with the given width and a Google-optimized
@@ -439,7 +439,7 @@ class AdSize {
   /// to create a banner ad. The size returned will have an aspect ratio
   /// similar to BANNER, suitable for anchoring near the top or bottom
   /// of your app. The exact size of the ad returned can be retrieved by
-  /// calling AdView.ad_size() once the ad has been loaded.
+  /// calling @ref AdView::ad_size once the ad has been loaded.
   static AdSize GetPortraitAnchoredAdaptiveBannerAdSize(uint32_t width);
 
   /// @brief Creates an AdSize with the given width and a Google-optimized
@@ -451,7 +451,7 @@ class AdSize {
   /// to create a banner ad. The size returned will have an aspect ratio
   /// similar to AdSize, suitable for anchoring near the top or bottom of
   /// your app. The exact size of the ad returned can be retrieved by calling
-  /// AdView.ad_size() once the ad has been loaded.
+  /// @ref AdView::ad_size once the ad has been loaded.
   static AdSize GetCurrentOrientationAnchoredAdaptiveBannerAdSize(
       uint32_t width);
 
@@ -468,7 +468,7 @@ class AdSize {
   ///
   /// @return an AdSize with the given width and a height that is always 0.
   /// The exact size of the ad returned can be retrieved by calling
-  /// AdView.ad_size() once the ad has been loaded.
+  /// @ref AdView::ad_size once the ad has been loaded.
   static AdSize GetInlineAdaptiveBannerAdSize(int width, int max_height);
 
   /// @brief Creates an AdSize with the given width and the device’s
@@ -482,7 +482,7 @@ class AdSize {
   ///
   /// @return an AdSize with the given width and a height that is always 0.
   /// The exact size of the ad returned can be retrieved by calling
-  /// AdView.ad_size() once the ad has been loaded.
+  /// @ref AdView::ad_size once the ad has been loaded.
   static AdSize GetLandscapeInlineAdaptiveBannerAdSize(int width);
 
   /// @brief Creates an AdSize with the given width and the device’s
@@ -496,7 +496,7 @@ class AdSize {
   ///
   /// @return an AdSize with the given width and a height that is always 0.
   /// The exact size of the ad returned can be retrieved by calling
-  /// AdView.ad_size() once the ad has been loaded.
+  /// @ref AdView::ad_size once the ad has been loaded.
   static AdSize GetPortraitInlineAdaptiveBannerAdSize(int width);
 
   /// @brief A convenience method to return InlineAdaptiveBannerAdSize given
@@ -510,7 +510,7 @@ class AdSize {
   ///
   /// @return an AdSize with the given width and a height that is always 0.
   /// The exact size of the ad returned can be retrieved by calling
-  /// AdView.ad_size() once the ad has been loaded.
+  /// @ref AdView::ad_size once the ad has been loaded.
   static AdSize GetCurrentOrientationInlineAdaptiveBannerAdSize(int width);
 
   /// Comparison operator.

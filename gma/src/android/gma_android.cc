@@ -976,10 +976,10 @@ void JNI_notifyAdPaidEvent(JNIEnv* env, jclass clazz, jlong data_ptr,
 
 // JNI functions specific to AdViews
 //
-void JNI_completeAdViewLoadedAd(JNIEnv* env, jclass clazz,
-                                jlong callback_data_ptr,
-                                jlong ad_view_internal_data_ptr, int width,
-                                int height) {
+void JNI_AdViewHelper_completeLoadedAd(JNIEnv* env, jclass clazz,
+                                       jlong callback_data_ptr,
+                                       jlong ad_view_internal_data_ptr,
+                                       int width, int height) {
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(callback_data_ptr);
   FIREBASE_ASSERT(ad_view_internal_data_ptr);
@@ -1073,7 +1073,7 @@ bool RegisterNatives() {
       {"completeAdViewFutureCallback", "(JILjava/lang/String;)V",
        reinterpret_cast<void*>(&JNI_completeAdFutureCallback)},
       {"completeAdViewLoadedAd", "(JJII)V",
-       reinterpret_cast<void*>(&JNI_completeAdViewLoadedAd)},
+       reinterpret_cast<void*>(&JNI_AdViewHelper_completeLoadedAd)},
       {"completeAdViewLoadAdError",
        "(JLcom/google/android/gms/ads/LoadAdError;ILjava/lang/String;)V",
        reinterpret_cast<void*>(&JNI_completeLoadAdError)},
