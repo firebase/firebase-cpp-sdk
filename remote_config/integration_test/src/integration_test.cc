@@ -364,6 +364,16 @@ TEST_F(FirebaseRemoteConfigTest, TestFetchInterval) {
   EXPECT_TRUE(
       WaitForCompletion(RunWithRetry([&]() { return rc_->Fetch(); }), "Fetch"));
   EXPECT_NE(current_fetch_time, rc_->GetInfo().fetch_time);
+
+  // Test Fetch(0)
+  // Set fetch interval back to 12 hours
+  EXPECT_TRUE(WaitForCompletion(SetDefaultConfigSettings(rc_),
+                                "SetDefaultConfigSettings"));
+  current_fetch_time = rc_->GetInfo().fetch_time;
+  // Call Fetch(0), forcing a fetch.
+  EXPECT_TRUE(WaitForCompletion(RunWithRetry([&]() { return rc_->Fetch(0); }),
+                                "Fetch(0)"));
+  EXPECT_NE(current_fetch_time, rc_->GetInfo().fetch_time);
 }
 
 }  // namespace firebase_testapp_automated
