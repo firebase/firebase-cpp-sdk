@@ -316,8 +316,8 @@ void LogHeartbeat(Auth* auth) {
   jobject j_auth_impl = env->CallStaticObjectMethod(
       auth::GetClass(), auth::GetMethodId(auth::kGetInstance), platform_app);
   util::CheckAndClearJniExceptions(env);
-  env->DeleteLocalRef(platform_app);
   env->DeleteLocalRef(j_auth_impl);
+  env->DeleteLocalRef(platform_app);
 }
 
 JNIEXPORT void JNICALL JniAuthStateListener_nativeOnAuthStateChanged(

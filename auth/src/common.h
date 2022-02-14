@@ -40,6 +40,7 @@ void InitPlatformAuth(AuthData* auth_data);
 void DestroyPlatformAuth(AuthData* auth_data);
 
 // Platform-specific method that causes a heartbeat to be logged.
+// See go/firebase-platform-logging-design for more information.
 void LogHeartbeat(Auth* auth);
 
 // All the result functions are similar.
