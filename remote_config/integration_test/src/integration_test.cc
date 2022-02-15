@@ -366,7 +366,6 @@ TEST_F(FirebaseRemoteConfigTest, TestFetchInterval) {
   EXPECT_NE(current_fetch_time, rc_->GetInfo().fetch_time);
 }
 
-  
 TEST_F(FirebaseRemoteConfigTest, TestFetchSecondsParameter) {
   ASSERT_NE(rc_, nullptr);
 
@@ -383,7 +382,7 @@ TEST_F(FirebaseRemoteConfigTest, TestFetchSecondsParameter) {
   EXPECT_EQ(current_fetch_time, rc_->GetInfo().fetch_time);
 
   FLAKY_TEST_SECTION_BEGIN();
-  
+
   // Call Fetch(0), forcing a fetch.
   EXPECT_TRUE(WaitForCompletion(RunWithRetry([&]() { return rc_->Fetch(0); }),
                                 "Fetch(0) [should fetch]"));
@@ -396,7 +395,7 @@ TEST_F(FirebaseRemoteConfigTest, TestFetchSecondsParameter) {
   EXPECT_EQ(current_fetch_time, rc_->GetInfo().fetch_time);
 
   LogDebug("Pausing 45 seconds before re-running Fetch");
-  for (int i=0; i < 45; i++) {
+  for (int i = 0; i < 45; i++) {
     ProcessEvents(1000);
   }
   // After waiting 45 seconds, Fetch(30) should now fetch.
