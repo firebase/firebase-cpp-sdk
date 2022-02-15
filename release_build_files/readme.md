@@ -567,6 +567,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+-   Changes
+    -   Remote Config: Fixed default Fetch() timeout being 1000 times too
+        high.
+        
 ### 8.9.0
 -   Changes
     -   General (iOS): Fixed an intermittent crash on iOS 15 caused by
