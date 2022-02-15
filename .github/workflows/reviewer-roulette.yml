@@ -1,0 +1,84 @@
+name: Reviewer Roulette
+
+on:
+  pull_request:
+    types: [ labeled ]
+
+env:
+  reviewerList: "jonsimantov a-maurice DellaBitta cynthiajoan chkuang-g AlmostMatt"
+
+jobs:
+  assign_random_reviewer:
+    if: github.event.action == 'labeled' && github.event.label.name == 'reviewer-roulette'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Unset label
+        uses: buildsville/add-remove-label@v1
+        with:
+          token: ${{ github.token }}
+          label: "${{ github.event.label.name }}"
+          type: remove
+
+      - name: Get PR reviews
+        # Put the JSON string for all the PR's completed reviews into env.PR_REVIEWS
+        run: |
+          url="${{ github.event.pull_request.url }}/reviews"
+          echo "${url}"
+          response=$(curl -s -X GET \
+            -H 'Accept: application/vnd.github.v3+json' \
+            -H 'Authorization: token ${{ github.token }}' \
+            "${url}?per_page=100")
+          echo "${response}"
+          echo "PR_REVIEWS<<EOF" >> $GITHUB_ENV
+          echo "${response}" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Create reviewer list
+        id: get-reviewers
+        run: |
+          # Get the current reviewers and the author of the PR, to exclude them from the list.
+          # Duplicates don't matter, so get the list of requested reviewers *and* the list of
+          # completed reviews.
+          requested_reviewers='${{ join(github.event.pull_request.requested_reviewers.*.login, ' ') }} '
+          completed_reviewers='${{ join(fromJSON(env.PR_REVIEWS).*.user.login, ' ') }} '
+          author='${{ github.event.pull_request.user.login }}'
+          echo "Requested reviewers: ${requested_reviewers}"
+          echo "Completed reviewers: ${completed_reviewers}"
+          echo "Author: ${author}"
+          exclude_list="${author} ${requested_reviewers} ${completed_reviewers}"
+
+          # Build a JSON list of reviewers to choose from.
+          reviewer_list='['
+          first=1
+          for r in ${{ env.reviewerList }}; do
+            # Don't include this reviewer if they are already reviewing the PR, or authored it.
+            if [[ " ${exclude_list} " != *" $r "* ]]; then
+              if [[ ${first} -eq 1 ]]; then
+                first=0
+              else
+                reviewer_list+=', '
+              fi
+              reviewer_list+="\"$r\""
+            fi
+          done
+          reviewer_list+=']'
+          echo "Reviewer list: ${reviewer_list}"
+          echo "::set-output name=reviewer_list::${reviewer_list}"
+          # If the list is empty, print a warning. The following steps won't run.
+          if [[ "${reviewer_list}" == "[]" ]]; then
+            echo "::warning ::No reviewers available"
+          fi
+
+      - name: Choose random reviewer
+        if: ${{ steps.get-reviewers.outputs.reviewer_list != '[]' }}
+        id: choose-random
+        uses: KhannaAbhinav/random-selector-action@v1
+        with:
+          data: ${{ steps.get-reviewers.outputs.reviewer_list }}
+
+      - name: Assign Reviewers to PR
+        if: ${{ steps.get-reviewers.outputs.reviewer_list != '[]' }}
+        uses: itsOliverBott/assign-pr-reviewers@release
+        with:
+          token: ${{ github.token }}
+          users: ${{ fromJSON(steps.choose-random.outputs.selectedValuesList)[0] }}

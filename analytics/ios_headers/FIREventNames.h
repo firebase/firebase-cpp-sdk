@@ -1,6 +1,6 @@
-// Copyright 2021 Google LLC
+// Copyright 2022 Google LLC
 
-// Copied from Firebase Analytics iOS SDK 8.10.0.
+// Copied from Firebase Analytics iOS SDK 8.12.1.
 
 /// @file FIREventNames.h
 ///
@@ -16,6 +16,21 @@
 
 #import <Foundation/Foundation.h>
 
+/// Ad Impression event. This event signifies when a user sees an ad impression. Note: If you supply
+/// the @c kFIRParameterValue parameter, you must also supply the @c kFIRParameterCurrency parameter
+/// so that revenue metrics can be computed accurately. Params:
+///
+/// <ul>
+///     <li>@c kFIRParameterAdPlatform (NSString) (optional)</li>
+///     <li>@c kFIRParameterAdFormat (NSString) (optional)</li>
+///     <li>@c kFIRParameterAdSource (NSString) (optional)</li>
+///     <li>@c kFIRParameterAdUnitName (NSString) (optional)</li>
+///     <li>@c kFIRParameterCurrency (NSString) (optional)</li>
+///     <li>@c kFIRParameterValue (double as NSNumber) (optional)</li>
+/// </ul>
+static NSString *const kFIREventAdImpression NS_SWIFT_NAME(AnalyticsEventAdImpression) =
+    @"ad_impression";
+
 /// Add Payment Info event. This event signifies that a user has submitted their payment
 /// information. Note: If you supply the @c kFIRParameterValue parameter, you must also supply the
 /// @c kFIRParameterCurrency parameter so that revenue metrics can be computed accurately. Params:
@@ -29,6 +44,20 @@
 /// </ul>
 static NSString *const kFIREventAddPaymentInfo NS_SWIFT_NAME(AnalyticsEventAddPaymentInfo) =
     @"add_payment_info";
+
+/// Add Shipping Info event. This event signifies that a user has submitted their shipping
+/// information. Note: If you supply the @c kFIRParameterValue parameter, you must also supply the
+/// @c kFIRParameterCurrency parameter so that revenue metrics can be computed accurately. Params:
+///
+/// <ul>
+///     <li>@c kFIRParameterCoupon (NSString) (optional)</li>
+///     <li>@c kFIRParameterCurrency (NSString) (optional)</li>
+///     <li>@c kFIRParameterItems (NSArray) (optional)</li>
+///     <li>@c kFIRParameterShippingTier (NSString) (optional)</li>
+///     <li>@c kFIRParameterValue (double as NSNumber) (optional)</li>
+/// </ul>
+static NSString *const kFIREventAddShippingInfo NS_SWIFT_NAME(AnalyticsEventAddShippingInfo) =
+    @"add_shipping_info";
 
 /// E-Commerce Add To Cart event. This event signifies that an item(s) was added to a cart for
 /// purchase. Add this event to a funnel with @c kFIREventPurchase to gauge the effectiveness of
@@ -55,21 +84,6 @@ static NSString *const kFIREventAddToCart NS_SWIFT_NAME(AnalyticsEventAddToCart)
 /// </ul>
 static NSString *const kFIREventAddToWishlist NS_SWIFT_NAME(AnalyticsEventAddToWishlist) =
     @"add_to_wishlist";
-
-/// Ad Impression event. This event signifies when a user sees an ad impression. Note: If you supply
-/// the @c kFIRParameterValue parameter, you must also supply the @c kFIRParameterCurrency parameter
-/// so that revenue metrics can be computed accurately. Params:
-///
-/// <ul>
-///     <li>@c kFIRParameterAdPlatform (NSString) (optional)</li>
-///     <li>@c kFIRParameterAdFormat (NSString) (optional)</li>
-///     <li>@c kFIRParameterAdSource (NSString) (optional)</li>
-///     <li>@c kFIRParameterAdUnitName (NSString) (optional)</li>
-///     <li>@c kFIRParameterCurrency (NSString) (optional)</li>
-///     <li>@c kFIRParameterValue (double as NSNumber) (optional)</li>
-/// </ul>
-static NSString *const kFIREventAdImpression NS_SWIFT_NAME(AnalyticsEventAdImpression) =
-    @"ad_impression";
 
 /// App Open event. By logging this event when an App becomes active, developers can understand how
 /// often users leave and return during the course of a Session. Although Sessions are automatically
@@ -104,6 +118,10 @@ static NSString *const kFIREventBeginCheckout NS_SWIFT_NAME(AnalyticsEventBeginC
 ///     <li>@c kFIRParameterContent (NSString) (optional)</li>
 ///     <li>@c kFIRParameterAdNetworkClickID (NSString) (optional)</li>
 ///     <li>@c kFIRParameterCP1 (NSString) (optional)</li>
+///     <li>@c kFIRParameterCampaignID (NSString) (optional)</li>
+///     <li>@c kFIRParameterCreativeFormat (NSString) (optional)</li>
+///     <li>@c kFIRParameterMarketingTactic (NSString) (optional)</li>
+///     <li>@c kFIRParameterSourcePlatform (NSString) (optional)</li>
 /// </ul>
 static NSString *const kFIREventCampaignDetails NS_SWIFT_NAME(AnalyticsEventCampaignDetails) =
     @"campaign_details";
@@ -239,6 +257,24 @@ static NSString *const kFIREventPostScore NS_SWIFT_NAME(AnalyticsEventPostScore)
 static NSString *const kFIREventPresentOffer NS_SWIFT_NAME(AnalyticsEventPresentOffer) =
     @"present_offer";
 
+/// E-Commerce Purchase event. This event signifies that an item(s) was purchased by a user. Note:
+/// This is different from the in-app purchase event, which is reported automatically for App
+/// Store-based apps. Note: If you supply the @c kFIRParameterValue parameter, you must also supply
+/// the @c kFIRParameterCurrency parameter so that revenue metrics can be computed accurately.
+/// Params:
+///
+/// <ul>
+///     <li>@c kFIRParameterAffiliation (NSString) (optional)</li>
+///     <li>@c kFIRParameterCoupon (NSString) (optional)</li>
+///     <li>@c kFIRParameterCurrency (NSString) (optional)</li>
+///     <li>@c kFIRParameterItems (NSArray) (optional)</li>
+///     <li>@c kFIRParameterShipping (double as NSNumber) (optional)</li>
+///     <li>@c kFIRParameterTax (double as NSNumber) (optional)</li>
+///     <li>@c kFIRParameterTransactionID (NSString) (optional)</li>
+///     <li>@c kFIRParameterValue (double as NSNumber) (optional)</li>
+/// </ul>
+static NSString *const kFIREventPurchase NS_SWIFT_NAME(AnalyticsEventPurchase) = @"purchase";
+
 /// E-Commerce Purchase Refund event. This event signifies that an item purchase was refunded.
 /// Note: If you supply the @c kFIRParameterValue parameter, you must also supply the
 /// @c kFIRParameterCurrency parameter so that revenue metrics can be computed accurately.
@@ -252,6 +288,22 @@ static NSString *const kFIREventPresentOffer NS_SWIFT_NAME(AnalyticsEventPresent
 /// <b>This constant has been deprecated. Use @c kFIREventRefund constant instead.</b>
 static NSString *const kFIREventPurchaseRefund NS_SWIFT_NAME(AnalyticsEventPurchaseRefund) =
     @"purchase_refund";
+
+/// E-Commerce Refund event. This event signifies that a refund was issued. Note: If you supply the
+/// @c kFIRParameterValue parameter, you must also supply the @c kFIRParameterCurrency parameter so
+/// that revenue metrics can be computed accurately. Params:
+///
+/// <ul>
+///     <li>@c kFIRParameterAffiliation (NSString) (optional)</li>
+///     <li>@c kFIRParameterCoupon (NSString) (optional)</li>
+///     <li>@c kFIRParameterCurrency (NSString) (optional)</li>
+///     <li>@c kFIRParameterItems (NSArray) (optional)</li>
+///     <li>@c kFIRParameterShipping (double as NSNumber) (optional)</li>
+///     <li>@c kFIRParameterTax (double as NSNumber) (optional)</li>
+///     <li>@c kFIRParameterTransactionID (NSString) (optional)</li>
+///     <li>@c kFIRParameterValue (double as NSNumber) (optional)</li>
+/// </ul>
+static NSString *const kFIREventRefund NS_SWIFT_NAME(AnalyticsEventRefund) = @"refund";
 
 /// E-Commerce Remove from Cart event. This event signifies that an item(s) was removed from a cart.
 /// Note: If you supply the @c kFIRParameterValue parameter, you must also supply the @c
@@ -304,6 +356,32 @@ static NSString *const kFIREventSearch NS_SWIFT_NAME(AnalyticsEventSearch) = @"s
 /// </ul>
 static NSString *const kFIREventSelectContent NS_SWIFT_NAME(AnalyticsEventSelectContent) =
     @"select_content";
+
+/// Select Item event. This event signifies that an item was selected by a user from a list. Use the
+/// appropriate parameters to contextualize the event. Use this event to discover the most popular
+/// items selected. Params:
+///
+/// <ul>
+///     <li>@c kFIRParameterItems (NSArray) (optional)</li>
+///     <li>@c kFIRParameterItemListID (NSString) (optional)</li>
+///     <li>@c kFIRParameterItemListName (NSString) (optional)</li>
+/// </ul>
+static NSString *const kFIREventSelectItem NS_SWIFT_NAME(AnalyticsEventSelectItem) = @"select_item";
+
+/// Select promotion event. This event signifies that a user has selected a promotion offer. Use the
+/// appropriate parameters to contextualize the event, such as the item(s) for which the promotion
+/// applies. Params:
+///
+/// <ul>
+///     <li>@c kFIRParameterCreativeName (NSString) (optional)</li>
+///     <li>@c kFIRParameterCreativeSlot (NSString) (optional)</li>
+///     <li>@c kFIRParameterItems (NSArray) (optional)</li>
+///     <li>@c kFIRParameterLocationID (NSString) (optional)</li>
+///     <li>@c kFIRParameterPromotionID (NSString) (optional)</li>
+///     <li>@c kFIRParameterPromotionName (NSString) (optional)</li>
+/// </ul>
+static NSString *const kFIREventSelectPromotion NS_SWIFT_NAME(AnalyticsEventSelectPromotion) =
+    @"select_promotion";
 
 /// Set checkout option. Params:
 ///
@@ -366,6 +444,18 @@ static NSString *const kFIREventTutorialComplete NS_SWIFT_NAME(AnalyticsEventTut
 static NSString *const kFIREventUnlockAchievement NS_SWIFT_NAME(AnalyticsEventUnlockAchievement) =
     @"unlock_achievement";
 
+/// E-commerce View Cart event. This event signifies that a user has viewed their cart. Use this to
+/// analyze your purchase funnel. Note: If you supply the @c kFIRParameterValue parameter, you must
+/// also supply the @c kFIRParameterCurrency parameter so that revenue metrics can be computed
+/// accurately. Params:
+///
+/// <ul>
+///     <li>@c kFIRParameterCurrency (NSString) (optional)</li>
+///     <li>@c kFIRParameterItems (NSArray) (optional)</li>
+///     <li>@c kFIRParameterValue (double as NSNumber) (optional)</li>
+/// </ul>
+static NSString *const kFIREventViewCart NS_SWIFT_NAME(AnalyticsEventViewCart) = @"view_cart";
+
 /// View Item event. This event signifies that a user has viewed an item. Use the appropriate
 /// parameters to contextualize the event. Use this event to discover the most popular items viewed
 /// in your app. Note: If you supply the @c kFIRParameterValue parameter, you must also supply the
@@ -388,101 +478,6 @@ static NSString *const kFIREventViewItem NS_SWIFT_NAME(AnalyticsEventViewItem) =
 static NSString *const kFIREventViewItemList NS_SWIFT_NAME(AnalyticsEventViewItemList) =
     @"view_item_list";
 
-/// View Search Results event. Log this event when the user has been presented with the results of a
-/// search. Params:
-///
-/// <ul>
-///     <li>@c kFIRParameterSearchTerm (NSString)</li>
-/// </ul>
-static NSString *const kFIREventViewSearchResults NS_SWIFT_NAME(AnalyticsEventViewSearchResults) =
-    @"view_search_results";
-
-/// Add Shipping Info event. This event signifies that a user has submitted their shipping
-/// information. Note: If you supply the @c kFIRParameterValue parameter, you must also supply the
-/// @c kFIRParameterCurrency parameter so that revenue metrics can be computed accurately. Params:
-///
-/// <ul>
-///     <li>@c kFIRParameterCoupon (NSString) (optional)</li>
-///     <li>@c kFIRParameterCurrency (NSString) (optional)</li>
-///     <li>@c kFIRParameterItems (NSArray) (optional)</li>
-///     <li>@c kFIRParameterShippingTier (NSString) (optional)</li>
-///     <li>@c kFIRParameterValue (double as NSNumber) (optional)</li>
-/// </ul>
-static NSString *const kFIREventAddShippingInfo NS_SWIFT_NAME(AnalyticsEventAddShippingInfo) =
-    @"add_shipping_info";
-
-/// E-Commerce Purchase event. This event signifies that an item(s) was purchased by a user. Note:
-/// This is different from the in-app purchase event, which is reported automatically for App
-/// Store-based apps. Note: If you supply the @c kFIRParameterValue parameter, you must also supply
-/// the @c kFIRParameterCurrency parameter so that revenue metrics can be computed accurately.
-/// Params:
-///
-/// <ul>
-///     <li>@c kFIRParameterAffiliation (NSString) (optional)</li>
-///     <li>@c kFIRParameterCoupon (NSString) (optional)</li>
-///     <li>@c kFIRParameterCurrency (NSString) (optional)</li>
-///     <li>@c kFIRParameterItems (NSArray) (optional)</li>
-///     <li>@c kFIRParameterShipping (double as NSNumber) (optional)</li>
-///     <li>@c kFIRParameterTax (double as NSNumber) (optional)</li>
-///     <li>@c kFIRParameterTransactionID (NSString) (optional)</li>
-///     <li>@c kFIRParameterValue (double as NSNumber) (optional)</li>
-/// </ul>
-static NSString *const kFIREventPurchase NS_SWIFT_NAME(AnalyticsEventPurchase) = @"purchase";
-
-/// E-Commerce Refund event. This event signifies that a refund was issued. Note: If you supply the
-/// @c kFIRParameterValue parameter, you must also supply the @c kFIRParameterCurrency parameter so
-/// that revenue metrics can be computed accurately. Params:
-///
-/// <ul>
-///     <li>@c kFIRParameterAffiliation (NSString) (optional)</li>
-///     <li>@c kFIRParameterCoupon (NSString) (optional)</li>
-///     <li>@c kFIRParameterCurrency (NSString) (optional)</li>
-///     <li>@c kFIRParameterItems (NSArray) (optional)</li>
-///     <li>@c kFIRParameterShipping (double as NSNumber) (optional)</li>
-///     <li>@c kFIRParameterTax (double as NSNumber) (optional)</li>
-///     <li>@c kFIRParameterTransactionID (NSString) (optional)</li>
-///     <li>@c kFIRParameterValue (double as NSNumber) (optional)</li>
-/// </ul>
-static NSString *const kFIREventRefund NS_SWIFT_NAME(AnalyticsEventRefund) = @"refund";
-
-/// Select Item event. This event signifies that an item was selected by a user from a list. Use the
-/// appropriate parameters to contextualize the event. Use this event to discover the most popular
-/// items selected. Params:
-///
-/// <ul>
-///     <li>@c kFIRParameterItems (NSArray) (optional)</li>
-///     <li>@c kFIRParameterItemListID (NSString) (optional)</li>
-///     <li>@c kFIRParameterItemListName (NSString) (optional)</li>
-/// </ul>
-static NSString *const kFIREventSelectItem NS_SWIFT_NAME(AnalyticsEventSelectItem) = @"select_item";
-
-/// Select promotion event. This event signifies that a user has selected a promotion offer. Use the
-/// appropriate parameters to contextualize the event, such as the item(s) for which the promotion
-/// applies. Params:
-///
-/// <ul>
-///     <li>@c kFIRParameterCreativeName (NSString) (optional)</li>
-///     <li>@c kFIRParameterCreativeSlot (NSString) (optional)</li>
-///     <li>@c kFIRParameterItems (NSArray) (optional)</li>
-///     <li>@c kFIRParameterLocationID (NSString) (optional)</li>
-///     <li>@c kFIRParameterPromotionID (NSString) (optional)</li>
-///     <li>@c kFIRParameterPromotionName (NSString) (optional)</li>
-/// </ul>
-static NSString *const kFIREventSelectPromotion NS_SWIFT_NAME(AnalyticsEventSelectPromotion) =
-    @"select_promotion";
-
-/// E-commerce View Cart event. This event signifies that a user has viewed their cart. Use this to
-/// analyze your purchase funnel. Note: If you supply the @c kFIRParameterValue parameter, you must
-/// also supply the @c kFIRParameterCurrency parameter so that revenue metrics can be computed
-/// accurately. Params:
-///
-/// <ul>
-///     <li>@c kFIRParameterCurrency (NSString) (optional)</li>
-///     <li>@c kFIRParameterItems (NSArray) (optional)</li>
-///     <li>@c kFIRParameterValue (double as NSNumber) (optional)</li>
-/// </ul>
-static NSString *const kFIREventViewCart NS_SWIFT_NAME(AnalyticsEventViewCart) = @"view_cart";
-
 /// View Promotion event. This event signifies that a promotion was shown to a user. Add this event
 /// to a funnel with the @c kFIREventAddToCart and @c kFIREventPurchase to gauge your conversion
 /// process. Params:
@@ -497,3 +492,12 @@ static NSString *const kFIREventViewCart NS_SWIFT_NAME(AnalyticsEventViewCart) =
 /// </ul>
 static NSString *const kFIREventViewPromotion NS_SWIFT_NAME(AnalyticsEventViewPromotion) =
     @"view_promotion";
+
+/// View Search Results event. Log this event when the user has been presented with the results of a
+/// search. Params:
+///
+/// <ul>
+///     <li>@c kFIRParameterSearchTerm (NSString)</li>
+/// </ul>
+static NSString *const kFIREventViewSearchResults NS_SWIFT_NAME(AnalyticsEventViewSearchResults) =
+    @"view_search_results";

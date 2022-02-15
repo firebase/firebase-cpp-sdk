@@ -357,7 +357,7 @@ void ClassMethodImplementationCache::ReplaceOrAddMethod(Class clazz, SEL name, I
   // implements a stub for the method).
   const char *type_encoding =
       method_getTypeEncoding(class_getInstanceMethod(type_encoding_class, name));
-  FIREBASE_ASSERT(type_encoding);
+  assert(type_encoding);
 
   NSString *new_method_name_nsstring = nil;
   if (GetLogLevel() <= kLogLevelDebug) {
@@ -416,7 +416,9 @@ IMP ClassMethodImplementationCache::GetMethod(Class clazz, SEL name) {
       selector_implementation_names_per_selector_[selector_name_nsstring];
   const char *class_name = class_getName(clazz);
   if (!selector_implementation_names) {
-    firebase::LogDebug("Method not cached for class %s selector %s.", class_name, selector_name);
+    if (GetLogLevel() <= kLogLevelDebug) {
+      NSLog(@"Method not cached for class %s selector %s.", class_name, selector_name);
+    }
     return nil;
   }
 
@@ -434,8 +436,10 @@ IMP ClassMethodImplementationCache::GetMethod(Class clazz, SEL name) {
     search_class = clazz;
     for (; search_class; search_class = class_getSuperclass(search_class)) {
       const char *search_class_name = class_getName(search_class);
-      firebase::LogDebug("Searching for selector %s (%s) on class %s", selector_name,
-                         selector_implementation_name, search_class_name);
+      if (GetLogLevel() <= kLogLevelDebug) {
+        NSLog(@"Searching for selector %s (%s) on class %s", selector_name,
+              selector_implementation_name, search_class_name);
+      }
       Method method = class_getInstanceMethod(search_class, selector_implementation);
       method_implementation = method ? method_getImplementation(method) : nil;
       if (method_implementation) break;
@@ -443,14 +447,18 @@ IMP ClassMethodImplementationCache::GetMethod(Class clazz, SEL name) {
     if (method_implementation) break;
   }
   if (!method_implementation) {
-    firebase::LogDebug("Class %s does not respond to selector %s (%s)", class_name, selector_name,
-                       selector_implementation_name_nsstring.UTF8String);
+    if (GetLogLevel() <= kLogLevelDebug) {
+      NSLog(@"Class %s does not respond to selector %s (%s)", class_name, selector_name,
+            selector_implementation_name_nsstring.UTF8String);
+    }
     return nil;
   }
-  firebase::LogDebug("Found %s (%s, 0x%08x) on class %s (%s)", selector_name,
-                     selector_implementation_name_nsstring.UTF8String,
-                     static_cast<int>(reinterpret_cast<intptr_t>(method_implementation)),
-                     class_name, class_getName(search_class));
+  if (GetLogLevel() <= kLogLevelDebug) {
+    NSLog(@"Found %s (%s, 0x%08x) on class %s (%s)", selector_name,
+          selector_implementation_name_nsstring.UTF8String,
+          static_cast<int>(reinterpret_cast<intptr_t>(method_implementation)), class_name,
+          class_getName(search_class));
+  }
   return method_implementation;
 }
 
