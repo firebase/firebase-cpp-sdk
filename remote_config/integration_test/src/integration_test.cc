@@ -364,16 +364,47 @@ TEST_F(FirebaseRemoteConfigTest, TestFetchInterval) {
   EXPECT_TRUE(
       WaitForCompletion(RunWithRetry([&]() { return rc_->Fetch(); }), "Fetch"));
   EXPECT_NE(current_fetch_time, rc_->GetInfo().fetch_time);
+}
 
-  // Test Fetch(0)
-  // Set fetch interval back to 12 hours
+  
+TEST_F(FirebaseRemoteConfigTest, TestFetchSecondsParameter) {
+  ASSERT_NE(rc_, nullptr);
+
+  EXPECT_TRUE(
+      WaitForCompletion(RunWithRetry([&]() { return rc_->FetchAndActivate(); }),
+                        "FetchAndActivate"));
+  uint64_t current_fetch_time = rc_->GetInfo().fetch_time;
+  // Making sure the config settings's fetch interval is 12 hours
   EXPECT_TRUE(WaitForCompletion(SetDefaultConfigSettings(rc_),
                                 "SetDefaultConfigSettings"));
-  current_fetch_time = rc_->GetInfo().fetch_time;
+  // Test Fetch() without specifying an interval; it should not fetch.
+  EXPECT_TRUE(WaitForCompletion(RunWithRetry([&]() { return rc_->Fetch(); }),
+                                "Fetch() [should not fetch]"));
+  EXPECT_EQ(current_fetch_time, rc_->GetInfo().fetch_time);
+
+  FLAKY_TEST_SECTION_BEGIN();
+  
   // Call Fetch(0), forcing a fetch.
   EXPECT_TRUE(WaitForCompletion(RunWithRetry([&]() { return rc_->Fetch(0); }),
-                                "Fetch(0)"));
+                                "Fetch(0) [should fetch]"));
   EXPECT_NE(current_fetch_time, rc_->GetInfo().fetch_time);
+
+  current_fetch_time = rc_->GetInfo().fetch_time;
+  // Call Fetch(30), which shouldn't fetch yet.
+  EXPECT_TRUE(WaitForCompletion(RunWithRetry([&]() { return rc_->Fetch(30); }),
+                                "Fetch(30) [should not fetch]"));
+  EXPECT_EQ(current_fetch_time, rc_->GetInfo().fetch_time);
+
+  LogDebug("Pausing 45 seconds before re-running Fetch");
+  for (int i=0; i < 45; i++) {
+    ProcessEvents(1000);
+  }
+  // After waiting 45 seconds, Fetch(30) should now fetch.
+  EXPECT_TRUE(WaitForCompletion(RunWithRetry([&]() { return rc_->Fetch(30); }),
+                                "Fetch(30) [should fetch]"));
+  EXPECT_NE(current_fetch_time, rc_->GetInfo().fetch_time);
+
+  FLAKY_TEST_SECTION_END();
 }
 
 }  // namespace firebase_testapp_automated
