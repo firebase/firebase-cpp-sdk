@@ -133,7 +133,8 @@ Future<bool> RemoteConfig::FetchAndActivateLastResult() {
 }
 
 Future<void> RemoteConfig::Fetch() {
-  return Fetch(GetConfigSettings().minimum_fetch_interval_in_milliseconds / firebase::internal::kMillisecondsPerSecond);
+  return Fetch(GetConfigSettings().minimum_fetch_interval_in_milliseconds /
+               firebase::internal::kMillisecondsPerSecond);
 }
 
 Future<void> RemoteConfig::Fetch(uint64_t cache_expiration_in_seconds) {
