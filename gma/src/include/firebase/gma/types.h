@@ -45,11 +45,14 @@ struct ResponseInfoInternal;
 
 class AdViewBoundingBoxListener;
 class GmaInternal;
-class AdViewInternal;
 class AdView;
 class InterstitialAd;
 class PaidEventListener;
 class ResponseInfo;
+
+namespace internal {
+class AdViewInternal;
+}
 
 /// This is a platform specific datatype that is required to create
 /// a Google Mobile Ads ad.
@@ -385,6 +388,9 @@ class AdSize {
 
     /// An adaptive size anchored to a portion of the screen.
     kTypeAnchoredAdaptive,
+
+    /// An adaptive size intended to be embedded in scrollable content.
+    kTypeInlineAdaptive,
   };
 
   /// Mobile Marketing Association (MMA) banner ad size (320x50
@@ -420,7 +426,8 @@ class AdSize {
   /// @return an AdSize with the given width and a Google-optimized height
   /// to create a banner ad. The size returned will have an aspect ratio
   /// similar to BANNER, suitable for anchoring near the top or bottom of
-  /// your app.
+  /// your app. The exact size of the ad returned can be retrieved by calling
+  /// @ref AdView::ad_size once the ad has been loaded.
   static AdSize GetLandscapeAnchoredAdaptiveBannerAdSize(uint32_t width);
 
   /// @brief Creates an AdSize with the given width and a Google-optimized
@@ -431,7 +438,8 @@ class AdSize {
   /// @return an AdSize with the given width and a Google-optimized height
   /// to create a banner ad. The size returned will have an aspect ratio
   /// similar to BANNER, suitable for anchoring near the top or bottom
-  /// of your app.
+  /// of your app. The exact size of the ad returned can be retrieved by
+  /// calling @ref AdView::ad_size once the ad has been loaded.
   static AdSize GetPortraitAnchoredAdaptiveBannerAdSize(uint32_t width);
 
   /// @brief Creates an AdSize with the given width and a Google-optimized
@@ -442,9 +450,68 @@ class AdSize {
   /// @return an AdSize with the given width and a Google-optimized height
   /// to create a banner ad. The size returned will have an aspect ratio
   /// similar to AdSize, suitable for anchoring near the top or bottom of
-  /// your app.
+  /// your app. The exact size of the ad returned can be retrieved by calling
+  /// @ref AdView::ad_size once the ad has been loaded.
   static AdSize GetCurrentOrientationAnchoredAdaptiveBannerAdSize(
       uint32_t width);
+
+  /// @brief This ad size is most suitable for banner ads given a maximum
+  /// height.
+  ///
+  /// This AdSize allows Google servers to choose an optimal ad size with
+  /// a height less than or equal to the max height given in.
+  ///
+  /// @param[in] width The width of the ad in density-independent pixels.
+  /// @param[in] max_height The maximum height that a loaded ad will have. Must
+  /// be
+  ///  at least 32 dp, but a maxHeight of 50 dp or higher is recommended.
+  ///
+  /// @return an AdSize with the given width and a height that is always 0.
+  /// The exact size of the ad returned can be retrieved by calling
+  /// @ref AdView::ad_size once the ad has been loaded.
+  static AdSize GetInlineAdaptiveBannerAdSize(int width, int max_height);
+
+  /// @brief Creates an AdSize with the given width and the device’s
+  /// landscape height.
+  ///
+  /// This ad size allows Google servers to choose an optimal ad size with
+  /// a height less than or equal to the height of the screen in landscape
+  /// orientation.
+  ///
+  /// @param[in] width The width of the ad in density-independent pixels.
+  ///
+  /// @return an AdSize with the given width and a height that is always 0.
+  /// The exact size of the ad returned can be retrieved by calling
+  /// @ref AdView::ad_size once the ad has been loaded.
+  static AdSize GetLandscapeInlineAdaptiveBannerAdSize(int width);
+
+  /// @brief Creates an AdSize with the given width and the device’s
+  /// portrait height.
+  ///
+  /// This ad size allows Google servers to choose an optimal ad size with
+  /// a height less than or equal to the height of the screen in portrait
+  /// orientation.
+  ///
+  /// @param[in] width The width of the ad in density-independent pixels.
+  ///
+  /// @return an AdSize with the given width and a height that is always 0.
+  /// The exact size of the ad returned can be retrieved by calling
+  /// @ref AdView::ad_size once the ad has been loaded.
+  static AdSize GetPortraitInlineAdaptiveBannerAdSize(int width);
+
+  /// @brief A convenience method to return InlineAdaptiveBannerAdSize given
+  /// the current interface orientation.
+  ///
+  /// This AdSize allows Google servers to choose an optimal ad size with a
+  /// height less than or equal to the height of the screen in the requested
+  /// orientation.
+  ///
+  /// @param[in] width The width of the ad in density-independent pixels.
+  ///
+  /// @return an AdSize with the given width and a height that is always 0.
+  /// The exact size of the ad returned can be retrieved by calling
+  /// @ref AdView::ad_size once the ad has been loaded.
+  static AdSize GetCurrentOrientationInlineAdaptiveBannerAdSize(int width);
 
   /// Comparison operator.
   ///
@@ -471,6 +538,8 @@ class AdSize {
   Type type() const { return type_; }
 
  private:
+  friend class firebase::gma::internal::AdViewInternal;
+
   /// Returns an Anchor Adpative AdSize Object given a width and orientation.
   static AdSize GetAnchoredAdaptiveBannerAdSize(uint32_t width,
                                                 Orientation orientation);

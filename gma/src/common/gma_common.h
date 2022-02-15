@@ -38,6 +38,10 @@ extern const char* kAdCouldNotParseAdRequestErrorMessage;
 extern const char* kAdLoadInProgressErrorMessage;
 extern const char* kAdUninitializedErrorMessage;
 
+namespace internal {
+class AdViewInternal;
+}
+
 // Determine whether GMA is initialized.
 bool IsInitialized();
 
@@ -147,6 +151,7 @@ class GmaInternal {
     status.latency_ = latency;
     return status;
   }
+
   // Construct and return an AdapterInitializationStatus with the given
   // statuses.
   static AdapterInitializationStatus CreateAdapterInitializationStatus(
@@ -155,6 +160,12 @@ class GmaInternal {
     init_status.adapter_status_map_ = status_map;
     return init_status;
   }
+
+  // Update the AdViewInternal's AdSize width and height after it has been
+  // loaded as AdViews with adaptive AdSizes may have varying dimensions.
+  // This is done through the GmaInternal since its a friend of AdViewInternal.
+  static void UpdateAdViewInternalAdSizeDimensions(
+      internal::AdViewInternal* ad_view_internal, int width, int height);
 };
 
 }  // namespace gma

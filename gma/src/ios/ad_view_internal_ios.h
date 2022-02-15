@@ -52,19 +52,15 @@ class AdViewInternalIOS : public AdViewInternal {
   void set_bounding_box(const BoundingBox& bounding_box) {
     bounding_box_ = bounding_box;
   }
-  AdSize ad_size() const override { return ad_size_; }
 
 #ifdef __OBJC__
-  void AdViewDidReceiveAd();
+  void AdViewDidReceiveAd(int width, int height);
   void AdViewDidFailToReceiveAdWithError(NSError *gad_error);
 #endif  // __OBJC__
 
  private:
   /// Contains information to asynchronously complete the LoadAd Future.
   FutureCallbackData<AdResult>* ad_load_callback_data_;
-
-  // The AdSize that was used to initialize the ad.
-  AdSize ad_size_;
 
   /// The FADAdView object. Declared as an "id" type to avoid referencing an
   /// Objective-C++ class in this header.

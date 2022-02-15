@@ -976,6 +976,27 @@ void JNI_notifyAdPaidEvent(JNIEnv* env, jclass clazz, jlong data_ptr,
 
 // JNI functions specific to AdViews
 //
+void JNI_AdViewHelper_completeLoadedAd(JNIEnv* env, jclass clazz,
+                                       jlong callback_data_ptr,
+                                       jlong ad_view_internal_data_ptr,
+                                       int width, int height) {
+  FIREBASE_ASSERT(env);
+  FIREBASE_ASSERT(callback_data_ptr);
+  FIREBASE_ASSERT(ad_view_internal_data_ptr);
+  internal::AdViewInternalAndroid* ad_view_internal =
+      reinterpret_cast<internal::AdViewInternalAndroid*>(
+          ad_view_internal_data_ptr);
+
+  // Invoke a friend of AdViewInternal to update its AdSize's width and height.
+  GmaInternal::UpdateAdViewInternalAdSizeDimensions(ad_view_internal, width,
+                                                    height);
+
+  // Complete the Future.
+  FutureCallbackData<AdResult>* callback_data =
+      reinterpret_cast<FutureCallbackData<AdResult>*>(callback_data_ptr);
+  GmaInternal::CompleteLoadAdFuture(callback_data);
+}
+
 void JNI_AdViewHelper_notifyBoundingBoxChanged(JNIEnv* env, jclass clazz,
                                                jlong data_ptr) {
   firebase::gma::internal::AdViewInternal* internal =
@@ -1051,8 +1072,8 @@ bool RegisterNatives() {
   static const JNINativeMethod kAdViewMethods[] = {
       {"completeAdViewFutureCallback", "(JILjava/lang/String;)V",
        reinterpret_cast<void*>(&JNI_completeAdFutureCallback)},
-      {"completeAdViewLoadedAd", "(J)V",
-       reinterpret_cast<void*>(&JNI_completeLoadedAd)},
+      {"completeAdViewLoadedAd", "(JJII)V",
+       reinterpret_cast<void*>(&JNI_AdViewHelper_completeLoadedAd)},
       {"completeAdViewLoadAdError",
        "(JLcom/google/android/gms/ads/LoadAdError;ILjava/lang/String;)V",
        reinterpret_cast<void*>(&JNI_completeLoadAdError)},
@@ -1166,14 +1187,14 @@ jobject CreateJavaAdSize(JNIEnv* env, jobject j_activity,
           j_ad_size = env->CallStaticObjectMethod(
               ad_size::GetClass(),
               ad_size::GetMethodId(
-                  ad_size::kGetCurrentOrientationAnchoredAdaptiveBannerAdSize),
+                  ad_size::kGetLandscapeAnchoredAdaptiveBannerAdSize),
               j_activity, adsize.width());
           break;
         case AdSize::kOrientationPortrait:
           j_ad_size = env->CallStaticObjectMethod(
               ad_size::GetClass(),
               ad_size::GetMethodId(
-                  ad_size::kGetLandscapeAnchoredAdaptiveBannerAdSize),
+                  ad_size::kGetPortraitAnchoredAdaptiveBannerAdSize),
               j_activity, adsize.width());
           break;
         case AdSize::kOrientationCurrent:
@@ -1184,8 +1205,45 @@ jobject CreateJavaAdSize(JNIEnv* env, jobject j_activity,
               j_activity, adsize.width());
 
         default:
-          FIREBASE_ASSERT_MESSAGE(true, "Uknown AdSize Orientation");
+          FIREBASE_ASSERT_MESSAGE(true,
+                                  "Uknown Anchor Adaptive AdSize Orientation");
       }
+      break;
+    case AdSize::kTypeInlineAdaptive:
+      if (adsize.height() != 0) {
+        j_ad_size = env->CallStaticObjectMethod(
+            ad_size::GetClass(),
+            ad_size::GetMethodId(ad_size::kGetInlineAdaptiveBannerAdSize),
+            adsize.width(), adsize.height());
+      } else {
+        switch (adsize.orientation()) {
+          case AdSize::kOrientationLandscape:
+            j_ad_size = env->CallStaticObjectMethod(
+                ad_size::GetClass(),
+                ad_size::GetMethodId(
+                    ad_size::kGetLandscapeInlineAdaptiveBannerAdSize),
+                j_activity, adsize.width());
+            break;
+          case AdSize::kOrientationPortrait:
+            j_ad_size = env->CallStaticObjectMethod(
+                ad_size::GetClass(),
+                ad_size::GetMethodId(
+                    ad_size::kGetPortraitInlineAdaptiveBannerAdSize),
+                j_activity, adsize.width());
+            break;
+          case AdSize::kOrientationCurrent:
+            j_ad_size = env->CallStaticObjectMethod(
+                ad_size::GetClass(),
+                ad_size::GetMethodId(
+                    ad_size::kGetCurrentOrientationInlineAdaptiveBannerAdSize),
+                j_activity, adsize.width());
+            break;
+          default:
+            FIREBASE_ASSERT_MESSAGE(
+                true, "Uknown Inline Adaptive AdSize Orientation");
+        }
+      }
+      break;
     case AdSize::kTypeStandard:
       j_ad_size = env->NewObject(ad_size::GetClass(),
                                  ad_size::GetMethodId(ad_size::kConstructor),

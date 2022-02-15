@@ -118,14 +118,20 @@ class AdViewInternal {
   virtual bool is_initialized() const = 0;
 
   // Returns the size of the loaded ad.
-  virtual AdSize ad_size() const = 0;
+  AdSize ad_size() const { return ad_size_; }
 
  protected:
   friend class firebase::gma::AdView;
+  friend class firebase::gma::GmaInternal;
 
   // Used by CreateInstance() to create an appropriate one for the current
   // platform.
   explicit AdViewInternal(AdView* base);
+
+  // Invoked after an AdView has been loaded go reflect the loaded Ad's
+  // dimensions. These may differ from the requested dimensions if the AdSize
+  // was one of the adaptive size types.
+  void update_ad_size_dimensions(int width, int height);
 
   // A pointer back to the AdView class that created us.
   AdView* base_;
@@ -133,8 +139,17 @@ class AdViewInternal {
   // Future data used to synchronize asynchronous calls.
   FutureData future_data_;
 
+  // Listener for AdView Lifecyle event callbacks.
   AdListener* ad_listener_;
+
+  // Tracks the size of the AdView.
+  AdSize ad_size_;
+
+  // Listener for changes in the AdView's bounding box due to
+  // changes in the AdView's position and visibility.
   AdViewBoundingBoxListener* bounding_box_listener_;
+
+  // Listener for any paid events which occur on the AdView.
   PaidEventListener* paid_event_listener_;
 
   // Lock object for accessing listener_.

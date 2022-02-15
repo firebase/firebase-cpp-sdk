@@ -24,6 +24,7 @@
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/util.h"
+#include "gma/src/common/ad_view_internal.h"
 #include "gma/src/include/firebase/gma.h"
 #include "gma/src/include/firebase/gma/ad_view.h"
 #include "gma/src/include/firebase/gma/interstitial_ad.h"
@@ -86,6 +87,12 @@ AdError GmaInternal::CreateAdError(const AdErrorInternal& ad_error_internal) {
   return AdError(ad_error_internal);
 }
 
+void GmaInternal::UpdateAdViewInternalAdSizeDimensions(
+    internal::AdViewInternal* ad_view_internal, int width, int height) {
+  assert(ad_view_internal);
+  ad_view_internal->update_ad_size_dimensions(width, height);
+}
+
 // AdInspectorClosedListener
 AdInspectorClosedListener::~AdInspectorClosedListener() {}
 
@@ -133,6 +140,33 @@ AdSize AdSize::GetPortraitAnchoredAdaptiveBannerAdSize(uint32_t width) {
 AdSize AdSize::GetCurrentOrientationAnchoredAdaptiveBannerAdSize(
     uint32_t width) {
   return GetAnchoredAdaptiveBannerAdSize(width, AdSize::kOrientationCurrent);
+}
+
+AdSize AdSize::GetCurrentOrientationInlineAdaptiveBannerAdSize(int width) {
+  AdSize ad_size(width, 0);
+  ad_size.type_ = AdSize::kTypeInlineAdaptive;
+  ad_size.orientation_ = AdSize::kOrientationCurrent;
+  return ad_size;
+}
+
+AdSize AdSize::GetInlineAdaptiveBannerAdSize(int width, int max_height) {
+  AdSize ad_size(width, max_height);
+  ad_size.type_ = AdSize::kTypeInlineAdaptive;
+  return ad_size;
+}
+
+AdSize AdSize::GetLandscapeInlineAdaptiveBannerAdSize(int width) {
+  AdSize ad_size(width, 0);
+  ad_size.type_ = AdSize::kTypeInlineAdaptive;
+  ad_size.orientation_ = AdSize::kOrientationLandscape;
+  return ad_size;
+}
+
+AdSize AdSize::GetPortraitInlineAdaptiveBannerAdSize(int width) {
+  AdSize ad_size(width, 0);
+  ad_size.type_ = AdSize::kTypeInlineAdaptive;
+  ad_size.orientation_ = AdSize::kOrientationPortrait;
+  return ad_size;
 }
 
 bool AdSize::is_equal(const AdSize& ad_size) const {

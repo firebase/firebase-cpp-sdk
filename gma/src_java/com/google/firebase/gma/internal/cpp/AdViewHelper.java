@@ -28,6 +28,7 @@ import android.view.ViewTreeObserver;
 import android.widget.PopupWindow;
 import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdValue;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.LoadAdError;
@@ -533,7 +534,9 @@ public class AdViewHelper implements ViewTreeObserver.OnPreDrawListener {
           mAdViewContainsAd = true;
         }
         if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
-          completeAdViewLoadedAd(mLoadAdCallbackDataPtr);
+          AdSize adSize = mAdView.getAdSize();
+          completeAdViewLoadedAd(
+              mLoadAdCallbackDataPtr, mAdViewInternalPtr, adSize.getWidth(), adSize.getHeight());
           mLoadAdCallbackDataPtr = CPP_NULLPTR;
         }
         // Only update the bounding box if the banner view is already visible.
@@ -603,7 +606,8 @@ public class AdViewHelper implements ViewTreeObserver.OnPreDrawListener {
   /**
    * Native callback invoked upon successfully loading an ad.
    */
-  public static native void completeAdViewLoadedAd(long nativeInternalPtr);
+  public static native void completeAdViewLoadedAd(
+      long nativeInternalPtr, long mAdViewInternalPtr, int width, int height);
 
   /**
    * Native callback upon encountering an error loading an Ad Request. Returns
