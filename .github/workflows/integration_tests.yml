@@ -803,6 +803,7 @@ jobs:
       - name: Run Desktop integration tests
         env:
           USE_FIRESTORE_EMULATOR: true
+        shell: bash
         run: |
           if [[ "${{ needs.check_and_prepare.outputs.apis }}" == *"firestore"* ]]; then
             firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"'
