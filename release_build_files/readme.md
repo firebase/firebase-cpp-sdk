@@ -571,6 +571,8 @@ code.
 -   Changes
     -   General (iOS): Fixed additional issues on iOS 15 caused by early
         initialization of Firebase iOS SDK.
+    -   Remote Config: Fixed default `Fetch()` timeout being 1000 times too
+        high.
 
 ### 8.9.0
 -   Changes
