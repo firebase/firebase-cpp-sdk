@@ -52,6 +52,7 @@ import summarize_test_results as summarize
 
 _REPORT_LABEL = "nightly-testing"
 _REPORT_TITLE = "Nightly Integration Testing Report"
+_REPORT_TITLE_FIRESTORE = "Nightly Integration Testing Report for Firestore"
 
 _LABEL_TRIGGER_FULL = "tests-requested: full"
 _LABEL_TRIGGER_QUICK = "tests-requested: quick"
@@ -75,7 +76,7 @@ _COMMENT_TITLE_SUCCEED_REPO = "### ✅&nbsp; [build against repo] Integration te
 _COMMENT_FLAKY_TRACKER = "\n\nAdd flaky tests to **[go/fpl-cpp-flake-tracker](http://go/fpl-cpp-flake-tracker)**\n"
 
 _COMMENT_IDENTIFIER = "integration-test-status-comment"
-_COMMENT_SUFFIX = f'\n<hidden value="{_COMMENT_IDENTIFIER}"></hidden>'
+_COMMENT_HIDDEN_DIVIDER = f'\n<hidden value="{_COMMENT_IDENTIFIER}"></hidden>\n'
 
 _LOG_ARTIFACT_NAME = "log-artifact"
 _LOG_OUTPUT_DIR = "test_results"
@@ -88,6 +89,10 @@ _BUILD_STAGES = [_BUILD_STAGES_START, _BUILD_STAGES_PROGRESS, _BUILD_STAGES_END,
 
 _BUILD_AGAINST_SDK = "sdk"
 _BUILD_AGAINST_REPO = "repo"
+
+_BUILD_API_ALL = "all"
+_BUILD_API_FIRESTORE = "firestore"
+_BUILD_API_ALL_EXCEPT_FIRESTORE = "all_except_firestore"
 
 FLAGS = flags.FLAGS
 
@@ -124,6 +129,10 @@ flags.DEFINE_string(
     "build_against", None,
     "Integration testapps could either build against packaged SDK or repo")
 
+flags.DEFINE_string(
+    "build_apis", None,
+    "Generate spearate report for different apis.")
+
 
 def test_start(token, issue_number, actor, commit, run_id):
   """In PR, when start testing, add comment and label \"tests: in-progress\""""
@@ -133,7 +142,7 @@ def test_start(token, issue_number, actor, commit, run_id):
 
   comment = (_COMMENT_TITLE_PROGESS +
              _get_description(actor, commit, run_id) +
-             _COMMENT_SUFFIX)
+             _COMMENT_HIDDEN_DIVIDER)
   _update_comment(token, issue_number, comment)
 
 
@@ -156,7 +165,7 @@ def test_progress(token, issue_number, actor, commit, run_id):
                _get_description(actor, commit, run_id) +
                log_summary +
                _COMMENT_FLAKY_TRACKER +
-               _COMMENT_SUFFIX)
+               _COMMENT_HIDDEN_DIVIDER)
     _update_comment(token, issue_number, comment)
 
 
@@ -170,7 +179,7 @@ def test_end(token, issue_number, actor, commit, run_id, new_token):
     github.add_label(token, issue_number, _LABEL_SUCCEED)
     comment = (_COMMENT_TITLE_SUCCEED +
                _get_description(actor, commit, run_id) +
-               _COMMENT_SUFFIX)
+               _COMMENT_HIDDEN_DIVIDER)
     _update_comment(token, issue_number, comment)
   else:
     if success_or_only_flakiness:
@@ -185,20 +194,35 @@ def test_end(token, issue_number, actor, commit, run_id, new_token):
                _get_description(actor, commit, run_id) +
                log_summary +
                _COMMENT_FLAKY_TRACKER +
-               _COMMENT_SUFFIX)
+               _COMMENT_HIDDEN_DIVIDER)
     _update_comment(token, issue_number, comment)
 
   github.delete_label(new_token, issue_number, _LABEL_PROGRESS)
 
 
-def test_report(token, actor, commit, run_id, build_against):
-  """Update (create if not exist) a Daily Report in Issue. 
+def test_report(token, actor, commit, run_id, build_against, build_apis):
+  """Update (create if not exist) a Daily/Nightly Report in Issue. 
   The Issue with title _REPORT_TITLE and label _REPORT_LABEL:
   https://github.com/firebase/firebase-cpp-sdk/issues?q=is%3Aissue+label%3Anightly-testing
+  The report is with the format below:
+    PREFIX
+    HIDDEN DIVIDER
+    REPORT (TEST AGAINST REPO)
+    HIDDEN DIVIDER
+    REPORT (TEST AGAINST SDK)
   """
-  issue_number = _get_issue_number(token, _REPORT_TITLE, _REPORT_LABEL)
+  if build_apis == _BUILD_API_FIRESTORE:
+    report_title = _REPORT_TITLE_FIRESTORE
+    prefix = ""
+  else:
+    report_title = _REPORT_TITLE
+    firestore_issue_number = _get_issue_number(token, _REPORT_TITLE_FIRESTORE, _REPORT_LABEL)
+    firestore_issue_url = "https://github.com/firebase/firebase-cpp-sdk/issues/%s" % firestore_issue_number
+    prefix = "Note: This report excludes firestore. Please also check **[the report for firestore](%s)**\n***\n" % firestore_issue_url
+
+  issue_number = _get_issue_number(token, report_title, _REPORT_LABEL)
   previous_comment = github.get_issue_body(token, issue_number)
-  [previous_comment_repo, previous_comment_sdk] = previous_comment.split(_COMMENT_SUFFIX)
+  [_, previous_comment_repo, previous_comment_sdk] = previous_comment.split(_COMMENT_HIDDEN_DIVIDER)
   success_or_only_flakiness, log_summary = _get_summary_table(token, run_id)
   if success_or_only_flakiness and not log_summary:
     # succeeded (without flakiness)
@@ -214,9 +238,9 @@ def test_report(token, actor, commit, run_id, build_against):
     comment = title + _get_description(actor, commit, run_id) + log_summary + _COMMENT_FLAKY_TRACKER
   
   if build_against==_BUILD_AGAINST_REPO:
-    comment = comment + _COMMENT_SUFFIX + previous_comment_sdk
-  else:
-    comment = previous_comment_repo + _COMMENT_SUFFIX + comment
+    comment = prefix + _COMMENT_HIDDEN_DIVIDER + comment + _COMMENT_HIDDEN_DIVIDER + previous_comment_sdk
+  elif build_against==_BUILD_AGAINST_SDK:
+    comment = prefix + _COMMENT_HIDDEN_DIVIDER + previous_comment_repo + _COMMENT_HIDDEN_DIVIDER + comment
 
   if (_COMMENT_TITLE_SUCCEED_REPO in comment) and (_COMMENT_TITLE_SUCCEED_SDK in comment):
     github.close_issue(token, issue_number)
@@ -231,12 +255,12 @@ def _get_issue_number(token, title, label):
   for issue in issues:
     if issue["title"] == title:
       return issue["number"]
-
-  return github.create_issue(token, title, label, _COMMENT_SUFFIX)["number"]
+  empty_comment = _COMMENT_HIDDEN_DIVIDER + " " + _COMMENT_HIDDEN_DIVIDER
+  return github.create_issue(token, title, label, empty_comment)["number"]
 
 
 def _update_comment(token, issue_number, comment):
-  comment_id = _get_comment_id(token, issue_number, _COMMENT_SUFFIX)
+  comment_id = _get_comment_id(token, issue_number, _COMMENT_HIDDEN_DIVIDER)
   if not comment_id:
     github.add_comment(token, issue_number, comment)
   else:
@@ -288,7 +312,7 @@ def main(argv):
   elif FLAGS.stage == _BUILD_STAGES_END:
     test_end(FLAGS.token, FLAGS.issue_number, FLAGS.actor, FLAGS.commit, FLAGS.run_id, FLAGS.new_token)
   elif FLAGS.stage == _BUILD_STAGES_REPORT:
-    test_report(FLAGS.token, FLAGS.actor, FLAGS.commit, FLAGS.run_id, FLAGS.build_against)
+    test_report(FLAGS.token, FLAGS.actor, FLAGS.commit, FLAGS.run_id, FLAGS.build_against, FLAGS.build_apis)
   else:
     print("Invalid stage value. Valid value: " + ",".join(_BUILD_STAGES))
 
