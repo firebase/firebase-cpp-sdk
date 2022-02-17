@@ -197,7 +197,6 @@ void InstallationsInternal::LogHeartbeat(const firebase::App& app) {
   FIREBASE_ASSERT(installations_instance_local);
   env->DeleteLocalRef(installations_instance_local);
   env->DeleteLocalRef(platform_app);
-  LogDebug("%s API Initialized", kApiIdentifier);
 }
 
 Future<std::string> InstallationsInternal::GetId() {

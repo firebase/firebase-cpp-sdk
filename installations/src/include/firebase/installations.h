@@ -105,6 +105,7 @@ class Installations {
 
  private:
   explicit Installations(App* app);
+
   static Installations* FindInstallations(App* app);
   // Installations internal initialize.
   bool InitInternal();
