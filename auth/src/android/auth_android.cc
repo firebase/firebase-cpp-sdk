@@ -311,8 +311,8 @@ void Auth::DestroyPlatformAuth(AuthData* auth_data) {
 
 void LogHeartbeat(Auth* auth) {
   // Calling the native getter is sufficient to cause a Heartbeat to be logged.
-  JNIEnv* env = Env(auth->auth_data);
-  jobject platform_app = auth->app()->GetPlatformApp();
+  JNIEnv* env = Env(auth->auth_data_);
+  jobject platform_app = auth->app().GetPlatformApp();
   jobject j_auth_impl = env->CallStaticObjectMethod(
       auth::GetClass(), auth::GetMethodId(auth::kGetInstance), platform_app);
   util::CheckAndClearJniExceptions(env);
