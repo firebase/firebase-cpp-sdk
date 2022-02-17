@@ -186,6 +186,20 @@ void InstallationsInternal::Cleanup() {
   }
 }
 
+void InstallationsInternal::LogHeartbeat(const firebase::App& app) {
+  // Calling the native getter is sufficient to cause a Heartbeat to be logged.
+  JNIEnv* env = app.GetJNIEnv();
+  jobject platform_app = app.GetPlatformApp();
+  jclass installations_class = installations::GetClass();
+  jobject installations_instance_local = env->CallStaticObjectMethod(
+      installations_class,
+      installations::GetMethodId(installations::kGetInstance), platform_app);
+  FIREBASE_ASSERT(installations_instance_local);
+  env->DeleteLocalRef(installations_instance_local);
+  env->DeleteLocalRef(platform_app);
+  LogDebug("%s API Initialized", kApiIdentifier);
+}
+
 Future<std::string> InstallationsInternal::GetId() {
   const auto handle =
       future_impl_.SafeAlloc<std::string>(kInstallationsFnGetId);
