@@ -342,9 +342,10 @@ void StorageReferenceInternal::AsyncSendRequestWithRetry(
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     // For any request that succeeds or fails in a non-retryable way, don't
-    // bother retrying.
+    // bother retrying. Response can be null if the request failed to create.
+    int httpStatus = response == nullptr ? 400 : response->status();
     if (internal_future.status() != firebase::kFutureStatusComplete ||
-        !IsRetryableFailure(response->status())) {
+        !IsRetryableFailure(httpStatus, internal_future.error())) {
       break;
     }
     // Interrupt the loop if the retry deadline has been reached
@@ -379,12 +380,18 @@ void StorageReferenceInternal::AsyncSendRequestWithRetry(
 // Can be set in tests to retry 404s, but is not exposed in the public API.
 bool g_retry_file_not_found_for_testing = false;
 
+// Can be set in tests to retry failed futures, but is not exposed in the public
+// API.
+bool g_retry_failed_future_for_testing = false;
+
 // Returns whether or not an http status represents a failure that should be
 // retried.
-bool StorageReferenceInternal::IsRetryableFailure(int httpStatus) {
+bool StorageReferenceInternal::IsRetryableFailure(int httpStatus,
+                                                  int futureError) {
   return (httpStatus >= 500 && httpStatus < 600) || httpStatus == 429 ||
          httpStatus == 408 ||
-         (httpStatus == 404 && g_retry_file_not_found_for_testing);
+         (httpStatus == 404 && g_retry_file_not_found_for_testing) ||
+         (futureError != kErrorNone && g_retry_failed_future_for_testing);
 }
 
 // Returns the result of the most recent call to GetBytes();
