@@ -43,7 +43,7 @@ InstallationsInternal::~InstallationsInternal() {
 void InstallationsInternal::LogHeartbeat(const firebase::App& app) {
   // Calling the native getter is sufficient to cause a Heartbeat to be logged.
   FIRApp *platform_app = app.GetPlatformApp();
-  [FIRInstallations installationsWithApp:platform_app]
+  [FIRInstallations installationsWithApp:platform_app];
 }
 
 bool InstallationsInternal::Initialized() const{
