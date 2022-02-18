@@ -532,6 +532,7 @@ class Auth {
   friend void EnableTokenAutoRefresh(AuthData* authData);
   friend void DisableTokenAutoRefresh(AuthData* authData);
   friend void ResetTokenRefreshCounter(AuthData* authData);
+  friend void LogHeartbeat(Auth* auth);
   /// @endcond
 
   // Find Auth instance using App.  Return null if the instance does not exist.
