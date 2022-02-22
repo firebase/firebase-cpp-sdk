@@ -18,8 +18,7 @@ if(TARGET firestore)
   return()
 endif()
 
-function(GetReleasedDep)
-  set(version CocoaPods-8.12.1)
+function(GetReleasedDep version)
   message("Getting released firebase-ios-sdk @ ${version}")
   ExternalProject_Add(
     firestore
@@ -62,9 +61,7 @@ if(NOT FIRESTORE_DEP_SOURCE)
   GetTag("origin/main")
 else()
   if(FIRESTORE_DEP_SOURCE STREQUAL "RELEASED")
-    # Use the released SDK as dependency, exact version is specified in
-    # "cmake/external/firestore.cmake".
-    GetReleasedDep()
+    GetReleasedDep("CocoaPods-8.12.1")
   elseif(FIRESTORE_DEP_SOURCE STREQUAL "TIP")
     GetTag("origin/main")
   else()
