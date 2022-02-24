@@ -801,9 +801,15 @@ jobs:
             pip install -r scripts/gha/requirements.txt
             python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps
       - name: Run Desktop integration tests
-        run: firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"'
         env:
           USE_FIRESTORE_EMULATOR: true
+        shell: bash
+        run: |
+          if [[ "${{ needs.check_and_prepare.outputs.apis }}" == *"firestore"* ]]; then
+            firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"'
+          else
+            python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
+          fi
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
@@ -883,7 +889,7 @@ jobs:
         with:
           node-version: 12.x
       - name: Setup Firestore Emulator
-        if: steps.get-device-type.outputs.device_type == 'virtual'
+        if: steps.get-device-type.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
           npm install -g firebase-tools
           firebase emulators:start --only firestore --project demo-example &
@@ -985,12 +991,12 @@ jobs:
         with:
           node-version: 12.x
       - name: Setup Firestore Emulator
-        if: steps.get-device-type.outputs.device_type == 'virtual'
+        if: steps.get-device-type.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
           npm install -g firebase-tools
           firebase emulators:start --only firestore --project demo-example &
       - name: Run iOS integration tests on Simulator locally
-        timeout-minutes: 60
+        timeout-minutes: 90
         if: steps.get-device-type.outputs.device_type == 'virtual'
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
@@ -1080,7 +1086,8 @@ jobs:
           timeout_minutes: 1
           max_attempts: 3
           command: pip install -r scripts/gha/requirements.txt
-      - name: Setup Firebase Emulators
+      - name: Setup Firestore Emulator
+        if: contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
           npm install -g firebase-tools
           firebase emulators:start --only firestore --project demo-example &
