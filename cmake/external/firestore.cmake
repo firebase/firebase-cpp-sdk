@@ -56,13 +56,11 @@ function(GetTag t)
     )
 endfunction()
 
-if(NOT FIRESTORE_DEP_SOURCE)
-  # Get from tip of the tree by default
-  GetTag("origin/master")
+if((NOT FIRESTORE_DEP_SOURCE) OR (FIRESTORE_DEP_SOURCE STREQUAL "RELEASED"))
+  # Get from released dependency by default
+  GetReleasedDep("CocoaPods-8.12.1")
 else()
-  if(FIRESTORE_DEP_SOURCE STREQUAL "RELEASED")
-    GetReleasedDep("CocoaPods-8.12.1")
-  elseif(FIRESTORE_DEP_SOURCE STREQUAL "TIP")
+  if(FIRESTORE_DEP_SOURCE STREQUAL "TIP")
     GetTag("origin/master")
   else()
     GetTag(${FIRESTORE_DEP_SOURCE})
