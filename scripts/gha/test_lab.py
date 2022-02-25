@@ -173,9 +173,6 @@ def main(argv):
   gcs_base_dir = gcs.get_unique_gcs_id()
   logging.info("Store results in %s", gcs.relative_path_to_gs_uri(gcs_base_dir))
 
-  if has_ios:
-    _install_gcloud_beta()
-
   tests = []
   for device, platform, path in testapps:
     # e.g. /testapps/unity/firebase_auth/app.apk -> unity_firebase_auth_app_apk
@@ -311,7 +308,7 @@ class Test(object):
     if self.platform == _ANDROID:
       cmd = [gcs.GCLOUD, "firebase", "test", "android", "run"]
     elif self.platform == _IOS:
-      cmd = [gcs.GCLOUD, "beta", "firebase", "test", "ios", "run"]
+      cmd = [gcs.GCLOUD, "firebase", "test", "ios", "run"]
     else:
       raise ValueError("Invalid platform, must be 'Android' or 'iOS'")
     return cmd + self.device.get_gcloud_flags() + [
