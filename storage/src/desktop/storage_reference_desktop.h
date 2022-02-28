@@ -171,7 +171,7 @@ class StorageReferenceInternal {
 
   // Returns whether or not an HTTP status or future error indicates a retryable
   // failure.
-  static bool IsRetryableFailure(int httpStatus, int futureError);
+  static bool IsRetryableFailure(int httpStatus);
 
   // Upload data without metadata.
   Future<Metadata> PutBytesInternal(const void* buffer, size_t buffer_size,

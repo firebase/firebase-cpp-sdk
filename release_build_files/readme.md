@@ -573,7 +573,7 @@ code.
         initialization of Firebase iOS SDK.
     -   Remote Config: Fixed default `Fetch()` timeout being 1000 times too
         high.
-    -   Added retry logic to desktop implementation of storage operations. 
+    -   Storage (Desktop): Added retry logic to PutFile, GetFile, and other operations.
 
 ### 8.9.0
 -   Changes

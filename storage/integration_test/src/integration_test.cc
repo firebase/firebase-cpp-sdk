@@ -41,13 +41,12 @@
 #define FIREBASE_CONFIG_STRING ""
 #endif  // FIREBASE_CONFIG
 
-// Allow integration tests to enable retrying of file-not-found errors.
+// Allow integration tests to enable retrying regardless of error type.
 #if FIREBASE_PLATFORM_DESKTOP
 namespace firebase {
 namespace storage {
 namespace internal {
-extern bool g_retry_file_not_found_for_testing;
-extern bool g_retry_failed_future_for_testing;
+extern bool g_retry_all_errors_for_testing;
 }  // namespace internal
 }  // namespace storage
 }  // namespace firebase
@@ -649,9 +648,8 @@ TEST_F(FirebaseStorageTest, TestDeleteFile) {
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(FirebaseStorageTest, TestGetBytesWithMaxRetryDuration) {
   // Enable retrying of file-not-found errors for testing.
-  bool old_value =
-      firebase::storage::internal::g_retry_file_not_found_for_testing;
-  firebase::storage::internal::g_retry_file_not_found_for_testing = true;
+  bool old_value = firebase::storage::internal::g_retry_all_errors_for_testing;
+  firebase::storage::internal::g_retry_all_errors_for_testing = true;
 
   int shorter_duration_sec = 2;
   int longer_duration_sec = 6;
@@ -728,16 +726,15 @@ TEST_F(FirebaseStorageTest, TestGetBytesWithMaxRetryDuration) {
     t1.join();
   }
 
-  firebase::storage::internal::g_retry_file_not_found_for_testing = old_value;
+  firebase::storage::internal::g_retry_all_errors_for_testing = old_value;
 }
 #endif  // FIREBASE_PLATFORM_DESKTOP
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(FirebaseStorageTest, TestGetMetadataWithMaxRetryDuration) {
   // Enable retrying of file-not-found errors for testing.
-  bool old_value =
-      firebase::storage::internal::g_retry_file_not_found_for_testing;
-  firebase::storage::internal::g_retry_file_not_found_for_testing = true;
+  bool old_value = firebase::storage::internal::g_retry_all_errors_for_testing;
+  firebase::storage::internal::g_retry_all_errors_for_testing = true;
 
   int shorter_duration_sec = 2;
   int longer_duration_sec = 6;
@@ -822,16 +819,15 @@ TEST_F(FirebaseStorageTest, TestGetMetadataWithMaxRetryDuration) {
     t1.join();
   }
 
-  firebase::storage::internal::g_retry_file_not_found_for_testing = old_value;
+  firebase::storage::internal::g_retry_all_errors_for_testing = old_value;
 }
 #endif  // FIREBASE_PLATFORM_DESKTOP
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(FirebaseStorageTest, TestGetFileWithMaxRetryDuration) {
   // Enable retrying of file-not-found errors for testing.
-  bool old_value =
-      firebase::storage::internal::g_retry_file_not_found_for_testing;
-  firebase::storage::internal::g_retry_file_not_found_for_testing = true;
+  bool old_value = firebase::storage::internal::g_retry_all_errors_for_testing;
+  firebase::storage::internal::g_retry_all_errors_for_testing = true;
 
   int shorter_duration_sec = 2;
   int longer_duration_sec = 6;
@@ -943,7 +939,7 @@ TEST_F(FirebaseStorageTest, TestGetFileWithMaxRetryDuration) {
     t1.join();
   }
 
-  firebase::storage::internal::g_retry_file_not_found_for_testing = old_value;
+  firebase::storage::internal::g_retry_all_errors_for_testing = old_value;
 }
 #endif  // FIREBASE_PLATFORM_DESKTOP
 
@@ -953,9 +949,8 @@ TEST_F(FirebaseStorageTest, TestGetFileWithMaxRetryDuration) {
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(FirebaseStorageTest, TestDeleteWithMaxRetryDuration) {
   // Enable retrying of file-not-found errors for testing.
-  bool old_value =
-      firebase::storage::internal::g_retry_file_not_found_for_testing;
-  firebase::storage::internal::g_retry_file_not_found_for_testing = true;
+  bool old_value = firebase::storage::internal::g_retry_all_errors_for_testing;
+  firebase::storage::internal::g_retry_all_errors_for_testing = true;
 
   int shorter_duration_sec = 2;
   int longer_duration_sec = 6;
@@ -997,11 +992,11 @@ TEST_F(FirebaseStorageTest, TestDeleteWithMaxRetryDuration) {
     LogDebug("Ensuring file was deleted.");
     // Disable retrying of file-not-found errors while verifying that file does
     // not exist.
-    firebase::storage::internal::g_retry_file_not_found_for_testing = false;
+    firebase::storage::internal::g_retry_all_errors_for_testing = false;
     firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
     WaitForCompletion(future, "GetBytes",
                       firebase::storage::kErrorObjectNotFound);
-    firebase::storage::internal::g_retry_file_not_found_for_testing = true;
+    firebase::storage::internal::g_retry_all_errors_for_testing = true;
   }
 
   // Call Delete on a non-existent ref. Call PutBytes after Delete should
@@ -1035,7 +1030,7 @@ TEST_F(FirebaseStorageTest, TestDeleteWithMaxRetryDuration) {
     t1.join();
   }
 
-  firebase::storage::internal::g_retry_file_not_found_for_testing = old_value;
+  firebase::storage::internal::g_retry_all_errors_for_testing = old_value;
 }
 #endif  // FIREBASE_PLATFORM_DESKTOP
 
@@ -1043,9 +1038,8 @@ TEST_F(FirebaseStorageTest, TestDeleteWithMaxRetryDuration) {
 TEST_F(FirebaseStorageTest, TestPutFileWithMaxRetryDuration) {
   // Enable retrying of future errors for testing. This will retry putfile when
   // it is unable to read the local file.
-  bool old_value =
-      firebase::storage::internal::g_retry_failed_future_for_testing;
-  firebase::storage::internal::g_retry_failed_future_for_testing = true;
+  bool old_value = firebase::storage::internal::g_retry_all_errors_for_testing;
+  firebase::storage::internal::g_retry_all_errors_for_testing = true;
 
   int shorter_duration_sec = 2;
   int longer_duration_sec = 6;
@@ -1132,7 +1126,7 @@ TEST_F(FirebaseStorageTest, TestPutFileWithMaxRetryDuration) {
     t1.join();
   }
 
-  firebase::storage::internal::g_retry_failed_future_for_testing = old_value;
+  firebase::storage::internal::g_retry_all_errors_for_testing = old_value;
 }
 #endif  // FIREBASE_PLATFORM_DESKTOP
 
