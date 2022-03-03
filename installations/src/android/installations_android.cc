@@ -15,6 +15,7 @@
 #include "installations/src/android/installations_android.h"
 
 #include "app/src/util.h"
+#include "app/src/util_android.h"
 #include "installations/src/common.h"
 
 namespace firebase {
@@ -194,7 +195,7 @@ void InstallationsInternal::LogHeartbeat(const firebase::App& app) {
   jobject installations_instance_local = env->CallStaticObjectMethod(
       installations_class,
       installations::GetMethodId(installations::kGetInstance), platform_app);
-  FIREBASE_ASSERT(installations_instance_local);
+  firebase::util::CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(installations_instance_local);
   env->DeleteLocalRef(platform_app);
 }
