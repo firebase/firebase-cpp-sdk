@@ -28,7 +28,6 @@
 #include "app/src/app_common.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/thread.h"
-#include "app_framework.h"
 #include "storage/src/common/common_internal.h"
 #include "storage/src/desktop/controller_desktop.h"
 #include "storage/src/desktop/metadata_desktop.h"
