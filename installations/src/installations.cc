@@ -32,6 +32,9 @@ Installations* Installations::GetInstance(App* app) {
   // Return the Installations if it already exists.
   Installations* existing_installations = FindInstallations(app);
   if (existing_installations) {
+    // Log heartbeat data when instance getters are called.
+    // See go/firebase-platform-logging-design for more information.
+    InstallationsInternal::LogHeartbeat(*app);
     return existing_installations;
   }
 
