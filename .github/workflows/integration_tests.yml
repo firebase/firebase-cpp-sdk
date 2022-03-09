@@ -347,13 +347,13 @@ jobs:
             # No summary was created, make a placeholder one.
             echo "__SUMMARY_MISSING__" > build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json
           fi
-      # - name: Upload Desktop integration tests artifact
-      #   uses: actions/upload-artifact@v3
-      #   if: ${{ !cancelled() }}
-      #   with:
-      #     name: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
-      #     path: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
-      #     retention-days: ${{ env.artifactRetentionDays }}
+      - name: Upload Desktop integration tests artifact
+        uses: actions/upload-artifact@v3
+        if: ${{ !cancelled() }}
+        with:
+          name: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+          path: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+          retention-days: ${{ env.artifactRetentionDays }}
       - name: Upload Desktop build results artifact
         uses: actions/upload-artifact@v3
         if: ${{ !cancelled() }}
@@ -493,13 +493,13 @@ jobs:
           if [ ! -f build-results-android-${{ matrix.os }}.log.json ]; then
             echo "__SUMMARY_MISSING__" > build-results-android-${{ matrix.os }}.log.json
           fi
-      # - name: Upload Android integration tests artifact
-      #   uses: actions/upload-artifact@v3
-      #   if: ${{ !cancelled() }}
-      #   with:
-      #     name: testapps-android-${{ matrix.os }}
-      #     path: testapps-android-${{ matrix.os }}
-      #     retention-days: ${{ env.artifactRetentionDays }}
+      - name: Upload Android integration tests artifact
+        uses: actions/upload-artifact@v3
+        if: ${{ !cancelled() }}
+        with:
+          name: testapps-android-${{ matrix.os }}
+          path: testapps-android-${{ matrix.os }}
+          retention-days: ${{ env.artifactRetentionDays }}
       - name: Upload Android build results artifact
         uses: actions/upload-artifact@v3
         if: ${{ !cancelled() }}
@@ -610,13 +610,13 @@ jobs:
           if [ ! -f build-results-ios-macos-latest.log.json ]; then
             echo "__SUMMARY_MISSING__" > build-results-ios-macos-latest.log.json
           fi
-      # - name: Upload iOS integration tests artifact
-      #   uses: actions/upload-artifact@v3
-      #   if: ${{ !cancelled() }}
-      #   with:
-      #     name: testapps-ios-macos-latest
-      #     path: testapps-ios-macos-latest
-      #     retention-days: ${{ env.artifactRetentionDays }}
+      - name: Upload iOS integration tests artifact
+        uses: actions/upload-artifact@v3
+        if: ${{ !cancelled() }}
+        with:
+          name: testapps-ios-macos-latest
+          path: testapps-ios-macos-latest
+          retention-days: ${{ env.artifactRetentionDays }}
       - name: Upload iOS build results artifact
         uses: actions/upload-artifact@v3
         if: ${{ !cancelled() }}
@@ -727,13 +727,13 @@ jobs:
           name: testapps-tvos-macos-latest
           path: testapps-tvos-macos-latest
           retention-days: ${{ env.artifactRetentionDays }}
-      # - name: Upload tvOS build results artifact
-      #   uses: actions/upload-artifact@v3
-      #   if: ${{ !cancelled() }}
-      #   with:
-      #     name: log-artifact
-      #     path: build-results-tvos-macos-latest*
-      #     retention-days: ${{ env.artifactRetentionDays }}
+      - name: Upload tvOS build results artifact
+        uses: actions/upload-artifact@v3
+        if: ${{ !cancelled() }}
+        with:
+          name: log-artifact
+          path: build-results-tvos-macos-latest*
+          retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         uses: actions/download-artifact@v3
