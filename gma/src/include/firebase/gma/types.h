@@ -401,7 +401,7 @@ class AdSize {
   /// (468x60 density-independent pixels).
   static const AdSize kFullBanner;
 
-  /// Taller version of kGADAdSizeBanner. Typically 320x100.
+  /// Taller version of kBanner. Typically 320x100.
   static const AdSize kLargeBanner;
 
   /// Interactive Advertising Bureau (IAB) leaderboard ad size
