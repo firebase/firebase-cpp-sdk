@@ -94,7 +94,7 @@ def install_x86_support_libraries(gha_build=False):
       # packages aren't modified. (Once the workaround above is removed, this can
       # be removed as well.)
       # Note: "-f" = "fix" - let apt do what it needs to do to fix dependencies.
-      utils.run_command(['apt', 'install', '-f', '-V', '-y', 'libsecret-1-dev:i386'],
+      utils.run_command(['apt', 'install', '-f', '-V', '-y', 'libsecret-1-dev'],
                         as_root=True, check=True)
 
 
