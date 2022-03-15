@@ -47,6 +47,10 @@ env:
   artifactRetentionDays: 2
   GITHUB_TOKEN: ${{ github.token }}
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check_and_prepare:
     runs-on: ubuntu-latest

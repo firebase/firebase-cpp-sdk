@@ -16,7 +16,7 @@ env:
   xcodeVersion: "12.4"  # Only affects Mac runners, and only for prerequisites.
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 jobs:
