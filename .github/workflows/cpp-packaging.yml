@@ -85,10 +85,6 @@ jobs:
           tools_platform: linux
           # Binutils 2.35.1 released Sep 19, 2020
           binutils_version: "2.35.1"
-        - os: macos-latest
-          tools_platform: darwin
-          # Binutils 2.35.1 released Sep 19, 2020
-          binutils_version: "2.35.1"
     steps:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
@@ -201,10 +197,6 @@ jobs:
           vcpkg_triplet_suffix: "windows-static-md"
           additional_build_flags: "--build_tests"
           sdk_platform: "windows"
-        - os: macos-latest
-          vcpkg_triplet_suffix: "osx"
-          additional_build_flags: "--target_format libraries"
-          sdk_platform: "darwin"
 
         exclude:
         - os: windows-latest
@@ -346,7 +338,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        sdk_platform: [darwin, windows]
+        sdk_platform: [windows]
         suffix: ['']
         runs_on_platform: [ubuntu-latest]
         include:
@@ -375,13 +367,9 @@ jobs:
         - sdk_platform: windows
           suffix: '-x64-Debug-dynamic'
           runs_on_platform: ubuntu-latest
-        - sdk_platform: darwin
-          runs_on_platform: macos-latest
         exclude:
         - sdk_platform: windows
           suffix: ''
-        - sdk_platform: darwin
-          runs_on_platform: ubuntu-latest
     steps:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
