@@ -45,8 +45,8 @@ android {
 }
 
 dependencies {
-  implementation 'com.google.firebase:firebase-analytics:20.1.0'
-  implementation 'com.google.firebase:firebase-database:20.0.3'
+  implementation 'com.google.firebase:firebase-analytics:20.1.1'
+  implementation 'com.google.firebase:firebase-database:20.0.4'
   //implementation project(':app:app_resources')
 }
 
