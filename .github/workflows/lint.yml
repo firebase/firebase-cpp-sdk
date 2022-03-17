@@ -4,6 +4,10 @@ on:
   pull_request:
     types: [opened,synchronize]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint_warnings_check_and_comment:
     runs-on: ubuntu-latest
