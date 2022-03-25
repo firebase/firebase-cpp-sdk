@@ -567,7 +567,7 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### 8.10.0
 -   Changes
     -   General (iOS): Fixed additional issues on iOS 15 caused by early
         initialization of Firebase iOS SDK.
