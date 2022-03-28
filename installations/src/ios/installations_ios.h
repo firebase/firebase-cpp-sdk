@@ -42,6 +42,10 @@ class InstallationsInternal {
   explicit InstallationsInternal(const firebase::App& app);
   ~InstallationsInternal();
 
+  // Platform-specific method that causes a heartbeat to be logged.
+  // See go/firebase-platform-logging-design for more information.
+  static void LogHeartbeat(const firebase::App& app);
+
   Future<std::string> GetId();
   Future<std::string> GetIdLastResult();
 

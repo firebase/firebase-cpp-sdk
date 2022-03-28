@@ -19,6 +19,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <thread>  // NOLINT
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
@@ -39,6 +40,17 @@
 #else
 #define FIREBASE_CONFIG_STRING ""
 #endif  // FIREBASE_CONFIG
+
+// Allow integration tests to enable retrying regardless of error type.
+#if FIREBASE_PLATFORM_DESKTOP
+namespace firebase {
+namespace storage {
+namespace internal {
+extern bool g_retry_all_errors_for_testing;
+}  // namespace internal
+}  // namespace storage
+}  // namespace firebase
+#endif
 
 namespace firebase_testapp_automated {
 
@@ -629,6 +641,494 @@ TEST_F(FirebaseStorageTest, TestDeleteFile) {
   WaitForCompletion(future, "GetBytes",
                     firebase::storage::kErrorObjectNotFound);
 }
+
+// Only test retries on desktop since Android and iOS don't have an option
+// to retry file-not-found errors and just pass-through to native
+// implementations.
+#if FIREBASE_PLATFORM_DESKTOP
+TEST_F(FirebaseStorageTest, TestGetBytesWithMaxRetryDuration) {
+  // Enable retrying of file-not-found errors for testing.
+  bool old_value = firebase::storage::internal::g_retry_all_errors_for_testing;
+  firebase::storage::internal::g_retry_all_errors_for_testing = true;
+
+  int shorter_duration_sec = 2;
+  int longer_duration_sec = 6;
+  SignIn();
+
+  // Call GetBytes on a non-existent ref. Call PutBytes while the GetBytes is
+  // still retrying. Verify that GetBytes succeeds.
+  {
+    LogDebug("Call PutBytes while GetBytes is retrying.");
+    firebase::storage::StorageReference ref = CreateFolder().Child("File2.txt");
+    LogDebug("Storage URL: gs://%s%s", ref.bucket().c_str(),
+             ref.full_path().c_str());
+    cleanup_files_.push_back(ref);
+
+    std::thread t1([&] {
+      // PutBytes after a short delay.
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(1000 * shorter_duration_sec));
+      LogDebug("Upload sample file from memory.");
+      firebase::Future<firebase::storage::Metadata> future =
+          RunWithRetry<firebase::storage::Metadata>([&]() {
+            return ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size());
+          });
+      WaitForCompletion(future, "PutBytes");
+      auto metadata = future.result();
+      EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
+    });
+    // GetBytes with a long retry duration.
+    const size_t kBufferSize = 1024;
+    char buffer[kBufferSize];
+    memset(buffer, 0, sizeof(buffer));
+    storage_->set_max_download_retry_time(longer_duration_sec);
+    firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
+    WaitForCompletion(future, "GetBytes");
+    ASSERT_NE(future.result(), nullptr);
+    size_t file_size = *future.result();
+    EXPECT_EQ(file_size, kSimpleTestFile.size());
+    EXPECT_THAT(kSimpleTestFile, ElementsAreArray(buffer, file_size))
+        << "Download failed, file contents did not match.";
+
+    t1.join();
+  }
+
+  // Call GetBytes on a non-existent ref. Call PutBytes after GetBytes should
+  // have stopped retrying. Verify that GetBytes fails.
+  {
+    LogDebug("Call PutBytes after the maximum retry deadline.");
+    firebase::storage::StorageReference ref = CreateFolder().Child("File3.txt");
+    LogDebug("Storage URL: gs://%s%s", ref.bucket().c_str(),
+             ref.full_path().c_str());
+    cleanup_files_.push_back(ref);
+
+    std::thread t1([&] {
+      // PutBytes after a long delay.
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(1000 * longer_duration_sec));
+      LogDebug("Upload sample file from memory.");
+      firebase::Future<firebase::storage::Metadata> future =
+          RunWithRetry<firebase::storage::Metadata>([&]() {
+            return ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size());
+          });
+      WaitForCompletion(future, "PutBytes");
+      auto metadata = future.result();
+      EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
+    });
+    // GetBytes with a short retry duration
+    const size_t kBufferSize = 1024;
+    char buffer[kBufferSize];
+    LogDebug("Ensuring file does not exist.");
+    storage_->set_max_download_retry_time(shorter_duration_sec);
+    firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
+    WaitForCompletion(future, "GetBytes",
+                      firebase::storage::kErrorObjectNotFound);
+    t1.join();
+  }
+
+  firebase::storage::internal::g_retry_all_errors_for_testing = old_value;
+}
+#endif  // FIREBASE_PLATFORM_DESKTOP
+
+#if FIREBASE_PLATFORM_DESKTOP
+TEST_F(FirebaseStorageTest, TestGetMetadataWithMaxRetryDuration) {
+  // Enable retrying of file-not-found errors for testing.
+  bool old_value = firebase::storage::internal::g_retry_all_errors_for_testing;
+  firebase::storage::internal::g_retry_all_errors_for_testing = true;
+
+  int shorter_duration_sec = 2;
+  int longer_duration_sec = 6;
+  SignIn();
+
+  std::string content_type = "text/plain";
+  std::string custom_metadata_key = "specialkey";
+  std::string custom_metadata_value = "secret value";
+  // Call GetMetadata on a non-existent ref. Call PutBytes while the GetMetadata
+  // is still retrying. Verify that GetMetadata succeeds.
+  {
+    LogDebug("Call PutBytes while GetMetadata is retrying.");
+    firebase::storage::StorageReference ref = CreateFolder().Child("File2.txt");
+    LogDebug("Storage URL: gs://%s%s", ref.bucket().c_str(),
+             ref.full_path().c_str());
+    cleanup_files_.push_back(ref);
+
+    std::thread t1([&] {
+      // PutBytes after a short delay with custom metadata.
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(1000 * shorter_duration_sec));
+      firebase::storage::Metadata metadata;
+      metadata.set_content_type(content_type.c_str());
+      (*metadata.custom_metadata())[custom_metadata_key] =
+          custom_metadata_value;
+      LogDebug("Upload sample file from memory.");
+      firebase::Future<firebase::storage::Metadata> future =
+          RunWithRetry<firebase::storage::Metadata>([&]() {
+            return ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size(),
+                                metadata);
+          });
+      WaitForCompletion(future, "PutBytes");
+      auto response_metadata = future.result();
+      EXPECT_EQ(response_metadata->size_bytes(), kSimpleTestFile.size());
+    });
+    // GetMetadata with a long retry duration
+    storage_->set_max_operation_retry_time(longer_duration_sec);
+    LogDebug("Read custom metadata.");
+    firebase::Future<firebase::storage::Metadata> future = ref.GetMetadata();
+    WaitForCompletion(future, "GetFileMetadata");
+    const firebase::storage::Metadata* metadata = future.result();
+    ASSERT_NE(metadata, nullptr);
+    EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
+    EXPECT_EQ(metadata->content_type(), content_type);
+    ASSERT_NE(metadata->custom_metadata(), nullptr);
+    auto& custom_metadata = *metadata->custom_metadata();
+    EXPECT_EQ(custom_metadata[custom_metadata_key], custom_metadata_value);
+    t1.join();
+  }
+
+  // Call GetMetadata on a non-existent ref. Call PutBytes after GetMetadata
+  // should have stopped retrying. Verify that GetMetadata fails.
+  {
+    LogDebug("Call PutBytes after the maximum retry deadline.");
+    firebase::storage::StorageReference ref = CreateFolder().Child("File3.txt");
+    LogDebug("Storage URL: gs://%s%s", ref.bucket().c_str(),
+             ref.full_path().c_str());
+    cleanup_files_.push_back(ref);
+
+    std::thread t1([&] {
+      // PutBytes after a long delay.
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(1000 * longer_duration_sec));
+      LogDebug("Upload sample file from memory.");
+      firebase::Future<firebase::storage::Metadata> future =
+          RunWithRetry<firebase::storage::Metadata>([&]() {
+            return ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size());
+          });
+      WaitForCompletion(future, "PutBytes");
+      auto metadata = future.result();
+      EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
+    });
+    // GetMetadata with a short retry duration
+    const size_t kBufferSize = 1024;
+    char buffer[kBufferSize];
+    LogDebug("Ensuring GetMetadata fails because file does not exist.");
+    storage_->set_max_operation_retry_time(shorter_duration_sec);
+    LogDebug("Read custom metadata.");
+    firebase::Future<firebase::storage::Metadata> future = ref.GetMetadata();
+    WaitForCompletion(future, "GetFileMetadata",
+                      firebase::storage::kErrorObjectNotFound);
+    t1.join();
+  }
+
+  firebase::storage::internal::g_retry_all_errors_for_testing = old_value;
+}
+#endif  // FIREBASE_PLATFORM_DESKTOP
+
+#if FIREBASE_PLATFORM_DESKTOP
+TEST_F(FirebaseStorageTest, TestGetFileWithMaxRetryDuration) {
+  // Enable retrying of file-not-found errors for testing.
+  bool old_value = firebase::storage::internal::g_retry_all_errors_for_testing;
+  firebase::storage::internal::g_retry_all_errors_for_testing = true;
+
+  int shorter_duration_sec = 2;
+  int longer_duration_sec = 6;
+  SignIn();
+
+  // Call GetFile on a non-existent ref. Call PutFile while the GetFile is
+  // still retrying. Verify that GetFile succeeds.
+  {
+    LogDebug("Call PutFile while GetFile is retrying.");
+    firebase::storage::StorageReference ref = CreateFolder().Child("File2.txt");
+    LogDebug("Storage URL: gs://%s%s", ref.bucket().c_str(),
+             ref.full_path().c_str());
+    cleanup_files_.push_back(ref);
+
+    std::thread t1([&] {
+      // PufFile after a short delay.
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(1000 * shorter_duration_sec));
+      // Write file that we're going to upload.
+      std::string path = PathForResource() + kPutFileTestFile;
+      std::string file_path = kFileUriScheme + path;
+      LogDebug("Creating local file: %s", path.c_str());
+      FILE* file = fopen(path.c_str(), "wb");
+      std::fwrite(kSimpleTestFile.c_str(), 1, kSimpleTestFile.size(), file);
+      fclose(file);
+      firebase::storage::Metadata new_metadata;
+      std::string content_type = "text/plain";
+      new_metadata.set_content_type(content_type);
+
+      LogDebug("Uploading sample file from disk.");
+      firebase::Future<firebase::storage::Metadata> future =
+          RunWithRetry<firebase::storage::Metadata>(
+              [&]() { return ref.PutFile(file_path.c_str(), new_metadata); });
+      WaitForCompletion(future, "PutFile");
+      EXPECT_NE(future.result(), nullptr);
+      const firebase::storage::Metadata* metadata = future.result();
+      EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
+      EXPECT_EQ(metadata->content_type(), content_type);
+    });
+
+    // GetFile with a long retry duration.
+    storage_->set_max_download_retry_time(longer_duration_sec);
+    std::string path = PathForResource() + kGetFileTestFile;
+    // Cloud Storage expects a URI, so add file:// in front of local
+    // paths.
+    std::string file_path = kFileUriScheme + path;
+    LogDebug("Saving to local file: %s", path.c_str());
+    firebase::Future<size_t> future =
+        RunWithRetry<size_t>([&]() { return ref.GetFile(file_path.c_str()); });
+    WaitForCompletion(future, "GetFile");
+    EXPECT_NE(future.result(), nullptr);
+    EXPECT_EQ(*future.result(), kSimpleTestFile.size());
+    std::vector<char> buffer(kSimpleTestFile.size());
+    FILE* file = fopen(path.c_str(), "rb");
+    EXPECT_NE(file, nullptr);
+    std::fread(&buffer[0], 1, kSimpleTestFile.size(), file);
+    fclose(file);
+    EXPECT_EQ(memcmp(&kSimpleTestFile[0], &buffer[0], buffer.size()), 0);
+
+    t1.join();
+  }
+
+  // Call GetFile on a non-existent ref. Call PutFile after GetFile should
+  // have stopped retrying. Verify that GetFile fails.
+  {
+    LogDebug("Call PutFile after the maximum retry deadline.");
+    firebase::storage::StorageReference ref = CreateFolder().Child("File2.txt");
+    LogDebug("Storage URL: gs://%s%s", ref.bucket().c_str(),
+             ref.full_path().c_str());
+    cleanup_files_.push_back(ref);
+
+    std::thread t1([&] {
+      // PufFile after a long delay.
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(1000 * longer_duration_sec));
+      // Write file that we're going to upload.
+      std::string path = PathForResource() + kPutFileTestFile;
+      std::string file_path = kFileUriScheme + path;
+      LogDebug("Creating local file: %s", path.c_str());
+      FILE* file = fopen(path.c_str(), "wb");
+      std::fwrite(kSimpleTestFile.c_str(), 1, kSimpleTestFile.size(), file);
+      fclose(file);
+      firebase::storage::Metadata new_metadata;
+      std::string content_type = "text/plain";
+      new_metadata.set_content_type(content_type);
+
+      LogDebug("Uploading sample file from disk.");
+      firebase::Future<firebase::storage::Metadata> future =
+          RunWithRetry<firebase::storage::Metadata>(
+              [&]() { return ref.PutFile(file_path.c_str(), new_metadata); });
+      WaitForCompletion(future, "PutFile");
+      EXPECT_NE(future.result(), nullptr);
+      const firebase::storage::Metadata* metadata = future.result();
+      EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
+      EXPECT_EQ(metadata->content_type(), content_type);
+    });
+
+    // GetFile with a short retry duration.
+    storage_->set_max_download_retry_time(shorter_duration_sec);
+    std::string path = PathForResource() + kGetFileTestFile;
+    // Cloud Storage expects a URI, so add file:// in front of local
+    // paths.
+    std::string file_path = kFileUriScheme + path;
+    LogDebug("Ensuring file does not exist.");
+    firebase::Future<size_t> future = ref.GetFile(file_path.c_str());
+    WaitForCompletion(future, "GetFile",
+                      firebase::storage::kErrorObjectNotFound);
+
+    t1.join();
+  }
+
+  firebase::storage::internal::g_retry_all_errors_for_testing = old_value;
+}
+#endif  // FIREBASE_PLATFORM_DESKTOP
+
+// Only test retries on desktop since Android and iOS don't have an option
+// to retry file-not-found errors and just pass-through to native
+// implementations.
+#if FIREBASE_PLATFORM_DESKTOP
+TEST_F(FirebaseStorageTest, TestDeleteWithMaxRetryDuration) {
+  // Enable retrying of file-not-found errors for testing.
+  bool old_value = firebase::storage::internal::g_retry_all_errors_for_testing;
+  firebase::storage::internal::g_retry_all_errors_for_testing = true;
+
+  int shorter_duration_sec = 2;
+  int longer_duration_sec = 6;
+  SignIn();
+
+  // Call Delete on a non-existent ref. Call PutBytes while the Delete is
+  // still retrying. Verify that Delete succeeds.
+  {
+    LogDebug("Call PutBytes while Delete is retrying.");
+    firebase::storage::StorageReference ref = CreateFolder().Child("File2.txt");
+    LogDebug("Storage URL: gs://%s%s", ref.bucket().c_str(),
+             ref.full_path().c_str());
+    cleanup_files_.push_back(ref);
+
+    std::thread t1([&] {
+      // PutBytes after a short delay.
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(1000 * shorter_duration_sec));
+      LogDebug("Upload sample file from memory.");
+      firebase::Future<firebase::storage::Metadata> future =
+          RunWithRetry<firebase::storage::Metadata>([&]() {
+            return ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size());
+          });
+      WaitForCompletion(future, "PutBytes");
+      auto metadata = future.result();
+      EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
+    });
+    // Call Delete with a long retry duration.
+    storage_->set_max_operation_retry_time(longer_duration_sec);
+    LogDebug("Deleting file.");
+    WaitForCompletion(ref.Delete(), "Delete");
+
+    // Join the thread that called PutBytes and verify that file was deleted.
+    t1.join();
+    // Need a placeholder buffer.
+    const size_t kBufferSize = 1024;
+    char buffer[kBufferSize];
+    // Ensure the file was deleted.
+    LogDebug("Ensuring file was deleted.");
+    // Disable retrying of file-not-found errors while verifying that file does
+    // not exist.
+    firebase::storage::internal::g_retry_all_errors_for_testing = false;
+    firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
+    WaitForCompletion(future, "GetBytes",
+                      firebase::storage::kErrorObjectNotFound);
+    firebase::storage::internal::g_retry_all_errors_for_testing = true;
+  }
+
+  // Call Delete on a non-existent ref. Call PutBytes after Delete should
+  // have stopped retrying. Verify that Delete fails.
+  {
+    LogDebug("Call PutBytes after the maximum retry deadline.");
+    firebase::storage::StorageReference ref = CreateFolder().Child("File3.txt");
+    LogDebug("Storage URL: gs://%s%s", ref.bucket().c_str(),
+             ref.full_path().c_str());
+    cleanup_files_.push_back(ref);
+
+    std::thread t1([&] {
+      // PutBytes after a long delay.
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(1000 * longer_duration_sec));
+      LogDebug("Upload sample file from memory.");
+      firebase::Future<firebase::storage::Metadata> future =
+          RunWithRetry<firebase::storage::Metadata>([&]() {
+            return ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size());
+          });
+      WaitForCompletion(future, "PutBytes");
+      auto metadata = future.result();
+      EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
+    });
+
+    // Call Delete with a short retry duration.
+    storage_->set_max_operation_retry_time(shorter_duration_sec);
+    LogDebug("Deleting file.");
+    WaitForCompletion(ref.Delete(), "Delete",
+                      firebase::storage::kErrorObjectNotFound);
+    t1.join();
+  }
+
+  firebase::storage::internal::g_retry_all_errors_for_testing = old_value;
+}
+#endif  // FIREBASE_PLATFORM_DESKTOP
+
+#if FIREBASE_PLATFORM_DESKTOP
+TEST_F(FirebaseStorageTest, TestPutFileWithMaxRetryDuration) {
+  // Enable retrying of future errors for testing. This will retry putfile when
+  // it is unable to read the local file.
+  bool old_value = firebase::storage::internal::g_retry_all_errors_for_testing;
+  firebase::storage::internal::g_retry_all_errors_for_testing = true;
+
+  int shorter_duration_sec = 2;
+  int longer_duration_sec = 6;
+  SignIn();
+
+  std::string path = PathForResource() + kPutFileTestFile;
+  // Cloud Storage expects a URI, so add file:// in front of local
+  // paths.
+  std::string file_path = kFileUriScheme + path;
+
+  // Delete the local file first to guarantee it does not already exist.
+  std::remove(path.c_str());
+
+  // Call PutFile on a non-existent local file. Create the file while PutFile is
+  // still retrying. Verify that PutFile succeeds.
+  {
+    LogDebug("Create local file while PutFile is retrying.");
+    firebase::storage::StorageReference ref = CreateFolder().Child("File2.txt");
+    LogDebug("Storage URL: gs://%s%s", ref.bucket().c_str(),
+             ref.full_path().c_str());
+    cleanup_files_.push_back(ref);
+
+    std::thread t1([&, path] {
+      // Write local file after a short delay.
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(1000 * shorter_duration_sec));
+      // Write file that we're going to upload.
+      LogDebug("Creating local file: %s", path.c_str());
+      FILE* file = fopen(path.c_str(), "wb");
+      std::fwrite(kSimpleTestFile.c_str(), 1, kSimpleTestFile.size(), file);
+      fclose(file);
+    });
+
+    // PutFile with a long retry duration.
+    storage_->set_max_upload_retry_time(longer_duration_sec);
+    firebase::storage::Metadata new_metadata;
+    std::string content_type = "text/plain";
+    new_metadata.set_content_type(content_type);
+
+    LogDebug("Uploading sample file from disk.");
+    firebase::Future<firebase::storage::Metadata> future =
+        ref.PutFile(file_path.c_str(), new_metadata);
+    WaitForCompletion(future, "PutFile");
+    EXPECT_NE(future.result(), nullptr);
+    const firebase::storage::Metadata* metadata = future.result();
+    EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
+    EXPECT_EQ(metadata->content_type(), content_type);
+    t1.join();
+  }
+
+  // Delete the local file first to guarantee it does not already exist.
+  std::remove(path.c_str());
+
+  // Call PutFile on a non-existent local file. Create the file after PutFile
+  // should have stopped retrying. Verify that PutFile succeeds.
+  {
+    LogDebug("Create local file after the maximum retry deadline.");
+    firebase::storage::StorageReference ref = CreateFolder().Child("File2.txt");
+    LogDebug("Storage URL: gs://%s%s", ref.bucket().c_str(),
+             ref.full_path().c_str());
+    cleanup_files_.push_back(ref);
+
+    std::thread t1([&, path] {
+      // Write local file after a short delay.
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(1000 * longer_duration_sec));
+      // Write file that we're going to upload.
+      LogDebug("Creating local file: %s", path.c_str());
+      FILE* file = fopen(path.c_str(), "wb");
+      std::fwrite(kSimpleTestFile.c_str(), 1, kSimpleTestFile.size(), file);
+      fclose(file);
+    });
+
+    // PutFile with a long retry duration.
+    storage_->set_max_upload_retry_time(shorter_duration_sec);
+    firebase::storage::Metadata new_metadata;
+    std::string content_type = "text/plain";
+    new_metadata.set_content_type(content_type);
+
+    LogDebug("Uploading sample file from disk.");
+    firebase::Future<firebase::storage::Metadata> future =
+        ref.PutFile(file_path.c_str(), new_metadata);
+    WaitForCompletion(future, "PutFile", firebase::storage::kErrorUnknown);
+    t1.join();
+  }
+
+  firebase::storage::internal::g_retry_all_errors_for_testing = old_value;
+}
+#endif  // FIREBASE_PLATFORM_DESKTOP
 
 class StorageListener : public firebase::storage::Listener {
  public:
