@@ -36,6 +36,19 @@
 FIREBASE_APP_REGISTER_CALLBACKS_REFERENCE(gma)
 #endif  // !defined(DOXYGEN) && !defined(SWIG)
 
+// Within Firebase docs, just link to the GMA docs.
+#if defined(DOXYGEN) && !defined(DOXYGEN_ADMOB)
+namespace firebase {
+/// @brief API for Google Mobile Ads with Firebase.
+///
+/// The GMA API allows you to load and display mobile ads using the Google
+/// Mobile Ads SDK. Full documentation for this API can be found at
+/// {LINK_GOES_HERE}.
+namespace gma {
+}  // namespace gma
+}  // namespace firebase
+#endif
+
 // Only include these docs if DOXYGEN_ADMOB is defined.
 #if !defined(DOXYGEN) || defined(DOXYGEN_ADMOB)
 
