@@ -43,11 +43,12 @@ namespace firebase {
 ///
 /// The GMA API allows you to load and display mobile ads using the Google
 /// Mobile Ads SDK. Full documentation for this API can be found at
-/// {LINK_GOES_HERE}.
+/// LINK_GOES_HERE.
 namespace gma {
+// Empty namespace (used for documentation only).
 }  // namespace gma
 }  // namespace firebase
-#endif
+#endif  // defined(DOXYGEN) && !defined(DOXYGEN_ADMOB)
 
 // Only include these docs if DOXYGEN_ADMOB is defined.
 #if !defined(DOXYGEN) || defined(DOXYGEN_ADMOB)
