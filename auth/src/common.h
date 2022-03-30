@@ -39,6 +39,10 @@ void InitPlatformAuth(AuthData* auth_data);
 // Platform-specific method to destroy the wrapped Auth class.
 void DestroyPlatformAuth(AuthData* auth_data);
 
+// Platform-specific method that causes a heartbeat to be logged.
+// See go/firebase-platform-logging-design for more information.
+void LogHeartbeat(Auth* auth);
+
 // All the result functions are similar.
 // Just return the local Future, cast to the proper result type.
 #define AUTH_RESULT_FN(class_name, fn_name, result_type)                  \

@@ -28,6 +28,25 @@ namespace firebase {
 namespace storage {
 namespace internal {
 
+enum StorageReferenceFn {
+  kStorageReferenceFnDelete = 0,
+  kStorageReferenceFnDeleteInternal,
+  kStorageReferenceFnGetBytes,
+  kStorageReferenceFnGetBytesInternal,
+  kStorageReferenceFnGetFile,
+  kStorageReferenceFnGetFileInternal,
+  kStorageReferenceFnGetDownloadUrl,
+  kStorageReferenceFnGetMetadata,
+  kStorageReferenceFnGetMetadataInternal,
+  kStorageReferenceFnUpdateMetadata,
+  kStorageReferenceFnUpdateMetadataInternal,
+  kStorageReferenceFnPutBytes,
+  kStorageReferenceFnPutBytesInternal,
+  kStorageReferenceFnPutFile,
+  kStorageReferenceFnPutFileInternal,
+  kStorageReferenceFnCount,
+};
+
 class BlockingResponse;
 class MetadataChainData;
 class Notifier;
@@ -134,6 +153,26 @@ class StorageReferenceInternal {
   StorageReference AsStorageReference() const;
 
  private:
+  // Function type that sends a Rest Request and returns the BlockingResponse.
+  typedef std::function<BlockingResponse*()> SendRequestFunct;
+
+  template <typename FutureType>
+  void SendRequestWithRetry(StorageReferenceFn internal_function_reference,
+                            SendRequestFunct send_request_funct,
+                            SafeFutureHandle<FutureType> final_handle,
+                            double max_retry_time_seconds);
+
+  template <typename FutureType>
+  void AsyncSendRequestWithRetry(StorageReferenceFn internal_function_reference,
+                                 SendRequestFunct send_request_funct,
+                                 SafeFutureHandle<FutureType> final_handle,
+                                 BlockingResponse* response,
+                                 double max_retry_time_seconds);
+
+  // Returns whether or not an HTTP status or future error indicates a retryable
+  // failure.
+  static bool IsRetryableFailure(int httpStatus);
+
   // Upload data without metadata.
   Future<Metadata> PutBytesInternal(const void* buffer, size_t buffer_size,
                                     Listener* listener,

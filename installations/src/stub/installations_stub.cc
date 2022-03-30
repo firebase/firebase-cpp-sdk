@@ -26,6 +26,8 @@ InstallationsInternal::InstallationsInternal(const firebase::App& app)
 
 InstallationsInternal::~InstallationsInternal() {}
 
+void InstallationsInternal::LogHeartbeat(const firebase::App& app) {}
+
 bool InstallationsInternal::Initialized() const { return true; }
 
 void InstallationsInternal::Cleanup() {}

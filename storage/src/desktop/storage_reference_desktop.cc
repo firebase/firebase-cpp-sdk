@@ -14,8 +14,10 @@
 
 #include "storage/src/desktop/storage_reference_desktop.h"
 
+#include <chrono>  // NOLINT
 #include <limits>
 #include <memory>
+#include <thread>  // NOLINT
 
 #include "app/memory/unique_ptr.h"
 #include "app/rest/request.h"
@@ -36,18 +38,6 @@
 namespace firebase {
 namespace storage {
 namespace internal {
-
-enum StorageReferenceFn {
-  kStorageReferenceFnDelete = 0,
-  kStorageReferenceFnGetBytes,
-  kStorageReferenceFnGetFile,
-  kStorageReferenceFnGetDownloadUrl,
-  kStorageReferenceFnGetMetadata,
-  kStorageReferenceFnUpdateMetadata,
-  kStorageReferenceFnPutBytes,
-  kStorageReferenceFnPutFile,
-  kStorageReferenceFnCount,
-};
 
 /**
  * Represents a reference to a Google Cloud Storage object. Developers can
@@ -214,13 +204,21 @@ void StorageReferenceInternal::SetupMetadataChain(
 Future<void> StorageReferenceInternal::Delete() {
   auto* future_api = future();
   auto handle = future_api->SafeAlloc<void>(kStorageReferenceFnDelete);
-  EmptyResponse* response = new EmptyResponse(handle, future_api);
 
-  storage::internal::Request* request = new storage::internal::Request();
-  PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), "DELETE");
-  RestCall(request, request->notifier(), response, handle.get(), nullptr,
-           nullptr);
+  auto send_request_funct{[&]() -> BlockingResponse* {
+    auto* future_api = future();
+    auto handle =
+        future_api->SafeAlloc<void>(kStorageReferenceFnDeleteInternal);
+    EmptyResponse* response = new EmptyResponse(handle, future_api);
 
+    storage::internal::Request* request = new storage::internal::Request();
+    PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), "DELETE");
+    RestCall(request, request->notifier(), response, handle.get(), nullptr,
+             nullptr);
+    return response;
+  }};
+  SendRequestWithRetry(kStorageReferenceFnDeleteInternal, send_request_funct,
+                       handle, storage_->max_operation_retry_time());
   return DeleteLastResult();
 }
 
@@ -255,16 +253,23 @@ void StorageReferenceInternal::PrepareRequest(rest::Request* request,
 Future<size_t> StorageReferenceInternal::GetFile(const char* path,
                                                  Listener* listener,
                                                  Controller* controller_out) {
-  auto* future_api = future();
-  auto handle = future_api->SafeAlloc<size_t>(kStorageReferenceFnGetFile);
+  auto handle = future()->SafeAlloc<size_t>(kStorageReferenceFnGetFile);
   std::string final_path = StripProtocol(path);
-  GetFileResponse* response =
-      new GetFileResponse(final_path.c_str(), handle, future_api);
-
-  storage::internal::Request* request = new storage::internal::Request();
-  PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), rest::util::kGet);
-  RestCall(request, request->notifier(), response, handle.get(), listener,
-           controller_out);
+  auto send_request_funct{[&, final_path, listener,
+                           controller_out]() -> BlockingResponse* {
+    auto* future_api = future();
+    auto handle =
+        future_api->SafeAlloc<size_t>(kStorageReferenceFnGetFileInternal);
+    storage::internal::Request* request = new storage::internal::Request();
+    PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), rest::util::kGet);
+    GetFileResponse* response =
+        new GetFileResponse(final_path.c_str(), handle, future_api);
+    RestCall(request, request->notifier(), response, handle.get(), listener,
+             controller_out);
+    return response;
+  }};
+  SendRequestWithRetry(kStorageReferenceFnGetFileInternal, send_request_funct,
+                       handle, storage_->max_download_retry_time());
 
   return GetFileLastResult();
 }
@@ -279,18 +284,108 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
                                                   size_t buffer_size,
                                                   Listener* listener,
                                                   Controller* controller_out) {
-  auto* future_api = future();
-  auto handle = future_api->SafeAlloc<size_t>(kStorageReferenceFnGetBytes);
-
-  GetBytesResponse* response =
-      new GetBytesResponse(buffer, buffer_size, handle, future_api);
-
-  storage::internal::Request* request = new storage::internal::Request();
-  PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), rest::util::kGet);
-  RestCall(request, request->notifier(), response, handle.get(), listener,
-           controller_out);
-
+  auto handle = future()->SafeAlloc<size_t>(kStorageReferenceFnGetBytes);
+  auto send_request_funct{[&, buffer, buffer_size, listener,
+                           controller_out]() -> BlockingResponse* {
+    auto* future_api = future();
+    auto handle =
+        future_api->SafeAlloc<size_t>(kStorageReferenceFnGetBytesInternal);
+    storage::internal::Request* request = new storage::internal::Request();
+    PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), rest::util::kGet);
+    GetBytesResponse* response =
+        new GetBytesResponse(buffer, buffer_size, handle, future_api);
+    RestCall(request, request->notifier(), response, handle.get(), listener,
+             controller_out);
+    return response;
+  }};
+  SendRequestWithRetry(kStorageReferenceFnGetBytesInternal, send_request_funct,
+                       handle, storage_->max_download_retry_time());
   return GetBytesLastResult();
+}
+
+// Sends a rest request, and creates a separate thread to retry failures.
+template <typename FutureType>
+void StorageReferenceInternal::SendRequestWithRetry(
+    StorageReferenceFn internal_function_reference,
+    SendRequestFunct send_request_funct,
+    SafeFutureHandle<FutureType> final_handle, double max_retry_time_seconds) {
+  BlockingResponse* first_response = send_request_funct();
+  std::thread async_retry_thread(
+      &StorageReferenceInternal::AsyncSendRequestWithRetry<FutureType>, this,
+      internal_function_reference, send_request_funct, final_handle,
+      first_response, max_retry_time_seconds);
+  async_retry_thread.detach();
+}
+
+const int kInitialSleepTimeMillis = 1000;
+const int kMaxSleepTimeMillis = 30000;
+
+// In a separate thread, repeatedly send Rest requests until one succeeds or a
+// maximum amount of time has passed.
+template <typename FutureType>
+void StorageReferenceInternal::AsyncSendRequestWithRetry(
+    StorageReferenceFn internal_function_reference,
+    SendRequestFunct send_request_funct,
+    SafeFutureHandle<FutureType> final_handle, BlockingResponse* response,
+    double max_retry_time_seconds) {
+  auto* future_api = future();
+  firebase::FutureBase internal_future;
+  auto end_time = std::chrono::steady_clock::now() +
+                  std::chrono::duration<double>(max_retry_time_seconds);
+  auto current_sleep_time = std::chrono::milliseconds(kInitialSleepTimeMillis);
+  auto max_sleep_time = std::chrono::milliseconds(kMaxSleepTimeMillis);
+  while (true) {
+    internal_future = future_api->LastResult(internal_function_reference);
+    // Wait for completion, then check status and error.
+    while (internal_future.status() == firebase::kFutureStatusPending) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    // For any request that succeeds or fails in a non-retryable way, don't
+    // bother retrying. Response can be null if the request failed to create.
+    int httpStatus = response == nullptr ? 400 : response->status();
+    if (internal_future.status() != firebase::kFutureStatusComplete ||
+        !IsRetryableFailure(httpStatus)) {
+      break;
+    }
+    // Interrupt the loop if the retry deadline has been reached
+    auto current_time = std::chrono::steady_clock::now();
+    if (current_time + current_sleep_time > end_time) {
+      break;
+    }
+    // Sleep for an exponentially increasing duration, then retry the request.
+    std::this_thread::sleep_for(current_sleep_time);
+    current_sleep_time *= 2;
+    if (current_sleep_time > max_sleep_time) {
+      current_sleep_time = max_sleep_time;
+    }
+    response = send_request_funct();
+  }
+  // Copy from the internal future to the final future.
+  Future<FutureType> typed_future =
+      static_cast<const Future<FutureType>&>(internal_future);
+  if (typed_future.result() != nullptr) {
+    if constexpr (std::is_void<FutureType>::value) {
+      future_api->Complete(final_handle, internal_future.error());
+    } else {
+      future_api->CompleteWithResult(final_handle, internal_future.error(),
+                                     *(typed_future.result()));
+    }
+  } else {
+    future_api->Complete(final_handle, internal_future.error(),
+                         internal_future.error_message());
+  }
+}
+
+// Can be set in tests to retry all types of errors.
+bool g_retry_all_errors_for_testing = false;
+
+// Returns whether or not an http status represents a failure that should be
+// retried.
+bool StorageReferenceInternal::IsRetryableFailure(int httpStatus) {
+  return (httpStatus >= 500 && httpStatus < 600) || httpStatus == 429 ||
+         httpStatus == 408 ||
+         (g_retry_all_errors_for_testing &&
+          (httpStatus < 200 || httpStatus > 299));
 }
 
 // Returns the result of the most recent call to GetBytes();
@@ -312,17 +407,24 @@ Future<Metadata> StorageReferenceInternal::PutBytesInternal(
     Controller* controller_out) {
   auto* future_api = future();
   auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutBytes);
+  auto send_request_funct{[&, buffer, buffer_size, listener,
+                           controller_out]() -> BlockingResponse* {
+    auto* future_api = future();
+    auto handle =
+        future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutBytesInternal);
 
-  ReturnedMetadataResponse* response =
-      new ReturnedMetadataResponse(handle, future_api, AsStorageReference());
-
-  storage::internal::RequestBinary* request =
-      new storage::internal::RequestBinary(static_cast<const char*>(buffer),
-                                           buffer_size);
-  PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), rest::util::kPost);
-
-  RestCall(request, request->notifier(), response, handle.get(), listener,
-           controller_out);
+    storage::internal::RequestBinary* request =
+        new storage::internal::RequestBinary(static_cast<const char*>(buffer),
+                                             buffer_size);
+    PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), rest::util::kPost);
+    ReturnedMetadataResponse* response =
+        new ReturnedMetadataResponse(handle, future_api, AsStorageReference());
+    RestCall(request, request->notifier(), response, handle.get(), listener,
+             controller_out);
+    return response;
+  }};
+  SendRequestWithRetry(kStorageReferenceFnPutBytesInternal, send_request_funct,
+                       handle, storage_->max_upload_retry_time());
   return PutBytesLastResult();
 }
 
@@ -368,22 +470,34 @@ Future<Metadata> StorageReferenceInternal::PutFileInternal(
   auto* future_api = future();
   auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutFile);
 
-  // Open the file, calculate the length.
-  storage::internal::RequestFile* request(
-      new storage::internal::RequestFile(StripProtocol(path).c_str(), 0));
-  if (!request->IsFileOpen()) {
-    delete request;
-    future_api->Complete(handle, kErrorUnknown, "Could not read file.");
-  } else {
-    // Everything is good.  Fire off the request.
-    ReturnedMetadataResponse* response =
-        new ReturnedMetadataResponse(handle, future_api, AsStorageReference());
+  std::string final_path = StripProtocol(path);
+  auto send_request_funct{
+      [&, final_path, listener, controller_out]() -> BlockingResponse* {
+        auto* future_api = future();
+        auto handle =
+            future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutFileInternal);
 
-    PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), rest::util::kPost);
-    RestCall(request, request->notifier(), response, handle.get(), listener,
-             controller_out);
-  }
+        // Open the file, calculate the length.
+        storage::internal::RequestFile* request(
+            new storage::internal::RequestFile(final_path.c_str(), 0));
+        if (!request->IsFileOpen()) {
+          delete request;
+          future_api->Complete(handle, kErrorUnknown, "Could not read file.");
+          return nullptr;
+        } else {
+          // Everything is good.  Fire off the request.
+          ReturnedMetadataResponse* response = new ReturnedMetadataResponse(
+              handle, future_api, AsStorageReference());
 
+          PrepareRequest(request, storageUri_.AsHttpUrl().c_str(),
+                         rest::util::kPost);
+          RestCall(request, request->notifier(), response, handle.get(),
+                   listener, controller_out);
+          return response;
+        }
+      }};
+  SendRequestWithRetry(kStorageReferenceFnPutFileInternal, send_request_funct,
+                       handle, storage_->max_upload_retry_time());
   return PutFileLastResult();
 }
 
@@ -420,16 +534,26 @@ Future<Metadata> StorageReferenceInternal::PutFileLastResult() {
 Future<Metadata> StorageReferenceInternal::GetMetadata() {
   auto* future_api = future();
   auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnGetMetadata);
-  ReturnedMetadataResponse* response =
-      new ReturnedMetadataResponse(handle, future_api, AsStorageReference());
 
-  storage::internal::Request* request = new storage::internal::Request();
-  PrepareRequest(request, storageUri_.AsHttpMetadataUrl().c_str(),
-                 rest::util::kGet);
+  auto send_request_funct{[&]() -> BlockingResponse* {
+    auto* future_api = future();
+    auto handle =
+        future_api->SafeAlloc<Metadata>(kStorageReferenceFnGetMetadataInternal);
+    ReturnedMetadataResponse* response =
+        new ReturnedMetadataResponse(handle, future_api, AsStorageReference());
 
-  RestCall(request, request->notifier(), response, handle.get(), nullptr,
-           nullptr);
+    storage::internal::Request* request = new storage::internal::Request();
+    PrepareRequest(request, storageUri_.AsHttpMetadataUrl().c_str(),
+                   rest::util::kGet);
 
+    RestCall(request, request->notifier(), response, handle.get(), nullptr,
+             nullptr);
+
+    return response;
+  }};
+  SendRequestWithRetry(kStorageReferenceFnGetMetadataInternal,
+                       send_request_funct, handle,
+                       storage_->max_operation_retry_time());
   return GetMetadataLastResult();
 }
 
@@ -446,19 +570,29 @@ Future<Metadata> StorageReferenceInternal::UpdateMetadata(
   auto handle =
       future_api->SafeAlloc<Metadata>(kStorageReferenceFnUpdateMetadata);
 
-  ReturnedMetadataResponse* response =
-      new ReturnedMetadataResponse(handle, future_api, AsStorageReference());
+  auto send_request_funct{[&, metadata]() -> BlockingResponse* {
+    auto* future_api = future();
+    auto handle = future_api->SafeAlloc<Metadata>(
+        kStorageReferenceFnUpdateMetadataInternal);
 
-  storage::internal::Request* request = new storage::internal::Request();
-  PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), "PATCH");
+    ReturnedMetadataResponse* response =
+        new ReturnedMetadataResponse(handle, future_api, AsStorageReference());
 
-  std::string metadata_json = metadata->internal_->ExportAsJson();
-  request->set_post_fields(metadata_json.c_str(), metadata_json.length());
-  request->add_header("Content-Type", "application/json");
+    storage::internal::Request* request = new storage::internal::Request();
+    PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), "PATCH");
 
-  RestCall(request, request->notifier(), response, handle.get(), nullptr,
-           nullptr);
+    std::string metadata_json = metadata->internal_->ExportAsJson();
+    request->set_post_fields(metadata_json.c_str(), metadata_json.length());
+    request->add_header("Content-Type", "application/json");
 
+    RestCall(request, request->notifier(), response, handle.get(), nullptr,
+             nullptr);
+    return response;
+  }};
+
+  SendRequestWithRetry(kStorageReferenceFnUpdateMetadataInternal,
+                       send_request_funct, handle,
+                       storage_->max_operation_retry_time());
   return UpdateMetadataLastResult();
 }
 
@@ -498,9 +632,9 @@ Future<std::string> StorageReferenceInternal::GetDownloadUrl() {
         } else {
           // Use MetaDataInternal to retrieve download_url because we are
           // deprecating public API to get url from Metadata.
-          // Note that GetMetadata() may not generate download_token soon, which
-          // may break the expectation of this function.  More details in
-          // b/78908154
+          // Note that GetMetadata() may not generate download_token soon,
+          // which may break the expectation of this function.  More details
+          // in b/78908154
           on_completion_data->future->CompleteWithResult(
               on_completion_data->handle, kErrorNone,
               std::string(result.result()->internal_->download_url()));
