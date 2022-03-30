@@ -72,6 +72,9 @@ class InterstitialAdInternal;
 ///   interstitial->Show();
 /// }
 /// @endcode
+///
+/// @note Documentation for firebase::Future can be found at
+/// https://firebase.google.com/docs/reference/cpp/class/firebase/future
 class InterstitialAd {
  public:
   /// Creates an uninitialized @ref InterstitialAd object.
