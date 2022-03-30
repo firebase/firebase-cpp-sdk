@@ -35,6 +35,9 @@ extern "C" {
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
 
+// Only include these docs if DOXYGEN_ADMOB is defined.
+#if !defined(DOXYGEN) || defined(DOXYGEN_ADMOB)
+
 namespace firebase {
 namespace gma {
 
@@ -917,5 +920,7 @@ class UserEarnedRewardListener {
 
 }  // namespace gma
 }  // namespace firebase
+
+#endif  // !defined(DOXYGEN) || defined(DOXYGEN_ADMOB)
 
 #endif  // FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_TYPES_H_

@@ -23,6 +23,9 @@
 #include "firebase/gma/types.h"
 #include "firebase/internal/common.h"
 
+// Only include these docs if DOXYGEN_ADMOB is defined.
+#if !defined(DOXYGEN) || defined(DOXYGEN_ADMOB)
+
 namespace firebase {
 namespace gma {
 
@@ -147,5 +150,7 @@ class RewardedAd {
 
 }  // namespace gma
 }  // namespace firebase
+
+#endif  // !defined(DOXYGEN) || defined(DOXYGEN_ADMOB)
 
 #endif  // FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_REWARDED_AD_H_

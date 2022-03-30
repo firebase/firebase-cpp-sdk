@@ -36,6 +36,9 @@
 FIREBASE_APP_REGISTER_CALLBACKS_REFERENCE(gma)
 #endif  // !defined(DOXYGEN) && !defined(SWIG)
 
+// Only include these docs if DOXYGEN_ADMOB is defined.
+#if !defined(DOXYGEN) || defined(DOXYGEN_ADMOB)
+
 namespace firebase {
 
 /// @brief API for Google Mobile Ads with Firebase.
@@ -182,5 +185,7 @@ void Terminate();
 
 }  // namespace gma
 }  // namespace firebase
+
+#endif  // !defined(DOXYGEN) || defined(DOXYGEN_ADMOB)
 
 #endif  // FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_H_
