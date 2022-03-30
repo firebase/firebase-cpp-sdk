@@ -66,9 +66,6 @@ struct BoundingBox;
 ///   ad_view->LoadAd(your_ad_request);
 /// }
 /// @endcode
-///
-/// @note Documentation for firebase::Future can be found at
-/// https://firebase.google.com/docs/reference/cpp/class/firebase/future
 class AdView {
  public:
   /// The possible screen positions for a @ref AdView, configured via

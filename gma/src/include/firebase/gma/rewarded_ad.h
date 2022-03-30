@@ -74,9 +74,6 @@ class RewardedAdInternal;
 ///   rewarded->Show(&my_user_earned_reward_listener);
 /// }
 /// @endcode
-///
-/// @note Documentation for firebase::Future can be found at
-/// https://firebase.google.com/docs/reference/cpp/class/firebase/future
 class RewardedAd {
  public:
   /// Options for RewardedAd server-side verification callbacks. Set options on

@@ -54,6 +54,21 @@ namespace gma {
 
 namespace firebase {
 
+// In the GMA docs, link to firebase::Future in the Firebase C++ docs.
+#if defined(DOXYGEN_ADMOB)
+/// @brief Return type of asynchronous calls.
+///
+/// Google Mobile Ads with Firebase uses this class from the Firebase C++ SDK to
+/// return results from asynchronous operations. For more information, see the
+/// <a
+/// href="https://firebase.google.com/docs/reference/cpp/class/firebase/future">Firebase
+/// C++ SDK documentation</a>.
+template <typename ResultType>
+class Future {
+  // Empty class (used for documentation only).
+};
+#endif  // defined(DOXYGEN_ADMOB)
+
 /// @brief API for Google Mobile Ads with Firebase.
 ///
 /// The GMA API allows you to load and display mobile ads using the Google
