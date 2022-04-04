@@ -43,7 +43,8 @@ FIREBASE_APP_REGISTER_CALLBACKS_REFERENCE(gma)
 ///
 /// The Google Mobile Ads C++ API allows you to load and display mobile ads
 /// using the Google Mobile Ads SDK. Full documentation for this API can be
-/// found <a href="https://developers.google.com/admob/cpp/reference">here</a>.
+/// found on <a
+/// href="https://developers.google.com/admob/cpp/reference">developers.google.com</a>.
 /// @{
 /// @}
 #endif
