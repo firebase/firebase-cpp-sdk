@@ -268,7 +268,7 @@ Future<void> AdViewInternalAndroid::Initialize(AdParent parent,
   ad_size_ = size;
 
   FutureCallbackData<void>* callback_data =
-      CreateVoidFutureCallbackData(kAdViewFnSetPosition, &future_data_);
+      CreateVoidFutureCallbackData(kAdViewFnInitialize, &future_data_);
   Future<void> future =
       MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 
