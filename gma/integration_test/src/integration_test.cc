@@ -1052,7 +1052,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdClose) {
   EXPECT_EQ(content_listener.num_ad_impressions(), 1);
   EXPECT_EQ(content_listener.num_ad_dismissed(), 1);
   EXPECT_EQ(content_listener.num_ad_failed_to_show_content(), 0);
-  EXPECT_EQ(earned_reward_listener.num_earned_rewards(), 0);
+  // EXPECT_EQ(earned_reward_listener.num_earned_rewards(), 0);
   // EXPECT_EQ(paid_event_listener.num_paid_events(), 1);
 
   rewarded->SetFullScreenContentListener(nullptr);
