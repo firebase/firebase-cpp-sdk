@@ -88,6 +88,7 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS
     src/fields_test.cc
     src/firestore_test.cc
     src/includes_test.cc
+    src/leveldb_snappy_test.cc
     src/listener_registration_test.cc
     src/numeric_transforms_test.cc
     src/query_network_test.cc
