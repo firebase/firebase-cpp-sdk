@@ -601,8 +601,6 @@ class TestPaidEventListener : public firebase::gma::PaidEventListener {
     // These are the values for GMA test ads.  If they change then we should
     // alter the test to match the new expected values.
     EXPECT_EQ(value.currency_code(), "USD");
-    // EXPECT_EQ(value.precision_type(),
-    //           firebase::gma::AdValue::kdValuePrecisionUnknown);
     EXPECT_EQ(value.value_micros(), 0);
   }
   int num_on_paid_event_;
