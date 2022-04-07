@@ -51,7 +51,8 @@ public class UITest {
     UiDevice device = UiDevice.getInstance(getInstrumentation());
     device.pressHome();
     launchApp(GMA_PACKAGE);
-    device.wait(Until.hasObject(By.pkg(GMA_PACKAGE).depth(0)), DEFAULT_TIMEOUT); // Wait for the app to appear
+    device.wait(Until.hasObject(By.pkg(GMA_PACKAGE).depth(0)),
+        DEFAULT_TIMEOUT); // Wait for the app to appear
     Log.e(TAG, "GMA launched");
 
     // TestAdViewAdClick
@@ -74,7 +75,8 @@ public class UITest {
     Assert.assertNotNull(reference);
     Log.e(TAG, "InterstitialAd loaded");
     Thread.sleep(DEFAULT_TIMEOUT);
-    // click the top left corner close bottom. Use "Test Ad" TextView bottom position as the reference
+    // click the top left corner close bottom.
+    // Use "Test Ad" TextView bottom position as the reference
     x = reference.getVisibleBounds().bottom;
     y = reference.getVisibleBounds().bottom;
     device.click(x, y);
@@ -95,7 +97,8 @@ public class UITest {
     Thread.sleep(DEFAULT_TIMEOUT);
     bringToForeground(GMA_PACKAGE);
     Thread.sleep(DEFAULT_TIMEOUT);
-    // click the top left corner close bottom. Use "Test Ad" TextView bottom position as the reference
+    // click the top left corner close bottom.
+    // Use "Test Ad" TextView bottom position as the reference
     x = reference.getVisibleBounds().bottom;
     y = reference.getVisibleBounds().bottom;
     device.click(x, y);
@@ -107,7 +110,8 @@ public class UITest {
     UiObject countDown = device.findObject(new UiSelector().textContains("seconds"));
     Assert.assertTrue(countDown.waitForExists(WAIT_UI_TIMEOUT));
     Log.e(TAG, "RewardedAd loaded");
-    // click the top right corner close bottom. Use "* seconds" TextView right position as the reference
+    // click the top right corner close bottom.
+    // Use "* seconds" TextView right position as the reference
     x = (countDown.getBounds().right + device.getDisplayWidth()) / 2;
     y = countDown.getBounds().centerY();
     Thread.sleep(10 * 1000);
