@@ -59,7 +59,7 @@ public class UITest {
     Assert.assertNotNull(reference);
     Log.e(TAG, "TestAdVie loaded");
     Thread.sleep(DEFAULT_TIMEOUT);
-    // click below the "Test Ad" TextView
+    // click on the bottom of the "Test Ad" TextView, where the Ad present
     int x = reference.getVisibleBounds().centerX();
     int y = reference.getVisibleBounds().bottom + 5;
     device.click(x, y);
@@ -74,7 +74,7 @@ public class UITest {
     Assert.assertNotNull(reference);
     Log.e(TAG, "InterstitialAd loaded");
     Thread.sleep(DEFAULT_TIMEOUT);
-    // click top left corner. Use "Test Ad" TextView bottom position as the reference
+    // click the top left corner close bottom. Use "Test Ad" TextView bottom position as the reference
     x = reference.getVisibleBounds().bottom;
     y = reference.getVisibleBounds().bottom;
     device.click(x, y);
@@ -87,7 +87,7 @@ public class UITest {
     Assert.assertNotNull(reference);
     Log.e(TAG, "InterstitialAd2 loaded");
     Thread.sleep(DEFAULT_TIMEOUT);
-    // click the center point of the device
+    // click the center point of the device, where the Ad present
     x = device.getDisplayWidth() / 2;
     y = device.getDisplayHeight() / 2;
     device.click(x, y);
@@ -95,9 +95,9 @@ public class UITest {
     Thread.sleep(DEFAULT_TIMEOUT);
     bringToForeground(GMA_PACKAGE);
     Thread.sleep(DEFAULT_TIMEOUT);
+    // click the top left corner close bottom. Use "Test Ad" TextView bottom position as the reference
     x = reference.getVisibleBounds().bottom;
     y = reference.getVisibleBounds().bottom;
-    // click top left corner. Use "Test Ad" TextView bottom position as the reference
     device.click(x, y);
     Log.e(TAG, "InterstitialAd2 closed");
 
@@ -107,7 +107,7 @@ public class UITest {
     UiObject countDown = device.findObject(new UiSelector().textContains("seconds"));
     Assert.assertTrue(countDown.waitForExists(WAIT_UI_TIMEOUT));
     Log.e(TAG, "RewardedAd loaded");
-    // click top right corner. Use "* seconds" TextView right position as the reference
+    // click the top right corner close bottom. Use "* seconds" TextView right position as the reference
     x = (countDown.getBounds().right + device.getDisplayWidth()) / 2;
     y = countDown.getBounds().centerY();
     Thread.sleep(10 * 1000);
