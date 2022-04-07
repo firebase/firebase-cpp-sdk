@@ -567,6 +567,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+-   Changes
+    -   Firestore (desktop): Enabled Snappy compression support in LevelDb
+        ([#885](https://github.com/firebase/firebase-cpp-sdk/pull/885)).
+
 ### 8.10.0
 -   Changes
     -   General (iOS): Fixed additional issues on iOS 15 caused by early
