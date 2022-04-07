@@ -1,0 +1,600 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 29458bf13..7be37691d 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -227,6 +227,12 @@ if(NOT ZLIB_FOUND)
+ endif()
+ 
+ 
++# Snappy
++set(SNAPPY_BUILD_TESTS OFF CACHE BOOL "Firestore disabled")
++set(SNAPPY_BUILD_BENCHMARKS OFF CACHE BOOL "Firestore disabled")
++add_external_subdirectory(snappy)
++firebase_ios_add_alias(Snappy::Snappy snappy)
++
+ # LevelDB
+ set(LEVELDB_BUILD_TESTS OFF CACHE BOOL "Firestore disabled")
+ set(LEVELDB_BUILD_BENCHMARKS OFF CACHE BOOL "Firestore disabled")
+diff --git a/cmake/external/CMakeLists.txt b/cmake/external/CMakeLists.txt
+index 2179633a8..c1de37b6d 100644
+--- a/cmake/external/CMakeLists.txt
++++ b/cmake/external/CMakeLists.txt
+@@ -30,6 +30,7 @@ include(c-ares)
+ include(googletest)
+ include(GoogleUtilities)
+ include(grpc)
++include(snappy)
+ include(leveldb)
+ include(libfuzzer)
+ include(nanopb)
+diff --git a/cmake/external/leveldb.cmake b/cmake/external/leveldb.cmake
+index b71a77535..2556d7041 100644
+--- a/cmake/external/leveldb.cmake
++++ b/cmake/external/leveldb.cmake
+@@ -13,20 +13,27 @@
+ # limitations under the License.
+ 
+ include(ExternalProject)
++include(FindPythonInterp)
+ 
+ if(TARGET leveldb)
+   return()
+ endif()
+ 
+-set(version 1.22)
++set(version e0d5f83a4f80060fe5b5d80025f0ad049bca430e)
++
++ExternalProject_Get_property(snappy SOURCE_DIR)
++set(snappy_source_dir "${SOURCE_DIR}")
++ExternalProject_Get_property(snappy BINARY_DIR)
++set(snappy_binary_dir "${BINARY_DIR}")
+ 
+ ExternalProject_Add(
+   leveldb
+ 
++  DEPENDS snappy
++
+   DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
+   DOWNLOAD_NAME leveldb-${version}.tar.gz
+   URL https://github.com/google/leveldb/archive/${version}.tar.gz
+-  URL_HASH SHA256=55423cac9e3306f4a9502c738a001e4a339d1a38ffbee7572d4a07d5d63949b2
+ 
+   PREFIX ${PROJECT_BINARY_DIR}
+ 
+@@ -34,6 +41,7 @@ ExternalProject_Add(
+   BUILD_COMMAND     ""
+   INSTALL_COMMAND   ""
+   TEST_COMMAND      ""
++  PATCH_COMMAND     ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/leveldb_patch.py --snappy-source-dir ${snappy_source_dir} --snappy-binary-dir ${snappy_binary_dir}
+ 
+   HTTP_HEADER "${EXTERNAL_PROJECT_HTTP_HEADER}"
+ )
+diff --git a/cmake/external/leveldb_patch.py b/cmake/external/leveldb_patch.py
+new file mode 100644
+index 000000000..51a62d54a
+--- /dev/null
++++ b/cmake/external/leveldb_patch.py
+@@ -0,0 +1,144 @@
++# Copyright 2022 Google LLC
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#      http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++"""
++Modify the CMakeLists.txt from LevelDb to staticly link Snappy compression
++support.
++"""
++
++import argparse
++import dataclasses
++import os
++import pathlib
++from typing import Iterable, Sequence
++
++
++def main() -> None:
++  arg_parser = argparse.ArgumentParser()
++  arg_parser.add_argument("--snappy-source-dir", required=True)
++  arg_parser.add_argument("--snappy-binary-dir", required=True)
++  parsed_args = arg_parser.parse_args()
++  del arg_parser
++  snappy_source_dir = pathlib.Path(parsed_args.snappy_source_dir)
++  snappy_binary_dir = pathlib.Path(parsed_args.snappy_binary_dir)
++  del parsed_args
++
++  cmakelists_txt_file = pathlib.Path("CMakeLists.txt")
++  with cmakelists_txt_file.open("rt", encoding="utf8") as f:
++    lines = tuple(f)
++
++  patcher = CMakeListsPatcher(
++    lines,
++    os.path.abspath(__file__),
++    snappy_source_dir,
++    snappy_binary_dir,
++  )
++
++  patched_lines = tuple(patcher.patch())
++
++  with cmakelists_txt_file.open("wt", encoding="utf8") as f:
++    f.writelines(patched_lines)
++
++
++@dataclasses.dataclass(frozen=True)
++class LineComponents:
++  full: str
++  indent: str
++  line: str
++  eol: str
++
++
++class CMakeListsPatcher:
++
++  SNAPPY_DETECT_LINE = \
++    """check_library_exists(snappy snappy_compress "" HAVE_SNAPPY)"""
++  SNAPPY_INCLUDE_LINE = \
++    "target_include_directories(leveldb"
++  SNAPPY_LINK_LINE = \
++    "target_link_libraries(leveldb snappy)"
++
++  def __init__(
++      self,
++      lines: Sequence[str],
++      script_name: str,
++      snappy_source_dir: pathlib.Path,
++      snappy_binary_dir: pathlib.Path) -> None:
++    self.i = 0
++    self.lines = lines
++    self.script_name = script_name
++    self.snappy_source_dir_str = snappy_source_dir.as_posix()
++    self.snappy_binary_dir_str = snappy_binary_dir.as_posix()
++
++  def patch(self) -> Iterable[str]:
++    while self.i < len(self.lines):
++      full_line = self.lines[self.i]
++      line = self._split_line(full_line)
++      self.i += 1
++
++      if line.line == self.SNAPPY_DETECT_LINE:
++        yield from self._on_snappy_detect_line(line)
++      elif line.line == self.SNAPPY_INCLUDE_LINE:
++        yield full_line
++        yield from self._on_leveldb_include_start()
++      elif line.line == self.SNAPPY_LINK_LINE:
++        yield from self._on_leveldb_snappy_link_line(line)
++      else:
++        yield full_line
++
++  def _begin_mod_line(self, mod_name: str) -> str:
++    return f"# BEGIN: {mod_name} modification by {self.script_name}"
++
++  def _end_mod_line(self, mod_name: str) -> str:
++    return f"# END: {mod_name} modification by {self.script_name}"
++
++  def _on_snappy_detect_line(self, line: LineComponents) -> Iterable[str]:
++    yield self._begin_mod_line("snappy_detect_line") + line.eol
++    yield line.indent + "# " + line.line + line.eol
++    yield line.indent + """set(HAVE_SNAPPY ON CACHE BOOL "")""" + line.eol
++    yield self._end_mod_line("snappy_detect_line") + line.eol
++
++  def _on_leveldb_include_start(self) -> Iterable[str]:
++    line1 = self._split_line(self.lines[self.i])
++    line2 = self._split_line(self.lines[self.i + 1])
++    begin_mod_line = self._begin_mod_line("leveldb_include_start")
++
++    if line1.line == begin_mod_line:
++      return
++
++    yield begin_mod_line + line1.eol
++    yield line1.indent + "PRIVATE" + line1.eol
++    yield line2.indent + self.snappy_source_dir_str + line2.eol
++    yield line2.indent + self.snappy_binary_dir_str + line2.eol
++    yield self._end_mod_line("leveldb_include_start") + line1.eol
++
++  def _on_leveldb_snappy_link_line(self, line: LineComponents) -> Iterable[str]:
++    yield self._begin_mod_line("leveldb_snappy_link_line") + line.eol
++    yield line.indent + "# " + line.line + line.eol
++    yield line.indent + f"target_link_libraries(leveldb Snappy::Snappy)" + line.eol
++    yield self._end_mod_line("leveldb_snappy_link_line") + line.eol
++
++  def _split_line(self, line: str) -> LineComponents:
++    line_rstripped = line.rstrip()
++    eol = line[len(line_rstripped):]
++    line_stripped = line_rstripped.strip()
++    indent = line_rstripped[:len(line_rstripped) - len(line_stripped)]
++    return LineComponents(full=line, indent=indent, line=line_stripped, eol=eol)
++
++
++class LeveDbPatchException(Exception):
++  pass
++
++
++if __name__ == "__main__":
++  main()
+diff --git a/cmake/external/leveldb_patch_test.py b/cmake/external/leveldb_patch_test.py
+new file mode 100644
+index 000000000..b1d62526b
+--- /dev/null
++++ b/cmake/external/leveldb_patch_test.py
+@@ -0,0 +1,328 @@
++# Copyright 2022 Google LLC
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#      http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++import leveldb_patch
++import pathlib
++import unittest
++
++
++class CMakeListsPatcherTest(unittest.TestCase):
++
++  def setUp(self):
++    super().setUp()
++    self.sample_snappy_source_dir = pathlib.Path("a/b/snappy_source_dir")
++    self.sample_snappy_binary_dir = pathlib.Path("a/b/snappy_binary_dir")
++
++  def test_snappy_detect_line_is_commented_and_replaced(self):
++    lines = (
++      """check_library_exists(snappy snappy_compress "" HAVE_SNAPPY)""",
++    )
++    patcher = leveldb_patch.CMakeListsPatcher(
++      lines,
++      "MyCoolScript",
++      self.sample_snappy_source_dir,
++      self.sample_snappy_binary_dir,
++    )
++
++    patched_lines = tuple(patcher.patch())
++
++    self.assertSequenceEqual(patched_lines, [
++      "# BEGIN: snappy_detect_line modification by MyCoolScript",
++      """# check_library_exists(snappy snappy_compress "" HAVE_SNAPPY)""",
++      """set(HAVE_SNAPPY ON CACHE BOOL "")""",
++      "# END: snappy_detect_line modification by MyCoolScript",
++    ])
++
++  def test_snappy_detect_line_has_indent_and_eol_preserved(self):
++    lines = (
++      """  check_library_exists(snappy snappy_compress "" HAVE_SNAPPY)   \n""",
++    )
++    patcher = leveldb_patch.CMakeListsPatcher(
++      lines,
++      "MyCoolScript",
++      self.sample_snappy_source_dir,
++      self.sample_snappy_binary_dir,
++    )
++
++    patched_lines = tuple(patcher.patch())
++
++    self.assertSequenceEqual(patched_lines, [
++      "# BEGIN: snappy_detect_line modification by MyCoolScript   \n",
++      """  # check_library_exists(snappy snappy_compress "" HAVE_SNAPPY)   \n""",
++      """  set(HAVE_SNAPPY ON CACHE BOOL "")   \n""",
++      "# END: snappy_detect_line modification by MyCoolScript   \n",
++    ])
++
++  def test_snappy_detect_line_does_not_affect_surrounding_lines(self):
++    lines = (
++      "aaa",
++      "bbb",
++      """check_library_exists(snappy snappy_compress "" HAVE_SNAPPY)""",
++      "ccc",
++      "ddd",
++    )
++    patcher = leveldb_patch.CMakeListsPatcher(
++      lines,
++      "MyCoolScript",
++      self.sample_snappy_source_dir,
++      self.sample_snappy_binary_dir,
++    )
++
++    patched_lines = tuple(patcher.patch())
++
++    self.assertSequenceEqual(patched_lines, [
++      "aaa",
++      "bbb",
++      "# BEGIN: snappy_detect_line modification by MyCoolScript",
++      """# check_library_exists(snappy snappy_compress "" HAVE_SNAPPY)""",
++      """set(HAVE_SNAPPY ON CACHE BOOL "")""",
++      "# END: snappy_detect_line modification by MyCoolScript",
++      "ccc",
++      "ddd",
++    ])
++
++  def test_snappy_include_is_amended(self):
++    lines = (
++      "target_include_directories(leveldb",
++      "PUBLIC",
++      "path1",
++      "path2",
++      ")",
++    )
++    patcher = leveldb_patch.CMakeListsPatcher(
++      lines,
++      script_name="MyCoolSript",
++      snappy_source_dir=pathlib.Path("a/b"),
++      snappy_binary_dir=pathlib.Path("c/d"),
++    )
++
++    patched_lines = tuple(patcher.patch())
++
++    self.assertSequenceEqual(patched_lines, [
++      "target_include_directories(leveldb",
++      "# BEGIN: leveldb_include_start modification by MyCoolSript",
++      "PRIVATE",
++      "a/b",
++      "c/d",
++      "# END: leveldb_include_start modification by MyCoolSript",
++      "PUBLIC",
++      "path1",
++      "path2",
++      ")",
++    ])
++
++  def test_snappy_include_lines_adopt_indenting_and_eol_convention(self):
++    lines = (
++      "target_include_directories(leveldb\n",
++      "  PUBLIC   \n",
++      "      path1 \n",
++      "      path2 \n",
++      ")\n",
++    )
++    patcher = leveldb_patch.CMakeListsPatcher(
++      lines,
++      script_name="MyCoolSript",
++      snappy_source_dir=pathlib.Path("a/b"),
++      snappy_binary_dir=pathlib.Path("c/d"),
++    )
++
++    patched_lines = tuple(patcher.patch())
++
++    self.assertSequenceEqual(patched_lines, [
++      "target_include_directories(leveldb\n",
++      "# BEGIN: leveldb_include_start modification by MyCoolSript   \n",
++      "  PRIVATE   \n",
++      "      a/b \n",
++      "      c/d \n",
++      "# END: leveldb_include_start modification by MyCoolSript   \n",
++      "  PUBLIC   \n",
++      "      path1 \n",
++      "      path2 \n",
++      ")\n",
++    ])
++
++  def test_snappy_include_line_does_not_affect_surrounding_lines(self):
++    lines = (
++      "aaa",
++      "bbb",
++      "target_include_directories(leveldb",
++      "PUBLIC",
++      "path1",
++      "path2",
++      ")",
++      "ccc",
++      "ddd",
++    )
++    patcher = leveldb_patch.CMakeListsPatcher(
++      lines,
++      script_name="MyCoolSript",
++      snappy_source_dir=pathlib.Path("a/b"),
++      snappy_binary_dir=pathlib.Path("c/d"),
++    )
++
++    patched_lines = tuple(patcher.patch())
++
++    self.assertSequenceEqual(patched_lines, [
++      "aaa",
++      "bbb",
++      "target_include_directories(leveldb",
++      "# BEGIN: leveldb_include_start modification by MyCoolSript",
++      "PRIVATE",
++      "a/b",
++      "c/d",
++      "# END: leveldb_include_start modification by MyCoolSript",
++      "PUBLIC",
++      "path1",
++      "path2",
++      ")",
++      "ccc",
++      "ddd",
++    ])
++
++  def test_leveldb_snappy_link_line_is_commented_and_replaced(self):
++    lines = (
++      "target_link_libraries(leveldb snappy)",
++    )
++    patcher = leveldb_patch.CMakeListsPatcher(
++      lines,
++      script_name="MyCoolSript",
++      snappy_source_dir=pathlib.Path("a/b"),
++      snappy_binary_dir=pathlib.Path("c/d"),
++    )
++
++    patched_lines = tuple(patcher.patch())
++
++    self.assertSequenceEqual(patched_lines, [
++      "# BEGIN: leveldb_snappy_link_line modification by MyCoolSript",
++      "# target_link_libraries(leveldb snappy)",
++      "target_link_libraries(leveldb Snappy::Snappy)",
++      "# END: leveldb_snappy_link_line modification by MyCoolSript",
++    ])
++
++  def test_leveldb_snappy_link_line_has_indent_and_eol_preserved(self):
++    lines = (
++      " target_link_libraries(leveldb snappy)   \n",
++    )
++    patcher = leveldb_patch.CMakeListsPatcher(
++      lines,
++      script_name="MyCoolSript",
++      snappy_source_dir=pathlib.Path("a/b"),
++      snappy_binary_dir=pathlib.Path("c/d"),
++    )
++
++    patched_lines = tuple(patcher.patch())
++
++    self.assertSequenceEqual(patched_lines, [
++      "# BEGIN: leveldb_snappy_link_line modification by MyCoolSript   \n",
++      " # target_link_libraries(leveldb snappy)   \n",
++      " target_link_libraries(leveldb Snappy::Snappy)   \n",
++      "# END: leveldb_snappy_link_line modification by MyCoolSript   \n",
++    ])
++
++  def test_leveldb_snappy_link_line_does_not_affect_surrounding_lines(self):
++    lines = (
++      "aaa",
++      "bbb",
++      "target_link_libraries(leveldb snappy)",
++      "ccc",
++      "ddd",
++    )
++    patcher = leveldb_patch.CMakeListsPatcher(
++      lines,
++      script_name="MyCoolSript",
++      snappy_source_dir=pathlib.Path("a/b"),
++      snappy_binary_dir=pathlib.Path("c/d"),
++    )
++
++    patched_lines = tuple(patcher.patch())
++
++    self.assertSequenceEqual(patched_lines, [
++      "aaa",
++      "bbb",
++      "# BEGIN: leveldb_snappy_link_line modification by MyCoolSript",
++      "# target_link_libraries(leveldb snappy)",
++      "target_link_libraries(leveldb Snappy::Snappy)",
++      "# END: leveldb_snappy_link_line modification by MyCoolSript",
++      "ccc",
++      "ddd",
++    ])
++
++  def test_all_patches_combined(self):
++    lines = (
++      """check_library_exists(snappy snappy_compress "" HAVE_SNAPPY)""",
++      "target_include_directories(leveldb",
++      "PUBLIC",
++      "path1",
++      ")",
++      "target_link_libraries(leveldb snappy)",
++    )
++
++    patcher = leveldb_patch.CMakeListsPatcher(
++      lines,
++      script_name="MyCoolSript",
++      snappy_source_dir=pathlib.Path("a/b"),
++      snappy_binary_dir=pathlib.Path("c/d"),
++    )
++    patched_lines = tuple(patcher.patch())
++
++    self.assertSequenceEqual(patched_lines, [
++      "# BEGIN: snappy_detect_line modification by MyCoolSript",
++      """# check_library_exists(snappy snappy_compress "" HAVE_SNAPPY)""",
++      """set(HAVE_SNAPPY ON CACHE BOOL "")""",
++      "# END: snappy_detect_line modification by MyCoolSript",
++      "target_include_directories(leveldb",
++      "# BEGIN: leveldb_include_start modification by MyCoolSript",
++      "PRIVATE",
++      "a/b",
++      "c/d",
++      "# END: leveldb_include_start modification by MyCoolSript",
++      "PUBLIC",
++      "path1",
++      ")",
++      "# BEGIN: leveldb_snappy_link_line modification by MyCoolSript",
++      "# target_link_libraries(leveldb snappy)",
++      "target_link_libraries(leveldb Snappy::Snappy)",
++      "# END: leveldb_snappy_link_line modification by MyCoolSript",
++    ])
++
++  def test_idempotence(self):
++    lines = (
++      """check_library_exists(snappy snappy_compress "" HAVE_SNAPPY)\n""",
++      "target_include_directories(leveldb",
++      "PUBLIC",
++      "path1",
++      ")",
++      "target_link_libraries(leveldb snappy)",
++    )
++
++    patcher1 = leveldb_patch.CMakeListsPatcher(
++      lines,
++      script_name="MyCoolSript",
++      snappy_source_dir=pathlib.Path("a/b"),
++      snappy_binary_dir=pathlib.Path("c/d"),
++    )
++    patched_lines1 = tuple(patcher1.patch())
++    patcher2 = leveldb_patch.CMakeListsPatcher(
++      patched_lines1,
++      script_name="MyCoolSript",
++      snappy_source_dir=pathlib.Path("a/b"),
++      snappy_binary_dir=pathlib.Path("c/d"),
++    )
++    patched_lines2 = tuple(patcher2.patch())
++
++    self.assertSequenceEqual(patched_lines1, patched_lines2)
++
++
++if __name__ == "__main__":
++  unittest.main()
+diff --git a/cmake/external/snappy.cmake b/cmake/external/snappy.cmake
+new file mode 100644
+index 000000000..9f25c03d0
+--- /dev/null
++++ b/cmake/external/snappy.cmake
+@@ -0,0 +1,39 @@
++# Copyright 2022 Google LLC
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#      http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++include(ExternalProject)
++
++if(TARGET snappy)
++  return()
++endif()
++
++set(version 1.1.9)
++
++ExternalProject_Add(
++  snappy
++
++  DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
++  DOWNLOAD_NAME snappy-${version}.tar.gz
++  URL https://github.com/google/snappy/archive/refs/tags/${version}.tar.gz
++  URL_HASH SHA256=75c1fbb3d618dd3a0483bff0e26d0a92b495bbe5059c8b4f1c962b478b6e06e7
++
++  PREFIX ${PROJECT_BINARY_DIR}
++
++  CONFIGURE_COMMAND ""
++  BUILD_COMMAND     ""
++  INSTALL_COMMAND   ""
++  TEST_COMMAND      ""
++
++  HTTP_HEADER "${EXTERNAL_PROJECT_HTTP_HEADER}"
++)

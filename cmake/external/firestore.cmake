@@ -32,6 +32,7 @@ function(GetReleasedDep version)
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
     TEST_COMMAND ""
+    PATCH_COMMAND patch -Np1 -i ${CMAKE_CURRENT_LIST_DIR}/firestore_snappy.patch.txt
     HTTP_HEADER "${EXTERNAL_PROJECT_HTTP_HEADER}"
     )
 endfunction()
@@ -52,6 +53,7 @@ function(GetTag t)
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
     TEST_COMMAND ""
+    PATCH_COMMAND patch -Np1 -i ${CMAKE_CURRENT_LIST_DIR}/firestore_snappy.patch.txt
     HTTP_HEADER "${EXTERNAL_PROJECT_HTTP_HEADER}"
     )
 endfunction()
