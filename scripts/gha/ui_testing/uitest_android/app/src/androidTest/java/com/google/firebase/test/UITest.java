@@ -19,7 +19,6 @@ import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentat
 
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Rect;
 import android.util.Log;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.uiautomator.By;
@@ -30,14 +29,12 @@ import androidx.test.uiautomator.UiObjectNotFoundException;
 import androidx.test.uiautomator.UiSelector;
 import androidx.test.uiautomator.Until;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 /** UI Test class, launch testapps and perform UI functions. */
 @RunWith(AndroidJUnit4.class)
 public class UITest {
-
   private static final String TAG = "UITestResult";
 
   private static final String GMA_PACKAGE = "com.google.android.admob.testapp";
@@ -46,14 +43,14 @@ public class UITest {
 
   private static final int LAUNCH_TIMEOUT = 5000;
 
-
   @Test
   public void testGMA() throws UiObjectNotFoundException, InterruptedException {
     // Start from the home screen & Launch the app
     UiDevice device = UiDevice.getInstance(getInstrumentation());
     device.pressHome();
     launchApp(GMA_PACKAGE);
-    device.wait(Until.hasObject(By.pkg(GMA_PACKAGE).depth(0)), LAUNCH_TIMEOUT); // Wait for the app to appear
+    device.wait(Until.hasObject(By.pkg(GMA_PACKAGE).depth(0)),
+        LAUNCH_TIMEOUT); // Wait for the app to appear
     Log.e(TAG, "GMA launched");
 
     // TestAdViewAdClick
@@ -87,8 +84,8 @@ public class UITest {
     Assert.assertNotNull(reference);
     Log.e(TAG, "InterstitialAd2 loaded");
     Thread.sleep(5 * 1000);
-    x = device.getDisplayWidth()/2;
-    y = device.getDisplayHeight()/2;
+    x = device.getDisplayWidth() / 2;
+    y = device.getDisplayHeight() / 2;
     device.click(x, y);
     Log.e(TAG, "InterstitialAd2 clicked");
     Thread.sleep(5 * 1000);
@@ -105,7 +102,7 @@ public class UITest {
     UiObject countDown = device.findObject(new UiSelector().textContains("seconds"));
     Assert.assertTrue(countDown.waitForExists(10 * 1000));
     Log.e(TAG, "RewardedAd loaded");
-    x = (countDown.getBounds().right + device.getDisplayWidth())/2;
+    x = (countDown.getBounds().right + device.getDisplayWidth()) / 2;
     y = countDown.getBounds().centerY();
     Thread.sleep(10 * 1000);
     device.click(x, y);
@@ -116,40 +113,6 @@ public class UITest {
     reference = device.wait(Until.findObject(By.text("Test Ad")), 5 * 1000);
     Assert.assertNull(reference);
   }
-
-  // @Test
-  // public void testMessaging() throws UiObjectNotFoundException {
-  //   // Start from the home screen
-  //   UiDevice mDevice = UiDevice.getInstance(getInstrumentation());
-  //   mDevice.pressHome();
-  //
-  //   // Launch the app
-  //   Context context = getApplicationContext();
-  //   Intent intent = context.getPackageManager().getLaunchIntentForPackage(MESSAGING_PACKAGE);
-  //   intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK); // Clear out any previous instances
-  //   context.startActivity(intent);
-  //
-  //   // Wait for the app to appear
-  //   mDevice.wait(Until.hasObject(By.pkg(MESSAGING_PACKAGE).depth(0)), LAUNCH_TIMEOUT);
-  //
-  //   // Wait for the notification sent
-  //   boolean notificationSent =
-  //       mDevice.wait(Until.hasObject(By.textContains("Notification sent.")), 3 * 60 * 1000);
-  //   Assert.assertTrue(notificationSent);
-  //
-  //   // Click the notification
-  //   mDevice.openNotification();
-  //   UiObject2 notification =
-  //       mDevice.wait(
-  //           Until.findObject(By.text("Test notification, open to resume testing.")), 3 * 60 * 1000);
-  //   Assert.assertNotNull(notification);
-  //   notification.click();
-  //
-  //   // finished
-  //   UiObject result = mDevice.findObject(new UiSelector().textContains("PASSED"));
-  //   Assert.assertTrue(result.waitForExists(3 * 60 * 1000));
-  //   Log.e(TAG, result.getText());
-  // }
 
   private void launchApp(String packageName) {
     Context context = getApplicationContext();
