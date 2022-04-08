@@ -569,7 +569,7 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
-    -   Firestore/Database (desktop): Upgrade LevelDb dependency to 1.23
+    -   Firestore/Database (Desktop): Upgrade LevelDb dependency to 1.23
         ([#886](https://github.com/firebase/firebase-cpp-sdk/pull/886)).
 
 ### 8.10.0
