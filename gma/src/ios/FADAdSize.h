@@ -15,7 +15,10 @@
  */
 
 #import <Foundation/Foundation.h>
+
+extern "C" {
 #import <GoogleMobileAds/GoogleMobileAds.h>
+}
 
 #include "gma/src/include/firebase/gma/types.h"
 
