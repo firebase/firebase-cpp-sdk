@@ -1,9 +1,20 @@
 //
+// Copyright (c) 2022 Google Inc.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
 //  FirebaseCppUITestAppUITests.swift
 //  FirebaseCppUITestAppUITests
-//
-//  Created by Mou Sun on 3/19/22.
-//  Copyright © 2022 Google. All rights reserved.
 //
 
 import XCTest
@@ -34,6 +45,10 @@ class FirebaseCppUITestAppUITests: XCTestCase {
     // TestAdViewAdClick
     var reference = app.staticTexts["Test mode"]
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
+<<<<<<< HEAD
+=======
+    // click on the center point of the "Test Ad" TextView, where the Ad present
+>>>>>>> feature/admob_2021
     var x = (reference.frame.origin.x + reference.frame.width)/2
     var y = (reference.frame.origin.y + reference.frame.height)/2
     sleep(5)  // wait until button hittable
@@ -47,6 +62,11 @@ class FirebaseCppUITestAppUITests: XCTestCase {
     // TestInterstitialAdClose
     reference = app.staticTexts["Test mode"]
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
+<<<<<<< HEAD
+=======
+    // click the top left corner close bottom.
+    // Use "Test Ad" TextView bottom position as the reference
+>>>>>>> feature/admob_2021
     x = (reference.frame.origin.y + reference.frame.height)/2
     y = (reference.frame.origin.y + reference.frame.height)/2
     sleep(5)  // wait until button hittable
@@ -58,6 +78,10 @@ class FirebaseCppUITestAppUITests: XCTestCase {
     // TestInterstitialAdClickAndClose
     reference = app.staticTexts["Test mode"]
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
+<<<<<<< HEAD
+=======
+    // click the center point of the device, where the Ad present
+>>>>>>> feature/admob_2021
     x = app.frame.width/2
     y = app.frame.height/2
     sleep(5)  // wait until button hittable
@@ -73,6 +97,11 @@ class FirebaseCppUITestAppUITests: XCTestCase {
     // TestRewardedAdClose
     reference = app.webViews.staticTexts.containing(NSPredicate(format: "label CONTAINS 'seconds'")).element
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
+<<<<<<< HEAD
+=======
+    // click the top right corner close bottom.
+    // Use "* seconds" TextView right position as the reference
+>>>>>>> feature/admob_2021
     x = (reference.frame.origin.x + reference.frame.width + app.frame.width)/2
     y = (reference.frame.origin.y + reference.frame.height)/2
     sleep(5)  // wait until button hittable
