@@ -42,7 +42,7 @@ index b71a77535..2556d7041 100644
  endif()
  
 -set(version 1.22)
-+set(version e0d5f83a4f80060fe5b5d80025f0ad049bca430e)
++set(version 1.23)
 +
 +ExternalProject_Get_property(snappy SOURCE_DIR)
 +set(snappy_source_dir "${SOURCE_DIR}")
