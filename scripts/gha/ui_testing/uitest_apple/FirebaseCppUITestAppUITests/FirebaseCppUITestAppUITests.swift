@@ -45,10 +45,7 @@ class FirebaseCppUITestAppUITests: XCTestCase {
     // TestAdViewAdClick
     var reference = app.staticTexts["Test mode"]
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
-<<<<<<< HEAD
-=======
     // click on the center point of the "Test Ad" TextView, where the Ad present
->>>>>>> feature/admob_2021
     var x = (reference.frame.origin.x + reference.frame.width)/2
     var y = (reference.frame.origin.y + reference.frame.height)/2
     sleep(5)  // wait until button hittable
@@ -62,11 +59,8 @@ class FirebaseCppUITestAppUITests: XCTestCase {
     // TestInterstitialAdClose
     reference = app.staticTexts["Test mode"]
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
-<<<<<<< HEAD
-=======
     // click the top left corner close bottom.
     // Use "Test Ad" TextView bottom position as the reference
->>>>>>> feature/admob_2021
     x = (reference.frame.origin.y + reference.frame.height)/2
     y = (reference.frame.origin.y + reference.frame.height)/2
     sleep(5)  // wait until button hittable
@@ -78,10 +72,7 @@ class FirebaseCppUITestAppUITests: XCTestCase {
     // TestInterstitialAdClickAndClose
     reference = app.staticTexts["Test mode"]
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
-<<<<<<< HEAD
-=======
     // click the center point of the device, where the Ad present
->>>>>>> feature/admob_2021
     x = app.frame.width/2
     y = app.frame.height/2
     sleep(5)  // wait until button hittable
@@ -97,11 +88,8 @@ class FirebaseCppUITestAppUITests: XCTestCase {
     // TestRewardedAdClose
     reference = app.webViews.staticTexts.containing(NSPredicate(format: "label CONTAINS 'seconds'")).element
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
-<<<<<<< HEAD
-=======
     // click the top right corner close bottom.
     // Use "* seconds" TextView right position as the reference
->>>>>>> feature/admob_2021
     x = (reference.frame.origin.x + reference.frame.width + app.frame.width)/2
     y = (reference.frame.origin.y + reference.frame.height)/2
     sleep(5)  // wait until button hittable
