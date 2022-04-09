@@ -571,7 +571,8 @@ code.
 -   Changes
     -   Firestore/Database (Desktop): Upgrade LevelDb dependency to 1.23
         ([#886](https://github.com/firebase/firebase-cpp-sdk/pull/886)).
-    -   Firestore (desktop): Enabled Snappy compression support in LevelDb
+    -   Firestore/Database (Desktop): Enabled Snappy compression support
+        in LevelDb
         ([#885](https://github.com/firebase/firebase-cpp-sdk/pull/885)).
 
 ### 8.10.0
