@@ -30,6 +30,7 @@
 #include "Firestore/core/src/util/filesystem.h"
 #include "Firestore/core/src/util/path.h"
 
+#include "firebase_test_framework.h"
 #include "gtest/gtest.h"
 #include "leveldb/db.h"
 
