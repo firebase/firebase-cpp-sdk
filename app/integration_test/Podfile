@@ -1,10 +1,10 @@
-
+source 'https://github.com/Firebase/SpecsDev.git'
 source 'https://github.com/CocoaPods/Specs.git'
 platform :ios, '10.0'
 # Firebase App test application.
 
 target 'integration_test' do
-  pod 'Firebase/Analytics', '8.13.0'
+  pod 'Firebase/Analytics', '9.0.0'
 end
 
 post_install do |installer|
