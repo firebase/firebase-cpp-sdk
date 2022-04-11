@@ -14,7 +14,11 @@
  * limitations under the License.
  */
 
-#if !defined(ANDROID)
+// This test file does not compile on Android because Android uses the built-in
+// sqlite database, not LevelDb.
+#if defined(__ANDROID__)
+#error "This test should not be included in Android."
+#endif
 
 #include <array>
 #include <fstream>
@@ -240,5 +244,3 @@ Path CreateLevelDbDatabaseThatUsesSnappyCompression() {
 }
 
 }  // namespace
-
-#endif  // !defined(ANDROID)

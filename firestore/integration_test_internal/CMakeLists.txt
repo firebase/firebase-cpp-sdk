@@ -88,7 +88,6 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS
     src/fields_test.cc
     src/firestore_test.cc
     src/includes_test.cc
-    src/leveldb_snappy_test.cc
     src/listener_registration_test.cc
     src/numeric_transforms_test.cc
     src/query_network_test.cc
@@ -130,6 +129,7 @@ set(FIREBASE_INTEGRATION_TEST_DESKTOP_AND_IOS_TEST_SRCS
     src/array_transform_test.cc
     src/cleanup_test.cc
     src/collection_reference_test.cc
+    src/leveldb_snappy_test.cc
     src/transaction_extra_test.cc
 )
 
