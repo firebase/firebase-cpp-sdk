@@ -568,6 +568,8 @@ code.
 ## Release Notes
 ### 9.0.0
 -   Changes
+    -   General (Android): On Android, Firebase C++ is now built against NDK
+        version r21e.
     -   General (Android): Firebase support for gnustl (also known as libstdc++)
         has been removed. Please use libc++ instead.
 
