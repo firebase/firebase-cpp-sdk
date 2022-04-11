@@ -7,7 +7,7 @@ sourcepath=$2
 stl=$3
 
 if [[ -z "${buildpath}" || -z "${sourcepath}" ]]; then
-    echo "Usage: $0 <build path> <source path> [c++|gnustl]"
+    echo "Usage: $0 <build path> <source path> [c++]"
     exit 1
 fi
 
@@ -16,11 +16,11 @@ if [[ ! -d "${sourcepath}" ]]; then
     exit 2
 fi
 
-if [[ "${stl}" == "c++" || "${stl}" == "gnustl" ]]; then
+if [[ "${stl}" == "c++" ]]; then
     export FIREBASE_ANDROID_STL="${stl}"_static
 elif [[ ! -z "${stl}" ]]; then
     echo "Invalid STL specified."
-    echo "Valid STLs are: 'c++' (default) or 'gnustl'"
+    echo "Valid STLs are: 'c++' (default)"
     exit 2
 fi
 

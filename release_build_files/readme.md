@@ -53,9 +53,8 @@ libs/ios/ARCH             | iOS static libraries (compiled against
 libs/android/ARCH/STL     | Android (GCC 4.8+ compatible) static
 |                         | libraries for each architecture and STL
 |                         | variant.
-|                         | _STL variants available:_
+|                         | _STL variant available:_
 |                         | * `c++`: LLVM libc++ runtime (recommended)
-|                         | * `gnustl`: GNU STL (deprecated)
 |                         | More information can be found in the
 |                         | [NDK C++ Helper Runtimes](https://developer.android.com/ndk/guides/cpp-support.html#runtimes)
 |                         | documentation.
@@ -567,7 +566,12 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### 9.0.0
+-   Changes
+    -   General (Android): Firebase support for gnustl (also known as libstdc++)
+        has been removed. Please use libc++ instead.
+
+### 8.11.0
 -   Changes
     -   Firestore/Database (Desktop): Upgrade LevelDb dependency to 1.23
         ([#886](https://github.com/firebase/firebase-cpp-sdk/pull/886)).

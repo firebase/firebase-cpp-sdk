@@ -124,9 +124,6 @@ for c in $(echo "${filename}" | tr "[:upper:]" "[:lower:]" | tr "_.-" "\n\n\n");
 	c++)
 	    stl=c++
         ;;
-	gnustl)
-	    stl=gnustl
-        ;;
 	cxx11)
 	    linux_abi=cxx11
         ;;

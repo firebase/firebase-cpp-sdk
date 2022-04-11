@@ -2,7 +2,7 @@
 
 # Copyright 2020 Google LLC
 
-readonly -a allowed_stl_variants=("c++" "gnustl")
+readonly -a allowed_stl_variants=("c++")
 builtpath=$1
 packagepath=$2
 stl=$3
