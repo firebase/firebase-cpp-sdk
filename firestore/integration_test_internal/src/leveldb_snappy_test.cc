@@ -51,6 +51,9 @@ Path CreateLevelDbDatabaseThatUsesSnappyCompression();
 // This test ensures that we don't accidentally regress having added in Snappy
 // compression support (https://github.com/firebase/firebase-ios-sdk/pull/9596).
 TEST(LevelDbSnappy, LevelDbHasSnappySupportCompiledIn) {
+  // Do not run this test on iOS because LevelDb in iOS does not support Snappy.
+  SKIP_TEST_ON_IOS;
+
   Path leveldb_path = CreateLevelDbDatabaseThatUsesSnappyCompression();
   if (HasFatalFailure()) return;
 
