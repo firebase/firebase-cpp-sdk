@@ -1,4 +1,4 @@
-// Copyright 2020 Google Inc. All rights reserved.
+// Copyright 2022 Google Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -41,7 +41,9 @@ public class UITest {
 
   private static final String MESSAGING_PACKAGE = "com.google.firebase.cpp.messaging.testapp";
 
-  private static final int LAUNCH_TIMEOUT = 5000;
+  private static final int DEFAULT_TIMEOUT = 5000;
+
+  private static final int WAIT_UI_TIMEOUT = 10000;
 
   @Test
   public void testGMA() throws UiObjectNotFoundException, InterruptedException {
@@ -50,58 +52,66 @@ public class UITest {
     device.pressHome();
     launchApp(GMA_PACKAGE);
     device.wait(Until.hasObject(By.pkg(GMA_PACKAGE).depth(0)),
-        LAUNCH_TIMEOUT); // Wait for the app to appear
+        DEFAULT_TIMEOUT); // Wait for the app to appear
     Log.e(TAG, "GMA launched");
 
     // TestAdViewAdClick
     UiObject2 reference = device.wait(Until.findObject(By.text("Test Ad")), 60 * 1000);
     Assert.assertNotNull(reference);
     Log.e(TAG, "TestAdVie loaded");
-    Thread.sleep(5 * 1000);
+    Thread.sleep(DEFAULT_TIMEOUT);
+    // click on the bottom of the "Test Ad" TextView, where the Ad present
     int x = reference.getVisibleBounds().centerX();
     int y = reference.getVisibleBounds().bottom + 5;
     device.click(x, y);
-    Thread.sleep(5 * 1000);
+    Thread.sleep(DEFAULT_TIMEOUT);
     bringToForeground(GMA_PACKAGE);
     Log.e(TAG, "TestAdViewAdClick closed");
 
-    Thread.sleep(5 * 1000);
+    Thread.sleep(DEFAULT_TIMEOUT);
 
     // TestInterstitialAdClose
-    reference = device.wait(Until.findObject(By.text("Test Ad")), 10 * 1000);
+    reference = device.wait(Until.findObject(By.text("Test Ad")), WAIT_UI_TIMEOUT);
     Assert.assertNotNull(reference);
     Log.e(TAG, "InterstitialAd loaded");
-    Thread.sleep(5 * 1000);
+    Thread.sleep(DEFAULT_TIMEOUT);
+    // click the top left corner close bottom.
+    // Use "Test Ad" TextView bottom position as the reference
     x = reference.getVisibleBounds().bottom;
     y = reference.getVisibleBounds().bottom;
     device.click(x, y);
     Log.e(TAG, "InterstitialAd closed");
 
-    Thread.sleep(5 * 1000);
+    Thread.sleep(DEFAULT_TIMEOUT);
 
     // TestInterstitialAdClickAndClose
-    reference = device.wait(Until.findObject(By.text("Test Ad")), 10 * 1000);
+    reference = device.wait(Until.findObject(By.text("Test Ad")), WAIT_UI_TIMEOUT);
     Assert.assertNotNull(reference);
     Log.e(TAG, "InterstitialAd2 loaded");
-    Thread.sleep(5 * 1000);
+    Thread.sleep(DEFAULT_TIMEOUT);
+    // click the center point of the device, where the Ad present
     x = device.getDisplayWidth() / 2;
     y = device.getDisplayHeight() / 2;
     device.click(x, y);
     Log.e(TAG, "InterstitialAd2 clicked");
-    Thread.sleep(5 * 1000);
+    Thread.sleep(DEFAULT_TIMEOUT);
     bringToForeground(GMA_PACKAGE);
-    Thread.sleep(5 * 1000);
+    Thread.sleep(DEFAULT_TIMEOUT);
+    // click the top left corner close bottom.
+    // Use "Test Ad" TextView bottom position as the reference
     x = reference.getVisibleBounds().bottom;
     y = reference.getVisibleBounds().bottom;
     device.click(x, y);
     Log.e(TAG, "InterstitialAd2 closed");
 
-    Thread.sleep(5 * 1000);
+    Thread.sleep(DEFAULT_TIMEOUT);
 
     // TestRewardedAdClose
     UiObject countDown = device.findObject(new UiSelector().textContains("seconds"));
-    Assert.assertTrue(countDown.waitForExists(10 * 1000));
+    Assert.assertTrue(countDown.waitForExists(WAIT_UI_TIMEOUT));
     Log.e(TAG, "RewardedAd loaded");
+    // click the top right corner close bottom.
+    // Use "* seconds" TextView right position as the reference
     x = (countDown.getBounds().right + device.getDisplayWidth()) / 2;
     y = countDown.getBounds().centerY();
     Thread.sleep(10 * 1000);
@@ -110,7 +120,7 @@ public class UITest {
 
     // Finish GMA UI Tests
     Thread.sleep(10 * 1000);
-    reference = device.wait(Until.findObject(By.text("Test Ad")), 5 * 1000);
+    reference = device.wait(Until.findObject(By.text("Test Ad")), WAIT_UI_TIMEOUT);
     Assert.assertNull(reference);
   }
 
