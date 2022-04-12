@@ -129,6 +129,7 @@ set(FIREBASE_INTEGRATION_TEST_DESKTOP_AND_IOS_TEST_SRCS
     src/array_transform_test.cc
     src/cleanup_test.cc
     src/collection_reference_test.cc
+    src/leveldb_snappy_test.cc
     src/transaction_extra_test.cc
 )
 

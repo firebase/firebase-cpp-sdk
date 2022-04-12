@@ -92,6 +92,8 @@
 		D6ED33BD2606CD890058CBF9 /* future_test_util.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6ED33B92606CD890058CBF9 /* future_test_util.cc */; };
 		D6ED33BE2606CD890058CBF9 /* integration_test_util.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6ED33BB2606CD890058CBF9 /* integration_test_util.cc */; };
 		D86FB1D3D4A592C451A29369 /* firebase_firestore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B7F45B5446094E107E88721A /* firebase_firestore.framework */; };
+		EDEEC7632800CD0000EFBAAF /* leveldb_snappy_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = EDEEC7622800CD0000EFBAAF /* leveldb_snappy_test.cc */; };
+		EDEEC7642800CD0000EFBAAF /* leveldb_snappy_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = EDEEC7622800CD0000EFBAAF /* leveldb_snappy_test.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -166,6 +168,7 @@
 		D6ED33BB2606CD890058CBF9 /* integration_test_util.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = integration_test_util.cc; path = src/util/integration_test_util.cc; sourceTree = "<group>"; };
 		D6ED33BC2606CD890058CBF9 /* future_test_util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = future_test_util.h; path = src/util/future_test_util.h; sourceTree = "<group>"; };
 		EAFAF9474EC412ADCC65F2CC /* firebase_firestore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = firebase_firestore.framework; path = Frameworks/firebase_firestore.framework; sourceTree = "<group>"; };
+		EDEEC7622800CD0000EFBAAF /* leveldb_snappy_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = leveldb_snappy_test.cc; path = src/leveldb_snappy_test.cc; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -258,6 +261,7 @@
 		5292271D1C85FB5500C89379 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				EDEEC7622800CD0000EFBAAF /* leveldb_snappy_test.cc */,
 				12D513182684C8D100A83FAA /* bundle_builder.cc */,
 				12D513192684C8D100A83FAA /* bundle_builder.h */,
 				12D513132684C8C200A83FAA /* bundle_test.cc */,
@@ -537,6 +541,7 @@
 				D6C179E922CB322900C2651A /* ios_app_framework.mm in Sources */,
 				D6C179F022CB32A000C2651A /* app_framework.cc in Sources */,
 				D6AAAD442606C22D0025C53B /* field_value_test.cc in Sources */,
+				EDEEC7632800CD0000EFBAAF /* leveldb_snappy_test.cc in Sources */,
 				D6AAAD562606C22D0025C53B /* query_network_test.cc in Sources */,
 				D6AAAD552606C22D0025C53B /* listener_registration_test.cc in Sources */,
 				12D5131A2684C8D100A83FAA /* bundle_builder.cc in Sources */,
@@ -581,6 +586,7 @@
 				BC1D6842267B00EB005DC2DA /* field_value_test.cc in Sources */,
 				BC1D684D267B00EB005DC2DA /* server_timestamp_test.cc in Sources */,
 				12D5131B2684C8D100A83FAA /* bundle_builder.cc in Sources */,
+				EDEEC7642800CD0000EFBAAF /* leveldb_snappy_test.cc in Sources */,
 				BC1D6841267B00EB005DC2DA /* query_test.cc in Sources */,
 				BC1D684F267B00EB005DC2DA /* document_reference_test.cc in Sources */,
 				BC1D6846267B00EB005DC2DA /* collection_reference_test.cc in Sources */,
