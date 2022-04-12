@@ -343,14 +343,14 @@ int main(int argc, char *argv[]) {
   setenv("USE_FIRESTORE_EMULATOR", "true", 1);
 #endif
 
-  // if ([url.scheme isEqual:kGameLoopUrlPrefix]) {
-  g_gameloop_launch = true;
-  app_framework::StartLoggingToFile(GAMELOOP_DEFAULT_LOG_FILE);
-  return YES;
-  // }
-  // NSLog(@"The testapp will not log to files since it is not launched by URL %@",
-  //       kGameLoopUrlPrefix);
-  // return NO;
+  if ([url.scheme isEqual:kGameLoopUrlPrefix]) {
+    g_gameloop_launch = true;
+    app_framework::StartLoggingToFile(GAMELOOP_DEFAULT_LOG_FILE);
+    return YES;
+  }
+  NSLog(@"The testapp will not log to files since it is not launched by URL %@",
+        kGameLoopUrlPrefix);
+  return NO;
 }
 
 - (BOOL)application:(UIApplication *)application

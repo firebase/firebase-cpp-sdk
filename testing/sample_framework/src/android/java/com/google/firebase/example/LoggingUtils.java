@@ -101,9 +101,9 @@ public class LoggingUtils {
 
     Intent launchIntent = activity.getIntent();
     // Check if we are running on Firebase Test Lab, and set up a log file if we are.
-    // if (launchIntent.getAction().equals("com.google.intent.action.TEST_LOOP")) {
-    startLogFile(activity, launchIntent.getData().toString());
-    // }
+    if (launchIntent.getAction().equals("com.google.intent.action.TEST_LOOP")) {
+      startLogFile(activity, launchIntent.getData().toString());
+    }
   }
 
   /** Adds some text to the log window. */
