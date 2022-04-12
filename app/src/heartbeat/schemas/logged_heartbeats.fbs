@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace com.google.firebase.heartbeat.cpp; // TODO - pick namespace
+namespace com.google.firebase.cpp.heartbeat;
 
 table LoggedHeartbeats {
     // Last date for which a heartbeat was logged
