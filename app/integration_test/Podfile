@@ -2,6 +2,7 @@ source 'https://github.com/Firebase/SpecsDev.git'
 source 'https://github.com/CocoaPods/Specs.git'
 platform :ios, '10.0'
 # Firebase App test application.
+use_frameworks!
 
 target 'integration_test' do
   pod 'Firebase/Analytics', '9.0.0'
