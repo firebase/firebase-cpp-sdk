@@ -3,8 +3,8 @@ platform :ios, '10.0'
 # Firebase GMA test application.
 
 target 'integration_test' do
-  pod 'Google-Mobile-Ads-SDK', '8.13.0'
-  pod 'Firebase/Analytics', '8.10.0'
+  pod 'Google-Mobile-Ads-SDK', '9.3.0'
+  pod 'Firebase/Analytics', '9.0.0'
 end
 
 post_install do |installer|
