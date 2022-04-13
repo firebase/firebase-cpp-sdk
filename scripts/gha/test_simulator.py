@@ -376,7 +376,7 @@ def _build_tvos_helper(helper_project, device_name, device_os):
 
 
 def _run_xctest(helper_app, device_id):
-  """Run the helper UI Test app.
+  """Run the helper app.
     This helper app can run integration_test app automatically.
   """
   args = ["xcodebuild", "test-without-building", 
@@ -675,7 +675,7 @@ def _install_android_helper_app(helper_project):
 
 
 def _run_instrumented_test():
-  """Run the helper UI Test app.
+  """Run the helper app.
     This helper app can run integration_test app automatically.
   """
   args = ["adb", "shell", "am", "instrument",
