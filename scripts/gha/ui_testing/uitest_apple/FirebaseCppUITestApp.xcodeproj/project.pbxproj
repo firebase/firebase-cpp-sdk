@@ -10,7 +10,6 @@
 		6A5720A5249D83D80032E692 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A5720A4249D83D80032E692 /* AppDelegate.swift */; };
 		6A5720A7249D83D80032E692 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A5720A6249D83D80032E692 /* ViewController.swift */; };
 		6A5720AA249D83D80032E692 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6A5720A8249D83D80032E692 /* Main.storyboard */; };
-		6A5720AC249D83DA0032E692 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6A5720AB249D83DA0032E692 /* Assets.xcassets */; };
 		6A5720AF249D83DA0032E692 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6A5720AD249D83DA0032E692 /* LaunchScreen.storyboard */; };
 		6A5720BA249D83DA0032E692 /* FirebaseCppUITestAppUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A5720B9249D83DA0032E692 /* FirebaseCppUITestAppUITests.swift */; };
 /* End PBXBuildFile section */
@@ -30,7 +29,6 @@
 		6A5720A4249D83D80032E692 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		6A5720A6249D83D80032E692 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		6A5720A9249D83D80032E692 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		6A5720AB249D83DA0032E692 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6A5720AE249D83DA0032E692 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		6A5720B0249D83DA0032E692 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		6A5720B5249D83DA0032E692 /* FirebaseCppUITestAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FirebaseCppUITestAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -80,7 +78,6 @@
 				6A5720A4249D83D80032E692 /* AppDelegate.swift */,
 				6A5720A6249D83D80032E692 /* ViewController.swift */,
 				6A5720A8249D83D80032E692 /* Main.storyboard */,
-				6A5720AB249D83DA0032E692 /* Assets.xcassets */,
 				6A5720AD249D83DA0032E692 /* LaunchScreen.storyboard */,
 				6A5720B0249D83DA0032E692 /* Info.plist */,
 			);
@@ -178,7 +175,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				6A5720AF249D83DA0032E692 /* LaunchScreen.storyboard in Resources */,
-				6A5720AC249D83DA0032E692 /* Assets.xcassets in Resources */,
 				6A5720AA249D83D80032E692 /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
