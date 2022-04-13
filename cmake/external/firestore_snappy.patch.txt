@@ -558,7 +558,7 @@ new file mode 100644
 index 000000000..9f25c03d0
 --- /dev/null
 +++ b/cmake/external/snappy.cmake
-@@ -0,0 +1,39 @@
+@@ -0,0 +1,40 @@
 +# Copyright 2022 Google LLC
 +#
 +# Licensed under the Apache License, Version 2.0 (the "License");
