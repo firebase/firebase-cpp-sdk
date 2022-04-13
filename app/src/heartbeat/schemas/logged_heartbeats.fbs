@@ -19,7 +19,7 @@ table LoggedHeartbeats {
     // YYYY-MM-DD
     last_logged_date:string;
 
-    user_agents:[UserAgentAndDates];
+    heartbeats:[UserAgentAndDates];
 }
 
 table UserAgentAndDates {
