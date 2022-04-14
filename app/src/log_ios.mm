@@ -18,7 +18,7 @@
 
 #import <Foundation/Foundation.h>
 
-#import "FIRConfiguration.h"
+#import "FirebaseCore/FIRConfiguration.h"
 
 #include "app/src/app_ios.h"
 #include "app/src/include/firebase/internal/common.h"
