@@ -86,8 +86,21 @@ if (NOT FIREBASE_ANDROID_STL STREQUAL "")
   set(ANDROID_STL ${FIREBASE_ANDROID_STL})
 endif()
 
-set(FIREBASE_PYTHON_EXECUTABLE "python" CACHE FILEPATH
-  "The Python interpreter to use, such as one from a venv")
+# Find a Python interpreter using the best available mechanism.
+if(${CMAKE_VERSION} VERSION_LESS "3.12")
+  include(FindPythonInterp)
+  set(DEFAULT_FIREBASE_PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE}")
+else()
+  find_package(Python3 COMPONENTS Interpreter)
+  set(DEFAULT_FIREBASE_PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
+endif()
+
+set(
+  FIREBASE_PYTHON_EXECUTABLE
+  "${DEFAULT_FIREBASE_PYTHON_EXECUTABLE}"
+  CACHE FILEPATH
+  "The Python interpreter to use"
+)
 
 set(FIREBASE_XCODE_TARGET_FORMAT "frameworks" CACHE STRING
                                  "Format to output, 'frameworks' or 'libraries'")
