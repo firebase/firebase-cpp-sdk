@@ -18,30 +18,29 @@ version from this C++ SDK.
 """
 
 import argparse
-import dataclasses
 import os
 import pathlib
 import re
-from typing import Iterable, Sequence
+from typing import List, Tuple
 
 
 VERSION_PATTERN = r"\s*set\s*\(\s*version\s+([^)\s]+)\s*\)\s*"
 VERSION_EXPR = re.compile(VERSION_PATTERN, re.IGNORECASE)
+URL_HASH_PATTERN = r"\s*URL_HASH\s+([0-9a-zA-Z=]+)\s*"
+URL_HASH_EXPR = re.compile(URL_HASH_PATTERN, re.IGNORECASE)
 
 
 def main() -> None:
-  args = parse_args()
-  leveldb_version = load_leveldb_version(args.leveldb_cmake_src_file)
-  set_leveldb_version(args.leveldb_cmake_dest_file, leveldb_version)
+  (src_file, dest_file) = parse_args()
+
+  leveldb_version = load_value(src_file, VERSION_EXPR)
+  url_hash = load_value(src_file, URL_HASH_EXPR)
+
+  set_value(dest_file, VERSION_EXPR, leveldb_version)
+  set_value(dest_file, URL_HASH_EXPR, url_hash)
 
 
-@dataclasses.dataclass(frozen=True)
-class ParsedArgs:
-  leveldb_cmake_src_file: pathlib.Path
-  leveldb_cmake_dest_file: pathlib.Path
-
-
-def parse_args() -> ParsedArgs:
+def parse_args() -> Tuple[pathlib.Path, pathlib.Path]:
   arg_parser = argparse.ArgumentParser()
   arg_parser.add_argument("--leveldb-version-from", required=True)
   arg_parser.add_argument("--leveldb-version-to")
@@ -56,63 +55,67 @@ def parse_args() -> ParsedArgs:
     leveldb_cmake_dest_file = pathlib.Path.cwd() \
       / "cmake" / "external" / "leveldb.cmake"
 
-  return ParsedArgs(
-    leveldb_cmake_src_file=leveldb_cmake_src_file,
-    leveldb_cmake_dest_file=leveldb_cmake_dest_file,
-  )
+  return (leveldb_cmake_src_file, leveldb_cmake_dest_file)
 
 
-def load_leveldb_version(cmake_file: pathlib.Path) -> str:
-  version = None
-  version_line = None
-  version_line_number = None
+def load_value(file_: pathlib.Path, expr: re.Pattern) -> str:
+  value = None
+  value_line = None
+  value_line_number = None
 
-  with cmake_file.open("rt", encoding="utf8") as f:
+  with file_.open("rt", encoding="utf8") as f:
     for (line_number, line) in enumerate(f, start=1):
-      match = VERSION_EXPR.fullmatch(line)
-      if match:
-        if version is not None:
-          raise LevelDbVersionLineError(
-            f"Multiple lines matching regex {VERSION_EXPR.pattern} found in "
-            f"{cmake_file}: line {version_line_number}, {version_line.strip()} "
-            f"and line {line_number}, {line.strip()}")
-        version = match.group(1).strip()
-        version_line = line
-        version_line_number = line_number
+      match = expr.fullmatch(line)
+      if not match:
+        continue
+      elif value is not None:
+        raise RegexMatchError(
+          f"Multiple lines matching regex {expr.pattern} found in "
+          f"{file_}: line {value_line_number}, {value_line.strip()} "
+          f"and line {line_number}, {line.strip()}")
 
-  if version is None:
-    raise LevelDbVersionLineError(
-      f"No line matching regex {VERSION_EXPR.pattern} found in {cmake_file}")
+      value = match.group(1).strip()
+      value_line = line
+      value_line_number = line_number
 
-  return version
+  if value is None:
+    raise RegexMatchError(
+      f"No line matching regex {expr.pattern} found in {file_}")
+
+  return value
 
 
-def set_leveldb_version(cmake_file: pathlib.Path, version: str) -> str:
-  with cmake_file.open("rt", encoding="utf8") as f:
+def set_value(file_: pathlib.Path, expr: re.Pattern, version: str) -> None:
+  with file_.open("rt", encoding="utf8") as f:
     lines = list(f)
 
-  version_lines_found = []
-  for (i, line) in enumerate(lines):
-    match = VERSION_EXPR.fullmatch(line)
-    if match:
-      lines[i] = line[:match.start(1)] + version + line[match.end(1):]
-      version_lines_found.append(i)
+  matching_line = None
+  matching_line_number = None
 
-  if len(version_lines_found) == 0:
-    raise LevelDbVersionLineError(
-      f"No line matching regex {VERSION_EXPR.pattern} found in {cmake_file}")
-  elif len(version_lines_found) > 1:
-    raise LevelDbVersionLineError(
-      f"Multiple lines matching regex {VERSION_EXPR.pattern} found in "
-      f"{cmake_file}: {', '.join(str(i+1) for i in version_lines_found)}")
+  for (line_number, line) in enumerate(lines, start=1):
+    match = expr.fullmatch(line)
+    if not match:
+      continue
+    elif matching_line is not None:
+      raise RegexMatchError(
+        f"Multiple lines matching regex {expr.pattern} found in "
+        f"{file_}: line {matching_line_number}, {matching_line.strip()} "
+        f"and line {line_number}, {line.strip()}")
 
-  with cmake_file.open("wt", encoding="utf8") as f:
+    lines[line_number - 1] = line[:match.start(1)] + version + line[match.end(1):]
+    matching_line = line
+    matching_line_number = line_number
+
+  if matching_line is None:
+    raise RegexMatchError(
+      f"No line matching regex {expr.pattern} found in {file_}")
+
+  with file_.open("wt", encoding="utf8") as f:
     f.writelines(lines)
 
 
-class LevelDbVersionLineError(Exception):
+class RegexMatchError(Exception):
   pass
-
 
 
 if __name__ == "__main__":

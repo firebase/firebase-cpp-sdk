@@ -12,150 +12,253 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import firestore_patch
+import os
 import pathlib
+import re
 import shutil
 import tempfile
+from typing import Iterable
 import unittest
+import unittest.mock
+
+import firestore_patch
 
 
-class LoadLevelDbVersionTest(unittest.TestCase):
+class TestUtilsMixin:
 
-  def setUp(self):
-    super().setUp()
-    temp_dir = pathlib.Path(tempfile.mkdtemp())
-    self.addCleanup(shutil.rmtree, temp_dir)
-    self.temp_file = temp_dir / "temp_file.txt"
+  def create_temp_file_with_lines(self, lines: Iterable[str]) -> pathlib.Path:
+    (handle, path_str) = tempfile.mkstemp()
+    os.close(handle)
+    path = pathlib.Path(path_str)
+    self.addCleanup(path.unlink, missing_ok=True) # pytype: disable=attribute-error
 
-  def test_loads_correct_version(self):
-    with self.temp_file.open("wt", encoding="utf8") as f:
-      print("blah1", file=f)
-      print("set(version 1.23)", file=f)
-      print("blah2", file=f)
+    with path.open("wt", encoding="utf8") as f:
+      for line in lines:
+        print(line, file=f)
 
-    version = firestore_patch.load_leveldb_version(self.temp_file)
+    return path
 
-    self.assertEqual(version, "1.23")
+  def create_temp_file_with_line(self, line: str) -> pathlib.Path:
+    return self.create_temp_file_with_lines([line])
+
+
+class MainTest(TestUtilsMixin, unittest.TestCase):
+
+  def test(self):
+    src_file = self.create_temp_file_with_lines([
+      "aaa",
+      "bbb",
+      "set(version 1.2.3)",
+      "URL_HASH SHA256=abcdef",
+      "ccc",
+      "ddd",
+    ])
+    dest_file = self.create_temp_file_with_lines([
+      "aaa",
+      "bbb",
+      "set(version 4.5.6)",
+      "URL_HASH SHA256=ghijkl",
+      "ccc",
+      "ddd",
+    ])
+    dest_file_contents_before = dest_file.read_text(encoding="utf8")
+    patcher = unittest.mock.patch.object(
+      firestore_patch,
+      "parse_args",
+      spec_set=True,
+      autospec=True,
+      return_value=(src_file, dest_file)
+    )
+
+    with patcher:
+      firestore_patch.main()
+
+    dest_file_contents_after = dest_file.read_text(encoding="utf8")
+    self.assertEqual(
+      dest_file_contents_after,
+      dest_file_contents_before
+        .replace("4.5.6", "1.2.3")
+        .replace("ghijkl", "abcdef")
+    )
+
+
+class VersionExprTest(TestUtilsMixin, unittest.TestCase):
+
+  def test_matches_semantic_version(self):
+    path = self.create_temp_file_with_line("set(version 1.2.3)")
+
+    value = firestore_patch.load_value(path, firestore_patch.VERSION_EXPR)
+
+    self.assertEqual(value, "1.2.3")
+
+  def test_matches_sha1(self):
+    path = self.create_temp_file_with_line("set(version fd054fa01)")
+
+    value = firestore_patch.load_value(path, firestore_patch.VERSION_EXPR)
+
+    self.assertEqual(value, "fd054fa01")
 
   def test_ignores_whitespace(self):
-    with self.temp_file.open("wt", encoding="utf8") as f:
-      print("  set  (  version   1.23  )  ", file=f)
+    path = self.create_temp_file_with_line("  set  (  version   1.2.3  )   ")
 
-    version = firestore_patch.load_leveldb_version(self.temp_file)
+    value = firestore_patch.load_value(path, firestore_patch.VERSION_EXPR)
 
-    self.assertEqual(version, "1.23")
+    self.assertEqual(value, "1.2.3")
 
   def test_case_insensitive(self):
-    with self.temp_file.open("wt", encoding="utf8") as f:
-      print("SeT(vErSiOn 1.23)", file=f)
+    path = self.create_temp_file_with_line("sEt(vErSiOn 1.2.3)")
 
-    version = firestore_patch.load_leveldb_version(self.temp_file)
+    value = firestore_patch.load_value(path, firestore_patch.VERSION_EXPR)
 
-    self.assertEqual(version, "1.23")
+    self.assertEqual(value, "1.2.3")
 
-  def test_version_not_found_raises_error(self):
-    with self.temp_file.open("wt", encoding="utf8") as f:
-      print("aaa", file=f)
-      print("bbb", file=f)
 
-    with self.assertRaises(firestore_patch.LevelDbVersionLineError) as cm:
-      firestore_patch.load_leveldb_version(self.temp_file)
+class UrlHashExprTest(TestUtilsMixin, unittest.TestCase):
+
+  def test_matches_sha256(self):
+    path = self.create_temp_file_with_line("URL_HASH SHA256=abc123def456")
+
+    value = firestore_patch.load_value(path, firestore_patch.URL_HASH_EXPR)
+
+    self.assertEqual(value, "SHA256=abc123def456")
+
+  def test_ignores_whitespace(self):
+    path = self.create_temp_file_with_line("  URL_HASH   abc123def456  ")
+
+    value = firestore_patch.load_value(path, firestore_patch.URL_HASH_EXPR)
+
+    self.assertEqual(value, "abc123def456")
+
+  def test_case_insensitive(self):
+    path = self.create_temp_file_with_line("UrL_hAsH Sha256=abc123def456")
+
+    value = firestore_patch.load_value(path, firestore_patch.URL_HASH_EXPR)
+
+    self.assertEqual(value, "Sha256=abc123def456")
+
+
+class LoadValueTest(TestUtilsMixin, unittest.TestCase):
+
+  def test_loads_the_value(self):
+    path = self.create_temp_file_with_line("aaa1234ccc")
+    expr = re.compile(r"\D+(\d+)\D+")
+
+    value = firestore_patch.load_value(path, expr)
+
+    self.assertEqual(value, "1234")
+
+  def test_loads_the_value_ignoring_non_matching_lines(self):
+    path = self.create_temp_file_with_lines([
+      "blah",
+      "blah",
+      "aaa1234cccc",
+      "blah",
+      "blah",
+    ])
+    expr = re.compile(r"\D+(\d+)\D+")
+
+    value = firestore_patch.load_value(path, expr)
+
+    self.assertEqual(value, "1234")
+
+  def test_raises_error_if_no_matching_line_found(self):
+    path = self.create_temp_file_with_lines([
+      "blah",
+      "blah",
+      "blah",
+      "blah",
+    ])
+    expr = re.compile(r"\D+(\d+)\D+")
+
+    with self.assertRaises(firestore_patch.RegexMatchError) as cm:
+      firestore_patch.load_value(path, expr)
 
     self.assertIn("no line matching", str(cm.exception).lower())
-    self.assertIn(str(self.temp_file), str(cm.exception))
+    self.assertIn(expr.pattern, str(cm.exception))
+    self.assertIn(str(path), str(cm.exception))
 
-  def test_multiple_version_lines_found_raises_error(self):
-    with self.temp_file.open("wt", encoding="utf8") as f:
-      for i in range(100):
-        print(f"line {i+1}", file=f)
-      print("set(version aaa)", file=f)
-      print("set(version bbb)", file=f)
+  def test_raises_error_if_multiple_matching_lines_found(self):
+    lines = ["blah"] * 100
+    lines.append("aaa123bbb")
+    lines.append("ccc456ddd")
+    path = self.create_temp_file_with_lines(lines)
+    expr = re.compile(r"\D+(\d+)\D+")
 
-    with self.assertRaises(firestore_patch.LevelDbVersionLineError) as cm:
-      firestore_patch.load_leveldb_version(self.temp_file)
+    with self.assertRaises(firestore_patch.RegexMatchError) as cm:
+      firestore_patch.load_value(path, expr)
 
     self.assertIn("multiple lines matching", str(cm.exception).lower())
-    self.assertIn(str(self.temp_file), str(cm.exception))
+    self.assertIn(str(path), str(cm.exception))
+    self.assertIn(expr.pattern, str(cm.exception))
     self.assertIn("line 101", str(cm.exception))
     self.assertIn("line 102", str(cm.exception))
-    self.assertIn("aaa", str(cm.exception))
-    self.assertIn("bbb", str(cm.exception))
+    self.assertIn("123", str(cm.exception))
+    self.assertIn("456", str(cm.exception))
 
 
-class SetLevelDbVersionTest(unittest.TestCase):
+class SaveValueTest(TestUtilsMixin, unittest.TestCase):
 
-  def setUp(self):
-    super().setUp()
-    temp_dir = pathlib.Path(tempfile.mkdtemp())
-    self.addCleanup(shutil.rmtree, temp_dir)
-    self.temp_file = temp_dir / "temp_file.txt"
+  def test_saves_the_value(self):
+    path = self.create_temp_file_with_line("aaa1234ccc")
+    expr = re.compile(r"\D+(\d+)\D+")
 
-  def test_saves_correct_version(self):
-    with self.temp_file.open("wt", encoding="utf8") as f:
-      print("set(version asdfasdf)", file=f)
+    firestore_patch.set_value(path, expr, "9876")
 
-    firestore_patch.set_leveldb_version(self.temp_file, "1.2.3")
+    new_value = firestore_patch.load_value(path, expr)
+    self.assertEqual(new_value, "9876")
 
-    new_version = firestore_patch.load_leveldb_version(self.temp_file)
-    self.assertEqual(new_version, "1.2.3")
+  def test_saves_the_value_ignoring_non_matching_lines(self):
+    path = self.create_temp_file_with_lines([
+      "blah",
+      "blah",
+      "aaa1234cccc",
+      "blah",
+      "blah",
+    ])
+    expr = re.compile(r"\D+(\d+)\D+")
+    file_contents_before = path.read_text(encoding="utf8")
 
-  def test_case_insensitivity(self):
-    with self.temp_file.open("wt", encoding="utf8") as f:
-      print("sEt(vErSiOn asdfasdf)", file=f)
+    firestore_patch.set_value(path, expr, "9876")
 
-    firestore_patch.set_leveldb_version(self.temp_file, "1.2.3")
+    file_contents_after = path.read_text(encoding="utf8")
+    self.assertEqual(
+      file_contents_after,
+      file_contents_before.replace("1234", "9876"),
+    )
 
-    new_version = firestore_patch.load_leveldb_version(self.temp_file)
-    self.assertEqual(new_version, "1.2.3")
+  def test_raises_error_if_no_matching_line_found(self):
+    path = self.create_temp_file_with_lines([
+      "blah",
+      "blah",
+      "blah",
+      "blah",
+    ])
+    expr = re.compile(r"\D+(\d+)\D+")
 
-  def test_leaves_whitespace_alone(self):
-    with self.temp_file.open("wt", encoding="utf8") as f:
-      print("  set  (   version 1.2.3.4    )   ", file=f)
-    temp_file_contents = self.temp_file.read_text(encoding="utf8")
-
-    firestore_patch.set_leveldb_version(self.temp_file, "a.b.c.d")
-
-    temp_file_contents_after = self.temp_file.read_text(encoding="utf8")
-    expected_temp_file_contents = temp_file_contents.replace("1.2.3.4", "a.b.c.d")
-    self.assertEqual(temp_file_contents_after, expected_temp_file_contents)
-
-  def test_does_not_touch_other_lines(self):
-    with self.temp_file.open("wt", encoding="utf8") as f:
-      print("blah1", file=f)
-      print("set(version 1.2.3.4)", file=f)
-      print("blah2", file=f)
-    temp_file_contents = self.temp_file.read_text(encoding="utf8")
-
-    firestore_patch.set_leveldb_version(self.temp_file, "a.b.c.d")
-
-    temp_file_contents_after = self.temp_file.read_text(encoding="utf8")
-    expected_temp_file_contents = temp_file_contents.replace("1.2.3.4", "a.b.c.d")
-    self.assertEqual(temp_file_contents_after, expected_temp_file_contents)
-
-  def test_version_not_found_raises_error(self):
-    with self.temp_file.open("wt", encoding="utf8") as f:
-      print("aaa", file=f)
-      print("bbb", file=f)
-
-    with self.assertRaises(firestore_patch.LevelDbVersionLineError) as cm:
-      firestore_patch.set_leveldb_version(self.temp_file, "a.b.c")
+    with self.assertRaises(firestore_patch.RegexMatchError) as cm:
+      firestore_patch.set_value(path, expr, "")
 
     self.assertIn("no line matching", str(cm.exception).lower())
-    self.assertIn(str(self.temp_file), str(cm.exception))
+    self.assertIn(expr.pattern, str(cm.exception))
+    self.assertIn(str(path), str(cm.exception))
 
-  def test_multiple_version_lines_found_raises_error(self):
-    with self.temp_file.open("wt", encoding="utf8") as f:
-      for i in range(100):
-        print(f"line {i+1}", file=f)
-      print("set(version aaa)", file=f)
-      print("set(version bbb)", file=f)
+  def test_raises_error_if_multiple_matching_lines_found(self):
+    lines = ["blah"] * 100
+    lines.append("aaa123bbb")
+    lines.append("ccc456ddd")
+    path = self.create_temp_file_with_lines(lines)
+    expr = re.compile(r"\D+(\d+)\D+")
 
-    with self.assertRaises(firestore_patch.LevelDbVersionLineError) as cm:
-      firestore_patch.set_leveldb_version(self.temp_file, "a.b.c")
+    with self.assertRaises(firestore_patch.RegexMatchError) as cm:
+      firestore_patch.set_value(path, expr, "")
 
     self.assertIn("multiple lines matching", str(cm.exception).lower())
-    self.assertIn(str(self.temp_file), str(cm.exception))
-    self.assertIn("101, 102", str(cm.exception))
+    self.assertIn(str(path), str(cm.exception))
+    self.assertIn(expr.pattern, str(cm.exception))
+    self.assertIn("line 101", str(cm.exception))
+    self.assertIn("line 102", str(cm.exception))
+    self.assertIn("123", str(cm.exception))
+    self.assertIn("456", str(cm.exception))
 
 
 if __name__ == "__main__":
