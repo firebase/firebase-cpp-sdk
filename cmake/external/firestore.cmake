@@ -13,6 +13,7 @@
 # limitations under the License.
 
 include(ExternalProject)
+include(FindPythonInterp)
 
 if(TARGET firestore)
   return()
@@ -32,6 +33,6 @@ ExternalProject_Add(
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
   TEST_COMMAND ""
-  PATCH_COMMAND ${FIREBASE_PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/firestore_patch.py --leveldb-version-from ${CMAKE_CURRENT_LIST_DIR}/leveldb.cmake
+  PATCH_COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/firestore_patch.py --leveldb-version-from ${CMAKE_CURRENT_LIST_DIR}/leveldb.cmake
   HTTP_HEADER "${EXTERNAL_PROJECT_HTTP_HEADER}"
 )
