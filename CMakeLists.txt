@@ -215,6 +215,10 @@ if(FIREBASE_INCLUDE_FIRESTORE AND DESKTOP)
   set(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD ON)
 endif()
 
+# Disable compiling the Objective-C (and Swift) stuff from the
+# firebase-ios-sdk since it's not needed and can sometimes fail to build.
+set(FIRESTORE_INCLUDE_OBJC NO)
+
 if(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
   # Quote meta characters in ${CMAKE_CURRENT_LIST_DIR} so we can
   # match it in a regex.
