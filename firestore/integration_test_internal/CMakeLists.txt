@@ -333,6 +333,13 @@ else()
     ${FIREBASE_INTEGRATION_TEST_SRCS}
   )
 
+  # Set a preprocessor define so that tests can distinguish between having been
+  # built by Xcode vs. cmake.
+  target_compile_definitions(${integration_test_target_name}
+    PRIVATE
+    FIREBASE_TESTS_BUILT_BY_CMAKE
+  )
+
   if(APPLE)
     set(ADDITIONAL_LIBS
       gssapi_krb5

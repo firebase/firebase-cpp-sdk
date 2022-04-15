@@ -22,6 +22,7 @@
 
 #include <array>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -30,7 +31,6 @@
 #include "Firestore/core/src/util/filesystem.h"
 #include "Firestore/core/src/util/path.h"
 
-#include "firebase_test_framework.h"
 #include "gtest/gtest.h"
 #include "leveldb/db.h"
 
@@ -49,36 +49,109 @@ using ::firebase::firestore::util::Path;
 // with reason "corruption".
 Path CreateLevelDbDatabaseThatUsesSnappyCompression();
 
-// This test ensures that we don't accidentally regress having added in Snappy
-// compression support (https://github.com/firebase/firebase-ios-sdk/pull/9596).
-TEST(LevelDbSnappy, LevelDbHasSnappySupportCompiledIn) {
-  // Do not run this test on iOS because LevelDb in iOS does not support Snappy.
-  SKIP_TEST_ON_IOS;
+// Creates and opens a LevelDb database that contains at least one block that
+// is compressed with Snappy compression, then iterates over it, invoking the
+// given callback with the status at each point in the iteration. Once the
+// callback is invoked with a `status` where `status.ok()` is not true, then
+// iteration will stop and the callback will not be invoked again.
+void IterateOverLevelDbDatabaseThatUsesSnappyCompression(
+    std::function<void(const leveldb::Status&)>);
 
-  Path leveldb_path = CreateLevelDbDatabaseThatUsesSnappyCompression();
-  if (HasFatalFailure()) return;
+#if FIREBASE_TESTS_BUILT_BY_CMAKE
 
-  leveldb::Options options;
-  options.create_if_missing = false;
+// Ensure that LevelDb is compiled with Snappy compression support.
+// See https://github.com/firebase/firebase-ios-sdk/pull/9596 for details.
+TEST(LevelDbSnappy, LevelDbSupportsSnappy) {
+  IterateOverLevelDbDatabaseThatUsesSnappyCompression(
+      [](const leveldb::Status& status) {
+        ASSERT_TRUE(status.ok()) << ConvertStatus(status);
+      });
+}
 
+#else  // FIREBASE_TESTS_BUILT_BY_CMAKE
+
+// Ensure that LevelDb is NOT compiled with Snappy compression support.
+TEST(LevelDbSnappy, LevelDbDoesNotSupportSnappy) {
+  bool got_failed_status = false;
+  IterateOverLevelDbDatabaseThatUsesSnappyCompression(
+      [&](const leveldb::Status& status) {
+        if (!status.ok()) {
+          got_failed_status = true;
+          ASSERT_TRUE(status.IsCorruption()) << ConvertStatus(status);
+        }
+      });
+
+  if (!HasFailure()) {
+    ASSERT_TRUE(got_failed_status)
+        << "Reading a Snappy-compressed LevelDb database was successful; "
+           "however, it should NOT have been successful "
+           "since Snappy support is expected to NOT be available.";
+  }
+}
+
+#endif  // FIREBASE_TESTS_BUILT_BY_CMAKE
+
+void IterateOverLevelDbDatabaseThatUsesSnappyCompression(
+    std::function<void(const leveldb::Status&)> callback) {
   std::unique_ptr<leveldb::DB> db;
   {
+    Path leveldb_path = CreateLevelDbDatabaseThatUsesSnappyCompression();
+    if (leveldb_path.empty()) {
+      return;
+    }
+
+    leveldb::Options options;
+    options.create_if_missing = false;
+
     leveldb::DB* db_ptr;
     leveldb::Status status =
         leveldb::DB::Open(options, leveldb_path.ToUtf8String(), &db_ptr);
-    ASSERT_TRUE(status.ok());
+
+    ASSERT_TRUE(status.ok())
+        << "Opening LevelDb database " << leveldb_path.ToUtf8String()
+        << " failed: " << ConvertStatus(status);
+
     db.reset(db_ptr);
   }
 
-  // One of the assertions below will fail when LevelDb attempts to read a block
-  // that is compressed with Snappy and Snappy compression support is not
-  // compiled in.
   std::unique_ptr<leveldb::Iterator> it(
       db->NewIterator(leveldb::ReadOptions()));
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
-    ASSERT_TRUE(it->status().ok()) << ConvertStatus(it->status());
+    callback(it->status());
+    if (!it->status().ok()) {
+      return;
+    }
   }
-  ASSERT_TRUE(it->status().ok()) << ConvertStatus(it->status());
+
+  // Invoke the callback on the final status.
+  callback(it->status());
+}
+
+template <typename T>
+void WriteFile(const Path& dir,
+               const std::string& file_name,
+               const T& data_array) {
+  Filesystem* fs = Filesystem::Default();
+  {
+    auto status = fs->RecursivelyCreateDir(dir);
+    if (!status.ok()) {
+      FAIL() << "Creating directory failed: " << dir.ToUtf8String() << " ("
+             << status.error_message() << ")";
+    }
+  }
+
+  Path file = dir.AppendUtf8(file_name);
+  std::ofstream out_file(file.native_value(), std::ios::binary);
+  if (!out_file) {
+    FAIL() << "Unable to open file for writing: " << file.ToUtf8String();
+  }
+
+  out_file.write(reinterpret_cast<const char*>(data_array.data()),
+                 data_array.size());
+  out_file.close();
+  if (!out_file) {
+    FAIL() << "Writing to file failed: " << file.ToUtf8String();
+  }
 }
 
 const std::array<unsigned char, 0x00000165> LevelDbSnappyFile_000005_ldb{
@@ -196,47 +269,27 @@ const std::array<unsigned char, 0x000000C2> LevelDbSnappyFile_MANIFEST_000084{
     0x04, 0x0D,
 };
 
-template <typename T>
-void WriteFile(const Path& dir,
-               const std::string& file_name,
-               const T& data_array) {
-  Filesystem* fs = Filesystem::Default();
-  {
-    auto status = fs->RecursivelyCreateDir(dir);
-    if (!status.ok()) {
-      FAIL() << "Creating directory failed: " << dir.ToUtf8String() << " ("
-             << status.error_message() << ")";
-    }
-  }
-
-  Path file = dir.AppendUtf8(file_name);
-  std::ofstream out_file(file.native_value(), std::ios::binary);
-  if (!out_file) {
-    FAIL() << "Unable to open file for writing: " << file.ToUtf8String();
-  }
-
-  out_file.write(reinterpret_cast<const char*>(data_array.data()),
-                 data_array.size());
-  out_file.close();
-  if (!out_file) {
-    FAIL() << "Writing to file failed: " << file.ToUtf8String();
-  }
-}
-
 Path LevelDbDir() {
   Filesystem* fs = Filesystem::Default();
-  Path dir = fs->TempDir().AppendUtf8("PersistenceTesting");
+  Path dir = fs->TempDir().AppendUtf8("LevelDbSnappyTest");
 
   // Delete the directory first to ensure isolation between runs.
   auto status = fs->RecursivelyRemove(dir);
-  EXPECT_TRUE(status.ok()) << "Failed to clean up leveldb in dir "
+  EXPECT_TRUE(status.ok()) << "Failed to clean up leveldb in directory "
                            << dir.ToUtf8String() << ": " << status.ToString();
+  if (!status.ok()) {
+    return {};
+  }
 
   return dir;
 }
 
 Path CreateLevelDbDatabaseThatUsesSnappyCompression() {
   Path leveldb_dir = LevelDbDir();
+  if (leveldb_dir.empty()) {
+    return {};
+  }
+
   WriteFile(leveldb_dir, "000005.ldb", LevelDbSnappyFile_000005_ldb);
   WriteFile(leveldb_dir, "000017.ldb", LevelDbSnappyFile_000017_ldb);
   WriteFile(leveldb_dir, "000085.ldb", LevelDbSnappyFile_000085_ldb);
@@ -244,6 +297,7 @@ Path CreateLevelDbDatabaseThatUsesSnappyCompression() {
   WriteFile(leveldb_dir, "LOG.old", LevelDbSnappyFile_LOG_old);
   WriteFile(leveldb_dir, "LOG", LevelDbSnappyFile_LOG);
   WriteFile(leveldb_dir, "MANIFEST-000084", LevelDbSnappyFile_MANIFEST_000084);
+
   return leveldb_dir;
 }
 
