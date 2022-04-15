@@ -23,7 +23,7 @@ ExternalProject_Add(
 
   DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
   GIT_REPOSITORY https://github.com/firebase/firebase-ios-sdk
-  GIT_TAG d57360f1bf2dd7ecb85a768e8912d0045b00b88d
+  GIT_TAG 3c718c3982a9c5e482a37213c8d8faf6a92ce8aa
   GIT_SHALLOW ON
 
   PREFIX ${PROJECT_BINARY_DIR}
