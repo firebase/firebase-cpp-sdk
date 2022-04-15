@@ -217,7 +217,7 @@ endif()
 
 # Disable compiling the Objective-C (and Swift) stuff from the
 # firebase-ios-sdk since it's not needed and can sometimes fail to build.
-set(FIRESTORE_INCLUDE_OBJC NO)
+set(FIRESTORE_INCLUDE_OBJC OFF CACHE BOOL "Disabled for the CPP SDK")
 
 if(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
   # Quote meta characters in ${CMAKE_CURRENT_LIST_DIR} so we can
