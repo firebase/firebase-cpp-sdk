@@ -1,3 +1,2 @@
 absl-py
 protobuf
-six
