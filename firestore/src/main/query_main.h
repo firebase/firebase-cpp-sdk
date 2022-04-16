@@ -201,7 +201,7 @@ class QueryInternal {
       const nanopb::Message<google_firestore_v1_Value>& from,
       const core::Query& internal_query) const;
 
-  static bool IsBefore(BoundPosition bound_pos);
+  static bool IsInclusive(BoundPosition bound_pos);
 
   core::Bound ToBound(BoundPosition bound_pos,
                       const DocumentSnapshot& public_snapshot) const;
