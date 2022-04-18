@@ -110,7 +110,7 @@ Cloud Firestore            | libfirebase_firestore.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics:20.1.2
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-firestore:24.1.0
+|                          | com.google.firebase:firebase-firestore:24.1.1
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-auth:21.0.3
 |                          | (Maven package)
@@ -131,7 +131,7 @@ Firebase Messaging         | libfirebase_messaging.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics:20.1.2
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-messaging:23.0.2
+|                          | com.google.firebase:firebase-messaging:23.0.3
 |                          | (Maven package)
 |                          | libmessaging_java.jar (Android service)
 |                          | androidx.core:core:1.7.0  (Maven package)
