@@ -747,7 +747,7 @@ class ResponseInfo {
   /// Constructor creates an uninitialized ResponseInfo.
   ResponseInfo();
 
-  /// Gets the AdaptorReponseInfo objects for the ad response.
+  /// Gets the AdaptorResponseInfo objects for the ad response.
   ///
   /// @return a vector of AdapterResponseInfo objects containing metadata for
   ///   each adapter included in the ad response.
