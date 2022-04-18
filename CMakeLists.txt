@@ -149,9 +149,8 @@ endif()
 if(APPLE)
   # For iOS and macOS, disable nullability completeness warning, as it makes the
   # build output for our Objective-C++ files much too verbose.
-  # Also, enable modules so that we can use @import.
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-nullability-completeness -fmodules")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-nullability-completeness -fmodules -fcxx-modules")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-nullability-completeness")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-nullability-completeness")
 endif()
 
 if(DESKTOP AND NOT MSVC AND NOT APPLE)
