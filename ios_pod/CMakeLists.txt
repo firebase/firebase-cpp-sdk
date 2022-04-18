@@ -83,19 +83,24 @@ function(setup_pod_headers target_name)
       target_include_directories(${target_name}
         # Link the Pods publicly, so that dependent libraries can access the necessary header files as well.
         # Same for the below workaround.
+        # Also link from the Sources/Public directories, for framework pods.
         PUBLIC
           ${FIREBASE_POD_HEADER_DIR}/${pod}
           ${FIREBASE_POD_HEADER_DIR}/${pod}/${pod}
+          ${FIREBASE_POD_DIR}/Pods/${pod}/${pod}/Sources/Public
+          ${FIREBASE_POD_DIR}/Pods/${pod}/${pod}/Sources/Public/${pod}
       )
       if("${SETUP_POD_HEADERS_INCLUDE_PRIVATE_HEADERS}")
         # Workaround: Private/FirebaseCore/*.h headers include other FirebaseCore headers via the subdirectory, so
         # we need to include the top-level Private directory as a header path. This only affects Firestore at the moment, as
         # no other C++ library includes a private Pod header.
+        # Also link from the Sources/Private directory, for framework pods.
         target_include_directories(${target_name}
           PUBLIC
             ${FIREBASE_POD_PRIVATE_HEADER_DIR}/
             ${FIREBASE_POD_PRIVATE_HEADER_DIR}/${pod}
             ${FIREBASE_POD_PRIVATE_HEADER_DIR}/${pod}/${pod}
+            ${FIREBASE_POD_DIR}/Pods/${pod}/${pod}/Sources/Private
         )
       endif()
 
