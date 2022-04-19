@@ -106,7 +106,7 @@ function(setup_pod_headers target_name)
             ${FIREBASE_POD_DIR}/Pods/${pod}/include
             ${FIREBASE_POD_DIR}/Pods/${pod}/${pod}/Sources/Private
             ${FIREBASE_POD_DIR}/Pods/${pod}/${pod}/Sources
-            ${FIREBASE_POD_DIR}/Pods/${pod}/${pod}/Source
+            ${FIREBASE_POD_DIR}/Pods/${pod}/Source
         )
       endif()
 
