@@ -182,18 +182,23 @@ class LoggingUtilsData {
                                         logging_utils_get_did_touch_);
   }
 
+  bool IsUserInteractionAllowed() {
+    return true;
+  }
+
   bool IsLoggingToFile() {
-    if (logging_utils_class_ == 0) return false;  // haven't been initted yet
-    JNIEnv* env = GetJniEnv();
-    assert(env);
-    jobject file_uri = env->CallStaticObjectMethod(logging_utils_class_,
-                                                   logging_utils_get_log_file_);
-    if (file_uri == nullptr) {
-      return false;
-    } else {
-      env->DeleteLocalRef(file_uri);
-      return true;
-    }
+    return true;
+    // if (logging_utils_class_ == 0) return false;  // haven't been initted yet
+    // JNIEnv* env = GetJniEnv();
+    // assert(env);
+    // jobject file_uri = env->CallStaticObjectMethod(logging_utils_class_,
+    //                                                logging_utils_get_log_file_);
+    // if (file_uri == nullptr) {
+    //   return false;
+    // } else {
+    //   env->DeleteLocalRef(file_uri);
+    //   return true;
+    // }
   }
 
   bool StartLoggingToFile(const char* path) {

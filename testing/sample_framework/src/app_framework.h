@@ -104,6 +104,9 @@ jobject GetActivity();
 jclass FindClass(JNIEnv* env, jobject activity_object, const char* class_name);
 #endif  // defined(__ANDROID__)
 
+// Returns true if the user interaction is allowed.
+bool IsUserInteractionAllowed();
+
 // Returns true if the logger is currently logging to a file.
 bool IsLoggingToFile();
 

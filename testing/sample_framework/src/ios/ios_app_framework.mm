@@ -286,7 +286,9 @@ std::string ReadTextInput(const char *title, const char *message, const char *pl
   }
 }
 
-bool IsLoggingToFile() { return g_file_url_path; }
+bool IsUserInteractionAllowed() { return true; }
+
+bool IsLoggingToFile() { return true; }
 
 bool StartLoggingToFile(const char *file_path) {
   NSURL *home_url = [NSURL fileURLWithPath:NSHomeDirectory()];
@@ -343,14 +345,14 @@ int main(int argc, char *argv[]) {
   setenv("USE_FIRESTORE_EMULATOR", "true", 1);
 #endif
 
-  if ([url.scheme isEqual:kGameLoopUrlPrefix]) {
-    g_gameloop_launch = true;
-    app_framework::StartLoggingToFile(GAMELOOP_DEFAULT_LOG_FILE);
-    return YES;
-  }
-  NSLog(@"The testapp will not log to files since it is not launched by URL %@",
-        kGameLoopUrlPrefix);
-  return NO;
+  // if ([url.scheme isEqual:kGameLoopUrlPrefix]) {
+  g_gameloop_launch = true;
+  app_framework::StartLoggingToFile(GAMELOOP_DEFAULT_LOG_FILE);
+  return YES;
+  // }
+  // NSLog(@"The testapp will not log to files since it is not launched by URL %@",
+  //       kGameLoopUrlPrefix);
+  // return NO;
 }
 
 - (BOOL)application:(UIApplication *)application
