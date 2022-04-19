@@ -286,7 +286,7 @@ std::string ReadTextInput(const char *title, const char *message, const char *pl
   }
 }
 
-bool IsUserInteractionAllowed() { return g_file_url_path; }
+bool IsUserInteractionAllowed() { return true; }
 
 bool IsLoggingToFile() { return g_file_url_path; }
 
