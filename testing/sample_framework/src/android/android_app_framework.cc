@@ -182,6 +182,10 @@ class LoggingUtilsData {
                                         logging_utils_get_did_touch_);
   }
 
+  bool IsUserInteractionAllowed() {
+    return true;
+  }
+
   bool IsLoggingToFile() {
     if (logging_utils_class_ == 0) return false;  // haven't been initted yet
     JNIEnv* env = GetJniEnv();

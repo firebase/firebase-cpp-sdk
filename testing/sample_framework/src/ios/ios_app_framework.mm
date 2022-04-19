@@ -286,6 +286,8 @@ std::string ReadTextInput(const char *title, const char *message, const char *pl
   }
 }
 
+bool IsUserInteractionAllowed() { return g_file_url_path; }
+
 bool IsLoggingToFile() { return g_file_url_path; }
 
 bool StartLoggingToFile(const char *file_path) {
@@ -294,17 +296,21 @@ bool StartLoggingToFile(const char *file_path) {
   g_file_name = @(file_path);
   g_file_url_path = [g_results_url URLByAppendingPathComponent:g_file_name].path;
   NSError *error;
-  if (![NSFileManager.defaultManager fileExistsAtPath:[g_results_url path]]) {
-    if (![NSFileManager.defaultManager createDirectoryAtPath:g_results_url.path
-                                 withIntermediateDirectories:true
-                                                  attributes:nil
-                                                       error:&error]) {
-      app_framework::LogError("Couldn't create directory %s: %s", g_results_url.path,
-                              error.description.UTF8String);
-      g_file_url_path = nil;
-      return false;
-    }
-  }
+  [NSFileManager.defaultManager createDirectoryAtPath:g_results_url.path
+                                  withIntermediateDirectories:true
+                                                    attributes:nil
+                                                        error:&error]
+  // if (![NSFileManager.defaultManager fileExistsAtPath:[g_results_url path]]) {
+  //   if (![NSFileManager.defaultManager createDirectoryAtPath:g_results_url.path
+  //                                withIntermediateDirectories:true
+  //                                                 attributes:nil
+  //                                                      error:&error]) {
+  //     app_framework::LogError("Couldn't create directory %s: %s", g_results_url.path,
+  //                             error.description.UTF8String);
+  //     g_file_url_path = nil;
+  //     return false;
+  //   }
+  // }
   return true;
 }
 
