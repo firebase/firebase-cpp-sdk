@@ -56,7 +56,7 @@ namespace firebase {
 // In the GMA docs, link to firebase::Future in the Firebase C++ docs.
 #if defined(DOXYGEN_ADMOB)
 /// @brief The Google Mobile Ads C++ SDK uses this class to return results from
-/// asynchronous operations. All  C++ functions and method calls tha operate
+/// asynchronous operations. All  C++ functions and method calls that operate
 /// asynchronously return a Future, and provide a "LastResult"
 /// function to retrieve the most recent Future result.
 ///
