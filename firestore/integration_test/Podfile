@@ -1,6 +1,6 @@
-
 source 'https://github.com/CocoaPods/Specs.git'
 # Firebase Realtime Firestore test application.
+use_frameworks!
 
 target 'integration_test' do
   platform :ios, '10.0'
