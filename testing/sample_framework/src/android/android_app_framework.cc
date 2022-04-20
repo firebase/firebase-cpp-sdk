@@ -333,6 +333,14 @@ JNIEnv* GetJniEnv() {
   return result == JNI_OK ? env : nullptr;
 }
 
+bool SkipUITest() {
+  return app_framework::g_logging_utils_data->SkipUITest();
+}
+
+bool SkipNonUITest() {
+  return app_framework::g_logging_utils_data->SkipNonUITest();
+}
+
 bool IsLoggingToFile() {
   return app_framework::g_logging_utils_data->IsLoggingToFile();
 }
