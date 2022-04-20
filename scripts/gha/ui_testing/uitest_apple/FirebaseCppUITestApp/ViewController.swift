@@ -19,10 +19,10 @@
 
 import UIKit
 
-/// Minimal view controller to launch the game loop.
+/// Minimal view controller to launch the UI tests.
 class ViewController: UIViewController {
 
-  /// Run the game loop as soon as we load.
+  /// Run the UI Test as soon as we load.
   override func viewDidLoad() {
     super.viewDidLoad()
     NSLog("Starting UI Test")
