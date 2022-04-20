@@ -190,7 +190,7 @@ class LoggingUtilsData {
     if (logging_utils_class_ == 0) return false;  // haven't been initted yet
     JNIEnv* env = GetJniEnv();
     assert(env);
-    jboolean b = env->CallStaticObjectMethod(logging_utils_class_,
+    jboolean b = env->CallStaticBooleanMethod(logging_utils_class_,
                                                    logging_utils_skip_uitest_log_);
     return (bool)b;
   }
@@ -199,7 +199,7 @@ class LoggingUtilsData {
     if (logging_utils_class_ == 0) return false;  // haven't been initted yet
     JNIEnv* env = GetJniEnv();
     assert(env);
-    jboolean b = env->CallStaticObjectMethod(logging_utils_class_,
+    jboolean b = env->CallStaticBooleanMethod(logging_utils_class_,
                                                    logging_utils_skip_nonuitest_log_);
     return (bool)b;
   }
