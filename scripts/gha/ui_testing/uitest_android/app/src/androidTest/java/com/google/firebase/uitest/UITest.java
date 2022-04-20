@@ -139,7 +139,8 @@ public class UITest {
 
     String gamePackageName = "com.google.android.admob.testapp";
     File dir = new File(context.getFilesDir(), gamePackageName);
-    if (!dir.exists()) dir.mkdirs();
+    if (!dir.exists())
+      dir.mkdirs();
     String filename = "Results1.json";
     File file = new File(dir, filename);
     try {
@@ -148,8 +149,11 @@ public class UITest {
       e.printStackTrace();
     }
     Log.d("TAG", "Test Result Path :" + file);
-    Uri fileUri = FileProvider.getUriForFile(context, "com.google.firebase.uitest.fileprovider", file);
-    intent.setPackage(gamePackageName).setDataAndType(fileUri, "application/javascript").addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+    Uri fileUri =
+        FileProvider.getUriForFile(context, "com.google.firebase.uitest.fileprovider", file);
+    intent.setPackage(gamePackageName)
+        .setDataAndType(fileUri, "application/javascript")
+        .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
     context.startActivity(intent);
   }
 

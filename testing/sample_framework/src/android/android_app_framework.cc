@@ -159,10 +159,10 @@ class LoggingUtilsData {
     logging_utils_start_log_file_ =
         env->GetStaticMethodID(logging_utils_class_, "startLogFile",
                                "(Landroid/app/Activity;Ljava/lang/String;)Z");
-    logging_utils_skip_uitest_log_ = env->GetStaticMethodID(
-        logging_utils_class_, "skipUITestLog", "()Z");
-    logging_utils_skip_nonuitest_log_ = env->GetStaticMethodID(
-        logging_utils_class_, "skipNonUITestLog", "()Z");
+    logging_utils_skip_uitest_log_ =
+        env->GetStaticMethodID(logging_utils_class_, "skipUITestLog", "()Z");
+    logging_utils_skip_nonuitest_log_ =
+        env->GetStaticMethodID(logging_utils_class_, "skipNonUITestLog", "()Z");
 
     env->CallStaticVoidMethod(logging_utils_class_,
                               logging_utils_init_log_window_, GetActivity());
@@ -191,7 +191,7 @@ class LoggingUtilsData {
     JNIEnv* env = GetJniEnv();
     assert(env);
     jboolean b = env->CallStaticBooleanMethod(logging_utils_class_,
-                                                   logging_utils_skip_uitest_log_);
+                                              logging_utils_skip_uitest_log_);
     return (bool)b;
   }
 
@@ -199,8 +199,8 @@ class LoggingUtilsData {
     if (logging_utils_class_ == 0) return false;  // haven't been initted yet
     JNIEnv* env = GetJniEnv();
     assert(env);
-    jboolean b = env->CallStaticBooleanMethod(logging_utils_class_,
-                                                   logging_utils_skip_nonuitest_log_);
+    jboolean b = env->CallStaticBooleanMethod(
+        logging_utils_class_, logging_utils_skip_nonuitest_log_);
     return (bool)b;
   }
 
@@ -333,9 +333,7 @@ JNIEnv* GetJniEnv() {
   return result == JNI_OK ? env : nullptr;
 }
 
-bool SkipUITest() {
-  return app_framework::g_logging_utils_data->SkipUITest();
-}
+bool SkipUITest() { return app_framework::g_logging_utils_data->SkipUITest(); }
 
 bool SkipNonUITest() {
   return app_framework::g_logging_utils_data->SkipNonUITest();
