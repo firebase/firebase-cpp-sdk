@@ -43,7 +43,7 @@ namespace firebase_test_framework {
     app_framework::LogInfo("Skipping %s, as it is an UI Test.",             \
                             test_info_->name());                            \
     GTEST_SKIP();                                                           \
-    return;
+    return;                                                                 \
   }
 
 // Use this macro to skip an entire test if it requires interactivity and we are
