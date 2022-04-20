@@ -19,11 +19,19 @@
 
 import UIKit
 
+/// Minimal view controller to launch the game loop.
 class ViewController: UIViewController {
 
+  /// Run the game loop as soon as we load.
   override func viewDidLoad() {
     super.viewDidLoad()
-    // Do any additional setup after loading the view.
+    NSLog("Starting UI Test")
+    launchGame()
   }
 
+  /// Launch the app under test by calling our custom URL scheme.
+  func launchGame() {
+    let url = URL(string: "firebase-ui-test://")!
+    UIApplication.shared.open(url)
+  }
 }
