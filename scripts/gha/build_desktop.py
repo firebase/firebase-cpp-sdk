@@ -234,6 +234,8 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='l
     # on different windows machines.
     cmd.append('-A')
     cmd.append('Win32') if arch == 'x86' else cmd.append('x64')
+    # Also, for Windows, specify the path to Python.
+    cmd.append('-DFIREBASE_PYTHON_HOST_EXECUTABLE:FILEPATH=%s' % sys.executable)
 
     # Use our special cmake flag to specify /MD vs /MT
     if msvc_runtime_library == "static":
