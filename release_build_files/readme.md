@@ -567,7 +567,7 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### 8.11.0
 -   Changes
     -   Firestore/Database (Desktop): Upgrade LevelDb dependency to 1.23
         ([#886](https://github.com/firebase/firebase-cpp-sdk/pull/886)).
