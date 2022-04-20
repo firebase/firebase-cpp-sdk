@@ -887,29 +887,3 @@ index 000000000..bdb7b9f6a
 +
 +  set("${ARG_OUTVAR}" "${PYTHON_EXECUTABLE}" PARENT_SCOPE)
 +endfunction(FirebaseSetupPythonInterpreter)
-diff --git a/cmake/python_setup.cmake b/cmake/python_setup.cmake
-index bdb7b9f6a..ebce71d96 100644
---- a/cmake/python_setup.cmake
-+++ b/cmake/python_setup.cmake
-@@ -1,4 +1,4 @@
--# Copyright 2022 Google LLC
-+
- #
- # Licensed under the Apache License, Version 2.0 (the "License");
- # you may not use this file except in compliance with the License.
-@@ -128,11 +128,14 @@ function(FirebaseSetupPythonInterpreter)
-       "${PYVENV_DIRECTORY}"
-     RESULT_VARIABLE
-       FIREBASE_PYVENV_CREATE_RESULT
-+    ERROR_VARIABLE
-+      FIREBASE_PYVENV_CREATE_ERROR
-+    ERROR_STRIP_TRAILING_WHITESPACE
-   )
-   if(NOT FIREBASE_PYVENV_CREATE_RESULT EQUAL 0)
-     message(FATAL_ERROR
-       "Failed to create a Python virtualenv in ${PYVENV_DIRECTORY} "
--      "using ${FIREBASE_PYTHON_HOST_EXECUTABLE}")
-+      "using ${FIREBASE_PYTHON_HOST_EXECUTABLE}: ${FIREBASE_PYVENV_CREATE_ERROR}")
-   endif()
- 
-   # Find the Python interpreter in the virtualenv.
