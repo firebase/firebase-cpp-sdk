@@ -887,3 +887,39 @@ index 000000000..bdb7b9f6a
 +
 +  set("${ARG_OUTVAR}" "${PYTHON_EXECUTABLE}" PARENT_SCOPE)
 +endfunction(FirebaseSetupPythonInterpreter)
+diff --git a/cmake/python_setup.cmake b/cmake/python_setup.cmake
+index bdb7b9f6a..152744fab 100644
+--- a/cmake/python_setup.cmake
++++ b/cmake/python_setup.cmake
+@@ -91,12 +91,30 @@ function(FirebaseSetupPythonInterpreter)
+     "The Python interpreter on the host system to use"
+   )
+ 
++  # Create a temporary directory into which to install the virtualenv
++  execute_process(
++    COMMAND
++      "${FIREBASE_PYTHON_HOST_EXECUTABLE}"
++      -c
++      "import tempfile; print(tempfile.mkdtemp('FirebaseSetupPythonInterpreter', 'pyvenv'))"
++    RESULT_VARIABLE
++      FIREBASE_PYVENV_MKDTEMP_RESULT
++    OUTPUT_VARIABLE
++      FIREBASE_PYVENV_MKDTEMP_OUTPUT
++    OUTPUT_STRIP_TRAILING_WHITESPACE
++  )
++  if(NOT FIREBASE_PYVENV_MKDTEMP_RESULT EQUAL 0)
++    message(FATAL_ERROR
++      "Failed to create a temporary directory for the Python virtualenv "
++      "using ${FIREBASE_PYTHON_HOST_EXECUTABLE}")
++  endif()
++
+   # Check if the virtualenv is already up-to-date by examining the contents of
+   # its stamp files. The stamp files store the path of the host Python
+   # interpreter and the dependencies that were installed by pip. If both of
+   # these files exist and contain the same Python interpreter and dependencies
+   # then just re-use the virtualenv; otherwise, re-create it.
+-  set(PYVENV_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/pyvenv/${ARG_KEY}")
++  set(PYVENV_DIRECTORY "${FIREBASE_PYVENV_MKDTEMP_OUTPUT}/${ARG_KEY}")
+   set(STAMP_FILE1 "${PYVENV_DIRECTORY}/cmake_firebase_python_stamp1.txt")
+   set(STAMP_FILE2 "${PYVENV_DIRECTORY}/cmake_firebase_python_stamp2.txt")
+ 
