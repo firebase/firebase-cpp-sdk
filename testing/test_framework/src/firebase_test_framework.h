@@ -36,11 +36,11 @@
 
 namespace firebase_test_framework {
 
-// Use this macro to skip an entire test if it is an UI Test and we are
-// not running in UItest mode (for example, on UI Test workflow).
+// Use this macro to skip an entire test if it is an non UI Test and we are
+// not running it in UItest mode (for example, on UI Test workflow).
 #define TEST_NO_USER_INTERACTION                                            \
-  if (IsUserInteractionAllowed()) {                                         \
-    app_framework::LogInfo("Skipping %s, as it is an UI Test.",             \
+  if (SkipNonUITest()) {                                                    \
+    app_framework::LogInfo("Skipping %s, as it is an Non UI Test.",         \
                             test_info_->name());                            \
     GTEST_SKIP();                                                           \
     return;                                                                 \
@@ -49,7 +49,7 @@ namespace firebase_test_framework {
 // Use this macro to skip an entire test if it requires interactivity and we are
 // not running in interactive mode (for example, on FTL).
 #define TEST_REQUIRES_USER_INTERACTION                                      \
-  if (!IsUserInteractionAllowed()) {                                        \
+  if (SkipUITest()) {                                                       \
     app_framework::LogInfo("Skipping %s, as it requires user interaction.", \
                            test_info_->name());                             \
     GTEST_SKIP();                                                           \

@@ -333,10 +333,6 @@ JNIEnv* GetJniEnv() {
   return result == JNI_OK ? env : nullptr;
 }
 
-bool IsUserInteractionAllowed() {
-  return app_framework::g_logging_utils_data->IsUserInteractionAllowed();
-}
-
 bool IsLoggingToFile() {
   return app_framework::g_logging_utils_data->IsLoggingToFile();
 }
