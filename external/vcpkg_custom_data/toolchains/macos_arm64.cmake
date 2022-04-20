@@ -12,6 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+include(python_setup)
+FirebaseSetupPythonInterpreter(
+  OUTVAR MY_PYTHON_EXECUTABLE
+  KEY VcpkgMacOSArm64
+)
+
 # Toolchain settings for building ARM64 MacOS libraries
 set(VCPKG_TARGET_ARCHITECTURE arm64)
 set(VCPKG_CRT_LINKAGE dynamic)
@@ -438,7 +444,7 @@ function(add_executable name)
             elseif(_VCPKG_TARGET_TRIPLET_PLAT MATCHES "osx")
                 if (NOT MACOSX_BUNDLE_IDX EQUAL -1)
                     add_custom_command(TARGET ${name} POST_BUILD
-                    COMMAND ${FIREBASE_PYTHON_EXECUTABLE} ${_VCPKG_TOOLCHAIN_DIR}/osx/applocal.py
+                    COMMAND ${MY_PYTHON_EXECUTABLE} ${_VCPKG_TOOLCHAIN_DIR}/osx/applocal.py
                         $<TARGET_FILE:${name}>
                         "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}$<$<CONFIG:Debug>:/debug>"
                     )

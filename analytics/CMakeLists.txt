@@ -14,6 +14,13 @@
 
 # CMake file for the firebase_analytics library
 
+include(python_setup)
+FirebaseSetupPythonInterpreter(
+  OUTVAR MY_PYTHON_EXECUTABLE
+  KEY Analytics
+  REQUIREMENTS absl-py
+)
+
 # Analytics generates header files for default events, parameters, and
 # properties based on the iOS SDK, that are used across all platforms.
 set(analytics_generated_headers_dir
@@ -29,7 +36,7 @@ file(MAKE_DIRECTORY ${analytics_generated_headers_dir})
 function(generate_analytics_header OBJC_FILE CPP_FILE)
   add_custom_command(
     OUTPUT ${CPP_FILE}
-    COMMAND ${FIREBASE_PYTHON_EXECUTABLE} "${CMAKE_CURRENT_LIST_DIR}/generate_constants.py"
+    COMMAND ${MY_PYTHON_EXECUTABLE} "${CMAKE_CURRENT_LIST_DIR}/generate_constants.py"
       "--objc_header=${OBJC_FILE}"
       "--cpp_header=${CPP_FILE}"
     DEPENDS ${OBJC_FILE}

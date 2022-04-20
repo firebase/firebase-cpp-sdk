@@ -14,6 +14,13 @@
 
 # CMake file for the firebase_app library
 
+include(python_setup)
+FirebaseSetupPythonInterpreter(
+  OUTVAR MY_PYTHON_EXECUTABLE
+  KEY App
+  REQUIREMENTS absl-py
+)
+
 # Define how to generate google_services_resource_(source/header)
 binary_to_array("google_services_resource"
     "${CMAKE_CURRENT_LIST_DIR}/google_services.fbs"
@@ -47,7 +54,7 @@ add_custom_target(FIREBASE_APP_GENERATED_HEADERS DEPENDS "${version_header}")
 file(MAKE_DIRECTORY ${version_header_dir})
 add_custom_command(
     OUTPUT ${version_header}
-    COMMAND ${FIREBASE_PYTHON_EXECUTABLE} "${FIREBASE_SCRIPT_DIR}/version_header.py"
+    COMMAND ${MY_PYTHON_EXECUTABLE} "${FIREBASE_SCRIPT_DIR}/version_header.py"
         "--input_file=${FIREBASE_SCRIPT_DIR}/cpp_sdk_version.json"
         "--output_file=${version_header}"
         "--build_type=released"
@@ -430,7 +437,7 @@ if (IOS)
   function(generate_analytics_header OBJC_FILE CPP_FILE)
     add_custom_command(
       OUTPUT ${CPP_FILE}
-      COMMAND ${FIREBASE_PYTHON_EXECUTABLE} "${FIREBASE_SOURCE_DIR}/analytics/generate_constants.py"
+      COMMAND ${MY_PYTHON_EXECUTABLE} "${FIREBASE_SOURCE_DIR}/analytics/generate_constants.py"
         "--objc_header=${OBJC_FILE}"
         "--cpp_header=${CPP_FILE}"
       DEPENDS ${OBJC_FILE}

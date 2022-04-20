@@ -26,6 +26,13 @@
 #   CPP_NAMESPACE: The namespace to use in the generated files.
 #   OUTPUT_DIRECTORY: Where the generated files should be written to.
 function(binary_to_array NAME INPUT CPP_NAMESPACE OUTPUT_DIRECTORY)
+  include(python_setup)
+  FirebaseSetupPythonInterpreter(
+    OUTVAR MY_PYTHON_EXECUTABLE
+    KEY BinaryToArray
+    REQUIREMENTS absl-py
+  )
+
   # Guarantee the output directory exists
   file(MAKE_DIRECTORY ${OUTPUT_DIRECTORY})
 
@@ -39,7 +46,7 @@ function(binary_to_array NAME INPUT CPP_NAMESPACE OUTPUT_DIRECTORY)
     OUTPUT ${output_source}
       ${output_header}
     DEPENDS ${INPUT}
-    COMMAND ${FIREBASE_PYTHON_EXECUTABLE} "${FIREBASE_SCRIPT_DIR}/binary_to_array.py"
+    COMMAND ${MY_PYTHON_EXECUTABLE} "${FIREBASE_SCRIPT_DIR}/binary_to_array.py"
       "--input=${INPUT}"
       "--output_header=${output_header}"
       "--output_source=${output_source}"
