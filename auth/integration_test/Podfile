@@ -4,12 +4,12 @@ use_frameworks!
 
 target 'integration_test' do
   platform :ios, '10.0'
-  pod 'Firebase/Auth', '8.13.0'
+  pod 'Firebase/Auth', '8.15.0'
 end
 
 target 'integration_test_tvos' do
   platform :tvos, '12.0'
-  pod 'Firebase/Auth', '8.13.0'
+  pod 'Firebase/Auth', '8.15.0'
 end
 
 post_install do |installer|

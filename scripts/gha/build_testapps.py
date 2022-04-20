@@ -259,7 +259,8 @@ def main(argv):
 
     cmake_flags.extend((
         "-DCMAKE_TOOLCHAIN_FILE=%s" % toolchain_file,
-        "-DVCPKG_TARGET_TRIPLET=%s" % utils.get_vcpkg_triplet(arch=vcpkg_arch)
+        "-DVCPKG_TARGET_TRIPLET=%s" % utils.get_vcpkg_triplet(arch=vcpkg_arch),
+        "-DFIREBASE_PYTHON_HOST_EXECUTABLE:FILEPATH=%s" % sys.executable,
     ))
 
   if FLAGS.cmake_flag:
