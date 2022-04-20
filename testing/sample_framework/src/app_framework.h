@@ -104,8 +104,11 @@ jobject GetActivity();
 jclass FindClass(JNIEnv* env, jobject activity_object, const char* class_name);
 #endif  // defined(__ANDROID__)
 
-// Returns true if the user interaction is allowed.
-bool IsUserInteractionAllowed();
+// Returns true if we skip tests that require interaction, false if not.
+bool SkipUITest();
+
+// Returns true if we skip tests that do not require interaction, false if not.
+bool SkipNonUITest();
 
 // Returns true if the logger is currently logging to a file.
 bool IsLoggingToFile();

@@ -159,6 +159,10 @@ class LoggingUtilsData {
     logging_utils_start_log_file_ =
         env->GetStaticMethodID(logging_utils_class_, "startLogFile",
                                "(Landroid/app/Activity;Ljava/lang/String;)Z");
+    logging_utils_skip_uitest_log_ = env->GetStaticMethodID(
+        logging_utils_class_, "skipUITestLog", "()Z");
+    logging_utils_skip_nonuitest_log_ = env->GetStaticMethodID(
+        logging_utils_class_, "skipNonUITestLog", "()Z");
 
     env->CallStaticVoidMethod(logging_utils_class_,
                               logging_utils_init_log_window_, GetActivity());
@@ -182,23 +186,36 @@ class LoggingUtilsData {
                                         logging_utils_get_did_touch_);
   }
 
-  bool IsUserInteractionAllowed() {
-    return true;
+  bool SkipUITest() {
+    if (logging_utils_class_ == 0) return false;  // haven't been initted yet
+    JNIEnv* env = GetJniEnv();
+    assert(env);
+    jboolean b = env->CallStaticObjectMethod(logging_utils_class_,
+                                                   logging_utils_skip_uitest_log_);
+    return (bool)b;
+  }
+
+  bool SkipNonUITest() {
+    if (logging_utils_class_ == 0) return false;  // haven't been initted yet
+    JNIEnv* env = GetJniEnv();
+    assert(env);
+    jboolean b = env->CallStaticObjectMethod(logging_utils_class_,
+                                                   logging_utils_skip_nonuitest_log_);
+    return (bool)b;
   }
 
   bool IsLoggingToFile() {
-    return true;
-    // if (logging_utils_class_ == 0) return false;  // haven't been initted yet
-    // JNIEnv* env = GetJniEnv();
-    // assert(env);
-    // jobject file_uri = env->CallStaticObjectMethod(logging_utils_class_,
-    //                                                logging_utils_get_log_file_);
-    // if (file_uri == nullptr) {
-    //   return false;
-    // } else {
-    //   env->DeleteLocalRef(file_uri);
-    //   return true;
-    // }
+    if (logging_utils_class_ == 0) return false;  // haven't been initted yet
+    JNIEnv* env = GetJniEnv();
+    assert(env);
+    jobject file_uri = env->CallStaticObjectMethod(logging_utils_class_,
+                                                   logging_utils_get_log_file_);
+    if (file_uri == nullptr) {
+      return false;
+    } else {
+      env->DeleteLocalRef(file_uri);
+      return true;
+    }
   }
 
   bool StartLoggingToFile(const char* path) {
@@ -220,6 +237,8 @@ class LoggingUtilsData {
   jmethodID logging_utils_get_did_touch_;
   jmethodID logging_utils_get_log_file_;
   jmethodID logging_utils_start_log_file_;
+  jmethodID logging_utils_skip_uitest_log_;
+  jmethodID logging_utils_skip_nonuitest_log_;
 };
 
 LoggingUtilsData* g_logging_utils_data;
