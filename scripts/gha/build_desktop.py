@@ -39,6 +39,7 @@ import os
 import utils
 import shutil
 import subprocess
+import sys
 
 def append_line_to_file(path, line):
   """Append the given line to the end of the file if it's not already in the file.
