@@ -86,3 +86,8 @@ if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 16\." "${NDK_ROOT}/source.p
 	    echo "NDK r16b has been downloaded into /tmp/android-ndk-r16b"
     fi
 fi
+
+# Make sure that only the desired version of cmake is installed so that it will be chosen
+# by the Android Gradle Plugin during the build.
+"${ANDROID_HOME}/tools/bin/sdkmanager" --uninstall "cmake;3.10.2.4988404" "cmake;3.6.4111459"
+"${ANDROID_HOME}/tools/bin/sdkmanager" --install "cmake;3.18.1"
