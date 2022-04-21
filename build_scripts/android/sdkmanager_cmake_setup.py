@@ -190,7 +190,7 @@ class AndroidSdkCmakeSetup:
     android_home = pathlib.Path(android_home_str)
 
     if Platform.is_windows():
-      sdkmanager_path = android_home / "tools" / "bin" / "sdkmanager.exe"
+      sdkmanager_path = android_home / "tools" / "bin" / "sdkmanager.bat"
     else:
       sdkmanager_path = android_home / "tools" / "bin" / "sdkmanager"
 
