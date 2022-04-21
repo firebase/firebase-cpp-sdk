@@ -62,11 +62,7 @@ fi
 
 # Uninstall all versions of cmake from the Android SDK, except for the one that we want.
 # That way, during the build, the Android Gradle Plugin will select the one and only cmake version.
-readonly SDK_MANAGER="$(python -c "import pathlib; print(pathlib.Path(r'${ANDROID_HOME}/tools/bin/sdkmanager'))")"
-if [[ ! -e ${SDK_MANAGER} ]] ; then
-    echo "Error, ${SDK_MANAGER} not found"
-    exit 1
-fi
+SDK_MANAGER="$(python -c "import pathlib; print(pathlib.Path(r'${ANDROID_HOME}/tools/bin/sdkmanager').as_posix())")"
 "${SDK_MANAGER}" --uninstall "cmake;3.10.2.4988404" "cmake;3.6.4111459"
 "${SDK_MANAGER}" --install "cmake;3.18.1"
 
