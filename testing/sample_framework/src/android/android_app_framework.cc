@@ -169,7 +169,7 @@ class LoggingUtilsData {
   }
 
   void AppendText(const char* text) {
-    if (logging_utils_class_ == 0) return;  // haven't been initted yet
+    if (logging_utils_class_ == 0) return;  // haven't been initialized yet
     JNIEnv* env = GetJniEnv();
     assert(env);
     jstring text_string = env->NewStringUTF(text);
@@ -179,7 +179,7 @@ class LoggingUtilsData {
   }
 
   bool DidTouch() {
-    if (logging_utils_class_ == 0) return false;  // haven't been initted yet
+    if (logging_utils_class_ == 0) return false;  // haven't been initialized yet
     JNIEnv* env = GetJniEnv();
     assert(env);
     return env->CallStaticBooleanMethod(logging_utils_class_,
@@ -187,7 +187,7 @@ class LoggingUtilsData {
   }
 
   bool SkipUITest() {
-    if (logging_utils_class_ == 0) return false;  // haven't been initted yet
+    if (logging_utils_class_ == 0) return false;  // haven't been initialized yet
     JNIEnv* env = GetJniEnv();
     assert(env);
     jboolean b = env->CallStaticBooleanMethod(logging_utils_class_,
@@ -196,7 +196,7 @@ class LoggingUtilsData {
   }
 
   bool SkipNonUITest() {
-    if (logging_utils_class_ == 0) return false;  // haven't been initted yet
+    if (logging_utils_class_ == 0) return false;  // haven't been initialized yet
     JNIEnv* env = GetJniEnv();
     assert(env);
     jboolean b = env->CallStaticBooleanMethod(
@@ -205,7 +205,7 @@ class LoggingUtilsData {
   }
 
   bool IsLoggingToFile() {
-    if (logging_utils_class_ == 0) return false;  // haven't been initted yet
+    if (logging_utils_class_ == 0) return false;  // haven't been initialized yet
     JNIEnv* env = GetJniEnv();
     assert(env);
     jobject file_uri = env->CallStaticObjectMethod(logging_utils_class_,
@@ -219,7 +219,7 @@ class LoggingUtilsData {
   }
 
   bool StartLoggingToFile(const char* path) {
-    if (logging_utils_class_ == 0) return false;  // haven't been initted yet
+    if (logging_utils_class_ == 0) return false;  // haven't been initialized yet
     JNIEnv* env = GetJniEnv();
     assert(env);
     jstring path_string = env->NewStringUTF(path);

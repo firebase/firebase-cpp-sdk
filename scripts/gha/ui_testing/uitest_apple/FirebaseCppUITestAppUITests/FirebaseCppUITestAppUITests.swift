@@ -28,6 +28,7 @@ class FirebaseCppUITestAppUITests: XCTestCase {
     // Periodically check and dismiss dialogs with "Allow" or "OK"
     Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { (_) in
 #if os(iOS)
+      NSLog("finding springboard ...")
       let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
       for button in [springboard.buttons["Open"], springboard.buttons["Allow"], springboard.buttons["OK"]] {
         if button.exists {

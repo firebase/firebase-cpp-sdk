@@ -38,7 +38,7 @@ namespace firebase_test_framework {
 
 // Use this macro to skip an entire test if it is an non UI Test and we are
 // not running it in UItest mode (for example, on UI Test workflow).
-#define TEST_NO_USER_INTERACTION                                    \
+#define TEST_REQUIRES_USER_INTERACTION                              \
   if (SkipNonUITest()) {                                            \
     app_framework::LogInfo("Skipping %s, as it is an Non UI Test.", \
                            test_info_->name());                     \
