@@ -65,7 +65,7 @@ didFailToPresentFullScreenContentWithError:(nonnull NSError *)error {
   _interstitialAd->NotifyListenerOfAdFailedToShowFullScreenContent(ad_error);
 }
 
-- (void)adDidPresentFullScreenContent:(nonnull id<GADFullScreenPresentingAd>)ad {
+- (void)adWillPresentFullScreenContent:(nonnull id<GADFullScreenPresentingAd>)ad {
   _interstitialAd->NotifyListenerOfAdShowedFullScreenContent();
 }
 
