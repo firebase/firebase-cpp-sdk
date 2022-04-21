@@ -60,6 +60,16 @@ if [[ -z "${ANDROID_HOME}" ]]; then
     exit 1
 fi
 
+# Uninstall all versions of cmake from the Android SDK, except for the one that we want.
+# That way, during the build, the Android Gradle Plugin will select the one and only cmake version.
+readonly SDK_MANAGER="$(python -c "import pathlib; print(pathlib.Path(r'${ANDROID_HOME}/tools/bin/sdkmanager'))")"
+if [[ ! -e ${SDK_MANAGER} ]] ; then
+    echo "Error, ${SDK_MANAGER} not found"
+    exit 1
+fi
+"${SDK_MANAGER}" --uninstall "cmake;3.10.2.4988404" "cmake;3.6.4111459"
+"${SDK_MANAGER}" --install "cmake;3.18.1"
+
 if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 16\." "${NDK_ROOT}/source.properties") ]]; then
     if [[ -d /tmp/android-ndk-r16b && \
 	      -n $(grep "Pkg\.Revision = 16\." "/tmp/android-ndk-r16b/source.properties") ]]; then
@@ -86,8 +96,3 @@ if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 16\." "${NDK_ROOT}/source.p
 	    echo "NDK r16b has been downloaded into /tmp/android-ndk-r16b"
     fi
 fi
-
-# Make sure that only the desired version of cmake is installed so that it will be chosen
-# by the Android Gradle Plugin during the build.
-"${ANDROID_HOME}/tools/bin/sdkmanager" --uninstall "cmake;3.10.2.4988404" "cmake;3.6.4111459"
-"${ANDROID_HOME}/tools/bin/sdkmanager" --install "cmake;3.18.1"
