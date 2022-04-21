@@ -28,6 +28,7 @@ import logging
 import os
 import pathlib
 import platform
+import re
 import sys
 import subprocess
 import tempfile
@@ -68,7 +69,29 @@ class AndroidSdkCmakeSetup:
 
     self.uninstall_unwanted_cmake_versions(cmake_versions)
     self.install_wanted_cmake_version(cmake_versions)
+    self.verify_cmake_versions()
+    self.write_local_properties()
 
+  def write_local_properties(self) -> None:
+    cmake_dir = self.cmake_dir_path().resolve()
+    local_properties_line = "cmake.dir=" + re.sub(r"([:\\])", r"\\\1", str(cmake_dir))
+    logging.info("Writing line \"%s\" to local.properties files", local_properties_line)
+
+    for build_gradle_file in self.iter_build_gradle_cmake_files():
+      local_properties_file = build_gradle_file.parent / "local.properties"
+      logging.info("Updating %s", local_properties_file)
+      with local_properties_file.open("at", encoding="utf8") as f:
+        print("", file=f)
+        print(local_properties_line, file=f)
+
+  def iter_build_gradle_cmake_files(self) -> Iterable[pathlib.Path]:
+    for build_gradle_path in pathlib.Path.cwd().glob("**/build.gradle"):
+      with build_gradle_path.open("rt", encoding="utf8", errors="ignore") as f:
+        build_gradle_text = f.read()
+      if "externalNativeBuild" in build_gradle_text:
+        yield build_gradle_path
+
+  def verify_cmake_versions(self) -> None:
     cmake_versions_after = self.get_cmake_versions_from_sdkmanager()
     if cmake_versions_after.installed != frozenset([self.REQUIRED_CMAKE_VERSION]):
       raise Exception(
@@ -182,22 +205,48 @@ class AndroidSdkCmakeSetup:
           stderr_file.seek(0)
           print(stderr_file.read().decode("utf8", errors="ignore"), file=sys.stderr)
 
-  def sdkmanager_path(self) -> pathlib.Path:
+  def android_home_path(self) -> pathlib.Path:
     android_home_str = os.environ.get("ANDROID_HOME")
     if not android_home_str:
       raise Exception("ANDROID_HOME environment variable is not set")
 
     android_home = pathlib.Path(android_home_str)
+    if not android_home.exists():
+      raise Exception(f"ANDROID_HOME directory not found: {android_home}")
 
+    return android_home
+
+  def sdkmanager_path(self) -> pathlib.Path:
     if Platform.is_windows():
-      sdkmanager_path = android_home / "tools" / "bin" / "sdkmanager.bat"
+      sdkmanager_exe_filename = "sdkmanager.bat"
     else:
-      sdkmanager_path = android_home / "tools" / "bin" / "sdkmanager"
+      sdkmanager_exe_filename = "sdkmanager"
 
+    sdkmanager_path = self.android_home_path() / "tools" / "bin" / sdkmanager_exe_filename
     if not sdkmanager_path.exists():
       raise Exception(f"file not found: {sdkmanager_path}")
 
     return sdkmanager_path
+
+  def cmake_dir_path(self) -> pathlib.Path:
+    cmakes_dir = self.android_home_path() / "cmake"
+    if not cmakes_dir.exists():
+      raise Exception(f"cmake directory not found: {cmakes_dir}")
+
+    cmake_dir = None
+    for cmakes_dir_entry in cmakes_dir.iterdir():
+      if cmake_dir is None:
+        cmake_dir = cmakes_dir_entry
+      else:
+        raise Exception(
+          f"multiple cmake directories found in {cmakes_dir}: "
+          + cmake_dir.name + " and " + cmakes_dir_entry.name
+        )
+
+    if cmake_dir is None:
+      raise Exception(f"no subdirectories found in {cmakes_dir}")
+
+    return cmake_dir
 
 
 class Platform(enum.Enum):
