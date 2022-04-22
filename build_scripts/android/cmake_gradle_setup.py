@@ -25,11 +25,13 @@ import io
 import logging
 import os
 import pathlib
+import platform
 import re
 import sys
 import subprocess
 import tempfile
-from typing import Iterable
+from typing import Iterable, Tuple
+import venv
 
 
 def main() -> None:
@@ -45,12 +47,12 @@ def main() -> None:
 
 
 def run() -> None:
-  cmake_version = get_cmake_version()
+  (cmake_version, cmake_dir) = install_cmake()
 
-  logging.info("Setting cmake version to %s in build.gradle files", cmake_version)
+  build_gradle_cmake_files = tuple(sorted(iter_build_gradle_cmake_files()))
+
   expr = re.compile(r"(\s*)path\s+'.*CMakeLists.txt'(\s*)")
-
-  for build_gradle_file in iter_build_gradle_cmake_files():
+  for build_gradle_file in build_gradle_cmake_files:
     logging.info("Setting cmake version to %s in %s", cmake_version, build_gradle_file)
     with build_gradle_file.open("rt", encoding="utf8") as f:
       lines = list(f)
@@ -69,6 +71,15 @@ def run() -> None:
     with build_gradle_file.open("wt", encoding="utf8") as f:
       f.writelines(lines)
 
+  cmake_dir_local_properties_line = "cmake.dir=" + re.sub(r"([:\\])", r"\\\1", str(cmake_dir.resolve()))
+  for build_gradle_file in (pathlib.Path.cwd() / "build.gradle",) + build_gradle_cmake_files:
+    local_properties_file = build_gradle_file.parent / "local.properties"
+    logging.info("Setting %s in %s", cmake_dir_local_properties_line, local_properties_file)
+    with local_properties_file.open("at", encoding="utf8") as f:
+      print("", file=f)
+      print(cmake_dir_local_properties_line, file=f)
+
+
 def iter_build_gradle_cmake_files() -> Iterable[pathlib.Path]:
   for build_gradle_path in pathlib.Path.cwd().glob("**/build.gradle"):
     with build_gradle_path.open("rt", encoding="utf8", errors="ignore") as f:
@@ -76,22 +87,29 @@ def iter_build_gradle_cmake_files() -> Iterable[pathlib.Path]:
     if "externalNativeBuild" in build_gradle_text and "cmake" in build_gradle_text:
       yield build_gradle_path
 
-def get_cmake_version() -> str:
-  args = ["cmake", "--version"]
-  logging.info("Running command: %s", subprocess.list2cmdline(args))
 
-  with tempfile.TemporaryFile() as stdout_file:
-    subprocess.check_call(args, stdout=stdout_file)
-    stdout_file.seek(0)
-    cmake_output = stdout_file.read().decode("utf8", errors="replace")
+def install_cmake() -> Tuple[str, pathlib.Path]:
+  cmake_version = "3.18.0"
+  venv_path_str = tempfile.mkdtemp(prefix=f"cmake-{cmake_version}_", dir=pathlib.Path.cwd())
+  venv_path = pathlib.Path(venv_path_str)
+  logging.info("Creating a Python virtualenv for cmake %s in %s", cmake_version, venv_path)
 
-  version_line_prefix = "cmake version"
-  for line in io.StringIO(cmake_output):
-    if line.startswith(version_line_prefix):
-      return line[len(version_line_prefix):].strip()
+  venv.create(venv_path, with_pip=True)
 
-  print(cmake_output)
-  raise Exception(f"Unable to determine version of cmake")
+  if platform.system() == "Windows":
+    pip_exe = venv_path / "Scripts" / "pip.exe"
+    cmake_exe = venv_path / "Scripts" / "cmake.exe"
+  else:
+    pip_exe = venv_path / "bin" / "pip"
+    cmake_exe = venv_path / "bin" / "cmake"
+
+  logging.info("Installing cmake %s in %s using %s", cmake_version, venv_path, pip_exe)
+  subprocess.check_output([str(pip_exe), "install", f"cmake=={cmake_version}"])
+
+  if not cmake_exe.exists():
+    raise Exception(f"File not found: {cmake_exe}")
+
+  return (cmake_version, venv_path)
 
 
 if __name__ == "__main__":

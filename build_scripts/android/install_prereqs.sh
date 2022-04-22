@@ -60,7 +60,7 @@ if [[ -z "${ANDROID_HOME}" ]]; then
     exit 1
 fi
 
-python build_scripts/android/set_cmake_version_in_build_gradle_files.py
+python build_scripts/android/cmake_gradle_setup.py
 
 if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 16\." "${NDK_ROOT}/source.properties") ]]; then
     if [[ -d /tmp/android-ndk-r16b && \
