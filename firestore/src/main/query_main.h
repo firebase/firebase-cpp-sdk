@@ -182,7 +182,7 @@ class QueryInternal {
     kEndAt,
   };
 
-  using Operator = core::Filter::Operator;
+  using Operator = core::FieldFilter::Operator;
 
   Query Where(const FieldPath& field,
               Operator op,

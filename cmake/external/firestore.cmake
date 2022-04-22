@@ -18,7 +18,11 @@ if(TARGET firestore)
   return()
 endif()
 
-function(GetReleasedDep version)
+# If the format of the line below changes, then be sure to update
+# https://github.com/firebase/firebase-cpp-sdk/blob/fd054fa016/.github/workflows/update-dependencies.yml#L81
+set(version CocoaPods-8.15.0)
+
+function(GetReleasedDep)
   message("Getting released firebase-ios-sdk @ ${version}")
   ExternalProject_Add(
     firestore
@@ -60,7 +64,7 @@ endfunction()
 
 if((NOT FIRESTORE_DEP_SOURCE) OR (FIRESTORE_DEP_SOURCE STREQUAL "RELEASED"))
   # Get from released dependency by default
-  GetReleasedDep("CocoaPods-8.12.1")
+  GetReleasedDep()
 else()
   if(FIRESTORE_DEP_SOURCE STREQUAL "TIP")
     GetTag("origin/master")
