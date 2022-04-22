@@ -1,6 +1,6 @@
 source 'https://github.com/CocoaPods/Specs.git'
 # Firebase Realtime Database test application.
-use_frameworks!
+use_frameworks! :linkage => :static
 
 target 'integration_test' do
   platform :ios, '10.0'
