@@ -569,8 +569,8 @@ code.
 ## Release Notes
 ### Upcoming release
 -   Changes
-    -   Storage (Desktop): Fix Content-Type when uploading with custom
-        metadata.
+    -   Storage (Desktop): Set Content-Type HTTP header when uploading with
+        custom metadata.
 
 ### 8.11.0
 -   Changes
