@@ -27,6 +27,7 @@ import os
 import pathlib
 import platform
 import re
+import shutil
 import sys
 import subprocess
 import tempfile
@@ -99,15 +100,29 @@ def install_cmake() -> Tuple[str, pathlib.Path]:
   if platform.system() == "Windows":
     pip_exe = venv_path / "Scripts" / "pip.exe"
     cmake_exe = venv_path / "Scripts" / "cmake.exe"
+    ninja_exe = venv_path / "Scripts" / "ninja.exe"
   else:
     pip_exe = venv_path / "bin" / "pip"
     cmake_exe = venv_path / "bin" / "cmake"
+    ninja_exe = venv_path / "bin" / "ninja"
 
   logging.info("Installing cmake %s in %s using %s", cmake_version, venv_path, pip_exe)
   subprocess.check_output([str(pip_exe), "install", f"cmake=={cmake_version}", "ninja"])
 
   if not cmake_exe.exists():
     raise Exception(f"File not found: {cmake_exe}")
+  if not ninja_exe.exists():
+    raise Exception(f"File not found: {ninja_exe}")
+
+  if platform.system() == "Windows":
+    bin_dir = venv_path / "bin"
+    bin_dir.mkdir(exist_ok=True)
+    cmake_bin_exe = bin_dir / cmake_exe.name
+    ninja_bin_exe = bin_dir / ninja_exe.name
+    logging.info("Copying %s to %s", cmake_exe, cmake_bin_exe)
+    shutil.copy2(cmake_exe, cmake_bin_exe)
+    logging.info("Copying %s to %s", ninja_exe, ninja_bin_exe)
+    shutil.copy2(ninja_exe, ninja_bin_exe)
 
   return (cmake_version, venv_path)
 
