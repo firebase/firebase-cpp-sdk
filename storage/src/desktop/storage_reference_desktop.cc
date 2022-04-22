@@ -230,7 +230,8 @@ Future<void> StorageReferenceInternal::DeleteLastResult() {
 // Handy utility function, since REST calls have similar setup and teardown.
 void StorageReferenceInternal::PrepareRequest(rest::Request* request,
                                               const char* url,
-                                              const char* method) {
+                                              const char* method,
+                                              const char* content_type) {
   request->set_url(url);
   request->set_method(method);
 
@@ -239,6 +240,10 @@ void StorageReferenceInternal::PrepareRequest(rest::Request* request,
   if (token.length() > 0) {
     std::string auth_header = "Bearer " + token;
     request->add_header("Authorization", auth_header.c_str());
+  }
+  // if content_type was specified, add a header.
+  if (content_type != nullptr && *content_type != '\0') {
+    request->add_header("Content-Type", content_type);
   }
   // Unfortunately the storage backend rejects requests with the complete
   // user agent specified by the x-goog-api-client header so we only use
@@ -404,7 +409,7 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
 
 Future<Metadata> StorageReferenceInternal::PutBytesInternal(
     const void* buffer, size_t buffer_size, Listener* listener,
-    Controller* controller_out) {
+    Controller* controller_out, const char* content_type) {
   auto* future_api = future();
   auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutBytes);
   auto send_request_funct{[&, buffer, buffer_size, listener,
@@ -416,7 +421,8 @@ Future<Metadata> StorageReferenceInternal::PutBytesInternal(
     storage::internal::RequestBinary* request =
         new storage::internal::RequestBinary(static_cast<const char*>(buffer),
                                              buffer_size);
-    PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), rest::util::kPost);
+    PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), rest::util::kPost,
+                   content_type);
     ReturnedMetadataResponse* response =
         new ReturnedMetadataResponse(handle, future_api, AsStorageReference());
     RestCall(request, request->notifier(), response, handle.get(), listener,
@@ -442,8 +448,9 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
   // different storage reference than the original, so the caller of this
   // function can't access it via PutFileLastResult.
   Future<Metadata> putbytes_internal =
-      data->storage_ref.internal_->PutBytesInternal(buffer, buffer_size,
-                                                    listener, controller_out);
+      data->storage_ref.internal_->PutBytesInternal(
+          buffer, buffer_size, listener, controller_out,
+          metadata ? metadata->content_type() : nullptr);
 
   SetupMetadataChain(putbytes_internal, data);
 
@@ -466,7 +473,8 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
 }
 
 Future<Metadata> StorageReferenceInternal::PutFileInternal(
-    const char* path, Listener* listener, Controller* controller_out) {
+    const char* path, Listener* listener, Controller* controller_out,
+    const char* content_type) {
   auto* future_api = future();
   auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutFile);
 
@@ -490,7 +498,7 @@ Future<Metadata> StorageReferenceInternal::PutFileInternal(
               handle, future_api, AsStorageReference());
 
           PrepareRequest(request, storageUri_.AsHttpUrl().c_str(),
-                         rest::util::kPost);
+                         rest::util::kPost, content_type);
           RestCall(request, request->notifier(), response, handle.get(),
                    listener, controller_out);
           return response;
@@ -516,8 +524,9 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
   // different storage reference than the original, so the caller of this
   // function can't access it via PutFileLastResult.
   Future<Metadata> putfile_internal =
-      data->storage_ref.internal_->PutFileInternal(path, listener,
-                                                   controller_out);
+      data->storage_ref.internal_->PutFileInternal(
+          path, listener, controller_out,
+          metadata ? metadata->content_type() : nullptr);
 
   SetupMetadataChain(putfile_internal, data);
 

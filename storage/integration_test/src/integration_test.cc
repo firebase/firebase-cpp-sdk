@@ -509,6 +509,67 @@ TEST_F(FirebaseStorageTest, TestWriteAndReadFileWithCustomMetadata) {
   }
 }
 
+// 1x1 transparent PNG file
+static const unsigned char kEmptyPngFileBytes[] = {
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+    0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+    0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, 0x89, 0x00, 0x00, 0x00,
+    0x0d, 0x49, 0x44, 0x41, 0x54, 0x78, 0xda, 0x63, 0xfc, 0xcf, 0xc0, 0x50,
+    0x0f, 0x00, 0x04, 0x85, 0x01, 0x80, 0x84, 0xa9, 0x8c, 0x21, 0x00, 0x00,
+    0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82
+};
+
+TEST_F(FirebaseStorageTest, TestWriteAndReadContentType) {
+  SignIn();
+
+  firebase::storage::StorageReference ref =
+      CreateFolder().Child("TestImage-CustomMetadata.png");
+  LogDebug("Storage URL: gs://%s%s", ref.bucket().c_str(),
+           ref.full_path().c_str());
+  cleanup_files_.push_back(ref);
+  std::string content_type = "image/png";
+  // Write to a simple file.
+  {
+    LogDebug("Write a sample file with custom content-type from byte buffer.");
+    firebase::storage::Metadata metadata;
+    metadata.set_content_type(content_type.c_str());
+    firebase::Future<firebase::storage::Metadata> future =
+      ref.PutBytes(kEmptyPngFileBytes, sizeof(kEmptyPngFileBytes), metadata);
+    WaitForCompletion(future, "PutBytes");
+    const firebase::storage::Metadata* metadata_written = future.result();
+    ASSERT_NE(metadata_written, nullptr);
+    EXPECT_EQ(metadata_written->content_type(), content_type);
+  }
+  // Now read back the file.
+  {
+    LogDebug("Download sample file with custom content-type to memory.");
+    const size_t kBufferSize = 1024;
+    char buffer[kBufferSize];
+    memset(buffer, 0, sizeof(buffer));
+
+    firebase::Future<size_t> future = RunWithRetry<size_t>(
+        [&]() { return ref.GetBytes(buffer, kBufferSize); });
+    WaitForCompletion(future, "GetBytes");
+    ASSERT_NE(future.result(), nullptr);
+    size_t file_size = *future.result();
+    EXPECT_EQ(file_size, sizeof(kEmptyPngFileBytes));
+    EXPECT_THAT(kEmptyPngFileBytes, ElementsAreArray(buffer, file_size))
+        << "Download failed, file contents did not match.";
+  }
+  // And read the custom content type
+  {
+    LogDebug("Read custom content-type.");
+    firebase::Future<firebase::storage::Metadata> future =
+        RunWithRetry<firebase::storage::Metadata>(
+            [&]() { return ref.GetMetadata(); });
+    WaitForCompletion(future, "GetFileMetadata");
+    const firebase::storage::Metadata* metadata = future.result();
+    ASSERT_NE(metadata, nullptr);
+
+    EXPECT_EQ(metadata->content_type(), content_type);
+  }
+}
+
 const char kPutFileTestFile[] = "PutFileTest.txt";
 const char kGetFileTestFile[] = "GetFileTest.txt";
 const char kFileUriScheme[] = "file://";
