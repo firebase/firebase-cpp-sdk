@@ -518,11 +518,11 @@ static const unsigned char kEmptyPngFileBytes[] = {
     0x0f, 0x00, 0x04, 0x85, 0x01, 0x80, 0x84, 0xa9, 0x8c, 0x21, 0x00, 0x00,
     0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82};
 
-TEST_F(FirebaseStorageTest, TestWriteAndReadContentType) {
+TEST_F(FirebaseStorageTest, TestWriteAndReadCustomContentType) {
   SignIn();
 
   firebase::storage::StorageReference ref =
-      CreateFolder().Child("TestImage-CustomMetadata.png");
+      CreateFolder().Child("TestFile-CustomContentType.png");
   LogDebug("Storage URL: gs://%s%s", ref.bucket().c_str(),
            ref.full_path().c_str());
   cleanup_files_.push_back(ref);
