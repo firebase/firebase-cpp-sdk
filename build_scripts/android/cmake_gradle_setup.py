@@ -104,7 +104,7 @@ def install_cmake() -> Tuple[str, pathlib.Path]:
     cmake_exe = venv_path / "bin" / "cmake"
 
   logging.info("Installing cmake %s in %s using %s", cmake_version, venv_path, pip_exe)
-  subprocess.check_output([str(pip_exe), "install", f"cmake=={cmake_version}"])
+  subprocess.check_output([str(pip_exe), "install", f"cmake=={cmake_version}", "ninja"])
 
   if not cmake_exe.exists():
     raise Exception(f"File not found: {cmake_exe}")
