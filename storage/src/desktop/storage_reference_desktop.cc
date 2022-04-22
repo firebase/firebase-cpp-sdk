@@ -412,7 +412,9 @@ Future<Metadata> StorageReferenceInternal::PutBytesInternal(
     Controller* controller_out, const char* content_type) {
   auto* future_api = future();
   auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutBytes);
-  auto send_request_funct{[&, buffer, buffer_size, listener,
+
+  std::string content_type_str = content_type ? content_type : "";
+  auto send_request_funct{[&, content_type_str, buffer, buffer_size, listener,
                            controller_out]() -> BlockingResponse* {
     auto* future_api = future();
     auto handle =
@@ -422,7 +424,7 @@ Future<Metadata> StorageReferenceInternal::PutBytesInternal(
         new storage::internal::RequestBinary(static_cast<const char*>(buffer),
                                              buffer_size);
     PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), rest::util::kPost,
-                   content_type);
+                   content_type_str.c_str());
     ReturnedMetadataResponse* response =
         new ReturnedMetadataResponse(handle, future_api, AsStorageReference());
     RestCall(request, request->notifier(), response, handle.get(), listener,
@@ -479,31 +481,32 @@ Future<Metadata> StorageReferenceInternal::PutFileInternal(
   auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutFile);
 
   std::string final_path = StripProtocol(path);
-  auto send_request_funct{
-      [&, final_path, listener, controller_out]() -> BlockingResponse* {
-        auto* future_api = future();
-        auto handle =
-            future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutFileInternal);
+  std::string content_type_str = content_type ? content_type : "";
+  auto send_request_funct{[&, final_path, content_type_str, listener,
+                           controller_out]() -> BlockingResponse* {
+    auto* future_api = future();
+    auto handle =
+        future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutFileInternal);
 
-        // Open the file, calculate the length.
-        storage::internal::RequestFile* request(
-            new storage::internal::RequestFile(final_path.c_str(), 0));
-        if (!request->IsFileOpen()) {
-          delete request;
-          future_api->Complete(handle, kErrorUnknown, "Could not read file.");
-          return nullptr;
-        } else {
-          // Everything is good.  Fire off the request.
-          ReturnedMetadataResponse* response = new ReturnedMetadataResponse(
-              handle, future_api, AsStorageReference());
+    // Open the file, calculate the length.
+    storage::internal::RequestFile* request(
+        new storage::internal::RequestFile(final_path.c_str(), 0));
+    if (!request->IsFileOpen()) {
+      delete request;
+      future_api->Complete(handle, kErrorUnknown, "Could not read file.");
+      return nullptr;
+    } else {
+      // Everything is good.  Fire off the request.
+      ReturnedMetadataResponse* response = new ReturnedMetadataResponse(
+          handle, future_api, AsStorageReference());
 
-          PrepareRequest(request, storageUri_.AsHttpUrl().c_str(),
-                         rest::util::kPost, content_type);
-          RestCall(request, request->notifier(), response, handle.get(),
-                   listener, controller_out);
-          return response;
-        }
-      }};
+      PrepareRequest(request, storageUri_.AsHttpUrl().c_str(),
+                     rest::util::kPost, content_type_str.c_str());
+      RestCall(request, request->notifier(), response, handle.get(), listener,
+               controller_out);
+      return response;
+    }
+  }};
   SendRequestWithRetry(kStorageReferenceFnPutFileInternal, send_request_funct,
                        handle, storage_->max_upload_retry_time());
   return PutFileLastResult();
