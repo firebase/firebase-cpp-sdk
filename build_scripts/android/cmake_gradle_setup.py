@@ -48,6 +48,9 @@ def main() -> None:
 
 
 def run() -> None:
+  logging.info("Python Interpreter: %s", sys.executable)
+  logging.info("Python Version: %s", sys.version)
+
   (cmake_version, cmake_dir) = install_cmake()
 
   build_gradle_cmake_files = tuple(sorted(iter_build_gradle_cmake_files()))
