@@ -1,7 +1,7 @@
-
 source 'https://github.com/CocoaPods/Specs.git'
 platform :ios, '10.0'
 # Firebase Dynamic Links test application.
+use_frameworks! :linkage => :static
 
 target 'integration_test' do
   pod 'Firebase/DynamicLinks', '8.15.0'

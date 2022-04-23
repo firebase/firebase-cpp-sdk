@@ -1,6 +1,6 @@
-
 source 'https://github.com/CocoaPods/Specs.git'
 # Firebase Remote Config test application.
+use_frameworks! :linkage => :static
 
 target 'integration_test' do
   platform :ios, '10.0'
