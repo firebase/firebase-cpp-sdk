@@ -30,8 +30,8 @@
 
 #ifdef __OBJC__
 #import "FIRStorage.h"
-#import "GTMSessionFetcher/GTMSessionFetcher.h"
-#import "GTMSessionFetcher/GTMSessionFetcherService.h"
+#import "GTMSessionFetcher.h"
+#import "GTMSessionFetcherService.h"
 
 // GTMSessionFetcherService implementation that yields a
 // FIRCPPGTMSessionFetcher class rather than the default implementation.
