@@ -61,6 +61,8 @@ def run() -> None:
     with build_gradle_file.open("rt", encoding="utf8") as f:
       lines = list(f)
 
+    version_line_added = False
+    arguments_modified = False
     for i in range(len(lines)):
       line = lines[i]
       match = expr.fullmatch(line)
@@ -68,9 +70,24 @@ def run() -> None:
         indent = match.group(1)
         eol = match.group(2)
         lines.insert(i+1, indent + "version '" + cmake_version + "'" + eol)
-        break
-    else:
+        version_line_added = True
+      elif line.strip().startswith("arguments "):
+        eol = line[len(line.rstrip()):]
+        lines[i] = (
+          line.rstrip()
+          + (" " if line.rstrip().endswith(",") else ", ")
+          + "'-DFIREBASE_PYTHON_HOST_EXECUTABLE:FILEPATH="
+          + sys.executable.replace("\\", "\\\\")
+          + "'"
+          + ("," if line.rstrip().endswith(",") else "")
+          + eol
+        )
+        arguments_modified = True
+
+    if not version_line_added:
       raise Exception(f"Unable to find place to insert cmake version in {build_gradle_file}")
+    elif not arguments_modified:
+      raise Exception(f"Unable to find place to edit cmake arguments in {build_gradle_file}")
 
     with build_gradle_file.open("wt", encoding="utf8") as f:
       f.writelines(lines)
