@@ -591,11 +591,11 @@ Future<Metadata> StorageReferenceInternal::UpdateMetadata(
         new ReturnedMetadataResponse(handle, future_api, AsStorageReference());
 
     storage::internal::Request* request = new storage::internal::Request();
-    PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), "PATCH");
+    PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), "PATCH",
+                   "application/json");
 
     std::string metadata_json = metadata->internal_->ExportAsJson();
     request->set_post_fields(metadata_json.c_str(), metadata_json.length());
-    request->add_header("Content-Type", "application/json");
 
     RestCall(request, request->notifier(), response, handle.get(), nullptr,
              nullptr);
