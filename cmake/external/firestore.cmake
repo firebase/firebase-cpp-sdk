@@ -13,6 +13,7 @@
 # limitations under the License.
 
 include(ExternalProject)
+include(FindPythonInterp)
 
 if(TARGET firestore)
   return()
@@ -27,8 +28,10 @@ function(GetReleasedDep)
   ExternalProject_Add(
     firestore
 
-    DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
-    URL https://github.com/firebase/firebase-ios-sdk/archive/${version}.tar.gz
+  DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
+  GIT_REPOSITORY https://github.com/firebase/firebase-ios-sdk
+  GIT_TAG 70aa8b82a2ed36dd14448174bea0fd7e575d4d49
+  GIT_SHALLOW ON
 
     PREFIX ${PROJECT_BINARY_DIR}
 
@@ -73,3 +76,10 @@ else()
   endif()
 endif()
 
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND ""
+  INSTALL_COMMAND ""
+  TEST_COMMAND ""
+  PATCH_COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/firestore_patch.py --leveldb-version-from ${CMAKE_CURRENT_LIST_DIR}/leveldb.cmake
+  HTTP_HEADER "${EXTERNAL_PROJECT_HTTP_HEADER}"
+)
