@@ -49,6 +49,7 @@ IGNORE_LINT_WARNINGS = [
 EXCLUDE_PATH_REGEX = [
   # These files are copied from an external repo and are outside our control.
   r'^analytics/ios_headers/'
+  r'^ios_pod/swift_headers/'
 ]
 # The linter gives every error a confidence score.
 # 1 = It's most likely not really an issue.
