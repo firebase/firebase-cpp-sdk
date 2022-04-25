@@ -22,8 +22,8 @@
 #include "storage/src/ios/storage_reference_ios.h"
 
 #import "FIRStorageReference.h"
-#import "GTMSessionFetcher/GTMSessionFetcher.h"
-#import "GTMSessionFetcher/GTMSessionFetcherService.h"
+#import "GTMSessionFetcher.h"
+#import "GTMSessionFetcherService.h"
 
 // WARNING: Private methods in FIRStorage.
 @interface FIRStorage ()
