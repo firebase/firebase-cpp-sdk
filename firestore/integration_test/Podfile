@@ -1,6 +1,6 @@
 source 'https://github.com/Firebase/SpecsStaging.git'
 source 'https://github.com/CocoaPods/Specs.git'
-# Firebase Realtime Firestore test application.
+# Cloud Firestore test application.
 use_frameworks! :linkage => :static
 
 target 'integration_test' do

@@ -1,5 +1,5 @@
+source 'https://github.com/Firebase/SpecsStaging.git'
 source 'https://github.com/CocoaPods/Specs.git'
-platform :ios, '10.0'
 # Cloud Firestore internal test application.
 use_frameworks! :linkage => :static
 
