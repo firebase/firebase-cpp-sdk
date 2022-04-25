@@ -142,7 +142,7 @@ jobs:
               python scripts/format_code.py --f "${ios_header}"
             done
             rm -rf ${ziptmp}
-            
+
           elif [[ ${{ github.event.inputs.updateAndroid }} -eq 1 ]]; then
             # Update Android only
             echo "Updating Android dependencies only"
