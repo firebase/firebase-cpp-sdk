@@ -76,6 +76,7 @@ modify your bashrc file to automatically set these variables.
 import datetime
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -477,7 +478,8 @@ def _build_android(project_dir, sdk_dir):
   """Builds an Android binary (apk)."""
   if platform.system() == "Windows":
     gradlew = "gradlew.bat"
-    sdk_dir = sdk_dir.replace("\\", "/")  # Gradle misinterprets backslashes.
+    # Gradle misinterprets backslashes and colons.
+    sdk_dir = re.sub(r"([:\\])", r"\\\1", sdk_dir)
   else:
     gradlew = "./gradlew"
   logging.info("Patching gradle properties with path to SDK")
