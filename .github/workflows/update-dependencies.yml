@@ -136,7 +136,9 @@ jobs:
             copyright_line="// Copyright $(date +%Y) Google LLC\n"
             # Add a note to each file about its source.
             for ios_header in ios_pod/swift_headers/*.h; do
-              sed -i~ "s|^/// @file|${copyright_line}\n// Copied from Firebase iOS SDK ${core_version}.\n\n/// @file|" "${ios_header}"
+              if ! grep -q "^// Copied from Firebase iOS SDK" "${ios_header}"; then
+                sed -i~ "s|^/// @file|${copyright_line}\n// Copied from Firebase iOS SDK ${core_version}.\n\n/// @file|" "${ios_header}"
+              fi
               python ../../scripts/format_code.py --f "${ios_header}"
             done
             rm -rf ${ziptmp}
