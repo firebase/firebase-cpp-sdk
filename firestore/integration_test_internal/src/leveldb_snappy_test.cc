@@ -24,4 +24,4 @@
 // TODO(dconeybe) Import ALL the unit tests from the iOS SDK by adding them
 // to the CMakeLists.txt in the parent directory of this file. That way we can
 // run all of the tests from the iOS SDK on each platform targeted by this repo.
-#include "Firestore/core/test/unit/local/leveldb_snappy_test.cc"
+#include "Firestore/core/test/unit/local/leveldb_snappy_test.cc"  // NOLINT
