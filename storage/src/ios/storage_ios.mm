@@ -21,7 +21,7 @@
 #include "app/src/reference_counted_future_impl.h"
 #include "storage/src/ios/storage_reference_ios.h"
 
-#import "FIRStorageReference.h"
+#import "FirebaseStorage-Swift.h"
 #import "GTMSessionFetcher.h"
 #import "GTMSessionFetcherService.h"
 

@@ -29,9 +29,20 @@
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
 #ifdef __OBJC__
-#import "FIRStorage.h"
+#import "FirebaseStorage-Swift.h"
 #import "GTMSessionFetcher.h"
 #import "GTMSessionFetcherService.h"
+
+// Some missing typedefs not included in Swift header.
+typedef NSString *FIRStorageHandle;
+typedef void (^FIRStorageVoidDataError)(NSData *_Nullable, NSError *_Nullable);
+typedef void (^FIRStorageVoidError)(NSError *_Nullable);
+typedef void (^FIRStorageVoidMetadata)(FIRStorageMetadata *_Nullable);
+typedef void (^FIRStorageVoidMetadataError)(FIRStorageMetadata *_Nullable,
+                                            NSError *_Nullable);
+typedef void (^FIRStorageVoidSnapshot)(FIRStorageTaskSnapshot *_Nonnull);
+typedef void (^FIRStorageVoidURLError)(NSURL *_Nullable, NSError *_Nullable);
+FOUNDATION_EXPORT NSString *const FIRStorageErrorDomain NS_SWIFT_NAME(StorageErrorDomain);
 
 // GTMSessionFetcherService implementation that yields a
 // FIRCPPGTMSessionFetcher class rather than the default implementation.

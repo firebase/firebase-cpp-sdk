@@ -102,6 +102,7 @@ target_include_directories(firebase_storage
     ${CMAKE_CURRENT_LIST_DIR}/src/include
   PRIVATE
     ${FIREBASE_CPP_SDK_ROOT_DIR}
+    ${FIREBASE_CPP_SDK_ROOT_DIR}/ios_pod/swift_headers
 )
 target_compile_definitions(firebase_storage
   PRIVATE

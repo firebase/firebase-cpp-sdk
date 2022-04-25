@@ -14,12 +14,7 @@
 
 #include "storage/src/ios/storage_reference_ios.h"
 
-#import "FIRStorage.h"
-#import "FIRStorageConstants.h"
-#import "FIRStorageDownloadTask.h"
-#import "FIRStorageReference.h"
-#import "FIRStorageTaskSnapshot.h"
-#import "FIRStorageUploadTask.h"
+#import "FirebaseStorage-Swift.h"
 
 #include "app/src/util_ios.h"
 #include "storage/src/common/common_internal.h"

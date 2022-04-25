@@ -122,6 +122,25 @@ jobs:
               cd -
               rm -rf "${podtmp}"
             fi
+
+            // Download the zip distribution and get the Swift header files.
+            core_version=$(grep "pod 'Firebase/Core'" ios_pod/Podfile | sed "s/.*'\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)'.*/\1/")
+            echo "Getting Swift header files from Firebase iOS SDK ${core_version} zip distribution"
+            ziptmp="$(mktemp -d)"
+            curl https://github.com/firebase/firebase-ios-sdk/releases/download/v${core_version}/Firebase.zip -o ${ziptmp}/Firebase.zip
+            cd ${ziptmp}
+            unzip -q Firebase.zip
+            cd -
+            // Copy all *-Swift.h header files into ios_pod/swift_headers/
+            find ${ziptmp} -name '*-Swift.h' | xargs -n 1 -j REPLACETEXT cp -f REPLACETEXT ios_pod/swift_headers/
+            copyright_line="// Copyright $(date +%Y) Google LLC\n"
+            # Add a note to each file about its source.
+            for ios_header in ios_pod/swift_headers/*.h; do
+              sed -i~ "s|^/// @file|${copyright_line}\n// Copied from Firebase iOS SDK ${core_version}.\n\n/// @file|" "${ios_header}"
+              python ../../scripts/format_code.py --f "${ios_header}"
+            done
+            rm -rf ${ziptmp}
+            
           elif [[ ${{ github.event.inputs.updateAndroid }} -eq 1 ]]; then
             # Update Android only
             echo "Updating Android dependencies only"

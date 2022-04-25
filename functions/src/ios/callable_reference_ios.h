@@ -22,8 +22,8 @@
 #include "functions/src/ios/functions_ios.h"
 
 #ifdef __OBJC__
-#import "FIRFunctions.h"
 @class FIRHTTPSCallableResult;
+@class FIRHTTPSCallable;
 #endif  // __OBJC__
 
 // This defines the class FIRHTTPSCallablePointer, which is a C++-compatible

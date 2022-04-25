@@ -14,11 +14,7 @@
 
 #include "storage/src/ios/controller_ios.h"
 
-#import "FIRStorage.h"
-#import "FIRStorageDownloadTask.h"
-#import "FIRStorageTask.h"
-#import "FIRStorageTaskSnapshot.h"
-#import "FIRStorageUploadTask.h"
+#import "FirebaseStorage-Swift.h"
 
 #include "app/src/util_ios.h"
 

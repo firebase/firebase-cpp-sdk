@@ -23,9 +23,10 @@
 #include "storage/src/ios/storage_ios.h"
 
 #ifdef __OBJC__
-#import "FIRStorage.h"
-#import "FIRStorageConstants.h"
-#import "FIRStorageObservableTask.h"
+#import "FirebaseStorage-Swift.h"		
+
+// typedef not included in Swift header.
+typedef void (^FIRStorageVoidDataError)(NSData *_Nullable, NSError *_Nullable);
 #endif  // __OBJC__
 
 namespace firebase {
