@@ -17,7 +17,11 @@
 #include "firestore/src/main/create_credentials_provider.h"
 
 #import "FIRAuthInterop.h"
-#import "FirebaseCoreInternal.h"
+#import "FirebaseCore.h"
+#import "FIRAppInternal.h"
+#import "FIRComponent.h"
+#import "FIRComponentContainer.h"
+#import "FIRComponentType.h"
 
 #include "Firestore/core/src/credentials/firebase_auth_credentials_provider_apple.h"
 #include "absl/memory/memory.h"
