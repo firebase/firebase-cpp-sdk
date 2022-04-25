@@ -315,7 +315,7 @@ nanopb::Message<google_firestore_v1_Value> UserDataConverter::ParseArray(
   for (size_t i = 0; i != input.size(); ++i) {
     auto parsed = ParseData(input[i], context.ChildContext(i));
     if (!parsed) {
-      parsed = NullValue();
+      parsed = Message<google_firestore_v1_Value>(NullValue());
     }
     result->array_value.values[i] = *parsed->release();
   }

@@ -227,7 +227,7 @@ core::Bound QueryInternal::ToBound(
     components->values[i] = *DeepClone(*value).release();
   }
 
-  return core::Bound::FromValue(std::move(components), IsBefore(bound_pos));
+  return core::Bound::FromValue(std::move(components), IsInclusive(bound_pos));
 }
 
 core::Bound QueryInternal::ToBound(
@@ -261,7 +261,7 @@ core::Bound QueryInternal::ToBound(
     }
   }
 
-  return core::Bound::FromValue(std::move(components), IsBefore(bound_pos));
+  return core::Bound::FromValue(std::move(components), IsInclusive(bound_pos));
 }
 
 Message<google_firestore_v1_Value> QueryInternal::ConvertDocumentId(
@@ -327,14 +327,14 @@ api::Query QueryInternal::CreateQueryWithBound(BoundPosition bound_pos,
   FIRESTORE_UNREACHABLE();
 }
 
-bool QueryInternal::IsBefore(BoundPosition bound_pos) {
+bool QueryInternal::IsInclusive(BoundPosition bound_pos) {
   switch (bound_pos) {
     case BoundPosition::kStartAt:
-    case BoundPosition::kEndBefore:
+    case BoundPosition::kEndAt:
       return true;
 
     case BoundPosition::kStartAfter:
-    case BoundPosition::kEndAt:
+    case BoundPosition::kEndBefore:
       return false;
   }
 

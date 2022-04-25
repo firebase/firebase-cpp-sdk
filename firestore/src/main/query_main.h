@@ -23,6 +23,7 @@
 #include "Firestore/Protos/nanopb/google/firestore/v1/document.nanopb.h"
 #include "Firestore/core/src/api/query_core.h"
 #include "Firestore/core/src/core/bound.h"
+#include "Firestore/core/src/core/field_filter.h"
 #include "Firestore/core/src/core/order_by.h"
 #include "Firestore/core/src/core/query.h"
 #include "Firestore/core/src/nanopb/message.h"
@@ -200,7 +201,7 @@ class QueryInternal {
       const nanopb::Message<google_firestore_v1_Value>& from,
       const core::Query& internal_query) const;
 
-  static bool IsBefore(BoundPosition bound_pos);
+  static bool IsInclusive(BoundPosition bound_pos);
 
   core::Bound ToBound(BoundPosition bound_pos,
                       const DocumentSnapshot& public_snapshot) const;
