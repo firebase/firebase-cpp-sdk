@@ -169,12 +169,6 @@ class StorageReferenceInternal {
       FIRStorageObservableTask<FIRStorageTaskManagement>* _Nonnull task,
       Listener* _Nullable listener, StorageInternal* _Nullable storage);
 
-  // Create a download task that will stream data into the specified buffer.
-  FIRStorageDownloadTask* _Nonnull CreateStreamingDownloadTask(
-      FIRStorageReference* _Nonnull impl, StorageInternal* _Nonnull storage,
-      FIRStorageVoidDataError _Nonnull completion, void* _Nonnull buffer,
-      size_t buffer_size);
-
   FIRStorageReference* _Nullable impl() const { return impl_->get(); }
 #endif  // __OBJC__
 

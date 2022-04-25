@@ -125,12 +125,9 @@ elseif(IOS)
   target_link_libraries(firebase_storage
                         PUBLIC "-fembed-bitcode")
 
-  # Include GTMSessionFetcher which uses the private directory.
   setup_pod_headers(
     firebase_storage
-    INCLUDE_PRIVATE_HEADERS
     POD_NAMES
-      GTMSessionFetcher
       FirebaseCore
       FirebaseStorage
   )

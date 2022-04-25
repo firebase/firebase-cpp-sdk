@@ -28,44 +28,6 @@
 #include "storage/src/ios/storage_ios.h"
 #include "storage/src/ios/util_ios.h"
 
-@interface FIRStorageDownloadTask ()
-// WARNING: This exposes the private fetcher property in FIRStorageDownloadTask so that it's
-// possible to stop fetching prematurely without signalling an error.
-@property(strong, atomic) GTMSessionFetcher* fetcher;
-
-// WARNING: Expose private init method so that it's possible to customize the fetcher's behavior.
-- (instancetype)initWithReference:(FIRStorageReference*)reference
-                   fetcherService:(GTMSessionFetcherService*)service
-                    dispatchQueue:(dispatch_queue_t)queue
-                             file:(nullable NSURL*)fileURL;
-@end
-
-// Streaming download task.
-@interface FIRCPPStorageDownloadTask : FIRStorageDownloadTask
-// Buffer to used to aggregate downloaded data.
-@property(nonatomic, nullable) void* buffer;
-// Size of the block of memory referenced by "buffer".
-@property(nonatomic) size_t bufferSize;
-// Write offset into "buffer".
-@property(nonatomic) size_t bufferDownloadOffset;
-// Progress block copied from the fetcher.
-// fetcher.receivedProgressBlock can be invalidated before it's required by the streaming block
-// so it is cached here.
-@property(strong, atomic) GTMSessionFetcherReceivedProgressBlock receivedProgressBlock;
-@end
-
-@implementation FIRCPPStorageDownloadTask
-// TODO(b/120283849) Find a more stable fix for this issue.
-// When we set up our Download Task, we set a state on the session fetcher service, enqueue the
-// task, then clear the state. Enqueuing the task now by default happens asynchronously, which
-// means the fetcher service state has already been cleared, so to work around that, we change
-// dispatchAsync to just execute the block immediately, as it used to do prior to the queue logic.
-// The underlying change: https://github.com/firebase/firebase-ios-sdk/pull/1981
-- (void)dispatchAsync:(void (^)(void))block {
-  block();
-}
-@end
-
 namespace firebase {
 namespace storage {
 namespace internal {
@@ -202,105 +164,6 @@ Future<size_t> StorageReferenceInternal::GetFileLastResult() {
   return static_cast<const Future<size_t>&>(future()->LastResult(kStorageReferenceFnGetFile));
 }
 
-FIRStorageDownloadTask* StorageReferenceInternal::CreateStreamingDownloadTask(
-    FIRStorageReference* impl, StorageInternal* storage, FIRStorageVoidDataError completion,
-    void* buffer, size_t buffer_size) {
-  FIRCPPGTMSessionFetcherService* session_fetcher_service = storage->session_fetcher_service();
-  FIRCPPStorageDownloadTask* task =
-      [[FIRCPPStorageDownloadTask alloc] initWithReference:impl
-                                            fetcherService:session_fetcher_service
-                                             dispatchQueue:storage->dispatch_queue()
-                                                      file:nil];
-  task.buffer = buffer;
-  task.bufferSize = buffer_size;
-  dispatch_queue_t callbackQueue = session_fetcher_service.callbackQueue;
-  if (!callbackQueue) callbackQueue = dispatch_get_main_queue();
-
-  // Connect events for download task success / failure to the completion callback.
-  [task observeStatus:FIRStorageTaskStatusSuccess
-              handler:^(FIRStorageTaskSnapshot* _Nonnull snapshot) {
-                dispatch_async(callbackQueue, ^{
-                  completion([NSData dataWithBytesNoCopy:buffer
-                                                  length:task.bufferDownloadOffset
-                                            freeWhenDone:NO],
-                             nil);
-                });
-              }];
-  [task observeStatus:FIRStorageTaskStatusFailure
-              handler:^(FIRStorageTaskSnapshot* _Nonnull snapshot) {
-                dispatch_async(callbackQueue, ^{
-                  completion(nil, snapshot.error);
-                });
-              }];
-
-  GTMSessionFetcherAccumulateDataBlock accumulate_data_block = ^(
-      NSData* GTM_NULLABLE_TYPE received_buffer) {
-    if (received_buffer) {
-      if (task.bufferDownloadOffset == task.bufferSize) {
-        return;
-      }
-
-      // NSData can reference non-contiguous memory so copy each data range from the object.
-      size_t previousDownloadOffset = task.bufferDownloadOffset;
-      [received_buffer enumerateByteRangesUsingBlock:^(const void* data_bytes,
-                                                       NSRange data_byte_range, BOOL* stop) {
-        size_t space_remaining = task.bufferSize - task.bufferDownloadOffset;
-        size_t data_byte_range_size = data_byte_range.length;
-        size_t copy_size;
-        if (data_byte_range_size < space_remaining) {
-          copy_size = data_byte_range_size;
-        } else {
-          copy_size = space_remaining;
-          *stop = YES;
-        }
-        if (copy_size) {
-          void* target_buffer = static_cast<char*>(task.buffer) + task.bufferDownloadOffset;
-          memcpy(target_buffer, data_bytes, copy_size);
-          task.bufferDownloadOffset += copy_size;
-        }
-      }];
-
-      // When an accumulation block is configured, progress updates are not provided from
-      // GTMSessionFetcher so manually notify FIRStorageDownloadTask of download progress.
-      GTMSessionFetcherReceivedProgressBlock progressBlock = task.receivedProgressBlock;
-      if (progressBlock != nil) {
-        dispatch_async(callbackQueue, ^{
-          progressBlock(task.bufferDownloadOffset - previousDownloadOffset,
-                        task.bufferDownloadOffset);
-        });
-      }
-
-      // If the buffer is now full, stop downloading.
-      if (task.bufferSize == task.bufferDownloadOffset) {
-        [task.fetcher stopFetching];
-        dispatch_async(callbackQueue, ^{
-          // NOTE: We can allocate NSData without copying the input buffer as we know that
-          // the receiver of this callback (future completion) does not mutate the NSData object.
-          completion(
-              [NSData dataWithBytesNoCopy:buffer length:task.bufferDownloadOffset freeWhenDone:NO],
-              nil);
-          // Remove the reference to this block.
-          task.fetcher.accumulateDataBlock = nil;
-        });
-      }
-    } else {
-      completion(nil, [NSError errorWithDomain:FIRStorageErrorDomain
-                                          code:FIRStorageErrorCodeUnknown
-                                      userInfo:nil]);
-    }
-  };
-
-  util::DispatchAsyncSafeMainQueue(^() {
-    @synchronized(session_fetcher_service) {
-      session_fetcher_service.accumulateDataBlock = accumulate_data_block;
-      [task enqueue];
-      session_fetcher_service.accumulateDataBlock = nil;
-      task.receivedProgressBlock = task.fetcher.receivedProgressBlock;
-    }
-  });
-  return task;
-}
-
 Future<size_t> StorageReferenceInternal::GetBytes(void* buffer, size_t buffer_size,
                                                   Listener* listener, Controller* controller_out) {
   ReferenceCountedFutureImpl* future_impl = future();
@@ -315,6 +178,7 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer, size_t buffer_si
     const char* error_string = GetErrorMessage(error_code);
     if (data != nil) {
       assert(data.length <= buffer_size);
+      memcpy(buffer, data.bytes, data.length);
       future_impl->CompleteWithResult(handle, error_code, error_string,
                                       static_cast<size_t>(data.length));
     } else {
@@ -330,16 +194,14 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer, size_t buffer_si
   FIRStorageReference* my_impl = impl();
   StorageInternal* storage = storage_;
   util::DispatchAsyncSafeMainQueue(^() {
-    // TODO(smiles): Add streaming callback so that the user can actually stream data rather
-    // than providing the entire buffer to upload.
-    FIRStorageDownloadTask* download_task =
-        CreateStreamingDownloadTask(my_impl, storage, completion, buffer, buffer_size);
-    if (listener) listener->impl_->AttachTask(storage, download_task);
-    if (controller_out) {
-      controller_out->internal_->set_pending_valid(false);
-      controller_out->internal_->AssignTask(storage, download_task);
-    }
-  });
+      FIRStorageDownloadTask *download_task = [my_impl dataWithMaxSize:buffer_size
+                                                          completion:completion];
+      if (listener) listener->impl_->AttachTask(storage, download_task);
+      if (controller_out) {
+	controller_out->internal_->AssignTask(storage, download_task);
+	controller_out->internal_->set_pending_valid(false);
+      }
+    });
   return GetBytesLastResult();
 }
 

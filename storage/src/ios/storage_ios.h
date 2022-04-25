@@ -29,9 +29,8 @@
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
 #ifdef __OBJC__
+
 #import "FirebaseStorage-Swift.h"
-#import "GTMSessionFetcher.h"
-#import "GTMSessionFetcherService.h"
 
 // Some missing typedefs not included in Swift header.
 typedef NSString *FIRStorageHandle;
@@ -44,34 +43,6 @@ typedef void (^FIRStorageVoidSnapshot)(FIRStorageTaskSnapshot *_Nonnull);
 typedef void (^FIRStorageVoidURLError)(NSURL *_Nullable, NSError *_Nullable);
 FOUNDATION_EXPORT NSString *const FIRStorageErrorDomain NS_SWIFT_NAME(StorageErrorDomain);
 
-// GTMSessionFetcherService implementation that yields a
-// FIRCPPGTMSessionFetcher class rather than the default implementation.
-// This makes it possible to customize the behavior of
-// GTMSessionFetcher before a fetch operation is started.
-@interface FIRCPPGTMSessionFetcherService : GTMSessionFetcherService
-
-// If set, assigned to FIRCPPGTMSessionFetcher.accumulateDataBlock on
-// FIRCPPGTMSessionFetcher:beginFetchWithCompletionHandler.
-// This allows the handler of this event to stream received into a buffer or
-// to the application.
-@property(atomic, copy, GTM_NULLABLE) GTMSessionFetcherAccumulateDataBlock accumulateDataBlock;
-
-// Returns FIRCPPGTMSessionFetch as the fetcher class so that it's possible to
-// override properties on instances created from the class before the fetch
-// operation is started.
-- (id _Nonnull)fetcherWithRequest:(NSURLRequest* _Nonnull)request
-                     fetcherClass:(Class _Nonnull)fetcherClass;
-@end
-
-// GTMSessionFetcher implementation that streams via a C/C++ callback.
-// See FIRCPPGTMSessionFetcherService.accumulateDataBlock.
-@interface FIRCPPGTMSessionFetcher : GTMSessionFetcher
-
-// Override the fetch method so that it's possible to customize fetch options.
-// Specifically, if service.accumulateDataBlock is set it overrides the
-// fetcher's accumulateDataBlock property.
-- (void)beginFetchWithCompletionHandler:(GTM_NULLABLE GTMSessionFetcherCompletionHandler)handler;
-@end
 #endif  // __OBJC__
 
 namespace firebase {
@@ -81,9 +52,6 @@ namespace internal {
 // This defines the class FIRStoragePointer, which is a C++-compatible wrapper
 // around the FIRStorage Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRStorage);
-// This defines the class FIRCPPGTMSessionFetcherPointer, which is a
-// C++-compatible wrapper around the FIRCPPGTMSessionFetcherPointer Obj-C class.
-OBJ_C_PTR_WRAPPER(FIRCPPGTMSessionFetcherService);
 
 class StorageInternal {
  public:
@@ -133,16 +101,6 @@ class StorageInternal {
   // objects.
   CleanupNotifier& cleanup() { return cleanup_; }
 
-#ifdef __OBJC__
-  // Get the session fetcher for streaming.
-  FIRCPPGTMSessionFetcherService* _Nonnull session_fetcher_service() const {
-    return session_fetcher_service_->get();
-  }
-#endif  // __OBJC__
-
-  // Get the dispatch queue for streaming.
-  dispatch_queue_t _Nullable dispatch_queue() const;
-
  private:
 #ifdef __OBJC__
   FIRStorage* _Nullable impl() const { return impl_->get(); }
@@ -152,8 +110,6 @@ class StorageInternal {
 
   // Object lifetime managed by Objective C ARC.
   UniquePtr<FIRStoragePointer> impl_;
-  // Object lifetime managed by Objective C ARC.
-  UniquePtr<FIRCPPGTMSessionFetcherServicePointer> session_fetcher_service_;
 
   FutureManager future_manager_;
 
