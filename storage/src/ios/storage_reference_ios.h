@@ -23,7 +23,7 @@
 #include "storage/src/ios/storage_ios.h"
 
 #ifdef __OBJC__
-#import "FirebaseStorage-Swift.h"		
+#import "FirebaseStorage-Swift.h"
 
 // typedef not included in Swift header.
 typedef void (^FIRStorageVoidDataError)(NSData *_Nullable, NSError *_Nullable);
