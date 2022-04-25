@@ -567,6 +567,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming release
+-   Changes
+    -   Storage (Desktop): Set Content-Type HTTP header when uploading with
+        custom metadata.
+
 ### 8.11.0
 -   Changes
     -   Firestore/Database (Desktop): Upgrade LevelDb dependency to 1.23
