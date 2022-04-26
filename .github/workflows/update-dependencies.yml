@@ -127,11 +127,13 @@ jobs:
             core_version=$(grep "pod 'Firebase/Core'" ios_pod/Podfile | sed "s/.*'\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)'.*/\1/")
             echo "Getting Swift header files from Firebase iOS SDK ${core_version} zip distribution"
             ziptmp="$(mktemp -d)"
-            curl -H 'Authorization: token ${{ github.token }}' "https://github.com/firebase/firebase-ios-sdk/releases/download/v${core_version}/Firebase.zip" -o "${ziptmp}"/Firebase.zip
+            curl -H 'Authorization: token ${{ github.token }}' "https://github.com/firebase/firebase-ios-sdk/releases/download/v${core_version}/Firebase.zip" -o "${ziptmp}/Firebase.zip"
             cd "${ziptmp}"
-            unzip -q Firebase.zip
+            echo "Unzipping..."
+            unzip -q Firebase.zip '*-Swift.h'
             cd -
             # Copy all *-Swift.h header files into ios_pod/swift_headers/
+            echo Copying headers..."
             find "${ziptmp}" -name '*-Swift.h' -print0 | xargs -0 -n 1 -J REPLACETEXT cp -f REPLACETEXT ios_pod/swift_headers/
             copyright_line="// Copyright $(date +%Y) Google LLC\n"
             # Add a note to each file about its source.
