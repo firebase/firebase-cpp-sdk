@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_SRC_HEARTBEAT_STORAGE_DESKTOP_H_
-#define FIREBASE_APP_SRC_HEARTBEAT_STORAGE_DESKTOP_H_
+#ifndef FIREBASE_APP_SRC_HEARTBEAT_HEARTBEAT_STORAGE_DESKTOP_H_
+#define FIREBASE_APP_SRC_HEARTBEAT_HEARTBEAT_STORAGE_DESKTOP_H_
 
 #include <ctime>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "app/logged_heartbeats_generated.h"
 
@@ -48,7 +49,7 @@ struct LoggedHeartbeats {
 // TODO(almostmatt): consider returning distinct error codes.
 class HeartbeatStorageDesktop {
  public:
-  HeartbeatStorageDesktop(std::string app_id);
+  explicit HeartbeatStorageDesktop(std::string app_id);
 
   // If the previous disk operation failed, contains additional details about
   // the error; otherwise is empty.
@@ -86,4 +87,4 @@ class HeartbeatStorageDesktop {
 }  // namespace heartbeat
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_SRC_HEARTBEAT_DATE_STORAGE_DESKTOP_H_
+#endif  // FIREBASE_APP_SRC_HEARTBEAT_HEARTBEAT_STORAGE_DESKTOP_H_

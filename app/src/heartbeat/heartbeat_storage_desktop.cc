@@ -17,10 +17,13 @@
 #include "app/src/heartbeat/heartbeat_storage_desktop.h"
 
 #include <fstream>
+#include <vector>
+#include <regex>
 
 #include "app/logged_heartbeats_generated.h"
 #include "app/src/filesystem.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/log.h" // ALMOSTMATT - debugging
 
 namespace firebase {
 namespace heartbeat {
@@ -36,7 +39,7 @@ using com::google::firebase::cpp::heartbeat::VerifyLoggedHeartbeatsBuffer;
 namespace {
 
 const char kHeartbeatDir[] = "firebase-heartbeat";
-const char kHeartbeatFilename[] = "HEARTBEAT_STORAGE";
+const char kHeartbeatFilenamePrefix[] = "heartbeats-";
 
 // Returns the mutex that protects accesses to the storage file.
 Mutex& FileMutex() {
@@ -44,20 +47,24 @@ Mutex& FileMutex() {
   return *mutex_;
 }
 
-std::string GetFilename(std::string app_id, std::string& error) {
+std::string GetFilename(std::string app_id, std::string* error) {
   std::string app_dir =
-      AppDataDir((app_id + "/" + kHeartbeatDir).c_str(), /*should_create=*/true, &error);
+      AppDataDir(kHeartbeatDir, /*should_create=*/true, error);
   if (app_dir.empty()) {
     return "";
   }
 
-  return app_dir + "/" + kHeartbeatFilename;
+  // Remove any symbols from app_id that might not be allowed in filenames.
+  auto app_id_without_symbols =
+      std::regex_replace(app_id, std::regex("[/\\?%*:|\"<>.,;=]"), "");
+  // Note: fstream will convert / to \ if needed on windows.
+  return app_dir + "/" + kHeartbeatFilenamePrefix + app_id;
 }
 
 }  // namespace
 
 HeartbeatStorageDesktop::HeartbeatStorageDesktop(std::string app_id)
-    : filename_(GetFilename(app_id, error_)) {
+    : filename_(GetFilename(app_id, &error_)) {
   MutexLock lock(FileMutex());
 
   // Ensure the file exists, otherwise the first attempt to read it would
@@ -68,6 +75,9 @@ HeartbeatStorageDesktop::HeartbeatStorageDesktop(std::string app_id)
     error_ = "Unable to open '" + filename_ + "'.";
   }
 }
+
+// Size is arbitrary, just making sure that there is a sane limit.
+static const int kMaxBufferSize = 1024 * 500;
 
 bool HeartbeatStorageDesktop::Read(LoggedHeartbeats* heartbeats_output_ptr) {
   MutexLock lock(FileMutex());
@@ -83,11 +93,12 @@ bool HeartbeatStorageDesktop::Read(LoggedHeartbeats* heartbeats_output_ptr) {
     error_ = "Unable to open '" + filename_ + "' for reading.";
     return false;
   }
-  // Current position in file is buffer size.
+  // Current position in file is file size. Fail if file is too large.
   std::streamsize buffer_len = file.tellg();
-  // Rewind to start of the file, then read into a buffer.
+  if (buffer_len > kMaxBufferSize || buffer_len == -1) return false;
+  // Rewind to start of the file, then read into a buffer on the heap.
   file.seekg(0, std::ios_base::beg);
-  char buffer[buffer_len];
+  char* buffer = new char[buffer_len];
   file.read(buffer, buffer_len);
   // Verify that the buffer is a valid flatbuffer.
   ::flatbuffers::Verifier verifier(reinterpret_cast<const uint8_t*>(buffer),
@@ -95,14 +106,18 @@ bool HeartbeatStorageDesktop::Read(LoggedHeartbeats* heartbeats_output_ptr) {
   if (!VerifyLoggedHeartbeatsBuffer(verifier)) {
     error_ =
         "Failed to parse contents of " + filename_ + " as LoggedHeartbeats.";
+    delete[] buffer;
     return false;
   }
-  const LoggedHeartbeatsFbs* heartbeats_fbs = GetLoggedHeartbeats(&buffer);
+  const LoggedHeartbeatsFbs* heartbeats_fbs = GetLoggedHeartbeats(buffer);
   *heartbeats_output_ptr = LoggedHeartbeatsFromFbs(heartbeats_fbs);
+  delete[] buffer;
   return true;
 }
 
 bool HeartbeatStorageDesktop::Write(LoggedHeartbeats heartbeats) const {
+  // TODO: lock file before write or before read-modify-write
+  // This would help against multiple apps or multiple instances of the app
   MutexLock lock(FileMutex());
   error_ = "";
 
@@ -147,7 +162,7 @@ flatbuffers::FlatBufferBuilder HeartbeatStorageDesktop::LoggedHeartbeatsToFbs(
       dates_vector.push_back(builder.CreateString(date));
     }
     auto agent_and_dates = CreateUserAgentAndDates(
-      builder, user_agent, builder.CreateVector(dates_vector)); 
+      builder, user_agent, builder.CreateVector(dates_vector));
     agents_and_dates_vector.push_back(agent_and_dates);
   }
   auto loggedHeartbeats = CreateLoggedHeartbeats(
