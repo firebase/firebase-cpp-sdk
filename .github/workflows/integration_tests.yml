@@ -850,7 +850,7 @@ jobs:
           fi
 
   test_android:
-    name: test-android-${{ matrix.build_os }}-${{ matrix.android_device }}
+    name: test-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}
     needs: [check_and_prepare, build_android]
     runs-on: macos-latest
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'Android') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
@@ -859,6 +859,12 @@ jobs:
       matrix:
         build_os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
         android_device: ${{ fromJson(needs.check_and_prepare.outputs.android_device) }}
+        test_type: ["gameloop", "uitest"]
+        exclude:
+          -  android_device: "android_target"
+             test_type: "uitest"
+          -  android_device: "android_latest"
+             test_type: "uitest"
     steps:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
@@ -899,6 +905,7 @@ jobs:
         if: steps.get-device-type.outputs.device_type == 'virtual'
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
+            --test_type "${{ matrix.test_type }}" \
             --android_device "${{ matrix.android_device }}" \
             --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}" \
             --ci
@@ -955,7 +962,7 @@ jobs:
           fi
 
   test_ios:
-    name: test-ios-macos-latest-${{ matrix.ios_device }}
+    name: test-ios-macos-latest-${{ matrix.ios_device }}-${{ matrix.test_type }}
     needs: [check_and_prepare, build_ios]
     runs-on: macos-latest
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'iOS') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
@@ -963,6 +970,14 @@ jobs:
       fail-fast: false
       matrix:
         ios_device: ${{ fromJson(needs.check_and_prepare.outputs.ios_device) }}
+        test_type: ["gameloop", "uitest"]
+        exclude:
+          -  ios_device: "ios_min"
+             test_type: "uitest"
+          -  ios_device: "ios_target"
+             test_type: "uitest"
+          -  ios_device: "ios_latest"
+             test_type: "uitest"
     steps:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
@@ -1002,6 +1017,7 @@ jobs:
         if: steps.get-device-type.outputs.device_type == 'virtual'
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
+            --test_type "${{ matrix.test_type }}" \
             --ios_device "${{ matrix.ios_device }}" \
             --logfile_name "ios-macos-latest-${{ matrix.ios_device }}" \
             --ci
@@ -1059,7 +1075,7 @@ jobs:
           fi
 
   test_tvos:
-    name: test-tvos-macos-latest-${{ matrix.tvos_device }}
+    name: test-tvos-macos-latest-${{ matrix.tvos_device }}-gameloop
     needs: [check_and_prepare, build_tvos]
     runs-on: macos-latest
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'tvOS') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
