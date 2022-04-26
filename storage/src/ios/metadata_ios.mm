@@ -26,7 +26,7 @@ namespace internal {
 
 // Create a copy of a FIRStorageMetadata.
 static FIRStorageMetadata* CopyObjCMetadataObject(const FIRStorageMetadata* src) {
-  return [src copy];
+  return [[FIRStorageMetadata alloc] initWithDictionary:src.dictionaryRepresentation];
 }
 
 // Convert a NSString to UTF8 string returning a reference to the buffer in
