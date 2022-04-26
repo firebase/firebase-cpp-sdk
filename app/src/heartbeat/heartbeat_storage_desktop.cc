@@ -57,7 +57,7 @@ std::string GetFilename(std::string app_id, std::string* error) {
   auto app_id_without_symbols =
       std::regex_replace(app_id, std::regex("[/\\?%*:|\"<>.,;=]"), "");
   // Note: fstream will convert / to \ if needed on windows.
-  return app_dir + "/" + kHeartbeatFilenamePrefix + app_id;
+  return app_dir + "/" + kHeartbeatFilenamePrefix + app_id_without_symbols;
 }
 
 }  // namespace
@@ -79,6 +79,7 @@ HeartbeatStorageDesktop::HeartbeatStorageDesktop(std::string app_id)
 static const int kMaxBufferSize = 1024 * 500;
 
 bool HeartbeatStorageDesktop::Read(LoggedHeartbeats* heartbeats_output_ptr) {
+  // TODO(almostmatt): consider taking a reference instead of a ptr as input
   MutexLock lock(FileMutex());
   error_ = "";
 
@@ -94,7 +95,14 @@ bool HeartbeatStorageDesktop::Read(LoggedHeartbeats* heartbeats_output_ptr) {
   }
   // Current position in file is file size. Fail if file is too large.
   std::streamsize buffer_len = file.tellg();
-  if (buffer_len > kMaxBufferSize || buffer_len == -1) return false;
+  if (buffer_len > kMaxBufferSize) {
+    error_ = "'" + filename_ + "' is too large to read.";
+    return false;
+  }
+  if (buffer_len == -1) {
+    error_ = "Failed to determine size of '" + filename_ + "'.";
+    return false;
+  }
   // Rewind to start of the file, then read into a buffer on the heap.
   file.seekg(0, std::ios_base::beg);
   char* buffer = new char[buffer_len];
@@ -103,10 +111,10 @@ bool HeartbeatStorageDesktop::Read(LoggedHeartbeats* heartbeats_output_ptr) {
   ::flatbuffers::Verifier verifier(reinterpret_cast<const uint8_t*>(buffer),
                                    buffer_len);
   if (!VerifyLoggedHeartbeatsBuffer(verifier)) {
-    error_ =
-        "Failed to parse contents of " + filename_ + " as LoggedHeartbeats.";
+    // If the file is empty or contains corrupted data, return a default instance.
+    *heartbeats_output_ptr = LoggedHeartbeats();
     delete[] buffer;
-    return false;
+    return true;
   }
   const LoggedHeartbeatsFbs* heartbeats_fbs = GetLoggedHeartbeats(buffer);
   *heartbeats_output_ptr = LoggedHeartbeatsFromFbs(heartbeats_fbs);
