@@ -97,7 +97,7 @@ elseif(IOS)
   target_link_libraries(firebase_functions
                         PUBLIC "-fembed-bitcode")
 
-setup_pod_headers(
+  setup_pod_headers(
     firebase_functions
     POD_NAMES
       FirebaseCore
