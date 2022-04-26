@@ -127,7 +127,7 @@ jobs:
             core_version=$(grep "pod 'Firebase/Core'" ios_pod/Podfile | sed "s/.*'\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)'.*/\1/")
             echo "Getting Swift header files from Firebase iOS SDK ${core_version} zip distribution"
             ziptmp="$(mktemp -d)"
-            curl "https://github.com/firebase/firebase-ios-sdk/releases/download/v${core_version}/Firebase.zip" -o "${ziptmp}"/Firebase.zip
+            curl -H 'Authorization: token ${{ github.token }}' "https://github.com/firebase/firebase-ios-sdk/releases/download/v${core_version}/Firebase.zip" -o "${ziptmp}"/Firebase.zip
             cd "${ziptmp}"
             unzip -q Firebase.zip
             cd -
