@@ -179,7 +179,8 @@ class LoggingUtilsData {
   }
 
   bool DidTouch() {
-    if (logging_utils_class_ == 0) return false;  // haven't been initialized yet
+    if (logging_utils_class_ == 0)
+      return false;  // haven't been initialized yet
     JNIEnv* env = GetJniEnv();
     assert(env);
     return env->CallStaticBooleanMethod(logging_utils_class_,
@@ -187,25 +188,26 @@ class LoggingUtilsData {
   }
 
   bool SkipUITest() {
-    if (logging_utils_class_ == 0) return false;  // haven't been initialized yet
+    if (logging_utils_class_ == 0)
+      return false;  // haven't been initialized yet
     JNIEnv* env = GetJniEnv();
     assert(env);
-    jboolean b = env->CallStaticBooleanMethod(logging_utils_class_,
-                                              logging_utils_skip_uitest_log_);
-    return (bool)b;
+    return env->CallStaticBooleanMethod(logging_utils_class_,
+                                        logging_utils_skip_uitest_log_);
   }
 
   bool SkipNonUITest() {
-    if (logging_utils_class_ == 0) return false;  // haven't been initialized yet
+    if (logging_utils_class_ == 0)
+      return false;  // haven't been initialized yet
     JNIEnv* env = GetJniEnv();
     assert(env);
-    jboolean b = env->CallStaticBooleanMethod(
-        logging_utils_class_, logging_utils_skip_nonuitest_log_);
-    return (bool)b;
+    return env->CallStaticBooleanMethod(logging_utils_class_,
+                                        logging_utils_skip_nonuitest_log_);
   }
 
   bool IsLoggingToFile() {
-    if (logging_utils_class_ == 0) return false;  // haven't been initialized yet
+    if (logging_utils_class_ == 0)
+      return false;  // haven't been initialized yet
     JNIEnv* env = GetJniEnv();
     assert(env);
     jobject file_uri = env->CallStaticObjectMethod(logging_utils_class_,
@@ -219,7 +221,8 @@ class LoggingUtilsData {
   }
 
   bool StartLoggingToFile(const char* path) {
-    if (logging_utils_class_ == 0) return false;  // haven't been initialized yet
+    if (logging_utils_class_ == 0)
+      return false;  // haven't been initialized yet
     JNIEnv* env = GetJniEnv();
     assert(env);
     jstring path_string = env->NewStringUTF(path);
