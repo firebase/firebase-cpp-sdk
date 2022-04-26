@@ -176,17 +176,19 @@ class StorageReferenceInternal {
   // Upload data without metadata.
   Future<Metadata> PutBytesInternal(const void* buffer, size_t buffer_size,
                                     Listener* listener,
-                                    Controller* controller_out);
+                                    Controller* controller_out,
+                                    const char* content_type = nullptr);
   // Upload file without metadata.
   Future<Metadata> PutFileInternal(const char* path, Listener* listener,
-                                   Controller* controller_out);
+                                   Controller* controller_out,
+                                   const char* content_type = nullptr);
 
   void RestCall(rest::Request* request, internal::Notifier* request_notifier,
                 BlockingResponse* response, FutureHandle handle,
                 Listener* listener, Controller* controller_out);
 
   void PrepareRequest(rest::Request* request, const char* url,
-                      const char* method);
+                      const char* method, const char* content_type = nullptr);
 
   void SetupMetadataChain(Future<Metadata> starting_future,
                           MetadataChainData* data);
