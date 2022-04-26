@@ -371,7 +371,7 @@ Firebase Installations (stub)   | firebase_installations.framework
 Firebase Cloud Messaging (stub) | firebase_messaging.framework
 |                               | firebase.framework
 
-The provided libraries have been tested using Xcode 12.4. When building C++
+The provided libraries have been tested using Xcode 12.5.1. When building C++
 desktop apps on OS X, you will need to link the `gssapi_krb5` and `pthread`
 system libraries, as well as the `CoreFoundation`, `Foundation`, `GSS`, and
 `Security` OS X system frameworks (consult your compiler documentation for more
@@ -571,6 +571,7 @@ code.
 -   Changes
     -   Storage (Desktop): Set Content-Type HTTP header when uploading with
         custom metadata.
+    -   General (iOS): iOS SDKs are now built using Xcode 12.5.1.
 
 ### 8.11.0
 -   Changes
