@@ -23,7 +23,6 @@
 #include "app/logged_heartbeats_generated.h"
 #include "app/src/filesystem.h"
 #include "app/src/include/firebase/internal/mutex.h"
-#include "app/src/log.h" // ALMOSTMATT - debugging
 
 namespace firebase {
 namespace heartbeat {
@@ -116,7 +115,7 @@ bool HeartbeatStorageDesktop::Read(LoggedHeartbeats* heartbeats_output_ptr) {
 }
 
 bool HeartbeatStorageDesktop::Write(LoggedHeartbeats heartbeats) const {
-  // TODO: lock file before write or before read-modify-write
+  // TODO(almostmatt): lock file before write or before read-modify-write
   // This would help against multiple apps or multiple instances of the app
   MutexLock lock(FileMutex());
   error_ = "";
