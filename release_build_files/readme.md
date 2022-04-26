@@ -572,6 +572,8 @@ code.
         version r21e.
     -   General (Android): Firebase support for gnustl (also known as libstdc++)
         has been removed. Please use libc++ instead.
+    -   Storage (Desktop): Set Content-Type HTTP header when uploading with
+        custom metadata.
 
 ### 8.11.0
 -   Changes

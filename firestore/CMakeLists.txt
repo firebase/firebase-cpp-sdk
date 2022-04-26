@@ -392,7 +392,8 @@ elseif(IOS)
       nanopb
       gRPC-C++
       gRPC-Core
-  )
+      FirebaseAuth/Interop/Auth/Public
+)
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
     set_target_properties(firebase_firestore PROPERTIES
