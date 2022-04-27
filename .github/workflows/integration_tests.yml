@@ -663,6 +663,12 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
+      - name: Store git credentials for all git commands
+        # Forces all git commands to use authenticated https, to prevent throttling.
+        shell: bash
+        run: |
+          git config --global credential.helper 'store --file /tmp/git-credentials'
+          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
       - name: Setup python
         uses: actions/setup-python@v2
         with:
