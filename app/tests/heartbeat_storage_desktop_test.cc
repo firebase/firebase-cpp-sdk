@@ -46,7 +46,7 @@ TEST_F(HeartbeatStorageDesktopTest, WriteAndRead) {
   ASSERT_TRUE(write_ok) << "Unable to write the heartbeat file:\n  " + storage.GetError();
 
   LoggedHeartbeats read_heartbeats;
-  bool read_ok = storage.Read(&read_heartbeats);
+  bool read_ok = storage.Read(read_heartbeats);
   ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " + storage.GetError();
   EXPECT_EQ(read_heartbeats.last_logged_date, date2);
   ASSERT_EQ(read_heartbeats.heartbeats[user_agent].size(), 2);
@@ -69,7 +69,7 @@ TEST_F(HeartbeatStorageDesktopTest, WriteAndReadDifferentStorageInstance) {
 
   HeartbeatStorageDesktop storage2 = HeartbeatStorageDesktop(app_id);
   LoggedHeartbeats read_heartbeats;
-  bool read_ok = storage2.Read(&read_heartbeats);
+  bool read_ok = storage2.Read(read_heartbeats);
   ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " + storage2.GetError();
   EXPECT_EQ(read_heartbeats.last_logged_date, date2);
   ASSERT_EQ(read_heartbeats.heartbeats[user_agent].size(), 2);
@@ -102,21 +102,18 @@ TEST_F(HeartbeatStorageDesktopTest, WriteAndReadDifferentAppIds) {
 
   // Read for app_id and verify it contains the original heartbeats.  
   LoggedHeartbeats read_heartbeats;
-  bool read_ok = storage1.Read(&read_heartbeats);
+  bool read_ok = storage1.Read(read_heartbeats);
   ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " + storage1.GetError();
   EXPECT_EQ(read_heartbeats.last_logged_date, date1);
   ASSERT_EQ(read_heartbeats.heartbeats[user_agent1].size(), 1);
   EXPECT_EQ(read_heartbeats.heartbeats[user_agent1][0], date1);
 }
 
-// TODO - almostmatt - a test that verifies read will "overwrite" the contents of struct
-// for example, replace a non-empty object with an empty object1
-
 TEST_F(HeartbeatStorageDesktopTest, ReadNonexistentFile) {
   // ReadHeartbeats should return a default instance
   HeartbeatStorageDesktop storage = HeartbeatStorageDesktop("nonexistent_app_id");
   LoggedHeartbeats read_heartbeats;
-  bool read_ok = storage.Read(&read_heartbeats);
+  bool read_ok = storage.Read(read_heartbeats);
   ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " + storage.GetError();
   EXPECT_EQ(read_heartbeats.last_logged_date, "");
   ASSERT_EQ(read_heartbeats.heartbeats.size(), 0);
@@ -131,13 +128,13 @@ TEST_F(HeartbeatStorageDesktopTest, WriteAndReadWithSymbolsInAppId) {
   bool write_ok = storage.Write(heartbeats);
   ASSERT_TRUE(write_ok) << "Unable to write the heartbeat file:\n  " + storage.GetError();
   LoggedHeartbeats read_heartbeats;
-  bool read_ok = storage.Read(&read_heartbeats);
+  bool read_ok = storage.Read(read_heartbeats);
   ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " + storage.GetError();
   EXPECT_EQ(read_heartbeats.last_logged_date, date1);
 }
 
 TEST_F(HeartbeatStorageDesktopTest, ReadCorruptedData) {
-  // TODO - make filename visible in tests rather than just "knowing" the filename
+  // TODO(almostmatt): Make filename visible in tests rather than relying on the test knowing the filename
   std::string app_id = "app_id";
   HeartbeatStorageDesktop storage = HeartbeatStorageDesktop(app_id);
   std::string error;
@@ -151,24 +148,16 @@ TEST_F(HeartbeatStorageDesktopTest, ReadCorruptedData) {
 
   // ReadHeartbeats should return a default instance
   LoggedHeartbeats read_heartbeats;
-  bool read_ok = storage.Read(&read_heartbeats);
+  bool read_ok = storage.Read(read_heartbeats);
   ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " + storage.GetError();
   EXPECT_EQ(read_heartbeats.last_logged_date, "");
   ASSERT_EQ(read_heartbeats.heartbeats.size(), 0);
 }
 
-TEST_F(HeartbeatStorageDesktopTest, ReadToNullFails) {
-  HeartbeatStorageDesktop storage = HeartbeatStorageDesktop("nonexistent_app_id");
-  LoggedHeartbeats read_heartbeats;
-  bool read_ok = storage.Read(nullptr);
-  EXPECT_FALSE(read_ok);
-}
-
 TEST_F(HeartbeatStorageDesktopTest, ConcurrentWritesAndReads) {
+  // Perform many write and read requests in parallel.
+  // Verify that Read never returns corrupt data.
   HeartbeatStorageDesktop storage = HeartbeatStorageDesktop("app_id");
-  // TODO - repeatedly write and read from various threads
-  // Each request should either completely succeed or completely fail
-  // There should not be any issue of corrupt data
   std::promise<void> signal_promise;
   std::future<void> signal = signal_promise.get_future();
 
@@ -188,7 +177,7 @@ TEST_F(HeartbeatStorageDesktopTest, ConcurrentWritesAndReads) {
 
         // Verify that read succeeds and that data is not corrupted.
         LoggedHeartbeats read_heartbeats;
-        bool read_ok = storage.Read(&read_heartbeats);
+        bool read_ok = storage.Read(read_heartbeats);
         ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " + storage.GetError();
         EXPECT_EQ(read_heartbeats.last_logged_date, date1);
         ASSERT_EQ(read_heartbeats.heartbeats.size(), 1);

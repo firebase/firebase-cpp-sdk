@@ -78,15 +78,9 @@ HeartbeatStorageDesktop::HeartbeatStorageDesktop(std::string app_id)
 // Size is arbitrary, just making sure that there is a sane limit.
 static const int kMaxBufferSize = 1024 * 500;
 
-bool HeartbeatStorageDesktop::Read(LoggedHeartbeats* heartbeats_output_ptr) {
-  // TODO(almostmatt): consider taking a reference instead of a ptr as input
+bool HeartbeatStorageDesktop::Read(LoggedHeartbeats& heartbeats_output) {
   MutexLock lock(FileMutex());
   error_ = "";
-
-  if (heartbeats_output_ptr == nullptr) {
-    error_ = "Cannot read heartbeats to nullptr.";
-    return false;
-  }
   // Open the file and seek to the end
   std::ifstream file(filename_, std::ios_base::binary | std::ios_base::ate);
   if (!file) {
@@ -112,19 +106,17 @@ bool HeartbeatStorageDesktop::Read(LoggedHeartbeats* heartbeats_output_ptr) {
                                    buffer_len);
   if (!VerifyLoggedHeartbeatsBuffer(verifier)) {
     // If the file is empty or contains corrupted data, return a default instance.
-    *heartbeats_output_ptr = LoggedHeartbeats();
+    heartbeats_output = LoggedHeartbeats();
     delete[] buffer;
     return true;
   }
   const LoggedHeartbeatsFbs* heartbeats_fbs = GetLoggedHeartbeats(buffer);
-  *heartbeats_output_ptr = LoggedHeartbeatsFromFbs(heartbeats_fbs);
+  heartbeats_output = LoggedHeartbeatsFromFbs(heartbeats_fbs);
   delete[] buffer;
   return true;
 }
 
 bool HeartbeatStorageDesktop::Write(LoggedHeartbeats heartbeats) const {
-  // TODO(almostmatt): lock file before write or before read-modify-write
-  // This would help against multiple apps or multiple instances of the app
   MutexLock lock(FileMutex());
   error_ = "";
 

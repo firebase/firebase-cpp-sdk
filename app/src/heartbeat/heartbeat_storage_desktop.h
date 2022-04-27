@@ -55,9 +55,9 @@ class HeartbeatStorageDesktop {
   // the error; otherwise is empty.
   const std::string& GetError() const { return error_; }
 
-  // Reads an instance of LoggedHeartbeats from disk into the ptr. Returns `false` if the
+  // Reads an instance of LoggedHeartbeats from disk into the provided struct. Returns `false` if the
   // read operation fails.
-  bool Read(LoggedHeartbeats* heartbeats_output_ptr);
+  bool Read(LoggedHeartbeats& heartbeats_output);
 
   // Writes an instance of LoggedHeartbeats to disk. Returns `false` if the
   // write operation fails.
