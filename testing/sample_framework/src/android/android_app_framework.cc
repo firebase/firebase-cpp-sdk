@@ -160,9 +160,9 @@ class LoggingUtilsData {
         env->GetStaticMethodID(logging_utils_class_, "startLogFile",
                                "(Landroid/app/Activity;Ljava/lang/String;)Z");
     logging_utils_should_run_uitests_ =
-        env->GetStaticMethodID(logging_utils_class_, "ShouldRunUITests", "()Z");
+        env->GetStaticMethodID(logging_utils_class_, "shouldRunUITests", "()Z");
     logging_utils_should_run_nonuitests_ = env->GetStaticMethodID(
-        logging_utils_class_, "ShouldRunNonUITests", "()Z");
+        logging_utils_class_, "shouldRunNonUITests", "()Z");
 
     env->CallStaticVoidMethod(logging_utils_class_,
                               logging_utils_init_log_window_, GetActivity());
