@@ -213,7 +213,7 @@ std::string ReadTextInput(const char* title, const char* message,
 
 bool ShouldRunUITests() { return true; }
 
-bool ShouldNonUITests() { return true; }
+bool ShouldRunNonUITests() { return true; }
 
 bool IsLoggingToFile() { return false; }
 
