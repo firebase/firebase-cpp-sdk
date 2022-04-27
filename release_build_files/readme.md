@@ -230,6 +230,10 @@ CocoaPod (9.x). Please ensure that you use the special version of
 Google-Mobile-Ads-SDK Cocoapod listed above (7.69.0-cppsdk2) to maintain
 compatibility with Firebase 9.x.
 
+Note: Parts of the Firebase iOS SDK are written in Swift. If your application
+does not use any Swift code, you may need to add an empty .swift file to your
+Xcode project to ensure that the Swift runtime is included in your app.
+
 #### Libraries
 
 If you prefer to link against static libraries instead of xcframeworks (see the
@@ -289,6 +293,10 @@ Note: AdMob C++ is not currently compatible with the latest Firebase AdMob iOS
 CocoaPod (9.x). Please ensure that you use the special version of
 Google-Mobile-Ads-SDK Cocoapod listed above (7.69.0-cppsdk2) to maintain
 compatibility with Firebase 9.x.
+
+Note: Parts of the Firebase iOS SDK are written in Swift. If your application
+does not use any Swift code, you may need to add an empty .swift file to your
+Xcode project to ensure that the Swift runtime is included in your app.
 
 ### Desktop Implementation Dependencies
 
