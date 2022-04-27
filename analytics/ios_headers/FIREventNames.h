@@ -1,6 +1,6 @@
 // Copyright 2022 Google LLC
 
-// Copied from Firebase Analytics iOS SDK 8.15.0.
+// Copied from Firebase Analytics iOS SDK 9.0.0.
 
 /// @file FIREventNames.h
 ///
@@ -128,16 +128,6 @@ static NSString *const kFIREventBeginCheckout NS_SWIFT_NAME(AnalyticsEventBeginC
 static NSString *const kFIREventCampaignDetails NS_SWIFT_NAME(AnalyticsEventCampaignDetails) =
     @"campaign_details";
 
-/// Checkout progress. Params:
-///
-/// <ul>
-///    <li>@c AnalyticsParameterCheckoutStep (Int)</li>
-///    <li>@c AnalyticsParameterCheckoutOption (String) (optional)</li>
-/// </ul>
-/// <b>This constant has been deprecated.</b>
-static NSString *const kFIREventCheckoutProgress NS_SWIFT_NAME(AnalyticsEventCheckoutProgress) =
-    @"checkout_progress";
-
 /// Earn Virtual Currency event. This event tracks the awarding of virtual currency in your app. Log
 /// this along with @c AnalyticsEventSpendVirtualCurrency to better understand your virtual economy.
 /// Params:
@@ -148,33 +138,6 @@ static NSString *const kFIREventCheckoutProgress NS_SWIFT_NAME(AnalyticsEventChe
 /// </ul>
 static NSString *const kFIREventEarnVirtualCurrency
     NS_SWIFT_NAME(AnalyticsEventEarnVirtualCurrency) = @"earn_virtual_currency";
-
-/// E-Commerce Purchase event. This event signifies that an item was purchased by a user. Note:
-/// This is different from the in-app purchase event, which is reported automatically for App
-/// Store-based apps. Note: If you supply the @c AnalyticsParameterValue parameter, you must also
-/// supply the @c AnalyticsParameterCurrency parameter so that revenue metrics can be computed
-/// accurately. Params:
-///
-/// <ul>
-///     <li>@c AnalyticsParameterCurrency (String) (optional)</li>
-///     <li>@c AnalyticsParameterValue (Double) (optional)</li>
-///     <li>@c AnalyticsParameterTransactionID (String) (optional)</li>
-///     <li>@c AnalyticsParameterTax (Double) (optional)</li>
-///     <li>@c AnalyticsParameterShipping (Double) (optional)</li>
-///     <li>@c AnalyticsParameterCoupon (String) (optional)</li>
-///     <li>@c AnalyticsParameterLocation (String) (optional)</li>
-///     <li>@c AnalyticsParameterStartDate (String) (optional)</li>
-///     <li>@c AnalyticsParameterEndDate (String) (optional)</li>
-///     <li>@c AnalyticsParameterNumberOfNights (Int) (optional) for hotel bookings</li>
-///     <li>@c AnalyticsParameterNumberOfRooms (Int) (optional) for hotel bookings</li>
-///     <li>@c AnalyticsParameterNumberOfPassengers (Int) (optional) for travel bookings</li>
-///     <li>@c AnalyticsParameterOrigin (String) (optional)</li>
-///     <li>@c AnalyticsParameterDestination (String) (optional)</li>
-///     <li>@c AnalyticsParameterTravelClass (String) (optional) for travel bookings</li>
-/// </ul>
-/// <b>This constant has been deprecated. Use @c AnalyticsEventPurchase constant instead.</b>
-static NSString *const kFIREventEcommercePurchase NS_SWIFT_NAME(AnalyticsEventEcommercePurchase) =
-    @"ecommerce_purchase";
 
 /// Generate Lead event. Log this event when a lead has been generated in the app to understand the
 /// efficacy of your install and re-engagement campaigns. Note: If you supply the
@@ -236,26 +199,6 @@ static NSString *const kFIREventLogin NS_SWIFT_NAME(AnalyticsEventLogin) = @"log
 /// </ul>
 static NSString *const kFIREventPostScore NS_SWIFT_NAME(AnalyticsEventPostScore) = @"post_score";
 
-/// Present Offer event. This event signifies that the app has presented a purchase offer to a user.
-/// Add this event to a funnel with the @c AnalyticsEventAddToCart and @c
-/// AnalyticsEventEcommercePurchase to gauge your conversion process. Note: If you supply the @c
-/// AnalyticsParameterValue parameter, you must also supply the @c AnalyticsParameterCurrency
-/// parameter so that revenue metrics can be computed accurately. Params:
-///
-/// <ul>
-///     <li>@c AnalyticsParameterQuantity (Int)</li>
-///     <li>@c AnalyticsParameterItemID (String)</li>
-///     <li>@c AnalyticsParameterItemName (String)</li>
-///     <li>@c AnalyticsParameterItemCategory (String)</li>
-///     <li>@c AnalyticsParameterItemLocationID (String) (optional)</li>
-///     <li>@c AnalyticsParameterPrice (Double) (optional)</li>
-///     <li>@c AnalyticsParameterCurrency (String) (optional)</li>
-///     <li>@c AnalyticsParameterValue (Double) (optional)</li>
-/// </ul>
-/// <b>This constant has been deprecated. Use @c AnalyticsEventViewPromotion constant instead.</b>
-static NSString *const kFIREventPresentOffer NS_SWIFT_NAME(AnalyticsEventPresentOffer) =
-    @"present_offer";
-
 /// E-Commerce Purchase event. This event signifies that an item(s) was purchased by a user. Note:
 /// This is different from the in-app purchase event, which is reported automatically for App
 /// Store-based apps. Note: If you supply the @c AnalyticsParameterValue parameter, you must also
@@ -273,20 +216,6 @@ static NSString *const kFIREventPresentOffer NS_SWIFT_NAME(AnalyticsEventPresent
 ///     <li>@c AnalyticsParameterValue (Double) (optional)</li>
 /// </ul>
 static NSString *const kFIREventPurchase NS_SWIFT_NAME(AnalyticsEventPurchase) = @"purchase";
-
-/// E-Commerce Purchase Refund event. This event signifies that an item purchase was refunded.
-/// Note: If you supply the @c AnalyticsParameterValue parameter, you must also supply the
-/// @c AnalyticsParameterCurrency parameter so that revenue metrics can be computed accurately.
-/// Params:
-///
-/// <ul>
-///     <li>@c AnalyticsParameterCurrency (String) (optional)</li>
-///     <li>@c AnalyticsParameterValue (Double) (optional)</li>
-///     <li>@c AnalyticsParameterTransactionID (String) (optional)</li>
-/// </ul>
-/// <b>This constant has been deprecated. Use @c AnalyticsEventRefund constant instead.</b>
-static NSString *const kFIREventPurchaseRefund NS_SWIFT_NAME(AnalyticsEventPurchaseRefund) =
-    @"purchase_refund";
 
 /// E-Commerce Refund event. This event signifies that a refund was issued. Note: If you supply the
 /// @c AnalyticsParameterValue parameter, you must also supply the @c AnalyticsParameterCurrency
@@ -379,16 +308,6 @@ static NSString *const kFIREventSelectItem NS_SWIFT_NAME(AnalyticsEventSelectIte
 static NSString *const kFIREventSelectPromotion NS_SWIFT_NAME(AnalyticsEventSelectPromotion) =
     @"select_promotion";
 
-/// Set checkout option. Params:
-///
-/// <ul>
-///    <li>@c AnalyticsParameterCheckoutStep (Int)</li>
-///    <li>@c AnalyticsParameterCheckoutOption (String)</li>
-/// </ul>
-/// <b>This constant has been deprecated.</b>
-static NSString *const kFIREventSetCheckoutOption NS_SWIFT_NAME(AnalyticsEventSetCheckoutOption) =
-    @"set_checkout_option";
-
 /// Share event. Apps with social features can log the Share event to identify the most viral
 /// content. Params:
 ///
@@ -403,7 +322,7 @@ static NSString *const kFIREventShare NS_SWIFT_NAME(AnalyticsEventShare) = @"sha
 /// different behaviors between logged in and logged out users. Params:
 ///
 /// <ul>
-///     <li>@c AnalyticsParameterSignUpMethod (String)</li>
+///     <li>@c AnalyticsParameterMethod (String)</li>
 /// </ul>
 static NSString *const kFIREventSignUp NS_SWIFT_NAME(AnalyticsEventSignUp) = @"sign_up";
 

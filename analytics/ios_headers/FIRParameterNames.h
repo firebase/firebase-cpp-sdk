@@ -1,6 +1,6 @@
 // Copyright 2022 Google LLC
 
-// Copied from Firebase Analytics iOS SDK 8.15.0.
+// Copied from Firebase Analytics iOS SDK 9.0.0.
 
 /// @file FIRParameterNames.h
 ///
@@ -129,28 +129,6 @@ static NSString *const kFIRParameterCampaignID NS_SWIFT_NAME(AnalyticsParameterC
 /// </pre>
 static NSString *const kFIRParameterCharacter NS_SWIFT_NAME(AnalyticsParameterCharacter) =
     @"character";
-
-/// Some option on a step in an ecommerce flow (String).
-/// <pre>
-///     let params = [
-///       AnalyticsParameterCheckoutOption : "Visa",
-///       // ...
-///     ]
-/// </pre>
-/// <b>This constant has been deprecated.</b>
-static NSString *const kFIRParameterCheckoutOption
-    NS_SWIFT_NAME(AnalyticsParameterCheckoutOption) = @"checkout_option";
-
-/// The checkout step (1..N) (Int).
-/// <pre>
-///     let params = [
-///       AnalyticsParameterCheckoutStep : 1,
-///       // ...
-///     ]
-/// </pre>
-/// <b>This constant has been deprecated.</b>
-static NSString *const kFIRParameterCheckoutStep NS_SWIFT_NAME(AnalyticsParameterCheckoutStep) =
-    @"checkout_step";
 
 /// Campaign content (String).
 static NSString *const kFIRParameterContent NS_SWIFT_NAME(AnalyticsParameterContent) = @"content";
@@ -356,17 +334,6 @@ static NSString *const kFIRParameterItemCategory5 NS_SWIFT_NAME(AnalyticsParamet
 /// </pre>
 static NSString *const kFIRParameterItemID NS_SWIFT_NAME(AnalyticsParameterItemID) = @"item_id";
 
-/// The list in which the item was presented to the user (String).
-/// <pre>
-///     let params = [
-///       AnalyticsParameterItemList : "Search Results",
-///       // ...
-///     ]
-/// </pre>
-/// <b>This constant has been deprecated. Use @c AnalyticsParameterItemListName instead.</b>
-static NSString *const kFIRParameterItemList NS_SWIFT_NAME(AnalyticsParameterItemList) =
-    @"item_list";
-
 /// The ID of the list in which the item was presented to the user (String).
 /// <pre>
 ///     let params = [
@@ -386,18 +353,6 @@ static NSString *const kFIRParameterItemListID NS_SWIFT_NAME(AnalyticsParameterI
 /// </pre>
 static NSString *const kFIRParameterItemListName NS_SWIFT_NAME(AnalyticsParameterItemListName) =
     @"item_list_name";
-
-/// The Google <a href="https://developers.google.com/places/place-id">Place ID</a> (String) that
-/// corresponds to the associated item. Alternatively, you can supply your own custom Location ID.
-/// <pre>
-///     let params = [
-///       AnalyticsParameterItemLocationID : "ChIJiyj437sx3YAR9kUWC8QkLzQ",
-///       // ...
-///     ]
-/// </pre>
-/// <b>This constant has been deprecated. Use @c AnalyticsParameterLocationID constant instead.</b>
-static NSString *const kFIRParameterItemLocationID
-    NS_SWIFT_NAME(AnalyticsParameterItemLocationID) = @"item_location_id";
 
 /// Item Name (context-specific) (String).
 /// <pre>
@@ -655,18 +610,6 @@ static NSString *const kFIRParameterShipping NS_SWIFT_NAME(AnalyticsParameterShi
 /// </pre>
 static NSString *const kFIRParameterShippingTier NS_SWIFT_NAME(AnalyticsParameterShippingTier) =
     @"shipping_tier";
-
-/// Sign up method (String).
-/// <pre>
-///     let params = [
-///       AnalyticsParameterSignUpMethod : "google",
-///       // ...
-///     ]
-/// </pre>
-///
-/// <b>This constant has been deprecated. Use Method constant instead.</b>
-static NSString *const kFIRParameterSignUpMethod NS_SWIFT_NAME(AnalyticsParameterSignUpMethod) =
-    @"sign_up_method";
 
 /// The origin of your traffic, such as an Ad network (for example, google) or partner (urban
 /// airship). Identify the advertiser, site, publication, etc. that is sending traffic to your
