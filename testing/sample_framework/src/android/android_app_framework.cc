@@ -159,10 +159,10 @@ class LoggingUtilsData {
     logging_utils_start_log_file_ =
         env->GetStaticMethodID(logging_utils_class_, "startLogFile",
                                "(Landroid/app/Activity;Ljava/lang/String;)Z");
-    logging_utils_skip_uitest_log_ =
-        env->GetStaticMethodID(logging_utils_class_, "skipUITestLog", "()Z");
-    logging_utils_skip_nonuitest_log_ =
-        env->GetStaticMethodID(logging_utils_class_, "skipNonUITestLog", "()Z");
+    logging_utils_should_run_uitests_ =
+        env->GetStaticMethodID(logging_utils_class_, "ShouldRunUITests", "()Z");
+    logging_utils_should_run_nonuitests_ = env->GetStaticMethodID(
+        logging_utils_class_, "ShouldRunNonUITests", "()Z");
 
     env->CallStaticVoidMethod(logging_utils_class_,
                               logging_utils_init_log_window_, GetActivity());
@@ -187,22 +187,22 @@ class LoggingUtilsData {
                                         logging_utils_get_did_touch_);
   }
 
-  bool SkipUITest() {
+  bool ShouldRunUITests() {
     if (logging_utils_class_ == 0)
       return false;  // haven't been initialized yet
     JNIEnv* env = GetJniEnv();
     assert(env);
     return env->CallStaticBooleanMethod(logging_utils_class_,
-                                        logging_utils_skip_uitest_log_);
+                                        logging_utils_should_run_uitests_);
   }
 
-  bool SkipNonUITest() {
+  bool ShouldRunNonUITests() {
     if (logging_utils_class_ == 0)
       return false;  // haven't been initialized yet
     JNIEnv* env = GetJniEnv();
     assert(env);
     return env->CallStaticBooleanMethod(logging_utils_class_,
-                                        logging_utils_skip_nonuitest_log_);
+                                        logging_utils_should_run_nonuitests_);
   }
 
   bool IsLoggingToFile() {
@@ -240,8 +240,8 @@ class LoggingUtilsData {
   jmethodID logging_utils_get_did_touch_;
   jmethodID logging_utils_get_log_file_;
   jmethodID logging_utils_start_log_file_;
-  jmethodID logging_utils_skip_uitest_log_;
-  jmethodID logging_utils_skip_nonuitest_log_;
+  jmethodID logging_utils_should_run_uitests_;
+  jmethodID logging_utils_should_run_nonuitests_;
 };
 
 LoggingUtilsData* g_logging_utils_data;
@@ -336,10 +336,12 @@ JNIEnv* GetJniEnv() {
   return result == JNI_OK ? env : nullptr;
 }
 
-bool SkipUITest() { return app_framework::g_logging_utils_data->SkipUITest(); }
+bool ShouldRunUITests() {
+  return app_framework::g_logging_utils_data->ShouldRunUITests();
+}
 
-bool SkipNonUITest() {
-  return app_framework::g_logging_utils_data->SkipNonUITest();
+bool ShouldRunNonUITests() {
+  return app_framework::g_logging_utils_data->ShouldRunNonUITests();
 }
 
 bool IsLoggingToFile() {

@@ -288,9 +288,9 @@ std::string ReadTextInput(const char *title, const char *message, const char *pl
   }
 }
 
-bool SkipUITest() { return g_gameloop_launch; }
+bool ShouldRunUITests() { return !g_gameloop_launch; }
 
-bool SkipNonUITest() { return g_uitest_launch; }
+bool ShouldRunNonUITests() { return !g_uitest_launch; }
 
 bool IsLoggingToFile() { return g_file_url_path; }
 

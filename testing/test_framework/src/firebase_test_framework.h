@@ -39,9 +39,9 @@ namespace firebase_test_framework {
 // Use this macro to skip an entire test if it is an non UI Test and we are
 // not running it in UItest mode (for example, on UI Test workflow).
 #define TEST_DOES_NOT_REQUIRE_USER_INTERACTION                            \
-  if (SkipNonUITest()) {                                                  \
+  if (!ShouldRunNonUITests()) {                                           \
     app_framework::LogInfo(                                               \
-        "Skipping %s, as it is an Non UI Test.",                          \
+        "Skipping %s, as it is a Non UI Test.",                           \
         ::testing::UnitTest::GetInstance()->current_test_info()->name()); \
     GTEST_SKIP();                                                         \
     return;                                                               \
@@ -50,7 +50,7 @@ namespace firebase_test_framework {
 // Use this macro to skip an entire test if it requires interactivity and we are
 // not running in interactive mode (for example, on FTL).
 #define TEST_REQUIRES_USER_INTERACTION                                    \
-  if (SkipUITest()) {                                                     \
+  if (!ShouldRunUITests()) {                                              \
     app_framework::LogInfo(                                               \
         "Skipping %s, as it requires user interaction.",                  \
         ::testing::UnitTest::GetInstance()->current_test_info()->name()); \
@@ -456,11 +456,11 @@ class FirebaseTest : public testing::Test {
   static bool OpenUrlInBrowser(const char* url);
 
   // Returns true if we skip tests that require interaction, false if not.
-  static bool SkipUITest();
+  static bool ShouldRunUITests();
 
   // Returns true if we skip tests that do not require interaction, false if
   // not.
-  static bool SkipNonUITest();
+  static bool ShouldRunNonUITests();
 
   // Encode a binary string to base64. Returns true if the encoding succeeded,
   // false if it failed.
