@@ -490,7 +490,6 @@ class TestAdInspectorClosedListener
 
 // Ensure we can open the AdInspector and listen to its events.
 TEST_F(FirebaseGmaUITest, TestAdInspector) {
-  // TEST_REQUIRES_USER_INTERACTION;
   TestAdInspectorClosedListener listener;
 
   firebase::gma::OpenAdInspector(app_framework::GetWindowController(),
@@ -820,7 +819,6 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoad) {
 // Interactive test section.  These have been placed up front so that the
 // tester doesn't get bored waiting for them.
 TEST_F(FirebaseGmaUITest, TestAdViewAdOpenedAdClosed) {
-  // TEST_REQUIRES_USER_INTERACTION;
   SKIP_TEST_ON_DESKTOP;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
@@ -889,7 +887,6 @@ TEST_F(FirebaseGmaUITest, TestAdViewAdOpenedAdClosed) {
 }
 
 TEST_F(FirebaseGmaUITest, TestInterstitialAdLoadAndShow) {
-  // TEST_REQUIRES_USER_INTERACTION;
   SKIP_TEST_ON_DESKTOP;
 
   firebase::gma::InterstitialAd* interstitial =
@@ -944,7 +941,6 @@ TEST_F(FirebaseGmaUITest, TestInterstitialAdLoadAndShow) {
 }
 
 TEST_F(FirebaseGmaUITest, TestRewardedAdLoadAndShow) {
-  // TEST_REQUIRES_USER_INTERACTION;
   SKIP_TEST_ON_DESKTOP;
 
   firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
@@ -1150,7 +1146,6 @@ TEST_F(FirebaseGmaTest, TestAdViewAdSizeBeforeInitialization) {
 }
 
 TEST_F(FirebaseGmaUITest, TestAdView) {
-  // TEST_REQUIRES_USER_INTERACTION;
   SKIP_TEST_ON_DESKTOP;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
@@ -1772,7 +1767,6 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadExtrasClassName) {
 
 // Stress tests.  These take a while so run them near the end.
 TEST_F(FirebaseGmaUITest, TestAdViewStress) {
-  // TEST_REQUIRES_USER_INTERACTION;
   SKIP_TEST_ON_DESKTOP;
 
   for (int i = 0; i < 10; ++i) {
@@ -1794,7 +1788,6 @@ TEST_F(FirebaseGmaUITest, TestAdViewStress) {
 }
 
 TEST_F(FirebaseGmaUITest, TestInterstitialAdStress) {
-  // TEST_REQUIRES_USER_INTERACTION;
   SKIP_TEST_ON_DESKTOP;
 
   for (int i = 0; i < 10; ++i) {
@@ -1814,7 +1807,6 @@ TEST_F(FirebaseGmaUITest, TestInterstitialAdStress) {
 }
 
 TEST_F(FirebaseGmaUITest, TestRewardedAdStress) {
-  // TEST_REQUIRES_USER_INTERACTION;
   SKIP_TEST_ON_DESKTOP;
 
   for (int i = 0; i < 10; ++i) {

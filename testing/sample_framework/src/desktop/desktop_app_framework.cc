@@ -211,9 +211,9 @@ std::string ReadTextInput(const char* title, const char* message,
   return input_line.empty() ? std::string(placeholder) : input_line;
 }
 
-bool SkipUITest() { return false; }
+bool ShouldRunUITests() { return true; }
 
-bool SkipNonUITest() { return false; }
+bool ShouldRunNonUITests() { return true; }
 
 bool IsLoggingToFile() { return false; }
 

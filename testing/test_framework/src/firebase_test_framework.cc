@@ -262,9 +262,13 @@ std::string FirebaseTest::VariantToString(const firebase::Variant& variant) {
   return out.str();
 }
 
-bool FirebaseTest::SkipUITest() { return app_framework::SkipUITest(); }
+bool FirebaseTest::ShouldRunUITests() {
+  return app_framework::ShouldRunUITests();
+}
 
-bool FirebaseTest::SkipNonUITest() { return app_framework::SkipNonUITest(); }
+bool FirebaseTest::ShouldRunNonUITests() {
+  return app_framework::ShouldRunNonUITests();
+}
 
 bool FirebaseTest::Base64Encode(const std::string& input, std::string* output) {
   return ::firebase::internal::Base64Encode(input, output);
