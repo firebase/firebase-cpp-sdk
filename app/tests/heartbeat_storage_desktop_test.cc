@@ -46,7 +46,7 @@ TEST_F(HeartbeatStorageDesktopTest, WriteAndRead) {
   ASSERT_TRUE(write_ok) << "Unable to write the heartbeat file:\n  " + storage.GetError();
 
   LoggedHeartbeats read_heartbeats;
-  bool read_ok = storage.Read(read_heartbeats);
+  bool read_ok = storage.ReadTo(&read_heartbeats);
   ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " + storage.GetError();
   EXPECT_EQ(read_heartbeats.last_logged_date, date2);
   ASSERT_EQ(read_heartbeats.heartbeats[user_agent].size(), 2);
@@ -69,7 +69,7 @@ TEST_F(HeartbeatStorageDesktopTest, WriteAndReadDifferentStorageInstance) {
 
   HeartbeatStorageDesktop storage2 = HeartbeatStorageDesktop(app_id);
   LoggedHeartbeats read_heartbeats;
-  bool read_ok = storage2.Read(read_heartbeats);
+  bool read_ok = storage2.ReadTo(&read_heartbeats);
   ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " + storage2.GetError();
   EXPECT_EQ(read_heartbeats.last_logged_date, date2);
   ASSERT_EQ(read_heartbeats.heartbeats[user_agent].size(), 2);
@@ -100,9 +100,9 @@ TEST_F(HeartbeatStorageDesktopTest, WriteAndReadDifferentAppIds) {
   write_ok = storage2.Write(heartbeats2);
   ASSERT_TRUE(write_ok) << "Unable to write the heartbeat file:\n  " + storage2.GetError();
 
-  // Read for app_id and verify it contains the original heartbeats.  
+  // Read using app_id and verify it contains the original heartbeats.
   LoggedHeartbeats read_heartbeats;
-  bool read_ok = storage1.Read(read_heartbeats);
+  bool read_ok = storage1.ReadTo(&read_heartbeats);
   ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " + storage1.GetError();
   EXPECT_EQ(read_heartbeats.last_logged_date, date1);
   ASSERT_EQ(read_heartbeats.heartbeats[user_agent1].size(), 1);
@@ -113,7 +113,7 @@ TEST_F(HeartbeatStorageDesktopTest, ReadNonexistentFile) {
   // ReadHeartbeats should return a default instance
   HeartbeatStorageDesktop storage = HeartbeatStorageDesktop("nonexistent_app_id");
   LoggedHeartbeats read_heartbeats;
-  bool read_ok = storage.Read(read_heartbeats);
+  bool read_ok = storage.ReadTo(&read_heartbeats);
   ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " + storage.GetError();
   EXPECT_EQ(read_heartbeats.last_logged_date, "");
   ASSERT_EQ(read_heartbeats.heartbeats.size(), 0);
@@ -128,7 +128,7 @@ TEST_F(HeartbeatStorageDesktopTest, WriteAndReadWithSymbolsInAppId) {
   bool write_ok = storage.Write(heartbeats);
   ASSERT_TRUE(write_ok) << "Unable to write the heartbeat file:\n  " + storage.GetError();
   LoggedHeartbeats read_heartbeats;
-  bool read_ok = storage.Read(read_heartbeats);
+  bool read_ok = storage.ReadTo(&read_heartbeats);
   ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " + storage.GetError();
   EXPECT_EQ(read_heartbeats.last_logged_date, date1);
 }
@@ -148,7 +148,7 @@ TEST_F(HeartbeatStorageDesktopTest, ReadCorruptedData) {
 
   // ReadHeartbeats should return a default instance
   LoggedHeartbeats read_heartbeats;
-  bool read_ok = storage.Read(read_heartbeats);
+  bool read_ok = storage.ReadTo(&read_heartbeats);
   ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " + storage.GetError();
   EXPECT_EQ(read_heartbeats.last_logged_date, "");
   ASSERT_EQ(read_heartbeats.heartbeats.size(), 0);
@@ -177,7 +177,7 @@ TEST_F(HeartbeatStorageDesktopTest, ConcurrentWritesAndReads) {
 
         // Verify that read succeeds and that data is not corrupted.
         LoggedHeartbeats read_heartbeats;
-        bool read_ok = storage.Read(read_heartbeats);
+        bool read_ok = storage.ReadTo(&read_heartbeats);
         ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " + storage.GetError();
         EXPECT_EQ(read_heartbeats.last_logged_date, date1);
         ASSERT_EQ(read_heartbeats.heartbeats.size(), 1);

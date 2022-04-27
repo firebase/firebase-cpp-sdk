@@ -78,7 +78,7 @@ HeartbeatStorageDesktop::HeartbeatStorageDesktop(std::string app_id)
 // Size is arbitrary, just making sure that there is a sane limit.
 static const int kMaxBufferSize = 1024 * 500;
 
-bool HeartbeatStorageDesktop::Read(LoggedHeartbeats& heartbeats_output) {
+bool HeartbeatStorageDesktop::ReadTo(LoggedHeartbeats* heartbeats_output) {
   MutexLock lock(FileMutex());
   error_ = "";
   // Open the file and seek to the end
@@ -106,12 +106,12 @@ bool HeartbeatStorageDesktop::Read(LoggedHeartbeats& heartbeats_output) {
                                    buffer_len);
   if (!VerifyLoggedHeartbeatsBuffer(verifier)) {
     // If the file is empty or contains corrupted data, return a default instance.
-    heartbeats_output = LoggedHeartbeats();
+    *heartbeats_output = LoggedHeartbeats();
     delete[] buffer;
     return true;
   }
   const LoggedHeartbeatsFbs* heartbeats_fbs = GetLoggedHeartbeats(buffer);
-  heartbeats_output = LoggedHeartbeatsFromFbs(heartbeats_fbs);
+  *heartbeats_output = LoggedHeartbeatsFromFbs(heartbeats_fbs);
   delete[] buffer;
   return true;
 }

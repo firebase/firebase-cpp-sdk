@@ -57,7 +57,7 @@ class HeartbeatStorageDesktop {
 
   // Reads an instance of LoggedHeartbeats from disk into the provided struct. Returns `false` if the
   // read operation fails.
-  bool Read(LoggedHeartbeats& heartbeats_output);
+  bool ReadTo(LoggedHeartbeats* heartbeats_output);
 
   // Writes an instance of LoggedHeartbeats to disk. Returns `false` if the
   // write operation fails.
