@@ -573,6 +573,7 @@ code.
     -   AdMob (iOS): Temporarily pinned AdMob dependency to a special version of the
         Google-Mobile-Ads-SDK Cocoapod, "7.69.0-cppsdk2", to maintain compatibility
         with version 9.x of the Firebase iOS SDK.
+    -   Analytics: Removed deprecated event names and parameters.
     -   Storage (Desktop): Set Content-Type HTTP header when uploading with
         custom metadata.
 
