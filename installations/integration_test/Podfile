@@ -11,7 +11,7 @@ end
 
 post_install do |installer|
   # If this is running from inside the SDK directory, run the setup script.
-  system("if [[ -r ../../setup_integration_tests.py ]]; then python ../../setup_integration_tests.py .; fi")
-  system("/usr/bin/python ./download_googletest.py")
+  system("if [[ -r ../../setup_integration_tests.py ]]; then python3 ../../setup_integration_tests.py .; fi")
+  system("python3 ./download_googletest.py")
 end
 
