@@ -16,7 +16,7 @@
 		529226DA1C85F68000C89379 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D91C85F68000C89379 /* UIKit.framework */; };
 		6013D96CC99BE0D747E924BF /* firebase_auth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F2D5AB4DBDD804A38B51636 /* firebase_auth.framework */; };
 		7B510B28CC034B1F8E1A89E0 /* firebase.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6C04D181B10689799EE4823D /* firebase.framework */; };
-		8822447D5AD56650C3762A3C /* firebase.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0F587446811C107616587386 /* firebase.framework */; };
+		8822447D5AD56650C3762A3C /* (null) in Frameworks */ = {isa = PBXBuildFile; };
 		B03DCEF24BED9C02CFA71109 /* firebase_auth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8C4AC9C038C468519B583C7C /* firebase_auth.framework */; };
 		BC1D682C267B0030005DC2DA /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BC1D682A267B0030005DC2DA /* Main.storyboard */; };
 		BC1D6831267B0032005DC2DA /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BC1D682F267B0032005DC2DA /* LaunchScreen.storyboard */; };
@@ -57,6 +57,8 @@
 		BC1D685C267B0112005DC2DA /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D685B267B0112005DC2DA /* UIKit.framework */; };
 		BC1D685E267B0116005DC2DA /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D685D267B0116005DC2DA /* CoreGraphics.framework */; };
 		C0EB70BFD56F6FD455E7A583 /* libPods-integration_test.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C6A6C05283DCA99207D26DC2 /* libPods-integration_test.a */; };
+		D60C58872819C902002E8A04 /* empty.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60C58862819C902002E8A04 /* empty.swift */; };
+		D60C58882819C902002E8A04 /* empty.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60C58862819C902002E8A04 /* empty.swift */; };
 		D61A465D2606EA0B007EBE9B /* transaction_extra_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D61A465C2606EA0B007EBE9B /* transaction_extra_test.cc */; };
 		D61C5F8E22BABA9C00A79141 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D61C5F8C22BABA9B00A79141 /* Images.xcassets */; };
 		D61CFBC126091C3B0035CB2A /* integration_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D61CFBC026091C3A0035CB2A /* integration_test.cc */; };
@@ -124,6 +126,7 @@
 		BC1D685B267B0112005DC2DA /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS14.5.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		BC1D685D267B0116005DC2DA /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS14.5.sdk/System/Library/Frameworks/CoreGraphics.framework; sourceTree = DEVELOPER_DIR; };
 		C6A6C05283DCA99207D26DC2 /* libPods-integration_test.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-integration_test.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D60C58862819C902002E8A04 /* empty.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = empty.swift; path = src/empty.swift; sourceTree = "<group>"; };
 		D61A465C2606EA0B007EBE9B /* transaction_extra_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = transaction_extra_test.cc; path = src/transaction_extra_test.cc; sourceTree = "<group>"; };
 		D61C5F8C22BABA9B00A79141 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		D61C5F8D22BABA9C00A79141 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -183,7 +186,7 @@
 				B03DCEF24BED9C02CFA71109 /* firebase_auth.framework in Frameworks */,
 				D86FB1D3D4A592C451A29369 /* firebase_firestore.framework in Frameworks */,
 				C0EB70BFD56F6FD455E7A583 /* libPods-integration_test.a in Frameworks */,
-				8822447D5AD56650C3762A3C /* firebase.framework in Frameworks */,
+				8822447D5AD56650C3762A3C /* (null) in Frameworks */,
 				6013D96CC99BE0D747E924BF /* firebase_auth.framework in Frameworks */,
 				5270BB448DF5ECE860FDD68B /* firebase_firestore.framework in Frameworks */,
 			);
@@ -196,7 +199,6 @@
 				BC1D685E267B0116005DC2DA /* CoreGraphics.framework in Frameworks */,
 				BC1D685C267B0112005DC2DA /* UIKit.framework in Frameworks */,
 				BC1D685A267B010D005DC2DA /* Foundation.framework in Frameworks */,
-				349D894BC9921EE411628083 /* libPods-integration_test_tvos.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -208,10 +210,8 @@
 			children = (
 				AA66DDF2F9BB2D8480FAB9BD /* Pods-integration_test.debug.xcconfig */,
 				5FB592CD6A6DDFBF795F22C1 /* Pods-integration_test.release.xcconfig */,
-				0E2C285E6C7E246C8636B9B5 /* Pods-integration_test_tvos.debug.xcconfig */,
 				3DE393E827F88B06CD3C39CD /* Pods-integration_test_tvos.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -227,6 +227,7 @@
 				529226D41C85F68000C89379 /* Frameworks */,
 				529226D31C85F68000C89379 /* Products */,
 				241B330D425A3B220F54AE8D /* Pods */,
+				D60C58852819C8F0002E8A04 /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -261,6 +262,7 @@
 		5292271D1C85FB5500C89379 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				D60C58862819C902002E8A04 /* empty.swift */,
 				EDEEC7622800CD0000EFBAAF /* leveldb_snappy_test.cc */,
 				12D513182684C8D100A83FAA /* bundle_builder.cc */,
 				12D513192684C8D100A83FAA /* bundle_builder.h */,
@@ -326,6 +328,18 @@
 			path = integration_test_tvos;
 			sourceTree = "<group>";
 		};
+		D60C58852819C8F0002E8A04 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				6C04D181B10689799EE4823D /* firebase.framework */,
+				8C4AC9C038C468519B583C7C /* firebase_auth.framework */,
+				B7F45B5446094E107E88721A /* firebase_firestore.framework */,
+				6F2D5AB4DBDD804A38B51636 /* firebase_auth.framework */,
+				EAFAF9474EC412ADCC65F2CC /* firebase_firestore.framework */,
+			);
+			name = "Recovered References";
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -379,10 +393,12 @@
 					529226D11C85F68000C89379 = {
 						CreatedOnToolsVersion = 6.4;
 						DevelopmentTeam = EQHXZ8M8AV;
+						LastSwiftMigration = 1320;
 						ProvisioningStyle = Automatic;
 					};
 					BC1D6821267B0030005DC2DA = {
 						CreatedOnToolsVersion = 12.5;
+						LastSwiftMigration = 1320;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -523,6 +539,7 @@
 				D6AAAD492606C22D0025C53B /* collection_reference_test.cc in Sources */,
 				D6AAAD572606C22D0025C53B /* document_reference_test.cc in Sources */,
 				D67D355822BABD2200292C1D /* gtest-all.cc in Sources */,
+				D60C58872819C902002E8A04 /* empty.swift in Sources */,
 				D6AAAD4D2606C22D0025C53B /* query_snapshot_test.cc in Sources */,
 				12D513142684C8C200A83FAA /* bundle_test.cc in Sources */,
 				D6AAAD4F2606C22D0025C53B /* transaction_test.cc in Sources */,
@@ -565,8 +582,8 @@
 				BC1D683E267B00EB005DC2DA /* integration_test_util.cc in Sources */,
 				BC1D683D267B00EB005DC2DA /* query_snapshot_test.cc in Sources */,
 				BC1D6855267B00EB005DC2DA /* transaction_test.cc in Sources */,
+				D60C58882819C902002E8A04 /* empty.swift in Sources */,
 				BC1D684A267B00EB005DC2DA /* firebase_test_framework.cc in Sources */,
-				12D513152684C8C200A83FAA /* bundle_test.cc in Sources */,
 				BC1D6852267B00EB005DC2DA /* smoke_test.cc in Sources */,
 				BC1D6848267B00EB005DC2DA /* sanity_test.cc in Sources */,
 				BC1D6856267B00EE005DC2DA /* ios_app_framework.mm in Sources */,
@@ -585,7 +602,6 @@
 				BC1D683B267B00EB005DC2DA /* firestore_test.cc in Sources */,
 				BC1D6842267B00EB005DC2DA /* field_value_test.cc in Sources */,
 				BC1D684D267B00EB005DC2DA /* server_timestamp_test.cc in Sources */,
-				12D5131B2684C8D100A83FAA /* bundle_builder.cc in Sources */,
 				EDEEC7642800CD0000EFBAAF /* leveldb_snappy_test.cc in Sources */,
 				BC1D6841267B00EB005DC2DA /* query_test.cc in Sources */,
 				BC1D684F267B00EB005DC2DA /* document_reference_test.cc in Sources */,
@@ -706,6 +722,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = "";
@@ -736,9 +753,12 @@
 					"\"$(SRCROOT)/../..\"",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.google.firebase.cpp.firestore.testapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -749,6 +769,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = "";
@@ -779,22 +800,24 @@
 					"\"$(SRCROOT)/../..\"",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.google.firebase.cpp.firestore.testapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_VERSION = 5.0;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
 		};
 		BC1D6836267B0032005DC2DA /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 0E2C285E6C7E246C8636B9B5 /* Pods-integration_test_tvos.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_COMMA = YES;
@@ -844,10 +867,12 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.google.firebase.cpp.firestore.testapp";
+				PRODUCT_BUNDLE_IDENTIFIER = com.google.firebase.cpp.firestore.testapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = appletvos;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 3;
 				TVOS_DEPLOYMENT_TARGET = 10.1;
 			};
@@ -862,6 +887,7 @@
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_COMMA = YES;
@@ -909,10 +935,11 @@
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.google.firebase.cpp.firestore.testapp";
+				PRODUCT_BUNDLE_IDENTIFIER = com.google.firebase.cpp.firestore.testapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = appletvos;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 3;
 				TVOS_DEPLOYMENT_TARGET = 10.1;
 			};

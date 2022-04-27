@@ -33,6 +33,8 @@
 		D6C179EA22CB322900C2651A /* ios_firebase_test_framework.mm in Sources */ = {isa = PBXBuildFile; fileRef = D6C179E822CB322900C2651A /* ios_firebase_test_framework.mm */; };
 		D6C179EE22CB323300C2651A /* firebase_test_framework.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6C179EC22CB323300C2651A /* firebase_test_framework.cc */; };
 		D6C179F022CB32A000C2651A /* app_framework.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6C179EF22CB32A000C2651A /* app_framework.cc */; };
+		D6E9628F2819C99600ADA1E4 /* empty.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6E9628E2819C99600ADA1E4 /* empty.swift */; };
+		D6E962902819C99600ADA1E4 /* empty.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6E9628E2819C99600ADA1E4 /* empty.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -69,6 +71,7 @@
 		D6C179EC22CB323300C2651A /* firebase_test_framework.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = firebase_test_framework.cc; path = src/firebase_test_framework.cc; sourceTree = "<group>"; };
 		D6C179ED22CB323300C2651A /* app_framework.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = app_framework.h; path = src/app_framework.h; sourceTree = "<group>"; };
 		D6C179EF22CB32A000C2651A /* app_framework.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = app_framework.cc; path = src/app_framework.cc; sourceTree = "<group>"; };
+		D6E9628E2819C99600ADA1E4 /* empty.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = empty.swift; path = src/empty.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -142,6 +145,7 @@
 		5292271D1C85FB5500C89379 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				D6E9628E2819C99600ADA1E4 /* empty.swift */,
 				D62CCBC122F367320099BE9F /* gmock.h */,
 				D62CCBBF22F367140099BE9F /* gmock-all.cc */,
 				D67D355622BABD2100292C1D /* gtest-all.cc */,
@@ -225,11 +229,13 @@
 					529226D11C85F68000C89379 = {
 						CreatedOnToolsVersion = 6.4;
 						DevelopmentTeam = EQHXZ8M8AV;
+						LastSwiftMigration = 1320;
 						ProvisioningStyle = Automatic;
 					};
 					BC1D668B2679868A005DC2DA = {
 						CreatedOnToolsVersion = 12.5;
 						DevelopmentTeam = EQHXZ8M8AV;
+						LastSwiftMigration = 1320;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -334,6 +340,7 @@
 				D6C179EA22CB322900C2651A /* ios_firebase_test_framework.mm in Sources */,
 				D61C5F9622BABAD200A79141 /* integration_test.cc in Sources */,
 				D6C179E922CB322900C2651A /* ios_app_framework.mm in Sources */,
+				D6E9628F2819C99600ADA1E4 /* empty.swift in Sources */,
 				D6C179F022CB32A000C2651A /* app_framework.cc in Sources */,
 				D6C179EE22CB323300C2651A /* firebase_test_framework.cc in Sources */,
 			);
@@ -348,6 +355,7 @@
 				BC1D66A2267986B9005DC2DA /* gmock-all.cc in Sources */,
 				BC1D66D526798DC9005DC2DA /* ios_app_framework.mm in Sources */,
 				BC1D66A4267986BE005DC2DA /* app_framework.cc in Sources */,
+				D6E962902819C99600ADA1E4 /* empty.swift in Sources */,
 				BC1D66A3267986BB005DC2DA /* gtest-all.cc in Sources */,
 				BC1D66A5267986C1005DC2DA /* firebase_test_framework.cc in Sources */,
 			);
@@ -460,6 +468,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = "";
@@ -477,9 +486,12 @@
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.google.firebase.cpp.storage.testapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -489,6 +501,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = "";
@@ -506,9 +519,11 @@
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.google.firebase.cpp.storage.testapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_VERSION = 5.0;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
@@ -521,6 +536,7 @@
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_COMMA = YES;
@@ -562,6 +578,8 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = appletvos;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 3;
 				TVOS_DEPLOYMENT_TARGET = 13.4;
 			};
@@ -575,6 +593,7 @@
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_COMMA = YES;
@@ -614,6 +633,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = appletvos;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 3;
 				TVOS_DEPLOYMENT_TARGET = 13.4;
 			};

@@ -32,6 +32,8 @@
 		D6C179EA22CB322900C2651A /* ios_firebase_test_framework.mm in Sources */ = {isa = PBXBuildFile; fileRef = D6C179E822CB322900C2651A /* ios_firebase_test_framework.mm */; };
 		D6C179EE22CB323300C2651A /* firebase_test_framework.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6C179EC22CB323300C2651A /* firebase_test_framework.cc */; };
 		D6C179F022CB32A000C2651A /* app_framework.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6C179EF22CB32A000C2651A /* app_framework.cc */; };
+		D6DF8F3D2819C8A400214018 /* empty.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6DF8F3C2819C8A400214018 /* empty.swift */; };
+		D6DF8F3E2819C8A400214018 /* empty.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6DF8F3C2819C8A400214018 /* empty.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -76,6 +78,7 @@
 		D6C179EC22CB323300C2651A /* firebase_test_framework.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = firebase_test_framework.cc; path = src/firebase_test_framework.cc; sourceTree = "<group>"; };
 		D6C179ED22CB323300C2651A /* app_framework.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = app_framework.h; path = src/app_framework.h; sourceTree = "<group>"; };
 		D6C179EF22CB32A000C2651A /* app_framework.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = app_framework.cc; path = src/app_framework.cc; sourceTree = "<group>"; };
+		D6DF8F3C2819C8A400214018 /* empty.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = empty.swift; path = src/empty.swift; sourceTree = "<group>"; };
 		D6E7D43C22D51D9900EDBD35 /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
 		DE5DF88312698BE99BFA8CD9 /* libPods-integration_test_tvos.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-integration_test_tvos.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -147,6 +150,7 @@
 		5292271D1C85FB5500C89379 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				D6DF8F3C2819C8A400214018 /* empty.swift */,
 				D62CCBC122F367320099BE9F /* gmock.h */,
 				D62CCBBF22F367140099BE9F /* gmock-all.cc */,
 				D67D355622BABD2100292C1D /* gtest-all.cc */,
@@ -231,6 +235,7 @@
 					529226D11C85F68000C89379 = {
 						CreatedOnToolsVersion = 6.4;
 						DevelopmentTeam = EQHXZ8M8AV;
+						LastSwiftMigration = 1320;
 						ProvisioningStyle = Automatic;
 						SystemCapabilities = {
 							com.apple.BackgroundModes = {
@@ -243,6 +248,7 @@
 					};
 					9F3A08EA266978C300E1D69F = {
 						CreatedOnToolsVersion = 12.5;
+						LastSwiftMigration = 1320;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -347,6 +353,7 @@
 				D6C179EA22CB322900C2651A /* ios_firebase_test_framework.mm in Sources */,
 				D61C5F9622BABAD200A79141 /* integration_test.cc in Sources */,
 				D6C179E922CB322900C2651A /* ios_app_framework.mm in Sources */,
+				D6DF8F3D2819C8A400214018 /* empty.swift in Sources */,
 				D6C179F022CB32A000C2651A /* app_framework.cc in Sources */,
 				D6C179EE22CB323300C2651A /* firebase_test_framework.cc in Sources */,
 			);
@@ -357,6 +364,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9F3A09012669791B00E1D69F /* gmock-all.cc in Sources */,
+				D6DF8F3E2819C8A400214018 /* empty.swift in Sources */,
 				9F3A09032669792100E1D69F /* app_framework.cc in Sources */,
 				9F3A09022669791E00E1D69F /* gtest-all.cc in Sources */,
 				9F3A09042669792400E1D69F /* firebase_test_framework.cc in Sources */,
@@ -472,6 +480,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = "";
@@ -493,6 +502,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.google.FirebaseCppAuthTestApp.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -502,6 +513,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = "";
@@ -523,6 +535,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.google.FirebaseCppAuthTestApp.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_VERSION = 5.0;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
@@ -535,6 +548,7 @@
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_COMMA = YES;
@@ -573,6 +587,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.google.FirebaseCppAuthTestApp.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 3;
 				TVOS_DEPLOYMENT_TARGET = 10.1;
 			};
@@ -586,6 +602,7 @@
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_COMMA = YES;
@@ -622,6 +639,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.google.FirebaseCppAuthTestApp.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 3;
 				TVOS_DEPLOYMENT_TARGET = 10.1;
 			};
