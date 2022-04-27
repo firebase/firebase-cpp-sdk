@@ -488,30 +488,30 @@ class TestAdInspectorClosedListener
   uint8_t num_successful_results_;
 };
 
-// Ensure we can open the AdInspector and listen to its events.
-TEST_F(FirebaseGmaUITest, TestAdInspector) {
-  TestAdInspectorClosedListener listener;
+// // Ensure we can open the AdInspector and listen to its events.
+// TEST_F(FirebaseGmaUITest, TestAdInspector) {
+//   TestAdInspectorClosedListener listener;
 
-  firebase::gma::OpenAdInspector(app_framework::GetWindowController(),
-                                 &listener);
+//   firebase::gma::OpenAdInspector(app_framework::GetWindowController(),
+//                                  &listener);
 
-  // Call OpenAdInspector, even on Desktop (above), to ensure the stub linked
-  // correctly. However, the rest of the testing is mobile-only beahvior.
-  SKIP_TEST_ON_DESKTOP;
+//   // Call OpenAdInspector, even on Desktop (above), to ensure the stub linked
+//   // correctly. However, the rest of the testing is mobile-only beahvior.
+//   SKIP_TEST_ON_DESKTOP;
 
-  // Open the inspector a second time to generate a
-  // kAdErrorCodeInsepctorAlreadyOpen result.
-  app_framework::ProcessEvents(2000);
+//   // Open the inspector a second time to generate a
+//   // kAdErrorCodeInsepctorAlreadyOpen result.
+//   app_framework::ProcessEvents(2000);
 
-  firebase::gma::OpenAdInspector(app_framework::GetWindowController(),
-                                 &listener);
+//   firebase::gma::OpenAdInspector(app_framework::GetWindowController(),
+//                                  &listener);
 
-  while (listener.num_closed_events() < 2) {
-    app_framework::ProcessEvents(2000);
-  }
+//   while (listener.num_closed_events() < 2) {
+//     app_framework::ProcessEvents(2000);
+//   }
 
-  EXPECT_EQ(listener.num_successful_results(), 1);
-}
+//   EXPECT_EQ(listener.num_successful_results(), 1);
+// }
 
 // A simple listener to help test changes to a AdViews.
 class TestBoundingBoxListener
@@ -1145,7 +1145,7 @@ TEST_F(FirebaseGmaTest, TestAdViewAdSizeBeforeInitialization) {
   WaitForCompletion(ad_view->Destroy(), "Destroy AdView");
 }
 
-TEST_F(FirebaseGmaUITest, TestAdView) {
+TEST_F(FirebaseGmaTest, TestAdView) {
   SKIP_TEST_ON_DESKTOP;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
@@ -1766,7 +1766,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadExtrasClassName) {
 }
 
 // Stress tests.  These take a while so run them near the end.
-TEST_F(FirebaseGmaUITest, TestAdViewStress) {
+TEST_F(FirebaseGmaTest, TestAdViewStress) {
   SKIP_TEST_ON_DESKTOP;
 
   for (int i = 0; i < 10; ++i) {
@@ -1787,7 +1787,7 @@ TEST_F(FirebaseGmaUITest, TestAdViewStress) {
   }
 }
 
-TEST_F(FirebaseGmaUITest, TestInterstitialAdStress) {
+TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
   SKIP_TEST_ON_DESKTOP;
 
   for (int i = 0; i < 10; ++i) {
@@ -1806,7 +1806,7 @@ TEST_F(FirebaseGmaUITest, TestInterstitialAdStress) {
   }
 }
 
-TEST_F(FirebaseGmaUITest, TestRewardedAdStress) {
+TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
   SKIP_TEST_ON_DESKTOP;
 
   for (int i = 0; i < 10; ++i) {

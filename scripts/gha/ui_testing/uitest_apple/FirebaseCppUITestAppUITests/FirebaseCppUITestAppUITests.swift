@@ -69,7 +69,7 @@ class FirebaseCppUITestAppUITests: XCTestCase {
     // Start Automated UI Test
     let app = XCUIApplication(bundleIdentifier: "com.google.ios.admob.testapp")
 
-    // TestAdViewAdClick
+    // TestAdViewAdOpenedAdClosed
     var reference = app.staticTexts["Test mode"]
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
     // Click on the center point of the "Test Ad" TextView, where the Ad present
@@ -83,7 +83,7 @@ class FirebaseCppUITestAppUITests: XCTestCase {
 
     sleep(5)
 
-    // TestInterstitialAdClose
+    // TestInterstitialAdLoadAndShow
     reference = app.staticTexts["Test mode"]
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
     // Click the top left corner close bottom.
@@ -96,23 +96,23 @@ class FirebaseCppUITestAppUITests: XCTestCase {
 
     sleep(5)
 
-    // TestInterstitialAdClickAndClose
-    reference = app.staticTexts["Test mode"]
-    XCTAssertTrue(reference.waitForExistence(timeout: 60))
-    // Click the center point of the device, where the Ad present
-    x = app.frame.width/2
-    y = app.frame.height/2
-    sleep(5)  // Wait until button hittable
-    let interstitial_ad = app.findElement(at: CGPoint(x: x, y: y))
-    interstitial_ad.tap()
-    sleep(5)
-    app.activate()
-    sleep(5)
-    interstitial_ad_close_button.tap()
+    // // TestInterstitialAdClickAndClose
+    // reference = app.staticTexts["Test mode"]
+    // XCTAssertTrue(reference.waitForExistence(timeout: 60))
+    // // Click the center point of the device, where the Ad present
+    // x = app.frame.width/2
+    // y = app.frame.height/2
+    // sleep(5)  // Wait until button hittable
+    // let interstitial_ad = app.findElement(at: CGPoint(x: x, y: y))
+    // interstitial_ad.tap()
+    // sleep(5)
+    // app.activate()
+    // sleep(5)
+    // interstitial_ad_close_button.tap()
 
-    sleep(5)
+    // sleep(5)
 
-    // TestRewardedAdClose
+    // TestRewardedAdLoadAndShow
     reference = app.webViews.staticTexts.containing(NSPredicate(format: "label CONTAINS 'seconds'")).element
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
     // Click the top right corner close bottom.
