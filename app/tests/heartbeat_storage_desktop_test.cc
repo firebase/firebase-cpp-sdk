@@ -14,24 +14,23 @@
  * limitations under the License.
  */
 
+#include "app/src/heartbeat/heartbeat_storage_desktop.h"
+
 #include <fstream>
 #include <future>
 #include <thread>
 
-#include "app/src/heartbeat/heartbeat_storage_desktop.h"
 #include "app/logged_heartbeats_generated.h"
 #include "app/src/filesystem.h"
-
 #include "gtest/gtest.h"
 
 namespace firebase {
 namespace {
 
-using firebase::heartbeat::LoggedHeartbeats;
 using firebase::heartbeat::HeartbeatStorageDesktop;
+using firebase::heartbeat::LoggedHeartbeats;
 
-class HeartbeatStorageDesktopTest : public ::testing::Test {
-};
+class HeartbeatStorageDesktopTest : public ::testing::Test {};
 
 TEST_F(HeartbeatStorageDesktopTest, WriteAndRead) {
   HeartbeatStorageDesktop storage = HeartbeatStorageDesktop("app_id");
@@ -43,11 +42,13 @@ TEST_F(HeartbeatStorageDesktopTest, WriteAndRead) {
   heartbeats.heartbeats[user_agent].push_back(date1);
   heartbeats.heartbeats[user_agent].push_back(date2);
   bool write_ok = storage.Write(heartbeats);
-  ASSERT_TRUE(write_ok) << "Unable to write the heartbeat file:\n  " + storage.GetError();
+  ASSERT_TRUE(write_ok) << "Unable to write the heartbeat file:\n  " +
+                               storage.GetError();
 
   LoggedHeartbeats read_heartbeats;
   bool read_ok = storage.ReadTo(&read_heartbeats);
-  ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " + storage.GetError();
+  ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " +
+                              storage.GetError();
   EXPECT_EQ(read_heartbeats.last_logged_date, date2);
   ASSERT_EQ(read_heartbeats.heartbeats[user_agent].size(), 2);
   EXPECT_EQ(read_heartbeats.heartbeats[user_agent][0], date1);
@@ -65,12 +66,14 @@ TEST_F(HeartbeatStorageDesktopTest, WriteAndReadDifferentStorageInstance) {
   heartbeats.heartbeats[user_agent].push_back(date1);
   heartbeats.heartbeats[user_agent].push_back(date2);
   bool write_ok = storage1.Write(heartbeats);
-  ASSERT_TRUE(write_ok) << "Unable to write the heartbeat file:\n  " + storage1.GetError();
+  ASSERT_TRUE(write_ok) << "Unable to write the heartbeat file:\n  " +
+                               storage1.GetError();
 
   HeartbeatStorageDesktop storage2 = HeartbeatStorageDesktop(app_id);
   LoggedHeartbeats read_heartbeats;
   bool read_ok = storage2.ReadTo(&read_heartbeats);
-  ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " + storage2.GetError();
+  ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " +
+                              storage2.GetError();
   EXPECT_EQ(read_heartbeats.last_logged_date, date2);
   ASSERT_EQ(read_heartbeats.heartbeats[user_agent].size(), 2);
   EXPECT_EQ(read_heartbeats.heartbeats[user_agent][0], date1);
@@ -90,7 +93,8 @@ TEST_F(HeartbeatStorageDesktopTest, WriteAndReadDifferentAppIds) {
   heartbeats1.last_logged_date = date1;
   heartbeats1.heartbeats[user_agent1].push_back(date1);
   bool write_ok = storage1.Write(heartbeats1);
-  ASSERT_TRUE(write_ok) << "Unable to write the heartbeat file:\n  " + storage1.GetError();
+  ASSERT_TRUE(write_ok) << "Unable to write the heartbeat file:\n  " +
+                               storage1.GetError();
 
   // Write different heartbeats using different_app_id
   HeartbeatStorageDesktop storage2 = HeartbeatStorageDesktop(different_app_id);
@@ -98,12 +102,14 @@ TEST_F(HeartbeatStorageDesktopTest, WriteAndReadDifferentAppIds) {
   heartbeats2.last_logged_date = date2;
   heartbeats2.heartbeats[user_agent2].push_back(date2);
   write_ok = storage2.Write(heartbeats2);
-  ASSERT_TRUE(write_ok) << "Unable to write the heartbeat file:\n  " + storage2.GetError();
+  ASSERT_TRUE(write_ok) << "Unable to write the heartbeat file:\n  " +
+                               storage2.GetError();
 
   // Read using app_id and verify it contains the original heartbeats.
   LoggedHeartbeats read_heartbeats;
   bool read_ok = storage1.ReadTo(&read_heartbeats);
-  ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " + storage1.GetError();
+  ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " +
+                              storage1.GetError();
   EXPECT_EQ(read_heartbeats.last_logged_date, date1);
   ASSERT_EQ(read_heartbeats.heartbeats[user_agent1].size(), 1);
   EXPECT_EQ(read_heartbeats.heartbeats[user_agent1][0], date1);
@@ -111,10 +117,12 @@ TEST_F(HeartbeatStorageDesktopTest, WriteAndReadDifferentAppIds) {
 
 TEST_F(HeartbeatStorageDesktopTest, ReadNonexistentFile) {
   // ReadHeartbeats should return a default instance
-  HeartbeatStorageDesktop storage = HeartbeatStorageDesktop("nonexistent_app_id");
+  HeartbeatStorageDesktop storage =
+      HeartbeatStorageDesktop("nonexistent_app_id");
   LoggedHeartbeats read_heartbeats;
   bool read_ok = storage.ReadTo(&read_heartbeats);
-  ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " + storage.GetError();
+  ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " +
+                              storage.GetError();
   EXPECT_EQ(read_heartbeats.last_logged_date, "");
   ASSERT_EQ(read_heartbeats.heartbeats.size(), 0);
 }
@@ -126,21 +134,24 @@ TEST_F(HeartbeatStorageDesktopTest, WriteAndReadWithSymbolsInAppId) {
   LoggedHeartbeats heartbeats;
   heartbeats.last_logged_date = date1;
   bool write_ok = storage.Write(heartbeats);
-  ASSERT_TRUE(write_ok) << "Unable to write the heartbeat file:\n  " + storage.GetError();
+  ASSERT_TRUE(write_ok) << "Unable to write the heartbeat file:\n  " +
+                               storage.GetError();
   LoggedHeartbeats read_heartbeats;
   bool read_ok = storage.ReadTo(&read_heartbeats);
-  ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " + storage.GetError();
+  ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " +
+                              storage.GetError();
   EXPECT_EQ(read_heartbeats.last_logged_date, date1);
 }
 
 TEST_F(HeartbeatStorageDesktopTest, ReadCorruptedData) {
-  // TODO(almostmatt): Make filename visible in tests rather than relying on the test knowing the filename
+  // TODO(almostmatt): Make filename visible in tests rather than relying on the
+  // test knowing the filename
   std::string app_id = "app_id";
   HeartbeatStorageDesktop storage = HeartbeatStorageDesktop(app_id);
   std::string error;
   std::string app_dir =
       AppDataDir("firebase-heartbeat", /*should_create=*/true, &error);
-  std::string filename = app_dir + "/heartbeats-"  + app_id;
+  std::string filename = app_dir + "/heartbeats-" + app_id;
 
   std::ofstream file(filename);
   file << "this is not a flatbuffer";
@@ -149,7 +160,8 @@ TEST_F(HeartbeatStorageDesktopTest, ReadCorruptedData) {
   // ReadHeartbeats should return a default instance
   LoggedHeartbeats read_heartbeats;
   bool read_ok = storage.ReadTo(&read_heartbeats);
-  ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " + storage.GetError();
+  ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " +
+                              storage.GetError();
   EXPECT_EQ(read_heartbeats.last_logged_date, "");
   ASSERT_EQ(read_heartbeats.heartbeats.size(), 0);
 }
@@ -173,12 +185,14 @@ TEST_F(HeartbeatStorageDesktopTest, ConcurrentWritesAndReads) {
         heartbeats.last_logged_date = date1;
         heartbeats.heartbeats[user_agent].push_back(date1);
         bool write_ok = storage.Write(heartbeats);
-        ASSERT_TRUE(write_ok) << "Unable to write the heartbeat file:\n  " + storage.GetError();
+        ASSERT_TRUE(write_ok)
+            << "Unable to write the heartbeat file:\n  " + storage.GetError();
 
         // Verify that read succeeds and that data is not corrupted.
         LoggedHeartbeats read_heartbeats;
         bool read_ok = storage.ReadTo(&read_heartbeats);
-        ASSERT_TRUE(read_ok) << "Unable to read the heartbeat file:\n  " + storage.GetError();
+        ASSERT_TRUE(read_ok)
+            << "Unable to read the heartbeat file:\n  " + storage.GetError();
         EXPECT_EQ(read_heartbeats.last_logged_date, date1);
         ASSERT_EQ(read_heartbeats.heartbeats.size(), 1);
       }

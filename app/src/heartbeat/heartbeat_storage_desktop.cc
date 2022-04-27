@@ -17,8 +17,8 @@
 #include "app/src/heartbeat/heartbeat_storage_desktop.h"
 
 #include <fstream>
-#include <vector>
 #include <regex>
+#include <vector>
 
 #include "app/logged_heartbeats_generated.h"
 #include "app/src/filesystem.h"
@@ -27,11 +27,12 @@
 namespace firebase {
 namespace heartbeat {
 
-using LoggedHeartbeatsFbs = com::google::firebase::cpp::heartbeat::LoggedHeartbeats;
-using com::google::firebase::cpp::heartbeat::UserAgentAndDates;
+using LoggedHeartbeatsFbs =
+    com::google::firebase::cpp::heartbeat::LoggedHeartbeats;
 using com::google::firebase::cpp::heartbeat::CreateLoggedHeartbeats;
 using com::google::firebase::cpp::heartbeat::CreateUserAgentAndDates;
 using com::google::firebase::cpp::heartbeat::GetLoggedHeartbeats;
+using com::google::firebase::cpp::heartbeat::UserAgentAndDates;
 using com::google::firebase::cpp::heartbeat::VerifyLoggedHeartbeatsBuffer;
 
 // Using an anonymous namespace for file mutex and filename
@@ -105,7 +106,8 @@ bool HeartbeatStorageDesktop::ReadTo(LoggedHeartbeats* heartbeats_output) {
   ::flatbuffers::Verifier verifier(reinterpret_cast<const uint8_t*>(buffer),
                                    buffer_len);
   if (!VerifyLoggedHeartbeatsBuffer(verifier)) {
-    // If the file is empty or contains corrupted data, return a default instance.
+    // If the file is empty or contains corrupted data, return a default
+    // instance.
     *heartbeats_output = LoggedHeartbeats();
     delete[] buffer;
     return true;
@@ -134,10 +136,11 @@ bool HeartbeatStorageDesktop::Write(LoggedHeartbeats heartbeats) const {
 }
 
 LoggedHeartbeats HeartbeatStorageDesktop::LoggedHeartbeatsFromFbs(
-  const LoggedHeartbeatsFbs* heartbeats_fbs) const {
+    const LoggedHeartbeatsFbs* heartbeats_fbs) const {
   LoggedHeartbeats heartbeats_struct;
   // TODO(almostmatt): verify format of date string
-  heartbeats_struct.last_logged_date = heartbeats_fbs->last_logged_date()->str();
+  heartbeats_struct.last_logged_date =
+      heartbeats_fbs->last_logged_date()->str();
   for (auto user_agent_and_dates : *(heartbeats_fbs->heartbeats())) {
     std::string user_agent = user_agent_and_dates->user_agent()->str();
     for (auto date : *(user_agent_and_dates->dates())) {
@@ -149,9 +152,10 @@ LoggedHeartbeats HeartbeatStorageDesktop::LoggedHeartbeatsFromFbs(
 }
 
 flatbuffers::FlatBufferBuilder HeartbeatStorageDesktop::LoggedHeartbeatsToFbs(
-  LoggedHeartbeats heartbeats_struct) const {
+    LoggedHeartbeats heartbeats_struct) const {
   flatbuffers::FlatBufferBuilder builder;
-  auto last_logged_date = builder.CreateString(heartbeats_struct.last_logged_date);
+  auto last_logged_date =
+      builder.CreateString(heartbeats_struct.last_logged_date);
 
   std::vector<flatbuffers::Offset<UserAgentAndDates>> agents_and_dates_vector;
   for (auto const& entry : heartbeats_struct.heartbeats) {
@@ -161,11 +165,11 @@ flatbuffers::FlatBufferBuilder HeartbeatStorageDesktop::LoggedHeartbeatsToFbs(
       dates_vector.push_back(builder.CreateString(date));
     }
     auto agent_and_dates = CreateUserAgentAndDates(
-      builder, user_agent, builder.CreateVector(dates_vector));
+        builder, user_agent, builder.CreateVector(dates_vector));
     agents_and_dates_vector.push_back(agent_and_dates);
   }
   auto loggedHeartbeats = CreateLoggedHeartbeats(
-    builder, last_logged_date, builder.CreateVector(agents_and_dates_vector));
+      builder, last_logged_date, builder.CreateVector(agents_and_dates_vector));
   builder.Finish(loggedHeartbeats);
   return builder;
 }

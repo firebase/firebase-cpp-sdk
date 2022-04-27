@@ -27,14 +27,15 @@
 namespace firebase {
 namespace heartbeat {
 
-using LoggedHeartbeatsFbs = com::google::firebase::cpp::heartbeat::LoggedHeartbeats;
+using LoggedHeartbeatsFbs =
+    com::google::firebase::cpp::heartbeat::LoggedHeartbeats;
 
 struct LoggedHeartbeats {
-    // Last date for which a heartbeat was logged (YYYY-MM-DD).
-    std::string last_logged_date;
+  // Last date for which a heartbeat was logged (YYYY-MM-DD).
+  std::string last_logged_date;
 
-    // Map from user agent to a list of dates (YYYY-MM-DD).
-    std::map<std::string, std::vector<std::string> > heartbeats;
+  // Map from user agent to a list of dates (YYYY-MM-DD).
+  std::map<std::string, std::vector<std::string> > heartbeats;
 };
 
 // Reads and writes the last time heartbeat was sent for an SDK using persistent
@@ -55,29 +56,32 @@ class HeartbeatStorageDesktop {
   // the error; otherwise is empty.
   const std::string& GetError() const { return error_; }
 
-  // Reads an instance of LoggedHeartbeats from disk into the provided struct. Returns `false` if the
-  // read operation fails.
+  // Reads an instance of LoggedHeartbeats from disk into the provided struct.
+  // Returns `false` if the read operation fails.
   bool ReadTo(LoggedHeartbeats* heartbeats_output);
 
   // Writes an instance of LoggedHeartbeats to disk. Returns `false` if the
   // write operation fails.
   bool Write(LoggedHeartbeats heartbeats) const;
 
-/****
-  struct LoggedHeartbeatsS {
-    string
-    vector or map
-  }
-  can use diff date format if needed, or verify when parsing
-  struct for in-mem representation is nice for mutability and hiding flatbuffer schema
-  benefit of flatbuffer becomes just the ability to verify contents
-  could use scheduler (see user secure manager.cc)
-  for controller, could be that load from disk happens async and some time later the result of load is sent to server
-  ********/
+  /****
+    struct LoggedHeartbeatsS {
+      string
+      vector or map
+    }
+    can use diff date format if needed, or verify when parsing
+    struct for in-mem representation is nice for mutability and hiding
+    flatbuffer schema benefit of flatbuffer becomes just the ability to verify
+    contents could use scheduler (see user secure manager.cc) for controller,
+    could be that load from disk happens async and some time later the result of
+    load is sent to server
+    ********/
 
  private:
-  LoggedHeartbeats LoggedHeartbeatsFromFbs(const LoggedHeartbeatsFbs* heartbeats_fbs) const;
-  flatbuffers::FlatBufferBuilder LoggedHeartbeatsToFbs(LoggedHeartbeats heartbeats_struct) const;
+  LoggedHeartbeats LoggedHeartbeatsFromFbs(
+      const LoggedHeartbeatsFbs* heartbeats_fbs) const;
+  flatbuffers::FlatBufferBuilder LoggedHeartbeatsToFbs(
+      LoggedHeartbeats heartbeats_struct) const;
 
   // local variables for state
   mutable std::string error_;
