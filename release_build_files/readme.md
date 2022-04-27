@@ -371,7 +371,7 @@ Firebase Installations (stub)   | firebase_installations.framework
 Firebase Cloud Messaging (stub) | firebase_messaging.framework
 |                               | firebase.framework
 
-The provided libraries have been tested using Xcode 12.5.1. When building C++
+The provided libraries have been tested using Xcode 13.2.1. When building C++
 desktop apps on OS X, you will need to link the `gssapi_krb5` and `pthread`
 system libraries, as well as the `CoreFoundation`, `Foundation`, `GSS`, and
 `Security` OS X system frameworks (consult your compiler documentation for more
@@ -569,7 +569,7 @@ code.
 ## Release Notes
 ### Upcoming release
 -   Changes
-    -   General (iOS): iOS SDKs are now built using Xcode 12.5.1.
+    -   General (iOS): iOS SDKs are now built using Xcode 13.2.1.
     -   AdMob (iOS): Temporarily pinned AdMob dependency to a special version of the
         Google-Mobile-Ads-SDK Cocoapod, "7.69.0-cppsdk2", to maintain compatibility
         with version 9.x of the Firebase iOS SDK.
