@@ -107,7 +107,7 @@ jclass FindClass(JNIEnv* env, jobject activity_object, const char* class_name);
 // Returns ture if we run tests that require interaction.
 bool ShouldRunUITests();
 
-// Returns true if we ru  tests that do not require interaction.
+// Returns true if we run tests that do not require interaction.
 bool ShouldRunNonUITests();
 
 // Returns true if the logger is currently logging to a file.

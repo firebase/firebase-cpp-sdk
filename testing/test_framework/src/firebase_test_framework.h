@@ -455,10 +455,10 @@ class FirebaseTest : public testing::Test {
   // Open a URL in a browser window, for testing only.
   static bool OpenUrlInBrowser(const char* url);
 
-  // Returns true if we skip tests that require interaction, false if not.
+  // Returns true if we run tests that require interaction, false if not.
   static bool ShouldRunUITests();
 
-  // Returns true if we skip tests that do not require interaction, false if
+  // Returns true if we run tests that do not require interaction, false if
   // not.
   static bool ShouldRunNonUITests();
 
