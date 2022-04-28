@@ -25,22 +25,6 @@ class FirebaseCppUITestAppUITests: XCTestCase {
     // Launch this Helper App
     let helperApp = XCUIApplication()
 
-    // Launch UI Test App
-    helperApp.launch()
-    // Wait until UI Test App open Integration Test App
-    helperApp.wait(for: .runningBackground, timeout: 20)
-
-    // Wait until Integration Test App closed (testing finished)
-    let expectation = XCTestExpectation(description: "Integration Test App closed")
-    Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { (_) in
-      if helperApp.state == .runningForeground {
-        NSLog("Integration Test App closed... UI Test App back to foreground...")
-        expectation.fulfill()
-      } else {
-        NSLog("Testing... UI Test App in background...")
-      }
-    }
-
     // Periodically check and dismiss dialogs with "Allow" or "OK"
     Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { (_) in
 #if os(iOS)
@@ -63,6 +47,22 @@ class FirebaseCppUITestAppUITests: XCTestCase {
         }
       }
 #endif
+    }
+
+    // Launch UI Test App
+    helperApp.launch()
+    // Wait until UI Test App open Integration Test App
+    helperApp.wait(for: .runningBackground, timeout: 20)
+
+    // Wait until Integration Test App closed (testing finished)
+    let expectation = XCTestExpectation(description: "Integration Test App closed")
+    Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { (_) in
+      if helperApp.state == .runningForeground {
+        NSLog("Integration Test App closed... UI Test App back to foreground...")
+        expectation.fulfill()
+      } else {
+        NSLog("Testing... UI Test App in background...")
+      }
     }
 
 
