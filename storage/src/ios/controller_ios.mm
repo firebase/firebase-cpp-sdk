@@ -42,7 +42,7 @@ ControllerInternal::~ControllerInternal() {
 
 bool ControllerInternal::Pause() {
   MutexLock mutex(pending_calls_mutex_);
-  FIRStorageObservableTask<FIRStorageTaskManagement> *task = task_impl();
+  __block FIRStorageObservableTask<FIRStorageTaskManagement> *task = task_impl();
   if (task) {
     if ([task respondsToSelector:@selector(pause)]) {
       util::DispatchAsyncSafeMainQueue(^() {
@@ -60,7 +60,7 @@ bool ControllerInternal::Pause() {
 
 bool ControllerInternal::Resume() {
   MutexLock mutex(pending_calls_mutex_);
-  FIRStorageObservableTask<FIRStorageTaskManagement> *task = task_impl();
+  __block FIRStorageObservableTask<FIRStorageTaskManagement> *task = task_impl();
   if (task) {
     if ([task respondsToSelector:@selector(resume)]) {
       util::DispatchAsyncSafeMainQueue(^() {
@@ -78,7 +78,7 @@ bool ControllerInternal::Resume() {
 
 bool ControllerInternal::Cancel() {
   MutexLock mutex(pending_calls_mutex_);
-  FIRStorageObservableTask<FIRStorageTaskManagement> *task = task_impl();
+  __block FIRStorageObservableTask<FIRStorageTaskManagement> *task = task_impl();
   if (task) {
     if ([task respondsToSelector:@selector(cancel)]) {
       util::DispatchAsyncSafeMainQueue(^() {
