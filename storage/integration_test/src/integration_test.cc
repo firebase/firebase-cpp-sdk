@@ -591,7 +591,8 @@ TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
     LogDebug("Creating local file: %s", path.c_str());
 
     FILE* file = fopen(path.c_str(), "wb");
-    std::fwrite(kSimpleTestFile.c_str(), 1, kSimpleTestFile.size(), file);
+    size_t bytes_written = std::fwrite(kSimpleTestFile.c_str(), 1, kSimpleTestFile.size(), file);
+    EXPECT_EQ(bytes_written, kSimpleTestFile.size());
     fclose(file);
 
     firebase::storage::Metadata new_metadata;
@@ -641,7 +642,8 @@ TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
     std::vector<char> buffer(kSimpleTestFile.size());
     FILE* file = fopen(path.c_str(), "rb");
     EXPECT_NE(file, nullptr);
-    std::fread(&buffer[0], 1, kSimpleTestFile.size(), file);
+    size_t bytes_read = std::fread(&buffer[0], 1, kSimpleTestFile.size(), file);
+    EXPECT_EQ(bytes_read, kSimpleTestFile.size());
     fclose(file);
     EXPECT_EQ(memcmp(&kSimpleTestFile[0], &buffer[0], buffer.size()), 0);
   }
@@ -1195,7 +1197,8 @@ class StorageListener : public firebase::storage::Listener {
   StorageListener()
       : on_paused_was_called_(false),
         on_progress_was_called_(false),
-        resume_succeeded_(false) {}
+        resume_succeeded_(false),
+	last_bytes_transferred_(-1) {}
 
   // Tracks whether OnPaused was ever called and resumes the transfer.
   void OnPaused(firebase::storage::Controller* controller) override {
@@ -1217,8 +1220,13 @@ class StorageListener : public firebase::storage::Listener {
   }
 
   void OnProgress(firebase::storage::Controller* controller) override {
-    LogDebug("Transferred %lld of %lld", controller->bytes_transferred(),
-             controller->total_byte_count());
+    int64_t bytes_transferred = controller->bytes_transferred();
+    // Only update when the byte count changed, to avoid spamming the log.
+    if (last_bytes_transferred_ != bytes_transferred) {
+      LogDebug("Transferred %lld of %lld", bytes_transferred,
+	       controller->total_byte_count());
+      last_bytes_transferred_ = bytes_transferred;
+    }
     on_progress_was_called_ = true;
   }
 
@@ -1230,6 +1238,7 @@ class StorageListener : public firebase::storage::Listener {
   bool on_paused_was_called_;
   bool on_progress_was_called_;
   bool resume_succeeded_;
+  int64_t last_bytes_transferred_;
 };
 
 // Contents of a large file, "X" will be replaced with a different character
