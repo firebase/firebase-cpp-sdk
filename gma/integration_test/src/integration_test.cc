@@ -161,6 +161,14 @@ class FirebaseGmaTest : public FirebaseTest {
   static firebase::App* shared_app_;
 };
 
+class FirebaseGmaUITest : public FirebaseGmaTest {
+ public:
+  FirebaseGmaUITest();
+  ~FirebaseGmaUITest() override;
+
+  void SetUp() override;
+};
+
 // Runs GMA Tests on methods and functions that should be run
 // before GMA initializes.
 class FirebaseGmaPreInitializationTests : public FirebaseGmaTest {
@@ -233,6 +241,7 @@ FirebaseGmaTest::FirebaseGmaTest() {}
 FirebaseGmaTest::~FirebaseGmaTest() {}
 
 void FirebaseGmaTest::SetUp() {
+  TEST_DOES_NOT_REQUIRE_USER_INTERACTION;
   FirebaseTest::SetUp();
 
   // This example uses ad units that are specially configured to return test ads
@@ -272,6 +281,26 @@ firebase::gma::AdRequest FirebaseGmaTest::GetAdRequest() {
   request.add_neighboring_content_urls(kNeighboringContentURLs);
 
   return request;
+}
+
+FirebaseGmaUITest::FirebaseGmaUITest() {}
+
+FirebaseGmaUITest::~FirebaseGmaUITest() {}
+
+void FirebaseGmaUITest::SetUp() {
+  TEST_REQUIRES_USER_INTERACTION;
+  FirebaseTest::SetUp();
+  // This example uses ad units that are specially configured to return test ads
+  // for every request. When using your own ad unit IDs, however, it's important
+  // to register the device IDs associated with any devices that will be used to
+  // test the app. This ensures that regardless of the ad unit ID, those
+  // devices will always receive test ads in compliance with GMA policy.
+  //
+  // Device IDs can be obtained by checking the logcat or the Xcode log while
+  // debugging. They appear as a long string of hex characters.
+  firebase::gma::RequestConfiguration request_configuration;
+  request_configuration.test_device_ids = kTestDeviceIDs;
+  firebase::gma::SetRequestConfiguration(request_configuration);
 }
 
 FirebaseGmaPreInitializationTests::FirebaseGmaPreInitializationTests() {}
@@ -460,8 +489,7 @@ class TestAdInspectorClosedListener
 };
 
 // Ensure we can open the AdInspector and listen to its events.
-TEST_F(FirebaseGmaTest, TestAdInspector) {
-  TEST_REQUIRES_USER_INTERACTION;
+TEST_F(FirebaseGmaUITest, TestAdInspector) {
   TestAdInspectorClosedListener listener;
 
   firebase::gma::OpenAdInspector(app_framework::GetWindowController(),
@@ -790,8 +818,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoad) {
 
 // Interactive test section.  These have been placed up front so that the
 // tester doesn't get bored waiting for them.
-TEST_F(FirebaseGmaTest, TestAdViewAdOpenedAdClosed) {
-  TEST_REQUIRES_USER_INTERACTION;
+TEST_F(FirebaseGmaUITest, TestAdViewAdOpenedAdClosed) {
   SKIP_TEST_ON_DESKTOP;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
@@ -859,8 +886,7 @@ TEST_F(FirebaseGmaTest, TestAdViewAdOpenedAdClosed) {
   delete ad_view;
 }
 
-TEST_F(FirebaseGmaTest, TestInterstitialAdLoadAndShow) {
-  TEST_REQUIRES_USER_INTERACTION;
+TEST_F(FirebaseGmaUITest, TestInterstitialAdLoadAndShow) {
   SKIP_TEST_ON_DESKTOP;
 
   firebase::gma::InterstitialAd* interstitial =
@@ -914,8 +940,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdLoadAndShow) {
   delete interstitial;
 }
 
-TEST_F(FirebaseGmaTest, TestRewardedAdLoadAndShow) {
-  TEST_REQUIRES_USER_INTERACTION;
+TEST_F(FirebaseGmaUITest, TestRewardedAdLoadAndShow) {
   SKIP_TEST_ON_DESKTOP;
 
   firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
@@ -1120,8 +1145,7 @@ TEST_F(FirebaseGmaTest, TestAdViewAdSizeBeforeInitialization) {
   WaitForCompletion(ad_view->Destroy(), "Destroy AdView");
 }
 
-TEST_F(FirebaseGmaTest, TestAdView) {
-  TEST_REQUIRES_USER_INTERACTION;
+TEST_F(FirebaseGmaUITest, TestAdView) {
   SKIP_TEST_ON_DESKTOP;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
@@ -1742,8 +1766,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadExtrasClassName) {
 }
 
 // Stress tests.  These take a while so run them near the end.
-TEST_F(FirebaseGmaTest, TestAdViewStress) {
-  TEST_REQUIRES_USER_INTERACTION;
+TEST_F(FirebaseGmaUITest, TestAdViewStress) {
   SKIP_TEST_ON_DESKTOP;
 
   for (int i = 0; i < 10; ++i) {
@@ -1764,8 +1787,7 @@ TEST_F(FirebaseGmaTest, TestAdViewStress) {
   }
 }
 
-TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
-  TEST_REQUIRES_USER_INTERACTION;
+TEST_F(FirebaseGmaUITest, TestInterstitialAdStress) {
   SKIP_TEST_ON_DESKTOP;
 
   for (int i = 0; i < 10; ++i) {
@@ -1784,8 +1806,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
   }
 }
 
-TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
-  TEST_REQUIRES_USER_INTERACTION;
+TEST_F(FirebaseGmaUITest, TestRewardedAdStress) {
   SKIP_TEST_ON_DESKTOP;
 
   for (int i = 0; i < 10; ++i) {

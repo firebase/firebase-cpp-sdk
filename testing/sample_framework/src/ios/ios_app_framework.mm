@@ -42,6 +42,7 @@
 @end
 
 static NSString *const kGameLoopUrlPrefix = @"firebase-game-loop";
+static NSString *const kUITestUrlPrefix = @"firebase-ui-test";
 static NSString *const kGameLoopCompleteUrlScheme = @"firebase-game-loop-complete://";
 static const float kGameLoopSecondsToPauseBeforeQuitting = 5.0f;
 
@@ -62,6 +63,7 @@ static UIView *g_parent_view;
 static UIViewController *g_parent_view_controller;
 static FTAViewController *g_view_controller;
 static bool g_gameloop_launch = false;
+static bool g_uitest_launch = false;
 static NSURL *g_results_url;
 static NSString *g_file_name;
 static NSString *g_file_url_path;
@@ -185,7 +187,7 @@ void AddToTextView(const char *str) {
     NSRange range = NSMakeRange(g_text_view.text.length, 0);
     [g_text_view scrollRangeToVisible:range];
   });
-  if (g_gameloop_launch) {
+  if (g_gameloop_launch || g_uitest_launch) {
     NSData *data = [message dataUsingEncoding:NSUTF8StringEncoding];
     if ([NSFileManager.defaultManager fileExistsAtPath:g_file_url_path]) {
       NSFileHandle *fileHandler = [NSFileHandle fileHandleForUpdatingAtPath:g_file_url_path];
@@ -286,6 +288,10 @@ std::string ReadTextInput(const char *title, const char *message, const char *pl
   }
 }
 
+bool ShouldRunUITests() { return !g_gameloop_launch; }
+
+bool ShouldRunNonUITests() { return !g_uitest_launch; }
+
 bool IsLoggingToFile() { return g_file_url_path; }
 
 bool StartLoggingToFile(const char *file_path) {
@@ -347,9 +353,13 @@ int main(int argc, char *argv[]) {
     g_gameloop_launch = true;
     app_framework::StartLoggingToFile(GAMELOOP_DEFAULT_LOG_FILE);
     return YES;
+  } else if ([url.scheme isEqual:kUITestUrlPrefix]) {
+    g_uitest_launch = true;
+    app_framework::StartLoggingToFile(GAMELOOP_DEFAULT_LOG_FILE);
+    return YES;
   }
-  NSLog(@"The testapp will not log to files since it is not launched by URL %@",
-        kGameLoopUrlPrefix);
+  NSLog(@"The testapp will not log to files since it is not launched by URL %@ or %@",
+        kGameLoopUrlPrefix, kUITestUrlPrefix);
   return NO;
 }
 
