@@ -610,6 +610,12 @@ jobs:
           if [ ! -f build-results-ios-macos-latest.log.json ]; then
             echo "__SUMMARY_MISSING__" > build-results-ios-macos-latest.log.json
           fi
+      - name: Upload iOS xcode projects artifacts (test only)
+        uses: actions/upload-artifact@v3
+        if: ${{ !cancelled() }}
+        with:
+          name: ta
+          path: ta
       - name: Upload iOS integration tests artifact
         uses: actions/upload-artifact@v3
         if: ${{ !cancelled() }}
