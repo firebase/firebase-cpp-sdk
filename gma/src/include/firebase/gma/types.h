@@ -216,15 +216,14 @@ class AdError {
   /// converting error information from legacy mediation adapter callbacks.
   static const char* const kUndefinedDomain;
 
- protected:
-  /// Constructor used when building results in Ad event callbacks.
-  explicit AdError(const AdErrorInternal& ad_error_internal);
-
  private:
   friend class AdapterResponseInfo;
   friend class GmaInternal;
   friend class AdView;
   friend class InterstitialAd;
+
+  /// Constructor used when building results in Ad event callbacks.
+  explicit AdError(const AdErrorInternal& ad_error_internal);
 
   // Collection of response from adapters if this Result is due to a loadAd
   // operation.
@@ -326,7 +325,7 @@ class AdInspectorClosedListener {
  public:
   virtual ~AdInspectorClosedListener();
 
-  /// Called when the user clicked the ad.  The AdError contains the status of
+  /// Called when the user clicked the ad.  The AdResult contains the status of
   /// the operation, including details of the error if one occurred.
   virtual void OnAdInspectorClosed(const AdResult& ad_result) = 0;
 };
@@ -338,10 +337,11 @@ class AdapterResponseInfo {
   /// Destructor
   ~AdapterResponseInfo();
 
-  /// Information about the Ad Error, if one occurred.
+  /// @brief Information about the result including whether an error
+  /// occurred, and any contextual information about that error.
   ///
   /// @return the error that occurred while rendering the ad.  If no error
-  /// occurred then the AdResults's successful method will return false.
+  /// occurred then the AdResults's successful method will return true.
   AdResult ad_result() const { return ad_result_; }
 
   /// Returns a string representation of a class name that identifies the ad
@@ -747,7 +747,7 @@ class ResponseInfo {
   /// Constructor creates an uninitialized ResponseInfo.
   ResponseInfo();
 
-  /// Gets the AdaptorReponseInfo objects for the ad response.
+  /// Gets the AdaptorResponseInfo objects for the ad response.
   ///
   /// @return a vector of AdapterResponseInfo objects containing metadata for
   ///   each adapter included in the ad response.

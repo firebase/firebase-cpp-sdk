@@ -15,7 +15,12 @@
  */
 
 #import <Foundation/Foundation.h>
+
+// TODO(@dellabitta): remove the extern "C" block once b/228589822 has been
+// resolved.
+extern "C" {
 #import <GoogleMobileAds/GoogleMobileAds.h>
+}
 
 #include "gma/src/include/firebase/gma/types.h"
 

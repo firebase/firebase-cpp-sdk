@@ -488,9 +488,15 @@ class TestAdInspectorClosedListener
   uint8_t num_successful_results_;
 };
 
+<<<<<<< HEAD
 // // Ensure we can open the AdInspector and listen to its events.
 // TEST_F(FirebaseGmaUITest, TestAdInspector) {
 //   TestAdInspectorClosedListener listener;
+=======
+// Ensure we can open the AdInspector and listen to its events.
+TEST_F(FirebaseGmaUITest, TestAdInspector) {
+  TestAdInspectorClosedListener listener;
+>>>>>>> feature/admob_2021
 
 //   firebase::gma::OpenAdInspector(app_framework::GetWindowController(),
 //                                  &listener);
@@ -1145,7 +1151,11 @@ TEST_F(FirebaseGmaTest, TestAdViewAdSizeBeforeInitialization) {
   WaitForCompletion(ad_view->Destroy(), "Destroy AdView");
 }
 
+<<<<<<< HEAD
 TEST_F(FirebaseGmaTest, TestAdView) {
+=======
+TEST_F(FirebaseGmaUITest, TestAdView) {
+>>>>>>> feature/admob_2021
   SKIP_TEST_ON_DESKTOP;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
@@ -1766,7 +1776,11 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadExtrasClassName) {
 }
 
 // Stress tests.  These take a while so run them near the end.
+<<<<<<< HEAD
 TEST_F(FirebaseGmaTest, TestAdViewStress) {
+=======
+TEST_F(FirebaseGmaUITest, TestAdViewStress) {
+>>>>>>> feature/admob_2021
   SKIP_TEST_ON_DESKTOP;
 
   for (int i = 0; i < 10; ++i) {
@@ -1787,7 +1801,11 @@ TEST_F(FirebaseGmaTest, TestAdViewStress) {
   }
 }
 
+<<<<<<< HEAD
 TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
+=======
+TEST_F(FirebaseGmaUITest, TestInterstitialAdStress) {
+>>>>>>> feature/admob_2021
   SKIP_TEST_ON_DESKTOP;
 
   for (int i = 0; i < 10; ++i) {
@@ -1806,7 +1824,11 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
   }
 }
 
+<<<<<<< HEAD
 TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
+=======
+TEST_F(FirebaseGmaUITest, TestRewardedAdStress) {
+>>>>>>> feature/admob_2021
   SKIP_TEST_ON_DESKTOP;
 
   for (int i = 0; i < 10; ++i) {

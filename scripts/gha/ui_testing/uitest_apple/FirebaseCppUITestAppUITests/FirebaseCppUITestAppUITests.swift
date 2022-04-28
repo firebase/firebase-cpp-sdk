@@ -69,6 +69,50 @@ class FirebaseCppUITestAppUITests: XCTestCase {
     // Start Automated UI Test
     let app = XCUIApplication(bundleIdentifier: "com.google.ios.admob.testapp")
 
+    // Periodically check and dismiss dialogs with "Allow" or "OK"
+    Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { (_) in
+#if os(iOS)
+      NSLog("finding springboard ...")
+      let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+      for button in [springboard.buttons["Open"], springboard.buttons["Allow"], springboard.buttons["OK"]] {
+        if button.exists {
+          NSLog("Dismissing system dialog")
+          button.tap()
+        }
+      }
+#elseif os(tvOS)
+      NSLog("finding pineboard ...")
+      let pineboard = XCUIApplication(bundleIdentifier: "com.apple.PineBoard")
+      for button in [pineboard.buttons["Open"], pineboard.buttons["Allow"], pineboard.buttons["OK"]] {
+        if button.exists {
+          NSLog("Dismissing system dialog")
+          let remote: XCUIRemote = XCUIRemote.shared
+          remote.press(.select)
+        }
+      }
+#endif
+    }
+
+    // Launch UI Test App
+    helperApp.launch()
+    // Wait until UI Test App open Integration Test App
+    helperApp.wait(for: .runningBackground, timeout: 20)
+
+    // Wait until Integration Test App closed (testing finished)
+    let expectation = XCTestExpectation(description: "Integration Test App closed")
+    Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { (_) in
+      if helperApp.state == .runningForeground {
+        NSLog("Integration Test App closed... UI Test App back to foreground...")
+        expectation.fulfill()
+      } else {
+        NSLog("Testing... UI Test App in background...")
+      }
+    }
+
+
+    // Start Automated UI Test
+    let app = XCUIApplication(bundleIdentifier: "com.google.ios.admob.testapp")
+
     // TestAdViewAdOpenedAdClosed
     var reference = app.staticTexts["Test mode"]
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
