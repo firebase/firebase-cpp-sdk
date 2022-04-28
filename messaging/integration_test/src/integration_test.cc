@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include <inttypes.h>
-#include <strings.h>
 
 #include <algorithm>
 #include <cstdio>
@@ -26,6 +25,14 @@
 #include "firebase/messaging.h"
 #include "firebase/util.h"
 #include "firebase_test_framework.h"  // NOLINT
+
+#ifdef _MSC_VER
+// Windows uses _stricmp instead of strcasecmp.
+#define strncasecmp _strnicmp
+#define strcasecmp _stricmp
+#else
+#include <strings.h>
+#endif  // _MSC_VER
 
 // The TO_STRING macro is useful for command line defined strings as the quotes
 // get stripped.
