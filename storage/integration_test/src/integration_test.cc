@@ -591,7 +591,8 @@ TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
     LogDebug("Creating local file: %s", path.c_str());
 
     FILE* file = fopen(path.c_str(), "wb");
-    size_t bytes_written = std::fwrite(kSimpleTestFile.c_str(), 1, kSimpleTestFile.size(), file);
+    size_t bytes_written =
+        std::fwrite(kSimpleTestFile.c_str(), 1, kSimpleTestFile.size(), file);
     EXPECT_EQ(bytes_written, kSimpleTestFile.size());
     fclose(file);
 
@@ -1198,7 +1199,7 @@ class StorageListener : public firebase::storage::Listener {
       : on_paused_was_called_(false),
         on_progress_was_called_(false),
         resume_succeeded_(false),
-	last_bytes_transferred_(-1) {}
+        last_bytes_transferred_(-1) {}
 
   // Tracks whether OnPaused was ever called and resumes the transfer.
   void OnPaused(firebase::storage::Controller* controller) override {
@@ -1224,7 +1225,7 @@ class StorageListener : public firebase::storage::Listener {
     // Only update when the byte count changed, to avoid spamming the log.
     if (last_bytes_transferred_ != bytes_transferred) {
       LogDebug("Transferred %lld of %lld", bytes_transferred,
-	       controller->total_byte_count());
+               controller->total_byte_count());
       last_bytes_transferred_ = bytes_transferred;
     }
     on_progress_was_called_ = true;
