@@ -333,6 +333,14 @@ else()
     ${FIREBASE_INTEGRATION_TEST_SRCS}
   )
 
+  # Set a preprocessor define so that tests can distinguish between tests for
+  # the desktop platforms (e.g. Windows, macOS, or Linux) and mobile platforms
+  # (e.g. Android, iOS).
+  target_compile_definitions(${integration_test_target_name}
+    PRIVATE
+    FIREBASE_TESTS_TARGET_DESKTOP
+  )
+
   if(APPLE)
     set(ADDITIONAL_LIBS
       gssapi_krb5
