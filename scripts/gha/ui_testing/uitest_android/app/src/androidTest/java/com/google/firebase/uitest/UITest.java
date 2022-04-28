@@ -60,7 +60,7 @@ public class UITest {
         DEFAULT_TIMEOUT); // Wait for the app to appear
     Log.e(TAG, "GMA launched");
 
-    // TestAdViewAdClick
+    // TestAdViewAdOpenedAdClosed
     UiObject2 reference = device.wait(Until.findObject(By.text("Test Ad")), 60 * 1000);
     Assert.assertNotNull(reference);
     Log.e(TAG, "TestAdVie loaded");
@@ -75,43 +75,29 @@ public class UITest {
 
     Thread.sleep(DEFAULT_TIMEOUT);
 
-    // TestInterstitialAdClose
+    // TestInterstitialAdLoadAndShow
     reference = device.wait(Until.findObject(By.text("Test Ad")), WAIT_UI_TIMEOUT);
     Assert.assertNotNull(reference);
-    Log.e(TAG, "InterstitialAd loaded");
+    Log.e(TAG, "InterstitialAd2 loaded");
+    Thread.sleep(DEFAULT_TIMEOUT);
+    // click the center point of the device, where the Ad present
+    x = device.getDisplayWidth() / 2;
+    y = device.getDisplayHeight() / 2;
+    device.click(x, y);
+    Log.e(TAG, "InterstitialAd2 clicked");
+    Thread.sleep(DEFAULT_TIMEOUT);
+    bringToForeground(GMA_PACKAGE);
     Thread.sleep(DEFAULT_TIMEOUT);
     // click the top left corner close bottom.
     // Use "Test Ad" TextView bottom position as the reference
     x = reference.getVisibleBounds().bottom;
     y = reference.getVisibleBounds().bottom;
     device.click(x, y);
-    Log.e(TAG, "InterstitialAd closed");
+    Log.e(TAG, "InterstitialAd2 closed");
 
     Thread.sleep(DEFAULT_TIMEOUT);
 
-    // // TestInterstitialAdClickAndClose
-    // reference = device.wait(Until.findObject(By.text("Test Ad")), WAIT_UI_TIMEOUT);
-    // Assert.assertNotNull(reference);
-    // Log.e(TAG, "InterstitialAd2 loaded");
-    // Thread.sleep(DEFAULT_TIMEOUT);
-    // // click the center point of the device, where the Ad present
-    // x = device.getDisplayWidth() / 2;
-    // y = device.getDisplayHeight() / 2;
-    // device.click(x, y);
-    // Log.e(TAG, "InterstitialAd2 clicked");
-    // Thread.sleep(DEFAULT_TIMEOUT);
-    // bringToForeground(GMA_PACKAGE);
-    // Thread.sleep(DEFAULT_TIMEOUT);
-    // // click the top left corner close bottom.
-    // // Use "Test Ad" TextView bottom position as the reference
-    // x = reference.getVisibleBounds().bottom;
-    // y = reference.getVisibleBounds().bottom;
-    // device.click(x, y);
-    // Log.e(TAG, "InterstitialAd2 closed");
-
-    // Thread.sleep(DEFAULT_TIMEOUT);
-
-    // TestRewardedAdClose
+    // TestRewardedAdLoadAndShow
     UiObject countDown = device.findObject(new UiSelector().textContains("seconds"));
     Assert.assertTrue(countDown.waitForExists(WAIT_UI_TIMEOUT));
     Log.e(TAG, "RewardedAd loaded");

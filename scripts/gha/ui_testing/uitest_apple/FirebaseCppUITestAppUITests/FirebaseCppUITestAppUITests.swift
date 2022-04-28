@@ -65,10 +65,6 @@ class FirebaseCppUITestAppUITests: XCTestCase {
       }
     }
 
-
-    // Start Automated UI Test
-    let app = XCUIApplication(bundleIdentifier: "com.google.ios.admob.testapp")
-
     // Periodically check and dismiss dialogs with "Allow" or "OK"
     Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { (_) in
 #if os(iOS)
@@ -93,22 +89,6 @@ class FirebaseCppUITestAppUITests: XCTestCase {
 #endif
     }
 
-    // Launch UI Test App
-    helperApp.launch()
-    // Wait until UI Test App open Integration Test App
-    helperApp.wait(for: .runningBackground, timeout: 20)
-
-    // Wait until Integration Test App closed (testing finished)
-    let expectation = XCTestExpectation(description: "Integration Test App closed")
-    Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { (_) in
-      if helperApp.state == .runningForeground {
-        NSLog("Integration Test App closed... UI Test App back to foreground...")
-        expectation.fulfill()
-      } else {
-        NSLog("Testing... UI Test App in background...")
-      }
-    }
-
 
     // Start Automated UI Test
     let app = XCUIApplication(bundleIdentifier: "com.google.ios.admob.testapp")
@@ -130,6 +110,15 @@ class FirebaseCppUITestAppUITests: XCTestCase {
     // TestInterstitialAdLoadAndShow
     reference = app.staticTexts["Test mode"]
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
+    // Click the center point of the device, where the Ad present
+    x = app.frame.width/2
+    y = app.frame.height/2
+    sleep(5)  // Wait until button hittable
+    let interstitial_ad = app.findElement(at: CGPoint(x: x, y: y))
+    interstitial_ad.tap()
+    sleep(5)
+    app.activate()
+    sleep(5)
     // Click the top left corner close bottom.
     // Use "Test Ad" TextView bottom position as the reference
     x = (reference.frame.origin.y + reference.frame.height)/2
@@ -139,22 +128,6 @@ class FirebaseCppUITestAppUITests: XCTestCase {
     interstitial_ad_close_button.tap()
 
     sleep(5)
-
-    // // TestInterstitialAdClickAndClose
-    // reference = app.staticTexts["Test mode"]
-    // XCTAssertTrue(reference.waitForExistence(timeout: 60))
-    // // Click the center point of the device, where the Ad present
-    // x = app.frame.width/2
-    // y = app.frame.height/2
-    // sleep(5)  // Wait until button hittable
-    // let interstitial_ad = app.findElement(at: CGPoint(x: x, y: y))
-    // interstitial_ad.tap()
-    // sleep(5)
-    // app.activate()
-    // sleep(5)
-    // interstitial_ad_close_button.tap()
-
-    // sleep(5)
 
     // TestRewardedAdLoadAndShow
     reference = app.webViews.staticTexts.containing(NSPredicate(format: "label CONTAINS 'seconds'")).element

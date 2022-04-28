@@ -239,6 +239,10 @@ def main(argv):
       return 23
   
     for app_path in ios_testapps:
+      if FLAGS.test_type == _TEST_TYPE_UITEST and not _has_uitests(app_path, config):
+        logging.info("Skip %s, as it has no uitest", app_path)
+        continue
+
       bundle_id = _get_bundle_id(app_path, config)
       logs=_run_apple_test(bundle_id, app_path, ios_helper_app, device_id, _TEST_RETRY)
       tests.append(Test(testapp_path=app_path, logs=logs))
@@ -461,6 +465,13 @@ def _get_bundle_id(app_path, config):
   for api in config["apis"]:
     if api["name"] != "app" and (api["name"] in app_path or api["full_name"] in app_path):
       return api["bundle_id"]
+
+
+def _has_uitests(app_path, config):
+  """Get app bundle id from build_testapps.json file."""
+  for api in config["apis"]:
+    if api["name"] != "app" and (api["name"] in app_path or api["full_name"] in app_path):
+      return api.get("has_uitests", False)
 
 
 def _run_apple_test(bundle_id, app_path, helper_app, device_id, retry=1):

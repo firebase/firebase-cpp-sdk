@@ -99,6 +99,7 @@
       "bundle_id": "com.google.ios.admob.testapp",
       "ios_target": "integration_test",
       "tvos_target": "",
+      "has_uitests": true,
       "testapp_path": "gma/integration_test",
       "frameworks": [
         "firebase_gma.xcframework",
