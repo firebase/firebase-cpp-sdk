@@ -402,6 +402,7 @@ SWIFT_CLASS_NAMED("StorageListResult")
 /// <code>nil</code> indicates that there are no more results.
 /// @return A page token if more results are available.
 @property(nonatomic, readonly, copy) NSString *_Nullable pageToken;
+- (id _Nonnull)copy SWIFT_WARN_UNUSED_RESULT;
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
 @end
@@ -460,6 +461,10 @@ SWIFT_CLASS_NAMED("StorageMetadata")
 /// Creates an instance of StorageMetadata from the contents of a dictionary.
 /// @return An instance of StorageMetadata that represents the contents of a dictionary.
 - (nonnull instancetype)initWithDictionary:(NSDictionary<NSString *, id> *_Nonnull)dictionary;
+- (id _Nonnull)copy SWIFT_WARN_UNUSED_RESULT;
+- (BOOL)isEqual:(id _Nullable)object SWIFT_WARN_UNUSED_RESULT;
+@property(nonatomic, readonly) NSUInteger hash;
+@property(nonatomic, readonly, copy) NSString *_Nonnull description;
 @end
 
 @class NSData;
