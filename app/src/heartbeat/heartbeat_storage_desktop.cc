@@ -22,12 +22,12 @@
 
 #include "app/logged_heartbeats_generated.h"
 #include "app/src/filesystem.h"
-#include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/logger.h"
 
 namespace firebase {
 namespace heartbeat {
 
-using LoggedHeartbeatsFbs =
+using LoggedHeartbeatsFlatbuffer =
     com::google::firebase::cpp::heartbeat::LoggedHeartbeats;
 using com::google::firebase::cpp::heartbeat::CreateLoggedHeartbeats;
 using com::google::firebase::cpp::heartbeat::CreateUserAgentAndDates;
@@ -35,67 +35,62 @@ using com::google::firebase::cpp::heartbeat::GetLoggedHeartbeats;
 using com::google::firebase::cpp::heartbeat::UserAgentAndDates;
 using com::google::firebase::cpp::heartbeat::VerifyLoggedHeartbeatsBuffer;
 
-// Using an anonymous namespace for file mutex and filename
+// Using an anonymous namespace for helper to construct filename
 namespace {
 
 const char kHeartbeatDir[] = "firebase-heartbeat";
 const char kHeartbeatFilenamePrefix[] = "heartbeats-";
 
-// Returns the mutex that protects accesses to the storage file.
-Mutex& FileMutex() {
-  static Mutex* mutex_ = new Mutex(Mutex::kModeNonRecursive);
-  return *mutex_;
-}
-
-std::string GetFilename(std::string app_id, std::string* error) {
+std::string CreateFilename(const std::string& app_id, Logger* logger) {
+  std::string error;
   std::string app_dir =
-      AppDataDir(kHeartbeatDir, /*should_create=*/true, error);
+      AppDataDir(kHeartbeatDir, /*should_create=*/true, &error);
+  if (!error.empty()) {
+    logger->LogError(error.c_str());
+    return "";
+  }
   if (app_dir.empty()) {
     return "";
   }
 
   // Remove any symbols from app_id that might not be allowed in filenames.
   auto app_id_without_symbols =
-      std::regex_replace(app_id, std::regex("[/\\?%*:|\"<>.,;=]"), "");
+      std::regex_replace(app_id, std::regex("[/\\\\?%*:|\"<>.,;=]"), "");
   // Note: fstream will convert / to \ if needed on windows.
   return app_dir + "/" + kHeartbeatFilenamePrefix + app_id_without_symbols;
 }
 
 }  // namespace
-
-HeartbeatStorageDesktop::HeartbeatStorageDesktop(std::string app_id)
-    : filename_(GetFilename(app_id, &error_)) {
-  MutexLock lock(FileMutex());
-
+HeartbeatStorageDesktop::HeartbeatStorageDesktop(const std::string& app_id,
+                                                 Logger* logger)
+    : filename_(CreateFilename(app_id, logger)), logger_(logger) {
   // Ensure the file exists, otherwise the first attempt to read it would
   // fail.
   std::ofstream file(filename_, std::ios_base::app);
 
   if (!file) {
-    error_ = "Unable to open '" + filename_ + "'.";
+    logger_->LogError("Unable to open '%s'.", filename_.c_str());
   }
 }
 
-// Size is arbitrary, just making sure that there is a sane limit.
+// Max size is arbitrary, just making sure that there is a sane limit.
 static const int kMaxBufferSize = 1024 * 500;
 
-bool HeartbeatStorageDesktop::ReadTo(LoggedHeartbeats* heartbeats_output) {
-  MutexLock lock(FileMutex());
-  error_ = "";
+bool HeartbeatStorageDesktop::ReadTo(LoggedHeartbeats& heartbeats_output) {
   // Open the file and seek to the end
   std::ifstream file(filename_, std::ios_base::binary | std::ios_base::ate);
   if (!file) {
-    error_ = "Unable to open '" + filename_ + "' for reading.";
+    logger_->LogError("Unable to open '%s' for reading.", filename_.c_str());
     return false;
   }
   // Current position in file is file size. Fail if file is too large.
   std::streamsize buffer_len = file.tellg();
   if (buffer_len > kMaxBufferSize) {
-    error_ = "'" + filename_ + "' is too large to read.";
+    logger_->LogError("'%s' is too large to read.", filename_.c_str());
     return false;
   }
   if (buffer_len == -1) {
-    error_ = "Failed to determine size of '" + filename_ + "'.";
+    logger_->LogError("Failed to determine size of '%s'.", filename_.c_str());
     return false;
   }
   // Rewind to start of the file, then read into a buffer on the heap.
@@ -108,40 +103,40 @@ bool HeartbeatStorageDesktop::ReadTo(LoggedHeartbeats* heartbeats_output) {
   if (!VerifyLoggedHeartbeatsBuffer(verifier)) {
     // If the file is empty or contains corrupted data, return a default
     // instance.
-    *heartbeats_output = LoggedHeartbeats();
+    heartbeats_output = LoggedHeartbeats();
     delete[] buffer;
     return true;
   }
-  const LoggedHeartbeatsFbs* heartbeats_fbs = GetLoggedHeartbeats(buffer);
-  *heartbeats_output = LoggedHeartbeatsFromFbs(heartbeats_fbs);
+  const LoggedHeartbeatsFlatbuffer* heartbeats_fb = GetLoggedHeartbeats(buffer);
+  heartbeats_output = LoggedHeartbeatsFromFlatbuffer(*heartbeats_fb);
   delete[] buffer;
   return true;
 }
 
-bool HeartbeatStorageDesktop::Write(LoggedHeartbeats heartbeats) const {
-  MutexLock lock(FileMutex());
-  error_ = "";
-
+bool HeartbeatStorageDesktop::Write(const LoggedHeartbeats& heartbeats) const {
   // Clear the file before writing.
   std::ofstream file(filename_, std::ios_base::trunc | std::ios_base::binary);
   if (!file) {
-    error_ = "Unable to open '" + filename_ + "' for writing.";
+    logger_->LogError("Unable to open '%s' for writing.", filename_.c_str());
     return false;
   }
 
-  flatbuffers::FlatBufferBuilder fbb = LoggedHeartbeatsToFbs(heartbeats);
+  flatbuffers::FlatBufferBuilder fbb = LoggedHeartbeatsToFlatbuffer(heartbeats);
   file.write((char*)fbb.GetBufferPointer(), fbb.GetSize());
 
   return !file.fail();
 }
 
-LoggedHeartbeats HeartbeatStorageDesktop::LoggedHeartbeatsFromFbs(
-    const LoggedHeartbeatsFbs* heartbeats_fbs) const {
+const char* HeartbeatStorageDesktop::GetFilename() const {
+  return filename_.c_str();
+}
+
+LoggedHeartbeats HeartbeatStorageDesktop::LoggedHeartbeatsFromFlatbuffer(
+    const LoggedHeartbeatsFlatbuffer& heartbeats_fb) const {
   LoggedHeartbeats heartbeats_struct;
   // TODO(almostmatt): verify format of date string
-  heartbeats_struct.last_logged_date =
-      heartbeats_fbs->last_logged_date()->str();
-  for (auto user_agent_and_dates : *(heartbeats_fbs->heartbeats())) {
+  heartbeats_struct.last_logged_date = heartbeats_fb.last_logged_date()->str();
+  for (auto user_agent_and_dates : *(heartbeats_fb.heartbeats())) {
     std::string user_agent = user_agent_and_dates->user_agent()->str();
     for (auto date : *(user_agent_and_dates->dates())) {
       // TODO(almostmatt): verify format of date string
@@ -151,8 +146,9 @@ LoggedHeartbeats HeartbeatStorageDesktop::LoggedHeartbeatsFromFbs(
   return heartbeats_struct;
 }
 
-flatbuffers::FlatBufferBuilder HeartbeatStorageDesktop::LoggedHeartbeatsToFbs(
-    LoggedHeartbeats heartbeats_struct) const {
+flatbuffers::FlatBufferBuilder
+HeartbeatStorageDesktop::LoggedHeartbeatsToFlatbuffer(
+    const LoggedHeartbeats& heartbeats_struct) const {
   flatbuffers::FlatBufferBuilder builder;
   auto last_logged_date =
       builder.CreateString(heartbeats_struct.last_logged_date);
