@@ -607,7 +607,11 @@ TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
     WaitForCompletion(future, "PutFile");
     EXPECT_NE(future.result(), nullptr);
     const firebase::storage::Metadata* metadata = future.result();
+#if !TARGET_OS_IPHONE && !TARGET_OS_TV
+    // Disable this specific check on iOS/tvOS, due to a possible race condition
+    // in the Storage iOS library. TODO(b/230800306): Revisit this later.
     EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
+#endif  // !TARGET_OS_IPHONE && !TARGET_OS_TV
     EXPECT_EQ(metadata->content_type(), content_type);
   }
   // Use GetBytes to ensure the file uploaded correctly.
