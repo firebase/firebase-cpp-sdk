@@ -658,7 +658,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: macos-12
+        os: [macos-12]
     steps:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
