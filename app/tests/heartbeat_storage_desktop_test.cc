@@ -39,7 +39,7 @@ class HeartbeatStorageDesktopTest : public ::testing::Test {
 };
 
 TEST_F(HeartbeatStorageDesktopTest, WriteAndRead) {
-  HeartbeatStorageDesktop storage = HeartbeatStorageDesktop("app_id", &logger_);
+  HeartbeatStorageDesktop storage = HeartbeatStorageDesktop("app_id", logger_);
   std::string user_agent = "user_agent";
   std::string date1 = "2022-01-01";
   std::string date2 = "2022-02-23";
@@ -61,7 +61,7 @@ TEST_F(HeartbeatStorageDesktopTest, WriteAndRead) {
 
 TEST_F(HeartbeatStorageDesktopTest, WriteAndReadDifferentStorageInstance) {
   std::string app_id = "app_id";
-  HeartbeatStorageDesktop storage1 = HeartbeatStorageDesktop(app_id, &logger_);
+  HeartbeatStorageDesktop storage1 = HeartbeatStorageDesktop(app_id, logger_);
   std::string user_agent = "user_agent";
   std::string date1 = "2022-01-01";
   std::string date2 = "2022-02-23";
@@ -72,7 +72,7 @@ TEST_F(HeartbeatStorageDesktopTest, WriteAndReadDifferentStorageInstance) {
   bool write_ok = storage1.Write(heartbeats);
   ASSERT_TRUE(write_ok);
 
-  HeartbeatStorageDesktop storage2 = HeartbeatStorageDesktop(app_id, &logger_);
+  HeartbeatStorageDesktop storage2 = HeartbeatStorageDesktop(app_id, logger_);
   LoggedHeartbeats read_heartbeats;
   bool read_ok = storage2.ReadTo(read_heartbeats);
   ASSERT_TRUE(read_ok);
@@ -90,7 +90,7 @@ TEST_F(HeartbeatStorageDesktopTest, WriteAndReadDifferentAppIds) {
   std::string date1 = "2022-01-01";
   std::string date2 = "2022-02-02";
   // Write using app_id
-  HeartbeatStorageDesktop storage1 = HeartbeatStorageDesktop(app_id, &logger_);
+  HeartbeatStorageDesktop storage1 = HeartbeatStorageDesktop(app_id, logger_);
   LoggedHeartbeats heartbeats1;
   heartbeats1.last_logged_date = date1;
   heartbeats1.heartbeats[user_agent1].push_back(date1);
@@ -99,7 +99,7 @@ TEST_F(HeartbeatStorageDesktopTest, WriteAndReadDifferentAppIds) {
 
   // Write different heartbeats using different_app_id
   HeartbeatStorageDesktop storage2 =
-      HeartbeatStorageDesktop(different_app_id, &logger_);
+      HeartbeatStorageDesktop(different_app_id, logger_);
   LoggedHeartbeats heartbeats2;
   heartbeats2.last_logged_date = date2;
   heartbeats2.heartbeats[user_agent2].push_back(date2);
@@ -118,7 +118,7 @@ TEST_F(HeartbeatStorageDesktopTest, WriteAndReadDifferentAppIds) {
 TEST_F(HeartbeatStorageDesktopTest, ReadNonexistentFile) {
   // ReadHeartbeats should return a default instance
   HeartbeatStorageDesktop storage =
-      HeartbeatStorageDesktop("nonexistent_app_id", &logger_);
+      HeartbeatStorageDesktop("nonexistent_app_id", logger_);
   LoggedHeartbeats read_heartbeats;
   bool read_ok = storage.ReadTo(read_heartbeats);
   ASSERT_TRUE(read_ok);
@@ -128,7 +128,7 @@ TEST_F(HeartbeatStorageDesktopTest, ReadNonexistentFile) {
 
 TEST_F(HeartbeatStorageDesktopTest, FilenameIgnoresSymbolsInAppId) {
   std::string app_id = "idstart/\\?%*:|\"<>.,;=idend";
-  HeartbeatStorageDesktop storage = HeartbeatStorageDesktop(app_id, &logger_);
+  HeartbeatStorageDesktop storage = HeartbeatStorageDesktop(app_id, logger_);
   std::string filename = storage.GetFilename();
   // Verify that the actual filename contains the non-symbol characters in
   // app_id.
@@ -137,7 +137,7 @@ TEST_F(HeartbeatStorageDesktopTest, FilenameIgnoresSymbolsInAppId) {
 
 TEST_F(HeartbeatStorageDesktopTest, ReadCorruptedData) {
   std::string app_id = "app_id";
-  HeartbeatStorageDesktop storage = HeartbeatStorageDesktop(app_id, &logger_);
+  HeartbeatStorageDesktop storage = HeartbeatStorageDesktop(app_id, logger_);
   // Write non-flatbuffer data to the file and then try to read from that file.
   std::ofstream file(storage.GetFilename());
   file << "this is not a flatbuffer";

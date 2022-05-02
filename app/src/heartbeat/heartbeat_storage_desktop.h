@@ -41,7 +41,7 @@ struct LoggedHeartbeats {
 
 class HeartbeatStorageDesktop {
  public:
-  explicit HeartbeatStorageDesktop(const std::string& app_id, Logger* logger);
+  explicit HeartbeatStorageDesktop(const std::string& app_id, const Logger& logger);
 
   // Reads an instance of LoggedHeartbeats from disk into the provided struct.
   // Returns `false` if the read operation fails.
@@ -61,7 +61,7 @@ class HeartbeatStorageDesktop {
 
   // local variables for state
   std::string filename_;
-  Logger* logger_;
+  const Logger& logger_;
 };
 
 }  // namespace heartbeat

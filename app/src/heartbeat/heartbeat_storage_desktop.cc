@@ -41,12 +41,12 @@ namespace {
 const char kHeartbeatDir[] = "firebase-heartbeat";
 const char kHeartbeatFilenamePrefix[] = "heartbeats-";
 
-std::string CreateFilename(const std::string& app_id, Logger* logger) {
+std::string CreateFilename(const std::string& app_id, const Logger& logger) {
   std::string error;
   std::string app_dir =
       AppDataDir(kHeartbeatDir, /*should_create=*/true, &error);
   if (!error.empty()) {
-    logger->LogError(error.c_str());
+    logger.LogError(error.c_str());
     return "";
   }
   if (app_dir.empty()) {
@@ -62,14 +62,14 @@ std::string CreateFilename(const std::string& app_id, Logger* logger) {
 
 }  // namespace
 HeartbeatStorageDesktop::HeartbeatStorageDesktop(const std::string& app_id,
-                                                 Logger* logger)
+                                                 const Logger& logger)
     : filename_(CreateFilename(app_id, logger)), logger_(logger) {
   // Ensure the file exists, otherwise the first attempt to read it would
   // fail.
   std::ofstream file(filename_, std::ios_base::app);
 
   if (!file) {
-    logger_->LogError("Unable to open '%s'.", filename_.c_str());
+    logger_.LogError("Unable to open '%s'.", filename_.c_str());
   }
 }
 
@@ -80,17 +80,17 @@ bool HeartbeatStorageDesktop::ReadTo(LoggedHeartbeats& heartbeats_output) {
   // Open the file and seek to the end
   std::ifstream file(filename_, std::ios_base::binary | std::ios_base::ate);
   if (!file) {
-    logger_->LogError("Unable to open '%s' for reading.", filename_.c_str());
+    logger_.LogError("Unable to open '%s' for reading.", filename_.c_str());
     return false;
   }
   // Current position in file is file size. Fail if file is too large.
   std::streamsize buffer_len = file.tellg();
   if (buffer_len > kMaxBufferSize) {
-    logger_->LogError("'%s' is too large to read.", filename_.c_str());
+    logger_.LogError("'%s' is too large to read.", filename_.c_str());
     return false;
   }
   if (buffer_len == -1) {
-    logger_->LogError("Failed to determine size of '%s'.", filename_.c_str());
+    logger_.LogError("Failed to determine size of '%s'.", filename_.c_str());
     return false;
   }
   // Rewind to start of the file, then read into a buffer on the heap.
@@ -117,7 +117,7 @@ bool HeartbeatStorageDesktop::Write(const LoggedHeartbeats& heartbeats) const {
   // Clear the file before writing.
   std::ofstream file(filename_, std::ios_base::trunc | std::ios_base::binary);
   if (!file) {
-    logger_->LogError("Unable to open '%s' for writing.", filename_.c_str());
+    logger_.LogError("Unable to open '%s' for writing.", filename_.c_str());
     return false;
   }
 
