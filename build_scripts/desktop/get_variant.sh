@@ -184,9 +184,9 @@ case ${os} in
     ;;
     android)
 	if [[ -z "${arch}" ]]; then
-	    echo -n "${stl}"
+	    echo -n "."
 	else
-	    echo -n "${arch}/${stl}"
+	    echo -n "${arch}"
 	fi
     ;;
     *)

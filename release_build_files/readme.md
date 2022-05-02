@@ -50,11 +50,9 @@ libs/ios/ARCH             | iOS static libraries (compiled against
 |                         | libc++)
 |                         | Multi-architecture libraries are
 |                         | provided in the *universal* directory.
-libs/android/ARCH/STL     | Android (GCC 4.8+ compatible) static
-|                         | libraries for each architecture and STL
-|                         | variant.
-|                         | _STL variant available:_
-|                         | * `c++`: LLVM libc++ runtime
+libs/android/ARCH         | Android (GCC 4.8+ compatible) static
+|                         | libraries for each architecture. Only the
+|                         | LLVM libc++ STL runtime ("c++") is supported.
 |                         | More information can be found in the
 |                         | [NDK C++ Helper Runtimes](https://developer.android.com/ndk/guides/cpp-support.html#runtimes)
 |                         | documentation.

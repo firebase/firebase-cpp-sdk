@@ -4,7 +4,6 @@
 
 buildpath=$1
 sourcepath=$2
-stl=$3
 
 if [[ -z "${buildpath}" || -z "${sourcepath}" ]]; then
     echo "Usage: $0 <build path> <source path> [c++]"
@@ -16,13 +15,9 @@ if [[ ! -d "${sourcepath}" ]]; then
     exit 2
 fi
 
-if [[ "${stl}" == "c++" ]]; then
-    export FIREBASE_ANDROID_STL="${stl}"_static
-elif [[ ! -z "${stl}" ]]; then
-    echo "Invalid STL specified."
-    echo "Valid STLs are: 'c++' (default)"
-    exit 2
-fi
+# Force libc++ STL. This should be the NDK's default, but specify it here
+# just to be sure.
+export FIREBASE_ANDROID_STL=c++_static
 
 origpath=$( pwd -P )
 
