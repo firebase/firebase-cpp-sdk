@@ -72,7 +72,7 @@ MINIMAL_KEY = "minimal"
 PARAMETERS = {
   "desktop": {
     "matrix": {
-      "os": ["ubuntu-latest", "macos-latest"],
+      "os": ["ubuntu-latest", "macos-12"],
       "build_type": ["Release", "Debug"],
       "architecture": ["x64", "x86", "arm64"],
       "msvc_runtime": ["static","dynamic"],
@@ -80,7 +80,7 @@ PARAMETERS = {
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
-        "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
+        "os": ["ubuntu-latest", "macos-12", "windows-latest"],
         "xcode_version": ["13.3.1"],
       }
     }
@@ -88,19 +88,19 @@ PARAMETERS = {
 
   "android": {
     "matrix": {
-      "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
+      "os": ["ubuntu-latest", "macos-12", "windows-latest"],
       "architecture": ["x64"],
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
-        "os": ["ubuntu-latest", "macos-latest", "windows-latest"]
+        "os": ["ubuntu-latest", "macos-12", "windows-latest"]
       }
     }
   },
 
   "integration_tests": {
     "matrix": {
-      "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
+      "os": ["ubuntu-latest", "macos-12", "windows-latest"],
       "platform": ["Desktop", "Android", "iOS", "tvOS"],
       "ssl_lib": ["openssl"],
       "android_device": ["android_target", "emulator_target"],
