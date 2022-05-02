@@ -15,10 +15,6 @@ if [[ ! -d "${sourcepath}" ]]; then
     exit 2
 fi
 
-# Force libc++ STL. This should be the NDK's default, but specify it here
-# just to be sure.
-export FIREBASE_ANDROID_STL=c++_static
-
 origpath=$( pwd -P )
 
 mkdir -p "${buildpath}"
