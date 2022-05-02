@@ -569,7 +569,8 @@ code.
     -   General (Android): On Android, Firebase C++ is now built against NDK
         version r21e.
     -   General (Android): Firebase support for gnustl (also known as libstdc++)
-        has been removed. Please use libc++ instead.
+        has been removed. Please use libc++ instead. Android libraries have been
+	moved from libs/android/ARCH/STL to libs/android/ARCH.
     -   Storage (Desktop): Set Content-Type HTTP header when uploading with
         custom metadata.
 
