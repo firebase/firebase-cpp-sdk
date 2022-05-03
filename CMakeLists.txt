@@ -81,11 +81,6 @@ option(FIREBASE_GITHUB_ACTION_BUILD
 option(FIREBASE_QUICK_TEST
        "Enable quick tests will skip tests which requires access to the SECRET" OFF)
 
-set(FIREBASE_ANDROID_STL "" CACHE STRING "STL implementation to use.")
-if (NOT FIREBASE_ANDROID_STL STREQUAL "")
-  set(ANDROID_STL ${FIREBASE_ANDROID_STL})
-endif()
-
 set(FIREBASE_PYTHON_EXECUTABLE "python" CACHE FILEPATH
   "The Python interpreter to use, such as one from a venv")
 
