@@ -47,7 +47,6 @@ Future<void> AdViewInternalIOS::Initialize(AdParent parent,
     future_data_.future_impl.SafeAlloc<void>(kAdViewFnInitialize);
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
-
   if(initialized_) {
     CompleteFuture(kAdErrorCodeAlreadyInitialized,
       kAdAlreadyInitializedErrorMessage, future_handle, &future_data_);
