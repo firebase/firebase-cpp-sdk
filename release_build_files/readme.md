@@ -50,12 +50,9 @@ libs/ios/ARCH             | iOS static libraries (compiled against
 |                         | libc++)
 |                         | Multi-architecture libraries are
 |                         | provided in the *universal* directory.
-libs/android/ARCH/STL     | Android (GCC 4.8+ compatible) static
-|                         | libraries for each architecture and STL
-|                         | variant.
-|                         | _STL variants available:_
-|                         | * `c++`: LLVM libc++ runtime (recommended)
-|                         | * `gnustl`: GNU STL (deprecated)
+libs/android/ARCH         | Android (GCC 4.8+ compatible) static
+|                         | libraries for each architecture. Only the
+|                         | LLVM libc++ STL runtime ("c++") is supported.
 |                         | More information can be found in the
 |                         | [NDK C++ Helper Runtimes](https://developer.android.com/ndk/guides/cpp-support.html#runtimes)
 |                         | documentation.
@@ -575,12 +572,17 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming release
+### 9.0.0
 -   Changes
     -   General (iOS): iOS SDKs are now built using Xcode 13.3.1.
-    -   AdMob (iOS): Temporarily pinned AdMob dependency to a special version of the
-        Google-Mobile-Ads-SDK Cocoapod, "7.69.0-cppsdk2", to maintain compatibility
-        with version 9.x of the Firebase iOS SDK.
+    -   General (Android): On Android, Firebase C++ is now built against NDK
+        version r21e.
+    -   General (Android): Firebase support for gnustl (also known as libstdc++)
+        has been removed. Please use libc++ instead. Android libraries have been
+        moved from libs/android/ARCH/STL to libs/android/ARCH.
+    -   AdMob (iOS): Temporarily pinned AdMob dependency to a special version of
+        the Google-Mobile-Ads-SDK Cocoapod, "7.69.0-cppsdk2", to maintain
+        compatibility with version 9.x of the Firebase iOS SDK.
     -   Analytics: Removed deprecated event names and parameters.
     -   Storage (Desktop): Set Content-Type HTTP header when uploading with
         custom metadata.
@@ -599,7 +601,8 @@ code.
         initialization of Firebase iOS SDK.
     -   Remote Config: Fixed default `Fetch()` timeout being 1000 times too
         high.
-    -   Storage (Desktop): Added retry logic to PutFile, GetFile, and other operations.
+    -   Storage (Desktop): Added retry logic to PutFile, GetFile, and other
+        operations.
 
 ### 8.9.0
 -   Changes

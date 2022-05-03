@@ -124,9 +124,6 @@ for c in $(echo "${filename}" | tr "[:upper:]" "[:lower:]" | tr "_.-" "\n\n\n");
 	c++)
 	    stl=c++
         ;;
-	gnustl)
-	    stl=gnustl
-        ;;
 	cxx11)
 	    linux_abi=cxx11
         ;;
@@ -187,9 +184,9 @@ case ${os} in
     ;;
     android)
 	if [[ -z "${arch}" ]]; then
-	    echo -n "${stl}"
+	    echo -n "."
 	else
-	    echo -n "${arch}/${stl}"
+	    echo -n "${arch}"
 	fi
     ;;
     *)
