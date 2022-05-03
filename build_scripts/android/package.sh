@@ -41,7 +41,7 @@ for product in ${product_list[*]}; do
     for cpudir in "${dir}"/*; do
 	cpu=$(basename ${cpudir})
 	libsrc="${sourcepath}/${cpudir}/libfirebase_${product}.a"
-	libdest="${destpath}/libs/android/${cpu}
+	libdest="${destpath}/libs/android/${cpu}"
 	mkdir -p "${libdest}"
 	cp -f "${libsrc}" "${libdest}/"
     done
