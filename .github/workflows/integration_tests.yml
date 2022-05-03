@@ -20,7 +20,7 @@ on:
         required: true
       operating_systems:
         description: 'CSV of VMs to run on'
-        default: 'ubuntu-latest,windows-latest,macos-latest'
+        default: 'ubuntu-latest,windows-latest,macos-12'
         required: true
       desktop_ssl_variants:
         description: 'CSV of desktop SSL variants to use'
@@ -534,7 +534,7 @@ jobs:
   build_ios:
     name: build-ios-macos-latest
     needs: [check_and_prepare]
-    runs-on: macos-latest
+    runs-on: macos-12
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'iOS') && needs.check_and_prepare.outputs.apis != '' && !cancelled() && !failure()
     strategy:
       fail-fast: false
@@ -599,7 +599,7 @@ jobs:
             --t ${{ needs.check_and_prepare.outputs.apis }}  \
             --output_directory "${{ github.workspace }}" \
             --ios_sdk ${{ needs.check_and_prepare.outputs.mobile_test_on }} \
-            --artifact_name "ios-macos-latest" \
+            --artifact_name "ios-macos-12" \
             --noadd_timestamp \
             --short_output_paths \
             ${additional_flags[*]}
@@ -607,22 +607,22 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          if [ ! -f build-results-ios-macos-latest.log.json ]; then
-            echo "__SUMMARY_MISSING__" > build-results-ios-macos-latest.log.json
+          if [ ! -f build-results-ios-macos-12.log.json ]; then
+            echo "__SUMMARY_MISSING__" > build-results-ios-macos-12.log.json
           fi
       - name: Upload iOS integration tests artifact
         uses: actions/upload-artifact@v3
         if: ${{ !cancelled() }}
         with:
-          name: testapps-ios-macos-latest
-          path: testapps-ios-macos-latest
+          name: testapps-ios-macos-12
+          path: testapps-ios-macos-12
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Upload iOS build results artifact
         uses: actions/upload-artifact@v3
         if: ${{ !cancelled() }}
         with:
           name: log-artifact
-          path: build-results-ios-macos-latest*
+          path: build-results-ios-macos-12*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
@@ -643,7 +643,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat build-results-ios-macos-latest.log
+          cat build-results-ios-macos-12.log
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
@@ -651,7 +651,7 @@ jobs:
   build_tvos:
     name: build-tvos-macos-latest
     needs: [check_and_prepare]
-    runs-on: macos-latest
+    runs-on: macos-12
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'tvOS') && needs.check_and_prepare.outputs.apis != '' && !cancelled() && !failure()
     strategy:
       fail-fast: false
@@ -715,7 +715,7 @@ jobs:
           python scripts/gha/build_testapps.py --p tvOS \
             --t ${{ needs.check_and_prepare.outputs.apis }}  \
             --output_directory "${{ github.workspace }}" \
-            --artifact_name "tvos-macos-latest" \
+            --artifact_name "tvos-macos-12" \
             --noadd_timestamp \
             --short_output_paths \
             ${additional_flags[*]}
@@ -723,22 +723,22 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          if [ ! -f build-results-tvos-macos-latest.log.json ]; then
-            echo "__SUMMARY_MISSING__" > build-results-tvos-macos-latest.log.json
+          if [ ! -f build-results-tvos-macos-12.log.json ]; then
+            echo "__SUMMARY_MISSING__" > build-results-tvos-macos-12.log.json
           fi
       - name: Upload tvOS integration tests artifact
         uses: actions/upload-artifact@v3
         if: ${{ !cancelled() }}
         with:
-          name: testapps-tvos-macos-latest
-          path: testapps-tvos-macos-latest
+          name: testapps-tvos-macos-12
+          path: testapps-tvos-macos-12
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Upload tvOS build results artifact
         uses: actions/upload-artifact@v3
         if: ${{ !cancelled() }}
         with:
           name: log-artifact
-          path: build-results-tvos-macos-latest*
+          path: build-results-tvos-macos-12*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
@@ -759,7 +759,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat build-results-tvos-macos-latest.log
+          cat build-results-tvos-macos-12.log
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
@@ -858,7 +858,7 @@ jobs:
   test_android:
     name: test-android-${{ matrix.build_os }}-${{ matrix.android_device }}
     needs: [check_and_prepare, build_android]
-    runs-on: macos-latest
+    runs-on: macos-12
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'Android') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
     strategy:
       fail-fast: false
@@ -963,7 +963,7 @@ jobs:
   test_ios:
     name: test-ios-macos-latest-${{ matrix.ios_device }}
     needs: [check_and_prepare, build_ios]
-    runs-on: macos-latest
+    runs-on: macos-12
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'iOS') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
     strategy:
       fail-fast: false
@@ -980,7 +980,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           path: testapps
-          name: testapps-ios-macos-latest
+          name: testapps-ios-macos-12
       - name: Setup python
         uses: actions/setup-python@v2
         with:
@@ -1009,7 +1009,7 @@ jobs:
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
             --ios_device "${{ matrix.ios_device }}" \
-            --logfile_name "ios-macos-latest-${{ matrix.ios_device }}" \
+            --logfile_name "ios-macos-12-${{ matrix.ios_device }}" \
             --ci
       - name: Install Cloud SDK
         if: steps.get-device-type.outputs.device_type == 'real'
@@ -1022,7 +1022,7 @@ jobs:
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           python scripts/gha/test_lab.py --testapp_dir testapps \
             --ios_device "${{ matrix.ios_device }}" \
-            --logfile_name "ios-macos-latest-${{ matrix.ios_device }}" \
+            --logfile_name "ios-macos-12-${{ matrix.ios_device }}" \
             --code_platform cpp \
             --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Prepare results summary artifact
@@ -1030,15 +1030,15 @@ jobs:
         shell: bash
         run: |
           # If testapps do not exist, then it's a build error not test error. 
-          if [ -d "testapps/testapps-ios-macos-latest" && ! -f "testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}.log.json" ]; then
-            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}.log.json"
+          if [ -d "testapps/testapps-ios-macos-12" && ! -f "testapps/test-results-ios-macos-12-${{ matrix.ios_device }}.log.json" ]; then
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-ios-macos-12-${{ matrix.ios_device }}.log.json"
           fi
       - name: Upload iOS test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
         with:
           name: log-artifact
-          path: testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}*
+          path: testapps/test-results-ios-macos-12-${{ matrix.ios_device }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
@@ -1059,7 +1059,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat "testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}.log"
+          cat "testapps/test-results-ios-macos-12-${{ matrix.ios_device }}.log"
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
@@ -1067,7 +1067,7 @@ jobs:
   test_tvos:
     name: test-tvos-macos-latest-${{ matrix.tvos_device }}
     needs: [check_and_prepare, build_tvos]
-    runs-on: macos-latest
+    runs-on: macos-12
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'tvOS') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
     strategy:
       fail-fast: false
@@ -1084,7 +1084,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           path: testapps
-          name: testapps-tvos-macos-latest
+          name: testapps-tvos-macos-12
       - name: Setup python
         uses: actions/setup-python@v2
         with:
@@ -1105,22 +1105,22 @@ jobs:
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
             --tvos_device "${{ matrix.tvos_device }}" \
-            --logfile_name "tvos-macos-latest-${{ matrix.tvos_device }}" \
+            --logfile_name "tvos-macos-12-${{ matrix.tvos_device }}" \
             --ci
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
         run: |
           # If testapps do not exist, then it's a build error not test error. 
-          if [ -d "testapps/testapps-tvos-macos-latest" && ! -f "testapps/test-results-tvos-macos-latest-${{ matrix.tvos_device }}.log.json" ]; then
-            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-tvos-macos-latest-${{ matrix.tvos_device }}.log.json"
+          if [ -d "testapps/testapps-tvos-macos-12" && ! -f "testapps/test-results-tvos-macos-12-${{ matrix.tvos_device }}.log.json" ]; then
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-tvos-macos-12-${{ matrix.tvos_device }}.log.json"
           fi
       - name: Upload tvOS test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
         with:
           name: log-artifact
-          path: testapps/test-results-tvos-macos-latest-${{ matrix.tvos_device }}*
+          path: testapps/test-results-tvos-macos-12-${{ matrix.tvos_device }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
@@ -1141,7 +1141,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat "testapps/test-results-tvos-macos-latest-${{ matrix.tvos_device }}.log"
+          cat "testapps/test-results-tvos-macos-12-${{ matrix.tvos_device }}.log"
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
