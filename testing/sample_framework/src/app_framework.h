@@ -104,6 +104,12 @@ jobject GetActivity();
 jclass FindClass(JNIEnv* env, jobject activity_object, const char* class_name);
 #endif  // defined(__ANDROID__)
 
+// Returns ture if we run tests that require interaction.
+bool ShouldRunUITests();
+
+// Returns true if we run tests that do not require interaction.
+bool ShouldRunNonUITests();
+
 // Returns true if the logger is currently logging to a file.
 bool IsLoggingToFile();
 

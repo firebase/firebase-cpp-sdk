@@ -31,6 +31,7 @@
 			<array>
 				<string>REPLACE_WITH_REVERSED_CLIENT_ID</string>
 				<string>firebase-game-loop</string>
+				<string>firebase-ui-test</string>
 			</array>
 		</dict>
 	</array>

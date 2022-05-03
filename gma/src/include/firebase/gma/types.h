@@ -824,19 +824,16 @@ struct RequestConfiguration {
   /// Values defined here may be configured via
   /// @ref tag_for_child_directed_treatment.
   enum TagForChildDirectedTreatment {
-    /// Indicates that the publisher has not specified whether the ad request
-    /// should receive treatment for users in the European Economic Area (EEA)
-    /// under the age of consent.
+    /// Indicates that ad requests will include no indication of how you would
+    /// like your app treated with respect to COPPA.
     kChildDirectedTreatmentUnspecified = -1,
 
-    /// Indicates the publisher specified that the ad request should not receive
-    /// treatment for users in the European Economic Area (EEA) under the age of
-    /// consent.
+    /// Indicates that your app should not be treated as child-directed for
+    /// purposes of the Children’s Online Privacy Protection Act (COPPA).
     kChildDirectedTreatmentFalse,
 
-    /// Indicates the publisher specified that the ad request should receive
-    /// treatment for users in the European Economic Area (EEA) under the age of
-    /// consent.
+    /// Indicates that your app should be treated as child-directed for purposes
+    /// of the Children’s Online Privacy Protection Act (COPPA).
     kChildDirectedTreatmentTrue
   };
 
@@ -932,7 +929,7 @@ class UserEarnedRewardListener {
   /// Called when the user earned a reward. The app is responsible for
   /// crediting the user with the reward.
   ///
-  /// param[in] reward the @ref AdReward that should be granted to the user.
+  /// @param[in] reward the @ref AdReward that should be granted to the user.
   virtual void OnUserEarnedReward(const AdReward& reward) {}
 };
 

@@ -19,7 +19,10 @@ import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentat
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.util.Log;
+import androidx.core.content.FileProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.uiautomator.By;
 import androidx.test.uiautomator.UiDevice;
@@ -28,6 +31,8 @@ import androidx.test.uiautomator.UiObject2;
 import androidx.test.uiautomator.UiObjectNotFoundException;
 import androidx.test.uiautomator.UiSelector;
 import androidx.test.uiautomator.Until;
+import java.io.File;
+import java.io.IOException;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -127,7 +132,28 @@ public class UITest {
   private void launchApp(String packageName) {
     Context context = getApplicationContext();
     Intent intent = context.getPackageManager().getLaunchIntentForPackage(packageName);
+    intent.setAction("com.google.intent.action.UI_TEST");
+    intent.addCategory(Intent.CATEGORY_DEFAULT);
+    intent.setType("application/javascript");
     intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK); // Clear out any previous instances
+
+    String gamePackageName = "com.google.android.admob.testapp";
+    File dir = new File(context.getFilesDir(), gamePackageName);
+    if (!dir.exists())
+      dir.mkdirs();
+    String filename = "Results1.json";
+    File file = new File(dir, filename);
+    try {
+      file.createNewFile();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    Log.d("TAG", "Test Result Path :" + file);
+    Uri fileUri =
+        FileProvider.getUriForFile(context, "com.google.firebase.uitest.fileprovider", file);
+    intent.setPackage(gamePackageName)
+        .setDataAndType(fileUri, "application/javascript")
+        .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
     context.startActivity(intent);
   }
 

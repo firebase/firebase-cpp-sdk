@@ -21,34 +21,61 @@ import XCTest
 
 class FirebaseCppUITestAppUITests: XCTestCase {
 
-  override func setUp() {
-    // Put setup code here. This method is called before the invocation of each test method in the class.
-
-    // In UI tests it is usually best to stop immediately when a failure occurs.
-    continueAfterFailure = false
-
-    // UI tests must launch the application that they test. Doing this in setup will make sure it happens for each test method.
-    XCUIApplication().launch()
-
-    // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
-  }
-
-  override func tearDown() {
-    // Put teardown code here. This method is called after the invocation of each test method in the class.
-  }
-
-
   func testGMA() {
+    // Launch this Helper App
+    let helperApp = XCUIApplication()
+
+    // Periodically check and dismiss dialogs with "Allow" or "OK"
+    Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { (_) in
+#if os(iOS)
+      NSLog("finding springboard ...")
+      let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+      for button in [springboard.buttons["Open"], springboard.buttons["Allow"], springboard.buttons["OK"]] {
+        if button.exists {
+          NSLog("Dismissing system dialog")
+          button.tap()
+        }
+      }
+#elseif os(tvOS)
+      NSLog("finding pineboard ...")
+      let pineboard = XCUIApplication(bundleIdentifier: "com.apple.PineBoard")
+      for button in [pineboard.buttons["Open"], pineboard.buttons["Allow"], pineboard.buttons["OK"]] {
+        if button.exists {
+          NSLog("Dismissing system dialog")
+          let remote: XCUIRemote = XCUIRemote.shared
+          remote.press(.select)
+        }
+      }
+#endif
+    }
+
+    // Launch UI Test App
+    helperApp.launch()
+    // Wait until UI Test App open Integration Test App
+    helperApp.wait(for: .runningBackground, timeout: 20)
+
+    // Wait until Integration Test App closed (testing finished)
+    let expectation = XCTestExpectation(description: "Integration Test App closed")
+    Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { (_) in
+      if helperApp.state == .runningForeground {
+        NSLog("Integration Test App closed... UI Test App back to foreground...")
+        expectation.fulfill()
+      } else {
+        NSLog("Testing... UI Test App in background...")
+      }
+    }
+
+
+    // Start Automated UI Test
     let app = XCUIApplication(bundleIdentifier: "com.google.ios.admob.testapp")
-    app.launch()
 
     // TestAdViewAdClick
     var reference = app.staticTexts["Test mode"]
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
-    // click on the center point of the "Test Ad" TextView, where the Ad present
+    // Click on the center point of the "Test Ad" TextView, where the Ad present
     var x = (reference.frame.origin.x + reference.frame.width)/2
     var y = (reference.frame.origin.y + reference.frame.height)/2
-    sleep(5)  // wait until button hittable
+    sleep(5)  // Wait until button hittable
     let ad_view = app.findElement(at: CGPoint(x: x, y: y))
     ad_view.tap()
     sleep(5)
@@ -59,11 +86,11 @@ class FirebaseCppUITestAppUITests: XCTestCase {
     // TestInterstitialAdClose
     reference = app.staticTexts["Test mode"]
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
-    // click the top left corner close bottom.
+    // Click the top left corner close bottom.
     // Use "Test Ad" TextView bottom position as the reference
     x = (reference.frame.origin.y + reference.frame.height)/2
     y = (reference.frame.origin.y + reference.frame.height)/2
-    sleep(5)  // wait until button hittable
+    sleep(5)  // Wait until button hittable
     let interstitial_ad_close_button = app.findElement(at: CGPoint(x: x, y: y))
     interstitial_ad_close_button.tap()
 
@@ -72,10 +99,10 @@ class FirebaseCppUITestAppUITests: XCTestCase {
     // TestInterstitialAdClickAndClose
     reference = app.staticTexts["Test mode"]
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
-    // click the center point of the device, where the Ad present
+    // Click the center point of the device, where the Ad present
     x = app.frame.width/2
     y = app.frame.height/2
-    sleep(5)  // wait until button hittable
+    sleep(5)  // Wait until button hittable
     let interstitial_ad = app.findElement(at: CGPoint(x: x, y: y))
     interstitial_ad.tap()
     sleep(5)
@@ -88,11 +115,11 @@ class FirebaseCppUITestAppUITests: XCTestCase {
     // TestRewardedAdClose
     reference = app.webViews.staticTexts.containing(NSPredicate(format: "label CONTAINS 'seconds'")).element
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
-    // click the top right corner close bottom.
+    // Click the top right corner close bottom.
     // Use "* seconds" TextView right position as the reference
     x = (reference.frame.origin.x + reference.frame.width + app.frame.width)/2
     y = (reference.frame.origin.y + reference.frame.height)/2
-    sleep(5)  // wait until button hittable
+    sleep(5)  // Wait until button hittable
     let rewarded_ad_close_button = app.findElement(at: CGPoint(x: x, y: y))
     rewarded_ad_close_button.tap()
 

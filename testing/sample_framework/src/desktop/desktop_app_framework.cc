@@ -211,6 +211,10 @@ std::string ReadTextInput(const char* title, const char* message,
   return input_line.empty() ? std::string(placeholder) : input_line;
 }
 
+bool ShouldRunUITests() { return true; }
+
+bool ShouldRunNonUITests() { return true; }
+
 bool IsLoggingToFile() { return false; }
 
 }  // namespace app_framework
