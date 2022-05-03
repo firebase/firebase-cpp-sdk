@@ -36,7 +36,7 @@ jobs:
 
   build:
     name: ios-macos-latest
-    runs-on: macos-latest
+    runs-on: macos-12
     needs: prepare_matrix
     strategy:
       fail-fast: false
