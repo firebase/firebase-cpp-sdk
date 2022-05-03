@@ -45,19 +45,17 @@ AdapterResponseInfo::AdapterResponseInfo(
 
   // Construct an AdErrorInternal from the Android SDK AdError object in the
   // AdapterResponseInfo.
-  const jobject j_native_ad_error =
-      env->CallObjectMethod(
-        j_adapter_response_info,
-        adapter_response_info::GetMethodId(adapter_response_info::kGetAdError)
-      );
+  const jobject j_native_ad_error = env->CallObjectMethod(
+      j_adapter_response_info,
+      adapter_response_info::GetMethodId(adapter_response_info::kGetAdError));
 
-  if( j_native_ad_error != nullptr ) {
-      AdErrorInternal ad_error_internal;
-      ad_error_internal.native_ad_error = j_native_ad_error;
-      AdError ad_error = AdError(ad_error_internal);
-      if (ad_error.code() != kAdErrorCodeNone) {
-        ad_result_ = AdResult(ad_error);
-      }
+  if (j_native_ad_error != nullptr) {
+    AdErrorInternal ad_error_internal;
+    ad_error_internal.native_ad_error = j_native_ad_error;
+    AdError ad_error = AdError(ad_error_internal);
+    if (ad_error.code() != kAdErrorCodeNone) {
+      ad_result_ = AdResult(ad_error);
+    }
     env->DeleteLocalRef(ad_error_internal.native_ad_error);
   }
 

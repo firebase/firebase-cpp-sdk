@@ -883,7 +883,7 @@ void JNI_completeLoadedAd(JNIEnv* env, jclass clazz, jlong data_ptr,
   FutureCallbackData<AdResult>* callback_data =
       reinterpret_cast<FutureCallbackData<AdResult>*>(data_ptr);
   GmaInternal::CompleteLoadAdFuture(callback_data,
-                                    ResponseInfoInternal({ j_response_info }));
+                                    ResponseInfoInternal({j_response_info}));
   env->DeleteLocalRef(j_response_info);
 }
 
@@ -990,7 +990,7 @@ void JNI_AdViewHelper_completeLoadedAd(JNIEnv* env, jclass clazz,
   FIREBASE_ASSERT(callback_data_ptr);
   FIREBASE_ASSERT(ad_view_internal_data_ptr);
   FIREBASE_ASSERT(j_response_info);
-  
+
   internal::AdViewInternalAndroid* ad_view_internal =
       reinterpret_cast<internal::AdViewInternalAndroid*>(
           ad_view_internal_data_ptr);
@@ -1002,7 +1002,7 @@ void JNI_AdViewHelper_completeLoadedAd(JNIEnv* env, jclass clazz,
   FutureCallbackData<AdResult>* callback_data =
       reinterpret_cast<FutureCallbackData<AdResult>*>(callback_data_ptr);
   GmaInternal::CompleteLoadAdFuture(callback_data,
-                                    ResponseInfoInternal({ j_response_info }));
+                                    ResponseInfoInternal({j_response_info}));
   env->DeleteLocalRef(j_response_info);
 }
 
