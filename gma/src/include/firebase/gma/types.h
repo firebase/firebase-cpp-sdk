@@ -397,7 +397,7 @@ class AdapterResponseInfo {
   /// occurred, and any contextual information about that error.
   ///
   /// @return the error that occurred while rendering the ad.  If no error
-  /// occurred then the AdResults's successful method will return true.
+  /// occurred then the AdResults' successful method will return true.
   AdResult ad_result() const { return ad_result_; }
 
   /// Returns a string representation of a class name that identifies the ad
