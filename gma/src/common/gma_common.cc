@@ -65,10 +65,11 @@ const char* kAdUninitializedErrorMessage = "Ad has not been fully initialized.";
 
 // GmaInternal
 void GmaInternal::CompleteLoadAdFuture(
-    FutureCallbackData<AdResult>* callback_data) {
+    FutureCallbackData<AdResult>* callback_data,
+    const ResponseInfoInternal& response_info_internal) {
   callback_data->future_data->future_impl.CompleteWithResult(
       callback_data->future_handle, static_cast<int>(kAdErrorCodeNone), "",
-      AdResult());
+      AdResult(ResponseInfo(response_info_internal)));
   delete callback_data;
 }
 
@@ -100,9 +101,13 @@ AdInspectorClosedListener::~AdInspectorClosedListener() {}
 AdResult::AdResult() : is_successful_(true) {}
 AdResult::AdResult(const AdError& ad_error)
     : is_successful_(false), ad_error_(ad_error) {}
+AdResult::AdResult(const ResponseInfo& response_info)
+    : is_successful_(true), response_info_(response_info) {}
+
 AdResult::~AdResult() {}
 bool AdResult::is_successful() const { return is_successful_; }
 const AdError& AdResult::ad_error() const { return ad_error_; }
+const ResponseInfo& AdResult::response_info() const { return response_info_; }
 
 // AdSize
 // Hardcoded values are from publicly available documentation:

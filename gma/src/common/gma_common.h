@@ -131,7 +131,8 @@ void CompleteFuture(int error, const char* error_msg,
 class GmaInternal {
  public:
   // Completes an AdResult future with a successful result.
-  static void CompleteLoadAdFuture(FutureCallbackData<AdResult>* callback_data);
+  static void CompleteLoadAdFuture(FutureCallbackData<AdResult>* callback_data,
+                                   const ResponseInfoInternal& response_info);
 
   // Completes an AdResult future given the AdErrorInternal object.
   static void CompleteLoadAdFuture(FutureCallbackData<AdResult>* callback_data,

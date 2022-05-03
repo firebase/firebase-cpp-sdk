@@ -24,6 +24,7 @@ import com.google.android.gms.ads.AdValue;
 import com.google.android.gms.ads.FullScreenContentCallback;
 import com.google.android.gms.ads.LoadAdError;
 import com.google.android.gms.ads.OnPaidEventListener;
+import com.google.android.gms.ads.ResponseInfo;
 import com.google.android.gms.ads.interstitial.InterstitialAd;
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
 
@@ -278,7 +279,7 @@ public class InterstitialAdHelper {
         mInterstitial.setFullScreenContentCallback(listener);
         mInterstitial.setOnPaidEventListener(listener);
         if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
-          completeInterstitialLoadedAd(mLoadAdCallbackDataPtr);
+          completeInterstitialLoadedAd(mLoadAdCallbackDataPtr, ad.getResponseInfo());
           mLoadAdCallbackDataPtr = CPP_NULLPTR;
         }
       }
@@ -294,7 +295,8 @@ public class InterstitialAdHelper {
   /**
    * Native callback invoked upon successfully loading an ad.
    */
-  public static native void completeInterstitialLoadedAd(long nativeInternalPtr);
+  public static native void completeInterstitialLoadedAd(
+      long nativeInternalPtr, ResponseInfo responseInfo);
 
   /**
    * Native callback upon encountering an error loading an Ad Request. Returns

@@ -54,7 +54,7 @@ class AdViewInternalIOS : public AdViewInternal {
   }
 
 #ifdef __OBJC__
-  void AdViewDidReceiveAd(int width, int height);
+  void AdViewDidReceiveAd(int width, int height, GADResponseInfo *gad_response_info);
   void AdViewDidFailToReceiveAdWithError(NSError *gad_error);
 #endif  // __OBJC__
 

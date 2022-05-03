@@ -21,6 +21,7 @@
 #import "gma/src/ios/FADRequest.h"
 
 #include "app/src/util_ios.h"
+#include "gma/src/ios/response_info_ios.h"
 
 namespace firebase {
 namespace gma {
@@ -46,17 +47,24 @@ Future<void> AdViewInternalIOS::Initialize(AdParent parent,
     future_data_.future_impl.SafeAlloc<void>(kAdViewFnInitialize);
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
+
   if(initialized_) {
     CompleteFuture(kAdErrorCodeAlreadyInitialized,
       kAdAlreadyInitializedErrorMessage, future_handle, &future_data_);
   } else {
     initialized_ = true;
+
+    // Guard against parameter object destruction before the async operation
+    // executes (below).
+    AdParent local_ad_parent = parent;
+    std::string local_ad_unit_id(ad_unit_id);
     ad_size_ = size;
+
     dispatch_async(dispatch_get_main_queue(), ^{
-      ad_view_ = [[FADAdView alloc] initWithView:parent
-                                              adUnitID:@(ad_unit_id)
-                                                adSize:size
-                                    internalAdView:this];
+      ad_view_ = [[FADAdView alloc] initWithView:local_ad_parent
+                                        adUnitID:@(local_ad_unit_id.c_str())
+                                          adSize:ad_size_
+                                  internalAdView:this];
     CompleteFuture(kAdErrorCodeNone, nullptr, future_handle, &future_data_);
     });
   }
@@ -72,7 +80,7 @@ Future<AdResult> AdViewInternalIOS::LoadAd(const AdRequest& request) {
     callback_data->future_handle);
 
   if (ad_load_callback_data_ != nil) {
-    CompleteLoadAdInternalResult(callback_data, kAdErrorCodeLoadInProgress,
+    CompleteLoadAdInternalError(callback_data, kAdErrorCodeLoadInProgress,
       kAdLoadInProgressErrorMessage);
     return future;
   }
@@ -80,20 +88,24 @@ Future<AdResult> AdViewInternalIOS::LoadAd(const AdRequest& request) {
   // SDK returns the AdResult.
   ad_load_callback_data_ = callback_data;
 
+  // Guard against parameter object destruction before the async operation
+  // executes (below).
+  AdRequest local_ad_request = request;
+
   dispatch_async(dispatch_get_main_queue(), ^{
     AdErrorCode error_code = kAdErrorCodeNone;
     std::string error_message;
 
     // Create a GADRequest from an gma::AdRequest.
     GADRequest *ad_request =
-     GADRequestFromCppAdRequest(request, &error_code, &error_message);
+     GADRequestFromCppAdRequest(local_ad_request, &error_code, &error_message);
     if (ad_request == nullptr) {
-      if(error_code==kAdErrorCodeNone) {
+      if (error_code == kAdErrorCodeNone) {
         error_code = kAdErrorCodeInternalError;
         error_message = kAdCouldNotParseAdRequestErrorMessage;
       }
-      CompleteLoadAdInternalResult(ad_load_callback_data_, error_code,
-                                   error_message.c_str());
+      CompleteLoadAdInternalError(ad_load_callback_data_, error_code,
+                                  error_message.c_str());
       ad_load_callback_data_ = nil;
     } else {
       // Make the AdView ad request.
@@ -128,11 +140,15 @@ Future<void> AdViewInternalIOS::SetPosition(AdView::Position position) {
     future_data_.future_impl.SafeAlloc<void>(kAdViewFnSetPosition);
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
+  // Guard against parameter object destruction before the async operation
+  // executes (below).
+  AdView::Position local_position = position;
+
   dispatch_async(dispatch_get_main_queue(), ^{
     AdErrorCode error = kAdErrorCodeUninitialized;
     const char* error_msg = kAdUninitializedErrorMessage;
     if (ad_view_) {
-      [ad_view_ moveAdViewToPosition:position];
+      [ad_view_ moveAdViewToPosition:local_position];
       error = kAdErrorCodeNone;
       error_msg = nullptr;
     }
@@ -219,12 +235,14 @@ BoundingBox AdViewInternalIOS::bounding_box() const {
   return bounding_box_;
 }
 
-void AdViewInternalIOS::AdViewDidReceiveAd(int width, int height) {
+void AdViewInternalIOS::AdViewDidReceiveAd(int width, int height,
+    GADResponseInfo *gad_response_info) {
   firebase::MutexLock lock(mutex_);
   update_ad_size_dimensions(width, height);
+
   if(ad_load_callback_data_ != nil) {
-    CompleteLoadAdInternalResult(ad_load_callback_data_, kAdErrorCodeNone,
-      /*error_message=*/"");
+    CompleteLoadAdInternalSuccess(ad_load_callback_data_,
+      ResponseInfoInternal({ gad_response_info }));
     ad_load_callback_data_ = nil;
   }
 }
