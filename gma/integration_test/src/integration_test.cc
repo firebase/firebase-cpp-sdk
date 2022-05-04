@@ -488,31 +488,32 @@ class TestAdInspectorClosedListener
   uint8_t num_successful_results_;
 };
 
-// Disable TestAdInspector
-// // Ensure we can open the AdInspector and listen to its events.
-// TEST_F(FirebaseGmaUITest, TestAdInspector) {
-//   TestAdInspectorClosedListener listener;
+// This is for manual test only
+// Ensure we can open the AdInspector and listen to its events.
+TEST_F(FirebaseGmaTest, TestAdInspector) {
+  TEST_DOES_NOT_REQUIRE_USER_INTERACTION;
+  TestAdInspectorClosedListener listener;
 
-//   firebase::gma::OpenAdInspector(app_framework::GetWindowController(),
-//                                  &listener);
+  firebase::gma::OpenAdInspector(app_framework::GetWindowController(),
+                                 &listener);
 
-//   // Call OpenAdInspector, even on Desktop (above), to ensure the stub linked
-//   // correctly. However, the rest of the testing is mobile-only beahvior.
-//   SKIP_TEST_ON_DESKTOP;
+  // Call OpenAdInspector, even on Desktop (above), to ensure the stub linked
+  // correctly. However, the rest of the testing is mobile-only beahvior.
+  SKIP_TEST_ON_DESKTOP;
 
-//   // Open the inspector a second time to generate a
-//   // kAdErrorCodeInsepctorAlreadyOpen result.
-//   app_framework::ProcessEvents(2000);
+  // Open the inspector a second time to generate a
+  // kAdErrorCodeInsepctorAlreadyOpen result.
+  app_framework::ProcessEvents(2000);
 
-//   firebase::gma::OpenAdInspector(app_framework::GetWindowController(),
-//                                  &listener);
+  firebase::gma::OpenAdInspector(app_framework::GetWindowController(),
+                                 &listener);
 
-//   while (listener.num_closed_events() < 2) {
-//     app_framework::ProcessEvents(2000);
-//   }
+  while (listener.num_closed_events() < 2) {
+    app_framework::ProcessEvents(2000);
+  }
 
-//   EXPECT_EQ(listener.num_successful_results(), 1);
-// }
+  EXPECT_EQ(listener.num_successful_results(), 1);
+}
 
 // A simple listener to help test changes to a AdViews.
 class TestBoundingBoxListener
