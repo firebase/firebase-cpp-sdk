@@ -574,12 +574,12 @@ code.
 ## Release Notes
 ### 9.0.0
 -   Changes
-    -   General (iOS): iOS SDKs are now built using Xcode 13.3.1.
-    -   General (Android): On Android, Firebase C++ is now built against NDK
+    -   General (iOS): Firebase C++ on iOS is now built using Xcode 13.3.1.
+    -   General (Android): Firebase C++ on Android is now built against NDK
         version r21e.
-    -   General (Android): Firebase support for gnustl (also known as libstdc++)
-        has been removed. Please use libc++ instead. Android libraries have been
-        moved from libs/android/ARCH/STL to libs/android/ARCH.
+    -   General (Android): Support for gnustl (also known as libstdc++) has been
+        removed. Please use libc++ instead. Android libraries have been moved
+        from libs/android/ARCH/STL to libs/android/ARCH.
     -   AdMob (iOS): Temporarily pinned AdMob dependency to a special version of
         the Google-Mobile-Ads-SDK Cocoapod, "7.69.0-cppsdk2", to maintain
         compatibility with version 9.x of the Firebase iOS SDK.
@@ -608,8 +608,8 @@ code.
 -   Changes
     -   General (iOS): Fixed an intermittent crash on iOS 15 caused by
         constructing C++ objects during Objective-C's `+load` method.
-	([#706](https://github.com/firebase/firebase-cpp-sdk/pull/706))
-	([#783](https://github.com/firebase/firebase-cpp-sdk/pull/783))
+        ([#706](https://github.com/firebase/firebase-cpp-sdk/pull/706))
+        ([#783](https://github.com/firebase/firebase-cpp-sdk/pull/783))
     -   General: Internal changes to Mutex class.
 
 ### 8.8.0
