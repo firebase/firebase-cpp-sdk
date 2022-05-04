@@ -34,13 +34,15 @@ AdapterResponseInfo::AdapterResponseInfo(
   const AdapterResponseInfoInternal& internal) : ad_result_() {
   FIREBASE_ASSERT(internal.ad_network_response_info);
 
-  AdErrorInternal ad_error_internal;
-  ad_error_internal.native_ad_error = internal.ad_network_response_info.error;
-  AdError ad_error = AdError(ad_error_internal);
-  if(ad_error.code() != kAdErrorCodeNone) {
-    ad_result_ = AdResult(AdError(ad_error_internal));
+  if(internal.ad_network_response_info.error != nil) {
+    AdErrorInternal ad_error_internal;
+    ad_error_internal.native_ad_error = internal.ad_network_response_info.error;
+    AdError ad_error = AdError(ad_error_internal);
+    if(ad_error.code() != kAdErrorCodeNone) {
+      ad_result_ = AdResult(AdError(ad_error_internal));
+    }
   }
-  
+
   adapter_class_name_ = util::NSStringToString(
     internal.ad_network_response_info.adNetworkClassName);
   

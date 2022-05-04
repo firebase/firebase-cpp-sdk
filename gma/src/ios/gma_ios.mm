@@ -242,8 +242,7 @@ void OpenAdInspector(AdParent ad_parent, AdInspectorClosedListener* listener) {
             AdErrorInternal::kAdErrorInternalOpenAdInspectorError;
           ad_error_internal.native_ad_error = error;
           ad_error_internal.is_successful = false;
-          ad_result =
-            AdResult(GmaInternal::CreateAdError(ad_error_internal));
+          ad_result = AdResult(GmaInternal::CreateAdError(ad_error_internal));
         }
 
         listener->OnAdInspectorClosed(ad_result);
@@ -296,13 +295,12 @@ void Terminate() {
 
 const ::firebase::App* GetApp() { return g_app; }
 
-// Constructs AdResult objects based on the encountered result, beit a
-// successful result, and C++ SDK Wrapper error, or an error returned from
-// the iOS GMA SDK.
-void CompleteAdResult(FutureCallbackData<AdResult>* callback_data,
-                      NSError *error, bool is_load_ad_error,
-                      AdErrorCode error_code,
-                      const char* error_message) {
+// Constructs AdResult objects based on the encountered error, beit one that
+// originated from C++ SDK Wrapper or an error returned from the iOS GMA SDK.
+void CompleteAdResultError(FutureCallbackData<AdResult>* callback_data,
+                           NSError *error, bool is_load_ad_error,
+                           AdErrorCode error_code,
+                           const char* error_message) {
   FIREBASE_ASSERT(callback_data);
   FIREBASE_ASSERT(error_message);
 
@@ -310,7 +308,7 @@ void CompleteAdResult(FutureCallbackData<AdResult>* callback_data,
   AdErrorInternal ad_error_internal;
 
   ad_error_internal.native_ad_error = error;
-  ad_error_internal.is_successful = true;  // assume until proven otherwise.
+  ad_error_internal.is_successful = false;
   ad_error_internal.code = error_code;
 
   // Futher result configuration is based on success/failure.
@@ -325,11 +323,13 @@ void CompleteAdResult(FutureCallbackData<AdResult>* callback_data,
       ad_error_internal.ad_error_type =
         AdErrorInternal::kAdErrorInternalAdError;
     }
-  } else if (ad_error_internal.code != kAdErrorCodeNone) {
+  } else {
+    FIREBASE_ASSERT_MESSAGE(ad_error_internal.code != kAdErrorCodeNone,
+      "GMA CompleteAdResultError couldn't determine the type of error");
+
     // C++ SDK iOS GMA Wrapper encountered an error.
     ad_error_internal.ad_error_type =
       AdErrorInternal::kAdErrorInternalWrapperError;
-    ad_error_internal.is_successful = false;
     ad_error_internal.message = std::string(error_message);
     ad_error_internal.domain = "SDK";
     ad_error_internal.to_string = std::string("Internal error: ") +
@@ -337,23 +337,29 @@ void CompleteAdResult(FutureCallbackData<AdResult>* callback_data,
     future_error_message = ad_error_internal.message;
   }
 
-  if( ad_error_internal.is_successful ) {
-    GmaInternal::CompleteLoadAdFuture(callback_data);
-  } else {
-    GmaInternal::CompleteLoadAdFuture(
+  GmaInternal::CompleteLoadAdFuture(
       callback_data, ad_error_internal.code, future_error_message, ad_error_internal);
-  }
 }
 
-void CompleteLoadAdInternalResult(
+void CompleteLoadAdInternalSuccess(
     FutureCallbackData<AdResult>* callback_data,
-    AdErrorCode error_code, const char* error_message) {
+    const ResponseInfoInternal& response_info_internal) {
+  FIREBASE_ASSERT(callback_data);
+
+  GmaInternal::CompleteLoadAdFuture(callback_data, response_info_internal);
+
+}
+
+void CompleteLoadAdInternalError(
+     FutureCallbackData<AdResult>* callback_data,
+     AdErrorCode error_code, const char* error_message) {
   FIREBASE_ASSERT(callback_data);
   FIREBASE_ASSERT(error_message);
 
-  CompleteAdResult(callback_data, /*error=*/nullptr,
-    /*is_load_ad_error=*/false, error_code, error_message);
-}
+  CompleteAdResultError(callback_data, /*error=*/nullptr,
+     /*is_load_ad_error=*/false, error_code, error_message);
+ }
+
 
 void CompleteAdResultError(FutureCallbackData<AdResult>* callback_data,
                            NSError *gad_error, bool is_load_ad_error) {
@@ -361,7 +367,7 @@ void CompleteAdResultError(FutureCallbackData<AdResult>* callback_data,
 
   AdErrorCode error_code =
     MapAdRequestErrorCodeToCPPErrorCode((GADErrorCode)gad_error.code);
-  CompleteAdResult(callback_data, gad_error, is_load_ad_error,
+  CompleteAdResultError(callback_data, gad_error, is_load_ad_error,
     error_code, util::NSStringToString(gad_error.localizedDescription).c_str());
 }
 

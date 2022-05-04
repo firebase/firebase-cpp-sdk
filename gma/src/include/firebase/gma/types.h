@@ -46,6 +46,7 @@ struct AdapterResponseInfoInternal;
 struct BoundingBox;
 struct ResponseInfoInternal;
 
+class AdapterResponseInfo;
 class AdViewBoundingBoxListener;
 class GmaInternal;
 class AdView;
@@ -234,6 +235,45 @@ class AdError {
   AdErrorInternal* internal_;
 };
 
+/// Information about an ad response.
+class ResponseInfo {
+ public:
+  /// Constructor creates an uninitialized ResponseInfo.
+  ResponseInfo();
+
+  /// Gets the AdaptorResponseInfo objects for the ad response.
+  ///
+  /// @return a vector of AdapterResponseInfo objects containing metadata for
+  ///   each adapter included in the ad response.
+  const std::vector<AdapterResponseInfo>& adapter_responses() const {
+    return adapter_responses_;
+  }
+
+  /// A class name that identifies the ad network that returned the ad.
+  /// Returns an empty string if the ad failed to load.
+  const std::string& mediation_adapter_class_name() const {
+    return mediation_adapter_class_name_;
+  }
+
+  /// Gets the response ID string for the loaded ad.  Returns an empty
+  /// string if the ad fails to load.
+  const std::string& response_id() const { return response_id_; }
+
+  /// Gets a log friendly string version of this object.
+  const std::string& ToString() const { return to_string_; }
+
+ private:
+  friend class AdError;
+  friend class GmaInternal;
+
+  explicit ResponseInfo(const ResponseInfoInternal& internal);
+
+  std::vector<AdapterResponseInfo> adapter_responses_;
+  std::string mediation_adapter_class_name_;
+  std::string response_id_;
+  std::string to_string_;
+};
+
 /// Information about the result of an ad operation.
 class AdResult {
  public:
@@ -255,13 +295,29 @@ class AdResult {
   /// information.
   const AdError& ad_error() const;
 
+  /// For debugging and logging purposes, successfully loaded ads provide a
+  /// ResponseInfo object which contains information about the adapter which
+  /// loaded the ad. If the ad failed to load then the object returned from
+  /// this method will have default values. Information about the error
+  /// should be retrieved via @ref AdResult::ad_error() instead.
+  const ResponseInfo& response_info() const;
+
  private:
+  friend class GmaInternal;
+
+  /// Constructor invoked upon successful ad load. This contains response
+  /// information from the adapter which loaded the ad.
+  explicit AdResult(const ResponseInfo& response_info);
+
   /// Denotes if the @ref AdResult represents a success or an error.
   bool is_successful_;
 
   /// Information about the error.  Will be a default-constructed @ref AdError
   /// if this result represents a success.
   AdError ad_error_;
+
+  /// Information from the adapter which loaded the ad.
+  ResponseInfo response_info_;
 };
 
 /// A snapshot of a mediation adapter's initialization status.
@@ -341,7 +397,7 @@ class AdapterResponseInfo {
   /// occurred, and any contextual information about that error.
   ///
   /// @return the error that occurred while rendering the ad.  If no error
-  /// occurred then the AdResults's successful method will return true.
+  /// occurred then the AdResult's successful method will return true.
   AdResult ad_result() const { return ad_result_; }
 
   /// Returns a string representation of a class name that identifies the ad
@@ -739,44 +795,6 @@ class PaidEventListener {
 
   /// Called when an ad is estimated to have earned money.
   virtual void OnPaidEvent(const AdValue& value) {}
-};
-
-/// Information about an ad response.
-class ResponseInfo {
- public:
-  /// Constructor creates an uninitialized ResponseInfo.
-  ResponseInfo();
-
-  /// Gets the AdaptorResponseInfo objects for the ad response.
-  ///
-  /// @return a vector of AdapterResponseInfo objects containing metadata for
-  ///   each adapter included in the ad response.
-  const std::vector<AdapterResponseInfo>& adapter_responses() const {
-    return adapter_responses_;
-  }
-
-  /// A class name that identifies the ad network that returned the ad.
-  /// Returns an empty string if the ad failed to load.
-  const std::string& mediation_adapter_class_name() const {
-    return mediation_adapter_class_name_;
-  }
-
-  /// Gets the response ID string for the loaded ad.  Returns an empty
-  /// string if the ad fails to load.
-  const std::string& response_id() const { return response_id_; }
-
-  /// Gets a log friendly string version of this object.
-  const std::string& ToString() const { return to_string_; }
-
- private:
-  friend class AdError;
-
-  explicit ResponseInfo(const ResponseInfoInternal& internal);
-
-  std::vector<AdapterResponseInfo> adapter_responses_;
-  std::string mediation_adapter_class_name_;
-  std::string response_id_;
-  std::string to_string_;
 };
 
 /// @brief Global configuration that will be used for every @ref AdRequest.

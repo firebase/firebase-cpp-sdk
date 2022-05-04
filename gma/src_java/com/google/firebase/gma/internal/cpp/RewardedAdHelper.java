@@ -25,6 +25,7 @@ import com.google.android.gms.ads.FullScreenContentCallback;
 import com.google.android.gms.ads.LoadAdError;
 import com.google.android.gms.ads.OnPaidEventListener;
 import com.google.android.gms.ads.OnUserEarnedRewardListener;
+import com.google.android.gms.ads.ResponseInfo;
 import com.google.android.gms.ads.rewarded.RewardItem;
 import com.google.android.gms.ads.rewarded.RewardedAd;
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
@@ -301,7 +302,7 @@ public class RewardedAdHelper {
           RewardedAdFullScreenContentListener listener = new RewardedAdFullScreenContentListener();
           mRewarded.setFullScreenContentCallback(listener);
           mRewarded.setOnPaidEventListener(listener);
-          completeRewardedLoadedAd(mLoadAdCallbackDataPtr);
+          completeRewardedLoadedAd(mLoadAdCallbackDataPtr, mRewarded.getResponseInfo());
           mLoadAdCallbackDataPtr = CPP_NULLPTR;
         }
       }
@@ -317,7 +318,8 @@ public class RewardedAdHelper {
   /**
    * Native callback invoked upon successfully loading an ad.
    */
-  public static native void completeRewardedLoadedAd(long nativeInternalPtr);
+  public static native void completeRewardedLoadedAd(
+      long nativeInternalPtr, ResponseInfo responseInfo);
 
   /**
    * Native callback upon encountering an error loading an Ad Request. Returns

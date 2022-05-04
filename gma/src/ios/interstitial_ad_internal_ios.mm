@@ -20,6 +20,7 @@
 
 #import "gma/src/ios/gma_ios.h"
 #include "app/src/util_ios.h"
+#include "gma/src/ios/response_info_ios.h"
 
 namespace firebase {
 namespace gma {
@@ -68,7 +69,7 @@ Future<AdResult> InterstitialAdInternalIOS::LoadAd(
       callback_data->future_handle);
 
   if (ad_load_callback_data_ != nil) {
-    CompleteLoadAdInternalResult(callback_data, kAdErrorCodeLoadInProgress,
+    CompleteLoadAdInternalError(callback_data, kAdErrorCodeLoadInProgress,
         kAdLoadInProgressErrorMessage);
     return future;
   }
@@ -80,23 +81,28 @@ Future<AdResult> InterstitialAdInternalIOS::LoadAd(
   interstitial_delegate_ =
     [[FADInterstitialDelegate alloc] initWithInternalInterstitialAd:this];
 
+  // Guard against parameter object destruction before the async operation
+  // executes (below).
+  AdRequest local_ad_request = request;
+  std::string local_ad_unit_id(ad_unit_id);
+
   dispatch_async(dispatch_get_main_queue(), ^{
     // Create a GADRequest from an gma::AdRequest.
     AdErrorCode error_code = kAdErrorCodeNone;
     std::string error_message;
     GADRequest *ad_request =
-     GADRequestFromCppAdRequest(request, &error_code, &error_message);
+     GADRequestFromCppAdRequest(local_ad_request, &error_code, &error_message);
     if (ad_request == nullptr) {
       if (error_code == kAdErrorCodeNone) {
         error_code = kAdErrorCodeInternalError;
         error_message = kAdCouldNotParseAdRequestErrorMessage;
       }
-      CompleteLoadAdInternalResult(ad_load_callback_data_, error_code,
+      CompleteLoadAdInternalError(ad_load_callback_data_, error_code,
           error_message.c_str());
       ad_load_callback_data_ = nil;
     } else {
       // Make the interstitial ad request.
-      [GADInterstitialAd loadWithAdUnitID:@(ad_unit_id)
+      [GADInterstitialAd loadWithAdUnitID:@(local_ad_unit_id.c_str())
                                   request:ad_request
                         completionHandler:^(GADInterstitialAd *ad, NSError *error)  // NO LINT
         {
@@ -144,8 +150,8 @@ void InterstitialAdInternalIOS::InterstitialDidReceiveAd(GADInterstitialAd* ad) 
   };
 
   if (ad_load_callback_data_ != nil) {
-    CompleteLoadAdInternalResult(ad_load_callback_data_, kAdErrorCodeNone,
-        /*error_message=*/"");
+    CompleteLoadAdInternalSuccess(ad_load_callback_data_,
+      ResponseInfoInternal({ ad.responseInfo }));
     ad_load_callback_data_ = nil;
   }
 }

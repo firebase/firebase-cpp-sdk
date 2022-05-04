@@ -228,7 +228,7 @@ class AdView {
   internal::AdViewInternal* internal_;
 };
 
-/// A listener class that developers can extend and pass to a @ref AdView
+/// A listener class that developers can extend and pass to an @ref AdView
 /// object's @ref AdView::SetBoundingBoxListener method to be notified of
 /// changes to the size of the Ad's bounding box.
 class AdViewBoundingBoxListener {
@@ -243,7 +243,7 @@ class AdViewBoundingBoxListener {
   virtual void OnBoundingBoxChanged(AdView* ad_view, BoundingBox box) = 0;
 };
 
-/// @brief The screen location and dimensions of an ad view once it has been
+/// @brief The screen location and dimensions of an AdView once it has been
 /// initialized.
 struct BoundingBox {
   /// Default constructor which initializes all member variables to 0.
