@@ -30,7 +30,7 @@ jobs:
         if: github.event.inputs.use_expanded_matrix == '1'
         run: |
           echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
-      - id:ss export-result
+      - id: export-result
         run: |
           echo "::set-output name=matrix_xcode_version::$( python scripts/gha/print_matrix_configuration.py -w ios -k xcode_version ${EXPANDED_MATRIX_PARAM} )"
 
