@@ -35,13 +35,19 @@ jobs:
           echo "::set-output name=matrix_xcode_version::$( python scripts/gha/print_matrix_configuration.py -w ios -k xcode_version ${EXPANDED_MATRIX_PARAM} )"
 
   build:
+<<<<<<< HEAD
     name: ios-macos-latest
     runs-on: macos-12
+=======
+    name: ios-${{ matrix.os }}-${{ matrix.xcode_version }}
+    runs-on: ${{ matrix.os }}
+>>>>>>> main
     needs: prepare_matrix
     strategy:
       fail-fast: false
       matrix:
-        xcode_verison: ${{ fromJson(needs.prepare_matrix.outputs.matrix_xcode_version) }}
+        os: [ 'macos-12' ]
+        xcode_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_xcode_version) }}
     steps:
       - name: Store git credentials for all git commands
         # Forces all git commands to use authenticated https, to prevent throttling.
@@ -52,7 +58,7 @@ jobs:
 
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
-        run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_verison }}.app/Contents/Developer
+        run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer
 
       - uses: actions/checkout@v2
         with:

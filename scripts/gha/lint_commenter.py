@@ -42,6 +42,7 @@ IGNORE_LINT_WARNINGS = [
   'build/include_subdir',   # doesn't know about our include paths
   'build/c++11',            # ignore "unapproved c++11 header" warning
   'readability/casting',    # allow non-C++ casts in rare occasions
+  'runtime/references',     # allow non-const references
   'whitespace/indent',      # we rely on our code formatter for this...
   'whitespace/line_length'  # ...and for this
 ]

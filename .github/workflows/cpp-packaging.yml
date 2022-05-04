@@ -237,13 +237,11 @@ jobs:
           path: firebase-cpp-sdk-ios-tvos-package.tgz
 
   build_and_package_android:
-    name: build-and-package-android-${{matrix.stl}}
+    name: build-and-package-android
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       fail-fast: false
-      matrix:
-        stl: ["c++", "gnustl"]
     steps:
       - name: fetch SDK
         uses: actions/checkout@v2.3.1
@@ -261,18 +259,18 @@ jobs:
         id: cache_ndk
         uses: actions/cache@v2
         with:
-          path: /tmp/android-ndk-r16b
-          key: android-ndk-${{ matrix.os }}-r16b
+          path: /tmp/android-ndk-r21e
+          key: android-ndk-${{ runner.os }}-r21e
 
       - name: install prerequisites
         run: sdk-src/build_scripts/android/install_prereqs.sh
 
       - name: build sdk
         run: |
-          sdk-src/build_scripts/android/build.sh firebase-cpp-sdk-android-${{ matrix.stl }}-build sdk-src ${{ matrix.stl }}
-          sdk-src/build_scripts/android/package.sh firebase-cpp-sdk-android-${{ matrix.stl }}-build firebase-cpp-sdk-android-${{ matrix.stl }}-package ${{ matrix.stl }}
-          cd firebase-cpp-sdk-android-${{ matrix.stl }}-package
-          tar -czhf ../firebase-cpp-sdk-android-${{ matrix.stl}}-package.tgz .
+          sdk-src/build_scripts/android/build.sh firebase-cpp-sdk-android-build sdk-src
+          sdk-src/build_scripts/android/package.sh firebase-cpp-sdk-android-build firebase-cpp-sdk-android-package
+          cd firebase-cpp-sdk-android-package
+          tar -czhf ../firebase-cpp-sdk-android-package.tgz .
 
       - name: Print built libraries
         shell: bash
@@ -292,8 +290,8 @@ jobs:
       - name: upload artifacts
         uses: actions/upload-artifact@v2.2.2
         with:
-          name: firebase-cpp-sdk-android-${{ matrix.stl }}-package
-          path: firebase-cpp-sdk-android-${{ matrix.stl }}-package.tgz
+          name: firebase-cpp-sdk-android-package
+          path: firebase-cpp-sdk-android-package.tgz
 
   build_desktop:
     name: build-${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}
