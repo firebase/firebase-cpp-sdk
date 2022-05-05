@@ -19,7 +19,6 @@ import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentat
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.util.Log;
 import androidx.core.content.FileProvider;
@@ -70,7 +69,7 @@ public class UITest {
     int y = reference.getVisibleBounds().bottom + 5;
     device.click(x, y);
     Thread.sleep(DEFAULT_TIMEOUT);
-    bringToForeground(GMA_PACKAGE);
+    device.pressBack(); // back to testapp
     Log.e(TAG, "TestAdViewAdClick closed");
 
     Thread.sleep(DEFAULT_TIMEOUT);
@@ -86,7 +85,7 @@ public class UITest {
     device.click(x, y);
     Log.e(TAG, "InterstitialAd2 clicked");
     Thread.sleep(DEFAULT_TIMEOUT);
-    bringToForeground(GMA_PACKAGE);
+    device.pressBack(); // back to testapp
     Thread.sleep(DEFAULT_TIMEOUT);
     // click the top left corner close bottom.
     // Use "Test Ad" TextView bottom position as the reference
@@ -109,8 +108,8 @@ public class UITest {
     device.click(x, y);
     Log.e(TAG, "RewardedAd closed");
 
-    // Finish GMA UI Tests
-    Thread.sleep(10 * 1000);
+    // Finish GMA Tests
+    Thread.sleep(60 * 1000);
     reference = device.wait(Until.findObject(By.text("Test Ad")), WAIT_UI_TIMEOUT);
     Assert.assertNull(reference);
   }
@@ -140,13 +139,6 @@ public class UITest {
     intent.setPackage(gamePackageName)
         .setDataAndType(fileUri, "application/javascript")
         .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-    context.startActivity(intent);
-  }
-
-  private void bringToForeground(String packageName) {
-    Context context = getApplicationContext();
-    Intent intent = context.getPackageManager().getLaunchIntentForPackage(GMA_PACKAGE);
-    intent.setFlags(Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED | Intent.FLAG_ACTIVITY_NEW_TASK);
     context.startActivity(intent);
   }
 }

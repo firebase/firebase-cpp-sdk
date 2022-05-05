@@ -488,7 +488,7 @@ def _run_apple_test(bundle_id, app_path, helper_app, device_id, retry=1):
   _uninstall_apple_app(bundle_id, device_id)
   if retry > 1:
     result = test_validation.validate_results(log, test_validation.CPP)
-    if not result.complete:
+    if not result.complete or (FLAGS.test_type=="uitest" and result.fails>0):
       logging.info("Retry _run_apple_test. Remaining retry: %s", retry-1)
       return _run_apple_test(bundle_id, app_path, helper_app, device_id, retry=retry-1)
   
@@ -654,7 +654,7 @@ def _run_android_test(package_name, app_path, helper_project, retry=1):
   _uninstall_android_app(package_name)
   if retry > 1:
     result = test_validation.validate_results(log, test_validation.CPP)
-    if not result.complete:
+    if not result.complete or (FLAGS.test_type=="uitest" and result.fails>0):
       logging.info("Retry _run_android_test. Remaining retry: %s", retry-1)
       return _run_android_test(package_name, app_path, helper_project, retry=retry-1)
   

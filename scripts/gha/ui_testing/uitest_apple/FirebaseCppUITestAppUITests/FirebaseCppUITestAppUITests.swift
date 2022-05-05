@@ -124,8 +124,8 @@ class FirebaseCppUITestAppUITests: XCTestCase {
       rewarded_ad_close_button.tap()
     }
 
-    // Finish GMA UI Tests
-    sleep(10)
+    // Finish GMA Tests
+    sleep(60)
     reference = app.staticTexts["Test mode"]
     XCTAssertFalse(reference.exists)
     app.terminate()
