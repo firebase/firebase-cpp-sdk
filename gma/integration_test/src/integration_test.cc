@@ -491,7 +491,7 @@ class TestAdInspectorClosedListener
 // This is for manual test only
 // Ensure we can open the AdInspector and listen to its events.
 TEST_F(FirebaseGmaTest, TestAdInspector) {
-  TEST_DOES_NOT_REQUIRE_USER_INTERACTION;
+  TEST_REQUIRES_USER_INTERACTION;
   TestAdInspectorClosedListener listener;
 
   firebase::gma::OpenAdInspector(app_framework::GetWindowController(),
