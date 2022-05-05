@@ -64,7 +64,7 @@ const char* kAdLoadInProgressErrorMessage = "Ad is currently loading.";
 const char* kAdUninitializedErrorMessage = "Ad has not been fully initialized.";
 
 // GmaInternal
-void GmaInternal::CompleteLoadAdFuture(
+void GmaInternal::CompleteLoadAdFutureSuccess(
     FutureCallbackData<AdResult>* callback_data,
     const ResponseInfoInternal& response_info_internal) {
   callback_data->future_data->future_impl.CompleteWithResult(
@@ -73,7 +73,7 @@ void GmaInternal::CompleteLoadAdFuture(
   delete callback_data;
 }
 
-void GmaInternal::CompleteLoadAdFuture(
+void GmaInternal::CompleteLoadAdFutureFailure(
     FutureCallbackData<AdResult>* callback_data, int error_code,
     const std::string& error_message,
     const AdErrorInternal& ad_error_internal) {

@@ -776,8 +776,9 @@ void CompleteLoadAdCallback(FutureCallbackData<AdResult>* callback_data,
 
   // Invoke a friend of AdResult to have it invoke the AdResult
   // protected constructor with the AdErrorInternal data.
-  GmaInternal::CompleteLoadAdFuture(callback_data, ad_error_internal.code,
-                                    future_error_message, ad_error_internal);
+  GmaInternal::CompleteLoadAdFutureFailure(
+      callback_data, ad_error_internal.code, future_error_message,
+      ad_error_internal);
 }
 
 void CompleteLoadAdAndroidErrorResult(JNIEnv* env, jlong data_ptr,
@@ -882,8 +883,8 @@ void JNI_completeLoadedAd(JNIEnv* env, jclass clazz, jlong data_ptr,
 
   FutureCallbackData<AdResult>* callback_data =
       reinterpret_cast<FutureCallbackData<AdResult>*>(data_ptr);
-  GmaInternal::CompleteLoadAdFuture(callback_data,
-                                    ResponseInfoInternal({j_response_info}));
+  GmaInternal::CompleteLoadAdFutureSuccess(
+      callback_data, ResponseInfoInternal({j_response_info}));
   env->DeleteLocalRef(j_response_info);
 }
 
@@ -1001,8 +1002,8 @@ void JNI_AdViewHelper_completeLoadedAd(JNIEnv* env, jclass clazz,
   // Complete the Future.
   FutureCallbackData<AdResult>* callback_data =
       reinterpret_cast<FutureCallbackData<AdResult>*>(callback_data_ptr);
-  GmaInternal::CompleteLoadAdFuture(callback_data,
-                                    ResponseInfoInternal({j_response_info}));
+  GmaInternal::CompleteLoadAdFutureSuccess(
+      callback_data, ResponseInfoInternal({j_response_info}));
   env->DeleteLocalRef(j_response_info);
 }
 

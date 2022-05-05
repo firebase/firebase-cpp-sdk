@@ -56,12 +56,12 @@ Future<void> AdViewInternalIOS::Initialize(AdParent parent,
     // Guard against parameter object destruction before the async operation
     // executes (below).
     AdParent local_ad_parent = parent;
-    std::string local_ad_unit_id(ad_unit_id);
+    NSString *local_ad_unit_id = @(ad_unit_id);
     ad_size_ = size;
 
     dispatch_async(dispatch_get_main_queue(), ^{
       ad_view_ = [[FADAdView alloc] initWithView:local_ad_parent
-                                        adUnitID:@(local_ad_unit_id.c_str())
+                                        adUnitID:local_ad_unit_id
                                           adSize:ad_size_
                                   internalAdView:this];
     CompleteFuture(kAdErrorCodeNone, nullptr, future_handle, &future_data_);
