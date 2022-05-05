@@ -238,19 +238,22 @@ def summarize_test_results(tests, platform, summary_dir, test_type="gameloop", f
   #     "flakiness": {testapp:{"logs": [error_log], "ftl_links": [ftl_link], "raw_result_links": [raw_result_link],
   #                           "flaky_tests": {flaky_test: test_log}}}}
   summary_json = {}
-  summary_json["type"] = "test"
-  summary_json["testapps"] = [get_name(test.testapp_path, test_type) for test in tests]
-  summary_json["errors"] = {get_name(test.testapp_path, test_type):{"logs": [], "ftl_links": [], "raw_result_links": []} for (test, _) in errors_exclude_flakiness}
+  if test_type == "uitest":
+    summary_json["type"] = "uitest"
+  else:
+    summary_json["type"] = "test"
+  summary_json["testapps"] = [get_name(test.testapp_path) for test in tests]
+  summary_json["errors"] = {get_name(test.testapp_path):{"logs": [], "ftl_links": [], "raw_result_links": []} for (test, _) in errors_exclude_flakiness}
   for (test, results) in errors_exclude_flakiness:
-    testapp = get_name(test.testapp_path, test_type)
+    testapp = get_name(test.testapp_path)
     summary_json["errors"][testapp]["logs"].append(results.summary)
     if hasattr(test, "ftl_link") and test.ftl_link:
       summary_json["errors"][testapp]["ftl_links"].append(test.ftl_link)
     if hasattr(test, "raw_result_link") and test.raw_result_link:
       summary_json["errors"][testapp]["raw_result_links"].append(test.raw_result_link)
-  summary_json["failures"] = {get_name(test.testapp_path, test_type):{"logs": [], "ftl_links": [], "raw_result_links": [], "failed_tests": dict()} for (test, _) in failures_exclude_flakiness}
+  summary_json["failures"] = {get_name(test.testapp_path):{"logs": [], "ftl_links": [], "raw_result_links": [], "failed_tests": dict()} for (test, _) in failures_exclude_flakiness}
   for (test, results) in failures_exclude_flakiness:
-    testapp = get_name(test.testapp_path, test_type)
+    testapp = get_name(test.testapp_path)
     summary_json["failures"][testapp]["logs"].append(results.summary)
     if hasattr(test, "ftl_link") and test.ftl_link:
       summary_json["failures"][testapp]["ftl_links"].append(test.ftl_link)
@@ -264,9 +267,9 @@ def summarize_test_results(tests, platform, summary_dir, test_type="gameloop", f
       if failure_log:
         summary_json["failures"][testapp]["failed_tests"][failed_test] = failure_log.group()
         summary.append("\n%s FAILED:\n%s\n" % (failed_test, failure_log.group()))
-  summary_json["flakiness"] = {get_name(test.testapp_path, test_type):{"logs": [], "ftl_links": [], "raw_result_links": [], "flaky_tests": dict()} for (test, _) in flaky_testapps}
+  summary_json["flakiness"] = {get_name(test.testapp_path):{"logs": [], "ftl_links": [], "raw_result_links": [], "flaky_tests": dict()} for (test, _) in flaky_testapps}
   for (test, results) in flaky_testapps:
-    testapp = get_name(test.testapp_path, test_type)
+    testapp = get_name(test.testapp_path)
     summary_json["flakiness"][testapp]["logs"].append(results.summary)
     if hasattr(test, "ftl_link") and test.ftl_link:
       summary_json["flakiness"][testapp]["ftl_links"].append(test.ftl_link)
@@ -315,12 +318,9 @@ def write_summary(testapp_dir, summary, file_name="summary.log"):
     f.write("\n%s\n%s\n" % (timestamp, summary))
 
 
-def get_name(testapp_path, test_type="gameloop"):
+def get_name(testapp_path):
   """Returns testapp api."""
-  if test_type == "uitest":
-    return testapp_path.split(os.sep)[-2] + "_uitest"
-  else:
-    return testapp_path.split(os.sep)[-2]
+  return testapp_path.split(os.sep)[-2]
 
 
 def _tail(text, n):

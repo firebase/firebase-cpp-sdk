@@ -279,6 +279,8 @@ def get_configs_from_file_name(file_name, file_name_re):
   # Remove redundant components. e.g. "latest" in "windows-latest"
   del configs[2]
   if "desktop" in configs: configs.remove("desktop")
+  if "gameloop" in configs: configs.remove("gameloop")
+  if "uitest" in configs: configs.remove("uitest")
   return configs
 
 
@@ -322,6 +324,31 @@ def reorganize_log(log_data, all_tested_configs):
       for (platform, configs) in combined_configs.items():
         for config in configs:
           all_configs = [["TEST"], ["FLAKINESS"], [CAPITALIZATIONS[platform]]]
+          all_configs.extend(config)
+          log_results.setdefault(testapp, {}).setdefault(flat_config(all_configs), []).append(test)
+
+    if errors.get("uitest",{}).get("errors"):
+      reorganized_configs = reorganize_configs(errors.get("uitest",{}).get("errors"))
+      combined_configs = combine_configs(reorganized_configs, all_tested_configs["test_configs"])
+      for (platform, configs) in combined_configs.items():
+        for config in configs:
+          all_configs = [["UITEST"], ["ERROR"], [CAPITALIZATIONS[platform]]]
+          all_configs.extend(config)
+          log_results.setdefault(testapp, {}).setdefault(flat_config(all_configs), [])
+    for (test, configs) in errors.get("uitest",{}).get("failures",{}).items():
+      reorganized_configs = reorganize_configs(configs)
+      combined_configs = combine_configs(reorganized_configs, all_tested_configs["test_configs"])
+      for (platform, configs) in combined_configs.items():
+        for config in configs:
+          all_configs = [["UITEST"], ["FAILURE"], [CAPITALIZATIONS[platform]]]
+          all_configs.extend(config)
+          log_results.setdefault(testapp, {}).setdefault(flat_config(all_configs), []).append(test)
+    for (test, configs) in errors.get("uitest",{}).get("flakiness",{}).items():
+      reorganized_configs = reorganize_configs(configs)
+      combined_configs = combine_configs(reorganized_configs, all_tested_configs["test_configs"])
+      for (platform, configs) in combined_configs.items():
+        for config in configs:
+          all_configs = [["UITEST"], ["FLAKINESS"], [CAPITALIZATIONS[platform]]]
           all_configs.extend(config)
           log_results.setdefault(testapp, {}).setdefault(flat_config(all_configs), []).append(test)
   

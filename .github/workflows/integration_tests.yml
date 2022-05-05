@@ -907,7 +907,7 @@ jobs:
           python scripts/gha/test_simulator.py --testapp_dir testapps \
             --test_type "${{ matrix.test_type }}" \
             --android_device "${{ matrix.android_device }}" \
-            --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}" \
+            --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}" \
             --ci
       - name: Install Cloud SDK
         if: steps.get-device-type.outputs.device_type == 'real'
@@ -919,7 +919,7 @@ jobs:
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           python scripts/gha/test_lab.py --testapp_dir testapps \
             --android_device "${{ matrix.android_device }}" \
-            --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}" \
+            --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}" \
             --code_platform cpp \
             --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Prepare results summary artifact
@@ -1019,7 +1019,7 @@ jobs:
           python scripts/gha/test_simulator.py --testapp_dir testapps \
             --test_type "${{ matrix.test_type }}" \
             --ios_device "${{ matrix.ios_device }}" \
-            --logfile_name "ios-macos-latest-${{ matrix.ios_device }}" \
+            --logfile_name "ios-macos-latest-${{ matrix.ios_device }}-${{ matrix.test_type }}" \
             --ci
       - name: Install Cloud SDK
         if: steps.get-device-type.outputs.device_type == 'real'
@@ -1032,7 +1032,7 @@ jobs:
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           python scripts/gha/test_lab.py --testapp_dir testapps \
             --ios_device "${{ matrix.ios_device }}" \
-            --logfile_name "ios-macos-latest-${{ matrix.ios_device }}" \
+            --logfile_name "ios-macos-latest-${{ matrix.ios_device }}-${{ matrix.test_type }}" \
             --code_platform cpp \
             --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Prepare results summary artifact
