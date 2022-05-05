@@ -49,7 +49,7 @@ for product in ${product_list[*]}; do
     cp -f "${sourcepath}/${product}/build/Release/${product}.pro" "${destpath}/libs/android/"
     # Copy the special messaging aar file, but only if messaging was built.
     if [[ "${product}" == "messaging" ]]; then
-        cp -f "${sourcepath}/messaging/messaging_java/build/outputs/aar/messaging_java-release.aar" "${destpath}/libs/android/firebase_messaging_cpp.aar"
+        cp -f "${sourcepath}/messaging/messaging_java/build/outputs/aar/messaging_java"*.aar "${destpath}/libs/android/firebase_messaging_cpp.aar"
     fi
 done
 cd "${origpath}"
