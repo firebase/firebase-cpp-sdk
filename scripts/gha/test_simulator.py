@@ -184,6 +184,13 @@ def main(argv):
   current_dir = pathlib.Path(__file__).parent.absolute()
   testapp_dir = os.path.abspath(os.path.expanduser(FLAGS.testapp_dir))
   
+  config_path = os.path.join(current_dir, "integration_testing", "build_testapps.json")
+  with open(config_path, "r") as configFile:
+    config = json.load(configFile)
+  if not config:
+    logging.error("No config file found")
+    return 23
+
   ios_testapps = []
   tvos_testapps = []
   android_testapps = []
@@ -192,13 +199,22 @@ def main(argv):
     for directory in directories:
       full_path = os.path.join(file_dir, directory)
       if directory.endswith("integration_test.app"):
-        ios_testapps.append(full_path)
+        if FLAGS.test_type == _TEST_TYPE_UITEST and not _has_uitests(full_path, config):
+          logging.info("Skip %s, as it has no uitest", full_path)
+        else:
+          ios_testapps.append(full_path)
       elif directory.endswith("integration_test_tvos.app"):
-        tvos_testapps.append(full_path)
+        if FLAGS.test_type == _TEST_TYPE_UITEST and not _has_uitests(full_path, config):
+          logging.info("Skip %s, as it has no uitest", full_path)
+        else:
+          tvos_testapps.append(full_path)
     for file_name in file_names:
       full_path = os.path.join(file_dir, file_name)
       if file_name.endswith(".apk"):
-        android_testapps.append(full_path)    
+        if FLAGS.test_type == _TEST_TYPE_UITEST and not _has_uitests(full_path, config):
+          logging.info("Skip %s, as it has no uitest", full_path)
+        else:
+          android_testapps.append(full_path)    
 
   if not ios_testapps and not tvos_testapps and not android_testapps:
     logging.info("No testapps found")
@@ -230,19 +246,8 @@ def main(argv):
     if not ios_helper_app:
       logging.error("helper app not found")
       return 22
-
-    config_path = os.path.join(current_dir, "integration_testing", "build_testapps.json")
-    with open(config_path, "r") as configFile:
-      config = json.load(configFile)
-    if not config:
-      logging.error("No config file found")
-      return 23
   
     for app_path in ios_testapps:
-      if FLAGS.test_type == _TEST_TYPE_UITEST and not _has_uitests(app_path, config):
-        logging.info("Skip %s, as it has no uitest", app_path)
-        continue
-
       bundle_id = _get_bundle_id(app_path, config)
       logs=_run_apple_test(bundle_id, app_path, ios_helper_app, device_id, _TEST_RETRY)
       tests.append(Test(testapp_path=app_path, logs=logs))
