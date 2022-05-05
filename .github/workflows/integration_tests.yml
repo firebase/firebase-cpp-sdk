@@ -788,7 +788,7 @@ jobs:
       - name: Download Desktop integration tests artifact
         uses: actions/download-artifact@v3
         with:
-          path: testapps
+          path: testapps/testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
           name: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
       - name: Setup python
         uses: actions/setup-python@v2
@@ -879,7 +879,7 @@ jobs:
       - name: Download Android integration tests artifact
         uses: actions/download-artifact@v3
         with:
-          path: testapps
+          path: testapps/testapps-android-${{ matrix.build_os }}
           name: testapps-android-${{ matrix.build_os }}
       - name: Setup python
         uses: actions/setup-python@v2
@@ -984,7 +984,7 @@ jobs:
       - name: Download iOS integration tests artifact
         uses: actions/download-artifact@v3
         with:
-          path: testapps
+          path: testapps/testapps-ios-${{ matrix.build_os }}
           name: testapps-ios-${{ matrix.build_os }}
       - name: Setup python
         uses: actions/setup-python@v2
@@ -1089,7 +1089,7 @@ jobs:
       - name: Download tvOS integration tests artifact
         uses: actions/download-artifact@v3
         with:
-          path: testapps
+          path: testapps/testapps-tvos-${{ matrix.build_os }}
           name: testapps-tvos-${{ matrix.build_os }}
       - name: Setup python
         uses: actions/setup-python@v2
