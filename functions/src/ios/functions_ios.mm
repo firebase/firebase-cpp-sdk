@@ -14,13 +14,14 @@
 
 #include "functions/src/ios/functions_ios.h"
 
-#import "FIRFunctions.h"
 #include "app/memory/unique_ptr.h"
 #include "app/src/app_ios.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "functions/src/ios/callable_reference_ios.h"
+
+#import "FirebaseFunctions-Swift.h"
 
 namespace firebase {
 namespace functions {
@@ -48,7 +49,18 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(const char* 
 }
 
 void FunctionsInternal::UseFunctionsEmulator(const char* origin) {
-  [impl_.get()->get() useFunctionsEmulatorOrigin:@(origin)];
+  std::string origin_str(origin);
+  // origin is in the format localhost:5005
+  size_t pos = origin_str.rfind(":");
+  if (pos == std::string::npos) {
+    LogError("Functions::UseFunctionsEmulator: You must specify host:port");
+    return;
+  }
+
+  std::string host = origin_str.substr(0, pos);
+  std::string port_str = origin_str.substr(pos+1, std::string::npos);
+  int port = atoi(port_str.c_str());
+  [impl_.get()->get() useEmulatorWithHost:@(host.c_str()) port:port];
 }
 
 }  // namespace internal

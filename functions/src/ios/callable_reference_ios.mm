@@ -14,12 +14,12 @@
 
 #include "functions/src/ios/callable_reference_ios.h"
 
-#import "FIRFunctions.h"
-#import "FIRHTTPSCallable.h"
 #include "app/src/util_ios.h"
 #include "functions/src/include/firebase/functions.h"
 #include "functions/src/include/firebase/functions/common.h"
 #include "functions/src/ios/functions_ios.h"
+
+#import "FirebaseFunctions-Swift.h"
 
 namespace firebase {
 namespace functions {

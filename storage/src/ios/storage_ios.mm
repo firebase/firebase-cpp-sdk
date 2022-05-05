@@ -21,36 +21,7 @@
 #include "app/src/reference_counted_future_impl.h"
 #include "storage/src/ios/storage_reference_ios.h"
 
-#import "FIRStorageReference.h"
-#import "GTMSessionFetcher.h"
-#import "GTMSessionFetcherService.h"
-
-// WARNING: Private methods in FIRStorage.
-@interface FIRStorage ()
-// Expose property to retrieve the fetcher service. This allows StorageInternal to create a
-// session fetcher service for streaming based upon the settings of the default service.
-@property(strong, nonatomic) GTMSessionFetcherService* fetcherServiceForApp;
-// Expose property to retrieve the dispatch queue.  This allows StorageReferenceInternal to create a
-// download task to stream data into a buffer.
-@property(nonatomic, readonly) dispatch_queue_t dispatchQueue;
-@end
-
-@implementation FIRCPPGTMSessionFetcher
-- (void)beginFetchWithCompletionHandler:(GTM_NULLABLE GTMSessionFetcherCompletionHandler)handler {
-  GTMSessionFetcherAccumulateDataBlock replacementAccumulateBlock =
-      ((FIRCPPGTMSessionFetcherService*)[super service]).accumulateDataBlock;
-  if (replacementAccumulateBlock != nil) {
-    super.accumulateDataBlock = replacementAccumulateBlock;
-  }
-  [super beginFetchWithCompletionHandler:handler];
-}
-@end
-
-@implementation FIRCPPGTMSessionFetcherService
-- (id)fetcherWithRequest:(NSURLRequest*)request fetcherClass:(Class)fetcherClass {
-  return [super fetcherWithRequest:request fetcherClass:[FIRCPPGTMSessionFetcher class]];
-}
-@end
+#import "FirebaseStorage-Swift.h"
 
 namespace firebase {
 namespace storage {
@@ -58,8 +29,7 @@ namespace internal {
 
 StorageInternal::StorageInternal(App* app, const char* url)
     : app_(app),
-      impl_(new FIRStoragePointer(nil)),
-      session_fetcher_service_(new FIRCPPGTMSessionFetcherServicePointer(nil)) {
+      impl_(new FIRStoragePointer(nil)) {
   url_ = url ? url : "";
   FIRApp* platform_app = app->GetPlatformApp();
   if (url_.empty()) {
@@ -74,13 +44,6 @@ StorageInternal::StorageInternal(App* app, const char* url)
       return;
     }
   }
-
-  GTMSessionFetcherService* default_session_fetcher_service = impl().fetcherServiceForApp;
-  session_fetcher_service_.reset(
-      new FIRCPPGTMSessionFetcherServicePointer([[FIRCPPGTMSessionFetcherService alloc] init]));
-  session_fetcher_service().retryEnabled = default_session_fetcher_service.retryEnabled;
-  session_fetcher_service().retryBlock = default_session_fetcher_service.retryBlock;
-  session_fetcher_service().authorizer = default_session_fetcher_service.authorizer;
 }
 
 StorageInternal::~StorageInternal() {
@@ -136,8 +99,6 @@ void StorageInternal::set_max_operation_retry_time(double max_transfer_retry_sec
 
 // Whether this object was successfully initialized by the constructor.
 bool StorageInternal::initialized() const { return impl() != nil; }
-
-dispatch_queue_t _Nullable StorageInternal::dispatch_queue() const { return impl().dispatchQueue; }
 
 }  // namespace internal
 }  // namespace storage

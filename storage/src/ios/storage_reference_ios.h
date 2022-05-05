@@ -23,9 +23,10 @@
 #include "storage/src/ios/storage_ios.h"
 
 #ifdef __OBJC__
-#import "FIRStorage.h"
-#import "FIRStorageConstants.h"
-#import "FIRStorageObservableTask.h"
+#import "FirebaseStorage-Swift.h"
+
+// typedef not included in Swift header.
+typedef void (^FIRStorageVoidDataError)(NSData *_Nullable, NSError *_Nullable);
 #endif  // __OBJC__
 
 namespace firebase {
@@ -167,12 +168,6 @@ class StorageReferenceInternal {
   void AssignListener(
       FIRStorageObservableTask<FIRStorageTaskManagement>* _Nonnull task,
       Listener* _Nullable listener, StorageInternal* _Nullable storage);
-
-  // Create a download task that will stream data into the specified buffer.
-  FIRStorageDownloadTask* _Nonnull CreateStreamingDownloadTask(
-      FIRStorageReference* _Nonnull impl, StorageInternal* _Nonnull storage,
-      FIRStorageVoidDataError _Nonnull completion, void* _Nonnull buffer,
-      size_t buffer_size);
 
   FIRStorageReference* _Nullable impl() const { return impl_->get(); }
 #endif  // __OBJC__

@@ -14,11 +14,7 @@
 
 #include "storage/src/ios/controller_ios.h"
 
-#import "FIRStorage.h"
-#import "FIRStorageDownloadTask.h"
-#import "FIRStorageTask.h"
-#import "FIRStorageTaskSnapshot.h"
-#import "FIRStorageUploadTask.h"
+#import "FirebaseStorage-Swift.h"
 
 #include "app/src/util_ios.h"
 
@@ -46,10 +42,16 @@ ControllerInternal::~ControllerInternal() {
 
 bool ControllerInternal::Pause() {
   MutexLock mutex(pending_calls_mutex_);
-  if (task_impl()) {
-    util::DispatchAsyncSafeMainQueue(^() {
-      [task_impl() pause];
-    });
+  __block FIRStorageObservableTask<FIRStorageTaskManagement> *task = task_impl();
+  if (task) {
+    if ([task respondsToSelector:@selector(pause)]) {
+      util::DispatchAsyncSafeMainQueue(^() {
+	  [task pause];
+	});
+    }
+    else {
+      return false;
+    }
   } else {
     pending_pause_ = true;
   }
@@ -58,10 +60,16 @@ bool ControllerInternal::Pause() {
 
 bool ControllerInternal::Resume() {
   MutexLock mutex(pending_calls_mutex_);
-  if (task_impl()) {
-    util::DispatchAsyncSafeMainQueue(^() {
-      [task_impl() resume];
-    });
+  __block FIRStorageObservableTask<FIRStorageTaskManagement> *task = task_impl();
+  if (task) {
+    if ([task respondsToSelector:@selector(resume)]) {
+      util::DispatchAsyncSafeMainQueue(^() {
+	  [task resume];
+	});
+    }
+    else {
+      return false;
+    }
   } else {
     pending_pause_ = false;
   }
@@ -70,10 +78,16 @@ bool ControllerInternal::Resume() {
 
 bool ControllerInternal::Cancel() {
   MutexLock mutex(pending_calls_mutex_);
-  if (task_impl()) {
-    util::DispatchAsyncSafeMainQueue(^() {
-      [task_impl() cancel];
-    });
+  __block FIRStorageObservableTask<FIRStorageTaskManagement> *task = task_impl();
+  if (task) {
+    if ([task respondsToSelector:@selector(cancel)]) {
+      util::DispatchAsyncSafeMainQueue(^() {
+	  [task cancel];
+	});
+    }
+    else {
+      return false;
+    }
   } else {
     pending_cancel_ = true;
   }

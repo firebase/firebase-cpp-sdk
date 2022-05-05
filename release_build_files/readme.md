@@ -177,55 +177,59 @@ Feature                    | Required Frameworks and Cocoapods
 -------------------------- | ---------------------------------------
 Firebase AdMob             | firebase_admob.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Analytics Cocoapod (8.15.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (7.69.0-cppsdk)
+|                          | Firebase/Analytics Cocoapod (9.0.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (7.69.0-cppsdk2)
 Firebase Analytics         | firebase_analytics.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Analytics Cocoapod (8.15.0)
+|                          | Firebase/Analytics Cocoapod (9.0.0)
 Firebase Authentication    | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Auth Cocoapod (8.15.0)
+|                          | Firebase/Auth Cocoapod (9.0.0)
 Firebase Dynamic Links     | firebase_dynamic_links.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/DynamicLinks Cocoapod (8.15.0)
+|                          | Firebase/DynamicLinks Cocoapod (9.0.0)
 Cloud Firestore            | firebase_firestore.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Firestore Cocoapod (8.15.0)
-|                          | Firebase/Auth Cocoapod (8.15.0)
+|                          | Firebase/Firestore Cocoapod (9.0.0)
+|                          | Firebase/Auth Cocoapod (9.0.0)
 Firebase Functions         | firebase_functions.xcframework
 |                          | firebase_auth.xcframework (optional)
 |                          | firebase.xcframework
-|                          | Firebase/Functions Cocoapod (8.15.0)
-|                          | Firebase/Auth Cocoapod (8.15.0)
+|                          | Firebase/Functions Cocoapod (9.0.0)
+|                          | Firebase/Auth Cocoapod (9.0.0)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
-|                          | FirebaseInstallations Cocoapod (8.15.0)
+|                          | FirebaseInstallations Cocoapod (9.0.0)
 Firebase Cloud Messaging   | firebase_messaging.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Messaging Cocoapod (8.15.0)
+|                          | Firebase/Messaging Cocoapod (9.0.0)
 Firebase Realtime Database | firebase_database.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Database Cocoapod (8.15.0)
-|                          | Firebase/Auth Cocoapod (8.15.0)
+|                          | Firebase/Database Cocoapod (9.0.0)
+|                          | Firebase/Auth Cocoapod (9.0.0)
 Firebase Remote Config     | firebase_remote_config.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/RemoteConfig Cocoapod (8.15.0)
+|                          | Firebase/RemoteConfig Cocoapod (9.0.0)
 Firebase Storage           | firebase_storage.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Storage Cocoapod (8.15.0)
-|                          | Firebase/Auth Cocoapod (8.15.0)
+|                          | Firebase/Storage Cocoapod (9.0.0)
+|                          | Firebase/Auth Cocoapod (9.0.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
 the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
 listed above.
 
 Note: AdMob C++ is not currently compatible with the latest Firebase AdMob iOS
-CocoaPod (8.x). Please ensure that you use the special version of
-Google-Mobile-Ads-SDK Cocoapod listed above (7.69.0-cppsdk) to maintain
-compatibility with Firebase 8.x.
+CocoaPod (9.x). Please ensure that you use the special version of
+Google-Mobile-Ads-SDK Cocoapod listed above (7.69.0-cppsdk2) to maintain
+compatibility with Firebase 9.x.
+
+Note: Parts of the Firebase iOS SDK are written in Swift. If your application
+does not use any Swift code, you may need to add an empty .swift file to your
+Xcode project to ensure that the Swift runtime is included in your app.
 
 #### Libraries
 
@@ -237,55 +241,59 @@ Feature                    | Required Libraries and Cocoapods
 -------------------------- | -----------------------------------------
 Firebase AdMob             | libfirebase_admob.a
 |                          | libfirebase_app.a
-|                          | Firebase/Analytics Cocoapod (8.15.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (7.69.0-cppsdk)
+|                          | Firebase/Analytics Cocoapod (9.0.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (7.69.0-cppsdk2)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
-|                          | Firebase/Analytics Cocoapod (8.15.0)
+|                          | Firebase/Analytics Cocoapod (9.0.0)
 Firebase Authentication    | libfirebase_auth.a
 |                          | libfirebase_app.a
-|                          | Firebase/Auth Cocoapod (8.15.0)
+|                          | Firebase/Auth Cocoapod (9.0.0)
 Firebase Dynamic Links     | libfirebase_dynamic_links.a
 |                          | libfirebase_app.a
-|                          | Firebase/DynamicLinks Cocoapod (8.15.0)
+|                          | Firebase/DynamicLinks Cocoapod (9.0.0)
 Cloud Firestore            | libfirebase_firestore.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Firestore Cocoapod (8.15.0)
-|                          | Firebase/Auth Cocoapod (8.15.0)
+|                          | Firebase/Firestore Cocoapod (9.0.0)
+|                          | Firebase/Auth Cocoapod (9.0.0)
 Firebase Functions         | libfirebase_functions.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a (optional)
-|                          | Firebase/Functions Cocoapod (8.15.0)
-|                          | Firebase/Auth Cocoapod (8.15.0)
+|                          | Firebase/Functions Cocoapod (9.0.0)
+|                          | Firebase/Auth Cocoapod (9.0.0)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
-|                          | FirebaseInstallations Cocoapod (8.15.0)
+|                          | FirebaseInstallations Cocoapod (9.0.0)
 Firebase Cloud Messaging   | libfirebase_messaging.a
 |                          | libfirebase_app.a
-|                          | Firebase/CloudMessaging Cocoapod (8.15.0)
+|                          | Firebase/CloudMessaging Cocoapod (9.0.0)
 Firebase Realtime Database | libfirebase_database.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Database Cocoapod (8.15.0)
-|                          | Firebase/Auth Cocoapod (8.15.0)
+|                          | Firebase/Database Cocoapod (9.0.0)
+|                          | Firebase/Auth Cocoapod (9.0.0)
 Firebase Remote Config     | libfirebase_remote_config.a
 |                          | libfirebase_app.a
-|                          | Firebase/RemoteConfig Cocoapod (8.15.0)
+|                          | Firebase/RemoteConfig Cocoapod (9.0.0)
 Firebase Storage           | libfirebase_storage.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Storage Cocoapod (8.15.0)
-|                          | Firebase/Auth Cocoapod (8.15.0)
+|                          | Firebase/Storage Cocoapod (9.0.0)
+|                          | Firebase/Auth Cocoapod (9.0.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
 the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
 listed above.
 
 Note: AdMob C++ is not currently compatible with the latest Firebase AdMob iOS
-CocoaPod (8.x). Please ensure that you use the special version of
-Google-Mobile-Ads-SDK Cocoapod listed above (7.69.0-cppsdk) to maintain
-compatibility with Firebase 8.x.
+CocoaPod (9.x). Please ensure that you use the special version of
+Google-Mobile-Ads-SDK Cocoapod listed above (7.69.0-cppsdk2) to maintain
+compatibility with Firebase 9.x.
+
+Note: Parts of the Firebase iOS SDK are written in Swift. If your application
+does not use any Swift code, you may need to add an empty .swift file to your
+Xcode project to ensure that the Swift runtime is included in your app.
 
 ### Desktop Implementation Dependencies
 
@@ -368,7 +376,7 @@ Firebase Installations (stub)   | firebase_installations.framework
 Firebase Cloud Messaging (stub) | firebase_messaging.framework
 |                               | firebase.framework
 
-The provided libraries have been tested using Xcode 12.4. When building C++
+The provided libraries have been tested using Xcode 13.3.1. When building C++
 desktop apps on OS X, you will need to link the `gssapi_krb5` and `pthread`
 system libraries, as well as the `CoreFoundation`, `Foundation`, `GSS`, and
 `Security` OS X system frameworks (consult your compiler documentation for more
@@ -566,11 +574,16 @@ code.
 ## Release Notes
 ### 9.0.0
 -   Changes
-    -   General (Android): On Android, Firebase C++ is now built against NDK
+    -   General (iOS): Firebase C++ on iOS is now built using Xcode 13.3.1.
+    -   General (Android): Firebase C++ on Android is now built against NDK
         version r21e.
-    -   General (Android): Firebase support for gnustl (also known as libstdc++)
-        has been removed. Please use libc++ instead. Android libraries have been
-	moved from libs/android/ARCH/STL to libs/android/ARCH.
+    -   General (Android): Support for gnustl (also known as libstdc++) has been
+        removed. Please use libc++ instead. Android libraries have been moved
+        from libs/android/ARCH/STL to libs/android/ARCH.
+    -   AdMob (iOS): Temporarily pinned AdMob dependency to a special version of
+        the Google-Mobile-Ads-SDK Cocoapod, "7.69.0-cppsdk2", to maintain
+        compatibility with version 9.x of the Firebase iOS SDK.
+    -   Analytics: Removed deprecated event names and parameters.
     -   Storage (Desktop): Set Content-Type HTTP header when uploading with
         custom metadata.
 
@@ -588,14 +601,15 @@ code.
         initialization of Firebase iOS SDK.
     -   Remote Config: Fixed default `Fetch()` timeout being 1000 times too
         high.
-    -   Storage (Desktop): Added retry logic to PutFile, GetFile, and other operations.
+    -   Storage (Desktop): Added retry logic to PutFile, GetFile, and other
+        operations.
 
 ### 8.9.0
 -   Changes
     -   General (iOS): Fixed an intermittent crash on iOS 15 caused by
         constructing C++ objects during Objective-C's `+load` method.
-	([#706](https://github.com/firebase/firebase-cpp-sdk/pull/706))
-	([#783](https://github.com/firebase/firebase-cpp-sdk/pull/783))
+        ([#706](https://github.com/firebase/firebase-cpp-sdk/pull/706))
+        ([#783](https://github.com/firebase/firebase-cpp-sdk/pull/783))
     -   General: Internal changes to Mutex class.
 
 ### 8.8.0
