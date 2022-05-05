@@ -110,8 +110,8 @@ public class UITest {
 
     // Finish GMA Tests
     Thread.sleep(60 * 1000);
-    reference = device.wait(Until.findObject(By.text("Test Ad")), WAIT_UI_TIMEOUT);
-    Assert.assertNull(reference);
+    // reference = device.wait(Until.findObject(By.text("Test Ad")), WAIT_UI_TIMEOUT);
+    // Assert.assertNull(reference);
   }
 
   private void launchApp(String packageName) {
