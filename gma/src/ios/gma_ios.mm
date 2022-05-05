@@ -337,8 +337,9 @@ void CompleteAdResultError(FutureCallbackData<AdResult>* callback_data,
     future_error_message = ad_error_internal.message;
   }
 
-  GmaInternal::CompleteLoadAdFuture(
-      callback_data, ad_error_internal.code, future_error_message, ad_error_internal);
+  GmaInternal::CompleteLoadAdFutureFailure(
+      callback_data, ad_error_internal.code, future_error_message,
+      ad_error_internal);
 }
 
 void CompleteLoadAdInternalSuccess(
@@ -346,8 +347,8 @@ void CompleteLoadAdInternalSuccess(
     const ResponseInfoInternal& response_info_internal) {
   FIREBASE_ASSERT(callback_data);
 
-  GmaInternal::CompleteLoadAdFuture(callback_data, response_info_internal);
-
+  GmaInternal::CompleteLoadAdFutureSuccess(
+      callback_data, response_info_internal);
 }
 
 void CompleteLoadAdInternalError(
@@ -358,8 +359,7 @@ void CompleteLoadAdInternalError(
 
   CompleteAdResultError(callback_data, /*error=*/nullptr,
      /*is_load_ad_error=*/false, error_code, error_message);
- }
-
+}
 
 void CompleteAdResultError(FutureCallbackData<AdResult>* callback_data,
                            NSError *gad_error, bool is_load_ad_error) {

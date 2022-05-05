@@ -84,7 +84,7 @@ Future<AdResult> InterstitialAdInternalIOS::LoadAd(
   // Guard against parameter object destruction before the async operation
   // executes (below).
   AdRequest local_ad_request = request;
-  std::string local_ad_unit_id(ad_unit_id);
+  NSString *local_ad_unit_id = @(ad_unit_id);
 
   dispatch_async(dispatch_get_main_queue(), ^{
     // Create a GADRequest from an gma::AdRequest.
@@ -102,7 +102,7 @@ Future<AdResult> InterstitialAdInternalIOS::LoadAd(
       ad_load_callback_data_ = nil;
     } else {
       // Make the interstitial ad request.
-      [GADInterstitialAd loadWithAdUnitID:@(local_ad_unit_id.c_str())
+      [GADInterstitialAd loadWithAdUnitID:local_ad_unit_id
                                   request:ad_request
                         completionHandler:^(GADInterstitialAd *ad, NSError *error)  // NO LINT
         {
