@@ -333,6 +333,7 @@ def main(argv):
     tests, 
     test_validation.CPP, 
     testapp_dir, 
+    test_type=FLAGS.test_type,
     file_name="test-results-" + FLAGS.logfile_name + ".log", 
     extra_info=" (ON SIMULATOR/EMULATOR)")
 
