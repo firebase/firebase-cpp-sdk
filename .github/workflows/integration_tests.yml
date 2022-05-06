@@ -809,7 +809,7 @@ jobs:
           fi
 
   test_desktop:
-    name: test-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+    name: test-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
     needs: [check_and_prepare, build_desktop]
     runs-on: ${{ matrix.os }}
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'Desktop') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
@@ -817,7 +817,21 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
+        arch: ${{ fromJson(needs.check_and_prepare.outputs.matrix_arch_combined) }}
         ssl_variant: ${{ fromJson(needs.check_and_prepare.outputs.matrix_ssl) }}
+        # Because matrix_arch_combined combines mac, linux, and windows, we need a few exclusions.
+        exclude:
+        # Do not attempt to run for arm64 on Windows or Linux.
+        - os: windows-latest
+          arch: arm64
+        - os: ubuntu-latest
+          arch: arm64
+        # Do not attempt to run for x86 on Mac.
+        - os: macos-12
+          arch: x86
+        # MacOS hosted runner cannot test arm64 code.
+        - os: macos-12
+          arch: arm64
     steps:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
@@ -828,8 +842,8 @@ jobs:
       - name: Download Desktop integration tests artifact
         uses: actions/download-artifact@v3
         with:
-          path: testapps/testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
-          name: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+          path: testapps/testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
+          name: testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
       - name: Setup python
         uses: actions/setup-python@v2
         with:
@@ -849,31 +863,31 @@ jobs:
           shell: bash
           command: |
             pip install -r scripts/gha/requirements.txt
-            python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact "testapps/testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
+            python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact "testapps/testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}"
       - name: Run Desktop integration tests
         env:
           USE_FIRESTORE_EMULATOR: true
         shell: bash
         run: |
           if [[ "${{ needs.check_and_prepare.outputs.apis }}" == *"firestore"* ]]; then
-            firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"'
+            firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}"'
           else
-            python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
+            python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}"
           fi
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
         run: |
           # If testapps do not exist, then it's a build error not test error. 
-          if [ -d "testapps/testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}" && ! -f testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json ]; then
-            mkdir -p testapps && echo "__SUMMARY_MISSING__" > testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json
+          if [ -d "testapps/testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" && ! -f testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}.log.json ]; then
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}.log.json
           fi
       - name: Upload Desktop test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
         with:
           name: log-artifact
-          path: testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}*
+          path: testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
@@ -894,7 +908,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
+          cat testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}.log
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
