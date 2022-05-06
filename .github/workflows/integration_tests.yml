@@ -51,6 +51,7 @@ env:
   # by a hyphen. The first word must be "macos". The second word will
   # be omitted from the summary log.
   runnerLabelMacArm64: 'macos-m1custom'
+
 jobs:
   check_and_prepare:
     runs-on: ubuntu-latest
