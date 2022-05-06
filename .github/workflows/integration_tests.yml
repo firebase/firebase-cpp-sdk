@@ -371,7 +371,7 @@ jobs:
           python scripts/gha/build_testapps.py --p Desktop \
             --t ${{ needs.check_and_prepare.outputs.apis }} \
             --output_directory "${{ github.workspace }}" \
-            --artifact_name "desktop-${{ matrix.os }}-${{ matrix.arch}}-${{ matrix.ssl_variant }}" \
+            --artifact_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" \
             --noadd_timestamp \
             --short_output_paths \
             ${additional_flags[*]}
@@ -381,7 +381,7 @@ jobs:
         run: |
           if [ ! -f build-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}.log.json ]; then
             # No summary was created, make a placeholder one.
-            echo "__SUMMARY_MISSING__" > build-results-desktop-${{ matrix.os }}-${{ matrix.arch}}-${{ matrix.ssl_variant }}.log.json
+            echo "__SUMMARY_MISSING__" > build-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}.log.json
           fi
       - name: Upload Desktop integration tests artifact
         uses: actions/upload-artifact@v3
@@ -894,6 +894,45 @@ jobs:
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
+
+  # Run tests that depend on custom (self-hosted) runners.
+  # For now, this is only used for ARM Mac builds.
+  test_desktop_custom_runners:
+    name: test-desktop-selfhosted-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
+    needs: [check_and_prepare, build_desktop]
+    runs-on: [self-hosted, firebase-cpp, '${{ matrix.runner_label }}' ]
+    if: needs.check_and_prepare.outputs.apis != '' && !cancelled()
+    strategy:
+      fail-fast: false
+      matrix:
+        ssl_variant: ${{ fromJson(needs.check_and_prepare.outputs.matrix_ssl) }}
+        os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
+        arch: ${{ fromJson(needs.check_and_prepare.outputs.matrix_combined) }}
+        runner_label: ['${{ needs.check_and_prepare.outputs.runner_label_mac_arm64 }}']
+        exclude:
+        # Mac self-hosted runner shouldn't run Linux or Windows tests.
+        - os: ubuntu-latest
+          runner_label: ${{ needs.check_and_prepare.outputs.runner_label_mac_arm64 }}
+        - os: windows-latest
+          runner_label: ${{ needs.check_and_prepare.outputs.runner_label_mac_arm64 }}
+        # For Mac, don't run x64 tests on arm64 runner.
+        - os: macos-12
+          arch: x64
+          runner_label: ${{ needs.check_and_prepare.outputs.runner_label_mac_arm64 }}
+        # Until we support building openssl from source, we can't link to system
+        # openssl when cross-compiling, so exclude openssl from mac arm64 testing.
+        - os: macos-12
+          ssl_variant: openssl
+          runner_label: ${{ needs.check_and_prepare.outputs.runner_label_mac_arm64 }}
+    steps:
+      - name: Clean up previous run
+        shell: bash
+        if: ${{ contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
+        run: |
+          echo "Cleaning up previous run"
+          rm -rf "${{ github.workspace }}"/*
+
+
 
   test_android:
     name: test-android-${{ matrix.build_os }}-${{ matrix.android_device }}
