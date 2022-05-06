@@ -83,7 +83,7 @@ jobs:
     ### trigger value: manual_trigger, scheduled_trigger, label_trigger, postsubmit_trigger
     - id: set_outputs
       run: |
-        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then 
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
           if [[ "${{ github.event.inputs.test_pull_request }}" != "nightly-packaging" ]]; then
             # Triggered manually
             echo "::set-output name=trigger::manual_trigger"
@@ -134,12 +134,12 @@ jobs:
       if: ${{ !steps.set_outputs.outputs.trigger }}
       uses: andymckay/cancel-action@0.2
     - name: Wait for workflow cancellation
-      if: ${{ !steps.set_outputs.outputs.trigger }} 
+      if: ${{ !steps.set_outputs.outputs.trigger }}
       run: |
         sleep 300
         exit 1  # fail out if the cancellation above somehow failed.
     - name: Cancel previous runs on the same PR
-      if: steps.set_outputs.outputs.trigger == 'label_trigger' 
+      if: steps.set_outputs.outputs.trigger == 'label_trigger'
       uses: styfle/cancel-workflow-action@0.8.0
       with:
         access_token: ${{ github.token }}
@@ -161,14 +161,14 @@ jobs:
         command: pip install -r scripts/gha/requirements.txt
     - id: matrix_config
       run: |
-        if [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "expanded" ]]; then 
+        if [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "expanded" ]]; then
           TEST_MATRIX_PARAM=-e=1
           echo "::warning ::Running on the expanded matrix"
-        elif [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "minimal" ]]; then 
+        elif [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "minimal" ]]; then
           TEST_MATRIX_PARAM=-m=1
           echo "::warning ::Running on the minimal matrix"
-        elif [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "auto" ]]; then 
-          # auto-diff only apply when running in a PR. 
+        elif [[ "${{ steps.set_outputs.outputs.requested_tests }}" == "auto" ]]; then
+          # auto-diff only apply when running in a PR.
           # diff against the PR's base. "git merge-base main branch_name" will give the common ancestor of both branches.
           MERGE_BASE=$(git merge-base origin/${{github.event.pull_request.head.ref}} origin/${{github.event.pull_request.base.ref}} || true)
           # If origin/<branch> is no longer valid, then just run all tests.
@@ -184,7 +184,7 @@ jobs:
         if [[ "${{ github.event.schedule }}" == "0 9 * * *" ]]; then
           # at 1am PST / 2am PDT. Running integration tests and generate test report for all testapps except firestore
           apis="admob,analytics,auth,database,dynamic_links,functions,installations,messaging,remote_config,storage"
-        elif [[ "${{ github.event.schedule }}" == "0 10 * * *" ]]; then 
+        elif [[ "${{ github.event.schedule }}" == "0 10 * * *" ]]; then
           # at 2am PST / 3am PDT. Running integration tests for firestore and generate test report
           apis="firestore"
         else
@@ -253,7 +253,7 @@ jobs:
         # Until we support building openssl from source, we can't link to system openssl when cross-compiling.
         # Builds all happen on x64 machines, so arm64 and x86 are technically cross-compiling.
         - ssl_variant: openssl
-          arch: arm64 
+          arch: arm64
         - ssl_variant: openssl
           arch: x86
     steps:
@@ -350,7 +350,7 @@ jobs:
           run_id: ${{ github.event.inputs.test_packaged_sdk }}
       - name: Build integration tests
         shell: bash
-        env: 
+        env:
           CCACHE_DIR: ${{ github.workspace }}/ccache_dir
         run: |
           declare -a additional_flags
@@ -878,7 +878,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          # If testapps do not exist, then it's a build error not test error. 
+          # If testapps do not exist, then it's a build error not test error.
           if [ -d "testapps/testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" && ! -f testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}.log.json ]; then
             mkdir -p testapps && echo "__SUMMARY_MISSING__" > testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}.log.json
           fi
@@ -1123,7 +1123,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          # If testapps do not exist, then it's a build error not test error. 
+          # If testapps do not exist, then it's a build error not test error.
           if [ -d "testapps/testapps-android-${{ matrix.build_os }}" && ! -f "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}.log.json" ]; then
             mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}.log.json"
           fi
@@ -1215,7 +1215,7 @@ jobs:
         uses: google-github-actions/setup-gcloud@v0
       - name: Run iOS integration tests on Real Device via FTL
         # max 3 retry and 10m timeout for each testapp, plus other steps
-        timeout-minutes: 60 
+        timeout-minutes: 60
         if: steps.get-device-type.outputs.device_type == 'real'
         run: |
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
@@ -1228,7 +1228,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          # If testapps do not exist, then it's a build error not test error. 
+          # If testapps do not exist, then it's a build error not test error.
           if [ -d "testapps/testapps-ios-${{ matrix.build_os }}" && ! -f "testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}.log.json" ]; then
             mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}.log.json"
           fi
@@ -1311,7 +1311,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          # If testapps do not exist, then it's a build error not test error. 
+          # If testapps do not exist, then it's a build error not test error.
           if [ -d "testapps/testapps-tvos-${{ matrix.build_os }}" && ! -f "testapps/test-results-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}.log.json" ]; then
             mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}.log.json"
           fi
