@@ -776,8 +776,9 @@ void CompleteLoadAdCallback(FutureCallbackData<AdResult>* callback_data,
 
   // Invoke a friend of AdResult to have it invoke the AdResult
   // protected constructor with the AdErrorInternal data.
-  GmaInternal::CompleteLoadAdFuture(callback_data, ad_error_internal.code,
-                                    future_error_message, ad_error_internal);
+  GmaInternal::CompleteLoadAdFutureFailure(
+      callback_data, ad_error_internal.code, future_error_message,
+      ad_error_internal);
 }
 
 void CompleteLoadAdAndroidErrorResult(JNIEnv* env, jlong data_ptr,
@@ -874,12 +875,17 @@ void JNI_completeAdFutureCallback(JNIEnv* env, jclass clazz, jlong data_ptr,
   CompleteAdFutureCallback(env, clazz, data_ptr, error_code, error_message);
 }
 
-void JNI_completeLoadedAd(JNIEnv* env, jclass clazz, jlong data_ptr) {
+void JNI_completeLoadedAd(JNIEnv* env, jclass clazz, jlong data_ptr,
+                          jobject j_response_info) {
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
+  FIREBASE_ASSERT(j_response_info);
+
   FutureCallbackData<AdResult>* callback_data =
       reinterpret_cast<FutureCallbackData<AdResult>*>(data_ptr);
-  GmaInternal::CompleteLoadAdFuture(callback_data);
+  GmaInternal::CompleteLoadAdFutureSuccess(
+      callback_data, ResponseInfoInternal({j_response_info}));
+  env->DeleteLocalRef(j_response_info);
 }
 
 void JNI_completeLoadAdError(JNIEnv* env, jclass clazz, jlong data_ptr,
@@ -979,10 +985,13 @@ void JNI_notifyAdPaidEvent(JNIEnv* env, jclass clazz, jlong data_ptr,
 void JNI_AdViewHelper_completeLoadedAd(JNIEnv* env, jclass clazz,
                                        jlong callback_data_ptr,
                                        jlong ad_view_internal_data_ptr,
-                                       int width, int height) {
+                                       int width, int height,
+                                       jobject j_response_info) {
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(callback_data_ptr);
   FIREBASE_ASSERT(ad_view_internal_data_ptr);
+  FIREBASE_ASSERT(j_response_info);
+
   internal::AdViewInternalAndroid* ad_view_internal =
       reinterpret_cast<internal::AdViewInternalAndroid*>(
           ad_view_internal_data_ptr);
@@ -990,11 +999,12 @@ void JNI_AdViewHelper_completeLoadedAd(JNIEnv* env, jclass clazz,
   // Invoke a friend of AdViewInternal to update its AdSize's width and height.
   GmaInternal::UpdateAdViewInternalAdSizeDimensions(ad_view_internal, width,
                                                     height);
-
   // Complete the Future.
   FutureCallbackData<AdResult>* callback_data =
       reinterpret_cast<FutureCallbackData<AdResult>*>(callback_data_ptr);
-  GmaInternal::CompleteLoadAdFuture(callback_data);
+  GmaInternal::CompleteLoadAdFutureSuccess(
+      callback_data, ResponseInfoInternal({j_response_info}));
+  env->DeleteLocalRef(j_response_info);
 }
 
 void JNI_AdViewHelper_notifyBoundingBoxChanged(JNIEnv* env, jclass clazz,
@@ -1072,7 +1082,8 @@ bool RegisterNatives() {
   static const JNINativeMethod kAdViewMethods[] = {
       {"completeAdViewFutureCallback", "(JILjava/lang/String;)V",
        reinterpret_cast<void*>(&JNI_completeAdFutureCallback)},
-      {"completeAdViewLoadedAd", "(JJII)V",
+      {"completeAdViewLoadedAd",
+       "(JJIILcom/google/android/gms/ads/ResponseInfo;)V",
        reinterpret_cast<void*>(&JNI_AdViewHelper_completeLoadedAd)},
       {"completeAdViewLoadAdError",
        "(JLcom/google/android/gms/ads/LoadAdError;ILjava/lang/String;)V",
@@ -1096,7 +1107,8 @@ bool RegisterNatives() {
   static const JNINativeMethod kInterstitialMethods[] = {
       {"completeInterstitialAdFutureCallback", "(JILjava/lang/String;)V",
        reinterpret_cast<void*>(&JNI_completeAdFutureCallback)},
-      {"completeInterstitialLoadedAd", "(J)V",
+      {"completeInterstitialLoadedAd",
+       "(JLcom/google/android/gms/ads/ResponseInfo;)V",
        reinterpret_cast<void*>(&JNI_completeLoadedAd)},
       {"completeInterstitialLoadAdError",
        "(JLcom/google/android/gms/ads/LoadAdError;ILjava/lang/String;)V",
@@ -1122,7 +1134,8 @@ bool RegisterNatives() {
   static const JNINativeMethod kRewardedAdMethods[] = {
       {"completeRewardedAdFutureCallback", "(JILjava/lang/String;)V",
        reinterpret_cast<void*>(&JNI_completeAdFutureCallback)},
-      {"completeRewardedLoadedAd", "(J)V",
+      {"completeRewardedLoadedAd",
+       "(JLcom/google/android/gms/ads/ResponseInfo;)V",
        reinterpret_cast<void*>(&JNI_completeLoadedAd)},
       {"completeRewardedLoadAdError",
        "(JLcom/google/android/gms/ads/LoadAdError;ILjava/lang/String;)V",

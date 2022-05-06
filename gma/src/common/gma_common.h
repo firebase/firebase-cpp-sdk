@@ -131,13 +131,15 @@ void CompleteFuture(int error, const char* error_msg,
 class GmaInternal {
  public:
   // Completes an AdResult future with a successful result.
-  static void CompleteLoadAdFuture(FutureCallbackData<AdResult>* callback_data);
+  static void CompleteLoadAdFutureSuccess(
+      FutureCallbackData<AdResult>* callback_data,
+      const ResponseInfoInternal& response_info);
 
-  // Completes an AdResult future given the AdErrorInternal object.
-  static void CompleteLoadAdFuture(FutureCallbackData<AdResult>* callback_data,
-                                   int error_code,
-                                   const std::string& error_message,
-                                   const AdErrorInternal& ad_error_internal);
+  // Completes an AdResult future as an error given the AdErrorInternal object.
+  static void CompleteLoadAdFutureFailure(
+      FutureCallbackData<AdResult>* callback_data, int error_code,
+      const std::string& error_message,
+      const AdErrorInternal& ad_error_internal);
 
   // Constructs and returns an AdError object given an AdErrorInternal object.
   static AdError CreateAdError(const AdErrorInternal& ad_error_internal);

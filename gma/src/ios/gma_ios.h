@@ -30,9 +30,14 @@ extern "C" {
 namespace firebase {
 namespace gma {
 
+// Completes AdResult futures for successful ad loads.
+void CompleteLoadAdInternalSuccess(
+  FutureCallbackData<AdResult>* callback_data,
+  const ResponseInfoInternal& response_info_internal);
+
 // Resolves LoadAd errors that exist in the C++ SDK before they reach the iOS
 // SDK.
-void CompleteLoadAdInternalResult(
+void CompleteLoadAdInternalError(
   FutureCallbackData<AdResult>* callback_data, AdErrorCode error_code,
   const char* error_message);
 
