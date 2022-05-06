@@ -46,6 +46,11 @@ env:
   pythonVersion: '3.7'
   artifactRetentionDays: 2
   GITHUB_TOKEN: ${{ github.token }}
+  # All self-hosted ARM Mac runners should have this label. Due to how
+  # our custom reporting works, it must be exactly two words separated
+  # by a hyphen. The first word must be "macos". The second word will
+  # be omitted from the summary log.
+  runnerLabelMacArm64: "macos-m1custom"
 
 jobs:
   check_and_prepare:
@@ -56,6 +61,9 @@ jobs:
       pr_number: ${{ steps.set_outputs.outputs.pr_number }}
       matrix_platform: ${{ steps.matrix_config.outputs.matrix_platform }}
       matrix_os: ${{ steps.matrix_config.outputs.matrix_os }}
+      matrix_arch_macos: ${{ steps.matrix_config.outputs.matrix_arch_macos }}
+      matrix_arch_windows_linux: ${{ steps.matrix_config.outputs.matrix_arch_windows_linux }}
+      matrix_arch_combined: ${{ steps.matrix_config.outputs.matrix_arch_combined }}
       matrix_ssl: ${{ steps.matrix_config.outputs.matrix_ssl }}
       apis: ${{ steps.matrix_config.outputs.apis }}
       mobile_test_on: ${{ steps.matrix_config.outputs.mobile_test_on }}
@@ -183,6 +191,14 @@ jobs:
         echo "::set-output name=apis::${apis}"
         echo "::set-output name=matrix_platform::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k platform -o "${{github.event.inputs.platforms}}" --apis ${apis} )"
         echo "::set-output name=matrix_os::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k os -o "${{github.event.inputs.operating_systems}}")"
+        echo "::set-output name=matrix_arch_macos::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k architecture_macos)"
+        echo "::set-output name=matrix_arch_windows_linux::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k architecture_windows_linux)"
+        # Combine architecture_macos and architecture_windows_linux to get a list of all architectures for the build matrix.
+        matrix_arch_combined=`echo $( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k architecture_macos | sed 's/[]\[,]//g') \
+                                   $( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k architecture_windows_linux | sed 's/[]\[,]//g' ) \
+                                   | sed 's/ /\n/g' | sort | uniq`
+        matrix_arch_combined_json=["$(echo ${matrix_arch_combined} | sed 's/ /,/g')"]
+        echo "::set-output name=matrix_arch_combined::${matrix_arch_combined_json}"
         # If building against a packaged SDK, only use boringssl.
         if [[ -n "${{ github.event.inputs.test_packaged_sdk }}" ]]; then
           echo "::warning ::Downloading SDK package from previous run: https://github.com/${{github.repository}}/actions/runs/${{ github.event.inputs.test_packaged_sdk }}"
