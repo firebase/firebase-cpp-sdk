@@ -208,7 +208,7 @@ flags.DEFINE_bool(
 
 flags.DEFINE_bool(
     "gha_build", False,
-    "Set to true if this is a GitHub Actions build.")
+    "Set to true if this is a GitHub Actions build.")
 
 def main(argv):
   if len(argv) > 1:
