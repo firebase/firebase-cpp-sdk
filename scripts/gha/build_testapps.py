@@ -107,7 +107,7 @@ _DESKTOP = "Desktop"
 _SUPPORTED_PLATFORMS = (_ANDROID, _IOS, _TVOS, _DESKTOP)
 
 # Architecture
-_SUPPORTED_ARCHITECTURES = ("x64", "arm64")  # TODO: add x86
+_SUPPORTED_ARCHITECTURES = ("x64", "x86", "arm64")  # TODO: add x86
 
 # Values for iOS SDK flag (where the iOS app will run)
 _APPLE_SDK_DEVICE = "real"
@@ -175,7 +175,8 @@ flags.DEFINE_string(
 
 flags.DEFINE_string(
     "arch", "x64",
-    "(Desktop only) Which architecture to build: x64 (all) or arm64 (Mac only).")
+    "(Desktop only) Which architecture to build: x64 (all), x86 (Windows/Linux), "
+    "or arm64 (Mac only).")
 
 flags.DEFINE_multi_string(
     "cmake_flag", None,
@@ -204,6 +205,10 @@ flags.DEFINE_bool(
     "short_output_paths", False,
     "Use short directory names for output paths. Useful to avoid hitting file "
     "path limits on Windows.")
+
+flags.DEFINE_bool(
+    "gha_build", False,
+    "Set to true if this is a GitHub Actions build.")
 
 def main(argv):
   if len(argv) > 1:
@@ -247,7 +252,10 @@ def main(argv):
   if _DESKTOP in platforms and not FLAGS.packaged_sdk:
     vcpkg_arch = FLAGS.arch
     installer = os.path.join(repo_dir, "scripts", "gha", "build_desktop.py")
-    _run([sys.executable, installer, "--vcpkg_step_only", "--arch", vcpkg_arch])
+    # --gha_build may be required to enable x86 Linux GitHub workarounds.
+    additional_flags = ["--gha_build"] if FLAGS.gha_build else []
+    _run([sys.executable, installer, "--vcpkg_step_only", "--arch", vcpkg_arch]
+         + additional_flags)
     toolchain_file = os.path.join(
         repo_dir, "external", "vcpkg", "scripts", "buildsystems", "vcpkg.cmake")
     if utils.is_mac_os() and FLAGS.arch == "arm64":
@@ -452,7 +460,7 @@ def _build_desktop(sdk_dir, cmake_flags):
   cmake_configure_cmd = ["cmake", ".", "-DCMAKE_BUILD_TYPE=Debug",
                                        "-DFIREBASE_CPP_SDK_DIR=" + sdk_dir]
   if utils.is_windows_os():
-    cmake_configure_cmd += ["-A", "x64"]
+    cmake_configure_cmd += ["-A", FLAGS.arch]
   elif utils.is_mac_os():
     # Ensure that correct Mac architecture is built.
     cmake_configure_cmd += ["-DCMAKE_OSX_ARCHITECTURES=%s" %
