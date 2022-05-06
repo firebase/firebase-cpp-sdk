@@ -369,7 +369,7 @@ jobs:
           python scripts/gha/build_testapps.py --p Desktop \
             --t ${{ needs.check_and_prepare.outputs.apis }} \
             --output_directory "${{ github.workspace }}" \
-            --artifact_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}" \
+            --artifact_name "desktop-${{ matrix.os }}-${{ matrix.arch}}-${{ matrix.ssl_variant }}" \
             --noadd_timestamp \
             --short_output_paths \
             ${additional_flags[*]}
@@ -377,28 +377,28 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          if [ ! -f build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json ]; then
+          if [ ! -f build-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}.log.json ]; then
             # No summary was created, make a placeholder one.
-            echo "__SUMMARY_MISSING__" > build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json
+            echo "__SUMMARY_MISSING__" > build-results-desktop-${{ matrix.os }}-${{ matrix.arch}}-${{ matrix.ssl_variant }}.log.json
           fi
       - name: Upload Desktop integration tests artifact
         uses: actions/upload-artifact@v3
         if: ${{ !cancelled() }}
         with:
-          name: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
-          path: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+          name: testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
+          path: testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Upload Desktop build results artifact
         uses: actions/upload-artifact@v3
         if: ${{ !cancelled() }}
         with:
           name: log-artifact
-          path: build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}*
+          path: build-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Cleanup Local Copies of Uploaded Artifacts
         shell: bash
         run: |
-          rm -rf testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+          rm -rf testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
       - name: Set CLOUDSDK_PYTHON (Windows)
         shell: bash
         if: startsWith(matrix.os, 'windows') && !cancelled()
@@ -432,7 +432,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
+          cat build-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}.log
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
