@@ -46,6 +46,11 @@ env:
   pythonVersion: '3.7'
   artifactRetentionDays: 2
   GITHUB_TOKEN: ${{ github.token }}
+  # All self-hosted ARM Mac runners should have this label. Due to how
+  # our custom reporting works, it must be exactly two words separated
+  # by a hyphen. The first word must be "macos". The second word will
+  # be omitted from the summary log.
+  runnerLabelMacArm64: "macos-m1custom"
 
 jobs:
   check_and_prepare:
@@ -56,9 +61,6 @@ jobs:
       pr_number: ${{ steps.set_outputs.outputs.pr_number }}
       matrix_platform: ${{ steps.matrix_config.outputs.matrix_platform }}
       matrix_os: ${{ steps.matrix_config.outputs.matrix_os }}
-      matrix_arch_macos: ${{ steps.matrix_config.outputs.matrix_arch_macos }}
-      matrix_arch_windows_linux: ${{ steps.matrix_config.outputs.matrix_arch_windows_linux }}
-      matrix_arch_combined: ${{ steps.matrix_config.outputs.matrix_arch_combined }}
       matrix_ssl: ${{ steps.matrix_config.outputs.matrix_ssl }}
       apis: ${{ steps.matrix_config.outputs.apis }}
       mobile_test_on: ${{ steps.matrix_config.outputs.mobile_test_on }}
@@ -66,8 +68,6 @@ jobs:
       xcode_version: ${{ steps.matrix_config.outputs.xcode_version }}
       ios_device: ${{ steps.matrix_config.outputs.ios_device }}
       tvos_device: ${{ steps.matrix_config.outputs.tvos_device }}
-      # Copy the runner label here because matrix specifiers cannot see env.
-      runner_label_mac_arm64: ${{ env.runnerLabelMacArm64 }}
     steps:
     ### Fail the workflow if the user does not have admin access to run the tests.
     - name: Check if user has permission to trigger tests
