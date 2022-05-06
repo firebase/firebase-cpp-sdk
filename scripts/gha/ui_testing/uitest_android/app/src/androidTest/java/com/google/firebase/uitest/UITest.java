@@ -19,7 +19,6 @@ import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentat
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.util.Log;
 import androidx.core.content.FileProvider;
@@ -60,7 +59,7 @@ public class UITest {
         DEFAULT_TIMEOUT); // Wait for the app to appear
     Log.e(TAG, "GMA launched");
 
-    // TestAdViewAdClick
+    // TestAdViewAdOpenedAdClosed
     UiObject2 reference = device.wait(Until.findObject(By.text("Test Ad")), 60 * 1000);
     Assert.assertNotNull(reference);
     Log.e(TAG, "TestAdVie loaded");
@@ -70,26 +69,12 @@ public class UITest {
     int y = reference.getVisibleBounds().bottom + 5;
     device.click(x, y);
     Thread.sleep(DEFAULT_TIMEOUT);
-    bringToForeground(GMA_PACKAGE);
+    device.pressBack(); // back to testapp
     Log.e(TAG, "TestAdViewAdClick closed");
 
     Thread.sleep(DEFAULT_TIMEOUT);
 
-    // TestInterstitialAdClose
-    reference = device.wait(Until.findObject(By.text("Test Ad")), WAIT_UI_TIMEOUT);
-    Assert.assertNotNull(reference);
-    Log.e(TAG, "InterstitialAd loaded");
-    Thread.sleep(DEFAULT_TIMEOUT);
-    // click the top left corner close bottom.
-    // Use "Test Ad" TextView bottom position as the reference
-    x = reference.getVisibleBounds().bottom;
-    y = reference.getVisibleBounds().bottom;
-    device.click(x, y);
-    Log.e(TAG, "InterstitialAd closed");
-
-    Thread.sleep(DEFAULT_TIMEOUT);
-
-    // TestInterstitialAdClickAndClose
+    // TestInterstitialAdLoadAndShow
     reference = device.wait(Until.findObject(By.text("Test Ad")), WAIT_UI_TIMEOUT);
     Assert.assertNotNull(reference);
     Log.e(TAG, "InterstitialAd2 loaded");
@@ -100,7 +85,7 @@ public class UITest {
     device.click(x, y);
     Log.e(TAG, "InterstitialAd2 clicked");
     Thread.sleep(DEFAULT_TIMEOUT);
-    bringToForeground(GMA_PACKAGE);
+    device.pressBack(); // back to testapp
     Thread.sleep(DEFAULT_TIMEOUT);
     // click the top left corner close bottom.
     // Use "Test Ad" TextView bottom position as the reference
@@ -111,7 +96,7 @@ public class UITest {
 
     Thread.sleep(DEFAULT_TIMEOUT);
 
-    // TestRewardedAdClose
+    // TestRewardedAdLoadAndShow
     UiObject countDown = device.findObject(new UiSelector().textContains("seconds"));
     Assert.assertTrue(countDown.waitForExists(WAIT_UI_TIMEOUT));
     Log.e(TAG, "RewardedAd loaded");
@@ -123,10 +108,10 @@ public class UITest {
     device.click(x, y);
     Log.e(TAG, "RewardedAd closed");
 
-    // Finish GMA UI Tests
-    Thread.sleep(10 * 1000);
-    reference = device.wait(Until.findObject(By.text("Test Ad")), WAIT_UI_TIMEOUT);
-    Assert.assertNull(reference);
+    // Finish GMA Tests
+    Thread.sleep(60 * 1000);
+    // reference = device.wait(Until.findObject(By.text("Test Ad")), WAIT_UI_TIMEOUT);
+    // Assert.assertNull(reference);
   }
 
   private void launchApp(String packageName) {
@@ -154,13 +139,6 @@ public class UITest {
     intent.setPackage(gamePackageName)
         .setDataAndType(fileUri, "application/javascript")
         .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-    context.startActivity(intent);
-  }
-
-  private void bringToForeground(String packageName) {
-    Context context = getApplicationContext();
-    Intent intent = context.getPackageManager().getLaunchIntentForPackage(GMA_PACKAGE);
-    intent.setFlags(Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED | Intent.FLAG_ACTIVITY_NEW_TASK);
     context.startActivity(intent);
   }
 }

@@ -184,6 +184,13 @@ def main(argv):
   current_dir = pathlib.Path(__file__).parent.absolute()
   testapp_dir = os.path.abspath(os.path.expanduser(FLAGS.testapp_dir))
   
+  config_path = os.path.join(current_dir, "integration_testing", "build_testapps.json")
+  with open(config_path, "r") as configFile:
+    config = json.load(configFile)
+  if not config:
+    logging.error("No config file found")
+    return 23
+
   ios_testapps = []
   tvos_testapps = []
   android_testapps = []
@@ -192,13 +199,22 @@ def main(argv):
     for directory in directories:
       full_path = os.path.join(file_dir, directory)
       if directory.endswith("integration_test.app"):
-        ios_testapps.append(full_path)
+        if FLAGS.test_type == _TEST_TYPE_UITEST and not _has_uitests(full_path, config):
+          logging.info("Skip %s, as it has no uitest", full_path)
+        else:
+          ios_testapps.append(full_path)
       elif directory.endswith("integration_test_tvos.app"):
-        tvos_testapps.append(full_path)
+        if FLAGS.test_type == _TEST_TYPE_UITEST and not _has_uitests(full_path, config):
+          logging.info("Skip %s, as it has no uitest", full_path)
+        else:
+          tvos_testapps.append(full_path)
     for file_name in file_names:
       full_path = os.path.join(file_dir, file_name)
       if file_name.endswith(".apk"):
-        android_testapps.append(full_path)    
+        if FLAGS.test_type == _TEST_TYPE_UITEST and not _has_uitests(full_path, config):
+          logging.info("Skip %s, as it has no uitest", full_path)
+        else:
+          android_testapps.append(full_path)    
 
   if not ios_testapps and not tvos_testapps and not android_testapps:
     logging.info("No testapps found")
@@ -230,13 +246,6 @@ def main(argv):
     if not ios_helper_app:
       logging.error("helper app not found")
       return 22
-
-    config_path = os.path.join(current_dir, "integration_testing", "build_testapps.json")
-    with open(config_path, "r") as configFile:
-      config = json.load(configFile)
-    if not config:
-      logging.error("No config file found")
-      return 23
   
     for app_path in ios_testapps:
       bundle_id = _get_bundle_id(app_path, config)
@@ -463,6 +472,13 @@ def _get_bundle_id(app_path, config):
       return api["bundle_id"]
 
 
+def _has_uitests(app_path, config):
+  """Get app bundle id from build_testapps.json file."""
+  for api in config["apis"]:
+    if api["name"] != "app" and (api["name"] in app_path or api["full_name"] in app_path):
+      return api.get("has_uitests", False)
+
+
 def _run_apple_test(bundle_id, app_path, helper_app, device_id, retry=1):
   """Run helper test and collect test result."""
   logging.info("Running apple helper test: %s, %s, %s, %s", bundle_id, app_path, helper_app, device_id)
@@ -472,7 +488,7 @@ def _run_apple_test(bundle_id, app_path, helper_app, device_id, retry=1):
   _uninstall_apple_app(bundle_id, device_id)
   if retry > 1:
     result = test_validation.validate_results(log, test_validation.CPP)
-    if not result.complete:
+    if not result.complete or (FLAGS.test_type=="uitest" and result.fails>0):
       logging.info("Retry _run_apple_test. Remaining retry: %s", retry-1)
       return _run_apple_test(bundle_id, app_path, helper_app, device_id, retry=retry-1)
   
@@ -638,7 +654,7 @@ def _run_android_test(package_name, app_path, helper_project, retry=1):
   _uninstall_android_app(package_name)
   if retry > 1:
     result = test_validation.validate_results(log, test_validation.CPP)
-    if not result.complete:
+    if not result.complete or (FLAGS.test_type=="uitest" and result.fails>0):
       logging.info("Retry _run_android_test. Remaining retry: %s", retry-1)
       return _run_android_test(package_name, app_path, helper_project, retry=retry-1)
   

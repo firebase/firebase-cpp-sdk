@@ -488,8 +488,10 @@ class TestAdInspectorClosedListener
   uint8_t num_successful_results_;
 };
 
+// This is for manual test only
 // Ensure we can open the AdInspector and listen to its events.
-TEST_F(FirebaseGmaUITest, TestAdInspector) {
+TEST_F(FirebaseGmaTest, TestAdInspector) {
+  TEST_REQUIRES_USER_INTERACTION;
   TestAdInspectorClosedListener listener;
 
   firebase::gma::OpenAdInspector(app_framework::GetWindowController(),
@@ -1013,7 +1015,11 @@ TEST_F(FirebaseGmaUITest, TestRewardedAdLoadAndShow) {
   LogDebug("Waiting for a moment to ensure all callbacks are recorded.");
   app_framework::ProcessEvents(2000);
 
-  EXPECT_EQ(content_listener.num_ad_clicked(), 1);
+  // If not running the UI test in CI (running mannually), keep this check.
+  // Else running the UI test in CI, skip this check.
+  if (!ShouldRunUITests()) {
+    EXPECT_EQ(content_listener.num_ad_clicked(), 1);
+  }
   EXPECT_EQ(content_listener.num_ad_showed_content(), 1);
   EXPECT_EQ(content_listener.num_ad_impressions(), 1);
   EXPECT_EQ(content_listener.num_ad_dismissed(), 1);
@@ -1208,7 +1214,7 @@ TEST_F(FirebaseGmaTest, TestAdViewAdSizeBeforeInitialization) {
   WaitForCompletion(ad_view->Destroy(), "Destroy AdView");
 }
 
-TEST_F(FirebaseGmaUITest, TestAdView) {
+TEST_F(FirebaseGmaTest, TestAdView) {
   SKIP_TEST_ON_DESKTOP;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
@@ -1886,7 +1892,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadExtrasClassName) {
 }
 
 // Stress tests.  These take a while so run them near the end.
-TEST_F(FirebaseGmaUITest, TestAdViewStress) {
+TEST_F(FirebaseGmaTest, TestAdViewStress) {
   SKIP_TEST_ON_DESKTOP;
 
   for (int i = 0; i < 10; ++i) {
@@ -1907,7 +1913,7 @@ TEST_F(FirebaseGmaUITest, TestAdViewStress) {
   }
 }
 
-TEST_F(FirebaseGmaUITest, TestInterstitialAdStress) {
+TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
   SKIP_TEST_ON_DESKTOP;
 
   for (int i = 0; i < 10; ++i) {
@@ -1926,7 +1932,7 @@ TEST_F(FirebaseGmaUITest, TestInterstitialAdStress) {
   }
 }
 
-TEST_F(FirebaseGmaUITest, TestRewardedAdStress) {
+TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
   SKIP_TEST_ON_DESKTOP;
 
   for (int i = 0; i < 10; ++i) {

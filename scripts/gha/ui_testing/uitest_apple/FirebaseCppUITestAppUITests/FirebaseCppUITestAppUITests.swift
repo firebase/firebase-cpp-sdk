@@ -69,7 +69,7 @@ class FirebaseCppUITestAppUITests: XCTestCase {
     // Start Automated UI Test
     let app = XCUIApplication(bundleIdentifier: "com.google.ios.admob.testapp")
 
-    // TestAdViewAdClick
+    // TestAdViewAdOpenedAdClosed
     var reference = app.staticTexts["Test mode"]
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
     // Click on the center point of the "Test Ad" TextView, where the Ad present
@@ -83,20 +83,7 @@ class FirebaseCppUITestAppUITests: XCTestCase {
 
     sleep(5)
 
-    // TestInterstitialAdClose
-    reference = app.staticTexts["Test mode"]
-    XCTAssertTrue(reference.waitForExistence(timeout: 60))
-    // Click the top left corner close bottom.
-    // Use "Test Ad" TextView bottom position as the reference
-    x = (reference.frame.origin.y + reference.frame.height)/2
-    y = (reference.frame.origin.y + reference.frame.height)/2
-    sleep(5)  // Wait until button hittable
-    let interstitial_ad_close_button = app.findElement(at: CGPoint(x: x, y: y))
-    interstitial_ad_close_button.tap()
-
-    sleep(5)
-
-    // TestInterstitialAdClickAndClose
+    // TestInterstitialAdLoadAndShow
     reference = app.staticTexts["Test mode"]
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
     // Click the center point of the device, where the Ad present
@@ -108,11 +95,17 @@ class FirebaseCppUITestAppUITests: XCTestCase {
     sleep(5)
     app.activate()
     sleep(5)
+    // Click the top left corner close bottom.
+    // Use "Test Ad" TextView bottom position as the reference
+    x = (reference.frame.origin.y + reference.frame.height)/2
+    y = (reference.frame.origin.y + reference.frame.height)/2
+    sleep(5)  // Wait until button hittable
+    let interstitial_ad_close_button = app.findElement(at: CGPoint(x: x, y: y))
     interstitial_ad_close_button.tap()
 
     sleep(5)
 
-    // TestRewardedAdClose
+    // TestRewardedAdLoadAndShow
     reference = app.webViews.staticTexts.containing(NSPredicate(format: "label CONTAINS 'seconds'")).element
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
     // Click the top right corner close bottom.
@@ -131,8 +124,8 @@ class FirebaseCppUITestAppUITests: XCTestCase {
       rewarded_ad_close_button.tap()
     }
 
-    // Finish GMA UI Tests
-    sleep(10)
+    // Finish GMA Tests
+    sleep(60)
     reference = app.staticTexts["Test mode"]
     XCTAssertFalse(reference.exists)
     app.terminate()
