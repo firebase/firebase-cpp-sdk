@@ -226,7 +226,7 @@ jobs:
           --run_id ${{github.run_id}}
 
   build_desktop:
-    name: build-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+    name: build-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
     needs: [check_and_prepare]
     runs-on: ${{ matrix.os }}
     # Skip this if there is an empty matrix (which can happen if "auto" was set above).
@@ -238,17 +238,18 @@ jobs:
         os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
         arch: ${{ fromJson(needs.check_and_prepare.outputs.matrix_arch_combined) }}
         ssl_variant: ${{ fromJson(needs.check_and_prepare.outputs.matrix_ssl) }}
+        # Because matrix_arch_combined combines mac, linux, and windows, we need a few exclusions.
         exclude:
         # Do not attempt to build for arm64 on Windows or Linux.
         - os: windows-latest
           arch: arm64
         - os: ubuntu-latest
           arch: arm64
-          # Do not attempt to build for x86 on Mac.
+        # Do not attempt to build for x86 on Mac.
         - os: macos-12
           arch: x86
-          # Until we support building openssl from source, we can't link to system openssl when cross-compiling.
-          # Builds all happen on x64 machines, so arm64 and x86 are technically cross-compiling.
+        # Until we support building openssl from source, we can't link to system openssl when cross-compiling.
+        # Builds all happen on x64 machines, so arm64 and x86 are technically cross-compiling.
         - ssl_variant: openssl
           arch: arm64 
         - ssl_variant: openssl
