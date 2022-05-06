@@ -177,6 +177,10 @@ flags.DEFINE_string(
     "arch", "x64",
     "(Desktop only) Which architecture to build: x64 (all) or arm64 (Mac only).")
 
+flags.DEFINE_integer(
+    "jobs", 3,
+    "(Desktop only) If > 0, pass in -j <number> to CMake to parallelize build")
+
 flags.DEFINE_multi_string(
     "cmake_flag", None,
     "Pass an additional flag to the CMake configure step."
@@ -458,7 +462,8 @@ def _build_desktop(sdk_dir, cmake_flags):
     cmake_configure_cmd += ["-DCMAKE_OSX_ARCHITECTURES=%s" %
                             ("arm64" if FLAGS.arch == "arm64" else "x86_64")]
   _run(cmake_configure_cmd + cmake_flags)
-  _run(["cmake", "--build", ".", "--config", "Debug"])
+  _run(["cmake", "--build", ".", "--config", "Debug"] +
+       ["-j", "%s" % FLAGS.jobs] if FLAGS.jobs > 0 else [])
 
 
 def _get_desktop_compiler_flags(compiler, compiler_table):
