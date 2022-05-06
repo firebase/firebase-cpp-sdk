@@ -71,6 +71,8 @@ jobs:
       xcode_version: ${{ steps.matrix_config.outputs.xcode_version }}
       ios_device: ${{ steps.matrix_config.outputs.ios_device }}
       tvos_device: ${{ steps.matrix_config.outputs.tvos_device }}
+      # Copy the runner label here because matrix specifiers cannot see env.
+      runner_label_mac_arm64: ${{ env.runnerLabelMacArm64 }}
     steps:
     ### Fail the workflow if the user does not have admin access to run the tests.
     - name: Check if user has permission to trigger tests
