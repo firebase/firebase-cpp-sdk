@@ -927,9 +927,110 @@ jobs:
     steps:
       - name: Clean up previous run
         shell: bash
-        if: ${{ contains(needs.check_and_prepare.outputs.matrix_os, matrix.build_os) }}
         run: |
           echo "Cleaning up previous run"
+          rm -rf "${{ github.workspace }}"/*
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{needs.check_and_prepare.outputs.github_ref}}
+      - name: Download Desktop integration tests artifact
+        uses: actions/download-artifact@v2.0.8
+        with:
+          path: testapps
+          name: testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
+      # Omit all of the prerequisites steps; we ensure that our self-hosted runners
+      # are configured with all prereqs already installed.
+      - name: Create keychain (macOS)
+        if: ${{ runner.os == 'macOS' }}
+        shell: bash
+        run: |
+          echo "Creating temporary keychain"
+          # Create a local keychain on Mac:
+          # Clean up previous temp keychain, if any.
+          security delete-keychain tmp-keychain 2> /dev/null || true
+          # Create temp keychain file and unlock it.
+          # (Avoid passing in -p on command line by using interactive mode.)
+          # Also set it to default settings so there is no unlock timeout.
+          security -i <<EOF
+          create-keychain -p ${{ secrets.TEST_SECRET }} tmp-keychain
+          set-keychain-settings tmp-keychain
+          unlock-keychain -p ${{ secrets.TEST_SECRET }} tmp-keychain
+          EOF
+          # Change the keychain list and default keychain to the temp keychain.
+          security list-keychains -d user -s tmp-keychain
+          security default-keychain -s tmp-keychain
+      - name: Restore google-services files
+        shell: bash
+        run: |
+          python scripts/gha/restore_secrets.py --passphrase_file=- --artifact testapps <<EOF
+          ${{ secrets.TEST_SECRET }}
+          EOF
+      - name: Run Desktop integration tests
+        shell: bash
+        run: |
+          if [[ '${{ matrix.runner_label }}' == '${{ needs.check_and_prepare.outputs.runner_label_mac_arm64 }}' ]]; then
+            # Mac ARM64 only: Use arch -arm64 prefix to ensure that the app is running on arm64.
+            cmd_prefix='arch -arm64'
+            # ARM Mac requires a firestore.json to specify the host as 127.0.0.1 rather than localhost.
+            # Otherwise the Firestore emulator cannot connect, probably because localhost is ipv6.
+            echo '{"emulators":{"firestore":{"port":"8080","host":"127.0.0.1"}}}' > firebase.json
+          fi
+          set -x
+          ${cmd_prefix} firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch}}-${{ matrix.ssl_variant }}"'
+          set +x
+        env:
+          USE_FIRESTORE_EMULATOR: true
+      - name: Delete keychain (macOS)
+        if: ${{ always() && runner.os == 'macOS' }}
+        shell: bash
+        run: |
+          # Remove the local keychain on Mac:
+          # Set back to the default login keychain.
+          security list-keychains -d user -s login.keychain
+          # Delete the temp keychain, if it exists.
+          security delete-keychain tmp-keychain || true
+      - name: Prepare results summary artifact
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          if [ ! -f testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch}}-${{ matrix.ssl_variant }}.log.json ]; then
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch}}-${{ matrix.ssl_variant }}.log.json
+          fi
+      - name: Upload Desktop test results artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v2.2.2
+        with:
+          name: log-artifact
+          path: testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}*
+          retention-days: ${{ env.artifactRetentionDays }}
+      - name: Download log artifacts
+        if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
+        uses: actions/download-artifact@v2.0.8
+        with:
+          path: test_results
+          name: log-artifact
+      - name: Update PR label and comment
+        if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
+        run: |
+          python scripts/gha/it_workflow.py --stage progress \
+            --token ${{github.token}} \
+            --issue_number ${{needs.check_and_prepare.outputs.pr_number}}\
+            --actor ${{github.actor}} \
+            --commit ${{needs.check_and_prepare.outputs.github_ref}} \
+            --run_id ${{github.run_id}}
+      - name: Summarize test results
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          cat testapps/test-results-desktop-${{ matrix.runner_label }}-${{ matrix.ssl_variant }}.log
+          if [[ "${{ job.status }}" != "success" ]]; then
+            exit 1
+          fi
+      - name: Clean up after this run
+        shell: bash
+        if: ${{ always() }}
+        run: |
+          echo "Cleaning up after this run"
           rm -rf "${{ github.workspace }}"/*
 
 
