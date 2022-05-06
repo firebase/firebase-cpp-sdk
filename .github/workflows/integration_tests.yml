@@ -854,6 +854,14 @@ jobs:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Contents/Developer
+      - name: install x86 prereqs (linux)
+        if: runner.os == 'Linux'
+        run: |
+          set -x
+          sudo dpkg --add_architecture i386
+          sudo apt update
+          # Linux tests require libsecret to be installed.
+          sudo apt install -V -y libsecret-1-0:i386
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
