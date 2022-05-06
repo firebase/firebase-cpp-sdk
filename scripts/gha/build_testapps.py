@@ -107,7 +107,7 @@ _DESKTOP = "Desktop"
 _SUPPORTED_PLATFORMS = (_ANDROID, _IOS, _TVOS, _DESKTOP)
 
 # Architecture
-_SUPPORTED_ARCHITECTURES = ("x64", "x86", "arm64")  # TODO: add x86
+_SUPPORTED_ARCHITECTURES = ("x64", "x86", "arm64")
 
 # Values for iOS SDK flag (where the iOS app will run)
 _APPLE_SDK_DEVICE = "real"
