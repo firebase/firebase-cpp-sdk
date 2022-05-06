@@ -829,7 +829,7 @@ jobs:
         # Do not attempt to run for x86 on Mac.
         - os: macos-12
           arch: x86
-        # MacOS hosted runner cannot test arm64 code.
+        # MacOS GitHub-hosted runner cannot test arm64 code.
         - os: macos-12
           arch: arm64
     steps:
