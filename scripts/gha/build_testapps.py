@@ -460,7 +460,8 @@ def _build_desktop(sdk_dir, cmake_flags):
   cmake_configure_cmd = ["cmake", ".", "-DCMAKE_BUILD_TYPE=Debug",
                                        "-DFIREBASE_CPP_SDK_DIR=" + sdk_dir]
   if utils.is_windows_os():
-    cmake_configure_cmd += ["-A", FLAGS.arch]
+    cmake_configure_cmd += ["-A",
+                            "Win32" if FLAGS.arch == "x86" else FLAGS.arch]
   elif utils.is_mac_os():
     # Ensure that correct Mac architecture is built.
     cmake_configure_cmd += ["-DCMAKE_OSX_ARCHITECTURES=%s" %
