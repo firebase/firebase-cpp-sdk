@@ -374,6 +374,7 @@ jobs:
             --artifact_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" \
             --noadd_timestamp \
             --short_output_paths \
+            --gha_build \
             ${additional_flags[*]}
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
@@ -521,6 +522,7 @@ jobs:
             --artifact_name "android-${{ matrix.os }}" \
             --noadd_timestamp \
             --short_output_paths \
+            --gha_build \
             ${additional_flags[*]}
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
@@ -640,6 +642,7 @@ jobs:
             --artifact_name "ios-${{ matrix.os }}" \
             --noadd_timestamp \
             --short_output_paths \
+            --gha_build \
             ${additional_flags[*]}
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
@@ -758,6 +761,7 @@ jobs:
             --artifact_name "tvos-${{ matrix.os }}" \
             --noadd_timestamp \
             --short_output_paths \
+            --gha_build \
             ${additional_flags[*]}
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
