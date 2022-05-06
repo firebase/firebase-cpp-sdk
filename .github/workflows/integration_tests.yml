@@ -199,11 +199,12 @@ jobs:
                                    | sed 's/ /\n/g' | sort | uniq`
         matrix_arch_combined_json=["$(echo ${matrix_arch_combined} | sed 's/ /,/g')"]
         echo "::set-output name=matrix_arch_combined::${matrix_arch_combined_json}"
-        # If building against a packaged SDK, only use boringssl.
+        # If building against a packaged SDK, consider it as using boringssl, as the packaged SDK uses boringssl under the hood.
+        # This avoids trying to install openssl on the system when compiling against the packaged SDK.
+        # As an added bonus, we ensure that the packaged SDK works even without openssl explicitly installed.
         if [[ -n "${{ github.event.inputs.test_packaged_sdk }}" ]]; then
           echo "::warning ::Downloading SDK package from previous run: https://github.com/${{github.repository}}/actions/runs/${{ github.event.inputs.test_packaged_sdk }}"
-          # Because the mobile tests require this value to be set to 'openssl', set it to 'openssl' here. It won't actually matter later.
-          echo "::set-output name=matrix_ssl::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k ssl_lib -o openssl )"
+          echo "::set-output name=matrix_ssl::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k ssl_lib -o boringssl )"
         else
           echo "::set-output name=matrix_ssl::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k ssl_lib -o "${{github.event.inputs.desktop_ssl_variants}}" )"
         fi
