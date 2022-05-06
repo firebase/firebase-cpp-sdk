@@ -46,11 +46,6 @@ env:
   pythonVersion: '3.7'
   artifactRetentionDays: 2
   GITHUB_TOKEN: ${{ github.token }}
-  # All self-hosted ARM Mac runners should have this label. Due to how
-  # our custom reporting works, it must be exactly two words separated
-  # by a hyphen. The first word must be "macos". The second word will
-  # be omitted from the summary log.
-  runnerLabelMacArm64: 'macos-m1custom'
 
 jobs:
   check_and_prepare:
