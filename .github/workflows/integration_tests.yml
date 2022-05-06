@@ -378,6 +378,7 @@ jobs:
             --noadd_timestamp \
             --short_output_paths \
             --gha_build \
+            --arch ${{ matrix.arch }} \
             ${additional_flags[*]}
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
