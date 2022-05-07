@@ -945,7 +945,7 @@ jobs:
     name: test-desktop-custom-runner-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
     needs: [check_and_prepare, build_desktop]
     runs-on: [self-hosted, firebase-cpp, '${{ matrix.runner_label }}' ]
-    if: needs.check_and_prepare.outputs.apis != '' && !cancelled()
+    if: contains(needs.check_and_prepare.outputs.matrix_platform, 'Desktop') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
     strategy:
       fail-fast: false
       matrix:
