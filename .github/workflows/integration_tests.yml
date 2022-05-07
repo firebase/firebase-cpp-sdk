@@ -1070,7 +1070,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat testapps/test-results-desktop-${{ matrix.runner_label }}-${{ matrix.ssl_variant }}.log
+          cat testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}.log
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
