@@ -40,7 +40,6 @@ import utils
 import shutil
 import subprocess
 import sys
-from install_x86_support_libraries import install
 
 def append_line_to_file(path, line):
   """Append the given line to the end of the file if it's not already in the file.
@@ -240,7 +239,7 @@ def main():
 
   # To build x86 on x86_64 linux hosts, we also need x86 support libraries
   if args.arch == 'x86' and utils.is_linux_os():
-    install_x86_support_libraries.install(args.gha_build)
+    utils.install_x86_support_libraries(args.gha_build)
 
   # Install C++ dependencies using vcpkg
   if not args.disable_vcpkg:
