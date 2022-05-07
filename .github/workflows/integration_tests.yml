@@ -861,7 +861,7 @@ jobs:
           sudo dpkg --add-architecture i386
           sudo apt update
           # Linux tests require libsecret to be installed.
-          sudo apt install -V -y libsecret-1-0:i386
+          sudo apt install -V -y libsecret-1-0:i386 libglib2.0-0:i386
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
