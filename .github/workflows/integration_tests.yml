@@ -316,7 +316,7 @@ jobs:
       - name: Install Desktop SDK & integration tests prerequisites
         uses: nick-invision/retry@v2
         with:
-          timeout_minutes: 2
+          timeout_minutes: 15
           max_attempts: 3
           command: |
             python scripts/gha/install_prereqs_desktop.py --gha_build --arch '${{ matrix.arch }}'
@@ -872,7 +872,7 @@ jobs:
       - name: install platform support libraries for running
         uses: nick-invision/retry@v2
         with:
-          timeout_minutes: 2
+          timeout_minutes: 15
           max_attempts: 3
           command: python scripts/gha/install_prereqs_desktop.py --gha_build --running_only --arch '${{ matrix.arch }}'
       - name: Set up Node (12)
