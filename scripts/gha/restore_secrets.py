@@ -22,7 +22,7 @@ python restore_secrets.py --passphrase_file [--repo_dir <path_to_repo>]
 --passphrase: Passphrase to decrypt the files. This option is insecure on a
     multi-user machine; use the --passphrase_file option instead.
 --passphrase_file: Specify a file to read the passphrase from (only reads the
-    first line).
+    first line). Use "-" (without quotes) for stdin.
 --repo_dir: Path to C++ SDK Github repository. Defaults to current directory.
 
 This script will perform the following:
@@ -48,7 +48,8 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string("repo_dir", os.getcwd(), "Path to C++ SDK Github repo.")
 flags.DEFINE_string("passphrase", None, "The passphrase itself.")
-flags.DEFINE_string("passphrase_file", None, "Path to file with passphrase.")
+flags.DEFINE_string("passphrase_file", None,
+                    "Path to file with passphrase. Use \"-\" (without quotes) for stdin.")
 flags.DEFINE_string("artifact", None, "Artifact Path, google-services.json will be placed here.")
 
 
@@ -60,6 +61,8 @@ def main(argv):
   # The passphrase is sensitive, do not log.
   if FLAGS.passphrase:
     passphrase = FLAGS.passphrase
+  elif FLAGS.passphrase_file == "-":
+    passphrase = input()
   elif FLAGS.passphrase_file:
     with open(FLAGS.passphrase_file, "r") as f:
       passphrase = f.readline().strip()
