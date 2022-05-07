@@ -869,10 +869,12 @@ jobs:
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
-      - name: Install Desktop SDK & integration tests prerequisites
-        uses: nick-invision/retry@v2
       - name: install platform support libraries for running
-        run: python scripts/gha/install_prereqs_desktop.py --gha_build --running_only --arch '${{ matrix.arch }}'
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 2
+          max_attempts: 3
+          command: python scripts/gha/install_prereqs_desktop.py --gha_build --running_only --arch '${{ matrix.arch }}'
       - name: Set up Node (12)
         uses: actions/setup-node@v2
         with:
