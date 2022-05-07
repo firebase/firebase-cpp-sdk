@@ -872,7 +872,7 @@ jobs:
       - name: Install Desktop SDK & integration tests prerequisites
         uses: nick-invision/retry@v2
       - name: install platform support libraries for running
-        run: python scripts/gha/install_prereqs_desktop.py --gha_build --runner_only --arch '${{ matrix.arch }}'
+        run: python scripts/gha/install_prereqs_desktop.py --gha_build --running_only --arch '${{ matrix.arch }}'
       - name: Set up Node (12)
         uses: actions/setup-node@v2
         with:

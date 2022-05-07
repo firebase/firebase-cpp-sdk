@@ -35,7 +35,7 @@ import utils
 def main():
   args = parse_cmdline_args()
 
-  if not args.run_only:
+  if not args.running_only:
     # Install protobuf on linux/mac if its not installed already
     if not utils.is_command_installed('protoc'):
       if utils.is_linux_os():
