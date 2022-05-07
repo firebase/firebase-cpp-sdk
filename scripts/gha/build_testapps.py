@@ -192,6 +192,20 @@ flags.DEFINE_integer(
     "(Desktop only) If > 0, pass in -j <number> to make CMake parallelize the"
     " build. Defaults to the system's CPU count (max %s)." % MAX_CPU_COUNT)
 
+# Get the number of CPUs for the default value of FLAGS.jobs
+CPU_COUNT = os.cpu_count();
+# If CPU count couldn't be determined, default to 2.
+DEFAULT_CPU_COUNT = 2
+if CPU_COUNT is None: CPU_COUNT = DEFAULT_CPU_COUNT
+# Cap at 4 CPUs.
+MAX_CPU_COUNT = 4
+if CPU_COUNT > MAX_CPU_COUNT: CPU_COUNT = MAX_CPU_COUNT
+
+flags.DEFINE_integer(
+    "jobs", CPU_COUNT,
+    "(Desktop only) If > 0, pass in -j <number> to make CMake parallelize the"
+    " build. Defaults to the system's CPU count (max %s)." % MAX_CPU_COUNT)
+
 flags.DEFINE_multi_string(
     "cmake_flag", None,
     "Pass an additional flag to the CMake configure step."
