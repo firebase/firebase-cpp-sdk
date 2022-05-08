@@ -293,10 +293,11 @@ def main(argv):
       # the packaged SDK.
       temp_toolchain_file = tempfile.NamedTemporaryFile("w+", suffix=".cmake")
       temp_toolchain_file.writelines([
-        'set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")',
-        'set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")',
-        'set(CMAKE_LIBRARY_PATH "/usr/lib/i386-linux-gnu")',
-        'set(INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORIES} "/usr/include/i386-linux-gnu")'])
+        'set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")\n',
+        'set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")\n',
+        'set(CMAKE_LIBRARY_PATH "/usr/lib/i386-linux-gnu")\n',
+        'set(INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORIES} "/usr/include/i386-linux-gnu")\n'])
+      temp_toolchain_file.writelines()
       # Leave the file open, as it will be deleted on close, i.e. when this script exits.
       # (On Linux, the file can be opened a second time by cmake while still open by
       # this script)
