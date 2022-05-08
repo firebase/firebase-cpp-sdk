@@ -73,14 +73,15 @@ modify your bashrc file to automatically set these variables.
 
 """
 
+import attr
 import datetime
+import json
 import os
 import platform
 import shutil
 import subprocess
 import sys
-import json
-import attr
+import tempfile
 
 from absl import app
 from absl import flags
@@ -285,6 +286,22 @@ def main(argv):
         "-DFIREBASE_PYTHON_HOST_EXECUTABLE:FILEPATH=%s" % sys.executable,
     ))
 
+  if (_DESKTOP in platforms and FLAGS.packaged_sdk and
+      utils.is_linux_os() and FLAGS.arch == "x86"):
+      # Write out a temporary toolchain file to force 32-bit Linux builds, as
+      # the SDK-included toolchain file may not be present when building against
+      # the packaged SDK.
+      temp_toolchain_file = tempfile.NamedTemporaryFile(suffix=".cmake")
+      temp_toolchain_file.writelines([
+        'set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")',
+        'set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")',
+        'set(CMAKE_LIBRARY_PATH "/usr/lib/i386-linux-gnu")',
+        'set(INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORIES} "/usr/include/i386-linux-gnu")'])
+      # Leave the file open, as it will be deleted on close, i.e. when this script exits.
+      # (On Linux, the file can be opened a second time by cmake while still open by
+      # this script)
+      cmake_flags.extend(["-DCMAKE_TOOLCHAIN_FILE=%s" % temp_toolchain_file.name])
+
   if FLAGS.cmake_flag:
     cmake_flags.extend(FLAGS.cmake_flag)
 
@@ -480,6 +497,7 @@ def _build_desktop(sdk_dir, cmake_flags):
     # Ensure that correct Mac architecture is built.
     cmake_configure_cmd += ["-DCMAKE_OSX_ARCHITECTURES=%s" %
                             ("arm64" if FLAGS.arch == "arm64" else "x86_64")]
+
   _run(cmake_configure_cmd + cmake_flags)
   _run(["cmake", "--build", ".", "--config", "Debug"] +
        ["-j", str(FLAGS.jobs)] if FLAGS.jobs > 0 else [])
