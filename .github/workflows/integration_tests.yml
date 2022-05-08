@@ -945,7 +945,7 @@ jobs:
   test_desktop_custom_runners:
     name: test-desktop-custom-runner-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
     needs: [check_and_prepare, build_desktop]
-    runs-on: [self-hosted, firebase-cpp, '${{ matrix.runner_label }}']
+    runs-on: fromJSON(matrix.runs_on_json)
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'Desktop') && contains(needs.check_and_prepare.outputs.matrix_arch_combined, 'arm64') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
     strategy:
       fail-fast: false
@@ -954,6 +954,7 @@ jobs:
         os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
         arch: ${{ fromJson(needs.check_and_prepare.outputs.matrix_arch_combined) }}
         runner_label: ['${{ needs.check_and_prepare.outputs.runner_label_mac_arm64 }}']
+        runs_on_json: ['["self-hosted", "firebase-cpp", "${{ matrix.runner_label }}"]']
         exclude:
         # Don't run Linux or Windows tests on the Mac arm64 runner.
         - os: ubuntu-latest
