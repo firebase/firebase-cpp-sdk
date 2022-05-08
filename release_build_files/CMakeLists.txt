@@ -38,14 +38,11 @@ elseif(MSVC)
   else()
     set(MSVC_CPU x86)
   endif()
-  if(CMAKE_BUILD_TYPE STREQUAL Release)
-    set(MSVC_CONFIG Release)
-  else()
-    set(MSVC_CONFIG Debug)
-  endif()
   set(MSVC_VS_VERSION VS2019)
-  set(FIREBASE_SDK_LIBDIR
-      ${FIREBASE_CPP_SDK_DIR}/libs/windows/${MSVC_VS_VERSION}/${MSVC_RUNTIME_MODE}/${MSVC_CPU}/${MSVC_CONFIG})
+  set(FIREBASE_SDK_LIBDIR_DEBUG
+      ${FIREBASE_CPP_SDK_DIR}/libs/windows/${MSVC_VS_VERSION}/${MSVC_RUNTIME_MODE}/${MSVC_CPU}/Debug)
+  set(FIREBASE_SDK_LIBDIR_RELEASE
+      ${FIREBASE_CPP_SDK_DIR}/libs/windows/${MSVC_VS_VERSION}/${MSVC_RUNTIME_MODE}/${MSVC_CPU}/Release)
 else()
   # Check whether we are building with CXX11 ABI.
   get_directory_property(CURR_DIRECTORY_DEFS COMPILE_DEFINITIONS)
@@ -70,10 +67,22 @@ function(add_firebase_target TARGET_NAME)
       set(LIBRARY_NAME "lib${TARGET_NAME}.a")
     endif()
     add_library(${TARGET_NAME} STATIC IMPORTED GLOBAL)
-    set_target_properties(${TARGET_NAME} PROPERTIES
-      IMPORTED_LOCATION "${FIREBASE_SDK_LIBDIR}/${LIBRARY_NAME}"
-      INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_LIST_DIR}/include"
-    )
+    if(MSVC)
+      set_target_properties(${TARGET_NAME} PROPERTIES
+        IMPORTED_LOCATION_DEBUG "${FIREBASE_SDK_LIBDIR_DEBUG}/${LIBRARY_NAME}"
+        IMPORTED_LOCATION_RELEASE "${FIREBASE_SDK_LIBDIR_RELEASE}/${LIBRARY_NAME}"
+        INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_LIST_DIR}/include"
+      )
+      set_target_properties(${TARGET_NAME} PROPERTIES
+        MAP_IMPORTED_CONFIG_MINSIZEREL Release
+        MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release
+      )
+    else()
+      set_target_properties(${TARGET_NAME} PROPERTIES
+          IMPORTED_LOCATION "${FIREBASE_SDK_LIBDIR}/${LIBRARY_NAME}"
+          INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_LIST_DIR}/include"
+      )
+    endif()
     if(${DISABLE_CXX11})
       set_target_properties(${TARGET_NAME} PROPERTIES
         INTERFACE_COMPILE_DEFINITIONS "_GLIBCXX_USE_CXX11_ABI=0"
