@@ -857,6 +857,9 @@ jobs:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Contents/Developer
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download Desktop integration tests artifact
         uses: actions/download-artifact@v3
         with:
@@ -866,9 +869,6 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ env.pythonVersion }}
-      - uses: actions/checkout@v2
-        with:
-          ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: install platform support libraries for running
         uses: nick-invision/retry@v2
         with:
