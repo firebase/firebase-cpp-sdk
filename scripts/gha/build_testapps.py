@@ -291,7 +291,7 @@ def main(argv):
       # Write out a temporary toolchain file to force 32-bit Linux builds, as
       # the SDK-included toolchain file may not be present when building against
       # the packaged SDK.
-      temp_toolchain_file = tempfile.NamedTemporaryFile(suffix=".cmake")
+      temp_toolchain_file = tempfile.NamedTemporaryFile("w", suffix=".cmake")
       temp_toolchain_file.writelines([
         'set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")',
         'set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")',
