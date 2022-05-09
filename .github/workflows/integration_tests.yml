@@ -1013,28 +1013,26 @@ jobs:
           python scripts/gha/restore_secrets.py --passphrase_file=- --artifact testapps <<EOF
           ${{ secrets.TEST_SECRET }}
           EOF
-      - name: Run Desktop integration tests
+      - name: Run Desktop integration tests on M1 Mac
+        if: ${{ matrix.os == 'macos-12' && matrix.arch == 'arm64' && matrix.runner_label == needs.check_and_prepare.outputs.runner_label_mac_arm64 }}
         shell: bash
         run: |
-          if [[ '${{ matrix.runner_label }}' == '${{ needs.check_and_prepare.outputs.runner_label_mac_arm64 }}' ]]; then
-            # This is an M1 Mac GitHub self-hosted runner.
+          # This is an M1 Mac GitHub self-hosted runner.
+          # Use arch command to ensure that the app is running in the correct processor mode (arm64).
+          cmd_prefix='arch -arm64'
 
-            # Use arch command to ensure that the app is running in the correct processor mode (arm64).
-            cmd_prefix='arch -${{ matrix.arch }}'
+          # If Firestore is included, use the emulator; otherwise just run the tests standalone.
+          if [[ "${{ needs.check_and_prepare.outputs.apis }}" == *"firestore"* ]]; then
+            # ARM Mac requires a firestore.json to specify the host as 127.0.0.1 rather than localhost.
+            # Otherwise the Firestore emulator cannot connect, probably because localhost is ipv6.
+            echo '{"emulators":{"firestore":{"port":"8080","host":"127.0.0.1"}}}' > firebase.json
 
-            # If Firestore is included, use the emulator; otherwise just run the tests standalone.
-            if [[ "${{ needs.check_and_prepare.outputs.apis }}" == *"firestore"* ]]; then
-              # ARM Mac requires a firestore.json to specify the host as 127.0.0.1 rather than localhost.
-              # Otherwise the Firestore emulator cannot connect, probably because localhost is ipv6.
-              echo '{"emulators":{"firestore":{"port":"8080","host":"127.0.0.1"}}}' > firebase.json
-
-              set -x
-              firebase emulators:exec --only firestore --project demo-example \
-                'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" --cmd_prefix='"\"${cmd_prefix}\""
-            else
-              set -x
-              python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" --cmd_prefix="${cmd_prefix}"
-            fi
+            set -x
+            firebase emulators:exec --only firestore --project demo-example \
+              'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" --cmd_prefix='"\"${cmd_prefix}\""
+          else
+            set -x
+            python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" --cmd_prefix="${cmd_prefix}"
           fi
         env:
           USE_FIRESTORE_EMULATOR: true
