@@ -281,7 +281,7 @@ def main():
 
   # To build x86 on x86_64 linux hosts, we also need x86 support libraries
   if args.arch == 'x86' and utils.is_linux_os():
-    install_x86_support_libraries(args.gha_build)
+    utils.install_x86_support_libraries(args.gha_build)
 
   # Install C++ dependencies using vcpkg
   if not args.disable_vcpkg:
