@@ -320,7 +320,7 @@ jobs:
           timeout_minutes: 15
           max_attempts: 3
           command: |
-            python scripts/gha/install_prereqs_desktop.py --gha_build --arch '${{ matrix.arch }}'
+            python scripts/gha/install_prereqs_desktop.py --gha_build --arch '${{ matrix.arch }}' --ssl '${{ matrix.ssl_variant }}'
             pip install -r scripts/gha/requirements.txt
             python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
       - name: Install OpenSSL (Windows)
@@ -878,7 +878,8 @@ jobs:
         with:
           timeout_minutes: 15
           max_attempts: 3
-          command: python scripts/gha/install_prereqs_desktop.py --gha_build --running_only --arch '${{ matrix.arch }}'
+          command: python scripts/gha/install_prereqs_desktop.py --gha_build --running_only --arch '${{ matrix.arch }}' --ssl '${{ matrix.ssl_variant }}'
+
       - name: Set up Node (12)
         uses: actions/setup-node@v2
         with:
