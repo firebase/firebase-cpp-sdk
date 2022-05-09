@@ -58,7 +58,7 @@ else()  # LINUX
     set(LINUX_ABI cxx11)
   endif()
   # Check if we are building for x86
-  if ("${CMAKE_CXX_FLAGS}" MATCHES "-m32")
+  if (" ${CMAKE_CXX_FLAGS} " MATCHES " -m32 ")
     set(LINUX_CPU i386)
   else()
     set(LINUX_CPU x86_64)
