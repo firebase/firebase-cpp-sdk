@@ -46,7 +46,7 @@ elseif(MSVC)
   set(MSVC_VS_VERSION VS2019)
   set(FIREBASE_SDK_LIBDIR
       ${FIREBASE_CPP_SDK_DIR}/libs/windows/${MSVC_VS_VERSION}/${MSVC_RUNTIME_MODE}/${MSVC_CPU}/${MSVC_CONFIG})
-else()
+else()  # LINUX
   # Check whether we are building with CXX11 ABI.
   get_directory_property(CURR_DIRECTORY_DEFS COMPILE_DEFINITIONS)
   if ("${CURR_DIRECTORY_DEFS}" MATCHES "_GLIBCXX_USE_CXX11_ABI=0" OR
@@ -56,8 +56,13 @@ else()
   else()
     set(DISABLE_CXX11 FALSE)
     set(LINUX_ABI cxx11)
-  endif()  
-  set(LINUX_CPU x86_64)
+  endif()
+  # Check if we are building for x86
+  if (" ${CMAKE_CXX_FLAGS} " MATCHES " -m32 ")
+    set(LINUX_CPU i386)
+  else()
+    set(LINUX_CPU x86_64)
+  endif()
   set(FIREBASE_SDK_LIBDIR ${FIREBASE_CPP_SDK_DIR}/libs/linux/${LINUX_CPU}/${LINUX_ABI})
 endif()
 

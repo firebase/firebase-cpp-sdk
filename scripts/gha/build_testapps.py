@@ -177,6 +177,20 @@ flags.DEFINE_string(
     "arch", "x64",
     "(Desktop only) Which architecture to build: x64 (all) or arm64 (Mac only).")
 
+# Get the number of CPUs for the default value of FLAGS.jobs
+CPU_COUNT = os.cpu_count();
+# If CPU count couldn't be determined, default to 2.
+DEFAULT_CPU_COUNT = 2
+if CPU_COUNT is None: CPU_COUNT = DEFAULT_CPU_COUNT
+# Cap at 4 CPUs.
+MAX_CPU_COUNT = 4
+if CPU_COUNT > MAX_CPU_COUNT: CPU_COUNT = MAX_CPU_COUNT
+
+flags.DEFINE_integer(
+    "jobs", CPU_COUNT,
+    "(Desktop only) If > 0, pass in -j <number> to make CMake parallelize the"
+    " build. Defaults to the system's CPU count (max %s)." % MAX_CPU_COUNT)
+
 flags.DEFINE_multi_string(
     "cmake_flag", None,
     "Pass an additional flag to the CMake configure step."
@@ -458,7 +472,8 @@ def _build_desktop(sdk_dir, cmake_flags):
     cmake_configure_cmd += ["-DCMAKE_OSX_ARCHITECTURES=%s" %
                             ("arm64" if FLAGS.arch == "arm64" else "x86_64")]
   _run(cmake_configure_cmd + cmake_flags)
-  _run(["cmake", "--build", ".", "--config", "Debug"])
+  _run(["cmake", "--build", ".", "--config", "Debug"] +
+       ["-j", str(FLAGS.jobs)] if FLAGS.jobs > 0 else [])
 
 
 def _get_desktop_compiler_flags(compiler, compiler_table):
