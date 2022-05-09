@@ -40,6 +40,13 @@ namespace firebase {
 ///
 /// The AdMob API allows you to load and display mobile ads using the Google
 /// Mobile Ads SDK. Each ad format has its own header file.
+///
+/// @deprecated The functionality in the firebase::admob namespace has been
+/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
+/// how to transition to the new SDK in our
+/// <a
+/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// guide</a>.
 namespace admob {
 
 /// Initializes AdMob via Firebase.
@@ -50,7 +57,14 @@ namespace admob {
 /// kInitResultFailedMissingDependency on Android if Google Play services is not
 /// available on the current device and the Google Mobile Ads SDK requires
 /// Google Play services (for example, when using 'play-services-ads-lite').
-InitResult Initialize(const ::firebase::App& app);
+///
+/// @deprecated The functionality in the firebase::admob namespace has been
+/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
+/// how to transition to the new SDK in our
+/// <a
+/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// guide</a>.
+FIREBASE_DEPRECATED InitResult Initialize(const ::firebase::App& app);
 
 /// Initializes AdMob via Firebase with the publisher's AdMob app ID.
 /// Initializing the Google Mobile Ads SDK with the AdMob app ID at app launch
@@ -69,7 +83,15 @@ InitResult Initialize(const ::firebase::App& app);
 /// kInitResultFailedMissingDependency on Android if Google Play services is not
 /// available on the current device and the Google Mobile Ads SDK requires
 /// Google Play services (for example, when using 'play-services-ads-lite').
-InitResult Initialize(const ::firebase::App& app, const char* admob_app_id);
+///
+/// @deprecated The functionality in the firebase::admob namespace has been
+/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
+/// how to transition to the new SDK in our
+/// <a
+/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// guide</a>.
+FIREBASE_DEPRECATED InitResult Initialize(const ::firebase::App& app,
+                                          const char* admob_app_id);
 
 #if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 /// Initializes AdMob without Firebase for Android.
@@ -91,7 +113,14 @@ InitResult Initialize(const ::firebase::App& app, const char* admob_app_id);
 /// kInitResultFailedMissingDependency on Android if Google Play services is not
 /// available on the current device and the AdMob SDK requires
 /// Google Play services (for example when using 'play-services-ads-lite').
-InitResult Initialize(JNIEnv* jni_env, jobject activity);
+///
+/// @deprecated The functionality in the firebase::admob namespace has been
+/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
+/// how to transition to the new SDK in our
+/// <a
+/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// guide</a>.
+FIREBASE_DEPRECATED InitResult Initialize(JNIEnv* jni_env, jobject activity);
 
 /// Initializes AdMob via Firebase with the publisher's AdMob app ID.
 /// Initializing the Google Mobile Ads SDK with the AdMob app ID at app launch
@@ -121,12 +150,26 @@ InitResult Initialize(JNIEnv* jni_env, jobject activity);
 /// kInitResultFailedMissingDependency on Android if Google Play services is not
 /// available on the current device and the AdMob SDK requires
 /// Google Play services (for example when using 'play-services-ads-lite').
-InitResult Initialize(JNIEnv* jni_env, jobject activity,
-                      const char* admob_app_id);
+///
+/// @deprecated The functionality in the firebase::admob namespace has been
+/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
+/// how to transition to the new SDK in our
+/// <a
+/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// guide</a>.
+FIREBASE_DEPRECATED InitResult Initialize(JNIEnv* jni_env, jobject activity,
+                                          const char* admob_app_id);
 #endif  // defined(__ANDROID__) || defined(DOXYGEN)
 #if !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 /// Initializes AdMob without Firebase for iOS.
-InitResult Initialize();
+///
+/// @deprecated The functionality in the firebase::admob namespace has been
+/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
+/// how to transition to the new SDK in our
+/// <a
+/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// guide</a>.
+FIREBASE_DEPRECATED InitResult Initialize();
 
 /// Initializes AdMob with the publisher's AdMob app ID and without Firebase for
 /// iOS.
@@ -142,14 +185,28 @@ InitResult Initialize();
 /// @param[in] admob_app_id The publisher's AdMob app ID.
 ///
 /// @return kInitResultSuccess if initialization succeeded
-InitResult Initialize(const char* admob_app_id);
+///
+/// @deprecated The functionality in the firebase::admob namespace has been
+/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
+/// how to transition to the new SDK in our
+/// <a
+/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// guide</a>.
+FIREBASE_DEPRECATED InitResult Initialize(const char* admob_app_id);
 #endif  // !defined(__ANDROID__) || defined(DOXYGEN)
 
 /// @brief Terminate AdMob.
 ///
 /// Frees resources associated with AdMob that were allocated during
 /// @ref firebase::admob::Initialize().
-void Terminate();
+///
+/// @deprecated The functionality in the firebase::admob namespace has been
+/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
+/// how to transition to the new SDK in our
+/// <a
+/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// guide</a>.
+FIREBASE_DEPRECATED void Terminate();
 
 }  // namespace admob
 }  // namespace firebase
