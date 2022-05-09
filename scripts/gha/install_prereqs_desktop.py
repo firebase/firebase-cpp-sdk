@@ -29,62 +29,76 @@ python scripts/gha/install_prereqs_desktop.py
 
 """
 
+import argparse
 import utils
 
 def main():
-  # Install protobuf on linux/mac if its not installed already
-  if not utils.is_command_installed('protoc'):
-    if utils.is_linux_os():
-        # sudo apt install protobuf-compiler
-        utils.run_command(['apt', 'install', '-y','protobuf-compiler'], as_root=True)
-    elif utils.is_mac_os():
-        # brew install protobuf
-        utils.run_command(['brew', 'install', 'protobuf'])
-    
-  # Install go on linux/mac if its not installed already
-  if not utils.is_command_installed('go'):
-    if utils.is_linux_os():
-        # sudo apt install -y golang
-        utils.run_command(['apt', 'install', '-y','golang'], as_root=True)
-    elif utils.is_mac_os():
-        # brew install protobuf
-        utils.run_command(['brew', 'install', 'go'])
+  args = parse_cmdline_args()
 
-  # Install openssl on linux/mac if its not installed already
-  if not utils.is_command_installed('go'):
-    if utils.is_linux_os():
-        # sudo apt install -y openssl
-        utils.run_command(['apt', 'install', '-y','openssl'], as_root=True)
-    elif utils.is_mac_os():
-        # brew install protobuf
-        utils.run_command(['brew', 'install', 'openssl'])
+  if not args.running_only:
+    # Install protobuf on linux/mac if its not installed already
+    if not utils.is_command_installed('protoc'):
+      if utils.is_linux_os():
+          # sudo apt install protobuf-compiler
+          utils.run_command(['apt', 'install', '-y','protobuf-compiler'], as_root=True)
+      elif utils.is_mac_os():
+          # brew install protobuf
+          utils.run_command(['brew', 'install', 'protobuf'])
 
-  # Install ccache on linux/mac if its not installed already
-  if not utils.is_command_installed('ccache'):
-    if utils.is_linux_os():
-        # sudo apt install ccache
-        utils.run_command(['apt', 'install', '-y', 'ccache'], as_root=True)
-    elif utils.is_mac_os():
-        # brew install ccache
-        utils.run_command(['brew', 'install', 'ccache'])
-  
-  # Install clang-format on linux/mac if its not installed already
-  if not utils.is_command_installed('clang-format'):
-    if utils.is_linux_os():
-        # sudo apt install clang-format
-        utils.run_command(['apt', 'install', '-y','clang-format'], as_root=True)
-    elif utils.is_mac_os():
-        # brew install protobuf
-        utils.run_command(['brew', 'install', 'clang-format'])
+    # Install go on linux/mac if its not installed already
+    if not utils.is_command_installed('go'):
+      if utils.is_linux_os():
+          # sudo apt install -y golang
+          utils.run_command(['apt', 'install', '-y','golang'], as_root=True)
+      elif utils.is_mac_os():
+          # brew install protobuf
+          utils.run_command(['brew', 'install', 'go'])
 
-  # Install required python dependencies. 
-  # On Catalina, python2 in installed as default python.
-  # Example command:
-  # python3 -m pip install -r external/pip_requirements.txt --user
-  utils.run_command( 
-     ['python3' if utils.is_command_installed('python3') else 'python', '-m', 
-          'pip', 'install', '-r', 'external/pip_requirements.txt', '--user'] )
+    # Install openssl on linux/mac if its not installed already
+    if not utils.is_command_installed('go'):
+      if utils.is_linux_os():
+          # sudo apt install -y openssl
+          utils.run_command(['apt', 'install', '-y','openssl'], as_root=True)
+      elif utils.is_mac_os():
+          # brew install protobuf
+          utils.run_command(['brew', 'install', 'openssl'])
 
+    # Install ccache on linux/mac if its not installed already
+    if not utils.is_command_installed('ccache'):
+      if utils.is_linux_os():
+          # sudo apt install ccache
+          utils.run_command(['apt', 'install', '-y', 'ccache'], as_root=True)
+      elif utils.is_mac_os():
+          # brew install ccache
+          utils.run_command(['brew', 'install', 'ccache'])
+
+    # Install clang-format on linux/mac if its not installed already
+    if not utils.is_command_installed('clang-format'):
+      if utils.is_linux_os():
+          # sudo apt install clang-format
+          utils.run_command(['apt', 'install', '-y','clang-format'], as_root=True)
+      elif utils.is_mac_os():
+          # brew install protobuf
+          utils.run_command(['brew', 'install', 'clang-format'])
+
+    # Install required python dependencies.
+    # On Catalina, python2 in installed as default python.
+    # Example command:
+    # python3 -m pip install -r external/pip_requirements.txt --user
+    utils.run_command(
+       ['python3' if utils.is_command_installed('python3') else 'python', '-m',
+            'pip', 'install', '-r', 'external/pip_requirements.txt', '--user'] )
+
+  if args.arch == 'x86':
+    utils.install_x86_support_libraries(args.gha_build)
+
+def parse_cmdline_args():
+  parser = argparse.ArgumentParser(description='Install prerequisites for building cpp sdk')
+  parser.add_argument('--arch', default=None, help='Install support libraries to build a specific architecture (currently supported: x86)')
+  parser.add_argument('--running_only', action='store_true', help='Only install prerequisites for running, not for building')
+  parser.add_argument('--gha_build', action='store_true', default=None, help='Set to true when building on GitHub, changing some prerequisite installation behavior.')
+  args = parser.parse_args()
+  return args
 
 if __name__ == '__main__':
   main()
