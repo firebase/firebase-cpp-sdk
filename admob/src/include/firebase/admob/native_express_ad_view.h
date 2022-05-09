@@ -165,8 +165,8 @@ class NativeExpressAdView {
     /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
     /// guide</a>. Native Express Ads has been discontinued, and are no longer
     /// served.
-    virtual void OnPresentationStateChanged(NativeExpressAdView* ad_view,
-                                            PresentationState state) = 0;
+    FIREBASE_DEPRECATED virtual void OnPresentationStateChanged(
+        NativeExpressAdView* ad_view, PresentationState state) = 0;
     /// This method is called when the @ref NativeExpressAdView object's
     /// bounding box changes.
     /// @param[in] ad_view The native express ad view whose bounding box
@@ -180,8 +180,9 @@ class NativeExpressAdView {
     /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
     /// guide</a>. Native Express Ads has been discontinued, and are no longer
     /// served.
-    virtual void OnBoundingBoxChanged(NativeExpressAdView* ad_view,
-                                      BoundingBox box) = 0;
+    FIREBASE_DEPRECATED virtual void OnBoundingBoxChanged(
+        NativeExpressAdView* ad_view, BoundingBox box) = 0;
+
     virtual ~Listener();
   };
 
@@ -197,7 +198,7 @@ class NativeExpressAdView {
   /// served.
   FIREBASE_DEPRECATED NativeExpressAdView();
 
-  FIREBASE_DEPRECATED ~NativeExpressAdView();
+  ~NativeExpressAdView();
 
   /// Initializes the @ref NativeExpressAdView object.
   /// @param[in] parent The platform-specific UI element that will host the ad.
@@ -225,7 +226,7 @@ class NativeExpressAdView {
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>. Native Express Ads has been discontinued, and are no longer
   /// served.
-  Future<void> InitializeLastResult() const;
+  FIREBASE_DEPRECATED Future<void> InitializeLastResult() const;
 
   /// Begins an asynchronous request for an ad. If successful, the ad will
   /// automatically be displayed in the NativeExpressAdView.

@@ -54,6 +54,13 @@ typedef void *AdParent;
 // LINT.IfChange
 #endif  // INTERNAL_EXPERIMENTAL
 /// Error codes returned by Future::error().
+///
+/// @deprecated The functionality in the firebase::admob namespace has been
+/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
+/// how to transition to the new SDK in our
+/// <a
+/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// guide</a>.
 enum AdMobError {
   /// Call completed successfully.
   kAdMobErrorNone,
@@ -82,9 +89,23 @@ enum AdMobError {
 #endif  // INTERNAL_EXPERIMENTAL
 
 /// @brief Types of ad sizes.
+///
+/// @deprecated The functionality in the firebase::admob namespace has been
+/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
+/// how to transition to the new SDK in our
+/// <a
+/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// guide</a>.
 enum AdSizeType { kAdSizeStandard = 0 };
 
 /// @brief An ad size value to be used in requesting ads.
+///
+/// @deprecated The functionality in the firebase::admob namespace has been
+/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
+/// how to transition to the new SDK in our
+/// <a
+/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// guide</a>.
 struct AdSize {
   /// The type of ad size.
   AdSizeType ad_size_type;
@@ -96,6 +117,14 @@ struct AdSize {
 
 /// @brief Gender information used as part of the
 /// @ref firebase::admob::AdRequest struct.
+///
+///
+/// @deprecated The functionality in the firebase::admob namespace has been
+/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
+/// how to transition to the new SDK in our
+/// <a
+/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// guide</a>.
 enum Gender {
   /// The gender of the current user is unknown or unspecified by the publisher.
   kGenderUnknown = 0,
@@ -107,6 +136,13 @@ enum Gender {
 
 /// @brief Indicates whether an ad request is considered tagged for
 /// child-directed treatment.
+///
+/// @deprecated The functionality in the firebase::admob namespace has been
+/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
+/// how to transition to the new SDK in our
+/// <a
+/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// guide</a>.
 enum ChildDirectedTreatmentState {
   /// The child-directed status for the request is not indicated.
   kChildDirectedTreatmentStateUnknown = 0,
@@ -118,6 +154,13 @@ enum ChildDirectedTreatmentState {
 
 /// @brief Generic Key-Value container used for the "extras" values in an
 /// @ref firebase::admob::AdRequest.
+///
+/// @deprecated The functionality in the firebase::admob namespace has been
+/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
+/// how to transition to the new SDK in our
+/// <a
+/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// guide</a>.
 struct KeyValuePair {
   /// The name for an "extra."
   const char *key;
@@ -126,6 +169,13 @@ struct KeyValuePair {
 };
 
 /// @brief The information needed to request an ad.
+///
+/// @deprecated The functionality in the firebase::admob namespace has been
+/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
+/// how to transition to the new SDK in our
+/// <a
+/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// guide</a>.
 struct AdRequest {
   /// An array of test device IDs specifying devices that test ads will be
   /// returned for.
@@ -161,6 +211,13 @@ struct AdRequest {
 
 /// @brief The screen location and dimensions of an ad view once it has been
 /// initialized.
+///
+/// @deprecated The functionality in the firebase::admob namespace has been
+/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
+/// how to transition to the new SDK in our
+/// <a
+/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// guide</a>.
 struct BoundingBox {
   /// Default constructor which initializes all member variables to 0.
   BoundingBox() : height(0), width(0), x(0), y(0) {}

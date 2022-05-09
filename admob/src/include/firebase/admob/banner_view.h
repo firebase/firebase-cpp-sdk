@@ -172,7 +172,7 @@ class BannerView {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  BannerView();
+  FIREBASE_DEPRECATED BannerView();
 
   ~BannerView();
 
@@ -188,7 +188,9 @@ class BannerView {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> Initialize(AdParent parent, const char* ad_unit_id, AdSize size);
+  FIREBASE_DEPRECATED Future<void> Initialize(AdParent parent,
+                                              const char* ad_unit_id,
+                                              AdSize size);
 
   /// Returns a @ref Future that has the status of the last call to
   /// @ref Initialize.
@@ -199,7 +201,7 @@ class BannerView {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> InitializeLastResult() const;
+  FIREBASE_DEPRECATED Future<void> InitializeLastResult() const;
 
   /// Begins an asynchronous request for an ad. If successful, the ad
   /// will automatically be displayed in the BannerView.
@@ -213,7 +215,7 @@ class BannerView {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> LoadAd(const AdRequest& request);
+  FIREBASE_DEPRECATED Future<void> LoadAd(const AdRequest& request);
 
   /// Returns a @ref Future containing the status of the last call to
   /// @ref LoadAd.
@@ -224,7 +226,7 @@ class BannerView {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> LoadAdLastResult() const;
+  FIREBASE_DEPRECATED Future<void> LoadAdLastResult() const;
 
   /// Hides the BannerView.
   ///
@@ -234,7 +236,7 @@ class BannerView {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> Hide();
+  FIREBASE_DEPRECATED Future<void> Hide();
 
   /// Returns a @ref Future containing the status of the last call to
   /// @ref Hide.
@@ -245,7 +247,7 @@ class BannerView {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> HideLastResult() const;
+  FIREBASE_DEPRECATED Future<void> HideLastResult() const;
 
   /// Shows the @ref BannerView.
   ///
@@ -255,7 +257,7 @@ class BannerView {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> Show();
+  FIREBASE_DEPRECATED Future<void> Show();
 
   /// Returns a @ref Future containing the status of the last call to
   /// @ref Show.
@@ -266,7 +268,7 @@ class BannerView {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> ShowLastResult() const;
+  FIREBASE_DEPRECATED Future<void> ShowLastResult() const;
 
   /// Pauses the @ref BannerView. Should be called whenever the C++ engine
   /// pauses or the application loses focus.
@@ -277,7 +279,7 @@ class BannerView {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> Pause();
+  FIREBASE_DEPRECATED Future<void> Pause();
 
   /// Returns a @ref Future containing the status of the last call to
   /// @ref Pause.
@@ -288,7 +290,7 @@ class BannerView {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> PauseLastResult() const;
+  FIREBASE_DEPRECATED Future<void> PauseLastResult() const;
 
   /// Resumes the @ref BannerView after pausing.
   ///
@@ -298,7 +300,7 @@ class BannerView {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> Resume();
+  FIREBASE_DEPRECATED Future<void> Resume();
 
   /// Returns a @ref Future containing the status of the last call to
   /// @ref Resume.
@@ -309,7 +311,7 @@ class BannerView {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> ResumeLastResult() const;
+  FIREBASE_DEPRECATED Future<void> ResumeLastResult() const;
 
   /// Cleans up and deallocates any resources used by the @ref BannerView.
   ///
@@ -319,7 +321,7 @@ class BannerView {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> Destroy();
+  FIREBASE_DEPRECATED Future<void> Destroy();
 
   /// Returns a @ref Future containing the status of the last call to
   /// @ref Destroy.
@@ -330,7 +332,7 @@ class BannerView {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> DestroyLastResult() const;
+  FIREBASE_DEPRECATED Future<void> DestroyLastResult() const;
 
   /// Moves the @ref BannerView so that its top-left corner is located at
   /// (x, y). Coordinates are in pixels from the top-left corner of the screen.
@@ -348,7 +350,7 @@ class BannerView {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> MoveTo(int x, int y);
+  FIREBASE_DEPRECATED Future<void> MoveTo(int x, int y);
 
   /// Moves the @ref BannerView so that it's located at the given pre-defined
   /// position.
@@ -361,7 +363,7 @@ class BannerView {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> MoveTo(Position position);
+  FIREBASE_DEPRECATED Future<void> MoveTo(Position position);
 
   /// Returns a @ref Future containing the status of the last call to either
   /// version of @ref MoveTo.
@@ -372,7 +374,7 @@ class BannerView {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> MoveToLastResult() const;
+  FIREBASE_DEPRECATED Future<void> MoveToLastResult() const;
 
   /// Returns the current presentation state of the @ref BannerView.
   /// @return The current presentation state.
@@ -382,7 +384,7 @@ class BannerView {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  PresentationState presentation_state() const;
+  FIREBASE_DEPRECATED PresentationState presentation_state() const;
 
   /// Retrieves the @ref BannerView's current onscreen size and location.
   /// @return The current size and location. Values are in pixels, and location
@@ -394,7 +396,7 @@ class BannerView {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  BoundingBox bounding_box() const;
+  FIREBASE_DEPRECATED BoundingBox bounding_box() const;
 
   /// Sets the @ref Listener for this object.
   /// @param[in] listener A valid BannerView::Listener to receive callbacks.
@@ -405,7 +407,7 @@ class BannerView {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  void SetListener(Listener* listener);
+  FIREBASE_DEPRECATED void SetListener(Listener* listener);
 
  private:
   // An internal, platform-specific implementation object that this class uses

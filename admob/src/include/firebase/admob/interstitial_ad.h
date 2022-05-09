@@ -145,7 +145,7 @@ class InterstitialAd {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  InterstitialAd();
+  FIREBASE_DEPRECATED InterstitialAd();
 
   ~InterstitialAd();
 
@@ -159,7 +159,8 @@ class InterstitialAd {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> Initialize(AdParent parent, const char* ad_unit_id);
+  FIREBASE_DEPRECATED Future<void> Initialize(AdParent parent,
+                                              const char* ad_unit_id);
 
   /// Returns a @ref Future containing the status of the last call to
   /// @ref Initialize.
@@ -170,7 +171,7 @@ class InterstitialAd {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> InitializeLastResult() const;
+  FIREBASE_DEPRECATED Future<void> InitializeLastResult() const;
 
   /// Begins an asynchronous request for an ad. The
   /// @ref InterstitialAd::presentation_state method can be used to track the
@@ -184,7 +185,7 @@ class InterstitialAd {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> LoadAd(const AdRequest& request);
+  FIREBASE_DEPRECATED Future<void> LoadAd(const AdRequest& request);
 
   /// Returns a @ref Future containing the status of the last call to
   /// @ref LoadAd.
@@ -195,7 +196,7 @@ class InterstitialAd {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> LoadAdLastResult() const;
+  FIREBASE_DEPRECATED Future<void> LoadAdLastResult() const;
 
   /// Shows the @ref InterstitialAd. This should not be called unless an ad has
   /// already been loaded.
@@ -206,7 +207,7 @@ class InterstitialAd {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> Show();
+  FIREBASE_DEPRECATED Future<void> Show();
 
   /// Returns a @ref Future containing the status of the last call to @ref Show.
   ///
@@ -216,7 +217,7 @@ class InterstitialAd {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  Future<void> ShowLastResult() const;
+  FIREBASE_DEPRECATED Future<void> ShowLastResult() const;
 
   /// Returns the current presentation state of the @ref InterstitialAd.
   ///
@@ -228,7 +229,7 @@ class InterstitialAd {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  PresentationState presentation_state() const;
+  FIREBASE_DEPRECATED PresentationState presentation_state() const;
 
   /// Sets the @ref Listener for this @ref InterstitialAd.
   /// @param[in] listener A valid InterstititalAd::Listener to receive
@@ -240,7 +241,7 @@ class InterstitialAd {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  void SetListener(Listener* listener);
+  FIREBASE_DEPRECATED void SetListener(Listener* listener);
 
  private:
   // An internal, platform-specific implementation object that this class uses

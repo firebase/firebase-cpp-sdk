@@ -164,7 +164,7 @@ class Listener {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  virtual void OnRewarded(RewardItem reward) = 0;
+  FIREBASE_DEPRECATED virtual void OnRewarded(RewardItem reward) = 0;
 
   /// Invoked when the presentation state of the ad changes.
   /// @param[in] state The new presentation state.
@@ -175,7 +175,8 @@ class Listener {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  virtual void OnPresentationStateChanged(PresentationState state) = 0;
+  FIREBASE_DEPRECATED virtual void OnPresentationStateChanged(
+      PresentationState state) = 0;
 
   virtual ~Listener();
 };
@@ -204,7 +205,7 @@ class PollableRewardListener : public Listener {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  PollableRewardListener();
+  FIREBASE_DEPRECATED PollableRewardListener();
   ~PollableRewardListener();
 
   /// @deprecated The functionality in the firebase::admob namespace has been
@@ -213,7 +214,7 @@ class PollableRewardListener : public Listener {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  void OnRewarded(RewardItem reward);
+  FIREBASE_DEPRECATED void OnRewarded(RewardItem reward);
 
   /// @deprecated The functionality in the firebase::admob namespace has been
   /// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
@@ -221,7 +222,7 @@ class PollableRewardListener : public Listener {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  void OnPresentationStateChanged(PresentationState state);
+  FIREBASE_DEPRECATED void OnPresentationStateChanged(PresentationState state);
 
   /// Pop the oldest queued reward, and copy its data into the provided
   /// RewardItem. If no reward is available, the struct is unchanged.
@@ -234,7 +235,7 @@ class PollableRewardListener : public Listener {
   /// <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
-  bool PollReward(RewardItem* reward);
+  FIREBASE_DEPRECATED bool PollReward(RewardItem* reward);
 
  private:
   Mutex* mutex_;
@@ -252,7 +253,7 @@ class PollableRewardListener : public Listener {
 /// <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
-Future<void> Initialize();
+FIREBASE_DEPRECATED Future<void> Initialize();
 
 /// Returns a @ref Future that has the status of the last call to
 /// @ref Initialize.
@@ -263,7 +264,7 @@ Future<void> Initialize();
 /// <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
-Future<void> InitializeLastResult();
+FIREBASE_DEPRECATED Future<void> InitializeLastResult();
 
 /// Begins an asynchronous request for an ad.
 /// @param[in] ad_unit_id The ad unit ID to use in the request.
@@ -276,7 +277,8 @@ Future<void> InitializeLastResult();
 /// <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
-Future<void> LoadAd(const char* ad_unit_id, const AdRequest& request);
+FIREBASE_DEPRECATED Future<void> LoadAd(const char* ad_unit_id,
+                                        const AdRequest& request);
 
 /// Returns a @ref Future containing the status of the last call to
 /// @ref LoadAd.
@@ -287,7 +289,7 @@ Future<void> LoadAd(const char* ad_unit_id, const AdRequest& request);
 /// <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
-Future<void> LoadAdLastResult();
+FIREBASE_DEPRECATED Future<void> LoadAdLastResult();
 
 /// Shows an ad, assuming one has loaded. @ref LoadAd must be called before this
 /// method.
@@ -300,7 +302,7 @@ Future<void> LoadAdLastResult();
 /// <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
-Future<void> Show(AdParent parent);
+FIREBASE_DEPRECATED Future<void> Show(AdParent parent);
 
 /// Returns a @ref Future containing the status of the last call to
 /// @ref Show.
@@ -311,7 +313,7 @@ Future<void> Show(AdParent parent);
 /// <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
-Future<void> ShowLastResult();
+FIREBASE_DEPRECATED Future<void> ShowLastResult();
 
 /// Pauses any background processing associated with rewarded video. Should
 /// be called whenever the C++ engine pauses or the application loses focus.
@@ -322,7 +324,7 @@ Future<void> ShowLastResult();
 /// <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
-Future<void> Pause();
+FIREBASE_DEPRECATED Future<void> Pause();
 
 /// Returns a @ref Future containing the status of the last call to
 /// @ref Pause.
@@ -333,7 +335,7 @@ Future<void> Pause();
 /// <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
-Future<void> PauseLastResult();
+FIREBASE_DEPRECATED Future<void> PauseLastResult();
 
 /// Resumes the rewarded video system after pausing.
 ///
@@ -343,7 +345,7 @@ Future<void> PauseLastResult();
 /// <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
-Future<void> Resume();
+FIREBASE_DEPRECATED Future<void> Resume();
 
 /// Returns a @ref Future containing the status of the last call to
 /// @ref Resume.
@@ -354,7 +356,7 @@ Future<void> Resume();
 /// <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
-Future<void> ResumeLastResult();
+FIREBASE_DEPRECATED Future<void> ResumeLastResult();
 
 /// Cleans up and deallocates any resources used by rewarded video.
 /// No other methods in rewarded_video should be called once this method has
@@ -366,7 +368,7 @@ Future<void> ResumeLastResult();
 /// <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
-void Destroy();
+FIREBASE_DEPRECATED void Destroy();
 
 /// Returns the current presentation state, indicating if an ad is visible or
 /// if a video has started playing.
@@ -379,7 +381,7 @@ void Destroy();
 /// <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
-PresentationState presentation_state();
+FIREBASE_DEPRECATED PresentationState presentation_state();
 
 /// Sets the @ref Listener that should receive callbacks.
 /// @param[in] listener A valid Listener.
@@ -390,7 +392,7 @@ PresentationState presentation_state();
 /// <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
-void SetListener(Listener* listener);
+FIREBASE_DEPRECATED void SetListener(Listener* listener);
 
 }  // namespace rewarded_video
 }  // namespace admob
