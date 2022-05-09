@@ -414,7 +414,7 @@ jobs:
           timeout_minutes: 15
           max_attempts: 3
           command: |
-            python scripts/gha/install_prereqs_desktop.py --gha_build --arch '${{ matrix.architecture }}'
+            python scripts/gha/install_prereqs_desktop.py --gha_build --arch '${{ matrix.architecture }}' --ssl boringssl
 
       - name: Export verbose flag
         shell: bash
@@ -542,7 +542,7 @@ jobs:
       - name: Install prerequisites
         run: |
           cd sdk-src
-          python scripts/gha/install_prereqs_desktop.py
+          python scripts/gha/install_prereqs_desktop.py --ssl boringssl
           cd ..
 
       - name: postprocess and package built SDK

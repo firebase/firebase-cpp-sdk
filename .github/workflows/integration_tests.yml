@@ -277,7 +277,7 @@ jobs:
           timeout_minutes: 2
           max_attempts: 3
           command: |
-            python scripts/gha/install_prereqs_desktop.py
+            python scripts/gha/install_prereqs_desktop.py --ssl '${{ matrix.ssl_variant }}'
             pip install -r scripts/gha/requirements.txt
             python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
       - name: Install OpenSSL (Windows)

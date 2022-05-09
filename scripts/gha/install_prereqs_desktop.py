@@ -55,7 +55,7 @@ def main():
           utils.run_command(['brew', 'install', 'go'])
 
     # Install openssl on linux/mac if its not installed already
-    if not utils.is_command_installed('openssl'):
+    if not utils.is_command_installed('openssl') and args.ssl == 'openssl':
       if utils.is_linux_os():
           # sudo apt install -y openssl
           utils.run_command(['apt', 'install', '-y','openssl'], as_root=True)
@@ -96,7 +96,8 @@ def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Install prerequisites for building cpp sdk')
   parser.add_argument('--arch', default=None, help='Install support libraries to build a specific architecture (currently supported: x86)')
   parser.add_argument('--running_only', action='store_true', help='Only install prerequisites for running, not for building')
-  parser.add_argument('--gha_build', action='store_true', default=None, help='Set to true when building on GitHub, changing some prerequisite installation behavior.')
+  parser.add_argument('--gha_build', action='store_true', default=None, help='Set this option when building on GitHub, changing some prerequisite installation behavior')
+  parser.add_argument('--ssl', default='openssl', help='Which SSL is this build using (supported: openssl, boringssl)')
   args = parser.parse_args()
   return args
 
