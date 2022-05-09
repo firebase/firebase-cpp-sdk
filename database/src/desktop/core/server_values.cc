@@ -28,7 +28,8 @@ static const char kNameSubkeyServerValue[] = ".sv";
 
 Variant GenerateServerValues(int64_t server_time_offset) {
   Variant server_values = Variant::EmptyMap();
-  int64_t corrected_time = time(nullptr) * 1000L + server_time_offset;
+  int64_t corrected_time =
+      static_cast<int64_t>(time(nullptr)) * 1000L + server_time_offset;
   server_values.map()["timestamp"] = Variant::FromInt64(corrected_time);
   return server_values;
 }
