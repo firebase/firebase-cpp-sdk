@@ -849,9 +849,6 @@ jobs:
         - os: windows-latest
           ssl_variant: openssl
           arch: x86
-        - os: macos-12
-          ssl_variant: openssl
-          arch: arm64
         # Custom for this matrix: MacOS GitHub-hosted runner cannot test arm64
         # code. Exclude that scenario from running here; it will run in
         # test_desktop_custom_runners.
