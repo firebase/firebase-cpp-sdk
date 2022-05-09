@@ -96,7 +96,7 @@ def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Install prerequisites for building cpp sdk')
   parser.add_argument('--arch', default=None, help='Install support libraries to build a specific architecture (currently supported: x86)')
   parser.add_argument('--running_only', action='store_true', help='Only install prerequisites for running, not for building')
-  parser.add_argument('--gha_build', action='store_true', default=None, help='Set to true when building on GitHub, for metric tracking purposes (also changes some prerequisite installation behavior).')
+  parser.add_argument('--gha_build', action='store_true', default=None, help='Set to true when building on GitHub, changing some prerequisite installation behavior.')
   args = parser.parse_args()
   return args
 
