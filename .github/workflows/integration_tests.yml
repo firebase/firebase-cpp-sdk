@@ -199,6 +199,7 @@ jobs:
         echo "::set-output name=tvos_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k tvos_device -t ${mobile_test_on} )"
     - name: Update PR label and comment
       if: steps.set_outputs.outputs.pr_number
+      shell: bash
       run: |
         #Add the in-progress label and remove any previous labels.
         python scripts/gha/it_workflow.py --stage start \
@@ -384,8 +385,8 @@ jobs:
           path: test_results
           name: log-artifact
       - name: Update PR label and comment
-        shell: bash
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
+        shell: bash
         run: |
           pushd ${{env.GCS_UPLOAD_DIR}}
           python scripts/gha/it_workflow.py --stage progress \
@@ -515,6 +516,7 @@ jobs:
           name: log-artifact
       - name: Update PR label and comment
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
+        shell: bash
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
@@ -634,6 +636,7 @@ jobs:
           name: log-artifact
       - name: Update PR label and comment
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
+        shell: bash
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
@@ -752,6 +755,7 @@ jobs:
           name: log-artifact
       - name: Update PR label and comment
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
+        shell: bash
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
@@ -843,6 +847,7 @@ jobs:
           name: log-artifact
       - name: Update PR label and comment
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
+        shell: bash
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
@@ -948,6 +953,7 @@ jobs:
           name: log-artifact
       - name: Update PR label and comment
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
+        shell: bash
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
@@ -1053,6 +1059,7 @@ jobs:
           name: log-artifact
       - name: Update PR label and comment
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
+        shell: bash
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
@@ -1136,6 +1143,7 @@ jobs:
           name: log-artifact
       - name: Update PR label and comment
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
+        shell: bash
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
@@ -1182,6 +1190,7 @@ jobs:
           private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
       - name: Update PR label and comment
         if: ${{ needs.check_and_prepare.outputs.pr_number }}
+        shell: bash
         run: |
           python scripts/gha/it_workflow.py --stage end \
             --token ${{github.token}} \
