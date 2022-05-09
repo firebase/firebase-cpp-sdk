@@ -241,9 +241,9 @@ def install_x86_support_libraries(gha_build=False):
       packages = ['--allow-downgrades'] + packages + ['libpcre2-8-0=10.34-7']
 
     # First check if these packages exist on the machine already
-    devnull = open(os.devnull, "w")
-    process = subprocess.run(["dpkg", "-s"] + packages, stdout=devnull, stderr=subprocess.STDOUT)
-    devnull.close()
+    with open(os.devnull, "w") as devnull:
+      process = subprocess.run(["dpkg", "-s"] + packages, stdout=devnull, stderr=subprocess.STDOUT)
+
     if process.returncode != 0:
       # This implies not all of the required packages are already installed on user's machine
       # Install them.
