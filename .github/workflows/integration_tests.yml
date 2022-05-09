@@ -72,7 +72,7 @@ jobs:
       ios_device: ${{ steps.matrix_config.outputs.ios_device }}
       tvos_device: ${{ steps.matrix_config.outputs.tvos_device }}
       # Copy the runner label here because matrix specifiers cannot see env.
-      runner_label_mac_arm64: ${{ env.runnerLabelMacArm64 }}
+      runner_label_macos_arm64: ${{ env.runnerLabelMacArm64 }}
     steps:
     ### Fail the workflow if the user does not have admin access to run the tests.
     - name: Check if user has permission to trigger tests
@@ -958,20 +958,20 @@ jobs:
         ssl_variant: ${{ fromJson(needs.check_and_prepare.outputs.matrix_ssl) }}
         os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
         arch: ${{ fromJson(needs.check_and_prepare.outputs.matrix_arch_combined) }}
-        runner_label: ['${{ needs.check_and_prepare.outputs.runner_label_mac_arm64 }}']
+        runner_label: ['${{ needs.check_and_prepare.outputs.runner_label_macos_arm64 }}']
         exclude:
         # Don't run Linux or Windows tests on the Mac arm64 runner.
         - os: ubuntu-latest
-          runner_label: ${{ needs.check_and_prepare.outputs.runner_label_mac_arm64 }}
+          runner_label: ${{ needs.check_and_prepare.outputs.runner_label_macos_arm64 }}
         - os: windows-latest
-          runner_label: ${{ needs.check_and_prepare.outputs.runner_label_mac_arm64 }}
+          runner_label: ${{ needs.check_and_prepare.outputs.runner_label_macos_arm64 }}
         # Don't run x86 tests on any Mac runner.
         - os: macos-12
           arch: x86
         # Don't run x64 tests on the Mac arm64 runner.
         - os: macos-12
           arch: x64
-          runner_label: ${{ needs.check_and_prepare.outputs.runner_label_mac_arm64 }}
+          runner_label: ${{ needs.check_and_prepare.outputs.runner_label_macos_arm64 }}
         # Until we support building openssl from source, we can't link to system
         # openssl when cross-compiling, so exclude openssl from mac arm64 testing.
         - os: macos-12
@@ -1019,7 +1019,7 @@ jobs:
           ${{ secrets.TEST_SECRET }}
           EOF
       - name: Run Desktop integration tests on M1 Mac
-        if: ${{ matrix.os == 'macos-12' && matrix.arch == 'arm64' && matrix.runner_label == needs.check_and_prepare.outputs.runner_label_mac_arm64 }}
+        if: ${{ matrix.os == 'macos-12' && matrix.arch == 'arm64' && matrix.runner_label == needs.check_and_prepare.outputs.runner_label_macos_arm64 }}
         shell: bash
         run: |
           # This is an M1 Mac GitHub self-hosted runner.
