@@ -454,8 +454,8 @@ TEST_F(FirebaseDatabaseTest, TestSetAndGetSimpleValues) {
     WaitForCompletion(f7, "GetLongDouble");
 
     // Get the current time to compare to the Timestamp.
-    int64_t current_time_milliseconds =
-        static_cast<int64_t>(time(nullptr)) * 1000L;
+    time_t current_time = time(nullptr)
+    int64_t current_time_milliseconds = current_time * 1000L;
 
     EXPECT_EQ(f1.result()->value().AsString(), kSimpleString);
     EXPECT_EQ(f2.result()->value().AsInt64(), kSimpleInt);
