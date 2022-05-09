@@ -176,9 +176,13 @@ jobs:
             # binutils, used by older version of homebrew for hosting packages.
             brew update
 
-      - name: Install prerequisites
-        run: |
-          python scripts/gha/install_prereqs_desktop.py
+      - name: Install Desktop SDK prerequisites
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 15
+          max_attempts: 3
+          command: |
+            python scripts/gha/install_prereqs_desktop.py --gha_build --arch '${{ matrix.architecture }}'
 
       - name: Build SDK
         shell: bash
