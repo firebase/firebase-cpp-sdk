@@ -36,7 +36,10 @@ function(GetReleasedDep)
     firestore
 
     DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
-    URL https://github.com/firebase/firebase-ios-sdk/archive/${version}.tar.gz
+    GIT_REPOSITORY "https://github.com/firebase/firebase-ios-sdk.git"
+    # Pinned commit from https://github.com/firebase/firebase-ios-sdk/pull/9596
+    # (Enable Snappy compression support in LevelDb in cmake builds)
+    GIT_TAG ece67740ac77e95de658471e4b3d63161d5df5f0
 
     PREFIX ${PROJECT_BINARY_DIR}
 
