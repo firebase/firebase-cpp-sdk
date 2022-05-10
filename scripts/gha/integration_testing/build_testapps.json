@@ -6,7 +6,8 @@
       "bundle_id": "com.google.ios.analytics.testapp",
       "ios_target": "integration_test",
       "tvos_target": "integration_test_tvos",
-      "testapp_path": "analytics/integration_test",
+      "testapp_path": "app/integration_test",
+      "internal_testapp_path": "firestore/integration_test_internal",
       "frameworks": [
         "firebase_analytics.xcframework",
         "firebase.xcframework"

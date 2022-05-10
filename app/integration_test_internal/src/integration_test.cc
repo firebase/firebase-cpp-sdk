@@ -42,8 +42,6 @@ using firebase_test_framework::FirebaseTest;
 class FirebaseAppTest : public FirebaseTest {
  public:
   FirebaseAppTest();
-  static void SetUpTestSuite();
-  static void TearDownTestSuite();
 };
 
 FirebaseAppTest::FirebaseAppTest() {
@@ -57,20 +55,6 @@ FirebaseAppTest::FirebaseAppTest() {
 #else
 #define APP_CREATE_PARAMS
 #endif  // defined(__ANDROID__)
-
-void FirebaseAppTest::SetUpTestSuite() {
-  // Nothing to do here.
-}
-  
-void FirebaseAppTest::TearDownTestSuite() {
-  // The App integration test is too fast for FTL, so pause a few seconds
-  // here.
-  ProcessEvents(1000);
-  ProcessEvents(1000);
-  ProcessEvents(1000);
-  ProcessEvents(1000);
-  ProcessEvents(1000);
-}
 
 TEST_F(FirebaseAppTest, TestDefaultAppWithDefaultOptions) {
   firebase::App* default_app;
