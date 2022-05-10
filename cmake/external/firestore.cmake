@@ -18,17 +18,13 @@ if(TARGET firestore)
   return()
 endif()
 
-# If the format of the line below changes, then be sure to update
-# https://github.com/firebase/firebase-cpp-sdk/blob/fd054fa016/.github/workflows/update-dependencies.yml#L81
-set(version CocoaPods-9.0.0)
-
 function(GetReleasedDep)
-  message("Getting released firebase-ios-sdk @ ${version}")
   ExternalProject_Add(
     firestore
 
     DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
-    URL https://github.com/firebase/firebase-ios-sdk/archive/${version}.tar.gz
+    GIT_REPOSITORY "https://github.com/firebase/firebase-ios-sdk.git"
+    GIT_TAG c4c3d2f33c44c5fab79e4008ae086fa5bc7c0028
 
     PREFIX ${PROJECT_BINARY_DIR}
 
