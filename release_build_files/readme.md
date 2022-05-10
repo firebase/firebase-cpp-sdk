@@ -78,9 +78,11 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:30.0.0)
+|                          | (Android Bill of Materials)
 Firebase AdMob             | libfirebase_admob.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:21.0.0 
+|                          | com.google.firebase:firebase-analytics 
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-ads:19.8.0 
 |                          | (Maven package)
@@ -88,78 +90,79 @@ Firebase AdMob             | libfirebase_admob.a
 |                          | (Maven package)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:21.0.0 
+|                          | com.google.firebase:firebase-analytics 
 |                          | (Maven package)
 Firebase Authentication    | libfirebase_auth.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:21.0.0 
+|                          | com.google.firebase:firebase-analytics 
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-auth:21.0.3 
+|                          | com.google.firebase:firebase-auth 
 |                          | (Maven package)
 Firebase Dynamic Links     | libfirebase_dynamic_links.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:21.0.0 
+|                          | com.google.firebase:firebase-analytics 
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-dynamic-links:21.0.1
+|                          | com.google.firebase:firebase-dynamic-links
 |                          | (Maven package)
 Cloud Firestore            | libfirebase_firestore.a
 |                          | libfirebase_auth.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:21.0.0
+|                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-firestore:24.1.2
+|                          | com.google.firebase:firebase-firestore
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-auth:21.0.3
+|                          | com.google.firebase:firebase-auth
 |                          | (Maven package)
 Firebase Functions         | libfirebase_functions
 |                          | libfirebase_auth.a (optional)
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:21.0.0
+|                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-functions:20.1.0
+|                          | com.google.firebase:firebase-functions
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-auth:21.0.3
+|                          | com.google.firebase:firebase-auth
 |                          | (Maven package)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-installations:17.0.1
+|                          | com.google.firebase:firebase-installations
 |                          | (Maven package)
 Firebase Messaging         | libfirebase_messaging.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:21.0.0
+|                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-messaging:23.0.4
+|                          | com.google.firebase:firebase-messaging
 |                          | (Maven package)
 |                          | libmessaging_java.jar (Android service)
 |                          | androidx.core:core:1.7.0  (Maven package)
 Firebase Realtime Database | libfirebase_database.a
 |                          | libfirebase_auth.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:21.0.0
+|                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-database:20.0.5
+|                          | com.google.firebase:firebase-database
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-auth:21.0.3
+|                          | com.google.firebase:firebase-auth
 |                          | (Maven package)
 Firebase Remote Config     | libfirebase_remote_config.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:21.0.0
+|                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-config:21.1.0
+|                          | com.google.firebase:firebase-config
 |                          | (Maven package)
 Firebase Storage           | libfirebase_storage.a
 |                          | libfirebase_auth.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:21.0.0
+|                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-storage:20.0.1
+|                          | com.google.firebase:firebase-storage
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-auth:21.0.3
+|                          | com.google.firebase:firebase-auth
 |                          | (Maven package)
 
-Important: Each version of the Firebase C++ SDK supports specific Firebase
-Android SDK module versions. Please ensure that you reference the correct
-version of each Maven package listed above in your Gradle file.
+The Firebase C++ SDK uses an Android BoM (Bill of Materials) to specify a single
+Firebase Android SDK version number to use, rather than individual versions for
+each library. For more information, please see the [Firebase Android SDK
+documentation](https://firebase.google.com/docs/android/learn-more#bom).
 
 Note: AdMob C++ is not currently compatible with the latest Firebase AdMob
 Android SDK (20.x.x). Please ensure that you use firebase-ads version 19.8.0 in
@@ -572,6 +575,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming release
+-   Changes
+    -   General (Android): Switched over to Android BoM (Bill of Materials)
+        for dependency versions. This requires Gradle 5 or higher.
+
 ### 9.0.0
 -   Changes
     -   General (iOS): Firebase C++ on iOS is now built using Xcode 13.3.1.
