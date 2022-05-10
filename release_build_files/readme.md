@@ -86,8 +86,6 @@ Firebase AdMob             | libfirebase_admob.a
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-ads:19.8.0 
 |                          | (Maven package)
-|                          | com.google.android.gms:play-services-base:18.0.1 
-|                          | (Maven package)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics 
@@ -158,11 +156,18 @@ Firebase Storage           | libfirebase_storage.a
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-auth
 |                          | (Maven package)
+Google Play services module| com.google.android.gms:play-services-base:18.0.1 
+|                          | (Maven package)
 
 The Firebase C++ SDK uses an Android BoM (Bill of Materials) to specify a single
 Firebase Android SDK version number to use, rather than individual versions for
 each library. For more information, please see the [Firebase Android SDK
 documentation](https://firebase.google.com/docs/android/learn-more#bom).
+
+If you wish to use the `google_play_services::CheckAvailability` and
+`MakeAvailable` functions, or `firebase::ModuleInitializer`, you must include
+com.google.android.gms:play-services-base as a dependency as well, as listed
+under "Google Play services module" in the table above.
 
 Note: AdMob C++ is not currently compatible with the latest Firebase AdMob
 Android SDK (20.x.x). Please ensure that you use firebase-ads version 19.8.0 in
