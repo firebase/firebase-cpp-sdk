@@ -73,14 +73,15 @@ modify your bashrc file to automatically set these variables.
 
 """
 
+import attr
 import datetime
+import json
 import os
 import platform
 import shutil
 import subprocess
 import sys
-import json
-import attr
+import tempfile
 
 from absl import app
 from absl import flags
@@ -107,7 +108,7 @@ _DESKTOP = "Desktop"
 _SUPPORTED_PLATFORMS = (_ANDROID, _IOS, _TVOS, _DESKTOP)
 
 # Architecture
-_SUPPORTED_ARCHITECTURES = ("x64", "arm64")  # TODO: add x86
+_SUPPORTED_ARCHITECTURES = ("x64", "x86", "arm64")
 
 # Values for iOS SDK flag (where the iOS app will run)
 _APPLE_SDK_DEVICE = "real"
@@ -175,7 +176,8 @@ flags.DEFINE_string(
 
 flags.DEFINE_string(
     "arch", "x64",
-    "(Desktop only) Which architecture to build: x64 (all) or arm64 (Mac only).")
+    "(Desktop only) Which architecture to build: x64 (all), x86 (Windows/Linux), "
+    "or arm64 (Mac only).")
 
 # Get the number of CPUs for the default value of FLAGS.jobs
 CPU_COUNT = os.cpu_count();
@@ -219,6 +221,10 @@ flags.DEFINE_bool(
     "Use short directory names for output paths. Useful to avoid hitting file "
     "path limits on Windows.")
 
+flags.DEFINE_bool(
+    "gha_build", False,
+    "Set to true if this is a GitHub Actions build.")
+
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
@@ -261,7 +267,10 @@ def main(argv):
   if _DESKTOP in platforms and not FLAGS.packaged_sdk:
     vcpkg_arch = FLAGS.arch
     installer = os.path.join(repo_dir, "scripts", "gha", "build_desktop.py")
-    _run([sys.executable, installer, "--vcpkg_step_only", "--arch", vcpkg_arch])
+    # --gha_build may be required to enable x86 Linux GitHub workarounds.
+    additional_flags = ["--gha_build"] if FLAGS.gha_build else []
+    _run([sys.executable, installer, "--vcpkg_step_only", "--arch", vcpkg_arch]
+         + additional_flags)
     toolchain_file = os.path.join(
         repo_dir, "external", "vcpkg", "scripts", "buildsystems", "vcpkg.cmake")
     if utils.is_mac_os() and FLAGS.arch == "arm64":
@@ -276,6 +285,23 @@ def main(argv):
         "-DVCPKG_TARGET_TRIPLET=%s" % utils.get_vcpkg_triplet(arch=vcpkg_arch),
         "-DFIREBASE_PYTHON_HOST_EXECUTABLE:FILEPATH=%s" % sys.executable,
     ))
+
+  if (_DESKTOP in platforms and FLAGS.packaged_sdk and
+      utils.is_linux_os() and FLAGS.arch == "x86"):
+      # Write out a temporary toolchain file to force 32-bit Linux builds, as
+      # the SDK-included toolchain file may not be present when building against
+      # the packaged SDK.
+      temp_toolchain_file = tempfile.NamedTemporaryFile("w+", suffix=".cmake")
+      temp_toolchain_file.writelines([
+        'set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")\n',
+        'set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")\n',
+        'set(CMAKE_LIBRARY_PATH "/usr/lib/i386-linux-gnu")\n',
+        'set(INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORIES} "/usr/include/i386-linux-gnu")\n'])
+      temp_toolchain_file.flush()
+      # Leave the file open, as it will be deleted on close, i.e. when this script exits.
+      # (On Linux, the file can be opened a second time by cmake while still open by
+      # this script)
+      cmake_flags.extend(["-DCMAKE_TOOLCHAIN_FILE=%s" % temp_toolchain_file.name])
 
   if FLAGS.cmake_flag:
     cmake_flags.extend(FLAGS.cmake_flag)
@@ -466,11 +492,13 @@ def _build_desktop(sdk_dir, cmake_flags):
   cmake_configure_cmd = ["cmake", ".", "-DCMAKE_BUILD_TYPE=Debug",
                                        "-DFIREBASE_CPP_SDK_DIR=" + sdk_dir]
   if utils.is_windows_os():
-    cmake_configure_cmd += ["-A", "x64"]
+    cmake_configure_cmd += ["-A",
+                            "Win32" if FLAGS.arch == "x86" else FLAGS.arch]
   elif utils.is_mac_os():
     # Ensure that correct Mac architecture is built.
     cmake_configure_cmd += ["-DCMAKE_OSX_ARCHITECTURES=%s" %
                             ("arm64" if FLAGS.arch == "arm64" else "x86_64")]
+
   _run(cmake_configure_cmd + cmake_flags)
   _run(["cmake", "--build", ".", "--config", "Debug"] +
        ["-j", str(FLAGS.jobs)] if FLAGS.jobs > 0 else [])

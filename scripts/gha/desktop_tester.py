@@ -44,7 +44,9 @@ flags.DEFINE_string(
     "logfile_name", "",
     "Create test log artifact test-results-$logfile_name.log."
     " logfile will be created and placed in testapp_dir.")  
-
+flags.DEFINE_string(
+  "cmd_prefix", "",
+  "Prefix to include before the command when running each test")
 
 def main(argv):
   if len(argv) > 1:
@@ -106,7 +108,7 @@ class Test(object):
     os.chmod(self.testapp_path, 0o777)
     try:
       result = subprocess.run(
-          args=[self.testapp_path],
+          args=FLAGS.cmd_prefix.split() + [self.testapp_path],
           cwd=os.path.dirname(self.testapp_path),  # Testapp uses CWD for config
           stdout=subprocess.PIPE,
           stderr=subprocess.STDOUT,
