@@ -409,7 +409,7 @@ class BannerView {
   FIREBASE_DEPRECATED Future<void> MoveToLastResult() const;
 
   /// @deprecated
-  /// @brief Returns the current presentation state of the @ref BannerView.z
+  /// @brief Returns the current presentation state of the @ref BannerView.
   ///
   /// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
   /// namespace has been replaced by the Google Mobile Ads SDK in the
