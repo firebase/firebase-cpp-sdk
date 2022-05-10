@@ -97,7 +97,8 @@ namespace admob {
 /// <code>firebase::gma</code> namespace. Learn how to transition to the new
 /// SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
-/// guide</a>.namespace rewarded_video {
+/// guide</a>.
+namespace rewarded_video {
 #ifdef INTERNAL_EXPERIMENTAL
 // LINT.IfChange
 #endif  // INTERNAL_EXPERIMENTAL
