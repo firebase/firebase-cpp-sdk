@@ -16,26 +16,25 @@ import org.gradle.util.ConfigureUtil;
 
 // A map of library to the dependencies that need to be added for it.
 def firebaseDependenciesMap = [
-  'app' : ['com.google.firebase:firebase-analytics:21.0.0'],
+  'app' : ['com.google.firebase:firebase-analytics],
   'admob' : ['com.google.firebase:firebase-ads:19.8.0',
-             'com.google.firebase:firebase-analytics:21.0.0',
-             'com.google.android.gms:play-services-base:18.0.1'],
-  'analytics' : ['com.google.firebase:firebase-analytics:21.0.0'],
-  'auth' : ['com.google.firebase:firebase-auth:21.0.3'],
-  'database' : ['com.google.firebase:firebase-database:20.0.5'],
-  'dynamic_links' : ['com.google.firebase:firebase-dynamic-links:21.0.1'],
-  'firestore' : ['com.google.firebase:firebase-firestore:24.1.2'],
-  'functions' : ['com.google.firebase:firebase-functions:20.1.0'],
-  'installations' : ['com.google.firebase:firebase-installations:17.0.1'],
-  'invites' : ['com.google.firebase:firebase-invites:17.0.0'],
+             'com.google.firebase:firebase-analytics'],
+  'analytics' : ['com.google.firebase:firebase-analytics'],
+  'auth' : ['com.google.firebase:firebase-auth'],
+  'database' : ['com.google.firebase:firebase-database'],
+  'dynamic_links' : ['com.google.firebase:firebase-dynamic-links'],
+  'firestore' : ['com.google.firebase:firebase-firestore'],
+  'functions' : ['com.google.firebase:firebase-functions'],
+  'installations' : ['com.google.firebase:firebase-installations'],
+  'invites' : ['com.google.firebase:firebase-invites'],
   // Messaging has an additional local dependency to include.
-  'messaging' : ['com.google.firebase:firebase-messaging:23.0.4',
+  'messaging' : ['com.google.firebase:firebase-messaging',
                  'firebase_cpp_sdk.messaging:messaging_java',
                  'androidx.core:core:1.6.0-alpha03',
                  'com.google.flatbuffers:flatbuffers-java:1.12.0'],
-  'performance' : ['com.google.firebase:firebase-perf:20.0.6'],
-  'remote_config' : ['com.google.firebase:firebase-config:21.1.0'],
-  'storage' : ['com.google.firebase:firebase-storage:20.0.1'],
+  'performance' : ['com.google.firebase:firebase-perf'],
+  'remote_config' : ['com.google.firebase:firebase-config'],
+  'storage' : ['com.google.firebase:firebase-storage'],
   'testlab' : []
 ]
 
@@ -144,6 +143,10 @@ project.afterEvaluate {
       firebaseCpp.dependencies.libSet.add('app')
     }
 
+    // Add the bill-of-materials
+    project.dependencies {
+      implementation platform('com.google.firebase:firebase-bom:30.0.0')
+    }
     for (String lib : firebaseCpp.dependencies.libSet) {
       // Generate and include the proguard file
       generateAndAddProguard(lib)
@@ -161,4 +164,5 @@ project.afterEvaluate {
       }
     }
   }
+
 }
