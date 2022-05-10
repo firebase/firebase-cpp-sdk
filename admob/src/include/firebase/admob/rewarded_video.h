@@ -30,6 +30,7 @@ class Mutex;
 
 namespace admob {
 
+/// @deprecated
 /// @brief Loads and displays rewarded video ads via AdMob mediation.
 ///
 /// The rewarded_video namespace contains methods to load and display rewarded
@@ -91,23 +92,22 @@ namespace admob {
 /// }
 /// @endcode
 ///
-/// @deprecated The functionality in the firebase::admob namespace has been
-/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-/// how to transition to the new SDK in our
-/// <a
+/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+/// namespace has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
-/// guide</a>.
-namespace rewarded_video {
-
+/// guide</a>.namespace rewarded_video {
 #ifdef INTERNAL_EXPERIMENTAL
 // LINT.IfChange
 #endif  // INTERNAL_EXPERIMENTAL
-/// The possible presentation states for rewarded video.
+/// @deprecated
+/// @brief The possible presentation states for rewarded video.
 ///
-/// @deprecated The functionality in the firebase::admob namespace has been
-/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-/// how to transition to the new SDK in our
-/// <a
+/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+/// namespace has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
 enum PresentationState {
@@ -128,13 +128,14 @@ enum PresentationState {
 // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src_java/com/google/firebase/admob/internal/cpp/RewardedVideoHelper.java)
 #endif  // INTERNAL_EXPERIMENTAL
 
+/// @deprecated
 /// @brief A reward to be given to the user in exchange for watching a rewarded
 /// video ad.
 ///
-/// @deprecated The functionality in the firebase::admob namespace has been
-/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-/// how to transition to the new SDK in our
-/// <a
+/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+/// namespace has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
 struct RewardItem {
@@ -144,44 +145,48 @@ struct RewardItem {
   std::string reward_type;
 };
 
-/// A listener class that developers can extend and pass to @ref SetListener
-/// to be notified of rewards and changes to the presentation state.
+/// @deprecated
+/// @brief A listener class that developers can extend and pass to @ref
+/// SetListener to be notified of rewards and changes to the presentation state.
 ///
-/// @deprecated The functionality in the firebase::admob namespace has been
-/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-/// how to transition to the new SDK in our
-/// <a
+/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+/// namespace has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
 class Listener {
  public:
-  /// Invoked when the user should be given a reward for watching an ad.
-  /// @param[in] reward The user's reward.
+  /// @deprecated
+  /// @brief Invoked when the user should be given a reward for watching an ad.
   ///
-  /// @deprecated The functionality in the firebase::admob namespace has been
-  /// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-  /// how to transition to the new SDK in our
-  /// <a
+  /// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+  /// namespace has been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the new
+  /// SDK in our <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
+  /// @param[in] reward The user's reward.
   FIREBASE_DEPRECATED virtual void OnRewarded(RewardItem reward) = 0;
 
-  /// Invoked when the presentation state of the ad changes.
-  /// @param[in] state The new presentation state.
+  /// @deprecated
+  /// @brief Invoked when the presentation state of the ad changes.
   ///
-  /// @deprecated The functionality in the firebase::admob namespace has been
-  /// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-  /// how to transition to the new SDK in our
-  /// <a
+  /// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+  /// namespace has been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the new
+  /// SDK in our <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
+  /// @param[in] state The new presentation state.
   FIREBASE_DEPRECATED virtual void OnPresentationStateChanged(
       PresentationState state) = 0;
 
   virtual ~Listener();
 };
 
-/// A polling-based listener that developers can instantiate and pass to
+/// @deprecated
+/// @brief A polling-based listener that developers can instantiate and pass to
 /// @ref SetListener in order to queue rewards for later retrieval.
 ///
 /// The @ref PollReward method should be used to retrieve awards granted by the
@@ -189,52 +194,62 @@ class Listener {
 /// @ref rewarded_video::presentation_state can be used to poll the current
 /// presentation state, so no additional method has been added for it.
 ///
-/// @deprecated The functionality in the firebase::admob namespace has been
-/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-/// how to transition to the new SDK in our
-/// <a
+/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+/// namespace has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
 class PollableRewardListener : public Listener {
  public:
-  /// Default constructor.
+  /// @deprecated
+  /// @brief Default constructor.
   ///
-  /// @deprecated The functionality in the firebase::admob namespace has been
-  /// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-  /// how to transition to the new SDK in our
-  /// <a
+  /// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+  /// namespace has been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the new
+  /// SDK in our <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
   FIREBASE_DEPRECATED PollableRewardListener();
   ~PollableRewardListener();
 
-  /// @deprecated The functionality in the firebase::admob namespace has been
-  /// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-  /// how to transition to the new SDK in our
-  /// <a
+  /// @deprecated
+  /// @brief Invoked when the user should be given a reward for watching an ad.
+  ///
+  /// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+  /// namespace has been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the new
+  /// SDK in our <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
   FIREBASE_DEPRECATED void OnRewarded(RewardItem reward);
 
-  /// @deprecated The functionality in the firebase::admob namespace has been
-  /// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-  /// how to transition to the new SDK in our
-  /// <a
+  /// @deprecated
+  /// @brief nvoked when the presentation state of the ad changes.
+  ///
+  /// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+  /// namespace has been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the new
+  /// SDK in our <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
   FIREBASE_DEPRECATED void OnPresentationStateChanged(PresentationState state);
 
-  /// Pop the oldest queued reward, and copy its data into the provided
-  /// RewardItem. If no reward is available, the struct is unchanged.
-  /// @param reward Pointer to a struct that reward data can be copied into.
-  /// @returns true if a reward was popped and data was copied, false otherwise.
+  /// @deprecated
+  /// @brief Pop the oldest queued reward, and copy its data into the provided
+  /// RewardItem.
   ///
-  /// @deprecated The functionality in the firebase::admob namespace has been
-  /// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-  /// how to transition to the new SDK in our
-  /// <a
+  /// If no reward is available, the struct is unchanged.
+  ///
+  /// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+  /// namespace has been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the new
+  /// SDK in our <a
   /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
   /// guide</a>.
+  /// @param reward Pointer to a struct that reward data can be copied into.
+  /// @returns true if a reward was popped and data was copied, false otherwise.
   FIREBASE_DEPRECATED bool PollReward(RewardItem* reward);
 
  private:
@@ -244,154 +259,170 @@ class PollableRewardListener : public Listener {
   std::queue<RewardItem> rewards_;
 };
 
-/// Initializes rewarded video. This must be the first method invoked in
+/// @deprecated
+/// @brief Initializes rewarded video. This must be the first method invoked in
 /// this namespace.
 ///
-/// @deprecated The functionality in the firebase::admob namespace has been
-/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-/// how to transition to the new SDK in our
-/// <a
+/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+/// namespace has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
 FIREBASE_DEPRECATED Future<void> Initialize();
 
-/// Returns a @ref Future that has the status of the last call to
+/// @deprecated
+/// @brief Returns a @ref Future that has the status of the last call to
 /// @ref Initialize.
 ///
-/// @deprecated The functionality in the firebase::admob namespace has been
-/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-/// how to transition to the new SDK in our
-/// <a
+/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+/// namespace has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
 FIREBASE_DEPRECATED Future<void> InitializeLastResult();
 
-/// Begins an asynchronous request for an ad.
+/// @deprecated
+/// @brief Begins an asynchronous request for an ad.
+///
+/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+/// namespace has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a
+/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// guide</a>.
 /// @param[in] ad_unit_id The ad unit ID to use in the request.
 /// @param[in] request An AdRequest struct with information about the request
 ///                    to be made (such as targeting info).
-///
-/// @deprecated The functionality in the firebase::admob namespace has been
-/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-/// how to transition to the new SDK in our
-/// <a
-/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
-/// guide</a>.
 FIREBASE_DEPRECATED Future<void> LoadAd(const char* ad_unit_id,
                                         const AdRequest& request);
 
-/// Returns a @ref Future containing the status of the last call to
+/// @deprecated
+/// @brief Returns a @ref Future containing the status of the last call to
 /// @ref LoadAd.
 ///
-/// @deprecated The functionality in the firebase::admob namespace has been
-/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-/// how to transition to the new SDK in our
-/// <a
+/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+/// namespace has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
 FIREBASE_DEPRECATED Future<void> LoadAdLastResult();
 
-/// Shows an ad, assuming one has loaded. @ref LoadAd must be called before this
-/// method.
-/// @param[in] parent An @ref AdParent that is a reference to an iOS
-///                   UIView or an Android Activity.
+/// @deprecated
+/// @brief Shows an ad, assuming one has loaded.
 ///
-/// @deprecated The functionality in the firebase::admob namespace has been
-/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-/// how to transition to the new SDK in our
-/// <a
+/// @ref LoadAd must be called before this method.
+///
+/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+/// namespace has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
+/// @param[in] parent An @ref AdParent that is a reference to an iOS
+///                   UIView or an Android Activity.
 FIREBASE_DEPRECATED Future<void> Show(AdParent parent);
 
-/// Returns a @ref Future containing the status of the last call to
+/// @deprecated
+/// @brief Returns a @ref Future containing the status of the last call to
 /// @ref Show.
 ///
-/// @deprecated The functionality in the firebase::admob namespace has been
-/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-/// how to transition to the new SDK in our
-/// <a
+/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+/// namespace has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
 FIREBASE_DEPRECATED Future<void> ShowLastResult();
 
-/// Pauses any background processing associated with rewarded video. Should
-/// be called whenever the C++ engine pauses or the application loses focus.
+/// @deprecated
+/// @brief Pauses any background processing associated with rewarded video.
 ///
-/// @deprecated The functionality in the firebase::admob namespace has been
-/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-/// how to transition to the new SDK in our
-/// <a
+/// Should be called whenever the C++ engine pauses or the application loses
+/// focus.
+///
+/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+/// namespace has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
 FIREBASE_DEPRECATED Future<void> Pause();
 
-/// Returns a @ref Future containing the status of the last call to
+/// @deprecated
+/// @brief Returns a @ref Future containing the status of the last call to
 /// @ref Pause.
 ///
-/// @deprecated The functionality in the firebase::admob namespace has been
-/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-/// how to transition to the new SDK in our
-/// <a
+/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+/// namespace has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
 FIREBASE_DEPRECATED Future<void> PauseLastResult();
 
-/// Resumes the rewarded video system after pausing.
+/// @deprecated
+/// @brief Resumes the rewarded video system after pausing.
 ///
-/// @deprecated The functionality in the firebase::admob namespace has been
-/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-/// how to transition to the new SDK in our
-/// <a
+/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+/// namespace has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
 FIREBASE_DEPRECATED Future<void> Resume();
 
-/// Returns a @ref Future containing the status of the last call to
+/// @deprecated
+/// @brief Returns a @ref Future containing the status of the last call to
 /// @ref Resume.
 ///
-/// @deprecated The functionality in the firebase::admob namespace has been
-/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-/// how to transition to the new SDK in our
-/// <a
+/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+/// namespace has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
 FIREBASE_DEPRECATED Future<void> ResumeLastResult();
 
-/// Cleans up and deallocates any resources used by rewarded video.
+/// @deprecated
+/// @brief Cleans up and deallocates any resources used by rewarded video.
+///
 /// No other methods in rewarded_video should be called once this method has
 /// been invoked. The system is closed for business at that point.
 ///
-/// @deprecated The functionality in the firebase::admob namespace has been
-/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-/// how to transition to the new SDK in our
-/// <a
+/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+/// namespace has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
 FIREBASE_DEPRECATED void Destroy();
 
-/// Returns the current presentation state, indicating if an ad is visible or
-/// if a video has started playing.
+/// @deprecated
+/// @brief Returns the current presentation state, indicating if an ad is
+/// visible or if a video has started playing.
 ///
-/// @return The current presentation state.
-///
-/// @deprecated The functionality in the firebase::admob namespace has been
-/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-/// how to transition to the new SDK in our
-/// <a
+/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+/// namespace has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
+/// @return The current presentation state.
 FIREBASE_DEPRECATED PresentationState presentation_state();
 
-/// Sets the @ref Listener that should receive callbacks.
-/// @param[in] listener A valid Listener.
+/// @deprecated
+/// @brief Sets the @ref Listener that should receive callbacks.
 ///
-/// @deprecated The functionality in the firebase::admob namespace has been
-/// replaced by the Google Mobile Ads SDK in the firebase::gma SDK.  Learn
-/// how to transition to the new SDK in our
-/// <a
+/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
+/// namespace has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
+/// @param[in] listener A valid Listener.
 FIREBASE_DEPRECATED void SetListener(Listener* listener);
 
 }  // namespace rewarded_video
