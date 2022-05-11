@@ -356,11 +356,11 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
   /* does not exist. */                                                       \
   jclass CacheClassFromFiles(                                                 \
       JNIEnv *env, jobject activity_object,                                   \
-      const std::vector<::firebase::internal::EmbeddedFile>*        \
+      const std::vector<::firebase::internal::EmbeddedFile>*                  \
           embedded_files,                                                     \
-      ::firebase::util::ClassRequirement optional) {                \
+      ::firebase::util::ClassRequirement optional) {                          \
     if (!g_class) {                                                           \
-      g_class = ::firebase::util::FindClassGlobal(                  \
+      g_class = ::firebase::util::FindClassGlobal(                            \
           env, activity_object, embedded_files, kClassName, optional);        \
     }                                                                         \
     return g_class;                                                           \

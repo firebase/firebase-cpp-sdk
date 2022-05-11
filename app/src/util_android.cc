@@ -1522,13 +1522,13 @@ jclass FindClassGlobal(
     JNIEnv* env, jobject activity_object,
     const std::vector<internal::EmbeddedFile>* embedded_files,
     const char* class_name, ClassRequirement optional) {
-  LogDebug("Looking up class %s", class_name);
+  LogInfo("Looking up class %s", class_name);
   jclass local_class = FindClass(env, class_name);
   if (!local_class && embedded_files) {
     local_class =
         FindClassInFiles(env, activity_object, *embedded_files, class_name);
   }
-  LogDebug("Class %s, lref 0x%08x", class_name,
+  LogInfo("Class %s, lref 0x%08x", class_name,
            static_cast<int>(reinterpret_cast<intptr_t>(local_class)));
   if (!local_class) {
     if (optional == kClassRequired) {
