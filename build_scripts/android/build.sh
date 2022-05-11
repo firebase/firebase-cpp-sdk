@@ -44,7 +44,7 @@ set +e
 # network connectivity issues that cause the download to fail.
 gradleparams="-Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false\
  -Dmaven.wagon.httpconnectionManager.ttlSeconds=120"
-for retry in {1..10} error; do
+for retry in {1..1} error; do
     if [[ $retry == "error" ]]; then exit 5; fi
     ./gradlew assembleRelease "${gradleparams}" && break
     sleep 300
