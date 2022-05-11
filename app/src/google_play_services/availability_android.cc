@@ -19,6 +19,7 @@
 #include <jni.h>
 
 #include <map>
+#include <vector>
 
 #include "app/google_api_resources.h"
 #include "app/src/embedded_file.h"
