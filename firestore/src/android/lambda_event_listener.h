@@ -20,7 +20,7 @@
 #include <functional>
 
 #include "app/meta/move.h"
-#include "firebase/firestore/firestore_errors.h"
+#include "Firestore/core/include/firebase/firestore/firestore_errors.h"
 #include "firestore/src/common/event_listener.h"
 
 namespace firebase {
