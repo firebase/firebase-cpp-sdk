@@ -151,7 +151,7 @@ namespace {
 
 static int g_methods_cached_count = 0;
 static bool g_initialized_google_play_services = false;
-  
+
 void ReleaseClasses(JNIEnv* env);
 
 // Cache FirebaseApp and FirebaseOptions method IDs.
