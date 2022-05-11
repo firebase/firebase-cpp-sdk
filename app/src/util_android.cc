@@ -578,17 +578,23 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
     return true;
   }
 
-  util::Initialize(env, activity_object);
+  if (!util::Initialize(env, activity_object)) {
+    LogError("Failed to initialize util::gms");
+    return false;
+  }
 
   if (!(jniresultcallback::CacheClassFromFiles(env, activity_object,
                                                &g_embedded_files) &&
         jniresultcallback::CacheMethodIds(env, activity_object) &&
         jniresultcallback::RegisterNatives(env, &kJniCallbackMethod, 1))) {
+    util::Terminate(env);
     return false;
   }
 
   g_gms_initialized_count++;
+  return true;
 }
+
 void Terminate(JNIEnv* env) {
   g_gms_initialized_count--;
   if (g_gms_initialized_count == 0) {

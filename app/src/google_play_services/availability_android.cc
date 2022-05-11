@@ -187,9 +187,9 @@ bool Initialize(JNIEnv* env, jobject activity) {
       firebase::util::gms::Terminate(env);
     } else {
       firebase::LogError(
-			 "Unable to check Google Play services availablity as the "
-			 "com.google.android.gms.common.GoogleApiAvailability class is not "
-			 "present in this application.");
+          "Unable to check Google Play services availablity as the "
+          "com.google.android.gms.common.GoogleApiAvailability class is not "
+          "present in this application.");
     }
     firebase::util::Terminate(env);
   }
