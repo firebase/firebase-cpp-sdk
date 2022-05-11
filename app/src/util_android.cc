@@ -442,7 +442,7 @@ void TerminateActivityClasses(JNIEnv* env) {
 }
 
 static std::vector<internal::EmbeddedFile> g_embedded_files;
-  
+
 // This special version of Initialize() is used by gms::Initialize below.
 bool Initialize(JNIEnv* env, jobject activity_object) {
   // Note: We increment g_initialized_count when it's possible to call
