@@ -165,6 +165,16 @@ bool InitializeActivityClasses(JNIEnv* env, jobject activity_object);
 // classes.
 void Terminate(JNIEnv* env);
 
+namespace gms {
+// Initialize classes that use com.google.android.gms functionality.
+// Only initialize this if your Firebase library depends on
+// play-services-base.
+bool Initialize(JNIEnv* env, jobject activity_object);
+
+// Terminate classes that use com.google.android.gms functionality
+void Terminate(JNIEnv* env);
+}  // namespace gms
+
 // Terminate the activity class loader that was setup with
 // InitializeActivityClasses.
 void TerminateActivityClasses(JNIEnv* env);

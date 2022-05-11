@@ -155,32 +155,35 @@ bool Initialize(JNIEnv* env, jobject activity) {
 
   // We depend on firebase::util, so initialize it.
   if (firebase::util::Initialize(env, activity)) {
-    // Check if the GoogleApiAvailability class exists at all.
-    jclass availability_class = firebase::util::FindClass(
-        env, "com/google/android/gms/common/GoogleApiAvailability");
-    if (availability_class != nullptr) {
-      env->DeleteLocalRef(availability_class);
-      // Cache embedded files and load embedded classes.
-      const std::vector<firebase::internal::EmbeddedFile> embedded_files =
-          firebase::util::CacheEmbeddedFiles(
-              env, activity,
-              firebase::internal::EmbeddedFile::ToVector(
-                  google_api::google_api_resources_filename,
-                  google_api::google_api_resources_data,
-                  google_api::google_api_resources_size));
+    if (firebase::util::gms::Initialize(env, activity)) {
+      // Check if the GoogleApiAvailability class exists at all.
+      jclass availability_class = firebase::util::FindClass(
+          env, "com/google/android/gms/common/GoogleApiAvailability");
+      if (availability_class != nullptr) {
+        env->DeleteLocalRef(availability_class);
+        // Cache embedded files and load embedded classes.
+        const std::vector<firebase::internal::EmbeddedFile> embedded_files =
+            firebase::util::CacheEmbeddedFiles(
+                env, activity,
+                firebase::internal::EmbeddedFile::ToVector(
+                    google_api::google_api_resources_filename,
+                    google_api::google_api_resources_data,
+                    google_api::google_api_resources_size));
 
-      // Cache JNI methods.
-      if (googleapiavailability::CacheMethodIds(env, activity) &&
-          googleapiavailabilityhelper::CacheClassFromFiles(env, activity,
-                                                           &embedded_files) &&
-          googleapiavailabilityhelper::CacheMethodIds(env, activity) &&
-          googleapiavailabilityhelper::RegisterNatives(
-              env, kHelperMethods, FIREBASE_ARRAYSIZE(kHelperMethods))) {
-        // Everything initialized properly.
-        g_data->classes_loaded = true;
-        return true;
+        // Cache JNI methods.
+        if (googleapiavailability::CacheMethodIds(env, activity) &&
+            googleapiavailabilityhelper::CacheClassFromFiles(env, activity,
+                                                             &embedded_files) &&
+            googleapiavailabilityhelper::CacheMethodIds(env, activity) &&
+            googleapiavailabilityhelper::RegisterNatives(
+                env, kHelperMethods, FIREBASE_ARRAYSIZE(kHelperMethods))) {
+          // Everything initialized properly.
+          g_data->classes_loaded = true;
+          return true;
+        }
+        ReleaseClasses(env);
       }
-      ReleaseClasses(env);
+      firebase::util::gms::Terminate(env);
     }
     firebase::util::Terminate(env);
   }

@@ -39,21 +39,28 @@ InitResult Initialize(const ::firebase::App& app) {
   if (!util::Initialize(env, app.activity())) {
     return kInitResultFailedMissingDependency;
   }
+  if (!util::gms::Initialize(env, app.activity())) {
+    util::Terminate(env);
+    return kInitResultFailedMissingDependency;
+  }
 
   // Cache method pointers on FirebasePerformance.
   if (!internal::performance_jni::CacheMethodIds(env, app.activity())) {
+    util::gms::Terminate(env);
     util::Terminate(env);
     return kInitResultFailedMissingDependency;
   }
 
   // Cache method pointers on HttpMetric.
   if (!internal::http_metric_jni::CacheMethodIds(env, app.activity())) {
+    util::gms::Terminate(env);
     util::Terminate(env);
     return kInitResultFailedMissingDependency;
   }
 
   // Cache method pointers on Trace.
   if (!internal::trace_jni::CacheMethodIds(env, app.activity())) {
+    util::gms::Terminate(env);
     util::Terminate(env);
     return kInitResultFailedMissingDependency;
   }
@@ -116,6 +123,7 @@ void Terminate() {
   env->DeleteGlobalRef(g_performance_class_instance);
   g_performance_class_instance = nullptr;
   internal::performance_jni::ReleaseClass(env);
+  util::gms::Terminate(env);
   util::Terminate(env);
 }
 

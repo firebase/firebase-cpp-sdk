@@ -572,6 +572,12 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming release
+-   Changes
+    - General (Android): Fixed a bug that required Android apps to include
+      `com.google.android.gms:play-services-base` as an explicit dependency when
+      only using Analytics, Remote Config, or Messaging.
+	
 ### 9.0.0
 -   Changes
     -   General (iOS): Firebase C++ on iOS is now built using Xcode 13.3.1.

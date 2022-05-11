@@ -393,7 +393,6 @@ static void ReleaseClasses(JNIEnv* env) {
   uri::ReleaseClass(env);
   object::ReleaseClass(env);
   uribuilder::ReleaseClass(env);
-  jniresultcallback::ReleaseClass(env);
   JavaThreadContext::Terminate(env);
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
   java_uri::ReleaseClass(env);
@@ -442,6 +441,9 @@ void TerminateActivityClasses(JNIEnv* env) {
   }
 }
 
+static std::vector<internal::EmbeddedFile> g_embedded_files;
+  
+// This special version of Initialize() is used by gms::Initialize below.
 bool Initialize(JNIEnv* env, jobject activity_object) {
   // Note: We increment g_initialized_count when it's possible to call
   // Terminate() in all clean up code paths. ScopedCleanup calls Terminate() to
@@ -510,15 +512,14 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
   // Cache embedded files and load embedded classes.
-  const std::vector<internal::EmbeddedFile> embedded_files =
-      util::CacheEmbeddedFiles(
-          env, activity_object,
-          internal::EmbeddedFile::ToVector(firebase_app::app_resources_filename,
-                                           firebase_app::app_resources_data,
-                                           firebase_app::app_resources_size));
+  g_embedded_files = util::CacheEmbeddedFiles(
+      env, activity_object,
+      internal::EmbeddedFile::ToVector(firebase_app::app_resources_filename,
+                                       firebase_app::app_resources_data,
+                                       firebase_app::app_resources_size));
 
   // Cache the Log class and register the native log method.
-  if (!(log::CacheClassFromFiles(env, activity_object, &embedded_files) !=
+  if (!(log::CacheClassFromFiles(env, activity_object, &g_embedded_files) !=
             nullptr &&
         log::CacheMethodIds(env, activity_object) &&
         log::RegisterNatives(env, kNativeLogMethods,
@@ -526,14 +527,7 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
     return false;
   }
 
-  if (!(jniresultcallback::CacheClassFromFiles(env, activity_object,
-                                               &embedded_files) &&
-        jniresultcallback::CacheMethodIds(env, activity_object) &&
-        jniresultcallback::RegisterNatives(env, &kJniCallbackMethod, 1))) {
-    return false;
-  }
-
-  if (!JavaThreadContext::Initialize(env, activity_object, embedded_files)) {
+  if (!JavaThreadContext::Initialize(env, activity_object, g_embedded_files)) {
     return false;
   }
   CheckAndClearJniExceptions(env);
@@ -566,11 +560,44 @@ void Terminate(JNIEnv* env) {
       CheckAndClearJniExceptions(env);
     }
 
+    g_embedded_files.clear();
     ReleaseClasses(env);
     TerminateActivityClasses(env);
   }
 }
 
+namespace gms {
+static unsigned int g_gms_initialized_count = 0;
+
+// Separate initializer for jniresultcallback, as it requires
+// com.google.android.gms.tasks to be present, which is only
+// the case in APIs that use Task.
+bool Initialize(JNIEnv* env, jobject activity_object) {
+  if (g_gms_initialized_count != 0) {
+    g_gms_initialized_count++;
+    return true;
+  }
+
+  util::Initialize(env, activity_object);
+
+  if (!(jniresultcallback::CacheClassFromFiles(env, activity_object,
+                                               &g_embedded_files) &&
+        jniresultcallback::CacheMethodIds(env, activity_object) &&
+        jniresultcallback::RegisterNatives(env, &kJniCallbackMethod, 1))) {
+    return false;
+  }
+
+  g_gms_initialized_count++;
+}
+void Terminate(JNIEnv* env) {
+  g_gms_initialized_count--;
+  if (g_gms_initialized_count == 0) {
+    jniresultcallback::ReleaseClass(env);
+    util::Terminate(env);
+  }
+}
+
+}  // namespace gms
 bool LookupMethodIds(JNIEnv* env, jclass clazz,
                      const MethodNameSignature* method_name_signatures,
                      size_t number_of_method_name_signatures,
