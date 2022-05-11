@@ -18,7 +18,8 @@ import org.gradle.util.ConfigureUtil;
 def firebaseDependenciesMap = [
   'app' : ['com.google.firebase:firebase-analytics'],
   'admob' : ['com.google.firebase:firebase-ads:19.8.0',
-             'com.google.firebase:firebase-analytics'],
+             'com.google.firebase:firebase-analytics',
+	     'com.google.android.gms:play-services-base:18.0.1'],
   'analytics' : ['com.google.firebase:firebase-analytics',
                  'com.google.android.gms:play-services-base:18.0.1'],
   'auth' : ['com.google.firebase:firebase-auth'],
