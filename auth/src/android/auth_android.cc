@@ -201,6 +201,10 @@ void* CreatePlatformAuth(App* app) {
   // Cache the JNI method ids so we only have to look them up by name once.
   if (!g_initialized_count) {
     if (!util::Initialize(env, activity)) return nullptr;
+    if (!util::gms::Initialize(env, activity)) {
+      util::Terminate(env);
+      return nullptr;
+    }
 
     // Cache embedded files and load embedded classes.
     const std::vector<internal::EmbeddedFile> embedded_files =
@@ -215,6 +219,7 @@ void* CreatePlatformAuth(App* app) {
           CacheCredentialMethodIds(env, activity, embedded_files) &&
           CacheCommonMethodIds(env, activity))) {
       ReleaseClasses(env);
+      util::gms::Terminate(env);
       util::Terminate(env);
       return nullptr;
     }
@@ -305,6 +310,7 @@ void Auth::DestroyPlatformAuth(AuthData* auth_data) {
   g_initialized_count--;
   if (g_initialized_count == 0) {
     ReleaseClasses(env);
+    util::gms::Terminate(env);
     util::Terminate(env);
   }
 }
