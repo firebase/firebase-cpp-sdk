@@ -1529,7 +1529,7 @@ jclass FindClassGlobal(
         FindClassInFiles(env, activity_object, *embedded_files, class_name);
   }
   LogInfo("Class %s, lref 0x%08x", class_name,
-           static_cast<int>(reinterpret_cast<intptr_t>(local_class)));
+          static_cast<int>(reinterpret_cast<intptr_t>(local_class)));
   if (!local_class) {
     if (optional == kClassRequired) {
       LogError(kMissingJavaClassError, class_name, class_name);

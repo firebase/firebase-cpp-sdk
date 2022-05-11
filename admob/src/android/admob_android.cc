@@ -164,10 +164,6 @@ InitResult Initialize(JNIEnv* env, jobject activity, const char* admob_app_id) {
   if (!util::Initialize(env, activity)) {
     return kInitResultFailedMissingDependency;
   }
-  if (!util::gms::Initialize(env, activity)) {
-    util::Terminate(env);
-    return kInitResultFailedMissingDependency;
-  }
 
   const std::vector<firebase::internal::EmbeddedFile> embedded_files =
       util::CacheEmbeddedFiles(env, activity,
