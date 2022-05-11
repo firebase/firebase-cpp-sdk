@@ -150,7 +150,8 @@ METHOD_LOOKUP_DEFINITION(
 namespace {
 
 static int g_methods_cached_count = 0;
-
+static bool g_initialized_google_play_services = false;
+  
 void ReleaseClasses(JNIEnv* env);
 
 // Cache FirebaseApp and FirebaseOptions method IDs.
@@ -165,10 +166,14 @@ bool CacheMethods(JNIEnv* env, jobject activity) {
     if (!(app::CacheMethodIds(env, activity) &&
           options_builder::CacheMethodIds(env, activity) &&
           options::CacheMethodIds(env, activity) &&
-          version_registrar::CacheMethodIds(env, activity) &&
-          google_play_services::Initialize(env, activity))) {
+          version_registrar::CacheMethodIds(env, activity)) {
       ReleaseClasses(env);
       return false;
+    }
+    if (google_play_services::Initialize(env, activity)) {
+      g_initialized_google_play_services = true;
+    } else {
+      LogWarning("Initializing Firebase App without play-services-base");
     }
   }
   return true;
@@ -182,7 +187,10 @@ void ReleaseClasses(JNIEnv* env) {
     options_builder::ReleaseClass(env);
     options::ReleaseClass(env);
     version_registrar::ReleaseClass(env);
-    google_play_services::Terminate(env);
+    if (g_initialized_google_play_services) {
+      google_play_services::Terminate(env);
+      g_initialized_google_play_services = false;
+    }
     util::Terminate(env);
   }
 }
