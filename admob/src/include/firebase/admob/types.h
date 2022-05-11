@@ -35,18 +35,18 @@ namespace admob {
 /// @brief This is a platform specific datatype that is required to create an
 /// AdMob ad.
 ///
+/// The functionality in the <code>firebase::admob</code> namespace has
+/// been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the
+/// new SDK in our <a
+/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// guide</a>.
+///
 /// The following defines the datatype on each platform:
 /// <ul>
 ///   <li>Android: A `jobject` which references an Android Activity.</li>
 ///   <li>iOS: An `id` which references an iOS UIView.</li>
 /// </ul>
-///
-/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
-/// namespace has been replaced by the Google Mobile Ads SDK in the
-/// <code>firebase::gma</code> namespace. Learn how to transition to the new
-/// SDK in our <a
-/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
-/// guide</a>.
 ///
 #if FIREBASE_PLATFORM_ANDROID
 /// An Android Activity from Java.
@@ -66,10 +66,10 @@ typedef void *AdParent;
 /// @deprecated
 /// @brief Error codes returned by Future::error().
 ///
-/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
-/// namespace has been replaced by the Google Mobile Ads SDK in the
-/// <code>firebase::gma</code> namespace. Learn how to transition to the new
-/// SDK in our <a
+/// The functionality in the <code>firebase::admob</code> namespace has
+/// been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the
+/// new SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
 enum AdMobError {
@@ -102,10 +102,10 @@ enum AdMobError {
 /// @deprecated
 /// @brief Types of ad sizes.
 ///
-/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
-/// namespace has been replaced by the Google Mobile Ads SDK in the
-/// <code>firebase::gma</code> namespace. Learn how to transition to the new
-/// SDK in our <a
+/// The functionality in the <code>firebase::admob</code> namespace has
+/// been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the
+/// new SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
 enum AdSizeType { kAdSizeStandard = 0 };
@@ -113,10 +113,10 @@ enum AdSizeType { kAdSizeStandard = 0 };
 /// @deprecated
 /// @brief An ad size value to be used in requesting ads.
 ///
-/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
-/// namespace has been replaced by the Google Mobile Ads SDK in the
-/// <code>firebase::gma</code> namespace. Learn how to transition to the new
-/// SDK in our <a
+/// The functionality in the <code>firebase::admob</code> namespace has
+/// been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the
+/// new SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
 struct AdSize {
@@ -132,10 +132,10 @@ struct AdSize {
 /// @brief Gender information used as part of the
 /// @ref firebase::admob::AdRequest struct.
 ///
-/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
-/// namespace has been replaced by the Google Mobile Ads SDK in the
-/// <code>firebase::gma</code> namespace. Learn how to transition to the new
-/// SDK in our <a
+/// The functionality in the <code>firebase::admob</code> namespace has
+/// been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the
+/// new SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
 enum Gender {
@@ -151,10 +151,10 @@ enum Gender {
 /// @brief Indicates whether an ad request is considered tagged for
 /// child-directed treatment.
 ///
-/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
-/// namespace has been replaced by the Google Mobile Ads SDK in the
-/// <code>firebase::gma</code> namespace. Learn how to transition to the new
-/// SDK in our <a
+/// The functionality in the <code>firebase::admob</code> namespace has
+/// been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the
+/// new SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
 enum ChildDirectedTreatmentState {
@@ -170,10 +170,10 @@ enum ChildDirectedTreatmentState {
 /// @brief Generic Key-Value container used for the "extras" values in an
 /// @ref firebase::admob::AdRequest.
 ///
-/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
-/// namespace has been replaced by the Google Mobile Ads SDK in the
-/// <code>firebase::gma</code> namespace. Learn how to transition to the new
-/// SDK in our <a
+/// The functionality in the <code>firebase::admob</code> namespace has
+/// been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the
+/// new SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
 struct KeyValuePair {
@@ -186,10 +186,10 @@ struct KeyValuePair {
 /// @deprecated
 /// @brief The information needed to request an ad.
 ///
-/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
-/// namespace has been replaced by the Google Mobile Ads SDK in the
-/// <code>firebase::gma</code> namespace. Learn how to transition to the new
-/// SDK in our <a
+/// The functionality in the <code>firebase::admob</code> namespace has
+/// been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the
+/// new SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
 struct AdRequest {
@@ -229,10 +229,10 @@ struct AdRequest {
 /// @brief The screen location and dimensions of an ad view once it has been
 /// initialized.
 ///
-/// <b>Deprecated</b>. The functionality in the <code>firebase::admob</code>
-/// namespace has been replaced by the Google Mobile Ads SDK in the
-/// <code>firebase::gma</code> namespace. Learn how to transition to the new
-/// SDK in our <a
+/// The functionality in the <code>firebase::admob</code> namespace has
+/// been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the
+/// new SDK in our <a
 /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
 /// guide</a>.
 struct BoundingBox {
