@@ -21,6 +21,7 @@
 
 #include <cstdarg>
 #include <cstddef>
+#include <vector>
 
 #include "admob/admob_resources.h"
 #include "admob/src/android/ad_request_converter.h"
