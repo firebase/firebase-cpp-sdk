@@ -13,7 +13,11 @@ on:
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
   GITHUB_TOKEN: ${{ github.token }}
-  xcodeVersion: "12.4"  # Only affects Mac runners, and only for prerequisites.
+  xcodeVersion: "13.3.1"  # Only affects Mac runners, and only for prerequisites.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref }}
@@ -92,18 +96,18 @@ jobs:
         id: cache_ndk
         uses: actions/cache@v2
         with:
-          path: /tmp/android-ndk-r16b
-          key: android-ndk-${{ matrix.os }}-r16b
+          path: /tmp/android-ndk-r21e
+          key: android-ndk-${{ matrix.os }}-r21e
 
       - name: Check cached NDK
         shell: bash
         if: steps.cache_ndk.outputs.cache-hit != 'true'
         run: |
           # If the NDK failed to download from the cache, but there is a
-          # /tmp/android-ndk-r16b directory, it's incomplete, so remove it.
-          if [[ -d "/tmp/android-ndk-r16b" ]]; then
+          # /tmp/android-ndk-r21e directory, it's incomplete, so remove it.
+          if [[ -d "/tmp/android-ndk-r21e" ]]; then
             echo "Removing incomplete download of NDK"
-            rm -rf /tmp/android-ndk-r16b
+            rm -rf /tmp/android-ndk-r21e
           fi
 
       - name: Update homebrew (avoid bintray errors)

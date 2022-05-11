@@ -42,13 +42,15 @@ IGNORE_LINT_WARNINGS = [
   'build/include_subdir',   # doesn't know about our include paths
   'build/c++11',            # ignore "unapproved c++11 header" warning
   'readability/casting',    # allow non-C++ casts in rare occasions
+  'runtime/references',     # allow non-const references
   'whitespace/indent',      # we rely on our code formatter for this...
   'whitespace/line_length'  # ...and for this
 ]
 # Exclude files within the following paths (specified as regexes).
 EXCLUDE_PATH_REGEX = [
   # These files are copied from an external repo and are outside our control.
-  r'^analytics/ios_headers/'
+  r'^analytics/ios_headers/',
+  r'^ios_pod/swift_headers/'
 ]
 # The linter gives every error a confidence score.
 # 1 = It's most likely not really an issue.
