@@ -233,22 +233,6 @@ static NSString *const kFIREventPurchase NS_SWIFT_NAME(AnalyticsEventPurchase) =
 /// </ul>
 static NSString *const kFIREventRefund NS_SWIFT_NAME(AnalyticsEventRefund) = @"refund";
 
-/// E-Commerce Refund event. This event signifies that a refund was issued. Note: If you supply the
-/// @c kFIRParameterValue parameter, you must also supply the @c kFIRParameterCurrency parameter so
-/// that revenue metrics can be computed accurately. Params:
-///
-/// <ul>
-///     <li>@c kFIRParameterAffiliation (NSString) (optional)</li>
-///     <li>@c kFIRParameterCoupon (NSString) (optional)</li>
-///     <li>@c kFIRParameterCurrency (NSString) (optional)</li>
-///     <li>@c kFIRParameterItems (NSArray) (optional)</li>
-///     <li>@c kFIRParameterShipping (double as NSNumber) (optional)</li>
-///     <li>@c kFIRParameterTax (double as NSNumber) (optional)</li>
-///     <li>@c kFIRParameterTransactionID (NSString) (optional)</li>
-///     <li>@c kFIRParameterValue (double as NSNumber) (optional)</li>
-/// </ul>
-static NSString *const kFIREventRefund NS_SWIFT_NAME(AnalyticsEventRefund) = @"refund";
-
 /// E-Commerce Remove from Cart event. This event signifies that an item(s) was removed from a cart.
 /// Note: If you supply the @c AnalyticsParameterValue parameter, you must also supply the @c
 /// AnalyticsParameterCurrency parameter so that revenue metrics can be computed accurately. Params:
