@@ -80,8 +80,14 @@ void Initialize(const ::firebase::App& app) {
     return;
   }
 
+  if (!util::gms::Initialize(env, app.activity())) {
+    util::Terminate(env);
+    return;
+  }
+
   // Cache method pointers.
   if (!analytics::CacheMethodIds(env, app.activity())) {
+    util::gms::Terminate(env);
     util::Terminate(env);
     return;
   }
