@@ -19,7 +19,7 @@ def firebaseDependenciesMap = [
   'app' : ['com.google.firebase:firebase-analytics'],
   'admob' : ['com.google.firebase:firebase-ads:19.8.0',
              'com.google.firebase:firebase-analytics',
-	     'com.google.android.gms:play-services-base:18.0.1'],
+             'com.google.android.gms:play-services-base:18.0.1'],
   'analytics' : ['com.google.firebase:firebase-analytics',
                  'com.google.android.gms:play-services-base:18.0.1'],
   'auth' : ['com.google.firebase:firebase-auth'],
@@ -37,7 +37,8 @@ def firebaseDependenciesMap = [
                  'androidx.core:core:1.6.0-alpha03',
                  'com.google.flatbuffers:flatbuffers-java:1.12.0'],
   'performance' : ['com.google.firebase:firebase-perf'],
-  'remote_config' : ['com.google.firebase:firebase-config'],
+  'remote_config' : ['com.google.firebase:firebase-config',
+                     'com.google.android.gms:play-services-base:18.0.1'],
   'storage' : ['com.google.firebase:firebase-storage'],
   'testlab' : []
 ]
