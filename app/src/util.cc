@@ -111,10 +111,9 @@ static void PerformInitialize(ModuleInitializerData* data) {
             },
             data);
       } else {
+        int num_remaining = data->init_fns.size() - data->init_fn_idx;
         data->future_impl.Complete(
-            data->future_handle_init,
-            int num_remaining = data->init_fns.size() - data->init_fn_idx;
-            num_remaining,
+            data->future_handle_init, num_remaining,
             "Could not run Google Play services update due to app "
             "misconfiguration. Please add "
             "com.google.android.gms:play-services-base as an Android "
