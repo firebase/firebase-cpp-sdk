@@ -4,13 +4,8 @@ use_frameworks! :linkage => :static
 
 target 'integration_test' do
   platform :ios, '10.0'
-<<<<<<< HEAD
-  pod 'Firebase/Firestore', '8.13.0'
-  pod 'Firebase/Auth', '8.13.0'
-=======
   pod 'Firebase/Firestore', '9.0.0'
   pod 'Firebase/Auth', '9.0.0'
->>>>>>> main
 end
 
 target 'integration_test_tvos' do
