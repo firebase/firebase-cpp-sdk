@@ -166,7 +166,7 @@ bool CacheMethods(JNIEnv* env, jobject activity) {
     if (!(app::CacheMethodIds(env, activity) &&
           options_builder::CacheMethodIds(env, activity) &&
           options::CacheMethodIds(env, activity) &&
-          version_registrar::CacheMethodIds(env, activity)) {
+          version_registrar::CacheMethodIds(env, activity))) {
       ReleaseClasses(env);
       return false;
     }
