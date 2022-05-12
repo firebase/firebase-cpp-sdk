@@ -14,6 +14,7 @@
 		D61C5F8E22BABA9C00A79141 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D61C5F8C22BABA9B00A79141 /* Images.xcassets */; };
 		D61C5F9622BABAD200A79141 /* integration_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D61C5F9222BABAD100A79141 /* integration_test.cc */; };
 		D62CCBC022F367140099BE9F /* gmock-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = D62CCBBF22F367140099BE9F /* gmock-all.cc */; };
+		D640F3172819C85800AC956E /* empty.swift in Sources */ = {isa = PBXBuildFile; fileRef = D640F3162819C85800AC956E /* empty.swift */; };
 		D66B16871CE46E8900E5638A /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D66B16861CE46E8900E5638A /* LaunchScreen.storyboard */; };
 		D67D355822BABD2200292C1D /* gtest-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = D67D355622BABD2100292C1D /* gtest-all.cc */; };
 		D6C179E922CB322900C2651A /* ios_app_framework.mm in Sources */ = {isa = PBXBuildFile; fileRef = D6C179E722CB322900C2651A /* ios_app_framework.mm */; };
@@ -34,6 +35,7 @@
 		D61C5F9222BABAD100A79141 /* integration_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = integration_test.cc; path = src/integration_test.cc; sourceTree = "<group>"; };
 		D62CCBBF22F367140099BE9F /* gmock-all.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "gmock-all.cc"; path = "external/googletest/src/googlemock/src/gmock-all.cc"; sourceTree = "<group>"; };
 		D62CCBC122F367320099BE9F /* gmock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gmock.h; path = external/googletest/src/googlemock/include/gmock/gmock.h; sourceTree = "<group>"; };
+		D640F3162819C85800AC956E /* empty.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = empty.swift; path = src/empty.swift; sourceTree = "<group>"; };
 		D66B16861CE46E8900E5638A /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		D67D355622BABD2100292C1D /* gtest-all.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "gtest-all.cc"; path = "external/googletest/src/googletest/src/gtest-all.cc"; sourceTree = "<group>"; };
 		D67D355722BABD2100292C1D /* gtest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gtest.h; path = external/googletest/src/googletest/include/gtest/gtest.h; sourceTree = "<group>"; };
@@ -94,6 +96,7 @@
 		5292271D1C85FB5500C89379 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				D640F3162819C85800AC956E /* empty.swift */,
 				D62CCBC122F367320099BE9F /* gmock.h */,
 				D62CCBBF22F367140099BE9F /* gmock-all.cc */,
 				D67D355622BABD2100292C1D /* gtest-all.cc */,
@@ -149,6 +152,7 @@
 					529226D11C85F68000C89379 = {
 						CreatedOnToolsVersion = 6.4;
 						DevelopmentTeam = EQHXZ8M8AV;
+						LastSwiftMigration = 1320;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -194,6 +198,7 @@
 				D6C179EA22CB322900C2651A /* ios_firebase_test_framework.mm in Sources */,
 				D61C5F9622BABAD200A79141 /* integration_test.cc in Sources */,
 				D6C179E922CB322900C2651A /* ios_app_framework.mm in Sources */,
+				D640F3172819C85800AC956E /* empty.swift in Sources */,
 				D6C179F022CB32A000C2651A /* app_framework.cc in Sources */,
 				D6C179EE22CB323300C2651A /* firebase_test_framework.cc in Sources */,
 			);
@@ -287,10 +292,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = "";
-				EXCLUDED_ARCHS = i386;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
@@ -305,9 +310,11 @@
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
-				OTHER_LDFLAGS = "$(inherited)";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -317,10 +324,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = "";
-				EXCLUDED_ARCHS = i386;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
@@ -335,9 +342,10 @@
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
-				OTHER_LDFLAGS = "$(inherited)";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_VERSION = 5.0;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
