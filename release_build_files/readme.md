@@ -169,16 +169,24 @@ compatibility.
 #### Gradle dependency file
 
 Firebase C++ includes an `Android/firebase_dependencies.gradle` file
-that helps you include the correct Android dependencies for each
-Firebase product. To use it, include the following in your
-build.gradle file (this example shows how to use Auth, Remote Config,
-and Storage):
+that helps you include the correct Android dependencies and native C++
+libraries for each Firebase product. To use it, include the following
+in your build.gradle file (you can omit any Firebase products you
+aren't using):
 
 ```
 apply from: "$gradle.firebase_cpp_sdk_dir/Android/firebase_dependencies.gradle"
 firebaseCpp.dependencies {
-  app
+  app  // Recommended for all apps using Firebase.
+  admob
+  analytics
   auth
+  database
+  dynamicLinks
+  firestore
+  functions
+  installations
+  messaging
   remoteConfig
   storage
 }
