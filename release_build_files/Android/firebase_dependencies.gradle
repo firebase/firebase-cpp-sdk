@@ -17,6 +17,7 @@ import org.gradle.util.ConfigureUtil;
 // A map of library to the dependencies that need to be added for it.
 def firebaseDependenciesMap = [
   'app' : ['com.google.firebase:firebase-analytics:21.0.0'],
+  'play_services' : ['com.google.android.gms:play-services-base:18.0.1'],
   'admob' : ['com.google.firebase:firebase-ads:19.8.0',
              'com.google.firebase:firebase-analytics:21.0.0'],
   'analytics' : ['com.google.firebase:firebase-analytics:21.0.0'],
@@ -43,6 +44,10 @@ class Dependencies {
   HashSet<String> libSet = new HashSet<String>()
 
   def getApp() {
+    libSet.add('app')
+    libSet.add('play_services')
+  }
+  def getAppWithoutPlayServices() {
     libSet.add('app')
   }
   def getAdmob() {
@@ -116,6 +121,7 @@ project.afterEvaluate {
     // App is required, so add it if it wasn't included.
     if (!firebaseCpp.dependencies.libSet.contains('app')) {
       firebaseCpp.dependencies.libSet.add('app')
+      firebaseCpp.dependencies.libSet.add('play_services')
     }
 
     for (String lib : firebaseCpp.dependencies.libSet) {
