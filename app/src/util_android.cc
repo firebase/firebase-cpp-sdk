@@ -246,7 +246,7 @@ static pthread_mutex_t g_task_callbacks_mutex;
 static std::vector<jobject>* g_class_loaders;
 
 static bool g_jniresultcallback_loaded = false;
-  
+
 JNIEXPORT void JNICALL JniResultCallback_nativeOnResult(
     JNIEnv* env, jobject clazz, jobject result, jboolean success,
     jboolean cancelled, jstring status_message, jlong callback_fn_param,
@@ -531,12 +531,13 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
     return false;
   }
 
-  // With a subset of dependencies, jniresultcallback can't be loaded due to lack of gms.Task.
-  // This is fine - just make sure not to try terminating it.
-  g_jniresultcallback_loaded = (jniresultcallback::CacheClassFromFiles(env, activity_object,
-								       &embedded_files) &&
-				jniresultcallback::CacheMethodIds(env, activity_object) &&
-				jniresultcallback::RegisterNatives(env, &kJniCallbackMethod, 1));
+  // With a subset of dependencies, jniresultcallback can't be loaded due to
+  // lack of gms.Task. This is fine - just make sure not to try terminating it.
+  g_jniresultcallback_loaded =
+      (jniresultcallback::CacheClassFromFiles(env, activity_object,
+                                              &embedded_files) &&
+       jniresultcallback::CacheMethodIds(env, activity_object) &&
+       jniresultcallback::RegisterNatives(env, &kJniCallbackMethod, 1));
 
   if (!JavaThreadContext::Initialize(env, activity_object, embedded_files)) {
     return false;
