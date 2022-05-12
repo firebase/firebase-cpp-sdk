@@ -96,7 +96,7 @@ static void PerformInitialize(ModuleInitializerData* data) {
                 if (result.error() == 0) {
                   LogInfo("Google Play services now available, continuing.");
                   PerformInitialize(data);
-                  google_play_services::Terminate(util::GetJNIEnvFromApp());
+                  google_play_services::Terminate(data->app->GetJNIEnv());
                 } else {
                   LogError("Google Play services still unavailable.");
                   int num_remaining = data->init_fns.size() - data->init_fn_idx;
@@ -111,8 +111,12 @@ static void PerformInitialize(ModuleInitializerData* data) {
             },
             data);
       } else {
-        LogWarning(
-            "Could not run Google Play services update. Please add "
+        data->future_impl.Complete(
+            data->future_handle_init,
+            int num_remaining = data->init_fns.size() - data->init_fn_idx;
+            num_remaining,
+            "Could not run Google Play services update due to app "
+            "misconfiguration. Please add "
             "com.google.android.gms:play-services-base as an Android "
             "dependency to enable this functionality.");
       }
