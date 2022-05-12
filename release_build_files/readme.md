@@ -166,6 +166,24 @@ Android SDK (20.x.x). Please ensure that you use firebase-ads version 19.8.0 in
 conjunction with the latest firebase-analytics version to maintain
 compatibility.
 
+#### Gradle dependency file
+
+Firebase C++ includes an `Android/firebase_dependencies.gradle` file
+that helps you include the correct Android dependencies for each
+Firebase product. To use it, include the following in your
+build.gradle file (this example shows how to use Auth, Remote Config,
+and Storage):
+
+```
+apply from: "$gradle.firebase_cpp_sdk_dir/Android/firebase_dependencies.gradle"
+firebaseCpp.dependencies {
+  app
+  auth
+  remoteConfig
+  storage
+}
+```
+
 ### iOS Dependencies
 
 iOS users can include either xcframeworks or static libraries depending upon their
