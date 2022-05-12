@@ -79,6 +79,9 @@ static void PerformInitialize(ModuleInitializerData* data) {
 
 #if FIREBASE_PLATFORM_ANDROID
     if (init_result == kInitResultFailedMissingDependency) {
+      // Note: If Initialize here succeeds, google_play_services::Terminate
+      // is called in the OnCompletion handler below. Note that these
+      // are reference-counted so it's safe to init/terminate an extra time..
       if (google_play_services::Initialize(data->app->GetJNIEnv(),
                                            data->app->activity())) {
         // On Android, we need to update or activate Google Play services
