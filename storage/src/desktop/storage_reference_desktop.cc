@@ -412,11 +412,6 @@ Future<Metadata> StorageReferenceInternal::PutBytesInternal(
     Controller* controller_out, const char* content_type) {
   auto* future_api = future();
   auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutBytes);
-  auto send_request_funct{[&, buffer, buffer_size, listener,
-                           controller_out]() -> BlockingResponse* {
-    auto* future_api = future();
-    auto handle =
-        future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutBytesInternal);
 
   std::string content_type_str = content_type ? content_type : "";
   auto send_request_funct{[&, content_type_str, buffer, buffer_size, listener,
