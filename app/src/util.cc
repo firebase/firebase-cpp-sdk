@@ -25,8 +25,8 @@
 #include "app/src/include/firebase/internal/platform.h"
 
 #if FIREBASE_PLATFORM_ANDROID
-#include "app/src/include/google_play_services/availability.h"
 #include "app/src/google_play_services/availability_android.h"
+#include "app/src/include/google_play_services/availability.h"
 #endif  // FIREBASE_PLATFORM_ANDROID
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
@@ -78,39 +78,43 @@ static void PerformInitialize(ModuleInitializerData* data) {
 
 #if FIREBASE_PLATFORM_ANDROID
     if (init_result == kInitResultFailedMissingDependency) {
-      if (
-          google_play_services::Initialize(data->app->GetJNIEnv(),
-                                           data->app->activity()) {
-            // On Android, we need to update or activate Google Play services
-            // before we can initialize this Firebase module.
-            LogWarning("Google Play services unavailable, trying to fix.");
+      if (google_play_services::Initialize(data->app->GetJNIEnv(),
+                                           data->app->activity())) {
+        // On Android, we need to update or activate Google Play services
+        // before we can initialize this Firebase module.
+        LogWarning("Google Play services unavailable, trying to fix.");
 
-            Future<void> make_available = google_play_services::MakeAvailable(
-                data->app->GetJNIEnv(), data->app->activity());
+        Future<void> make_available = google_play_services::MakeAvailable(
+            data->app->GetJNIEnv(), data->app->activity());
 
-            make_available.OnCompletion(
-					[](const Future<void>& result, void* ptr) {
-          ModuleInitializerData* data =
-              reinterpret_cast<ModuleInitializerData*>(ptr);
-          if (result.status() == kFutureStatusComplete) {
-            if (result.error() == 0) {
-              LogInfo("Google Play services now available, continuing.");
-              PerformInitialize(data);
-              google_play_services::Terminate(util::GetJNIEnvFromApp());
-            } else {
-              LogError("Google Play services still unavailable.");
-              int num_remaining = data->init_fns.size() - data->init_fn_idx;
-              data->future_impl.Complete(
-                  data->future_handle_init, num_remaining,
-                  "Unable to initialize due to missing Google Play services "
-                  "dependency.");
-              google_play_services::Terminate(util::GetJNIEnvFromApp());
-            }
-          }
-					}
-          },
-          data)
-        ;
+        make_available.OnCompletion(
+            [](const Future<void>& result, void* ptr) {
+              ModuleInitializerData* data =
+                  reinterpret_cast<ModuleInitializerData*>(ptr);
+              if (result.status() == kFutureStatusComplete) {
+                if (result.error() == 0) {
+                  LogInfo("Google Play services now available, continuing.");
+                  PerformInitialize(data);
+                  google_play_services::Terminate(util::GetJNIEnvFromApp());
+                } else {
+                  LogError("Google Play services still unavailable.");
+                  int num_remaining = data->init_fns.size() - data->init_fn_idx;
+                  data->future_impl.Complete(data->future_handle_init,
+                                             num_remaining,
+                                             "Unable to initialize due to "
+                                             "missing Google Play services "
+                                             "dependency.");
+                  google_play_services::Terminate(util::GetJNIEnvFromApp());
+                }
+              }
+            },
+            data);
+      } else {
+        LogWarning(
+            "Could not run Google Play services update. Please add "
+            "com.google.android.gms:play-services-base as an Android "
+            "dependency to enable this functionality.");
+      }
     }
 #else   // !FIREBASE_PLATFORM_ANDROID
     // Outside of Android, we shouldn't get kInitResultFailedMissingDependency.
