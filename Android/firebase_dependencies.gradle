@@ -146,6 +146,7 @@ project.afterEvaluate {
     // App is required, so add it if it wasn't included.
     if (!firebaseCpp.dependencies.libSet.contains('app')) {
       firebaseCpp.dependencies.libSet.add('app')
+      firebaseCpp.dependencies.libSet.add('play_services')
     }
 
     // Add the bill-of-materials
