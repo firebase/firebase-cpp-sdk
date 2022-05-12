@@ -572,6 +572,12 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+-   Changes
+    -   AdMob: The AdMob SDK has been deprecated. Please update your app to
+        use the new Google Mobile Ads SDK which facilitates similar
+        functionality.
+
 ### 9.0.0
 -   Changes
     -   General (iOS): Firebase C++ on iOS is now built using Xcode 13.3.1.
