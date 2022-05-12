@@ -26,6 +26,7 @@
 
 #if FIREBASE_PLATFORM_ANDROID
 #include "app/src/include/google_play_services/availability.h"
+#include "app/src/google_play_services/availability_android.h"
 #endif  // FIREBASE_PLATFORM_ANDROID
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
