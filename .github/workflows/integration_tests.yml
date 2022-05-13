@@ -411,10 +411,15 @@ jobs:
         run: |
           rm -rf testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
           # git clean everything but the "ta" directory and the build results log
+          echo Before cleanup: $(du -skh)
           echo "" >> .gitignore
           echo "build-results-*" >> .gitignore
           echo "ta/**" >> .gitignore
           git clean -ffd
+          # Remove all .o, .obj, .a, and .lib files
+          echo After git clean, before deleting object files: $(du -skh)
+          find ta -name '*.o' -or -name '*.obj' -or -name '*.a' -or -name '*.lib' -delete
+          echo After cleanup: $(du -skh)
       - name: Set CLOUDSDK_PYTHON (Windows)
         shell: bash
         if: startsWith(matrix.os, 'windows') && !cancelled()
