@@ -17,28 +17,24 @@ import org.gradle.util.ConfigureUtil;
 // A map of library to the dependencies that need to be added for it.
 def firebaseDependenciesMap = [
   'app' : ['com.google.firebase:firebase-analytics:21.0.0'],
+  'play_services' : ['com.google.android.gms:play-services-base:18.0.1'],
   'admob' : ['com.google.firebase:firebase-ads:19.8.0',
-             'com.google.firebase:firebase-analytics:21.0.0',
-             'com.google.android.gms:play-services-base:18.0.1'],
-  'analytics' : ['com.google.firebase:firebase-analytics:21.0.0',
-                 'com.google.android.gms:play-services-base:18.0.1'],
+             'com.google.firebase:firebase-analytics:21.0.0'],
+  'analytics' : ['com.google.firebase:firebase-analytics:21.0.0'],
   'auth' : ['com.google.firebase:firebase-auth:21.0.3'],
   'database' : ['com.google.firebase:firebase-database:20.0.5'],
   'dynamic_links' : ['com.google.firebase:firebase-dynamic-links:21.0.1'],
   'firestore' : ['com.google.firebase:firebase-firestore:24.1.2'],
   'functions' : ['com.google.firebase:firebase-functions:20.1.0'],
-  'installations' : ['com.google.firebase:firebase-installations:17.0.1',
-                     'com.google.android.gms:play-services-base:18.0.1'],
+  'installations' : ['com.google.firebase:firebase-installations:17.0.1'],
   'invites' : ['com.google.firebase:firebase-invites:17.0.0'],
   // Messaging has an additional local dependency to include.
   'messaging' : ['com.google.firebase:firebase-messaging:23.0.4',
                  'firebase_cpp_sdk.messaging:messaging_java',
                  'androidx.core:core:1.6.0-alpha03',
-                 'com.google.flatbuffers:flatbuffers-java:1.12.0',
-                 'com.google.android.gms:play-services-base:18.0.1'],
+                 'com.google.flatbuffers:flatbuffers-java:1.12.0'],
   'performance' : ['com.google.firebase:firebase-perf:20.0.6'],
-  'remote_config' : ['com.google.firebase:firebase-config:21.1.0',
-                     'com.google.android.gms:play-services-base:18.0.1'],
+  'remote_config' : ['com.google.firebase:firebase-config:21.1.0'],
   'storage' : ['com.google.firebase:firebase-storage:20.0.1'],
   'testlab' : []
 ]
@@ -67,6 +63,10 @@ class Dependencies {
   HashSet<String> libSet = new HashSet<String>()
 
   def getApp() {
+    libSet.add('app')
+    libSet.add('play_services')
+  }
+  def getAppWithoutPlayServices() {
     libSet.add('app')
   }
   def getAdmob() {
@@ -146,6 +146,7 @@ project.afterEvaluate {
     // App is required, so add it if it wasn't included.
     if (!firebaseCpp.dependencies.libSet.contains('app')) {
       firebaseCpp.dependencies.libSet.add('app')
+      firebaseCpp.dependencies.libSet.add('play_services')
     }
 
     for (String lib : firebaseCpp.dependencies.libSet) {
