@@ -249,7 +249,10 @@ def install_x86_support_libraries(gha_build=False):
       # Install them.
       run_command(['dpkg', '--add-architecture', 'i386'], as_root=True, check=True)
       run_command(['apt', 'update'], as_root=True, check=True)
-      run_command(['apt', 'install', '-V', '-y'] + packages, as_root=True, check=True)
+      process = run_command(['apt', 'install', '-V', '-y', '-f'] + packages, as_root=True)
+      if process.returncode != 0:
+       # Some dependency couldn't be installed, allow apt to fix things.
+       run_command(['apt', 'upgrade', '--with-new-pkgs'], as_root=True, check=True)
 
     if gha_build:
       # One more workaround: downgrading libpcre2-8-0 above may have uninstalled
@@ -260,3 +263,5 @@ def install_x86_support_libraries(gha_build=False):
       # Note: "-f" = "fix" - let apt do what it needs to do to fix dependencies.
       run_command(['apt', 'install', '-f', '-V', '-y', 'libsecret-1-dev'],
                   as_root=True, check=True)
+      # Allow apt to fix anything else that's broken.
+      run_command(['apt', 'upgrade', '--with-new-pkgs'], as_root=True, check=True)
