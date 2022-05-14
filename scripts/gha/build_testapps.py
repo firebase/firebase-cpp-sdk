@@ -80,6 +80,7 @@ import os
 import platform
 import shutil
 import subprocess
+import stat
 import sys
 import tempfile
 
@@ -697,11 +698,17 @@ def _run(args, timeout=_DEFAULT_RUN_TIMEOUT_SECONDS, capture_output=False, text=
       check=check)
 
 
+def _remove_readonly(func, path, excinfo):
+  """Function passed into shutil.rmtree to handle Access Denied error"""
+  os.chmod(path, stat.S_IWRITE)
+  func(path)
+
+
 def _rm_dir_safe(directory_path):
   """Removes directory at given path. No error if dir doesn't exist."""
   logging.info("Deleting %s...", directory_path)
   try:
-    shutil.rmtree(directory_path)
+    shutil.rmtree(directory_path, onerror=_remove_readonly)
   except OSError as e:
     # There are two known cases where this can happen:
     # The directory doesn't exist (FileNotFoundError)
