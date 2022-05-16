@@ -36,15 +36,12 @@ FIREBASE_APP_REGISTER_CALLBACKS_REFERENCE(admob)
 
 namespace firebase {
 
-/// @deprecated
-/// @brief API for AdMob with Firebase.
+/// @deprecated The functionality in the <code>firebase::admob</code> namespace
+/// has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a href="/docs/admob/cpp/admob-migration">migration guide</a>.
 ///
-/// The functionality in the <code>firebase::admob</code> namespace has
-/// been replaced by the Google Mobile Ads SDK in the
-/// <code>firebase::gma</code> namespace. Learn how to transition to the
-/// new SDK in our <a
-/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
-/// guide</a>.
+/// @brief API for AdMob with Firebase.
 ///
 /// The AdMob API allows you to load and display mobile ads using the Google
 /// Mobile Ads SDK. Each ad format has its own header file.
@@ -56,8 +53,7 @@ namespace admob {
 /// The functionality in the <code>firebase::admob</code> namespace has
 /// been replaced by the Google Mobile Ads SDK in the
 /// <code>firebase::gma</code> namespace. Learn how to transition to the
-/// new SDK in our <a
-/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
 /// guide</a>.
 ///
 /// @param app The Firebase app for which to initialize mobile ads.
@@ -74,8 +70,7 @@ FIREBASE_DEPRECATED InitResult Initialize(const ::firebase::App& app);
 /// The functionality in the <code>firebase::admob</code> namespace has
 /// been replaced by the Google Mobile Ads SDK in the
 /// <code>firebase::gma</code> namespace. Learn how to transition to the
-/// new SDK in our <a
-/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
 /// guide</a>.
 ///
 /// Initializing the Google Mobile Ads SDK with the AdMob app ID at app launch
@@ -104,8 +99,7 @@ FIREBASE_DEPRECATED InitResult Initialize(const ::firebase::App& app,
 /// The functionality in the <code>firebase::admob</code> namespace has
 /// been replaced by the Google Mobile Ads SDK in the
 /// <code>firebase::gma</code> namespace. Learn how to transition to the
-/// new SDK in our <a
-/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
 /// guide</a>.
 ///
 /// The arguments to @ref Initialize are platform-specific so the caller must do
@@ -133,8 +127,7 @@ FIREBASE_DEPRECATED InitResult Initialize(JNIEnv* jni_env, jobject activity);
 /// The functionality in the <code>firebase::admob</code> namespace has
 /// been replaced by the Google Mobile Ads SDK in the
 /// <code>firebase::gma</code> namespace. Learn how to transition to the
-/// new SDK in our <a
-/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
 /// guide</a>.
 ///
 /// Initializing the Google Mobile Ads SDK with the AdMob app ID at app launch
@@ -174,8 +167,7 @@ FIREBASE_DEPRECATED InitResult Initialize(JNIEnv* jni_env, jobject activity,
 /// The functionality in the <code>firebase::admob</code> namespace has
 /// been replaced by the Google Mobile Ads SDK in the
 /// <code>firebase::gma</code> namespace. Learn how to transition to the
-/// new SDK in our <a
-/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
 /// guide</a>.
 FIREBASE_DEPRECATED InitResult Initialize();
 
@@ -186,8 +178,7 @@ FIREBASE_DEPRECATED InitResult Initialize();
 /// The functionality in the <code>firebase::admob</code> namespace has
 /// been replaced by the Google Mobile Ads SDK in the
 /// <code>firebase::gma</code> namespace. Learn how to transition to the
-/// new SDK in our <a
-/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
 /// guide</a>.
 ///
 /// Initializing the Google Mobile Ads SDK with the AdMob app ID at app launch
@@ -211,8 +202,7 @@ FIREBASE_DEPRECATED InitResult Initialize(const char* admob_app_id);
 /// The functionality in the <code>firebase::admob</code> namespace has
 /// been replaced by the Google Mobile Ads SDK in the
 /// <code>firebase::gma</code> namespace. Learn how to transition to the
-/// new SDK in our <a
-/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
 /// guide</a>.
 ///
 /// Frees resources associated with AdMob that were allocated during

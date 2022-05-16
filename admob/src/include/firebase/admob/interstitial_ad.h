@@ -29,15 +29,12 @@ namespace internal {
 class InterstitialAdInternal;
 }  // namespace internal
 
-/// @deprecated
-/// @brief Loads and displays AdMob interstitial ads.
+/// @deprecated The functionality in the <code>firebase::admob</code> namespace
+/// has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a href="/docs/admob/cpp/admob-migration">migration guide</a>.
 ///
-/// The functionality in the <code>firebase::admob</code> namespace has
-/// been replaced by the Google Mobile Ads SDK in the
-/// <code>firebase::gma</code> namespace. Learn how to transition to the
-/// new SDK in our <a
-/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
-/// guide</a>.
+/// @brief Loads and displays AdMob interstitial ads.
 ///
 /// @ref InterstitialAd is a single-use object that can load and show a
 /// single AdMob interstitial ad.
@@ -94,8 +91,7 @@ class InterstitialAd {
   /// The functionality in the <code>firebase::admob</code> namespace has
   /// been replaced by the Google Mobile Ads SDK in the
   /// <code>firebase::gma</code> namespace. Learn how to transition to the
-  /// new SDK in our <a
-  /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
   /// guide</a>.
   enum PresentationState {
     /// InterstitialAd is not currently being shown.
@@ -117,8 +113,7 @@ class InterstitialAd {
   /// The functionality in the <code>firebase::admob</code> namespace has
   /// been replaced by the Google Mobile Ads SDK in the
   /// <code>firebase::gma</code> namespace. Learn how to transition to the
-  /// new SDK in our <a
-  /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+  /// new SDK in our <a ref="/docs/admob/cpp/admob-migration>migration
   /// guide</a>.
   ///
   /// This is useful for changes caused by user interaction, such as when the
@@ -133,8 +128,7 @@ class InterstitialAd {
     /// The functionality in the <code>firebase::admob</code> namespace has
     /// been replaced by the Google Mobile Ads SDK in the
     /// <code>firebase::gma</code> namespace. Learn how to transition to the
-    /// new SDK in our <a
-    /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+    /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
     /// guide</a>.
     /// @param[in] interstitial_ad The interstitial ad whose presentation state
     ///                            changed.
@@ -151,8 +145,7 @@ class InterstitialAd {
   /// The functionality in the <code>firebase::admob</code> namespace has
   /// been replaced by the Google Mobile Ads SDK in the
   /// <code>firebase::gma</code> namespace. Learn how to transition to the
-  /// new SDK in our <a
-  /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
   /// guide</a>.
   FIREBASE_DEPRECATED InterstitialAd();
 
@@ -164,8 +157,7 @@ class InterstitialAd {
   /// The functionality in the <code>firebase::admob</code> namespace has
   /// been replaced by the Google Mobile Ads SDK in the
   /// <code>firebase::gma</code> namespace. Learn how to transition to the
-  /// new SDK in our <a
-  /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
   /// guide</a>.
   /// @param[in] parent The platform-specific UI element that will host the ad.
   /// @param[in] ad_unit_id The ad unit ID to use in loading the ad.
@@ -180,7 +172,7 @@ class InterstitialAd {
   /// been replaced by the Google Mobile Ads SDK in the
   /// <code>firebase::gma</code> namespace. Learn how to transition to the
   /// new SDK in our <a
-  /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+  /// href="/docs/admob/cpp/admob-migration">migration
   /// guide</a>.
   FIREBASE_DEPRECATED Future<void> InitializeLastResult() const;
 
@@ -193,8 +185,7 @@ class InterstitialAd {
   /// The functionality in the <code>firebase::admob</code> namespace has
   /// been replaced by the Google Mobile Ads SDK in the
   /// <code>firebase::gma</code> namespace. Learn how to transition to the
-  /// new SDK in our <a
-  /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
   /// guide</a>.
   /// @param[in] request An AdRequest struct with information about the request
   ///                    to be made (such as targeting info).
@@ -207,8 +198,7 @@ class InterstitialAd {
   /// The functionality in the <code>firebase::admob</code> namespace has
   /// been replaced by the Google Mobile Ads SDK in the
   /// <code>firebase::gma</code> namespace. Learn how to transition to the
-  /// new SDK in our <a
-  /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
   /// guide</a>.
   FIREBASE_DEPRECATED Future<void> LoadAdLastResult() const;
 
@@ -219,8 +209,7 @@ class InterstitialAd {
   /// The functionality in the <code>firebase::admob</code> namespace has
   /// been replaced by the Google Mobile Ads SDK in the
   /// <code>firebase::gma</code> namespace. Learn how to transition to the
-  /// new SDK in our <a
-  /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
   /// guide</a>.
   FIREBASE_DEPRECATED Future<void> Show();
 
@@ -231,8 +220,7 @@ class InterstitialAd {
   /// The functionality in the <code>firebase::admob</code> namespace has
   /// been replaced by the Google Mobile Ads SDK in the
   /// <code>firebase::gma</code> namespace. Learn how to transition to the
-  /// new SDK in our <a
-  /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
   /// guide</a>.
   FIREBASE_DEPRECATED Future<void> ShowLastResult() const;
 
@@ -242,8 +230,7 @@ class InterstitialAd {
   /// The functionality in the <code>firebase::admob</code> namespace has
   /// been replaced by the Google Mobile Ads SDK in the
   /// <code>firebase::gma</code> namespace. Learn how to transition to the
-  /// new SDK in our <a
-  /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
   /// guide</a>.
   /// @return The current presentation state.
   FIREBASE_DEPRECATED PresentationState presentation_state() const;
@@ -254,8 +241,7 @@ class InterstitialAd {
   /// The functionality in the <code>firebase::admob</code> namespace has
   /// been replaced by the Google Mobile Ads SDK in the
   /// <code>firebase::gma</code> namespace. Learn how to transition to the
-  /// new SDK in our <a
-  /// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
   /// guide</a>.
   /// @param[in] listener A valid InterstititalAd::Listener to receive
   ///                     callbacks.

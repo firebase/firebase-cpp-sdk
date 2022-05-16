@@ -31,16 +31,13 @@ extern "C" {
 namespace firebase {
 namespace admob {
 
-/// @deprecated
+/// @deprecated The functionality in the <code>firebase::admob</code> namespace
+/// has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a href="/docs/admob/cpp/admob-migration">migration guide</a>.
+///
 /// @brief This is a platform specific datatype that is required to create an
 /// AdMob ad.
-///
-/// The functionality in the <code>firebase::admob</code> namespace has
-/// been replaced by the Google Mobile Ads SDK in the
-/// <code>firebase::gma</code> namespace. Learn how to transition to the
-/// new SDK in our <a
-/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
-/// guide</a>.
 ///
 /// The following defines the datatype on each platform:
 /// <ul>
@@ -69,8 +66,7 @@ typedef void *AdParent;
 /// The functionality in the <code>firebase::admob</code> namespace has
 /// been replaced by the Google Mobile Ads SDK in the
 /// <code>firebase::gma</code> namespace. Learn how to transition to the
-/// new SDK in our <a
-/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
 /// guide</a>.
 enum AdMobError {
   /// Call completed successfully.
@@ -105,8 +101,7 @@ enum AdMobError {
 /// The functionality in the <code>firebase::admob</code> namespace has
 /// been replaced by the Google Mobile Ads SDK in the
 /// <code>firebase::gma</code> namespace. Learn how to transition to the
-/// new SDK in our <a
-/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
 /// guide</a>.
 enum AdSizeType { kAdSizeStandard = 0 };
 
@@ -116,8 +111,7 @@ enum AdSizeType { kAdSizeStandard = 0 };
 /// The functionality in the <code>firebase::admob</code> namespace has
 /// been replaced by the Google Mobile Ads SDK in the
 /// <code>firebase::gma</code> namespace. Learn how to transition to the
-/// new SDK in our <a
-/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
 /// guide</a>.
 struct AdSize {
   /// The type of ad size.
@@ -135,11 +129,11 @@ struct AdSize {
 /// The functionality in the <code>firebase::admob</code> namespace has
 /// been replaced by the Google Mobile Ads SDK in the
 /// <code>firebase::gma</code> namespace. Learn how to transition to the
-/// new SDK in our <a
-/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
 /// guide</a>.
 enum Gender {
-  /// The gender of the current user is unknown or unspecified by the publisher.
+  /// The gender of the current user is unknown or unspecified by the
+  /// publisher.
   kGenderUnknown = 0,
   /// The current user is known to be male.
   kGenderMale,
@@ -154,8 +148,7 @@ enum Gender {
 /// The functionality in the <code>firebase::admob</code> namespace has
 /// been replaced by the Google Mobile Ads SDK in the
 /// <code>firebase::gma</code> namespace. Learn how to transition to the
-/// new SDK in our <a
-/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
 /// guide</a>.
 enum ChildDirectedTreatmentState {
   /// The child-directed status for the request is not indicated.
@@ -173,8 +166,7 @@ enum ChildDirectedTreatmentState {
 /// The functionality in the <code>firebase::admob</code> namespace has
 /// been replaced by the Google Mobile Ads SDK in the
 /// <code>firebase::gma</code> namespace. Learn how to transition to the
-/// new SDK in our <a
-/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
 /// guide</a>.
 struct KeyValuePair {
   /// The name for an "extra."
@@ -189,8 +181,7 @@ struct KeyValuePair {
 /// The functionality in the <code>firebase::admob</code> namespace has
 /// been replaced by the Google Mobile Ads SDK in the
 /// <code>firebase::gma</code> namespace. Learn how to transition to the
-/// new SDK in our <a
-/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
 /// guide</a>.
 struct AdRequest {
   /// An array of test device IDs specifying devices that test ads will be
@@ -232,8 +223,7 @@ struct AdRequest {
 /// The functionality in the <code>firebase::admob</code> namespace has
 /// been replaced by the Google Mobile Ads SDK in the
 /// <code>firebase::gma</code> namespace. Learn how to transition to the
-/// new SDK in our <a
-/// href="https://firebase.google.com/docs/admob/cpp/migration-guide">migration
+/// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
 /// guide</a>.
 struct BoundingBox {
   /// Default constructor which initializes all member variables to 0.
