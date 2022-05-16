@@ -707,7 +707,7 @@ def _rm_dir_safe(directory_path):
   """Removes directory at given path. No error if dir doesn't exist."""
   logging.info("Deleting %s...", directory_path)
   try:
-    shutil.rmtree(directory_path, onerror=_handle_readonly_file))
+    shutil.rmtree(directory_path, onerror=_handle_readonly_file)
   except OSError as e:
     # There are two known cases where this can happen:
     # The directory doesn't exist (FileNotFoundError)
