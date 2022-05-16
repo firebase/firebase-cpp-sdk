@@ -166,6 +166,32 @@ Android SDK (20.x.x). Please ensure that you use firebase-ads version 19.8.0 in
 conjunction with the latest firebase-analytics version to maintain
 compatibility.
 
+#### Gradle dependency file
+
+Firebase C++ includes an `Android/firebase_dependencies.gradle` file
+that helps you include the correct Android dependencies and native C++
+libraries for each Firebase product. To use it, include the following
+in your build.gradle file (you can omit any Firebase products you
+aren't using):
+
+```
+apply from: "$gradle.firebase_cpp_sdk_dir/Android/firebase_dependencies.gradle"
+firebaseCpp.dependencies {
+  app  // Recommended for all apps using Firebase.
+  admob
+  analytics
+  auth
+  database
+  dynamicLinks
+  firestore
+  functions
+  installations
+  messaging
+  remoteConfig
+  storage
+}
+```
+
 ### iOS Dependencies
 
 iOS users can include either xcframeworks or static libraries depending upon their
@@ -577,6 +603,9 @@ code.
     -   AdMob: The AdMob SDK has been deprecated. Please update your app to
         use the new Google Mobile Ads SDK which facilitates similar
         functionality.
+    -   General (Android): Fixed a bug that required Android apps to include
+        `com.google.android.gms:play-services-base` as an explicit dependency when
+        only using AdMob, Analytics, Remote Config, or Messaging.
 
 ### 9.0.0
 -   Changes
