@@ -1209,7 +1209,7 @@ jobs:
           fi
 
   test_ios:
-    name: test-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}
+    name: test-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}
     needs: [check_and_prepare, build_ios]
     runs-on: macos-12
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'iOS') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
