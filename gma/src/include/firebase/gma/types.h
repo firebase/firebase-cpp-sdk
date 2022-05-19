@@ -669,7 +669,7 @@ class AdRequest {
   /// for which to add the extra.
   /// @param[in] extra_key a key which will be passed to the corresponding ad
   /// medation adapter.
-  /// @param[in] extra_value the value associated with @ref extra_key.
+  /// @param[in] extra_value the value associated with extra_key.
   void add_extra(const char* adapter_class_name, const char* extra_key,
                  const char* extra_value);
 
