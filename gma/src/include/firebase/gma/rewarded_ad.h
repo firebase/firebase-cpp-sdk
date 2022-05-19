@@ -77,7 +77,8 @@ class RewardedAdInternal;
 class RewardedAd {
  public:
   /// Options for RewardedAd server-side verification callbacks. Set options on
-  /// a RewardedAd object using the SetServerSideVerificationOptions.
+  /// a RewardedAd object using the @ref SetServerSideVerificationOptions
+  /// method.
   struct ServerSideVerificationOptions {
     /// Custom data to be included in server-side verification callbacks.
     std::string custom_data;
@@ -114,7 +115,7 @@ class RewardedAd {
   /// Shows the @ref RewardedAd. This should not be called unless an ad has
   /// already been loaded.
   ///
-  /// param[in] listener The @ref UserEarnedRewardListener to be notified when
+  /// @param[in] listener The @ref UserEarnedRewardListener to be notified when
   /// user earns a reward.
   Future<void> Show(UserEarnedRewardListener* listener);
 
