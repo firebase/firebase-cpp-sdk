@@ -462,7 +462,7 @@ void LogEvent(const char* name, const Parameter* parameters,
 /// (no-op on Android). On iOS, requires dependency
 /// GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a
 /// no-op.
-/// @param emailAddress User email address. Include a domain name for all email
+/// @param email_address User email address. Include a domain name for all email
 /// addresses
 ///   (e.g. gmail.com or hotmail.co.jp). Remove any spaces in between the email
 ///   address.
