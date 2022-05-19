@@ -17,7 +17,7 @@ buildscript {
   repositories {
     mavenLocal()
     maven { url 'https://maven.google.com'  }
-    jcenter()
+    mavenCentral()
   }
   dependencies {
     classpath 'com.android.tools.build:gradle:3.3.3'
@@ -29,7 +29,7 @@ allprojects {
   repositories {
     mavenLocal()
     maven { url 'https://maven.google.com'  }
-    jcenter()
+    mavenCentral()
   }
 }
 
@@ -75,7 +75,10 @@ android {
 }
 
 apply from: "$gradle.firebase_cpp_sdk_dir/Android/firebase_dependencies.gradle"
+// Remote Config doesn't require play-services-base as a dependency, so include
+// the version of App without it, to ensure the C++ SDK also doesn't require it.
 firebaseCpp.dependencies {
+  appWithoutPlayServices
   remoteConfig
 }
 

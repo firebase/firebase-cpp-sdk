@@ -83,11 +83,6 @@ option(FIREBASE_GITHUB_ACTION_BUILD
 option(FIREBASE_QUICK_TEST
        "Enable quick tests will skip tests which requires access to the SECRET" OFF)
 
-set(FIREBASE_ANDROID_STL "" CACHE STRING "STL implementation to use.")
-if (NOT FIREBASE_ANDROID_STL STREQUAL "")
-  set(ANDROID_STL ${FIREBASE_ANDROID_STL})
-endif()
-
 set(FIREBASE_PYTHON_EXECUTABLE "python" CACHE FILEPATH
   "The Python interpreter to use, such as one from a venv")
 
@@ -217,6 +212,10 @@ set(FIREBASE_DOWNLOAD_DIR ${PROJECT_BINARY_DIR}/downloads)
 if(FIREBASE_INCLUDE_FIRESTORE AND DESKTOP)
   set(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD ON)
 endif()
+
+# Disable compiling the Objective-C (and Swift) stuff from the
+# firebase-ios-sdk since it's not needed and can sometimes fail to build.
+set(FIRESTORE_INCLUDE_OBJC OFF CACHE BOOL "Disabled for the CPP SDK")
 
 if(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
   # Quote meta characters in ${CMAKE_CURRENT_LIST_DIR} so we can

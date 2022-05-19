@@ -134,11 +134,6 @@ function(download_external_sources)
         "\n#include <stdlib.h>\n")
       endif()
     endif()
-    if (FIREBASE_INCLUDE_FIRESTORE)
-      # Tweak Firestore's included version of leveldb to match our own.
-      file(INSTALL "${PROJECT_SOURCE_DIR}/cmake/external/leveldb.cmake"
-           DESTINATION "${PROJECT_BINARY_DIR}/external/src/firestore/cmake/external")
-    endif()
   endif()
 endfunction()
 
@@ -245,6 +240,9 @@ function(build_external_dependencies)
           -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
     endif()
   endif()
+  # Propagate the PIC setting, as the dependencies need to match it
+  set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+      -DCMAKE_POSITION_INDEPENDENT_CODE=${CMAKE_POSITION_INDEPENDENT_CODE})
   message(STATUS "Sub-configure options: ${CMAKE_SUB_CONFIGURE_OPTIONS}")
   message(STATUS "Sub-build options: ${CMAKE_SUB_BUILD_OPTIONS}")
 
