@@ -603,6 +603,8 @@ code.
     - General (Android): Fixed a bug that required Android apps to include
       `com.google.android.gms:play-services-base` as an explicit dependency when
       only using AdMob, Analytics, Remote Config, or Messaging.
+    - Added [on-device conversion measurement](https://support.google.com/google-ads/answer/12119136)
+      with InitiateOnDeviceConversionMeasurementWithEmail API.
 
 ### 9.0.0
 -   Changes
