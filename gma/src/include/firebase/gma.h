@@ -36,8 +36,8 @@
 FIREBASE_APP_REGISTER_CALLBACKS_REFERENCE(gma)
 #endif  // !defined(DOXYGEN) && !defined(SWIG)
 // Within Firebase docs, just link to the GMA docs.
-#if defined(DOXYGEN) && !defined(DOXYGEN_ADMOB)
-/// @defgroup google_mobile_ads_cpp Google Mobile Ads with Firebase
+#if 0 || defined(DOXYGEN) && !defined(DOXYGEN_ADMOB)
+/// @defgroup google_mobile_ads_cpp firebase::gma
 ///
 /// Google Mobile Ads with Firebase
 ///
@@ -51,7 +51,9 @@ FIREBASE_APP_REGISTER_CALLBACKS_REFERENCE(gma)
 
 // Only include these docs if DOXYGEN_ADMOB is defined.
 // This is a special link to the firebase::Future docs.
-#if !defined(DOXYGEN) || defined(DOXYGEN_ADMOB)
+
+// #if !defined(DOXYGEN) || defined(DOXYGEN_ADMOB)
+
 namespace firebase {
 // In the GMA docs, link to firebase::Future in the Firebase C++ docs.
 #if defined(DOXYGEN_ADMOB)
@@ -220,6 +222,6 @@ void Terminate();
 }  // namespace gma
 }  // namespace firebase
 
-#endif  // !defined(DOXYGEN) || defined(DOXYGEN_ADMOB)
+// #endif  // !defined(DOXYGEN) || defined(DOXYGEN_ADMOB)
 
 #endif  // FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_H_
