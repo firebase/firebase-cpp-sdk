@@ -1267,7 +1267,7 @@ jobs:
           python scripts/gha/test_simulator.py --testapp_dir testapps \
             --test_type "${{ matrix.test_type }}" \
             --ios_device "${{ matrix.ios_device }}" \
-            --logfile_name "ios-macos-latest-${{ matrix.ios_device }}-${{ matrix.test_type }}" \
+            --logfile_name "ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}" \
             --ci
       - name: Install Cloud SDK
         if: steps.get-device-type.outputs.device_type == 'real'
@@ -1280,7 +1280,7 @@ jobs:
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           python scripts/gha/test_lab.py --testapp_dir testapps \
             --ios_device "${{ matrix.ios_device }}" \
-            --logfile_name "ios-macos-latest-${{ matrix.ios_device }}-${{ matrix.test_type }}" \
+            --logfile_name "ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}" \
             --code_platform cpp \
             --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Prepare results summary artifact
@@ -1288,15 +1288,15 @@ jobs:
         shell: bash
         run: |
           # If testapps do not exist, then it's a build error not test error. 
-          if [ -d "testapps/testapps-ios-macos-latest" && ! -f "testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}-${{ matrix.test_type }}.log.json" ]; then
-            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}-${{ matrix.test_type }}.log.json"
+          if [ -d "testapps/testapps-ios-${{ matrix.build_os }}" && ! -f "testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.log.json" ]; then
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.log.json"
           fi
       - name: Upload iOS test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
         with:
           name: log-artifact
-          path: testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}-${{ matrix.test_type }}*
+          path: testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
@@ -1318,7 +1318,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat "testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}-${{ matrix.test_type }}.log"
+          cat "testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.log"
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
