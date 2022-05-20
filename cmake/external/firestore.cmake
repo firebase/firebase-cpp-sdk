@@ -37,9 +37,9 @@ function(GetReleasedDep)
 
     DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
     GIT_REPOSITORY "https://github.com/firebase/firebase-ios-sdk.git"
-    # Pinned commit from https://github.com/firebase/firebase-ios-sdk/pull/9596
-    # (Enable Snappy compression support in LevelDb in cmake builds)
-    GIT_TAG ece67740ac77e95de658471e4b3d63161d5df5f0
+    # Pinned HEAD commit after https://github.com/firebase/firebase-ios-sdk/pull/9596
+    # (Enable Snappy compression support in LevelDb in cmake builds) was merged.
+    GIT_TAG c0df0d4ab11d4ae30c307a0c7dcdb29e3e0dc411
 
     PREFIX ${PROJECT_BINARY_DIR}
 
