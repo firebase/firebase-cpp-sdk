@@ -15,6 +15,8 @@
 #ifndef FIREBASE_FUNCTIONS_SRC_DESKTOP_CALLABLE_REFERENCE_DESKTOP_H_
 #define FIREBASE_FUNCTIONS_SRC_DESKTOP_CALLABLE_REFERENCE_DESKTOP_H_
 
+#include <string>
+
 #include "app/rest/transport_curl.h"
 #include "app/rest/transport_interface.h"
 #include "app/src/include/firebase/future.h"

@@ -14,6 +14,8 @@
 
 #include "functions/src/desktop/callable_reference_desktop.h"
 
+#include <string>
+
 #include "app/rest/request.h"
 #include "app/rest/util.h"
 #include "app/src/function_registry.h"
