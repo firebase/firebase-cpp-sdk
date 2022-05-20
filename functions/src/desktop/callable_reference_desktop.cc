@@ -32,8 +32,8 @@ enum CallableReferenceFn {
 };
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
-    FunctionsInternal* functions, const char* name)
-    : functions_(functions), name_(name) {
+    FunctionsInternal* functions, const char* url)
+    : functions_(functions), url_(url) {
   functions_->future_manager().AllocFutureApi(this, kCallableReferenceFnCount);
   rest::InitTransportCurl();
   transport_.set_is_async(true);
@@ -46,7 +46,8 @@ HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() {
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     const HttpsCallableReferenceInternal& other)
-    : functions_(other.functions_), name_(other.name_) {
+    : functions_(other.functions_),
+      url_(other.url_) {
   functions_->future_manager().AllocFutureApi(this, kCallableReferenceFnCount);
   rest::InitTransportCurl();
   transport_.set_is_async(true);
@@ -55,14 +56,15 @@ HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
 HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
     const HttpsCallableReferenceInternal& other) {
   functions_ = other.functions_;
-  name_ = other.name_;
+  url_ = other.url_;
   return *this;
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     HttpsCallableReferenceInternal&& other)
-    : functions_(other.functions_), name_(std::move(other.name_)) {
+    : functions_(other.functions_),
+      url_(std::move(other.url_)) {
   other.functions_ = nullptr;
   functions_->future_manager().MoveFutureApi(&other, this);
   rest::InitTransportCurl();
@@ -73,7 +75,7 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
     HttpsCallableReferenceInternal&& other) {
   functions_ = other.functions_;
   other.functions_ = nullptr;
-  name_ = std::move(other.name_);
+  url_ = std::move(other.url_);
   functions_->future_manager().MoveFutureApi(&other, this);
   return *this;
 }
@@ -300,8 +302,7 @@ void HttpsCallableReferenceInternal::ResolveFuture(
 Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
     const Variant& data) {
   // Set up the request.
-  std::string url = functions_->GetUrl(name_);
-  request_.set_url(url.data());
+  request_.set_url(url_.data());
   request_.set_method(rest::util::kPost);
   request_.add_header(rest::util::kContentType, rest::util::kApplicationJson);
 
@@ -318,8 +319,8 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
   std::string json = util::VariantToJson(body);
   request_.set_post_fields(json.data());
 
-  firebase::LogDebug("Calling Cloud Function with name: %s\nurl: %s\ndata: %s",
-                     name_.c_str(), url.c_str(), json.c_str());
+  firebase::LogDebug("Calling Cloud Function with url: %s\ndata: %s",
+                     url_.c_str(), json.c_str());
 
   // Set up the future to resolve when the request is complete.
   ReferenceCountedFutureImpl* future_impl = future();

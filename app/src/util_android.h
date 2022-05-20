@@ -680,6 +680,13 @@ METHOD_LOOKUP_DECLARATION(throwable, THROWABLE_METHODS);
 // clang-format on
 METHOD_LOOKUP_DECLARATION(uri, URI_METHODS)
 
+// clang-format off
+#define URL_METHODS(X)                                                      \
+    X(Constructor, "<init>", "(Ljava/lang/String;)V"),                      \
+    X(ConstructorWithURL, "<init>", "(Ljava/net/URL;Ljava/lang/String;)V")
+// clang-format on
+METHOD_LOOKUP_DECLARATION(url, URL_METHODS)
+
 // Methods of the java.lang.Object class,
 // clang-format off
 #define OBJECT_METHODS(X)                                                      \
@@ -941,6 +948,10 @@ jobject CharsToJniUri(JNIEnv* env, const char* uri);
 // Parse a string containing a URL into a android.net.Uri using Uri.parse().
 // The caller must call env->DeleteLocalRef() on the returned jobject.
 jobject ParseUriString(JNIEnv* env, const char* uri_string);
+
+// Convert a char array into a jobject of type java.net.URL.
+// The caller must call env->DeleteLocalRef() on the returned jobject.
+jobject CharsToURL(JNIEnv* env, const char* url_string);
 
 // Convert a jbyteArray to a vector, releasing the reference to the jbyteArray.
 std::vector<unsigned char> JniByteArrayToVector(JNIEnv* env, jobject array);

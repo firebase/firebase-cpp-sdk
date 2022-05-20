@@ -603,6 +603,8 @@ code.
     - General (Android): Fixed a bug that required Android apps to include
       `com.google.android.gms:play-services-base` as an explicit dependency when
       only using AdMob, Analytics, Remote Config, or Messaging.
+    - Functions: Add a new method `GetHttpsCallableFromURL`, to create callables
+      with URLs other than cloudfunctions.net.
 
 ### 9.0.0
 -   Changes

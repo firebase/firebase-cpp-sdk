@@ -152,13 +152,6 @@ METHOD_LOOKUP_DEFINITION(url_class_loader, "java/net/URLClassLoader",
                          URL_CLASS_LOADER_METHODS)
 
 // clang-format off
-#define URL_METHODS(X) \
-  X(Constructor, "<init>", "(Ljava/net/URL;Ljava/lang/String;)V")
-// clang-format on
-METHOD_LOOKUP_DECLARATION(url, URL_METHODS)
-METHOD_LOOKUP_DEFINITION(url, "java/net/URL", URL_METHODS)
-
-// clang-format off
 #define JAVA_URI_METHODS(X) X(ToUrl, "toURL", "()Ljava/net/URL;")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(java_uri, JAVA_URI_METHODS)
@@ -211,6 +204,7 @@ METHOD_LOOKUP_DEFINITION(short_class, "java/lang/Short", SHORT_METHODS);
 METHOD_LOOKUP_DEFINITION(string, "java/lang/String", STRING_METHODS)
 METHOD_LOOKUP_DEFINITION(throwable, "java/lang/Throwable", THROWABLE_METHODS)
 METHOD_LOOKUP_DEFINITION(uri, "android/net/Uri", URI_METHODS)
+METHOD_LOOKUP_DEFINITION(url, "java/net/URL", URL_METHODS)
 METHOD_LOOKUP_DEFINITION(object, "java/lang/Object", OBJECT_METHODS)
 
 // Number of references to this module via InitializeActivityClasses() vs.
@@ -393,6 +387,7 @@ static void ReleaseClasses(JNIEnv* env) {
   string::ReleaseClass(env);
   throwable::ReleaseClass(env);
   uri::ReleaseClass(env);
+  url::ReleaseClass(env);
   object::ReleaseClass(env);
   uribuilder::ReleaseClass(env);
   if (g_jniresultcallback_loaded) {
@@ -402,7 +397,6 @@ static void ReleaseClasses(JNIEnv* env) {
   JavaThreadContext::Terminate(env);
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
   java_uri::ReleaseClass(env);
-  url::ReleaseClass(env);
   url_class_loader::ReleaseClass(env);
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
 }
@@ -492,6 +486,7 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
         string::CacheMethodIds(env, activity_object) &&
         throwable::CacheMethodIds(env, activity_object) &&
         uri::CacheMethodIds(env, activity_object) &&
+        url::CacheMethodIds(env, activity_object) &&
         object::CacheMethodIds(env, activity_object) &&
         uribuilder::CacheMethodIds(env, activity_object))) {
     ReleaseClasses(env);
@@ -508,7 +503,6 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
   // Cache JVM class-loader for desktop.
   if (!(java_uri::CacheMethodIds(env, activity_object) &&
-        url::CacheMethodIds(env, activity_object) &&
         url_class_loader::CacheMethodIds(env, activity_object))) {
     return false;
   }
@@ -1182,6 +1176,17 @@ jobject ParseUriString(JNIEnv* env, const char* uri_string) {
   return uri;
 }
 
+// Convert a char array into a jobject of type java.net.URL.
+// The caller must call env->DeleteLocalRef() on the returned jobject.
+jobject CharsToURL(JNIEnv* env, const char* url_string) {
+  jobject url_jstring = env->NewStringUTF(url_string);
+  jobject url = env->NewObject(url::GetClass(), url::GetMethodId(url::kConstructor),
+                               url_jstring);
+  CheckAndClearJniExceptions(env);
+  env->DeleteLocalRef(url_jstring);
+  return url;
+}
+
 // Convert a jbyteArray to a vector, releasing the reference to the
 // jbyteArray.
 std::vector<unsigned char> JniByteArrayToVector(JNIEnv* env, jobject array) {
@@ -1624,7 +1629,7 @@ jclass FindClassInFiles(
   for (int i = 0; i < embedded_files.size(); ++i) {
     jstring embedded_file_string = env->NewStringUTF(embedded_files[i].name);
     jobject jar_url =
-        env->NewObject(url::GetClass(), url::GetMethodId(url::kConstructor),
+        env->NewObject(url::GetClass(), url::GetMethodId(url::kConstructorWithURL),
                        cache_url, embedded_file_string);
     env->SetObjectArrayElement(url_path_array, i, jar_url);
     env->DeleteLocalRef(jar_url);

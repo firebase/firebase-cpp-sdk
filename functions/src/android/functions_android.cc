@@ -35,7 +35,11 @@ const char kApiIdentifier[] = "Functions";
   X(GetHttpsCallable, "getHttpsCallable",                               \
     "(Ljava/lang/String;)"                                              \
     "Lcom/google/firebase/functions/HttpsCallableReference;",           \
-    util::kMethodTypeInstance),                                          \
+    util::kMethodTypeInstance),                                         \
+  X(GetHttpsCallableFromURL, "getHttpsCallableFromUrl",                 \
+    "(Ljava/net/URL;)"                                                  \
+    "Lcom/google/firebase/functions/HttpsCallableReference;",           \
+    util::kMethodTypeInstance),                                         \
   X(UseFunctionsEmulator, "useFunctionsEmulator",                       \
     "(Ljava/lang/String;)V",                                            \
     util::kMethodTypeInstance)
@@ -137,6 +141,7 @@ void FunctionsInternal::Terminate(App* app) {
     JNIEnv* env = app->GetJNIEnv();
     firebase_functions::ReleaseClass(env);
     functions_exception::ReleaseClass(env);
+    functions_exception_code::ReleaseClass(env);
 
     // Call Terminate on all other Functions internal classes.
     HttpsCallableReferenceInternal::Terminate(app);
@@ -190,6 +195,28 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
   if (util::LogException(env, kLogLevelError,
                          "Functions::GetHttpsCallable() (name = %s) failed",
                          name)) {
+    return nullptr;
+  }
+  HttpsCallableReferenceInternal* internal = new HttpsCallableReferenceInternal(
+      const_cast<FunctionsInternal*>(this), callable_reference_obj);
+  env->DeleteLocalRef(callable_reference_obj);
+  util::CheckAndClearJniExceptions(env);
+  return internal;
+}
+
+HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
+    const char* url) const {
+  FIREBASE_ASSERT_RETURN(nullptr, url != nullptr);
+  JNIEnv* env = app_->GetJNIEnv();
+  jobject url_object = util::CharsToURL(env, url);
+  jobject callable_reference_obj = env->CallObjectMethod(
+      obj_,
+      firebase_functions::GetMethodId(firebase_functions::kGetHttpsCallableFromURL),
+      url_object);
+  env->DeleteLocalRef(url_object);
+  if (util::LogException(env, kLogLevelError,
+                         "Functions::GetHttpsCallableFromURL() (url = %s) failed",
+                         url)) {
     return nullptr;
   }
   HttpsCallableReferenceInternal* internal = new HttpsCallableReferenceInternal(
