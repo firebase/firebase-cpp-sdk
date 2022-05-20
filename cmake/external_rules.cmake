@@ -240,6 +240,9 @@ function(build_external_dependencies)
           -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
     endif()
   endif()
+  # Propagate the PIC setting, as the dependencies need to match it
+  set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+      -DCMAKE_POSITION_INDEPENDENT_CODE=${CMAKE_POSITION_INDEPENDENT_CODE})
   message(STATUS "Sub-configure options: ${CMAKE_SUB_CONFIGURE_OPTIONS}")
   message(STATUS "Sub-build options: ${CMAKE_SUB_BUILD_OPTIONS}")
 
