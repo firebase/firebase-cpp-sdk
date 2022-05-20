@@ -1372,7 +1372,7 @@ TEST_F(FirebaseGmaTest, TestAdView) {
   // size aspect ratio that we requested. For example if you requested a 320x50
   // banner, you can get one with the size 960x150. Use EXPECT_NEAR because the
   // calculation can have a small bit of error.
-  double kAspectRatioAllowedError = 0.02;  // Allow about 2% of error.
+  double kAspectRatioAllowedError = 0.05;  // Allow about 5% of error.
   double expected_aspect_ratio =
       static_cast<double>(kBannerWidth) / static_cast<double>(kBannerHeight);
   for (int i = 0; i < bounding_box_listener.bounding_box_changes_.size() - 1;

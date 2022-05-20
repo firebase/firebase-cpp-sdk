@@ -57,8 +57,8 @@ namespace firebase {
 #if defined(DOXYGEN_ADMOB)
 /// @brief The Google Mobile Ads C++ SDK uses this class to return results from
 /// asynchronous operations. All  C++ functions and method calls that operate
-/// asynchronously return a %Future, and provide a "LastResult"
-/// function to retrieve the most recent %Future result.
+/// asynchronously return a <code>%Future</code>, and provide a "LastResult"
+/// function to retrieve the most recent <code>%Future</code> result.
 ///
 /// The Google Mobile Ads C++ SDK uses this class from the Firebase C++ SDK to
 /// return results from asynchronous operations. For more information, see the
@@ -136,14 +136,16 @@ Future<AdapterInitializationStatus> Initialize(
 /// Note that this does not include the adapter initialization status, which is
 /// returned in the Future.
 ///
-/// @return If init_result_out is kInitResultSuccess, this Future will contain
-/// the initialization status of each adapter once initialization is complete.
-/// Otherwise, the returned Future will have kFutureStatusInvalid.
+/// @return If init_result_out is <code>kInitResultSuccess</code>, this Future
+/// will contain the initialization status of each adapter once initialization
+/// is complete. Otherwise, the returned Future will have
+/// <code>kFutureStatusInvalid</code>.
 Future<AdapterInitializationStatus> Initialize(
     InitResult* init_result_out = nullptr);
 #endif  // !defined(__ANDROID__) || defined(DOXYGEN)
 
-/// Get the Future returned by a previous call to Initialize.
+/// Get the Future returned by a previous call to
+/// @ref firebase::gma::Initialize().
 Future<AdapterInitializationStatus> InitializeLastResult();
 
 /// Get the current adapter initialization status. You can poll this method to
@@ -182,17 +184,19 @@ void SetRequestConfiguration(const RequestConfiguration& request_configuration);
 /// @note: on iOS, the
 /// @ref RequestConfiguration::tag_for_child_directed_treatment and
 /// @ref RequestConfiguration::tag_for_under_age_of_consent fields will be set
-/// to kChildDirectedTreatmentUnspecified, and kUnderAgeOfConsentUnspecified,
-/// respectfully.
+/// to RequestConfiguration.kChildDirectedTreatmentUnspecified, and
+/// RequestConfiguration.kUnderAgeOfConsentUnspecified, respectfully.
 RequestConfiguration GetRequestConfiguration();
 
 /// Opens the ad inspector UI.
 ///
 /// @param[in] parent The platform-specific UI element that will host the
-/// ad inspector.  For iOS this should be the window's UIViewController.
-/// For Android this is the Activity Context which the GMA SDK is running in.
+/// ad inspector.  For iOS this should be the window's
+/// <code>UIViewController</code>. For Android this is the
+/// <code>Activity</code> Context which the GMA SDK is running in.
 /// @param[in] listener The listener will be invoked when the user closes
-/// the ad inspector UI. Initialize must be called prior to this function.
+/// the ad inspector UI. @ref firebase::gma::Initialize(). must be called
+/// prior to this function.
 void OpenAdInspector(AdParent parent, AdInspectorClosedListener* listener);
 
 /// Controls whether the Google Mobile Ads SDK Same App Key is enabled.

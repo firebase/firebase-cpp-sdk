@@ -26,6 +26,14 @@
 #include "firebase/util.h"
 #include "firebase_test_framework.h"  // NOLINT
 
+#ifdef _MSC_VER
+// Windows uses _stricmp instead of strcasecmp.
+#define strncasecmp _strnicmp
+#define strcasecmp _stricmp
+#else
+#include <strings.h>
+#endif  // _MSC_VER
+
 // The TO_STRING macro is useful for command line defined strings as the quotes
 // get stripped.
 #define TO_STRING_EXPAND(X) #X
@@ -222,7 +230,7 @@ bool FirebaseMessagingTest::CreateTestMessage(
     // Don't send HTTP requests in stub mode.
     return false;
   }
-  if (strcmp(kFcmServerKey, "REPLACE_WITH_YOUR_SERVER_KEY") == 0) {
+  if (strcasecmp(kFcmServerKey, "replace_with_your_server_key") == 0) {
     LogWarning(
         "Please put your Firebase Cloud Messaging server key in "
         "kFcmServerKey.");

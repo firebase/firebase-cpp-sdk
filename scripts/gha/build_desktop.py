@@ -39,6 +39,7 @@ import os
 import utils
 import shutil
 import subprocess
+import sys
 
 def append_line_to_file(path, line):
   """Append the given line to the end of the file if it's not already in the file.
@@ -54,48 +55,6 @@ def append_line_to_file(path, line):
   if line not in lines:
     with open(path, "a") as file:
       file.write("\n" + line + "\n")
-
-
-def install_x86_support_libraries(gha_build=False):
-  """Install support libraries needed to build x86 on x86_64 hosts.
-
-  Args:
-    gha_build: Pass in True if running on a GitHub runner; this will activate
-               workarounds that might be undesirable on a personal system (e.g.
-               downgrading Ubuntu packages).
-  """
-  if utils.is_linux_os():
-    packages = ['gcc-multilib', 'g++-multilib', 'libglib2.0-dev:i386',
-                'libsecret-1-dev:i386', 'libpthread-stubs0-dev:i386',
-                'libssl-dev:i386']
-    if gha_build:
-      # Workaround for GitHub runners, which have an incompatibility between the
-      # 64-bit and 32-bit versions of the Ubuntu package libpcre2-8-0. Downgrade
-      # the installed 64-bit version of the library to get around this issue.
-      # This will presumably be fixed in a future Ubuntu update. (If you remove
-      # it, remove the workaround further down this function as well.)
-      packages = ['--allow-downgrades'] + packages + ['libpcre2-8-0=10.34-7']
-
-    # First check if these packages exist on the machine already
-    devnull = open(os.devnull, "w")
-    process = subprocess.run(["dpkg", "-s"] + packages, stdout=devnull, stderr=subprocess.STDOUT)
-    devnull.close()
-    if process.returncode != 0:
-      # This implies not all of the required packages are already installed on user's machine
-      # Install them.
-      utils.run_command(['dpkg', '--add-architecture', 'i386'], as_root=True, check=True)
-      utils.run_command(['apt', 'update'], as_root=True, check=True)
-      utils.run_command(['apt', 'install', '-V', '-y'] + packages, as_root=True, check=True)
-
-    if gha_build:
-      # One more workaround: downgrading libpcre2-8-0 above may have uninstalled
-      # libsecret, which is required for the Linux build. Force it to be
-      # reinstalled, but do it as a separate command to ensure that held
-      # packages aren't modified. (Once the workaround above is removed, this can
-      # be removed as well.)
-      # Note: "-f" = "fix" - let apt do what it needs to do to fix dependencies.
-      utils.run_command(['apt', 'install', '-f', '-V', '-y', 'libsecret-1-dev'],
-                        as_root=True, check=True)
 
 
 def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, use_openssl=False):
@@ -234,6 +193,8 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='l
     # on different windows machines.
     cmd.append('-A')
     cmd.append('Win32') if arch == 'x86' else cmd.append('x64')
+    # Also, for Windows, specify the path to Python.
+    cmd.append('-DFIREBASE_PYTHON_HOST_EXECUTABLE:FILEPATH=%s' % sys.executable)
 
     # Use our special cmake flag to specify /MD vs /MT
     if msvc_runtime_library == "static":
@@ -278,7 +239,7 @@ def main():
 
   # To build x86 on x86_64 linux hosts, we also need x86 support libraries
   if args.arch == 'x86' and utils.is_linux_os():
-    install_x86_support_libraries(args.gha_build)
+    utils.install_x86_support_libraries(args.gha_build)
 
   # Install C++ dependencies using vcpkg
   if not args.disable_vcpkg:

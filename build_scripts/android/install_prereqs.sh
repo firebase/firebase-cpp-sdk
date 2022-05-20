@@ -21,11 +21,11 @@ else
     # Retry up to 10 times because Curl has a tendency to timeout on
     # Github runners.
     for retry in {1..10} error; do
-	if [[ $retry == "error" ]]; then exit 5; fi
-	curl -LSs \
+        if [[ $retry == "error" ]]; then exit 5; fi
+        curl -LSs \
              "https://download.sysinternals.com/files/Strings.zip" \
              --output Strings.zip && break
-	sleep 300
+        sleep 300
     done
     set -e
     unzip -q Strings.zip && rm -f Strings.zip
@@ -60,29 +60,29 @@ if [[ -z "${ANDROID_HOME}" ]]; then
     exit 1
 fi
 
-if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 16\." "${NDK_ROOT}/source.properties") ]]; then
-    if [[ -d /tmp/android-ndk-r16b && \
-	      -n $(grep "Pkg\.Revision = 16\." "/tmp/android-ndk-r16b/source.properties") ]]; then
-	    echo "Using NDK r16b in /tmp/android-ndk-r16b".
+if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 21\." "${NDK_ROOT}/source.properties") ]]; then
+    if [[ -d /tmp/android-ndk-r21e && \
+              -n $(grep "Pkg\.Revision = 21\." "/tmp/android-ndk-r21e/source.properties") ]]; then
+            echo "Using NDK r21e in /tmp/android-ndk-r21e".
     else
         echo "NDK_ROOT environment variable is not set, or NDK version is incorrect."
-        echo "This build requires NDK r16b for STLPort compatibility, downloading..."
-	    if [[ -z $(which curl) ]]; then
-	        echo "Error, could not run 'curl' to download NDK. Is it in your PATH?"
-	        exit 1
-	    fi
-	    set +e
-	    # Retry up to 10 times because Curl has a tendency to timeout on
-	    # Github runners.
-	    for retry in {1..10} error; do
-	        if [[ $retry == "error" ]]; then exit 5; fi
-	        curl --http1.1 -LSs \
-		    "https://dl.google.com/android/repository/android-ndk-r16b-${platform}-x86_64.zip" \
-		    --output /tmp/android-ndk-r16b.zip && break
-	        sleep 300
-	    done
-	    set -e
-	    (cd /tmp && unzip -oq android-ndk-r16b.zip && rm -f android-ndk-r16b.zip)
-	    echo "NDK r16b has been downloaded into /tmp/android-ndk-r16b"
+        echo "This build recommends NDK r21e, downloading..."
+            if [[ -z $(which curl) ]]; then
+                echo "Error, could not run 'curl' to download NDK. Is it in your PATH?"
+                exit 1
+            fi
+            set +e
+            # Retry up to 10 times because Curl has a tendency to timeout on
+            # Github runners.
+            for retry in {1..10} error; do
+                if [[ $retry == "error" ]]; then exit 5; fi
+                curl --http1.1 -LSs \
+                    "https://dl.google.com/android/repository/android-ndk-r21e-${platform}-x86_64.zip" \
+                    --output /tmp/android-ndk-r21e.zip && break
+                sleep 300
+            done
+            set -e
+            (cd /tmp && unzip -oq android-ndk-r21e.zip && rm -f android-ndk-r21e.zip)
+            echo "NDK r21e has been downloaded into /tmp/android-ndk-r21e"
     fi
 fi

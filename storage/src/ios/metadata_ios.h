@@ -24,8 +24,7 @@
 #include "storage/src/ios/storage_reference_ios.h"
 
 #ifdef __OBJC__
-#import "FIRStorage.h"
-#import "FIRStorageMetadata.h"
+#import "FirebaseStorage-Swift.h"
 #endif  // __OBJC__
 
 namespace firebase {

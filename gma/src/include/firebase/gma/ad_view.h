@@ -122,31 +122,31 @@ class AdView {
 
   /// Sets an AdListener for this ad view.
   ///
-  /// param[in] listener A listener object which will be invoked when lifecycle
-  /// events occur on this AdView.
+  /// @param[in] listener An AdListener object which will be invoked
+  /// when lifecycle events occur on this AdView.
   void SetAdListener(AdListener* listener);
 
   /// Sets a listener to be invoked when the Ad's bounding box
   /// changes size or location.
   ///
-  /// param[in] listener A listener object which will be invoked when the ad
-  /// changes size, shape, or position.
+  /// @param[in] listener A AdViewBoundingBoxListener object which will be
+  /// invoked when the ad changes size, shape, or position.
   void SetBoundingBoxListener(AdViewBoundingBoxListener* listener);
 
   /// Sets a listener to be invoked when this ad is estimated to have earned
   /// money.
   ///
-  /// param[in] A listener object to be invoked when a paid event occurs on the
-  /// ad.
+  /// @param[in] listener A PaidEventListener object to be invoked when a
+  /// paid event occurs on the ad.
   void SetPaidEventListener(PaidEventListener* listener);
 
   /// Moves the @ref AdView so that its top-left corner is located at
   /// (x, y). Coordinates are in pixels from the top-left corner of the screen.
   ///
   /// When built for Android, the library will not display an ad on top of or
-  /// beneath an Activity's status bar. If a call to MoveTo would result in an
-  /// overlap, the @ref AdView is placed just below the status bar, so no
-  /// overlap occurs.
+  /// beneath an <code>Activity</code>'s status bar. If a call to SetPostion
+  /// would result in an overlap, the @ref AdView is placed just below the
+  /// status bar, so no overlap occurs.
   /// @param[in] x The desired horizontal coordinate.
   /// @param[in] y The desired vertical coordinate.
   ///
@@ -219,7 +219,7 @@ class AdView {
   /// Pointer to a listener for BoundingBox events.
   AdViewBoundingBoxListener* ad_view_bounding_box_listener_;
 
-  /// Pointer to a listener for Paid events.
+  /// Pointer to a listener for paid events.
   PaidEventListener* paid_event_listener_;
 
  private:

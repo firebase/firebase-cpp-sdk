@@ -205,7 +205,7 @@ class AdError {
 
   /// Gets the ResponseInfo if an error occurred during a loadAd operation.
   /// The ResponseInfo will have empty fields if this AdError does not
-  /// represent an error stemming from a loadAd operation.
+  /// represent an error stemming from a load ad operation.
   const ResponseInfo& response_info() const;
 
   /// Returns a log friendly string version of this object.
@@ -241,7 +241,7 @@ class ResponseInfo {
   /// Constructor creates an uninitialized ResponseInfo.
   ResponseInfo();
 
-  /// Gets the AdaptorResponseInfo objects for the ad response.
+  /// Gets the AdapterResponseInfo objects for the ad response.
   ///
   /// @return a vector of AdapterResponseInfo objects containing metadata for
   ///   each adapter included in the ad response.
@@ -518,7 +518,7 @@ class AdSize {
   /// height.
   ///
   /// This AdSize allows Google servers to choose an optimal ad size with
-  /// a height less than or equal to the max height given in.
+  /// a height less than or equal to the max height given in
   ///
   /// @param[in] width The width of the ad in density-independent pixels.
   /// @param[in] max_height The maximum height that a loaded ad will have. Must
@@ -558,8 +558,8 @@ class AdSize {
   /// @ref AdView::ad_size once the ad has been loaded.
   static AdSize GetPortraitInlineAdaptiveBannerAdSize(int width);
 
-  /// @brief A convenience method to return InlineAdaptiveBannerAdSize given
-  /// the current interface orientation.
+  /// @brief A convenience method to return an inline adaptive banner ad size
+  /// given the current interface orientation.
   ///
   /// This AdSize allows Google servers to choose an optimal ad size with a
   /// height less than or equal to the height of the screen in the requested
@@ -660,15 +660,15 @@ class AdRequest {
     return neighboring_content_urls_;
   }
 
-  /// Add a network extra for the associated ad_network.
+  /// Add a network extra for the associated ad medation adapter.
   ///
-  /// Appends an extra to the corresponding list of extras for the ad_network.
-  /// Each ad network can have multiple extra strings.
+  /// Appends an extra to the corresponding list of extras for the ad medation
+  /// adapter. Each ad medation adapter can have multiple extra strings.
   ///
-  /// @param[in] adapter_class_name the ad network adapter for which to add the
-  /// extra.
+  /// @param[in] adapter_class_name the class name of the ad medation adapter
+  /// for which to add the extra.
   /// @param[in] extra_key a key which will be passed to the corresponding ad
-  /// network adapter.
+  /// medation adapter.
   /// @param[in] extra_value the value associated with extra_key.
   void add_extra(const char* adapter_class_name, const char* extra_key,
                  const char* extra_value);
@@ -777,7 +777,7 @@ class FullScreenContentListener {
 
   /// Called when the ad failed to show full screen content.
   ///
-  /// param[in] ad_error An object containing detailed information
+  /// @param[in] ad_error An object containing detailed information
   /// about the error.
   virtual void OnAdFailedToShowFullScreenContent(const AdError& ad_error) {}
 
@@ -866,17 +866,20 @@ struct RequestConfiguration {
   /// Privacy Protection Act (COPPA) -
   /// http://business.ftc.gov/privacy-and-security/childrens-privacy.
   ///
-  /// If you set this value to kChildDirectedTreatmentTrue, you will indicate
+  /// If you set this value to
+  /// RequestConfiguration.kChildDirectedTreatmentTrue, you will indicate
   /// that your app should be treated as child-directed for purposes of the
   /// Children’s Online Privacy Protection Act (COPPA).
   ///
-  /// If you set this value to kChildDirectedTreatmentFalse, you will indicate
+  /// If you set this value to
+  /// RequestConfiguration.kChildDirectedTreatmentFalse, you will indicate
   /// that your app should not be treated as child-directed for purposes of the
   /// Children’s Online Privacy Protection Act (COPPA).
   ///
   /// If you do not set this value, or set this value to
-  /// kChildDirectedTreatmentUnspecified, ad requests will include no indication
-  /// of how you would like your app treated with respect to COPPA.
+  /// RequestConfiguration.kChildDirectedTreatmentUnspecified, ad requests will
+  /// include no indication of how you would like your app treated with respect
+  /// to COPPA.
   ///
   /// By setting this value, you certify that this notification is accurate and
   /// you are authorized to act on behalf of the owner of the app. You

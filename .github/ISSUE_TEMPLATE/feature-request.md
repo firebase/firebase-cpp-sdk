@@ -13,8 +13,6 @@ template_path=.github/ISSUE_TEMPLATE/feature-request.md
 -->
 ### [READ] Guidelines
 
-When filing a feature request please make sure the issue title starts with "FR:".
-
 A good feature request ideally
 * is either immediately obvious (i.e. "Add Sign in with Apple support"), or
 * starts with a use case that is not achievable with the existing Firebase API and

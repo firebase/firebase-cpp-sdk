@@ -72,35 +72,35 @@ MINIMAL_KEY = "minimal"
 PARAMETERS = {
   "desktop": {
     "matrix": {
-      "os": ["ubuntu-latest", "macos-latest"],
+      "os": ["ubuntu-latest", "macos-12"],
       "build_type": ["Release", "Debug"],
       "architecture": ["x64", "x86", "arm64"],
       "msvc_runtime": ["static","dynamic"],
-      "xcode_version": ["12.4"],
+      "xcode_version": ["13.3.1"],
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
-        "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
-        "xcode_version": ["11.7", "12.4", "12.5.1"],
+        "os": ["ubuntu-latest", "macos-12", "windows-latest"],
+        "xcode_version": ["13.3.1"],
       }
     }
   },
 
   "android": {
     "matrix": {
-      "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
+      "os": ["ubuntu-latest", "macos-12", "windows-latest"],
       "architecture": ["x64"],
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
-        "os": ["ubuntu-latest", "macos-latest", "windows-latest"]
+        "os": ["ubuntu-latest", "macos-12", "windows-latest"]
       }
     }
   },
 
   "integration_tests": {
     "matrix": {
-      "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
+      "os": ["ubuntu-latest", "macos-12", "windows-latest"],
       "platform": ["Desktop", "Android", "iOS", "tvOS"],
       "ssl_lib": ["openssl"],
       "android_device": ["android_target", "emulator_target"],
@@ -112,7 +112,7 @@ PARAMETERS = {
       "msvc_runtime": ["dynamic"],
       "cpp_compiler_windows": ["VisualStudio2019"],
       "cpp_compiler_linux": ["clang-11.0"],
-      "xcode_version": ["12.4"],  # only the first one is used
+      "xcode_version": ["13.3.1"],  # only the first one is used
       "ndk_version": ["r22b"],
       "platform_version": ["28"],
       "build_tools_version": ["28.0.3"],
@@ -128,6 +128,8 @@ PARAMETERS = {
         "android_device": ["android_target", "android_latest", "emulator_target", "emulator_latest", "emulator_32bit"],
         "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"],
         "tvos_device": ["tvos_simulator"],
+        "architecture_windows_linux": ["x64", "x86"],
+        "architecture_macos": ["x64", "arm64"],
       }
     },
     "config": {
@@ -138,10 +140,10 @@ PARAMETERS = {
 
   "ios": {
     "matrix": {
-      "xcode_version": ["12.4"],
+      "xcode_version": ["13.3.1"],
 
       EXPANDED_KEY: {
-        "xcode_version": ["12.4", "12.5.1"]
+        "xcode_version": ["13.3.1"]
       }
     }
   },
@@ -170,9 +172,9 @@ TEST_DEVICES = {
   "ios_min": {"type": "real", "model":"iphone8", "version":"11.4"},
   "ios_target": {"type": "real", "model":"iphone8plus", "version":"12.0"},
   "ios_latest": {"type": "real", "model":"iphone11pro", "version":"14.7"},
-  "simulator_min": {"type": "virtual", "name":"iPhone 8", "version":"12.4"},
-  "simulator_target": {"type": "virtual", "name":"iPhone 8", "version":"13.7"},
-  "simulator_latest": {"type": "virtual", "name":"iPhone 8", "version":"14.3"},
+  "simulator_min": {"type": "virtual", "name":"iPhone 8", "version":"13.7"},
+  "simulator_target": {"type": "virtual", "name":"iPhone 8", "version":"14.5"},
+  "simulator_latest": {"type": "virtual", "name":"iPhone 11", "version":"15.2"},
   "tvos_simulator": {"type": "virtual", "name":"Apple TV", "version":"14.3"},
 }
  

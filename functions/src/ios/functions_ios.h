@@ -27,7 +27,7 @@
 #include "functions/src/include/firebase/functions/callable_reference.h"
 
 #ifdef __OBJC__
-#import "FIRFunctions.h"
+@class FIRFunctions;
 #endif  // __OBJC__
 
 // This defines the class FIRFunctionsPointer, which is a C++-compatible wrapper

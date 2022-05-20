@@ -102,6 +102,7 @@ target_include_directories(firebase_storage
     ${CMAKE_CURRENT_LIST_DIR}/src/include
   PRIVATE
     ${FIREBASE_CPP_SDK_ROOT_DIR}
+    ${FIREBASE_CPP_SDK_ROOT_DIR}/ios_pod/swift_headers
 )
 target_compile_definitions(firebase_storage
   PRIVATE
@@ -124,11 +125,9 @@ elseif(IOS)
   target_link_libraries(firebase_storage
                         PUBLIC "-fembed-bitcode")
 
-  # Empty entry to point to the GTMSessionFetcher folder '.'
   setup_pod_headers(
     firebase_storage
     POD_NAMES
-      .
       FirebaseCore
       FirebaseStorage
   )
