@@ -209,14 +209,15 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(
   FIREBASE_ASSERT_RETURN(nullptr, url != nullptr);
   JNIEnv* env = app_->GetJNIEnv();
   jobject url_object = util::CharsToURL(env, url);
-  jobject callable_reference_obj = env->CallObjectMethod(
-      obj_,
-      firebase_functions::GetMethodId(firebase_functions::kGetHttpsCallableFromURL),
-      url_object);
+  jobject callable_reference_obj =
+      env->CallObjectMethod(obj_,
+                            firebase_functions::GetMethodId(
+                                firebase_functions::kGetHttpsCallableFromURL),
+                            url_object);
   env->DeleteLocalRef(url_object);
-  if (util::LogException(env, kLogLevelError,
-                         "Functions::GetHttpsCallableFromURL() (url = %s) failed",
-                         url)) {
+  if (util::LogException(
+          env, kLogLevelError,
+          "Functions::GetHttpsCallableFromURL() (url = %s) failed", url)) {
     return nullptr;
   }
   HttpsCallableReferenceInternal* internal = new HttpsCallableReferenceInternal(

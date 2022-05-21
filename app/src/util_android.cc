@@ -1180,8 +1180,8 @@ jobject ParseUriString(JNIEnv* env, const char* uri_string) {
 // The caller must call env->DeleteLocalRef() on the returned jobject.
 jobject CharsToURL(JNIEnv* env, const char* url_string) {
   jobject url_jstring = env->NewStringUTF(url_string);
-  jobject url = env->NewObject(url::GetClass(), url::GetMethodId(url::kConstructor),
-                               url_jstring);
+  jobject url = env->NewObject(
+      url::GetClass(), url::GetMethodId(url::kConstructor), url_jstring);
   CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(url_jstring);
   return url;
@@ -1628,9 +1628,9 @@ jclass FindClassInFiles(
       env->NewObjectArray(embedded_files.size(), url::GetClass(), nullptr);
   for (int i = 0; i < embedded_files.size(); ++i) {
     jstring embedded_file_string = env->NewStringUTF(embedded_files[i].name);
-    jobject jar_url =
-        env->NewObject(url::GetClass(), url::GetMethodId(url::kConstructorWithURL),
-                       cache_url, embedded_file_string);
+    jobject jar_url = env->NewObject(url::GetClass(),
+                                     url::GetMethodId(url::kConstructorWithURL),
+                                     cache_url, embedded_file_string);
     env->SetObjectArrayElement(url_path_array, i, jar_url);
     env->DeleteLocalRef(jar_url);
     env->DeleteLocalRef(embedded_file_string);

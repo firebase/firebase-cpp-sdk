@@ -79,11 +79,12 @@ class FirebaseFunctionsTest : public FirebaseTest {
       firebase::functions::Error expected_error =
           firebase::functions::kErrorNone);
 
-  firebase::Future<firebase::functions::HttpsCallableResult> TestFunctionFromURL(
-      const char* function_url, const firebase::Variant* const function_data,
-      const firebase::Variant& expected_result,
-      firebase::functions::Error expected_error =
-          firebase::functions::kErrorNone);
+  firebase::Future<firebase::functions::HttpsCallableResult>
+  TestFunctionFromURL(const char* function_url,
+                      const firebase::Variant* const function_data,
+                      const firebase::Variant& expected_result,
+                      firebase::functions::Error expected_error =
+                          firebase::functions::kErrorNone);
 
   bool initialized_;
   firebase::auth::Auth* auth_;
@@ -196,8 +197,7 @@ void FirebaseFunctionsTest::SignIn() {
 // A helper function for calling a Firebase Function and waiting on the result.
 firebase::Future<firebase::functions::HttpsCallableResult>
 FirebaseFunctionsTest::TestFunctionHelper(
-    const char* function_name,
-    firebase::functions::HttpsCallableReference& ref,
+    const char* function_name, firebase::functions::HttpsCallableReference& ref,
     const firebase::Variant* const function_data,
     const firebase::Variant& expected_result,
     firebase::functions::Error expected_error) {
@@ -228,7 +228,8 @@ FirebaseFunctionsTest::TestFunction(
   firebase::functions::HttpsCallableReference ref;
   ref = functions_->GetHttpsCallable(function_name);
 
-  return TestFunctionHelper(function_name, ref, function_data, expected_result, expected_error);
+  return TestFunctionHelper(function_name, ref, function_data, expected_result,
+                            expected_error);
 }
 
 firebase::Future<firebase::functions::HttpsCallableResult>
@@ -241,7 +242,8 @@ FirebaseFunctionsTest::TestFunctionFromURL(
   firebase::functions::HttpsCallableReference ref;
   ref = functions_->GetHttpsCallableFromURL(function_url);
 
-  return TestFunctionHelper(function_url, ref, function_data, expected_result, expected_error);
+  return TestFunctionHelper(function_url, ref, function_data, expected_result,
+                            expected_error);
 }
 
 TEST_F(FirebaseFunctionsTest, TestInitializeAndTerminate) {
@@ -368,8 +370,8 @@ TEST_F(FirebaseFunctionsTest, TestFunctionFromURL) {
   data.map()["firstNumber"] = 4;
   data.map()["secondNumber"] = 2;
   std::string proj = app_->options().project_id();
-  std::string url = "https://us-central1-" + proj +
-                    ".cloudfunctions.net/addNumbers";
+  std::string url =
+      "https://us-central1-" + proj + ".cloudfunctions.net/addNumbers";
   firebase::Variant result =
       TestFunctionFromURL(url.c_str(), &data, firebase::Variant::Null())
           .result()

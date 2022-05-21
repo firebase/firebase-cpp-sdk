@@ -48,8 +48,7 @@ HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() {
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     const HttpsCallableReferenceInternal& other)
-    : functions_(other.functions_),
-      url_(other.url_) {
+    : functions_(other.functions_), url_(other.url_) {
   functions_->future_manager().AllocFutureApi(this, kCallableReferenceFnCount);
   rest::InitTransportCurl();
   transport_.set_is_async(true);
@@ -65,8 +64,7 @@ HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     HttpsCallableReferenceInternal&& other)
-    : functions_(other.functions_),
-      url_(std::move(other.url_)) {
+    : functions_(other.functions_), url_(std::move(other.url_)) {
   other.functions_ = nullptr;
   functions_->future_manager().MoveFutureApi(&other, this);
   rest::InitTransportCurl();

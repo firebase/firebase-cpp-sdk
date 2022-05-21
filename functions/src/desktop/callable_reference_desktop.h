@@ -54,8 +54,7 @@ class HttpsCallableRequest : public rest::Request {
 
 class HttpsCallableReferenceInternal {
  public:
-  HttpsCallableReferenceInternal(FunctionsInternal* functions,
-                                 const char* url);
+  HttpsCallableReferenceInternal(FunctionsInternal* functions, const char* url);
   ~HttpsCallableReferenceInternal();
 
   // Copy constructor. It's totally okay (and efficient) to copy
