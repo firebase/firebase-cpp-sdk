@@ -17,6 +17,7 @@
 #import <Foundation/Foundation.h>
 
 #import "FIRAnalytics.h"
+#import "FIRAnalytics+OnDevice.h"
 
 #include "analytics/src/include/firebase/analytics.h"
 
