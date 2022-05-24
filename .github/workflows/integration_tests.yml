@@ -877,11 +877,7 @@ jobs:
           max_attempts: 3
           command: python scripts/gha/install_prereqs_desktop.py --gha_build --running_only --arch '${{ matrix.arch }}' --ssl '${{ matrix.ssl_variant }}'
 
-<<<<<<< HEAD
-      - name: Set up Node (12)
-=======
       - name: Set up Node (14)
->>>>>>> main
         uses: actions/setup-node@v2
         with:
           node-version: 14.x
@@ -897,14 +893,11 @@ jobs:
           command: |
             pip install -r scripts/gha/requirements.txt
             python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact "testapps/testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}"
-<<<<<<< HEAD
-=======
       - name: Setup java
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
->>>>>>> main
       - name: Run Desktop integration tests
         env:
           USE_FIRESTORE_EMULATOR: true
@@ -1221,11 +1214,7 @@ jobs:
           fi
 
   test_ios:
-<<<<<<< HEAD
     name: test-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}
-=======
-    name: test-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}
->>>>>>> main
     needs: [check_and_prepare, build_ios]
     runs-on: macos-12
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'iOS') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
@@ -1233,7 +1222,6 @@ jobs:
       fail-fast: false
       matrix:
         ios_device: ${{ fromJson(needs.check_and_prepare.outputs.ios_device) }}
-<<<<<<< HEAD
         test_type: ["gameloop"]
         exclude:
           -  ios_device: "ios_min"
@@ -1242,8 +1230,6 @@ jobs:
              test_type: "uitest"
           -  ios_device: "ios_latest"
              test_type: "uitest"
-=======
->>>>>>> main
         build_os: [macos-12]
     steps:
       - name: setup Xcode version (macos)
