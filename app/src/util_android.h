@@ -942,6 +942,10 @@ jobject CharsToJniUri(JNIEnv* env, const char* uri);
 // The caller must call env->DeleteLocalRef() on the returned jobject.
 jobject ParseUriString(JNIEnv* env, const char* uri_string);
 
+// Convert a char array into a jobject of type java.net.URL.
+// The caller must call env->DeleteLocalRef() on the returned jobject.
+jobject CharsToURL(JNIEnv* env, const char* url_string);
+
 // Convert a jbyteArray to a vector, releasing the reference to the jbyteArray.
 std::vector<unsigned char> JniByteArrayToVector(JNIEnv* env, jobject array);
 
