@@ -118,6 +118,15 @@ METHOD_LOOKUP_DECLARATION(uribuilder, URI_BUILDER_METHODS)
 METHOD_LOOKUP_DEFINITION(uribuilder, "android/net/Uri$Builder",
                          URI_BUILDER_METHODS)
 
+// Methods of the java.net.URL class.
+// clang-format off
+#define URL_METHODS(X)                                                      \
+    X(Constructor, "<init>", "(Ljava/lang/String;)V"),                      \
+    X(ConstructorWithURL, "<init>", "(Ljava/net/URL;Ljava/lang/String;)V")
+// clang-format on
+METHOD_LOOKUP_DECLARATION(url, URL_METHODS)
+METHOD_LOOKUP_DEFINITION(url, "java/net/URL", URL_METHODS)
+
 // clang-format off
 #define FILE_OUTPUT_STREAM_METHODS(X)                \
   X(ConstructorFile, "<init>", "(Ljava/io/File;)V"), \
@@ -204,7 +213,6 @@ METHOD_LOOKUP_DEFINITION(short_class, "java/lang/Short", SHORT_METHODS);
 METHOD_LOOKUP_DEFINITION(string, "java/lang/String", STRING_METHODS)
 METHOD_LOOKUP_DEFINITION(throwable, "java/lang/Throwable", THROWABLE_METHODS)
 METHOD_LOOKUP_DEFINITION(uri, "android/net/Uri", URI_METHODS)
-METHOD_LOOKUP_DEFINITION(url, "java/net/URL", URL_METHODS)
 METHOD_LOOKUP_DEFINITION(object, "java/lang/Object", OBJECT_METHODS)
 
 // Number of references to this module via InitializeActivityClasses() vs.
@@ -387,9 +395,9 @@ static void ReleaseClasses(JNIEnv* env) {
   string::ReleaseClass(env);
   throwable::ReleaseClass(env);
   uri::ReleaseClass(env);
-  url::ReleaseClass(env);
   object::ReleaseClass(env);
   uribuilder::ReleaseClass(env);
+  url::ReleaseClass(env);
   if (g_jniresultcallback_loaded) {
     jniresultcallback::ReleaseClass(env);
     g_jniresultcallback_loaded = false;
@@ -486,9 +494,9 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
         string::CacheMethodIds(env, activity_object) &&
         throwable::CacheMethodIds(env, activity_object) &&
         uri::CacheMethodIds(env, activity_object) &&
-        url::CacheMethodIds(env, activity_object) &&
         object::CacheMethodIds(env, activity_object) &&
-        uribuilder::CacheMethodIds(env, activity_object))) {
+        uribuilder::CacheMethodIds(env, activity_object) &&
+        url::CacheMethodIds(env, activity_object))) {
     ReleaseClasses(env);
     TerminateActivityClasses(env);
     return false;

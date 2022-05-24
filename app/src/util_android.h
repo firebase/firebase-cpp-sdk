@@ -680,13 +680,6 @@ METHOD_LOOKUP_DECLARATION(throwable, THROWABLE_METHODS);
 // clang-format on
 METHOD_LOOKUP_DECLARATION(uri, URI_METHODS)
 
-// clang-format off
-#define URL_METHODS(X)                                                      \
-    X(Constructor, "<init>", "(Ljava/lang/String;)V"),                      \
-    X(ConstructorWithURL, "<init>", "(Ljava/net/URL;Ljava/lang/String;)V")
-// clang-format on
-METHOD_LOOKUP_DECLARATION(url, URL_METHODS)
-
 // Methods of the java.lang.Object class,
 // clang-format off
 #define OBJECT_METHODS(X)                                                      \
