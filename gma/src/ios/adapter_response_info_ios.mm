@@ -50,12 +50,7 @@ AdapterResponseInfo::AdapterResponseInfo(
   latency_ = (int64_t)(internal.ad_network_response_info.latency) *
     (int64_t)1000;
 
-  NSString *to_string = [NSString stringWithFormat:@"AdapterResponseInfo"
-        "class name: %@, latency : %ld, ad result: %@", 
-        internal.ad_network_response_info.adNetworkClassName,
-        internal.ad_network_response_info.latency,
-        internal.ad_network_response_info.error];
-  to_string_ = util::NSStringToString(to_string);
+  to_string_ = util::NSStringToString(internal.ad_network_response_info.description);
 }
 
 }  // namespace gma
