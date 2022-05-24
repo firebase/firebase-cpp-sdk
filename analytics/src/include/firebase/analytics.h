@@ -464,8 +464,7 @@ void LogEvent(const char* name, const Parameter* parameters,
 /// no-op.
 /// @param[in] email_address User email address. Include a domain name for all
 /// email addresses
-///   (e.g. gmail.com or hotmail.co.jp). Remove any spaces in between the email
-///   address.
+///   (e.g. gmail.com or hotmail.co.jp).
 void InitiateOnDeviceConversionMeasurementWithEmailAddress(
     const char* email_address);
 
