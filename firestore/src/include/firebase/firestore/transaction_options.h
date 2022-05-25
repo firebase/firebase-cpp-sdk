@@ -24,12 +24,80 @@
 namespace firebase {
 namespace firestore {
 
+/**
+ * Options to customize transaction behavior for `Firestore.runTransaction()`.
+ */
 class TransactionOptions final {
  public:
+
+  /**
+   * @brief Creates the default `TransactionOptions`.
+   */
   TransactionOptions() = default;
 
+  /**
+   * @brief Copy constructor.
+   *
+   * This performs a deep copy, creating an independent instance.
+   *
+   * @param[in] other `TransactionOptions` to copy from.
+   */
+  TransactionOptions(const TransactionOptions& other) = default;
+
+  /**
+   * @brief Move constructor.
+   *
+   * Moving is not any more efficient than copying for `TransactionOptions`
+   * because this class is trivially copyable; however, future additions to this
+   * class may make it not trivially copyable, at which point moving would be
+   * more efficient than copying. After being moved from, `TransactionOptions`
+   * is in a valid but unspecified state.
+   *
+   * @param[in] other `TransactionOptions` to move data from.
+   */
+  TransactionOptions(TransactionOptions&& other) = default;
+
+  /**
+   * @brief Copy assignment operator.
+   *
+   * This performs a deep copy, creating an independent instance.
+   *
+   * @param[in] other `TransactionOptions` to copy from.
+   *
+   * @return Reference to the destination `TransactionOptions`.
+   */
+  TransactionOptions& operator=(const TransactionOptions& other) = default;
+
+  /**
+   * @brief Move assignment operator.
+   *
+   * Moving is not any more efficient than copying for `TransactionOptions`
+   * because this class is trivially copyable; however, future additions to this
+   * class may make it not trivially copyable, at which point moving would be
+   * more efficient than copying. After being moved from, `TransactionOptions`
+   * is in a valid but unspecified state.
+   *
+   * @param[in] other `TransactionOptions` to move data from.
+   *
+   * @return Reference to the destination `TransactionOptions`.
+   */
+  TransactionOptions& operator=(TransactionOptions&& other) = default;
+
+  /**
+   * @brief Gets the maximum number of attempts to commit, after which the transaction fails.
+   *
+   * The default value is 5.
+   */
   int32_t max_attempts() const { return max_attempts_; }
 
+  /**
+   * @brief Sets the maximum number of attempts to commit, after which the transaction fails.
+   *
+   * The default value is 5.
+   *
+   * @param[in] max_attempts The maximum number of attempts; must be greater
+   * than zero.
+   */
   void set_max_attempts(int32_t max_attempts);
 
   /**
