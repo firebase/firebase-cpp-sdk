@@ -38,6 +38,9 @@ std::ostream& operator<<(std::ostream& out, const TransactionOptions& options) {
   return out << options.ToString();
 }
 
+bool operator==(const TransactionOptions& lhs, const TransactionOptions& rhs) {
+  return lhs.max_attempts() == rhs.max_attempts();
+}
 
 }  // namespace firestore
 }  // namespace firebase

@@ -52,6 +52,14 @@ class TransactionOptions final {
   int32_t max_attempts_ = 5;
 };
 
+/** Compares two `TransactionOptions` objects for equality. */
+bool operator==(const TransactionOptions&, const TransactionOptions&);
+
+/** Compares two `TransactionOptions` objects for inequality. */
+inline bool operator!=(const TransactionOptions& lhs, const TransactionOptions& rhs) {
+  return !(lhs == rhs);
+}
+
 }  // namespace firestore
 }  // namespace firebase
 

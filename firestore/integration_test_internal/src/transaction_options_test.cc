@@ -110,6 +110,50 @@ TEST(TransactionOptionsTest, RightShiftOperatorToOutputStream) {
   EXPECT_EQ(ss.str(), expected_str);
 }
 
+TEST(TransactionOptionsTest, EqualsOperator) {
+  TransactionOptions default_options1;
+  TransactionOptions default_options2;
+  TransactionOptions options1a;
+  options1a.set_max_attempts(1);
+  TransactionOptions options1b;
+  options1b.set_max_attempts(1);
+  TransactionOptions options2a;
+  options2a.set_max_attempts(99);
+  TransactionOptions options2b;
+  options2b.set_max_attempts(99);
+
+  EXPECT_TRUE(default_options1 == default_options1);
+  EXPECT_TRUE(default_options1 == default_options2);
+  EXPECT_TRUE(options1a == options1b);
+  EXPECT_TRUE(options2a == options2b);
+
+  EXPECT_FALSE(options1a == options2a);
+  EXPECT_FALSE(options1a == default_options1);
+  EXPECT_FALSE(options2a == default_options1);
+}
+
+TEST(TransactionOptionsTest, NotEqualsOperator) {
+  TransactionOptions default_options1;
+  TransactionOptions default_options2;
+  TransactionOptions options1a;
+  options1a.set_max_attempts(1);
+  TransactionOptions options1b;
+  options1b.set_max_attempts(1);
+  TransactionOptions options2a;
+  options2a.set_max_attempts(99);
+  TransactionOptions options2b;
+  options2b.set_max_attempts(99);
+
+  EXPECT_FALSE(default_options1 != default_options1);
+  EXPECT_FALSE(default_options1 != default_options2);
+  EXPECT_FALSE(options1a != options1b);
+  EXPECT_FALSE(options2a != options2b);
+
+  EXPECT_TRUE(options1a != options2a);
+  EXPECT_TRUE(options1a != default_options1);
+  EXPECT_TRUE(options2a != default_options1);
+}
+
 }  // namespace
 }  // namespace firestore
 }  // namespace firebase
