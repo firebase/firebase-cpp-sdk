@@ -605,6 +605,9 @@ code.
       only using AdMob, Analytics, Remote Config, or Messaging.
     - Functions: Add a new method `GetHttpsCallableFromURL`, to create callables
       with URLs other than cloudfunctions.net.
+    - Firestore: Added `TransactionOptions` to control how many times a
+      transaction will retry commits before failing
+      ([#966](https://github.com/firebase/firebase-cpp-sdk/pull/966)).
 
 ### 9.0.0
 -   Changes
