@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <atomic>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -727,6 +729,66 @@ TEST_F(TransactionTest, TestCancellationOnError) {
   DocumentSnapshot snapshot = ReadDocument(doc);
   EXPECT_FALSE(snapshot.exists());
 }
+
+TEST_F(TransactionTest, TestMaxAttempts) {
+  Firestore* firestore = TestFirestore();
+  DocumentReference doc = firestore->Collection("TestMaxAttempts").Document();
+
+  TransactionOptions options;
+  options.set_max_attempts(3);
+
+  // Keep track of the number of times that the update callback is invoked.
+  auto update_count = std::make_shared<std::atomic_int>();
+  update_count->store(0);
+
+  Future<void> run_transaction_future = firestore->RunTransaction(options, [update_count, &doc](Transaction& transaction, std::string&) -> Error {
+    SCOPED_TRACE("Update callback; update_count=" + std::to_string(update_count->load()));
+    ++(*update_count);
+
+    // Get the document via the transaction.
+    {
+      SCOPED_TRACE("transaction.Get()");
+      Error error = Error::kErrorOk;
+      std::string error_message;
+      transaction.Get(doc, &error, &error_message);
+      if (error != kErrorOk) {
+        ADD_FAILURE() << "transaction.Get() failed: " << error_message << " (error code " << error << ")";
+        return Error::kErrorInternal;
+      }
+    }
+
+    // Modify the document *outside* of the transaction.
+    {
+      SCOPED_TRACE("doc.Set() outside of transaction");
+      auto set_future = doc.Set({{"count", FieldValue::Integer(update_count->load())}});
+      set_future.Await(10000L);
+      if (set_future.status() != FutureStatus::kFutureStatusComplete) {
+        ADD_FAILURE() << "Timeout waiting for doc.Set() to complete";
+        return Error::kErrorInternal;
+      } else if (set_future.error() != Error::kErrorOk) {
+        ADD_FAILURE() << "doc.Set() failed: " << set_future.error_message() << " (error code " << set_future.error() << ")";
+        return Error::kErrorInternal;
+      }
+    }
+
+    // Modify the document *using* of the transaction.
+    // This will fail because the document was modified since we retrieved it
+    // via the transaction, and will result in a retry.
+    transaction.Set(doc, {{"count", FieldValue::String("this set should fail")}});
+
+    return Error::kErrorOk;
+  });
+
+  {
+    SCOPED_TRACE("Waiting for Future returned from RunTransaction()");
+    Await(run_transaction_future);
+    ASSERT_EQ(run_transaction_future.status(), FutureStatus::kFutureStatusComplete);
+    EXPECT_EQ(run_transaction_future.error(), Error::kErrorFailedPrecondition) << "error message: " << run_transaction_future.error_message();
+  }
+
+  EXPECT_EQ(update_count->load(), 3);
+}
+
 
 }  // namespace firestore
 }  // namespace firebase
