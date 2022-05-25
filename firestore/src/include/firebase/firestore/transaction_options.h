@@ -116,6 +116,7 @@ class TransactionOptions final {
    * @see `ToString()` for comments on the representation format.
    */
   friend std::ostream& operator<<(std::ostream&, const TransactionOptions&);
+
  private:
   int32_t max_attempts_ = 5;
 };
