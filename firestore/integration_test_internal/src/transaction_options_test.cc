@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <utility>
+
 #include "firebase/firestore.h"
 #include "gtest/gtest.h"
 
@@ -24,6 +26,48 @@ namespace {
 TEST(TransactionOptionsTest, DefaultConstructor) {
   TransactionOptions options;
   EXPECT_EQ(options.max_attempts(), 5);
+}
+
+TEST(TransactionOptionsTest, CopyConstructor) {
+  TransactionOptions options;
+  options.set_max_attempts(99);
+
+  TransactionOptions copied_options(options);
+
+  EXPECT_EQ(options.max_attempts(), 99);
+  EXPECT_EQ(copied_options.max_attempts(), 99);
+}
+
+TEST(TransactionOptionsTest, CopyAssignmentOperator) {
+  TransactionOptions options;
+  options.set_max_attempts(99);
+  TransactionOptions options_copy_dest;
+  options_copy_dest.set_max_attempts(333);
+
+  options_copy_dest = options;
+
+  EXPECT_EQ(options.max_attempts(), 99);
+  EXPECT_EQ(options_copy_dest.max_attempts(), 99);
+}
+
+TEST(TransactionOptionsTest, MoveConstructor) {
+  TransactionOptions options;
+  options.set_max_attempts(99);
+
+  TransactionOptions moved_options(std::move(options));
+
+  EXPECT_EQ(moved_options.max_attempts(), 99);
+}
+
+TEST(TransactionOptionsTest, MoveAssignmentOperator) {
+  TransactionOptions options;
+  options.set_max_attempts(99);
+  TransactionOptions options_move_dest;
+  options_move_dest.set_max_attempts(333);
+
+  options_move_dest = std::move(options);
+
+  EXPECT_EQ(options_move_dest.max_attempts(), 99);
 }
 
 TEST(TransactionOptionsTest, SetMaxAttemptsSetsValidValues) {
