@@ -62,6 +62,9 @@ jobs:
           git config --global credential.helper 'store --file /tmp/git-credentials'
           echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
 
+      - name: Support Longpaths
+        run: git config --system core.longpaths true
+
       - name: Check expanded matrix config
         if: github.event.inputs.expanded_matrix == '1'
         run: |
