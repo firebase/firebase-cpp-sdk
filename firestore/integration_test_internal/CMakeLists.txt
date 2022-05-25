@@ -100,6 +100,7 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS
     src/smoke_test.cc
     src/source_test.cc
     src/transaction_test.cc
+    src/transaction_options_test.cc
     src/type_test.cc
     src/validation_test.cc
     src/write_batch_test.cc

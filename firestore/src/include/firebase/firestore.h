@@ -47,6 +47,7 @@
 #include "firebase/firestore/source.h"
 #include "firebase/firestore/timestamp.h"
 #include "firebase/firestore/transaction.h"
+#include "firebase/firestore/transaction_options.h"
 #include "firebase/firestore/write_batch.h"
 
 namespace firebase {
