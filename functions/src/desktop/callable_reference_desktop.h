@@ -15,6 +15,8 @@
 #ifndef FIREBASE_FUNCTIONS_SRC_DESKTOP_CALLABLE_REFERENCE_DESKTOP_H_
 #define FIREBASE_FUNCTIONS_SRC_DESKTOP_CALLABLE_REFERENCE_DESKTOP_H_
 
+#include <string>
+
 #include "app/rest/transport_curl.h"
 #include "app/rest/transport_interface.h"
 #include "app/src/include/firebase/future.h"
@@ -52,8 +54,7 @@ class HttpsCallableRequest : public rest::Request {
 
 class HttpsCallableReferenceInternal {
  public:
-  HttpsCallableReferenceInternal(FunctionsInternal* functions,
-                                 const char* name);
+  HttpsCallableReferenceInternal(FunctionsInternal* functions, const char* url);
   ~HttpsCallableReferenceInternal();
 
   // Copy constructor. It's totally okay (and efficient) to copy
@@ -108,8 +109,8 @@ class HttpsCallableReferenceInternal {
   // Keep track of the Functions object for managing Futures.
   FunctionsInternal* functions_;
 
-  // The name of the endpoint this reference points to.
-  std::string name_;
+  // The URL of the endpoint this reference points to.
+  std::string url_;
 
   rest::TransportCurl transport_;
   // For now, we only allow one request per reference at a time in C++.
