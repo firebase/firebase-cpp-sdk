@@ -30,5 +30,14 @@ void TransactionOptions::set_max_attempts(int32_t max_attempts) {
   max_attempts_ = max_attempts;
 }
 
+std::string TransactionOptions::ToString() const {
+  return std::string("TransactionOptions(max_attempts=") + std::to_string(max_attempts()) + ")";
+}
+
+std::ostream& operator<<(std::ostream& out, const TransactionOptions& options) {
+  return out << options.ToString();
+}
+
+
 }  // namespace firestore
 }  // namespace firebase

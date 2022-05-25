@@ -15,6 +15,7 @@
  */
 
 #include <utility>
+#include <sstream>
 
 #include "firebase/firestore.h"
 #include "gtest/gtest.h"
@@ -87,6 +88,26 @@ TEST(TransactionOptionsTest, SetMaxAttemptsThrowsOnInvalidValues) {
   EXPECT_ANY_THROW(options.set_max_attempts(0));
   EXPECT_ANY_THROW(options.set_max_attempts(-1));
   EXPECT_ANY_THROW(options.set_max_attempts(INT32_MIN));
+}
+
+TEST(TransactionOptionsTest, ToString) {
+  TransactionOptions options;
+  options.set_max_attempts(42);
+
+  const std::string to_string_result = options.ToString();
+
+  EXPECT_EQ(to_string_result, "TransactionOptions(max_attempts=42)");
+}
+
+TEST(TransactionOptionsTest, RightShiftOperatorToOutputStream) {
+  TransactionOptions options;
+  options.set_max_attempts(42);
+  const std::string expected_str = options.ToString();
+  std::ostringstream ss;
+
+  ss << options;
+
+  EXPECT_EQ(ss.str(), expected_str);
 }
 
 }  // namespace
