@@ -197,7 +197,9 @@ WriteBatch FirestoreInternal::batch() const {
   return MakePublic(firestore_core_->GetBatch());
 }
 
-Future<void> FirestoreInternal::RunTransaction(std::function<Error(Transaction&, std::string&)> update, int32_t max_attempts) {
+Future<void> FirestoreInternal::RunTransaction(
+    std::function<Error(Transaction&, std::string&)> update,
+    int32_t max_attempts) {
   SIMPLE_HARD_ASSERT(max_attempts > 0);
 
   auto executor = transaction_executor_;
@@ -245,7 +247,9 @@ Future<void> FirestoreInternal::RunTransaction(std::function<Error(Transaction&,
     }
   };
 
-  firestore_core_->RunTransaction(std::move(update_callback), std::move(final_result_callback), max_attempts);
+  firestore_core_->RunTransaction(std::move(update_callback),
+                                  std::move(final_result_callback),
+                                  max_attempts);
 
   return promise.future();
 }

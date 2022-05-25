@@ -312,14 +312,17 @@ Future<void> Firestore::RunTransaction(
   return RunTransaction({}, std::move(update));
 }
 
-Future<void> Firestore::RunTransaction(TransactionOptions options, std::function<Error(Transaction&, std::string&)> update) {
+Future<void> Firestore::RunTransaction(
+    TransactionOptions options,
+    std::function<Error(Transaction&, std::string&)> update) {
   if (!update) {
     SimpleThrowInvalidArgument(
         "Transaction update callback cannot be an empty function.");
   }
 
   if (!internal_) return FailedFuture<void>();
-  return internal_->RunTransaction(firebase::Move(update), options.max_attempts());
+  return internal_->RunTransaction(firebase::Move(update),
+                                   options.max_attempts());
 }
 
 Future<void> Firestore::DisableNetwork() {

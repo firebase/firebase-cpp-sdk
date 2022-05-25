@@ -267,7 +267,9 @@ class Firestore {
    *
    * @return A Future that will be resolved when the transaction finishes.
    */
-  virtual Future<void> RunTransaction(TransactionOptions options, std::function<Error(Transaction&, std::string&)> update);
+  virtual Future<void> RunTransaction(
+      TransactionOptions options,
+      std::function<Error(Transaction&, std::string&)> update);
 
   /**
    * Sets the log verbosity of all Firestore instances.

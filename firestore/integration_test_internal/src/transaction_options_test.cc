@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-#include <utility>
 #include <sstream>
 #include <type_traits>
+#include <utility>
 
 #include "firebase/firestore.h"
 #include "gtest/gtest.h"
@@ -26,7 +26,10 @@ namespace firestore {
 namespace {
 
 TEST(TransactionOptionsTest, TypeTraits) {
-  static_assert(std::is_trivially_copyable<TransactionOptions>::value, "Update the public doxygen comments about TransactionOptions being trivially copyable in the header file if it ever changes to NOT be trivially copyable.");
+  static_assert(std::is_trivially_copyable<TransactionOptions>::value,
+                "Update the public doxygen comments about TransactionOptions "
+                "being trivially copyable in the header file if it ever "
+                "changes to NOT be trivially copyable.");
 }
 
 TEST(TransactionOptionsTest, DefaultConstructor) {

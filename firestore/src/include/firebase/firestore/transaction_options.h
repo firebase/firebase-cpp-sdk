@@ -29,7 +29,6 @@ namespace firestore {
  */
 class TransactionOptions final {
  public:
-
   /**
    * @brief Creates the default `TransactionOptions`.
    */
@@ -84,14 +83,16 @@ class TransactionOptions final {
   TransactionOptions& operator=(TransactionOptions&& other) = default;
 
   /**
-   * @brief Gets the maximum number of attempts to commit, after which the transaction fails.
+   * @brief Gets the maximum number of attempts to commit, after which the
+   * transaction fails.
    *
    * The default value is 5.
    */
   int32_t max_attempts() const { return max_attempts_; }
 
   /**
-   * @brief Sets the maximum number of attempts to commit, after which the transaction fails.
+   * @brief Sets the maximum number of attempts to commit, after which the
+   * transaction fails.
    *
    * The default value is 5.
    *
@@ -125,7 +126,8 @@ class TransactionOptions final {
 bool operator==(const TransactionOptions&, const TransactionOptions&);
 
 /** Compares two `TransactionOptions` objects for inequality. */
-inline bool operator!=(const TransactionOptions& lhs, const TransactionOptions& rhs) {
+inline bool operator!=(const TransactionOptions& lhs,
+                       const TransactionOptions& rhs) {
   return !(lhs == rhs);
 }
 

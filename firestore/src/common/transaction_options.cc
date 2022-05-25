@@ -26,13 +26,15 @@ namespace firestore {
 
 void TransactionOptions::set_max_attempts(int32_t max_attempts) {
   if (max_attempts <= 0) {
-    SimpleThrowInvalidArgument("invalid max_attempts: " + std::to_string(max_attempts));
+    SimpleThrowInvalidArgument("invalid max_attempts: " +
+                               std::to_string(max_attempts));
   }
   max_attempts_ = max_attempts;
 }
 
 std::string TransactionOptions::ToString() const {
-  return std::string("TransactionOptions(max_attempts=") + std::to_string(max_attempts()) + ")";
+  return std::string("TransactionOptions(max_attempts=") +
+         std::to_string(max_attempts()) + ")";
 }
 
 std::ostream& operator<<(std::ostream& out, const TransactionOptions& options) {
