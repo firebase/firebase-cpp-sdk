@@ -19,14 +19,15 @@
 #include <cstdint>
 #include <string>
 
-#include "firestore/src/common/hard_assert_common.h"
+#include "firestore/src/common/exception_common.h"
 
 namespace firebase {
 namespace firestore {
 
 void TransactionOptions::set_max_attempts(int32_t max_attempts) {
-  SIMPLE_HARD_ASSERT(max_attempts > 0,
-                     "invalid max_attempts: " + std::to_string(max_attempts));
+  if (max_attempts <= 0) {
+    SimpleThrowInvalidArgument("invalid max_attempts: " + std::to_string(max_attempts));
+  }
   max_attempts_ = max_attempts;
 }
 
