@@ -255,6 +255,21 @@ class Firestore {
       std::function<Error(Transaction&, std::string&)> update);
 
   /**
+   * Executes the given update and then attempts to commit the changes applied
+   * within the transaction. If any document read within the transaction has
+   * changed, the update function will be retried. If it fails to commit after
+   * the `max_attempts` specified in the given `TransactionOptions`, the
+   * transaction will fail.
+   *
+   * @param options The transaction options for controlling execution.
+   * @param update function or lambda to execute within the transaction context.
+   * The string reference parameter can be used to set the error message.
+   *
+   * @return A Future that will be resolved when the transaction finishes.
+   */
+  virtual Future<void> RunTransaction(TransactionOptions options, std::function<Error(Transaction&, std::string&)> update);
+
+  /**
    * Sets the log verbosity of all Firestore instances.
    *
    * The default verbosity level is `kLogLevelInfo`.
