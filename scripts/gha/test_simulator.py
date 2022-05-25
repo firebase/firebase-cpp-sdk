@@ -79,6 +79,8 @@ Returns:
 import json
 import os
 import pathlib
+import shutil
+import signal
 import subprocess
 import time
 
@@ -249,7 +251,7 @@ def main(argv):
   
     for app_path in ios_testapps:
       bundle_id = _get_bundle_id(app_path, config)
-      logs=_run_apple_test(bundle_id, app_path, ios_helper_app, device_id, _TEST_RETRY)
+      logs=_run_apple_test(testapp_dir, bundle_id, app_path, ios_helper_app, device_id, _TEST_RETRY)
       tests.append(Test(testapp_path=app_path, logs=logs))
 
     _shutdown_simulator()
@@ -289,7 +291,7 @@ def main(argv):
   
     for app_path in tvos_testapps:
       bundle_id = _get_bundle_id(app_path, config)
-      logs=_run_apple_test(bundle_id, app_path, tvos_helper_app, device_id, _TEST_RETRY)
+      logs=_run_apple_test(testapp_dir, bundle_id, app_path, tvos_helper_app, device_id, _TEST_RETRY)
       tests.append(Test(testapp_path=app_path, logs=logs))
 
     _shutdown_simulator()
@@ -324,7 +326,7 @@ def main(argv):
 
     for app_path in android_testapps:
       package_name = _get_package_name(app_path)
-      logs=_run_android_test(package_name, app_path, android_helper_project, _TEST_RETRY)
+      logs=_run_android_test(testapp_dir, package_name, app_path, android_helper_project, _TEST_RETRY)
       tests.append(Test(testapp_path=app_path, logs=logs))
 
     _shutdown_emulator()
@@ -383,6 +385,23 @@ def _build_tvos_helper(helper_project, device_name, device_os):
     for file_name in file_names:
       if file_name.endswith(".xctestrun") and "appletvsimulator" in file_name: 
         return os.path.join(file_dir, file_name)
+
+
+def _record_apple_tests(video_name):
+  command = "xcrun simctl io booted recordVideo --type=mp4 %s" % video_name
+  logging.info("Recording game-loop test: %s", command)
+  return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
+
+
+def _stop_recording(record_process):
+  logging.info("Stop recording game-loop test")
+  os.killpg(record_process.pid, signal.SIGTERM)
+  time.sleep(5)
+
+
+def _save_recorded_apple_video(video_name, summary_dir):
+  logging.info("Save game-loop test video to: %s", summary_dir)
+  shutil.move(video_name, os.path.join(summary_dir, video_name))
 
 
 def _run_xctest(helper_app, device_id):
@@ -480,18 +499,22 @@ def _has_uitests(app_path, config):
       return api.get("has_uitests", False)
 
 
-def _run_apple_test(bundle_id, app_path, helper_app, device_id, retry=1):
+def _run_apple_test(testapp_dir, bundle_id, app_path, helper_app, device_id, retry=1):
   """Run helper test and collect test result."""
   logging.info("Running apple helper test: %s, %s, %s, %s", bundle_id, app_path, helper_app, device_id)
   _install_apple_app(app_path, device_id)
+  video_name = "video-%s-%s-%s.mp4" % (bundle_id, retry, FLAGS.logfile_name)
+  record_process = _record_apple_tests(video_name)
   _run_xctest(helper_app, device_id)
+  _stop_recording(record_process)
   log = _get_apple_test_log(bundle_id, app_path, device_id)
   _uninstall_apple_app(bundle_id, device_id)
-  if retry > 1:
-    result = test_validation.validate_results(log, test_validation.CPP)
-    if not result.complete or (FLAGS.test_type=="uitest" and result.fails>0):
+  result = test_validation.validate_results(log, test_validation.CPP)
+  if not result.complete or (FLAGS.test_type=="uitest" and result.fails>0):
+    _save_recorded_apple_video(video_name, testapp_dir)
+    if retry > 1:
       logging.info("Retry _run_apple_test. Remaining retry: %s", retry-1)
-      return _run_apple_test(bundle_id, app_path, helper_app, device_id, retry=retry-1)
+      return _run_apple_test(testapp_dir, bundle_id, app_path, helper_app, device_id, retry=retry-1)
   
   return log
   
@@ -647,17 +670,22 @@ def _get_package_name(app_path):
   return package_name  
 
 
-def _run_android_test(package_name, app_path, helper_project, retry=1): 
+def _run_android_test(testapp_dir, package_name, app_path, helper_project, retry=1): 
   logging.info("Running android helper test: %s, %s, %s", package_name, app_path, helper_project)
   _install_android_app(app_path)
+  video_name = "video-%s-%s-%s.mp4" % (package_name, retry, FLAGS.logfile_name)
+  record_process = _record_android_tests(video_name)
   _run_instrumented_test()
+  _stop_recording(record_process)
   log = _get_android_test_log(package_name)
   _uninstall_android_app(package_name)
-  if retry > 1:
-    result = test_validation.validate_results(log, test_validation.CPP)
-    if not result.complete or (FLAGS.test_type=="uitest" and result.fails>0):
+
+  result = test_validation.validate_results(log, test_validation.CPP)
+  if not result.complete or (FLAGS.test_type=="uitest" and result.fails>0):
+    _save_recorded_android_video(video_name, testapp_dir)
+    if retry > 1:
       logging.info("Retry _run_android_test. Remaining retry: %s", retry-1)
-      return _run_android_test(package_name, app_path, helper_project, retry=retry-1)
+      return _run_android_test(testapp_dir, package_name, app_path, helper_project, retry=retry-1)
   
   return log
 
@@ -691,6 +719,18 @@ def _install_android_helper_app(helper_project):
   _run_with_retry(args, device=_DEVICE_ANDROID, type=_RESET_TYPE_REBOOT)
 
 
+def _record_android_tests(video_name):
+  command = "adb shell screenrecord /sdcard/%s" % video_name
+  logging.info("Recording game-loop test: %s", command)
+  return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
+
+
+def _save_recorded_android_video(video_name, summary_dir):
+  args = ["adb", "pull", "/sdcard/%s" % video_name, summary_dir]
+  logging.info("Save game-loop test video: %s", " ".join(args))
+  subprocess.run(args=args, capture_output=True, text=True, check=False) 
+
+
 def _run_instrumented_test():
   """Run the helper app.
     This helper app can run integration_test app automatically.
@@ -699,8 +739,8 @@ def _run_instrumented_test():
     "-w", "%s.test/androidx.test.runner.AndroidJUnitRunner" % CONSTANTS[FLAGS.test_type]["android_package"]] 
   logging.info("Running game-loop test: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=False) 
-  if "FAILURES!!!" in result.stdout:
-    _reset_emulator_on_error(_RESET_TYPE_REBOOT)
+  # if "FAILURES!!!" in result.stdout:
+  #   _reset_emulator_on_error(_RESET_TYPE_REBOOT)
 
 
 def _get_android_test_log(test_package):
@@ -730,7 +770,7 @@ def _run_with_retry(args, shell=False, check=True, timeout=_CMD_TIMEOUT, retry_t
         _reset_simulator_on_error(device, type)
       _run_with_retry(args, shell, check, timeout, retry_time-1, device, type)
   else:
-    subprocess.run(args, shell=shell, check=check, timeout=timeout)
+    subprocess.run(args, shell=shell, check=False, timeout=timeout)
 
 
 if __name__ == '__main__':
