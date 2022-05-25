@@ -36,7 +36,9 @@ function(GetReleasedDep)
     firestore
 
     DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
-    URL https://github.com/firebase/firebase-ios-sdk/archive/${version}.tar.gz
+    # Pin to the HEAD commit of https://github.com/firebase/firebase-cpp-sdk/pull/932
+    GIT_REPOSITORY https://github.com/firebase/firebase-ios-sdk.git
+    GIT_TAG 0fe625cf72254bfb8b0a899dd2c006836fafe475
 
     PREFIX ${PROJECT_BINARY_DIR}
 
