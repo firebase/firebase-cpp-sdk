@@ -63,6 +63,7 @@ jobs:
           echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
 
       - name: Support Longpaths
+        if: runner.os == 'Windows'
         run: git config --system core.longpaths true
 
       - name: Check expanded matrix config
