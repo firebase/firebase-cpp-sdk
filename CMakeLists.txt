@@ -469,32 +469,6 @@ if(DESKTOP)
   endif()
 endif()
 
-if(DESKTOP)
-  if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
-    # The Firestore build includes protobuf and nanopb already
-    list(APPEND CMAKE_MODULE_PATH ${NANOPB_SOURCE_DIR}/extra)
-    find_package(Nanopb)
-
-    set(PROTOBUF_FOUND ON)
-  else()
-    find_package(Protobuf)
-    if (PROTOBUF_FOUND)
-      # NanoPB requires Protobuf to be present, so only add it if it was found.
-      add_external_library(nanopb)
-
-      # NanoPB has a FindNanopb which defines the function to generate files,
-      # so add it to the module path, and use that.
-      list(APPEND CMAKE_MODULE_PATH ${NANOPB_SOURCE_DIR}/extra)
-      find_package(Nanopb)
-
-      target_compile_definitions(
-        protobuf-nanopb-static
-        PUBLIC -DPB_FIELD_32BIT -DPB_ENABLE_MALLOC
-      )
-    endif()
-  endif()
-endif()
-
 if(DESKTOP AND NOT CMAKE_CROSSCOMPILING)
   # Desktop platforms do not need to declare this dependency, as they will build
   # flatc correctly when needed.
