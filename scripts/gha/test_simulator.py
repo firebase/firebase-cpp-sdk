@@ -389,18 +389,21 @@ def _build_tvos_helper(helper_project, device_name, device_os):
 
 def _record_apple_tests(video_name):
   command = "xcrun simctl io booted recordVideo -f --codec=h264 %s" % video_name
-  logging.info("Recording game-loop test: %s", command)
+  logging.info("Recording test: %s", command)
   return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
 
 
 def _stop_recording(record_process):
-  logging.info("Stop recording game-loop test")
-  os.killpg(record_process.pid, signal.SIGINT)
+  logging.info("Stop recording test")
+  try:
+    os.killpg(record_process.pid, signal.SIGINT)
+  except:
+    logging.info("Stop recording test failed!!!")
   time.sleep(5)
 
 
 def _save_recorded_apple_video(video_name, summary_dir):
-  logging.info("Save game-loop test video to: %s", summary_dir)
+  logging.info("Save test video to: %s", summary_dir)
   shutil.move(video_name, os.path.join(summary_dir, video_name))
 
 
@@ -721,13 +724,13 @@ def _install_android_helper_app(helper_project):
 
 def _record_android_tests(video_name):
   command = "adb shell screenrecord /sdcard/%s" % video_name
-  logging.info("Recording game-loop test: %s", command)
+  logging.info("Recording test: %s", command)
   return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
 
 
 def _save_recorded_android_video(video_name, summary_dir):
   args = ["adb", "pull", "/sdcard/%s" % video_name, summary_dir]
-  logging.info("Save game-loop test video: %s", " ".join(args))
+  logging.info("Save test video: %s", " ".join(args))
   subprocess.run(args=args, capture_output=True, text=True, check=False) 
 
 

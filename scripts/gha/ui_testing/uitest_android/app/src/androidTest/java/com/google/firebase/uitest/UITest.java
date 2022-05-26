@@ -59,7 +59,7 @@ public class UITest {
         DEFAULT_TIMEOUT); // Wait for the app to appear
     Log.e(TAG, "GMA launched");
 
-    // TestAdViewAdOpenedAdClosed
+    // 1 TestAdViewAdOpenedAdClosed
     UiObject2 reference = device.wait(Until.findObject(By.text("Test Ad")), 60 * 1000);
     Assert.assertNotNull(reference);
     Log.e(TAG, "TestAdVie loaded");
@@ -74,7 +74,7 @@ public class UITest {
 
     Thread.sleep(DEFAULT_TIMEOUT);
 
-    // TestInterstitialAdLoadAndShow
+    // 2 TestInterstitialAdLoadAndShow
     reference = device.wait(Until.findObject(By.text("Test Ad")), WAIT_UI_TIMEOUT);
     Assert.assertNotNull(reference);
     Log.e(TAG, "InterstitialAd2 loaded");
@@ -96,15 +96,14 @@ public class UITest {
 
     Thread.sleep(DEFAULT_TIMEOUT);
 
-    // TestRewardedAdLoadAndShow
-    UiObject countDown = device.findObject(new UiSelector().textContains("seconds"));
-    Assert.assertTrue(countDown.waitForExists(WAIT_UI_TIMEOUT));
+    // 3 TestRewardedAdLoadAndShow
+    reference = device.wait(Until.findObject(By.text("Test Ad")), WAIT_UI_TIMEOUT);
+    Assert.assertNotNull(reference);
     Log.e(TAG, "RewardedAd loaded");
     // click the top right corner close bottom.
-    // Use "* seconds" TextView right position as the reference
-    x = (countDown.getBounds().right + device.getDisplayWidth()) / 2;
-    y = countDown.getBounds().centerY();
-    Thread.sleep(10 * 1000);
+    x = device.getDisplayWidth() - reference.getVisibleBounds().bottom;
+    y = reference.getVisibleBounds().bottom;
+    Thread.sleep(15 * 1000);
     device.click(x, y);
     Log.e(TAG, "RewardedAd closed");
 

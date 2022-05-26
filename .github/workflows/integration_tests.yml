@@ -1192,7 +1192,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
         with:
-          name: video-artifact
+          name: mobile-simulator-test-video-artifact
           path: testapps/video-*-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.mp4
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
@@ -1314,7 +1314,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
         with:
-          name: video-artifact
+          name: mobile-simulator-test-video-artifact
           path: testapps/video-*-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.mp4
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
@@ -1405,7 +1405,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
         with:
-          name: video-artifact
+          name: mobile-simulator-test-video-artifact
           path: testapps/video-*-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}.mp4
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
