@@ -146,6 +146,12 @@ HttpsCallableReference Functions::GetHttpsCallable(const char* name) const {
   return HttpsCallableReference(internal_->GetHttpsCallable(name));
 }
 
+HttpsCallableReference Functions::GetHttpsCallableFromURL(
+    const char* url) const {
+  if (!internal_) return HttpsCallableReference();
+  return HttpsCallableReference(internal_->GetHttpsCallableFromURL(url));
+}
+
 void Functions::UseFunctionsEmulator(const char* origin) {
   if (!internal_) return;
   internal_->UseFunctionsEmulator(origin);
