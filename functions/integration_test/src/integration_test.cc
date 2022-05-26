@@ -65,11 +65,26 @@ class FirebaseFunctionsTest : public FirebaseTest {
   // Sign in an anonymous user.
   void SignIn();
 
+  firebase::Future<firebase::functions::HttpsCallableResult> TestFunctionHelper(
+      const char* function_name,
+      firebase::functions::HttpsCallableReference& ref,
+      const firebase::Variant* const function_data,
+      const firebase::Variant& expected_result,
+      firebase::functions::Error expected_error =
+          firebase::functions::kErrorNone);
+
   firebase::Future<firebase::functions::HttpsCallableResult> TestFunction(
       const char* function_name, const firebase::Variant* const function_data,
       const firebase::Variant& expected_result,
       firebase::functions::Error expected_error =
           firebase::functions::kErrorNone);
+
+  firebase::Future<firebase::functions::HttpsCallableResult>
+  TestFunctionFromURL(const char* function_url,
+                      const firebase::Variant* const function_data,
+                      const firebase::Variant& expected_result,
+                      firebase::functions::Error expected_error =
+                          firebase::functions::kErrorNone);
 
   bool initialized_;
   firebase::auth::Auth* auth_;
@@ -181,15 +196,11 @@ void FirebaseFunctionsTest::SignIn() {
 
 // A helper function for calling a Firebase Function and waiting on the result.
 firebase::Future<firebase::functions::HttpsCallableResult>
-FirebaseFunctionsTest::TestFunction(
-    const char* function_name, const firebase::Variant* const function_data,
+FirebaseFunctionsTest::TestFunctionHelper(
+    const char* function_name, firebase::functions::HttpsCallableReference& ref,
+    const firebase::Variant* const function_data,
     const firebase::Variant& expected_result,
     firebase::functions::Error expected_error) {
-  // Create a callable that we can run our test with.
-  LogDebug("Calling %s", function_name);
-  firebase::functions::HttpsCallableReference ref;
-  ref = functions_->GetHttpsCallable(function_name);
-
   firebase::Future<firebase::functions::HttpsCallableResult> future;
   if (function_data == nullptr) {
     future = ref.Call();
@@ -205,6 +216,34 @@ FirebaseFunctionsTest::TestFunction(
         << "Unexpected result from calling " << function_name;
   }
   return future;
+}
+
+firebase::Future<firebase::functions::HttpsCallableResult>
+FirebaseFunctionsTest::TestFunction(
+    const char* function_name, const firebase::Variant* const function_data,
+    const firebase::Variant& expected_result,
+    firebase::functions::Error expected_error) {
+  // Create a callable that we can run our test with.
+  LogDebug("Calling %s", function_name);
+  firebase::functions::HttpsCallableReference ref;
+  ref = functions_->GetHttpsCallable(function_name);
+
+  return TestFunctionHelper(function_name, ref, function_data, expected_result,
+                            expected_error);
+}
+
+firebase::Future<firebase::functions::HttpsCallableResult>
+FirebaseFunctionsTest::TestFunctionFromURL(
+    const char* function_url, const firebase::Variant* const function_data,
+    const firebase::Variant& expected_result,
+    firebase::functions::Error expected_error) {
+  // Create a callable that we can run our test with.
+  LogDebug("Calling by URL %s", function_url);
+  firebase::functions::HttpsCallableReference ref;
+  ref = functions_->GetHttpsCallableFromURL(function_url);
+
+  return TestFunctionHelper(function_url, ref, function_data, expected_result,
+                            expected_error);
 }
 
 TEST_F(FirebaseFunctionsTest, TestInitializeAndTerminate) {
@@ -321,6 +360,24 @@ TEST_F(FirebaseFunctionsTest, TestErrorHandling) {
   // With an explicit error code and message.
   TestFunction("explicitErrorTest", nullptr, firebase::Variant::Null(),
                firebase::functions::kErrorOutOfRange);
+}
+
+TEST_F(FirebaseFunctionsTest, TestFunctionFromURL) {
+  SignIn();
+
+  // addNumbers(4, 2) = 6
+  firebase::Variant data(firebase::Variant::EmptyMap());
+  data.map()["firstNumber"] = 4;
+  data.map()["secondNumber"] = 2;
+  std::string proj = app_->options().project_id();
+  std::string url =
+      "https://us-central1-" + proj + ".cloudfunctions.net/addNumbers";
+  firebase::Variant result =
+      TestFunctionFromURL(url.c_str(), &data, firebase::Variant::Null())
+          .result()
+          ->data();
+  EXPECT_TRUE(result.is_map());
+  EXPECT_EQ(result.map()["operationResult"], 6);
 }
 
 }  // namespace firebase_testapp_automated

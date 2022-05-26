@@ -899,6 +899,11 @@ jobs:
           command: |
             pip install -r scripts/gha/requirements.txt
             python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact "testapps/testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}"
+      - name: Setup java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
       - name: Run Desktop integration tests
         env:
           USE_FIRESTORE_EMULATOR: true
