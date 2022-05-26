@@ -149,7 +149,7 @@ if ${cmakeBuild}; then
             {
                 cd ${buildpath}/ios_build_file/${platform}-${arch}
                 echo "build ${platform} ${arch} ${targets[@]} framework start"
-                cmake --build . --target ${targets[@]}
+                cmake --build . -j --target ${targets[@]}
                 echo "build ${platform} ${arch} ${targets[@]} framework end"
             
             } &
