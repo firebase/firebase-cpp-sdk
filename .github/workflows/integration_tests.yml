@@ -277,6 +277,9 @@ jobs:
         run: |
           git config --global credential.helper 'store --file /tmp/git-credentials'
           echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
+      - name: Support Longpaths
+        if: runner.os == 'Windows'
+        run: git config --system core.longpaths true
       - name: Set env vars (Linux)
         if: startsWith(matrix.os, 'ubuntu')
         run: echo "VCPKG_TRIPLET=x64-linux" >> $GITHUB_ENV
@@ -471,6 +474,9 @@ jobs:
         run: |
           git config --global credential.helper 'store --file /tmp/git-credentials'
           echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
+      - name: Support Longpaths
+        if: runner.os == 'Windows'
+        run: git config --system core.longpaths true
       - name: Add msbuild to PATH (Windows)
         if: startsWith(matrix.os, 'windows')
         uses: microsoft/setup-msbuild@v1.0.2
