@@ -388,14 +388,14 @@ def _build_tvos_helper(helper_project, device_name, device_os):
 
 
 def _record_apple_tests(video_name):
-  command = "xcrun simctl io booted recordVideo --type=mp4 %s" % video_name
+  command = "xcrun simctl io booted recordVideo -f --codec=h264 %s" % video_name
   logging.info("Recording game-loop test: %s", command)
   return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
 
 
 def _stop_recording(record_process):
   logging.info("Stop recording game-loop test")
-  os.killpg(record_process.pid, signal.SIGTERM)
+  os.killpg(record_process.pid, signal.SIGINT)
   time.sleep(5)
 
 
