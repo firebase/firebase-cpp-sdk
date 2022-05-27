@@ -16,6 +16,7 @@
 
 #include "firestore/src/android/transaction_options_android.h"
 
+#include "firestore/src/jni/declaration.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 
@@ -23,23 +24,20 @@ namespace firebase {
 namespace firestore {
 namespace {
 
-using jni::Constructor;
 using jni::Env;
-using jni::Local;
+using jni::Loader;
 using jni::Method;
-using jni::Object;
-using jni::String;
 
 constexpr char kTransactionOptionsClass[] = PROGUARD_KEEP_CLASS "com/google/firebase/firestore/TransactionOptions";
 Method<int32_t> kGetMaxAttempts("getMaxAttempts", "()I");
 
 }  // namespace
 
-void TransactionOptionsInternal::Initialize(jni::Loader& loader) {
+void TransactionOptionsInternal::Initialize(Loader& loader) {
   loader.LoadClass(kTransactionOptionsClass, kGetMaxAttempts);
 }
 
-int32_t TransactionOptionsInternal::GetMaxAttempts(jni::Env& env) const {
+int32_t TransactionOptionsInternal::GetMaxAttempts(Env& env) const {
   return env.Call(*this, kGetMaxAttempts);
 }
 

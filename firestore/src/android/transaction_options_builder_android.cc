@@ -16,8 +16,10 @@
 
 #include "firestore/src/android/transaction_options_builder_android.h"
 
+#include "firestore/src/jni/declaration.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
+#include "firestore/src/jni/ownership.h"
 
 namespace firebase {
 namespace firestore {
@@ -25,10 +27,9 @@ namespace {
 
 using jni::Constructor;
 using jni::Env;
-using jni::Local;
 using jni::Method;
-using jni::Object;
-using jni::String;
+using jni::Loader;
+using jni::Local;
 
 constexpr char kTransactionOptionsBuilderClass[] = PROGUARD_KEEP_CLASS "com/google/firebase/firestore/TransactionOptions$Builder";
 Constructor<TransactionOptionsBuilderInternal> kNewBuilder("()V");
@@ -37,7 +38,7 @@ Method<TransactionOptionsInternal> kBuild("build", "()Lcom/google/firebase/fires
 
 }  // namespace
 
-void TransactionOptionsBuilderInternal::Initialize(jni::Loader& loader) {
+void TransactionOptionsBuilderInternal::Initialize(Loader& loader) {
   loader.LoadClass(kTransactionOptionsBuilderClass, kNewBuilder, kSetMaxAttempts, kBuild);
 }
 
@@ -45,11 +46,11 @@ Local<TransactionOptionsBuilderInternal> TransactionOptionsBuilderInternal::Crea
   return env.New(kNewBuilder);
 }
 
-jni::Local<TransactionOptionsBuilderInternal> TransactionOptionsBuilderInternal::SetMaxAttempts(jni::Env& env, int32_t max_attempts) const {
+Local<TransactionOptionsBuilderInternal> TransactionOptionsBuilderInternal::SetMaxAttempts(Env& env, int32_t max_attempts) const {
   return env.Call(*this, kSetMaxAttempts, max_attempts);
 }
 
-jni::Local<TransactionOptionsInternal> TransactionOptionsBuilderInternal::Build(jni::Env& env) const {
+Local<TransactionOptionsInternal> TransactionOptionsBuilderInternal::Build(Env& env) const {
   return env.Call(*this, kBuild);
 }
 
