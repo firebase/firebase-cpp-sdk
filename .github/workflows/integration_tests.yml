@@ -1110,7 +1110,7 @@ jobs:
       matrix:
         build_os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
         android_device: ${{ fromJson(needs.check_and_prepare.outputs.android_device) }}
-        test_type: ["gameloop","uitest"]
+        test_type: ["gameloop"]
         exclude:
           -  android_device: "android_target"
              test_type: "uitest"
@@ -1229,7 +1229,7 @@ jobs:
       fail-fast: false
       matrix:
         ios_device: ${{ fromJson(needs.check_and_prepare.outputs.ios_device) }}
-        test_type: ["gameloop","uitest"]
+        test_type: ["gameloop"]
         exclude:
           -  ios_device: "ios_min"
              test_type: "uitest"

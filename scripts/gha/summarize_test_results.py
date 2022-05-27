@@ -380,7 +380,6 @@ def combine_configs(error_configs, all_configs):
 
 def combine_config(platform, config, config_value, k):
   config_before_combination = config.copy()
-  # logging.info("platform: %s; config: %s; config_value: %s", platform, config, config_value)
   if k == 1 and platform in ("android", "ios", "tvos"):
     # config_name = test_device here
     k = -1
