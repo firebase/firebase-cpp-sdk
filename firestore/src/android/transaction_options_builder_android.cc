@@ -27,30 +27,39 @@ namespace {
 
 using jni::Constructor;
 using jni::Env;
-using jni::Method;
 using jni::Loader;
 using jni::Local;
+using jni::Method;
 
-constexpr char kTransactionOptionsBuilderClass[] = PROGUARD_KEEP_CLASS "com/google/firebase/firestore/TransactionOptions$Builder";
+constexpr char kTransactionOptionsBuilderClass[] = PROGUARD_KEEP_CLASS
+    "com/google/firebase/firestore/TransactionOptions$Builder";
 Constructor<TransactionOptionsBuilderInternal> kNewBuilder("()V");
-Method<TransactionOptionsBuilderInternal> kSetMaxAttempts("setMaxAttempts", "(I)Lcom/google/firebase/firestore/TransactionOptions$Builder;");
-Method<TransactionOptionsInternal> kBuild("build", "()Lcom/google/firebase/firestore/TransactionOptions;");
+Method<TransactionOptionsBuilderInternal> kSetMaxAttempts(
+    "setMaxAttempts",
+    "(I)Lcom/google/firebase/firestore/TransactionOptions$Builder;");
+Method<TransactionOptionsInternal> kBuild(
+    "build", "()Lcom/google/firebase/firestore/TransactionOptions;");
 
 }  // namespace
 
 void TransactionOptionsBuilderInternal::Initialize(Loader& loader) {
-  loader.LoadClass(kTransactionOptionsBuilderClass, kNewBuilder, kSetMaxAttempts, kBuild);
+  loader.LoadClass(kTransactionOptionsBuilderClass, kNewBuilder,
+                   kSetMaxAttempts, kBuild);
 }
 
-Local<TransactionOptionsBuilderInternal> TransactionOptionsBuilderInternal::Create(Env& env) {
+Local<TransactionOptionsBuilderInternal>
+TransactionOptionsBuilderInternal::Create(Env& env) {
   return env.New(kNewBuilder);
 }
 
-Local<TransactionOptionsBuilderInternal> TransactionOptionsBuilderInternal::SetMaxAttempts(Env& env, int32_t max_attempts) const {
+Local<TransactionOptionsBuilderInternal>
+TransactionOptionsBuilderInternal::SetMaxAttempts(Env& env,
+                                                  int32_t max_attempts) const {
   return env.Call(*this, kSetMaxAttempts, max_attempts);
 }
 
-Local<TransactionOptionsInternal> TransactionOptionsBuilderInternal::Build(Env& env) const {
+Local<TransactionOptionsInternal> TransactionOptionsBuilderInternal::Build(
+    Env& env) const {
   return env.Call(*this, kBuild);
 }
 

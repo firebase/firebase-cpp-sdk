@@ -32,7 +32,8 @@ class TransactionOptionsBuilderInternal : public jni::Object {
 
   static jni::Local<TransactionOptionsBuilderInternal> Create(jni::Env&);
 
-  jni::Local<TransactionOptionsBuilderInternal> SetMaxAttempts(jni::Env&, int32_t max_attempts) const;
+  jni::Local<TransactionOptionsBuilderInternal> SetMaxAttempts(
+      jni::Env&, int32_t max_attempts) const;
 
   jni::Local<TransactionOptionsInternal> Build(jni::Env&) const;
 };

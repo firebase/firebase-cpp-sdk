@@ -460,7 +460,9 @@ WriteBatch FirestoreInternal::batch() const {
   return WriteBatch(new WriteBatchInternal(mutable_this(), result));
 }
 
-Future<void> FirestoreInternal::RunTransaction(std::function<Error(Transaction&, std::string&)> update, int32_t max_attempts) {
+Future<void> FirestoreInternal::RunTransaction(
+    std::function<Error(Transaction&, std::string&)> update,
+    int32_t max_attempts) {
   SIMPLE_HARD_ASSERT(max_attempts > 0);
 
   auto* lambda_update = new LambdaTransactionFunction(Move(update));
@@ -468,12 +470,14 @@ Future<void> FirestoreInternal::RunTransaction(std::function<Error(Transaction&,
   Local<Object> transaction_function =
       TransactionInternal::Create(env, this, lambda_update);
 
-  Local<TransactionOptionsBuilderInternal> options_builder = TransactionOptionsBuilderInternal::Create(env);
+  Local<TransactionOptionsBuilderInternal> options_builder =
+      TransactionOptionsBuilderInternal::Create(env);
   options_builder.SetMaxAttempts(env, max_attempts);
   Local<TransactionOptionsInternal> options = options_builder.Build(env);
   options_builder.clear();
 
-  Local<Task> task = env.Call(obj_, kRunTransaction, options, transaction_function);
+  Local<Task> task =
+      env.Call(obj_, kRunTransaction, options, transaction_function);
 
   if (!env.ok()) return {};
 

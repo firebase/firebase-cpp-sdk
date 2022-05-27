@@ -33,7 +33,8 @@ using TransactionOptionsTestAndroid = FirestoreIntegrationTest;
 
 TEST_F(TransactionOptionsTestAndroid, DefaultTransactionOptions) {
   Env env;
-  Local<TransactionOptionsBuilderInternal> builder = TransactionOptionsBuilderInternal::Create(env);
+  Local<TransactionOptionsBuilderInternal> builder =
+      TransactionOptionsBuilderInternal::Create(env);
 
   Local<TransactionOptionsInternal> options = builder.Build(env);
 
@@ -42,16 +43,19 @@ TEST_F(TransactionOptionsTestAndroid, DefaultTransactionOptions) {
 
 TEST_F(TransactionOptionsTestAndroid, SetMaxAttemptsReturnsSameInstance) {
   Env env;
-  Local<TransactionOptionsBuilderInternal> builder = TransactionOptionsBuilderInternal::Create(env);
+  Local<TransactionOptionsBuilderInternal> builder =
+      TransactionOptionsBuilderInternal::Create(env);
 
-  Local<TransactionOptionsBuilderInternal> retval = builder.SetMaxAttempts(env, 42);
+  Local<TransactionOptionsBuilderInternal> retval =
+      builder.SetMaxAttempts(env, 42);
 
   EXPECT_TRUE(env.IsSameObject(builder, retval));
 }
 
 TEST_F(TransactionOptionsTestAndroid, SetMaxAttempts) {
   Env env;
-  Local<TransactionOptionsBuilderInternal> builder = TransactionOptionsBuilderInternal::Create(env);
+  Local<TransactionOptionsBuilderInternal> builder =
+      TransactionOptionsBuilderInternal::Create(env);
 
   builder.SetMaxAttempts(env, 42);
 

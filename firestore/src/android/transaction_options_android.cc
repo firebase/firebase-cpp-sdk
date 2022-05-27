@@ -28,7 +28,8 @@ using jni::Env;
 using jni::Loader;
 using jni::Method;
 
-constexpr char kTransactionOptionsClass[] = PROGUARD_KEEP_CLASS "com/google/firebase/firestore/TransactionOptions";
+constexpr char kTransactionOptionsClass[] =
+    PROGUARD_KEEP_CLASS "com/google/firebase/firestore/TransactionOptions";
 Method<int32_t> kGetMaxAttempts("getMaxAttempts", "()I");
 
 }  // namespace
