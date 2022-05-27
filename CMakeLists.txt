@@ -16,8 +16,6 @@
 
 cmake_minimum_required (VERSION 3.1)
 
-message(STATUS "Firebase cmake build with ${CMAKE_COMMAND} (version ${CMAKE_VERSION})")
-
 set (CMAKE_CXX_STANDARD 11)
 
 # Turn on virtual folders for visual studio
