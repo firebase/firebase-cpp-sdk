@@ -62,7 +62,7 @@ jobs:
           git config --global credential.helper 'store --file /tmp/git-credentials'
           echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
 
-      - name: Support Longpaths
+      - name: Enable Git Long-paths Support
         if: runner.os == 'Windows'
         run: git config --system core.longpaths true
 
