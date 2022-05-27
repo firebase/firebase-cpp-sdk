@@ -47,7 +47,7 @@ public class UITest {
 
   private static final int DEFAULT_TIMEOUT = 5000;
 
-  private static final int WAIT_UI_TIMEOUT = 10000;
+  private static final int WAIT_UI_TIMEOUT = 30000;
 
   @Test
   public void testGMA() throws UiObjectNotFoundException, InterruptedException {
@@ -103,7 +103,7 @@ public class UITest {
     // click the top right corner close bottom.
     x = device.getDisplayWidth() - reference.getVisibleBounds().bottom;
     y = reference.getVisibleBounds().bottom;
-    Thread.sleep(15 * 1000);
+    Thread.sleep(30 * 1000);
     device.click(x, y);
     Log.e(TAG, "RewardedAd closed");
 
