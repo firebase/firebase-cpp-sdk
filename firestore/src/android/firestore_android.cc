@@ -123,7 +123,8 @@ Method<void> kSetSettings(
 Method<Object> kBatch("batch", "()Lcom/google/firebase/firestore/WriteBatch;");
 Method<Task> kRunTransaction(
     "runTransaction",
-    "(Lcom/google/firebase/firestore/Transaction$Function;)"
+    "(Lcom/google/firebase/firestore/TransactionOptions;"
+    "Lcom/google/firebase/firestore/Transaction$Function;)"
     "Lcom/google/android/gms/tasks/Task;");
 Method<Task> kEnableNetwork("enableNetwork",
                             "()Lcom/google/android/gms/tasks/Task;");
@@ -466,7 +467,13 @@ Future<void> FirestoreInternal::RunTransaction(std::function<Error(Transaction&,
   Env env = GetEnv();
   Local<Object> transaction_function =
       TransactionInternal::Create(env, this, lambda_update);
-  Local<Task> task = env.Call(obj_, kRunTransaction, transaction_function);
+
+  Local<TransactionOptionsBuilderInternal> options_builder = TransactionOptionsBuilderInternal::Create(env);
+  options_builder.SetMaxAttempts(env, max_attempts);
+  Local<TransactionOptionsInternal> options = options_builder.Build(env);
+  options_builder.clear();
+
+  Local<Task> task = env.Call(obj_, kRunTransaction, options, transaction_function);
 
   if (!env.ok()) return {};
 
