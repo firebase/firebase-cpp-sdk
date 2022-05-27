@@ -37,9 +37,11 @@ function(GetReleasedDep)
 
     DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
     GIT_REPOSITORY "https://github.com/firebase/firebase-ios-sdk.git"
-    # Pinned commit in https://github.com/firebase/firebase-cpp-sdk/pull/967, which fixes a
-    # problematic python_setup.cmake bug.
-    GIT_TAG 0dbc5dd788e8c41b1530e6b392df739be223948c
+    # Pinned commit in https://github.com/firebase/firebase-ios-sdk/pull/9851 which fixes a
+    # problematic usage of designated initialization. This commit also includes
+    # https://github.com/firebase/firebase-ios-sdk/pull/9847, which fixes a problematic bug in
+    # python_setup.cmake.
+    GIT_TAG f2fb419cd3332ac74be0a7076841b2162a96060d
 
     PREFIX ${PROJECT_BINARY_DIR}
 
