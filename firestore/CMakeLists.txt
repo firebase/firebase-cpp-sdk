@@ -128,6 +128,10 @@ set(android_SRCS
     src/android/timestamp_portable.cc
     src/android/transaction_android.cc
     src/android/transaction_android.h
+    src/android/transaction_options_android.cc
+    src/android/transaction_options_android.h
+    src/android/transaction_options_builder_android.cc
+    src/android/transaction_options_builder_android.h
     src/android/util_android.cc
     src/android/util_android.h
     src/android/wrapper.cc
