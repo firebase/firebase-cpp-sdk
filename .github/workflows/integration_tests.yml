@@ -1146,6 +1146,11 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: 14.x
+      - name: Setup java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
       - name: Setup Firestore Emulator
         if: steps.get-device-type.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
@@ -1251,6 +1256,11 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: 14.x
+      - name: Setup java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
       - name: Setup Firestore Emulator
         if: steps.get-device-type.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
@@ -1350,6 +1360,11 @@ jobs:
           timeout_minutes: 1
           max_attempts: 3
           command: pip install -r scripts/gha/requirements.txt
+      - name: Setup java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
       - name: Setup Firestore Emulator
         if: contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
