@@ -521,6 +521,8 @@ class TestBoundingBoxListener
  public:
   void OnBoundingBoxChanged(firebase::gma::AdView* ad_view,
                             firebase::gma::BoundingBox box) override {
+    LogDebug("Bounding box changed x: %d y: %d height: %d width: %d",
+      box.x, box.y, box.height, box.width);
     bounding_box_changes_.push_back(box);
   }
   std::vector<firebase::gma::BoundingBox> bounding_box_changes_;
@@ -1141,6 +1143,7 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdDestroyNotCalled) {
                                         kBannerAdUnit, banner_ad_size),
                     "Initialize");
   WaitForCompletion(ad_view->LoadAd(GetAdRequest()), "LoadAd");
+  WaitForCompletion(ad_view->Destroy(), "Destroy");
   delete ad_view;
 }
 
@@ -1238,6 +1241,7 @@ TEST_F(FirebaseGmaTest, TestAdView) {
   firebase::Future<firebase::gma::AdResult> load_ad_future =
       ad_view->LoadAd(request);
   WaitForCompletion(load_ad_future, "LoadAd");
+  PauseForVisualInspectionAndCallbacks();
   EXPECT_EQ(ad_view->ad_size().width(), kBannerWidth);
   EXPECT_EQ(ad_view->ad_size().height(), kBannerHeight);
   EXPECT_EQ(expected_num_bounding_box_changes,
