@@ -184,7 +184,7 @@ class FirebaseGmaPreInitializationTests : public FirebaseGmaTest {
 firebase::App* FirebaseGmaTest::shared_app_ = nullptr;
 
 void PauseForVisualInspectionAndCallbacks() {
-  app_framework::ProcessEvents(300);
+  app_framework::ProcessEvents(1000);
 }
 
 void InitializeGma(firebase::App* shared_app) {
