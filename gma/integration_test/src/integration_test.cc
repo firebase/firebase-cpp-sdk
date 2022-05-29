@@ -208,6 +208,16 @@ void InitializeGma(firebase::App* shared_app) {
   LogDebug("Successfully initialized GMA.");
 }
 
+void LogAdResultIfError(const firebase::gma::AdResult* ad_result) {
+  if (ad_result->is_successful() == false) {
+    const firebase::gma::AdError& ad_error = ad_result->ad_error();
+    LogDebug(
+        "AdResult Error code: %d  domain: \"%s\" code: \"%s\" message:"
+        " \"%s\"",
+        ad_error.code(), ad_error.domain().c_str(), ad_error.message().c_str());
+  }
+}
+
 void FirebaseGmaTest::SetUpTestSuite() {
   LogDebug("Initialize Firebase App.");
 
@@ -521,8 +531,8 @@ class TestBoundingBoxListener
  public:
   void OnBoundingBoxChanged(firebase::gma::AdView* ad_view,
                             firebase::gma::BoundingBox box) override {
-    LogDebug("Bounding box changed x: %d y: %d height: %d width: %d",
-      box.x, box.y, box.height, box.width);
+    LogDebug("Bounding box changed x: %d y: %d height: %d width: %d", box.x,
+             box.y, box.height, box.width);
     bounding_box_changes_.push_back(box);
   }
   std::vector<firebase::gma::BoundingBox> bounding_box_changes_;
@@ -781,6 +791,7 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAd) {
   WaitForCompletion(load_ad_future, "LoadAd");
   const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
+  LogAdResultIfError(result_ptr);
   EXPECT_TRUE(result_ptr->is_successful());
   EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
   EXPECT_FALSE(
@@ -815,6 +826,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdLoad) {
   WaitForCompletion(load_ad_future, "LoadAd");
   const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
+  LogAdResultIfError(result_ptr);
   EXPECT_TRUE(result_ptr->is_successful());
   EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
   EXPECT_FALSE(
@@ -843,6 +855,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoad) {
   WaitForCompletion(load_ad_future, "LoadAd");
   const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
+  LogAdResultIfError(result_ptr);
   EXPECT_TRUE(result_ptr->is_successful());
   EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
   EXPECT_FALSE(
@@ -876,6 +889,7 @@ TEST_F(FirebaseGmaUITest, TestAdViewAdOpenedAdClosed) {
   firebase::Future<firebase::gma::AdResult> load_ad_future =
       ad_view->LoadAd(request);
   WaitForCompletion(load_ad_future, "LoadAd");
+  LogAdResultIfError(load_ad_future.result());
   WaitForCompletion(ad_view->Show(), "Show 0");
 
   // Ad Events differ per platform. See the following for more info:
@@ -940,8 +954,10 @@ TEST_F(FirebaseGmaUITest, TestInterstitialAdLoadAndShow) {
 
   // When the InterstitialAd is initialized, load an ad.
   firebase::gma::AdRequest request = GetAdRequest();
-  WaitForCompletion(interstitial->LoadAd(kInterstitialAdUnit, request),
-                    "LoadAd");
+  firebase::Future<firebase::gma::AdResult> load_ad_future =
+      interstitial->LoadAd(kInterstitialAdUnit, request);
+  WaitForCompletion(load_ad_future, "LoadAd");
+  LogAdResultIfError(load_ad_future.result());
 
   WaitForCompletion(interstitial->Show(), "Show");
 
@@ -993,7 +1009,10 @@ TEST_F(FirebaseGmaUITest, TestRewardedAdLoadAndShow) {
 
   // When the RewardedAd is initialized, load an ad.
   firebase::gma::AdRequest request = GetAdRequest();
-  WaitForCompletion(rewarded->LoadAd(kRewardedAdUnit, request), "LoadAd");
+  firebase::Future<firebase::gma::AdResult> load_ad_future =
+      rewarded->LoadAd(kRewardedAdUnit, request);
+  WaitForCompletion(load_ad_future, "LoadAd");
+  LogAdResultIfError(load_ad_future.result());
 
   firebase::gma::RewardedAd::ServerSideVerificationOptions options;
   // We cannot programmatically verify that the GMA phone SDKs marshal
@@ -1058,6 +1077,7 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdEmptyAdRequest) {
   WaitForCompletion(load_ad_future, "LoadAd");
   const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
+  LogAdResultIfError(result_ptr);
   EXPECT_TRUE(result_ptr->is_successful());
   EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
   EXPECT_FALSE(
@@ -1083,7 +1103,10 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdAnchorAdaptiveAd) {
   WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
                                         kBannerAdUnit, banner_ad_size),
                     "Initialize");
-  WaitForCompletion(ad_view->LoadAd(GetAdRequest()), "LoadAd");
+  firebase::Future<firebase::gma::AdResult> load_ad_future =
+      ad_view->LoadAd(GetAdRequest());
+  WaitForCompletion(load_ad_future, "LoadAd");
+  LogAdResultIfError(load_ad_future.result());
   const AdSize ad_size = ad_view->ad_size();
   EXPECT_EQ(ad_size.width(), kBannerWidth);
   EXPECT_NE(ad_size.height(), 0);
@@ -1103,7 +1126,10 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdInlineAdaptiveAd) {
   WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
                                         kBannerAdUnit, banner_ad_size),
                     "Initialize");
-  WaitForCompletion(ad_view->LoadAd(GetAdRequest()), "LoadAd");
+  firebase::Future<firebase::gma::AdResult> load_ad_future =
+      ad_view->LoadAd(GetAdRequest());
+  WaitForCompletion(load_ad_future, "LoadAd");
+  LogAdResultIfError(load_ad_future.result());
   const AdSize ad_size = ad_view->ad_size();
   EXPECT_EQ(ad_size.width(), kBannerWidth);
   EXPECT_NE(ad_size.height(), 0);
@@ -1123,7 +1149,10 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdGetInlineAdaptiveBannerMaxHeight) {
   WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
                                         kBannerAdUnit, banner_ad_size),
                     "Initialize");
-  WaitForCompletion(ad_view->LoadAd(GetAdRequest()), "LoadAd");
+  firebase::Future<firebase::gma::AdResult> load_ad_future =
+      ad_view->LoadAd(GetAdRequest());
+  WaitForCompletion(load_ad_future, "LoadAd");
+  LogAdResultIfError(load_ad_future.result());
   const AdSize ad_size = ad_view->ad_size();
   EXPECT_EQ(ad_size.width(), kBannerWidth);
   EXPECT_NE(ad_size.height(), 0);
@@ -1142,7 +1171,10 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdDestroyNotCalled) {
   WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
                                         kBannerAdUnit, banner_ad_size),
                     "Initialize");
-  WaitForCompletion(ad_view->LoadAd(GetAdRequest()), "LoadAd");
+  firebase::Future<firebase::gma::AdResult> load_ad_future =
+      ad_view->LoadAd(GetAdRequest());
+  WaitForCompletion(load_ad_future, "LoadAd");
+  LogAdResultIfError(load_ad_future.result());
   WaitForCompletion(ad_view->Destroy(), "Destroy");
   delete ad_view;
 }
@@ -1241,6 +1273,7 @@ TEST_F(FirebaseGmaTest, TestAdView) {
   firebase::Future<firebase::gma::AdResult> load_ad_future =
       ad_view->LoadAd(request);
   WaitForCompletion(load_ad_future, "LoadAd");
+  LogAdResultIfError(load_ad_future.result());
   PauseForVisualInspectionAndCallbacks();
   EXPECT_EQ(ad_view->ad_size().width(), kBannerWidth);
   EXPECT_EQ(ad_view->ad_size().height(), kBannerHeight);
@@ -1494,6 +1527,7 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorLoadInProgress) {
   WaitForCompletion(second_load_ad, "Second LoadAd",
                     firebase::gma::kAdErrorCodeLoadInProgress);
   WaitForCompletion(first_load_ad, "First LoadAd");
+  LogAdResultIfError(first_load_ad.result());
 
   const firebase::gma::AdResult* result_ptr = second_load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
@@ -1584,6 +1618,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdLoadEmptyRequest) {
   WaitForCompletion(load_ad_future, "LoadAd");
   const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
+  LogAdResultIfError(load_ad_future.result());
   EXPECT_TRUE(result_ptr->is_successful());
   EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
   EXPECT_FALSE(
@@ -1673,6 +1708,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorLoadInProgress) {
   WaitForCompletion(second_load_ad, "Second LoadAd",
                     firebase::gma::kAdErrorCodeLoadInProgress);
   WaitForCompletion(first_load_ad, "First LoadAd");
+  LogAdResultIfError(first_load_ad.result());
 
   const firebase::gma::AdResult* result_ptr = second_load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
@@ -1755,6 +1791,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoadEmptyRequest) {
   WaitForCompletion(load_ad_future, "LoadAd");
   const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
+  LogAdResultIfError(load_ad_future.result());
   EXPECT_TRUE(result_ptr->is_successful());
   EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
   EXPECT_FALSE(
@@ -1839,6 +1876,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorLoadInProgress) {
   WaitForCompletion(second_load_ad, "Second LoadAd",
                     firebase::gma::kAdErrorCodeLoadInProgress);
   WaitForCompletion(first_load_ad, "First LoadAd");
+  LogAdResultIfError(first_load_ad.result());
 
   const firebase::gma::AdResult* result_ptr = second_load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
@@ -1907,8 +1945,10 @@ TEST_F(FirebaseGmaTest, TestAdViewStress) {
                       "TestAdViewStress Initialize");
 
     // Load the AdView ad.
-    firebase::gma::AdRequest request = GetAdRequest();
-    WaitForCompletion(ad_view->LoadAd(request), "TestAdViewStress LoadAd");
+    firebase::Future<firebase::gma::AdResult> load_ad_future =
+        ad_view->LoadAd(GetAdRequest());
+    WaitForCompletion(load_ad_future, "TestAdViewStress LoadAd");
+    LogAdResultIfError(load_ad_future.result());
     EXPECT_EQ(ad_view->ad_size().width(), kBannerWidth);
     EXPECT_EQ(ad_view->ad_size().height(), kBannerHeight);
 
@@ -1929,9 +1969,10 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
         "TestInterstitialAdStress Initialize");
 
     // When the InterstitialAd is initialized, load an ad.
-    firebase::gma::AdRequest request = GetAdRequest();
-    WaitForCompletion(interstitial->LoadAd(kInterstitialAdUnit, request),
-                      "TestInterstitialAdStress LoadAd");
+    firebase::Future<firebase::gma::AdResult> load_ad_future =
+        interstitial->LoadAd(kInterstitialAdUnit, GetAdRequest());
+    WaitForCompletion(load_ad_future, "TestInterstitialAdStress LoadAd");
+    LogAdResultIfError(load_ad_future.result());
     delete interstitial;
   }
 }
@@ -1946,9 +1987,10 @@ TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
                       "TestRewardedAdStress Initialize");
 
     // When the RewardedAd is initialized, load an ad.
-    firebase::gma::AdRequest request = GetAdRequest();
-    WaitForCompletion(rewarded->LoadAd(kRewardedAdUnit, request),
-                      "TestRewardedAdStress LoadAd");
+    firebase::Future<firebase::gma::AdResult> load_ad_future =
+        rewarded->LoadAd(kRewardedAdUnit, GetAdRequest());
+    WaitForCompletion(load_ad_future, "TestRewardedAdStress LoadAd");
+    LogAdResultIfError(load_ad_future.result());
     delete rewarded;
   }
 }
