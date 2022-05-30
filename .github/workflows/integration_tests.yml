@@ -1146,7 +1146,7 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: 14.x
-      - name: Setup java 17 (for Firestore emulator)
+      - name: Setup java 17 for Firestore emulator
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
@@ -1156,7 +1156,7 @@ jobs:
         run: |
           npm install -g firebase-tools
           firebase emulators:start --only firestore --project demo-example &
-      - name: Setup java 8 (for running the tests)
+      - name: Setup java 8 for test_simulator.py
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
@@ -1261,7 +1261,7 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: 14.x
-      - name: Setup java
+      - name: Setup java for Firestore emulator
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
@@ -1365,7 +1365,7 @@ jobs:
           timeout_minutes: 1
           max_attempts: 3
           command: pip install -r scripts/gha/requirements.txt
-      - name: Setup java
+      - name: Setup java for Firestore emulator
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
