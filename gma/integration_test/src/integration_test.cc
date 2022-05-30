@@ -88,7 +88,7 @@ static uint32_t no_fill_retry_count = 0;
 
 // Pause for 10 seconds if an ad load operation failed with a NoFill response
 // code.
-static const int kNoFillRetriePauseDuration = 10000;
+static const int kNoFillRetriePauseDuration = 60000;
 
 enum AdCallbackEvent {
   AdCallbackEventClicked = 0,
