@@ -605,6 +605,8 @@ code.
       only using AdMob, Analytics, Remote Config, or Messaging.
     - Functions: Add a new method `GetHttpsCallableFromURL`, to create callables
       with URLs other than cloudfunctions.net.
+    - Analytics (iOS): Added InitiateOnDeviceConversionMeasurementWithEmail function to facilitate the
+      [on-device conversion measurement](https://support.google.com/google-ads/answer/12119136) API.
 
 ### 9.0.0
 -   Changes
