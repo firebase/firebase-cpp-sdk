@@ -277,9 +277,6 @@ TEST_F(BundleTest, LoadBundleWithDocumentsAlreadyPulledFromBackend) {
   // local run is fine. We need to figure out why and re-enable it.
   SKIP_TEST_ON_WINDOWS;
 
-  GTEST_SKIP() << "This test fails often on Android and iOS in GitHub Actions "
-                  "and needs to be investigated (b/233751585)";
-
   Firestore* db = TestFirestore();
   auto collection = db->Collection("coll-1");
   WriteDocuments(collection,
