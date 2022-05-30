@@ -79,6 +79,17 @@ const char* kBadAdUnit = "oops";
 static const int kBannerWidth = 320;
 static const int kBannerHeight = 50;
 
+// The max number of retries when reattempt an ad load if the service responded
+// with NoFill or BackOff.
+static const int kMaxNoFillRetries = 15;
+
+// Running tally of the number or load ad retry attempts.
+static uint32_t no_fill_retry_count = 0;
+
+// Pause for 10 seconds if an ad load operation failed with a NoFill response
+// code.
+static const int kNoFillRetriePauseDuration = 10000;
+
 enum AdCallbackEvent {
   AdCallbackEventClicked = 0,
   AdCallbackEventClosed,
@@ -185,6 +196,17 @@ firebase::App* FirebaseGmaTest::shared_app_ = nullptr;
 
 void PauseForVisualInspectionAndCallbacks() {
   app_framework::ProcessEvents(1000);
+}
+
+bool HasReachedMaxNoAdFillRetryLimit() {
+  return no_fill_retry_count >= kMaxNoFillRetries;
+}
+
+void PauseForLoadAdFillRetry() {
+  if (!HasReachedMaxNoAdFillRetryLimit()) {
+    ++no_fill_retry_count;
+    app_framework::ProcessEvents(kNoFillRetriePauseDuration);
+  }
 }
 
 void InitializeGma(firebase::App* shared_app) {
@@ -786,9 +808,21 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAd) {
   WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
                                         kBannerAdUnit, banner_ad_size),
                     "Initialize");
-  firebase::Future<firebase::gma::AdResult> load_ad_future =
-      ad_view->LoadAd(GetAdRequest());
-  WaitForCompletion(load_ad_future, "LoadAd");
+  firebase::Future<firebase::gma::AdResult> load_ad_future;
+  firebase::gma::AdRequest ad_request = GetAdRequest();
+  do {
+    load_ad_future = ad_view->LoadAd(ad_request);
+    WaitForCompletionAnyResult(load_ad_future, "LoadAd");
+    const int error_code = load_ad_future.error();
+    if (error_code == firebase::gma::kAdErrorCodeNoFill ||
+        error_code == firebase::gma::kAdErrorCodeInvalidRequest) {
+      PauseForLoadAdFillRetry();
+    } else {
+      break;
+    }
+  } while (!HasReachedMaxNoAdFillRetryLimit());
+
+  EXPECT_TRUE(load_ad_future.error() == firebase::gma::kAdErrorCodeNone);
   const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
   LogAdResultIfError(result_ptr);
@@ -1947,11 +1981,19 @@ TEST_F(FirebaseGmaTest, TestAdViewStress) {
     // Load the AdView ad.
     firebase::Future<firebase::gma::AdResult> load_ad_future =
         ad_view->LoadAd(GetAdRequest());
-    WaitForCompletion(load_ad_future, "TestAdViewStress LoadAd");
+    WaitForCompletionAnyResult(load_ad_future, "TestAdViewStress LoadAd");
     LogAdResultIfError(load_ad_future.result());
-    EXPECT_EQ(ad_view->ad_size().width(), kBannerWidth);
-    EXPECT_EQ(ad_view->ad_size().height(), kBannerHeight);
-
+    if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+      EXPECT_EQ(ad_view->ad_size().width(), kBannerWidth);
+      EXPECT_EQ(ad_view->ad_size().height(), kBannerHeight);
+    } else {
+      // If the AdMob service cannot fill the ad, then it might return
+      // kAdErrorCodeNoFill or kAdErrorCodeInvalidRequest if there have been
+      // too many errors in a row and the service has entered backoff mode.
+      int error_code = load_ad_future.error();
+      EXPECT_TRUE(error_code == firebase::gma::kAdErrorCodeNoFill ||
+                  error_code == firebase::gma::kAdErrorCodeInvalidRequest);
+    }
     WaitForCompletion(ad_view->Destroy(), "Destroy the AdView");
     delete ad_view;
   }
@@ -1971,8 +2013,17 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
     // When the InterstitialAd is initialized, load an ad.
     firebase::Future<firebase::gma::AdResult> load_ad_future =
         interstitial->LoadAd(kInterstitialAdUnit, GetAdRequest());
-    WaitForCompletion(load_ad_future, "TestInterstitialAdStress LoadAd");
+    WaitForCompletionAnyResult(load_ad_future,
+                               "TestInterstitialAdStress LoadAd");
     LogAdResultIfError(load_ad_future.result());
+    if (load_ad_future.error() != firebase::gma::kAdErrorCodeNone) {
+      // If the AdMob service cannot fill the ad, then it might return
+      // kAdErrorCodeNoFill or kAdErrorCodeInvalidRequest if there have been
+      // too many errors in a row and the service has entered backoff mode.
+      int error_code = load_ad_future.error();
+      EXPECT_TRUE(error_code == firebase::gma::kAdErrorCodeNoFill ||
+                  error_code == firebase::gma::kAdErrorCodeInvalidRequest);
+    }
     delete interstitial;
   }
 }
@@ -1989,8 +2040,16 @@ TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
     // When the RewardedAd is initialized, load an ad.
     firebase::Future<firebase::gma::AdResult> load_ad_future =
         rewarded->LoadAd(kRewardedAdUnit, GetAdRequest());
-    WaitForCompletion(load_ad_future, "TestRewardedAdStress LoadAd");
+    WaitForCompletionAnyResult(load_ad_future, "TestRewardedAdStress LoadAd");
     LogAdResultIfError(load_ad_future.result());
+    if (load_ad_future.error() != firebase::gma::kAdErrorCodeNone) {
+      // If the AdMob service cannot fill the ad, then it might return
+      // kAdErrorCodeNoFill or kAdErrorCodeInvalidRequest if there have been
+      // too many errors in a row and the service has entered backoff mode.
+      int error_code = load_ad_future.error();
+      EXPECT_TRUE(error_code == firebase::gma::kAdErrorCodeNoFill ||
+                  error_code == firebase::gma::kAdErrorCodeInvalidRequest);
+    }
     delete rewarded;
   }
 }
