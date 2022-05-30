@@ -142,9 +142,6 @@ class BundleTest : public FirestoreIntegrationTest {
 };
 
 TEST_F(BundleTest, CanLoadBundlesWithoutProgressUpdates) {
-  GTEST_SKIP() << "Bundle tests fails often on Android and iOS in GitHub "
-                  "Actions and needs to be investigated (b/233751585)";
-
   Firestore* db = TestFirestore();
   auto bundle = CreateTestBundle(db);
 
@@ -155,9 +152,6 @@ TEST_F(BundleTest, CanLoadBundlesWithoutProgressUpdates) {
 }
 
 TEST_F(BundleTest, CanLoadBundlesWithProgressUpdates) {
-  GTEST_SKIP() << "Bundle tests fails often on Android and iOS in GitHub "
-                  "Actions and needs to be investigated (b/233751585)";
-
   Firestore* db = TestFirestore();
   auto bundle = CreateTestBundle(db);
 
@@ -186,9 +180,6 @@ TEST_F(BundleTest, CanLoadBundlesWithProgressUpdates) {
 }
 
 TEST_F(BundleTest, CanDeleteFirestoreFromProgressUpdate) {
-  GTEST_SKIP() << "Bundle tests fails often on Android and iOS in GitHub "
-                  "Actions and needs to be investigated (b/233751585)";
-
   Firestore* db = TestFirestore();
   auto bundle = CreateTestBundle(db);
 
@@ -225,9 +216,6 @@ TEST_F(BundleTest, CanDeleteFirestoreFromProgressUpdate) {
 }
 
 TEST_F(BundleTest, LoadBundlesForASecondTimeSkips) {
-  GTEST_SKIP() << "Bundle tests fails often on Android and iOS in GitHub "
-                  "Actions and needs to be investigated (b/233751585)";
-
   // TODO(wuandy): This test fails on Windows CI, but
   // local run is fine. We need to figure out why and re-enable it.
   SKIP_TEST_ON_WINDOWS;
@@ -256,9 +244,6 @@ TEST_F(BundleTest, LoadBundlesForASecondTimeSkips) {
 }
 
 TEST_F(BundleTest, LoadInvalidBundlesShouldFail) {
-  GTEST_SKIP() << "Bundle tests fails often on Android and iOS in GitHub "
-                  "Actions and needs to be investigated (b/233751585)";
-
   // TODO(wuandy): This test fails on Windows CI, but
   // local run is fine. We need to figure out why and re-enable it.
   SKIP_TEST_ON_WINDOWS;
@@ -288,12 +273,12 @@ TEST_F(BundleTest, LoadInvalidBundlesShouldFail) {
 }
 
 TEST_F(BundleTest, LoadBundleWithDocumentsAlreadyPulledFromBackend) {
-  GTEST_SKIP() << "Bundle tests fails often on Android and iOS in GitHub "
-                  "Actions and needs to be investigated (b/233751585)";
-
   // TODO(wuandy, b/189477267): This test fails on Windows CI, but
   // local run is fine. We need to figure out why and re-enable it.
   SKIP_TEST_ON_WINDOWS;
+
+  GTEST_SKIP() << "This test fails often on Android and iOS in GitHub Actions "
+                  "and needs to be investigated (b/233751585)";
 
   Firestore* db = TestFirestore();
   auto collection = db->Collection("coll-1");
@@ -337,9 +322,6 @@ TEST_F(BundleTest, LoadBundleWithDocumentsAlreadyPulledFromBackend) {
 }
 
 TEST_F(BundleTest, LoadedDocumentsShouldNotBeGarbageCollectedRightAway) {
-  GTEST_SKIP() << "Bundle tests fails often on Android and iOS in GitHub "
-                  "Actions and needs to be investigated (b/233751585)";
-
   // TODO(wuandy, b/189477267): This test fails on Windows CI, but
   // local run is fine. We need to figure out why and re-enable it.
   SKIP_TEST_ON_WINDOWS;
@@ -364,9 +346,6 @@ TEST_F(BundleTest, LoadedDocumentsShouldNotBeGarbageCollectedRightAway) {
 }
 
 TEST_F(BundleTest, LoadDocumentsFromOtherProjectsShouldFail) {
-  GTEST_SKIP() << "Bundle tests fails often on Android and iOS in GitHub "
-                  "Actions and needs to be investigated (b/233751585)";
-
   Firestore* db = TestFirestore();
   auto bundle = CreateBundle("other-project");
   std::vector<LoadBundleTaskProgress> progresses;
@@ -387,9 +366,6 @@ TEST_F(BundleTest, LoadDocumentsFromOtherProjectsShouldFail) {
 }
 
 TEST_F(BundleTest, GetInvalidNamedQuery) {
-  GTEST_SKIP() << "Bundle tests fails often on Android and iOS in GitHub "
-                  "Actions and needs to be investigated (b/233751585)";
-
   Firestore* db = TestFirestore();
   {
     auto future = db->NamedQuery("DOES_NOT_EXIST");
