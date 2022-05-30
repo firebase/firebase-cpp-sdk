@@ -1298,7 +1298,8 @@ TEST_F(FirebaseGmaTest, TestAdView) {
   ad_view->SetBoundingBoxListener(&bounding_box_listener);
   PauseForVisualInspectionAndCallbacks();
 
-  int expected_num_bounding_box_changes = 0;
+  int expected_num_bounding_box_changes =
+      bounding_box_listener.bounding_box_changes_.size();
   EXPECT_EQ(expected_num_bounding_box_changes,
             bounding_box_listener.bounding_box_changes_.size());
 
