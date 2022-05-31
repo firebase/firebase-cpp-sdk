@@ -1112,7 +1112,8 @@ jobs:
         android_device: ${{ fromJson(needs.check_and_prepare.outputs.android_device) }}
         test_type: ["gameloop"]
         include:
-          -  android_device: "emulator_target"
+          -  build_os: macos-12
+             android_device: "emulator_target"
              test_type: "uitest"
     steps:
       - name: setup Xcode version (macos)
@@ -1226,12 +1227,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        build_os: [macos-12]
         ios_device: ${{ fromJson(needs.check_and_prepare.outputs.ios_device) }}
         test_type: ["gameloop"]
         include:
-          -  ios_device: "simulator_target"
+          -  build_os: macos-12
+             ios_device: "simulator_target"
              test_type: "uitest"
-        build_os: [macos-12]
     steps:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
