@@ -21,6 +21,8 @@
 + (void)logEventWithName:(nonnull NSString *)name
               parameters:(nullable NSDictionary<NSString *, id> *)parameters;
 
++ (void)initiateOnDeviceConversionMeasurementWithEmailAddress:(nonnull NSString *)emailAddress;
+
 + (void)setUserPropertyString:(nullable NSString *)value forName:(nonnull NSString *)name;
 
 + (void)setUserID:(nullable NSString *)userID;
