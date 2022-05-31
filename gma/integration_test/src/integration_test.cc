@@ -1973,6 +1973,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadExtrasClassName) {
 // Stress tests.  These take a while so run them near the end.
 TEST_F(FirebaseGmaTest, TestAdViewStress) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_MOBILE;
 
   for (int i = 0; i < 10; ++i) {
     const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
@@ -2004,6 +2005,7 @@ TEST_F(FirebaseGmaTest, TestAdViewStress) {
 
 TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_MOBILE;
 
   for (int i = 0; i < 10; ++i) {
     firebase::gma::InterstitialAd* interstitial =
@@ -2033,6 +2035,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
 
 TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_MOBILE;
 
   for (int i = 0; i < 10; ++i) {
     firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
