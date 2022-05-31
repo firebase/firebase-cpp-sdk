@@ -108,6 +108,9 @@ TEST_F(FirebaseAnalyticsTest, TestSetProperties) {
       firebase::analytics::kUserPropertySignUpMethod, "Google");
   // Set the user ID.
   firebase::analytics::SetUserId("my_integration_test_user");
+  // Initiate on-device conversion measurement.
+  firebase::analytics::InitiateOnDeviceConversionMeasurementWithEmailAddress(
+      "my_email@site.com");
 }
 
 TEST_F(FirebaseAnalyticsTest, TestLogEvents) {

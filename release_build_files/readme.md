@@ -94,7 +94,7 @@ Firebase Authentication    | libfirebase_auth.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics:21.0.0 
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-auth:21.0.3 
+|                          | com.google.firebase:firebase-auth:21.0.5 
 |                          | (Maven package)
 Firebase Dynamic Links     | libfirebase_dynamic_links.a
 |                          | libfirebase_app.a
@@ -109,7 +109,7 @@ Cloud Firestore            | libfirebase_firestore.a
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-firestore:24.1.2
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-auth:21.0.3
+|                          | com.google.firebase:firebase-auth:21.0.5
 |                          | (Maven package)
 Firebase Functions         | libfirebase_functions
 |                          | libfirebase_auth.a (optional)
@@ -118,7 +118,7 @@ Firebase Functions         | libfirebase_functions
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-functions:20.1.0
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-auth:21.0.3
+|                          | com.google.firebase:firebase-auth:21.0.5
 |                          | (Maven package)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
@@ -128,7 +128,7 @@ Firebase Messaging         | libfirebase_messaging.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics:21.0.0
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-messaging:23.0.4
+|                          | com.google.firebase:firebase-messaging:23.0.5
 |                          | (Maven package)
 |                          | libmessaging_java.jar (Android service)
 |                          | androidx.core:core:1.7.0  (Maven package)
@@ -139,7 +139,7 @@ Firebase Realtime Database | libfirebase_database.a
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-database:20.0.5
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-auth:21.0.3
+|                          | com.google.firebase:firebase-auth:21.0.5
 |                          | (Maven package)
 Firebase Remote Config     | libfirebase_remote_config.a
 |                          | libfirebase_app.a
@@ -154,7 +154,7 @@ Firebase Storage           | libfirebase_storage.a
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-storage:20.0.1
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-auth:21.0.3
+|                          | com.google.firebase:firebase-auth:21.0.5
 |                          | (Maven package)
 
 Important: Each version of the Firebase C++ SDK supports specific Firebase
@@ -605,6 +605,8 @@ code.
       only using AdMob, Analytics, Remote Config, or Messaging.
     - Functions: Add a new method `GetHttpsCallableFromURL`, to create callables
       with URLs other than cloudfunctions.net.
+    - Analytics (iOS): Added InitiateOnDeviceConversionMeasurementWithEmail function to facilitate the
+      [on-device conversion measurement](https://support.google.com/google-ads/answer/12119136) API.
 
 ### 9.0.0
 -   Changes
