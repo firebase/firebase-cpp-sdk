@@ -37,8 +37,8 @@ function(GetReleasedDep)
 
     DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
     GIT_REPOSITORY "https://github.com/firebase/firebase-ios-sdk.git"
-    # Pinned HEAD commit as of May 27, 2022 @ 15:36 EDT.
-    GIT_TAG c2bc549a7017c456a20ee69ca7ec27ea4a6077bd
+    # Pinned HEAD commit as of May 31, 2022 @ 16:01 EDT.
+    GIT_TAG 1658c4051e742d88105a6b23ffb4f8fabb0c00f0
 
     PREFIX ${PROJECT_BINARY_DIR}
 
