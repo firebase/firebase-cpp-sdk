@@ -36,10 +36,10 @@ function(GetReleasedDep)
     firestore
 
     DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
-    # Pin to the HEAD commit of https://github.com/firebase/firebase-ios-sdk/pull/9838
-    # (Firestore TransactionOptions added, to specify maxAttempts)
+    # Pin to a HEAD commit of the master branch of the firebase-ios-sdk, now that
+    # https://github.com/firebase/firebase-ios-sdk/pull/9838 has been merged.
     GIT_REPOSITORY https://github.com/firebase/firebase-ios-sdk.git
-    GIT_TAG 141fdcb6c3b1efad19708f77ec88a5516c786d8b
+    GIT_TAG 585b4c83dbeca3e25895ae2f0d2ed7056b3cac7b
 
     PREFIX ${PROJECT_BINARY_DIR}
 
