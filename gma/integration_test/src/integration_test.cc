@@ -88,7 +88,7 @@ static uint32_t no_fill_retry_count = 0;
 
 // Pause for 10 seconds if an ad load operation failed with a NoFill response
 // code.
-static const int kNoFillRetriePauseDuration = 60000;
+static const int kNoFillRetriePauseDuration = 1200000;
 
 enum AdCallbackEvent {
   AdCallbackEventClicked = 0,
@@ -205,7 +205,9 @@ bool HasReachedMaxNoAdFillRetryLimit() {
 void PauseForLoadAdFillRetry() {
   if (!HasReachedMaxNoAdFillRetryLimit()) {
     ++no_fill_retry_count;
+    LogDebug("PauseForLoadAdFillRetry pausing for %d milliseconds...");
     app_framework::ProcessEvents(kNoFillRetriePauseDuration);
+    LogDebug("PauseForLoadAdFillRetry resuming"):
   }
 }
 
