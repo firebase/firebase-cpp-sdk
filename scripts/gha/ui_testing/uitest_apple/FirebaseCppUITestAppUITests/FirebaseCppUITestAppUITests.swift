@@ -25,34 +25,10 @@ class FirebaseCppUITestAppUITests: XCTestCase {
     // Launch this Helper App
     let helperApp = XCUIApplication()
 
-    // Periodically check and dismiss dialogs with "Allow" or "OK"
-    Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { (_) in
-#if os(iOS)
-      NSLog("finding springboard ...")
-      let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-      for button in [springboard.buttons["Open"], springboard.buttons["Allow"], springboard.buttons["OK"]] {
-        if button.exists {
-          NSLog("Dismissing system dialog")
-          button.tap()
-        }
-      }
-#elseif os(tvOS)
-      NSLog("finding pineboard ...")
-      let pineboard = XCUIApplication(bundleIdentifier: "com.apple.PineBoard")
-      for button in [pineboard.buttons["Open"], pineboard.buttons["Allow"], pineboard.buttons["OK"]] {
-        if button.exists {
-          NSLog("Dismissing system dialog")
-          let remote: XCUIRemote = XCUIRemote.shared
-          remote.press(.select)
-        }
-      }
-#endif
-    }
-
     // Launch UI Test App
     helperApp.launch()
     // Wait until UI Test App open Integration Test App
-    helperApp.wait(for: .runningBackground, timeout: 20)
+    helperApp.wait(for: .runningBackground, timeout: 60)
 
     // Wait until Integration Test App closed (testing finished)
     let expectation = XCTestExpectation(description: "Integration Test App closed")
@@ -71,7 +47,7 @@ class FirebaseCppUITestAppUITests: XCTestCase {
 
     // 1. TestAdViewAdOpenedAdClosed
     var reference = app.staticTexts["Test mode"]
-    XCTAssertTrue(reference.waitForExistence(timeout: 60))
+    XCTAssertTrue(reference.waitForExistence(timeout: 120))
     // Click on the center point of the "Test Ad" TextView, where the Ad present
     var x = (reference.frame.origin.x + reference.frame.width)/2
     var y = (reference.frame.origin.y + reference.frame.height)/2
