@@ -154,7 +154,7 @@ flags.DEFINE_bool(
     " directory.")
 
 flags.DEFINE_list(
-    "ios_sdk", _APPLE_SDK_DEVICE, 
+    "ios_sdk", _APPLE_SDK_SIMULATOR, 
     "(iOS only) Build for real device (.ipa), virtual device / simulator (.app), "
     "or both. Building for both will produce both an .app and an .ipa.")
 
