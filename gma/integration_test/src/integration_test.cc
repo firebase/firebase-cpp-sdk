@@ -207,7 +207,7 @@ void PauseForLoadAdFillRetry() {
     ++no_fill_retry_count;
     LogDebug("PauseForLoadAdFillRetry pausing for %d milliseconds...");
     app_framework::ProcessEvents(kNoFillRetriePauseDuration);
-    LogDebug("PauseForLoadAdFillRetry resuming"):
+    LogDebug("PauseForLoadAdFillRetry resuming");
   }
 }
 
