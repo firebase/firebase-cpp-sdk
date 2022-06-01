@@ -214,6 +214,9 @@ endif()
 # firebase-ios-sdk since it's not needed and can sometimes fail to build.
 set(FIRESTORE_INCLUDE_OBJC OFF CACHE BOOL "Disabled for the CPP SDK")
 
+# Disable re2 build tests
+set(RE2_BUILD_TESTING OFF CACHE BOOL "")
+
 if(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
   # Quote meta characters in ${CMAKE_CURRENT_LIST_DIR} so we can
   # match it in a regex.
