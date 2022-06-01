@@ -598,7 +598,7 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming release
+### 9.1.0
 -   Changes
     - General (Android): Fixed a bug that required Android apps to include
       `com.google.android.gms:play-services-base` as an explicit dependency when
