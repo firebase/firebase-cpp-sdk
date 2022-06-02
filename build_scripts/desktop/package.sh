@@ -229,7 +229,7 @@ readonly -a rename_namespaces=(flatbuffers flexbuffers reflection ZLib bssl uWS 
                                grpc_ssl_server_credentials grpc_tls_credential_reload_config
                                grpc_tls_server_authorization_check_config GrpcUdpListener leveldb
                                leveldb_filterpolicy_create_bloom leveldb_writebatch_iterate strings
-                               TlsCredentials TlsServerCredentials tsi snappy re2 re2_internal hooks)
+                               TlsCredentials TlsServerCredentials tsi snappy re2)
 
 # String to prepend to all hidden symbols.
 readonly rename_string=f_b_
