@@ -811,7 +811,7 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAd) {
                                         kBannerAdUnit, banner_ad_size),
                     "Initialize");
   firebase::Future<firebase::gma::AdResult> load_ad_future;
-  firebase::gma::AdRequest ad_request = GetAdRequest();
+  firebase::gma::AdRequest ad_request; // GetAdRequest();
   do {
     load_ad_future = ad_view->LoadAd(ad_request);
     WaitForCompletionAnyResult(load_ad_future, "LoadAd");
@@ -951,7 +951,7 @@ TEST_F(FirebaseGmaUITest, TestAdViewAdOpenedAdClosed) {
   ad_view->SetPaidEventListener(&paid_event_listener);
 
   // Load the AdView ad.
-  firebase::gma::AdRequest request = GetAdRequest();
+  firebase::gma::AdRequest request; // GetAdRequest();
   firebase::Future<firebase::gma::AdResult> load_ad_future;
   do {
     load_ad_future = ad_view->LoadAd(request);
@@ -1033,7 +1033,7 @@ TEST_F(FirebaseGmaUITest, TestInterstitialAdLoadAndShow) {
   interstitial->SetPaidEventListener(&paid_event_listener);
 
   // When the InterstitialAd is initialized, load an ad.
-  firebase::gma::AdRequest request = GetAdRequest();
+  firebase::gma::AdRequest request; // GetAdRequest();
   firebase::Future<firebase::gma::AdResult> load_ad_future;
   do {
     load_ad_future = interstitial->LoadAd(kInterstitialAdUnit, request);
@@ -1101,7 +1101,7 @@ TEST_F(FirebaseGmaUITest, TestRewardedAdLoadAndShow) {
   rewarded->SetPaidEventListener(&paid_event_listener);
 
   // When the RewardedAd is initialized, load an ad.
-  firebase::gma::AdRequest request = GetAdRequest();
+  firebase::gma::AdRequest request; // GetAdRequest();
   firebase::Future<firebase::gma::AdResult> load_ad_future;
   do {
     load_ad_future = rewarded->LoadAd(kRewardedAdUnit, request);
