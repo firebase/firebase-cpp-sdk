@@ -193,7 +193,6 @@ readonly deps_hidden_firebase_app="
 */boringssl-build/crypto/${subdir}${prefix}crypto.${ext}
 */boringssl-build/ssl/${subdir}${prefix}ssl.${ext}
 */firestore-build/*/leveldb-build*/${prefix}*.${ext}
-*/firestore-build/*/re2-build*/${prefix}*.${ext}
 */firestore-build/*/snappy-build*/${prefix}*.${ext}
 */firestore-build/*/nanopb-build*/${prefix}*.${ext}
 "
@@ -206,6 +205,7 @@ readonly deps_hidden_firebase_firestore="
 */firestore-build/*/grpc-build/${subdir}${prefix}*.${ext}
 */firestore-build/*/grpc-build/third_party/cares/*${subdir}${prefix}*.${ext}
 */firestore-build/*/grpc-build/third_party/abseil-cpp/*${subdir}${prefix}*.${ext}
+*/firestore-build/*/grpc-build/third_party/re2/*${subdir}${prefix}re2.${ext}
 "
 
 # List of C++ namespaces to be renamed, so as to not conflict with the
