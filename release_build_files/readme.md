@@ -452,7 +452,7 @@ information):
 Firebase C++ Library | Windows SDK library dependencies
 -------------------- | -----------------------------------------------------
 Authentication       | `advapi32, ws2_32, crypt32`
-Firestore            | `advapi32, ws2_32, crypt32, rpcrt4, ole32, shell32`
+Firestore            | `advapi32, ws2_32, crypt32, rpcrt4, ole32, shell32, dbghelp, bcrypt`
 Functions            | `advapi32, ws2_32, crypt32, rpcrt4, ole32`
 Realtime Database    | `advapi32, ws2_32, crypt32, iphlpapi, psapi, userenv, shell32`
 Remote Config        | `advapi32, ws2_32, crypt32, rpcrt4, ole32`
