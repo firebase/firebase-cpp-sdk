@@ -607,6 +607,7 @@ code.
       with URLs other than cloudfunctions.net.
     - Analytics (iOS): Added InitiateOnDeviceConversionMeasurementWithEmail function to facilitate the
       [on-device conversion measurement](https://support.google.com/google-ads/answer/12119136) API.
+    - Firestore (Windows): dbghelp and bcrypt need to be linked against.
 
 ### 9.0.0
 -   Changes
