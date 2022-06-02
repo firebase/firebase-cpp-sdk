@@ -70,7 +70,7 @@ desktop platforms.
 ### Prerequisites for Windows
 Prebuilt packages for openssl can be found using google and if CMake fails to
 find the install path use the command line option
-**-DOPENSSL_ROOT_DIR=[Open SSL Dir]**. d
+**-DOPENSSL_ROOT_DIR=[Open SSL Dir]**.
 
 ### Prerequisites for Mac
 Home brew can be used to install required dependencies:
