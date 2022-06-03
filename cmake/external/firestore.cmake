@@ -28,7 +28,7 @@ endif()
 
 # If the format of the line below changes, then be sure to update
 # https://github.com/firebase/firebase-cpp-sdk/blob/fd054fa016/.github/workflows/update-dependencies.yml#L81
-set(version CocoaPods-9.0.0)
+set(version CocoaPods-9.1.0)
 
 function(GetReleasedDep)
   message("Getting released firebase-ios-sdk @ ${version}")
@@ -36,10 +36,9 @@ function(GetReleasedDep)
     firestore
 
     DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
-    # Pin to a HEAD commit of the master branch of the firebase-ios-sdk, now that
-    # https://github.com/firebase/firebase-ios-sdk/pull/9838 has been merged.
-    GIT_REPOSITORY https://github.com/firebase/firebase-ios-sdk.git
-    GIT_TAG 585b4c83dbeca3e25895ae2f0d2ed7056b3cac7b
+    GIT_REPOSITORY "https://github.com/firebase/firebase-ios-sdk.git"
+    # Pinned HEAD commit as of June 01, 2022 @ 10:51 EDT.
+    GIT_TAG 89c38d1ed908dbc10d5f9f7aded4cf271113773f
 
     PREFIX ${PROJECT_BINARY_DIR}
 
