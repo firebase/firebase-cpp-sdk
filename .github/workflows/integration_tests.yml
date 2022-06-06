@@ -1158,6 +1158,7 @@ jobs:
           python scripts/gha/test_simulator.py --testapp_dir testapps \
             --test_type "${{ matrix.test_type }}" \
             --android_device "${{ matrix.android_device }}" \
+            --exclude_tests "gma" \
             --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}" \
             --ci
       - name: Install Cloud SDK
@@ -1279,6 +1280,7 @@ jobs:
           python scripts/gha/test_simulator.py --testapp_dir testapps \
             --test_type "${{ matrix.test_type }}" \
             --ios_device "${{ matrix.ios_device }}" \
+            --exclude_tests "gma" \
             --logfile_name "ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}" \
             --ci
       - name: Install Cloud SDK
