@@ -18,6 +18,9 @@ if(TARGET leveldb)
   return()
 endif()
 
+# This version must be kept in sync with the version in firestore.patch.
+# If this version ever changes then make sure to update the version in
+# firestore.patch accordingly.
 set(version 1.23)
 
 ExternalProject_Add(
