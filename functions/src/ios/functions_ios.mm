@@ -48,6 +48,14 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(const char* 
       MakeUnique<FIRHTTPSCallablePointer>([impl_.get()->get() HTTPSCallableWithName:@(name)]));
 }
 
+HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(const char* url) const {
+  // HttpsCallableReferenceInternal handles deleting the wrapper pointer.
+  NSURL *nsurl = [NSURL URLWithString:@(url)];
+  return new HttpsCallableReferenceInternal(
+      const_cast<FunctionsInternal*>(this),
+      MakeUnique<FIRHTTPSCallablePointer>([impl_.get()->get() HTTPSCallableWithURL:nsurl]));
+}
+
 void FunctionsInternal::UseFunctionsEmulator(const char* origin) {
   std::string origin_str(origin);
   // origin is in the format localhost:5005

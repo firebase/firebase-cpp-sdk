@@ -216,46 +216,46 @@ Feature                    | Required Frameworks and Cocoapods
 -------------------------- | ---------------------------------------
 Firebase AdMob             | firebase_admob.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Analytics Cocoapod (9.0.0)
+|                          | Firebase/Analytics Cocoapod (9.1.0)
 |                          | Google-Mobile-Ads-SDK Cocoapod (7.69.0-cppsdk2)
 Firebase Analytics         | firebase_analytics.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Analytics Cocoapod (9.0.0)
+|                          | Firebase/Analytics Cocoapod (9.1.0)
 Firebase Authentication    | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Auth Cocoapod (9.0.0)
+|                          | Firebase/Auth Cocoapod (9.1.0)
 Firebase Dynamic Links     | firebase_dynamic_links.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/DynamicLinks Cocoapod (9.0.0)
+|                          | Firebase/DynamicLinks Cocoapod (9.1.0)
 Cloud Firestore            | firebase_firestore.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Firestore Cocoapod (9.0.0)
-|                          | Firebase/Auth Cocoapod (9.0.0)
+|                          | Firebase/Firestore Cocoapod (9.1.0)
+|                          | Firebase/Auth Cocoapod (9.1.0)
 Firebase Functions         | firebase_functions.xcframework
 |                          | firebase_auth.xcframework (optional)
 |                          | firebase.xcframework
-|                          | Firebase/Functions Cocoapod (9.0.0)
-|                          | Firebase/Auth Cocoapod (9.0.0)
+|                          | Firebase/Functions Cocoapod (9.1.0)
+|                          | Firebase/Auth Cocoapod (9.1.0)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
-|                          | FirebaseInstallations Cocoapod (9.0.0)
+|                          | FirebaseInstallations Cocoapod (9.1.0)
 Firebase Cloud Messaging   | firebase_messaging.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Messaging Cocoapod (9.0.0)
+|                          | Firebase/Messaging Cocoapod (9.1.0)
 Firebase Realtime Database | firebase_database.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Database Cocoapod (9.0.0)
-|                          | Firebase/Auth Cocoapod (9.0.0)
+|                          | Firebase/Database Cocoapod (9.1.0)
+|                          | Firebase/Auth Cocoapod (9.1.0)
 Firebase Remote Config     | firebase_remote_config.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/RemoteConfig Cocoapod (9.0.0)
+|                          | Firebase/RemoteConfig Cocoapod (9.1.0)
 Firebase Storage           | firebase_storage.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Storage Cocoapod (9.0.0)
-|                          | Firebase/Auth Cocoapod (9.0.0)
+|                          | Firebase/Storage Cocoapod (9.1.0)
+|                          | Firebase/Auth Cocoapod (9.1.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
 the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
@@ -280,46 +280,46 @@ Feature                    | Required Libraries and Cocoapods
 -------------------------- | -----------------------------------------
 Firebase AdMob             | libfirebase_admob.a
 |                          | libfirebase_app.a
-|                          | Firebase/Analytics Cocoapod (9.0.0)
+|                          | Firebase/Analytics Cocoapod (9.1.0)
 |                          | Google-Mobile-Ads-SDK Cocoapod (7.69.0-cppsdk2)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
-|                          | Firebase/Analytics Cocoapod (9.0.0)
+|                          | Firebase/Analytics Cocoapod (9.1.0)
 Firebase Authentication    | libfirebase_auth.a
 |                          | libfirebase_app.a
-|                          | Firebase/Auth Cocoapod (9.0.0)
+|                          | Firebase/Auth Cocoapod (9.1.0)
 Firebase Dynamic Links     | libfirebase_dynamic_links.a
 |                          | libfirebase_app.a
-|                          | Firebase/DynamicLinks Cocoapod (9.0.0)
+|                          | Firebase/DynamicLinks Cocoapod (9.1.0)
 Cloud Firestore            | libfirebase_firestore.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Firestore Cocoapod (9.0.0)
-|                          | Firebase/Auth Cocoapod (9.0.0)
+|                          | Firebase/Firestore Cocoapod (9.1.0)
+|                          | Firebase/Auth Cocoapod (9.1.0)
 Firebase Functions         | libfirebase_functions.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a (optional)
-|                          | Firebase/Functions Cocoapod (9.0.0)
-|                          | Firebase/Auth Cocoapod (9.0.0)
+|                          | Firebase/Functions Cocoapod (9.1.0)
+|                          | Firebase/Auth Cocoapod (9.1.0)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
-|                          | FirebaseInstallations Cocoapod (9.0.0)
+|                          | FirebaseInstallations Cocoapod (9.1.0)
 Firebase Cloud Messaging   | libfirebase_messaging.a
 |                          | libfirebase_app.a
-|                          | Firebase/CloudMessaging Cocoapod (9.0.0)
+|                          | Firebase/CloudMessaging Cocoapod (9.1.0)
 Firebase Realtime Database | libfirebase_database.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Database Cocoapod (9.0.0)
-|                          | Firebase/Auth Cocoapod (9.0.0)
+|                          | Firebase/Database Cocoapod (9.1.0)
+|                          | Firebase/Auth Cocoapod (9.1.0)
 Firebase Remote Config     | libfirebase_remote_config.a
 |                          | libfirebase_app.a
-|                          | Firebase/RemoteConfig Cocoapod (9.0.0)
+|                          | Firebase/RemoteConfig Cocoapod (9.1.0)
 Firebase Storage           | libfirebase_storage.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Storage Cocoapod (9.0.0)
-|                          | Firebase/Auth Cocoapod (9.0.0)
+|                          | Firebase/Storage Cocoapod (9.1.0)
+|                          | Firebase/Auth Cocoapod (9.1.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
 the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
@@ -611,13 +611,20 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming release
+### Upcoming Release
 -   Changes
-    -   General (Android): Switched over to Android BoM (Bill of Materials)
-        for dependency versions. This requires Gradle 5.
-    -   General (Android): Fixed a bug that required Android apps to include
-        `com.google.android.gms:play-services-base` as an explicit dependency when
-        only using AdMob, Analytics, Remote Config, or Messaging.
+    - General (Android): Switched over to Android BoM (Bill of Materials)
+      for dependency versions. This requires Gradle 5.
+
+### 9.1.0
+-   Changes
+    - General (Android): Fixed a bug that required Android apps to include
+      `com.google.android.gms:play-services-base` as an explicit dependency when
+      only using AdMob, Analytics, Remote Config, or Messaging.
+    - Functions: Add a new method `GetHttpsCallableFromURL`, to create callables
+      with URLs other than cloudfunctions.net.
+    - Analytics (iOS): Added InitiateOnDeviceConversionMeasurementWithEmail function to facilitate the
+      [on-device conversion measurement](https://support.google.com/google-ads/answer/12119136) API.
 
 ### 9.0.0
 -   Changes
