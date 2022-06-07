@@ -180,20 +180,20 @@ namespace firebase_test_framework {
 #endif  // defined(ANDROID)
 
 #if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE && TARGET_OS_SIMULATOR
-#define SKIP_TEST_ON_SIMULATOR                                          \
-  {                                                                     \
-    app_framework::LogInfo("Skipping %s on iOS simulator.",             \
-      test_info_->name());                                              \
-    GTEST_SKIP();                                                       \
-    return;                                                             \
+#define SKIP_TEST_ON_SIMULATOR                              \
+  {                                                         \
+    app_framework::LogInfo("Skipping %s on iOS simulator.", \
+                           test_info_->name());             \
+    GTEST_SKIP();                                           \
+    return;                                                 \
   }
 #elif defined(ANDROID) && (defined(__x86_64__) || defined(__i386__))
-#define SKIP_TEST_ON_SIMULATOR                                          \
-  {                                                                     \
-    app_framework::LogInfo("Skipping %s on Android simulator.",         \
-      test_info_->name());                                              \
-    GTEST_SKIP();                                                       \
-    return;                                                             \
+#define SKIP_TEST_ON_SIMULATOR                                  \
+  {                                                             \
+    app_framework::LogInfo("Skipping %s on Android simulator.", \
+                           test_info_->name());                 \
+    GTEST_SKIP();                                               \
+    return;                                                     \
   }
 #else
 #define SKIP_TEST_ON_SIMULATOR ((void)0)
