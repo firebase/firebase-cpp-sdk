@@ -195,7 +195,7 @@ class FirebaseGmaPreInitializationTests : public FirebaseGmaTest {
 firebase::App* FirebaseGmaTest::shared_app_ = nullptr;
 
 void PauseForVisualInspectionAndCallbacks() {
-  app_framework::ProcessEvents(1000);
+  app_framework::ProcessEvents(500);
 }
 
 bool HasReachedMaxNoAdFillRetryLimit() {
@@ -1001,7 +1001,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoad) {
 
 // Interactive test section.  These have been placed up front so that the
 // tester doesn't get bored waiting for them.
-TEST_F(FirebaseGmaUITest, DISABLED_TestAdViewAdOpenedAdClosed) {
+TEST_F(FirebaseGmaUITest, TestAdViewAdOpenedAdClosed) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
 
@@ -1069,7 +1069,7 @@ TEST_F(FirebaseGmaUITest, DISABLED_TestAdViewAdOpenedAdClosed) {
   delete ad_view;
 }
 
-TEST_F(FirebaseGmaUITest, DISABLED_TestInterstitialAdLoadAndShow) {
+TEST_F(FirebaseGmaUITest, TestInterstitialAdLoadAndShow) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
 
@@ -1123,7 +1123,7 @@ TEST_F(FirebaseGmaUITest, DISABLED_TestInterstitialAdLoadAndShow) {
   delete interstitial;
 }
 
-TEST_F(FirebaseGmaUITest, DISABLED_TestRewardedAdLoadAndShow) {
+TEST_F(FirebaseGmaUITest, TestRewardedAdLoadAndShow) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
 
@@ -1554,6 +1554,7 @@ TEST_F(FirebaseGmaTest, TestAdView) {
 
 TEST_F(FirebaseGmaTest, TestAdViewErrorNotInitialized) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::AdView* ad_view = new firebase::gma::AdView();
 
@@ -1722,6 +1723,7 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorBadExtrasClassName) {
 
 TEST_F(FirebaseGmaTest, TestInterstitialAdLoadEmptyRequest) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::AdRequest request;
   firebase::Future<firebase::gma::AdResult> load_ad_future;
@@ -1747,6 +1749,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdLoadEmptyRequest) {
 
 TEST_F(FirebaseGmaTest, TestInterstitialAdErrorNotInitialized) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::InterstitialAd* interstitial_ad =
       new firebase::gma::InterstitialAd();
