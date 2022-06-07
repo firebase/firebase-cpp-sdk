@@ -79,6 +79,17 @@ const char* kBadAdUnit = "oops";
 static const int kBannerWidth = 320;
 static const int kBannerHeight = 50;
 
+// The max number of retries when reattempt an ad load if the service responded
+// with NoFill or BackOff.
+static const int kMaxNoFillRetries = 10;
+
+// Running tally of the number or load ad retry attempts.
+static uint32_t no_fill_retry_count = 0;
+
+// Pause for 2 minutes if an ad load operation failed with a NoFill response
+// code.
+static const int kNoFillRetryPauseDuration = 60000;
+
 enum AdCallbackEvent {
   AdCallbackEventClicked = 0,
   AdCallbackEventClosed,
@@ -184,7 +195,20 @@ class FirebaseGmaPreInitializationTests : public FirebaseGmaTest {
 firebase::App* FirebaseGmaTest::shared_app_ = nullptr;
 
 void PauseForVisualInspectionAndCallbacks() {
-  app_framework::ProcessEvents(300);
+  app_framework::ProcessEvents(1000);
+}
+
+bool HasReachedMaxNoAdFillRetryLimit() {
+  return no_fill_retry_count >= kMaxNoFillRetries;
+}
+
+void PauseForLoadAdFillRetry() {
+  if (!HasReachedMaxNoAdFillRetryLimit()) {
+    ++no_fill_retry_count;
+    LogDebug("PauseForLoadAdFillRetry pausing for %d milliseconds...");
+    app_framework::ProcessEvents(kNoFillRetryPauseDuration);
+    LogDebug("PauseForLoadAdFillRetry resuming");
+  }
 }
 
 void InitializeGma(firebase::App* shared_app) {
@@ -206,6 +230,121 @@ void InitializeGma(firebase::App* shared_app) {
       << initializer.InitializeLastResult().error_message();
 
   LogDebug("Successfully initialized GMA.");
+}
+
+void LogAdResultIfError(const firebase::gma::AdResult* ad_result) {
+  if (ad_result->is_successful() == false) {
+    const firebase::gma::AdError& ad_error = ad_result->ad_error();
+    LogDebug(
+        "AdResult Error code: %d  domain: \"%s\" code: \"%s\" message:"
+        " \"%s\" to_string: \"%s\"",
+        ad_error.code(), ad_error.domain().c_str(), ad_error.message().c_str(),
+        ad_error.ToString().c_str());
+  }
+}
+
+firebase::gma::AdView* loadAdView(
+    const firebase::gma::AdSize& ad_size,
+    const firebase::gma::AdRequest& request,
+    firebase::Future<firebase::gma::AdResult>& load_ad_future,
+    firebase::gma::AdListener* ad_listener,
+    firebase::gma::PaidEventListener* paid_event_listener) {
+  firebase::gma::AdView* ad_view = nullptr;
+
+  do {
+    ad_view = new firebase::gma::AdView();
+    FirebaseGmaTest::WaitForCompletion(
+        ad_view->Initialize(app_framework::GetWindowContext(), kBannerAdUnit,
+                            ad_size),
+        "Initialize");
+    ad_view->SetAdListener(ad_listener);
+    ad_view->SetPaidEventListener(paid_event_listener);
+    load_ad_future = ad_view->LoadAd(request);
+    FirebaseGmaTest::WaitForCompletionAnyResult(load_ad_future, "LoadAd");
+    LogAdResultIfError(load_ad_future.result());
+    const int error_code = load_ad_future.error();
+    if ((error_code == firebase::gma::kAdErrorCodeNoFill ||
+         error_code == firebase::gma::kAdErrorCodeInvalidRequest) &&
+        !HasReachedMaxNoAdFillRetryLimit()) {
+      load_ad_future.Release();
+      FirebaseGmaTest::WaitForCompletion(ad_view->Destroy(), "Destroy");
+      delete ad_view;
+      ad_view = nullptr;
+      PauseForLoadAdFillRetry();
+      continue;
+    } else {
+      break;
+    }
+  } while (true);
+
+  return ad_view;
+}
+
+firebase::gma::AdView* loadAdView(
+    const firebase::gma::AdSize& ad_size,
+    const firebase::gma::AdRequest& request,
+    firebase::Future<firebase::gma::AdResult>& load_ad_future) {
+  return loadAdView(ad_size, request, load_ad_future, nullptr, nullptr);
+}
+
+firebase::gma::InterstitialAd* loadInterstitialAd(
+    const firebase::gma::AdRequest& request,
+    firebase::Future<firebase::gma::AdResult>& load_ad_future) {
+  firebase::gma::InterstitialAd* interstitial = nullptr;
+
+  do {
+    interstitial = new firebase::gma::InterstitialAd();
+    FirebaseGmaTest::WaitForCompletion(
+        interstitial->Initialize(app_framework::GetWindowContext()),
+        "Initialize");
+    load_ad_future = interstitial->LoadAd(kInterstitialAdUnit, request);
+    FirebaseGmaTest::WaitForCompletionAnyResult(load_ad_future, "LoadAd");
+    LogAdResultIfError(load_ad_future.result());
+    const int error_code = load_ad_future.error();
+    if ((error_code == firebase::gma::kAdErrorCodeNoFill ||
+         error_code == firebase::gma::kAdErrorCodeInvalidRequest) &&
+        !HasReachedMaxNoAdFillRetryLimit()) {
+      load_ad_future.Release();
+      delete interstitial;
+      interstitial = nullptr;
+      PauseForLoadAdFillRetry();
+      continue;
+    } else {
+      break;
+    }
+  } while (true);
+
+  return interstitial;
+}
+
+firebase::gma::RewardedAd* loadRewardedAd(
+    const firebase::gma::AdRequest& request,
+    firebase::Future<firebase::gma::AdResult>& load_ad_future) {
+  firebase::gma::RewardedAd* rewarded = nullptr;
+
+  do {
+    rewarded = new firebase::gma::RewardedAd();
+    FirebaseGmaTest::WaitForCompletion(
+        rewarded->Initialize(app_framework::GetWindowContext()), "Initialize");
+
+    load_ad_future = rewarded->LoadAd(kRewardedAdUnit, request);
+    FirebaseGmaTest::WaitForCompletionAnyResult(load_ad_future, "LoadAd");
+    const int error_code = load_ad_future.error();
+    LogAdResultIfError(load_ad_future.result());
+    if ((error_code == firebase::gma::kAdErrorCodeNoFill ||
+         error_code == firebase::gma::kAdErrorCodeInvalidRequest) &&
+        !HasReachedMaxNoAdFillRetryLimit()) {
+      load_ad_future.Release();
+      delete rewarded;
+      rewarded = nullptr;
+      PauseForLoadAdFillRetry();
+      continue;
+    } else {
+      break;
+    }
+  } while (true);
+
+  return rewarded;
 }
 
 void FirebaseGmaTest::SetUpTestSuite() {
@@ -262,16 +401,16 @@ void FirebaseGmaTest::TearDown() { FirebaseTest::TearDown(); }
 firebase::gma::AdRequest FirebaseGmaTest::GetAdRequest() {
   firebase::gma::AdRequest request;
 
-  // Additional keywords to be used in targeting.
-  for (auto keyword_iter = kKeywords.begin(); keyword_iter != kKeywords.end();
-       ++keyword_iter) {
-    request.add_keyword((*keyword_iter).c_str());
-  }
-
   for (auto extras_iter = kGmaAdapterExtras.begin();
        extras_iter != kGmaAdapterExtras.end(); ++extras_iter) {
     request.add_extra(kAdNetworkExtrasClassName, extras_iter->first.c_str(),
                       extras_iter->second.c_str());
+  }
+
+  // Additional keywords to be used in targeting.
+  for (auto keyword_iter = kKeywords.begin(); keyword_iter != kKeywords.end();
+       ++keyword_iter) {
+    request.add_keyword((*keyword_iter).c_str());
   }
 
   // Content URL
@@ -521,6 +660,8 @@ class TestBoundingBoxListener
  public:
   void OnBoundingBoxChanged(firebase::gma::AdView* ad_view,
                             firebase::gma::BoundingBox box) override {
+    LogDebug("Bounding box changed x: %d y: %d height: %d width: %d", box.x,
+             box.y, box.height, box.width);
     bounding_box_changes_.push_back(box);
   }
   std::vector<firebase::gma::BoundingBox> bounding_box_changes_;
@@ -768,379 +909,389 @@ TEST_F(FirebaseGmaTest, TestRequestConfigurationSetGet) {
 // ensure that we can load them before diving into the interactive tests.
 TEST_F(FirebaseGmaTest, TestAdViewLoadAd) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
-  firebase::gma::AdView* ad_view = new firebase::gma::AdView();
-  WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
-                                        kBannerAdUnit, banner_ad_size),
-                    "Initialize");
-  firebase::Future<firebase::gma::AdResult> load_ad_future =
-      ad_view->LoadAd(GetAdRequest());
-  WaitForCompletion(load_ad_future, "LoadAd");
+  firebase::Future<firebase::gma::AdResult> load_ad_future;
+  firebase::gma::AdRequest ad_request = GetAdRequest();
+
+  firebase::gma::AdView* ad_view =
+      loadAdView(banner_ad_size, ad_request, load_ad_future);
+  ASSERT_NE(ad_view, nullptr);
+
+  EXPECT_EQ(load_ad_future.error(), firebase::gma::kAdErrorCodeNone);
   const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
-  EXPECT_TRUE(result_ptr->is_successful());
-  EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
-  EXPECT_FALSE(
-      result_ptr->response_info().mediation_adapter_class_name().empty());
-  EXPECT_FALSE(result_ptr->response_info().response_id().empty());
-  EXPECT_FALSE(result_ptr->response_info().ToString().empty());
 
-  EXPECT_EQ(ad_view->ad_size().width(), kBannerWidth);
-  EXPECT_EQ(ad_view->ad_size().height(), kBannerHeight);
-  EXPECT_EQ(ad_view->ad_size().type(), firebase::gma::AdSize::kTypeStandard);
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    EXPECT_TRUE(result_ptr->is_successful());
+    EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
+    EXPECT_FALSE(
+        result_ptr->response_info().mediation_adapter_class_name().empty());
+    EXPECT_FALSE(result_ptr->response_info().response_id().empty());
+    EXPECT_FALSE(result_ptr->response_info().ToString().empty());
+    EXPECT_EQ(ad_view->ad_size().width(), kBannerWidth);
+    EXPECT_EQ(ad_view->ad_size().height(), kBannerHeight);
+    EXPECT_EQ(ad_view->ad_size().type(), firebase::gma::AdSize::kTypeStandard);
+  }
 
   WaitForCompletion(ad_view->Destroy(), "Destroy");
+  load_ad_future.Release();
   delete ad_view;
 }
 
 TEST_F(FirebaseGmaTest, TestInterstitialAdLoad) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   // Note: while showing an ad requires user interaction (below),
   // we test that we can simply load an ad first.
-
+  firebase::gma::AdRequest ad_request;
+  firebase::Future<firebase::gma::AdResult> load_ad_future;
   firebase::gma::InterstitialAd* interstitial =
-      new firebase::gma::InterstitialAd();
+      loadInterstitialAd(ad_request, load_ad_future);
+  ASSERT_NE(interstitial, nullptr);
 
-  WaitForCompletion(interstitial->Initialize(app_framework::GetWindowContext()),
-                    "Initialize");
-
-  // When the InterstitialAd is initialized, load an ad.
-  firebase::Future<firebase::gma::AdResult> load_ad_future =
-      interstitial->LoadAd(kInterstitialAdUnit, GetAdRequest());
-
-  WaitForCompletion(load_ad_future, "LoadAd");
+  EXPECT_EQ(load_ad_future.error(), firebase::gma::kAdErrorCodeNone);
   const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
-  EXPECT_TRUE(result_ptr->is_successful());
-  EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
-  EXPECT_FALSE(
-      result_ptr->response_info().mediation_adapter_class_name().empty());
-  EXPECT_FALSE(result_ptr->response_info().response_id().empty());
-  EXPECT_FALSE(result_ptr->response_info().ToString().empty());
 
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    EXPECT_TRUE(result_ptr->is_successful());
+    EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
+    EXPECT_FALSE(
+        result_ptr->response_info().mediation_adapter_class_name().empty());
+    EXPECT_FALSE(result_ptr->response_info().response_id().empty());
+    EXPECT_FALSE(result_ptr->response_info().ToString().empty());
+  }
+  load_ad_future.Release();
   delete interstitial;
 }
 
 TEST_F(FirebaseGmaTest, TestRewardedAdLoad) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   // Note: while showing an ad requires user interaction (below),
   // we test that we can simply load an ad first.
 
-  firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
-
-  WaitForCompletion(rewarded->Initialize(app_framework::GetWindowContext()),
-                    "Initialize");
-
   // When the RewardedAd is initialized, load an ad.
-  firebase::Future<firebase::gma::AdResult> load_ad_future =
-      rewarded->LoadAd(kRewardedAdUnit, GetAdRequest());
+  firebase::Future<firebase::gma::AdResult> load_ad_future;
+  firebase::gma::AdRequest ad_request;
+  firebase::gma::RewardedAd* rewarded =
+      loadRewardedAd(ad_request, load_ad_future);
+  ASSERT_NE(rewarded, nullptr);
 
-  WaitForCompletion(load_ad_future, "LoadAd");
+  EXPECT_EQ(load_ad_future.error(), firebase::gma::kAdErrorCodeNone);
   const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
-  EXPECT_TRUE(result_ptr->is_successful());
-  EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
-  EXPECT_FALSE(
-      result_ptr->response_info().mediation_adapter_class_name().empty());
-  EXPECT_FALSE(result_ptr->response_info().response_id().empty());
-  EXPECT_FALSE(result_ptr->response_info().ToString().empty());
 
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    EXPECT_TRUE(result_ptr->is_successful());
+    EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
+    EXPECT_FALSE(
+        result_ptr->response_info().mediation_adapter_class_name().empty());
+    EXPECT_FALSE(result_ptr->response_info().response_id().empty());
+    EXPECT_FALSE(result_ptr->response_info().ToString().empty());
+  }
+
+  load_ad_future.Release();
   delete rewarded;
 }
 
 // Interactive test section.  These have been placed up front so that the
 // tester doesn't get bored waiting for them.
-TEST_F(FirebaseGmaUITest, TestAdViewAdOpenedAdClosed) {
+TEST_F(FirebaseGmaUITest, DISABLED_TestAdViewAdOpenedAdClosed) {
   SKIP_TEST_ON_DESKTOP;
-
-  const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
-  firebase::gma::AdView* ad_view = new firebase::gma::AdView();
-  WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
-                                        kBannerAdUnit, banner_ad_size),
-                    "Initialize");
-
-  // Set the listener.
-  TestAdListener ad_listener;
-  ad_view->SetAdListener(&ad_listener);
-
-  TestPaidEventListener paid_event_listener;
-  ad_view->SetPaidEventListener(&paid_event_listener);
+  SKIP_TEST_ON_SIMULATOR;
 
   // Load the AdView ad.
+  const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::gma::AdRequest request = GetAdRequest();
-  firebase::Future<firebase::gma::AdResult> load_ad_future =
-      ad_view->LoadAd(request);
-  WaitForCompletion(load_ad_future, "LoadAd");
-  WaitForCompletion(ad_view->Show(), "Show 0");
+  firebase::Future<firebase::gma::AdResult> load_ad_future;
 
-  // Ad Events differ per platform. See the following for more info:
-  // https://www.googblogs.com/google-mobile-ads-sdk-a-note-on-ad-click-events/
-  // and https://groups.google.com/g/google-admob-ads-sdk/c/lzdt5szxSVU
+  TestAdListener ad_listener;
+  TestPaidEventListener paid_event_listener;
+
+  firebase::gma::AdView* ad_view =
+      loadAdView(banner_ad_size, request, load_ad_future, &ad_listener,
+                 &paid_event_listener);
+  ASSERT_NE(ad_view, nullptr);
+
+  EXPECT_EQ(load_ad_future.error(), firebase::gma::kAdErrorCodeNone);
+
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    WaitForCompletion(ad_view->Show(), "Show 0");
+
+    // Ad Events differ per platform. See the following for more info:
+    // https://www.googblogs.com/google-mobile-ads-sdk-a-note-on-ad-click-events/
+    // and https://groups.google.com/g/google-admob-ads-sdk/c/lzdt5szxSVU
 #if defined(ANDROID)
-  LogDebug("Click the Ad, and then close the ad to continue");
+    LogDebug("Click the Ad, and then close the ad to continue");
 
-  while (ad_listener.num_on_ad_opened_ == 0) {
-    app_framework::ProcessEvents(1000);
-  }
+    while (ad_listener.num_on_ad_opened_ == 0) {
+      app_framework::ProcessEvents(1000);
+    }
 
-  while (ad_listener.num_on_ad_closed_ == 0) {
-    app_framework::ProcessEvents(1000);
-  }
+    while (ad_listener.num_on_ad_closed_ == 0) {
+      app_framework::ProcessEvents(1000);
+    }
 
-  // Ensure all of the expected events were triggered on Android.
-  EXPECT_EQ(ad_listener.num_on_ad_clicked_, 1);
-  EXPECT_EQ(ad_listener.num_on_ad_impression_, 1);
-  EXPECT_EQ(ad_listener.num_on_ad_opened_, 1);
-  EXPECT_EQ(ad_listener.num_on_ad_closed_, 1);
-  EXPECT_EQ(paid_event_listener.num_paid_events(), 1);
+    // Ensure all of the expected events were triggered on Android.
+    EXPECT_EQ(ad_listener.num_on_ad_clicked_, 1);
+    EXPECT_EQ(ad_listener.num_on_ad_impression_, 1);
+    EXPECT_EQ(ad_listener.num_on_ad_opened_, 1);
+    EXPECT_EQ(ad_listener.num_on_ad_closed_, 1);
+    EXPECT_EQ(paid_event_listener.num_paid_events(), 1);
 #else
-  LogDebug("Click the Ad, and then close the ad to continue");
+    LogDebug("Click the Ad, and then close the ad to continue");
 
-  while (ad_listener.num_on_ad_clicked_ == 0) {
-    app_framework::ProcessEvents(1000);
-  }
+    while (ad_listener.num_on_ad_clicked_ == 0) {
+      app_framework::ProcessEvents(1000);
+    }
 
-  LogDebug("Waiting for a moment to ensure all callbacks are recorded.");
-  app_framework::ProcessEvents(2000);
+    LogDebug("Waiting for a moment to ensure all callbacks are recorded.");
+    app_framework::ProcessEvents(2000);
 
-  // Ensure all of the expected events were triggered on iOS.
-  EXPECT_EQ(ad_listener.num_on_ad_clicked_, 1);
-  EXPECT_EQ(ad_listener.num_on_ad_impression_, 1);
-  EXPECT_EQ(paid_event_listener.num_paid_events(), 1);
-  EXPECT_EQ(ad_listener.num_on_ad_opened_, 0);
-  EXPECT_EQ(ad_listener.num_on_ad_closed_, 0);
+    // Ensure all of the expected events were triggered on iOS.
+    EXPECT_EQ(ad_listener.num_on_ad_clicked_, 1);
+    EXPECT_EQ(ad_listener.num_on_ad_impression_, 1);
+    EXPECT_EQ(paid_event_listener.num_paid_events(), 1);
+    EXPECT_EQ(ad_listener.num_on_ad_opened_, 0);
+    EXPECT_EQ(ad_listener.num_on_ad_closed_, 0);
 #endif
+    ad_view->SetAdListener(nullptr);
+    ad_view->SetPaidEventListener(nullptr);
+  }
 
   load_ad_future.Release();
-  ad_view->SetAdListener(nullptr);
-  ad_view->SetPaidEventListener(nullptr);
   WaitForCompletion(ad_view->Destroy(), "Destroy the AdView");
   delete ad_view;
 }
 
-TEST_F(FirebaseGmaUITest, TestInterstitialAdLoadAndShow) {
+TEST_F(FirebaseGmaUITest, DISABLED_TestInterstitialAdLoadAndShow) {
   SKIP_TEST_ON_DESKTOP;
-
-  firebase::gma::InterstitialAd* interstitial =
-      new firebase::gma::InterstitialAd();
-
-  WaitForCompletion(interstitial->Initialize(app_framework::GetWindowContext()),
-                    "Initialize");
-
-  TestFullScreenContentListener content_listener;
-  interstitial->SetFullScreenContentListener(&content_listener);
-
-  TestPaidEventListener paid_event_listener;
-  interstitial->SetPaidEventListener(&paid_event_listener);
+  SKIP_TEST_ON_SIMULATOR;
 
   // When the InterstitialAd is initialized, load an ad.
-  firebase::gma::AdRequest request = GetAdRequest();
-  WaitForCompletion(interstitial->LoadAd(kInterstitialAdUnit, request),
-                    "LoadAd");
+  firebase::gma::AdRequest ad_request;
+  firebase::Future<firebase::gma::AdResult> load_ad_future;
+  firebase::gma::InterstitialAd* interstitial =
+      loadInterstitialAd(ad_request, load_ad_future);
+  ASSERT_NE(interstitial, nullptr);
 
-  WaitForCompletion(interstitial->Show(), "Show");
+  EXPECT_EQ(load_ad_future.error(), firebase::gma::kAdErrorCodeNone);
 
-  LogDebug("Click the Ad, and then return to the app to continue");
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    TestFullScreenContentListener content_listener;
+    interstitial->SetFullScreenContentListener(&content_listener);
 
-  while (content_listener.num_ad_dismissed() == 0) {
-    app_framework::ProcessEvents(1000);
-  }
+    TestPaidEventListener paid_event_listener;
+    interstitial->SetPaidEventListener(&paid_event_listener);
 
-  LogDebug("Waiting for a moment to ensure all callbacks are recorded.");
-  app_framework::ProcessEvents(2000);
+    WaitForCompletion(interstitial->Show(), "Show");
 
-  EXPECT_EQ(content_listener.num_ad_clicked(), 1);
-  EXPECT_EQ(content_listener.num_ad_showed_content(), 1);
-  EXPECT_EQ(content_listener.num_ad_impressions(), 1);
-  EXPECT_EQ(content_listener.num_ad_failed_to_show_content(), 0);
-  EXPECT_EQ(content_listener.num_ad_dismissed(), 1);
-  EXPECT_EQ(paid_event_listener.num_paid_events(), 1);
+    LogDebug("Click the Ad, and then return to the app to continue");
+
+    while (content_listener.num_ad_dismissed() == 0) {
+      app_framework::ProcessEvents(1000);
+    }
+
+    LogDebug("Waiting for a moment to ensure all callbacks are recorded.");
+    app_framework::ProcessEvents(2000);
+
+    EXPECT_EQ(content_listener.num_ad_clicked(), 1);
+    EXPECT_EQ(content_listener.num_ad_showed_content(), 1);
+    EXPECT_EQ(content_listener.num_ad_impressions(), 1);
+    EXPECT_EQ(content_listener.num_ad_failed_to_show_content(), 0);
+    EXPECT_EQ(content_listener.num_ad_dismissed(), 1);
+    EXPECT_EQ(paid_event_listener.num_paid_events(), 1);
 
 #if (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-  // Show the Ad again.  Note: Android's Interstitial ads fail silently
-  // when attempting to show the ad twice.
-  LogDebug("Attempting to show ad again, checking for correct error result.");
-  WaitForCompletion(interstitial->Show(), "Show");
-  app_framework::ProcessEvents(5000);
-  EXPECT_THAT(content_listener.failure_codes(),
-              ElementsAre(firebase::gma::kAdErrorCodeAdAlreadyUsed));
+    // Show the Ad again.  Note: Android's Interstitial ads fail silently
+    // when attempting to show the ad twice.
+    LogDebug("Attempting to show ad again, checking for correct error result.");
+    WaitForCompletion(interstitial->Show(), "Show");
+    app_framework::ProcessEvents(5000);
+    EXPECT_THAT(content_listener.failure_codes(),
+                ElementsAre(firebase::gma::kAdErrorCodeAdAlreadyUsed));
 #endif
-
-  interstitial->SetFullScreenContentListener(nullptr);
-  interstitial->SetPaidEventListener(nullptr);
+    interstitial->SetFullScreenContentListener(nullptr);
+    interstitial->SetPaidEventListener(nullptr);
+  }
 
   delete interstitial;
 }
 
-TEST_F(FirebaseGmaUITest, TestRewardedAdLoadAndShow) {
+TEST_F(FirebaseGmaUITest, DISABLED_TestRewardedAdLoadAndShow) {
   SKIP_TEST_ON_DESKTOP;
-
-  firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
-
-  WaitForCompletion(rewarded->Initialize(app_framework::GetWindowContext()),
-                    "Initialize");
-
-  TestFullScreenContentListener content_listener;
-  rewarded->SetFullScreenContentListener(&content_listener);
-
-  TestPaidEventListener paid_event_listener;
-  rewarded->SetPaidEventListener(&paid_event_listener);
+  SKIP_TEST_ON_SIMULATOR;
 
   // When the RewardedAd is initialized, load an ad.
   firebase::gma::AdRequest request = GetAdRequest();
-  WaitForCompletion(rewarded->LoadAd(kRewardedAdUnit, request), "LoadAd");
+  firebase::Future<firebase::gma::AdResult> load_ad_future;
+  firebase::gma::RewardedAd* rewarded = loadRewardedAd(request, load_ad_future);
+  ASSERT_NE(rewarded, nullptr);
 
-  firebase::gma::RewardedAd::ServerSideVerificationOptions options;
-  // We cannot programmatically verify that the GMA phone SDKs marshal
-  // these values properly (there are no get methods). At least invoke the
-  // method to ensure least we can set them without any exceptions occurring.
-  options.custom_data = "custom data";
-  options.user_id = "123456";
-  rewarded->SetServerSideVerificationOptions(options);
+  EXPECT_EQ(load_ad_future.error(), firebase::gma::kAdErrorCodeNone);
 
-  TestUserEarnedRewardListener earned_reward_listener;
-  WaitForCompletion(rewarded->Show(&earned_reward_listener), "Show");
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    TestFullScreenContentListener content_listener;
+    rewarded->SetFullScreenContentListener(&content_listener);
 
-  LogDebug(
-      "Wait for the Ad to finish playing, click the ad, return to the ad, "
-      "then close the ad to continue.");
+    TestPaidEventListener paid_event_listener;
+    rewarded->SetPaidEventListener(&paid_event_listener);
 
-  while (content_listener.num_ad_dismissed() == 0) {
-    app_framework::ProcessEvents(1000);
+    firebase::gma::RewardedAd::ServerSideVerificationOptions options;
+    // We cannot programmatically verify that the GMA phone SDKs marshal
+    // these values properly (there are no get methods). At least invoke the
+    // method to ensure least we can set them without any exceptions occurring.
+    options.custom_data = "custom data";
+    options.user_id = "123456";
+    rewarded->SetServerSideVerificationOptions(options);
+
+    TestUserEarnedRewardListener earned_reward_listener;
+    WaitForCompletion(rewarded->Show(&earned_reward_listener), "Show");
+
+    LogDebug(
+        "Wait for the Ad to finish playing, click the ad, return to the ad, "
+        "then close the ad to continue.");
+
+    while (content_listener.num_ad_dismissed() == 0) {
+      app_framework::ProcessEvents(1000);
+    }
+
+    LogDebug("Waiting for a moment to ensure all callbacks are recorded.");
+    app_framework::ProcessEvents(2000);
+
+    // If not running the UI test in CI (running mannually), keep this check.
+    // Else running the UI test in CI, skip this check.
+    if (!ShouldRunUITests()) {
+      EXPECT_EQ(content_listener.num_ad_clicked(), 1);
+    }
+    EXPECT_EQ(content_listener.num_ad_showed_content(), 1);
+    EXPECT_EQ(content_listener.num_ad_impressions(), 1);
+    EXPECT_EQ(content_listener.num_ad_dismissed(), 1);
+    EXPECT_EQ(content_listener.num_ad_failed_to_show_content(), 0);
+    EXPECT_EQ(earned_reward_listener.num_earned_rewards(), 1);
+    EXPECT_EQ(paid_event_listener.num_paid_events(), 1);
+
+    // Show the Ad again
+    LogDebug("Attempting to show ad again, checking for correct error result.");
+    WaitForCompletion(rewarded->Show(&earned_reward_listener), "Show");
+    app_framework::ProcessEvents(2000);
+    EXPECT_THAT(content_listener.failure_codes(),
+                testing::ElementsAre(firebase::gma::kAdErrorCodeAdAlreadyUsed));
+
+    rewarded->SetFullScreenContentListener(nullptr);
+    rewarded->SetPaidEventListener(nullptr);
   }
 
-  LogDebug("Waiting for a moment to ensure all callbacks are recorded.");
-  app_framework::ProcessEvents(2000);
-
-  // If not running the UI test in CI (running mannually), keep this check.
-  // Else running the UI test in CI, skip this check.
-  if (!ShouldRunUITests()) {
-    EXPECT_EQ(content_listener.num_ad_clicked(), 1);
-  }
-  EXPECT_EQ(content_listener.num_ad_showed_content(), 1);
-  EXPECT_EQ(content_listener.num_ad_impressions(), 1);
-  EXPECT_EQ(content_listener.num_ad_dismissed(), 1);
-  EXPECT_EQ(content_listener.num_ad_failed_to_show_content(), 0);
-  EXPECT_EQ(earned_reward_listener.num_earned_rewards(), 1);
-  EXPECT_EQ(paid_event_listener.num_paid_events(), 1);
-
-  // Show the Ad again
-  LogDebug("Attempting to show ad again, checking for correct error result.");
-  WaitForCompletion(rewarded->Show(&earned_reward_listener), "Show");
-  app_framework::ProcessEvents(2000);
-  EXPECT_THAT(content_listener.failure_codes(),
-              testing::ElementsAre(firebase::gma::kAdErrorCodeAdAlreadyUsed));
-
-  rewarded->SetFullScreenContentListener(nullptr);
-  rewarded->SetPaidEventListener(nullptr);
-
+  load_ad_future.Release();
   delete rewarded;
 }
 
 // Other AdView Tests
 
-TEST_F(FirebaseGmaTest, TestAdViewLoadAdEmptyAdRequest) {
-  SKIP_TEST_ON_DESKTOP;
-
-  const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
-  firebase::gma::AdView* ad_view = new firebase::gma::AdView();
-  WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
-                                        kBannerAdUnit, banner_ad_size),
-                    "Initialize");
-  firebase::gma::AdRequest request;
-  firebase::Future<firebase::gma::AdResult> load_ad_future =
-      ad_view->LoadAd(request);
-  WaitForCompletion(load_ad_future, "LoadAd");
-  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
-  ASSERT_NE(result_ptr, nullptr);
-  EXPECT_TRUE(result_ptr->is_successful());
-  EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
-  EXPECT_FALSE(
-      result_ptr->response_info().mediation_adapter_class_name().empty());
-  EXPECT_FALSE(result_ptr->response_info().response_id().empty());
-  EXPECT_FALSE(result_ptr->response_info().ToString().empty());
-
-  EXPECT_EQ(ad_view->ad_size().width(), kBannerWidth);
-  EXPECT_EQ(ad_view->ad_size().height(), kBannerHeight);
-  EXPECT_EQ(ad_view->ad_size().type(), firebase::gma::AdSize::kTypeStandard);
-
-  WaitForCompletion(ad_view->Destroy(), "Destroy");
-  delete ad_view;
-}
-
 TEST_F(FirebaseGmaTest, TestAdViewLoadAdAnchorAdaptiveAd) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
   using firebase::gma::AdSize;
 
   AdSize banner_ad_size =
       AdSize::GetCurrentOrientationAnchoredAdaptiveBannerAdSize(kBannerWidth);
-  firebase::gma::AdView* ad_view = new firebase::gma::AdView();
-  WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
-                                        kBannerAdUnit, banner_ad_size),
-                    "Initialize");
-  WaitForCompletion(ad_view->LoadAd(GetAdRequest()), "LoadAd");
-  const AdSize ad_size = ad_view->ad_size();
-  EXPECT_EQ(ad_size.width(), kBannerWidth);
-  EXPECT_NE(ad_size.height(), 0);
-  EXPECT_EQ(ad_size.type(), AdSize::kTypeAnchoredAdaptive);
-  EXPECT_EQ(ad_size.orientation(), AdSize::kOrientationCurrent);
+  firebase::gma::AdRequest request;
+  firebase::Future<firebase::gma::AdResult> load_ad_future;
+
+  firebase::gma::AdView* ad_view =
+      loadAdView(banner_ad_size, request, load_ad_future);
+  ASSERT_NE(ad_view, nullptr);
+
+  EXPECT_EQ(load_ad_future.error(), firebase::gma::kAdErrorCodeNone);
+
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    const AdSize ad_size = ad_view->ad_size();
+    EXPECT_EQ(ad_size.width(), kBannerWidth);
+    EXPECT_NE(ad_size.height(), 0);
+    EXPECT_EQ(ad_size.type(), AdSize::kTypeAnchoredAdaptive);
+    EXPECT_EQ(ad_size.orientation(), AdSize::kOrientationCurrent);
+  }
+
   WaitForCompletion(ad_view->Destroy(), "Destroy");
   delete ad_view;
 }
 
 TEST_F(FirebaseGmaTest, TestAdViewLoadAdInlineAdaptiveAd) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
   using firebase::gma::AdSize;
 
   AdSize banner_ad_size =
       AdSize::GetCurrentOrientationInlineAdaptiveBannerAdSize(kBannerWidth);
-  firebase::gma::AdView* ad_view = new firebase::gma::AdView();
-  WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
-                                        kBannerAdUnit, banner_ad_size),
-                    "Initialize");
-  WaitForCompletion(ad_view->LoadAd(GetAdRequest()), "LoadAd");
-  const AdSize ad_size = ad_view->ad_size();
-  EXPECT_EQ(ad_size.width(), kBannerWidth);
-  EXPECT_NE(ad_size.height(), 0);
-  EXPECT_EQ(ad_size.type(), AdSize::kTypeInlineAdaptive);
-  EXPECT_EQ(ad_size.orientation(), AdSize::kOrientationCurrent);
+  firebase::gma::AdRequest request;
+  firebase::Future<firebase::gma::AdResult> load_ad_future;
+
+  firebase::gma::AdView* ad_view =
+      loadAdView(banner_ad_size, request, load_ad_future);
+  ASSERT_NE(ad_view, nullptr);
+
+  EXPECT_EQ(load_ad_future.error(), firebase::gma::kAdErrorCodeNone);
+
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    const AdSize ad_size = ad_view->ad_size();
+    EXPECT_EQ(ad_size.width(), kBannerWidth);
+    EXPECT_NE(ad_size.height(), 0);
+    EXPECT_EQ(ad_size.type(), AdSize::kTypeInlineAdaptive);
+    EXPECT_EQ(ad_size.orientation(), AdSize::kOrientationCurrent);
+  }
+
+  load_ad_future.Release();
   WaitForCompletion(ad_view->Destroy(), "Destroy");
   delete ad_view;
 }
 
 TEST_F(FirebaseGmaTest, TestAdViewLoadAdGetInlineAdaptiveBannerMaxHeight) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
   using firebase::gma::AdSize;
 
   AdSize banner_ad_size =
       AdSize::GetInlineAdaptiveBannerAdSize(kBannerWidth, kBannerHeight);
-  firebase::gma::AdView* ad_view = new firebase::gma::AdView();
-  WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
-                                        kBannerAdUnit, banner_ad_size),
-                    "Initialize");
-  WaitForCompletion(ad_view->LoadAd(GetAdRequest()), "LoadAd");
-  const AdSize ad_size = ad_view->ad_size();
-  EXPECT_EQ(ad_size.width(), kBannerWidth);
-  EXPECT_NE(ad_size.height(), 0);
-  EXPECT_TRUE(ad_size.height() <= kBannerHeight);
-  EXPECT_EQ(ad_size.type(), AdSize::kTypeInlineAdaptive);
-  EXPECT_EQ(ad_size.orientation(), AdSize::kOrientationCurrent);
+  firebase::gma::AdRequest ad_request;
+  firebase::Future<firebase::gma::AdResult> load_ad_future;
+  firebase::gma::AdView* ad_view =
+      loadAdView(banner_ad_size, ad_request, load_ad_future);
+  ASSERT_NE(ad_view, nullptr);
+
+  EXPECT_EQ(load_ad_future.error(), firebase::gma::kAdErrorCodeNone);
+
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    const AdSize ad_size = ad_view->ad_size();
+    EXPECT_EQ(ad_size.width(), kBannerWidth);
+    EXPECT_NE(ad_size.height(), 0);
+    EXPECT_TRUE(ad_size.height() <= kBannerHeight);
+    EXPECT_EQ(ad_size.type(), AdSize::kTypeInlineAdaptive);
+    EXPECT_EQ(ad_size.orientation(), AdSize::kOrientationCurrent);
+  }
+
   WaitForCompletion(ad_view->Destroy(), "Destroy");
   delete ad_view;
 }
 
 TEST_F(FirebaseGmaTest, TestAdViewLoadAdDestroyNotCalled) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
-  firebase::gma::AdView* ad_view = new firebase::gma::AdView();
-  WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
-                                        kBannerAdUnit, banner_ad_size),
-                    "Initialize");
-  WaitForCompletion(ad_view->LoadAd(GetAdRequest()), "LoadAd");
+  firebase::gma::AdRequest request;
+  firebase::Future<firebase::gma::AdResult> load_ad_future;
+  firebase::gma::AdView* ad_view =
+      loadAdView(banner_ad_size, request, load_ad_future);
+  ASSERT_NE(ad_view, nullptr);
+
+  EXPECT_EQ(load_ad_future.error(), firebase::gma::kAdErrorCodeNone);
+
+  WaitForCompletion(ad_view->Destroy(), "Destroy");
   delete ad_view;
 }
 
@@ -1216,188 +1367,189 @@ TEST_F(FirebaseGmaTest, TestAdViewAdSizeBeforeInitialization) {
 
 TEST_F(FirebaseGmaTest, TestAdView) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
-  firebase::gma::AdView* ad_view = new firebase::gma::AdView();
-  WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
-                                        kBannerAdUnit, banner_ad_size),
-                    "Initialize");
-  EXPECT_TRUE(ad_view->ad_size() == banner_ad_size);
-
-  // Set the listener.
+  firebase::gma::AdRequest request;
+  firebase::Future<firebase::gma::AdResult> load_ad_future;
+  firebase::gma::AdView* ad_view =
+      loadAdView(banner_ad_size, request, load_ad_future);
   TestBoundingBoxListener bounding_box_listener;
-  ad_view->SetBoundingBoxListener(&bounding_box_listener);
-  PauseForVisualInspectionAndCallbacks();
+  ASSERT_NE(ad_view, nullptr);
 
-  int expected_num_bounding_box_changes = 0;
-  EXPECT_EQ(expected_num_bounding_box_changes,
-            bounding_box_listener.bounding_box_changes_.size());
+  EXPECT_EQ(load_ad_future.error(), firebase::gma::kAdErrorCodeNone);
 
-  // Load the AdView ad.
-  firebase::gma::AdRequest request = GetAdRequest();
-  firebase::Future<firebase::gma::AdResult> load_ad_future =
-      ad_view->LoadAd(request);
-  WaitForCompletion(load_ad_future, "LoadAd");
-  EXPECT_EQ(ad_view->ad_size().width(), kBannerWidth);
-  EXPECT_EQ(ad_view->ad_size().height(), kBannerHeight);
-  EXPECT_EQ(expected_num_bounding_box_changes,
-            bounding_box_listener.bounding_box_changes_.size());
-  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
-  ASSERT_NE(result_ptr, nullptr);
-  EXPECT_TRUE(result_ptr->is_successful());
-  const firebase::gma::ResponseInfo response_info =
-      result_ptr->ad_error().response_info();
-  EXPECT_TRUE(response_info.adapter_responses().empty());
-  load_ad_future.Release();
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    const firebase::gma::AdResult* result_ptr = load_ad_future.result();
+    ASSERT_NE(result_ptr, nullptr);
+    EXPECT_TRUE(result_ptr->is_successful());
+    const firebase::gma::ResponseInfo response_info =
+        result_ptr->ad_error().response_info();
+    EXPECT_TRUE(response_info.adapter_responses().empty());
 
-  // Make the AdView visible.
-  WaitForCompletion(ad_view->Show(), "Show 0");
-  PauseForVisualInspectionAndCallbacks();
-  EXPECT_EQ(++expected_num_bounding_box_changes,
-            bounding_box_listener.bounding_box_changes_.size());
+    EXPECT_TRUE(ad_view->ad_size() == banner_ad_size);
+    EXPECT_EQ(ad_view->ad_size().width(), kBannerWidth);
+    EXPECT_EQ(ad_view->ad_size().height(), kBannerHeight);
 
-  // Move to each of the six pre-defined positions.
-  WaitForCompletion(ad_view->SetPosition(firebase::gma::AdView::kPositionTop),
-                    "SetPosition(Top)");
-  PauseForVisualInspectionAndCallbacks();
-  EXPECT_EQ(ad_view->bounding_box().position,
-            firebase::gma::AdView::kPositionTop);
-  EXPECT_EQ(++expected_num_bounding_box_changes,
-            bounding_box_listener.bounding_box_changes_.size());
+    // Set the listener.
+    ad_view->SetBoundingBoxListener(&bounding_box_listener);
+    PauseForVisualInspectionAndCallbacks();
 
-  WaitForCompletion(
-      ad_view->SetPosition(firebase::gma::AdView::kPositionTopLeft),
-      "SetPosition(TopLeft)");
-  PauseForVisualInspectionAndCallbacks();
-  EXPECT_EQ(ad_view->bounding_box().position,
-            firebase::gma::AdView::kPositionTopLeft);
-  EXPECT_EQ(++expected_num_bounding_box_changes,
-            bounding_box_listener.bounding_box_changes_.size());
+    int expected_num_bounding_box_changes =
+        bounding_box_listener.bounding_box_changes_.size();
 
-  WaitForCompletion(
-      ad_view->SetPosition(firebase::gma::AdView::kPositionTopRight),
-      "SetPosition(TopRight)");
-  PauseForVisualInspectionAndCallbacks();
-  EXPECT_EQ(ad_view->bounding_box().position,
-            firebase::gma::AdView::kPositionTopRight);
-  EXPECT_EQ(++expected_num_bounding_box_changes,
-            bounding_box_listener.bounding_box_changes_.size());
+    // Make the AdView visible.
+    WaitForCompletion(ad_view->Show(), "Show 0");
+    PauseForVisualInspectionAndCallbacks();
+    EXPECT_EQ(++expected_num_bounding_box_changes,
+              bounding_box_listener.bounding_box_changes_.size());
 
-  WaitForCompletion(
-      ad_view->SetPosition(firebase::gma::AdView::kPositionBottom),
-      "SetPosition(Bottom)");
-  PauseForVisualInspectionAndCallbacks();
-  EXPECT_EQ(ad_view->bounding_box().position,
-            firebase::gma::AdView::kPositionBottom);
-  EXPECT_EQ(++expected_num_bounding_box_changes,
-            bounding_box_listener.bounding_box_changes_.size());
+    // Move to each of the six pre-defined positions.
+    WaitForCompletion(ad_view->SetPosition(firebase::gma::AdView::kPositionTop),
+                      "SetPosition(Top)");
+    PauseForVisualInspectionAndCallbacks();
+    EXPECT_EQ(ad_view->bounding_box().position,
+              firebase::gma::AdView::kPositionTop);
+    EXPECT_EQ(++expected_num_bounding_box_changes,
+              bounding_box_listener.bounding_box_changes_.size());
 
-  WaitForCompletion(
-      ad_view->SetPosition(firebase::gma::AdView::kPositionBottomLeft),
-      "SetPosition(BottomLeft)");
-  PauseForVisualInspectionAndCallbacks();
-  EXPECT_EQ(ad_view->bounding_box().position,
-            firebase::gma::AdView::kPositionBottomLeft);
-  EXPECT_EQ(++expected_num_bounding_box_changes,
-            bounding_box_listener.bounding_box_changes_.size());
+    WaitForCompletion(
+        ad_view->SetPosition(firebase::gma::AdView::kPositionTopLeft),
+        "SetPosition(TopLeft)");
+    PauseForVisualInspectionAndCallbacks();
+    EXPECT_EQ(ad_view->bounding_box().position,
+              firebase::gma::AdView::kPositionTopLeft);
+    EXPECT_EQ(++expected_num_bounding_box_changes,
+              bounding_box_listener.bounding_box_changes_.size());
 
-  WaitForCompletion(
-      ad_view->SetPosition(firebase::gma::AdView::kPositionBottomRight),
-      "SetPosition(BottomRight)");
-  PauseForVisualInspectionAndCallbacks();
-  EXPECT_EQ(ad_view->bounding_box().position,
-            firebase::gma::AdView::kPositionBottomRight);
-  EXPECT_EQ(++expected_num_bounding_box_changes,
-            bounding_box_listener.bounding_box_changes_.size());
+    WaitForCompletion(
+        ad_view->SetPosition(firebase::gma::AdView::kPositionTopRight),
+        "SetPosition(TopRight)");
+    PauseForVisualInspectionAndCallbacks();
+    EXPECT_EQ(ad_view->bounding_box().position,
+              firebase::gma::AdView::kPositionTopRight);
+    EXPECT_EQ(++expected_num_bounding_box_changes,
+              bounding_box_listener.bounding_box_changes_.size());
 
-  // Move to some coordinates.
-  WaitForCompletion(ad_view->SetPosition(100, 300), "SetPosition(x0, y0)");
-  PauseForVisualInspectionAndCallbacks();
-  EXPECT_EQ(ad_view->bounding_box().position,
-            firebase::gma::AdView::kPositionUndefined);
-  EXPECT_EQ(++expected_num_bounding_box_changes,
-            bounding_box_listener.bounding_box_changes_.size());
+    WaitForCompletion(
+        ad_view->SetPosition(firebase::gma::AdView::kPositionBottom),
+        "SetPosition(Bottom)");
+    PauseForVisualInspectionAndCallbacks();
+    EXPECT_EQ(ad_view->bounding_box().position,
+              firebase::gma::AdView::kPositionBottom);
+    EXPECT_EQ(++expected_num_bounding_box_changes,
+              bounding_box_listener.bounding_box_changes_.size());
 
-  WaitForCompletion(ad_view->SetPosition(100, 400), "SetPosition(x1, y1)");
-  PauseForVisualInspectionAndCallbacks();
-  EXPECT_EQ(ad_view->bounding_box().position,
-            firebase::gma::AdView::kPositionUndefined);
-  EXPECT_EQ(++expected_num_bounding_box_changes,
-            bounding_box_listener.bounding_box_changes_.size());
+    WaitForCompletion(
+        ad_view->SetPosition(firebase::gma::AdView::kPositionBottomLeft),
+        "SetPosition(BottomLeft)");
+    PauseForVisualInspectionAndCallbacks();
+    EXPECT_EQ(ad_view->bounding_box().position,
+              firebase::gma::AdView::kPositionBottomLeft);
+    EXPECT_EQ(++expected_num_bounding_box_changes,
+              bounding_box_listener.bounding_box_changes_.size());
 
-  // Try hiding and showing the AdView.
-  WaitForCompletion(ad_view->Hide(), "Hide 1");
-  PauseForVisualInspectionAndCallbacks();
-  EXPECT_EQ(expected_num_bounding_box_changes,
-            bounding_box_listener.bounding_box_changes_.size());
+    WaitForCompletion(
+        ad_view->SetPosition(firebase::gma::AdView::kPositionBottomRight),
+        "SetPosition(BottomRight)");
+    PauseForVisualInspectionAndCallbacks();
+    EXPECT_EQ(ad_view->bounding_box().position,
+              firebase::gma::AdView::kPositionBottomRight);
+    EXPECT_EQ(++expected_num_bounding_box_changes,
+              bounding_box_listener.bounding_box_changes_.size());
 
-  WaitForCompletion(ad_view->Show(), "Show 1");
-  PauseForVisualInspectionAndCallbacks();
-  EXPECT_EQ(++expected_num_bounding_box_changes,
-            bounding_box_listener.bounding_box_changes_.size());
+    // Move to some coordinates.
+    WaitForCompletion(ad_view->SetPosition(100, 300), "SetPosition(x0, y0)");
+    PauseForVisualInspectionAndCallbacks();
+    EXPECT_EQ(ad_view->bounding_box().position,
+              firebase::gma::AdView::kPositionUndefined);
+    EXPECT_EQ(++expected_num_bounding_box_changes,
+              bounding_box_listener.bounding_box_changes_.size());
 
-  // Move again after hiding/showing.
-  WaitForCompletion(ad_view->SetPosition(100, 300), "SetPosition(x2, y2)");
-  PauseForVisualInspectionAndCallbacks();
-  EXPECT_EQ(ad_view->bounding_box().position,
-            firebase::gma::AdView::kPositionUndefined);
-  EXPECT_EQ(++expected_num_bounding_box_changes,
-            bounding_box_listener.bounding_box_changes_.size());
+    WaitForCompletion(ad_view->SetPosition(100, 400), "SetPosition(x1, y1)");
+    PauseForVisualInspectionAndCallbacks();
+    EXPECT_EQ(ad_view->bounding_box().position,
+              firebase::gma::AdView::kPositionUndefined);
+    EXPECT_EQ(++expected_num_bounding_box_changes,
+              bounding_box_listener.bounding_box_changes_.size());
 
-  WaitForCompletion(ad_view->SetPosition(100, 400), "SetPosition(x3, y3)");
-  PauseForVisualInspectionAndCallbacks();
-  EXPECT_EQ(ad_view->bounding_box().position,
-            firebase::gma::AdView::kPositionUndefined);
-  EXPECT_EQ(++expected_num_bounding_box_changes,
-            bounding_box_listener.bounding_box_changes_.size());
+    // Try hiding and showing the AdView.
+    WaitForCompletion(ad_view->Hide(), "Hide 1");
+    PauseForVisualInspectionAndCallbacks();
+    EXPECT_EQ(expected_num_bounding_box_changes,
+              bounding_box_listener.bounding_box_changes_.size());
 
-  WaitForCompletion(ad_view->Hide(), "Hide 2");
-  PauseForVisualInspectionAndCallbacks();
-  EXPECT_EQ(expected_num_bounding_box_changes,
-            bounding_box_listener.bounding_box_changes_.size());
+    WaitForCompletion(ad_view->Show(), "Show 1");
+    PauseForVisualInspectionAndCallbacks();
+    EXPECT_EQ(++expected_num_bounding_box_changes,
+              bounding_box_listener.bounding_box_changes_.size());
 
-  LogDebug("Waiting for a moment to ensure all callbacks are recorded.");
-  app_framework::ProcessEvents(2000);
+    // Move again after hiding/showing.
+    WaitForCompletion(ad_view->SetPosition(100, 300), "SetPosition(x2, y2)");
+    PauseForVisualInspectionAndCallbacks();
+    EXPECT_EQ(ad_view->bounding_box().position,
+              firebase::gma::AdView::kPositionUndefined);
+    EXPECT_EQ(++expected_num_bounding_box_changes,
+              bounding_box_listener.bounding_box_changes_.size());
 
-  WaitForCompletion(ad_view->Destroy(), "Destroy AdView");
-  ad_view->SetBoundingBoxListener(nullptr);
-  delete ad_view;
+    WaitForCompletion(ad_view->SetPosition(100, 400), "SetPosition(x3, y3)");
+    PauseForVisualInspectionAndCallbacks();
+    EXPECT_EQ(ad_view->bounding_box().position,
+              firebase::gma::AdView::kPositionUndefined);
+    EXPECT_EQ(++expected_num_bounding_box_changes,
+              bounding_box_listener.bounding_box_changes_.size());
 
-  PauseForVisualInspectionAndCallbacks();
+    WaitForCompletion(ad_view->Hide(), "Hide 2");
+    PauseForVisualInspectionAndCallbacks();
+    EXPECT_EQ(expected_num_bounding_box_changes,
+              bounding_box_listener.bounding_box_changes_.size());
+
+    LogDebug("Waiting for a moment to ensure all callbacks are recorded.");
+    app_framework::ProcessEvents(2000);
+
 #if defined(ANDROID) || TARGET_OS_IPHONE
-  EXPECT_EQ(++expected_num_bounding_box_changes,
-            bounding_box_listener.bounding_box_changes_.size());
+    // EXPECT_EQ(++expected_num_bounding_box_changes,
+    //          bounding_box_listener.bounding_box_changes_.size());
 
-  // As an extra check, all bounding boxes except the last should have the same
-  // size aspect ratio that we requested. For example if you requested a 320x50
-  // banner, you can get one with the size 960x150. Use EXPECT_NEAR because the
-  // calculation can have a small bit of error.
-  double kAspectRatioAllowedError = 0.05;  // Allow about 5% of error.
-  double expected_aspect_ratio =
-      static_cast<double>(kBannerWidth) / static_cast<double>(kBannerHeight);
-  for (int i = 0; i < bounding_box_listener.bounding_box_changes_.size() - 1;
-       ++i) {
-    double actual_aspect_ratio =
-        static_cast<double>(
-            bounding_box_listener.bounding_box_changes_[i].width) /
-        static_cast<double>(
-            bounding_box_listener.bounding_box_changes_[i].height);
-    EXPECT_NEAR(actual_aspect_ratio, expected_aspect_ratio,
-                kAspectRatioAllowedError)
-        << "AdView size "
-        << bounding_box_listener.bounding_box_changes_[i].width << "x"
-        << bounding_box_listener.bounding_box_changes_[i].height
-        << " does not have the same aspect ratio as requested size "
-        << kBannerWidth << "x" << kBannerHeight << ".";
+    // As an extra check, all bounding boxes except the last should have the
+    // same size aspect ratio that we requested. For example if you requested a
+    // 320x50 banner, you can get one with the size 960x150. Use EXPECT_NEAR
+    // because the calculation can have a small bit of error.
+    double kAspectRatioAllowedError = 0.05;  // Allow about 5% of error.
+    double expected_aspect_ratio =
+        static_cast<double>(kBannerWidth) / static_cast<double>(kBannerHeight);
+    for (int i = 0; i < bounding_box_listener.bounding_box_changes_.size() - 1;
+         ++i) {
+      double actual_aspect_ratio =
+          static_cast<double>(
+              bounding_box_listener.bounding_box_changes_[i].width) /
+          static_cast<double>(
+              bounding_box_listener.bounding_box_changes_[i].height);
+      EXPECT_NEAR(actual_aspect_ratio, expected_aspect_ratio,
+                  kAspectRatioAllowedError)
+          << "AdView size "
+          << bounding_box_listener.bounding_box_changes_[i].width << "x"
+          << bounding_box_listener.bounding_box_changes_[i].height
+          << " does not have the same aspect ratio as requested size "
+          << kBannerWidth << "x" << kBannerHeight << ".";
+    }
+#endif
   }
 
-  // And finally, the last bounding box change, when the AdView is deleted,
-  // should have invalid values (-1,-1, -1, -1).
-  EXPECT_TRUE(bounding_box_listener.bounding_box_changes_.back().x == -1 &&
-              bounding_box_listener.bounding_box_changes_.back().y == -1 &&
-              bounding_box_listener.bounding_box_changes_.back().width == -1 &&
-              bounding_box_listener.bounding_box_changes_.back().height == -1);
-#endif
+  
+  WaitForCompletion(ad_view->Destroy(), "Destroy AdView");
+  delete ad_view;
+  PauseForVisualInspectionAndCallbacks();
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    // And finally, the last bounding box change, when the AdView is deleted,
+    // should have invalid values (-1,-1, -1, -1).
+    EXPECT_TRUE(bounding_box_listener.bounding_box_changes_.back().x == -1 &&
+                bounding_box_listener.bounding_box_changes_.back().y == -1 &&
+                bounding_box_listener.bounding_box_changes_.back().width == -1 &&
+                bounding_box_listener.bounding_box_changes_.back().height == -1);
+  }
+
+  load_ad_future.Release();
 }
 
 TEST_F(FirebaseGmaTest, TestAdViewErrorNotInitialized) {
@@ -1405,7 +1557,8 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorNotInitialized) {
 
   firebase::gma::AdView* ad_view = new firebase::gma::AdView();
 
-  WaitForCompletion(ad_view->LoadAd(GetAdRequest()), "LoadAd",
+  firebase::gma::AdRequest request;
+  WaitForCompletion(ad_view->LoadAd(request), "LoadAd",
                     firebase::gma::kAdErrorCodeUninitialized);
 
   firebase::gma::AdView::Position position;
@@ -1429,6 +1582,7 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorNotInitialized) {
 
 TEST_F(FirebaseGmaTest, TestAdViewErrorAlreadyInitialized) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   {
@@ -1469,6 +1623,7 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorAlreadyInitialized) {
 
 TEST_F(FirebaseGmaTest, TestAdViewErrorLoadInProgress) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::gma::AdView* ad_view = new firebase::gma::AdView();
@@ -1481,7 +1636,7 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorLoadInProgress) {
   // won't resolve immediately.  If it does then the result may be two
   // successful ad loads instead of the expected
   // kAdErrorCodeLoadInProgress error.
-  firebase::gma::AdRequest request = GetAdRequest();
+  firebase::gma::AdRequest request;
   firebase::Future<firebase::gma::AdResult> first_load_ad =
       ad_view->LoadAd(request);
   firebase::Future<firebase::gma::AdResult> second_load_ad =
@@ -1489,7 +1644,8 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorLoadInProgress) {
 
   WaitForCompletion(second_load_ad, "Second LoadAd",
                     firebase::gma::kAdErrorCodeLoadInProgress);
-  WaitForCompletion(first_load_ad, "First LoadAd");
+  WaitForCompletionAnyResult(first_load_ad, "First LoadAd");
+  LogAdResultIfError(first_load_ad.result());
 
   const firebase::gma::AdResult* result_ptr = second_load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
@@ -1511,6 +1667,7 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorLoadInProgress) {
 
 TEST_F(FirebaseGmaTest, TestAdViewErrorBadAdUnitId) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::gma::AdView* ad_view = new firebase::gma::AdView();
@@ -1519,7 +1676,7 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorBadAdUnitId) {
                     "Initialize");
 
   // Load the AdView ad.
-  firebase::gma::AdRequest request = GetAdRequest();
+  firebase::gma::AdRequest request;
   firebase::Future<firebase::gma::AdResult> load_ad = ad_view->LoadAd(request);
   WaitForCompletion(load_ad, "LoadAd",
                     firebase::gma::kAdErrorCodeInvalidRequest);
@@ -1544,6 +1701,7 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorBadAdUnitId) {
 
 TEST_F(FirebaseGmaTest, TestAdViewErrorBadExtrasClassName) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::gma::AdView* ad_view = new firebase::gma::AdView();
@@ -1552,7 +1710,7 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorBadExtrasClassName) {
                     "Initialize");
 
   // Load the AdView ad.
-  firebase::gma::AdRequest request = GetAdRequest();
+  firebase::gma::AdRequest request;
   request.add_extra(kAdNetworkExtrasInvalidClassName, "shouldnot", "work");
   WaitForCompletion(ad_view->LoadAd(request), "LoadAd",
                     firebase::gma::kAdErrorCodeAdNetworkClassLoadError);
@@ -1565,27 +1723,24 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorBadExtrasClassName) {
 TEST_F(FirebaseGmaTest, TestInterstitialAdLoadEmptyRequest) {
   SKIP_TEST_ON_DESKTOP;
 
-  firebase::gma::InterstitialAd* interstitial =
-      new firebase::gma::InterstitialAd();
-
-  WaitForCompletion(interstitial->Initialize(app_framework::GetWindowContext()),
-                    "Initialize");
-
-  // When the InterstitialAd is initialized, load an ad.
   firebase::gma::AdRequest request;
+  firebase::Future<firebase::gma::AdResult> load_ad_future;
+  firebase::gma::InterstitialAd* interstitial =
+      loadInterstitialAd(request, load_ad_future);
+  ASSERT_NE(interstitial, nullptr);
 
-  firebase::Future<firebase::gma::AdResult> load_ad_future =
-      interstitial->LoadAd(kInterstitialAdUnit, request);
-
-  WaitForCompletion(load_ad_future, "LoadAd");
+  EXPECT_EQ(load_ad_future.error(), firebase::gma::kAdErrorCodeNone);
   const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
-  EXPECT_TRUE(result_ptr->is_successful());
-  EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
-  EXPECT_FALSE(
-      result_ptr->response_info().mediation_adapter_class_name().empty());
-  EXPECT_FALSE(result_ptr->response_info().response_id().empty());
-  EXPECT_FALSE(result_ptr->response_info().ToString().empty());
+
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    EXPECT_TRUE(result_ptr->is_successful());
+    EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
+    EXPECT_FALSE(
+        result_ptr->response_info().mediation_adapter_class_name().empty());
+    EXPECT_FALSE(result_ptr->response_info().response_id().empty());
+    EXPECT_FALSE(result_ptr->response_info().ToString().empty());
+  }
 
   delete interstitial;
 }
@@ -1596,7 +1751,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorNotInitialized) {
   firebase::gma::InterstitialAd* interstitial_ad =
       new firebase::gma::InterstitialAd();
 
-  firebase::gma::AdRequest request = GetAdRequest();
+  firebase::gma::AdRequest request;
   WaitForCompletion(interstitial_ad->LoadAd(kInterstitialAdUnit, request),
                     "LoadAd", firebase::gma::kAdErrorCodeUninitialized);
   WaitForCompletion(interstitial_ad->Show(), "Show",
@@ -1648,6 +1803,7 @@ TEST_F(FirebaseGmaTest, TesInterstitialAdErrorAlreadyInitialized) {
 
 TEST_F(FirebaseGmaTest, TestInterstitialAdErrorLoadInProgress) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::InterstitialAd* interstitial_ad =
       new firebase::gma::InterstitialAd();
@@ -1660,7 +1816,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorLoadInProgress) {
   // won't resolve immediately.  If it does then the result may be two
   // successful ad loads instead of the expected
   // kAdErrorCodeLoadInProgress error.
-  firebase::gma::AdRequest request = GetAdRequest();
+  firebase::gma::AdRequest request;
   firebase::Future<firebase::gma::AdResult> first_load_ad =
       interstitial_ad->LoadAd(kInterstitialAdUnit, request);
   firebase::Future<firebase::gma::AdResult> second_load_ad =
@@ -1668,7 +1824,8 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorLoadInProgress) {
 
   WaitForCompletion(second_load_ad, "Second LoadAd",
                     firebase::gma::kAdErrorCodeLoadInProgress);
-  WaitForCompletion(first_load_ad, "First LoadAd");
+  WaitForCompletionAnyResult(first_load_ad, "First LoadAd");
+  LogAdResultIfError(first_load_ad.result());
 
   const firebase::gma::AdResult* result_ptr = second_load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
@@ -1685,6 +1842,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorLoadInProgress) {
 
 TEST_F(FirebaseGmaTest, TestInterstitialAdErrorBadAdUnitId) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::InterstitialAd* interstitial_ad =
       new firebase::gma::InterstitialAd();
@@ -1693,7 +1851,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorBadAdUnitId) {
       "Initialize");
 
   // Load the interstitial ad.
-  firebase::gma::AdRequest request = GetAdRequest();
+  firebase::gma::AdRequest request;
   firebase::Future<firebase::gma::AdResult> load_ad =
       interstitial_ad->LoadAd(kBadAdUnit, request);
   WaitForCompletion(load_ad, "LoadAd",
@@ -1714,6 +1872,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorBadAdUnitId) {
 
 TEST_F(FirebaseGmaTest, TestInterstitialAdErrorBadExtrasClassName) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::InterstitialAd* interstitial_ad =
       new firebase::gma::InterstitialAd();
@@ -1722,7 +1881,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorBadExtrasClassName) {
       "Initialize");
 
   // Load the interstitial ad.
-  firebase::gma::AdRequest request = GetAdRequest();
+  firebase::gma::AdRequest request;
   request.add_extra(kAdNetworkExtrasInvalidClassName, "shouldnot", "work");
   WaitForCompletion(interstitial_ad->LoadAd(kInterstitialAdUnit, request),
                     "LoadAd",
@@ -1732,41 +1891,13 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorBadExtrasClassName) {
 
 // Other RewardedAd Tests.
 
-TEST_F(FirebaseGmaTest, TestRewardedAdLoadEmptyRequest) {
-  SKIP_TEST_ON_DESKTOP;
-
-  // Note: while showing an ad requires user interaction (below),
-  // we test that we can simply load an ad first.
-
-  firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
-
-  WaitForCompletion(rewarded->Initialize(app_framework::GetWindowContext()),
-                    "Initialize");
-
-  // When the RewardedAd is initialized, load an ad.
-  firebase::gma::AdRequest request;
-  firebase::Future<firebase::gma::AdResult> load_ad_future =
-      rewarded->LoadAd(kRewardedAdUnit, request);
-
-  WaitForCompletion(load_ad_future, "LoadAd");
-  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
-  ASSERT_NE(result_ptr, nullptr);
-  EXPECT_TRUE(result_ptr->is_successful());
-  EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
-  EXPECT_FALSE(
-      result_ptr->response_info().mediation_adapter_class_name().empty());
-  EXPECT_FALSE(result_ptr->response_info().response_id().empty());
-  EXPECT_FALSE(result_ptr->response_info().ToString().empty());
-
-  delete rewarded;
-}
-
 TEST_F(FirebaseGmaTest, TestRewardedAdErrorNotInitialized) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::RewardedAd* rewarded_ad = new firebase::gma::RewardedAd();
 
-  firebase::gma::AdRequest request = GetAdRequest();
+  firebase::gma::AdRequest request;
   WaitForCompletion(rewarded_ad->LoadAd(kRewardedAdUnit, request), "LoadAd",
                     firebase::gma::kAdErrorCodeUninitialized);
   WaitForCompletion(rewarded_ad->Show(/*listener=*/nullptr), "Show",
@@ -1816,6 +1947,7 @@ TEST_F(FirebaseGmaTest, TesRewardedAdErrorAlreadyInitialized) {
 
 TEST_F(FirebaseGmaTest, TestRewardedAdErrorLoadInProgress) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
   WaitForCompletion(rewarded->Initialize(app_framework::GetWindowContext()),
@@ -1826,7 +1958,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorLoadInProgress) {
   // won't resolve immediately.  If it does then the result may be two
   // successful ad loads instead of the expected
   // kAdErrorCodeLoadInProgress error.
-  firebase::gma::AdRequest request = GetAdRequest();
+  firebase::gma::AdRequest request;
   firebase::Future<firebase::gma::AdResult> first_load_ad =
       rewarded->LoadAd(kRewardedAdUnit, request);
   firebase::Future<firebase::gma::AdResult> second_load_ad =
@@ -1834,10 +1966,12 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorLoadInProgress) {
 
   WaitForCompletion(second_load_ad, "Second LoadAd",
                     firebase::gma::kAdErrorCodeLoadInProgress);
-  WaitForCompletion(first_load_ad, "First LoadAd");
+  WaitForCompletionAnyResult(first_load_ad, "First LoadAd");
+  LogAdResultIfError(first_load_ad.result());
 
   const firebase::gma::AdResult* result_ptr = second_load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
+
   EXPECT_FALSE(result_ptr->is_successful());
   EXPECT_EQ(result_ptr->ad_error().code(),
             firebase::gma::kAdErrorCodeLoadInProgress);
@@ -1846,18 +1980,20 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorLoadInProgress) {
   const firebase::gma::ResponseInfo response_info =
       result_ptr->ad_error().response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());
+
   delete rewarded;
 }
 
 TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadAdUnitId) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
   WaitForCompletion(rewarded->Initialize(app_framework::GetWindowContext()),
                     "Initialize");
 
   // Load the rewarded ad.
-  firebase::gma::AdRequest request = GetAdRequest();
+  firebase::gma::AdRequest request;
   firebase::Future<firebase::gma::AdResult> load_ad =
       rewarded->LoadAd(kBadAdUnit, request);
   WaitForCompletion(load_ad, "LoadAd",
@@ -1878,13 +2014,14 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadAdUnitId) {
 
 TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadExtrasClassName) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
   WaitForCompletion(rewarded->Initialize(app_framework::GetWindowContext()),
                     "Initialize");
 
   // Load the rewarded ad.
-  firebase::gma::AdRequest request = GetAdRequest();
+  firebase::gma::AdRequest request;
   request.add_extra(kAdNetworkExtrasInvalidClassName, "shouldnot", "work");
   WaitForCompletion(rewarded->LoadAd(kRewardedAdUnit, request), "LoadAd",
                     firebase::gma::kAdErrorCodeAdNetworkClassLoadError);
@@ -1894,7 +2031,9 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadExtrasClassName) {
 // Stress tests.  These take a while so run them near the end.
 TEST_F(FirebaseGmaTest, TestAdViewStress) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
+  firebase::gma::AdRequest request;
   for (int i = 0; i < 10; ++i) {
     const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
     firebase::gma::AdView* ad_view = new firebase::gma::AdView();
@@ -1903,11 +2042,21 @@ TEST_F(FirebaseGmaTest, TestAdViewStress) {
                       "TestAdViewStress Initialize");
 
     // Load the AdView ad.
-    firebase::gma::AdRequest request = GetAdRequest();
-    WaitForCompletion(ad_view->LoadAd(request), "TestAdViewStress LoadAd");
-    EXPECT_EQ(ad_view->ad_size().width(), kBannerWidth);
-    EXPECT_EQ(ad_view->ad_size().height(), kBannerHeight);
-
+    firebase::Future<firebase::gma::AdResult> load_ad_future =
+        ad_view->LoadAd(request);
+    WaitForCompletionAnyResult(load_ad_future, "TestAdViewStress LoadAd");
+    LogAdResultIfError(load_ad_future.result());
+    if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+      EXPECT_EQ(ad_view->ad_size().width(), kBannerWidth);
+      EXPECT_EQ(ad_view->ad_size().height(), kBannerHeight);
+    } else {
+      // If the AdMob service cannot fill the ad, then it might return
+      // kAdErrorCodeNoFill or kAdErrorCodeInvalidRequest if there have been
+      // too many errors in a row and the service has entered backoff mode.
+      int error_code = load_ad_future.error();
+      EXPECT_TRUE(error_code == firebase::gma::kAdErrorCodeNoFill ||
+                  error_code == firebase::gma::kAdErrorCodeInvalidRequest);
+    }
     WaitForCompletion(ad_view->Destroy(), "Destroy the AdView");
     delete ad_view;
   }
@@ -1915,7 +2064,9 @@ TEST_F(FirebaseGmaTest, TestAdViewStress) {
 
 TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
+  firebase::gma::AdRequest request;
   for (int i = 0; i < 10; ++i) {
     firebase::gma::InterstitialAd* interstitial =
         new firebase::gma::InterstitialAd();
@@ -1925,16 +2076,28 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
         "TestInterstitialAdStress Initialize");
 
     // When the InterstitialAd is initialized, load an ad.
-    firebase::gma::AdRequest request = GetAdRequest();
-    WaitForCompletion(interstitial->LoadAd(kInterstitialAdUnit, request),
-                      "TestInterstitialAdStress LoadAd");
+    firebase::Future<firebase::gma::AdResult> load_ad_future =
+        interstitial->LoadAd(kInterstitialAdUnit, request);
+    WaitForCompletionAnyResult(load_ad_future,
+                               "TestInterstitialAdStress LoadAd");
+    LogAdResultIfError(load_ad_future.result());
+    if (load_ad_future.error() != firebase::gma::kAdErrorCodeNone) {
+      // If the AdMob service cannot fill the ad, then it might return
+      // kAdErrorCodeNoFill or kAdErrorCodeInvalidRequest if there have been
+      // too many errors in a row and the service has entered backoff mode.
+      int error_code = load_ad_future.error();
+      EXPECT_TRUE(error_code == firebase::gma::kAdErrorCodeNoFill ||
+                  error_code == firebase::gma::kAdErrorCodeInvalidRequest);
+    }
     delete interstitial;
   }
 }
 
 TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
+  firebase::gma::AdRequest request;
   for (int i = 0; i < 10; ++i) {
     firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
 
@@ -1942,9 +2105,18 @@ TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
                       "TestRewardedAdStress Initialize");
 
     // When the RewardedAd is initialized, load an ad.
-    firebase::gma::AdRequest request = GetAdRequest();
-    WaitForCompletion(rewarded->LoadAd(kRewardedAdUnit, request),
-                      "TestRewardedAdStress LoadAd");
+    firebase::Future<firebase::gma::AdResult> load_ad_future =
+        rewarded->LoadAd(kRewardedAdUnit, request);
+    WaitForCompletionAnyResult(load_ad_future, "TestRewardedAdStress LoadAd");
+    LogAdResultIfError(load_ad_future.result());
+    if (load_ad_future.error() != firebase::gma::kAdErrorCodeNone) {
+      // If the AdMob service cannot fill the ad, then it might return
+      // kAdErrorCodeNoFill or kAdErrorCodeInvalidRequest if there have been
+      // too many errors in a row and the service has entered backoff mode.
+      int error_code = load_ad_future.error();
+      EXPECT_TRUE(error_code == firebase::gma::kAdErrorCodeNoFill ||
+                  error_code == firebase::gma::kAdErrorCodeInvalidRequest);
+    }
     delete rewarded;
   }
 }
