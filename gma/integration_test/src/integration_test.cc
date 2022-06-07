@@ -243,6 +243,11 @@ void LogAdResultIfError(const firebase::gma::AdResult* ad_result) {
   }
 }
 
+// Attempts to load an AdView configured with the provided listeners.
+// If the service returns a NoFill error, then this function will continue to
+// reattempt the load ad until kMaxNoFillRetries is reached. If
+// kMaxNoFillRetries has been reached, either via this invocation or
+// preveiously, then this function returns the AdResult with the loadAd failure.
 firebase::gma::AdView* loadAdView(
     const firebase::gma::AdSize& ad_size,
     const firebase::gma::AdRequest& request,
@@ -280,6 +285,11 @@ firebase::gma::AdView* loadAdView(
   return ad_view;
 }
 
+// Attempts to load an AdView. If the service returns a NoFill error, then
+// this function will continue to reattempt the load ad until kMaxNoFillRetries
+// is reached. If kMaxNoFillRetries has been reached, either via this invocation
+// or preveiously, then this function returns the AdResult with the loadAd
+// failure.
 firebase::gma::AdView* loadAdView(
     const firebase::gma::AdSize& ad_size,
     const firebase::gma::AdRequest& request,
@@ -287,6 +297,11 @@ firebase::gma::AdView* loadAdView(
   return loadAdView(ad_size, request, load_ad_future, nullptr, nullptr);
 }
 
+// Attempts to load an InterstitialAd. If the service returns a NoFill error,
+// then this function will continue to reattempt the load ad until
+// kMaxNoFillRetries is reached. If kMaxNoFillRetries has been reached, either
+// via this invocation or preveiously, then this function returns the AdResult
+// with the loadAd failure.
 firebase::gma::InterstitialAd* loadInterstitialAd(
     const firebase::gma::AdRequest& request,
     firebase::Future<firebase::gma::AdResult>& load_ad_future) {
@@ -317,6 +332,11 @@ firebase::gma::InterstitialAd* loadInterstitialAd(
   return interstitial;
 }
 
+// Attempts to load a RewardedAd. If the service returns a NoFill error, then
+// this function will continue to reattempt the load ad until kMaxNoFillRetries
+// is reached. If kMaxNoFillRetries has been reached, either via this invocation
+// or preveiously, then this function returns the AdResult with the loadAd
+// failure.
 firebase::gma::RewardedAd* loadRewardedAd(
     const firebase::gma::AdRequest& request,
     firebase::Future<firebase::gma::AdResult>& load_ad_future) {
@@ -401,16 +421,16 @@ void FirebaseGmaTest::TearDown() { FirebaseTest::TearDown(); }
 firebase::gma::AdRequest FirebaseGmaTest::GetAdRequest() {
   firebase::gma::AdRequest request;
 
-  for (auto extras_iter = kGmaAdapterExtras.begin();
-       extras_iter != kGmaAdapterExtras.end(); ++extras_iter) {
-    request.add_extra(kAdNetworkExtrasClassName, extras_iter->first.c_str(),
-                      extras_iter->second.c_str());
-  }
-
   // Additional keywords to be used in targeting.
   for (auto keyword_iter = kKeywords.begin(); keyword_iter != kKeywords.end();
        ++keyword_iter) {
     request.add_keyword((*keyword_iter).c_str());
+  }
+
+  for (auto extras_iter = kGmaAdapterExtras.begin();
+       extras_iter != kGmaAdapterExtras.end(); ++extras_iter) {
+    request.add_extra(kAdNetworkExtrasClassName, extras_iter->first.c_str(),
+                      extras_iter->second.c_str());
   }
 
   // Content URL
@@ -1536,17 +1556,17 @@ TEST_F(FirebaseGmaTest, TestAdView) {
 #endif
   }
 
-  
   WaitForCompletion(ad_view->Destroy(), "Destroy AdView");
   delete ad_view;
   PauseForVisualInspectionAndCallbacks();
   if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
     // And finally, the last bounding box change, when the AdView is deleted,
     // should have invalid values (-1,-1, -1, -1).
-    EXPECT_TRUE(bounding_box_listener.bounding_box_changes_.back().x == -1 &&
-                bounding_box_listener.bounding_box_changes_.back().y == -1 &&
-                bounding_box_listener.bounding_box_changes_.back().width == -1 &&
-                bounding_box_listener.bounding_box_changes_.back().height == -1);
+    EXPECT_TRUE(
+        bounding_box_listener.bounding_box_changes_.back().x == -1 &&
+        bounding_box_listener.bounding_box_changes_.back().y == -1 &&
+        bounding_box_listener.bounding_box_changes_.back().width == -1 &&
+        bounding_box_listener.bounding_box_changes_.back().height == -1);
   }
 
   load_ad_future.Release();
