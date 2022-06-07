@@ -909,6 +909,7 @@ TEST_F(FirebaseGmaTest, TestRequestConfigurationSetGet) {
 // ensure that we can load them before diving into the interactive tests.
 TEST_F(FirebaseGmaTest, TestAdViewLoadAd) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::Future<firebase::gma::AdResult> load_ad_future;
@@ -941,6 +942,7 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAd) {
 
 TEST_F(FirebaseGmaTest, TestInterstitialAdLoad) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   // Note: while showing an ad requires user interaction (below),
   // we test that we can simply load an ad first.
@@ -968,6 +970,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdLoad) {
 
 TEST_F(FirebaseGmaTest, TestRewardedAdLoad) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   // Note: while showing an ad requires user interaction (below),
   // we test that we can simply load an ad first.
@@ -998,8 +1001,9 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoad) {
 
 // Interactive test section.  These have been placed up front so that the
 // tester doesn't get bored waiting for them.
-TEST_F(FirebaseGmaUITest, TestAdViewAdOpenedAdClosed) {
+TEST_F(FirebaseGmaUITest, DISABLED_TestAdViewAdOpenedAdClosed) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   // Load the AdView ad.
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
@@ -1065,8 +1069,9 @@ TEST_F(FirebaseGmaUITest, TestAdViewAdOpenedAdClosed) {
   delete ad_view;
 }
 
-TEST_F(FirebaseGmaUITest, TestInterstitialAdLoadAndShow) {
+TEST_F(FirebaseGmaUITest, DISABLED_TestInterstitialAdLoadAndShow) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   // When the InterstitialAd is initialized, load an ad.
   firebase::gma::AdRequest ad_request;
@@ -1118,8 +1123,9 @@ TEST_F(FirebaseGmaUITest, TestInterstitialAdLoadAndShow) {
   delete interstitial;
 }
 
-TEST_F(FirebaseGmaUITest, TestRewardedAdLoadAndShow) {
+TEST_F(FirebaseGmaUITest, DISABLED_TestRewardedAdLoadAndShow) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   // When the RewardedAd is initialized, load an ad.
   firebase::gma::AdRequest request;  // GetAdRequest();
@@ -1189,6 +1195,7 @@ TEST_F(FirebaseGmaUITest, TestRewardedAdLoadAndShow) {
 
 TEST_F(FirebaseGmaTest, TestAdViewLoadAdAnchorAdaptiveAd) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
   using firebase::gma::AdSize;
 
   AdSize banner_ad_size =
@@ -1216,6 +1223,7 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdAnchorAdaptiveAd) {
 
 TEST_F(FirebaseGmaTest, TestAdViewLoadAdInlineAdaptiveAd) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
   using firebase::gma::AdSize;
 
   AdSize banner_ad_size =
@@ -1244,6 +1252,7 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdInlineAdaptiveAd) {
 
 TEST_F(FirebaseGmaTest, TestAdViewLoadAdGetInlineAdaptiveBannerMaxHeight) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
   using firebase::gma::AdSize;
 
   AdSize banner_ad_size =
@@ -1271,6 +1280,7 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdGetInlineAdaptiveBannerMaxHeight) {
 
 TEST_F(FirebaseGmaTest, TestAdViewLoadAdDestroyNotCalled) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::gma::AdRequest request;
@@ -1357,6 +1367,7 @@ TEST_F(FirebaseGmaTest, TestAdViewAdSizeBeforeInitialization) {
 
 TEST_F(FirebaseGmaTest, TestAdView) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::gma::AdRequest request;
@@ -1563,6 +1574,7 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorNotInitialized) {
 
 TEST_F(FirebaseGmaTest, TestAdViewErrorAlreadyInitialized) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   {
@@ -1603,6 +1615,7 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorAlreadyInitialized) {
 
 TEST_F(FirebaseGmaTest, TestAdViewErrorLoadInProgress) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::gma::AdView* ad_view = new firebase::gma::AdView();
@@ -1646,6 +1659,7 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorLoadInProgress) {
 
 TEST_F(FirebaseGmaTest, TestAdViewErrorBadAdUnitId) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::gma::AdView* ad_view = new firebase::gma::AdView();
@@ -1679,6 +1693,7 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorBadAdUnitId) {
 
 TEST_F(FirebaseGmaTest, TestAdViewErrorBadExtrasClassName) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::gma::AdView* ad_view = new firebase::gma::AdView();
@@ -1780,6 +1795,7 @@ TEST_F(FirebaseGmaTest, TesInterstitialAdErrorAlreadyInitialized) {
 
 TEST_F(FirebaseGmaTest, TestInterstitialAdErrorLoadInProgress) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::InterstitialAd* interstitial_ad =
       new firebase::gma::InterstitialAd();
@@ -1818,6 +1834,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorLoadInProgress) {
 
 TEST_F(FirebaseGmaTest, TestInterstitialAdErrorBadAdUnitId) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::InterstitialAd* interstitial_ad =
       new firebase::gma::InterstitialAd();
@@ -1847,6 +1864,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorBadAdUnitId) {
 
 TEST_F(FirebaseGmaTest, TestInterstitialAdErrorBadExtrasClassName) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::InterstitialAd* interstitial_ad =
       new firebase::gma::InterstitialAd();
@@ -1867,6 +1885,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorBadExtrasClassName) {
 
 TEST_F(FirebaseGmaTest, TestRewardedAdErrorNotInitialized) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::RewardedAd* rewarded_ad = new firebase::gma::RewardedAd();
 
@@ -1920,6 +1939,7 @@ TEST_F(FirebaseGmaTest, TesRewardedAdErrorAlreadyInitialized) {
 
 TEST_F(FirebaseGmaTest, TestRewardedAdErrorLoadInProgress) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
   WaitForCompletion(rewarded->Initialize(app_framework::GetWindowContext()),
@@ -1958,6 +1978,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorLoadInProgress) {
 
 TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadAdUnitId) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
   WaitForCompletion(rewarded->Initialize(app_framework::GetWindowContext()),
@@ -1985,6 +2006,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadAdUnitId) {
 
 TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadExtrasClassName) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
   WaitForCompletion(rewarded->Initialize(app_framework::GetWindowContext()),
@@ -1999,9 +2021,9 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadExtrasClassName) {
 }
 
 // Stress tests.  These take a while so run them near the end.
-#if 0
 TEST_F(FirebaseGmaTest, TestAdViewStress) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::AdRequest request;
   for (int i = 0; i < 10; ++i) {
@@ -2034,9 +2056,10 @@ TEST_F(FirebaseGmaTest, TestAdViewStress) {
 
 TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::AdRequest request;
-  for (int i = 0; i < 100; ++i) {
+  for (int i = 0; i < 10; ++i) {
     firebase::gma::InterstitialAd* interstitial =
         new firebase::gma::InterstitialAd();
 
@@ -2064,6 +2087,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
 
 TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::AdRequest request;
   for (int i = 0; i < 10; ++i) {
@@ -2088,7 +2112,6 @@ TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
     delete rewarded;
   }
 }
-#endif
 
 #if defined(ANDROID) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
 // Test runs & compiles for phones only.
