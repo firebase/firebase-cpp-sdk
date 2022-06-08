@@ -787,7 +787,6 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAd) {
   EXPECT_FALSE(result_ptr->response_info().ToString().empty());
 
   EXPECT_EQ(result_ptr->response_info().ToString(), "");
-  EXPECT_EQ(result_ptr->ad_error().message(), "");
   EXPECT_EQ(result_ptr->ad_error().ToString(), "");
 
   EXPECT_EQ(ad_view->ad_size().width(), kBannerWidth);
@@ -881,7 +880,6 @@ TEST_F(FirebaseGmaUITest, TestAdViewAdOpenedAdClosed) {
   const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_EQ(result_ptr->response_info().ToString(), "");
-  EXPECT_EQ(result_ptr->ad_error().message(), "");
   EXPECT_EQ(result_ptr->ad_error().ToString(), "");
   WaitForCompletion(ad_view->Show(), "Show 0");
 
@@ -953,7 +951,6 @@ TEST_F(FirebaseGmaUITest, TestInterstitialAdLoadAndShow) {
   const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_EQ(result_ptr->response_info().ToString(), "");
-  EXPECT_EQ(result_ptr->ad_error().message(), "");
   EXPECT_EQ(result_ptr->ad_error().ToString(), "");
 
   WaitForCompletion(interstitial->Show(), "Show");
@@ -1012,7 +1009,6 @@ TEST_F(FirebaseGmaUITest, TestRewardedAdLoadAndShow) {
   const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_EQ(result_ptr->response_info().ToString(), "");
-  EXPECT_EQ(result_ptr->ad_error().message(), "");
   EXPECT_EQ(result_ptr->ad_error().ToString(), "");
   firebase::gma::RewardedAd::ServerSideVerificationOptions options;
   // We cannot programmatically verify that the GMA phone SDKs marshal
