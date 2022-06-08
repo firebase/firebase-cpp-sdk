@@ -786,6 +786,10 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAd) {
   EXPECT_FALSE(result_ptr->response_info().response_id().empty());
   EXPECT_FALSE(result_ptr->response_info().ToString().empty());
 
+  EXPECT_EQ(result_ptr->ad_error().response_info().adapter_responses(), "");
+  EXPECT_EQ(result_ptr->ad_error().message(), "");
+  EXPECT_EQ(result_ptr->ad_error().ToString(), "");
+
   EXPECT_EQ(ad_view->ad_size().width(), kBannerWidth);
   EXPECT_EQ(ad_view->ad_size().height(), kBannerHeight);
   EXPECT_EQ(ad_view->ad_size().type(), firebase::gma::AdSize::kTypeStandard);
@@ -874,6 +878,11 @@ TEST_F(FirebaseGmaUITest, TestAdViewAdOpenedAdClosed) {
   firebase::Future<firebase::gma::AdResult> load_ad_future =
       ad_view->LoadAd(request);
   WaitForCompletion(load_ad_future, "LoadAd");
+  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
+  ASSERT_NE(result_ptr, nullptr);
+  EXPECT_EQ(result_ptr->ad_error().response_info().adapter_responses(), "");
+  EXPECT_EQ(result_ptr->ad_error().message(), "");
+  EXPECT_EQ(result_ptr->ad_error().ToString(), "");
   WaitForCompletion(ad_view->Show(), "Show 0");
 
   // Ad Events differ per platform. See the following for more info:
@@ -938,8 +947,14 @@ TEST_F(FirebaseGmaUITest, TestInterstitialAdLoadAndShow) {
 
   // When the InterstitialAd is initialized, load an ad.
   firebase::gma::AdRequest request = GetAdRequest();
-  WaitForCompletion(interstitial->LoadAd(kInterstitialAdUnit, request),
-                    "LoadAd");
+  firebase::Future<firebase::gma::AdResult> load_ad_future =
+     interstitial->LoadAd(kInterstitialAdUnit, request);
+  WaitForCompletion(load_ad_future, "LoadAd");
+  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
+  ASSERT_NE(result_ptr, nullptr);
+  EXPECT_EQ(result_ptr->ad_error().response_info().adapter_responses(), "");
+  EXPECT_EQ(result_ptr->ad_error().message(), "");
+  EXPECT_EQ(result_ptr->ad_error().ToString(), "");
 
   WaitForCompletion(interstitial->Show(), "Show");
 
@@ -991,8 +1006,14 @@ TEST_F(FirebaseGmaUITest, TestRewardedAdLoadAndShow) {
 
   // When the RewardedAd is initialized, load an ad.
   firebase::gma::AdRequest request = GetAdRequest();
-  WaitForCompletion(rewarded->LoadAd(kRewardedAdUnit, request), "LoadAd");
-
+  firebase::Future<firebase::gma::AdResult> load_ad_future =
+      rewarded->LoadAd(kRewardedAdUnit, request);
+  WaitForCompletion(load_ad_future, "LoadAd");
+  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
+  ASSERT_NE(result_ptr, nullptr);
+  EXPECT_EQ(result_ptr->ad_error().response_info().adapter_responses(), "");
+  EXPECT_EQ(result_ptr->ad_error().message(), "");
+  EXPECT_EQ(result_ptr->ad_error().ToString(), "");
   firebase::gma::RewardedAd::ServerSideVerificationOptions options;
   // We cannot programmatically verify that the GMA phone SDKs marshal
   // these values properly (there are no get methods). At least invoke the
