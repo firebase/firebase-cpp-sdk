@@ -786,7 +786,6 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAd) {
   EXPECT_FALSE(result_ptr->response_info().response_id().empty());
   EXPECT_FALSE(result_ptr->response_info().ToString().empty());
 
-  EXPECT_EQ(result_ptr->ad_error().response_info().adapter_responses(), "");
   EXPECT_EQ(result_ptr->ad_error().message(), "");
   EXPECT_EQ(result_ptr->ad_error().ToString(), "");
 
@@ -880,7 +879,6 @@ TEST_F(FirebaseGmaUITest, TestAdViewAdOpenedAdClosed) {
   WaitForCompletion(load_ad_future, "LoadAd");
   const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
-  EXPECT_EQ(result_ptr->ad_error().response_info().adapter_responses(), "");
   EXPECT_EQ(result_ptr->ad_error().message(), "");
   EXPECT_EQ(result_ptr->ad_error().ToString(), "");
   WaitForCompletion(ad_view->Show(), "Show 0");
@@ -952,7 +950,6 @@ TEST_F(FirebaseGmaUITest, TestInterstitialAdLoadAndShow) {
   WaitForCompletion(load_ad_future, "LoadAd");
   const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
-  EXPECT_EQ(result_ptr->ad_error().response_info().adapter_responses(), "");
   EXPECT_EQ(result_ptr->ad_error().message(), "");
   EXPECT_EQ(result_ptr->ad_error().ToString(), "");
 
@@ -1011,7 +1008,6 @@ TEST_F(FirebaseGmaUITest, TestRewardedAdLoadAndShow) {
   WaitForCompletion(load_ad_future, "LoadAd");
   const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
-  EXPECT_EQ(result_ptr->ad_error().response_info().adapter_responses(), "");
   EXPECT_EQ(result_ptr->ad_error().message(), "");
   EXPECT_EQ(result_ptr->ad_error().ToString(), "");
   firebase::gma::RewardedAd::ServerSideVerificationOptions options;
