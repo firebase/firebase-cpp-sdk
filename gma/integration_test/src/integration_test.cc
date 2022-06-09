@@ -990,7 +990,6 @@ TEST_F(FirebaseGmaUITest, TestInterstitialAdLoadAndShow) {
   interstitial->SetPaidEventListener(nullptr);
 
   delete interstitial;
-
 }
 
 TEST_F(FirebaseGmaUITest, TestRewardedAdLoadAndShow) {
