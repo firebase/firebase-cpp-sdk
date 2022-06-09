@@ -458,6 +458,8 @@ jobs:
           shell: bash
           command: |
             build_scripts/android/install_prereqs.sh
+            echo NDK_ROOT=/tmp/android-ndk-r21e >> $GITHUB_ENV
+            echo ANDROID_NDK_HOME=/tmp/android-ndk-r21e >> $GITHUB_ENV
             pip install -r scripts/gha/requirements.txt
             python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
       - name: Fetch prebuilt packaged SDK from previous run
