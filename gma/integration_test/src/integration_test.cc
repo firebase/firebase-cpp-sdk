@@ -770,19 +770,28 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAd) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
 
-  FLAKY_TEST_SECTION_BEGIN();
-
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::gma::AdView* ad_view = new firebase::gma::AdView();
   WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
                                         kBannerAdUnit, banner_ad_size),
                     "Initialize");
-  firebase::Future<firebase::gma::AdResult> load_ad_future =
-      ad_view->LoadAd(GetAdRequest());
+  firebase::Future<firebase::gma::AdResult> load_ad_future;
+  const firebase::gma::AdResult* result_ptr = nullptr;
+
+  // Loading Ads has been deemed flaky as the AdMob Service has a chance to
+  // return NoFill for valid ad requests if there aren't any ads to serve.
+  FLAKY_TEST_SECTION_BEGIN();
+
+  load_ad_future = ad_view->LoadAd(GetAdRequest());
   WaitForCompletion(load_ad_future, "LoadAd");
-  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
+
+  result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_TRUE(result_ptr->is_successful());
+
+  FLAKY_TEST_SECTION_END();
+
+  ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
   EXPECT_FALSE(
       result_ptr->response_info().mediation_adapter_class_name().empty());
@@ -793,16 +802,17 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAd) {
   EXPECT_EQ(ad_view->ad_size().height(), kBannerHeight);
   EXPECT_EQ(ad_view->ad_size().type(), firebase::gma::AdSize::kTypeStandard);
 
+  load_ad_future.Release();
   WaitForCompletion(ad_view->Destroy(), "Destroy");
   delete ad_view;
-
-  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseGmaTest, TestInterstitialAdLoad) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
 
+  // Loading Ads has been deemed flaky as the AdMob Service has a chance to
+  // return NoFill for valid ad requests if there aren't any ads to serve.
   FLAKY_TEST_SECTION_BEGIN();
 
   firebase::gma::InterstitialAd* interstitial =
@@ -825,6 +835,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdLoad) {
   EXPECT_FALSE(result_ptr->response_info().response_id().empty());
   EXPECT_FALSE(result_ptr->response_info().ToString().empty());
 
+  load_ad_future.Release();
   delete interstitial;
 
   FLAKY_TEST_SECTION_END();
@@ -834,6 +845,8 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoad) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
 
+  // Loading Ads has been deemed flaky as the AdMob Service has a chance to
+  // return NoFill for valid ad requests if there aren't any ads to serve.
   FLAKY_TEST_SECTION_BEGIN();
 
   firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
@@ -855,6 +868,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoad) {
   EXPECT_FALSE(result_ptr->response_info().response_id().empty());
   EXPECT_FALSE(result_ptr->response_info().ToString().empty());
 
+  load_ad_future.Release();
   delete rewarded;
 
   FLAKY_TEST_SECTION_END();
@@ -986,6 +1000,7 @@ TEST_F(FirebaseGmaUITest, TestInterstitialAdLoadAndShow) {
 #endif  // TARGET_OS_IPHONE
   }
 
+  load_ad_future.Release();
   interstitial->SetFullScreenContentListener(nullptr);
   interstitial->SetPaidEventListener(nullptr);
 
@@ -1056,6 +1071,7 @@ TEST_F(FirebaseGmaUITest, TestRewardedAdLoadAndShow) {
                 testing::ElementsAre(firebase::gma::kAdErrorCodeAdAlreadyUsed));
   }
 
+  load_ad_future.Release();
   rewarded->SetFullScreenContentListener(nullptr);
   rewarded->SetPaidEventListener(nullptr);
 
@@ -1068,20 +1084,27 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdEmptyAdRequest) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
 
-  FLAKY_TEST_SECTION_BEGIN();
-
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::gma::AdView* ad_view = new firebase::gma::AdView();
   WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
                                         kBannerAdUnit, banner_ad_size),
                     "Initialize");
   firebase::gma::AdRequest request;
-  firebase::Future<firebase::gma::AdResult> load_ad_future =
-      ad_view->LoadAd(request);
+  firebase::Future<firebase::gma::AdResult> load_ad_future;
+  const firebase::gma::AdResult* result_ptr = nullptr;
+
+  // Loading Ads has been deemed flaky as the AdMob Service has a chance to
+  // return NoFill for valid ad requests if there aren't any ads to serve.
+  FLAKY_TEST_SECTION_BEGIN();
+
+  load_ad_future = ad_view->LoadAd(request);
   WaitForCompletion(load_ad_future, "LoadAd");
-  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
+  result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_TRUE(result_ptr->is_successful());
+
+  FLAKY_TEST_SECTION_END();
+
   EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
   EXPECT_FALSE(
       result_ptr->response_info().mediation_adapter_class_name().empty());
@@ -1092,17 +1115,15 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdEmptyAdRequest) {
   EXPECT_EQ(ad_view->ad_size().height(), kBannerHeight);
   EXPECT_EQ(ad_view->ad_size().type(), firebase::gma::AdSize::kTypeStandard);
 
+  load_ad_future.Release();
   WaitForCompletion(ad_view->Destroy(), "Destroy");
-  delete ad_view;
 
-  FLAKY_TEST_SECTION_END();
+  delete ad_view;
 }
 
 TEST_F(FirebaseGmaTest, TestAdViewLoadAdAnchorAdaptiveAd) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
-
-  FLAKY_TEST_SECTION_BEGIN();
 
   using firebase::gma::AdSize;
   AdSize banner_ad_size =
@@ -1111,7 +1132,15 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdAnchorAdaptiveAd) {
   WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
                                         kBannerAdUnit, banner_ad_size),
                     "Initialize");
+
+  // Loading Ads has been deemed flaky as the AdMob Service has a chance to
+  // return NoFill for valid ad requests if there aren't any ads to serve.
+  FLAKY_TEST_SECTION_BEGIN();
+
   WaitForCompletion(ad_view->LoadAd(GetAdRequest()), "LoadAd");
+
+  FLAKY_TEST_SECTION_END();
+
   const AdSize ad_size = ad_view->ad_size();
   EXPECT_EQ(ad_size.width(), kBannerWidth);
   EXPECT_NE(ad_size.height(), 0);
@@ -1119,24 +1148,28 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdAnchorAdaptiveAd) {
   EXPECT_EQ(ad_size.orientation(), AdSize::kOrientationCurrent);
   WaitForCompletion(ad_view->Destroy(), "Destroy");
   delete ad_view;
-
-  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseGmaTest, TestAdViewLoadAdInlineAdaptiveAd) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
-
-  FLAKY_TEST_SECTION_BEGIN();
-
   using firebase::gma::AdSize;
+
   AdSize banner_ad_size =
       AdSize::GetCurrentOrientationInlineAdaptiveBannerAdSize(kBannerWidth);
   firebase::gma::AdView* ad_view = new firebase::gma::AdView();
   WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
                                         kBannerAdUnit, banner_ad_size),
                     "Initialize");
+
+  // Loading Ads has been deemed flaky as the AdMob Service has a chance to
+  // return NoFill for valid ad requests if there aren't any ads to serve.
+  FLAKY_TEST_SECTION_BEGIN();
+
   WaitForCompletion(ad_view->LoadAd(GetAdRequest()), "LoadAd");
+
+  FLAKY_TEST_SECTION_END();
+
   const AdSize ad_size = ad_view->ad_size();
   EXPECT_EQ(ad_size.width(), kBannerWidth);
   EXPECT_NE(ad_size.height(), 0);
@@ -1144,15 +1177,11 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdInlineAdaptiveAd) {
   EXPECT_EQ(ad_size.orientation(), AdSize::kOrientationCurrent);
   WaitForCompletion(ad_view->Destroy(), "Destroy");
   delete ad_view;
-
-  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseGmaTest, TestAdViewLoadAdGetInlineAdaptiveBannerMaxHeight) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
-
-  FLAKY_TEST_SECTION_BEGIN();
 
   using firebase::gma::AdSize;
   AdSize banner_ad_size =
@@ -1161,7 +1190,15 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdGetInlineAdaptiveBannerMaxHeight) {
   WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
                                         kBannerAdUnit, banner_ad_size),
                     "Initialize");
+
+  // Loading Ads has been deemed flaky as the AdMob Service has a chance to
+  // return NoFill for valid ad requests if there aren't any ads to serve.
+  FLAKY_TEST_SECTION_BEGIN();
+
   WaitForCompletion(ad_view->LoadAd(GetAdRequest()), "LoadAd");
+
+  FLAKY_TEST_SECTION_END();
+
   const AdSize ad_size = ad_view->ad_size();
   EXPECT_EQ(ad_size.width(), kBannerWidth);
   EXPECT_NE(ad_size.height(), 0);
@@ -1170,25 +1207,27 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdGetInlineAdaptiveBannerMaxHeight) {
   EXPECT_EQ(ad_size.orientation(), AdSize::kOrientationCurrent);
   WaitForCompletion(ad_view->Destroy(), "Destroy");
   delete ad_view;
-
-  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseGmaTest, TestAdViewLoadAdDestroyNotCalled) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
 
-  FLAKY_TEST_SECTION_BEGIN();
-
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::gma::AdView* ad_view = new firebase::gma::AdView();
   WaitForCompletion(ad_view->Initialize(app_framework::GetWindowContext(),
                                         kBannerAdUnit, banner_ad_size),
                     "Initialize");
+
+  // Loading Ads has been deemed flaky as the AdMob Service has a chance to
+  // return NoFill for valid ad requests if there aren't any ads to serve.
+  FLAKY_TEST_SECTION_BEGIN();
+
   WaitForCompletion(ad_view->LoadAd(GetAdRequest()), "LoadAd");
-  delete ad_view;
 
   FLAKY_TEST_SECTION_END();
+
+  delete ad_view;
 }
 
 TEST_F(FirebaseGmaTest, TestAdViewAdSizeCompareOp) {
@@ -1265,6 +1304,8 @@ TEST_F(FirebaseGmaTest, TestAdView) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
 
+  // Loading Ads has been deemed flaky as the AdMob Service has a chance to
+  // return NoFill for valid ad requests if there aren't any ads to serve.
   FLAKY_TEST_SECTION_BEGIN();
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
@@ -1632,6 +1673,8 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdLoadEmptyRequest) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
 
+  // Loading Ads has been deemed flaky as the AdMob Service has a chance to
+  // return NoFill for valid ad requests if there aren't any ads to serve.
   FLAKY_TEST_SECTION_BEGIN();
 
   firebase::gma::InterstitialAd* interstitial =
@@ -1739,7 +1782,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorLoadInProgress) {
 
   WaitForCompletion(second_load_ad, "Second LoadAd",
                     firebase::gma::kAdErrorCodeLoadInProgress);
-  WaitForCompletion(first_load_ad, "First LoadAd");
+  WaitForCompletionAnyResult(first_load_ad, "First LoadAd");
 
   const firebase::gma::AdResult* result_ptr = second_load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
@@ -1807,6 +1850,8 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoadEmptyRequest) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
 
+  // Loading Ads has been deemed flaky as the AdMob Service has a chance to
+  // return NoFill for valid ad requests if there aren't any ads to serve.
   FLAKY_TEST_SECTION_BEGIN();
 
   // Note: while showing an ad requires user interaction in another test,
@@ -1860,7 +1905,7 @@ TEST_F(FirebaseGmaTest, TesRewardedAdErrorAlreadyInitialized) {
     firebase::Future<void> second_initialize =
         rewarded->Initialize(app_framework::GetWindowContext());
 
-    WaitForCompletion(first_initialize, "First Initialize 1");
+    WaitForCompletionAnyResult(first_initialize, "First Initialize 1");
     WaitForCompletion(second_initialize, "Second Initialize 1",
                       firebase::gma::kAdErrorCodeAlreadyInitialized);
 
@@ -1880,7 +1925,7 @@ TEST_F(FirebaseGmaTest, TesRewardedAdErrorAlreadyInitialized) {
 
     WaitForCompletion(second_initialize, "Second Initialize 1",
                       firebase::gma::kAdErrorCodeAlreadyInitialized);
-    WaitForCompletion(first_initialize, "First Initialize 1");
+    WaitForCompletionAnyResult(first_initialize, "First Initialize 1");
 
     first_initialize.Release();
     second_initialize.Release();
@@ -1909,7 +1954,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorLoadInProgress) {
 
   WaitForCompletion(second_load_ad, "Second LoadAd",
                     firebase::gma::kAdErrorCodeLoadInProgress);
-  WaitForCompletion(first_load_ad, "First LoadAd");
+  WaitForCompletionAnyResult(first_load_ad, "First LoadAd");
 
   const firebase::gma::AdResult* result_ptr = second_load_ad.result();
   ASSERT_NE(result_ptr, nullptr);
@@ -1971,6 +2016,8 @@ TEST_F(FirebaseGmaTest, TestAdViewStress) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
 
+  // Loading Ads has been deemed flaky as the AdMob Service has a chance to
+  // return NoFill for valid ad requests if there aren't any ads to serve.
   FLAKY_TEST_SECTION_BEGIN();
 
   for (int i = 0; i < 10; ++i) {
@@ -1997,6 +2044,8 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
 
+  // Loading Ads has been deemed flaky as the AdMob Service has a chance to
+  // return NoFill for valid ad requests if there aren't any ads to serve.
   FLAKY_TEST_SECTION_BEGIN();
 
   for (int i = 0; i < 10; ++i) {
@@ -2021,6 +2070,8 @@ TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
 
+  // Loading Ads has been deemed flaky as the AdMob Service has a chance to
+  // return NoFill for valid ad requests if there aren't any ads to serve.
   FLAKY_TEST_SECTION_BEGIN();
 
   for (int i = 0; i < 10; ++i) {
