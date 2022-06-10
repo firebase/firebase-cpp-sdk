@@ -1155,6 +1155,7 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdInlineAdaptiveAd) {
   SKIP_TEST_ON_SIMULATOR;
   using firebase::gma::AdSize;
 
+  using firebase::gma::AdSize;
   AdSize banner_ad_size =
       AdSize::GetCurrentOrientationInlineAdaptiveBannerAdSize(kBannerWidth);
   firebase::gma::AdView* ad_view = new firebase::gma::AdView();
