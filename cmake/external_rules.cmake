@@ -37,12 +37,6 @@ function(download_external_sources)
     set(external_platform "DESKTOP")
   endif()
 
-  # When building with Firestore, use the NanoPB source from that instead.
-  if(FIREBASE_INCLUDE_FIRESTORE)
-    set(FIRESTORE_BINARY_DIR ${PROJECT_BINARY_DIR}/external/src/firestore-build)
-    set(NANOPB_SOURCE_DIR ${FIRESTORE_BINARY_DIR}/external/src/nanopb)
-  endif()
-
   # Set variables to indicate if local versions of third party libraries should
   # be used instead of downloading them.
   function(check_use_local_directory NAME)
@@ -56,7 +50,6 @@ function(download_external_sources)
   check_use_local_directory(CURL)
   check_use_local_directory(FLATBUFFERS)
   check_use_local_directory(LIBUV)
-  check_use_local_directory(NANOPB)
   check_use_local_directory(UWEBSOCKETS)
   check_use_local_directory(ZLIB)
   check_use_local_directory(FIREBASE_IOS_SDK)
@@ -91,7 +84,6 @@ function(download_external_sources)
       -DDOWNLOAD_FLATBUFFERS=${DOWNLOAD_FLATBUFFERS}
       -DDOWNLOAD_GOOGLETEST=${FIREBASE_DOWNLOAD_GTEST}
       -DDOWNLOAD_LIBUV=${DOWNLOAD_LIBUV}
-      -DDOWNLOAD_NANOPB=${DOWNLOAD_NANOPB}
       -DDOWNLOAD_UWEBSOCKETS=${DOWNLOAD_UWEBSOCKETS}
       -DDOWNLOAD_ZLIB=${DOWNLOAD_ZLIB}
       -DDOWNLOAD_FIREBASE_IOS_SDK=${DOWNLOAD_FIREBASE_IOS_SDK}

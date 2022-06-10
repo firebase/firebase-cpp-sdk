@@ -222,6 +222,16 @@ TEST_F(AnalyticsTest, TestLogEventParameters) {
   LogEvent("my_event", parameters, sizeof(parameters) / sizeof(parameters[0]));
 }
 
+TEST_F(AnalyticsTest,
+       TestInitiateOnDeviceConversionMeasurementWithEmailAddress) {
+  // InitiateOnDeviceConversionMeasurementWithEmailAddress is no-op on Android
+  AddExpectationApple(
+      "+[FIRAnalytics initiateOnDeviceConversionMeasurementWithEmailAddress:]",
+      {"my_email"});
+
+  InitiateOnDeviceConversionMeasurementWithEmailAddress("my_email");
+}
+
 TEST_F(AnalyticsTest, TestSetUserProperty) {
   AddExpectationAndroid("FirebaseAnalytics.setUserProperty",
                         {"my_property", "my_value"});
