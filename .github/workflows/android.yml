@@ -122,6 +122,8 @@ jobs:
         shell: bash
         run: |
           build_scripts/android/install_prereqs.sh
+          echo "NDK_ROOT=/tmp/android-ndk-r21e" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=/tmp/android-ndk-r21e" >> $GITHUB_ENV
 
       - name: Add strings.exe to PATH (Windows only)
         if: startsWith(matrix.os, 'windows')
