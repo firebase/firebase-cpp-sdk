@@ -205,6 +205,7 @@ readonly deps_hidden_firebase_firestore="
 */firestore-build/*/grpc-build/${subdir}${prefix}*.${ext}
 */firestore-build/*/grpc-build/third_party/cares/*${subdir}${prefix}*.${ext}
 */firestore-build/*/grpc-build/third_party/abseil-cpp/*${subdir}${prefix}*.${ext}
+*/firestore-build/*/grpc-build/third_party/re2/*${subdir}${prefix}re2.${ext}
 "
 
 # List of C++ namespaces to be renamed, so as to not conflict with the
@@ -228,7 +229,7 @@ readonly -a rename_namespaces=(flatbuffers flexbuffers reflection ZLib bssl uWS 
                                grpc_ssl_server_credentials grpc_tls_credential_reload_config
                                grpc_tls_server_authorization_check_config GrpcUdpListener leveldb
                                leveldb_filterpolicy_create_bloom leveldb_writebatch_iterate strings
-                               TlsCredentials TlsServerCredentials tsi snappy)
+                               TlsCredentials TlsServerCredentials tsi snappy re2)
 
 # String to prepend to all hidden symbols.
 readonly rename_string=f_b_
