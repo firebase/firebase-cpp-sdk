@@ -64,7 +64,7 @@ const char* GetPlatform() {
 }
 
 Mutex* g_firestores_lock = new Mutex();
-std::map<App*, Firestore*>* g_firestores = nullptr;
+std::map<App*, std::map<std::string, Firestore*>>* g_firestores = nullptr;
 
 // Ensures that the cache is initialized.
 // Prerequisite: `g_firestores_lock` must be locked before calling this
@@ -109,7 +109,15 @@ void ValidateApp(App* app) {
 
 }  // namespace
 
+const char* Firestore::kDefaultDbName = "(default)";
+
 Firestore* Firestore::GetInstance(App* app, InitResult* init_result_out) {
+  return GetInstance(app, kDefaultDbName, init_result_out);
+}
+
+Firestore* Firestore::GetInstance(::firebase::App* app,
+                              const std::string& db_name,
+                              InitResult* init_result_out) {
   ValidateApp(app);
 
   MutexLock lock(*g_firestores_lock);
@@ -123,6 +131,10 @@ Firestore* Firestore::GetInstance(App* app, InitResult* init_result_out) {
 }
 
 Firestore* Firestore::GetInstance(InitResult* init_result_out) {
+  return Firestore::GetInstance(kDefaultDbName, init_result_out);
+}
+
+Firestore* Firestore::GetInstance(const std::string& db_name, InitResult* init_result_out) {
   App* app = App::GetInstance();
   if (!app) {
     SimpleThrowInvalidArgument(
@@ -130,7 +142,7 @@ Firestore* Firestore::GetInstance(InitResult* init_result_out) {
         "firebase::App::Create before using Firestore");
   }
 
-  return Firestore::GetInstance(app, init_result_out);
+  return Firestore::GetInstance(app, kDefaultDbName, init_result_out);
 }
 
 Firestore* Firestore::CreateFirestore(App* app,

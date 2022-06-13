@@ -83,6 +83,8 @@ class TransactionManager;
  */
 class Firestore {
  public:
+  static const char* kDefaultDbName;
+
   /**
    * @brief Returns an instance of Firestore corresponding to the given App.
    *
@@ -104,6 +106,10 @@ class Firestore {
   static Firestore* GetInstance(::firebase::App* app,
                                 InitResult* init_result_out = nullptr);
 
+  static Firestore* GetInstance(::firebase::App* app,
+                                const std::string& db_name,
+                                InitResult* init_result_out = nullptr);
+
   /**
    * @brief Returns an instance of Firestore corresponding to the default App.
    *
@@ -120,6 +126,9 @@ class Firestore {
    * @return An instance of Firestore corresponding to the default App.
    */
   static Firestore* GetInstance(InitResult* init_result_out = nullptr);
+
+  static Firestore* GetInstance(const std::string& db_name,
+                                InitResult* init_result_out = nullptr);
 
   /**
    * @brief Destructor for the Firestore object.
