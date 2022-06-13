@@ -277,6 +277,9 @@ jobs:
         run: |
           git config --global credential.helper 'store --file /tmp/git-credentials'
           echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
+      - name: Enable Git Long-paths Support
+        if: runner.os == 'Windows'
+        run: git config --system core.longpaths true
       - name: Set env vars (Linux)
         if: startsWith(matrix.os, 'ubuntu')
         run: echo "VCPKG_TRIPLET=x64-linux" >> $GITHUB_ENV
@@ -471,6 +474,9 @@ jobs:
         run: |
           git config --global credential.helper 'store --file /tmp/git-credentials'
           echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
+      - name: Enable Git Long-paths Support
+        if: runner.os == 'Windows'
+        run: git config --system core.longpaths true
       - name: Add msbuild to PATH (Windows)
         if: startsWith(matrix.os, 'windows')
         uses: microsoft/setup-msbuild@v1.0.2
@@ -503,6 +509,8 @@ jobs:
           shell: bash
           command: |
             build_scripts/android/install_prereqs.sh
+            echo "NDK_ROOT=/tmp/android-ndk-r21e" >> $GITHUB_ENV
+            echo "ANDROID_NDK_HOME=/tmp/android-ndk-r21e" >> $GITHUB_ENV
             pip install -r scripts/gha/requirements.txt
             python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
       - name: Fetch prebuilt packaged SDK from previous run
@@ -877,10 +885,10 @@ jobs:
           max_attempts: 3
           command: python scripts/gha/install_prereqs_desktop.py --gha_build --running_only --arch '${{ matrix.arch }}' --ssl '${{ matrix.ssl_variant }}'
 
-      - name: Set up Node (12)
+      - name: Set up Node (14)
         uses: actions/setup-node@v2
         with:
-          node-version: 12.x
+          node-version: 14.x
       - name: Setup Firestore Emulator
         run: |
           npm install -g firebase-tools
@@ -893,6 +901,11 @@ jobs:
           command: |
             pip install -r scripts/gha/requirements.txt
             python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact "testapps/testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}"
+      - name: Setup java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
       - name: Run Desktop integration tests
         env:
           USE_FIRESTORE_EMULATOR: true
@@ -1131,15 +1144,25 @@ jobs:
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.android_device }} )"
-      - name: Set up Node (12)
+      - name: Set up Node (14)
         uses: actions/setup-node@v2
         with:
-          node-version: 12.x
+          node-version: 14.x
+      - name: Setup java 17 for Firestore emulator
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
       - name: Setup Firestore Emulator
         if: steps.get-device-type.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
           npm install -g firebase-tools
           firebase emulators:start --only firestore --project demo-example &
+      - name: Setup java 8 for test_simulator.py
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '8'
       - name: Run Android integration tests on Emulator locally
         timeout-minutes: 120
         if: steps.get-device-type.outputs.device_type == 'virtual'
@@ -1236,10 +1259,15 @@ jobs:
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.ios_device }} )"
-      - name: Set up Node (12)
+      - name: Set up Node (14)
         uses: actions/setup-node@v2
         with:
-          node-version: 12.x
+          node-version: 14.x
+      - name: Setup java for Firestore emulator
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
       - name: Setup Firestore Emulator
         if: steps.get-device-type.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
@@ -1339,6 +1367,11 @@ jobs:
           timeout_minutes: 1
           max_attempts: 3
           command: pip install -r scripts/gha/requirements.txt
+      - name: Setup java for Firestore emulator
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
       - name: Setup Firestore Emulator
         if: contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |

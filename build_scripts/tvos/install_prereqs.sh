@@ -17,11 +17,11 @@ if [[ -z $(which python) ]]; then
     exit 1
 else
     updated_pip=0
-    if ! $(echo "import absl"$'\n'"import google.protobuf" | python - 2> /dev/null); then
+    if ! $(echo "import absl"$'\n' | python - 2> /dev/null); then
 	echo "Installing python packages."
 	set -x
 	sudo python -m pip install --upgrade pip
-	pip install absl-py protobuf
+	pip install absl-py
 	set +x
     fi
 fi
