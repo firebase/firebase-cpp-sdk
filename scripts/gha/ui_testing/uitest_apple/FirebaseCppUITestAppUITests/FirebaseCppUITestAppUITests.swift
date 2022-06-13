@@ -69,7 +69,7 @@ class FirebaseCppUITestAppUITests: XCTestCase {
     // Start Automated UI Test
     let app = XCUIApplication(bundleIdentifier: "com.google.ios.admob.testapp")
 
-    // TestAdViewAdOpenedAdClosed
+    // 1. TestAdViewAdOpenedAdClosed
     var reference = app.staticTexts["Test mode"]
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
     // Click on the center point of the "Test Ad" TextView, where the Ad present
@@ -83,7 +83,7 @@ class FirebaseCppUITestAppUITests: XCTestCase {
 
     sleep(5)
 
-    // TestInterstitialAdLoadAndShow
+    // 2. TestInterstitialAdLoadAndShow
     reference = app.staticTexts["Test mode"]
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
     // Click the center point of the device, where the Ad present
@@ -105,14 +105,13 @@ class FirebaseCppUITestAppUITests: XCTestCase {
 
     sleep(5)
 
-    // TestRewardedAdLoadAndShow
-    reference = app.webViews.staticTexts.containing(NSPredicate(format: "label CONTAINS 'seconds'")).element
+    // 3. TestRewardedAdLoadAndShow
+    reference = app.staticTexts["Test mode"]
     XCTAssertTrue(reference.waitForExistence(timeout: 60))
     // Click the top right corner close bottom.
-    // Use "* seconds" TextView right position as the reference
-    x = (reference.frame.origin.x + reference.frame.width + app.frame.width)/2
+    x = app.frame.width - (reference.frame.origin.y + reference.frame.height)/2
     y = (reference.frame.origin.y + reference.frame.height)/2
-    sleep(5)  // Wait until button hittable
+    sleep(15)  // Wait until button hittable
     let rewarded_ad_close_button = app.findElement(at: CGPoint(x: x, y: y))
     rewarded_ad_close_button.tap()
 

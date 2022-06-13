@@ -35,9 +35,24 @@ AdViewInternalIOS::AdViewInternalIOS(AdView* base)
       initialized_(false) {}
 
 AdViewInternalIOS::~AdViewInternalIOS() {
-  Destroy();
-  destroy_mutex_.Acquire();
-  destroy_mutex_.Release();
+  if(ad_load_callback_data_ != nil) {
+    delete ad_load_callback_data_;
+    ad_load_callback_data_ = nil;
+  }
+
+  id ad_view = ad_view_;
+  ad_view_ = nil;
+
+  void (^destroyBlock)() = ^{
+    if (ad_view) {
+      // Remove the FADAdView (i.e. the container view of GADAdView)
+      // from the superview.
+      [ad_view removeFromSuperview];
+      [ad_view destroy];
+    }
+  };
+
+  util::DispatchAsyncSafeMainQueue(destroyBlock);
 }
 
 Future<void> AdViewInternalIOS::Initialize(AdParent parent,
@@ -201,33 +216,40 @@ Future<void> AdViewInternalIOS::Resume() {
 /// Cleans up any resources created in AdViewInternalIOS.
 Future<void> AdViewInternalIOS::Destroy() {
   firebase::MutexLock lock(mutex_);
+  destroy_mutex_.Acquire();
+
   const firebase::SafeFutureHandle<void> future_handle =
      future_data_.future_impl.SafeAlloc<void>(kAdViewFnDestroy);
-  Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
-  destroy_mutex_.Acquire();
+
+  if(ad_load_callback_data_ != nil) {
+    delete ad_load_callback_data_;
+    ad_load_callback_data_ = nil;
+  }
+
+  // Consistent with Android SDK which returns a final bounding box of
+  // -1 values upon deletion.
+  bounding_box_.width = bounding_box_.height =
+    bounding_box_.x = bounding_box_.y = -1;
+  bounding_box_.position = AdView::kPositionUndefined;
+  NotifyListenerOfBoundingBoxChange(bounding_box_);
+
+  id ad_view = ad_view_;
+  ad_view_ = nil;
+
   void (^destroyBlock)() = ^{
-    [ad_view_ destroy];
-    // Remove the FADAdView (i.e. the container view of GADAdView)
-    // from the superview.
-    [ad_view_ removeFromSuperview];
-    if (ad_view_) {
-      // Consistent with Android SDK which returns a final bounding box of
-      // -1 values upon deletion.
-      bounding_box_.width = bounding_box_.height =
-        bounding_box_.x = bounding_box_.y = -1;
-      bounding_box_.position = AdView::kPositionUndefined;
-      NotifyListenerOfBoundingBoxChange(bounding_box_);
-      ad_view_ = nil;
+    if (ad_view) {
+      // Remove the FADAdView (i.e. the container view of GADAdView)
+      // from the superview.
+      [ad_view removeFromSuperview];
+      [ad_view destroy];
     }
-    if(ad_load_callback_data_ != nil) {
-      delete ad_load_callback_data_;
-      ad_load_callback_data_ = nil;
-    }
+
     CompleteFuture(kAdErrorCodeNone, nullptr, future_handle, &future_data_);
     destroy_mutex_.Release();
   };
+
   util::DispatchAsyncSafeMainQueue(destroyBlock);
-  return future;
+  return MakeFuture(&future_data_.future_impl, future_handle);
 }
 
 BoundingBox AdViewInternalIOS::bounding_box() const {
