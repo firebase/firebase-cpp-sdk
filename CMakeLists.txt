@@ -217,6 +217,9 @@ endif()
 # firebase-ios-sdk since it's not needed and can sometimes fail to build.
 set(FIRESTORE_INCLUDE_OBJC OFF CACHE BOOL "Disabled for the CPP SDK")
 
+# Disable re2 build tests
+set(RE2_BUILD_TESTING OFF CACHE BOOL "")
+
 if(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
   # Quote meta characters in ${CMAKE_CURRENT_LIST_DIR} so we can
   # match it in a regex.
@@ -469,32 +472,6 @@ if(DESKTOP)
         uv_a
         zlibstatic
     )
-  endif()
-endif()
-
-if(DESKTOP)
-  if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
-    # The Firestore build includes protobuf and nanopb already
-    list(APPEND CMAKE_MODULE_PATH ${NANOPB_SOURCE_DIR}/extra)
-    find_package(Nanopb)
-
-    set(PROTOBUF_FOUND ON)
-  else()
-    find_package(Protobuf)
-    if (PROTOBUF_FOUND)
-      # NanoPB requires Protobuf to be present, so only add it if it was found.
-      add_external_library(nanopb)
-
-      # NanoPB has a FindNanopb which defines the function to generate files,
-      # so add it to the module path, and use that.
-      list(APPEND CMAKE_MODULE_PATH ${NANOPB_SOURCE_DIR}/extra)
-      find_package(Nanopb)
-
-      target_compile_definitions(
-        protobuf-nanopb-static
-        PUBLIC -DPB_FIELD_32BIT -DPB_ENABLE_MALLOC
-      )
-    endif()
   endif()
 endif()
 

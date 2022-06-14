@@ -62,6 +62,10 @@ jobs:
           git config --global credential.helper 'store --file /tmp/git-credentials'
           echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
 
+      - name: Enable Git Long-paths Support
+        if: runner.os == 'Windows'
+        run: git config --system core.longpaths true
+
       - name: Check expanded matrix config
         if: github.event.inputs.expanded_matrix == '1'
         run: |
@@ -122,6 +126,8 @@ jobs:
         shell: bash
         run: |
           build_scripts/android/install_prereqs.sh
+          echo "NDK_ROOT=/tmp/android-ndk-r21e" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=/tmp/android-ndk-r21e" >> $GITHUB_ENV
 
       - name: Add strings.exe to PATH (Windows only)
         if: startsWith(matrix.os, 'windows')
