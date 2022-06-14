@@ -768,7 +768,6 @@ TEST_F(FirebaseGmaTest, TestRequestConfigurationSetGet) {
 // ensure that we can load them before diving into the interactive tests.
 TEST_F(FirebaseGmaTest, TestAdViewLoadAd) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_SIMULATOR;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::gma::AdView* ad_view = new firebase::gma::AdView();
@@ -809,7 +808,6 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAd) {
 
 TEST_F(FirebaseGmaTest, TestInterstitialAdLoad) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_SIMULATOR;
 
   // Loading Ads has been deemed flaky as the AdMob Service has a chance to
   // return NoFill for valid ad requests if there aren't any ads to serve.
@@ -843,7 +841,6 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdLoad) {
 
 TEST_F(FirebaseGmaTest, TestRewardedAdLoad) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_SIMULATOR;
 
   // Loading Ads has been deemed flaky as the AdMob Service has a chance to
   // return NoFill for valid ad requests if there aren't any ads to serve.
@@ -878,7 +875,6 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoad) {
 // tester doesn't get bored waiting for them.
 TEST_F(FirebaseGmaUITest, TestAdViewAdOpenedAdClosed) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_SIMULATOR;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::gma::AdView* ad_view = new firebase::gma::AdView();
@@ -950,7 +946,6 @@ TEST_F(FirebaseGmaUITest, TestAdViewAdOpenedAdClosed) {
 
 TEST_F(FirebaseGmaUITest, TestInterstitialAdLoadAndShow) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::InterstitialAd* interstitial =
       new firebase::gma::InterstitialAd();
@@ -1009,7 +1004,6 @@ TEST_F(FirebaseGmaUITest, TestInterstitialAdLoadAndShow) {
 
 TEST_F(FirebaseGmaUITest, TestRewardedAdLoadAndShow) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_SIMULATOR;
 
   firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
 
@@ -1082,7 +1076,6 @@ TEST_F(FirebaseGmaUITest, TestRewardedAdLoadAndShow) {
 
 TEST_F(FirebaseGmaTest, TestAdViewLoadAdEmptyAdRequest) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_SIMULATOR;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::gma::AdView* ad_view = new firebase::gma::AdView();
@@ -1123,7 +1116,6 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdEmptyAdRequest) {
 
 TEST_F(FirebaseGmaTest, TestAdViewLoadAdAnchorAdaptiveAd) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_SIMULATOR;
 
   using firebase::gma::AdSize;
   AdSize banner_ad_size =
@@ -1152,7 +1144,7 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdAnchorAdaptiveAd) {
 
 TEST_F(FirebaseGmaTest, TestAdViewLoadAdInlineAdaptiveAd) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_SIMULATOR;
+  
   using firebase::gma::AdSize;
 
   using firebase::gma::AdSize;
@@ -1182,7 +1174,6 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdInlineAdaptiveAd) {
 
 TEST_F(FirebaseGmaTest, TestAdViewLoadAdGetInlineAdaptiveBannerMaxHeight) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_SIMULATOR;
 
   using firebase::gma::AdSize;
   AdSize banner_ad_size =
@@ -1212,7 +1203,6 @@ TEST_F(FirebaseGmaTest, TestAdViewLoadAdGetInlineAdaptiveBannerMaxHeight) {
 
 TEST_F(FirebaseGmaTest, TestAdViewLoadAdDestroyNotCalled) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_SIMULATOR;
 
   const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
   firebase::gma::AdView* ad_view = new firebase::gma::AdView();
@@ -1303,7 +1293,6 @@ TEST_F(FirebaseGmaTest, TestAdViewAdSizeBeforeInitialization) {
 
 TEST_F(FirebaseGmaTest, TestAdView) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_SIMULATOR;
 
   // Loading Ads has been deemed flaky as the AdMob Service has a chance to
   // return NoFill for valid ad requests if there aren't any ads to serve.
@@ -1672,7 +1661,6 @@ TEST_F(FirebaseGmaTest, TestAdViewErrorBadExtrasClassName) {
 
 TEST_F(FirebaseGmaTest, TestInterstitialAdLoadEmptyRequest) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_SIMULATOR;
 
   // Loading Ads has been deemed flaky as the AdMob Service has a chance to
   // return NoFill for valid ad requests if there aren't any ads to serve.
@@ -1849,7 +1837,6 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorBadExtrasClassName) {
 
 TEST_F(FirebaseGmaTest, TestRewardedAdLoadEmptyRequest) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_SIMULATOR;
 
   // Loading Ads has been deemed flaky as the AdMob Service has a chance to
   // return NoFill for valid ad requests if there aren't any ads to serve.
@@ -2015,7 +2002,6 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadExtrasClassName) {
 // Stress tests.  These take a while so run them near the end.
 TEST_F(FirebaseGmaTest, TestAdViewStress) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_SIMULATOR;
 
   // Loading Ads has been deemed flaky as the AdMob Service has a chance to
   // return NoFill for valid ad requests if there aren't any ads to serve.
@@ -2043,7 +2029,6 @@ TEST_F(FirebaseGmaTest, TestAdViewStress) {
 
 TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_SIMULATOR;
 
   // Loading Ads has been deemed flaky as the AdMob Service has a chance to
   // return NoFill for valid ad requests if there aren't any ads to serve.
@@ -2069,7 +2054,6 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
 
 TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_SIMULATOR;
 
   // Loading Ads has been deemed flaky as the AdMob Service has a chance to
   // return NoFill for valid ad requests if there aren't any ads to serve.
