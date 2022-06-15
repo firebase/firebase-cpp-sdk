@@ -24,8 +24,8 @@ python restore_secrets.py --passphrase_file [--repo_dir <path_to_repo>]
 --passphrase_file: Specify a file to read the passphrase from (only reads the
     first line). Use "-" (without quotes) for stdin.
 --repo_dir: Path to C++ SDK Github repository. Defaults to current directory.
---api: Specify a particular product API and retrieve only that api's
-    secret.
+--apis: Specify a list of particular product APIs and retrieve only their
+    secrets.
 
 This script will perform the following:
 
@@ -52,8 +52,9 @@ flags.DEFINE_string("repo_dir", os.getcwd(), "Path to C++ SDK Github repo.")
 flags.DEFINE_string("passphrase", None, "The passphrase itself.")
 flags.DEFINE_string("passphrase_file", None,
                     "Path to file with passphrase. Use \"-\" (without quotes) for stdin.")
-flags.DEFINE_string("artifact", None, "Artifact Path, google-services.json will be placed here.")
-flags.DEFINE_string("api", None, "Retrieve secret for the particular SDK only.")
+flags.DEFINE_string("artifact", None, "Artifact Path, google-services.json will be placed here.")    
+flags.DEFINE_list("apis",[], "Optional comma-separated list of APIs for which to retreive "
+                   " secrets. All secrets will be fetched if this is flag is not defined.")
 
 
 def main(argv):
@@ -72,8 +73,8 @@ def main(argv):
   else:
     raise ValueError("Must supply passphrase or passphrase_file arg.")
 
-  if FLAGS.api:
-    print("Retrieving secret for product api: ", FLAGS.api)
+  if FLAGS.apis:
+    print("Retrieving secrets for product APIs: ", FLAGS.apis)
 
   secrets_dir = os.path.join(repo_dir, "scripts", "gha-encrypted")
   encrypted_files = _find_encrypted_files(secrets_dir)
@@ -85,10 +86,9 @@ def main(argv):
       # /scripts/gha-encrypted/auth/google-services.json.gpg turns into
       # /<repo_dir>/auth/integration_test/google-services.json
       api = os.path.basename(os.path.dirname(path))
-      if FLAGS.api:
-        if FLAGS.api != api:
-          print("Skipping secret found in product api", api)
-          continue
+      if FLAGS.apis and api not in FLAGS.apis:
+        print("Skipping secret found in product api", api)
+        continue
       print("Encrypted Google Service file found: %s" % path)
       file_name = os.path.basename(path).replace(".gpg", "")
       dest_paths = [os.path.join(repo_dir, api, "integration_test", file_name)]
@@ -117,14 +117,14 @@ def main(argv):
   if FLAGS.artifact:
     return
 
-  if not FLAGS.api or FLAGS.api == "dynamic_links":
+  if not FLAGS.apis or "dynamic_links" in FLAGS.apis:
     print("Attempting to patch Dynamic Links uri prefix.")
     uri_path = os.path.join(secrets_dir, "dynamic_links", "uri_prefix.txt.gpg")
     uri_prefix = _decrypt(uri_path, passphrase)
     dlinks_project = os.path.join(repo_dir, "dynamic_links", "integration_test")
     _patch_main_src(dlinks_project, "REPLACE_WITH_YOUR_URI_PREFIX", uri_prefix)
 
-  if not FLAGS.api or FLAGS.api == "messaging":
+  if not FLAGS.apis or "messaging" in FLAGS.apis:
     print("Attempting to patch Messaging server key.")
     server_key_path = os.path.join(secrets_dir, "messaging", "server_key.txt.gpg")
     server_key = _decrypt(server_key_path, passphrase)
