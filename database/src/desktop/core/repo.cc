@@ -475,8 +475,9 @@ void Repo::DeferredInitialization() {
     database_path += url_domain;
 
     std::string app_data_path_error;
-    std::string app_data_path = AppDataDir(database_path.c_str(),
-                                           /* should_create = */ true, &error);
+    std::string app_data_path =
+        AppDataDir(database_path.c_str(),
+                   /* should_create = */ true, &app_data_path_error);
     if (app_data_path.empty()) {
       logger_->LogError(
           "Could not initialize persistence: App data directory error: %s",
