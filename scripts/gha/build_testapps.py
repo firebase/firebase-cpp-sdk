@@ -437,6 +437,7 @@ def _collect_integration_tests(testapps, root_output_dir, output_dir, artifact_n
     desktop_testapp_name += ".exe"
 
   testapp_paths = []
+  testapp_google_services = {}
   for file_dir, directories, file_names in os.walk(output_dir):
     for directory in directories:
       if directory.endswith(ios_simualtor_testapp_extension):
@@ -446,6 +447,8 @@ def _collect_integration_tests(testapps, root_output_dir, output_dir, artifact_n
           or file_name.endswith(android_testapp_extension) 
           or file_name.endswith(ios_testapp_extension)):
         testapp_paths.append(os.path.join(file_dir, file_name))
+      if (file_name == "google-services.json"):
+        testapp_google_services[file_dir.split(os.path.sep)[-2]] = os.path.join(file_dir, file_name)
 
   artifact_path = os.path.join(root_output_dir, testapps_artifact_dir)
   _rm_dir_safe(artifact_path)
@@ -456,6 +459,8 @@ def _collect_integration_tests(testapps, root_output_dir, output_dir, artifact_n
       if testapp in path:
         if os.path.isfile(path):
           shutil.copy(path, os.path.join(artifact_path, testapp))
+          if path.endswith(desktop_testapp_name):
+            shutil.copy(testapp_google_services[testapp], os.path.join(artifact_path, testapp))
         else:
           dir_util.copy_tree(path, os.path.join(artifact_path, testapp, os.path.basename(path)))
         break
