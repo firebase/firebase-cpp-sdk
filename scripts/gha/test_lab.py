@@ -98,7 +98,7 @@ flags.DEFINE_string(
     "key_file_encrypted", None, "Path to encrypted key file authorizing use "
     "of the GCS bucket.")
 flags.DEFINE_string(
-    "passphrase", None, "Use with FLAG key_file_encrypted.")
+    "key_file_passphrase", None, "Use with FLAG key_file_encrypted.")
 flags.DEFINE_string(
     "android_device", None,
     "Model_id and API_level for desired device. See module docstring for details "
@@ -135,9 +135,9 @@ def main(argv):
   testapp_dir = _fix_path(FLAGS.testapp_dir)
   if FLAGS.key_file:
     key_file_path = _fix_path(FLAGS.key_file)
-  elif FLAGS.key_file_encrypted and FLAGS.passphrase:
+  elif FLAGS.key_file_encrypted and FLAGS.key_file_passphrase:
     key_file_encrypted_path = _fix_path(FLAGS.key_file_encrypted)
-    restore_secrets._decrypt(key_file_encrypted_path, FLAGS.passphrase)
+    restore_secrets._decrypt(key_file_encrypted_path, FLAGS.key_file_passphrase)
     key_file_path = key_file_encrypted_path.removesuffix(".gpg")
   
   code_platform = FLAGS.code_platform

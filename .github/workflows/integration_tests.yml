@@ -1166,7 +1166,7 @@ jobs:
             --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}" \
             --code_platform cpp \
             --key_file_encrypted scripts/gha-encrypted/gcs_key_file.json.gpg \
-            --passphrase "${{ secrets.TEST_SECRET }}"
+            --key_file_passphrase "${{ secrets.TEST_SECRET }}"
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
@@ -1277,7 +1277,7 @@ jobs:
             --logfile_name "ios-${{ matrix.build_os }}-${{ matrix.ios_device }}" \
             --code_platform cpp \
             --key_file_encrypted scripts/gha-encrypted/gcs_key_file.json.gpg \
-            --passphrase "${{ secrets.TEST_SECRET }}"
+            --key_file_passphrase "${{ secrets.TEST_SECRET }}"
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
