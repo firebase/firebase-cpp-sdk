@@ -199,6 +199,7 @@ set(app_desktop_SRCS
     src/invites/stub/invites_receiver_internal_stub.cc
     src/variant_util.cc
     src/heartbeat/heartbeat_storage_desktop.cc
+    src/heartbeat/heartbeat_controller_desktop.cc
     ${FIREBASE_GEN_FILE_DIR}/app/logged_heartbeats_generated.h)
 if(ANDROID)
   set(app_platform_SRCS

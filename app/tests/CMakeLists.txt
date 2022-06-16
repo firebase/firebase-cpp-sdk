@@ -168,6 +168,14 @@ firebase_cpp_cc_test(firebase_app_heartbeat_info_desktop_test
     firebase_app
 )
 
+firebase_cpp_cc_test(firebase_app_heartbeat_controller_desktop_test
+  SOURCES
+    heartbeat_controller_desktop_test.cc
+  DEPENDS
+    firebase_app
+    flatbuffers
+)
+
 firebase_cpp_cc_test(firebase_app_heartbeat_storage_desktop_test
   SOURCES
     heartbeat_storage_desktop_test.cc
