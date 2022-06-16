@@ -78,6 +78,7 @@ import attr
 from integration_testing import gcs
 from integration_testing import test_validation
 from print_matrix_configuration import TEST_DEVICES
+import restore_secrets
 
 _ANDROID = "android"
 _IOS = "ios"
@@ -93,6 +94,11 @@ flags.DEFINE_enum(
     " Used to choose the validation logic to process the log output.")
 flags.DEFINE_string(
     "key_file", None, "Path to key file authorizing use of the GCS bucket.")
+flags.DEFINE_string(
+    "key_file_encrypted", None, "Path to encrypted key file authorizing use "
+    "of the GCS bucket.")
+flags.DEFINE_string(
+    "passphrase", None, "Use with FLAG key_file_encrypted.")
 flags.DEFINE_string(
     "android_device", None,
     "Model_id and API_level for desired device. See module docstring for details "
@@ -127,7 +133,13 @@ def main(argv):
     raise app.UsageError("Too many command-line arguments.")
 
   testapp_dir = _fix_path(FLAGS.testapp_dir)
-  key_file_path = _fix_path(FLAGS.key_file)
+  if FLAGS.key_file:
+    key_file_path = _fix_path(FLAGS.key_file)
+  elif FLAGS.key_file_encrypted and FLAGS.passphrase:
+    key_file_encrypted_path = _fix_path(FLAGS.key_file_encrypted)
+    restore_secrets._decrypt(key_file_encrypted_path, FLAGS.passphrase)
+    key_file_path = key_file_encrypted_path.removesuffix(".gpg")
+  
   code_platform = FLAGS.code_platform
 
   if not os.path.exists(key_file_path):
