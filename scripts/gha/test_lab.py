@@ -395,5 +395,4 @@ class Device(object):
 if __name__ == "__main__":
   flags.mark_flag_as_required("testapp_dir")
   flags.mark_flag_as_required("code_platform")
-  flags.mark_flag_as_required("key_file")
   app.run(main)
