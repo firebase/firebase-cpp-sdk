@@ -28,8 +28,8 @@ on:
 
 env:
   # Packaging prerequisites
-  # Demumble 1.1.0 released Nov 13, 2018
-  demumbleVer: "1.1.0"
+  # Demumble 1.2.2 released May 18, 2020
+  demumbleVer: "1.2.2"
   # Use SHA256 for hashing files.
   hashCommand: "sha256sum"
   # Xcode version 13.3.1 is the version we build the SDK with.
@@ -543,6 +543,9 @@ jobs:
         run: |
           cd sdk-src
           python scripts/gha/install_prereqs_desktop.py --ssl boringssl
+          if [[ $(uname) == "Darwin"* ]]; then
+            
+          fi
           cd ..
 
       - name: postprocess and package built SDK
@@ -604,6 +607,34 @@ jobs:
         with:
           name: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package
           path: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package.tgz
+
+      - name: Check for unrenamed namespaces
+        shell: bash
+        run: |
+          if [[ "${{ matrix.sdk_platform }}" == "darwin" ]]; then
+            nm=bin/llvm-nm
+          else
+            nm=bin/nm*
+          fi
+          ${nm} `find firebase-cpp-sdk-*-package/libs/${{ matrix.sdk_platform }} -type f` | grep '^[0-9a-fA-F][0-9a-fA-F]* ' | cut -d' ' -f3- > raw_symbols.txt
+          if [[ "${{ matrix.sdk_platform }}" == "windows ]]; then
+            cat raw_symbols.txt | sort | uniq | bin/demumble | grep '^[a-zA-Z_]*::' > cpp_symbols.txt
+          elif [[ "${{ matrix.sdk_platform }}" == "darwin ]]; then
+            # remove leading _ on mach-o symbols
+            cat raw_symbols.txt | sort | uniq | sed 's/^_//' | bin/c++filt | grep '^[a-zA-Z_]*::' > cpp_symbols.txt
+          else  # linux
+            cat raw_symbols.txt | sort | uniq | bin/c++filt | grep '^[a-zA-Z_]*::' > cpp_symbols.txt
+          fi
+          # cpp_symbols.txt contains a list of all C++ symbols, sorted and deduped
+          # get a list of all top-level namespaces (except system namespaces)
+          cat cpp_symbols.txt | grep -v '^std::' | grep -v '^__gnu_cxx::' | cut -d: -f1 | sort | uniq > cpp_namespaces.txt
+          # Filter out the renamed namespaces (f_b_*) and the public namespace (firebase)
+          cat cpp_namespaces.txt | grep -v '^f_b_' | grep -v '^firebase$' | grep -v '^firestore$' > extra_namespaces.txt
+          # If there are any namespaces in this file, print an error.
+          if [[ -s extra_namespaces.txt ]]; then
+            echo '::error ::Unrenamed C++ namespaces in ${{ matrix.sdk_platform }}${{ matrix.suffix }} package:%0A'$(cat extra_namespaces.txt | tr '\n' ' ' | sed 's/ /%0A/g')
+            exit 1
+          fi
 
       - name: cleanup build artifacts
         if: |

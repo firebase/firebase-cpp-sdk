@@ -238,7 +238,7 @@ merge_libraries_params=(
     --demangle_cmds=${demangle_cmds}
     --platform=${platform}
     --auto_hide_cpp_namespaces
-    --ignore_cpp_namespaces=firebase
+    --ignore_cpp_namespaces=firebase,firestore
 )
 cache_param=--cache=${cache_file}
 
