@@ -154,7 +154,7 @@ jobs:
         with:
           repository: nico/demumble
           path: demumble-src
-          ref: v${{ env.demumbleVer }}
+          ref: ${{ env.demumbleVer }}
 
       - name: build demumble
         run: |
