@@ -208,29 +208,6 @@ readonly deps_hidden_firebase_firestore="
 */firestore-build/*/grpc-build/third_party/re2/*${subdir}${prefix}re2.${ext}
 "
 
-# List of C++ namespaces to be renamed, so as to not conflict with the
-# developer's own dependencies.
-readonly -a rename_namespaces=(flatbuffers flexbuffers reflection ZLib bssl uWS absl google
-                               base_raw_logging ConnectivityWatcher grpc
-                               grpc_access_token_credentials grpc_alts_credentials
-                               grpc_alts_server_credentials grpc_auth_context
-                               grpc_channel_credentials grpc_channel_security_connector
-                               grpc_chttp2_hpack_compressor grpc_chttp2_stream grpc_chttp2_transport
-                               grpc_client_security_context grpc_composite_call_credentials
-                               grpc_composite_channel_credentials grpc_core grpc_deadline_state
-                               grpc_google_default_channel_credentials grpc_google_iam_credentials
-                               grpc_google_refresh_token_credentials grpc_impl grpc_local_credentials
-                               grpc_local_server_credentials grpc_md_only_test_credentials
-                               grpc_message_compression_algorithm_for_level
-                               grpc_oauth2_token_fetcher_credentials grpc_plugin_credentials
-                               grpc_server_credentials grpc_server_security_connector
-                               grpc_server_security_context
-                               grpc_service_account_jwt_access_credentials grpc_ssl_credentials
-                               grpc_ssl_server_credentials grpc_tls_credential_reload_config
-                               grpc_tls_server_authorization_check_config GrpcUdpListener leveldb
-                               leveldb_filterpolicy_create_bloom leveldb_writebatch_iterate strings
-                               TlsCredentials TlsServerCredentials tsi snappy re2)
-
 # String to prepend to all hidden symbols.
 readonly rename_string=f_b_
 
@@ -260,7 +237,8 @@ merge_libraries_params=(
     --binutils_objcopy_cmd=${binutils_objcopy}
     --demangle_cmds=${demangle_cmds}
     --platform=${platform}
-    --hide_cpp_namespaces=$(echo "${rename_namespaces[*]}" | sed 's| |,|g')
+    --auto_hide_cpp_namespaces
+    --ignore_cpp_namespaces=firebase
 )
 cache_param=--cache=${cache_file}
 
