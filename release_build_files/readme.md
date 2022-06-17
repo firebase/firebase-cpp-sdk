@@ -615,6 +615,9 @@ code.
 -   Changes
     - General (Android): Switched over to Android BoM (Bill of Materials)
       for dependency versions. This requires Gradle 5.
+    - General (Desktop): Fixed an issue with embedded dependencies that could
+      cause duplicate symbol linker errors in conjunction with other libraries
+      ([#989](https://github.com/firebase/firebase-cpp-sdk/issues/989)).
 
 ### 9.1.0
 -   Changes
