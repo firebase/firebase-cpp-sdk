@@ -67,25 +67,6 @@ public class RegistrationIntentService extends JobIntentService {
     sizeBuffer.order(ByteOrder.LITTLE_ENDIAN);
     sizeBuffer.putInt(buffer.length);
 
-    // try (FileOutputStream lockFileStream = context.openFileOutput(MessageWriter.LOCK_FILE, 0)) {
-    //   // Acquire lock. This prevents the C++ code from consuming and clearing the file while we
-    //   // append to it.
-    //   try (FileLock lock = lockFileStream.getChannel().lock()) {
-    //     try (FileOutputStream outputStream =
-    //             context.openFileOutput(MessageWriter.STORAGE_FILE, Context.MODE_APPEND)) {
-    //       // We send both the buffer length and the buffer itself so that we can potentially
-    //       // process more than one event in the case where they get queued up.
-    //       outputStream.write(sizeBuffer.array());
-    //       outputStream.write(buffer);
-    //     } catch (Exception e) {
-    //         e.printStackTrace();
-    //     }
-    //   } catch (Exception e) {
-    //       e.printStackTrace();
-    //   }
-    // } catch (Exception e) {
-    //     e.printStackTrace();
-    // }
     try (FileOutputStream lockFileStream = context.openFileOutput(MessageWriter.LOCK_FILE, 0);
          // Acquire lock. This prevents the C++ code from consuming and clearing the file while we
          // append to it.
