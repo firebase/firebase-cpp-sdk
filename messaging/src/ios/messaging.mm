@@ -180,7 +180,6 @@ Future<void> RequestPermission() {
   FIREBASE_ASSERT_RETURN(RequestPermissionLastResult(), internal::IsInitialized());
 
   if (RequestPermissionLastResult().status() == kFutureStatusPending) {
-    LogError("Status is pending. Return the pending future.");
     return RequestPermissionLastResult();
   }
 
