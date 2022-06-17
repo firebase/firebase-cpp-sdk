@@ -137,8 +137,10 @@ def main(argv):
     key_file_path = _fix_path(FLAGS.key_file)
   elif FLAGS.key_file_encrypted and FLAGS.key_file_passphrase:
     key_file_encrypted_path = _fix_path(FLAGS.key_file_encrypted)
-    restore_secrets._decrypt(key_file_encrypted_path, FLAGS.key_file_passphrase)
+    decrypted_text = restore_secrets._decrypt(key_file_encrypted_path, FLAGS.key_file_passphrase)
     key_file_path = key_file_encrypted_path.replace(".gpg", "")
+    with open(key_file_path, "w") as f:
+      f.write(decrypted_text)
   
   code_platform = FLAGS.code_platform
 
