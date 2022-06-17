@@ -104,8 +104,8 @@ flags.DEFINE_string("force_binutils_target", None, "Force all binutils calls to 
                     "will autodetect target format. If you want to specify "
                     "different input and output formats, separate them with a comma.")
 
-# Never rename 'std::' by default when --auto_hide_cpp_namespaces is enabled.
-IMPLICIT_CPP_NAMESPACES_TO_IGNORE = {"std"}
+# Never rename system namespaces by default when --auto_hide_cpp_namespaces is enabled.
+IMPLICIT_CPP_NAMESPACES_TO_IGNORE = {"std", "__gnu_cxx"}
 
 DEFAULT_ENCODING = "ascii"
 
