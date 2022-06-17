@@ -615,6 +615,8 @@ code.
 -   Changes
     - General (Android): Switched over to Android BoM (Bill of Materials)
       for dependency versions. This requires Gradle 5.
+    - Database (Desktop): If the app data directory doesn't exist, create it.
+      This fixes an issue with disk persistence on Linux.
     - Messaging (Android): Fixed #973. Make sure all the resources are closed in
       `RegistrationIntentService`.
 
