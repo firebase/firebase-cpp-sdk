@@ -548,10 +548,10 @@ jobs:
         run: |
           cd sdk-src
           python scripts/gha/install_prereqs_desktop.py --ssl boringssl
-          if [[ $(uname) == "Darwin"* ]]; then
-            
-          fi
           cd ..
+          if [[ $(uname) == "Darwin"* ]]; then
+            brew install parallel
+          fi
 
       - name: postprocess and package built SDK
         run: |
