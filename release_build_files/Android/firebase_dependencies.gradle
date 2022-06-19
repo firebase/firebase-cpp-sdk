@@ -128,7 +128,7 @@ project.afterEvaluate {
       firebaseCpp.dependencies.libSet.add('play_services')
     }
 
-    // Add the bill-of-materials
+      // Add the bill-of-materials
     project.dependencies {
       implementation platform('com.google.firebase:firebase-bom:30.1.0')
     }
