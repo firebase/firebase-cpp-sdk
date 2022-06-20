@@ -15,6 +15,7 @@
  */
 
 #include "app/src/app_common.h"
+#include "app/src/heartbeat/date_provider.h"
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/logger.h"
 
@@ -25,8 +26,9 @@
 namespace firebase {
 namespace heartbeat {
 
-HeartbeatController::HeartbeatController(const std::string& app_id, const Logger& logger)
-  :storage_(app_id, logger), scheduler_(), last_logged_date_("")
+HeartbeatController::HeartbeatController(
+  const std::string& app_id, const Logger& logger, const DateProvider& date_provider)
+  : storage_(app_id, logger), scheduler_(), last_logged_date_(""), date_provider_(date_provider)
 {}
 
 HeartbeatController::~HeartbeatController() {}
@@ -35,7 +37,7 @@ void HeartbeatController::LogHeartbeat() {
   std::string user_agent = App::GetUserAgent();
 
   std::function<void(void)> log_heartbeat_funct = [&, user_agent]() {
-    std::string current_date = GetCurrentDate();
+    std::string current_date = date_provider_.GetDate();
     // Return early if a heartbeat has already been logged today.
     if (this->last_logged_date_ == current_date) {
       return;
@@ -57,14 +59,6 @@ void HeartbeatController::LogHeartbeat() {
   };
 
   scheduler_.Schedule(log_heartbeat_funct);
-}
-
-std::string HeartbeatController::GetCurrentDate() {
-  std::time_t t = std::time(nullptr);
-  std::tm* tm = std::localtime(&t);
-  std::ostringstream ss;
-  ss << std::put_time(tm, "%Y-%m-%d");
-  return ss.str();
 }
 
 }  // namespace heartbeat

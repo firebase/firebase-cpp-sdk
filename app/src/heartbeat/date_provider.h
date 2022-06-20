@@ -14,34 +14,25 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_SRC_HEARTBEAT_HEARTBEAT_CONTROLLER_DESKTOP_H_
-#define FIREBASE_APP_SRC_HEARTBEAT_HEARTBEAT_CONTROLLER_DESKTOP_H_
+#ifndef FIREBASE_APP_SRC_HEARTBEAT_DATE_PROVIDER_H_
+#define FIREBASE_APP_SRC_HEARTBEAT_DATE_PROVIDER_H_
 
 #include <string>
-#include "app/src/logger.h"
-#include "app/src/heartbeat/heartbeat_storage_desktop.h"
-#include "app/src/scheduler.h"
 
 namespace firebase {
 namespace heartbeat {
 
-class HeartbeatController {
+class DateProvider {
   public:
-    HeartbeatController(const std::string& app_id, const Logger& logger, const DateProvider& date_provider_);
-    ~HeartbeatController();
+    virtual std::string GetDate() const = 0;
+};
 
-    // Asynchronously log a heartbeat, if needed
-    void LogHeartbeat();
-
-  private:
-    HeartbeatStorageDesktop storage_;
-    scheduler::Scheduler scheduler_;
-    const DateProvider& date_provider_;
-
-    std::string last_logged_date_;
+class DateProviderImpl : DateProvider {
+  public:
+    std::string GetDate() const override;
 };
 
 }  // namespace heartbeat
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_SRC_HEARTBEAT_HEARTBEAT_CONTROLLER_DESKTOP_H_
+#endif  // FIREBASE_APP_CLIENT_CPP_SRC_SECURE_USER_SECURE_INTERNAL_H_

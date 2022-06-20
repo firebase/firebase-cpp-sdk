@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
+#include "app/src/heartbeat/date_provider.h"
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/heartbeat/heartbeat_storage_desktop.h"
 #include "app/src/logger.h"
 #include "gtest/gtest.h"
+#include "gmock/gmock.h"
 
 #include <string>
 #include <sstream>
@@ -30,34 +32,38 @@ using firebase::heartbeat::HeartbeatController;
 using firebase::heartbeat::HeartbeatStorageDesktop;
 using firebase::heartbeat::LoggedHeartbeats;
 
+class MockDateProvider : public heartbeat::DateProvider {
+ public:
+  MOCK_METHOD(std::string, GetDate, (), (const override));
+};
 
 class HeartbeatControllerDesktopTest : public ::testing::Test {
  public:
-  HeartbeatControllerDesktopTest() : logger_(nullptr), app_id_("app_id"), storage_("app_id", logger_) {
+  HeartbeatControllerDesktopTest() :
+      mock_date_provider_(),
+      logger_(nullptr),
+      app_id_("app_id"),
+      storage_("app_id", logger_),
+      controller_("app_id", logger_, mock_date_provider_) {
     // For the sake of testing, clear any pre-existing stored heartbeats.
     LoggedHeartbeats empty_heartbeats_struct;
     storage_.Write(empty_heartbeats_struct);
   }
 
  protected:
-  HeartbeatStorageDesktop storage_;
-  std::string app_id_;
+  MockDateProvider mock_date_provider_;
   Logger logger_;
-
-  // TODO: Provide a way to mock out the current time/date provider for testing.
-  std::string GetCurrentDate() {
-    std::time_t t = std::time(nullptr);
-    std::tm* tm = std::localtime(&t);
-    std::ostringstream ss;
-    ss << std::put_time(tm, "%Y-%m-%d");
-    return ss.str();
-  }
+  std::string app_id_;
+  HeartbeatStorageDesktop storage_;
+  HeartbeatController controller_;
 };
 
 TEST_F(HeartbeatControllerDesktopTest, WriteAndRead) {
-  HeartbeatController controller(app_id_, logger_);
+  std::string today = "2000-01-23";
+  EXPECT_CALL(mock_date_provider_, GetDate()).Times(1).WillOnce(testing::Return(today));
+
   // TODO: for the sake of testing, clear any pre-existing stored heartbeats.
-  controller.LogHeartbeat();
+  controller_.LogHeartbeat();
   // Since LogHeartbeat is done asynchronously, wait a bit before verifying that the log succeeded.
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   
@@ -65,7 +71,6 @@ TEST_F(HeartbeatControllerDesktopTest, WriteAndRead) {
   LoggedHeartbeats read_heartbeats;
   bool read_ok = storage_.ReadTo(read_heartbeats);
   ASSERT_TRUE(read_ok);
-  std::string today = GetCurrentDate();
   ASSERT_EQ(read_heartbeats.last_logged_date, today);
   ASSERT_EQ(read_heartbeats.heartbeats.size(), 1);
   for(auto const& entry: read_heartbeats.heartbeats) {
@@ -77,6 +82,61 @@ TEST_F(HeartbeatControllerDesktopTest, WriteAndRead) {
   }
 }
 
+TEST_F(HeartbeatControllerDesktopTest, LogSameDateTwiceOneEntry) {
+  std::string today = "2000-01-23";
+  EXPECT_CALL(mock_date_provider_, GetDate()).Times(2).WillRepeatedly(testing::Return(today));
+
+  // TODO: for the sake of testing, clear any pre-existing stored heartbeats.
+  controller_.LogHeartbeat();
+  controller_.LogHeartbeat();
+  // Since LogHeartbeat is done asynchronously, wait a bit before verifying that the log succeeded.
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  
+  // Read from the storage class to verify
+  LoggedHeartbeats read_heartbeats;
+  bool read_ok = storage_.ReadTo(read_heartbeats);
+  ASSERT_TRUE(read_ok);
+  ASSERT_EQ(read_heartbeats.last_logged_date, today);
+  ASSERT_EQ(read_heartbeats.heartbeats.size(), 1);
+  for(auto const& entry: read_heartbeats.heartbeats) {
+    std::string user_agent = entry.first;
+    // TODO: Verify that the user agent contains some known substring
+    std::vector<std::string> dates = entry.second;
+    ASSERT_EQ(dates.size(), 1);
+    EXPECT_EQ(dates[0], today);
+  }
+}
+
+TEST_F(HeartbeatControllerDesktopTest, LogTwoDatesTwoEntries) {
+  std::string day1 = "2000-01-23";
+  std::string day2 = "2000-01-24";
+  EXPECT_CALL(mock_date_provider_, GetDate()).Times(2)
+    .WillOnce(testing::Return(day1)).WillOnce(testing::Return(day2));
+
+  // TODO: for the sake of testing, clear any pre-existing stored heartbeats.
+  controller_.LogHeartbeat();
+  controller_.LogHeartbeat();
+  // Since LogHeartbeat is done asynchronously, wait a bit before verifying that the log succeeded.
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  
+  // Read from the storage class to verify
+  LoggedHeartbeats read_heartbeats;
+  bool read_ok = storage_.ReadTo(read_heartbeats);
+  ASSERT_TRUE(read_ok);
+  ASSERT_EQ(read_heartbeats.last_logged_date, day2);
+  ASSERT_EQ(read_heartbeats.heartbeats.size(), 1);
+  for(auto const& entry: read_heartbeats.heartbeats) {
+    std::string user_agent = entry.first;
+    // TODO: Verify that the user agent contains some known substring
+    std::vector<std::string> dates = entry.second;
+    ASSERT_EQ(dates.size(), 2);
+    EXPECT_EQ(dates[0], day1);
+    EXPECT_EQ(dates[1], day2);
+  }
+}
+
+// TODO: add a unit test for the actual implementation of date provider
+// Basically just verify length of the string and that certain characters are hyphens
 
 }  // namespace
 }  // namespace firebase
