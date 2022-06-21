@@ -78,88 +78,91 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:30.1.0)
+|                          | (Android Bill of Materials)
 Firebase AdMob             | libfirebase_admob.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:21.0.0 
+|                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-ads:19.8.0 
-|                          | (Maven package)
-|                          | com.google.android.gms:play-services-base:18.0.1 
+|                          | com.google.firebase:firebase-ads:19.8.0
 |                          | (Maven package)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:21.0.0 
+|                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
 Firebase Authentication    | libfirebase_auth.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:21.0.0 
+|                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-auth:21.0.5 
+|                          | com.google.firebase:firebase-auth
 |                          | (Maven package)
 Firebase Dynamic Links     | libfirebase_dynamic_links.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:21.0.0 
+|                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-dynamic-links:21.0.1
+|                          | com.google.firebase:firebase-dynamic-links
 |                          | (Maven package)
 Cloud Firestore            | libfirebase_firestore.a
 |                          | libfirebase_auth.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:21.0.0
+|                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-firestore:24.1.2
+|                          | com.google.firebase:firebase-firestore
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-auth:21.0.5
+|                          | com.google.firebase:firebase-auth
 |                          | (Maven package)
 Firebase Functions         | libfirebase_functions
 |                          | libfirebase_auth.a (optional)
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:21.0.0
+|                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-functions:20.1.0
+|                          | com.google.firebase:firebase-functions
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-auth:21.0.5
+|                          | com.google.firebase:firebase-auth
 |                          | (Maven package)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-installations:17.0.1
+|                          | com.google.firebase:firebase-installations
 |                          | (Maven package)
 Firebase Messaging         | libfirebase_messaging.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:21.0.0
+|                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-messaging:23.0.5
+|                          | com.google.firebase:firebase-messaging
 |                          | (Maven package)
 |                          | libmessaging_java.jar (Android service)
-|                          | androidx.core:core:1.7.0  (Maven package)
+|                          | androidx.core:core:1.8.0  (Maven package)
 Firebase Realtime Database | libfirebase_database.a
 |                          | libfirebase_auth.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:21.0.0
+|                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-database:20.0.5
+|                          | com.google.firebase:firebase-database
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-auth:21.0.5
+|                          | com.google.firebase:firebase-auth
 |                          | (Maven package)
 Firebase Remote Config     | libfirebase_remote_config.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:21.0.0
+|                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-config:21.1.0
+|                          | com.google.firebase:firebase-config
 |                          | (Maven package)
 Firebase Storage           | libfirebase_storage.a
 |                          | libfirebase_auth.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics:21.0.0
+|                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-storage:20.0.1
+|                          | com.google.firebase:firebase-storage
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-auth:21.0.5
+|                          | com.google.firebase:firebase-auth
+|                          | (Maven package)
+Google Play services module| com.google.android.gms:play-services-base:18.0.1
 |                          | (Maven package)
 
-Important: Each version of the Firebase C++ SDK supports specific Firebase
-Android SDK module versions. Please ensure that you reference the correct
-version of each Maven package listed above in your Gradle file.
+The Firebase C++ SDK uses an Android BoM (Bill of Materials) to specify a single
+Firebase Android SDK version number to use, rather than individual versions for
+each library. For more information, please see the [Firebase Android SDK
+documentation](https://firebase.google.com/docs/android/learn-more#bom).
 
 Note: AdMob C++ is not currently compatible with the latest Firebase AdMob
 Android SDK (20.x.x). Please ensure that you use firebase-ads version 19.8.0 in
@@ -169,10 +172,10 @@ compatibility.
 #### Gradle dependency file
 
 Firebase C++ includes an `Android/firebase_dependencies.gradle` file
-that helps you include the correct Android dependencies and native C++
-libraries for each Firebase product. To use it, include the following
-in your build.gradle file (you can omit any Firebase products you
-aren't using):
+that helps you include the correct Android dependencies and Proguard
+files for each Firebase product. To use it, include the following in
+your build.gradle file (you can omit any Firebase products you aren't
+using):
 
 ```
 apply from: "$gradle.firebase_cpp_sdk_dir/Android/firebase_dependencies.gradle"
@@ -191,6 +194,16 @@ firebaseCpp.dependencies {
   storage
 }
 ```
+
+#### Google Play services module
+
+If you wish to use the `google_play_services::CheckAvailability` and
+`MakeAvailable` functions, or `firebase::ModuleInitializer`, you must include
+com.google.android.gms:play-services-base as a dependency as well, as listed
+under "Google Play services module" in the table above. If you use the Gradle
+dependency file described above, this dependency will automatically be included.
+To omit it (not recommended), specify `appWithoutPlayServices` instead of `app`
+in `firebaseCpp.dependencies`.
 
 ### iOS Dependencies
 
@@ -598,6 +611,15 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+-   Changes
+    - General (Android): Switched over to Android BoM (Bill of Materials)
+      for dependency versions. This requires Gradle 5.
+    - Database (Desktop): If the app data directory doesn't exist, create it.
+      This fixes an issue with disk persistence on Linux.
+    - Messaging (Android): Fixed #973. Make sure all the resources are closed in
+      `RegistrationIntentService`.
+
 ### 9.1.0
 -   Changes
     - General (Android): Fixed a bug that required Android apps to include
@@ -692,16 +714,16 @@ code.
         and include support for ARM-based Mac systems.
     -   General (iOS): iOS SDKs are now built using Xcode 12.2.
     -   Messaging (Android): Fixes an issue to receive token when
-        initialize the app. 
+        initialize the app.
         ([#667](https://github.com/firebase/firebase-cpp-sdk/pull/667)).
     -   Auth (Desktop): Fix a crash that would occur if parsing the JSON
         response from the server failed
         ([#692](https://github.com/firebase/firebase-cpp-sdk/pull/692)).
-        
+
 ### 8.5.0
 -   Changes
     -   General: Updating Android and iOS dependencies to the latest.
-    -   General: Fixes an issue with generating Proguard files. 
+    -   General: Fixes an issue with generating Proguard files.
         ([#664](https://github.com/firebase/firebase-cpp-sdk/pull/664)).
 
 ### 8.4.0
