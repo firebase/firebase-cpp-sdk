@@ -137,5 +137,39 @@ TEST_F(HeartbeatControllerDesktopTest, LogTwoDatesTwoEntries) {
   }
 }
 
+TEST_F(HeartbeatControllerDesktopTest, LogMoreThan30DaysRemovesOldEntries) {
+  {
+    // InSequence guarantees that all of the expected calls occur in order.
+    testing::InSequence seq;
+    for (int month = 1; month <= 3; month++) {
+      for (int day = 1; day <= 30; day++) {
+        // YYYY-MM-DD\0
+        char date[11];
+        sprintf(date, "2000-%02d-%02d", month, day);
+        std::string date_string(date);
+        EXPECT_CALL(mock_date_provider_, GetDate()).WillOnce(Return(date_string));
+      }
+    }
+  }
+  for (int i = 1; i <= 90; i++) {
+    controller_.LogHeartbeat();
+  }
+  // Since LogHeartbeat is done asynchronously, wait a bit before verifying that the log succeeded.
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+  // Read from the storage class to verify
+  LoggedHeartbeats read_heartbeats;
+  bool read_ok = storage_.ReadTo(read_heartbeats);
+  ASSERT_TRUE(read_ok);
+  ASSERT_EQ(read_heartbeats.last_logged_date, "2000-03-30");
+  ASSERT_EQ(read_heartbeats.heartbeats.size(), 1);
+  for (auto const& entry : read_heartbeats.heartbeats) {
+    std::vector<std::string> dates = entry.second;
+    ASSERT_EQ(dates.size(), 30);
+    EXPECT_EQ(dates[0], "2000-03-01");
+    EXPECT_EQ(dates[29], "2000-03-30");
+  }
+}
+
 }  // namespace
 }  // namespace firebase
