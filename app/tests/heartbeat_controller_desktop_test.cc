@@ -190,7 +190,7 @@ TEST_F(HeartbeatControllerDesktopTest, LogMoreThan30DaysRemovesOldEntries) {
       for (int day = 1; day <= 30; day++) {
         // YYYY-MM-DD\0
         char date[11];
-        snprintf(date, 11, "2000-%02d-%02d", month, day);
+        snprintf(date, sizeof(date), "2000-%02d-%02d", month, day);
         std::string date_string(date);
         EXPECT_CALL(mock_date_provider_, GetDate()).WillOnce(Return(date_string));
       }
