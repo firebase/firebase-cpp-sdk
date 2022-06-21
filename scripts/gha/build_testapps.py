@@ -459,7 +459,7 @@ def _collect_integration_tests(testapps, root_output_dir, output_dir, artifact_n
       if testapp in path:
         if os.path.isfile(path):
           shutil.copy(path, os.path.join(artifact_path, testapp))
-          if path.endswith(desktop_testapp_name):
+          if path.endswith(desktop_testapp_name) and testapp_google_services.get(testapp):
             shutil.copy(testapp_google_services[testapp], os.path.join(artifact_path, testapp))
         else:
           dir_util.copy_tree(path, os.path.join(artifact_path, testapp, os.path.basename(path)))
