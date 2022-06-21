@@ -198,6 +198,7 @@ set(app_desktop_SRCS
     src/heartbeat_info_desktop.cc
     src/invites/stub/invites_receiver_internal_stub.cc
     src/variant_util.cc
+    src/heartbeat/date_provider.cc
     src/heartbeat/heartbeat_storage_desktop.cc
     src/heartbeat/heartbeat_controller_desktop.cc
     ${FIREBASE_GEN_FILE_DIR}/app/logged_heartbeats_generated.h)

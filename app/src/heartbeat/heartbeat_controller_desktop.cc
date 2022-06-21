@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
-#include "app/src/app_common.h"
-#include "app/src/heartbeat/date_provider.h"
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
-#include "app/src/logger.h"
 
 #include <string>
 #include <sstream>
 #include <iomanip>
+
+#include "app/src/app_common.h"
+#include "app/src/heartbeat/date_provider.h"
+#include "app/src/logger.h"
 
 namespace firebase {
 namespace heartbeat {

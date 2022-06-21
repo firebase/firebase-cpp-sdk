@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
+#include <string>
+
 #include "app/src/heartbeat/date_provider.h"
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/heartbeat/heartbeat_storage_desktop.h"
 #include "app/src/logger.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
-
-#include <string>
-#include <sstream>
-#include <iomanip>
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace {
@@ -31,6 +29,8 @@ namespace {
 using firebase::heartbeat::HeartbeatController;
 using firebase::heartbeat::HeartbeatStorageDesktop;
 using firebase::heartbeat::LoggedHeartbeats;
+using ::testing::MatchesRegex;
+using ::testing::Return;
 
 class MockDateProvider : public heartbeat::DateProvider {
  public:
@@ -58,22 +58,28 @@ class HeartbeatControllerDesktopTest : public ::testing::Test {
   HeartbeatController controller_;
 };
 
-TEST_F(HeartbeatControllerDesktopTest, WriteAndRead) {
-  std::string today = "2000-01-23";
-  EXPECT_CALL(mock_date_provider_, GetDate()).Times(1).WillOnce(testing::Return(today));
+TEST_F(HeartbeatControllerDesktopTest, DateProvider) {
+  firebase::heartbeat::DateProviderImpl actualDateProvider;
+  std::string date = actualDateProvider.GetDate();
+  // Verify that the date is in the form YYYY-MM-DD
+  EXPECT_THAT(date, MatchesRegex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$"));
+}
 
-  // TODO: for the sake of testing, clear any pre-existing stored heartbeats.
+TEST_F(HeartbeatControllerDesktopTest, LogSingleHeartbeat) {
+  std::string today = "2000-01-23";
+  EXPECT_CALL(mock_date_provider_, GetDate()).Times(1).WillOnce(Return(today));
+
   controller_.LogHeartbeat();
   // Since LogHeartbeat is done asynchronously, wait a bit before verifying that the log succeeded.
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-  
+
   // Read from the storage class to verify
   LoggedHeartbeats read_heartbeats;
   bool read_ok = storage_.ReadTo(read_heartbeats);
   ASSERT_TRUE(read_ok);
   ASSERT_EQ(read_heartbeats.last_logged_date, today);
   ASSERT_EQ(read_heartbeats.heartbeats.size(), 1);
-  for(auto const& entry: read_heartbeats.heartbeats) {
+  for (auto const& entry : read_heartbeats.heartbeats) {
     std::string user_agent = entry.first;
     // TODO: Verify that the user agent contains some known substring
     std::vector<std::string> dates = entry.second;
@@ -84,23 +90,21 @@ TEST_F(HeartbeatControllerDesktopTest, WriteAndRead) {
 
 TEST_F(HeartbeatControllerDesktopTest, LogSameDateTwiceOneEntry) {
   std::string today = "2000-01-23";
-  EXPECT_CALL(mock_date_provider_, GetDate()).Times(2).WillRepeatedly(testing::Return(today));
+  EXPECT_CALL(mock_date_provider_, GetDate()).Times(2).WillRepeatedly(Return(today));
 
-  // TODO: for the sake of testing, clear any pre-existing stored heartbeats.
   controller_.LogHeartbeat();
   controller_.LogHeartbeat();
   // Since LogHeartbeat is done asynchronously, wait a bit before verifying that the log succeeded.
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-  
+
   // Read from the storage class to verify
   LoggedHeartbeats read_heartbeats;
   bool read_ok = storage_.ReadTo(read_heartbeats);
   ASSERT_TRUE(read_ok);
   ASSERT_EQ(read_heartbeats.last_logged_date, today);
   ASSERT_EQ(read_heartbeats.heartbeats.size(), 1);
-  for(auto const& entry: read_heartbeats.heartbeats) {
+  for (auto const& entry : read_heartbeats.heartbeats) {
     std::string user_agent = entry.first;
-    // TODO: Verify that the user agent contains some known substring
     std::vector<std::string> dates = entry.second;
     ASSERT_EQ(dates.size(), 1);
     EXPECT_EQ(dates[0], today);
@@ -111,32 +115,26 @@ TEST_F(HeartbeatControllerDesktopTest, LogTwoDatesTwoEntries) {
   std::string day1 = "2000-01-23";
   std::string day2 = "2000-01-24";
   EXPECT_CALL(mock_date_provider_, GetDate()).Times(2)
-    .WillOnce(testing::Return(day1)).WillOnce(testing::Return(day2));
+    .WillOnce(Return(day1)).WillOnce(Return(day2));
 
-  // TODO: for the sake of testing, clear any pre-existing stored heartbeats.
   controller_.LogHeartbeat();
   controller_.LogHeartbeat();
   // Since LogHeartbeat is done asynchronously, wait a bit before verifying that the log succeeded.
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-  
+
   // Read from the storage class to verify
   LoggedHeartbeats read_heartbeats;
   bool read_ok = storage_.ReadTo(read_heartbeats);
   ASSERT_TRUE(read_ok);
   ASSERT_EQ(read_heartbeats.last_logged_date, day2);
   ASSERT_EQ(read_heartbeats.heartbeats.size(), 1);
-  for(auto const& entry: read_heartbeats.heartbeats) {
-    std::string user_agent = entry.first;
-    // TODO: Verify that the user agent contains some known substring
+  for (auto const& entry : read_heartbeats.heartbeats) {
     std::vector<std::string> dates = entry.second;
     ASSERT_EQ(dates.size(), 2);
     EXPECT_EQ(dates[0], day1);
     EXPECT_EQ(dates[1], day2);
   }
 }
-
-// TODO: add a unit test for the actual implementation of date provider
-// Basically just verify length of the string and that certain characters are hyphens
 
 }  // namespace
 }  // namespace firebase

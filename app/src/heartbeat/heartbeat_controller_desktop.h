@@ -18,7 +18,9 @@
 #define FIREBASE_APP_SRC_HEARTBEAT_HEARTBEAT_CONTROLLER_DESKTOP_H_
 
 #include <string>
+
 #include "app/src/logger.h"
+#include "app/src/heartbeat/date_provider.h"
 #include "app/src/heartbeat/heartbeat_storage_desktop.h"
 #include "app/src/scheduler.h"
 

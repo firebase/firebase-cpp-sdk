@@ -14,10 +14,16 @@
  * limitations under the License.
  */
 
+#include "app/src/heartbeat/date_provider.h"
+
+#include <string>
+#include <sstream>
+#include <iomanip>
+
 namespace firebase {
 namespace heartbeat {
 
-std::string DateProviderImpl::GetDate() {
+std::string DateProviderImpl::GetDate() const {
   std::time_t t = std::time(nullptr);
   std::tm* tm = std::localtime(&t);
   std::ostringstream ss;

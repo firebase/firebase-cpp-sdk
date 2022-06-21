@@ -35,4 +35,4 @@ class DateProviderImpl : DateProvider {
 }  // namespace heartbeat
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_SECURE_USER_SECURE_INTERNAL_H_
+#endif  // FIREBASE_APP_SRC_HEARTBEAT_DATE_PROVIDER_H_
