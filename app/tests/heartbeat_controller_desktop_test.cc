@@ -81,7 +81,8 @@ TEST_F(HeartbeatControllerDesktopTest, LogSingleHeartbeat) {
   ASSERT_EQ(read_heartbeats.heartbeats.size(), 1);
   for (auto const& entry : read_heartbeats.heartbeats) {
     std::string user_agent = entry.first;
-    // TODO: Verify that the user agent contains some known substring
+    // TODO: Initialize firebase app and verify that the user agent contains some known substring
+    // Otherwise user_agent appears to be an empty string
     std::vector<std::string> dates = entry.second;
     ASSERT_EQ(dates.size(), 1);
     EXPECT_EQ(dates[0], today);

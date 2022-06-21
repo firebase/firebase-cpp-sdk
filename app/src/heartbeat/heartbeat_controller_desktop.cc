@@ -45,15 +45,23 @@ void HeartbeatController::LogHeartbeat() {
     }
     LoggedHeartbeats logged_heartbeats;
     bool read_succeeded = this->storage_.ReadTo(logged_heartbeats);
-    // TODO: handle read failure
+    // If read fails, don't attempt to write. Note that corrupt or nonexistent data should
+    // return an empty heartbeat instance and indicate successful read.
+    if (!read_succeeded) {
+      return;
+    }
     // If last logged timestamp is not todays date, add a heartbeat
     if (logged_heartbeats.last_logged_date != current_date) {
       logged_heartbeats.last_logged_date = current_date;
       logged_heartbeats.heartbeats[user_agent].push_back(current_date);
-      // TODO: remove any old heartbeats (30 days old)
+      // Don't store more than 30 days for the same user agent
+      if (logged_heartbeats.heartbeats[user_agent].size() > 30) {
+        logged_heartbeats.heartbeats[user_agent].erase(
+          logged_heartbeats.heartbeats[user_agent].begin());
+      }
     }
     bool write_succeeded = this->storage_.Write(logged_heartbeats);
-    // TODO: handle write failure
+    // Only update last-logged date if the write succeeds.
     if (write_succeeded) {
       this->last_logged_date_ = current_date;
     }
