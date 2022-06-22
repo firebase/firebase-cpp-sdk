@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_GMA_SRC_COMMON_AD_RESULT_INTERNAL_H_
-#define FIREBASE_GMA_SRC_COMMON_AD_RESULT_INTERNAL_H_
+#ifndef FIREBASE_GMA_SRC_COMMON_AD_ERROR_INTERNAL_H_
+#define FIREBASE_GMA_SRC_COMMON_AD_ERROR_INTERNAL_H_
 
 #include <string>
 
@@ -84,4 +84,4 @@ struct AdErrorInternal {
 }  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_GMA_SRC_COMMON_AD_RESULT_INTERNAL_H_
+#endif  // FIREBASE_GMA_SRC_COMMON_AD_ERROR_INTERNAL_H_
