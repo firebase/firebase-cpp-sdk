@@ -10,6 +10,7 @@ on *iOS* and *Android*:
 *   Firebase Dynamic Links
 *   Cloud Firestore
 *   Firebase Functions
+*   Google Mobile Ads
 *   Firebase Installations
 *   Firebase Instance ID (deprecated SDK)
 *   Firebase Realtime Database
@@ -120,6 +121,12 @@ Firebase Functions         | libfirebase_functions
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-auth
 |                          | (Maven package)
+Firebase Google Mobile Ads | libfirebase_gma.a
+|                          | libfirebase_app.a
+|                          | com.google.firebase:firebase-analytics
+|                          | (Maven package)
+|                          | com.google.android.gms:play-services-ads:21.0.0
+|                          | (Maven package)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-installations
@@ -188,6 +195,7 @@ firebaseCpp.dependencies {
   dynamicLinks
   firestore
   functions
+  gma
   installations
   messaging
   remoteConfig
@@ -237,6 +245,10 @@ Firebase Functions         | firebase_functions.xcframework
 |                          | firebase.xcframework
 |                          | Firebase/Functions Cocoapod (9.1.0)
 |                          | Firebase/Auth Cocoapod (9.1.0)
+Firebase Google Mobile Ads | firebase_gma.xcframework
+|                          | firebase.xcframework
+|                          | Firebase/Analytics Cocoapod (9.1.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (9.4.0)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
 |                          | FirebaseInstallations Cocoapod (9.1.0)
@@ -301,6 +313,10 @@ Firebase Functions         | libfirebase_functions.a
 |                          | libfirebase_auth.a (optional)
 |                          | Firebase/Functions Cocoapod (9.1.0)
 |                          | Firebase/Auth Cocoapod (9.1.0)
+Firebase Google Mobile Ads | libfirebase_gma.a
+|                          | libfirebase_app.a
+|                          | Firebase/Analytics Cocoapod (9.1.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (9.4.0)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
 |                          | FirebaseInstallations Cocoapod (9.1.0)
@@ -412,6 +428,8 @@ Firebase Analytics (stub)       | firebase_analytics.framework
 |                               | firebase.framework
 Firebase Dynamic Links (stub)   | firebase_dynamic_links.framework
 |                               | firebase.framework
+Firebase Google Mobile Ads      | libfirebase_gma.a
+| (stub)                        | libfirebase_app.a
 Firebase Installations (stub)   | firebase_installations.framework
 |                               | firebase.framework
 Firebase Cloud Messaging (stub) | firebase_messaging.framework
@@ -618,6 +636,10 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
+    - GMA: Added the Google Mobile Ads SDK with updated support for AdMob. See
+      the [Get Started
+      Guide](https://firebase.google.com/docs/admob/cpp/quick-start) for more
+      information.
     - General (Android): Switched over to Android BoM (Bill of Materials)
       for dependency versions. This requires Gradle 5.
     - Database (Desktop): If the app data directory doesn't exist, create it.
