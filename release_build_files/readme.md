@@ -3,13 +3,14 @@
 The Firebase C++ SDK provides C++ interfaces for the following Firebase services
 on *iOS* and *Android*:
 
-*   AdMob
+*   AdMob (deprecated - use Google Mobile Ads instead)
 *   Firebase Analytics
 *   Firebase Authentication
 *   Firebase Cloud Messaging
 *   Firebase Dynamic Links
 *   Cloud Firestore
 *   Firebase Functions
+*   Google Mobile Ads
 *   Firebase Installations
 *   Firebase Instance ID (deprecated SDK)
 *   Firebase Realtime Database
@@ -81,7 +82,7 @@ Feature                    | Required Libraries and Gradle Packages
 All Firebase SDKs          | platform(com.google.firebase:firebase-bom:30.1.0)
 |                          | (Android Bill of Materials)
 Firebase AdMob             | libfirebase_admob.a
-|                          | libfirebase_app.a
+| (deprecated)             | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-ads:19.8.0
@@ -119,6 +120,12 @@ Firebase Functions         | libfirebase_functions
 |                          | com.google.firebase:firebase-functions
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-auth
+|                          | (Maven package)
+Google Mobile Ads          | libfirebase_gma.a
+|                          | libfirebase_app.a
+|                          | com.google.firebase:firebase-analytics
+|                          | (Maven package)
+|                          | com.google.android.gms:play-services-ads:21.0.0
 |                          | (Maven package)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
@@ -164,10 +171,10 @@ Firebase Android SDK version number to use, rather than individual versions for
 each library. For more information, please see the [Firebase Android SDK
 documentation](https://firebase.google.com/docs/android/learn-more#bom).
 
-Note: AdMob C++ is not currently compatible with the latest Firebase AdMob
-Android SDK (20.x.x). Please ensure that you use firebase-ads version 19.8.0 in
-conjunction with the latest firebase-analytics version to maintain
-compatibility.
+Note: AdMob C++ (deprecated) is not currently compatible with the latest
+Firebase AdMob Android SDK (20.x.x). Please ensure that you use
+firebase-ads version 19.8.0 in conjunction with the latest
+firebase-analytics version to maintain compatibility.
 
 #### Gradle dependency file
 
@@ -188,6 +195,7 @@ firebaseCpp.dependencies {
   dynamicLinks
   firestore
   functions
+  gma
   installations
   messaging
   remoteConfig
@@ -215,7 +223,7 @@ preferred build environment.
 Feature                    | Required Frameworks and Cocoapods
 -------------------------- | ---------------------------------------
 Firebase AdMob             | firebase_admob.xcframework
-|                          | firebase.xcframework
+| (deprecated)             | firebase.xcframework
 |                          | Firebase/Analytics Cocoapod (9.1.0)
 |                          | Google-Mobile-Ads-SDK Cocoapod (7.69.0-cppsdk2)
 Firebase Analytics         | firebase_analytics.xcframework
@@ -237,6 +245,10 @@ Firebase Functions         | firebase_functions.xcframework
 |                          | firebase.xcframework
 |                          | Firebase/Functions Cocoapod (9.1.0)
 |                          | Firebase/Auth Cocoapod (9.1.0)
+Google Mobile Ads          | firebase_gma.xcframework
+|                          | firebase.xcframework
+|                          | Firebase/Analytics Cocoapod (9.1.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (9.4.0)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
 |                          | FirebaseInstallations Cocoapod (9.1.0)
@@ -261,10 +273,10 @@ Important: Each version of the Firebase C++ SDK supports a specific version of
 the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
 listed above.
 
-Note: AdMob C++ is not currently compatible with the latest Firebase AdMob iOS
-CocoaPod (9.x). Please ensure that you use the special version of
-Google-Mobile-Ads-SDK Cocoapod listed above (7.69.0-cppsdk2) to maintain
-compatibility with Firebase 9.x.
+Note: AdMob C++ (deprecated) is not currently compatible with the latest
+Firebase AdMob iOS CocoaPod (9.x). Please ensure that you use the special
+version of Google-Mobile-Ads-SDK Cocoapod listed above (7.69.0-cppsdk2)
+to maintain compatibility with Firebase 9.x.
 
 Note: Parts of the Firebase iOS SDK are written in Swift. If your application
 does not use any Swift code, you may need to add an empty .swift file to your
@@ -279,7 +291,7 @@ required for each SDK feature.
 Feature                    | Required Libraries and Cocoapods
 -------------------------- | -----------------------------------------
 Firebase AdMob             | libfirebase_admob.a
-|                          | libfirebase_app.a
+| (deprecated)             | libfirebase_app.a
 |                          | Firebase/Analytics Cocoapod (9.1.0)
 |                          | Google-Mobile-Ads-SDK Cocoapod (7.69.0-cppsdk2)
 Firebase Analytics         | libfirebase_analytics.a
@@ -301,6 +313,10 @@ Firebase Functions         | libfirebase_functions.a
 |                          | libfirebase_auth.a (optional)
 |                          | Firebase/Functions Cocoapod (9.1.0)
 |                          | Firebase/Auth Cocoapod (9.1.0)
+Google Mobile Ads          | libfirebase_gma.a
+|                          | libfirebase_app.a
+|                          | Firebase/Analytics Cocoapod (9.1.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (9.4.0)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
 |                          | FirebaseInstallations Cocoapod (9.1.0)
@@ -325,10 +341,10 @@ Important: Each version of the Firebase C++ SDK supports a specific version of
 the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
 listed above.
 
-Note: AdMob C++ is not currently compatible with the latest Firebase AdMob iOS
-CocoaPod (9.x). Please ensure that you use the special version of
-Google-Mobile-Ads-SDK Cocoapod listed above (7.69.0-cppsdk2) to maintain
-compatibility with Firebase 9.x.
+Note: AdMob C++ (deprecated) is not currently compatible with the latest
+Firebase AdMob iOS CocoaPod (9.x). Please ensure that you use the special
+version of Google-Mobile-Ads-SDK Cocoapod listed above (7.69.0-cppsdk2)
+to maintain compatibility with Firebase 9.x.
 
 Note: Parts of the Firebase iOS SDK are written in Swift. If your application
 does not use any Swift code, you may need to add an empty .swift file to your
@@ -369,8 +385,8 @@ Firebase Analytics (stub)       | libfirebase_analytics.a
 |                               | libfirebase_app.a
 Firebase Dynamic Links (stub)   | libfirebase_dynamic_links.a
 |                               | libfirebase_app.a
-Firebase Google Mobile Ads      | libfirebase_gma.a
-| (stub)                        | libfirebase_app.a
+Google Mobile Ads (stub)        | libfirebase_gma.a
+|                               | libfirebase_app.a
 Firebase Installations (stub)   | libfirebase_installations.a
 |                               | libfirebase_app.a
 Firebase Cloud Messaging (stub) | libfirebase_messaging.a
@@ -412,6 +428,8 @@ Firebase Analytics (stub)       | firebase_analytics.framework
 |                               | firebase.framework
 Firebase Dynamic Links (stub)   | firebase_dynamic_links.framework
 |                               | firebase.framework
+Google Mobile Ads (stub)        | libfirebase_gma.a
+|                               | libfirebase_app.a
 Firebase Installations (stub)   | firebase_installations.framework
 |                               | firebase.framework
 Firebase Cloud Messaging (stub) | firebase_messaging.framework
@@ -454,8 +472,8 @@ Firebase Analytics (stub)       | firebase_analytics.lib
 |                               | firebase_app.lib
 Firebase Dynamic Links (stub)   | firebase_dynamic_links.lib
 |                               | firebase_app.lib
-Firebase Google Mobile Ads      | firebase_gma.lib
-| (stub)                        | firebase_app.lib
+Google Mobile Ads (stub)        | firebase_gma.lib
+|                               | firebase_app.lib
 Firebase Installations (stub)   | firebase_installations.lib
 |                               | firebase_app.lib
 Firebase Cloud Messaging (stub) | firebase_messaging.lib
@@ -565,7 +583,7 @@ library.
 Firebase C++ Library | Google Play services required?
 -------------------- | ---------------------------------
 Analytics            | Not required
-AdMob                | Not required (usually; see below)
+AdMob (deprecated)   | Not required (usually; see below)
 Cloud Messaging      | Required
 Auth                 | Required
 Dynamic Links        | Required
@@ -586,9 +604,9 @@ Google Play services. However, if you are using the
 standard `com.google.firebase:firebase-ads` dependency, Google Play services
 WILL be required in your specific case.
 
-AdMob and GMA initialization will only return `kInitResultFailedMissingDependency`
-when Google Play services is unavailable AND you are using
-`com.google.android.gms:play-services-ads-lite`.
+AdMob (deprecated) and GMA initialization will only return
+`kInitResultFailedMissingDependency` when Google Play services is unavailable
+AND you are using `com.google.android.gms:play-services-ads-lite`.
 
 ### Desktop project setup
 
@@ -618,6 +636,10 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
+    - GMA: Added the Google Mobile Ads SDK with updated support for AdMob. See
+      the [Get Started
+      Guide](https://firebase.google.com/docs/admob/cpp/quick-start) for more
+      information.
     - General (Android): Switched over to Android BoM (Bill of Materials)
       for dependency versions. This requires Gradle 5.
     - Database (Desktop): If the app data directory doesn't exist, create it.
