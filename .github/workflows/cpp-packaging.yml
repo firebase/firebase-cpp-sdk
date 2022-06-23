@@ -425,22 +425,19 @@ jobs:
           fi
           echo "VERBOSE_FLAG=${verbose_flag}" >> $GITHUB_ENV
 
-      # Install the latest version of GNU patch to avoid using the problematic patch.exe
-      # from Strawberry Perl which sometimes crashes (Googlers see b/236958574).
-      - name: Install patch.exe via Chocolatey (Windows)
+      # On Windows, some executables are unpredictable on the GitHub Actions runners.
+      # For example, patch.exe v2.5.9 from Strawberry Perl crashes.
+      # To work around this, use these hardcoded executables from the repo.
+      # See https://github.com/firebase/firebase-cpp-sdk/pull/1005 for details.
+      - name: Add tools/windows/bin to the front of the PATH (Windows)
         if: startsWith(matrix.os, 'windows')
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 4
-          max_attempts: 3
-          shell: bash
-          command: choco install patch --yes --nocolor
-
-      - name: Add patch.exe from Chocolatey to the front of the PATH (Windows)
-        if: startsWith(matrix.os, 'windows')
-        shell: bash
+        shell: python
         run: |
-          echo 'C:\\ProgramData\\chocolatey\\lib\\patch\\tools\\bin' >> $GITHUB_PATH
+          import os, pathlib
+          tools_dir = pathlib.Path.cwd() / "scripts" / "gha" / "tools" / "windows" / "bin"
+          print(f"Adding {tools_dir} to the front of the PATH: " + os.environ["PATH"])
+          with open(os.environ["GITHUB_PATH"], "at", encoding="utf8") as f:
+            print(f"tools_dir", file=f)
       
       # Run the build in the host OS default shell since Windows can't handle long path names in bash.
       - name: Build desktop SDK
