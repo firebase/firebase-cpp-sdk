@@ -617,6 +617,7 @@ jobs:
         shell: bash
         run: |
           set -x
+          set +e
           if [[ "${{ matrix.sdk_platform }}" == "darwin" ]]; then
             nm=bin/llvm-nm
           else
