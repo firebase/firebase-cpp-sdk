@@ -18,7 +18,7 @@ def main(argv):
   logging.info("Found: %s", git_executable)
 
   logging.info("Searching for patch.exe")
-  patch_executable = git_executable.parent.parent / "usr" / "bin" / "patch.exe"
+  patch_executable = git_executable.parent / "patch.exe"
   if not patch_executable.exists():
     raise Exception(f"file not found: {patch_executable}")
   logging.info("Found: %s", patch_executable)
