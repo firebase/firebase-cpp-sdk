@@ -41,6 +41,8 @@ class HeartbeatController {
   scheduler::Scheduler scheduler_;
   const DateProvider& date_provider_;
 
+  // For thread safety, the following variables should only be read or written
+  // by the scheduler thread.
   std::string last_logged_date_;
 };
 

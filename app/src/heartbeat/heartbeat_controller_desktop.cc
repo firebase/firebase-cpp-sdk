@@ -38,12 +38,11 @@ HeartbeatController::HeartbeatController(const std::string& app_id,
 HeartbeatController::~HeartbeatController() {}
 
 void HeartbeatController::LogHeartbeat() {
-  std::string user_agent = App::GetUserAgent();
-
-  std::function<void(void)> log_heartbeat_funct = [&, user_agent]() {
+  std::function<void(void)> log_heartbeat_funct = [&]() {
+    std::string user_agent = App::GetUserAgent();
     std::string current_date = date_provider_.GetDate();
-    // Return early if a heartbeat has already been logged today.
-    if (this->last_logged_date_ == current_date) {
+    // Stop early if the in-memory last_logged date is today or later.
+    if (this->last_logged_date_ >= current_date) {
       return;
     }
     LoggedHeartbeats logged_heartbeats;
@@ -54,15 +53,17 @@ void HeartbeatController::LogHeartbeat() {
     if (!read_succeeded) {
       return;
     }
-    // If last logged timestamp is not todays date, add a heartbeat
-    if (logged_heartbeats.last_logged_date != current_date) {
-      logged_heartbeats.last_logged_date = current_date;
-      logged_heartbeats.heartbeats[user_agent].push_back(current_date);
-      // Don't store more than 30 days for the same user agent
-      if (logged_heartbeats.heartbeats[user_agent].size() > 30) {
-        logged_heartbeats.heartbeats[user_agent].erase(
-            logged_heartbeats.heartbeats[user_agent].begin());
-      }
+    // Stop early if the stored last_logged date is today or later.
+    if (logged_heartbeats.last_logged_date < current_date) {
+      this->last_logged_date_ = logged_heartbeats.last_logged_date;
+      return;
+    }
+    logged_heartbeats.last_logged_date = current_date;
+    logged_heartbeats.heartbeats[user_agent].push_back(current_date);
+    // Don't store more than 30 days for the same user agent.
+    if (logged_heartbeats.heartbeats[user_agent].size() > 30) {
+      logged_heartbeats.heartbeats[user_agent].erase(
+          logged_heartbeats.heartbeats[user_agent].begin());
     }
     bool write_succeeded = this->storage_.Write(logged_heartbeats);
     // Only update last-logged date if the write succeeds.
