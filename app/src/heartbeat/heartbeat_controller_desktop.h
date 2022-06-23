@@ -19,28 +19,29 @@
 
 #include <string>
 
-#include "app/src/logger.h"
 #include "app/src/heartbeat/date_provider.h"
 #include "app/src/heartbeat/heartbeat_storage_desktop.h"
+#include "app/src/logger.h"
 #include "app/src/scheduler.h"
 
 namespace firebase {
 namespace heartbeat {
 
 class HeartbeatController {
-  public:
-    HeartbeatController(const std::string& app_id, const Logger& logger, const DateProvider& date_provider_);
-    ~HeartbeatController();
+ public:
+  HeartbeatController(const std::string& app_id, const Logger& logger,
+                      const DateProvider& date_provider_);
+  ~HeartbeatController();
 
-    // Asynchronously log a heartbeat, if needed
-    void LogHeartbeat();
+  // Asynchronously log a heartbeat, if needed
+  void LogHeartbeat();
 
-  private:
-    HeartbeatStorageDesktop storage_;
-    scheduler::Scheduler scheduler_;
-    const DateProvider& date_provider_;
+ private:
+  HeartbeatStorageDesktop storage_;
+  scheduler::Scheduler scheduler_;
+  const DateProvider& date_provider_;
 
-    std::string last_logged_date_;
+  std::string last_logged_date_;
 };
 
 }  // namespace heartbeat

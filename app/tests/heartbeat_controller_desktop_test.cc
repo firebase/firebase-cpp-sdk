@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
+#include "app/src/heartbeat/heartbeat_controller_desktop.h"
+
 #include <string>
 
 #include "app/src/app_common.h"
 #include "app/src/heartbeat/date_provider.h"
-#include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/heartbeat/heartbeat_storage_desktop.h"
 #include "app/src/logger.h"
 #include "gmock/gmock.h"
@@ -45,11 +46,11 @@ class MockDateProvider : public heartbeat::DateProvider {
 
 class HeartbeatControllerDesktopTest : public ::testing::Test {
  public:
-  HeartbeatControllerDesktopTest() :
-      mock_date_provider_(),
-      logger_(nullptr),
-      storage_(kAppId, logger_),
-      controller_(kAppId, logger_, mock_date_provider_) {
+  HeartbeatControllerDesktopTest()
+      : mock_date_provider_(),
+        logger_(nullptr),
+        storage_(kAppId, logger_),
+        controller_(kAppId, logger_, mock_date_provider_) {
     // For the sake of testing, clear any pre-existing stored heartbeats.
     LoggedHeartbeats empty_heartbeats_struct;
     storage_.Write(empty_heartbeats_struct);
@@ -79,7 +80,8 @@ TEST_F(HeartbeatControllerDesktopTest, LogSingleHeartbeat) {
   EXPECT_CALL(mock_date_provider_, GetDate()).Times(1).WillOnce(Return(today));
 
   controller_.LogHeartbeat();
-  // Since LogHeartbeat is done asynchronously, wait a bit before verifying that the log succeeded.
+  // Since LogHeartbeat is done asynchronously, wait a bit before verifying that
+  // the log succeeded.
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   // Read from the storage class to verify
@@ -99,12 +101,15 @@ TEST_F(HeartbeatControllerDesktopTest, LogSingleHeartbeat) {
 
 TEST_F(HeartbeatControllerDesktopTest, LogSameDateTwiceOneEntry) {
   std::string today = "2000-01-23";
-  EXPECT_CALL(mock_date_provider_, GetDate()).Times(2).WillRepeatedly(Return(today));
+  EXPECT_CALL(mock_date_provider_, GetDate())
+      .Times(2)
+      .WillRepeatedly(Return(today));
 
   controller_.LogHeartbeat();
   controller_.LogHeartbeat();
 
-  // Since LogHeartbeat is done asynchronously, wait a bit before verifying that the log succeeded.
+  // Since LogHeartbeat is done asynchronously, wait a bit before verifying that
+  // the log succeeded.
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   // Read from the storage class to verify
@@ -123,12 +128,15 @@ TEST_F(HeartbeatControllerDesktopTest, LogSameDateTwiceOneEntry) {
 TEST_F(HeartbeatControllerDesktopTest, LogTwoDatesTwoEntries) {
   std::string day1 = "2000-01-23";
   std::string day2 = "2000-01-24";
-  EXPECT_CALL(mock_date_provider_, GetDate()).Times(2)
-    .WillOnce(Return(day1)).WillOnce(Return(day2));
+  EXPECT_CALL(mock_date_provider_, GetDate())
+      .Times(2)
+      .WillOnce(Return(day1))
+      .WillOnce(Return(day2));
 
   controller_.LogHeartbeat();
   controller_.LogHeartbeat();
-  // Since LogHeartbeat is done asynchronously, wait a bit before verifying that the log succeeded.
+  // Since LogHeartbeat is done asynchronously, wait a bit before verifying that
+  // the log succeeded.
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   // Read from the storage class to verify
@@ -149,8 +157,11 @@ TEST_F(HeartbeatControllerDesktopTest, LogTwoUserAgentsOnDifferentDays) {
   std::string day1 = "2000-01-23";
   std::string day2 = "2000-01-24";
   std::string day3 = "2000-01-25";
-  EXPECT_CALL(mock_date_provider_, GetDate()).Times(3)
-    .WillOnce(Return(day1)).WillOnce(Return(day2)).WillOnce(Return(day3));
+  EXPECT_CALL(mock_date_provider_, GetDate())
+      .Times(3)
+      .WillOnce(Return(day1))
+      .WillOnce(Return(day2))
+      .WillOnce(Return(day3));
 
   // Log a heartbeat for UserAgent1 on day1
   app_common::RegisterLibrariesFromUserAgent(kCustomUserAgent1);
@@ -192,14 +203,16 @@ TEST_F(HeartbeatControllerDesktopTest, LogMoreThan30DaysRemovesOldEntries) {
         char date[11];
         snprintf(date, sizeof(date), "2000-%02d-%02d", month, day);
         std::string date_string(date);
-        EXPECT_CALL(mock_date_provider_, GetDate()).WillOnce(Return(date_string));
+        EXPECT_CALL(mock_date_provider_, GetDate())
+            .WillOnce(Return(date_string));
       }
     }
   }
   for (int i = 1; i <= 90; i++) {
     controller_.LogHeartbeat();
   }
-  // Since LogHeartbeat is done asynchronously, wait a bit before verifying that the log succeeded.
+  // Since LogHeartbeat is done asynchronously, wait a bit before verifying that
+  // the log succeeded.
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   // Read from the storage class to verify
@@ -208,8 +221,8 @@ TEST_F(HeartbeatControllerDesktopTest, LogMoreThan30DaysRemovesOldEntries) {
   ASSERT_TRUE(read_ok);
   EXPECT_EQ(read_heartbeats.last_logged_date, "2000-03-30");
   ASSERT_EQ(read_heartbeats.heartbeats.size(), 1);
-  // Even though heartbeat logging is asynchronous, it happens in the order that it is scheduled
-  // So the heartbeats should be logged in the correct order.
+  // Even though heartbeat logging is asynchronous, it happens in the order that
+  // it is scheduled So the heartbeats should be logged in the correct order.
   for (auto const& entry : read_heartbeats.heartbeats) {
     std::vector<std::string> dates = entry.second;
     ASSERT_EQ(dates.size(), 30);

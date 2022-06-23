@@ -23,13 +23,13 @@ namespace firebase {
 namespace heartbeat {
 
 class DateProvider {
-  public:
-    virtual std::string GetDate() const = 0;
+ public:
+  virtual std::string GetDate() const = 0;
 };
 
 class DateProviderImpl : DateProvider {
-  public:
-    std::string GetDate() const override;
+ public:
+  std::string GetDate() const override;
 };
 
 }  // namespace heartbeat

@@ -16,9 +16,9 @@
 
 #include "app/src/heartbeat/date_provider.h"
 
-#include <string>
-#include <sstream>
 #include <iomanip>
+#include <sstream>
+#include <string>
 
 namespace firebase {
 namespace heartbeat {

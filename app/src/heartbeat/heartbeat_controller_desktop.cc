@@ -16,9 +16,9 @@
 
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
 
-#include <string>
-#include <sstream>
 #include <iomanip>
+#include <sstream>
+#include <string>
 
 #include "app/src/app_common.h"
 #include "app/src/heartbeat/date_provider.h"
@@ -27,10 +27,13 @@
 namespace firebase {
 namespace heartbeat {
 
-HeartbeatController::HeartbeatController(
-  const std::string& app_id, const Logger& logger, const DateProvider& date_provider)
-  : storage_(app_id, logger), scheduler_(), last_logged_date_(""), date_provider_(date_provider)
-{}
+HeartbeatController::HeartbeatController(const std::string& app_id,
+                                         const Logger& logger,
+                                         const DateProvider& date_provider)
+    : storage_(app_id, logger),
+      scheduler_(),
+      last_logged_date_(""),
+      date_provider_(date_provider) {}
 
 HeartbeatController::~HeartbeatController() {}
 
@@ -45,8 +48,9 @@ void HeartbeatController::LogHeartbeat() {
     }
     LoggedHeartbeats logged_heartbeats;
     bool read_succeeded = this->storage_.ReadTo(logged_heartbeats);
-    // If read fails, don't attempt to write. Note that corrupt or nonexistent data should
-    // return an empty heartbeat instance and indicate successful read.
+    // If read fails, don't attempt to write. Note that corrupt or nonexistent
+    // data should return an empty heartbeat instance and indicate successful
+    // read.
     if (!read_succeeded) {
       return;
     }
@@ -57,7 +61,7 @@ void HeartbeatController::LogHeartbeat() {
       // Don't store more than 30 days for the same user agent
       if (logged_heartbeats.heartbeats[user_agent].size() > 30) {
         logged_heartbeats.heartbeats[user_agent].erase(
-          logged_heartbeats.heartbeats[user_agent].begin());
+            logged_heartbeats.heartbeats[user_agent].begin());
       }
     }
     bool write_succeeded = this->storage_.Write(logged_heartbeats);
