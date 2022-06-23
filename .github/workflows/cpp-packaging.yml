@@ -616,6 +616,7 @@ jobs:
       - name: Check for unrenamed namespaces
         shell: bash
         run: |
+          set -x
           if [[ "${{ matrix.sdk_platform }}" == "darwin" ]]; then
             nm=bin/llvm-nm
           else
