@@ -52,7 +52,7 @@ flags.DEFINE_string("repo_dir", os.getcwd(), "Path to C++ SDK Github repo.")
 flags.DEFINE_string("passphrase", None, "The passphrase itself.")
 flags.DEFINE_string("passphrase_file", None,
                     "Path to file with passphrase. Use \"-\" (without quotes) for stdin.")
-flags.DEFINE_string("artifact", None, "Artifact Path, google-services.json will be placed here.")    
+flags.DEFINE_string("artifact", None, "Artifact Path, google-services.json will be placed here.")
 flags.DEFINE_list("apis",[], "Optional comma-separated list of APIs for which to retreive "
                    " secrets. All secrets will be fetched if this is flag is not defined.")
 

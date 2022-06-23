@@ -29,7 +29,7 @@ namespace internal {
 
 class BannerViewInternalIOS : public BannerViewInternal {
  public:
-  BannerViewInternalIOS(BannerView* base);
+  explicit BannerViewInternalIOS(BannerView* base);
   ~BannerViewInternalIOS();
 
   Future<void> Initialize(AdParent parent, const char* ad_unit_id,
