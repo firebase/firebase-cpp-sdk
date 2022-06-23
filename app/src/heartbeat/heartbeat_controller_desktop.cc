@@ -42,7 +42,8 @@ void HeartbeatController::LogHeartbeat() {
     std::string user_agent = App::GetUserAgent();
     std::string current_date = date_provider_.GetDate();
     // Stop early if the in-memory last_logged date is today or later.
-    if (this->last_logged_date_ >= current_date) {
+    if (!this->last_logged_date_.empty() &&
+        this->last_logged_date_ >= current_date) {
       return;
     }
     LoggedHeartbeats logged_heartbeats;
@@ -54,7 +55,8 @@ void HeartbeatController::LogHeartbeat() {
       return;
     }
     // Stop early if the stored last_logged date is today or later.
-    if (logged_heartbeats.last_logged_date < current_date) {
+    if (!logged_heartbeats.last_logged_date.empty() &&
+        logged_heartbeats.last_logged_date >= current_date) {
       this->last_logged_date_ = logged_heartbeats.last_logged_date;
       return;
     }
