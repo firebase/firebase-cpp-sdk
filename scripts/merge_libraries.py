@@ -965,7 +965,7 @@ def main(argv):
 
       # If we are set to scan for namespaces, do that now.
       if FLAGS.auto_hide_cpp_namespaces:
-        add_automatic_namespaces(defined_symbols)
+        add_automatic_namespaces(cpp_symbols)
 
       for symbol in cpp_symbols:
         if is_cpp_symbol(symbol):
