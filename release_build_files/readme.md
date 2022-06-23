@@ -613,6 +613,9 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
+    - AdMob: The AdMob SDK has been deprecated. Please update your app to
+      use the new Google Mobile Ads SDK which facilitates similar
+      functionality.
     - General (Android): Switched over to Android BoM (Bill of Materials)
       for dependency versions. This requires Gradle 5.
     - Database (Desktop): If the app data directory doesn't exist, create it.
