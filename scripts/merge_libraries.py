@@ -446,7 +446,7 @@ def add_automatic_namespaces(symbols):
   logging.debug("Ignoring namespaces: %s", " ".join(
       hide_namespaces.intersection(ignore_namespaces)))
   hide_namespaces = hide_namespaces.difference(ignore_namespaces)
-  logging.debug("Found namespaces to hide: %s", " ".join(hide_namespaces))
+  logging.info("Found namespaces to hide: %s", " ".join(hide_namespaces))
   FLAGS.hide_cpp_namespaces = list(
       set(FLAGS.hide_cpp_namespaces).union(hide_namespaces))
 
