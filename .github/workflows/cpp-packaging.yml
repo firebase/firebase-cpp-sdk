@@ -427,7 +427,7 @@ jobs:
 
       # Install the latest version of GNU patch to avoid using the problematic patch.exe
       # from Strawberry Perl which sometimes crashes (Googlers see b/236958574).
-      - name: Install patch.exe (Windows)
+      - name: Install patch.exe via Chocolatey (Windows)
         if: startsWith(matrix.os, 'windows')
         uses: nick-invision/retry@v2
         with:
@@ -435,6 +435,12 @@ jobs:
           max_attempts: 3
           shell: bash
           command: choco install patch --yes --nocolor
+
+      - name: Add patch.exe from Chocolatey to the front of the PATH (Windows)
+        if: startsWith(matrix.os, 'windows')
+        shell: bash
+        run: |
+          echo 'C:\\ProgramData\\chocolatey\\lib\\patch\\tools\\bin' >> $GITHUB_PATH
       
       # Run the build in the host OS default shell since Windows can't handle long path names in bash.
       - name: Build desktop SDK
