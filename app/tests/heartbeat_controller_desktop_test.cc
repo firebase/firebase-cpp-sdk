@@ -153,6 +153,40 @@ TEST_F(HeartbeatControllerDesktopTest, LogTwoDatesTwoEntries) {
   }
 }
 
+TEST_F(HeartbeatControllerDesktopTest, LogOlderDatesOneEntry) {
+  std::string day1 = "2000-01-24";
+  std::string day2 = "2000-01-22";
+  std::string day3 = "1987-11-29";
+  std::string day4 = "2000-01-23";
+  EXPECT_CALL(mock_date_provider_, GetDate())
+      .Times(4)
+      .WillOnce(Return(day1))
+      .WillOnce(Return(day2))
+      .WillOnce(Return(day3))
+      .WillOnce(Return(day4));
+
+  controller_.LogHeartbeat();
+  controller_.LogHeartbeat();
+  controller_.LogHeartbeat();
+  controller_.LogHeartbeat();
+  // Since LogHeartbeat is done asynchronously, wait a bit before verifying that
+  // the log succeeded.
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+  // Read from the storage class to verify
+  LoggedHeartbeats read_heartbeats;
+  bool read_ok = storage_.ReadTo(read_heartbeats);
+  ASSERT_TRUE(read_ok);
+  EXPECT_EQ(read_heartbeats.last_logged_date, day1);
+  ASSERT_EQ(read_heartbeats.heartbeats.size(), 1);
+  for (auto const& entry : read_heartbeats.heartbeats) {
+    std::vector<std::string> dates = entry.second;
+    ASSERT_EQ(dates.size(), 1);
+    // All dates after the first are earlier and should not be logged.
+    EXPECT_EQ(dates[0], day1);
+  }
+}
+
 TEST_F(HeartbeatControllerDesktopTest, LogTwoUserAgentsOnDifferentDays) {
   std::string day1 = "2000-01-23";
   std::string day2 = "2000-01-24";
@@ -166,17 +200,17 @@ TEST_F(HeartbeatControllerDesktopTest, LogTwoUserAgentsOnDifferentDays) {
   // Log a heartbeat for UserAgent1 on day1
   app_common::RegisterLibrariesFromUserAgent(kCustomUserAgent1);
   controller_.LogHeartbeat();
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
   // Log a heartbeat for UserAgent2 on day2
   app_common::RegisterLibrariesFromUserAgent(kCustomUserAgent2);
   controller_.LogHeartbeat();
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
   // Log a heartbeat for UserAgent1 on day3
   app_common::RegisterLibrariesFromUserAgent(kCustomUserAgent1);
   controller_.LogHeartbeat();
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
   // Read from the storage class to verify
   LoggedHeartbeats read_heartbeats;
@@ -228,6 +262,85 @@ TEST_F(HeartbeatControllerDesktopTest, LogMoreThan30DaysRemovesOldEntries) {
     ASSERT_EQ(dates.size(), 30);
     EXPECT_EQ(dates[0], "2000-03-01");
     EXPECT_EQ(dates[29], "2000-03-30");
+  }
+}
+
+TEST_F(HeartbeatControllerDesktopTest, DestroyControllerWhileWorkIsScheduled) {
+  HeartbeatController* destructible_controller = new HeartbeatController(
+    kAppId, logger_, mock_date_provider_);
+  {
+    // InSequence guarantees that all of the expected calls occur in order.
+    testing::InSequence seq;
+    for (int year = 2001; year <= 3000; year++) {
+      std::string date_string = std::to_string(year) + "-01-01";
+      EXPECT_CALL(mock_date_provider_, GetDate())
+          .WillOnce(Return(date_string));
+    }
+  }
+  for (int i = 1; i <= 1000; i++) {
+    destructible_controller->LogHeartbeat();
+  }
+  // Trigger the controller's destructor before all of the async calls to
+  // LogHeartbeat have completed.
+  delete destructible_controller;
+
+  // Wait a bit to verify that no async threads seg fault
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  // Note that current scheduler implementation joins with the worker thread
+  // So there should not be any issues.
+}
+
+// This test is temporarily disabled because a lack of file locking can result
+// in changes to the file between read and write operations.
+// TODO(b/237003018): Support multiple controllers for the same app id.
+TEST_F(HeartbeatControllerDesktopTest,
+    DISABLED_MultipleControllersForSameAppId) {
+  MockDateProvider mock_date_provider1;
+  MockDateProvider mock_date_provider2;
+  HeartbeatController* controller1 = new HeartbeatController(
+    kAppId, logger_, mock_date_provider1);
+  HeartbeatController* controller2 = new HeartbeatController(
+    kAppId, logger_, mock_date_provider2);
+  // InSequence guarantees that all of the expected calls occur in order.
+  // Both mock date provider's will return the same sequence of dates.
+  {
+    testing::InSequence seq;
+    for (int year = 2001; year <= 2100; year++) {
+      std::string date_string = std::to_string(year) + "-01-01";
+      EXPECT_CALL(mock_date_provider1, GetDate())
+          .WillOnce(Return(date_string));
+    }
+  }
+  {
+    testing::InSequence seq;
+    for (int year = 2001; year <= 2100; year++) {
+      std::string date_string = std::to_string(year) + "-01-01";
+      EXPECT_CALL(mock_date_provider2, GetDate())
+          .WillOnce(Return(date_string));
+    }
+  }
+  for (int i = 1; i <= 100; i++) {
+    controller1->LogHeartbeat();
+    controller2->LogHeartbeat();
+  }
+
+  // Wait a bit for all heartbeats to be logged.
+  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+
+  // Read from the storage class to verify
+  LoggedHeartbeats read_heartbeats;
+  bool read_ok = storage_.ReadTo(read_heartbeats);
+  ASSERT_TRUE(read_ok);
+  EXPECT_EQ(read_heartbeats.last_logged_date, "2100-01-01");
+  ASSERT_EQ(read_heartbeats.heartbeats.size(), 1);
+  // Even though heartbeat logging is asynchronous, it happens in the order that
+  // it is scheduled So the heartbeats should be logged in the correct order.
+  for (auto const& entry : read_heartbeats.heartbeats) {
+    std::vector<std::string> dates = entry.second;
+    // Only the last 30 entries will remain in storage.
+    ASSERT_EQ(dates.size(), 30);
+    EXPECT_EQ(dates[0], "2071-01-01");
+    EXPECT_EQ(dates[29], "2100-01-01");
   }
 }
 
