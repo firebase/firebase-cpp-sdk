@@ -266,15 +266,14 @@ TEST_F(HeartbeatControllerDesktopTest, LogMoreThan30DaysRemovesOldEntries) {
 }
 
 TEST_F(HeartbeatControllerDesktopTest, DestroyControllerWhileWorkIsScheduled) {
-  HeartbeatController* destructible_controller = new HeartbeatController(
-    kAppId, logger_, mock_date_provider_);
+  HeartbeatController* destructible_controller =
+      new HeartbeatController(kAppId, logger_, mock_date_provider_);
   {
     // InSequence guarantees that all of the expected calls occur in order.
     testing::InSequence seq;
     for (int year = 2001; year <= 3000; year++) {
       std::string date_string = std::to_string(year) + "-01-01";
-      EXPECT_CALL(mock_date_provider_, GetDate())
-          .WillOnce(Return(date_string));
+      EXPECT_CALL(mock_date_provider_, GetDate()).WillOnce(Return(date_string));
     }
   }
   for (int i = 1; i <= 1000; i++) {
@@ -294,29 +293,27 @@ TEST_F(HeartbeatControllerDesktopTest, DestroyControllerWhileWorkIsScheduled) {
 // in changes to the file between read and write operations.
 // TODO(b/237003018): Support multiple controllers for the same app id.
 TEST_F(HeartbeatControllerDesktopTest,
-    DISABLED_MultipleControllersForSameAppId) {
+       DISABLED_MultipleControllersForSameAppId) {
   MockDateProvider mock_date_provider1;
   MockDateProvider mock_date_provider2;
-  HeartbeatController* controller1 = new HeartbeatController(
-    kAppId, logger_, mock_date_provider1);
-  HeartbeatController* controller2 = new HeartbeatController(
-    kAppId, logger_, mock_date_provider2);
+  HeartbeatController* controller1 =
+      new HeartbeatController(kAppId, logger_, mock_date_provider1);
+  HeartbeatController* controller2 =
+      new HeartbeatController(kAppId, logger_, mock_date_provider2);
   // InSequence guarantees that all of the expected calls occur in order.
   // Both mock date provider's will return the same sequence of dates.
   {
     testing::InSequence seq;
     for (int year = 2001; year <= 2100; year++) {
       std::string date_string = std::to_string(year) + "-01-01";
-      EXPECT_CALL(mock_date_provider1, GetDate())
-          .WillOnce(Return(date_string));
+      EXPECT_CALL(mock_date_provider1, GetDate()).WillOnce(Return(date_string));
     }
   }
   {
     testing::InSequence seq;
     for (int year = 2001; year <= 2100; year++) {
       std::string date_string = std::to_string(year) + "-01-01";
-      EXPECT_CALL(mock_date_provider2, GetDate())
-          .WillOnce(Return(date_string));
+      EXPECT_CALL(mock_date_provider2, GetDate()).WillOnce(Return(date_string));
     }
   }
   for (int i = 1; i <= 100; i++) {
