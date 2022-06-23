@@ -82,23 +82,23 @@ All Firebase SDKs          | platform(com.google.firebase:firebase-bom:30.1.0)
 |                          | (Android Bill of Materials)
 Firebase AdMob             | libfirebase_admob.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics 
+|                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-ads:19.8.0 
+|                          | com.google.firebase:firebase-ads:19.8.0
 |                          | (Maven package)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics 
+|                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
 Firebase Authentication    | libfirebase_auth.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics 
+|                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-auth 
+|                          | com.google.firebase:firebase-auth
 |                          | (Maven package)
 Firebase Dynamic Links     | libfirebase_dynamic_links.a
 |                          | libfirebase_app.a
-|                          | com.google.firebase:firebase-analytics 
+|                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-dynamic-links
 |                          | (Maven package)
@@ -156,7 +156,7 @@ Firebase Storage           | libfirebase_storage.a
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-auth
 |                          | (Maven package)
-Google Play services module| com.google.android.gms:play-services-base:18.0.1 
+Google Play services module| com.google.android.gms:play-services-base:18.0.1
 |                          | (Maven package)
 
 The Firebase C++ SDK uses an Android BoM (Bill of Materials) to specify a single
@@ -618,6 +618,10 @@ code.
     - General (Desktop): Fixed an issue with embedded dependencies that could
       cause duplicate symbol linker errors in conjunction with other libraries
       ([#989](https://github.com/firebase/firebase-cpp-sdk/issues/989)).
+    - Database (Desktop): If the app data directory doesn't exist, create it.
+      This fixes an issue with disk persistence on Linux.
+    - Messaging (Android): Fixed #973. Make sure all the resources are closed in
+      `RegistrationIntentService`.
 
 ### 9.1.0
 -   Changes
@@ -713,16 +717,16 @@ code.
         and include support for ARM-based Mac systems.
     -   General (iOS): iOS SDKs are now built using Xcode 12.2.
     -   Messaging (Android): Fixes an issue to receive token when
-        initialize the app. 
+        initialize the app.
         ([#667](https://github.com/firebase/firebase-cpp-sdk/pull/667)).
     -   Auth (Desktop): Fix a crash that would occur if parsing the JSON
         response from the server failed
         ([#692](https://github.com/firebase/firebase-cpp-sdk/pull/692)).
-        
+
 ### 8.5.0
 -   Changes
     -   General: Updating Android and iOS dependencies to the latest.
-    -   General: Fixes an issue with generating Proguard files. 
+    -   General: Fixes an issue with generating Proguard files.
         ([#664](https://github.com/firebase/firebase-cpp-sdk/pull/664)).
 
 ### 8.4.0
