@@ -640,6 +640,9 @@ code.
       the [Get Started
       Guide](https://firebase.google.com/docs/admob/cpp/quick-start) for more
       information.
+    - AdMob: The AdMob SDK has been deprecated. Please update your app to
+      use the new Google Mobile Ads SDK which facilitates similar
+      functionality.
     - General (Android): Switched over to Android BoM (Bill of Materials)
       for dependency versions. This requires Gradle 5.
     - Database (Desktop): If the app data directory doesn't exist, create it.

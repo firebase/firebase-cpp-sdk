@@ -29,6 +29,11 @@ namespace internal {
 class BannerViewInternal;
 }  // namespace internal
 
+/// @deprecated The functionality in the <code>firebase::admob</code> namespace
+/// has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a href="/docs/admob/cpp/admob-migration">migration guide</a>.
+///
 /// @brief Loads and displays AdMob banner ads.
 ///
 /// Each BannerView object corresponds to a single AdMob banner placement. There
@@ -68,12 +73,20 @@ class BannerViewInternal;
 ///   banner_view->LoadAd(your_ad_request);
 /// }
 /// @endcode
+///
 class BannerView {
  public:
 #ifdef INTERNAL_EXPERIMENTAL
 // LINT.IfChange
 #endif  // INTERNAL_EXPERIMENTAL
-  /// The presentation state of a @ref BannerView.
+  /// @deprecated
+  /// @brief The presentation state of a @ref BannerView.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   enum PresentationState {
     /// BannerView is currently hidden.
     kPresentationStateHidden = 0,
@@ -95,7 +108,14 @@ class BannerView {
 #ifdef INTERNAL_EXPERIMENTAL
 // LINT.IfChange
 #endif  // INTERNAL_EXPERIMENTAL
-  /// The possible screen positions for a @ref BannerView.
+  /// @deprecated
+  /// @brief The possible screen positions for a @ref BannerView.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   enum Position {
     /// Top of the screen, horizontally centered.
     kPositionTop = 0,
@@ -114,19 +134,40 @@ class BannerView {
 // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src_java/com/google/firebase/admob/internal/cpp/ConstantsHelper.java)
 #endif  // INTERNAL_EXPERIMENTAL
 
-  /// A listener class that developers can extend and pass to a @ref BannerView
-  /// object's @ref SetListener method to be notified of changes to the
-  /// presentation state and bounding box.
+  /// @deprecated
+  /// @brief A listener class that developers can extend and pass to a @ref
+  /// BannerView object's @ref SetListener method to be notified of changes to
+  /// the presentation state and bounding box.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   class Listener {
    public:
-    /// This method is called when the @ref BannerView object's presentation
-    /// state changes.
+    /// @deprecated
+    /// @brief This method is called when the @ref BannerView object's
+    /// presentation state changes.
+    ///
+    /// The functionality in the <code>firebase::admob</code> namespace has
+    /// been replaced by the Google Mobile Ads SDK in the
+    /// <code>firebase::gma</code> namespace. Learn how to transition to the
+    /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+    /// guide</a>.
     /// @param[in] banner_view The banner view whose presentation state changed.
     /// @param[in] state The new presentation state.
     virtual void OnPresentationStateChanged(BannerView* banner_view,
                                             PresentationState state) = 0;
-    /// This method is called when the @ref BannerView object's bounding box
-    /// changes.
+    /// @deprecated
+    /// @brief This method is called when the @ref BannerView object's bounding
+    /// box changes.
+    ///
+    /// The functionality in the <code>firebase::admob</code> namespace has
+    /// been replaced by the Google Mobile Ads SDK in the
+    /// <code>firebase::gma</code> namespace. Learn how to transition to the
+    /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+    /// guide</a>.
     /// @param[in] banner_view The banner view whose bounding box changed.
     /// @param[in] box The new bounding box.
     virtual void OnBoundingBoxChanged(BannerView* banner_view,
@@ -134,101 +175,245 @@ class BannerView {
     virtual ~Listener();
   };
 
-  /// Creates an uninitialized @ref BannerView object.
+  /// @deprecated
+  /// @brief Creates an uninitialized @ref BannerView object.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
+  ///
   /// @ref Initialize must be called before the object is used.
-  BannerView();
+  FIREBASE_DEPRECATED BannerView();
 
   ~BannerView();
 
-  /// Initializes the @ref BannerView object.
+  /// @deprecated
+  /// @brief Initializes the @ref BannerView object.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   /// @param[in] parent The platform-specific UI element that will host the ad.
   /// @param[in] ad_unit_id The ad unit ID to use when requesting ads.
   /// @param[in] size The desired ad size for the banner.
-  Future<void> Initialize(AdParent parent, const char* ad_unit_id, AdSize size);
+  FIREBASE_DEPRECATED Future<void> Initialize(AdParent parent,
+                                              const char* ad_unit_id,
+                                              AdSize size);
 
-  /// Returns a @ref Future that has the status of the last call to
+  /// @deprecated
+  /// @brief Returns a @ref Future that has the status of the last call to
   /// @ref Initialize.
-  Future<void> InitializeLastResult() const;
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
+  FIREBASE_DEPRECATED Future<void> InitializeLastResult() const;
 
-  /// Begins an asynchronous request for an ad. If successful, the ad will
-  /// automatically be displayed in the BannerView.
+  /// @deprecated
+  /// @brief Begins an asynchronous request for an ad. If successful, the ad
+  /// will automatically be displayed in the BannerView.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   /// @param[in] request An AdRequest struct with information about the request
   ///                    to be made (such as targeting info).
-  Future<void> LoadAd(const AdRequest& request);
+  FIREBASE_DEPRECATED Future<void> LoadAd(const AdRequest& request);
 
-  /// Returns a @ref Future containing the status of the last call to
+  /// @deprecated
+  /// @brief Returns a @ref Future containing the status of the last call to
   /// @ref LoadAd.
-  Future<void> LoadAdLastResult() const;
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
+  FIREBASE_DEPRECATED Future<void> LoadAdLastResult() const;
 
-  /// Hides the BannerView.
-  Future<void> Hide();
+  /// @deprecated
+  /// @brief Hides the BannerView.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
+  FIREBASE_DEPRECATED Future<void> Hide();
 
-  /// Returns a @ref Future containing the status of the last call to
+  /// @deprecated
+  /// @brief Returns a @ref Future containing the status of the last call to
   /// @ref Hide.
-  Future<void> HideLastResult() const;
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
+  FIREBASE_DEPRECATED Future<void> HideLastResult() const;
 
-  /// Shows the @ref BannerView.
-  Future<void> Show();
+  /// @deprecated
+  /// @brief Shows the @ref BannerView.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
+  FIREBASE_DEPRECATED Future<void> Show();
 
-  /// Returns a @ref Future containing the status of the last call to
+  /// @deprecated
+  /// @brief Returns a @ref Future containing the status of the last call to
   /// @ref Show.
-  Future<void> ShowLastResult() const;
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
+  FIREBASE_DEPRECATED Future<void> ShowLastResult() const;
 
-  /// Pauses the @ref BannerView. Should be called whenever the C++ engine
-  /// pauses or the application loses focus.
-  Future<void> Pause();
+  /// @deprecated
+  /// @brief Pauses the @ref BannerView. Should be called whenever the C++
+  /// engine pauses or the application loses focus.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
+  FIREBASE_DEPRECATED Future<void> Pause();
 
-  /// Returns a @ref Future containing the status of the last call to
+  /// @deprecated
+  /// @brief Returns a @ref Future containing the status of the last call to
   /// @ref Pause.
-  Future<void> PauseLastResult() const;
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
+  FIREBASE_DEPRECATED Future<void> PauseLastResult() const;
 
-  /// Resumes the @ref BannerView after pausing.
-  Future<void> Resume();
+  /// @deprecated
+  /// @brief Resumes the @ref BannerView after pausing.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
+  FIREBASE_DEPRECATED Future<void> Resume();
 
-  /// Returns a @ref Future containing the status of the last call to
+  /// @deprecated
+  /// @brief Returns a @ref Future containing the status of the last call to
   /// @ref Resume.
-  Future<void> ResumeLastResult() const;
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
+  FIREBASE_DEPRECATED Future<void> ResumeLastResult() const;
 
-  /// Cleans up and deallocates any resources used by the @ref BannerView.
-  Future<void> Destroy();
+  /// @deprecated
+  /// @brief Cleans up and deallocates any resources used by the @ref
+  /// BannerView.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
+  FIREBASE_DEPRECATED Future<void> Destroy();
 
-  /// Returns a @ref Future containing the status of the last call to
+  /// @deprecated
+  /// @brief Returns a @ref Future containing the status of the last call to
   /// @ref Destroy.
-  Future<void> DestroyLastResult() const;
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
+  FIREBASE_DEPRECATED Future<void> DestroyLastResult() const;
 
-  /// Moves the @ref BannerView so that its top-left corner is located at
+  /// @deprecated
+  /// @brief Moves the @ref BannerView so that its top-left corner is located at
   /// (x, y). Coordinates are in pixels from the top-left corner of the screen.
   ///
-  /// When built for Android, the library will not display an ad on top of or
-  /// beneath an Activity's status bar. If a call to MoveTo would result in an
-  /// overlap, the @ref BannerView is placed just below the status bar, so no
-  /// overlap occurs.
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   /// @param[in] x The desired horizontal coordinate.
   /// @param[in] y The desired vertical coordinate.
-  Future<void> MoveTo(int x, int y);
+  FIREBASE_DEPRECATED Future<void> MoveTo(int x, int y);
 
-  /// Moves the @ref BannerView so that it's located at the given pre-defined
-  /// position.
+  /// @deprecated
+  /// @brief Moves the @ref BannerView so that it's located at the given
+  /// pre-defined position.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   /// @param[in] position The pre-defined position to which to move the
   ///                     @ref BannerView.
-  Future<void> MoveTo(Position position);
+  FIREBASE_DEPRECATED Future<void> MoveTo(Position position);
 
-  /// Returns a @ref Future containing the status of the last call to either
-  /// version of @ref MoveTo.
-  Future<void> MoveToLastResult() const;
+  /// @deprecated
+  /// @brief Returns a @ref Future containing the status of the last call to
+  /// either version of @ref MoveTo.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
+  FIREBASE_DEPRECATED Future<void> MoveToLastResult() const;
 
-  /// Returns the current presentation state of the @ref BannerView.
+  /// @deprecated
+  /// @brief Returns the current presentation state of the @ref BannerView.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   /// @return The current presentation state.
-  PresentationState presentation_state() const;
+  FIREBASE_DEPRECATED PresentationState presentation_state() const;
 
-  /// Retrieves the @ref BannerView's current onscreen size and location.
-  /// @return The current size and location. Values are in pixels, and location
-  ///         coordinates originate from the top-left corner of the screen.
-  BoundingBox bounding_box() const;
+  /// @deprecated
+  /// @brief Retrieves the @ref BannerView's current onscreen size and location.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
+  FIREBASE_DEPRECATED BoundingBox bounding_box() const;
 
-  /// Sets the @ref Listener for this object.
+  /// @deprecated
+  /// @brief Sets the @ref Listener for this object.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   /// @param[in] listener A valid BannerView::Listener to receive callbacks.
-  void SetListener(Listener* listener);
+  FIREBASE_DEPRECATED void SetListener(Listener* listener);
 
  private:
   // An internal, platform-specific implementation object that this class uses
