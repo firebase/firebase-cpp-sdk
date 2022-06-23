@@ -424,6 +424,17 @@ jobs:
             verbose_flag=--verbose
           fi
           echo "VERBOSE_FLAG=${verbose_flag}" >> $GITHUB_ENV
+
+      # Install the latest version of GNU patch to avoid using the problematic patch.exe
+      # from Strawberry Perl which sometimes crashes (Googlers see b/236958574).
+      - name: Install patch.exe (Windows)
+        if: startsWith(matrix.os, 'windows')
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 4
+          max_attempts: 3
+          shell: bash
+          command: choco install patch --yes --nocolor
       
       # Run the build in the host OS default shell since Windows can't handle long path names in bash.
       - name: Build desktop SDK
