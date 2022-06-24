@@ -94,6 +94,8 @@
 		D6ED33BD2606CD890058CBF9 /* future_test_util.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6ED33B92606CD890058CBF9 /* future_test_util.cc */; };
 		D6ED33BE2606CD890058CBF9 /* integration_test_util.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6ED33BB2606CD890058CBF9 /* integration_test_util.cc */; };
 		D86FB1D3D4A592C451A29369 /* firebase_firestore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B7F45B5446094E107E88721A /* firebase_firestore.framework */; };
+		ED39362728657B740050FE2B /* transaction_options_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = ED39362628657B740050FE2B /* transaction_options_test.cc */; };
+		ED39362828657B740050FE2B /* transaction_options_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = ED39362628657B740050FE2B /* transaction_options_test.cc */; };
 		EDEEC7632800CD0000EFBAAF /* leveldb_snappy_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = EDEEC7622800CD0000EFBAAF /* leveldb_snappy_test.cc */; };
 		EDEEC7642800CD0000EFBAAF /* leveldb_snappy_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = EDEEC7622800CD0000EFBAAF /* leveldb_snappy_test.cc */; };
 /* End PBXBuildFile section */
@@ -171,6 +173,7 @@
 		D6ED33BB2606CD890058CBF9 /* integration_test_util.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = integration_test_util.cc; path = src/util/integration_test_util.cc; sourceTree = "<group>"; };
 		D6ED33BC2606CD890058CBF9 /* future_test_util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = future_test_util.h; path = src/util/future_test_util.h; sourceTree = "<group>"; };
 		EAFAF9474EC412ADCC65F2CC /* firebase_firestore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = firebase_firestore.framework; path = Frameworks/firebase_firestore.framework; sourceTree = "<group>"; };
+		ED39362628657B740050FE2B /* transaction_options_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = transaction_options_test.cc; path = src/transaction_options_test.cc; sourceTree = "<group>"; };
 		EDEEC7622800CD0000EFBAAF /* leveldb_snappy_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = leveldb_snappy_test.cc; path = src/leveldb_snappy_test.cc; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -262,6 +265,7 @@
 		5292271D1C85FB5500C89379 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				ED39362628657B740050FE2B /* transaction_options_test.cc */,
 				D60C58862819C902002E8A04 /* empty.swift */,
 				EDEEC7622800CD0000EFBAAF /* leveldb_snappy_test.cc */,
 				12D513182684C8D100A83FAA /* bundle_builder.cc */,
@@ -567,6 +571,7 @@
 				D6ED33BD2606CD890058CBF9 /* future_test_util.cc in Sources */,
 				D6AAAD592606C22D0025C53B /* firestore_integration_test.cc in Sources */,
 				D6C179EE22CB323300C2651A /* firebase_test_framework.cc in Sources */,
+				ED39362728657B740050FE2B /* transaction_options_test.cc in Sources */,
 				D6AAAD4B2606C22D0025C53B /* array_transform_test.cc in Sources */,
 				D6AAAD512606C22D0025C53B /* sanity_test.cc in Sources */,
 				D6AAAD482606C22D0025C53B /* cursor_test.cc in Sources */,
@@ -590,6 +595,7 @@
 				BC1D6843267B00EB005DC2DA /* numeric_transforms_test.cc in Sources */,
 				BC1D6844267B00EB005DC2DA /* array_transform_test.cc in Sources */,
 				BC1D6854267B00EB005DC2DA /* listener_registration_test.cc in Sources */,
+				ED39362828657B740050FE2B /* transaction_options_test.cc in Sources */,
 				BC1D683F267B00EB005DC2DA /* document_snapshot_test.cc in Sources */,
 				BC1D684E267B00EB005DC2DA /* includes_test.cc in Sources */,
 				BC1D684C267B00EB005DC2DA /* document_change_test.cc in Sources */,
