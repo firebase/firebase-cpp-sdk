@@ -195,6 +195,7 @@ METHOD_LOOKUP_DEFINITION(context, "android/content/Context", CONTEXT_METHODS)
 METHOD_LOOKUP_DEFINITION(cursor, "android/database/Cursor", CURSOR_METHODS)
 METHOD_LOOKUP_DEFINITION(date, "java/util/Date", DATE_METHODS);
 METHOD_LOOKUP_DEFINITION(double_class, "java/lang/Double", DOUBLE_METHODS)
+METHOD_LOOKUP_DEFINITION(enum_class, "java/lang/Enum", ENUM_METHODS)
 METHOD_LOOKUP_DEFINITION(file, "java/io/File", FILE_METHODS)
 METHOD_LOOKUP_DEFINITION(float_class, "java/lang/Float", FLOAT_METHODS)
 METHOD_LOOKUP_DEFINITION(hash_map, "java/util/HashMap", HASHMAP_METHODS)
@@ -376,6 +377,7 @@ static void ReleaseClasses(JNIEnv* env) {
   date::ReleaseClass(env);
   dex_class_loader::ReleaseClass(env);
   double_class::ReleaseClass(env);
+  enum_class::ReleaseClass(env);
   file::ReleaseClass(env);
   file_output_stream::ReleaseClass(env);
   float_class::ReleaseClass(env);
@@ -476,6 +478,7 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
         date::CacheMethodIds(env, activity_object) &&
         dex_class_loader::CacheMethodIds(env, activity_object) &&
         double_class::CacheMethodIds(env, activity_object) &&
+        enum_class::CacheMethodIds(env, activity_object) &&
         file::CacheMethodIds(env, activity_object) &&
         file_output_stream::CacheMethodIds(env, activity_object) &&
         float_class::CacheMethodIds(env, activity_object) &&
@@ -676,6 +679,23 @@ jobject StdVectorToJavaList(JNIEnv* env,
                      array_list::GetMethodId(array_list::kConstructor));
   jmethodID add_method = array_list::GetMethodId(array_list::kAdd);
   for (auto it = string_vector.begin(); it != string_vector.end(); ++it) {
+    jstring value = env->NewStringUTF(it->c_str());
+    env->CallBooleanMethod(java_list, add_method, value);
+    CheckAndClearJniExceptions(env);
+    env->DeleteLocalRef(value);
+  }
+  return java_list;
+}
+
+// Converts a `std::unordered_set<std::string>` to a
+// `java.util.ArrayList<String>` Returns a local ref to a List.
+jobject StdUnorderedSetToJavaList(
+    JNIEnv* env, const std::unordered_set<std::string>& string_set) {
+  jobject java_list =
+      env->NewObject(array_list::GetClass(),
+                     array_list::GetMethodId(array_list::kConstructor));
+  jmethodID add_method = array_list::GetMethodId(array_list::kAdd);
+  for (auto it = string_set.begin(); it != string_set.end(); ++it) {
     jstring value = env->NewStringUTF(it->c_str());
     env->CallBooleanMethod(java_list, add_method, value);
     CheckAndClearJniExceptions(env);
