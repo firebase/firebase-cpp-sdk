@@ -22,8 +22,10 @@ python restore_secrets.py --passphrase_file [--repo_dir <path_to_repo>]
 --passphrase: Passphrase to decrypt the files. This option is insecure on a
     multi-user machine; use the --passphrase_file option instead.
 --passphrase_file: Specify a file to read the passphrase from (only reads the
-    first line).
+    first line). Use "-" (without quotes) for stdin.
 --repo_dir: Path to C++ SDK Github repository. Defaults to current directory.
+--apis: Specify a list of particular product APIs and retrieve only their
+    secrets.
 
 This script will perform the following:
 
@@ -48,8 +50,11 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string("repo_dir", os.getcwd(), "Path to C++ SDK Github repo.")
 flags.DEFINE_string("passphrase", None, "The passphrase itself.")
-flags.DEFINE_string("passphrase_file", None, "Path to file with passphrase.")
+flags.DEFINE_string("passphrase_file", None,
+                    "Path to file with passphrase. Use \"-\" (without quotes) for stdin.")
 flags.DEFINE_string("artifact", None, "Artifact Path, google-services.json will be placed here.")
+flags.DEFINE_list("apis",[], "Optional comma-separated list of APIs for which to retreive "
+                   " secrets. All secrets will be fetched if this is flag is not defined.")
 
 
 def main(argv):
@@ -60,11 +65,16 @@ def main(argv):
   # The passphrase is sensitive, do not log.
   if FLAGS.passphrase:
     passphrase = FLAGS.passphrase
+  elif FLAGS.passphrase_file == "-":
+    passphrase = input()
   elif FLAGS.passphrase_file:
     with open(FLAGS.passphrase_file, "r") as f:
       passphrase = f.readline().strip()
   else:
     raise ValueError("Must supply passphrase or passphrase_file arg.")
+
+  if FLAGS.apis:
+    print("Retrieving secrets for product APIs: ", FLAGS.apis)
 
   secrets_dir = os.path.join(repo_dir, "scripts", "gha-encrypted")
   encrypted_files = _find_encrypted_files(secrets_dir)
@@ -72,11 +82,14 @@ def main(argv):
 
   for path in encrypted_files:
     if "google-services" in path or "GoogleService" in path:
-      print("Encrypted Google Service file found: %s" % path)
       # We infer the destination from the file's directory, example:
       # /scripts/gha-encrypted/auth/google-services.json.gpg turns into
       # /<repo_dir>/auth/integration_test/google-services.json
       api = os.path.basename(os.path.dirname(path))
+      if FLAGS.apis and api not in FLAGS.apis:
+        print("Skipping secret found in product api", api)
+        continue
+      print("Encrypted Google Service file found: %s" % path)
       file_name = os.path.basename(path).replace(".gpg", "")
       dest_paths = [os.path.join(repo_dir, api, "integration_test", file_name)]
       if FLAGS.artifact:
@@ -104,17 +117,19 @@ def main(argv):
   if FLAGS.artifact:
     return
 
-  print("Attempting to patch Dynamic Links uri prefix.")
-  uri_path = os.path.join(secrets_dir, "dynamic_links", "uri_prefix.txt.gpg")
-  uri_prefix = _decrypt(uri_path, passphrase)
-  dlinks_project = os.path.join(repo_dir, "dynamic_links", "integration_test")
-  _patch_main_src(dlinks_project, "REPLACE_WITH_YOUR_URI_PREFIX", uri_prefix)
+  if not FLAGS.apis or "dynamic_links" in FLAGS.apis:
+    print("Attempting to patch Dynamic Links uri prefix.")
+    uri_path = os.path.join(secrets_dir, "dynamic_links", "uri_prefix.txt.gpg")
+    uri_prefix = _decrypt(uri_path, passphrase)
+    dlinks_project = os.path.join(repo_dir, "dynamic_links", "integration_test")
+    _patch_main_src(dlinks_project, "REPLACE_WITH_YOUR_URI_PREFIX", uri_prefix)
 
-  print("Attempting to patch Messaging server key.")
-  server_key_path = os.path.join(secrets_dir, "messaging", "server_key.txt.gpg")
-  server_key = _decrypt(server_key_path, passphrase)
-  messaging_project = os.path.join(repo_dir, "messaging", "integration_test")
-  _patch_main_src(messaging_project, "REPLACE_WITH_YOUR_SERVER_KEY", server_key)
+  if not FLAGS.apis or "messaging" in FLAGS.apis:
+    print("Attempting to patch Messaging server key.")
+    server_key_path = os.path.join(secrets_dir, "messaging", "server_key.txt.gpg")
+    server_key = _decrypt(server_key_path, passphrase)
+    messaging_project = os.path.join(repo_dir, "messaging", "integration_test")
+    _patch_main_src(messaging_project, "REPLACE_WITH_YOUR_SERVER_KEY", server_key)
 
   print("Attempting to decrypt GCS service account key file.")
   decrypted_key_file = os.path.join(secrets_dir, "gcs_key_file.json")

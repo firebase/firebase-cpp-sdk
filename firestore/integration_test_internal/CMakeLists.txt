@@ -129,6 +129,7 @@ set(FIREBASE_INTEGRATION_TEST_DESKTOP_AND_IOS_TEST_SRCS
     src/array_transform_test.cc
     src/cleanup_test.cc
     src/collection_reference_test.cc
+    src/leveldb_snappy_test.cc
     src/transaction_extra_test.cc
 )
 
@@ -330,6 +331,14 @@ else()
     ${FIREBASE_APP_FRAMEWORK_DESKTOP_SRCS}
     ${FIREBASE_TEST_FRAMEWORK_SRCS}
     ${FIREBASE_INTEGRATION_TEST_SRCS}
+  )
+
+  # Set a preprocessor define so that tests can distinguish between tests for
+  # the desktop platforms (e.g. Windows, macOS, or Linux) and mobile platforms
+  # (e.g. Android, iOS).
+  target_compile_definitions(${integration_test_target_name}
+    PRIVATE
+    FIREBASE_TESTS_TARGET_DESKTOP
   )
 
   if(APPLE)

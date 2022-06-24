@@ -37,12 +37,6 @@ function(download_external_sources)
     set(external_platform "DESKTOP")
   endif()
 
-  # When building with Firestore, use the NanoPB source from that instead.
-  if(FIREBASE_INCLUDE_FIRESTORE)
-    set(FIRESTORE_BINARY_DIR ${PROJECT_BINARY_DIR}/external/src/firestore-build)
-    set(NANOPB_SOURCE_DIR ${FIRESTORE_BINARY_DIR}/external/src/nanopb)
-  endif()
-
   # Set variables to indicate if local versions of third party libraries should
   # be used instead of downloading them.
   function(check_use_local_directory NAME)
@@ -56,7 +50,6 @@ function(download_external_sources)
   check_use_local_directory(CURL)
   check_use_local_directory(FLATBUFFERS)
   check_use_local_directory(LIBUV)
-  check_use_local_directory(NANOPB)
   check_use_local_directory(UWEBSOCKETS)
   check_use_local_directory(ZLIB)
   check_use_local_directory(FIREBASE_IOS_SDK)
@@ -91,7 +84,6 @@ function(download_external_sources)
       -DDOWNLOAD_FLATBUFFERS=${DOWNLOAD_FLATBUFFERS}
       -DDOWNLOAD_GOOGLETEST=${FIREBASE_DOWNLOAD_GTEST}
       -DDOWNLOAD_LIBUV=${DOWNLOAD_LIBUV}
-      -DDOWNLOAD_NANOPB=${DOWNLOAD_NANOPB}
       -DDOWNLOAD_UWEBSOCKETS=${DOWNLOAD_UWEBSOCKETS}
       -DDOWNLOAD_ZLIB=${DOWNLOAD_ZLIB}
       -DDOWNLOAD_FIREBASE_IOS_SDK=${DOWNLOAD_FIREBASE_IOS_SDK}
@@ -133,11 +125,6 @@ function(download_external_sources)
         file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/rand.h
         "\n#include <stdlib.h>\n")
       endif()
-    endif()
-    if (FIREBASE_INCLUDE_FIRESTORE)
-      # Tweak Firestore's included version of leveldb to match our own.
-      file(INSTALL "${PROJECT_SOURCE_DIR}/cmake/external/leveldb.cmake"
-           DESTINATION "${PROJECT_BINARY_DIR}/external/src/firestore/cmake/external")
     endif()
   endif()
 endfunction()
@@ -245,6 +232,9 @@ function(build_external_dependencies)
           -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
     endif()
   endif()
+  # Propagate the PIC setting, as the dependencies need to match it
+  set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+      -DCMAKE_POSITION_INDEPENDENT_CODE=${CMAKE_POSITION_INDEPENDENT_CODE})
   message(STATUS "Sub-configure options: ${CMAKE_SUB_CONFIGURE_OPTIONS}")
   message(STATUS "Sub-build options: ${CMAKE_SUB_BUILD_OPTIONS}")
 

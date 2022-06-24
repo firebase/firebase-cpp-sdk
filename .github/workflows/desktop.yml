@@ -71,10 +71,10 @@ jobs:
           # msvc_runtime excludes
           - os: ubuntu-latest
             msvc_runtime: "dynamic"
-          - os: macos-latest
+          - os: macos-12
             msvc_runtime: "dynamic"
           # architecture excluees
-          - os: macos-latest
+          - os: macos-12
             architecture: "x86"
           # Xcode excludes -- allow only one on osx and linux
           - os: ubuntu-latest
@@ -100,6 +100,10 @@ jobs:
         run: |
           git config --global credential.helper 'store --file /tmp/git-credentials'
           echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
+
+      - name: Enable Git Long-paths Support
+        if: runner.os == 'Windows'
+        run: git config --system core.longpaths true
 
       - name: Setup Xcode version (macos)
         if: runner.os == 'macOS'
@@ -176,9 +180,13 @@ jobs:
             # binutils, used by older version of homebrew for hosting packages.
             brew update
 
-      - name: Install prerequisites
-        run: |
-          python scripts/gha/install_prereqs_desktop.py
+      - name: Install Desktop SDK prerequisites
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 15
+          max_attempts: 3
+          command: |
+            python scripts/gha/install_prereqs_desktop.py --gha_build --arch '${{ matrix.architecture }}'
 
       - name: Build SDK
         shell: bash
@@ -350,13 +358,18 @@ jobs:
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
-      - name: Set up Node (12)
+      - name: Set up Node (14)
         uses: actions/setup-node@v2
         with:
-          node-version: 12.x
+          node-version: 14.x
       - name: Setup Firestore Emulator
         run: |
           npm install -g firebase-tools
+      - name: Setup java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
       - name: Run Desktop integration tests
         run: |
           cp scripts/gha/integration_testing/google-services.json testapps-desktop-ubuntu-latest-openssl/firestore/google-services.json

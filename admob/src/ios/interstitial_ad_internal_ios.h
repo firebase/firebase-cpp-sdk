@@ -33,7 +33,7 @@ namespace internal {
 
 class InterstitialAdInternalIOS : public InterstitialAdInternal {
  public:
-  InterstitialAdInternalIOS(InterstitialAd* base);
+  explicit InterstitialAdInternalIOS(InterstitialAd* base);
   ~InterstitialAdInternalIOS();
 
   Future<void> Initialize(AdParent parent, const char* ad_unit_id) override;

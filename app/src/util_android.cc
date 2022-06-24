@@ -118,6 +118,15 @@ METHOD_LOOKUP_DECLARATION(uribuilder, URI_BUILDER_METHODS)
 METHOD_LOOKUP_DEFINITION(uribuilder, "android/net/Uri$Builder",
                          URI_BUILDER_METHODS)
 
+// Methods of the java.net.URL class.
+// clang-format off
+#define URL_METHODS(X)                                                      \
+    X(Constructor, "<init>", "(Ljava/lang/String;)V"),                      \
+    X(ConstructorWithURL, "<init>", "(Ljava/net/URL;Ljava/lang/String;)V")
+// clang-format on
+METHOD_LOOKUP_DECLARATION(url, URL_METHODS)
+METHOD_LOOKUP_DEFINITION(url, "java/net/URL", URL_METHODS)
+
 // clang-format off
 #define FILE_OUTPUT_STREAM_METHODS(X)                \
   X(ConstructorFile, "<init>", "(Ljava/io/File;)V"), \
@@ -150,13 +159,6 @@ METHOD_LOOKUP_DEFINITION(dex_class_loader,
 METHOD_LOOKUP_DECLARATION(url_class_loader, URL_CLASS_LOADER_METHODS)
 METHOD_LOOKUP_DEFINITION(url_class_loader, "java/net/URLClassLoader",
                          URL_CLASS_LOADER_METHODS)
-
-// clang-format off
-#define URL_METHODS(X) \
-  X(Constructor, "<init>", "(Ljava/net/URL;Ljava/lang/String;)V")
-// clang-format on
-METHOD_LOOKUP_DECLARATION(url, URL_METHODS)
-METHOD_LOOKUP_DEFINITION(url, "java/net/URL", URL_METHODS)
 
 // clang-format off
 #define JAVA_URI_METHODS(X) X(ToUrl, "toURL", "()Ljava/net/URL;")
@@ -193,6 +195,7 @@ METHOD_LOOKUP_DEFINITION(context, "android/content/Context", CONTEXT_METHODS)
 METHOD_LOOKUP_DEFINITION(cursor, "android/database/Cursor", CURSOR_METHODS)
 METHOD_LOOKUP_DEFINITION(date, "java/util/Date", DATE_METHODS);
 METHOD_LOOKUP_DEFINITION(double_class, "java/lang/Double", DOUBLE_METHODS)
+METHOD_LOOKUP_DEFINITION(enum_class, "java/lang/Enum", ENUM_METHODS)
 METHOD_LOOKUP_DEFINITION(file, "java/io/File", FILE_METHODS)
 METHOD_LOOKUP_DEFINITION(float_class, "java/lang/Float", FLOAT_METHODS)
 METHOD_LOOKUP_DEFINITION(hash_map, "java/util/HashMap", HASHMAP_METHODS)
@@ -244,6 +247,8 @@ static pthread_mutex_t g_task_callbacks_mutex;
 // Global references to class loaders used to find classes and load embedded
 // classes.
 static std::vector<jobject>* g_class_loaders;
+
+static bool g_jniresultcallback_loaded = false;
 
 JNIEXPORT void JNICALL JniResultCallback_nativeOnResult(
     JNIEnv* env, jobject clazz, jobject result, jboolean success,
@@ -372,6 +377,7 @@ static void ReleaseClasses(JNIEnv* env) {
   date::ReleaseClass(env);
   dex_class_loader::ReleaseClass(env);
   double_class::ReleaseClass(env);
+  enum_class::ReleaseClass(env);
   file::ReleaseClass(env);
   file_output_stream::ReleaseClass(env);
   float_class::ReleaseClass(env);
@@ -393,11 +399,14 @@ static void ReleaseClasses(JNIEnv* env) {
   uri::ReleaseClass(env);
   object::ReleaseClass(env);
   uribuilder::ReleaseClass(env);
-  jniresultcallback::ReleaseClass(env);
+  url::ReleaseClass(env);
+  if (g_jniresultcallback_loaded) {
+    jniresultcallback::ReleaseClass(env);
+    g_jniresultcallback_loaded = false;
+  }
   JavaThreadContext::Terminate(env);
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
   java_uri::ReleaseClass(env);
-  url::ReleaseClass(env);
   url_class_loader::ReleaseClass(env);
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
 }
@@ -469,6 +478,7 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
         date::CacheMethodIds(env, activity_object) &&
         dex_class_loader::CacheMethodIds(env, activity_object) &&
         double_class::CacheMethodIds(env, activity_object) &&
+        enum_class::CacheMethodIds(env, activity_object) &&
         file::CacheMethodIds(env, activity_object) &&
         file_output_stream::CacheMethodIds(env, activity_object) &&
         float_class::CacheMethodIds(env, activity_object) &&
@@ -488,7 +498,8 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
         throwable::CacheMethodIds(env, activity_object) &&
         uri::CacheMethodIds(env, activity_object) &&
         object::CacheMethodIds(env, activity_object) &&
-        uribuilder::CacheMethodIds(env, activity_object))) {
+        uribuilder::CacheMethodIds(env, activity_object) &&
+        url::CacheMethodIds(env, activity_object))) {
     ReleaseClasses(env);
     TerminateActivityClasses(env);
     return false;
@@ -503,7 +514,6 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
   // Cache JVM class-loader for desktop.
   if (!(java_uri::CacheMethodIds(env, activity_object) &&
-        url::CacheMethodIds(env, activity_object) &&
         url_class_loader::CacheMethodIds(env, activity_object))) {
     return false;
   }
@@ -526,12 +536,13 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
     return false;
   }
 
-  if (!(jniresultcallback::CacheClassFromFiles(env, activity_object,
-                                               &embedded_files) &&
-        jniresultcallback::CacheMethodIds(env, activity_object) &&
-        jniresultcallback::RegisterNatives(env, &kJniCallbackMethod, 1))) {
-    return false;
-  }
+  // With a subset of dependencies, jniresultcallback can't be loaded due to
+  // lack of gms.Task. This is fine - just make sure not to try terminating it.
+  g_jniresultcallback_loaded =
+      (jniresultcallback::CacheClassFromFiles(env, activity_object,
+                                              &embedded_files) &&
+       jniresultcallback::CacheMethodIds(env, activity_object) &&
+       jniresultcallback::RegisterNatives(env, &kJniCallbackMethod, 1));
 
   if (!JavaThreadContext::Initialize(env, activity_object, embedded_files)) {
     return false;
@@ -668,6 +679,23 @@ jobject StdVectorToJavaList(JNIEnv* env,
                      array_list::GetMethodId(array_list::kConstructor));
   jmethodID add_method = array_list::GetMethodId(array_list::kAdd);
   for (auto it = string_vector.begin(); it != string_vector.end(); ++it) {
+    jstring value = env->NewStringUTF(it->c_str());
+    env->CallBooleanMethod(java_list, add_method, value);
+    CheckAndClearJniExceptions(env);
+    env->DeleteLocalRef(value);
+  }
+  return java_list;
+}
+
+// Converts a `std::unordered_set<std::string>` to a
+// `java.util.ArrayList<String>` Returns a local ref to a List.
+jobject StdUnorderedSetToJavaList(
+    JNIEnv* env, const std::unordered_set<std::string>& string_set) {
+  jobject java_list =
+      env->NewObject(array_list::GetClass(),
+                     array_list::GetMethodId(array_list::kConstructor));
+  jmethodID add_method = array_list::GetMethodId(array_list::kAdd);
+  for (auto it = string_set.begin(); it != string_set.end(); ++it) {
     jstring value = env->NewStringUTF(it->c_str());
     env->CallBooleanMethod(java_list, add_method, value);
     CheckAndClearJniExceptions(env);
@@ -1176,6 +1204,17 @@ jobject ParseUriString(JNIEnv* env, const char* uri_string) {
   return uri;
 }
 
+// Convert a char array into a jobject of type java.net.URL.
+// The caller must call env->DeleteLocalRef() on the returned jobject.
+jobject CharsToURL(JNIEnv* env, const char* url_string) {
+  jobject url_jstring = env->NewStringUTF(url_string);
+  jobject url = env->NewObject(
+      url::GetClass(), url::GetMethodId(url::kConstructor), url_jstring);
+  CheckAndClearJniExceptions(env);
+  env->DeleteLocalRef(url_jstring);
+  return url;
+}
+
 // Convert a jbyteArray to a vector, releasing the reference to the
 // jbyteArray.
 std::vector<unsigned char> JniByteArrayToVector(JNIEnv* env, jobject array) {
@@ -1617,9 +1656,9 @@ jclass FindClassInFiles(
       env->NewObjectArray(embedded_files.size(), url::GetClass(), nullptr);
   for (int i = 0; i < embedded_files.size(); ++i) {
     jstring embedded_file_string = env->NewStringUTF(embedded_files[i].name);
-    jobject jar_url =
-        env->NewObject(url::GetClass(), url::GetMethodId(url::kConstructor),
-                       cache_url, embedded_file_string);
+    jobject jar_url = env->NewObject(url::GetClass(),
+                                     url::GetMethodId(url::kConstructorWithURL),
+                                     cache_url, embedded_file_string);
     env->SetObjectArrayElement(url_path_array, i, jar_url);
     env->DeleteLocalRef(jar_url);
     env->DeleteLocalRef(embedded_file_string);

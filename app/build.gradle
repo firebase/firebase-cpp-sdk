@@ -15,7 +15,7 @@
 buildscript {
   repositories {
     google()
-    jcenter()
+    mavenCentral()
   }
   dependencies {
     classpath 'com.android.tools.build:gradle:3.3.3'
@@ -24,16 +24,11 @@ buildscript {
 allprojects {
   repositories {
     google()
-    jcenter()
+    mavenCentral()
   }
 }
 
 apply plugin: 'com.android.library'
-
-ext {
-  firebaseAndroidStl = System.getenv('FIREBASE_ANDROID_STL')
-  firebaseAndroidStl = firebaseAndroidStl != null ? firebaseAndroidStl : ''
-}
 
 android {
   compileSdkVersion 28
@@ -67,8 +62,7 @@ android {
       cmake {
         targets 'firebase_app'
         // Don't configure all the cmake subprojects.
-        arguments '-DFIREBASE_INCLUDE_LIBRARY_DEFAULT=OFF',
-		  "-DFIREBASE_ANDROID_STL=${firebaseAndroidStl}"
+        arguments '-DFIREBASE_INCLUDE_LIBRARY_DEFAULT=OFF'
       }
     }
   }

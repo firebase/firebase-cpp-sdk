@@ -55,34 +55,23 @@ set(android_SRCS
 set(ios_SRCS
     src/ios/remote_config_ios.mm)
 
-if (NOT PROTOBUF_FOUND)
-  # Only log a message if building for Desktop, since mobile doesn't care.
-  if (NOT ANDROID AND NOT IOS)
-    message(FATAL_ERROR "Unable to find Protobuf, which is needed for Remote \
-            Configs's desktop implementation. Install Protobuf and add it to \
-            your PATH, or set the CMake option FIREBASE_INCLUDE_REMOTE_CONFIG \
-            to OFF to disable the firebase_remote_config build target.")
-  endif()
-else()
-  set(desktop_SRCS
-      ${PROTO_SRCS}
-      ${PROTO_HDRS}
-      ${request_resource_source}
-      ${request_resource_header}
-      ${response_resource_source}
-      ${response_resource_header}
-      ${FIREBASE_GEN_FILE_DIR}/remote_config/request_generated.h
-      ${FIREBASE_GEN_FILE_DIR}/remote_config/response_generated.h
-      src/desktop/rest.cc
-      src/desktop/config_data.cc
-      src/desktop/file_manager.cc
-      src/desktop/metadata.cc
-      src/desktop/notification_channel.cc
-      src/desktop/remote_config_desktop.cc
-      src/desktop/remote_config_request.cc
-      src/desktop/remote_config_response.cc
-  )
-endif()
+# Source files used by the desktop implementation.
+set(desktop_SRCS
+    ${request_resource_source}
+    ${request_resource_header}
+    ${response_resource_source}
+    ${response_resource_header}
+    ${FIREBASE_GEN_FILE_DIR}/remote_config/request_generated.h
+    ${FIREBASE_GEN_FILE_DIR}/remote_config/response_generated.h
+    src/desktop/rest.cc
+    src/desktop/config_data.cc
+    src/desktop/file_manager.cc
+    src/desktop/metadata.cc
+    src/desktop/notification_channel.cc
+    src/desktop/remote_config_desktop.cc
+    src/desktop/remote_config_request.cc
+    src/desktop/remote_config_response.cc
+)
 
 if(ANDROID)
   set(remote_config_platform_SRCS

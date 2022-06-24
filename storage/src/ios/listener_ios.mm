@@ -68,7 +68,7 @@ void ListenerInternal::AttachTask(
     ListenerInternal* listener_internal = listener_handle.listenerInternal;
     if (listener_internal) {
       Controller controller;
-      controller.internal_->AssignTask(storage, snapshot.task);
+      controller.internal_->AssignTask(storage, listener_internal->task());
       listener_internal->listener_->OnPaused(&controller);
     }
     [my_listener_handle_lock unlock];
@@ -85,7 +85,7 @@ void ListenerInternal::AttachTask(
           listener_internal->previous_progress_count_ != progress.completedUnitCount) {
         listener_internal->previous_progress_count_ = progress.completedUnitCount;
         Controller controller;
-        controller.internal_->AssignTask(storage, snapshot.task);
+        controller.internal_->AssignTask(storage, listener_internal->task());
         listener_internal->listener_->OnProgress(&controller);
       }
     }

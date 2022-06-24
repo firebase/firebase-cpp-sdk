@@ -73,14 +73,16 @@ modify your bashrc file to automatically set these variables.
 
 """
 
+import attr
 import datetime
+import json
 import os
 import platform
 import shutil
+import stat
 import subprocess
 import sys
-import json
-import attr
+import tempfile
 
 from absl import app
 from absl import flags
@@ -107,7 +109,7 @@ _DESKTOP = "Desktop"
 _SUPPORTED_PLATFORMS = (_ANDROID, _IOS, _TVOS, _DESKTOP)
 
 # Architecture
-_SUPPORTED_ARCHITECTURES = ("x64", "arm64")  # TODO: add x86
+_SUPPORTED_ARCHITECTURES = ("x64", "x86", "arm64")
 
 # Values for iOS SDK flag (where the iOS app will run)
 _APPLE_SDK_DEVICE = "real"
@@ -175,7 +177,22 @@ flags.DEFINE_string(
 
 flags.DEFINE_string(
     "arch", "x64",
-    "(Desktop only) Which architecture to build: x64 (all) or arm64 (Mac only).")
+    "(Desktop only) Which architecture to build: x64 (all), x86 (Windows/Linux), "
+    "or arm64 (Mac only).")
+
+# Get the number of CPUs for the default value of FLAGS.jobs
+CPU_COUNT = os.cpu_count();
+# If CPU count couldn't be determined, default to 2.
+DEFAULT_CPU_COUNT = 2
+if CPU_COUNT is None: CPU_COUNT = DEFAULT_CPU_COUNT
+# Cap at 4 CPUs.
+MAX_CPU_COUNT = 4
+if CPU_COUNT > MAX_CPU_COUNT: CPU_COUNT = MAX_CPU_COUNT
+
+flags.DEFINE_integer(
+    "jobs", CPU_COUNT,
+    "(Desktop only) If > 0, pass in -j <number> to make CMake parallelize the"
+    " build. Defaults to the system's CPU count (max %s)." % MAX_CPU_COUNT)
 
 flags.DEFINE_multi_string(
     "cmake_flag", None,
@@ -204,6 +221,10 @@ flags.DEFINE_bool(
     "short_output_paths", False,
     "Use short directory names for output paths. Useful to avoid hitting file "
     "path limits on Windows.")
+
+flags.DEFINE_bool(
+    "gha_build", False,
+    "Set to true if this is a GitHub Actions build.")
 
 def main(argv):
   if len(argv) > 1:
@@ -247,7 +268,10 @@ def main(argv):
   if _DESKTOP in platforms and not FLAGS.packaged_sdk:
     vcpkg_arch = FLAGS.arch
     installer = os.path.join(repo_dir, "scripts", "gha", "build_desktop.py")
-    _run([sys.executable, installer, "--vcpkg_step_only", "--arch", vcpkg_arch])
+    # --gha_build may be required to enable x86 Linux GitHub workarounds.
+    additional_flags = ["--gha_build"] if FLAGS.gha_build else []
+    _run([sys.executable, installer, "--vcpkg_step_only", "--arch", vcpkg_arch]
+         + additional_flags)
     toolchain_file = os.path.join(
         repo_dir, "external", "vcpkg", "scripts", "buildsystems", "vcpkg.cmake")
     if utils.is_mac_os() and FLAGS.arch == "arm64":
@@ -259,8 +283,26 @@ def main(argv):
 
     cmake_flags.extend((
         "-DCMAKE_TOOLCHAIN_FILE=%s" % toolchain_file,
-        "-DVCPKG_TARGET_TRIPLET=%s" % utils.get_vcpkg_triplet(arch=vcpkg_arch)
+        "-DVCPKG_TARGET_TRIPLET=%s" % utils.get_vcpkg_triplet(arch=vcpkg_arch),
+        "-DFIREBASE_PYTHON_HOST_EXECUTABLE:FILEPATH=%s" % sys.executable,
     ))
+
+  if (_DESKTOP in platforms and FLAGS.packaged_sdk and
+      utils.is_linux_os() and FLAGS.arch == "x86"):
+      # Write out a temporary toolchain file to force 32-bit Linux builds, as
+      # the SDK-included toolchain file may not be present when building against
+      # the packaged SDK.
+      temp_toolchain_file = tempfile.NamedTemporaryFile("w+", suffix=".cmake")
+      temp_toolchain_file.writelines([
+        'set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")\n',
+        'set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")\n',
+        'set(CMAKE_LIBRARY_PATH "/usr/lib/i386-linux-gnu")\n',
+        'set(INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORIES} "/usr/include/i386-linux-gnu")\n'])
+      temp_toolchain_file.flush()
+      # Leave the file open, as it will be deleted on close, i.e. when this script exits.
+      # (On Linux, the file can be opened a second time by cmake while still open by
+      # this script)
+      cmake_flags.extend(["-DCMAKE_TOOLCHAIN_FILE=%s" % temp_toolchain_file.name])
 
   if FLAGS.cmake_flag:
     cmake_flags.extend(FLAGS.cmake_flag)
@@ -395,6 +437,7 @@ def _collect_integration_tests(testapps, root_output_dir, output_dir, artifact_n
     desktop_testapp_name += ".exe"
 
   testapp_paths = []
+  testapp_google_services = {}
   for file_dir, directories, file_names in os.walk(output_dir):
     for directory in directories:
       if directory.endswith(ios_simualtor_testapp_extension):
@@ -404,6 +447,8 @@ def _collect_integration_tests(testapps, root_output_dir, output_dir, artifact_n
           or file_name.endswith(android_testapp_extension) 
           or file_name.endswith(ios_testapp_extension)):
         testapp_paths.append(os.path.join(file_dir, file_name))
+      if (file_name == "google-services.json"):
+        testapp_google_services[file_dir.split(os.path.sep)[-2]] = os.path.join(file_dir, file_name)
 
   artifact_path = os.path.join(root_output_dir, testapps_artifact_dir)
   _rm_dir_safe(artifact_path)
@@ -414,6 +459,8 @@ def _collect_integration_tests(testapps, root_output_dir, output_dir, artifact_n
       if testapp in path:
         if os.path.isfile(path):
           shutil.copy(path, os.path.join(artifact_path, testapp))
+          if path.endswith(desktop_testapp_name) and testapp_google_services.get(testapp):
+            shutil.copy(testapp_google_services[testapp], os.path.join(artifact_path, testapp))
         else:
           dir_util.copy_tree(path, os.path.join(artifact_path, testapp, os.path.basename(path)))
         break
@@ -451,13 +498,16 @@ def _build_desktop(sdk_dir, cmake_flags):
   cmake_configure_cmd = ["cmake", ".", "-DCMAKE_BUILD_TYPE=Debug",
                                        "-DFIREBASE_CPP_SDK_DIR=" + sdk_dir]
   if utils.is_windows_os():
-    cmake_configure_cmd += ["-A", "x64"]
+    cmake_configure_cmd += ["-A",
+                            "Win32" if FLAGS.arch == "x86" else FLAGS.arch]
   elif utils.is_mac_os():
     # Ensure that correct Mac architecture is built.
     cmake_configure_cmd += ["-DCMAKE_OSX_ARCHITECTURES=%s" %
                             ("arm64" if FLAGS.arch == "arm64" else "x86_64")]
+
   _run(cmake_configure_cmd + cmake_flags)
-  _run(["cmake", "--build", ".", "--config", "Debug"])
+  _run(["cmake", "--build", ".", "--config", "Debug"] +
+       ["-j", str(FLAGS.jobs)] if FLAGS.jobs > 0 else [])
 
 
 def _get_desktop_compiler_flags(compiler, compiler_table):
@@ -653,11 +703,17 @@ def _run(args, timeout=_DEFAULT_RUN_TIMEOUT_SECONDS, capture_output=False, text=
       check=check)
 
 
+def _handle_readonly_file(func, path, excinfo):
+  """Function passed into shutil.rmtree to handle Access Denied error"""
+  os.chmod(path, stat.S_IWRITE)
+  func(path)  # will re-throw if a different error occurrs
+
+
 def _rm_dir_safe(directory_path):
   """Removes directory at given path. No error if dir doesn't exist."""
   logging.info("Deleting %s...", directory_path)
   try:
-    shutil.rmtree(directory_path)
+    shutil.rmtree(directory_path, onerror=_handle_readonly_file)
   except OSError as e:
     # There are two known cases where this can happen:
     # The directory doesn't exist (FileNotFoundError)

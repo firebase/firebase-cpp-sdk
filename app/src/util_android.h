@@ -22,6 +22,7 @@
 
 #include <map>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "app/src/assert.h"
@@ -609,6 +610,15 @@ METHOD_LOOKUP_DECLARATION(hash_map, HASHMAP_METHODS);
 METHOD_LOOKUP_DECLARATION(double_class, DOUBLE_METHODS);
 
 // clang-format off
+#define ENUM_METHODS(X)             \
+  X(Equals, "equals",               \
+    "(Ljava/lang/Object;)Z"),       \
+  X(Name, "name",                   \
+    "()Ljava/lang/String;")         \
+// clang-format on
+METHOD_LOOKUP_DECLARATION(enum_class, ENUM_METHODS);
+
+// clang-format off
 #define BOOLEAN_METHODS(X)            \
     X(Constructor, "<init>", "(Z)V"), \
     X(Value, "booleanValue", "()Z")
@@ -808,6 +818,11 @@ std::string JObjectClassName(JNIEnv* env, jobject obj);
 jobject StdVectorToJavaList(JNIEnv* env,
                             const std::vector<std::string>& string_vector);
 
+// Converts a `std::unordered_set<std::string>` to a
+// `java.util.ArrayList<String>` Returns a local ref to a List.
+jobject StdUnorderedSetToJavaList(
+    JNIEnv* env, const std::unordered_set<std::string>& string_set);
+
 // Converts an `std::map<const char*, const char*>` to a
 // `java.util.Map<String, String>`.
 void StdMapToJavaMap(JNIEnv* env, jobject* to,
@@ -941,6 +956,10 @@ jobject CharsToJniUri(JNIEnv* env, const char* uri);
 // Parse a string containing a URL into a android.net.Uri using Uri.parse().
 // The caller must call env->DeleteLocalRef() on the returned jobject.
 jobject ParseUriString(JNIEnv* env, const char* uri_string);
+
+// Convert a char array into a jobject of type java.net.URL.
+// The caller must call env->DeleteLocalRef() on the returned jobject.
+jobject CharsToURL(JNIEnv* env, const char* url_string);
 
 // Convert a jbyteArray to a vector, releasing the reference to the jbyteArray.
 std::vector<unsigned char> JniByteArrayToVector(JNIEnv* env, jobject array);

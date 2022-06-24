@@ -32,9 +32,9 @@ env:
   demumbleVer: "1.1.0"
   # Use SHA256 for hashing files.
   hashCommand: "sha256sum"
-  # Xcode version 12.4 is the version we build the SDK with.
+  # Xcode version 13.3.1 is the version we build the SDK with.
   # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
-  xcodeVersion: "12.4"
+  xcodeVersion: "13.3.1"
   # LLVM version with ARM MachO support has no version number yet.
   llvmVer: "5f187f0afaad33013ba03454c4749d99b1362534"
   GITHUB_TOKEN: ${{ github.token }}
@@ -79,13 +79,13 @@ jobs:
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-12]
         include:
         - os: ubuntu-latest
           tools_platform: linux
           # Binutils 2.35.1 released Sep 19, 2020
           binutils_version: "2.35.1"
-        - os: macos-latest
+        - os: macos-12
           tools_platform: darwin
           # Binutils 2.35.1 released Sep 19, 2020
           binutils_version: "2.35.1"
@@ -180,7 +180,7 @@ jobs:
 
   build_and_package_ios_tvos:
     name: build-and-package-ios-tvos
-    runs-on: macos-latest
+    runs-on: macos-12
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     steps:
       - name: Store git credentials for all git commands
@@ -237,13 +237,11 @@ jobs:
           path: firebase-cpp-sdk-ios-tvos-package.tgz
 
   build_and_package_android:
-    name: build-and-package-android-${{matrix.stl}}
+    name: build-and-package-android
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       fail-fast: false
-      matrix:
-        stl: ["c++", "gnustl"]
     steps:
       - name: fetch SDK
         uses: actions/checkout@v2.3.1
@@ -261,18 +259,18 @@ jobs:
         id: cache_ndk
         uses: actions/cache@v2
         with:
-          path: /tmp/android-ndk-r16b
-          key: android-ndk-${{ matrix.os }}-r16b
+          path: /tmp/android-ndk-r21e
+          key: android-ndk-${{ runner.os }}-r21e
 
       - name: install prerequisites
         run: sdk-src/build_scripts/android/install_prereqs.sh
 
       - name: build sdk
         run: |
-          sdk-src/build_scripts/android/build.sh firebase-cpp-sdk-android-${{ matrix.stl }}-build sdk-src ${{ matrix.stl }}
-          sdk-src/build_scripts/android/package.sh firebase-cpp-sdk-android-${{ matrix.stl }}-build firebase-cpp-sdk-android-${{ matrix.stl }}-package ${{ matrix.stl }}
-          cd firebase-cpp-sdk-android-${{ matrix.stl }}-package
-          tar -czhf ../firebase-cpp-sdk-android-${{ matrix.stl}}-package.tgz .
+          sdk-src/build_scripts/android/build.sh firebase-cpp-sdk-android-build sdk-src
+          sdk-src/build_scripts/android/package.sh firebase-cpp-sdk-android-build firebase-cpp-sdk-android-package
+          cd firebase-cpp-sdk-android-package
+          tar -czhf ../firebase-cpp-sdk-android-package.tgz .
 
       - name: Print built libraries
         shell: bash
@@ -292,8 +290,8 @@ jobs:
       - name: upload artifacts
         uses: actions/upload-artifact@v2.2.2
         with:
-          name: firebase-cpp-sdk-android-${{ matrix.stl }}-package
-          path: firebase-cpp-sdk-android-${{ matrix.stl }}-package.tgz
+          name: firebase-cpp-sdk-android-package
+          path: firebase-cpp-sdk-android-package.tgz
 
   build_desktop:
     name: build-${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}
@@ -302,7 +300,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [windows-latest, ubuntu-latest, macos-12]
         build_type: ["Release", "Debug"]
         architecture: ["x64", "x86", "arm64"]
         msvc_runtime: ["static", "dynamic"]
@@ -322,7 +320,7 @@ jobs:
           vcpkg_triplet_suffix: "linux"
           additional_build_flags: ""
           sdk_platform: "linux"
-        - os: macos-latest
+        - os: macos-12
           vcpkg_triplet_suffix: "osx"
           additional_build_flags: "--target_format libraries"
           sdk_platform: "darwin"
@@ -330,13 +328,13 @@ jobs:
         exclude:
         - os: windows-latest
           linux_abi: "c++11"
-        - os: macos-latest
+        - os: macos-12
           architecture: "x86"
-        - os: macos-latest
+        - os: macos-12
           msvc_runtime: "dynamic"
-        - os: macos-latest
+        - os: macos-12
           linux_abi: "c++11"
-        - os: macos-latest
+        - os: macos-12
           build_type: "Debug"
         - os: ubuntu-latest
           msvc_runtime: "dynamic"
@@ -410,9 +408,13 @@ jobs:
             # binutils, used by older version of homebrew for hosting packages.
             brew update
 
-      - name: Install prerequisites
-        run: |
-          python scripts/gha/install_prereqs_desktop.py
+      - name: Install Desktop SDK prerequisites
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 15
+          max_attempts: 3
+          command: |
+            python scripts/gha/install_prereqs_desktop.py --gha_build --arch '${{ matrix.architecture }}' --ssl boringssl
 
       - name: Export verbose flag
         shell: bash
@@ -497,7 +499,7 @@ jobs:
           suffix: '-x64-Debug-dynamic'
           runs_on_platform: ubuntu-latest
         - sdk_platform: darwin
-          runs_on_platform: macos-latest
+          runs_on_platform: macos-12
         exclude:
         - sdk_platform: windows
           suffix: ''
@@ -540,7 +542,7 @@ jobs:
       - name: Install prerequisites
         run: |
           cd sdk-src
-          python scripts/gha/install_prereqs_desktop.py
+          python scripts/gha/install_prereqs_desktop.py --ssl boringssl
           cd ..
 
       - name: postprocess and package built SDK

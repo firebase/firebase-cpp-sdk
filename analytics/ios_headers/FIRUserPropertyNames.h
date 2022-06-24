@@ -1,6 +1,6 @@
 // Copyright 2022 Google LLC
 
-// Copied from Firebase Analytics iOS SDK 8.13.0.
+// Copied from Firebase Analytics iOS SDK 9.2.0.
 
 /// @file FIRUserPropertyNames.h
 ///
@@ -22,8 +22,7 @@
 /// more details and information about related settings.
 ///
 /// <pre>
-///     [FIRAnalytics setUserPropertyString:@"NO"
-///                                 forName:kFIRUserPropertyAllowAdPersonalizationSignals];
+///     Analytics.setUserProperty("NO", forName: AnalyticsUserPropertyAllowAdPersonalizationSignals)
 /// </pre>
 static NSString *const kFIRUserPropertyAllowAdPersonalizationSignals
     NS_SWIFT_NAME(AnalyticsUserPropertyAllowAdPersonalizationSignals) = @"allow_personalized_ads";
