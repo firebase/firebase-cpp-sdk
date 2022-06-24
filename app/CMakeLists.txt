@@ -494,6 +494,7 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/snapshot_metadata.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/source.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/transaction.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/transaction_options.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/write_batch.h
     ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/core/include/firebase/firestore/firestore_errors.h
     ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/core/include/firebase/firestore/firestore_version.h
