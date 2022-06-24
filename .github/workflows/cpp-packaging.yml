@@ -635,6 +635,8 @@ jobs:
           # cpp_symbols.txt contains a list of all C++ symbols, sorted and deduped
           # get a list of all top-level namespaces (except system namespaces)
           cat cpp_symbols.txt | cut -d: -f1 | sort | uniq > cpp_namespaces.txt
+          echo "List of all namespaces found:"
+          cat cpp_namespaces.txt
           # Filter out renamed namespaces (f_b_*), standard namespaces, and the public namespace (firebase::)
           allow_namespaces="f_b_|std::|stdext::|__gnu_cxx::|cxxabiv1::|firebase::"
           cat cpp_namespaces.txt | grep -vE "^(${allow_namespaces})" > extra_namespaces.txt
