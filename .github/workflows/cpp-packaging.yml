@@ -638,8 +638,8 @@ jobs:
           echo "List of all namespaces found:"
           cat cpp_namespaces.txt
           # Filter out renamed namespaces (f_b_*), standard namespaces, and the public namespace (firebase::)
-          allow_namespaces="f_b_|std::|stdext::|__gnu_cxx::|cxxabiv1::|firebase::"
-          cat cpp_namespaces.txt | grep -vE "^(${allow_namespaces})" > extra_namespaces.txt
+          allow_namespaces="f_b_.*|std|stdext|__gnu_cxx|cxxabiv1|firebase"
+          cat cpp_namespaces.txt | grep -vE "^(${allow_namespaces})$" > extra_namespaces.txt
           # If there are any namespaces in this file, print an error.
           if [[ -s extra_namespaces.txt ]]; then
             echo '::error ::Unrenamed C++ namespaces in ${{ matrix.sdk_platform }}${{ matrix.suffix }} package:%0A'$(cat extra_namespaces.txt | tr '\n' ' ' | sed 's/ /%0A/g')
