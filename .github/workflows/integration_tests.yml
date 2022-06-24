@@ -16,7 +16,7 @@ on:
         required: true
       apis:
         description: 'CSV of apis to build and test'
-        default: 'admob,analytics,auth,database,dynamic_links,firestore,functions,installations,messaging,remote_config,storage'
+        default: 'admob,analytics,auth,database,dynamic_links,firestore,functions,gma,installations,messaging,remote_config,storage'
         required: true
       operating_systems:
         description: 'CSV of VMs to run on'
@@ -409,22 +409,6 @@ jobs:
           name: log-artifact
           path: build-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}*
           retention-days: ${{ env.artifactRetentionDays }}
-      - name: Cleanup Local Copies of Uploaded Artifacts
-        shell: bash
-        run: |
-          rm -rf testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
-      - name: Set CLOUDSDK_PYTHON (Windows)
-        shell: bash
-        if: startsWith(matrix.os, 'windows') && !cancelled()
-        run: echo "CLOUDSDK_PYTHON=${{env.pythonLocation}}\python.exe" >> $GITHUB_ENV
-      - name: Install Cloud SDK
-        if: ${{ !cancelled() }}
-        uses: google-github-actions/setup-gcloud@v0
-      - name: Upload Desktop Artifacts to GCS
-        shell: bash
-        if: ${{ !cancelled() }}
-        run: |
-          python scripts/gha/gcs_uploader.py --testapp_dir ta --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         uses: actions/download-artifact@v3
@@ -509,6 +493,8 @@ jobs:
           shell: bash
           command: |
             build_scripts/android/install_prereqs.sh
+            echo "NDK_ROOT=/tmp/android-ndk-r21e" >> $GITHUB_ENV
+            echo "ANDROID_NDK_HOME=/tmp/android-ndk-r21e" >> $GITHUB_ENV
             pip install -r scripts/gha/requirements.txt
             python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
       - name: Fetch prebuilt packaged SDK from previous run
@@ -898,7 +884,6 @@ jobs:
           shell: bash
           command: |
             pip install -r scripts/gha/requirements.txt
-            python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact "testapps/testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}"
       - name: Setup java
         uses: actions/setup-java@v3
         with:
@@ -1107,7 +1092,7 @@ jobs:
 
 
   test_android:
-    name: test-android-${{ matrix.build_os }}-${{ matrix.android_device }}
+    name: test-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}
     needs: [check_and_prepare, build_android]
     runs-on: macos-12
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'Android') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
@@ -1116,6 +1101,12 @@ jobs:
       matrix:
         build_os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
         android_device: ${{ fromJson(needs.check_and_prepare.outputs.android_device) }}
+        test_type: ["gameloop"]
+        exclude:
+          -  android_device: "android_target"
+             test_type: "uitest"
+          -  android_device: "android_latest"
+             test_type: "uitest"
     steps:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
@@ -1166,8 +1157,9 @@ jobs:
         if: steps.get-device-type.outputs.device_type == 'virtual'
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
+            --test_type "${{ matrix.test_type }}" \
             --android_device "${{ matrix.android_device }}" \
-            --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}" \
+            --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}" \
             --ci
       - name: Install Cloud SDK
         if: steps.get-device-type.outputs.device_type == 'real'
@@ -1176,26 +1168,33 @@ jobs:
         timeout-minutes: 60
         if: steps.get-device-type.outputs.device_type == 'real'
         run: |
-          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           python scripts/gha/test_lab.py --testapp_dir testapps \
             --android_device "${{ matrix.android_device }}" \
-            --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}" \
+            --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}" \
             --code_platform cpp \
-            --key_file scripts/gha-encrypted/gcs_key_file.json
+            --key_file_encrypted scripts/gha-encrypted/gcs_key_file.json.gpg \
+            --key_file_passphrase "${{ secrets.TEST_SECRET }}"
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          # If testapps do not exist, then it's a build error not test error.
-          if [ -d "testapps/testapps-android-${{ matrix.build_os }}" && ! -f "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}.log.json" ]; then
-            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}.log.json"
+          # If testapps do not exist, then it's a build error not test error. 
+          if [ -d "testapps/testapps-android-${{ matrix.build_os }}" && ! -f "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.log.json" ]; then
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.log.json"
           fi
       - name: Upload Android test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
         with:
           name: log-artifact
-          path: testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}*
+          path: testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}*
+          retention-days: ${{ env.artifactRetentionDays }}
+      - name: Upload Android test video artifact
+        if: ${{ steps.get-device-type.outputs.device_type == 'virtual' && !cancelled() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: mobile-simulator-test-video-artifact
+          path: testapps/video-*-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.mp4
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
@@ -1217,13 +1216,13 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}.log"
+          cat "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.log"
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
 
   test_ios:
-    name: test-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}
+    name: test-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}
     needs: [check_and_prepare, build_ios]
     runs-on: macos-12
     if: contains(needs.check_and_prepare.outputs.matrix_platform, 'iOS') && needs.check_and_prepare.outputs.apis != '' && !cancelled()
@@ -1231,6 +1230,14 @@ jobs:
       fail-fast: false
       matrix:
         ios_device: ${{ fromJson(needs.check_and_prepare.outputs.ios_device) }}
+        test_type: ["gameloop"]
+        exclude:
+          -  ios_device: "ios_min"
+             test_type: "uitest"
+          -  ios_device: "ios_target"
+             test_type: "uitest"
+          -  ios_device: "ios_latest"
+             test_type: "uitest"
         build_os: [macos-12]
     steps:
       - name: setup Xcode version (macos)
@@ -1276,8 +1283,9 @@ jobs:
         if: steps.get-device-type.outputs.device_type == 'virtual'
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
+            --test_type "${{ matrix.test_type }}" \
             --ios_device "${{ matrix.ios_device }}" \
-            --logfile_name "ios-${{ matrix.build_os }}-${{ matrix.ios_device }}" \
+            --logfile_name "ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}" \
             --ci
       - name: Install Cloud SDK
         if: steps.get-device-type.outputs.device_type == 'real'
@@ -1287,26 +1295,33 @@ jobs:
         timeout-minutes: 60
         if: steps.get-device-type.outputs.device_type == 'real'
         run: |
-          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           python scripts/gha/test_lab.py --testapp_dir testapps \
             --ios_device "${{ matrix.ios_device }}" \
-            --logfile_name "ios-${{ matrix.build_os }}-${{ matrix.ios_device }}" \
+            --logfile_name "ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}" \
             --code_platform cpp \
-            --key_file scripts/gha-encrypted/gcs_key_file.json
+            --key_file_encrypted scripts/gha-encrypted/gcs_key_file.json.gpg \
+            --key_file_passphrase "${{ secrets.TEST_SECRET }}"
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          # If testapps do not exist, then it's a build error not test error.
-          if [ -d "testapps/testapps-ios-${{ matrix.build_os }}" && ! -f "testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}.log.json" ]; then
-            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}.log.json"
+          # If testapps do not exist, then it's a build error not test error. 
+          if [ -d "testapps/testapps-ios-${{ matrix.build_os }}" && ! -f "testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.log.json" ]; then
+            mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.log.json"
           fi
       - name: Upload iOS test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
         with:
           name: log-artifact
-          path: testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}*
+          path: testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}*
+          retention-days: ${{ env.artifactRetentionDays }}
+      - name: Upload iOS test video artifact
+        if: ${{ steps.get-device-type.outputs.device_type == 'virtual' && !cancelled() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: mobile-simulator-test-video-artifact
+          path: testapps/video-*-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.mp4
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
@@ -1328,7 +1343,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat "testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}.log"
+          cat "testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.log"
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi

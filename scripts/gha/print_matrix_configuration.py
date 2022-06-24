@@ -133,7 +133,7 @@ PARAMETERS = {
       }
     },
     "config": {
-      "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,installations,messaging,remote_config,storage",
+      "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,gma,installations,messaging,remote_config,storage",
       "mobile_test_on": "real,virtual"
     }
   },
@@ -169,8 +169,8 @@ TEST_DEVICES = {
   "emulator_target": {"type": "virtual", "image":"system-images;android-28;google_apis;x86_64"},
   "emulator_latest": {"type": "virtual", "image":"system-images;android-30;google_apis;x86_64"},
   "emulator_32bit": {"type": "virtual", "image":"system-images;android-30;google_apis;x86"},
-  "ios_min": {"type": "real", "model":"iphone8", "version":"11.4"},
-  "ios_target": {"type": "real", "model":"iphone8plus", "version":"12.0"},
+  "ios_min": {"type": "real", "model":"iphone8", "version":"12.4"},
+  "ios_target": {"type": "real", "model":"iphone8", "version":"13.6"},
   "ios_latest": {"type": "real", "model":"iphone11pro", "version":"14.7"},
   "simulator_min": {"type": "virtual", "name":"iPhone 8", "version":"13.7"},
   "simulator_target": {"type": "virtual", "name":"iPhone 8", "version":"14.5"},

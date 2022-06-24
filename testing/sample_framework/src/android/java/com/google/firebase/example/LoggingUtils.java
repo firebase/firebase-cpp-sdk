@@ -43,6 +43,8 @@ public class LoggingUtils {
   private static boolean didTouch = false;
   // If a test log file is specified, this is the log file's URI...
   private static Uri logFile = null;
+  private static boolean shouldRunUITests = true;
+  private static boolean shouldRunNonUITests = true;
   // ...and this is the stream to write to.
   private static DataOutputStream logFileStream = null;
 
@@ -102,6 +104,10 @@ public class LoggingUtils {
     Intent launchIntent = activity.getIntent();
     // Check if we are running on Firebase Test Lab, and set up a log file if we are.
     if (launchIntent.getAction().equals("com.google.intent.action.TEST_LOOP")) {
+      shouldRunUITests = false;
+      startLogFile(activity, launchIntent.getData().toString());
+    } else if (launchIntent.getAction().equals("com.google.intent.action.UI_TEST")) {
+      shouldRunNonUITests = false;
       startLogFile(activity, launchIntent.getData().toString());
     }
   }
@@ -159,5 +165,13 @@ public class LoggingUtils {
     } else {
       return null;
     }
+  }
+
+  public static boolean shouldRunUITests() {
+    return shouldRunUITests;
+  }
+
+  public static boolean shouldRunNonUITests() {
+    return shouldRunNonUITests;
   }
 }

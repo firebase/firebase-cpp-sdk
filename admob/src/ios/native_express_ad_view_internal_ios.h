@@ -29,7 +29,7 @@ namespace internal {
 
 class NativeExpressAdViewInternalIOS : public NativeExpressAdViewInternal {
  public:
-  NativeExpressAdViewInternalIOS(NativeExpressAdView* base);
+  explicit NativeExpressAdViewInternalIOS(NativeExpressAdView* base);
   ~NativeExpressAdViewInternalIOS();
 
   Future<void> Initialize(AdParent parent, const char* ad_unit_id, AdSize size)

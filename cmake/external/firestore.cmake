@@ -18,17 +18,9 @@ if(TARGET firestore)
   return()
 endif()
 
-if(${CMAKE_VERSION} VERSION_LESS "3.12")
-  include(FindPythonInterp)
-  set(MY_PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE}")
-else()
-  find_package(Python3 COMPONENTS Interpreter REQUIRED)
-  set(MY_PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
-endif()
-
 # If the format of the line below changes, then be sure to update
 # https://github.com/firebase/firebase-cpp-sdk/blob/fd054fa016/.github/workflows/update-dependencies.yml#L81
-set(version CocoaPods-9.1.0)
+set(version CocoaPods-9.2.0)
 
 function(GetReleasedDep)
   message("Getting released firebase-ios-sdk @ ${version}")
@@ -36,9 +28,7 @@ function(GetReleasedDep)
     firestore
 
     DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
-    GIT_REPOSITORY "https://github.com/firebase/firebase-ios-sdk.git"
-    # Pinned HEAD commit as of June 01, 2022 @ 10:51 EDT.
-    GIT_TAG 89c38d1ed908dbc10d5f9f7aded4cf271113773f
+    URL https://github.com/firebase/firebase-ios-sdk/archive/${version}.tar.gz
 
     PREFIX ${PROJECT_BINARY_DIR}
 
@@ -46,11 +36,7 @@ function(GetReleasedDep)
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
     TEST_COMMAND ""
-    PATCH_COMMAND
-      ${MY_PYTHON_EXECUTABLE}
-      ${CMAKE_CURRENT_LIST_DIR}/firestore_patch.py
-      --leveldb-version-from
-      ${CMAKE_CURRENT_LIST_DIR}/leveldb.cmake
+    PATCH_COMMAND patch -Np1 -i ${CMAKE_CURRENT_LIST_DIR}/firestore.patch.txt
     HTTP_HEADER "${EXTERNAL_PROJECT_HTTP_HEADER}"
     )
 endfunction()
@@ -71,11 +57,7 @@ function(GetTag t)
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
     TEST_COMMAND ""
-    PATCH_COMMAND
-      ${MY_PYTHON_EXECUTABLE}
-      ${CMAKE_CURRENT_LIST_DIR}/firestore_patch.py
-      --leveldb-version-from
-      ${CMAKE_CURRENT_LIST_DIR}/leveldb.cmake
+    PATCH_COMMAND patch -Np1 -i ${CMAKE_CURRENT_LIST_DIR}/firestore.patch.txt
     HTTP_HEADER "${EXTERNAL_PROJECT_HTTP_HEADER}"
     )
 endfunction()

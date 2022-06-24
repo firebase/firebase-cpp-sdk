@@ -46,6 +46,8 @@ option(FIREBASE_INCLUDE_FIRESTORE
 option(FIREBASE_INCLUDE_FUNCTIONS
        "Include the Cloud Functions for Firebase library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
+option(FIREBASE_INCLUDE_GMA "Include the GMA library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_INSTALLATIONS
        "Include the Firebase Installations library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
@@ -116,9 +118,10 @@ if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)
 endif()
 
 if (PLATFORM STREQUAL TVOS OR PLATFORM STREQUAL SIMULATOR_TVOS)
-  # AdMob and FDL are not supported on tvOS.
+  # AdMob, GMA and FDL are not supported on tvOS.
   set(FIREBASE_INCLUDE_ADMOB OFF)
   set(FIREBASE_INCLUDE_DYNAMIC_LINKS OFF)
+  set(FIREBASE_INCLUDE_GMA OFF)
 endif()
 
 # Occasionally ANDROID is not being set correctly when invoked by gradle, so
@@ -598,6 +601,9 @@ if (FIREBASE_INCLUDE_FIRESTORE)
 endif()
 if (FIREBASE_INCLUDE_FUNCTIONS)
   add_subdirectory(functions)
+endif()
+if (FIREBASE_INCLUDE_GMA)
+  add_subdirectory(gma)
 endif()
 if (FIREBASE_INCLUDE_INSTALLATIONS)
   add_subdirectory(installations)

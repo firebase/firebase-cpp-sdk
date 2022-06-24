@@ -72,6 +72,12 @@ bool Mkdir(const std::string& path, std::string* out_error) {
   return true;
 }
 
+bool PathExists(const std::string& path) {
+  struct stat sb;
+
+  return (stat(path.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode));
+}
+
 }  // namespace
 
 std::string AppDataDir(const char* app_name, bool should_create,
@@ -93,14 +99,18 @@ std::string AppDataDir(const char* app_name, bool should_create,
     app_dir = std::string(".local/share/") + app_name;
   }
 
-  if (should_create) {
-    std::string current_path = home;
-    for (const std::string& nested_dir : SplitString(app_dir, '/')) {
-      current_path += '/';
+  std::string full_path = home + '/' + app_dir;
+  if (should_create && !PathExists(full_path)) {
+    std::string current_path = full_path[0] == '/' ? "/" : "";
+
+    for (const std::string& nested_dir : SplitString(full_path, '/')) {
       current_path += nested_dir;
 
-      bool created = Mkdir(current_path, out_error);
-      if (!created) return "";
+      if (!PathExists(current_path)) {
+        bool created = Mkdir(current_path, out_error);
+        if (!created) return "";
+      }
+      current_path += '/';
     }
   }
 
