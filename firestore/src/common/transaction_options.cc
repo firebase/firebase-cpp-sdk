@@ -17,6 +17,7 @@
 #include "firestore/src/include/firebase/firestore/transaction_options.h"
 
 #include <cstdint>
+#include <ostream>
 #include <string>
 
 #include "firestore/src/common/exception_common.h"
