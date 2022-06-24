@@ -634,9 +634,10 @@ jobs:
           fi
           # cpp_symbols.txt contains a list of all C++ symbols, sorted and deduped
           # get a list of all top-level namespaces (except system namespaces)
-          cat cpp_symbols.txt | grep -v '^std::' | grep -v '^__gnu_cxx::' | cut -d: -f1 | sort | uniq > cpp_namespaces.txt
-          # Filter out the renamed namespaces (f_b_*) and the public namespace (firebase)
-          cat cpp_namespaces.txt | grep -v '^f_b_' | grep -v '^firebase$' | > extra_namespaces.txt
+          cat cpp_symbols.txt | cut -d: -f1 | sort | uniq > cpp_namespaces.txt
+          # Filter out renamed namespaces (f_b_*), standard namespaces, and the public namespace (firebase::)
+          allow_namespaces="f_b_|std::|stdext::|__gnu_cxx::|cxxabiv1::|firebase::"
+          cat cpp_namespaces.txt | grep -vE "^(${allow_namespaces})" > extra_namespaces.txt
           # If there are any namespaces in this file, print an error.
           if [[ -s extra_namespaces.txt ]]; then
             echo '::error ::Unrenamed C++ namespaces in ${{ matrix.sdk_platform }}${{ matrix.suffix }} package:%0A'$(cat extra_namespaces.txt | tr '\n' ' ' | sed 's/ /%0A/g')
