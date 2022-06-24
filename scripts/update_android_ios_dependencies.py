@@ -613,7 +613,7 @@ def modify_readme_file_android(readme_filepath, version_map, dryrun=True):
 # implementation 'com.google.firebase:firebase-auth:1.2.3'
 # implementation 'com.google.firebase:firebase-auth:1.2.3-alpha'
 RE_GRADLE_COMPILE_MODULE = re.compile(
-    r"implementation\s*(platform\()?\'(?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([a-zA-Z0-9._-]+)\'\)?")
+    r"implementation\s*(?P<mid>platform\()?\'(?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([a-zA-Z0-9._-]+)\'(?P<end>\))?")
 
 
 def modify_gradle_file(gradle_filepath, version_map, dryrun=True):
@@ -647,7 +647,9 @@ def modify_gradle_file(gradle_filepath, version_map, dryrun=True):
     pkg = m.group("pkg").replace("-", "_").replace(":", ".")
     if pkg not in version_map:
       return m.group(0)
-    return "implementation '%s:%s'" % (m.group("pkg"), version_map[pkg])
+    return "implementation %s'%s:%s'%s" % (m.group('mid') if m.group('mid') else '',
+                                           m.group('pkg'), version_map[pkg],
+                                           m.group('end') if m.group('end') else '')
 
   substituted_pairs = []
   to_update = False
