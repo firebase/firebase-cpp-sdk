@@ -549,7 +549,7 @@ def modify_dependency_file(dependency_filepath, version_map, dryrun=True):
 # |                          | com.google.firebase:firebase-auth:1.2.3
 # |                          | com.google.firebase:firebase-auth:1.2.3-alpha
 RE_README_ANDROID_VERSION = re.compile(
-    r"\|(?P<spaces>\s+)\| (?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([a-zA-Z0-9._-]+)")
+    r"^(?P<intro>\|\s+|[A-Z][\w\s]+)\| (?P<mid>platform\()?(?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([a-zA-Z0-9._-]+)")
 
 
 def modify_readme_file_android(readme_filepath, version_map, dryrun=True):
@@ -579,12 +579,13 @@ def modify_readme_file_android(readme_filepath, version_map, dryrun=True):
 
   # Replacement function, look up the version number of the given pkg.
   def replace_module_line(m):
-    if not m.group('pkg'):
+    if not m.group('pkg') or not m.group('intro'):
       return m.group(0)
     pkg = m.group('pkg').replace('-', '_').replace(':', '.')
     if pkg not in version_map:
       return m.group(0)
-    repl = '|%s| %s:%s' % (m.group('spaces'), m.group('pkg'), version_map[pkg])
+    repl = '%s| %s%s:%s' % (m.group('intro'), m.group('mid') if m.group('mid') else '',
+                            m.group('pkg'), version_map[pkg])
     return repl
 
   substituted_pairs = []
@@ -612,7 +613,7 @@ def modify_readme_file_android(readme_filepath, version_map, dryrun=True):
 # implementation 'com.google.firebase:firebase-auth:1.2.3'
 # implementation 'com.google.firebase:firebase-auth:1.2.3-alpha'
 RE_GRADLE_COMPILE_MODULE = re.compile(
-    r"implementation\s*\'(?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([a-zA-Z0-9._-]+)\'")
+    r"implementation\s*(platform\()?\'(?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([a-zA-Z0-9._-]+)\'\)?")
 
 
 def modify_gradle_file(gradle_filepath, version_map, dryrun=True):
