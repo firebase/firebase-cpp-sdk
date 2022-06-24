@@ -266,27 +266,22 @@ TEST_F(HeartbeatControllerDesktopTest, LogMoreThan30DaysRemovesOldEntries) {
 }
 
 TEST_F(HeartbeatControllerDesktopTest, DestroyControllerWhileWorkIsScheduled) {
-  HeartbeatController* destructible_controller =
-      new HeartbeatController(kAppId, logger_, mock_date_provider_);
-  {
-    // InSequence guarantees that all of the expected calls occur in order.
-    testing::InSequence seq;
-    for (int year = 2001; year <= 3000; year++) {
-      std::string date_string = std::to_string(year) + "-01-01";
-      EXPECT_CALL(mock_date_provider_, GetDate()).WillOnce(Return(date_string));
-    }
-  }
+  std::string today = "2000-01-23";
+  EXPECT_CALL(mock_date_provider_, GetDate()).WillRepeatedly(Return(today));
   for (int i = 1; i <= 1000; i++) {
-    destructible_controller->LogHeartbeat();
-  }
-  // Trigger the controller's destructor before all of the async calls to
-  // LogHeartbeat have completed.
-  delete destructible_controller;
+    // For the sake of testing, clear any pre-existing stored heartbeats.
+    LoggedHeartbeats empty_heartbeats_struct;
+    storage_.Write(empty_heartbeats_struct);
 
-  // Wait a bit to verify that no async threads seg fault
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-  // Note that current scheduler implementation joins with the worker thread
-  // So there should not be any issues.
+    HeartbeatController* destructible_controller =
+        new HeartbeatController(kAppId, logger_, mock_date_provider_);
+    // InSequence guarantees that all of the expected calls occur in order.
+    destructible_controller->LogHeartbeat();
+
+    // Trigger the controller's destructor before async work has completed.
+    // The destructor will join with the worker thread.
+    delete destructible_controller;
+  }
 }
 
 // This test is temporarily disabled because a lack of file locking can result

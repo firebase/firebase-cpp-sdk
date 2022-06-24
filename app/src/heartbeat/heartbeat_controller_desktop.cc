@@ -67,6 +67,8 @@ void HeartbeatController::LogHeartbeat() {
       logged_heartbeats.heartbeats[user_agent].erase(
           logged_heartbeats.heartbeats[user_agent].begin());
     }
+    // TODO(b/237003018): Implement file-lock to prevent race conditions between
+    // multiple instances of the controller or multiple threads.
     bool write_succeeded = this->storage_.Write(logged_heartbeats);
     // Only update last-logged date if the write succeeds.
     if (write_succeeded) {
