@@ -649,6 +649,9 @@ code.
       This fixes an issue with disk persistence on Linux.
     - Messaging (Android): Fixed #973. Make sure all the resources are closed in
       `RegistrationIntentService`.
+    - Firestore: Added `TransactionOptions` to control how many times a
+      transaction will retry commits before failing
+      ([#966](https://github.com/firebase/firebase-cpp-sdk/pull/966)).
 
 ### 9.1.0
 -   Changes

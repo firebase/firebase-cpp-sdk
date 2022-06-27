@@ -100,6 +100,7 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS
     src/smoke_test.cc
     src/source_test.cc
     src/transaction_test.cc
+    src/transaction_options_test.cc
     src/type_test.cc
     src/validation_test.cc
     src/write_batch_test.cc
@@ -116,6 +117,7 @@ set(FIREBASE_INTEGRATION_TEST_ANDROID_TEST_SRCS
     src/android/settings_android_test.cc
     src/android/snapshot_metadata_android_test.cc
     src/android/timestamp_android_test.cc
+    src/android/transaction_options_android_test.cc
     src/jni/declaration_test.cc
     src/jni/env_test.cc
     src/jni/object_test.cc
