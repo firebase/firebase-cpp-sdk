@@ -634,7 +634,7 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### 9.2.0
 -   Changes
     - GMA: Added the Google Mobile Ads SDK with updated support for AdMob. See
       the [Get Started
