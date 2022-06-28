@@ -56,7 +56,7 @@ def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False,
   print('Running cmd: {0}\n'.format(cmd_string))
  # If capture_output is requested, we also set text=True to store the returned value of the
  # command as a string instead of bytes object
- return subprocess.run(cmd, capture_output=capture_output, cwd=cwd,
+ return subprocess.run(cmd_string, capture_output=capture_output, cwd=cwd,
                        check=check, text=capture_output)
 
 
