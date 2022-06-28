@@ -722,9 +722,6 @@ jobs:
         - os: macos-12
           arch: arm64
     steps:
-      - name: setup Xcode version (macos)
-        if: runner.os == 'macOS'
-        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Contents/Developer
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
@@ -737,28 +734,21 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ env.pythonVersion }}
-      - name: install platform support libraries for running
+      - name: Install prerequisites for testing
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 15
           max_attempts: 3
-          command: python scripts/gha/install_prereqs.py --gha_build --running_only --arch '${{ matrix.arch }}' --ssl '${{ matrix.ssl_variant }}'
-
+          command: 
+            pip install -r scripts/gha/python_requirements.txt
+            python scripts/gha/install_prereqs.py --platform Desktop --gha_build --test_only --arch '${{ matrix.arch }}' --ssl '${{ matrix.ssl_variant }}'
       - name: Set up Node (14)
         uses: actions/setup-node@v2
         with:
           node-version: 14.x
       - name: Setup Firestore Emulator
         run: |
-          npm install -g firebase-tools
-      - name: Setup integration test deps
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 2
-          max_attempts: 3
-          shell: bash
-          command: |
-            pip install -r scripts/gha/python_requirements.txt
+          npm install -g firebase-tools     
       - name: Setup java
         uses: actions/setup-java@v3
         with:
@@ -977,9 +967,6 @@ jobs:
         build_os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
         android_device: ${{ fromJson(needs.check_and_prepare.outputs.android_device) }}
     steps:
-      - name: setup Xcode version (macos)
-        if: runner.os == 'macOS'
-        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Contents/Developer
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
@@ -992,13 +979,15 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ env.pythonVersion }}
-      - name: Install python deps
+      - name: Install prerequisites for testing
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 1
           max_attempts: 3
           shell: bash
-          command: pip install -r scripts/gha/python_requirements.txt
+          command: 
+            pip install -r scripts/gha/python_requirements.txt
+            python scripts/gha/install_prereqs.py --platform Android --test_only
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.android_device }} )"
@@ -1093,9 +1082,6 @@ jobs:
         ios_device: ${{ fromJson(needs.check_and_prepare.outputs.ios_device) }}
         build_os: [macos-12]
     steps:
-      - name: setup Xcode version (macos)
-        if: runner.os == 'macOS'
-        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Contents/Developer
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
@@ -1108,12 +1094,14 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ env.pythonVersion }}
-      - name: Install python deps
+      - name: Install prerequisites for testing
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 1
           max_attempts: 3
-          command: pip install -r scripts/gha/python_requirements.txt
+          command: 
+            pip install -r scripts/gha/python_requirements.txt
+            python scripts/gha/install_prereqs.py --platform iOS --test_only
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.ios_device }} )"
@@ -1204,9 +1192,6 @@ jobs:
         tvos_device: ${{ fromJson(needs.check_and_prepare.outputs.tvos_device) }}
         build_os: [macos-12]
     steps:
-      - name: setup Xcode version (macos)
-        if: runner.os == 'macOS'
-        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Contents/Developer
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
@@ -1219,12 +1204,14 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ env.pythonVersion }}
-      - name: Install python deps
+      - name: Install prerequisites for testing
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 1
           max_attempts: 3
-          command: pip install -r scripts/gha/python_requirements.txt
+          command: 
+            pip install -r scripts/gha/python_requirements.txt
+            python scripts/gha/install_prereqs.py --platform tvOS --test_only
       - name: Setup java for Firestore emulator
         uses: actions/setup-java@v3
         with:

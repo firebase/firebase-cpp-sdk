@@ -68,6 +68,9 @@ def main():
     os.environ['VCPKG_RESPONSE_FILE'] = 'external/vcpkg_%s_response_file.txt' % os.getenv('VCPKG_TRIPLET')
     utils.run_cmd_string('echo "VCPKG_RESPONSE_FILE=external/vcpkg_%s_response_file.txt" >> $GITHUB_ENV' % os.getenv('VCPKG_TRIPLET'))
 
+    if args.arch == 'x86':
+      utils.install_x86_support_libraries(args.gha_build)
+
     # Install openssl on linux/mac if its not installed already
     if args.ssl == 'openssl' and not utils.is_command_installed('openssl'):
       if utils.is_linux_os():
@@ -80,7 +83,7 @@ def main():
       elif utils.is_windows_os():
         utils.run_cmd_string(['choco install openssl -r'])
 
-    if not args.running_only:
+    if not args.test_only:
       # Install go on linux/mac if its not installed already
       if not utils.is_command_installed('go'):
         if utils.is_linux_os():
@@ -108,18 +111,15 @@ def main():
             # brew install protobuf
             utils.run_cmd_string('brew install clang-format')
 
-    if args.arch == 'x86':
-      utils.install_x86_support_libraries(args.gha_build)
-
-  elif args.platform == "Android":
+  elif args.platform == "Android" and not args.test_only:
     utils.run_cmd_string('build_scripts/android/install_prereqs.sh')
     utils.run_cmd_string('echo "NDK_ROOT=/tmp/android-ndk-r21e" >> $GITHUB_ENV')
     utils.run_cmd_string('echo "ANDROID_NDK_HOME=/tmp/android-ndk-r21e" >> $GITHUB_ENV')
   
-  elif args.platform == "iOS":
+  elif args.platform == "iOS" and not args.test_only:
     utils.run_cmd_string('build_scripts/ios/install_prereqs.sh')
 
-  elif args.platform == "tvOS":
+  elif args.platform == "tvOS" and not args.test_only:
     utils.run_cmd_string('build_scripts/tvos/install_prereqs.sh')
 
 
@@ -127,7 +127,7 @@ def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Install prerequisites for building cpp sdk')
   parser.add_argument('--platform', default='Desktop', help='Install prereqs for certain platform')
   parser.add_argument('--arch', default=None, help='Install support libraries to build a specific architecture (currently supported: x86)')
-  parser.add_argument('--running_only', action='store_true', help='Only install prerequisites for running, not for building')
+  parser.add_argument('--test_only', action='store_true', help='Only install prerequisites for testing, not for building')
   parser.add_argument('--gha_build', action='store_true', default=None, help='Set this option when building on GitHub, changing some prerequisite installation behavior')
   parser.add_argument('--ssl', default='openssl', help='Which SSL is this build using (supported: openssl, boringssl)')
   args = parser.parse_args()
