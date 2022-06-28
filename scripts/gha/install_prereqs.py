@@ -41,84 +41,75 @@ def main():
       print(f'{k}={v}')
 
   # Forces all git commands to use authenticated https, to prevent throttling.
-  utils.run_command(["git config --global credential.helper 'store --file /tmp/git-credentials'"])
-  utils.run_command(["echo 'https://%s@github.com' > /tmp/git-credentials" % os.getenv('GITHUB_TOKEN')])
+  utils.run_command("git config --global credential.helper 'store --file /tmp/git-credentials'")
+  utils.run_command("echo 'https://%s@github.com' > /tmp/git-credentials" % os.getenv('GITHUB_TOKEN'))
 
   # setup Xcode version for macOS, iOS
   if args.platform == 'iOS' or (args.platform == 'Desktop' and utils.is_mac_os()):
     xcode_version = PARAMETERS['integration_tests']['matrix']['xcode_version'][0]
-    utils.run_command(['xcode-select -s /Applications/Xcode_$%s.app/Contents/Developer' % xcode_version], as_root=True)
+    utils.run_command('sudo xcode-select -s /Applications/Xcode_$%s.app/Contents/Developer' % xcode_version)
 
  # This prevents errors arising from the shut down of binutils, used by older version of homebrew for hosting packages.
   if utils.is_mac_os():
-    utils.run_command(['brew', 'update'])
+    utils.run_command('brew update')
 
   if args.platform == 'Desktop':
     # Set env vars
     if utils.is_linux_os():
       os.environ['VCPKG_TRIPLET'] = 'x64-linux'
-      utils.run_command(['echo "VCPKG_TRIPLET=x64-linux" ">> $GITHUB_ENV'])
+      utils.run_command('echo "VCPKG_TRIPLET=x64-linux" ">> $GITHUB_ENV')
     elif utils.is_mac_os():
-      utils.run_command(['echo', 'VCPKG_TRIPLET=x64-osx', '>>', '$GITHUB_ENV'])
+      utils.run_command('echo', 'VCPKG_TRIPLET=x64-osx', '>>', '$GITHUB_ENV')
     elif utils.is_windows_os():
       os.environ['VCPKG_TRIPLET'] = 'x64-windows-static'
-      utils.run_command(['echo "VCPKG_TRIPLET=x64-windows-static" >> $GITHUB_ENV'])
+      utils.run_command('echo "VCPKG_TRIPLET=x64-windows-static" >> $GITHUB_ENV')
       # Enable Git Long-paths Support
-      utils.run_command(['git', 'config', '--system', 'core.longpaths', 'true'])
+      utils.run_command('git config --system core.longpaths true')
     os.environ['VCPKG_RESPONSE_FILE'] = 'external/vcpkg_$%s_response_file.txt' % os.getenv('VCPKG_TRIPLET')
-    utils.run_command(['echo "VCPKG_RESPONSE_FILE=external/vcpkg_$%s_response_file.txt" >> $GITHUB_ENV' % os.getenv('VCPKG_TRIPLET')])
+    utils.run_command('echo "VCPKG_RESPONSE_FILE=external/vcpkg_$%s_response_file.txt" >> $GITHUB_ENV' % os.getenv('VCPKG_TRIPLET'))
 
     # Install openssl on linux/mac if its not installed already
     if args.ssl == 'openssl' and not utils.is_command_installed('openssl'):
       if utils.is_linux_os():
         # sudo apt install -y openssl
-        utils.run_command(['apt', 'install', '-y','openssl'], as_root=True)
+        utils.run_command('sudo apt install -y openssl')
       elif utils.is_mac_os():
         # brew install openssl
-        utils.run_command(['brew', 'install', 'openssl'])
-        utils.run_command(['echo', 'OPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1', '>>', '$GITHUB_ENV'])
+        utils.run_command('brew install openssl')
+        utils.run_command('echo "OPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1" >> $GITHUB_ENV')
       elif utils.is_windows_os():
-        utils.run_command(['choco', 'install', 'openssl', '-r'])
+        utils.run_command(['choco install openssl -r'])
 
   for k, v in os.environ.items():
       print(f'{k}={v}')
 
   if not args.running_only:
-    # Install protobuf on linux/mac if its not installed already
-    if not utils.is_command_installed('protoc'):
-      if utils.is_linux_os():
-          # sudo apt install protobuf-compiler
-          utils.run_command(['apt', 'install', '-y','protobuf-compiler'], as_root=True)
-      elif utils.is_mac_os():
-          # brew install protobuf
-          utils.run_command(['brew', 'install', 'protobuf'])
-
     # Install go on linux/mac if its not installed already
     if not utils.is_command_installed('go'):
       if utils.is_linux_os():
           # sudo apt install -y golang
-          utils.run_command(['apt', 'install', '-y','golang'], as_root=True)
+          utils.run_command('sudo apt install -y golang')
       elif utils.is_mac_os():
           # brew install go
-          utils.run_command(['brew', 'install', 'go'])
+          utils.run_command('brew install go')
 
     # Install ccache on linux/mac if its not installed already
     if not utils.is_command_installed('ccache'):
       if utils.is_linux_os():
           # sudo apt install ccache
-          utils.run_command(['apt', 'install', '-y', 'ccache'], as_root=True)
+          utils.run_command('sudo apt install -y ccache')
       elif utils.is_mac_os():
           # brew install ccache
-          utils.run_command(['brew', 'install', 'ccache'])
+          utils.run_command('brew install ccache')
 
     # Install clang-format on linux/mac if its not installed already
     if not utils.is_command_installed('clang-format'):
       if utils.is_linux_os():
           # sudo apt install clang-format
-          utils.run_command(['apt', 'install', '-y','clang-format'], as_root=True)
+          utils.run_command('sudo apt install -y clang-format')
       elif utils.is_mac_os():
           # brew install protobuf
-          utils.run_command(['brew', 'install', 'clang-format'])
+          utils.run_command('brew install clang-format')
 
   if args.arch == 'x86':
     utils.install_x86_support_libraries(args.gha_build)
