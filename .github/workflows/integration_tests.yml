@@ -264,9 +264,6 @@ jobs:
           ssl_variant: openssl
           arch: arm64
     steps:
-      - name: setup Xcode version (macos)
-        if: runner.os == 'macOS'
-        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Contents/Developer
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
@@ -323,7 +320,7 @@ jobs:
           timeout_minutes: 15
           max_attempts: 3
           command: |
-            python scripts/gha/install_prereqs_desktop.py --gha_build --arch '${{ matrix.arch }}' --ssl '${{ matrix.ssl_variant }}'
+            python scripts/gha/install_prereqs.py --gha_build --arch '${{ matrix.arch }}' --ssl '${{ matrix.ssl_variant }}'
             pip install -r scripts/gha/requirements.txt
             python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
       - name: Install OpenSSL (Windows)
@@ -867,7 +864,7 @@ jobs:
         with:
           timeout_minutes: 15
           max_attempts: 3
-          command: python scripts/gha/install_prereqs_desktop.py --gha_build --running_only --arch '${{ matrix.arch }}' --ssl '${{ matrix.ssl_variant }}'
+          command: python scripts/gha/install_prereqs.py --gha_build --running_only --arch '${{ matrix.arch }}' --ssl '${{ matrix.ssl_variant }}'
 
       - name: Set up Node (14)
         uses: actions/setup-node@v2

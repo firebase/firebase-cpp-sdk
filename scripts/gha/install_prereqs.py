@@ -29,11 +29,25 @@ python scripts/gha/install_prereqs_desktop.py
 
 """
 
+import os
 import argparse
+from scripts.gha.print_matrix_configuration import PARAMETERS
 import utils
 
 def main():
   args = parse_cmdline_args()
+
+  for k, v in os.environ.items():
+      print(f'{k}={v}')
+
+  # setup Xcode version (macOS, iOS)
+  if args.platform == 'iOS' or (args.platform == 'Desktop' and utils.is_mac_os()):
+    xcode_version = PARAMETERS['integration_tests']['matrix']['xcode_version'][0]
+    utils.run_command(['xcode-select', '-s', '/Applications/Xcode_$%s.app/Contents/Developer' % xcode_version], as_root=True)
+
+  # utils.run_command(['git', 'config', '--global', 'store --file /tmp/git-credentials'])
+  # utils.run_command(['echo', 'https://$%s@github.com' % , '>', '/tmp/git-credentials'])
+
 
   if not args.running_only:
     # Install protobuf on linux/mac if its not installed already
@@ -94,6 +108,7 @@ def main():
 
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Install prerequisites for building cpp sdk')
+  parser.add_argument('--platform', default=None, help='Install prereqs for certain platform')
   parser.add_argument('--arch', default=None, help='Install support libraries to build a specific architecture (currently supported: x86)')
   parser.add_argument('--running_only', action='store_true', help='Only install prerequisites for running, not for building')
   parser.add_argument('--gha_build', action='store_true', default=None, help='Set this option when building on GitHub, changing some prerequisite installation behavior')
