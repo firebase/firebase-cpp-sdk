@@ -27,7 +27,7 @@ import os
 import urllib.request
 
 def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False,
-                print_cmd=True):
+                print_cmd=True, shell=True,):
  """Run a command.
 
  Args:

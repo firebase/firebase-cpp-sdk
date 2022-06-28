@@ -41,13 +41,13 @@ def main():
       print(f'{k}={v}')
 
   # Forces all git commands to use authenticated https, to prevent throttling.
-  utils.run_command(['git', 'config', '--global', 'store --file /tmp/git-credentials'])
-  utils.run_command(['echo', 'https://$%s@github.com' % os.getenv('GITHUB_TOKEN'), '>', '/tmp/git-credentials'])
+  utils.run_command(['git config --global "store --file /tmp/git-credentials"'])
+  utils.run_command(['echo "https://$%s@github.com" > /tmp/git-credentials' % os.getenv('GITHUB_TOKEN')])
 
   # setup Xcode version for macOS, iOS
   if args.platform == 'iOS' or (args.platform == 'Desktop' and utils.is_mac_os()):
     xcode_version = PARAMETERS['integration_tests']['matrix']['xcode_version'][0]
-    utils.run_command(['xcode-select', '-s', '/Applications/Xcode_$%s.app/Contents/Developer' % xcode_version], as_root=True)
+    utils.run_command(['xcode-select -s /Applications/Xcode_$%s.app/Contents/Developer' % xcode_version], as_root=True)
 
  # This prevents errors arising from the shut down of binutils, used by older version of homebrew for hosting packages.
   if utils.is_mac_os():
@@ -57,16 +57,16 @@ def main():
     # Set env vars
     if utils.is_linux_os():
       os.environ['VCPKG_TRIPLET'] = 'x64-linux'
-      utils.run_command(['echo', 'VCPKG_TRIPLET=x64-linux', '>>', '$GITHUB_ENV'])
+      utils.run_command(['echo "VCPKG_TRIPLET=x64-linux" ">> $GITHUB_ENV'])
     elif utils.is_mac_os():
       utils.run_command(['echo', 'VCPKG_TRIPLET=x64-osx', '>>', '$GITHUB_ENV'])
     elif utils.is_windows_os():
       os.environ['VCPKG_TRIPLET'] = 'x64-windows-static'
-      utils.run_command(['echo', 'VCPKG_TRIPLET=x64-windows-static', '>>', '$GITHUB_ENV'])
+      utils.run_command(['echo "VCPKG_TRIPLET=x64-windows-static" >> $GITHUB_ENV'])
       # Enable Git Long-paths Support
       utils.run_command(['git', 'config', '--system', 'core.longpaths', 'true'])
     os.environ['VCPKG_RESPONSE_FILE'] = 'external/vcpkg_$%s_response_file.txt' % os.getenv('VCPKG_TRIPLET')
-    utils.run_command(['echo', 'VCPKG_RESPONSE_FILE=external/vcpkg_$%s_response_file.txt' % os.getenv('VCPKG_TRIPLET'), '>>', '$GITHUB_ENV'])
+    utils.run_command(['echo "VCPKG_RESPONSE_FILE=external/vcpkg_$%s_response_file.txt" >> $GITHUB_ENV' % os.getenv('VCPKG_TRIPLET')])
 
     # Install openssl on linux/mac if its not installed already
     if args.ssl == 'openssl' and not utils.is_command_installed('openssl'):

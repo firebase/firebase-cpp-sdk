@@ -275,6 +275,7 @@ jobs:
       - name: Install Desktop SDK & integration tests prerequisites
         uses: nick-invision/retry@v2
         with:
+          shell: bash
           timeout_minutes: 15
           max_attempts: 3
           command: |
