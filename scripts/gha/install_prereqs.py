@@ -57,9 +57,10 @@ def main():
     # Set env vars
     if utils.is_linux_os():
       os.environ['VCPKG_TRIPLET'] = 'x64-linux'
-      utils.run_command('echo "VCPKG_TRIPLET=x64-linux" ">> $GITHUB_ENV')
+      utils.run_command('echo "VCPKG_TRIPLET=x64-linux" >> $GITHUB_ENV')
     elif utils.is_mac_os():
-      utils.run_command('echo', 'VCPKG_TRIPLET=x64-osx', '>>', '$GITHUB_ENV')
+      os.environ['VCPKG_TRIPLET'] = 'x64-osx'
+      utils.run_command('echo "VCPKG_TRIPLET=x64-osx" >> $GITHUB_ENV')
     elif utils.is_windows_os():
       os.environ['VCPKG_TRIPLET'] = 'x64-windows-static'
       utils.run_command('echo "VCPKG_TRIPLET=x64-windows-static" >> $GITHUB_ENV')
