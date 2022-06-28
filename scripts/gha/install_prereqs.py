@@ -41,7 +41,7 @@ def main():
       print(f'{k}={v}')
 
   # Forces all git commands to use authenticated https, to prevent throttling.
-  utils.run_command(['git config --global "store --file /tmp/git-credentials"'])
+  utils.run_command(['git config --global credential.helper "store --file /tmp/git-credentials"'])
   utils.run_command(['echo "https://$%s@github.com" > /tmp/git-credentials' % os.getenv('GITHUB_TOKEN')])
 
   # setup Xcode version for macOS, iOS
