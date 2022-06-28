@@ -2,3 +2,4 @@ absl-py
 attrs
 pytz
 requests
+protobuf

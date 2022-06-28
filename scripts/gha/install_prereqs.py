@@ -31,7 +31,7 @@ python scripts/gha/install_prereqs_desktop.py
 
 import os
 import argparse
-# from print_matrix_configuration import PARAMETERS
+from print_matrix_configuration import PARAMETERS
 import utils
 
 def main():
@@ -40,15 +40,33 @@ def main():
   for k, v in os.environ.items():
       print(f'{k}={v}')
 
-  # setup Xcode version (macOS, iOS)
-  # if args.platform == 'iOS' or (args.platform == 'Desktop' and utils.is_mac_os()):
-  #   xcode_version = PARAMETERS['integration_tests']['matrix']['xcode_version'][0]
-  #   utils.run_command(['xcode-select', '-s', '/Applications/Xcode_$%s.app/Contents/Developer' % xcode_version], as_root=True)
-
   # Forces all git commands to use authenticated https, to prevent throttling.
-  # utils.run_command(['git', 'config', '--global', 'store --file /tmp/git-credentials'])
-  # utils.run_command(['echo', 'https://$%s@github.com' % , '>', '/tmp/git-credentials'])
+  utils.run_command(['git', 'config', '--global', 'store --file /tmp/git-credentials'])
+  utils.run_command(['echo', 'https://$%s@github.com' % os.getenv('GITHUB_TOKEN'), '>', '/tmp/git-credentials'])
 
+  # setup Xcode version for macOS, iOS
+  if args.platform == 'iOS' or (args.platform == 'Desktop' and utils.is_mac_os()):
+    xcode_version = PARAMETERS['integration_tests']['matrix']['xcode_version'][0]
+    utils.run_command(['xcode-select', '-s', '/Applications/Xcode_$%s.app/Contents/Developer' % xcode_version], as_root=True)
+
+ # This prevents errors arising from the shut down of binutils, used by older version of homebrew for hosting packages.
+  if utils.is_mac_os():
+    utils.run_command(['brew', 'update'])
+
+  if args.platform == 'Desktop':
+    # Set env vars
+    utils.run_command(['echo', 'VCPKG_RESPONSE_FILE=external/vcpkg_$%s_response_file.txt' % os.getenv('VCPKG_TRIPLET'), '>>', '$GITHUB_ENV'])
+    if utils.is_linux_os():
+      utils.run_command(['echo', 'VCPKG_TRIPLET=x64-linux', '>>', '$GITHUB_ENV'])
+    elif utils.is_mac_os():
+      utils.run_command(['echo', 'VCPKG_TRIPLET=x64-osx', '>>', '$GITHUB_ENV'])
+    elif utils.is_windows_os():
+      utils.run_command(['echo', 'VCPKG_TRIPLET=x64-windows-static', '>>', '$GITHUB_ENV'])
+      # Enable Git Long-paths Support
+      utils.run_command(['git', 'config', '--system', 'core.longpaths', 'true'])
+
+  for k, v in os.environ.items():
+      print(f'{k}={v}')
 
   if not args.running_only:
     # Install protobuf on linux/mac if its not installed already
@@ -95,14 +113,6 @@ def main():
       elif utils.is_mac_os():
           # brew install protobuf
           utils.run_command(['brew', 'install', 'clang-format'])
-
-    # Install required python dependencies.
-    # On Catalina, python2 in installed as default python.
-    # Example command:
-    # python3 -m pip install -r external/pip_requirements.txt --user
-    utils.run_command(
-       ['python3' if utils.is_command_installed('python3') else 'python', '-m',
-            'pip', 'install', '-r', 'external/pip_requirements.txt', '--user'] )
 
   if args.arch == 'x86':
     utils.install_x86_support_libraries(args.gha_build)
