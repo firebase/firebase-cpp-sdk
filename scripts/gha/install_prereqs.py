@@ -47,7 +47,7 @@ def main():
   # setup Xcode version for macOS, iOS
   if args.platform == 'iOS' or (args.platform == 'Desktop' and utils.is_mac_os()):
     xcode_version = PARAMETERS['integration_tests']['matrix']['xcode_version'][0]
-    utils.run_command('sudo xcode-select -s /Applications/Xcode_$%s.app/Contents/Developer' % xcode_version)
+    utils.run_command('sudo xcode-select -s /Applications/Xcode_%s.app/Contents/Developer' % xcode_version)
 
  # This prevents errors arising from the shut down of binutils, used by older version of homebrew for hosting packages.
   if utils.is_mac_os():
