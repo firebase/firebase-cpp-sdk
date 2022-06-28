@@ -72,7 +72,7 @@ def main():
       utils.install_x86_support_libraries(args.gha_build)
 
     # Install openssl on linux/mac if its not installed already
-    if args.ssl == 'openssl' and not utils.is_command_installed('openssl'):
+    if args.ssl == 'openssl':
       if utils.is_linux_os():
         # sudo apt install -y openssl
         utils.run_cmd_string('sudo apt install -y openssl')
