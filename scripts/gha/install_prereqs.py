@@ -55,6 +55,7 @@ def main():
 
   if args.platform == 'Desktop':
     # Set env vars
+    os.environ['VCPKG_RESPONSE_FILE'] = 'external/vcpkg_$%s_response_file.txt' % os.getenv('VCPKG_TRIPLET')
     utils.run_command(['echo', 'VCPKG_RESPONSE_FILE=external/vcpkg_$%s_response_file.txt' % os.getenv('VCPKG_TRIPLET'), '>>', '$GITHUB_ENV'])
     if utils.is_linux_os():
       utils.run_command(['echo', 'VCPKG_TRIPLET=x64-linux', '>>', '$GITHUB_ENV'])
@@ -64,6 +65,18 @@ def main():
       utils.run_command(['echo', 'VCPKG_TRIPLET=x64-windows-static', '>>', '$GITHUB_ENV'])
       # Enable Git Long-paths Support
       utils.run_command(['git', 'config', '--system', 'core.longpaths', 'true'])
+
+    # Install openssl on linux/mac if its not installed already
+    if args.ssl == 'openssl' and not utils.is_command_installed('openssl'):
+      if utils.is_linux_os():
+        # sudo apt install -y openssl
+        utils.run_command(['apt', 'install', '-y','openssl'], as_root=True)
+      elif utils.is_mac_os():
+        # brew install openssl
+        utils.run_command(['brew', 'install', 'openssl'])
+        utils.run_command(['echo', 'OPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1', '>>', '$GITHUB_ENV'])
+      elif utils.is_windows_os():
+        utils.run_command(['choco', 'install', 'openssl', '-r'])
 
   for k, v in os.environ.items():
       print(f'{k}={v}')
@@ -86,15 +99,6 @@ def main():
       elif utils.is_mac_os():
           # brew install go
           utils.run_command(['brew', 'install', 'go'])
-
-    # Install openssl on linux/mac if its not installed already
-    if args.ssl == 'openssl' and not utils.is_command_installed('openssl'):
-      if utils.is_linux_os():
-          # sudo apt install -y openssl
-          utils.run_command(['apt', 'install', '-y','openssl'], as_root=True)
-      elif utils.is_mac_os():
-          # brew install openssl
-          utils.run_command(['brew', 'install', 'openssl'])
 
     # Install ccache on linux/mac if its not installed already
     if not utils.is_command_installed('ccache'):
@@ -119,7 +123,7 @@ def main():
 
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Install prerequisites for building cpp sdk')
-  parser.add_argument('--platform', default=None, help='Install prereqs for certain platform')
+  parser.add_argument('--platform', default='Desktop', help='Install prereqs for certain platform')
   parser.add_argument('--arch', default=None, help='Install support libraries to build a specific architecture (currently supported: x86)')
   parser.add_argument('--running_only', action='store_true', help='Only install prerequisites for running, not for building')
   parser.add_argument('--gha_build', action='store_true', default=None, help='Set this option when building on GitHub, changing some prerequisite installation behavior')

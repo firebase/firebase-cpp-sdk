@@ -268,15 +268,6 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
-      - name: Add msbuild to PATH (Windows)
-        if: startsWith(matrix.os, 'windows')
-        uses: microsoft/setup-msbuild@v1.0.2
-      - name: Cache vcpkg C++ dependencies
-        id: cache_vcpkg
-        uses: actions/cache@v2
-        with:
-          path: external/vcpkg/installed
-          key: dev-vcpkg-${{ env.VCPKG_TRIPLET }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
       - name: Setup python
         uses: actions/setup-python@v2
         with:
@@ -289,32 +280,15 @@ jobs:
           command: |
             pip install -r scripts/gha/python_requirements.txt
             python scripts/gha/install_prereqs.py --platform Desktop --gha_build --arch '${{ matrix.arch }}' --ssl '${{ matrix.ssl_variant }}'
-            python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
-      - name: Install OpenSSL (Windows)
-        if: matrix.ssl_variant == 'openssl' && startsWith(matrix.os, 'windows')
-        uses: nick-invision/retry@v2
+      - name: Add msbuild to PATH (Windows)
+        if: startsWith(matrix.os, 'windows')
+        uses: microsoft/setup-msbuild@v1.0.2
+      - name: Cache vcpkg C++ dependencies
+        id: cache_vcpkg
+        uses: actions/cache@v2
         with:
-          timeout_minutes: 4
-          max_attempts: 3
-          shell: bash
-          command: choco install openssl -r
-      - name: Install OpenSSL (macOS)
-        if: matrix.ssl_variant == 'openssl' && startsWith(matrix.os, 'macos')
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 2
-          max_attempts: 3
-          command: |
-            brew install openssl
-            # brew won't overwrite MacOS system default OpenSSL, so force it here.
-            echo "OPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1" >> $GITHUB_ENV
-      - name: Install OpenSSL (Linux)
-        if: matrix.ssl_variant == 'openssl' && startsWith(matrix.os, 'ubuntu')
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 2
-          max_attempts: 3
-          command: sudo apt install openssl
+          path: external/vcpkg/installed
+          key: dev-vcpkg-${{ env.VCPKG_TRIPLET }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
@@ -327,6 +301,7 @@ jobs:
         env:
           CCACHE_DIR: ${{ github.workspace }}/ccache_dir
         run: |
+          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           declare -a additional_flags
           if [[ -n "${{ github.event.inputs.test_packaged_sdk }}" ]]; then
             # Building integration tests against a packaged SDK.
