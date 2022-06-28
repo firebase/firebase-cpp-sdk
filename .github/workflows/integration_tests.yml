@@ -385,22 +385,10 @@ jobs:
       matrix:
         os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
     steps:
-      - name: setup Xcode version (macos)
-        if: runner.os == 'macOS'
-        run: sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Contents/Developer
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
-      - name: Store git credentials for all git commands
-        # Forces all git commands to use authenticated https, to prevent throttling.
-        shell: bash
-        run: |
-          git config --global credential.helper 'store --file /tmp/git-credentials'
-          echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
-      - name: Enable Git Long-paths Support
-        if: runner.os == 'Windows'
-        run: git config --system core.longpaths true
       - name: Add msbuild to PATH (Windows)
         if: startsWith(matrix.os, 'windows')
         uses: microsoft/setup-msbuild@v1.0.2
@@ -414,17 +402,6 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ env.pythonVersion }}
-      - name: Update homebrew (avoid bintray errors)
-        uses: nick-invision/retry@v2
-        if: startsWith(matrix.os, 'macos')
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: |
-            # Temporarily here until Github runners have updated their version of
-            # homebrew. This prevents errors arising from the shut down of
-            # binutils, used by older version of homebrew for hosting packages.
-            brew update
       - name: Install Android SDK & integration tests prerequisites
         uses: nick-invision/retry@v2
         with:
@@ -432,11 +409,8 @@ jobs:
           max_attempts: 3
           shell: bash
           command: |
-            build_scripts/android/install_prereqs.sh
-            echo "NDK_ROOT=/tmp/android-ndk-r21e" >> $GITHUB_ENV
-            echo "ANDROID_NDK_HOME=/tmp/android-ndk-r21e" >> $GITHUB_ENV
             pip install -r scripts/gha/python_requirements.txt
-            python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
+            python scripts/gha/install_prereqs.py --platform Android --gha_build --arch '${{ matrix.arch }}' --ssl '${{ matrix.ssl_variant }}'
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
@@ -447,6 +421,7 @@ jobs:
       - name: Build integration tests
         shell: bash
         run: |
+          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           declare -a additional_flags
           if [[ -n "${{ github.event.inputs.test_packaged_sdk }}" ]]; then
             # Building integration tests against a packaged SDK.

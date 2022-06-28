@@ -37,19 +37,20 @@ import utils
 def main():
   args = parse_cmdline_args()
 
-  for k, v in os.environ.items():
-      print(f'{k}={v}')
-
   # Forces all git commands to use authenticated https, to prevent throttling.
   utils.run_command("git config --global credential.helper 'store --file /tmp/git-credentials'")
   utils.run_command("echo 'https://%s@github.com' > /tmp/git-credentials" % os.getenv('GITHUB_TOKEN'))
+
+  if utils.is_windows_os():
+    # Enable Git Long-paths Support
+    utils.run_command('git config --system core.longpaths true')
 
   # setup Xcode version for macOS, iOS
   if args.platform == 'iOS' or (args.platform == 'Desktop' and utils.is_mac_os()):
     xcode_version = PARAMETERS['integration_tests']['matrix']['xcode_version'][0]
     utils.run_command('sudo xcode-select -s /Applications/Xcode_%s.app/Contents/Developer' % xcode_version)
 
- # This prevents errors arising from the shut down of binutils, used by older version of homebrew for hosting packages.
+  # This prevents errors arising from the shut down of binutils, used by older version of homebrew for hosting packages.
   if utils.is_mac_os():
     utils.run_command('brew update')
 
@@ -64,8 +65,6 @@ def main():
     elif utils.is_windows_os():
       os.environ['VCPKG_TRIPLET'] = 'x64-windows-static'
       utils.run_command('echo "VCPKG_TRIPLET=x64-windows-static" >> $GITHUB_ENV')
-      # Enable Git Long-paths Support
-      utils.run_command('git config --system core.longpaths true')
     os.environ['VCPKG_RESPONSE_FILE'] = 'external/vcpkg_$%s_response_file.txt' % os.getenv('VCPKG_TRIPLET')
     utils.run_command('echo "VCPKG_RESPONSE_FILE=external/vcpkg_$%s_response_file.txt" >> $GITHUB_ENV' % os.getenv('VCPKG_TRIPLET'))
 
@@ -81,39 +80,42 @@ def main():
       elif utils.is_windows_os():
         utils.run_command(['choco install openssl -r'])
 
-  for k, v in os.environ.items():
-      print(f'{k}={v}')
+    if not args.running_only:
+      # Install go on linux/mac if its not installed already
+      if not utils.is_command_installed('go'):
+        if utils.is_linux_os():
+            # sudo apt install -y golang
+            utils.run_command('sudo apt install -y golang')
+        elif utils.is_mac_os():
+            # brew install go
+            utils.run_command('brew install go')
 
-  if not args.running_only:
-    # Install go on linux/mac if its not installed already
-    if not utils.is_command_installed('go'):
-      if utils.is_linux_os():
-          # sudo apt install -y golang
-          utils.run_command('sudo apt install -y golang')
-      elif utils.is_mac_os():
-          # brew install go
-          utils.run_command('brew install go')
+      # Install ccache on linux/mac if its not installed already
+      if not utils.is_command_installed('ccache'):
+        if utils.is_linux_os():
+            # sudo apt install ccache
+            utils.run_command('sudo apt install -y ccache')
+        elif utils.is_mac_os():
+            # brew install ccache
+            utils.run_command('brew install ccache')
 
-    # Install ccache on linux/mac if its not installed already
-    if not utils.is_command_installed('ccache'):
-      if utils.is_linux_os():
-          # sudo apt install ccache
-          utils.run_command('sudo apt install -y ccache')
-      elif utils.is_mac_os():
-          # brew install ccache
-          utils.run_command('brew install ccache')
+      # Install clang-format on linux/mac if its not installed already
+      if not utils.is_command_installed('clang-format'):
+        if utils.is_linux_os():
+            # sudo apt install clang-format
+            utils.run_command('sudo apt install -y clang-format')
+        elif utils.is_mac_os():
+            # brew install protobuf
+            utils.run_command('brew install clang-format')
 
-    # Install clang-format on linux/mac if its not installed already
-    if not utils.is_command_installed('clang-format'):
-      if utils.is_linux_os():
-          # sudo apt install clang-format
-          utils.run_command('sudo apt install -y clang-format')
-      elif utils.is_mac_os():
-          # brew install protobuf
-          utils.run_command('brew install clang-format')
+    if args.arch == 'x86':
+      utils.install_x86_support_libraries(args.gha_build)
 
-  if args.arch == 'x86':
-    utils.install_x86_support_libraries(args.gha_build)
+  elif args.platform == "Android":
+    utils.run_command('build_scripts/android/install_prereqs.sh')
+    utils.run_command('echo "NDK_ROOT=/tmp/android-ndk-r21e" >> $GITHUB_ENV')
+    utils.run_command('echo "ANDROID_NDK_HOME=/tmp/android-ndk-r21e" >> $GITHUB_ENV')
+
 
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Install prerequisites for building cpp sdk')

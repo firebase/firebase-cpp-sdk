@@ -26,37 +26,48 @@ import subprocess
 import os
 import urllib.request
 
-def run_command(cmd_string, capture_output=False, cwd=None, check=False, as_root=False,
+def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False,
+                print_cmd=True):
+  """Run a command.
+  Args:
+    cmd (list(str)): Command to run as a list object.
+            Eg: ['ls', '-l'].
+    capture_output (bool): Capture the output of this command.
+                          Output can be accessed as <return_object>.stdout
+    cwd (str): Directory to execute the command from.
+    check (bool): Raises a CalledProcessError if True and the command errored out
+    as_root (bool): Run command as root user with admin priveleges (supported on mac and linux).
+    print_cmd (bool): Print the command we are running to stdout.
+  Raises:
+    (subprocess.CalledProcessError): If command errored out and `text=True`
+  Returns:
+    (`subprocess.CompletedProcess`): object containing information from
+                                    command execution
+  """
+
+  if as_root and (is_mac_os() or is_linux_os()):
+    cmd.insert(0, 'sudo')
+
+  cmd_string = ' '.join(cmd)
+  if print_cmd:
+    print('Running cmd: {0}\n'.format(cmd_string))
+
+  # If capture_output is requested, we also set text=True to store the returned value of the
+  # command as a string instead of bytes object
+  return subprocess.run(cmd, capture_output=capture_output, cwd=cwd,
+                        check=check, text=capture_output)
+
+
+def run_cmd_string(cmd_string, capture_output=False, cwd=None, check=False, as_root=False,
                 print_cmd=True, shell=True,):
- """Run a command.
-
- Args:
-  cmd (list(str)): Command to run as a list object.
-          Eg: ['ls', '-l'].
-  capture_output (bool): Capture the output of this command.
-                         Output can be accessed as <return_object>.stdout
-  cwd (str): Directory to execute the command from.
-  check (bool): Raises a CalledProcessError if True and the command errored out
-  as_root (bool): Run command as root user with admin priveleges (supported on mac and linux).
-  print_cmd (bool): Print the command we are running to stdout.
-
- Raises:
-  (subprocess.CalledProcessError): If command errored out and `text=True`
-
- Returns:
-  (`subprocess.CompletedProcess`): object containing information from
-                                   command execution
- """
-
- if as_root and (is_mac_os() or is_linux_os()):
-   cmd_string = 'sudo {0}'.format(cmd_string)
-
- if print_cmd:
-  print('Running cmd: {0}\n'.format(cmd_string))
- # If capture_output is requested, we also set text=True to store the returned value of the
- # command as a string instead of bytes object
- return subprocess.run(cmd_string, capture_output=capture_output, cwd=cwd,
-                       check=check, shell=shell, text=capture_output)
+  """Run a command string."""
+  if print_cmd:
+    print('Running cmd: {0}\n'.format(cmd_string))
+  
+  # If capture_output is requested, we also set text=True to store the returned value of the
+  # command as a string instead of bytes object
+  return subprocess.run(cmd_string, capture_output=capture_output, cwd=cwd,
+                        check=check, shell=shell, text=capture_output)
 
 
 def is_command_installed(tool):
