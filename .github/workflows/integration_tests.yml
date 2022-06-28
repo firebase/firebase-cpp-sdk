@@ -405,9 +405,9 @@ jobs:
       - name: Install Android SDK & integration tests prerequisites
         uses: nick-invision/retry@v2
         with:
+          shell: bash
           timeout_minutes: 10
           max_attempts: 3
-          shell: bash
           command: |
             pip install -r scripts/gha/python_requirements.txt
             python scripts/gha/install_prereqs.py --platform Android --gha_build
@@ -737,9 +737,10 @@ jobs:
       - name: Install prerequisites for testing
         uses: nick-invision/retry@v2
         with:
+          shell: bash
           timeout_minutes: 15
           max_attempts: 3
-          command: 
+          command: |
             pip install -r scripts/gha/python_requirements.txt
             python scripts/gha/install_prereqs.py --platform Desktop --gha_build --test_only --arch '${{ matrix.arch }}' --ssl '${{ matrix.ssl_variant }}'
       - name: Set up Node (14)
@@ -988,10 +989,10 @@ jobs:
       - name: Install prerequisites for testing
         uses: nick-invision/retry@v2
         with:
+          shell: bash
           timeout_minutes: 1
           max_attempts: 3
-          shell: bash
-          command: 
+          command: |
             pip install -r scripts/gha/python_requirements.txt
             python scripts/gha/install_prereqs.py --platform Android --test_only
       - id: get-device-type
@@ -1121,7 +1122,7 @@ jobs:
         with:
           timeout_minutes: 1
           max_attempts: 3
-          command: 
+          command: |
             pip install -r scripts/gha/python_requirements.txt
             python scripts/gha/install_prereqs.py --platform iOS --test_only
       - id: get-device-type
@@ -1239,7 +1240,7 @@ jobs:
         with:
           timeout_minutes: 1
           max_attempts: 3
-          command: 
+          command: |
             pip install -r scripts/gha/python_requirements.txt
             python scripts/gha/install_prereqs.py --platform tvOS --test_only
       - name: Setup java for Firestore emulator
