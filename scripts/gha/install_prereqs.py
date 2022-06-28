@@ -65,8 +65,8 @@ def main():
     elif utils.is_windows_os():
       os.environ['VCPKG_TRIPLET'] = 'x64-windows-static'
       utils.run_cmd_string('echo "VCPKG_TRIPLET=x64-windows-static" >> $GITHUB_ENV')
-    os.environ['VCPKG_RESPONSE_FILE'] = 'external/vcpkg_$%s_response_file.txt' % os.getenv('VCPKG_TRIPLET')
-    utils.run_cmd_string('echo "VCPKG_RESPONSE_FILE=external/vcpkg_$%s_response_file.txt" >> $GITHUB_ENV' % os.getenv('VCPKG_TRIPLET'))
+    os.environ['VCPKG_RESPONSE_FILE'] = 'external/vcpkg_%s_response_file.txt' % os.getenv('VCPKG_TRIPLET')
+    utils.run_cmd_string('echo "VCPKG_RESPONSE_FILE=external/vcpkg_%s_response_file.txt" >> $GITHUB_ENV' % os.getenv('VCPKG_TRIPLET'))
 
     # Install openssl on linux/mac if its not installed already
     if args.ssl == 'openssl' and not utils.is_command_installed('openssl'):
@@ -115,6 +115,12 @@ def main():
     utils.run_cmd_string('build_scripts/android/install_prereqs.sh')
     utils.run_cmd_string('echo "NDK_ROOT=/tmp/android-ndk-r21e" >> $GITHUB_ENV')
     utils.run_cmd_string('echo "ANDROID_NDK_HOME=/tmp/android-ndk-r21e" >> $GITHUB_ENV')
+  
+  elif args.platform == "iOS":
+    utils.run_cmd_string('build_scripts/ios/install_prereqs.sh')
+
+  elif args.platform == "tvOS":
+    utils.run_cmd_string('build_scripts/tvos/install_prereqs.sh')
 
 
 def parse_cmdline_args():
