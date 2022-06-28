@@ -494,6 +494,7 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/snapshot_metadata.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/source.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/transaction.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/transaction_options.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/write_batch.h
     ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/core/include/firebase/firestore/firestore_errors.h
     ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/core/include/firebase/firestore/firestore_version.h
@@ -504,6 +505,12 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/callable_reference.h
     ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/callable_result.h
     ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/common.h)
+  set(gma_HDRS
+    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma.h
+    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ad_view.h
+    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/interstitial_ad.h
+    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/rewarded_ad.h
+    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/types.h)
   set(installations_HDRS
     ${FIREBASE_SOURCE_DIR}/installations/src/include/firebase/installations.h)
   set(messaging_HDRS
@@ -527,6 +534,7 @@ if (IOS)
     ${dynamic_links_HDRS}
     ${firestore_HDRS}
     ${functions_HDRS}
+    ${gma_HDRS}
     ${installations_HDRS}
     ${messaging_HDRS}
     ${remote_config_HDRS}

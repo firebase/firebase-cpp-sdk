@@ -1,0 +1,16 @@
+source 'https://github.com/CocoaPods/Specs.git'
+platform :ios, '10.0'
+# Firebase GMA test application.
+use_frameworks! :linkage => :static
+
+target 'integration_test' do
+  pod 'Firebase/Analytics', '9.2.0'
+  pod 'Google-Mobile-Ads-SDK', '9.4.0'
+end
+
+post_install do |installer|
+  # If this is running from inside the SDK directory, run the setup script.
+  system("if [[ -r ../../setup_integration_tests.py ]]; then python3 ../../setup_integration_tests.py .; fi")
+  system("python3 ./download_googletest.py")
+end
+
