@@ -31,7 +31,7 @@ python scripts/gha/install_prereqs_desktop.py
 
 import os
 import argparse
-from print_matrix_configuration import PARAMETERS
+# from print_matrix_configuration import PARAMETERS
 import utils
 
 def main():
@@ -41,10 +41,11 @@ def main():
       print(f'{k}={v}')
 
   # setup Xcode version (macOS, iOS)
-  if args.platform == 'iOS' or (args.platform == 'Desktop' and utils.is_mac_os()):
-    xcode_version = PARAMETERS['integration_tests']['matrix']['xcode_version'][0]
-    utils.run_command(['xcode-select', '-s', '/Applications/Xcode_$%s.app/Contents/Developer' % xcode_version], as_root=True)
+  # if args.platform == 'iOS' or (args.platform == 'Desktop' and utils.is_mac_os()):
+  #   xcode_version = PARAMETERS['integration_tests']['matrix']['xcode_version'][0]
+  #   utils.run_command(['xcode-select', '-s', '/Applications/Xcode_$%s.app/Contents/Developer' % xcode_version], as_root=True)
 
+  # Forces all git commands to use authenticated https, to prevent throttling.
   # utils.run_command(['git', 'config', '--global', 'store --file /tmp/git-credentials'])
   # utils.run_command(['echo', 'https://$%s@github.com' % , '>', '/tmp/git-credentials'])
 
