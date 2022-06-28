@@ -31,7 +31,7 @@ python scripts/gha/install_prereqs_desktop.py
 
 import os
 import argparse
-from scripts.gha.print_matrix_configuration import PARAMETERS
+from print_matrix_configuration import PARAMETERS
 import utils
 
 def main():
