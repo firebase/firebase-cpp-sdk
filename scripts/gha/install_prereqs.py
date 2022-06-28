@@ -55,16 +55,18 @@ def main():
 
   if args.platform == 'Desktop':
     # Set env vars
-    os.environ['VCPKG_RESPONSE_FILE'] = 'external/vcpkg_$%s_response_file.txt' % os.getenv('VCPKG_TRIPLET')
-    utils.run_command(['echo', 'VCPKG_RESPONSE_FILE=external/vcpkg_$%s_response_file.txt' % os.getenv('VCPKG_TRIPLET'), '>>', '$GITHUB_ENV'])
     if utils.is_linux_os():
+      os.environ['VCPKG_TRIPLET'] = 'x64-linux'
       utils.run_command(['echo', 'VCPKG_TRIPLET=x64-linux', '>>', '$GITHUB_ENV'])
     elif utils.is_mac_os():
       utils.run_command(['echo', 'VCPKG_TRIPLET=x64-osx', '>>', '$GITHUB_ENV'])
     elif utils.is_windows_os():
+      os.environ['VCPKG_TRIPLET'] = 'x64-windows-static'
       utils.run_command(['echo', 'VCPKG_TRIPLET=x64-windows-static', '>>', '$GITHUB_ENV'])
       # Enable Git Long-paths Support
       utils.run_command(['git', 'config', '--system', 'core.longpaths', 'true'])
+    os.environ['VCPKG_RESPONSE_FILE'] = 'external/vcpkg_$%s_response_file.txt' % os.getenv('VCPKG_TRIPLET')
+    utils.run_command(['echo', 'VCPKG_RESPONSE_FILE=external/vcpkg_$%s_response_file.txt' % os.getenv('VCPKG_TRIPLET'), '>>', '$GITHUB_ENV'])
 
     # Install openssl on linux/mac if its not installed already
     if args.ssl == 'openssl' and not utils.is_command_installed('openssl'):
