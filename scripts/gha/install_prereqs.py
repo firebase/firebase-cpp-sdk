@@ -39,8 +39,9 @@ def main():
 
   # Forces all git commands to use authenticated https, to prevent throttling.
   if utils.is_windows_os():
-    utils.run_cmd_string("git config --global credential.helper wincred")
-  utils.run_cmd_string("git config --global credential.helper 'store --file /tmp/git-credentials'")
+    utils.run_cmd_string("bash git config --global credential.helper 'store --file /tmp/git-credentials'")
+  else:
+    utils.run_cmd_string("git config --global credential.helper 'store --file /tmp/git-credentials'")
   utils.run_cmd_string("echo 'https://%s@github.com' > /tmp/git-credentials" % os.getenv('GITHUB_TOKEN'))
 
   if utils.is_windows_os():
