@@ -87,35 +87,37 @@ def main():
       # Install go on linux/mac if its not installed already
       if not utils.is_command_installed('go'):
         if utils.is_linux_os():
-            # sudo apt install -y golang
-            utils.run_cmd_string('sudo apt install -y golang')
+          # sudo apt install -y golang
+          utils.run_cmd_string('sudo apt install -y golang')
         elif utils.is_mac_os():
-            # brew install go
-            utils.run_cmd_string('brew install go')
+          # brew install go
+          utils.run_cmd_string('brew install go')
 
       # Install ccache on linux/mac if its not installed already
       if not utils.is_command_installed('ccache'):
         if utils.is_linux_os():
-            # sudo apt install ccache
-            utils.run_cmd_string('sudo apt install -y ccache')
+          # sudo apt install ccache
+          utils.run_cmd_string('sudo apt install -y ccache')
         elif utils.is_mac_os():
-            # brew install ccache
-            utils.run_cmd_string('brew install ccache')
+          # brew install ccache
+          utils.run_cmd_string('brew install ccache')
 
       # Install clang-format on linux/mac if its not installed already
       if not utils.is_command_installed('clang-format'):
         if utils.is_linux_os():
-            # sudo apt install clang-format
-            utils.run_cmd_string('sudo apt install -y clang-format')
+          # sudo apt install clang-format
+          utils.run_cmd_string('sudo apt install -y clang-format')
         elif utils.is_mac_os():
-            # brew install protobuf
-            utils.run_cmd_string('brew install clang-format')
+          # brew install protobuf
+          utils.run_cmd_string('brew install clang-format')
 
   elif args.platform == "Android" and not args.test_only:
     utils.run_cmd_string('echo "NDK_ROOT=/tmp/android-ndk-r21e" >> $GITHUB_ENV')
     utils.run_cmd_string('echo "ANDROID_NDK_HOME=/tmp/android-ndk-r21e" >> $GITHUB_ENV')
-    utils.run_cmd_string('build_scripts/android/install_prereqs.sh')
-  
+    if utils.is_windows_os():
+      utils.run_cmd_string('bash build_scripts/android/install_prereqs.sh')
+    else:
+      utils.run_cmd_string('build_scripts/android/install_prereqs.sh')
   elif args.platform == "iOS" and not args.test_only:
     utils.run_cmd_string('build_scripts/ios/install_prereqs.sh')
 
