@@ -28,11 +28,12 @@ jobs:
           python-version: 3.7
       - name: Install prerequisites
         run: |
-          cd firebase
-          python scripts/gha/install_prereqs.py
+          python3 -m pip install unidiff
+          pip install -r scripts/gha/python_requirements.txt
       - name: Install prerequisites
         run: |
-          python3 -m pip install unidiff
+          cd firebase
+          python scripts/gha/install_prereqs.py
       - name: Run cpplint
         shell: bash
         run: |

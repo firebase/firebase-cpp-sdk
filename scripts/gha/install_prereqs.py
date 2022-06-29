@@ -45,13 +45,11 @@ def main():
     # Enable Git Long-paths Support
     utils.run_cmd_string('git config --system core.longpaths true')
 
-  # setup Xcode version for macOS, iOS
-  if args.platform == 'iOS' or (args.platform == 'Desktop' and utils.is_mac_os()):
+  if utils.is_mac_os():
+    # setup Xcode version for macOS, iOS, tvOS
     xcode_version = PARAMETERS['integration_tests']['matrix']['xcode_version'][0]
     utils.run_cmd_string('sudo xcode-select -s /Applications/Xcode_%s.app/Contents/Developer' % xcode_version)
-
-  # This prevents errors arising from the shut down of binutils, used by older version of homebrew for hosting packages.
-  if utils.is_mac_os():
+    # This prevents errors arising from the shut down of binutils, used by older version of homebrew for hosting packages.
     utils.run_cmd_string('brew update')
 
   if args.platform == 'Desktop':
