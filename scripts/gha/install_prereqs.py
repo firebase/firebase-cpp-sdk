@@ -38,6 +38,8 @@ def main():
   args = parse_cmdline_args()
 
   # Forces all git commands to use authenticated https, to prevent throttling.
+  if utils.is_windows_os():
+    utils.run_cmd_string("git config --global credential.helper manager")
   utils.run_cmd_string("git config --global credential.helper 'store --file /tmp/git-credentials'")
   utils.run_cmd_string("echo 'https://%s@github.com' > /tmp/git-credentials" % os.getenv('GITHUB_TOKEN'))
 
@@ -112,7 +114,10 @@ def main():
   elif args.platform == "Android" and not args.test_only:
     utils.run_cmd_string('echo "NDK_ROOT=/tmp/android-ndk-r21e" >> $GITHUB_ENV')
     utils.run_cmd_string('echo "ANDROID_NDK_HOME=/tmp/android-ndk-r21e" >> $GITHUB_ENV')
-    utils.run_cmd_string('build_scripts/android/install_prereqs.sh')
+    if utils.is_windows_os():
+      utils.run_cmd_string('bash build_scripts/android/install_prereqs.sh')
+    else:
+      utils.run_cmd_string('build_scripts/android/install_prereqs.sh')
   elif args.platform == "iOS" and not args.test_only:
     utils.run_cmd_string('build_scripts/ios/install_prereqs.sh')
 
