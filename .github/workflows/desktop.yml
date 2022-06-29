@@ -186,7 +186,8 @@ jobs:
           timeout_minutes: 15
           max_attempts: 3
           command: |
-            python scripts/gha/install_prereqs_desktop.py --gha_build --arch '${{ matrix.architecture }}'
+            pip install -r scripts/gha/python_requirements.txt
+            python scripts/gha/install_prereqs.py --platform Desktop --gha_build --arch '${{ matrix.architecture }}'
 
       - name: Build SDK
         shell: bash
