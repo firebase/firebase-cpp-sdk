@@ -60,15 +60,13 @@ def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False,
                        check=check, text=capture_output)
 
 
-def run_cmd_string(cmd_string, print_cmd=True, shell=True,):
+def run_cmd_string(cmd_string, print_cmd=True, shell=True, check=True):
   """Run a command string."""
   if print_cmd:
     print('Running cmd: {0}\n'.format(cmd_string))
-  
-  # If capture_output is requested, we also set text=True to store the returned value of the
-  # command as a string instead of bytes object
-  result = subprocess.run(cmd_string, shell=True, check=True, capture_output=True, text=True)
-  print("run_cmd_string result: %s", result.stdout)
+  result = subprocess.run(cmd_string, shell=shell, check=True, capture_output=True, text=True)
+  if print_cmd:
+    print("run_cmd_string result: %s", result.stdout)
 
 
 def is_command_installed(tool):
