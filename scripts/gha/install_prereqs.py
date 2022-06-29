@@ -25,7 +25,7 @@ For example, you can run it once regardless if you are following up with a build
 Run this script from the root of the repository
 
 Usage:
-python scripts/gha/install_prereqs_desktop.py
+python scripts/gha/install_prereqs.py --platform ${platform}
 
 """
 
