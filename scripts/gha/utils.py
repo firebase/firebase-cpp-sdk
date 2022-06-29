@@ -67,8 +67,8 @@ def run_cmd_string(cmd_string, print_cmd=True, shell=True,):
   
   # If capture_output is requested, we also set text=True to store the returned value of the
   # command as a string instead of bytes object
-  result = subprocess.Popen(cmd_string, universal_newlines=True, shell=shell, stdout=subprocess.PIPE)
-  print("run_cmd_string result: %s", result.stdout.read().strip())
+  result = subprocess.run(cmd_string, shell=True, check=True, capture_output=True, text=True)
+  print("run_cmd_string result: %s", result.stdout)
 
 
 def is_command_installed(tool):
