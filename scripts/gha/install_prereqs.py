@@ -80,7 +80,7 @@ def main():
         utils.run_cmd_string('brew install openssl')
         utils.run_cmd_string('echo "OPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1" >> $GITHUB_ENV')
       elif utils.is_windows_os():
-        utils.run_cmd_string(['choco install openssl -r'])
+        utils.run_cmd_string('choco install openssl -r')
 
     if not args.test_only:
       # Install go on linux/mac if its not installed already
