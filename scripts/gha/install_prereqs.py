@@ -38,10 +38,9 @@ def main():
   args = parse_cmdline_args()
 
   # Forces all git commands to use authenticated https, to prevent throttling.
-  if utils.is_windows_os():
-    utils.run_cmd_string("git config --global credential.helper manager")
-  utils.run_cmd_string("git config --global credential.helper 'store --file /tmp/git-credentials'")
-  utils.run_cmd_string("echo 'https://%s@github.com' > /tmp/git-credentials" % os.getenv('GITHUB_TOKEN'))
+  if not utils.is_windows_os():
+    utils.run_cmd_string("git config --global credential.helper 'store --file /tmp/git-credentials'")
+    utils.run_cmd_string("echo 'https://%s@github.com' > /tmp/git-credentials" % os.getenv('GITHUB_TOKEN'))
 
   if utils.is_windows_os():
     # Enable Git Long-paths Support
