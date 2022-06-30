@@ -48,7 +48,7 @@ if [[ "${OS}" == "Windows" ]]; then
 fi
 
 if [[ "${OS}" == "Mac" ]]; then
-    sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Contents/Developer
+    sudo xcode-select -s /Applications/Xcode_${ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }.app/Contents/Developer
     brew update
 fi
 
@@ -62,17 +62,17 @@ if [[ "${PLATFORM}" == "Desktop" ]]; then
     fi
     echo "VCPKG_TRIPLET=${VCPKG_TRIPLET}" >> $GITHUB_ENV
     echo "VCPKG_RESPONSE_FILE=external/vcpkg_${VCPKG_TRIPLET}_response_file.txt" >> $GITHUB_ENV
-    python scripts/gha/install_prereqs_desktop.py --gha_build ${RUNNING_ONLY} --arch ${ARCH} --ssl ${SSL}
+    python install_prereqs_desktop.py --gha_build ${RUNNING_ONLY} --arch ${ARCH} --ssl ${SSL}
 fi
 
 if [[ "${RUNNING_ONLY}" == "" ]]; then
     if [[ "${PLATFORM}" == "Android" ]]; then
         echo "NDK_ROOT=/tmp/android-ndk-r21e" >> $GITHUB_ENV
         echo "ANDROID_NDK_HOME=/tmp/android-ndk-r21e" >> $GITHUB_ENV
-        build_scripts/android/install_prereqs.sh
+        ../../build_scripts/android/install_prereqs.sh
     elif [[ "${PLATFORM}" == "iOS" ]]; then
-        build_scripts/ios/install_prereqs.sh
+        ../../build_scripts/ios/install_prereqs.sh
     elif [[ "${PLATFORM}" == "tvOS" ]]; then
-        build_scripts/tvos/install_prereqs.sh
+        ../../build_scripts/tvos/install_prereqs.sh
     fi
 fi
