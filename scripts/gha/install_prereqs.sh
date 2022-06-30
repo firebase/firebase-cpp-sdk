@@ -54,13 +54,14 @@ fi
 
 if [[ "${PLATFORM}" == "Desktop" ]]; then
     if [[ "${OS}" == "Linux" ]]; then
-        echo "VCPKG_TRIPLET=x64-linux" >> $GITHUB_ENV
+        VCPKG_TRIPLET="x64-linux"
     elif [[ "${OS}" == "Mac" ]]; then
-        echo "VCPKG_TRIPLET=x64-osx" >> $GITHUB_ENV
+        VCPKG_TRIPLET="x64-osx"
     elif [[ "${OS}" == "Windows" ]]; then
-        echo "VCPKG_TRIPLET=x64-windows-static" >> $GITHUB_ENV
+        VCPKG_TRIPLET="x64-windows-static"
     fi
-    echo "VCPKG_RESPONSE_FILE=external/vcpkg_${{ env.VCPKG_TRIPLET }}_response_file.txt" >> $GITHUB_ENV
+    echo "VCPKG_TRIPLET=${VCPKG_TRIPLET}" >> $GITHUB_ENV
+    echo "VCPKG_RESPONSE_FILE=external/vcpkg_${VCPKG_TRIPLET}_response_file.txt" >> $GITHUB_ENV
     python scripts/gha/install_prereqs_desktop.py --gha_build ${RUNNING_ONLY} --arch ${ARCH} --ssl ${SSL}
 fi
 
