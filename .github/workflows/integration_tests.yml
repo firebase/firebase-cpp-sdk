@@ -68,7 +68,7 @@ jobs:
       apis: ${{ steps.matrix_config.outputs.apis }}
       mobile_test_on: ${{ steps.matrix_config.outputs.mobile_test_on }}
       android_device: ${{ steps.matrix_config.outputs.android_device }}
-      xcode_version: ${{ steps.matrix_config.outputs.xcode_version }}
+      xcode_version: ${{ fromJson(steps.matrix_config.outputs.xcode_version)[0] }}
       ios_device: ${{ steps.matrix_config.outputs.ios_device }}
       tvos_device: ${{ steps.matrix_config.outputs.tvos_device }}
       # Copy the runner label here because matrix specifiers cannot see env.
