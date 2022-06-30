@@ -280,7 +280,7 @@ jobs:
           timeout_minutes: 15
           max_attempts: 3
           command: |
-            bash -eux scripts/gha/install_prereqs.sh -p Desktop -a '${{ matrix.arch }}' -s '${{ matrix.ssl_variant }}'
+            scripts/gha/install_prereqs.sh -p Desktop -a '${{ matrix.arch }}' -s '${{ matrix.ssl_variant }}'
       - name: Add msbuild to PATH (Windows)
         if: startsWith(matrix.os, 'windows')
         uses: microsoft/setup-msbuild@v1.0.2

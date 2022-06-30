@@ -49,14 +49,14 @@ echo "OS: ${OS}"
 pip install -r scripts/gha/python_requirements.txt
 
 git config --global credential.helper 'store --file /tmp/git-credentials'
-echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
+echo 'https://${GITHUB_TOKEN}@github.com' > /tmp/git-credentials
 
 if [[ "${OS}" == "Windows" ]]; then
     git config --system core.longpaths true
 fi
 
 if [[ "${OS}" == "Mac" ]]; then
-    sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+    sudo xcode-select -s /Applications/Xcode_${xcodeVersion}.app/Contents/Developer
     brew update
 fi
 
