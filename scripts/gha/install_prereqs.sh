@@ -56,7 +56,7 @@ if [[ "${OS}" == "Windows" ]]; then
 fi
 
 if [[ "${OS}" == "Mac" ]]; then
-    sudo xcode-select -s /Applications/Xcode_${{ fromJson(needs.check_and_prepare.outputs.xcode_version)[0] }}.app/Contents/Developer
+    sudo xcode-select -s /Applications/Xcode_${{ needs.check_and_prepare.outputs.xcode_version }}.app/Contents/Developer
     brew update
 fi
 
