@@ -279,7 +279,6 @@ jobs:
           timeout_minutes: 15
           max_attempts: 3
           command: |
-            pip install -r scripts/gha/python_requirements.txt
             scripts/gha/install_prereqs.sh -p Desktop -a '${{ matrix.arch }}' -s '${{ matrix.ssl_variant }}'
       - name: Add msbuild to PATH (Windows)
         if: startsWith(matrix.os, 'windows')
@@ -409,7 +408,6 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           command: |
-            pip install -r scripts/gha/python_requirements.txt
             scripts/gha/install_prereqs.sh -p Android
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
@@ -509,7 +507,6 @@ jobs:
           timeout_minutes: 2
           max_attempts: 3
           command: |
-            pip install -r scripts/gha/python_requirements.txt
             scripts/gha/install_prereqs.sh -p iOS
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
@@ -610,7 +607,6 @@ jobs:
           timeout_minutes: 2
           max_attempts: 3
           command: |
-            pip install -r scripts/gha/python_requirements.txt
             scripts/gha/install_prereqs.sh -p tvOS
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
@@ -741,7 +737,6 @@ jobs:
           timeout_minutes: 15
           max_attempts: 3
           command: |
-            pip install -r scripts/gha/python_requirements.txt
             scripts/gha/install_prereqs.sh -p Desktop -r running_only -a '${{ matrix.arch }}' -s '${{ matrix.ssl_variant }}'
       - name: Set up Node (14)
         uses: actions/setup-node@v2
@@ -993,7 +988,6 @@ jobs:
           timeout_minutes: 1
           max_attempts: 3
           command: |
-            pip install -r scripts/gha/python_requirements.txt
             scripts/gha/install_prereqs.sh -p Android -r running_only
       - id: get-device-type
         run: |
@@ -1123,7 +1117,6 @@ jobs:
           timeout_minutes: 1
           max_attempts: 3
           command: |
-            pip install -r scripts/gha/python_requirements.txt
             scripts/gha/install_prereqs.sh -p iOS -r true
       - id: get-device-type
         run: |
@@ -1241,7 +1234,6 @@ jobs:
           timeout_minutes: 1
           max_attempts: 3
           command: |
-            pip install -r scripts/gha/python_requirements.txt
             scripts/gha/install_prereqs.sh -p tvOS  -r true
       - name: Setup java for Firestore emulator
         uses: actions/setup-java@v3
