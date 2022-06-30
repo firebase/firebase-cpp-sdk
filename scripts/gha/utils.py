@@ -64,7 +64,11 @@ def run_cmd_string(cmd_string, print_cmd=True, shell=True, check=True):
   """Run a command string."""
   if print_cmd:
     print('Running cmd: {0}\n'.format(cmd_string))
-  result = subprocess.run(cmd_string, shell=shell, check=check, capture_output=True, text=True)
+  if is_windows_os():
+    bash = "C:\\Program Files\\Git\\bin\\bash.EXE"
+    result = subprocess.run([bash, cmd_string], shell=shell, check=check, capture_output=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,)
+  else:
+    result = subprocess.run(cmd_string, shell=shell, check=check, capture_output=True, text=True)
   if print_cmd:
     print("run_cmd_string result: %s", result.stdout)
 

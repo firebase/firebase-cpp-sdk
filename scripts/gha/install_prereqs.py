@@ -37,11 +37,6 @@ import utils
 def main():
   args = parse_cmdline_args()
 
-  if utils.is_windows_os():
-    GITHUB_ENV = '$env:GITHUB_ENV'
-  else:
-    GITHUB_ENV = '$GITHUB_ENV'
-
   # Forces all git commands to use authenticated https, to prevent throttling.
   if not utils.is_windows_os():
     utils.run_cmd_string("git config --global credential.helper 'store --file /tmp/git-credentials'")
@@ -62,15 +57,15 @@ def main():
     # Set env vars
     if utils.is_linux_os():
       os.environ['VCPKG_TRIPLET'] = 'x64-linux'
-      utils.run_cmd_string('echo "VCPKG_TRIPLET=x64-linux" >> %s' % GITHUB_ENV)
+      utils.run_cmd_string('echo "VCPKG_TRIPLET=x64-linux" >> $GITHUB_ENV')
     elif utils.is_mac_os():
       os.environ['VCPKG_TRIPLET'] = 'x64-osx'
-      utils.run_cmd_string('echo "VCPKG_TRIPLET=x64-osx" >>  %s' % GITHUB_ENV)
+      utils.run_cmd_string('echo "VCPKG_TRIPLET=x64-osx" >> $GITHUB_ENV')
     elif utils.is_windows_os():
       os.environ['VCPKG_TRIPLET'] = 'x64-windows-static'
-      utils.run_cmd_string('echo "VCPKG_TRIPLET=x64-windows-static" >>  %s' % GITHUB_ENV)
+      utils.run_cmd_string('echo "VCPKG_TRIPLET=x64-windows-static" >> $GITHUB_ENV')
     os.environ['VCPKG_RESPONSE_FILE'] = 'external/vcpkg_%s_response_file.txt' % os.getenv('VCPKG_TRIPLET')
-    utils.run_cmd_string('echo "VCPKG_RESPONSE_FILE=external/vcpkg_%s_response_file.txt" >>  %s' % (os.getenv('VCPKG_TRIPLET'), GITHUB_ENV))
+    utils.run_cmd_string('echo "VCPKG_RESPONSE_FILE=external/vcpkg_%s_response_file.txt" >> $GITHUB_ENV' % os.getenv('VCPKG_TRIPLET'))
 
     if args.arch == 'x86':
       utils.install_x86_support_libraries(args.gha_build)
@@ -83,7 +78,7 @@ def main():
       elif utils.is_mac_os():
         # brew install openssl
         utils.run_cmd_string('brew install openssl')
-        utils.run_cmd_string('echo "OPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1" >> %s' % GITHUB_ENV)
+        utils.run_cmd_string('echo "OPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1" >> $GITHUB_ENV')
       elif utils.is_windows_os():
         utils.run_cmd_string('choco install openssl -r')
 
@@ -116,8 +111,8 @@ def main():
           utils.run_cmd_string('brew install clang-format')
 
   elif args.platform == "Android" and not args.test_only:
-    utils.run_cmd_string('echo "NDK_ROOT=/tmp/android-ndk-r21e" >> %s' % GITHUB_ENV)
-    utils.run_cmd_string('echo "ANDROID_NDK_HOME=/tmp/android-ndk-r21e" >> %s' % GITHUB_ENV)
+    utils.run_cmd_string('echo "NDK_ROOT=/tmp/android-ndk-r21e" >> $GITHUB_ENV')
+    utils.run_cmd_string('echo "ANDROID_NDK_HOME=/tmp/android-ndk-r21e" >> $GITHUB_ENV')
     if utils.is_windows_os():
       utils.run_cmd_string('bash build_scripts/android/install_prereqs.sh')
     else:

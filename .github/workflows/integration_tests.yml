@@ -989,6 +989,7 @@ jobs:
       - name: Install prerequisites for testing
         uses: nick-invision/retry@v2
         with:
+          shell: bash
           timeout_minutes: 1
           max_attempts: 3
           command: |
