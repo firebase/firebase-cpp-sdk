@@ -32,6 +32,11 @@ while getopts ":p:a:r:s" opt; do
     esac
 done
 
+echo "PLATFORM: ${PLATFORM}"
+echo "ARCH: ${ARCH}"
+echo "RUNNING_ONLY: ${RUNNING_ONLY}"
+echo "SSL: ${SSL}"
+
 OS=''
 case "$OSTYPE" in
   darwin*)  OS='Mac' ;; 
@@ -39,6 +44,7 @@ case "$OSTYPE" in
   msys*)    OS='Windows' ;;
   *)        echo "unknown: $OSTYPE" ;;
 esac
+echo "SSL: ${OS}"
 
 git config --global credential.helper 'store --file /tmp/git-credentials'
 echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
@@ -62,7 +68,7 @@ if [[ "${PLATFORM}" == "Desktop" ]]; then
     fi
     echo "VCPKG_TRIPLET=${VCPKG_TRIPLET}" >> $GITHUB_ENV
     echo "VCPKG_RESPONSE_FILE=external/vcpkg_${VCPKG_TRIPLET}_response_file.txt" >> $GITHUB_ENV
-    python scripts/gha/install_prereqs_desktop.py --gha_build ${RUNNING_ONLY} --arch ${ARCH} --ssl ${SSL}
+    python scripts/gha/install_prereqs_desktop.py --gha_build --arch "${ARCH}" --ssl "${SSL}" ${RUNNING_ONLY} 
 fi
 
 if [[ "${RUNNING_ONLY}" == "" ]]; then
