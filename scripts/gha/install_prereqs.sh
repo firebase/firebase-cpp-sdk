@@ -65,6 +65,7 @@ if [[ "${PLATFORM}" == "Desktop" ]]; then
         VCPKG_TRIPLET="x64-linux"
     elif [[ "${OS}" == "Mac" ]]; then
         VCPKG_TRIPLET="x64-osx"
+        echo "OPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1" >> $GITHUB_ENV
     elif [[ "${OS}" == "Windows" ]]; then
         VCPKG_TRIPLET="x64-windows-static"
     fi
