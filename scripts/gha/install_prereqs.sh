@@ -8,7 +8,7 @@ RUNNING_ONLY=''
 ARCH=''
 SSL=''
 # check options
-while getopts ":p:a:r:s" opt; do
+while getopts ":p:a:r:s:" opt; do
     case $opt in
         p)
             PLATFORM=$OPTARG
@@ -44,7 +44,7 @@ case "$OSTYPE" in
   msys*)    OS='Windows' ;;
   *)        echo "unknown: $OSTYPE" ;;
 esac
-echo "SSL: ${OS}"
+echo "OS: ${OS}"
 
 git config --global credential.helper 'store --file /tmp/git-credentials'
 echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
