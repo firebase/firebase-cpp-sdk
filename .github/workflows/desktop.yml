@@ -302,7 +302,7 @@ jobs:
   local_integration_tests: 
     ### This job run firestore integration test on Linux Dekstop as required by firestore team. 
     ### It's possible to add more apps here once integration tests are less flaky.
-    name: local-integration-tests-linux-openssl
+    name: local-integration-tests-linux-x64-openssl
     needs: prepare_matrix
     runs-on: ubuntu-latest
     strategy:
@@ -312,10 +312,6 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
-      - name: Set env vars
-        run: |
-          echo "VCPKG_TRIPLET=x64-linux" >> $GITHUB_ENV
-          echo "VCPKG_RESPONSE_FILE=external/vcpkg_${{ env.VCPKG_TRIPLET }}_response_file.txt" >> $GITHUB_ENV
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
         uses: actions/cache@v2
@@ -333,10 +329,7 @@ jobs:
           python-version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version)[0] }}
       - name: Prepare for integration tests
         run: |
-          pip install -r scripts/gha/requirements.txt
-      - name: Install OpenSSL
-        run: |
-          sudo apt install openssl
+          scripts/gha/install_prereqs.sh -p Desktop -a 'x64' -s 'openssl'
       - name: Build integration tests
         shell: bash
         env: 
