@@ -44,6 +44,7 @@ env:
   triggerLabelFull: "tests-requested: full"
   triggerLabelQuick: "tests-requested: quick"
   pythonVersion: '3.7'
+  xcodeVersion: '13.3.1'
   artifactRetentionDays: 2
   GITHUB_TOKEN: ${{ github.token }}
   # All self-hosted ARM Mac runners should have this label. Due to how
@@ -68,7 +69,7 @@ jobs:
       apis: ${{ steps.matrix_config.outputs.apis }}
       mobile_test_on: ${{ steps.matrix_config.outputs.mobile_test_on }}
       android_device: ${{ steps.matrix_config.outputs.android_device }}
-      xcode_version: ${{ fromJson(steps.matrix_config.outputs.xcode_version)[0] }}
+      xcode_version: ${{ steps.matrix_config.outputs.xcode_version }}
       ios_device: ${{ steps.matrix_config.outputs.ios_device }}
       tvos_device: ${{ steps.matrix_config.outputs.tvos_device }}
       # Copy the runner label here because matrix specifiers cannot see env.
