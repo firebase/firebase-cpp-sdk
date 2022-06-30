@@ -1,7 +1,6 @@
 #!/bin/bash -e
 
 # Copyright 2022 Google LLC
-#
 
 PLATFORM='Desktop'
 RUNNING_ONLY=''
