@@ -505,7 +505,7 @@ jobs:
       - name: Install iOS SDK & integration tests prerequisites
         uses: nick-invision/retry@v2
         with:
-          timeout_minutes: 2
+          timeout_minutes: 3
           max_attempts: 3
           command: |
             scripts/gha/install_prereqs.sh -p iOS
@@ -605,7 +605,7 @@ jobs:
       - name: Install tvOS SDK & integration tests prerequisites
         uses: nick-invision/retry@v2
         with:
-          timeout_minutes: 2
+          timeout_minutes: 3
           max_attempts: 3
           command: |
             scripts/gha/install_prereqs.sh -p tvOS
@@ -986,7 +986,7 @@ jobs:
         uses: nick-invision/retry@v2
         with:
           shell: bash
-          timeout_minutes: 1
+          timeout_minutes: 5
           max_attempts: 3
           command: |
             scripts/gha/install_prereqs.sh -p Android -r running_only
@@ -1115,7 +1115,7 @@ jobs:
       - name: Install prerequisites for testing
         uses: nick-invision/retry@v2
         with:
-          timeout_minutes: 1
+          timeout_minutes: 3
           max_attempts: 3
           command: |
             scripts/gha/install_prereqs.sh -p iOS -r true
@@ -1232,7 +1232,7 @@ jobs:
       - name: Install prerequisites for testing
         uses: nick-invision/retry@v2
         with:
-          timeout_minutes: 1
+          timeout_minutes: 3
           max_attempts: 3
           command: |
             scripts/gha/install_prereqs.sh -p tvOS  -r true
