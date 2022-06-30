@@ -280,7 +280,7 @@ jobs:
           max_attempts: 3
           command: |
             pip install -r scripts/gha/python_requirements.txt
-            python scripts/gha/install_prereqs.py --platform Desktop --gha_build --arch '${{ matrix.arch }}' --ssl '${{ matrix.ssl_variant }}'
+            python scripts/gha/install_prereqs.sh --p Desktop -a '${{ matrix.arch }}' -s '${{ matrix.ssl_variant }}'
       - name: Add msbuild to PATH (Windows)
         if: startsWith(matrix.os, 'windows')
         uses: microsoft/setup-msbuild@v1.0.2
@@ -410,7 +410,7 @@ jobs:
           max_attempts: 3
           command: |
             pip install -r scripts/gha/python_requirements.txt
-            python scripts/gha/install_prereqs.py --platform Android --gha_build
+            python scripts/gha/install_prereqs.sh -p Android
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
@@ -510,7 +510,7 @@ jobs:
           max_attempts: 3
           command: |
             pip install -r scripts/gha/python_requirements.txt
-            python scripts/gha/install_prereqs.py --platform iOS --gha_build
+            python scripts/gha/install_prereqs.sh -p iOS
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
@@ -611,7 +611,7 @@ jobs:
           max_attempts: 3
           command: |
             pip install -r scripts/gha/python_requirements.txt
-            python scripts/gha/install_prereqs.py --platform tvOS --gha_build
+            python scripts/gha/install_prereqs.sh -p tvOS
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
@@ -742,7 +742,7 @@ jobs:
           max_attempts: 3
           command: |
             pip install -r scripts/gha/python_requirements.txt
-            python scripts/gha/install_prereqs.py --platform Desktop --gha_build --test_only --arch '${{ matrix.arch }}' --ssl '${{ matrix.ssl_variant }}'
+            python scripts/gha/install_prereqs.sh -p Desktop -r running_only -a '${{ matrix.arch }}' -s '${{ matrix.ssl_variant }}'
       - name: Set up Node (14)
         uses: actions/setup-node@v2
         with:
@@ -994,7 +994,7 @@ jobs:
           max_attempts: 3
           command: |
             pip install -r scripts/gha/python_requirements.txt
-            python scripts/gha/install_prereqs.py --platform Android --test_only
+            scripts/gha/install_prereqs.sh -p Android -r running_only
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.android_device }} )"
@@ -1124,7 +1124,7 @@ jobs:
           max_attempts: 3
           command: |
             pip install -r scripts/gha/python_requirements.txt
-            python scripts/gha/install_prereqs.py --platform iOS --test_only
+            python scripts/gha/install_prereqs.sh -p iOS -r true
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.ios_device }} )"
@@ -1242,7 +1242,7 @@ jobs:
           max_attempts: 3
           command: |
             pip install -r scripts/gha/python_requirements.txt
-            python scripts/gha/install_prereqs.py --platform tvOS --test_only
+            python scripts/gha/install_prereqs.sh -p tvOS  -r true
       - name: Setup java for Firestore emulator
         uses: actions/setup-java@v3
         with:
