@@ -328,8 +328,12 @@ jobs:
         with:
           python-version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version)[0] }}
       - name: Prepare for integration tests
-        run: |
-          scripts/gha/install_prereqs.sh -p Desktop -a 'x64' -s 'openssl'
+        uses: nick-invision/retry@v2
+        with:
+          shell: bash
+          timeout_minutes: 15
+          max_attempts: 3
+          command: scripts/gha/install_test_workflow_prereqs.sh -p Desktop -a 'x64' -s 'openssl'
       - name: Build integration tests
         shell: bash
         env: 

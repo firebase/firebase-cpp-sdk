@@ -279,8 +279,7 @@ jobs:
           shell: bash
           timeout_minutes: 15
           max_attempts: 3
-          command: |
-            scripts/gha/install_prereqs.sh -p Desktop -a '${{ matrix.arch }}' -s '${{ matrix.ssl_variant }}'
+          command: scripts/gha/install_test_workflow_prereqs.sh -p Desktop -a '${{ matrix.arch }}' -s '${{ matrix.ssl_variant }}'
       - name: Add msbuild to PATH (Windows)
         if: startsWith(matrix.os, 'windows')
         uses: microsoft/setup-msbuild@v1.0.2
@@ -408,8 +407,7 @@ jobs:
           shell: bash
           timeout_minutes: 10
           max_attempts: 3
-          command: |
-            scripts/gha/install_prereqs.sh -p Android
+          command: scripts/gha/install_test_workflow_prereqs.sh -p Android
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
@@ -507,8 +505,7 @@ jobs:
         with:
           timeout_minutes: 3
           max_attempts: 3
-          command: |
-            scripts/gha/install_prereqs.sh -p iOS
+          command: scripts/gha/install_test_workflow_prereqs.sh -p iOS
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
@@ -607,8 +604,7 @@ jobs:
         with:
           timeout_minutes: 3
           max_attempts: 3
-          command: |
-            scripts/gha/install_prereqs.sh -p tvOS
+          command: scripts/gha/install_test_workflow_prereqs.sh -p tvOS
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
@@ -737,8 +733,7 @@ jobs:
           shell: bash
           timeout_minutes: 15
           max_attempts: 3
-          command: |
-            scripts/gha/install_prereqs.sh -p Desktop -r running_only -a '${{ matrix.arch }}' -s '${{ matrix.ssl_variant }}'
+          command: scripts/gha/install_test_workflow_prereqs.sh -p Desktop -t true -a '${{ matrix.arch }}' -s '${{ matrix.ssl_variant }}'
       - name: Set up Node (14)
         uses: actions/setup-node@v2
         with:
@@ -988,8 +983,7 @@ jobs:
           shell: bash
           timeout_minutes: 5
           max_attempts: 3
-          command: |
-            scripts/gha/install_prereqs.sh -p Android -r running_only
+          command: scripts/gha/install_test_workflow_prereqs.sh -p Android -t true
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.android_device }} )"
@@ -1117,8 +1111,7 @@ jobs:
         with:
           timeout_minutes: 3
           max_attempts: 3
-          command: |
-            scripts/gha/install_prereqs.sh -p iOS -r true
+          command: scripts/gha/install_test_workflow_prereqs.sh -p iOS -t true
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.ios_device }} )"
@@ -1234,8 +1227,7 @@ jobs:
         with:
           timeout_minutes: 3
           max_attempts: 3
-          command: |
-            scripts/gha/install_prereqs.sh -p tvOS  -r true
+          command: scripts/gha/install_test_workflow_prereqs.sh -p tvOS  -t true
       - name: Setup java for Firestore emulator
         uses: actions/setup-java@v3
         with:

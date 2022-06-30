@@ -3,11 +3,11 @@
 # Copyright 2022 Google LLC
 
 PLATFORM='Desktop'
-RUNNING_ONLY=''
+TEST_ONLY=''
 ARCH=''
 SSL=''
 # check options
-while getopts ":p:a:r:s:" opt; do
+while getopts ":p:a:t:s:" opt; do
     case $opt in
         p)
             PLATFORM=$OPTARG
@@ -15,9 +15,9 @@ while getopts ":p:a:r:s:" opt; do
         a)
             ARCH=$OPTARG
             ;;
-        r)
+        t)
             if [[ $OPTARG == true ]]; then
-                RUNNING_ONLY="--running_only"
+                TEST_ONLY="--running_only"
             fi
             ;;
         s)
@@ -33,7 +33,7 @@ done
 
 echo "PLATFORM: ${PLATFORM}"
 echo "ARCH: ${ARCH}"
-echo "RUNNING_ONLY: ${RUNNING_ONLY}"
+echo "TEST_ONLY: ${TEST_ONLY}"
 echo "SSL: ${SSL}"
 
 OS=''
@@ -70,10 +70,10 @@ if [[ "${PLATFORM}" == "Desktop" ]]; then
     fi
     echo "VCPKG_TRIPLET=${VCPKG_TRIPLET}" >> $GITHUB_ENV
     echo "VCPKG_RESPONSE_FILE=external/vcpkg_${VCPKG_TRIPLET}_response_file.txt" >> $GITHUB_ENV
-    python scripts/gha/install_prereqs_desktop.py --gha_build --arch "${ARCH}" --ssl "${SSL}" ${RUNNING_ONLY} 
+    python scripts/gha/install_prereqs_desktop.py --gha_build --arch "${ARCH}" --ssl "${SSL}" ${TEST_ONLY} 
 fi
 
-if [[ "${RUNNING_ONLY}" == "" ]]; then
+if [[ "${TEST_ONLY}" == "" ]]; then
     if [[ "${PLATFORM}" == "Android" ]]; then
         echo "NDK_ROOT=/tmp/android-ndk-r21e" >> $GITHUB_ENV
         echo "ANDROID_NDK_HOME=/tmp/android-ndk-r21e" >> $GITHUB_ENV
