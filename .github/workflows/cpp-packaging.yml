@@ -620,8 +620,14 @@ jobs:
           set +e
           if [[ "${{ matrix.sdk_platform }}" == "darwin" ]]; then
             nm=bin/llvm-nm
-          else
-            nm=bin/nm*
+          elif [[ "${{ matrix.sdk_platform }}" == "windows" ]]; then
+            if [[ "${{ matrix.sdk_platform }}" == *"x64"* ]]; then
+              nm="bin/nm --target pe-x86-64"
+            else
+              nm="bin/nm --target pe-i386"
+            fi
+          else  # sdk_platform = linux
+            nm=bin/nm
           fi
           ${nm} `find firebase-cpp-sdk-*-package/libs/${{ matrix.sdk_platform }} -type f` | grep '^[0-9a-fA-F][0-9a-fA-F]* ' | cut -d' ' -f3- > raw_symbols.txt
           if [[ "${{ matrix.sdk_platform }}" == "windows" ]]; then
