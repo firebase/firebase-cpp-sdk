@@ -163,7 +163,7 @@ Firebase Storage           | libfirebase_storage.a
 |                          | (Maven package)
 |                          | com.google.firebase:firebase-auth
 |                          | (Maven package)
-Google Play services module| com.google.android.gms:play-services-base:18.0.1
+Google Play services module| com.google.android.gms:play-services-base:18.1.0
 |                          | (Maven package)
 
 The Firebase C++ SDK uses an Android BoM (Bill of Materials) to specify a single

@@ -55,7 +55,7 @@ android {
 dependencies {
   implementation platform('com.google.firebase:firebase-bom:30.2.0')
   implementation 'com.google.firebase:firebase-analytics'
-  implementation 'com.google.android.gms:play-services-base:18.0.1'
+  implementation 'com.google.android.gms:play-services-base:18.1.0'
   implementation project(':app:app_resources')
 }
 
