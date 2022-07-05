@@ -4,31 +4,111 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
+#      http://www.apache.org/licenses/LICENSE-2.0 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 2.8)
-include(ExternalProject)
+set(FIRESTORE_ABSL_VERSION "20211102.0")
+set(FIRESTORE_ABSL_DOWNLOAD_URL "https://github.com/abseil/abseil-cpp/archive/${FIRESTORE_ABSL_VERSION}.tar.gz")
+set(FIRESTORE_ABSL_BASE_DIR "${CMAKE_CURRENT_BINARY_DIR}/external/abseil-cpp")
+set(FIRESTORE_ABSL_ARCHIVE_FILE "${FIRESTORE_ABSL_BASE_DIR}/abseil-${FIRESTORE_ABSL_VERSION}.tar.gz")
+set(FIRESTORE_ABSL_ARCHIVE_FILE_SHA256 "dcf71b9cba8dc0ca9940c4b316a0c796be8fab42b070bb6b7cab62b48f0e66c4")
+set(FIRESTORE_ABSL_ARCHIVE_EXTRACT_STAMP_FILE "${FIRESTORE_ABSL_BASE_DIR}/extract.stamp.txt")
+set(FIRESTORE_ABSL_SRC_DIR "${FIRESTORE_ABSL_BASE_DIR}/src")
+set(FIRESTORE_ABSL_DIR "${FIRESTORE_ABSL_SRC_DIR}/abseil-cpp-${FIRESTORE_ABSL_VERSION}")
 
-set(version 20200225)
+if(EXISTS "${FIRESTORE_ABSL_ARCHIVE_FILE}")
+  file(SHA256 "${FIRESTORE_ABSL_ARCHIVE_FILE}" FIRESTORE_ABSL_ARCHIVE_FILE_SHA256_ACTUAL)
+else()
+  set(FIRESTORE_ABSL_ARCHIVE_FILE_SHA256_ACTUAL "File not found: ${FIRESTORE_ABSL_ARCHIVE_FILE}")
+endif()
 
-ExternalProject_Add(
-  abseil-cpp
+if("${FIRESTORE_ABSL_ARCHIVE_FILE_SHA256_ACTUAL}" STREQUAL "${FIRESTORE_ABSL_ARCHIVE_FILE_SHA256}")
+  message(
+    STATUS
+    "Skipping re-download of ${FIRESTORE_ABSL_DOWNLOAD_URL} "
+    "to ${FIRESTORE_ABSL_ARCHIVE_FILE}"
+  )
+else()
+  message(STATUS "Creating directory: ${FIRESTORE_ABSL_BASE_DIR}")
+  file(MAKE_DIRECTORY "${FIRESTORE_ABSL_BASE_DIR}")
+  message(STATUS "Downloading ${FIRESTORE_ABSL_DOWNLOAD_URL} to ${FIRESTORE_ABSL_ARCHIVE_FILE}")
+  file(
+    DOWNLOAD
+    "${FIRESTORE_ABSL_DOWNLOAD_URL}"
+    "${FIRESTORE_ABSL_ARCHIVE_FILE}"
+    STATUS
+      FIRESTORE_ABSL_ARCHIVE_FILE_DOWNLOAD_STATUS
+    EXPECTED_HASH
+      "SHA256=${FIRESTORE_ABSL_ARCHIVE_FILE_SHA256}"
+    TIMEOUT
+      60000
+  )
+  list(GET FIRESTORE_ABSL_ARCHIVE_FILE_DOWNLOAD_STATUS 0 FIRESTORE_ABSL_DOWNLOAD_RESULT)
+  list(GET FIRESTORE_ABSL_ARCHIVE_FILE_DOWNLOAD_STATUS 1 FIRESTORE_ABSL_DOWNLOAD_RESULT_MESSAGE)
+  if(NOT FIRESTORE_ABSL_DOWNLOAD_RESULT EQUAL 0)
+    message(
+      FATAL_ERROR
+      "Downloading ${FIRESTORE_ABSL_DOWNLOAD_URL} to ${FIRESTORE_ABSL_ARCHIVE_FILE} failed: "
+      "${FIRESTORE_ABSL_DOWNLOAD_RESULT_MESSAGE} (${FIRESTORE_ABSL_DOWNLOAD_RESULT})"
+    )
+  endif()
+endif()
 
-  DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
-  DOWNLOAD_NAME abseil-cpp-${version}.tar.gz
-  URL https://github.com/abseil/abseil-cpp/archive/${version}.tar.gz
-  URL_HASH SHA256=728a813291bdec2aa46eab8356ace9f75ac2ed9dfe2df5ab603c4e6c09f1c353
+if(EXISTS "${FIRESTORE_ABSL_ARCHIVE_EXTRACT_STAMP_FILE}")
+  file(
+    READ
+    "${FIRESTORE_ABSL_ARCHIVE_EXTRACT_STAMP_FILE}"
+    FIRESTORE_ABSL_ARCHIVE_EXTRACT_STAMP_FILE_CONTENTS
+  )
+  if(
+      "${FIRESTORE_ABSL_ARCHIVE_EXTRACT_STAMP_FILE_CONTENTS}"
+      STREQUAL
+      "${FIRESTORE_ABSL_DOWNLOAD_URL}"
+  )
+    set(FIRESTORE_ABSL_ARCHIVE_EXTRACT_REQUIRED NO)
+  else()
+    set(FIRESTORE_ABSL_ARCHIVE_EXTRACT_REQUIRED YES)
+  endif()
+else()
+  set(FIRESTORE_ABSL_ARCHIVE_EXTRACT_REQUIRED YES)
+endif()
 
-  PREFIX ${CMAKE_CURRENT_BINARY_DIR}
+if(NOT FIRESTORE_ABSL_ARCHIVE_EXTRACT_REQUIRED)
+  message(
+    STATUS
+    "Skipping re-extracting of ${FIRESTORE_ABSL_ARCHIVE_FILE} to ${FIRESTORE_ABSL_SRC_DIR}"
+  )
+else()
+  if(EXISTS "${FIRESTORE_ABSL_SRC_DIR}")
+    message(STATUS "Deleting directory: ${FIRESTORE_ABSL_SRC_DIR}")
+    file(REMOVE_RECURSE "${FIRESTORE_ABSL_SRC_DIR}")
+  endif()
+  message(STATUS "Creating directory: ${FIRESTORE_ABSL_SRC_DIR}")
+  file(MAKE_DIRECTORY "${FIRESTORE_ABSL_SRC_DIR}")
+  # TODO: Use file(ARCHIVE_EXTRACT ...) instead of `tar` once the minimum supported cmake version
+  # increases to 3.18 or later.
+  message(STATUS "Extracting ${FIRESTORE_ABSL_ARCHIVE_FILE} to ${FIRESTORE_ABSL_SRC_DIR}")
+  execute_process(
+    COMMAND
+      tar
+      xf
+      "${FIRESTORE_ABSL_ARCHIVE_FILE}"
+    WORKING_DIRECTORY
+      "${FIRESTORE_ABSL_SRC_DIR}"
+    RESULT_VARIABLE
+      FIRESTORE_ABSL_ARCHIVE_FILE_EXTRACT_RESULT
+  )
+  if(NOT FIRESTORE_ABSL_ARCHIVE_FILE_EXTRACT_RESULT EQUAL 0)
+    message(
+      FATAL_ERROR
+      "Failed to extract ${FIRESTORE_ABSL_ARCHIVE_FILE} to ${FIRESTORE_ABSL_SRC_DIR}"
+    )
+  endif()
+  file(WRITE "${FIRESTORE_ABSL_ARCHIVE_EXTRACT_STAMP_FILE}" "${FIRESTORE_ABSL_DOWNLOAD_URL}")
+endif()
 
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ""
-  INSTALL_COMMAND ""
-  TEST_COMMAND ""
-)
+add_subdirectory("${FIRESTORE_ABSL_DIR}")
