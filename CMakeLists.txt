@@ -83,8 +83,22 @@ option(FIREBASE_GITHUB_ACTION_BUILD
 option(FIREBASE_QUICK_TEST
        "Enable quick tests will skip tests which requires access to the SECRET" OFF)
 
-set(FIREBASE_PYTHON_EXECUTABLE "python" CACHE FILEPATH
-  "The Python interpreter to use, such as one from a venv")
+# Find a Python interpreter using the best available mechanism.
+if(${CMAKE_VERSION} VERSION_LESS "3.12")
+  include(FindPythonInterp)
+  set(DEFAULT_FIREBASE_PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE}")
+else()
+  find_package(Python3 COMPONENTS Interpreter REQUIRED)
+  set(DEFAULT_FIREBASE_PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
+endif()
+
+set(
+  FIREBASE_PYTHON_EXECUTABLE
+  "${DEFAULT_FIREBASE_PYTHON_EXECUTABLE}"
+  CACHE
+  FILEPATH
+  "The Python interpreter to use, such as one from a venv"
+)
 
 set(FIREBASE_XCODE_TARGET_FORMAT "frameworks" CACHE STRING
                                  "Format to output, 'frameworks' or 'libraries'")
