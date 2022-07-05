@@ -12,23 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 2.8)
-include(ExternalProject)
+set(FIRESTORE_ABSL_VERSION "20211102.0")
+set(FIRESTORE_ABSL_SHA256 "dcf71b9cba8dc0ca9940c4b316a0c796be8fab42b070bb6b7cab62b48f0e66c4")
+set(FIRESTORE_ABSL_BASE_DIR "${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp")
+set(FIRESTORE_ABSL_SRC_DIR "${FIRESTORE_ABSL_BASE_DIR}/src")
 
-set(version 20200225)
+# Find a Python interpreter using the best available mechanism.
+if(${CMAKE_VERSION} VERSION_LESS "3.12")
+  include(FindPythonInterp)
+  set(FIRESTORE_ABSL_PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE}")
+else()
+  find_package(Python3 COMPONENTS Interpreter REQUIRED)
+  set(FIRESTORE_ABSL_PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
+endif()
 
-ExternalProject_Add(
-  abseil-cpp
-
-  DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
-  DOWNLOAD_NAME abseil-cpp-${version}.tar.gz
-  URL https://github.com/abseil/abseil-cpp/archive/${version}.tar.gz
-  URL_HASH SHA256=728a813291bdec2aa46eab8356ace9f75ac2ed9dfe2df5ab603c4e6c09f1c353
-
-  PREFIX ${CMAKE_CURRENT_BINARY_DIR}
-
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ""
-  INSTALL_COMMAND ""
-  TEST_COMMAND ""
+execute_process(
+  COMMAND
+    "${FIRESTORE_ABSL_PYTHON_EXECUTABLE}"
+    "${CMAKE_CURRENT_LIST_DIR}/abseil_setup.py"
+    "${FIRESTORE_ABSL_VERSION}"
+    "${FIRESTORE_ABSL_BASE_DIR}"
+    "${FIRESTORE_ABSL_SHA256}"
+  RESULT_VARIABLE
+    FIRESTORE_ABSL_SETUP_RESULT
 )
+if(NOT FIRESTORE_ABSL_SETUP_RESULT EQUAL 0)
+  message(FATAL_ERROR "Failed to setup abseil")
+endif()
+
+add_subdirectory("${FIRESTORE_ABSL_SRC_DIR}")

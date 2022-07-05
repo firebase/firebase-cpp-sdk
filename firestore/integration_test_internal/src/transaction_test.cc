@@ -23,6 +23,7 @@
 #include "app/src/semaphore.h"
 #include "app/src/time.h"
 
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "firebase/firestore.h"
 #include "firebase/firestore/firestore_errors.h"
@@ -744,8 +745,8 @@ TEST_F(TransactionTest, TestMaxAttempts) {
   Future<void> run_transaction_future = firestore->RunTransaction(
       options,
       [update_count, &doc](Transaction& transaction, std::string&) -> Error {
-        SCOPED_TRACE("Update callback; update_count=" +
-                     std::to_string(update_count->load()));
+        SCOPED_TRACE(absl::StrCat("Update callback; update_count=",
+                                  update_count->load()));
         ++(*update_count);
 
         // Get the document via the transaction.
