@@ -192,6 +192,7 @@ build_flatbuffers("${desktop_flatbuffers_schemas}"
                   ""
                   "")
 
+# TODO(almostmatt): find correct way to depend on zlibwrapper
 set(app_desktop_SRCS
     src/app_desktop.cc
     src/heartbeat_date_storage_desktop.cc
@@ -201,6 +202,8 @@ set(app_desktop_SRCS
     src/heartbeat/date_provider.cc
     src/heartbeat/heartbeat_storage_desktop.cc
     src/heartbeat/heartbeat_controller_desktop.cc
+    rest/gzipheader.cc
+    rest/zlibwrapper.cc
     ${FIREBASE_GEN_FILE_DIR}/app/logged_heartbeats_generated.h)
 if(ANDROID)
   set(app_platform_SRCS
@@ -369,6 +372,8 @@ target_include_directories(firebase_app
   PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/src/include
     ${FIREBASE_GEN_FILE_DIR}
+    ${ZLIB_SOURCE_DIR}/..
+    ${ZLIB_BINARY_DIR}
   PRIVATE
     ${FIREBASE_CPP_SDK_ROOT_DIR}
     ${FLATBUFFERS_SOURCE_DIR}/include
@@ -391,6 +396,7 @@ target_link_libraries(firebase_app
   PRIVATE
     ${app_flatbuffers_lib}
     ${LIBSECRET_LIBRARIES}
+    zlibstatic
 )
 # Automatically include headers that might not be declared.
 if(MSVC)

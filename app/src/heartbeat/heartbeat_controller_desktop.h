@@ -36,14 +36,32 @@ class HeartbeatController {
   // Asynchronously log a heartbeat, if needed
   void LogHeartbeat();
 
+  // Synchronously fetches and clears all heartbeats from storage
+  std::string GetAndResetStoredHeartbeats();
+
+  // Synchronously fetches and clears today's heartbeat from storage
+  std::string GetAndResetTodaysStoredHeartbeats();
+
+  // TODO: figure out where zipping belongs (internal to payload or separate
+  // step) Maybe unit test it as well For now compress and decompress are public
+  // to make them testable
+  // TODO: make test-only visible or refactor to a separate class
+  std::string CompressAndEncode(const std::string& input);
+
+  std::string DecodeAndDecompress(const std::string& input);
+
  private:
   HeartbeatStorageDesktop storage_;
   scheduler::Scheduler scheduler_;
   const DateProvider& date_provider_;
 
+  std::string GetStringPayloadForHeartbeats(LoggedHeartbeats heartbeats);
+
   // For thread safety, the following variables should only be read or written
   // by the scheduler thread.
   std::string last_logged_date_;
+  std::string last_fetched_all_heartbeats_date_;
+  std::string last_fetched_todays_heartbeat_date_;
 };
 
 }  // namespace heartbeat
