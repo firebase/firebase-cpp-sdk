@@ -377,17 +377,6 @@ else()
   endif()
 endif()
 
-if(NOT ANDROID)
- set(${ADDITIONAL_LIBS} ${ADDITIONAL_LIBS} firestore_core absl_variant)
-else()
- set(${ADDITIONAL_LIBS} ${ADDITIONAL_LIBS}
-     absl_base
-     absl_memory
-     absl_meta
-     absl_optional
-     absl_strings)
-endif()
-
 # Add the Firebase libraries to the target using the function from the SDK.
 add_subdirectory(${FIREBASE_CPP_SDK_DIR} bin/ EXCLUDE_FROM_ALL)
 
