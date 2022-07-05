@@ -31,6 +31,7 @@ import json
 import pathlib
 import shutil
 import tarfile
+import tempfile
 from typing import Sequence
 import urllib.request
 
@@ -188,9 +189,22 @@ class AbslDownloader:
     logging.info("Creating directory: %s", extract_dir)
     extract_dir.mkdir(parents=True, exist_ok=False)
 
-    logging.info("Extracting %s to %s", archive_file, extract_dir)
+    temp_dir = pathlib.Path(tempfile.mkdtemp(dir=self.dest_dir))
+
+    logging.info("Extracting %s to %s", archive_file, temp_dir)
     with tarfile.open(archive_file, "r") as f:
-      f.extractall(extract_dir)
+      f.extractall(temp_dir)
+
+    logging.info("Moving files from %s to %s", temp_dir, extract_dir)
+    temp_dir_entries = tuple(temp_dir.iterdir())
+    if len(temp_dir_entries) != 1:
+      raise Exception(f"unexpected entries extracted from {archive_file}: "
+        + ", ".join(sorted(str(p) for p in temp_dir_entries)))
+    temp_dir_root = temp_dir_entries[0]
+    for temp_file_or_dir in temp_dir_root.iterdir():
+      dest_file_or_dir = extract_dir / temp_file_or_dir.relative_to(temp_dir_root)
+      logging.debug("Moving %s to %s", temp_file_or_dir, dest_file_or_dir)
+      temp_file_or_dir.rename(dest_file_or_dir)
 
     logging.info("Creating %s", stamp_file)
     stamp = {

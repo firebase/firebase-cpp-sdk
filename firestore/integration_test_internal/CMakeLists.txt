@@ -176,7 +176,7 @@ endif()
 
 if(ANDROID)
   include("${CMAKE_CURRENT_LIST_DIR}/abseil-cpp.cmake")
-  set(ABSEIL_CPP_ROOT "${FIRESTORE_ABSL_DIR}")
+  set(ABSEIL_CPP_ROOT "${FIRESTORE_ABSL_SRC_DIR}")
 else()
   set(ABSEIL_CPP_ROOT
       ${PROJECT_BINARY_DIR}/bin/external/src/firestore-build/external/src/abseil-cpp)
