@@ -83,7 +83,6 @@ option(FIREBASE_GITHUB_ACTION_BUILD
 option(FIREBASE_QUICK_TEST
        "Enable quick tests will skip tests which requires access to the SECRET" OFF)
 
-# Find a Python interpreter using the best available mechanism.
 if(${CMAKE_VERSION} VERSION_LESS "3.12")
   include(FindPythonInterp)
   set(DEFAULT_FIREBASE_PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE}")

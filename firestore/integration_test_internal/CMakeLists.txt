@@ -16,7 +16,6 @@
 
 cmake_minimum_required(VERSION 2.8)
 
-# Find a Python interpreter using the best available mechanism.
 if(${CMAKE_VERSION} VERSION_LESS "3.12")
   include(FindPythonInterp)
   set(DEFAULT_FIREBASE_PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE}")
