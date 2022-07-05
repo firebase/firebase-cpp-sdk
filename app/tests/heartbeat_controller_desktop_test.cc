@@ -69,7 +69,7 @@ TEST_F(HeartbeatControllerDesktopTest, DateProvider) {
   firebase::heartbeat::DateProviderImpl actualDateProvider;
   std::string date = actualDateProvider.GetDate();
   // Verify that the date is in the form YYYY-MM-DD
-  EXPECT_THAT(date, MatchesRegex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$"));
+  EXPECT_THAT(date, MatchesRegex("^....-..-..$"));
 }
 
 TEST_F(HeartbeatControllerDesktopTest, LogSingleHeartbeat) {
