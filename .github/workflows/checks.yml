@@ -66,7 +66,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DFIREBASE_PYTHON_EXECUTABLE=python
+          cmake .. -DFIREBASE_PYTHON_EXECUTABLE:FILEPATH=python
           cmake --build . --target FIREBASE_GENERATED_HEADERS
       - name: Install doxygen
         run: sudo apt-get install doxygen
