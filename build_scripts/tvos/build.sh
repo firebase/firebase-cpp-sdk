@@ -134,6 +134,7 @@ if ${generateMakefiles}; then
             echo "generate Makefiles start"
             mkdir -p ${buildpath}/tvos_build_file/${platform}-${arch} && cd ${buildpath}/tvos_build_file/${platform}-${arch}
             cmake -DCMAKE_TOOLCHAIN_FILE=${sourcepath}/${toolchain} \
+                  -DFIREBASE_PYTHON_EXECUTABLE:FILEPATH=$(which python) \
                   -DPLATFORM=${tvos_toolchain_platform} \
                   -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${buildpath}/${frameworkspath}/${platform}-${arch} \
                 ${sourcepath}
