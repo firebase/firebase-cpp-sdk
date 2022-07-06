@@ -99,6 +99,8 @@ set(
   "The Python interpreter to use, such as one from a venv"
 )
 
+message(STATUS "Using FIREBASE_PYTHON_EXECUTABLE: ${FIREBASE_PYTHON_EXECUTABLE}")
+
 set(FIREBASE_XCODE_TARGET_FORMAT "frameworks" CACHE STRING
                                  "Format to output, 'frameworks' or 'libraries'")
 
