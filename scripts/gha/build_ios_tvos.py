@@ -465,6 +465,7 @@ def cmake_configure(source_path, build_path, toolchain, archive_output_path,
         (eg: 'TVOS', 'SIMULATOR_TVOS' etc)
   """
   cmd = ['cmake', '-S', source_path, '-B', build_path]
+  cmd.append('-DFIREBASE_PYTHON_EXECUTABLE:FILEPATH=%s' % sys.executable)
   cmd.append('-DCMAKE_TOOLCHAIN_FILE={0}'.format(toolchain))
   cmd.append('-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY={0}'.format(archive_output_path))
   if architecture:

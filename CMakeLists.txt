@@ -101,6 +101,17 @@ set(
 
 message(STATUS "Using FIREBASE_PYTHON_EXECUTABLE: ${FIREBASE_PYTHON_EXECUTABLE}")
 
+# Propagate FIREBASE_PYTHON_EXECUTABLE to the firebase-ios-sdk via the
+# FIREBASE_PYTHON_HOST_EXECUTABLE cache variable.
+set(
+  FIREBASE_PYTHON_HOST_EXECUTABLE
+  "${FIREBASE_PYTHON_EXECUTABLE}"
+  CACHE
+  FILEPATH
+  "The Python interpreter on the host system to use"
+  FORCE
+)
+
 set(FIREBASE_XCODE_TARGET_FORMAT "frameworks" CACHE STRING
                                  "Format to output, 'frameworks' or 'libraries'")
 

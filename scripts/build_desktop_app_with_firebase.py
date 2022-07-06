@@ -175,6 +175,7 @@ def build_app_with_source(app_dir, sdk_source_dir, build_dir, arch,
   # Cmake configure.
   cmd = ['cmake', '-S', '.', '-B', build_dir]
   cmd.append('-DFIREBASE_CPP_SDK_DIR={0}'.format(sdk_source_dir))
+  cmd.append('-DFIREBASE_PYTHON_EXECUTABLE:FILEPATH=%s' % sys.executable)
 
   # If generator is not specified, default for platform is used by cmake, else
   # use the specified value.
@@ -242,6 +243,7 @@ def build_app_with_prebuilt(app_dir, sdk_prebuilt_dir, build_dir, arch,
 
   cmd = ['cmake', '-S', '.', '-B', build_dir]
   cmd.append('-DFIREBASE_CPP_SDK_DIR={0}'.format(sdk_prebuilt_dir))
+  cmd.append('-DFIREBASE_PYTHON_EXECUTABLE:FILEPATH=%s' % sys.executable)
 
   if platform.system() == 'Windows':
     if arch == 'x64':

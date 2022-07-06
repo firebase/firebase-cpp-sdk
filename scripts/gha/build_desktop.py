@@ -162,7 +162,6 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='l
 
   # Make sure cmake uses the Python interpreter that has the required
   # libraries installed.
-  cmd.append('-DFIREBASE_PYTHON_HOST_EXECUTABLE:FILEPATH=%s' % sys.executable)
   cmd.append('-DFIREBASE_PYTHON_EXECUTABLE:FILEPATH=%s' % sys.executable)
 
   # If generator is not specifed, default for platform is used by cmake, else

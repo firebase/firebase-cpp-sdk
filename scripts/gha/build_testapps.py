@@ -262,6 +262,7 @@ def main(argv):
     _run(["pod", "repo", "update"])
 
   cmake_flags = _get_desktop_compiler_flags(FLAGS.compiler, config.compilers)
+  cmake_flags.append("-DFIREBASE_PYTHON_EXECUTABLE:FILEPATH=%s" % sys.executable)
   # VCPKG is used to install dependencies for the desktop SDK.
   # Building from source requires building the underlying SDK libraries,
   # so we need to use VCPKG as well.
@@ -284,7 +285,6 @@ def main(argv):
     cmake_flags.extend((
         "-DCMAKE_TOOLCHAIN_FILE=%s" % toolchain_file,
         "-DVCPKG_TARGET_TRIPLET=%s" % utils.get_vcpkg_triplet(arch=vcpkg_arch),
-        "-DFIREBASE_PYTHON_HOST_EXECUTABLE:FILEPATH=%s" % sys.executable,
     ))
 
   if (_DESKTOP in platforms and FLAGS.packaged_sdk and
