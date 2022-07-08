@@ -28,6 +28,7 @@
 #include "app/src/heartbeat/date_provider.h"
 #include "app/src/heartbeat/heartbeat_storage_desktop.h"
 #include "app/src/logger.h"
+#include "app/src/semaphore.h"
 #include "app/src/variant_util.h"
 
 namespace firebase {
@@ -38,6 +39,8 @@ const char* kHeartbeatsKey = "heartbeats";
 const char* kVersionKey = "version";
 const char* kUserAgentKey = "agent";
 const char* kDatesKey = "dates";
+const int kMaxPayloadSize = 1024;
+const int kMaxWaitTimeMs = 3000;
 
 HeartbeatController::HeartbeatController(const std::string& app_id,
                                          const Logger& logger,
@@ -92,92 +95,45 @@ void HeartbeatController::LogHeartbeat() {
 }
 
 std::string HeartbeatController::GetAndResetStoredHeartbeats() {
-  // TODO: Default to empty payload
-  std::shared_ptr<std::string> output_str =
-      std::make_shared<std::string>("empty_payload");
+  std::shared_ptr<std::string> output_str = std::make_shared<std::string>("");
+  std::shared_ptr<Semaphore> scheduled_work_semaphore = std::make_shared<Semaphore>();
 
   std::function<void(void)> get_and_reset_function = [&, output_str]() {
     std::string current_date = date_provider_.GetDate();
     // Return early if a heartbeat has already been logged today.
-    if (this->last_fetched_all_heartbeats_date_ == current_date) {
-      *output_str = "already fetched";
-      return;
+    if (this->last_fetched_all_heartbeats_date_ != current_date) {
+      LoggedHeartbeats logged_heartbeats;
+      bool read_succeeded = this->storage_.ReadTo(logged_heartbeats);
+      // If read fails, or if there are no stored heartbeats, return an empty
+      // payload and don't attempt to write.
+      if (read_succeeded && logged_heartbeats.heartbeats.size() > 0) {
+        // Clear all logged heartbeats, but keep the last logged date
+        LoggedHeartbeats cleared_heartbeats;
+        cleared_heartbeats.last_logged_date = logged_heartbeats.last_logged_date;
+        bool write_succeeded = this->storage_.Write(cleared_heartbeats);
+        // Only update last-logged date and return a payload if the write succeeds.
+        if (write_succeeded) {
+          this->last_logged_date_ = current_date;
+          *output_str = GetStringPayloadForHeartbeats(logged_heartbeats);
+        }
+      }
     }
-    LoggedHeartbeats logged_heartbeats;
-    bool read_succeeded = this->storage_.ReadTo(logged_heartbeats);
-    // If read fails, return an empty payload and don't attempt to write.
-    if (!read_succeeded) {
-      // TODO: return an empty payload
-      *output_str = "read failed";
-      return;
-    }
-    // TODO: if there are no stored heartbeats, return early
-    // Clear all logged heartbeats, but keep the last logged date
-    LoggedHeartbeats cleared_heartbeats;
-    cleared_heartbeats.last_logged_date = logged_heartbeats.last_logged_date;
-    bool write_succeeded = this->storage_.Write(cleared_heartbeats);
-    // Only update last-logged date if the write succeeds.
-    if (write_succeeded) {
-      this->last_logged_date_ = current_date;
-      // TODO: return a non-empty payload
-      *output_str = GetStringPayloadForHeartbeats(logged_heartbeats);
-    } else {
-      // TODO: return an empty payload
-      *output_str = "write failed";
-    }
+    // Post the semaphore to signal the main thread to read the result.
+    scheduled_work_semaphore->Post();
+    return;
   };
 
-  // TODO: have a member variable that is the "result" and have the scheduled
-  // work modify this member variable probably have a mutex for read/write to
-  // this member variable
-  scheduler::RequestHandle handle = scheduler_.Schedule(get_and_reset_function);
-  // TODO: wait until handle has completed
-  // Then read from the member variable to construct a payload
-
-  // In terms of concurrency:
-  // If multiple calls to fetch occur, they will both be scheduled
-  // information needs to transfer from the scheduler thread to the calling
-  // thread there is some potential ambiguity if main thread waits a while
-  // example, if two calls to fetch back to back, first should return a large
-  // payload second should return empty payload concurrency concern: want to be
-  // sure payload is not cleared before first reads from it if scheduled work
-  // had a return value that would be nice ios dispatch queue has a return type
-
-  /**
-   Can I update scheduler so that the returned RequestHandle has an
-   "is-completed" ? Seems like if it is doing work sequentially it should be
-   able to determine when something is finished and this is much more useful
-   than is-started (IsTriggered) or is this how IsTriggered works? IsTriggered
-   is set after Run() has returned unsure if Run() just starts a new async thing
-   or if it runs completely in the current thread
-
-    if Run() is syncronous, then IsTriggered is just what I want
-    Run() appears to be the callback function
-
-    so maybe IsTriggered is all I really need to syncronize this internally
-
-    what is the memory scope of the requesthandle?
-    Can I add a method like "WaitUntilIsTriggeredOrTimeout" to the handle?
-   *
-   */
-  // TODO: Use a semaphore or something to handle this better
-  // also make a constant for max-wait duration
-  for (int i = 0; i < 50; i++) {
-    if (handle.IsTriggered()) {
-      break;
-    }
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  }
+  scheduler_.Schedule(get_and_reset_function);
+  // Wait until the scheduled work completes.
+  scheduled_work_semaphore->TimedWait(kMaxWaitTimeMs);
   return *output_str;
 }
 
 std::string HeartbeatController::GetAndResetTodaysStoredHeartbeats() {
-  // TODO
+  // TODO - modified version of the above
+  // Only find one heartbeat, only clear that one heartbeat
   return "";
 }
-
-// TODO: define a helper to generate empty payload
-// Or rely on the fact that LoggedHeartbeats defaults to an empty payload
 
 std::string HeartbeatController::GetStringPayloadForHeartbeats(
     LoggedHeartbeats heartbeats) {
@@ -209,19 +165,6 @@ std::string HeartbeatController::GetStringPayloadForHeartbeats(
 }
 
 std::string HeartbeatController::CompressAndEncode(const std::string& input) {
-  // TODO: json string -> to bytes (UTF 8 encoding) -> to gzip (base 64 url safe
-  // no padding no wrap)
-  /*
-  ByteArrayOutputStream out = new ByteArrayOutputStream();
-  try (Base64OutputStream b64os =
-          new Base64OutputStream(
-              out, Base64.URL_SAFE | Base64.NO_PADDING | Base64.NO_WRAP);
-      GZIPOutputStream gzip = new GZIPOutputStream(b64os); ) {
-    gzip.write(output.toString().getBytes("UTF-8"));
-  }
-
-  return out.toString("UTF-8");
-  */
   ZLib zlib;
   zlib.SetGzipHeaderMode();
   uLongf result_size = ZLib::MinCompressbufSize(input.length());
@@ -230,25 +173,27 @@ std::string HeartbeatController::CompressAndEncode(const std::string& input) {
       reinterpret_cast<unsigned char*>(result.get()), &result_size,
       reinterpret_cast<const unsigned char*>(input.data()), input.length());
   if (err != Z_OK) {
-    // Failed to compress
+    // Failed to compress.
     return "";
   }
   std::string compressed_str = std::string(result.get(), result_size);
-  // TODO: if compressed header is too large, drop it (or use empty header
-  // instead)
+
   std::string output;
-  if (firebase::internal::Base64EncodeUrlSafe(compressed_str, &output)) {
-    return output;
+  if (!firebase::internal::Base64EncodeUrlSafe(compressed_str, &output)) {
+    // Failed to based64 encode.
+    return "";
   }
-  // Note: could also have an output parameter and return an error code, or a
-  // StatusOr Failed to encode
-  return "";
+  // If compressed payload is too large, return an empty string instead.
+  if (output.size() > kMaxPayloadSize) {
+    return "";
+  }
+  return output;
 }
 
 std::string HeartbeatController::DecodeAndDecompress(const std::string& input) {
   std::string decoded;
   if (!firebase::internal::Base64Decode(input, &decoded)) {
-    // Failed to decode
+    // Failed to decode.
     return "";
   }
 
@@ -262,7 +207,7 @@ std::string HeartbeatController::DecodeAndDecompress(const std::string& input) {
   if (err == Z_OK) {
     return std::string(result.get(), result_size);
   }
-  // Failed to uncompress
+  // Failed to uncompress.
   return "";
 }
 

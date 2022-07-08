@@ -36,18 +36,20 @@ class HeartbeatController {
   // Asynchronously log a heartbeat, if needed
   void LogHeartbeat();
 
-  // Synchronously fetches and clears all heartbeats from storage
+  // Synchronously fetches and clears all heartbeats from storage and returns
+  // a JSON payload that has been compressed with gzip and base64 encoded.
+  // If there are no new heartbeats, an empty string is returned instead.
   std::string GetAndResetStoredHeartbeats();
 
-  // Synchronously fetches and clears today's heartbeat from storage
+  // Synchronously fetches and clears today's heartbeat from storage and returns
+  // a JSON payload that has been compressed with gzip and base64 encoded.
+  // If there is no new heartbeat, an empty string is returned instead.
   std::string GetAndResetTodaysStoredHeartbeats();
 
-  // TODO: figure out where zipping belongs (internal to payload or separate
-  // step) Maybe unit test it as well For now compress and decompress are public
-  // to make them testable
-  // TODO: make test-only visible or refactor to a separate class
+  // Compress a string with gzip and base 64 encode the result.
   std::string CompressAndEncode(const std::string& input);
 
+  // Decode a base64 encoded string and decompress the result using gzip.
   std::string DecodeAndDecompress(const std::string& input);
 
  private:
