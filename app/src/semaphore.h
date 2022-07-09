@@ -172,7 +172,33 @@ class Semaphore {
     return WaitForSingleObject(semaphore_, milliseconds) == 0;
 #else  // not windows and not mac - should be Linux.
     timespec t = internal::MsToAbsoluteTimespec(milliseconds);
-    return sem_timedwait(semaphore_, &t) == 0;
+    while (true) {
+      int result = sem_timedwait(semaphore_, &t);
+      if (result == 0) {
+        // Return success, since we successfully locked the semaphore.
+        return true;
+      }
+      switch (errno) {
+        case EINTR:
+          // Restart the wait because we were woken up spuriously.
+          continue;
+        case ETIMEDOUT:
+          // Return failure, since the timeout expired.
+          return false;
+        case EINVAL:
+          assert("sem_timedwait() failed with EINVAL" == 0);
+        case EDEADLK:
+          assert("sem_timedwait() failed with EDEADLK" == 0);
+        default:
+          assert("sem_timedwait() failed with an unknown error" == 0);
+      }
+    } else if (errno == EINTR) {
+        continue;
+      } else {
+        assert(errno == ETIMEDOUT);
+        return false;
+      }
+    }
 #endif
   }
 
