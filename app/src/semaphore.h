@@ -192,12 +192,6 @@ class Semaphore {
         default:
           assert("sem_timedwait() failed with an unknown error" == 0);
       }
-    } else if (errno == EINTR) {
-        continue;
-      } else {
-        assert(errno == ETIMEDOUT);
-        return false;
-      }
     }
 #endif
   }
