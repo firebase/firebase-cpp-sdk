@@ -192,7 +192,6 @@ build_flatbuffers("${desktop_flatbuffers_schemas}"
                   ""
                   "")
 
-# TODO(almostmatt): find correct way to depend on zlibwrapper
 set(app_desktop_SRCS
     src/app_desktop.cc
     src/heartbeat_date_storage_desktop.cc
