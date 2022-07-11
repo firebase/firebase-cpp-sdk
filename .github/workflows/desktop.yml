@@ -312,10 +312,6 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
-      - name: Set env vars
-        run: |
-          echo "VCPKG_TRIPLET=x64-linux" >> $GITHUB_ENV
-          echo "VCPKG_RESPONSE_FILE=external/vcpkg_${{ env.VCPKG_TRIPLET }}_response_file.txt" >> $GITHUB_ENV
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
         uses: actions/cache@v2
@@ -332,11 +328,12 @@ jobs:
         with:
           python-version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version)[0] }}
       - name: Prepare for integration tests
-        run: |
-          pip install -r scripts/gha/requirements.txt
-      - name: Install OpenSSL
-        run: |
-          sudo apt install openssl
+        uses: nick-invision/retry@v2
+        with:
+          shell: bash
+          timeout_minutes: 15
+          max_attempts: 3
+          command: scripts/gha/install_test_workflow_prereqs.sh -p Desktop -a 'x64' -s 'openssl'
       - name: Build integration tests
         shell: bash
         env: 
