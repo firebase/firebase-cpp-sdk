@@ -395,7 +395,6 @@ target_link_libraries(firebase_app
   PRIVATE
     ${app_flatbuffers_lib}
     ${LIBSECRET_LIBRARIES}
-    zlibstatic
 )
 # Automatically include headers that might not be declared.
 if(MSVC)
@@ -422,6 +421,9 @@ elseif(IOS)
       FirebaseDynamicLinks
       FirebaseInstanceID
   )
+else()
+  target_link_libraries(firebase_app
+    PRIVATE zlibstatic)
 endif()
 
 if (NOT ANDROID AND NOT IOS)
