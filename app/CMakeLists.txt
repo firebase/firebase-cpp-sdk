@@ -371,13 +371,19 @@ target_include_directories(firebase_app
   PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/src/include
     ${FIREBASE_GEN_FILE_DIR}
-    ${ZLIB_SOURCE_DIR}/..
-    ${ZLIB_BINARY_DIR}
   PRIVATE
     ${FIREBASE_CPP_SDK_ROOT_DIR}
     ${FLATBUFFERS_SOURCE_DIR}/include
     ${LIBSECRET_INCLUDE_DIRS}
 )
+
+if (DESKTOP)
+  target_include_directories(firebase_app
+    PUBLIC
+      ${ZLIB_SOURCE_DIR}/..
+      ${ZLIB_BINARY_DIR})
+endif()
+
 target_compile_definitions(firebase_app
   PRIVATE
     -DINTERNAL_EXPERIMENTAL=1
