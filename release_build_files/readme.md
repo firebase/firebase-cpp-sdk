@@ -634,6 +634,13 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Changes
+-   Changes
+    - General (Android,Linux): Fixed a concurrency bug where waiting for an
+      event with a timeout could occasionally return prematurely, as if the
+      timeout had occurred
+      ([#1021](https://github.com/firebase/firebase-cpp-sdk/pull/1021)).
+
 ### 9.2.0
 -   Changes
     - GMA: Added the Google Mobile Ads SDK with updated support for AdMob. See
