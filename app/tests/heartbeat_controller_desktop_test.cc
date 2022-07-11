@@ -364,18 +364,33 @@ TEST_F(HeartbeatControllerDesktopTest, GetEmptyHeartbeatPayload) {
   std::string payload = controller_.DecodeAndDecompress(
       controller_.GetAndResetStoredHeartbeats());
 
-  EXPECT_THAT(payload,
-              EqualsJson(R"json({"heartbeats":[],"version":"2"})json"));
+  EXPECT_EQ(payload, "");
 }
 
-TEST_F(HeartbeatControllerDesktopTest, GetSingleHeartbeatPayload) {
-  app_common::RegisterLibrariesFromUserAgent(kDefaultUserAgent);
+TEST_F(HeartbeatControllerDesktopTest, GetTodaysHeartbeatEmptyPayload) {
   std::string today = "2000-01-23";
   // Date provider will be called for both Log and Get
-  EXPECT_CALL(mock_date_provider_, GetDate())
-      .Times(2)
-      .WillRepeatedly(Return(today));
+  EXPECT_CALL(mock_date_provider_, GetDate()).Times(1).WillOnce(Return(today));
 
+  // GetAndResetStoredHeartbeats is done synchronously, so there is no need to
+  // wait.
+  std::string payload = controller_.DecodeAndDecompress(
+      controller_.GetAndResetTodaysStoredHeartbeats());
+
+  EXPECT_EQ(payload, "");
+}
+
+TEST_F(HeartbeatControllerDesktopTest, GetHeartbeatsPayload) {
+  app_common::RegisterLibrariesFromUserAgent(kDefaultUserAgent);
+  std::string day1 = "2000-01-23";
+  std::string day2 = "2000-01-24";
+  // Date provider will be called twice for Log and then once for Get
+  EXPECT_CALL(mock_date_provider_, GetDate())
+      .Times(3)
+      .WillOnce(Return(day1))
+      .WillRepeatedly(Return(day2));
+
+  controller_.LogHeartbeat();
   controller_.LogHeartbeat();
   // GetAndResetStoredHeartbeats is done synchronously, so there is no need to
   // wait.
@@ -386,7 +401,7 @@ TEST_F(HeartbeatControllerDesktopTest, GetSingleHeartbeatPayload) {
       "heartbeats": [
         {
           agent: "agent/1",
-          dates: ["2000-01-23"]
+          dates: ["2000-01-23", "2000-01-24"]
         }
       ],
       "version":"2"
@@ -397,8 +412,50 @@ TEST_F(HeartbeatControllerDesktopTest, GetSingleHeartbeatPayload) {
   LoggedHeartbeats read_heartbeats;
   bool read_ok = storage_.ReadTo(read_heartbeats);
   ASSERT_TRUE(read_ok);
-  EXPECT_EQ(read_heartbeats.last_logged_date, today);
+  EXPECT_EQ(read_heartbeats.last_logged_date, day2);
   EXPECT_EQ(read_heartbeats.heartbeats.size(), 0);
+}
+
+TEST_F(HeartbeatControllerDesktopTest, GetTodaysHeartbeatThenGetAllHeartbeats) {
+  app_common::RegisterLibrariesFromUserAgent(kDefaultUserAgent);
+  std::string day1 = "2000-01-23";
+  std::string day2 = "2000-01-24";
+  // Date provider will be called twice for, Log then twice for Get
+  EXPECT_CALL(mock_date_provider_, GetDate())
+      .Times(4)
+      .WillOnce(Return(day1))
+      .WillRepeatedly(Return(day2));
+
+  controller_.LogHeartbeat();
+  controller_.LogHeartbeat();
+  // GetAndResetStoredHeartbeats is done synchronously, so there is no need to
+  // wait.
+  std::string payload = controller_.DecodeAndDecompress(
+      controller_.GetAndResetTodaysStoredHeartbeats());
+
+  EXPECT_THAT(payload, EqualsJson(R"json({
+      "heartbeats": [
+        {
+          agent: "agent/1",
+          dates: ["2000-01-24"]
+        }
+      ],
+      "version":"2"
+    })json"));
+
+  // The heartbeat for the previous day should still be stored (01-23).
+  std::string payload2 = controller_.DecodeAndDecompress(
+      controller_.GetAndResetStoredHeartbeats());
+
+  EXPECT_THAT(payload2, EqualsJson(R"json({
+      "heartbeats": [
+        {
+          agent: "agent/1",
+          dates: ["2000-01-23"]
+        }
+      ],
+      "version":"2"
+    })json"));
 }
 
 TEST_F(HeartbeatControllerDesktopTest, GetHeartbeatPayloadMultipleTimes) {
@@ -426,10 +483,35 @@ TEST_F(HeartbeatControllerDesktopTest, GetHeartbeatPayloadMultipleTimes) {
 
   std::string second_payload = controller_.DecodeAndDecompress(
       controller_.GetAndResetStoredHeartbeats());
-  EXPECT_THAT(second_payload, EqualsJson(R"json({
-      "heartbeats": [],
+  EXPECT_EQ(second_payload, "");
+}
+
+TEST_F(HeartbeatControllerDesktopTest, GetTodaysHeartbeatPayloadMultipleTimes) {
+  app_common::RegisterLibrariesFromUserAgent(kDefaultUserAgent);
+  std::string today = "2000-01-23";
+  // Date provider will be called for both Log and Get
+  EXPECT_CALL(mock_date_provider_, GetDate())
+      .Times(3)
+      .WillRepeatedly(Return(today));
+
+  controller_.LogHeartbeat();
+  // GetAndResetStoredHeartbeats is done synchronously, so there is no need to
+  // wait.
+  std::string first_payload = controller_.DecodeAndDecompress(
+      controller_.GetAndResetTodaysStoredHeartbeats());
+  EXPECT_THAT(first_payload, EqualsJson(R"json({
+      "heartbeats": [
+        {
+          agent: "agent/1",
+          dates: ["2000-01-23"]
+        }
+      ],
       "version":"2"
     })json"));
+
+  std::string second_payload = controller_.DecodeAndDecompress(
+      controller_.GetAndResetStoredHeartbeats());
+  EXPECT_EQ(second_payload, "");
 }
 
 }  // namespace

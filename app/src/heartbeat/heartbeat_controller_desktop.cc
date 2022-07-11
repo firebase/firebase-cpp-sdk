@@ -96,7 +96,8 @@ void HeartbeatController::LogHeartbeat() {
 
 std::string HeartbeatController::GetAndResetStoredHeartbeats() {
   std::shared_ptr<std::string> output_str = std::make_shared<std::string>("");
-  std::shared_ptr<Semaphore> scheduled_work_semaphore = std::make_shared<Semaphore>();
+  std::shared_ptr<Semaphore> scheduled_work_semaphore =
+      std::make_shared<Semaphore>(0);
 
   std::function<void(void)> get_and_reset_function = [&, output_str]() {
     std::string current_date = date_provider_.GetDate();
@@ -109,11 +110,13 @@ std::string HeartbeatController::GetAndResetStoredHeartbeats() {
       if (read_succeeded && logged_heartbeats.heartbeats.size() > 0) {
         // Clear all logged heartbeats, but keep the last logged date
         LoggedHeartbeats cleared_heartbeats;
-        cleared_heartbeats.last_logged_date = logged_heartbeats.last_logged_date;
+        cleared_heartbeats.last_logged_date =
+            logged_heartbeats.last_logged_date;
         bool write_succeeded = this->storage_.Write(cleared_heartbeats);
-        // Only update last-logged date and return a payload if the write succeeds.
+        // Only update last-logged date and return a payload if the write
+        // succeeds.
         if (write_succeeded) {
-          this->last_logged_date_ = current_date;
+          this->last_fetched_all_heartbeats_date_ = current_date;
           *output_str = GetStringPayloadForHeartbeats(logged_heartbeats);
         }
       }
@@ -125,13 +128,59 @@ std::string HeartbeatController::GetAndResetStoredHeartbeats() {
 
   scheduler_.Schedule(get_and_reset_function);
   // Wait until the scheduled work completes.
-  scheduled_work_semaphore->TimedWait(kMaxWaitTimeMs);
-  return *output_str;
+  if (scheduled_work_semaphore->TimedWait(kMaxWaitTimeMs)) {
+    return *output_str;
+  }
+  // Return an empty string if unable to TimedWait times out.
+  return "";
 }
 
 std::string HeartbeatController::GetAndResetTodaysStoredHeartbeats() {
-  // TODO - modified version of the above
-  // Only find one heartbeat, only clear that one heartbeat
+  std::shared_ptr<std::string> output_str = std::make_shared<std::string>("");
+  std::shared_ptr<Semaphore> scheduled_work_semaphore =
+      std::make_shared<Semaphore>(0);
+
+  std::function<void(void)> get_and_reset_function = [&, output_str]() {
+    std::string current_date = date_provider_.GetDate();
+    // Return early if a heartbeat has already been logged today.
+    if (this->last_fetched_all_heartbeats_date_ != current_date) {
+      LoggedHeartbeats stored_heartbeats;
+      bool read_succeeded = this->storage_.ReadTo(stored_heartbeats);
+      // If read fails, or if there are no stored heartbeats, return an empty
+      // payload and don't attempt to write.
+      if (read_succeeded && stored_heartbeats.heartbeats.size() > 0) {
+        // Find a logged heartbeat from today. Remove it from the stored
+        // heartbeats and use it to construct a single-heartbeat payload.
+        LoggedHeartbeats todays_heartbeats;
+        for (auto& entry : stored_heartbeats.heartbeats) {
+          std::string user_agent = entry.first;
+          std::vector<std::string>& dates = entry.second;
+          auto itr = std::find(dates.begin(), dates.end(), current_date);
+          if (itr != dates.end()) {
+            dates.erase(itr);
+            todays_heartbeats.heartbeats[user_agent].push_back(current_date);
+          }
+        }
+        bool write_succeeded = this->storage_.Write(stored_heartbeats);
+        // Only update last-logged date and return a payload if the write
+        // succeeds.
+        if (write_succeeded) {
+          this->last_fetched_todays_heartbeat_date_ = current_date;
+          *output_str = GetStringPayloadForHeartbeats(todays_heartbeats);
+        }
+      }
+    }
+    // Post the semaphore to signal the main thread to read the result.
+    scheduled_work_semaphore->Post();
+    return;
+  };
+
+  scheduler_.Schedule(get_and_reset_function);
+  // Wait until the scheduled work completes.
+  if (scheduled_work_semaphore->TimedWait(kMaxWaitTimeMs)) {
+    return *output_str;
+  }
+  // Return an empty string if unable to TimedWait times out.
   return "";
 }
 
