@@ -187,10 +187,13 @@ class Semaphore {
           return false;
         case EINVAL:
           assert("sem_timedwait() failed with EINVAL" == 0);
+          return false;
         case EDEADLK:
           assert("sem_timedwait() failed with EDEADLK" == 0);
+          return false;
         default:
           assert("sem_timedwait() failed with an unknown error" == 0);
+          return false;
       }
     }
 #endif
