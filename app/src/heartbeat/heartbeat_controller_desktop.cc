@@ -18,9 +18,12 @@
 
 #include <chrono>
 #include <iomanip>
+#include <map>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include "app/rest/zlibwrapper.h"  // Should I use zlib directly? or move this out of rest?
 #include "app/src/app_common.h"
