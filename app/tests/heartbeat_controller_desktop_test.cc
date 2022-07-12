@@ -212,7 +212,7 @@ TEST_F(HeartbeatControllerDesktopTest, LogTwoUserAgentsOnDifferentDays) {
   // Log a heartbeat for UserAgent1 on day3
   app_common::RegisterLibrariesFromUserAgent(kCustomUserAgent1);
   controller_.LogHeartbeat();
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
   // Read from the storage class to verify
   LoggedHeartbeats read_heartbeats;

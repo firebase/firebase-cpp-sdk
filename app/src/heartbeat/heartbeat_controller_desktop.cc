@@ -19,13 +19,14 @@
 #include <chrono>
 #include <iomanip>
 #include <map>
-#include <memory>
 #include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
 
-#include "app/rest/zlibwrapper.h"  // Should I use zlib directly? or move this out of rest?
+#include "app/memory/shared_ptr.h"
+#include "app/memory/unique_ptr.h"
+#include "app/rest/zlibwrapper.h"
 #include "app/src/app_common.h"
 #include "app/src/base64.h"
 #include "app/src/heartbeat/date_provider.h"
@@ -98,36 +99,36 @@ void HeartbeatController::LogHeartbeat() {
 }
 
 std::string HeartbeatController::GetAndResetStoredHeartbeats() {
-  std::shared_ptr<std::string> output_str = std::make_shared<std::string>("");
-  std::shared_ptr<Semaphore> scheduled_work_semaphore =
-      std::make_shared<Semaphore>(0);
+  SharedPtr<std::string> output_str = MakeShared<std::string>("");
+  SharedPtr<Semaphore> scheduled_work_semaphore = MakeShared<Semaphore>(0);
 
-  std::function<void(void)> get_and_reset_function = [&, output_str]() {
-    std::string current_date = date_provider_.GetDate();
-    // Return early if a heartbeat has already been logged today.
-    if (this->last_fetched_all_heartbeats_date_ != current_date) {
-      LoggedHeartbeats logged_heartbeats;
-      bool read_succeeded = this->storage_.ReadTo(logged_heartbeats);
-      // If read fails, or if there are no stored heartbeats, return an empty
-      // payload and don't attempt to write.
-      if (read_succeeded && logged_heartbeats.heartbeats.size() > 0) {
-        // Clear all logged heartbeats, but keep the last logged date
-        LoggedHeartbeats cleared_heartbeats;
-        cleared_heartbeats.last_logged_date =
-            logged_heartbeats.last_logged_date;
-        bool write_succeeded = this->storage_.Write(cleared_heartbeats);
-        // Only update last-logged date and return a payload if the write
-        // succeeds.
-        if (write_succeeded) {
-          this->last_fetched_all_heartbeats_date_ = current_date;
-          *output_str = GetStringPayloadForHeartbeats(logged_heartbeats);
+  std::function<void(void)> get_and_reset_function =
+      [&, output_str, scheduled_work_semaphore]() {
+        std::string current_date = date_provider_.GetDate();
+        // Return early if all heartbeats have already been fetched today.
+        if (this->last_fetched_all_heartbeats_date_ != current_date) {
+          LoggedHeartbeats logged_heartbeats;
+          bool read_succeeded = this->storage_.ReadTo(logged_heartbeats);
+          // If read fails, or if there are no stored heartbeats, return an
+          // empty payload and don't attempt to write.
+          if (read_succeeded && logged_heartbeats.heartbeats.size() > 0) {
+            // Clear all logged heartbeats, but keep the last logged date
+            LoggedHeartbeats cleared_heartbeats;
+            cleared_heartbeats.last_logged_date =
+                logged_heartbeats.last_logged_date;
+            bool write_succeeded = this->storage_.Write(cleared_heartbeats);
+            // Only update last-logged date and return a payload if the write
+            // succeeds.
+            if (write_succeeded) {
+              this->last_fetched_all_heartbeats_date_ = current_date;
+              *output_str = GetStringPayloadForHeartbeats(logged_heartbeats);
+            }
+          }
         }
-      }
-    }
-    // Post the semaphore to signal the main thread to read the result.
-    scheduled_work_semaphore->Post();
-    return;
-  };
+        // Post the semaphore to signal the main thread to read the result.
+        scheduled_work_semaphore->Post();
+        return;
+      };
 
   scheduler_.Schedule(get_and_reset_function);
   // Wait until the scheduled work completes.
@@ -139,44 +140,49 @@ std::string HeartbeatController::GetAndResetStoredHeartbeats() {
 }
 
 std::string HeartbeatController::GetAndResetTodaysStoredHeartbeats() {
-  std::shared_ptr<std::string> output_str = std::make_shared<std::string>("");
-  std::shared_ptr<Semaphore> scheduled_work_semaphore =
-      std::make_shared<Semaphore>(0);
+  SharedPtr<std::string> output_str = MakeShared<std::string>("");
+  SharedPtr<Semaphore> scheduled_work_semaphore = MakeShared<Semaphore>(0);
 
-  std::function<void(void)> get_and_reset_function = [&, output_str]() {
-    std::string current_date = date_provider_.GetDate();
-    // Return early if a heartbeat has already been logged today.
-    if (this->last_fetched_all_heartbeats_date_ != current_date) {
-      LoggedHeartbeats stored_heartbeats;
-      bool read_succeeded = this->storage_.ReadTo(stored_heartbeats);
-      // If read fails, or if there are no stored heartbeats, return an empty
-      // payload and don't attempt to write.
-      if (read_succeeded && stored_heartbeats.heartbeats.size() > 0) {
-        // Find a logged heartbeat from today. Remove it from the stored
-        // heartbeats and use it to construct a single-heartbeat payload.
-        LoggedHeartbeats todays_heartbeats;
-        for (auto& entry : stored_heartbeats.heartbeats) {
-          std::string user_agent = entry.first;
-          std::vector<std::string>& dates = entry.second;
-          auto itr = std::find(dates.begin(), dates.end(), current_date);
-          if (itr != dates.end()) {
-            dates.erase(itr);
-            todays_heartbeats.heartbeats[user_agent].push_back(current_date);
+  std::function<void(void)> get_and_reset_function =
+      [&, output_str, scheduled_work_semaphore]() {
+        std::string current_date = date_provider_.GetDate();
+        // Return early if a heartbeat has already been fetched today.
+        if (this->last_fetched_all_heartbeats_date_ != current_date &&
+            this->last_fetched_todays_heartbeat_date_ != current_date) {
+          LoggedHeartbeats stored_heartbeats;
+          bool read_succeeded = this->storage_.ReadTo(stored_heartbeats);
+          // If read fails, or if there are no stored heartbeats, return an
+          // empty payload and don't attempt to write.
+          if (read_succeeded && stored_heartbeats.heartbeats.size() > 0) {
+            // Find a logged heartbeat from today. Remove it from the stored
+            // heartbeats and use it to construct a single-heartbeat payload.
+            LoggedHeartbeats todays_heartbeats;
+            for (auto& entry : stored_heartbeats.heartbeats) {
+              std::string user_agent = entry.first;
+              std::vector<std::string>& dates = entry.second;
+              auto itr = std::find(dates.begin(), dates.end(), current_date);
+              if (itr != dates.end()) {
+                dates.erase(itr);
+                todays_heartbeats.heartbeats[user_agent].push_back(
+                    current_date);
+              }
+            }
+            // Only write if a heartbeat was found for today.
+            if (todays_heartbeats.heartbeats.size() != 0) {
+              bool write_succeeded = this->storage_.Write(stored_heartbeats);
+              // Only update last-logged date and return a payload if the write
+              // succeeds.
+              if (write_succeeded) {
+                this->last_fetched_todays_heartbeat_date_ = current_date;
+                *output_str = GetStringPayloadForHeartbeats(todays_heartbeats);
+              }
+            }
           }
         }
-        bool write_succeeded = this->storage_.Write(stored_heartbeats);
-        // Only update last-logged date and return a payload if the write
-        // succeeds.
-        if (write_succeeded) {
-          this->last_fetched_todays_heartbeat_date_ = current_date;
-          *output_str = GetStringPayloadForHeartbeats(todays_heartbeats);
-        }
-      }
-    }
-    // Post the semaphore to signal the main thread to read the result.
-    scheduled_work_semaphore->Post();
-    return;
-  };
+        // Post the semaphore to signal the main thread to read the result.
+        scheduled_work_semaphore->Post();
+        return;
+      };
 
   scheduler_.Schedule(get_and_reset_function);
   // Wait until the scheduled work completes.
@@ -220,7 +226,7 @@ std::string HeartbeatController::CompressAndEncode(const std::string& input) {
   ZLib zlib;
   zlib.SetGzipHeaderMode();
   uLongf result_size = ZLib::MinCompressbufSize(input.length());
-  std::unique_ptr<char[]> result(new char[result_size]);
+  UniquePtr<char[]> result(new char[result_size]);
   int err = zlib.Compress(
       reinterpret_cast<unsigned char*>(result.get()), &result_size,
       reinterpret_cast<const unsigned char*>(input.data()), input.length());
@@ -252,7 +258,7 @@ std::string HeartbeatController::DecodeAndDecompress(const std::string& input) {
   ZLib zlib;
   zlib.SetGzipHeaderMode();
   uLongf result_size = ZLib::MinCompressbufSize(decoded.length());
-  std::unique_ptr<char[]> result(new char[result_size]);
+  UniquePtr<char[]> result(new char[result_size]);
   int err = zlib.Uncompress(
       reinterpret_cast<unsigned char*>(result.get()), &result_size,
       reinterpret_cast<const unsigned char*>(decoded.data()), decoded.length());
