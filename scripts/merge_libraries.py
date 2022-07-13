@@ -639,10 +639,10 @@ def rename_symbol(symbol):
       for ns in FLAGS.hide_cpp_namespaces:
         if symbol_includes_cpp_namespace(symbol, ns):
           # Windows: To rename "namespace" to "prefixnamespace",
-          # change all instances of "@namespace@@" to "@prefixnamespace@@".
+          # change all instances of "[^a-z]namespace@@" to "[^a-z]prefixnamespace@@",
           # See https://msdn.microsoft.com/en-us/library/56h2zst2.aspx
           new_ns = FLAGS.rename_string + ns
-          new_symbol = re.sub("@%s@@" % ns, "@%s@@" % new_ns, new_symbol)
+          new_symbol = re.sub(r"(?<=[^a-z])%s@@" % ns, r"%s@@" % new_ns, new_symbol)
       new_renames[symbol] = new_symbol
   else:
     if FLAGS.platform == "windows" and symbol.startswith("$LN"):
