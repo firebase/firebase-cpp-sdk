@@ -19,13 +19,13 @@
 #include <chrono>
 #include <iomanip>
 #include <map>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
 
 #include "app/memory/shared_ptr.h"
-#include "app/memory/unique_ptr.h"
 #include "app/rest/zlibwrapper.h"
 #include "app/src/app_common.h"
 #include "app/src/base64.h"
@@ -226,7 +226,7 @@ std::string HeartbeatController::CompressAndEncode(const std::string& input) {
   ZLib zlib;
   zlib.SetGzipHeaderMode();
   uLongf result_size = ZLib::MinCompressbufSize(input.length());
-  UniquePtr<char[]> result(new char[result_size]);
+  std::unique_ptr<char[]> result(new char[result_size]);
   int err = zlib.Compress(
       reinterpret_cast<unsigned char*>(result.get()), &result_size,
       reinterpret_cast<const unsigned char*>(input.data()), input.length());
@@ -258,7 +258,7 @@ std::string HeartbeatController::DecodeAndDecompress(const std::string& input) {
   ZLib zlib;
   zlib.SetGzipHeaderMode();
   uLongf result_size = ZLib::MinCompressbufSize(decoded.length());
-  UniquePtr<char[]> result(new char[result_size]);
+  std::unique_ptr<char[]> result(new char[result_size]);
   int err = zlib.Uncompress(
       reinterpret_cast<unsigned char*>(result.get()), &result_size,
       reinterpret_cast<const unsigned char*>(decoded.data()), decoded.length());

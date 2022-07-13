@@ -46,6 +46,11 @@ class HeartbeatController {
   // If there is no new heartbeat, an empty string is returned instead.
   std::string GetAndResetTodaysStoredHeartbeats();
 
+  // The following methods are public to enable unit-testing.
+
+  // Constructs an encoded string payload from a given LoggedHeartbeats object.
+  std::string GetStringPayloadForHeartbeats(LoggedHeartbeats heartbeats);
+
   // Compress a string with gzip and base 64 encode the result.
   std::string CompressAndEncode(const std::string& input);
 
@@ -56,8 +61,6 @@ class HeartbeatController {
   HeartbeatStorageDesktop storage_;
   scheduler::Scheduler scheduler_;
   const DateProvider& date_provider_;
-
-  std::string GetStringPayloadForHeartbeats(LoggedHeartbeats heartbeats);
 
   // For thread safety, the following variables should only be read or written
   // by the scheduler thread.

@@ -354,6 +354,60 @@ TEST_F(HeartbeatControllerDesktopTest, EncodeAndDecode) {
   EXPECT_EQ(decoded, original_str);
 }
 
+TEST_F(HeartbeatControllerDesktopTest, CreatePayloadString) {
+  LoggedHeartbeats logged_heartbeats;
+  logged_heartbeats.heartbeats["test-agent"].push_back("2015-02-03");
+  std::string encoded_payload =
+      controller_.GetStringPayloadForHeartbeats(logged_heartbeats);
+  std::string decoded_payload =
+      controller_.DecodeAndDecompress(encoded_payload);
+
+  std::string expected_payload =
+      "H4sIAAAAAAAC_"
+      "6tWykhNLCpJSk0sKVayiq5WSkxPzStRslIqSS0u0YVwdJRSEoFcoLSSkYGhqa6Bka6BsVJsb"
+      "ayOUllqUXFmfh5QvZFSLQBA2H59TAAAAA";
+  EXPECT_EQ(encoded_payload, expected_payload);
+  EXPECT_THAT(decoded_payload, EqualsJson(R"json({
+      "heartbeats": [
+        {
+          agent: "test-agent",
+          dates: ["2015-02-03"]
+        }
+      ],
+      "version":"2"
+    })json"));
+}
+
+TEST_F(HeartbeatControllerDesktopTest, GetExpectedHeartbeatPayload) {
+  app_common::RegisterLibrariesFromUserAgent(kDefaultUserAgent);
+  std::string day1 = "2015-02-03";
+  // Date provider will be called twice for Log and then once for Get
+  EXPECT_CALL(mock_date_provider_, GetDate())
+      .Times(2)
+      .WillRepeatedly(Return(day1));
+
+  controller_.LogHeartbeat();
+  // GetAndResetStoredHeartbeats is done synchronously, so there is no need to
+  // wait.
+  std::string encoded_payload = controller_.GetAndResetStoredHeartbeats();
+  std::string decoded_payload =
+      controller_.DecodeAndDecompress(encoded_payload);
+
+  std::string expected_payload =
+      "H4sIAAAAAAAC_6tWykhNLCpJSk0sKVayiq5WSkxPzStRsoLQ-"
+      "oZKOkopiSWpIDklIwNDU10DI10DY6XY2lgdpbLUouLM_DygYiOlWgAlBWf8SQAAAA";
+  EXPECT_EQ(encoded_payload, expected_payload);
+  EXPECT_THAT(decoded_payload, EqualsJson(R"json({
+      "heartbeats": [
+        {
+          agent: "agent/1",
+          dates: ["2015-02-03"]
+        }
+      ],
+      "version":"2"
+    })json"));
+}
+
 TEST_F(HeartbeatControllerDesktopTest, GetEmptyHeartbeatPayload) {
   std::string today = "2000-01-23";
   // Date provider will be called for both Log and Get
