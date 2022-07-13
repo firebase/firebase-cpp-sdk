@@ -30,6 +30,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "util/event_accumulator.h"
+#include "util/future_test_util.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/transaction_android.h"
 #endif  // defined(__ANDROID__)
@@ -743,7 +744,8 @@ TEST_F(TransactionTest, TestMaxAttempts) {
 
   Future<void> run_transaction_future = firestore->RunTransaction(
       options,
-      [update_count, &doc](Transaction& transaction, std::string&) -> Error {
+      [update_count, &doc](Transaction& transaction,
+                           std::string& error_message) -> Error {
         SCOPED_TRACE("Update callback; update_count=" +
                      std::to_string(update_count->load()));
         ++(*update_count);
@@ -752,12 +754,14 @@ TEST_F(TransactionTest, TestMaxAttempts) {
         {
           SCOPED_TRACE("transaction.Get()");
           Error error = Error::kErrorOk;
-          std::string error_message;
-          transaction.Get(doc, &error, &error_message);
+          std::string get_error_message;
+          transaction.Get(doc, &error, &get_error_message);
           if (error != kErrorOk) {
-            ADD_FAILURE() << "transaction.Get() failed: " << error_message
-                          << " (error code " << error << ")";
-            return Error::kErrorInternal;
+            ADD_FAILURE() << "transaction.Get() failed at Checkpoint UCA: "
+                          << get_error_message << " (error code " << error
+                          << "==" << ToFirestoreErrorCodeName(error) << ")";
+            error_message = "Test failed in update callback at Checkpoint UCA";
+            return Error::kErrorInvalidArgument;
           }
         }
 
@@ -768,12 +772,20 @@ TEST_F(TransactionTest, TestMaxAttempts) {
               doc.Set({{"count", FieldValue::Integer(update_count->load())}});
           set_future.Await(10000L);
           if (set_future.status() != FutureStatus::kFutureStatusComplete) {
-            ADD_FAILURE() << "Timeout waiting for doc.Set() to complete";
-            return Error::kErrorInternal;
+            ADD_FAILURE() << "Timeout waiting for doc.Set() to complete at "
+                             "Checkpoint UCB; status() returned: "
+                          << set_future.status()
+                          << "==" << ToEnumeratorName(set_future.status());
+            error_message = "Test failed in update callback at Checkpoint UCB";
+            return Error::kErrorInvalidArgument;
           } else if (set_future.error() != Error::kErrorOk) {
-            ADD_FAILURE() << "doc.Set() failed: " << set_future.error_message()
-                          << " (error code " << set_future.error() << ")";
-            return Error::kErrorInternal;
+            ADD_FAILURE() << "doc.Set() failed at Checkpoint UCC: "
+                          << set_future.error_message() << " (error code "
+                          << set_future.error() << "=="
+                          << ToFirestoreErrorCodeName(set_future.error())
+                          << ")";
+            error_message = "Test failed in update callback at Checkpoint UCC";
+            return Error::kErrorInvalidArgument;
           }
         }
 
@@ -790,9 +802,16 @@ TEST_F(TransactionTest, TestMaxAttempts) {
     SCOPED_TRACE("Waiting for Future returned from RunTransaction()");
     Await(run_transaction_future);
     ASSERT_EQ(run_transaction_future.status(),
-              FutureStatus::kFutureStatusComplete);
-    EXPECT_EQ(run_transaction_future.error(), Error::kErrorFailedPrecondition)
-        << "error message: " << run_transaction_future.error_message();
+              FutureStatus::kFutureStatusComplete)
+        << "run_transaction_future.status() returned: "
+        << run_transaction_future.status()
+        << "==" << ToEnumeratorName(run_transaction_future.status());
+    ASSERT_EQ(run_transaction_future.error(), Error::kErrorFailedPrecondition)
+        << "error message: " << run_transaction_future.error_message()
+        << " (run_transaction_future.error() returned "
+        << run_transaction_future.error()
+        << "==" << ToFirestoreErrorCodeName(run_transaction_future.error())
+        << ")";
   }
 
   EXPECT_EQ(update_count->load(), 3);
