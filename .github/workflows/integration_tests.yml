@@ -761,7 +761,7 @@ jobs:
         shell: bash
         run: |
           # If testapps do not exist, then it's a build error not test error.
-          if [ -d "testapps/testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" && ! -f testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}.log.json ]; then
+          if [ -d "testapps/testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" ] && [ ! -f testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}.log.json ]; then
             mkdir -p testapps && echo "__SUMMARY_MISSING__" > testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}.log.json
           fi
       - name: Upload Desktop test results artifact
@@ -1033,7 +1033,7 @@ jobs:
         shell: bash
         run: |
           # If testapps do not exist, then it's a build error not test error. 
-          if [ -d "testapps/testapps-android-${{ matrix.build_os }}" && ! -f "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.log.json" ]; then
+          if [ -d "testapps/testapps-android-${{ matrix.build_os }}" ] && [ ! -f "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.log.json" ]; then
             mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.log.json"
           fi
       - name: Upload Android test results artifact
@@ -1157,7 +1157,7 @@ jobs:
         shell: bash
         run: |
           # If testapps do not exist, then it's a build error not test error. 
-          if [ -d "testapps/testapps-ios-${{ matrix.build_os }}" && ! -f "testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.log.json" ]; then
+          if [ -d "testapps/testapps-ios-${{ matrix.build_os }}" ] && [ ! -f "testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.log.json" ]; then
             mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.log.json"
           fi
       - name: Upload iOS test results artifact
@@ -1250,7 +1250,7 @@ jobs:
         shell: bash
         run: |
           # If testapps do not exist, then it's a build error not test error.
-          if [ -d "testapps/testapps-tvos-${{ matrix.build_os }}" && ! -f "testapps/test-results-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}.log.json" ]; then
+          if [ -d "testapps/testapps-tvos-${{ matrix.build_os }}" ] && [ ! -f "testapps/test-results-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}.log.json" ]; then
             mkdir -p testapps && echo "__SUMMARY_MISSING__" > "testapps/test-results-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}.log.json"
           fi
       - name: Upload tvOS test results artifact
