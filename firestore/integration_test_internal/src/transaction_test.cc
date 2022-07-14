@@ -30,6 +30,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "util/event_accumulator.h"
+#include "util/firestore_logging_util.h"
 #include "util/future_test_util.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/transaction_android.h"
@@ -732,6 +733,10 @@ TEST_F(TransactionTest, TestCancellationOnError) {
 }
 
 TEST_F(TransactionTest, TestMaxAttempts) {
+  // Enable debug logging for this test while we try to figure out why it is
+  // failing/crashing.
+  FirestoreDebugLogEnabler firestore_debug_log_enabler;
+
   Firestore* firestore = TestFirestore();
   DocumentReference doc = firestore->Collection("TestMaxAttempts").Document();
 
