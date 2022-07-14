@@ -34,9 +34,7 @@
 namespace firebase {
 namespace firestore {
 
-using ListenerRegistrationCommonTest = testing::Test;
-
-class ListenerRegistrationTest : public FirestoreIntegrationTest {};
+using ListenerRegistrationTest = testing::Test;
 
 TEST_F(ListenerRegistrationTest, TestCanBeRemoved) {
   CollectionReference collection = Collection();
@@ -131,7 +129,7 @@ TEST_F(ListenerRegistrationTest, TestCanBeRemovedIndependently) {
 // The most valuable test is making sure that a copy of a registration can be
 // used to remove the listener.
 
-TEST_F(ListenerRegistrationCommonTest, Construction) {
+TEST_F(ListenerRegistrationTest, Construction) {
   auto* internal = testutil::NewInternal<ListenerRegistrationInternal>();
   auto registration = MakePublic<ListenerRegistration>(internal);
   EXPECT_EQ(internal, GetInternal(registration));
@@ -150,7 +148,7 @@ TEST_F(ListenerRegistrationCommonTest, Construction) {
   delete internal;
 }
 
-TEST_F(ListenerRegistrationCommonTest, Assignment) {
+TEST_F(ListenerRegistrationTest, Assignment) {
   auto* internal = testutil::NewInternal<ListenerRegistrationInternal>();
   auto registration = MakePublic<ListenerRegistration>(internal);
   ListenerRegistration reg_copy;
@@ -166,7 +164,7 @@ TEST_F(ListenerRegistrationCommonTest, Assignment) {
   delete internal;
 }
 
-TEST_F(ListenerRegistrationCommonTest, Remove) {
+TEST_F(ListenerRegistrationTest, Remove) {
   auto* internal = testutil::NewInternal<ListenerRegistrationInternal>();
   auto registration = MakePublic<ListenerRegistration>(internal);
   ListenerRegistration reg_copy;
