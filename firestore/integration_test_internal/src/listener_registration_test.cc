@@ -37,10 +37,6 @@ namespace firestore {
 using ListenerRegistrationCommonTest = testing::Test;
 
 class ListenerRegistrationTest : public FirestoreIntegrationTest {
- public:
-  ListenerRegistrationTest() {
-    // TestFirestore()->set_log_level(LogLevel::kLogLevelDebug);
-  }
 };
 
 TEST_F(ListenerRegistrationTest, TestCanBeRemoved) {
