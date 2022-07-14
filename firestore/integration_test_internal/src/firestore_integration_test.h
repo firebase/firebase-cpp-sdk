@@ -48,7 +48,6 @@ const int kCheckIntervalMillis = 100;
 const int kTimeOutMillis = 15000;
 
 FirestoreInternal* CreateTestFirestoreInternal(App* app);
-void InitializeFirestore(Firestore* instance);
 
 App* GetApp();
 App* GetApp(const char* name, const std::string& override_project_id);

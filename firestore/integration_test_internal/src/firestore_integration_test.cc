@@ -153,7 +153,6 @@ Firestore* FirestoreIntegrationTest::TestFirestoreWithProjectId(
   firestores_[db] = FirestoreInfo(name, std::unique_ptr<Firestore>(db));
 
   LocateEmulator(db);
-  InitializeFirestore(db);
   return db;
 }
 
