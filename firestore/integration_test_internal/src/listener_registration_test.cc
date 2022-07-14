@@ -36,8 +36,7 @@ namespace firestore {
 
 using ListenerRegistrationCommonTest = testing::Test;
 
-class ListenerRegistrationTest : public FirestoreIntegrationTest {
-};
+class ListenerRegistrationTest : public FirestoreIntegrationTest {};
 
 TEST_F(ListenerRegistrationTest, TestCanBeRemoved) {
   CollectionReference collection = Collection();
