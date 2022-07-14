@@ -34,7 +34,7 @@
 namespace firebase {
 namespace firestore {
 
-using ListenerRegistrationTest = testing::Test;
+using ListenerRegistrationTest = FirestoreIntegrationTest;
 
 TEST_F(ListenerRegistrationTest, TestCanBeRemoved) {
   CollectionReference collection = Collection();
