@@ -110,7 +110,7 @@ class Test(object):
     args = list(shlex.split(FLAGS.cmd_prefix)) + [self.testapp_path]
     args_str = subprocess.list2cmdline(args)
     logging.info("Test starting: %s", args_str)
-    start_time_secs = time.montonic()
+    start_time_secs = time.monotonic()
     try:
       result = subprocess.run(
           args=args,
@@ -134,7 +134,7 @@ class Test(object):
         "Test result of %s (exit code: %s): %s",
         args_str, result.returncode, self.logs)
 
-    end_time_secs = time.montonic()
+    end_time_secs = time.monotonic()
     elapsed_time_secs = end_time_secs - start_time_secs
     elapsed_time_str = f"{elapsed_time_secs/60:.2f} minutes"
     logging.info(
