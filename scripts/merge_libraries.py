@@ -551,7 +551,7 @@ def symbol_includes_cpp_namespace(cpp_symbol, namespace):
   if not FLAGS.strict_cpp:
     # If we aren't being fully strict about C++ symbol renaming,
     # we can use this placeholder method.
-    if FLAGS.platform == "windows" and re.search(r"[^a-z]%s@@" % namespace, cpp_symbol):
+    if FLAGS.platform == "windows" and re.search(r"[^a-z_]%s@@" % namespace, cpp_symbol):
       return True
     elif (FLAGS.platform != "windows" and
           ("%d%s" % (len(namespace), namespace)) in cpp_symbol):
@@ -639,10 +639,10 @@ def rename_symbol(symbol):
       for ns in FLAGS.hide_cpp_namespaces:
         if symbol_includes_cpp_namespace(symbol, ns):
           # Windows: To rename "namespace" to "prefixnamespace",
-          # change all instances of "[^a-z]namespace@@" to "[^a-z]prefixnamespace@@",
+          # change all instances of "[^a-z_]namespace@@" to "[^a-z]prefixnamespace@@",
           # See https://msdn.microsoft.com/en-us/library/56h2zst2.aspx
           new_ns = FLAGS.rename_string + ns
-          new_symbol = re.sub(r"(?<=[^a-z])%s@@" % ns, r"%s@@" % new_ns, new_symbol)
+          new_symbol = re.sub(r"(?<=[^a-z_])%s@@" % ns, r"%s@@" % new_ns, new_symbol)
       new_renames[symbol] = new_symbol
   else:
     if FLAGS.platform == "windows" and symbol.startswith("$LN"):
