@@ -752,10 +752,11 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ needs.check_and_prepare.outputs.apis }}" == *"firestore"* ]]; then
-            firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}"'
+            cmd_prefix="firebase emulators:exec --only firestore --project demo-example"
           else
-            python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}"
+            cmd_prefix=""
           fi
+          python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" --cmd_prefix="${cmd_prefix}"
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
@@ -882,14 +883,10 @@ jobs:
             # ARM Mac requires a firestore.json to specify the host as 127.0.0.1 rather than localhost.
             # Otherwise the Firestore emulator cannot connect, probably because localhost is ipv6.
             echo '{"emulators":{"firestore":{"port":"8080","host":"127.0.0.1"}}}' > firebase.json
-
-            set -x
-            firebase emulators:exec --only firestore --project demo-example \
-              'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" --cmd_prefix='"\"${cmd_prefix}\""
-          else
-            set -x
-            python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" --cmd_prefix="${cmd_prefix}"
+            cmd_prefix="firebase emulators:exec --only firestore --project demo-example ${cmd_prefix}"
           fi
+          set -x
+          python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" --cmd_prefix="${cmd_prefix}"
         env:
           USE_FIRESTORE_EMULATOR: true
       - name: Delete keychain (macOS)
