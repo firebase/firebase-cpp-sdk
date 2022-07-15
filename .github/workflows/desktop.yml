@@ -370,7 +370,7 @@ jobs:
       - name: Run Desktop integration tests
         run: |
           cp scripts/gha/integration_testing/google-services.json testapps-desktop-ubuntu-latest-openssl/firestore/google-services.json
-          python scripts/gha/desktop_tester.py --testapp_dir testapps-desktop-ubuntu-latest-openssl --logfile_name desktop-ubuntu-latest-openssl --cmd_prefix="firebase emulators:exec --only firestore --project demo-example"
+          firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps-desktop-ubuntu-latest-openssl --logfile_name "desktop-ubuntu-latest-openssl"'
         env:
           USE_FIRESTORE_EMULATOR: true
       - name: Summarize test results
