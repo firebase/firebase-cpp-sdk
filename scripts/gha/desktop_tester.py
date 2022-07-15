@@ -113,7 +113,7 @@ class Test(object):
     start_time_secs = time.montonic()
     try:
       result = subprocess.run(
-          args=args
+          args=args,
           cwd=os.path.dirname(self.testapp_path),  # Testapp uses CWD for config
           stdout=subprocess.PIPE,
           stderr=subprocess.STDOUT,
