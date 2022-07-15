@@ -551,7 +551,7 @@ def symbol_includes_cpp_namespace(cpp_symbol, namespace):
   if not FLAGS.strict_cpp:
     # If we aren't being fully strict about C++ symbol renaming,
     # we can use this placeholder method.
-    if FLAGS.platform == "windows" and ("@%s@@" % namespace) in cpp_symbol:
+    if FLAGS.platform == "windows" and re.search(r"[^a-z]%s@@" % namespace, cpp_symbol):
       return True
     elif (FLAGS.platform != "windows" and
           ("%d%s" % (len(namespace), namespace)) in cpp_symbol):
