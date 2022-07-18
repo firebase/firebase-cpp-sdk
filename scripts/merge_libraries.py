@@ -442,6 +442,8 @@ def add_automatic_namespaces(symbols):
   logging.debug("Scanning for top-level namespaces.")
   demangled_symbols = [demangle_symbol(symbol) for symbol in symbols]
   hide_namespaces = get_top_level_namespaces(demangled_symbols)
+  # strip out top-level namespaces beginning with an underscore
+  hide_namespaces = [n for n in hide_namespaces if n[0] != "_"]
   ignore_namespaces = set(FLAGS.ignore_cpp_namespaces)
   ignore_namespaces.update(IMPLICIT_CPP_NAMESPACES_TO_IGNORE)
   logging.debug("Ignoring namespaces: %s", " ".join(
