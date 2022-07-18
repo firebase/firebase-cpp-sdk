@@ -55,7 +55,7 @@ def main():
           utils.run_command(['brew', 'install', 'go'])
 
     # Install openssl if its not installed already
-    if args.ssl == 'openssl' and not utils.is_command_installed('openssl'):
+    if args.ssl == 'openssl':
       if utils.is_linux_os():
           # sudo apt install -y openssl
           utils.run_command(['apt', 'install', '-y','openssl'], as_root=True)
