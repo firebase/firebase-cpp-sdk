@@ -105,7 +105,8 @@ flags.DEFINE_string("force_binutils_target", None, "Force all binutils calls to 
                     "different input and output formats, separate them with a comma.")
 
 # Never rename system namespaces by default when --auto_hide_cpp_namespaces is enabled.
-IMPLICIT_CPP_NAMESPACES_TO_IGNORE = {"std", "__gnu_cxx", "cxxabiv1", "stdext"}
+IMPLICIT_CPP_NAMESPACES_TO_IGNORE = {"std", "__gnu_cxx", "stdext",
+                                     "cxxabiv1", "__cxxabiv1"}
 
 DEFAULT_ENCODING = "ascii"
 
@@ -949,6 +950,7 @@ def main(argv):
       # Scan through all input libraries for C++ symbols matching any of the
       # hide_cpp_namespaces.
       cpp_symbols = set()
+      all_defined_symbols = set()
       for input_path in input_paths + additional_input_paths:
         logging.debug("Scanning for C++ symbols in %s", input_path[1])
         if os.path.abspath(input_path[1]) in _cache["symbols"]:
@@ -962,10 +964,11 @@ def main(argv):
         cpp_symbols.update(all_symbols
                            if FLAGS.rename_external_cpp_symbols
                            else defined_symbols)
+        all_defined_symbols.update(defined_symbols)
 
       # If we are set to scan for namespaces, do that now.
       if FLAGS.auto_hide_cpp_namespaces:
-        add_automatic_namespaces(cpp_symbols)
+        add_automatic_namespaces(all_defined_symbols)
 
       for symbol in cpp_symbols:
         if is_cpp_symbol(symbol):
