@@ -18,6 +18,7 @@
 
 #include <cstdlib>
 #include <fstream>
+#include <iomanip>
 #include <memory>
 #include <sstream>
 
@@ -126,8 +127,13 @@ int WaitFor(const FutureBase& future) {
 }
 
 std::ostream& operator<<(std::ostream& out, const Stopwatch& stopwatch) {
-  return out << std::setprecision(3) << stopwatch.elapsed_time().count()
-             << " seconds";
+  // Use a temporary ostream instead of writing directly to the given `out`
+  // stream because std::setprecision has effects that extend beyond the
+  // lifetime of this function and we shouldn't be changing the state of the
+  // given stream.
+  std::ostringstream oss;
+  oss << std::setprecision(3) << stopwatch.elapsed_time().count() << " seconds";
+  return out << oss.str();
 }
 
 FirestoreIntegrationTest::FirestoreIntegrationTest() {
