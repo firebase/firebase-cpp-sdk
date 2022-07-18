@@ -177,9 +177,6 @@ class TestEventListener {
   bool print_debug_info_ = false;
 };
 
-class Stopwatch;
-std::ostream& operator<<(std::ostream&, const Stopwatch&);
-
 // A stopwatch that can calculate the runtime of some operation.
 //
 // The motivating use case for this class is to include the elapsed time of
@@ -199,16 +196,12 @@ class Stopwatch {
     stop_time_ = std::chrono::steady_clock::now();
   }
 
-  std::string elapsed_time_str() const {
-    std::ostringstream buf;
-    buf << (*this);
-    return buf.str();
-  }
-
  private:
   decltype(std::chrono::steady_clock::now()) start_time_;
   absl::optional<decltype(std::chrono::steady_clock::now())> stop_time_;
 };
+
+std::ostream& operator<<(std::ostream&, const Stopwatch&);
 
 // Base class for Firestore integration tests.
 // Note it keeps a cache of created Firestore instances, and is thread-unsafe.
