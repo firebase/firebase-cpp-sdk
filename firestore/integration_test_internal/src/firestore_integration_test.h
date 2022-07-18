@@ -17,6 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_INTEGRATION_TEST_INTERNAL_SRC_FIRESTORE_INTEGRATION_TEST_H_
 #define FIREBASE_FIRESTORE_INTEGRATION_TEST_INTERNAL_SRC_FIRESTORE_INTEGRATION_TEST_H_
 
+#include <chrono>
 #include <cstdio>
 #include <iostream>
 #include <map>
@@ -25,6 +26,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "absl/types/optional.h"
 #include "app/meta/move.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/common.h"
@@ -175,6 +177,39 @@ class TestEventListener {
   bool print_debug_info_ = false;
 };
 
+class Stopwatch;
+std::ostream& operator<<(std::ostream&, const Stopwatch&);
+
+// A stopwatch that can calculate the runtime of some operation.
+//
+// The motivating use case for this class is to include the elapsed time of
+// an operation that timed out in the timeout error message.
+class Stopwatch {
+ public:
+  Stopwatch() : start_time_(std::chrono::steady_clock::now()) {}
+
+  std::chrono::duration<double> elapsed_time() const {
+    const auto t = stop_time_.has_value() ? stop_time_.value()
+                                          : std::chrono::steady_clock::now();
+    return t - start_time_;
+  }
+
+  void stop() {
+    assert(!stop_time_.has_value());
+    stop_time_ = std::chrono::steady_clock::now();
+  }
+
+  std::string elapsed_time_str() const {
+    std::ostringstream buf;
+    buf << (*this);
+    return buf.str();
+  }
+
+ private:
+  decltype(std::chrono::steady_clock::now()) start_time_;
+  absl::optional<decltype(std::chrono::steady_clock::now())> stop_time_;
+};
+
 // Base class for Firestore integration tests.
 // Note it keeps a cache of created Firestore instances, and is thread-unsafe.
 class FirestoreIntegrationTest : public testing::Test {
@@ -298,8 +333,9 @@ class FirestoreIntegrationTest : public testing::Test {
   // A helper function to block until the future completes.
   template <typename T>
   static const T* Await(const Future<T>& future) {
+    Stopwatch stopwatch;
     int cycles = WaitFor(future);
-    EXPECT_GT(cycles, 0) << "Waiting future timed out.";
+    EXPECT_GT(cycles, 0) << "Waiting future timed out after " << stopwatch;
     if (future.status() == FutureStatus::kFutureStatusComplete) {
       if (future.result() == nullptr) {
         std::cout << "WARNING: " << DescribeFailedFuture(future) << std::endl;
@@ -316,6 +352,7 @@ class FirestoreIntegrationTest : public testing::Test {
   template <typename T>
   static void Await(const TestEventListener<T>& listener, int n = 1) {
     // Instead of getting a clock, we count the cycles instead.
+    Stopwatch stopwatch;
     int cycles = kTimeOutMillis / kCheckIntervalMillis;
     while (listener.event_count() < n && cycles > 0) {
       if (ProcessEvents(kCheckIntervalMillis)) {
@@ -325,13 +362,15 @@ class FirestoreIntegrationTest : public testing::Test {
       }
       --cycles;
     }
-    EXPECT_GT(cycles, 0) << "Waiting listener timed out.";
+    EXPECT_GT(cycles, 0) << "Waiting listener timed out after " << stopwatch;
   }
 
   // Fails the current test if the given future did not complete or contained an
-  // error. Returns true if the future has failed.
+  // error. Returns true if the future has failed. The given Stopwatch will be
+  // used to include the elapsed time in any failure message.
   static bool FailIfUnsuccessful(const char* operation,
-                                 const FutureBase& future);
+                                 const FutureBase& future,
+                                 const Stopwatch& stopwatch);
 
   static std::string DescribeFailedFuture(const FutureBase& future);
 

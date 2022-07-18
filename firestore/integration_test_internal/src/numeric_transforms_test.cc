@@ -65,6 +65,8 @@ const char* TypeName(Type type) {
       return "kIncrementInteger";
     case Type::kIncrementDouble:
       return "kIncrementDouble";
+    default:
+      return "Unknown Type";
   }
 }
 
@@ -81,6 +83,7 @@ void PrintTo(const FieldValue& f, std::ostream* os) {
 class NumericTransformsTest : public FirestoreIntegrationTest {
  public:
   NumericTransformsTest() {
+    SCOPED_TRACE("NumericTransformsTest constructor");
     doc_ref_ = Document();
     listener_ =
         accumulator_.listener()->AttachTo(&doc_ref_, MetadataChanges::kInclude);
@@ -96,11 +99,12 @@ class NumericTransformsTest : public FirestoreIntegrationTest {
   /** Writes values and waits for the corresponding snapshot. */
   void WriteInitialData(const MapFieldValue& doc) {
     WriteDocument(doc_ref_, doc);
-
+    SCOPED_TRACE("WriteInitialData");
     accumulator_.AwaitRemoteEvent();
   }
 
   void ExpectLocalAndRemoteValue(int value) {
+    SCOPED_TRACE("ExpectLocalAndRemoteValue");
     DocumentSnapshot snap = accumulator_.AwaitLocalEvent();
     ASSERT_EQ(snap.Get("sum"), FieldValue::Integer(value));
     snap = accumulator_.AwaitRemoteEvent();
@@ -108,6 +112,7 @@ class NumericTransformsTest : public FirestoreIntegrationTest {
   }
 
   void ExpectLocalAndRemoteValue(double value) {
+    SCOPED_TRACE("ExpectLocalAndRemoteValue");
     DocumentSnapshot snap = accumulator_.AwaitLocalEvent();
     ASSERT_EQ(snap.Get("sum"), FieldValue::Double(value));
     snap = accumulator_.AwaitRemoteEvent();

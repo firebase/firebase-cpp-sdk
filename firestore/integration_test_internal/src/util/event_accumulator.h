@@ -31,6 +31,8 @@ class EventAccumulator {
   TestEventListener<T>* listener() { return &listener_; }
 
   std::vector<T> Await(int num_events) {
+    SCOPED_TRACE("EventAccumulator::Await() num_events=" +
+                 std::to_string(num_events));
     int old_num_events = num_events_consumed_;
     int desired_events = num_events_consumed_ + num_events;
     FirestoreIntegrationTest::Await(listener_, desired_events);
@@ -54,6 +56,7 @@ class EventAccumulator {
 
   /** Awaits 1 event. */
   T Await() {
+    SCOPED_TRACE("EventAccumulator::Await()");
     auto events = Await(1);
     if (events.empty()) {
       return {};
@@ -64,6 +67,7 @@ class EventAccumulator {
 
   /** Waits for a snapshot with pending writes. */
   T AwaitLocalEvent() {
+    SCOPED_TRACE("EventAccumulator::AwaitLocalEvent()");
     T event;
     do {
       event = Await();
@@ -73,6 +77,7 @@ class EventAccumulator {
 
   /** Waits for a snapshot that has no pending writes. */
   T AwaitRemoteEvent() {
+    SCOPED_TRACE("EventAccumulator::AwaitRemoteEvent()");
     T event;
     do {
       event = Await();
@@ -85,6 +90,7 @@ class EventAccumulator {
    * NOTE: Helper exists only in C++ test. Not in native SDK test yet.
    */
   T AwaitCacheEvent() {
+    SCOPED_TRACE("EventAccumulator::AwaitCacheEvent()");
     T event;
     do {
       event = Await();
@@ -97,6 +103,7 @@ class EventAccumulator {
    * NOTE: Helper exists only in C++ test. Not in native SDK test yet.
    */
   T AwaitServerEvent() {
+    SCOPED_TRACE("EventAccumulator::AwaitServerEvent()");
     T event;
     do {
       event = Await();

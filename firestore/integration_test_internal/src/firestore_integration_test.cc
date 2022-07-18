@@ -125,6 +125,11 @@ int WaitFor(const FutureBase& future) {
   return cycles;
 }
 
+std::ostream& operator<<(std::ostream& out, const Stopwatch& stopwatch) {
+  return out << std::setprecision(3) << stopwatch.elapsed_time().count()
+             << " seconds";
+}
+
 FirestoreIntegrationTest::FirestoreIntegrationTest() {
   // Allocate the default Firestore eagerly.
   TestFirestore();
@@ -230,8 +235,10 @@ DocumentReference FirestoreIntegrationTest::DocumentWithData(
 void FirestoreIntegrationTest::WriteDocument(DocumentReference reference,
                                              const MapFieldValue& data) const {
   Future<void> future = reference.Set(data);
+  Stopwatch stopwatch;
   Await(future);
-  FailIfUnsuccessful("WriteDocument", future);
+  stopwatch.stop();
+  FailIfUnsuccessful("WriteDocument", future, stopwatch);
 }
 
 void FirestoreIntegrationTest::WriteDocuments(
@@ -245,8 +252,10 @@ void FirestoreIntegrationTest::WriteDocuments(
 DocumentSnapshot FirestoreIntegrationTest::ReadDocument(
     const DocumentReference& reference) const {
   Future<DocumentSnapshot> future = reference.Get();
+  Stopwatch stopwatch;
   const DocumentSnapshot* result = Await(future);
-  if (FailIfUnsuccessful("ReadDocument", future)) {
+  stopwatch.stop();
+  if (FailIfUnsuccessful("ReadDocument", future, stopwatch)) {
     return {};
   } else {
     return *result;
@@ -256,8 +265,10 @@ DocumentSnapshot FirestoreIntegrationTest::ReadDocument(
 QuerySnapshot FirestoreIntegrationTest::ReadDocuments(
     const Query& reference) const {
   Future<QuerySnapshot> future = reference.Get();
+  Stopwatch stopwatch;
   const QuerySnapshot* result = Await(future);
-  if (FailIfUnsuccessful("ReadDocuments", future)) {
+  stopwatch.stop();
+  if (FailIfUnsuccessful("ReadDocuments", future, stopwatch)) {
     return {};
   } else {
     return *result;
@@ -267,8 +278,10 @@ QuerySnapshot FirestoreIntegrationTest::ReadDocuments(
 void FirestoreIntegrationTest::DeleteDocument(
     DocumentReference reference) const {
   Future<void> future = reference.Delete();
+  Stopwatch stopwatch;
   Await(future);
-  FailIfUnsuccessful("DeleteDocument", future);
+  stopwatch.stop();
+  FailIfUnsuccessful("DeleteDocument", future, stopwatch);
 }
 
 std::vector<std::string> FirestoreIntegrationTest::QuerySnapshotToIds(
@@ -312,14 +325,15 @@ void FirestoreIntegrationTest::Await(const Future<void>& future) {
 
 /* static */
 bool FirestoreIntegrationTest::FailIfUnsuccessful(const char* operation,
-                                                  const FutureBase& future) {
+                                                  const FutureBase& future,
+                                                  const Stopwatch& stopwatch) {
   if (future.status() != FutureStatus::kFutureStatusComplete) {
-    ADD_FAILURE() << operation << " timed out: " << DescribeFailedFuture(future)
-                  << std::endl;
+    ADD_FAILURE() << operation << " timed out after " << stopwatch << ": "
+                  << DescribeFailedFuture(future) << std::endl;
     return true;
   } else if (future.error() != Error::kErrorOk) {
-    ADD_FAILURE() << operation << " failed: " << DescribeFailedFuture(future)
-                  << std::endl;
+    ADD_FAILURE() << operation << " failed after " << stopwatch << ": "
+                  << DescribeFailedFuture(future) << std::endl;
     return true;
   } else {
     return false;

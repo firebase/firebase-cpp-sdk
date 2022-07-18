@@ -1494,8 +1494,10 @@ TEST_F(FirestoreIntegrationTest, AuthWorks) {
 
   // Signing in should trigger an AuthStateListener event.
   auto signin = auth->SignInAnonymously();
+  Stopwatch stopwatch;
   Await(signin);
-  FailIfUnsuccessful("SignInAnonymously", signin);
+  stopwatch.stop();
+  FailIfUnsuccessful("SignInAnonymously", signin, stopwatch);
 
   // Writing again will trigger another pull of the token.
   WriteDocument(doc, MapFieldValue{{"foo", FieldValue::Integer(43)}});
