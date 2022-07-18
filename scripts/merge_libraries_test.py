@@ -222,10 +222,13 @@ class MergeLibrariesTest(absltest.TestCase):
 
       # To get the expected list of symbols, simply change test_namespace:: to
       # renamed_test_namespace::
-      expect_cpp_symbols_after_rename = {
-          s.replace("test_namespace::", "renamed_test_namespace::")
-          for s in before_cpp_symbols
-      }
+      expect_cpp_symbols_after_rename = set()
+      
+      for s in before_cpp_symbols:
+        if 'another_namespace' not in s:
+          expect_cpp_symbols_after_rename.add(s.replace("test_namespace::", "renamed_test_namespace::"))
+        else:
+          expect_cpp_symbols_after_rename.add(s)
 
       # Rename the symbols.
       merge_libraries.move_object_file(library_file,
@@ -240,6 +243,10 @@ class MergeLibrariesTest(absltest.TestCase):
           merge_libraries.demangle_symbol(s) for s in after_cpp_symbols_raw
       }
       self.assertEqual(after_cpp_symbols, expect_cpp_symbols_after_rename)
+
+      # Ensure the DontRenameThis class isn't renamed, as it's inside an inner namespace.
+      self.assertTrue("another_namespace::test_namespace::DontRenameThis::DontRenameThisMethod()" in before_cpp_symbols)
+      self.assertTrue("another_namespace::test_namespace::DontRenameThis::DontRenameThisMethod()" in after_cpp_symbols)
     finally:
       merge_libraries.shutdown_demanglers()
       merge_libraries.shutdown_cache()

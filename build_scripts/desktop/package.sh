@@ -242,10 +242,10 @@ merge_libraries_params=(
 )
 cache_param=--cache=${cache_file}
 
-if [[ ${platform} == "windows" ]]; then
-    # Windows has a hard time with strict C++ demangling.
-    merge_libraries_params+=(--nostrict_cpp)
-fi
+#if [[ ${platform} == "windows" ]]; then
+#    # Windows has a hard time with strict C++ demangling.
+#    merge_libraries_params+=(--nostrict_cpp)
+#fi
 if [[ ${verbose} -eq 1 ]]; then
     merge_libraries_params+=(--verbosity=3)
 fi

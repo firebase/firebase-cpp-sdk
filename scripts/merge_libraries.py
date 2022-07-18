@@ -536,17 +536,21 @@ def read_symbols_from_archive(archive_file):
   return (defined_symbols, all_symbols)
 
 
-def symbol_includes_cpp_namespace(cpp_symbol, namespace):
+def symbol_includes_top_level_cpp_namespace(cpp_symbol, namespace):
   """Returns true if the C++ symbol contains the namespace in it.
 
   This means the symbol is within the namespace, or the namespace as
   an argument type, return type, template type, etc.
 
+  If FLAGS.strict_cpp == True, this will only return true if the namespace
+  is at the top level of the symbol.
+
   Args:
     cpp_symbol: C++ symbol to check.
     namespace: Namespace to look for in the C++ symbol.
   Returns:
-    True if the symbol includes the C++ namespace in some way, False otherwise.
+    True if the symbol includes the C++ namespace at the top level (or anywhere,
+    if FLAGS.strict_cpp == False), False otherwise.
   """
   # Early out if the namespace isn't in the mangled symbol.
   if namespace not in cpp_symbol:
@@ -569,7 +573,8 @@ def symbol_includes_cpp_namespace(cpp_symbol, namespace):
     return True
   # Or, check if the demangled symbol has "namespace::" preceded by a non-
   # alphanumeric character. This avoids a false positive on "notmynamespace::".
-  regex = re.compile("[^0-9a-zA-Z_]%s::" % namespace)
+  # Also don't allow a namespace :: right before the name.
+  regex = re.compile("[^0-9a-zA-Z_:]%s::" % namespace)
   if re.search(regex, demangled):
     return True
 
@@ -629,7 +634,7 @@ def rename_symbol(symbol):
     new_symbol = symbol
     if FLAGS.platform in ["linux", "android", "darwin", "ios"]:
       for ns in FLAGS.hide_cpp_namespaces:
-        if symbol_includes_cpp_namespace(symbol, ns):
+        if symbol_includes_top_level_cpp_namespace(symbol, ns):
           # Linux and Darwin: To rename "namespace" to "prefixnamespace",
           # change all instances of "9namespace" to "15prefixnamespace".
           # (the number is the length of the namespace name)
@@ -640,7 +645,7 @@ def rename_symbol(symbol):
       new_renames[symbol] = new_symbol
     elif FLAGS.platform == "windows":
       for ns in FLAGS.hide_cpp_namespaces:
-        if symbol_includes_cpp_namespace(symbol, ns):
+        if symbol_includes_top_level_cpp_namespace(symbol, ns):
           # Windows: To rename "namespace" to "prefixnamespace",
           # change all instances of "[^a-z_]namespace@@" to "[^a-z]prefixnamespace@@",
           # See https://msdn.microsoft.com/en-us/library/56h2zst2.aspx

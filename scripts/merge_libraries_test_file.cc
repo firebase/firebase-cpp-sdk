@@ -86,4 +86,19 @@ namespace another_namespace {
 
 extern void ExternFunctionNotUsingNamespace(std::string);
 
+// Not at the top level, don't rename this class's methods.
+namespace test_namespace {
+  
+class DontRenameThis {
+public:
+  int DontRenameThisMethod();
+};
+
+int DontRenameThis::DontRenameThisMethod() {
+  return 0;
+}
+
+}  // namespace test_namespace
+
 }  // namespace another_namespace
+
