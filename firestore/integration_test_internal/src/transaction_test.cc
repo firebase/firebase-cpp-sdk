@@ -30,7 +30,6 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "util/event_accumulator.h"
-#include "util/firestore_logging_util.h"
 #include "util/future_test_util.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/transaction_android.h"
