@@ -733,8 +733,8 @@ TEST_F(TransactionTest, TestCancellationOnError) {
 }
 
 TEST_F(TransactionTest, TestMaxAttempts) {
-  // Enable debug logging for this test while we try to figure out why it is
-  // failing/crashing.
+  // TODO(dconeybe) Remove the FirestoreDebugLogEnabler on the line below once
+  // this test's flakiness is solved.
   FirestoreDebugLogEnabler firestore_debug_log_enabler;
 
   Firestore* firestore = TestFirestore();
