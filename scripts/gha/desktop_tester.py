@@ -26,9 +26,7 @@ report a summary of results.
 
 import os
 import platform
-import shlex
 import subprocess
-import time
 import threading
 
 from absl import app
@@ -106,40 +104,28 @@ class Test(object):
   # them as fields so they can be accessed from the main thread.
   def run(self):
     """Executes this testapp."""
+    result = None  # Ensures this var is defined if timeout occurs.
     os.chmod(self.testapp_path, 0o777)
-    args = list(shlex.split(FLAGS.cmd_prefix)) + [self.testapp_path]
-    args_str = subprocess.list2cmdline(args)
-    logging.info("Test starting: %s", args_str)
-    start_time_secs = time.monotonic()
     try:
       result = subprocess.run(
-          args=args,
+          args=FLAGS.cmd_prefix.split() + [self.testapp_path],
           cwd=os.path.dirname(self.testapp_path),  # Testapp uses CWD for config
           stdout=subprocess.PIPE,
           stderr=subprocess.STDOUT,
           text=True,
-          errors="replace",
           check=False,
           timeout=900)
     except subprocess.TimeoutExpired as e:
-      logging.error("Testapp timed out: %s", args_str)
+      logging.error("Testapp timed out!")
       # e.output will sometimes be bytes, sometimes string. Decode if needed.
       try:
         self.logs = e.output.decode()
       except AttributeError:  # This will happen if it's already a string.
         self.logs = e.output
-    else:
+    if result:
       self.logs = result.stdout
-      logging.info(
-        "Test result of %s (exit code: %s): %s",
-        args_str, result.returncode, self.logs)
-
-    end_time_secs = time.monotonic()
-    elapsed_time_secs = end_time_secs - start_time_secs
-    elapsed_time_str = f"{elapsed_time_secs/60:.2f} minutes"
-    logging.info(
-      "Test completed (elapsed time: %s): %s",
-      elapsed_time_str, args_str)
+      logging.info("Test result: %s", self.logs)
+    logging.info("Finished running %s", self.testapp_path)
 
 
 if __name__ == "__main__":
