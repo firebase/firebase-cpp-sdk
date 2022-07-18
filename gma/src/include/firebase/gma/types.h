@@ -657,15 +657,15 @@ class AdRequest {
     return neighboring_content_urls_;
   }
 
-  /// Add a network extra for the associated ad medation adapter.
+  /// Add a network extra for the associated ad mediation adapter.
   ///
-  /// Appends an extra to the corresponding list of extras for the ad medation
-  /// adapter. Each ad medation adapter can have multiple extra strings.
+  /// Appends an extra to the corresponding list of extras for the ad mediation
+  /// adapter. Each ad mediation adapter can have multiple extra strings.
   ///
-  /// @param[in] adapter_class_name the class name of the ad medation adapter
+  /// @param[in] adapter_class_name the class name of the ad mediation adapter
   /// for which to add the extra.
   /// @param[in] extra_key a key which will be passed to the corresponding ad
-  /// medation adapter.
+  /// mediation adapter.
   /// @param[in] extra_value the value associated with extra_key.
   void add_extra(const char* adapter_class_name, const char* extra_key,
                  const char* extra_value);
