@@ -53,7 +53,10 @@ class MergeLibrariesTest(absltest.TestCase):
         "toplevelrtti::`RTTI Class Hierarchy Descriptor'": {"toplevelrtti"},
         "public: virtual enum grpc_security_level __cdecl grpc_call_credentials::min_security_level(void) const": {
           "grpc_call_credentials"
-        }
+        },
+        # std namespaces are used by get_top_level_namespaces but not by add_automatic_namespaces
+        "std::dont_use_this<std::other_thing>()": {"std"},
+        "std::vector<inside_std_template_param::class>()": { "std", "inside_std_template_param" }
     }
     all_namespaces = set()
     for (symbol, namespaces) in test_symbols.items():
@@ -66,6 +69,13 @@ class MergeLibrariesTest(absltest.TestCase):
     self.assertEqual(
         merge_libraries.get_top_level_namespaces(set(test_symbols.keys())),
         all_namespaces)
+
+    # std:: should not be added as an automatic namespace
+    all_namespaces.remove("std")
+    prev_flag = FLAGS.hide_cpp_namespaces
+    merge_libraries.add_automatic_namespaces(set(test_symbols.keys()))
+    self.assertEqual(set(FLAGS.hide_cpp_namespaces), set(all_namespaces))
+    FLAGS.hide_cpp_namespaces = prev_flag
 
   def test_demanglers(self):
     """Verify that Demangler works in both streaming and non-streaming mode."""
