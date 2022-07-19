@@ -187,7 +187,8 @@ class Stopwatch {
 
   std::chrono::duration<double> elapsed_time() const {
     std::lock_guard<std::mutex> lock(mutex_);
-    const auto t = stop_time_valid_ ? stop_time_ : std::chrono::steady_clock::now();
+    const auto t =
+        stop_time_valid_ ? stop_time_ : std::chrono::steady_clock::now();
     return t - start_time_;
   }
 
