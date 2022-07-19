@@ -22,11 +22,11 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "app/meta/move.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/common.h"
@@ -186,19 +186,23 @@ class Stopwatch {
   Stopwatch() : start_time_(std::chrono::steady_clock::now()) {}
 
   std::chrono::duration<double> elapsed_time() const {
-    const auto t = stop_time_.has_value() ? stop_time_.value()
-                                          : std::chrono::steady_clock::now();
+    std::lock_guard<std::mutex> lock(mutex_);
+    const auto t = stop_time_valid_ ? stop_time_ : std::chrono::steady_clock::now();
     return t - start_time_;
   }
 
   void stop() {
-    assert(!stop_time_.has_value());
+    std::lock_guard<std::mutex> lock(mutex_);
+    assert(!stop_time_valid_);
     stop_time_ = std::chrono::steady_clock::now();
+    stop_time_valid_ = true;
   }
 
  private:
+  mutable std::mutex mutex_;
   decltype(std::chrono::steady_clock::now()) start_time_;
-  absl::optional<decltype(std::chrono::steady_clock::now())> stop_time_;
+  decltype(std::chrono::steady_clock::now()) stop_time_;
+  bool stop_time_valid_ = false;
 };
 
 std::ostream& operator<<(std::ostream&, const Stopwatch&);
