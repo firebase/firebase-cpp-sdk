@@ -634,7 +634,7 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Changes
+### 9.3.0
 -   Changes
     - General (Android,Linux): Fixed a concurrency bug where waiting for an
       event with a timeout could occasionally return prematurely, as if the
