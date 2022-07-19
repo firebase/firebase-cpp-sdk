@@ -54,14 +54,16 @@ def main():
           # brew install go
           utils.run_command(['brew', 'install', 'go'])
 
-    # Install openssl on linux/mac if its not installed already
-    if args.ssl == 'openssl' and not utils.is_command_installed('openssl'):
+    # Install openssl if its not installed already
+    if args.ssl == 'openssl':
       if utils.is_linux_os():
           # sudo apt install -y openssl
           utils.run_command(['apt', 'install', '-y','openssl'], as_root=True)
       elif utils.is_mac_os():
           # brew install openssl
           utils.run_command(['brew', 'install', 'openssl'])
+      elif utils.is_windows_os():
+          utils.run_command(['choco', 'install', 'openssl', '-r'])
 
     # Install ccache on linux/mac if its not installed already
     if not utils.is_command_installed('ccache'):
