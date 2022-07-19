@@ -59,7 +59,7 @@ ResponseInfo::ResponseInfo(const ResponseInfoInternal& response_info_internal) {
   }
 
   NSString *to_string = [[NSString alloc]initWithFormat:@"ResponseInfo "
-    "response_id: %@, medation_adapter_classname : %@, "
+    "response_id: %@, mediation_adapter_classname : %@, "
     "adapter_response_info: %@", 
     response_info_internal.gad_response_info.responseIdentifier,
     response_info_internal.gad_response_info.adNetworkClassName,
