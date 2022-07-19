@@ -54,7 +54,7 @@ jobject GetJavaAdRequestFromCPPAdRequest(const AdRequest& request,
 
   // Network Extras.
   // The map associates class names of mediation adapters with a
-  // key value pairs, the extras, to send to those medation adapters.
+  // key value pairs, the extras, to send to those mediation adapters.
   // e.g. Mediation_Map < class name, Extras_Map < key, value > >
   const std::map<std::string, std::map<std::string, std::string>>& extras =
       request.extras();
