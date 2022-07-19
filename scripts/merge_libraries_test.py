@@ -15,9 +15,12 @@
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import merge_libraries
+import warnings
 from absl import flags
+from absl import logging
 from absl.testing import absltest
 
 _TEST_FILE = os.path.abspath('merge_libraries_test_file.a')
@@ -28,8 +31,10 @@ class MergeLibrariesTest(absltest.TestCase):
   """Verifies a subset of functionality of Blastdoor merge_libraries script."""
   def setUp(self):
     if not os.path.exists(_TEST_FILE):
+      logging.info("Compiling merge_libraries_test_file.cc")
       subprocess.run(['g++', '-O2', '-std=c++11', '-c', 'scripts/merge_libraries_test_file.cc', '-o', 'test_file.o'])
       subprocess.run([FLAGS.binutils_ar_cmd, 'rcs', _TEST_FILE, 'test_file.o'])
+      warnings.filterwarnings("ignore", category=ResourceWarning)
 
   def test_get_top_level_namespaces(self):
     """Verify that get_top_level_namespaces works."""
@@ -68,7 +73,7 @@ class MergeLibrariesTest(absltest.TestCase):
     merge_libraries.FLAGS.streaming_demanglers = False
     demangler_list = merge_libraries.init_demanglers()
     for demangler in demangler_list:
-      print("Testing %s" % os.path.basename(demangler.cmdline[0]))
+      logging.info("Testing %s", os.path.basename(demangler.cmdline[0]))
       self.assertEqual(
           demangler.demangle("regular_c_symbol_nonstreaming"),
           "regular_c_symbol_nonstreaming")
@@ -80,7 +85,7 @@ class MergeLibrariesTest(absltest.TestCase):
     merge_libraries.FLAGS.streaming_demanglers = True
     demangler_list = merge_libraries.init_demanglers()
     for demangler in demangler_list:
-      print("Testing %s streaming" % os.path.basename(demangler.cmdline[0]))
+      logging.info("Testing %s streaming", os.path.basename(demangler.cmdline[0]))
       self.assertEqual(
           demangler.demangle("regular_c_symbol_streaming"),
           "regular_c_symbol_streaming")
@@ -105,7 +110,11 @@ class MergeLibrariesTest(absltest.TestCase):
         shutil.rmtree(tempdir)
 
   def test_error_extracting_archive(self):
+    v = logging.get_verbosity()
+    # Temporarily turn off warnings so loading a bad filename doesn't log a bunch
+    logging.set_verbosity(logging.ERROR)
     (obj_file_list, errors) = merge_libraries.extract_archive("bad_filename.a")
+    logging.set_verbosity(v)
     self.assertEmpty(obj_file_list)
     self.assertNotEmpty(errors)
 
@@ -225,10 +234,9 @@ class MergeLibrariesTest(absltest.TestCase):
       expect_cpp_symbols_after_rename = set()
       
       for s in before_cpp_symbols:
-        if 'another_namespace' not in s:
-          expect_cpp_symbols_after_rename.add(s.replace("test_namespace::", "renamed_test_namespace::"))
-        else:
-          expect_cpp_symbols_after_rename.add(s)
+        if not s.startswith("another_namespace"):
+          s = s.replace("test_namespace::", "renamed_test_namespace::")
+        expect_cpp_symbols_after_rename.add(s)
 
       # Rename the symbols.
       merge_libraries.move_object_file(library_file,
