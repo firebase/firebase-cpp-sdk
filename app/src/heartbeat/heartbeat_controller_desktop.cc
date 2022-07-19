@@ -41,10 +41,11 @@ namespace heartbeat {
 // Named keys in the generated JSON payload
 const char* kHeartbeatsKey = "heartbeats";
 const char* kVersionKey = "version";
+const char* kVersionValue = "2";
 const char* kUserAgentKey = "agent";
 const char* kDatesKey = "dates";
 const int kMaxPayloadSize = 1024;
-const int kMaxWaitTimeMs = 3000;
+const int kMaxWaitTimeMs = 300;
 
 HeartbeatController::HeartbeatController(const std::string& app_id,
                                          const Logger& logger,
@@ -106,7 +107,7 @@ std::string HeartbeatController::GetAndResetStoredHeartbeats() {
       [&, output_str, scheduled_work_semaphore]() {
         std::string current_date = date_provider_.GetDate();
         // Return early if all heartbeats have already been fetched today.
-        if (this->last_fetched_all_heartbeats_date_ != current_date) {
+        if (this->last_flushed_all_heartbeats_date_ != current_date) {
           LoggedHeartbeats logged_heartbeats;
           bool read_succeeded = this->storage_.ReadTo(logged_heartbeats);
           // If read fails, or if there are no stored heartbeats, return an
@@ -120,7 +121,7 @@ std::string HeartbeatController::GetAndResetStoredHeartbeats() {
             // Only update last-logged date and return a payload if the write
             // succeeds.
             if (write_succeeded) {
-              this->last_fetched_all_heartbeats_date_ = current_date;
+              this->last_flushed_all_heartbeats_date_ = current_date;
               *output_str = GetStringPayloadForHeartbeats(logged_heartbeats);
             }
           }
@@ -136,6 +137,8 @@ std::string HeartbeatController::GetAndResetStoredHeartbeats() {
     return *output_str;
   }
   // Return an empty string if unable to TimedWait times out.
+  // TODO(b/239568581): Start an async process to wait for the completion of the
+  // scheduled work and to store the result in memory for a later fetch.
   return "";
 }
 
@@ -147,8 +150,8 @@ std::string HeartbeatController::GetAndResetTodaysStoredHeartbeats() {
       [&, output_str, scheduled_work_semaphore]() {
         std::string current_date = date_provider_.GetDate();
         // Return early if a heartbeat has already been fetched today.
-        if (this->last_fetched_all_heartbeats_date_ != current_date &&
-            this->last_fetched_todays_heartbeat_date_ != current_date) {
+        if (this->last_flushed_all_heartbeats_date_ != current_date &&
+            this->last_flushed_todays_heartbeat_date_ != current_date) {
           LoggedHeartbeats stored_heartbeats;
           bool read_succeeded = this->storage_.ReadTo(stored_heartbeats);
           // If read fails, or if there are no stored heartbeats, return an
@@ -173,7 +176,7 @@ std::string HeartbeatController::GetAndResetTodaysStoredHeartbeats() {
               // Only update last-logged date and return a payload if the write
               // succeeds.
               if (write_succeeded) {
-                this->last_fetched_todays_heartbeat_date_ = current_date;
+                this->last_flushed_todays_heartbeat_date_ = current_date;
                 *output_str = GetStringPayloadForHeartbeats(todays_heartbeats);
               }
             }
@@ -216,7 +219,7 @@ std::string HeartbeatController::GetStringPayloadForHeartbeats(
   Variant root = Variant::EmptyMap();
   std::map<Variant, Variant>& root_map = root.map();
   root_map[kHeartbeatsKey] = heartbeats_variant;
-  root_map[kVersionKey] = "2";
+  root_map[kVersionKey] = kVersionValue;
 
   std::string json_object = util::VariantToJson(root);
   return CompressAndEncode(json_object);
@@ -226,15 +229,17 @@ std::string HeartbeatController::CompressAndEncode(const std::string& input) {
   ZLib zlib;
   zlib.SetGzipHeaderMode();
   uLongf result_size = ZLib::MinCompressbufSize(input.length());
-  std::unique_ptr<char[]> result(new char[result_size]);
-  int err = zlib.Compress(
-      reinterpret_cast<unsigned char*>(result.get()), &result_size,
-      reinterpret_cast<const unsigned char*>(input.data()), input.length());
+  char* result = new char[result_size];
+  int err = zlib.Compress(reinterpret_cast<Bytef*>(result), &result_size,
+                          reinterpret_cast<const Bytef*>(input.data()),
+                          input.length());
   if (err != Z_OK) {
     // Failed to compress.
+    delete[] result;
     return "";
   }
-  std::string compressed_str = std::string(result.get(), result_size);
+  std::string compressed_str = std::string(result, result_size);
+  delete[] result;
 
   std::string output;
   if (!firebase::internal::Base64EncodeUrlSafe(compressed_str, &output)) {
@@ -258,7 +263,7 @@ std::string HeartbeatController::DecodeAndDecompress(const std::string& input) {
   ZLib zlib;
   zlib.SetGzipHeaderMode();
   uLongf result_size = ZLib::MinCompressbufSize(decoded.length());
-  std::unique_ptr<char[]> result(new char[result_size]);
+  char* result = new char[result_size];
   int err = zlib.Uncompress(
       reinterpret_cast<unsigned char*>(result.get()), &result_size,
       reinterpret_cast<const unsigned char*>(decoded.data()), decoded.length());
