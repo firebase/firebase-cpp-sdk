@@ -105,7 +105,8 @@ flags.DEFINE_string("force_binutils_target", None, "Force all binutils calls to 
                     "different input and output formats, separate them with a comma.")
 
 # Never rename system namespaces by default when --auto_hide_cpp_namespaces is enabled.
-IMPLICIT_CPP_NAMESPACES_TO_IGNORE = {"std", "__gnu_cxx", "stdext",
+IMPLICIT_CPP_NAMESPACES_TO_IGNORE = {"std", "type_info",
+                                     "__gnu_cxx", "stdext",
                                      "cxxabiv1", "__cxxabiv1"}
 
 DEFAULT_ENCODING = "ascii"
