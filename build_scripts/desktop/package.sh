@@ -19,6 +19,8 @@ options:
   -j, run merge_libraries jobs in parallel
   -v, enable verbose mode
   -L, use LLVM binutils
+  -R, print rename prefix and exit
+  -N, print allowed namespaces and exit
 example:
   build_scripts/desktop/package.sh -b firebase-cpp-sdk-linux -p linux -o package_out -v x86 -j"
 }
@@ -42,6 +44,11 @@ use_llvm_binutils=0
 
 readonly SUPPORTED_PLATFORMS=(linux windows darwin)
 
+# String to prepend to all hidden symbols.
+readonly rename_string=f_b_
+# Comma-separated list of c++ namespaces to allow.
+readonly allow_cpp_namespaces=firebase
+
 abspath(){
     if [[ -d $1 ]]; then
         echo "$(cd "$1"; pwd -P)"
@@ -50,7 +57,7 @@ abspath(){
     fi
 }
 
-while getopts "f:b:o:p:d:m:P:t:hjLv" opt; do
+while getopts "f:b:o:p:d:m:P:t:NRhjLv" opt; do
     case $opt in
         f)
             binutils_format=$OPTARG
@@ -93,6 +100,14 @@ while getopts "f:b:o:p:d:m:P:t:hjLv" opt; do
             ;;
         t)
             tools_path=$OPTARG
+            ;;
+        N)
+            echo "${allow_cpp_namespaces}" | tr ',' '\n'
+            exit 0
+            ;;
+        R)
+            echo "${rename_string}"
+            exit 0
             ;;
         h)
             usage
@@ -208,9 +223,6 @@ readonly deps_hidden_firebase_firestore="
 */firestore-build/*/grpc-build/third_party/re2/*${subdir}${prefix}re2.${ext}
 "
 
-# String to prepend to all hidden symbols.
-readonly rename_string=f_b_
-
 readonly demangle_cmds=${tools_path}/c++filt,${tools_path}/demumble
 if [[ ${use_llvm_binutils} -eq 1 ]]; then
     readonly binutils_objcopy=${tools_path}/llvm-objcopy
@@ -238,7 +250,7 @@ merge_libraries_params=(
     --demangle_cmds=${demangle_cmds}
     --platform=${platform}
     --auto_hide_cpp_namespaces
-    --ignore_cpp_namespaces=firebase
+    --ignore_cpp_namespaces="${allow_cpp_namespaces}"
 )
 cache_param=--cache=${cache_file}
 
