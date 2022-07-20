@@ -21,6 +21,17 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
+#if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || \
+    FIREBASE_PLATFORM_TVOS || FIREBASE_PLATFORM_WINDOWS
+#define SEMAPHORE_LINUX 0
+#else
+#define SEMAPHORE_LINUX 1
+#include <pthread.h>
+
+#include <csignal>
+#include <ctime>
+#endif
+
 namespace {
 
 // Basic test of TryWait, to make sure that its successes and failures
@@ -75,6 +86,50 @@ TEST(SemaphoreTest, TimedWait) {
       labs((finish_ms - start_ms) - firebase::internal::kMillisecondsPerSecond),
       0.20 * firebase::internal::kMillisecondsPerSecond);
 }
+
+#if SEMAPHORE_LINUX
+// Tests that Timed Wait handles spurious wakeup (Linux/Android specific).
+TEST(SemaphoreTest, TimedWaitSpuriousWakeupLinux) {
+  firebase::Semaphore sem(0);
+
+  auto signaller = [](void* arg) -> void* {
+    struct timespec req, rem;
+    req.tv_sec = 0;
+    req.tv_nsec = 400000000;
+    while (true) {
+      auto result = nanosleep(&req, &rem);
+      if (result == 0) {
+        break;
+      } else if (errno == EINTR) {
+        req = rem;
+      } else {
+        ADD_FAILURE() << "nanosleep() failed";
+        return NULL;
+      }
+    }
+
+    pthread_kill(*static_cast<pthread_t*>(arg), SIGUSR1);
+
+    return NULL;
+  };
+
+  signal(SIGUSR1, [](int signum) -> void {});
+
+  pthread_t current_thread = pthread_self();
+  pthread_t signaller_thread;
+  pthread_create(&signaller_thread, NULL, signaller, &current_thread);
+
+  int64_t start_ms = firebase::internal::GetTimestamp();
+  EXPECT_FALSE(sem.TimedWait(2 * firebase::internal::kMillisecondsPerSecond));
+  int64_t finish_ms = firebase::internal::GetTimestamp();
+
+  pthread_join(signaller_thread, NULL);
+
+  ASSERT_LT(labs((finish_ms - start_ms) -
+                 (2 * firebase::internal::kMillisecondsPerSecond)),
+            0.20 * firebase::internal::kMillisecondsPerSecond);
+}
+#endif  // #if SEMAPHORE_LINUX
 
 TEST(SemaphoreTest, MultithreadedStressTest) {
   for (int i = 0; i < 10000; ++i) {
