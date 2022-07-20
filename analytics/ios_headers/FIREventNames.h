@@ -1,6 +1,6 @@
 // Copyright 2022 Google LLC
 
-// Copied from Firebase Analytics iOS SDK 9.1.0.
+// Copied from Firebase Analytics iOS SDK 9.3.0.
 
 /// @file FIREventNames.h
 ///

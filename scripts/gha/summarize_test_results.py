@@ -279,6 +279,8 @@ def get_configs_from_file_name(file_name, file_name_re):
   # Remove redundant components. e.g. "latest" in "windows-latest"
   del configs[2]
   if "desktop" in configs: configs.remove("desktop")
+  if "gameloop" in configs: configs.remove("gameloop")
+  if "uitest" in configs: configs.remove("uitest")
   return configs
 
 
@@ -378,7 +380,6 @@ def combine_configs(error_configs, all_configs):
 
 def combine_config(platform, config, config_value, k):
   config_before_combination = config.copy()
-  logging.info("platform: %s; config: %s; config_value: %s", platform, config, config_value)
   if k == 1 and platform in ("android", "ios", "tvos"):
     # config_name = test_device here
     k = -1

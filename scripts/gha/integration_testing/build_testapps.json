@@ -94,6 +94,20 @@
       "provision": "Firebase_Dev_Wildcard.mobileprovision"
     },
     {
+      "name": "gma",
+      "full_name": "FirebaseGma",
+      "bundle_id": "com.google.ios.admob.testapp",
+      "ios_target": "integration_test",
+      "tvos_target": "",
+      "has_uitests": true,
+      "testapp_path": "gma/integration_test",
+      "frameworks": [
+        "firebase_gma.xcframework",
+        "firebase.xcframework"
+      ],
+      "provision": "Google_Development.mobileprovision"
+    },
+    {
       "name": "installations",
       "full_name": "FirebaseInstallations",
       "bundle_id": "com.google.firebase.fis.testapp",
@@ -239,6 +253,7 @@
     "'dynamic_links' : ['com.google.firebase:firebase-dynamic-links:[0,)'],",
     "'firestore' : ['com.google.firebase:firebase-firestore:[0,)'],",
     "'functions' : ['com.google.firebase:firebase-functions:[0,)'],",
+    "'gma' : ['com.google.firebase:firebase-ads:[0,)',",
     "'instance_id' : ['com.google.firebase:firebase-iid:[0,)'],",
     "'messaging' : ['com.google.firebase.messaging.cpp:firebase_messaging_cpp@aar',",
     "'com.google.firebase:firebase-messaging:[0,)'],",

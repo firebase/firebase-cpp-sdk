@@ -52,8 +52,11 @@
 #include "firestore/src/android/source_android.h"
 #include "firestore/src/android/timestamp_android.h"
 #include "firestore/src/android/transaction_android.h"
+#include "firestore/src/android/transaction_options_android.h"
+#include "firestore/src/android/transaction_options_builder_android.h"
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/android/write_batch_android.h"
+#include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/make_unique.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/jni/array.h"
@@ -120,7 +123,8 @@ Method<void> kSetSettings(
 Method<Object> kBatch("batch", "()Lcom/google/firebase/firestore/WriteBatch;");
 Method<Task> kRunTransaction(
     "runTransaction",
-    "(Lcom/google/firebase/firestore/Transaction$Function;)"
+    "(Lcom/google/firebase/firestore/TransactionOptions;"
+    "Lcom/google/firebase/firestore/Transaction$Function;)"
     "Lcom/google/android/gms/tasks/Task;");
 Method<Task> kEnableNetwork("enableNetwork",
                             "()Lcom/google/android/gms/tasks/Task;");
@@ -339,6 +343,8 @@ bool FirestoreInternal::Initialize(App* app) {
     Task::Initialize(loader);
     TimestampInternal::Initialize(loader);
     TransactionInternal::Initialize(loader);
+    TransactionOptionsBuilderInternal::Initialize(loader);
+    TransactionOptionsInternal::Initialize(loader);
     WriteBatchInternal::Initialize(loader);
     LoadBundleTaskInternal::Initialize(loader);
     LoadBundleTaskProgressInternal::Initialize(loader);
@@ -455,12 +461,23 @@ WriteBatch FirestoreInternal::batch() const {
 }
 
 Future<void> FirestoreInternal::RunTransaction(
-    std::function<Error(Transaction&, std::string&)> update) {
+    std::function<Error(Transaction&, std::string&)> update,
+    int32_t max_attempts) {
+  SIMPLE_HARD_ASSERT(max_attempts > 0);
+
   auto* lambda_update = new LambdaTransactionFunction(Move(update));
   Env env = GetEnv();
   Local<Object> transaction_function =
       TransactionInternal::Create(env, this, lambda_update);
-  Local<Task> task = env.Call(obj_, kRunTransaction, transaction_function);
+
+  Local<TransactionOptionsBuilderInternal> options_builder =
+      TransactionOptionsBuilderInternal::Create(env);
+  options_builder.SetMaxAttempts(env, max_attempts);
+  Local<TransactionOptionsInternal> options = options_builder.Build(env);
+  options_builder.clear();
+
+  Local<Task> task =
+      env.Call(obj_, kRunTransaction, options, transaction_function);
 
   if (!env.ok()) return {};
 

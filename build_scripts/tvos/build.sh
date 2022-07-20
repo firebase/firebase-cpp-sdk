@@ -18,7 +18,7 @@ usage(){
    -g, generate Makefiles      default: true
    -c, CMake build             default: true
  example: 
-   build_scripts/tvos/build.sh -b tvos_build -s . -a arm64,x86_64 -t firebase_admob,firebase_auth -c false"
+   build_scripts/tvos/build.sh -b tvos_build -s . -a arm64,x86_64 -t firebase_database,firebase_auth -c false"
 }
 
 set -e

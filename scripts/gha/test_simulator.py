@@ -16,7 +16,7 @@ r"""Tool for mobile testapps to Test on iOS Simulator / Android Emulator locally
 
 Usage:
 
-  python test_simulator.py --testapp_dir ~/testapps 
+  python test_simulator.py --testapp_dir ~/testapps --test_type gameloop
 
 This will recursively search ~/testapps for apps,
 test on local simulators/emulators, and validate their results. The validation is 
@@ -70,7 +70,7 @@ Returns:
    1: No iOS/Android integration_test apps found
    20: Invalid ios_device flag  
    21: iOS Simulator created fail  
-   22: iOS gameloop app not found
+   22: iOS helper app not found
    23: build_testapps.json file not found
    30: Invalid android_device flag  
    31: For android test, JAVA_HOME is not set to java 8
@@ -79,6 +79,8 @@ Returns:
 import json
 import os
 import pathlib
+import shutil
+import signal
 import subprocess
 import time
 
@@ -89,7 +91,27 @@ import attr
 from integration_testing import test_validation
 from print_matrix_configuration import TEST_DEVICES
 
-_GAMELOOP_PACKAGE = "com.google.firebase.gameloop"
+
+# Gameloop test will skip UI Tests
+_TEST_TYPE_GAMELOOP = "gameloop"
+# UITest only triggers UI Tests, and skip non-UI Tests
+_TEST_TYPE_UITEST = "uitest"
+
+CONSTANTS = {
+  _TEST_TYPE_GAMELOOP: {
+    "apple_path": "integration_testing/gameloop_apple",
+    "apple_scheme": "gameloop",
+    "android_path": "integration_testing/gameloop_android",
+    "android_package": "com.google.firebase.gameloop",
+  },
+  _TEST_TYPE_UITEST: {
+    "apple_path": "ui_testing/uitest_apple",
+    "apple_scheme": "FirebaseCppUITestApp",
+    "android_path": "ui_testing/uitest_android",
+    "android_package": "com.google.firebase.uitest",
+  }
+}
+
 _RESULT_FILE = "Results1.json"
 _TEST_RETRY = 3
 _CMD_TIMEOUT = 300
@@ -107,6 +129,9 @@ flags.DEFINE_string(
     "testapp_dir", None,
     "Testapps in this directory will be tested.")
 flags.DEFINE_string(
+    "test_type", _TEST_TYPE_GAMELOOP,
+    "Gameloop Test or UI Test")
+flags.DEFINE_string(
     "ios_device", None,
     "iOS device, which is a combination of device name and os version"
     "See module docstring for details on how to set and get this id. "
@@ -115,7 +140,7 @@ flags.DEFINE_string(
     "ios_name", "iPhone 8",
     "See module docstring for details on how to set and get this name.")
 flags.DEFINE_string(
-    "ios_version", "12.0",
+    "ios_version", "14.5",
     "See module docstring for details on how to set and get this version.")
 flags.DEFINE_string(
     "tvos_device", None,
@@ -126,7 +151,7 @@ flags.DEFINE_string(
     "tvos_name", "Apple TV",
     "See module docstring for details on how to set and get this name.")
 flags.DEFINE_string(
-    "tvos_version", "14.0",
+    "tvos_version", "14.5",
     "See module docstring for details on how to set and get this version.")
 flags.DEFINE_string(
     "android_device", None,
@@ -161,6 +186,13 @@ def main(argv):
   current_dir = pathlib.Path(__file__).parent.absolute()
   testapp_dir = os.path.abspath(os.path.expanduser(FLAGS.testapp_dir))
   
+  config_path = os.path.join(current_dir, "integration_testing", "build_testapps.json")
+  with open(config_path, "r") as configFile:
+    config = json.load(configFile)
+  if not config:
+    logging.error("No config file found")
+    return 23
+
   ios_testapps = []
   tvos_testapps = []
   android_testapps = []
@@ -169,13 +201,22 @@ def main(argv):
     for directory in directories:
       full_path = os.path.join(file_dir, directory)
       if directory.endswith("integration_test.app"):
-        ios_testapps.append(full_path)
+        if FLAGS.test_type == _TEST_TYPE_UITEST and not _has_uitests(full_path, config):
+          logging.info("Skip %s, as it has no uitest", full_path)
+        else:
+          ios_testapps.append(full_path)
       elif directory.endswith("integration_test_tvos.app"):
-        tvos_testapps.append(full_path)
+        if FLAGS.test_type == _TEST_TYPE_UITEST and not _has_uitests(full_path, config):
+          logging.info("Skip %s, as it has no uitest", full_path)
+        else:
+          tvos_testapps.append(full_path)
     for file_name in file_names:
       full_path = os.path.join(file_dir, file_name)
       if file_name.endswith(".apk"):
-        android_testapps.append(full_path)    
+        if FLAGS.test_type == _TEST_TYPE_UITEST and not _has_uitests(full_path, config):
+          logging.info("Skip %s, as it has no uitest", full_path)
+        else:
+          android_testapps.append(full_path)    
 
   if not ios_testapps and not tvos_testapps and not android_testapps:
     logging.info("No testapps found")
@@ -202,22 +243,15 @@ def main(argv):
       return 21
 
     # A tool that enable game-loop test. This is a XCode project
-    ios_gameloop_project = os.path.join(current_dir, "integration_testing", "gameloop_apple")
-    ios_gameloop_app = _build_ios_gameloop(ios_gameloop_project, device_name, device_os)
-    if not ios_gameloop_app:
-      logging.error("gameloop app not found")
+    ios_helper_project = os.path.join(current_dir, CONSTANTS[FLAGS.test_type]["apple_path"])
+    ios_helper_app = _build_ios_helper(ios_helper_project, device_name, device_os)
+    if not ios_helper_app:
+      logging.error("helper app not found")
       return 22
-
-    config_path = os.path.join(current_dir, "integration_testing", "build_testapps.json")
-    with open(config_path, "r") as configFile:
-      config = json.load(configFile)
-    if not config:
-      logging.error("No config file found")
-      return 23
   
     for app_path in ios_testapps:
       bundle_id = _get_bundle_id(app_path, config)
-      logs=_run_apple_gameloop_test(bundle_id, app_path, ios_gameloop_app, device_id, _TEST_RETRY)
+      logs=_run_apple_test(testapp_dir, bundle_id, app_path, ios_helper_app, device_id, _TEST_RETRY)
       tests.append(Test(testapp_path=app_path, logs=logs))
 
     _shutdown_simulator()
@@ -242,10 +276,10 @@ def main(argv):
       return 21
 
     # A tool that enable game-loop test. This is a XCode project
-    tvos_gameloop_project = os.path.join(current_dir, "integration_testing", "gameloop_apple")
-    tvos_gameloop_app = _build_tvos_gameloop(tvos_gameloop_project, device_name, device_os)
-    if not tvos_gameloop_app:
-      logging.error("gameloop app not found")
+    tvos_helper_project = os.path.join(current_dir, CONSTANTS[FLAGS.test_type]["apple_path"])
+    tvos_helper_app = _build_tvos_helper(tvos_helper_project, device_name, device_os)
+    if not tvos_helper_app:
+      logging.error("helper app not found")
       return 22
 
     config_path = os.path.join(current_dir, "integration_testing", "build_testapps.json")
@@ -257,7 +291,7 @@ def main(argv):
   
     for app_path in tvos_testapps:
       bundle_id = _get_bundle_id(app_path, config)
-      logs=_run_apple_gameloop_test(bundle_id, app_path, tvos_gameloop_app, device_id, _TEST_RETRY)
+      logs=_run_apple_test(testapp_dir, bundle_id, app_path, tvos_helper_app, device_id, _TEST_RETRY)
       tests.append(Test(testapp_path=app_path, logs=logs))
 
     _shutdown_simulator()
@@ -287,12 +321,12 @@ def main(argv):
 
     _create_and_boot_emulator(sdk_id)
 
-    android_gameloop_project = os.path.join(current_dir, "integration_testing", "gameloop_android")
-    _install_android_gameloop_app(android_gameloop_project)
+    android_helper_project = os.path.join(current_dir, CONSTANTS[FLAGS.test_type]["android_path"])
+    _install_android_helper_app(android_helper_project)
 
     for app_path in android_testapps:
       package_name = _get_package_name(app_path)
-      logs=_run_android_gameloop_test(package_name, app_path, android_gameloop_project, _TEST_RETRY)
+      logs=_run_android_test(testapp_dir, package_name, app_path, android_helper_project, _TEST_RETRY)
       tests.append(Test(testapp_path=app_path, logs=logs))
 
     _shutdown_emulator()
@@ -301,22 +335,23 @@ def main(argv):
     tests, 
     test_validation.CPP, 
     testapp_dir, 
+    test_type=FLAGS.test_type,
     file_name="test-results-" + FLAGS.logfile_name + ".log", 
     extra_info=" (ON SIMULATOR/EMULATOR)")
 
 
 # -------------------Apple Only-------------------
-def _build_ios_gameloop(gameloop_project, device_name, device_os):
-  """Build gameloop UI Test app. 
+def _build_ios_helper(helper_project, device_name, device_os):
+  """Build helper UI Test app. 
 
-  This gameloop app can run integration_test app automatically.
+  This helper app can run integration_test app automatically.
   """
-  project_path = os.path.join(gameloop_project, "gameloop.xcodeproj")
-  output_path = os.path.join(gameloop_project, "Build")
+  project_path = os.path.join(helper_project, "%s.xcodeproj" % CONSTANTS[FLAGS.test_type]["apple_scheme"])
+  output_path = os.path.join(helper_project, "Build")
 
-  """Build the gameloop app for test."""
+  """Build the helper app for test."""
   args = ["xcodebuild", "-project", project_path,
-    "-scheme", "gameloop",
+    "-scheme", CONSTANTS[FLAGS.test_type]["apple_scheme"],
     "build-for-testing", 
     "-destination", "platform=iOS Simulator,name=%s,OS=%s" % (device_name, device_os), 
     "SYMROOT=%s" % output_path]
@@ -329,17 +364,17 @@ def _build_ios_gameloop(gameloop_project, device_name, device_os):
         return os.path.join(file_dir, file_name)
 
 
-def _build_tvos_gameloop(gameloop_project, device_name, device_os):
-  """Build gameloop UI Test app. 
+def _build_tvos_helper(helper_project, device_name, device_os):
+  """Build helper UI Test app. 
 
-  This gameloop app can run integration_test app automatically.
+  This helper app can run integration_test app automatically.
   """
-  project_path = os.path.join(gameloop_project, "gameloop.xcodeproj")
-  output_path = os.path.join(gameloop_project, "Build")
+  project_path = os.path.join(helper_project, "%s.xcodeproj" % CONSTANTS[FLAGS.test_type]["apple_scheme"])
+  output_path = os.path.join(helper_project, "Build")
 
-  """Build the gameloop app for test."""
+  """Build the helper app for test."""
   args = ["xcodebuild", "-project", project_path,
-    "-scheme", "gameloop_tvos",
+    "-scheme", "%s_tvos" % CONSTANTS[FLAGS.test_type]["apple_scheme"],
     "build-for-testing", 
     "-destination", "platform=tvOS Simulator,name=%s,OS=%s" % (device_name, device_os), 
     "SYMROOT=%s" % output_path]
@@ -352,12 +387,32 @@ def _build_tvos_gameloop(gameloop_project, device_name, device_os):
         return os.path.join(file_dir, file_name)
 
 
-def _run_xctest(gameloop_app, device_id):
-  """Run the gameloop UI Test app.
-    This gameloop app can run integration_test app automatically.
+def _record_apple_tests(video_name):
+  command = "xcrun simctl io booted recordVideo -f --codec=h264 %s" % video_name
+  logging.info("Recording test: %s", command)
+  return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
+
+
+def _stop_recording(record_process):
+  logging.info("Stop recording test")
+  try:
+    os.killpg(record_process.pid, signal.SIGINT)
+  except:
+    logging.info("Stop recording test failed!!!")
+  time.sleep(5)
+
+
+def _save_recorded_apple_video(video_name, summary_dir):
+  logging.info("Save test video to: %s", summary_dir)
+  shutil.move(video_name, os.path.join(summary_dir, video_name))
+
+
+def _run_xctest(helper_app, device_id):
+  """Run the helper app.
+    This helper app can run integration_test app automatically.
   """
   args = ["xcodebuild", "test-without-building", 
-    "-xctestrun", gameloop_app, 
+    "-xctestrun", helper_app, 
     "-destination", "id=%s" % device_id]
   logging.info("Running game-loop test: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=False)
@@ -440,18 +495,29 @@ def _get_bundle_id(app_path, config):
       return api["bundle_id"]
 
 
-def _run_apple_gameloop_test(bundle_id, app_path, gameloop_app, device_id, retry=1):
-  """Run gameloop test and collect test result."""
-  logging.info("Running apple gameloop test: %s, %s, %s, %s", bundle_id, app_path, gameloop_app, device_id)
+def _has_uitests(app_path, config):
+  """Get app bundle id from build_testapps.json file."""
+  for api in config["apis"]:
+    if api["name"] != "app" and (api["name"] in app_path or api["full_name"] in app_path):
+      return api.get("has_uitests", False)
+
+
+def _run_apple_test(testapp_dir, bundle_id, app_path, helper_app, device_id, retry=1):
+  """Run helper test and collect test result."""
+  logging.info("Running apple helper test: %s, %s, %s, %s", bundle_id, app_path, helper_app, device_id)
   _install_apple_app(app_path, device_id)
-  _run_xctest(gameloop_app, device_id)
+  video_name = "video-%s-%s-%s.mp4" % (bundle_id, retry, FLAGS.logfile_name)
+  record_process = _record_apple_tests(video_name)
+  _run_xctest(helper_app, device_id)
+  _stop_recording(record_process)
   log = _get_apple_test_log(bundle_id, app_path, device_id)
   _uninstall_apple_app(bundle_id, device_id)
-  if retry > 1:
-    result = test_validation.validate_results(log, test_validation.CPP)
-    if not result.complete:
-      logging.info("Retry _run_apple_gameloop_test. Remaining retry: %s", retry-1)
-      return _run_apple_gameloop_test(bundle_id, app_path, gameloop_app, device_id, retry=retry-1)
+  result = test_validation.validate_results(log, test_validation.CPP)
+  if not result.complete or (FLAGS.test_type=="uitest" and result.fails>0):
+    _save_recorded_apple_video(video_name, testapp_dir)
+    if retry > 1:
+      logging.info("Retry _run_apple_test. Remaining retry: %s", retry-1)
+      return _run_apple_test(testapp_dir, bundle_id, app_path, helper_app, device_id, retry=retry-1)
   
   return log
   
@@ -563,7 +629,7 @@ def _create_and_boot_emulator(sdk_id):
   if not FLAGS.ci: 
     command = "$ANDROID_HOME/emulator/emulator -avd test_emulator &"
   else:
-    command = "$ANDROID_HOME/emulator/emulator -avd test_emulator -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect &"
+    command = "$ANDROID_HOME/emulator/emulator -avd test_emulator -no-audio -no-boot-anim -gpu auto &"
   logging.info("Boot test emulator: %s", command)
   subprocess.Popen(command, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
 
@@ -607,17 +673,22 @@ def _get_package_name(app_path):
   return package_name  
 
 
-def _run_android_gameloop_test(package_name, app_path, gameloop_project, retry=1): 
-  logging.info("Running android gameloop test: %s, %s, %s", package_name, app_path, gameloop_project)
+def _run_android_test(testapp_dir, package_name, app_path, helper_project, retry=1): 
+  logging.info("Running android helper test: %s, %s, %s", package_name, app_path, helper_project)
   _install_android_app(app_path)
+  video_name = "video-%s-%s-%s.mp4" % (package_name, retry, FLAGS.logfile_name)
+  record_process = _record_android_tests(video_name)
   _run_instrumented_test()
+  _stop_recording(record_process)
   log = _get_android_test_log(package_name)
   _uninstall_android_app(package_name)
-  if retry > 1:
-    result = test_validation.validate_results(log, test_validation.CPP)
-    if not result.complete:
-      logging.info("Retry _run_android_gameloop_test. Remaining retry: %s", retry-1)
-      return _run_android_gameloop_test(package_name, app_path, gameloop_project, retry=retry-1)
+
+  result = test_validation.validate_results(log, test_validation.CPP)
+  if not result.complete or (FLAGS.test_type=="uitest" and result.fails>0):
+    _save_recorded_android_video(video_name, testapp_dir)
+    if retry > 1:
+      logging.info("Retry _run_android_test. Remaining retry: %s", retry-1)
+      return _run_android_test(testapp_dir, package_name, app_path, helper_project, retry=retry-1)
   
   return log
 
@@ -636,10 +707,10 @@ def _uninstall_android_app(package_name):
   _run_with_retry(args, device=_DEVICE_ANDROID, type=_RESET_TYPE_REBOOT)
 
 
-def _install_android_gameloop_app(gameloop_project):
-  os.chdir(gameloop_project)
-  logging.info("cd to gameloop_project: %s", gameloop_project)
-  args = ["adb", "uninstall", "com.google.firebase.gameloop"]
+def _install_android_helper_app(helper_project):
+  os.chdir(helper_project)
+  logging.info("cd to helper_project: %s", helper_project)
+  args = ["adb", "uninstall", CONSTANTS[FLAGS.test_type]["android_package"]]
   _run_with_retry(args, check=False, device=_DEVICE_ANDROID, type=_RESET_TYPE_REBOOT)
 
   args = ["./gradlew", "clean"]
@@ -651,22 +722,34 @@ def _install_android_gameloop_app(gameloop_project):
   _run_with_retry(args, device=_DEVICE_ANDROID, type=_RESET_TYPE_REBOOT)
 
 
+def _record_android_tests(video_name):
+  command = "adb shell screenrecord /sdcard/%s" % video_name
+  logging.info("Recording test: %s", command)
+  return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
+
+
+def _save_recorded_android_video(video_name, summary_dir):
+  args = ["adb", "pull", "/sdcard/%s" % video_name, summary_dir]
+  logging.info("Save test video: %s", " ".join(args))
+  subprocess.run(args=args, capture_output=True, text=True, check=False) 
+
+
 def _run_instrumented_test():
-  """Run the gameloop UI Test app.
-    This gameloop app can run integration_test app automatically.
+  """Run the helper app.
+    This helper app can run integration_test app automatically.
   """
   args = ["adb", "shell", "am", "instrument",
-    "-w", "%s.test/androidx.test.runner.AndroidJUnitRunner" % _GAMELOOP_PACKAGE] 
+    "-w", "%s.test/androidx.test.runner.AndroidJUnitRunner" % CONSTANTS[FLAGS.test_type]["android_package"]] 
   logging.info("Running game-loop test: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=False) 
-  if "FAILURES!!!" in result.stdout:
-    _reset_emulator_on_error(_RESET_TYPE_REBOOT)
+  # if "FAILURES!!!" in result.stdout:
+  #   _reset_emulator_on_error(_RESET_TYPE_REBOOT)
 
 
 def _get_android_test_log(test_package):
   """Read integration_test app testing result."""
   # getFilesDir()	-> /data/data/package/files
-  path = "/data/data/%s/files/%s/%s" % (_GAMELOOP_PACKAGE, test_package, _RESULT_FILE)
+  path = "/data/data/%s/files/%s/%s" % (CONSTANTS[FLAGS.test_type]["android_package"], test_package, _RESULT_FILE)
   args = ["adb", "shell", "su", "0", "cat", path]
   logging.info("Get android test result: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=False)
@@ -690,7 +773,7 @@ def _run_with_retry(args, shell=False, check=True, timeout=_CMD_TIMEOUT, retry_t
         _reset_simulator_on_error(device, type)
       _run_with_retry(args, shell, check, timeout, retry_time-1, device, type)
   else:
-    subprocess.run(args, shell=shell, check=check, timeout=timeout)
+    subprocess.run(args, shell=shell, check=False, timeout=timeout)
 
 
 if __name__ == '__main__':

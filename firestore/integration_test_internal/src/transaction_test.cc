@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <atomic>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -28,6 +30,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "util/event_accumulator.h"
+#include "util/future_test_util.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/transaction_android.h"
 #endif  // defined(__ANDROID__)
@@ -726,6 +729,92 @@ TEST_F(TransactionTest, TestCancellationOnError) {
   // EXPECT_EQ(1, count);
   DocumentSnapshot snapshot = ReadDocument(doc);
   EXPECT_FALSE(snapshot.exists());
+}
+
+TEST_F(TransactionTest, TestMaxAttempts) {
+  Firestore* firestore = TestFirestore();
+  DocumentReference doc = firestore->Collection("TestMaxAttempts").Document();
+
+  TransactionOptions options;
+  options.set_max_attempts(3);
+
+  // Keep track of the number of times that the update callback is invoked.
+  auto update_count = std::make_shared<std::atomic_int>();
+  update_count->store(0);
+
+  Future<void> run_transaction_future = firestore->RunTransaction(
+      options,
+      [update_count, &doc](Transaction& transaction,
+                           std::string& error_message) -> Error {
+        SCOPED_TRACE("Update callback; update_count=" +
+                     std::to_string(update_count->load()));
+        ++(*update_count);
+
+        // Get the document via the transaction.
+        {
+          SCOPED_TRACE("transaction.Get()");
+          Error error = Error::kErrorOk;
+          std::string get_error_message;
+          transaction.Get(doc, &error, &get_error_message);
+          if (error != kErrorOk) {
+            ADD_FAILURE() << "transaction.Get() failed at Checkpoint UCA: "
+                          << get_error_message << " (error code " << error
+                          << "==" << ToFirestoreErrorCodeName(error) << ")";
+            error_message = "Test failed in update callback at Checkpoint UCA";
+            return Error::kErrorInvalidArgument;
+          }
+        }
+
+        // Modify the document *outside* of the transaction.
+        {
+          SCOPED_TRACE("doc.Set() outside of transaction");
+          auto set_future =
+              doc.Set({{"count", FieldValue::Integer(update_count->load())}});
+          set_future.Await(10000L);
+          if (set_future.status() != FutureStatus::kFutureStatusComplete) {
+            ADD_FAILURE() << "Timeout waiting for doc.Set() to complete at "
+                             "Checkpoint UCB; status() returned: "
+                          << set_future.status()
+                          << "==" << ToEnumeratorName(set_future.status());
+            error_message = "Test failed in update callback at Checkpoint UCB";
+            return Error::kErrorInvalidArgument;
+          } else if (set_future.error() != Error::kErrorOk) {
+            ADD_FAILURE() << "doc.Set() failed at Checkpoint UCC: "
+                          << set_future.error_message() << " (error code "
+                          << set_future.error() << "=="
+                          << ToFirestoreErrorCodeName(set_future.error())
+                          << ")";
+            error_message = "Test failed in update callback at Checkpoint UCC";
+            return Error::kErrorInvalidArgument;
+          }
+        }
+
+        // Modify the document *using* of the transaction.
+        // This will fail because the document was modified since we retrieved
+        // it via the transaction, and will result in a retry.
+        transaction.Set(
+            doc, {{"count", FieldValue::String("this set should fail")}});
+
+        return Error::kErrorOk;
+      });
+
+  {
+    SCOPED_TRACE("Waiting for Future returned from RunTransaction()");
+    Await(run_transaction_future);
+    ASSERT_EQ(run_transaction_future.status(),
+              FutureStatus::kFutureStatusComplete)
+        << "run_transaction_future.status() returned: "
+        << run_transaction_future.status()
+        << "==" << ToEnumeratorName(run_transaction_future.status());
+    ASSERT_EQ(run_transaction_future.error(), Error::kErrorFailedPrecondition)
+        << "error message: " << run_transaction_future.error_message()
+        << " (run_transaction_future.error() returned "
+        << run_transaction_future.error()
+        << "==" << ToFirestoreErrorCodeName(run_transaction_future.error())
+        << ")";
+  }
+
+  EXPECT_EQ(update_count->load(), 3);
 }
 
 }  // namespace firestore
