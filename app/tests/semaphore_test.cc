@@ -91,22 +91,18 @@ TEST(SemaphoreTest, TimedWait) {
 #if SEMAPHORE_LINUX
 // Tests that Timed Wait handles spurious wakeup (Linux/Android specific).
 TEST(SemaphoreTest, TimedWaitSpuriousWakeupLinux) {
-  // Create a function that will be called from a separate thread; it waits
-  // briefly, then sends a SIGUSR1 signal to the main thread.
-  auto signaller = [](void* arg) -> void* {
-    firebase::internal::Sleep(500);
-    pthread_kill(*static_cast<pthread_t*>(arg), SIGUSR1);
-    return NULL;
-  };
-
   // Register a dummy signal handler for SIGUSR1; otherwise, sending SIGUSR1
-  // will crash the application.
+  // later on will crash the application.
   signal(SIGUSR1, [](int signum) -> void {});
 
   // Start a thread that will send SIGUSR1 to this thread in a few moments.
-  pthread_t current_thread = pthread_self();
-  pthread_t signaller_thread;
-  pthread_create(&signaller_thread, NULL, signaller, &current_thread);
+  pthread_t main_thread = pthread_self();
+  firebase::Thread signal_sending_thread = firebase::Thread(
+      [](void* arg) {
+        firebase::internal::Sleep(500);
+        pthread_kill(*static_cast<pthread_t*>(arg), SIGUSR1);
+      },
+      &main_thread);
 
   // Call Semaphore::TimedWait() and keep track of how long it blocks for.
   firebase::Semaphore sem(0);
@@ -114,9 +110,9 @@ TEST(SemaphoreTest, TimedWaitSpuriousWakeupLinux) {
   EXPECT_FALSE(sem.TimedWait(2 * firebase::internal::kMillisecondsPerSecond));
   int64_t finish_ms = firebase::internal::GetTimestamp();
 
-  // Wait for the "signaller" thread to terminate, since it references memory
-  // on the stack and we can't have it running after this method returns.
-  pthread_join(signaller_thread, NULL);
+  // Wait for the "signal sending" thread to terminate, since it references
+  // memory on the stack and we can't have it running after this method returns.
+  signal_sending_thread.Join();
 
   // Unregister the signal handler for SIGUSR1, since it's no longer needed.
   signal(SIGUSR1, NULL);
