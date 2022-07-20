@@ -21,6 +21,8 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
+// Set SEMAPHORE_LINUX to reflect whether the platform is "Linux", using the
+// same logic that semaphore.h uses.
 #if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || \
     FIREBASE_PLATFORM_TVOS || FIREBASE_PLATFORM_WINDOWS
 #define SEMAPHORE_LINUX 0
@@ -29,7 +31,6 @@
 #include <pthread.h>
 
 #include <csignal>
-#include <ctime>
 #endif
 
 namespace {
@@ -90,41 +91,38 @@ TEST(SemaphoreTest, TimedWait) {
 #if SEMAPHORE_LINUX
 // Tests that Timed Wait handles spurious wakeup (Linux/Android specific).
 TEST(SemaphoreTest, TimedWaitSpuriousWakeupLinux) {
-  firebase::Semaphore sem(0);
-
+  // Create a function that will be called from a separate thread; it waits
+  // briefly, then sends a SIGUSR1 signal to the main thread.
   auto signaller = [](void* arg) -> void* {
-    struct timespec req, rem;
-    req.tv_sec = 0;
-    req.tv_nsec = 400000000;
-    while (true) {
-      auto result = nanosleep(&req, &rem);
-      if (result == 0) {
-        break;
-      } else if (errno == EINTR) {
-        req = rem;
-      } else {
-        ADD_FAILURE() << "nanosleep() failed";
-        return NULL;
-      }
-    }
-
+    firebase::internal::Sleep(500);
     pthread_kill(*static_cast<pthread_t*>(arg), SIGUSR1);
-
     return NULL;
   };
 
+  // Register a dummy signal handler for SIGUSR1; otherwise, sending SIGUSR1
+  // will crash the application.
   signal(SIGUSR1, [](int signum) -> void {});
 
+  // Start a thread that will send SIGUSR1 to this thread in a few moments.
   pthread_t current_thread = pthread_self();
   pthread_t signaller_thread;
   pthread_create(&signaller_thread, NULL, signaller, &current_thread);
 
+  // Call Semaphore::TimedWait() and keep track of how long it blocks for.
+  firebase::Semaphore sem(0);
   int64_t start_ms = firebase::internal::GetTimestamp();
   EXPECT_FALSE(sem.TimedWait(2 * firebase::internal::kMillisecondsPerSecond));
   int64_t finish_ms = firebase::internal::GetTimestamp();
 
+  // Wait for the "signaller" thread to terminate, since it references memory
+  // on the stack and we can't have it running after this method returns.
   pthread_join(signaller_thread, NULL);
 
+  // Unregister the signal handler for SIGUSR1, since it's no longer needed.
+  signal(SIGUSR1, NULL);
+
+  // Make sure that Semaphore::TimedWait() blocked for the entire timeout, and,
+  // specifically, did NOT return early as a result of the SIGUSR1 interruption.
   ASSERT_LT(labs((finish_ms - start_ms) -
                  (2 * firebase::internal::kMillisecondsPerSecond)),
             0.20 * firebase::internal::kMillisecondsPerSecond);
