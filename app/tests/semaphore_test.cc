@@ -125,7 +125,7 @@ TEST(SemaphoreTest, TimedWaitSpuriousWakeupLinux) {
 }
 #endif  // #if SEMAPHORE_LINUX
 
-TEST(SemaphoreTest, DISABLED_MultithreadedStressTest) {
+TEST(SemaphoreTest, MultithreadedStressTest) {
   for (int i = 0; i < 10000; ++i) {
     firebase::Semaphore sem(0);
 

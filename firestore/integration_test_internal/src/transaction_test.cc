@@ -744,8 +744,8 @@ TEST_F(TransactionTest, TestMaxAttempts) {
 
   Future<void> run_transaction_future = firestore->RunTransaction(
       options,
-      [update_count, &doc](Transaction& transaction,
-                           std::string& error_message) -> Error {
+      [update_count, doc](Transaction& transaction,
+                          std::string& error_message) mutable -> Error {
         SCOPED_TRACE("Update callback; update_count=" +
                      std::to_string(update_count->load()));
         ++(*update_count);
