@@ -355,9 +355,9 @@ TEST_F(HeartbeatControllerDesktopTest, EncodeAndDecode) {
   std::string encoded = controller_.CompressAndEncode(original_str);
   std::string decoded = controller_.DecodeAndDecompress(encoded);
   std::string expected_encoded_payload =
-      "H4sIAAAAAAAC_"
-      "6tWykhNLCpJSk0sKVayiq5WSkxPzStRslIqSS0u0YVwdJRSEoFcoLSSkYGhqa6Bka6BsVJsb"
-      "ayOUllqUXFmfh5QvZFSLQBA2H59TAAAAA";
+      "H4sIAAAAAAAC_6vmUgADpYzUxKKSpNTEkmIlK4VoqKiCQjWcpaCQmJ6aV2KloFSSWlyiC-"
+      "Yo6SBJpyQCJYB6lYwMDE11DYx0DYyVYuHytVBWLEyLUllqUXFmfp6SlZKRElisFgDch9hUjQ"
+      "AAAA";
   EXPECT_EQ(encoded, expected_encoded_payload);
   EXPECT_EQ(decoded, original_str);
 }
@@ -378,6 +378,11 @@ TEST_F(HeartbeatControllerDesktopTest, CreatePayloadString) {
       ],
       "version":"2"
     })json"));
+  std::string expected_encoded_payload =
+      "H4sIAAAAAAAC_"
+      "6tWykhNLCpJSk0sKVayiq5WSkxPzStRslIqSS0u0YVwdJRSEoFcoLSSkYGhqa6Bka6BsVJsb"
+      "ayOUllqUXFmfh5QvZFSLQBA2H59TAAAAA";
+  EXPECT_EQ(encoded_payload, expected_encoded_payload);
 }
 
 TEST_F(HeartbeatControllerDesktopTest, GetExpectedHeartbeatPayload) {

@@ -24,6 +24,10 @@
 #include "app/src/logger.h"
 #include "app/src/scheduler.h"
 
+#ifdef FIREBASE_TESTING
+#include "gtest/gtest.h"
+#endif  // FIREBASE_TESTING
+
 namespace firebase {
 namespace heartbeat {
 
@@ -47,18 +51,19 @@ class HeartbeatController {
   std::string GetAndResetTodaysStoredHeartbeats();
 
  private:
-  friend class HeartbeatControllerDesktopTest_EncodeAndDecode_Test;
-  friend class HeartbeatControllerDesktopTest_CreatePayloadString_Test;
-  friend class HeartbeatControllerDesktopTest_GetExpectedHeartbeatPayload_Test;
-  friend class HeartbeatControllerDesktopTest_GetHeartbeatsPayload_Test;
-  friend class
-      HeartbeatControllerDesktopTest_GetTodaysHeartbeatThenGetAllHeartbeats_Test;
-  friend class
-      HeartbeatControllerDesktopTest_GetHeartbeatPayloadMultipleTimes_Test;
-  friend class
-      HeartbeatControllerDesktopTest_GetHeartbeatsPayloadTimeBetweenFetches_Test;
-  friend class
-      HeartbeatControllerDesktopTest_GetTodaysHeartbeatPayloadMultipleTimes_Test;
+#ifdef FIREBASE_TESTING
+  FRIEND_TEST(HeartbeatControllerDesktopTest, EncodeAndDecode);
+  FRIEND_TEST(HeartbeatControllerDesktopTest, CreatePayloadString);
+  FRIEND_TEST(HeartbeatControllerDesktopTest, GetExpectedHeartbeatPayload);
+  FRIEND_TEST(HeartbeatControllerDesktopTest, GetHeartbeatsPayload);
+  FRIEND_TEST(HeartbeatControllerDesktopTest,
+              GetTodaysHeartbeatThenGetAllHeartbeats);
+  FRIEND_TEST(HeartbeatControllerDesktopTest, GetHeartbeatPayloadMultipleTimes);
+  FRIEND_TEST(HeartbeatControllerDesktopTest,
+              GetHeartbeatsPayloadTimeBetweenFetches);
+  FRIEND_TEST(HeartbeatControllerDesktopTest,
+              GetTodaysHeartbeatPayloadMultipleTimes);
+#endif  // FIREBASE_TESTING
 
   // Constructs an encoded string payload from a given LoggedHeartbeats object.
   std::string GetJsonPayloadForHeartbeats(const LoggedHeartbeats& heartbeats);
