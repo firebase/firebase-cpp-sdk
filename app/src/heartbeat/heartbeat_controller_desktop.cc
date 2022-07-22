@@ -47,6 +47,9 @@ const char* kDatesKey = "dates";
 const int kMaxPayloadSize = 1024;
 const int kMaxWaitTimeMs = 300;
 
+// Minimum time between calls to GetPayload. Can be overridden in tests.
+double g_min_time_between_fetches_sec = 30.0;
+
 HeartbeatController::HeartbeatController(const std::string& app_id,
                                          const Logger& logger,
                                          const DateProvider& date_provider)
@@ -100,6 +103,14 @@ void HeartbeatController::LogHeartbeat() {
 }
 
 std::string HeartbeatController::GetAndResetStoredHeartbeats() {
+  std::time_t now = 0;
+  std::time(&now);
+  double diff_s = std::difftime(now, last_read_all_heartbeats_time_);
+  if (diff_s < g_min_time_between_fetches_sec) {
+    return "";
+  }
+  last_read_all_heartbeats_time_ = now;
+
   SharedPtr<std::string> output_str = MakeShared<std::string>("");
   SharedPtr<Semaphore> scheduled_work_semaphore = MakeShared<Semaphore>(0);
 
@@ -122,7 +133,7 @@ std::string HeartbeatController::GetAndResetStoredHeartbeats() {
             // succeeds.
             if (write_succeeded) {
               this->last_flushed_all_heartbeats_date_ = current_date;
-              *output_str = GetStringPayloadForHeartbeats(logged_heartbeats);
+              *output_str = CompressAndEncode(GetJsonPayloadForHeartbeats(logged_heartbeats));
             }
           }
         }
@@ -143,6 +154,13 @@ std::string HeartbeatController::GetAndResetStoredHeartbeats() {
 }
 
 std::string HeartbeatController::GetAndResetTodaysStoredHeartbeats() {
+  std::time_t now = 0;
+  std::time(&now);
+  double diff_s = std::difftime(now, last_read_todays_heartbeat_time_);
+  if (diff_s < g_min_time_between_fetches_sec) {
+    return "";
+  }
+  last_read_todays_heartbeat_time_ = now;
   SharedPtr<std::string> output_str = MakeShared<std::string>("");
   SharedPtr<Semaphore> scheduled_work_semaphore = MakeShared<Semaphore>(0);
 
@@ -177,7 +195,7 @@ std::string HeartbeatController::GetAndResetTodaysStoredHeartbeats() {
               // succeeds.
               if (write_succeeded) {
                 this->last_flushed_todays_heartbeat_date_ = current_date;
-                *output_str = GetStringPayloadForHeartbeats(todays_heartbeats);
+                *output_str = CompressAndEncode(GetJsonPayloadForHeartbeats(todays_heartbeats));
               }
             }
           }
@@ -196,8 +214,8 @@ std::string HeartbeatController::GetAndResetTodaysStoredHeartbeats() {
   return "";
 }
 
-std::string HeartbeatController::GetStringPayloadForHeartbeats(
-    LoggedHeartbeats heartbeats) {
+std::string HeartbeatController::GetJsonPayloadForHeartbeats(
+    const LoggedHeartbeats& heartbeats) {
   Variant heartbeats_variant = Variant::EmptyVector();
   std::vector<Variant>& heartbeats_vector = heartbeats_variant.vector();
 
@@ -221,8 +239,7 @@ std::string HeartbeatController::GetStringPayloadForHeartbeats(
   root_map[kHeartbeatsKey] = heartbeats_variant;
   root_map[kVersionKey] = kVersionValue;
 
-  std::string json_object = util::VariantToJson(root);
-  return CompressAndEncode(json_object);
+  return util::VariantToJson(root);
 }
 
 std::string HeartbeatController::CompressAndEncode(const std::string& input) {
@@ -265,12 +282,15 @@ std::string HeartbeatController::DecodeAndDecompress(const std::string& input) {
   uLongf result_size = ZLib::MinCompressbufSize(decoded.length());
   char* result = new char[result_size];
   int err = zlib.Uncompress(
-      reinterpret_cast<unsigned char*>(result.get()), &result_size,
+      reinterpret_cast<unsigned char*>(result), &result_size,
       reinterpret_cast<const unsigned char*>(decoded.data()), decoded.length());
   if (err == Z_OK) {
-    return std::string(result.get(), result_size);
+    std::string output = std::string(result, result_size);
+    delete[] result;
+    return output;
   }
   // Failed to uncompress.
+  delete[] result;
   return "";
 }
 

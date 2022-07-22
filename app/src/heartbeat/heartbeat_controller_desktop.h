@@ -47,10 +47,17 @@ class HeartbeatController {
   std::string GetAndResetTodaysStoredHeartbeats();
 
  private:
-  friend class HeartbeatControllerDesktopTest;
+  friend class HeartbeatControllerDesktopTest_EncodeAndDecode_Test; 
+  friend class HeartbeatControllerDesktopTest_CreatePayloadString_Test; 
+  friend class HeartbeatControllerDesktopTest_GetExpectedHeartbeatPayload_Test; 
+  friend class HeartbeatControllerDesktopTest_GetHeartbeatsPayload_Test;  
+  friend class HeartbeatControllerDesktopTest_GetTodaysHeartbeatThenGetAllHeartbeats_Test; 
+  friend class HeartbeatControllerDesktopTest_GetHeartbeatPayloadMultipleTimes_Test; 
+  friend class HeartbeatControllerDesktopTest_GetHeartbeatsPayloadTimeBetweenFetches_Test;
+  friend class HeartbeatControllerDesktopTest_GetTodaysHeartbeatPayloadMultipleTimes_Test; 
 
   // Constructs an encoded string payload from a given LoggedHeartbeats object.
-  std::string GetStringPayloadForHeartbeats(LoggedHeartbeats heartbeats);
+  std::string GetJsonPayloadForHeartbeats(const LoggedHeartbeats& heartbeats);
 
   // Compress a string with gzip and base 64 encode the result.
   std::string CompressAndEncode(const std::string& input);
@@ -62,6 +69,9 @@ class HeartbeatController {
   HeartbeatStorageDesktop storage_;
   scheduler::Scheduler scheduler_;
   const DateProvider& date_provider_;
+
+  std::time_t last_read_all_heartbeats_time_ = 0;
+  std::time_t last_read_todays_heartbeat_time_ = 0;
 
   // For thread safety, the following variables should only be read or written
   // by the scheduler thread.

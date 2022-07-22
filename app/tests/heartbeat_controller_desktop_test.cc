@@ -27,7 +27,7 @@
 #include "testing/json_util.h"
 
 namespace firebase {
-namespace {
+namespace heartbeat {
 
 using ::firebase::heartbeat::HeartbeatController;
 using ::firebase::heartbeat::HeartbeatStorageDesktop;
@@ -35,6 +35,8 @@ using ::firebase::heartbeat::LoggedHeartbeats;
 using ::firebase::testing::cppsdk::EqualsJson;
 using ::testing::MatchesRegex;
 using ::testing::Return;
+
+extern double g_min_time_between_fetches_sec;
 
 const char kAppId[] = "app_id";
 const char kDefaultUserAgent[] = "agent/1";
@@ -58,6 +60,8 @@ class HeartbeatControllerDesktopTest : public ::testing::Test {
     storage_.Write(empty_heartbeats_struct);
     // Default to registering a user agent with version 1
     app_common::RegisterLibrariesFromUserAgent(kDefaultUserAgent);
+    // Override the min time between fetches to 0s
+    g_min_time_between_fetches_sec = 0.0;
   }
 
  protected:
@@ -84,7 +88,7 @@ TEST_F(HeartbeatControllerDesktopTest, LogSingleHeartbeat) {
   controller_.LogHeartbeat();
   // Since LogHeartbeat is done asynchronously, wait a bit before verifying that
   // the log succeeded.
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
   // Read from the storage class to verify
   LoggedHeartbeats read_heartbeats;
@@ -112,7 +116,7 @@ TEST_F(HeartbeatControllerDesktopTest, LogSameDateTwiceOneEntry) {
 
   // Since LogHeartbeat is done asynchronously, wait a bit before verifying that
   // the log succeeded.
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
   // Read from the storage class to verify
   LoggedHeartbeats read_heartbeats;
@@ -139,7 +143,7 @@ TEST_F(HeartbeatControllerDesktopTest, LogTwoDatesTwoEntries) {
   controller_.LogHeartbeat();
   // Since LogHeartbeat is done asynchronously, wait a bit before verifying that
   // the log succeeded.
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
   // Read from the storage class to verify
   LoggedHeartbeats read_heartbeats;
@@ -173,7 +177,7 @@ TEST_F(HeartbeatControllerDesktopTest, LogOlderDatesOneEntry) {
   controller_.LogHeartbeat();
   // Since LogHeartbeat is done asynchronously, wait a bit before verifying that
   // the log succeeded.
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
   // Read from the storage class to verify
   LoggedHeartbeats read_heartbeats;
@@ -249,7 +253,7 @@ TEST_F(HeartbeatControllerDesktopTest, LogMoreThan30DaysRemovesOldEntries) {
   }
   // Since LogHeartbeat is done asynchronously, wait a bit before verifying that
   // the log succeeded.
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
   // Read from the storage class to verify
   LoggedHeartbeats read_heartbeats;
@@ -357,17 +361,12 @@ TEST_F(HeartbeatControllerDesktopTest, EncodeAndDecode) {
 TEST_F(HeartbeatControllerDesktopTest, CreatePayloadString) {
   LoggedHeartbeats logged_heartbeats;
   logged_heartbeats.heartbeats["test-agent"].push_back("2015-02-03");
+  std::string json_payload =
+      controller_.GetJsonPayloadForHeartbeats(logged_heartbeats);
   std::string encoded_payload =
-      controller_.GetStringPayloadForHeartbeats(logged_heartbeats);
-  std::string decoded_payload =
-      controller_.DecodeAndDecompress(encoded_payload);
+      controller_.CompressAndEncode(json_payload);
 
-  std::string expected_payload =
-      "H4sIAAAAAAAC_"
-      "6tWykhNLCpJSk0sKVayiq5WSkxPzStRslIqSS0u0YVwdJRSEoFcoLSSkYGhqa6Bka6BsVJsb"
-      "ayOUllqUXFmfh5QvZFSLQBA2H59TAAAAA";
-  EXPECT_EQ(encoded_payload, expected_payload);
-  EXPECT_THAT(decoded_payload, EqualsJson(R"json({
+  EXPECT_THAT(json_payload, EqualsJson(R"json({
       "heartbeats": [
         {
           agent: "test-agent",
@@ -376,6 +375,12 @@ TEST_F(HeartbeatControllerDesktopTest, CreatePayloadString) {
       ],
       "version":"2"
     })json"));
+
+  std::string expected_encoded_payload =
+      "H4sIAAAAAAAC_"
+      "6tWykhNLCpJSk0sKVayiq5WSkxPzStRslIqSS0u0YVwdJRSEoFcoLSSkYGhqa6Bka6BsVJsb"
+      "ayOUllqUXFmfh5QvZFSLQBA2H59TAAAAA";
+  EXPECT_EQ(encoded_payload, expected_encoded_payload);
 }
 
 TEST_F(HeartbeatControllerDesktopTest, GetExpectedHeartbeatPayload) {
@@ -415,8 +420,7 @@ TEST_F(HeartbeatControllerDesktopTest, GetEmptyHeartbeatPayload) {
 
   // GetAndResetStoredHeartbeats is done synchronously, so there is no need to
   // wait.
-  std::string payload = controller_.DecodeAndDecompress(
-      controller_.GetAndResetStoredHeartbeats());
+  std::string payload = controller_.GetAndResetStoredHeartbeats();
 
   EXPECT_EQ(payload, "");
 }
@@ -428,8 +432,7 @@ TEST_F(HeartbeatControllerDesktopTest, GetTodaysHeartbeatEmptyPayload) {
 
   // GetAndResetStoredHeartbeats is done synchronously, so there is no need to
   // wait.
-  std::string payload = controller_.DecodeAndDecompress(
-      controller_.GetAndResetTodaysStoredHeartbeats());
+  std::string payload = controller_.GetAndResetTodaysStoredHeartbeats();
 
   EXPECT_EQ(payload, "");
 }
@@ -540,6 +543,59 @@ TEST_F(HeartbeatControllerDesktopTest, GetHeartbeatPayloadMultipleTimes) {
   EXPECT_EQ(second_payload, "");
 }
 
+TEST_F(HeartbeatControllerDesktopTest, GetHeartbeatsPayloadTimeBetweenFetches) {
+  // GetAndResetStoredHeartbeats is no-op if called within X seconds of a
+  // previous call.
+  g_min_time_between_fetches_sec = 0.5;
+
+  app_common::RegisterLibrariesFromUserAgent(kDefaultUserAgent);
+  std::string day1 = "2000-01-23";
+  std::string day2 = "2000-01-24";
+  // Date provider will be called for Log, Get, Log, Get
+  EXPECT_CALL(mock_date_provider_, GetDate())
+      .Times(4)
+      .WillOnce(Return(day1))
+      .WillOnce(Return(day1))
+      .WillRepeatedly(Return(day2));
+
+  controller_.LogHeartbeat();
+  // GetAndResetStoredHeartbeats is done synchronously, so there is no need to
+  // wait.
+  std::string first_payload = controller_.DecodeAndDecompress(
+      controller_.GetAndResetStoredHeartbeats());
+  controller_.LogHeartbeat();
+  std::string second_payload = controller_.GetAndResetStoredHeartbeats();
+  
+  // Wait for the time_between_fetches
+  std::this_thread::sleep_for(std::chrono::milliseconds(600));
+
+  std::string third_payload = controller_.DecodeAndDecompress(
+      controller_.GetAndResetStoredHeartbeats());
+
+  // First payload should contain a single heartbeat
+  EXPECT_THAT(first_payload, EqualsJson(R"json({
+      "heartbeats": [
+        {
+          agent: "agent/1",
+          dates: ["2000-01-23"]
+        }
+      ],
+      "version":"2"
+    })json"));
+  // Second payload should be emtpy due to being fetched too early
+  EXPECT_EQ(second_payload, "");
+  // Third payload should occur late enough to contain a heartbeat.
+  EXPECT_THAT(third_payload, EqualsJson(R"json({
+      "heartbeats": [
+        {
+          agent: "agent/1",
+          dates: ["2000-01-24"]
+        }
+      ],
+      "version":"2"
+    })json"));
+}
+
 TEST_F(HeartbeatControllerDesktopTest, GetTodaysHeartbeatPayloadMultipleTimes) {
   app_common::RegisterLibrariesFromUserAgent(kDefaultUserAgent);
   std::string today = "2000-01-23";
@@ -568,5 +624,5 @@ TEST_F(HeartbeatControllerDesktopTest, GetTodaysHeartbeatPayloadMultipleTimes) {
   EXPECT_EQ(second_payload, "");
 }
 
-}  // namespace
+}  // namespace heartbeat
 }  // namespace firebase
