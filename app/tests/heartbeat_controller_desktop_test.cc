@@ -346,15 +346,19 @@ TEST_F(HeartbeatControllerDesktopTest, EncodeAndDecode) {
   std::string original_str = R"json({
       "heartbeats": [
         {
-          agent: "agent/1",
-          dates: ["2000-01-23"]
+          agent: "test-agent",
+          dates: ["2015-02-03"]
         }
       ],
       "version":"2"
     })json";
   std::string encoded = controller_.CompressAndEncode(original_str);
   std::string decoded = controller_.DecodeAndDecompress(encoded);
-  EXPECT_NE(encoded, original_str);
+  std::string expected_encoded_payload =
+      "H4sIAAAAAAAC_"
+      "6tWykhNLCpJSk0sKVayiq5WSkxPzStRslIqSS0u0YVwdJRSEoFcoLSSkYGhqa6Bka6BsVJsb"
+      "ayOUllqUXFmfh5QvZFSLQBA2H59TAAAAA";
+  EXPECT_EQ(encoded, expected_encoded_payload);
   EXPECT_EQ(decoded, original_str);
 }
 
@@ -363,8 +367,7 @@ TEST_F(HeartbeatControllerDesktopTest, CreatePayloadString) {
   logged_heartbeats.heartbeats["test-agent"].push_back("2015-02-03");
   std::string json_payload =
       controller_.GetJsonPayloadForHeartbeats(logged_heartbeats);
-  std::string encoded_payload =
-      controller_.CompressAndEncode(json_payload);
+  std::string encoded_payload = controller_.CompressAndEncode(json_payload);
 
   EXPECT_THAT(json_payload, EqualsJson(R"json({
       "heartbeats": [
@@ -375,12 +378,6 @@ TEST_F(HeartbeatControllerDesktopTest, CreatePayloadString) {
       ],
       "version":"2"
     })json"));
-
-  std::string expected_encoded_payload =
-      "H4sIAAAAAAAC_"
-      "6tWykhNLCpJSk0sKVayiq5WSkxPzStRslIqSS0u0YVwdJRSEoFcoLSSkYGhqa6Bka6BsVJsb"
-      "ayOUllqUXFmfh5QvZFSLQBA2H59TAAAAA";
-  EXPECT_EQ(encoded_payload, expected_encoded_payload);
 }
 
 TEST_F(HeartbeatControllerDesktopTest, GetExpectedHeartbeatPayload) {
@@ -565,7 +562,7 @@ TEST_F(HeartbeatControllerDesktopTest, GetHeartbeatsPayloadTimeBetweenFetches) {
       controller_.GetAndResetStoredHeartbeats());
   controller_.LogHeartbeat();
   std::string second_payload = controller_.GetAndResetStoredHeartbeats();
-  
+
   // Wait for the time_between_fetches
   std::this_thread::sleep_for(std::chrono::milliseconds(600));
 

@@ -47,14 +47,18 @@ class HeartbeatController {
   std::string GetAndResetTodaysStoredHeartbeats();
 
  private:
-  friend class HeartbeatControllerDesktopTest_EncodeAndDecode_Test; 
-  friend class HeartbeatControllerDesktopTest_CreatePayloadString_Test; 
-  friend class HeartbeatControllerDesktopTest_GetExpectedHeartbeatPayload_Test; 
-  friend class HeartbeatControllerDesktopTest_GetHeartbeatsPayload_Test;  
-  friend class HeartbeatControllerDesktopTest_GetTodaysHeartbeatThenGetAllHeartbeats_Test; 
-  friend class HeartbeatControllerDesktopTest_GetHeartbeatPayloadMultipleTimes_Test; 
-  friend class HeartbeatControllerDesktopTest_GetHeartbeatsPayloadTimeBetweenFetches_Test;
-  friend class HeartbeatControllerDesktopTest_GetTodaysHeartbeatPayloadMultipleTimes_Test; 
+  friend class HeartbeatControllerDesktopTest_EncodeAndDecode_Test;
+  friend class HeartbeatControllerDesktopTest_CreatePayloadString_Test;
+  friend class HeartbeatControllerDesktopTest_GetExpectedHeartbeatPayload_Test;
+  friend class HeartbeatControllerDesktopTest_GetHeartbeatsPayload_Test;
+  friend class
+      HeartbeatControllerDesktopTest_GetTodaysHeartbeatThenGetAllHeartbeats_Test;
+  friend class
+      HeartbeatControllerDesktopTest_GetHeartbeatPayloadMultipleTimes_Test;
+  friend class
+      HeartbeatControllerDesktopTest_GetHeartbeatsPayloadTimeBetweenFetches_Test;
+  friend class
+      HeartbeatControllerDesktopTest_GetTodaysHeartbeatPayloadMultipleTimes_Test;
 
   // Constructs an encoded string payload from a given LoggedHeartbeats object.
   std::string GetJsonPayloadForHeartbeats(const LoggedHeartbeats& heartbeats);

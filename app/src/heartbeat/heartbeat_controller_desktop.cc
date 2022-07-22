@@ -133,7 +133,8 @@ std::string HeartbeatController::GetAndResetStoredHeartbeats() {
             // succeeds.
             if (write_succeeded) {
               this->last_flushed_all_heartbeats_date_ = current_date;
-              *output_str = CompressAndEncode(GetJsonPayloadForHeartbeats(logged_heartbeats));
+              *output_str = CompressAndEncode(
+                  GetJsonPayloadForHeartbeats(logged_heartbeats));
             }
           }
         }
@@ -195,7 +196,8 @@ std::string HeartbeatController::GetAndResetTodaysStoredHeartbeats() {
               // succeeds.
               if (write_succeeded) {
                 this->last_flushed_todays_heartbeat_date_ = current_date;
-                *output_str = CompressAndEncode(GetJsonPayloadForHeartbeats(todays_heartbeats));
+                *output_str = CompressAndEncode(
+                    GetJsonPayloadForHeartbeats(todays_heartbeats));
               }
             }
           }
