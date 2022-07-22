@@ -732,6 +732,10 @@ TEST_F(TransactionTest, TestCancellationOnError) {
 }
 
 TEST_F(TransactionTest, TestMaxAttempts) {
+  // TODO(dconeybe) Remove the FirestoreDebugLogEnabler on the line below once
+  // this test's flakiness is solved.
+  FirestoreDebugLogEnabler firestore_debug_log_enabler;
+
   Firestore* firestore = TestFirestore();
   DocumentReference doc = firestore->Collection("TestMaxAttempts").Document();
 
