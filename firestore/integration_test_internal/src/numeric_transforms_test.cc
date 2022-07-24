@@ -126,6 +126,9 @@ class NumericTransformsTest : public FirestoreIntegrationTest {
 };
 
 TEST_F(NumericTransformsTest, CreateDocumentWithIncrement) {
+  // TODO(dconeybe) Remove the FirestoreDebugLogEnabler on the line below once
+  // this test's flakiness is solved.
+  FirestoreDebugLogEnabler debug_log_enabler;
   Await(doc_ref_.Set({{"sum", FieldValue::Increment(1337)}}));
 
   ExpectLocalAndRemoteValue(1337);

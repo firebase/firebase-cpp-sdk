@@ -149,13 +149,10 @@ Firestore* FirestoreIntegrationTest::TestFirestoreWithProjectId(
     apps_[app] = std::unique_ptr<App>(app);
   }
 
-  // Firestore::set_log_level(LogLevel::kLogLevelDebug);
-
   Firestore* db = new Firestore(CreateTestFirestoreInternal(app));
   firestores_[db] = FirestoreInfo(name, std::unique_ptr<Firestore>(db));
 
   LocateEmulator(db);
-  InitializeFirestore(db);
   return db;
 }
 
