@@ -81,9 +81,5 @@ FirestoreInternal* CreateTestFirestoreInternal(App* app) {
   return TestFriend::CreateTestFirestoreInternal(app);
 }
 
-void InitializeFirestore(Firestore* instance) {
-  Firestore::set_log_level(LogLevel::kLogLevelDebug);
-}
-
 }  // namespace firestore
 }  // namespace firebase

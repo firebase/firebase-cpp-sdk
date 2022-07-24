@@ -50,7 +50,6 @@ const int kCheckIntervalMillis = 100;
 const int kTimeOutMillis = 15000;
 
 FirestoreInternal* CreateTestFirestoreInternal(App* app);
-void InitializeFirestore(Firestore* instance);
 
 App* GetApp();
 App* GetApp(const char* name, const std::string& override_project_id);
@@ -207,6 +206,27 @@ class Stopwatch {
 };
 
 std::ostream& operator<<(std::ostream&, const Stopwatch&);
+
+// A RAII wrapper that enables Firestore debug logging and then disables it
+// upon destruction.
+//
+// This is useful for enabling Firestore debug logging in a specific test.
+//
+// Example:
+// TEST(MyCoolTest, VerifyFirestoreDoesItsThing) {
+//   FirestoreDebugLogEnabler firestore_debug_log_enabler;
+//   ...
+// }
+class FirestoreDebugLogEnabler {
+ public:
+  FirestoreDebugLogEnabler() {
+    Firestore::set_log_level(LogLevel::kLogLevelDebug);
+  }
+
+  ~FirestoreDebugLogEnabler() {
+    Firestore::set_log_level(LogLevel::kLogLevelInfo);
+  }
+};
 
 // Base class for Firestore integration tests.
 // Note it keeps a cache of created Firestore instances, and is thread-unsafe.

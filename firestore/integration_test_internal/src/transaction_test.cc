@@ -732,6 +732,10 @@ TEST_F(TransactionTest, TestCancellationOnError) {
 }
 
 TEST_F(TransactionTest, TestMaxAttempts) {
+  // TODO(dconeybe) Remove the FirestoreDebugLogEnabler on the line below once
+  // this test's flakiness is solved.
+  FirestoreDebugLogEnabler firestore_debug_log_enabler;
+
   Firestore* firestore = TestFirestore();
   DocumentReference doc = firestore->Collection("TestMaxAttempts").Document();
 
@@ -744,8 +748,8 @@ TEST_F(TransactionTest, TestMaxAttempts) {
 
   Future<void> run_transaction_future = firestore->RunTransaction(
       options,
-      [update_count, &doc](Transaction& transaction,
-                           std::string& error_message) -> Error {
+      [update_count, doc](Transaction& transaction,
+                          std::string& error_message) mutable -> Error {
         SCOPED_TRACE("Update callback; update_count=" +
                      std::to_string(update_count->load()));
         ++(*update_count);
