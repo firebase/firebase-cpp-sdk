@@ -21,17 +21,11 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-// Set SEMAPHORE_LINUX to reflect whether the platform is "Linux", using the
-// same logic that semaphore.h uses.
-#if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || \
-    FIREBASE_PLATFORM_TVOS || FIREBASE_PLATFORM_WINDOWS
-#define SEMAPHORE_LINUX 0
-#else
-#define SEMAPHORE_LINUX 1
+#if FIREBASE_PLATFORM_ANDROID || FIREBASE_PLATFORM_LINUX
 #include <pthread.h>
 
 #include <csignal>
-#endif
+#endif  // #if FIREBASE_PLATFORM_ANDROID || FIREBASE_PLATFORM_LINUX
 
 namespace {
 
@@ -88,12 +82,12 @@ TEST(SemaphoreTest, TimedWait) {
       0.20 * firebase::internal::kMillisecondsPerSecond);
 }
 
-#if SEMAPHORE_LINUX
+#if FIREBASE_PLATFORM_ANDROID || FIREBASE_PLATFORM_LINUX
 // Tests that Timed Wait handles spurious wakeup (Linux/Android specific).
 TEST(SemaphoreTest, TimedWaitSpuriousWakeupLinux) {
   // Register a dummy signal handler for SIGUSR1; otherwise, sending SIGUSR1
   // later on will crash the application.
-  signal(SIGUSR1, [](int signum) -> void {});
+  signal(SIGUSR1, [](int signum) {});
 
   // Start a thread that will send SIGUSR1 to this thread in a few moments.
   pthread_t main_thread = pthread_self();
@@ -106,9 +100,11 @@ TEST(SemaphoreTest, TimedWaitSpuriousWakeupLinux) {
 
   // Call Semaphore::TimedWait() and keep track of how long it blocks for.
   firebase::Semaphore sem(0);
-  int64_t start_ms = firebase::internal::GetTimestamp();
-  EXPECT_FALSE(sem.TimedWait(2 * firebase::internal::kMillisecondsPerSecond));
-  int64_t finish_ms = firebase::internal::GetTimestamp();
+  auto start_ms = firebase::internal::GetTimestamp();
+  const int timed_wait_timeout = 2 * firebase::internal::kMillisecondsPerSecond;
+  EXPECT_FALSE(sem.TimedWait(timed_wait_timeout));
+  auto finish_ms = firebase::internal::GetTimestamp();
+  const int actual_wait_time = static_cast<int>(finish_ms - start_ms);
 
   // Wait for the "signal sending" thread to terminate, since it references
   // memory on the stack and we can't have it running after this method returns.
@@ -119,11 +115,11 @@ TEST(SemaphoreTest, TimedWaitSpuriousWakeupLinux) {
 
   // Make sure that Semaphore::TimedWait() blocked for the entire timeout, and,
   // specifically, did NOT return early as a result of the SIGUSR1 interruption.
-  ASSERT_LT(labs((finish_ms - start_ms) -
-                 (2 * firebase::internal::kMillisecondsPerSecond)),
-            0.20 * firebase::internal::kMillisecondsPerSecond);
+  const double wait_time_error_margin =
+      0.20 * firebase::internal::kMillisecondsPerSecond;
+  ASSERT_NEAR(actual_wait_time, timed_wait_timeout, wait_time_error_margin);
 }
-#endif  // #if SEMAPHORE_LINUX
+#endif  // #if FIREBASE_PLATFORM_ANDROID || FIREBASE_PLATFORM_LINUX
 
 TEST(SemaphoreTest, MultithreadedStressTest) {
   for (int i = 0; i < 10000; ++i) {
