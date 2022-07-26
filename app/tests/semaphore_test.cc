@@ -107,8 +107,8 @@ TEST(SemaphoreTest, TimedWaitSpuriousWakeupLinux) {
   // Call Semaphore::TimedWait() and keep track of how long it blocks for.
   firebase::Semaphore sem(0);
   auto start_ms = firebase::internal::GetTimestamp();
-  const int timed_wait_timeout = 2 * firebase::internal::kMillisecondsPerSecond;
-  EXPECT_FALSE(sem.TimedWait(timed_wait_timeout));
+  const int kTimedWaitTimeout = 2 * firebase::internal::kMillisecondsPerSecond;
+  EXPECT_FALSE(sem.TimedWait(kTimedWaitTimeout));
   auto finish_ms = firebase::internal::GetTimestamp();
   const int actual_wait_time = static_cast<int>(finish_ms - start_ms);
   EXPECT_TRUE(sigusr1_received.load());
@@ -122,9 +122,9 @@ TEST(SemaphoreTest, TimedWaitSpuriousWakeupLinux) {
 
   // Make sure that Semaphore::TimedWait() blocked for the entire timeout, and,
   // specifically, did NOT return early as a result of the SIGUSR1 interruption.
-  const double wait_time_error_margin =
+  const double kWaitTimeErrorMargin =
       0.20 * firebase::internal::kMillisecondsPerSecond;
-  ASSERT_NEAR(actual_wait_time, timed_wait_timeout, wait_time_error_margin);
+  ASSERT_NEAR(actual_wait_time, kTimedWaitTimeout, kWaitTimeErrorMargin);
 }
 #endif  // #if FIREBASE_PLATFORM_ANDROID || FIREBASE_PLATFORM_LINUX
 
