@@ -647,7 +647,7 @@ jobs:
           echo $(sdk-src/build_scripts/desktop/package.sh -R)'*' > allow_namespaces.txt
           sdk-src/build_scripts/desktop/package.sh -N >> allow_namespaces.txt
           python sdk-src/scripts/print_allowed_namespaces.py >> allow_namespaces.txt
-          allow_namespaces=$(cat allow_namespaces=.txt | tr '\n' '|')
+          allow_namespaces=$(cat allow_namespaces.txt | tr '\n' '|')
           cat cpp_namespaces.txt | grep -vE "^(${allow_namespaces})$" > extra_namespaces.txt
           # If there are any namespaces in this file, print an error.
           if [[ -s extra_namespaces.txt ]]; then
