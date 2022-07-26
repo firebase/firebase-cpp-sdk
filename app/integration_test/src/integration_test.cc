@@ -61,7 +61,7 @@ FirebaseAppTest::FirebaseAppTest() {
 void FirebaseAppTest::SetUpTestSuite() {
   // Nothing to do here.
 }
-  
+
 void FirebaseAppTest::TearDownTestSuite() {
   // The App integration test is too fast for FTL, so pause a few seconds
   // here.

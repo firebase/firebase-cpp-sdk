@@ -37,14 +37,16 @@ namespace test {
 
 class RequestFileTest : public ::testing::Test {
  public:
-  RequestFileTest() :
+  RequestFileTest()
+      :
 #ifdef FIREBASE_INTEGRATION_TEST
-      filename_(app_framework::PathForResource()),
-#else  // Normal unit test, use absl
-      filename_(absl::GetFlag(FLAGS_test_tmpdir) + "/a_file.txt"),
+        filename_(app_framework::PathForResource()),
+#else   // Normal unit test, use absl
+        filename_(absl::GetFlag(FLAGS_test_tmpdir) + "/a_file.txt"),
 #endif  // FIREBASE_INTEGRATION_TEST
         file_(nullptr),
-        file_size_(0) {}
+        file_size_(0) {
+  }
 
   void SetUp() override;
   void TearDown() override;

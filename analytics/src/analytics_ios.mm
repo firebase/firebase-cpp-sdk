@@ -284,5 +284,5 @@ Future<std::string> GetAnalyticsInstanceIdLastResult() {
       internal::FutureData::Get()->api()->LastResult(internal::kAnalyticsFnGetAnalyticsInstanceId));
 }
 
-}  // namespace measurement
+}  // namespace analytics
 }  // namespace firebase
