@@ -26,9 +26,11 @@
 namespace firebase {
 
 // Prints a human-friendly representation of a Future to an ostream.
-// This function is found dynamically by googletest to print a Future object
-// in a test failure message.
-void PrintTo(const Future<void>& future, std::ostream* os);
+// This function is found via ADL by Googletest to print a Future object in
+// a test failure message. Note that the future type must match exactly, without
+// any implicit conversions, for this mechanism to work.
+template <typename T>
+void PrintTo(const Future<T>& future, std::ostream* os);
 
 // Creates and returns a "matcher" for a Future's success. The matcher will wait
 // for the Future to complete with a timeout. If the timeout is reached or the
@@ -37,7 +39,7 @@ void PrintTo(const Future<void>& future, std::ostream* os);
 //
 // Here is an example of how this function could be used:
 // EXPECT_THAT(TestFirestore()->Terminate(), FutureSucceeds());
-testing::Matcher<const Future<void>&> FutureSucceeds();
+testing::Matcher<const FutureBase&> FutureSucceeds();
 
 // Converts a `FutureStatus` value to its enumerator name, and returns it. For
 // example, if `kFutureStatusComplete` is specified then "kFutureStatusComplete"
@@ -45,6 +47,18 @@ testing::Matcher<const Future<void>&> FutureSucceeds();
 // from `FutureStatus`) then this function will gracefully return a "name" to
 // indicate this.
 std::string ToEnumeratorName(FutureStatus status);
+
+// Implementation details follow.
+
+// Because this function's signature requires an implicit conversion to the base
+// class, it cannot be found by Googletest -- instead, the template functions
+// delegate to it.
+void PrintTo(const FutureBase& future, std::ostream* os);
+
+template <typename T>
+void PrintTo(const Future<T>& future, std::ostream* os) {
+  PrintTo(static_cast<const FutureBase&>(future), os);
+}
 
 }  // namespace firebase
 
