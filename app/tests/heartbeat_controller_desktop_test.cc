@@ -42,6 +42,10 @@ const char kAppId[] = "app_id";
 const char kDefaultUserAgent[] = "agent/1";
 const char kCustomUserAgent1[] = "agent/2";
 const char kCustomUserAgent2[] = "agent/3";
+// clang-format off
+const char kEncodedTestAgentPayload[] =
+      "H4sIAAAAAAAC_6tWykhNLCpJSk0sKVayiq5WSkxPzStRslIqSS0u0YVwdJRSEoFcoLSSkYGhqa6Bka6BsVJsbayOUllqUXFmfh5QvZFSLQBA2H59TAAAAA";
+// clang-format on
 
 class MockDateProvider : public heartbeat::DateProvider {
  public:
@@ -60,15 +64,25 @@ class HeartbeatControllerDesktopTest : public ::testing::Test {
     storage_.Write(empty_heartbeats_struct);
     // Default to registering a user agent with version 1
     app_common::RegisterLibrariesFromUserAgent(kDefaultUserAgent);
-    // Override the min time between fetches to 0s
-    g_min_time_between_fetches_sec = 0.0;
   }
-
  protected:
+
   MockDateProvider mock_date_provider_;
   Logger logger_;
   HeartbeatStorageDesktop storage_;
   HeartbeatController controller_;
+  double time_between_fetches_original_val_;
+
+  virtual void SetUp() {
+    // Override the min time between fetches to 0s
+    time_between_fetches_original_val_ = g_min_time_between_fetches_sec;
+    g_min_time_between_fetches_sec = 0.0;
+  }
+
+  virtual void TearDown() {
+    // Reset the time between fetches to original value
+    g_min_time_between_fetches_sec = time_between_fetches_original_val_;
+  }
 };
 
 TEST_F(HeartbeatControllerDesktopTest, DateProvider) {
@@ -343,22 +357,10 @@ TEST_F(HeartbeatControllerDesktopTest,
 }
 
 TEST_F(HeartbeatControllerDesktopTest, EncodeAndDecode) {
-  std::string original_str = R"json({
-      "heartbeats": [
-        {
-          agent: "test-agent",
-          dates: ["2015-02-03"]
-        }
-      ],
-      "version":"2"
-    })json";
+  std::string original_str = R"json({"heartbeats":[{"agent":"test-agent","dates":["2015-02-03"]}],"version":"2"})json";
   std::string encoded = controller_.CompressAndEncode(original_str);
   std::string decoded = controller_.DecodeAndDecompress(encoded);
-  std::string expected_encoded_payload =
-      "H4sIAAAAAAAC_6vmUgADpYzUxKKSpNTEkmIlK4VoqKiCQjWcpaCQmJ6aV2KloFSSWlyiC-"
-      "Yo6SBJpyQCJYB6lYwMDE11DYx0DYyVYuHytVBWLEyLUllqUXFmfp6SlZKRElisFgDch9hUjQ"
-      "AAAA";
-  EXPECT_EQ(encoded, expected_encoded_payload);
+  EXPECT_EQ(encoded, kEncodedTestAgentPayload);
   EXPECT_EQ(decoded, original_str);
 }
 
@@ -378,11 +380,7 @@ TEST_F(HeartbeatControllerDesktopTest, CreatePayloadString) {
       ],
       "version":"2"
     })json"));
-  std::string expected_encoded_payload =
-      "H4sIAAAAAAAC_"
-      "6tWykhNLCpJSk0sKVayiq5WSkxPzStRslIqSS0u0YVwdJRSEoFcoLSSkYGhqa6Bka6BsVJsb"
-      "ayOUllqUXFmfh5QvZFSLQBA2H59TAAAAA";
-  EXPECT_EQ(encoded_payload, expected_encoded_payload);
+  EXPECT_EQ(encoded_payload, kEncodedTestAgentPayload);
 }
 
 TEST_F(HeartbeatControllerDesktopTest, GetExpectedHeartbeatPayload) {
@@ -548,7 +546,7 @@ TEST_F(HeartbeatControllerDesktopTest, GetHeartbeatPayloadMultipleTimes) {
 TEST_F(HeartbeatControllerDesktopTest, GetHeartbeatsPayloadTimeBetweenFetches) {
   // GetAndResetStoredHeartbeats is no-op if called within X seconds of a
   // previous call.
-  g_min_time_between_fetches_sec = 0.5;
+  g_min_time_between_fetches_sec = 1;
 
   app_common::RegisterLibrariesFromUserAgent(kDefaultUserAgent);
   std::string day1 = "2000-01-23";
@@ -566,11 +564,11 @@ TEST_F(HeartbeatControllerDesktopTest, GetHeartbeatsPayloadTimeBetweenFetches) {
   std::string first_payload = controller_.DecodeAndDecompress(
       controller_.GetAndResetStoredHeartbeats());
   controller_.LogHeartbeat();
+  // Second payload is fetched immediately after the log
   std::string second_payload = controller_.GetAndResetStoredHeartbeats();
 
-  // Wait for the time_between_fetches
-  std::this_thread::sleep_for(std::chrono::milliseconds(600));
-
+  // Third payload is fetched after the time-between-fetches cooldown.
+  std::this_thread::sleep_for(std::chrono::milliseconds(1100));
   std::string third_payload = controller_.DecodeAndDecompress(
       controller_.GetAndResetStoredHeartbeats());
 
