@@ -65,8 +65,8 @@ class HeartbeatControllerDesktopTest : public ::testing::Test {
     // Default to registering a user agent with version 1
     app_common::RegisterLibrariesFromUserAgent(kDefaultUserAgent);
   }
- protected:
 
+ protected:
   MockDateProvider mock_date_provider_;
   Logger logger_;
   HeartbeatStorageDesktop storage_;
@@ -357,7 +357,8 @@ TEST_F(HeartbeatControllerDesktopTest,
 }
 
 TEST_F(HeartbeatControllerDesktopTest, EncodeAndDecode) {
-  std::string original_str = R"json({"heartbeats":[{"agent":"test-agent","dates":["2015-02-03"]}],"version":"2"})json";
+  std::string original_str =
+      R"json({"heartbeats":[{"agent":"test-agent","dates":["2015-02-03"]}],"version":"2"})json";
   std::string encoded = controller_.CompressAndEncode(original_str);
   std::string decoded = controller_.DecodeAndDecompress(encoded);
   EXPECT_EQ(encoded, kEncodedTestAgentPayload);
