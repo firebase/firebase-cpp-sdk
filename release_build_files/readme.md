@@ -634,6 +634,12 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+-   Changes
+    - General (Desktop): Fixed an issue with embedded dependencies that could
+      cause duplicate symbol linker errors in conjunction with other libraries
+      ([#989](https://github.com/firebase/firebase-cpp-sdk/issues/989)).
+
 ### 9.3.0
 -   Changes
     - General (Android,Linux): Fixed a concurrency bug where waiting for an
