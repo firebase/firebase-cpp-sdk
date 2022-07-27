@@ -17,6 +17,8 @@
 #ifndef FIREBASE_FIRESTORE_INTEGRATION_TEST_INTERNAL_SRC_UTIL_EVENT_ACCUMULATOR_H_
 #define FIREBASE_FIRESTORE_INTEGRATION_TEST_INTERNAL_SRC_UTIL_EVENT_ACCUMULATOR_H_
 
+#include <vector>
+
 #include "firestore_integration_test.h"
 
 namespace firebase {
