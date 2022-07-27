@@ -71,18 +71,6 @@ class HeartbeatControllerDesktopTest : public ::testing::Test {
   Logger logger_;
   HeartbeatStorageDesktop storage_;
   HeartbeatController controller_;
-  double time_between_fetches_original_val_;
-
-  virtual void SetUp() {
-    // Override the min time between fetches to 0s
-    time_between_fetches_original_val_ = g_min_time_between_fetches_sec;
-    g_min_time_between_fetches_sec = 0.0;
-  }
-
-  virtual void TearDown() {
-    // Reset the time between fetches to original value
-    g_min_time_between_fetches_sec = time_between_fetches_original_val_;
-  }
 };
 
 TEST_F(HeartbeatControllerDesktopTest, DateProvider) {
@@ -517,6 +505,10 @@ TEST_F(HeartbeatControllerDesktopTest, GetTodaysHeartbeatThenGetAllHeartbeats) {
 }
 
 TEST_F(HeartbeatControllerDesktopTest, GetHeartbeatPayloadMultipleTimes) {
+  // Override the min time between fetches to allow multiple fetches
+  double time_between_fetches_original_val = g_min_time_between_fetches_sec;
+  g_min_time_between_fetches_sec = 0.0;
+
   app_common::RegisterLibrariesFromUserAgent(kDefaultUserAgent);
   std::string today = "2000-01-23";
   // Date provider will be called for both Log and Get
@@ -542,12 +534,15 @@ TEST_F(HeartbeatControllerDesktopTest, GetHeartbeatPayloadMultipleTimes) {
   std::string second_payload = controller_.DecodeAndDecompress(
       controller_.GetAndResetStoredHeartbeats());
   EXPECT_EQ(second_payload, "");
+  // Reset the time between fetches to original value
+  g_min_time_between_fetches_sec = time_between_fetches_original_val;
 }
 
 TEST_F(HeartbeatControllerDesktopTest, GetHeartbeatsPayloadTimeBetweenFetches) {
-  // GetAndResetStoredHeartbeats is no-op if called within X seconds of a
-  // previous call.
-  g_min_time_between_fetches_sec = 1;
+  // Override the min time between fetches to 1 second.
+  // GetAndResetStoredHeartbeats is no-op if called before this time.
+  double time_between_fetches_original_val = g_min_time_between_fetches_sec;
+  g_min_time_between_fetches_sec = 1.0;
 
   app_common::RegisterLibrariesFromUserAgent(kDefaultUserAgent);
   std::string day1 = "2000-01-23";
@@ -595,9 +590,16 @@ TEST_F(HeartbeatControllerDesktopTest, GetHeartbeatsPayloadTimeBetweenFetches) {
       ],
       "version":"2"
     })json"));
+
+  // Reset the time between fetches to original value
+  g_min_time_between_fetches_sec = time_between_fetches_original_val;
 }
 
 TEST_F(HeartbeatControllerDesktopTest, GetTodaysHeartbeatPayloadMultipleTimes) {
+  // Override the min time between fetches to allow multiple fetches
+  double time_between_fetches_original_val = g_min_time_between_fetches_sec;
+  g_min_time_between_fetches_sec = 0.0;
+
   app_common::RegisterLibrariesFromUserAgent(kDefaultUserAgent);
   std::string today = "2000-01-23";
   // Date provider will be called for both Log and Get
@@ -623,6 +625,9 @@ TEST_F(HeartbeatControllerDesktopTest, GetTodaysHeartbeatPayloadMultipleTimes) {
   std::string second_payload = controller_.DecodeAndDecompress(
       controller_.GetAndResetStoredHeartbeats());
   EXPECT_EQ(second_payload, "");
+
+  // Reset the time between fetches to original value
+  g_min_time_between_fetches_sec = time_between_fetches_original_val;
 }
 
 }  // namespace heartbeat
