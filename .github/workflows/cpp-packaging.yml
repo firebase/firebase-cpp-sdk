@@ -644,7 +644,7 @@ jobs:
           cat cpp_namespaces.txt
           # Filter out renamed namespaces (f_b_*), standard namespaces, and the public namespace (firebase::).
           # These are all specified in the respective scripts, package.sh and merge_libraries.py
-          echo $(sdk-src/build_scripts/desktop/package.sh -R)'*' > allow_namespaces.txt
+          echo $(sdk-src/build_scripts/desktop/package.sh -R)'.*' > allow_namespaces.txt
           sdk-src/build_scripts/desktop/package.sh -N >> allow_namespaces.txt
           python sdk-src/scripts/print_allowed_namespaces.py >> allow_namespaces.txt
           allow_namespaces=$(cat allow_namespaces.txt | tr '\n' '|')
