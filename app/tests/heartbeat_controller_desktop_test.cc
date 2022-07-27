@@ -58,19 +58,30 @@ class HeartbeatControllerDesktopTest : public ::testing::Test {
       : mock_date_provider_(),
         logger_(nullptr),
         storage_(kAppId, logger_),
-        controller_(kAppId, logger_, mock_date_provider_) {
-    // For the sake of testing, clear any pre-existing stored heartbeats.
-    LoggedHeartbeats empty_heartbeats_struct;
-    storage_.Write(empty_heartbeats_struct);
-    // Default to registering a user agent with version 1
-    app_common::RegisterLibrariesFromUserAgent(kDefaultUserAgent);
-  }
+        controller_(kAppId, logger_, mock_date_provider_) {}
 
  protected:
   MockDateProvider mock_date_provider_;
   Logger logger_;
   HeartbeatStorageDesktop storage_;
   HeartbeatController controller_;
+  double time_between_fetches_original_val_;
+
+  void SetUp() override {
+    // For the sake of testing, clear any pre-existing stored heartbeats.
+    LoggedHeartbeats empty_heartbeats_struct;
+    storage_.Write(empty_heartbeats_struct);
+    // Default to registering a user agent with version 1
+    app_common::RegisterLibrariesFromUserAgent(kDefaultUserAgent);
+    // Record the original value of g_min_time_between_fetches_sec in case a
+    // test case overrides it.
+    time_between_fetches_original_val_ = g_min_time_between_fetches_sec;
+  }
+
+  void TearDown() override {
+    // Reset the time between fetches to original value
+    g_min_time_between_fetches_sec = time_between_fetches_original_val_;
+  }
 };
 
 TEST_F(HeartbeatControllerDesktopTest, DateProvider) {
@@ -505,8 +516,8 @@ TEST_F(HeartbeatControllerDesktopTest, GetTodaysHeartbeatThenGetAllHeartbeats) {
 }
 
 TEST_F(HeartbeatControllerDesktopTest, GetHeartbeatPayloadMultipleTimes) {
-  // Override the min time between fetches to allow multiple fetches
-  double time_between_fetches_original_val = g_min_time_between_fetches_sec;
+  // Override the min time between fetches to allow calling
+  // GetAndResetStoredHeartbeats twice in a row.
   g_min_time_between_fetches_sec = 0.0;
 
   app_common::RegisterLibrariesFromUserAgent(kDefaultUserAgent);
@@ -534,14 +545,11 @@ TEST_F(HeartbeatControllerDesktopTest, GetHeartbeatPayloadMultipleTimes) {
   std::string second_payload = controller_.DecodeAndDecompress(
       controller_.GetAndResetStoredHeartbeats());
   EXPECT_EQ(second_payload, "");
-  // Reset the time between fetches to original value
-  g_min_time_between_fetches_sec = time_between_fetches_original_val;
 }
 
 TEST_F(HeartbeatControllerDesktopTest, GetHeartbeatsPayloadTimeBetweenFetches) {
-  // Override the min time between fetches to 1 second.
-  // GetAndResetStoredHeartbeats is no-op if called before this time.
-  double time_between_fetches_original_val = g_min_time_between_fetches_sec;
+  // Override the min time between fetches to 1 second, in order to test calls
+  // to GetAndResetStoredHeartbeats both before and after this minimum time.
   g_min_time_between_fetches_sec = 1.0;
 
   app_common::RegisterLibrariesFromUserAgent(kDefaultUserAgent);
@@ -590,14 +598,11 @@ TEST_F(HeartbeatControllerDesktopTest, GetHeartbeatsPayloadTimeBetweenFetches) {
       ],
       "version":"2"
     })json"));
-
-  // Reset the time between fetches to original value
-  g_min_time_between_fetches_sec = time_between_fetches_original_val;
 }
 
 TEST_F(HeartbeatControllerDesktopTest, GetTodaysHeartbeatPayloadMultipleTimes) {
-  // Override the min time between fetches to allow multiple fetches
-  double time_between_fetches_original_val = g_min_time_between_fetches_sec;
+  // Override the min time between fetches to allow calling
+  // GetAndResetTodaysStoredHeartbeats twice in a row.
   g_min_time_between_fetches_sec = 0.0;
 
   app_common::RegisterLibrariesFromUserAgent(kDefaultUserAgent);
@@ -625,9 +630,6 @@ TEST_F(HeartbeatControllerDesktopTest, GetTodaysHeartbeatPayloadMultipleTimes) {
   std::string second_payload = controller_.DecodeAndDecompress(
       controller_.GetAndResetStoredHeartbeats());
   EXPECT_EQ(second_payload, "");
-
-  // Reset the time between fetches to original value
-  g_min_time_between_fetches_sec = time_between_fetches_original_val;
 }
 
 }  // namespace heartbeat
