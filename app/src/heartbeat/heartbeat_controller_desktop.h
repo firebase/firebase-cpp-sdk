@@ -24,6 +24,10 @@
 #include "app/src/logger.h"
 #include "app/src/scheduler.h"
 
+#ifdef FIREBASE_TESTING
+#include "gtest/gtest.h"
+#endif  // FIREBASE_TESTING
+
 namespace firebase {
 namespace heartbeat {
 
@@ -36,14 +40,53 @@ class HeartbeatController {
   // Asynchronously log a heartbeat, if needed
   void LogHeartbeat();
 
+  // Synchronously fetches and clears all heartbeats from storage and returns
+  // a JSON payload that has been compressed with gzip and base64 encoded.
+  // If there are no new heartbeats, an empty string is returned instead.
+  std::string GetAndResetStoredHeartbeats();
+
+  // Synchronously fetches and clears today's heartbeat from storage and returns
+  // a JSON payload that has been compressed with gzip and base64 encoded.
+  // If there is no new heartbeat, an empty string is returned instead.
+  std::string GetAndResetTodaysStoredHeartbeats();
+
  private:
+#ifdef FIREBASE_TESTING
+  FRIEND_TEST(HeartbeatControllerDesktopTest, EncodeAndDecode);
+  FRIEND_TEST(HeartbeatControllerDesktopTest, CreatePayloadString);
+  FRIEND_TEST(HeartbeatControllerDesktopTest, GetExpectedHeartbeatPayload);
+  FRIEND_TEST(HeartbeatControllerDesktopTest, GetHeartbeatsPayload);
+  FRIEND_TEST(HeartbeatControllerDesktopTest,
+              GetTodaysHeartbeatThenGetAllHeartbeats);
+  FRIEND_TEST(HeartbeatControllerDesktopTest, GetHeartbeatPayloadMultipleTimes);
+  FRIEND_TEST(HeartbeatControllerDesktopTest,
+              GetHeartbeatsPayloadTimeBetweenFetches);
+  FRIEND_TEST(HeartbeatControllerDesktopTest,
+              GetTodaysHeartbeatPayloadMultipleTimes);
+#endif  // FIREBASE_TESTING
+
+  // Constructs an encoded string payload from a given LoggedHeartbeats object.
+  std::string GetJsonPayloadForHeartbeats(const LoggedHeartbeats& heartbeats);
+
+  // Compress a string with gzip and base 64 encode the result.
+  std::string CompressAndEncode(const std::string& input);
+
+  // Decode a base64 encoded string and decompress the result using gzip.
+  // This method should only be used in tests.
+  std::string DecodeAndDecompress(const std::string& input);
+
   HeartbeatStorageDesktop storage_;
   scheduler::Scheduler scheduler_;
   const DateProvider& date_provider_;
 
+  std::time_t last_read_all_heartbeats_time_ = 0;
+  std::time_t last_read_todays_heartbeat_time_ = 0;
+
   // For thread safety, the following variables should only be read or written
   // by the scheduler thread.
   std::string last_logged_date_;
+  std::string last_flushed_all_heartbeats_date_;
+  std::string last_flushed_todays_heartbeat_date_;
 };
 
 }  // namespace heartbeat

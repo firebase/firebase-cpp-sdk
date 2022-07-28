@@ -173,7 +173,9 @@ firebase_cpp_cc_test(firebase_app_heartbeat_controller_desktop_test
     heartbeat_controller_desktop_test.cc
   DEPENDS
     firebase_app
-    flatbuffers
+    firebase_testing
+  DEFINES
+    -DFIREBASE_TESTING
 )
 
 firebase_cpp_cc_test(firebase_app_heartbeat_storage_desktop_test

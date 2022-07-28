@@ -201,6 +201,8 @@ set(app_desktop_SRCS
     src/heartbeat/date_provider.cc
     src/heartbeat/heartbeat_storage_desktop.cc
     src/heartbeat/heartbeat_controller_desktop.cc
+    rest/gzipheader.cc
+    rest/zlibwrapper.cc
     ${FIREBASE_GEN_FILE_DIR}/app/logged_heartbeats_generated.h)
 if(ANDROID)
   set(app_platform_SRCS
@@ -374,6 +376,14 @@ target_include_directories(firebase_app
     ${FLATBUFFERS_SOURCE_DIR}/include
     ${LIBSECRET_INCLUDE_DIRS}
 )
+
+if (DESKTOP)
+  target_include_directories(firebase_app
+    PUBLIC
+      ${ZLIB_SOURCE_DIR}/..
+      ${ZLIB_BINARY_DIR})
+endif()
+
 target_compile_definitions(firebase_app
   PRIVATE
     -DINTERNAL_EXPERIMENTAL=1
@@ -417,6 +427,9 @@ elseif(IOS)
       FirebaseDynamicLinks
       FirebaseInstanceID
   )
+else()
+  target_link_libraries(firebase_app
+    PRIVATE zlibstatic)
 endif()
 
 if (NOT ANDROID AND NOT IOS)
