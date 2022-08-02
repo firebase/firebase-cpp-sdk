@@ -123,7 +123,7 @@ Future<AdResult> AdViewInternalIOS::LoadAd(const AdRequest& request) {
       ad_load_callback_data_ = nil;
     } else {
       // Make the AdView ad request.
-      [ad_view_ loadRequest:ad_request];
+      [(GADBannerView*)ad_view_ loadRequest: ad_request];
     }
   });
   return future;
