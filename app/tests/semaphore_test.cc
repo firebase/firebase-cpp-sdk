@@ -16,10 +16,18 @@
 
 #include "app/src/semaphore.h"
 
+#include <atomic>
+
 #include "app/src/thread.h"
 #include "app/src/time.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+
+#if FIREBASE_PLATFORM_ANDROID || FIREBASE_PLATFORM_LINUX
+#include <pthread.h>
+
+#include <csignal>
+#endif  // #if FIREBASE_PLATFORM_ANDROID || FIREBASE_PLATFORM_LINUX
 
 namespace {
 
@@ -75,6 +83,50 @@ TEST(SemaphoreTest, TimedWait) {
       labs((finish_ms - start_ms) - firebase::internal::kMillisecondsPerSecond),
       0.20 * firebase::internal::kMillisecondsPerSecond);
 }
+
+#if FIREBASE_PLATFORM_ANDROID || FIREBASE_PLATFORM_LINUX
+// Use a global variable for `sigusr1_received` because there is no way to pass
+// a context to the signal handler (https://stackoverflow.com/q/64713130).
+std::atomic<bool> sigusr1_received;
+// Tests that Timed Wait handles spurious wakeup (Linux/Android specific).
+TEST(SemaphoreTest, TimedWaitSpuriousWakeupLinux) {
+  // Register a dummy signal handler for SIGUSR1; otherwise, sending SIGUSR1
+  // later on will crash the application.
+  sigusr1_received.store(false);
+  signal(SIGUSR1, [](int signum) { sigusr1_received.store(true); });
+
+  // Start a thread that will send SIGUSR1 to this thread in a few moments.
+  pthread_t main_thread = pthread_self();
+  firebase::Thread signal_sending_thread = firebase::Thread(
+      [](void* arg) {
+        firebase::internal::Sleep(500);
+        pthread_kill(*static_cast<pthread_t*>(arg), SIGUSR1);
+      },
+      &main_thread);
+
+  // Call Semaphore::TimedWait() and keep track of how long it blocks for.
+  firebase::Semaphore sem(0);
+  auto start_ms = firebase::internal::GetTimestamp();
+  const int kTimedWaitTimeout = 2 * firebase::internal::kMillisecondsPerSecond;
+  EXPECT_FALSE(sem.TimedWait(kTimedWaitTimeout));
+  auto finish_ms = firebase::internal::GetTimestamp();
+  const int actual_wait_time = static_cast<int>(finish_ms - start_ms);
+  EXPECT_TRUE(sigusr1_received.load());
+
+  // Wait for the "signal sending" thread to terminate, since it references
+  // memory on the stack and we can't have it running after this method returns.
+  signal_sending_thread.Join();
+
+  // Unregister the signal handler for SIGUSR1, since it's no longer needed.
+  signal(SIGUSR1, NULL);
+
+  // Make sure that Semaphore::TimedWait() blocked for the entire timeout, and,
+  // specifically, did NOT return early as a result of the SIGUSR1 interruption.
+  const double kWaitTimeErrorMargin =
+      0.20 * firebase::internal::kMillisecondsPerSecond;
+  ASSERT_NEAR(actual_wait_time, kTimedWaitTimeout, kWaitTimeErrorMargin);
+}
+#endif  // #if FIREBASE_PLATFORM_ANDROID || FIREBASE_PLATFORM_LINUX
 
 TEST(SemaphoreTest, MultithreadedStressTest) {
   for (int i = 0; i < 10000; ++i) {

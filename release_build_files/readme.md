@@ -634,9 +634,12 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming
+### Upcoming Release
 -   Changes
-    - GMA: Updated iOS dependency to Google Mobile Ads SDK version 9.7.0.
+    - General (Desktop): Fixed an issue with embedded dependencies that could
+      cause duplicate symbol linker errors in conjunction with other libraries
+      ([#989](https://github.com/firebase/firebase-cpp-sdk/issues/989)).
+    - GMA (iOS): Updated iOS dependency to Google Mobile Ads SDK version 9.7.0.
 
 ### 9.3.0
 -   Changes

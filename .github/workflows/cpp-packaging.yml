@@ -28,8 +28,8 @@ on:
 
 env:
   # Packaging prerequisites
-  # Demumble 1.1.0 released Nov 13, 2018
-  demumbleVer: "1.1.0"
+  # Demumble version from March 22, 2022
+  demumbleVer: "df938e45c2b0e064fb5323d88b692d03b451d271"
   # Use SHA256 for hashing files.
   hashCommand: "sha256sum"
   # Xcode version 13.3.1 is the version we build the SDK with.
@@ -94,6 +94,11 @@ jobs:
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
 
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
       - name: Fetch and build binutils
         run: |
           set +e
@@ -154,7 +159,7 @@ jobs:
         with:
           repository: nico/demumble
           path: demumble-src
-          ref: v${{ env.demumbleVer }}
+          ref: ${{ env.demumbleVer }}
 
       - name: build demumble
         run: |
@@ -544,6 +549,9 @@ jobs:
           cd sdk-src
           python scripts/gha/install_prereqs_desktop.py --ssl boringssl
           cd ..
+          if [[ $(uname) == "Darwin"* ]]; then
+            brew install parallel
+          fi
 
       - name: postprocess and package built SDK
         run: |
@@ -604,6 +612,48 @@ jobs:
         with:
           name: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package
           path: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package.tgz
+
+      - name: Check for unrenamed namespaces
+        shell: bash
+        run: |
+          set +e
+          if [[ "${{ matrix.sdk_platform }}" == "darwin" ]]; then
+            nm=bin/llvm-nm
+          elif [[ "${{ matrix.sdk_platform }}" == "windows" ]]; then
+            if [[ "${{ matrix.sdk_platform }}" == *"x64"* ]]; then
+              nm="bin/nm --target pe-x86-64"
+            else
+              nm="bin/nm --target pe-i386"
+            fi
+          else  # sdk_platform = linux
+            nm=bin/nm
+          fi
+          ${nm} `find firebase-cpp-sdk-*-package/libs/${{ matrix.sdk_platform }} -type f` | grep '^[0-9a-fA-F][0-9a-fA-F]* ' | cut -d' ' -f3- > raw_symbols.txt
+          if [[ "${{ matrix.sdk_platform }}" == "windows" ]]; then
+            cat raw_symbols.txt | sort | uniq | bin/demumble | grep '^[a-zA-Z_]*::' > cpp_symbols.txt
+          elif [[ "${{ matrix.sdk_platform }}" == "darwin" ]]; then
+            # remove leading _ on mach-o symbols
+            cat raw_symbols.txt | sort | uniq | sed 's/^_//' | bin/c++filt | grep '^[a-zA-Z_]*::' > cpp_symbols.txt
+          else  # linux
+            cat raw_symbols.txt | sort | uniq | bin/c++filt | grep '^[a-zA-Z_]*::' > cpp_symbols.txt
+          fi
+          # cpp_symbols.txt contains a list of all C++ symbols, sorted and deduped
+          # get a list of all top-level namespaces (except system namespaces)
+          cat cpp_symbols.txt | cut -d: -f1 | sort | uniq > cpp_namespaces.txt
+          echo "List of all namespaces found:"
+          cat cpp_namespaces.txt
+          # Filter out renamed namespaces (f_b_*), standard namespaces, and the public namespace (firebase::).
+          # These are all specified in the respective scripts, package.sh and merge_libraries.py
+          echo $(sdk-src/build_scripts/desktop/package.sh -R)'.*' > allow_namespaces.txt
+          sdk-src/build_scripts/desktop/package.sh -N >> allow_namespaces.txt
+          python sdk-src/scripts/print_allowed_namespaces.py >> allow_namespaces.txt
+          allow_namespaces=$(cat allow_namespaces.txt | tr '\n' '|')
+          cat cpp_namespaces.txt | grep -vE "^(${allow_namespaces})$" > extra_namespaces.txt
+          # If there are any namespaces in this file, print an error.
+          if [[ -s extra_namespaces.txt ]]; then
+            echo '::error ::Unrenamed C++ namespaces in ${{ matrix.sdk_platform }}${{ matrix.suffix }} package:%0A'$(cat extra_namespaces.txt | tr '\n' ' ' | sed 's/ /%0A/g')
+            exit 1
+          fi
 
       - name: cleanup build artifacts
         if: |
