@@ -641,7 +641,9 @@ code.
       ([#989](https://github.com/firebase/firebase-cpp-sdk/issues/989)).
     - GMA (iOS): Updated iOS dependency to Google Mobile Ads SDK version 9.7.0.
     - General (Android,iOS,Linux,macOS 32-bit): Fixed an integer overflow which
-      could result in a crash when waiting for a `Future` with a timeout.
+      could result in a crash or premature return when waiting for a `Future`
+      with a timeout
+      ([#1042](https://github.com/firebase/firebase-cpp-sdk/pull/1042)).
 
 ### 9.3.0
 -   Changes
