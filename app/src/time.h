@@ -18,8 +18,6 @@
 #define FIREBASE_APP_SRC_TIME_H_
 #include <cassert>
 #include <cstdint>
-#include <iostream>
-#include <string>
 
 #include "app/src/include/firebase/internal/platform.h"
 
