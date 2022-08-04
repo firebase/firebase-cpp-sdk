@@ -62,6 +62,14 @@ TEST(TimeTests, ComparisonTests) {
   EXPECT_EQ(firebase::internal::TimespecCmp(t1, t1), 0);
   EXPECT_EQ(firebase::internal::TimespecCmp(t2, t2), 0);
 }
+
+TEST(TimeTests, MsToAbsoluteTimespecTest) {
+  const timespec t1 = firebase::internal::MsToAbsoluteTimespec(0);
+  const timespec t2 = firebase::internal::MsToAbsoluteTimespec(10000);
+  const int64_t ms1 = firebase::internal::TimespecToMs(t1);
+  const int64_t ms2 = firebase::internal::TimespecToMs(t2);
+  ASSERT_NEAR(ms1, ms2 - 10000, 300);
+}
 #endif
 
 // Test GetTimestamp function

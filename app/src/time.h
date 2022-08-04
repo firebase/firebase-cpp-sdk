@@ -18,6 +18,8 @@
 #define FIREBASE_APP_SRC_TIME_H_
 #include <cassert>
 #include <cstdint>
+#include <iostream>
+#include <string>
 
 #include "app/src/include/firebase/internal/platform.h"
 
@@ -89,8 +91,13 @@ inline timespec MsToTimespec(int milliseconds) {
 inline timespec MsToAbsoluteTimespec(int milliseconds) {
   timespec t;
   clock_gettime(CLOCK_REALTIME, &t);
-  t.tv_nsec += milliseconds * internal::kNanosecondsPerMillisecond;
-  NormalizeTimespec(&t);
+
+  const int64_t nanoseconds =
+      t.tv_nsec + (t.tv_sec * internal::kNanosecondsPerSecond) +
+      (milliseconds * internal::kNanosecondsPerMillisecond);
+
+  t.tv_sec = nanoseconds / internal::kNanosecondsPerSecond;
+  t.tv_nsec = nanoseconds - (t.tv_sec * internal::kNanosecondsPerSecond);
   return t;
 }
 
