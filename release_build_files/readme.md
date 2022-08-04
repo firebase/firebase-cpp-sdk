@@ -640,6 +640,8 @@ code.
       cause duplicate symbol linker errors in conjunction with other libraries
       ([#989](https://github.com/firebase/firebase-cpp-sdk/issues/989)).
     - GMA (iOS): Updated iOS dependency to Google Mobile Ads SDK version 9.7.0.
+    - General (Android,iOS,Linux,macOS 32-bit): Fixed an integer overflow which
+      could result in a crash when waiting for a `Future` with a timeout.
 
 ### 9.3.0
 -   Changes
