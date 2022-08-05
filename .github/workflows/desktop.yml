@@ -242,7 +242,7 @@ jobs:
         # command must be invoked in same shell instance of that runs the
         # tests.
         # TODO: Enable tests for x86 once they are all working
-        if: startsWith(matrix.os, 'ubuntu') && matrix.architecture != 'x86'
+        if: startsWith(matrix.os, 'ubuntu')
         env:
           LANG: en_US
         run: |
