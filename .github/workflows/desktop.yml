@@ -233,7 +233,7 @@ jobs:
           LANG: en_US
         run: |
           cd build
-          ctest --repeat until-pass:3
+          ctest --repeat until-pass:3 --output-on-failure
 
       - name: Run unit tests (linux)
         # Linux exists as its own standalone execution step in order to invoke
