@@ -228,8 +228,7 @@ jobs:
           rm -rf ~/Library/Logs/DiagnosticReports/*
 
       - name: Run unit tests (windows & macos)
-        # TODO: Enable tests for x86 once they are all working
-        if: (startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')) && matrix.architecture != 'x86' && matrix.architecture != 'arm64'
+        if: (startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')) && matrix.architecture != 'arm64'
         env:
           LANG: en_US
         run: |
@@ -241,7 +240,6 @@ jobs:
         # platform-specific `ulimit` to enable crash collection.  The ulimit
         # command must be invoked in same shell instance of that runs the
         # tests.
-        # TODO: Enable tests for x86 once they are all working
         if: startsWith(matrix.os, 'ubuntu')
         env:
           LANG: en_US
