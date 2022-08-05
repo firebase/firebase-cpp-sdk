@@ -95,7 +95,7 @@ inline timespec MsToAbsoluteTimespec(int milliseconds) {
       (milliseconds * internal::kNanosecondsPerMillisecond);
 
   t.tv_sec = nanoseconds / internal::kNanosecondsPerSecond;
-  t.tv_nsec = nanoseconds - (t.tv_sec * internal::kNanosecondsPerSecond);
+  t.tv_nsec = nanoseconds % internal::kNanosecondsPerSecond;
   return t;
 }
 
