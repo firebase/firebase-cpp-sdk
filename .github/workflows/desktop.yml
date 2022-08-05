@@ -248,7 +248,7 @@ jobs:
         run: |
           ulimit -c unlimited
           cd build
-          sudo ctest --repeat until-pass:3
+          sudo ctest --repeat until-pass:3 --output-on-failure
 
       - name: Prep bins for achive (linux)
         # Copies all of the binary files into one directory for ease in
