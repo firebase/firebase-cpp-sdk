@@ -63,6 +63,8 @@ TEST(TimeTests, ComparisonTests) {
   EXPECT_EQ(firebase::internal::TimespecCmp(t2, t2), 0);
 }
 
+// This test verifies the fix for the old integer overflow bug on 32-bit
+// architectures: https://github.com/firebase/firebase-cpp-sdk/pull/1042.
 TEST(TimeTests, MsToAbsoluteTimespecTest) {
   const timespec t1 = firebase::internal::MsToAbsoluteTimespec(0);
   const timespec t2 = firebase::internal::MsToAbsoluteTimespec(10000);
