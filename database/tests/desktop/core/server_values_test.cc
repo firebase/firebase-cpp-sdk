@@ -37,7 +37,7 @@ TEST(ServerValues, ServerTimestamp) {
 }
 
 TEST(ServerValues, GenerateServerValues) {
-  int64_t current_time_ms = time(nullptr) * 1000;
+  int64_t current_time_ms = static_cast<int64_t>(time(nullptr)) * 1000L;
 
   Variant result = GenerateServerValues(0);
 
