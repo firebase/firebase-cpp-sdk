@@ -28,11 +28,11 @@ namespace {
 TEST(TimeTests, NormalizeTest) {
   timespec t;
   t.tv_sec = 2;
-  t.tv_nsec = firebase::internal::kNanosecondsPerSecond * 5.5;
+  t.tv_nsec = 2100000000; // Must be <= 2,147,483,647 on 32-bit platforms.
   firebase::internal::NormalizeTimespec(&t);
 
-  EXPECT_EQ(t.tv_sec, 7);
-  EXPECT_EQ(t.tv_nsec, firebase::internal::kNanosecondsPerSecond * 0.5);
+  EXPECT_EQ(t.tv_sec, 4);
+  EXPECT_EQ(t.tv_nsec, 100000000);
 }
 
 // Test the various conversions to and from timespecs.
