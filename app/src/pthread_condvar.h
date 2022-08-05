@@ -53,22 +53,6 @@ class ConditionVariable {
     }
   }
 
-  // Waits for the condition variable to go, AND for the predicate to succeed.
-  // Returns false if it times out before both those conditions are met.
-  // Returns true otherwise
-  template <class Predicate>
-  bool TimedWait(pthread_mutex_t* lock, Predicate predicate, int milliseconds) {
-    int64_t end_time_ms = TimespecToMs(MsToAbsoluteTimespec(milliseconds));
-    int64_t current_time_ms = TimespecToMs(MsToAbsoluteTimespec(0));
-    while (!predicate() && current_time_ms < end_time_ms) {
-      TimedWait(lock, end_time_ms - current_time_ms);
-      current_time_ms = TimespecToMs(MsToAbsoluteTimespec(0));
-    }
-    // If time isn't up, AND the predicate is true, then we return true.
-    // False otherwise.
-    return current_time_ms < end_time_ms;
-  }
-
   void NotifyOne() { pthread_cond_signal(&cond_); }
   void NotifyAll() { pthread_cond_broadcast(&cond_); }
 
