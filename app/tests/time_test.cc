@@ -30,7 +30,10 @@ namespace {
 TEST(TimeTests, NormalizeTest) {
   timespec t;
   t.tv_sec = 2;
-  t.tv_nsec = 2100000000;  // Must be <= 2,147,483,647 on 32-bit platforms.
+  // The maximum value for `tv_nsec` on 32-bit platforms is 2,147,483,647;
+  // make sure not to use a value larger than this or else integer overflow
+  // will occur on x86 and other 32-bit platforms.
+  t.tv_nsec = 2100000000;
   firebase::internal::NormalizeTimespec(&t);
 
   EXPECT_EQ(t.tv_sec, 4);
