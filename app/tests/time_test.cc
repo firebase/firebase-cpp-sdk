@@ -24,17 +24,6 @@
 namespace {
 
 #ifndef WIN32
-// Test that the normalize function works, for timespecs
-TEST(TimeTests, NormalizeTest) {
-  timespec t;
-  t.tv_sec = 2;
-  t.tv_nsec = firebase::internal::kNanosecondsPerSecond * 5.5;
-  firebase::internal::NormalizeTimespec(&t);
-
-  EXPECT_EQ(t.tv_sec, 7);
-  EXPECT_EQ(t.tv_nsec, firebase::internal::kNanosecondsPerSecond * 0.5);
-}
-
 // Test the various conversions to and from timespecs.
 TEST(TimeTests, ConversionTests) {
   timespec t;
