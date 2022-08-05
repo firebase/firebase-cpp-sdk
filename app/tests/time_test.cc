@@ -13,13 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #include "app/src/time.h"
+
+#include <time.h>
 
 #include <iostream>
 #include <string>
-
-#include <time.h>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -31,7 +30,7 @@ namespace {
 TEST(TimeTests, NormalizeTest) {
   timespec t;
   t.tv_sec = 2;
-  t.tv_nsec = 2100000000; // Must be <= 2,147,483,647 on 32-bit platforms.
+  t.tv_nsec = 2100000000;  // Must be <= 2,147,483,647 on 32-bit platforms.
   firebase::internal::NormalizeTimespec(&t);
 
   EXPECT_EQ(t.tv_sec, 4);
@@ -100,7 +99,8 @@ TEST(TimeTests, GetTimestampEpochTest) {
 
   // Print out the epoch time so that we can verify the timestamp from the log
   // This is the easiest way to verify if the function works in all platform
-  std::cout << std::to_string(start) << " -> " << std::to_string(end) << " (" << std::to_string(error) << ")" << std::endl;
+  std::cout << std::to_string(start) << " -> " << std::to_string(end) << " ("
+            << std::to_string(error) << ")" << std::endl;
 
   EXPECT_GE(end, start + 500);
 }
