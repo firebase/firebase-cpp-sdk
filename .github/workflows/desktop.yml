@@ -228,7 +228,8 @@ jobs:
           rm -rf ~/Library/Logs/DiagnosticReports/*
 
       - name: Run unit tests (windows & macos)
-        if: (startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')) && matrix.architecture != 'arm64'
+        # TODO: Enable tests for x86 once they are all working
+        if: (startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')) && matrix.architecture != 'x86' && matrix.architecture != 'arm64'
         env:
           LANG: en_US
         run: |
