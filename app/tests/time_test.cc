@@ -26,20 +26,6 @@
 namespace {
 
 #ifndef WIN32
-// Test that the normalize function works, for timespecs
-TEST(TimeTests, NormalizeTest) {
-  timespec t;
-  t.tv_sec = 2;
-  // The maximum value for `tv_nsec` on 32-bit platforms is 2,147,483,647;
-  // make sure not to use a value larger than this or else integer overflow
-  // will occur on x86 and other 32-bit platforms.
-  t.tv_nsec = 2100000000;
-  firebase::internal::NormalizeTimespec(&t);
-
-  EXPECT_EQ(t.tv_sec, 4);
-  EXPECT_EQ(t.tv_nsec, 100000000);
-}
-
 // Test the various conversions to and from timespecs.
 TEST(TimeTests, ConversionTests) {
   timespec t;
