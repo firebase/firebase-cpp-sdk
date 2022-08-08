@@ -634,7 +634,7 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### 9.4.0
 -   Changes
     - General (Desktop): Fixed an issue with embedded dependencies that could
       cause duplicate symbol linker errors in conjunction with other libraries
