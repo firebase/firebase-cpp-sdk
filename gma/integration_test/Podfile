@@ -4,7 +4,7 @@ platform :ios, '10.0'
 use_frameworks! :linkage => :static
 
 target 'integration_test' do
-  pod 'Firebase/Analytics', '9.3.0'
+  pod 'Firebase/Analytics', '9.4.0'
   pod 'Google-Mobile-Ads-SDK', '9.7.0'
 end
 
