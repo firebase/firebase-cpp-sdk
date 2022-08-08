@@ -18,6 +18,9 @@ if(TARGET leveldb)
   return()
 endif()
 
+# This version must be kept in sync with the version in firestore.patch.txt.
+# If this version ever changes then make sure to update the version in
+# firestore.patch.txt accordingly.
 set(version 1.23)
 
 ExternalProject_Add(
@@ -26,6 +29,7 @@ ExternalProject_Add(
   DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
   DOWNLOAD_NAME leveldb-${version}.tar.gz
   URL https://github.com/google/leveldb/archive/${version}.tar.gz
+  URL_HASH SHA256=9a37f8a6174f09bd622bc723b55881dc541cd50747cbd08831c2a82d620f6d76
 
   PREFIX ${PROJECT_BINARY_DIR}
 

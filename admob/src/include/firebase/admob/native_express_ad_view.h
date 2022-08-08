@@ -29,6 +29,12 @@ namespace internal {
 class NativeExpressAdViewInternal;
 }  // namespace internal
 
+/// @deprecated The functionality in the <code>firebase::admob</code> namespace
+/// has been replaced by the Google Mobile Ads SDK in the
+/// <code>firebase::gma</code> namespace. Learn how to transition to the new
+/// SDK in our <a href="/docs/admob/cpp/admob-migration">migration guide</a>.
+/// Native Express Ads has been discontinued, and are no longer served.
+///
 /// @brief Loads and displays ads from AdMob Native Ads Express.
 ///
 /// Each NativeExpressAdView object corresponds to a single AdMob Native Express
@@ -68,15 +74,19 @@ class NativeExpressAdViewInternal;
 ///   ad_view->LoadAd(your_ad_request);
 /// }
 /// @endcode
-///
-/// @deprecated This class will be removed in a future version.
-/// Native Express Ads has been discontinued, and are no longer served.
 class NativeExpressAdView {
  public:
 #ifdef INTERNAL_EXPERIMENTAL
 // LINT.IfChange
 #endif  // INTERNAL_EXPERIMENTAL
-  /// The presentation state of a @ref NativeExpressAdView.
+  /// @deprecated
+  /// @brief The presentation state of a @ref NativeExpressAdView.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a  href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   enum PresentationState {
     /// NativeExpressAdView is currently hidden.
     kPresentationStateHidden = 0,
@@ -99,7 +109,14 @@ class NativeExpressAdView {
 #ifdef INTERNAL_EXPERIMENTAL
 // LINT.IfChange
 #endif  // INTERNAL_EXPERIMENTAL
-  /// The possible screen positions for a @ref NativeExpressAdView.
+  /// @deprecated
+  /// @brief The possible screen positions for a @ref NativeExpressAdView.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   enum Position {
     /// Top of the screen, horizontally centered.
     kPositionTop = 0,
@@ -118,140 +135,234 @@ class NativeExpressAdView {
 // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src_java/com/google/firebase/admob/internal/cpp/ConstantsHelper.java)
 #endif  // INTERNAL_EXPERIMENTAL
 
-  /// A listener class that developers can extend and pass to a
+  /// @deprecated
+  /// @brief A listener class that developers can extend and pass to a
   /// @ref NativeExpressAdView object's @ref SetListener method to be notified
   /// of changes to the presentation state and bounding box.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   class Listener {
    public:
-    /// This method is called when the @ref NativeExpressAdView object's
+    /// @deprecated
+    /// @brief This method is called when the @ref NativeExpressAdView object's
     /// presentation state changes.
+    ///
+    /// The functionality in the <code>firebase::admob</code> namespace has
+    /// been replaced by the Google Mobile Ads SDK in the
+    /// <code>firebase::gma</code> namespace. Learn how to transition to the
+    /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+    /// guide</a>.
     /// @param[in] ad_view The native express ad view whose presentation state
     ///                    changed.
     /// @param[in] state The new presentation state.
-    virtual void OnPresentationStateChanged(NativeExpressAdView* ad_view,
-                                            PresentationState state) = 0;
-    /// This method is called when the @ref NativeExpressAdView object's
+    FIREBASE_DEPRECATED virtual void OnPresentationStateChanged(
+        NativeExpressAdView* ad_view, PresentationState state) = 0;
+
+    /// @deprecated
+    /// @brief This method is called when the @ref NativeExpressAdView object's
     /// bounding box changes.
+    ///
+    /// The functionality in the <code>firebase::admob</code> namespace has
+    /// been replaced by the Google Mobile Ads SDK in the
+    /// <code>firebase::gma</code> namespace. Learn how to transition to the
+    /// new SDK in our <a ref="/docs/admob/cpp/admob-migration>migration
+    /// guide</a>.
     /// @param[in] ad_view The native express ad view whose bounding box
     ///                    changed.
     /// @param[in] box The new bounding box.
-    virtual void OnBoundingBoxChanged(NativeExpressAdView* ad_view,
-                                      BoundingBox box) = 0;
+    FIREBASE_DEPRECATED virtual void OnBoundingBoxChanged(
+        NativeExpressAdView* ad_view, BoundingBox box) = 0;
+
     virtual ~Listener();
   };
 
-  /// Creates an uninitialized @ref NativeExpressAdView object.
-  /// @ref Initialize must be called before the object is used.
+  /// @deprecated
+  /// @brief Creates an uninitialized @ref NativeExpressAdView object.
   ///
-  /// @deprecated This class will be removed in a future version.
-  /// Native Express Ads has been discontinued, and are no longer served.
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
+  ///
+  /// @ref Initialize must be called before the object is used.
   FIREBASE_DEPRECATED NativeExpressAdView();
 
-  /// @deprecated This class will be removed in a future version.
-  /// Native Express Ads has been discontinued, and are no longer served.
-  FIREBASE_DEPRECATED ~NativeExpressAdView();
+  ~NativeExpressAdView();
 
-  /// Initializes the @ref NativeExpressAdView object.
+  /// @deprecated
+  /// @brief Initializes the @ref NativeExpressAdView object.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   /// @param[in] parent The platform-specific UI element that will host the ad.
   /// @param[in] ad_unit_id The ad unit ID to use when requesting ads.
   /// @param[in] size The desired ad size for the native express ad.
-  ///
-  /// @deprecated This class will be removed in a future version.
-  /// Native Express Ads has been discontinued, and are no longer served.
   FIREBASE_DEPRECATED Future<void> Initialize(AdParent parent,
                                               const char* ad_unit_id,
                                               AdSize size);
 
-  /// Returns a @ref Future that has the status of the last call to
+  /// @deprecated
+  /// @brief Returns a @ref Future that has the status of the last call to
   /// @ref Initialize.
-  Future<void> InitializeLastResult() const;
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
+  FIREBASE_DEPRECATED Future<void> InitializeLastResult() const;
 
-  /// Begins an asynchronous request for an ad. If successful, the ad will
-  /// automatically be displayed in the NativeExpressAdView.
+  /// @deprecated
+  /// @brief Begins an asynchronous request for an ad. If successful, the ad
+  /// will automatically be displayed in the NativeExpressAdView.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   /// @param[in] request An AdRequest struct with information about the request
   ///                    to be made (such as targeting info).
-  ///
-  /// @deprecated This class will be removed in a future version.
-  /// Native Express Ads has been discontinued, and are no longer served.
   FIREBASE_DEPRECATED Future<void> LoadAd(const AdRequest& request);
 
-  /// Returns a @ref Future containing the status of the last call to
+  /// @deprecated
+  /// @brief Returns a @ref Future containing the status of the last call to
   /// @ref LoadAd.
   ///
-  /// @deprecated This class will be removed in a future version.
-  /// Native Express Ads has been discontinued, and are no longer served.
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   FIREBASE_DEPRECATED Future<void> LoadAdLastResult() const;
 
-  /// Hides the NativeExpressAdView.
+  /// @deprecated
+  /// @brief Hides the NativeExpressAdView.
   ///
-  /// @deprecated This class will be removed in a future version.
-  /// Native Express Ads has been discontinued, and are no longer served.
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   FIREBASE_DEPRECATED Future<void> Hide();
 
-  /// Returns a @ref Future containing the status of the last call to
+  /// @deprecated
+  /// @brief Returns a @ref Future containing the status of the last call to
   /// @ref Hide.
   ///
-  /// @deprecated This class will be removed in a future version.
-  /// Native Express Ads has been discontinued, and are no longer served.
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   FIREBASE_DEPRECATED Future<void> HideLastResult() const;
 
-  /// Shows the @ref NativeExpressAdView.
+  /// @deprecated
+  /// @brief Shows the @ref NativeExpressAdView.
   ///
-  /// @deprecated This class will be removed in a future version.
-  /// Native Express Ads has been discontinued, and are no longer served.
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   FIREBASE_DEPRECATED Future<void> Show();
 
-  /// Returns a @ref Future containing the status of the last call to
+  /// @deprecated
+  /// @brief Returns a @ref Future containing the status of the last call to
   /// @ref Show.
   ///
-  /// @deprecated This class will be removed in a future version.
-  /// Native Express Ads has been discontinued, and are no longer served.
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   FIREBASE_DEPRECATED Future<void> ShowLastResult() const;
 
-  /// Pauses the @ref NativeExpressAdView. Should be called whenever the C++
-  /// engine pauses or the application loses focus.
+  /// @deprecated
+  /// @brief Pauses the @ref NativeExpressAdView.
   ///
-  /// @deprecated This class will be removed in a future version.
-  /// Native Express Ads has been discontinued, and are no longer served.
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
+  ///
+  /// Should be called whenever the C++ engine pauses or the application loses
+  /// focus.
   FIREBASE_DEPRECATED Future<void> Pause();
 
-  /// Returns a @ref Future containing the status of the last call to
+  /// @deprecated
+  /// @brief Returns a @ref Future containing the status of the last call to
   /// @ref Pause.
   ///
-  /// @deprecated This class will be removed in a future version.
-  /// Native Express Ads has been discontinued, and are no longer served.
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   FIREBASE_DEPRECATED Future<void> PauseLastResult() const;
 
-  /// Resumes the @ref NativeExpressAdView after pausing.
+  /// @deprecated
+  /// @brief Resumes the @ref NativeExpressAdView after pausing.
   ///
-  /// @deprecated This class will be removed in a future version.
-  /// Native Express Ads has been discontinued, and are no longer served.
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   FIREBASE_DEPRECATED Future<void> Resume();
 
-  /// Returns a @ref Future containing the status of the last call to
+  /// @deprecated
+  /// @brief Returns a @ref Future containing the status of the last call to
   /// @ref Resume.
   ///
-  /// @deprecated This class will be removed in a future version.
-  /// Native Express Ads has been discontinued, and are no longer served.
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   FIREBASE_DEPRECATED Future<void> ResumeLastResult() const;
 
-  /// Cleans up and deallocates any resources used by the
+  /// @deprecated
+  /// @brief Cleans up and deallocates any resources used by the
   /// @ref NativeExpressAdView.
   ///
-  /// @deprecated This class will be removed in a future version.
-  /// Native Express Ads has been discontinued, and are no longer served.
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   FIREBASE_DEPRECATED Future<void> Destroy();
 
-  /// Returns a @ref Future containing the status of the last call to
+  /// @deprecated
+  /// @brief Returns a @ref Future containing the status of the last call to
   /// @ref Destroy.
   ///
-  /// @deprecated This class will be removed in a future version.
-  /// Native Express Ads has been discontinued, and are no longer served.
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   FIREBASE_DEPRECATED Future<void> DestroyLastResult() const;
 
-  /// Moves the @ref NativeExpressAdView so that its top-left corner is located
-  /// at (x, y). Coordinates are in pixels from the top-left corner of the
-  /// screen.
+  /// @deprecated
+  /// @brief Moves the @ref NativeExpressAdView so that its top-left corner is
+  /// located at (x, y). Coordinates are in pixels from the top-left corner of
+  /// the screen.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   ///
   /// When built for Android, the library will not display an ad on top of or
   /// beneath an Activity's status bar. If a call to MoveTo would result in an
@@ -259,49 +370,68 @@ class NativeExpressAdView {
   /// so no overlap occurs.
   /// @param[in] x The desired horizontal coordinate.
   /// @param[in] y The desired vertical coordinate.
-  ///
-  /// @deprecated This class will be removed in a future version.
-  /// Native Express Ads has been discontinued, and are no longer served.
   FIREBASE_DEPRECATED Future<void> MoveTo(int x, int y);
 
-  /// Moves the @ref NativeExpressAdView so that it's located at the given
-  /// pre-defined position.
+  /// @deprecated
+  /// @brief Moves the @ref NativeExpressAdView so that it's located at the
+  /// given pre-defined position.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a
+  /// href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   /// @param[in] position The pre-defined position to which to move the
   ///                     @ref NativeExpressAdView.
-  ///
-  /// @deprecated This class will be removed in a future version.
-  /// Native Express Ads has been discontinued, and are no longer served.
   FIREBASE_DEPRECATED Future<void> MoveTo(Position position);
 
-  /// Returns a @ref Future containing the status of the last call to either
-  /// version of @ref MoveTo.
+  /// @deprecated
+  /// @brief Returns a @ref Future containing the status of the last call to
+  /// either version of @ref MoveTo.
   ///
-  /// @deprecated This class will be removed in a future version.
-  /// Native Express Ads has been discontinued, and are no longer served.
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   FIREBASE_DEPRECATED Future<void> MoveToLastResult() const;
 
-  /// Returns the current presentation state of the @ref NativeExpressAdView.
-  /// @return The current presentation state.
+  /// @deprecated
+  /// @brief Returns the current presentation state of the
+  /// @ref NativeExpressAdView.
   ///
-  /// @deprecated This class will be removed in a future version.
-  /// Native Express Ads has been discontinued, and are no longer served.
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
+  /// @return The current presentation state.
   FIREBASE_DEPRECATED PresentationState GetPresentationState() const;
 
-  /// Retrieves the @ref NativeExpressAdView's current onscreen size and
+  /// @deprecated
+  /// @brief Retrieves the @ref NativeExpressAdView's current onscreen size and
   /// location.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   /// @return The current size and location. Values are in pixels, and location
   ///         coordinates originate from the top-left corner of the screen.
-  ///
-  /// @deprecated This class will be removed in a future version.
-  /// Native Express Ads has been discontinued, and are no longer served.
   FIREBASE_DEPRECATED BoundingBox GetBoundingBox() const;
 
-  /// Sets the @ref Listener for this object.
+  /// @deprecated
+  /// @brief Sets the @ref Listener for this object.
+  ///
+  /// The functionality in the <code>firebase::admob</code> namespace has
+  /// been replaced by the Google Mobile Ads SDK in the
+  /// <code>firebase::gma</code> namespace. Learn how to transition to the
+  /// new SDK in our <a href="/docs/admob/cpp/admob-migration">migration
+  /// guide</a>.
   /// @param[in] listener A valid NativeExpressAdView::Listener to receive
   /// callbacks.
-  ///
-  /// @deprecated This class will be removed in a future version.
-  /// Native Express Ads has been discontinued, and are no longer served.
   FIREBASE_DEPRECATED void SetListener(Listener* listener);
 
  private:

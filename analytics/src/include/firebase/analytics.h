@@ -433,6 +433,7 @@ void LogEvent(const char* name);
 // in the C# code.
 %csmethodmodifiers LogEvent "public unsafe"
 #endif  // SWIG
+// clang-format on
 
 /// @brief Log an event with associated parameters.
 ///
@@ -456,7 +457,15 @@ void LogEvent(const char* name);
 /// array.
 void LogEvent(const char* name, const Parameter* parameters,
               size_t number_of_parameters);
-// clang-format on
+
+/// Initiates on-device conversion measurement given a user email address on iOS
+/// (no-op on Android). On iOS, requires dependency
+/// GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a
+/// no-op.
+/// @param[in] email_address User email address. Include a domain name for all
+/// email addresses (e.g. gmail.com or hotmail.co.jp).
+void InitiateOnDeviceConversionMeasurementWithEmailAddress(
+    const char* email_address);
 
 /// @brief Set a user property to the given value.
 ///

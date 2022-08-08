@@ -262,10 +262,12 @@ std::string FirebaseTest::VariantToString(const firebase::Variant& variant) {
   return out.str();
 }
 
-bool FirebaseTest::IsUserInteractionAllowed() {
-  // In the trivial case, just check whether we are logging to file. If not,
-  // assume interaction is allowed.
-  return !app_framework::IsLoggingToFile();
+bool FirebaseTest::ShouldRunUITests() {
+  return app_framework::ShouldRunUITests();
+}
+
+bool FirebaseTest::ShouldRunNonUITests() {
+  return app_framework::ShouldRunNonUITests();
 }
 
 bool FirebaseTest::Base64Encode(const std::string& input, std::string* output) {

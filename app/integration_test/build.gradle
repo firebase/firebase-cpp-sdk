@@ -76,7 +76,7 @@ android {
 
 apply from: "$gradle.firebase_cpp_sdk_dir/Android/firebase_dependencies.gradle"
 firebaseCpp.dependencies {
-  app
+  appWithoutPlayServices
 }
 
 apply plugin: 'com.google.gms.google-services'

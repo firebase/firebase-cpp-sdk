@@ -75,7 +75,10 @@ android {
 }
 
 apply from: "$gradle.firebase_cpp_sdk_dir/Android/firebase_dependencies.gradle"
+// AdMob doesn't require play-services-base as a dependency, so include the
+// version of App without it, to ensure the C++ SDK also doesn't require it.
 firebaseCpp.dependencies {
+  appWithoutPlayServices
   admob
 }
 

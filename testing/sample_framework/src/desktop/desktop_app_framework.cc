@@ -148,6 +148,7 @@ void OutputFullLog() {
 }
 
 WindowContext GetWindowContext() { return nullptr; }
+WindowContext GetWindowController() { return nullptr; }
 
 // Change the current working directory to the directory containing the
 // specified file.
@@ -209,6 +210,10 @@ std::string ReadTextInput(const char* title, const char* message,
   std::getline(std::cin, input_line);
   return input_line.empty() ? std::string(placeholder) : input_line;
 }
+
+bool ShouldRunUITests() { return true; }
+
+bool ShouldRunNonUITests() { return true; }
 
 bool IsLoggingToFile() { return false; }
 

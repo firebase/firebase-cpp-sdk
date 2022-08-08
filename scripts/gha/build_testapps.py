@@ -79,6 +79,7 @@ import json
 import os
 import platform
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -436,6 +437,7 @@ def _collect_integration_tests(testapps, root_output_dir, output_dir, artifact_n
     desktop_testapp_name += ".exe"
 
   testapp_paths = []
+  testapp_google_services = {}
   for file_dir, directories, file_names in os.walk(output_dir):
     for directory in directories:
       if directory.endswith(ios_simualtor_testapp_extension):
@@ -445,6 +447,8 @@ def _collect_integration_tests(testapps, root_output_dir, output_dir, artifact_n
           or file_name.endswith(android_testapp_extension) 
           or file_name.endswith(ios_testapp_extension)):
         testapp_paths.append(os.path.join(file_dir, file_name))
+      if (file_name == "google-services.json"):
+        testapp_google_services[file_dir.split(os.path.sep)[-2]] = os.path.join(file_dir, file_name)
 
   artifact_path = os.path.join(root_output_dir, testapps_artifact_dir)
   _rm_dir_safe(artifact_path)
@@ -455,6 +459,8 @@ def _collect_integration_tests(testapps, root_output_dir, output_dir, artifact_n
       if testapp in path:
         if os.path.isfile(path):
           shutil.copy(path, os.path.join(artifact_path, testapp))
+          if path.endswith(desktop_testapp_name) and testapp_google_services.get(testapp):
+            shutil.copy(testapp_google_services[testapp], os.path.join(artifact_path, testapp))
         else:
           dir_util.copy_tree(path, os.path.join(artifact_path, testapp, os.path.basename(path)))
         break
@@ -697,11 +703,17 @@ def _run(args, timeout=_DEFAULT_RUN_TIMEOUT_SECONDS, capture_output=False, text=
       check=check)
 
 
+def _handle_readonly_file(func, path, excinfo):
+  """Function passed into shutil.rmtree to handle Access Denied error"""
+  os.chmod(path, stat.S_IWRITE)
+  func(path)  # will re-throw if a different error occurrs
+
+
 def _rm_dir_safe(directory_path):
   """Removes directory at given path. No error if dir doesn't exist."""
   logging.info("Deleting %s...", directory_path)
   try:
-    shutil.rmtree(directory_path)
+    shutil.rmtree(directory_path, onerror=_handle_readonly_file)
   except OSError as e:
     # There are two known cases where this can happen:
     # The directory doesn't exist (FileNotFoundError)

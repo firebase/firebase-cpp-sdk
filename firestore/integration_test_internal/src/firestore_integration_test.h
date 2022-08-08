@@ -17,10 +17,12 @@
 #ifndef FIREBASE_FIRESTORE_INTEGRATION_TEST_INTERNAL_SRC_FIRESTORE_INTEGRATION_TEST_H_
 #define FIREBASE_FIRESTORE_INTEGRATION_TEST_INTERNAL_SRC_FIRESTORE_INTEGRATION_TEST_H_
 
+#include <chrono>
 #include <cstdio>
 #include <iostream>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -48,7 +50,6 @@ const int kCheckIntervalMillis = 100;
 const int kTimeOutMillis = 15000;
 
 FirestoreInternal* CreateTestFirestoreInternal(App* app);
-void InitializeFirestore(Firestore* instance);
 
 App* GetApp();
 App* GetApp(const char* name, const std::string& override_project_id);
@@ -175,6 +176,58 @@ class TestEventListener {
   bool print_debug_info_ = false;
 };
 
+// A stopwatch that can calculate the runtime of some operation.
+//
+// The motivating use case for this class is to include the elapsed time of
+// an operation that timed out in the timeout error message.
+class Stopwatch {
+ public:
+  Stopwatch() : start_time_(std::chrono::steady_clock::now()) {}
+
+  std::chrono::duration<double> elapsed_time() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    const auto t =
+        stop_time_valid_ ? stop_time_ : std::chrono::steady_clock::now();
+    return t - start_time_;
+  }
+
+  void stop() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    assert(!stop_time_valid_);
+    stop_time_ = std::chrono::steady_clock::now();
+    stop_time_valid_ = true;
+  }
+
+ private:
+  mutable std::mutex mutex_;
+  decltype(std::chrono::steady_clock::now()) start_time_;
+  decltype(std::chrono::steady_clock::now()) stop_time_;
+  bool stop_time_valid_ = false;
+};
+
+std::ostream& operator<<(std::ostream&, const Stopwatch&);
+
+// A RAII wrapper that enables Firestore debug logging and then disables it
+// upon destruction.
+//
+// This is useful for enabling Firestore debug logging in a specific test.
+//
+// Example:
+// TEST(MyCoolTest, VerifyFirestoreDoesItsThing) {
+//   FirestoreDebugLogEnabler firestore_debug_log_enabler;
+//   ...
+// }
+class FirestoreDebugLogEnabler {
+ public:
+  FirestoreDebugLogEnabler() {
+    Firestore::set_log_level(LogLevel::kLogLevelDebug);
+  }
+
+  ~FirestoreDebugLogEnabler() {
+    Firestore::set_log_level(LogLevel::kLogLevelInfo);
+  }
+};
+
 // Base class for Firestore integration tests.
 // Note it keeps a cache of created Firestore instances, and is thread-unsafe.
 class FirestoreIntegrationTest : public testing::Test {
@@ -298,8 +351,9 @@ class FirestoreIntegrationTest : public testing::Test {
   // A helper function to block until the future completes.
   template <typename T>
   static const T* Await(const Future<T>& future) {
+    Stopwatch stopwatch;
     int cycles = WaitFor(future);
-    EXPECT_GT(cycles, 0) << "Waiting future timed out.";
+    EXPECT_GT(cycles, 0) << "Waiting future timed out after " << stopwatch;
     if (future.status() == FutureStatus::kFutureStatusComplete) {
       if (future.result() == nullptr) {
         std::cout << "WARNING: " << DescribeFailedFuture(future) << std::endl;
@@ -316,6 +370,7 @@ class FirestoreIntegrationTest : public testing::Test {
   template <typename T>
   static void Await(const TestEventListener<T>& listener, int n = 1) {
     // Instead of getting a clock, we count the cycles instead.
+    Stopwatch stopwatch;
     int cycles = kTimeOutMillis / kCheckIntervalMillis;
     while (listener.event_count() < n && cycles > 0) {
       if (ProcessEvents(kCheckIntervalMillis)) {
@@ -325,13 +380,15 @@ class FirestoreIntegrationTest : public testing::Test {
       }
       --cycles;
     }
-    EXPECT_GT(cycles, 0) << "Waiting listener timed out.";
+    EXPECT_GT(cycles, 0) << "Waiting listener timed out after " << stopwatch;
   }
 
   // Fails the current test if the given future did not complete or contained an
-  // error. Returns true if the future has failed.
+  // error. Returns true if the future has failed. The given Stopwatch will be
+  // used to include the elapsed time in any failure message.
   static bool FailIfUnsuccessful(const char* operation,
-                                 const FutureBase& future);
+                                 const FutureBase& future,
+                                 const Stopwatch& stopwatch);
 
   static std::string DescribeFailedFuture(const FutureBase& future);
 

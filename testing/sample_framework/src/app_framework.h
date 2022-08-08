@@ -104,6 +104,12 @@ jobject GetActivity();
 jclass FindClass(JNIEnv* env, jobject activity_object, const char* class_name);
 #endif  // defined(__ANDROID__)
 
+// Returns ture if we run tests that require interaction.
+bool ShouldRunUITests();
+
+// Returns true if we run tests that do not require interaction.
+bool ShouldRunNonUITests();
+
 // Returns true if the logger is currently logging to a file.
 bool IsLoggingToFile();
 
@@ -115,6 +121,12 @@ bool StartLoggingToFile(const char* path);
 // this will be a jobject pointing to the Activity. On iOS, it's an id pointing
 // to the root view of the view controller.
 WindowContext GetWindowContext();
+
+// Returns a variable that describes the controller of the app's UI. On Android
+// this will be a jobject pointing to the Activity, the same as
+// GetWindowContext(). On iOS, it's an id pointing to the UIViewController of
+// the parent UIView.
+WindowContext GetWindowController();
 
 // Run the given function on a detached background thread.
 void RunOnBackgroundThread(void* (*func)(void* data), void* data);
