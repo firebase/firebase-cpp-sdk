@@ -319,7 +319,8 @@ class FirestoreIntegrationTest : public testing::Test {
   // Update the specified document and wait for the update to complete.
   template <typename MapType>
   void UpdateDocument(DocumentReference reference, const MapType& data) const {
-    SCOPED_TRACE("UpdateDocument(" + reference.path() + ")");
+    SCOPED_TRACE("FirestoreIntegrationTest::UpdateDocument(" +
+                 reference.path() + ")");
     Future<void> future = reference.Update(data);
     Await(future);
     EXPECT_EQ(FutureStatus::kFutureStatusComplete, future.status());
@@ -394,12 +395,12 @@ class FirestoreIntegrationTest : public testing::Test {
   static std::string DescribeFailedFuture(const FutureBase& future);
 
   void DisableNetwork() {
-    SCOPED_TRACE("DisableNetwork");
+    SCOPED_TRACE("FirestoreIntegrationTest::DisableNetwork()");
     Await(TestFirestore()->DisableNetwork());
   }
 
   void EnableNetwork() {
-    SCOPED_TRACE("EnableNetwork");
+    SCOPED_TRACE("FirestoreIntegrationTest::EnableNetwork()");
     Await(TestFirestore()->EnableNetwork());
   }
 

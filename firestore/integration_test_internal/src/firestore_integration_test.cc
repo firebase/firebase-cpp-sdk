@@ -237,7 +237,8 @@ DocumentReference FirestoreIntegrationTest::DocumentWithData(
 
 void FirestoreIntegrationTest::WriteDocument(DocumentReference reference,
                                              const MapFieldValue& data) const {
-  SCOPED_TRACE("WriteDocument(" + reference.path() + ")");
+  SCOPED_TRACE("FirestoreIntegrationTest::WriteDocument(" + reference.path() +
+               ")");
   Future<void> future = reference.Set(data);
   Stopwatch stopwatch;
   Await(future);
@@ -248,7 +249,8 @@ void FirestoreIntegrationTest::WriteDocument(DocumentReference reference,
 void FirestoreIntegrationTest::WriteDocuments(
     CollectionReference reference,
     const std::map<std::string, MapFieldValue>& data) const {
-  SCOPED_TRACE("WriteDocuments(" + std::to_string(data.size()) + " documents)");
+  SCOPED_TRACE("FirestoreIntegrationTest::WriteDocuments(" +
+               std::to_string(data.size()) + " documents)");
   for (const auto& kv : data) {
     WriteDocument(reference.Document(kv.first), kv.second);
   }
@@ -256,7 +258,8 @@ void FirestoreIntegrationTest::WriteDocuments(
 
 DocumentSnapshot FirestoreIntegrationTest::ReadDocument(
     const DocumentReference& reference) const {
-  SCOPED_TRACE("ReadDocument(" + reference.path() + ")");
+  SCOPED_TRACE("FirestoreIntegrationTest::ReadDocument(" + reference.path() +
+               ")");
   Future<DocumentSnapshot> future = reference.Get();
   Stopwatch stopwatch;
   const DocumentSnapshot* result = Await(future);
@@ -270,7 +273,7 @@ DocumentSnapshot FirestoreIntegrationTest::ReadDocument(
 
 QuerySnapshot FirestoreIntegrationTest::ReadDocuments(
     const Query& reference) const {
-  SCOPED_TRACE("ReadDocuments()");
+  SCOPED_TRACE("FirestoreIntegrationTest::ReadDocuments()");
   Future<QuerySnapshot> future = reference.Get();
   Stopwatch stopwatch;
   const QuerySnapshot* result = Await(future);
@@ -284,7 +287,8 @@ QuerySnapshot FirestoreIntegrationTest::ReadDocuments(
 
 void FirestoreIntegrationTest::DeleteDocument(
     DocumentReference reference) const {
-  SCOPED_TRACE("DeleteDocument(" + reference.path() + ")");
+  SCOPED_TRACE("FirestoreIntegrationTest::DeleteDocument(" + reference.path() +
+               ")");
   Future<void> future = reference.Delete();
   Stopwatch stopwatch;
   Await(future);
