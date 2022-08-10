@@ -51,8 +51,8 @@ import github
 import summarize_test_results as summarize
 
 _REPORT_LABEL = "nightly-testing"
-_REPORT_TITLE = "Nightly Integration Testing Report"
-_REPORT_TITLE_FIRESTORE = "Nightly Integration Testing Report for Firestore"
+_REPORT_TITLE = "[C++] Nightly Integration Testing Report"
+_REPORT_TITLE_FIRESTORE = "[C++] Nightly Integration Testing Report for Firestore"
 
 _LABEL_TRIGGER_FULL = "tests-requested: full"
 _LABEL_TRIGGER_QUICK = "tests-requested: quick"
