@@ -22,6 +22,9 @@
 namespace firebase {
 namespace firestore {
 
+FirebaseMetadataProviderCpp::FirebaseMetadataProviderCpp(const App& app)
+    : gmp_app_id_(app.options().app_id()) {}
+
 void FirebaseMetadataProviderCpp::UpdateMetadata(grpc::ClientContext& context) {
   HeartbeatInfo::Code heartbeat = HeartbeatInfo::GetHeartbeatCode("fire-fst");
 
@@ -34,6 +37,10 @@ void FirebaseMetadataProviderCpp::UpdateMetadata(grpc::ClientContext& context) {
   }
 
   context.AddMetadata(kXFirebaseClientHeader, App::GetUserAgent());
+
+  if (!gmp_app_id_.empty()) {
+    context.AddMetadata(kXFirebaseGmpIdHeader, gmp_app_id_);
+  }
 }
 
 }  // namespace firestore
