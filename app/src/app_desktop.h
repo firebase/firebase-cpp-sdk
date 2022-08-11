@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Google LLC
+ * Copyright 2022 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@
 
 #include "app/src/app_common.h"
 #include "app/src/function_registry.h"
+#include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/version.h"
-#include "app/src/heartbeat/heartbeat_controller_desktop.h"
 
 namespace firebase {
 // DEFINE_FIREBASE_VERSION_STRING(Firebase);
@@ -44,7 +44,8 @@ static std::string g_default_config_path;  // NOLINT
 
 namespace app_desktop {
 
-SharedPtr<heartbeat::HeartbeatController> GetHeartbeatControllerForApp(const char* app_name);
+SharedPtr<heartbeat::HeartbeatController> GetHeartbeatControllerForApp(
+    const char* app_name);
 
 }  // namespace app_desktop
 }  // namespace firebase

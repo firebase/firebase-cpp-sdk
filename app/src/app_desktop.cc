@@ -14,19 +14,20 @@
  * limitations under the License.
  */
 
+#include "app/src/app_desktop.h"
+
 #include <string.h>
 
 #include <fstream>
 
-#include "app/src/app_desktop.h"
 #include "app/src/app_common.h"
 #include "app/src/function_registry.h"
+#include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
 #include "app/src/util.h"
-#include "app/src/heartbeat/heartbeat_controller_desktop.h"
 
 namespace firebase {
 DEFINE_FIREBASE_VERSION_STRING(Firebase);
@@ -185,32 +186,34 @@ void App::SetDataCollectionDefaultEnabled(bool /* enabled */) {}
 // is always enabled.
 bool App::IsDataCollectionDefaultEnabled() const { return true; }
 
-
 namespace app_desktop {
 
 // Guards g_apps and g_default_app.
 static Mutex* g_heartbeat_controllers_mutex = new Mutex();
-static std::map<std::string, SharedPtr<HeartbeatController>>* g_heartbeat_controllers;
+static std::map<std::string, SharedPtr<HeartbeatController>>*
+    g_heartbeat_controllers =
+        new std::map<std::string, SharedPtr<HeartbeatController>>();
 
-SharedPtr<HeartbeatController> GetHeartbeatControllerForApp(const char* app_name) {
+SharedPtr<HeartbeatController> GetHeartbeatControllerForApp(
+    const char* app_name) {
   assert(app_name);
   MutexLock lock(*g_heartbeat_controllers_mutex);
   if (g_heartbeat_controllers) {
     auto it = g_heartbeat_controllers->find(std::string(app_name));
-    if (it == g_heartbeat_controllers->end()) return SharedPtr<HeartbeatController>();
+    if (it == g_heartbeat_controllers->end())
+      return SharedPtr<HeartbeatController>();
     return it->second;
   }
   // If no existing heartbeat controller is found, create a new one.
   // Heartbeat Controller (for desktop)
-  // Is this correct? Am I copying to pointed memory?
   Logger* logger = app_common::FindAppLoggerByName(app_name);
   firebase::heartbeat::DateProviderImpl date_provider;
-  SharedPtr<HeartbeatController> heartbeat_controller
-    = MakeShared<HeartbeatController>(app_name, *logger, date_provider);
+  SharedPtr<HeartbeatController> heartbeat_controller =
+      MakeShared<HeartbeatController>(app_name, *logger, date_provider);
   (*g_heartbeat_controllers)[app_name] = heartbeat_controller;
   return heartbeat_controller;
 }
 
-} // namespace app_desktop
+}  // namespace app_desktop
 
 }  // namespace firebase
