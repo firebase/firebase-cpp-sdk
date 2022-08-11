@@ -18,6 +18,8 @@
 #include <string>
 #include <utility>
 
+#include "app/src/heartbeat/heartbeat_controller_desktop.h"
+#include "app/src/app_desktop.h"
 #include "app/rest/transport_curl.h"
 #include "app/src/app_common.h"
 #include "app/src/app_identifier.h"
@@ -94,9 +96,13 @@ void* CreatePlatformAuth(App* const app) {
 void InitializeFunctionRegistryListener(AuthData* auth_data);
 void DestroyFunctionRegistryListener(AuthData* auth_data);
 
-// TODO(b/211006737): This is a stub until desktop implementation supports
-// heartbeat logging.
-void LogHeartbeat(Auth* const auth) {}
+void LogHeartbeat(Auth* const auth) {
+  SharedPtr<firebase::heartbeat::HeartbeatController> controller
+    = app_desktop::GetHeartbeatControllerForApp(auth->auth_data_->app->name());
+  if (controller) {
+    controller->LogHeartbeat();
+  }
+}
 
 IdTokenRefreshListener::IdTokenRefreshListener() : token_timestamp_(0) {}
 
