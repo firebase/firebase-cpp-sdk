@@ -17,7 +17,7 @@
 #include "app/src/app_desktop.h"
 
 #include <string.h>
-
+#include <map>
 #include <fstream>
 
 #include "app/src/app_common.h"
@@ -104,7 +104,7 @@ AppOptions* AppOptions::LoadDefault(AppOptions* options) {
   return nullptr;
 }
 
-void App::Initialize() { internal_ = new internal::AppInternal(); }
+void App::Initialize() { internal_ = new internal::AppInternal(this); }
 
 App::~App() {
   app_common::RemoveApp(this);
@@ -149,11 +149,16 @@ App* App::GetInstance(const char* name) {  // NOLINT
   return app_common::FindAppByName(name);
 }
 
+AppInternal::AppInternal(App* app)
+    : heartbeat_controller(app->name(),
+                *app_common::FindAppLoggerByName(app_name),
+                firebase::heartbeat::DateProviderImpl date_provider) {}
+
 #ifdef INTERNAL_EXPERIMENTAL
 internal::FunctionRegistry* App::function_registry() {
   return &internal_->function_registry;
 }
-#endif
+#endif // INTERNAL_EXPERIMENTAL
 
 void App::RegisterLibrary(const char* library, const char* version) {
   app_common::RegisterLibrary(library, version);
@@ -178,6 +183,19 @@ void App::SetDefaultConfigPath(const char* path) {
   }
 }
 
+#ifdef INTERNAL_EXPERIMENTAL
+void App::LogHeartbeat() {
+  internal_->heartbeat_controller.LogHeartbeat();
+}
+std::string App::GetAndResetStoredHeartbeats() {
+  return internal_->heartbeat_controller.GetAndResetStoredHeartbeats();
+}
+std::string App::GetAndResetTodaysStoredHeartbeats() {
+  return internal_->heartbeat_controller.GetAndResetTodaysStoredHeartbeats();
+}
+#endif // INTERNAL_EXPERIMENTAL
+
+
 // Desktop support is for developer workflow only, so automatic data collection
 // is always enabled.
 void App::SetDataCollectionDefaultEnabled(bool /* enabled */) {}
@@ -188,7 +206,7 @@ bool App::IsDataCollectionDefaultEnabled() const { return true; }
 
 namespace app_desktop {
 
-// Guards g_apps and g_default_app.
+// Guards g_heartbeat_controllers.
 static Mutex* g_heartbeat_controllers_mutex = new Mutex();
 static std::map<std::string, SharedPtr<HeartbeatController>>*
     g_heartbeat_controllers =
@@ -200,13 +218,14 @@ SharedPtr<HeartbeatController> GetHeartbeatControllerForApp(
   MutexLock lock(*g_heartbeat_controllers_mutex);
   if (g_heartbeat_controllers) {
     auto it = g_heartbeat_controllers->find(std::string(app_name));
-    if (it == g_heartbeat_controllers->end())
-      return SharedPtr<HeartbeatController>();
-    return it->second;
+    if (it != g_heartbeat_controllers->end()) {
+      return it->second;
+    }
   }
   // If no existing heartbeat controller is found, create a new one.
   // Heartbeat Controller (for desktop)
-  Logger* logger = app_common::FindAppLoggerByName(app_name);
+  // Logger* logger = app_common::FindAppLoggerByName(app_name);
+  // TEMP
   firebase::heartbeat::DateProviderImpl date_provider;
   SharedPtr<HeartbeatController> heartbeat_controller =
       MakeShared<HeartbeatController>(app_name, *logger, date_provider);

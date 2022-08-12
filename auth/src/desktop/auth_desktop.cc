@@ -97,11 +97,7 @@ void InitializeFunctionRegistryListener(AuthData* auth_data);
 void DestroyFunctionRegistryListener(AuthData* auth_data);
 
 void LogHeartbeat(Auth* const auth) {
-  SharedPtr<firebase::heartbeat::HeartbeatController> controller =
-      app_desktop::GetHeartbeatControllerForApp(auth->auth_data_->app->name());
-  if (controller) {
-    controller->LogHeartbeat();
-  }
+  auth->auth_data->app->LogHeartbeat();
 }
 
 IdTokenRefreshListener::IdTokenRefreshListener() : token_timestamp_(0) {}

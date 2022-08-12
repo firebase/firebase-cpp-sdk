@@ -28,11 +28,16 @@ namespace internal {
 
 class AppInternal {
  public:
+  AppInternal(App* app);
+
   // A registry that modules can use to expose functions to each other, without
   // requiring a linkage dependency.
   // todo - make all the implementations use something like this, for internal
   // or implementation-specific code.  b/70229654
   FunctionRegistry function_registry;
+
+  // 
+  HeartbeatController heartbeat_controller;
 };
 
 // When Create() is invoked without arguments, it checks for a file named
@@ -41,11 +46,4 @@ class AppInternal {
 static std::string g_default_config_path;  // NOLINT
 
 }  // namespace internal
-
-namespace app_desktop {
-
-SharedPtr<heartbeat::HeartbeatController> GetHeartbeatControllerForApp(
-    const char* app_name);
-
-}  // namespace app_desktop
 }  // namespace firebase
