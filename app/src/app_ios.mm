@@ -278,6 +278,12 @@ const char* App::GetUserAgent() { return app_common::GetUserAgent(); }
 
 void App::SetDefaultConfigPath(const char* path) {}
 
+void App::LogHeartbeat() {}
+
+std::string App::GetAndResetStoredHeartbeats() { return ""; }
+
+std::string App::GetAndResetTodaysStoredHeartbeats() { return ""; }
+
 void App::SetDataCollectionDefaultEnabled(bool enabled) {
   GetPlatformApp().dataCollectionDefaultEnabled = (enabled ? YES : NO);
 }

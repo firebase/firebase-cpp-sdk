@@ -184,15 +184,15 @@ void App::SetDefaultConfigPath(const char* path) {
   }
 }
 
-#ifdef INTERNAL_EXPERIMENTAL
 void App::LogHeartbeat() { internal_->heartbeat_controller_->LogHeartbeat(); }
+
 std::string App::GetAndResetStoredHeartbeats() {
   return internal_->heartbeat_controller_->GetAndResetStoredHeartbeats();
 }
+
 std::string App::GetAndResetTodaysStoredHeartbeats() {
   return internal_->heartbeat_controller_->GetAndResetTodaysStoredHeartbeats();
 }
-#endif  // INTERNAL_EXPERIMENTAL
 
 // Desktop support is for developer workflow only, so automatic data collection
 // is always enabled.

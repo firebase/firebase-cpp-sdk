@@ -19,9 +19,11 @@
 #include <string>
 
 #include "app/src/app_common.h"
+#include "app/src/app_desktop.h"
 #include "app/src/heartbeat/date_provider.h"
 #include "app/src/heartbeat/heartbeat_storage_desktop.h"
 #include "app/src/logger.h"
+#include "app/tests/include/firebase/app_for_testing.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "testing/json_util.h"
@@ -83,6 +85,24 @@ class HeartbeatControllerDesktopTest : public ::testing::Test {
     g_min_time_between_fetches_sec = time_between_fetches_original_val_;
   }
 };
+
+#if FIREBASE_PLATFORM_DESKTOP
+TEST_F(HeartbeatControllerDesktopTest, PerAppHeartbeatController) {
+  App* firebase_app = testing::CreateApp();
+  ASSERT_NE(firebase_app, nullptr);
+
+  // For the sake of testing, clear any pre-existing stored heartbeats.
+  HeartbeatStorageDesktop storage(firebase_app->name(), logger_);
+  LoggedHeartbeats empty_heartbeats_struct;
+  storage.Write(empty_heartbeats_struct);
+
+  firebase_app->LogHeartbeat();
+  std::string encoded_payload = firebase_app->GetAndResetStoredHeartbeats();
+  EXPECT_NE(encoded_payload, "");
+  // Deleting the app internally triggers resetting of registered user agents.
+  delete firebase_app;
+}
+#endif  // FIREBASE_PLATFORM_DESKTOP
 
 TEST_F(HeartbeatControllerDesktopTest, DateProvider) {
   firebase::heartbeat::DateProviderImpl actualDateProvider;
