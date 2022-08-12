@@ -94,9 +94,7 @@ void* CreatePlatformAuth(App* const app) {
 void InitializeFunctionRegistryListener(AuthData* auth_data);
 void DestroyFunctionRegistryListener(AuthData* auth_data);
 
-void LogHeartbeat(Auth* const auth) {
-  auth->auth_data->app->LogHeartbeat();
-}
+void LogHeartbeat(Auth* const auth) { auth->auth_data->app->LogHeartbeat(); }
 
 IdTokenRefreshListener::IdTokenRefreshListener() : token_timestamp_(0) {}
 

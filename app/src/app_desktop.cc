@@ -17,7 +17,9 @@
 #include "app/src/app_desktop.h"
 
 #include <string.h>
+
 #include <fstream>
+#include <string>
 
 #include "app/src/app_common.h"
 #include "app/src/function_registry.h"
@@ -149,14 +151,14 @@ App* App::GetInstance(const char* name) {  // NOLINT
 internal::AppInternal::AppInternal(App* app)
     : date_provider_(),
       heartbeat_controller_(app->name(),
-                *app_common::FindAppLoggerByName(app->name()),
-                date_provider_) {}
+                            *app_common::FindAppLoggerByName(app->name()),
+                            date_provider_) {}
 
 #ifdef INTERNAL_EXPERIMENTAL
 internal::FunctionRegistry* App::function_registry() {
   return &internal_->function_registry;
 }
-#endif // INTERNAL_EXPERIMENTAL
+#endif  // INTERNAL_EXPERIMENTAL
 
 void App::RegisterLibrary(const char* library, const char* version) {
   app_common::RegisterLibrary(library, version);
@@ -182,17 +184,14 @@ void App::SetDefaultConfigPath(const char* path) {
 }
 
 #ifdef INTERNAL_EXPERIMENTAL
-void App::LogHeartbeat() {
-  internal_->heartbeat_controller_.LogHeartbeat();
-}
+void App::LogHeartbeat() { internal_->heartbeat_controller_.LogHeartbeat(); }
 std::string App::GetAndResetStoredHeartbeats() {
   return internal_->heartbeat_controller_.GetAndResetStoredHeartbeats();
 }
 std::string App::GetAndResetTodaysStoredHeartbeats() {
   return internal_->heartbeat_controller_.GetAndResetTodaysStoredHeartbeats();
 }
-#endif // INTERNAL_EXPERIMENTAL
-
+#endif  // INTERNAL_EXPERIMENTAL
 
 // Desktop support is for developer workflow only, so automatic data collection
 // is always enabled.

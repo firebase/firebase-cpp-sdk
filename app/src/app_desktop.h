@@ -28,7 +28,7 @@ namespace internal {
 
 class AppInternal {
  public:
-  AppInternal(App* app);
+  explicit AppInternal(App* app);
 
   // A registry that modules can use to expose functions to each other, without
   // requiring a linkage dependency.
@@ -42,7 +42,6 @@ class AppInternal {
  private:
   // Has a method to get the current date. Used by heartbeat_controller.
   firebase::heartbeat::DateProviderImpl date_provider_;
-
 };
 
 // When Create() is invoked without arguments, it checks for a file named

@@ -716,7 +716,7 @@ class App {
   ///
   /// @return encoded payload of today's logged heartbeat.
   std::string GetAndResetTodaysStoredHeartbeats();
-#endif // INTERNAL_EXPERIMENTAL
+#endif  // INTERNAL_EXPERIMENTAL
 
 #ifdef INTERNAL_EXPERIMENTAL
 #if FIREBASE_PLATFORM_ANDROID
