@@ -1050,6 +1050,13 @@ jobs:
           name: mobile-simulator-test-video-artifact
           path: testapps/video-*-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.mp4
           retention-days: ${{ env.artifactRetentionDays }}
+      - name: Upload Android test logcat artifact
+        if: ${{ steps.get-device-type.outputs.device_type == 'virtual' && !cancelled() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: mobile-simulator-test-logcat-artifact
+          path: testapps/logcat-*-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.txt
+          retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         uses: actions/download-artifact@v3
