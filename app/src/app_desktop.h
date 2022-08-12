@@ -36,7 +36,7 @@ class AppInternal {
   // or implementation-specific code.  b/70229654
   FunctionRegistry function_registry;
 
-  // 
+  // HeartbeatController provides methods to log heartbeats and fetch payloads.
   HeartbeatController heartbeat_controller;
 };
 

@@ -17,7 +17,6 @@
 #include "app/src/app_desktop.h"
 
 #include <string.h>
-#include <map>
 #include <fstream>
 
 #include "app/src/app_common.h"
@@ -33,8 +32,6 @@ namespace firebase {
 DEFINE_FIREBASE_VERSION_STRING(Firebase);
 
 namespace {
-
-using firebase::heartbeat::HeartbeatController;
 
 // Size is arbitrary, just making sure that there is a sane limit.
 static const int kMaxBuffersize = 1024 * 500;
@@ -203,36 +200,5 @@ void App::SetDataCollectionDefaultEnabled(bool /* enabled */) {}
 // Desktop support is for developer workflow only, so automatic data collection
 // is always enabled.
 bool App::IsDataCollectionDefaultEnabled() const { return true; }
-
-namespace app_desktop {
-
-// Guards g_heartbeat_controllers.
-static Mutex* g_heartbeat_controllers_mutex = new Mutex();
-static std::map<std::string, SharedPtr<HeartbeatController>>*
-    g_heartbeat_controllers =
-        new std::map<std::string, SharedPtr<HeartbeatController>>();
-
-SharedPtr<HeartbeatController> GetHeartbeatControllerForApp(
-    const char* app_name) {
-  assert(app_name);
-  MutexLock lock(*g_heartbeat_controllers_mutex);
-  if (g_heartbeat_controllers) {
-    auto it = g_heartbeat_controllers->find(std::string(app_name));
-    if (it != g_heartbeat_controllers->end()) {
-      return it->second;
-    }
-  }
-  // If no existing heartbeat controller is found, create a new one.
-  // Heartbeat Controller (for desktop)
-  // Logger* logger = app_common::FindAppLoggerByName(app_name);
-  // TEMP
-  firebase::heartbeat::DateProviderImpl date_provider;
-  SharedPtr<HeartbeatController> heartbeat_controller =
-      MakeShared<HeartbeatController>(app_name, *logger, date_provider);
-  (*g_heartbeat_controllers)[app_name] = heartbeat_controller;
-  return heartbeat_controller;
-}
-
-}  // namespace app_desktop
 
 }  // namespace firebase

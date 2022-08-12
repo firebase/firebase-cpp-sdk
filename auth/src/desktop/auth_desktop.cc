@@ -20,11 +20,9 @@
 
 #include "app/rest/transport_curl.h"
 #include "app/src/app_common.h"
-#include "app/src/app_desktop.h"
 #include "app/src/app_identifier.h"
 #include "app/src/assert.h"
 #include "app/src/function_registry.h"
-#include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/include/firebase/app.h"
 #include "auth/src/common.h"
 #include "auth/src/data.h"
