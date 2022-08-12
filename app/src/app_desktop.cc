@@ -146,10 +146,11 @@ App* App::GetInstance(const char* name) {  // NOLINT
   return app_common::FindAppByName(name);
 }
 
-AppInternal::AppInternal(App* app)
-    : heartbeat_controller(app->name(),
-                *app_common::FindAppLoggerByName(app_name),
-                firebase::heartbeat::DateProviderImpl date_provider) {}
+internal::AppInternal::AppInternal(App* app)
+    : date_provider_(),
+      heartbeat_controller_(app->name(),
+                *app_common::FindAppLoggerByName(app->name()),
+                date_provider_) {}
 
 #ifdef INTERNAL_EXPERIMENTAL
 internal::FunctionRegistry* App::function_registry() {
@@ -182,13 +183,13 @@ void App::SetDefaultConfigPath(const char* path) {
 
 #ifdef INTERNAL_EXPERIMENTAL
 void App::LogHeartbeat() {
-  internal_->heartbeat_controller.LogHeartbeat();
+  internal_->heartbeat_controller_.LogHeartbeat();
 }
 std::string App::GetAndResetStoredHeartbeats() {
-  return internal_->heartbeat_controller.GetAndResetStoredHeartbeats();
+  return internal_->heartbeat_controller_.GetAndResetStoredHeartbeats();
 }
 std::string App::GetAndResetTodaysStoredHeartbeats() {
-  return internal_->heartbeat_controller.GetAndResetTodaysStoredHeartbeats();
+  return internal_->heartbeat_controller_.GetAndResetTodaysStoredHeartbeats();
 }
 #endif // INTERNAL_EXPERIMENTAL
 
