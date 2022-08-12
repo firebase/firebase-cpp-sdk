@@ -677,7 +677,7 @@ def _run_android_test(testapp_dir, package_name, app_path, helper_project, retry
   logging.info("Running android helper test: %s, %s, %s", package_name, app_path, helper_project)
   _install_android_app(app_path)
   video_name = "video-%s-%s-%s.mp4" % (package_name, retry, FLAGS.logfile_name)
-  logcat_name = "logcat-%s-%s-%s.txt" % (bundle_id, retry, FLAGS.logfile_name)
+  logcat_name = "logcat-%s-%s-%s.txt" % (package_name, retry, FLAGS.logfile_name)
   record_process = _record_android_tests(video_name)
   _clear_android_logcat()
   _run_instrumented_test()
