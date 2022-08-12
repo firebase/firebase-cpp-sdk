@@ -103,10 +103,13 @@ AppOptions* AppOptions::LoadDefault(AppOptions* options) {
   return nullptr;
 }
 
-void App::Initialize() { internal_ = new internal::AppInternal(this); }
+void App::Initialize() { internal_ = new internal::AppInternal(); }
 
 App::~App() {
   app_common::RemoveApp(this);
+  if (internal_->heartbeat_controller_ != nullptr) {
+    delete internal_->heartbeat_controller_;
+  }
   delete internal_;
   internal_ = nullptr;
 }
@@ -136,6 +139,10 @@ App* App::Create(const AppOptions& options, const char* name) {  // NOLINT
     app->name_ = name;
     app->options_ = options_with_defaults;
     app = app_common::AddApp(app, &app->init_results_);
+    app->internal_->heartbeat_controller_ =
+        new firebase::heartbeat::HeartbeatController(
+            name, *app_common::FindAppLoggerByName(name),
+            app->internal_->date_provider_);
   }
   return app;
 }
@@ -147,12 +154,6 @@ App* App::GetInstance() {  // NOLINT
 App* App::GetInstance(const char* name) {  // NOLINT
   return app_common::FindAppByName(name);
 }
-
-internal::AppInternal::AppInternal(App* app)
-    : date_provider_(),
-      heartbeat_controller_(app->name(),
-                            *app_common::FindAppLoggerByName(app->name()),
-                            date_provider_) {}
 
 #ifdef INTERNAL_EXPERIMENTAL
 internal::FunctionRegistry* App::function_registry() {
@@ -184,12 +185,12 @@ void App::SetDefaultConfigPath(const char* path) {
 }
 
 #ifdef INTERNAL_EXPERIMENTAL
-void App::LogHeartbeat() { internal_->heartbeat_controller_.LogHeartbeat(); }
+void App::LogHeartbeat() { internal_->heartbeat_controller_->LogHeartbeat(); }
 std::string App::GetAndResetStoredHeartbeats() {
-  return internal_->heartbeat_controller_.GetAndResetStoredHeartbeats();
+  return internal_->heartbeat_controller_->GetAndResetStoredHeartbeats();
 }
 std::string App::GetAndResetTodaysStoredHeartbeats() {
-  return internal_->heartbeat_controller_.GetAndResetTodaysStoredHeartbeats();
+  return internal_->heartbeat_controller_->GetAndResetTodaysStoredHeartbeats();
 }
 #endif  // INTERNAL_EXPERIMENTAL
 

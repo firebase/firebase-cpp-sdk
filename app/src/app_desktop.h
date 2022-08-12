@@ -28,8 +28,6 @@ namespace internal {
 
 class AppInternal {
  public:
-  explicit AppInternal(App* app);
-
   // A registry that modules can use to expose functions to each other, without
   // requiring a linkage dependency.
   // todo - make all the implementations use something like this, for internal
@@ -37,9 +35,8 @@ class AppInternal {
   FunctionRegistry function_registry;
 
   // HeartbeatController provides methods to log heartbeats and fetch payloads.
-  firebase::heartbeat::HeartbeatController heartbeat_controller_;
+  firebase::heartbeat::HeartbeatController* heartbeat_controller_;
 
- private:
   // Has a method to get the current date. Used by heartbeat_controller.
   firebase::heartbeat::DateProviderImpl date_provider_;
 };
