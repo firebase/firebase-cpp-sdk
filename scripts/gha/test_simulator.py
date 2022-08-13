@@ -738,9 +738,11 @@ def _save_recorded_android_video(video_name, summary_dir):
 
 
 def _save_android_logcat(logcat_name, summary_dir):
-  args = ["adb", "logcat", "-d", os.path.join(summary_dir, logcat_name)]
-  logging.info("Save logcat: %s", " ".join(args))
-  subprocess.run(args=args, check=False)
+  logcat_file = os.path.join(summary_dir, logcat_name)
+  args = ["adb", "logcat", "-d"]
+  logging.info("Save logcat to %s: %s", logcat_file, " ".join(args))
+  with open(logcat_file, "wb") as f:
+    subprocess.run(args=args, stdout=f, check=False)
 
 
 def _clear_android_logcat():
