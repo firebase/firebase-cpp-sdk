@@ -349,8 +349,6 @@ TEST_F(JniRunnableTest, DetachReturnsAfterLastRunOnAnotherThreadCompletes) {
   // that is, verify that `Run()` is not invoked.
   env.Call(runnable1.GetJavaRunnable(), kRunnableRun);
   EXPECT_EQ(runnable1_run_invoke_count.load(), 1);
-  FAIL() << "Forced failure to make sure that the logcat is correctly captured "
-            "in https://github.com/firebase/firebase-cpp-sdk/pull/1057";
 }
 
 }  // namespace
