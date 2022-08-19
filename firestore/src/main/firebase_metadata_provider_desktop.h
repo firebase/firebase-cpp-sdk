@@ -17,7 +17,10 @@
 #ifndef FIREBASE_FIRESTORE_SRC_MAIN_FIREBASE_METADATA_PROVIDER_DESKTOP_H_
 #define FIREBASE_FIRESTORE_SRC_MAIN_FIREBASE_METADATA_PROVIDER_DESKTOP_H_
 
+#include <string>
+
 #include "Firestore/core/src/remote/firebase_metadata_provider.h"
+#include "app/src/include/firebase/app.h"
 
 #if defined(__ANDROID__)
 #error "This header should not be used on Android."
@@ -29,7 +32,12 @@ namespace firestore {
 
 class FirebaseMetadataProviderCpp : public remote::FirebaseMetadataProvider {
  public:
+  explicit FirebaseMetadataProviderCpp(const App& app);
+
   void UpdateMetadata(grpc::ClientContext& context) override;
+
+ private:
+  std::string gmp_app_id_;
 };
 
 }  // namespace firestore
