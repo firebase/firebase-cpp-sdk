@@ -388,17 +388,47 @@ def _build_tvos_helper(helper_project, device_name, device_os):
 
 
 def _record_apple_tests(video_name):
-  command = "xcrun simctl io booted recordVideo -f --codec=h264 %s" % video_name
-  logging.info("Recording test: %s", command)
-  return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
+  return _start_recording([
+    "xcrun",
+    "simctl",
+    "io",
+    "booted",
+    "recordVideo",
+    "-f",
+    "--codec=h264 %s" % video_name,
+  ])
 
 
-def _stop_recording(record_process):
-  logging.info("Stop recording test")
-  try:
-    os.killpg(record_process.pid, signal.SIGINT)
-  except:
-    logging.info("Stop recording test failed!!!")
+def _start_recording(args):
+  logging.info("Starting screen recording: %s", subprocess.list2cmdline(args))
+  if platform.system() == "Windows":
+    # Specify CREATE_NEW_PROCESS_GROUP on Windows because it is required for
+    # sending CTRL_C_SIGNAL, which is done by _stop_screerecord_process():
+    # https://docs.python.org/3.7/library/subprocess.html#subprocess.Popen.send_signal
+    proc = subprocess.Popen(
+      args,
+      stdout=subprocess.DEVNULL,
+      stderr=subprocess.DEVNULL,
+      creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+    )
+  else:
+    proc = subprocess.Popen(
+      args,
+      stdout=subprocess.DEVNULL,
+      stderr=subprocess.DEVNULL,
+    )
+  logging.info("Started screen recording with PID %s", proc.pid)
+  return proc
+
+
+def _stop_recording(proc):
+  logging.info("Stopping screen recording with PID %s by sending CTRL+C", proc.pid)
+  proc.send_signal(
+    signal.CTRL_C_SIGNAL
+    if platform.system() == "Windows"
+    else signal.SIGINT
+  )
+  proc.wait()
   time.sleep(5)
 
 
@@ -723,9 +753,12 @@ def _install_android_helper_app(helper_project):
 
 
 def _record_android_tests(video_name):
-  command = "adb shell screenrecord /sdcard/%s" % video_name
-  logging.info("Recording test: %s", command)
-  return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
+  return _start_recording([
+    "adb",
+    "shell",
+    "screenrecord",
+    "/sdcard/%s" % video_name,
+  ])
 
 
 def _save_recorded_android_video(video_name, summary_dir):
