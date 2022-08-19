@@ -757,6 +757,7 @@ def _record_android_tests(video_name):
     "adb",
     "shell",
     "screenrecord",
+    "--bugreport",
     "/sdcard/%s" % video_name,
   ])
 
