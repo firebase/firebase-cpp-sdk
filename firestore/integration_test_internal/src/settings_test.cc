@@ -24,10 +24,6 @@ namespace firebase {
 namespace firestore {
 namespace {
 
-TEST(SettingsTest, DenverForcedFailure) {
-  FAIL() << "FORCED FAILURE by DENVER";
-}
-
 TEST(SettingsTest, Equality) {
   constexpr int64_t kFiveMb = 5 * 1024 * 1024;
   constexpr int64_t kSixMb = 6 * 1024 * 1024;
