@@ -60,7 +60,6 @@ TEST_F(TransactionOptionsTestAndroid, SetMaxAttempts) {
   builder.SetMaxAttempts(env, 42);
 
   EXPECT_EQ(builder.Build(env).GetMaxAttempts(env), 42);
-  EXPECT_EQ(builder.Build(env).GetMaxAttempts(env), 9999) << "FORCED FAILURE";
 }
 
 }  // namespace
