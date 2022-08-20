@@ -396,7 +396,8 @@ def _record_apple_tests(video_name):
     "booted",
     "recordVideo",
     "-f",
-    "--codec=h264 %s" % video_name,
+    "--codec=h264",
+    video_name,
   ])
 
 
