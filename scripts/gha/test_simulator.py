@@ -404,7 +404,7 @@ def _start_recording(args):
   logging.info("Starting screen recording: %s", subprocess.list2cmdline(args))
   if platform.system() == "Windows":
     # Specify CREATE_NEW_PROCESS_GROUP on Windows because it is required for
-    # sending CTRL_C_SIGNAL, which is done by _stop_screerecord_process():
+    # sending CTRL_C_SIGNAL, which is done by _stop_recording():
     # https://docs.python.org/3.7/library/subprocess.html#subprocess.Popen.send_signal
     proc = subprocess.Popen(
       args,
