@@ -61,7 +61,8 @@ using ::testing::ContainerEq;
 using ::testing::HasSubstr;
 
 TEST_F(FirestoreIntegrationTest, DenverTest) {
-  FAIL() << "FORCED FAILURE BY DENVER";
+  FAIL() << "FORCED CRASH BY DENVER";
+  abort();
 }
 
 TEST_F(FirestoreIntegrationTest, GetInstance) {
