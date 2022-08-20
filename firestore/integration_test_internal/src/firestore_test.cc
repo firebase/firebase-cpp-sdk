@@ -60,6 +60,10 @@ using ::firebase::auth::Auth;
 using ::testing::ContainerEq;
 using ::testing::HasSubstr;
 
+TEST_F(FirestoreIntegrationTest, DenverTest) {
+  FAIL() << "FORCED FAILURE BY DENVER";
+}
+
 TEST_F(FirestoreIntegrationTest, GetInstance) {
   // Create App.
   App* app = this->app();
