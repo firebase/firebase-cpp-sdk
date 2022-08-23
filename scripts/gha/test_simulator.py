@@ -675,7 +675,7 @@ def _create_and_boot_emulator(sdk_id):
   if not FLAGS.ci: 
     command = "$ANDROID_HOME/emulator/emulator -avd test_emulator &"
   else:
-    command = "$ANDROID_HOME/emulator/emulator -avd test_emulator -no-audio -no-boot-anim -gpu auto &"
+    command = "$ANDROID_HOME/emulator/emulator -avd test_emulator -no-window -no-audio -no-boot-anim -gpu auto &"
   logging.info("Boot test emulator: %s", command)
   subprocess.Popen(command, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
 
