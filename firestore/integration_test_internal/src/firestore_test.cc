@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <future>
+#include <iostream>
 #include <memory>
 #include <stdexcept>
 
@@ -61,7 +62,7 @@ using ::testing::ContainerEq;
 using ::testing::HasSubstr;
 
 TEST_F(FirestoreIntegrationTest, DenverTest) {
-  FAIL() << "FORCED CRASH BY DENVER";
+  std::cout << "zzyzx FORCED CRASH BY DENVER; calling abort()" << std::endl;
   abort();
 }
 
