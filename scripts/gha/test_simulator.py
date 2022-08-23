@@ -83,6 +83,7 @@ import platform
 import shutil
 import signal
 import subprocess
+import tempfile
 import time
 
 from absl import app
@@ -403,28 +404,41 @@ def _record_apple_tests(video_name):
 
 def _start_recording(args):
   logging.info("Starting screen recording: %s", subprocess.list2cmdline(args))
-  if platform.system() == "Windows":
-    # Specify CREATE_NEW_PROCESS_GROUP on Windows because it is required for
-    # sending CTRL_C_SIGNAL, which is done by _stop_recording():
-    # https://docs.python.org/3.7/library/subprocess.html#subprocess.Popen.send_signal
-    proc = subprocess.Popen(
-      args,
-      stdout=subprocess.DEVNULL,
-      stderr=subprocess.DEVNULL,
-      creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
-    )
-  else:
-    proc = subprocess.Popen(
-      args,
-      stdout=subprocess.DEVNULL,
-      stderr=subprocess.DEVNULL,
-    )
+
+  output_file = tempfile.TemporaryFile()
+
+  # Specify CREATE_NEW_PROCESS_GROUP on Windows because it is required for
+  # sending CTRL_C_SIGNAL, which is done by _stop_recording().
+  proc = subprocess.Popen(
+    args,
+    stdout=output_file,
+    stderr=subprocess.STDOUT,
+    creationflags=
+        subprocess.CREATE_NEW_PROCESS_GROUP
+        if platform.system() == "Windows"
+        else 0,
+  )
   logging.info("Started screen recording with PID %s", proc.pid)
-  return proc
+  return (proc, output_file)
 
 
-def _stop_recording(proc):
-  logging.info("Stopping screen recording with PID %s by sending CTRL+C", proc.pid)
+def _stop_recording(start_recording_retval):
+  (proc, output_file) = start_recording_retval
+  logging.info("Stopping screen recording with PID %s by sending CTRL+C",
+    proc.pid)
+
+  if proc.returncode is not None:
+    logging.warning(
+      "Screen recording process ended prematurely with exit code %s",
+      proc.returncode
+    )
+    output_file.seek(0)
+    print("==== BEGIN screen recording output ====")
+    print(output_file.read().decode("utf8", errors="replace"))
+    print("==== END screen recording output ====")
+
+  output_file.close()
+
   proc.send_signal(
     signal.CTRL_C_SIGNAL
     if platform.system() == "Windows"
