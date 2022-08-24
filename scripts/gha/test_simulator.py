@@ -449,7 +449,10 @@ def _stop_recording(start_recording_retval):
 
 
 def _save_recorded_apple_video(video_name, summary_dir):
-  logging.info("Save test video to: %s", summary_dir)
+  logging.info("Save test video %s to: %s", video_name, summary_dir)
+  if not os.path.exists(video_name):
+    logging.warning("Save test video failed: file not found: %s", video_name)
+    return
   shutil.move(video_name, os.path.join(summary_dir, video_name))
 
 
