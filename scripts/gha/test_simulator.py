@@ -115,7 +115,7 @@ CONSTANTS = {
 }
 
 _RESULT_FILE = "Results1.json"
-_TEST_RETRY = 3
+_MAX_ATTEMPTS = 3
 _CMD_TIMEOUT = 300
 
 _DEVICE_NONE = "None"
@@ -253,7 +253,7 @@ def main(argv):
   
     for app_path in ios_testapps:
       bundle_id = _get_bundle_id(app_path, config)
-      logs=_run_apple_test(testapp_dir, bundle_id, app_path, ios_helper_app, device_id, _TEST_RETRY)
+      logs=_run_apple_test(testapp_dir, bundle_id, app_path, ios_helper_app, device_id)
       tests.append(Test(testapp_path=app_path, logs=logs))
 
     _shutdown_simulator()
@@ -293,7 +293,7 @@ def main(argv):
   
     for app_path in tvos_testapps:
       bundle_id = _get_bundle_id(app_path, config)
-      logs=_run_apple_test(testapp_dir, bundle_id, app_path, tvos_helper_app, device_id, _TEST_RETRY)
+      logs=_run_apple_test(testapp_dir, bundle_id, app_path, tvos_helper_app, device_id)
       tests.append(Test(testapp_path=app_path, logs=logs))
 
     _shutdown_simulator()
@@ -328,7 +328,7 @@ def main(argv):
 
     for app_path in android_testapps:
       package_name = _get_package_name(app_path)
-      logs=_run_android_test(testapp_dir, package_name, app_path, android_helper_project, _TEST_RETRY)
+      logs=_run_android_test(testapp_dir, package_name, app_path, android_helper_project)
       tests.append(Test(testapp_path=app_path, logs=logs))
 
     _shutdown_emulator()
@@ -548,23 +548,24 @@ def _has_uitests(app_path, config):
       return api.get("has_uitests", False)
 
 
-def _run_apple_test(testapp_dir, bundle_id, app_path, helper_app, device_id, retry=1):
+def _run_apple_test(testapp_dir, bundle_id, app_path, helper_app, device_id, max_attempts=_MAX_ATTEMPTS):
   """Run helper test and collect test result."""
-  logging.info("Running apple helper test: %s, %s, %s, %s", bundle_id, app_path, helper_app, device_id)
-  _install_apple_app(app_path, device_id)
-  video_name = "video-%s-%s-%s.mp4" % (bundle_id, retry, FLAGS.logfile_name)
-  record_process = _record_apple_tests(video_name)
-  _run_xctest(helper_app, device_id)
-  _stop_recording(record_process)
-  log = _get_apple_test_log(bundle_id, app_path, device_id)
-  _uninstall_apple_app(bundle_id, device_id)
-  result = test_validation.validate_results(log, test_validation.CPP)
-  if not result.complete or (FLAGS.test_type=="uitest" and result.fails>0):
+  attempt_num = 1
+  while attempt_num <= max_attempts:
+    logging.info("Running apple helper test (attempt %s of %s): %s, %s, %s, %s", attempt_num, max_attempts, bundle_id, app_path, helper_app, device_id)
+    _install_apple_app(app_path, device_id)
+    video_name = "video-%s-%s-%s.mp4" % (bundle_id, attempt_num, FLAGS.logfile_name)
+    record_process = _record_apple_tests(video_name)
+    _run_xctest(helper_app, device_id)
+    _stop_recording(record_process)
+    log = _get_apple_test_log(bundle_id, app_path, device_id)
+    _uninstall_apple_app(bundle_id, device_id)
+    result = test_validation.validate_results(log, test_validation.CPP)
+    if result.complete and (FLAGS.test_type != "uitest" or result.fails == 0):
+      break
     _save_recorded_apple_video(video_name, testapp_dir)
-    if retry > 1:
-      logging.info("Retry _run_apple_test. Remaining retry: %s", retry-1)
-      return _run_apple_test(testapp_dir, bundle_id, app_path, helper_app, device_id, retry=retry-1)
-  
+    attempt_num += 1
+
   return log
   
 
@@ -719,25 +720,27 @@ def _get_package_name(app_path):
   return package_name  
 
 
-def _run_android_test(testapp_dir, package_name, app_path, helper_project, retry=1): 
-  logging.info("Running android helper test: %s, %s, %s", package_name, app_path, helper_project)
-  _install_android_app(app_path)
-  video_name = "video-%s-%s-%s.mp4" % (package_name, retry, FLAGS.logfile_name)
-  logcat_name = "logcat-%s-%s-%s.txt" % (package_name, retry, FLAGS.logfile_name)
-  record_process = _record_android_tests(video_name)
-  _clear_android_logcat()
-  _run_instrumented_test()
-  _stop_recording(record_process)
-  log = _get_android_test_log(package_name)
-  _uninstall_android_app(package_name)
+def _run_android_test(testapp_dir, package_name, app_path, helper_project, max_attempts=_MAX_ATTEMPTS): 
+  attempt_num = 1
+  while attempt_num <= max_attempts:
+    logging.info("Running android helper test (attempt %s of %s): %s, %s, %s", attempt_num, max_attempts, package_name, app_path, helper_project)
+    _install_android_app(app_path)
+    video_name = "video-%s-%s-%s.mp4" % (package_name, attempt_num, FLAGS.logfile_name)
+    logcat_name = "logcat-%s-%s-%s.txt" % (package_name, attempt_num, FLAGS.logfile_name)
+    record_process = _record_android_tests(video_name)
+    _clear_android_logcat()
+    _run_instrumented_test()
+    _stop_recording(record_process)
+    log = _get_android_test_log(package_name)
+    _uninstall_android_app(package_name)
 
-  result = test_validation.validate_results(log, test_validation.CPP)
-  if not result.complete or (FLAGS.test_type=="uitest" and result.fails>0):
+    result = test_validation.validate_results(log, test_validation.CPP)
+    if result.complete and (FLAGS.test_type != "uitest" or result.fails == 0):
+      break
+
     _save_recorded_android_video(video_name, testapp_dir)
     _save_android_logcat(logcat_name, testapp_dir)
-    if retry > 1:
-      logging.info("Retry _run_android_test. Remaining retry: %s", retry-1)
-      return _run_android_test(testapp_dir, package_name, app_path, helper_project, retry=retry-1)
+    attempt_num += 1
   
   return log
 
@@ -824,12 +827,20 @@ def _get_android_test_log(test_package):
   return result.stdout
 
 
-def _run_with_retry(args, shell=False, check=True, timeout=_CMD_TIMEOUT, retry_time=_TEST_RETRY, device=_DEVICE_NONE, type=_RESET_TYPE_REBOOT):
-  logging.info("run_with_retry: %s; remaining retry: %s", args, retry_time)
-  if retry_time > 1:
+def _run_with_retry(args, shell=False, check=True, timeout=_CMD_TIMEOUT, max_attempts=_MAX_ATTEMPTS, device=_DEVICE_NONE, type=_RESET_TYPE_REBOOT):
+  attempt_num = 1
+  while attempt_num <= max_attempts:
+    logging.info("run_with_retry: %s (attempt %s of %s)", args, attempt_num, max_attempts)
     try:
       subprocess.run(args, shell=shell, check=check, timeout=timeout)
-    except:
+    except subprocess.SubprocessError:
+      logging.exception("run_with_retry: %s (attempt %s of %s) FAILED", args, attempt_num, max_attempts)
+
+      # If retries have been exhausted, just raise the exception
+      if attempt_num >= max_attempts:
+        raise
+
+      # Otherwise, reset the emulator/simulator and try again.
       if device == _DEVICE_NONE:
         pass
       elif device == _DEVICE_ANDROID:
@@ -838,9 +849,8 @@ def _run_with_retry(args, shell=False, check=True, timeout=_CMD_TIMEOUT, retry_t
       else:
         # Apple
         _reset_simulator_on_error(device, type)
-      _run_with_retry(args, shell, check, timeout, retry_time-1, device, type)
-  else:
-    subprocess.run(args, shell=shell, check=False, timeout=timeout)
+    else:
+      break
 
 
 if __name__ == '__main__':
