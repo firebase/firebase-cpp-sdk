@@ -293,7 +293,7 @@ def main(argv):
   
     for app_path in tvos_testapps:
       bundle_id = _get_bundle_id(app_path, config)
-      logs=_run_apple_test(testapp_dir, bundle_id, app_path, tvos_helper_app, device_id)
+      logs=_run_apple_test(testapp_dir, bundle_id, app_path, tvos_helper_app, device_id, record_video_display="external")
       tests.append(Test(testapp_path=app_path, logs=logs))
 
     _shutdown_simulator()
@@ -389,8 +389,8 @@ def _build_tvos_helper(helper_project, device_name, device_os):
         return os.path.join(file_dir, file_name)
 
 
-def _record_apple_tests(video_name):
-  return _start_recording([
+def _record_apple_tests(video_name, display):
+  args = [
     "xcrun",
     "simctl",
     "io",
@@ -398,8 +398,11 @@ def _record_apple_tests(video_name):
     "recordVideo",
     "-f",
     "--codec=h264",
-    video_name,
-  ])
+  ]
+  if display is not None:
+    args.append("--display=" + display)
+  args.append(video_name)
+  return _start_recording(args)
 
 
 def _start_recording(args):
@@ -551,14 +554,14 @@ def _has_uitests(app_path, config):
       return api.get("has_uitests", False)
 
 
-def _run_apple_test(testapp_dir, bundle_id, app_path, helper_app, device_id, max_attempts=_MAX_ATTEMPTS):
+def _run_apple_test(testapp_dir, bundle_id, app_path, helper_app, device_id, max_attempts=_MAX_ATTEMPTS, record_video_display=None):
   """Run helper test and collect test result."""
   attempt_num = 1
   while attempt_num <= max_attempts:
     logging.info("Running apple helper test (attempt %s of %s): %s, %s, %s, %s", attempt_num, max_attempts, bundle_id, app_path, helper_app, device_id)
     _install_apple_app(app_path, device_id)
     video_name = "video-%s-%s-%s.mp4" % (bundle_id, attempt_num, FLAGS.logfile_name)
-    record_process = _record_apple_tests(video_name)
+    record_process = _record_apple_tests(video_name, display=record_video_display)
     _run_xctest(helper_app, device_id)
     _stop_recording(record_process)
     log = _get_apple_test_log(bundle_id, app_path, device_id)
