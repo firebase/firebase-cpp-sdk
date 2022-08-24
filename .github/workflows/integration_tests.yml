@@ -1268,6 +1268,7 @@ jobs:
           path: testapps/test-results-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Upload tvOS test video artifact
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
         with:
           name: mobile-simulator-test-video-artifact
