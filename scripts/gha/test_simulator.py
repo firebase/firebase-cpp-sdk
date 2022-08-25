@@ -435,7 +435,7 @@ def _stop_recording(start_recording_retval):
 
   if proc.returncode is not None:
     logging.warning(
-      "Screen recording process ended prematurely with exit code %s",
+      "WARNING: Screen recording process ended prematurely with exit code %s",
       proc.returncode
     )
     output_file.seek(0)
