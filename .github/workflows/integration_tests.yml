@@ -984,9 +984,10 @@ jobs:
           timeout_minutes: 5
           max_attempts: 3
           command: scripts/gha/install_test_workflow_prereqs.sh -p Android -t true
-      - id: get-device-type
+      - id: device-info
         run: |
-          echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.android_device }} )"
+          echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_device_type)"
+          echo "::set-output name=device::$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_ftl_device)"
       - name: Set up Node (14)
         uses: actions/setup-node@v2
         with:
@@ -997,7 +998,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
       - name: Setup Firestore Emulator
-        if: steps.get-device-type.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
+        if: steps.device-info.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
           npm install -g firebase-tools
           firebase emulators:start --only firestore --project demo-example &
@@ -1008,26 +1009,29 @@ jobs:
           java-version: '8'
       - name: Run Android integration tests on Emulator locally
         timeout-minutes: 120
-        if: steps.get-device-type.outputs.device_type == 'virtual'
+        if: steps.device-info.outputs.device_type == 'virtual'
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
             --test_type "${{ matrix.test_type }}" \
             --android_device "${{ matrix.android_device }}" \
             --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}" \
             --ci
-      - name: Install Cloud SDK
-        if: steps.get-device-type.outputs.device_type == 'real'
-        uses: google-github-actions/setup-gcloud@v0
-      - name: Run Android integration tests on Real Device via FTL
+      - id: ftl_test
+        if: steps.device-info.outputs.device_type == 'real'
+        uses: FirebaseExtended/github-actions/firebase-test-lab@test/firebase-test-lab-gameloop
+        env:
+          FIREBASE_SERVICE_ACCOUNT_CREDENTIALS: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
+        with:
+          testapp_dir: testapps
+          test_type: "game-loop"
+          test_devices: ${{ steps.device-info.outputs.device }}
+      - name: Read FTL Test Result
+        if: steps.device-info.outputs.device_type == 'real'
         timeout-minutes: 60
-        if: steps.get-device-type.outputs.device_type == 'real'
+        shell: bash
         run: |
-          python scripts/gha/test_lab.py --testapp_dir testapps \
-            --android_device "${{ matrix.android_device }}" \
-            --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}" \
-            --code_platform cpp \
-            --key_file_encrypted scripts/gha-encrypted/gcs_key_file.json.gpg \
-            --key_file_passphrase "${{ secrets.TEST_SECRET }}"
+          python scripts/gha/read_ftl_test_result.py --test_result '${{ steps.ftl_test.outputs.test_summary }}' \
+            --output_path testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.log
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
@@ -1044,14 +1048,14 @@ jobs:
           path: testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Upload Android test video artifact
-        if: ${{ steps.get-device-type.outputs.device_type == 'virtual' && !cancelled() }}
+        if: ${{ steps.device-info.outputs.device_type == 'virtual' && !cancelled() }}
         uses: actions/upload-artifact@v3
         with:
           name: mobile-simulator-test-video-artifact
           path: testapps/video-*-android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}.mp4
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Upload Android test logcat artifact
-        if: ${{ steps.get-device-type.outputs.device_type == 'virtual' && !cancelled() }}
+        if: ${{ steps.device-info.outputs.device_type == 'virtual' && !cancelled() }}
         uses: actions/upload-artifact@v3
         with:
           name: mobile-simulator-test-logcat-artifact
@@ -1119,9 +1123,10 @@ jobs:
           timeout_minutes: 3
           max_attempts: 3
           command: scripts/gha/install_test_workflow_prereqs.sh -p iOS -t true
-      - id: get-device-type
+      - id: device-info
         run: |
-          echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.ios_device }} )"
+          echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.ios_device }} -get_device_type)"
+          echo "::set-output name=device::$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.ios_device }} -get_ftl_device)"
       - name: Set up Node (14)
         uses: actions/setup-node@v2
         with:
@@ -1132,33 +1137,35 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
       - name: Setup Firestore Emulator
-        if: steps.get-device-type.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
+        if: steps.device-info.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
           npm install -g firebase-tools
           firebase emulators:start --only firestore --project demo-example &
       - name: Run iOS integration tests on Simulator locally
         timeout-minutes: 120
-        if: steps.get-device-type.outputs.device_type == 'virtual'
+        if: steps.device-info.outputs.device_type == 'virtual'
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
             --test_type "${{ matrix.test_type }}" \
             --ios_device "${{ matrix.ios_device }}" \
             --logfile_name "ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}" \
             --ci
-      - name: Install Cloud SDK
-        if: steps.get-device-type.outputs.device_type == 'real'
-        uses: google-github-actions/setup-gcloud@v0
-      - name: Run iOS integration tests on Real Device via FTL
-        # max 3 retry and 10m timeout for each testapp, plus other steps
+      - id: ftl_test
+        if: steps.device-info.outputs.device_type == 'real'
+        uses: FirebaseExtended/github-actions/firebase-test-lab@test/firebase-test-lab-gameloop
+        env:
+          FIREBASE_SERVICE_ACCOUNT_CREDENTIALS: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
+        with:
+          testapp_dir: testapps
+          test_type: "game-loop"
+          test_devices: ${{ steps.device-info.outputs.device }}
+      - name: Read FTL Test Result
+        if: steps.device-info.outputs.device_type == 'real'
         timeout-minutes: 60
-        if: steps.get-device-type.outputs.device_type == 'real'
+        shell: bash
         run: |
-          python scripts/gha/test_lab.py --testapp_dir testapps \
-            --ios_device "${{ matrix.ios_device }}" \
-            --logfile_name "ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}" \
-            --code_platform cpp \
-            --key_file_encrypted scripts/gha-encrypted/gcs_key_file.json.gpg \
-            --key_file_passphrase "${{ secrets.TEST_SECRET }}"
+          python scripts/gha/read_ftl_test_result.py --test_result '${{ steps.ftl_test.outputs.test_summary }}' \
+            --output_path testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}.log
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
@@ -1175,7 +1182,7 @@ jobs:
           path: testapps/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Upload iOS test video artifact
-        if: ${{ steps.get-device-type.outputs.device_type == 'virtual' && !cancelled() }}
+        if: ${{ steps.device-info.outputs.device_type == 'virtual' && !cancelled() }}
         uses: actions/upload-artifact@v3
         with:
           name: mobile-simulator-test-video-artifact
