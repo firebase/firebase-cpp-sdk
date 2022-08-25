@@ -392,7 +392,7 @@ def _build_tvos_helper(helper_project, device_name, device_os):
 def _record_apple_tests(video_name, display):
   args = [
     "xcrun",
-    "simctl",
+    "simctlZZZ",
     "io",
     "booted",
     "recordVideo",
@@ -784,7 +784,7 @@ def _record_android_tests(video_name):
   return _start_recording([
     "adb",
     "shell",
-    "screenrecord",
+    "screenrecordZZZZ",
     "--bugreport",
     "/sdcard/%s" % video_name,
   ])
