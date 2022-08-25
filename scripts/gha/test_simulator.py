@@ -439,9 +439,10 @@ def _stop_recording(start_recording_retval):
       proc.returncode
     )
     output_file.seek(0)
-    print("==== BEGIN screen recording output ====")
-    print(output_file.read().decode("utf8", errors="replace"))
-    print("==== END screen recording output ====")
+    logging.warning("==== BEGIN screen recording output ====")
+    for line in output_file.read().decode("utf8", errors="replace").splitlines():
+      logging.warning("%s", line.rstrip())
+    logging.warning("==== END screen recording output ====")
 
   output_file.close()
 
