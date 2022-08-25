@@ -430,6 +430,9 @@ def _stop_recording(start_recording_retval):
   logging.info("Stopping screen recording with PID %s by sending CTRL+C",
     proc.pid)
 
+  # Make sure that `returncode` is set on the `Popen` object.
+  proc.poll()
+
   if proc.returncode is not None:
     logging.warning(
       "Screen recording process ended prematurely with exit code %s",
