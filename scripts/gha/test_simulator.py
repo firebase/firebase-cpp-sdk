@@ -676,18 +676,14 @@ def _get_package_name(app_path):
 def _run_android_test(testapp_dir, package_name, app_path, helper_project, retry=1): 
   logging.info("Running android helper test: %s, %s, %s", package_name, app_path, helper_project)
   _install_android_app(app_path)
-  video_name = "video-%s-%s-%s.mp4" % (package_name, retry, FLAGS.logfile_name)
   logcat_name = "logcat-%s-%s-%s.txt" % (package_name, retry, FLAGS.logfile_name)
-  record_process = _record_android_tests(video_name)
   _clear_android_logcat()
   _run_instrumented_test()
-  _stop_recording(record_process)
   log = _get_android_test_log(package_name)
   _uninstall_android_app(package_name)
 
   result = test_validation.validate_results(log, test_validation.CPP)
   if not result.complete or (FLAGS.test_type=="uitest" and result.fails>0):
-    _save_recorded_android_video(video_name, testapp_dir)
     _save_android_logcat(logcat_name, testapp_dir)
     if retry > 1:
       logging.info("Retry _run_android_test. Remaining retry: %s", retry-1)
