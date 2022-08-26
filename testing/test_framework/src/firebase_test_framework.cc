@@ -355,7 +355,6 @@ char** EditMainArgsForGoogleTest(int* argc, char* argv[]) {
   // Add elements to the `modified_args` vector to specify to googletest.
   // e.g. modified_args.push_back("--gtest_list_tests");
   // e.g. modified_args.push_back("--gtest_filter=MyTestFixture.MyTest");
-  modified_args.push_back("--gtest_filter=FirestoreIntegrationTest.DenverTest");
 
   // Disable googletest's exception handling logic when debugging test failures
   // due to exceptions. This can be helpful because when exceptions are handled

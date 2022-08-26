@@ -18,7 +18,6 @@
 
 #include <algorithm>
 #include <future>
-#include <iostream>
 #include <memory>
 #include <stdexcept>
 
@@ -60,11 +59,6 @@ namespace firestore {
 using ::firebase::auth::Auth;
 using ::testing::ContainerEq;
 using ::testing::HasSubstr;
-
-TEST_F(FirestoreIntegrationTest, DenverTest) {
-  std::cout << "zzyzx FORCED CRASH BY DENVER; calling abort()" << std::endl;
-  abort();
-}
 
 TEST_F(FirestoreIntegrationTest, GetInstance) {
   // Create App.
