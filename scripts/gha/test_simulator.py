@@ -862,6 +862,8 @@ def _run_with_retry(args, shell=False, check=True, timeout=_CMD_TIMEOUT, max_att
     else:
       break
 
+    attempt_num += 1
+
 
 if __name__ == '__main__':
   flags.mark_flag_as_required("testapp_dir")
