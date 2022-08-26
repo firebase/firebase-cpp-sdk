@@ -1018,7 +1018,7 @@ jobs:
             --ci
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'real'
-        uses: FirebaseExtended/github-actions/firebase-test-lab@test/firebase-test-lab-gameloop
+        uses: FirebaseExtended/github-actions/firebase-test-lab@v1.0
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
           testapp_dir: testapps
@@ -1151,7 +1151,7 @@ jobs:
             --ci
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'real'
-        uses: FirebaseExtended/github-actions/firebase-test-lab@test/firebase-test-lab-gameloop
+        uses: FirebaseExtended/github-actions/firebase-test-lab@v1.0
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
           testapp_dir: testapps
