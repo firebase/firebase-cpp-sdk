@@ -534,12 +534,6 @@ void App::RegisterLibrary(const char* library, const char* version) {
 
 void App::SetDefaultConfigPath(const char* /* path */) {}
 
-void App::LogHeartbeat() {}
-
-std::string App::GetAndResetStoredHeartbeats() { return ""; }
-
-std::string App::GetAndResetTodaysStoredHeartbeats() { return ""; }
-
 void App::SetDataCollectionDefaultEnabled(bool enabled) {
   if (!app::GetMethodId(app::kSetDataCollectionDefaultEnabled)) {
     LogError(

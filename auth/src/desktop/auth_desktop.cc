@@ -96,7 +96,7 @@ void DestroyFunctionRegistryListener(AuthData* auth_data);
 
 void LogHeartbeat(Auth* const auth) {
   if (auth && auth->auth_data_ && auth->auth_data_->app) {
-    auth->auth_data_->app->LogHeartbeat();
+    auth->auth_data_->app->LogDesktopHeartbeat();
   }
 }
 

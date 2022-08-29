@@ -702,20 +702,22 @@ class App {
 #endif  // INTERNAL_EXPERIMENTAL
 
 #ifdef INTERNAL_EXPERIMENTAL
+#if FIREBASE_PLATFORM_DESKTOP
   // These methods are only visible to SWIG and internal users of firebase::App.
 
   /// On Desktop, log a Heartbeat
-  void LogHeartbeat();
+  void LogDesktopHeartbeat();
 
   /// On Desktop, clear stored heartbeats and return a payload.
   ///
   /// @return encoded payload of all logged heartbeats.
-  std::string GetAndResetStoredHeartbeats();
+  std::string GetAndResetStoredDesktopHeartbeats();
 
   /// On Desktop, clear today's stored heartbeat and return a payload.
   ///
   /// @return encoded payload of today's logged heartbeat.
-  std::string GetAndResetTodaysStoredHeartbeats();
+  std::string GetAndResetTodaysStoredDesktopHeartbeats();
+#endif  // FIREBASE_PLATFORM_DESKTOP
 #endif  // INTERNAL_EXPERIMENTAL
 
 #ifdef INTERNAL_EXPERIMENTAL

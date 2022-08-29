@@ -184,13 +184,15 @@ void App::SetDefaultConfigPath(const char* path) {
   }
 }
 
-void App::LogHeartbeat() { internal_->heartbeat_controller_->LogHeartbeat(); }
+void App::LogDesktopHeartbeat() {
+  internal_->heartbeat_controller_->LogHeartbeat();
+}
 
-std::string App::GetAndResetStoredHeartbeats() {
+std::string App::GetAndResetStoredDesktopHeartbeats() {
   return internal_->heartbeat_controller_->GetAndResetStoredHeartbeats();
 }
 
-std::string App::GetAndResetTodaysStoredHeartbeats() {
+std::string App::GetAndResetTodaysStoredDesktopHeartbeats() {
   return internal_->heartbeat_controller_->GetAndResetTodaysStoredHeartbeats();
 }
 
