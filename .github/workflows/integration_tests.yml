@@ -1019,6 +1019,7 @@ jobs:
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'real'
         uses: FirebaseExtended/github-actions/firebase-test-lab@v1.0
+        timeout-minutes: 60
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
           testapp_dir: testapps
@@ -1026,7 +1027,6 @@ jobs:
           test_devices: ${{ steps.device-info.outputs.device }}
       - name: Read FTL Test Result
         if: steps.device-info.outputs.device_type == 'real'
-        timeout-minutes: 60
         shell: bash
         run: |
           python scripts/gha/read_ftl_test_result.py --test_result '${{ steps.ftl_test.outputs.test_summary }}' \
@@ -1152,6 +1152,7 @@ jobs:
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'real'
         uses: FirebaseExtended/github-actions/firebase-test-lab@v1.0
+        timeout-minutes: 60
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
           testapp_dir: testapps
@@ -1159,7 +1160,6 @@ jobs:
           test_devices: ${{ steps.device-info.outputs.device }}
       - name: Read FTL Test Result
         if: steps.device-info.outputs.device_type == 'real'
-        timeout-minutes: 60
         shell: bash
         run: |
           python scripts/gha/read_ftl_test_result.py --test_result '${{ steps.ftl_test.outputs.test_summary }}' \

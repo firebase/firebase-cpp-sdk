@@ -166,15 +166,15 @@ BUILD_CONFIGS = {
 #   gcloud firebase test ios models list
 TEST_DEVICES = {
   "android_min": {"type": "real", "device": "model=Nexus10,version=19"},
-  "android_target": {"type": "real", "device": "model=blueline,version=28"},
+  "android_target": {"type": "real", "device": "model=gts4lltevzw,version=28"},
   "android_latest": {"type": "real", "device": "model=oriole,version=33"},
   "emulator_min": {"type": "virtual", "image":"system-images;android-18;google_apis;x86"},
   "emulator_target": {"type": "virtual", "image":"system-images;android-28;google_apis;x86_64"},
   "emulator_latest": {"type": "virtual", "image":"system-images;android-30;google_apis;x86_64"},
   "emulator_32bit": {"type": "virtual", "image":"system-images;android-30;google_apis;x86"},
   "ios_min": {"type": "real", "device": "model=iphonexr,version=13.2"},
-  "ios_target": {"type": "real", "device": "model=iphone11,version=13.6"},
-  "ios_latest": {"type": "real", "device": "model=iphone8,version=14.7"},
+  "ios_target": {"type": "real", "device": "model=iphone8,version=13.6"},
+  "ios_latest": {"type": "real", "device": "model=iphone11pro,version=14.7"},
   "simulator_min": {"type": "virtual", "name":"iPhone 8", "version":"13.7"},
   "simulator_target": {"type": "virtual", "name":"iPhone 8", "version":"14.5"},
   "simulator_latest": {"type": "virtual", "name":"iPhone 11", "version":"15.2"},
