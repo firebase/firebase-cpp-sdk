@@ -1292,6 +1292,13 @@ jobs:
           name: log-artifact
           path: testapps/test-results-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}*
           retention-days: ${{ env.artifactRetentionDays }}
+      - name: Upload tvOS test video artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: mobile-simulator-test-video-artifact
+          path: testapps/video-*-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}.mp4
+          retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
         uses: actions/download-artifact@v3
