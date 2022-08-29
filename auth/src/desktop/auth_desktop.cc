@@ -94,9 +94,11 @@ void* CreatePlatformAuth(App* const app) {
 void InitializeFunctionRegistryListener(AuthData* auth_data);
 void DestroyFunctionRegistryListener(AuthData* auth_data);
 
-// TODO(b/211006737): This is a stub until desktop implementation supports
-// heartbeat logging.
-void LogHeartbeat(Auth* const auth) {}
+void LogHeartbeat(Auth* const auth) {
+  if (auth && auth->auth_data_ && auth->auth_data_->app) {
+    auth->auth_data_->app->LogDesktopHeartbeat();
+  }
+}
 
 IdTokenRefreshListener::IdTokenRefreshListener() : token_timestamp_(0) {}
 

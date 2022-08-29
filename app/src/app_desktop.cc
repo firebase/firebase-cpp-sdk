@@ -14,12 +14,16 @@
  * limitations under the License.
  */
 
+#include "app/src/app_desktop.h"
+
 #include <string.h>
 
 #include <fstream>
+#include <string>
 
 #include "app/src/app_common.h"
 #include "app/src/function_registry.h"
+#include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/version.h"
@@ -28,24 +32,6 @@
 
 namespace firebase {
 DEFINE_FIREBASE_VERSION_STRING(Firebase);
-
-namespace internal {
-
-class AppInternal {
- public:
-  // A registry that modules can use to expose functions to each other, without
-  // requiring a linkage dependency.
-  // todo - make all the implementations use something like this, for internal
-  // or implementation-specific code.  b/70229654
-  FunctionRegistry function_registry;
-};
-
-// When Create() is invoked without arguments, it checks for a file named
-// google-services-desktop.json, to load options from.  This specifies the
-// path to search.
-static std::string g_default_config_path;  // NOLINT
-
-}  // namespace internal
 
 namespace {
 
@@ -121,6 +107,9 @@ void App::Initialize() { internal_ = new internal::AppInternal(); }
 
 App::~App() {
   app_common::RemoveApp(this);
+  if (internal_->heartbeat_controller_ != nullptr) {
+    delete internal_->heartbeat_controller_;
+  }
   delete internal_;
   internal_ = nullptr;
 }
@@ -150,6 +139,10 @@ App* App::Create(const AppOptions& options, const char* name) {  // NOLINT
     app->name_ = name;
     app->options_ = options_with_defaults;
     app = app_common::AddApp(app, &app->init_results_);
+    app->internal_->heartbeat_controller_ =
+        new firebase::heartbeat::HeartbeatController(
+            name, *app_common::FindAppLoggerByName(name),
+            app->internal_->date_provider_);
   }
   return app;
 }
@@ -166,7 +159,7 @@ App* App::GetInstance(const char* name) {  // NOLINT
 internal::FunctionRegistry* App::function_registry() {
   return &internal_->function_registry;
 }
-#endif
+#endif  // INTERNAL_EXPERIMENTAL
 
 void App::RegisterLibrary(const char* library, const char* version) {
   app_common::RegisterLibrary(library, version);
@@ -189,6 +182,18 @@ void App::SetDefaultConfigPath(const char* path) {
       internal::g_default_config_path += kSeperator;
     }
   }
+}
+
+void App::LogDesktopHeartbeat() {
+  internal_->heartbeat_controller_->LogHeartbeat();
+}
+
+std::string App::GetAndResetStoredDesktopHeartbeats() {
+  return internal_->heartbeat_controller_->GetAndResetStoredHeartbeats();
+}
+
+std::string App::GetAndResetTodaysStoredDesktopHeartbeats() {
+  return internal_->heartbeat_controller_->GetAndResetTodaysStoredHeartbeats();
 }
 
 // Desktop support is for developer workflow only, so automatic data collection

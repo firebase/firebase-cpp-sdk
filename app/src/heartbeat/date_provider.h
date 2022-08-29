@@ -27,7 +27,7 @@ class DateProvider {
   virtual std::string GetDate() const = 0;
 };
 
-class DateProviderImpl : DateProvider {
+class DateProviderImpl : public DateProvider {
  public:
   std::string GetDate() const override;
 };
