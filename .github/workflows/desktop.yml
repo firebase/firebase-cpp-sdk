@@ -357,7 +357,7 @@ jobs:
       - name: Set up Node (14)
         uses: actions/setup-node@v2
         with:
-          node-version: 14.x
+          node-version: 16.x
       - name: Setup Firestore Emulator
         run: |
           npm install -g firebase-tools
