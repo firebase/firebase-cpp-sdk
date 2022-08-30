@@ -745,7 +745,7 @@ def _run_android_test(testapp_dir, package_name, app_path, helper_project, max_a
     _uninstall_android_app(package_name)
 
     result = test_validation.validate_results(log, test_validation.CPP)
-    if result.complete and (FLAGS.test_type != "uitest" or result.fails == 0):
+    if result.complete and result.fails == 0:
       break
 
     _save_recorded_android_video(video_name, testapp_dir)
