@@ -43,8 +43,10 @@ extern const char* kCppRuntimeOrStl;
 extern const char* kCpuArchitecture;
 extern const char* kBuildSource;
 
-// Extended API client header for Google user agent strings.
+// Request headers used by platform monitoring.
 extern const char* kApiClientHeader;
+extern const char* kXFirebaseClientLogTypeHeader;
+extern const char* kXFirebaseGmpIdHeader;
 
 // Add an app to the set of apps.
 App* AddApp(App* app, std::map<std::string, InitResult>* results);

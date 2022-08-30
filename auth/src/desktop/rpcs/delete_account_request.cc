@@ -20,7 +20,7 @@ namespace firebase {
 namespace auth {
 
 DeleteAccountRequest::DeleteAccountRequest(const char* const api_key)
-    : AuthRequest(request_resource_data) {
+    : AuthRequest(request_resource_data, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
   const char api_host[] =

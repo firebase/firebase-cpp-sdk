@@ -30,10 +30,10 @@ extern const char* kHeaderFirebaseLocale;
 class AuthRequest
     : public firebase::rest::RequestJson<fbs::Request, fbs::RequestT> {
  public:
-  explicit AuthRequest(const char* schema);
+  explicit AuthRequest(const char* schema, bool deliver_heartbeat);
 
-  explicit AuthRequest(const unsigned char* schema)
-      : AuthRequest(reinterpret_cast<const char*>(schema)) {}
+  explicit AuthRequest(const unsigned char* schema, bool deliver_heartbeat)
+      : AuthRequest(reinterpret_cast<const char*>(schema), deliver_heartbeat) {}
 };
 
 }  // namespace auth

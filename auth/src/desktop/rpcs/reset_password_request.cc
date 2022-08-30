@@ -23,7 +23,7 @@ namespace auth {
 ResetPasswordRequest::ResetPasswordRequest(const char* api_key,
                                            const char* oob_code,
                                            const char* new_password)
-    : AuthRequest(request_resource_data) {
+    : AuthRequest(request_resource_data, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
   const char api_host[] =

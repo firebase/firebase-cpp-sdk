@@ -21,7 +21,7 @@ namespace auth {
 
 VerifyAssertionRequest::VerifyAssertionRequest(const char* const api_key,
                                                const char* const provider_id)
-    : AuthRequest(request_resource_data) {
+    : AuthRequest(request_resource_data, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
   const char api_host[] =
