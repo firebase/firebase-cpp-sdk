@@ -15,18 +15,19 @@
 #include "auth/src/desktop/rpcs/sign_up_new_user_request.h"
 
 #include "app/src/assert.h"
+#include "app/src/include/firebase/app.h"
 
 namespace firebase {
 namespace auth {
 
-SignUpNewUserRequest::SignUpNewUserRequest(const App& app, const char* api_key)
+SignUpNewUserRequest::SignUpNewUserRequest( ::firebase::App& app, const char* api_key)
     : AuthRequest(app, request_resource_data, true) {
   SetUrl(api_key);
   application_data_->returnSecureToken = true;
   UpdatePostFields();
 }
 
-SignUpNewUserRequest::SignUpNewUserRequest(const App& app, const char* api_key,
+SignUpNewUserRequest::SignUpNewUserRequest( ::firebase::App& app, const char* api_key,
                                            const char* email,
                                            const char* password,
                                            const char* display_name)

@@ -16,11 +16,12 @@
 
 #include "app/src/assert.h"
 #include "app/src/log.h"
+#include "app/src/include/firebase/app.h"
 
 namespace firebase {
 namespace auth {
 
-VerifyPasswordRequest::VerifyPasswordRequest(const App& app, const char* api_key,
+VerifyPasswordRequest::VerifyPasswordRequest( ::firebase::App& app, const char* api_key,
                                              const char* email,
                                              const char* password)
     : AuthRequest(app, request_resource_data, true) {

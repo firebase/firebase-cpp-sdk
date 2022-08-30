@@ -20,13 +20,14 @@
 #include "auth/request_generated.h"
 #include "auth/request_resource.h"
 #include "auth/src/desktop/rpcs/auth_request.h"
+#include "app/src/include/firebase/app.h"
 
 namespace firebase {
 namespace auth {
 
 class CreateAuthUriRequest : public AuthRequest {
  public:
-  CreateAuthUriRequest(const App& app, const char* api_key, const char* identifier);
+  CreateAuthUriRequest( ::firebase::App& app, const char* api_key, const char* identifier);
 };
 
 }  // namespace auth

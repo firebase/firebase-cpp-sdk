@@ -27,7 +27,7 @@ namespace auth {
 // Key name for header when sending language code data.
 const char* kHeaderFirebaseLocale = "X-Firebase-Locale";
 
-AuthRequest::AuthRequest(const App& app, const char* schema, bool deliver_heartbeat) : RequestJson(schema) {
+AuthRequest::AuthRequest( ::firebase::App& app, const char* schema, bool deliver_heartbeat) : RequestJson(schema) {
   // The user agent strings are cached in static variables here to avoid
   // dependencies upon other parts of this library.  This complication is due to
   // the way the tests are currently configured where each library has minimal
@@ -59,10 +59,10 @@ AuthRequest::AuthRequest(const App& app, const char* schema, bool deliver_heartb
   }
   if (deliver_heartbeat) {
     std::string payload = app.GetAndResetStoredDesktopHeartbeats();
-    std::string gmp_app_id = app.options().app_id()
-    if (payload) {
-      add_header(app_common::kApiClientHeader, payload);
-      add_header(app_common::kXFirebaseGmpIdHeader, gmp_app_id);
+    std::string gmp_app_id = app.options().app_id();
+    if (!payload.empty()) {
+      add_header(app_common::kApiClientHeader, payload.c_str());
+      add_header(app_common::kXFirebaseGmpIdHeader, gmp_app_id.c_str());
     } else {
       add_header(app_common::kApiClientHeader, App::GetUserAgent());
     }

@@ -16,11 +16,12 @@
 
 #include "app/src/assert.h"
 #include "app/src/log.h"
+#include "app/src/include/firebase/app.h"
 
 namespace firebase {
 namespace auth {
 
-VerifyCustomTokenRequest::VerifyCustomTokenRequest(const App& app, const char* api_key,
+VerifyCustomTokenRequest::VerifyCustomTokenRequest( ::firebase::App& app, const char* api_key,
                                                    const char* token)
     : AuthRequest(app, request_resource_data, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);

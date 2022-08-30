@@ -15,11 +15,12 @@
 #include "app/rest/transport_builder.h"
 #include "auth/src/desktop/rpcs/sign_up_new_user_request.h"
 #include "auth/src/desktop/rpcs/sign_up_new_user_response.h"
+#include "app/src/include/firebase/app.h"
 
 namespace firebase {
 namespace auth {
 
-bool GetNewUserLocalIdAndIdToken(const App& app, const char* const api_key,
+bool GetNewUserLocalIdAndIdToken( ::firebase::App& app, const char* const api_key,
                                  std::string* local_id, std::string* id_token) {
   SignUpNewUserRequest request(app, api_key);
   SignUpNewUserResponse response;
@@ -35,7 +36,7 @@ bool GetNewUserLocalIdAndIdToken(const App& app, const char* const api_key,
   return true;
 }
 
-bool GetNewUserLocalIdAndRefreshToken(const App& app, const char* const api_key,
+bool GetNewUserLocalIdAndRefreshToken( ::firebase::App& app, const char* const api_key,
                                       std::string* local_id,
                                       std::string* refresh_token) {
   SignUpNewUserRequest request(app, api_key);
@@ -52,7 +53,7 @@ bool GetNewUserLocalIdAndRefreshToken(const App& app, const char* const api_key,
   return true;
 }
 
-std::string SignUpNewUserAndGetIdToken(const App& app, const char* const api_key,
+std::string SignUpNewUserAndGetIdToken( ::firebase::App& app, const char* const api_key,
                                        const char* const email) {
   SignUpNewUserRequest request(app, api_key, email, "fake_password", "");
   SignUpNewUserResponse response;

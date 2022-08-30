@@ -15,17 +15,18 @@
 #include "auth/src/desktop/rpcs/get_account_info_request.h"
 
 #include "app/src/assert.h"
+#include "app/src/include/firebase/app.h"
 
 namespace firebase {
 namespace auth {
 
-GetAccountInfoRequest::GetAccountInfoRequest(const App& app, const char* const api_key)
+GetAccountInfoRequest::GetAccountInfoRequest( ::firebase::App& app, const char* const api_key)
     : AuthRequest(app, request_resource_data, true) {
   SetUrl(api_key);
   UpdatePostFields();
 }
 
-GetAccountInfoRequest::GetAccountInfoRequest(const App& app, const char* const api_key,
+GetAccountInfoRequest::GetAccountInfoRequest( ::firebase::App& app, const char* const api_key,
                                              const char* const id_token)
     : AuthRequest(app, request_resource_data, true) {
   SetUrl(api_key);

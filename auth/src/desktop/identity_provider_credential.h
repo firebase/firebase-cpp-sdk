@@ -19,6 +19,7 @@
 
 #include "auth/src/desktop/auth_credential.h"
 #include "auth/src/desktop/rpcs/verify_assertion_request.h"
+#include "app/src/include/firebase/app.h"
 
 namespace firebase {
 namespace auth {
@@ -40,7 +41,7 @@ namespace auth {
 class IdentityProviderCredential : public AuthCredential {
  public:
   virtual std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
-      const App& app, const char* api_key) const = 0;
+       ::firebase::App& app, const char* api_key) const = 0;
 };
 
 }  // namespace auth

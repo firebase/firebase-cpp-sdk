@@ -20,13 +20,14 @@
 #include "auth/request_generated.h"
 #include "auth/request_resource.h"
 #include "auth/src/desktop/rpcs/auth_request.h"
+#include "app/src/include/firebase/app.h"
 
 namespace firebase {
 namespace auth {
 
 class ResetPasswordRequest : public AuthRequest {
  public:
-  ResetPasswordRequest(const App& app, const char* api_key, const char* oob_code,
+  ResetPasswordRequest( ::firebase::App& app, const char* api_key, const char* oob_code,
                        const char* new_password);
 };
 

@@ -15,12 +15,13 @@
 #include "auth/src/desktop/rpcs/get_oob_confirmation_code_request.h"
 
 #include "app/src/assert.h"
+#include "app/src/include/firebase/app.h"
 
 namespace firebase {
 namespace auth {
 
 GetOobConfirmationCodeRequest::GetOobConfirmationCodeRequest(
-    const App& app, const char* api_key)
+     ::firebase::App& app, const char* api_key)
     : AuthRequest(app, request_resource_data, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
@@ -36,9 +37,9 @@ GetOobConfirmationCodeRequest::GetOobConfirmationCodeRequest(
 
 std::unique_ptr<GetOobConfirmationCodeRequest>
 GetOobConfirmationCodeRequest::CreateSendEmailVerificationRequest(
-    const App& app, const char* api_key, const char* language_code) {
+     ::firebase::App& app, const char* api_key, const char* language_code) {
   auto request = std::unique_ptr<GetOobConfirmationCodeRequest>(  // NOLINT
-      new GetOobConfirmationCodeRequest(api_key));
+      new GetOobConfirmationCodeRequest(app, api_key));
   request->application_data_->requestType = "VERIFY_EMAIL";
   if (language_code != nullptr) {
     request->add_header(kHeaderFirebaseLocale, language_code);
@@ -49,7 +50,7 @@ GetOobConfirmationCodeRequest::CreateSendEmailVerificationRequest(
 
 std::unique_ptr<GetOobConfirmationCodeRequest>
 GetOobConfirmationCodeRequest::CreateSendPasswordResetEmailRequest(
-    const App& app, const char* api_key, const char* email, const char* language_code) {
+     ::firebase::App& app, const char* api_key, const char* email, const char* language_code) {
   auto request = std::unique_ptr<GetOobConfirmationCodeRequest>(  // NOLINT
       new GetOobConfirmationCodeRequest(app, api_key));
   request->application_data_->requestType = "PASSWORD_RESET";

@@ -16,11 +16,12 @@
 
 #include "app/src/assert.h"
 #include "app/src/log.h"
+#include "app/src/include/firebase/app.h"
 
 namespace firebase {
 namespace auth {
 
-CreateAuthUriRequest::CreateAuthUriRequest(const App& app, const char* api_key,
+CreateAuthUriRequest::CreateAuthUriRequest( ::firebase::App& app, const char* api_key,
                                            const char* identifier)
     : AuthRequest(app, request_resource_data, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);

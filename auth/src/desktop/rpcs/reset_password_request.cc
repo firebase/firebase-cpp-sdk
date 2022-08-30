@@ -16,11 +16,12 @@
 
 #include "app/src/assert.h"
 #include "app/src/log.h"
+#include "app/src/include/firebase/app.h"
 
 namespace firebase {
 namespace auth {
 
-ResetPasswordRequest::ResetPasswordRequest(const App& app, const char* api_key,
+ResetPasswordRequest::ResetPasswordRequest( ::firebase::App& app, const char* api_key,
                                            const char* oob_code,
                                            const char* new_password)
     : AuthRequest(app, request_resource_data, true) {

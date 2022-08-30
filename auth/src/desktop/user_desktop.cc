@@ -133,7 +133,7 @@ GetTokenResult EnsureFreshToken(AuthData* const auth_data,
     return GetTokenResult(old_token.token());
   }
 
-  const SecureTokenRequest request(auth_data->app, GetApiKey(*auth_data),
+  const SecureTokenRequest request(*auth_data->app, GetApiKey(*auth_data),
                                    refresh_token.c_str());
   auto response = GetResponse<SecureTokenResponse>(request);
   if (!response.IsSuccessful()) {
@@ -271,7 +271,7 @@ Future<ResultT> DoLinkWithEmailAndPassword(
 
   typedef SetAccountInfoRequest RequestT;
   auto request = RequestT::CreateLinkWithEmailAndPasswordRequest(
-      *auth_data_->app, GetApiKey(*auth_data), email_credential->GetEmail().c_str(),
+      *auth_data->app, GetApiKey(*auth_data), email_credential->GetEmail().c_str(),
       email_credential->GetPassword().c_str());
 
   return CallAsyncWithFreshToken(auth_data, promise, std::move(request),
@@ -329,7 +329,7 @@ Future<ResultT> DoLinkCredential(Promise<ResultT> promise,
   // apply to PerformSignIn, which is why it's not used here).
   return CallAsyncWithFreshToken(
       auth_data, promise,
-      CreateVerifyAssertionRequest(auth_data->app, *auth_data, raw_credential),
+      CreateVerifyAssertionRequest(*auth_data, raw_credential),
       [](AuthDataHandle<ResultT, VerifyAssertionRequest>* const handle) {
         FIREBASE_ASSERT_RETURN_VOID(handle && handle->request);
 
@@ -802,7 +802,7 @@ Future<void> User::UpdateUserProfile(const UserProfile& profile) {
 
   typedef SetAccountInfoRequest RequestT;
   auto request = RequestT::CreateUpdateProfileRequest(
-      GetApiKey(*auth_data_->app, profile.display_name, profile.photo_url);
+      *auth_data_->app, GetApiKey(*auth_data_), profile.display_name, profile.photo_url);
 
   return CallAsyncWithFreshToken(auth_data_, promise, std::move(request),
                                  PerformSetAccountInfoFlow<void>);

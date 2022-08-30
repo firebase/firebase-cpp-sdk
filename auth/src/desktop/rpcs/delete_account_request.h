@@ -21,13 +21,14 @@
 #include "auth/request_generated.h"
 #include "auth/request_resource.h"
 #include "auth/src/desktop/rpcs/auth_request.h"
+#include "app/src/include/firebase/app.h"
 
 namespace firebase {
 namespace auth {
 
 class DeleteAccountRequest : public AuthRequest {
  public:
-  explicit DeleteAccountRequest(const App& app, const char* api_key);
+  explicit DeleteAccountRequest( ::firebase::App& app, const char* api_key);
 
   void SetIdToken(const char* const id_token) {
     if (id_token) {

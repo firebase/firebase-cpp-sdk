@@ -19,6 +19,7 @@
 
 #include "app/rest/request_json.h"
 #include "auth/request_generated.h"
+#include "app/src/include/firebase/app.h"
 #include "auth/request_resource.h"
 
 namespace firebase {
@@ -30,9 +31,9 @@ extern const char* kHeaderFirebaseLocale;
 class AuthRequest
     : public firebase::rest::RequestJson<fbs::Request, fbs::RequestT> {
  public:
-  explicit AuthRequest(const App& app, const char* schema, bool deliver_heartbeat);
+  explicit AuthRequest( ::firebase::App& app, const char* schema, bool deliver_heartbeat);
 
-  explicit AuthRequest(const App& app, const unsigned char* schema, bool deliver_heartbeat)
+  explicit AuthRequest( ::firebase::App& app, const unsigned char* schema, bool deliver_heartbeat)
       : AuthRequest(app, reinterpret_cast<const char*>(schema), deliver_heartbeat) {}
 };
 

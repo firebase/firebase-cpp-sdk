@@ -19,6 +19,7 @@
 
 #include "auth/request_generated.h"
 #include "auth/request_resource.h"
+#include "app/src/include/firebase/app.h"
 #include "auth/src/desktop/rpcs/auth_request.h"
 
 namespace firebase {
@@ -26,7 +27,7 @@ namespace auth {
 
 class VerifyCustomTokenRequest : public AuthRequest {
  public:
-  VerifyCustomTokenRequest(const App& app, const char* api_key, const char* token);
+  VerifyCustomTokenRequest( ::firebase::App& app, const char* api_key, const char* token);
 };
 
 }  // namespace auth
