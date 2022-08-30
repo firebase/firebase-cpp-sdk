@@ -31,7 +31,7 @@ typedef SetAccountInfoResponse ResponseT;
 // Test SetAccountInfoRequest
 TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateEmail) {
   std::unique_ptr<App> app(testing::CreateApp());
-  auto request = RequestT::CreateUpdateEmailRequest("APIKEY", "fakeemail");
+  auto request = RequestT::CreateUpdateEmailRequest(*app, "APIKEY", "fakeemail");
   request->SetIdToken("token");
 
   EXPECT_EQ(
@@ -50,7 +50,7 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateEmail) {
 TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdatePassword) {
   std::unique_ptr<App> app(testing::CreateApp());
   auto request =
-      RequestT::CreateUpdatePasswordRequest("APIKEY", "fakepassword");
+      RequestT::CreateUpdatePasswordRequest(*app, "APIKEY", "fakepassword");
   request->SetIdToken("token");
 
   EXPECT_EQ(
@@ -69,7 +69,7 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdatePassword) {
 TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateProfile_Full) {
   std::unique_ptr<App> app(testing::CreateApp());
   auto request =
-      RequestT::CreateUpdateProfileRequest("APIKEY", "New Name", "new_url");
+      RequestT::CreateUpdateProfileRequest(*app, "APIKEY", "New Name", "new_url");
   request->SetIdToken("token");
 
   EXPECT_EQ(
@@ -89,7 +89,7 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateProfile_Full) {
 TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateProfile_Partial) {
   std::unique_ptr<App> app(testing::CreateApp());
   auto request =
-      RequestT::CreateUpdateProfileRequest("APIKEY", nullptr, "new_url");
+      RequestT::CreateUpdateProfileRequest(*app, "APIKEY", nullptr, "new_url");
   request->SetIdToken("token");
 
   EXPECT_EQ(
@@ -107,7 +107,7 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateProfile_Partial) {
 
 TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateProfile_DeleteFields) {
   std::unique_ptr<App> app(testing::CreateApp());
-  auto request = RequestT::CreateUpdateProfileRequest("APIKEY", "", "");
+  auto request = RequestT::CreateUpdateProfileRequest(*app, "APIKEY", "", "");
   request->SetIdToken("token");
 
   EXPECT_EQ(
@@ -129,7 +129,7 @@ TEST(SetAccountInfoTest, TestSetAccountInfoRequest_UpdateProfile_DeleteFields) {
 TEST(SetAccountInfoTest,
      TestSetAccountInfoRequest_UpdateProfile_DeleteAndUpdate) {
   std::unique_ptr<App> app(testing::CreateApp());
-  auto request = RequestT::CreateUpdateProfileRequest("APIKEY", "", "new_url");
+  auto request = RequestT::CreateUpdateProfileRequest(*app, "APIKEY", "", "new_url");
   request->SetIdToken("token");
 
   EXPECT_EQ(
@@ -151,7 +151,7 @@ TEST(SetAccountInfoTest,
 TEST(SetAccountInfoTest, TestSetAccountInfoRequest_Unlink) {
   std::unique_ptr<App> app(testing::CreateApp());
   auto request =
-      RequestT::CreateUnlinkProviderRequest("APIKEY", "fakeprovider");
+      RequestT::CreateUnlinkProviderRequest(*app, "APIKEY", "fakeprovider");
   request->SetIdToken("token");
 
   EXPECT_EQ(

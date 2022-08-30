@@ -26,7 +26,7 @@ namespace auth {
 
 class ResetPasswordRequest : public AuthRequest {
  public:
-  ResetPasswordRequest(const char* api_key, const char* oob_code,
+  ResetPasswordRequest(const App& app, const char* api_key, const char* oob_code,
                        const char* new_password);
 };
 

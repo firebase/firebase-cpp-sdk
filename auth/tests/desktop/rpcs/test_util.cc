@@ -19,9 +19,9 @@
 namespace firebase {
 namespace auth {
 
-bool GetNewUserLocalIdAndIdToken(const char* const api_key,
+bool GetNewUserLocalIdAndIdToken(const App& app, const char* const api_key,
                                  std::string* local_id, std::string* id_token) {
-  SignUpNewUserRequest request(api_key);
+  SignUpNewUserRequest request(app, api_key);
   SignUpNewUserResponse response;
 
   firebase::rest::CreateTransport()->Perform(request, &response);
@@ -35,10 +35,10 @@ bool GetNewUserLocalIdAndIdToken(const char* const api_key,
   return true;
 }
 
-bool GetNewUserLocalIdAndRefreshToken(const char* const api_key,
+bool GetNewUserLocalIdAndRefreshToken(const App& app, const char* const api_key,
                                       std::string* local_id,
                                       std::string* refresh_token) {
-  SignUpNewUserRequest request(api_key);
+  SignUpNewUserRequest request(app, api_key);
   SignUpNewUserResponse response;
 
   firebase::rest::CreateTransport()->Perform(request, &response);
@@ -52,9 +52,9 @@ bool GetNewUserLocalIdAndRefreshToken(const char* const api_key,
   return true;
 }
 
-std::string SignUpNewUserAndGetIdToken(const char* const api_key,
+std::string SignUpNewUserAndGetIdToken(const App& app, const char* const api_key,
                                        const char* const email) {
-  SignUpNewUserRequest request(api_key, email, "fake_password", "");
+  SignUpNewUserRequest request(app, api_key, email, "fake_password", "");
   SignUpNewUserResponse response;
 
   firebase::rest::CreateTransport()->Perform(request, &response);

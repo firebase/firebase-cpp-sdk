@@ -27,7 +27,7 @@ namespace auth {
 class SecureTokenRequest : public AuthRequest {
  public:
   // Set request by using refresh token.
-  SecureTokenRequest(const char* api_key, const char* refresh_token);
+  SecureTokenRequest(const App& app, const char* api_key, const char* refresh_token);
 };
 
 }  // namespace auth

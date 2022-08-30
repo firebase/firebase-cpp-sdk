@@ -26,7 +26,7 @@ namespace auth {
 
 class VerifyPasswordRequest : public AuthRequest {
  public:
-  VerifyPasswordRequest(const char* api_key, const char* email,
+  VerifyPasswordRequest(const App& app, const char* api_key, const char* email,
                         const char* password);
 };
 

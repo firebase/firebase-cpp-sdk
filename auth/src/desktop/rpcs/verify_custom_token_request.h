@@ -26,7 +26,7 @@ namespace auth {
 
 class VerifyCustomTokenRequest : public AuthRequest {
  public:
-  VerifyCustomTokenRequest(const char* api_key, const char* token);
+  VerifyCustomTokenRequest(const App& app, const char* api_key, const char* token);
 };
 
 }  // namespace auth

@@ -31,18 +31,18 @@ namespace auth {
 class SetAccountInfoRequest : public AuthRequest {
  public:
   static std::unique_ptr<SetAccountInfoRequest> CreateUpdateEmailRequest(
-      const char* api_key, const char* email);
+      const App& app, const char* api_key, const char* email);
   static std::unique_ptr<SetAccountInfoRequest> CreateUpdatePasswordRequest(
-      const char* api_key, const char* password,
-      const char* language_code = nullptr);
+      const App& app, const char* api_key, const char* password,
+      const App& app, const char* language_code = nullptr);
   static std::unique_ptr<SetAccountInfoRequest>
-  CreateLinkWithEmailAndPasswordRequest(const char* api_key, const char* email,
+  CreateLinkWithEmailAndPasswordRequest(const App& app, const char* api_key, const char* email,
                                         const char* password);
   static std::unique_ptr<SetAccountInfoRequest> CreateUpdateProfileRequest(
-      const char* api_key, const char* set_display_name,
+      const App& app, const char* api_key, const char* set_display_name,
       const char* set_photo_url);
   static std::unique_ptr<SetAccountInfoRequest> CreateUnlinkProviderRequest(
-      const char* api_key, const char* provider);
+      const App& app, const char* api_key, const char* provider);
 
   void SetIdToken(const char* const id_token) {
     if (id_token) {
@@ -54,9 +54,9 @@ class SetAccountInfoRequest : public AuthRequest {
   }
 
  private:
-  explicit SetAccountInfoRequest(const char* api_key);
+  explicit SetAccountInfoRequest(const App& app, const char* api_key);
   static std::unique_ptr<SetAccountInfoRequest> CreateRequest(
-      const char* api_key);
+      const App& app, const char* api_key);
 };
 
 }  // namespace auth

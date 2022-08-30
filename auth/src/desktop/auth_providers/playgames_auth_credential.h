@@ -31,8 +31,8 @@ class PlayGamesAuthCredential : public IdentityProviderCredential {
   std::string GetProvider() const override { return kPlayGamesAuthProviderId; }
 
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
-      const char* const api_key) const override {
-    return VerifyAssertionRequest::FromAuthCode(api_key, GetProvider().c_str(),
+      const App& app, const char* const api_key) const override {
+    return VerifyAssertionRequest::FromAuthCode(app, api_key, GetProvider().c_str(),
                                                 server_auth_code_.c_str());
   }
 

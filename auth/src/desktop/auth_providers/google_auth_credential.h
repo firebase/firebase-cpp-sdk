@@ -31,13 +31,13 @@ class GoogleAuthCredential : public IdentityProviderCredential {
   std::string GetProvider() const override { return kGoogleAuthProviderId; }
 
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
-      const char* const api_key) const override {
+      const App& app, const char* const api_key) const override {
     if (!id_token_.empty()) {
-      return VerifyAssertionRequest::FromIdToken(api_key, GetProvider().c_str(),
+      return VerifyAssertionRequest::FromIdToken(app, api_key, GetProvider().c_str(),
                                                  id_token_.c_str());
     } else {
       return VerifyAssertionRequest::FromAccessToken(
-          api_key, GetProvider().c_str(), access_token_.c_str());
+          app, api_key, GetProvider().c_str(), access_token_.c_str());
     }
   }
 

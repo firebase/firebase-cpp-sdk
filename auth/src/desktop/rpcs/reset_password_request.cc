@@ -20,10 +20,10 @@
 namespace firebase {
 namespace auth {
 
-ResetPasswordRequest::ResetPasswordRequest(const char* api_key,
+ResetPasswordRequest::ResetPasswordRequest(const App& app, const char* api_key,
                                            const char* oob_code,
                                            const char* new_password)
-    : AuthRequest(request_resource_data, true) {
+    : AuthRequest(app, request_resource_data, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
   const char api_host[] =

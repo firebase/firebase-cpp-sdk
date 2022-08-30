@@ -20,9 +20,9 @@
 namespace firebase {
 namespace auth {
 
-SecureTokenRequest::SecureTokenRequest(const char* api_key,
+SecureTokenRequest::SecureTokenRequest(const App& app, const char* api_key,
                                        const char* refresh_token)
-    : AuthRequest(request_resource_data, false) {
+    : AuthRequest(app, request_resource_data, false) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
   const char api_host[] = "https://securetoken.googleapis.com/v1/token?key=";

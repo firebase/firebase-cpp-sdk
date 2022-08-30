@@ -45,7 +45,6 @@ extern const char* kBuildSource;
 
 // Request headers used by platform monitoring.
 extern const char* kApiClientHeader;
-extern const char* kXFirebaseClientLogTypeHeader;
 extern const char* kXFirebaseGmpIdHeader;
 
 // Add an app to the set of apps.

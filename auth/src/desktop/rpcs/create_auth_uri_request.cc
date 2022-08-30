@@ -20,9 +20,9 @@
 namespace firebase {
 namespace auth {
 
-CreateAuthUriRequest::CreateAuthUriRequest(const char* api_key,
+CreateAuthUriRequest::CreateAuthUriRequest(const App& app, const char* api_key,
                                            const char* identifier)
-    : AuthRequest(request_resource_data, true) {
+    : AuthRequest(app, request_resource_data, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
   const char api_host[] =

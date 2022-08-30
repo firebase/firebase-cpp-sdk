@@ -28,7 +28,7 @@ namespace auth {
 // Test CreateAuthUriRequest
 TEST(CreateAuthUriTest, TestCreateAuthUriRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
-  CreateAuthUriRequest request("APIKEY", "email");
+  CreateAuthUriRequest request(*app, "APIKEY", "email");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "createAuthUri?key=APIKEY",

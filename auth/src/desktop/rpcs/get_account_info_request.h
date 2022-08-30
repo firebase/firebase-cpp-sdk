@@ -27,8 +27,8 @@ namespace auth {
 
 class GetAccountInfoRequest : public AuthRequest {
  public:
-  explicit GetAccountInfoRequest(const char* api_key);
-  GetAccountInfoRequest(const char* api_key, const char* id_token);
+  explicit GetAccountInfoRequest(const App& app, const char* api_key);
+  GetAccountInfoRequest(const App& app, const char* api_key, const char* id_token);
 
   void SetIdToken(const char* const id_token) {
     // This is actually access token, named ID token for backward compatibility.

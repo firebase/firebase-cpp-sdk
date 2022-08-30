@@ -26,7 +26,7 @@ namespace auth {
 
 class CreateAuthUriRequest : public AuthRequest {
  public:
-  CreateAuthUriRequest(const char* api_key, const char* identifier);
+  CreateAuthUriRequest(const App& app, const char* api_key, const char* identifier);
 };
 
 }  // namespace auth

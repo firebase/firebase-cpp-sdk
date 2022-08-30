@@ -20,10 +20,10 @@
 namespace firebase {
 namespace auth {
 
-VerifyPasswordRequest::VerifyPasswordRequest(const char* api_key,
+VerifyPasswordRequest::VerifyPasswordRequest(const App& app, const char* api_key,
                                              const char* email,
                                              const char* password)
-    : AuthRequest(request_resource_data, true) {
+    : AuthRequest(app, request_resource_data, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
   const char api_host[] =

@@ -40,7 +40,7 @@ namespace auth {
 class IdentityProviderCredential : public AuthCredential {
  public:
   virtual std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
-      const char* api_key) const = 0;
+      const App& app, const char* api_key) const = 0;
 };
 
 }  // namespace auth

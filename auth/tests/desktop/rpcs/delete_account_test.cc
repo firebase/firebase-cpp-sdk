@@ -29,7 +29,7 @@ namespace auth {
 // Test DeleteAccountRequest
 TEST(DeleteAccountTest, TestDeleteAccountRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
-  DeleteAccountRequest request("APIKEY");
+  DeleteAccountRequest request(*app, "APIKEY");
   request.SetIdToken("token");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"

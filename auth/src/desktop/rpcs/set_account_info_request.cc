@@ -19,8 +19,8 @@
 namespace firebase {
 namespace auth {
 
-SetAccountInfoRequest::SetAccountInfoRequest(const char* const api_key)
-    : AuthRequest(request_resource_dat, true) {
+SetAccountInfoRequest::SetAccountInfoRequest(const App& app, const char* const api_key)
+    : AuthRequest(app, request_resource_dat, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
   const char api_host[] =
@@ -36,9 +36,9 @@ SetAccountInfoRequest::SetAccountInfoRequest(const char* const api_key)
 }
 
 std::unique_ptr<SetAccountInfoRequest>
-SetAccountInfoRequest::CreateUpdateEmailRequest(const char* const api_key,
+SetAccountInfoRequest::CreateUpdateEmailRequest(const App& app, const char* const api_key,
                                                 const char* const email) {
-  auto request = CreateRequest(api_key);
+  auto request = CreateRequest(app, api_key);
   if (email) {
     request->application_data_->email = email;
   } else {
@@ -50,9 +50,9 @@ SetAccountInfoRequest::CreateUpdateEmailRequest(const char* const api_key,
 
 std::unique_ptr<SetAccountInfoRequest>
 SetAccountInfoRequest::CreateUpdatePasswordRequest(
-    const char* const api_key, const char* const password,
+    const App& app, const char* const api_key, const char* const password,
     const char* const language_code) {
-  auto request = CreateRequest(api_key);
+  auto request = CreateRequest(app, api_key);
   if (language_code != nullptr) {
     request->add_header(kHeaderFirebaseLocale, language_code);
   }
@@ -67,9 +67,9 @@ SetAccountInfoRequest::CreateUpdatePasswordRequest(
 
 std::unique_ptr<SetAccountInfoRequest>
 SetAccountInfoRequest::CreateLinkWithEmailAndPasswordRequest(
-    const char* const api_key, const char* const email,
+    const App& app, const char* const api_key, const char* const email,
     const char* const password) {
-  auto request = CreateRequest(api_key);
+  auto request = CreateRequest(app, api_key);
   if (email) {
     request->application_data_->email = email;
   } else {
@@ -86,9 +86,9 @@ SetAccountInfoRequest::CreateLinkWithEmailAndPasswordRequest(
 
 std::unique_ptr<SetAccountInfoRequest>
 SetAccountInfoRequest::CreateUpdateProfileRequest(
-    const char* const api_key, const char* const set_display_name,
+    const App& app, const char* const api_key, const char* const set_display_name,
     const char* const set_photo_url) {
-  auto request = CreateRequest(api_key);
+  auto request = CreateRequest(app, api_key);
 
   // It's fine for either set_photo_url or set_photo_url to be null.
   if (set_display_name) {
@@ -114,9 +114,9 @@ SetAccountInfoRequest::CreateUpdateProfileRequest(
 }
 
 std::unique_ptr<SetAccountInfoRequest>
-SetAccountInfoRequest::CreateUnlinkProviderRequest(const char* const api_key,
+SetAccountInfoRequest::CreateUnlinkProviderRequest(const App& app, const char* const api_key,
                                                    const char* const provider) {
-  auto request = CreateRequest(api_key);
+  auto request = CreateRequest(app, api_key);
   if (provider) {
     request->application_data_->deleteProvider.push_back(provider);
   }
@@ -126,9 +126,9 @@ SetAccountInfoRequest::CreateUnlinkProviderRequest(const char* const api_key,
 }
 
 std::unique_ptr<SetAccountInfoRequest> SetAccountInfoRequest::CreateRequest(
-    const char* const api_key) {
+    const App& app, const char* const api_key) {
   return std::unique_ptr<SetAccountInfoRequest>(
-      new SetAccountInfoRequest(api_key));  // NOLINT
+      new SetAccountInfoRequest(app, api_key));  // NOLINT
 }
 
 }  // namespace auth
