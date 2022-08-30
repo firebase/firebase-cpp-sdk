@@ -15,13 +15,14 @@
 #include "auth/src/desktop/rpcs/secure_token_request.h"
 
 #include "app/src/assert.h"
-#include "app/src/log.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/log.h"
 
 namespace firebase {
 namespace auth {
 
-SecureTokenRequest::SecureTokenRequest( ::firebase::App& app, const char* api_key,
+SecureTokenRequest::SecureTokenRequest(::firebase::App& app,
+                                       const char* api_key,
                                        const char* refresh_token)
     : AuthRequest(app, request_resource_data, false) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);

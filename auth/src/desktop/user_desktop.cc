@@ -271,7 +271,8 @@ Future<ResultT> DoLinkWithEmailAndPassword(
 
   typedef SetAccountInfoRequest RequestT;
   auto request = RequestT::CreateLinkWithEmailAndPasswordRequest(
-      *auth_data->app, GetApiKey(*auth_data), email_credential->GetEmail().c_str(),
+      *auth_data->app, GetApiKey(*auth_data),
+      email_credential->GetEmail().c_str(),
       email_credential->GetPassword().c_str());
 
   return CallAsyncWithFreshToken(auth_data, promise, std::move(request),
@@ -727,9 +728,9 @@ Future<void> User::Reload() {
   }
 
   typedef GetAccountInfoRequest RequestT;
-  auto request =
-      std::unique_ptr<RequestT>(new RequestT(*auth_data_->app, GetApiKey(*auth_data_),
-                                             id_token.c_str()));  // NOLINT
+  auto request = std::unique_ptr<RequestT>(
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_),
+                   id_token.c_str()));  // NOLINT
 
   const auto callback = [](AuthDataHandle<void, RequestT>* const handle) {
     const GetAccountInfoResult account_info = GetAccountInfo(*handle->request);
@@ -765,8 +766,8 @@ Future<void> User::UpdateEmail(const char* const email) {
   }
 
   typedef SetAccountInfoRequest RequestT;
-  auto request =
-      RequestT::CreateUpdateEmailRequest(*auth_data_->app, GetApiKey(*auth_data_), email);
+  auto request = RequestT::CreateUpdateEmailRequest(
+      *auth_data_->app, GetApiKey(*auth_data_), email);
   return CallAsyncWithFreshToken(auth_data_, promise, std::move(request),
                                  PerformSetAccountInfoFlow<void>);
 }
@@ -787,8 +788,8 @@ Future<void> User::UpdatePassword(const char* const password) {
   }
 
   typedef SetAccountInfoRequest RequestT;
-  auto request = RequestT::CreateUpdatePasswordRequest(*auth_data_->app, GetApiKey(*auth_data_),
-                                                       password, language_code);
+  auto request = RequestT::CreateUpdatePasswordRequest(
+      *auth_data_->app, GetApiKey(*auth_data_), password, language_code);
 
   return CallAsyncWithFreshToken(auth_data_, promise, std::move(request),
                                  PerformSetAccountInfoFlow<void>);
@@ -802,7 +803,8 @@ Future<void> User::UpdateUserProfile(const UserProfile& profile) {
 
   typedef SetAccountInfoRequest RequestT;
   auto request = RequestT::CreateUpdateProfileRequest(
-      *auth_data_->app, GetApiKey(*auth_data_), profile.display_name, profile.photo_url);
+      *auth_data_->app, GetApiKey(*auth_data_), profile.display_name,
+      profile.photo_url);
 
   return CallAsyncWithFreshToken(auth_data_, promise, std::move(request),
                                  PerformSetAccountInfoFlow<void>);
@@ -830,8 +832,8 @@ Future<User*> User::Unlink(const char* const provider) {
   }
 
   typedef SetAccountInfoRequest RequestT;
-  auto request =
-      RequestT::CreateUnlinkProviderRequest(*auth_data_->app, GetApiKey(*auth_data_), provider);
+  auto request = RequestT::CreateUnlinkProviderRequest(
+      *auth_data_->app, GetApiKey(*auth_data_), provider);
 
   return CallAsyncWithFreshToken(auth_data_, promise, std::move(request),
                                  PerformSetAccountInfoFlow<User*>);

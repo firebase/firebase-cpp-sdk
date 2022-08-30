@@ -20,13 +20,15 @@
 namespace firebase {
 namespace auth {
 
-GetAccountInfoRequest::GetAccountInfoRequest( ::firebase::App& app, const char* const api_key)
+GetAccountInfoRequest::GetAccountInfoRequest(::firebase::App& app,
+                                             const char* const api_key)
     : AuthRequest(app, request_resource_data, true) {
   SetUrl(api_key);
   UpdatePostFields();
 }
 
-GetAccountInfoRequest::GetAccountInfoRequest( ::firebase::App& app, const char* const api_key,
+GetAccountInfoRequest::GetAccountInfoRequest(::firebase::App& app,
+                                             const char* const api_key,
                                              const char* const id_token)
     : AuthRequest(app, request_resource_data, true) {
   SetUrl(api_key);

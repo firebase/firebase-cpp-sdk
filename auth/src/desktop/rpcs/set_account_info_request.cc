@@ -20,7 +20,8 @@
 namespace firebase {
 namespace auth {
 
-SetAccountInfoRequest::SetAccountInfoRequest( ::firebase::App& app, const char* const api_key)
+SetAccountInfoRequest::SetAccountInfoRequest(::firebase::App& app,
+                                             const char* const api_key)
     : AuthRequest(app, request_resource_data, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
@@ -37,7 +38,8 @@ SetAccountInfoRequest::SetAccountInfoRequest( ::firebase::App& app, const char* 
 }
 
 std::unique_ptr<SetAccountInfoRequest>
-SetAccountInfoRequest::CreateUpdateEmailRequest( ::firebase::App& app, const char* const api_key,
+SetAccountInfoRequest::CreateUpdateEmailRequest(::firebase::App& app,
+                                                const char* const api_key,
                                                 const char* const email) {
   auto request = CreateRequest(app, api_key);
   if (email) {
@@ -51,7 +53,7 @@ SetAccountInfoRequest::CreateUpdateEmailRequest( ::firebase::App& app, const cha
 
 std::unique_ptr<SetAccountInfoRequest>
 SetAccountInfoRequest::CreateUpdatePasswordRequest(
-     ::firebase::App& app, const char* const api_key, const char* const password,
+    ::firebase::App& app, const char* const api_key, const char* const password,
     const char* const language_code) {
   auto request = CreateRequest(app, api_key);
   if (language_code != nullptr) {
@@ -68,7 +70,7 @@ SetAccountInfoRequest::CreateUpdatePasswordRequest(
 
 std::unique_ptr<SetAccountInfoRequest>
 SetAccountInfoRequest::CreateLinkWithEmailAndPasswordRequest(
-     ::firebase::App& app, const char* const api_key, const char* const email,
+    ::firebase::App& app, const char* const api_key, const char* const email,
     const char* const password) {
   auto request = CreateRequest(app, api_key);
   if (email) {
@@ -87,8 +89,8 @@ SetAccountInfoRequest::CreateLinkWithEmailAndPasswordRequest(
 
 std::unique_ptr<SetAccountInfoRequest>
 SetAccountInfoRequest::CreateUpdateProfileRequest(
-     ::firebase::App& app, const char* const api_key, const char* const set_display_name,
-    const char* const set_photo_url) {
+    ::firebase::App& app, const char* const api_key,
+    const char* const set_display_name, const char* const set_photo_url) {
   auto request = CreateRequest(app, api_key);
 
   // It's fine for either set_photo_url or set_photo_url to be null.
@@ -115,7 +117,8 @@ SetAccountInfoRequest::CreateUpdateProfileRequest(
 }
 
 std::unique_ptr<SetAccountInfoRequest>
-SetAccountInfoRequest::CreateUnlinkProviderRequest( ::firebase::App& app, const char* const api_key,
+SetAccountInfoRequest::CreateUnlinkProviderRequest(::firebase::App& app,
+                                                   const char* const api_key,
                                                    const char* const provider) {
   auto request = CreateRequest(app, api_key);
   if (provider) {
@@ -127,7 +130,7 @@ SetAccountInfoRequest::CreateUnlinkProviderRequest( ::firebase::App& app, const 
 }
 
 std::unique_ptr<SetAccountInfoRequest> SetAccountInfoRequest::CreateRequest(
-     ::firebase::App& app, const char* const api_key) {
+    ::firebase::App& app, const char* const api_key) {
   return std::unique_ptr<SetAccountInfoRequest>(
       new SetAccountInfoRequest(app, api_key));  // NOLINT
 }

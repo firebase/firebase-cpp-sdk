@@ -429,7 +429,8 @@ Future<User*> Auth::CreateUserWithEmailAndPassword(const char* const email,
 
   typedef SignUpNewUserRequest RequestT;
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), email, password, ""));
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), email, password,
+                   ""));
 
   return CallAsync(auth_data_, promise, std::move(request),
                    PerformSignInFlow<SignUpNewUserResponse>);

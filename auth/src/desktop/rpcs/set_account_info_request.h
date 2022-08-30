@@ -20,10 +20,10 @@
 #include <memory>
 #include <string>
 
+#include "app/src/include/firebase/app.h"
 #include "app/src/log.h"
 #include "auth/request_generated.h"
 #include "auth/request_resource.h"
-#include "app/src/include/firebase/app.h"
 #include "auth/src/desktop/rpcs/auth_request.h"
 
 namespace firebase {
@@ -32,18 +32,19 @@ namespace auth {
 class SetAccountInfoRequest : public AuthRequest {
  public:
   static std::unique_ptr<SetAccountInfoRequest> CreateUpdateEmailRequest(
-       ::firebase::App& app, const char* api_key, const char* email);
+      ::firebase::App& app, const char* api_key, const char* email);
   static std::unique_ptr<SetAccountInfoRequest> CreateUpdatePasswordRequest(
-       ::firebase::App& app, const char* api_key, const char* password,
-       const char* language_code = nullptr);
+      ::firebase::App& app, const char* api_key, const char* password,
+      const char* language_code = nullptr);
   static std::unique_ptr<SetAccountInfoRequest>
-  CreateLinkWithEmailAndPasswordRequest( ::firebase::App& app, const char* api_key, const char* email,
+  CreateLinkWithEmailAndPasswordRequest(::firebase::App& app,
+                                        const char* api_key, const char* email,
                                         const char* password);
   static std::unique_ptr<SetAccountInfoRequest> CreateUpdateProfileRequest(
-       ::firebase::App& app, const char* api_key, const char* set_display_name,
+      ::firebase::App& app, const char* api_key, const char* set_display_name,
       const char* set_photo_url);
   static std::unique_ptr<SetAccountInfoRequest> CreateUnlinkProviderRequest(
-       ::firebase::App& app, const char* api_key, const char* provider);
+      ::firebase::App& app, const char* api_key, const char* provider);
 
   void SetIdToken(const char* const id_token) {
     if (id_token) {
@@ -55,9 +56,9 @@ class SetAccountInfoRequest : public AuthRequest {
   }
 
  private:
-  explicit SetAccountInfoRequest( ::firebase::App& app, const char* api_key);
+  explicit SetAccountInfoRequest(::firebase::App& app, const char* api_key);
   static std::unique_ptr<SetAccountInfoRequest> CreateRequest(
-       ::firebase::App& app, const char* api_key);
+      ::firebase::App& app, const char* api_key);
 };
 
 }  // namespace auth

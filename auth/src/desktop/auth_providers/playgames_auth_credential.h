@@ -17,10 +17,10 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_AUTH_PROVIDERS_PLAYGAMES_AUTH_CREDENTIAL_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_AUTH_PROVIDERS_PLAYGAMES_AUTH_CREDENTIAL_H_
 
+#include "app/src/include/firebase/app.h"
 #include "auth/src/desktop/auth_constants.h"
 #include "auth/src/desktop/identity_provider_credential.h"
 #include "auth/src/desktop/rpcs/verify_assertion_request.h"
-#include "app/src/include/firebase/app.h"
 
 namespace firebase {
 namespace auth {
@@ -32,9 +32,9 @@ class PlayGamesAuthCredential : public IdentityProviderCredential {
   std::string GetProvider() const override { return kPlayGamesAuthProviderId; }
 
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
-       ::firebase::App& app, const char* const api_key) const override {
-    return VerifyAssertionRequest::FromAuthCode(app, api_key, GetProvider().c_str(),
-                                                server_auth_code_.c_str());
+      ::firebase::App& app, const char* const api_key) const override {
+    return VerifyAssertionRequest::FromAuthCode(
+        app, api_key, GetProvider().c_str(), server_auth_code_.c_str());
   }
 
  private:

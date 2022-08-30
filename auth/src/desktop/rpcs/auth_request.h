@@ -18,8 +18,8 @@
 #define FIREBASE_AUTH_SRC_DESKTOP_RPCS_AUTH_REQUEST_H_
 
 #include "app/rest/request_json.h"
-#include "auth/request_generated.h"
 #include "app/src/include/firebase/app.h"
+#include "auth/request_generated.h"
 #include "auth/request_resource.h"
 
 namespace firebase {
@@ -31,10 +31,13 @@ extern const char* kHeaderFirebaseLocale;
 class AuthRequest
     : public firebase::rest::RequestJson<fbs::Request, fbs::RequestT> {
  public:
-  explicit AuthRequest( ::firebase::App& app, const char* schema, bool deliver_heartbeat);
+  explicit AuthRequest(::firebase::App& app, const char* schema,
+                       bool deliver_heartbeat);
 
-  explicit AuthRequest( ::firebase::App& app, const unsigned char* schema, bool deliver_heartbeat)
-      : AuthRequest(app, reinterpret_cast<const char*>(schema), deliver_heartbeat) {}
+  explicit AuthRequest(::firebase::App& app, const unsigned char* schema,
+                       bool deliver_heartbeat)
+      : AuthRequest(app, reinterpret_cast<const char*>(schema),
+                    deliver_heartbeat) {}
 };
 
 }  // namespace auth

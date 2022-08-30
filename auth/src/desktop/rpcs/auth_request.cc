@@ -15,6 +15,7 @@
 #include "auth/src/desktop/rpcs/auth_request.h"
 
 #include <assert.h>
+
 #include <string>
 
 #include "app/src/app_common.h"
@@ -27,7 +28,9 @@ namespace auth {
 // Key name for header when sending language code data.
 const char* kHeaderFirebaseLocale = "X-Firebase-Locale";
 
-AuthRequest::AuthRequest( ::firebase::App& app, const char* schema, bool deliver_heartbeat) : RequestJson(schema) {
+AuthRequest::AuthRequest(::firebase::App& app, const char* schema,
+                         bool deliver_heartbeat)
+    : RequestJson(schema) {
   // The user agent strings are cached in static variables here to avoid
   // dependencies upon other parts of this library.  This complication is due to
   // the way the tests are currently configured where each library has minimal

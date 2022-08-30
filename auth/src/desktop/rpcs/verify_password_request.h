@@ -17,18 +17,18 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_RPCS_VERIFY_PASSWORD_REQUEST_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_RPCS_VERIFY_PASSWORD_REQUEST_H_
 
+#include "app/src/include/firebase/app.h"
 #include "auth/request_generated.h"
 #include "auth/request_resource.h"
 #include "auth/src/desktop/rpcs/auth_request.h"
-#include "app/src/include/firebase/app.h"
 
 namespace firebase {
 namespace auth {
 
 class VerifyPasswordRequest : public AuthRequest {
  public:
-  VerifyPasswordRequest( ::firebase::App& app, const char* api_key, const char* email,
-                        const char* password);
+  VerifyPasswordRequest(::firebase::App& app, const char* api_key,
+                        const char* email, const char* password);
 };
 
 }  // namespace auth

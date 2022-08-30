@@ -17,19 +17,20 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_RPCS_GET_ACCOUNT_INFO_REQUEST_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_RPCS_GET_ACCOUNT_INFO_REQUEST_H_
 
+#include "app/src/include/firebase/app.h"
 #include "app/src/log.h"
 #include "auth/request_generated.h"
 #include "auth/request_resource.h"
 #include "auth/src/desktop/rpcs/auth_request.h"
-#include "app/src/include/firebase/app.h"
 
 namespace firebase {
 namespace auth {
 
 class GetAccountInfoRequest : public AuthRequest {
  public:
-  explicit GetAccountInfoRequest( ::firebase::App& app, const char* api_key);
-  GetAccountInfoRequest( ::firebase::App& app, const char* api_key, const char* id_token);
+  explicit GetAccountInfoRequest(::firebase::App& app, const char* api_key);
+  GetAccountInfoRequest(::firebase::App& app, const char* api_key,
+                        const char* id_token);
 
   void SetIdToken(const char* const id_token) {
     // This is actually access token, named ID token for backward compatibility.

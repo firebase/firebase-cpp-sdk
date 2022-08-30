@@ -17,18 +17,18 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_RPCS_DELETE_ACCOUNT_REQUEST_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_RPCS_DELETE_ACCOUNT_REQUEST_H_
 
+#include "app/src/include/firebase/app.h"
 #include "app/src/log.h"
 #include "auth/request_generated.h"
 #include "auth/request_resource.h"
 #include "auth/src/desktop/rpcs/auth_request.h"
-#include "app/src/include/firebase/app.h"
 
 namespace firebase {
 namespace auth {
 
 class DeleteAccountRequest : public AuthRequest {
  public:
-  explicit DeleteAccountRequest( ::firebase::App& app, const char* api_key);
+  explicit DeleteAccountRequest(::firebase::App& app, const char* api_key);
 
   void SetIdToken(const char* const id_token) {
     if (id_token) {

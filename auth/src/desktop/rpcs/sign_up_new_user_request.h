@@ -17,9 +17,9 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_RPCS_SIGN_UP_NEW_USER_REQUEST_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_RPCS_SIGN_UP_NEW_USER_REQUEST_H_
 
+#include "app/src/include/firebase/app.h"
 #include "auth/request_generated.h"
 #include "auth/request_resource.h"
-#include "app/src/include/firebase/app.h"
 #include "auth/src/desktop/rpcs/auth_request.h"
 
 namespace firebase {
@@ -31,11 +31,12 @@ namespace auth {
 class SignUpNewUserRequest : public AuthRequest {
  public:
   // Initializer for anonymous sign-in.
-  explicit SignUpNewUserRequest( ::firebase::App& app, const char* api_key);
+  explicit SignUpNewUserRequest(::firebase::App& app, const char* api_key);
 
   // initializer for sign-in with email and password.
-  SignUpNewUserRequest( ::firebase::App& app, const char* api_key, const char* email,
-                       const char* password, const char* display_name);
+  SignUpNewUserRequest(::firebase::App& app, const char* api_key,
+                       const char* email, const char* password,
+                       const char* display_name);
 
  private:
   void SetUrl(const char* api_key);
