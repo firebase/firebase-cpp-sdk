@@ -167,7 +167,7 @@ TEST_DEVICES = {
   "android_latest": {"type": "real", "model":"redfin", "version":"30"},
   "emulator_min": {"type": "virtual", "image":"system-images;android-18;google_apis;x86"},
   "emulator_target": {"type": "virtual", "image":"system-images;android-30;google_apis;x86_64"},
-  "emulator_latest": {"type": "virtual", "image":"system-images;android-33;google_apis_playstore;x86_64"},
+  "emulator_latest": {"type": "virtual", "image":"system-images;android-32;google_apis;x86_64"},
   "emulator_32bit": {"type": "virtual", "image":"system-images;android-30;google_apis;x86"},
   "ios_min": {"type": "real", "model":"iphone8", "version":"12.4"},
   "ios_target": {"type": "real", "model":"iphone8", "version":"13.6"},
