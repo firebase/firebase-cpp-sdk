@@ -53,7 +53,7 @@ YourCustomAppCheckProviderFactory::CreateProvider(const ::firebase::App& app) {
     YourCustomAppCheckProviderFactory.GetInstance());
 ::firebase::App* app = ::firebase::App::Create();
 ::firebase::app_check::AppCheck* app_check =
-    ::firebase::app_check::AppCheck.getInstance();
+    ::firebase::app_check::AppCheck.GetInstance();
 
 // Add a listener for token changes.
 
@@ -67,4 +67,4 @@ class MyAppCheckListener : public ::firebase::app_check::AppCheckListener {
 };
 
 MyAppCheckListener app_check_listener;
-app_check->addAppCheckListener(&state_change_listener);
+app_check->AddAppCheckListener(&state_change_listener);
