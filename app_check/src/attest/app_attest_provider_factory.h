@@ -17,13 +17,12 @@
  * AppAttestCheckProvider}s. This is the default implementation.
  */
 class AppAttestCheckProviderFactory : public AppCheckProviderFactory {
+ public:
+  /**
+   * Gets an instance of this class for installation into a {@link
+   * com.google.firebase.appcheck.AppCheck} instance.
+   */
+  static AppAttestCheckProviderFactory GetInstance();
 
-  public:
-    /**
-     * Gets an instance of this class for installation into a {@link
-     * com.google.firebase.appcheck.AppCheck} instance.
-     */
-    static AppAttestCheckProviderFactory GetInstance();
-
-    AppCheckProvider* CreateProvider(const App& app) override;
+  AppCheckProvider* CreateProvider(const App& app) override;
 }

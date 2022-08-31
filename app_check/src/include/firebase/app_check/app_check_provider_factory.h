@@ -17,12 +17,11 @@ namespace app_check {
 
 /** Interface for a factory that generates {@link AppCheckProvider}s. */
 class AppCheckProviderFactory {
-
-  public:
+ public:
   virtual ~AppCheckProviderFactory();
   /**
-   * Gets the {@link AppCheckProvider} associated with the given {@link FirebaseApp} instance, or
-   * creates one if none already exists.
+   * Gets the {@link AppCheckProvider} associated with the given {@link
+   * FirebaseApp} instance, or creates one if none already exists.
    */
   virtual AppCheckProvider* CreateProvider(const App& app) = 0;
 }

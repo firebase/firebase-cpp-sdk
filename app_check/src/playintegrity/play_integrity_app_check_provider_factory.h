@@ -17,13 +17,12 @@
  * PlayIntegrityAppCheckProvider}s. This is the default implementation.
  */
 class PlayIntegrityAppCheckProviderFactory : public AppCheckProviderFactory {
+ public:
+  /**
+   * Gets an instance of this class for installation into a {@link
+   * com.google.firebase.appcheck.AppCheck} instance.
+   */
+  static PlayIntegrityAppCheckProviderFactory GetInstance();
 
-  public:
-    /**
-     * Gets an instance of this class for installation into a {@link
-     * com.google.firebase.appcheck.AppCheck} instance.
-     */
-    static PlayIntegrityAppCheckProviderFactory GetInstance();
-
-    AppCheckProvider* CreateProvider(const App& app) override;
+  AppCheckProvider* CreateProvider(const App& app) override;
 }

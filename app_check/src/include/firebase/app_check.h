@@ -18,11 +18,11 @@ namespace app_check {
 #ifndef FIREBASE_APP_CHECK_SRC_INCLUDE_FIREBASE_APP_CHECK_H_
 #define FIREBASE_APP_CHECK_SRC_INCLUDE_FIREBASE_APP_CHECK_H_
 
-#include "firebase/app_check/app_check_provider_factory.h"
 #include "firebase/app_check/app_check_provider.h"
+#include "firebase/app_check/app_check_provider_factory.h"
 #include "firebase/app_check/firebase_app_check.h"
 
-#endif // FIREBASE_APP_CHECK_SRC_INCLUDE_FIREBASE_APP_CHECK_H_
+#endif  // FIREBASE_APP_CHECK_SRC_INCLUDE_FIREBASE_APP_CHECK_H_
 
 }  // namespace app_check
 }  // namespace firebase
