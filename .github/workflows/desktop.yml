@@ -354,10 +354,10 @@ jobs:
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
-      - name: Set up Node (14)
+      - name: Set up Node (16)
         uses: actions/setup-node@v2
         with:
-          node-version: 14.x
+          node-version: 16.x
       - name: Setup Firestore Emulator
         uses: nick-invision/retry@v2
         with:
