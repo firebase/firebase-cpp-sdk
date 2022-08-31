@@ -734,10 +734,10 @@ jobs:
           timeout_minutes: 15
           max_attempts: 3
           command: scripts/gha/install_test_workflow_prereqs.sh -p Desktop -t true -a '${{ matrix.arch }}' -s '${{ matrix.ssl_variant }}'
-      - name: Set up Node (14)
+      - name: Set up Node (16)
         uses: actions/setup-node@v2
         with:
-          node-version: 14.x
+          node-version: 16.x
       - name: Setup Firestore Emulator
         uses: nick-invision/retry@v2
         with:
@@ -991,10 +991,10 @@ jobs:
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.android_device }} )"
-      - name: Set up Node (14)
+      - name: Set up Node (16)
         uses: actions/setup-node@v2
         with:
-          node-version: 14.x
+          node-version: 16.x
       - name: Setup java 17 for Firestore emulator
         uses: actions/setup-java@v3
         with:
@@ -1133,10 +1133,10 @@ jobs:
       - id: get-device-type
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.ios_device }} )"
-      - name: Set up Node (14)
+      - name: Set up Node (16)
         uses: actions/setup-node@v2
         with:
-          node-version: 14.x
+          node-version: 16.x
       - name: Setup java for Firestore emulator
         uses: actions/setup-java@v3
         with:
