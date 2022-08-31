@@ -24,7 +24,7 @@ struct AppCheckToken {
    std::string token;
 
   /// A Firebase App Check token expiration date in the device local time.
-  long expire_time_millis;
+  int64_t expire_time_millis;
 }
 
 class AppCheckListener {

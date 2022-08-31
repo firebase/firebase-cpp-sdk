@@ -12,18 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-@class FIRApp;
+/**
+ * Implementation of an {@link AppCheckProviderFactory} that builds {@link
+ * AppAttestCheckProvider}s. This is the default implementation.
+ */
+class AppAttestCheckProviderFactory : public AppCheckProviderFactory {
 
-NS_ASSUME_NONNULL_BEGIN
+  public:
+    /**
+     * Gets an instance of this class for installation into a {@link
+     * com.google.firebase.appcheck.AppCheck} instance.
+     */
+    static AppAttestCheckProviderFactory GetInstance();
 
-FIR_APP_ATTEST_PROVIDER_AVAILABILITY
-NS_SWIFT_NAME(AppAttestProvider)
-@interface FIRAppAttestProvider : NSObject <FIRAppCheckProvider>
-
-- (instancetype)init NS_UNAVAILABLE;
-
-- (nullable instancetype)initWithApp:(FIRApp *)app;
-
-@end
-
-NS_ASSUME_NONNULL_END
+    AppCheckProvider* CreateProvider(const App& app) override;
+}
