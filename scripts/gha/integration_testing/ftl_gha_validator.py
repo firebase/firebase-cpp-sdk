@@ -74,6 +74,9 @@ def _gcs_read_file(gcs_path):
 
 
 def _validate_logs(log_text):
+  if not log_text:
+    return False
+ 
   # The gtest runner dumps a useful summary of tests after the tear down.
   end_marker = "Global test environment tear-down"
   complete = end_marker in log_text
@@ -82,9 +85,9 @@ def _validate_logs(log_text):
     # rpartition splits a string into three components around the final
     # occurrence of the end marker, returning a triplet (before, marker, after)
     result_summary = log_text.rpartition(end_marker)[2].lstrip()
-    fails = re.search(r"\[  FAILED  \] (?P<count>[0-9]+) test", result_summary)
-    logging.info("_validate_logs fails: %s", fails)
-    if fails:
+    failures = re.search(r"\[  FAILED  \] (?P<count>[0-9]+) test", result_summary)
+    logging.info("_validate_logs failures: %s", failures)
+    if failures:
       return False
     else:
       return True
