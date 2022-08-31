@@ -29,7 +29,7 @@ class AppCheckProvider {
    * Returns a {@link Future} which resolves to a valid {@link AppCheckToken} or an {@link Exception}
    * in the case that an unexpected failure occurred while getting the token.
    */
-  virtual Future<AppCheckToken> getToken() = 0;
+  virtual Future<AppCheckToken> GetToken() = 0;
 }
 
 }  // namespace app_check

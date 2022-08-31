@@ -24,8 +24,7 @@ class AppCheckProviderFactory {
    * Gets the {@link AppCheckProvider} associated with the given {@link FirebaseApp} instance, or
    * creates one if none already exists.
    */
-  // @NonNull
-  virtual AppCheckProvider createProvider(const App& app) = 0;
+  virtual AppCheckProvider* CreateProvider(const App& app) = 0;
 }
 
 }  // namespace app_check

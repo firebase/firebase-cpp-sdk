@@ -16,25 +16,14 @@
  * Implementation of an {@link AppCheckProviderFactory} that builds {@link
  * SafetyNetAppCheckProvider}s. This is the default implementation.
  */
-public class SafetyNetAppCheckProviderFactory implements AppCheckProviderFactory {
+class SafetyNetAppCheckProviderFactory : public AppCheckProviderFactory {
 
-  private static final SafetyNetAppCheckProviderFactory instance =
-      new SafetyNetAppCheckProviderFactory();
+  public:
+    /**
+     * Gets an instance of this class for installation into a {@link
+     * com.google.firebase.appcheck.AppCheck} instance.
+     */
+    static SafetyNetAppCheckProviderFactory GetInstance();
 
-  private SafetyNetAppCheckProviderFactory() {}
-
-  /**
-   * Gets an instance of this class for installation into a {@link
-   * com.google.firebase.appcheck.FirebaseAppCheck} instance.
-   */
-  @NonNull
-  public static SafetyNetAppCheckProviderFactory getInstance() {
-    return instance;
-  }
-
-  @NonNull
-  @Override
-  public AppCheckProvider create(@NonNull FirebaseApp firebaseApp) {
-    return new SafetyNetAppCheckProvider(firebaseApp);
-  }
+    AppCheckProvider* CreateProvider(const App& app) override;
 }
