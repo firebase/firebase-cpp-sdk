@@ -33,6 +33,7 @@ struct AppCheckToken {
   int64_t expire_time_millis;
 }
 
+/// @brief Base class used to receive messages when AppCheck token changes.
 class AppCheckListener {
   virtual ~AppCheckListener();
   /**
@@ -71,6 +72,7 @@ class AppCheckProviderFactory {
   virtual AppCheckProvider* CreateProvider(const App& app) = 0;
 }
 
+/// @brief Firebase app check object.
 class AppCheck {
  public:
   /**
