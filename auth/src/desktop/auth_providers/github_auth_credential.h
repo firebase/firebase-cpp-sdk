@@ -17,6 +17,8 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_AUTH_PROVIDERS_GITHUB_AUTH_CREDENTIAL_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_AUTH_PROVIDERS_GITHUB_AUTH_CREDENTIAL_H_
 
+#include <memory>
+
 #include "app/src/include/firebase/app.h"
 #include "auth/src/desktop/auth_constants.h"
 #include "auth/src/desktop/identity_provider_credential.h"

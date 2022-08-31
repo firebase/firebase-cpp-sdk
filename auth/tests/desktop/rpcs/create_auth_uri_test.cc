@@ -39,6 +39,26 @@ TEST(CreateAuthUriTest, TestCreateAuthUriRequest) {
       "  continueUri: \"http://localhost\"\n"
       "}\n",
       request.options().post_fields);
+  EXPECT_EQ("ACTUAL_PAYLOAD",
+      request.options().header[app_common::kApiClientHeader]);
+}
+
+TEST(CreateAuthUriTest, TestCreateAuthUriRequestWithHeartbeatPayload) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  // Clear heartbeat storage, then call auth getter to log a heartbeat
+  CreateAuthUriRequest request(*app, "APIKEY", "email");
+  EXPECT_EQ(
+      "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "createAuthUri?key=APIKEY",
+      request.options().url);
+  EXPECT_EQ(
+      "{\n"
+      "  identifier: \"email\",\n"
+      "  continueUri: \"http://localhost\"\n"
+      "}\n",
+      request.options().post_fields);
+  EXPECT_EQ("ACTUAL_PAYLOAD",
+      request.options().header[app_common::kApiClientHeader]);
 }
 
 // Test CreateAuthUriResponse

@@ -56,7 +56,7 @@ class SetAccountInfoRequest : public AuthRequest {
   }
 
  private:
-  explicit SetAccountInfoRequest(::firebase::App& app, const char* api_key);
+  explicit SetAccountInfoRequest(const ::firebase::App& app,const char* api_key);
   static std::unique_ptr<SetAccountInfoRequest> CreateRequest(
       ::firebase::App& app, const char* api_key);
 };

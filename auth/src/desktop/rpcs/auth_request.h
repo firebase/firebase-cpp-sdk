@@ -31,10 +31,10 @@ extern const char* kHeaderFirebaseLocale;
 class AuthRequest
     : public firebase::rest::RequestJson<fbs::Request, fbs::RequestT> {
  public:
-  explicit AuthRequest(::firebase::App& app, const char* schema,
+  explicit AuthRequest(const ::firebase::App& app,const char* schema,
                        bool deliver_heartbeat);
 
-  explicit AuthRequest(::firebase::App& app, const unsigned char* schema,
+  explicit AuthRequest(const ::firebase::App& app,const unsigned char* schema,
                        bool deliver_heartbeat)
       : AuthRequest(app, reinterpret_cast<const char*>(schema),
                     deliver_heartbeat) {}

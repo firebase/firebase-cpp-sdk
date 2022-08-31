@@ -16,6 +16,7 @@
 
 #include <fstream>
 #include <memory>
+#include <utility>
 
 #include "app/rest/transport_builder.h"
 #include "app/rest/util.h"

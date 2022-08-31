@@ -27,7 +27,7 @@ namespace auth {
 
 class ResetPasswordRequest : public AuthRequest {
  public:
-  ResetPasswordRequest(::firebase::App& app, const char* api_key,
+  ResetPasswordRequest(const ::firebase::App& app,const char* api_key,
                        const char* oob_code, const char* new_password);
 };
 

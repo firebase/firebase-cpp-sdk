@@ -55,7 +55,7 @@ std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromIdToken(
     const char* const provider_id, const char* const id_token,
     const char* nonce) {
   auto request = std::unique_ptr<VerifyAssertionRequest>(  // NOLINT
-      new VerifyAssertionRequest{app, api_key, provider_id});
+      new VerifyAssertionRequest {app, api_key, provider_id});
 
   if (id_token) {
     request->post_body_ += std::string{"&id_token="} + id_token;
@@ -84,7 +84,7 @@ std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromAccessToken(
     const char* const provider_id, const char* const access_token,
     const char* nonce) {
   auto request = std::unique_ptr<VerifyAssertionRequest>(  // NOLINT
-      new VerifyAssertionRequest{app, api_key, provider_id});
+      new VerifyAssertionRequest {app, api_key, provider_id});
 
   if (access_token) {
     request->post_body_ += std::string{"&access_token="} + access_token;
@@ -107,7 +107,7 @@ VerifyAssertionRequest::FromAccessTokenAndOAuthSecret(
     const char* const provider_id, const char* const access_token,
     const char* const oauth_secret) {
   auto request = std::unique_ptr<VerifyAssertionRequest>(  // NOLINT
-      new VerifyAssertionRequest{app, api_key, provider_id});
+      new VerifyAssertionRequest {app, api_key, provider_id});
 
   if (access_token) {
     request->post_body_ += std::string{"&access_token="} + access_token;
@@ -133,7 +133,7 @@ std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromAuthCode(
     ::firebase::App& app, const char* const api_key,
     const char* const provider_id, const char* const auth_code) {
   auto request = std::unique_ptr<VerifyAssertionRequest>(  // NOLINT
-      new VerifyAssertionRequest{app, api_key, provider_id});
+      new VerifyAssertionRequest {app, api_key, provider_id});
 
   if (auth_code) {
     request->post_body_ += std::string{"&code="} + auth_code;

@@ -31,10 +31,10 @@ namespace auth {
 class SignUpNewUserRequest : public AuthRequest {
  public:
   // Initializer for anonymous sign-in.
-  explicit SignUpNewUserRequest(::firebase::App& app, const char* api_key);
+  explicit SignUpNewUserRequest(const ::firebase::App& app,const char* api_key);
 
   // initializer for sign-in with email and password.
-  SignUpNewUserRequest(::firebase::App& app, const char* api_key,
+  SignUpNewUserRequest(const ::firebase::App& app,const char* api_key,
                        const char* email, const char* password,
                        const char* display_name);
 
