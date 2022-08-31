@@ -16,7 +16,7 @@ YourCustomAppCheckProvider::GetToken() {
   // ...
 
   // Refresh the token early to handle clock skew.
-  long exp_millis = expiration_from_server * 1000 - 60000;
+  int64_t exp_millis = expiration_from_server * 1000 - 60000;
 
   // Create and return AppCheckToken struct.
   ::firebase::app_check::AppCheckToken app_check_token(token_from_server,

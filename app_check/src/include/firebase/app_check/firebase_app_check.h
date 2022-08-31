@@ -63,25 +63,8 @@ class AppCheck {
   static void SetAppCheckProviderFactory(
       const AppCheckProviderFactory& factory) = 0;
 
-  /**
-   * Installs the given {@link AppCheckProviderFactory}, overwriting any that
-   * were previously associated with this {@code AppCheck} instance. Any {@link
-   * AppCheckTokenListener}s attached to this {@code AppCheck} instance will be
-   * transferred from existing factories to the newly installed one.
-   *
-   * <p>Automatic token refreshing will only occur if the {@code
-   * isTokenAutoRefreshEnabled} field is set to true. To use the global {@code
-   * isDataCollectionDefaultEnabled} flag for determining automatic token
-   * refreshing, call {@link
-   * #setAppCheckProviderFactory(AppCheckProviderFactory)} instead.
-   *
-   * This method should be called before initializing the Firebase App.
-   */
-  static void SetAppCheckProviderFactory(
-      AppCheckProviderFactory* factory, bool is_token_auto_refresh_enabled) = 0;
-
   /** Sets the {@code isTokenAutoRefreshEnabled} flag. */
-  static void SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_enabled) =
+  void SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_enabled) =
       0;
 
   /**
