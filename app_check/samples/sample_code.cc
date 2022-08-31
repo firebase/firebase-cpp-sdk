@@ -6,8 +6,8 @@
 class YourCustomAppCheckProvider
     : public ::firebase::app_check::AppCheckProvider {
  public:
-  void GetToken(
-    std::function<void(AppCheckToken, int, string)> completion_callback) override;
+  void GetToken(std::function<void(AppCheckToken, int, string)>
+                    completion_callback) override;
 }
 
 void YourCustomAppCheckProvider::GetToken(

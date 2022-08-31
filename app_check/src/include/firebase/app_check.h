@@ -57,7 +57,7 @@ class AppCheckProvider {
    * the token or with an error code and error message.
    */
   virtual GetToken(
-    std::function<void(AppCheckToken, int, string)> completion_callback) = 0;
+      std::function<void(AppCheckToken, int, string)> completion_callback) = 0;
 }
 
 /** Interface for a factory that generates {@link AppCheckProvider}s. */
@@ -99,8 +99,7 @@ class AppCheck {
       const AppCheckProviderFactory& factory) = 0;
 
   /** Sets the {@code isTokenAutoRefreshEnabled} flag. */
-  void SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_enabled) =
-      0;
+  void SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_enabled) = 0;
 
   /**
    * Requests a Firebase App Check token. This method should be used ONLY if you
@@ -125,4 +124,3 @@ class AppCheck {
 
 }  // namespace app_check
 }  // namespace firebase
-
