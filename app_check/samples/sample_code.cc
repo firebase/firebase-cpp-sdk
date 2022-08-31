@@ -3,12 +3,14 @@
 
 // Create a custom AppCheck provider.
 
-class YourCustomAppCheckProvider : public ::firebase::app_check::AppCheckProvider {
+class YourCustomAppCheckProvider
+    : public ::firebase::app_check::AppCheckProvider {
  public:
   Future<::firebase::app_check::AppCheckToken> GetToken() override;
 }
 
-Future<::firebase::app_check::AppCheckToken> YourCustomAppCheckProvider::GetToken() {
+Future<::firebase::app_check::AppCheckToken>
+YourCustomAppCheckProvider::GetToken() {
   // Logic to exchange proof of authenticity for an App Check token and
   //   expiration time.
   // ...
@@ -17,24 +19,27 @@ Future<::firebase::app_check::AppCheckToken> YourCustomAppCheckProvider::GetToke
   long exp_millis = expiration_from_server * 1000 - 60000;
 
   // Create and return AppCheckToken struct.
-  ::firebase::app_check::AppCheckToken app_check_token(token_from_server, exp_millis);
+  ::firebase::app_check::AppCheckToken app_check_token(token_from_server,
+                                                       exp_millis);
   return app_check_token;
 }
 
 // Create a factory for a custom provider.
 
-class YourCustomAppCheckProviderFactory : public ::firebase::app_check::AppCheckProviderFactory {
+class YourCustomAppCheckProviderFactory
+    : public ::firebase::app_check::AppCheckProviderFactory {
  public:
   static DebugAppCheckProviderFactory GetInstance();
- 
-  ::firebase::app_check::AppCheckProvider* CreateProvider(const ::firebase::App& app) override;
- 
+
+  ::firebase::app_check::AppCheckProvider* CreateProvider(
+      const ::firebase::App& app) override;
+
 }
- 
-::firebase::app_check::AppCheckProvider* YourCustomAppCheckProviderFactory::CreateProvider(
-  const ::firebase::App& app) {
- // Create and return an AppCheckProvider object.
- return new YourCustomAppCheckProvider(app);
+
+::firebase::app_check::AppCheckProvider*
+YourCustomAppCheckProviderFactory::CreateProvider(const ::firebase::App& app) {
+  // Create and return an AppCheckProvider object.
+  return new YourCustomAppCheckProvider(app);
 }
 
 // Initialize App Check (with a given provider factory)
@@ -45,13 +50,15 @@ class YourCustomAppCheckProviderFactory : public ::firebase::app_check::AppCheck
 ::firebase::app_check::AppCheck.SetAppCheckProviderFactory(
     YourCustomAppCheckProviderFactory.GetInstance());
 ::firebase::App* app = ::firebase::App::Create();
-::firebase::app_check::AppCheck* app_check = ::firebase::app_check::AppCheck.getInstance();
+::firebase::app_check::AppCheck* app_check =
+    ::firebase::app_check::AppCheck.getInstance();
 
 // Add a listener for token changes.
 
 class MyAppCheckListener : public ::firebase::app_check::AppCheckListener {
  public:
-  void OnAppCheckTokenChanged(const ::firebase::app_check::AppCheckToken& token) override {
+  void OnAppCheckTokenChanged(
+      const ::firebase::app_check::AppCheckToken& token) override {
     // Use the token to authorize requests to non-firebase backends.
     // ...
   }
@@ -59,5 +66,3 @@ class MyAppCheckListener : public ::firebase::app_check::AppCheckListener {
 
 MyAppCheckListener app_check_listener;
 app_check->addAppCheckListener(&state_change_listener);
-
-
