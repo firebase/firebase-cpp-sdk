@@ -6,11 +6,12 @@
 class YourCustomAppCheckProvider
     : public ::firebase::app_check::AppCheckProvider {
  public:
-  Future<::firebase::app_check::AppCheckToken> GetToken() override;
+  void GetToken(
+    std::function<void(AppCheckToken, int, string)> completion_callback) override;
 }
 
-Future<::firebase::app_check::AppCheckToken>
-YourCustomAppCheckProvider::GetToken() {
+void YourCustomAppCheckProvider::GetToken(
+  std::function<void(AppCheckToken, int, string)> completion_callback) {
   // Logic to exchange proof of authenticity for an App Check token and
   //   expiration time.
   // ...
@@ -18,10 +19,11 @@ YourCustomAppCheckProvider::GetToken() {
   // Refresh the token early to handle clock skew.
   int64_t exp_millis = expiration_from_server * 1000 - 60000;
 
-  // Create and return AppCheckToken struct.
+  // Create an AppCheckToken struct.
   ::firebase::app_check::AppCheckToken app_check_token(token_from_server,
                                                        exp_millis);
-  return app_check_token;
+  // Call the callback with either a token or an error code and error message.
+  completion_callback(app_check_token, 0, "");
 }
 
 // Create a factory for a custom provider.

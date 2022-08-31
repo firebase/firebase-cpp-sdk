@@ -42,6 +42,35 @@ class AppCheckListener {
   virtual void OnAppCheckTokenChanged(const AppCheckToken& token) = 0;
 }
 
+/**
+ * Interface for a provider that generates {@link AppCheckToken}s. This provider
+ * can be called at any time by any Firebase library that depends (optionally or
+ * otherwise) on {@link AppCheckToken}s. This provider is responsible for
+ * determining if it can create a new token at the time of the call and
+ * returning that new token if it can.
+ */
+class AppCheckProvider {
+ public:
+  virtual ~AppCheckProvider();
+  /**
+   * Fetches an AppCheckToken and then calls the provided callback method with
+   * the token or with an error code and error message.
+   */
+  virtual GetToken(
+    std::function<void(AppCheckToken, int, string)> completion_callback) = 0;
+}
+
+/** Interface for a factory that generates {@link AppCheckProvider}s. */
+class AppCheckProviderFactory {
+ public:
+  virtual ~AppCheckProviderFactory();
+  /**
+   * Gets the {@link AppCheckProvider} associated with the given {@link
+   * FirebaseApp} instance, or creates one if none already exists.
+   */
+  virtual AppCheckProvider* CreateProvider(const App& app) = 0;
+}
+
 class AppCheck {
  public:
   /**
