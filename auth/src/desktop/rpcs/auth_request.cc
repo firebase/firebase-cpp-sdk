@@ -28,7 +28,7 @@ namespace auth {
 // Key name for header when sending language code data.
 const char* kHeaderFirebaseLocale = "X-Firebase-Locale";
 
-AuthRequest::AuthRequest(const ::firebase::App& app,const char* schema,
+AuthRequest::AuthRequest(const ::firebase::App& app, const char* schema,
                          bool deliver_heartbeat)
     : RequestJson(schema) {
   // The user agent strings are cached in static variables here to avoid

@@ -28,7 +28,7 @@ namespace auth {
 class SecureTokenRequest : public AuthRequest {
  public:
   // Set request by using refresh token.
-  SecureTokenRequest(const ::firebase::App& app,const char* api_key,
+  SecureTokenRequest(const ::firebase::App& app, const char* api_key,
                      const char* refresh_token);
 };
 

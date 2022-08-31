@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "firebase/auth/tests/desktop/rpcs/test_util.h"
+
 #include "app/rest/transport_builder.h"
 #include "app/src/include/firebase/app.h"
 #include "auth/src/desktop/rpcs/sign_up_new_user_request.h"
 #include "auth/src/desktop/rpcs/sign_up_new_user_response.h"
-
-#include "firebase/auth/tests/desktop/rpcs/test_util.h"
 
 namespace firebase {
 namespace auth {

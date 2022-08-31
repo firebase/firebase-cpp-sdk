@@ -60,7 +60,7 @@ class VerifyAssertionRequest : public AuthRequest {
   }
 
  private:
-  VerifyAssertionRequest(const ::firebase::App& app,const char* api_key,
+  VerifyAssertionRequest(const ::firebase::App& app, const char* api_key,
                          const char* provider_id);
 
   std::string post_body_;

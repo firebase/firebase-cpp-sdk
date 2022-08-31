@@ -40,7 +40,7 @@ TEST(CreateAuthUriTest, TestCreateAuthUriRequest) {
       "}\n",
       request.options().post_fields);
   EXPECT_EQ("ACTUAL_PAYLOAD",
-      request.options().header[app_common::kApiClientHeader]);
+            request.options().header[app_common::kApiClientHeader]);
 }
 
 TEST(CreateAuthUriTest, TestCreateAuthUriRequestWithHeartbeatPayload) {
@@ -58,7 +58,7 @@ TEST(CreateAuthUriTest, TestCreateAuthUriRequestWithHeartbeatPayload) {
       "}\n",
       request.options().post_fields);
   EXPECT_EQ("ACTUAL_PAYLOAD",
-      request.options().header[app_common::kApiClientHeader]);
+            request.options().header[app_common::kApiClientHeader]);
 }
 
 // Test CreateAuthUriResponse
