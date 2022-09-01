@@ -31,10 +31,12 @@ extern const char* kHeaderFirebaseLocale;
 class AuthRequest
     : public firebase::rest::RequestJson<fbs::Request, fbs::RequestT> {
  public:
-  explicit AuthRequest(const ::firebase::App& app, const char* schema,
+  // App is a non-const parameter because this constructor might modify App's
+  // internal HeartbeatController by logging or fetching heartbeats.
+  AuthRequest(::firebase::App& app, const char* schema,
                        bool deliver_heartbeat);
 
-  explicit AuthRequest(const ::firebase::App& app, const unsigned char* schema,
+  AuthRequest(::firebase::App& app, const unsigned char* schema,
                        bool deliver_heartbeat)
       : AuthRequest(app, reinterpret_cast<const char*>(schema),
                     deliver_heartbeat) {}

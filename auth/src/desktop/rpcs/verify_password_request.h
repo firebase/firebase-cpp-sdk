@@ -27,7 +27,7 @@ namespace auth {
 
 class VerifyPasswordRequest : public AuthRequest {
  public:
-  VerifyPasswordRequest(const ::firebase::App& app, const char* api_key,
+  VerifyPasswordRequest(::firebase::App& app, const char* api_key,
                         const char* email, const char* password);
 };
 

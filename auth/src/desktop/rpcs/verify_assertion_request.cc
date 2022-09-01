@@ -54,8 +54,8 @@ std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromIdToken(
     ::firebase::App& app, const char* const api_key,
     const char* const provider_id, const char* const id_token,
     const char* nonce) {
-  auto request = std::unique_ptr<VerifyAssertionRequest>(  // NOLINT
-      new VerifyAssertionRequest{app, api_key, provider_id});
+  auto request = std::unique_ptr<VerifyAssertionRequest>(
+      new VerifyAssertionRequest{app, api_key, provider_id});  // NOLINT
 
   if (id_token) {
     request->post_body_ += std::string{"&id_token="} + id_token;
@@ -83,8 +83,8 @@ std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromAccessToken(
     ::firebase::App& app, const char* const api_key,
     const char* const provider_id, const char* const access_token,
     const char* nonce) {
-  auto request = std::unique_ptr<VerifyAssertionRequest>(  // NOLINT
-      new VerifyAssertionRequest{app, api_key, provider_id});
+  auto request = std::unique_ptr<VerifyAssertionRequest>(
+      new VerifyAssertionRequest{app, api_key, provider_id});  // NOLINT
 
   if (access_token) {
     request->post_body_ += std::string{"&access_token="} + access_token;
@@ -106,8 +106,8 @@ VerifyAssertionRequest::FromAccessTokenAndOAuthSecret(
     ::firebase::App& app, const char* const api_key,
     const char* const provider_id, const char* const access_token,
     const char* const oauth_secret) {
-  auto request = std::unique_ptr<VerifyAssertionRequest>(  // NOLINT
-      new VerifyAssertionRequest{app, api_key, provider_id});
+  auto request = std::unique_ptr<VerifyAssertionRequest>(
+      new VerifyAssertionRequest{app, api_key, provider_id});  // NOLINT
 
   if (access_token) {
     request->post_body_ += std::string{"&access_token="} + access_token;
@@ -132,8 +132,8 @@ static std::unique_ptr<VerifyAssertionRequest> FromAuthCode(
 std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromAuthCode(
     ::firebase::App& app, const char* const api_key,
     const char* const provider_id, const char* const auth_code) {
-  auto request = std::unique_ptr<VerifyAssertionRequest>(  // NOLINT
-      new VerifyAssertionRequest{app, api_key, provider_id});
+  auto request = std::unique_ptr<VerifyAssertionRequest>(
+      new VerifyAssertionRequest{app, api_key, provider_id});  // NOLINT
 
   if (auth_code) {
     request->post_body_ += std::string{"&code="} + auth_code;
