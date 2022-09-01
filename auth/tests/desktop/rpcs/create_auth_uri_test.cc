@@ -67,7 +67,7 @@ TEST(CreateAuthUriTest, TestCreateAuthUriRequestWithHeartbeatPayload) {
   // But it should at least be non-empty.
   EXPECT_NE("", request.options().header[app_common::kApiClientHeader]);
   EXPECT_EQ("com.google.firebase.testing",
-        request.options().header[app_common::kXFirebaseGmpIdHeader]);
+            request.options().header[app_common::kXFirebaseGmpIdHeader]);
 }
 
 // Test CreateAuthUriResponse
