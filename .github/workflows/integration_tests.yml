@@ -734,13 +734,17 @@ jobs:
           timeout_minutes: 15
           max_attempts: 3
           command: scripts/gha/install_test_workflow_prereqs.sh -p Desktop -t true -a '${{ matrix.arch }}' -s '${{ matrix.ssl_variant }}'
-      - name: Set up Node (14)
+      - name: Set up Node (16)
         uses: actions/setup-node@v2
         with:
-          node-version: 14.x
+          node-version: 16.x
       - name: Setup Firestore Emulator
-        run: |
-          npm install -g firebase-tools     
+        uses: nick-invision/retry@v2
+        with:
+          shell: bash
+          timeout_minutes: 5
+          max_attempts: 3
+          command: npm install -g firebase-tools     
       - name: Setup java
         uses: actions/setup-java@v3
         with:
@@ -988,10 +992,10 @@ jobs:
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_device_type)"
           echo "::set-output name=device::$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_ftl_device)"
-      - name: Set up Node (14)
+      - name: Set up Node (16)
         uses: actions/setup-node@v2
         with:
-          node-version: 14.x
+          node-version: 16.x
       - name: Setup java 17 for Firestore emulator
         uses: actions/setup-java@v3
         with:
@@ -999,8 +1003,15 @@ jobs:
           java-version: '17'
       - name: Setup Firestore Emulator
         if: steps.device-info.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
+        uses: nick-invision/retry@v2
+        with:
+          shell: bash
+          timeout_minutes: 5
+          max_attempts: 3
+          command: npm install -g firebase-tools     
+      - name: Start Firestore Emulator
+        if: steps.device-info.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
-          npm install -g firebase-tools
           firebase emulators:start --only firestore --project demo-example &
       - name: Setup java 8 for test_simulator.py
         uses: actions/setup-java@v3
@@ -1128,10 +1139,10 @@ jobs:
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.ios_device }} -get_device_type)"
           echo "::set-output name=device::$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.ios_device }} -get_ftl_device)"
-      - name: Set up Node (14)
+      - name: Set up Node (16)
         uses: actions/setup-node@v2
         with:
-          node-version: 14.x
+          node-version: 16.x
       - name: Setup java for Firestore emulator
         uses: actions/setup-java@v3
         with:
@@ -1139,8 +1150,15 @@ jobs:
           java-version: '17'
       - name: Setup Firestore Emulator
         if: steps.device-info.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
+        uses: nick-invision/retry@v2
+        with:
+          shell: bash
+          timeout_minutes: 5
+          max_attempts: 3
+          command: npm install -g firebase-tools     
+      - name: Start Firestore Emulator
+        if: steps.device-info.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
-          npm install -g firebase-tools
           firebase emulators:start --only firestore --project demo-example &
       - name: Run iOS integration tests on Simulator locally
         timeout-minutes: 120
@@ -1251,8 +1269,15 @@ jobs:
           java-version: '17'
       - name: Setup Firestore Emulator
         if: contains(needs.check_and_prepare.outputs.apis, 'firestore')
+        uses: nick-invision/retry@v2
+        with:
+          shell: bash
+          timeout_minutes: 5
+          max_attempts: 3
+          command: npm install -g firebase-tools     
+      - name: Start Firestore Emulator
+        if: contains(needs.check_and_prepare.outputs.apis, 'firestore')
         run: |
-          npm install -g firebase-tools
           firebase emulators:start --only firestore --project demo-example &
       - name: Run tvOS integration tests on Simulator locally
         timeout-minutes: 90
@@ -1275,6 +1300,13 @@ jobs:
         with:
           name: log-artifact
           path: testapps/test-results-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}*
+          retention-days: ${{ env.artifactRetentionDays }}
+      - name: Upload tvOS test video artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: mobile-simulator-test-video-artifact
+          path: testapps/video-*-tvos-${{ matrix.build_os }}-${{ matrix.tvos_device }}.mp4
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_and_prepare.outputs.pr_number && failure() && !cancelled() }}
