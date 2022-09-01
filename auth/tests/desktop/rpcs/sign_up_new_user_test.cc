@@ -28,7 +28,7 @@ namespace auth {
 // Test SignUpNewUserRequest for making anonymous signin
 TEST(SignUpNewUserTest, TestAnonymousSignInRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
-  SignUpNewUserRequest request("APIKEY");
+  SignUpNewUserRequest request(*app, "APIKEY");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "signupNewUser?key=APIKEY",
@@ -43,7 +43,7 @@ TEST(SignUpNewUserTest, TestAnonymousSignInRequest) {
 // Test SignUpNewUserRequest for using password signin
 TEST(SignUpNewUserTest, TestEmailPasswordSignInRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
-  SignUpNewUserRequest request("APIKEY", "e@mail", "pwd", "rabbit");
+  SignUpNewUserRequest request(*app, "APIKEY", "e@mail", "pwd", "rabbit");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "signupNewUser?key=APIKEY",

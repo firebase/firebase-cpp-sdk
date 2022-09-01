@@ -15,6 +15,10 @@
 #include <memory>
 
 #include "app/rest/transport_builder.h"
+#include "app/src/app_common.h"
+#include "app/src/heartbeat/date_provider.h"
+#include "app/src/heartbeat/heartbeat_controller_desktop.h"
+#include "app/src/heartbeat/heartbeat_storage_desktop.h"
 #include "app/src/include/firebase/app.h"
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "auth/src/desktop/rpcs/create_auth_uri_request.h"
@@ -24,6 +28,11 @@
 
 namespace firebase {
 namespace auth {
+
+using ::firebase::heartbeat::HeartbeatController;
+using ::firebase::heartbeat::HeartbeatStorageDesktop;
+using ::firebase::heartbeat::LoggedHeartbeats;
+using ::testing::Return;
 
 // Test CreateAuthUriRequest
 TEST(CreateAuthUriTest, TestCreateAuthUriRequest) {
@@ -39,26 +48,26 @@ TEST(CreateAuthUriTest, TestCreateAuthUriRequest) {
       "  continueUri: \"http://localhost\"\n"
       "}\n",
       request.options().post_fields);
-  EXPECT_EQ("ACTUAL_PAYLOAD",
-            request.options().header[app_common::kApiClientHeader]);
 }
 
 TEST(CreateAuthUriTest, TestCreateAuthUriRequestWithHeartbeatPayload) {
   std::unique_ptr<App> app(testing::CreateApp());
-  // Clear heartbeat storage, then call auth getter to log a heartbeat
+  ::firebase::heartbeat::DateProviderImpl date_provider;
+  Logger logger(nullptr);
+  HeartbeatStorageDesktop storage(app->name(), logger);
+  HeartbeatController controller(app->name(), logger, date_provider);
+  // For the sake of testing, clear any pre-existing stored heartbeats.
+  LoggedHeartbeats empty_heartbeats_struct;
+  storage.Write(empty_heartbeats_struct);
+  // Then log a single heartbeat for today's date.
+  controller.LogHeartbeat();
   CreateAuthUriRequest request(*app, "APIKEY", "email");
-  EXPECT_EQ(
-      "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
-      "createAuthUri?key=APIKEY",
-      request.options().url);
-  EXPECT_EQ(
-      "{\n"
-      "  identifier: \"email\",\n"
-      "  continueUri: \"http://localhost\"\n"
-      "}\n",
-      request.options().post_fields);
-  EXPECT_EQ("ACTUAL_PAYLOAD",
-            request.options().header[app_common::kApiClientHeader]);
+
+  // The payload will be encoded and the date will be today's date
+  // But it should at least be non-empty.
+  EXPECT_NE("", request.options().header[app_common::kApiClientHeader]);
+  EXPECT_EQ("com.google.firebase.testing",
+        request.options().header[app_common::kXFirebaseGmpIdHeader]);
 }
 
 // Test CreateAuthUriResponse
