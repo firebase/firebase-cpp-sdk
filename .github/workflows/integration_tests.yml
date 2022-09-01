@@ -1019,7 +1019,7 @@ jobs:
           distribution: 'temurin'
           java-version: '8'
       - name: Run Android integration tests on Emulator locally
-        timeout-minutes: 120
+        timeout-minutes: 150
         if: steps.device-info.outputs.device_type == 'virtual'
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
@@ -1030,7 +1030,7 @@ jobs:
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'real'
         uses: FirebaseExtended/github-actions/firebase-test-lab@v1.1
-        timeout-minutes: 60
+        timeout-minutes: 90
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
           testapp_dir: testapps
@@ -1161,7 +1161,7 @@ jobs:
         run: |
           firebase emulators:start --only firestore --project demo-example &
       - name: Run iOS integration tests on Simulator locally
-        timeout-minutes: 120
+        timeout-minutes: 150
         if: steps.device-info.outputs.device_type == 'virtual'
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
@@ -1172,7 +1172,7 @@ jobs:
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'real'
         uses: FirebaseExtended/github-actions/firebase-test-lab@v1.1
-        timeout-minutes: 60
+        timeout-minutes: 90
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
           testapp_dir: testapps
