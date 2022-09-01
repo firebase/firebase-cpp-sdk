@@ -31,13 +31,12 @@ namespace auth {
 class GetOobConfirmationCodeRequest : public AuthRequest {
  public:
   static std::unique_ptr<GetOobConfirmationCodeRequest>
-  CreateSendEmailVerificationRequest(::firebase::App& app,
-                                     const char* api_key,
+  CreateSendEmailVerificationRequest(::firebase::App& app, const char* api_key,
                                      const char* language_code = nullptr);
 
   static std::unique_ptr<GetOobConfirmationCodeRequest>
-  CreateSendPasswordResetEmailRequest(::firebase::App& app,
-                                      const char* api_key, const char* email,
+  CreateSendPasswordResetEmailRequest(::firebase::App& app, const char* api_key,
+                                      const char* email,
                                       const char* language_code = nullptr);
 
   void SetIdToken(const char* const id_token) {

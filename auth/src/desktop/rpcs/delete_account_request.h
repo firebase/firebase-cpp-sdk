@@ -28,8 +28,7 @@ namespace auth {
 
 class DeleteAccountRequest : public AuthRequest {
  public:
-  explicit DeleteAccountRequest(::firebase::App& app,
-                                const char* api_key);
+  explicit DeleteAccountRequest(::firebase::App& app, const char* api_key);
 
   void SetIdToken(const char* const id_token) {
     if (id_token) {

@@ -28,8 +28,7 @@ namespace auth {
 
 class GetAccountInfoRequest : public AuthRequest {
  public:
-  explicit GetAccountInfoRequest(::firebase::App& app,
-                                 const char* api_key);
+  explicit GetAccountInfoRequest(::firebase::App& app, const char* api_key);
   GetAccountInfoRequest(::firebase::App& app, const char* api_key,
                         const char* id_token);
 
