@@ -50,6 +50,7 @@ TEST(CreateAuthUriTest, TestCreateAuthUriRequest) {
       request.options().post_fields);
 }
 
+#if FIREBASE_PLATFORM_DESKTOP
 TEST(CreateAuthUriTest, TestCreateAuthUriRequestWithHeartbeatPayload) {
   std::unique_ptr<App> app(testing::CreateApp());
   ::firebase::heartbeat::DateProviderImpl date_provider;
@@ -69,6 +70,7 @@ TEST(CreateAuthUriTest, TestCreateAuthUriRequestWithHeartbeatPayload) {
   EXPECT_EQ("com.google.firebase.testing",
             request.options().header[app_common::kXFirebaseGmpIdHeader]);
 }
+#endif  // FIREBASE_PLATFORM_DESKTOP
 
 // Test CreateAuthUriResponse
 TEST(CreateAuthUriTest, TestCreateAuthUriResponse) {
