@@ -79,7 +79,7 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-All Firebase SDKs          | platform(com.google.firebase:firebase-bom:30.3.2)
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:30.4.0)
 |                          | (Android Bill of Materials)
 Firebase AdMob             | libfirebase_admob.a
 | (deprecated)             | libfirebase_app.a
