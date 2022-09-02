@@ -33,7 +33,7 @@ using ::firebase::heartbeat::HeartbeatStorageDesktop;
 using ::firebase::heartbeat::LoggedHeartbeats;
 
 #if FIREBASE_PLATFORM_DESKTOP
-TEST(CreateAuthUriTest, TestAuthRequestHasHeartbeatPayload) {
+TEST(AuthRequestHeartbeatTest, TestAuthRequestHasHeartbeatPayload) {
   std::unique_ptr<App> app(testing::CreateApp());
   ::firebase::heartbeat::DateProviderImpl date_provider;
   Logger logger(nullptr);
@@ -55,7 +55,8 @@ TEST(CreateAuthUriTest, TestAuthRequestHasHeartbeatPayload) {
 #endif  // FIREBASE_PLATFORM_DESKTOP
 
 #if FIREBASE_PLATFORM_DESKTOP
-TEST(CreateAuthUriTest, TestSecureTokenRequestDoesNotHaveHeartbeatPayload) {
+TEST(AuthRequestHeartbeatTest,
+     TestSecureTokenRequestDoesNotHaveHeartbeatPayload) {
   std::unique_ptr<App> app(testing::CreateApp());
   ::firebase::heartbeat::DateProviderImpl date_provider;
   Logger logger(nullptr);
