@@ -16,8 +16,6 @@
 
 #include "app/rest/transport_builder.h"
 #include "app/src/app_common.h"
-#include "app/src/heartbeat/date_provider.h"
-#include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/heartbeat/heartbeat_storage_desktop.h"
 #include "app/src/include/firebase/app.h"
 #include "app/tests/include/firebase/app_for_testing.h"
@@ -28,22 +26,19 @@
 namespace firebase {
 namespace auth {
 
-using ::firebase::heartbeat::HeartbeatController;
 using ::firebase::heartbeat::HeartbeatStorageDesktop;
 using ::firebase::heartbeat::LoggedHeartbeats;
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST(AuthRequestHeartbeatTest, TestAuthRequestHasHeartbeatPayload) {
   std::unique_ptr<App> app(testing::CreateApp());
-  ::firebase::heartbeat::DateProviderImpl date_provider;
   Logger logger(nullptr);
   HeartbeatStorageDesktop storage(app->name(), logger);
-  HeartbeatController controller(app->name(), logger, date_provider);
   // For the sake of testing, clear any pre-existing stored heartbeats.
   LoggedHeartbeats empty_heartbeats_struct;
   storage.Write(empty_heartbeats_struct);
   // Then log a single heartbeat for today's date.
-  controller.LogHeartbeat();
+  app->LogDesktopHeartbeat();
   CreateAuthUriRequest request(*app, "APIKEY", "email");
 
   // The payload will be encoded and the date will be today's date
@@ -58,15 +53,13 @@ TEST(AuthRequestHeartbeatTest, TestAuthRequestHasHeartbeatPayload) {
 TEST(AuthRequestHeartbeatTest,
      TestSecureTokenRequestDoesNotHaveHeartbeatPayload) {
   std::unique_ptr<App> app(testing::CreateApp());
-  ::firebase::heartbeat::DateProviderImpl date_provider;
   Logger logger(nullptr);
   HeartbeatStorageDesktop storage(app->name(), logger);
-  HeartbeatController controller(app->name(), logger, date_provider);
   // For the sake of testing, clear any pre-existing stored heartbeats.
   LoggedHeartbeats empty_heartbeats_struct;
   storage.Write(empty_heartbeats_struct);
   // Then log a single heartbeat for today's date.
-  controller.LogHeartbeat();
+  app->LogDesktopHeartbeat();
   SecureTokenRequest request(*app, "APIKEY", "email");
 
   // SecureTokenRequest should not have heartbeat payload since it is sent
