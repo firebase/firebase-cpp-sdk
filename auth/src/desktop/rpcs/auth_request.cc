@@ -56,6 +56,7 @@ AuthRequest::AuthRequest(::firebase::App& app, const char* schema,
                                sdk + "/" + version + "/" + "FirebaseCore-" +
                                sdk_type;
   }
+  // TODO(b/244643516): Remove the User-Agent and X-Client-Version headers.
   if (!auth_user_agent.empty()) {
     add_header("User-Agent", auth_user_agent.c_str());
     add_header("X-Client-Version", extended_auth_user_agent.c_str());

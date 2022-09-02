@@ -16,9 +16,6 @@
 
 #include "app/rest/transport_builder.h"
 #include "app/src/app_common.h"
-#include "app/src/heartbeat/date_provider.h"
-#include "app/src/heartbeat/heartbeat_controller_desktop.h"
-#include "app/src/heartbeat/heartbeat_storage_desktop.h"
 #include "app/src/include/firebase/app.h"
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "auth/src/desktop/rpcs/create_auth_uri_request.h"
@@ -28,11 +25,6 @@
 
 namespace firebase {
 namespace auth {
-
-using ::firebase::heartbeat::HeartbeatController;
-using ::firebase::heartbeat::HeartbeatStorageDesktop;
-using ::firebase::heartbeat::LoggedHeartbeats;
-using ::testing::Return;
 
 // Test CreateAuthUriRequest
 TEST(CreateAuthUriTest, TestCreateAuthUriRequest) {
@@ -49,28 +41,6 @@ TEST(CreateAuthUriTest, TestCreateAuthUriRequest) {
       "}\n",
       request.options().post_fields);
 }
-
-#if FIREBASE_PLATFORM_DESKTOP
-TEST(CreateAuthUriTest, TestCreateAuthUriRequestWithHeartbeatPayload) {
-  std::unique_ptr<App> app(testing::CreateApp());
-  ::firebase::heartbeat::DateProviderImpl date_provider;
-  Logger logger(nullptr);
-  HeartbeatStorageDesktop storage(app->name(), logger);
-  HeartbeatController controller(app->name(), logger, date_provider);
-  // For the sake of testing, clear any pre-existing stored heartbeats.
-  LoggedHeartbeats empty_heartbeats_struct;
-  storage.Write(empty_heartbeats_struct);
-  // Then log a single heartbeat for today's date.
-  controller.LogHeartbeat();
-  CreateAuthUriRequest request(*app, "APIKEY", "email");
-
-  // The payload will be encoded and the date will be today's date
-  // But it should at least be non-empty.
-  EXPECT_NE("", request.options().header[app_common::kApiClientHeader]);
-  EXPECT_EQ("com.google.firebase.testing",
-            request.options().header[app_common::kXFirebaseGmpIdHeader]);
-}
-#endif  // FIREBASE_PLATFORM_DESKTOP
 
 // Test CreateAuthUriResponse
 TEST(CreateAuthUriTest, TestCreateAuthUriResponse) {
