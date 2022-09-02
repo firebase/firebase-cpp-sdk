@@ -28,7 +28,7 @@ namespace auth {
 // Test VerifyPasswordRequest
 TEST(VerifyPasswordTest, TestVerifyPasswordRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
-  VerifyPasswordRequest request("APIKEY", "abc@email", "pwd");
+  VerifyPasswordRequest request(*app, "APIKEY", "abc@email", "pwd");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "verifyPassword?key=APIKEY",

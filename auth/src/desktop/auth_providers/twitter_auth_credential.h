@@ -17,6 +17,9 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_AUTH_PROVIDERS_TWITTER_AUTH_CREDENTIAL_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_AUTH_PROVIDERS_TWITTER_AUTH_CREDENTIAL_H_
 
+#include <memory>
+
+#include "app/src/include/firebase/app.h"
 #include "auth/src/desktop/auth_constants.h"
 #include "auth/src/desktop/identity_provider_credential.h"
 #include "auth/src/desktop/rpcs/verify_assertion_request.h"
@@ -31,9 +34,9 @@ class TwitterAuthCredential : public IdentityProviderCredential {
   std::string GetProvider() const override { return kTwitterAuthProviderId; }
 
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
-      const char* const api_key) const override {
+      ::firebase::App& app, const char* const api_key) const override {
     return VerifyAssertionRequest::FromAccessTokenAndOAuthSecret(
-        api_key, GetProvider().c_str(), token_.c_str(), secret_.c_str());
+        app, api_key, GetProvider().c_str(), token_.c_str(), secret_.c_str());
   }
 
  private:

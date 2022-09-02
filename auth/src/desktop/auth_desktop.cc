@@ -347,7 +347,7 @@ Future<User*> Auth::SignInWithCustomToken(const char* const custom_token) {
   // Note: std::make_unique is not supported by Visual Studio 2012, which is
   // among our target compilers.
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(GetApiKey(*auth_data_), custom_token));
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), custom_token));
 
   return CallAsync(auth_data_, promise, std::move(request),
                    PerformSignInFlow<VerifyCustomTokenResponse>);
@@ -397,7 +397,7 @@ Future<User*> Auth::SignInAnonymously() {
 
   typedef SignUpNewUserRequest RequestT;
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(GetApiKey(*auth_data_)));
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_)));
 
   return CallAsync(auth_data_, promise, std::move(request),
                    PerformSignInFlow<SignUpNewUserResponse>);
@@ -413,7 +413,7 @@ Future<User*> Auth::SignInWithEmailAndPassword(const char* const email,
 
   typedef VerifyPasswordRequest RequestT;
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(GetApiKey(*auth_data_), email, password));
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), email, password));
 
   return CallAsync(auth_data_, promise, std::move(request),
                    PerformSignInFlow<VerifyPasswordResponse>);
@@ -429,7 +429,8 @@ Future<User*> Auth::CreateUserWithEmailAndPassword(const char* const email,
 
   typedef SignUpNewUserRequest RequestT;
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(GetApiKey(*auth_data_), email, password, ""));
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), email, password,
+                   ""));
 
   return CallAsync(auth_data_, promise, std::move(request),
                    PerformSignInFlow<SignUpNewUserResponse>);
@@ -453,7 +454,7 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(
 
   typedef CreateAuthUriRequest RequestT;
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(GetApiKey(*auth_data_), email));
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), email));
 
   const auto callback =
       [](AuthDataHandle<FetchProvidersResult, RequestT>* handle) {
@@ -486,7 +487,7 @@ Future<void> Auth::SendPasswordResetEmail(const char* email) {
 
   typedef GetOobConfirmationCodeRequest RequestT;
   auto request = RequestT::CreateSendPasswordResetEmailRequest(
-      GetApiKey(*auth_data_), email, language_code);
+      *auth_data_->app, GetApiKey(*auth_data_), email, language_code);
 
   const auto callback = [](AuthDataHandle<void, RequestT>* handle) {
     const auto response =
