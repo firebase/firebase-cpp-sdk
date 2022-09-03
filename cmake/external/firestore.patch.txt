@@ -23,3 +23,22 @@ index 920bf2928..c5c9cc7ee 100644
  
    PREFIX ${PROJECT_BINARY_DIR}
  
+commit 692a0fd2afe00dd65cce0c6c4f0d6c458c4d9773
+Author: Denver Coneybeare <dconeybe@google.com>
+Date:   Sat Sep 3 02:03:51 2022 -0400
+
+    firestore_client.cc: increase the kRegularBackfillDelay from 1ms to 1000ms
+
+diff --git a/Firestore/core/src/core/firestore_client.cc b/Firestore/core/src/core/firestore_client.cc
+index f8f16acdf..7caf348e0 100644
+--- a/Firestore/core/src/core/firestore_client.cc
++++ b/Firestore/core/src/core/firestore_client.cc
+@@ -113,7 +113,7 @@ static const auto kRegularGCDelay = std::chrono::minutes(5);
+ /** How long we wait to try running index backfill after SDK initialization. */
+ static const auto kInitialBackfillDelay = std::chrono::milliseconds(15);
+ /** Minimum amount of time between backfill checks, after the first one. */
+-static const auto kRegularBackfillDelay = std::chrono::milliseconds(1);
++static const auto kRegularBackfillDelay = std::chrono::milliseconds(1000);
+ 
+ }  // namespace
+ 
