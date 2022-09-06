@@ -11,7 +11,7 @@ target 'GetPods' do
   pod 'Firebase/Crashlytics', '9.5.0'
   pod 'Firebase/Database', '9.5.0'
   pod 'Firebase/DynamicLinks', '9.5.0'
-  pod 'Firebase/Firestore', '9.5.0'
+  pod 'FirebaseFirestore', '9.4.0'
   pod 'Firebase/Functions', '9.5.0'
   pod 'Firebase/Installations', '9.5.0'
   pod 'Firebase/Messaging', '9.5.0'
