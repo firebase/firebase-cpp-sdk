@@ -63,12 +63,6 @@ inline void Sleep(int64_t milliseconds) {
 }
 
 #if !FIREBASE_PLATFORM_WINDOWS
-// Utility function for normalizing a timespec.
-inline void NormalizeTimespec(timespec* t) {
-  t->tv_sec += t->tv_nsec / kNanosecondsPerSecond;
-  t->tv_nsec %= kNanosecondsPerSecond;
-}
-
 // Utility function, for converting a timespec struct into milliseconds.
 inline int64_t TimespecToMs(timespec tm) {
   return tm.tv_sec * firebase::internal::kMillisecondsPerSecond +
@@ -89,8 +83,13 @@ inline timespec MsToTimespec(int milliseconds) {
 inline timespec MsToAbsoluteTimespec(int milliseconds) {
   timespec t;
   clock_gettime(CLOCK_REALTIME, &t);
-  t.tv_nsec += milliseconds * internal::kNanosecondsPerMillisecond;
-  NormalizeTimespec(&t);
+
+  const int64_t nanoseconds =
+      t.tv_nsec + (t.tv_sec * internal::kNanosecondsPerSecond) +
+      (milliseconds * internal::kNanosecondsPerMillisecond);
+
+  t.tv_sec = nanoseconds / internal::kNanosecondsPerSecond;
+  t.tv_nsec = nanoseconds % internal::kNanosecondsPerSecond;
   return t;
 }
 

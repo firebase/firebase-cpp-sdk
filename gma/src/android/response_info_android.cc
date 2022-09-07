@@ -64,13 +64,13 @@ ResponseInfo::ResponseInfo(const ResponseInfoInternal& response_info_internal) {
   }
 
   // The Mediation Adapter class name.
-  const jobject j_medation_adapter_classname = env->CallObjectMethod(
+  const jobject j_mediation_adapter_classname = env->CallObjectMethod(
       j_response_info,
       response_info::GetMethodId(response_info::kGetMediationAdapterClassName));
-  if (j_medation_adapter_classname != nullptr) {
+  if (j_mediation_adapter_classname != nullptr) {
     mediation_adapter_class_name_ =
-        util::JStringToString(env, j_medation_adapter_classname);
-    env->DeleteLocalRef(j_medation_adapter_classname);
+        util::JStringToString(env, j_mediation_adapter_classname);
+    env->DeleteLocalRef(j_mediation_adapter_classname);
   }
 
   // The Response ID for this adapter response.

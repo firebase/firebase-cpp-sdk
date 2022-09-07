@@ -104,8 +104,10 @@ flags.DEFINE_string("force_binutils_target", None, "Force all binutils calls to 
                     "will autodetect target format. If you want to specify "
                     "different input and output formats, separate them with a comma.")
 
-# Never rename 'std::' by default when --auto_hide_cpp_namespaces is enabled.
-IMPLICIT_CPP_NAMESPACES_TO_IGNORE = {"std"}
+# Never rename system namespaces by default when --auto_hide_cpp_namespaces is enabled.
+IMPLICIT_CPP_NAMESPACES_TO_IGNORE = {"std", "type_info",
+                                     "__gnu_cxx", "stdext",
+                                     "cxxabiv1", "__cxxabiv1"}
 
 DEFAULT_ENCODING = "ascii"
 
@@ -416,7 +418,7 @@ def get_top_level_namespaces(demangled_symbols):
   # It will specifically not match second-level or deeper namespaces:
   #   matched_namespace::unmatched_namespace::Class::Method()
   regex_top_level_namespaces = re.compile(
-      r"(?<![a-zA-Z0-9_])(?<!::)([a-zA-Z_][a-zA-Z0-9_]*)::(?=[a-zA-Z_])")
+      r"(?<![a-zA-Z0-9_])(?<!::)([a-zA-Z_~\$][a-zA-Z0-9_]*)::(?=[a-zA-Z_~` \$])")
   found_namespaces = set()
   for cppsymbol in demangled_symbols:
     m = regex_top_level_namespaces.findall(cppsymbol)
@@ -441,6 +443,8 @@ def add_automatic_namespaces(symbols):
   logging.debug("Scanning for top-level namespaces.")
   demangled_symbols = [demangle_symbol(symbol) for symbol in symbols]
   hide_namespaces = get_top_level_namespaces(demangled_symbols)
+  # strip out top-level namespaces beginning with an underscore
+  hide_namespaces = set([n for n in hide_namespaces if n[0] != "_"])
   ignore_namespaces = set(FLAGS.ignore_cpp_namespaces)
   ignore_namespaces.update(IMPLICIT_CPP_NAMESPACES_TO_IGNORE)
   logging.debug("Ignoring namespaces: %s", " ".join(
@@ -533,17 +537,21 @@ def read_symbols_from_archive(archive_file):
   return (defined_symbols, all_symbols)
 
 
-def symbol_includes_cpp_namespace(cpp_symbol, namespace):
+def symbol_includes_top_level_cpp_namespace(cpp_symbol, namespace):
   """Returns true if the C++ symbol contains the namespace in it.
 
   This means the symbol is within the namespace, or the namespace as
   an argument type, return type, template type, etc.
 
+  If FLAGS.strict_cpp == True, this will only return true if the namespace
+  is at the top level of the symbol.
+
   Args:
     cpp_symbol: C++ symbol to check.
     namespace: Namespace to look for in the C++ symbol.
   Returns:
-    True if the symbol includes the C++ namespace in some way, False otherwise.
+    True if the symbol includes the C++ namespace at the top level (or anywhere,
+    if FLAGS.strict_cpp == False), False otherwise.
   """
   # Early out if the namespace isn't in the mangled symbol.
   if namespace not in cpp_symbol:
@@ -551,7 +559,7 @@ def symbol_includes_cpp_namespace(cpp_symbol, namespace):
   if not FLAGS.strict_cpp:
     # If we aren't being fully strict about C++ symbol renaming,
     # we can use this placeholder method.
-    if FLAGS.platform == "windows" and ("@%s@@" % namespace) in cpp_symbol:
+    if FLAGS.platform == "windows" and re.search(r"[^a-z_]%s@@" % namespace, cpp_symbol):
       return True
     elif (FLAGS.platform != "windows" and
           ("%d%s" % (len(namespace), namespace)) in cpp_symbol):
@@ -566,7 +574,8 @@ def symbol_includes_cpp_namespace(cpp_symbol, namespace):
     return True
   # Or, check if the demangled symbol has "namespace::" preceded by a non-
   # alphanumeric character. This avoids a false positive on "notmynamespace::".
-  regex = re.compile("[^0-9a-zA-Z_]%s::" % namespace)
+  # Also don't allow a namespace :: right before the name.
+  regex = re.compile("[^0-9a-zA-Z_:]%s::" % namespace)
   if re.search(regex, demangled):
     return True
 
@@ -626,7 +635,7 @@ def rename_symbol(symbol):
     new_symbol = symbol
     if FLAGS.platform in ["linux", "android", "darwin", "ios"]:
       for ns in FLAGS.hide_cpp_namespaces:
-        if symbol_includes_cpp_namespace(symbol, ns):
+        if symbol_includes_top_level_cpp_namespace(symbol, ns):
           # Linux and Darwin: To rename "namespace" to "prefixnamespace",
           # change all instances of "9namespace" to "15prefixnamespace".
           # (the number is the length of the namespace name)
@@ -637,12 +646,12 @@ def rename_symbol(symbol):
       new_renames[symbol] = new_symbol
     elif FLAGS.platform == "windows":
       for ns in FLAGS.hide_cpp_namespaces:
-        if symbol_includes_cpp_namespace(symbol, ns):
+        if symbol_includes_top_level_cpp_namespace(symbol, ns):
           # Windows: To rename "namespace" to "prefixnamespace",
-          # change all instances of "@namespace@@" to "@prefixnamespace@@".
+          # change all instances of "[^a-z_]namespace@@" to "[^a-z]prefixnamespace@@",
           # See https://msdn.microsoft.com/en-us/library/56h2zst2.aspx
           new_ns = FLAGS.rename_string + ns
-          new_symbol = re.sub("@%s@@" % ns, "@%s@@" % new_ns, new_symbol)
+          new_symbol = re.sub(r"(?<=[^a-z_])%s@@" % ns, r"%s@@" % new_ns, new_symbol)
       new_renames[symbol] = new_symbol
   else:
     if FLAGS.platform == "windows" and symbol.startswith("$LN"):
@@ -949,6 +958,7 @@ def main(argv):
       # Scan through all input libraries for C++ symbols matching any of the
       # hide_cpp_namespaces.
       cpp_symbols = set()
+      all_defined_symbols = set()
       for input_path in input_paths + additional_input_paths:
         logging.debug("Scanning for C++ symbols in %s", input_path[1])
         if os.path.abspath(input_path[1]) in _cache["symbols"]:
@@ -962,10 +972,11 @@ def main(argv):
         cpp_symbols.update(all_symbols
                            if FLAGS.rename_external_cpp_symbols
                            else defined_symbols)
+        all_defined_symbols.update(defined_symbols)
 
       # If we are set to scan for namespaces, do that now.
       if FLAGS.auto_hide_cpp_namespaces:
-        add_automatic_namespaces(defined_symbols)
+        add_automatic_namespaces(all_defined_symbols)
 
       for symbol in cpp_symbols:
         if is_cpp_symbol(symbol):

@@ -37,7 +37,7 @@ TEST(ServerValues, ServerTimestamp) {
 }
 
 TEST(ServerValues, GenerateServerValues) {
-  int64_t current_time_ms = time(nullptr) * 1000;
+  int64_t current_time_ms = static_cast<int64_t>(time(nullptr)) * 1000L;
 
   Variant result = GenerateServerValues(0);
 
@@ -50,7 +50,7 @@ TEST(ServerValues, GenerateServerValues) {
 }
 
 TEST(ServerValues, GenerateServerValuesWithTimeOffset) {
-  int64_t current_time_ms = time(nullptr) * 1000;
+  int64_t current_time_ms = static_cast<int64_t>(time(nullptr)) * 1000L;
 
   Variant result = GenerateServerValues(5000);
 
@@ -160,7 +160,7 @@ TEST(ServerValues, ResolveDeferredValueNestedMap) {
 }
 
 TEST(ServerValues, ResolveDeferredValueTimestamp) {
-  int64_t current_time_ms = time(nullptr) * 1000;
+  int64_t current_time_ms = static_cast<int64_t>(time(nullptr)) * 1000L;
   Variant timestamp = ServerTimestamp();
   Variant server_values = GenerateServerValues(0);
 
@@ -171,7 +171,7 @@ TEST(ServerValues, ResolveDeferredValueTimestamp) {
 }
 
 TEST(ServerValues, ResolveDeferredValueSnapshot) {
-  int64_t current_time_ms = time(nullptr) * 1000;
+  int64_t current_time_ms = static_cast<int64_t>(time(nullptr)) * 1000L;
   Variant nested_map_variant = std::map<Variant, Variant>{
       std::make_pair("aaa", 100),
       std::make_pair("bbb", 200),
@@ -196,7 +196,7 @@ TEST(ServerValues, ResolveDeferredValueSnapshot) {
 }
 
 TEST(ServerValues, ResolveDeferredValueMerge) {
-  int64_t current_time_ms = time(nullptr) * 1000;
+  int64_t current_time_ms = static_cast<int64_t>(time(nullptr)) * 1000L;
   Variant merge(std::map<Variant, Variant>{
       std::make_pair("aaa", 100),
       std::make_pair("bbb", 200),

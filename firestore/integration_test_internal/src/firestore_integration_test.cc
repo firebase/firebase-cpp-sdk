@@ -18,6 +18,7 @@
 
 #include <cstdlib>
 #include <fstream>
+#include <iomanip>
 #include <memory>
 #include <sstream>
 
@@ -125,6 +126,16 @@ int WaitFor(const FutureBase& future) {
   return cycles;
 }
 
+std::ostream& operator<<(std::ostream& out, const Stopwatch& stopwatch) {
+  // Use a temporary ostream instead of writing directly to the given `out`
+  // stream because std::setprecision has effects that extend beyond the
+  // lifetime of this function and we shouldn't be changing the state of the
+  // given stream.
+  std::ostringstream oss;
+  oss << std::setprecision(3) << stopwatch.elapsed_time().count() << " seconds";
+  return out << oss.str();
+}
+
 FirestoreIntegrationTest::FirestoreIntegrationTest() {
   // Allocate the default Firestore eagerly.
   TestFirestore();
@@ -149,13 +160,10 @@ Firestore* FirestoreIntegrationTest::TestFirestoreWithProjectId(
     apps_[app] = std::unique_ptr<App>(app);
   }
 
-  // Firestore::set_log_level(LogLevel::kLogLevelDebug);
-
   Firestore* db = new Firestore(CreateTestFirestoreInternal(app));
   firestores_[db] = FirestoreInfo(name, std::unique_ptr<Firestore>(db));
 
   LocateEmulator(db);
-  InitializeFirestore(db);
   return db;
 }
 
@@ -229,14 +237,20 @@ DocumentReference FirestoreIntegrationTest::DocumentWithData(
 
 void FirestoreIntegrationTest::WriteDocument(DocumentReference reference,
                                              const MapFieldValue& data) const {
+  SCOPED_TRACE("FirestoreIntegrationTest::WriteDocument(" + reference.path() +
+               ")");
   Future<void> future = reference.Set(data);
+  Stopwatch stopwatch;
   Await(future);
-  FailIfUnsuccessful("WriteDocument", future);
+  stopwatch.stop();
+  FailIfUnsuccessful("WriteDocument", future, stopwatch);
 }
 
 void FirestoreIntegrationTest::WriteDocuments(
     CollectionReference reference,
     const std::map<std::string, MapFieldValue>& data) const {
+  SCOPED_TRACE("FirestoreIntegrationTest::WriteDocuments(" +
+               std::to_string(data.size()) + " documents)");
   for (const auto& kv : data) {
     WriteDocument(reference.Document(kv.first), kv.second);
   }
@@ -244,9 +258,13 @@ void FirestoreIntegrationTest::WriteDocuments(
 
 DocumentSnapshot FirestoreIntegrationTest::ReadDocument(
     const DocumentReference& reference) const {
+  SCOPED_TRACE("FirestoreIntegrationTest::ReadDocument(" + reference.path() +
+               ")");
   Future<DocumentSnapshot> future = reference.Get();
+  Stopwatch stopwatch;
   const DocumentSnapshot* result = Await(future);
-  if (FailIfUnsuccessful("ReadDocument", future)) {
+  stopwatch.stop();
+  if (FailIfUnsuccessful("ReadDocument", future, stopwatch)) {
     return {};
   } else {
     return *result;
@@ -255,9 +273,12 @@ DocumentSnapshot FirestoreIntegrationTest::ReadDocument(
 
 QuerySnapshot FirestoreIntegrationTest::ReadDocuments(
     const Query& reference) const {
+  SCOPED_TRACE("FirestoreIntegrationTest::ReadDocuments()");
   Future<QuerySnapshot> future = reference.Get();
+  Stopwatch stopwatch;
   const QuerySnapshot* result = Await(future);
-  if (FailIfUnsuccessful("ReadDocuments", future)) {
+  stopwatch.stop();
+  if (FailIfUnsuccessful("ReadDocuments", future, stopwatch)) {
     return {};
   } else {
     return *result;
@@ -266,9 +287,13 @@ QuerySnapshot FirestoreIntegrationTest::ReadDocuments(
 
 void FirestoreIntegrationTest::DeleteDocument(
     DocumentReference reference) const {
+  SCOPED_TRACE("FirestoreIntegrationTest::DeleteDocument(" + reference.path() +
+               ")");
   Future<void> future = reference.Delete();
+  Stopwatch stopwatch;
   Await(future);
-  FailIfUnsuccessful("DeleteDocument", future);
+  stopwatch.stop();
+  FailIfUnsuccessful("DeleteDocument", future, stopwatch);
 }
 
 std::vector<std::string> FirestoreIntegrationTest::QuerySnapshotToIds(
@@ -312,14 +337,15 @@ void FirestoreIntegrationTest::Await(const Future<void>& future) {
 
 /* static */
 bool FirestoreIntegrationTest::FailIfUnsuccessful(const char* operation,
-                                                  const FutureBase& future) {
+                                                  const FutureBase& future,
+                                                  const Stopwatch& stopwatch) {
   if (future.status() != FutureStatus::kFutureStatusComplete) {
-    ADD_FAILURE() << operation << " timed out: " << DescribeFailedFuture(future)
-                  << std::endl;
+    ADD_FAILURE() << operation << " timed out after " << stopwatch << ": "
+                  << DescribeFailedFuture(future) << std::endl;
     return true;
   } else if (future.error() != Error::kErrorOk) {
-    ADD_FAILURE() << operation << " failed: " << DescribeFailedFuture(future)
-                  << std::endl;
+    ADD_FAILURE() << operation << " failed after " << stopwatch << ": "
+                  << DescribeFailedFuture(future) << std::endl;
     return true;
   } else {
     return false;

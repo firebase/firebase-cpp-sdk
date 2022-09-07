@@ -100,6 +100,7 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS
     src/smoke_test.cc
     src/source_test.cc
     src/transaction_test.cc
+    src/transaction_options_test.cc
     src/type_test.cc
     src/validation_test.cc
     src/write_batch_test.cc
@@ -116,6 +117,7 @@ set(FIREBASE_INTEGRATION_TEST_ANDROID_TEST_SRCS
     src/android/settings_android_test.cc
     src/android/snapshot_metadata_android_test.cc
     src/android/timestamp_android_test.cc
+    src/android/transaction_options_android_test.cc
     src/jni/declaration_test.cc
     src/jni/env_test.cc
     src/jni/object_test.cc
@@ -373,17 +375,6 @@ else()
   if(NOT FOUND_JSON_FILE)
     message(WARNING "Failed to find either google-services-desktop.json or google-services.json. See the readme.md for more information.")
   endif()
-endif()
-
-if(NOT ANDROID)
- set(${ADDITIONAL_LIBS} ${ADDITIONAL_LIBS} firestore_core absl_variant)
-else()
- set(${ADDITIONAL_LIBS} ${ADDITIONAL_LIBS}
-     absl_base
-     absl_memory
-     absl_meta
-     absl_optional
-     absl_strings)
 endif()
 
 # Add the Firebase libraries to the target using the function from the SDK.

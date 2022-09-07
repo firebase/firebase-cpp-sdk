@@ -49,6 +49,7 @@ set(common_SRCS
     src/common/to_string.h
     src/common/type_mapping.h
     src/common/transaction.cc
+    src/common/transaction_options.cc
     src/common/util.cc
     src/common/util.h
     src/common/write_batch.cc
@@ -127,6 +128,10 @@ set(android_SRCS
     src/android/timestamp_portable.cc
     src/android/transaction_android.cc
     src/android/transaction_android.h
+    src/android/transaction_options_android.cc
+    src/android/transaction_options_android.h
+    src/android/transaction_options_builder_android.cc
+    src/android/transaction_options_builder_android.h
     src/android/util_android.cc
     src/android/util_android.h
     src/android/wrapper.cc

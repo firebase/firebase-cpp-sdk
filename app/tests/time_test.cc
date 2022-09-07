@@ -18,23 +18,15 @@
 
 #include <time.h>
 
+#include <iostream>
+#include <string>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 namespace {
 
 #ifndef WIN32
-// Test that the normalize function works, for timespecs
-TEST(TimeTests, NormalizeTest) {
-  timespec t;
-  t.tv_sec = 2;
-  t.tv_nsec = firebase::internal::kNanosecondsPerSecond * 5.5;
-  firebase::internal::NormalizeTimespec(&t);
-
-  EXPECT_EQ(t.tv_sec, 7);
-  EXPECT_EQ(t.tv_nsec, firebase::internal::kNanosecondsPerSecond * 0.5);
-}
-
 // Test the various conversions to and from timespecs.
 TEST(TimeTests, ConversionTests) {
   timespec t;
@@ -62,6 +54,16 @@ TEST(TimeTests, ComparisonTests) {
   EXPECT_EQ(firebase::internal::TimespecCmp(t1, t1), 0);
   EXPECT_EQ(firebase::internal::TimespecCmp(t2, t2), 0);
 }
+
+// This test verifies the fix for the old integer overflow bug on 32-bit
+// architectures: https://github.com/firebase/firebase-cpp-sdk/pull/1042.
+TEST(TimeTests, MsToAbsoluteTimespecTest) {
+  const timespec t1 = firebase::internal::MsToAbsoluteTimespec(0);
+  const timespec t2 = firebase::internal::MsToAbsoluteTimespec(10000);
+  const int64_t ms1 = firebase::internal::TimespecToMs(t1);
+  const int64_t ms2 = firebase::internal::TimespecToMs(t2);
+  ASSERT_NEAR(ms1, ms2 - 10000, 300);
+}
 #endif
 
 // Test GetTimestamp function
@@ -87,11 +89,8 @@ TEST(TimeTests, GetTimestampEpochTest) {
 
   // Print out the epoch time so that we can verify the timestamp from the log
   // This is the easiest way to verify if the function works in all platform
-#ifdef __linux__
-  printf("%lu -> %lu (%ld)\n", start, end, error);
-#else
-  printf("%llu -> %llu (%lld)\n", start, end, error);
-#endif  // __linux__
+  std::cout << std::to_string(start) << " -> " << std::to_string(end) << " ("
+            << std::to_string(error) << ")" << std::endl;
 
   EXPECT_GE(end, start + 500);
 }
