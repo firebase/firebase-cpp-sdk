@@ -238,7 +238,7 @@ Firebase Dynamic Links     | firebase_dynamic_links.xcframework
 Cloud Firestore            | firebase_firestore.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Firestore Cocoapod (9.5.0)
+|                          | Firebase/Firestore Cocoapod (9.4.0)
 |                          | Firebase/Auth Cocoapod (9.5.0)
 Firebase Functions         | firebase_functions.xcframework
 |                          | firebase_auth.xcframework (optional)
@@ -306,7 +306,7 @@ Firebase Dynamic Links     | libfirebase_dynamic_links.a
 Cloud Firestore            | libfirebase_firestore.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Firestore Cocoapod (9.5.0)
+|                          | Firebase/Firestore Cocoapod (9.4.0)
 |                          | Firebase/Auth Cocoapod (9.5.0)
 Firebase Functions         | libfirebase_functions.a
 |                          | libfirebase_app.a
