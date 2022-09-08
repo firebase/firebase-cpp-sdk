@@ -96,9 +96,9 @@ TEST_F(HeartbeatControllerDesktopTest, PerAppHeartbeatController) {
   LoggedHeartbeats empty_heartbeats_struct;
   storage.Write(empty_heartbeats_struct);
 
-  firebase_app->LogDesktopHeartbeat();
+  firebase_app->GetHeartbeatController()->LogHeartbeat();
   std::string encoded_payload =
-      firebase_app->GetAndResetStoredDesktopHeartbeats();
+      firebase_app->GetHeartbeatController()->GetAndResetStoredHeartbeats();
   EXPECT_NE(encoded_payload, "");
   // Deleting the app internally triggers resetting of registered user agents.
   delete firebase_app;

@@ -19,6 +19,8 @@
 
 #include <string>
 
+#include "app/memory/shared_ptr.h"
+#include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "Firestore/core/src/remote/firebase_metadata_provider.h"
 #include "app/src/include/firebase/app.h"
 
@@ -32,12 +34,12 @@ namespace firestore {
 
 class FirebaseMetadataProviderCpp : public remote::FirebaseMetadataProvider {
  public:
-  explicit FirebaseMetadataProviderCpp(App* app);
+  explicit FirebaseMetadataProviderCpp(const App& app);
 
   void UpdateMetadata(grpc::ClientContext& context) override;
 
  private:
-  App* app_;
+  SharedPtr<heartbeat::HeartbeatController> heartbeat_controller_;
   std::string gmp_app_id_;
 };
 

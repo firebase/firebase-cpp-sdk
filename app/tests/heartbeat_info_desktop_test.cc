@@ -21,84 +21,40 @@
 #include <thread>  // NOLINT(build/c++11)
 #include <vector>
 
-#include "app/src/heartbeat_date_storage_desktop.h"
+#include "app/src/app_common.h"
+#include "app/src/heartbeat/heartbeat_storage_desktop.h"
+#include "app/src/include/firebase/app.h"
+#include "app/tests/include/firebase/app_for_testing.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 namespace firebase {
 namespace {
 
-const char kSdkTag[] = "fire-iid";
-const char kGlobalTag[] = "GLOBAL";
-
-std::time_t Now() {
-  std::time_t now = 0;
-  std::time(&now);
-  return now;
-}
-
-std::time_t DayAgo() {
-  return Now() - 86400 - 1;  // A day plus one second.
-}
-
 class HeartbeatInfoTest : public ::testing::Test {
  public:
-  HeartbeatInfoTest() {
-    SetStaleDate(kSdkTag);
-    SetStaleDate(kGlobalTag);
-  }
+  HeartbeatInfoTest() : app_(testing::CreateApp()) {}
 
  protected:
-  void ReadHeartbeat() {
-    bool read_ok = storage_.ReadPersisted();
-    if (!read_ok) {
-      FAIL() << "Unable to read the heartbeat file";
-    }
-  }
+  std::unique_ptr<App> app_;
 
-  void WriteHeartbeat() {
-    bool write_ok = storage_.WritePersisted();
-    if (!write_ok) {
-      FAIL() << "Unable to write the heartbeat file";
-    }
+  void SetUp() override {
+    Logger logger(nullptr);
+    heartbeat::HeartbeatStorageDesktop storage(app_->name(), logger);
+    // For the sake of testing, clear any pre-existing stored heartbeats.
+    heartbeat::LoggedHeartbeats empty_heartbeats_struct;
+    storage.Write(empty_heartbeats_struct);
   }
-
-  void SetRecentDate(const char* tag) {
-    ReadHeartbeat();
-    storage_.Set(tag, Now());
-    WriteHeartbeat();
-  }
-
-  void SetStaleDate(const char* tag) {
-    ReadHeartbeat();
-    storage_.Set(tag, DayAgo());
-    WriteHeartbeat();
-  }
-
- private:
-  HeartbeatDateStorage storage_;
 };
 
-TEST_F(HeartbeatInfoTest, CombinedHeartbeat) {
-  EXPECT_EQ(HeartbeatInfo::GetHeartbeatCode(kSdkTag),
+TEST_F(HeartbeatInfoTest, GlobalOnlyHeartbeat) {
+  app_->GetHeartbeatController()->LogHeartbeat();
+  EXPECT_EQ(HeartbeatInfo::GetHeartbeatCode(app_->GetHeartbeatController()),
             HeartbeatInfo::Code::Combined);
 }
 
-TEST_F(HeartbeatInfoTest, SdkOnlyHeartbeat) {
-  SetRecentDate(kGlobalTag);
-  EXPECT_EQ(HeartbeatInfo::GetHeartbeatCode(kSdkTag), HeartbeatInfo::Code::Sdk);
-}
-
-TEST_F(HeartbeatInfoTest, GlobalOnlyHeartbeat) {
-  SetRecentDate(kSdkTag);
-  EXPECT_EQ(HeartbeatInfo::GetHeartbeatCode(kSdkTag),
-            HeartbeatInfo::Code::Global);
-}
-
 TEST_F(HeartbeatInfoTest, NoHeartbeat) {
-  SetRecentDate(kSdkTag);
-  SetRecentDate(kGlobalTag);
-  EXPECT_EQ(HeartbeatInfo::GetHeartbeatCode(kSdkTag),
+  EXPECT_EQ(HeartbeatInfo::GetHeartbeatCode(app_->GetHeartbeatController()),
             HeartbeatInfo::Code::None);
 }
 
@@ -112,7 +68,7 @@ TEST_F(HeartbeatInfoTest, ParallelRequests) {
       signal.wait();
 
       for (int i = 0; i != 1000; ++i) {
-        volatile auto code = HeartbeatInfo::GetHeartbeatCode("test-name");
+        volatile auto code = HeartbeatInfo::GetHeartbeatCode(app_->GetHeartbeatController());
         (void)code;
       }
     });

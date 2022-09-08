@@ -35,7 +35,7 @@ class AppInternal {
   FunctionRegistry function_registry;
 
   // HeartbeatController provides methods to log heartbeats and fetch payloads.
-  firebase::heartbeat::HeartbeatController* heartbeat_controller_;
+  SharedPtr<heartbeat::HeartbeatController> heartbeat_controller_;
 
   // Has a method to get the current date. Used by heartbeat_controller.
   firebase::heartbeat::DateProviderImpl date_provider_;

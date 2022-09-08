@@ -16,12 +16,16 @@
 
 #include "app/src/heartbeat_info_desktop.h"
 
+#include "app/memory/shared_ptr.h"
+#include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/include/firebase/app.h"
 
 namespace firebase {
 
-HeartbeatInfo::Code HeartbeatInfo::GetHeartbeatCode(App* app) {
-  std::string payload = app->GetAndResetTodaysStoredDesktopHeartbeats();
+HeartbeatInfo::Code HeartbeatInfo::GetHeartbeatCode(
+    SharedPtr<heartbeat::HeartbeatController> heartbeat_controller) {
+  std::string payload =
+      heartbeat_controller->GetAndResetTodaysStoredHeartbeats();
   if (!payload.empty()) {
     return Code::Combined;
   }

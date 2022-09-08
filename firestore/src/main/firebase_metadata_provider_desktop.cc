@@ -22,11 +22,13 @@
 namespace firebase {
 namespace firestore {
 
-FirebaseMetadataProviderCpp::FirebaseMetadataProviderCpp(App* app)
-    : app_(app), gmp_app_id_(app->options().app_id()) {}
+FirebaseMetadataProviderCpp::FirebaseMetadataProviderCpp(const App& app)
+    : heartbeat_controller_(app->GetHeartbeatController()),
+      gmp_app_id_(app->options().app_id()) {}
 
 void FirebaseMetadataProviderCpp::UpdateMetadata(grpc::ClientContext& context) {
-  HeartbeatInfo::Code heartbeat = HeartbeatInfo::GetHeartbeatCode(app_);
+  HeartbeatInfo::Code heartbeat =
+      HeartbeatInfo::GetHeartbeatCode(heartbeat_controller_);
 
   // TODO(varconst): don't send any headers if the heartbeat is "none". This
   // should only be changed once it's possible to notify the heartbeat that the
