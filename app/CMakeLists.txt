@@ -194,7 +194,6 @@ build_flatbuffers("${desktop_flatbuffers_schemas}"
 
 set(app_desktop_SRCS
     src/app_desktop.cc
-    src/heartbeat_date_storage_desktop.cc
     src/heartbeat_info_desktop.cc
     src/invites/stub/invites_receiver_internal_stub.cc
     src/variant_util.cc
@@ -273,7 +272,6 @@ set(utility_common_HDRS
     src/future_manager.h
     src/intrusive_list.h
     src/log.h
-    src/heartbeat_date_storage_desktop.h
     src/heartbeat_info_desktop.h
     src/optional.h
     src/path.h

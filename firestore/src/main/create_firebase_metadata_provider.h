@@ -32,7 +32,7 @@ class App;
 namespace firestore {
 
 std::unique_ptr<remote::FirebaseMetadataProvider>
-CreateFirebaseMetadataProvider(App& app);
+CreateFirebaseMetadataProvider(App* app);
 
 }  // namespace firestore
 }  // namespace firebase

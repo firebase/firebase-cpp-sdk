@@ -17,6 +17,8 @@
 #ifndef FIREBASE_APP_SRC_HEARTBEAT_INFO_DESKTOP_H_
 #define FIREBASE_APP_SRC_HEARTBEAT_INFO_DESKTOP_H_
 
+#include "app/src/include/firebase/app.h"
+
 namespace firebase {
 
 // Gets the heartbeat code for a given SDK, updating the "last sent" time if
@@ -34,7 +36,7 @@ class HeartbeatInfo {
   // Gets the heartbeat code for the SDK identified by the given `tag`. If the
   // returned code is not `None`, the "last sent" time for the corresponding SDK
   // is updated (and persisted).
-  static Code GetHeartbeatCode(const char* tag);
+  static Code GetHeartbeatCode(App* app);
 };
 
 }  // namespace firebase
