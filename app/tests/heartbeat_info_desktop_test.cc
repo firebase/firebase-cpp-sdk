@@ -68,7 +68,8 @@ TEST_F(HeartbeatInfoTest, ParallelRequests) {
       signal.wait();
 
       for (int i = 0; i != 1000; ++i) {
-        volatile auto code = HeartbeatInfo::GetHeartbeatCode(app_->GetHeartbeatController());
+        volatile auto code =
+            HeartbeatInfo::GetHeartbeatCode(app_->GetHeartbeatController());
         (void)code;
       }
     });

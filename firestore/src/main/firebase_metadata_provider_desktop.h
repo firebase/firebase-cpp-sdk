@@ -19,9 +19,9 @@
 
 #include <string>
 
+#include "Firestore/core/src/remote/firebase_metadata_provider.h"
 #include "app/memory/shared_ptr.h"
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
-#include "Firestore/core/src/remote/firebase_metadata_provider.h"
 #include "app/src/include/firebase/app.h"
 
 #if defined(__ANDROID__)
