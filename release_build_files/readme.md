@@ -125,7 +125,7 @@ Google Mobile Ads          | libfirebase_gma.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.android.gms:play-services-ads:21.1.0
+|                          | com.google.android.gms:play-services-ads:21.2.0
 |                          | (Maven package)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
@@ -248,7 +248,7 @@ Firebase Functions         | firebase_functions.xcframework
 Google Mobile Ads          | firebase_gma.xcframework
 |                          | firebase.xcframework
 |                          | Firebase/Analytics Cocoapod (9.5.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (9.7.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (9.9.0)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
 |                          | FirebaseInstallations Cocoapod (9.5.0)
@@ -316,7 +316,7 @@ Firebase Functions         | libfirebase_functions.a
 Google Mobile Ads          | libfirebase_gma.a
 |                          | libfirebase_app.a
 |                          | Firebase/Analytics Cocoapod (9.5.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (9.7.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (9.9.0)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
 |                          | FirebaseInstallations Cocoapod (9.5.0)
@@ -634,6 +634,13 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+-   Changes
+    - GMA (iOS): Updated iOS dependency to Google Mobile Ads SDK version
+      9.9.0.
+    - GMA (Android): Updated Android dependency to Google Mobile Ads SDK
+      version 21.2.0.
+
 ### 9.5.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 30.4.0.
