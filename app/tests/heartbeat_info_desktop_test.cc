@@ -50,7 +50,7 @@ class HeartbeatInfoTest : public ::testing::Test {
 TEST_F(HeartbeatInfoTest, GlobalOnlyHeartbeat) {
   app_->GetHeartbeatController()->LogHeartbeat();
   EXPECT_EQ(HeartbeatInfo::GetHeartbeatCode(app_->GetHeartbeatController()),
-            HeartbeatInfo::Code::Combined);
+            HeartbeatInfo::Code::Global);
 }
 
 TEST_F(HeartbeatInfoTest, NoHeartbeat) {
