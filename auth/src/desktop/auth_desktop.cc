@@ -96,7 +96,10 @@ void DestroyFunctionRegistryListener(AuthData* auth_data);
 
 void LogHeartbeat(Auth* const auth) {
   if (auth && auth->auth_data_ && auth->auth_data_->app) {
-    auth->auth_data_->app->GetHeartbeatController()->LogHeartbeat();
+    SharedPtr<HeartbeatController> heartbeat_controller = app->GetHeartbeatController();
+    if (heartbeat_controller) {
+      heartbeat_controller->LogHeartbeat();
+    }
   }
 }
 

@@ -183,7 +183,11 @@ void App::SetDefaultConfigPath(const char* path) {
 }
 
 SharedPtr<heartbeat::HeartbeatController> App::GetHeartbeatController() {
-  return internal_->heartbeat_controller_;
+  if (internal_ != nullptr) {
+    return internal_->heartbeat_controller_;
+  } else {
+    return SharedPtr<heartbeat::HeartbeatController>();
+  }
 }
 
 // Desktop support is for developer workflow only, so automatic data collection

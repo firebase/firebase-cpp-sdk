@@ -29,13 +29,15 @@ FirebaseMetadataProviderCpp::FirebaseMetadataProviderCpp(const App& app)
       gmp_app_id_(app.options().app_id()) {}
 
 void FirebaseMetadataProviderCpp::UpdateMetadata(grpc::ClientContext& context) {
-  std::string payload =
-      heartbeat_controller->GetAndResetTodaysStoredHeartbeats();
-  // The payload is either an empty string or a string of user agents to log.
-  if (!payload.empty()) {
-    context.AddMetadata(kXFirebaseClientLogTypeHeader,
-                        kHeartbeatCodeGlobal);
-    context.AddMetadata(kXFirebaseClientHeader, payload);
+  if (heartbeat_controller) {
+    std::string payload =
+        heartbeat_controller->GetAndResetTodaysStoredHeartbeats();
+    // The payload is either an empty string or a string of user agents to log.
+    if (!payload.empty()) {
+      context.AddMetadata(kXFirebaseClientLogTypeHeader,
+                          kHeartbeatCodeGlobal);
+      context.AddMetadata(kXFirebaseClientHeader, payload);
+    }
   }
   if (!gmp_app_id_.empty()) {
     context.AddMetadata(kXFirebaseGmpIdHeader, gmp_app_id_);
