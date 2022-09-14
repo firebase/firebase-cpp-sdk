@@ -22,24 +22,21 @@
 namespace firebase {
 namespace firestore {
 
+const char* kHeartbeatCodeGlobal = "2";
+
 FirebaseMetadataProviderCpp::FirebaseMetadataProviderCpp(const App& app)
-    : heartbeat_controller_(app->GetHeartbeatController()),
-      gmp_app_id_(app->options().app_id()) {}
+    : heartbeat_controller_(Move(app.GetHeartbeatController())),
+      gmp_app_id_(app.options().app_id()) {}
 
 void FirebaseMetadataProviderCpp::UpdateMetadata(grpc::ClientContext& context) {
-  HeartbeatInfo::Code heartbeat =
-      HeartbeatInfo::GetHeartbeatCode(heartbeat_controller_);
-
-  // TODO(varconst): don't send any headers if the heartbeat is "none". This
-  // should only be changed once it's possible to notify the heartbeat that the
-  // previous attempt to send it has failed.
-  if (heartbeat != HeartbeatInfo::Code::None) {
+  std::string payload =
+      heartbeat_controller->GetAndResetTodaysStoredHeartbeats();
+  // The payload is either an empty string or a string of user agents to log.
+  if (!payload.empty()) {
     context.AddMetadata(kXFirebaseClientLogTypeHeader,
-                        std::to_string(static_cast<int>(heartbeat)));
+                        kHeartbeatCodeGlobal);
+    context.AddMetadata(kXFirebaseClientHeader, payload);
   }
-
-  context.AddMetadata(kXFirebaseClientHeader, App::GetUserAgent());
-
   if (!gmp_app_id_.empty()) {
     context.AddMetadata(kXFirebaseGmpIdHeader, gmp_app_id_);
   }

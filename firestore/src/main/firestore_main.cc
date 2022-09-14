@@ -125,7 +125,7 @@ std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
   return std::make_shared<api::Firestore>(
       DatabaseId{opt.project_id()}, app->name(), std::move(credentials),
       std::make_shared<EmptyAppCheckCredentialsProvider>(), CreateWorkerQueue(),
-      CreateFirebaseMetadataProvider(app), this);
+      CreateFirebaseMetadataProvider(*app), this);
 }
 
 CollectionReference FirestoreInternal::Collection(

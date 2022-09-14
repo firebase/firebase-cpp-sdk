@@ -62,7 +62,8 @@ AuthRequest::AuthRequest(::firebase::App& app, const char* schema,
     add_header("X-Client-Version", extended_auth_user_agent.c_str());
   }
   if (deliver_heartbeat) {
-    std::string payload = app.GetAndResetStoredDesktopHeartbeats();
+    std::string payload =
+        app.GetHeartbeatController()->GetAndResetStoredHeartbeats();
     std::string gmp_app_id = app.options().app_id();
     if (!payload.empty()) {
       add_header(app_common::kApiClientHeader, payload.c_str());

@@ -34,6 +34,7 @@ namespace firestore {
 
 class FirebaseMetadataProviderCpp : public remote::FirebaseMetadataProvider {
  public:
+  
   explicit FirebaseMetadataProviderCpp(const App& app);
 
   void UpdateMetadata(grpc::ClientContext& context) override;

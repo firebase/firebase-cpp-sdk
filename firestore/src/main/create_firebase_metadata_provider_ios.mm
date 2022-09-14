@@ -27,9 +27,9 @@ using remote::FirebaseMetadataProvider;
 using remote::FirebaseMetadataProviderApple;
 
 std::unique_ptr<FirebaseMetadataProvider> CreateFirebaseMetadataProvider(
-    App* app) {
+    App& app) {
   return absl::make_unique<FirebaseMetadataProviderApple>(
-      app->GetPlatformApp());
+      app.GetPlatformApp());
 }
 
 }  // namespace firestore
