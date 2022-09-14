@@ -34,8 +34,7 @@ void FirebaseMetadataProviderCpp::UpdateMetadata(grpc::ClientContext& context) {
         heartbeat_controller->GetAndResetTodaysStoredHeartbeats();
     // The payload is either an empty string or a string of user agents to log.
     if (!payload.empty()) {
-      context.AddMetadata(kXFirebaseClientLogTypeHeader,
-                          kHeartbeatCodeGlobal);
+      context.AddMetadata(kXFirebaseClientLogTypeHeader, kHeartbeatCodeGlobal);
       context.AddMetadata(kXFirebaseClientHeader, payload);
     }
   }
