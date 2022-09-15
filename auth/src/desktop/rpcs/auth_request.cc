@@ -18,7 +18,9 @@
 
 #include <string>
 
+#include "app/memory/shared_ptr.h"
 #include "app/src/app_common.h"
+#include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
 
@@ -62,12 +64,15 @@ AuthRequest::AuthRequest(::firebase::App& app, const char* schema,
     add_header("X-Client-Version", extended_auth_user_agent.c_str());
   }
   if (deliver_heartbeat) {
-    std::string payload =
-        app.GetHeartbeatController()->GetAndResetStoredHeartbeats();
-    std::string gmp_app_id = app.options().app_id();
-    if (!payload.empty()) {
-      add_header(app_common::kApiClientHeader, payload.c_str());
-      add_header(app_common::kXFirebaseGmpIdHeader, gmp_app_id.c_str());
+    SharedPtr<heartbeat::HeartbeatController> heartbeat_controller =
+        app.GetHeartbeatController();
+    if (heartbeat_controller) {
+      std::string payload = heartbeat_controller->GetAndResetStoredHeartbeats();
+      std::string gmp_app_id = app.options().app_id();
+      if (!payload.empty()) {
+        add_header(app_common::kApiClientHeader, payload.c_str());
+        add_header(app_common::kXFirebaseGmpIdHeader, gmp_app_id.c_str());
+      }
     }
   }
 }
