@@ -17,6 +17,7 @@
 #ifndef FIREBASE_APP_SRC_INCLUDE_FIREBASE_APP_H_
 #define FIREBASE_APP_SRC_INCLUDE_FIREBASE_APP_H_
 
+#include "app/memory/shared_ptr.h"
 #include "firebase/internal/platform.h"
 
 #if FIREBASE_PLATFORM_ANDROID
@@ -25,13 +26,6 @@
 
 #include <map>
 #include <string>
-
-#ifdef INTERNAL_EXPERIMENTAL
-#if FIREBASE_PLATFORM_DESKTOP
-#include "app/memory/shared_ptr.h"
-#include "app/src/heartbeat/heartbeat_controller_desktop.h"
-#endif  // FIREBASE_PLATFORM_DESKTOP
-#endif  // INTERNAL_EXPERIMENTAL
 
 #if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #ifdef __OBJC__
@@ -51,6 +45,14 @@ void CheckCompilerString(const char* input);
 namespace internal {
 class FunctionRegistry;
 }  // namespace internal
+#endif  // INTERNAL_EXPERIMENTAL
+
+#ifdef INTERNAL_EXPERIMENTAL
+#if FIREBASE_PLATFORM_DESKTOP
+namespace heartbeat {
+  class HeartbeatController;  // forward declaration
+}  // namespace heartbeat
+#endif  // FIREBASE_PLATFORM_DESKTOP
 #endif  // INTERNAL_EXPERIMENTAL
 
 namespace internal {
