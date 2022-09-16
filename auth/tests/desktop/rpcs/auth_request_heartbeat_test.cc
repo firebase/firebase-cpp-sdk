@@ -16,8 +16,8 @@
 
 #include "app/rest/transport_builder.h"
 #include "app/src/app_common.h"
-#include "app/src/heartbeat/heartbeat_storage_desktop.h"
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
+#include "app/src/heartbeat/heartbeat_storage_desktop.h"
 #include "app/src/include/firebase/app.h"
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "auth/src/desktop/rpcs/create_auth_uri_request.h"

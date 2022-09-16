@@ -50,7 +50,7 @@ class FunctionRegistry;
 #ifdef INTERNAL_EXPERIMENTAL
 #if FIREBASE_PLATFORM_DESKTOP
 namespace heartbeat {
-  class HeartbeatController;  // forward declaration
+class HeartbeatController;  // forward declaration
 }  // namespace heartbeat
 #endif  // FIREBASE_PLATFORM_DESKTOP
 #endif  // INTERNAL_EXPERIMENTAL
