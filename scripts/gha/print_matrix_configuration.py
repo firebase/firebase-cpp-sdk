@@ -161,17 +161,20 @@ BUILD_CONFIGS = {
   "tvos": ["os", "xcode_version", "tvos_device"]
 }
 
+# Check currently supported models and versions with the following commands:
+#   gcloud firebase test android models list
+#   gcloud firebase test ios models list
 TEST_DEVICES = {
-  "android_min": {"type": "real", "model":"Nexus10", "version":"19"},
-  "android_target": {"type": "real", "model":"gts4lltevzw", "version":"28"},
-  "android_latest": {"type": "real", "model":"redfin", "version":"30"},
+  "android_min": {"type": "real", "device": "model=Nexus10,version=19"},
+  "android_target": {"type": "real", "device": "model=gts4lltevzw,version=28"},
+  "android_latest": {"type": "real", "device": "model=oriole,version=33"},
   "emulator_min": {"type": "virtual", "image":"system-images;android-18;google_apis;x86"},
-  "emulator_target": {"type": "virtual", "image":"system-images;android-28;google_apis;x86_64"},
-  "emulator_latest": {"type": "virtual", "image":"system-images;android-30;google_apis;x86_64"},
+  "emulator_target": {"type": "virtual", "image":"system-images;android-30;google_apis;x86_64"},
+  "emulator_latest": {"type": "virtual", "image":"system-images;android-32;google_apis;x86_64"},
   "emulator_32bit": {"type": "virtual", "image":"system-images;android-30;google_apis;x86"},
-  "ios_min": {"type": "real", "model":"iphone8", "version":"12.4"},
-  "ios_target": {"type": "real", "model":"iphone8", "version":"13.6"},
-  "ios_latest": {"type": "real", "model":"iphone11pro", "version":"14.7"},
+  "ios_min": {"type": "real", "device": "model=iphonexr,version=13.2"},
+  "ios_target": {"type": "real", "device": "model=iphone8,version=13.6"},
+  "ios_latest": {"type": "real", "device": "model=iphone11pro,version=14.7"},
   "simulator_min": {"type": "virtual", "name":"iPhone 8", "version":"13.7"},
   "simulator_target": {"type": "virtual", "name":"iPhone 8", "version":"14.5"},
   "simulator_latest": {"type": "virtual", "name":"iPhone 11", "version":"15.2"},
@@ -356,8 +359,11 @@ def main():
     print_value(args.override)
     return
 
-  if args.device:
+  if args.get_device_type:
     print(TEST_DEVICES.get(args.parm_key).get("type"))
+    return 
+  if args.get_ftl_device:
+    print(TEST_DEVICES.get(args.parm_key).get("device"))
     return 
 
   if args.expanded:
@@ -383,7 +389,8 @@ def parse_cmdline_args():
   parser.add_argument('-k', '--parm_key', required=True, help='Print the value of specified key from matrix or config maps.')
   parser.add_argument('-a', '--auto_diff', metavar='BRANCH', help='Compare with specified base branch to automatically set matrix options')
   parser.add_argument('-o', '--override', help='Override existing value with provided value')
-  parser.add_argument('-d', '--device', action='store_true', help='Get the device type, used with -k $device')
+  parser.add_argument('-get_device_type', action='store_true', help='Get the device type, used with -k $device')
+  parser.add_argument('-get_ftl_device', action='store_true', help='Get the ftl test device, used with -k $device')
   parser.add_argument('-t', '--device_type', default=['real', 'virtual'], help='Test on which type of mobile devices')
   parser.add_argument('--apis', default=PARAMETERS["integration_tests"]["config"]["apis"], 
                       help='Exclude platform based on apis. Certain platform does not support all apis. e.g. tvOS does not support messaging')
