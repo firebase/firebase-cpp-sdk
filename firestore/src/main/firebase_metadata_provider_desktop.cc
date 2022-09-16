@@ -16,7 +16,6 @@
 
 #include "firestore/src/main/firebase_metadata_provider_desktop.h"
 
-#include "app/src/heartbeat_info_desktop.h"
 #include "app/src/include/firebase/app.h"
 
 namespace firebase {
@@ -29,9 +28,9 @@ FirebaseMetadataProviderCpp::FirebaseMetadataProviderCpp(const App& app)
       gmp_app_id_(app.options().app_id()) {}
 
 void FirebaseMetadataProviderCpp::UpdateMetadata(grpc::ClientContext& context) {
-  if (heartbeat_controller) {
+  if (heartbeat_controller_) {
     std::string payload =
-        heartbeat_controller->GetAndResetTodaysStoredHeartbeats();
+        heartbeat_controller_->GetAndResetTodaysStoredHeartbeats();
     // The payload is either an empty string or a string of user agents to log.
     if (!payload.empty()) {
       context.AddMetadata(kXFirebaseClientLogTypeHeader, kHeartbeatCodeGlobal);

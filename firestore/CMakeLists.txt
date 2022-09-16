@@ -290,6 +290,7 @@ if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
     PUBLIC
       firestore_core
       absl_variant
+      flatbuffers
   )
 endif()
 

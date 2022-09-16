@@ -715,7 +715,7 @@ class App {
   // These methods are only visible to SWIG and internal users of firebase::App.
 
   /// Get a pointer to the HeartbeatController associated with this app.
-  SharedPtr<heartbeat::HeartbeatController> GetHeartbeatController();
+  SharedPtr<heartbeat::HeartbeatController> GetHeartbeatController() const;
 #endif  // FIREBASE_PLATFORM_DESKTOP
 #endif  // INTERNAL_EXPERIMENTAL
 
