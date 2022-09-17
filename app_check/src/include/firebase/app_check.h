@@ -19,7 +19,6 @@
 
 #include "firebase/app.h"
 #include "firebase/future.h"
-#include "firebase/app_check/provider_factory.h"
 
 namespace firebase {
 namespace app_check {
