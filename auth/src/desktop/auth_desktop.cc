@@ -18,11 +18,13 @@
 #include <string>
 #include <utility>
 
+#include "app/memory/shared_ptr.h"
 #include "app/rest/transport_curl.h"
 #include "app/src/app_common.h"
 #include "app/src/app_identifier.h"
 #include "app/src/assert.h"
 #include "app/src/function_registry.h"
+#include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/include/firebase/app.h"
 #include "auth/src/common.h"
 #include "auth/src/data.h"
@@ -96,7 +98,11 @@ void DestroyFunctionRegistryListener(AuthData* auth_data);
 
 void LogHeartbeat(Auth* const auth) {
   if (auth && auth->auth_data_ && auth->auth_data_->app) {
-    auth->auth_data_->app->LogDesktopHeartbeat();
+    SharedPtr<heartbeat::HeartbeatController> heartbeat_controller =
+        auth->auth_data_->app->GetHeartbeatController();
+    if (heartbeat_controller) {
+      heartbeat_controller->LogHeartbeat();
+    }
   }
 }
 

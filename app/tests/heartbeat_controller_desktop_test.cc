@@ -96,9 +96,9 @@ TEST_F(HeartbeatControllerDesktopTest, PerAppHeartbeatController) {
   LoggedHeartbeats empty_heartbeats_struct;
   storage.Write(empty_heartbeats_struct);
 
-  firebase_app->LogDesktopHeartbeat();
+  firebase_app->GetHeartbeatController()->LogHeartbeat();
   std::string encoded_payload =
-      firebase_app->GetAndResetStoredDesktopHeartbeats();
+      firebase_app->GetHeartbeatController()->GetAndResetStoredHeartbeats();
   EXPECT_NE(encoded_payload, "");
   // Deleting the app internally triggers resetting of registered user agents.
   delete firebase_app;
@@ -508,18 +508,10 @@ TEST_F(HeartbeatControllerDesktopTest, GetTodaysHeartbeatThenGetAllHeartbeats) {
   controller_.LogHeartbeat();
   // GetAndResetStoredHeartbeats is done synchronously, so there is no need to
   // wait.
-  std::string payload = controller_.DecodeAndDecompress(
-      controller_.GetAndResetTodaysStoredHeartbeats());
+  std::string payload = controller_.GetAndResetTodaysStoredHeartbeats();
 
-  EXPECT_THAT(payload, EqualsJson(R"json({
-      "heartbeats": [
-        {
-          agent: "agent/1",
-          dates: ["2000-01-24"]
-        }
-      ],
-      "version":"2"
-    })json"));
+  // GetAndResetTodaysStoredHeartbeat just returns the user agents.
+  EXPECT_EQ(payload, "agent/1");
 
   // The heartbeat for the previous day should still be stored (01-23).
   std::string payload2 = controller_.DecodeAndDecompress(
@@ -634,22 +626,12 @@ TEST_F(HeartbeatControllerDesktopTest, GetTodaysHeartbeatPayloadMultipleTimes) {
       .WillRepeatedly(Return(today));
 
   controller_.LogHeartbeat();
-  // GetAndResetStoredHeartbeats is done synchronously, so there is no need to
-  // wait.
-  std::string first_payload = controller_.DecodeAndDecompress(
-      controller_.GetAndResetTodaysStoredHeartbeats());
-  EXPECT_THAT(first_payload, EqualsJson(R"json({
-      "heartbeats": [
-        {
-          agent: "agent/1",
-          dates: ["2000-01-23"]
-        }
-      ],
-      "version":"2"
-    })json"));
+  // GetAndResetTodaysStoredHeartbeats is done synchronously, so there is no
+  // need to wait.
+  std::string first_payload = controller_.GetAndResetTodaysStoredHeartbeats();
+  EXPECT_EQ(first_payload, "agent/1");
 
-  std::string second_payload = controller_.DecodeAndDecompress(
-      controller_.GetAndResetStoredHeartbeats());
+  std::string second_payload = controller_.GetAndResetTodaysStoredHeartbeats();
   EXPECT_EQ(second_payload, "");
 }
 

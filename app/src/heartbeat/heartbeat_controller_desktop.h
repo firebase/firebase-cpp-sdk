@@ -46,8 +46,8 @@ class HeartbeatController {
   std::string GetAndResetStoredHeartbeats();
 
   // Synchronously fetches and clears today's heartbeat from storage and returns
-  // a JSON payload that has been compressed with gzip and base64 encoded.
-  // If there is no new heartbeat, an empty string is returned instead.
+  // a string of user agents. If there is no new heartbeat, an empty string is
+  // returned instead.
   std::string GetAndResetTodaysStoredHeartbeats();
 
  private:

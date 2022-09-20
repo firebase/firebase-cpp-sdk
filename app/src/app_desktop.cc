@@ -21,6 +21,7 @@
 #include <fstream>
 #include <string>
 
+#include "app/memory/shared_ptr.h"
 #include "app/src/app_common.h"
 #include "app/src/function_registry.h"
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
@@ -107,9 +108,6 @@ void App::Initialize() { internal_ = new internal::AppInternal(); }
 
 App::~App() {
   app_common::RemoveApp(this);
-  if (internal_->heartbeat_controller_ != nullptr) {
-    delete internal_->heartbeat_controller_;
-  }
   delete internal_;
   internal_ = nullptr;
 }
@@ -140,7 +138,7 @@ App* App::Create(const AppOptions& options, const char* name) {  // NOLINT
     app->options_ = options_with_defaults;
     app = app_common::AddApp(app, &app->init_results_);
     app->internal_->heartbeat_controller_ =
-        new firebase::heartbeat::HeartbeatController(
+        MakeShared<heartbeat::HeartbeatController>(
             name, *app_common::FindAppLoggerByName(name),
             app->internal_->date_provider_);
   }
@@ -184,16 +182,12 @@ void App::SetDefaultConfigPath(const char* path) {
   }
 }
 
-void App::LogDesktopHeartbeat() {
-  internal_->heartbeat_controller_->LogHeartbeat();
-}
-
-std::string App::GetAndResetStoredDesktopHeartbeats() {
-  return internal_->heartbeat_controller_->GetAndResetStoredHeartbeats();
-}
-
-std::string App::GetAndResetTodaysStoredDesktopHeartbeats() {
-  return internal_->heartbeat_controller_->GetAndResetTodaysStoredHeartbeats();
+SharedPtr<heartbeat::HeartbeatController> App::GetHeartbeatController() const {
+  if (internal_ != nullptr) {
+    return internal_->heartbeat_controller_;
+  } else {
+    return SharedPtr<heartbeat::HeartbeatController>();
+  }
 }
 
 // Desktop support is for developer workflow only, so automatic data collection

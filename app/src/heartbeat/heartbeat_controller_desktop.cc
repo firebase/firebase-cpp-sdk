@@ -178,26 +178,25 @@ std::string HeartbeatController::GetAndResetTodaysStoredHeartbeats() {
           if (read_succeeded && stored_heartbeats.heartbeats.size() > 0) {
             // Find a logged heartbeat from today. Remove it from the stored
             // heartbeats and use it to construct a single-heartbeat payload.
-            LoggedHeartbeats todays_heartbeats;
+            std::string todays_heartbeats_user_agents = "";
             for (auto& entry : stored_heartbeats.heartbeats) {
               std::string user_agent = entry.first;
               std::vector<std::string>& dates = entry.second;
               auto itr = std::find(dates.begin(), dates.end(), current_date);
               if (itr != dates.end()) {
                 dates.erase(itr);
-                todays_heartbeats.heartbeats[user_agent].push_back(
-                    current_date);
+                todays_heartbeats_user_agents = user_agent;
+                break;
               }
             }
             // Only write if a heartbeat was found for today.
-            if (todays_heartbeats.heartbeats.size() != 0) {
+            if (!todays_heartbeats_user_agents.empty()) {
               bool write_succeeded = this->storage_.Write(stored_heartbeats);
               // Only update last-logged date and return a payload if the write
               // succeeds.
               if (write_succeeded) {
                 this->last_flushed_todays_heartbeat_date_ = current_date;
-                *output_str = CompressAndEncode(
-                    GetJsonPayloadForHeartbeats(todays_heartbeats));
+                *output_str = todays_heartbeats_user_agents;
               }
             }
           }

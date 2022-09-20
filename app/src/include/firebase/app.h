@@ -17,6 +17,7 @@
 #ifndef FIREBASE_APP_SRC_INCLUDE_FIREBASE_APP_H_
 #define FIREBASE_APP_SRC_INCLUDE_FIREBASE_APP_H_
 
+#include "app/memory/shared_ptr.h"
 #include "firebase/internal/platform.h"
 
 #if FIREBASE_PLATFORM_ANDROID
@@ -44,6 +45,14 @@ void CheckCompilerString(const char* input);
 namespace internal {
 class FunctionRegistry;
 }  // namespace internal
+#endif  // INTERNAL_EXPERIMENTAL
+
+#ifdef INTERNAL_EXPERIMENTAL
+#if FIREBASE_PLATFORM_DESKTOP
+namespace heartbeat {
+class HeartbeatController;  // forward declaration
+}  // namespace heartbeat
+#endif  // FIREBASE_PLATFORM_DESKTOP
 #endif  // INTERNAL_EXPERIMENTAL
 
 namespace internal {
@@ -705,18 +714,8 @@ class App {
 #if FIREBASE_PLATFORM_DESKTOP
   // These methods are only visible to SWIG and internal users of firebase::App.
 
-  /// On Desktop, log a Heartbeat
-  void LogDesktopHeartbeat();
-
-  /// On Desktop, clear stored heartbeats and return a payload.
-  ///
-  /// @return encoded payload of all logged heartbeats.
-  std::string GetAndResetStoredDesktopHeartbeats();
-
-  /// On Desktop, clear today's stored heartbeat and return a payload.
-  ///
-  /// @return encoded payload of today's logged heartbeat.
-  std::string GetAndResetTodaysStoredDesktopHeartbeats();
+  /// Get a pointer to the HeartbeatController associated with this app.
+  SharedPtr<heartbeat::HeartbeatController> GetHeartbeatController() const;
 #endif  // FIREBASE_PLATFORM_DESKTOP
 #endif  // INTERNAL_EXPERIMENTAL
 
