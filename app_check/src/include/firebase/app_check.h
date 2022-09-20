@@ -15,11 +15,25 @@
 namespace firebase {
 namespace app_check {
 
-#ifndef FIREBASE_APP_CHECK_SRC_INCLUDE_FIREBASE_APP_CHECK_H_
-#define FIREBASE_APP_CHECK_SRC_INCLUDE_FIREBASE_APP_CHECK_H_
-
-#include "app_check/src/app_check_provider.h"
-#include "app_check/src/app_check_provider_factory.h"
+/// Error code returned by AppCheck C++ functions.
+enum AppCheckError {
+  /// The operation was a success, no error occurred.
+  kAppCheckErrorNone = 0,
+  /// A network connection error.
+  kAppCheckErrorServerUnreachable = 1,
+  /// Invalid configuration error. Currently, an exception is thrown but this
+  /// error is reserved for future implementations of invalid configuration
+  /// detection.
+  kAppCheckErrorInvalidConfiguration = 2,
+  /// System keychain access error. Ensure that the app has proper keychain
+  /// access.
+  kAppCheckErrorSystemKeychain = 3,
+  /// Selected AppCheckProvider provider is not supported on the current platform
+  /// or OS version.
+  kAppCheckErrorUnsupportedProvider = 4,
+  /// An unknown error occurred.
+  kAppCheckErrorUnknown = 5,
+};
 
 /// Struct to hold tokens emitted by the Firebase App Check service which are
 /// minted upon a successful application verification. These tokens are the
@@ -57,8 +71,9 @@ class AppCheckProvider {
    * Fetches an AppCheckToken and then calls the provided callback method with
    * the token or with an error code and error message.
    */
-  virtual GetToken(
-      std::function<void(AppCheckToken, int, string)> completion_callback) = 0;
+  virtual void GetToken(
+      std::function<void(AppCheckToken, int, const std::string&)>
+          completion_callback) = 0;
 }
 
 /** Interface for a factory that generates {@link AppCheckProvider}s. */
@@ -72,7 +87,15 @@ class AppCheckProviderFactory {
   virtual AppCheckProvider* CreateProvider(const App& app) = 0;
 }
 
-/// @brief Firebase app check object.
+/// @brief Firebase App Check object. 
+///
+/// App Check helps protect your API resources from abuse by preventing
+/// unauthorized clients from accessing your backend resources.
+///
+/// With App Check, devices running your app will use an AppCheckProvider that
+// attests to one or both of the following:
+/// * Requests originate from your authentic app
+/// * Requests originate from an authentic, untampered device
 class AppCheck {
  public:
   /**
@@ -90,8 +113,7 @@ class AppCheck {
    * <p>Automatic token refreshing will only occur if the global {@code
    * isDataCollectionDefaultEnabled} flag is set to true. To allow automatic
    * token refreshing for Firebase App Check without changing the {@code
-   * isDataCollectionDefaultEnabled} flag for other Firebase SDKs, use {@link
-   * #setAppCheckProviderFactory(AppCheckProviderFactory, bool)} instead or call
+   * isDataCollectionDefaultEnabled} flag for other Firebase SDKs, call
    * {@link #setTokenAutoRefreshEnabled(bool)} after installing the {@code
    * factory}.
    *
@@ -110,6 +132,9 @@ class AppCheck {
    */
   Future<AppCheckToken> GetAppCheckToken(bool force_refresh) = 0;
 
+  // Returns the result of the most recent call to GetAppCheckToken();
+  Future<AppCheckToken> GetAppCheckTokenLastResult() = 0;
+
   /**
    * Registers an {@link AppCheckListener} to changes in the token state. This
    * method should be used ONLY if you need to authorize requests to a
@@ -121,8 +146,6 @@ class AppCheck {
   /** Unregisters an {@link AppCheckListener} to changes in the token state. */
   void RemoveAppCheckListener(AppCheckListener* listener) = 0;
 }
-
-#endif  // FIREBASE_APP_CHECK_SRC_INCLUDE_FIREBASE_APP_CHECK_H_
 
 }  // namespace app_check
 }  // namespace firebase

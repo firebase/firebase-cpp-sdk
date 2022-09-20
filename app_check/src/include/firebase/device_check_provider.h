@@ -14,15 +14,15 @@
 
 /**
  * Implementation of an {@link AppCheckProviderFactory} that builds {@link
- * PlayIntegrityAppCheckProvider}s. This is the default implementation.
+ * DeviceCheckProvider}s. This is the default implementation.
  */
-class PlayIntegrityAppCheckProviderFactory : public AppCheckProviderFactory {
+class DeviceCheckProviderFactory : public AppCheckProviderFactory {
  public:
   /**
    * Gets an instance of this class for installation into a {@link
    * firebase::app_check::AppCheck} instance.
    */
-  static PlayIntegrityAppCheckProviderFactory* GetInstance();
+  static DeviceCheckProviderFactory* GetInstance();
 
   /**
    * Gets the {@link AppCheckProvider} associated with the given {@link

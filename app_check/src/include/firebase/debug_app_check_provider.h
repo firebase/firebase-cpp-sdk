@@ -15,21 +15,26 @@
 namespace firebase {
 namespace app_check {
 
-/**
- * Implementation of an {@link AppCheckProviderFactory} that builds {@link
- * DebugAppCheckProvider}s.
- */
+/// Implementation of an {@link AppCheckProviderFactory} that builds {@link
+/// DebugAppCheckProvider}s.
+///
+/// DebugAppCheckProvider can exchange a debug token registered in the Firebase
+/// console for a Firebase App Check token. The debug provider is designed to
+/// enable testing applications on a simulator or test environment.
+///
+/// NOTE: Do not use the debug provider in applications used by real users.
 class DebugAppCheckProviderFactory : public AppCheckProviderFactory {
  public:
   /**
    * Gets an instance of this class for installation into a {@link
-   * com.google.firebase.appcheck.AppCheck} instance. If no debug secret is
-   * found in {@link android.content.SharedPreferences}, a new debug secret will
-   * be generated and printed to the logcat. The debug secret should then be
-   * added to the allow list in the Firebase Console.
+   * firebase::app_check::AppCheck} instance.
    */
-  static DebugAppCheckProviderFactory GetInstance();
+  static DebugAppCheckProviderFactory* GetInstance();
 
+  /**
+   * Gets the {@link AppCheckProvider} associated with the given {@link
+   * FirebaseApp} instance, or creates one if none already exists.
+   */
   AppCheckProvider* CreateProvider(const App& app) override;
 }
 

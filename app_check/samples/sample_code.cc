@@ -31,7 +31,7 @@ void YourCustomAppCheckProvider::GetToken(
 class YourCustomAppCheckProviderFactory
     : public ::firebase::app_check::AppCheckProviderFactory {
  public:
-  static DebugAppCheckProviderFactory GetInstance();
+  static YourCustomAppCheckProviderFactory GetInstance();
 
   ::firebase::app_check::AppCheckProvider* CreateProvider(
       const ::firebase::App& app) override;
@@ -67,4 +67,4 @@ class MyAppCheckListener : public ::firebase::app_check::AppCheckListener {
 };
 
 MyAppCheckListener app_check_listener;
-app_check->AddAppCheckListener(&state_change_listener);
+app_check->AddAppCheckListener(&app_check_listener);
