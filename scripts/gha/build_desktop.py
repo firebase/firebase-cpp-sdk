@@ -278,7 +278,7 @@ def parse_cmdline_args():
   parser.add_argument('--build_dir', default='build', help='Output build directory')
   parser.add_argument('--build_tests', action='store_true', help='Build unit tests too')
   parser.add_argument('--verbose', action='store_true', help='Enable verbose CMake builds.')
-  parser.add_argument('--disable_vcpkg', action='store_true', help='Disable vcpkg and just use CMake.')
+  parser.add_argument('--disable_vcpkg', default='True', action='store_true', help='Disable vcpkg and just use CMake.')
   parser.add_argument('--vcpkg_step_only', action='store_true', help='Just install cpp packages using vcpkg and exit.')
   parser.add_argument('--config', default='Release', help='Release/Debug config')
   parser.add_argument('--target', nargs='+', help='A list of CMake build targets (eg: firebase_app firebase_auth)')

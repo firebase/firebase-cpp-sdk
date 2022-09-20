@@ -168,18 +168,6 @@ jobs:
           python-version: ${{ matrix.python_version }}
           architecture: 'x64'
 
-      - name: Update homebrew (avoid bintray errors)
-        uses: nick-invision/retry@v2
-        if: startsWith(matrix.os, 'macos')
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: |
-            # Temporarily here until Github runners have updated their version of
-            # homebrew. This prevents errors arising from the shut down of
-            # binutils, used by older version of homebrew for hosting packages.
-            brew update
-
       - name: Install Desktop SDK prerequisites
         uses: nick-invision/retry@v2
         with:
