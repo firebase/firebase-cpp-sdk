@@ -262,6 +262,10 @@ def main(argv):
     _run(["pod", "repo", "update"])
 
   cmake_flags = _get_desktop_compiler_flags(FLAGS.compiler, config.compilers)
+  if _DESKTOP in platforms and not FLAGS.packaged_sdk:
+    cmake_flags.extend((
+        "-DFIREBASE_PYTHON_HOST_EXECUTABLE:FILEPATH=%s" % sys.executable,
+    ))
 
   if (_DESKTOP in platforms and FLAGS.packaged_sdk and
       utils.is_linux_os() and FLAGS.arch == "x86"):
