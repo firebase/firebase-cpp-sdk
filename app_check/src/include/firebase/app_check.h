@@ -122,7 +122,7 @@ class AppCheck {
   static AppCheck* GetInstance(::firebase::App* app);
 
   /**
-   * Installs the given {@link AppCheckProviderFactory}, overwriting any that
+   * Installs the given AppCheckProviderFactory, overwriting any that
    * were previously associated with this {@code AppCheck} instance. Any
    * {@link AppCheckTokenListener}s attached to this {@code AppCheck} instance
    * will be transferred from existing factories to the newly installed one.
