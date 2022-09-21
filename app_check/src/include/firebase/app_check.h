@@ -36,7 +36,8 @@ enum AppCheckError {
   /// System keychain access error. Ensure that the app has proper keychain
   /// access.
   kAppCheckErrorSystemKeychain = 3,
-  /// Selected AppCheckProvider provider is not supported on the current platform
+  /// Selected AppCheckProvider provider is not supported on the current
+  /// platform
   /// or OS version.
   kAppCheckErrorUnsupportedProvider = 4,
   /// An unknown error occurred.

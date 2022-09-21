@@ -22,8 +22,7 @@ namespace internal {
 
 static AppCheckProviderFactory* g_provider_factory = nullptr;
 
-AppCheckInternal::AppCheckInternal(App* app)
-    : app_(app) {
+AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
   future_manager().AllocFutureApi(this, kAppCheckFnCount);
 }
 
@@ -37,12 +36,13 @@ ReferenceCountedFutureImpl* AppCheckInternal::future() {
   return future_manager().GetFutureApi(this);
 }
 
-void AppCheckInternal::SetAppCheckProviderFactory(AppCheckProviderFactory* factory) {
+void AppCheckInternal::SetAppCheckProviderFactory(
+    AppCheckProviderFactory* factory) {
   g_provider_factory = factory;
 }
 
-void AppCheckInternal::SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_enabled) {
-}
+void AppCheckInternal::SetTokenAutoRefreshEnabled(
+    bool is_token_auto_refresh_enabled) {}
 
 Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
   auto handle = future()->SafeAlloc<AppCheckToken>(kAppCheckFnGetAppCheckToken);
@@ -56,11 +56,9 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckTokenLastResult() {
       future()->LastResult(kAppCheckFnGetAppCheckToken));
 }
 
-void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {
-}
+void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {}
 
-void AppCheckInternal::RemoveAppCheckListener(AppCheckListener* listener) {
-}
+void AppCheckInternal::RemoveAppCheckListener(AppCheckListener* listener) {}
 
 }  // namespace internal
 }  // namespace app_check

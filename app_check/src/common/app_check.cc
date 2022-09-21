@@ -15,13 +15,14 @@
 #include "app_check/src/include/firebase/app_check.h"
 
 #include <assert.h>
+
 #include <map>
 #include <string>
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
-#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
 #include "app/src/util.h"
@@ -33,7 +34,8 @@
 #include "app_check/src/ios/app_check_ios.h"
 #else
 #include "app_check/src/desktop/app_check_desktop.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS, FIREBASE_PLATFORM_TVOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
 
 // Register the module initializer.
 FIREBASE_APP_REGISTER_CALLBACKS(app_check,
@@ -92,7 +94,9 @@ void AppCheck::DeleteInternal() {
   }
 }
 
-::firebase::App* AppCheck::app() { return internal_ ? internal_->app() : nullptr; }
+::firebase::App* AppCheck::app() {
+  return internal_ ? internal_->app() : nullptr;
+}
 
 void AppCheck::SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_enabled) {
   if (!internal_) return;
@@ -100,11 +104,13 @@ void AppCheck::SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_enabled) {
 }
 
 Future<AppCheckToken> AppCheck::GetAppCheckToken(bool force_refresh) {
-  return internal_ ? internal_->GetAppCheckToken(force_refresh) : Future<AppCheckToken>();
+  return internal_ ? internal_->GetAppCheckToken(force_refresh)
+                   : Future<AppCheckToken>();
 }
 
 Future<AppCheckToken> AppCheck::GetAppCheckTokenLastResult() {
-  return internal_ ? internal_->GetAppCheckTokenLastResult() : Future<AppCheckToken>();
+  return internal_ ? internal_->GetAppCheckTokenLastResult()
+                   : Future<AppCheckToken>();
 }
 
 void AppCheck::AddAppCheckListener(AppCheckListener* listener) {
@@ -116,8 +122,6 @@ void AppCheck::RemoveAppCheckListener(AppCheckListener* listener) {
   if (!internal_) return;
   internal_->RemoveAppCheckListener(listener);
 }
-
-
 
 }  // namespace app_check
 }  // namespace firebase

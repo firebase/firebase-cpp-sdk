@@ -31,7 +31,7 @@ namespace app_check {
 class DebugAppCheckProviderFactory : public AppCheckProviderFactory {
  public:
   /**
-   * Gets an instance of this class for installation into a 
+   * Gets an instance of this class for installation into a
    * {@link firebase::app_check::AppCheck} instance.
    */
   static DebugAppCheckProviderFactory* GetInstance();
