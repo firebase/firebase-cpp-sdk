@@ -41,24 +41,24 @@ using ::firebase::heartbeat::LoggedHeartbeats;
 
 class AuthRequestHeartbeatTest : public ::testing::Test {
  public:
-  AuthRequestHeartbeatTest() : app_(testing::CreateApp()) {}
+  AuthRequestHeartbeatTest() {}
 
  protected:
   std::unique_ptr<App> app_;
 
   void SetUp() override {
     Logger logger(nullptr);
-    HeartbeatStorageDesktop storage(app_->name(), logger);
+    HeartbeatStorageDesktop storage(firebase::kDefaultAppName, logger);
     // For the sake of testing, clear any pre-existing stored heartbeats.
     LoggedHeartbeats empty_heartbeats_struct;
     storage.Write(empty_heartbeats_struct);
+    // A single heartbeat will be logged when app is created.
+    app_ = std::make_unique<App>(*testing::CreateApp());
   }
 };
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestCreateAuthUriRequestHasHeartbeat) {
-  // Log a single heartbeat for today's date.
-  app_->GetHeartbeatController()->LogHeartbeat();
   CreateAuthUriRequest request(*app_, "APIKEY", "email");
 
   // The request headers should include both hearbeat payload and GMP App ID.
@@ -70,8 +70,6 @@ TEST_F(AuthRequestHeartbeatTest, TestCreateAuthUriRequestHasHeartbeat) {
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestDeleteAccountRequestHasHeartbeat) {
-  // Log a single heartbeat for today's date.
-  app_->GetHeartbeatController()->LogHeartbeat();
   DeleteAccountRequest request(*app_, "APIKEY");
 
   // The request headers should include both hearbeat payload and GMP App ID.
@@ -83,8 +81,6 @@ TEST_F(AuthRequestHeartbeatTest, TestDeleteAccountRequestHasHeartbeat) {
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestGetAccountInfoRequestHasHeartbeat) {
-  // Log a single heartbeat for today's date.
-  app_->GetHeartbeatController()->LogHeartbeat();
   GetAccountInfoRequest request(*app_, "APIKEY");
 
   // The request headers should include both hearbeat payload and GMP App ID.
@@ -96,8 +92,6 @@ TEST_F(AuthRequestHeartbeatTest, TestGetAccountInfoRequestHasHeartbeat) {
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestOobSendEmailRequestHasHeartbeat) {
-  // Log a single heartbeat for today's date.
-  app_->GetHeartbeatController()->LogHeartbeat();
   auto request =
       GetOobConfirmationCodeRequest::CreateSendEmailVerificationRequest(
           *app_, "APIKEY");
@@ -111,8 +105,6 @@ TEST_F(AuthRequestHeartbeatTest, TestOobSendEmailRequestHasHeartbeat) {
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestOobSendPasswordResetRequestHasHeartbeat) {
-  // Log a single heartbeat for today's date.
-  app_->GetHeartbeatController()->LogHeartbeat();
   auto request =
       GetOobConfirmationCodeRequest::CreateSendPasswordResetEmailRequest(
           *app_, "APIKEY", "email");
@@ -126,8 +118,6 @@ TEST_F(AuthRequestHeartbeatTest, TestOobSendPasswordResetRequestHasHeartbeat) {
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestResetPasswordRequestHasHeartbeat) {
-  // Log a single heartbeat for today's date.
-  app_->GetHeartbeatController()->LogHeartbeat();
   ResetPasswordRequest request(*app_, "APIKEY", "oob", "password");
 
   // The request headers should include both hearbeat payload and GMP App ID.
@@ -139,8 +129,6 @@ TEST_F(AuthRequestHeartbeatTest, TestResetPasswordRequestHasHeartbeat) {
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestSecureTokenRequestDoesNotHaveHeartbeat) {
-  // Log a single heartbeat for today's date.
-  app_->GetHeartbeatController()->LogHeartbeat();
   SecureTokenRequest request(*app_, "APIKEY", "email");
 
   // SecureTokenRequest should not have heartbeat payload since it is sent
@@ -152,8 +140,6 @@ TEST_F(AuthRequestHeartbeatTest, TestSecureTokenRequestDoesNotHaveHeartbeat) {
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestSetInfoUpdatePasswordRequestHasHeartbeat) {
-  // Log a single heartbeat for today's date.
-  app_->GetHeartbeatController()->LogHeartbeat();
   auto request = SetAccountInfoRequest::CreateUpdatePasswordRequest(
       *app_, "APIKEY", "fakepassword");
 
@@ -166,8 +152,6 @@ TEST_F(AuthRequestHeartbeatTest, TestSetInfoUpdatePasswordRequestHasHeartbeat) {
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestSetInfoUpdateEmailRequestHasHeartbeat) {
-  // Log a single heartbeat for today's date.
-  app_->GetHeartbeatController()->LogHeartbeat();
   auto request =
       SetAccountInfoRequest::CreateUpdateEmailRequest(*app_, "APIKEY", "email");
 
@@ -180,8 +164,6 @@ TEST_F(AuthRequestHeartbeatTest, TestSetInfoUpdateEmailRequestHasHeartbeat) {
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestSetInfoUpdateProfileRequestHasHeartbeat) {
-  // Log a single heartbeat for today's date.
-  app_->GetHeartbeatController()->LogHeartbeat();
   auto request = SetAccountInfoRequest::CreateUpdateProfileRequest(
       *app_, "APIKEY", "New Name", "new_url");
 
@@ -194,8 +176,6 @@ TEST_F(AuthRequestHeartbeatTest, TestSetInfoUpdateProfileRequestHasHeartbeat) {
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestSetInfoUnlinkProviderRequestHasHeartbeat) {
-  // Log a single heartbeat for today's date.
-  app_->GetHeartbeatController()->LogHeartbeat();
   auto request = SetAccountInfoRequest::CreateUnlinkProviderRequest(
       *app_, "APIKEY", "provider");
 
@@ -208,8 +188,6 @@ TEST_F(AuthRequestHeartbeatTest, TestSetInfoUnlinkProviderRequestHasHeartbeat) {
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestSignUpNewUserRequestHasHeartbeat) {
-  // Log a single heartbeat for today's date.
-  app_->GetHeartbeatController()->LogHeartbeat();
   SignUpNewUserRequest request(*app_, "APIKEY");
 
   // The request headers should include both hearbeat payload and GMP App ID.
@@ -222,8 +200,6 @@ TEST_F(AuthRequestHeartbeatTest, TestSignUpNewUserRequestHasHeartbeat) {
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest,
        TestVerifyAssertionFromIdTokenRequestHasHeartbeat) {
-  // Log a single heartbeat for today's date.
-  app_->GetHeartbeatController()->LogHeartbeat();
   auto request = VerifyAssertionRequest::FromIdToken(*app_, "APIKEY",
                                                      "provider", "id_token");
 
@@ -237,8 +213,6 @@ TEST_F(AuthRequestHeartbeatTest,
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest,
        TestVerifyAssertionFromAccessTokenRequestHasHeartbeat) {
-  // Log a single heartbeat for today's date.
-  app_->GetHeartbeatController()->LogHeartbeat();
   auto request = VerifyAssertionRequest::FromAccessToken(
       *app_, "APIKEY", "provider", "access_token");
 
@@ -252,8 +226,6 @@ TEST_F(AuthRequestHeartbeatTest,
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest,
        TestVerifyAssertionFromAccessTokenAndOauthRequestHasHeartbeat) {
-  // Log a single heartbeat for today's date.
-  app_->GetHeartbeatController()->LogHeartbeat();
   auto request = VerifyAssertionRequest::FromAccessTokenAndOAuthSecret(
       *app_, "APIKEY", "provider", "access_token", "oauth_secret");
 
@@ -266,8 +238,6 @@ TEST_F(AuthRequestHeartbeatTest,
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestVerifyCustomTokenRequestHasHeartbeat) {
-  // Log a single heartbeat for today's date.
-  app_->GetHeartbeatController()->LogHeartbeat();
   VerifyCustomTokenRequest request(*app_, "APIKEY", "email");
 
   // The request headers should include both hearbeat payload and GMP App ID.
@@ -279,8 +249,6 @@ TEST_F(AuthRequestHeartbeatTest, TestVerifyCustomTokenRequestHasHeartbeat) {
 
 #if FIREBASE_PLATFORM_DESKTOP
 TEST_F(AuthRequestHeartbeatTest, TestVerifyPasswordRequestHasHeartbeat) {
-  // Log a single heartbeat for today's date.
-  app_->GetHeartbeatController()->LogHeartbeat();
   VerifyPasswordRequest request(*app_, "APIKEY", "abc@email", "pwd");
 
   // The request headers should include both hearbeat payload and GMP App ID.

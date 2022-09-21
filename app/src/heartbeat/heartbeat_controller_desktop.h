@@ -52,6 +52,7 @@ class HeartbeatController {
 
  private:
 #ifdef FIREBASE_TESTING
+  FRIEND_TEST(HeartbeatControllerDesktopTest, PerAppHeartbeatController);
   FRIEND_TEST(HeartbeatControllerDesktopTest, EncodeAndDecode);
   FRIEND_TEST(HeartbeatControllerDesktopTest, CreatePayloadString);
   FRIEND_TEST(HeartbeatControllerDesktopTest, GetExpectedHeartbeatPayload);
