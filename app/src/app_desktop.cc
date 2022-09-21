@@ -141,6 +141,7 @@ App* App::Create(const AppOptions& options, const char* name) {  // NOLINT
         MakeShared<heartbeat::HeartbeatController>(
             name, *app_common::FindAppLoggerByName(name),
             app->internal_->date_provider_);
+    app->internal_->heartbeat_controller_->LogHeartbeat();
   }
   return app;
 }
