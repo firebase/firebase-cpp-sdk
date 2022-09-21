@@ -56,7 +56,6 @@ fi
 
 if [[ "${OS}" == "Mac" ]]; then
     sudo xcode-select -s /Applications/Xcode_${xcodeVersion}.app/Contents/Developer
-    brew update
 fi
 
 if [[ "${PLATFORM}" == "Desktop" ]]; then
