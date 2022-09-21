@@ -41,11 +41,11 @@ void AppCheckInternal::SetAppCheckProviderFactory(AppCheckProviderFactory* facto
   g_provider_factory = factory;
 }
 
-void AppCheckInternal::SetTokenAutoRefreshEnabled(bool isTokenAutoRefreshEnabled) {
+void AppCheckInternal::SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_enabled) {
   
 }
 
-Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool forceRefresh) {
+Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
   auto handle = future()->SafeAlloc<AppCheckToken>(kAppCheckFnGetAppCheckToken);
   // TODO: Get the AppCheckToken correctly
   AppCheckToken token;

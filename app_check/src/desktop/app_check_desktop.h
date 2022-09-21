@@ -34,9 +34,9 @@ class AppCheckInternal {
 
   static void SetAppCheckProviderFactory(AppCheckProviderFactory* factory);
 
-  void SetTokenAutoRefreshEnabled(bool isTokenAutoRefreshEnabled);
+  void SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_enabled);
 
-  Future<AppCheckToken> GetAppCheckToken(bool forceRefresh);
+  Future<AppCheckToken> GetAppCheckToken(bool force_refresh);
 
   Future<AppCheckToken> GetAppCheckTokenLastResult();
 

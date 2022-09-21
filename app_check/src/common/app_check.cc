@@ -94,13 +94,13 @@ void AppCheck::DeleteInternal() {
 
 ::firebase::App* AppCheck::app() { return internal_ ? internal_->app() : nullptr; }
 
-void AppCheck::SetTokenAutoRefreshEnabled(bool isTokenAutoRefreshEnabled) {
+void AppCheck::SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_enabled) {
   if (!internal_) return;
-  internal_->SetTokenAutoRefreshEnabled(isTokenAutoRefreshEnabled);
+  internal_->SetTokenAutoRefreshEnabled(is_token_auto_refresh_enabled);
 }
 
-Future<AppCheckToken> AppCheck::GetAppCheckToken(bool forceRefresh) {
-  return internal_ ? internal_->GetAppCheckToken(forceRefresh) : Future<AppCheckToken>();
+Future<AppCheckToken> AppCheck::GetAppCheckToken(bool force_refresh) {
+  return internal_ ? internal_->GetAppCheckToken(force_refresh) : Future<AppCheckToken>();
 }
 
 Future<AppCheckToken> AppCheck::GetAppCheckTokenLastResult() {
