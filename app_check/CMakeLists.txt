@@ -113,7 +113,7 @@ elseif(IOS)
   )
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
-    set_target_properties(firebase_functions PROPERTIES
+    set_target_properties(firebase_app_check PROPERTIES
       FRAMEWORK TRUE
     )
   endif()
