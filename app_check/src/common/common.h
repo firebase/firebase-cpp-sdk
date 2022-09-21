@@ -24,8 +24,8 @@ enum AppCheckFn {
   kAppCheckFnCount,
 };
 
-}
-}
-}
+}  // namespace internal
+}  // namespace app_check
+}  // namespace firebase
 
-#endif  // FIREBASE_APP_CHECK_SRC_DESKTOP_APP_CHECK_DESKTOP_H_
+#endif  // FIREBASE_APP_CHECK_SRC_COMMON_COMMON_H_

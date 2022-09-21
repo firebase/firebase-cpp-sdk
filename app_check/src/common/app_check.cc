@@ -52,7 +52,7 @@ static std::map<::firebase::App*, AppCheck*>* g_app_check_map = nullptr;
 
 AppCheck* AppCheck::GetInstance(::firebase::App* app) {
   MutexLock lock(g_app_check_lock);
-  if(!g_app_check_map) {
+  if (!g_app_check_map) {
     g_app_check_map = new std::map<::firebase::App*, AppCheck*>();
   }
 

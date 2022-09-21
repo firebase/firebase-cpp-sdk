@@ -89,8 +89,9 @@ class AppCheckProviderFactory {
  public:
   virtual ~AppCheckProviderFactory();
   /**
-   * Gets the {@link AppCheckProvider} associated with the given {@link
-   * FirebaseApp} instance, or creates one if none already exists.
+   * Gets the {@link AppCheckProvider} associated with the given
+   * {@link App} instance, or creates one if none
+   * already exists.
    */
   virtual AppCheckProvider* CreateProvider(App* app) = 0;
 };
@@ -99,7 +100,7 @@ namespace internal {
 class AppCheckInternal;
 }  // namespace internal
 
-/// @brief Firebase App Check object. 
+/// @brief Firebase App Check object.
 ///
 /// App Check helps protect your API resources from abuse by preventing
 /// unauthorized clients from accessing your backend resources.
@@ -115,22 +116,22 @@ class AppCheck {
   ~AppCheck();
 
   /**
-   * Gets the instance of {@code AppCheck} associated with the given {@link
-   * FirebaseApp} instance.
+   * Gets the instance of {@code AppCheck} associated with the given
+   * {@link App} instance.
    */
   static AppCheck* GetInstance(::firebase::App* app);
 
   /**
    * Installs the given {@link AppCheckProviderFactory}, overwriting any that
-   * were previously associated with this {@code AppCheck} instance. Any {@link
-   * AppCheckTokenListener}s attached to this {@code AppCheck} instance will be
-   * transferred from existing factories to the newly installed one.
+   * were previously associated with this {@code AppCheck} instance. Any
+   * {@link AppCheckTokenListener}s attached to this {@code AppCheck} instance
+   * will be transferred from existing factories to the newly installed one.
    *
    * <p>Automatic token refreshing will only occur if the global {@code
    * isDataCollectionDefaultEnabled} flag is set to true. To allow automatic
    * token refreshing for Firebase App Check without changing the {@code
    * isDataCollectionDefaultEnabled} flag for other Firebase SDKs, call
-   * {@link #setTokenAutoRefreshEnabled(bool)} after installing the {@code
+   * setTokenAutoRefreshEnabled(bool) after installing the {@code
    * factory}.
    *
    * This method should be called before initializing the Firebase App.
@@ -152,9 +153,9 @@ class AppCheck {
    */
   Future<AppCheckToken> GetAppCheckToken(bool force_refresh);
 
-  // Returns the result of the most recent call to GetAppCheckToken();
+  /// Returns the result of the most recent call to GetAppCheckToken();
   Future<AppCheckToken> GetAppCheckTokenLastResult();
- 
+
   /**
    * Registers an {@link AppCheckListener} to changes in the token state. This
    * method should be used ONLY if you need to authorize requests to a
@@ -167,13 +168,13 @@ class AppCheck {
   void RemoveAppCheckListener(AppCheckListener* listener);
 
  private:
-  AppCheck(::firebase::App* app);
+  explicit AppCheck(::firebase::App* app);
 
   void DeleteInternal();
 
   internal::AppCheckInternal* internal_;
 };
- 
+
 }  // namespace app_check
 }  // namespace firebase
 

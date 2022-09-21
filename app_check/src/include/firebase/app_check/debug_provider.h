@@ -38,7 +38,7 @@ class DebugAppCheckProviderFactory : public AppCheckProviderFactory {
 
   /**
    * Gets the {@link AppCheckProvider} associated with the given
-   * {@link firebase::FirebaseApp} instance, or creates one if none
+   * {@link App} instance, or creates one if none
    * already exists.
    */
   AppCheckProvider* CreateProvider(App* app) override;

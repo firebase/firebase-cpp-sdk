@@ -42,12 +42,10 @@ void AppCheckInternal::SetAppCheckProviderFactory(AppCheckProviderFactory* facto
 }
 
 void AppCheckInternal::SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_enabled) {
-  
 }
 
 Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
   auto handle = future()->SafeAlloc<AppCheckToken>(kAppCheckFnGetAppCheckToken);
-  // TODO: Get the AppCheckToken correctly
   AppCheckToken token;
   future()->CompleteWithResult(handle, 0, token);
   return MakeFuture(future(), handle);
@@ -64,6 +62,6 @@ void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {
 void AppCheckInternal::RemoveAppCheckListener(AppCheckListener* listener) {
 }
 
-}
-}
-}
+}  // namespace internal
+}  // namespace app_check
+}  // namespace firebase

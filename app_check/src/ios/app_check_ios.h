@@ -26,7 +26,7 @@ namespace internal {
 
 class AppCheckInternal {
  public:
-  AppCheckInternal(::firebase::App* app);
+  explicit AppCheckInternal(::firebase::App* app);
 
   ~AppCheckInternal();
 
@@ -54,8 +54,8 @@ class AppCheckInternal {
   FutureManager future_manager_;
 };
 
-}
-}
-}
+}  // namespace internal
+}  // namespace app_check
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CHECK_SRC_IOS_APP_CHECK_IOS_H_
