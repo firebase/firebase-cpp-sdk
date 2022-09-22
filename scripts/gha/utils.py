@@ -238,7 +238,7 @@ def install_x86_support_libraries(gha_build=False):
       # the installed 64-bit version of the library to get around this issue.
       # This will presumably be fixed in a future Ubuntu update. (If you remove
       # it, remove the workaround further down this function as well.)
-      packages = ['--allow-downgrades'] + packages + ['libpcre2-8-0=10.34-7']
+      #packages = ['--allow-downgrades'] + packages + ['libpcre2-8-0=10.34-7']
 
     # First check if these packages exist on the machine already
     with open(os.devnull, "w") as devnull:
@@ -259,5 +259,5 @@ def install_x86_support_libraries(gha_build=False):
       # packages aren't modified. (Once the workaround above is removed, this can
       # be removed as well.)
       # Note: "-f" = "fix" - let apt do what it needs to do to fix dependencies.
-      run_command(['apt', 'install', '-f', '-V', '-y', 'libsecret-1-dev'],
-                  as_root=True, check=True)
+      #run_command(['apt', 'install', '-f', '-V', '-y', 'libsecret-1-dev'],
+      #            as_root=True, check=True)
