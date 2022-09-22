@@ -249,6 +249,7 @@ def install_x86_support_libraries(gha_build=False):
       # Install them.
       run_command(['dpkg', '--add-architecture', 'i386'], as_root=True, check=True)
       run_command(['apt', 'update'], as_root=True, check=True)
+      run_command(['apt', 'install', 'aptitude'], as_root=True, check=True)
       run_command(['aptitude', 'install', '-V', '-y'] + packages, as_root=True, check=True)
 
     if gha_build:
