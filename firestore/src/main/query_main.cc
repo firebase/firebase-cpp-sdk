@@ -102,7 +102,8 @@ Query QueryInternal::Where(const FieldPath& field_path,
       user_data_converter_.ParseQueryValue(value);
   auto describer = [&value] { return Describe(value.type()); };
 
-  api::Query decorated = query_.Filter(path, op, std::move(parsed), describer);
+  api::Query decorated = query_.AddNewFilter(
+      query_.ParseFieldFilter(path, op, std::move(parsed), describer));
   return MakePublic(std::move(decorated));
 }
 
@@ -115,7 +116,8 @@ Query QueryInternal::Where(const FieldPath& field_path,
       user_data_converter_.ParseQueryValue(array_value, true);
   auto describer = [&array_value] { return Describe(array_value.type()); };
 
-  api::Query decorated = query_.Filter(path, op, std::move(parsed), describer);
+  api::Query decorated = query_.AddNewFilter(
+      query_.ParseFieldFilter(path, op, std::move(parsed), describer));
   return MakePublic(std::move(decorated));
 }
 

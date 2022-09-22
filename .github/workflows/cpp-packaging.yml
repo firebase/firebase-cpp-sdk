@@ -401,18 +401,6 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
 
-      - name: Update homebrew (avoid bintray errors)
-        uses: nick-invision/retry@v2
-        if: runner.os == 'macOS'
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: |
-            # Temporarily here until Github runners have updated their version of
-            # homebrew. This prevents errors arising from the shut down of
-            # binutils, used by older version of homebrew for hosting packages.
-            brew update
-
       - name: Install Desktop SDK prerequisites
         uses: nick-invision/retry@v2
         with:
@@ -531,18 +519,6 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.7
-
-      - name: Update homebrew (avoid bintray errors)
-        uses: nick-invision/retry@v2
-        if: runner.os == 'macOS'
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: |
-            # Temporarily here until Github runners have updated their version of
-            # homebrew. This prevents errors arising from the shut down of
-            # binutils, used by older version of homebrew for hosting packages.
-            brew update
 
       - name: Install prerequisites
         run: |
