@@ -232,7 +232,7 @@ def install_x86_support_libraries(gha_build=False):
     packages = ['gcc-multilib', 'g++-multilib', 'libglib2.0-dev:i386',
                 'libsecret-1-dev:i386', 'libpthread-stubs0-dev:i386',
                 'libssl-dev:i386']
-    if gha_build:
+    #if gha_build:
       # Workaround for GitHub runners, which have an incompatibility between the
       # 64-bit and 32-bit versions of the Ubuntu package libpcre2-8-0. Downgrade
       # the installed 64-bit version of the library to get around this issue.
@@ -252,7 +252,7 @@ def install_x86_support_libraries(gha_build=False):
       run_command(['apt', 'install', 'aptitude'], as_root=True, check=True)
       run_command(['aptitude', 'install', '-V', '-y'] + packages, as_root=True, check=True)
 
-    if gha_build:
+    #if gha_build:
       # One more workaround: downgrading libpcre2-8-0 above may have uninstalled
       # libsecret, which is required for the Linux build. Force it to be
       # reinstalled, but do it as a separate command to ensure that held
