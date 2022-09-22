@@ -634,8 +634,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming
+### 9.6.0
 -   Changes
+    - General (Android): Update to Firebase Android BoM version 30.5.0.
+    - General (iOS): Update to Firebase Cocoapods version 9.6.0.
     - GMA (iOS): Updated iOS dependency to Google Mobile Ads SDK version
       9.9.0.
     - GMA (Android): Updated Android dependency to Google Mobile Ads SDK
