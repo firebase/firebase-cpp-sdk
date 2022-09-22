@@ -522,6 +522,14 @@ class PhoneAuthProvider {
     PhoneListenerData* data_;
   };
 
+  /// Maximum value of `auto_verify_time_out_ms` in @ref VerifyPhoneNumber.
+  /// Larger values will be clamped.
+  ///
+  /// @deprecated This value is no longer used to clamp
+  /// `auto_verify_time_out_ms` in @ref VerifyPhoneNumber. The range is
+  /// determined by the underlying SDK, ex. <a href="/docs/reference/android/com/google/firebase/auth/PhoneAuthOptions.Builder"><code>PhoneAuthOptions.Build</code> in Android SDK</a>
+  static const uint32_t kMaxTimeoutMs;
+
   /// Start the phone number authentication operation.
   ///
   /// @param[in] phone_number The phone number identifier supplied by the user.
