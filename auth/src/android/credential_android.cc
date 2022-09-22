@@ -815,7 +815,7 @@ void PhoneAuthProvider::VerifyPhoneNumber(
   jobject j_milliseconds = env->GetStaticObjectField(
       timeunit::GetClass(), timeunit::GetFieldId(timeunit::kMilliseconds));
   jlong j_time_out =
-      static_cast<jlong>(std::min(auto_verify_time_out_ms, kMaxTimeoutMs));
+      static_cast<jlong>(auto_verify_time_out_ms);
   jobject j_token = force_resending_token == nullptr
                         ? nullptr
                         : force_resending_token->data_->token_global_ref();

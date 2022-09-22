@@ -634,6 +634,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+-   Breaking Changes
+    - Auth (Android/iOS): Remove `PhoneAuthProvider::kMaxTimeoutMs`. The actual
+      range will be governed by the underlying SDK, ex. [Android](https://firebase.google.com/docs/reference/android/com/google/firebase/auth/PhoneAuthOptions.Builder#public-phoneauthoptions.builder-settimeout-long-timeout,-timeunit-unit).
+
 ### 9.6.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 30.5.0.

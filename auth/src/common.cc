@@ -21,9 +21,6 @@
 namespace firebase {
 namespace auth {
 
-// static member variables
-const uint32_t PhoneAuthProvider::kMaxTimeoutMs = 3000;
-
 namespace {
 static const char kCredentialFutureIdentifier[17] = "Auth-Credentials";
 }

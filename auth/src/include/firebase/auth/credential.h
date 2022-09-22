@@ -522,10 +522,6 @@ class PhoneAuthProvider {
     PhoneListenerData* data_;
   };
 
-  /// Maximum value of `auto_verify_time_out_ms` in @ref VerifyPhoneNumber.
-  /// Larger values will be clamped.
-  static const uint32_t kMaxTimeoutMs;
-
   /// Start the phone number authentication operation.
   ///
   /// @param[in] phone_number The phone number identifier supplied by the user.
@@ -535,7 +531,6 @@ class PhoneAuthProvider {
   ///    miliseconds. Currently SMS auto retrieval is only supported on Android.
   ///    If 0, do not do SMS auto retrieval.
   ///    If positive, try to auto-retrieve the SMS verification code.
-  ///    If larger than kMaxTimeoutMs, clamped to kMaxTimeoutMs.
   ///    When the time out is exceeded, listener->OnCodeAutoRetrievalTimeOut()
   ///    is called.
   /// @param[in] force_resending_token If NULL, assume this is a new phone
