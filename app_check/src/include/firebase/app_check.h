@@ -64,11 +64,11 @@ class AppCheckListener {
   virtual void OnAppCheckTokenChanged(const AppCheckToken& token) = 0;
 };
 
-/// Interface for a provider that generates {@link AppCheckToken}s. This provider
-/// can be called at any time by any Firebase library that depends (optionally or
-/// otherwise) on {@link AppCheckToken}s. This provider is responsible for
-/// determining if it can create a new token at the time of the call and
-/// returning that new token if it can.
+/// Interface for a provider that generates {@link AppCheckToken}s. This
+/// provider can be called at any time by any Firebase library that depends
+/// (optionally or otherwise) on {@link AppCheckToken}s. This provider is
+/// responsible for determining if it can create a new token at the time of the
+/// call and returning that new token if it can.
 class AppCheckProvider {
  public:
   virtual ~AppCheckProvider();
@@ -117,12 +117,11 @@ class AppCheck {
   /// {@code AppCheckTokenListener}s attached to this {@code AppCheck} instance
   /// will be transferred from existing factories to the newly installed one.
   ///
-  /// <p>Automatic token refreshing will only occur if the global {@code
-  /// isDataCollectionDefaultEnabled} flag is set to true. To allow automatic
-  /// token refreshing for Firebase App Check without changing the {@code
-  /// isDataCollectionDefaultEnabled} flag for other Firebase SDKs, call
-  /// setTokenAutoRefreshEnabled(bool) after installing the {@code
-  /// factory}.
+  /// <p>Automatic token refreshing will only occur if the global
+  /// {@code isDataCollectionDefaultEnabled} flag is set to true. To allow
+  /// automatic token refreshing for Firebase App Check without changing the
+  /// {@code isDataCollectionDefaultEnabled} flag for other Firebase SDKs, call
+  /// setTokenAutoRefreshEnabled(bool) after installing the {@code factory}.
   ///
   /// This method should be called before initializing the Firebase App.
   static void SetAppCheckProviderFactory(AppCheckProviderFactory* factory);
@@ -135,9 +134,9 @@ class AppCheck {
   /// Sets the {@code isTokenAutoRefreshEnabled} flag.
   void SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_enabled);
 
-  /// Requests a Firebase App Check token. This method should be used ONLY if you
-  /// need to authorize requests to a non-Firebase backend. Requests to Firebase
-  /// backends are authorized automatically if configured.
+  /// Requests a Firebase App Check token. This method should be used ONLY if
+  /// you need to authorize requests to a non-Firebase backend. Requests to
+  /// Firebase backends are authorized automatically if configured.
   Future<AppCheckToken> GetAppCheckToken(bool force_refresh);
 
   /// Returns the result of the most recent call to GetAppCheckToken();
