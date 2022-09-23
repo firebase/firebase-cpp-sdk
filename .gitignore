@@ -8,6 +8,7 @@ __pycache__/
 ### Gradle ###
 .gradle
 **/build/
+**/.externalNativeBuild/
 
 # Unencrypted secret files
 google-services.json
