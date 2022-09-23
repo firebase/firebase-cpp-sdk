@@ -52,8 +52,8 @@ class AuthRequestHeartbeatTest : public ::testing::Test {
     // For the sake of testing, clear any pre-existing stored heartbeats.
     LoggedHeartbeats empty_heartbeats_struct;
     storage.Write(empty_heartbeats_struct);
-    // A single heartbeat will be logged when app is created.
-    app_ = std::make_unique<App>(*testing::CreateApp());
+    // Update the unique ptr to point at the created app.
+    app_.reset(testing::CreateApp());
   }
 };
 

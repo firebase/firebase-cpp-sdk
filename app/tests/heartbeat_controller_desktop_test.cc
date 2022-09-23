@@ -94,8 +94,9 @@ TEST_F(HeartbeatControllerDesktopTest, PerAppHeartbeatController) {
   storage.Write(empty_heartbeats_struct);
 
   // Creating an App should trigger logging of a heartbeat.
-  App* firebase_app = testing::CreateApp();
-  ASSERT_NE(firebase_app, nullptr);
+  // The app will be deleted after the test, resetting registered user agents.
+  std::unique_ptr<App> firebase_app(testing::CreateApp());
+  ASSERT_NE(firebase_app.get(), nullptr);
 
   std::string encoded_payload =
       firebase_app->GetHeartbeatController()->GetAndResetStoredHeartbeats();
@@ -104,8 +105,6 @@ TEST_F(HeartbeatControllerDesktopTest, PerAppHeartbeatController) {
       controller_.DecodeAndDecompress(encoded_payload);
   // Verify that C++ user agents are included in the heartbeat payload.
   EXPECT_THAT(decoded_payload, MatchesRegex("^.*fire-cpp.*$"));
-  // Deleting the app internally triggers resetting of registered user agents.
-  delete firebase_app;
 }
 #endif  // FIREBASE_PLATFORM_DESKTOP
 
