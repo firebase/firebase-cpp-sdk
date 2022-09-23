@@ -20,23 +20,17 @@
 namespace firebase {
 namespace app_check {
 
-/**
- * Implementation of an {@link AppCheckProviderFactory} that builds
- * DeviceCheckProviders. This is the default implementation.
- */
+/// Implementation of an {@link AppCheckProviderFactory} that builds
+/// DeviceCheckProviders. This is the default implementation.
 class DeviceCheckProviderFactory : public AppCheckProviderFactory {
  public:
-  /**
-   * Gets an instance of this class for installation into a
-   * {@link firebase::app_check::AppCheck} instance.
-   */
+  /// Gets an instance of this class for installation into a
+  /// {@link firebase::app_check::AppCheck} instance.
   static DeviceCheckProviderFactory* GetInstance();
 
-  /**
-   * Gets the {@link AppCheckProvider} associated with the given
-   * {@link App} instance, or creates one if none
-   * already exists.
-   */
+  /// Gets the {@link AppCheckProvider} associated with the given
+  /// {@link App} instance, or creates one if none
+  /// already exists.
   AppCheckProvider* CreateProvider(App* app) override;
 };
 
