@@ -28,6 +28,7 @@ AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
 
 AppCheckInternal::~AppCheckInternal() {
   future_manager().ReleaseFutureApi(this);
+  app_ = nullptr;
 }
 
 ::firebase::App* AppCheckInternal::app() const { return app_; }

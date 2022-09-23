@@ -26,7 +26,10 @@ AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
   future_manager().AllocFutureApi(this, kAppCheckFnCount);
 }
 
-AppCheckInternal::~AppCheckInternal() { future_manager().ReleaseFutureApi(this); }
+AppCheckInternal::~AppCheckInternal() {
+  future_manager().ReleaseFutureApi(this);
+  app_ = nullptr;
+}
 
 ::firebase::App* AppCheckInternal::app() const { return app_; }
 
