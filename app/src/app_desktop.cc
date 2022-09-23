@@ -187,6 +187,12 @@ void App::SetDefaultConfigPath(const char* path) {
   }
 }
 
+void App::LogHeartbeat() const {
+  if (internal_ != nullptr && internal_->heartbeat_controller_) {
+    internal_->heartbeat_controller_->LogHeartbeat();
+  }
+}
+
 SharedPtr<heartbeat::HeartbeatController> App::GetHeartbeatController() const {
   if (internal_ != nullptr) {
     return internal_->heartbeat_controller_;

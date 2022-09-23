@@ -714,6 +714,9 @@ class App {
 #if FIREBASE_PLATFORM_DESKTOP
   // These methods are only visible to SWIG and internal users of firebase::App.
 
+  /// Logs a heartbeat using the internal HeartbeatController.
+  void LogHeartbeat() const;
+
   /// Get a pointer to the HeartbeatController associated with this app.
   SharedPtr<heartbeat::HeartbeatController> GetHeartbeatController() const;
 #endif  // FIREBASE_PLATFORM_DESKTOP
