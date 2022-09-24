@@ -31,10 +31,10 @@ namespace app_check {
 class DebugAppCheckProviderFactory : public AppCheckProviderFactory {
  public:
   /// Gets an instance of this class for installation into a
-  /// {@code firebase::app_check::AppCheck} instance.
+  /// firebase::app_check::AppCheck instance.
   static DebugAppCheckProviderFactory* GetInstance();
 
-  /// Gets the {@code AppCheckProvider} associated with the given
+  /// Gets the AppCheckProvider associated with the given
   /// {@link App} instance, or creates one if none
   /// already exists.
   AppCheckProvider* CreateProvider(App* app) override;

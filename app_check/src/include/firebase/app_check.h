@@ -108,20 +108,20 @@ class AppCheck {
   /// you are finished using it to shut down the AppCheck library.
   ~AppCheck();
 
-  /// Gets the instance of {@code AppCheck} associated with the given
+  /// Gets the instance of AppCheck associated with the given
   /// {@link App} instance.
   static AppCheck* GetInstance(::firebase::App* app);
 
-  /// Installs the given {@code AppCheckProviderFactory}, overwriting any that
-  /// were previously associated with this {@code AppCheck} instance. Any
-  /// {@code AppCheckTokenListener}s attached to this {@code AppCheck} instance
+  /// Installs the given AppCheckProviderFactory, overwriting any that
+  /// were previously associated with this AppCheck instance. Any
+  /// AppCheckTokenListeners attached to this AppCheck instance
   /// will be transferred from existing factories to the newly installed one.
   ///
-  /// <p>Automatic token refreshing will only occur if the global
-  /// {@code isDataCollectionDefaultEnabled} flag is set to true. To allow
+  /// Automatic token refreshing will only occur if the global
+  /// isDataCollectionDefaultEnabled flag is set to true. To allow
   /// automatic token refreshing for Firebase App Check without changing the
-  /// {@code isDataCollectionDefaultEnabled} flag for other Firebase SDKs, call
-  /// setTokenAutoRefreshEnabled(bool) after installing the {@code factory}.
+  /// isDataCollectionDefaultEnabled flag for other Firebase SDKs, call
+  /// setTokenAutoRefreshEnabled(bool) after installing the factory.
   ///
   /// This method should be called before initializing the Firebase App.
   static void SetAppCheckProviderFactory(AppCheckProviderFactory* factory);
@@ -131,7 +131,7 @@ class AppCheck {
   /// @returns The firebase::App this AppCheck was created with.
   ::firebase::App* app();
 
-  /// Sets the {@code isTokenAutoRefreshEnabled} flag.
+  /// Sets the isTokenAutoRefreshEnabled flag.
   void SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_enabled);
 
   /// Requests a Firebase App Check token. This method should be used ONLY if
