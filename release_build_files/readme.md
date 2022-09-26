@@ -636,7 +636,8 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
-    - Remove unused headers for performance and test lab from the package.
+    - General: Remove unused headers for performance and test lab from the
+      package.
 
 ### 9.6.0
 -   Changes
