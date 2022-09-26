@@ -141,6 +141,11 @@ App* App::Create(const AppOptions& options, const char* name) {  // NOLINT
         MakeShared<heartbeat::HeartbeatController>(
             name, *app_common::FindAppLoggerByName(name),
             app->internal_->date_provider_);
+#ifndef SWIG
+    // Log a heartbeat after creating an App. In the Unity SDK this will happen
+    // at a later time, after additional user agents have been registered.
+    app->internal_->heartbeat_controller_->LogHeartbeat();
+#endif  // SWIG
   }
   return app;
 }
@@ -179,6 +184,12 @@ void App::SetDefaultConfigPath(const char* path) {
     if (last_character != '\\' && last_character != '/') {
       internal::g_default_config_path += kSeperator;
     }
+  }
+}
+
+void App::LogHeartbeat() const {
+  if (internal_ != nullptr && internal_->heartbeat_controller_) {
+    internal_->heartbeat_controller_->LogHeartbeat();
   }
 }
 
