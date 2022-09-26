@@ -17,8 +17,13 @@
 #ifndef FIREBASE_APP_SRC_INCLUDE_FIREBASE_APP_H_
 #define FIREBASE_APP_SRC_INCLUDE_FIREBASE_APP_H_
 
-#include "app/memory/shared_ptr.h"
 #include "firebase/internal/platform.h"
+
+#ifdef INTERNAL_EXPERIMENTAL
+#if FIREBASE_PLATFORM_DESKTOP
+#include "app/memory/shared_ptr.h"
+#endif  // FIREBASE_PLATFORM_DESKTOP
+#endif  // INTERNAL_EXPERIMENTAL
 
 #if FIREBASE_PLATFORM_ANDROID
 #include <jni.h>
