@@ -44,9 +44,9 @@ target_include_directories(firebase_rest_lib
   PUBLIC
     ${FIREBASE_CPP_SDK_ROOT_DIR}
     ${FLATBUFFERS_SOURCE_DIR}/include
-  PRIVATE
     ${ZLIB_SOURCE_DIR}/..
     ${ZLIB_BINARY_DIR}
+    PRIVATE
     ${CURL_SOURCE_DIR}/include
 )
 
