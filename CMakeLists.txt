@@ -32,6 +32,9 @@ option(FIREBASE_INCLUDE_ADMOB "Include the AdMob library."
 option(FIREBASE_INCLUDE_ANALYTICS
        "Include the Google Analytics for Firebase library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
+option(FIREBASE_INCLUDE_APP_CHECK
+       "Include the Firebase App Check library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_AUTH "Include the Firebase Authentication library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_DATABASE
@@ -585,6 +588,9 @@ endif()
 if (FIREBASE_INCLUDE_ANALYTICS)
   add_subdirectory(analytics)
   add_dependencies(FIREBASE_GENERATED_HEADERS FIREBASE_ANALYTICS_GENERATED_HEADERS)
+endif()
+if (FIREBASE_INCLUDE_APP_CHECK)
+  add_subdirectory(app_check)
 endif()
 if (FIREBASE_INCLUDE_AUTH)
   add_subdirectory(auth)
