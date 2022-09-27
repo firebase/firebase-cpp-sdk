@@ -375,7 +375,7 @@ target_include_directories(firebase_app
 
 if (DESKTOP)
   target_include_directories(firebase_app
-    PUBLIC
+    PRIVATE
       ${ZLIB_SOURCE_DIR}/..
       ${ZLIB_BINARY_DIR})
 endif()
