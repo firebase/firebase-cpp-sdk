@@ -634,6 +634,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+-   Changes
+    - General: Remove unused headers for performance and test lab from the
+      package.
+
 ### 9.6.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 30.5.0.
