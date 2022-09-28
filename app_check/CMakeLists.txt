@@ -30,18 +30,39 @@ set(common_SRCS
 set(android_SRCS
   src/android/app_check_android.cc
   src/android/app_check_android.h
+  # Supported providers
+  src/android/debug_provider.cc
+  src/android/play_integrity_provider.cc
+  src/android/safety_net_provider.cc
+  # Unsupported providers
+  src/stub/app_attest_provider.cc
+  src/stub/device_check_provider.cc
 )
 
 # Source files used by the iOS implementation.
 set(ios_SRCS
   src/ios/app_check_ios.mm
   src/ios/app_check_ios.h
+  # Supported providers
+  src/ios/app_attest_provider.mm
+  src/ios/debug_provider.mm
+  src/ios/device_check_provider.mm
+  # Unsupported providers
+  src/stub/play_integrity_provider.cc
+  src/stub/safety_net_provider.cc
 )
 
 # Source files used by the desktop implementation.
 set(desktop_SRCS
   src/desktop/app_check_desktop.cc
   src/desktop/app_check_desktop.h
+  # Supported providers
+  src/desktop/debug_provider.cc
+  # Unsupported providers
+  src/stub/app_attest_provider.cc
+  src/stub/device_check_provider.cc
+  src/stub/play_integrity_provider.cc
+  src/stub/safety_net_provider.cc
 )
 
 if(ANDROID)
