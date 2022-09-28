@@ -460,9 +460,9 @@ if(DESKTOP)
       PUBLIC
         ${LIBUV_SOURCE_DIR}/include
         ${UWEBSOCKETS_SOURCE_DIR}
-      PRIVATE
         ${ZLIB_SOURCE_DIR}
         ${ZLIB_BINARY_DIR}
+        PRIVATE
         ${OPENSSL_INCLUDE_DIR}
     )
     target_link_libraries(libuWS

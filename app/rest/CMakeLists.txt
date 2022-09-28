@@ -46,7 +46,7 @@ target_include_directories(firebase_rest_lib
     ${FLATBUFFERS_SOURCE_DIR}/include
     ${ZLIB_SOURCE_DIR}/..
     ${ZLIB_BINARY_DIR}
-    PRIVATE
+  PRIVATE
     ${CURL_SOURCE_DIR}/include
 )
 
