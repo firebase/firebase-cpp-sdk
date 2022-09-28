@@ -462,7 +462,7 @@ if(DESKTOP)
         ${UWEBSOCKETS_SOURCE_DIR}
         ${ZLIB_SOURCE_DIR}
         ${ZLIB_BINARY_DIR}
-        PRIVATE
+      PRIVATE
         ${OPENSSL_INCLUDE_DIR}
     )
     target_link_libraries(libuWS
