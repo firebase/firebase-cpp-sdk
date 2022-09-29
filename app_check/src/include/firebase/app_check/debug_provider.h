@@ -34,10 +34,15 @@ class DebugAppCheckProviderFactory : public AppCheckProviderFactory {
   /// firebase::app_check::AppCheck instance.
   static DebugAppCheckProviderFactory* GetInstance();
 
+  virtual ~DebugAppCheckProviderFactory();
+
   /// Gets the AppCheckProvider associated with the given
   /// {@link App} instance, or creates one if none
   /// already exists.
   AppCheckProvider* CreateProvider(App* app) override;
+
+ private:
+  DebugAppCheckProviderFactory();
 };
 
 }  // namespace app_check
