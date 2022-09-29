@@ -12,9 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "firebase/app_check/device_check_provider.h"
-
 #include "app/src/log.h"
+#include "firebase/app_check/device_check_provider.h"
 
 namespace firebase {
 namespace app_check {
