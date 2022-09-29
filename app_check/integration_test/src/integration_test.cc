@@ -124,7 +124,7 @@ void FirebaseAppCheckTest::InitializeAppCheckWithDebug() {
   LogDebug("Initialize Firebase App Check with Debug Provider");
 
   firebase::app_check::AppCheck::SetAppCheckProviderFactory(
-    firebase::app_check::DebugAppCheckProviderFactory::GetInstance());
+      firebase::app_check::DebugAppCheckProviderFactory::GetInstance());
 }
 
 void FirebaseAppCheckTest::TerminateAppCheck() {}
@@ -136,7 +136,7 @@ void FirebaseAppCheckTest::InitializeApp() {
 
 #if defined(__ANDROID__)
   app_ = ::firebase::App::Create(app_framework::GetJniEnv(),
-                                        app_framework::GetActivity());
+                                 app_framework::GetActivity());
 #else
   app_ = ::firebase::App::Create();
 #endif  // defined(__ANDROID__)
@@ -181,14 +181,13 @@ void FirebaseAppCheckTest::InitializeAuth() {
   LogDebug("Initializing Auth.");
 
   ::firebase::ModuleInitializer initializer;
-  initializer.Initialize(
-      app_, &auth_, [](::firebase::App* app, void* target) {
-        LogDebug("Attempting to initialize Firebase Auth.");
-        ::firebase::InitResult result;
-        *reinterpret_cast<firebase::auth::Auth**>(target) =
-            ::firebase::auth::Auth::GetAuth(app, &result);
-        return result;
-      });
+  initializer.Initialize(app_, &auth_, [](::firebase::App* app, void* target) {
+    LogDebug("Attempting to initialize Firebase Auth.");
+    ::firebase::InitResult result;
+    *reinterpret_cast<firebase::auth::Auth**>(target) =
+        ::firebase::auth::Auth::GetAuth(app, &result);
+    return result;
+  });
 
   WaitForCompletion(initializer.InitializeLastResult(), "InitializeAuth");
 
@@ -241,18 +240,18 @@ void FirebaseAppCheckTest::TerminateDatabase() {
 
   if (database_) {
     if (!cleanup_paths_.empty() && database_ && app_) {
-    LogDebug("Cleaning up...");
-    std::vector<firebase::Future<void>> cleanups;
-    cleanups.reserve(cleanup_paths_.size());
-    for (int i = 0; i < cleanup_paths_.size(); ++i) {
-      cleanups.push_back(cleanup_paths_[i].RemoveValue());
+      LogDebug("Cleaning up...");
+      std::vector<firebase::Future<void>> cleanups;
+      cleanups.reserve(cleanup_paths_.size());
+      for (int i = 0; i < cleanup_paths_.size(); ++i) {
+        cleanups.push_back(cleanup_paths_[i].RemoveValue());
+      }
+      for (int i = 0; i < cleanups.size(); ++i) {
+        std::string cleanup_name = "Cleanup (" + cleanup_paths_[i].url() + ")";
+        WaitForCompletion(cleanups[i], cleanup_name.c_str());
+      }
+      cleanup_paths_.clear();
     }
-    for (int i = 0; i < cleanups.size(); ++i) {
-      std::string cleanup_name = "Cleanup (" + cleanup_paths_[i].url() + ")";
-      WaitForCompletion(cleanups[i], cleanup_name.c_str());
-    }
-    cleanup_paths_.clear();
-  }
 
     LogDebug("Shutdown the Database library.");
     delete database_;
@@ -296,8 +295,7 @@ void FirebaseAppCheckTest::SignOut() {
   }
   if (auth_->current_user()->is_anonymous()) {
     // If signed in anonymously, delete the anonymous user.
-    WaitForCompletion(auth_->current_user()->Delete(),
-                      "DeleteAnonymousUser");
+    WaitForCompletion(auth_->current_user()->Delete(), "DeleteAnonymousUser");
     // If there was a problem deleting the user, try to sign out at least.
     if (auth_->current_user()) {
       auth_->SignOut();
@@ -338,11 +336,13 @@ TEST_F(FirebaseAppCheckTest, TestSignIn) {
 }
 
 TEST_F(FirebaseAppCheckTest, TestAppAttestProvider) {
-  AppAttestProviderFactory* factory = AppAttestProviderFactory::GetInstance();
+  firebase::app_check::AppAttestProviderFactory* factory =
+      firebase::app_check::AppAttestProviderFactory::GetInstance();
 #if FIREBASE_PLATFORM_IOS
   EXPECT_NE(factory, nullptr);
   InitializeApp();
-  AppCheckProvider* provider = factory->CreateProvider(app_);
+  firebase::app_check::AppCheckProvider* provider =
+      factory->CreateProvider(app_);
   EXPECT_NE(provider, nullptr);
 #else
   EXPECT_EQ(factory, nullptr);
@@ -350,11 +350,13 @@ TEST_F(FirebaseAppCheckTest, TestAppAttestProvider) {
 }
 
 TEST_F(FirebaseAppCheckTest, TestDeviceCheckProvider) {
-  DeviceCheckProviderFactory* factory = DeviceCheckProviderFactory::GetInstance();
+  firebase::app_check::DeviceCheckProviderFactory* factory =
+      firebase::app_check::DeviceCheckProviderFactory::GetInstance();
 #if FIREBASE_PLATFORM_IOS
   EXPECT_NE(factory, nullptr);
   InitializeApp();
-  AppCheckProvider* provider = factory->CreateProvider(app_);
+  firebase::app_check::AppCheckProvider* provider =
+      factory->CreateProvider(app_);
   EXPECT_NE(provider, nullptr);
 #else
   EXPECT_EQ(factory, nullptr);
@@ -362,11 +364,13 @@ TEST_F(FirebaseAppCheckTest, TestDeviceCheckProvider) {
 }
 
 TEST_F(FirebaseAppCheckTest, TestPlayIntegrityProvider) {
-  PlayIntegrityProviderFactory* factory = PlayIntegrityProviderFactory::GetInstance();
+  firebase::app_check::PlayIntegrityProviderFactory* factory =
+      firebase::app_check::PlayIntegrityProviderFactory::GetInstance();
 #if FIREBASE_PLATFORM_ANDROID
   EXPECT_NE(factory, nullptr);
   InitializeApp();
-  AppCheckProvider* provider = factory->CreateProvider(app_);
+  firebase::app_check::AppCheckProvider* provider =
+      factory->CreateProvider(app_);
   EXPECT_NE(provider, nullptr);
 #else
   EXPECT_EQ(factory, nullptr);
@@ -374,11 +378,13 @@ TEST_F(FirebaseAppCheckTest, TestPlayIntegrityProvider) {
 }
 
 TEST_F(FirebaseAppCheckTest, TestSafetyNetProvider) {
-  SafetyNetProviderFactory* factory = SafetyNetProviderFactory::GetInstance();
+  firebase::app_check::SafetyNetProviderFactory* factory =
+      firebase::app_check::SafetyNetProviderFactory::GetInstance();
 #if FIREBASE_PLATFORM_ANDROID
   EXPECT_NE(factory, nullptr);
   InitializeApp();
-  AppCheckProvider* provider = factory->CreateProvider(app_);
+  firebase::app_check::AppCheckProvider* provider =
+      factory->CreateProvider(app_);
   EXPECT_NE(provider, nullptr);
 #else
   EXPECT_EQ(factory, nullptr);

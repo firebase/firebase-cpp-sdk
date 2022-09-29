@@ -58,7 +58,7 @@ struct AppCheckToken {
 
 /// @brief Base class used to receive messages when AppCheck token changes.
 class AppCheckListener {
-  virtual ~AppCheckListener();
+  virtual ~AppCheckListener() = 0;
   /// This method gets invoked on the UI thread on changes to the token state.
   /// Does not trigger on token expiry.
   virtual void OnAppCheckTokenChanged(const AppCheckToken& token) = 0;
@@ -71,7 +71,7 @@ class AppCheckListener {
 /// call and returning that new token if it can.
 class AppCheckProvider {
  public:
-  virtual ~AppCheckProvider();
+  virtual ~AppCheckProvider() = 0;
   /// Fetches an AppCheckToken and then calls the provided callback method with
   /// the token or with an error code and error message.
   virtual void GetToken(
@@ -82,7 +82,7 @@ class AppCheckProvider {
 /// Interface for a factory that generates {@link AppCheckProvider}s.
 class AppCheckProviderFactory {
  public:
-  virtual ~AppCheckProviderFactory();
+  virtual ~AppCheckProviderFactory() = 0;
   /// Gets the {@link AppCheckProvider} associated with the given
   /// {@link App} instance, or creates one if none
   /// already exists.
