@@ -55,14 +55,24 @@ cd "${origpath}"
 
 # Convert frameworks into libraries so we can provide both in the SDK.
 cd "${sourcepath}"
-for frameworkpath in frameworks/tvos/*/*.framework; do
-    libpath=$(echo "${frameworkpath}" | sed 's|^frameworks|libs|' | sed 's|\([^/]*\)\.framework$|lib\1.a|')
-    if [[ $(basename "${libpath}") == 'libfirebase.a' ]]; then
-	libpath=$(echo "${libpath}" | sed 's|libfirebase\.a|libfirebase_app.a|')
-    fi
+for product in ${product_list[*]}; do
+    if [[ "${product}" == "app" ]]; then
+	    product_name="firebase"
+	else
+	    product_name="firebase_${product}"
+	fi
+    for frameworkpath in frameworks/tvos/*/${product_name}.framework; do
+        if [[ ! -d "${sourcepath}/${frameworkpath}" ]]; then
+            continue
+        fi
+        libpath=$(echo "${frameworkpath}" | sed 's|^frameworks|libs|' | sed 's|\([^/]*\)\.framework$|lib\1.a|')
+        if [[ $(basename "${libpath}") == 'libfirebase.a' ]]; then
+            libpath=$(echo "${libpath}" | sed 's|libfirebase\.a|libfirebase_app.a|')
+        fi
 
-    frameworkpath=$(echo "${frameworkpath}" | sed 's|\([^/]*\)\.framework$|\1.framework/\1|')
-    mkdir -p $(dirname "${destpath}/${libpath}")
-    cp -af "${sourcepath}/${frameworkpath}" "${destpath}/${libpath}"
+        frameworkpath=$(echo "${frameworkpath}" | sed 's|\([^/]*\)\.framework$|\1.framework/\1|')
+        mkdir -p $(dirname "${destpath}/${libpath}")
+        cp -af "${sourcepath}/${frameworkpath}" "${destpath}/${libpath}"
+    done
 done
 cd "${origpath}"
