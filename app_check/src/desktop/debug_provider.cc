@@ -17,13 +17,14 @@
 namespace firebase {
 namespace app_check {
 
-static DebugAppCheckProviderFactory* g_debug_app_check_provider_factory = nullptr;
+static DebugAppCheckProviderFactory* g_debug_app_check_provider_factory =
+    nullptr;
 
 DebugAppCheckProviderFactory* DebugAppCheckProviderFactory::GetInstance() {
-    if (!g_debug_app_check_provider_factory) {
-        g_debug_app_check_provider_factory = new DebugAppCheckProviderFactory();
-    }
-    return g_debug_app_check_provider_factory;
+  if (!g_debug_app_check_provider_factory) {
+    g_debug_app_check_provider_factory = new DebugAppCheckProviderFactory();
+  }
+  return g_debug_app_check_provider_factory;
 }
 
 DebugAppCheckProviderFactory::DebugAppCheckProviderFactory() {}
@@ -31,7 +32,7 @@ DebugAppCheckProviderFactory::DebugAppCheckProviderFactory() {}
 DebugAppCheckProviderFactory::~DebugAppCheckProviderFactory() {}
 
 AppCheckProvider* DebugAppCheckProviderFactory::CreateProvider(App* app) {
-    return nullptr;
+  return nullptr;
 }
 
 }  // namespace app_check

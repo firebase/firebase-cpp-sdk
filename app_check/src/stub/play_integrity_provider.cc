@@ -20,8 +20,8 @@ namespace firebase {
 namespace app_check {
 
 PlayIntegrityProviderFactory* PlayIntegrityProviderFactory::GetInstance() {
-    LogError("Play Integrity is not supported on this platform.");
-    return nullptr;
+  LogError("Play Integrity is not supported on this platform.");
+  return nullptr;
 }
 
 PlayIntegrityProviderFactory::PlayIntegrityProviderFactory() {}
@@ -29,7 +29,7 @@ PlayIntegrityProviderFactory::PlayIntegrityProviderFactory() {}
 PlayIntegrityProviderFactory::~PlayIntegrityProviderFactory() {}
 
 AppCheckProvider* PlayIntegrityProviderFactory::CreateProvider(App* app) {
-    return nullptr;
+  return nullptr;
 }
 
 }  // namespace app_check

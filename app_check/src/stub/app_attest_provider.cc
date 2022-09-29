@@ -20,8 +20,8 @@ namespace firebase {
 namespace app_check {
 
 AppAttestProviderFactory* AppAttestProviderFactory::GetInstance() {
-    LogError("App Attest is not supported on this platform.");
-    return nullptr;
+  LogError("App Attest is not supported on this platform.");
+  return nullptr;
 }
 
 AppAttestProviderFactory::AppAttestProviderFactory() {}
@@ -29,7 +29,7 @@ AppAttestProviderFactory::AppAttestProviderFactory() {}
 AppAttestProviderFactory::~AppAttestProviderFactory() {}
 
 AppCheckProvider* AppAttestProviderFactory::CreateProvider(App* app) {
-    return nullptr;
+  return nullptr;
 }
 
 }  // namespace app_check

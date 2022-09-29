@@ -20,10 +20,10 @@ namespace app_check {
 static SafetyNetProviderFactory* g_safety_net_provider_factory = nullptr;
 
 SafetyNetProviderFactory* SafetyNetProviderFactory::GetInstance() {
-    if (!g_safety_net_provider_factory) {
-        g_safety_net_provider_factory = new SafetyNetProviderFactory();
-    }
-    return g_safety_net_provider_factory;
+  if (!g_safety_net_provider_factory) {
+    g_safety_net_provider_factory = new SafetyNetProviderFactory();
+  }
+  return g_safety_net_provider_factory;
 }
 
 SafetyNetProviderFactory::SafetyNetProviderFactory() {}
@@ -31,7 +31,7 @@ SafetyNetProviderFactory::SafetyNetProviderFactory() {}
 SafetyNetProviderFactory::~SafetyNetProviderFactory() {}
 
 AppCheckProvider* SafetyNetProviderFactory::CreateProvider(App* app) {
-    return nullptr;
+  return nullptr;
 }
 
 }  // namespace app_check

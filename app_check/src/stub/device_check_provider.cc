@@ -20,8 +20,8 @@ namespace firebase {
 namespace app_check {
 
 DeviceCheckProviderFactory* DeviceCheckProviderFactory::GetInstance() {
-    LogError("Device Check is not supported on this platform.");
-    return nullptr;
+  LogError("Device Check is not supported on this platform.");
+  return nullptr;
 }
 
 DeviceCheckProviderFactory::DeviceCheckProviderFactory() {}
@@ -29,7 +29,7 @@ DeviceCheckProviderFactory::DeviceCheckProviderFactory() {}
 DeviceCheckProviderFactory::~DeviceCheckProviderFactory() {}
 
 AppCheckProvider* DeviceCheckProviderFactory::CreateProvider(App* app) {
-    return nullptr;
+  return nullptr;
 }
 
 }  // namespace app_check

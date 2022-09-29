@@ -20,8 +20,8 @@ namespace firebase {
 namespace app_check {
 
 SafetyNetProviderFactory* SafetyNetProviderFactory::GetInstance() {
-    LogError("Safety Net is not supported on this platform.");
-    return nullptr;
+  LogError("Safety Net is not supported on this platform.");
+  return nullptr;
 }
 
 SafetyNetProviderFactory::SafetyNetProviderFactory() {}
@@ -29,7 +29,7 @@ SafetyNetProviderFactory::SafetyNetProviderFactory() {}
 SafetyNetProviderFactory::~SafetyNetProviderFactory() {}
 
 AppCheckProvider* SafetyNetProviderFactory::CreateProvider(App* app) {
-    return nullptr;
+  return nullptr;
 }
 
 }  // namespace app_check

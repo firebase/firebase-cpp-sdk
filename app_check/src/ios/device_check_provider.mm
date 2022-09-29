@@ -20,19 +20,17 @@ namespace app_check {
 static DeviceCheckProviderFactory* g_device_check_provider_factory = nullptr;
 
 DeviceCheckProviderFactory* DeviceCheckProviderFactory::GetInstance() {
-    if (!g_device_check_provider_factory) {
-        g_device_check_provider_factory = new DeviceCheckProviderFactory();
-    }
-    return g_device_check_provider_factory;
+  if (!g_device_check_provider_factory) {
+    g_device_check_provider_factory = new DeviceCheckProviderFactory();
+  }
+  return g_device_check_provider_factory;
 }
 
 DeviceCheckProviderFactory::DeviceCheckProviderFactory() {}
 
 DeviceCheckProviderFactory::~DeviceCheckProviderFactory() {}
 
-AppCheckProvider* DeviceCheckProviderFactory::CreateProvider(App* app) {
-    return nullptr;
-}
+AppCheckProvider* DeviceCheckProviderFactory::CreateProvider(App* app) { return nullptr; }
 
 }  // namespace app_check
 }  // namespace firebase

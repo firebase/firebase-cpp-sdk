@@ -17,13 +17,14 @@
 namespace firebase {
 namespace app_check {
 
-static PlayIntegrityProviderFactory* g_play_integrity_provider_factory = nullptr;
+static PlayIntegrityProviderFactory* g_play_integrity_provider_factory =
+    nullptr;
 
 PlayIntegrityProviderFactory* PlayIntegrityProviderFactory::GetInstance() {
-    if (!g_play_integrity_provider_factory) {
-        g_play_integrity_provider_factory = new PlayIntegrityProviderFactory();
-    }
-    return g_play_integrity_provider_factory;
+  if (!g_play_integrity_provider_factory) {
+    g_play_integrity_provider_factory = new PlayIntegrityProviderFactory();
+  }
+  return g_play_integrity_provider_factory;
 }
 
 PlayIntegrityProviderFactory::PlayIntegrityProviderFactory() {}
@@ -31,7 +32,7 @@ PlayIntegrityProviderFactory::PlayIntegrityProviderFactory() {}
 PlayIntegrityProviderFactory::~PlayIntegrityProviderFactory() {}
 
 AppCheckProvider* PlayIntegrityProviderFactory::CreateProvider(App* app) {
-    return nullptr;
+  return nullptr;
 }
 
 }  // namespace app_check
