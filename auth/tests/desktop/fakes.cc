@@ -66,7 +66,7 @@ std::string GetUrlForApi(const std::string& api_key,
   const char* const base_url =
       "https://www.googleapis.com/identitytoolkit/v3/"
       "relyingparty/";
-  return std::string{base_url} + api_method + "?key=" + api_key;
+  return std::string(base_url) + api_method + "?key=" + api_key;
 }
 
 std::string FakeSuccessfulResponse(const std::string& body) {
