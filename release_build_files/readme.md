@@ -634,10 +634,13 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### Upcoming
 -   Changes
     - General: Remove unused headers for performance and test lab from the
       package.
+    - Auth (Android/iOS): Deprecating `PhoneAuthProvider::kMaxTimeoutMs`. The
+      actual range is determined by the underlying SDK, ex.
+      [PhoneAuthOptions.Builder from Android SDK](https://firebase.google.com/docs/reference/android/com/google/firebase/auth/PhoneAuthOptions.Builder).
 
 ### 9.6.0
 -   Changes
