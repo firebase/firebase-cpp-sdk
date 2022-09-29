@@ -17,6 +17,8 @@ fi
 
 origpath=$( pwd -P )
 
+. "${sdkpath}/build_scripts/packaging.conf"
+
 mkdir -p "${packagepath}"
 cd "${packagepath}"
 destpath=$( pwd -P )
@@ -29,8 +31,8 @@ cd "${origpath}"
 # Copy headers to packaged SDK.
 mkdir -p "${destpath}/include"
 cd "${sdkpath}"
-for incdir in */src/include; do
-    cp -af "${incdir}" "${destpath}/"
+for product in ${product_list[*]}; do
+    cp -af "${product}/src/include" "${destpath}/"
 done
 cd "${origpath}"
 

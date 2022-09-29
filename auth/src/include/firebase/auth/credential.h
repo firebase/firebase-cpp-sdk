@@ -524,6 +524,12 @@ class PhoneAuthProvider {
 
   /// Maximum value of `auto_verify_time_out_ms` in @ref VerifyPhoneNumber.
   /// Larger values will be clamped.
+  ///
+  /// @deprecated This value is no longer used to clamp
+  /// `auto_verify_time_out_ms` in @ref VerifyPhoneNumber. The range is
+  /// determined by the underlying SDK, ex. <a
+  /// href="/docs/reference/android/com/google/firebase/auth/PhoneAuthOptions.Builder"><code>PhoneAuthOptions.Build</code>
+  /// in Android SDK</a>
   static const uint32_t kMaxTimeoutMs;
 
   /// Start the phone number authentication operation.
@@ -535,7 +541,6 @@ class PhoneAuthProvider {
   ///    miliseconds. Currently SMS auto retrieval is only supported on Android.
   ///    If 0, do not do SMS auto retrieval.
   ///    If positive, try to auto-retrieve the SMS verification code.
-  ///    If larger than kMaxTimeoutMs, clamped to kMaxTimeoutMs.
   ///    When the time out is exceeded, listener->OnCodeAutoRetrievalTimeOut()
   ///    is called.
   /// @param[in] force_resending_token If NULL, assume this is a new phone
