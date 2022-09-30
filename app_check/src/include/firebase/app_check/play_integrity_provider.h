@@ -28,10 +28,15 @@ class PlayIntegrityProviderFactory : public AppCheckProviderFactory {
   /// firebase::app_check::AppCheck instance.
   static PlayIntegrityProviderFactory* GetInstance();
 
+  virtual ~PlayIntegrityProviderFactory();
+
   /// Gets the AppCheckProvider associated with the given
   /// {@link App} instance, or creates one if none
   /// already exists.
   AppCheckProvider* CreateProvider(App* app) override;
+
+ private:
+  PlayIntegrityProviderFactory();
 };
 
 }  // namespace app_check
