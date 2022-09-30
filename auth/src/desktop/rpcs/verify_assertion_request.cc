@@ -37,7 +37,7 @@ VerifyAssertionRequest::VerifyAssertionRequest(::firebase::App& app,
   application_data_->requestUri = url;
 
   if (provider_id) {
-    post_body_ = std::string{"providerId="} + provider_id;
+    post_body_ = std::string("providerId=") + provider_id;
   } else {
     LogError("No provider id given");
   }
@@ -58,13 +58,13 @@ std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromIdToken(
       new VerifyAssertionRequest{app, api_key, provider_id});  // NOLINT
 
   if (id_token) {
-    request->post_body_ += std::string{"&id_token="} + id_token;
+    request->post_body_ += std::string("&id_token=") + id_token;
   } else {
     LogError("No id token given");
   }
 
   if (nonce) {
-    request->post_body_ += std::string{"&nonce="} + nonce;
+    request->post_body_ += std::string("&nonce=") + nonce;
   }
 
   request->application_data_->postBody = request->post_body_;
@@ -87,13 +87,13 @@ std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromAccessToken(
       new VerifyAssertionRequest{app, api_key, provider_id});  // NOLINT
 
   if (access_token) {
-    request->post_body_ += std::string{"&access_token="} + access_token;
+    request->post_body_ += std::string("&access_token=") + access_token;
   } else {
     LogError("No access token given");
   }
 
   if (nonce) {
-    request->post_body_ += std::string{"&nonce="} + nonce;
+    request->post_body_ += std::string("&nonce=") + nonce;
   }
 
   request->application_data_->postBody = request->post_body_;
@@ -110,12 +110,12 @@ VerifyAssertionRequest::FromAccessTokenAndOAuthSecret(
       new VerifyAssertionRequest{app, api_key, provider_id});  // NOLINT
 
   if (access_token) {
-    request->post_body_ += std::string{"&access_token="} + access_token;
+    request->post_body_ += std::string("&access_token=") + access_token;
   } else {
     LogError("No access token given");
   }
   if (oauth_secret) {
-    request->post_body_ += std::string{"&oauth_token_secret="} + oauth_secret;
+    request->post_body_ += std::string("&oauth_token_secret=") + oauth_secret;
   } else {
     LogError("No OAuth secret given");
   }
@@ -136,7 +136,7 @@ std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromAuthCode(
       new VerifyAssertionRequest{app, api_key, provider_id});  // NOLINT
 
   if (auth_code) {
-    request->post_body_ += std::string{"&code="} + auth_code;
+    request->post_body_ += std::string("&code=") + auth_code;
   } else {
     LogError("No server auth code given");
   }
