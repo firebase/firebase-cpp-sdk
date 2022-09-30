@@ -19,9 +19,9 @@
 #include <string.h>
 
 #include <fstream>
+#include <memory>
 #include <string>
 
-#include "app/memory/shared_ptr.h"
 #include "app/src/app_common.h"
 #include "app/src/function_registry.h"
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
@@ -138,7 +138,7 @@ App* App::Create(const AppOptions& options, const char* name) {  // NOLINT
     app->options_ = options_with_defaults;
     app = app_common::AddApp(app, &app->init_results_);
     app->internal_->heartbeat_controller_ =
-        MakeShared<heartbeat::HeartbeatController>(
+        std::make_shared<heartbeat::HeartbeatController>(
             name, *app_common::FindAppLoggerByName(name),
             app->internal_->date_provider_);
 #ifndef SWIG
@@ -193,11 +193,12 @@ void App::LogHeartbeat() const {
   }
 }
 
-SharedPtr<heartbeat::HeartbeatController> App::GetHeartbeatController() const {
+std::shared_ptr<heartbeat::HeartbeatController> App::GetHeartbeatController()
+    const {
   if (internal_ != nullptr) {
     return internal_->heartbeat_controller_;
   } else {
-    return SharedPtr<heartbeat::HeartbeatController>();
+    return std::shared_ptr<heartbeat::HeartbeatController>();
   }
 }
 

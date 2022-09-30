@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <memory>
+
 #include "app/src/app_common.h"
 #include "app/src/function_registry.h"
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
@@ -35,7 +37,7 @@ class AppInternal {
   FunctionRegistry function_registry;
 
   // HeartbeatController provides methods to log heartbeats and fetch payloads.
-  SharedPtr<heartbeat::HeartbeatController> heartbeat_controller_;
+  std::shared_ptr<heartbeat::HeartbeatController> heartbeat_controller_;
 
   // Has a method to get the current date. Used by heartbeat_controller.
   firebase::heartbeat::DateProviderImpl date_provider_;

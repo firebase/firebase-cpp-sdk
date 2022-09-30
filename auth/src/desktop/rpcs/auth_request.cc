@@ -16,9 +16,9 @@
 
 #include <assert.h>
 
+#include <memory>
 #include <string>
 
-#include "app/memory/shared_ptr.h"
 #include "app/src/app_common.h"
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/include/firebase/app.h"
@@ -64,7 +64,7 @@ AuthRequest::AuthRequest(::firebase::App& app, const char* schema,
     add_header("X-Client-Version", extended_auth_user_agent.c_str());
   }
   if (deliver_heartbeat) {
-    SharedPtr<heartbeat::HeartbeatController> heartbeat_controller =
+    std::shared_ptr<heartbeat::HeartbeatController> heartbeat_controller =
         app.GetHeartbeatController();
     if (heartbeat_controller) {
       std::string payload = heartbeat_controller->GetAndResetStoredHeartbeats();

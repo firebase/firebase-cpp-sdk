@@ -19,17 +19,12 @@
 
 #include "firebase/internal/platform.h"
 
-#ifdef INTERNAL_EXPERIMENTAL
-#if FIREBASE_PLATFORM_DESKTOP
-#include "app/memory/shared_ptr.h"
-#endif  // FIREBASE_PLATFORM_DESKTOP
-#endif  // INTERNAL_EXPERIMENTAL
-
 #if FIREBASE_PLATFORM_ANDROID
 #include <jni.h>
 #endif  // FIREBASE_PLATFORM_ANDROID
 
 #include <map>
+#include <memory>
 #include <string>
 
 #if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
@@ -723,7 +718,8 @@ class App {
   void LogHeartbeat() const;
 
   /// Get a pointer to the HeartbeatController associated with this app.
-  SharedPtr<heartbeat::HeartbeatController> GetHeartbeatController() const;
+  std::shared_ptr<heartbeat::HeartbeatController> GetHeartbeatController()
+      const;
 #endif  // FIREBASE_PLATFORM_DESKTOP
 #endif  // INTERNAL_EXPERIMENTAL
 

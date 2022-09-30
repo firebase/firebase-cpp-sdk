@@ -18,13 +18,15 @@
 
 #include "app/src/include/firebase/app.h"
 
+#include <utility>
+
 namespace firebase {
 namespace firestore {
 
 const char* kHeartbeatCodeGlobal = "2";
 
 FirebaseMetadataProviderCpp::FirebaseMetadataProviderCpp(const App& app)
-    : heartbeat_controller_(Move(app.GetHeartbeatController())),
+    : heartbeat_controller_(std::move(app.GetHeartbeatController())),
       gmp_app_id_(app.options().app_id()) {}
 
 void FirebaseMetadataProviderCpp::UpdateMetadata(grpc::ClientContext& context) {
