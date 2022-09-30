@@ -28,6 +28,7 @@ std::string DateProviderImpl::GetDate() const {
   // Use UTC time so that local time zone changes are ignored.
   std::tm* tm = std::gmtime(&t);
   std::ostringstream ss;
+  // Format the date as yyyy-mm-dd, independent of locale.
   ss << std::put_time(tm, "%Y-%m-%d");
   return ss.str();
 }
