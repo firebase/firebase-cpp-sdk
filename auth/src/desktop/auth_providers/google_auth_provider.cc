@@ -27,7 +27,7 @@ Credential GoogleAuthProvider::GetCredential(const char* const id_token,
                                              const char* const access_token) {
   if (id_token && id_token[0] != '\0') {
     return Credential{
-      new CredentialImpl{new GoogleAuthCredential(id_token, std::string())}};
+        new CredentialImpl{new GoogleAuthCredential(id_token, std::string())}};
   } else if (access_token) {
     return Credential{new CredentialImpl{
         new GoogleAuthCredential(std::string(), access_token)}};
