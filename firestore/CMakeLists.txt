@@ -334,6 +334,12 @@ else()
   set(FIREBASE_FIRESTORE_CORE_HEADER_DIR
     ${FIRESTORE_SOURCE_DIR}/Firestore/core/include
   )
+  if(DESKTOP)
+    target_include_directories(firebase_firestore
+      PRIVATE
+        ${FLATBUFFERS_SOURCE_DIR}/include
+    )
+  endif()
 endif()
 
 set(firestore_generated_headers_dir

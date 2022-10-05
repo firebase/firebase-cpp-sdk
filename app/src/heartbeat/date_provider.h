@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Google LLC
+ * Copyright 2022 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,25 +14,25 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_AUTH_SRC_DESKTOP_RPCS_SECURE_TOKEN_REQUEST_H_
-#define FIREBASE_AUTH_SRC_DESKTOP_RPCS_SECURE_TOKEN_REQUEST_H_
+#ifndef FIREBASE_APP_SRC_HEARTBEAT_DATE_PROVIDER_H_
+#define FIREBASE_APP_SRC_HEARTBEAT_DATE_PROVIDER_H_
 
-#include "app/src/include/firebase/app.h"
-#include "auth/request_generated.h"
-#include "auth/request_resource.h"
-#include "auth/src/desktop/rpcs/auth_request.h"
+#include <string>
 
 namespace firebase {
-namespace auth {
+namespace heartbeat {
 
-class SecureTokenRequest : public AuthRequest {
+class DateProvider {
  public:
-  // Set request by using refresh token.
-  SecureTokenRequest(::firebase::App& app, const char* api_key,
-                     const char* refresh_token);
+  virtual std::string GetDate() const = 0;
 };
 
-}  // namespace auth
+class DateProviderImpl : public DateProvider {
+ public:
+  std::string GetDate() const override;
+};
+
+}  // namespace heartbeat
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_SRC_DESKTOP_RPCS_SECURE_TOKEN_REQUEST_H_
+#endif  // FIREBASE_APP_SRC_HEARTBEAT_DATE_PROVIDER_H_

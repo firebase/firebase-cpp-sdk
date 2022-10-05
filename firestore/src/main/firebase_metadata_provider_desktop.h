@@ -17,9 +17,11 @@
 #ifndef FIREBASE_FIRESTORE_SRC_MAIN_FIREBASE_METADATA_PROVIDER_DESKTOP_H_
 #define FIREBASE_FIRESTORE_SRC_MAIN_FIREBASE_METADATA_PROVIDER_DESKTOP_H_
 
+#include <memory>
 #include <string>
 
 #include "Firestore/core/src/remote/firebase_metadata_provider.h"
+#include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/include/firebase/app.h"
 
 #if defined(__ANDROID__)
@@ -37,6 +39,7 @@ class FirebaseMetadataProviderCpp : public remote::FirebaseMetadataProvider {
   void UpdateMetadata(grpc::ClientContext& context) override;
 
  private:
+  std::shared_ptr<heartbeat::HeartbeatController> heartbeat_controller_;
   std::string gmp_app_id_;
 };
 

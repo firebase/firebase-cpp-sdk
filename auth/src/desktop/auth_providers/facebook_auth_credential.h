@@ -17,6 +17,9 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_AUTH_PROVIDERS_FACEBOOK_AUTH_CREDENTIAL_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_AUTH_PROVIDERS_FACEBOOK_AUTH_CREDENTIAL_H_
 
+#include <memory>
+
+#include "app/src/include/firebase/app.h"
 #include "auth/src/desktop/auth_constants.h"
 #include "auth/src/desktop/identity_provider_credential.h"
 #include "auth/src/desktop/rpcs/verify_assertion_request.h"
@@ -31,9 +34,9 @@ class FacebookAuthCredential : public IdentityProviderCredential {
   std::string GetProvider() const override { return kFacebookAuthProviderId; }
 
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
-      const char* const api_key) const override {
+      ::firebase::App& app, const char* const api_key) const override {
     return VerifyAssertionRequest::FromAccessToken(
-        api_key, GetProvider().c_str(), access_token_.c_str());
+        app, api_key, GetProvider().c_str(), access_token_.c_str());
   }
 
  private:

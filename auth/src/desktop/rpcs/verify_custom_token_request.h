@@ -17,6 +17,7 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_RPCS_VERIFY_CUSTOM_TOKEN_REQUEST_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_RPCS_VERIFY_CUSTOM_TOKEN_REQUEST_H_
 
+#include "app/src/include/firebase/app.h"
 #include "auth/request_generated.h"
 #include "auth/request_resource.h"
 #include "auth/src/desktop/rpcs/auth_request.h"
@@ -26,7 +27,8 @@ namespace auth {
 
 class VerifyCustomTokenRequest : public AuthRequest {
  public:
-  VerifyCustomTokenRequest(const char* api_key, const char* token);
+  VerifyCustomTokenRequest(::firebase::App& app, const char* api_key,
+                           const char* token);
 };
 
 }  // namespace auth
