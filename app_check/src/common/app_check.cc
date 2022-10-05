@@ -52,6 +52,11 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseAppCheck);
 Mutex g_app_check_lock;  // NOLINT
 static std::map<::firebase::App*, AppCheck*>* g_app_check_map = nullptr;
 
+// Define the destructors for the virtual listener/provider/factory classes.
+AppCheckListener::~AppCheckListener() {}
+AppCheckProvider::~AppCheckProvider() {}
+AppCheckProviderFactory::~AppCheckProviderFactory() {}
+
 AppCheck* AppCheck::GetInstance(::firebase::App* app) {
   MutexLock lock(g_app_check_lock);
   if (!g_app_check_map) {
