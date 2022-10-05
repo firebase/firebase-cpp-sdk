@@ -29,7 +29,7 @@ namespace auth {
 // Test GetAccountInfoRequest
 TEST(GetAccountInfoTest, TestGetAccountInfoRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
-  GetAccountInfoRequest request("APIKEY", "token");
+  GetAccountInfoRequest request(*app, "APIKEY", "token");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "getAccountInfo?key=APIKEY",

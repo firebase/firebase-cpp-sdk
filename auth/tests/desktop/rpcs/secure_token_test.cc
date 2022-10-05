@@ -29,7 +29,7 @@ namespace auth {
 // Test SignUpNewUserRequest using refresh token
 TEST(SecureTokenTest, TestSetRefreshRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
-  SecureTokenRequest request("APIKEY", "token123");
+  SecureTokenRequest request(*app, "APIKEY", "token123");
   EXPECT_EQ("https://securetoken.googleapis.com/v1/token?key=APIKEY",
             request.options().url);
   EXPECT_EQ(

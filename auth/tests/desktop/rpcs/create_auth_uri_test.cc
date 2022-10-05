@@ -15,6 +15,7 @@
 #include <memory>
 
 #include "app/rest/transport_builder.h"
+#include "app/src/app_common.h"
 #include "app/src/include/firebase/app.h"
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "auth/src/desktop/rpcs/create_auth_uri_request.h"
@@ -28,7 +29,7 @@ namespace auth {
 // Test CreateAuthUriRequest
 TEST(CreateAuthUriTest, TestCreateAuthUriRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
-  CreateAuthUriRequest request("APIKEY", "email");
+  CreateAuthUriRequest request(*app, "APIKEY", "email");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "createAuthUri?key=APIKEY",

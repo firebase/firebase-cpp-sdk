@@ -65,7 +65,7 @@ set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
 set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
 build_flatbuffers("${CMAKE_CURRENT_LIST_DIR}/google_services.fbs"
                   ""
-                  "app_generated_includes"
+                  "app_generated_google_services_includes"
                   "${FIREBASE_FLATBUFFERS_DEPENDENCIES}"
                   "${FIREBASE_GEN_FILE_DIR}/app"
                   ""
@@ -169,12 +169,39 @@ if (PLATFORM STREQUAL TVOS OR PLATFORM STREQUAL SIMULATOR_TVOS)
     src/invites/ios/invites_ios_startup.mm)
 endif()
 
+
+# Flatbuffer schemas used by the desktop implementation.
+set(desktop_flatbuffers_schema_dir
+    "${CMAKE_CURRENT_LIST_DIR}/src/heartbeat/schemas")
+set(desktop_flatbuffers_schemas
+    "${desktop_flatbuffers_schema_dir}/logged_heartbeats.fbs")
+set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
+    "--no-union-value-namespacing"
+    "--gen-generated"
+    "--gen-object-api"
+    "--cpp-ptr-type" "flatbuffers::unique_ptr")
+# Because of a bug in the version of Flatbuffers we are pinned to,
+# additional flags need to be set.
+# also see if app_generated_includes will conflict
+set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
+build_flatbuffers("${desktop_flatbuffers_schemas}"
+                  "${CMAKE_CURRENT_LIST_DIR}"
+                  "app_generated_includes"
+                  "${FIREBASE_FLATBUFFERS_DEPENDENCIES}"
+                  "${FIREBASE_GEN_FILE_DIR}/app"
+                  ""
+                  "")
+
 set(app_desktop_SRCS
     src/app_desktop.cc
-    src/heartbeat_date_storage_desktop.cc
-    src/heartbeat_info_desktop.cc
     src/invites/stub/invites_receiver_internal_stub.cc
-    src/variant_util.cc)
+    src/variant_util.cc
+    src/heartbeat/date_provider.cc
+    src/heartbeat/heartbeat_storage_desktop.cc
+    src/heartbeat/heartbeat_controller_desktop.cc
+    rest/gzipheader.cc
+    rest/zlibwrapper.cc
+    ${FIREBASE_GEN_FILE_DIR}/app/logged_heartbeats_generated.h)
 if(ANDROID)
   set(app_platform_SRCS
       "${app_android_SRCS}")
@@ -244,8 +271,6 @@ set(utility_common_HDRS
     src/future_manager.h
     src/intrusive_list.h
     src/log.h
-    src/heartbeat_date_storage_desktop.h
-    src/heartbeat_info_desktop.h
     src/optional.h
     src/path.h
     src/pthread_condvar.h
@@ -347,6 +372,14 @@ target_include_directories(firebase_app
     ${FLATBUFFERS_SOURCE_DIR}/include
     ${LIBSECRET_INCLUDE_DIRS}
 )
+
+if (DESKTOP)
+  target_include_directories(firebase_app
+    PRIVATE
+      ${ZLIB_SOURCE_DIR}/..
+      ${ZLIB_BINARY_DIR})
+endif()
+
 target_compile_definitions(firebase_app
   PRIVATE
     -DINTERNAL_EXPERIMENTAL=1
@@ -390,6 +423,9 @@ elseif(IOS)
       FirebaseDynamicLinks
       FirebaseInstanceID
   )
+else()
+  target_link_libraries(firebase_app
+    PRIVATE zlibstatic)
 endif()
 
 if (NOT ANDROID AND NOT IOS)

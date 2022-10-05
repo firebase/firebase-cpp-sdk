@@ -18,11 +18,13 @@
 #include <string>
 #include <utility>
 
+#include "app/memory/shared_ptr.h"
 #include "app/rest/transport_curl.h"
 #include "app/src/app_common.h"
 #include "app/src/app_identifier.h"
 #include "app/src/assert.h"
 #include "app/src/function_registry.h"
+#include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/include/firebase/app.h"
 #include "auth/src/common.h"
 #include "auth/src/data.h"
@@ -94,9 +96,11 @@ void* CreatePlatformAuth(App* const app) {
 void InitializeFunctionRegistryListener(AuthData* auth_data);
 void DestroyFunctionRegistryListener(AuthData* auth_data);
 
-// TODO(b/211006737): This is a stub until desktop implementation supports
-// heartbeat logging.
-void LogHeartbeat(Auth* const auth) {}
+void LogHeartbeat(Auth* const auth) {
+  if (auth && auth->auth_data_ && auth->auth_data_->app) {
+    auth->auth_data_->app->LogHeartbeat();
+  }
+}
 
 IdTokenRefreshListener::IdTokenRefreshListener() : token_timestamp_(0) {}
 
@@ -345,7 +349,7 @@ Future<User*> Auth::SignInWithCustomToken(const char* const custom_token) {
   // Note: std::make_unique is not supported by Visual Studio 2012, which is
   // among our target compilers.
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(GetApiKey(*auth_data_), custom_token));
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), custom_token));
 
   return CallAsync(auth_data_, promise, std::move(request),
                    PerformSignInFlow<VerifyCustomTokenResponse>);
@@ -395,7 +399,7 @@ Future<User*> Auth::SignInAnonymously() {
 
   typedef SignUpNewUserRequest RequestT;
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(GetApiKey(*auth_data_)));
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_)));
 
   return CallAsync(auth_data_, promise, std::move(request),
                    PerformSignInFlow<SignUpNewUserResponse>);
@@ -411,7 +415,7 @@ Future<User*> Auth::SignInWithEmailAndPassword(const char* const email,
 
   typedef VerifyPasswordRequest RequestT;
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(GetApiKey(*auth_data_), email, password));
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), email, password));
 
   return CallAsync(auth_data_, promise, std::move(request),
                    PerformSignInFlow<VerifyPasswordResponse>);
@@ -427,7 +431,8 @@ Future<User*> Auth::CreateUserWithEmailAndPassword(const char* const email,
 
   typedef SignUpNewUserRequest RequestT;
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(GetApiKey(*auth_data_), email, password, ""));
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), email, password,
+                   ""));
 
   return CallAsync(auth_data_, promise, std::move(request),
                    PerformSignInFlow<SignUpNewUserResponse>);
@@ -451,7 +456,7 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(
 
   typedef CreateAuthUriRequest RequestT;
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(GetApiKey(*auth_data_), email));
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), email));
 
   const auto callback =
       [](AuthDataHandle<FetchProvidersResult, RequestT>* handle) {
@@ -484,7 +489,7 @@ Future<void> Auth::SendPasswordResetEmail(const char* email) {
 
   typedef GetOobConfirmationCodeRequest RequestT;
   auto request = RequestT::CreateSendPasswordResetEmailRequest(
-      GetApiKey(*auth_data_), email, language_code);
+      *auth_data_->app, GetApiKey(*auth_data_), email, language_code);
 
   const auto callback = [](AuthDataHandle<void, RequestT>* handle) {
     const auto response =
