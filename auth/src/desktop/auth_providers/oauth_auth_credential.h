@@ -17,6 +17,9 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_AUTH_PROVIDERS_OAUTH_AUTH_CREDENTIAL_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_AUTH_PROVIDERS_OAUTH_AUTH_CREDENTIAL_H_
 
+#include <memory>
+
+#include "app/src/include/firebase/app.h"
 #include "auth/src/desktop/auth_constants.h"
 #include "auth/src/desktop/identity_provider_credential.h"
 #include "auth/src/desktop/rpcs/verify_assertion_request.h"
@@ -31,15 +34,15 @@ class OAuthCredential : public IdentityProviderCredential {
   std::string GetProvider() const override { return provider_id_; }
 
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
-      const char* const api_key) const override {
+      ::firebase::App& app, const char* const api_key) const override {
     const char* raw_nonce =
         (!raw_nonce_.empty()) ? raw_nonce_.c_str() : nullptr;
     if (!id_token_.empty()) {
-      return VerifyAssertionRequest::FromIdToken(api_key, provider_id_.c_str(),
-                                                 id_token_.c_str(), raw_nonce);
+      return VerifyAssertionRequest::FromIdToken(
+          app, api_key, provider_id_.c_str(), id_token_.c_str(), raw_nonce);
     } else {
       return VerifyAssertionRequest::FromAccessToken(
-          api_key, provider_id_.c_str(), access_token_.c_str(), raw_nonce);
+          app, api_key, provider_id_.c_str(), access_token_.c_str(), raw_nonce);
     }
   }
 

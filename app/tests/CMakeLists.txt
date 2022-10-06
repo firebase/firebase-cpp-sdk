@@ -161,11 +161,22 @@ firebase_cpp_cc_test(firebase_app_cpp11_thread_test
     gtest
 )
 
-firebase_cpp_cc_test(firebase_app_heartbeat_info_desktop_test
+firebase_cpp_cc_test(firebase_app_heartbeat_controller_desktop_test
   SOURCES
-    heartbeat_info_desktop_test.cc
+    heartbeat_controller_desktop_test.cc
   DEPENDS
     firebase_app
+    firebase_testing
+  DEFINES
+    -DFIREBASE_TESTING
+)
+
+firebase_cpp_cc_test(firebase_app_heartbeat_storage_desktop_test
+  SOURCES
+    heartbeat_storage_desktop_test.cc
+  DEPENDS
+    firebase_app
+    flatbuffers
 )
 
 firebase_cpp_cc_test(firebase_app_pthread_thread_test

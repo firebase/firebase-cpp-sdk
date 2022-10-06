@@ -15,15 +15,17 @@
 #include "auth/src/desktop/rpcs/reset_password_request.h"
 
 #include "app/src/assert.h"
+#include "app/src/include/firebase/app.h"
 #include "app/src/log.h"
 
 namespace firebase {
 namespace auth {
 
-ResetPasswordRequest::ResetPasswordRequest(const char* api_key,
+ResetPasswordRequest::ResetPasswordRequest(::firebase::App& app,
+                                           const char* api_key,
                                            const char* oob_code,
                                            const char* new_password)
-    : AuthRequest(request_resource_data) {
+    : AuthRequest(app, request_resource_data, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
   const char api_host[] =

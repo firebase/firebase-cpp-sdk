@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Google LLC
+ * Copyright 2022 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,24 +14,24 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_AUTH_SRC_DESKTOP_RPCS_CREATE_AUTH_URI_REQUEST_H_
-#define FIREBASE_AUTH_SRC_DESKTOP_RPCS_CREATE_AUTH_URI_REQUEST_H_
+#include "app/src/heartbeat/date_provider.h"
 
-#include "app/src/include/firebase/app.h"
-#include "auth/request_generated.h"
-#include "auth/request_resource.h"
-#include "auth/src/desktop/rpcs/auth_request.h"
+#include <iomanip>
+#include <sstream>
+#include <string>
 
 namespace firebase {
-namespace auth {
+namespace heartbeat {
 
-class CreateAuthUriRequest : public AuthRequest {
- public:
-  CreateAuthUriRequest(::firebase::App& app, const char* api_key,
-                       const char* identifier);
-};
+std::string DateProviderImpl::GetDate() const {
+  std::time_t t = std::time(nullptr);
+  // Use UTC time so that local time zone changes are ignored.
+  std::tm* tm = std::gmtime(&t);
+  std::ostringstream ss;
+  // Format the date as yyyy-mm-dd, independent of locale.
+  ss << std::put_time(tm, "%Y-%m-%d");
+  return ss.str();
+}
 
-}  // namespace auth
+}  // namespace heartbeat
 }  // namespace firebase
-
-#endif  // FIREBASE_AUTH_SRC_DESKTOP_RPCS_CREATE_AUTH_URI_REQUEST_H_

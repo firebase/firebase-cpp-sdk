@@ -30,7 +30,8 @@ std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
       static_cast<const CredentialImpl*>(raw_credential_impl);
   const auto* idp_credential = static_cast<const IdentityProviderCredential*>(
       credential_impl->auth_credential.get());
-  return idp_credential->CreateVerifyAssertionRequest(GetApiKey(auth_data));
+  return idp_credential->CreateVerifyAssertionRequest(*auth_data.app,
+                                                      GetApiKey(auth_data));
 }
 
 std::unique_ptr<rest::Request> CreateRequestFromCredential(
@@ -45,7 +46,7 @@ std::unique_ptr<rest::Request> CreateRequestFromCredential(
       return nullptr;
     }
     return std::unique_ptr<rest::Request>(  // NOLINT
-        new VerifyPasswordRequest(GetApiKey(*auth_data),
+        new VerifyPasswordRequest(*auth_data->app, GetApiKey(*auth_data),
                                   email_credential->GetEmail().c_str(),
                                   email_credential->GetPassword().c_str()));
   }

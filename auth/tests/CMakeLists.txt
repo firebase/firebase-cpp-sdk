@@ -173,6 +173,15 @@ firebase_cpp_cc_test(
 )
 
 firebase_cpp_cc_test(
+  firebase_auth_request_heartbeat_test
+  SOURCES
+    desktop/rpcs/auth_request_heartbeat_test.cc
+  DEPENDS
+    firebase_auth
+    firebase_testing
+)
+
+firebase_cpp_cc_test(
   firebase_auth_create_auth_uri_test
   SOURCES
     desktop/rpcs/create_auth_uri_test.cc
