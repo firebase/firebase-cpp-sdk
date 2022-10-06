@@ -1,15 +1,16 @@
+source 'https://github.com/Firebase/SpecsStaging.git'
 source 'https://github.com/CocoaPods/Specs.git'
 # Firebase Cloud Messaging test application.
 use_frameworks! :linkage => :static
 
 target 'integration_test' do
   platform :ios, '10.0'
-  pod 'Firebase/Messaging', '9.6.0'
+  pod 'Firebase/Messaging', '10.0.0'
 end
 
 target 'integration_test_tvos' do
   platform :tvos, '12.0'
-  pod 'Firebase/Messaging', '9.6.0'
+  pod 'Firebase/Messaging', '10.0.0'
 end
 
 post_install do |installer|

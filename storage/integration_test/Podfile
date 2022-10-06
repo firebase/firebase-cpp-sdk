@@ -1,17 +1,18 @@
+source 'https://github.com/Firebase/SpecsStaging.git'
 source 'https://github.com/CocoaPods/Specs.git'
 # Cloud Storage for Firebase test application.
 use_frameworks! :linkage => :static
 
 target 'integration_test' do
   platform :ios, '10.0'
-  pod 'Firebase/Storage', '9.6.0'
-  pod 'Firebase/Auth', '9.6.0'
+  pod 'Firebase/Storage', '10.0.0'
+  pod 'Firebase/Auth', '10.0.0'
 end
 
 target 'integration_test_tvos' do
   platform :tvos, '12.0'
-  pod 'Firebase/Storage', '9.6.0'
-  pod 'Firebase/Auth', '9.6.0'
+  pod 'Firebase/Storage', '10.0.0'
+  pod 'Firebase/Auth', '10.0.0'
 end
 
 post_install do |installer|
