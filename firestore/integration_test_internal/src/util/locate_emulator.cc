@@ -13,14 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "util/locate_emulator.h"
 
-#include <mutex>
 #include <string>
 
-#include "app/meta/move.h"
 #include "app/src/assert.h"
-#include "app/src/include/firebase/internal/common.h"
-#include "firestore/src/include/firebase/firestore.h"
 
 namespace firebase {
 namespace firestore {
