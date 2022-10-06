@@ -24,7 +24,7 @@ namespace firestore {
 // Set Firestore up to use Firestore Emulator via USE_FIRESTORE_EMULATOR
 void LocateEmulator(Firestore* db);
 
-} // namespace firestore
-} // namespace firebase
+}  // namespace firestore
+}  // namespace firebase
 
 #endif  // FIREBASE_FIRESTORE_INTEGRATION_TEST_INTERNAL_SRC_UTIL_LOCATE_EMULATOR_H_

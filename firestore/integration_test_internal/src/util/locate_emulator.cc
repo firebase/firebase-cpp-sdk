@@ -56,6 +56,5 @@ void LocateEmulator(Firestore* db) {
   db->set_settings(settings);
 }
 
-} // namespace firestore
-} // namespace firebase
-
+}  // namespace firestore
+}  // namespace firebase
