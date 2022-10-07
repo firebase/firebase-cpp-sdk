@@ -1,6 +1,6 @@
 source 'https://github.com/Firebase/SpecsStaging.git'
 source 'https://github.com/CocoaPods/Specs.git'
-platform :ios, '10.0'
+platform :ios, '11.0'
 # Firebase AdMob test application.
 use_frameworks! :linkage => :static
 
