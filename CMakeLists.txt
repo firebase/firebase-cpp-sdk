@@ -529,8 +529,8 @@ else()
   add_custom_command(
     OUTPUT ${firebase_external_flatc}
     COMMAND cd ${firebase_external_flatc_build_dir} ${COMMAND_CONCAT}
-            ${ENV_COMMAND} cmake ${FLATBUFFERS_SOURCE_DIR} ${COMMAND_CONCAT}
-            ${ENV_COMMAND} cmake --build . --target flatc
+            ${ENV_COMMAND} ${CMAKE_COMMAND} ${FLATBUFFERS_SOURCE_DIR} ${COMMAND_CONCAT}
+            ${ENV_COMMAND} ${CMAKE_COMMAND} --build . --target flatc
     COMMENT "Building flatc (the FlatBuffer schema compiler)")
 
   # Add a target so that we can run the custom commands before the code build.
