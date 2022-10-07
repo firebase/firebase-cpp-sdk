@@ -17,6 +17,7 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_RPCS_CREATE_AUTH_URI_REQUEST_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_RPCS_CREATE_AUTH_URI_REQUEST_H_
 
+#include "app/src/include/firebase/app.h"
 #include "auth/request_generated.h"
 #include "auth/request_resource.h"
 #include "auth/src/desktop/rpcs/auth_request.h"
@@ -26,7 +27,8 @@ namespace auth {
 
 class CreateAuthUriRequest : public AuthRequest {
  public:
-  CreateAuthUriRequest(const char* api_key, const char* identifier);
+  CreateAuthUriRequest(::firebase::App& app, const char* api_key,
+                       const char* identifier);
 };
 
 }  // namespace auth

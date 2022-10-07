@@ -248,7 +248,7 @@ Firebase Functions         | firebase_functions.xcframework
 Google Mobile Ads          | firebase_gma.xcframework
 |                          | firebase.xcframework
 |                          | Firebase/Analytics Cocoapod (9.6.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (9.9.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (9.11.0)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
 |                          | FirebaseInstallations Cocoapod (9.6.0)
@@ -316,7 +316,7 @@ Firebase Functions         | libfirebase_functions.a
 Google Mobile Ads          | libfirebase_gma.a
 |                          | libfirebase_app.a
 |                          | Firebase/Analytics Cocoapod (9.6.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (9.9.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (9.11.0)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
 |                          | FirebaseInstallations Cocoapod (9.6.0)
@@ -641,6 +641,8 @@ code.
     - Auth (Android/iOS): Deprecating `PhoneAuthProvider::kMaxTimeoutMs`. The
       actual range is determined by the underlying SDK, ex.
       [PhoneAuthOptions.Builder from Android SDK](https://firebase.google.com/docs/reference/android/com/google/firebase/auth/PhoneAuthOptions.Builder).
+    - GMA (iOS): Updated iOS dependency to Google Mobile Ads SDK version
+      9.11.0.
 
 ### 9.6.0
 -   Changes
