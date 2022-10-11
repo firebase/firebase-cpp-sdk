@@ -7,6 +7,7 @@ target 'GetPods' do
 
   pod 'Google-Mobile-Ads-SDK', '9.11.0'
   pod 'Firebase/Analytics', '9.6.0'
+  pod 'Firebase/AppCheck', '9.6.0'
   pod 'Firebase/Auth', '9.6.0'
   pod 'Firebase/Crashlytics', '9.6.0'
   pod 'Firebase/Database', '9.6.0'
