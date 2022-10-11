@@ -32,7 +32,7 @@ typedef GetOobConfirmationCodeResponse ResponseT;
 // Test SetVerifyEmailRequest
 TEST(GetOobConfirmationCodeTest, SendVerifyEmailRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
-  auto request = RequestT::CreateSendEmailVerificationRequest("APIKEY");
+  auto request = RequestT::CreateSendEmailVerificationRequest(*app, "APIKEY");
   request->SetIdToken("token");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
@@ -49,7 +49,7 @@ TEST(GetOobConfirmationCodeTest, SendVerifyEmailRequest) {
 TEST(GetOobConfirmationCodeTest, SendPasswordResetEmailRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
   auto request =
-      RequestT::CreateSendPasswordResetEmailRequest("APIKEY", "email");
+      RequestT::CreateSendPasswordResetEmailRequest(*app, "APIKEY", "email");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "getOobConfirmationCode?key=APIKEY",

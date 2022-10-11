@@ -18,6 +18,7 @@
 #define FIREBASE_AUTH_SRC_DESKTOP_RPCS_AUTH_REQUEST_H_
 
 #include "app/rest/request_json.h"
+#include "app/src/include/firebase/app.h"
 #include "auth/request_generated.h"
 #include "auth/request_resource.h"
 
@@ -30,10 +31,14 @@ extern const char* kHeaderFirebaseLocale;
 class AuthRequest
     : public firebase::rest::RequestJson<fbs::Request, fbs::RequestT> {
  public:
-  explicit AuthRequest(const char* schema);
+  // App is a non-const parameter because this constructor might modify App's
+  // internal HeartbeatController by logging or fetching heartbeats.
+  AuthRequest(::firebase::App& app, const char* schema, bool deliver_heartbeat);
 
-  explicit AuthRequest(const unsigned char* schema)
-      : AuthRequest(reinterpret_cast<const char*>(schema)) {}
+  AuthRequest(::firebase::App& app, const unsigned char* schema,
+              bool deliver_heartbeat)
+      : AuthRequest(app, reinterpret_cast<const char*>(schema),
+                    deliver_heartbeat) {}
 };
 
 }  // namespace auth

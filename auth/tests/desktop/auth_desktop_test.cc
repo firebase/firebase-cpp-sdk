@@ -469,6 +469,7 @@ TEST_F(AuthDesktopTest, TestGetAccountInfo) {
   // Call the function and verify results.
   AuthData auth_data;
   AuthImpl auth;
+  auth_data.app = firebase_app_.get();
   auth_data.auth_impl = &auth;
   auth.api_key = "APIKEY";
   const GetAccountInfoResult result =

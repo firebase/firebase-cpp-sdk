@@ -15,12 +15,14 @@
 #include "auth/src/desktop/rpcs/delete_account_request.h"
 
 #include "app/src/assert.h"
+#include "app/src/include/firebase/app.h"
 
 namespace firebase {
 namespace auth {
 
-DeleteAccountRequest::DeleteAccountRequest(const char* const api_key)
-    : AuthRequest(request_resource_data) {
+DeleteAccountRequest::DeleteAccountRequest(::firebase::App& app,
+                                           const char* const api_key)
+    : AuthRequest(app, request_resource_data, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
   const char api_host[] =

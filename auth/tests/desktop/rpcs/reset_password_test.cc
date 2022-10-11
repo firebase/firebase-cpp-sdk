@@ -28,7 +28,7 @@ namespace auth {
 // Test ResetPasswordRequest
 TEST(ResetPasswordTest, TestResetPasswordRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
-  ResetPasswordRequest request("APIKEY", "oob", "password");
+  ResetPasswordRequest request(*app, "APIKEY", "oob", "password");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "resetPassword?key=APIKEY",
