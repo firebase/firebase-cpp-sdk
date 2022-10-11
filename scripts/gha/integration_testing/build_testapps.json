@@ -40,6 +40,21 @@
       "provision": "Google_Development.mobileprovision"
     },
     {
+      "name": "app_check",
+      "full_name": "FirebaseAppCheck",
+      "bundle_id": "com.google.FirebaseCppAppCheckTestApp.dev",
+      "ios_target": "integration_test",
+      "tvos_target": "integration_test_tvos",
+      "testapp_path": "app_check/integration_test",
+      "frameworks": [
+        "firebase_auth.xcframework",
+        "firebase_app_check.xcframework",
+        "firebase_database.xcframework",
+        "firebase.xcframework"
+      ],
+      "provision": "Firebase_Dev_Wildcard.mobileprovision"
+    },
+    {
       "name": "auth",
       "full_name": "FirebaseAuth",
       "bundle_id": "com.google.FirebaseCppAuthTestApp.dev",

@@ -498,6 +498,13 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth/credential.h
     ${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth/types.h
     ${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth/user.h)
+  set(app_check_HDRS
+    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check.h
+    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/app_attest_provider.h
+    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/debug_provider.h
+    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/device_check_provider.h
+    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/play_integrity_provider.h
+    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/safety_net_provider.h)
   set(database_HDRS
     ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database.h
     ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/common.h
@@ -565,6 +572,7 @@ if (IOS)
     src/include/firebase/internal/platform.h
     ${admob_HDRS}
     ${analytics_HDRS}
+    ${app_check_HDRS}
     ${auth_HDRS}
     ${database_HDRS}
     ${dynamic_links_HDRS}
