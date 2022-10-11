@@ -84,5 +84,48 @@ load all symbols for the SDK itself. Once loaded, you can right load on
 the IDE.
 
 # Android building and testing
+
+Once Android NDK is installed and added to `local.properties`, and `google-services.json`,
+is added to `integration_test_internal`, it should be possible to build the testing
+Android App directly with `gradlew`:
+
+```shell
+# from within integration_test_internal, build and install the testapp to an emulator or
+# device
+./gradlew installDebug
+
+# Start the testapp
+adb shell am start com.google.firebase.cpp.firestore.testapp/android.app.NativeActivity
+```
+
+**Note Firestore Emulator support is currently broken, it falls back to using Production Backend for now.**
+It is also possible to run the testapp against Firestore emulator, as long as the testapp
+is run from an Android Emulator and the Firestore emulator is running from the same
+host OS:
+
+```shell
+# Start the testapp, but run against Firestore emulator
+adb shell am start com.google.firebase.cpp.firestore.testapp/android.app.NativeActivity -e USE_FIRESTORE_EMULATOR true
+```
+
+## IDE Integration
+
+It is possible to simply open up the `integration_test_internal` directory from `Android Studio`
+directly, Android Studio will configure gradle and load all the tasks. Once configured, there
+should be a `integration_test_internal` testapp you can start/debug from Android Studio.
+
+In case when you cannot start the testapp from Android Studio, you can start it via `adb`:
+
+```shell
+# Start the testapp but wait for a debug to attach
+adb shell am start -D -N com.google.firebase.cpp.firestore.testapp/android.app.NativeActivity
+```
+
+Then attach the debugger from Android Studio to unblock the testapp.
+
+
 # iOS building and testing
+
+
+
 
