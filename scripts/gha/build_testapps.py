@@ -262,8 +262,27 @@ def main(argv):
     _run(["pod", "repo", "update"])
 
   cmake_flags = _get_desktop_compiler_flags(FLAGS.compiler, config.compilers)
+  # VCPKG is used to install dependencies for the desktop SDK.
+  # Building from source requires building the underlying SDK libraries,
+  # so we need to use VCPKG as well.
   if _DESKTOP in platforms and not FLAGS.packaged_sdk:
+    vcpkg_arch = FLAGS.arch
+    installer = os.path.join(repo_dir, "scripts", "gha", "build_desktop.py")
+    # --gha_build may be required to enable x86 Linux GitHub workarounds.
+    additional_flags = ["--gha_build"] if FLAGS.gha_build else []
+    _run([sys.executable, installer, "--vcpkg_step_only", "--arch", vcpkg_arch]
+         + additional_flags)
+    toolchain_file = os.path.join(
+        repo_dir, "external", "vcpkg", "scripts", "buildsystems", "vcpkg.cmake")
+    if utils.is_mac_os() and FLAGS.arch == "arm64":
+      toolchain_file = os.path.join(
+          repo_dir, "external", "vcpkg", "scripts", "buildsystems", "macos_arm64.cmake")
+    if utils.is_linux_os() and FLAGS.arch == "x86":
+      toolchain_file = os.path.join(
+          repo_dir, "external", "vcpkg", "scripts", "buildsystems", "linux_32.cmake")
     cmake_flags.extend((
+        "-DCMAKE_TOOLCHAIN_FILE=%s" % toolchain_file,
+        "-DVCPKG_TARGET_TRIPLET=%s" % utils.get_vcpkg_triplet(arch=vcpkg_arch),
         "-DFIREBASE_PYTHON_HOST_EXECUTABLE:FILEPATH=%s" % sys.executable,
     ))
 
