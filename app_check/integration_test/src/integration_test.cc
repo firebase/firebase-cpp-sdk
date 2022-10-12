@@ -392,8 +392,7 @@ TEST_F(FirebaseAppCheckTest, TestSafetyNetProvider) {
 }
 
 // Disabling the database tests for now, since they are crashing or hanging.
-#if 0
-TEST_F(FirebaseAppCheckTest, TestDatabaseFailure) {
+TEST_F(FirebaseAppCheckTest, DISABLED_TestDatabaseFailure) {
   // Don't initialize App Check this time. Database should fail.
   InitializeAppAuthDatabase();
   firebase::database::DatabaseReference ref = CreateWorkingPath();
@@ -403,7 +402,7 @@ TEST_F(FirebaseAppCheckTest, TestDatabaseFailure) {
   WaitForCompletion(f, "SetString");
 }
 
-TEST_F(FirebaseAppCheckTest, TestDatabaseCreateWorkingPath) {
+TEST_F(FirebaseAppCheckTest, DISABLED_TestDatabaseCreateWorkingPath) {
   InitializeAppCheckWithDebug();
   InitializeAppAuthDatabase();
   firebase::database::DatabaseReference working_path = CreateWorkingPath();
@@ -418,7 +417,7 @@ TEST_F(FirebaseAppCheckTest, TestDatabaseCreateWorkingPath) {
 
 static const char kSimpleString[] = "Some simple string";
 
-TEST_F(FirebaseAppCheckTest, TestDatabaseSetAndGet) {
+TEST_F(FirebaseAppCheckTest, DISABLED_TestDatabaseSetAndGet) {
   InitializeAppCheckWithDebug();
   InitializeAppAuthDatabase();
 
@@ -444,7 +443,7 @@ TEST_F(FirebaseAppCheckTest, TestDatabaseSetAndGet) {
   }
 }
 
-TEST_F(FirebaseAppCheckTest, TestRunTransaction) {
+TEST_F(FirebaseAppCheckTest, DISABLED_TestRunTransaction) {
   InitializeAppCheckWithDebug();
   InitializeAppAuthDatabase();
 
@@ -497,6 +496,5 @@ TEST_F(FirebaseAppCheckTest, TestRunTransaction) {
     EXPECT_EQ(read_result.value(), transaction_future.result()->value());
   }
 }
-#endif  // 0
 
 }  // namespace firebase_testapp_automated
