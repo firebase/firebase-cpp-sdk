@@ -225,7 +225,7 @@ Feature                    | Required Frameworks and Cocoapods
 Firebase AdMob             | firebase_admob.xcframework
 | (deprecated)             | firebase.xcframework
 |                          | Firebase/Analytics Cocoapod (10.0.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (7.69.0-cppsdk2)
+|                          | Google-Mobile-Ads-SDK Cocoapod (7.69.0-cppsdk3)
 Firebase Analytics         | firebase_analytics.xcframework
 |                          | firebase.xcframework
 |                          | Firebase/Analytics Cocoapod (10.0.0)
@@ -248,7 +248,7 @@ Firebase Functions         | firebase_functions.xcframework
 Google Mobile Ads          | firebase_gma.xcframework
 |                          | firebase.xcframework
 |                          | Firebase/Analytics Cocoapod (10.0.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (9.11.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (9.11.0.1)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
 |                          | FirebaseInstallations Cocoapod (10.0.0)
@@ -293,7 +293,7 @@ Feature                    | Required Libraries and Cocoapods
 Firebase AdMob             | libfirebase_admob.a
 | (deprecated)             | libfirebase_app.a
 |                          | Firebase/Analytics Cocoapod (10.0.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (7.69.0-cppsdk2)
+|                          | Google-Mobile-Ads-SDK Cocoapod (7.69.0-cppsdk3)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
 |                          | Firebase/Analytics Cocoapod (10.0.0)
@@ -316,7 +316,7 @@ Firebase Functions         | libfirebase_functions.a
 Google Mobile Ads          | libfirebase_gma.a
 |                          | libfirebase_app.a
 |                          | Firebase/Analytics Cocoapod (10.0.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (9.11.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (9.11.0.1)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
 |                          | FirebaseInstallations Cocoapod (10.0.0)
@@ -634,15 +634,19 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming
+### 10.0.0
 -   Changes
+    - General (iOS): Update to Firebase Cocoapods version 10.0.0.
     - General: Remove unused headers for performance and test lab from the
       package.
     - Auth (Android/iOS): Deprecating `PhoneAuthProvider::kMaxTimeoutMs`. The
       actual range is determined by the underlying SDK, ex.
       [PhoneAuthOptions.Builder from Android SDK](https://firebase.google.com/docs/reference/android/com/google/firebase/auth/PhoneAuthOptions.Builder).
     - GMA (iOS): Updated iOS dependency to Google Mobile Ads SDK version
-      9.11.0.
+      9.11.0.1.
+    - AdMob (iOS): Temporarily pinned AdMob dependency to a special version of
+      the Google-Mobile-Ads-SDK Cocoapod, "7.69.0-cppsdk3", to maintain
+      compatibility with version 10.x of the Firebase iOS SDK.
 
 ### 9.6.0
 -   Changes
