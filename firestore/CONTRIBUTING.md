@@ -78,6 +78,11 @@ cmake -DFIRESTORE_DEP_SOURCE=555555 ..
 
 ## IDE Integration
 
+Open up the repo root directory from `CLion` should load all symbols for the SDK itsel should 
+load all symbols for the SDK itself. Once loaded, you can right load on 
+`firestore/integration_test_internal/CMakeLists.txt` and `load project` to load the tests into
+the IDE.
+
 # Android building and testing
 # iOS building and testing
 
