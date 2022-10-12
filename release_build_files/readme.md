@@ -636,6 +636,7 @@ code.
 ## Release Notes
 ### 10.0.0
 -   Changes
+    - General (Android): Update to Firebase Android BoM version 31.0.0.
     - General (iOS): Update to Firebase Cocoapods version 10.0.0.
     - General: Remove unused headers for performance and test lab from the
       package.
