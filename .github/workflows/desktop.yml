@@ -29,7 +29,7 @@ jobs:
       matrix_xcode_version: ${{ steps.export-result.outputs.xcode_version }}
       matrix_python_version: ${{ steps.export-result.outputs.python_version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: false
       - name: Use expanded matrix
@@ -109,7 +109,7 @@ jobs:
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
       
@@ -163,7 +163,7 @@ jobs:
           key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}${{ env.VCPKG_EXTRA_HASH }}
 
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python_version }}
           architecture: 'x64'
@@ -295,7 +295,7 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
@@ -311,7 +311,7 @@ jobs:
           path: ccache_dir
           key: local-integration-tests-linux-openssl-ccache
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version)[0] }}
       - name: Prepare for integration tests

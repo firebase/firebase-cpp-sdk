@@ -27,7 +27,7 @@ jobs:
       matrix_architecture: ${{ steps.export-result.outputs.matrix_architecture }}
       matrix_python_version: ${{ steps.export-result.outputs.matrix_python_version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: false
       - name: Use expanded matrix
@@ -72,7 +72,7 @@ jobs:
           echo "Enabling expanded build and test matrix."
           echo "USE_EXPANDED_MATRIX=1" >> $GITHUB_ENV
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
 
@@ -83,7 +83,7 @@ jobs:
           echo "GHA_INSTALL_CCACHE=1" >> $GITHUB_ENV
 
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python_version }}
           architecture: ${{ matrix.architecture }}

@@ -144,13 +144,13 @@ jobs:
       uses: styfle/cancel-workflow-action@0.8.0
       with:
         access_token: ${{ github.token }}
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         ref: ${{steps.set_outputs.outputs.github_ref}}
         fetch-depth: 0
         submodules: false
     - name: Setup python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ env.pythonVersion }}
     - name: Install python deps
@@ -265,12 +265,12 @@ jobs:
           ssl_variant: openssl
           arch: arm64
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Install Desktop SDK & integration tests prerequisites
@@ -384,7 +384,7 @@ jobs:
       matrix:
         os: ${{ fromJson(needs.check_and_prepare.outputs.matrix_os) }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
@@ -398,7 +398,7 @@ jobs:
           path: /tmp/android-ndk-r21e
           key: android-ndk-${{ matrix.os }}-r21e
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Install Android SDK & integration tests prerequisites
@@ -492,12 +492,12 @@ jobs:
       matrix:
         os: [macos-12]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Install iOS SDK & integration tests prerequisites
@@ -591,12 +591,12 @@ jobs:
       matrix:
         os: [macos-12]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Install tvOS SDK & integration tests prerequisites
@@ -715,7 +715,7 @@ jobs:
         - os: macos-12
           arch: arm64
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download Desktop integration tests artifact
@@ -724,7 +724,7 @@ jobs:
           path: testapps/testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
           name: testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Install prerequisites for testing
@@ -838,7 +838,7 @@ jobs:
         run: |
           echo "Cleaning up previous run"
           rm -rf "${{ github.workspace }}"/*
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download Desktop integration tests artifact
@@ -969,7 +969,7 @@ jobs:
           -  android_device: "android_latest"
              test_type: "uitest"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download Android integration tests artifact
@@ -978,7 +978,7 @@ jobs:
           path: testapps/testapps-android-${{ matrix.build_os }}
           name: testapps-android-${{ matrix.build_os }}
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Install prerequisites for testing
@@ -1117,7 +1117,7 @@ jobs:
              test_type: "uitest"
         build_os: [macos-12]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download iOS integration tests artifact
@@ -1126,7 +1126,7 @@ jobs:
           path: testapps/testapps-ios-${{ matrix.build_os }}
           name: testapps-ios-${{ matrix.build_os }}
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Install prerequisites for testing
@@ -1244,7 +1244,7 @@ jobs:
         tvos_device: ${{ fromJson(needs.check_and_prepare.outputs.tvos_device) }}
         build_os: [macos-12]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Download tvOS integration tests artifact
@@ -1253,7 +1253,7 @@ jobs:
           path: testapps/testapps-tvos-${{ matrix.build_os }}
           name: testapps-tvos-${{ matrix.build_os }}
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Install prerequisites for testing
@@ -1339,11 +1339,11 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ !cancelled() }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
