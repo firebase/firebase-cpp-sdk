@@ -79,7 +79,7 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-All Firebase SDKs          | platform(com.google.firebase:firebase-bom:30.5.0)
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:31.0.0)
 |                          | (Android Bill of Materials)
 Firebase AdMob             | libfirebase_admob.a
 | (deprecated)             | libfirebase_app.a
@@ -125,7 +125,7 @@ Google Mobile Ads          | libfirebase_gma.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.android.gms:play-services-ads:21.2.0
+|                          | com.google.android.gms:play-services-ads:21.3.0
 |                          | (Maven package)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
@@ -636,6 +636,7 @@ code.
 ## Release Notes
 ### 10.0.0
 -   Changes
+    - General (Android): Update to Firebase Android BoM version 31.0.0.
     - General (iOS): Update to Firebase Cocoapods version 10.0.0.
     - General: Remove unused headers for performance and test lab from the
       package.
