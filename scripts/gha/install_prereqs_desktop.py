@@ -34,13 +34,20 @@ import utils
 
 def main():
   args = parse_cmdline_args()
-
+  
   if not args.running_only:
+    if utils.is_linux_os():
+      run_command(['apt', 'install', 'aptitude'], as_root=True, check=True)
+    #  utils.run_command(['dpkg', '--add-architecture', 'i386', as_root=True)
+    #  # sudo apt install libsecret-1-0
+    #  utils.run_command(['apt', 'install', '-y','libsecret-1-0'], as_root=True)
+      
+
     # Install protobuf on linux/mac if its not installed already
     if not utils.is_command_installed('protoc'):
       if utils.is_linux_os():
           # sudo apt install protobuf-compiler
-          utils.run_command(['apt', 'install', '-y','protobuf-compiler'], as_root=True)
+          utils.run_command(['aptitude', 'install', '-y','protobuf-compiler'], as_root=True)
       elif utils.is_mac_os():
           # brew install protobuf
           utils.run_command(['brew', 'install', 'protobuf'])
@@ -49,7 +56,7 @@ def main():
     if not utils.is_command_installed('go'):
       if utils.is_linux_os():
           # sudo apt install -y golang
-          utils.run_command(['apt', 'install', '-y','golang'], as_root=True)
+          utils.run_command(['aptitude', 'install', '-y','golang'], as_root=True)
       elif utils.is_mac_os():
           # brew install go
           utils.run_command(['brew', 'install', 'go'])
@@ -58,7 +65,7 @@ def main():
     if args.ssl == 'openssl':
       if utils.is_linux_os():
           # sudo apt install -y openssl
-          utils.run_command(['apt', 'install', '-y','openssl'], as_root=True)
+          utils.run_command(['aptitude', 'install', '-y','openssl'], as_root=True)
       elif utils.is_mac_os():
           # brew install openssl
           utils.run_command(['brew', 'install', 'openssl'])
@@ -69,7 +76,7 @@ def main():
     if not utils.is_command_installed('ccache'):
       if utils.is_linux_os():
           # sudo apt install ccache
-          utils.run_command(['apt', 'install', '-y', 'ccache'], as_root=True)
+          utils.run_command(['aptitude', 'install', '-y', 'ccache'], as_root=True)
       elif utils.is_mac_os():
           # brew install ccache
           utils.run_command(['brew', 'install', 'ccache'])
@@ -78,7 +85,7 @@ def main():
     if not utils.is_command_installed('clang-format'):
       if utils.is_linux_os():
           # sudo apt install clang-format
-          utils.run_command(['apt', 'install', '-y','clang-format'], as_root=True)
+          utils.run_command(['aptitude', 'install', '-y','clang-format'], as_root=True)
       elif utils.is_mac_os():
           # brew install protobuf
           utils.run_command(['brew', 'install', 'clang-format'])
