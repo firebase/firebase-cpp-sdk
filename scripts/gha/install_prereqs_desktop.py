@@ -38,7 +38,7 @@ def main():
   if not args.running_only:
     if utils.is_linux_os():
       utils.run_command(['apt', 'install', 'aptitude'], as_root=True, check=True)
-      utils.run_command(['dpkg', '--add-architecture', 'i386', as_root=True)
+      utils.run_command(['dpkg', '--add-architecture', 'i386'], as_root=True)
       
 
     # Install protobuf on linux/mac if its not installed already
