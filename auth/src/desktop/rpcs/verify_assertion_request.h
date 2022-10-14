@@ -20,6 +20,7 @@
 #include <memory>
 #include <string>
 
+#include "app/src/include/firebase/app.h"
 #include "app/src/log.h"
 #include "auth/request_generated.h"
 #include "auth/request_resource.h"
@@ -31,20 +32,23 @@ namespace auth {
 class VerifyAssertionRequest : public AuthRequest {
  public:
   static std::unique_ptr<VerifyAssertionRequest> FromIdToken(
-      const char* api_key, const char* provider_id, const char* id_token);
+      ::firebase::App& app, const char* api_key, const char* provider_id,
+      const char* id_token);
   static std::unique_ptr<VerifyAssertionRequest> FromIdToken(
-      const char* api_key, const char* provider_id, const char* id_token,
-      const char* nonce);
+      ::firebase::App& app, const char* api_key, const char* provider_id,
+      const char* id_token, const char* nonce);
   static std::unique_ptr<VerifyAssertionRequest> FromAccessToken(
-      const char* api_key, const char* provider_id, const char* access_token);
+      ::firebase::App& app, const char* api_key, const char* provider_id,
+      const char* access_token);
   static std::unique_ptr<VerifyAssertionRequest> FromAccessToken(
-      const char* api_key, const char* provider_id, const char* access_token,
-      const char* nonce);
+      ::firebase::App& app, const char* api_key, const char* provider_id,
+      const char* access_token, const char* nonce);
   static std::unique_ptr<VerifyAssertionRequest> FromAccessTokenAndOAuthSecret(
-      const char* api_key, const char* provider_id, const char* access_token,
-      const char* oauth_secret);
+      ::firebase::App& app, const char* api_key, const char* provider_id,
+      const char* access_token, const char* oauth_secret);
   static std::unique_ptr<VerifyAssertionRequest> FromAuthCode(
-      const char* api_key, const char* provider_id, const char* auth_code);
+      ::firebase::App& app, const char* api_key, const char* provider_id,
+      const char* auth_code);
 
   void SetIdToken(const char* const id_token) {
     if (id_token) {
@@ -56,7 +60,8 @@ class VerifyAssertionRequest : public AuthRequest {
   }
 
  private:
-  VerifyAssertionRequest(const char* api_key, const char* provider_id);
+  VerifyAssertionRequest(::firebase::App& app, const char* api_key,
+                         const char* provider_id);
 
   std::string post_body_;
 };

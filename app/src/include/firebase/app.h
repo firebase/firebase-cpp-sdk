@@ -24,6 +24,7 @@
 #endif  // FIREBASE_PLATFORM_ANDROID
 
 #include <map>
+#include <memory>
 #include <string>
 
 #if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
@@ -44,6 +45,14 @@ void CheckCompilerString(const char* input);
 namespace internal {
 class FunctionRegistry;
 }  // namespace internal
+#endif  // INTERNAL_EXPERIMENTAL
+
+#ifdef INTERNAL_EXPERIMENTAL
+#if FIREBASE_PLATFORM_DESKTOP
+namespace heartbeat {
+class HeartbeatController;  // forward declaration
+}  // namespace heartbeat
+#endif  // FIREBASE_PLATFORM_DESKTOP
 #endif  // INTERNAL_EXPERIMENTAL
 
 namespace internal {
@@ -699,6 +708,19 @@ class App {
   // Note - when setting this, make sure to end the path with the appropriate
   // path separator!
   static void SetDefaultConfigPath(const char* path);
+#endif  // INTERNAL_EXPERIMENTAL
+
+#ifdef INTERNAL_EXPERIMENTAL
+#if FIREBASE_PLATFORM_DESKTOP
+  // These methods are only visible to SWIG and internal users of firebase::App.
+
+  /// Logs a heartbeat using the internal HeartbeatController.
+  void LogHeartbeat() const;
+
+  /// Get a pointer to the HeartbeatController associated with this app.
+  std::shared_ptr<heartbeat::HeartbeatController> GetHeartbeatController()
+      const;
+#endif  // FIREBASE_PLATFORM_DESKTOP
 #endif  // INTERNAL_EXPERIMENTAL
 
 #ifdef INTERNAL_EXPERIMENTAL
