@@ -35,6 +35,8 @@ import utils
 def main():
   args = parse_cmdline_args()
 
+  run_command(['apt', 'install', 'aptitude'], as_root=True, check=True)
+  
   if args.arch == 'x86':
     utils.install_x86_support_libraries(args.gha_build)
   
