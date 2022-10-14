@@ -34,6 +34,9 @@ import utils
 
 def main():
   args = parse_cmdline_args()
+
+  if args.arch == 'x86':
+    utils.install_x86_support_libraries(args.gha_build)
   
   if not args.running_only:
     # Install protobuf on linux/mac if its not installed already
@@ -90,9 +93,6 @@ def main():
     utils.run_command(
        ['python3' if utils.is_command_installed('python3') else 'python', '-m',
             'pip', 'install', '-r', 'external/pip_requirements.txt', '--user'] )
-
-  if args.arch == 'x86':
-    utils.install_x86_support_libraries(args.gha_build)
 
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Install prerequisites for building cpp sdk')
