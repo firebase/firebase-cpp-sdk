@@ -36,6 +36,7 @@ def main():
   args = parse_cmdline_args()
 
   if utils.is_linux_os():
+    utils.run_command(['apt', 'update'], as_root=True, check=True)
     utils.run_command(['apt', 'install', 'aptitude'], as_root=True, check=True)
 
   if args.arch == 'x86':
