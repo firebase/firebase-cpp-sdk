@@ -229,7 +229,7 @@ def install_x86_support_libraries(gha_build=False):
                downgrading Ubuntu packages).
   """
   if is_linux_os():
-    packages = ['gcc-multilib', 'g++-multilib', 'libglib2.0-dev:i386',
+    packages = ['build-essential', 'gcc-multilib', 'g++-multilib', 'libglib2.0-dev:i386',
                 'libsecret-1-dev:i386', 'libpthread-stubs0-dev:i386',
                 'libssl-dev:i386']
 
