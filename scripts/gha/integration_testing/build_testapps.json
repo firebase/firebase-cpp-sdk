@@ -40,6 +40,21 @@
       "provision": "Google_Development.mobileprovision"
     },
     {
+      "name": "app_check",
+      "full_name": "FirebaseAppCheck",
+      "bundle_id": "com.google.firebase.cpp.appcheck.testapp",
+      "ios_target": "integration_test",
+      "tvos_target": "integration_test_tvos",
+      "testapp_path": "app_check/integration_test",
+      "frameworks": [
+        "firebase_app_check.xcframework",
+        "firebase_auth.xcframework",
+        "firebase_database.xcframework",
+        "firebase.xcframework"
+      ],
+      "provision": "Firebase_Dev_Wildcard.mobileprovision"
+    },
+    {
       "name": "auth",
       "full_name": "FirebaseAuth",
       "bundle_id": "com.google.FirebaseCppAuthTestApp.dev",
@@ -248,6 +263,7 @@
     "'admob' : ['com.google.firebase:firebase-ads:[0,)',",
     "'com.google.android.gms:play-services-measurement-sdk-api:[0,)'],",
     "'analytics' : ['com.google.firebase:firebase-analytics:[0,)'],",
+    "'app_check' : ['com.google.firebase:firebase-appcheck:[0,)'],",
     "'auth' : ['com.google.firebase:firebase-auth:[0,)'],",
     "'database' : ['com.google.firebase:firebase-database:[0,)'],",
     "'dynamic_links' : ['com.google.firebase:firebase-dynamic-links:[0,)'],",
