@@ -493,6 +493,13 @@ if (IOS)
     ${analytics_generated_headers_dir}/event_names.h
     ${analytics_generated_headers_dir}/parameter_names.h
     ${analytics_generated_headers_dir}/user_property_names.h)
+  set(app_check_HDRS
+    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check.h
+    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/app_attest_provider.h
+    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/debug_provider.h
+    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/device_check_provider.h
+    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/play_integrity_provider.h
+    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/safety_net_provider.h)
   set(auth_HDRS
     ${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth.h
     ${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth/credential.h
@@ -565,6 +572,7 @@ if (IOS)
     src/include/firebase/internal/platform.h
     ${admob_HDRS}
     ${analytics_HDRS}
+    ${app_check_HDRS}
     ${auth_HDRS}
     ${database_HDRS}
     ${dynamic_links_HDRS}
