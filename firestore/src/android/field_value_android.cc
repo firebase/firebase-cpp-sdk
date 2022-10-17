@@ -156,7 +156,7 @@ FieldValueInternal::FieldValueInternal(GeoPoint value)
   object_ = GeoPointInternal::Create(env, value);
 }
 
-FieldValueInternal::FieldValueInternal(std::vector<FieldValue> value)
+FieldValueInternal::FieldValueInternal(const std::vector<FieldValue>& value)
     : cached_type_(Type::kArray) {
   Env env = GetEnv();
   Local<ArrayList> list = ArrayList::Create(env, value.size());
@@ -167,7 +167,7 @@ FieldValueInternal::FieldValueInternal(std::vector<FieldValue> value)
   object_ = list;
 }
 
-FieldValueInternal::FieldValueInternal(MapFieldValue value)
+FieldValueInternal::FieldValueInternal(const MapFieldValue& value)
     : cached_type_(Type::kMap) {
   Env env = GetEnv();
   Local<HashMap> map = HashMap::Create(env);
