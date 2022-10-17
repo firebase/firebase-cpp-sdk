@@ -3,13 +3,10 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 52;
+	objectVersion = 46;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		12CCF1D528FDAB3800C24941 /* firebase_auth.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D6818267AFF9B005DC2DA /* firebase_auth.xcframework */; };
-		12CCF1D628FDAB3B00C24941 /* firebase_firestore.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D681A267AFF9B005DC2DA /* firebase_firestore.xcframework */; };
-		12CCF1D728FDAB3D00C24941 /* firebase.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D6819267AFF9B005DC2DA /* firebase.xcframework */; };
 		12CCF1D928FDBC6A00C24941 /* locate_emulator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 12CCF1D828FDBC6A00C24941 /* locate_emulator.cc */; };
 		12CCF1DA28FDBC6A00C24941 /* locate_emulator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 12CCF1D828FDBC6A00C24941 /* locate_emulator.cc */; };
 		12CCF1E028FDBD9F00C24941 /* settings_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 12CCF1DB28FDBD9E00C24941 /* settings_test.cc */; };
@@ -22,9 +19,6 @@
 		12CCF1E728FDBD9F00C24941 /* write_batch_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 12CCF1DE28FDBD9F00C24941 /* write_batch_test.cc */; };
 		12CCF1E828FDBD9F00C24941 /* set_options_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 12CCF1DF28FDBD9F00C24941 /* set_options_test.cc */; };
 		12CCF1E928FDBD9F00C24941 /* set_options_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 12CCF1DF28FDBD9F00C24941 /* set_options_test.cc */; };
-		12CCF1EA28FDBDAD00C24941 /* firebase_auth.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D6818267AFF9B005DC2DA /* firebase_auth.xcframework */; };
-		12CCF1EB28FDBDB000C24941 /* firebase_firestore.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D681A267AFF9B005DC2DA /* firebase_firestore.xcframework */; };
-		12CCF1EC28FDBDB300C24941 /* firebase.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D6819267AFF9B005DC2DA /* firebase.xcframework */; };
 		12D513142684C8C200A83FAA /* bundle_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 12D513132684C8C200A83FAA /* bundle_test.cc */; };
 		12D5131A2684C8D100A83FAA /* bundle_builder.cc in Sources */ = {isa = PBXBuildFile; fileRef = 12D513182684C8D100A83FAA /* bundle_builder.cc */; };
 		520BC0391C869159008CFBC3 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 520BC0381C869159008CFBC3 /* GoogleService-Info.plist */; };
@@ -143,9 +137,6 @@
 		8C4AC9C038C468519B583C7C /* firebase_auth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = firebase_auth.framework; path = Frameworks/firebase_auth.framework; sourceTree = "<group>"; };
 		AA66DDF2F9BB2D8480FAB9BD /* Pods-integration_test.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-integration_test.debug.xcconfig"; path = "Target Support Files/Pods-integration_test/Pods-integration_test.debug.xcconfig"; sourceTree = "<group>"; };
 		B7F45B5446094E107E88721A /* firebase_firestore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = firebase_firestore.framework; path = Frameworks/firebase_firestore.framework; sourceTree = "<group>"; };
-		BC1D6818267AFF9B005DC2DA /* firebase_auth.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = firebase_auth.xcframework; path = "../../../firebase-cpp-sdk/ios_tvos_build/xcframeworks/firebase_auth.xcframework"; sourceTree = "<group>"; };
-		BC1D6819267AFF9B005DC2DA /* firebase.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = firebase.xcframework; path = "../../../firebase-cpp-sdk/ios_tvos_build/xcframeworks/firebase.xcframework"; sourceTree = "<group>"; };
-		BC1D681A267AFF9B005DC2DA /* firebase_firestore.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = firebase_firestore.xcframework; path = "../../../firebase-cpp-sdk/ios_tvos_build/xcframeworks/firebase_firestore.xcframework"; sourceTree = "<group>"; };
 		BC1D6822267B0030005DC2DA /* integration_test_tvos.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = integration_test_tvos.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BC1D682B267B0030005DC2DA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		BC1D6830267B0032005DC2DA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -208,9 +199,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				12CCF1D728FDAB3D00C24941 /* firebase.xcframework in Frameworks */,
-				12CCF1D528FDAB3800C24941 /* firebase_auth.xcframework in Frameworks */,
-				12CCF1D628FDAB3B00C24941 /* firebase_firestore.xcframework in Frameworks */,
 				529226D81C85F68000C89379 /* CoreGraphics.framework in Frameworks */,
 				529226DA1C85F68000C89379 /* UIKit.framework in Frameworks */,
 				529226D61C85F68000C89379 /* Foundation.framework in Frameworks */,
@@ -227,11 +215,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				12CCF1EA28FDBDAD00C24941 /* firebase_auth.xcframework in Frameworks */,
 				BC1D685E267B0116005DC2DA /* CoreGraphics.framework in Frameworks */,
-				12CCF1EB28FDBDB000C24941 /* firebase_firestore.xcframework in Frameworks */,
 				BC1D685C267B0112005DC2DA /* UIKit.framework in Frameworks */,
-				12CCF1EC28FDBDB300C24941 /* firebase.xcframework in Frameworks */,
 				BC1D685A267B010D005DC2DA /* Foundation.framework in Frameworks */,
 				7DDCFC4B946EA9D8EB8FBDF2 /* Pods_integration_test_tvos.framework in Frameworks */,
 			);
@@ -282,9 +267,6 @@
 				BC1D685D267B0116005DC2DA /* CoreGraphics.framework */,
 				BC1D685B267B0112005DC2DA /* UIKit.framework */,
 				BC1D6859267B010D005DC2DA /* Foundation.framework */,
-				BC1D6818267AFF9B005DC2DA /* firebase_auth.xcframework */,
-				BC1D681A267AFF9B005DC2DA /* firebase_firestore.xcframework */,
-				BC1D6819267AFF9B005DC2DA /* firebase.xcframework */,
 				529226D51C85F68000C89379 /* Foundation.framework */,
 				529226D71C85F68000C89379 /* CoreGraphics.framework */,
 				529226D91C85F68000C89379 /* UIKit.framework */,
@@ -786,8 +768,8 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)",
+					"${inherited}",
+					./Frameworks,
 				);
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -812,10 +794,7 @@
 					"/Users/wuandy/projects/firebase-cpp-sdk",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.google.firebase.cpp.firestore.testapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -837,8 +816,8 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)",
+					"${inherited}",
+					./Frameworks,
 				);
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -863,10 +842,7 @@
 					"/Users/wuandy/projects/firebase-cpp-sdk",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.google.firebase.cpp.firestore.testapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -903,10 +879,11 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
+				ENABLE_BITCODE = NO;
 				ENABLE_TESTABILITY = YES;
 				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)",
+					"${inherited}",
+					./Frameworks,
 				);
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -931,10 +908,7 @@
 					"\"$(SRCROOT)/../..\"",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.google.firebase.cpp.firestore.testapp;
@@ -976,9 +950,10 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
+				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)",
+					"${inherited}",
+					./Frameworks,
 				);
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -1003,10 +978,7 @@
 					"\"$(SRCROOT)/../..\"",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.google.firebase.cpp.firestore.testapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";

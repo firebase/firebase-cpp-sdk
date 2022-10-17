@@ -130,7 +130,7 @@ When targting iOS, the SDK gets its dependency from Cocoapods, as opposed to fro
 The dependencies are specified with `ios_pod/Podfile`. Running cmake for iOS will download the pods
 listed in this file, and add the C++ headers from the downloaded pods to include directories.
 
-To build Firestore for iOS:
+To build Firestore for iOS/tvOS:
 ```shell
 # Make sure your ruby version is not 3+. A tool like `rvm` can be useful here.
 # Ruby 2.7+ is known to work.
@@ -147,6 +147,12 @@ cd firestore/integration_test_internal
 # Install the underlaying Firestore C++ Core SDK from cocoapods and build the
 # integration test XCode project
 pod install
+
+# Add built xcframework from `build_ios_tvos.py` to ios tests
+ruby ../../scripts/gha/integration_testing/xcode_tool.rb --XCodeCPP.xcodeProjectDir . --XCodeCPP.target integration_test --XCodeCPP.frameworks ../../ios_tvos_build/xcframeworks/firebase.xcframework,../../ios_tvos_build/xcframeworks/firebase_firestore.xcframework,../../ios_tvos_build/xcframeworks/firebase_auth.xcframework
+
+# Add built xcframework from `build_ios_tvos.py` to tvos tests
+ruby ../../scripts/gha/integration_testing/xcode_tool.rb --XCodeCPP.xcodeProjectDir . --XCodeCPP.target integration_test_tvos --XCodeCPP.frameworks ../../ios_tvos_build/xcframeworks/firebase.xcframework,../../ios_tvos_build/xcframeworks/firebase_firestore.xcframework,../../ios_tvos_build/xcframeworks/firebase_auth.xcframework
 
 # Open up the workspace
 open integration_test.xcworkspace
