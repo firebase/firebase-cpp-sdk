@@ -107,7 +107,7 @@ PARAMETERS = {
       "ios_device": ["ios_target", "simulator_target"],
       "tvos_device": ["tvos_simulator"],
       "build_type": ["Debug"],
-      "architecture_windows_linux": ["x64"],
+      "architecture_windows_linux": ["x64", "x86"],
       "architecture_macos": ["x64"],
       "msvc_runtime": ["dynamic"],
       "cpp_compiler_windows": ["VisualStudio2019"],
