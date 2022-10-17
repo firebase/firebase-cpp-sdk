@@ -528,7 +528,7 @@ else()
   # value (finding cmake in the PATH) is fine; however, in cases where cmake is
   # *not* in the PATH (e.g. when building from CLion) it must be specified via
   # via this cache variable.
-  set(FIREBASE_FLATC_CMAKE_COMMAND "${CMAKE_COMMAND}" CACHE FILEPATH
+  set(FIREBASE_FLATC_CMAKE_COMMAND "cmake" CACHE FILEPATH
     "The cmake command to use when compiling flatc.")
 
   # Build flatc by invoking the cmake build, with only the flatc target.
