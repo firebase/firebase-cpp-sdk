@@ -524,13 +524,20 @@ else()
     set(ENV_COMMAND env -i PATH=${firebase_command_line_path})
   endif()
 
+  # The cmake executable to use when compiling flatc. Normally, the default
+  # value (finding cmake in the PATH) is fine; however, in cases where cmake is
+  # *not* in the PATH (e.g. when building from CLion) it must be specified via
+  # via this cache variable.
+  set(FIREBASE_FLATC_CMAKE_COMMAND "${CMAKE_COMMAND}" CACHE FILEPATH
+    "The cmake command to use when compiling flatc.")
+
   # Build flatc by invoking the cmake build, with only the flatc target.
   file(MAKE_DIRECTORY ${firebase_external_flatc_build_dir})
   add_custom_command(
     OUTPUT ${firebase_external_flatc}
     COMMAND cd ${firebase_external_flatc_build_dir} ${COMMAND_CONCAT}
-            ${ENV_COMMAND} ${CMAKE_COMMAND} ${FLATBUFFERS_SOURCE_DIR} ${COMMAND_CONCAT}
-            ${ENV_COMMAND} ${CMAKE_COMMAND} --build . --target flatc
+            ${ENV_COMMAND} ${FIREBASE_FLATC_CMAKE_COMMAND} ${FLATBUFFERS_SOURCE_DIR} ${COMMAND_CONCAT}
+            ${ENV_COMMAND} ${FIREBASE_FLATC_CMAKE_COMMAND} --build . --target flatc
     COMMENT "Building flatc (the FlatBuffer schema compiler)")
 
   # Add a target so that we can run the custom commands before the code build.
