@@ -634,6 +634,12 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming
+-   Changes
+    - Firestore (Android): Reduce the number of JNI global references consumed
+      when creating or updating documents
+      ([#1111](https://github.com/firebase/firebase-cpp-sdk/pull/1111)).
+
 ### 10.0.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 31.0.0.
