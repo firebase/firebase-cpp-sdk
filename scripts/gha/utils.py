@@ -228,9 +228,7 @@ def install_x86_support_libraries(gha_build=False):
                workarounds that might be undesirable on a personal system (e.g.
                downgrading Ubuntu packages).
   """
-  print("install_x86_support_libraries start")
   if is_linux_os():
-    print("install_x86_support_libraries is_linux_os")
     packages = ['gcc-multilib', 'g++-multilib', 'libglib2.0-dev:i386',
                 'libsecret-1-dev:i386', 'libpthread-stubs0-dev:i386',
                 'libssl-dev:i386']

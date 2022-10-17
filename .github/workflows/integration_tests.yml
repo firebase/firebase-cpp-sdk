@@ -296,12 +296,6 @@ jobs:
           name: 'firebase_cpp_sdk.zip'
           workflow: 'cpp-packaging.yml'
           run_id: ${{ github.event.inputs.test_packaged_sdk }}
-      - name: ls /usr/lib
-        shell: bash
-        run: |
-          set -x
-          ls -l /usr/lib
-          ls -l /usr/lib/i386-linux-gnu
       - name: Build integration tests
         shell: bash
         env:
