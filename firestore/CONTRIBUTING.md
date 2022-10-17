@@ -126,6 +126,45 @@ Then attach the debugger from Android Studio to unblock the testapp.
 
 # iOS building and testing
 
+When targting iOS, the SDK gets its dependency from Cocoapods, as opposed to from `cmake/external/firestore.cmake`.
+The dependencies are specified with `ios_pod/Podfile`. Running cmake for iOS will download the pods
+listed in this file, and add the C++ headers from the downloaded pods to include directories.
+
+To build Firestore for iOS:
+```shell
+# Make sure your ruby version is not 3+. A tool like `rvm` can be useful here.
+# Ruby 2.7+ is known to work.
+ruby --version
+
+# From repo root, the script below assumes this directory is not created yet.
+rm -rf ./ios_tvos_build
+# From repo root, build required xcframeworks under $SDK_ROOT/ios_tvos_build
+python3 scripts/gha/build_ios_tvos.py -t firebase_auth firebase_firestore
+
+# change directory to Firestore integration tests
+cd firestore/integration_test_internal
+
+# Install the underlaying Firestore C++ Core SDK from cocoapods and build the
+# integration test XCode project
+pod install
+
+# Open up the workspace
+open integration_test.xcworkspace
+```
+
+It should now be possible to run iOS tests in a simulator or a device from XCode.
+
+To run the tests against a Firestore Emulator from an iOS simulator, set environment
+variable `USE_FIRESTORE_EMULATOR` from XCode by:
+
+1. Go to `Edit Scheme...` for target `integration_test`.
+2. Add the environment variable like below:
+
+![edit_ios_scheme_firestore_emulator.png](edit_ios_scheme_firestore_emulator.png)
 
 
+## IDE Integration
 
+IDE integration for iOS unfortunately is splitted between CLion and XCode. You can
+do most of the development from CLion, with the same setup as desktop testing, and
+use XCode for debugging only.
