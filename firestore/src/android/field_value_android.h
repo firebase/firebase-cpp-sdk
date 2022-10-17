@@ -64,8 +64,14 @@ class FieldValueInternal {
   FieldValueInternal(const uint8_t* value, size_t size);
   explicit FieldValueInternal(DocumentReference value);
   explicit FieldValueInternal(GeoPoint value);
-  explicit FieldValueInternal(std::vector<FieldValue> value);
-  explicit FieldValueInternal(MapFieldValue value);
+  // Deviate from the iOS signatures of the following two constructors. The iOS
+  // versions take values into which the caller moves, to elide a copy. In
+  // Android, this actually *costs* an extra copy when calling from
+  // `DocumentReferenceInternal::Set()`, doubling the number of global
+  // references needed. Using const references in Android avoids this extra,
+  // costly copy (https://github.com/firebase/quickstart-unity/issues/1303).
+  explicit FieldValueInternal(const std::vector<FieldValue>& value);
+  explicit FieldValueInternal(const MapFieldValue& value);
 
   Type type() const;
 

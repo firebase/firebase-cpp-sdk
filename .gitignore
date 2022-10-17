@@ -24,3 +24,23 @@ testing/test_framework/external/
 
 # XCode user specific folders
 **/xcuserdata/
+
+# Local gradle properties
+**/local.properties
+
+# Auto generated files for firestore internal tests
+firestore/integration_test_internal/download_googletest.py
+firestore/integration_test_internal/external
+firestore/integration_test_internal/src/android/android_app_framework.cc
+firestore/integration_test_internal/src/android/android_firebase_test_framework.cc
+firestore/integration_test_internal/src/app_framework.cc
+firestore/integration_test_internal/src/app_framework.h
+firestore/integration_test_internal/src/desktop/desktop_app_framework.cc
+firestore/integration_test_internal/src/desktop/desktop_firebase_test_framework.cc
+firestore/integration_test_internal/src/empty.swift
+firestore/integration_test_internal/src/firebase_test_framework.cc
+firestore/integration_test_internal/src/firebase_test_framework.h
+firestore/integration_test_internal/src/ios/ios_app_framework.mm
+firestore/integration_test_internal/src/ios/ios_firebase_test_framework.mm
+firestore/integration_test_internal/src/ios/.clang-format
+firestore/integration_test_internal/src/android/java/com/google/firebase/example

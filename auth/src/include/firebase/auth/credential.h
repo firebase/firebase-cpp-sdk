@@ -526,7 +526,7 @@ class PhoneAuthProvider {
   /// Larger values will be clamped.
   ///
   /// @deprecated This value is no longer used to clamp
-  /// `auto_verify_time_out_ms` in @ref VerifyPhoneNumber. The range is
+  /// `auto_verify_time_out_ms` in VerifyPhoneNumber. The range is
   /// determined by the underlying SDK, ex. <a
   /// href="/docs/reference/android/com/google/firebase/auth/PhoneAuthOptions.Builder"><code>PhoneAuthOptions.Build</code>
   /// in Android SDK</a>

@@ -48,7 +48,7 @@ import utils
 # Configuration for supported os's, and platforms.
 CONFIG = {
   'ios': {
-    'supported_targets' : ('firebase_admob', 'firebase_analytics',
+    'supported_targets' : ('firebase_admob', 'firebase_analytics', 'firebase_app_check',
                            'firebase_auth', 'firebase_database',
                            'firebase_dynamic_links', 'firebase_firestore',
                            'firebase_functions', 'firebase_gma',
@@ -65,7 +65,7 @@ CONFIG = {
   },
 
   'tvos': {
-    'supported_targets' : ('firebase_auth', 'firebase_analytics',
+    'supported_targets' : ('firebase_auth', 'firebase_analytics', 'firebase_app_check',
                            'firebase_database', 'firebase_firestore',
                            'firebase_functions', 'firebase_installations',
                            'firebase_messaging', 'firebase_remote_config',
