@@ -18,7 +18,6 @@
 #define FIREBASE_APP_CHECK_SRC_IOS_UTIL_IOS_H_
 
 #import "FIRAppCheckToken.h"
-
 #include "firebase/app_check.h"
 
 namespace firebase {
