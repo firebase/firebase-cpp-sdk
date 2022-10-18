@@ -43,6 +43,7 @@ set(android_SRCS
 set(ios_SRCS
   src/ios/app_check_ios.mm
   src/ios/app_check_ios.h
+  src/ios/common_ios.h
   # Supported providers
   src/ios/app_attest_provider_ios.mm
   src/ios/debug_provider_ios.mm

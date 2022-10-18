@@ -131,6 +131,14 @@ def main(argv):
     messaging_project = os.path.join(repo_dir, "messaging", "integration_test")
     _patch_main_src(messaging_project, "REPLACE_WITH_YOUR_SERVER_KEY", server_key)
 
+  if not FLAGS.apis or "app_check" in FLAGS.apis:
+    print("Attempting to patch app check debug token.")
+    app_check_token_path = os.path.join(secrets_dir, "app_check", "app_check_token.txt.gpg")
+    app_check_token = _decrypt(app_check_token_path, passphrase)
+    app_check_project = os.path.join(
+      repo_dir, "app_check", "integration_test")
+    _patch_xcschemes(app_check_project, "REPLACE_WITH_APP_CHECK_TOKEN", app_check_token)
+
   print("Attempting to decrypt GCS service account key file.")
   decrypted_key_file = os.path.join(secrets_dir, "gcs_key_file.json")
   encrypted_key_file = decrypted_key_file + ".gpg"
@@ -195,6 +203,15 @@ def _patch_bundle_id(service_plist_path):
       path=os.path.join(os.path.dirname(service_plist_path), "Info.plist"),
       placeholder="$(PRODUCT_BUNDLE_IDENTIFIER)",
       value=service_plist["BUNDLE_ID"])
+
+
+def _patch_xcschemes(project_dir, placeholder, value):
+  """Patches the .xcscheme files in the integration test project."""
+  schemes = ["integration_test.xcscheme", "integration_test_tvos.xcscheme"]
+  for scheme in schemes:
+    path = os.path.join(
+      project_dir, "integration_test.xcodeproj", "xcshareddata", "xcschemes", scheme)
+    _patch_file(app_check_scheme, placeholder, value)
 
 
 def _patch_main_src(project_dir, placeholder, value):

@@ -14,10 +14,54 @@
 
 #include "firebase/app_check/debug_provider.h"
 
+#import "FIRAppCheckDebugProvider.h"
+#import "FIRAppCheckDebugProviderFactory.h"
+
+#include "app_check/src/ios/common_ios.h"
+#include "app_check/src/ios/app_check_ios.h"
+#include "firebase/app_check.h"
+#include "app/src/util_ios.h"
+
 namespace firebase {
 namespace app_check {
 
+namespace internal {
+
+class DebugAppCheckProvider : public AppCheckProvider {
+ public:
+  DebugAppCheckProvider(FIRAppCheckDebugProvider* provider);
+  virtual ~DebugAppCheckProvider();
+
+  /// Fetches an AppCheckToken and then calls the provided callback method with
+  /// the token or with an error code and error message.
+  virtual void GetToken(
+      std::function<void(AppCheckToken, int, const std::string&)>
+          completion_callback) override;
+  
+ private:
+  FIRAppCheckDebugProvider* provider_;
+};
+
+DebugAppCheckProvider::DebugAppCheckProvider(FIRAppCheckDebugProvider* provider): provider_(provider) {}
+
+DebugAppCheckProvider::~DebugAppCheckProvider() {}
+
+void DebugAppCheckProvider::GetToken(
+      std::function<void(AppCheckToken, int, const std::string&)>
+          completion_callback) {
+  [provider_ getTokenWithCompletion:^(
+    FIRAppCheckToken *_Nullable token, NSError *_Nullable error) {
+      completion_callback(
+        firebase::app_check::AppCheckTokenFromFIRAppCheckToken(token),
+        firebase::app_check::AppCheckErrorFromNSError(error),
+        util::NSStringToString(error.localizedDescription).c_str());
+  }];
+}
+
+}  // namespace internal
+
 static DebugAppCheckProviderFactory* g_debug_app_check_provider_factory = nullptr;
+static FIRAppCheckDebugProviderFactory* g_ios_debug_app_check_provider_factory = nullptr;
 
 DebugAppCheckProviderFactory* DebugAppCheckProviderFactory::GetInstance() {
   if (!g_debug_app_check_provider_factory) {
@@ -26,11 +70,20 @@ DebugAppCheckProviderFactory* DebugAppCheckProviderFactory::GetInstance() {
   return g_debug_app_check_provider_factory;
 }
 
-DebugAppCheckProviderFactory::DebugAppCheckProviderFactory() {}
+DebugAppCheckProviderFactory::DebugAppCheckProviderFactory() {
+  if (!g_ios_debug_app_check_provider_factory) {
+    g_ios_debug_app_check_provider_factory =
+        [[FIRAppCheckDebugProviderFactory alloc] init];
+  }
+}
 
 DebugAppCheckProviderFactory::~DebugAppCheckProviderFactory() {}
 
-AppCheckProvider* DebugAppCheckProviderFactory::CreateProvider(App* app) { return nullptr; }
+AppCheckProvider* DebugAppCheckProviderFactory::CreateProvider(App* app) {
+  FIRAppCheckDebugProvider *createdProvider =
+    [g_ios_debug_app_check_provider_factory createProviderWithApp:app->GetPlatformApp()];
+  return new internal::DebugAppCheckProvider(createdProvider);
+}
 
 }  // namespace app_check
 }  // namespace firebase
