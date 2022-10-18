@@ -211,7 +211,7 @@ def _patch_xcschemes(project_dir, placeholder, value):
   for scheme in schemes:
     path = os.path.join(
       project_dir, "integration_test.xcodeproj", "xcshareddata", "xcschemes", scheme)
-    _patch_file(app_check_scheme, placeholder, value)
+    _patch_file(path, placeholder, value)
 
 
 def _patch_main_src(project_dir, placeholder, value):
