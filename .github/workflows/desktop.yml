@@ -343,7 +343,7 @@ jobs:
             exit 1
           fi
       - name: Set up Node (16)
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: 16.x
       - name: Setup Firestore Emulator

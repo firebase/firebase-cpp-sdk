@@ -735,7 +735,7 @@ jobs:
           max_attempts: 3
           command: scripts/gha/install_test_workflow_prereqs.sh -p Desktop -t true -a '${{ matrix.arch }}' -s '${{ matrix.ssl_variant }}'
       - name: Set up Node (16)
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: 16.x
       - name: Setup Firestore Emulator
@@ -914,7 +914,7 @@ jobs:
           fi
       - name: Upload Desktop test results artifact
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v2.2.2
+        uses: actions/upload-artifact@v3
         with:
           name: log-artifact
           path: testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}*
@@ -993,7 +993,7 @@ jobs:
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_device_type)"
           echo "::set-output name=device::$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_ftl_device)"
       - name: Set up Node (16)
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: 16.x
       - name: Setup java 17 for Firestore emulator
@@ -1140,7 +1140,7 @@ jobs:
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.ios_device }} -get_device_type)"
           echo "::set-output name=device::$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.ios_device }} -get_ftl_device)"
       - name: Set up Node (16)
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: 16.x
       - name: Setup java for Firestore emulator
