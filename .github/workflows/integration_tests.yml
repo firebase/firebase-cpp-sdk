@@ -319,7 +319,7 @@ jobs:
           command: scripts/gha/install_test_workflow_prereqs.sh -p Desktop -a '${{ matrix.arch }}' -s '${{ matrix.ssl_variant }}'
       - name: Add msbuild to PATH (Windows)
         if: startsWith(matrix.os, 'windows')
-        uses: microsoft/setup-msbuild@v1.0.2
+        uses: microsoft/setup-msbuild@v1.1
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
         uses: actions/cache@v3
@@ -427,7 +427,7 @@ jobs:
           submodules: true
       - name: Add msbuild to PATH (Windows)
         if: startsWith(matrix.os, 'windows')
-        uses: microsoft/setup-msbuild@v1.0.2
+        uses: microsoft/setup-msbuild@v1.1
       - name: Cache NDK
         id: cache_ndk
         uses: actions/cache@v3
