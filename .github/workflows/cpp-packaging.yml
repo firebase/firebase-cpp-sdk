@@ -125,7 +125,7 @@ jobs:
       - name: Cache LLVM (Mac only)
         if: matrix.tools_platform == 'darwin'
         id: cache_llvm
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: llvm-src/llvm/build/bin
           key: llvm-bin-${{matrix.tools_platform}}-${{env.xcodeVersion}}-${{env.llvmVer}}
@@ -262,7 +262,7 @@ jobs:
 
       - name: Cache NDK
         id: cache_ndk
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: /tmp/android-ndk-r21e
           key: android-ndk-${{ runner.os }}-r21e
@@ -383,7 +383,7 @@ jobs:
 
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}${{env.VCPKG_EXTRA_HASH}}
@@ -391,7 +391,7 @@ jobs:
       - name: Cache ccache files
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
         id: cache_ccache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ccache_dir
           key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}

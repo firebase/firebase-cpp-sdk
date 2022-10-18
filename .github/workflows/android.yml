@@ -94,7 +94,7 @@ jobs:
 
       - name: Cache NDK
         id: cache_ndk
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: /tmp/android-ndk-r21e
           key: android-ndk-${{ matrix.os }}-r21e
@@ -139,7 +139,7 @@ jobs:
 
       - name: Cache ccache files
         id: cache_ccache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ccache_dir
           key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}

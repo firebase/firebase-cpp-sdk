@@ -285,7 +285,7 @@ jobs:
         uses: microsoft/setup-msbuild@v1.0.2
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ env.VCPKG_TRIPLET }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
@@ -393,7 +393,7 @@ jobs:
         uses: microsoft/setup-msbuild@v1.0.2
       - name: Cache NDK
         id: cache_ndk
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: /tmp/android-ndk-r21e
           key: android-ndk-${{ matrix.os }}-r21e
