@@ -17,10 +17,10 @@
 #import "FIRAppCheckErrors.h"
 #import "FIRAppCheckToken.h"
 
+#include "app/src/util_ios.h"
 #include "app_check/src/common/common.h"
 #include "firebase/app_check.h"
 #include "firebase/internal/common.h"
-#include "app/src/util_ios.h"
 
 namespace firebase {
 namespace app_check {
@@ -78,7 +78,7 @@ static const struct {
     {FIRAppCheckErrorCodeUnsupported, kAppCheckErrorUnsupportedProvider},
 };
 
-AppCheckError AppCheckErrorFromNSError(NSError *_Nullable error) {
+AppCheckError AppCheckErrorFromNSError(NSError* _Nullable error) {
   if (!error) {
     return kAppCheckErrorNone;
   }
@@ -88,7 +88,7 @@ AppCheckError AppCheckErrorFromNSError(NSError *_Nullable error) {
   return kAppCheckErrorUnknown;
 }
 
-AppCheckToken AppCheckTokenFromFIRAppCheckToken(FIRAppCheckToken *_Nullable token) {
+AppCheckToken AppCheckTokenFromFIRAppCheckToken(FIRAppCheckToken* _Nullable token) {
   AppCheckToken cpp_token;
   if (token) {
     cpp_token.token = util::NSStringToString(token.token);

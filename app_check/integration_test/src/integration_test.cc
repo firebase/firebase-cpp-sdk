@@ -347,16 +347,16 @@ TEST_F(FirebaseAppCheckTest, TestDebugProviderValidToken) {
   firebase::app_check::AppCheckProvider* provider =
       factory->CreateProvider(app_);
   ASSERT_NE(provider, nullptr);
-  auto token_callback{[](
-    firebase::app_check::AppCheckToken token, int error_code, const std::string& error_message) {
-      LogInfo("Error code is : %d", error_code);
-      LogInfo("Error message is : %s", error_message.c_str());
-      LogInfo("Expire time is is : %lld", token.expire_time_millis);
-      LogInfo("Token is : %s", token.token.c_str());
-      EXPECT_EQ(firebase::app_check::kAppCheckErrorNone, error_code);
-      EXPECT_EQ("", error_message);
-      EXPECT_NE(0, token.expire_time_millis);
-      EXPECT_NE("", token.token);
+  auto token_callback{[](firebase::app_check::AppCheckToken token,
+                         int error_code, const std::string& error_message) {
+    LogInfo("Error code is : %d", error_code);
+    LogInfo("Error message is : %s", error_message.c_str());
+    LogInfo("Expire time is is : %lld", token.expire_time_millis);
+    LogInfo("Token is : %s", token.token.c_str());
+    EXPECT_EQ(firebase::app_check::kAppCheckErrorNone, error_code);
+    EXPECT_EQ("", error_message);
+    EXPECT_NE(0, token.expire_time_millis);
+    EXPECT_NE("", token.token);
   }};
   provider->GetToken(token_callback);
   // ALMOSTMATT - temp - sleep a bit to let async work succeed
