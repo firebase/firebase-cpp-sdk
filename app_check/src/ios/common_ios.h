@@ -31,4 +31,4 @@ AppCheckToken AppCheckTokenFromFIRAppCheckToken(
 }  // namespace app_check
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_SRC_IOS_COMMON_IOS_H_
+#endif  // FIREBASE_APP_CHECK_SRC_IOS_COMMON_IOS_H_

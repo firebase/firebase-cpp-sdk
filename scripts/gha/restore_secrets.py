@@ -133,11 +133,13 @@ def main(argv):
 
   if not FLAGS.apis or "app_check" in FLAGS.apis:
     print("Attempting to patch app check debug token.")
-    app_check_token_path = os.path.join(secrets_dir, "app_check", "app_check_token.txt.gpg")
+    app_check_token_path = os.path.join(
+      secrets_dir, "app_check", "app_check_token.txt.gpg")
     app_check_token = _decrypt(app_check_token_path, passphrase)
     app_check_project = os.path.join(
       repo_dir, "app_check", "integration_test")
-    _patch_xcschemes(app_check_project, "REPLACE_WITH_APP_CHECK_TOKEN", app_check_token)
+    _patch_xcschemes(
+      app_check_project, "REPLACE_WITH_APP_CHECK_TOKEN", app_check_token)
 
   print("Attempting to decrypt GCS service account key file.")
   decrypted_key_file = os.path.join(secrets_dir, "gcs_key_file.json")
@@ -210,7 +212,11 @@ def _patch_xcschemes(project_dir, placeholder, value):
   schemes = ["integration_test.xcscheme", "integration_test_tvos.xcscheme"]
   for scheme in schemes:
     path = os.path.join(
-      project_dir, "integration_test.xcodeproj", "xcshareddata", "xcschemes", scheme)
+      project_dir,
+      "integration_test.xcodeproj",
+      "xcshareddata",
+      "xcschemes",
+      scheme)
     _patch_file(path, placeholder, value)
 
 

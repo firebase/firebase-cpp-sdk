@@ -95,7 +95,7 @@ AppCheckToken AppCheckTokenFromFIRAppCheckToken(FIRAppCheckToken* _Nullable toke
     NSTimeInterval seconds = token.expirationDate.timeIntervalSince1970;
     cpp_token.expire_time_millis = static_cast<int64_t>(seconds * 1000);
   }
-  // TODO: what to do if ios token is null? should cpp token be nullable?
+  // Note: if the iOS token is null, the cpp_token will have default values.
   return cpp_token;
 }
 
