@@ -281,17 +281,14 @@ jobs:
           max_attempts: 3
           command: scripts/gha/install_test_workflow_prereqs.sh -p Desktop -a '${{ matrix.arch }}' -s '${{ matrix.ssl_variant }}'
       - name: DDB Install Multiarch Dependencies
-        if: startsWith(matrix.os, 'ubuntu')
+        if: startsWith(matrix.os, 'noop')
         shell: bash
         run: |
           set -x
           sudo apt update
           sudo apt install aptitude
           sudo dpkg --add-architecture i386
-          sudo aptitude install -V -y build-essential
-          sudo aptitude install -V -y gcc-multilib
           sudo aptitude install -V -y gcc-multilib:i386
-          sudo aptitude install -V -y g++-multilib
           sudo aptitude install -V -y g++-multilib:i386
           sudo aptitude install -V -y libglib2.0-dev:i386
           sudo aptitude install -V -y libsecret-1-dev:i386
