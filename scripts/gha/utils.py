@@ -229,8 +229,8 @@ def install_x86_support_libraries(gha_build=False):
                downgrading Ubuntu packages).
   """
   if is_linux_os():
-    packages = ['gcc-multilib:i386', 'g++-multilib:i386', 'libglib2.0-dev:i386',
-                'libsecret-1-dev:i386', 'libpthread-stubs0-dev:i386',
+    packages = ['gcc-multilib:i386', 'gcc-multilib', 'g++-multilib', 'g++-multilib:i386',
+                'libglib2.0-dev:i386', 'libsecret-1-dev:i386', 'libpthread-stubs0-dev:i386',
                 'libssl-dev:i386']
 
     # Configure multi arch support to include i386.
