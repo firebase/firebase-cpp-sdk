@@ -15,6 +15,8 @@
 #ifndef FIREBASE_APP_CHECK_SRC_IOS_APP_CHECK_IOS_H_
 #define FIREBASE_APP_CHECK_SRC_IOS_APP_CHECK_IOS_H_
 
+#import "FIRAppCheckToken.h"
+
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
@@ -55,6 +57,12 @@ class AppCheckInternal {
 };
 
 }  // namespace internal
+
+AppCheckError AppCheckErrorFromNSError(NSError *_Nullable error);
+
+AppCheckToken AppCheckTokenFromFIRAppCheckToken(
+    FIRAppCheckToken *_Nullable token);
+
 }  // namespace app_check
 }  // namespace firebase
 
