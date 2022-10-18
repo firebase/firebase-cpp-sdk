@@ -14,13 +14,10 @@
 
 #include "app_check/src/ios/app_check_ios.h"
 
-#import "FIRAppCheckErrors.h"
 #import "FIRAppCheckToken.h"
 
-#include "app/src/util_ios.h"
 #include "app_check/src/common/common.h"
 #include "firebase/app_check.h"
-#include "firebase/internal/common.h"
 
 namespace firebase {
 namespace app_check {
@@ -66,38 +63,5 @@ void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {}
 void AppCheckInternal::RemoveAppCheckListener(AppCheckListener* listener) {}
 
 }  // namespace internal
-
-static const struct {
-  int ios_error;
-  AppCheckError cpp_error;
-} kIosToCppErrorMap[] = {
-    {FIRAppCheckErrorCodeUnknown, kAppCheckErrorUnknown},
-    {FIRAppCheckErrorCodeServerUnreachable, kAppCheckErrorServerUnreachable},
-    {FIRAppCheckErrorCodeInvalidConfiguration, kAppCheckErrorInvalidConfiguration},
-    {FIRAppCheckErrorCodeKeychain, kAppCheckErrorSystemKeychain},
-    {FIRAppCheckErrorCodeUnsupported, kAppCheckErrorUnsupportedProvider},
-};
-
-AppCheckError AppCheckErrorFromNSError(NSError* _Nullable error) {
-  if (!error) {
-    return kAppCheckErrorNone;
-  }
-  for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kIosToCppErrorMap); i++) {
-    if (error.code == kIosToCppErrorMap[i].ios_error) return kIosToCppErrorMap[i].cpp_error;
-  }
-  return kAppCheckErrorUnknown;
-}
-
-AppCheckToken AppCheckTokenFromFIRAppCheckToken(FIRAppCheckToken* _Nullable token) {
-  AppCheckToken cpp_token;
-  if (token) {
-    cpp_token.token = util::NSStringToString(token.token);
-    NSTimeInterval seconds = token.expirationDate.timeIntervalSince1970;
-    cpp_token.expire_time_millis = static_cast<int64_t>(seconds * 1000);
-  }
-  // Note: if the iOS token is null, the cpp_token will have default values.
-  return cpp_token;
-}
-
 }  // namespace app_check
 }  // namespace firebase

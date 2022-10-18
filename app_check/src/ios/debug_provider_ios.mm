@@ -19,7 +19,6 @@
 
 #include "app/src/util_ios.h"
 #include "app_check/src/ios/app_check_ios.h"
-#include "app_check/src/ios/common_ios.h"
 #include "firebase/app_check.h"
 
 namespace firebase {
@@ -49,8 +48,8 @@ DebugAppCheckProvider::~DebugAppCheckProvider() {}
 void DebugAppCheckProvider::GetToken(
     std::function<void(AppCheckToken, int, const std::string&)> completion_callback) {
   [provider_ getTokenWithCompletion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
-    completion_callback(firebase::app_check::AppCheckTokenFromFIRAppCheckToken(token),
-                        firebase::app_check::AppCheckErrorFromNSError(error),
+    completion_callback(firebase::app_check::internal::AppCheckTokenFromFIRAppCheckToken(token),
+                        firebase::app_check::internal::AppCheckErrorFromNSError(error),
                         util::NSStringToString(error.localizedDescription).c_str());
   }];
 }

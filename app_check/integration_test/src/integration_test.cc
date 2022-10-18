@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <future>
 #include <map>
 #include <string>
 #include <thread>
@@ -346,17 +347,19 @@ TEST_F(FirebaseAppCheckTest, TestDebugProviderValidToken) {
   firebase::app_check::AppCheckProvider* provider =
       factory->CreateProvider(app_);
   ASSERT_NE(provider, nullptr);
+  auto got_token_promise = std::make_shared<std::promise<>>();
   auto token_callback{[](firebase::app_check::AppCheckToken token,
                          int error_code, const std::string& error_message) {
     EXPECT_EQ(firebase::app_check::kAppCheckErrorNone, error_code);
     EXPECT_EQ("", error_message);
     EXPECT_NE(0, token.expire_time_millis);
     EXPECT_NE("", token.token);
+    got_token_promise->set_value();
   }};
   provider->GetToken(token_callback);
-  // Sleep for a bit to give GetToken time to succeed
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));
-  EXPECT_TRUE(true);
+  auto kTimeout = std::chrono::seconds(5);
+  auto got_token_future = got_token_promise->get_future();
+  ASSERT_EQ(std::future_status::ready, got_token_future.wait_for(kTimeout));
 #else
   EXPECT_EQ(factory, nullptr);
 #endif
