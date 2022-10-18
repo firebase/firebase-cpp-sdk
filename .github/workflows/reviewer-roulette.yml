@@ -63,7 +63,8 @@ jobs:
           done
           reviewer_list+=']'
           echo "Reviewer list: ${reviewer_list}"
-          echo "::set-output name=reviewer_list::${reviewer_list}"
+          echo "reviewer_list=${reviewer_list}" >> $GITHUB_OUTPUT
+          # echo "::set-output name=reviewer_list::${reviewer_list}"
           # If the list is empty, print a warning. The following steps won't run.
           if [[ "${reviewer_list}" == "[]" ]]; then
             echo "::warning ::No reviewers available"

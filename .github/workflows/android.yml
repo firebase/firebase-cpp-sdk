@@ -36,9 +36,12 @@ jobs:
           echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
       - id: export-result
         run: |
-          echo "::set-output name=matrix_os::$( python scripts/gha/print_matrix_configuration.py -w android -k os ${EXPANDED_MATRIX_PARAM} )"
-          echo "::set-output name=matrix_architecture::$( python scripts/gha/print_matrix_configuration.py -w android -k architecture ${EXPANDED_MATRIX_PARAM} )"
-          echo "::set-output name=matrix_python_version::$( python scripts/gha/print_matrix_configuration.py -w android -k python_version ${EXPANDED_MATRIX_PARAM} )"
+          echo "matrix_os=$( python scripts/gha/print_matrix_configuration.py -w android -k os ${EXPANDED_MATRIX_PARAM} )" >> $GITHUB_OUTPUT
+          echo "matrix_architecture=$( python scripts/gha/print_matrix_configuration.py -w android -k architecture ${EXPANDED_MATRIX_PARAM} )" >> $GITHUB_OUTPUT
+          echo "matrix_python_version=$( python scripts/gha/print_matrix_configuration.py -w android -k python_version ${EXPANDED_MATRIX_PARAM} )" >> $GITHUB_OUTPUT
+          # echo "::set-output name=matrix_os::$( python scripts/gha/print_matrix_configuration.py -w android -k os ${EXPANDED_MATRIX_PARAM} )"
+          # echo "::set-output name=matrix_architecture::$( python scripts/gha/print_matrix_configuration.py -w android -k architecture ${EXPANDED_MATRIX_PARAM} )"
+          # echo "::set-output name=matrix_python_version::$( python scripts/gha/print_matrix_configuration.py -w android -k python_version ${EXPANDED_MATRIX_PARAM} )"
 
   build:
     name: android-${{ matrix.os }}-${{ matrix.architecture }}-${{ matrix.python_version }}

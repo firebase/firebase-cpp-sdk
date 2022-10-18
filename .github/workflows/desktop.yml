@@ -38,12 +38,19 @@ jobs:
           echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
       - id: export-result
         run: |
-          echo "::set-output name=matrix_os::$( python scripts/gha/print_matrix_configuration.py -w desktop -k os ${EXPANDED_MATRIX_PARAM})"
-          echo "::set-output name=matrix_build_type::$( python scripts/gha/print_matrix_configuration.py -w desktop -k build_type ${EXPANDED_MATRIX_PARAM})"
-          echo "::set-output name=matrix_architecture::$( python scripts/gha/print_matrix_configuration.py -w desktop -k architecture ${EXPANDED_MATRIX_PARAM})"
-          echo "::set-output name=msvc_runtime::$( python scripts/gha/print_matrix_configuration.py -w desktop -k msvc_runtime ${EXPANDED_MATRIX_PARAM})"
-          echo "::set-output name=xcode_version::$( python scripts/gha/print_matrix_configuration.py -w desktop -k xcode_version ${EXPANDED_MATRIX_PARAM})"
-          echo "::set-output name=python_version::$( python scripts/gha/print_matrix_configuration.py -w desktop -k python_version ${EXPANDED_MATRIX_PARAM})"
+          echo "matrix_os=$( python scripts/gha/print_matrix_configuration.py -w desktop -k os ${EXPANDED_MATRIX_PARAM})" >> $GITHUB_OUTPUT
+          echo "matrix_build_type=$( python scripts/gha/print_matrix_configuration.py -w desktop -k build_type ${EXPANDED_MATRIX_PARAM})" >> $GITHUB_OUTPUT
+          echo "matrix_architecture=$( python scripts/gha/print_matrix_configuration.py -w desktop -k architecture ${EXPANDED_MATRIX_PARAM})" >> $GITHUB_OUTPUT
+          echo "msvc_runtime=$( python scripts/gha/print_matrix_configuration.py -w desktop -k msvc_runtime ${EXPANDED_MATRIX_PARAM})" >> $GITHUB_OUTPUT
+          echo "xcode_version=$( python scripts/gha/print_matrix_configuration.py -w desktop -k xcode_version ${EXPANDED_MATRIX_PARAM})" >> $GITHUB_OUTPUT
+          echo "python_version=$( python scripts/gha/print_matrix_configuration.py -w desktop -k python_version ${EXPANDED_MATRIX_PARAM})" >> $GITHUB_OUTPUT
+
+          # echo "::set-output name=matrix_os::$( python scripts/gha/print_matrix_configuration.py -w desktop -k os ${EXPANDED_MATRIX_PARAM})"
+          # echo "::set-output name=matrix_build_type::$( python scripts/gha/print_matrix_configuration.py -w desktop -k build_type ${EXPANDED_MATRIX_PARAM})"
+          # echo "::set-output name=matrix_architecture::$( python scripts/gha/print_matrix_configuration.py -w desktop -k architecture ${EXPANDED_MATRIX_PARAM})"
+          # echo "::set-output name=msvc_runtime::$( python scripts/gha/print_matrix_configuration.py -w desktop -k msvc_runtime ${EXPANDED_MATRIX_PARAM})"
+          # echo "::set-output name=xcode_version::$( python scripts/gha/print_matrix_configuration.py -w desktop -k xcode_version ${EXPANDED_MATRIX_PARAM})"
+          # echo "::set-output name=python_version::$( python scripts/gha/print_matrix_configuration.py -w desktop -k python_version ${EXPANDED_MATRIX_PARAM})"
   build:
     name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime}}
     runs-on: ${{ matrix.os }}
