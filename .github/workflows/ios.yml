@@ -33,7 +33,6 @@ jobs:
       - id: export-result
         run: |
           echo "matrix_xcode_version=$( python scripts/gha/print_matrix_configuration.py -w ios -k xcode_version ${EXPANDED_MATRIX_PARAM} )" >> $GITHUB_OUTPUT
-          # echo "::set-output name=matrix_xcode_version::$( python scripts/gha/print_matrix_configuration.py -w ios -k xcode_version ${EXPANDED_MATRIX_PARAM} )"
 
   build:
     name: ios-${{ matrix.os }}-${{ matrix.xcode_version }}
