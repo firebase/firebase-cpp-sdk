@@ -991,10 +991,11 @@ jobs:
           timeout_minutes: 5
           max_attempts: 3
           command: scripts/gha/install_test_workflow_prereqs.sh -p Android -t true
-      - id: device-info
+      - name: Get Device Info
+        id: device-info
         run: |
           echo "device_type=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_device_type)" >> $GITHUB_OUTPUT
-          echo "device_type=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_ftl_device)" >> $GITHUB_OUTPUT
+          echo "device=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_ftl_device)" >> $GITHUB_OUTPUT
       - name: Set up Node (16)
         uses: actions/setup-node@v3
         with:
@@ -1138,7 +1139,8 @@ jobs:
           timeout_minutes: 3
           max_attempts: 3
           command: scripts/gha/install_test_workflow_prereqs.sh -p iOS -t true
-      - id: device-info
+      - name: Device Info
+        id: device-info
         run: |
           echo "device_type=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.ios_device }} -get_device_type)" >> $GITHUB_OUTPUT
           echo "device=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.ios_device }} -get_ftl_device)" >> $GITHUB_OUTPUT
