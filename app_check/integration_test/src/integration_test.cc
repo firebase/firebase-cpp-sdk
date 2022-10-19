@@ -65,6 +65,8 @@ using testing::Pair;
 using testing::UnorderedElementsAre;
 
 const char kIntegrationTestRootPath[] = "integration_test_data";
+const std::chrono::milliseconds kGetTokenTimeout =
+    std::chrono::milliseconds(5000);
 
 class FirebaseAppCheckTest : public FirebaseTest {
  public:
@@ -349,18 +351,19 @@ TEST_F(FirebaseAppCheckTest, TestDebugProviderValidToken) {
       factory->CreateProvider(app_);
   ASSERT_NE(provider, nullptr);
   auto got_token_promise = std::make_shared<std::promise<void>>();
-  auto token_callback{[&got_token_promise](firebase::app_check::AppCheckToken token,
-                         int error_code, const std::string& error_message) {
-    EXPECT_EQ(firebase::app_check::kAppCheckErrorNone, error_code);
-    EXPECT_EQ("", error_message);
-    EXPECT_NE(0, token.expire_time_millis);
-    EXPECT_NE("", token.token);
-    got_token_promise->set_value();
-  }};
+  auto token_callback{
+      [&got_token_promise](firebase::app_check::AppCheckToken token,
+                           int error_code, const std::string& error_message) {
+        EXPECT_EQ(firebase::app_check::kAppCheckErrorNone, error_code);
+        EXPECT_EQ("", error_message);
+        EXPECT_NE(0, token.expire_time_millis);
+        EXPECT_NE("", token.token);
+        got_token_promise->set_value();
+      }};
   provider->GetToken(token_callback);
-  auto kTimeout = std::chrono::seconds(5);
   auto got_token_future = got_token_promise->get_future();
-  ASSERT_EQ(std::future_status::ready, got_token_future.wait_for(kTimeout));
+  ASSERT_EQ(std::future_status::ready,
+            got_token_future.wait_for(kGetTokenTimeout));
 #else
   EXPECT_EQ(factory, nullptr);
 #endif
@@ -370,11 +373,25 @@ TEST_F(FirebaseAppCheckTest, TestAppAttestProvider) {
   firebase::app_check::AppAttestProviderFactory* factory =
       firebase::app_check::AppAttestProviderFactory::GetInstance();
 #if FIREBASE_PLATFORM_IOS
-  EXPECT_NE(factory, nullptr);
+  ASSERT_NE(factory, nullptr);
   InitializeApp();
   firebase::app_check::AppCheckProvider* provider =
       factory->CreateProvider(app_);
-  EXPECT_NE(provider, nullptr);
+  ASSERT_NE(provider, nullptr);
+  auto got_token_promise = std::make_shared<std::promise<void>>();
+  auto token_callback{
+      [&got_token_promise](firebase::app_check::AppCheckToken token,
+                           int error_code, const std::string& error_message) {
+        EXPECT_EQ(firebase::app_check::kAppCheckErrorUnsupportedProvider,
+                  error_code);
+        EXPECT_NE("", error_message);
+        EXPECT_EQ("", token.token);
+        got_token_promise->set_value();
+      }};
+  provider->GetToken(token_callback);
+  auto got_token_future = got_token_promise->get_future();
+  ASSERT_EQ(std::future_status::ready,
+            got_token_future.wait_for(kGetTokenTimeout));
 #else
   EXPECT_EQ(factory, nullptr);
 #endif
@@ -384,11 +401,24 @@ TEST_F(FirebaseAppCheckTest, TestDeviceCheckProvider) {
   firebase::app_check::DeviceCheckProviderFactory* factory =
       firebase::app_check::DeviceCheckProviderFactory::GetInstance();
 #if FIREBASE_PLATFORM_IOS
-  EXPECT_NE(factory, nullptr);
+  ASSERT_NE(factory, nullptr);
   InitializeApp();
   firebase::app_check::AppCheckProvider* provider =
       factory->CreateProvider(app_);
-  EXPECT_NE(provider, nullptr);
+  ASSERT_NE(provider, nullptr);
+  auto got_token_promise = std::make_shared<std::promise<void>>();
+  auto token_callback{
+      [&got_token_promise](firebase::app_check::AppCheckToken token,
+                           int error_code, const std::string& error_message) {
+        EXPECT_EQ(firebase::app_check::kAppCheckErrorUnknown, error_code);
+        EXPECT_NE("", error_message);
+        EXPECT_EQ("", token.token);
+        got_token_promise->set_value();
+      }};
+  provider->GetToken(token_callback);
+  auto got_token_future = got_token_promise->get_future();
+  ASSERT_EQ(std::future_status::ready,
+            got_token_future.wait_for(kGetTokenTimeout));
 #else
   EXPECT_EQ(factory, nullptr);
 #endif
@@ -398,7 +428,7 @@ TEST_F(FirebaseAppCheckTest, TestPlayIntegrityProvider) {
   firebase::app_check::PlayIntegrityProviderFactory* factory =
       firebase::app_check::PlayIntegrityProviderFactory::GetInstance();
 #if FIREBASE_PLATFORM_ANDROID
-  EXPECT_NE(factory, nullptr);
+  ASSERT_NE(factory, nullptr);
   InitializeApp();
   firebase::app_check::AppCheckProvider* provider =
       factory->CreateProvider(app_);
@@ -412,7 +442,7 @@ TEST_F(FirebaseAppCheckTest, TestSafetyNetProvider) {
   firebase::app_check::SafetyNetProviderFactory* factory =
       firebase::app_check::SafetyNetProviderFactory::GetInstance();
 #if FIREBASE_PLATFORM_ANDROID
-  EXPECT_NE(factory, nullptr);
+  ASSERT_NE(factory, nullptr);
   InitializeApp();
   firebase::app_check::AppCheckProvider* provider =
       factory->CreateProvider(app_);
