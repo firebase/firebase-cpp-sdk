@@ -22,6 +22,7 @@
 #include <ctime>
 #include <future>
 #include <map>
+#include <memory>
 #include <string>
 #include <thread>
 
@@ -347,8 +348,8 @@ TEST_F(FirebaseAppCheckTest, TestDebugProviderValidToken) {
   firebase::app_check::AppCheckProvider* provider =
       factory->CreateProvider(app_);
   ASSERT_NE(provider, nullptr);
-  auto got_token_promise = std::make_shared<std::promise<>>();
-  auto token_callback{[](firebase::app_check::AppCheckToken token,
+  auto got_token_promise = std::make_shared<std::promise<void>>();
+  auto token_callback{[&got_token_promise](firebase::app_check::AppCheckToken token,
                          int error_code, const std::string& error_message) {
     EXPECT_EQ(firebase::app_check::kAppCheckErrorNone, error_code);
     EXPECT_EQ("", error_message);

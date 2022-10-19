@@ -18,6 +18,7 @@
 #import "FIRAppCheckDebugProviderFactory.h"
 
 #include "app/src/util_ios.h"
+#include "app_check/src/ios/util_ios.h"
 #include "app_check/src/ios/app_check_ios.h"
 #include "firebase/app_check.h"
 
