@@ -1032,7 +1032,7 @@ jobs:
             --ci
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'real'
-        uses: FirebaseExtended/github-actions/firebase-test-lab@v1.1
+        uses: FirebaseExtended/github-actions/firebase-test-lab@v1.2
         timeout-minutes: 90
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
@@ -1174,7 +1174,7 @@ jobs:
             --ci
       - id: ftl_test
         if: steps.device-info.outputs.device_type == 'real'
-        uses: FirebaseExtended/github-actions/firebase-test-lab@v1.1
+        uses: FirebaseExtended/github-actions/firebase-test-lab@v1.2
         timeout-minutes: 90
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
