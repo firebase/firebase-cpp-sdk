@@ -17,8 +17,8 @@
 #import "FIRAppAttestProvider.h"
 
 #include "app/src/util_ios.h"
-#include "app_check/src/ios/util_ios.h"
 #include "app_check/src/ios/app_check_ios.h"
+#include "app_check/src/ios/util_ios.h"
 #include "firebase/app_check.h"
 
 namespace firebase {
@@ -40,8 +40,7 @@ class AppAttestProvider : public AppCheckProvider {
   FIRAppAttestProvider* provider_;
 };
 
-AppAttestProvider::AppAttestProvider(FIRAppAttestProvider* provider)
-    : provider_(provider) {}
+AppAttestProvider::AppAttestProvider(FIRAppAttestProvider* provider) : provider_(provider) {}
 
 AppAttestProvider::~AppAttestProvider() {}
 
@@ -73,7 +72,7 @@ AppAttestProviderFactory::~AppAttestProviderFactory() {}
 AppCheckProvider* AppAttestProviderFactory::CreateProvider(App* app) {
   // Note: FIRAppAttestProvider is only supported on iOS 14+
   FIRAppAttestProvider* createdProvider =
-     [[FIRAppAttestProvider alloc] initWithApp:app->GetPlatformApp()];
+      [[FIRAppAttestProvider alloc] initWithApp:app->GetPlatformApp()];
   return new internal::AppAttestProvider(createdProvider);
 }
 

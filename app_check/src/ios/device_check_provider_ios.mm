@@ -18,8 +18,8 @@
 #import "FIRDeviceCheckProviderFactory.h"
 
 #include "app/src/util_ios.h"
-#include "app_check/src/ios/util_ios.h"
 #include "app_check/src/ios/app_check_ios.h"
+#include "app_check/src/ios/util_ios.h"
 #include "firebase/app_check.h"
 
 namespace firebase {
@@ -41,8 +41,7 @@ class DeviceCheckProvider : public AppCheckProvider {
   FIRDeviceCheckProvider* provider_;
 };
 
-DeviceCheckProvider::DeviceCheckProvider(FIRDeviceCheckProvider* provider)
-    : provider_(provider) {}
+DeviceCheckProvider::DeviceCheckProvider(FIRDeviceCheckProvider* provider) : provider_(provider) {}
 
 DeviceCheckProvider::~DeviceCheckProvider() {}
 
@@ -83,4 +82,3 @@ AppCheckProvider* DeviceCheckProviderFactory::CreateProvider(App* app) {
 
 }  // namespace app_check
 }  // namespace firebase
-
