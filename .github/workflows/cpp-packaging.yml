@@ -125,7 +125,7 @@ jobs:
       - name: Cache LLVM (Mac only)
         if: matrix.tools_platform == 'darwin'
         id: cache_llvm
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: llvm-src/llvm/build/bin
           key: llvm-bin-${{matrix.tools_platform}}-${{env.xcodeVersion}}-${{env.llvmVer}}
@@ -178,7 +178,7 @@ jobs:
           tar -czhf ../packaging-tools.tgz .
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v2.2.2
+        uses: actions/upload-artifact@v3
         with:
           name: packaging-tools-${{ matrix.tools_platform }}
           path: packaging-tools.tgz
@@ -236,7 +236,7 @@ jobs:
           find firebase-cpp-sdk-*-package -type f
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v2.2.2
+        uses: actions/upload-artifact@v3
         with:
           name: firebase-cpp-sdk-ios-tvos-package
           path: firebase-cpp-sdk-ios-tvos-package.tgz
@@ -262,7 +262,7 @@ jobs:
 
       - name: Cache NDK
         id: cache_ndk
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: /tmp/android-ndk-r21e
           key: android-ndk-${{ runner.os }}-r21e
@@ -293,7 +293,7 @@ jobs:
           find firebase-cpp-sdk-*-package -type f
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v2.2.2
+        uses: actions/upload-artifact@v3
         with:
           name: firebase-cpp-sdk-android-package
           path: firebase-cpp-sdk-android-package.tgz
@@ -379,11 +379,11 @@ jobs:
 
       - name: Add msbuild to PATH (windows)
         if: startsWith(matrix.os, 'windows')
-        uses: microsoft/setup-msbuild@v1.0.2
+        uses: microsoft/setup-msbuild@v1.1
 
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}${{env.VCPKG_EXTRA_HASH}}
@@ -391,7 +391,7 @@ jobs:
       - name: Cache ccache files
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
         id: cache_ccache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ccache_dir
           key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
@@ -449,7 +449,7 @@ jobs:
         continue-on-error: true
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v2.2.2
+        uses: actions/upload-artifact@v3
         with:
           name: firebase-cpp-sdk-${{ env.SDK_NAME }}-build
           path: firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz
@@ -509,7 +509,7 @@ jobs:
           path: sdk-src
 
       - name: download artifact
-        uses: actions/download-artifact@v2.0.8
+        uses: actions/download-artifact@v3
         with:
           # download-artifact doesn't support wildcards, but by default
           # will download all artifacts. Sadly this is what we must do.
@@ -584,7 +584,7 @@ jobs:
           find firebase-cpp-sdk-*-package -type f
 
       - name: upload SDK zip
-        uses: actions/upload-artifact@v2.2.2
+        uses: actions/upload-artifact@v3
         with:
           name: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package
           path: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package.tgz
@@ -639,7 +639,7 @@ jobs:
             && github.event.inputs.downloadPreviousRun == ''
           )
         # Remove the build artifacts that were consumed during this step of packaging.
-        uses: geekyeggo/delete-artifact@1-glob-support
+        uses: geekyeggo/delete-artifact@v2
         with:
           name: |
             firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}*-build
@@ -685,13 +685,13 @@ jobs:
           echo "::warning ::$(cat firebase_cpp_sdk_hash.txt)"
 
       - name: upload hash
-        uses: actions/upload-artifact@v2.2.2
+        uses: actions/upload-artifact@v3
         with:
           name: firebase_cpp_sdk_hash.txt
           path: firebase_cpp_sdk_hash.txt
 
       - name: upload SDK zip
-        uses: actions/upload-artifact@v2.2.2
+        uses: actions/upload-artifact@v3
         with:
           name: firebase_cpp_sdk.zip
           path: firebase_cpp_sdk.zip
@@ -709,7 +709,7 @@ jobs:
           path: sdk-src
 
       - name: download artifact
-        uses: actions/download-artifact@v2.0.8
+        uses: actions/download-artifact@v3
         with:
           # download-artifact doesn't support wildcards, but by default
           # will download all artifacts. Sadly this is what we must do.
@@ -748,13 +748,13 @@ jobs:
           find firebase_cpp_sdk -type f
 
       - name: upload hash
-        uses: actions/upload-artifact@v2.2.2
+        uses: actions/upload-artifact@v3
         with:
           name: firebase_cpp_sdk_hash.txt
           path: firebase_cpp_sdk_hash.txt
 
       - name: upload SDK zip
-        uses: actions/upload-artifact@v2.2.2
+        uses: actions/upload-artifact@v3
         with:
           name: firebase_cpp_sdk.zip
           path: firebase_cpp_sdk.zip
@@ -772,7 +772,7 @@ jobs:
         && github.event.inputs.downloadPreviousRun == ''
       )
     steps:
-    - uses: geekyeggo/delete-artifact@1-glob-support
+    - uses: geekyeggo/delete-artifact@v2
       with:
         name: |
           packaging-tools-*

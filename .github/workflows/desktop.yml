@@ -38,12 +38,13 @@ jobs:
           echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
       - id: export-result
         run: |
-          echo "::set-output name=matrix_os::$( python scripts/gha/print_matrix_configuration.py -w desktop -k os ${EXPANDED_MATRIX_PARAM})"
-          echo "::set-output name=matrix_build_type::$( python scripts/gha/print_matrix_configuration.py -w desktop -k build_type ${EXPANDED_MATRIX_PARAM})"
-          echo "::set-output name=matrix_architecture::$( python scripts/gha/print_matrix_configuration.py -w desktop -k architecture ${EXPANDED_MATRIX_PARAM})"
-          echo "::set-output name=msvc_runtime::$( python scripts/gha/print_matrix_configuration.py -w desktop -k msvc_runtime ${EXPANDED_MATRIX_PARAM})"
-          echo "::set-output name=xcode_version::$( python scripts/gha/print_matrix_configuration.py -w desktop -k xcode_version ${EXPANDED_MATRIX_PARAM})"
-          echo "::set-output name=python_version::$( python scripts/gha/print_matrix_configuration.py -w desktop -k python_version ${EXPANDED_MATRIX_PARAM})"
+          echo "matrix_os=$( python scripts/gha/print_matrix_configuration.py -w desktop -k os ${EXPANDED_MATRIX_PARAM})" >> $GITHUB_OUTPUT
+          echo "matrix_build_type=$( python scripts/gha/print_matrix_configuration.py -w desktop -k build_type ${EXPANDED_MATRIX_PARAM})" >> $GITHUB_OUTPUT
+          echo "matrix_architecture=$( python scripts/gha/print_matrix_configuration.py -w desktop -k architecture ${EXPANDED_MATRIX_PARAM})" >> $GITHUB_OUTPUT
+          echo "msvc_runtime=$( python scripts/gha/print_matrix_configuration.py -w desktop -k msvc_runtime ${EXPANDED_MATRIX_PARAM})" >> $GITHUB_OUTPUT
+          echo "xcode_version=$( python scripts/gha/print_matrix_configuration.py -w desktop -k xcode_version ${EXPANDED_MATRIX_PARAM})" >> $GITHUB_OUTPUT
+          echo "python_version=$( python scripts/gha/print_matrix_configuration.py -w desktop -k python_version ${EXPANDED_MATRIX_PARAM})" >> $GITHUB_OUTPUT
+
   build:
     name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime}}
     runs-on: ${{ matrix.os }}
@@ -149,7 +150,7 @@ jobs:
 
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ matrix.architecture }}-${{ env.VCPKG_SUFFIX }}-${{ matrix.msvc_runtime }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}${{ env.VCPKG_EXTRA_HASH }}
@@ -157,7 +158,7 @@ jobs:
       - name: Cache ccache files
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
         id: cache_ccache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ccache_dir
           key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}${{ env.VCPKG_EXTRA_HASH }}
@@ -301,12 +302,12 @@ jobs:
           submodules: true
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ env.VCPKG_TRIPLET }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
       - name: Cache ccache files
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ccache_dir
           key: local-integration-tests-linux-openssl-ccache
@@ -343,7 +344,7 @@ jobs:
             exit 1
           fi
       - name: Set up Node (16)
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: 16.x
       - name: Setup Firestore Emulator
