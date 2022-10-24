@@ -23,7 +23,7 @@ jobs:
     outputs:
       matrix_xcode_version: ${{ steps.export-result.outputs.matrix_xcode_version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: false
       - name: Use expanded matrix
@@ -32,7 +32,7 @@ jobs:
           echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
       - id: export-result
         run: |
-          echo "::set-output name=matrix_xcode_version::$( python scripts/gha/print_matrix_configuration.py -w ios -k xcode_version ${EXPANDED_MATRIX_PARAM} )"
+          echo "matrix_xcode_version=$( python scripts/gha/print_matrix_configuration.py -w ios -k xcode_version ${EXPANDED_MATRIX_PARAM} )" >> $GITHUB_OUTPUT
 
   build:
     name: ios-${{ matrix.os }}-${{ matrix.xcode_version }}
@@ -55,12 +55,12 @@ jobs:
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
 
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.7
           architecture: "x64"
