@@ -20,11 +20,9 @@
 namespace firebase {
 namespace app_check {
 
-/// @cond FIREBASE_APP_INTERNAL
 namespace internal {
 class DebugAppCheckProviderFactoryInternal;
 }
-/// @endcond
 
 /// Implementation of an {@link AppCheckProviderFactory} that builds
 /// DebugAppCheckProviders.
@@ -50,9 +48,7 @@ class DebugAppCheckProviderFactory : public AppCheckProviderFactory {
  private:
   DebugAppCheckProviderFactory();
 
-  /// @cond FIREBASE_APP_INTERNAL
   internal::DebugAppCheckProviderFactoryInternal* internal_;
-  /// @endcond
 };
 
 }  // namespace app_check
