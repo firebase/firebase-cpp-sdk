@@ -12,28 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "app_check/src/android/debug_provider_android.h"
+
 #include "firebase/app_check/debug_provider.h"
 
 namespace firebase {
 namespace app_check {
+namespace internal {
 
-static DebugAppCheckProviderFactory* g_debug_app_check_provider_factory =
-    nullptr;
+DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal() {}
 
-DebugAppCheckProviderFactory* DebugAppCheckProviderFactory::GetInstance() {
-  if (!g_debug_app_check_provider_factory) {
-    g_debug_app_check_provider_factory = new DebugAppCheckProviderFactory();
-  }
-  return g_debug_app_check_provider_factory;
-}
+DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {}
 
-DebugAppCheckProviderFactory::DebugAppCheckProviderFactory() {}
-
-DebugAppCheckProviderFactory::~DebugAppCheckProviderFactory() {}
-
-AppCheckProvider* DebugAppCheckProviderFactory::CreateProvider(App* app) {
+AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app) {
   return nullptr;
 }
 
+}  // namespace internal
 }  // namespace app_check
 }  // namespace firebase

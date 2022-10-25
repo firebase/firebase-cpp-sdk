@@ -12,20 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "app_check/src/ios/debug_provider_ios.h"
+#ifndef FIREBASE_APP_CHECK_SRC_DESKTOP_DEBUG_PROVIDER_DESKTOP_H_
+#define FIREBASE_APP_CHECK_SRC_DESKTOP_DEBUG_PROVIDER_DESKTOP_H_
 
-#include "firebase/app_check/debug_provider.h"
+#include "firebase/app_check.h"
 
 namespace firebase {
 namespace app_check {
 namespace internal {
 
-DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal() {}
+class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
+ public:
+  DebugAppCheckProviderFactoryInternal();
 
-DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {}
+  virtual ~DebugAppCheckProviderFactoryInternal();
 
-AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app) { return nullptr; }
+  AppCheckProvider* CreateProvider(App* app) override;
+};
 
 }  // namespace internal
 }  // namespace app_check
 }  // namespace firebase
+
+#endif  // FIREBASE_APP_CHECK_SRC_DESKTOP_DEBUG_PROVIDER_DESKTOP_H_

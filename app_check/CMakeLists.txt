@@ -18,6 +18,7 @@
 set(common_SRCS
   src/common/app_check.cc
   src/common/common.h
+  src/common/debug_provider_common.cc
   src/include/firebase/app_check.h
   src/include/firebase/app_check/debug_provider.h
   src/include/firebase/app_check/play_integrity_provider.h
@@ -32,6 +33,7 @@ set(android_SRCS
   src/android/app_check_android.h
   # Supported providers
   src/android/debug_provider_android.cc
+  src/android/debug_provider_android.h
   src/android/play_integrity_provider_android.cc
   src/android/safety_net_provider_android.cc
   # Unsupported providers
@@ -46,6 +48,7 @@ set(ios_SRCS
   # Supported providers
   src/ios/app_attest_provider_ios.mm
   src/ios/debug_provider_ios.mm
+  src/ios/debug_provider_ios.h
   src/ios/device_check_provider_ios.mm
   # Unsupported providers
   src/stub/play_integrity_provider_stub.cc
@@ -58,6 +61,7 @@ set(desktop_SRCS
   src/desktop/app_check_desktop.h
   # Supported providers
   src/desktop/debug_provider_desktop.cc
+  src/desktop/debug_provider_desktop.h
   # Unsupported providers
   src/stub/app_attest_provider_stub.cc
   src/stub/device_check_provider_stub.cc
