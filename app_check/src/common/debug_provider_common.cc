@@ -38,7 +38,7 @@ DebugAppCheckProviderFactory* DebugAppCheckProviderFactory::GetInstance() {
 }
 
 DebugAppCheckProviderFactory::DebugAppCheckProviderFactory()
-  : internal_(new internal::DebugAppCheckProviderFactoryInternal()) {}
+    : internal_(new internal::DebugAppCheckProviderFactoryInternal()) {}
 
 DebugAppCheckProviderFactory::~DebugAppCheckProviderFactory() {
   if (internal_) {

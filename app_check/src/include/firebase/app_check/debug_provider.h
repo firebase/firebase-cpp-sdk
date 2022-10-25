@@ -49,7 +49,7 @@ class DebugAppCheckProviderFactory : public AppCheckProviderFactory {
 
  private:
   DebugAppCheckProviderFactory();
-  
+
   /// @cond FIREBASE_APP_INTERNAL
   internal::DebugAppCheckProviderFactoryInternal* internal_;
   /// @endcond

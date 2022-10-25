@@ -24,7 +24,8 @@ DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal() {}
 
 DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {}
 
-AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app) {
+AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
+    App* app) {
   return nullptr;
 }
 
