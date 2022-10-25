@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "app_check/src/ios/debug_provider_ios.h"
+
 #include "firebase/app_check/debug_provider.h"
 
 #import "FIRAppCheckDebugProvider.h"
@@ -24,7 +26,6 @@
 
 namespace firebase {
 namespace app_check {
-
 namespace internal {
 
 class DebugAppCheckProvider : public AppCheckProvider {
@@ -41,6 +42,7 @@ class DebugAppCheckProvider : public AppCheckProvider {
   FIRAppCheckDebugProvider* provider_;
 };
 
+
 DebugAppCheckProvider::DebugAppCheckProvider(FIRAppCheckDebugProvider* provider)
     : provider_(provider) {}
 
@@ -55,31 +57,21 @@ void DebugAppCheckProvider::GetToken(
   }];
 }
 
-}  // namespace internal
-
-static DebugAppCheckProviderFactory* g_debug_app_check_provider_factory = nullptr;
-static FIRAppCheckDebugProviderFactory* g_ios_debug_app_check_provider_factory = nullptr;
-
-DebugAppCheckProviderFactory* DebugAppCheckProviderFactory::GetInstance() {
-  if (!g_debug_app_check_provider_factory) {
-    g_debug_app_check_provider_factory = new DebugAppCheckProviderFactory();
-  }
-  return g_debug_app_check_provider_factory;
+DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal() {
+  // TODO: initialize this properly
+  ios_provider_factory_ = [[FIRAppCheckDebugProviderFactory alloc] init];
 }
 
-DebugAppCheckProviderFactory::DebugAppCheckProviderFactory() {
-  if (!g_ios_debug_app_check_provider_factory) {
-    g_ios_debug_app_check_provider_factory = [[FIRAppCheckDebugProviderFactory alloc] init];
-  }
+DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
+  // TODO: release ios_provider_factory_ if needed
 }
 
-DebugAppCheckProviderFactory::~DebugAppCheckProviderFactory() {}
-
-AppCheckProvider* DebugAppCheckProviderFactory::CreateProvider(App* app) {
+AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app) {
   FIRAppCheckDebugProvider* createdProvider =
-      [g_ios_debug_app_check_provider_factory createProviderWithApp:app->GetPlatformApp()];
+      [ios_provider_factory_ createProviderWithApp:app->GetPlatformApp()];
   return new internal::DebugAppCheckProvider(createdProvider);
 }
 
+}  // namespace internal
 }  // namespace app_check
 }  // namespace firebase

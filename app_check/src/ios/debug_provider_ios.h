@@ -12,23 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "app_check/src/desktop/debug_provider_desktop.h"
+#ifndef FIREBASE_APP_CHECK_SRC_IOS_DEBUG_PROVIDER_IOS_H_
+#define FIREBASE_APP_CHECK_SRC_IOS_DEBUG_PROVIDER_IOS_H_
 
-#include "firebase/app_check/debug_provider.h"
+#include "firebase/app_check.h"
 
 namespace firebase {
 namespace app_check {
 namespace internal {
 
-DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal() {}
+class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
+ public:
+  DebugAppCheckProviderFactoryInternal();
 
-DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {}
+  virtual ~DebugAppCheckProviderFactoryInternal();
 
-AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
-    App* app) {
-  return nullptr;
-}
+  AppCheckProvider* CreateProvider(App* app) override;
+
+ // TODO: add import for the following but guard it with OBJC or c++ pointer wrapper or something similar
+ // This is relevant because this header gets imported from a regular cc file (debug_provider_common.cc)
+ private:
+  FIRAppCheckDebugProviderFactory* ios_provider_factory_;
+};
 
 }  // namespace internal
 }  // namespace app_check
 }  // namespace firebase
+
+#endif  // FIREBASE_APP_CHECK_SRC_IOS_DEBUG_PROVIDER_IOS_H_
