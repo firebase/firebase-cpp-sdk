@@ -39,18 +39,18 @@ class DebugAppCheckProvider : public AppCheckProvider {
       std::function<void(AppCheckToken, int, const std::string&)> completion_callback) override;
 
  private:
-  FIRAppCheckDebugProvider* provider_;
+  FIRAppCheckDebugProvider* ios_provider_;
 };
 
 
 DebugAppCheckProvider::DebugAppCheckProvider(FIRAppCheckDebugProvider* provider)
-    : provider_(provider) {}
+    : ios_provider_(provider) {}
 
 DebugAppCheckProvider::~DebugAppCheckProvider() {}
 
 void DebugAppCheckProvider::GetToken(
     std::function<void(AppCheckToken, int, const std::string&)> completion_callback) {
-  [provider_ getTokenWithCompletion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
+  [ios_provider_ getTokenWithCompletion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
     completion_callback(firebase::app_check::internal::AppCheckTokenFromFIRAppCheckToken(token),
                         firebase::app_check::internal::AppCheckErrorFromNSError(error),
                         util::NSStringToString(error.localizedDescription).c_str());
@@ -58,18 +58,24 @@ void DebugAppCheckProvider::GetToken(
 }
 
 DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal() {
-  // TODO: initialize this properly
   ios_provider_factory_ = [[FIRAppCheckDebugProviderFactory alloc] init];
 }
 
-DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
-  // TODO: release ios_provider_factory_ if needed
-}
+DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {}
 
 AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app) {
-  FIRAppCheckDebugProvider* createdProvider =
+  // Return the provider if it already exists.
+  std::map<App*, AppCheckProvider*>::iterator it = created_providers_.find(app);
+  if (it != created_providers_.end()) {
+    return it->second;
+  }
+  // Otherwise, create a new provider
+  FIRAppCheckDebugProvider* ios_provider =
       [ios_provider_factory_ createProviderWithApp:app->GetPlatformApp()];
-  return new internal::DebugAppCheckProvider(createdProvider);
+  AppCheckProvider* cpp_provider =
+      new internal::DebugAppCheckProvider(ios_provider);
+  created_providers_[app] = cpp_provider;
+  return cpp_provider;
 }
 
 }  // namespace internal

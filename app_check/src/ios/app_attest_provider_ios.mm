@@ -71,9 +71,9 @@ AppAttestProviderFactory::~AppAttestProviderFactory() {}
 
 AppCheckProvider* AppAttestProviderFactory::CreateProvider(App* app) {
   // Note: FIRAppAttestProvider is only supported on iOS 14+
-  FIRAppAttestProvider* createdProvider =
+  FIRAppAttestProvider* created_provider =
       [[FIRAppAttestProvider alloc] initWithApp:app->GetPlatformApp()];
-  return new internal::AppAttestProvider(createdProvider);
+  return new internal::AppAttestProvider(created_provider);
 }
 
 }  // namespace app_check

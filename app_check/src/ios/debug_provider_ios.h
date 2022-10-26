@@ -17,6 +17,10 @@
 
 #include "firebase/app_check.h"
 
+#ifdef __OBJC__
+#import "FIRAppCheckDebugProviderFactory.h"
+#endif  // __OBJC__
+
 namespace firebase {
 namespace app_check {
 namespace internal {
@@ -29,10 +33,12 @@ class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
 
   AppCheckProvider* CreateProvider(App* app) override;
 
- // TODO: add import for the following but guard it with OBJC or c++ pointer wrapper or something similar
- // This is relevant because this header gets imported from a regular cc file (debug_provider_common.cc)
  private:
+#ifdef __OBJC__
   FIRAppCheckDebugProviderFactory* ios_provider_factory_;
+#endif  // __OBJC__
+
+  std::map<App*, AppCheckProvider*> created_providers_;
 };
 
 }  // namespace internal

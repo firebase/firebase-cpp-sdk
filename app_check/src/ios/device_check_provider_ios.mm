@@ -24,7 +24,6 @@
 
 namespace firebase {
 namespace app_check {
-
 namespace internal {
 
 class DeviceCheckProvider : public AppCheckProvider {
@@ -75,9 +74,9 @@ DeviceCheckProviderFactory::DeviceCheckProviderFactory() {
 DeviceCheckProviderFactory::~DeviceCheckProviderFactory() {}
 
 AppCheckProvider* DeviceCheckProviderFactory::CreateProvider(App* app) {
-  FIRDeviceCheckProvider* createdProvider =
+  FIRDeviceCheckProvider* created_provider =
       [g_ios_device_check_check_provider_factory createProviderWithApp:app->GetPlatformApp()];
-  return new internal::DeviceCheckProvider(createdProvider);
+  return new internal::DeviceCheckProvider(created_provider);
 }
 
 }  // namespace app_check
