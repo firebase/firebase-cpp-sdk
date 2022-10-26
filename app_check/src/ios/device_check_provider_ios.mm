@@ -49,11 +49,12 @@ DeviceCheckProvider::~DeviceCheckProvider() {}
 
 void DeviceCheckProvider::GetToken(
     std::function<void(AppCheckToken, int, const std::string&)> completion_callback) {
-  [ios_provider_ getTokenWithCompletion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
-    completion_callback(firebase::app_check::internal::AppCheckTokenFromFIRAppCheckToken(token),
-                        firebase::app_check::internal::AppCheckErrorFromNSError(error),
-                        util::NSStringToString(error.localizedDescription).c_str());
-  }];
+  [ios_provider_
+      getTokenWithCompletion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
+        completion_callback(firebase::app_check::internal::AppCheckTokenFromFIRAppCheckToken(token),
+                            firebase::app_check::internal::AppCheckErrorFromNSError(error),
+                            util::NSStringToString(error.localizedDescription).c_str());
+      }];
 }
 
 DeviceCheckProviderFactoryInternal::DeviceCheckProviderFactoryInternal() {
@@ -71,8 +72,7 @@ AppCheckProvider* DeviceCheckProviderFactoryInternal::CreateProvider(App* app) {
   // Otherwise, create a new provider
   FIRDeviceCheckProvider* ios_provider =
       [ios_provider_factory_ createProviderWithApp:app->GetPlatformApp()];
-  AppCheckProvider* cpp_provider =
-      new internal::DeviceCheckProvider(ios_provider);
+  AppCheckProvider* cpp_provider = new internal::DeviceCheckProvider(ios_provider);
   created_providers_[app] = cpp_provider;
   return cpp_provider;
 }
@@ -89,7 +89,7 @@ DeviceCheckProviderFactory* DeviceCheckProviderFactory::GetInstance() {
 }
 
 DeviceCheckProviderFactory::DeviceCheckProviderFactory()
-  : internal_(new internal::DeviceCheckProviderFactoryInternal()) {}
+    : internal_(new internal::DeviceCheckProviderFactoryInternal()) {}
 
 DeviceCheckProviderFactory::~DeviceCheckProviderFactory() {
   if (internal_) {

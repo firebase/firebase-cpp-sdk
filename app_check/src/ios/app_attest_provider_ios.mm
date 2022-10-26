@@ -42,18 +42,18 @@ class AppAttestProvider : public AppCheckProvider {
   FIRAppAttestProvider* ios_provider_;
 };
 
-AppAttestProvider::AppAttestProvider(FIRAppAttestProvider* provider)
-    : ios_provider_(provider) {}
+AppAttestProvider::AppAttestProvider(FIRAppAttestProvider* provider) : ios_provider_(provider) {}
 
 AppAttestProvider::~AppAttestProvider() {}
 
 void AppAttestProvider::GetToken(
     std::function<void(AppCheckToken, int, const std::string&)> completion_callback) {
-  [ios_provider_ getTokenWithCompletion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
-    completion_callback(firebase::app_check::internal::AppCheckTokenFromFIRAppCheckToken(token),
-                        firebase::app_check::internal::AppCheckErrorFromNSError(error),
-                        util::NSStringToString(error.localizedDescription).c_str());
-  }];
+  [ios_provider_
+      getTokenWithCompletion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
+        completion_callback(firebase::app_check::internal::AppCheckTokenFromFIRAppCheckToken(token),
+                            firebase::app_check::internal::AppCheckErrorFromNSError(error),
+                            util::NSStringToString(error.localizedDescription).c_str());
+      }];
 }
 
 AppAttestProviderFactoryInternal::AppAttestProviderFactoryInternal() {}
@@ -70,8 +70,7 @@ AppCheckProvider* AppAttestProviderFactoryInternal::CreateProvider(App* app) {
   // Note: FIRAppAttestProvider is only supported on iOS 14+
   FIRAppAttestProvider* created_provider =
       [[FIRAppAttestProvider alloc] initWithApp:app->GetPlatformApp()];
-  AppCheckProvider* cpp_provider =
-      new internal::AppAttestProvider(ios_provider);
+  AppCheckProvider* cpp_provider = new internal::AppAttestProvider(ios_provider);
   created_providers_[app] = cpp_provider;
   return cpp_provider;
 }
@@ -88,7 +87,7 @@ AppAttestProviderFactory* AppAttestProviderFactory::GetInstance() {
 }
 
 AppAttestProviderFactory::AppAttestProviderFactory()
-  : internal_(new internal::AppAttestProviderFactoryInternal()) {}
+    : internal_(new internal::AppAttestProviderFactoryInternal()) {}
 
 AppAttestProviderFactory::~AppAttestProviderFactory() {
   if (internal_) {

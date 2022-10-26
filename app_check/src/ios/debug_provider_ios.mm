@@ -42,7 +42,6 @@ class DebugAppCheckProvider : public AppCheckProvider {
   FIRAppCheckDebugProvider* ios_provider_;
 };
 
-
 DebugAppCheckProvider::DebugAppCheckProvider(FIRAppCheckDebugProvider* provider)
     : ios_provider_(provider) {}
 
@@ -50,11 +49,12 @@ DebugAppCheckProvider::~DebugAppCheckProvider() {}
 
 void DebugAppCheckProvider::GetToken(
     std::function<void(AppCheckToken, int, const std::string&)> completion_callback) {
-  [ios_provider_ getTokenWithCompletion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
-    completion_callback(firebase::app_check::internal::AppCheckTokenFromFIRAppCheckToken(token),
-                        firebase::app_check::internal::AppCheckErrorFromNSError(error),
-                        util::NSStringToString(error.localizedDescription).c_str());
-  }];
+  [ios_provider_
+      getTokenWithCompletion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
+        completion_callback(firebase::app_check::internal::AppCheckTokenFromFIRAppCheckToken(token),
+                            firebase::app_check::internal::AppCheckErrorFromNSError(error),
+                            util::NSStringToString(error.localizedDescription).c_str());
+      }];
 }
 
 DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal() {
@@ -72,8 +72,7 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app)
   // Otherwise, create a new provider
   FIRAppCheckDebugProvider* ios_provider =
       [ios_provider_factory_ createProviderWithApp:app->GetPlatformApp()];
-  AppCheckProvider* cpp_provider =
-      new internal::DebugAppCheckProvider(ios_provider);
+  AppCheckProvider* cpp_provider = new internal::DebugAppCheckProvider(ios_provider);
   created_providers_[app] = cpp_provider;
   return cpp_provider;
 }
