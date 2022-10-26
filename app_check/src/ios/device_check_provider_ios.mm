@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "app_check/src/ios/device_check_provider_ios.h"
+
 #include "firebase/app_check/device_check_provider.h"
 
 #import "FIRDeviceCheckProvider.h"
@@ -37,26 +39,47 @@ class DeviceCheckProvider : public AppCheckProvider {
       std::function<void(AppCheckToken, int, const std::string&)> completion_callback) override;
 
  private:
-  FIRDeviceCheckProvider* provider_;
+  FIRDeviceCheckProvider* ios_provider_;
 };
 
-DeviceCheckProvider::DeviceCheckProvider(FIRDeviceCheckProvider* provider) : provider_(provider) {}
+DeviceCheckProvider::DeviceCheckProvider(FIRDeviceCheckProvider* provider)
+    : ios_provider_(provider) {}
 
 DeviceCheckProvider::~DeviceCheckProvider() {}
 
 void DeviceCheckProvider::GetToken(
     std::function<void(AppCheckToken, int, const std::string&)> completion_callback) {
-  [provider_ getTokenWithCompletion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
+  [ios_provider_ getTokenWithCompletion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
     completion_callback(firebase::app_check::internal::AppCheckTokenFromFIRAppCheckToken(token),
                         firebase::app_check::internal::AppCheckErrorFromNSError(error),
                         util::NSStringToString(error.localizedDescription).c_str());
   }];
 }
 
+DeviceCheckProviderFactoryInternal::DeviceCheckProviderFactoryInternal() {
+  ios_provider_factory_ = [[FIRDeviceCheckProviderFactory alloc] init];
+}
+
+DeviceCheckProviderFactoryInternal::~DeviceCheckProviderFactoryInternal() {}
+
+AppCheckProvider* DeviceCheckProviderFactoryInternal::CreateProvider(App* app) {
+  // Return the provider if it already exists.
+  std::map<App*, AppCheckProvider*>::iterator it = created_providers_.find(app);
+  if (it != created_providers_.end()) {
+    return it->second;
+  }
+  // Otherwise, create a new provider
+  FIRDeviceCheckProvider* ios_provider =
+      [ios_provider_factory_ createProviderWithApp:app->GetPlatformApp()];
+  AppCheckProvider* cpp_provider =
+      new internal::DeviceCheckProvider(ios_provider);
+  created_providers_[app] = cpp_provider;
+  return cpp_provider;
+}
+
 }  // namespace internal
 
 static DeviceCheckProviderFactory* g_device_check_check_provider_factory = nullptr;
-static FIRDeviceCheckProviderFactory* g_ios_device_check_check_provider_factory = nullptr;
 
 DeviceCheckProviderFactory* DeviceCheckProviderFactory::GetInstance() {
   if (!g_device_check_check_provider_factory) {
@@ -65,18 +88,21 @@ DeviceCheckProviderFactory* DeviceCheckProviderFactory::GetInstance() {
   return g_device_check_check_provider_factory;
 }
 
-DeviceCheckProviderFactory::DeviceCheckProviderFactory() {
-  if (!g_ios_device_check_check_provider_factory) {
-    g_ios_device_check_check_provider_factory = [[FIRDeviceCheckProviderFactory alloc] init];
+DeviceCheckProviderFactory::DeviceCheckProviderFactory()
+  : internal_(new internal::DeviceCheckProviderFactoryInternal()) {}
+
+DeviceCheckProviderFactory::~DeviceCheckProviderFactory() {
+  if (internal_) {
+    delete internal_;
+    internal_ = nullptr;
   }
 }
 
-DeviceCheckProviderFactory::~DeviceCheckProviderFactory() {}
-
 AppCheckProvider* DeviceCheckProviderFactory::CreateProvider(App* app) {
-  FIRDeviceCheckProvider* created_provider =
-      [g_ios_device_check_check_provider_factory createProviderWithApp:app->GetPlatformApp()];
-  return new internal::DeviceCheckProvider(created_provider);
+  if (internal_) {
+    return internal_->CreateProvider(app);
+  }
+  return nullptr;
 }
 
 }  // namespace app_check

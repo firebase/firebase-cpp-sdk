@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "app_check/src/ios/app_attest_provider_ios.h"
+
 #include "firebase/app_check/app_attest_provider.h"
 
 #import "FIRAppAttestProvider.h"
+#import "FIRAppAttestProviderFactory.h"
 
 #include "app/src/util_ios.h"
 #include "app_check/src/ios/app_check_ios.h"
@@ -23,7 +26,6 @@
 
 namespace firebase {
 namespace app_check {
-
 namespace internal {
 
 class AppAttestProvider : public AppCheckProvider {
@@ -37,20 +39,41 @@ class AppAttestProvider : public AppCheckProvider {
       std::function<void(AppCheckToken, int, const std::string&)> completion_callback) override;
 
  private:
-  FIRAppAttestProvider* provider_;
+  FIRAppAttestProvider* ios_provider_;
 };
 
-AppAttestProvider::AppAttestProvider(FIRAppAttestProvider* provider) : provider_(provider) {}
+AppAttestProvider::AppAttestProvider(FIRAppAttestProvider* provider)
+    : ios_provider_(provider) {}
 
 AppAttestProvider::~AppAttestProvider() {}
 
 void AppAttestProvider::GetToken(
     std::function<void(AppCheckToken, int, const std::string&)> completion_callback) {
-  [provider_ getTokenWithCompletion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
+  [ios_provider_ getTokenWithCompletion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
     completion_callback(firebase::app_check::internal::AppCheckTokenFromFIRAppCheckToken(token),
                         firebase::app_check::internal::AppCheckErrorFromNSError(error),
                         util::NSStringToString(error.localizedDescription).c_str());
   }];
+}
+
+AppAttestProviderFactoryInternal::AppAttestProviderFactoryInternal() {}
+
+AppAttestProviderFactoryInternal::~AppAttestProviderFactoryInternal() {}
+
+AppCheckProvider* AppAttestProviderFactoryInternal::CreateProvider(App* app) {
+  // Return the provider if it already exists.
+  std::map<App*, AppCheckProvider*>::iterator it = created_providers_.find(app);
+  if (it != created_providers_.end()) {
+    return it->second;
+  }
+  // Otherwise, create a new provider
+  // Note: FIRAppAttestProvider is only supported on iOS 14+
+  FIRAppAttestProvider* created_provider =
+      [[FIRAppAttestProvider alloc] initWithApp:app->GetPlatformApp()];
+  AppCheckProvider* cpp_provider =
+      new internal::AppAttestProvider(ios_provider);
+  created_providers_[app] = cpp_provider;
+  return cpp_provider;
 }
 
 }  // namespace internal
@@ -64,16 +87,21 @@ AppAttestProviderFactory* AppAttestProviderFactory::GetInstance() {
   return g_app_attest_provider_factory;
 }
 
-// There is no built-in iOS AppAttest factory, so this factory has no state.
-AppAttestProviderFactory::AppAttestProviderFactory() {}
+AppAttestProviderFactory::AppAttestProviderFactory()
+  : internal_(new internal::AppAttestProviderFactoryInternal()) {}
 
-AppAttestProviderFactory::~AppAttestProviderFactory() {}
+AppAttestProviderFactory::~AppAttestProviderFactory() {
+  if (internal_) {
+    delete internal_;
+    internal_ = nullptr;
+  }
+}
 
 AppCheckProvider* AppAttestProviderFactory::CreateProvider(App* app) {
-  // Note: FIRAppAttestProvider is only supported on iOS 14+
-  FIRAppAttestProvider* created_provider =
-      [[FIRAppAttestProvider alloc] initWithApp:app->GetPlatformApp()];
-  return new internal::AppAttestProvider(created_provider);
+  if (internal_) {
+    return internal_->CreateProvider(app);
+  }
+  return nullptr;
 }
 
 }  // namespace app_check
