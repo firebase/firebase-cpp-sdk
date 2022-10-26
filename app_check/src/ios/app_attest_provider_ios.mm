@@ -17,7 +17,6 @@
 #include "firebase/app_check/app_attest_provider.h"
 
 #import "FIRAppAttestProvider.h"
-#import "FIRAppAttestProviderFactory.h"
 
 #include "app/src/util_ios.h"
 #include "app_check/src/ios/app_check_ios.h"
@@ -68,7 +67,7 @@ AppCheckProvider* AppAttestProviderFactoryInternal::CreateProvider(App* app) {
   }
   // Otherwise, create a new provider
   // Note: FIRAppAttestProvider is only supported on iOS 14+
-  FIRAppAttestProvider* created_provider =
+  FIRAppAttestProvider* ios_provider =
       [[FIRAppAttestProvider alloc] initWithApp:app->GetPlatformApp()];
   AppCheckProvider* cpp_provider = new internal::AppAttestProvider(ios_provider);
   created_providers_[app] = cpp_provider;

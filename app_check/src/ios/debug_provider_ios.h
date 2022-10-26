@@ -15,6 +15,8 @@
 #ifndef FIREBASE_APP_CHECK_SRC_IOS_DEBUG_PROVIDER_IOS_H_
 #define FIREBASE_APP_CHECK_SRC_IOS_DEBUG_PROVIDER_IOS_H_
 
+#include <map>
+
 #include "firebase/app_check.h"
 
 #ifdef __OBJC__
