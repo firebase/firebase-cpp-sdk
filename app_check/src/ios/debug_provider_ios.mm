@@ -57,11 +57,18 @@ void DebugAppCheckProvider::GetToken(
       }];
 }
 
-DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal() {
+DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal()
+    : created_providers_() {
   ios_provider_factory_ = [[FIRAppCheckDebugProviderFactory alloc] init];
 }
 
-DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {}
+DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
+  // Cleanup any providers created by this factory.
+  for (auto it = created_providers_.begin(); it != created_providers_.end(); ++it) {
+    delete it->second;
+  }
+  created_providers_.clear();
+}
 
 AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app) {
   // Return the provider if it already exists.

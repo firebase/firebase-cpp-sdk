@@ -57,11 +57,17 @@ void DeviceCheckProvider::GetToken(
       }];
 }
 
-DeviceCheckProviderFactoryInternal::DeviceCheckProviderFactoryInternal() {
+DeviceCheckProviderFactoryInternal::DeviceCheckProviderFactoryInternal() : created_providers_() {
   ios_provider_factory_ = [[FIRDeviceCheckProviderFactory alloc] init];
 }
 
-DeviceCheckProviderFactoryInternal::~DeviceCheckProviderFactoryInternal() {}
+DeviceCheckProviderFactoryInternal::~DeviceCheckProviderFactoryInternal() {
+  // Cleanup any providers created by this factory.
+  for (auto it = created_providers_.begin(); it != created_providers_.end(); ++it) {
+    delete it->second;
+  }
+  created_providers_.clear();
+}
 
 AppCheckProvider* DeviceCheckProviderFactoryInternal::CreateProvider(App* app) {
   // Return the provider if it already exists.

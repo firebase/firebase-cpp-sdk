@@ -55,9 +55,15 @@ void AppAttestProvider::GetToken(
       }];
 }
 
-AppAttestProviderFactoryInternal::AppAttestProviderFactoryInternal() {}
+AppAttestProviderFactoryInternal::AppAttestProviderFactoryInternal() : created_providers_() {}
 
-AppAttestProviderFactoryInternal::~AppAttestProviderFactoryInternal() {}
+AppAttestProviderFactoryInternal::~AppAttestProviderFactoryInternal() {
+  // Cleanup any providers created by this factory.
+  for (auto it = created_providers_.begin(); it != created_providers_.end(); ++it) {
+    delete it->second;
+  }
+  created_providers_.clear();
+}
 
 AppCheckProvider* AppAttestProviderFactoryInternal::CreateProvider(App* app) {
   // Return the provider if it already exists.
