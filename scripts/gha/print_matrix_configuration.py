@@ -166,7 +166,7 @@ BUILD_CONFIGS = {
 #   gcloud firebase test ios models list
 TEST_DEVICES = {
   "android_min": {"type": "real", "device": "model=Nexus10,version=19"},
-  "android_target": {"type": "real", "device": "model=gts4lltevzw,version=28"},
+  "android_target": {"type": "real", "device": "model=blueline,version=28"},
   "android_latest": {"type": "real", "device": "model=oriole,version=33"},
   "emulator_min": {"type": "virtual", "image":"system-images;android-18;google_apis;x86"},
   "emulator_target": {"type": "virtual", "image":"system-images;android-30;google_apis;x86_64"},

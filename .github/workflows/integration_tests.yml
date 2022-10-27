@@ -196,7 +196,6 @@ jobs:
         echo "matrix_os=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k os -o "${{github.event.inputs.operating_systems}}")" >> $GITHUB_OUTPUT
         echo "matrix_arch_macos=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k architecture_macos)" >> $GITHUB_OUTPUT
         echo "matrix_arch_windows_linux=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k architecture_windows_linux)" >> $GITHUB_OUTPUT
-
         # Combine architecture_macos and architecture_windows_linux to get a list of all architectures for the build matrix.
         matrix_arch_combined=`echo $( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k architecture_macos | sed 's/[]\[,]//g') \
                                    $( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k architecture_windows_linux | sed 's/[]\[,]//g' ) \
@@ -219,7 +218,6 @@ jobs:
         echo "xcode_version=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k xcode_version)" >> $GITHUB_OUTPUT
         echo "ios_device=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k ios_device -t ${mobile_test_on} )" >> $GITHUB_OUTPUT
         echo "tvos_device=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k tvos_device -t ${mobile_test_on} )" >> $GITHUB_OUTPUT
-
     - name: Update PR label and comment
       if: steps.set_outputs.outputs.pr_number
       shell: bash
@@ -1043,7 +1041,7 @@ jobs:
           max_attempts: 3
           validator: ${GITHUB_WORKSPACE}/scripts/gha/integration_testing/ftl_gha_validator.py
       - name: Read FTL Test Result
-        if: steps.device-info.outputs.device_type == 'real'
+        if: ${{ steps.device-info.outputs.device_type == 'real' && !cancelled() }}
         shell: bash
         run: |
           python scripts/gha/read_ftl_test_result.py --test_result '${{ steps.ftl_test.outputs.test_summary }}' \
@@ -1186,7 +1184,7 @@ jobs:
           max_attempts: 3
           validator: ${GITHUB_WORKSPACE}/scripts/gha/integration_testing/ftl_gha_validator.py
       - name: Read FTL Test Result
-        if: steps.device-info.outputs.device_type == 'real'
+        if: ${{ steps.device-info.outputs.device_type == 'real' && !cancelled() }}
         shell: bash
         run: |
           python scripts/gha/read_ftl_test_result.py --test_result '${{ steps.ftl_test.outputs.test_summary }}' \
