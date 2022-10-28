@@ -34,6 +34,7 @@ DEFAULT_DESTINATIONS = [
     'admob/integration_test',
     'analytics/integration_test',
     'app/integration_test',
+    'app_check/integration_test',
     'auth/integration_test',
     'database/integration_test',
     'dynamic_links/integration_test',

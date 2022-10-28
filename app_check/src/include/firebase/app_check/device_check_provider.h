@@ -20,6 +20,10 @@
 namespace firebase {
 namespace app_check {
 
+namespace internal {
+class DeviceCheckProviderFactoryInternal;
+}
+
 /// Implementation of an {@link AppCheckProviderFactory} that builds
 /// DeviceCheckProviders. This is the default implementation.
 class DeviceCheckProviderFactory : public AppCheckProviderFactory {
@@ -37,6 +41,8 @@ class DeviceCheckProviderFactory : public AppCheckProviderFactory {
 
  private:
   DeviceCheckProviderFactory();
+
+  internal::DeviceCheckProviderFactoryInternal* internal_;
 };
 
 }  // namespace app_check
