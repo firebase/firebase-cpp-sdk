@@ -49,6 +49,8 @@ std::string Request::ToString() {
     output += "*** aborted ***\n";
   }
   output += "\n";
+  // Reset the buffer offset, since this moved it.
+  read_buffer_offset_ = 0;
   return output;
 }
 
