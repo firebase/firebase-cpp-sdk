@@ -45,12 +45,13 @@ void Request::set_post_fields(const char* data) {
 
 std::string Request::ToString() {
   std::string output = options_.url + '\n';
+  size_t cached_offset = read_buffer_offset_;
   if (!ReadBodyIntoString(&output)) {
     output += "*** aborted ***\n";
   }
   output += "\n";
-  // Reset the buffer offset, since this moved it.
-  read_buffer_offset_ = 0;
+  // Reset the buffer offset, since the read moves it.
+  read_buffer_offset_ = cached_offset;
   return output;
 }
 
