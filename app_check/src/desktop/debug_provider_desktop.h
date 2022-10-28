@@ -17,6 +17,8 @@
 
 #include "firebase/app_check.h"
 
+#include <map>
+
 namespace firebase {
 namespace app_check {
 namespace internal {
@@ -28,6 +30,9 @@ class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
   virtual ~DebugAppCheckProviderFactoryInternal();
 
   AppCheckProvider* CreateProvider(App* app) override;
+
+ private:
+  std::map<App*, AppCheckProvider*> provider_map_;
 };
 
 }  // namespace internal
