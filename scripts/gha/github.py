@@ -31,6 +31,7 @@ RETRIES = 3
 BACKOFF = 5
 RETRY_STATUS = (403, 500, 502, 504)
 TIMEOUT = 5
+TIMEOUT_LONG = 20
 
 OWNER = 'firebase'
 REPO = 'firebase-cpp-sdk'
@@ -236,9 +237,9 @@ def list_workflows(token, workflow_id, branch):
   """https://docs.github.com/en/rest/reference/actions#list-workflow-runs-for-a-repository"""
   url = f'{GITHUB_API_URL}/actions/workflows/{workflow_id}/runs'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
-  data = {'event': 'workflow_dispatch', 'branch': branch}
+  data = {'event': 'workflow_dispatch', 'branch': branch, 'per_page': 5}
   with requests.get(url, headers=headers, data=json.dumps(data),
-                    stream=True, timeout=TIMEOUT) as response:
+                    stream=True, timeout=TIMEOUT_LONG) as response:
     logging.info("list_workflows: %s response: %s", url, response)
     return response.json()
 
