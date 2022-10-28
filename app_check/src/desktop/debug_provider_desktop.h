@@ -15,9 +15,9 @@
 #ifndef FIREBASE_APP_CHECK_SRC_DESKTOP_DEBUG_PROVIDER_DESKTOP_H_
 #define FIREBASE_APP_CHECK_SRC_DESKTOP_DEBUG_PROVIDER_DESKTOP_H_
 
-#include "firebase/app_check.h"
-
 #include <map>
+
+#include "firebase/app_check.h"
 
 namespace firebase {
 namespace app_check {

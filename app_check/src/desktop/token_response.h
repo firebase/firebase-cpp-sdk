@@ -16,17 +16,16 @@
 #define FIREBASE_APP_CHECK_SRC_DESKTOP_TOKEN_RESPONSE_H_
 
 #include "app/rest/response_json.h"
-
-#include "firebase/app.h"
 #include "app_check/token_response_generated.h"
 #include "app_check/token_response_resource.h"
+#include "firebase/app.h"
 
 namespace firebase {
 namespace app_check {
 namespace internal {
 
-class TokenResponse
-    : public firebase::rest::ResponseJson<fbs::TokenResponse, fbs::TokenResponseT> {
+class TokenResponse : public firebase::rest::ResponseJson<fbs::TokenResponse,
+                                                          fbs::TokenResponseT> {
  public:
   TokenResponse() : ResponseJson(token_response_resource_data) {}
 
@@ -34,8 +33,8 @@ class TokenResponse
   const std::string& ttl() { return application_data_->ttl; }
 };
 
-}  // internal
-}  // app_check
-}  // firebase
+}  // namespace internal
+}  // namespace app_check
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CHECK_SRC_DESKTOP_DEBUG_TOKEN_REQUEST_H_

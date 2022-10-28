@@ -16,16 +16,15 @@
 
 #include <map>
 
-#include "firebase/app_check/debug_provider.h"
-
+#include "app/rest/response.h"
 #include "app/rest/transport_builder.h"
 #include "app/rest/transport_curl.h"
-#include "app/rest/response.h"
 #include "app/rest/util.h"
 #include "app/src/log.h"
 #include "app/src/scheduler.h"
-#include "app_check/src/desktop/token_response.h"
 #include "app_check/src/desktop/debug_token_request.h"
+#include "app_check/src/desktop/token_response.h"
+#include "firebase/app_check/debug_provider.h"
 
 namespace firebase {
 namespace app_check {
@@ -36,8 +35,8 @@ class DebugAppCheckProvider : public AppCheckProvider {
   explicit DebugAppCheckProvider(App* app);
   ~DebugAppCheckProvider() override;
 
-  void GetToken(
-    std::function<void(AppCheckToken, int, const std::string&)> completion_callback) override;
+  void GetToken(std::function<void(AppCheckToken, int, const std::string&)>
+                    completion_callback) override;
 
  private:
   App* app_;
@@ -46,8 +45,7 @@ class DebugAppCheckProvider : public AppCheckProvider {
 };
 
 DebugAppCheckProvider::DebugAppCheckProvider(App* app)
-    : app_(app),
-      scheduler_() {
+    : app_(app), scheduler_() {
   firebase::rest::util::Initialize();
   firebase::rest::InitTransportCurl();
 }
@@ -57,8 +55,11 @@ DebugAppCheckProvider::~DebugAppCheckProvider() {
   firebase::rest::util::Terminate();
 }
 
-// Performs the given rest request, and calls the callback based on the response.
-void GetTokenAsync(SharedPtr<DebugTokenRequest> request, std::function<void(AppCheckToken, int, const std::string&)> completion_callback) {
+// Performs the given rest request, and calls the callback based on the
+// response.
+void GetTokenAsync(SharedPtr<DebugTokenRequest> request,
+                   std::function<void(AppCheckToken, int, const std::string&)>
+                       completion_callback) {
   TokenResponse response;
   firebase::rest::CreateTransport()->Perform(*request, &response);
 
@@ -75,17 +76,20 @@ void GetTokenAsync(SharedPtr<DebugTokenRequest> request, std::function<void(AppC
     AppCheckToken token;
     char error_message[1000];
     snprintf(error_message, sizeof(error_message),
-      "The server responded with an error.\n"
-      "HTTP status code: %d \n"
-      "Response body: %s\n",
-      response.status(), response.GetBody());
+             "The server responded with an error.\n"
+             "HTTP status code: %d \n"
+             "Response body: %s\n",
+             response.status(), response.GetBody());
     completion_callback(token, kAppCheckErrorServerUnreachable, error_message);
   }
 }
 
-void DebugAppCheckProvider::GetToken(std::function<void(AppCheckToken, int, const std::string&)> completion_callback) {
+void DebugAppCheckProvider::GetToken(
+    std::function<void(AppCheckToken, int, const std::string&)>
+        completion_callback) {
   // Identify the user's debug token
-  // TODO(amaurice): For now uses an environment variable, but should use other options.
+  // TODO(amaurice): For now uses an environment variable, but should use other
+  // options.
   const char* debug_token = std::getenv("APP_CHECK_DEBUG_TOKEN");
 
   // Exchange debug token with the backend to get a proper attestation token.
@@ -93,13 +97,13 @@ void DebugAppCheckProvider::GetToken(std::function<void(AppCheckToken, int, cons
   request->SetDebugToken(debug_token);
 
   // Use an async call, since we don't want to block on the server response.
-  auto async_call = callback::NewCallback(GetTokenAsync, request, completion_callback);
+  auto async_call =
+      callback::NewCallback(GetTokenAsync, request, completion_callback);
   scheduler_.Schedule(async_call);
 }
 
 DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal()
-  : provider_map_() {
-}
+    : provider_map_() {}
 
 DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
   // Clear the map
@@ -109,7 +113,8 @@ DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
   provider_map_.clear();
 }
 
-AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app) {
+AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
+    App* app) {
   // Check the map
   std::map<App*, AppCheckProvider*>::iterator it = provider_map_.find(app);
   if (it != provider_map_.end()) {
