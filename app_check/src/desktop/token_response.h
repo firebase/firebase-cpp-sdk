@@ -15,6 +15,8 @@
 #ifndef FIREBASE_APP_CHECK_SRC_DESKTOP_TOKEN_RESPONSE_H_
 #define FIREBASE_APP_CHECK_SRC_DESKTOP_TOKEN_RESPONSE_H_
 
+#include <string>
+
 #include "app/rest/response_json.h"
 #include "app_check/token_response_generated.h"
 #include "app_check/token_response_resource.h"
@@ -37,4 +39,4 @@ class TokenResponse : public firebase::rest::ResponseJson<fbs::TokenResponse,
 }  // namespace app_check
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CHECK_SRC_DESKTOP_DEBUG_TOKEN_REQUEST_H_
+#endif  // FIREBASE_APP_CHECK_SRC_DESKTOP_TOKEN_RESPONSE_H_

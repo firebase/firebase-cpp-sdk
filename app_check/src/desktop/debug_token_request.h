@@ -15,6 +15,9 @@
 #ifndef FIREBASE_APP_CHECK_SRC_DESKTOP_DEBUG_TOKEN_REQUEST_H_
 #define FIREBASE_APP_CHECK_SRC_DESKTOP_DEBUG_TOKEN_REQUEST_H_
 
+#include <string>
+#include <utility>
+
 #include "app/rest/request_json.h"
 #include "app_check/debug_token_request_generated.h"
 #include "app_check/debug_token_request_resource.h"

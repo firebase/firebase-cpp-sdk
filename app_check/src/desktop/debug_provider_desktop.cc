@@ -15,6 +15,8 @@
 #include "app_check/src/desktop/debug_provider_desktop.h"
 
 #include <map>
+#include <string>
+#include <utility>
 
 #include "app/rest/response.h"
 #include "app/rest/transport_builder.h"
