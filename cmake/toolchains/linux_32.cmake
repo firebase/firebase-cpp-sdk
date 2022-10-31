@@ -16,5 +16,5 @@
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
-set(CMAKE_LIBRARY_PATH "/usr/lib/i386-linux-gnu /usr/lib/gcc/i686-linux-gnu/${CMAKE_LANG_COMPILER_VERSION}")
-set(INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORIES} "/usr/include/i386-linux-gnu" "/usr/lib/gcc/i686-linux-gnu/${CMAKE_LANG_COMPILER_VERSION}")
+set(CMAKE_LIBRARY_PATH "/usr/lib/i386-linux-gnu")
+set(INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORIES} "/usr/include/i386-linux-gnu")
