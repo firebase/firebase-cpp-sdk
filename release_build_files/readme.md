@@ -634,8 +634,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming
+### 10.1.0
 -   Changes
+    - General (Android): Update to Firebase Android BoM version 31.0.2.
+    - General (iOS): Update to Firebase Cocoapods version 10.1.0.
     - Firestore (Android): Reduce the number of JNI global references consumed
       when creating or updating documents
       ([#1111](https://github.com/firebase/firebase-cpp-sdk/pull/1111)).
