@@ -641,6 +641,9 @@ code.
     - Firestore (Android): Reduce the number of JNI global references consumed
       when creating or updating documents
       ([#1111](https://github.com/firebase/firebase-cpp-sdk/pull/1111)).
+-   Known Issues
+    - Linux x86 builds are broken since C++ SDK version 9.6.0. A fix is in
+      progress.
 
 ### 10.0.0
 -   Changes
