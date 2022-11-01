@@ -248,5 +248,5 @@ def install_x86_support_libraries(gha_build=False):
     if gha_build:
       # Remove 64-bit zlib to avoid confusing the GitHub runner.
       remove_packages = ['zlib1g:amd64', 'zlib1g-dev:amd64']
-      run_command(['aptitude', 'remote', '-V', '-y'] + remove_packages, as_root=True, check=True)
+      run_command(['aptitude', 'remove', '-V', '-y'] + remove_packages, as_root=True, check=True)
      
