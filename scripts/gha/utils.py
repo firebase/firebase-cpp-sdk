@@ -232,6 +232,7 @@ def install_x86_support_libraries(gha_build=False):
     packages = ['gcc-multilib', 'g++-multilib', 'libglib2.0-dev:i386',
                 'libsecret-1-dev:i386', 'libpthread-stubs0-dev:i386',
                 'libssl-dev:i386', 'libsecret-1-0:i386']
+    remove_packages = []
 
     # First check if these packages exist on the machine already
     with open(os.devnull, "w") as devnull:
@@ -244,15 +245,16 @@ def install_x86_support_libraries(gha_build=False):
       run_command(['apt', 'update'], as_root=True, check=True)
       run_command(['apt', 'install', 'aptitude'], as_root=True, check=True)
       if gha_build:
-        # Remove libpcre to prevent package conflicts.
+        # Remove libpcre to prevent package conflicts, and zlib 64-bit to avoid
+        # confusing cmake. Only remove packages on GitHub runners.
         remove_packages = ['libpcre-dev:amd64', 'libpcre2-32-0:amd64',
-                           'libpcre-8-0:amd64', 'libpcre2-16-0:amd64']
-        run_command(['aptitude', 'remove', '-V', '-y'] + remove_packages, as_root=True, check=True)
+                           'libpcre-8-0:amd64', 'libpcre2-16-0:amd64',
+                           'zlib1g:amd64', 'zlib1g-dev:amd64']
+      
       run_command(['aptitude', 'install', '-V', '-y'] +
-                  (['-f'] if gha_build else []) +
-                  packages, as_root=True, check=True)
+                  (['-f'] if gha_build else []) + packages +
+                  ['%s-' % pkg for pkg in remove_packages], as_root=True, check=True))
      
       if gha_build:
         # Remove 64-bit zlib packages to avoid confusing the GitHub runner.
-        remove_packages = ['zlib1g:amd64', 'zlib1g-dev:amd64']
         run_command(['aptitude', 'remove', '-V', '-y'] + remove_packages, as_root=True, check=True)
