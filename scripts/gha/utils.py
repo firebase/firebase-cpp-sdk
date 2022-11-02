@@ -250,11 +250,13 @@ def install_x86_support_libraries(gha_build=False):
         remove_packages = ['libpcre2-dev:amd64', 'libpcre2-32-0:amd64',
                            'libpcre2-8-0:amd64', 'libpcre2-16-0:amd64',
                            'zlib1g:amd64', 'zlib1g-dev:amd64']
-      
+
       run_command(['aptitude', 'install', '-V', '-y'] + packages +
                   ['%s-' % pkg for pkg in remove_packages], as_root=True, check=True)
-     
-      if gha_build:
-        # Remove 64-bit zlib packages to avoid confusing the GitHub runner.
-        run_command(['aptitude', 'remove', '-V', '-y'] + remove_packages, as_root=True, check=True)
+
+      # Debug: Show that libsecret was installed.
       run_command(['dpkg', '-l', '*libsecret*'])
+      # Check if the packages were installed
+      with open(os.devnull, "w") as devnull:
+        subprocess.run(["dpkg", "-s"] + packages, stdout=devnull, stderr=subprocess.STDOUT, check=True)
+
