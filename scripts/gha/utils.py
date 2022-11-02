@@ -262,6 +262,6 @@ def install_x86_support_libraries(gha_build=False):
 
       # Check if the packages were installed
       with open(os.devnull, "w") as devnull:
-        subprocess.run(["dpkg", "-s"] + packages, stdout=devnull, stderr=subprocess.STDOUT
+        subprocess.run(["dpkg", "-s"] + packages, stdout=devnull, stderr=subprocess.STDOUT,
                        check=True)
 
