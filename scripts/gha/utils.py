@@ -244,13 +244,15 @@ def install_x86_support_libraries(gha_build=False):
       run_command(['apt', 'update'], as_root=True, check=True)
       run_command(['apt', 'install', 'aptitude'], as_root=True, check=True)
       if gha_build:
-        # Remove some 64-bit zlib packages to avoid confusing the GitHub runner,
-        # and libpcre to prevent package conflicts.
-        remove_packages = ['zlib1g:amd64', 'zlib1g-dev:amd64',
-                           'libpcre-dev:amd64', 'libpcre2-32-0:amd64',
+        # Remove libpcre to prevent package conflicts.
+        remove_packages = ['libpcre-dev:amd64', 'libpcre2-32-0:amd64',
                            'libpcre-8-0:amd64', 'libpcre2-16-0:amd64']
-      run_command(['aptitude', 'remove', '-V', '-y'] + remove_packages, as_root=True, check=True)
+        run_command(['aptitude', 'remove', '-V', '-y'] + remove_packages, as_root=True, check=True)
       run_command(['aptitude', 'install', '-V', '-y'] +
                   (['-f'] if gha_build else []) +
                   packages, as_root=True, check=True)
      
+      if gha_build:
+        # Remove 64-bit zlib packages to avoid confusing the GitHub runner.
+        remove_packages = ['zlib1g:amd64', 'zlib1g-dev:amd64']
+        run_command(['aptitude', 'remove', '-V', '-y'] + remove_packages, as_root=True, check=True)
