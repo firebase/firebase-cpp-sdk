@@ -60,6 +60,7 @@ else()  # LINUX
   # Check if we are building for x86
   if (" ${CMAKE_CXX_FLAGS} " MATCHES " -m32 ")
     set(LINUX_CPU i386)
+    set(ENV{PKG_CONFIG_PATH} "/usr/lib/i386-linux-gnu/pkgconfig:$ENV{PKG_CONFIG_PATH}")
   else()
     set(LINUX_CPU x86_64)
   endif()
