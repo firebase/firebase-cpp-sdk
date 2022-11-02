@@ -251,8 +251,7 @@ def install_x86_support_libraries(gha_build=False):
                            'libpcre2-8-0:amd64', 'libpcre2-16-0:amd64',
                            'zlib1g:amd64', 'zlib1g-dev:amd64']
       
-      run_command(['aptitude', 'install', '-V', '-y'] +
-                  (['-f'] if gha_build else []) + packages +
+      run_command(['aptitude', 'install', '-V', '-y'] + packages +
                   ['%s-' % pkg for pkg in remove_packages], as_root=True, check=True)
      
       if gha_build:
