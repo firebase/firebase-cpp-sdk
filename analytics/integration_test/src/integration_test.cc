@@ -103,8 +103,21 @@ TEST_F(FirebaseAnalyticsTest, TestGetAnalyticsInstanceID) {
 }
 
 TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
-  firebase::Future<int64_t> future = firebase::analytics::GetSessionId();
+  firebase::Future<int64_t> future;
+  
+#if TARGET_OS_SIMULATOR
+  // It can take Analytics a moment to initialize on iOS simulator.
+  // So on iOS/tvOS simulator, retry this test if it fails.
+  FLAKY_TEST_SECTION_BEGIN();
+#endif  // TARGET_OS_SIMULATOR
+
+  future = firebase::analytics::GetSessionId();
   WaitForCompletion(future, "GetSessionId");
+
+#if TARGET_OS_SIMULATOR
+  FLAKY_TEST_SECTION_END();
+#endif  // TARGET_OS_SIMULATOR
+  
   EXPECT_TRUE(future.result() != nullptr);
   EXPECT_NE(*future.result(), 0L);
 }
