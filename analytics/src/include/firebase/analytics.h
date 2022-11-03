@@ -533,7 +533,7 @@ Future<std::string> GetAnalyticsInstanceIdLastResult();
 /// The session ID retrieval could fail due to Analytics collection
 /// disabled, or if the app session was expired.
 ///
-/// @returns 
+/// @returns
 Future<int64_t> GetSessionId();
 
 /// Get the result of the most recent GetSessionId() call.

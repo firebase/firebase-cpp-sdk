@@ -150,7 +150,7 @@ Future<int64_t> GetSessionId() {
   auto* api = internal::FutureData::Get()->api();
   const auto future_handle =
       api->SafeAlloc<int64_t>(internal::kAnalyticsFnGetSessionId);
-  int64_t session_id = 0x5E5510171D570BL; // "SESSIONIDSTUB", kinda
+  int64_t session_id = 0x5E5510171D570BL;  // "SESSIONIDSTUB", kinda
   api->CompleteWithResult(future_handle, 0, "", session_id);
   return Future<int64_t>(api, future_handle.get());
 }

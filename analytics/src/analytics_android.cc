@@ -381,7 +381,6 @@ Future<std::string> GetAnalyticsInstanceIdLastResult() {
           internal::kAnalyticsFnGetAnalyticsInstanceId));
 }
 
-
 Future<int64_t> GetSessionId() {
   FIREBASE_ASSERT_RETURN(Future<int64_t>(), internal::IsInitialized());
   auto* api = internal::FutureData::Get()->api();
@@ -389,54 +388,57 @@ Future<int64_t> GetSessionId() {
       api->SafeAlloc<int64_t>(internal::kAnalyticsFnGetSessionId);
       g_analytics_class_instance,
       analytics::GetMethodId(analytics::kGetAppInstanceId));
-  JNIEnv* env = g_app->GetJNIEnv();
-  jobject task = env->CallObjectMethod(g_analytics_class_instance,
-				       analytics::GetMethodId(analytics::kGetSessionId));
+      JNIEnv* env = g_app->GetJNIEnv();
+      jobject task = env->CallObjectMethod(
+          g_analytics_class_instance,
+          analytics::GetMethodId(analytics::kGetSessionId));
 
-  std::string error = util::GetAndClearExceptionMessage(env);
-  if (error.empty()) {
-    util::RegisterCallbackOnTask(
-        env, task,
-        [](JNIEnv* env, jobject result, util::FutureResult result_code,
-           const char* status_message, void* callback_data) {
-	  int64_t session_id = 0;
-	  if (result != nullptr) {
-	    // result is a Long class type, unbox it.
-	    session_id = env->CallLongMethod(util::long_class::GetClass(),
-					     util::long_class::GetMethodId(util::long_class::kLongValue));
-	  }
-          auto* future_data = internal::FutureData::Get();
-          if (future_data) {
-            bool success =
-                result_code == util::kFutureResultSuccess && result != nullptr;
-            FutureHandleId future_id =
-                reinterpret_cast<FutureHandleId>(callback_data);
-            FutureHandle handle(future_id);
-            future_data->api()->CompleteWithResult(
-                handle, success ? 0 : -1,
-                success          ? ""
-                : status_message ? status_message
-                                 : "Unknown error occurred",
-                session_id);
-          }
-          if (result) env->DeleteLocalRef(result);
-        },
-        reinterpret_cast<void*>(future_handle.get().id()),
-        internal::kAnalyticsModuleName);
-  } else {
-    api->CompleteWithResult(future_handle, -1, error.c_str(),
-                            std::string());
-  }
-  env->DeleteLocalRef(task);
-				       
-  return Future<int64_t>(api, future_handle.get());
+      std::string error = util::GetAndClearExceptionMessage(env);
+      if (error.empty()) {
+        util::RegisterCallbackOnTask(
+            env, task,
+            [](JNIEnv* env, jobject result, util::FutureResult result_code,
+               const char* status_message, void* callback_data) {
+              int64_t session_id = 0;
+              if (result != nullptr) {
+                // result is a Long class type, unbox it.
+                session_id =
+                    env->CallLongMethod(util::long_class::GetClass(),
+                                        util::long_class::GetMethodId(
+                                            util::long_class::kLongValue));
+              }
+              auto* future_data = internal::FutureData::Get();
+              if (future_data) {
+                bool success = result_code == util::kFutureResultSuccess &&
+                               result != nullptr;
+                FutureHandleId future_id =
+                    reinterpret_cast<FutureHandleId>(callback_data);
+                FutureHandle handle(future_id);
+                future_data->api()->CompleteWithResult(
+                    handle, success ? 0 : -1,
+                    success          ? ""
+                    : status_message ? status_message
+                                     : "Unknown error occurred",
+                    session_id);
+              }
+              if (result) env->DeleteLocalRef(result);
+            },
+            reinterpret_cast<void*>(future_handle.get().id()),
+            internal::kAnalyticsModuleName);
+      } else {
+        api->CompleteWithResult(future_handle, -1, error.c_str(),
+                                std::string());
+      }
+      env->DeleteLocalRef(task);
+
+      return Future<int64_t>(api, future_handle.get());
 }
 
 Future<int64_t> GetSessionIdLastResult() {
-  FIREBASE_ASSERT_RETURN(Future<int64_t>(), internal::IsInitialized());
-  return static_cast<const Future<int64_t>&>(
-      internal::FutureData::Get()->api()->LastResult(
-          internal::kAnalyticsFnGetSessionId));
+      FIREBASE_ASSERT_RETURN(Future<int64_t>(), internal::IsInitialized());
+      return static_cast<const Future<int64_t>&>(
+          internal::FutureData::Get()->api()->LastResult(
+              internal::kAnalyticsFnGetSessionId));
 }
 
 }  // namespace analytics

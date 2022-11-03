@@ -24,9 +24,9 @@ namespace analytics {
 namespace internal {
 
 enum AnalyticsFn {
-		  kAnalyticsFnGetAnalyticsInstanceId,
-		  kAnalyticsFnGetSessionId,
-		  kAnalyticsFnCount
+  kAnalyticsFnGetAnalyticsInstanceId,
+  kAnalyticsFnGetSessionId,
+  kAnalyticsFnCount
 };
 
 // Data structure which holds the Future API for this module.

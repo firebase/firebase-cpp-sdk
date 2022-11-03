@@ -103,8 +103,7 @@ TEST_F(FirebaseAnalyticsTest, TestGetAnalyticsInstanceID) {
 }
 
 TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
-  firebase::Future<int64_t> future =
-      firebase::analytics::GetSessionId();
+  firebase::Future<int64_t> future = firebase::analytics::GetSessionId();
   WaitForCompletion(future, "GetSessionId");
   EXPECT_TRUE(future.result() != nullptr);
   EXPECT_NE(*future.result(), 0L);
