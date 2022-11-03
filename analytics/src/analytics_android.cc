@@ -402,10 +402,9 @@ Future<int64_t> GetSessionId() {
               int64_t session_id = 0;
               if (result != nullptr) {
                 // result is a Long class type, unbox it.
-                session_id =
-                    env->CallLongMethod(util::long_class::GetClass(),
-                                        util::long_class::GetMethodId(
-                                            util::long_class::kLongValue));
+                session_id = env->CallLongMethod(
+                    result, util::long_class::GetMethodId(
+                                util::long_class::kLongValue));
               }
               auto* future_data = internal::FutureData::Get();
               if (future_data) {
