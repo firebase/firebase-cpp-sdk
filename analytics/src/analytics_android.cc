@@ -402,7 +402,7 @@ Future<int64_t> GetSessionId() {
             // result is a Long class type, unbox it.
             session_id = env->CallLongMethod(
                 result,
-                util::long_class::GetMethodId(util::long_class::kLongValue));
+                util::long_class::GetMethodId(util::long_class::kValue));
           }
           auto* future_data = internal::FutureData::Get();
           if (future_data) {
@@ -423,7 +423,7 @@ Future<int64_t> GetSessionId() {
         reinterpret_cast<void*>(future_handle.get().id()),
         internal::kAnalyticsModuleName);
   } else {
-    api->CompleteWithResult(future_handle, -1, error.c_str(), std::string());
+    api->CompleteWithResult(future_handle, -1, error.c_str(), 0);
   }
   env->DeleteLocalRef(task);
 
