@@ -241,7 +241,7 @@ def install_x86_support_libraries(gha_build=False):
 
     if process.returncode != 0:
       # This implies not all of the required packages are already installed on
-      # user's machine Install them.
+      # user's machine. Install them.
       run_command(['dpkg', '--add-architecture', 'i386'], as_root=True,
                   check=True)
       run_command(['apt', 'update'], as_root=True, check=True)
