@@ -421,7 +421,8 @@ Future<int64_t> GetSessionId() {
         reinterpret_cast<void*>(future_handle.get().id()),
         internal::kAnalyticsModuleName);
   } else {
-    api->CompleteWithResult(future_handle.get(), -1, error.c_str(), static_cast<int64_t>(0L));
+    api->CompleteWithResult(future_handle.get(), -1, error.c_str(),
+                            static_cast<int64_t>(0L));
   }
   env->DeleteLocalRef(task);
 
