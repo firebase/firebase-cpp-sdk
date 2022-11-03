@@ -305,7 +305,7 @@ Future<int64_t> GetSessionId() {
       api->CompleteWithResult(future_handle, 0, "", session_id);
     }
   }];
-  return MakeFuture<std::string>(api, future_handle);
+  return MakeFuture<int64_t>(api, future_handle);
 }
 
 Future<int64_t> GetSessionIdLastResult() {
