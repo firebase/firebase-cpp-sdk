@@ -300,12 +300,12 @@ Future<int64_t> GetSessionId() {
   const auto future_handle = api->SafeAlloc<int64_t>(internal::kAnalyticsFnGetSessionId);
   [FIRAnalytics sessionIDWithCompletion:^(int64_t session_id, NSError* _Nullable error) {
     if (error) {
-      api->Complete(handle, util::NSStringToString(error.localizedDescription).c_str());
+      api->Complete(future_handle, util::NSStringToString(error.localizedDescription).c_str());
     } else {
-      api->CompleteWithResult(handle, 0, "", session_id);
+      api->CompleteWithResult(future_handle, 0, "", session_id);
     }
   }];
-  return MakeFuture<std::string>(api, handle);
+  return MakeFuture<std::string>(api, future_handle);
 }
 
 Future<int64_t> GetSessionIdLastResult() {
