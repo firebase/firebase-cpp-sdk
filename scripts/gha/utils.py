@@ -250,9 +250,7 @@ def install_x86_support_libraries(gha_build=False):
         # Remove libpcre to prevent package conflicts, and zlib/libsecret 64-bit
         # to avoid confusing cmake. Only remove packages on GitHub runners.
         remove_packages = ['libpcre2-dev:amd64', 'libpcre2-32-0:amd64',
-                           'libpcre2-8-0:amd64', 'libpcre2-16-0:amd64',
-                           'zlib1g:amd64', 'zlib1g-dev:amd64',
-                           'libsecret-1-0:amd64']
+                           'libpcre2-8-0:amd64', 'libpcre2-16-0:amd64']
       # Note: With aptitude, you can remove package 'xyz' by specifying 'xyz-'
       # in the package list.
       run_command(['aptitude', 'install', '-V', '-y'] + packages +
