@@ -107,7 +107,7 @@ TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
   
 #if TARGET_OS_SIMULATOR
   // It can take Analytics a moment to initialize on iOS simulator.
-  // So on iOS/tvOS simulator, retry this test if it fails.
+  // So on iOS/tvOS simulator, retry this test if GetSessionId returns an error..
   FLAKY_TEST_SECTION_BEGIN();
 #endif  // TARGET_OS_SIMULATOR
 
