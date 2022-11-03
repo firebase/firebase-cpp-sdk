@@ -237,7 +237,7 @@ core::Bound QueryInternal::ToBound(
     const std::vector<FieldValue>& field_values) const {
   const core::Query& internal_query = query_.query();
   // Use explicit order bys  because it has to match the query the user made.
-  const core::OrderByList& explicit_order_bys =
+  const std::vector<core::OrderBy>& explicit_order_bys =
       internal_query.explicit_order_bys();
 
   if (field_values.size() > explicit_order_bys.size()) {
