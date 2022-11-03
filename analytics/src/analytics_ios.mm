@@ -293,5 +293,29 @@ Future<std::string> GetAnalyticsInstanceIdLastResult() {
       internal::FutureData::Get()->api()->LastResult(internal::kAnalyticsFnGetAnalyticsInstanceId));
 }
 
+Future<int64_t> GetSessionId() {
+  MutexLock lock(g_mutex);
+  FIREBASE_ASSERT_RETURN(Future<int64_t>(), internal::IsInitialized());
+  auto* api = internal::FutureData::Get()->api();
+  const auto future_handle =
+      api->SafeAlloc<int64_t>(internal::kAnalyticsFnGetSessionId);
+  [FIRAnalytics sessionIDWithCompletion:^(int64_t session_id,
+					  NSError *_Nullable error) {
+      if (error) {
+	api->Complete(handle, util::NSStringToString(error.localizedDescription).c_str());
+      } else {
+	api->CompleteWithResult(handle, 0, "", session_id);
+      }
+    }];
+  return MakeFuture<std::string>(api, handle);
+}
+
+Future<int64_t> GetSessionIdLastResult() {
+  MutexLock lock(g_mutex);
+  FIREBASE_ASSERT_RETURN(Future<int64_t>(), internal::IsInitialized());
+  return static_cast<const Future<int64_t>&>(
+      internal::FutureData::Get()->api()->LastResult(internal::kAnalyticsFnGetSessionId));
+}
+
 }  // namespace measurement
 }  // namespace firebase

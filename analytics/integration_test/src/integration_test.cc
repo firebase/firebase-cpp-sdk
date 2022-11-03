@@ -102,6 +102,14 @@ TEST_F(FirebaseAnalyticsTest, TestGetAnalyticsInstanceID) {
   EXPECT_FALSE(future.result()->empty());
 }
 
+TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
+  firebase::Future<int64_t> future =
+      firebase::analytics::GetSessionId();
+  WaitForCompletion(future, "GetSessionId");
+  EXPECT_TRUE(future.result() != nullptr);
+  EXPECT_NE(*future.result(), 0L);
+}
+
 TEST_F(FirebaseAnalyticsTest, TestSetProperties) {
   // Set the user's sign up method.
   firebase::analytics::SetUserProperty(
