@@ -533,12 +533,14 @@ Future<std::string> GetAnalyticsInstanceIdLastResult();
 /// The session ID retrieval could fail due to Analytics collection
 /// disabled, or if the app session was expired.
 ///
-/// @returns
+/// @returns The identifier of the current app session. The value is 0 if the
+/// request failed.
 Future<int64_t> GetSessionId();
 
 /// Get the result of the most recent GetSessionId() call.
 ///
-/// @returns Object which can be used to retrieve the analytics instance ID.
+/// @returns The identifier of the current app session. The value is 0 if the
+/// request failed.
 Future<int64_t> GetSessionIdLastResult();
 
 }  // namespace analytics
