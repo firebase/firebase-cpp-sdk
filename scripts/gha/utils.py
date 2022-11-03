@@ -258,9 +258,6 @@ def install_x86_support_libraries(gha_build=False):
       run_command(['aptitude', 'install', '-V', '-y'] + packages +
                   ['%s-' % pkg for pkg in remove_packages], as_root=True, check=True)
 
-      # Debug: Show that libsecret is installed.
-      run_command(['dpkg', '-l', '*libsecret*'])
-
       # Check if the packages were installed
       with open(os.devnull, "w") as devnull:
         subprocess.run(["dpkg", "-s"] + packages, stdout=devnull, stderr=subprocess.STDOUT,
