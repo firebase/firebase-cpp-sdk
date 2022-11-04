@@ -299,19 +299,15 @@ Future<int64_t> GetSessionId() {
   auto* api = internal::FutureData::Get()->api();
   const auto future_handle = api->SafeAlloc<int64_t>(internal::kAnalyticsFnGetSessionId);
   [FIRAnalytics sessionIDWithCompletion:^(int64_t session_id, NSError* _Nullable error) {
-    for (;;) {
-      {
-        MutexLock lock(g_mutex);
-        if (!internal::IsInitialized()) break;
-        if (error) {
-          api->Complete(future_handle, -1,
-                        util::NSStringToString(error.localizedDescription).c_str());
-        } else {
-          api->CompleteWithResult(future_handle, 0, "", session_id);
-        }
+      MutexLock lock(g_mutex);
+      if (!internal::IsInitialized()) break;
+      if (error) {
+	api->Complete(future_handle, -1,
+		      util::NSStringToString(error.localizedDescription).c_str());
+      } else {
+	api->CompleteWithResult(future_handle, 0, "", session_id);
       }
-    }
-  }];
+    }];
   return MakeFuture<int64_t>(api, future_handle);
 }
 
