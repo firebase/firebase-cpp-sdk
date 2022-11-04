@@ -222,6 +222,7 @@ def get_value(workflow, test_matrix, parm_key, config_parms_only=False):
 def filter_devices(devices, device_type):
   """ Filter device by device_type
   """
+  device_type = device_type.replace("real","ftl")
   filtered_value = filter(lambda device: TEST_DEVICES.get(device).get("type") in device_type, devices)
   return list(filtered_value)  
 
@@ -373,7 +374,7 @@ def main():
   else:
     test_matrix = ""
   value = get_value(args.workflow, test_matrix, args.parm_key, args.config)
-  if args.workflow == "integration_tests" and (args.parm_key == "android_device" or args.parm_key == "ios_device"):
+  if args.workflow == "integration_tests" and args.parm_key == "ios_device":
     value = filter_devices(value, args.device_type)
   if args.auto_diff:
     value = filter_values_on_diff(args.parm_key, value, args.auto_diff)
