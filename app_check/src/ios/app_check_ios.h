@@ -71,6 +71,7 @@ class AppCheckInternal {
 };
 
 }  // namespace internal
+
 }  // namespace app_check
 }  // namespace firebase
 
