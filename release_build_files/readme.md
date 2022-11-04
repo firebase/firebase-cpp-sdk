@@ -637,6 +637,7 @@ code.
 ### Upcoming Release
 -   Changes
     - General (Desktop): Linux x86 libraries have been fixed.
+    - Analytics: Add a new function `GetSessionId`.
 
 ### 10.1.0
 -   Changes
