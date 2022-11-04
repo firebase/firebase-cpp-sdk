@@ -300,7 +300,7 @@ Future<int64_t> GetSessionId() {
   const auto future_handle = api->SafeAlloc<int64_t>(internal::kAnalyticsFnGetSessionId);
   [FIRAnalytics sessionIDWithCompletion:^(int64_t session_id, NSError* _Nullable error) {
       MutexLock lock(g_mutex);
-      if (!internal::IsInitialized()) break;
+      if (!internal::IsInitialized()) return;
       if (error) {
 	api->Complete(future_handle, -1,
 		      util::NSStringToString(error.localizedDescription).c_str());
