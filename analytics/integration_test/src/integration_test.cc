@@ -120,7 +120,7 @@ TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
 #endif  // TARGET_OS_SIMULATOR
 
   EXPECT_TRUE(future.result() != nullptr);
-  EXPECT_NE(*future.result(), 0L);
+  EXPECT_NE(*future.result(), static_cast<int64_t>(0L));
 }
 
 TEST_F(FirebaseAnalyticsTest, TestSetProperties) {
