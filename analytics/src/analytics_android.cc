@@ -381,17 +381,11 @@ Future<std::string> GetAnalyticsInstanceIdLastResult() {
           internal::kAnalyticsFnGetAnalyticsInstanceId));
 }
 
-#if !defined(SWIG)
-#define SESSION_ID_TYPE int64_t
-#else  // SWIG
-#define SESSION_ID_TYPE long long
-#endif
-
-Future<SESSION_ID_TYPE> GetSessionId() {
-  FIREBASE_ASSERT_RETURN(Future<SESSION_ID_TYPE>(), internal::IsInitialized());
+Future<int64_t> GetSessionId() {
+  FIREBASE_ASSERT_RETURN(Future<int64_t>(), internal::IsInitialized());
   auto* api = internal::FutureData::Get()->api();
   const auto future_handle =
-      api->SafeAlloc<SESSION_ID_TYPE>(internal::kAnalyticsFnGetSessionId);
+      api->SafeAlloc<int64_t>(internal::kAnalyticsFnGetSessionId);
   JNIEnv* env = g_app->GetJNIEnv();
   jobject task =
       env->CallObjectMethod(g_analytics_class_instance,
@@ -403,7 +397,7 @@ Future<SESSION_ID_TYPE> GetSessionId() {
         env, task,
         [](JNIEnv* env, jobject result, util::FutureResult result_code,
            const char* status_message, void* callback_data) {
-          SESSION_ID_TYPE session_id = 0;
+          int64_t session_id = 0;
           if (result != nullptr) {
             // result is a Long class type, unbox it.
             session_id = util::JLongToInt64(env, result);
@@ -428,16 +422,16 @@ Future<SESSION_ID_TYPE> GetSessionId() {
         internal::kAnalyticsModuleName);
   } else {
     api->CompleteWithResult(future_handle.get(), -1, error.c_str(),
-                            static_cast<SESSION_ID_TYPE>(0L));
+                            static_cast<int64_t>(0L));
   }
   env->DeleteLocalRef(task);
 
-  return Future<SESSION_ID_TYPE>(api, future_handle.get());
+  return Future<int64_t>(api, future_handle.get());
 }
 
-Future<SESSION_ID_TYPE> GetSessionIdLastResult() {
-  FIREBASE_ASSERT_RETURN(Future<SESSION_ID_TYPE>(), internal::IsInitialized());
-  return static_cast<const Future<SESSION_ID_TYPE>&>(
+Future<int64_t> GetSessionIdLastResult() {
+  FIREBASE_ASSERT_RETURN(Future<int64_t>(), internal::IsInitialized());
+  return static_cast<const Future<int64_t>&>(
       internal::FutureData::Get()->api()->LastResult(
           internal::kAnalyticsFnGetSessionId));
 }

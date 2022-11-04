@@ -145,25 +145,19 @@ Future<std::string> GetAnalyticsInstanceIdLastResult() {
           internal::kAnalyticsFnGetAnalyticsInstanceId));
 }
 
-#if !defined(SWIG)
-#define SESSION_ID_TYPE int64_t
-#else  // SWIG
-#define SESSION_ID_TYPE long long
-#endif
-
-Future<SESSION_ID_TYPE> GetSessionId() {
-  FIREBASE_ASSERT_RETURN(Future<SESSION_ID_TYPE>(), internal::IsInitialized());
+Future<int64_t> GetSessionId() {
+  FIREBASE_ASSERT_RETURN(Future<int64_t>(), internal::IsInitialized());
   auto* api = internal::FutureData::Get()->api();
   const auto future_handle =
-      api->SafeAlloc<SESSION_ID_TYPE>(internal::kAnalyticsFnGetSessionId);
-  SESSION_ID_TYPE session_id = 0x5E5510171D570BL;  // "SESSIONIDSTUB", kinda
+      api->SafeAlloc<int64_t>(internal::kAnalyticsFnGetSessionId);
+  int64_t session_id = 0x5E5510171D570BL;  // "SESSIONIDSTUB", kinda
   api->CompleteWithResult(future_handle, 0, "", session_id);
-  return Future<SESSION_ID_TYPE>(api, future_handle.get());
+  return Future<int64_t>(api, future_handle.get());
 }
 
-Future<SESSION_ID_TYPE> GetSessionIdLastResult() {
-  FIREBASE_ASSERT_RETURN(Future<SESSION_ID_TYPE>(), internal::IsInitialized());
-  return static_cast<const Future<SESSION_ID_TYPE>&>(
+Future<int64_t> GetSessionIdLastResult() {
+  FIREBASE_ASSERT_RETURN(Future<int64_t>(), internal::IsInitialized());
+  return static_cast<const Future<int64_t>&>(
       internal::FutureData::Get()->api()->LastResult(
           internal::kAnalyticsFnGetSessionId));
 }
