@@ -7,7 +7,7 @@
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.google.firebase.cpp.functions.testapp</string>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -25,7 +25,7 @@
 			<string>google</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.760619882947-d7uc3pt0rijrudd8mjhc397q5cbm7969</string>
+				<string>REPLACE_WITH_REVERSED_CLIENT_ID</string>
                                 <string>firebase-game-loop</string>
 			</array>
 		</dict>
