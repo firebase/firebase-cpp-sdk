@@ -535,13 +535,21 @@ Future<std::string> GetAnalyticsInstanceIdLastResult();
 ///
 /// @returns The identifier of the current app session. The value is 0 if the
 /// request failed.
+#if !defined(SWIG)
 Future<int64_t> GetSessionId();
+#else
+Future<long long> GetSessionId();
+#endif
 
 /// Get the result of the most recent GetSessionId() call.
 ///
 /// @returns The identifier of the current app session. The value is 0 if the
 /// request failed.
+#if !defined(SWIG)
 Future<int64_t> GetSessionIdLastResult();
+#else
+Future<long long> GetSessionIdLastResult();
+#endif
 
 }  // namespace analytics
 }  // namespace firebase
