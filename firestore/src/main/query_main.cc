@@ -237,7 +237,7 @@ core::Bound QueryInternal::ToBound(
     const std::vector<FieldValue>& field_values) const {
   const core::Query& internal_query = query_.query();
   // Use explicit order bys  because it has to match the query the user made.
-#if TARGET_OS_IOS
+#if TARGET_OS_IOS || TARGET_OS_TV
   const core::OrderByList& explicit_order_bys =
       internal_query.explicit_order_bys();
 #else
