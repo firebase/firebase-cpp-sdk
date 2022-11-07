@@ -267,8 +267,7 @@ def main(argv):
         "-DFIREBASE_PYTHON_HOST_EXECUTABLE:FILEPATH=%s" % sys.executable,
     ))
 
-  if (_DESKTOP in platforms and FLAGS.packaged_sdk and
-      utils.is_linux_os() and FLAGS.arch == "x86"):
+  if (_DESKTOP in platforms and utils.is_linux_os() and FLAGS.arch == "x86"):
       # Write out a temporary toolchain file to force 32-bit Linux builds, as
       # the SDK-included toolchain file may not be present when building against
       # the packaged SDK.
