@@ -179,6 +179,18 @@ namespace firebase_test_framework {
 #define SKIP_TEST_ON_ANDROID ((void)0)
 #endif  // defined(ANDROID)
 
+#if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE && !TARGET_OS_SIMULATOR
+#define SKIP_NON_USER_INTERACTION_TEST_ON_IOS_DEVICE                    \
+  if (!ShouldRunUITests()) {                                            \
+    app_framework::LogInfo("Skipping %s on FTL iOS device.",            \
+                            test_info_->name());                        \
+    GTEST_SKIP();                                                       \
+    return;                                                             \
+  }
+#else
+#define SKIP_NON_USER_INTERACTION_TEST_ON_IOS_DEVICE ((void)0)
+#endif
+
 #if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE && TARGET_OS_SIMULATOR
 #define SKIP_TEST_ON_SIMULATOR                              \
   {                                                         \
