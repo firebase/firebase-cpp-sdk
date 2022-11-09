@@ -2017,7 +2017,7 @@ TEST_F(FirebaseGmaTest, TestAdViewStress) {
   SKIP_TEST_ON_DESKTOP;
 
   // TODO(@drsanta): remove when GMA whitelists CI devices
-  SKIP_NON_USER_INTERACTION_TEST_ON_IOS_DEVICE;
+  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
 
   for (int i = 0; i < 10; ++i) {
     const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
@@ -2041,7 +2041,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
   SKIP_TEST_ON_DESKTOP;
 
   // TODO(@drsanta): remove when GMA whitelists CI devices
-  SKIP_NON_USER_INTERACTION_TEST_ON_IOS_DEVICE;
+  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
 
   for (int i = 0; i < 10; ++i) {
     firebase::gma::InterstitialAd* interstitial =
@@ -2063,7 +2063,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
   SKIP_TEST_ON_DESKTOP;
 
   // TODO(@drsanta): remove when GMA whitelists CI devices
-  SKIP_NON_USER_INTERACTION_TEST_ON_IOS_DEVICE;
+  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
 
   for (int i = 0; i < 10; ++i) {
     firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
