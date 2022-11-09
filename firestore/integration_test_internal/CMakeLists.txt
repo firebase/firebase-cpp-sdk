@@ -39,10 +39,23 @@ if(NOT EXISTS ${FIREBASE_CPP_SDK_DIR})
 endif()
 
 # Copy all prerequisite files for integration tests to run.
+message(STATUS "zzyzx CHECKPOINT A")
 if(NOT ANDROID)
+  message(STATUS "zzyzx CHECKPOINT B")
   if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/../../setup_integration_tests.py)
+    message(STATUS "zzyzx CHECKPOINT C")
     # If this is running from inside the SDK directory, run the setup script.
-    execute_process(COMMAND ${FIREBASE_PYTHON_EXECUTABLE} "${CMAKE_CURRENT_LIST_DIR}/../../setup_integration_tests.py" "${CMAKE_CURRENT_LIST_DIR}")
+    execute_process(
+      COMMAND
+        ${FIREBASE_PYTHON_EXECUTABLE}
+        "${CMAKE_CURRENT_LIST_DIR}/../../setup_integration_tests.py"
+        "${CMAKE_CURRENT_LIST_DIR}"
+      RESULT_VARIABLE
+        FIREBASE_PYTHON_EXECUTABLE_RESULT
+    )
+    if(NOT FIREBASE_PYTHON_EXECUTABLE_RESULT EQUAL 0)
+      message(FATAL_ERROR "Failed to run setup_integration_tests.py")
+    endif()
   endif()
 endif()
 
