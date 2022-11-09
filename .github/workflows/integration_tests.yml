@@ -1030,7 +1030,7 @@ jobs:
             --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}" \
             --ci
       - id: ftl_test
-        if: steps.device-info.outputs.device_type == 'real'
+        if: steps.device-info.outputs.device_type == 'ftl'
         uses: FirebaseExtended/github-actions/firebase-test-lab@v1.2
         timeout-minutes: 90
         with:
@@ -1041,7 +1041,7 @@ jobs:
           max_attempts: 3
           validator: ${GITHUB_WORKSPACE}/scripts/gha/integration_testing/ftl_gha_validator.py
       - name: Read FTL Test Result
-        if: ${{ steps.device-info.outputs.device_type == 'real' && !cancelled() }}
+        if: ${{ steps.device-info.outputs.device_type == 'ftl' && !cancelled() }}
         shell: bash
         run: |
           python scripts/gha/read_ftl_test_result.py --test_result '${{ steps.ftl_test.outputs.test_summary }}' \
@@ -1173,7 +1173,7 @@ jobs:
             --logfile_name "ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}" \
             --ci
       - id: ftl_test
-        if: steps.device-info.outputs.device_type == 'real'
+        if: steps.device-info.outputs.device_type == 'ftl'
         uses: FirebaseExtended/github-actions/firebase-test-lab@v1.2
         timeout-minutes: 90
         with:
@@ -1184,7 +1184,7 @@ jobs:
           max_attempts: 3
           validator: ${GITHUB_WORKSPACE}/scripts/gha/integration_testing/ftl_gha_validator.py
       - name: Read FTL Test Result
-        if: ${{ steps.device-info.outputs.device_type == 'real' && !cancelled() }}
+        if: ${{ steps.device-info.outputs.device_type == 'ftl' && !cancelled() }}
         shell: bash
         run: |
           python scripts/gha/read_ftl_test_result.py --test_result '${{ steps.ftl_test.outputs.test_summary }}' \
