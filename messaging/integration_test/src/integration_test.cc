@@ -514,6 +514,12 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
   TEST_REQUIRES_USER_INTERACTION_ON_IOS;
   SKIP_TEST_ON_DESKTOP;
 
+  // TODO(b/196589796) Test fails on Android emulators and causes failures in
+  // our CI. Since we don't have a good way to deterine if the runtime is an
+  // emulator or real device, we should disable the test in CI until we find
+  // the cause of problem.
+  TEST_REQUIRES_USER_INTERACTION_ON_ANDROID;
+
   EXPECT_TRUE(RequestPermission());
   EXPECT_TRUE(WaitForToken());
 
