@@ -51,7 +51,7 @@ namespace firebase_testapp_automated {
 // Your Firebase project's Server Key for Cloud Messaging goes here.
 // You can get this from Firebase Console, in your Project settings under Cloud
 // Messaging.
-const char kFcmServerKey[] = "REPLACE_WITH_YOUR_SERVER_KEY";
+const char kFcmServerKey[] = "AAAAM2ROZHA:APA91bHVTMuAdnIw014jKETAUYiy7qLvIo1zMHGMOszbZyZJaf_cEEd6MF9ad8qwS_DbgjYo36FeELhtTf-dsJCsLt6hurDnbRPIGcxMPtNMNSYC1Krh-KSn9GURceEwEA-sr-i3HTDU";
 
 const char kRestEndpoint[] = "https://fcm.googleapis.com/fcm/send";
 
@@ -551,6 +551,12 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToTopic) {
   TEST_REQUIRES_USER_INTERACTION_ON_IOS;
   SKIP_TEST_ON_DESKTOP;
 
+  // TODO(b/196589796) Test fails on Android emulators and causes failures in
+  // our CI. Since we don't have a good way to deterine if the runtime is an
+  // emulator or real device, we should disable the test in CI until we find
+  // the cause of problem.
+  TEST_REQUIRES_USER_INTERACTION_ON_ANDROID;
+
   EXPECT_TRUE(RequestPermission());
   EXPECT_TRUE(WaitForToken());
 
@@ -598,6 +604,12 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToTopic) {
 TEST_F(FirebaseMessagingTest, TestChangingListener) {
   TEST_REQUIRES_USER_INTERACTION_ON_IOS;
   SKIP_TEST_ON_DESKTOP;
+
+  // TODO(b/196589796) Test fails on Android emulators and causes failures in
+  // our CI. Since we don't have a good way to deterine if the runtime is an
+  // emulator or real device, we should disable the test in CI until we find
+  // the cause of problem.
+  TEST_REQUIRES_USER_INTERACTION_ON_ANDROID;
 
   EXPECT_TRUE(RequestPermission());
   EXPECT_TRUE(WaitForToken());
