@@ -573,12 +573,7 @@ const char kPutFileTestFile[] = "PutFileTest.txt";
 const char kGetFileTestFile[] = "GetFileTest.txt";
 const char kFileUriScheme[] = "file://";
 
-// TODO(b/255839066): Re-enable this test after the iOS 10.1.0 release
-#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
-TEST_F(FirebaseStorageTest, DISABLED_TestPutFileAndGetFile) {
-#else
 TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
-#endif  // FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
   SignIn();
 
   firebase::storage::StorageReference ref =
