@@ -998,23 +998,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 16.x
-      - name: Setup java 17 for Firestore emulator
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-      - name: Setup Firestore Emulator
-        if: steps.device-info.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
-        uses: nick-invision/retry@v2
-        with:
-          shell: bash
-          timeout_minutes: 5
-          max_attempts: 3
-          command: npm install -g firebase-tools     
-      - name: Start Firestore Emulator
-        if: steps.device-info.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
-        run: |
-          firebase emulators:start --only firestore --project demo-example &
       - name: Setup java 8 for test_simulator.py
         uses: actions/setup-java@v3
         with:
