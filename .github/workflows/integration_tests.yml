@@ -994,10 +994,6 @@ jobs:
         run: |
           echo "device_type=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_device_type)" >> $GITHUB_OUTPUT
           echo "device=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_ftl_device)" >> $GITHUB_OUTPUT
-      - name: Set up Node (16)
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16.x
       - name: Setup java 8 for test_simulator.py
         uses: actions/setup-java@v3
         with:
