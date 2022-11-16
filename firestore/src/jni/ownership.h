@@ -286,15 +286,15 @@ class Global : public T {
 };
 
 /**
- * An RAII wrapper that uses ObjectArena to manage the reference. It automatically
- * deletes the JNI local reference when it goes out of scope. Copies and moves
- * are handled by creating additional references as required.
+ * An RAII wrapper that uses ObjectArena to manage the reference. It
+ * automatically deletes the JNI local reference when it goes out of scope.
+ * Copies and moves are handled by creating additional references as required.
  */
 class ArenaRef {
  public:
   ArenaRef() = default;
 
-  ArenaRef(const Object& ob) {
+  explicit ArenaRef(const Object& ob) {
     Env env(GetEnv());
     id_ = ObjectArena::GetInstance().Put(env, ob);
   }
@@ -354,7 +354,7 @@ class ArenaRef {
   }
 
  private:
-  ArenaRef(int64_t id): id_(id) {}
+  explicit ArenaRef(int64_t id) : id_(id) {}
 
   int64_t release() {
     FIREBASE_DEV_ASSERT(id_);
