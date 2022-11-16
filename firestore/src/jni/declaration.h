@@ -24,7 +24,6 @@ namespace firestore {
 namespace jni {
 
 class Class;
-class Env;
 
 /**
  * A base class containing the details of a Java constructor. See

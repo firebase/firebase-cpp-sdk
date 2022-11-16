@@ -21,7 +21,9 @@
 
 #include <string>
 
-#include "firestore/src/jni/jni_fwd.h"
+#include "absl/types/optional.h"
+#include "firestore/src/jni/env.h"
+#include "firestore/src/jni/object_arena.h"
 #include "firestore/src/jni/traits.h"
 
 namespace firebase {
@@ -281,6 +283,87 @@ class Global : public T {
       return GetEnv();
     }
   }
+};
+
+/**
+ * An RAII wrapper that uses ObjectArena to manage the reference. It automatically
+ * deletes the JNI local reference when it goes out of scope. Copies and moves
+ * are handled by creating additional references as required.
+ */
+class ArenaRef {
+ public:
+  ArenaRef() = default;
+
+  ArenaRef(const Object& ob) {
+    Env env(GetEnv());
+    id_ = ObjectArena::GetInstance().Put(env, ob);
+  }
+
+  ArenaRef(const ArenaRef& other) {
+    if (other.id_) {
+      Env env(GetEnv());
+      id_ = ObjectArena::GetInstance().Dup(env, other.id_.value());
+    }
+  }
+
+  ArenaRef& operator=(const ArenaRef& other) {
+    if (id_ != other.id_) {
+      Env env(GetEnv());
+      if (id_) {
+        ObjectArena::GetInstance().Remove(env, id_.value());
+      }
+      id_ = absl::nullopt;
+      if (other.id_) {
+        id_ = ObjectArena::GetInstance().Dup(other.id_.value());
+      }
+    }
+    return *this;
+  }
+
+  ArenaRef(ArenaRef&& other) noexcept : ArenaRef(other.release()) {}
+
+  ArenaRef& operator=(ArenaRef&& other) noexcept {
+    if (id_ != other.id_.value()) {
+      Env env(GetEnv());
+      if (id_) {
+        ObjectArena::GetInstance().Remove(env, id_.value());
+      }
+      id_ = other.release();
+    }
+    return *this;
+  }
+
+  ~ArenaRef() {
+    if (id_) {
+      Env env(GetEnv());
+      ObjectArena::GetInstance().Remove(env, id_.value());
+    }
+  }
+
+  Local<Object> get() const {
+    Env env(GetEnv());
+    return ObjectArena::GetInstance().Get(env, id_.value());
+  }
+
+  void clear() {
+    if (id_) {
+      Env env(GetEnv());
+      ObjectArena::GetInstance().Remove(env, id_.value());
+      id_ = absl::nullopt;
+    }
+  }
+
+ private:
+  ArenaRef(int64_t id): id_(id) {}
+
+  int64_t release() {
+    FIREBASE_DEV_ASSERT(id_);
+    int64_t id = id_.value();
+    id_ = absl::nullopt;
+    return id;
+  }
+
+  absl::optional<int64_t> id_;
 };
 
 }  // namespace jni

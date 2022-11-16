@@ -302,6 +302,7 @@ bool FirestoreInternal::Initialize(App* app) {
     loader.CacheEmbeddedFiles();
 
     jni::Object::Initialize(loader);
+    jni::ObjectArena::Initialize(env, loader);
     jni::String::Initialize(env, loader);
     jni::ArrayList::Initialize(loader);
     jni::Boolean::Initialize(loader);

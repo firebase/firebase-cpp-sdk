@@ -173,6 +173,8 @@ set(android_SRCS
     src/jni/map.h
     src/jni/object.cc
     src/jni/object.h
+    src/jni/object_arena.h
+    src/jni/object_arena.cc
     src/jni/ownership.h
     src/jni/set.h
     src/jni/string.cc
