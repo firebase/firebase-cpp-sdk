@@ -46,6 +46,11 @@ if(NOT ANDROID)
   endif()
 endif()
 
+# Turn off products not used, to reduce the amount needed to be configured. 
+option(FIREBASE_INCLUDE_LIBRARY_DEFAULT OFF)
+option(FIREBASE_INCLUDE_AUTH ON)
+option(FIREBASE_INCLUDE_FUNCTIONS ON)
+
 # Windows runtime mode, either MD or MT depending on whether you are using
 # /MD or /MT. For more information see:
 # https://msdn.microsoft.com/en-us/library/2kzt1wy3.aspx
