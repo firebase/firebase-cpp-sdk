@@ -46,9 +46,9 @@ if(NOT ANDROID)
   endif()
 endif()
 
-# Turn off products not used, to reduce the amount needed to be configured. 
-option(FIREBASE_INCLUDE_LIBRARY_DEFAULT OFF)
-option(FIREBASE_INCLUDE_DYNAMIC_LINKS ON)
+# Turn off products not used, to reduce the amount needed to be configured.
+set(FIREBASE_INCLUDE_LIBRARY_DEFAULT OFF CACHE BOOL "Turn off all libraries")
+set(FIREBASE_INCLUDE_DYNAMIC_LINKS ON CACHE BOOL "Turn on Dynamic Links")
 
 # Windows runtime mode, either MD or MT depending on whether you are using
 # /MD or /MT. For more information see:
