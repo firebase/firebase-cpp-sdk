@@ -74,8 +74,8 @@ if [[ ! -d "${packagepath}/libs/${os}/universal" ]]; then
     mkdir "${packagepath}/libs/${os}/universal"
     echo "Creating universal libraries..."
     for lib in "${packagepath}/libs/${os}/${architectures[0]}"/*.a; do
-		libname=$(basename ${lib})
-		xcrun lipo "${packagepath}/libs/${os}"/*/"${libname}" -create -output "${packagepath}/libs/${os}/universal/${libname}"
+        libname=$(basename ${lib})
+        xcrun lipo "${packagepath}/libs/${os}"/*/"${libname}" -create -output "${packagepath}/libs/${os}/universal/${libname}"
     done
 
     # Done, remove old library backups.
@@ -95,9 +95,9 @@ for arch in universal ${architectures[*]}; do
 	framework=$(basename "${library}" | sed 's|^lib||' | sed 's|\.a$||')
 	add_headers=0
 	if [[ "${framework}" == "firebase_app" ]]; then
-	    framework="firebase"
-	    add_headers=1
-		echo "Need to add extra Headers"
+        framework="firebase"
+        add_headers=1
+        echo "Need to add extra Headers"
 	fi
 	framework_dir="${packagepath}/frameworks/${os}/${arch}/${framework}.framework"
 	mkdir -p "${framework_dir}"
