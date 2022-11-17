@@ -1461,7 +1461,13 @@ TEST_F(FirebaseStorageTest, TestLargeFileCancelUpload) {
   // Cancel the operation and verify it was successfully canceled.
   EXPECT_TRUE(controller.Cancel());
 
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+  // TODO(b/255839066): Change this to expect kErrorCancelled once iOS SDK
+  // returns the correct error code.
+  WaitForCompletion(future, "PutBytes", firebase::storage::kErrorUnknown);
+#else
   WaitForCompletion(future, "PutBytes", firebase::storage::kErrorCancelled);
+#endif  // FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 
   FLAKY_TEST_SECTION_END();
 }

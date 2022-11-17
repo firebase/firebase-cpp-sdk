@@ -103,7 +103,7 @@ PARAMETERS = {
       "os": ["ubuntu-latest", "macos-12", "windows-latest"],
       "platform": ["Desktop", "Android", "iOS", "tvOS"],
       "ssl_lib": ["openssl"],
-      "android_device": ["android_target", "emulator_target"],
+      "android_device": ["android_target", "emulator_ftl_target"],
       "ios_device": ["ios_target", "simulator_target"],
       "tvos_device": ["tvos_simulator"],
       "build_type": ["Debug"],
@@ -125,7 +125,7 @@ PARAMETERS = {
 
       EXPANDED_KEY: {
         "ssl_lib": ["openssl", "boringssl"],
-        "android_device": ["android_target", "android_latest", "emulator_target", "emulator_latest", "emulator_32bit"],
+        "android_device": ["android_target", "android_latest", "emulator_ftl_target", "emulator_ftl_latest"],
         "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"],
         "tvos_device": ["tvos_simulator"],
         "architecture_windows_linux": ["x64", "x86"],
@@ -165,16 +165,16 @@ BUILD_CONFIGS = {
 #   gcloud firebase test android models list
 #   gcloud firebase test ios models list
 TEST_DEVICES = {
-  "android_min": {"type": "real", "device": "model=Nexus10,version=19"},
-  "android_target": {"type": "real", "device": "model=gts4lltevzw,version=28"},
-  "android_latest": {"type": "real", "device": "model=oriole,version=33"},
-  "emulator_min": {"type": "virtual", "image":"system-images;android-18;google_apis;x86"},
+  "android_target": {"type": "ftl", "device": "model=blueline,version=28"},
+  "android_latest": {"type": "ftl", "device": "model=oriole,version=33"},
+  "emulator_ftl_target": {"type": "ftl", "device": "model=Pixel2,version=28"},
+  "emulator_ftl_latest": {"type": "ftl", "device": "model=Pixel2.arm,version=33"},
   "emulator_target": {"type": "virtual", "image":"system-images;android-30;google_apis;x86_64"},
   "emulator_latest": {"type": "virtual", "image":"system-images;android-32;google_apis;x86_64"},
   "emulator_32bit": {"type": "virtual", "image":"system-images;android-30;google_apis;x86"},
-  "ios_min": {"type": "real", "device": "model=iphonexr,version=13.2"},
-  "ios_target": {"type": "real", "device": "model=iphone8,version=13.6"},
-  "ios_latest": {"type": "real", "device": "model=iphone11pro,version=14.7"},
+  "ios_min": {"type": "ftl", "device": "model=iphonexr,version=13.2"},
+  "ios_target": {"type": "ftl", "device": "model=iphone8,version=13.6"},
+  "ios_latest": {"type": "ftl", "device": "model=iphone11pro,version=14.7"},
   "simulator_min": {"type": "virtual", "name":"iPhone 8", "version":"13.7"},
   "simulator_target": {"type": "virtual", "name":"iPhone 8", "version":"14.5"},
   "simulator_latest": {"type": "virtual", "name":"iPhone 11", "version":"15.2"},
@@ -222,6 +222,7 @@ def get_value(workflow, test_matrix, parm_key, config_parms_only=False):
 def filter_devices(devices, device_type):
   """ Filter device by device_type
   """
+  device_type = device_type.replace("real","ftl")
   filtered_value = filter(lambda device: TEST_DEVICES.get(device).get("type") in device_type, devices)
   return list(filtered_value)  
 
@@ -373,7 +374,7 @@ def main():
   else:
     test_matrix = ""
   value = get_value(args.workflow, test_matrix, args.parm_key, args.config)
-  if args.workflow == "integration_tests" and (args.parm_key == "android_device" or args.parm_key == "ios_device"):
+  if args.workflow == "integration_tests" and args.parm_key == "ios_device":
     value = filter_devices(value, args.device_type)
   if args.auto_diff:
     value = filter_values_on_diff(args.parm_key, value, args.auto_diff)

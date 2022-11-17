@@ -3,41 +3,35 @@
 The repository contains the Firebase C++ SDK source, with support for Android,
 iOS, and desktop platforms. It includes the following Firebase libraries:
 
-- [AdMob](https://firebase.google.com/docs/admob/)
-- [Google Analytics for Firebase](https://firebase.google.com/docs/analytics/)
-- [Firebase Authentication](https://firebase.google.com/docs/auth/)
-- [Firebase Realtime Database](https://firebase.google.com/docs/database/)
-- [Firebase Dynamic Links](https://firebase.google.com/docs/dynamic-links/)
-- [Cloud Firestore](https://firebase.google.com/docs/firestore/)
-- [Cloud Functions for Firebase](https://firebase.google.com/docs/functions/)
-- [Firebase Invites](https://firebase.google.com/docs/invites/)
-- [Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging/)
-- [Firebase Remote Config](https://firebase.google.com/docs/remote-config/)
-- [Cloud Storage for Firebase](https://firebase.google.com/docs/storage/)
+<img height="200" align="right" src="https://user-images.githubusercontent.com/94545831/196925526-b6f89f3e-0abb-4ea2-842b-371487196463.png" />
 
-Firebase is an app development platform with tools to help you build, grow and
-monetize your app. More information about Firebase can be found at
-<https://firebase.google.com>.
+|||
+|--|--|
+|[AdMob](https://firebase.google.com/docs/admob/)|[Google Analytics for Firebase](https://firebase.google.com/docs/analytics/)|
+|[Firebase Authentication](https://firebase.google.com/docs/auth/)|[Firebase Realtime Database](https://firebase.google.com/docs/database/)|
+|[Firebase Dynamic Links](https://firebase.google.com/docs/dynamic-links/)|[Cloud Firestore](https://firebase.google.com/docs/firestore/)|
+|[Cloud Functions for Firebase](https://firebase.google.com/docs/functions/)|[Firebase Invites](https://firebase.google.com/docs/invites/)|
+|[Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging/)|[Firebase Remote Config](https://firebase.google.com/docs/remote-config/)|
+|[Cloud Storage for Firebase](https://firebase.google.com/docs/storage/)|
 
-More information about the Firebase C++ SDK can be found at <https://firebase.google.com/docs/cpp/setup>.  Samples on how to use the
-Firebase C++ SDK can be found at <https://github.com/firebase/quickstart-cpp>.
+<br>
+
+Firebase is an app development platform with tools to help you build, grow and monetize your app. More information about Firebase can be found [HERE](https://firebase.google.com).
+
+- More information about the Firebase C++ SDK can be found [HERE](https://firebase.google.com/docs/cpp/setup)
+- Samples on how to use the Firebase C++ SDK can be found [HERE](https://github.com/firebase/quickstart-cpp)
+
+<br>
+
+![Github Repo Size](https://img.shields.io/github/repo-size/firebase/firebase-cpp-sdk?style=for-the-badge&color=aqua)
 
 ## Table of Contents
 
 1. [Getting Started](#getting-started)
 1. [Prerequisites](#prerequisites)
-   1. [Prerequisites for Desktop](#prerequisites-for-desktop)
-   1. [Prerequisites for Android](#prerequisites-for-android)
-   1. [Prerequisites for iOS/tvOS](#prerequisites-for-iostvos)
 1. [Building](#building)
-   1. [Building with CMake](#building-with-cmake)
-      1. [Building with CMake for iOS](#building-with-cmake-for-ios)
-   1. [Building with Gradle for Android](#building-with-gradle-for-android)
-      1. [Proguard File Generation](#proguard-file-generation)
 1. [Including in Projects](#including-in-projects)
-   1. [Including in CMake Projects](#including-in-cmake-projects)
-   1. [Including in Android Gradle Projects](#including-in-android-gradle-projects)
-1. [Contributing](#contributing)
+1. [Contributing Guidelines](https://github.com/firebase/firebase-cpp-sdk/blob/main/CONTRIBUTING.md)
 1. [License](#license)
 
 ## Getting Started
@@ -47,7 +41,8 @@ You can clone the repo with the following command:
 git clone https://github.com/firebase/firebase-cpp-sdk.git
 ```
 
-## Prerequisites
+<details><summary><h2>Prerequisites</h2></summary>
+
 The following prerequisites are required for all platforms.  Be sure to add any
 directories to your PATH as needed.
 
@@ -103,7 +98,11 @@ necessary version of Gradle for you.
 The following prerequisites are required when building the libraries for iOS or tvOS.
 - [Cocoapods](https://cocoapods.org/)
 
-## Building
+</details>
+
+
+<details><summary><h2>Building</h2></summary>
+
 ### Building with CMake
 The build uses CMake to generate the necessary build files, and supports out of
 source builds.
@@ -243,6 +242,8 @@ that should be included in your application.  The generated file is located in
 each library’s build directory.  For example, the Analytics proguard file would
 be generated to `analytics/build/analytics.pro`.
 
+</details>
+
 ## Testing
 Each Firebase SDK in this repo includes a series of unit tests. These tests are
 built and executed by the CI system in order to validate changes and pull
@@ -267,7 +268,8 @@ respectively.  These scripts reside in the base directory of the repository.
         **Allow all applications to access this item** radio button.
       - Re-run the tests.
 
-## Including in Projects
+<details><summary><h2>Including in Projects</h2></summary>
+
 ### Including in CMake Projects
 Including the Firebase C++ SDK to another CMake project is fairly
 straightforward.  In the CMakeLists.txt file that wants to include the Firebase
@@ -302,11 +304,7 @@ firebaseCpp.dependencies {
 Additional examples of how to do this for each library are available in the
 [C++ Quickstarts](https://github.com/firebase/quickstart-cpp).
 
-## Contributing
-We love contributions, but note that we are still working on setting up our
-test infrastructure, so we may choose not to accept pull requests until we have
-a way to validate those changes on GitHub. Please read our
-[contribution guidelines](/CONTRIBUTING.md) to get started.
+</details>
 
 ## License
 The contents of this repository is licensed under the

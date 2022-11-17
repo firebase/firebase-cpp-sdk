@@ -171,7 +171,11 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='l
     # workaround, absl doesn't build without tests enabled
     cmd.append('-DBUILD_TESTING=off')
 
-  if not disable_vcpkg:
+  if disable_vcpkg:
+    if utils.is_linux_os() and arch == 'x86':
+      toolchain_file_path = os.path.join(os.getcwd(), 'cmake', 'toolchains', 'linux_32.cmake')
+      cmd.append('-DCMAKE_TOOLCHAIN_FILE={0}'.format(toolchain_file_path))
+  else: # not disable_vcpkg - therefore vcpkg is enabled
     if utils.is_linux_os() and arch == 'x86':
       # Use a separate cmake toolchain for cross compiling linux x86 builds
       vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external', 'vcpkg',

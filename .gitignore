@@ -28,8 +28,17 @@ testing/test_framework/external/
 # Local gradle properties
 **/local.properties
 
-desk_test/
-ios_test/
+# Auto generates files for integration tests
+**/integration_test/download_googletest.py
+**/integration_test/external
+**/integration_test/src/android/
+**/integration_test/src/app_framework.cc
+**/integration_test/src/app_framework.h
+**/integration_test/src/desktop/
+**/integration_test/src/empty.swift
+**/integration_test/src/firebase_test_framework.cc
+**/integration_test/src/firebase_test_framework.h
+**/integration_test/src/ios/
 
 # Auto generated files for firestore internal tests
 firestore/integration_test_internal/download_googletest.py
