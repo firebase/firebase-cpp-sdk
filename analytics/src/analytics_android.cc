@@ -397,27 +397,28 @@ Future<int64_t> GetSessionId() {
         env, task,
         [](JNIEnv* env, jobject result, util::FutureResult result_code,
            const char* status_message, void* callback_data) {
-          int64_t session_id = 0;
-          if (result != nullptr) {
-            // result is a Long class type, unbox it.
-            session_id = util::JLongToInt64(env, result);
-          }
           auto* future_data = internal::FutureData::Get();
           if (future_data) {
-            bool success =
-                result_code == util::kFutureResultSuccess && result != nullptr;
             FutureHandleId future_id =
                 reinterpret_cast<FutureHandleId>(callback_data);
             FutureHandle handle(future_id);
-            future_data->api()->CompleteWithResult(
-                handle, success ? 0 : -1,
-                success ? ""
-                : (status_message && *status_message)
-                    ? status_message
-                    : "Unknown error occurred",
-                session_id);
-            if (!success && status_message) {
-              LogError("GetSessionId() returned an error: %s", status_message);
+
+            bool success =
+                result_code == util::kFutureResultSuccess && result != nullptr;
+            if (success) {
+              // result is a Long class type, unbox it.
+              // It'll get deleted below.
+              uint64_t session_id = util::JLongToInt64(env, result);
+              util::CheckAndClearJniExceptions(env);
+              future_data->api()->CompleteWithResult(handle, 0, "", session_id);
+            } else {
+              // Failed, result is an exception, don't parse it.
+              // It'll get deleted below.
+              future_data->api()->CompleteWithResult(
+                  handle, -1,
+                  status_message ? status_message : "Unknown error occurred",
+                  0);
+              LogError("getSessionId() returned an error: %s", status_message);
             }
           }
           if (result) env->DeleteLocalRef(result);
