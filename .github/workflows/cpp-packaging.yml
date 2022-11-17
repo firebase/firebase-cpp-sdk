@@ -573,6 +573,7 @@ jobs:
             # Darwin has a final step after all the variants are done,
             # create universal libraries and frameworks.
             sdk-src/build_scripts/other/package.sh sdk-src tmpdir_for_headers
+            tree tmpdir_for_headers
             sdk-src/build_scripts/desktop/finish_darwin.sh firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package tmpdir_for_headers/include bin
           fi
           cd firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package
