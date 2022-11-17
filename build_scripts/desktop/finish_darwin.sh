@@ -81,12 +81,6 @@ if [[ ! -d "${packagepath}/libs/${os}/universal" ]]; then
     # Done, remove old library backups.
     rm -f "${packagepath}/libs/${os}"/*/*.bak
 
-	# Adding Extra Headers
-	universal_header_dir = "${packagepath}/libs/${os}/universal/firebase.framework/Headers/"
-    echo "Adding extra Headers to universal ${universal_header_dir}"
-	mkdir "${universal_header_dir}"
-	cp -af "${includepath}/firebase/"* "${universal_header_dir}"
-
 else
     echo "Universal libraries already found, skipping..."
 fi
@@ -112,6 +106,7 @@ for arch in universal ${architectures[*]}; do
 	    echo "Adding extra Headers to framework ${framework_dir}"
 	    mkdir "${framework_dir}/Headers"
 	    cp -af "${includepath}/firebase/"* "${framework_dir}/Headers/"
+		cp -af "${packagepath}/include/firebase/"* "${framework_dir}/Headers/"
 	fi
     done
 done
