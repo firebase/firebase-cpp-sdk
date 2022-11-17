@@ -411,9 +411,10 @@ Future<int64_t> GetSessionId() {
             FutureHandle handle(future_id);
             future_data->api()->CompleteWithResult(
                 handle, success ? 0 : -1,
-                success          ? ""
-                : status_message ? status_message
-                                 : "Unknown error occurred",
+                success ? ""
+                : (status_message && *status_message)
+                    ? status_message
+                    : "Unknown error occurred",
                 session_id);
           }
           if (result) env->DeleteLocalRef(result);
