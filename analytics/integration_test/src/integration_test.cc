@@ -43,6 +43,7 @@
 
 namespace firebase_testapp_automated {
 
+using app_framework::LogInfo;
 using app_framework::ProcessEvents;
 using firebase_test_framework::FirebaseTest;
 
@@ -121,6 +122,7 @@ TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
 
   EXPECT_TRUE(future.result() != nullptr);
   EXPECT_NE(*future.result(), static_cast<int64_t>(0L));
+  LogInfo("Got session ID: %" PRId64, *future.result());
 }
 
 TEST_F(FirebaseAnalyticsTest, TestSetProperties) {
