@@ -106,7 +106,7 @@ for arch in universal ${architectures[*]}; do
 	    echo "Adding extra Headers to framework ${framework_dir}"
 	    mkdir "${framework_dir}/Headers"
 	    cp -af "${includepath}/firebase/"* "${framework_dir}/Headers/"
-		cp -af "${packagepath}/include/firebase/"* "${framework_dir}/Headers/"
+	    cp -af "${packagepath}/include/firebase/"* "${framework_dir}/Headers/"
 	fi
     done
 done
