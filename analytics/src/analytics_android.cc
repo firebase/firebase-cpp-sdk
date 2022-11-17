@@ -416,12 +416,16 @@ Future<int64_t> GetSessionId() {
                     ? status_message
                     : "Unknown error occurred",
                 session_id);
+            if (!success && status_message) {
+              LogError("GetSessionId() returned an error: %s", status_message);
+            }
           }
           if (result) env->DeleteLocalRef(result);
         },
         reinterpret_cast<void*>(future_handle.get().id()),
         internal::kAnalyticsModuleName);
   } else {
+    LogError("GetSessionId() threw an exception: %s", error.c_str());
     api->CompleteWithResult(future_handle.get(), -1, error.c_str(),
                             static_cast<int64_t>(0L));
   }
