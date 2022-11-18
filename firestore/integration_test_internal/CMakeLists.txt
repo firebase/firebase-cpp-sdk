@@ -184,34 +184,10 @@ else()
   )
 endif()
 
-if(ANDROID)
-  # Firestore's internal integration test requires absl on Android,
-  # so download it now.
-  set(ABSEIL_CPP_ROOT ${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp/src/abseil-cpp)
-  if (NOT EXISTS ${ABSEIL_CPP_ROOT}/absl)
-    configure_file(abseil-cpp.cmake
-      ${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp/CMakeLists.txt COPYONLY)
-    execute_process(COMMAND ${CMAKE_COMMAND} .
-      -G ${CMAKE_GENERATOR}
-      -DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
-      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
-      RESULT_VARIABLE result
-      WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp )
-    if(result)
-      message(FATAL_ERROR "CMake step for abseil-cpp failed: ${result}")
-    endif()
-    execute_process(COMMAND ${CMAKE_COMMAND} --build .
-      RESULT_VARIABLE result
-      WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp )
-    if(result)
-      message(FATAL_ERROR "Build step for abseil-cpp failed: ${result}")
-    endif()
-  endif()
-  add_subdirectory(external/abseil-cpp)
-else()
-  set(ABSEIL_CPP_ROOT
-      ${PROJECT_BINARY_DIR}/bin/external/src/firestore-build/external/src/abseil-cpp)
-endif()
+set(
+  ABSEIL_CPP_ROOT
+  "${PROJECT_BINARY_DIR}/bin/external/src/firestore-build/external/src/abseil-cpp"
+)
 
 # The include directory for the testapp.
 include_directories(src)
@@ -304,8 +280,6 @@ if(ANDROID)
 
   set(ADDITIONAL_LIBS log android atomic native_app_glue)
 else()
-  set(ABSEIL_CPP_ROOT ${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp/src/abseil-cpp)
-
   # Build a desktop application.
   add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
 
@@ -389,6 +363,15 @@ endif()
 
 # Add the Firebase libraries to the target using the function from the SDK.
 add_subdirectory(${FIREBASE_CPP_SDK_DIR} bin/ EXCLUDE_FROM_ALL)
+
+# Verify that absl was downloaded into the expected location.
+if(NOT (IS_DIRECTORY "${ABSEIL_CPP_ROOT}"))
+  message(
+    FATAL_ERROR
+    "Directory does not exist or is not a directory: "
+    "${ABSEIL_CPP_ROOT}"
+  )
+endif()
 
 # Note that firebase_app needs to be last in the list.
 set(firebase_libs firebase_firestore firebase_auth firebase_app)

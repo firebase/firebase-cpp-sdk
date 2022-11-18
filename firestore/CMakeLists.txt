@@ -447,19 +447,16 @@ if (ANDROID)
     )
   endif()
 
-  # Add a header-only library for the absl headers used in Android builds.
-  add_library(firebase_firestore_android_absl_headers INTERFACE)
+  # Provide access to the absl headers in the Android Firestore C++ SDK build.
+  # This enables the build to use header-only components of absl, like
+  # absl::optional. In the future, to add support for non-header-only parts of
+  # abs, use add_subdirectory() instead; however, this must be done with great
+  # care as it may cause ABI issues and/or ODR violations with customers who
+  # also use absl.
   target_include_directories(
-    firebase_firestore_android_absl_headers
-    INTERFACE
-    "${FIREBASE_FIRESTORE_ANDROID_ABSL_HEADERS_DIR}"
-  )
-
-  # Provide access to the absl headers in the Android Firestore SDK build.
-  target_link_libraries(
     firebase_firestore
     PRIVATE
-    firebase_firestore_android_absl_headers
+    "${FIREBASE_FIRESTORE_ANDROID_ABSL_HEADERS_DIR}"
   )
 endif()
 
