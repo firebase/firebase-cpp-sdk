@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+include(execute_process_ex)
+
 if(APPLE AND NOT ANDROID)
   set(settings_apple_SRCS
       src/common/settings_apple.mm)
@@ -414,24 +416,50 @@ elseif(IOS)
   endif()
 endif()
 
+# Configure the cmake project in the firebase-ios-sdk solely to trigger
+# downloading its dependencies. Once those dependencies are downloaded, then
+# use the headers from absl to enjoy the header-only components of absl.
+#
+# This only needs to be done for Android because all other targets directly
+# depend on the firebase-ios-sdk and, therefore, automatically have acces to the
+# absl headers that it downloads.
 if (ANDROID)
-  execute_process(
+  execute_process_ex(
+    DESCRIPTION
+      "configure firebase-ios-sdk with cmake"
     COMMAND
       "${CMAKE_COMMAND}"
       -S
       "${PROJECT_BINARY_DIR}/external/src/firestore"
       -B
       "${PROJECT_BINARY_DIR}/external/src/firestore-build"
-    RESULT_VARIABLE
-      FIRESTORE_CMAKE_RESULT
   )
-  if(NOT FIRESTORE_CMAKE_RESULT EQUAL 0)
-    message(FATAL_ERROR "Running cmake to configure the firebase-ios-sdk failed")
+
+  set(
+    FIREBASE_FIRESTORE_ANDROID_ABSL_HEADERS_DIR
+    "${PROJECT_BINARY_DIR}/external/src/firestore-build/external/src/abseil-cpp"
+  )
+  if(NOT (IS_DIRECTORY "${FIREBASE_FIRESTORE_ANDROID_ABSL_HEADERS_DIR}"))
+    message(
+      FATAL_ERROR
+      "Directory does not exist or is not a directory: "
+      "${FIREBASE_FIRESTORE_ANDROID_ABSL_HEADERS_DIR}"
+    )
   endif()
+
+  # Add a header-only library for the absl headers used in Android builds.
+  add_library(firebase_firestore_android_absl_headers INTERFACE)
   target_include_directories(
+    firebase_firestore_android_absl_headers
+    INTERFACE
+    "${FIREBASE_FIRESTORE_ANDROID_ABSL_HEADERS_DIR}"
+  )
+
+  # Provide access to the absl headers in the Android Firestore SDK build.
+  target_link_libraries(
     firebase_firestore
     PRIVATE
-    "${PROJECT_BINARY_DIR}/external/src/firestore-build/external/src/abseil-cpp"
+    firebase_firestore_android_absl_headers
   )
 endif()
 
