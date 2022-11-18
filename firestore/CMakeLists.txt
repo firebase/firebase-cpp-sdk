@@ -414,5 +414,26 @@ elseif(IOS)
   endif()
 endif()
 
+if (ANDROID)
+  execute_process(
+    COMMAND
+      "${CMAKE_COMMAND}"
+      -S
+      "${PROJECT_BINARY_DIR}/external/src/firestore"
+      -B
+      "${PROJECT_BINARY_DIR}/external/src/firestore-build"
+    RESULT_VARIABLE
+      FIRESTORE_CMAKE_RESULT
+  )
+  if(NOT FIRESTORE_CMAKE_RESULT EQUAL 0)
+    message(FATAL_ERROR "Running cmake to configure the firebase-ios-sdk failed")
+  endif()
+  target_include_directories(
+    firebase_firestore
+    PRIVATE
+    "${PROJECT_BINARY_DIR}/external/src/firestore-build/external/src/abseil-cpp"
+  )
+endif()
+
 cpp_pack_library(firebase_firestore "")
 cpp_pack_public_headers()
