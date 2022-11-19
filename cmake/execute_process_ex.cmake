@@ -41,6 +41,12 @@ function(execute_process_ex)
       "and must have at least one value (DESCRIPTION=${ARG_DESCRIPTION})"
     )
   endif()
+  if(NOT ("${ARG_UNPARSED_ARGUMENTS}" STREQUAL ""))
+    message(
+      FATAL_ERROR
+      "Unexpected arguments to execute_process_ex(): ${ARG_UNPARSED_ARGUMENTS}"
+    )
+  endif()
 
   # Log that the process is about to be executed.
   set(ARG_COMMAND_STR "")
