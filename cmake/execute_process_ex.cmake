@@ -18,6 +18,8 @@
 # Arguments:
 #   COMMAND
 #     The command to run; it is forwarded verbatim to execute_process().
+#   WORKING_DIRECTORY
+#     The directory to set as the current working directory of the child process.
 #   DESCRIPTION
 #     (optional) A description to include in log messages about the command.
 #     Example: "run the foo output through the bar filter"
@@ -27,7 +29,7 @@ function(execute_process_ex)
   cmake_parse_arguments(
     ARG
     "" # zero-value arguments
-    "DESCRIPTION" # single-value arguments
+    "DESCRIPTION;WORKING_DIRECTORY" # single-value arguments
     "COMMAND" # multi-value arguments
     ${ARGN}
   )
@@ -60,13 +62,25 @@ function(execute_process_ex)
     message(STATUS "Command starting (${ARG_DESCRIPTION}): ${ARG_COMMAND_STR}")
   endif()
 
-  # Execute the process
-  execute_process(
+  # Build up the arguments to specify to execute_process().
+  set(
+    EXECUTE_PROCESS_ARGS
     COMMAND
       ${ARG_COMMAND}
     RESULT_VARIABLE
       EXECUTE_PROCESS_RESULT
   )
+  if(NOT ("${ARG_WORKING_DIRECTORY}" STREQUAL ""))
+    list(
+      APPEND
+      EXECUTE_PROCESS_ARGS
+      WORKING_DIRECTORY
+      "${ARG_WORKING_DIRECTORY}"
+    )
+  endif()
+
+  # Execute the process
+  execute_process(${EXECUTE_PROCESS_ARGS})
 
   # Verify that the command completed successfully.
   if(NOT (EXECUTE_PROCESS_RESULT EQUAL 0))

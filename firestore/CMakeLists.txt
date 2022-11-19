@@ -424,14 +424,14 @@ endif()
 # depend on the firebase-ios-sdk and, therefore, automatically have acces to the
 # absl headers that it downloads.
 if (ANDROID)
+  file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/external/src/firestore-build")
   execute_process_ex(
     DESCRIPTION
       "configure firebase-ios-sdk with cmake"
     COMMAND
       "${CMAKE_COMMAND}"
-      -S
       "${PROJECT_BINARY_DIR}/external/src/firestore"
-      -B
+    WORKING_DIRECTORY
       "${PROJECT_BINARY_DIR}/external/src/firestore-build"
   )
 
