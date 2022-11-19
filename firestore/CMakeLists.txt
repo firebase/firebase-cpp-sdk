@@ -421,8 +421,8 @@ endif()
 # use the headers from absl to enjoy the header-only components of absl.
 #
 # This only needs to be done for Android because all other targets directly
-# depend on the firebase-ios-sdk and, therefore, automatically have acces to the
-# absl headers that it downloads.
+# depend on the firebase-ios-sdk and, therefore, automatically have access to
+# the absl headers via a transitive dependency.
 if (ANDROID)
   file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/external/src/firestore-build")
   execute_process_ex(
