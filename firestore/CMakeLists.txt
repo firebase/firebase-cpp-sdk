@@ -429,7 +429,7 @@ if (ANDROID)
     DESCRIPTION
       "configure firebase-ios-sdk with cmake"
     COMMAND
-      "${CMAKE_COMMAND}"
+      "${FIREBASE_HOST_CMAKE_COMMAND}"
       "${PROJECT_BINARY_DIR}/external/src/firestore"
     WORKING_DIRECTORY
       "${PROJECT_BINARY_DIR}/external/src/firestore-build"
