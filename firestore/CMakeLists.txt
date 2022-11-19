@@ -426,7 +426,7 @@ endif()
 if (ANDROID)
   file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/external/src/firestore-build")
   execute_process_ex(
-    DESCRIPTION
+    COMMENT
       "configure firebase-ios-sdk with cmake"
     COMMAND
       "${FIREBASE_HOST_CMAKE_COMMAND}"

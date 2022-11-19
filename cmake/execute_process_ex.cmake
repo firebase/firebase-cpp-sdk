@@ -19,9 +19,10 @@
 #   COMMAND
 #     The command to run; it is forwarded verbatim to execute_process().
 #   WORKING_DIRECTORY
-#     The directory to set as the current working directory of the child process.
-#   DESCRIPTION
-#     (optional) A description to include in log messages about the command.
+#     (optional) The directory to set as the current working directory of the
+#     child process. If not specified, then the current directory is used.
+#   COMMENT
+#     (optional) A comment to include in log messages about the command.
 #     Example: "run the foo output through the bar filter"
 function(execute_process_ex)
   # TODO: Upgrade the call of cmake_parse_arguments() to the PARSE_ARGV form
@@ -29,7 +30,7 @@ function(execute_process_ex)
   cmake_parse_arguments(
     ARG
     "" # zero-value arguments
-    "DESCRIPTION;WORKING_DIRECTORY" # single-value arguments
+    "COMMENT;WORKING_DIRECTORY" # single-value arguments
     "COMMAND" # multi-value arguments
     ${ARGN}
   )
@@ -40,7 +41,7 @@ function(execute_process_ex)
     message(
       FATAL_ERROR
       "COMMAND must be specified to execute_process_ex() "
-      "and must have at least one value (DESCRIPTION=${ARG_DESCRIPTION})"
+      "and must have at least one value (COMMENT=${ARG_COMMENT})"
     )
   endif()
   if(NOT ("${ARG_UNPARSED_ARGUMENTS}" STREQUAL ""))
@@ -56,10 +57,10 @@ function(execute_process_ex)
     string(APPEND ARG_COMMAND_STR " ${ARG_COMMAND_STR_COMPONENT}")
   endforeach()
   string(SUBSTRING "${ARG_COMMAND_STR}" 1, -1 ARG_COMMAND_STR)
-  if("${ARG_DESCRIPTION}" STREQUAL "")
+  if("${ARG_COMMENT}" STREQUAL "")
     message(STATUS "Command starting: ${ARG_COMMAND_STR}")
   else()
-    message(STATUS "Command starting (${ARG_DESCRIPTION}): ${ARG_COMMAND_STR}")
+    message(STATUS "Command starting (${ARG_COMMENT}): ${ARG_COMMAND_STR}")
   endif()
 
   # Build up the arguments to specify to execute_process().
@@ -87,17 +88,17 @@ function(execute_process_ex)
     message(
       FATAL_ERROR
       "Command completed with non-zero exit code ${EXECUTE_PROCESS_RESULT} "
-      "(DESCRIPTION=${ARG_DESCRIPTION}): ${ARG_COMMAND_STR}"
+      "(COMMENT=${ARG_COMMENT}): ${ARG_COMMAND_STR}"
     )
   endif()
 
   # Log the success of the command.
-  if("${ARG_DESCRIPTION}" STREQUAL "")
+  if("${ARG_COMMENT}" STREQUAL "")
     message(STATUS "Command completed successfully: ${ARG_COMMAND_STR}")
   else()
     message(
       STATUS
-      "Command completed successfully (${ARG_DESCRIPTION}): ${ARG_COMMAND_STR}"
+      "Command completed successfully (${ARG_COMMENT}): ${ARG_COMMAND_STR}"
     )
   endif()
 
