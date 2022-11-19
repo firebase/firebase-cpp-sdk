@@ -22,12 +22,14 @@
 #     (optional) A description to include in log messages about the command.
 #     Example: "run the foo output through the bar filter"
 function(execute_process_ex)
+  # TODO: Upgrade the call of cmake_parse_arguments() to the PARSE_ARGV form
+  # once the Android build upgrades its cmake version from 3.6 to 3.7+.
   cmake_parse_arguments(
-    PARSE_ARGV 0
     ARG
     "" # zero-value arguments
     "DESCRIPTION" # single-value arguments
     "COMMAND" # multi-value arguments
+    ${ARGN}
   )
 
   # Validate the arguments
@@ -35,7 +37,7 @@ function(execute_process_ex)
   if(ARG_COMMAND_LENGTH EQUAL 0)
     message(
       FATAL_ERROR
-      "COMMAND must be specified to ${CMAKE_CURRENT_FUNCTION} "
+      "COMMAND must be specified to execute_process_ex() "
       "and must have at least one value (DESCRIPTION=${ARG_DESCRIPTION})"
     )
   endif()
