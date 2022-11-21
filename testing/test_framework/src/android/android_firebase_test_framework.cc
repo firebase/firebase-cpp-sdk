@@ -222,4 +222,62 @@ bool FirebaseTest::GetPersistentString(const char* key,
   return true;
 }
 
+bool FirebaseTest::GetDeviceIpAddress(std::string* ip_address_out) {
+  JNIEnv* env = app_framework::GetJniEnv();
+  jobject activity = app_framework::GetActivity();
+  jclass test_helper_class = app_framework::FindClass(
+      env, activity, "com/google/firebase/example/TestHelper");
+  if (env->ExceptionCheck()) {
+    env->ExceptionDescribe();
+    env->ExceptionClear();
+    return false;
+  }
+  jmethodID get_device_ip_address = env->GetStaticMethodID(
+      test_helper_class, "getDeviceIpAddress",
+      "(Landroid/content/Context;)Ljava/lang/String;");
+  jstring ip_address_jstring = env->CallStaticObjectMethod(
+      test_helper_class, get_device_ip_address, activity));
+  if (env->ExceptionCheck()) {
+    env->ExceptionDescribe();
+    env->ExceptionClear();
+    if (ip_address_jstring) {
+      env->DeleteLocalRef(ip_address_jstring);
+    }
+    return false;
+  }
+  if (ip_address_jstring == nullptr) {
+    return false;
+  }
+  const char* ip_address_text = env->GetStringUTFChars(ip_address_jstring, nullptr);
+  if (ip_address_out) *ip_address_out = std::string(ip_address_text);
+  env->ReleaseStringUTFChars(ip_address_jstring, ip_address_text);
+  env->DeleteLocalRef(ip_address_jstring);
+  return true;
+}
+
+bool FirebaseTest::IsRunningOnEmulator(bool* result_out) {
+  JNIEnv* env = app_framework::GetJniEnv();
+  jobject activity = app_framework::GetActivity();
+  jclass test_helper_class = app_framework::FindClass(
+      env, activity, "com/google/firebase/example/TestHelper");
+  if (env->ExceptionCheck()) {
+    env->ExceptionDescribe();
+    env->ExceptionClear();
+    return false;
+  }
+  jmethodID is_running_on_emulator = env->GetStaticMethodID(
+      test_helper_class, "isRunningOnEmulator",
+      "(Landroid/content/Context;)Z");
+  jboolean result = env->CallStaticBooleanMethod(
+      test_helper_class, get_device_ip_address, activity));
+  if (env->ExceptionCheck()) {
+    env->ExceptionDescribe();
+    env->ExceptionClear();
+    return false;
+  }
+  if (result_out) *result_out = result ? true : false;
+  return true;
+}
+
+
 }  // namespace firebase_test_framework
