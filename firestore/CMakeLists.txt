@@ -424,6 +424,14 @@ endif()
 # depend on the firebase-ios-sdk and, therefore, automatically have access to
 # the absl headers via a transitive dependency.
 if (ANDROID)
+  if(NOT (IS_DIRECTORY "${PROJECT_BINARY_DIR}/external/src/firestore"))
+    message(
+      FATAL_ERROR
+      "The directory into which the firebase-ios-sdk repository was expected "
+      "to have been cloned does not exist: "
+      "${PROJECT_BINARY_DIR}/external/src/firestore"
+    )
+  endif()
   file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/external/src/firestore-build")
   execute_process_ex(
     COMMENT
