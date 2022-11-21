@@ -40,14 +40,15 @@ function(execute_process_ex)
   if(ARG_COMMAND_LENGTH EQUAL 0)
     message(
       FATAL_ERROR
-      "COMMAND must be specified to execute_process_ex() "
-      "and must have at least one value (COMMENT=${ARG_COMMENT})"
+      "execute_process_ex(COMMENT=${ARG_COMMENT}): "
+      "COMMAND must be specified and must have at least one value."
     )
   endif()
   if(NOT ("${ARG_UNPARSED_ARGUMENTS}" STREQUAL ""))
     message(
       FATAL_ERROR
-      "Unexpected arguments to execute_process_ex(): ${ARG_UNPARSED_ARGUMENTS}"
+      "execute_process_ex(COMMENT=${ARG_COMMENT}): "
+      "unexpected arguments: ${ARG_UNPARSED_ARGUMENTS}"
     )
   endif()
 
@@ -57,11 +58,11 @@ function(execute_process_ex)
     string(APPEND ARG_COMMAND_STR " ${ARG_COMMAND_STR_COMPONENT}")
   endforeach()
   string(SUBSTRING "${ARG_COMMAND_STR}" 1, -1 ARG_COMMAND_STR)
-  if("${ARG_COMMENT}" STREQUAL "")
-    message(STATUS "Command starting: ${ARG_COMMAND_STR}")
-  else()
-    message(STATUS "Command starting (${ARG_COMMENT}): ${ARG_COMMAND_STR}")
-  endif()
+  message(
+    STATUS
+    "execute_process_ex(COMMENT=${ARG_COMMENT}): "
+    "Command starting: ${ARG_COMMAND_STR}"
+  )
 
   # Build up the arguments to specify to execute_process().
   set(
@@ -87,19 +88,17 @@ function(execute_process_ex)
   if(NOT (EXECUTE_PROCESS_RESULT EQUAL 0))
     message(
       FATAL_ERROR
-      "Command completed with non-zero exit code ${EXECUTE_PROCESS_RESULT} "
-      "(COMMENT=${ARG_COMMENT}): ${ARG_COMMAND_STR}"
+      "execute_process_ex(COMMENT=${ARG_COMMENT}): "
+      "Command completed with non-zero exit code ${EXECUTE_PROCESS_RESULT}: "
+      "${ARG_COMMAND_STR}"
     )
   endif()
 
   # Log the success of the command.
-  if("${ARG_COMMENT}" STREQUAL "")
-    message(STATUS "Command completed successfully: ${ARG_COMMAND_STR}")
-  else()
-    message(
-      STATUS
-      "Command completed successfully (${ARG_COMMENT}): ${ARG_COMMAND_STR}"
-    )
-  endif()
+  message(
+    STATUS
+    "execute_process_ex(COMMENT=${ARG_COMMENT}): "
+    "Command completed successfully: ${ARG_COMMAND_STR}"
+  )
 
 endfunction(execute_process_ex)
