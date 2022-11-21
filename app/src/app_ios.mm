@@ -256,19 +256,15 @@ App* App::Create(const AppOptions& options, const char* name) {
   app = new App();
   app->options_ = options;
   app->name_ = name;
-  
+
   // Add the app to a temporary map in case app check initialization
   // needs to reference the app before it is fully initialized.
-  NSLog(@"almostmatt - created app. will add to partial map.");
   app_common::AddPartialApp(app);
-  NSLog(@"almostmatt - creating ios app.");
   FIRApp* platform_app = CreateOrGetPlatformApp(options, name);
-  NSLog(@"almostmatt - finished creating ios app.");
   if (platform_app) {
     app->internal_ = new internal::AppInternal(platform_app);
     app_common::AddApp(app, &app->init_results_);
   }
-  NSLog(@"almostmatt - removing app from partial app map.");
   // Once the app is initialized, the entry in the temporary map is not needed.
   app_common::RemovePartialApp(app);
   return app;
@@ -324,7 +320,6 @@ void SetFirConfigurationLoggerLevel(FIRLoggerLevel level) {
 }
 }  // namespace internal
 
-
 namespace app_common {
 
 // Guards g_partial_apps.
@@ -333,28 +328,20 @@ static Mutex* g_partial_apps_mutex = new Mutex();
 static std::map<std::string, App*>* g_partial_apps;
 
 void AddPartialApp(App* app) {
-  NSLog(@"almostmatt - add partial app.");
   MutexLock lock(*g_partial_apps_mutex);
-  NSLog(@"almostmatt - got mutex.");
   if (!g_partial_apps) {
-    NSLog(@"almostmatt - create partial apps map.");
     g_partial_apps = new std::map<std::string, App*>();
   }
   (*g_partial_apps)[std::string(app->name())] = app;
 }
 
 void RemovePartialApp(App* app) {
-  NSLog(@"almostmatt - remove partial app.");
   MutexLock lock(*g_partial_apps_mutex);
-  NSLog(@"almostmatt - got mutex.");
   if (g_partial_apps) {
-    NSLog(@"almostmatt - partial apps map exists.");
     auto it = g_partial_apps->find(std::string(app->name()));
     if (it != g_partial_apps->end()) {
-      NSLog(@"almostmatt - found entry to remove in partial apps map.");
       g_partial_apps->erase(it);
       if (g_partial_apps->empty()) {
-        NSLog(@"almostmatt - delete partial apps map.");
         delete g_partial_apps;
         g_partial_apps = nullptr;
       }
@@ -363,17 +350,13 @@ void RemovePartialApp(App* app) {
 }
 
 App* FindPartialAppByName(const char* name) {
-  NSLog(@"almostmatt - finding partial app.");
   assert(name);
   MutexLock lock(*g_partial_apps_mutex);
-  NSLog(@"almostmatt - got mutex.");
   if (g_partial_apps) {
-    NSLog(@"almostmatt - partial apps map exists.");
     auto it = g_partial_apps->find(std::string(name));
     if (it == g_partial_apps->end()) {
       return nullptr;
     }
-    NSLog(@"almostmatt - found entry to return in partial apps map.");
     return it->second;
   }
   return nullptr;

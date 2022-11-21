@@ -37,18 +37,14 @@ static const struct {
 };
 
 AppCheckError AppCheckErrorFromNSError(NSError* _Nullable error) {
-  NSLog(@"almostmatt - converting ios error to cpp error.");
   if (!error) {
-    NSLog(@"almostmatt - ios error was nil.");
     return kAppCheckErrorNone;
   }
   for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kIosToCppErrorMap); i++) {
     if (error.code == kIosToCppErrorMap[i].ios_error) {
-      NSLog(@"almostmatt - found cpp error in map.");
       return kIosToCppErrorMap[i].cpp_error;
     }
   }
-  NSLog(@"almostmatt - cpp error is unknown.");
   return kAppCheckErrorUnknown;
 }
 
@@ -65,8 +61,8 @@ NSError* AppCheckErrorToNSError(AppCheckError cpp_error, const std::string& erro
   NSString* errorMsg = firebase::util::StringToNSString(error_message);
   // NOTE: this error domain is the same as ios sdk FIRAppCheckErrorDomain
   return [[NSError alloc] initWithDomain:@"com.firebase.appCheck"
-                          code:ios_error_code
-                          userInfo:@{NSLocalizedDescriptionKey : errorMsg}];
+                                    code:ios_error_code
+                                userInfo:@{NSLocalizedDescriptionKey : errorMsg}];
 }
 
 AppCheckToken AppCheckTokenFromFIRAppCheckToken(FIRAppCheckToken* _Nullable token) {
@@ -85,9 +81,8 @@ FIRAppCheckToken* AppCheckTokenToFIRAppCheckToken(AppCheckToken cpp_token) {
     return nil;
   }
   NSTimeInterval exp = static_cast<NSTimeInterval>(cpp_token.expire_time_millis) / 1000.0;
-  return [[FIRAppCheckToken alloc]
-            initWithToken:firebase::util::StringToNSString(cpp_token.token)
-              expirationDate:[NSDate dateWithTimeIntervalSince1970:exp]];
+  return [[FIRAppCheckToken alloc] initWithToken:firebase::util::StringToNSString(cpp_token.token)
+                                  expirationDate:[NSDate dateWithTimeIntervalSince1970:exp]];
 }
 
 }  // namespace internal

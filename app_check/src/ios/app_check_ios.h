@@ -19,8 +19,8 @@
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
-#include "app_check/src/include/firebase/app_check.h"
 #include "app/src/util_ios.h"
+#include "app_check/src/include/firebase/app_check.h"
 
 #ifdef __OBJC__
 #import "FIRAppCheck.h"
@@ -63,7 +63,8 @@ class AppCheckInternal {
   FIRAppCheck* impl() const { return impl_->get(); }
 #endif  // __OBJC__
 
-  UniquePtr<FIRAppCheckPointer> impl_;;
+  UniquePtr<FIRAppCheckPointer> impl_;
+  ;
 
   ::firebase::App* app_;
 

@@ -18,9 +18,8 @@
 #define FIREBASE_APP_SRC_APP_IOS_H_
 #include "FIRApp.h"
 #include "FIRConfiguration.h"
-#include "app/src/util_ios.h"
 #include "app/src/include/firebase/app.h"
-
+#include "app/src/util_ios.h"
 
 namespace firebase {
 
