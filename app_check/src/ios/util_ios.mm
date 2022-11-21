@@ -37,13 +37,36 @@ static const struct {
 };
 
 AppCheckError AppCheckErrorFromNSError(NSError* _Nullable error) {
+  NSLog(@"almostmatt - converting ios error to cpp error.");
   if (!error) {
+    NSLog(@"almostmatt - ios error was nil.");
     return kAppCheckErrorNone;
   }
   for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kIosToCppErrorMap); i++) {
-    if (error.code == kIosToCppErrorMap[i].ios_error) return kIosToCppErrorMap[i].cpp_error;
+    if (error.code == kIosToCppErrorMap[i].ios_error) {
+      NSLog(@"almostmatt - found cpp error in map.");
+      return kIosToCppErrorMap[i].cpp_error;
+    }
   }
+  NSLog(@"almostmatt - cpp error is unknown.");
   return kAppCheckErrorUnknown;
+}
+
+NSError* AppCheckErrorToNSError(AppCheckError cpp_error, const std::string& error_message) {
+  if (cpp_error == kAppCheckErrorNone) {
+    return nil;
+  }
+  int ios_error_code = FIRAppCheckErrorCodeUnknown;
+  for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kIosToCppErrorMap); i++) {
+    if (cpp_error == kIosToCppErrorMap[i].cpp_error) {
+      ios_error_code = kIosToCppErrorMap[i].ios_error;
+    }
+  }
+  NSString* errorMsg = firebase::util::StringToNSString(error_message);
+  // NOTE: this error domain is the same as ios sdk FIRAppCheckErrorDomain
+  return [[NSError alloc] initWithDomain:@"com.firebase.appCheck"
+                          code:ios_error_code
+                          userInfo:@{NSLocalizedDescriptionKey : errorMsg}];
 }
 
 AppCheckToken AppCheckTokenFromFIRAppCheckToken(FIRAppCheckToken* _Nullable token) {
@@ -55,6 +78,16 @@ AppCheckToken AppCheckTokenFromFIRAppCheckToken(FIRAppCheckToken* _Nullable toke
   }
   // Note: if the iOS token is null, the cpp_token will have default values.
   return cpp_token;
+}
+
+FIRAppCheckToken* AppCheckTokenToFIRAppCheckToken(AppCheckToken cpp_token) {
+  if (cpp_token.token.empty()) {
+    return nil;
+  }
+  NSTimeInterval exp = static_cast<NSTimeInterval>(cpp_token.expire_time_millis) / 1000.0;
+  return [[FIRAppCheckToken alloc]
+            initWithToken:firebase::util::StringToNSString(cpp_token.token)
+              expirationDate:[NSDate dateWithTimeIntervalSince1970:exp]];
 }
 
 }  // namespace internal

@@ -26,8 +26,12 @@ namespace internal {
 
 AppCheckError AppCheckErrorFromNSError(NSError *_Nullable error);
 
+NSError* AppCheckErrorToNSError(AppCheckError cpp_error, const std::string& error_message);
+
 AppCheckToken AppCheckTokenFromFIRAppCheckToken(
     FIRAppCheckToken *_Nullable token);
+
+FIRAppCheckToken* AppCheckTokenToFIRAppCheckToken(AppCheckToken cpp_token);
 
 }  // namespace internal
 }  // namespace app_check

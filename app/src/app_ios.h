@@ -19,6 +19,8 @@
 #include "FIRApp.h"
 #include "FIRConfiguration.h"
 #include "app/src/util_ios.h"
+#include "app/src/include/firebase/app.h"
+
 
 namespace firebase {
 
@@ -28,6 +30,16 @@ OBJ_C_PTR_WRAPPER_NAMED(AppInternal, FIRApp);
 void SetFirConfigurationLoggerLevel(FIRLoggerLevel level);
 
 }  // namespace internal
+
+namespace app_common {
+
+void AddPartialApp(App*);
+
+void RemovePartialApp(App*);
+
+App* FindPartialAppByName(const char* name);
+
+}  // namespace app_common
 
 }  // namespace firebase
 

@@ -15,10 +15,12 @@
 #ifndef FIREBASE_APP_CHECK_SRC_IOS_APP_CHECK_IOS_H_
 #define FIREBASE_APP_CHECK_SRC_IOS_APP_CHECK_IOS_H_
 
+#include "app/memory/unique_ptr.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app_check/src/include/firebase/app_check.h"
+#include "app/src/util_ios.h"
 
 #ifdef __OBJC__
 #import "FIRAppCheck.h"
@@ -60,8 +62,6 @@ class AppCheckInternal {
 #ifdef __OBJC__
   FIRAppCheck* impl() const { return impl_->get(); }
 #endif  // __OBJC__
-
-  DatabaseInternal* database_;
 
   UniquePtr<FIRAppCheckPointer> impl_;;
 

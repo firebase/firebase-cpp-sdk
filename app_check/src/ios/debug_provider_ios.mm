@@ -49,6 +49,7 @@ DebugAppCheckProvider::~DebugAppCheckProvider() {}
 
 void DebugAppCheckProvider::GetToken(
     std::function<void(AppCheckToken, int, const std::string&)> completion_callback) {
+  NSLog(@"almostmatt - c++ debug provider is calling the gettoken method.");
   [ios_provider_
       getTokenWithCompletion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
         completion_callback(firebase::app_check::internal::AppCheckTokenFromFIRAppCheckToken(token),
@@ -64,6 +65,7 @@ DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal()
 
 DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
   // Cleanup any providers created by this factory.
+  NSLog(@"almostmatt - called destructor for cpp debug factory internal.");
   for (auto it = created_providers_.begin(); it != created_providers_.end(); ++it) {
     delete it->second;
   }
@@ -71,16 +73,22 @@ DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
 }
 
 AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app) {
+  NSLog(@"almostmatt - c++ debug factory's create method.");
   // Return the provider if it already exists.
   std::map<App*, AppCheckProvider*>::iterator it = created_providers_.find(app);
   if (it != created_providers_.end()) {
+    NSLog(@"almostmatt - found existing entry in map.");
     return it->second;
   }
+  NSLog(@"almostmatt - failed to find existing entry in map.");
   // Otherwise, create a new provider
   FIRAppCheckDebugProvider* ios_provider =
       [ios_provider_factory_ createProviderWithApp:app->GetPlatformApp()];
+  NSLog(@"almostmatt - created ios debug provider.");
   AppCheckProvider* cpp_provider = new internal::DebugAppCheckProvider(ios_provider);
+  NSLog(@"almostmatt - created cpp wrapper around ios debug provider.");
   created_providers_[app] = cpp_provider;
+  NSLog(@"almostmatt - returning cpp debug provider.");
   return cpp_provider;
 }
 

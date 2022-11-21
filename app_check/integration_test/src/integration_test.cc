@@ -334,57 +334,50 @@ TEST_F(FirebaseAppCheckTest, TestInitializeAndTerminate) {
   InitializeApp();
 }
 
-TEST_F(FirebaseAppCheckTest, TestGetToken) {
+TEST_F(FirebaseAppCheckTest, TestGetTokenForcingRefresh) {
   InitializeAppCheckWithDebug();
   InitializeApp();
   ::firebase::app_check::AppCheck* app_check =
-    ::firebase::app_check::AppCheck.GetInstance();
+    ::firebase::app_check::AppCheck::GetInstance(app_);
   ASSERT_NE(app_check, nullptr);
   firebase::Future<::firebase::app_check::AppCheckToken> future =
     app_check->GetAppCheckToken(true);
-  ASSERT_TRUE(WaitForCompletion(future, "GetToken #1"));
+  EXPECT_TRUE(WaitForCompletion(future, "GetToken #1"));
   ::firebase::app_check::AppCheckToken token = *future.result();
-  ASSERT_EQ(token.token, "");
-  ASSERT_EQ(token.expire_time_millis, 0);
+  EXPECT_NE(token.token, "");
+  EXPECT_NE(token.expire_time_millis, 0);
 
   // GetToken with force_refresh=false will return the same token.
   firebase::Future<::firebase::app_check::AppCheckToken> future2 =
     app_check->GetAppCheckToken(false);
-  ASSERT_TRUE(WaitForCompletion(future2, "GetToken #2"));
-  ASSERT_EQ(future.result(), future2.result());
+  EXPECT_TRUE(WaitForCompletion(future2, "GetToken #2"));
+  EXPECT_EQ(future.result()->expire_time_millis,
+            future2.result()->expire_time_millis);
 
   // GetToken with force_refresh=true will return a new token.
   firebase::Future<::firebase::app_check::AppCheckToken> future3 =
     app_check->GetAppCheckToken(true);
-  ASSERT_TRUE(WaitForCompletion(future3, "GetToken #3"));
-  ASSERT_NE(future.result(), future3.result());
-
-  firebase::Future<::firebase::app_check::AppCheckToken> future2 =
-    app_check->GetAppCheckTokenLastResult();
-  // Both futures should point to the same token. 
-  ASSERT_EQ(future.result(), future2.result());
-  // auto refresh enabled?
-  // SetTokenAutoRefreshEnabled
-  // app
-  // Auto refresh might be possible if I can fake out a time provider
-  // But for native provider this is probably false
-  // Maybe it can be possible with a custom provider
+  EXPECT_TRUE(WaitForCompletion(future3, "GetToken #3"));
+  EXPECT_NE(future.result()->expire_time_millis,
+            future3.result()->expire_time_millis);
 }
 
 TEST_F(FirebaseAppCheckTest, TestGetTokenLastResult) {
   InitializeAppCheckWithDebug();
   InitializeApp();
   ::firebase::app_check::AppCheck* app_check =
-    ::firebase::app_check::AppCheck.GetInstance();
+    ::firebase::app_check::AppCheck::GetInstance(app_);
   ASSERT_NE(app_check, nullptr);
-  app_check->GetAppCheckToken(true);
   firebase::Future<::firebase::app_check::AppCheckToken> future =
+      app_check->GetAppCheckToken(true);
+  EXPECT_TRUE(WaitForCompletion(future, "GetToken #1"));
+
+  firebase::Future<::firebase::app_check::AppCheckToken> future2 =
     app_check->GetAppCheckTokenLastResult();
-  // TODO: Do I need to wait for the above? 
-  ASSERT_TRUE(WaitForCompletion(future, "GetTokenLastResult"));
-  ::firebase::app_check::AppCheckToken token = *future.result();
-  ASSERT_EQ(token.token, "");
-  ASSERT_EQ(token.expire_time_millis, 0);
+  EXPECT_TRUE(WaitForCompletion(future2, "GetTokenLastResult"));
+  ::firebase::app_check::AppCheckToken token = *future2.result();
+  EXPECT_EQ(future.result()->expire_time_millis,
+            future2.result()->expire_time_millis);
 }
 
 TEST_F(FirebaseAppCheckTest, TestSignIn) {
