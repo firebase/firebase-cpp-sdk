@@ -427,8 +427,9 @@ if (ANDROID)
   if(NOT (IS_DIRECTORY "${FIRESTORE_SOURCE_DIR}"))
     message(
       FATAL_ERROR
-      "The directory into which the firebase-ios-sdk repository was expected "
-      "to have been cloned does not exist: ${FIRESTORE_SOURCE_DIR}"
+      "FIRESTORE_SOURCE_DIR, the directory into which the firebase-ios-sdk "
+      "repository was expected to have been cloned, does not exist: "
+      "${FIRESTORE_SOURCE_DIR}"
     )
   endif()
   file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/external/src/firestore-build")
