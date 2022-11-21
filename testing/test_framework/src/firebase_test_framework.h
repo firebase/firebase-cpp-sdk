@@ -322,6 +322,10 @@ class FirebaseTest : public testing::Test {
   // successful, false if something went wrong.
   static bool SetPersistentString(const char* key, const char* value);
 
+  // Return true if the app is running on simulator/emulator, false if
+  // on a real device (or on desktop).
+  static bool IsRunningOnEmulator();
+
   // Returns true if the future completed as expected, fails the test and
   // returns false otherwise.
   static bool WaitForCompletion(const firebase::FutureBase& future,

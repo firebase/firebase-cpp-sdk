@@ -44,6 +44,7 @@
 namespace firebase_testapp_automated {
 
 using app_framework::ProcessEvents;
+using app_framework::LogInfo;
 using firebase_test_framework::FirebaseTest;
 
 class FirebaseAnalyticsTest : public FirebaseTest {
@@ -60,6 +61,11 @@ void FirebaseAnalyticsTest::SetUpTestSuite() {
 #if defined(__ANDROID__)
   shared_app_ = firebase::App::Create(app_framework::GetJniEnv(),
                                       app_framework::GetActivity());
+  if (IsRunningOnEmulator()) {
+    LogInfo("Detected running on emulator.");
+  } else {
+    LogInfo("Detected NOT running on emulator.");
+  }
 #else
   shared_app_ = firebase::App::Create();
 #endif  // defined(__ANDROID__)

@@ -222,7 +222,7 @@ bool FirebaseTest::GetPersistentString(const char* key,
   return true;
 }
 
-bool FirebaseTest::GetDeviceIpAddress(std::string* ip_address_out) {
+std::string GetDeviceIpAddress() {
   JNIEnv* env = app_framework::GetJniEnv();
   jobject activity = app_framework::GetActivity();
   jclass test_helper_class = app_framework::FindClass(
@@ -230,12 +230,12 @@ bool FirebaseTest::GetDeviceIpAddress(std::string* ip_address_out) {
   if (env->ExceptionCheck()) {
     env->ExceptionDescribe();
     env->ExceptionClear();
-    return false;
+    return "";
   }
   jmethodID get_device_ip_address =
       env->GetStaticMethodID(test_helper_class, "getDeviceIpAddress",
                              "(Landroid/content/Context;)Ljava/lang/String;");
-  jstring ip_address_jstring = env->CallStaticObjectMethod(
+  jstring ip_address_jstring = static_cast<jstring>(env->CallStaticObjectMethod(
       test_helper_class, get_device_ip_address, activity));
   if (env->ExceptionCheck()) {
     env->ExceptionDescribe();
@@ -243,20 +243,23 @@ bool FirebaseTest::GetDeviceIpAddress(std::string* ip_address_out) {
     if (ip_address_jstring) {
       env->DeleteLocalRef(ip_address_jstring);
     }
-    return false;
+    return "";
   }
   if (ip_address_jstring == nullptr) {
-    return false;
+    return "";
   }
   const char* ip_address_text =
       env->GetStringUTFChars(ip_address_jstring, nullptr);
-  if (ip_address_out) *ip_address_out = std::string(ip_address_text);
+  std::string ip_address_out = std::string(ip_address_text);
   env->ReleaseStringUTFChars(ip_address_jstring, ip_address_text);
   env->DeleteLocalRef(ip_address_jstring);
-  return true;
+  return ip_address_out;
 }
 
-bool FirebaseTest::IsRunningOnEmulator(bool* result_out) {
+bool FirebaseTest::IsRunningOnEmulator() {
+  std::string ip = GetDeviceIpAddress();
+  LogError("Got IP address: %s", ip.c_str());
+
   JNIEnv* env = app_framework::GetJniEnv();
   jobject activity = app_framework::GetActivity();
   jclass test_helper_class = app_framework::FindClass(
@@ -266,17 +269,18 @@ bool FirebaseTest::IsRunningOnEmulator(bool* result_out) {
     env->ExceptionClear();
     return false;
   }
-  jmethodID is_running_on_emulator = env->GetStaticMethodID(
-      test_helper_class, "isRunningOnEmulator", "(Landroid/content/Context;)Z");
-  jboolean result = env->CallStaticBooleanMethod(
-      test_helper_class, is_running_on_emulator, activity));
+  jmethodID is_running_on_emulator =
+      env->GetStaticMethodID(test_helper_class, "isRunningOnEmulator", "()Z");
+  jboolean result =
+      env->CallStaticBooleanMethod(test_helper_class, is_running_on_emulator);
   if (env->ExceptionCheck()) {
     env->ExceptionDescribe();
     env->ExceptionClear();
     return false;
   }
-  if (result_out) *result_out = result ? true : false;
-  return true;
+  LogError("Detected that we %s running on emulator",
+           result ? "are" : "are NOT");
+  return result ? true : false;
 }
 
 }  // namespace firebase_test_framework
