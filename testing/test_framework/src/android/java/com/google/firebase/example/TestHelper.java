@@ -12,24 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import android.os.Build;
-import android.util.Log;
-import android.text.format.Formatter;
-import android.net.wifi.WifiManager;
 import android.content.Context;
+import android.net.wifi.WifiManager;
+import android.os.Build;
+import android.text.format.Formatter;
+import android.util.Log;
 
 /**
  * A simple class with test helper methods.
  */
 
 public final class TestHelper {
-    private static final String TAG = "TestHelper";
-    private static String getDeviceIpAddress(Context context) {
-	WifiManager wm = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-	String ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
+  private static final String TAG = "TestHelper";
+  private static String getDeviceIpAddress(Context context) {
+    WifiManager wm =
+        (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+    String ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
 
-	// For diagnosis, you may want this temporarily to be able to check the TestLab device logcat logs
-	Log.i(TAG, "isTestLabVirtualIpAddress: ip: " + ip);
-	return ip;
-    }
+    // For diagnosis, you may want this temporarily to be able to check the TestLab device logcat
+    // logs
+    Log.i(TAG, "isTestLabVirtualIpAddress: ip: " + ip);
+    return ip;
+  }
 }
