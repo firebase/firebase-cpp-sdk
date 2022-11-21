@@ -72,7 +72,24 @@ function(execute_process_ex)
     RESULT_VARIABLE
       EXECUTE_PROCESS_RESULT
   )
+
+  # If WORKING_DIRECTORY is specified, then validate it (for maximally-
+  # informative error messages) and add it to the arguments for execute_process.
   if(NOT ("${ARG_WORKING_DIRECTORY}" STREQUAL ""))
+    if(NOT (EXISTS "${ARG_WORKING_DIRECTORY}"))
+      message(
+        FATAL_ERROR
+        "execute_process_ex(COMMENT=${ARG_COMMENT}): "
+        "WORKING_DIRECTORY does not exist: ${ARG_WORKING_DIRECTORY}"
+      )
+    endif()
+    if(NOT (IS_DIRECTORY "${ARG_WORKING_DIRECTORY}"))
+      message(
+        FATAL_ERROR
+        "execute_process_ex(COMMENT=${ARG_COMMENT}): "
+        "WORKING_DIRECTORY is not a directory: ${ARG_WORKING_DIRECTORY}"
+      )
+    endif()
     list(
       APPEND
       EXECUTE_PROCESS_ARGS
@@ -81,7 +98,8 @@ function(execute_process_ex)
     )
   endif()
 
-  # Execute the process
+  # Execute the process by calling cmake's built-in execute_process() function
+  # with the arguments specified to this function.
   execute_process(${EXECUTE_PROCESS_ARGS})
 
   # Verify that the command completed successfully.
