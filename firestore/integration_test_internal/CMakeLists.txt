@@ -368,7 +368,7 @@ add_subdirectory(${FIREBASE_CPP_SDK_DIR} bin/ EXCLUDE_FROM_ALL)
 if(NOT (IS_DIRECTORY "${ABSEIL_CPP_ROOT}"))
   message(
     FATAL_ERROR
-    "Directory does not exist or is not a directory: "
+    "ABSEIL_CPP_ROOT does not exist or is not a directory: "
     "${ABSEIL_CPP_ROOT}"
   )
 endif()
