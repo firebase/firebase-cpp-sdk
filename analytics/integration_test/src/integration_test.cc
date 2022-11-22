@@ -88,12 +88,6 @@ TEST_F(FirebaseAnalyticsTest, TestSetCollectionEnabled) {
   firebase::analytics::SetAnalyticsCollectionEnabled(true);
   firebase::analytics::SetAnalyticsCollectionEnabled(false);
   firebase::analytics::SetAnalyticsCollectionEnabled(true);
-
-  if (IsRunningOnEmulator()) {
-    LogInfo("Detected running on emulator.");
-  } else {
-    LogInfo("Detected NOT running on emulator.");
-  }
 }
 
 TEST_F(FirebaseAnalyticsTest, TestSetSessionTimeoutDuraction) {

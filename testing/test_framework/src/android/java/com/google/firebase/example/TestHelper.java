@@ -14,11 +14,7 @@
 
 package com.google.firebase.example;
 
-import android.content.Context;
-import android.net.wifi.WifiManager;
 import android.os.Build;
-import android.text.format.Formatter;
-import android.util.Log;
 
 /**
  * A simple class with test helper methods.
@@ -26,17 +22,6 @@ import android.util.Log;
 
 public final class TestHelper {
   private static final String TAG = "TestHelper";
-  public static String getDeviceIpAddress(Context context) {
-    WifiManager wm =
-        (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-    String ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
-
-    // For diagnosis, you may want this temporarily to be able to check the TestLab device logcat
-    // logs
-    Log.i(TAG, "isTestLabVirtualIpAddress: ip: " + ip);
-    return ip;
-  }
-
   public static boolean isRunningOnEmulator() {
     return Build.BRAND.contains("generic") || Build.DEVICE.contains("generic")
         || Build.PRODUCT.contains("sdk") || Build.HARDWARE.contains("goldfish")

@@ -222,44 +222,7 @@ bool FirebaseTest::GetPersistentString(const char* key,
   return true;
 }
 
-std::string GetDeviceIpAddress() {
-  JNIEnv* env = app_framework::GetJniEnv();
-  jobject activity = app_framework::GetActivity();
-  jclass test_helper_class = app_framework::FindClass(
-      env, activity, "com/google/firebase/example/TestHelper");
-  if (env->ExceptionCheck()) {
-    env->ExceptionDescribe();
-    env->ExceptionClear();
-    return "";
-  }
-  jmethodID get_device_ip_address =
-      env->GetStaticMethodID(test_helper_class, "getDeviceIpAddress",
-                             "(Landroid/content/Context;)Ljava/lang/String;");
-  jstring ip_address_jstring = static_cast<jstring>(env->CallStaticObjectMethod(
-      test_helper_class, get_device_ip_address, activity));
-  if (env->ExceptionCheck()) {
-    env->ExceptionDescribe();
-    env->ExceptionClear();
-    if (ip_address_jstring) {
-      env->DeleteLocalRef(ip_address_jstring);
-    }
-    return "";
-  }
-  if (ip_address_jstring == nullptr) {
-    return "";
-  }
-  const char* ip_address_text =
-      env->GetStringUTFChars(ip_address_jstring, nullptr);
-  std::string ip_address_out = std::string(ip_address_text);
-  env->ReleaseStringUTFChars(ip_address_jstring, ip_address_text);
-  env->DeleteLocalRef(ip_address_jstring);
-  return ip_address_out;
-}
-
 bool FirebaseTest::IsRunningOnEmulator() {
-  std::string ip = GetDeviceIpAddress();
-  LogError("Got IP address: %s", ip.c_str());
-
   JNIEnv* env = app_framework::GetJniEnv();
   jobject activity = app_framework::GetActivity();
   jclass test_helper_class = app_framework::FindClass(
@@ -278,8 +241,6 @@ bool FirebaseTest::IsRunningOnEmulator() {
     env->ExceptionClear();
     return false;
   }
-  LogError("Detected that we %s running on emulator",
-           result ? "are" : "are NOT");
   return result ? true : false;
 }
 
