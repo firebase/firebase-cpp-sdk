@@ -87,6 +87,7 @@ namespace firebase_test_framework {
 // SKIP_TEST_ON_WINDOWS
 // SKIP_TEST_ON_MACOS
 // SKIP_TEST_ON_SIMULATOR / SKIP_TEST_ON_EMULATOR (identical)
+// SKIP_TEST_ON_IOS_SIMULATOR / SKIP_TEST_ON_ANDROID_EMULATOR
 //
 // Also includes a special macro SKIP_TEST_IF_USING_STLPORT if compiling for
 // Android STLPort, which does not fully support C++11.
@@ -192,6 +193,17 @@ namespace firebase_test_framework {
 
 // Accept either name, simulator or emulator.
 #define SKIP_TEST_ON_EMULATOR SKIP_TEST_ON_SIMULATOR
+
+#if defined(ANDROID)
+#define SKIP_TEST_ON_ANDROID_EMULATOR SKIP_TEST_ON_EMULATOR
+#define SKIP_TEST_ON_IOS_SIMULATOR ((void)0)
+#elif defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+#define SKIP_TEST_ON_ANDROID_EMULATOR ((void)0)
+#define SKIP_TEST_ON_IOS_SIMULATOR SKIP_TEST_ON_SIMULATOR
+#else
+#define SKIP_TEST_ON_IOS_SIMULATOR ((void)0)
+#define SKIP_TEST_ON_ANDROID_EMULATOR ((void)0)
+#endif
 
 #if defined(STLPORT)
 #define SKIP_TEST_IF_USING_STLPORT                                             \
