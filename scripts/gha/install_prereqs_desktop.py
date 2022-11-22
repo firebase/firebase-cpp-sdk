@@ -86,7 +86,7 @@ def main():
     # On Linux, if gcc-10 isn't installed install it. Then make it the default.
     if utils.is_linux_os():
       # Check if we have gcc 9 or gcc 10 as the default, if not, set gcc 10.
-      gcc_ver = run_command('gcc', '-v', capture_output=True)
+      gcc_ver = utils.run_command('gcc', '-v', capture_output=True)
       if not ("gcc version 9." in gcc_ver.stderr or "gcc version 10." in gcc_ver.stderr):
         if (not utils.is_command_installed('gcc-10') or
             not utils.is_command_installed('g++-10')):
