@@ -86,7 +86,7 @@ namespace firebase_test_framework {
 // SKIP_TEST_ON_LINUX
 // SKIP_TEST_ON_WINDOWS
 // SKIP_TEST_ON_MACOS
-// SKIP_TEST_ON_SIMULATOR
+// SKIP_TEST_ON_SIMULATOR / SKIP_TEST_ON_EMULATOR (identical)
 //
 // Also includes a special macro SKIP_TEST_IF_USING_STLPORT if compiling for
 // Android STLPort, which does not fully support C++11.
@@ -179,25 +179,19 @@ namespace firebase_test_framework {
 #define SKIP_TEST_ON_ANDROID ((void)0)
 #endif  // defined(ANDROID)
 
-#if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE && TARGET_OS_SIMULATOR
-#define SKIP_TEST_ON_SIMULATOR                              \
-  {                                                         \
-    app_framework::LogInfo("Skipping %s on iOS simulator.", \
-                           test_info_->name());             \
-    GTEST_SKIP();                                           \
-    return;                                                 \
+// Android needs to determine emulator at runtime, so we can't just use #ifdef.
+#define SKIP_TEST_ON_SIMULATOR				                \
+  {                                                                     \
+    if (IsRunningOnEmulator()) {                                        \
+      app_framework::LogInfo("Skipping %s on simulator/emulator.",      \
+                             test_info_->name());                       \
+      GTEST_SKIP();                                                     \
+      return;                                                           \
+    }                                                                   \
   }
-#elif defined(ANDROID) && (defined(__x86_64__) || defined(__i386__))
-#define SKIP_TEST_ON_SIMULATOR                                  \
-  {                                                             \
-    app_framework::LogInfo("Skipping %s on Android simulator.", \
-                           test_info_->name());                 \
-    GTEST_SKIP();                                               \
-    return;                                                     \
-  }
-#else
-#define SKIP_TEST_ON_SIMULATOR ((void)0)
-#endif
+
+// Accept either name, simulator or emulator.
+#define SKIP_TEST_ON_EMULATOR SKIP_TEST_ON_SIMULATOR
 
 #if defined(STLPORT)
 #define SKIP_TEST_IF_USING_STLPORT                                             \
