@@ -24,7 +24,7 @@ import android.util.Log;
 
 public final class TestHelper {
   private static final String TAG = "TestHelper";
-  private static String getDeviceIpAddress(Context context) {
+  public static String getDeviceIpAddress(Context context) {
     WifiManager wm =
         (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
     String ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
