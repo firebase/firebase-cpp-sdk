@@ -61,11 +61,6 @@ void FirebaseAnalyticsTest::SetUpTestSuite() {
 #if defined(__ANDROID__)
   shared_app_ = firebase::App::Create(app_framework::GetJniEnv(),
                                       app_framework::GetActivity());
-  if (IsRunningOnEmulator()) {
-    LogInfo("Detected running on emulator.");
-  } else {
-    LogInfo("Detected NOT running on emulator.");
-  }
 #else
   shared_app_ = firebase::App::Create();
 #endif  // defined(__ANDROID__)
@@ -93,6 +88,12 @@ TEST_F(FirebaseAnalyticsTest, TestSetCollectionEnabled) {
   firebase::analytics::SetAnalyticsCollectionEnabled(true);
   firebase::analytics::SetAnalyticsCollectionEnabled(false);
   firebase::analytics::SetAnalyticsCollectionEnabled(true);
+
+  if (IsRunningOnEmulator()) {
+    LogInfo("Detected running on emulator.");
+  } else {
+    LogInfo("Detected NOT running on emulator.");
+  }
 }
 
 TEST_F(FirebaseAnalyticsTest, TestSetSessionTimeoutDuraction) {
