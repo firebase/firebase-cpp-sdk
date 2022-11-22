@@ -83,6 +83,24 @@ def main():
           # brew install protobuf
           utils.run_command(['brew', 'install', 'clang-format'])
 
+    # On Linux, if gcc-10 isn't installed install it. Then make it the default.
+    if utils.is_linux_os():
+      # Check if we have gcc 9 or gcc 10 as the default, if not, set gcc 10.
+      gcc_ver = run_command('gcc', '-v', capture_output=True)
+      if not ("gcc version 9." in gcc_ver.stderr or "gcc version 10." in gcc_ver.stderr):
+        if (not utils.is_command_installed('gcc-10') or
+            not utils.is_command_installed('g++-10')):
+          utils.run_command(['apt', 'install', '-y', 'gcc-10', 'g++-10'],
+                            as_root=True)
+        utils.run_command(['update-alternatives', '--install', '/usr/bin/gcc',
+                           'gcc', '/usr/bin/gcc-10', '10'], as_root=True)
+        utils.run_command(['update-alternatives', '--install', '/usr/bin/g++',
+                           'g++', '/usr/bin/g++-10', '10'], as_root=True)
+        utils.run_command(['update-alternatives', '--set', 'gcc',
+                           '/usr/bin/gcc-10'], as_root=True)
+        utils.run_command(['update-alternatives', '--set', 'g++',
+                           '/usr/bin/g++-10'], as_root=True)
+    
     # Install required python dependencies.
     # On Catalina, python2 in installed as default python.
     # Example command:
