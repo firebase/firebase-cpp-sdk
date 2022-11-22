@@ -138,6 +138,7 @@ set(android_SRCS
     src/android/wrapper.h
     src/android/write_batch_android.cc
     src/android/write_batch_android.h
+    src/jni/arena_ref.h
     src/jni/array.h
     src/jni/array_list.cc
     src/jni/array_list.h
@@ -173,8 +174,8 @@ set(android_SRCS
     src/jni/map.h
     src/jni/object.cc
     src/jni/object.h
-    src/jni/object_arena.h
     src/jni/object_arena.cc
+    src/jni/object_arena.h
     src/jni/ownership.h
     src/jni/set.h
     src/jni/string.cc

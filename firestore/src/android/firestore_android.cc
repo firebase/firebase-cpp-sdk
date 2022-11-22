@@ -73,6 +73,7 @@
 #include "firestore/src/jni/loader.h"
 #include "firestore/src/jni/long.h"
 #include "firestore/src/jni/map.h"
+#include "firestore/src/jni/object_arena.h"
 #include "firestore/src/jni/set.h"
 #include "firestore/src/jni/task.h"
 
