@@ -285,7 +285,6 @@ target_link_libraries(firebase_firestore
   PUBLIC
     firebase_app
     firebase_auth
-    absl_variant
 )
 
 if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)

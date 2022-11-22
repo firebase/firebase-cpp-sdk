@@ -20,8 +20,8 @@
 #include <jni.h>
 
 #include <string>
+#include <utility>
 
-#include "absl/types/optional.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/object_arena.h"
 #include "firestore/src/jni/traits.h"
@@ -296,25 +296,26 @@ class ArenaRef {
 
   explicit ArenaRef(const Object& ob) {
     Env env(GetEnv());
-    id_ = ObjectArena::GetInstance().Put(env, ob);
+    id_ = assignState(ObjectArena::GetInstance().Put(env, ob));
   }
 
   ArenaRef(const ArenaRef& other) {
-    if (other.id_) {
+    if (other.id_.first) {
       Env env(GetEnv());
-      id_ = ObjectArena::GetInstance().Dup(env, other.id_.value());
+      id_ = assignState(ObjectArena::GetInstance().Dup(env, other.id_.second));
     }
   }
 
   ArenaRef& operator=(const ArenaRef& other) {
     if (id_ != other.id_) {
       Env env(GetEnv());
-      if (id_) {
-        ObjectArena::GetInstance().Remove(env, id_.value());
+      if (id_.first) {
+        ObjectArena::GetInstance().Remove(env, id_.second);
       }
-      id_ = absl::nullopt;
-      if (other.id_) {
-        id_ = ObjectArena::GetInstance().Dup(other.id_.value());
+      reset();
+      if (other.id_.first) {
+        id_ =
+            assignState(ObjectArena::GetInstance().Dup(env, other.id_.second));
       }
     }
     return *this;
@@ -323,47 +324,53 @@ class ArenaRef {
   ArenaRef(ArenaRef&& other) noexcept : ArenaRef(other.release()) {}
 
   ArenaRef& operator=(ArenaRef&& other) noexcept {
-    if (id_ != other.id_.value()) {
+    if (id_.second != other.id_.second) {
       Env env(GetEnv());
-      if (id_) {
-        ObjectArena::GetInstance().Remove(env, id_.value());
+      if (id_.first) {
+        ObjectArena::GetInstance().Remove(env, id_.second);
       }
-      id_ = other.release();
+      id_ = assignState(other.release());
     }
     return *this;
   }
 
   ~ArenaRef() {
-    if (id_) {
+    if (id_.first) {
       Env env(GetEnv());
-      ObjectArena::GetInstance().Remove(env, id_.value());
+      ObjectArena::GetInstance().Remove(env, id_.second);
     }
   }
 
   Local<Object> get() const {
     Env env(GetEnv());
-    return ObjectArena::GetInstance().Get(env, id_.value());
+    return ObjectArena::GetInstance().Get(env, id_.second);
   }
 
   void clear() {
-    if (id_) {
+    if (id_.first) {
       Env env(GetEnv());
-      ObjectArena::GetInstance().Remove(env, id_.value());
-      id_ = absl::nullopt;
+      ObjectArena::GetInstance().Remove(env, id_.second);
+      reset();
     }
   }
 
  private:
-  explicit ArenaRef(int64_t id) : id_(id) {}
+  explicit ArenaRef(int64_t id) { assignState(id); }
 
   int64_t release() {
-    FIREBASE_DEV_ASSERT(id_);
-    int64_t id = id_.value();
-    id_ = absl::nullopt;
+    FIREBASE_DEV_ASSERT(id_.first);
+    int64_t id = id_.second;
+    reset();
     return id;
   }
 
-  absl::optional<int64_t> id_;
+  std::pair<bool, int64_t> assignState(int64_t id) { id_ = {true, id}; }
+
+  void reset() { id_ = {false, -1}; }
+
+  // A pair of variables which indicate the state of ArenaRef. If id_.first set
+  // to
+  std::pair<bool, int64_t> id_{false, -1};
 };
 
 }  // namespace jni
