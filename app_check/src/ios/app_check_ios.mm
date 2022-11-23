@@ -83,7 +83,7 @@
   std::string app_name = firebase::util::NSStringToString(app.name);
   firebase::App* cpp_app = firebase::app_common::FindAppByName(app_name.c_str());
   if (cpp_app == nullptr) {
-    cpp_app = firebase::app_common::FindPartialAppByName(app_name.c_str());
+    cpp_app = firebase::internal::FindPartialAppByName(app_name.c_str());
   }
   firebase::app_check::AppCheckProvider* cppProvider = _cppProviderFactory->CreateProvider(cpp_app);
   return [[CppAppCheckProvider alloc] initWithProvider:cppProvider];

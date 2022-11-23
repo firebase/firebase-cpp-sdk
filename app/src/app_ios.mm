@@ -259,14 +259,17 @@ App* App::Create(const AppOptions& options, const char* name) {
 
   // Add the app to a temporary map in case app check initialization
   // needs to reference the app before it is fully initialized.
-  app_common::AddPartialApp(app);
+  internal::AddPartialApp(app);
   FIRApp* platform_app = CreateOrGetPlatformApp(options, name);
+  // Once the app is initialized, the entry in the temporary map is not needed.
+  internal::RemovePartialApp(app);
   if (platform_app) {
     app->internal_ = new internal::AppInternal(platform_app);
     app_common::AddApp(app, &app->init_results_);
+  } else {
+    delete app;
+    app = nullptr;
   }
-  // Once the app is initialized, the entry in the temporary map is not needed.
-  app_common::RemovePartialApp(app);
   return app;
 }
 
@@ -318,14 +321,24 @@ void SetFirConfigurationLoggerLevel(FIRLoggerLevel level) {
     g_delayed_fir_configuration_logger_level_set = true;
   }
 }
-}  // namespace internal
-
-namespace app_common {
 
 // Guards g_partial_apps.
 static Mutex* g_partial_apps_mutex = new Mutex();
 // Stores partially initialized apps, indexed by app name
 static std::map<std::string, App*>* g_partial_apps;
+
+App* FindPartialAppByName(const char* name) {
+  assert(name);
+  MutexLock lock(*g_partial_apps_mutex);
+  if (g_partial_apps) {
+    auto it = g_partial_apps->find(std::string(name));
+    if (it == g_partial_apps->end()) {
+      return nullptr;
+    }
+    return it->second;
+  }
+  return nullptr;
+}
 
 void AddPartialApp(App* app) {
   MutexLock lock(*g_partial_apps_mutex);
@@ -349,18 +362,5 @@ void RemovePartialApp(App* app) {
   }
 }
 
-App* FindPartialAppByName(const char* name) {
-  assert(name);
-  MutexLock lock(*g_partial_apps_mutex);
-  if (g_partial_apps) {
-    auto it = g_partial_apps->find(std::string(name));
-    if (it == g_partial_apps->end()) {
-      return nullptr;
-    }
-    return it->second;
-  }
-  return nullptr;
-}
-
-}  // namespace app_common
+}  // namespace internal
 }  // namespace firebase
