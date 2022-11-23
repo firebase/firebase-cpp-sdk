@@ -168,7 +168,7 @@ TEST_DEVICES = {
   "android_target": {"type": "ftl", "device": "model=blueline,version=28"},
   "android_latest": {"type": "ftl", "device": "model=oriole,version=33"},
   "emulator_ftl_target": {"type": "ftl", "device": "model=Pixel2,version=28"},
-  "emulator_ftl_latest": {"type": "ftl", "device": "model=Pixel2.arm,version=33"},
+  "emulator_ftl_latest": {"type": "ftl", "device": "model=Pixel2.arm,version=32"},
   "emulator_target": {"type": "virtual", "image":"system-images;android-30;google_apis;x86_64"},
   "emulator_latest": {"type": "virtual", "image":"system-images;android-32;google_apis;x86_64"},
   "emulator_32bit": {"type": "virtual", "image":"system-images;android-30;google_apis;x86"},
