@@ -62,10 +62,10 @@ const char* kStorageUrl = nullptr;
 
 #if FIREBASE_PLATFORM_DESKTOP
 // Use a larger file on desktop...
-const int kLargeFileMegabytes = 32;
+const int kLargeFileMegabytes = 64;
 #else
 // ...and a smaller file on mobile.
-const int kLargeFileMegabytes = 16;
+const int kLargeFileMegabytes = 32;
 #endif
 
 const char kRootNodeName[] = "integration_test_data";
@@ -75,6 +75,8 @@ using app_framework::PathForResource;
 using app_framework::ProcessEvents;
 using firebase_test_framework::FirebaseTest;
 using testing::ElementsAreArray;
+using testing::Eq;
+using testing::Lt;
 
 class FirebaseStorageTest : public FirebaseTest {
  public:
@@ -1428,7 +1430,18 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
 
   LogDebug("Cancelling download.");
   EXPECT_TRUE(controller.Cancel());
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+  // TODO(b/255839066): Change this to expect kErrorCancelled once iOS SDK
+  // returns the correct error code.
+  //
+  // iOS/tvOS SDK doesn't always report kErrorCancelled, so ensure that
+  // either it was reported as cancelled, or the file was not fully uploaded.
+  WaitForCompletionAnyResult(future, "GetBytes");
+  EXPECT_THAT(AnyOf(Eq(future.error(), kErrorCancelled),
+		    Lt(controller.bytes_transferred(), kLargeFileSize)));
+#else
   WaitForCompletion(future, "GetBytes", firebase::storage::kErrorCancelled);
+#endif
 
   FLAKY_TEST_SECTION_END();
 }
@@ -1464,7 +1477,13 @@ TEST_F(FirebaseStorageTest, TestLargeFileCancelUpload) {
 #if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
   // TODO(b/255839066): Change this to expect kErrorCancelled once iOS SDK
   // returns the correct error code.
-  WaitForCompletion(future, "PutBytes", firebase::storage::kErrorUnknown);
+  //
+  // iOS/tvOS SDK doesn't always report kErrorCancelled, so ensure that
+  // either it was reported as cancelled, or the file was not fully uploaded.
+  WaitForCompletionAnyResult(future, "PutBytes");
+  EXPECT_THAT(AnyOf(Eq(future.error(), kErrorCancelled),
+		    Eq(future.error(), kErrorUnknown),
+		    Lt(controller.bytes_transferred(), kLargeFileSize)));
 #else
   WaitForCompletion(future, "PutBytes", firebase::storage::kErrorCancelled);
 #endif  // FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
