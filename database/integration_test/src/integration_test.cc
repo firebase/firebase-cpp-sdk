@@ -245,11 +245,15 @@ FirebaseDatabaseTest::~FirebaseDatabaseTest() {
 }
 
 void FirebaseDatabaseTest::SetUp() {
+  LogInfo("Setup begin");
   FirebaseTest::SetUp();
+  LogInfo("Setup initialize Database");
   InitializeDatabase();
+  LogInfo("Setup done");
 }
 
 void FirebaseDatabaseTest::TearDown() {
+  LogInfo("TearDown begin");
   // Delete the shared path, if there is one.
   if (initialized_) {
     if (!cleanup_paths_.empty() && database_ && shared_app_) {
@@ -262,12 +266,16 @@ void FirebaseDatabaseTest::TearDown() {
       for (int i = 0; i < cleanups.size(); ++i) {
         std::string cleanup_name = "Cleanup (" + cleanup_paths_[i].url() + ")";
         WaitForCompletion(cleanups[i], cleanup_name.c_str());
+	LogInfo("Cleanup done");
       }
       cleanup_paths_.clear();
     }
   }
+  LogInfo("Teardown terminating database");
   TerminateDatabase();
+  LogInfo("TearDown base");
   FirebaseTest::TearDown();
+  LogInfo("TearDown done");
 }
 
 void FirebaseDatabaseTest::InitializeDatabase() {
