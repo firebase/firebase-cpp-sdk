@@ -75,8 +75,6 @@ using app_framework::PathForResource;
 using app_framework::ProcessEvents;
 using firebase_test_framework::FirebaseTest;
 using testing::ElementsAreArray;
-using testing::Eq;
-using testing::Lt;
 
 class FirebaseStorageTest : public FirebaseTest {
  public:
@@ -1437,9 +1435,10 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
   // iOS/tvOS SDK doesn't always report kErrorCancelled, so ensure that
   // either it was reported as cancelled, or the file was not fully uploaded.
   WaitForCompletionAnyResult(future, "GetBytes");
-  EXPECT_THAT(AnyOf(Eq(future.error(), firebase::storage::kErrorCancelled),
-                    Eq(future.error(), firebase::storage::kErrorUnknown),
-                    Lt(controller.bytes_transferred(), kLargeFileSize)));
+  EXPECT_TRUE(
+      future.error() == firebase::storage::kErrorCancelled ||
+      future.error() == firebase::storage::kErrorUnknown ||
+      (future.error() == 0 && controller.bytes_transferred() < kLargeFileSize));
 #else
   WaitForCompletion(future, "GetBytes", firebase::storage::kErrorCancelled);
 #endif
@@ -1482,9 +1481,10 @@ TEST_F(FirebaseStorageTest, TestLargeFileCancelUpload) {
   // iOS/tvOS SDK doesn't always report kErrorCancelled, so ensure that
   // either it was reported as cancelled, or the file was not fully uploaded.
   WaitForCompletionAnyResult(future, "PutBytes");
-  EXPECT_THAT(AnyOf(Eq(future.error(), firebase::storage::kErrorCancelled),
-                    Eq(future.error(), firebase::storage::kErrorUnknown),
-                    Lt(controller.bytes_transferred(), kLargeFileSize)));
+  EXPECT_TRUE(
+      future.error() == firebase::storage::kErrorCancelled ||
+      future.error() == firebase::storage::kErrorUnknown ||
+      (future.error() == 0 && controller.bytes_transferred() < kLargeFileSize));
 #else
   WaitForCompletion(future, "PutBytes", firebase::storage::kErrorCancelled);
 #endif  // FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
