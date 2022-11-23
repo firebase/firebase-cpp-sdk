@@ -64,7 +64,6 @@ class AppCheckInternal {
 #endif  // __OBJC__
 
   UniquePtr<FIRAppCheckPointer> impl_;
-  ;
 
   ::firebase::App* app_;
 

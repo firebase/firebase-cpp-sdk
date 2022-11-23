@@ -17,6 +17,8 @@
 #ifndef FIREBASE_APP_CHECK_SRC_IOS_UTIL_IOS_H_
 #define FIREBASE_APP_CHECK_SRC_IOS_UTIL_IOS_H_
 
+#include <string>
+
 #import "FIRAppCheckToken.h"
 #include "firebase/app_check.h"
 
