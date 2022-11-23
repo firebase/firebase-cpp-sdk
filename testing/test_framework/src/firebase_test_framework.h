@@ -181,14 +181,14 @@ namespace firebase_test_framework {
 #endif  // defined(ANDROID)
 
 // Android needs to determine emulator at runtime, so we can't just use #ifdef.
-#define SKIP_TEST_ON_SIMULATOR				                \
-  {                                                                     \
-    if (IsRunningOnEmulator()) {                                        \
-      app_framework::LogInfo("Skipping %s on simulator/emulator.",      \
-                             test_info_->name());                       \
-      GTEST_SKIP();                                                     \
-      return;                                                           \
-    }                                                                   \
+#define SKIP_TEST_ON_SIMULATOR                                     \
+  {                                                                \
+    if (IsRunningOnEmulator()) {                                   \
+      app_framework::LogInfo("Skipping %s on simulator/emulator.", \
+                             test_info_->name());                  \
+      GTEST_SKIP();                                                \
+      return;                                                      \
+    }                                                              \
   }
 
 // Accept either name, simulator or emulator.

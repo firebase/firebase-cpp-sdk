@@ -266,7 +266,7 @@ void FirebaseDatabaseTest::TearDown() {
       for (int i = 0; i < cleanups.size(); ++i) {
         std::string cleanup_name = "Cleanup (" + cleanup_paths_[i].url() + ")";
         WaitForCompletion(cleanups[i], cleanup_name.c_str());
-	LogInfo("Cleanup done");
+        LogInfo("Cleanup done");
       }
       cleanup_paths_.clear();
     }
