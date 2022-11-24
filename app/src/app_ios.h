@@ -31,7 +31,7 @@ void SetFirConfigurationLoggerLevel(FIRLoggerLevel level);
 // Allows lookup of App by name for apps which are not yet fully initialized.
 // These Apps should have a name and options, but will not yet have an
 // associated AppInternal. This is used by AppCheck to use the App during
-// initialization of AppCheck while the internal FIRApp is being configured. 
+// initialization of AppCheck while the internal FIRApp is being configured.
 App* FindPartialAppByName(const char* name);
 
 // Enables lookup by name for a partially initialized App.
@@ -40,7 +40,7 @@ void AddPartialApp(App*);
 // Disables lookup by name for a partially initialized App.
 void RemovePartialApp(App*);
 
-}  // namespace app_common
+}  // namespace internal
 
 }  // namespace firebase
 

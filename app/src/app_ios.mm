@@ -299,7 +299,7 @@ FIRApp* App::GetPlatformApp() const {
   if (internal_) {
     return internal_->get();
   } else {
-    // AppCheck intiialization can depend on the FIRApp associated with an App
+    // AppCheck initialization can depend on the FIRApp associated with an App
     // before internal_ has been created.
     return GetPlatformAppByName(name_.c_str());
   }
