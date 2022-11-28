@@ -68,6 +68,14 @@ libs/linux/ARCH/ABI       | Linux static libraries (desktop or stub
 libs/windows              | Windows static libraries (desktop or stub
 |                         | implementations, MSVC 2019+)
 
+## C++ Language Standards
+
+The Firebase C++ SDK supports the C++11 language standard.
+
+NOTE: The next major release of the Firebase C++ SDK will set the new minimum
+C++ version to C++14. For more information please see our
+[C++ Language Standard Support Criteria](https://opensource.google/documentation/policies/cplusplus-support#c_language_standard).
+
 ## Library / XCFramework Dependencies
 
 Each feature has dependencies upon libraries in this SDK and components
@@ -639,6 +647,10 @@ code.
     - General (Android): Update to Firebase Android BoM version 31.1.0.
     - General (iOS): Update to Firebase Cocoapods version 10.2.0.
     - General (Desktop): Linux x86 libraries have been fixed.
+    - NOTE: The next major release of the Firebase C++ SDK will drop support
+      for C++11, setting the new minimum C++ version to C++14. For more
+      information please see our
+      [C++ Language Standard Support Criteria](https://opensource.google/documentation/policies/cplusplus-support#c_language_standard).
 
 ### 10.1.0
 -   Changes
