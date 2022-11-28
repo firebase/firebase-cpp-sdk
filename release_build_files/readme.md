@@ -72,7 +72,7 @@ libs/windows              | Windows static libraries (desktop or stub
 
 The Firebase C++ SDK supports the C++11 language standard.
 
-NOTE: The next major release of the Firebase C++ SDK will set the new minimum
+Note: The next major release of the Firebase C++ SDK will set the new minimum
 C++ version to C++14. For more information please see our
 [C++ Language Standard Support Criteria](https://opensource.google/documentation/policies/cplusplus-support#c_language_standard).
 
