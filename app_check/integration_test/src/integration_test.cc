@@ -119,6 +119,24 @@ class FirebaseAppCheckTest : public FirebaseTest {
   std::vector<firebase::database::DatabaseReference> cleanup_paths_;
 };
 
+// Listens for token changed notifications
+class TestAppCheckListener : public firebase::app_check::AppCheckListener {
+ public:
+  TestAppCheckListener() : num_token_changes_(0) {}
+  ~TestAppCheckListener() override {}
+
+  void OnAppCheckTokenChanged(
+      const firebase::app_check::AppCheckToken& token) override {
+    LogInfo("almostmatt - app check token changed listener was called");
+    LogInfo("Received app check token: %s", token.token.c_str());
+    token_ = token;
+    num_token_changes_ += 1;
+  }
+
+  int num_token_changes_;
+  firebase::app_check::AppCheckToken token_;
+};
+
 // Initialization flow looks like this:
 //  - For each test:
 //    - Optionally initialize App Check.
@@ -378,6 +396,27 @@ TEST_F(FirebaseAppCheckTest, TestGetTokenLastResult) {
   ::firebase::app_check::AppCheckToken token = *future2.result();
   EXPECT_EQ(future.result()->expire_time_millis,
             future2.result()->expire_time_millis);
+}
+
+TEST_F(FirebaseAppCheckTest, TestTokenChangedListener) {
+  InitializeAppCheckWithDebug();
+  InitializeApp();
+  ::firebase::app_check::AppCheck* app_check =
+      ::firebase::app_check::AppCheck::GetInstance(app_);
+  ASSERT_NE(app_check, nullptr);
+
+  // Create and add a token changed listener
+  // TODO: have a heap var using makeunique
+  TestAppCheckListener token_changed_listener;
+  app_check->AddAppCheckListener(&token_changed_listener);
+
+  firebase::Future<::firebase::app_check::AppCheckToken> future =
+      app_check->GetAppCheckToken(true);
+  EXPECT_TRUE(WaitForCompletion(future, "GetToken"));
+
+  ASSERT_EQ(token_changed_listener.num_token_changes_, 1);
+  // TODO: almostmatt, give the listener a method like "expect token X"
+  // ASSERT_EQ(token_changed_listener.token_, 1);
 }
 
 TEST_F(FirebaseAppCheckTest, TestSignIn) {

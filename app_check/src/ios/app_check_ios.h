@@ -26,9 +26,25 @@
 #import "FIRAppCheck.h"
 #endif  // __OBJC__
 
+#ifdef __OBJC__
+// Interacts with the default notification center.
+@interface AppCheckNotificationCenterWrapper : NSObject
+
+- (id)initWith;
+
+- (void)appCheckTokenDidChangeNotification:(NSNotification *)notification;
+
+@end
+#endif  // __OBJC__
+
 namespace firebase {
 namespace app_check {
 namespace internal {
+
+// This defines the class AppCheckNotificationCenterWrapperPointer, which is a
+// C++-compatible wrapper around the AppCheckNotificationCenterWrapper Obj-C
+// class.
+OBJ_C_PTR_WRAPPER(AppCheckNotificationCenterWrapper);
 
 // This defines the class FIRAppCheckPointer, which is a C++-compatible
 // wrapper around the FIRAppCheck Obj-C class.
@@ -61,11 +77,19 @@ class AppCheckInternal {
  private:
 #ifdef __OBJC__
   FIRAppCheck* impl() const { return impl_->get(); }
+
+  AppCheckNotificationCenterWrapper* notification_center_wrapper() const {
+    return notification_center_wrapper_->get();
+  }
 #endif  // __OBJC__
 
   UniquePtr<FIRAppCheckPointer> impl_;
 
+  UniquePtr<AppCheckNotificationCenterWrapperPointer> notification_center_wrapper_;
+
   ::firebase::App* app_;
+
+  std::unordered_set<AppCheckListener*> listeners_;
 
   FutureManager future_manager_;
 };

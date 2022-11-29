@@ -15,6 +15,7 @@
 #include "app_check/src/ios/app_check_ios.h"
 
 #import "FIRApp.h"
+#import "FIRAppCheck.h"
 #import "FIRAppCheckProvider.h"
 #import "FIRAppCheckProviderFactory.h"
 #import "FIRAppCheckToken.h"
@@ -91,18 +92,79 @@
 
 @end
 
+@implementation AppCheckNotificationCenterWrapper
+
+- (id)initWith {
+  NSLog(@"almostmatt - initializing app check notification center wrapper");
+  self = [super init];
+  if (self) {
+    // TODO: almostmatt - store any state necessary
+    // Probably at least store app_name
+    // Could also have this wrap a single listener instead of a set of listeners
+    // self->_listener = listener;
+    // self->_auth = auth;
+    NSLog(@"almostmatt - calling notification center AddObserver");
+    [[NSNotificationCenter defaultCenter]
+        addObserver:self
+            selector:@selector(appCheckTokenDidChangeNotification:)
+                name:FIRAppCheckAppCheckTokenDidChangeNotification
+              object:nil];
+
+  }
+  return self;
+}
+
+- (void)appCheckTokenDidChangeNotification:(NSNotification *)notification {
+    NSDictionary *userInfo = notification.userInfo;
+    // Note: almostmatt - could check if notification.object == self.FIRApp
+    // or even specify the instance of FIRApp when calling add observer
+    // Note: almostmatt - the token key in this userinfo is the NSString
+    // The expiration time is not available in this notification.
+    // almostmatt - so to make API match, if listeners exist, call GetToken with force refresh = false
+    // (though I kind of fear an infinite loop of 0-duration token refreshes)
+    NSString *token = (NSString *)userInfo[kFIRAppCheckTokenNotificationKey];
+    NSString *app_name = (NSString *)userInfo[kFIRAppCheckAppNameNotificationKey];
+    NSLog(@"almosmtatt - appCheckTokenDidChangeNotification.");
+    NSLog(@"almostmatt - for app %@", app_name);
+    NSLog(@"almostmatt - new token is %@", token);
+    // TODO: almostmatt - verify that this is for a relevant app
+    // if (app_name)
+    // TODO: almostmatt - call all token change listeners asyncronously
+    // dispatch_async([FIRDatabaseQuery sharedQueue], ^{
+    //   self.listener(token);
+    // });
+    // maybe call back to the cpp app check
+    // call GetToken
+    // listeners_
+}
+
+@end
+
 namespace firebase {
 namespace app_check {
 namespace internal {
 
 AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
+  NSLog(@"almostmatt - initializing app check instance");
   future_manager().AllocFutureApi(this, kAppCheckFnCount);
   impl_ = MakeUnique<FIRAppCheckPointer>([FIRAppCheck appCheck]);
+  notification_center_wrapper_ =
+      MakeUnique<AppCheckNotificationCenterWrapperPointer>(
+          [[AppCheckNotificationCenterWrapper alloc] initWith]);
+  // TODO: add observer for listeners
+  // when token change notification happens
+  // convert token, and call all listeners
+  // Note: need an iOS class in order to be the NSObject that handles listening
+  // Likely AppCheckInternal will hold a reference to this class
+  // and this class will need to be able to call back to C++ to get the map of listeners
+  // I suppose could also store the set of listeners internal to that ios class if needed
+  // or it can call back to this class (though that is sort of a dependency loop)
 }
 
 AppCheckInternal::~AppCheckInternal() {
   future_manager().ReleaseFutureApi(this);
   app_ = nullptr;
+  listeners_.clear();
 }
 
 ::firebase::App* AppCheckInternal::app() const { return app_; }
@@ -157,9 +219,16 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckTokenLastResult() {
       future()->LastResult(kAppCheckFnGetAppCheckToken));
 }
 
-void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {}
+void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {
+  // TODO: almostmatt (maybe) pass the listener into notification_center_wrapper()
+  NSLog(@"almostmatt - added an app check listener");
+  listeners_.insert(listener);
+}
 
-void AppCheckInternal::RemoveAppCheckListener(AppCheckListener* listener) {}
+void AppCheckInternal::RemoveAppCheckListener(AppCheckListener* listener) {
+  NSLog(@"almostmatt - removed an app check listener");
+  listeners_.erase(listener);
+}
 
 }  // namespace internal
 }  // namespace app_check
