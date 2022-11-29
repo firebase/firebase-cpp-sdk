@@ -10,7 +10,7 @@ env:
 jobs:
   assign_random_reviewer:
     if: github.event.action == 'labeled' && github.event.label.name == 'reviewer-roulette'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Unset label
         uses: buildsville/add-remove-label@v1

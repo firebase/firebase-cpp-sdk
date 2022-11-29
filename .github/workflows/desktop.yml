@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   prepare_matrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     outputs:
       matrix_os: ${{ steps.export-result.outputs.matrix_os }}
       matrix_build_type: ${{ steps.export-result.outputs.matrix_build_type }}
@@ -70,7 +70,7 @@ jobs:
             msvc_runtime: "dynamic"
         exclude:
           # msvc_runtime excludes
-          - os: ubuntu-latest
+          - os: ubuntu-20.04
             msvc_runtime: "dynamic"
           - os: macos-12
             msvc_runtime: "dynamic"
@@ -78,16 +78,16 @@ jobs:
           - os: macos-12
             architecture: "x86"
           # Xcode excludes -- allow only one on osx and linux
-          - os: ubuntu-latest
+          - os: ubuntu-20.04
             xcode_version: "11.7"
           - os: windows-latest
             xcode_version: "11.7"
-          - os: ubuntu-latest
+          - os: ubuntu-20.04
             xcode_version: "12.5.1"
           - os: windows-latest
             xcode_version: "12.5.1"
           # arm64 is only for macos
-          - os: ubuntu-latest
+          - os: ubuntu-20.04
             architecture: "arm64"
           - os: windows-latest
             architecture: "arm64"
@@ -292,7 +292,7 @@ jobs:
     ### It's possible to add more apps here once integration tests are less flaky.
     name: local-integration-tests-linux-openssl
     needs: prepare_matrix
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
     steps:
@@ -331,7 +331,7 @@ jobs:
           python scripts/gha/build_testapps.py --p Desktop \
             --t ${apis} \
             --output_directory "${{ github.workspace }}" \
-            --artifact_name "desktop-ubuntu-latest-openssl" \
+            --artifact_name "desktop-ubuntu-20.04-openssl" \
             --noadd_timestamp \
             --short_output_paths \
             --cmake_flag=-DFIREBASE_QUICK_TEST=ON
@@ -339,7 +339,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat build-results-desktop-ubuntu-latest-openssl.log
+          cat build-results-desktop-ubuntu-20.04-openssl.log
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
@@ -361,15 +361,15 @@ jobs:
           java-version: '17'
       - name: Run Desktop integration tests
         run: |
-          cp scripts/gha/integration_testing/google-services.json testapps-desktop-ubuntu-latest-openssl/firestore/google-services.json
-          firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps-desktop-ubuntu-latest-openssl --logfile_name "desktop-ubuntu-latest-openssl"'
+          cp scripts/gha/integration_testing/google-services.json testapps-desktop-ubuntu-20.04-openssl/firestore/google-services.json
+          firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps-desktop-ubuntu-20.04-openssl --logfile_name "desktop-ubuntu-20.04-openssl"'
         env:
           USE_FIRESTORE_EMULATOR: true
       - name: Summarize test results
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat testapps-desktop-ubuntu-latest-openssl/test-results-desktop-ubuntu-latest-openssl.log
+          cat testapps-desktop-ubuntu-20.04-openssl/test-results-desktop-ubuntu-20.04-openssl.log
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi

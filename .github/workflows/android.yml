@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   prepare_matrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     outputs:
       matrix_os: ${{ steps.export-result.outputs.matrix_os }}
       matrix_architecture: ${{ steps.export-result.outputs.matrix_architecture }}
