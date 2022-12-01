@@ -64,6 +64,7 @@ endfunction()
 
 if((NOT FIRESTORE_DEP_SOURCE) OR (FIRESTORE_DEP_SOURCE STREQUAL "RELEASED"))
   # Get from released dependency by default
+  message("FIRESTORE_DEP_SOURCE value: ${FIRESTORE_DEP_SOURCE}")
   GetReleasedDep()
 else()
   if(FIRESTORE_DEP_SOURCE STREQUAL "TIP")
