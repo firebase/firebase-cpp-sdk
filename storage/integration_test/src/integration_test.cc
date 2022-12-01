@@ -399,8 +399,10 @@ const std::string kSimpleTestFile =
     "culpa qui officia deserunt mollit anim id est laborum.";
 
 TEST_F(FirebaseStorageTest, TestWriteAndReadByteBuffer) {
-  SignIn();
+  SKIP_TEST_ON_ANDROID_EMULATOR();
 
+  SignIn();
+  
   firebase::storage::StorageReference ref =
       CreateFolder().Child("TestFile.txt");
   LogDebug("Storage URL: gs://%s%s", ref.bucket().c_str(),
