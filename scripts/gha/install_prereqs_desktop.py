@@ -109,6 +109,11 @@ def main():
        ['python3' if utils.is_command_installed('python3') else 'python', '-m',
             'pip', 'install', '-r', 'external/pip_requirements.txt', '--user'] )
 
+    # If running on GHA Windows, remove the Strawberry Perl directory, since it can cause
+    # architecture conflicts when searching for the zlib library.
+    if utils.is_windows_os() and args.gha_build:
+      utils.run_command(['rm', '-r', 'C:/Strawberry'])
+
   if args.arch == 'x86':
     utils.install_x86_support_libraries(args.gha_build)
 
