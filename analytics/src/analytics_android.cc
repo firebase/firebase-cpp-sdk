@@ -121,13 +121,13 @@ void Initialize(const ::firebase::App& app) {
     return;
   }
   if (!analytics_consent_type::CacheMethodIds(env, app.activity())) {
-    analytics::Terminate(env);
+    analytics::ReleaseClass(env);
     util::Terminate(env);
     return;
   }
   if (!analytics_consent_status::CacheMethodIds(env, app.activity())) {
-    analytics_consent_type::Terminate(env);
-    analytics::Terminate(env);
+    analytics_consent_type::ReleaseClass(env);
+    analytics::ReleaseClass(env);
     util::Terminate(env);
     return;
   }
@@ -190,10 +190,11 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   JNIEnv* env = g_app->GetJNIEnv();
 
-  jobject consent_map = env->NewObject(
-      hash_map::GetClass(), hash_map::GetMethodId(hash_map::kConstructor));
+  jobject consent_map =
+      env->NewObject(util::hash_map::GetClass(),
+                     util::hash_map::GetMethodId(util::hash_map::kConstructor));
   util::CheckAndClearJniExceptions(env);
-  jmethodID put_method = map::GetMethodId(map::kPut);
+  jmethodID put_method = util::map::GetMethodId(util::map::kPut);
   for (auto it = consent_settings.begin(); it != consent_settings.end(); ++it) {
     jobject consent_type;
     switch (it->first) {
@@ -239,8 +240,8 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
         env->DeleteLocalRef(consent_type);
         return;
     };
-    jobject previous =
-        env->CallObjectMethod(*to, put_method, consent_type, consent_status);
+    jobject previous = env->CallObjectMethod(consent_map, put_method,
+                                             consent_type, consent_status);
     util::CheckAndClearJniExceptions(env);
     if (previous) env->DeleteLocalRef(previous);
     env->DeleteLocalRef(consent_type);

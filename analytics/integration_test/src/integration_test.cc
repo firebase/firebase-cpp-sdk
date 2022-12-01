@@ -95,15 +95,15 @@ TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
   std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
       consent_settings_allow = {
           {firebase::analytics::kConsentTypeAnalyticsStorage,
-           firebase::analytics::kConsentTypeAllowed},
+           firebase::analytics::kConsentStatusGranted},
           {firebase::analytics::kConsentTypeAdStorage,
-           firebase::analytics::kConsentTypeAllowed}};
+           firebase::analytics::kConsentStatusGranted}};
   std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
       consent_settings_deny = {
           {firebase::analytics::kConsentTypeAnalyticsStorage,
-           firebase::analytics::kConsentTypeDenied},
+           firebase::analytics::kConsentStatusDenied},
           {firebase::analytics::kConsentTypeAdStorage,
-           firebase::analytics::kConsentTypeDenied}};
+           firebase::analytics::kConsentStatusDenied}};
   std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
       consent_settings_empty;
   firebase::analytics::SetConsent(consent_settings_empty);
