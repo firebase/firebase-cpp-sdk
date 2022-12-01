@@ -56,6 +56,11 @@ void SetAnalyticsCollectionEnabled(bool /*enabled*/) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
 }
 
+// Enable / disable measurement and reporting.
+void SetConsent(const std::map<ConsentType, ConsentStatus> &consent_settings) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+}
+
 // Log an event with one string parameter.
 void LogEvent(const char* /*name*/, const char* /*parameter_name*/,
               const char* /*parameter_value*/) {

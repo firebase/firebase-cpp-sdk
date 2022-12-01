@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <map>
 
 #include "firebase/app.h"
 #include "firebase/future.h"
@@ -287,7 +288,7 @@ enum ConsentStatus { kConsentStatusGranted = 0, kConsentStatusDenied };
 /// Use the consent map to specify individual consent type values. Settings are
 /// persisted across app sessions. By default consent types are set to
 /// "granted".
-void SetConsent(const std::map<ConsentType, ConsentStatus>& consentSettings);
+void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings);
 
 /// @brief Log an event with one string parameter.
 ///
