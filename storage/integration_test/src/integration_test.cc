@@ -399,7 +399,7 @@ const std::string kSimpleTestFile =
     "culpa qui officia deserunt mollit anim id est laborum.";
 
 TEST_F(FirebaseStorageTest, TestWriteAndReadByteBuffer) {
-  SKIP_TEST_ON_ANDROID_EMULATOR();
+  SKIP_TEST_ON_ANDROID_EMULATOR;
 
   SignIn();
 
