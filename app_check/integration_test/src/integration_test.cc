@@ -334,6 +334,52 @@ TEST_F(FirebaseAppCheckTest, TestInitializeAndTerminate) {
   InitializeApp();
 }
 
+TEST_F(FirebaseAppCheckTest, TestGetTokenForcingRefresh) {
+  InitializeAppCheckWithDebug();
+  InitializeApp();
+  ::firebase::app_check::AppCheck* app_check =
+      ::firebase::app_check::AppCheck::GetInstance(app_);
+  ASSERT_NE(app_check, nullptr);
+  firebase::Future<::firebase::app_check::AppCheckToken> future =
+      app_check->GetAppCheckToken(true);
+  EXPECT_TRUE(WaitForCompletion(future, "GetToken #1"));
+  ::firebase::app_check::AppCheckToken token = *future.result();
+  EXPECT_NE(token.token, "");
+  EXPECT_NE(token.expire_time_millis, 0);
+
+  // GetToken with force_refresh=false will return the same token.
+  firebase::Future<::firebase::app_check::AppCheckToken> future2 =
+      app_check->GetAppCheckToken(false);
+  EXPECT_TRUE(WaitForCompletion(future2, "GetToken #2"));
+  EXPECT_EQ(future.result()->expire_time_millis,
+            future2.result()->expire_time_millis);
+
+  // GetToken with force_refresh=true will return a new token.
+  firebase::Future<::firebase::app_check::AppCheckToken> future3 =
+      app_check->GetAppCheckToken(true);
+  EXPECT_TRUE(WaitForCompletion(future3, "GetToken #3"));
+  EXPECT_NE(future.result()->expire_time_millis,
+            future3.result()->expire_time_millis);
+}
+
+TEST_F(FirebaseAppCheckTest, TestGetTokenLastResult) {
+  InitializeAppCheckWithDebug();
+  InitializeApp();
+  ::firebase::app_check::AppCheck* app_check =
+      ::firebase::app_check::AppCheck::GetInstance(app_);
+  ASSERT_NE(app_check, nullptr);
+  firebase::Future<::firebase::app_check::AppCheckToken> future =
+      app_check->GetAppCheckToken(true);
+  EXPECT_TRUE(WaitForCompletion(future, "GetToken #1"));
+
+  firebase::Future<::firebase::app_check::AppCheckToken> future2 =
+      app_check->GetAppCheckTokenLastResult();
+  EXPECT_TRUE(WaitForCompletion(future2, "GetTokenLastResult"));
+  ::firebase::app_check::AppCheckToken token = *future2.result();
+  EXPECT_EQ(future.result()->expire_time_millis,
+            future2.result()->expire_time_millis);
+}
+
 TEST_F(FirebaseAppCheckTest, TestSignIn) {
   InitializeAppCheckWithDebug();
   InitializeApp();
