@@ -27,6 +27,11 @@ namespace firebase {
 namespace app_check {
 namespace internal {
 
+// The server url to exchange the debug token with for a attestation token.
+static const char* kDebugTokenRequestServerUrlBase = "https://firebaseappcheck.googleapis.com/v1beta/projects/";
+// The header used to pass the project's API key.
+static const char* kDebugTokenRequestHeader = "X-Goog-Api-Key";
+
 // Request to exchange the user provided Debug Token with a valid attestation
 // token.
 class DebugTokenRequest
@@ -35,15 +40,14 @@ class DebugTokenRequest
  public:
   explicit DebugTokenRequest(App* app)
       : RequestJson(debug_token_request_resource_data) {
-    std::string server_url(
-        "https://firebaseappcheck.googleapis.com/v1beta/projects/");
+    std::string server_url(kDebugTokenRequestServerUrlBase);
     server_url.append(app->options().project_id());
     server_url.append("/apps/");
     server_url.append(app->options().app_id());
     server_url.append(":exchangeDebugToken");
     set_url(server_url.c_str());
 
-    add_header("X-Goog-Api-Key", app->options().api_key());
+    add_header(kDebugTokenRequestHeader, app->options().api_key());
   }
 
   void SetDebugToken(std::string debug_token) {

@@ -82,7 +82,7 @@ void GetTokenAsync(SharedPtr<DebugTokenRequest> request,
              "HTTP status code: %d \n"
              "Response body: %s\n",
              response.status(), response.GetBody());
-    completion_callback(token, kAppCheckErrorServerUnreachable, error_message);
+    completion_callback(token, kAppCheckErrorUnknown, error_message);
   }
 }
 
