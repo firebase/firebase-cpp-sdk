@@ -3,20 +3,20 @@ platform :ios, '11.0'
 use_frameworks!
 
 target 'GetPods' do
-  pod 'Firebase/Core', '10.0.0'
+  pod 'Firebase/Core', '10.2.0'
 
   pod 'Google-Mobile-Ads-SDK', '9.11.0.1'
-  pod 'Firebase/Analytics', '10.0.0'
-  pod 'Firebase/AppCheck', '10.0.0'
-  pod 'Firebase/Auth', '10.0.0'
-  pod 'Firebase/Crashlytics', '10.0.0'
-  pod 'Firebase/Database', '10.0.0'
-  pod 'Firebase/DynamicLinks', '10.0.0'
-  pod 'Firebase/Firestore', '10.0.0'
-  pod 'Firebase/Functions', '10.0.0'
-  pod 'Firebase/Installations', '10.0.0'
-  pod 'Firebase/Messaging', '10.0.0'
-  pod 'Firebase/RemoteConfig', '10.0.0'
-  pod 'Firebase/Storage', '10.0.0'
+  pod 'Firebase/Analytics', '10.2.0'
+  pod 'Firebase/AppCheck', '10.2.0'
+  pod 'Firebase/Auth', '10.2.0'
+  pod 'Firebase/Crashlytics', '10.2.0'
+  pod 'Firebase/Database', '10.2.0'
+  pod 'Firebase/DynamicLinks', '10.2.0'
+  pod 'Firebase/Firestore', '10.2.0'
+  pod 'Firebase/Functions', '10.2.0'
+  pod 'Firebase/Installations', '10.2.0'
+  pod 'Firebase/Messaging', '10.2.0'
+  pod 'Firebase/RemoteConfig', '10.2.0'
+  pod 'Firebase/Storage', '10.2.0'
 
 end

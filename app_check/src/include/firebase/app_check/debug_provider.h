@@ -34,11 +34,11 @@ class DebugAppCheckProviderFactoryInternal;
 /// NOTE: Do not use the debug provider in applications used by real users.
 class DebugAppCheckProviderFactory : public AppCheckProviderFactory {
  public:
+  ~DebugAppCheckProviderFactory() override;
+
   /// Gets an instance of this class for installation into a
   /// firebase::app_check::AppCheck instance.
   static DebugAppCheckProviderFactory* GetInstance();
-
-  virtual ~DebugAppCheckProviderFactory();
 
   /// Gets the AppCheckProvider associated with the given
   /// {@link App} instance, or creates one if none

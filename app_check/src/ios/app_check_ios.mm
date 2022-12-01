@@ -14,7 +14,10 @@
 
 #include "app_check/src/ios/app_check_ios.h"
 
+#import "FIRAppCheckToken.h"
+
 #include "app_check/src/common/common.h"
+#include "firebase/app_check.h"
 
 namespace firebase {
 namespace app_check {

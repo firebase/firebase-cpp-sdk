@@ -2015,11 +2015,9 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadExtrasClassName) {
 // Stress tests.  These take a while so run them near the end.
 TEST_F(FirebaseGmaTest, TestAdViewStress) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_SIMULATOR;
 
-  // Loading Ads has been deemed flaky as the AdMob Service has a chance to
-  // return NoFill for valid ad requests if there aren't any ads to serve.
-  FLAKY_TEST_SECTION_BEGIN();
+  // TODO(@drsanta): remove when GMA whitelists CI devices
+  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
 
   for (int i = 0; i < 10; ++i) {
     const firebase::gma::AdSize banner_ad_size(kBannerWidth, kBannerHeight);
@@ -2037,17 +2035,13 @@ TEST_F(FirebaseGmaTest, TestAdViewStress) {
     WaitForCompletion(ad_view->Destroy(), "Destroy the AdView");
     delete ad_view;
   }
-
-  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_SIMULATOR;
 
-  // Loading Ads has been deemed flaky as the AdMob Service has a chance to
-  // return NoFill for valid ad requests if there aren't any ads to serve.
-  FLAKY_TEST_SECTION_BEGIN();
+  // TODO(@drsanta): remove when GMA whitelists CI devices
+  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
 
   for (int i = 0; i < 10; ++i) {
     firebase::gma::InterstitialAd* interstitial =
@@ -2063,17 +2057,13 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
                       "TestInterstitialAdStress LoadAd");
     delete interstitial;
   }
-
-  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_SIMULATOR;
 
-  // Loading Ads has been deemed flaky as the AdMob Service has a chance to
-  // return NoFill for valid ad requests if there aren't any ads to serve.
-  FLAKY_TEST_SECTION_BEGIN();
+  // TODO(@drsanta): remove when GMA whitelists CI devices
+  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
 
   for (int i = 0; i < 10; ++i) {
     firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
@@ -2087,8 +2077,6 @@ TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
                       "TestRewardedAdStress LoadAd");
     delete rewarded;
   }
-
-  FLAKY_TEST_SECTION_END();
 }
 
 #if defined(ANDROID) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)

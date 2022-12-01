@@ -1,6 +1,6 @@
 // Copyright 2022 Google LLC
 
-// Copied from Firebase Analytics iOS SDK 10.0.0.
+// Copied from Firebase Analytics iOS SDK 10.2.0.
 
 /// @file FIREventNames.h
 ///
@@ -39,7 +39,7 @@ static NSString *const kFIREventAdImpression NS_SWIFT_NAME(AnalyticsEventAdImpre
 /// <ul>
 ///     <li>@c AnalyticsParameterCoupon (String) (optional)</li>
 ///     <li>@c AnalyticsParameterCurrency (String) (optional)</li>
-///     <li>@c AnalyticsParameterItems (Array<Dictionary<String, Any>>) (optional)</li>
+///     <li>@c AnalyticsParameterItems ([[String: Any]]) (optional)</li>
 ///     <li>@c AnalyticsParameterPaymentType (String) (optional)</li>
 ///     <li>@c AnalyticsParameterValue (Double) (optional)</li>
 /// </ul>
@@ -54,7 +54,7 @@ static NSString *const kFIREventAddPaymentInfo NS_SWIFT_NAME(AnalyticsEventAddPa
 /// <ul>
 ///     <li>@c AnalyticsParameterCoupon (String) (optional)</li>
 ///     <li>@c AnalyticsParameterCurrency (String) (optional)</li>
-///     <li>@c AnalyticsParameterItems (Array<Dictionary<String, Any>>) (optional)</li>
+///     <li>@c AnalyticsParameterItems ([[String: Any]]) (optional)</li>
 ///     <li>@c AnalyticsParameterShippingTier (String) (optional)</li>
 ///     <li>@c AnalyticsParameterValue (Double) (optional)</li>
 /// </ul>
@@ -69,7 +69,7 @@ static NSString *const kFIREventAddShippingInfo NS_SWIFT_NAME(AnalyticsEventAddS
 ///
 /// <ul>
 ///     <li>@c AnalyticsParameterCurrency (String) (optional)</li>
-///     <li>@c AnalyticsParameterItems (Array<Dictionary<String, Any>>) (optional)</li>
+///     <li>@c AnalyticsParameterItems ([[String: Any]]) (optional)</li>
 ///     <li>@c AnalyticsParameterValue (Double) (optional)</li>
 /// </ul>
 static NSString *const kFIREventAddToCart NS_SWIFT_NAME(AnalyticsEventAddToCart) = @"add_to_cart";
@@ -81,7 +81,7 @@ static NSString *const kFIREventAddToCart NS_SWIFT_NAME(AnalyticsEventAddToCart)
 ///
 /// <ul>
 ///     <li>@c AnalyticsParameterCurrency (String) (optional)</li>
-///     <li>@c AnalyticsParameterItems (Array<Dictionary<String, Any>>) (optional)</li>
+///     <li>@c AnalyticsParameterItems ([[String: Any]]) (optional)</li>
 ///     <li>@c AnalyticsParameterValue (Double) (optional)</li>
 /// </ul>
 static NSString *const kFIREventAddToWishlist NS_SWIFT_NAME(AnalyticsEventAddToWishlist) =
@@ -102,7 +102,7 @@ static NSString *const kFIREventAppOpen NS_SWIFT_NAME(AnalyticsEventAppOpen) = @
 /// <ul>
 ///     <li>@c AnalyticsParameterCoupon (String) (optional)</li>
 ///     <li>@c AnalyticsParameterCurrency (String) (optional)</li>
-///     <li>@c AnalyticsParameterItems (Array<Dictionary<String, Any>>) (optional)</li>
+///     <li>@c AnalyticsParameterItems ([[String: Any]]) (optional)</li>
 ///     <li>@c AnalyticsParameterValue (Double) (optional)</li>
 /// </ul>
 static NSString *const kFIREventBeginCheckout NS_SWIFT_NAME(AnalyticsEventBeginCheckout) =
@@ -209,8 +209,11 @@ static NSString *const kFIREventPostScore NS_SWIFT_NAME(AnalyticsEventPostScore)
 ///     <li>@c AnalyticsParameterAffiliation (String) (optional)</li>
 ///     <li>@c AnalyticsParameterCoupon (String) (optional)</li>
 ///     <li>@c AnalyticsParameterCurrency (String) (optional)</li>
-///     <li>@c AnalyticsParameterItems (Array<Dictionary<String, Any>>) (optional)</li>
+///     <li>@c AnalyticsParameterEndDate (String) (optional)</li>
+///     <li>@c AnalyticsParameterItemID (String) (optional)</li>
+///     <li>@c AnalyticsParameterItems ([[String: Any]]) (optional)</li>
 ///     <li>@c AnalyticsParameterShipping (Double) (optional)</li>
+///     <li>@c AnalyticsParameterStartDate (String) (optional)</li>
 ///     <li>@c AnalyticsParameterTax (Double) (optional)</li>
 ///     <li>@c AnalyticsParameterTransactionID (String) (optional)</li>
 ///     <li>@c AnalyticsParameterValue (Double) (optional)</li>
@@ -225,7 +228,7 @@ static NSString *const kFIREventPurchase NS_SWIFT_NAME(AnalyticsEventPurchase) =
 ///     <li>@c AnalyticsParameterAffiliation (String) (optional)</li>
 ///     <li>@c AnalyticsParameterCoupon (String) (optional)</li>
 ///     <li>@c AnalyticsParameterCurrency (String) (optional)</li>
-///     <li>@c AnalyticsParameterItems (Array<Dictionary<String, Any>>) (optional)</li>
+///     <li>@c AnalyticsParameterItems ([[String: Any]]) (optional)</li>
 ///     <li>@c AnalyticsParameterShipping (Double) (optional)</li>
 ///     <li>@c AnalyticsParameterTax (Double) (optional)</li>
 ///     <li>@c AnalyticsParameterTransactionID (String) (optional)</li>
@@ -239,7 +242,7 @@ static NSString *const kFIREventRefund NS_SWIFT_NAME(AnalyticsEventRefund) = @"r
 ///
 /// <ul>
 ///     <li>@c AnalyticsParameterCurrency (String) (optional)</li>
-///     <li>@c AnalyticsParameterItems (Array<Dictionary<String, Any>>) (optional)</li>
+///     <li>@c AnalyticsParameterItems ([[String: Any]]) (optional)</li>
 ///     <li>@c AnalyticsParameterValue (Double) (optional)</li>
 /// </ul>
 static NSString *const kFIREventRemoveFromCart NS_SWIFT_NAME(AnalyticsEventRemoveFromCart) =
@@ -287,7 +290,7 @@ static NSString *const kFIREventSelectContent NS_SWIFT_NAME(AnalyticsEventSelect
 /// items selected. Params:
 ///
 /// <ul>
-///     <li>@c AnalyticsParameterItems (Array<Dictionary<String, Any>>) (optional)</li>
+///     <li>@c AnalyticsParameterItems ([[String: Any]]) (optional)</li>
 ///     <li>@c AnalyticsParameterItemListID (String) (optional)</li>
 ///     <li>@c AnalyticsParameterItemListName (String) (optional)</li>
 /// </ul>
@@ -300,7 +303,7 @@ static NSString *const kFIREventSelectItem NS_SWIFT_NAME(AnalyticsEventSelectIte
 /// <ul>
 ///     <li>@c AnalyticsParameterCreativeName (String) (optional)</li>
 ///     <li>@c AnalyticsParameterCreativeSlot (String) (optional)</li>
-///     <li>@c AnalyticsParameterItems (Array<Dictionary<String, Any>>) (optional)</li>
+///     <li>@c AnalyticsParameterItems ([[String: Any]]) (optional)</li>
 ///     <li>@c AnalyticsParameterLocationID (String) (optional)</li>
 ///     <li>@c AnalyticsParameterPromotionID (String) (optional)</li>
 ///     <li>@c AnalyticsParameterPromotionName (String) (optional)</li>
@@ -366,7 +369,7 @@ static NSString *const kFIREventUnlockAchievement NS_SWIFT_NAME(AnalyticsEventUn
 ///
 /// <ul>
 ///     <li>@c AnalyticsParameterCurrency (String) (optional)</li>
-///     <li>@c AnalyticsParameterItems (Array<Dictionary<String, Any>>) (optional)</li>
+///     <li>@c AnalyticsParameterItems ([[String: Any]]) (optional)</li>
 ///     <li>@c AnalyticsParameterValue (Double) (optional)</li>
 /// </ul>
 static NSString *const kFIREventViewCart NS_SWIFT_NAME(AnalyticsEventViewCart) = @"view_cart";
@@ -379,7 +382,7 @@ static NSString *const kFIREventViewCart NS_SWIFT_NAME(AnalyticsEventViewCart) =
 ///
 /// <ul>
 ///     <li>@c AnalyticsParameterCurrency (String) (optional)</li>
-///     <li>@c AnalyticsParameterItems (Array<Dictionary<String, Any>>) (optional)</li>
+///     <li>@c AnalyticsParameterItems ([[String: Any]]) (optional)</li>
 ///     <li>@c AnalyticsParameterValue (Double) (optional)</li>
 /// </ul>
 static NSString *const kFIREventViewItem NS_SWIFT_NAME(AnalyticsEventViewItem) = @"view_item";
@@ -387,7 +390,7 @@ static NSString *const kFIREventViewItem NS_SWIFT_NAME(AnalyticsEventViewItem) =
 /// View Item List event. Log this event when a user sees a list of items or offerings. Params:
 ///
 /// <ul>
-///     <li>@c AnalyticsParameterItems (Array<Dictionary<String, Any>>) (optional)</li>
+///     <li>@c AnalyticsParameterItems ([[String: Any]]) (optional)</li>
 ///     <li>@c AnalyticsParameterItemListID (String) (optional)</li>
 ///     <li>@c AnalyticsParameterItemListName (String) (optional)</li>
 /// </ul>
@@ -401,7 +404,7 @@ static NSString *const kFIREventViewItemList NS_SWIFT_NAME(AnalyticsEventViewIte
 /// <ul>
 ///     <li>@c AnalyticsParameterCreativeName (String) (optional)</li>
 ///     <li>@c AnalyticsParameterCreativeSlot (String) (optional)</li>
-///     <li>@c AnalyticsParameterItems (Array<Dictionary<String, Any>>) (optional)</li>
+///     <li>@c AnalyticsParameterItems ([[String: Any]]) (optional)</li>
 ///     <li>@c AnalyticsParameterLocationID (String) (optional)</li>
 ///     <li>@c AnalyticsParameterPromotionID (String) (optional)</li>
 ///     <li>@c AnalyticsParameterPromotionName (String) (optional)</li>

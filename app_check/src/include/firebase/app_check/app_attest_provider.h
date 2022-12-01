@@ -20,6 +20,10 @@
 namespace firebase {
 namespace app_check {
 
+namespace internal {
+class AppAttestProviderFactoryInternal;
+}
+
 /// Implementation of an {@link AppCheckProviderFactory} that builds
 /// AppAttestProviders. This is the default implementation.
 class AppAttestProviderFactory : public AppCheckProviderFactory {
@@ -37,6 +41,8 @@ class AppAttestProviderFactory : public AppCheckProviderFactory {
 
  private:
   AppAttestProviderFactory();
+
+  internal::AppAttestProviderFactoryInternal* internal_;
 };
 
 }  // namespace app_check

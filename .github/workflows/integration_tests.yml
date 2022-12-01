@@ -20,7 +20,7 @@ on:
         required: true
       operating_systems:
         description: 'CSV of VMs to run on'
-        default: 'ubuntu-latest,windows-latest,macos-12'
+        default: 'ubuntu-20.04,windows-latest,macos-12'
         required: true
       desktop_ssl_variants:
         description: 'CSV of desktop SSL variants to use'
@@ -55,7 +55,7 @@ env:
 
 jobs:
   check_and_prepare:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     outputs:
       trigger: ${{ steps.set_outputs.outputs.trigger }}
       github_ref: ${{ steps.set_outputs.outputs.github_ref }}
@@ -250,7 +250,7 @@ jobs:
         # Do not attempt to use arm64 on Windows or Linux.
         - os: windows-latest
           arch: arm64
-        - os: ubuntu-latest
+        - os: ubuntu-20.04
           arch: arm64
         # Do not attempt to use x86 on Mac.
         - os: macos-12
@@ -698,7 +698,7 @@ jobs:
         # Do not attempt to use arm64 on Windows or Linux.
         - os: windows-latest
           arch: arm64
-        - os: ubuntu-latest
+        - os: ubuntu-20.04
           arch: arm64
         # Do not attempt to use x86 on Mac.
         - os: macos-12
@@ -817,7 +817,7 @@ jobs:
         runner_label: ['${{ needs.check_and_prepare.outputs.runner_label_macos_arm64 }}']
         exclude:
         # Don't run Linux or Windows tests on the Mac arm64 runner.
-        - os: ubuntu-latest
+        - os: ubuntu-20.04
           runner_label: ${{ needs.check_and_prepare.outputs.runner_label_macos_arm64 }}
         - os: windows-latest
           runner_label: ${{ needs.check_and_prepare.outputs.runner_label_macos_arm64 }}
@@ -994,27 +994,6 @@ jobs:
         run: |
           echo "device_type=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_device_type)" >> $GITHUB_OUTPUT
           echo "device=$( python scripts/gha/print_matrix_configuration.py -k ${{ matrix.android_device }} -get_ftl_device)" >> $GITHUB_OUTPUT
-      - name: Set up Node (16)
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16.x
-      - name: Setup java 17 for Firestore emulator
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-      - name: Setup Firestore Emulator
-        if: steps.device-info.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
-        uses: nick-invision/retry@v2
-        with:
-          shell: bash
-          timeout_minutes: 5
-          max_attempts: 3
-          command: npm install -g firebase-tools     
-      - name: Start Firestore Emulator
-        if: steps.device-info.outputs.device_type == 'virtual' && contains(needs.check_and_prepare.outputs.apis, 'firestore')
-        run: |
-          firebase emulators:start --only firestore --project demo-example &
       - name: Setup java 8 for test_simulator.py
         uses: actions/setup-java@v3
         with:
@@ -1030,7 +1009,7 @@ jobs:
             --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}-${{ matrix.test_type }}" \
             --ci
       - id: ftl_test
-        if: steps.device-info.outputs.device_type == 'real'
+        if: steps.device-info.outputs.device_type == 'ftl'
         uses: FirebaseExtended/github-actions/firebase-test-lab@v1.2
         timeout-minutes: 90
         with:
@@ -1041,7 +1020,7 @@ jobs:
           max_attempts: 3
           validator: ${GITHUB_WORKSPACE}/scripts/gha/integration_testing/ftl_gha_validator.py
       - name: Read FTL Test Result
-        if: ${{ steps.device-info.outputs.device_type == 'real' && !cancelled() }}
+        if: ${{ steps.device-info.outputs.device_type == 'ftl' && !cancelled() }}
         shell: bash
         run: |
           python scripts/gha/read_ftl_test_result.py --test_result '${{ steps.ftl_test.outputs.test_summary }}' \
@@ -1173,7 +1152,7 @@ jobs:
             --logfile_name "ios-${{ matrix.build_os }}-${{ matrix.ios_device }}-${{ matrix.test_type }}" \
             --ci
       - id: ftl_test
-        if: steps.device-info.outputs.device_type == 'real'
+        if: steps.device-info.outputs.device_type == 'ftl'
         uses: FirebaseExtended/github-actions/firebase-test-lab@v1.2
         timeout-minutes: 90
         with:
@@ -1184,7 +1163,7 @@ jobs:
           max_attempts: 3
           validator: ${GITHUB_WORKSPACE}/scripts/gha/integration_testing/ftl_gha_validator.py
       - name: Read FTL Test Result
-        if: ${{ steps.device-info.outputs.device_type == 'real' && !cancelled() }}
+        if: ${{ steps.device-info.outputs.device_type == 'ftl' && !cancelled() }}
         shell: bash
         run: |
           python scripts/gha/read_ftl_test_result.py --test_result '${{ steps.ftl_test.outputs.test_summary }}' \
@@ -1339,7 +1318,7 @@ jobs:
   summarize_results:
     name: "summarize-results"
     needs: [check_and_prepare, test_desktop, test_desktop_custom_runners, test_android, test_ios, test_tvos]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     if: ${{ !cancelled() }}
     steps:
       - uses: actions/checkout@v3
