@@ -150,6 +150,42 @@ void SetAnalyticsCollectionEnabled(bool enabled) {
   [FIRAnalytics setAnalyticsCollectionEnabled:enabled];
 }
 
+void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
+  NSMutableDictionary *consent_settings_dict =
+    [[NSMutableDictionary alloc] initWithCapacity:consent_settings.size()];
+  for (auto it = consent_settings.begin();
+       it != consent_settings.end();
+       ++it) {
+    FIRConsentType consent_type;
+    switch(it->first) {
+    case kConsentTypeAdStorage:
+      consent_type = FIRConsentTypeAdStorage;
+      break;
+    case kConsentTypeAnalyticsStorage:
+      consent_type = FIRConsentTypeAnalyticsStorage;
+      break;
+    default:
+      LogError("Unknown ConsentType value: %d", it->first);
+      return;
+    };
+    FIRConsentStatus consent_status;
+    switch(it->second) {
+    case kConsentStatusGranted:
+      consent_status = FIRConsentStatusGranted;
+      break;
+    case kConsentStatusDenied:
+      consent_status = FIRConsentStatusDenied;
+      break;
+    default:
+      LogError("Unknown ConsentStatus value: %d", it->second);
+      return;
+    };
+    [consent_status_dict setObject:consent_status forKey:consent_type];
+  }
+  [FIRAnalytics setConsent:consent_status_dict];
+}
+
+
 // Due to overloads of LogEvent(), it's possible for users to call variants that require a
 // string with a nullptr.  To prevent a crash and instead yield a warning, pass an empty string
 // to logEventWithName: methods instead.  See b/30061553 for the background.
