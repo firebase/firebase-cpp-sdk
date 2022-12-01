@@ -47,6 +47,7 @@ static const ::firebase::App* g_app = nullptr;
 // clang-format off
 #define ANALYTICS_METHODS(X)                                                  \
   X(SetEnabled, "setAnalyticsCollectionEnabled", "(Z)V"),                     \
+  X(SetConsent, "setConsent", "(Ljava/util/Map)V"),                           \
   X(LogEvent, "logEvent", "(Ljava/lang/String;Landroid/os/Bundle;)V"),        \
   X(SetUserProperty, "setUserProperty",                                       \
     "(Ljava/lang/String;Ljava/lang/String;)V"),                               \
@@ -85,18 +86,20 @@ METHOD_LOOKUP_DEFINITION(analytics,
                          ANALYTICS_METHODS)
 
 METHOD_LOOKUP_DECLARATION(analytics_consent_type, METHOD_LOOKUP_NONE,
-			  ANALYTICS_CONSENT_TYPE_FIELDS)
-METHOD_LOOKUP_DEFINITION(analytics_consent_type,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/analytics/FirebaseAnalytics$ConsentType",
-                         METHOD_LOOKUP_NONE, ANALYTICS_CONSENT_TYPE_FIELDS)
+                          ANALYTICS_CONSENT_TYPE_FIELDS)
+METHOD_LOOKUP_DEFINITION(
+    analytics_consent_type,
+    PROGUARD_KEEP_CLASS
+    "com/google/firebase/analytics/FirebaseAnalytics$ConsentType",
+    METHOD_LOOKUP_NONE, ANALYTICS_CONSENT_TYPE_FIELDS)
 
 METHOD_LOOKUP_DECLARATION(analytics_consent_status, METHOD_LOOKUP_NONE,
-			  ANALYTICS_CONSENT_STATUS_FIELDS)
-METHOD_LOOKUP_DEFINITION(analytics_consent_status,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/analytics/FirebaseAnalytics$ConsentStatus",
-                         METHOD_LOOKUP_NONE, ANALYTICS_CONSENT_STATUS_FIELDS)
+                          ANALYTICS_CONSENT_STATUS_FIELDS)
+METHOD_LOOKUP_DEFINITION(
+    analytics_consent_status,
+    PROGUARD_KEEP_CLASS
+    "com/google/firebase/analytics/FirebaseAnalytics$ConsentStatus",
+    METHOD_LOOKUP_NONE, ANALYTICS_CONSENT_STATUS_FIELDS)
 
 // Initialize the Analytics API.
 void Initialize(const ::firebase::App& app) {
@@ -191,47 +194,53 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
       hash_map::GetClass(), hash_map::GetMethodId(hash_map::kConstructor));
   util::CheckAndClearJniExceptions(env);
   jmethodID put_method = map::GetMethodId(map::kPut);
-  for (auto it = consent_settings.begin();
-       it != consent_settings.end();
-       ++it) {
-    jobject consent_type = nullptr;
-    switch(it->first) {
-    case kConsentTypeAdStorage:
-      consent_type = env->GetStaticObjectField(analytics_consent_type::GetClass(),
-					       analytics_consent_type::GetFieldId(analytics_consent_type::kAdStorage));
-      util::CheckAndClearJniExceptions(env);
-      break;
-    case kConsentTypeAnalyticsStorage:
-      consent_type = env->GetStaticObjectField(analytics_consent_type::GetClass(),
-					       analytics_consent_type::GetFieldId(analytics_consent_type::kAnalyticsStorage));
-      
-      util::CheckAndClearJniExceptions(env);
-      break;
-    default:
-      LogError("Unknown ConsentType value: %d", it->first);
-      env->DeleteLocalRef(consent_map);
-      return;
+  for (auto it = consent_settings.begin(); it != consent_settings.end(); ++it) {
+    jobject consent_type;
+    switch (it->first) {
+      case kConsentTypeAdStorage:
+        consent_type =
+            env->GetStaticObjectField(analytics_consent_type::GetClass(),
+                                      analytics_consent_type::GetFieldId(
+                                          analytics_consent_type::kAdStorage));
+        util::CheckAndClearJniExceptions(env);
+        break;
+      case kConsentTypeAnalyticsStorage:
+        consent_type = env->GetStaticObjectField(
+            analytics_consent_type::GetClass(),
+            analytics_consent_type::GetFieldId(
+                analytics_consent_type::kAnalyticsStorage));
+
+        util::CheckAndClearJniExceptions(env);
+        break;
+      default:
+        LogError("Unknown ConsentType value: %d", it->first);
+        env->DeleteLocalRef(consent_map);
+        return;
     };
-    jobject consent_status = nullptr;
-    switch(it->second) {
-    case kConsentStatusGranted:
-      consent_status = env->GetStaticObjectField(analytics_consent_status::GetClass(),
-						 analytics_consent_status::GetFieldId(analytics_consent_status::kGranted));
-      util::CheckAndClearJniExceptions(env);
-      break;
-    case kConsentStatusDenied:
-      consent_status = env->GetStaticObjectField(analytics_consent_status::GetClass(),
-						 analytics_consent_status::GetFieldId(analytics_consent_status::kDenied));
-      util::CheckAndClearJniExceptions(env);
-      break;
-    default:
-      LogError("Unknown ConsentStatus value: %d", it->second);
-      env->DeleteLocalRef(consent_map);
-      env->DeleteLocalRef(consent_type);
-      return;
+    jobject consent_status;
+    switch (it->second) {
+      case kConsentStatusGranted:
+        consent_status =
+            env->GetStaticObjectField(analytics_consent_status::GetClass(),
+                                      analytics_consent_status::GetFieldId(
+                                          analytics_consent_status::kGranted));
+        util::CheckAndClearJniExceptions(env);
+        break;
+      case kConsentStatusDenied:
+        consent_status =
+            env->GetStaticObjectField(analytics_consent_status::GetClass(),
+                                      analytics_consent_status::GetFieldId(
+                                          analytics_consent_status::kDenied));
+        util::CheckAndClearJniExceptions(env);
+        break;
+      default:
+        LogError("Unknown ConsentStatus value: %d", it->second);
+        env->DeleteLocalRef(consent_map);
+        env->DeleteLocalRef(consent_type);
+        return;
     };
-    jobject previous = env->CallObjectMethod(*to, put_method,
-					     consent_type, consent_status);
+    jobject previous =
+        env->CallObjectMethod(*to, put_method, consent_type, consent_status);
     util::CheckAndClearJniExceptions(env);
     if (previous) env->DeleteLocalRef(previous);
     env->DeleteLocalRef(consent_type);
