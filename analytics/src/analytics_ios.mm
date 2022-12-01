@@ -155,33 +155,33 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
   NSMutableDictionary* consent_settings_dict =
       [[NSMutableDictionary alloc] initWithCapacity:consent_settings.size()];
   for (auto it = consent_settings.begin(); it != consent_settings.end(); ++it) {
-    FIRConsentType consent_type;
+    ConsentType consent_type;
     switch (it->first) {
       case kConsentTypeAdStorage:
-        consent_type = FIRConsentTypeAdStorage;
+        consent_type = ConsentType.adStorage;
         break;
       case kConsentTypeAnalyticsStorage:
-        consent_type = FIRConsentTypeAnalyticsStorage;
+        consent_type = ConsentType.analyticsStorage;
         break;
       default:
         LogError("Unknown ConsentType value: %d", it->first);
         return;
     };
-    FIRConsentStatus consent_status;
+    ConsentStatus consent_status;
     switch (it->second) {
       case kConsentStatusGranted:
-        consent_status = FIRConsentStatusGranted;
+        consent_status = ConsentStatus.granted;
         break;
       case kConsentStatusDenied:
-        consent_status = FIRConsentStatusDenied;
+        consent_status = ConsentStatus.denied;
         break;
       default:
         LogError("Unknown ConsentStatus value: %d", it->second);
         return;
     };
-    [consent_status_dict setObject:consent_status forKey:consent_type];
+    [consent_settings_dict setObject:consent_status forKey:consent_type];
   }
-  [FIRAnalytics setConsent:consent_status_dict];
+  [FIRAnalytics setConsent:consent_settings_dict];
 }
 
 // Due to overloads of LogEvent(), it's possible for users to call variants that require a
