@@ -375,6 +375,9 @@ TEST_F(FirebaseDatabaseTest, TestSignIn) {
 }
 
 TEST_F(FirebaseDatabaseTest, TestCreateWorkingPath) {
+  // This test is flaky on Android emulator for unknown reasons.
+  SKIP_TEST_ON_ANDROID_EMULATOR();
+
   SignIn();
   firebase::database::DatabaseReference working_path = CreateWorkingPath();
   LogInfo("Database URL: %s", working_path.url().c_str());
