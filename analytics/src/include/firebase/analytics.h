@@ -270,6 +270,25 @@ void Terminate();
 /// @param[in] enabled true to enable analytics collection, false to disable.
 void SetAnalyticsCollectionEnabled(bool enabled);
 
+/// @brief The type of consent to set.
+///
+/// Supported consent types are kConsentTypeAdStorage and
+/// kConsentTypeAnalyticsStorage. Omitting a type retains its previous status.
+enum ConsentType { kConsentTypeAdStorage = 0, kConsentTypeAnalyticsStorage };
+
+/// @brief The status value of the consent type.
+///
+/// Supported statuses are kConsentStatusGranted and kConsentStatusDenied.
+enum ConsentStatus { kConsentStatusGranted = 0, kConsentStatusDenied };
+
+/// @brief Sets the applicable end user consent state (e.g., for device
+/// identifiers) for this app on this device.
+///
+/// Use the consent map to specify individual consent type values. Settings are
+/// persisted across app sessions. By default consent types are set to
+/// "granted".
+void SetConsent(const std::map<ConsentType, ConsentStatus>& consentSettings);
+
 /// @brief Log an event with one string parameter.
 ///
 /// @param[in] name Name of the event to log. Should contain 1 to 40
