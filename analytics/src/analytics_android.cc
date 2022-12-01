@@ -60,11 +60,43 @@ static const ::firebase::App* g_app = nullptr;
     firebase::util::kMethodTypeStatic)
 // clang-format on
 
+// clang-format off
+#define ANALYTICS_CONSENT_TYPE_FIELDS(X)                                      \
+  X(AnalyticsStorage, "ANALYTICS_STORAGE",                                    \
+    "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentType",           \
+      util::kFieldTypeStatic),                                                \
+  X(AdStorage, "AD_STORAGE",                                                  \
+    "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentType",           \
+      util::kFieldTypeStatic)
+
+#define ANALYTICS_CONSENT_STATUS_FIELDS(X)                                    \
+  X(Granted, "GRANTED",                                                       \
+    "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentStatus",         \
+      util::kFieldTypeStatic),                                                \
+  X(Denied, "DENIED",                                                         \
+    "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentStatus",         \
+      util::kFieldTypeStatic)
+// clang-format on
+
 METHOD_LOOKUP_DECLARATION(analytics, ANALYTICS_METHODS)
 METHOD_LOOKUP_DEFINITION(analytics,
                          PROGUARD_KEEP_CLASS
                          "com/google/firebase/analytics/FirebaseAnalytics",
                          ANALYTICS_METHODS)
+
+METHOD_LOOKUP_DECLARATION(analytics_consent_type, METHOD_LOOKUP_NONE,
+			  ANALYTICS_CONSENT_TYPE_FIELDS)
+METHOD_LOOKUP_DEFINITION(analytics_consent_type,
+                         PROGUARD_KEEP_CLASS
+                         "com/google/firebase/analytics/FirebaseAnalytics$ConsentType",
+                         METHOD_LOOKUP_NONE, ANALYTICS_CONSENT_TYPE_FIELDS)
+
+METHOD_LOOKUP_DECLARATION(analytics_consent_status, METHOD_LOOKUP_NONE,
+			  ANALYTICS_CONSENT_STATUS_FIELDS)
+METHOD_LOOKUP_DEFINITION(analytics_consent_status,
+                         PROGUARD_KEEP_CLASS
+                         "com/google/firebase/analytics/FirebaseAnalytics$ConsentStatus",
+                         METHOD_LOOKUP_NONE, ANALYTICS_CONSENT_STATUS_FIELDS)
 
 // Initialize the Analytics API.
 void Initialize(const ::firebase::App& app) {
@@ -82,6 +114,17 @@ void Initialize(const ::firebase::App& app) {
 
   // Cache method pointers.
   if (!analytics::CacheMethodIds(env, app.activity())) {
+    util::Terminate(env);
+    return;
+  }
+  if (!analytics_consent_type::CacheMethodIds(env, app.activity())) {
+    analytics::Terminate(env);
+    util::Terminate(env);
+    return;
+  }
+  if (!analytics_consent_status::CacheMethodIds(env, app.activity())) {
+    analytics_consent_type::Terminate(env);
+    analytics::Terminate(env);
     util::Terminate(env);
     return;
   }
@@ -123,6 +166,8 @@ void Terminate() {
   g_app = nullptr;
   env->DeleteGlobalRef(g_analytics_class_instance);
   g_analytics_class_instance = nullptr;
+  analytics_consent_status::ReleaseClass(env);
+  analytics_consent_type::ReleaseClass(env);
   analytics::ReleaseClass(env);
   util::Terminate(env);
 }
@@ -136,6 +181,67 @@ void SetAnalyticsCollectionEnabled(bool enabled) {
                       analytics::GetMethodId(analytics::kSetEnabled),
                       collection_enabled);
   util::CheckAndClearJniExceptions(env);
+}
+
+void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  JNIEnv* env = g_app->GetJNIEnv();
+
+  jobject consent_map = env->NewObject(
+      hash_map::GetClass(), hash_map::GetMethodId(hash_map::kConstructor));
+  util::CheckAndClearJniExceptions(env);
+  jmethodID put_method = map::GetMethodId(map::kPut);
+  for (auto it = consent_settings.begin();
+       it != consent_settings.end();
+       ++it) {
+    jobject consent_type = nullptr;
+    switch(it->first) {
+    case kConsentTypeAdStorage:
+      consent_type = env->GetStaticObjectField(analytics_consent_type::GetClass(),
+					       analytics_consent_type::GetFieldId(analytics_consent_type::kAdStorage));
+      util::CheckAndClearJniExceptions(env);
+      break;
+    case kConsentTypeAnalyticsStorage:
+      consent_type = env->GetStaticObjectField(analytics_consent_type::GetClass(),
+					       analytics_consent_type::GetFieldId(analytics_consent_type::kAnalyticsStorage));
+      
+      util::CheckAndClearJniExceptions(env);
+      break;
+    default:
+      LogError("Unknown ConsentType value: %d", it->first);
+      env->DeleteLocalRef(consent_map);
+      return;
+    };
+    jobject consent_status = nullptr;
+    switch(it->second) {
+    case kConsentStatusGranted:
+      consent_status = env->GetStaticObjectField(analytics_consent_status::GetClass(),
+						 analytics_consent_status::GetFieldId(analytics_consent_status::kGranted));
+      util::CheckAndClearJniExceptions(env);
+      break;
+    case kConsentStatusDenied:
+      consent_status = env->GetStaticObjectField(analytics_consent_status::GetClass(),
+						 analytics_consent_status::GetFieldId(analytics_consent_status::kDenied));
+      util::CheckAndClearJniExceptions(env);
+      break;
+    default:
+      LogError("Unknown ConsentStatus value: %d", it->second);
+      env->DeleteLocalRef(consent_map);
+      env->DeleteLocalRef(consent_type);
+      return;
+    };
+    jobject previous = env->CallObjectMethod(*to, put_method,
+					     consent_type, consent_status);
+    util::CheckAndClearJniExceptions(env);
+    if (previous) env->DeleteLocalRef(previous);
+    env->DeleteLocalRef(consent_type);
+    env->DeleteLocalRef(consent_status);
+  }
+  env->CallVoidMethod(g_analytics_class_instance,
+                      analytics::GetMethodId(analytics::kSetConsent),
+                      consent_map);
+  util::CheckAndClearJniExceptions(env);
+  env->DeleteLocalRef(consent_map);
 }
 
 // Build an event bundle using build_bundle and log it.

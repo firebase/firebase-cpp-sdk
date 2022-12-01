@@ -151,6 +151,7 @@ void SetAnalyticsCollectionEnabled(bool enabled) {
 }
 
 void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   NSMutableDictionary *consent_settings_dict =
     [[NSMutableDictionary alloc] initWithCapacity:consent_settings.size()];
   for (auto it = consent_settings.begin();
