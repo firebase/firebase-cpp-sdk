@@ -57,7 +57,7 @@ void SetAnalyticsCollectionEnabled(bool /*enabled*/) {
 }
 
 // Enable / disable measurement and reporting.
-void SetConsent(const std::map<ConsentType, ConsentStatus> &consent_settings) {
+void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
 }
 

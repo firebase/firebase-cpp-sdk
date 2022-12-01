@@ -92,22 +92,20 @@ TEST_F(FirebaseAnalyticsTest, TestSetCollectionEnabled) {
 TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
   // Can't confirm that these do anything but just run them all to ensure the
   // app doesn't crash.
-  std::map<firebase::analytics::ConsentType,
-	   firebase::analytics::ConsentStatus> consent_settings_allow = {
-				 { firebase::analytics::kConsentTypeAnalyticsStorage,
-				   firebase::analytics::kConsentTypeAllowed },
-				 { firebase::analytics::kConsentTypeAdStorage,
-				   firebase::analytics::kConsentTypeAllowed }
-  };
-  std::map<firebase::analytics::ConsentType,
-	   firebase::analytics::ConsentStatus> consent_settings_deny = {
-				 { firebase::analytics::kConsentTypeAnalyticsStorage,
-				   firebase::analytics::kConsentTypeDenied },
-				 { firebase::analytics::kConsentTypeAdStorage,
-				   firebase::analytics::kConsentTypeDenied }
-  };
-  std::map<firebase::analytics::ConsentType,
-	   firebase::analytics::ConsentStatus> consent_settings_empty;
+  std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
+      consent_settings_allow = {
+          {firebase::analytics::kConsentTypeAnalyticsStorage,
+           firebase::analytics::kConsentTypeAllowed},
+          {firebase::analytics::kConsentTypeAdStorage,
+           firebase::analytics::kConsentTypeAllowed}};
+  std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
+      consent_settings_deny = {
+          {firebase::analytics::kConsentTypeAnalyticsStorage,
+           firebase::analytics::kConsentTypeDenied},
+          {firebase::analytics::kConsentTypeAdStorage,
+           firebase::analytics::kConsentTypeDenied}};
+  std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
+      consent_settings_empty;
   firebase::analytics::SetConsent(consent_settings_empty);
   firebase::analytics::SetConsent(consent_settings_deny);
   firebase::analytics::SetConsent(consent_settings_empty);

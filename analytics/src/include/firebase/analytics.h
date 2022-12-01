@@ -19,8 +19,8 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <string>
 #include <map>
+#include <string>
 
 #include "firebase/app.h"
 #include "firebase/future.h"
