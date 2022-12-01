@@ -402,7 +402,7 @@ TEST_F(FirebaseStorageTest, TestWriteAndReadByteBuffer) {
   SKIP_TEST_ON_ANDROID_EMULATOR();
 
   SignIn();
-  
+
   firebase::storage::StorageReference ref =
       CreateFolder().Child("TestFile.txt");
   LogDebug("Storage URL: gs://%s%s", ref.bucket().c_str(),
