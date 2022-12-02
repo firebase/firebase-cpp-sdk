@@ -47,7 +47,7 @@ static const ::firebase::App* g_app = nullptr;
 // clang-format off
 #define ANALYTICS_METHODS(X)                                                  \
   X(SetEnabled, "setAnalyticsCollectionEnabled", "(Z)V"),                     \
-  X(SetConsent, "setConsent", "(Ljava/util/Map;)V"),                           \
+  X(SetConsent, "setConsent", "(Ljava/util/Map;)V"),                          \
   X(LogEvent, "logEvent", "(Ljava/lang/String;Landroid/os/Bundle;)V"),        \
   X(SetUserProperty, "setUserProperty",                                       \
     "(Ljava/lang/String;Ljava/lang/String;)V"),                               \
@@ -64,18 +64,18 @@ static const ::firebase::App* g_app = nullptr;
 // clang-format off
 #define ANALYTICS_CONSENT_TYPE_FIELDS(X)                                      \
   X(AnalyticsStorage, "ANALYTICS_STORAGE",                                    \
-    "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentType",           \
+    "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentType;",          \
       util::kFieldTypeStatic),                                                \
   X(AdStorage, "AD_STORAGE",                                                  \
-    "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentType",           \
+    "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentType;",          \
       util::kFieldTypeStatic)
 
 #define ANALYTICS_CONSENT_STATUS_FIELDS(X)                                    \
   X(Granted, "GRANTED",                                                       \
-    "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentStatus",         \
+    "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentStatus;",        \
       util::kFieldTypeStatic),                                                \
   X(Denied, "DENIED",                                                         \
-    "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentStatus",         \
+    "Lcom/google/firebase/analytics/FirebaseAnalytics$ConsentStatus;",        \
       util::kFieldTypeStatic)
 // clang-format on
 
