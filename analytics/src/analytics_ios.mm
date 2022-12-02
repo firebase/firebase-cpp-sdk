@@ -150,8 +150,10 @@ void SetAnalyticsCollectionEnabled(bool enabled) {
   [FIRAnalytics setAnalyticsCollectionEnabled:enabled];
 }
 
-extern FIRConsentType const FIRConsentTypeAdStorage;
-extern FIRConsentType const FIRConsentTypeAnalyticsStorage;
+extern ConsentType const FIRConsentTypeAdStorage;
+extern ConsentType const FIRConsentTypeAnalyticsStorage;
+extern ConsentStatus const FIRConsentStatusGranted;
+extern ConsentStatus const FIRConsentStatusDenied;
 
 void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
