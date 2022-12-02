@@ -47,7 +47,7 @@ static const ::firebase::App* g_app = nullptr;
 // clang-format off
 #define ANALYTICS_METHODS(X)                                                  \
   X(SetEnabled, "setAnalyticsCollectionEnabled", "(Z)V"),                     \
-  X(SetConsent, "setConsent", "(Ljava/util/Map)V"),                           \
+  X(SetConsent, "setConsent", "(Ljava/util/Map;)V"),                           \
   X(LogEvent, "logEvent", "(Ljava/lang/String;Landroid/os/Bundle;)V"),        \
   X(SetUserProperty, "setUserProperty",                                       \
     "(Ljava/lang/String;Ljava/lang/String;)V"),                               \
