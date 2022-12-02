@@ -217,7 +217,7 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
         LogError("Unknown ConsentType value: %d", it->first);
         env->DeleteLocalRef(consent_map);
         return;
-    };
+    }
     jobject consent_status;
     switch (it->second) {
       case kConsentStatusGranted:
@@ -239,7 +239,7 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
         env->DeleteLocalRef(consent_map);
         env->DeleteLocalRef(consent_type);
         return;
-    };
+    }
     jobject previous = env->CallObjectMethod(consent_map, put_method,
                                              consent_type, consent_status);
     util::CheckAndClearJniExceptions(env);
