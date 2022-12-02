@@ -39,13 +39,13 @@ class ArenaRef {
 
   explicit ArenaRef(const Object& ob) {
     Env env(GetEnv());
-    id_ = assignState(ObjectArena::GetInstance().Put(env, ob));
+    assignState(ObjectArena::GetInstance().Put(env, ob));
   }
 
   ArenaRef(const ArenaRef& other) {
     if (other.id_.first) {
       Env env(GetEnv());
-      id_ = assignState(ObjectArena::GetInstance().Dup(env, other.id_.second));
+      assignState(ObjectArena::GetInstance().Dup(env, other.id_.second));
     }
   }
 
@@ -57,8 +57,7 @@ class ArenaRef {
       }
       reset();
       if (other.id_.first) {
-        id_ =
-            assignState(ObjectArena::GetInstance().Dup(env, other.id_.second));
+        assignState(ObjectArena::GetInstance().Dup(env, other.id_.second));
       }
     }
     return *this;
@@ -72,7 +71,7 @@ class ArenaRef {
       if (id_.first) {
         ObjectArena::GetInstance().Remove(env, id_.second);
       }
-      id_ = assignState(other.release());
+      assignState(other.release());
     }
     return *this;
   }
@@ -84,7 +83,10 @@ class ArenaRef {
     }
   }
 
+  bool has_value() const { return id_.first; }
+
   Local<Object> get() const {
+    FIREBASE_DEV_ASSERT(id_.first);
     Env env(GetEnv());
     return ObjectArena::GetInstance().Get(env, id_.second);
   }
@@ -107,7 +109,7 @@ class ArenaRef {
     return id;
   }
 
-  std::pair<bool, int64_t> assignState(int64_t id) { id_ = {true, id}; }
+  void assignState(int64_t id) { id_ = {true, id}; }
 
   void reset() { id_ = {false, -1}; }
 
