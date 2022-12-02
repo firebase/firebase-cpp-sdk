@@ -150,6 +150,9 @@ void SetAnalyticsCollectionEnabled(bool enabled) {
   [FIRAnalytics setAnalyticsCollectionEnabled:enabled];
 }
 
+extern FIRConsentType const FIRConsentTypeAdStorage;
+extern FIRConsentType const FIRConsentTypeAnalyticsStorage;
+
 void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   NSMutableDictionary* consent_settings_dict =
@@ -158,10 +161,10 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
     ConsentType consent_type;
     switch (it->first) {
       case kConsentTypeAdStorage:
-        consent_type = ConsentType.adStorage;
+        consent_type = FIRConsentTypeAdStorage;
         break;
       case kConsentTypeAnalyticsStorage:
-        consent_type = ConsentType.analyticsStorage;
+        consent_type = FIRConsentTypeAnalyticsStorage;
         break;
       default:
         LogError("Unknown ConsentType value: %d", it->first);
@@ -170,10 +173,10 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
     ConsentStatus consent_status;
     switch (it->second) {
       case kConsentStatusGranted:
-        consent_status = ConsentStatus.granted;
+        consent_status = FIRConsentStatusGranted;
         break;
       case kConsentStatusDenied:
-        consent_status = ConsentStatus.denied;
+        consent_status = FIRConsentStatusDenied;
         break;
       default:
         LogError("Unknown ConsentStatus value: %d", it->second);
