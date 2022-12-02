@@ -18,6 +18,7 @@
 
 #import "FIRAnalytics+OnDevice.h"
 #import "FIRAnalytics.h"
+#import "FIRAnalytics+Consent.h"
 
 #include "analytics/src/include/firebase/analytics.h"
 
@@ -150,17 +151,12 @@ void SetAnalyticsCollectionEnabled(bool enabled) {
   [FIRAnalytics setAnalyticsCollectionEnabled:enabled];
 }
 
-extern ConsentType const FIRConsentTypeAdStorage;
-extern ConsentType const FIRConsentTypeAnalyticsStorage;
-extern ConsentStatus const FIRConsentStatusGranted;
-extern ConsentStatus const FIRConsentStatusDenied;
-
 void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   NSMutableDictionary* consent_settings_dict =
       [[NSMutableDictionary alloc] initWithCapacity:consent_settings.size()];
   for (auto it = consent_settings.begin(); it != consent_settings.end(); ++it) {
-    ConsentType consent_type;
+    FIRConsentType consent_type;
     switch (it->first) {
       case kConsentTypeAdStorage:
         consent_type = FIRConsentTypeAdStorage;
@@ -172,7 +168,7 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
         LogError("Unknown ConsentType value: %d", it->first);
         return;
     };
-    ConsentStatus consent_status;
+    FIRConsentStatus consent_status;
     switch (it->second) {
       case kConsentStatusGranted:
         consent_status = FIRConsentStatusGranted;
