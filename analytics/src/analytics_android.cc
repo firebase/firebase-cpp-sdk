@@ -120,12 +120,12 @@ void Initialize(const ::firebase::App& app) {
     util::Terminate(env);
     return;
   }
-  if (!analytics_consent_type::CacheMethodIds(env, app.activity())) {
+  if (!analytics_consent_type::CacheFieldIds(env, app.activity())) {
     analytics::ReleaseClass(env);
     util::Terminate(env);
     return;
   }
-  if (!analytics_consent_status::CacheMethodIds(env, app.activity())) {
+  if (!analytics_consent_status::CacheFieldIds(env, app.activity())) {
     analytics_consent_type::ReleaseClass(env);
     analytics::ReleaseClass(env);
     util::Terminate(env);
