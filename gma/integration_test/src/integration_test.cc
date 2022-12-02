@@ -2015,6 +2015,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadExtrasClassName) {
 // Stress tests.  These take a while so run them near the end.
 TEST_F(FirebaseGmaTest, TestAdViewStress) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_EMULATOR;
 
   // TODO(@drsanta): remove when GMA whitelists CI devices
   TEST_REQUIRES_USER_INTERACTION_ON_IOS;
@@ -2039,6 +2040,7 @@ TEST_F(FirebaseGmaTest, TestAdViewStress) {
 
 TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_EMULATOR;
 
   // TODO(@drsanta): remove when GMA whitelists CI devices
   TEST_REQUIRES_USER_INTERACTION_ON_IOS;
@@ -2061,6 +2063,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
 
 TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_EMULATOR;
 
   // TODO(@drsanta): remove when GMA whitelists CI devices
   TEST_REQUIRES_USER_INTERACTION_ON_IOS;
