@@ -15,14 +15,24 @@
 #ifndef FIREBASE_APP_CHECK_SRC_IOS_APP_CHECK_IOS_H_
 #define FIREBASE_APP_CHECK_SRC_IOS_APP_CHECK_IOS_H_
 
+#include "app/memory/unique_ptr.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/util_ios.h"
 #include "app_check/src/include/firebase/app_check.h"
+
+#ifdef __OBJC__
+#import "FIRAppCheck.h"
+#endif  // __OBJC__
 
 namespace firebase {
 namespace app_check {
 namespace internal {
+
+// This defines the class FIRAppCheckPointer, which is a C++-compatible
+// wrapper around the FIRAppCheck Obj-C class.
+OBJ_C_PTR_WRAPPER(FIRAppCheck);
 
 class AppCheckInternal {
  public:
@@ -49,6 +59,12 @@ class AppCheckInternal {
   ReferenceCountedFutureImpl* future();
 
  private:
+#ifdef __OBJC__
+  FIRAppCheck* impl() const { return impl_->get(); }
+#endif  // __OBJC__
+
+  UniquePtr<FIRAppCheckPointer> impl_;
+
   ::firebase::App* app_;
 
   FutureManager future_manager_;

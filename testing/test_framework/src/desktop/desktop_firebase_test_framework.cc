@@ -49,4 +49,9 @@ bool FirebaseTest::GetPersistentString(const char* key,
   return false;
 }
 
+bool FirebaseTest::IsRunningOnEmulator() {
+  // No emulators on desktop.
+  return false;
+}
+
 }  // namespace firebase_test_framework
