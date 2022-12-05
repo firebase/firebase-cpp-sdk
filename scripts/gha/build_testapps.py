@@ -476,10 +476,12 @@ def _summarize_results(testapps, platforms, failures, root_output_dir, artifact_
 
 def _build_desktop(sdk_dir, cmake_flags):
   cmake_configure_cmd = ["cmake", ".", "-DCMAKE_BUILD_TYPE=Debug",
-                                       "-DFIREBASE_CPP_SDK_DIR=" + sdk_dir]
+                                       "-DFIREBASE_CPP_SDK_DIR=" + sdk_dir,
+                                       "-DFIREBASE_GITHUB_ACTION_BUILD=ON"]
   if utils.is_windows_os():
     cmake_configure_cmd += ["-A",
                             "Win32" if FLAGS.arch == "x86" else FLAGS.arch]
+    cmake_configure_cmd += ["-DMSVC_RUNTIME_LIBRARY_STATIC=ON"]
   elif utils.is_mac_os():
     # Ensure that correct Mac architecture is built.
     cmake_configure_cmd += ["-DCMAKE_OSX_ARCHITECTURES=%s" %
