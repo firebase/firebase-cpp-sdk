@@ -222,4 +222,26 @@ bool FirebaseTest::GetPersistentString(const char* key,
   return true;
 }
 
+bool FirebaseTest::IsRunningOnEmulator() {
+  JNIEnv* env = app_framework::GetJniEnv();
+  jobject activity = app_framework::GetActivity();
+  jclass test_helper_class = app_framework::FindClass(
+      env, activity, "com/google/firebase/example/TestHelper");
+  if (env->ExceptionCheck()) {
+    env->ExceptionDescribe();
+    env->ExceptionClear();
+    return false;
+  }
+  jmethodID is_running_on_emulator =
+      env->GetStaticMethodID(test_helper_class, "isRunningOnEmulator", "()Z");
+  jboolean result =
+      env->CallStaticBooleanMethod(test_helper_class, is_running_on_emulator);
+  if (env->ExceptionCheck()) {
+    env->ExceptionDescribe();
+    env->ExceptionClear();
+    return false;
+  }
+  return result ? true : false;
+}
+
 }  // namespace firebase_test_framework
