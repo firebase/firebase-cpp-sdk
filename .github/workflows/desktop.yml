@@ -182,6 +182,14 @@ jobs:
         run: |
           python scripts/gha/build_desktop.py --build_tests --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}" --gha_build
 
+      - name: Upload Desktop Cmake
+        uses: actions/upload-artifact@v3
+        if: ${{ !cancelled() }}
+        with:
+          name: cmake-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}
+          path: D:/a/firebase-cpp-sdk/firebase-cpp-sdk/build/CMakeFiles/
+          retention-days: 1
+
       - name: Stats for ccache (mac and linux)
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
         run: ccache -s

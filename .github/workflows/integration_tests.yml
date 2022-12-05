@@ -326,7 +326,7 @@ jobs:
             --noadd_timestamp \
             --short_output_paths \
             --gha_build \
-            --arch ${{ matrix.arch }} \
+            --arch ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.arch }} \
             ${additional_flags[*]}
       - name: Upload Desktop Cmake
         uses: actions/upload-artifact@v3
