@@ -328,6 +328,13 @@ jobs:
             --gha_build \
             --arch ${{ matrix.arch }} \
             ${additional_flags[*]}
+      - name: Upload Desktop Cmake
+        uses: actions/upload-artifact@v3
+        if: ${{ !cancelled() }}
+        with:
+          name: cmake
+          path: D:/a/firebase-cpp-sdk/firebase-cpp-sdk/ta/firestore/iti/CMakeFiles/
+          retention-days: 1
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
