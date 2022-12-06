@@ -332,7 +332,7 @@ jobs:
         uses: actions/upload-artifact@v3
         if: ${{ !cancelled() }}
         with:
-          name: cmake-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.arch }}
+          name: cmake-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
           path: D:/a/firebase-cpp-sdk/firebase-cpp-sdk/ta/firestore/iti/CMakeFiles/
           retention-days: 1
       - name: Prepare results summary artifact
