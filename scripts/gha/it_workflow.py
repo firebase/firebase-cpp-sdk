@@ -72,6 +72,9 @@ _COMMENT_TITLE_SUCCEED_SDK = "\n***\n### ✅&nbsp; [build against SDK] Integrati
 _COMMENT_TITLE_FLAKY_REPO = "### [build against repo] Integration test with FLAKINESS (succeeded after retry)\n"
 _COMMENT_TITLE_FAIL_REPO = "### ❌&nbsp; [build against repo] Integration test FAILED\n"
 _COMMENT_TITLE_SUCCEED_REPO = "### ✅&nbsp; [build against repo] Integration test succeeded!\n"
+_COMMENT_TITLE_FLAKY_TIP = "### [build against tip] Integration test with FLAKINESS (succeeded after retry)\n"
+_COMMENT_TITLE_FAIL_TIP = "### ❌&nbsp; [build against tip] Integration test FAILED\n"
+_COMMENT_TITLE_SUCCEED_TIP = "### ✅&nbsp; [build against tip] Integration test succeeded!\n"
 
 _COMMENT_FLAKY_TRACKER = "\n\nAdd flaky tests to **[go/fpl-cpp-flake-tracker](http://go/fpl-cpp-flake-tracker)**\n"
 
@@ -89,6 +92,7 @@ _BUILD_STAGES = [_BUILD_STAGES_START, _BUILD_STAGES_PROGRESS, _BUILD_STAGES_END,
 
 _BUILD_AGAINST_SDK = "sdk"
 _BUILD_AGAINST_REPO = "repo"
+_BUILD_AGAINST_TIP = "tip"
 
 _BUILD_API_ALL = "all"
 _BUILD_API_FIRESTORE = "firestore"
@@ -222,27 +226,44 @@ def test_report(token, actor, commit, run_id, build_against, build_apis):
 
   issue_number = _get_issue_number(token, report_title, _REPORT_LABEL)
   previous_comment = github.get_issue_body(token, issue_number)
-  [_, previous_comment_repo, previous_comment_sdk] = previous_comment.split(_COMMENT_HIDDEN_DIVIDER)
+  [_, previous_comment_repo, previous_comment_sdk, previous_comment_tip] = previous_comment.split(_COMMENT_HIDDEN_DIVIDER)
   success_or_only_flakiness, log_summary = _get_summary_table(token, run_id)
   if success_or_only_flakiness and not log_summary:
     # succeeded (without flakiness)
-    title = _COMMENT_TITLE_SUCCEED_REPO if build_against==_BUILD_AGAINST_REPO else _COMMENT_TITLE_SUCCEED_SDK
+    if build_against==_BUILD_AGAINST_REPO:
+      title = _COMMENT_TITLE_SUCCEED_REPO  
+    elif build_against==_BUILD_AGAINST_SDK:
+      title = _COMMENT_TITLE_SUCCEED_SDK
+    else:
+      title = _COMMENT_TITLE_SUCCEED_TIP
     comment = title + _get_description(actor, commit, run_id)
   else:
     if success_or_only_flakiness:
       # all failures/errors are due to flakiness (succeeded after retry)
-      title = _COMMENT_TITLE_FLAKY_REPO if build_against==_BUILD_AGAINST_REPO else _COMMENT_TITLE_FLAKY_SDK
+      if build_against==_BUILD_AGAINST_REPO:
+        title = _COMMENT_TITLE_FLAKY_REPO  
+      elif build_against==_BUILD_AGAINST_SDK:
+        title = _COMMENT_TITLE_FLAKY_SDK
+      else:
+        title = _COMMENT_TITLE_FLAKY_TIP
     else:
       # failures/errors still exist after retry
-      title = _COMMENT_TITLE_FAIL_REPO if build_against==_BUILD_AGAINST_REPO else _COMMENT_TITLE_FAIL_SDK
+      if build_against==_BUILD_AGAINST_REPO:
+        title = _COMMENT_TITLE_FAIL_REPO  
+      elif build_against==_BUILD_AGAINST_SDK:
+        title = _COMMENT_TITLE_FAIL_SDK
+      else:
+        title = _COMMENT_TITLE_FAIL_TIP
     comment = title + _get_description(actor, commit, run_id) + log_summary + _COMMENT_FLAKY_TRACKER
   
   if build_against==_BUILD_AGAINST_REPO:
-    comment = prefix + _COMMENT_HIDDEN_DIVIDER + comment + _COMMENT_HIDDEN_DIVIDER + previous_comment_sdk
+    comment = prefix + _COMMENT_HIDDEN_DIVIDER + comment + _COMMENT_HIDDEN_DIVIDER + previous_comment_sdk + _COMMENT_HIDDEN_DIVIDER + previous_comment_tip
   elif build_against==_BUILD_AGAINST_SDK:
-    comment = prefix + _COMMENT_HIDDEN_DIVIDER + previous_comment_repo + _COMMENT_HIDDEN_DIVIDER + comment
+    comment = prefix + _COMMENT_HIDDEN_DIVIDER + previous_comment_repo + _COMMENT_HIDDEN_DIVIDER + comment + _COMMENT_HIDDEN_DIVIDER + previous_comment_tip
+  else:
+    comment = prefix + _COMMENT_HIDDEN_DIVIDER + previous_comment_repo + _COMMENT_HIDDEN_DIVIDER + previous_comment_sdk + _COMMENT_HIDDEN_DIVIDER + comment
 
-  if (_COMMENT_TITLE_SUCCEED_REPO in comment) and (_COMMENT_TITLE_SUCCEED_SDK in comment):
+  if (_COMMENT_TITLE_SUCCEED_REPO in comment) and (_COMMENT_TITLE_SUCCEED_SDK in comment) and (build_apis != _BUILD_API_FIRESTORE or _COMMENT_TITLE_SUCCEED_TIP in comment):
     github.close_issue(token, issue_number)
   else:
     github.open_issue(token, issue_number)

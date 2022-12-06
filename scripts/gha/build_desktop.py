@@ -288,7 +288,7 @@ def parse_cmdline_args():
   parser.add_argument('--target', nargs='+', help='A list of CMake build targets (eg: firebase_app firebase_auth)')
   parser.add_argument('--target_format', default=None, help='(Mac only) whether to output frameworks (default) or libraries.')
   parser.add_argument('--use_openssl', action='store_true', default=None, help='Use openssl for build instead of boringssl')
-  parser.add_argument('--firestore_dep_source', default='TIP', help='Where to get Firestore C++ Core source code. "RELEASED"/"TIP"/(Git tag/branch/commit)')
+  parser.add_argument('--firestore_dep_source', default='RELEASED', help='Where to get Firestore C++ Core source code. "RELEASED"/"TIP"/(Git tag/branch/commit)')
   parser.add_argument('--gha_build', action='store_true', default=None, help='Set to true when building on GitHub, for metric tracking purposes (also changes some prerequisite installation behavior).')
   args = parser.parse_args()
   return args

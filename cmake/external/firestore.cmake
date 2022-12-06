@@ -62,7 +62,6 @@ function(GetTag t)
     )
 endfunction()
 
-message("FIRESTORE_DEP_SOURCE value: ${FIRESTORE_DEP_SOURCE}")
 if((NOT FIRESTORE_DEP_SOURCE) OR (FIRESTORE_DEP_SOURCE STREQUAL "RELEASED"))
   # Get from released dependency by default
   GetReleasedDep()
