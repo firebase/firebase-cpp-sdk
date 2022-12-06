@@ -326,13 +326,13 @@ jobs:
             --noadd_timestamp \
             --short_output_paths \
             --gha_build \
-            --arch ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.arch }} \
+            --arch ${{ matrix.arch }} \
             ${additional_flags[*]}
       - name: Upload Desktop Cmake
         uses: actions/upload-artifact@v3
         if: ${{ !cancelled() }}
         with:
-          name: cmake-${{ matrix.ssl_variant }}
+          name: cmake-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.arch }}
           path: D:/a/firebase-cpp-sdk/firebase-cpp-sdk/ta/firestore/iti/CMakeFiles/
           retention-days: 1
       - name: Prepare results summary artifact
