@@ -186,13 +186,13 @@ jobs:
         if [[ "${{ github.event.schedule }}" == "0 9 * * *" ]]; then
           # at 1am PST/2am PDT. Running integration tests and generate test report for all testapps except firestore
           apis="admob,analytics,auth,database,dynamic_links,functions,gma,installations,messaging,remote_config,storage"
-        elif [[ "${{ github.event.schedule }}" == "0 10 * * *" || "${{ github.event.schedule }}" == "0 11 * * *"]]; then
+        elif [[ "${{ github.event.schedule }}" == "0 10 * * *" || "${{ github.event.schedule }}" == "0 11 * * *" ]]; then
           # at 2am PST/3am PDT and 3am PST/4am PDT. Running integration tests for firestore and generate test report.
           apis="firestore"
         else
           apis=$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k apis -o "${{github.event.inputs.apis}}" ${TEST_MATRIX_PARAM} )
         fi
-        if [[ "${{ github.event.schedule }}" == "0 11 * * *"]]; then
+        if [[ "${{ github.event.schedule }}" == "0 11 * * *" ]]; then
           # at 3am PST/4am PDT. Running  firestore desktop integration test aginst tip-of-tree ios repo
           matrix_platform="Desktop"
         else
@@ -1376,7 +1376,7 @@ jobs:
           if [[ "${{ github.event.inputs.test_pull_request }}" == "nightly-packaging" ]]; then
             additional_flags=(--build_against sdk)
           else
-            if [[ "${{ github.event.schedule }}" == "0 11 * * *"]]; then
+            if [[ "${{ github.event.schedule }}" == "0 11 * * *" ]]; then
               # at 3am PST/4am PDT. Running firestore desktop integration test aginst tip-of-tree ios repo
               additional_flags=(--build_against tip)
             else
