@@ -230,7 +230,7 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='l
   if verbose:
     cmd.append('-DCMAKE_VERBOSE_MAKEFILE=1')
 
-  utils.run_command(cmd)
+  utils.run_command(cmd, check=True)
 
 def main():
   args = parse_cmdline_args()
@@ -269,7 +269,7 @@ def main():
     # Example:  cmake --build build -j 8 --target firebase_app firebase_auth
     cmd.append('--target')
     cmd.extend(args.target)
-  utils.run_command(cmd)
+  utils.run_command(cmd, check=True)
 
 
 def parse_cmdline_args():
