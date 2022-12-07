@@ -325,7 +325,10 @@ jobs:
               additional_flags+=(--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON)
             fi
           fi
-          additional_flags+=(--cmake_flag=-DFIRESTORE_DEP_SOURCE=TIP)
+          if [[ "${{ github.event.schedule }}" == "0 11 * * *" ]]; then
+            # at 3am PST/4am PDT. Running firestore desktop integration test aginst tip-of-tree ios repo
+            additional_flags+=(--cmake_flag=-DFIRESTORE_DEP_SOURCE=TIP)
+          fi
           python scripts/gha/build_testapps.py --p Desktop \
             --t ${{ needs.check_and_prepare.outputs.apis }} \
             --output_directory "${{ github.workspace }}" \
@@ -335,13 +338,6 @@ jobs:
             --gha_build \
             --arch ${{ matrix.arch }} \
             ${additional_flags[*]}
-      - name: Upload Desktop Cmake
-        uses: actions/upload-artifact@v3
-        if: ${{ !cancelled() }}
-        with:
-          name: cmake-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
-          path: D:/a/firebase-cpp-sdk/firebase-cpp-sdk/ta/firestore/iti/CMakeFiles/
-          retention-days: 1
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
@@ -1370,7 +1366,7 @@ jobs:
             --run_id ${{github.run_id}} \
             --new_token ${{steps.generate-token.outputs.token}}
       - name: Update Daily Report
-        # if: needs.check_and_prepare.outputs.trigger == 'scheduled_trigger'
+        if: needs.check_and_prepare.outputs.trigger == 'scheduled_trigger'
         shell: bash
         run: |
           if [[ "${{ github.event.inputs.test_pull_request }}" == "nightly-packaging" ]]; then
@@ -1383,8 +1379,6 @@ jobs:
               additional_flags=(--build_against repo)
             fi
           fi
-          # test code. remove later.
-          additional_flags=(--build_against tip)
           if [[ "${{ needs.check_and_prepare.outputs.apis }}" == "firestore" ]]; then
             additional_flags+=(--build_apis firestore)
           else
