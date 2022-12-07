@@ -79,7 +79,7 @@ _COMMENT_TITLE_SUCCEED_TIP = "### ✅&nbsp; [build against tip] Integration test
 _COMMENT_FLAKY_TRACKER = "\n\nAdd flaky tests to **[go/fpl-cpp-flake-tracker](http://go/fpl-cpp-flake-tracker)**\n"
 
 _COMMENT_IDENTIFIER = "integration-test-status-comment"
-_COMMENT_HIDDEN_DIVIDER = f'\n<hidden value="{_COMMENT_IDENTIFIER}"></hidden>\n'
+_COMMENT_HIDDEN_DIVIDER = f'\r\n<hidden value="{_COMMENT_IDENTIFIER}"></hidden>\r\n'
 
 _LOG_ARTIFACT_NAME = "log-artifact"
 _LOG_OUTPUT_DIR = "test_results"
