@@ -39,6 +39,7 @@
 #if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/pthread_condvar.h"
+#include "app/src/util_apple.h"
 #endif  //  FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS ||
         //  FIREBASE_PLATFORM_TVOS
 
@@ -50,20 +51,26 @@ class Semaphore {
 #if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
     // MacOS requires named semaphores, and does not support unnamed.
     // Generate a unique string for the semaphore name:
-    static const char kPrefix[] = "/firebase-";
-    // String length of the name prefix.
-    static const int kPprefixLen = sizeof(kPrefix);
+
     // String length of the pointer, when printed to a string.
     static const int kPointerStringLength = 16;
     // Buffer size.  the +1 is for the null terminator.
-    static const int kBufferSize = kPprefixLen + kPointerStringLength + 1;
+    static const int kBufferSize = kPointerStringLength + 1;
 
     char buffer[kBufferSize];
-    snprintf(buffer, kBufferSize, "%s%016llx", kPrefix,
+    snprintf(buffer, kBufferSize, "%016llx",
              static_cast<unsigned long long>(  // NOLINT
                  reinterpret_cast<intptr_t>(this)));
 
-    semaphore_ = sem_open(buffer,
+    std::string semaphore_name = util::GetCustomSemaphorePrefix();
+    if (semaphore_name.empty()) {
+      semaphore_name = "/firebase-";
+    }
+
+    semaphore_name.append(buffer);
+    printf("DEDB Final Semaphore name: %s\n", semaphore_name.c_str());
+
+    semaphore_ = sem_open(semaphore_name.c_str(),
                           O_CREAT | O_EXCL,   // Create if it doesn't exist.
                           S_IRUSR | S_IWUSR,  // Only the owner can read/write.
                           initial_count);

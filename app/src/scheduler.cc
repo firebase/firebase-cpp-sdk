@@ -148,14 +148,20 @@ void Scheduler::WorkerThreadRoutine(void* data) {
     // 2. The top request in the queue is not due yet.
     if (!request) {
       if (sleep_time > 0) {
+        printf("DEDB TimedWait");
         scheduler->sleep_sem_.TimedWait(sleep_time);
+        printf("DEDB TimedWait ended");
       } else {
+        printf("DEDB Wait");
         scheduler->sleep_sem_.Wait();
+        printf("DEDB Wait end");
       }
 
       // Drain the semaphore after wake
+      printf("DEDB draining Semaphore");
       while (scheduler->sleep_sem_.TryWait()) {
       }
+      printf("DEDB draining Semaphore complete");
 
       // Check if the scheduler is terminating after sleep.
       MutexLock lock(scheduler->request_mutex_);

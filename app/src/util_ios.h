@@ -251,6 +251,11 @@ void RunOnMainThread(void (*function_ptr)(void *function_data),
 void RunOnBackgroundThread(void (*function_ptr)(void *function_data),
                            void *function_data);
 
+// Attempts to query the custom semaphore prefix from the application's
+// Info.plist file. Returns an empty string if a custom semahpore prefix
+// wasn't conifgured.
+std::string GetCustomSemaphorePrefix();
+
 // Class which caches function implementations for a class.
 //
 // Use this object to swizzle and cache method implementations.
