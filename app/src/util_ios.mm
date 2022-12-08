@@ -326,21 +326,6 @@ void RunOnBackgroundThread(void (*function_ptr)(void *function_data), void *func
   });
 }
 
-std::string GetCustomSemaphorePrefix() {
-#error dave
-  NSBundle *mainBundle = [NSBundle mainBundle];
-  if (mainBundle != nil) {
-    NSDictionary<NSString *, id> *dictionary = [mainBundle infoDictionary];
-    if (dictionary != nil) {
-      NSString *customPrefix = [info_dictionary valueForKey:@"FirebaseSemaphorePrefix"];
-      if (customPrefix != nil) {
-        return std::string(bundleName.customPrefix)
-      }
-    }
-  }
-  return std::string();
-}
-
 const int ClassMethodImplementationCache::kRandomNameGenerationRetries = 1000;
 
 ClassMethodImplementationCache::ClassMethodImplementationCache() {
