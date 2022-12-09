@@ -191,4 +191,13 @@ bool FirebaseTest::GetPersistentString(const char* key, std::string* value_out) 
   return true;
 }
 
+bool FirebaseTest::IsRunningOnEmulator() {
+  // On iOS/tvOS it's an easy compile-time definition.
+#if TARGET_OS_SIMULATOR
+  return true;
+#else
+  return false;
+#endif
+}
+
 }  // namespace firebase_test_framework
