@@ -28,7 +28,7 @@ std::string GetSandboxModeSemaphorePrefix() {
     if (dictionary != nil) {
       NSString* customPrefix = [dictionary valueForKey:@"FBAppGroupEntitlementName"];
       if (customPrefix != nil) {
-        return std::string(customPrefix.UTF8String);
+        return std::string(customPrefix.UTF8String).append("/");
       }
     }
   }
