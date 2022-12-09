@@ -19,6 +19,7 @@
 
 #include <string>
 
+#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "auth/src/include/firebase/auth.h"
@@ -79,26 +80,33 @@ struct AuthData {
         future_impl(kNumAuthFunctions),
         current_user(this),
         auth_impl(nullptr),
+#if !defined(__ANDROID__)
         user_impl(nullptr),
+#endif  // !defined(__ANDROID__)
         listener_impl(nullptr),
         id_token_listener_impl(nullptr),
-        expect_id_token_listener_callback(false),
         persistent_cache_load_pending(true),
         destructing(false) {}
 
   ~AuthData() {
+    LogDebug("AuthData::~AuthData 1");
     ClearUserInfos(this);
 
+    LogDebug("AuthData::~AuthData 2");
     // Reset the listeners so that they don't try to unregister themselves
     // when they are destroyed.
     ClearListeners();
 
+    LogDebug("AuthData::~AuthData 3");
     app = nullptr;
     auth = nullptr;
     auth_impl = nullptr;
+#if !defined(__ANDROID__)
     user_impl = nullptr;
+#endif  // !defined(__ANDROID__)
     listener_impl = nullptr;
     id_token_listener_impl = nullptr;
+    LogDebug("AuthData::~AuthData Done");
   }
 
   void ClearListeners() {
@@ -122,16 +130,22 @@ struct AuthData {
   /// Identifier used to track futures associated with future_impl.
   std::string future_api_id;
 
-  /// Unique user for this Auth. Note: we only support one user per Auth.
+   /// Notifies all objects referencing this object.
+  CleanupNotifier cleanup;
+
+  /// Default user for this Auth.
   User current_user;
 
   /// Platform-dependent implementation of Auth (that we're wrapping).
   /// For example, on Android `jobject`.
   void* auth_impl;
 
+#if !defined(__ANDROID__)
+  // TODO(drsanta): Remove this for Android
   /// Platform-dependent implementation of User (that we're wrapping).
   /// For example, on iOS `FIRUser`.
   void* user_impl;
+#endif  // !defined(__ANDROID__)
 
   /// Platform-dependent implementation of AuthStateListener (that we're
   /// wrapping). For example, on Android `jobject`.
@@ -166,37 +180,22 @@ struct AuthData {
   // Mutex for changes to the internal token listener state.
   Mutex token_listener_mutex;
 
-  // Tracks if the Id Token listener is expecting a callback to occur.
-  bool expect_id_token_listener_callback;
-
   // Tracks if the persistent cache load is pending.
   bool persistent_cache_load_pending;
-
-  // Mutex protecting `expect_id_token_listener_callback`
-  Mutex expect_id_token_mutex;
 
   // Tracks if auth is being destroyed.
   bool destructing;
 
   // Mutex protecting destructing
   Mutex desctruting_mutex;
+  
+  // Synchronize the current user.
+  void UpdateCurrentUser();
 
-  // Sets if the Id Token Listener is expecting a callback.
-  // Used to workaround an issue where the Id Token is not reset with a new one,
-  // and thus not triggered correctly.
-  void SetExpectIdTokenListenerCallback(bool expect) {
-    MutexLock lock(expect_id_token_mutex);
-    expect_id_token_listener_callback = expect;
-  }
-
-  // Returns if the Id Token Listener is expecting a callback, and clears the
-  // flag.
-  bool ShouldTriggerIdTokenListenerCallback() {
-    MutexLock lock(expect_id_token_mutex);
-    bool result = expect_id_token_listener_callback;
-    expect_id_token_listener_callback = false;
-    return result;
-  }
+#if defined(__ANDROID__)
+  // Set the current user from the platform specific user object.
+  void SetCurrentUser(jobject platform_user);
+#endif  // defined(__ANDROID__)
 };
 
 // Called automatically whenever anyone refreshes the auth token.

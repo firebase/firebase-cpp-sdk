@@ -16,22 +16,43 @@
 
 #include "auth/src/common.h"
 
+#if defined(__ANDROID__)
+#include "auth/src/android/user_android.h"
+#endif  // defined(__ANDROID__)
+
 namespace firebase {
 namespace auth {
 
-AUTH_RESULT_FN(User, GetToken, std::string)
-AUTH_RESULT_FN(User, UpdateEmail, void)
-AUTH_RESULT_FN(User, UpdatePassword, void)
-AUTH_RESULT_FN(User, Reauthenticate, void)
-AUTH_RESULT_FN(User, ReauthenticateAndRetrieveData, SignInResult)
-AUTH_RESULT_FN(User, SendEmailVerification, void)
-AUTH_RESULT_FN(User, UpdateUserProfile, void)
-AUTH_RESULT_FN(User, LinkWithCredential, User*)
-AUTH_RESULT_FN(User, LinkAndRetrieveDataWithCredential, SignInResult)
-AUTH_RESULT_FN(User, Unlink, User*)
-AUTH_RESULT_FN(User, UpdatePhoneNumberCredential, User*)
-AUTH_RESULT_FN(User, Reload, void)
-AUTH_RESULT_FN(User, Delete, void)
+#if defined(__ANDROID__)
+#define AUTH_USER_RESULT_FN(class_name, fn_name, result_type)             \
+  Future<result_type> class_name::fn_name##LastResult() const {           \
+    return static_cast<const Future<result_type>&>(                       \
+        internal_->future_api()->LastResult(                              \
+            k##class_name##Fn_##fn_name));                                \
+  }
+#else
+// All the result functions are similar.
+// Just return the local Future, cast to the proper result type.
+#define AUTH_USER_RESULT_FN(class_name, fn_name, result_type)             \
+  Future<result_type> class_name::fn_name##LastResult() const {           \
+    return static_cast<const Future<result_type>&>(                       \
+        auth_data_->future_impl.LastResult(k##class_name##Fn_##fn_name)); \
+  }
+#endif  // defined(__ANDROID__)
+
+AUTH_USER_RESULT_FN(User, GetToken, std::string)
+AUTH_USER_RESULT_FN(User, UpdateEmail, void)
+AUTH_USER_RESULT_FN(User, UpdatePassword, void)
+AUTH_USER_RESULT_FN(User, Reauthenticate, void)
+AUTH_USER_RESULT_FN(User, ReauthenticateAndRetrieveData, SignInResult)
+AUTH_USER_RESULT_FN(User, SendEmailVerification, void)
+AUTH_USER_RESULT_FN(User, UpdateUserProfile, void)
+AUTH_USER_RESULT_FN(User, LinkWithCredential, User*)
+AUTH_USER_RESULT_FN(User, LinkAndRetrieveDataWithCredential, SignInResult)
+AUTH_USER_RESULT_FN(User, Unlink, User*)
+AUTH_USER_RESULT_FN(User, UpdatePhoneNumberCredential, User*)
+AUTH_USER_RESULT_FN(User, Reload, void)
+AUTH_USER_RESULT_FN(User, Delete, void)
 
 #if defined(INTERNAL_EXPERIMENTAL)
 // I'd like to change all the above functions to use LastResultProxy, as it
@@ -45,12 +66,25 @@ Future<std::string> User::GetTokenThreadSafe(bool force_refresh) {
   if (future.status() != kFutureStatusPending) {
     return future;
   } else {
+#if defined(__ANDROID__)
+    FutureBase base =
+        internal_->future_api()->LastResultProxy(kUserFn_GetToken);
+#else
     FutureBase base = auth_data_->future_impl.LastResultProxy(kUserFn_GetToken);
+#endif  // defined(__ANDROID__)
     const FutureBase& rFuture = base;
     return static_cast<const Future<std::string>&>(rFuture);
   }
 }
 #endif  // defined(INTERNAL_EXPERIMENTAL)
+
+bool User::is_valid() const {
+#if defined(__ANDROID__)
+  return internal_ && internal_->is_valid();
+#else
+  return ValidUser(auth_data_);
+#endif  // defined(__ANDROID__)
+}
 
 // Non-inline implementation of UserInfoInterface's virtual destructor
 // to prevent its vtable being emitted in each translation unit.

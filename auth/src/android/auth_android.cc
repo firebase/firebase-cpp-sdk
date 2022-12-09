@@ -17,6 +17,8 @@
 #include <assert.h>
 #include <jni.h>
 
+#include "auth/src/android/auth_android.h"
+
 #include "app/src/assert.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/internal/mutex.h"
@@ -24,6 +26,8 @@
 #include "app/src/util_android.h"
 #include "auth/auth_resources.h"
 #include "auth/src/android/common_android.h"
+#include "auth/src/android/user_android.h"
+#include "auth/src/credential_internal.h"
 
 namespace firebase {
 namespace auth {
@@ -162,33 +166,34 @@ void ReleaseAuthClasses(JNIEnv* env) {
   jni_id_token_listener::ReleaseClass(env);
 }
 
-void UpdateCurrentUser(AuthData* auth_data) {
+void GetCurrentUser(AuthData* auth_data) {
   JNIEnv* env = Env(auth_data);
 
-  MutexLock lock(auth_data->future_impl.mutex());
-
-  const void* original_user_impl = auth_data->user_impl;
-
-  // Update our pointer to the Android FirebaseUser that we're wrapping.
-  jobject j_user = env->CallObjectMethod(
+  jobject user = env->CallObjectMethod(
       AuthImpl(auth_data), auth::GetMethodId(auth::kGetCurrentUser));
-  if (firebase::util::CheckAndClearJniExceptions(env)) {
-    j_user = nullptr;
-  }
-  SetImplFromLocalRef(env, j_user, &auth_data->user_impl);
 
-  // Log debug message when user sign-in status has changed.
-  if (original_user_impl != auth_data->user_impl) {
-    LogDebug("CurrentUser changed from %X to %X",
-             reinterpret_cast<uintptr_t>(original_user_impl),
-             reinterpret_cast<uintptr_t>(auth_data->user_impl));
+  if (firebase::util::CheckAndClearJniExceptions(env)) {
+    return nullptr;
   }
+
+  return user;
+}
+
+void AuthData::UpdateCurrentUser() {
+  MutexLock lock(future_impl.mutex());
+  SetCurrentUser(GetCurrentUser(this));
+}
+
+// Set the current user from the platform specific user object.
+void AuthData::SetCurrentUser(jobject platform_user) {
+  MutexLock lock(future_impl.mutex());
+  current_user.internal_->SetPlatformUser(this, platform_user);
 }
 
 // Release cached Java classes.
 static void ReleaseClasses(JNIEnv* env) {
   ReleaseAuthClasses(env);
-  ReleaseUserClasses(env);
+  UserInternal::ReleaseUserClasses(env);
   ReleaseCredentialClasses(env);
   ReleaseCommonClasses(env);
 }
@@ -200,7 +205,7 @@ void* CreatePlatformAuth(App* app) {
 
   // Cache the JNI method ids so we only have to look them up by name once.
   if (!g_initialized_count) {
-    if (!util::Initialize(env, activity)) return nullptr;
+    if (!util::Initialize(env, activity)) return false;
 
     // Cache embedded files and load embedded classes.
     const std::vector<internal::EmbeddedFile> embedded_files =
@@ -211,15 +216,33 @@ void* CreatePlatformAuth(App* app) {
                                      firebase_auth::auth_resources_size));
 
     if (!(CacheAuthMethodIds(env, activity, embedded_files) &&
-          CacheUserMethodIds(env, activity) &&
+          UserInternal::CacheUserMethodIds(env, activity) &&
           CacheCredentialMethodIds(env, activity, embedded_files) &&
           CacheCommonMethodIds(env, activity))) {
       ReleaseClasses(env);
       util::Terminate(env);
-      return nullptr;
+      return FIREBASE_APP_SRC_INCLUDE_FIREBASE_INTERNAL_MUTEX_H_;
     }
   }
   g_initialized_count++;
+  return true;
+}
+
+// Remove references to cached classes and method IDs.
+static void TerminateJni(JNIEnv* env) {
+  FIREBASE_ASSERT(g_initialized_count);
+  g_initialized_count--;
+  if (g_initialized_count == 0) {
+    ReleaseClasses(env);
+    util::Terminate(env);
+  }
+}
+
+void* CreatePlatformAuth(App* app, void* app_impl) {
+  FIREBASE_ASSERT(app_impl != nullptr);
+  JNIEnv* env = app->GetJNIEnv();
+
+  if (!InitializeJni(env, app->activity())) return nullptr;
 
   // Create the FirebaseAuth class in Java.
   jobject platform_app = app->GetPlatformApp();
@@ -268,7 +291,7 @@ void Auth::InitPlatformAuth(AuthData* auth_data) {
 
   // Ensure our User is in-line with underlying API's user.
   // It's possible for a user to already be logged-in on start-up.
-  UpdateCurrentUser(auth_data);
+  auth_data->UpdateCurrentUser(auth_data);
 }
 
 void Auth::DestroyPlatformAuth(AuthData* auth_data) {
@@ -298,15 +321,9 @@ void Auth::DestroyPlatformAuth(AuthData* auth_data) {
   // FirebaseUser Java objects to be deleted.
   SetImplFromLocalRef(env, nullptr, &auth_data->listener_impl);
   SetImplFromLocalRef(env, nullptr, &auth_data->id_token_listener_impl);
-  SetImplFromLocalRef(env, nullptr, &auth_data->user_impl);
   SetImplFromLocalRef(env, nullptr, &auth_data->auth_impl);
 
-  FIREBASE_ASSERT(g_initialized_count);
-  g_initialized_count--;
-  if (g_initialized_count == 0) {
-    ReleaseClasses(env);
-    util::Terminate(env);
-  }
+  TerminateJni(env);
 }
 
 void LogHeartbeat(Auth* auth) {
@@ -324,34 +341,33 @@ JNIEXPORT void JNICALL JniAuthStateListener_nativeOnAuthStateChanged(
     JNIEnv* env, jobject clazz, jlong callback_data) {
   AuthData* auth_data = reinterpret_cast<AuthData*>(callback_data);
   // Update our pointer to the Android FirebaseUser that we're wrapping.
-  UpdateCurrentUser(auth_data);
+  auth_data->UpdateCurrentUser();
   NotifyAuthStateListeners(auth_data);
 }
 
 JNIEXPORT void JNICALL JniIdTokenListener_nativeOnIdTokenChanged(
     JNIEnv* env, jobject clazz, jlong callback_data) {
   AuthData* auth_data = reinterpret_cast<AuthData*>(callback_data);
-  auth_data->SetExpectIdTokenListenerCallback(false);
   // Update our pointer to the Android FirebaseUser that we're wrapping.
-  UpdateCurrentUser(auth_data);
+  auth_data->UpdateCurrentUser();
   NotifyIdTokenListeners(auth_data);
 }
 
 // Record the provider data returned from Java.
 static void ReadProviderResult(
-    jobject result, FutureCallbackData<Auth::FetchProvidersResult>* d,
-    bool success, void* void_data) {
-  auto data = static_cast<Auth::FetchProvidersResult*>(void_data);
-  JNIEnv* env = Env(d->auth_data);
-
+    jobject task_result,
+    FutureCallbackData<Auth::FetchProvidersResult, AuthData>* callback_data,
+    bool success, Auth::FetchProvidersResult* data) {
+  AuthData* auth_internal = callback_data->context;
+  JNIEnv* env = Env(auth_internal);
   // `result` comes from the successfully completed Task in Java. If the Task
   // completed successfully, `result` should be valid.
-  FIREBASE_ASSERT(!success || result != nullptr);
+  FIREBASE_DEV_ASSERT(!success || task_result != nullptr);
   // `result` is of type SignInMethodQueryResult when `success` is true.
   jobject list = success
                      ? env->CallObjectMethod(
-                           result, signinmethodquery::GetMethodId(
-                                       signinmethodquery::kGetSignInMethods))
+                           task_result, signinmethodquery::GetMethodId(
+                               signinmethodquery::kGetSignInMethods))
                      : nullptr;
   if (firebase::util::CheckAndClearJniExceptions(env)) list = nullptr;
 
@@ -380,16 +396,16 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(
       kAuthFn_FetchProvidersForEmail);
   JNIEnv* env = Env(auth_data_);
 
-  jstring j_email = env->NewStringUTF(email);
-  jobject pending_result = env->CallObjectMethod(
+  jstring email_string = env->NewStringUTF(email);
+  jobject task = env->CallObjectMethod(
       AuthImpl(auth_data_),
-      auth::GetMethodId(auth::kFetchSignInMethodsForEmail), j_email);
-  env->DeleteLocalRef(j_email);
+      auth::GetMethodId(auth::kFetchSignInMethodsForEmail), email_string);
+  env->DeleteLocalRef(email_string);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_, ReadProviderResult);
-    env->DeleteLocalRef(pending_result);
+    RegisterCallback(task, handle, auth_data_, ReadProviderResult);
   }
+  if (task) env->DeleteLocalRef(task);
   return MakeFuture(&futures, handle);
 }
 
@@ -415,22 +431,17 @@ Future<User*> Auth::SignInWithCustomToken(const char* token) {
 Future<User*> Auth::SignInWithCredential(const Credential& credential) {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<User*>(kAuthFn_SignInWithCredential);
-  JNIEnv* env = Env(auth_data_);
-
-  // If the credential itself is in an error state, don't try signing in.
-  if (credential.error_code_ != kAuthErrorNone) {
-    futures.Complete(handle, credential.error_code_,
-                     credential.error_message_.c_str());
-  } else {
-    jobject pending_result = env->CallObjectMethod(
+  if (!CredentialInternal::CompleteFutureIfInvalid(credential, &futures,
+                                                   handle)) {
+    JNIEnv* env = Env(auth_data_);
+    jobject task = env->CallObjectMethod(
         AuthImpl(auth_data_), auth::GetMethodId(auth::kSignInWithCredential),
-        CredentialFromImpl(credential.impl_));
+        CredentialInternal::GetPlatformCredential(credential)->object());
 
     if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-      RegisterCallback(pending_result, handle, auth_data_,
-                       ReadUserFromSignInResult);
-      env->DeleteLocalRef(pending_result);
+      RegisterCallback(task, handle, auth_data_, ReadUserFromSignInResult);
     }
+    if (task) env->DeleteLocalRef(task);
   }
   return MakeFuture(&futures, handle);
 }
@@ -440,21 +451,19 @@ Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential(
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<SignInResult>(
       kAuthFn_SignInAndRetrieveDataWithCredential);
-  JNIEnv* env = Env(auth_data_);
 
   // If the credential itself is in an error state, don't try signing in.
-  if (credential.error_code_ != kAuthErrorNone) {
-    futures.Complete(handle, credential.error_code_,
-                     credential.error_message_.c_str());
-  } else {
-    jobject pending_result = env->CallObjectMethod(
+  if (!CredentialInternal::CompleteFutureIfInvalid(credential, &futures,
+                                                   handle)) {
+    JNIEnv* env = Env(auth_data_);
+    jobject task = env->CallObjectMethod(
         AuthImpl(auth_data_), auth::GetMethodId(auth::kSignInWithCredential),
-        CredentialFromImpl(credential.impl_));
+        CredentialInternal::GetPlatformCredential(credential)->object());
 
     if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-      RegisterCallback(pending_result, handle, auth_data_, ReadSignInResult);
-      env->DeleteLocalRef(pending_result);
+      RegisterCallback(task, handle, auth_data_, ReadSignInResult);
     }
+    if (task) env->DeleteLocalRef(task);
   }
   return MakeFuture(&futures, handle);
 }
@@ -469,16 +478,34 @@ Future<User*> Auth::SignInAnonymously() {
   const auto handle = futures.SafeAlloc<User*>(kAuthFn_SignInAnonymously);
   JNIEnv* env = Env(auth_data_);
 
-  jobject pending_result = env->CallObjectMethod(
+  jobject task = env->CallObjectMethod(
       AuthImpl(auth_data_), auth::GetMethodId(auth::kSignInAnonymously));
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_,
-                     ReadUserFromSignInResult);
-    env->DeleteLocalRef(pending_result);
+    RegisterCallback(task, handle, auth_data_, ReadUserFromSignInResult);
   }
-
+  if (task) env->DeleteLocalRef(task);
   return MakeFuture(&futures, handle);
+}
+
+// Completes the specified future handle with an error and returns error code
+// if email and password are empty or null.  If the email and password are valid
+// this method returns kAuthErrorNone.
+template<typename T>
+static AuthError ValidateEmailAndPassword(
+    const char* email, const char* password,
+    ReferenceCountedFutureImpl* future_api,
+    SafeFutureHandle<T> future_handle) {
+  AuthError error = kAuthErrorNone;
+  if (!email || strlen(email) == 0) {
+    error = kAuthErrorMissingEmail;
+  } else if (!password || strlen(password) == 0) {
+    error = kAuthErrorMissingPassword;
+  }
+  if (error) {
+    future_api->Complete(future_handle, error, kErrorEmptyEmailPassword);
+  }
+  return error;
 }
 
 Future<User*> Auth::SignInWithEmailAndPassword(const char* email,
@@ -487,30 +514,24 @@ Future<User*> Auth::SignInWithEmailAndPassword(const char* email,
   const auto handle =
       futures.SafeAlloc<User*>(kAuthFn_SignInWithEmailAndPassword);
 
-  if (!email || strlen(email) == 0 || !password || strlen(password) == 0) {
-    futures.Complete(handle,
-                     (!email || strlen(email) == 0) ? kAuthErrorMissingEmail
-                                                    : kAuthErrorMissingPassword,
-                     kErrorEmptyEmailPassword);
+   if (ValidateEmailAndPassword(email, password, &futures, handle)) {
     return MakeFuture(&futures, handle);
   }
-  JNIEnv* env = Env(auth_data_);
 
-  jstring j_email = env->NewStringUTF(email);
-  jstring j_password = env->NewStringUTF(password);
-  jobject pending_result = env->CallObjectMethod(
+  JNIEnv* env = Env(auth_data_);
+  jstring email_string = env->NewStringUTF(email);
+  jstring password_string = env->NewStringUTF(password);
+  jobject task = env->CallObjectMethod(
       AuthImpl(auth_data_),
-      auth::GetMethodId(auth::kSignInWithEmailAndPassword), j_email,
-      j_password);
-  env->DeleteLocalRef(j_email);
-  env->DeleteLocalRef(j_password);
+      auth::GetMethodId(auth::kSignInWithEmailAndPassword), email_string,
+      password_string);
+  env->DeleteLocalRef(email_string);
+  env->DeleteLocalRef(password_string);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_,
-                     ReadUserFromSignInResult);
-    env->DeleteLocalRef(pending_result);
+     RegisterCallback(task, handle, auth_data_, ReadUserFromSignInResult);
   }
-
+  if (task) env->DeleteLocalRef(task);
   return MakeFuture(&futures, handle);
 }
 
@@ -520,29 +541,24 @@ Future<User*> Auth::CreateUserWithEmailAndPassword(const char* email,
   const auto handle =
       futures.SafeAlloc<User*>(kAuthFn_CreateUserWithEmailAndPassword);
 
-  if (!email || strlen(email) == 0 || !password || strlen(password) == 0) {
-    futures.Complete(handle,
-                     (!email || strlen(email) == 0) ? kAuthErrorMissingEmail
-                                                    : kAuthErrorMissingPassword,
-                     kErrorEmptyEmailPassword);
+  if (ValidateEmailAndPassword(email, password, &futures, handle)) {
     return MakeFuture(&futures, handle);
   }
   JNIEnv* env = Env(auth_data_);
 
-  jstring j_email = env->NewStringUTF(email);
-  jstring j_password = env->NewStringUTF(password);
-  jobject pending_result = env->CallObjectMethod(
+  jstring email_string = env->NewStringUTF(email);
+  jstring password_string = env->NewStringUTF(password);
+  jobject task = env->CallObjectMethod(
       AuthImpl(auth_data_),
-      auth::GetMethodId(auth::kCreateUserWithEmailAndPassword), j_email,
-      j_password);
-  env->DeleteLocalRef(j_email);
-  env->DeleteLocalRef(j_password);
+      auth::GetMethodId(auth::kCreateUserWithEmailAndPassword), email_string,
+      password_string);
+  env->DeleteLocalRef(email_string);
+  env->DeleteLocalRef(password_string);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_,
-                     ReadUserFromSignInResult);
-    env->DeleteLocalRef(pending_result);
+     RegisterCallback(task, handle, auth_data_, ReadUserFromSignInResult);
   }
+  if (task) env->DeleteLocalRef(task);
   return MakeFuture(&futures, handle);
 }
 
@@ -559,9 +575,8 @@ User* Auth::current_user() {
   // persistent loading.  However, it is safe to access auth_data_->current_user
   // here since FirebaseAuth.getCurrentUser() (Android) is called in
   // InitPlatformAuth().
-  User* user =
-      auth_data_->user_impl == nullptr ? nullptr : &auth_data_->current_user;
-  return user;
+  User& user = auth_data_->current_user;
+  return user.is_valid() ? &user : nullptr;
 }
 
 std::string Auth::language_code() const {
@@ -607,28 +622,28 @@ void Auth::SignOut() {
 
   // Release our current user implementation in Java.
   MutexLock lock(auth_data_->future_impl.mutex());
-  SetImplFromLocalRef(env, nullptr, &auth_data_->user_impl);
+  auth_data_->current_user.internal_->SetPlatformUser(nullptr, nullptr);
 }
 
 Future<void> Auth::SendPasswordResetEmail(const char* email) {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kAuthFn_SendPasswordResetEmail);
 
-  if (!email || strlen(email) == 0) {
-    futures.Complete(handle, kAuthErrorMissingEmail, "Empty email address.");
+  if (ValidateEmailAndPassword(email, "NOP", &futures, handle)) {
     return MakeFuture(&futures, handle);
   }
+
   JNIEnv* env = Env(auth_data_);
-  jstring j_email = env->NewStringUTF(email);
-  jobject pending_result = env->CallObjectMethod(
+  jstring email_string = env->NewStringUTF(email);
+  jobject task = env->CallObjectMethod(
       AuthImpl(auth_data_), auth::GetMethodId(auth::kSendPasswordResetEmail),
-      j_email);
-  env->DeleteLocalRef(j_email);
+      email_string);
+  env->DeleteLocalRef(email_string);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_, nullptr);
-    env->DeleteLocalRef(pending_result);
+    RegisterCallback(task, handle, auth_data_, nullptr);
   }
+  if (task) env->DeleteLocalRef(task);
   return MakeFuture(&futures, handle);
 }
 

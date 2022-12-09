@@ -138,15 +138,22 @@ void Auth::DeleteInternal() {
 
   if (!auth_data_) return;
 
+  LogDebug("Auth::DeleteInternal 1");
   {
     MutexLock destructing_lock(auth_data_->desctruting_mutex);
     auth_data_->destructing = true;
   }
+  
+  LogDebug("Auth::DeleteInternal 2");
+  // Cleanup all objects referencing this auth object.
+  auth_data_->cleanup.CleanupAll();
 
+  LogDebug("Auth::DeleteInternal 3");
   CleanupNotifier* notifier = CleanupNotifier::FindByOwner(auth_data_->app);
   assert(notifier);
   notifier->UnregisterObject(this);
 
+  LogDebug("Auth::DeleteInternal 4");
   int num_auths_remaining = 0;
   {
     // Remove `this` from the g_auths map.
@@ -162,6 +169,7 @@ void Auth::DeleteInternal() {
     num_auths_remaining = g_auths.size();
   }
 
+  LogDebug("Auth::DeleteInternal 5");
   auth_data_->ClearListeners();
 
   // If this is the last Auth instance to be cleaned up, also clean up data for
@@ -170,12 +178,15 @@ void Auth::DeleteInternal() {
     CleanupCredentialFutureImpl();
   }
 
+  LogDebug("Auth::DeleteInternal 6");
   // Destroy the platform-specific object.
   DestroyPlatformAuth(auth_data_);
+  LogDebug("Auth::DeleteInternal 7");
 
   // Delete the pimpl data.
   delete auth_data_;
   auth_data_ = nullptr;
+  LogDebug("Auth::DeleteInternal done");
 }
 
 Auth::~Auth() { DeleteInternal(); }
@@ -361,6 +372,14 @@ AUTH_NOTIFY_LISTENERS(NotifyAuthStateListeners, "Auth state", listeners,
 
 AUTH_NOTIFY_LISTENERS(NotifyIdTokenListeners, "ID token", id_token_listeners,
                       OnIdTokenChanged);
+
+// All the result functions are similar.
+// Just return the local Future, cast to the proper result type.
+#define AUTH_RESULT_FN(class_name, fn_name, result_type)                  \
+  Future<result_type> class_name::fn_name##LastResult() const {           \
+    return static_cast<const Future<result_type>&>(                       \
+        auth_data_->future_impl.LastResult(k##class_name##Fn_##fn_name)); \
+  }
 
 AUTH_RESULT_FN(Auth, FetchProvidersForEmail, Auth::FetchProvidersResult)
 AUTH_RESULT_FN(Auth, SignInWithCustomToken, User*)

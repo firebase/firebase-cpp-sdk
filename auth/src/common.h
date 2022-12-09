@@ -43,27 +43,18 @@ void DestroyPlatformAuth(AuthData* auth_data);
 // See go/firebase-platform-logging-design for more information.
 void LogHeartbeat(Auth* auth);
 
-// All the result functions are similar.
-// Just return the local Future, cast to the proper result type.
-#define AUTH_RESULT_FN(class_name, fn_name, result_type)                  \
-  Future<result_type> class_name::fn_name##LastResult() const {           \
-    return static_cast<const Future<result_type>&>(                       \
-        auth_data_->future_impl.LastResult(k##class_name##Fn_##fn_name)); \
-  }
-
+#if !defined(__ANDROID__)
 // Returns true if `auth_data` has a user that's currently active.
 inline bool ValidUser(const AuthData* auth_data) {
   return auth_data->user_impl != nullptr;
 }
+#endif  // !defined(__ANDROID__)
 
 // Notify all the listeners of the state change.
 void NotifyAuthStateListeners(AuthData* auth_data);
 
 // Notify all the listeners of the ID token change.
 void NotifyIdTokenListeners(AuthData* auth_data);
-
-// Synchronize the current user.
-void UpdateCurrentUser(AuthData* auth_data);
 
 // Get a FutureImpl to use for Credential methods that return Futures.
 ReferenceCountedFutureImpl* GetCredentialFutureImpl();
