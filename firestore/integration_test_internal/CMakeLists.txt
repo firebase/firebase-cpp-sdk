@@ -118,6 +118,7 @@ set(FIREBASE_INTEGRATION_TEST_ANDROID_TEST_SRCS
     src/android/snapshot_metadata_android_test.cc
     src/android/timestamp_android_test.cc
     src/android/transaction_options_android_test.cc
+    src/jni/arena_ref_test.cc
     src/jni/declaration_test.cc
     src/jni/env_test.cc
     src/jni/object_test.cc

@@ -27,11 +27,18 @@ namespace jni {
 namespace {
 
 Global<ObjectArena> kInstance;
-Global<HashMap> kHashMap;
 
 }  // namespace
 
-void ObjectArena::Initialize(Env& env, Loader& loader) {}
+void ObjectArena::Initialize(Env& env, Loader& loader) {
+  kInstance = ObjectArena::Create(env);
+}
+
+Global<ObjectArena> ObjectArena::Create(Env& env) {
+  ObjectArena ob;
+  ob.kHashMap = HashMap::Create(env);
+  return ob;
+}
 
 ObjectArena& ObjectArena::GetInstance() { return kInstance; }
 

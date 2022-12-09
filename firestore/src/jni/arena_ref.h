@@ -39,83 +39,97 @@ class ArenaRef {
 
   explicit ArenaRef(const Object& ob) {
     Env env(GetEnv());
-    assignState(ObjectArena::GetInstance().Put(env, ob));
+    int64_t id = ObjectArena::GetInstance().Put(env, ob);
+    if (env.ok()) {
+      assignState(id);
+    }
   }
 
-  ArenaRef(const ArenaRef& other) {
-    if (other.id_.first) {
+  explicit ArenaRef(const ArenaRef& other) {
+    if (other.valid_) {
       Env env(GetEnv());
-      assignState(ObjectArena::GetInstance().Dup(env, other.id_.second));
+      int64_t id = ObjectArena::GetInstance().Dup(env, other.id_);
+      if (env.ok()) {
+        assignState(id);
+      }
     }
   }
 
   ArenaRef& operator=(const ArenaRef& other) {
-    if (id_ != other.id_) {
-      Env env(GetEnv());
-      if (id_.first) {
-        ObjectArena::GetInstance().Remove(env, id_.second);
-      }
-      reset();
-      if (other.id_.first) {
-        assignState(ObjectArena::GetInstance().Dup(env, other.id_.second));
+    Env env(GetEnv());
+    clear(env);
+    if (other.valid_ && id_ != other.id_) {
+      if (other.valid_) {
+        int64_t id = ObjectArena::GetInstance().Dup(env, other.id_);
+        if (env.ok()) {
+          assignState(id);
+        }
       }
     }
     return *this;
   }
 
-  ArenaRef(ArenaRef&& other) noexcept : ArenaRef(other.release()) {}
-
-  ArenaRef& operator=(ArenaRef&& other) noexcept {
-    if (id_.second != other.id_.second) {
-      Env env(GetEnv());
-      if (id_.first) {
-        ObjectArena::GetInstance().Remove(env, id_.second);
-      }
+  explicit ArenaRef(ArenaRef&& other) {
+    if (other.valid_) {
       assignState(other.release());
+    }
+  }
+
+  ArenaRef& operator=(ArenaRef&& other) {
+    Env env(GetEnv());
+    clear(env);
+    if (other.valid_ && id_ != other.id_) {
+      if (other.valid_) {
+        assignState(other.release());
+      }
     }
     return *this;
   }
 
   ~ArenaRef() {
-    if (id_.first) {
+    if (valid_) {
       Env env(GetEnv());
-      ObjectArena::GetInstance().Remove(env, id_.second);
+      ObjectArena::GetInstance().Remove(env, id_);
     }
   }
 
-  bool has_value() const { return id_.first; }
+  bool has_value() const { return valid_; }
 
-  Local<Object> get() const {
-    FIREBASE_DEV_ASSERT(id_.first);
-    Env env(GetEnv());
-    return ObjectArena::GetInstance().Get(env, id_.second);
+  Local<Object> get(Env& env) const {
+    FIREBASE_DEV_ASSERT(valid_);
+    return ObjectArena::GetInstance().Get(env, id_);
   }
 
-  void clear() {
-    if (id_.first) {
-      Env env(GetEnv());
-      ObjectArena::GetInstance().Remove(env, id_.second);
+  void clear(Env& env) {
+    if (valid_) {
+      ObjectArena::GetInstance().Remove(env, id_);
       reset();
     }
   }
 
- private:
-  explicit ArenaRef(int64_t id) { assignState(id); }
+  bool is_valid() { return valid_ && id_ >= 0; }
 
+ private:
   int64_t release() {
-    FIREBASE_DEV_ASSERT(id_.first);
-    int64_t id = id_.second;
+    FIREBASE_DEV_ASSERT(valid_);
+    int64_t id = id_;
     reset();
     return id;
   }
 
-  void assignState(int64_t id) { id_ = {true, id}; }
+  void assignState(int64_t id) {
+    valid_ = true;
+    id_ = id;
+  }
 
-  void reset() { id_ = {false, -1}; }
+  void reset() {
+    valid_ = false;
+    id_ = -1;
+  }
 
-  // A pair of variables which indicate the state of ArenaRef. If id_.first set
-  // to
-  std::pair<bool, int64_t> id_{false, -1};
+  // valid_ indicate the state of ArenaRef
+  bool valid_ = false;
+  int64_t id_ = -1;
 };
 
 }  // namespace jni

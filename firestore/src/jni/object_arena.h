@@ -17,7 +17,9 @@
 #ifndef FIREBASE_FIRESTORE_SRC_JNI_OBJECT_ARENA_H_
 #define FIREBASE_FIRESTORE_SRC_JNI_OBJECT_ARENA_H_
 
+#include "firestore/src/jni/hash_map.h"
 #include "firestore/src/jni/object.h"
+#include "firestore/src/jni/ownership.h"
 
 namespace firebase {
 namespace firestore {
@@ -32,6 +34,8 @@ class ObjectArena : public Object {
 
   static ObjectArena& GetInstance();
 
+  static Global<ObjectArena> Create(Env& env);
+
   Local<Object> Get(Env& env, int64_t key);
   int64_t Put(Env& env, const Object& value);
   void Remove(Env& env, int64_t key);
@@ -39,6 +43,7 @@ class ObjectArena : public Object {
 
  private:
   int64_t next_key_ = 0;
+  Global<HashMap> kHashMap;
 };
 
 }  // namespace jni
