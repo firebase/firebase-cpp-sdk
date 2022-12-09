@@ -18,6 +18,9 @@
 
 #import <Foundation/Foundation.h>
 
+namespace firebase {
+namespace util {
+
 std::string GetCustomSemaphorePrefix() {
   NSBundle* mainBundle = [NSBundle mainBundle];
   if (mainBundle != nil) {
@@ -31,3 +34,6 @@ std::string GetCustomSemaphorePrefix() {
   }
   return std::string();
 }
+
+}  // namespace util
+}  // namespace firebase
