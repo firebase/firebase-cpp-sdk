@@ -62,10 +62,15 @@ class Semaphore {
              static_cast<unsigned long long>(  // NOLINT
                  reinterpret_cast<intptr_t>(this)));
 
-    std::string semaphore_name = util::GetCustomSemaphorePrefix();
+#if FIREBASE_PLATFORM_OSX
+    // Sandbox mode is currently only available for macOS.
+    std::string semaphore_name = util::GetSandboxModeSemaphorePrefix();
     if (semaphore_name.empty()) {
       semaphore_name = "/firebase-";
     }
+#else
+    std::string semaphore_name = "/firebase-";
+#endif  // FIREBASE_PLATFORM_OSX
 
     semaphore_name.append(buffer);
     printf("DEDB Final Semaphore name: %s\n", semaphore_name.c_str());

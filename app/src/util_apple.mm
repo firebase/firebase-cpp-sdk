@@ -21,12 +21,12 @@
 namespace firebase {
 namespace util {
 
-std::string GetCustomSemaphorePrefix() {
+std::string GetSandboxModeSemaphorePrefix() {
   NSBundle* mainBundle = [NSBundle mainBundle];
   if (mainBundle != nil) {
     NSDictionary<NSString*, id>* dictionary = [mainBundle infoDictionary];
     if (dictionary != nil) {
-      NSString* customPrefix = [dictionary valueForKey:@"FirebaseSemaphorePrefix"];
+      NSString* customPrefix = [dictionary valueForKey:@"FBAppGroupEntitlementName"];
       if (customPrefix != nil) {
         return std::string(customPrefix.UTF8String);
       }

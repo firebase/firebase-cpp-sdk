@@ -25,7 +25,7 @@ namespace util {
 // Attempts to query the custom semaphore prefix from the application's
 // Info.plist file. Returns an empty string if a custom semahpore prefix
 // wasn't conifgured.
-std::string GetCustomSemaphorePrefix();
+std::string GetSandboxModeSemaphorePrefix();
 
 }  // namespace util
 }  // namespace firebase
