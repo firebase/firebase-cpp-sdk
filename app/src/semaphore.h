@@ -93,7 +93,7 @@ class Semaphore {
     bool success = sem_init(semaphore_, 0, initial_count) == 0;
     assert(success);
     (void)success;
-    assert(semaphore_ != -1);
+    assert(semaphore_ != nullptr);
 #else
     semaphore_ = CreateSemaphore(nullptr,        // default security attributes
                                  initial_count,  // initial count
