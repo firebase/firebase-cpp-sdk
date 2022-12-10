@@ -73,7 +73,6 @@ class Semaphore {
 #endif  // FIREBASE_PLATFORM_OSX
 
     semaphore_name.append(buffer);
-    printf("DEDB Final Semaphore name: %s\n", semaphore_name.c_str());
 
     semaphore_ = sem_open(semaphore_name.c_str(),
                           O_CREAT | O_EXCL,   // Create if it doesn't exist.
@@ -87,19 +86,21 @@ class Semaphore {
     bool success = (sem_unlink(buffer) == 0);
     assert(success);
     (void)success;
+    assert(semaphore_ != SEM_FAILED);
 #elif !FIREBASE_PLATFORM_WINDOWS
     // Android requires unnamed semaphores, and does not support sem_open
     semaphore_ = &semaphore_value_;
     bool success = sem_init(semaphore_, 0, initial_count) == 0;
     assert(success);
     (void)success;
+    assert(semaphore_ != -1);
 #else
     semaphore_ = CreateSemaphore(nullptr,        // default security attributes
                                  initial_count,  // initial count
                                  LONG_MAX,       // maximum count
                                  nullptr);       // unnamed semaphore
-#endif
     assert(semaphore_ != nullptr);
+#endif
   }
 
   ~Semaphore() {
