@@ -30,4 +30,4 @@ std::string GetSandboxModeSemaphorePrefix();
 }  // namespace util
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_SRC_UTIL_IOS_H_
+#endif  // FIREBASE_APP_SRC_UTIL_APPLE_H_
