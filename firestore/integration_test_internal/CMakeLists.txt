@@ -153,6 +153,7 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_SUPPORT_SRCS
     src/firestore_integration_test.cc
     src/util/bundle_builder.cc
     src/util/future_test_util.cc
+    src/util/locate_emulator.cc
     src/util/integration_test_util.cc
 )
 
