@@ -195,12 +195,14 @@ jobs:
         if [[ "${{ github.event.schedule }}" == "0 11 * * *" ]]; then
           # at 3am PST/4am PDT. Running  firestore desktop integration test aginst tip-of-tree ios repo
           matrix_platform="Desktop"
+          matrix_os=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k os -o "ubuntu-20.04,macos-12")
         else
           matrix_platform=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k platform -o "${{github.event.inputs.platforms}}" --apis ${apis} )
+          matrix_os=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k os -o "${{github.event.inputs.operating_systems}}")
         fi
         echo "apis=${apis}" >> $GITHUB_OUTPUT
         echo "matrix_platform=${matrix_platform}" >> $GITHUB_OUTPUT
-        echo "matrix_os=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k os -o "${{github.event.inputs.operating_systems}}")" >> $GITHUB_OUTPUT
+        echo "matrix_os=${matrix_os}" >> $GITHUB_OUTPUT
         echo "matrix_arch_macos=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k architecture_macos)" >> $GITHUB_OUTPUT
         echo "matrix_arch_windows_linux=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k architecture_windows_linux)" >> $GITHUB_OUTPUT
         # Combine architecture_macos and architecture_windows_linux to get a list of all architectures for the build matrix.
