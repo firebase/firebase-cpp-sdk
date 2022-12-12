@@ -642,6 +642,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### 10.3.0
+-   Changes
+    - General (Android): Update to Firebase Android BoM version 31.1.1.
+    - General (iOS): Update to Firebase Cocoapods version 10.3.0.
+
 ### 10.2.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 31.1.0.
@@ -650,7 +655,8 @@ code.
     - NOTE: The next major release of the Firebase C++ SDK will drop support
       for C++11, setting the new minimum C++ version to C++14. For more
       information please see our
-      [C++ Language Standard Support Criteria](https://opensource.google/documentation/policies/cplusplus-support#c_language_standard).
+      [C++ Language Standard Support
+      Criteria](https://opensource.google/documentation/policies/cplusplus-support#c_language_standard).
 
 ### 10.1.0
 -   Changes
