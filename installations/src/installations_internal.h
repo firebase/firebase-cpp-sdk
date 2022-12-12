@@ -24,7 +24,7 @@
 #elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #include "installations/src/ios/installations_ios.h"
 #else
-#include "installations/src/stub/installations_stub.h"
+#include "installations/src/desktop/installations_desktop.h"
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
 

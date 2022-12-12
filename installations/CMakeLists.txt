@@ -14,6 +14,34 @@
 
 # CMake file for the firebase_installations library
 
+binary_to_array("installations_request_resource"
+    "${CMAKE_CURRENT_LIST_DIR}/src/desktop/rest/installations_request.fbs"
+    "firebase::installations"
+    "${FIREBASE_GEN_FILE_DIR}/installations")
+binary_to_array("installations_response_resource"
+    "${CMAKE_CURRENT_LIST_DIR}/src/desktop/rest/installations_response.fbs"
+    "firebase::installations"
+    "${FIREBASE_GEN_FILE_DIR}/installations")
+
+# Build the generated header from the flatbuffer schema files.
+set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
+    "--no-union-value-namespacing"
+    "--gen-object-api"
+    "--cpp-ptr-type" "flatbuffers::unique_ptr")
+set(flatbuffer_schemas
+    ${CMAKE_CURRENT_LIST_DIR}/src/desktop/rest/installations_request.fbs
+    ${CMAKE_CURRENT_LIST_DIR}/src/desktop/rest/installations_response.fbs)
+# Because of a bug in the version of Flatbuffers we are pinned to,
+# additional flags need to be set.
+set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
+build_flatbuffers("${flatbuffer_schemas}"
+                  ""
+                  "installations_generate_request_fbs"
+                  "${FIREBASE_FLATBUFFERS_DEPENDENCIES}"
+                  "${FIREBASE_GEN_FILE_DIR}/installations"
+                  ""
+                  "")
+
 # Common source files used by all platforms
 set(common_SRCS
     src/installations.cc)
@@ -28,7 +56,16 @@ set(ios_SRCS
 
 # Source files used by the desktop implementation.
 set(desktop_SRCS
-    src/stub/installations_stub.cc)
+    src/desktop/installations_desktop.cc
+    src/desktop/rest/installations_request.cc
+    src/desktop/rest/installations_response.cc
+    src/desktop/rest/installations_rest.cc
+    ${installations_request_resource_source}
+    ${installations_request_resource_header}
+    ${installations_response_resource_source}
+    ${installations_response_resource_header}
+    ${FIREBASE_GEN_FILE_DIR}/installations/installations_request_generated.h
+    ${FIREBASE_GEN_FILE_DIR}/installations/installations_response_generated.h)
 
 if(ANDROID)
   set(installations_platform_SRCS
@@ -41,6 +78,13 @@ else()
       "${desktop_SRCS}")
 endif()
 
+set(additional_include_DIR
+      ${FLATBUFFERS_SOURCE_DIR}/include
+      ${PROJECT_BINARY_DIR}
+      ${PROJECT_BINARY_DIR}/..)
+set(additional_link_LIB
+    firebase_rest_lib)
+
 add_library(firebase_installations STATIC
     ${common_SRCS}
     ${installations_platform_SRCS})
@@ -51,6 +95,9 @@ set_property(TARGET firebase_installations PROPERTY FOLDER "Firebase Cpp")
 target_link_libraries(firebase_installations
   PUBLIC
     firebase_app
+  PRIVATE
+    ${additional_link_LIB}
+    ${additional_include_DIR}
 )
 # Public headers all refer to each other relative to the src/include directory,
 # while private headers are relative to the entire C++ SDK directory.
