@@ -78,14 +78,14 @@ cmake -DFIRESTORE_DEP_SOURCE=555555 ..
 
 ## IDE Integration
 
-Open up the repo root directory from `CLion` should load all symbols for the SDK itsel should 
-load all symbols for the SDK itself. Once loaded, you can right load on 
-`firestore/integration_test_internal/CMakeLists.txt` and `load project` to load the tests into
-the IDE.
+Open up the repo root directory from `CLion` should load all symbols for the SDK itself.
+Once loaded, you can right click on `firestore/integration_test_internal/CMakeLists.txt`
+and `load project` to load the tests into the IDE.
 
 # Android building and testing
 
-Once Android NDK is installed and added to `local.properties`, and `google-services.json`,
+Once Android NDK is installed and added to `local.properties` (should be same as the one
+you use for Android SDK development), and `google-services.json`,
 is added to `integration_test_internal`, it should be possible to build the testing
 Android App directly with `gradlew`:
 
