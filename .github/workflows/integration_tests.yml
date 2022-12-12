@@ -184,17 +184,17 @@ jobs:
         # To feed input into the job matrix, we first need to convert to a JSON
         # list. Then we can use fromJson to define the field in the matrix for the tests job.
         if [[ "${{ github.event.schedule }}" == "0 9 * * *" ]]; then
-          # at 1am PST/2am PDT. Running integration tests and generate test report for all testapps except firestore
+          # at 1am PST / 2am PDT. Run integration tests and generate test report for all testapps except firestore
           apis="admob,analytics,auth,database,dynamic_links,functions,gma,installations,messaging,remote_config,storage"
         elif [[ "${{ github.event.schedule }}" == "0 10 * * *" || "${{ github.event.schedule }}" == "0 11 * * *" ]]; then
-          # at 2am PST/3am PDT and 3am PST/4am PDT. Running integration tests for firestore and generate test report.
+          # at 2am PST / 3am PDT and 3am PST / 4am PDT. Run integration tests for firestore and generate test report.
           apis="firestore"
         else
           apis=$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k apis -o "${{github.event.inputs.apis}}" ${TEST_MATRIX_PARAM} )
         fi
         if [[ "${{ github.event.schedule }}" == "0 11 * * *" ]]; then
-          # at 3am PST/4am PDT. Running  firestore desktop integration test aginst tip-of-tree ios repo
-          matrix_platform="Desktop"
+          # at 3am PST / 4am PDT. Run firestore desktop integration test aginst tip-of-tree ios repo
+          matrix_platform=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k platform -o "Desktop" --apis ${apis} )
           matrix_os=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k os -o "ubuntu-20.04,macos-12")
         else
           matrix_platform=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k platform -o "${{github.event.inputs.platforms}}" --apis ${apis} )
@@ -328,7 +328,7 @@ jobs:
             fi
           fi
           if [[ "${{ github.event.schedule }}" == "0 11 * * *" ]]; then
-            # at 3am PST/4am PDT. Running firestore desktop integration test aginst tip-of-tree ios repo
+            # at 3am PST / 4am PDT. Run firestore desktop integration test aginst tip-of-tree ios repo
             additional_flags+=(--cmake_flag=-DFIRESTORE_DEP_SOURCE=TIP)
           fi
           python scripts/gha/build_testapps.py --p Desktop \
@@ -1375,7 +1375,7 @@ jobs:
             additional_flags=(--build_against sdk)
           else
             if [[ "${{ github.event.schedule }}" == "0 11 * * *" ]]; then
-              # at 3am PST/4am PDT. Running firestore desktop integration test aginst tip-of-tree ios repo
+              # at 3am PST / 4am PDT. Run firestore desktop integration test aginst tip-of-tree ios repo
               additional_flags=(--build_against tip)
             else
               additional_flags=(--build_against repo)
