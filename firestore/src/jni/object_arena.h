@@ -34,7 +34,7 @@ class ObjectArena : public Object {
 
   static ObjectArena& GetInstance();
 
-  static Global<ObjectArena> Create(Env& env);
+  explicit ObjectArena(Env& env);
 
   Local<Object> Get(Env& env, int64_t key);
   int64_t Put(Env& env, const Object& value);
@@ -43,7 +43,7 @@ class ObjectArena : public Object {
 
  private:
   int64_t next_key_ = 0;
-  Global<HashMap> kHashMap;
+  Global<HashMap> hash_map_;
 };
 
 }  // namespace jni

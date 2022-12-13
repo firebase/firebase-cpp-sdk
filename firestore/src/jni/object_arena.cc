@@ -31,33 +31,29 @@ Global<ObjectArena> kInstance;
 }  // namespace
 
 void ObjectArena::Initialize(Env& env, Loader& loader) {
-  kInstance = ObjectArena::Create(env);
+  kInstance = ObjectArena(env);
 }
 
-Global<ObjectArena> ObjectArena::Create(Env& env) {
-  ObjectArena ob;
-  ob.kHashMap = HashMap::Create(env);
-  return ob;
-}
+ObjectArena::ObjectArena(Env& env) : hash_map_(HashMap::Create(env)) {}
 
 ObjectArena& ObjectArena::GetInstance() { return kInstance; }
 
 Local<Object> ObjectArena::Get(Env& env, int64_t key) {
-  return kHashMap.Get(env, Long::Create(env, key));
+  return hash_map_.Get(env, Long::Create(env, key));
 }
 
 int64_t ObjectArena::Put(Env& env, const Object& value) {
-  kHashMap.Put(env, Long::Create(env, next_key_), value);
+  hash_map_.Put(env, Long::Create(env, next_key_), value);
   return next_key_++;
 }
 
 void ObjectArena::Remove(Env& env, int64_t key) {
-  kHashMap.Remove(env, Long::Create(env, key));
+  hash_map_.Remove(env, Long::Create(env, key));
 }
 
 int64_t ObjectArena::Dup(Env& env, int64_t key) {
-  kHashMap.Put(env, Long::Create(env, next_key_),
-               kHashMap.Get(env, Long::Create(env, key)));
+  hash_map_.Put(env, Long::Create(env, next_key_),
+                hash_map_.Get(env, Long::Create(env, key)));
   return next_key_++;
 }
 

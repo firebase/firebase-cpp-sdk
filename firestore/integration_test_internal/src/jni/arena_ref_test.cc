@@ -15,6 +15,8 @@
  */
 
 #include "firestore/src/jni/arena_ref.h"
+#include "firestore/src/jni/boolean.h"
+
 #include "firestore_integration_test.h"
 
 namespace firebase {
@@ -26,8 +28,32 @@ using ArenaRefTest = FirestoreIntegrationTest;
 
 TEST_F(ArenaRefTest, ConstructorTest) {
   Env env(GetEnv());
-  ArenaRef ref(ObjectArena::Create(env));
-  EXPECT_TRUE(ref.is_valid());
+  auto boxed_ptr = Boolean::Create(env, true);
+  ArenaRef ref1(boxed_ptr);
+  EXPECT_TRUE(ref1.is_valid());
+
+  ArenaRef ref2(ref1);
+  EXPECT_TRUE(ref1.is_valid());
+  EXPECT_TRUE(ref2.is_valid());
+
+  ArenaRef ref3(std::move(ref2));
+  EXPECT_TRUE(ref3.is_valid());
+}
+
+TEST_F(ArenaRefTest, AssignmentOperatorTest) {
+  Env env(GetEnv());
+  auto boxed_ptr = Boolean::Create(env, true);
+  ArenaRef ref1(boxed_ptr);
+  EXPECT_TRUE(ref1.is_valid());
+
+  ArenaRef ref2, ref3;
+
+  ref2 = ref1;
+  EXPECT_TRUE(ref1.is_valid());
+  EXPECT_TRUE(ref2.is_valid());
+
+  ref3 = std::move(ref2);
+  EXPECT_TRUE(ref3.is_valid());
 }
 
 }  // namespace
