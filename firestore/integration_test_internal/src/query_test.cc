@@ -660,7 +660,6 @@ TEST_F(QueryTest, TestQueriesCanUseArrayContainsFilters) {
 }
 
 TEST_F(QueryTest, TestQueriesCanUseInFilters) {
-  GTEST_SKIP() << "Skip until double free bug (b/260406277) is fixed.";
   CollectionReference collection = Collection(
       {{"a", {{"zip", FieldValue::Integer(98101)}}},
        {"b", {{"zip", FieldValue::Integer(98102)}}},
