@@ -16,6 +16,7 @@
 
 #include "firestore/src/jni/object_arena.h"
 
+#include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/hash_map.h"
 #include "firestore/src/jni/loader.h"
@@ -34,7 +35,12 @@ void ObjectArena::Initialize(Env& env, Loader& loader) {
   kInstance = ObjectArena(env);
 }
 
-ObjectArena::ObjectArena(Env& env) : hash_map_(HashMap::Create(env)) {}
+ObjectArena::ObjectArena(Env& env) : hash_map_(HashMap::Create(env)) {
+    if (! env.ok()) {
+      env.get()->ExceptionDescribe();
+    }
+    SIMPLE_HARD_ASSERT(hash_map_, "zzyzx hash_map_ is null");
+}
 
 ObjectArena& ObjectArena::GetInstance() { return kInstance; }
 
