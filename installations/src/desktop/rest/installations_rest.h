@@ -36,7 +36,7 @@ namespace internal {
 const char* const kServerURL =
     "https://firebaseinstallations.googleapis.com/v1/projects";
 const char* const kHTTPMethodPost = "POST";
-const char* const kContentTypeHeaderName = "content-type";
+const char* const kContentTypeHeaderName = "Content-Type";
 const char* const kAcceptHeaderName = "Accept";
 const char* const kContentTypeValue = "application/x-protobuffer";
 const char* const kJSONContentTypeValue = "application/json";

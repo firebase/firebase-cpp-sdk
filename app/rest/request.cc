@@ -44,8 +44,16 @@ void Request::set_post_fields(const char* data) {
 }
 
 std::string Request::ToString() {
-  std::string output = options_.url + '\n';
+  std::string output = "\n";
+  output += "Url: " + options_.url + '\n';
   size_t cached_offset = read_buffer_offset_;
+  output += "Method: " + options_.method + "\n";
+  output += "Headers {\n";
+  for (auto it = options_.header.begin();
+       it != options_.header.end(); ++it) {
+    output += "  " +it->first + ": " + it->second + "\n";
+  }
+  output += "}\n";
   if (!ReadBodyIntoString(&output)) {
     output += "*** aborted ***\n";
   }

@@ -57,7 +57,7 @@ void InstallationsREST::SetupRestRequest(const App& app) {
   fis_request_.set_url(server_url.c_str());
   fis_request_.set_method(kHTTPMethodPost);
   fis_request_.add_header(kContentTypeHeaderName, kJSONContentTypeValue);
-  fis_request_.add_header(kAcceptHeaderName, kJSONContentTypeValue);
+  //fis_request_.add_header(kAcceptHeaderName, kJSONContentTypeValue);
   fis_request_.add_header(kContentEncodingName, kGzipContentEncoding);
   fis_request_.add_header(kXGoogleApiKeyName, api_key_.c_str());
   //fis_request_.options().timeout_ms = fetch_timeout_in_milliseconds;
@@ -67,7 +67,7 @@ void InstallationsREST::SetupRestRequest(const App& app) {
   fis_request_.SetAuthVersion(kAuthVersion);
   fis_request_.SetSdkVersion(kInstallationsSDKVersion);
   
-
+  fis_request_.set_verbose(true);
   fis_request_.UpdatePost();
 }
 
