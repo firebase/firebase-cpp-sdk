@@ -68,6 +68,14 @@ libs/linux/ARCH/ABI       | Linux static libraries (desktop or stub
 libs/windows              | Windows static libraries (desktop or stub
 |                         | implementations, MSVC 2019+)
 
+## C++ Language Standards
+
+The Firebase C++ SDK supports the C++11 language standard.
+
+Note: The next major release of the Firebase C++ SDK will set the new minimum
+C++ version to C++14. For more information please see our
+[C++ Language Standard Support Criteria](https://opensource.google/documentation/policies/cplusplus-support#c_language_standard).
+
 ## Library / XCFramework Dependencies
 
 Each feature has dependencies upon libraries in this SDK and components
@@ -79,7 +87,7 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-All Firebase SDKs          | platform(com.google.firebase:firebase-bom:31.0.2)
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:31.1.1)
 |                          | (Android Bill of Materials)
 Firebase AdMob             | libfirebase_admob.a
 | (deprecated)             | libfirebase_app.a
@@ -224,50 +232,50 @@ Feature                    | Required Frameworks and Cocoapods
 -------------------------- | ---------------------------------------
 Firebase AdMob             | firebase_admob.xcframework
 | (deprecated)             | firebase.xcframework
-|                          | Firebase/Analytics Cocoapod (10.1.0)
+|                          | Firebase/Analytics Cocoapod (10.3.0)
 |                          | Google-Mobile-Ads-SDK Cocoapod (7.69.0-cppsdk3)
 Firebase Analytics         | firebase_analytics.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Analytics Cocoapod (10.1.0)
+|                          | Firebase/Analytics Cocoapod (10.3.0)
 Firebase Authentication    | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Auth Cocoapod (10.1.0)
+|                          | Firebase/Auth Cocoapod (10.3.0)
 Firebase Dynamic Links     | firebase_dynamic_links.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/DynamicLinks Cocoapod (10.1.0)
+|                          | Firebase/DynamicLinks Cocoapod (10.3.0)
 Cloud Firestore            | firebase_firestore.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Firestore Cocoapod (10.1.0)
-|                          | Firebase/Auth Cocoapod (10.1.0)
+|                          | Firebase/Firestore Cocoapod (10.3.0)
+|                          | Firebase/Auth Cocoapod (10.3.0)
 Firebase Functions         | firebase_functions.xcframework
 |                          | firebase_auth.xcframework (optional)
 |                          | firebase.xcframework
-|                          | Firebase/Functions Cocoapod (10.1.0)
-|                          | Firebase/Auth Cocoapod (10.1.0)
+|                          | Firebase/Functions Cocoapod (10.3.0)
+|                          | Firebase/Auth Cocoapod (10.3.0)
 Google Mobile Ads          | firebase_gma.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Analytics Cocoapod (10.1.0)
+|                          | Firebase/Analytics Cocoapod (10.3.0)
 |                          | Google-Mobile-Ads-SDK Cocoapod (9.11.0.1)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
-|                          | FirebaseInstallations Cocoapod (10.1.0)
+|                          | FirebaseInstallations Cocoapod (10.3.0)
 Firebase Cloud Messaging   | firebase_messaging.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Messaging Cocoapod (10.1.0)
+|                          | Firebase/Messaging Cocoapod (10.3.0)
 Firebase Realtime Database | firebase_database.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Database Cocoapod (10.1.0)
-|                          | Firebase/Auth Cocoapod (10.1.0)
+|                          | Firebase/Database Cocoapod (10.3.0)
+|                          | Firebase/Auth Cocoapod (10.3.0)
 Firebase Remote Config     | firebase_remote_config.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/RemoteConfig Cocoapod (10.1.0)
+|                          | Firebase/RemoteConfig Cocoapod (10.3.0)
 Firebase Storage           | firebase_storage.xcframework
 |                          | firebase_auth.xcframework
 |                          | firebase.xcframework
-|                          | Firebase/Storage Cocoapod (10.1.0)
-|                          | Firebase/Auth Cocoapod (10.1.0)
+|                          | Firebase/Storage Cocoapod (10.3.0)
+|                          | Firebase/Auth Cocoapod (10.3.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
 the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
@@ -292,50 +300,50 @@ Feature                    | Required Libraries and Cocoapods
 -------------------------- | -----------------------------------------
 Firebase AdMob             | libfirebase_admob.a
 | (deprecated)             | libfirebase_app.a
-|                          | Firebase/Analytics Cocoapod (10.1.0)
+|                          | Firebase/Analytics Cocoapod (10.3.0)
 |                          | Google-Mobile-Ads-SDK Cocoapod (7.69.0-cppsdk3)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
-|                          | Firebase/Analytics Cocoapod (10.1.0)
+|                          | Firebase/Analytics Cocoapod (10.3.0)
 Firebase Authentication    | libfirebase_auth.a
 |                          | libfirebase_app.a
-|                          | Firebase/Auth Cocoapod (10.1.0)
+|                          | Firebase/Auth Cocoapod (10.3.0)
 Firebase Dynamic Links     | libfirebase_dynamic_links.a
 |                          | libfirebase_app.a
-|                          | Firebase/DynamicLinks Cocoapod (10.1.0)
+|                          | Firebase/DynamicLinks Cocoapod (10.3.0)
 Cloud Firestore            | libfirebase_firestore.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Firestore Cocoapod (10.1.0)
-|                          | Firebase/Auth Cocoapod (10.1.0)
+|                          | Firebase/Firestore Cocoapod (10.3.0)
+|                          | Firebase/Auth Cocoapod (10.3.0)
 Firebase Functions         | libfirebase_functions.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a (optional)
-|                          | Firebase/Functions Cocoapod (10.1.0)
-|                          | Firebase/Auth Cocoapod (10.1.0)
+|                          | Firebase/Functions Cocoapod (10.3.0)
+|                          | Firebase/Auth Cocoapod (10.3.0)
 Google Mobile Ads          | libfirebase_gma.a
 |                          | libfirebase_app.a
-|                          | Firebase/Analytics Cocoapod (10.1.0)
+|                          | Firebase/Analytics Cocoapod (10.3.0)
 |                          | Google-Mobile-Ads-SDK Cocoapod (9.11.0.1)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
-|                          | FirebaseInstallations Cocoapod (10.1.0)
+|                          | FirebaseInstallations Cocoapod (10.3.0)
 Firebase Cloud Messaging   | libfirebase_messaging.a
 |                          | libfirebase_app.a
-|                          | Firebase/CloudMessaging Cocoapod (10.1.0)
+|                          | Firebase/CloudMessaging Cocoapod (10.3.0)
 Firebase Realtime Database | libfirebase_database.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Database Cocoapod (10.1.0)
-|                          | Firebase/Auth Cocoapod (10.1.0)
+|                          | Firebase/Database Cocoapod (10.3.0)
+|                          | Firebase/Auth Cocoapod (10.3.0)
 Firebase Remote Config     | libfirebase_remote_config.a
 |                          | libfirebase_app.a
-|                          | Firebase/RemoteConfig Cocoapod (10.1.0)
+|                          | Firebase/RemoteConfig Cocoapod (10.3.0)
 Firebase Storage           | libfirebase_storage.a
 |                          | libfirebase_app.a
 |                          | libfirebase_auth.a
-|                          | Firebase/Storage Cocoapod (10.1.0)
-|                          | Firebase/Auth Cocoapod (10.1.0)
+|                          | Firebase/Storage Cocoapod (10.3.0)
+|                          | Firebase/Auth Cocoapod (10.3.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
 the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
@@ -636,8 +644,23 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
-    - General (Desktop): Linux x86 libraries have been fixed.
     - Analytics: Add a new function `GetSessionId`.
+
+### 10.3.0
+-   Changes
+    - General (Android): Update to Firebase Android BoM version 31.1.1.
+    - General (iOS): Update to Firebase Cocoapods version 10.3.0.
+
+### 10.2.0
+-   Changes
+    - General (Android): Update to Firebase Android BoM version 31.1.0.
+    - General (iOS): Update to Firebase Cocoapods version 10.2.0.
+    - General (Desktop): Linux x86 libraries have been fixed.
+    - NOTE: The next major release of the Firebase C++ SDK will drop support
+      for C++11, setting the new minimum C++ version to C++14. For more
+      information please see our
+      [C++ Language Standard Support
+      Criteria](https://opensource.google/documentation/policies/cplusplus-support#c_language_standard).
 
 ### 10.1.0
 -   Changes

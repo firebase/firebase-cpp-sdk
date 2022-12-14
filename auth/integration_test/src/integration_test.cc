@@ -862,6 +862,7 @@ class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
 TEST_F(FirebaseAuthTest, TestPhoneAuth) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_TVOS;
+  SKIP_TEST_ON_ANDROID_EMULATOR;
 
 #if TARGET_OS_IPHONE
   // Note: This test requires interactivity on iOS, as it displays a CAPTCHA.

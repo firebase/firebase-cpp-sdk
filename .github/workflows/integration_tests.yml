@@ -20,7 +20,7 @@ on:
         required: true
       operating_systems:
         description: 'CSV of VMs to run on'
-        default: 'ubuntu-latest,windows-latest,macos-12'
+        default: 'ubuntu-20.04,windows-latest,macos-12'
         required: true
       desktop_ssl_variants:
         description: 'CSV of desktop SSL variants to use'
@@ -55,7 +55,7 @@ env:
 
 jobs:
   check_and_prepare:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     outputs:
       trigger: ${{ steps.set_outputs.outputs.trigger }}
       github_ref: ${{ steps.set_outputs.outputs.github_ref }}
@@ -250,7 +250,7 @@ jobs:
         # Do not attempt to use arm64 on Windows or Linux.
         - os: windows-latest
           arch: arm64
-        - os: ubuntu-latest
+        - os: ubuntu-20.04
           arch: arm64
         # Do not attempt to use x86 on Mac.
         - os: macos-12
@@ -698,7 +698,7 @@ jobs:
         # Do not attempt to use arm64 on Windows or Linux.
         - os: windows-latest
           arch: arm64
-        - os: ubuntu-latest
+        - os: ubuntu-20.04
           arch: arm64
         # Do not attempt to use x86 on Mac.
         - os: macos-12
@@ -817,7 +817,7 @@ jobs:
         runner_label: ['${{ needs.check_and_prepare.outputs.runner_label_macos_arm64 }}']
         exclude:
         # Don't run Linux or Windows tests on the Mac arm64 runner.
-        - os: ubuntu-latest
+        - os: ubuntu-20.04
           runner_label: ${{ needs.check_and_prepare.outputs.runner_label_macos_arm64 }}
         - os: windows-latest
           runner_label: ${{ needs.check_and_prepare.outputs.runner_label_macos_arm64 }}
@@ -1318,7 +1318,7 @@ jobs:
   summarize_results:
     name: "summarize-results"
     needs: [check_and_prepare, test_desktop, test_desktop_custom_runners, test_android, test_ios, test_tvos]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     if: ${{ !cancelled() }}
     steps:
       - uses: actions/checkout@v3
