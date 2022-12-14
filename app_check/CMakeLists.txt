@@ -57,6 +57,35 @@ set(ios_SRCS
   src/stub/safety_net_provider_stub.cc
 )
 
+# Flatbuffer resource files used by desktop
+binary_to_array("debug_token_request_resource"
+    "${CMAKE_CURRENT_LIST_DIR}/src/desktop/debug_token_request.fbs"
+    "firebase::app_check"
+    "${FIREBASE_GEN_FILE_DIR}/app_check")
+binary_to_array("token_response_resource"
+    "${CMAKE_CURRENT_LIST_DIR}/src/desktop/token_response.fbs"
+    "firebase::app_check"
+    "${FIREBASE_GEN_FILE_DIR}/app_check")
+
+# Build the generated header from the flatbuffer schema files.
+set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
+    "--no-union-value-namespacing"
+    "--gen-object-api"
+    "--cpp-ptr-type" "flatbuffers::unique_ptr")
+set(flatbuffer_schemas
+    ${CMAKE_CURRENT_LIST_DIR}/src/desktop/debug_token_request.fbs
+    ${CMAKE_CURRENT_LIST_DIR}/src/desktop/token_response.fbs)
+# Because of a bug in the version of Flatbuffers we are pinned to,
+# additional flags need to be set.
+set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
+build_flatbuffers("${flatbuffer_schemas}"
+                  ""
+                  "app_check_generate_fbs"
+                  "${FIREBASE_FLATBUFFERS_DEPENDENCIES}"
+                  "${FIREBASE_GEN_FILE_DIR}/app_check"
+                  ""
+                  "")
+
 # Source files used by the desktop implementation.
 set(desktop_SRCS
   src/desktop/app_check_desktop.cc
@@ -64,6 +93,14 @@ set(desktop_SRCS
   # Supported providers
   src/desktop/debug_provider_desktop.cc
   src/desktop/debug_provider_desktop.h
+  src/desktop/debug_token_request.h
+  ${debug_token_request_resource_source}
+  ${debug_token_request_resource_header}
+  ${FIREBASE_GEN_FILE_DIR}/app_check/debug_token_request_generated.h
+  src/desktop/token_response.h
+  ${token_response_resource_source}
+  ${token_response_resource_header}
+  ${FIREBASE_GEN_FILE_DIR}/app_check/token_response_generated.h
   # Unsupported providers
   src/stub/app_attest_provider_stub.cc
   src/stub/device_check_provider_stub.cc

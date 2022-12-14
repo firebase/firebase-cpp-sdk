@@ -12,31 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_APP_CHECK_SRC_DESKTOP_DEBUG_PROVIDER_DESKTOP_H_
-#define FIREBASE_APP_CHECK_SRC_DESKTOP_DEBUG_PROVIDER_DESKTOP_H_
+#ifndef FIREBASE_APP_CHECK_SRC_DESKTOP_TOKEN_RESPONSE_H_
+#define FIREBASE_APP_CHECK_SRC_DESKTOP_TOKEN_RESPONSE_H_
 
-#include <map>
+#include <string>
 
-#include "firebase/app_check.h"
+#include "app/rest/response_json.h"
+#include "app_check/token_response_generated.h"
+#include "app_check/token_response_resource.h"
+#include "firebase/app.h"
 
 namespace firebase {
 namespace app_check {
 namespace internal {
 
-class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
+class TokenResponse : public firebase::rest::ResponseJson<fbs::TokenResponse,
+                                                          fbs::TokenResponseT> {
  public:
-  DebugAppCheckProviderFactoryInternal();
+  TokenResponse() : ResponseJson(token_response_resource_data) {}
 
-  virtual ~DebugAppCheckProviderFactoryInternal();
-
-  AppCheckProvider* CreateProvider(App* app) override;
-
- private:
-  std::map<App*, AppCheckProvider*> provider_map_;
+  const std::string& token() { return application_data_->token; }
+  const std::string& ttl() { return application_data_->ttl; }
 };
 
 }  // namespace internal
 }  // namespace app_check
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CHECK_SRC_DESKTOP_DEBUG_PROVIDER_DESKTOP_H_
+#endif  // FIREBASE_APP_CHECK_SRC_DESKTOP_TOKEN_RESPONSE_H_
