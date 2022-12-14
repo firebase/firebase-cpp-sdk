@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   prepare_matrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     outputs:
       matrix_os: ${{ steps.export-result.outputs.matrix_os }}
       matrix_build_type: ${{ steps.export-result.outputs.matrix_build_type }}
@@ -29,7 +29,7 @@ jobs:
       matrix_xcode_version: ${{ steps.export-result.outputs.xcode_version }}
       matrix_python_version: ${{ steps.export-result.outputs.python_version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: false
       - name: Use expanded matrix
@@ -38,12 +38,13 @@ jobs:
           echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
       - id: export-result
         run: |
-          echo "::set-output name=matrix_os::$( python scripts/gha/print_matrix_configuration.py -w desktop -k os ${EXPANDED_MATRIX_PARAM})"
-          echo "::set-output name=matrix_build_type::$( python scripts/gha/print_matrix_configuration.py -w desktop -k build_type ${EXPANDED_MATRIX_PARAM})"
-          echo "::set-output name=matrix_architecture::$( python scripts/gha/print_matrix_configuration.py -w desktop -k architecture ${EXPANDED_MATRIX_PARAM})"
-          echo "::set-output name=msvc_runtime::$( python scripts/gha/print_matrix_configuration.py -w desktop -k msvc_runtime ${EXPANDED_MATRIX_PARAM})"
-          echo "::set-output name=xcode_version::$( python scripts/gha/print_matrix_configuration.py -w desktop -k xcode_version ${EXPANDED_MATRIX_PARAM})"
-          echo "::set-output name=python_version::$( python scripts/gha/print_matrix_configuration.py -w desktop -k python_version ${EXPANDED_MATRIX_PARAM})"
+          echo "matrix_os=$( python scripts/gha/print_matrix_configuration.py -w desktop -k os ${EXPANDED_MATRIX_PARAM})" >> $GITHUB_OUTPUT
+          echo "matrix_build_type=$( python scripts/gha/print_matrix_configuration.py -w desktop -k build_type ${EXPANDED_MATRIX_PARAM})" >> $GITHUB_OUTPUT
+          echo "matrix_architecture=$( python scripts/gha/print_matrix_configuration.py -w desktop -k architecture ${EXPANDED_MATRIX_PARAM})" >> $GITHUB_OUTPUT
+          echo "msvc_runtime=$( python scripts/gha/print_matrix_configuration.py -w desktop -k msvc_runtime ${EXPANDED_MATRIX_PARAM})" >> $GITHUB_OUTPUT
+          echo "xcode_version=$( python scripts/gha/print_matrix_configuration.py -w desktop -k xcode_version ${EXPANDED_MATRIX_PARAM})" >> $GITHUB_OUTPUT
+          echo "python_version=$( python scripts/gha/print_matrix_configuration.py -w desktop -k python_version ${EXPANDED_MATRIX_PARAM})" >> $GITHUB_OUTPUT
+
   build:
     name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime}}
     runs-on: ${{ matrix.os }}
@@ -69,7 +70,7 @@ jobs:
             msvc_runtime: "dynamic"
         exclude:
           # msvc_runtime excludes
-          - os: ubuntu-latest
+          - os: ubuntu-20.04
             msvc_runtime: "dynamic"
           - os: macos-12
             msvc_runtime: "dynamic"
@@ -77,16 +78,16 @@ jobs:
           - os: macos-12
             architecture: "x86"
           # Xcode excludes -- allow only one on osx and linux
-          - os: ubuntu-latest
+          - os: ubuntu-20.04
             xcode_version: "11.7"
           - os: windows-latest
             xcode_version: "11.7"
-          - os: ubuntu-latest
+          - os: ubuntu-20.04
             xcode_version: "12.5.1"
           - os: windows-latest
             xcode_version: "12.5.1"
           # arm64 is only for macos
-          - os: ubuntu-latest
+          - os: ubuntu-20.04
             architecture: "arm64"
           - os: windows-latest
             architecture: "arm64"
@@ -109,7 +110,7 @@ jobs:
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
       
@@ -149,7 +150,7 @@ jobs:
 
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ matrix.architecture }}-${{ env.VCPKG_SUFFIX }}-${{ matrix.msvc_runtime }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}${{ env.VCPKG_EXTRA_HASH }}
@@ -157,28 +158,16 @@ jobs:
       - name: Cache ccache files
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
         id: cache_ccache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ccache_dir
           key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}${{ env.VCPKG_EXTRA_HASH }}
 
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python_version }}
           architecture: 'x64'
-
-      - name: Update homebrew (avoid bintray errors)
-        uses: nick-invision/retry@v2
-        if: startsWith(matrix.os, 'macos')
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: |
-            # Temporarily here until Github runners have updated their version of
-            # homebrew. This prevents errors arising from the shut down of
-            # binutils, used by older version of homebrew for hosting packages.
-            brew update
 
       - name: Install Desktop SDK prerequisites
         uses: nick-invision/retry@v2
@@ -234,21 +223,20 @@ jobs:
           LANG: en_US
         run: |
           cd build
-          ctest --repeat until-pass:3
+          ctest --repeat until-pass:3 --output-on-failure
 
       - name: Run unit tests (linux)
         # Linux exists as its own standalone execution step in order to invoke
         # platform-specific `ulimit` to enable crash collection.  The ulimit
         # command must be invoked in same shell instance of that runs the
         # tests.
-        # TODO: Enable tests for x86 once they are all working
-        if: startsWith(matrix.os, 'ubuntu') && matrix.architecture != 'x86'
+        if: startsWith(matrix.os, 'ubuntu')
         env:
           LANG: en_US
         run: |
           ulimit -c unlimited
           cd build
-          sudo ctest --repeat until-pass:3
+          sudo ctest --repeat until-pass:3 --output-on-failure
 
       - name: Prep bins for achive (linux)
         # Copies all of the binary files into one directory for ease in
@@ -304,27 +292,27 @@ jobs:
     ### It's possible to add more apps here once integration tests are less flaky.
     name: local-integration-tests-linux-openssl
     needs: prepare_matrix
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ env.VCPKG_TRIPLET }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
       - name: Cache ccache files
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ccache_dir
           key: local-integration-tests-linux-openssl-ccache
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version)[0] }}
       - name: Prepare for integration tests
@@ -343,7 +331,7 @@ jobs:
           python scripts/gha/build_testapps.py --p Desktop \
             --t ${apis} \
             --output_directory "${{ github.workspace }}" \
-            --artifact_name "desktop-ubuntu-latest-openssl" \
+            --artifact_name "desktop-ubuntu-20.04-openssl" \
             --noadd_timestamp \
             --short_output_paths \
             --cmake_flag=-DFIREBASE_QUICK_TEST=ON
@@ -351,17 +339,21 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat build-results-desktop-ubuntu-latest-openssl.log
+          cat build-results-desktop-ubuntu-20.04-openssl.log
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
-      - name: Set up Node (14)
-        uses: actions/setup-node@v2
+      - name: Set up Node (16)
+        uses: actions/setup-node@v3
         with:
-          node-version: 14.x
+          node-version: 16.x
       - name: Setup Firestore Emulator
-        run: |
-          npm install -g firebase-tools
+        uses: nick-invision/retry@v2
+        with:
+          shell: bash
+          timeout_minutes: 5
+          max_attempts: 3
+          command: npm install -g firebase-tools     
       - name: Setup java
         uses: actions/setup-java@v3
         with:
@@ -369,15 +361,15 @@ jobs:
           java-version: '17'
       - name: Run Desktop integration tests
         run: |
-          cp scripts/gha/integration_testing/google-services.json testapps-desktop-ubuntu-latest-openssl/firestore/google-services.json
-          firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps-desktop-ubuntu-latest-openssl --logfile_name "desktop-ubuntu-latest-openssl"'
+          cp scripts/gha/integration_testing/google-services.json testapps-desktop-ubuntu-20.04-openssl/firestore/google-services.json
+          firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps-desktop-ubuntu-20.04-openssl --logfile_name "desktop-ubuntu-20.04-openssl"'
         env:
           USE_FIRESTORE_EMULATOR: true
       - name: Summarize test results
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat testapps-desktop-ubuntu-latest-openssl/test-results-desktop-ubuntu-latest-openssl.log
+          cat testapps-desktop-ubuntu-20.04-openssl/test-results-desktop-ubuntu-20.04-openssl.log
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi

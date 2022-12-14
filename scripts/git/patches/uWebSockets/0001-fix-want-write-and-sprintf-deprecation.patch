@@ -1,12 +1,26 @@
-From d868ac6f2ce8c6ba8359e33616caeb889e0c57e7 Mon Sep 17 00:00:00 2001
-From: "google.com" <google.com>
-Date: Wed, 7 Jul 2021 19:00:49 -0400
-Subject: [PATCH] fix want_write crash
+From 300161c1e2e1414fdd8df7ae6f036a6213c3672f Mon Sep 17 00:00:00 2001
+From: "drsanta@google.com" <drsanta@google.com>
+Date: Thu, 8 Dec 2022 18:52:28 -0500
+Subject: [PATCH] fix want write and sprintf deprecation
 
 ---
- src/Socket.h | 34 ++++++++++++++++++----------------
- 1 file changed, 18 insertions(+), 16 deletions(-)
+ src/HTTPSocket.h |  2 +-
+ src/Socket.h     | 34 ++++++++++++++++++----------------
+ 2 files changed, 19 insertions(+), 17 deletions(-)
 
+diff --git a/src/HTTPSocket.h b/src/HTTPSocket.h
+index 5cc7a7f..8b1ab20 100644
+--- a/src/HTTPSocket.h
++++ b/src/HTTPSocket.h
+@@ -204,7 +204,7 @@ struct HttpResponse {
+ 
+             static size_t transform(const char *src, char *dst, size_t length, TransformData transformData) {
+                 // todo: sprintf is extremely slow
+-                int offset = transformData.hasHead ? 0 : std::sprintf(dst, "HTTP/1.1 200 OK\r\nContent-Length: %u\r\n\r\n", (unsigned int) length);
++                int offset = transformData.hasHead ? 0 : std::snprintf(dst, length, "HTTP/1.1 200 OK\r\nContent-Length: %u\r\n\r\n", (unsigned int) length);
+                 memcpy(dst + offset, src, length);
+                 return length + offset;
+             }
 diff --git a/src/Socket.h b/src/Socket.h
 index 2179ff8..521e798 100644
 --- a/src/Socket.h
@@ -55,5 +69,5 @@ index 2179ff8..521e798 100644
                  sent = ::send(getFd(), message->data, message->length, MSG_NOSIGNAL);
                  if (sent == (ssize_t) message->length) {
 -- 
-2.32.0.93.g670b81a890-goog
+2.39.0.rc1.256.g54fd8350bd-goog
 

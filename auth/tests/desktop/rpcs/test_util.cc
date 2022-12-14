@@ -12,16 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "auth/tests/desktop/rpcs/test_util.h"
+
 #include "app/rest/transport_builder.h"
+#include "app/src/include/firebase/app.h"
 #include "auth/src/desktop/rpcs/sign_up_new_user_request.h"
 #include "auth/src/desktop/rpcs/sign_up_new_user_response.h"
 
 namespace firebase {
 namespace auth {
 
-bool GetNewUserLocalIdAndIdToken(const char* const api_key,
+bool GetNewUserLocalIdAndIdToken(::firebase::App& app,
+                                 const char* const api_key,
                                  std::string* local_id, std::string* id_token) {
-  SignUpNewUserRequest request(api_key);
+  SignUpNewUserRequest request(app, api_key);
   SignUpNewUserResponse response;
 
   firebase::rest::CreateTransport()->Perform(request, &response);
@@ -35,10 +39,11 @@ bool GetNewUserLocalIdAndIdToken(const char* const api_key,
   return true;
 }
 
-bool GetNewUserLocalIdAndRefreshToken(const char* const api_key,
+bool GetNewUserLocalIdAndRefreshToken(::firebase::App& app,
+                                      const char* const api_key,
                                       std::string* local_id,
                                       std::string* refresh_token) {
-  SignUpNewUserRequest request(api_key);
+  SignUpNewUserRequest request(app, api_key);
   SignUpNewUserResponse response;
 
   firebase::rest::CreateTransport()->Perform(request, &response);
@@ -52,9 +57,10 @@ bool GetNewUserLocalIdAndRefreshToken(const char* const api_key,
   return true;
 }
 
-std::string SignUpNewUserAndGetIdToken(const char* const api_key,
+std::string SignUpNewUserAndGetIdToken(::firebase::App& app,
+                                       const char* const api_key,
                                        const char* const email) {
-  SignUpNewUserRequest request(api_key, email, "fake_password", "");
+  SignUpNewUserRequest request(app, api_key, email, "fake_password", "");
   SignUpNewUserResponse response;
 
   firebase::rest::CreateTransport()->Perform(request, &response);

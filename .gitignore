@@ -8,6 +8,7 @@ __pycache__/
 ### Gradle ###
 .gradle
 **/build/
+**/.externalNativeBuild/
 
 # Unencrypted secret files
 google-services.json
@@ -23,3 +24,35 @@ testing/test_framework/external/
 
 # XCode user specific folders
 **/xcuserdata/
+
+# Local gradle properties
+**/local.properties
+
+# Auto generates files for integration tests
+**/integration_test/download_googletest.py
+**/integration_test/external
+**/integration_test/src/android/
+**/integration_test/src/app_framework.cc
+**/integration_test/src/app_framework.h
+**/integration_test/src/desktop/
+**/integration_test/src/empty.swift
+**/integration_test/src/firebase_test_framework.cc
+**/integration_test/src/firebase_test_framework.h
+**/integration_test/src/ios/
+
+# Auto generated files for firestore internal tests
+firestore/integration_test_internal/download_googletest.py
+firestore/integration_test_internal/external
+firestore/integration_test_internal/src/android/android_app_framework.cc
+firestore/integration_test_internal/src/android/android_firebase_test_framework.cc
+firestore/integration_test_internal/src/app_framework.cc
+firestore/integration_test_internal/src/app_framework.h
+firestore/integration_test_internal/src/desktop/desktop_app_framework.cc
+firestore/integration_test_internal/src/desktop/desktop_firebase_test_framework.cc
+firestore/integration_test_internal/src/empty.swift
+firestore/integration_test_internal/src/firebase_test_framework.cc
+firestore/integration_test_internal/src/firebase_test_framework.h
+firestore/integration_test_internal/src/ios/ios_app_framework.mm
+firestore/integration_test_internal/src/ios/ios_firebase_test_framework.mm
+firestore/integration_test_internal/src/ios/.clang-format
+firestore/integration_test_internal/src/android/java/com/google/firebase/example

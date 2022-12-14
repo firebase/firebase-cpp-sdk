@@ -231,32 +231,33 @@ def install_x86_support_libraries(gha_build=False):
   if is_linux_os():
     packages = ['gcc-multilib', 'g++-multilib', 'libglib2.0-dev:i386',
                 'libsecret-1-dev:i386', 'libpthread-stubs0-dev:i386',
-                'libssl-dev:i386']
-    if gha_build:
-      # Workaround for GitHub runners, which have an incompatibility between the
-      # 64-bit and 32-bit versions of the Ubuntu package libpcre2-8-0. Downgrade
-      # the installed 64-bit version of the library to get around this issue.
-      # This will presumably be fixed in a future Ubuntu update. (If you remove
-      # it, remove the workaround further down this function as well.)
-      packages = ['--allow-downgrades'] + packages + ['libpcre2-8-0=10.34-7']
+                'libssl-dev:i386', 'libsecret-1-0:i386']
+    remove_packages = []
 
     # First check if these packages exist on the machine already
     with open(os.devnull, "w") as devnull:
-      process = subprocess.run(["dpkg", "-s"] + packages, stdout=devnull, stderr=subprocess.STDOUT)
+      process = subprocess.run(["dpkg", "-s"] + packages, stdout=devnull,
+                               stderr=subprocess.STDOUT)
 
     if process.returncode != 0:
-      # This implies not all of the required packages are already installed on user's machine
-      # Install them.
-      run_command(['dpkg', '--add-architecture', 'i386'], as_root=True, check=True)
+      # This implies not all of the required packages are already installed on
+      # user's machine. Install them.
+      run_command(['dpkg', '--add-architecture', 'i386'], as_root=True,
+                  check=True)
       run_command(['apt', 'update'], as_root=True, check=True)
-      run_command(['apt', 'install', '-V', '-y'] + packages, as_root=True, check=True)
+      run_command(['apt', 'install', 'aptitude'], as_root=True, check=True)
+      if gha_build:
+        # Remove libpcre to prevent package conflicts.
+        # Only remove packages on GitHub runners.
+        remove_packages = ['libpcre2-dev:amd64', 'libpcre2-32-0:amd64',
+                           'libpcre2-8-0:amd64', 'libpcre2-16-0:amd64']
+      # Note: With aptitude, you can remove package 'xyz' by specifying 'xyz-'
+      # in the package list.
+      run_command(['aptitude', 'install', '-V', '-y'] + packages +
+                  ['%s-' % pkg for pkg in remove_packages], as_root=True, check=True)
 
-    if gha_build:
-      # One more workaround: downgrading libpcre2-8-0 above may have uninstalled
-      # libsecret, which is required for the Linux build. Force it to be
-      # reinstalled, but do it as a separate command to ensure that held
-      # packages aren't modified. (Once the workaround above is removed, this can
-      # be removed as well.)
-      # Note: "-f" = "fix" - let apt do what it needs to do to fix dependencies.
-      run_command(['apt', 'install', '-f', '-V', '-y', 'libsecret-1-dev'],
-                  as_root=True, check=True)
+      # Check if the packages were installed
+      with open(os.devnull, "w") as devnull:
+        subprocess.run(["dpkg", "-s"] + packages, stdout=devnull, stderr=subprocess.STDOUT,
+                       check=True)
+

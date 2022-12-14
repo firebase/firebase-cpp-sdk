@@ -159,16 +159,27 @@ firebase_cpp_cc_test(
     firebase_testing
 )
 
+if (MSVC OR APPLE)
+  firebase_cpp_cc_test(
+    firebase_auth_user_desktop_test
+    SOURCES
+      desktop/user_desktop_test.cc
+    DEPENDS
+      firebase_app_for_testing
+      firebase_auth
+      firebase_auth_desktop_test_util
+      firebase_rest_lib
+      firebase_rest_mocks
+      firebase_testing
+  )
+endif()
+
 firebase_cpp_cc_test(
-  firebase_auth_user_desktop_test
+  firebase_auth_request_heartbeat_test
   SOURCES
-    desktop/user_desktop_test.cc
+    desktop/rpcs/auth_request_heartbeat_test.cc
   DEPENDS
-    firebase_app_for_testing
     firebase_auth
-    firebase_auth_desktop_test_util
-    firebase_rest_lib
-    firebase_rest_mocks
     firebase_testing
 )
 

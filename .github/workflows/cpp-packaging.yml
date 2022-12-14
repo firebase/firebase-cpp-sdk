@@ -42,7 +42,7 @@ env:
 jobs:
   log_inputs:
     name: log-inputs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: log run inputs
         run: |
@@ -79,9 +79,9 @@ jobs:
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-12]
+        os: [ubuntu-20.04, macos-12]
         include:
-        - os: ubuntu-latest
+        - os: ubuntu-20.04
           tools_platform: linux
           # Binutils 2.35.1 released Sep 19, 2020
           binutils_version: "2.35.1"
@@ -95,7 +95,7 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
 
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.7
 
@@ -125,7 +125,7 @@ jobs:
       - name: Cache LLVM (Mac only)
         if: matrix.tools_platform == 'darwin'
         id: cache_llvm
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: llvm-src/llvm/build/bin
           key: llvm-bin-${{matrix.tools_platform}}-${{env.xcodeVersion}}-${{env.llvmVer}}
@@ -133,7 +133,7 @@ jobs:
       - name: Fetch LLVM source (Mac only)
         # Only fetch LLVM if we don't already have binaries from the cache.
         if: ${{ matrix.tools_platform == 'darwin' && !steps.cache_llvm.outputs.cache-hit }}
-        uses: actions/checkout@v2.3.1
+        uses: actions/checkout@v3
         with:
           repository: llvm/llvm-project
           path: llvm-src
@@ -155,7 +155,7 @@ jobs:
           cp -af llvm-src/llvm/build/bin/* packaging-tools
 
       - name: fetch demumble
-        uses: actions/checkout@v2.3.1
+        uses: actions/checkout@v3
         with:
           repository: nico/demumble
           path: demumble-src
@@ -178,7 +178,7 @@ jobs:
           tar -czhf ../packaging-tools.tgz .
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v2.2.2
+        uses: actions/upload-artifact@v3
         with:
           name: packaging-tools-${{ matrix.tools_platform }}
           path: packaging-tools.tgz
@@ -200,12 +200,12 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
 
       - name: fetch SDK
-        uses: actions/checkout@v2.3.1
+        uses: actions/checkout@v3
         with:
           path: sdk-src
 
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.7
 
@@ -236,20 +236,20 @@ jobs:
           find firebase-cpp-sdk-*-package -type f
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v2.2.2
+        uses: actions/upload-artifact@v3
         with:
           name: firebase-cpp-sdk-ios-tvos-package
           path: firebase-cpp-sdk-ios-tvos-package.tgz
 
   build_and_package_android:
     name: build-and-package-android
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       fail-fast: false
     steps:
       - name: fetch SDK
-        uses: actions/checkout@v2.3.1
+        uses: actions/checkout@v3
         with:
           path: sdk-src
 
@@ -262,7 +262,7 @@ jobs:
 
       - name: Cache NDK
         id: cache_ndk
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: /tmp/android-ndk-r21e
           key: android-ndk-${{ runner.os }}-r21e
@@ -293,7 +293,7 @@ jobs:
           find firebase-cpp-sdk-*-package -type f
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v2.2.2
+        uses: actions/upload-artifact@v3
         with:
           name: firebase-cpp-sdk-android-package
           path: firebase-cpp-sdk-android-package.tgz
@@ -305,7 +305,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-12]
+        os: [windows-latest, ubuntu-20.04, macos-12]
         build_type: ["Release", "Debug"]
         architecture: ["x64", "x86", "arm64"]
         msvc_runtime: ["static", "dynamic"]
@@ -321,7 +321,7 @@ jobs:
           vcpkg_triplet_suffix: "windows-static-md"
           additional_build_flags: "--build_tests"
           sdk_platform: "windows"
-        - os: ubuntu-latest
+        - os: ubuntu-20.04
           vcpkg_triplet_suffix: "linux"
           additional_build_flags: ""
           sdk_platform: "linux"
@@ -341,11 +341,11 @@ jobs:
           linux_abi: "c++11"
         - os: macos-12
           build_type: "Debug"
-        - os: ubuntu-latest
+        - os: ubuntu-20.04
           msvc_runtime: "dynamic"
-        - os: ubuntu-latest
+        - os: ubuntu-20.04
           build_type: "Debug"
-        - os: ubuntu-latest
+        - os: ubuntu-20.04
           architecture: "arm64"
         - os: windows-latest
           architecture: "arm64"
@@ -362,7 +362,7 @@ jobs:
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
 
@@ -379,11 +379,11 @@ jobs:
 
       - name: Add msbuild to PATH (windows)
         if: startsWith(matrix.os, 'windows')
-        uses: microsoft/setup-msbuild@v1.0.2
+        uses: microsoft/setup-msbuild@v1.1
 
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}${{env.VCPKG_EXTRA_HASH}}
@@ -391,27 +391,15 @@ jobs:
       - name: Cache ccache files
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
         id: cache_ccache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ccache_dir
           key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
 
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python_version }}
-
-      - name: Update homebrew (avoid bintray errors)
-        uses: nick-invision/retry@v2
-        if: runner.os == 'macOS'
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: |
-            # Temporarily here until Github runners have updated their version of
-            # homebrew. This prevents errors arising from the shut down of
-            # binutils, used by older version of homebrew for hosting packages.
-            brew update
 
       - name: Install Desktop SDK prerequisites
         uses: nick-invision/retry@v2
@@ -461,7 +449,7 @@ jobs:
         continue-on-error: true
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v2.2.2
+        uses: actions/upload-artifact@v3
         with:
           name: firebase-cpp-sdk-${{ env.SDK_NAME }}-build
           path: firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz
@@ -476,73 +464,61 @@ jobs:
       matrix:
         sdk_platform: [linux, darwin, windows]
         suffix: ['']
-        runs_on_platform: [ubuntu-latest]
+        runs_on_platform: [ubuntu-20.04]
         include:
         # Split windows packaging into multiple runners.
         - sdk_platform: windows
           suffix: '-x86-Release-static'
-          runs_on_platform: ubuntu-latest
+          runs_on_platform: ubuntu-20.04
         - sdk_platform: windows
           suffix: '-x86-Release-dynamic'
-          runs_on_platform: ubuntu-latest
+          runs_on_platform: ubuntu-20.04
         - sdk_platform: windows
           suffix: '-x64-Release-static'
-          runs_on_platform: ubuntu-latest
+          runs_on_platform: ubuntu-20.04
         - sdk_platform: windows
           suffix: '-x64-Release-dynamic'
-          runs_on_platform: ubuntu-latest
+          runs_on_platform: ubuntu-20.04
         - sdk_platform: windows
           suffix: '-x86-Debug-static'
-          runs_on_platform: ubuntu-latest
+          runs_on_platform: ubuntu-20.04
         - sdk_platform: windows
           suffix: '-x86-Debug-dynamic'
-          runs_on_platform: ubuntu-latest
+          runs_on_platform: ubuntu-20.04
         - sdk_platform: windows
           suffix: '-x64-Debug-static'
-          runs_on_platform: ubuntu-latest
+          runs_on_platform: ubuntu-20.04
         - sdk_platform: windows
           suffix: '-x64-Debug-dynamic'
-          runs_on_platform: ubuntu-latest
+          runs_on_platform: ubuntu-20.04
         - sdk_platform: darwin
           runs_on_platform: macos-12
         exclude:
         - sdk_platform: windows
           suffix: ''
         - sdk_platform: darwin
-          runs_on_platform: ubuntu-latest
+          runs_on_platform: ubuntu-20.04
     steps:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
 
       - name: fetch SDK
-        uses: actions/checkout@v2.3.1
+        uses: actions/checkout@v3
         with:
           path: sdk-src
 
       - name: download artifact
-        uses: actions/download-artifact@v2.0.8
+        uses: actions/download-artifact@v3
         with:
           # download-artifact doesn't support wildcards, but by default
           # will download all artifacts. Sadly this is what we must do.
           path: artifacts
 
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.7
-
-      - name: Update homebrew (avoid bintray errors)
-        uses: nick-invision/retry@v2
-        if: runner.os == 'macOS'
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: |
-            # Temporarily here until Github runners have updated their version of
-            # homebrew. This prevents errors arising from the shut down of
-            # binutils, used by older version of homebrew for hosting packages.
-            brew update
 
       - name: Install prerequisites
         run: |
@@ -608,7 +584,7 @@ jobs:
           find firebase-cpp-sdk-*-package -type f
 
       - name: upload SDK zip
-        uses: actions/upload-artifact@v2.2.2
+        uses: actions/upload-artifact@v3
         with:
           name: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package
           path: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package.tgz
@@ -663,7 +639,7 @@ jobs:
             && github.event.inputs.downloadPreviousRun == ''
           )
         # Remove the build artifacts that were consumed during this step of packaging.
-        uses: geekyeggo/delete-artifact@1-glob-support
+        uses: geekyeggo/delete-artifact@v2
         with:
           name: |
             firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}*-build
@@ -673,7 +649,7 @@ jobs:
 
   download_sdk_package:
     name: download-sdk-package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: [log_inputs]
     if: ${{ github.event.inputs.downloadPublicVersion != '' || github.event.inputs.downloadPreviousRun != '' }}
     steps:
@@ -709,13 +685,13 @@ jobs:
           echo "::warning ::$(cat firebase_cpp_sdk_hash.txt)"
 
       - name: upload hash
-        uses: actions/upload-artifact@v2.2.2
+        uses: actions/upload-artifact@v3
         with:
           name: firebase_cpp_sdk_hash.txt
           path: firebase_cpp_sdk_hash.txt
 
       - name: upload SDK zip
-        uses: actions/upload-artifact@v2.2.2
+        uses: actions/upload-artifact@v3
         with:
           name: firebase_cpp_sdk.zip
           path: firebase_cpp_sdk.zip
@@ -723,17 +699,17 @@ jobs:
 
   merge_packages:
     name: final-merge-packages
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     needs: [build_and_package_ios_tvos, build_and_package_android, package_desktop, log_inputs]
     steps:
       - name: fetch SDK
-        uses: actions/checkout@v2.3.1
+        uses: actions/checkout@v3
         with:
           path: sdk-src
 
       - name: download artifact
-        uses: actions/download-artifact@v2.0.8
+        uses: actions/download-artifact@v3
         with:
           # download-artifact doesn't support wildcards, but by default
           # will download all artifacts. Sadly this is what we must do.
@@ -772,13 +748,13 @@ jobs:
           find firebase_cpp_sdk -type f
 
       - name: upload hash
-        uses: actions/upload-artifact@v2.2.2
+        uses: actions/upload-artifact@v3
         with:
           name: firebase_cpp_sdk_hash.txt
           path: firebase_cpp_sdk_hash.txt
 
       - name: upload SDK zip
-        uses: actions/upload-artifact@v2.2.2
+        uses: actions/upload-artifact@v3
         with:
           name: firebase_cpp_sdk.zip
           path: firebase_cpp_sdk.zip
@@ -787,7 +763,7 @@ jobs:
     # Clean up intermediate artifacts from packaging step.
     # This can happen after the final package merge is finished.
     name: cleanup-packaging-artifacts
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: [merge_packages]
     if: |
       (
@@ -796,7 +772,7 @@ jobs:
         && github.event.inputs.downloadPreviousRun == ''
       )
     steps:
-    - uses: geekyeggo/delete-artifact@1-glob-support
+    - uses: geekyeggo/delete-artifact@v2
       with:
         name: |
           packaging-tools-*
@@ -808,13 +784,13 @@ jobs:
     # Trigger the integration_tests workflow.
     needs: [merge_packages, download_sdk_package, cleanup_packaging_artifacts]
     if: (github.event.inputs.skipIntegrationTests == 0 || github.event.inputs.skipIntegrationTests == '') && !cancelled() && !failure()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - name: Checkout repo
-      uses: actions/checkout@v2.3.1
+      uses: actions/checkout@v3
 
     - name: Setup python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: '3.7'
     - name: Use expanded matrix

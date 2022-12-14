@@ -17,13 +17,13 @@ concurrency:
 
 jobs:
   file_format_check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: false
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.7
       - name: Install prerequisites
@@ -40,7 +40,7 @@ jobs:
   
   check_integration_test_labels:
     # This check fails if integration tests are queued, in progress, or failed.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: docker://agilepathway/pull-request-label-checker:latest
       with:
@@ -49,13 +49,13 @@ jobs:
 
   generated_docs_check:
     # This check succeeds if Doxygen documentation generates without errors.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: false
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.7
       - name: Install prerequisites
@@ -88,9 +88,9 @@ jobs:
 
   copyright_check:
     # Check for Google copyright in each file.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: false
       - name: Run check_copyright.sh
@@ -100,9 +100,9 @@ jobs:
 
   release_notes_check:
     # Check that the readme was updated, unless the PR has a specific label set (env.skipReleaseNotesLabel).
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         # Skip this if the PR has the skipReleaseNotes label or if it's a merge to other than main.
         if: ${{!contains(github.event.pull_request.labels.*.name, env.skipReleaseNotesLabel) && (github.event.pull_request.base.ref == 'main')}}
         with:

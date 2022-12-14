@@ -21,13 +21,13 @@ concurrency:
 
 jobs:
   prepare_matrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     outputs:
       matrix_os: ${{ steps.export-result.outputs.matrix_os }}
       matrix_architecture: ${{ steps.export-result.outputs.matrix_architecture }}
       matrix_python_version: ${{ steps.export-result.outputs.matrix_python_version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: false
       - name: Use expanded matrix
@@ -36,9 +36,9 @@ jobs:
           echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
       - id: export-result
         run: |
-          echo "::set-output name=matrix_os::$( python scripts/gha/print_matrix_configuration.py -w android -k os ${EXPANDED_MATRIX_PARAM} )"
-          echo "::set-output name=matrix_architecture::$( python scripts/gha/print_matrix_configuration.py -w android -k architecture ${EXPANDED_MATRIX_PARAM} )"
-          echo "::set-output name=matrix_python_version::$( python scripts/gha/print_matrix_configuration.py -w android -k python_version ${EXPANDED_MATRIX_PARAM} )"
+          echo "matrix_os=$( python scripts/gha/print_matrix_configuration.py -w android -k os ${EXPANDED_MATRIX_PARAM} )" >> $GITHUB_OUTPUT
+          echo "matrix_architecture=$( python scripts/gha/print_matrix_configuration.py -w android -k architecture ${EXPANDED_MATRIX_PARAM} )" >> $GITHUB_OUTPUT
+          echo "matrix_python_version=$( python scripts/gha/print_matrix_configuration.py -w android -k python_version ${EXPANDED_MATRIX_PARAM} )" >> $GITHUB_OUTPUT
 
   build:
     name: android-${{ matrix.os }}-${{ matrix.architecture }}-${{ matrix.python_version }}
@@ -72,7 +72,7 @@ jobs:
           echo "Enabling expanded build and test matrix."
           echo "USE_EXPANDED_MATRIX=1" >> $GITHUB_ENV
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
 
@@ -83,18 +83,18 @@ jobs:
           echo "GHA_INSTALL_CCACHE=1" >> $GITHUB_ENV
 
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python_version }}
           architecture: ${{ matrix.architecture }}
 
       - name: Add msbuild to PATH
         if: startsWith(matrix.os, 'windows')
-        uses: microsoft/setup-msbuild@v1.0.2
+        uses: microsoft/setup-msbuild@v1.1
 
       - name: Cache NDK
         id: cache_ndk
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: /tmp/android-ndk-r21e
           key: android-ndk-${{ matrix.os }}-r21e
@@ -109,18 +109,6 @@ jobs:
             echo "Removing incomplete download of NDK"
             rm -rf /tmp/android-ndk-r21e
           fi
-
-      - name: Update homebrew (avoid bintray errors)
-        uses: nick-invision/retry@v2
-        if: startsWith(matrix.os, 'macos')
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: |
-            # Temporarily here until Github runners have updated their version of
-            # homebrew. This prevents errors arising from the shut down of
-            # binutils, used by older version of homebrew for hosting packages.
-            brew update
 
       - name: Install prerequisites
         shell: bash
@@ -151,7 +139,7 @@ jobs:
 
       - name: Cache ccache files
         id: cache_ccache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ccache_dir
           key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}

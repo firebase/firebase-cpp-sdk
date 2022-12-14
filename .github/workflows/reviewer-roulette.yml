@@ -10,7 +10,7 @@ env:
 jobs:
   assign_random_reviewer:
     if: github.event.action == 'labeled' && github.event.label.name == 'reviewer-roulette'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Unset label
         uses: buildsville/add-remove-label@v1
@@ -63,7 +63,7 @@ jobs:
           done
           reviewer_list+=']'
           echo "Reviewer list: ${reviewer_list}"
-          echo "::set-output name=reviewer_list::${reviewer_list}"
+          echo "reviewer_list=${reviewer_list}" >> $GITHUB_OUTPUT
           # If the list is empty, print a warning. The following steps won't run.
           if [[ "${reviewer_list}" == "[]" ]]; then
             echo "::warning ::No reviewers available"

@@ -169,6 +169,7 @@ const char* kBuildSource = "custom_built";
 // clang-format=on
 
 const char* kApiClientHeader = "x-firebase-client";
+const char* kXFirebaseGmpIdHeader = "X-Firebase-GMPID";
 
 SystemLogger g_system_logger;  // NOLINT
 

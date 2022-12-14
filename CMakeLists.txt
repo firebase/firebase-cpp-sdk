@@ -32,6 +32,9 @@ option(FIREBASE_INCLUDE_ADMOB "Include the AdMob library."
 option(FIREBASE_INCLUDE_ANALYTICS
        "Include the Google Analytics for Firebase library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
+option(FIREBASE_INCLUDE_APP_CHECK
+       "Include the Firebase App Check library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_AUTH "Include the Firebase Authentication library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_DATABASE
@@ -83,8 +86,11 @@ option(FIREBASE_GITHUB_ACTION_BUILD
 option(FIREBASE_QUICK_TEST
        "Enable quick tests will skip tests which requires access to the SECRET" OFF)
 
-set(FIREBASE_PYTHON_EXECUTABLE "python" CACHE FILEPATH
-  "The Python interpreter to use, such as one from a venv")
+find_program(FIREBASE_PYTHON_EXECUTABLE
+  NAMES python3 python
+  DOC "The Python interpreter to use, such as one from a venv"
+  REQUIRED
+)
 
 set(FIREBASE_XCODE_TARGET_FORMAT "frameworks" CACHE STRING
                                  "Format to output, 'frameworks' or 'libraries'")
@@ -521,13 +527,20 @@ else()
     set(ENV_COMMAND env -i PATH=${firebase_command_line_path})
   endif()
 
+  # The cmake executable to use when compiling flatc. Normally, the default
+  # value (finding cmake in the PATH) is fine; however, in cases where cmake is
+  # *not* in the PATH (e.g. when building from CLion using the Android
+  # toolchain) it must be specified via via this cache variable.
+  set(FIREBASE_FLATC_CMAKE_COMMAND "cmake" CACHE FILEPATH
+    "The cmake command to use when compiling flatc.")
+
   # Build flatc by invoking the cmake build, with only the flatc target.
   file(MAKE_DIRECTORY ${firebase_external_flatc_build_dir})
   add_custom_command(
     OUTPUT ${firebase_external_flatc}
     COMMAND cd ${firebase_external_flatc_build_dir} ${COMMAND_CONCAT}
-            ${ENV_COMMAND} cmake ${FLATBUFFERS_SOURCE_DIR} ${COMMAND_CONCAT}
-            ${ENV_COMMAND} cmake --build . --target flatc
+            ${ENV_COMMAND} ${FIREBASE_FLATC_CMAKE_COMMAND} ${FLATBUFFERS_SOURCE_DIR} ${COMMAND_CONCAT}
+            ${ENV_COMMAND} ${FIREBASE_FLATC_CMAKE_COMMAND} --build . --target flatc
     COMMENT "Building flatc (the FlatBuffer schema compiler)")
 
   # Add a target so that we can run the custom commands before the code build.
@@ -585,6 +598,9 @@ endif()
 if (FIREBASE_INCLUDE_ANALYTICS)
   add_subdirectory(analytics)
   add_dependencies(FIREBASE_GENERATED_HEADERS FIREBASE_ANALYTICS_GENERATED_HEADERS)
+endif()
+if (FIREBASE_INCLUDE_APP_CHECK)
+  add_subdirectory(app_check)
 endif()
 if (FIREBASE_INCLUDE_AUTH)
   add_subdirectory(auth)

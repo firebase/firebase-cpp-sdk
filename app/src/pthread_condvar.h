@@ -58,18 +58,11 @@ class ConditionVariable {
   // Returns true otherwise
   template <class Predicate>
   bool TimedWait(pthread_mutex_t* lock, Predicate predicate, int milliseconds) {
-    timespec end_time, current_time;
-    clock_gettime(CLOCK_REALTIME, &end_time);
-    end_time.tv_nsec += milliseconds * kNanosecondsPerMillisecond;
-    int64_t end_time_ms = TimespecToMs(end_time);
-    NormalizeTimespec(&end_time);
-
-    clock_gettime(CLOCK_REALTIME, &current_time);
-    int64_t current_time_ms = TimespecToMs(current_time);
+    int64_t end_time_ms = TimespecToMs(MsToAbsoluteTimespec(milliseconds));
+    int64_t current_time_ms = TimespecToMs(MsToAbsoluteTimespec(0));
     while (!predicate() && current_time_ms < end_time_ms) {
       TimedWait(lock, end_time_ms - current_time_ms);
-      clock_gettime(CLOCK_REALTIME, &current_time);
-      current_time_ms = TimespecToMs(current_time);
+      current_time_ms = TimespecToMs(MsToAbsoluteTimespec(0));
     }
     // If time isn't up, AND the predicate is true, then we return true.
     // False otherwise.

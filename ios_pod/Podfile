@@ -1,21 +1,22 @@
 source 'https://github.com/CocoaPods/Specs.git'
-platform :ios, '10.0'
+platform :ios, '11.0'
 use_frameworks!
 
 target 'GetPods' do
-  pod 'Firebase/Core', '9.3.0'
+  pod 'Firebase/Core', '10.3.0'
 
-  pod 'Google-Mobile-Ads-SDK', '9.7.0'
-  pod 'Firebase/Analytics', '9.3.0'
-  pod 'Firebase/Auth', '9.3.0'
-  pod 'Firebase/Crashlytics', '9.3.0'
-  pod 'Firebase/Database', '9.3.0'
-  pod 'Firebase/DynamicLinks', '9.3.0'
-  pod 'Firebase/Firestore', '9.3.0'
-  pod 'Firebase/Functions', '9.3.0'
-  pod 'Firebase/Installations', '9.3.0'
-  pod 'Firebase/Messaging', '9.3.0'
-  pod 'Firebase/RemoteConfig', '9.3.0'
-  pod 'Firebase/Storage', '9.3.0'
+  pod 'Google-Mobile-Ads-SDK', '9.11.0.1'
+  pod 'Firebase/Analytics', '10.3.0'
+  pod 'Firebase/AppCheck', '10.3.0'
+  pod 'Firebase/Auth', '10.3.0'
+  pod 'Firebase/Crashlytics', '10.3.0'
+  pod 'Firebase/Database', '10.3.0'
+  pod 'Firebase/DynamicLinks', '10.3.0'
+  pod 'Firebase/Firestore', '10.3.0'
+  pod 'Firebase/Functions', '10.3.0'
+  pod 'Firebase/Installations', '10.3.0'
+  pod 'Firebase/Messaging', '10.3.0'
+  pod 'Firebase/RemoteConfig', '10.3.0'
+  pod 'Firebase/Storage', '10.3.0'
 
 end

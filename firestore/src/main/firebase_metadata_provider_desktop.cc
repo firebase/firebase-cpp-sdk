@@ -16,24 +16,32 @@
 
 #include "firestore/src/main/firebase_metadata_provider_desktop.h"
 
-#include "app/src/heartbeat_info_desktop.h"
+#include <utility>
+
 #include "app/src/include/firebase/app.h"
 
 namespace firebase {
 namespace firestore {
 
+const char* kHeartbeatCodeGlobal = "2";
+
+FirebaseMetadataProviderCpp::FirebaseMetadataProviderCpp(const App& app)
+    : heartbeat_controller_(std::move(app.GetHeartbeatController())),
+      gmp_app_id_(app.options().app_id()) {}
+
 void FirebaseMetadataProviderCpp::UpdateMetadata(grpc::ClientContext& context) {
-  HeartbeatInfo::Code heartbeat = HeartbeatInfo::GetHeartbeatCode("fire-fst");
-
-  // TODO(varconst): don't send any headers if the heartbeat is "none". This
-  // should only be changed once it's possible to notify the heartbeat that the
-  // previous attempt to send it has failed.
-  if (heartbeat != HeartbeatInfo::Code::None) {
-    context.AddMetadata(kXFirebaseClientLogTypeHeader,
-                        std::to_string(static_cast<int>(heartbeat)));
+  if (heartbeat_controller_) {
+    std::string payload =
+        heartbeat_controller_->GetAndResetTodaysStoredHeartbeats();
+    // The payload is either an empty string or a string of user agents to log.
+    if (!payload.empty()) {
+      context.AddMetadata(kXFirebaseClientLogTypeHeader, kHeartbeatCodeGlobal);
+      context.AddMetadata(kXFirebaseClientHeader, payload);
+    }
   }
-
-  context.AddMetadata(kXFirebaseClientHeader, App::GetUserAgent());
+  if (!gmp_app_id_.empty()) {
+    context.AddMetadata(kXFirebaseGmpIdHeader, gmp_app_id_);
+  }
 }
 
 }  // namespace firestore

@@ -29,7 +29,7 @@ namespace auth {
 // Test VerifyCustomTokenRequest
 TEST(VerifyCustomTokenTest, TestVerifyCustomTokenRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
-  VerifyCustomTokenRequest request("APIKEY", "token123");
+  VerifyCustomTokenRequest request(*app, "APIKEY", "token123");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "verifyCustomToken?key=APIKEY",

@@ -16,10 +16,10 @@ def firebase_cpp_sdk_dir = System.getProperty('firebase_cpp_sdk.dir')
 if (firebase_cpp_sdk_dir == null || firebase_cpp_sdk_dir.isEmpty()) {
   firebase_cpp_sdk_dir = System.getenv('FIREBASE_CPP_SDK_DIR')
   if (firebase_cpp_sdk_dir == null || firebase_cpp_sdk_dir.isEmpty()) {
-    if ((new File('../../cpp_sdk_version.json')).exists()) {
-      firebase_cpp_sdk_dir = new File('../..').absolutePath
+    if ((file('../../cpp_sdk_version.json')).exists()) {
+      firebase_cpp_sdk_dir = file('../..').absolutePath
     }
-    else if ((new File('firebase_cpp_sdk')).exists()) {
+    else if ((file('firebase_cpp_sdk')).exists()) {
       firebase_cpp_sdk_dir = 'firebase_cpp_sdk'
     } else {
       throw new StopActionException(

@@ -15,7 +15,7 @@
 buildscript {
   repositories {
     google()
-    jcenter()
+    mavenCentral()
   }
   dependencies {
     classpath 'com.android.tools.build:gradle:3.3.3'
@@ -25,7 +25,7 @@ buildscript {
 allprojects {
   repositories {
     google()
-    jcenter()
+    mavenCentral()
   }
 }
 
@@ -45,9 +45,9 @@ android {
 }
 
 dependencies {
-  implementation platform('com.google.firebase:firebase-bom:30.3.0')
+  implementation platform('com.google.firebase:firebase-bom:31.1.1')
   implementation 'com.google.firebase:firebase-analytics'
-  implementation 'com.google.android.gms:play-services-ads:21.1.0'
+  implementation 'com.google.android.gms:play-services-ads:21.3.0'
 }
 
 afterEvaluate {
