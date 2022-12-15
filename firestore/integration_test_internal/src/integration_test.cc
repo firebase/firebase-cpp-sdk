@@ -43,6 +43,7 @@
 #include "firebase/auth.h"
 #include "firebase/firestore.h"
 #include "firebase_test_framework.h"  // NOLINT
+#include "util/locate_emulator.h"
 
 // The TO_STRING macro is useful for command line defined strings as the quotes
 // get stripped.
@@ -252,6 +253,8 @@ void FirebaseFirestoreBasicTest::InitializeFirestore() {
 
   ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
       << initializer.InitializeLastResult().error_message();
+
+  LocateEmulator(firestore_);
 
   LogDebug("Successfully initialized Firebase Firestore.");
 
