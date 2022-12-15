@@ -26,15 +26,11 @@ namespace firestore {
 namespace jni {
 
 /** `ObjectArena` serves as a local HashMap. */
-class ObjectArena : public Object {
+class ObjectArena {
  public:
-  using Object::Object;
+  ~ObjectArena() = delete;
 
-  static void Initialize(Env& env, Loader& loader);
-
-  static ObjectArena& GetInstance();
-
-  explicit ObjectArena(Env& env);
+  static ObjectArena& GetInstance(Env& env);
 
   Local<Object> Get(Env& env, int64_t key);
   int64_t Put(Env& env, const Object& value);
@@ -42,8 +38,11 @@ class ObjectArena : public Object {
   int64_t Dup(Env& env, int64_t key);
 
  private:
+  explicit ObjectArena(Env& env);
+
   int64_t next_key_ = 0;
-  Global<HashMap> hash_map_;
+  jclass hash_map_class_ = nullptr;
+  jmethodID hash_map_put_ = nullptr;
 };
 
 }  // namespace jni

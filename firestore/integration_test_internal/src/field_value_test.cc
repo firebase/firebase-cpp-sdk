@@ -34,6 +34,11 @@ namespace firestore {
 using Type = FieldValue::Type;
 using FieldValueTest = FirestoreIntegrationTest;
 
+TEST(DenverTest, zzyzx) {
+  auto field_value = FieldValue::String("hello");
+  ASSERT_EQ(field_value.ToString(), "zzyzx");
+}
+
 // Sanity test for stubs
 TEST_F(FieldValueTest, TestFieldValueTypes) {
   FieldValue::Null();

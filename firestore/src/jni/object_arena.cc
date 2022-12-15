@@ -27,24 +27,19 @@ namespace firestore {
 namespace jni {
 namespace {
 
-Global<ObjectArena> kInstance;
-
 }  // namespace
 
-void ObjectArena::Initialize(Env& env, Loader& loader) {
-  kInstance = ObjectArena(env);
+ObjectArena::ObjectArena(Env& env) {
+  hash_map_class_ = env.get()->FindClass("java/lang/HashMap");
+  hash_map_put_ = env.get()->GetMethodID(hash_map_class_, "put", "(Ljava/lang/object");
 }
 
-ObjectArena::ObjectArena(Env& env) : hash_map_(HashMap::Create(env)) {
-    if (! env.ok()) {
-      env.get()->ExceptionDescribe();
-    }
-    SIMPLE_HARD_ASSERT(hash_map_, "zzyzx hash_map_ is null");
+ObjectArena& ObjectArena::GetInstance(Env& env) {
+  static auto* instance = new ObjectArena(env);
+  return *instance;
 }
 
-ObjectArena& ObjectArena::GetInstance() { return kInstance; }
-
-Local<Object> ObjectArena::Get(Env& env, int64_t key) {
+jobject ObjectArena::Get(Env& env, int64_t key) {
   return hash_map_.Get(env, Long::Create(env, key));
 }
 
