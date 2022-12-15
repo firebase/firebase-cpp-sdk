@@ -327,10 +327,10 @@ jobs:
               additional_flags+=(--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON)
             fi
           fi
-          if [[ "${{ github.event.schedule }}" == "0 11 * * *" ]]; then
+          # if [[ "${{ github.event.schedule }}" == "0 11 * * *" ]]; then
             # at 3am PST / 4am PDT. Run firestore desktop integration test aginst tip-of-tree ios repo
             additional_flags+=(--cmake_flag=-DFIRESTORE_DEP_SOURCE=TIP)
-          fi
+          # fi
           python scripts/gha/build_testapps.py --p Desktop \
             --t ${{ needs.check_and_prepare.outputs.apis }} \
             --output_directory "${{ github.workspace }}" \
@@ -340,6 +340,13 @@ jobs:
             --gha_build \
             --arch ${{ matrix.arch }} \
             ${additional_flags[*]}
+      - name: Upload Desktop Cmake
+        uses: actions/upload-artifact@v3
+        if: ${{ !cancelled() }}
+        with:
+          name: cmake-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
+          path: D:/a/firebase-cpp-sdk/firebase-cpp-sdk/ta/firestore/iti/CMakeFiles/
+          retention-days: 1
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
