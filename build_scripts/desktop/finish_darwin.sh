@@ -74,8 +74,8 @@ if [[ ! -d "${packagepath}/libs/${os}/universal" ]]; then
     mkdir "${packagepath}/libs/${os}/universal"
     echo "Creating universal libraries..."
     for lib in "${packagepath}/libs/${os}/${architectures[0]}"/*.a; do
-	libname=$(basename ${lib})
-	xcrun lipo "${packagepath}/libs/${os}"/*/"${libname}" -create -output "${packagepath}/libs/${os}/universal/${libname}"
+	    libname=$(basename ${lib})
+	    xcrun lipo "${packagepath}/libs/${os}"/*/"${libname}" -create -output "${packagepath}/libs/${os}/universal/${libname}"
     done
 
     # Done, remove old library backups.
@@ -97,13 +97,16 @@ for arch in universal ${architectures[*]}; do
 	if [[ "${framework}" == "firebase_app" ]]; then
 	    framework="firebase"
 	    add_headers=1
+	    echo "Need to add extra Headers"
 	fi
 	framework_dir="${packagepath}/frameworks/${os}/${arch}/${framework}.framework"
 	mkdir -p "${framework_dir}"
 	cp -f "${library}" "${framework_dir}/${framework}"
 	if [[ ${add_headers} -eq 1 ]]; then
+	    echo "Adding extra Headers to framework ${framework_dir}"
 	    mkdir "${framework_dir}/Headers"
 	    cp -af "${includepath}/firebase/"* "${framework_dir}/Headers/"
+	    cp -af "${packagepath}/include/firebase/"* "${framework_dir}/Headers/"
 	fi
     done
 done

@@ -267,8 +267,7 @@ def main(argv):
         "-DFIREBASE_PYTHON_HOST_EXECUTABLE:FILEPATH=%s" % sys.executable,
     ))
 
-  if (_DESKTOP in platforms and FLAGS.packaged_sdk and
-      utils.is_linux_os() and FLAGS.arch == "x86"):
+  if (_DESKTOP in platforms and utils.is_linux_os() and FLAGS.arch == "x86"):
       # Write out a temporary toolchain file to force 32-bit Linux builds, as
       # the SDK-included toolchain file may not be present when building against
       # the packaged SDK.
@@ -277,7 +276,8 @@ def main(argv):
         'set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")\n',
         'set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")\n',
         'set(CMAKE_LIBRARY_PATH "/usr/lib/i386-linux-gnu")\n',
-        'set(INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORIES} "/usr/include/i386-linux-gnu")\n'])
+        'set(INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORIES} "/usr/include/i386-linux-gnu")\n',
+        'set(ENV{PKG_CONFIG_PATH} "/usr/lib/i386-linux-gnu/pkgconfig:$ENV{PKG_CONFIG_PATH}")'])
       temp_toolchain_file.flush()
       # Leave the file open, as it will be deleted on close, i.e. when this script exits.
       # (On Linux, the file can be opened a second time by cmake while still open by

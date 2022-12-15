@@ -10,20 +10,20 @@ concurrency:
 
 jobs:
   lint_warnings_check_and_comment:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           repository: cpplint/cpplint
           ref: "1.5.5"
           path: cpplint
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: false
           path: firebase
 
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.7
       - name: Install prerequisites

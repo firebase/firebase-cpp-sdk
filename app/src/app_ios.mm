@@ -253,13 +253,22 @@ App* App::Create(const AppOptions& options, const char* name) {
     return app;
   }
   LogDebug("Creating Firebase App %s for %s", name, kFirebaseVersionString);
+  app = new App();
+  app->options_ = options;
+  app->name_ = name;
+
+  // Add the app to a temporary map in case app check initialization
+  // needs to reference the app before it is fully initialized.
+  internal::AddPartialApp(app);
   FIRApp* platform_app = CreateOrGetPlatformApp(options, name);
+  // Once the app is initialized, the entry in the temporary map is not needed.
+  internal::RemovePartialApp(app);
   if (platform_app) {
-    app = new App();
-    app->options_ = options;
-    app->name_ = name;
     app->internal_ = new internal::AppInternal(platform_app);
     app_common::AddApp(app, &app->init_results_);
+  } else {
+    delete app;
+    app = nullptr;
   }
   return app;
 }
@@ -286,7 +295,15 @@ bool App::IsDataCollectionDefaultEnabled() const {
   return GetPlatformApp().isDataCollectionDefaultEnabled ? true : false;
 }
 
-FIRApp* App::GetPlatformApp() const { return internal_->get(); }
+FIRApp* App::GetPlatformApp() const {
+  if (internal_) {
+    return internal_->get();
+  } else {
+    // AppCheck initialization can depend on the FIRApp associated with an App
+    // before internal_ has been created.
+    return GetPlatformAppByName(name_.c_str());
+  }
+}
 
 namespace internal {
 
@@ -304,6 +321,46 @@ void SetFirConfigurationLoggerLevel(FIRLoggerLevel level) {
     g_delayed_fir_configuration_logger_level_set = true;
   }
 }
-}  // namespace internal
 
+// Guards g_partial_apps.
+static Mutex* g_partial_apps_mutex = new Mutex();
+// Stores partially initialized apps, indexed by app name
+static std::map<std::string, App*>* g_partial_apps;
+
+App* FindPartialAppByName(const char* name) {
+  assert(name);
+  MutexLock lock(*g_partial_apps_mutex);
+  if (g_partial_apps) {
+    auto it = g_partial_apps->find(std::string(name));
+    if (it == g_partial_apps->end()) {
+      return nullptr;
+    }
+    return it->second;
+  }
+  return nullptr;
+}
+
+void AddPartialApp(App* app) {
+  MutexLock lock(*g_partial_apps_mutex);
+  if (!g_partial_apps) {
+    g_partial_apps = new std::map<std::string, App*>();
+  }
+  (*g_partial_apps)[std::string(app->name())] = app;
+}
+
+void RemovePartialApp(App* app) {
+  MutexLock lock(*g_partial_apps_mutex);
+  if (g_partial_apps) {
+    auto it = g_partial_apps->find(std::string(app->name()));
+    if (it != g_partial_apps->end()) {
+      g_partial_apps->erase(it);
+      if (g_partial_apps->empty()) {
+        delete g_partial_apps;
+        g_partial_apps = nullptr;
+      }
+    }
+  }
+}
+
+}  // namespace internal
 }  // namespace firebase

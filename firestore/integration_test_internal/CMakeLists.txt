@@ -16,8 +16,11 @@
 
 cmake_minimum_required(VERSION 2.8)
 
-set(FIREBASE_PYTHON_EXECUTABLE "python" CACHE FILEPATH
-  "The Python interpreter to use, such as one from a venv")
+find_program(FIREBASE_PYTHON_EXECUTABLE
+  NAMES python3 python
+  DOC "The Python interpreter to use, such as one from a venv"
+  REQUIRED
+)
 
 # User settings for Firebase integration tests.
 # Path to Firebase SDK.
@@ -42,7 +45,17 @@ endif()
 if(NOT ANDROID)
   if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/../../setup_integration_tests.py)
     # If this is running from inside the SDK directory, run the setup script.
-    execute_process(COMMAND ${FIREBASE_PYTHON_EXECUTABLE} "${CMAKE_CURRENT_LIST_DIR}/../../setup_integration_tests.py" "${CMAKE_CURRENT_LIST_DIR}")
+    execute_process(
+      COMMAND
+        ${FIREBASE_PYTHON_EXECUTABLE}
+        "${CMAKE_CURRENT_LIST_DIR}/../../setup_integration_tests.py"
+        "${CMAKE_CURRENT_LIST_DIR}"
+      RESULT_VARIABLE
+        FIREBASE_PYTHON_EXECUTABLE_RESULT
+    )
+    if(NOT FIREBASE_PYTHON_EXECUTABLE_RESULT EQUAL 0)
+      message(FATAL_ERROR "Failed to run setup_integration_tests.py")
+    endif()
   endif()
 endif()
 

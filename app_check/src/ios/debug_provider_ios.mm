@@ -12,25 +12,78 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "app_check/src/ios/debug_provider_ios.h"
+
 #include "firebase/app_check/debug_provider.h"
+
+#import "FIRAppCheckDebugProvider.h"
+#import "FIRAppCheckDebugProviderFactory.h"
+
+#include "app/src/util_ios.h"
+#include "app_check/src/ios/app_check_ios.h"
+#include "app_check/src/ios/util_ios.h"
+#include "firebase/app_check.h"
 
 namespace firebase {
 namespace app_check {
+namespace internal {
 
-static DebugAppCheckProviderFactory* g_debug_app_check_provider_factory = nullptr;
+class DebugAppCheckProvider : public AppCheckProvider {
+ public:
+  DebugAppCheckProvider(FIRAppCheckDebugProvider* provider);
+  virtual ~DebugAppCheckProvider();
 
-DebugAppCheckProviderFactory* DebugAppCheckProviderFactory::GetInstance() {
-  if (!g_debug_app_check_provider_factory) {
-    g_debug_app_check_provider_factory = new DebugAppCheckProviderFactory();
-  }
-  return g_debug_app_check_provider_factory;
+  /// Fetches an AppCheckToken and then calls the provided callback method with
+  /// the token or with an error code and error message.
+  virtual void GetToken(
+      std::function<void(AppCheckToken, int, const std::string&)> completion_callback) override;
+
+ private:
+  FIRAppCheckDebugProvider* ios_provider_;
+};
+
+DebugAppCheckProvider::DebugAppCheckProvider(FIRAppCheckDebugProvider* provider)
+    : ios_provider_(provider) {}
+
+DebugAppCheckProvider::~DebugAppCheckProvider() {}
+
+void DebugAppCheckProvider::GetToken(
+    std::function<void(AppCheckToken, int, const std::string&)> completion_callback) {
+  [ios_provider_
+      getTokenWithCompletion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
+        completion_callback(firebase::app_check::internal::AppCheckTokenFromFIRAppCheckToken(token),
+                            firebase::app_check::internal::AppCheckErrorFromNSError(error),
+                            util::NSStringToString(error.localizedDescription).c_str());
+      }];
 }
 
-DebugAppCheckProviderFactory::DebugAppCheckProviderFactory() {}
+DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal()
+    : created_providers_() {
+  ios_provider_factory_ = [[FIRAppCheckDebugProviderFactory alloc] init];
+}
 
-DebugAppCheckProviderFactory::~DebugAppCheckProviderFactory() {}
+DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
+  // Cleanup any providers created by this factory.
+  for (auto it = created_providers_.begin(); it != created_providers_.end(); ++it) {
+    delete it->second;
+  }
+  created_providers_.clear();
+}
 
-AppCheckProvider* DebugAppCheckProviderFactory::CreateProvider(App* app) { return nullptr; }
+AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app) {
+  // Return the provider if it already exists.
+  std::map<App*, AppCheckProvider*>::iterator it = created_providers_.find(app);
+  if (it != created_providers_.end()) {
+    return it->second;
+  }
+  // Otherwise, create a new provider
+  FIRAppCheckDebugProvider* ios_provider =
+      [ios_provider_factory_ createProviderWithApp:app->GetPlatformApp()];
+  AppCheckProvider* cpp_provider = new internal::DebugAppCheckProvider(ios_provider);
+  created_providers_[app] = cpp_provider;
+  return cpp_provider;
+}
 
+}  // namespace internal
 }  // namespace app_check
 }  // namespace firebase
