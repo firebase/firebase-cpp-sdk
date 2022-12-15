@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
+#include "auth/src/android/auth_android.h"
+
 #include <assert.h>
 #include <jni.h>
-
-#include "auth/src/android/auth_android.h"
 
 #include "app/src/assert.h"
 #include "app/src/embedded_file.h"
@@ -364,11 +364,11 @@ static void ReadProviderResult(
   // completed successfully, `result` should be valid.
   FIREBASE_DEV_ASSERT(!success || task_result != nullptr);
   // `result` is of type SignInMethodQueryResult when `success` is true.
-  jobject list = success
-                     ? env->CallObjectMethod(
-                           task_result, signinmethodquery::GetMethodId(
-                               signinmethodquery::kGetSignInMethods))
-                     : nullptr;
+  jobject list =
+      success ? env->CallObjectMethod(task_result,
+                                      signinmethodquery::GetMethodId(
+                                          signinmethodquery::kGetSignInMethods))
+              : nullptr;
   if (firebase::util::CheckAndClearJniExceptions(env)) list = nullptr;
 
   // `list` is of type List<String>. Loop through it.
@@ -491,11 +491,10 @@ Future<User*> Auth::SignInAnonymously() {
 // Completes the specified future handle with an error and returns error code
 // if email and password are empty or null.  If the email and password are valid
 // this method returns kAuthErrorNone.
-template<typename T>
+template <typename T>
 static AuthError ValidateEmailAndPassword(
     const char* email, const char* password,
-    ReferenceCountedFutureImpl* future_api,
-    SafeFutureHandle<T> future_handle) {
+    ReferenceCountedFutureImpl* future_api, SafeFutureHandle<T> future_handle) {
   AuthError error = kAuthErrorNone;
   if (!email || strlen(email) == 0) {
     error = kAuthErrorMissingEmail;
@@ -514,7 +513,7 @@ Future<User*> Auth::SignInWithEmailAndPassword(const char* email,
   const auto handle =
       futures.SafeAlloc<User*>(kAuthFn_SignInWithEmailAndPassword);
 
-   if (ValidateEmailAndPassword(email, password, &futures, handle)) {
+  if (ValidateEmailAndPassword(email, password, &futures, handle)) {
     return MakeFuture(&futures, handle);
   }
 
@@ -529,7 +528,7 @@ Future<User*> Auth::SignInWithEmailAndPassword(const char* email,
   env->DeleteLocalRef(password_string);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-     RegisterCallback(task, handle, auth_data_, ReadUserFromSignInResult);
+    RegisterCallback(task, handle, auth_data_, ReadUserFromSignInResult);
   }
   if (task) env->DeleteLocalRef(task);
   return MakeFuture(&futures, handle);
@@ -556,7 +555,7 @@ Future<User*> Auth::CreateUserWithEmailAndPassword(const char* email,
   env->DeleteLocalRef(password_string);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-     RegisterCallback(task, handle, auth_data_, ReadUserFromSignInResult);
+    RegisterCallback(task, handle, auth_data_, ReadUserFromSignInResult);
   }
   if (task) env->DeleteLocalRef(task);
   return MakeFuture(&futures, handle);

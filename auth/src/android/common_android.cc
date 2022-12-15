@@ -461,72 +461,98 @@ void SetImplFromLocalRef(JNIEnv* env, jobject j_local, void** impl) {
   }
 
   // Create new global reference, so it's valid indefinitely.
-  if (j_local != nullptr) {
-    jobject j_global = env->NewGlobalRef(j_local);
-    env->DeleteLocalRef(j_local);
-    *impl = static_cast<void*>(j_global);
+  *impl = static_cast<void*>(util::LocalToGlobalReference(env, j_local));
+}
+
+static void ReadAdditionalUserInfo(JNIEnv* env, jobject j_additional_user_info,
+                                   AdditionalUserInfo* info) {
+  if (j_additional_user_info == nullptr) {
+    *info = AdditionalUserInfo();
+    return;
   }
+
+  // Get references to Java data members of AdditionalUserInfo object.
+  const jobject j_provider_id = env->CallObjectMethod(
+      j_additional_user_info,
+      additional_user_info::GetMethodId(additional_user_info::kGetProviderId));
+  util::CheckAndClearJniExceptions(env);
+  const jobject j_profile = env->CallObjectMethod(
+      j_additional_user_info,
+      additional_user_info::GetMethodId(additional_user_info::kGetProfile));
+  util::CheckAndClearJniExceptions(env);
+  const jobject j_user_name = env->CallObjectMethod(
+      j_additional_user_info,
+      additional_user_info::GetMethodId(additional_user_info::kGetUsername));
+  util::CheckAndClearJniExceptions(env);
+
+  // Convert Java references to C++ types.
+  info->provider_id = util::JniStringToString(env, j_provider_id);
+  info->user_name = util::JniStringToString(env, j_user_name);
+  if (j_profile) util::JavaMapToVariantMap(env, &info->profile, j_profile);
+
+  // Release local references. Note that JniStringToString releases for us.
+  env->DeleteLocalRef(j_profile);
 }
 
 // The `ReadFutureResultFn` for `SignIn` APIs.
-// Reads the `AuthResult` in `result` and initialize the `User*` in `void_data`.
-void ReadSignInResult(jobject result, FutureCallbackData<SignInResult>* d,
-                      bool success, void* void_data) {
-  JNIEnv* env = Env(d->auth_data);
+// Reads the `AuthResult` in `result` and initialize the `User*` in the result.
+void ReadSignInResult(jobject task_result,
+                      FutureCallbackData<SignInResult, AuthData>* callback_data,
+                      bool success, SignInResult* sign_in_result) {
+  AuthData* auth_internal = callback_data->context;
+  JNIEnv* env = Env(auth_internal);
 
   // Update the currently signed-in user on success.
   // Note: `result` is only valid when success is true.
-  if (success && result != nullptr) {
+  if (success && task_result != nullptr) {
     // `result` is of type AuthResult.
-    const jobject j_user = env->CallObjectMethod(
-        result, authresult::GetMethodId(authresult::kGetUser));
+    const jobject user = env->CallObjectMethod(
+        task_result, authresult::GetMethodId(authresult::kGetUser));
     util::CheckAndClearJniExceptions(env);
 
     // Update our pointer to the Android FirebaseUser that we're wrapping.
-    // Note: Cannot call UpdateCurrentUser(d->auth_data) because the Java
+    // Note: Cannot call UpdateCurrentUser(auth_internal) because the Java
     //       Auth class has not been updated at this point.
-    SetImplFromLocalRef(env, j_user, &d->auth_data->user_impl);
+    auth_internal->SetCurrentUser(user);
 
     // Grab the additional user info too.
     // Additional user info is not guaranteed to exist, so could be nullptr.
-    const jobject j_additional_user_info = env->CallObjectMethod(
-        result, authresult::GetMethodId(authresult::kGetAdditionalUserInfo));
+    const jobject additional_user_info = env->CallObjectMethod(
+        task_result,
+        authresult::GetMethodId(authresult::kGetAdditionalUserInfo));
     util::CheckAndClearJniExceptions(env);
 
-    // If additional user info exists, assume that the returned data is of
-    // type SignInResult (as opposed to just User*).
-    SignInResult* sign_in_result = static_cast<SignInResult*>(void_data);
-
     // Return a pointer to the user and gather the additional data.
-    sign_in_result->user = d->auth_data->auth->current_user();
-    ReadAdditionalUserInfo(env, j_additional_user_info, &sign_in_result->info);
-    env->DeleteLocalRef(j_additional_user_info);
+    sign_in_result->user = auth_internal->auth->current_user();
+    ReadAdditionalUserInfo(env, additional_user_info, &sign_in_result->info);
+    env->DeleteLocalRef(additional_user_info);
   }
 }
 
 // The `ReadFutureResultFn` for `SignIn` APIs.
-// Reads the `AuthResult` in `result` and initialize the `User*` in `void_data`.
-void ReadUserFromSignInResult(jobject result, FutureCallbackData<User*>* d,
-                              bool success, void* void_data) {
-  JNIEnv* env = Env(d->auth_data);
+// Reads the `AuthResult` in `result` and initialize the `User*` in the result.
+void ReadUserFromSignInResult(
+    jobject task_result, FutureCallbackData<User*, AuthData>* callback_data,
+    bool success, User** user_ptr) {
+  AuthData* auth_internal = callback_data->context;
+  JNIEnv* env = Env(auth_internal);
 
   // Update the currently signed-in user on success.
   // Note: `result` is only valid when success is true.
-  if (success && result != nullptr) {
+  if (success && task_result != nullptr) {
     // `result` is of type AuthResult.
     const jobject j_user = env->CallObjectMethod(
-        result, authresult::GetMethodId(authresult::kGetUser));
+        task_result, authresult::GetMethodId(authresult::kGetUser));
     util::CheckAndClearJniExceptions(env);
 
     // Update our pointer to the Android FirebaseUser that we're wrapping.
-    // Note: Cannot call UpdateCurrentUser(d->auth_data) because the Java
+    // Note: Cannot call UpdateCurrentUser(auth_internal) because the Java
     //       Auth class has not been updated at this point.
-    SetImplFromLocalRef(env, j_user, &d->auth_data->user_impl);
+    auth_internal->SetCurrentUser(j_user);
   }
 
   // Return a pointer to the current user, if the current user is valid.
-  User** user_ptr = static_cast<User**>(void_data);
-  *user_ptr = d->auth_data->auth->current_user();
+  *user_ptr = auth_internal->auth->current_user();
 }
 
 }  // namespace auth
