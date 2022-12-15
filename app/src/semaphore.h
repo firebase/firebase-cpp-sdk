@@ -73,15 +73,14 @@ class Semaphore {
 #endif  // FIREBASE_PLATFORM_OSX
 
     semaphore_name.append(buffer);
-    printf("semaphore name: %s\n", semaphore_name.c_str());
 
     semaphore_ = sem_open(semaphore_name.c_str(),
                           O_CREAT | O_EXCL,   // Create if it doesn't exist.
                           S_IRUSR | S_IWUSR,  // Only the owner can read/write.
                           initial_count);
-    printf("Semaphore: %p\n", semaphore_);
 
     assert(semaphore_ != SEM_FAILED);
+    assert(semaphore_ != nullptr);
 
     // Remove the semaphore from the system registry, so other processes can't
     // grab it.  (These are designed to just be passed around internally by
@@ -91,7 +90,6 @@ class Semaphore {
     bool success = (sem_unlink(semaphore_name.c_str()) == 0);
     assert(success);
     (void)success;
-
 #elif !FIREBASE_PLATFORM_WINDOWS
     // Android requires unnamed semaphores, and does not support sem_open
     semaphore_ = &semaphore_value_;
