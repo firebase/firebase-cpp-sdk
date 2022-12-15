@@ -52,6 +52,7 @@ echo 'https://${GITHUB_TOKEN}@github.com' > /tmp/git-credentials
 
 if [[ "${OS}" == "Windows" ]]; then
     git config --system core.longpaths true
+    git config --global core.eol lf
 fi
 
 if [[ "${OS}" == "Mac" ]]; then

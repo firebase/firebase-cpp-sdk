@@ -62,9 +62,11 @@ jobs:
           git config --global credential.helper 'store --file /tmp/git-credentials'
           echo 'https://${{ github.token }}@github.com' > /tmp/git-credentials
 
-      - name: Enable Git Long-paths Support
+      - name: Enable Git Long-paths Support and LF line endings
         if: runner.os == 'Windows'
-        run: git config --system core.longpaths true
+        run: |
+          git config --system core.longpaths true
+          git config --global core.eol lf
 
       - name: Check expanded matrix config
         if: github.event.inputs.expanded_matrix == '1'
