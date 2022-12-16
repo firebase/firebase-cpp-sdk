@@ -86,8 +86,11 @@ option(FIREBASE_GITHUB_ACTION_BUILD
 option(FIREBASE_QUICK_TEST
        "Enable quick tests will skip tests which requires access to the SECRET" OFF)
 
-set(FIREBASE_PYTHON_EXECUTABLE "python" CACHE FILEPATH
-  "The Python interpreter to use, such as one from a venv")
+find_program(FIREBASE_PYTHON_EXECUTABLE
+  NAMES python3 python
+  DOC "The Python interpreter to use, such as one from a venv"
+  REQUIRED
+)
 
 set(FIREBASE_XCODE_TARGET_FORMAT "frameworks" CACHE STRING
                                  "Format to output, 'frameworks' or 'libraries'")

@@ -1,6 +1,6 @@
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
-@@ -193,6 +193,10 @@ elseif(MSVC)
+@@ -193,6 +193,11 @@ elseif(MSVC)
                # possible loss of data
        "C4244" # 'function' : conversion from 'int' to 'uint8_t',
                # possible loss of data
@@ -8,6 +8,7 @@
 +              # '(void)'
 +      "C4191" # 'operator/operation' : unsafe conversion from 'type of
 +              # expression' to 'type required'
++      "C5264" # 'const' variable is not used
        "C4267" # conversion from 'size_t' to 'int', possible loss of data
        "C4371" # layout of class may have changed from a previous version of the
                # compiler due to better packing of member '...'
