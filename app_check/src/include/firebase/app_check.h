@@ -58,11 +58,11 @@ struct AppCheckToken {
 
 /// @brief Base class used to receive messages when AppCheck token changes.
 class AppCheckListener {
-  public:
-    virtual ~AppCheckListener() = 0;
-    /// This method gets invoked on the UI thread on changes to the token state.
-    /// Does not trigger on token expiry.
-    virtual void OnAppCheckTokenChanged(const AppCheckToken& token) = 0;
+ public:
+  virtual ~AppCheckListener() = 0;
+  /// This method gets invoked on the UI thread on changes to the token state.
+  /// Does not trigger on token expiry.
+  virtual void OnAppCheckTokenChanged(const AppCheckToken& token) = 0;
 };
 
 /// Interface for a provider that generates {@link AppCheckToken}s. This

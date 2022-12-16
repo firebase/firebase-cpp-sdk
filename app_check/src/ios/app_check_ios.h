@@ -36,7 +36,7 @@
 
 - (void)removeListener:(firebase::app_check::AppCheckListener* _Nonnull)listener;
 
-- (void)appCheckTokenDidChangeNotification:(NSNotification *)notification;
+- (void)appCheckTokenDidChangeNotification:(NSNotification*)notification;
 
 @end
 #endif  // __OBJC__

@@ -95,17 +95,16 @@
 @implementation AppCheckNotificationCenterWrapper
 
 // A collection of NSValues containing AppCheckListener*
-NSMutableArray *listeners_;
+NSMutableArray* listeners_;
 
 - (id)init {
   self = [super init];
   if (self) {
     listeners_ = [[NSMutableArray alloc] init];
-    [[NSNotificationCenter defaultCenter]
-        addObserver:self
-            selector:@selector(appCheckTokenDidChangeNotification:)
-                name:FIRAppCheckAppCheckTokenDidChangeNotification
-              object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(appCheckTokenDidChangeNotification:)
+                                                 name:FIRAppCheckAppCheckTokenDidChangeNotification
+                                               object:nil];
   }
   return self;
 }
@@ -118,22 +117,22 @@ NSMutableArray *listeners_;
   [listeners_ removeObject:[NSValue valueWithPointer:listener]];
 }
 
-- (void)appCheckTokenDidChangeNotification:(NSNotification *)notification {
-    NSDictionary *userInfo = notification.userInfo;
-    // Note: The Notification contains a token string, but does not contain
-    // expiration time. Could maybe call GetToken here to fetch the actual
-    // token, but there would be some risk of an infinite loop of calling
-    // GetToken and receiving TokenChanged notifications
-    NSString *app_name = (NSString *)userInfo[kFIRAppCheckAppNameNotificationKey];
-    NSString *token = (NSString *)userInfo[kFIRAppCheckTokenNotificationKey];
-    firebase::app_check::AppCheckToken cpp_token;
-    cpp_token.token = firebase::util::NSStringToString(token);
+- (void)appCheckTokenDidChangeNotification:(NSNotification*)notification {
+  NSDictionary* userInfo = notification.userInfo;
+  // Note: The Notification contains a token string, but does not contain
+  // expiration time. Could maybe call GetToken here to fetch the actual
+  // token, but there would be some risk of an infinite loop of calling
+  // GetToken and receiving TokenChanged notifications
+  NSString* app_name = (NSString*)userInfo[kFIRAppCheckAppNameNotificationKey];
+  NSString* token = (NSString*)userInfo[kFIRAppCheckTokenNotificationKey];
+  firebase::app_check::AppCheckToken cpp_token;
+  cpp_token.token = firebase::util::NSStringToString(token);
 
-    for (NSValue* listener_value in listeners_) {
-      firebase::app_check::AppCheckListener* listener = 
-          static_cast<firebase::app_check::AppCheckListener*>(listener_value.pointerValue);
-      listener->OnAppCheckTokenChanged(cpp_token);
-    }
+  for (NSValue* listener_value in listeners_) {
+    firebase::app_check::AppCheckListener* listener =
+        static_cast<firebase::app_check::AppCheckListener*>(listener_value.pointerValue);
+    listener->OnAppCheckTokenChanged(cpp_token);
+  }
 }
 
 @end
@@ -145,9 +144,8 @@ namespace internal {
 AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
   future_manager().AllocFutureApi(this, kAppCheckFnCount);
   impl_ = MakeUnique<FIRAppCheckPointer>([FIRAppCheck appCheck]);
-  notification_center_wrapper_ =
-      MakeUnique<AppCheckNotificationCenterWrapperPointer>(
-          [[AppCheckNotificationCenterWrapper alloc] init]);
+  notification_center_wrapper_ = MakeUnique<AppCheckNotificationCenterWrapperPointer>(
+      [[AppCheckNotificationCenterWrapper alloc] init]);
 }
 
 AppCheckInternal::~AppCheckInternal() {
@@ -208,11 +206,11 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckTokenLastResult() {
 }
 
 void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {
-  [notification_center_wrapper() addListener: listener];
+  [notification_center_wrapper() addListener:listener];
 }
 
 void AppCheckInternal::RemoveAppCheckListener(AppCheckListener* listener) {
-  [notification_center_wrapper() removeListener: listener];
+  [notification_center_wrapper() removeListener:listener];
 }
 
 }  // namespace internal
