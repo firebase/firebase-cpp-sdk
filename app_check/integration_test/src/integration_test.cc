@@ -396,7 +396,7 @@ TEST_F(FirebaseAppCheckTest, TestGetTokenLastResult) {
             future2.result()->expire_time_millis);
 }
 
-TEST_F(FirebaseAppCheckTest, TestTokenChangedListener) {
+TEST_F(FirebaseAppCheckTest, TestAddTokenChangedListener) {
   InitializeAppCheckWithDebug();
   InitializeApp();
   ::firebase::app_check::AppCheck* app_check =
@@ -414,7 +414,25 @@ TEST_F(FirebaseAppCheckTest, TestTokenChangedListener) {
   ::firebase::app_check::AppCheckToken token = *future.result();
 
   ASSERT_EQ(token_changed_listener.num_token_changes_, 1);
-  EXPECT_EQ(token_changed_listener.last_token_.token, token);
+  EXPECT_EQ(token_changed_listener.last_token_.token, token.token);
+}
+
+TEST_F(FirebaseAppCheckTest, TestRemoveTokenChangedListener) {
+  InitializeAppCheckWithDebug();
+  InitializeApp();
+  ::firebase::app_check::AppCheck* app_check =
+      ::firebase::app_check::AppCheck::GetInstance(app_);
+  ASSERT_NE(app_check, nullptr);
+
+  TestAppCheckListener token_changed_listener;
+  app_check->AddAppCheckListener(&token_changed_listener);
+  app_check->RemoveAppCheckListener(&token_changed_listener);
+
+  firebase::Future<::firebase::app_check::AppCheckToken> future =
+      app_check->GetAppCheckToken(true);
+  EXPECT_TRUE(WaitForCompletion(future, "GetToken"));
+
+  ASSERT_EQ(token_changed_listener.num_token_changes_, 0);
 }
 
 TEST_F(FirebaseAppCheckTest, TestSignIn) {
