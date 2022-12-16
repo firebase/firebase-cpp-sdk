@@ -32,8 +32,8 @@ namespace auth {
 // Predeclarations.
 class Auth;
 struct AuthData;
-
 class FederatedAuthProvider;
+class UserInternal;
 
 /// @brief Interface implemented by each identity provider.
 class UserInfoInterface {
@@ -178,7 +178,13 @@ class User : public UserInfoInterface {
     const char* photo_url;
   };
 
+  /// Copy a user.
+  User(const User& user);
+
   ~User();
+
+  /// Copy a user.
+  User& operator=(const User& user);
 
   /// The Java Web Token (JWT) that can be used to identify the user to
   /// the backend.
@@ -469,16 +475,8 @@ class User : public UserInfoInterface {
   virtual std::string phone_number() const;
 
  private:
-  /// @cond FIREBASE_APP_INTERNAL
-  friend struct AuthData;
-  // Only exists in AuthData. Access via @ref Auth::CurrentUser().
-  explicit User(AuthData* auth_data) : auth_data_(auth_data) {}
-
-  // Disable copy constructor.
-  User(const User&) = delete;
-  // Disable copy operator.
-  User& operator=(const User&) = delete;
-  /// @endcond
+  // Construct a user associated with the specified auth object.
+  explicit User(AuthData* auth);
 
 #if defined(INTERNAL_EXPERIMENTAL)
   // Doxygen should not make docs for this function.
@@ -486,13 +484,20 @@ class User : public UserInfoInterface {
   friend class IdTokenRefreshThread;
   friend class IdTokenRefreshListener;
   friend class Auth;
+  friend struct AuthData;
   Future<std::string> GetTokenInternal(const bool force_refresh,
                                        const int future_identifier);
+  bool is_valid() const;
   /// @endcond
 #endif  // defined(INTERNAL_EXPERIMENTAL)
 
+  #if defined(__ANDROID__)
+  // Platform specific user object.
+  UserInternal* internal_;
+#else
   // Use the pimpl mechanism to hide data details in the cpp files.
   AuthData* auth_data_;
+#endif
 };
 
 }  // namespace auth

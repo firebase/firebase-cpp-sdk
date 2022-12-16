@@ -27,6 +27,7 @@
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/include/firebase/app.h"
 #include "auth/src/common.h"
+#include "auth/src/credential_internal.h"
 #include "auth/src/data.h"
 #include "auth/src/desktop/auth_data_handle.h"
 #include "auth/src/desktop/auth_util.h"
@@ -358,12 +359,15 @@ Future<User*> Auth::SignInWithCustomToken(const char* const custom_token) {
 Future<User*> Auth::SignInWithCredential(const Credential& credential) {
   Promise<User*> promise(&auth_data_->future_impl,
                          kAuthFn_SignInWithCredential);
-  if (!ValidateCredential(&promise, credential.provider(), credential.impl_)) {
+  if (!ValidateCredential(
+          &promise, credential.provider(),
+          CredentialInternal::GetPlatformCredential(credential))) {
     return promise.LastResult();
   }
 
-  return DoSignInWithCredential(promise, auth_data_, credential.provider(),
-                                credential.impl_);
+  return DoSignInWithCredential(
+      promise, auth_data_, credential.provider(),
+      CredentialInternal::GetPlatformCredential(credential));
 }
 
 Future<SignInResult> Auth::SignInWithProvider(FederatedAuthProvider* provider) {
@@ -442,8 +446,9 @@ Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential(
     const Credential& credential) {
   Promise<SignInResult> promise(&auth_data_->future_impl,
                                 kAuthFn_SignInAndRetrieveDataWithCredential);
-  return DoSignInWithCredential(promise, auth_data_, credential.provider(),
-                                credential.impl_);
+  return DoSignInWithCredential(
+      promise, auth_data_, credential.provider(),
+      CredentialInternal::GetPlatformCredential(credential));
 }
 
 Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(

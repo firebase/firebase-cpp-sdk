@@ -143,7 +143,7 @@ void Auth::DeleteInternal() {
     MutexLock destructing_lock(auth_data_->desctruting_mutex);
     auth_data_->destructing = true;
   }
-  
+
   LogDebug("Auth::DeleteInternal 2");
   // Cleanup all objects referencing this auth object.
   auth_data_->cleanup.CleanupAll();

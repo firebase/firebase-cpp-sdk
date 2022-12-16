@@ -15,6 +15,7 @@
  */
 
 #include "app/src/time.h"
+#include "auth/src/credential_internal.h"
 #include "auth/src/ios/common_ios.h"
 
 #if FIREBASE_PLATFORM_IOS
@@ -53,11 +54,24 @@ class IOSWrappedUserInfo : public UserInfoInterface {
   id<FIRUserInfo> user_info_;
 };
 
+User::User(AuthData* auth_data) : auth_data_(auth_data) {}
+
+User::User(const User& user) {
+  this->operator=(user);
+}
+
 User::~User() {
   // Make sure we don't have any pending futures in flight before we disappear.
   while (!auth_data_->future_impl.IsSafeToDelete()) {
     internal::Sleep(100);
   }
+}
+
+User& User::operator=(const User& user) {
+  if (ValidUser(user.auth_data_)) {
+    
+  }
+  return *this;
 }
 
 Future<std::string> User::GetToken(bool force_refresh) {
@@ -166,11 +180,13 @@ Future<User *> User::LinkWithCredential(const Credential &credential) {
   }
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<User *>(kUserFn_LinkWithCredential);
-  [UserImpl(auth_data_)
-      linkWithCredential:CredentialFromImpl(credential.impl_)
-              completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-                SignInCallback(auth_result.user, error, handle, auth_data_);
-              }];
+  if (!CredentialInternal::CompleteFutureIfInvalid(credential, &futures, handle)) {
+    [UserImpl(auth_data_)
+        linkWithCredential:CredentialInternal::GetPlatformCredential(credential)->ptr
+                completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
+        SignInCallback(auth_result.user, error, handle, auth_data_);
+      }];
+  }
   return MakeFuture(&futures, handle);
 }
 
@@ -181,11 +197,13 @@ Future<SignInResult> User::LinkAndRetrieveDataWithCredential(const Credential &c
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = auth_data_->future_impl.SafeAlloc<SignInResult>(
       kUserFn_LinkAndRetrieveDataWithCredential, SignInResult());
-  [UserImpl(auth_data_)
-      linkWithCredential:CredentialFromImpl(credential.impl_)
-              completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-                SignInResultCallback(auth_result, error, handle, auth_data_);
-              }];
+  if (!CredentialInternal::CompleteFutureIfInvalid(credential, &futures, handle)) {
+    [UserImpl(auth_data_)
+        linkWithCredential:CredentialInternal::GetPlatformCredential(credential)->ptr
+                completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
+        SignInResultCallback(auth_result, error, handle, auth_data_);
+      }];
+  }
   return MakeFuture(&futures, handle);
 }
 
@@ -215,16 +233,18 @@ Future<User *> User::UpdatePhoneNumberCredential(const Credential &credential) {
   const auto handle = futures.SafeAlloc<User *>(kUserFn_UpdatePhoneNumberCredential);
 
 #if FIREBASE_PLATFORM_IOS
-  FIRAuthCredential *objc_credential = CredentialFromImpl(credential.impl_);
-  if ([objc_credential isKindOfClass:[FIRPhoneAuthCredential class]]) {
-    [UserImpl(auth_data_)
-        updatePhoneNumberCredential:(FIRPhoneAuthCredential *)objc_credential
-                         completion:^(NSError *_Nullable error) {
-                           futures.Complete(handle, AuthErrorFromNSError(error),
-                                            [error.localizedDescription UTF8String]);
-                         }];
-  } else {
-    futures.Complete(handle, kAuthErrorInvalidCredential, kInvalidCredentialMessage);
+  if (!CredentialInternal::CompleteFutureIfInvalid(credential, &futures, handle)) {
+    FIRAuthCredential *objc_credential = CredentialInternal::GetPlatformCredential(credential)->ptr;
+    if ([objc_credential isKindOfClass:[FIRPhoneAuthCredential class]]) {
+      [UserImpl(auth_data_)
+          updatePhoneNumberCredential:(FIRPhoneAuthCredential*)objc_credential
+                           completion:^(NSError *_Nullable error) {
+          futures.Complete(handle, AuthErrorFromNSError(error),
+                           [error.localizedDescription UTF8String]);
+        }];
+    } else {
+      futures.Complete(handle, kAuthErrorInvalidCredential, kInvalidCredentialMessage);
+    }
   }
 
 #else   // non iOS Apple platforms (eg: tvOS).
@@ -255,13 +275,15 @@ Future<void> User::Reauthenticate(const Credential &credential) {
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_Reauthenticate);
 
-  [UserImpl(auth_data_)
-      reauthenticateWithCredential:CredentialFromImpl(credential.impl_)
-                        completion:^(FIRAuthDataResult *_Nullable auth_result,
-                                     NSError *_Nullable error) {
-                          futures.Complete(handle, AuthErrorFromNSError(error),
-                                           [error.localizedDescription UTF8String]);
-                        }];
+  if (!CredentialInternal::CompleteFutureIfInvalid(credential, &futures, handle)) {
+    [UserImpl(auth_data_)
+        reauthenticateWithCredential:CredentialInternal::GetPlatformCredential(credential)->ptr
+                          completion:^(FIRAuthDataResult *_Nullable auth_result,
+                                       NSError *_Nullable error) {
+        futures.Complete(handle, AuthErrorFromNSError(error),
+                         [error.localizedDescription UTF8String]);
+      }];
+  }
   return MakeFuture(&futures, handle);
 }
 
@@ -273,12 +295,14 @@ Future<SignInResult> User::ReauthenticateAndRetrieveData(const Credential &crede
   const auto handle = auth_data_->future_impl.SafeAlloc<SignInResult>(
       kUserFn_ReauthenticateAndRetrieveData, SignInResult());
 
-  [UserImpl(auth_data_)
-      reauthenticateWithCredential:CredentialFromImpl(credential.impl_)
-                        completion:^(FIRAuthDataResult *_Nullable auth_result,
-                                     NSError *_Nullable error) {
-                          SignInResultCallback(auth_result, error, handle, auth_data_);
-                        }];
+  if (!CredentialInternal::CompleteFutureIfInvalid(credential, &futures, handle)) {
+    [UserImpl(auth_data_)
+        reauthenticateWithCredential:CredentialInternal::GetPlatformCredential(credential)->ptr
+                          completion:^(FIRAuthDataResult *_Nullable auth_result,
+                                       NSError *_Nullable error) {
+        SignInResultCallback(auth_result, error, handle, auth_data_);
+      }];
+  }
   return MakeFuture(&futures, handle);
 }
 
@@ -296,7 +320,7 @@ Future<void> User::Delete() {
 
   [UserImpl(auth_data_) deleteWithCompletion:^(NSError *_Nullable error) {
     if (!error) {
-      UpdateCurrentUser(auth_data_);
+      auth_data_->UpdateCurrentUser();
       futures.Complete(handle, kAuthErrorNone, "");
     } else {
       futures.Complete(handle, AuthErrorFromNSError(error),

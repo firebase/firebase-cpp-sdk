@@ -18,9 +18,9 @@
 #define FIREBASE_AUTH_SRC_CREDENTIAL_INTERNAL_H_
 
 #include "app/src/assert.h"
+#include "app/src/include/firebase/auth/credential.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/reference_counted_future_impl.h"
-#include "app/src/include/firebase/auth/credential.h"
 
 #if FIREBASE_PLATFORM_IOS
 #include "firebase/auth/client/cpp/src/ios/common_ios.h"
@@ -59,10 +59,9 @@ class CredentialInternal {
   /// reference to the FIRAuthCredential object.
   static inline FIRAuthCredentialPointer* GetPlatformCredential(
       const Credential& credential) {
-    return static_cast<FIRAuthCredentialPointer *>(credential.impl_);
+    return static_cast<FIRAuthCredentialPointer*>(credential.impl_);
   }
 #endif  // FIREBASE_PLATFORM_IOS
-
 
 #if FIREBASE_PLATFORM_ANDROID
   // Return the Java Credential class from our platform-independent
@@ -84,19 +83,20 @@ class CredentialInternal {
 #if FIREBASE_PLATFORM_ANDROID
   // Construct a credential from the specified object with error code and
   // message.
-  static inline Credential Create(JNIEnv *env, jobject platform_credential,
+  static inline Credential Create(JNIEnv* env, jobject platform_credential,
                                   AuthError error_code,
                                   const std::string& error_message) {
-    return Credential(
-        platform_credential ? new util::JObjectReference(
-            util::JObjectReference::FromLocalReference(
-                env, platform_credential)) : nullptr,
-        error_code, error_message);
+    return Credential(platform_credential
+                          ? new util::JObjectReference(
+                                util::JObjectReference::FromLocalReference(
+                                    env, platform_credential))
+                          : nullptr,
+                      error_code, error_message);
   }
 
   // Construct a credential from the specified object checking for any pending
   // JNI exceptions.
-  static inline Credential Create(JNIEnv *env, jobject platform_credential) {
+  static inline Credential Create(JNIEnv* env, jobject platform_credential) {
     std::string error_message;
     AuthError error_code = CheckAndClearJniAuthExceptions(env, &error_message);
     if (error_code != kAuthErrorNone) {

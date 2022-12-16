@@ -16,6 +16,7 @@
 
 #include "app/src/assert.h"
 #include "app/src/util_ios.h"
+#include "auth/src/credential_internal.h"
 #include "auth/src/ios/common_ios.h"
 
 #import <GameKit/GameKit.h>
@@ -26,11 +27,13 @@
 #import "FIRGameCenterAuthProvider.h"
 #import "FIRGitHubAuthProvider.h"
 #import "FIRGoogleAuthProvider.h"
+#import "FIROAuthCredential.h"
 #import "FIROAuthProvider.h"
 
 #if FIREBASE_PLATFORM_IOS
 // PhoneAuth is not supported on non-iOS Apple platforms (eg: tvOS).
 // We are using stub implementation for these platforms (just like on desktop).
+#import "FIRPhoneAuthCredential.h"
 #import "FIRPhoneAuthProvider.h"
 #endif  // FIREBASE_PLATFORM_IOS
 
@@ -40,18 +43,50 @@
 // This object is shared between the PhoneAuthProvider::Listener and the blocks in
 // @ref VerifyPhoneNumber. It exists for as long as one of those two lives. We use Objective-C
 // for reference counting.
-@interface PhoneListenerDataObjC : NSObject {
- @public
+@interface FIRCppPhoneListenerHandle : NSObject
+- (instancetype)init NS_UNAVAILABLE;
+
+// Initialize with a reference to the specified listener.
+- (instancetype) initWithListener:(firebase::auth::PhoneAuthProvider::Listener*) initListener;
+
+// Call the specified method with the current listener while holding the lock to access the
+// listener. If a listener isn't set the callback will not be called.
+- (void) usingListener:(void (^)(firebase::auth::PhoneAuthProvider::Listener* listener))callback;
+
+// Clear the listener from this object.
+- (void) clearListener;
+@end
+
+@implementation FIRCppPhoneListenerHandle {
   // Back-pointer to the PhoneAuthProvider::Listener, or nullptr if it has been deleted.
   // This lets the VerifyPhoneNumber block know when its Listener has been deleted so it should
   // become a no-op.
-  firebase::auth::PhoneAuthProvider::Listener* active_listener;
+  firebase::auth::PhoneAuthProvider::Listener* listener;
 
   // The mutex protecting Listener callbacks and destruction. Callbacks and destruction are atomic.
-  firebase::Mutex listener_mutex;
+  NSRecursiveLock* lock;
 }
-@end
-@implementation PhoneListenerDataObjC
+
+- (instancetype) initWithListener:(firebase::auth::PhoneAuthProvider::Listener*) initListener {
+  self = [super init];
+  if (self) {
+    listener = initListener;
+    lock = [[NSRecursiveLock alloc] init];
+  }
+  return self;
+}
+
+- (void) usingListener:(void (^)(firebase::auth::PhoneAuthProvider::Listener* listener))callback {
+  [lock lock];
+  if (listener) callback(listener);
+  [lock unlock];
+}
+
+- (void) clearListener {
+  [lock lock];
+  listener = nullptr;
+  [lock unlock];
+}
 @end
 #endif  // FIREBASE_PLATFORM_IOS
 
@@ -62,36 +97,52 @@ static const char* kMockVerificationId = "PhoneAuth not supported on this platfo
 
 using util::StringFromNSString;
 
+Credential CredentialInternal::Create(
+    CreatePlatformCredentialCallback create_platform_credential) {
+  AuthError error_code = kAuthErrorNone;
+  std::string error_message;
+  FIRAuthCredential* platform_credential;
+  @try {
+    platform_credential = create_platform_credential();
+  } @catch (NSException* e) {
+    platform_credential = nil;
+    error_message = util::NSStringToString(e.reason);
+  }
+  if (!platform_credential) error_code = kAuthErrorInvalidCredential;
+  return Credential(platform_credential ?
+                    new FIRAuthCredentialPointer(platform_credential) : nullptr,
+                    error_code, error_message);
+}
+
 Credential::~Credential() {
-  delete static_cast<FIRAuthCredentialPointer*>(impl_);
-  impl_ = NULL;
+  delete CredentialInternal::GetPlatformCredential(*this);
+  impl_ = nullptr;
 }
 
 // Default copy constructor.
-Credential::Credential(const Credential& rhs) : impl_(NULL) {
-  if (rhs.impl_ != NULL) {
-    impl_ = new FIRAuthCredentialPointer(CredentialFromImpl(rhs.impl_));
-  }
-  error_code_ = rhs.error_code_;
-  error_message_ = rhs.error_message_;
+Credential::Credential(const Credential& rhs) : impl_(nullptr) {
+  operator=(rhs);
 }
 
 // Default assigment.
 Credential& Credential::operator=(const Credential& rhs) {
-  if (rhs.impl_ != NULL) {
-    delete static_cast<FIRAuthCredentialPointer*>(impl_);
-    impl_ = new FIRAuthCredentialPointer(CredentialFromImpl(rhs.impl_));
-  }
+  delete CredentialInternal::GetPlatformCredential(*this);
+  impl_ = nullptr;
+  auto* rhs_impl = CredentialInternal::GetPlatformCredential(rhs);
+  if (rhs_impl) impl_ = new FIRAuthCredentialPointer(*rhs_impl);
   error_code_ = rhs.error_code_;
   error_message_ = rhs.error_message_;
   return *this;
 }
 
-bool Credential::is_valid() const { return CredentialFromImpl(impl_) != NULL; }
+bool Credential::is_valid() const {
+  return CredentialInternal::GetPlatformCredential(*this) != nullptr;
+}
 
 std::string Credential::provider() const {
-  return impl_ == nullptr ? std::string("")
-                          : util::StringFromNSString(CredentialFromImpl(impl_).provider);
+  return is_valid() ?
+    util::StringFromNSString(CredentialInternal::GetPlatformCredential(*this)->ptr.provider) :
+    std::string();
 }
 
 // static
@@ -99,31 +150,35 @@ Credential EmailAuthProvider::GetCredential(const char* email, const char* passw
   FIREBASE_ASSERT_RETURN(Credential(), email && password);
   FIRAuthCredential* credential = [FIREmailAuthProvider credentialWithEmail:@(email)
                                                                    password:@(password)];
-  return Credential(new FIRAuthCredentialPointer(credential));
+  return CredentialInternal::Create(^{
+      return [FIREmailAuthProvider credentialWithEmail:@(email)
+                                              password:@(password)];
+    });
 }
 
 // static
 Credential FacebookAuthProvider::GetCredential(const char* access_token) {
   FIREBASE_ASSERT_RETURN(Credential(), access_token);
-  FIRAuthCredential* credential =
-      [FIRFacebookAuthProvider credentialWithAccessToken:@(access_token)];
-  return Credential(new FIRAuthCredentialPointer(credential));
+  return CredentialInternal::Create(^{
+      return [FIRFacebookAuthProvider credentialWithAccessToken:@(access_token)];
+    });
 }
 
 // static
 Credential GitHubAuthProvider::GetCredential(const char* token) {
   FIREBASE_ASSERT_RETURN(Credential(), token);
   FIRAuthCredential* credential = [FIRGitHubAuthProvider credentialWithToken:@(token)];
-  return Credential(new FIRAuthCredentialPointer(credential));
+  return CredentialInternal::Create(^{
+      return [FIRGitHubAuthProvider credentialWithToken:@(token)];
+    });
 }
 
 // static
 Credential GoogleAuthProvider::GetCredential(const char* id_token, const char* access_token) {
-  NSString* ns_id_token = id_token ? @(id_token) : nil;
-  NSString* ns_access_token = access_token ? @(access_token) : nil;
-  FIRAuthCredential* credential = [FIRGoogleAuthProvider credentialWithIDToken:ns_id_token
-                                                                   accessToken:ns_access_token];
-  return Credential(new FIRAuthCredentialPointer(credential));
+  return CredentialInternal::Create(^{
+        return [FIRGoogleAuthProvider credentialWithIDToken:(id_token ? @(id_token) : nil)
+                                                accessToken:(access_token ? @(access_token) : nil)];
+    });
 }
 
 // static
@@ -139,18 +194,21 @@ Credential TwitterAuthProvider::GetCredential(const char* token, const char* sec
   FIREBASE_ASSERT_RETURN(Credential(), token && secret);
   FIRAuthCredential* credential = [FIRTwitterAuthProvider credentialWithToken:@(token)
                                                                        secret:@(secret)];
-  return Credential(new FIRAuthCredentialPointer(credential));
+  return CredentialInternal::Create(^{
+      return [FIRTwitterAuthProvider credentialWithToken:@(token) secret:@(secret)];
+    });
 }
 
 // static
 Credential OAuthProvider::GetCredential(const char* provider_id, const char* id_token,
                                         const char* access_token) {
   FIREBASE_ASSERT_RETURN(Credential(), provider_id && id_token && access_token);
-  FIRAuthCredential* credential =
-      (FIRAuthCredential*)[FIROAuthProvider credentialWithProviderID:@(provider_id)
-                                                             IDToken:@(id_token)
-                                                         accessToken:@(access_token)];
-  return Credential(new FIRAuthCredentialPointer(credential));
+  return CredentialInternal::Create(^{
+      FIRAuthCredential* credential = [FIROAuthProvider credentialWithProviderID:@(provider_id)
+                                                                         IDToken:@(id_token)
+                                                                     accessToken:@(access_token)];
+      return credential;
+    });
 }
 
 // static
@@ -191,10 +249,10 @@ Future<Credential> GameCenterAuthProvider::GetCredential() {
 
   [FIRGameCenterAuthProvider getCredentialWithCompletion:^(FIRAuthCredential* _Nullable credential,
                                                            NSError* _Nullable error) {
-    Credential result(new FIRAuthCredentialPointer(credential));
-    future_api->CompleteWithResult(handle, AuthErrorFromNSError(error),
-                                   util::NSStringToString(error.localizedDescription).c_str(),
-                                   result);
+    future_api->CompleteWithResult(
+        handle, AuthErrorFromNSError(error),
+        util::NSStringToString(error.localizedDescription).c_str(),
+        CredentialInternal::Create(^{ return credential; }));
   }];
 
   return MakeFuture(future_api, handle);
@@ -226,12 +284,12 @@ bool GameCenterAuthProvider::IsPlayerAuthenticated() {
   return localPlayer.isAuthenticated;
 }
 
-// We skip the implementation of ForceResendingTokenData since it is not needed.
+// We skip the implementation of ForceResendingTokenInternal since it is not needed.
 // The ForceResendingToken class for iOS is empty.
-PhoneAuthProvider::ForceResendingToken::ForceResendingToken() : data_(nullptr) {}
+PhoneAuthProvider::ForceResendingToken::ForceResendingToken() : internal_(nullptr) {}
 PhoneAuthProvider::ForceResendingToken::~ForceResendingToken() {}
 PhoneAuthProvider::ForceResendingToken::ForceResendingToken(const ForceResendingToken&)
-    : data_(nullptr) {}
+    : internal_(nullptr) {}
 PhoneAuthProvider::ForceResendingToken& PhoneAuthProvider::ForceResendingToken::operator=(
     const ForceResendingToken&) {
   return *this;
@@ -242,58 +300,35 @@ bool PhoneAuthProvider::ForceResendingToken::operator==(const ForceResendingToke
 bool PhoneAuthProvider::ForceResendingToken::operator!=(const ForceResendingToken&) const {
   return false;
 }
+bool PhoneAuthProvider::ForceResendingToken::is_valid() const { return false; }
 
 #if FIREBASE_PLATFORM_IOS
-// This implementation of PhoneListenerData is specific to iOS.
-struct PhoneListenerData {
-  // Hold the reference-counted ObjC structure. This structure is shared by the blocks in
-  // @ref VerifyPhoneNumber
-  PhoneListenerDataObjC* objc;
-};
+// This implementation of PhoneListenerInternal is specific to iOS.
+OBJ_C_PTR_WRAPPER_NAMED(PhoneListenerInternal, FIRCppPhoneListenerHandle);
 
-PhoneAuthProvider::Listener::Listener() : data_(new PhoneListenerData) {
-  data_->objc = [[PhoneListenerDataObjC alloc] init];
-  data_->objc->active_listener = this;
+PhoneAuthProvider::Listener::Listener() {
+  internal_ = new PhoneListenerInternal([[FIRCppPhoneListenerHandle alloc] initWithListener:this]);
+}
+
+PhoneAuthProvider::Listener::~Listener() {
+  [internal_->get() clearListener];
+    delete internal_;
+    internal_ = nullptr;
+}
+
+bool PhoneAuthProvider::Listener::is_valid() const {
+  return internal_->get() != nullptr;
 }
 #else   // non-iOS Apple platforms (eg: tvOS)
 // Stub for tvOS and other non-iOS apple platforms.
 PhoneAuthProvider::Listener::Listener() : data_(nullptr) {}
-#endif  // FIREBASE_PLATFORM_IOS
-
-#if FIREBASE_PLATFORM_IOS
-PhoneAuthProvider::Listener::~Listener() {
-  // Wait while the Listener is being used (in the callbacks in VerifyPhoneNumber).
-  // Then reset the active_listener so that callbacks become no-ops.
-  {
-    MutexLock lock(data_->objc->listener_mutex);
-    data_->objc->active_listener = nullptr;
-  }
-  data_->objc = nil;
-  delete data_;
-}
-#else   // non-iOS Apple platforms (eg: tvOS)
 PhoneAuthProvider::Listener::~Listener() {}
+
+bool PhoneAuthProvider::Listener::is_valid() const { return false; }
 #endif  // FIREBASE_PLATFORM_IOS
 
-#if FIREBASE_PLATFORM_IOS
-// This implementation of PhoneAuthProviderData is specific to iOS.
-struct PhoneAuthProviderData {
- public:
-  explicit PhoneAuthProviderData(FIRPhoneAuthProvider* objc_provider)
-      : objc_provider(objc_provider) {}
 
-  // The wrapped provider in Objective-C.
-  FIRPhoneAuthProvider* objc_provider;
-};
-#endif  // FIREBASE_PLATFORM_IOS
 
-PhoneAuthProvider::PhoneAuthProvider() : data_(nullptr) {}
-
-#if FIREBASE_PLATFORM_IOS
-PhoneAuthProvider::~PhoneAuthProvider() { delete data_; }
-#else   // non-iOS Apple platforms (eg: tvOS)
-PhoneAuthProvider::~PhoneAuthProvider() {}
-#endif  // FIREBASE_PLATFORM_IOS
 
 #if FIREBASE_PLATFORM_IOS
 void PhoneAuthProvider::VerifyPhoneNumber(const char* phone_number,
@@ -302,34 +337,28 @@ void PhoneAuthProvider::VerifyPhoneNumber(const char* phone_number,
                                           Listener* listener) {
   FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
   const PhoneAuthProvider::ForceResendingToken invalid_resending_token;
-  PhoneListenerDataObjC* objc_listener_data = listener->data_->objc;
+  PhoneListenerInternal* listener_internal = listener->internal_->get();
 
-  [data_->objc_provider
-      verifyPhoneNumber:@(phone_number)
-             UIDelegate:nil
-             completion:^(NSString* _Nullable verificationID, NSError* _Nullable error) {
-               MutexLock lock(objc_listener_data->listener_mutex);
-
-               // If the listener has been deleted before this callback, do nothing.
-               if (objc_listener_data->active_listener == nullptr) return;
-
-               // Call OnVerificationFailed() or OnCodeSent() as appropriate.
-               if (verificationID == nullptr) {
-                 listener->OnVerificationFailed(
-                     util::StringFromNSString(error.localizedDescription));
-               } else {
-                 listener->OnCodeSent(util::StringFromNSString(verificationID),
-                                      invalid_resending_token);
-               }
-             }];
+  [internal_->get() verifyPhoneNumber:@(phone_number)
+                           UIDelegate:nil
+                           completion:^(NSString *_Nullable verificationID,
+                                        NSError *_Nullable error) {
+      [listener_internal usingListener:^(Listener* callback_listener) {
+          // Call OnVerificationFailed() or OnCodeSent() as appropriate.
+          if (verificationID == nullptr) {
+            callback_listener->OnVerificationFailed(
+                util::StringFromNSString(error.localizedDescription));
+          } else {
+            callback_listener->OnCodeSent(util::StringFromNSString(verificationID),
+                                          invalid_resending_token);
+          }
+        }];
+    }];
 
   // Only call the callback when protected by the mutex.
-  {
-    MutexLock lock(objc_listener_data->listener_mutex);
-    if (objc_listener_data->active_listener != nullptr) {
-      listener->OnCodeAutoRetrievalTimeOut(std::string());
-    }
-  }
+  [listener_internal usingListener:^(Listener* callback_listener) {
+      callback_listener->OnCodeAutoRetrievalTimeOut(std::string());
+    }];
 }
 #else   // non-iOS Apple platforms (eg: tvOS)
 void PhoneAuthProvider::VerifyPhoneNumber(const char* /*phone_number*/,
@@ -353,10 +382,12 @@ void PhoneAuthProvider::VerifyPhoneNumber(const char* /*phone_number*/,
 Credential PhoneAuthProvider::GetCredential(const char* verification_id,
                                             const char* verification_code) {
   FIREBASE_ASSERT_RETURN(Credential(), verification_id && verification_code);
-  FIRPhoneAuthCredential* credential =
-      [data_->objc_provider credentialWithVerificationID:@(verification_id)
-                                        verificationCode:@(verification_code)];
-  return Credential(new FIRAuthCredentialPointer((FIRAuthCredential*)credential));
+  FIRPhoneAuthProvider* provider = internal_->get();
+  return CredentialInternal::Create(^{
+      FIRAuthCredential* credential = [provider credentialWithVerificationID:@(verification_id)
+                                                            verificationCode:@(verification_code)];
+      return credential;
+    });
 }
 #else   // non-iOS Apple platforms (eg: tvOS)
 Credential PhoneAuthProvider::GetCredential(const char* verification_id,
@@ -372,13 +403,13 @@ Credential PhoneAuthProvider::GetCredential(const char* verification_id,
 #if FIREBASE_PLATFORM_IOS
 // static
 PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
+  static PhoneAuthProvider invalid_provider;
+  FIREBASE_ASSERT_RETURN(invalid_provider, auth);
   PhoneAuthProvider& provider = auth->auth_data_->phone_auth_provider;
-  if (provider.data_ == nullptr) {
-    FIRPhoneAuthProvider* objc_provider =
-        [FIRPhoneAuthProvider providerWithAuth:AuthImpl(auth->auth_data_)];
-
+  if (provider.internal_ == nullptr) {
     // Create the implementation class that holds the wrapped FIRPhoneAuthProvider.
-    provider.data_ = new PhoneAuthProviderData(objc_provider);
+     provider.internal_ = new PhoneAuthProviderInternal(
+      [FIRPhoneAuthProvider providerWithAuth:AuthImpl(auth->auth_data_)]);
   }
   return provider;
 }

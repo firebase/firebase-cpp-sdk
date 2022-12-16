@@ -27,6 +27,7 @@
 #include "app/src/log.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_ios.h"
+#include "auth/src/credential_internal.h"
 #include "auth/src/ios/common_ios.h"
 
 // Wraps AuthData with an Obj-C object so that it's possible to remove
@@ -148,10 +149,10 @@ void *CreatePlatformAuth(App *app) {
 }
 
 // Grab the user value from the iOS API and remember it locally.
-void UpdateCurrentUser(AuthData *auth_data) {
-  MutexLock lock(auth_data->future_impl.mutex());
-  FIRUser *user = [AuthImpl(auth_data) currentUser];
-  SetUserImpl(auth_data, user);
+void AuthData::UpdateCurrentUser() {
+  MutexLock lock(future_impl.mutex());
+  FIRUser *user = [AuthImpl(this) currentUser];
+  SetUserImpl(this, user);
 }
 
 // Platform-specific method to initialize AuthData.
@@ -166,7 +167,7 @@ void Auth::InitPlatformAuth(AuthData *auth_data) {
         @synchronized(listener_cpp_handle) {
           AuthData *data = listener_cpp_handle.authData;
           if (data) {
-            UpdateCurrentUser(data);
+            data->UpdateCurrentUser();
             NotifyAuthStateListeners(data);
           }
         }
@@ -176,7 +177,7 @@ void Auth::InitPlatformAuth(AuthData *auth_data) {
         @synchronized(listener_cpp_handle) {
           AuthData *data = listener_cpp_handle.authData;
           if (data) {
-            UpdateCurrentUser(data);
+            data->UpdateCurrentUser();
             NotifyIdTokenListeners(data);
           }
         }
@@ -190,7 +191,7 @@ void Auth::InitPlatformAuth(AuthData *auth_data) {
   // Ensure initial user value is correct.
   // It's possible for the user to be signed-in at creation, if the user signed-in during a
   // previous run, for example.
-  UpdateCurrentUser(auth_data);
+  data->UpdateCurrentUser();
 }
 
 // Platform-specific method to destroy the wrapped Auth class.
@@ -377,12 +378,13 @@ Future<User *> Auth::SignInWithCredential(const Credential &credential) {
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<User *>(kAuthFn_SignInWithCredential, nullptr);
 
-  [AuthImpl(auth_data_)
-      signInWithCredential:CredentialFromImpl(credential.impl_)
-                completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-                  SignInCallback(auth_result.user, error, handle, auth_data_);
-                }];
-
+  if (!CredentialInternal::CompleteFutureIfInvalid(credential, &futures, handle)) {
+    [AuthImpl(auth_data_)
+        signInWithCredential:CredentialInternal::GetPlatformCredential(credential)->ptr
+                  completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
+        SignInCallback(auth_result.user, error, handle, auth_data_);
+      }];
+  }
   return MakeFuture(&futures, handle);
 }
 
@@ -391,11 +393,14 @@ Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential(const Credential 
   const auto handle =
       futures.SafeAlloc<SignInResult>(kAuthFn_SignInAndRetrieveDataWithCredential, SignInResult());
 
-  [AuthImpl(auth_data_)
-      signInWithCredential:CredentialFromImpl(credential.impl_)
-                completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-                  SignInResultCallback(auth_result, error, handle, auth_data_);
-                }];
+  if (!CredentialInternal::CompleteFutureIfInvalid(credential, &futures, handle)) {
+    [AuthImpl(auth_data_)
+        signInWithCredential:CredentialInternal::GetPlatformCredential(credential)->ptr
+        completion:^(FIRAuthDataResult *_Nullable auth_result,
+                     NSError *_Nullable error) {
+        SignInResultCallback(auth_result, error, handle, auth_data_);
+      }];
+  }
 
   return MakeFuture(&futures, handle);
 }

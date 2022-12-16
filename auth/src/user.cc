@@ -24,11 +24,10 @@ namespace firebase {
 namespace auth {
 
 #if defined(__ANDROID__)
-#define AUTH_USER_RESULT_FN(class_name, fn_name, result_type)             \
-  Future<result_type> class_name::fn_name##LastResult() const {           \
-    return static_cast<const Future<result_type>&>(                       \
-        internal_->future_api()->LastResult(                              \
-            k##class_name##Fn_##fn_name));                                \
+#define AUTH_USER_RESULT_FN(class_name, fn_name, result_type)              \
+  Future<result_type> class_name::fn_name##LastResult() const {            \
+    return static_cast<const Future<result_type>&>(                        \
+        internal_->future_api()->LastResult(k##class_name##Fn_##fn_name)); \
   }
 #else
 // All the result functions are similar.

@@ -86,7 +86,8 @@ struct AuthData {
         listener_impl(nullptr),
         id_token_listener_impl(nullptr),
         persistent_cache_load_pending(true),
-        destructing(false) {}
+        destructing(false) {
+  }
 
   ~AuthData() {
     LogDebug("AuthData::~AuthData 1");
@@ -130,7 +131,7 @@ struct AuthData {
   /// Identifier used to track futures associated with future_impl.
   std::string future_api_id;
 
-   /// Notifies all objects referencing this object.
+  /// Notifies all objects referencing this object.
   CleanupNotifier cleanup;
 
   /// Default user for this Auth.
@@ -188,7 +189,7 @@ struct AuthData {
 
   // Mutex protecting destructing
   Mutex desctruting_mutex;
-  
+
   // Synchronize the current user.
   void UpdateCurrentUser();
 

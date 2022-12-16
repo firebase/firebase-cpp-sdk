@@ -42,9 +42,9 @@ class User;
 
 // Opaque internal types.
 struct AuthData;
-class ForceResendingTokenData;
-struct PhoneAuthProviderData;
-struct PhoneListenerData;
+class ForceResendingTokenInternal;
+struct PhoneAuthProviderInternal;
+struct PhoneListenerInternal;
 
 /// @brief Authentication credentials for an authentication provider.
 ///
@@ -78,6 +78,10 @@ class Credential {
   /// @see GoogleAuthProvider::GetCredential()
   explicit Credential(void* impl) : impl_(impl), error_code_(kAuthErrorNone) {}
 
+  // Construct with an error code and message.
+  Credential(void* impl, AuthError error_code, std::string error_message) :
+      impl_(impl), error_code_(error_code), error_message_(error_message) {}
+
  public:
   Credential() : impl_(nullptr), error_code_(kAuthErrorNone) {}
   ~Credential();
@@ -107,8 +111,7 @@ class Credential {
 
  protected:
   /// @cond FIREBASE_APP_INTERNAL
-  friend class Auth;
-  friend class User;
+  friend class CredentialInternal;
 
   /// Platform-specific implementation.
   /// For example, FIRAuthCredential* on iOS.
@@ -219,11 +222,9 @@ class OAuthProvider {
  public:
   /// Generate a credential for an OAuth2 provider.
   ///
-  /// @param provider_id Name of the OAuth2 provider
-  ///    TODO(jsanmiya) add examples.
+  /// @param provider_id Name of the OAuth2 provider.
   /// @param id_token The authentication token (OIDC only).
-  /// @param access_token TODO(jsanmiya) add explanation (currently missing
-  ///    from Android and iOS implementations).
+  /// @param access_token A valid access token from the OAuth2 provider.
   static Credential GetCredential(const char* provider_id, const char* id_token,
                                   const char* access_token);
 
@@ -449,9 +450,15 @@ class PhoneAuthProvider {
     bool operator!=(const ForceResendingToken& rhs) const;
 
    private:
+    // Construct from the internal data.
+    explicit ForceResendingToken(const ForceResendingTokenInternal& rhs);
+
+    // Whether the instance is valid.
+    bool is_valid() const;
+
     friend class JniAuthPhoneListener;
     friend class PhoneAuthProvider;
-    ForceResendingTokenData* data_;
+    ForceResendingTokenInternal* internal_;
   };
 
   /// @brief Receive callbacks from @ref VerifyPhoneNumber events.
@@ -517,9 +524,12 @@ class PhoneAuthProvider {
    private:
     friend class PhoneAuthProvider;
 
+    // Whether the instance is valid.
+    bool is_valid() const;
+
     /// Back-pointer to the data of the PhoneAuthProvider that
     /// @ref VerifyPhoneNumber was called with. Used internally.
-    PhoneListenerData* data_;
+    PhoneListenerInternal* internal_;
   };
 
   /// Maximum value of `auto_verify_time_out_ms` in @ref VerifyPhoneNumber.
@@ -586,7 +596,10 @@ class PhoneAuthProvider {
   // The PhoneAuthProvider is owned by the Auth class.
   ~PhoneAuthProvider();
 
-  PhoneAuthProviderData* data_;
+  // Whether the instance is valid.
+  bool is_valid() const;
+
+  PhoneAuthProviderInternal* internal_;
 };
 
 /// @brief Use a server auth code provided by Google Play Games to authenticate.

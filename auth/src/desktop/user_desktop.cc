@@ -25,6 +25,7 @@
 #include "app/src/scheduler.h"
 #include "app/src/secure/user_secure_manager.h"
 #include "auth/src/common.h"
+#include "auth/src/credential_internal.h"
 #include "auth/src/data.h"
 #include "auth/src/desktop/auth_data_handle.h"
 #include "auth/src/desktop/auth_desktop.h"
@@ -610,11 +611,26 @@ Future<void> UserDataPersist::DeleteUserData(AuthData* auth_data) {
   return user_secure_manager_->DeleteUserData(auth_data->app->name());
 }
 
+User::User(AuthData* auth_data) : auth_data_(auth_data) {}
+
+User::User(const User& user) {
+  this->operator=(user);
+}
+
 User::~User() {
   // Make sure we don't have any pending futures in flight before we disappear.
   while (!auth_data_->future_impl.IsSafeToDelete()) {
     internal::Sleep(100);
   }
+}
+
+User& User::operator=(const User& user) {
+  auth_data_ = nullptr;
+  if (ValidUser(user.auth_data_)) {
+    // TODO(smiles): Copy the user.
+    // auth_data_ = user.auth_data_;
+  }
+  return *this;
 }
 
 // RPCs
@@ -842,16 +858,18 @@ Future<User*> User::Unlink(const char* const provider) {
 
 Future<User*> User::LinkWithCredential(const Credential& credential) {
   Promise<User*> promise(&auth_data_->future_impl, kUserFn_LinkWithCredential);
-  return DoLinkCredential(promise, auth_data_, credential.provider(),
-                          credential.impl_);
+  return DoLinkCredential(
+      promise, auth_data_, credential.provider(),
+      CredentialInternal::GetPlatformCredential(credential));
 }
 
 Future<SignInResult> User::LinkAndRetrieveDataWithCredential(
     const Credential& credential) {
   Promise<SignInResult> promise(&auth_data_->future_impl,
                                 kUserFn_LinkAndRetrieveDataWithCredential);
-  return DoLinkCredential(promise, auth_data_, credential.provider(),
-                          credential.impl_);
+  return DoLinkCredential(
+      promise, auth_data_, credential.provider(),
+      CredentialInternal::GetPlatformCredential(credential));
 }
 
 Future<SignInResult> User::LinkWithProvider(
@@ -870,16 +888,18 @@ Future<SignInResult> User::LinkWithProvider(
 
 Future<void> User::Reauthenticate(const Credential& credential) {
   Promise<void> promise(&auth_data_->future_impl, kUserFn_Reauthenticate);
-  return DoReauthenticate(promise, auth_data_, credential.provider(),
-                          credential.impl_);
+  return DoReauthenticate(
+      promise, auth_data_, credential.provider(),
+      CredentialInternal::GetPlatformCredential(credential));
 }
 
 Future<SignInResult> User::ReauthenticateAndRetrieveData(
     const Credential& credential) {
   Promise<SignInResult> promise(&auth_data_->future_impl,
                                 kUserFn_ReauthenticateAndRetrieveData);
-  return DoReauthenticate(promise, auth_data_, credential.provider(),
-                          credential.impl_);
+  return DoReauthenticate(
+      promise, auth_data_, credential.provider(),
+      CredentialInternal::GetPlatformCredential(credential));
 }
 
 Future<SignInResult> User::ReauthenticateWithProvider(
