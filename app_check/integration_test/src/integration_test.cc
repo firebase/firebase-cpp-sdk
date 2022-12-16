@@ -127,14 +127,12 @@ class TestAppCheckListener : public firebase::app_check::AppCheckListener {
 
   void OnAppCheckTokenChanged(
       const firebase::app_check::AppCheckToken& token) override {
-    LogInfo("almostmatt - app check token changed listener was called");
-    LogInfo("Received app check token: %s", token.token.c_str());
-    token_ = token;
+    last_token_ = token;
     num_token_changes_ += 1;
   }
 
   int num_token_changes_;
-  firebase::app_check::AppCheckToken token_;
+  firebase::app_check::AppCheckToken last_token_;
 };
 
 // Initialization flow looks like this:
@@ -413,10 +411,10 @@ TEST_F(FirebaseAppCheckTest, TestTokenChangedListener) {
   firebase::Future<::firebase::app_check::AppCheckToken> future =
       app_check->GetAppCheckToken(true);
   EXPECT_TRUE(WaitForCompletion(future, "GetToken"));
+  ::firebase::app_check::AppCheckToken token = *future.result();
 
   ASSERT_EQ(token_changed_listener.num_token_changes_, 1);
-  // TODO: almostmatt, give the listener a method like "expect token X"
-  // ASSERT_EQ(token_changed_listener.token_, 1);
+  EXPECT_EQ(token_changed_listener.last_token_.token, token);
 }
 
 TEST_F(FirebaseAppCheckTest, TestSignIn) {

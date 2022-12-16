@@ -30,7 +30,11 @@
 // Interacts with the default notification center.
 @interface AppCheckNotificationCenterWrapper : NSObject
 
-- (id)initWith;
+- (id)init;
+
+- (void)addListener:(firebase::app_check::AppCheckListener* _Nonnull)listener;
+
+- (void)removeListener:(firebase::app_check::AppCheckListener* _Nonnull)listener;
 
 - (void)appCheckTokenDidChangeNotification:(NSNotification *)notification;
 
@@ -88,8 +92,6 @@ class AppCheckInternal {
   UniquePtr<AppCheckNotificationCenterWrapperPointer> notification_center_wrapper_;
 
   ::firebase::App* app_;
-
-  std::unordered_set<AppCheckListener*> listeners_;
 
   FutureManager future_manager_;
 };
