@@ -644,7 +644,7 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
-    - Analytics: Add a new function `GetSessionId`.
+    - Analytics: Add `analytics::SetConsent()` and `analytics::GetSessionId()`.
 
 ### 10.3.0
 -   Changes
