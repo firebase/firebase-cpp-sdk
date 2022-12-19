@@ -410,8 +410,7 @@ TEST_F(FirebaseAppCheckTest, TestAddTokenChangedListener) {
       ::firebase::app_check::AppCheck::GetInstance(app_);
   ASSERT_NE(app_check, nullptr);
 
-  // Create and add a token changed listener
-  // TODO: have a heap var using makeunique
+  // Create and add a token changed listener.
   TestAppCheckListener token_changed_listener;
   app_check->AddAppCheckListener(&token_changed_listener);
 
@@ -431,6 +430,7 @@ TEST_F(FirebaseAppCheckTest, TestRemoveTokenChangedListener) {
       ::firebase::app_check::AppCheck::GetInstance(app_);
   ASSERT_NE(app_check, nullptr);
 
+  // Create, add, and immediately remove a token changed listener.
   TestAppCheckListener token_changed_listener;
   app_check->AddAppCheckListener(&token_changed_listener);
   app_check->RemoveAppCheckListener(&token_changed_listener);
