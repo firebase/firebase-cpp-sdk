@@ -479,9 +479,9 @@ void LogEvent(const char* name, const Parameter* parameters,
               size_t number_of_parameters);
 
 /// Initiates on-device conversion measurement given a user email address on iOS
-/// (no-op on Android). On iOS, requires dependency
-/// GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a
-/// no-op.
+/// and tvOS (no-op on Android). On iOS and tvOS, this method requires the
+/// dependency GoogleAppMeasurementOnDeviceConversion to be linked in,
+/// otherwise the invocation results in a no-op.
 /// @param[in] email_address User email address. Include a domain name for all
 /// email addresses (e.g. gmail.com or hotmail.co.jp).
 void InitiateOnDeviceConversionMeasurementWithEmailAddress(
