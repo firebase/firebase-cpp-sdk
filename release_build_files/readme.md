@@ -642,6 +642,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+-   Changes
+    - Analytics: Add `analytics::SetConsent()` API.
+
 ### 10.3.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 31.1.1.
