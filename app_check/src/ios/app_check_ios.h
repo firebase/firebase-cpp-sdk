@@ -32,6 +32,8 @@
 
 - (id)init;
 
+- (void)stopListening;
+
 - (void)addListener:(firebase::app_check::AppCheckListener* _Nonnull)listener;
 
 - (void)removeListener:(firebase::app_check::AppCheckListener* _Nonnull)listener;

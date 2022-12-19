@@ -109,6 +109,12 @@ NSMutableArray* listeners_;
   return self;
 }
 
+- (void)stopListening {
+  [[NSNotificationCenter defaultCenter] removeObserver:self
+                                                name:FIRAppCheckAppCheckTokenDidChangeNotification
+                                              object:nil];
+}
+
 - (void)addListener:(firebase::app_check::AppCheckListener* _Nonnull)listener {
   [listeners_ addObject:[NSValue valueWithPointer:listener]];
 }
@@ -119,12 +125,11 @@ NSMutableArray* listeners_;
 
 - (void)appCheckTokenDidChangeNotification:(NSNotification*)notification {
   NSDictionary* userInfo = notification.userInfo;
-  // Note: The Notification contains a token string, but does not contain
-  // expiration time. Could maybe call GetToken here to fetch the actual
-  // token, but there would be some risk of an infinite loop of calling
-  // GetToken and receiving TokenChanged notifications
   NSString* app_name = (NSString*)userInfo[kFIRAppCheckAppNameNotificationKey];
   NSString* token = (NSString*)userInfo[kFIRAppCheckTokenNotificationKey];
+  // TODO(b/263138261): Include expiration time in this app check token.
+  // Note: The notification contains a token string, but does not currently
+  // contain expiration time.
   firebase::app_check::AppCheckToken cpp_token;
   cpp_token.token = firebase::util::NSStringToString(token);
 
@@ -149,6 +154,7 @@ AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
 }
 
 AppCheckInternal::~AppCheckInternal() {
+  [notification_center_wrapper() stopListening];
   future_manager().ReleaseFutureApi(this);
   app_ = nullptr;
 }

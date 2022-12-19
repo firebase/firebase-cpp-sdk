@@ -149,7 +149,14 @@ void FirebaseAppCheckTest::InitializeAppCheckWithDebug() {
       firebase::app_check::DebugAppCheckProviderFactory::GetInstance());
 }
 
-void FirebaseAppCheckTest::TerminateAppCheck() {}
+void FirebaseAppCheckTest::TerminateAppCheck() {
+  ::firebase::app_check::AppCheck* app_check =
+      ::firebase::app_check::AppCheck::GetInstance(app_);
+  if (app_check) {
+    LogDebug("Shutdown App Check.");
+    delete app_check;
+  }
+}
 
 void FirebaseAppCheckTest::InitializeApp() {
   LogDebug("Initialize Firebase App.");
@@ -194,8 +201,8 @@ void FirebaseAppCheckTest::TearDown() {
   // Teardown all the products
   TerminateDatabase();
   TerminateAuth();
-  TerminateApp();
   TerminateAppCheck();
+  TerminateApp();
   FirebaseTest::TearDown();
 }
 
