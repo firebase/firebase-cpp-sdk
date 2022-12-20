@@ -85,8 +85,9 @@ class Semaphore {
 #if FIREBASE_PLATFORM_OSX
     FIREBASE_ASSERT_MESSAGE(
         semaphore_ != SEM_FAILED,
-        "Failed to create semaphore. If running in sandbox mode be sure to "
-        "configure FBAppGroupEntitlementName in your app's Info.plist.");
+        "Firebase failed to create semaphore. If running in sandbox mode be "
+        "sure to configure FBAppGroupEntitlementName in your app's "
+        "Info.plist.");
 #endif  // FIREBASE_PLATFORM_OSX
 
     assert(semaphore_ != SEM_FAILED);
