@@ -19,6 +19,7 @@
 
 #include <errno.h>
 
+#include "app/src/assert.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/time.h"
 
@@ -40,6 +41,8 @@
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/pthread_condvar.h"
 #include "app/src/util_apple.h"
+
+#define FIREBASE_SEMAPHORE_DEFAULT_PREFIX "/firebase-"
 #endif  //  FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS ||
         //  FIREBASE_PLATFORM_TVOS
 
@@ -61,23 +64,30 @@ class Semaphore {
     snprintf(buffer, kBufferSize, "%016llx",
              static_cast<unsigned long long>(  // NOLINT
                  reinterpret_cast<intptr_t>(this)));
-
 #if FIREBASE_PLATFORM_OSX
-    // Sandbox mode is currently only available for macOS.
+    // Append custom semaphore names, if present, to support macOS Sandbox
+    // mode.
     std::string semaphore_name = util::GetSandboxModeSemaphorePrefix();
     if (semaphore_name.empty()) {
-      semaphore_name = "/firebase-";
+      semaphore_name = FIREBASE_SEMAPHORE_DEFAULT_PREFIX;
     }
 #else
-    std::string semaphore_name = "/firebase-";
+    std::string semaphore_name = FIREBASE_SEMAPHORE_DEFAULT_PREFIX;
 #endif  // FIREBASE_PLATFORM_OSX
 
     semaphore_name.append(buffer);
-
     semaphore_ = sem_open(semaphore_name.c_str(),
                           O_CREAT | O_EXCL,   // Create if it doesn't exist.
                           S_IRUSR | S_IWUSR,  // Only the owner can read/write.
                           initial_count);
+
+    // Check for errors.
+#if FIREBASE_PLATFORM_OSX
+    FIREBASE_ASSERT_MESSAGE(
+        semaphore_ != SEM_FAILED,
+        "Failed to create semaphore. If running in sandbox mode be sure to "
+        "configure FBAppGroupEntitlementName in your app's Info.plist.");
+#endif  // FIREBASE_PLATFORM_OSX
 
     assert(semaphore_ != SEM_FAILED);
     assert(semaphore_ != nullptr);
