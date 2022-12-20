@@ -111,8 +111,8 @@ NSMutableArray* listeners_;
 
 - (void)stopListening {
   [[NSNotificationCenter defaultCenter] removeObserver:self
-                                                name:FIRAppCheckAppCheckTokenDidChangeNotification
-                                              object:nil];
+                                                  name:FIRAppCheckAppCheckTokenDidChangeNotification
+                                                object:nil];
 }
 
 - (void)addListener:(firebase::app_check::AppCheckListener* _Nonnull)listener {
