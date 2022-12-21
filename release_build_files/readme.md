@@ -657,6 +657,12 @@ code.
     - GMA (Android): Updated dependency to play-services-ads version 21.4.0.
       This new version requires Multidex to be enabled in your Android builds.
     - GMA (iOS): Updated dependency to Google-Mobile-Ads-SDK version 9.14.0.
+    - General (macOS): In order to support sandbox mode, apps can define a
+      key/value pair for FBAppGroupEntitlementName in Info.plist. The value
+      associated with this key will be used to prefix semaphore names
+      created internally by the Firebase C++ SDK so that they conform with
+      [macOS sandbox
+      requirements](https://developer.apple.com/library/archive/documentation/Security/Conceptual/AppSandboxDesignGuide/AppSandboxInDepth/AppSandboxInDepth.html#//apple_ref/doc/uid/TP40011183-CH3-SW24).    
 
 ### 10.3.0
 -   Changes
