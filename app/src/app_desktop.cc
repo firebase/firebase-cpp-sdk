@@ -29,6 +29,7 @@
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/semaphore.h"
 #include "app/src/util.h"
 
 namespace firebase {
@@ -131,6 +132,9 @@ App* App::Create(const AppOptions& options, const char* name) {  // NOLINT
     return app;
   }
   LogDebug("Creating Firebase App %s for %s", name, kFirebaseVersionString);
+  LogDebug("Validating semaphore creation.");
+  { firebase::Semaphore sem_test(0); }
+
   AppOptions options_with_defaults = options;
   if (options_with_defaults.PopulateRequiredWithDefaults()) {
     app = new App();

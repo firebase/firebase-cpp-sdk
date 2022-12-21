@@ -645,6 +645,12 @@ code.
 ### Upcoming Release
 -   Changes
     - Analytics: Add `analytics::SetConsent()` API.
+    - General (macOS): In order to support sandbox mode, apps can define a
+      key/value pair for FBAppGroupEntitlementName in Info.plist. The value
+      associated with this key will be used to prefix semaphore names
+      created internally by the Firebase C++ SDK so that they conform with
+      [macOS sandbox
+      requirements](https://developer.apple.com/library/archive/documentation/Security/Conceptual/AppSandboxDesignGuide/AppSandboxInDepth/AppSandboxInDepth.html#//apple_ref/doc/uid/TP40011183-CH3-SW24).    
 
 ### 10.3.0
 -   Changes
