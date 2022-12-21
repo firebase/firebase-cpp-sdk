@@ -15,6 +15,7 @@
 #include "app_check/src/ios/app_check_ios.h"
 
 #import "FIRApp.h"
+#import "FIRAppCheck.h"
 #import "FIRAppCheckProvider.h"
 #import "FIRAppCheckProviderFactory.h"
 #import "FIRAppCheckToken.h"
@@ -91,6 +92,56 @@
 
 @end
 
+@implementation AppCheckNotificationCenterWrapper
+
+// A collection of NSValues containing AppCheckListener*
+NSMutableArray* listeners_;
+
+- (id)init {
+  self = [super init];
+  if (self) {
+    listeners_ = [[NSMutableArray alloc] init];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(appCheckTokenDidChangeNotification:)
+                                                 name:FIRAppCheckAppCheckTokenDidChangeNotification
+                                               object:nil];
+  }
+  return self;
+}
+
+- (void)stopListening {
+  [[NSNotificationCenter defaultCenter] removeObserver:self
+                                                  name:FIRAppCheckAppCheckTokenDidChangeNotification
+                                                object:nil];
+}
+
+- (void)addListener:(firebase::app_check::AppCheckListener* _Nonnull)listener {
+  [listeners_ addObject:[NSValue valueWithPointer:listener]];
+}
+
+- (void)removeListener:(firebase::app_check::AppCheckListener* _Nonnull)listener {
+  [listeners_ removeObject:[NSValue valueWithPointer:listener]];
+}
+
+- (void)appCheckTokenDidChangeNotification:(NSNotification*)notification {
+  NSDictionary* userInfo = notification.userInfo;
+  NSString* app_name = (NSString*)userInfo[kFIRAppCheckAppNameNotificationKey];
+  NSString* token = (NSString*)userInfo[kFIRAppCheckTokenNotificationKey];
+  // TODO(b/263138261): Include expiration time in this app check token.
+  // Note: The notification contains a token string, but does not currently
+  // contain expiration time.
+  firebase::app_check::AppCheckToken cpp_token;
+  cpp_token.token = firebase::util::NSStringToString(token);
+
+  for (NSValue* listener_value in listeners_) {
+    firebase::app_check::AppCheckListener* listener =
+        static_cast<firebase::app_check::AppCheckListener*>(listener_value.pointerValue);
+    listener->OnAppCheckTokenChanged(cpp_token);
+  }
+}
+
+@end
+
 namespace firebase {
 namespace app_check {
 namespace internal {
@@ -98,9 +149,12 @@ namespace internal {
 AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
   future_manager().AllocFutureApi(this, kAppCheckFnCount);
   impl_ = MakeUnique<FIRAppCheckPointer>([FIRAppCheck appCheck]);
+  notification_center_wrapper_ = MakeUnique<AppCheckNotificationCenterWrapperPointer>(
+      [[AppCheckNotificationCenterWrapper alloc] init]);
 }
 
 AppCheckInternal::~AppCheckInternal() {
+  [notification_center_wrapper() stopListening];
   future_manager().ReleaseFutureApi(this);
   app_ = nullptr;
 }
@@ -157,9 +211,13 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckTokenLastResult() {
       future()->LastResult(kAppCheckFnGetAppCheckToken));
 }
 
-void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {}
+void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {
+  [notification_center_wrapper() addListener:listener];
+}
 
-void AppCheckInternal::RemoveAppCheckListener(AppCheckListener* listener) {}
+void AppCheckInternal::RemoveAppCheckListener(AppCheckListener* listener) {
+  [notification_center_wrapper() removeListener:listener];
+}
 
 }  // namespace internal
 }  // namespace app_check
