@@ -38,8 +38,8 @@ class ArenaRef {
   ArenaRef() = default;
 
   explicit ArenaRef(const Object& ob) {
-    Env env(GetEnv());
-    int64_t id = ObjectArena::GetInstance().Put(env, ob);
+    Env env;
+    int64_t id = ObjectArena::GetInstance(env).Put(env, ob.get());
     if (env.ok()) {
       assignState(id);
     }
@@ -47,8 +47,8 @@ class ArenaRef {
 
   explicit ArenaRef(const ArenaRef& other) {
     if (other.valid_) {
-      Env env(GetEnv());
-      int64_t id = ObjectArena::GetInstance().Dup(env, other.id_);
+      Env env;
+      int64_t id = ObjectArena::GetInstance(env).Dup(env, other.id_);
       if (env.ok()) {
         assignState(id);
       }
@@ -56,11 +56,11 @@ class ArenaRef {
   }
 
   ArenaRef& operator=(const ArenaRef& other) {
-    Env env(GetEnv());
+    Env env;
     clear(env);
     if (other.valid_ && id_ != other.id_) {
       if (other.valid_) {
-        int64_t id = ObjectArena::GetInstance().Dup(env, other.id_);
+        int64_t id = ObjectArena::GetInstance(env).Dup(env, other.id_);
         if (env.ok()) {
           assignState(id);
         }
@@ -88,8 +88,8 @@ class ArenaRef {
 
   ~ArenaRef() {
     if (valid_) {
-      Env env(GetEnv());
-      ObjectArena::GetInstance().Remove(env, id_);
+      Env env;
+      ObjectArena::GetInstance(env).Remove(env, id_);
     }
   }
 
@@ -97,12 +97,12 @@ class ArenaRef {
 
   Local<Object> get(Env& env) const {
     FIREBASE_DEV_ASSERT(valid_);
-    return ObjectArena::GetInstance().Get(env, id_);
+    return env.MakeResult<Object>(ObjectArena::GetInstance(env).Get(env, id_));
   }
 
   void clear(Env& env) {
     if (valid_) {
-      ObjectArena::GetInstance().Remove(env, id_);
+      ObjectArena::GetInstance(env).Remove(env, id_);
       reset();
     }
   }

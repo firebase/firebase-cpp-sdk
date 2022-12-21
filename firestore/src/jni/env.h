@@ -474,6 +474,17 @@ class Env {
     RecordException();
   }
 
+  template <typename T>
+  EnableForReference<T, Local<T>> MakeResult(jobject object) {
+    // JNI object method results are always jobject, even when the actual type
+    // is jstring or jclass. Cast to the correct type here so that Local<T>
+    // doesn't have to account for this.
+    auto typed_object = static_cast<JniType<T>>(object);
+    return Local<T>(env_, typed_object);
+  }
+
+  void RecordException();
+
  private:
   /**
    * Invokes the JNI instance method using the given method reference on JNIEnv.
@@ -513,22 +524,12 @@ class Env {
     RecordException();
   }
 
-  void RecordException();
   std::string ErrorDescription(const Object& object);
   const char* ErrorName(jint error);
 
   template <typename T>
   EnableForPrimitive<T, T> MakeResult(JniType<T> value) {
     return static_cast<T>(value);
-  }
-
-  template <typename T>
-  EnableForReference<T, Local<T>> MakeResult(jobject object) {
-    // JNI object method results are always jobject, even when the actual type
-    // is jstring or jclass. Cast to the correct type here so that Local<T>
-    // doesn't have to account for this.
-    auto typed_object = static_cast<JniType<T>>(object);
-    return Local<T>(env_, typed_object);
   }
 
   JNIEnv* env_ = nullptr;

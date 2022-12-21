@@ -314,7 +314,6 @@ bool FirestoreInternal::Initialize(App* app) {
     jni::List::Initialize(loader);
     jni::Long::Initialize(loader);
     jni::Map::Initialize(loader);
-    jni::ObjectArena::Initialize(env, loader);
 
     InitializeFirestore(loader);
     InitializeFirestoreTasks(loader);

@@ -32,17 +32,25 @@ class ObjectArena {
 
   static ObjectArena& GetInstance(Env& env);
 
-  Local<Object> Get(Env& env, int64_t key);
-  int64_t Put(Env& env, const Object& value);
+  jobject Get(Env& env, int64_t key);
+  int64_t Put(Env& env, jobject value);
   void Remove(Env& env, int64_t key);
   int64_t Dup(Env& env, int64_t key);
 
  private:
   explicit ObjectArena(Env& env);
+  jobject MakeKey(Env& env, int64_t key);
 
   int64_t next_key_ = 0;
   jclass hash_map_class_ = nullptr;
+  jmethodID hash_map_ctor_ = nullptr;
+  jobject hash_map_ = nullptr;
+  jmethodID hash_map_get_ = nullptr;
   jmethodID hash_map_put_ = nullptr;
+  jmethodID hash_map_remove_ = nullptr;
+
+  jclass long_class_ = nullptr;
+  jmethodID long_ctor_ = nullptr;
 };
 
 }  // namespace jni
