@@ -59,6 +59,7 @@
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/make_unique.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/jni/arena_ref.h"
 #include "firestore/src/jni/array.h"
 #include "firestore/src/jni/array_list.h"
 #include "firestore/src/jni/boolean.h"
@@ -313,6 +314,10 @@ bool FirestoreInternal::Initialize(App* app) {
     jni::List::Initialize(loader);
     jni::Long::Initialize(loader);
     jni::Map::Initialize(loader);
+
+    // Initialize ArenaRef _after_ the other JNI classes because it relies on
+    // HashMap having already been initialized.
+    jni::ArenaRef::Initialize(env);
 
     InitializeFirestore(loader);
     InitializeFirestoreTasks(loader);

@@ -138,6 +138,8 @@ set(android_SRCS
     src/android/wrapper.h
     src/android/write_batch_android.cc
     src/android/write_batch_android.h
+    src/jni/arena_ref.cc
+    src/jni/arena_ref.h
     src/jni/array.h
     src/jni/array_list.cc
     src/jni/array_list.h
