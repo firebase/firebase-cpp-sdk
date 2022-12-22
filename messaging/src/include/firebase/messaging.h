@@ -170,7 +170,7 @@ struct Notification {
 
   /// Indicates the key to the title string for localization.
   ///
-  /// On iOS amd tvOS, this corresponds to "title-loc-key" in APNS payload.
+  /// On iOS and tvOS, this corresponds to "title-loc-key" in APNS payload.
   ///
   /// On Android, use the key in the app's string resources when populating this
   /// value.

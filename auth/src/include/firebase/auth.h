@@ -174,7 +174,7 @@ class Auth {
   void set_language_code(const char* language_code);
 
   /// Sets the user-facing language code to be the default app language. This
-  /// uses a languge associated with the device's locale data.  On desktop
+  /// uses a language associated with the device's locale data.  On desktop
   /// this will set the language code to the Firebase service's default. You
   /// may subsequently customize the language code again by invoking
   /// set_language_code().

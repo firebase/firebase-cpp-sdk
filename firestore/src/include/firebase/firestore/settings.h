@@ -168,7 +168,7 @@ class Settings final {
    * `set_dispatch_queue()`.
    *
    * @note This method is only available when `__OBJC__` is defined, such as
-   * when compiling for iOS or tvOS
+   * when compiling for iOS or tvOS.
    *
    * @see `set_dispatch_queue(dispatch_queue_t)` for information on how to
    * explicitly set the dispatch queue to use.
