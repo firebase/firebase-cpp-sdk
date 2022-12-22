@@ -37,6 +37,7 @@
 
 namespace firebase_testapp_automated {
 
+using app_framework::ProcessEvents;
 using firebase_test_framework::FirebaseTest;
 
 class FirebaseAppTest : public FirebaseTest {

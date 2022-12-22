@@ -27,8 +27,6 @@
 #include "app/src/thread.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "thread/fiber/fiber.h"
-#include "util/random/mt_random_thread_safe.h"
 
 using ::testing::Eq;
 using ::testing::IsNull;

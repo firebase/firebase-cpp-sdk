@@ -87,9 +87,7 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_SRCS
   # Copy of the standard integration test source file.
   src/integration_test.cc
   # All of the unit tests from App and other SDKs.
-  ${FIREBASE_CPP_SDK_DIR}/app/tests/app_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/assert_test.cc
-  ${FIREBASE_CPP_SDK_DIR}/app/tests/base64_openssh_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/base64_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/callback_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/cleanup_notifier_test.cc
@@ -125,13 +123,11 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_SRCS
 add_definitions(-DFIREBASE_INTEGRATION_TEST)
 set(FIREBASE_INTEGRATION_TEST_DESKTOP_SRCS
   ${FIREBASE_CPP_SDK_DIR}/app/rest/tests/request_binary_test.cc
-  ${FIREBASE_CPP_SDK_DIR}/app/rest/tests/request_file_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/rest/tests/request_json_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/rest/tests/request_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/rest/tests/response_binary_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/rest/tests/response_json_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/rest/tests/response_test.cc
-  ${FIREBASE_CPP_SDK_DIR}/app/rest/tests/transport_curl_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/rest/tests/transport_mock_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/rest/tests/util_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/rest/tests/www_form_url_encoded_test.cc
@@ -159,34 +155,11 @@ include_directories(src)
 include_directories(${FIREBASE_CPP_SDK_DIR})
 # The include directory for the C++ SDK root.
 include_directories(${FIREBASE_CPP_SDK_DIR})
+# OpenSSL include directories.
+include_directories(${OPENSSL_INCLUDE_DIR})
 
 # Integration test uses some features that require C++ 11, such as lambdas.
 set (CMAKE_CXX_STANDARD 11)
-
-# Download and unpack googletest (and googlemock) at configure time
-set(GOOGLETEST_ROOT ${CMAKE_CURRENT_LIST_DIR}/external/googletest)
-# Note: Once googletest is downloaded once, it won't be updated or
-# downloaded again unless you delete the "external/googletest"
-# directory.
-if (NOT EXISTS ${GOOGLETEST_ROOT}/src/googletest/src/gtest-all.cc)
-  configure_file(googletest.cmake
-    ${CMAKE_CURRENT_LIST_DIR}/external/googletest/CMakeLists.txt COPYONLY)
-  execute_process(COMMAND ${CMAKE_COMMAND} .
-    -G ${CMAKE_GENERATOR}
-    -DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
-    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
-    RESULT_VARIABLE result
-    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/external/googletest )
-  if(result)
-    message(FATAL_ERROR "CMake step for googletest failed: ${result}")
-  endif()
-  execute_process(COMMAND ${CMAKE_COMMAND} --build .
-    RESULT_VARIABLE result
-    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/external/googletest )
-  if(result)
-    message(FATAL_ERROR "Build step for googletest failed: ${result}")
-  endif()
-endif()
 
 if(ANDROID)
   # Build an Android application.
@@ -210,23 +183,6 @@ if(ANDROID)
   set(CMAKE_SHARED_LINKER_FLAGS
       "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
 
-  if (NOT TARGET gtest)
-    add_library(gtest STATIC
-      ${GOOGLETEST_ROOT}/src/googletest/src/gtest-all.cc)
-  endif()
-  target_include_directories(gtest
-    PRIVATE ${GOOGLETEST_ROOT}/src/googletest
-    PUBLIC ${GOOGLETEST_ROOT}/src/googletest/include)
-  if (NOT TARGET gmock)
-    add_library(gmock STATIC
-      ${GOOGLETEST_ROOT}/src/googlemock/src/gmock-all.cc)
-  endif()
-  target_include_directories(gmock
-    PRIVATE ${GOOGLETEST_ROOT}/src/googletest
-    PRIVATE ${GOOGLETEST_ROOT}/src/googlemock
-    PUBLIC ${GOOGLETEST_ROOT}/src/googletest/include
-    PUBLIC ${GOOGLETEST_ROOT}/src/googlemock/include)
-
   # Define the target as a shared library, as that is what gradle expects.
   set(integration_test_target_name "android_integration_test_main")
   add_library(${integration_test_target_name} SHARED
@@ -244,26 +200,6 @@ if(ANDROID)
 else()
   # Build a desktop application.
   add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
-
-  # Prevent overriding the parent project's compiler/linker
-  # settings on Windows
-  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-
-  # Add googletest directly to our build. This defines
-  # the gtest and gtest_main targets.
-  if (NOT (TARGET gtest OR TARGET gmock))
-    add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/external/googletest/src
-                     ${CMAKE_CURRENT_LIST_DIR}/external/googletest/build
-                     EXCLUDE_FROM_ALL)
-  endif()
-
-  # The gtest/gtest_main targets carry header search path
-  # dependencies automatically when using CMake 2.8.11 or
-  # later. Otherwise we have to add them here ourselves.
-  if (CMAKE_VERSION VERSION_LESS 2.8.11)
-    include_directories("${gtest_SOURCE_DIR}/include")
-    include_directories("${gmock_SOURCE_DIR}/include")
-  endif()
 
   # Windows runtime mode, either MD or MT depending on whether you are using
   # /MD or /MT. For more information see:
@@ -368,5 +304,5 @@ endif()
 
 # Add the Firebase libraries to the target using the function from the SDK.
 # Note that firebase_app needs to be last in the list.
-set(firebase_libs firebase_app)
+set(firebase_libs firebase_app firebase_testing)
 target_link_libraries(${integration_test_target_name} ${firebase_libs} gtest gmock ${ADDITIONAL_LIBS})

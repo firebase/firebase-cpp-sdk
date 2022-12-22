@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include "absl/strings/string_view.h"
 #include "app/src/base64.h"
 #include "app/src/log.h"
 #include "gmock/gmock.h"
@@ -32,12 +31,12 @@ size_t OpenSSHEncodedLength(size_t input_size) {
   return length;
 }
 
-bool OpenSSHEncode(absl::string_view input, std::string* output) {
-  size_t base64_length = OpenSSHEncodedLength(input.size());
+bool OpenSSHEncode(const char* input, size_t input_size, std::string* output) {
+  size_t base64_length = OpenSSHEncodedLength(input_size);
   output->resize(base64_length);
   if (EVP_EncodeBlock(reinterpret_cast<uint8_t*>(&(*output)[0]),
                       reinterpret_cast<const uint8_t*>(&input[0]),
-                      input.size()) == 0u) {
+                      input_size) == 0u) {
     return false;
   }
   // Trim the terminating null character.
@@ -53,13 +52,13 @@ size_t OpenSSHDecodedLength(size_t input_size) {
   return length;
 }
 
-bool OpenSSHDecode(absl::string_view input, std::string* output) {
-  size_t decoded_length = OpenSSHDecodedLength(input.size());
+bool OpenSSHDecode(const char* input, size_t input_size, std::string* output) {
+  size_t decoded_length = OpenSSHDecodedLength(input_size);
   output->resize(decoded_length);
   if (EVP_DecodeBase64(reinterpret_cast<uint8_t*>(&(*output)[0]),
                        &decoded_length, decoded_length,
                        reinterpret_cast<const uint8_t*>(&(input)[0]),
-                       input.size()) == 0) {
+                       input_size) == 0) {
     return false;
   }
   // Decoded length includes null termination, remove.
@@ -80,14 +79,15 @@ TEST(Base64TestAgainstOpenSSH, TestEncodingAgainstOpenSSH) {
 
     std::string encoded_firebase, encoded_openssh;
     ASSERT_TRUE(Base64EncodeWithPadding(orig, &encoded_firebase));
-    ASSERT_TRUE(OpenSSHEncode(orig, &encoded_openssh));
+    ASSERT_TRUE(OpenSSHEncode(orig, bytes, &encoded_openssh));
     EXPECT_EQ(encoded_firebase, encoded_openssh)
         << "Encoding mismatch on source buffer: " << orig;
 
     std::string decoded_firebase_to_openssh;
     std::string decoded_openssh_to_firebase;
     ASSERT_TRUE(Base64Decode(encoded_openssh, &decoded_openssh_to_firebase));
-    ASSERT_TRUE(OpenSSHDecode(encoded_firebase, &decoded_firebase_to_openssh));
+    ASSERT_TRUE(OpenSSHDecode(&encoded_firebase[0], encoded_firebase.length(),
+			      &decoded_firebase_to_openssh));
     EXPECT_EQ(decoded_openssh_to_firebase, decoded_firebase_to_openssh)
         << "Cross-decoding mismatch on source buffer: " << orig;
     EXPECT_EQ(orig, decoded_firebase_to_openssh);

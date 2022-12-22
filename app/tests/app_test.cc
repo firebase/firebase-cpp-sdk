@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include "absl/flags/flag.h"
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
 #ifndef __ANDROID__
 #define __ANDROID__
@@ -82,12 +81,14 @@ using testing::Not;
 
 namespace firebase {
 
+extern std::string g_test_srcdir;
+std::string g_test_srcdir;
+
 class AppTest : public ::testing::Test {
  protected:
   AppTest() : current_path_buffer_(nullptr) {
 #if TEST_RESOURCES_AVAILABLE
-    test_data_dir_ = absl::GetFlag(FLAGS_test_srcdir) +
-                     "/google3/firebase/app/client/cpp/testdata";
+    test_data_dir_ = g_test_srcdir + "/google3/firebase/app/client/cpp/testdata";
     broken_test_data_dir_ = test_data_dir_ + "/broken";
 #endif  // TEST_RESOURCES_AVAILABLE
   }
