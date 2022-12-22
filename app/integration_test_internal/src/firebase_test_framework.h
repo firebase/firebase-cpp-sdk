@@ -36,14 +36,26 @@
 
 namespace firebase_test_framework {
 
+// Use this macro to skip an entire test if it is an non UI Test and we are
+// not running it in UItest mode (for example, on UI Test workflow).
+#define TEST_DOES_NOT_REQUIRE_USER_INTERACTION                            \
+  if (!ShouldRunNonUITests()) {                                           \
+    app_framework::LogInfo(                                               \
+        "Skipping %s, as it is a Non UI Test.",                           \
+        ::testing::UnitTest::GetInstance()->current_test_info()->name()); \
+    GTEST_SKIP();                                                         \
+    return;                                                               \
+  }
+
 // Use this macro to skip an entire test if it requires interactivity and we are
 // not running in interactive mode (for example, on FTL).
-#define TEST_REQUIRES_USER_INTERACTION                                      \
-  if (!IsUserInteractionAllowed()) {                                        \
-    app_framework::LogInfo("Skipping %s, as it requires user interaction.", \
-                           test_info_->name());                             \
-    GTEST_SKIP();                                                           \
-    return;                                                                 \
+#define TEST_REQUIRES_USER_INTERACTION                                    \
+  if (!ShouldRunUITests()) {                                              \
+    app_framework::LogInfo(                                               \
+        "Skipping %s, as it requires user interaction.",                  \
+        ::testing::UnitTest::GetInstance()->current_test_info()->name()); \
+    GTEST_SKIP();                                                         \
+    return;                                                               \
   }
 
 #if TARGET_OS_IPHONE
@@ -74,6 +86,8 @@ namespace firebase_test_framework {
 // SKIP_TEST_ON_LINUX
 // SKIP_TEST_ON_WINDOWS
 // SKIP_TEST_ON_MACOS
+// SKIP_TEST_ON_SIMULATOR / SKIP_TEST_ON_EMULATOR (identical)
+// SKIP_TEST_ON_IOS_SIMULATOR / SKIP_TEST_ON_ANDROID_EMULATOR
 //
 // Also includes a special macro SKIP_TEST_IF_USING_STLPORT if compiling for
 // Android STLPort, which does not fully support C++11.
@@ -165,6 +179,31 @@ namespace firebase_test_framework {
 #else
 #define SKIP_TEST_ON_ANDROID ((void)0)
 #endif  // defined(ANDROID)
+
+// Android needs to determine emulator at runtime, so we can't just use #ifdef.
+#define SKIP_TEST_ON_SIMULATOR                                     \
+  {                                                                \
+    if (IsRunningOnEmulator()) {                                   \
+      app_framework::LogInfo("Skipping %s on simulator/emulator.", \
+                             test_info_->name());                  \
+      GTEST_SKIP();                                                \
+      return;                                                      \
+    }                                                              \
+  }
+
+// Accept either name, simulator or emulator.
+#define SKIP_TEST_ON_EMULATOR SKIP_TEST_ON_SIMULATOR
+
+#if defined(ANDROID)
+#define SKIP_TEST_ON_ANDROID_EMULATOR SKIP_TEST_ON_EMULATOR
+#define SKIP_TEST_ON_IOS_SIMULATOR ((void)0)
+#elif defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+#define SKIP_TEST_ON_ANDROID_EMULATOR ((void)0)
+#define SKIP_TEST_ON_IOS_SIMULATOR SKIP_TEST_ON_SIMULATOR
+#else
+#define SKIP_TEST_ON_IOS_SIMULATOR ((void)0)
+#define SKIP_TEST_ON_ANDROID_EMULATOR ((void)0)
+#endif
 
 #if defined(STLPORT)
 #define SKIP_TEST_IF_USING_STLPORT                                             \
@@ -288,6 +327,10 @@ class FirebaseTest : public testing::Test {
   // loads. Specify nullptr for value to delete the key. Returns true if
   // successful, false if something went wrong.
   static bool SetPersistentString(const char* key, const char* value);
+
+  // Return true if the app is running on simulator/emulator, false if
+  // on a real device (or on desktop).
+  static bool IsRunningOnEmulator();
 
   // Returns true if the future completed as expected, fails the test and
   // returns false otherwise.
@@ -443,8 +486,12 @@ class FirebaseTest : public testing::Test {
   // Open a URL in a browser window, for testing only.
   static bool OpenUrlInBrowser(const char* url);
 
-  // Returns true if we can run tests that require interaction, false if not.
-  static bool IsUserInteractionAllowed();
+  // Returns true if we run tests that require interaction, false if not.
+  static bool ShouldRunUITests();
+
+  // Returns true if we run tests that do not require interaction, false if
+  // not.
+  static bool ShouldRunNonUITests();
 
   // Encode a binary string to base64. Returns true if the encoding succeeded,
   // false if it failed.

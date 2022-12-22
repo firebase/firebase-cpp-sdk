@@ -78,6 +78,10 @@ jobject GetActivity() { return g_app_state->activity->clazz; }
 // Get the window context. For Android, it's a jobject pointing to the Activity.
 jobject GetWindowContext() { return g_app_state->activity->clazz; }
 
+// Get the window controller. For Android, this is the same as the
+// WindowContext.
+jobject GetWindowController() { return GetWindowContext(); }
+
 // Find a class, attempting to load the class if it's not found.
 jclass FindClass(JNIEnv* env, jobject activity_object, const char* class_name) {
   jclass class_object = env->FindClass(class_name);
@@ -155,13 +159,17 @@ class LoggingUtilsData {
     logging_utils_start_log_file_ =
         env->GetStaticMethodID(logging_utils_class_, "startLogFile",
                                "(Landroid/app/Activity;Ljava/lang/String;)Z");
+    logging_utils_should_run_uitests_ =
+        env->GetStaticMethodID(logging_utils_class_, "shouldRunUITests", "()Z");
+    logging_utils_should_run_nonuitests_ = env->GetStaticMethodID(
+        logging_utils_class_, "shouldRunNonUITests", "()Z");
 
     env->CallStaticVoidMethod(logging_utils_class_,
                               logging_utils_init_log_window_, GetActivity());
   }
 
   void AppendText(const char* text) {
-    if (logging_utils_class_ == 0) return;  // haven't been initted yet
+    if (logging_utils_class_ == 0) return;  // haven't been initialized yet
     JNIEnv* env = GetJniEnv();
     assert(env);
     jstring text_string = env->NewStringUTF(text);
@@ -171,15 +179,35 @@ class LoggingUtilsData {
   }
 
   bool DidTouch() {
-    if (logging_utils_class_ == 0) return false;  // haven't been initted yet
+    if (logging_utils_class_ == 0)
+      return false;  // haven't been initialized yet
     JNIEnv* env = GetJniEnv();
     assert(env);
     return env->CallStaticBooleanMethod(logging_utils_class_,
                                         logging_utils_get_did_touch_);
   }
 
+  bool ShouldRunUITests() {
+    if (logging_utils_class_ == 0)
+      return false;  // haven't been initialized yet
+    JNIEnv* env = GetJniEnv();
+    assert(env);
+    return env->CallStaticBooleanMethod(logging_utils_class_,
+                                        logging_utils_should_run_uitests_);
+  }
+
+  bool ShouldRunNonUITests() {
+    if (logging_utils_class_ == 0)
+      return false;  // haven't been initialized yet
+    JNIEnv* env = GetJniEnv();
+    assert(env);
+    return env->CallStaticBooleanMethod(logging_utils_class_,
+                                        logging_utils_should_run_nonuitests_);
+  }
+
   bool IsLoggingToFile() {
-    if (logging_utils_class_ == 0) return false;  // haven't been initted yet
+    if (logging_utils_class_ == 0)
+      return false;  // haven't been initialized yet
     JNIEnv* env = GetJniEnv();
     assert(env);
     jobject file_uri = env->CallStaticObjectMethod(logging_utils_class_,
@@ -193,7 +221,8 @@ class LoggingUtilsData {
   }
 
   bool StartLoggingToFile(const char* path) {
-    if (logging_utils_class_ == 0) return false;  // haven't been initted yet
+    if (logging_utils_class_ == 0)
+      return false;  // haven't been initialized yet
     JNIEnv* env = GetJniEnv();
     assert(env);
     jstring path_string = env->NewStringUTF(path);
@@ -211,6 +240,8 @@ class LoggingUtilsData {
   jmethodID logging_utils_get_did_touch_;
   jmethodID logging_utils_get_log_file_;
   jmethodID logging_utils_start_log_file_;
+  jmethodID logging_utils_should_run_uitests_;
+  jmethodID logging_utils_should_run_nonuitests_;
 };
 
 LoggingUtilsData* g_logging_utils_data;
@@ -303,6 +334,14 @@ JNIEnv* GetJniEnv() {
   JNIEnv* env;
   jint result = vm->AttachCurrentThread(&env, nullptr);
   return result == JNI_OK ? env : nullptr;
+}
+
+bool ShouldRunUITests() {
+  return app_framework::g_logging_utils_data->ShouldRunUITests();
+}
+
+bool ShouldRunNonUITests() {
+  return app_framework::g_logging_utils_data->ShouldRunNonUITests();
 }
 
 bool IsLoggingToFile() {

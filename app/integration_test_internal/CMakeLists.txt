@@ -16,8 +16,11 @@
 
 cmake_minimum_required(VERSION 2.8)
 
-set(FIREBASE_PYTHON_EXECUTABLE "python" CACHE FILEPATH
-  "The Python interpreter to use, such as one from a venv")
+find_program(FIREBASE_PYTHON_EXECUTABLE
+  NAMES python3 python
+  DOC "The Python interpreter to use, such as one from a venv"
+  REQUIRED
+)
 
 # User settings for Firebase integration tests.
 # Path to Firebase SDK.
@@ -42,7 +45,17 @@ endif()
 if(NOT ANDROID)
   if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/../../setup_integration_tests.py)
     # If this is running from inside the SDK directory, run the setup script.
-    execute_process(COMMAND ${FIREBASE_PYTHON_EXECUTABLE} "${CMAKE_CURRENT_LIST_DIR}/../../setup_integration_tests.py" "${CMAKE_CURRENT_LIST_DIR}")
+    execute_process(
+      COMMAND
+        ${FIREBASE_PYTHON_EXECUTABLE}
+        "${CMAKE_CURRENT_LIST_DIR}/../../setup_integration_tests.py"
+        "${CMAKE_CURRENT_LIST_DIR}"
+      RESULT_VARIABLE
+        FIREBASE_PYTHON_EXECUTABLE_RESULT
+    )
+    if(NOT FIREBASE_PYTHON_EXECUTABLE_RESULT EQUAL 0)
+      message(FATAL_ERROR "Failed to run setup_integration_tests.py")
+    endif()
   endif()
 endif()
 
@@ -52,6 +65,12 @@ endif()
 set(MSVC_RUNTIME_MODE MD)
 
 project(firebase_testapp)
+
+# Ensure min/max macros don't get declared on Windows
+# (so we can use std::min/max), before including the Firebase subdirectories.
+if(MSVC)
+  add_definitions(-DNOMINMAX)
+endif()
 
 # Integration test source files.
 set(FIREBASE_APP_FRAMEWORK_SRCS
@@ -78,7 +97,8 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_SRCS
   ${FIREBASE_CPP_SDK_DIR}/app/tests/future_manager_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/future_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/google_services_test.cc
-  ${FIREBASE_CPP_SDK_DIR}/app/tests/heartbeat_info_desktop_test.cc
+  ${FIREBASE_CPP_SDK_DIR}/app/tests/heartbeat_storage_desktop_test.cc
+  ${FIREBASE_CPP_SDK_DIR}/app/tests/heartbeat_controller_desktop_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/intrusive_list_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/jobject_reference_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/locale_test.cc
@@ -152,6 +172,9 @@ if (NOT EXISTS ${GOOGLETEST_ROOT}/src/googletest/src/gtest-all.cc)
   configure_file(googletest.cmake
     ${CMAKE_CURRENT_LIST_DIR}/external/googletest/CMakeLists.txt COPYONLY)
   execute_process(COMMAND ${CMAKE_COMMAND} .
+    -G ${CMAKE_GENERATOR}
+    -DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
+    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
     RESULT_VARIABLE result
     WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/external/googletest )
   if(result)
@@ -187,13 +210,17 @@ if(ANDROID)
   set(CMAKE_SHARED_LINKER_FLAGS
       "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
 
-  add_library(gtest STATIC
-    ${GOOGLETEST_ROOT}/src/googletest/src/gtest-all.cc)
+  if (NOT TARGET gtest)
+    add_library(gtest STATIC
+      ${GOOGLETEST_ROOT}/src/googletest/src/gtest-all.cc)
+  endif()
   target_include_directories(gtest
     PRIVATE ${GOOGLETEST_ROOT}/src/googletest
     PUBLIC ${GOOGLETEST_ROOT}/src/googletest/include)
-  add_library(gmock STATIC
-    ${GOOGLETEST_ROOT}/src/googlemock/src/gmock-all.cc)
+  if (NOT TARGET gmock)
+    add_library(gmock STATIC
+      ${GOOGLETEST_ROOT}/src/googlemock/src/gmock-all.cc)
+  endif()
   target_include_directories(gmock
     PRIVATE ${GOOGLETEST_ROOT}/src/googletest
     PRIVATE ${GOOGLETEST_ROOT}/src/googlemock
@@ -224,9 +251,11 @@ else()
 
   # Add googletest directly to our build. This defines
   # the gtest and gtest_main targets.
-  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/external/googletest/src
-                   ${CMAKE_CURRENT_LIST_DIR}/external/googletest/build
-                   EXCLUDE_FROM_ALL)
+  if (NOT (TARGET gtest OR TARGET gmock))
+    add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/external/googletest/src
+                     ${CMAKE_CURRENT_LIST_DIR}/external/googletest/build
+                     EXCLUDE_FROM_ALL)
+  endif()
 
   # The gtest/gtest_main targets carry header search path
   # dependencies automatically when using CMake 2.8.11 or
@@ -254,6 +283,14 @@ else()
     ${FIREBASE_INTEGRATION_TEST_SRCS}
   )
 
+  # Set a preprocessor define so that tests can distinguish between tests for
+  # the desktop platforms (e.g. Windows, macOS, or Linux) and mobile platforms
+  # (e.g. Android, iOS).
+  target_compile_definitions(${integration_test_target_name}
+    PRIVATE
+    FIREBASE_TESTS_TARGET_DESKTOP
+  )
+
   if(APPLE)
     set(ADDITIONAL_LIBS
       gssapi_krb5
@@ -262,6 +299,7 @@ else()
       "-framework Foundation"
       "-framework GSS"
       "-framework Security"
+      "-framework SystemConfiguration"
     )
   elseif(MSVC)
     set(ADDITIONAL_LIBS advapi32 ws2_32 crypt32)
@@ -289,6 +327,7 @@ endif()
 
 # Don't include other Firebase libraries, only Firebase App
 option(FIREBASE_INCLUDE_LIBRARY_DEFAULT "" OFF)
+
 option(FIREBASE_CPP_BUILD_TESTS "" ON)
 add_subdirectory(${FIREBASE_CPP_SDK_DIR} bin/ EXCLUDE_FROM_ALL)
 
@@ -330,6 +369,4 @@ endif()
 # Add the Firebase libraries to the target using the function from the SDK.
 # Note that firebase_app needs to be last in the list.
 set(firebase_libs firebase_app)
-set(gtest_libs gtest gmock)
-target_link_libraries(${integration_test_target_name} ${firebase_libs}
-  ${gtest_libs} ${ADDITIONAL_LIBS})
+target_link_libraries(${integration_test_target_name} ${firebase_libs} gtest gmock ${ADDITIONAL_LIBS})
