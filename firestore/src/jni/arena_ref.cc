@@ -34,10 +34,55 @@ int64_t GetNextArenaRefKey() {
   return next_key.fetch_add(1);
 }
 
+}  // namespace
+
+ArenaRef::ArenaRef(Env& env, const Object& object)
+    : key_(GetNextArenaRefKey()) {
+  gArenaRefHashMap->Put(env, key_object(env), object);
 }
 
-ArenaRef::ArenaRef(Env& env, const Object& object) : key_(GetNextArenaRefKey()) {
-  gArenaRefHashMap->Put(env, key_object(env), object);
+ArenaRef::ArenaRef(const ArenaRef& other) : key_(GetNextArenaRefKey()) {
+  if (other.key_ != 0) {
+    Env env;
+    Local<Object> object = other.get(env);
+    gArenaRefHashMap->Put(env, key_object(env), object);
+  }
+}
+
+ArenaRef::ArenaRef(ArenaRef&& other) {
+  key_ = other.key_;
+  other.key_ = 0;
+}
+
+ArenaRef& ArenaRef::operator=(const ArenaRef& other) {
+  Env env;
+
+  if (key_ != other.key_) {
+    if (key_ != 0) {
+      gArenaRefHashMap->Remove(env, key_object(env));
+    }
+
+    if (other.key_ != 0) {
+      key_ = GetNextArenaRefKey();
+      Local<Object> object = other.get(env);
+      gArenaRefHashMap->Put(env, key_object(env), object);
+    }
+  }
+  return *this;
+}
+
+ArenaRef& ArenaRef::operator=(ArenaRef&& other) {
+  Env env;
+
+  if (key_ != other.key_) {
+    if (key_ != 0) {
+      gArenaRefHashMap->Remove(env, key_object(env));
+    }
+
+    key_ = other.key_;
+    other.key_ = 0;
+  }
+  return *this;
 }
 
 ArenaRef::~ArenaRef() {

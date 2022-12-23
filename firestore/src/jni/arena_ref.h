@@ -13,16 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <cstdlib>
+
+#ifndef FIREBASE_FIRESTORE_SRC_JNI_ARENA_REF_H_
+#define FIREBASE_FIRESTORE_SRC_JNI_ARENA_REF_H_
 
 #include <jni.h>
+
+#include <cstdlib>
 
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/ownership.h"
-
-#ifndef FIREBASE_FIRESTORE_SRC_JNI_ARENA_REF_H_
-#define FIREBASE_FIRESTORE_SRC_JNI_ARENA_REF_H_
 
 namespace firebase {
 namespace firestore {
@@ -32,6 +33,10 @@ class ArenaRef {
  public:
   ArenaRef() = default;
   ArenaRef(Env&, const Object&);
+  ArenaRef(const ArenaRef& other);
+  ArenaRef(ArenaRef&& other);
+  ArenaRef& operator=(const ArenaRef& other);
+  ArenaRef& operator=(ArenaRef&& other);
   ~ArenaRef();
 
   static void Initialize(Env&);
