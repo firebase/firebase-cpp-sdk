@@ -19,6 +19,7 @@
 
 #include <errno.h>
 
+#include "app/src/assert.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/time.h"
 
@@ -39,6 +40,9 @@
 #if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/pthread_condvar.h"
+#include "app/src/util_apple.h"
+
+#define FIREBASE_SEMAPHORE_DEFAULT_PREFIX "/firebase-"
 #endif  //  FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS ||
         //  FIREBASE_PLATFORM_TVOS
 
@@ -50,29 +54,51 @@ class Semaphore {
 #if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
     // MacOS requires named semaphores, and does not support unnamed.
     // Generate a unique string for the semaphore name:
-    static const char kPrefix[] = "/firebase-";
-    // String length of the name prefix.
-    static const int kPprefixLen = sizeof(kPrefix);
+
     // String length of the pointer, when printed to a string.
     static const int kPointerStringLength = 16;
     // Buffer size.  the +1 is for the null terminator.
-    static const int kBufferSize = kPprefixLen + kPointerStringLength + 1;
+    static const int kBufferSize = kPointerStringLength + 1;
 
     char buffer[kBufferSize];
-    snprintf(buffer, kBufferSize, "%s%016llx", kPrefix,
+    snprintf(buffer, kBufferSize, "%016llx",
              static_cast<unsigned long long>(  // NOLINT
                  reinterpret_cast<intptr_t>(this)));
+#if FIREBASE_PLATFORM_OSX
+    // Append custom semaphore names, if present, to support macOS Sandbox
+    // mode.
+    std::string semaphore_name = util::GetSandboxModeSemaphorePrefix();
+    if (semaphore_name.empty()) {
+      semaphore_name = FIREBASE_SEMAPHORE_DEFAULT_PREFIX;
+    }
+#else
+    std::string semaphore_name = FIREBASE_SEMAPHORE_DEFAULT_PREFIX;
+#endif  // FIREBASE_PLATFORM_OSX
 
-    semaphore_ = sem_open(buffer,
+    semaphore_name.append(buffer);
+    semaphore_ = sem_open(semaphore_name.c_str(),
                           O_CREAT | O_EXCL,   // Create if it doesn't exist.
                           S_IRUSR | S_IWUSR,  // Only the owner can read/write.
                           initial_count);
+
+    // Check for errors.
+#if FIREBASE_PLATFORM_OSX
+    FIREBASE_ASSERT_MESSAGE(
+        semaphore_ != SEM_FAILED,
+        "Firebase failed to create semaphore. If running in sandbox mode be "
+        "sure to configure FBAppGroupEntitlementName in your app's "
+        "Info.plist.");
+#endif  // FIREBASE_PLATFORM_OSX
+
+    assert(semaphore_ != SEM_FAILED);
+    assert(semaphore_ != nullptr);
+
     // Remove the semaphore from the system registry, so other processes can't
     // grab it.  (These are designed to just be passed around internally by
     // pointer, like unnamed semaphores.  Mac OSX targets don't support unnamed
     // semaphores though, so we have to use named, and just treat them like
     // unnamed.
-    bool success = (sem_unlink(buffer) == 0);
+    bool success = (sem_unlink(semaphore_name.c_str()) == 0);
     assert(success);
     (void)success;
 #elif !FIREBASE_PLATFORM_WINDOWS
@@ -81,13 +107,14 @@ class Semaphore {
     bool success = sem_init(semaphore_, 0, initial_count) == 0;
     assert(success);
     (void)success;
+    assert(semaphore_ != nullptr);
 #else
     semaphore_ = CreateSemaphore(nullptr,        // default security attributes
                                  initial_count,  // initial count
                                  LONG_MAX,       // maximum count
                                  nullptr);       // unnamed semaphore
-#endif
     assert(semaphore_ != nullptr);
+#endif
   }
 
   ~Semaphore() {
