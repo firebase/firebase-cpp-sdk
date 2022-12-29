@@ -28,6 +28,8 @@
 #include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/ownership.h"
+#include "firestore/src/jni/env.h"
+#include "firestore/src/jni/arena_ref.h"
 
 namespace firebase {
 namespace firestore {
@@ -87,7 +89,10 @@ class FieldValueInternal {
   std::vector<FieldValue> array_value() const;
   MapFieldValue map_value() const;
 
-  const jni::Global<jni::Object>& ToJava() const { return object_; }
+  jni::Local<jni::Object> ToJava() const {
+    jni::Env env;
+    return object_.get(env);
+  }
 
   static FieldValue Delete();
   static FieldValue ServerTimestamp();
@@ -96,7 +101,7 @@ class FieldValueInternal {
   static FieldValue IntegerIncrement(int64_t by_value);
   static FieldValue DoubleIncrement(double by_value);
 
-  static jni::Object ToJava(const FieldValue& value);
+  static jni::Local<jni::Object> ToJava(const FieldValue& value);
 
  private:
   friend class FirestoreInternal;
@@ -107,7 +112,9 @@ class FieldValueInternal {
   // This performs a run-time `instanceof` check to verify that the object
   // has the type `T::GetClass()`.
   template <typename T>
-  T Cast(jni::Env& env, Type type) const;
+  jni::Local<T> Cast(jni::Env& env, Type type) const;
+
+  jni::Local<jni::String> CastString(jni::Env& env, Type type) const;
 
   static jni::Local<jni::Array<jni::Object>> MakeArray(
       jni::Env& env, const std::vector<FieldValue>& elements);
@@ -116,7 +123,7 @@ class FieldValueInternal {
 
   static jni::Env GetEnv();
 
-  jni::Global<jni::Object> object_;
+  jni::ArenaRef object_;
 
   // Below are cached type information. It is costly to get type info from
   // jobject of Object type. So we cache it if we have already known.
@@ -130,10 +137,12 @@ inline jni::Object ToJava(const FieldValue& value) {
 }
 
 inline jobject ToJni(const FieldValueInternal* value) {
+  jni::Env env;
   return value->ToJava().get();
 }
 
 inline jobject ToJni(const FieldValueInternal& value) {
+  jni::Env env;
   return value.ToJava().get();
 }
 
