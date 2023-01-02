@@ -1223,7 +1223,3 @@ TEST_F(intrusive_list_test, erase_range) {
   EXPECT_EQ(list_.size(), 0);
 }
 
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

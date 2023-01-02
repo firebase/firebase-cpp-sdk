@@ -352,7 +352,7 @@ def _build(
     except subprocess.SubprocessError as e:
       failures.append(
           Failure(testapp=testapp, platform=_DESKTOP, error_message=str(e)))
-    _rm_dir_safe(os.path.join(project_dir, "bin"))
+    ### _rm_dir_safe(os.path.join(project_dir, "bin"))
     logging.info("END %s, %s", testapp, _DESKTOP)
 
   if _ANDROID in platforms:

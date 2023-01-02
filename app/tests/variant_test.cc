@@ -48,6 +48,10 @@ class VariantInternal {
 
 using firebase::internal::VariantInternal;
 
+#ifndef DEATHTEST_SIGABRT
+#define DEATHTEST_SIGABRT ""
+#endif
+
 namespace firebase {
 namespace testing {
 

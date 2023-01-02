@@ -92,13 +92,10 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_SRCS
   ${FIREBASE_CPP_SDK_DIR}/app/tests/callback_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/cleanup_notifier_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/flexbuffer_matcher_test.cc
+  ${FIREBASE_CPP_SDK_DIR}/app/tests/flexbuffer_matcher.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/future_manager_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/future_test.cc
-  ${FIREBASE_CPP_SDK_DIR}/app/tests/google_services_test.cc
-  ${FIREBASE_CPP_SDK_DIR}/app/tests/heartbeat_storage_desktop_test.cc
-  ${FIREBASE_CPP_SDK_DIR}/app/tests/heartbeat_controller_desktop_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/intrusive_list_test.cc
-  ${FIREBASE_CPP_SDK_DIR}/app/tests/jobject_reference_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/locale_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/log_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/logger_test.cc
@@ -109,7 +106,6 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_SRCS
   ${FIREBASE_CPP_SDK_DIR}/app/tests/semaphore_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/thread_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/time_test.cc
-  ${FIREBASE_CPP_SDK_DIR}/app/tests/util_android_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/util_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/uuid_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/tests/variant_test.cc
@@ -120,8 +116,12 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_SRCS
   ${FIREBASE_CPP_SDK_DIR}/app/meta/move_test.cc
 )
 
+add_definitions(-DINTERNAL_EXPERIMENTAL)
 add_definitions(-DFIREBASE_INTEGRATION_TEST)
+#add_definitions(-DFIREBASE_TESTING)
 set(FIREBASE_INTEGRATION_TEST_DESKTOP_SRCS
+#  ${FIREBASE_CPP_SDK_DIR}/app/tests/heartbeat_storage_desktop_test.cc
+#  ${FIREBASE_CPP_SDK_DIR}/app/tests/heartbeat_controller_desktop_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/rest/tests/request_binary_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/rest/tests/request_json_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/rest/tests/request_test.cc
@@ -129,6 +129,7 @@ set(FIREBASE_INTEGRATION_TEST_DESKTOP_SRCS
   ${FIREBASE_CPP_SDK_DIR}/app/rest/tests/response_json_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/rest/tests/response_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/rest/tests/transport_mock_test.cc
+  ${FIREBASE_CPP_SDK_DIR}/app/rest/transport_mock.cc
   ${FIREBASE_CPP_SDK_DIR}/app/rest/tests/util_test.cc
   ${FIREBASE_CPP_SDK_DIR}/app/rest/tests/www_form_url_encoded_test.cc
 )
@@ -141,6 +142,8 @@ if(IOS)
 elif(ANDROID)
   set(FIREBASE_INTEGRATION_TEST_SRCS
     ${FIREBASE_INTEGRATION_TEST_PORTABLE_SRCS}
+    ${FIREBASE_CPP_SDK_DIR}/app/tests/jobject_reference_test.cc
+    ${FIREBASE_CPP_SDK_DIR}/app/tests/util_android_test.cc
   )
 else()  # DESKTOP
   set(FIREBASE_INTEGRATION_TEST_SRCS
@@ -265,12 +268,15 @@ endif()
 option(FIREBASE_INCLUDE_LIBRARY_DEFAULT "" OFF)
 
 option(FIREBASE_CPP_BUILD_TESTS "" ON)
+set(CURL_STATICLIB ON CACHE BOOL "")
+
 add_subdirectory(${FIREBASE_CPP_SDK_DIR} bin/ EXCLUDE_FROM_ALL)
 
 get_directory_property(ZLIB_SOURCE_DIR DIRECTORY ${FIREBASE_CPP_SDK_DIR} DEFINITION ZLIB_SOURCE_DIR)
 get_directory_property(ZLIB_BINARY_DIR DIRECTORY ${FIREBASE_CPP_SDK_DIR} DEFINITION ZLIB_BINARY_DIR)
 get_directory_property(FLATBUFFERS_SOURCE_DIR DIRECTORY ${FIREBASE_CPP_SDK_DIR} DEFINITION FLATBUFFERS_SOURCE_DIR)
 get_directory_property(FIREBASE_GEN_FILE_DIR DIRECTORY ${FIREBASE_CPP_SDK_DIR} DEFINITION FIREBASE_GEN_FILE_DIR)
+get_directory_property(GOOGLETEST_SOURCE_DIR DIRECTORY ${FIREBASE_CPP_SDK_DIR} DEFINITION GOOGLETEST_SOURCE_DIR)
 
 # Additional include paths populated by top-level SDK CMakeLists
 if(NOT ANDROID AND NOT IOS)
@@ -302,7 +308,15 @@ if(NOT ANDROID AND NOT IOS)
   endif()
 endif()
 
+
+# gtest include directories.
+target_include_directories(${integration_test_target_name}
+  PRIVATE ${GOOGLETEST_SOURCE_DIR}/googletest
+  PRIVATE ${GOOGLETEST_SOURCE_DIR}/googlemock
+  PUBLIC ${GOOGLETEST_SOURCE_DIR}/googletest/include
+  PUBLIC ${GOOGLETEST_SOURCE_DIR}/googlemock/include)
+
 # Add the Firebase libraries to the target using the function from the SDK.
 # Note that firebase_app needs to be last in the list.
-set(firebase_libs firebase_app firebase_testing)
+set(firebase_libs firebase_app firebase_rest_lib firebase_testing flatbuffers libcurl)
 target_link_libraries(${integration_test_target_name} ${firebase_libs} gtest gmock ${ADDITIONAL_LIBS})

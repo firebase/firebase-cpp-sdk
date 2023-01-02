@@ -16,7 +16,6 @@
 
 #include <string>
 
-#include "absl/flags/flag.h"
 #include "app/google_services_resource.h"
 #include "app/src/log.h"
 #include "flatbuffers/idl.h"
@@ -53,9 +52,7 @@ bool Parse(const char* config) {
 // Test the conformity of the provided .json file.
 TEST(GoogleServicesTest, TestConformity) {
   // This is an actual .json, copied from Firebase auth sample app.
-  std::string json_file =
-      absl::GetFlag(FLAGS_test_srcdir) +
-      "/google3/firebase/app/client/cpp/testdata/google-services.json";
+  std::string json_file = "google-services.json";
   std::string json_str;
   EXPECT_TRUE(flatbuffers::LoadFile(json_file.c_str(), false, &json_str));
   EXPECT_FALSE(json_str.empty());
