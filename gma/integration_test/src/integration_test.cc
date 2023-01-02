@@ -845,8 +845,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoad) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
 
-  // Loading Ads has been deemed flaky as the AdMob Service has a chance to
-  // return NoFill for valid ad requests if there aren't any ads to serve.
+  // TODO(@drsanta): remove when GMA whitelists CI devices.
   FLAKY_TEST_SECTION_BEGIN();
 
   firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
@@ -1010,6 +1009,9 @@ TEST_F(FirebaseGmaUITest, TestInterstitialAdLoadAndShow) {
 TEST_F(FirebaseGmaUITest, TestRewardedAdLoadAndShow) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
+
+  // TODO(@drsanta): remove when GMA whitelists CI devices.
+  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
 
   firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
 
@@ -1851,9 +1853,8 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoadEmptyRequest) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
 
-  // Loading Ads has been deemed flaky as the AdMob Service has a chance to
-  // return NoFill for valid ad requests if there aren't any ads to serve.
-  FLAKY_TEST_SECTION_BEGIN();
+  // TODO(@drsanta): remove when GMA whitelists CI devices.
+  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
 
   // Note: while showing an ad requires user interaction in another test,
   // this test is mean as a baseline loadAd functionality test.
@@ -1878,8 +1879,6 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoadEmptyRequest) {
   EXPECT_FALSE(result_ptr->response_info().ToString().empty());
 
   delete rewarded;
-
-  FLAKY_TEST_SECTION_END();
 }
 
 TEST_F(FirebaseGmaTest, TestRewardedAdErrorNotInitialized) {
@@ -1937,6 +1936,9 @@ TEST_F(FirebaseGmaTest, TesRewardedAdErrorAlreadyInitialized) {
 
 TEST_F(FirebaseGmaTest, TestRewardedAdErrorLoadInProgress) {
   SKIP_TEST_ON_DESKTOP;
+
+  // TODO(@drsanta): remove when GMA whitelists CI devices.
+  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
 
   firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
   WaitForCompletion(rewarded->Initialize(app_framework::GetWindowContext()),
@@ -2065,7 +2067,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_EMULATOR;
 
-  // TODO(@drsanta): remove when GMA whitelists CI devices
+  // TODO(@drsanta): remove when GMA whitelists CI devices.
   TEST_REQUIRES_USER_INTERACTION_ON_IOS;
 
   for (int i = 0; i < 10; ++i) {
