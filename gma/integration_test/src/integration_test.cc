@@ -2031,10 +2031,16 @@ TEST_F(FirebaseGmaTest, TestAdViewStress) {
 
     // Load the AdView ad.
     firebase::gma::AdRequest request = GetAdRequest();
-    WaitForCompletion(ad_view->LoadAd(request), "TestAdViewStress LoadAd");
-    EXPECT_EQ(ad_view->ad_size().width(), kBannerWidth);
-    EXPECT_EQ(ad_view->ad_size().height(), kBannerHeight);
-
+    firebase::Future<firebase::gma::AdResult> future = ad_view->LoadAd(request);
+    WaitForCompletionAnyResult(future, "TestAdViewStress LoadAd");
+    // Stress tests may exhaust the ad pool. If so, loadAd will return
+    // kAdErrorCodeNoFill.
+    EXPECT_TRUE(future.error() == firebase::gma::kAdErrorCodeNone ||
+                future.error() == firebase::gma::kAdErrorCodeNoFill);
+    if (future.error() == firebase::gma::kAdErrorCodeNone) {
+      EXPECT_EQ(ad_view->ad_size().width(), kBannerWidth);
+      EXPECT_EQ(ad_view->ad_size().height(), kBannerHeight);
+    }
     WaitForCompletion(ad_view->Destroy(), "Destroy the AdView");
     delete ad_view;
   }
@@ -2057,8 +2063,13 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdStress) {
 
     // When the InterstitialAd is initialized, load an ad.
     firebase::gma::AdRequest request = GetAdRequest();
-    WaitForCompletion(interstitial->LoadAd(kInterstitialAdUnit, request),
-                      "TestInterstitialAdStress LoadAd");
+    firebase::Future<firebase::gma::AdResult> future =
+        interstitial->LoadAd(kInterstitialAdUnit, request);
+    WaitForCompletionAnyResult(future, "TestInterstitialAdStress LoadAd");
+    // Stress tests may exhaust the ad pool. If so, loadAd will return
+    // kAdErrorCodeNoFill.
+    EXPECT_TRUE(future.error() == firebase::gma::kAdErrorCodeNone ||
+                future.error() == firebase::gma::kAdErrorCodeNoFill);
     delete interstitial;
   }
 }
@@ -2078,8 +2089,13 @@ TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
 
     // When the RewardedAd is initialized, load an ad.
     firebase::gma::AdRequest request = GetAdRequest();
-    WaitForCompletion(rewarded->LoadAd(kRewardedAdUnit, request),
-                      "TestRewardedAdStress LoadAd");
+    firebase::Future<firebase::gma::AdResult> future =
+        rewarded->LoadAd(kRewardedAdUnit, request);
+    WaitForCompletionAnyResult(future, "TestRewardedAdStress LoadAd");
+    // Stress tests may exhaust the ad pool. If so, loadAd will return
+    // kAdErrorCodeNoFill.
+    EXPECT_TRUE(future.error() == firebase::gma::kAdErrorCodeNone ||
+                future.error() == firebase::gma::kAdErrorCodeNoFill);
     delete rewarded;
   }
 }
