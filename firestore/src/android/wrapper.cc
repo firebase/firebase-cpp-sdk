@@ -58,9 +58,5 @@ Wrapper::~Wrapper() = default;
 
 jni::Env Wrapper::GetEnv() const { return firestore_->GetEnv(); }
 
-Object Wrapper::ToJava(const FieldValue& value) {
-  return FieldValueInternal::ToJava(value);
-}
-
 }  // namespace firestore
 }  // namespace firebase
