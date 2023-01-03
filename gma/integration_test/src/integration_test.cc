@@ -2020,9 +2020,6 @@ TEST_F(FirebaseGmaTest, TestRewardedAdStress) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_EMULATOR;
 
-  // TODO(@drsanta): remove when GMA whitelists CI devices.
-  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
-
   for (int i = 0; i < 10; ++i) {
     firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
 
