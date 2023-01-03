@@ -36,7 +36,7 @@ Local<HashMap> MakeJavaMap(Env& env, const MapFieldValue& data) {
   Local<HashMap> result = HashMap::Create(env);
   for (const auto& kv : data) {
     Local<String> key = env.NewStringUtf(kv.first);
-    const Object& value = ToJava(kv.second);
+    Local<Object> value = FieldValueInternal::ToJava(kv.second);
     result.Put(env, key, value);
   }
   return result;
@@ -49,7 +49,7 @@ UpdateFieldPathArgs MakeUpdateFieldPathArgs(Env& env,
   FIREBASE_DEV_ASSERT_MESSAGE(iter != end, "data must be non-empty");
 
   Local<Object> first_field = FieldPathConverter::Create(env, iter->first);
-  const Object& first_value = ToJava(iter->second);
+  Local<Object> first_value = FieldValueInternal::ToJava(iter->second);
   ++iter;
 
   const auto size = std::distance(iter, end) * 2;
@@ -58,13 +58,14 @@ UpdateFieldPathArgs MakeUpdateFieldPathArgs(Env& env,
   int index = 0;
   for (; iter != end; ++iter) {
     Local<Object> field = FieldPathConverter::Create(env, iter->first);
-    const Object& value = ToJava(iter->second);
+    Local<Object> value = FieldValueInternal::ToJava(iter->second);
 
     varargs.Set(env, index++, field);
     varargs.Set(env, index++, value);
   }
 
-  return UpdateFieldPathArgs{Move(first_field), first_value, Move(varargs)};
+  return UpdateFieldPathArgs{Move(first_field), Move(first_value),
+                             Move(varargs)};
 }
 
 }  // namespace firestore

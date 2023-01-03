@@ -25,11 +25,11 @@
 #include "firebase/firestore/timestamp.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
+#include "firestore/src/jni/arena_ref.h"
+#include "firestore/src/jni/env.h"
 #include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/ownership.h"
-#include "firestore/src/jni/env.h"
-#include "firestore/src/jni/arena_ref.h"
 
 namespace firebase {
 namespace firestore {
@@ -130,21 +130,6 @@ class FieldValueInternal {
   mutable Type cached_type_ = Type::kNull;
   mutable std::shared_ptr<std::vector<uint8_t>> cached_blob_;
 };
-
-inline jni::Object ToJava(const FieldValue& value) {
-  // This indirection is required to make use of the `friend` in FieldValue.
-  return FieldValueInternal::ToJava(value);
-}
-
-inline jobject ToJni(const FieldValueInternal* value) {
-  jni::Env env;
-  return value->ToJava().get();
-}
-
-inline jobject ToJni(const FieldValueInternal& value) {
-  jni::Env env;
-  return value.ToJava().get();
-}
 
 }  // namespace firestore
 }  // namespace firebase
