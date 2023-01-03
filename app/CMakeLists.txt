@@ -157,6 +157,7 @@ set(app_android_SRCS
     src/uuid.cc)
 set(app_ios_SRCS
     src/app_ios.mm
+    src/util_apple.mm
     src/util_ios.mm
     src/invites/ios/invites_receiver_internal_ios.mm
     src/invites/ios/invites_ios_startup.mm
@@ -220,7 +221,8 @@ else()
         src/secure/user_secure_darwin_internal.mm
         src/filesystem_apple.mm
         src/locale_apple.mm
-        src/uuid_ios_darwin.mm)
+        src/uuid_ios_darwin.mm
+        src/util_apple.mm)
   else()
     # Linux requires libsecret.
     pkg_check_modules(LIBSECRET libsecret-1)
