@@ -833,6 +833,9 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoad) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
 
+  // TODO(@drsanta): remove when GMA whitelists CI devices.
+  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
+
   firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
 
   WaitForCompletion(rewarded->Initialize(app_framework::GetWindowContext()),
