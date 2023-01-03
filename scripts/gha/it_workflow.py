@@ -276,7 +276,7 @@ def _get_issue_number(token, title, label):
   for issue in issues:
     if issue["title"] == title:
       return issue["number"]
-  empty_comment = _COMMENT_HIDDEN_DIVIDER + " " + _COMMENT_HIDDEN_DIVIDER
+  empty_comment = _COMMENT_HIDDEN_DIVIDER + " " + _COMMENT_HIDDEN_DIVIDER + " " + _COMMENT_HIDDEN_DIVIDER 
   return github.create_issue(token, title, label, empty_comment)["number"]
 
 
