@@ -63,7 +63,7 @@ void CollectionReferenceInternal::Initialize(jni::Loader& loader) {
 const std::string& CollectionReferenceInternal::id() const {
   if (cached_id_.empty()) {
     Env env = GetEnv();
-    cached_id_ = env.Call(obj_, kGetId).ToString(env);
+    cached_id_ = env.Call(obj_.get(env), kGetId).ToString(env);
   }
   return cached_id_;
 }
@@ -71,20 +71,20 @@ const std::string& CollectionReferenceInternal::id() const {
 const std::string& CollectionReferenceInternal::path() const {
   if (cached_path_.empty()) {
     Env env = GetEnv();
-    cached_path_ = env.Call(obj_, kGetPath).ToString(env);
+    cached_path_ = env.Call(obj_.get(env), kGetPath).ToString(env);
   }
   return cached_path_;
 }
 
 DocumentReference CollectionReferenceInternal::Parent() const {
   Env env = GetEnv();
-  Local<Object> parent = env.Call(obj_, kGetParent);
+  Local<Object> parent = env.Call(obj_.get(env), kGetParent);
   return firestore_->NewDocumentReference(env, parent);
 }
 
 DocumentReference CollectionReferenceInternal::Document() const {
   Env env = GetEnv();
-  Local<Object> document = env.Call(obj_, kDocumentAutoId);
+  Local<Object> document = env.Call(obj_.get(env), kDocumentAutoId);
   return firestore_->NewDocumentReference(env, document);
 }
 
@@ -92,7 +92,7 @@ DocumentReference CollectionReferenceInternal::Document(
     const std::string& document_path) const {
   Env env = GetEnv();
   Local<String> java_path = env.NewStringUtf(document_path);
-  Local<Object> document = env.Call(obj_, kDocument, java_path);
+  Local<Object> document = env.Call(obj_.get(env), kDocument, java_path);
   return firestore_->NewDocumentReference(env, document);
 }
 
@@ -101,7 +101,7 @@ Future<DocumentReference> CollectionReferenceInternal::Add(
   FieldValueInternal map_value(data);
 
   Env env = GetEnv();
-  Local<Task> task = env.Call(obj_, kAdd, map_value.ToJava());
+  Local<Task> task = env.Call(obj_.get(env), kAdd, map_value.ToJava());
   return promises_.NewFuture<DocumentReference>(env, AsyncFn::kAdd, task);
 }
 

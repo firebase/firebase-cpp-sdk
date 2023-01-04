@@ -230,7 +230,8 @@ Type FieldValueInternal::type() const {
     cached_type_ = Type::kBlob;
     return Type::kBlob;
   }
-  if (env.IsInstanceOf(object_.get(env), DocumentReferenceInternal::GetClass())) {
+  if (env.IsInstanceOf(object_.get(env),
+                       DocumentReferenceInternal::GetClass())) {
     cached_type_ = Type::kReference;
     return Type::kReference;
   }
@@ -439,7 +440,7 @@ Env FieldValueInternal::GetEnv() { return FirestoreInternal::GetEnv(); }
 Local<Object> FieldValueInternal::ToJava(const FieldValue& value) {
   Env env;
   return value.internal_ ? value.internal_->object_.get(env)
-      : Local<Object>(Object());
+                         : Local<Object>(Object());
 }
 
 }  // namespace firestore

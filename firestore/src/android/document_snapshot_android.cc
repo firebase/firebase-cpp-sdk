@@ -76,33 +76,33 @@ Firestore* DocumentSnapshotInternal::firestore() const {
 const std::string& DocumentSnapshotInternal::id() const {
   if (cached_id_.empty()) {
     Env env = GetEnv();
-    cached_id_ = env.Call(obj_, kGetId).ToString(env);
+    cached_id_ = env.Call(obj_.get(env), kGetId).ToString(env);
   }
   return cached_id_;
 }
 
 DocumentReference DocumentSnapshotInternal::reference() const {
   Env env = GetEnv();
-  Local<Object> reference = env.Call(obj_, kGetReference);
+  Local<Object> reference = env.Call(obj_.get(env), kGetReference);
   return firestore_->NewDocumentReference(env, reference);
 }
 
 SnapshotMetadata DocumentSnapshotInternal::metadata() const {
   Env env = GetEnv();
-  auto java_metadata = env.Call(obj_, kGetMetadata);
+  auto java_metadata = env.Call(obj_.get(env), kGetMetadata);
   return java_metadata.ToPublic(env);
 }
 
 bool DocumentSnapshotInternal::exists() const {
   Env env = GetEnv();
-  return env.Call(obj_, kExists);
+  return env.Call(obj_.get(env), kExists);
 }
 
 MapFieldValue DocumentSnapshotInternal::GetData(
     ServerTimestampBehavior stb) const {
   Env env = GetEnv();
   Local<Object> java_stb = ServerTimestampBehaviorInternal::Create(env, stb);
-  Local<Object> java_data = env.Call(obj_, kGetData, java_stb);
+  Local<Object> java_data = env.Call(obj_.get(env), kGetData, java_stb);
 
   if (!java_data) {
     // If the document doesn't exist, Android returns a null Map. In C++, the
@@ -120,19 +120,20 @@ FieldValue DocumentSnapshotInternal::Get(const FieldPath& field,
 
   // Android returns null for both null fields and nonexistent fields, so first
   // use contains() to check if the field exists.
-  bool contains_field = env.Call(obj_, kContains, java_field);
+  bool contains_field = env.Call(obj_.get(env), kContains, java_field);
   if (!contains_field) {
     return FieldValue();
   }
 
   Local<Object> java_stb = ServerTimestampBehaviorInternal::Create(env, stb);
-  Local<Object> field_value = env.Call(obj_, kGet, java_field, java_stb);
+  Local<Object> field_value =
+      env.Call(obj_.get(env), kGet, java_field, java_stb);
   return FieldValueInternal::Create(env, field_value);
 }
 
 std::size_t DocumentSnapshotInternal::Hash() const {
   Env env = GetEnv();
-  return env.Call(obj_, kHashCode);
+  return env.Call(obj_.get(env), kHashCode);
 }
 
 bool operator==(const DocumentSnapshotInternal& lhs,

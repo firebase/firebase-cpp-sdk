@@ -29,13 +29,16 @@ namespace firebase {
 namespace firestore {
 namespace {
 
+using jni::ArenaRef;
 using jni::Env;
 using jni::Object;
 
 }  // namespace
 
 Wrapper::Wrapper(FirestoreInternal* firestore, const Object& obj)
-    : firestore_(firestore), obj_(obj) {
+    : firestore_(firestore) {
+  Env env;
+  obj_ = ArenaRef(env, obj);
   FIREBASE_ASSERT(obj);
 }
 

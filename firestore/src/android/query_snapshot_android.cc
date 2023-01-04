@@ -59,13 +59,13 @@ void QuerySnapshotInternal::Initialize(jni::Loader& loader) {
 
 Query QuerySnapshotInternal::query() const {
   Env env = GetEnv();
-  Local<Object> query = env.Call(obj_, kGetQuery);
+  Local<Object> query = env.Call(obj_.get(env), kGetQuery);
   return firestore_->NewQuery(env, query);
 }
 
 SnapshotMetadata QuerySnapshotInternal::metadata() const {
   Env env = GetEnv();
-  return env.Call(obj_, kGetMetadata).ToPublic(env);
+  return env.Call(obj_.get(env), kGetMetadata).ToPublic(env);
 }
 
 std::vector<DocumentChange> QuerySnapshotInternal::DocumentChanges(
@@ -73,24 +73,25 @@ std::vector<DocumentChange> QuerySnapshotInternal::DocumentChanges(
   Env env = GetEnv();
   auto java_metadata = MetadataChangesInternal::Create(env, metadata_changes);
 
-  Local<List> change_list = env.Call(obj_, kGetDocumentChanges, java_metadata);
+  Local<List> change_list =
+      env.Call(obj_.get(env), kGetDocumentChanges, java_metadata);
   return MakePublicVector<DocumentChange>(env, firestore_, change_list);
 }
 
 std::vector<DocumentSnapshot> QuerySnapshotInternal::documents() const {
   Env env = GetEnv();
-  Local<List> document_list = env.Call(obj_, kGetDocuments);
+  Local<List> document_list = env.Call(obj_.get(env), kGetDocuments);
   return MakePublicVector<DocumentSnapshot>(env, firestore_, document_list);
 }
 
 std::size_t QuerySnapshotInternal::size() const {
   Env env = GetEnv();
-  return env.Call(obj_, kSize);
+  return env.Call(obj_.get(env), kSize);
 }
 
 std::size_t QuerySnapshotInternal::Hash() const {
   Env env = GetEnv();
-  return env.Call(obj_, kHashCode);
+  return env.Call(obj_.get(env), kHashCode);
 }
 
 bool operator==(const QuerySnapshotInternal& lhs,

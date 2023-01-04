@@ -108,7 +108,7 @@ Firestore* DocumentReferenceInternal::firestore() {
 const std::string& DocumentReferenceInternal::id() const {
   if (cached_id_.empty()) {
     Env env = GetEnv();
-    cached_id_ = env.Call(obj_, kGetId).ToString(env);
+    cached_id_ = env.Call(obj_.get(env), kGetId).ToString(env);
   }
   return cached_id_;
 }
@@ -116,14 +116,14 @@ const std::string& DocumentReferenceInternal::id() const {
 const std::string& DocumentReferenceInternal::path() const {
   if (cached_path_.empty()) {
     Env env = GetEnv();
-    cached_path_ = env.Call(obj_, kGetPath).ToString(env);
+    cached_path_ = env.Call(obj_.get(env), kGetPath).ToString(env);
   }
   return cached_path_;
 }
 
 CollectionReference DocumentReferenceInternal::Parent() const {
   Env env = GetEnv();
-  Local<Object> parent = env.Call(obj_, kGetParent);
+  Local<Object> parent = env.Call(obj_.get(env), kGetParent);
   return firestore_->NewCollectionReference(env, parent);
 }
 
@@ -131,14 +131,14 @@ CollectionReference DocumentReferenceInternal::Collection(
     const std::string& collection_path) {
   Env env = GetEnv();
   Local<String> java_path = env.NewStringUtf(collection_path);
-  Local<Object> collection = env.Call(obj_, kCollection, java_path);
+  Local<Object> collection = env.Call(obj_.get(env), kCollection, java_path);
   return firestore_->NewCollectionReference(env, collection);
 }
 
 Future<DocumentSnapshot> DocumentReferenceInternal::Get(Source source) {
   Env env = GetEnv();
   Local<Object> java_source = SourceInternal::Create(env, source);
-  Local<Task> task = env.Call(obj_, kGet, java_source);
+  Local<Task> task = env.Call(obj_.get(env), kGet, java_source);
   return promises_.NewFuture<DocumentSnapshot>(env, AsyncFn::kGet, task);
 }
 
@@ -147,14 +147,15 @@ Future<void> DocumentReferenceInternal::Set(const MapFieldValue& data,
   Env env = GetEnv();
   FieldValueInternal map_value(data);
   Local<Object> java_options = SetOptionsInternal::Create(env, options);
-  Local<Task> task = env.Call(obj_, kSet, map_value.ToJava(), java_options);
+  Local<Task> task =
+      env.Call(obj_.get(env), kSet, map_value.ToJava(), java_options);
   return promises_.NewFuture<void>(env, AsyncFn::kSet, task);
 }
 
 Future<void> DocumentReferenceInternal::Update(const MapFieldValue& data) {
   Env env = GetEnv();
   FieldValueInternal map_value(data);
-  Local<Task> task = env.Call(obj_, kUpdate, map_value.ToJava());
+  Local<Task> task = env.Call(obj_.get(env), kUpdate, map_value.ToJava());
   return promises_.NewFuture<void>(env, AsyncFn::kUpdate, task);
 }
 
@@ -165,7 +166,7 @@ Future<void> DocumentReferenceInternal::Update(const MapFieldPathValue& data) {
 
   Env env = GetEnv();
   UpdateFieldPathArgs args = MakeUpdateFieldPathArgs(env, data);
-  Local<Task> task = env.Call(obj_, kUpdateVarargs, args.first_field,
+  Local<Task> task = env.Call(obj_.get(env), kUpdateVarargs, args.first_field,
                               args.first_value, args.varargs);
 
   return promises_.NewFuture<void>(env, AsyncFn::kUpdate, task);
@@ -173,7 +174,7 @@ Future<void> DocumentReferenceInternal::Update(const MapFieldPathValue& data) {
 
 Future<void> DocumentReferenceInternal::Delete() {
   Env env = GetEnv();
-  Local<Task> task = env.Call(obj_, kDelete);
+  Local<Task> task = env.Call(obj_.get(env), kDelete);
   return promises_.NewFuture<void>(env, AsyncFn::kDelete, task);
 }
 
@@ -198,9 +199,9 @@ ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
   Local<Object> java_listener =
       EventListenerInternal::Create(env, firestore_, listener);
 
-  Local<Object> java_registration =
-      env.Call(obj_, kAddSnapshotListener, firestore_->user_callback_executor(),
-               java_metadata, java_listener);
+  Local<Object> java_registration = env.Call(
+      obj_.get(env), kAddSnapshotListener, firestore_->user_callback_executor(),
+      java_metadata, java_listener);
 
   if (!env.ok() || !java_registration) return {};
   return ListenerRegistration(new ListenerRegistrationInternal(

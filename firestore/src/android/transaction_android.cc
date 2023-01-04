@@ -95,14 +95,15 @@ void TransactionInternal::Set(const DocumentReference& document,
   Env env = GetEnv();
   Local<HashMap> java_data = MakeJavaMap(env, data);
   Local<Object> java_options = SetOptionsInternal::Create(env, options);
-  env.Call(obj_, kSet, document.internal_->ToJava(), java_data, java_options);
+  env.Call(obj_.get(env), kSet, document.internal_->ToJava(), java_data,
+           java_options);
 }
 
 void TransactionInternal::Update(const DocumentReference& document,
                                  const MapFieldValue& data) {
   Env env = GetEnv();
   Local<HashMap> java_data = MakeJavaMap(env, data);
-  env.Call(obj_, kUpdate, document.internal_->ToJava(), java_data);
+  env.Call(obj_.get(env), kUpdate, document.internal_->ToJava(), java_data);
 }
 
 void TransactionInternal::Update(const DocumentReference& document,
@@ -114,13 +115,13 @@ void TransactionInternal::Update(const DocumentReference& document,
 
   Env env = GetEnv();
   UpdateFieldPathArgs args = MakeUpdateFieldPathArgs(env, data);
-  env.Call(obj_, kUpdateVarargs, document.internal_->ToJava(), args.first_field,
-           args.first_value, args.varargs);
+  env.Call(obj_.get(env), kUpdateVarargs, document.internal_->ToJava(),
+           args.first_field, args.first_value, args.varargs);
 }
 
 void TransactionInternal::Delete(const DocumentReference& document) {
   Env env = GetEnv();
-  env.Call(obj_, kDelete, document.internal_->ToJava());
+  env.Call(obj_.get(env), kDelete, document.internal_->ToJava());
 }
 
 DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
@@ -128,7 +129,8 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
                                           std::string* error_message) {
   Env env = GetEnv();
 
-  Local<Object> snapshot = env.Call(obj_, kGet, document.internal_->ToJava());
+  Local<Object> snapshot =
+      env.Call(obj_.get(env), kGet, document.internal_->ToJava());
   Local<Throwable> exception = env.ClearExceptionOccurred();
 
   if (exception) {
