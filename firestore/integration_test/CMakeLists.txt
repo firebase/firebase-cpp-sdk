@@ -84,8 +84,8 @@ set(FIREBASE_INTEGRATION_TEST_SRCS
 # The include directory for the testapp.
 include_directories(src)
 
-# Integration test uses some features that require C++ 11, such as lambdas.
-set (CMAKE_CXX_STANDARD 11)
+# Integration test stays in sync with SDK
+set (CMAKE_CXX_STANDARD 14)
 
 # Download and unpack googletest (and googlemock) at configure time
 set(GOOGLETEST_ROOT ${CMAKE_CURRENT_LIST_DIR}/external/googletest)
