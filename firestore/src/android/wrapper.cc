@@ -59,6 +59,11 @@ Wrapper::Wrapper(Wrapper* rhs) : Wrapper() {
 
 Wrapper::~Wrapper() = default;
 
+jni::Local<jni::Object> Wrapper::ToJava() const {
+  jni::Env env;
+  return obj_.get(env);
+}
+
 jni::Env Wrapper::GetEnv() const { return firestore_->GetEnv(); }
 
 }  // namespace firestore

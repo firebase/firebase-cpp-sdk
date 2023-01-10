@@ -18,6 +18,7 @@
 #define FIREBASE_FIRESTORE_SRC_ANDROID_WRAPPER_H_
 
 #include "firestore/src/jni/arena_ref.h"
+#include "firestore/src/jni/env.h"
 #include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/ownership.h"
@@ -45,10 +46,7 @@ class Wrapper {
   Wrapper& operator=(Wrapper&& wrapper) = delete;
 
   FirestoreInternal* firestore_internal() { return firestore_; }
-  jni::Local<jni::Object> ToJava() const {
-    jni::Env env;
-    return obj_.get(env);
-  }
+  jni::Local<jni::Object> ToJava() const;
 
  protected:
   // Default constructor. Subclass is expected to set the obj_ a meaningful

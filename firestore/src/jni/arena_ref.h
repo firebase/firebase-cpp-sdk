@@ -21,7 +21,7 @@
 
 #include <cstdlib>
 
-#include "firestore/src/jni/env.h"
+#include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/ownership.h"
 
@@ -29,6 +29,15 @@ namespace firebase {
 namespace firestore {
 namespace jni {
 
+/**
+ * ArenaRef is an RAII wrapper which serves the same purpose as Global<T>, both
+ * of them manage the lifetime of JNI reference. Compared to Global<T>, the
+ * advantage of ArenaRef is it gets rid of the restriction of total number of
+ * JNI global reference (the pointer inside Global<T>) need to be under 51,200,
+ * since after that number the app will crash. The drawback is ArenaRef holds
+ * JNI Reference indirectly using HashMap so there is a efficiency lost against
+ * Global<T>.
+ */
 class ArenaRef {
  public:
   ArenaRef() = default;
@@ -46,7 +55,7 @@ class ArenaRef {
  private:
   Local<Long> key_object(Env&) const;
 
-  int64_t key_ = 0;
+  int64_t key_ = -1;
 };
 
 }  // namespace jni

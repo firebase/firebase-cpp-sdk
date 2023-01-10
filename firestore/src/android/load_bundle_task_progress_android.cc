@@ -67,27 +67,27 @@ Class LoadBundleTaskProgressInternal::GetClass() { return Class(g_clazz); }
 
 int32_t LoadBundleTaskProgressInternal::documents_loaded() const {
   Env env = GetEnv();
-  return env.Call(obj_.get(env), kGetDocumentsLoaded);
+  return env.Call(obj_, kGetDocumentsLoaded);
 }
 
 int32_t LoadBundleTaskProgressInternal::total_documents() const {
   Env env = GetEnv();
-  return env.Call(obj_.get(env), kGetTotalDocuments);
+  return env.Call(obj_, kGetTotalDocuments);
 }
 
 int64_t LoadBundleTaskProgressInternal::bytes_loaded() const {
   Env env = GetEnv();
-  return env.Call(obj_.get(env), kGetBytesLoaded);
+  return env.Call(obj_, kGetBytesLoaded);
 }
 
 int64_t LoadBundleTaskProgressInternal::total_bytes() const {
   Env env = GetEnv();
-  return env.Call(obj_.get(env), kGetTotalBytes);
+  return env.Call(obj_, kGetTotalBytes);
 }
 
 LoadBundleTaskProgress::State LoadBundleTaskProgressInternal::state() const {
   Env env = GetEnv();
-  Local<Object> state = env.Call(obj_.get(env), kGetTaskState);
+  Local<Object> state = env.Call(obj_, kGetTaskState);
   Local<Object> running_state = env.Get(kTaskStateRunning);
   Local<Object> success_state = env.Get(kTaskStateSuccess);
 

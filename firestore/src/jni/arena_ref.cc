@@ -17,6 +17,7 @@
 
 #include "firestore/src/jni/arena_ref.h"
 
+#include "firestore/src/jni/env.h"
 #include "firestore/src/jni/hash_map.h"
 #include "firestore/src/jni/long.h"
 #include "firestore/src/jni/map.h"
@@ -30,7 +31,7 @@ namespace {
 HashMap* gArenaRefHashMap = nullptr;
 
 int64_t GetNextArenaRefKey() {
-  static std::atomic<int64_t> next_key(1);
+  static std::atomic<int64_t> next_key(-1);
   return next_key.fetch_add(1);
 }
 
@@ -42,7 +43,7 @@ ArenaRef::ArenaRef(Env& env, const Object& object)
 }
 
 ArenaRef::ArenaRef(const ArenaRef& other) : key_(GetNextArenaRefKey()) {
-  if (other.key_ != 0) {
+  if (other.key_ != -1) {
     Env env;
     Local<Object> object = other.get(env);
     gArenaRefHashMap->Put(env, key_object(env), object);
@@ -51,22 +52,26 @@ ArenaRef::ArenaRef(const ArenaRef& other) : key_(GetNextArenaRefKey()) {
 
 ArenaRef::ArenaRef(ArenaRef&& other) {
   key_ = other.key_;
-  other.key_ = 0;
+  other.key_ = -1;
 }
 
 ArenaRef& ArenaRef::operator=(const ArenaRef& other) {
   Env env;
 
-  if (key_ != other.key_) {
-    if (key_ != 0) {
-      gArenaRefHashMap->Remove(env, key_object(env));
-    }
+  if (this == &other) {
+    return *this;
+  }
 
-    if (other.key_ != 0) {
-      key_ = GetNextArenaRefKey();
-      Local<Object> object = other.get(env);
-      gArenaRefHashMap->Put(env, key_object(env), object);
-    }
+  if (key_ != -1) {
+    gArenaRefHashMap->Remove(env, key_object(env));
+  }
+
+  if (other.key_ != -1) {
+    key_ = GetNextArenaRefKey();
+    Local<Object> object = other.get(env);
+    gArenaRefHashMap->Put(env, key_object(env), object);
+  } else {
+    key_ = -1;
   }
   return *this;
 }
@@ -74,19 +79,20 @@ ArenaRef& ArenaRef::operator=(const ArenaRef& other) {
 ArenaRef& ArenaRef::operator=(ArenaRef&& other) {
   Env env;
 
-  if (key_ != other.key_) {
-    if (key_ != 0) {
-      gArenaRefHashMap->Remove(env, key_object(env));
-    }
-
-    key_ = other.key_;
-    other.key_ = 0;
+  if (this == &other) {
+    return *this;
   }
+
+  if (key_ != -1) {
+    gArenaRefHashMap->Remove(env, key_object(env));
+  }
+  key_ = other.key_;
+  other.key_ = -1;
   return *this;
 }
 
 ArenaRef::~ArenaRef() {
-  if (key_ != 0) {
+  if (key_ != -1) {
     Env env;
     gArenaRefHashMap->Remove(env, key_object(env));
   }
@@ -101,8 +107,7 @@ void ArenaRef::Initialize(Env& env) {
     return;
   }
   Global<HashMap> hash_map(HashMap::Create(env));
-  jobject hash_map_jobject = hash_map.release();
-  gArenaRefHashMap = new HashMap(hash_map_jobject);
+  gArenaRefHashMap = new HashMap(hash_map.release());
 }
 
 Local<Object> ArenaRef::get(Env& env) const {

@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "app/meta/move.h"
+#include "firestore/src/jni/arena_ref.h"
 #include "firestore/src/jni/call_traits.h"
 #include "firestore/src/jni/class.h"
 #include "firestore/src/jni/declaration.h"
@@ -183,6 +184,9 @@ class Env {
   bool IsInstanceOf(jobject object, jclass clazz) {
     return IsInstanceOf(Object(object), Class(clazz));
   }
+  bool IsInstanceOf(const ArenaRef& object, const Class& clazz) {
+    return IsInstanceOf(object.get(*this), Class(clazz));
+  }
 
   bool IsSameObject(const Object& object1, const Object& object2);
 
@@ -238,6 +242,13 @@ class Env {
     auto env_method = CallTraits<JniType<T>>::kCall;
     return CallHelper<T>(env_method, object, method.id(),
                          ToJni(Forward<Args>(args))...);
+  }
+
+  template <typename T, typename... Args>
+  ResultType<T> Call(const ArenaRef& object,
+                     const Method<T>& method,
+                     Args&&... args) {
+    return Call(object.get(*this), method, Forward<Args>(args)...);
   }
 
   // MARK: Accessing Static Fields

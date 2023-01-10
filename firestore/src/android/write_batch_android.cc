@@ -71,7 +71,7 @@ void WriteBatchInternal::Set(const DocumentReference& document,
   Local<HashMap> java_data = MakeJavaMap(env, data);
   Local<Object> java_options = SetOptionsInternal::Create(env, options);
 
-  env.Call(obj_.get(env), kSet, ToJava(document), java_data, java_options);
+  env.Call(obj_, kSet, ToJava(document), java_data, java_options);
 }
 
 void WriteBatchInternal::Update(const DocumentReference& document,
@@ -79,7 +79,7 @@ void WriteBatchInternal::Update(const DocumentReference& document,
   Env env = GetEnv();
   Local<HashMap> java_data = MakeJavaMap(env, data);
 
-  env.Call(obj_.get(env), kUpdate, ToJava(document), java_data);
+  env.Call(obj_, kUpdate, ToJava(document), java_data);
 }
 
 void WriteBatchInternal::Update(const DocumentReference& document,
@@ -92,18 +92,18 @@ void WriteBatchInternal::Update(const DocumentReference& document,
   Env env = GetEnv();
   UpdateFieldPathArgs args = MakeUpdateFieldPathArgs(env, data);
 
-  env.Call(obj_.get(env), kUpdateVarargs, ToJava(document), args.first_field,
+  env.Call(obj_, kUpdateVarargs, ToJava(document), args.first_field,
            args.first_value, args.varargs);
 }
 
 void WriteBatchInternal::Delete(const DocumentReference& document) {
   Env env = GetEnv();
-  env.Call(obj_.get(env), kDelete, ToJava(document));
+  env.Call(obj_, kDelete, ToJava(document));
 }
 
 Future<void> WriteBatchInternal::Commit() {
   Env env = GetEnv();
-  Local<Task> task = env.Call(obj_.get(env), kCommit);
+  Local<Task> task = env.Call(obj_, kCommit);
   return promises_.NewFuture<void>(env, AsyncFn::kCommit, task);
 }
 

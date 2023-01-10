@@ -51,29 +51,29 @@ void DocumentChangeInternal::Initialize(jni::Loader& loader) {
 
 Type DocumentChangeInternal::type() const {
   Env env = GetEnv();
-  Local<DocumentChangeTypeInternal> type = env.Call(obj_.get(env), kType);
+  Local<DocumentChangeTypeInternal> type = env.Call(obj_, kType);
   return type.GetType(env);
 }
 
 DocumentSnapshot DocumentChangeInternal::document() const {
   Env env = GetEnv();
-  Local<Object> snapshot = env.Call(obj_.get(env), kDocument);
+  Local<Object> snapshot = env.Call(obj_, kDocument);
   return firestore_->NewDocumentSnapshot(env, snapshot);
 }
 
 std::size_t DocumentChangeInternal::old_index() const {
   Env env = GetEnv();
-  return env.Call(obj_.get(env), kOldIndex);
+  return env.Call(obj_, kOldIndex);
 }
 
 std::size_t DocumentChangeInternal::new_index() const {
   Env env = GetEnv();
-  return env.Call(obj_.get(env), kNewIndex);
+  return env.Call(obj_, kNewIndex);
 }
 
 std::size_t DocumentChangeInternal::Hash() const {
   Env env = GetEnv();
-  return env.Call(obj_.get(env), kHashCode);
+  return env.Call(obj_, kHashCode);
 }
 
 bool operator==(const DocumentChangeInternal& lhs,

@@ -90,10 +90,7 @@ class FieldValueInternal {
   std::vector<FieldValue> array_value() const;
   MapFieldValue map_value() const;
 
-  jni::Local<jni::Object> ToJava() const {
-    jni::Env env;
-    return object_.get(env);
-  }
+  jni::Local<jni::Object> ToJava() const;
 
   static FieldValue Delete();
   static FieldValue ServerTimestamp();

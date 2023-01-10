@@ -204,7 +204,7 @@ Query QueryInternal::OrderBy(const FieldPath& field,
   Local<Object> java_field = FieldPathConverter::Create(env, field);
   Local<Object> java_direction = DirectionInternal::Create(env, direction);
   Local<Object> query =
-      env.Call(obj_.get(env), kOrderBy, java_field.get(), java_direction.get());
+      env.Call(obj_, kOrderBy, java_field.get(), java_direction.get());
   return firestore_->NewQuery(env, query);
 }
 
@@ -214,7 +214,7 @@ Query QueryInternal::Limit(int32_t limit) const {
   // Although the backend only supports int32, the Android client SDK uses long
   // as parameter type.
   auto java_limit = static_cast<jlong>(limit);
-  Local<Object> query = env.Call(obj_.get(env), kLimit, java_limit);
+  Local<Object> query = env.Call(obj_, kLimit, java_limit);
   return firestore_->NewQuery(env, query);
 }
 
@@ -224,7 +224,7 @@ Query QueryInternal::LimitToLast(int32_t limit) const {
   // Although the backend only supports int32, the Android client SDK uses long
   // as parameter type.
   auto java_limit = static_cast<jlong>(limit);
-  Local<Object> query = env.Call(obj_.get(env), kLimitToLast, java_limit);
+  Local<Object> query = env.Call(obj_, kLimitToLast, java_limit);
   return firestore_->NewQuery(env, query);
 }
 
@@ -263,7 +263,7 @@ Query QueryInternal::EndAt(const std::vector<FieldValue>& values) const {
 Future<QuerySnapshot> QueryInternal::Get(Source source) {
   Env env = GetEnv();
   Local<Object> java_source = SourceInternal::Create(env, source);
-  Local<Task> task = env.Call(obj_.get(env), kGet, java_source);
+  Local<Task> task = env.Call(obj_, kGet, java_source);
   return promises_.NewFuture<QuerySnapshot>(env, AsyncFn::kGet, task);
 }
 
@@ -273,7 +273,7 @@ Query QueryInternal::Where(const FieldPath& field,
   Env env = GetEnv();
   Local<Object> java_field = FieldPathConverter::Create(env, field);
   Local<Object> java_value = FieldValueInternal::ToJava(value);
-  Local<Object> query = env.Call(obj_.get(env), method, java_field, java_value);
+  Local<Object> query = env.Call(obj_, method, java_field, java_value);
   return firestore_->NewQuery(env, query);
 }
 
@@ -289,16 +289,14 @@ Query QueryInternal::Where(const FieldPath& field,
   }
 
   Local<Object> java_field = FieldPathConverter::Create(env, field);
-  Local<Object> query =
-      env.Call(obj_.get(env), method, java_field, java_values);
+  Local<Object> query = env.Call(obj_, method, java_field, java_values);
   return firestore_->NewQuery(env, query);
 }
 
 Query QueryInternal::WithBound(const Method<Object>& method,
                                const DocumentSnapshot& snapshot) const {
   Env env = GetEnv();
-  Local<Object> query =
-      env.Call(obj_.get(env), method, snapshot.internal_->ToJava());
+  Local<Object> query = env.Call(obj_, method, snapshot.internal_->ToJava());
   return firestore_->NewQuery(env, query);
 }
 
@@ -306,7 +304,7 @@ Query QueryInternal::WithBound(const Method<Object>& method,
                                const std::vector<FieldValue>& values) const {
   Env env = GetEnv();
   Local<Array<Object>> java_values = ConvertFieldValues(env, values);
-  Local<Object> query = env.Call(obj_.get(env), method, java_values);
+  Local<Object> query = env.Call(obj_, method, java_values);
   return firestore_->NewQuery(env, query);
 }
 
@@ -352,7 +350,7 @@ Local<Array<Object>> QueryInternal::ConvertFieldValues(
 
 size_t QueryInternal::Hash() const {
   Env env = GetEnv();
-  return env.Call(obj_.get(env), kHashCode);
+  return env.Call(obj_, kHashCode);
 }
 
 bool operator==(const QueryInternal& lhs, const QueryInternal& rhs) {

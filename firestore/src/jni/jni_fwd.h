@@ -38,6 +38,7 @@ template <typename T>
 class Global;
 template <typename T>
 class NonOwning;
+class ArenaRef;
 
 class Class;
 class Object;
