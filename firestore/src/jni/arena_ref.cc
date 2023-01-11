@@ -31,7 +31,7 @@ namespace {
 HashMap* gArenaRefHashMap = nullptr;
 
 int64_t GetNextArenaRefKey() {
-  static std::atomic<int64_t> next_key(-1);
+  static std::atomic<int64_t> next_key(0);
   return next_key.fetch_add(1);
 }
 

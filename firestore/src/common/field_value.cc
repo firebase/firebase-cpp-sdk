@@ -19,6 +19,7 @@
 #include <iomanip>
 #include <ostream>
 #include <sstream>
+#include <iostream>
 
 #include "app/meta/move.h"
 #include "firebase/firestore/geo_point.h"
@@ -98,6 +99,7 @@ FieldValue::FieldValue(const FieldValue& value) {
 }
 
 FieldValue::FieldValue(FieldValue&& value) noexcept {
+  std::cout << (value.type() == Type::kNull) << std::endl;
   std::swap(internal_, value.internal_);
 }
 
