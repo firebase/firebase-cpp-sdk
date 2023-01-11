@@ -16,6 +16,7 @@
 
 #import <Foundation/Foundation.h>
 
+#import "FIRAnalytics+Consent.h"
 #import "FIRAnalytics+OnDevice.h"
 #import "FIRAnalytics.h"
 
@@ -148,6 +149,40 @@ void Terminate() {
 void SetAnalyticsCollectionEnabled(bool enabled) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   [FIRAnalytics setAnalyticsCollectionEnabled:enabled];
+}
+
+void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  NSMutableDictionary* consent_settings_dict =
+      [[NSMutableDictionary alloc] initWithCapacity:consent_settings.size()];
+  for (auto it = consent_settings.begin(); it != consent_settings.end(); ++it) {
+    FIRConsentType consent_type;
+    switch (it->first) {
+      case kConsentTypeAdStorage:
+        consent_type = FIRConsentTypeAdStorage;
+        break;
+      case kConsentTypeAnalyticsStorage:
+        consent_type = FIRConsentTypeAnalyticsStorage;
+        break;
+      default:
+        LogError("Unknown ConsentType value: %d", it->first);
+        return;
+    };
+    FIRConsentStatus consent_status;
+    switch (it->second) {
+      case kConsentStatusGranted:
+        consent_status = FIRConsentStatusGranted;
+        break;
+      case kConsentStatusDenied:
+        consent_status = FIRConsentStatusDenied;
+        break;
+      default:
+        LogError("Unknown ConsentStatus value: %d", it->second);
+        return;
+    };
+    [consent_settings_dict setObject:consent_status forKey:consent_type];
+  }
+  [FIRAnalytics setConsent:consent_settings_dict];
 }
 
 // Due to overloads of LogEvent(), it's possible for users to call variants that require a

@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   prepare_matrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     outputs:
       matrix_xcode_version: ${{ steps.export-result.outputs.matrix_xcode_version }}
     steps:

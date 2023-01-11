@@ -72,7 +72,7 @@ MINIMAL_KEY = "minimal"
 PARAMETERS = {
   "desktop": {
     "matrix": {
-      "os": ["ubuntu-latest", "macos-12"],
+      "os": ["ubuntu-20.04", "macos-12"],
       "build_type": ["Release", "Debug"],
       "architecture": ["x64", "x86", "arm64"],
       "msvc_runtime": ["static","dynamic"],
@@ -80,7 +80,7 @@ PARAMETERS = {
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
-        "os": ["ubuntu-latest", "macos-12", "windows-latest"],
+        "os": ["ubuntu-20.04", "macos-12", "windows-latest"],
         "xcode_version": ["13.3.1"],
       }
     }
@@ -88,19 +88,19 @@ PARAMETERS = {
 
   "android": {
     "matrix": {
-      "os": ["ubuntu-latest", "macos-12", "windows-latest"],
+      "os": ["ubuntu-20.04", "macos-12", "windows-latest"],
       "architecture": ["x64"],
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
-        "os": ["ubuntu-latest", "macos-12", "windows-latest"]
+        "os": ["ubuntu-20.04", "macos-12", "windows-latest"]
       }
     }
   },
 
   "integration_tests": {
     "matrix": {
-      "os": ["ubuntu-latest", "macos-12", "windows-latest"],
+      "os": ["ubuntu-20.04", "macos-12", "windows-latest"],
       "platform": ["Desktop", "Android", "iOS", "tvOS"],
       "ssl_lib": ["openssl"],
       "android_device": ["android_target", "emulator_ftl_target"],
@@ -118,7 +118,7 @@ PARAMETERS = {
       "build_tools_version": ["28.0.3"],
 
       MINIMAL_KEY: {
-        "os": ["ubuntu-latest"],
+        "os": ["ubuntu-20.04"],
         "platform": ["Desktop"],
         "apis": "firestore"
       },
@@ -168,7 +168,7 @@ TEST_DEVICES = {
   "android_target": {"type": "ftl", "device": "model=blueline,version=28"},
   "android_latest": {"type": "ftl", "device": "model=oriole,version=33"},
   "emulator_ftl_target": {"type": "ftl", "device": "model=Pixel2,version=28"},
-  "emulator_ftl_latest": {"type": "ftl", "device": "model=Pixel2.arm,version=33"},
+  "emulator_ftl_latest": {"type": "ftl", "device": "model=Pixel2.arm,version=32"},
   "emulator_target": {"type": "virtual", "image":"system-images;android-30;google_apis;x86_64"},
   "emulator_latest": {"type": "virtual", "image":"system-images;android-32;google_apis;x86_64"},
   "emulator_32bit": {"type": "virtual", "image":"system-images;android-30;google_apis;x86"},
@@ -231,9 +231,9 @@ def print_value(value):
   """ Print Json formatted string that can be consumed in Github workflow."""
   # Eg: for lists,
   # print(json.dumps) ->
-  # ["ubuntu-latest", "macos-latest", "windows-latest"]
+  # ["ubuntu-20.04", "macos-latest", "windows-latest"]
   # print(repr(json.dumps)) ->
-  # '["ubuntu-latest", "macos-latest", "windows-latest"]'
+  # '["ubuntu-20.04", "macos-latest", "windows-latest"]'
 
   # Eg: for strings
   # print(json.dumps) -> "flame"

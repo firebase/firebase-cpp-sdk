@@ -16,8 +16,11 @@
 
 cmake_minimum_required(VERSION 2.8)
 
-set(FIREBASE_PYTHON_EXECUTABLE "python" CACHE FILEPATH
-  "The Python interpreter to use, such as one from a venv")
+find_program(FIREBASE_PYTHON_EXECUTABLE
+  NAMES python3 python
+  DOC "The Python interpreter to use, such as one from a venv"
+  REQUIRED
+)
 
 # User settings for Firebase integration tests.
 # Path to Firebase SDK.
@@ -150,6 +153,7 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_SUPPORT_SRCS
     src/firestore_integration_test.cc
     src/util/bundle_builder.cc
     src/util/future_test_util.cc
+    src/util/locate_emulator.cc
     src/util/integration_test_util.cc
 )
 

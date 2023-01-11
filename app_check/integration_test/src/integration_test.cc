@@ -119,6 +119,22 @@ class FirebaseAppCheckTest : public FirebaseTest {
   std::vector<firebase::database::DatabaseReference> cleanup_paths_;
 };
 
+// Listens for token changed notifications
+class TestAppCheckListener : public firebase::app_check::AppCheckListener {
+ public:
+  TestAppCheckListener() : num_token_changes_(0) {}
+  ~TestAppCheckListener() override {}
+
+  void OnAppCheckTokenChanged(
+      const firebase::app_check::AppCheckToken& token) override {
+    last_token_ = token;
+    num_token_changes_ += 1;
+  }
+
+  int num_token_changes_;
+  firebase::app_check::AppCheckToken last_token_;
+};
+
 // Initialization flow looks like this:
 //  - For each test:
 //    - Optionally initialize App Check.
@@ -133,7 +149,14 @@ void FirebaseAppCheckTest::InitializeAppCheckWithDebug() {
       firebase::app_check::DebugAppCheckProviderFactory::GetInstance());
 }
 
-void FirebaseAppCheckTest::TerminateAppCheck() {}
+void FirebaseAppCheckTest::TerminateAppCheck() {
+  ::firebase::app_check::AppCheck* app_check =
+      ::firebase::app_check::AppCheck::GetInstance(app_);
+  if (app_check) {
+    LogDebug("Shutdown App Check.");
+    delete app_check;
+  }
+}
 
 void FirebaseAppCheckTest::InitializeApp() {
   LogDebug("Initialize Firebase App.");
@@ -178,8 +201,8 @@ void FirebaseAppCheckTest::TearDown() {
   // Teardown all the products
   TerminateDatabase();
   TerminateAuth();
-  TerminateApp();
   TerminateAppCheck();
+  TerminateApp();
   FirebaseTest::TearDown();
 }
 
@@ -332,6 +355,91 @@ firebase::database::DatabaseReference FirebaseAppCheckTest::CreateWorkingPath(
 TEST_F(FirebaseAppCheckTest, TestInitializeAndTerminate) {
   InitializeAppCheckWithDebug();
   InitializeApp();
+}
+
+TEST_F(FirebaseAppCheckTest, TestGetTokenForcingRefresh) {
+  InitializeAppCheckWithDebug();
+  InitializeApp();
+  ::firebase::app_check::AppCheck* app_check =
+      ::firebase::app_check::AppCheck::GetInstance(app_);
+  ASSERT_NE(app_check, nullptr);
+  firebase::Future<::firebase::app_check::AppCheckToken> future =
+      app_check->GetAppCheckToken(true);
+  EXPECT_TRUE(WaitForCompletion(future, "GetToken #1"));
+  ::firebase::app_check::AppCheckToken token = *future.result();
+  EXPECT_NE(token.token, "");
+  EXPECT_NE(token.expire_time_millis, 0);
+
+  // GetToken with force_refresh=false will return the same token.
+  firebase::Future<::firebase::app_check::AppCheckToken> future2 =
+      app_check->GetAppCheckToken(false);
+  EXPECT_TRUE(WaitForCompletion(future2, "GetToken #2"));
+  EXPECT_EQ(future.result()->expire_time_millis,
+            future2.result()->expire_time_millis);
+
+  // GetToken with force_refresh=true will return a new token.
+  firebase::Future<::firebase::app_check::AppCheckToken> future3 =
+      app_check->GetAppCheckToken(true);
+  EXPECT_TRUE(WaitForCompletion(future3, "GetToken #3"));
+  EXPECT_NE(future.result()->expire_time_millis,
+            future3.result()->expire_time_millis);
+}
+
+TEST_F(FirebaseAppCheckTest, TestGetTokenLastResult) {
+  InitializeAppCheckWithDebug();
+  InitializeApp();
+  ::firebase::app_check::AppCheck* app_check =
+      ::firebase::app_check::AppCheck::GetInstance(app_);
+  ASSERT_NE(app_check, nullptr);
+  firebase::Future<::firebase::app_check::AppCheckToken> future =
+      app_check->GetAppCheckToken(true);
+  EXPECT_TRUE(WaitForCompletion(future, "GetToken #1"));
+
+  firebase::Future<::firebase::app_check::AppCheckToken> future2 =
+      app_check->GetAppCheckTokenLastResult();
+  EXPECT_TRUE(WaitForCompletion(future2, "GetTokenLastResult"));
+  ::firebase::app_check::AppCheckToken token = *future2.result();
+  EXPECT_EQ(future.result()->expire_time_millis,
+            future2.result()->expire_time_millis);
+}
+
+TEST_F(FirebaseAppCheckTest, TestAddTokenChangedListener) {
+  InitializeAppCheckWithDebug();
+  InitializeApp();
+  ::firebase::app_check::AppCheck* app_check =
+      ::firebase::app_check::AppCheck::GetInstance(app_);
+  ASSERT_NE(app_check, nullptr);
+
+  // Create and add a token changed listener.
+  TestAppCheckListener token_changed_listener;
+  app_check->AddAppCheckListener(&token_changed_listener);
+
+  firebase::Future<::firebase::app_check::AppCheckToken> future =
+      app_check->GetAppCheckToken(true);
+  EXPECT_TRUE(WaitForCompletion(future, "GetToken"));
+  ::firebase::app_check::AppCheckToken token = *future.result();
+
+  ASSERT_EQ(token_changed_listener.num_token_changes_, 1);
+  EXPECT_EQ(token_changed_listener.last_token_.token, token.token);
+}
+
+TEST_F(FirebaseAppCheckTest, TestRemoveTokenChangedListener) {
+  InitializeAppCheckWithDebug();
+  InitializeApp();
+  ::firebase::app_check::AppCheck* app_check =
+      ::firebase::app_check::AppCheck::GetInstance(app_);
+  ASSERT_NE(app_check, nullptr);
+
+  // Create, add, and immediately remove a token changed listener.
+  TestAppCheckListener token_changed_listener;
+  app_check->AddAppCheckListener(&token_changed_listener);
+  app_check->RemoveAppCheckListener(&token_changed_listener);
+
+  firebase::Future<::firebase::app_check::AppCheckToken> future =
+      app_check->GetAppCheckToken(true);
+  EXPECT_TRUE(WaitForCompletion(future, "GetToken"));
+
+  ASSERT_EQ(token_changed_listener.num_token_changes_, 0);
 }
 
 TEST_F(FirebaseAppCheckTest, TestSignIn) {
