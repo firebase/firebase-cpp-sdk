@@ -14,6 +14,7 @@
 
 #include "app_check/src/desktop/app_check_desktop.h"
 
+#include <ctime>
 #include <string>
 
 #include "app_check/src/common/common.h"
