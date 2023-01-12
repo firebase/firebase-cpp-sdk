@@ -75,18 +75,20 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
     }
     if (provider != nullptr) {
       auto token_callback{
-        [this, handle](firebase::app_check::AppCheckToken token,
-                  int error_code, const std::string& error_message) {
-        if (error_code == firebase::app_check::kAppCheckErrorNone) {
-          UpdateCachedToken(token);
-          future()->CompleteWithResult(handle, 0, token);
-        } else {
-          future()->Complete(handle, error_code, error_message.c_str());
-        }
-      }};
+          [this, handle](firebase::app_check::AppCheckToken token,
+                         int error_code, const std::string& error_message) {
+            if (error_code == firebase::app_check::kAppCheckErrorNone) {
+              UpdateCachedToken(token);
+              future()->CompleteWithResult(handle, 0, token);
+            } else {
+              future()->Complete(handle, error_code, error_message.c_str());
+            }
+          }};
       provider->GetToken(token_callback);
     } else {
-      future()->Complete(handle, firebase::app_check::kAppCheckErrorInvalidConfiguration, "No AppCheckProvider installed.");
+      future()->Complete(
+          handle, firebase::app_check::kAppCheckErrorInvalidConfiguration,
+          "No AppCheckProvider installed.");
     }
   }
   return MakeFuture(future(), handle);
