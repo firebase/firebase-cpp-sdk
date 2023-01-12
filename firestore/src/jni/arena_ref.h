@@ -52,6 +52,7 @@ class ArenaRef {
 
   Local<Object> get(Env&) const;
 
+ private:
   Local<Long> key_object(Env&) const;
 
   int64_t key_ = -1;
