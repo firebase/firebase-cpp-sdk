@@ -25,7 +25,8 @@ namespace internal {
 
 static AppCheckProviderFactory* g_provider_factory = nullptr;
 
-AppCheckInternal::AppCheckInternal(App* app) : app_(app), cached_token_(), cached_provider_() {
+AppCheckInternal::AppCheckInternal(App* app)
+    : app_(app), cached_token_(), cached_provider_() {
   future_manager().AllocFutureApi(this, kAppCheckFnCount);
 }
 
@@ -114,8 +115,8 @@ void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {
   if (listener) {
     token_listeners_.push_back(listener);
 
-    // Following the Android pattern, if there is a cached token, call the listener.
-    // Note that the iOS implementation does not do this.
+    // Following the Android pattern, if there is a cached token, call the
+    // listener. Note that the iOS implementation does not do this.
     if (HasValidCacheToken()) {
       listener->OnAppCheckTokenChanged(cached_token_);
     }
