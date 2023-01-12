@@ -14,6 +14,8 @@
 
 #include "app_check/src/desktop/app_check_desktop.h"
 
+#include <string>
+
 #include "app_check/src/common/common.h"
 
 namespace firebase {
