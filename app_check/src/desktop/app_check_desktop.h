@@ -57,12 +57,18 @@ class AppCheckInternal {
   // Update the cached Token, and call the listeners
   void UpdateCachedToken(AppCheckToken token);
 
+  // Get the Provider associated with the stored App used to create this.
+  AppCheckProvider* GetProvider();
+
   ::firebase::App* app_;
 
   FutureManager future_manager_;
 
+  // Cached provider for the App. Use GetProvider instead of this.
+  AppCheckProvider* cached_provider_;
+  // Cached token, can be expired.
   AppCheckToken cached_token_;
-
+  // List of registered listeners for Token changes.
   std::list<AppCheckListener*> token_listeners_;
 };
 
