@@ -15,6 +15,8 @@
 #ifndef FIREBASE_APP_CHECK_SRC_DESKTOP_APP_CHECK_DESKTOP_H_
 #define FIREBASE_APP_CHECK_SRC_DESKTOP_APP_CHECK_DESKTOP_H_
 
+#include <list>
+
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
@@ -49,9 +51,19 @@ class AppCheckInternal {
   ReferenceCountedFutureImpl* future();
 
  private:
+  // Is the cached token valid
+  bool HasValidCacheToken() const;
+
+  // Update the cached Token, and call the listeners
+  void UpdateCachedToken(AppCheckToken token);
+
   ::firebase::App* app_;
 
   FutureManager future_manager_;
+
+  AppCheckToken cached_token_;
+
+  std::list<AppCheckListener*> token_listeners_;
 };
 
 }  // namespace internal
