@@ -81,10 +81,7 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
     future()->CompleteWithResult(handle, 0, cached_token_);
   } else {
     // Get a new token, and pass the result into the future.
-    AppCheckProvider* provider = nullptr;
-    if (g_provider_factory && app_) {
-      provider = g_provider_factory->CreateProvider(app_);
-    }
+    AppCheckProvider* provider = GetProvider();
     if (provider != nullptr) {
       auto token_callback{
           [this, handle](firebase::app_check::AppCheckToken token,
