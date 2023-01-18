@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Google LLC
+ * Copyright 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 
 #include "firestore/src/jni/arena_ref.h"
 
+#include "firestore/src/android/firestore_android.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/hash_map.h"
 #include "firestore/src/jni/long.h"
@@ -42,21 +43,19 @@ ArenaRef::ArenaRef(Env& env, const Object& object)
   gArenaRefHashMap->Put(env, key_object(env), object);
 }
 
-ArenaRef::ArenaRef(const ArenaRef& other) : key_(GetNextArenaRefKey()) {
+ArenaRef::ArenaRef(const ArenaRef& other)
+    : key_(other.key_ == -1 ? -1 : GetNextArenaRefKey()) {
   if (other.key_ != -1) {
-    Env env;
+    Env env = FirestoreInternal::GetEnv();
     Local<Object> object = other.get(env);
     gArenaRefHashMap->Put(env, key_object(env), object);
   }
 }
 
-ArenaRef::ArenaRef(ArenaRef&& other) {
-  key_ = other.key_;
-  other.key_ = -1;
-}
+ArenaRef::ArenaRef(ArenaRef&& other) { std::swap(key_, other.key_); }
 
 ArenaRef& ArenaRef::operator=(const ArenaRef& other) {
-  Env env;
+  Env env = FirestoreInternal::GetEnv();
 
   if (this == &other) {
     return *this;
@@ -64,20 +63,19 @@ ArenaRef& ArenaRef::operator=(const ArenaRef& other) {
 
   if (key_ != -1) {
     gArenaRefHashMap->Remove(env, key_object(env));
+    key_ = -1;
   }
 
   if (other.key_ != -1) {
     key_ = GetNextArenaRefKey();
     Local<Object> object = other.get(env);
     gArenaRefHashMap->Put(env, key_object(env), object);
-  } else {
-    key_ = -1;
   }
   return *this;
 }
 
 ArenaRef& ArenaRef::operator=(ArenaRef&& other) {
-  Env env;
+  Env env = FirestoreInternal::GetEnv();
 
   if (this == &other) {
     return *this;
@@ -93,7 +91,8 @@ ArenaRef& ArenaRef::operator=(ArenaRef&& other) {
 
 ArenaRef::~ArenaRef() {
   if (key_ != -1) {
-    Env env;
+    Env env = FirestoreInternal::GetEnv();
+    ExceptionClearGuard block(env);
     gArenaRefHashMap->Remove(env, key_object(env));
   }
 }

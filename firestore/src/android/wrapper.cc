@@ -16,8 +16,6 @@
 
 #include "firestore/src/android/wrapper.h"
 
-#include <iterator>
-
 #include "app/src/assert.h"
 #include "firestore/src/android/field_path_android.h"
 #include "firestore/src/android/field_value_android.h"
@@ -31,15 +29,16 @@ namespace {
 
 using jni::ArenaRef;
 using jni::Env;
+using jni::Local;
 using jni::Object;
 
 }  // namespace
 
 Wrapper::Wrapper(FirestoreInternal* firestore, const Object& obj)
     : firestore_(firestore) {
-  Env env;
-  obj_ = ArenaRef(env, obj);
   FIREBASE_ASSERT(obj);
+  Env env = GetEnv();
+  obj_ = ArenaRef(env, obj);
 }
 
 Wrapper::Wrapper() {
@@ -59,8 +58,8 @@ Wrapper::Wrapper(Wrapper* rhs) : Wrapper() {
 
 Wrapper::~Wrapper() = default;
 
-jni::Local<jni::Object> Wrapper::ToJava() const {
-  jni::Env env;
+Local<Object> Wrapper::ToJava() const {
+  Env env = GetEnv();
   return obj_.get(env);
 }
 

@@ -100,19 +100,19 @@ FieldValueInternal::FieldValueInternal() : cached_type_(Type::kNull) {}
 
 FieldValueInternal::FieldValueInternal(const Object& object)
     : cached_type_(Type::kNull) {
-  Env env;
+  Env env = GetEnv();
   object_ = ArenaRef(env, object);
 }
 
 FieldValueInternal::FieldValueInternal(Type type, const Object& object)
     : cached_type_(type) {
-  Env env;
+  Env env = GetEnv();
   object_ = ArenaRef(env, object);
 }
 
 FieldValueInternal::FieldValueInternal(bool value)
     : cached_type_(Type::kBoolean) {
-  Env env;
+  Env env = GetEnv();
   object_ = ArenaRef(env, Boolean::Create(env, value));
 }
 
@@ -146,14 +146,14 @@ FieldValueInternal::FieldValueInternal(std::string value)
 // blob_value().
 FieldValueInternal::FieldValueInternal(const uint8_t* value, size_t size)
     : cached_type_(Type::kBlob) {
-  Env env;
+  Env env = GetEnv();
   object_ = ArenaRef(env, BlobInternal::Create(env, value, size));
 }
 
 FieldValueInternal::FieldValueInternal(DocumentReference value)
     : cached_type_{Type::kReference} {
   if (value.internal_ != nullptr) {
-    Env env;
+    Env env = GetEnv();
     object_ = ArenaRef(env, value.internal_->ToJava());
   }
 }
@@ -192,7 +192,7 @@ Type FieldValueInternal::type() const {
     return cached_type_;
   }
 
-  Env env;
+  Env env = GetEnv();
   if (!object_.get(env)) {
     return Type::kNull;
   }
@@ -267,7 +267,7 @@ Timestamp FieldValueInternal::timestamp_value() const {
 
 std::string FieldValueInternal::string_value() const {
   Env env = GetEnv();
-  return CastString(env, Type::kString).ToString(env);
+  return Cast<String>(env, Type::kString).ToString(env);
 }
 
 const uint8_t* FieldValueInternal::blob_value() const {
@@ -408,7 +408,8 @@ Local<T> FieldValueInternal::Cast(jni::Env& env, Type type) const {
   return object_.get(env).CastTo<T>();
 }
 
-Local<String> FieldValueInternal::CastString(jni::Env& env, Type type) const {
+template <>
+Local<String> FieldValueInternal::Cast<String>(jni::Env& env, Type type) const {
   if (cached_type_ == Type::kNull) {
     FIREBASE_ASSERT(env.IsInstanceOf(object_, String::GetClass()));
     cached_type_ = type;
@@ -430,14 +431,13 @@ Local<Array<Object>> FieldValueInternal::MakeArray(
 Env FieldValueInternal::GetEnv() { return FirestoreInternal::GetEnv(); }
 
 Local<Object> FieldValueInternal::ToJava() const {
-  Env env;
+  Env env = GetEnv();
   return object_.get(env);
 }
 
 Local<Object> FieldValueInternal::ToJava(const FieldValue& value) {
-  Env env;
-  return value.internal_ ? value.internal_->object_.get(env)
-                         : Local<Object>(Object());
+  Env env = GetEnv();
+  return value.internal_ ? value.internal_->object_.get(env) : Local<Object>();
 }
 
 }  // namespace firestore

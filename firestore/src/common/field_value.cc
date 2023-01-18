@@ -17,7 +17,6 @@
 #include "firestore/src/include/firebase/firestore/field_value.h"
 
 #include <iomanip>
-#include <iostream>
 #include <ostream>
 #include <sstream>
 

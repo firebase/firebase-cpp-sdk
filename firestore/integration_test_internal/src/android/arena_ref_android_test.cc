@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Google LLC
+ * Copyright 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,12 @@
  */
 
 #include "app/src/util_android.h"
+#include "firestore/src/android/firestore_android.h"
 #include "firestore/src/jni/arena_ref.h"
-#include "firestore/src/jni/hash_map.h"
 #include "firestore/src/jni/long.h"
 
 #include "firestore_integration_test_android.h"
 
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 namespace firebase {
@@ -29,30 +28,16 @@ namespace firestore {
 namespace jni {
 namespace {
 
-jclass clazz = nullptr;
-
-Method<Object> kGet("get", "(Ljava/lang/Object;)Ljava/lang/Object;");
-Method<Object> kPut("put",
-                    "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
-
-class ArenaRefTestAndroid : public FirestoreAndroidIntegrationTest {
- public:
-  void SetUp() override {
-    FirestoreAndroidIntegrationTest::SetUp();
-    jclass g_clazz = util::map::GetClass();
-    loader().LoadFromExistingClass("java/util/HashMap", g_clazz, kGet, kPut);
-    ASSERT_TRUE(loader().ok());
-  }
-};
+using ArenaRefTestAndroid = FirestoreIntegrationTest;
 
 TEST_F(ArenaRefTestAndroid, DefaultConstructorCreatesReferenceToNull) {
-  Env env;
+  Env env = FirestoreInternal::GetEnv();
   ArenaRef arena_ref;
   EXPECT_EQ(arena_ref.get(env).get(), nullptr);
 }
 
 TEST_F(ArenaRefTestAndroid, ConstructFromEnvAndObject) {
-  Env env;
+  Env env = FirestoreInternal::GetEnv();
   Local<String> string = env.NewStringUtf("hello world");
 
   ArenaRef arena_ref(env, string);
@@ -60,7 +45,7 @@ TEST_F(ArenaRefTestAndroid, ConstructFromEnvAndObject) {
 }
 
 TEST_F(ArenaRefTestAndroid, CopysReferenceToNull) {
-  Env env;
+  Env env = FirestoreInternal::GetEnv();
 
   ArenaRef arena_ref1;
   ArenaRef arena_ref2(arena_ref1);
@@ -68,7 +53,7 @@ TEST_F(ArenaRefTestAndroid, CopysReferenceToNull) {
 }
 
 TEST_F(ArenaRefTestAndroid, CopysReferenceToValidObject) {
-  Env env;
+  Env env = FirestoreInternal::GetEnv();
 
   Local<String> string = env.NewStringUtf("hello world");
 
@@ -80,7 +65,7 @@ TEST_F(ArenaRefTestAndroid, CopysReferenceToValidObject) {
 }
 
 TEST_F(ArenaRefTestAndroid, CopyAssignsReferenceToNull) {
-  Env env;
+  Env env = FirestoreInternal::GetEnv();
 
   ArenaRef arena_ref1, arena_ref2;
   arena_ref2 = arena_ref1;
@@ -89,7 +74,7 @@ TEST_F(ArenaRefTestAndroid, CopyAssignsReferenceToNull) {
 }
 
 TEST_F(ArenaRefTestAndroid, CopyAssignsReferenceToValidObject) {
-  Env env;
+  Env env = FirestoreInternal::GetEnv();
 
   Local<String> string1 = env.NewStringUtf("hello world");
   Local<String> string2 = env.NewStringUtf("hello earth");
@@ -109,7 +94,7 @@ TEST_F(ArenaRefTestAndroid, CopyAssignsReferenceToValidObject) {
 }
 
 TEST_F(ArenaRefTestAndroid, MovesReferenceToNull) {
-  Env env;
+  Env env = FirestoreInternal::GetEnv();
 
   ArenaRef arena_ref1;
   ArenaRef arena_ref2(std::move(arena_ref1));
@@ -118,7 +103,7 @@ TEST_F(ArenaRefTestAndroid, MovesReferenceToNull) {
 }
 
 TEST_F(ArenaRefTestAndroid, MovesReferenceToValidObject) {
-  Env env;
+  Env env = FirestoreInternal::GetEnv();
 
   Local<String> string = env.NewStringUtf("hello world");
 
@@ -129,7 +114,7 @@ TEST_F(ArenaRefTestAndroid, MovesReferenceToValidObject) {
 }
 
 TEST_F(ArenaRefTestAndroid, MoveAssignsReferenceToNull) {
-  Env env;
+  Env env = FirestoreInternal::GetEnv();
 
   ArenaRef arena_ref1, arena_ref2;
   arena_ref2 = std::move(arena_ref1);
@@ -138,7 +123,7 @@ TEST_F(ArenaRefTestAndroid, MoveAssignsReferenceToNull) {
 }
 
 TEST_F(ArenaRefTestAndroid, MoveAssignsReferenceToValidObject) {
-  Env env;
+  Env env = FirestoreInternal::GetEnv();
 
   Local<String> string1 = env.NewStringUtf("hello world");
   Local<String> string2 = env.NewStringUtf("hello earth");
@@ -155,18 +140,6 @@ TEST_F(ArenaRefTestAndroid, MoveAssignsReferenceToValidObject) {
 
   arena_ref3 = std::move(arena_ref1);
   EXPECT_EQ(arena_ref3.get(env).get(), nullptr);
-}
-
-TEST_F(ArenaRefTestAndroid, EnvCallTakeArenaRefTest) {
-  Env env;
-
-  ArenaRef hash_map(env, HashMap::Create(env));
-  Local<Long> key = Long::Create(env, 1);
-  Local<Long> val = Long::Create(env, 2);
-  env.Call(hash_map, kPut, key, val);
-  Local<Object> result = env.Call(hash_map, kGet, key);
-  EXPECT_TRUE(result.Equals(env, val));
-  EXPECT_TRUE(env.ok());
 }
 
 }  // namespace

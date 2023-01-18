@@ -112,7 +112,8 @@ class FieldValueInternal {
   template <typename T>
   jni::Local<T> Cast(jni::Env& env, Type type) const;
 
-  jni::Local<jni::String> CastString(jni::Env& env, Type type) const;
+  template <>
+  jni::Local<jni::String> Cast<jni::String>(jni::Env& env, Type type) const;
 
   static jni::Local<jni::Array<jni::Object>> MakeArray(
       jni::Env& env, const std::vector<FieldValue>& elements);

@@ -198,9 +198,9 @@ ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
   Local<Object> java_listener =
       EventListenerInternal::Create(env, firestore_, listener);
 
-  Local<Object> java_registration = env.Call(
-      obj_.get(env), kAddSnapshotListener, firestore_->user_callback_executor(),
-      java_metadata, java_listener);
+  Local<Object> java_registration =
+      env.Call(obj_, kAddSnapshotListener, firestore_->user_callback_executor(),
+               java_metadata, java_listener);
 
   if (!env.ok() || !java_registration) return {};
   return ListenerRegistration(new ListenerRegistrationInternal(
