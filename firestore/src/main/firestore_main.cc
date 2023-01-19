@@ -17,6 +17,7 @@
 #include "firestore/src/main/firestore_main.h"
 
 #include <cstring>
+#include <memory>
 #include <sstream>
 #include <utility>
 
@@ -375,8 +376,8 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
     const std::string& bundle) {
   auto promise = promise_factory_.CreatePromise<LoadBundleTaskProgress>(
       AsyncApi::kLoadBundle);
-  auto bundle_stream = absl::make_unique<util::ByteStreamCpp>(
-      absl::make_unique<std::stringstream>(bundle));
+  auto bundle_stream = std::make_unique<util::ByteStreamCpp>(
+      std::make_unique<std::stringstream>(bundle));
 
   std::shared_ptr<api::LoadBundleTask> task =
       firestore_core_->LoadBundle(std::move(bundle_stream));
@@ -400,8 +401,8 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
     std::function<void(const LoadBundleTaskProgress&)> progress_callback) {
   auto promise = promise_factory_.CreatePromise<LoadBundleTaskProgress>(
       AsyncApi::kLoadBundle);
-  auto bundle_stream = absl::make_unique<util::ByteStreamCpp>(
-      absl::make_unique<std::stringstream>(bundle));
+  auto bundle_stream = std::make_unique<util::ByteStreamCpp>(
+      std::make_unique<std::stringstream>(bundle));
 
   std::shared_ptr<api::LoadBundleTask> task =
       firestore_core_->LoadBundle(std::move(bundle_stream));
