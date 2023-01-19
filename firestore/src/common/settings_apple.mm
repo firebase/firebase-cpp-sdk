@@ -16,8 +16,8 @@
 
 #include "firestore/src/include/firebase/firestore/settings.h"
 
-#include <memory>
 #include <dispatch/dispatch.h>
+#include <memory>
 
 #include "Firestore/core/src/util/executor_libdispatch.h"
 
