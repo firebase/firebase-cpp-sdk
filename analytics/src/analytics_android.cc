@@ -519,17 +519,25 @@ Future<int64_t> GetSessionId() {
                 reinterpret_cast<FutureHandleId>(callback_data);
             FutureHandle handle(future_id);
 
-            LogError("GetSessionId: result_code = %d", result_code);
-            bool success = (result_code == util::kFutureResultSuccess &&
-                            result != nullptr);
-            LogError("GetSessionId: %s", success ? "succeeded" : "failed");
-            if (success) {
-              // result is a Long class type, unbox it.
-              // It'll get deleted below.
-              uint64_t session_id = util::JLongToInt64(env, result);
-              LogInfo("GetSessionId: session_id = %ld", session_id);
-              util::CheckAndClearJniExceptions(env);
-              future_data->api()->CompleteWithResult(handle, 0, "", session_id);
+            if (result_code == util::kFutureResultSuccess) {
+              if (result != nullptr) {
+                // result is a Long class type, unbox it.
+                // It'll get deleted below.
+                uint64_t session_id = util::JLongToInt64(env, result);
+                util::CheckAndClearJniExceptions(env);
+                future_data->api()->CompleteWithResult(handle, 0, "",
+                                                       session_id);
+              } else {
+                // Succeeded, but with a nullptr result.
+                // This occurs when AnalyticsStorage consent is set to Denied or
+                // the session is expired.
+                future_data->api()->CompleteWithResult(
+                    handle, -2,
+                    status_message ? status_message
+                                   : "AnalyticsStorage consent is set to "
+                                     "Denied, or session is expired.",
+                    0);
+              }
             } else {
               // Failed, result is an exception, don't parse it.
               // It'll get deleted below.
