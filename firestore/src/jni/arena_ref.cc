@@ -13,9 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <atomic>
 
 #include "firestore/src/jni/arena_ref.h"
+
+#include <atomic>
+#include <utility>
 
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/jni/env.h"
@@ -91,7 +93,7 @@ ArenaRef& ArenaRef::operator=(ArenaRef&& other) {
 
 ArenaRef::~ArenaRef() {
   if (key_ != -1) {
-    Env env = FirestoreInternal::GetEnv();
+    Env env;
     ExceptionClearGuard block(env);
     gArenaRefHashMap->Remove(env, key_object(env));
   }
