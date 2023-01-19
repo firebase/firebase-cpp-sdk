@@ -90,30 +90,6 @@ TEST_F(FirebaseAnalyticsTest, TestSetCollectionEnabled) {
   firebase::analytics::SetAnalyticsCollectionEnabled(true);
 }
 
-TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
-  // Can't confirm that these do anything but just run them all to ensure the
-  // app doesn't crash.
-  std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
-      consent_settings_allow = {
-          {firebase::analytics::kConsentTypeAnalyticsStorage,
-           firebase::analytics::kConsentStatusGranted},
-          {firebase::analytics::kConsentTypeAdStorage,
-           firebase::analytics::kConsentStatusGranted}};
-  std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
-      consent_settings_deny = {
-          {firebase::analytics::kConsentTypeAnalyticsStorage,
-           firebase::analytics::kConsentStatusDenied},
-          {firebase::analytics::kConsentTypeAdStorage,
-           firebase::analytics::kConsentStatusDenied}};
-  std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
-      consent_settings_empty;
-  firebase::analytics::SetConsent(consent_settings_empty);
-  firebase::analytics::SetConsent(consent_settings_deny);
-  firebase::analytics::SetConsent(consent_settings_empty);
-  firebase::analytics::SetConsent(consent_settings_allow);
-  firebase::analytics::SetConsent(consent_settings_empty);
-}
-
 TEST_F(FirebaseAnalyticsTest, TestSetSessionTimeoutDuraction) {
   firebase::analytics::SetSessionTimeoutDuration(1000 * 60 * 5);
   firebase::analytics::SetSessionTimeoutDuration(1000 * 60 * 15);
@@ -147,6 +123,30 @@ TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
   EXPECT_TRUE(future.result() != nullptr);
   EXPECT_NE(*future.result(), static_cast<int64_t>(0L));
   LogInfo("Got session ID: %" PRId64, *future.result());
+}
+
+TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
+  // Can't confirm that these do anything but just run them all to ensure the
+  // app doesn't crash.
+  std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
+      consent_settings_allow = {
+          {firebase::analytics::kConsentTypeAnalyticsStorage,
+           firebase::analytics::kConsentStatusGranted},
+          {firebase::analytics::kConsentTypeAdStorage,
+           firebase::analytics::kConsentStatusGranted}};
+  std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
+      consent_settings_deny = {
+          {firebase::analytics::kConsentTypeAnalyticsStorage,
+           firebase::analytics::kConsentStatusDenied},
+          {firebase::analytics::kConsentTypeAdStorage,
+           firebase::analytics::kConsentStatusDenied}};
+  std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
+      consent_settings_empty;
+  firebase::analytics::SetConsent(consent_settings_empty);
+  firebase::analytics::SetConsent(consent_settings_deny);
+  firebase::analytics::SetConsent(consent_settings_empty);
+  firebase::analytics::SetConsent(consent_settings_allow);
+  firebase::analytics::SetConsent(consent_settings_empty);
 }
 
 TEST_F(FirebaseAnalyticsTest, TestSetProperties) {
