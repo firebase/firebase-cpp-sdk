@@ -123,6 +123,9 @@ class Env {
   /** Clears the last exception. */
   void ExceptionClear();
 
+  /** Prints out exception. */
+  void ExceptionDescribe() const { return env_->ExceptionDescribe(); }
+
   /**
    * Returns the last Java exception to occur and clears the pending exception.
    */

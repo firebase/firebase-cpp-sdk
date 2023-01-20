@@ -96,6 +96,10 @@ ArenaRef::~ArenaRef() {
     Env env;
     ExceptionClearGuard block(env);
     gArenaRefHashMap->Remove(env, key_object(env));
+    if (!env.ok()) {
+      env.ExceptionDescribe();
+      env.ExceptionClear();
+    }
   }
 }
 
