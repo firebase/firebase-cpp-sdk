@@ -205,10 +205,11 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
             env->GetStaticObjectField(analytics_consent_type::GetClass(),
                                       analytics_consent_type::GetFieldId(
                                           analytics_consent_type::kAdStorage));
-        if (util::LogException(env, kLogLevelError, "Failed to get ConsentTypeAdStorage")) {
-	  env->DeleteLocalRef(consent_map);
-	  return;
-	}
+        if (util::LogException(env, kLogLevelError,
+                               "Failed to get ConsentTypeAdStorage")) {
+          env->DeleteLocalRef(consent_map);
+          return;
+        }
         break;
       case kConsentTypeAnalyticsStorage:
         consent_type = env->GetStaticObjectField(
@@ -216,10 +217,11 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
             analytics_consent_type::GetFieldId(
                 analytics_consent_type::kAnalyticsStorage));
 
-        if (util::LogException(env, kLogLevelError, "Failed to get ConsentTypeAnalyticsStorage")) {
-	  env->DeleteLocalRef(consent_map);
-	  return;
-	}
+        if (util::LogException(env, kLogLevelError,
+                               "Failed to get ConsentTypeAnalyticsStorage")) {
+          env->DeleteLocalRef(consent_map);
+          return;
+        }
         break;
       default:
         LogError("Unknown ConsentType value: %d", it->first);
@@ -233,22 +235,24 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
             env->GetStaticObjectField(analytics_consent_status::GetClass(),
                                       analytics_consent_status::GetFieldId(
                                           analytics_consent_status::kGranted));
-        if (util::LogException(env, kLogLevelError, "Failed to get ConsentStatusGranted")) {
-	  env->DeleteLocalRef(consent_map);
-	  env->DeleteLocalRef(consent_type);
-	  return;
-	}
+        if (util::LogException(env, kLogLevelError,
+                               "Failed to get ConsentStatusGranted")) {
+          env->DeleteLocalRef(consent_map);
+          env->DeleteLocalRef(consent_type);
+          return;
+        }
         break;
       case kConsentStatusDenied:
         consent_status =
             env->GetStaticObjectField(analytics_consent_status::GetClass(),
                                       analytics_consent_status::GetFieldId(
                                           analytics_consent_status::kDenied));
-        if (util::LogException(env, kLogLevelError, "Failed to get ConsentStatusDenied")) {
-	  env->DeleteLocalRef(consent_map);
-	  env->DeleteLocalRef(consent_type);
-	  return;
-	}
+        if (util::LogException(env, kLogLevelError,
+                               "Failed to get ConsentStatusDenied")) {
+          env->DeleteLocalRef(consent_map);
+          env->DeleteLocalRef(consent_type);
+          return;
+        }
         break;
       default:
         LogError("Unknown ConsentStatus value: %d", it->second);
