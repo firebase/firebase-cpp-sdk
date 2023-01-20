@@ -205,7 +205,10 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
             env->GetStaticObjectField(analytics_consent_type::GetClass(),
                                       analytics_consent_type::GetFieldId(
                                           analytics_consent_type::kAdStorage));
-        util::CheckAndClearJniExceptions(env);
+        if (util::LogException(env, kLogLevelError, "Failed to get ConsentTypeAdStorage")) {
+	  env->DeleteLocalRef(consent_map);
+	  return;
+	}
         break;
       case kConsentTypeAnalyticsStorage:
         consent_type = env->GetStaticObjectField(
@@ -213,7 +216,10 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
             analytics_consent_type::GetFieldId(
                 analytics_consent_type::kAnalyticsStorage));
 
-        util::CheckAndClearJniExceptions(env);
+        if (util::LogException(env, kLogLevelError, "Failed to get ConsentTypeAnalyticsStorage")) {
+	  env->DeleteLocalRef(consent_map);
+	  return;
+	}
         break;
       default:
         LogError("Unknown ConsentType value: %d", it->first);
@@ -227,14 +233,22 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
             env->GetStaticObjectField(analytics_consent_status::GetClass(),
                                       analytics_consent_status::GetFieldId(
                                           analytics_consent_status::kGranted));
-        util::CheckAndClearJniExceptions(env);
+        if (util::LogException(env, kLogLevelError, "Failed to get ConsentStatusGranted")) {
+	  env->DeleteLocalRef(consent_map);
+	  env->DeleteLocalRef(consent_type);
+	  return;
+	}
         break;
       case kConsentStatusDenied:
         consent_status =
             env->GetStaticObjectField(analytics_consent_status::GetClass(),
                                       analytics_consent_status::GetFieldId(
                                           analytics_consent_status::kDenied));
-        util::CheckAndClearJniExceptions(env);
+        if (util::LogException(env, kLogLevelError, "Failed to get ConsentStatusDenied")) {
+	  env->DeleteLocalRef(consent_map);
+	  env->DeleteLocalRef(consent_type);
+	  return;
+	}
         break;
       default:
         LogError("Unknown ConsentStatus value: %d", it->second);
@@ -242,6 +256,7 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
         env->DeleteLocalRef(consent_type);
         return;
     }
+    LogInfo("SetConsent: %d -> %d", consent_type, consent_status);
     jobject previous = env->CallObjectMethod(consent_map, put_method,
                                              consent_type, consent_status);
     util::CheckAndClearJniExceptions(env);
