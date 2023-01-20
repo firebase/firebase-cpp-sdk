@@ -53,6 +53,7 @@ class FirebaseAnalyticsTest : public FirebaseTest {
   static void TearDownTestSuite();
 
   static firebase::App* shared_app_;
+  bool did_test_setconsent_;
 };
 
 firebase::App* FirebaseAnalyticsTest::shared_app_;
@@ -66,6 +67,7 @@ void FirebaseAnalyticsTest::SetUpTestSuite() {
 #endif  // defined(__ANDROID__)
 
   firebase::analytics::Initialize(*shared_app_);
+  did_test_setconsent_ = false;
 }
 
 void FirebaseAnalyticsTest::TearDownTestSuite() {
@@ -103,6 +105,37 @@ TEST_F(FirebaseAnalyticsTest, TestGetAnalyticsInstanceID) {
   EXPECT_FALSE(future.result()->empty());
 }
 
+TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
+  // On Android, if SetConsent was tested, this test will fail, since the app
+  // needs to be restarted after consent is denied or it won't generate a new
+  // sessionID. To not break the tests, skip this test in that case.
+#if defined(__ANDROID__)
+  if (did_test_setconsent_) {
+    GTEST_SKIP();
+    return;
+  }
+#endif
+  firebase::Future<int64_t> future;
+
+  // It can take Analytics a moment to initialize on iOS.
+  // So on iOS/tvOS, retry this test if GetSessionId returns an
+  // error.
+#if TARGET_OS_IPHONE
+  FLAKY_TEST_SECTION_BEGIN();
+#endif  // TARGET_OS_IPHONE
+
+  future = firebase::analytics::GetSessionId();
+  WaitForCompletion(future, "GetSessionId");
+
+#if TARGET_OS_IPHONE
+  FLAKY_TEST_SECTION_END();
+#endif  // TARGET_OS_IPHONE
+
+  EXPECT_TRUE(future.result() != nullptr);
+  EXPECT_NE(*future.result(), static_cast<int64_t>(0L));
+  LogInfo("Got session ID: %" PRId64, *future.result());
+}
+
 TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
   // Can't confirm that these do anything but just run them all to ensure the
   // app doesn't crash.
@@ -126,28 +159,8 @@ TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
   ProcessEvents(1000);
   firebase::analytics::SetConsent(consent_settings_allow);
   ProcessEvents(1000);
-}
 
-TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
-  firebase::Future<int64_t> future;
-
-  // It can take Analytics a moment to initialize on iOS.
-  // So on iOS/tvOS, retry this test if GetSessionId returns an
-  // error.
-#if TARGET_OS_IPHONE
-  FLAKY_TEST_SECTION_BEGIN();
-#endif  // TARGET_OS_IPHONE
-
-  future = firebase::analytics::GetSessionId();
-  WaitForCompletion(future, "GetSessionId");
-
-#if TARGET_OS_IPHONE
-  FLAKY_TEST_SECTION_END();
-#endif  // TARGET_OS_IPHONE
-
-  EXPECT_TRUE(future.result() != nullptr);
-  EXPECT_NE(*future.result(), static_cast<int64_t>(0L));
-  LogInfo("Got session ID: %" PRId64, *future.result());
+  did_test_setconsent_ = true;
 }
 
 TEST_F(FirebaseAnalyticsTest, TestSetProperties) {
