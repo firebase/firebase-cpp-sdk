@@ -533,9 +533,10 @@ Future<int64_t> GetSessionId() {
                 // the session is expired.
                 future_data->api()->CompleteWithResult(
                     handle, -2,
-                    status_message ? status_message
-                                   : "AnalyticsStorage consent is set to "
-                                     "Denied, or session is expired.",
+                    (status_message && *status_message)
+                        ? status_message
+                        : "AnalyticsStorage consent is set to "
+                          "Denied, or session is expired.",
                     0);
               }
             } else {
