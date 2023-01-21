@@ -53,10 +53,11 @@ class FirebaseAnalyticsTest : public FirebaseTest {
   static void TearDownTestSuite();
 
   static firebase::App* shared_app_;
-  bool did_test_setconsent_;
+  static bool did_test_setconsent_;
 };
 
-firebase::App* FirebaseAnalyticsTest::shared_app_;
+firebase::App* FirebaseAnalyticsTest::shared_app_ = nullptr;
+bool FirebaseAnalyticsTest::did_test_setconsent_ = false;
 
 void FirebaseAnalyticsTest::SetUpTestSuite() {
 #if defined(__ANDROID__)
