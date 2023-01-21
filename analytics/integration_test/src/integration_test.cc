@@ -112,6 +112,9 @@ TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
   // sessionID. To not break the tests, skip this test in that case.
 #if defined(__ANDROID__)
   if (did_test_setconsent_) {
+    LogInfo(
+        "Skipping TestGetSessionID after TestSetConsent, as it will fail until "
+        "the app is restarted.");
     GTEST_SKIP();
     return;
   }
