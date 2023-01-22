@@ -642,7 +642,7 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### 10.4.0
 -   Changes
     - Analytics: Add `analytics::SetConsent()` and `analytics::GetSessionId()`
       APIs.
