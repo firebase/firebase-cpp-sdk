@@ -43,6 +43,7 @@
 
 namespace firebase_testapp_automated {
 
+using app_framework::LogInfo;
 using app_framework::ProcessEvents;
 using firebase_test_framework::FirebaseTest;
 
@@ -52,9 +53,11 @@ class FirebaseAnalyticsTest : public FirebaseTest {
   static void TearDownTestSuite();
 
   static firebase::App* shared_app_;
+  static bool did_test_setconsent_;
 };
 
-firebase::App* FirebaseAnalyticsTest::shared_app_;
+firebase::App* FirebaseAnalyticsTest::shared_app_ = nullptr;
+bool FirebaseAnalyticsTest::did_test_setconsent_ = false;
 
 void FirebaseAnalyticsTest::SetUpTestSuite() {
 #if defined(__ANDROID__)
@@ -65,6 +68,7 @@ void FirebaseAnalyticsTest::SetUpTestSuite() {
 #endif  // defined(__ANDROID__)
 
   firebase::analytics::Initialize(*shared_app_);
+  did_test_setconsent_ = false;
 }
 
 void FirebaseAnalyticsTest::TearDownTestSuite() {
@@ -89,6 +93,53 @@ TEST_F(FirebaseAnalyticsTest, TestSetCollectionEnabled) {
   firebase::analytics::SetAnalyticsCollectionEnabled(true);
 }
 
+TEST_F(FirebaseAnalyticsTest, TestSetSessionTimeoutDuraction) {
+  firebase::analytics::SetSessionTimeoutDuration(1000 * 60 * 5);
+  firebase::analytics::SetSessionTimeoutDuration(1000 * 60 * 15);
+  firebase::analytics::SetSessionTimeoutDuration(1000 * 60 * 30);
+}
+
+TEST_F(FirebaseAnalyticsTest, TestGetAnalyticsInstanceID) {
+  firebase::Future<std::string> future =
+      firebase::analytics::GetAnalyticsInstanceId();
+  WaitForCompletion(future, "GetAnalyticsInstanceId");
+  EXPECT_FALSE(future.result()->empty());
+}
+
+TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
+  // On Android, if SetConsent was tested, this test will fail, since the app
+  // needs to be restarted after consent is denied or it won't generate a new
+  // sessionID. To not break the tests, skip this test in that case.
+#if defined(__ANDROID__)
+  if (did_test_setconsent_) {
+    LogInfo(
+        "Skipping TestGetSessionID after TestSetConsent, as it will fail until "
+        "the app is restarted.");
+    GTEST_SKIP();
+    return;
+  }
+#endif
+  firebase::Future<int64_t> future;
+
+  // It can take Analytics a moment to initialize on iOS.
+  // So on iOS/tvOS, retry this test if GetSessionId returns an
+  // error.
+#if TARGET_OS_IPHONE
+  FLAKY_TEST_SECTION_BEGIN();
+#endif  // TARGET_OS_IPHONE
+
+  future = firebase::analytics::GetSessionId();
+  WaitForCompletion(future, "GetSessionId");
+
+#if TARGET_OS_IPHONE
+  FLAKY_TEST_SECTION_END();
+#endif  // TARGET_OS_IPHONE
+
+  EXPECT_TRUE(future.result() != nullptr);
+  EXPECT_NE(*future.result(), static_cast<int64_t>(0L));
+  LogInfo("Got session ID: %" PRId64, *future.result());
+}
+
 TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
   // Can't confirm that these do anything but just run them all to ensure the
   // app doesn't crash.
@@ -107,23 +158,13 @@ TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
   std::map<firebase::analytics::ConsentType, firebase::analytics::ConsentStatus>
       consent_settings_empty;
   firebase::analytics::SetConsent(consent_settings_empty);
+  ProcessEvents(1000);
   firebase::analytics::SetConsent(consent_settings_deny);
-  firebase::analytics::SetConsent(consent_settings_empty);
+  ProcessEvents(1000);
   firebase::analytics::SetConsent(consent_settings_allow);
-  firebase::analytics::SetConsent(consent_settings_empty);
-}
+  ProcessEvents(1000);
 
-TEST_F(FirebaseAnalyticsTest, TestSetSessionTimeoutDuraction) {
-  firebase::analytics::SetSessionTimeoutDuration(1000 * 60 * 5);
-  firebase::analytics::SetSessionTimeoutDuration(1000 * 60 * 15);
-  firebase::analytics::SetSessionTimeoutDuration(1000 * 60 * 30);
-}
-
-TEST_F(FirebaseAnalyticsTest, TestGetAnalyticsInstanceID) {
-  firebase::Future<std::string> future =
-      firebase::analytics::GetAnalyticsInstanceId();
-  WaitForCompletion(future, "GetAnalyticsInstanceId");
-  EXPECT_FALSE(future.result()->empty());
+  did_test_setconsent_ = true;
 }
 
 TEST_F(FirebaseAnalyticsTest, TestSetProperties) {

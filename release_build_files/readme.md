@@ -644,7 +644,8 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
-    - Analytics: Add `analytics::SetConsent()` API.
+    - Analytics: Add `analytics::SetConsent()` and `analytics::GetSessionId()`
+      APIs.
     - General (macOS): In order to support sandbox mode, apps can define a
       key/value pair for FBAppGroupEntitlementName in Info.plist. The value
       associated with this key will be used to prefix semaphore names
