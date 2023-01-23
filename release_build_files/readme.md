@@ -644,14 +644,18 @@ code.
 ## Release Notes
 ### 10.4.0
 -   Changes
-    - Analytics: Add `analytics::SetConsent()` and `analytics::GetSessionId()`
-      APIs.
-    - General (macOS): In order to support sandbox mode, apps can define a
-      key/value pair for FBAppGroupEntitlementName in Info.plist. The value
-      associated with this key will be used to prefix semaphore names
+    - General (Android): Update to Firebase Android BoM version 31.2.0.
+    - General (iOS): Update to Firebase Cocoapods version 10.4.0.
+    - General (Desktop): On macOS, in order to support sandbox mode, apps can
+      define a key/value pair for `FBAppGroupEntitlementName` in Info.plist. The
+      value associated with this key will be used to prefix semaphore names
       created internally by the Firebase C++ SDK so that they conform with
       [macOS sandbox
-      requirements](https://developer.apple.com/library/archive/documentation/Security/Conceptual/AppSandboxDesignGuide/AppSandboxInDepth/AppSandboxInDepth.html#//apple_ref/doc/uid/TP40011183-CH3-SW24).    
+      requirements](https://developer.apple.com/library/archive/documentation/Security/Conceptual/AppSandboxDesignGuide/AppSandboxInDepth/AppSandboxInDepth.html#//apple_ref/doc/uid/TP40011183-CH3-SW24).
+    - Analytics: Add `analytics::SetConsent()` and `analytics::GetSessionId()`
+      APIs.
+    - GMA (Android): Updated dependency to play-services-ads version 21.4.0.
+      This new version requires Multidex to be enabled in your Android builds.
 
 ### 10.3.0
 -   Changes
