@@ -137,9 +137,7 @@ TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
 
   EXPECT_TRUE(future.result() != nullptr);
   EXPECT_NE(*future.result(), static_cast<int64_t>(0L));
-  if (future.result() != nullptr) {
-    LogInfo("Got session ID: %" PRId64, *future.result());
-  }
+  LogInfo("Got session ID: %" PRId64, *future.result());
 }
 
 TEST_F(FirebaseAnalyticsTest, TestSetConsent) {
