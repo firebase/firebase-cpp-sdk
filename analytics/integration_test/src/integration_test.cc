@@ -113,30 +113,25 @@ TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
 #if defined(__ANDROID__)
   if (did_test_setconsent_) {
     LogInfo(
-        "Skipping TestGetSessionID after TestSetConsent, as it will fail until "
-        "the app is restarted.");
+        "Skipping TestGetSessionID after TestSetConsent, as GetSessionId() "
+        "will fail until the app is restarted.");
     GTEST_SKIP();
     return;
   }
 #endif
   firebase::Future<int64_t> future;
 
-  // It can take Analytics a moment to initialize on iOS.
-  // So on iOS/tvOS, retry this test if GetSessionId returns an
-  // error.
-#if TARGET_OS_IPHONE
-  FLAKY_TEST_SECTION_BEGIN();
-#endif  // TARGET_OS_IPHONE
-
   // Give Analytics a moment to initialize and create a session.
   ProcessEvents(1000);
+
+  // It can take Analytics even more time to initialize and create a session, so
+  // retry GetSessionId() if it returns an error.
+  FLAKY_TEST_SECTION_BEGIN();
 
   future = firebase::analytics::GetSessionId();
   WaitForCompletion(future, "GetSessionId");
 
-#if TARGET_OS_IPHONE
   FLAKY_TEST_SECTION_END();
-#endif  // TARGET_OS_IPHONE
 
   EXPECT_TRUE(future.result() != nullptr);
   EXPECT_NE(*future.result(), static_cast<int64_t>(0L));
