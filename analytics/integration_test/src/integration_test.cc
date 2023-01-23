@@ -128,6 +128,9 @@ TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
   FLAKY_TEST_SECTION_BEGIN();
 #endif  // TARGET_OS_IPHONE
 
+  // Give Analytics a moment to initialize and create a session.
+  ProcessEvents(1000);
+
   future = firebase::analytics::GetSessionId();
   WaitForCompletion(future, "GetSessionId");
 
