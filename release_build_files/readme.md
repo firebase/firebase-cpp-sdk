@@ -642,10 +642,6 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
--   Changes
-    - GMA (iOS): Updated dependency to Google-Mobile-Ads-SDK version 9.14.0.
-
 ### 10.4.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 31.2.0.
@@ -660,6 +656,7 @@ code.
       APIs.
     - GMA (Android): Updated dependency to play-services-ads version 21.4.0.
       This new version requires Multidex to be enabled in your Android builds.
+    - GMA (iOS): Updated dependency to Google-Mobile-Ads-SDK version 9.14.0.
 
 ### 10.3.0
 -   Changes

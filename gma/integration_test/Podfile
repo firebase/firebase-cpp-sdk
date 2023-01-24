@@ -5,7 +5,7 @@ use_frameworks! :linkage => :static
 
 target 'integration_test' do
   pod 'Firebase/Analytics', '10.4.0'
-  pod 'Google-Mobile-Ads-SDK', '9.11.0.1'
+  pod 'Google-Mobile-Ads-SDK', '9.14.0'
 end
 
 post_install do |installer|
