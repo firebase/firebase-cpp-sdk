@@ -344,6 +344,7 @@ def modify_pod_file(pod_file, pod_version_map, dryrun=True):
     if match:
       pod_name = match['pod_name']
       skip_line = False
+      # Check if the old version matches anything in ignore_ios_versions
       for ignore_version in ignore_ios_versions:
         if ignore_version in match['version']:
           skip_line = True
@@ -700,8 +701,8 @@ def parse_cmdline_args():
             help='Ignore iOS pods which have any of the items specified in '
                  'this list as substrings.')
   parser.add_argument('--ignore_ios_versions', nargs='+', default=('cppsdk',),
-            help='Do not update any iOS pods whose versions contain any of '
-                 'the items specified in this list as substrings.')
+            help='Do not update any iOS pods when the old version contains '
+                 'any of the items specified in this list as substrings.')
   parser.add_argument('--podfiles', nargs='+', default=(os.getcwd(),),
             help= 'List of pod files or directories containing podfiles')
   parser.add_argument('--specs_repo',
