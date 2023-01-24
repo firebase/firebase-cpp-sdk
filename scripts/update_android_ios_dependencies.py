@@ -690,8 +690,7 @@ def parse_cmdline_args():
   parser.add_argument('--skip_ios', action='store_true',
             help='Skip iOS pod version update completely.')
   # TODO: remove default values when Ads SDK does not need to be pinned.
-  parser.add_argument('--ignore_ios_pods', nargs='+',
-            default=('Google-Mobile-Ads-SDK',),
+  parser.add_argument('--ignore_ios_pods', nargs='+', default=(),
             help='Ignore iOS pods which have any of the items specified in '
                  'this list as substrings.')
   parser.add_argument('--podfiles', nargs='+', default=(os.getcwd(),),
@@ -702,8 +701,7 @@ def parse_cmdline_args():
   parser.add_argument('--skip_android', action='store_true',
             help='Skip Android libraries version update completely.')
   # TODO: remove default values when Ads SDK does not need to be pinned.
-  parser.add_argument('--ignore_android_packages', nargs='+',
-            default=('firebase-ads',),
+  parser.add_argument('--ignore_android_packages', nargs='+', default=(),
             help='Ignore Android packages which have any of the items '
                  'specified in this list as substrings.')
   parser.add_argument('--depfiles', nargs='+',
