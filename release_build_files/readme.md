@@ -256,7 +256,7 @@ Firebase Functions         | firebase_functions.xcframework
 Google Mobile Ads          | firebase_gma.xcframework
 |                          | firebase.xcframework
 |                          | Firebase/Analytics Cocoapod (10.4.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (9.11.0.1)
+|                          | Google-Mobile-Ads-SDK Cocoapod (9.14.0)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
 |                          | FirebaseInstallations Cocoapod (10.4.0)
@@ -324,7 +324,7 @@ Firebase Functions         | libfirebase_functions.a
 Google Mobile Ads          | libfirebase_gma.a
 |                          | libfirebase_app.a
 |                          | Firebase/Analytics Cocoapod (10.4.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (9.11.0.1)
+|                          | Google-Mobile-Ads-SDK Cocoapod (9.14.0)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
 |                          | FirebaseInstallations Cocoapod (10.4.0)
@@ -642,6 +642,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+-   Changes
+    - GMA (iOS): Updated dependency to Google-Mobile-Ads-SDK version 9.14.0.
+
 ### 10.4.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 31.2.0.
