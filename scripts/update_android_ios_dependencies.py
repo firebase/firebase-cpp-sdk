@@ -316,7 +316,7 @@ def get_pod_files(dirs_and_files):
 RE_PODFILE_VERSION = re.compile(
   r"\s+pod '(?P<pod_name>.+)', '(?P<version>.+)'\n")
 
-def modify_pod_file(pod_file, pod_version_map, dryrun=True):
+def modify_pod_file(pod_file, pod_version_map, dryrun=True, ignore_ios_versions=[]):
   """Update pod versions in specified podfile.
 
   Args:
