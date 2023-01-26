@@ -15,20 +15,65 @@
 #include "app_check/src/android/app_check_android.h"
 
 #include "app_check/src/common/common.h"
+#include "app_check/src/android/common_android.h"
+#include "app_check/src/android/debug_provider_android.h"
+#include "app/src/util_android.h"
 
 namespace firebase {
 namespace app_check {
 namespace internal {
 
 static AppCheckProviderFactory* g_provider_factory = nullptr;
+static int g_initialized_count = 0;
+
+// Release cached Java classes.
+static void ReleaseClasses(JNIEnv* env) {
+  ReleaseCommonAndroidClasses(env);
+  ReleaseDebugProviderClasses(env);
+}
 
 AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
   future_manager().AllocFutureApi(this, kAppCheckFnCount);
+
+  // TODO: is this the right place for this jni env setup/cleanup
+  //       it could also be handled in the debug providers class
+  // Cache the JNI method ids so we only have to look them up by name once.
+  bool initialized = false;
+  if (!g_initialized_count) {
+    // Auth line is:
+    // if (!util::Initialize(env, activity)) return nullptr;
+    // initialize and terminate should call an equal number of times,
+    // and only really needs to be called once for appcheck
+    // Grab varous java objects from the app.
+    JNIEnv* env = app->GetJNIEnv();
+    jobject activity = app->activity();
+    if (util::Initialize(env, activity)) {
+
+      if (!(CacheDebugProviderMethodIds(env, activity) &&
+            CacheCommonAndroidMethodIds(env, activity))) {
+        ReleaseClasses(env);
+        util::Terminate(env);
+      } else {
+        g_initialized_count++;
+      }
+    }
+  } else {
+    g_initialized_count++;
+  }
 }
 
 AppCheckInternal::~AppCheckInternal() {
   future_manager().ReleaseFutureApi(this);
+  JNIEnv* env = app_->GetJNIEnv();
   app_ = nullptr;
+
+  // TODO: is this the right place for this jni env setup/cleanup 
+  FIREBASE_ASSERT(g_initialized_count);
+  g_initialized_count--;
+  if (g_initialized_count == 0) {
+    ReleaseClasses(env);
+    util::Terminate(env);
+  }
 }
 
 ::firebase::App* AppCheckInternal::app() const { return app_; }

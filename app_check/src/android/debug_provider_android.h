@@ -21,6 +21,13 @@ namespace firebase {
 namespace app_check {
 namespace internal {
 
+// Cache the method ids so we don't have to look up JNI functions by name.
+bool CacheDebugProviderMethodIds(
+    JNIEnv* env, jobject activity);
+
+// Release credential classes cached by CacheCredentialMethodIds().
+void ReleaseDebugProviderClasses(JNIEnv* env);
+
 class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
  public:
   DebugAppCheckProviderFactoryInternal();
@@ -28,6 +35,11 @@ class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
   virtual ~DebugAppCheckProviderFactoryInternal();
 
   AppCheckProvider* CreateProvider(App* app) override;
+
+ private:
+  jobject android_provider_factory_;
+
+  std::map<App*, AppCheckProvider*> created_providers_;
 };
 
 }  // namespace internal

@@ -31,6 +31,8 @@ set(common_SRCS
 set(android_SRCS
   src/android/app_check_android.cc
   src/android/app_check_android.h
+  src/android/common_android.cc
+  src/android/common_android.h
   # Supported providers
   src/android/debug_provider_android.cc
   src/android/debug_provider_android.h
