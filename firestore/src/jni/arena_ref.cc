@@ -17,7 +17,6 @@
 #include "firestore/src/jni/arena_ref.h"
 
 #include <atomic>
-#include <utility>
 
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/jni/env.h"
@@ -32,6 +31,7 @@ namespace jni {
 namespace {
 
 HashMap* gArenaRefHashMap = nullptr;
+std::mutex mutex_;
 
 int64_t GetNextArenaRefKey() {
   static std::atomic<int64_t> next_key(0);
@@ -42,6 +42,7 @@ int64_t GetNextArenaRefKey() {
 
 ArenaRef::ArenaRef(Env& env, const Object& object)
     : key_(GetNextArenaRefKey()) {
+  std::unique_lock<std::mutex> lock(mutex_);
   gArenaRefHashMap->Put(env, key_object(env), object);
 }
 
@@ -50,6 +51,7 @@ ArenaRef::ArenaRef(const ArenaRef& other)
   if (other.key_ != -1) {
     Env env = FirestoreInternal::GetEnv();
     Local<Object> object = other.get(env);
+    std::unique_lock<std::mutex> lock(mutex_);
     gArenaRefHashMap->Put(env, key_object(env), object);
   }
 }
@@ -63,15 +65,18 @@ ArenaRef& ArenaRef::operator=(const ArenaRef& other) {
     return *this;
   }
 
-  if (key_ != -1) {
-    gArenaRefHashMap->Remove(env, key_object(env));
-    key_ = -1;
-  }
+  {
+    std::unique_lock<std::mutex> lock(mutex_);
+    if (key_ != -1) {
+      gArenaRefHashMap->Remove(env, key_object(env));
+      key_ = -1;
+    }
 
-  if (other.key_ != -1) {
-    key_ = GetNextArenaRefKey();
-    Local<Object> object = other.get(env);
-    gArenaRefHashMap->Put(env, key_object(env), object);
+    if (other.key_ != -1) {
+      key_ = GetNextArenaRefKey();
+      Local<Object> object = other.get(env);
+      gArenaRefHashMap->Put(env, key_object(env), object);
+    }
   }
   return *this;
 }
@@ -83,11 +88,14 @@ ArenaRef& ArenaRef::operator=(ArenaRef&& other) {
     return *this;
   }
 
-  if (key_ != -1) {
-    gArenaRefHashMap->Remove(env, key_object(env));
+  {
+    std::unique_lock<std::mutex> lock(mutex_);
+    if (key_ != -1) {
+      gArenaRefHashMap->Remove(env, key_object(env));
+    }
+    key_ = other.key_;
+    other.key_ = -1;
   }
-  key_ = other.key_;
-  other.key_ = -1;
   return *this;
 }
 
@@ -95,7 +103,10 @@ ArenaRef::~ArenaRef() {
   if (key_ != -1) {
     Env env;
     ExceptionClearGuard block(env);
-    gArenaRefHashMap->Remove(env, key_object(env));
+    {
+      std::unique_lock<std::mutex> lock(mutex_);
+      gArenaRefHashMap->Remove(env, key_object(env));
+    }
     if (!env.ok()) {
       env.ExceptionDescribe();
       env.ExceptionClear();
