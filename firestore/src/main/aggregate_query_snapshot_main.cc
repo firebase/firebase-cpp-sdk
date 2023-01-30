@@ -22,6 +22,10 @@
 namespace firebase {
 namespace firestore {
 
+AggregateQuerySnapshotInternal::AggregateQuerySnapshotInternal(api::AggregateQuery aggregate_query, int64_t count_result)
+  : aggregate_query_(aggregate_query),
+    count_result(count_result) {}
+
 FirestoreInternal* AggregateQuerySnapshotInternal::firestore_internal() {
   return GetFirestoreInternal(&aggregate_query_.query());
 }

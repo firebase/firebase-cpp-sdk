@@ -41,7 +41,7 @@ namespace firestore {
 
 class AggregateQuerySnapshotInternal {
  public:
-  explicit AggregateQuerySnapshotInternal(int64_t count);
+  explicit AggregateQuerySnapshotInternal(api::AggregateQuery aggregate_query, int64_t count);
 
   FirestoreInternal* firestore_internal();
   const FirestoreInternal* firestore_internal() const;
