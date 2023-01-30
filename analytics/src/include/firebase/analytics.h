@@ -547,6 +547,22 @@ Future<std::string> GetAnalyticsInstanceId();
 /// @returns Object which can be used to retrieve the analytics instance ID.
 Future<std::string> GetAnalyticsInstanceIdLastResult();
 
+/// Asynchronously retrieves the identifier of the current app
+/// session.
+///
+/// The session ID retrieval could fail due to Analytics collection
+/// disabled, or if the app session was expired.
+///
+/// @returns Object which can be used to retrieve the identifier of the current
+/// app session.
+Future<int64_t> GetSessionId();
+
+/// Get the result of the most recent GetSessionId() call.
+///
+/// @returns Object which can be used to retrieve the identifier of the current
+/// app session.
+Future<int64_t> GetSessionIdLastResult();
+
 }  // namespace analytics
 }  // namespace firebase
 

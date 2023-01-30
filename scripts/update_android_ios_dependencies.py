@@ -316,7 +316,7 @@ def get_pod_files(dirs_and_files):
 RE_PODFILE_VERSION = re.compile(
   r"\s+pod '(?P<pod_name>.+)', '(?P<version>.+)'\n")
 
-def modify_pod_file(pod_file, pod_version_map, dryrun=True):
+def modify_pod_file(pod_file, pod_version_map, dryrun=True, ignore_ios_versions=[]):
   """Update pod versions in specified podfile.
 
   Args:
@@ -324,6 +324,8 @@ def modify_pod_file(pod_file, pod_version_map, dryrun=True):
       pod_version_map (dict): Map of podnames to their respective version.
       dryrun (bool, optional): Just print the substitutions.
                                Do not write to file. Defaults to True.
+      ignore_ios_versions (set): If the old version number for a pod
+                                 matches one of these, don't update it.
   """
   global logfile_lines
   to_update = False
@@ -341,9 +343,14 @@ def modify_pod_file(pod_file, pod_version_map, dryrun=True):
     match = re.match(RE_PODFILE_VERSION, line)
     if match:
       pod_name = match['pod_name']
+      skip_line = False
+      # Check if the old version matches anything in ignore_ios_versions
+      for ignore_version in ignore_ios_versions:
+        if ignore_version in match['version']:
+          skip_line = True
       # Firebase/Auth -> Firestore (due to being a subspec)
       pod_name_key = re.sub(r'/.*$', '', pod_name)
-      if pod_name_key in pod_version_map:
+      if pod_name_key in pod_version_map and not skip_line:
         latest_version = pod_version_map[pod_name_key]
         substituted_line = line.replace(match['version'], latest_version)
         if substituted_line != line:
@@ -690,10 +697,12 @@ def parse_cmdline_args():
   parser.add_argument('--skip_ios', action='store_true',
             help='Skip iOS pod version update completely.')
   # TODO: remove default values when Ads SDK does not need to be pinned.
-  parser.add_argument('--ignore_ios_pods', nargs='+',
-            default=('Google-Mobile-Ads-SDK',),
+  parser.add_argument('--ignore_ios_pods', nargs='+', default=(),
             help='Ignore iOS pods which have any of the items specified in '
                  'this list as substrings.')
+  parser.add_argument('--ignore_ios_versions', nargs='+', default=('cppsdk',),
+            help='Do not update any iOS pods when the old version contains '
+                 'any of the items specified in this list as substrings.')
   parser.add_argument('--podfiles', nargs='+', default=(os.getcwd(),),
             help= 'List of pod files or directories containing podfiles')
   parser.add_argument('--specs_repo',
@@ -755,7 +764,8 @@ def main():
     pod_files = get_files(args.podfiles, file_extension='', file_name='Podfile',
                           ignore_directories=set(args.ignore_directories))
     for pod_file in pod_files:
-      modify_pod_file(pod_file, latest_pod_versions_map, args.dryrun)
+      modify_pod_file(pod_file, latest_pod_versions_map, args.dryrun,
+                      args.ignore_ios_versions)
     for readme_file in readme_files:
       modify_readme_file_pods(readme_file, latest_pod_versions_map, args.dryrun)
 
