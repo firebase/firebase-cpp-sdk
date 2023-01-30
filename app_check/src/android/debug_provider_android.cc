@@ -43,10 +43,7 @@ METHOD_LOOKUP_DEFINITION(
     "com/google/firebase/appcheck/debug/DebugAppCheckProviderFactory",
     DEBUG_PROVIDER_FACTORY_METHODS)
 
-static const char* kApiIdentifier = "DebugAppCheckProvider";
-
-bool CacheDebugProviderMethodIds(
-    JNIEnv* env, jobject activity) {
+bool CacheDebugProviderMethodIds(JNIEnv* env, jobject activity) {
   // Cache the DebugProvider classes.
   if (!debug_provider_factory::CacheMethodIds(env, activity)) {
     return false;
@@ -59,110 +56,8 @@ void ReleaseDebugProviderClasses(JNIEnv* env) {
   debug_provider_factory::ReleaseClass(env);
 }
 
-// TODO: is this a good approach? can I get JNI env before I have initialized an
-// app? I found this method in credential android
-// Alternatively I can have a non-static method that uses app_
-static JNIEnv* GetJniEnv() {
-  // The JNI environment is the same regardless of App.
-  App* app = app_common::GetAnyApp();
-  FIREBASE_ASSERT(app != nullptr);
-  return app->GetJNIEnv();
-}
-
-namespace {
-
-// TODO - better name for this thing and the variables of this type. callback wrapper
-struct FutureCallbackData {
-  FutureCallbackData(std::function<void(AppCheckToken, int, const std::string&)> callback_)
-      : callback(callback_) {}
-  std::function<void(AppCheckToken, int, const std::string&)> callback;
-};
-
-}  // namespace
-
-void TokenResultCallback(JNIEnv* env, jobject result,
-                          util::FutureResult result_code,
-                          const char* status_message, void* callback_data) {
-  int result_error_code = kAppCheckErrorNone;
-  AppCheckToken result_token;
-  bool success = (result_code == util::kFutureResultSuccess);
-  std::string result_value = "";
-  if (success && result) {
-    result_token = CppTokenFromAndroidToken(env, result);
-  } else {
-    // Using error code unknown for failure because android appcheck doesnt have an error code enum
-    result_error_code = kAppCheckErrorUnknown;
-  }
-  auto* completion_callback_data = reinterpret_cast<FutureCallbackData*>(callback_data);
- 
-  // Evaluate the callback method 
-  completion_callback_data->callback(result_token, result_error_code, status_message);
-  delete completion_callback_data;
-}
-
-class DebugAppCheckProvider : public AppCheckProvider {
- public:
-  DebugAppCheckProvider(jobject debug_provider);
-  virtual ~DebugAppCheckProvider();
-
-  /// Fetches an AppCheckToken and then calls the provided callback method with
-  /// the token or with an error code and error message.
-  virtual void GetToken(
-      std::function<void(AppCheckToken, int, const std::string&)>
-          completion_callback) override;
-
- private:
-  jobject android_provider_;  // TODO: make this a jobject DebugProvider
-};
-
-/**
- * TODO - if android doesnt expose the individual providers, then a single
- * generic android-provider-wrapper would work can be used for non-debug
- * providers as well
- * 
- * if so, move this to common_android
- */
-DebugAppCheckProvider::DebugAppCheckProvider(jobject local_debug_provider)
-    : android_provider_(nullptr) {
-  JNIEnv* env = GetJniEnv();
-  android_provider_ = env->NewGlobalRef(local_debug_provider);
-}
-
-DebugAppCheckProvider::~DebugAppCheckProvider() {
-  JNIEnv* env = GetJniEnv();
-  if (env != nullptr && android_provider_ != nullptr) {
-    env->DeleteGlobalRef(android_provider_);
-  }
-}
-
-void DebugAppCheckProvider::GetToken(
-    std::function<void(AppCheckToken, int, const std::string&)>
-        completion_callback) {
-  JNIEnv* env = GetJniEnv();
-
-  jobject j_task = env->CallObjectMethod(
-      android_provider_,
-      app_check_provider::GetMethodId(app_check_provider::kGetToken));
-  // TODO - maybe use AndroidHelper::CheckJNIException() {
-  // it is unclear if task exception would show up here or would show up in the result of the task
-  // might want to call the completion callback here for some errors
-  assert(env->ExceptionCheck() == false);
-
-  // Create an object to wrap the callback function
-  FutureCallbackData* completion_callback_data = new FutureCallbackData(completion_callback);
-
-  util::RegisterCallbackOnTask(env, j_task, TokenResultCallback,
-                               reinterpret_cast<void*>(completion_callback_data),
-                               kApiIdentifier);
-  
-  env->DeleteLocalRef(j_task);
-}
-
 DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal()
-    : created_providers_() {
-  // TODO: almostmatt - was this actually needed? try without it
-  android_provider_factory_ = nullptr;
-}
+    : created_providers_(), android_provider_factory_(nullptr) {}
 
 DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
   for (auto it = created_providers_.begin(); it != created_providers_.end();
@@ -170,8 +65,6 @@ DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
     delete it->second;
   }
   created_providers_.clear();
-  // Release java global references
-  // TODO: should this be conditional?
   JNIEnv* env = GetJniEnv();
   if (env != nullptr && android_provider_factory_ != nullptr) {
     env->DeleteGlobalRef(android_provider_factory_);
@@ -199,18 +92,17 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
     env->DeleteLocalRef(j_provider_factory_local);
   }
   jobject platform_app = app->GetPlatformApp();
-  jobject j_android_provider_local =
-      env->CallObjectMethod(android_provider_factory_,
-                            debug_provider_factory::GetMethodId(
-                                debug_provider_factory::kCreate),
-                            platform_app);
+  jobject j_android_provider_local = env->CallObjectMethod(
+      android_provider_factory_,
+      debug_provider_factory::GetMethodId(debug_provider_factory::kCreate),
+      platform_app);
   FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
   env->DeleteLocalRef(platform_app);
 
   // Pass a global ref into the cpp provider constructor.
   // It will be released when the cpp provider is destroyed
-  AppCheckProvider* cpp_provider = new internal::DebugAppCheckProvider(
-      j_android_provider_local);
+  AppCheckProvider* cpp_provider =
+      new internal::AndroidAppCheckProvider(j_android_provider_local);
   env->DeleteLocalRef(j_android_provider_local);
   created_providers_[app] = cpp_provider;
   return cpp_provider;

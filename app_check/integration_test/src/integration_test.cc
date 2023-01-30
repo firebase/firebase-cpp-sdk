@@ -388,7 +388,7 @@ TEST_F(FirebaseAppCheckTest, TestGetTokenForcingRefresh) {
   EXPECT_NE(future.result()->expire_time_millis,
             future3.result()->expire_time_millis);
 }
-#endif  // FIREBASE_PLATFORM_IOS 
+#endif  // FIREBASE_PLATFORM_IOS
 
 // Currently only iOS implements main app check methods
 #if FIREBASE_PLATFORM_IOS
@@ -409,7 +409,7 @@ TEST_F(FirebaseAppCheckTest, TestGetTokenLastResult) {
   EXPECT_EQ(future.result()->expire_time_millis,
             future2.result()->expire_time_millis);
 }
-#endif  // FIREBASE_PLATFORM_IOS 
+#endif  // FIREBASE_PLATFORM_IOS
 
 // Currently only iOS implements main app check methods
 #if FIREBASE_PLATFORM_IOS
@@ -432,7 +432,7 @@ TEST_F(FirebaseAppCheckTest, TestAddTokenChangedListener) {
   ASSERT_EQ(token_changed_listener.num_token_changes_, 1);
   EXPECT_EQ(token_changed_listener.last_token_.token, token.token);
 }
-#endif  // FIREBASE_PLATFORM_IOS 
+#endif  // FIREBASE_PLATFORM_IOS
 
 // Currently only iOS implements main app check methods
 #if FIREBASE_PLATFORM_IOS
@@ -454,7 +454,7 @@ TEST_F(FirebaseAppCheckTest, TestRemoveTokenChangedListener) {
 
   ASSERT_EQ(token_changed_listener.num_token_changes_, 0);
 }
-#endif  // FIREBASE_PLATFORM_IOS 
+#endif  // FIREBASE_PLATFORM_IOS
 
 TEST_F(FirebaseAppCheckTest, TestSignIn) {
   InitializeAppCheckWithDebug();
@@ -470,8 +470,9 @@ TEST_F(FirebaseAppCheckTest, TestDebugProviderValidToken) {
   ASSERT_NE(factory, nullptr);
   InitializeAppCheckWithDebug();
   InitializeApp();
-  // TODO: for android, is it really necessary to get an instance of app check? should be no
-  // though that "should be no" is just because creating app should automatically trigger some initialization
+  // TODO: for android, is it really necessary to get an instance of app check?
+  // should be no though that "should be no" is just because creating app should
+  // automatically trigger some initialization
   ::firebase::app_check::AppCheck* app_check =
       ::firebase::app_check::AppCheck::GetInstance(app_);
   ASSERT_NE(app_check, nullptr);

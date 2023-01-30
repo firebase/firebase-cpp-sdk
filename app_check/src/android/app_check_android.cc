@@ -14,10 +14,10 @@
 
 #include "app_check/src/android/app_check_android.h"
 
-#include "app_check/src/common/common.h"
+#include "app/src/util_android.h"
 #include "app_check/src/android/common_android.h"
 #include "app_check/src/android/debug_provider_android.h"
-#include "app/src/util_android.h"
+#include "app_check/src/common/common.h"
 
 namespace firebase {
 namespace app_check {
@@ -35,20 +35,13 @@ static void ReleaseClasses(JNIEnv* env) {
 AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
   future_manager().AllocFutureApi(this, kAppCheckFnCount);
 
-  // TODO: is this the right place for this jni env setup/cleanup
-  //       it could also be handled in the debug providers class
   // Cache the JNI method ids so we only have to look them up by name once.
-  bool initialized = false;
   if (!g_initialized_count) {
-    // Auth line is:
-    // if (!util::Initialize(env, activity)) return nullptr;
-    // initialize and terminate should call an equal number of times,
-    // and only really needs to be called once for appcheck
-    // Grab varous java objects from the app.
+    // TODO: should I have a non-constructor getter that can handle failure to
+    // initialize?
     JNIEnv* env = app->GetJNIEnv();
     jobject activity = app->activity();
     if (util::Initialize(env, activity)) {
-
       if (!(CacheDebugProviderMethodIds(env, activity) &&
             CacheCommonAndroidMethodIds(env, activity))) {
         ReleaseClasses(env);
@@ -67,7 +60,7 @@ AppCheckInternal::~AppCheckInternal() {
   JNIEnv* env = app_->GetJNIEnv();
   app_ = nullptr;
 
-  // TODO: is this the right place for this jni env setup/cleanup 
+  // TODO: is this the right place for this jni env setup/cleanup
   FIREBASE_ASSERT(g_initialized_count);
   g_initialized_count--;
   if (g_initialized_count == 0) {

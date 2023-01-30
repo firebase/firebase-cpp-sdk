@@ -17,10 +17,10 @@
 
 #include <jni.h>
 
-#include "firebase/app_check.h"
-
+#include "app/src/app_common.h"
 #include "app/src/util_android.h"
 #include "app_check/src/include/firebase/app_check.h"
+#include "firebase/app_check.h"
 
 namespace firebase {
 namespace app_check {
@@ -42,7 +42,25 @@ bool CacheCommonAndroidMethodIds(JNIEnv* env, jobject activity);
 // Release credential classes cached by CacheCredentialMethodIds().
 void ReleaseCommonAndroidClasses(JNIEnv* env);
 
+JNIEnv* GetJniEnv();
+
 AppCheckToken CppTokenFromAndroidToken(JNIEnv* env, jobject token_obj);
+
+// A generic class to wrap a java AppCheckProvider.
+class AndroidAppCheckProvider : public AppCheckProvider {
+ public:
+  AndroidAppCheckProvider(jobject debug_provider);
+  virtual ~AndroidAppCheckProvider();
+
+  /// Fetches an AppCheckToken and then calls the provided callback method with
+  /// the token or with an error code and error message.
+  virtual void GetToken(
+      std::function<void(AppCheckToken, int, const std::string&)>
+          completion_callback) override;
+
+ private:
+  jobject android_provider_;
+};
 
 }  // namespace internal
 }  // namespace app_check

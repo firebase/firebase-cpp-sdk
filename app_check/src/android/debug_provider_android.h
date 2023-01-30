@@ -22,8 +22,7 @@ namespace app_check {
 namespace internal {
 
 // Cache the method ids so we don't have to look up JNI functions by name.
-bool CacheDebugProviderMethodIds(
-    JNIEnv* env, jobject activity);
+bool CacheDebugProviderMethodIds(JNIEnv* env, jobject activity);
 
 // Release credential classes cached by CacheCredentialMethodIds().
 void ReleaseDebugProviderClasses(JNIEnv* env);
