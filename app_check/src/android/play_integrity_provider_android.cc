@@ -23,8 +23,8 @@ namespace firebase {
 namespace app_check {
 namespace internal {
 
-// Used to setup the cache of PlayIntegrityProviderFactory class method IDs to reduce
-// time spent looking up methods by string.
+// Used to setup the cache of PlayIntegrityProviderFactory class method IDs to
+// reduce time spent looking up methods by string.
 // clang-format off
 #define PLAY_INTEGRITY_PROVIDER_FACTORY_METHODS(X)                                      \
   X(GetInstance, "getInstance",                                                \
@@ -37,11 +37,11 @@ namespace internal {
 
 METHOD_LOOKUP_DECLARATION(play_integrity_provider_factory,
                           PLAY_INTEGRITY_PROVIDER_FACTORY_METHODS)
-METHOD_LOOKUP_DEFINITION(
-    play_integrity_provider_factory,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/appcheck/playintegrity/PlayIntegrityAppCheckProviderFactory",
-    PLAY_INTEGRITY_PROVIDER_FACTORY_METHODS)
+METHOD_LOOKUP_DEFINITION(play_integrity_provider_factory,
+                         PROGUARD_KEEP_CLASS
+                         "com/google/firebase/appcheck/playintegrity/"
+                         "PlayIntegrityAppCheckProviderFactory",
+                         PLAY_INTEGRITY_PROVIDER_FACTORY_METHODS)
 
 bool CachePlayIntegrityProviderMethodIds(JNIEnv* env, jobject activity) {
   // Cache the PlayIntegrityProvider classes.
@@ -81,10 +81,10 @@ AppCheckProvider* PlayIntegrityProviderFactoryInternal::CreateProvider(
   JNIEnv* env = GetJniEnv();
   // Create a provider factory first if needed.
   if (android_provider_factory_ == nullptr) {
-    jobject j_provider_factory_local =
-        env->CallStaticObjectMethod(play_integrity_provider_factory::GetClass(),
-                                    play_integrity_provider_factory::GetMethodId(
-                                        play_integrity_provider_factory::kGetInstance));
+    jobject j_provider_factory_local = env->CallStaticObjectMethod(
+        play_integrity_provider_factory::GetClass(),
+        play_integrity_provider_factory::GetMethodId(
+            play_integrity_provider_factory::kGetInstance));
     FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
     // Hold a global references.
     // The global references will be freed when this factory is destroyed
@@ -92,10 +92,11 @@ AppCheckProvider* PlayIntegrityProviderFactoryInternal::CreateProvider(
     env->DeleteLocalRef(j_provider_factory_local);
   }
   jobject platform_app = app->GetPlatformApp();
-  jobject j_android_provider_local = env->CallObjectMethod(
-      android_provider_factory_,
-      play_integrity_provider_factory::GetMethodId(play_integrity_provider_factory::kCreate),
-      platform_app);
+  jobject j_android_provider_local =
+      env->CallObjectMethod(android_provider_factory_,
+                            play_integrity_provider_factory::GetMethodId(
+                                play_integrity_provider_factory::kCreate),
+                            platform_app);
   FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
   env->DeleteLocalRef(platform_app);
 
@@ -110,7 +111,8 @@ AppCheckProvider* PlayIntegrityProviderFactoryInternal::CreateProvider(
 
 }  // namespace internal
 
-static PlayIntegrityProviderFactory* g_play_integrity_provider_factory = nullptr;
+static PlayIntegrityProviderFactory* g_play_integrity_provider_factory =
+    nullptr;
 
 PlayIntegrityProviderFactory* PlayIntegrityProviderFactory::GetInstance() {
   if (!g_play_integrity_provider_factory) {

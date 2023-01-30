@@ -23,8 +23,8 @@ namespace firebase {
 namespace app_check {
 namespace internal {
 
-// Used to setup the cache of SafetyNetProviderFactory class method IDs to reduce
-// time spent looking up methods by string.
+// Used to setup the cache of SafetyNetProviderFactory class method IDs to
+// reduce time spent looking up methods by string.
 // clang-format off
 #define SAFETY_NET_PROVIDER_FACTORY_METHODS(X)                                      \
   X(GetInstance, "getInstance",                                                \
@@ -71,8 +71,7 @@ SafetyNetProviderFactoryInternal::~SafetyNetProviderFactoryInternal() {
   }
 }
 
-AppCheckProvider* SafetyNetProviderFactoryInternal::CreateProvider(
-    App* app) {
+AppCheckProvider* SafetyNetProviderFactoryInternal::CreateProvider(App* app) {
   // Return the provider if it already exists.
   std::map<App*, AppCheckProvider*>::iterator it = created_providers_.find(app);
   if (it != created_providers_.end()) {
@@ -81,10 +80,10 @@ AppCheckProvider* SafetyNetProviderFactoryInternal::CreateProvider(
   JNIEnv* env = GetJniEnv();
   // Create a provider factory first if needed.
   if (android_provider_factory_ == nullptr) {
-    jobject j_provider_factory_local =
-        env->CallStaticObjectMethod(safety_net_provider_factory::GetClass(),
-                                    safety_net_provider_factory::GetMethodId(
-                                        safety_net_provider_factory::kGetInstance));
+    jobject j_provider_factory_local = env->CallStaticObjectMethod(
+        safety_net_provider_factory::GetClass(),
+        safety_net_provider_factory::GetMethodId(
+            safety_net_provider_factory::kGetInstance));
     FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
     // Hold a global references.
     // The global references will be freed when this factory is destroyed
@@ -92,10 +91,11 @@ AppCheckProvider* SafetyNetProviderFactoryInternal::CreateProvider(
     env->DeleteLocalRef(j_provider_factory_local);
   }
   jobject platform_app = app->GetPlatformApp();
-  jobject j_android_provider_local = env->CallObjectMethod(
-      android_provider_factory_,
-      safety_net_provider_factory::GetMethodId(safety_net_provider_factory::kCreate),
-      platform_app);
+  jobject j_android_provider_local =
+      env->CallObjectMethod(android_provider_factory_,
+                            safety_net_provider_factory::GetMethodId(
+                                safety_net_provider_factory::kCreate),
+                            platform_app);
   FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
   env->DeleteLocalRef(platform_app);
 
