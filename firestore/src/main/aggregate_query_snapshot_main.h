@@ -22,14 +22,6 @@
 
 #include "Firestore/core/src/api/aggregate_query.h"
 #include "firestore/src/include/firebase/firestore/aggregate_query.h"
-//#include "absl/types/optional.h"
-//#include "firestore/src/include/firebase/firestore/document_change.h"
-//#include "firestore/src/include/firebase/firestore/document_snapshot.h"
-//#include "firestore/src/include/firebase/firestore/metadata_changes.h"
-//#include "firestore/src/include/firebase/firestore/query.h"
-//#include "firestore/src/include/firebase/firestore/query_snapshot.h"
-//#include "firestore/src/include/firebase/firestore/snapshot_metadata.h"
-#include "firestore/src/main/aggregate_query_snapshot_main.h"
 #include "firestore/src/main/firestore_main.h"
 
 #if defined(__ANDROID__)
