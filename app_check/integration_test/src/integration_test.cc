@@ -359,8 +359,8 @@ TEST_F(FirebaseAppCheckTest, TestInitializeAndTerminate) {
   InitializeApp();
 }
 
-// Currently only iOS implements main app check methods
-#if FIREBASE_PLATFORM_IOS
+// Android does not yet implement the main app check methods
+#if !FIREBASE_PLATFORM_ANDROID
 TEST_F(FirebaseAppCheckTest, TestGetTokenForcingRefresh) {
   InitializeAppCheckWithDebug();
   InitializeApp();
@@ -388,10 +388,10 @@ TEST_F(FirebaseAppCheckTest, TestGetTokenForcingRefresh) {
   EXPECT_NE(future.result()->expire_time_millis,
             future3.result()->expire_time_millis);
 }
-#endif  // FIREBASE_PLATFORM_IOS
+#endif  // !FIREBASE_PLATFORM_ANDROID
 
-// Currently only iOS implements main app check methods
-#if FIREBASE_PLATFORM_IOS
+// Android does not yet implement the main app check methods
+#if !FIREBASE_PLATFORM_ANDROID
 TEST_F(FirebaseAppCheckTest, TestGetTokenLastResult) {
   InitializeAppCheckWithDebug();
   InitializeApp();
@@ -409,10 +409,10 @@ TEST_F(FirebaseAppCheckTest, TestGetTokenLastResult) {
   EXPECT_EQ(future.result()->expire_time_millis,
             future2.result()->expire_time_millis);
 }
-#endif  // FIREBASE_PLATFORM_IOS
+#endif  // !FIREBASE_PLATFORM_ANDROID
 
-// Currently only iOS implements main app check methods
-#if FIREBASE_PLATFORM_IOS
+// Android does not yet implement the main app check methods
+#if !FIREBASE_PLATFORM_ANDROID
 TEST_F(FirebaseAppCheckTest, TestAddTokenChangedListener) {
   InitializeAppCheckWithDebug();
   InitializeApp();
@@ -432,10 +432,10 @@ TEST_F(FirebaseAppCheckTest, TestAddTokenChangedListener) {
   ASSERT_EQ(token_changed_listener.num_token_changes_, 1);
   EXPECT_EQ(token_changed_listener.last_token_.token, token.token);
 }
-#endif  // FIREBASE_PLATFORM_IOS
+#endif  // !FIREBASE_PLATFORM_ANDROID
 
-// Currently only iOS implements main app check methods
-#if FIREBASE_PLATFORM_IOS
+// Android does not yet implement the main app check methods
+#if !FIREBASE_PLATFORM_ANDROID
 TEST_F(FirebaseAppCheckTest, TestRemoveTokenChangedListener) {
   InitializeAppCheckWithDebug();
   InitializeApp();
@@ -454,7 +454,7 @@ TEST_F(FirebaseAppCheckTest, TestRemoveTokenChangedListener) {
 
   ASSERT_EQ(token_changed_listener.num_token_changes_, 0);
 }
-#endif  // FIREBASE_PLATFORM_IOS
+#endif  // !FIREBASE_PLATFORM_ANDROID
 
 TEST_F(FirebaseAppCheckTest, TestSignIn) {
   InitializeAppCheckWithDebug();
@@ -466,7 +466,6 @@ TEST_F(FirebaseAppCheckTest, TestSignIn) {
 TEST_F(FirebaseAppCheckTest, TestDebugProviderValidToken) {
   firebase::app_check::DebugAppCheckProviderFactory* factory =
       firebase::app_check::DebugAppCheckProviderFactory::GetInstance();
-#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_ANDROID
   ASSERT_NE(factory, nullptr);
   InitializeAppCheckWithDebug();
   InitializeApp();
@@ -494,9 +493,6 @@ TEST_F(FirebaseAppCheckTest, TestDebugProviderValidToken) {
   auto got_token_future = got_token_promise->get_future();
   ASSERT_EQ(std::future_status::ready,
             got_token_future.wait_for(kGetTokenTimeout));
-#else
-  EXPECT_EQ(factory, nullptr);
-#endif
 }
 
 TEST_F(FirebaseAppCheckTest, TestAppAttestProvider) {
