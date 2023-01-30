@@ -19,6 +19,8 @@
 
 #include "firebase/firestore/aggregate_source.h"
 
+#include <cstddef>
+
 namespace firebase {
 /// @cond FIREBASE_APP_INTERNAL
 template <typename T>
@@ -27,6 +29,7 @@ class Future;
 
 namespace firestore {
 
+class AggregateQueryInternal;
 class AggregateQuerySnapshot;
 class Query;
 
@@ -35,7 +38,6 @@ class Query;
  */
 class AggregateQuery {
   public:
-
   /**
    * @brief AggregateQuery an invalid Query that has to be reassigned before it can be
    * used.
@@ -100,7 +102,7 @@ class AggregateQuery {
   /**
    * @brief Executes this query.
    *
-   * @param[in] source The source from which to acquire the aggregate results.
+   * @param[in] aggregateSource The source from which to acquire the aggregate results.
    *
    * @return A Future that will be resolved with the results of the AggregateQuery.
    */
@@ -117,7 +119,23 @@ class AggregateQuery {
    * @return true if this `AggregateQuery` is valid, false if this `AggregateQuery` is
    * invalid.
    */
-  bool is_valid() const;
+  bool is_valid() const { return internal_ != nullptr; }
+
+ private:
+  std::size_t Hash() const;
+
+  friend class AggregateQueryInternal;
+  friend struct ConverterImpl;
+
+  friend bool operator==(const AggregateQuery& lhs, const AggregateQuery& rhs);
+  friend std::size_t QuerySnapshotHash(const AggregateQuery& snapshot);
+
+  template <typename T, typename U, typename F>
+  friend struct CleanupFn;
+
+  explicit AggregateQuery(AggregateQueryInternal* internal);
+
+  mutable AggregateQueryInternal* internal_ = nullptr;
 };
 
 /** Checks `lhs` and `rhs` for equality. */
