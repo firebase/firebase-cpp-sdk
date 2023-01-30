@@ -23,7 +23,11 @@ namespace firebase {
 namespace analytics {
 namespace internal {
 
-enum AnalyticsFn { kAnalyticsFnGetAnalyticsInstanceId, kAnalyticsFnCount };
+enum AnalyticsFn {
+  kAnalyticsFnGetAnalyticsInstanceId,
+  kAnalyticsFnGetSessionId,
+  kAnalyticsFnCount
+};
 
 // Data structure which holds the Future API for this module.
 class FutureData {
