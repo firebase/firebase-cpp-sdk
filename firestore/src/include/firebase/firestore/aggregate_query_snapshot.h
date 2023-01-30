@@ -17,13 +17,15 @@
 #ifndef FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_AGGREGATE_QUERY_SNAPSHOT_H_
 #define FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_AGGREGATE_QUERY_SNAPSHOT_H_
 
+#include <cstddef>
 #include <cstdint>
+
+#include "firestore/src/main/aggregate_query_snapshot_main.h"
 
 namespace firebase {
 namespace firestore {
 
 class AggregateQuery;
-class SnapshotMetadata;
 
 /**
  * @brief A QuerySnapshot contains zero or more DocumentSnapshot objects.
@@ -37,7 +39,6 @@ class SnapshotMetadata;
  */
 class AggregateQuerySnapshot {
  public:
-
   /**
    * @brief AggregateQuerySnapshot an invalid Query that has to be reassigned before it
    * can be used.
@@ -122,6 +123,20 @@ class AggregateQuerySnapshot {
    * `AggregateQuerySnapshot` is invalid.
    */
   bool is_valid() const;
+
+ private:
+  std::size_t Hash() const;
+
+  friend bool operator==(const AggregateQuerySnapshot& lhs, const AggregateQuerySnapshot& rhs);
+  friend std::size_t AggregateQuerySnapshotHash(const AggregateQuerySnapshot& snapshot);
+  friend struct ConverterImpl;
+
+  template <typename T, typename U, typename F>
+  friend struct CleanupFn;
+
+  explicit AggregateQuerySnapshot(AggregateQuerySnapshotInternal* internal);
+
+  mutable AggregateQuerySnapshotInternal* internal_ = nullptr;
 };
 
 /** Checks `lhs` and `rhs` for equality. */
