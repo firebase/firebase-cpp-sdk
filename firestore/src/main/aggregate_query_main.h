@@ -14,8 +14,8 @@
 * limitations under the License.
 */
 
-#ifndef FIREBASE_TESTAPP_AGGREGATE_QUERY_MAIN_H
-#define FIREBASE_TESTAPP_AGGREGATE_QUERY_MAIN_H
+#ifndef FIREBASE_FIRESTORE_SRC_MAIN_AGGREGATE_QUERY_MAIN_H_
+#define FIREBASE_FIRESTORE_SRC_MAIN_AGGREGATE_QUERY_MAIN_H_
 
 #include "Firestore/core/src/api/aggregate_query.h"
 #include "firestore/src/include/firebase/firestore/aggregate_query.h"
@@ -59,4 +59,4 @@ inline bool operator!=(const AggregateQueryInternal& lhs, const AggregateQueryIn
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_TESTAPP_AGGREGATE_QUERY_MAIN_H
+#endif  // FIREBASE_FIRESTORE_SRC_MAIN_AGGREGATE_QUERY_MAIN_H_
