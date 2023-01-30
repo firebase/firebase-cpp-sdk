@@ -48,7 +48,7 @@ Query AggregateQueryInternal::query() {
 
 Future<AggregateQuerySnapshot> AggregateQueryInternal::Get(AggregateSource source) {
   auto promise = promise_factory_.CreatePromise<AggregateQuerySnapshot>(AsyncApis::kGet);
-  //TODO(tomandersen) Is there a better way to pass `aggregate_query_` than through `this`
+  // TODO(tomandersen) Is there a better way to pass `aggregate_query_` than through `this`
   aggregate_query_.Get([this, promise](util::StatusOr<int64_t> maybe_value) mutable {
     if (maybe_value.ok()) {
       int64_t count = maybe_value.ValueOrDie();
