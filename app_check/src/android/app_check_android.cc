@@ -17,6 +17,8 @@
 #include "app/src/util_android.h"
 #include "app_check/src/android/common_android.h"
 #include "app_check/src/android/debug_provider_android.h"
+#include "app_check/src/android/play_integrity_provider_android.h"
+#include "app_check/src/android/safety_net_provider_android.h"
 #include "app_check/src/common/common.h"
 
 namespace firebase {
@@ -42,8 +44,10 @@ AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
     JNIEnv* env = app->GetJNIEnv();
     jobject activity = app->activity();
     if (util::Initialize(env, activity)) {
-      if (!(CacheDebugProviderMethodIds(env, activity) &&
-            CacheCommonAndroidMethodIds(env, activity))) {
+      if (!(CacheCommonAndroidMethodIds(env, activity) &&
+            CacheDebugProviderMethodIds(env, activity) &&
+            CachePlayIntegrityProviderMethodIds(env, activity) &&
+            CacheSafetyNetProviderMethodIds(env, activity))) {
         ReleaseClasses(env);
         util::Terminate(env);
       } else {

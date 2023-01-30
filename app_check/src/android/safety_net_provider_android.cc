@@ -12,10 +12,103 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "app_check/src/android/safety_net_provider_android.h"
+
+#include "app/src/app_common.h"
+#include "app/src/util_android.h"
+#include "app_check/src/android/common_android.h"
 #include "firebase/app_check/safety_net_provider.h"
 
 namespace firebase {
 namespace app_check {
+namespace internal {
+
+// Used to setup the cache of SafetyNetProviderFactory class method IDs to reduce
+// time spent looking up methods by string.
+// clang-format off
+#define SAFETY_NET_PROVIDER_FACTORY_METHODS(X)                                      \
+  X(GetInstance, "getInstance",                                                \
+    "()Lcom/google/firebase/appcheck/safetynet/SafetyNetAppCheckProviderFactory;",     \
+       util::kMethodTypeStatic),                                               \
+  X(Create, "create",                                                          \
+    "(Lcom/google/firebase/FirebaseApp;)"                                      \
+    "Lcom/google/firebase/appcheck/AppCheckProvider;")
+// clang-format on
+
+METHOD_LOOKUP_DECLARATION(safety_net_provider_factory,
+                          SAFETY_NET_PROVIDER_FACTORY_METHODS)
+METHOD_LOOKUP_DEFINITION(
+    safety_net_provider_factory,
+    PROGUARD_KEEP_CLASS
+    "com/google/firebase/appcheck/safetynet/SafetyNetAppCheckProviderFactory",
+    SAFETY_NET_PROVIDER_FACTORY_METHODS)
+
+bool CacheSafetyNetProviderMethodIds(JNIEnv* env, jobject activity) {
+  // Cache the SafetyNetProvider classes.
+  if (!safety_net_provider_factory::CacheMethodIds(env, activity)) {
+    return false;
+  }
+
+  return true;
+}
+
+void ReleaseSafetyNetProviderClasses(JNIEnv* env) {
+  safety_net_provider_factory::ReleaseClass(env);
+}
+
+SafetyNetProviderFactoryInternal::SafetyNetProviderFactoryInternal()
+    : created_providers_(), android_provider_factory_(nullptr) {}
+
+SafetyNetProviderFactoryInternal::~SafetyNetProviderFactoryInternal() {
+  for (auto it = created_providers_.begin(); it != created_providers_.end();
+       ++it) {
+    delete it->second;
+  }
+  created_providers_.clear();
+  JNIEnv* env = GetJniEnv();
+  if (env != nullptr && android_provider_factory_ != nullptr) {
+    env->DeleteGlobalRef(android_provider_factory_);
+  }
+}
+
+AppCheckProvider* SafetyNetProviderFactoryInternal::CreateProvider(
+    App* app) {
+  // Return the provider if it already exists.
+  std::map<App*, AppCheckProvider*>::iterator it = created_providers_.find(app);
+  if (it != created_providers_.end()) {
+    return it->second;
+  }
+  JNIEnv* env = GetJniEnv();
+  // Create a provider factory first if needed.
+  if (android_provider_factory_ == nullptr) {
+    jobject j_provider_factory_local =
+        env->CallStaticObjectMethod(safety_net_provider_factory::GetClass(),
+                                    safety_net_provider_factory::GetMethodId(
+                                        safety_net_provider_factory::kGetInstance));
+    FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
+    // Hold a global references.
+    // The global references will be freed when this factory is destroyed
+    android_provider_factory_ = env->NewGlobalRef(j_provider_factory_local);
+    env->DeleteLocalRef(j_provider_factory_local);
+  }
+  jobject platform_app = app->GetPlatformApp();
+  jobject j_android_provider_local = env->CallObjectMethod(
+      android_provider_factory_,
+      safety_net_provider_factory::GetMethodId(safety_net_provider_factory::kCreate),
+      platform_app);
+  FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
+  env->DeleteLocalRef(platform_app);
+
+  // Pass a global ref into the cpp provider constructor.
+  // It will be released when the cpp provider is destroyed
+  AppCheckProvider* cpp_provider =
+      new internal::AndroidAppCheckProvider(j_android_provider_local);
+  env->DeleteLocalRef(j_android_provider_local);
+  created_providers_[app] = cpp_provider;
+  return cpp_provider;
+}
+
+}  // namespace internal
 
 static SafetyNetProviderFactory* g_safety_net_provider_factory = nullptr;
 
@@ -26,11 +119,20 @@ SafetyNetProviderFactory* SafetyNetProviderFactory::GetInstance() {
   return g_safety_net_provider_factory;
 }
 
-SafetyNetProviderFactory::SafetyNetProviderFactory() {}
+SafetyNetProviderFactory::SafetyNetProviderFactory()
+    : internal_(new internal::SafetyNetProviderFactoryInternal()) {}
 
-SafetyNetProviderFactory::~SafetyNetProviderFactory() {}
+SafetyNetProviderFactory::~SafetyNetProviderFactory() {
+  if (internal_) {
+    delete internal_;
+    internal_ = nullptr;
+  }
+}
 
 AppCheckProvider* SafetyNetProviderFactory::CreateProvider(App* app) {
+  if (internal_) {
+    return internal_->CreateProvider(app);
+  }
   return nullptr;
 }
 

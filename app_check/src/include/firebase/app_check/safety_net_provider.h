@@ -20,6 +20,10 @@
 namespace firebase {
 namespace app_check {
 
+namespace internal {
+class SafetyNetProviderFactoryInternal;
+}
+
 /// Implementation of an {@link AppCheckProviderFactory} that builds
 /// SafetyNetProviders. This is the default implementation.
 class SafetyNetProviderFactory : public AppCheckProviderFactory {
@@ -37,6 +41,8 @@ class SafetyNetProviderFactory : public AppCheckProviderFactory {
 
  private:
   SafetyNetProviderFactory();
+
+  internal::SafetyNetProviderFactoryInternal* internal_;
 };
 
 }  // namespace app_check

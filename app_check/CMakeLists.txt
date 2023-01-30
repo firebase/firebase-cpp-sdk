@@ -37,7 +37,9 @@ set(android_SRCS
   src/android/debug_provider_android.cc
   src/android/debug_provider_android.h
   src/android/play_integrity_provider_android.cc
+  src/android/play_integrity_provider_android.h
   src/android/safety_net_provider_android.cc
+  src/android/safety_net_provider_android.h
   # Unsupported providers
   src/stub/app_attest_provider_stub.cc
   src/stub/device_check_provider_stub.cc
