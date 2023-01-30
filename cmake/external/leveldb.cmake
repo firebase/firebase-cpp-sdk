@@ -29,7 +29,7 @@ ExternalProject_Add(
   DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
   DOWNLOAD_NAME leveldb-${version}.tar.gz
   URL https://github.com/google/leveldb/archive/${version}.tar.gz
-  URL_HASH SHA256=9a37f8a6174f09bd622bc723b55881dc541cd50747cbd08831c2a82d620f6d76
+  URL_HASH SHA256=668eb4a1264a56f053974452dbdf5856541b6d4b747d9a4a2fa48a0a0e30225f
 
   PREFIX ${PROJECT_BINARY_DIR}
 
