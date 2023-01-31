@@ -1,18 +1,18 @@
 /*
-* Copyright 2023 Google LLC
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2023 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "firestore/src/include/firebase/firestore/aggregate_query_snapshot.h"
 
@@ -20,7 +20,8 @@
 #include "firestore/src/include/firebase/firestore/aggregate_query.h"
 
 #if defined(__ANDROID__)
-// TODO(tomandersen) #include "firestore/src/android/aggregate_query_snapshot_android.h"
+// TODO(tomandersen) #include
+// "firestore/src/android/aggregate_query_snapshot_android.h"
 #else
 #include "firestore/src/main/aggregate_query_snapshot_main.h"
 #endif  // defined(__ANDROID__)
@@ -32,7 +33,8 @@ using CleanupFnAggregateQuerySnapshot = CleanupFn<AggregateQuerySnapshot>;
 
 AggregateQuerySnapshot::AggregateQuerySnapshot() {}
 
-AggregateQuerySnapshot::AggregateQuerySnapshot(const AggregateQuerySnapshot& query)  {
+AggregateQuerySnapshot::AggregateQuerySnapshot(
+    const AggregateQuerySnapshot& query) {
   if (query.internal_) {
     internal_ = new AggregateQuerySnapshotInternal(*query.internal_);
   }
@@ -45,7 +47,9 @@ AggregateQuerySnapshot::AggregateQuerySnapshot(AggregateQuerySnapshot&& query) {
   CleanupFnAggregateQuerySnapshot::Register(this, internal_);
 }
 
-AggregateQuerySnapshot::AggregateQuerySnapshot(AggregateQuerySnapshotInternal* internal) : internal_(internal) {
+AggregateQuerySnapshot::AggregateQuerySnapshot(
+    AggregateQuerySnapshotInternal* internal)
+    : internal_(internal) {
   // NOTE: We don't assert internal != nullptr here since internal can be
   // nullptr when called by the CollectionReference copy constructor.
   CleanupFnAggregateQuerySnapshot::Register(this, internal_);
@@ -57,7 +61,8 @@ AggregateQuerySnapshot::~AggregateQuerySnapshot() {
   internal_ = nullptr;
 }
 
-AggregateQuerySnapshot& AggregateQuerySnapshot::operator=(const AggregateQuerySnapshot& snapshot) {
+AggregateQuerySnapshot& AggregateQuerySnapshot::operator=(
+    const AggregateQuerySnapshot& snapshot) {
   if (this == &snapshot) {
     return *this;
   }
@@ -73,7 +78,8 @@ AggregateQuerySnapshot& AggregateQuerySnapshot::operator=(const AggregateQuerySn
   return *this;
 }
 
-AggregateQuerySnapshot& AggregateQuerySnapshot::operator=(AggregateQuerySnapshot&& snapshot) {
+AggregateQuerySnapshot& AggregateQuerySnapshot::operator=(
+    AggregateQuerySnapshot&& snapshot) {
   if (this == &snapshot) {
     return *this;
   }

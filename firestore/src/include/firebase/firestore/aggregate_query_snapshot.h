@@ -39,20 +39,20 @@ class AggregateQuerySnapshotInternal;
 class AggregateQuerySnapshot {
  public:
   /**
-   * @brief AggregateQuerySnapshot an invalid Query that has to be reassigned before it
-   * can be used.
+   * @brief AggregateQuerySnapshot an invalid Query that has to be reassigned
+   * before it can be used.
    *
-   * Calling any member function on an invalid AggregateQuerySnapshot will be a no-op.
-   * If the function returns a value, it will return a zero, empty, or invalid value,
-   * depending on the type of the value.
+   * Calling any member function on an invalid AggregateQuerySnapshot will be a
+   * no-op. If the function returns a value, it will return a zero, empty, or
+   * invalid value, depending on the type of the value.
    */
   AggregateQuerySnapshot();
 
   /**
    * @brief Copy constructor.
    *
-   * `AggregateQuerySnapshot` is immutable and can be efficiently copied (no deep copy
-   * is performed).
+   * `AggregateQuerySnapshot` is immutable and can be efficiently copied (no
+   * deep copy is performed).
    *
    * @param[in] other `AggregateQuerySnapshot` to copy from.
    */
@@ -61,9 +61,9 @@ class AggregateQuerySnapshot {
   /**
    * @brief Move constructor.
    *
-   * Moving is more efficient than copying for a `AggregateQuerySnapshot`. After being
-   * moved from, a `AggregateQuerySnapshot` is equivalent to its default-constructed
-   * state.
+   * Moving is more efficient than copying for a `AggregateQuerySnapshot`. After
+   * being moved from, a `AggregateQuerySnapshot` is equivalent to its
+   * default-constructed state.
    *
    * @param[in] other `AggregateQuerySnapshot` to move data from.
    */
@@ -74,8 +74,8 @@ class AggregateQuerySnapshot {
   /**
    * @brief Copy assignment operator.
    *
-   * `AggregateQuerySnapshot` is immutable and can be efficiently copied (no deep copy
-   * is performed).
+   * `AggregateQuerySnapshot` is immutable and can be efficiently copied (no
+   * deep copy is performed).
    *
    * @param[in] other `AggregateQuerySnapshot` to copy from.
    *
@@ -86,9 +86,9 @@ class AggregateQuerySnapshot {
   /**
    * @brief Move assignment operator.
    *
-   * Moving is more efficient than copying for a `AggregateQuerySnapshot`. After being
-   * moved from, a `AggregateQuerySnapshot` is equivalent to its default-constructed
-   * state.
+   * Moving is more efficient than copying for a `AggregateQuerySnapshot`. After
+   * being moved from, a `AggregateQuerySnapshot` is equivalent to its
+   * default-constructed state.
    *
    * @param[in] other `AggregateQuerySnapshot` to move data from.
    *
@@ -104,15 +104,16 @@ class AggregateQuerySnapshot {
   virtual AggregateQuery query() const;
 
   /**
-   * @brief Returns the number of documents in the result set of the underlying query.
+   * @brief Returns the number of documents in the result set of the underlying
+   * query.
    *
    * @return The number of documents in the result set of the underlying query.
    */
   virtual int64_t count() const;
 
   /**
-   * @brief Returns true if this `AggregateQuerySnapshot` is valid, false if it is not
-   * valid. An invalid `AggregateQuerySnapshot` could be the result of:
+   * @brief Returns true if this `AggregateQuerySnapshot` is valid, false if it
+   * is not valid. An invalid `AggregateQuerySnapshot` could be the result of:
    *   - Creating a `AggregateQuerySnapshot` using the default constructor.
    *   - Moving from the `AggregateQuery`.
    *   - Deleting your Firestore instance, which will invalidate all the
@@ -126,8 +127,10 @@ class AggregateQuerySnapshot {
  private:
   std::size_t Hash() const;
 
-  friend bool operator==(const AggregateQuerySnapshot& lhs, const AggregateQuerySnapshot& rhs);
-  friend std::size_t AggregateQuerySnapshotHash(const AggregateQuerySnapshot& snapshot);
+  friend bool operator==(const AggregateQuerySnapshot& lhs,
+                         const AggregateQuerySnapshot& rhs);
+  friend std::size_t AggregateQuerySnapshotHash(
+      const AggregateQuerySnapshot& snapshot);
   friend struct ConverterImpl;
 
   template <typename T, typename U, typename F>
@@ -139,10 +142,12 @@ class AggregateQuerySnapshot {
 };
 
 /** Checks `lhs` and `rhs` for equality. */
-bool operator==(const AggregateQuerySnapshot& lhs, const AggregateQuerySnapshot& rhs);
+bool operator==(const AggregateQuerySnapshot& lhs,
+                const AggregateQuerySnapshot& rhs);
 
 /** Checks `lhs` and `rhs` for inequality. */
-inline bool operator!=(const AggregateQuerySnapshot& lhs, const AggregateQuerySnapshot& rhs) {
+inline bool operator!=(const AggregateQuerySnapshot& lhs,
+                       const AggregateQuerySnapshot& rhs) {
   return !(lhs == rhs);
 }
 

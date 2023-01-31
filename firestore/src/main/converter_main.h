@@ -88,8 +88,7 @@ struct ConverterImpl {
 // MakePublic
 
 inline AggregateQuery MakePublic(api::AggregateQuery&& from) {
-  return ConverterImpl::MakePublicFromCore<AggregateQuery>(
-      std::move(from));
+  return ConverterImpl::MakePublicFromCore<AggregateQuery>(std::move(from));
 }
 
 inline CollectionReference MakePublic(api::CollectionReference&& from) {
@@ -113,8 +112,10 @@ inline FieldValue MakePublic(FieldValueInternal&& from) {
   return ConverterImpl::MakePublicFromInternal<FieldValue>(std::move(from));
 }
 
-inline AggregateQuerySnapshot MakePublic(AggregateQuerySnapshotInternal&& from) {
-  return ConverterImpl::MakePublicFromInternal<AggregateQuerySnapshot>(std::move(from));
+inline AggregateQuerySnapshot MakePublic(
+    AggregateQuerySnapshotInternal&& from) {
+  return ConverterImpl::MakePublicFromInternal<AggregateQuerySnapshot>(
+      std::move(from));
 }
 
 inline ListenerRegistration MakePublic(

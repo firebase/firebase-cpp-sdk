@@ -33,7 +33,8 @@ namespace firestore {
 
 class AggregateQuerySnapshotInternal {
  public:
-  explicit AggregateQuerySnapshotInternal(api::AggregateQuery aggregate_query, int64_t count);
+  explicit AggregateQuerySnapshotInternal(api::AggregateQuery aggregate_query,
+                                          int64_t count);
 
   FirestoreInternal* firestore_internal();
   const FirestoreInternal* firestore_internal() const;
@@ -43,6 +44,7 @@ class AggregateQuerySnapshotInternal {
 
   friend bool operator==(const AggregateQuerySnapshotInternal& lhs,
                          const AggregateQuerySnapshotInternal& rhs);
+
  private:
   api::AggregateQuery aggregate_query_;
   int64_t count_result;

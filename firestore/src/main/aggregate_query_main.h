@@ -1,18 +1,18 @@
 /*
-* Copyright 2022 Google LLC
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2022 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #ifndef FIREBASE_FIRESTORE_SRC_MAIN_AGGREGATE_QUERY_MAIN_H_
 #define FIREBASE_FIRESTORE_SRC_MAIN_AGGREGATE_QUERY_MAIN_H_
@@ -40,7 +40,8 @@ class AggregateQueryInternal {
 
   Future<AggregateQuerySnapshot> Get(AggregateSource source);
 
-  friend bool operator==(const AggregateQueryInternal& lhs, const AggregateQueryInternal& rhs);
+  friend bool operator==(const AggregateQueryInternal& lhs,
+                         const AggregateQueryInternal& rhs);
 
  private:
   enum class AsyncApis {
@@ -52,7 +53,8 @@ class AggregateQueryInternal {
   PromiseFactory<AsyncApis> promise_factory_;
 };
 
-inline bool operator!=(const AggregateQueryInternal& lhs, const AggregateQueryInternal& rhs) {
+inline bool operator!=(const AggregateQueryInternal& lhs,
+                       const AggregateQueryInternal& rhs) {
   return !(lhs == rhs);
 }
 
