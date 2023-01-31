@@ -133,6 +133,7 @@ static const std::vector<std::string> kNeighboringContentURLs = {
     "test_url1", "test_url2", "test_url3"};
 
 using app_framework::LogDebug;
+using app_framework::LogInfo;
 using app_framework::ProcessEvents;
 
 using firebase_test_framework::FirebaseTest;
@@ -833,9 +834,6 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoad) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
 
-  // TODO(@drsanta): remove when GMA whitelists CI devices.
-  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
-
   firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
 
   WaitForCompletion(rewarded->Initialize(app_framework::GetWindowContext()),
@@ -845,17 +843,29 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoad) {
   firebase::Future<firebase::gma::AdResult> load_ad_future =
       rewarded->LoadAd(kRewardedAdUnit, GetAdRequest());
 
-  WaitForCompletion(load_ad_future, "LoadAd");
-  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
-  ASSERT_NE(result_ptr, nullptr);
-  EXPECT_TRUE(result_ptr->is_successful());
-  EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
-  EXPECT_FALSE(
-      result_ptr->response_info().mediation_adapter_class_name().empty());
-  EXPECT_FALSE(result_ptr->response_info().response_id().empty());
-  EXPECT_FALSE(result_ptr->response_info().ToString().empty());
-
-  load_ad_future.Release();
+  // This test behaves differently if it's running in UI mode
+  // (manually on a device) or in non-UI mode (via automated tests).
+  if (ShouldRunUITests()) {
+    // Run in manual mode: fail if any error occurs.
+    WaitForCompletion(load_ad_future, "LoadAd");
+  } else {
+    // Run in automated test mode: don't fail if NoFill occurred.
+    WaitForCompletionAnyResult(load_ad_future, "LoadAd (ignoring NoFill error)");
+    EXPECT_TRUE(load_ad_future.error() == firebase::gma::kAdErrorCodeNone ||
+                load_ad_future.error() == firebase::gma::kAdErrorCodeNoFill);
+  }
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    // In UI mode, or in non-UI mode if a NoFill error didn't occur, check that the
+    // ad loaded correctly.
+    const firebase::gma::AdResult* result_ptr = load_ad_future.result();
+    ASSERT_NE(result_ptr, nullptr);
+    EXPECT_TRUE(result_ptr->is_successful());
+    EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
+    EXPECT_FALSE(
+		 result_ptr->response_info().mediation_adapter_class_name().empty());
+    EXPECT_FALSE(result_ptr->response_info().response_id().empty());
+    EXPECT_FALSE(result_ptr->response_info().ToString().empty());
+  }
   delete rewarded;
 }
 
@@ -1795,9 +1805,6 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoadEmptyRequest) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
 
-  // TODO(@drsanta): remove when GMA whitelists CI devices.
-  TEST_REQUIRES_USER_INTERACTION_ON_IOS;
-
   // Note: while showing an ad requires user interaction in another test,
   // this test is mean as a baseline loadAd functionality test.
   firebase::gma::RewardedAd* rewarded = new firebase::gma::RewardedAd();
@@ -1810,16 +1817,29 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoadEmptyRequest) {
   firebase::Future<firebase::gma::AdResult> load_ad_future =
       rewarded->LoadAd(kRewardedAdUnit, request);
 
-  WaitForCompletion(load_ad_future, "LoadAd");
-  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
-  ASSERT_NE(result_ptr, nullptr);
-  EXPECT_TRUE(result_ptr->is_successful());
-  EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
-  EXPECT_FALSE(
-      result_ptr->response_info().mediation_adapter_class_name().empty());
-  EXPECT_FALSE(result_ptr->response_info().response_id().empty());
-  EXPECT_FALSE(result_ptr->response_info().ToString().empty());
-
+  // This test behaves differently if it's running in UI mode
+  // (manually on a device) or in non-UI mode (via automated tests).
+  if (ShouldRunUITests()) {
+    // Run in manual mode: fail if any error occurs.
+    WaitForCompletion(load_ad_future, "LoadAd");
+  } else {
+    // Run in automated test mode: don't fail if NoFill occurred.
+    WaitForCompletionAnyResult(load_ad_future, "LoadAd (ignoring NoFill error)");
+    EXPECT_TRUE(load_ad_future.error() == firebase::gma::kAdErrorCodeNone ||
+                load_ad_future.error() == firebase::gma::kAdErrorCodeNoFill);
+  }
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    // In UI mode, or in non-UI mode if a NoFill error didn't occur, check that the
+    // ad loaded correctly.
+    const firebase::gma::AdResult* result_ptr = load_ad_future.result();
+    ASSERT_NE(result_ptr, nullptr);
+    EXPECT_TRUE(result_ptr->is_successful());
+    EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
+    EXPECT_FALSE(
+		 result_ptr->response_info().mediation_adapter_class_name().empty());
+    EXPECT_FALSE(result_ptr->response_info().response_id().empty());
+    EXPECT_FALSE(result_ptr->response_info().ToString().empty());
+  }
   delete rewarded;
 }
 
