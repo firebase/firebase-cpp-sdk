@@ -642,6 +642,9 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+    - Firestore: Add Count API.
+
 ### 10.4.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 31.2.0.
@@ -657,13 +660,6 @@ code.
     - GMA (Android): Updated dependency to play-services-ads version 21.4.0.
       This new version requires Multidex to be enabled in your Android builds.
     - GMA (iOS): Updated dependency to Google-Mobile-Ads-SDK version 9.14.0.
-    - General (macOS): In order to support sandbox mode, apps can define a
-      key/value pair for FBAppGroupEntitlementName in Info.plist. The value
-      associated with this key will be used to prefix semaphore names
-      created internally by the Firebase C++ SDK so that they conform with
-      [macOS sandbox
-      requirements](https://developer.apple.com/library/archive/documentation/Security/Conceptual/AppSandboxDesignGuide/AppSandboxInDepth/AppSandboxInDepth.html#//apple_ref/doc/uid/TP40011183-CH3-SW24).    
-    - Firestore: Add Count API.
 
 ### 10.3.0
 -   Changes
