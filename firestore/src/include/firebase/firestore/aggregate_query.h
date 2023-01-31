@@ -37,22 +37,22 @@ class Query;
  * @brief A query that calculates aggregations over an underlying query.
  */
 class AggregateQuery {
-  public:
+ public:
   /**
-   * @brief AggregateQuery an invalid Query that has to be reassigned before it can be
-   * used.
+   * @brief AggregateQuery an invalid Query that has to be reassigned before it
+   * can be used.
    *
-   * Calling any member function on an invalid AggregateQuery will be a no-op. If the
-   * function returns a value, it will return a zero, empty, or invalid value,
-   * depending on the type of the value.
+   * Calling any member function on an invalid AggregateQuery will be a no-op.
+   * If the function returns a value, it will return a zero, empty, or invalid
+   * value, depending on the type of the value.
    */
   AggregateQuery();
 
   /**
    * @brief Copy constructor.
    *
-   * `AggregateQuery` is immutable and can be efficiently copied (no deep copy is
-   * performed).
+   * `AggregateQuery` is immutable and can be efficiently copied (no deep copy
+   * is performed).
    *
    * @param[in] other `AggregateQuery` to copy from.
    */
@@ -61,8 +61,9 @@ class AggregateQuery {
   /**
    * @brief Move constructor.
    *
-   * Moving is more efficient than copying for a `AggregateQuery`. After being moved
-   * from, a `AggregateQuery` is equivalent to its default-constructed state.
+   * Moving is more efficient than copying for a `AggregateQuery`. After being
+   * moved from, a `AggregateQuery` is equivalent to its default-constructed
+   * state.
    *
    * @param[in] other `AggregateQuery` to move data from.
    */
@@ -73,8 +74,8 @@ class AggregateQuery {
   /**
    * @brief Copy assignment operator.
    *
-   * `AggregateQuery` is immutable and can be efficiently copied (no deep copy is
-   * performed).
+   * `AggregateQuery` is immutable and can be efficiently copied (no deep copy
+   * is performed).
    *
    * @param[in] other `AggregateQuery` to copy from.
    *
@@ -85,8 +86,9 @@ class AggregateQuery {
   /**
    * @brief Move assignment operator.
    *
-   * Moving is more efficient than copying for a `AggregateQuery`. After being moved
-   * from, a `AggregateQuery` is equivalent to its default-constructed state.
+   * Moving is more efficient than copying for a `AggregateQuery`. After being
+   * moved from, a `AggregateQuery` is equivalent to its default-constructed
+   * state.
    *
    * @param[in] other `AggregateQuery` to move data from.
    *
@@ -95,29 +97,33 @@ class AggregateQuery {
   AggregateQuery& operator=(AggregateQuery&& other);
 
   /**
-   * @brief Returns the query whose aggregations will be calculated by this object.
+   * @brief Returns the query whose aggregations will be calculated by this
+   * object.
    */
   virtual Query query() const;
 
   /**
    * @brief Executes this query.
    *
-   * @param[in] aggregateSource The source from which to acquire the aggregate results.
+   * @param[in] aggregateSource The source from which to acquire the aggregate
+   * results.
    *
-   * @return A Future that will be resolved with the results of the AggregateQuery.
+   * @return A Future that will be resolved with the results of the
+   * AggregateQuery.
    */
-  virtual Future<AggregateQuerySnapshot> Get(AggregateSource aggregateSource) const;
+  virtual Future<AggregateQuerySnapshot> Get(
+      AggregateSource aggregateSource) const;
 
   /**
-   * @brief Returns true if this `AggregateQuery` is valid, false if it is not valid.
-   * An invalid `AggregateQuery` could be the result of:
+   * @brief Returns true if this `AggregateQuery` is valid, false if it is not
+   * valid. An invalid `AggregateQuery` could be the result of:
    *   - Creating a `AggregateQuery` using the default constructor.
    *   - Moving from the `AggregateQuery`.
    *   - Deleting your Firestore instance, which will invalidate all the
    *     `AggregateQuery` instances associated with it.
    *
-   * @return true if this `AggregateQuery` is valid, false if this `AggregateQuery` is
-   * invalid.
+   * @return true if this `AggregateQuery` is valid, false if this
+   * `AggregateQuery` is invalid.
    */
   bool is_valid() const { return internal_ != nullptr; }
 

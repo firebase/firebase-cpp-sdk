@@ -1,24 +1,24 @@
 /*
-* Copyright 2022 Google LLC
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2022 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "firestore/src/include/firebase/firestore/aggregate_query.h"
-#include "firestore/src/include/firebase/firestore/aggregate_query_snapshot.h"
 #include "firestore/src/common/cleanup.h"
 #include "firestore/src/common/futures.h"
 #include "firestore/src/common/util.h"
+#include "firestore/src/include/firebase/firestore/aggregate_query_snapshot.h"
 
 #if defined(__ANDROID__)
 // TODO(tomandersen) #include "firestore/src/android/aggregate_query_android.h"
@@ -33,7 +33,7 @@ using CleanupFnQuery = CleanupFn<AggregateQuery>;
 
 AggregateQuery::AggregateQuery() {}
 
-AggregateQuery::AggregateQuery(const AggregateQuery& query)  {
+AggregateQuery::AggregateQuery(const AggregateQuery& query) {
   if (query.internal_) {
     internal_ = new AggregateQueryInternal(*query.internal_);
   }
@@ -46,7 +46,8 @@ AggregateQuery::AggregateQuery(AggregateQuery&& query) {
   CleanupFnQuery::Register(this, internal_);
 }
 
-AggregateQuery::AggregateQuery(AggregateQueryInternal* internal) : internal_(internal) {
+AggregateQuery::AggregateQuery(AggregateQueryInternal* internal)
+    : internal_(internal) {
   // NOTE: We don't assert internal != nullptr here since internal can be
   // nullptr when called by the CollectionReference copy constructor.
   CleanupFnQuery::Register(this, internal_);
@@ -93,7 +94,8 @@ Query AggregateQuery::query() const {
   return internal_->query();
 }
 
-Future<AggregateQuerySnapshot> AggregateQuery::Get(AggregateSource aggregateSource) const {
+Future<AggregateQuerySnapshot> AggregateQuery::Get(
+    AggregateSource aggregateSource) const {
   if (!internal_) return FailedFuture<AggregateQuerySnapshot>();
   return internal_->Get(aggregateSource);
 }
@@ -101,7 +103,6 @@ Future<AggregateQuerySnapshot> AggregateQuery::Get(AggregateSource aggregateSour
 bool operator==(const AggregateQuery& lhs, const AggregateQuery& rhs) {
   return EqualityCompare(lhs.internal_, rhs.internal_);
 }
-
 
 }  // namespace firestore
 }  // namespace firebase

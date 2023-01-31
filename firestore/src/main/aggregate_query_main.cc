@@ -1,18 +1,18 @@
 /*
-* Copyright 2023 Google LLC
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2023 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include <utility>
 
@@ -30,7 +30,8 @@
 namespace firebase {
 namespace firestore {
 
-AggregateQueryInternal::AggregateQueryInternal(api::AggregateQuery&& aggregate_query)
+AggregateQueryInternal::AggregateQueryInternal(
+    api::AggregateQuery&& aggregate_query)
     : aggregate_query_{std::move(aggregate_query)},
       promise_factory_{PromiseFactory<AsyncApis>::Create(this)} {}
 
@@ -46,24 +47,31 @@ Query AggregateQueryInternal::query() {
   return MakePublic(api::Query(aggregate_query_.query()));
 }
 
-Future<AggregateQuerySnapshot> AggregateQueryInternal::Get(AggregateSource source) {
-  auto promise = promise_factory_.CreatePromise<AggregateQuerySnapshot>(AsyncApis::kGet);
-  // TODO(tomandersen) Is there a better way to pass `aggregate_query_` than through `this`
-  aggregate_query_.Get([this, promise](util::StatusOr<int64_t> maybe_value) mutable {
-    if (maybe_value.ok()) {
-      int64_t count = maybe_value.ValueOrDie();
-      AggregateQuerySnapshotInternal internal = AggregateQuerySnapshotInternal(aggregate_query_, count);
-      AggregateQuerySnapshot snapshot = MakePublic(std::move(internal));
-      promise.SetValue(std::move(snapshot));
-    } else {
-      promise.SetError(maybe_value.status());
-    }
-  });
+Future<AggregateQuerySnapshot> AggregateQueryInternal::Get(
+    AggregateSource source) {
+  auto promise =
+      promise_factory_.CreatePromise<AggregateQuerySnapshot>(AsyncApis::kGet);
+  // TODO(tomandersen) Is there a better way to pass `aggregate_query_` than
+  // through `this`
+  aggregate_query_.Get(
+      [this, promise](util::StatusOr<int64_t> maybe_value) mutable {
+        if (maybe_value.ok()) {
+          int64_t count = maybe_value.ValueOrDie();
+          AggregateQuerySnapshotInternal internal =
+              AggregateQuerySnapshotInternal(aggregate_query_, count);
+          AggregateQuerySnapshot snapshot = MakePublic(std::move(internal));
+          promise.SetValue(std::move(snapshot));
+        } else {
+          promise.SetError(maybe_value.status());
+        }
+      });
   return promise.future();
 }
 
-bool operator==(const AggregateQueryInternal& lhs, const AggregateQueryInternal& rhs) {
-  // TODO(tomandersen) - there needs to be equals operator defined on api::AggregateQuery
+bool operator==(const AggregateQueryInternal& lhs,
+                const AggregateQueryInternal& rhs) {
+  // TODO(tomandersen) - there needs to be equals operator defined on
+  // api::AggregateQuery
   return lhs.aggregate_query_.query() == rhs.aggregate_query_.query();
 }
 
