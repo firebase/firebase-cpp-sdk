@@ -22,7 +22,6 @@ set(common_SRCS
   src/include/firebase/app_check.h
   src/include/firebase/app_check/debug_provider.h
   src/include/firebase/app_check/play_integrity_provider.h
-  src/include/firebase/app_check/safety_net_provider.h
   src/include/firebase/app_check/device_check_provider.h
   src/include/firebase/app_check/app_attest_provider.h
 )
@@ -38,8 +37,6 @@ set(android_SRCS
   src/android/debug_provider_android.h
   src/android/play_integrity_provider_android.cc
   src/android/play_integrity_provider_android.h
-  src/android/safety_net_provider_android.cc
-  src/android/safety_net_provider_android.h
   # Unsupported providers
   src/stub/app_attest_provider_stub.cc
   src/stub/device_check_provider_stub.cc
@@ -58,7 +55,6 @@ set(ios_SRCS
   src/ios/device_check_provider_ios.mm
   # Unsupported providers
   src/stub/play_integrity_provider_stub.cc
-  src/stub/safety_net_provider_stub.cc
 )
 
 # Flatbuffer resource files used by desktop
@@ -109,7 +105,6 @@ set(desktop_SRCS
   src/stub/app_attest_provider_stub.cc
   src/stub/device_check_provider_stub.cc
   src/stub/play_integrity_provider_stub.cc
-  src/stub/safety_net_provider_stub.cc
 )
 
 if(ANDROID)

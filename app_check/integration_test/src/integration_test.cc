@@ -33,7 +33,6 @@
 #include "firebase/app_check/debug_provider.h"
 #include "firebase/app_check/device_check_provider.h"
 #include "firebase/app_check/play_integrity_provider.h"
-#include "firebase/app_check/safety_net_provider.h"
 #include "firebase/auth.h"
 #include "firebase/database.h"
 #include "firebase/internal/platform.h"
@@ -558,20 +557,6 @@ TEST_F(FirebaseAppCheckTest, TestDeviceCheckProvider) {
 TEST_F(FirebaseAppCheckTest, TestPlayIntegrityProvider) {
   firebase::app_check::PlayIntegrityProviderFactory* factory =
       firebase::app_check::PlayIntegrityProviderFactory::GetInstance();
-#if FIREBASE_PLATFORM_ANDROID
-  ASSERT_NE(factory, nullptr);
-  InitializeApp();
-  firebase::app_check::AppCheckProvider* provider =
-      factory->CreateProvider(app_);
-  EXPECT_NE(provider, nullptr);
-#else
-  EXPECT_EQ(factory, nullptr);
-#endif
-}
-
-TEST_F(FirebaseAppCheckTest, TestSafetyNetProvider) {
-  firebase::app_check::SafetyNetProviderFactory* factory =
-      firebase::app_check::SafetyNetProviderFactory::GetInstance();
 #if FIREBASE_PLATFORM_ANDROID
   ASSERT_NE(factory, nullptr);
   InitializeApp();
