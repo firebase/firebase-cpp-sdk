@@ -133,7 +133,6 @@ static const std::vector<std::string> kNeighboringContentURLs = {
     "test_url1", "test_url2", "test_url3"};
 
 using app_framework::LogDebug;
-using app_framework::LogInfo;
 using app_framework::ProcessEvents;
 
 using firebase_test_framework::FirebaseTest;
@@ -866,6 +865,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoad) {
     EXPECT_FALSE(result_ptr->response_info().response_id().empty());
     EXPECT_FALSE(result_ptr->response_info().ToString().empty());
   }
+  load_ad_future.Release();
   delete rewarded;
 }
 
@@ -1840,6 +1840,7 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoadEmptyRequest) {
     EXPECT_FALSE(result_ptr->response_info().response_id().empty());
     EXPECT_FALSE(result_ptr->response_info().ToString().empty());
   }
+  load_ad_future.Release();
   delete rewarded;
 }
 
