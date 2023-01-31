@@ -107,6 +107,15 @@ TEST_F(FirebaseAnalyticsTest, TestGetAnalyticsInstanceID) {
 }
 
 TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
+  // Android emulator tests are currently not working due to getSessionId being
+  // disabled on virtual FTL devices, due to an older version of Google Play
+  // services.
+  SKIP_TEST_ON_ANDROID_EMULATOR;
+
+  // iOS simulator tests are currently extra flaky, occasionally failing with an
+  // "Analytics uninitialized" error even after multiple attempts.
+  SKIP_TEST_ON_IOS_SIMULATOR;
+
   // On Android, if SetConsent was tested, this test will fail, since the app
   // needs to be restarted after consent is denied or it won't generate a new
   // sessionID. To not break the tests, skip this test in that case.
