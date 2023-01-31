@@ -474,9 +474,9 @@ TEST_F(FirebaseAppCheckTest, TestDebugProviderValidToken) {
   ASSERT_NE(factory, nullptr);
   InitializeAppCheckWithDebug();
   InitializeApp();
-  // TODO: for android, is it really necessary to get an instance of app check?
-  // should be no though that "should be no" is just because creating app should
-  // automatically trigger some initialization
+  // TODO(almostmatt): Once app initialization automatically initializes
+  // AppCheck, this test will no longer need to explicitly get an instance of
+  // AppCheck.
   ::firebase::app_check::AppCheck* app_check =
       ::firebase::app_check::AppCheck::GetInstance(app_);
   ASSERT_NE(app_check, nullptr);

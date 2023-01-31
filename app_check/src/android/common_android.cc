@@ -16,7 +16,6 @@
 
 #include "app/src/app_common.h"
 #include "app/src/util_android.h"
-#include "app_check/src/android/common_android.h"
 #include "app_check/src/include/firebase/app_check.h"
 
 namespace firebase {
@@ -81,9 +80,6 @@ AppCheckToken CppTokenFromAndroidToken(JNIEnv* env, jobject token_obj) {
   return cpp_token;
 }
 
-// TODO: is this a good approach? can I get JNI env before I have initialized an
-// app? I found this method in credential android
-// Alternatively I can have a non-static method that uses app_
 JNIEnv* GetJniEnv() {
   // The JNI environment is the same regardless of App.
   App* app = app_common::GetAnyApp();
@@ -101,7 +97,7 @@ struct TokenResultCallbackData {
   std::function<void(AppCheckToken, int, const std::string&)> callback;
 };
 
-}  // namespace
+}  // anonymous namespace
 
 void TokenResultCallback(JNIEnv* env, jobject result,
                          util::FutureResult result_code,

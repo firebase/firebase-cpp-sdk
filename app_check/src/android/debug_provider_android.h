@@ -15,6 +15,8 @@
 #ifndef FIREBASE_APP_CHECK_SRC_ANDROID_DEBUG_PROVIDER_ANDROID_H_
 #define FIREBASE_APP_CHECK_SRC_ANDROID_DEBUG_PROVIDER_ANDROID_H_
 
+#include <map>
+
 #include "firebase/app_check.h"
 
 namespace firebase {

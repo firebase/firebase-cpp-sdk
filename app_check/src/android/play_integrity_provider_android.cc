@@ -14,6 +14,8 @@
 
 #include "app_check/src/android/play_integrity_provider_android.h"
 
+#include <map>
+
 #include "app/src/app_common.h"
 #include "app/src/util_android.h"
 #include "app_check/src/android/common_android.h"

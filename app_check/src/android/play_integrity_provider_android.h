@@ -17,6 +17,8 @@
 
 #include "firebase/app_check.h"
 
+#include <map>
+
 namespace firebase {
 namespace app_check {
 namespace internal {

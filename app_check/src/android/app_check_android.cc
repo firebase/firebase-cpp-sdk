@@ -64,7 +64,6 @@ AppCheckInternal::~AppCheckInternal() {
   JNIEnv* env = app_->GetJNIEnv();
   app_ = nullptr;
 
-  // TODO: is this the right place for this jni env setup/cleanup
   FIREBASE_ASSERT(g_initialized_count);
   g_initialized_count--;
   if (g_initialized_count == 0) {
