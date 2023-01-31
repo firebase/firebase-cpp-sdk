@@ -15,9 +15,9 @@
 #ifndef FIREBASE_APP_CHECK_SRC_ANDROID_PLAY_INTEGRITY_PROVIDER_ANDROID_H_
 #define FIREBASE_APP_CHECK_SRC_ANDROID_PLAY_INTEGRITY_PROVIDER_ANDROID_H_
 
-#include "firebase/app_check.h"
-
 #include <map>
+
+#include "firebase/app_check.h"
 
 namespace firebase {
 namespace app_check {
