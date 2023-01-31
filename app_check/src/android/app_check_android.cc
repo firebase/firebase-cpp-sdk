@@ -38,8 +38,6 @@ AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
 
   // Cache the JNI method ids so we only have to look them up by name once.
   if (!g_initialized_count) {
-    // TODO: should I have a non-constructor getter that can handle failure to
-    // initialize?
     JNIEnv* env = app->GetJNIEnv();
     jobject activity = app->activity();
     if (util::Initialize(env, activity)) {

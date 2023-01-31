@@ -14,6 +14,8 @@
 
 #include "app_check/src/android/common_android.h"
 
+#include <string>
+
 #include "app/src/app_common.h"
 #include "app/src/util_android.h"
 #include "app_check/src/include/firebase/app_check.h"

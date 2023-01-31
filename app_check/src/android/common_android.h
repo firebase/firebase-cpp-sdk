@@ -17,6 +17,8 @@
 
 #include <jni.h>
 
+#include <string>
+
 #include "app/src/app_common.h"
 #include "app/src/util_android.h"
 #include "app_check/src/include/firebase/app_check.h"
@@ -49,12 +51,12 @@ AppCheckToken CppTokenFromAndroidToken(JNIEnv* env, jobject token_obj);
 // A generic class to wrap a java AppCheckProvider.
 class AndroidAppCheckProvider : public AppCheckProvider {
  public:
-  AndroidAppCheckProvider(jobject debug_provider);
+  explicit AndroidAppCheckProvider(jobject debug_provider);
   virtual ~AndroidAppCheckProvider();
 
   /// Fetches an AppCheckToken and then calls the provided callback method with
   /// the token or with an error code and error message.
-  virtual void GetToken(
+  void GetToken(
       std::function<void(AppCheckToken, int, const std::string&)>
           completion_callback) override;
 
