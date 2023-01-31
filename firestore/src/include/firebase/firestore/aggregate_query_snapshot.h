@@ -20,12 +20,11 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "firestore/src/main/aggregate_query_snapshot_main.h"
-
 namespace firebase {
 namespace firestore {
 
 class AggregateQuery;
+class AggregateQuerySnapshotInternal;
 
 /**
  * @brief A QuerySnapshot contains zero or more DocumentSnapshot objects.

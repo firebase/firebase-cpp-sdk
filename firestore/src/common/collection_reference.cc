@@ -23,7 +23,7 @@
 #include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #if defined(__ANDROID__)
-#include "firestore/src/android/collection_reference_android.h"
+//#include "firestore/src/android/collection_reference_android.h"
 #else
 #include "firestore/src/main/collection_reference_main.h"
 #endif  // defined(__ANDROID__)

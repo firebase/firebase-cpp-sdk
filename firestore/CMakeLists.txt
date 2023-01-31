@@ -191,6 +191,7 @@ set(main_SRCS
     src/main/aggregate_query_main.h
     src/main/aggregate_query_snapshot_main.cc
     src/main/aggregate_query_snapshot_main.h
+    src/main/collection_reference_main.cc
     src/main/collection_reference_main.h
     src/main/converter_main.h
     src/main/document_change_main.cc
