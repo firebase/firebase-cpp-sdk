@@ -849,19 +849,20 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoad) {
     WaitForCompletion(load_ad_future, "LoadAd");
   } else {
     // Run in automated test mode: don't fail if NoFill occurred.
-    WaitForCompletionAnyResult(load_ad_future, "LoadAd (ignoring NoFill error)");
+    WaitForCompletionAnyResult(load_ad_future,
+                               "LoadAd (ignoring NoFill error)");
     EXPECT_TRUE(load_ad_future.error() == firebase::gma::kAdErrorCodeNone ||
                 load_ad_future.error() == firebase::gma::kAdErrorCodeNoFill);
   }
   if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
-    // In UI mode, or in non-UI mode if a NoFill error didn't occur, check that the
-    // ad loaded correctly.
+    // In UI mode, or in non-UI mode if a NoFill error didn't occur, check that
+    // the ad loaded correctly.
     const firebase::gma::AdResult* result_ptr = load_ad_future.result();
     ASSERT_NE(result_ptr, nullptr);
     EXPECT_TRUE(result_ptr->is_successful());
     EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
     EXPECT_FALSE(
-		 result_ptr->response_info().mediation_adapter_class_name().empty());
+        result_ptr->response_info().mediation_adapter_class_name().empty());
     EXPECT_FALSE(result_ptr->response_info().response_id().empty());
     EXPECT_FALSE(result_ptr->response_info().ToString().empty());
   }
@@ -1824,19 +1825,20 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoadEmptyRequest) {
     WaitForCompletion(load_ad_future, "LoadAd");
   } else {
     // Run in automated test mode: don't fail if NoFill occurred.
-    WaitForCompletionAnyResult(load_ad_future, "LoadAd (ignoring NoFill error)");
+    WaitForCompletionAnyResult(load_ad_future,
+                               "LoadAd (ignoring NoFill error)");
     EXPECT_TRUE(load_ad_future.error() == firebase::gma::kAdErrorCodeNone ||
                 load_ad_future.error() == firebase::gma::kAdErrorCodeNoFill);
   }
   if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
-    // In UI mode, or in non-UI mode if a NoFill error didn't occur, check that the
-    // ad loaded correctly.
+    // In UI mode, or in non-UI mode if a NoFill error didn't occur, check that
+    // the ad loaded correctly.
     const firebase::gma::AdResult* result_ptr = load_ad_future.result();
     ASSERT_NE(result_ptr, nullptr);
     EXPECT_TRUE(result_ptr->is_successful());
     EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
     EXPECT_FALSE(
-		 result_ptr->response_info().mediation_adapter_class_name().empty());
+        result_ptr->response_info().mediation_adapter_class_name().empty());
     EXPECT_FALSE(result_ptr->response_info().response_id().empty());
     EXPECT_FALSE(result_ptr->response_info().ToString().empty());
   }
