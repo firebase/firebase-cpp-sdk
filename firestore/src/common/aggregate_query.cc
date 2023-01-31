@@ -21,7 +21,7 @@
 #include "firestore/src/common/util.h"
 
 #if defined(__ANDROID__)
-#include "firestore/src/android/aggregate_query_android.h"
+// TODO(tomandersen) #include "firestore/src/android/aggregate_query_android.h"
 #else
 #include "firestore/src/main/aggregate_query_main.h"
 #endif  // defined(__ANDROID__)
