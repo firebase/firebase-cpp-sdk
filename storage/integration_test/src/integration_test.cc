@@ -67,7 +67,7 @@ const int kLargeFileMegabytes = 64;
 // Android FTL devices can sometimes be really slow.
 // Use a much smaller file.
 const int kLargeFileMegabytes = 8;
-#else // iOS or tvOS
+#else  // iOS or tvOS
 // iOS FTL devices can handle a medium-sized file.
 const int kLargeFileMegabytes = 32;
 #endif
