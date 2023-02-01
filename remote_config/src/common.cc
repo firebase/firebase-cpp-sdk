@@ -28,7 +28,8 @@ FIREBASE_APP_REGISTER_CALLBACKS(remote_config,
                                 },
                                 {
                                     // Nothing to do.
-                                });
+                                },
+                                false);
 
 namespace firebase {
 namespace remote_config {

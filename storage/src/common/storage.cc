@@ -43,7 +43,8 @@ FIREBASE_APP_REGISTER_CALLBACKS(storage,
                                 { return ::firebase::kInitResultSuccess; },
                                 {
                                     // Nothing to tear down.
-                                });
+                                },
+                                false);
 
 namespace firebase {
 namespace storage {

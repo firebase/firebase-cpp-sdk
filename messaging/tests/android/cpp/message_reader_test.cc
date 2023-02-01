@@ -28,7 +28,7 @@
 // Since we're compiling a subset of the Android library on all platforms,
 // we need to register a stub module initializer referenced by messaging.h
 // to satisfy the linker.
-FIREBASE_APP_REGISTER_CALLBACKS(messaging, { return kInitResultSuccess; }, {});
+FIREBASE_APP_REGISTER_CALLBACKS(messaging, { return kInitResultSuccess; }, {}, false);
 
 namespace firebase {
 namespace messaging {

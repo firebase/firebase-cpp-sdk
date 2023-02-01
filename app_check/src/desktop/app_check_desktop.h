@@ -60,6 +60,11 @@ class AppCheckInternal {
   // Get the Provider associated with the stored App used to create this.
   AppCheckProvider* GetProvider();
 
+  // TODO(amaurice): Better comment
+  void InitRegistryCalls();
+  void CleanupRegistryCalls();
+  static bool GetAppCheckTokenAsyncForRegistry(App* app, void* /*unused*/, void* out_future);
+
   ::firebase::App* app_;
 
   FutureManager future_manager_;

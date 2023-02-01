@@ -95,11 +95,11 @@ class AppCallback {
   // initialization can be enabled on a case by case basis using
   // SetEnabledByName() before creating an App object, for example:
   // SetEnabledByName("analytics", true);
-  AppCallback(const char* module_name, Created created, Destroyed destroyed)
+  AppCallback(const char* module_name, Created created, Destroyed destroyed, bool enabled)
       : module_name_(module_name),
         created_(created),
         destroyed_(destroyed),
-        enabled_(false) {
+        enabled_(enabled) {
     AddCallback(this);
   }
 
@@ -186,14 +186,14 @@ class AppCallback {
 //     }
 //   });
 #define FIREBASE_APP_REGISTER_CALLBACKS(module_name, created_code,             \
-                                        destroyed_code)                        \
+                                        destroyed_code, enabled)               \
   namespace firebase {                                                         \
   static InitResult module_name##Created(::firebase::App* app) {               \
     created_code;                                                              \
   }                                                                            \
   static void module_name##Destroyed(::firebase::App* app) { destroyed_code; } \
   static ::firebase::AppCallback module_name##_app_callback(                   \
-      #module_name, module_name##Created, module_name##Destroyed);             \
+      #module_name, module_name##Created, module_name##Destroyed, enabled);    \
   /* This is a global symbol that is referenced from all compilation units */  \
   /* that include this module. */                                              \
   void* FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_NAME(module_name)          \

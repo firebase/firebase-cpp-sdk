@@ -26,8 +26,10 @@
 #include "app/rest/transport_curl.h"
 #include "app/rest/util.h"
 #include "app/src/app_common.h"
+#include "app/src/function_registry.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/thread.h"
+#include "app_check/src/include/firebase/app_check.h"
 #include "storage/src/common/common_internal.h"
 #include "storage/src/desktop/controller_desktop.h"
 #include "storage/src/desktop/metadata_desktop.h"
@@ -252,6 +254,19 @@ void StorageReferenceInternal::PrepareRequest(rest::Request* request,
   // Add the Firebase library version to the request.
   request->add_header("X-Firebase-Storage-Version",
                       storage_->user_agent().c_str());
+
+  // Use the function registry to get the App Check token.
+  Future<::firebase::app_check::AppCheckToken> app_check_future;
+  bool succeeded = storage_->app()->function_registry()->CallFunction(
+          ::firebase::internal::FnAppCheckGetTokenAsync, storage_->app(),
+          nullptr, &app_check_future);
+  LogInfo("%d", succeeded);
+  if (succeeded && app_check_future.status() != kFutureStatusInvalid) {
+    const ::firebase::app_check::AppCheckToken* token = app_check_future.Await(30000);
+    if (token) {
+      request->add_header("X-Firebase-AppCheck", token->token.c_str());
+    }
+  }
 }
 
 // Asynchronously downloads the object from this StorageReference.

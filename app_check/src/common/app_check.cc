@@ -39,10 +39,20 @@
 
 // Register the module initializer.
 FIREBASE_APP_REGISTER_CALLBACKS(app_check,
-                                { return ::firebase::kInitResultSuccess; },
                                 {
-                                    // Nothing to tear down.
-                                });
+                                  // Create the AppCheck object for the given app.
+                                  ::firebase::app_check::AppCheck::GetInstance(app);
+                                  return ::firebase::kInitResultSuccess;
+                                },
+                                {
+                                  // TODO(amaurice): Call a version that doesn't create the app check if it doesn't exist.
+                                  ::firebase::app_check::AppCheck* app_check = ::firebase::app_check::AppCheck::GetInstance(app);
+                                  if (app_check) {
+                                    delete app_check;
+                                  }
+                                },
+                                // App Check wants to be turned on by default
+                                true);
 
 namespace firebase {
 namespace app_check {
@@ -58,6 +68,8 @@ AppCheckProvider::~AppCheckProvider() {}
 AppCheckProviderFactory::~AppCheckProviderFactory() {}
 
 AppCheck* AppCheck::GetInstance(::firebase::App* app) {
+  if (!app) return nullptr;
+
   MutexLock lock(g_app_check_lock);
   if (!g_app_check_map) {
     g_app_check_map = new std::map<::firebase::App*, AppCheck*>();

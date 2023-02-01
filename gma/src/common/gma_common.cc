@@ -45,7 +45,8 @@ FIREBASE_APP_REGISTER_CALLBACKS(
       if (app == ::firebase::App::GetInstance()) {
         firebase::gma::Terminate();
       }
-    });
+    },
+    false);
 
 namespace firebase {
 namespace gma {
