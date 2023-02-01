@@ -61,10 +61,14 @@ using app_framework::LogError;
 const char* kStorageUrl = nullptr;
 
 #if FIREBASE_PLATFORM_DESKTOP
-// Use a larger file on desktop...
+// Use a larger file on desktop.
 const int kLargeFileMegabytes = 64;
-#else
-// ...and a smaller file on mobile.
+#elif FIREBASE_PLATFORM_ANDROID
+// Android FTL devices can sometimes be really slow.
+// Use a much smaller file.
+const int kLargeFileMegabytes = 8;
+#else // iOS or tvOS
+// iOS FTL devices can handle a medium-sized file.
 const int kLargeFileMegabytes = 32;
 #endif
 
