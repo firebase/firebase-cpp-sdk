@@ -95,7 +95,8 @@ class AppCallback {
   // initialization can be enabled on a case by case basis using
   // SetEnabledByName() before creating an App object, for example:
   // SetEnabledByName("analytics", true);
-  AppCallback(const char* module_name, Created created, Destroyed destroyed, bool enabled)
+  AppCallback(const char* module_name, Created created, Destroyed destroyed,
+              bool enabled)
       : module_name_(module_name),
         created_(created),
         destroyed_(destroyed),

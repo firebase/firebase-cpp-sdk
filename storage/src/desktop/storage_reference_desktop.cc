@@ -258,11 +258,12 @@ void StorageReferenceInternal::PrepareRequest(rest::Request* request,
   // Use the function registry to get the App Check token.
   Future<::firebase::app_check::AppCheckToken> app_check_future;
   bool succeeded = storage_->app()->function_registry()->CallFunction(
-          ::firebase::internal::FnAppCheckGetTokenAsync, storage_->app(),
-          nullptr, &app_check_future);
+      ::firebase::internal::FnAppCheckGetTokenAsync, storage_->app(), nullptr,
+      &app_check_future);
   LogInfo("%d", succeeded);
   if (succeeded && app_check_future.status() != kFutureStatusInvalid) {
-    const ::firebase::app_check::AppCheckToken* token = app_check_future.Await(30000);
+    const ::firebase::app_check::AppCheckToken* token =
+        app_check_future.Await(30000);
     if (token) {
       request->add_header("X-Firebase-AppCheck", token->token.c_str());
     }

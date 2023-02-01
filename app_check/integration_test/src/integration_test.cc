@@ -743,7 +743,8 @@ TEST_F(FirebaseAppCheckTest, TestStorageReadFileUnauthenticated) {
   char buffer[kBufferSize];
   memset(buffer, 0, sizeof(buffer));
   firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
-  WaitForCompletion(future, "GetBytes", firebase::storage::kErrorUnauthenticated);
+  WaitForCompletion(future, "GetBytes",
+                    firebase::storage::kErrorUnauthenticated);
   LogDebug("  buffer: %s", buffer);
 }
 

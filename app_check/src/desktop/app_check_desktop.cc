@@ -135,8 +135,8 @@ int g_app_check_registry_count = 0;
 void AppCheckInternal::InitRegistryCalls() {
   if (g_app_check_registry_count == 0) {
     app_->function_registry()->RegisterFunction(
-      ::firebase::internal::FnAppCheckGetTokenAsync,
-      AppCheckInternal::GetAppCheckTokenAsyncForRegistry);
+        ::firebase::internal::FnAppCheckGetTokenAsync,
+        AppCheckInternal::GetAppCheckTokenAsyncForRegistry);
   }
   g_app_check_registry_count++;
 }
@@ -144,12 +144,15 @@ void AppCheckInternal::InitRegistryCalls() {
 void AppCheckInternal::CleanupRegistryCalls() {
   g_app_check_registry_count--;
   if (g_app_check_registry_count == 0) {
-    app_->function_registry()->UnregisterFunction(::firebase::internal::FnAppCheckGetTokenAsync);
+    app_->function_registry()->UnregisterFunction(
+        ::firebase::internal::FnAppCheckGetTokenAsync);
   }
 }
 
 // Static functions used by the internal registry tool
-bool AppCheckInternal::GetAppCheckTokenAsyncForRegistry(App* app, void* /*unused*/, void* out) {
+bool AppCheckInternal::GetAppCheckTokenAsyncForRegistry(App* app,
+                                                        void* /*unused*/,
+                                                        void* out) {
   Future<AppCheckToken>* out_future = static_cast<Future<AppCheckToken>*>(out);
   if (!app || !out_future) {
     return false;
@@ -157,7 +160,8 @@ bool AppCheckInternal::GetAppCheckTokenAsyncForRegistry(App* app, void* /*unused
 
   AppCheck* app_check = AppCheck::GetInstance(app);
   if (app_check) {
-    // TODO(amaurice): This should call some internal function instead of the public one
+    // TODO(amaurice): This should call some internal function instead of the
+    // public one
     *out_future = app_check->GetAppCheckToken(false);
     return true;
   }

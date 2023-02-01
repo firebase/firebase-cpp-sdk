@@ -38,12 +38,12 @@
         // FIREBASE_PLATFORM_TVOS
 
 // Register the module initializer.
-FIREBASE_APP_REGISTER_CALLBACKS(functions,
-                                { return ::firebase::kInitResultSuccess; },
-                                {
-                                    // Nothing to tear down.
-                                },
-                                false);
+FIREBASE_APP_REGISTER_CALLBACKS(
+    functions, { return ::firebase::kInitResultSuccess; },
+    {
+        // Nothing to tear down.
+    },
+    false);
 
 namespace firebase {
 namespace functions {

@@ -63,7 +63,8 @@ class AppCheckInternal {
   // TODO(amaurice): Better comment
   void InitRegistryCalls();
   void CleanupRegistryCalls();
-  static bool GetAppCheckTokenAsyncForRegistry(App* app, void* /*unused*/, void* out_future);
+  static bool GetAppCheckTokenAsyncForRegistry(App* app, void* /*unused*/,
+                                               void* out_future);
 
   ::firebase::App* app_;
 
