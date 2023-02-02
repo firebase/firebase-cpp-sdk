@@ -657,8 +657,8 @@ TEST_F(FirebaseDynamicLinksTest,
     firebase::dynamic_links::DynamicLinkComponents components =
         GenerateComponentsForTest(kUrlToOpen);
 
-    FLAKY_TEST_SECTION_BEGIN();  // Occasional connection errors.
     firebase::Future<firebase::dynamic_links::GeneratedDynamicLink> future;
+    FLAKY_TEST_SECTION_BEGIN();  // Occasional connection errors.
     future = firebase::dynamic_links::GetShortLink(components);
     WaitForCompletion(future, "GetShortLinkFromLongLink");
     FLAKY_TEST_SECTION_END();  // Occasional connection errors.
