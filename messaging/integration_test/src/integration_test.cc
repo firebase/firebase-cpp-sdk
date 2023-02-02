@@ -150,8 +150,6 @@ void FirebaseMessagingTest::SetUpTestSuite() {
 
   ASSERT_TRUE(InitializeMessaging());
 
-  LogDebug("Successfully initialized Firebase Cloud Messaging.");
-
   is_desktop_stub_ = false;
 #if !defined(ANDROID) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
   is_desktop_stub_ = true;
@@ -189,6 +187,10 @@ bool FirebaseMessagingTest::InitializeMessaging() {
 
   EXPECT_EQ(initializer.InitializeLastResult().error(), 0)
       << initializer.InitializeLastResult().error_message();
+
+  if  (initializer.InitializeLastResult().error() == 0) {
+    LogDebug("Successfully initialized Firebase Cloud Messaging.");
+  }
 
   return (initializer.InitializeLastResult().error() == 0);
 }
