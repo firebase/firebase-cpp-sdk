@@ -401,7 +401,8 @@ TEST_F(FirebaseDynamicLinksTest, TestGetShortLinkFromLongLink) {
   firebase::Future<firebase::dynamic_links::GeneratedDynamicLink> future;
 
   FLAKY_TEST_SECTION_BEGIN();  // Occasional connection errors.
-  future = firebase::dynamic_links::GetShortLink(long_link.url.c_str(), options);
+  future =
+      firebase::dynamic_links::GetShortLink(long_link.url.c_str(), options);
   WaitForCompletion(future, "GetShortLinkFromLongLink");
   FLAKY_TEST_SECTION_END();
 
@@ -581,7 +582,8 @@ TEST_F(FirebaseDynamicLinksTest, TestOpeningShortLinkFromLongLinkInRunningApp) {
     firebase::Future<firebase::dynamic_links::GeneratedDynamicLink> future;
 
     FLAKY_TEST_SECTION_BEGIN();  // Occasional connection errors.
-    future = firebase::dynamic_links::GetShortLink(long_link.url.c_str(), options);
+    future =
+        firebase::dynamic_links::GetShortLink(long_link.url.c_str(), options);
     WaitForCompletion(future, "GetShortLinkFromLongLink");
     FLAKY_TEST_SECTION_END();
 
