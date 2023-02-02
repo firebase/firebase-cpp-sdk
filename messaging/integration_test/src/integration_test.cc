@@ -391,6 +391,7 @@ TEST_F(FirebaseMessagingTest, TestReceiveToken) {
   // This section will run after each failed flake attempt. If we failed to get
   // a token, we might need to completely uninitialize messaging and
   // reinitialize it.
+  LogInfo("Reinitializing FCM before retry...");
   TerminateMessaging();
   ProcessEvents(3000);  // Pause a few seconds.
   InitializeMessaging();
