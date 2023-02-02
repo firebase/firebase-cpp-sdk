@@ -58,8 +58,9 @@ const char kRestEndpoint[] = "https://fcm.googleapis.com/fcm/send";
 const char kNotificationLinkKey[] = "gcm.n.link";
 const char kTestLink[] = "https://this-is-a-test-link/";
 
-// Give each operation approximately 120 seconds before failing.
-const int kTimeoutSeconds = 120;
+// Give each operation approximately 30 seconds before failing.
+// Much longer than this and our FTL tests time out.
+const int kTimeoutSeconds = 30;
 const char kTestingNotificationKey[] = "fcm_testing_notification";
 
 using app_framework::LogDebug;
@@ -136,15 +137,6 @@ firebase::messaging::PollableListener* FirebaseMessagingTest::shared_listener_ =
 bool FirebaseMessagingTest::is_desktop_stub_;
 
 void FirebaseMessagingTest::SetUpTestSuite() {
-  LogDebug("Initialize Firebase App.");
-
-#if defined(__ANDROID__)
-  shared_app_ = ::firebase::App::Create(app_framework::GetJniEnv(),
-                                        app_framework::GetActivity());
-#else
-  shared_app_ = ::firebase::App::Create();
-#endif  // defined(__ANDROID__)
-
   ASSERT_TRUE(InitializeMessaging());
 
   is_desktop_stub_ = false;
@@ -154,6 +146,15 @@ void FirebaseMessagingTest::SetUpTestSuite() {
 }
 
 bool FirebaseMessagingTest::InitializeMessaging() {
+  LogDebug("Initialize Firebase App.");
+
+#if defined(__ANDROID__)
+  shared_app_ = ::firebase::App::Create(app_framework::GetJniEnv(),
+                                        app_framework::GetActivity());
+#else
+  shared_app_ = ::firebase::App::Create();
+#endif  // defined(__ANDROID__)
+
   LogDebug("Initializing Firebase Cloud Messaging.");
   shared_token_ = new std::string();
 
@@ -197,11 +198,8 @@ bool FirebaseMessagingTest::InitializeMessaging() {
 
 void FirebaseMessagingTest::TearDownTestSuite() {
   LogDebug("All tests finished, cleaning up.");
-  TerminateMessaging();
 
-  LogDebug("Shutdown Firebase App.");
-  delete shared_app_;
-  shared_app_ = nullptr;
+  TerminateMessaging();
 
   // On iOS/FTL, most or all of the tests are skipped, so add a delay so the app
   // doesn't finish too quickly, as this makes test results flaky.
@@ -217,6 +215,10 @@ void FirebaseMessagingTest::TerminateMessaging() {
 
   LogDebug("Shutdown Firebase Cloud Messaging.");
   firebase::messaging::Terminate();
+
+  LogDebug("Shutdown Firebase App.");
+  delete shared_app_;
+  shared_app_ = nullptr;
 }
 
 FirebaseMessagingTest::FirebaseMessagingTest() {
