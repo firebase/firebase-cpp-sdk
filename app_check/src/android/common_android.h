@@ -56,9 +56,8 @@ class AndroidAppCheckProvider : public AppCheckProvider {
 
   /// Fetches an AppCheckToken and then calls the provided callback method with
   /// the token or with an error code and error message.
-  void GetToken(
-      std::function<void(AppCheckToken, int, const std::string&)>
-          completion_callback) override;
+  void GetToken(std::function<void(AppCheckToken, int, const std::string&)>
+                    completion_callback) override;
 
  private:
   jobject android_provider_;

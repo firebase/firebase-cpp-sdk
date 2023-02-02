@@ -45,17 +45,21 @@ METHOD_LOOKUP_DEFINITION(play_integrity_provider_factory,
                          "PlayIntegrityAppCheckProviderFactory",
                          PLAY_INTEGRITY_PROVIDER_FACTORY_METHODS)
 
+static bool g_methods_cached = false;
+
+const char kMethodsNotCachedError[] =
+    "PlayIntegrityProviderFactory methods were not cached.";
+
 bool CachePlayIntegrityProviderMethodIds(JNIEnv* env, jobject activity) {
   // Cache the PlayIntegrityProvider classes.
-  if (!play_integrity_provider_factory::CacheMethodIds(env, activity)) {
-    return false;
-  }
-
-  return true;
+  g_methods_cached =
+      play_integrity_provider_factory::CacheMethodIds(env, activity);
+  return g_methods_cached;
 }
 
 void ReleasePlayIntegrityProviderClasses(JNIEnv* env) {
   play_integrity_provider_factory::ReleaseClass(env);
+  g_methods_cached = false;
 }
 
 PlayIntegrityProviderFactoryInternal::PlayIntegrityProviderFactoryInternal()
@@ -75,12 +79,15 @@ PlayIntegrityProviderFactoryInternal::~PlayIntegrityProviderFactoryInternal() {
 
 AppCheckProvider* PlayIntegrityProviderFactoryInternal::CreateProvider(
     App* app) {
+  FIREBASE_ASSERT_MESSAGE_RETURN(nullptr, g_methods_cached,
+                                 kMethodsNotCachedError);
+
   // Return the provider if it already exists.
   std::map<App*, AppCheckProvider*>::iterator it = created_providers_.find(app);
   if (it != created_providers_.end()) {
     return it->second;
   }
-  JNIEnv* env = GetJniEnv();
+  JNIEnv* env = app->GetJNIEnv();
   // Create a provider factory first if needed.
   if (android_provider_factory_ == nullptr) {
     jobject j_provider_factory_local = env->CallStaticObjectMethod(

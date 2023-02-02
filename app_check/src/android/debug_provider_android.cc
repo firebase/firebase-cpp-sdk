@@ -43,17 +43,20 @@ METHOD_LOOKUP_DEFINITION(
     "com/google/firebase/appcheck/debug/DebugAppCheckProviderFactory",
     DEBUG_PROVIDER_FACTORY_METHODS)
 
+static bool g_methods_cached = false;
+
+const char kMethodsNotCachedError[] =
+    "DebugAppCheckProviderFactory methods were not cached.";
+
 bool CacheDebugProviderMethodIds(JNIEnv* env, jobject activity) {
   // Cache the DebugProvider classes.
-  if (!debug_provider_factory::CacheMethodIds(env, activity)) {
-    return false;
-  }
-
-  return true;
+  g_methods_cached = debug_provider_factory::CacheMethodIds(env, activity);
+  return g_methods_cached;
 }
 
 void ReleaseDebugProviderClasses(JNIEnv* env) {
   debug_provider_factory::ReleaseClass(env);
+  g_methods_cached = false;
 }
 
 DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal()
@@ -73,12 +76,15 @@ DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
 
 AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
     App* app) {
+  FIREBASE_ASSERT_MESSAGE_RETURN(nullptr, g_methods_cached,
+                                 kMethodsNotCachedError);
+
   // Return the provider if it already exists.
   std::map<App*, AppCheckProvider*>::iterator it = created_providers_.find(app);
   if (it != created_providers_.end()) {
     return it->second;
   }
-  JNIEnv* env = GetJniEnv();
+  JNIEnv* env = app->GetJNIEnv();
   // Create a provider factory first if needed.
   if (android_provider_factory_ == nullptr) {
     jobject j_provider_factory_local =
