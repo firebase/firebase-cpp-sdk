@@ -218,7 +218,6 @@ void FirebaseMessagingTest::TerminateMessaging() {
   firebase::messaging::Terminate();
 }
 
-
 FirebaseMessagingTest::FirebaseMessagingTest() {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 }
