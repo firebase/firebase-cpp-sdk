@@ -242,6 +242,10 @@ namespace firebase_test_framework {
 #define FLAKY_TEST_SECTION_BEGIN() RunFlakyTestSection([&]() { (void)0
 #define FLAKY_TEST_SECTION_END() \
   })
+// If you use FLAKY_TEST_SECTION_RESET, it will run the code in between this and
+// FLAKY_TEST_SECTION_END after each failed flake attempt.
+#define FLAKY_TEST_SECTION_RESET() \
+  }, [&]() { (void)0
 
 class FirebaseTest : public testing::Test {
  public:
@@ -365,6 +369,25 @@ class FirebaseTest : public testing::Test {
 
       flaky_test_section();
 
+      return !HasFailure();
+    });
+  }
+
+  // This is the same as RunFlakyTestSection above, but it will call reset_function
+  // in between each flake attempt.
+  void RunFlakyTestSection(std::function<void()> flaky_test_section,
+			   std::function<void()> reset_function) {
+    // Save the current state of test results.
+    auto saved_test_results = SaveTestPartResults();
+    RunFlakyBlock([&]() {
+      RestoreTestPartResults(saved_test_results);
+
+      flaky_test_section();
+
+      if (HasFailure()) {
+	reset_function();
+      }
+     
       return !HasFailure();
     });
   }

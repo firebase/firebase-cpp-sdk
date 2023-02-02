@@ -83,6 +83,9 @@ class FirebaseMessagingTest : public FirebaseTest {
   void SetUp() override;
   void TearDown() override;
 
+  bool InitializeMessaging();
+  void TerminateMessaging();
+
   // Create a request and heads for a test message (returning false if unable to
   // do so). send_to can be a FCM token or a topic subscription.
   bool CreateTestMessage(
@@ -145,6 +148,18 @@ void FirebaseMessagingTest::SetUpTestSuite() {
   LogDebug("Initializing Firebase Cloud Messaging.");
   shared_token_ = new std::string();
 
+  if (InitializeMessaging()) {
+    LogDebug("Successfully initialized Firebase Cloud Messaging.");
+  } else {
+    LogDebug("Failed to initialize Firebase Cloud Messaging.");
+  }
+  is_desktop_stub_ = false;
+#if !defined(ANDROID) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
+  is_desktop_stub_ = true;
+#endif  // !defined(ANDROID) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
+}
+
+bool FirebaseMessagingTest::InitializeMessaging() {
   ::firebase::ModuleInitializer initializer;
   initializer.Initialize(
       shared_app_, &shared_listener_, [](::firebase::App* app, void* userdata) {
@@ -176,23 +191,13 @@ void FirebaseMessagingTest::SetUpTestSuite() {
   ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
       << initializer.InitializeLastResult().error_message();
 
-  LogDebug("Successfully initialized Firebase Cloud Messaging.");
-  is_desktop_stub_ = false;
-#if !defined(ANDROID) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-  is_desktop_stub_ = true;
-#endif  // !defined(ANDROID) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
+  return (initializer.InitializeLastResult().error() == 0);
 }
 
 void FirebaseMessagingTest::TearDownTestSuite() {
   LogDebug("All tests finished, cleaning up.");
-  firebase::messaging::SetListener(nullptr);
-  delete shared_listener_;
-  shared_listener_ = nullptr;
-  delete shared_token_;
-  shared_token_ = nullptr;
+  TerminateMessaging();
 
-  LogDebug("Shutdown Firebase Cloud Messaging.");
-  firebase::messaging::Terminate();
   LogDebug("Shutdown Firebase App.");
   delete shared_app_;
   shared_app_ = nullptr;
@@ -201,6 +206,18 @@ void FirebaseMessagingTest::TearDownTestSuite() {
   // doesn't finish too quickly, as this makes test results flaky.
   ProcessEvents(1000);
 }
+
+void FirebaseMessagingTest::TerminateMessaging() {
+  firebase::messaging::SetListener(nullptr);
+  delete shared_listener_;
+  shared_listener_ = nullptr;
+  delete shared_token_;
+  shared_token_ = nullptr;
+
+  LogDebug("Shutdown Firebase Cloud Messaging.");
+  firebase::messaging::Terminate();
+}
+
 
 FirebaseMessagingTest::FirebaseMessagingTest() {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
@@ -362,14 +379,23 @@ TEST_F(FirebaseMessagingTest, TestReceiveToken) {
 
   SKIP_TEST_ON_ANDROID_EMULATOR;
 
+  FLAKY_TEST_SECTION_BEGIN();
+
   EXPECT_TRUE(RequestPermission());
 
   EXPECT_TRUE(::firebase::messaging::IsTokenRegistrationOnInitEnabled());
 
-  FLAKY_TEST_SECTION_BEGIN();
-
   EXPECT_TRUE(WaitForToken());
   EXPECT_NE(*shared_token_, "");
+
+  FLAKY_TEST_SECTION_RESET();
+
+  // This section will run after each failed flake attempt. If we failed to get
+  // a token, we might need to completely uninitialize messaging and
+  // reinitialize it.
+  TerminateMessaging();
+  ProcessEvents(3000);  // Pause a few seconds.
+  InitializeMessaging();
 
   FLAKY_TEST_SECTION_END();
 }
@@ -378,10 +404,8 @@ TEST_F(FirebaseMessagingTest, TestSubscribeAndUnsubscribe) {
   TEST_REQUIRES_USER_INTERACTION_ON_IOS;
 
   // TODO(b/196589796) Test fails on Android emulators and causes failures in
-  // our CI. Since we don't have a good way to deterine if the runtime is an
-  // emulator or real device, we should disable the test in CI until we find
-  // the cause of problem.
-  TEST_REQUIRES_USER_INTERACTION_ON_ANDROID;
+  // our CI.
+  SKIP_TEST_ON_ANDROID_EMULATOR;
 
   EXPECT_TRUE(RequestPermission());
   EXPECT_TRUE(WaitForToken());
