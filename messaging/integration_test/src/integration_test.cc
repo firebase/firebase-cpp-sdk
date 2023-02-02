@@ -145,9 +145,6 @@ void FirebaseMessagingTest::SetUpTestSuite() {
   shared_app_ = ::firebase::App::Create();
 #endif  // defined(__ANDROID__)
 
-  LogDebug("Initializing Firebase Cloud Messaging.");
-  shared_token_ = new std::string();
-
   ASSERT_TRUE(InitializeMessaging());
 
   is_desktop_stub_ = false;
@@ -157,6 +154,9 @@ void FirebaseMessagingTest::SetUpTestSuite() {
 }
 
 bool FirebaseMessagingTest::InitializeMessaging() {
+  LogDebug("Initializing Firebase Cloud Messaging.");
+  shared_token_ = new std::string();
+
   ::firebase::ModuleInitializer initializer;
   initializer.Initialize(
       shared_app_, &shared_listener_, [](::firebase::App* app, void* userdata) {
@@ -396,7 +396,7 @@ TEST_F(FirebaseMessagingTest, TestReceiveToken) {
   LogInfo("Reinitializing FCM before retry...");
   TerminateMessaging();
   ProcessEvents(3000);  // Pause a few seconds.
-  InitializeMessaging();
+  EXPECT_TRUE(InitializeMessaging());
 
   FLAKY_TEST_SECTION_END();
 }
