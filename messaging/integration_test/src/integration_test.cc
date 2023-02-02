@@ -83,8 +83,8 @@ class FirebaseMessagingTest : public FirebaseTest {
   void SetUp() override;
   void TearDown() override;
 
-  bool InitializeMessaging();
-  void TerminateMessaging();
+  static bool InitializeMessaging();
+  static void TerminateMessaging();
 
   // Create a request and heads for a test message (returning false if unable to
   // do so). send_to can be a FCM token or a topic subscription.
