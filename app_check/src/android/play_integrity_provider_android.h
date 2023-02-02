@@ -26,7 +26,7 @@ namespace internal {
 // Cache the method ids so we don't have to look up JNI functions by name.
 bool CachePlayIntegrityProviderMethodIds(JNIEnv* env, jobject activity);
 
-// Release credential classes cached by CacheCredentialMethodIds().
+// Release provider classes cached by CachePlayIntegrityProviderMethodIds().
 void ReleasePlayIntegrityProviderClasses(JNIEnv* env);
 
 class PlayIntegrityProviderFactoryInternal : public AppCheckProviderFactory {

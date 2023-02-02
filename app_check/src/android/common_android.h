@@ -41,7 +41,7 @@ METHOD_LOOKUP_DECLARATION(app_check_provider, APP_CHECK_PROVIDER_METHODS)
 // Cache the method ids so we don't have to look up JNI functions by name.
 bool CacheCommonAndroidMethodIds(JNIEnv* env, jobject activity);
 
-// Release credential classes cached by CacheCredentialMethodIds().
+// Release app check classes cached by CacheCommonAndroidMethodIds().
 void ReleaseCommonAndroidClasses(JNIEnv* env);
 
 JNIEnv* GetJniEnv();
