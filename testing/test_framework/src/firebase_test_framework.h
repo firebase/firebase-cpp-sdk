@@ -240,10 +240,13 @@ namespace firebase_test_framework {
 // clang-format off
 // Macros to surround a flaky section of your test.
 // If this section fails, it will retry several times until it succeeds.
+// NOLINTNEXTLINE
 #define FLAKY_TEST_SECTION_BEGIN() RunFlakyTestSection([&]() { (void)0
+// NOLINTNEXTLINE
 #define FLAKY_TEST_SECTION_END() })
 // If you use FLAKY_TEST_SECTION_RESET, it will run the code in between this and
 // FLAKY_TEST_SECTION_END after each failed flake attempt.
+// NOLINTNEXTLINE
 #define FLAKY_TEST_SECTION_RESET() }, [&]() { (void)0
 // clang-format on
 
