@@ -188,7 +188,7 @@ bool FirebaseMessagingTest::InitializeMessaging() {
   EXPECT_EQ(initializer.InitializeLastResult().error(), 0)
       << initializer.InitializeLastResult().error_message();
 
-  if  (initializer.InitializeLastResult().error() == 0) {
+  if (initializer.InitializeLastResult().error() == 0) {
     LogDebug("Successfully initialized Firebase Cloud Messaging.");
   }
 
