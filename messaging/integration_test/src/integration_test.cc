@@ -148,11 +148,10 @@ void FirebaseMessagingTest::SetUpTestSuite() {
   LogDebug("Initializing Firebase Cloud Messaging.");
   shared_token_ = new std::string();
 
-  if (InitializeMessaging()) {
-    LogDebug("Successfully initialized Firebase Cloud Messaging.");
-  } else {
-    LogDebug("Failed to initialize Firebase Cloud Messaging.");
-  }
+  ASSERT_TRUE(InitializeMessaging());
+
+  LogDebug("Successfully initialized Firebase Cloud Messaging.");
+
   is_desktop_stub_ = false;
 #if !defined(ANDROID) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
   is_desktop_stub_ = true;
@@ -188,7 +187,7 @@ bool FirebaseMessagingTest::InitializeMessaging() {
 
   WaitForCompletion(initializer.InitializeLastResult(), "Initialize");
 
-  ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
+  EXPECT_EQ(initializer.InitializeLastResult().error(), 0)
       << initializer.InitializeLastResult().error_message();
 
   return (initializer.InitializeLastResult().error() == 0);
