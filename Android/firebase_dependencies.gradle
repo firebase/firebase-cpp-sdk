@@ -17,6 +17,9 @@ import org.gradle.util.ConfigureUtil;
 // A map of library to the dependencies that need to be added for it.
 def firebaseDependenciesMap = [
   'app' : ['com.google.firebase:firebase-analytics'],
+  'app_check' : ['com.google.firebase:firebase-appcheck',
+                 'com.google.firebase:firebase-appcheck-debug',
+                 'com.google.firebase:firebase-appcheck-playintegrity'],
   'play_services' : ['com.google.android.gms:play-services-base:18.1.0'],
   'admob' : ['com.google.firebase:firebase-ads:19.8.0',
              'com.google.firebase:firebase-analytics'],

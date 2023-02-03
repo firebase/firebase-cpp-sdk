@@ -14,6 +14,10 @@
 
 #include "app_check/src/android/app_check_android.h"
 
+#include "app/src/util_android.h"
+#include "app_check/src/android/common_android.h"
+#include "app_check/src/android/debug_provider_android.h"
+#include "app_check/src/android/play_integrity_provider_android.h"
 #include "app_check/src/common/common.h"
 
 namespace firebase {
@@ -21,14 +25,49 @@ namespace app_check {
 namespace internal {
 
 static AppCheckProviderFactory* g_provider_factory = nullptr;
+static int g_initialized_count = 0;
+
+// Release cached Java classes.
+static void ReleaseClasses(JNIEnv* env) {
+  ReleaseCommonAndroidClasses(env);
+  ReleaseDebugProviderClasses(env);
+  ReleasePlayIntegrityProviderClasses(env);
+}
 
 AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
   future_manager().AllocFutureApi(this, kAppCheckFnCount);
+
+  // Cache the JNI method ids so we only have to look them up by name once.
+  if (!g_initialized_count) {
+    JNIEnv* env = app->GetJNIEnv();
+    jobject activity = app->activity();
+    if (util::Initialize(env, activity)) {
+      if (!(CacheCommonAndroidMethodIds(env, activity))) {
+        ReleaseClasses(env);
+        util::Terminate(env);
+      } else {
+        // Each provider is optional as a user may or may not use it.
+        CacheDebugProviderMethodIds(env, activity);
+        CachePlayIntegrityProviderMethodIds(env, activity);
+        g_initialized_count++;
+      }
+    }
+  } else {
+    g_initialized_count++;
+  }
 }
 
 AppCheckInternal::~AppCheckInternal() {
   future_manager().ReleaseFutureApi(this);
+  JNIEnv* env = app_->GetJNIEnv();
   app_ = nullptr;
+
+  FIREBASE_ASSERT(g_initialized_count);
+  g_initialized_count--;
+  if (g_initialized_count == 0) {
+    ReleaseClasses(env);
+    util::Terminate(env);
+  }
 }
 
 ::firebase::App* AppCheckInternal::app() const { return app_; }
