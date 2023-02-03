@@ -397,8 +397,12 @@ TEST_F(FirebaseMessagingTest, TestReceiveToken) {
   // reinitialize it.
   LogInfo("Reinitializing FCM before retry...");
   TerminateMessaging();
-  ProcessEvents(3000);  // Pause a few seconds.
+  ProcessEvents(2000);  // Pause a few seconds.
   EXPECT_TRUE(InitializeMessaging());
+  ProcessEvents(2000);  // Pause a few seconds.
+  // Toggle SetTokenRegistrationOnInitEnabled.
+  firebase::messaging::SetTokenRegistrationOnInitEnabled(false);
+  firebase::messaging::SetTokenRegistrationOnInitEnabled(true);
 
   FLAKY_TEST_SECTION_END();
 }
@@ -570,8 +574,12 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
   // reinitialize it.
   LogInfo("Reinitializing FCM before retry...");
   TerminateMessaging();
-  ProcessEvents(3000);  // Pause a few seconds.
+  ProcessEvents(2000);  // Pause a few seconds.
   EXPECT_TRUE(InitializeMessaging());
+  ProcessEvents(2000);  // Pause a few seconds.
+  // Toggle SetTokenRegistrationOnInitEnabled.
+  firebase::messaging::SetTokenRegistrationOnInitEnabled(false);
+  firebase::messaging::SetTokenRegistrationOnInitEnabled(true);
 
   FLAKY_TEST_SECTION_END();
 }
