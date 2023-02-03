@@ -539,10 +539,10 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
 
   SKIP_TEST_ON_ANDROID_EMULATOR;
 
+  FLAKY_TEST_SECTION_BEGIN();
+
   EXPECT_TRUE(RequestPermission());
   EXPECT_TRUE(WaitForToken());
-
-  FLAKY_TEST_SECTION_BEGIN();
 
   std::string unique_id = GetUniqueMessageId();
   const char kNotificationTitle[] = "Token Test";
@@ -562,6 +562,16 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
     EXPECT_EQ(message.notification->body, kNotificationBody);
   }
   EXPECT_EQ(message.link, kTestLink);
+
+  FLAKY_TEST_SECTION_RESET();
+
+  // This section will run after each failed flake attempt. If we failed to get
+  // a token, we might need to completely uninitialize messaging and
+  // reinitialize it.
+  LogInfo("Reinitializing FCM before retry...");
+  TerminateMessaging();
+  ProcessEvents(3000);  // Pause a few seconds.
+  EXPECT_TRUE(InitializeMessaging());
 
   FLAKY_TEST_SECTION_END();
 }
@@ -612,6 +622,16 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToTopic) {
   // If this returns true, it means we received a message but
   // shouldn't have.
   EXPECT_FALSE(WaitForMessage(&message, 5));
+
+  FLAKY_TEST_SECTION_RESET();
+
+  // This section will run after each failed flake attempt. If we failed to get
+  // a token, we might need to completely uninitialize messaging and
+  // reinitialize it.
+  LogInfo("Reinitializing FCM before retry...");
+  TerminateMessaging();
+  ProcessEvents(3000);  // Pause a few seconds.
+  EXPECT_TRUE(InitializeMessaging());
 
   FLAKY_TEST_SECTION_END();
 }
