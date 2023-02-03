@@ -457,6 +457,8 @@ jobs:
             --short_output_paths \
             --gha_build \
             ${additional_flags[*]}
+          echo "Key hash used for building:"
+          echo | keytool -list -v -alias androiddebugkey -keystore ~/.android/debug.keystore
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
