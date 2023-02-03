@@ -543,12 +543,16 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
 
   SKIP_TEST_ON_ANDROID_EMULATOR;
 
+  // When deflaking this test, sometimes we get out of sync, so attempt #2
+  // receives the message that was meant for attempt #1. By storing the previous
+  // unique ID, we can catch this situation and consume the extraneous message.
+  std::string previous_unique_id = "XXX";
+  std::string unique_id;
   FLAKY_TEST_SECTION_BEGIN();
 
   EXPECT_TRUE(RequestPermission());
   EXPECT_TRUE(WaitForToken());
-
-  std::string unique_id = GetUniqueMessageId();
+  unique_id = GetUniqueMessageId();
   const char kNotificationTitle[] = "Token Test";
   const char kNotificationBody[] = "Token Test notification body";
   SendTestMessage(shared_token()->c_str(), kNotificationTitle,
@@ -558,7 +562,15 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
                    {kNotificationLinkKey, kTestLink}});
   LogDebug("Waiting for message.");
   firebase::messaging::Message message;
+
   EXPECT_TRUE(WaitForMessage(&message));
+  if (message.data["unique_id"] == previous_unique_id) {
+    // Flaky fix: We've received a leftover message from the previous attempt.
+    // Consume it and get another (with a short timeout), to see if it matches.
+    LogDebug(
+        "Message unique_id matches *previous* attempt, getting another...");
+    EXPECT_TRUE(WaitForMessage(&message, 10));
+  }
   EXPECT_EQ(message.data["unique_id"], unique_id);
   EXPECT_NE(message.notification, nullptr);
   if (message.notification) {
@@ -568,6 +580,8 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
   EXPECT_EQ(message.link, kTestLink);
 
   FLAKY_TEST_SECTION_RESET();
+
+  previous_unique_id = unique_id;
 
   // This section will run after each failed flake attempt. If we failed to get
   // a token, we might need to completely uninitialize messaging and
