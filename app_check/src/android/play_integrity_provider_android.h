@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_APP_CHECK_SRC_ANDROID_DEBUG_PROVIDER_ANDROID_H_
-#define FIREBASE_APP_CHECK_SRC_ANDROID_DEBUG_PROVIDER_ANDROID_H_
+#ifndef FIREBASE_APP_CHECK_SRC_ANDROID_PLAY_INTEGRITY_PROVIDER_ANDROID_H_
+#define FIREBASE_APP_CHECK_SRC_ANDROID_PLAY_INTEGRITY_PROVIDER_ANDROID_H_
 
 #include <map>
 
@@ -24,16 +24,16 @@ namespace app_check {
 namespace internal {
 
 // Cache the method ids so we don't have to look up JNI functions by name.
-bool CacheDebugProviderMethodIds(JNIEnv* env, jobject activity);
+bool CachePlayIntegrityProviderMethodIds(JNIEnv* env, jobject activity);
 
-// Release provider classes cached by CacheDebugProviderMethodIds().
-void ReleaseDebugProviderClasses(JNIEnv* env);
+// Release provider classes cached by CachePlayIntegrityProviderMethodIds().
+void ReleasePlayIntegrityProviderClasses(JNIEnv* env);
 
-class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
+class PlayIntegrityProviderFactoryInternal : public AppCheckProviderFactory {
  public:
-  DebugAppCheckProviderFactoryInternal();
+  PlayIntegrityProviderFactoryInternal();
 
-  virtual ~DebugAppCheckProviderFactoryInternal();
+  virtual ~PlayIntegrityProviderFactoryInternal();
 
   AppCheckProvider* CreateProvider(App* app) override;
 
@@ -47,4 +47,4 @@ class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
 }  // namespace app_check
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CHECK_SRC_ANDROID_DEBUG_PROVIDER_ANDROID_H_
+#endif  // FIREBASE_APP_CHECK_SRC_ANDROID_PLAY_INTEGRITY_PROVIDER_ANDROID_H_
