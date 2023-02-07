@@ -279,20 +279,13 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
-      - name: Setup python
-        uses: actions/setup-python@v4
+      - name: Setup Env
+        uses: ./gha/setup_env
         with:
-          python-version: ${{ env.pythonVersion }}
-      - name: Install Desktop SDK & integration tests prerequisites
-        uses: nick-invision/retry@v2
-        with:
-          shell: bash
-          timeout_minutes: 15
-          max_attempts: 3
-          command: scripts/gha/install_test_workflow_prereqs.sh -p Desktop -a '${{ matrix.arch }}' -s '${{ matrix.ssl_variant }}'
-      - name: Add msbuild to PATH (Windows)
-        if: startsWith(matrix.os, 'windows')
-        uses: microsoft/setup-msbuild@v1.1
+          os: ${{ matrix.os }}
+          platform: 'Desktop'
+          arch: ${{ matrix.arch }}
+          ssl_variant: ${{ matrix.ssl_variant }}
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
         uses: actions/cache@v3
@@ -409,26 +402,17 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
-      - name: Add msbuild to PATH (Windows)
-        if: startsWith(matrix.os, 'windows')
-        uses: microsoft/setup-msbuild@v1.1
+      - name: Setup Env
+        uses: ./gha/setup_env
+        with:
+          os: ${{ matrix.os }}
+          platform: 'Android'
       - name: Cache NDK
         id: cache_ndk
         uses: actions/cache@v3
         with:
           path: /tmp/android-ndk-r21e
           key: android-ndk-${{ matrix.os }}-r21e
-      - name: Setup python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.pythonVersion }}
-      - name: Install Android SDK & integration tests prerequisites
-        uses: nick-invision/retry@v2
-        with:
-          shell: bash
-          timeout_minutes: 10
-          max_attempts: 3
-          command: scripts/gha/install_test_workflow_prereqs.sh -p Android
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
@@ -517,16 +501,10 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
-      - name: Setup python
-        uses: actions/setup-python@v4
+      - name: Setup Env
+        uses: ./gha/setup_env
         with:
-          python-version: ${{ env.pythonVersion }}
-      - name: Install iOS SDK & integration tests prerequisites
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 3
-          max_attempts: 3
-          command: scripts/gha/install_test_workflow_prereqs.sh -p iOS
+          platform: 'iOS'
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
@@ -616,16 +594,10 @@ jobs:
         with:
           ref: ${{needs.check_and_prepare.outputs.github_ref}}
           submodules: true
-      - name: Setup python
-        uses: actions/setup-python@v4
+      - name: Setup Env
+        uses: ./gha/setup_env
         with:
-          python-version: ${{ env.pythonVersion }}
-      - name: Install tvOS SDK & integration tests prerequisites
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 3
-          max_attempts: 3
-          command: scripts/gha/install_test_workflow_prereqs.sh -p tvOS
+          platform: 'tvOS'
       - name: Fetch prebuilt packaged SDK from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.test_packaged_sdk != '' }}
@@ -744,17 +716,14 @@ jobs:
         with:
           path: testapps/testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
           name: testapps-desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}
-      - name: Setup python
-        uses: actions/setup-python@v4
+      - name: Setup Env
+        uses: ./gha/setup_env
         with:
-          python-version: ${{ env.pythonVersion }}
-      - name: Install prerequisites for testing
-        uses: nick-invision/retry@v2
-        with:
-          shell: bash
-          timeout_minutes: 15
-          max_attempts: 3
-          command: scripts/gha/install_test_workflow_prereqs.sh -p Desktop -t true -a '${{ matrix.arch }}' -s '${{ matrix.ssl_variant }}'
+          os: ${{ matrix.os }}
+          platform: 'Desktop'
+          arch: ${{ matrix.arch }}
+          ssl_variant: ${{ matrix.ssl_variant }}
+          test: 'true'
       - name: Set up Node (16)
         uses: actions/setup-node@v3
         with:
@@ -998,17 +967,11 @@ jobs:
         with:
           path: testapps/testapps-android-${{ matrix.build_os }}
           name: testapps-android-${{ matrix.build_os }}
-      - name: Setup python
-        uses: actions/setup-python@v4
+      - name: Setup Env
+        uses: ./gha/setup_env
         with:
-          python-version: ${{ env.pythonVersion }}
-      - name: Install prerequisites for testing
-        uses: nick-invision/retry@v2
-        with:
-          shell: bash
-          timeout_minutes: 5
-          max_attempts: 3
-          command: scripts/gha/install_test_workflow_prereqs.sh -p Android -t true
+          platform: 'Android'
+          test: 'true'
       - name: Get Device Info
         id: device-info
         run: |
@@ -1126,16 +1089,11 @@ jobs:
         with:
           path: testapps/testapps-ios-${{ matrix.build_os }}
           name: testapps-ios-${{ matrix.build_os }}
-      - name: Setup python
-        uses: actions/setup-python@v4
+      - name: Setup Env
+        uses: ./gha/setup_env
         with:
-          python-version: ${{ env.pythonVersion }}
-      - name: Install prerequisites for testing
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 3
-          max_attempts: 3
-          command: scripts/gha/install_test_workflow_prereqs.sh -p iOS -t true
+          platform: 'iOS'
+          test: 'true'
       - name: Device Info
         id: device-info
         run: |
@@ -1254,16 +1212,11 @@ jobs:
         with:
           path: testapps/testapps-tvos-${{ matrix.build_os }}
           name: testapps-tvos-${{ matrix.build_os }}
-      - name: Setup python
-        uses: actions/setup-python@v4
+      - name: Setup Env
+        uses: ./gha/setup_env
         with:
-          python-version: ${{ env.pythonVersion }}
-      - name: Install prerequisites for testing
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 3
-          max_attempts: 3
-          command: scripts/gha/install_test_workflow_prereqs.sh -p tvOS  -t true
+          platform: 'tvOS'
+          test: 'true'
       - name: Setup java for Firestore emulator
         uses: actions/setup-java@v3
         with:
