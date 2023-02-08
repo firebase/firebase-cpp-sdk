@@ -57,7 +57,7 @@ struct MessagingOptions {
   /// If this prompt has already been accepted once in the past the prompt will
   /// not be displayed again.
   ///
-  /// This option currently only applies to iOS.
+  /// This option currently only applies to iOS and tvOS.
   bool suppress_notification_permission_prompt;
 };
 
@@ -107,8 +107,8 @@ struct Notification {
   /// Destructor.
   ~Notification() { delete android; }
 
-  /// Indicates notification title. This field is not visible on iOS phones
-  /// and tablets.
+  /// Indicates notification title. This field is not visible on tvOS, iOS
+  /// phones and tablets.
   std::string title;
 
   /// Indicates notification body text.
@@ -122,12 +122,12 @@ struct Notification {
   /// Supports default, or the filename of a sound resource bundled in the
   /// app.
   ///
-  /// Android sound files must reside in /res/raw/, while iOS sound files
-  /// can be in the main bundle of the client app or in the Library/Sounds
-  /// folder of the app’s data container.
+  /// Android sound files must reside in /res/raw/, while iOS and tvOS sound
+  /// files can be in the main bundle of the client app or in the
+  /// Library/Sounds folder of the app’s data container.
   std::string sound;
 
-  /// Indicates the badge on the client app home icon. iOS only.
+  /// Indicates the badge on the client app home icon. iOS and tvOS only.
   std::string badge;
 
   /// Indicates whether each notification results in a new entry in the
@@ -145,12 +145,12 @@ struct Notification {
   /// On Android, if this is set, an activity with a matching intent filter is
   /// launched when user clicks the notification.
   ///
-  /// If set on iOS, corresponds to category in APNS payload.
+  /// If set on iOS or tvOS, corresponds to category in APNS payload.
   std::string click_action;
 
   /// Indicates the key to the body string for localization.
   ///
-  /// On iOS, this corresponds to "loc-key" in APNS payload.
+  /// On iOS and tvOS, this corresponds to "loc-key" in APNS payload.
   ///
   /// On Android, use the key in the app's string resources when populating this
   /// value.
@@ -159,7 +159,7 @@ struct Notification {
   /// Indicates the string value to replace format specifiers in body string
   /// for localization.
   ///
-  /// On iOS, this corresponds to "loc-args" in APNS payload.
+  /// On iOS and tvOS, this corresponds to "loc-args" in APNS payload.
   ///
   /// On Android, these are the format arguments for the string resource. For
   /// more information, see [Formatting strings][1].
@@ -170,7 +170,7 @@ struct Notification {
 
   /// Indicates the key to the title string for localization.
   ///
-  /// On iOS, this corresponds to "title-loc-key" in APNS payload.
+  /// On iOS and tvOS, this corresponds to "title-loc-key" in APNS payload.
   ///
   /// On Android, use the key in the app's string resources when populating this
   /// value.
@@ -179,7 +179,7 @@ struct Notification {
   /// Indicates the string value to replace format specifiers in title string
   /// for localization.
   ///
-  /// On iOS, this corresponds to "title-loc-args" in APNS payload.
+  /// On iOS and tvOS, this corresponds to "title-loc-args" in APNS payload.
   ///
   /// On Android, these are the format arguments for the string resource. For
   /// more information, see [Formatting strings][1].
@@ -306,7 +306,7 @@ struct Message {
   std::string message_type;
 
   /// Sets the priority of the message. Valid values are "normal" and "high." On
-  /// iOS, these correspond to APNs priority 5 and 10.
+  /// iOS and tvOS, these correspond to APNs priority 5 and 10.
   ///
   /// By default, messages are sent with normal priority. Normal priority
   /// optimizes the client app's battery consumption, and should be used unless
@@ -460,7 +460,7 @@ bool IsTokenRegistrationOnInitEnabled();
 /// If this setting is enabled, it triggers the token registration refresh
 /// immediately. This setting is persisted across app restarts and overrides the
 /// setting "firebase_messaging_auto_init_enabled" specified in your Android
-/// manifest (on Android) or Info.plist (on iOS).
+/// manifest (on Android) or Info.plist (on iOS and tvOS).
 ///
 /// <p>By default, token registration during initialization is enabled.
 ///
@@ -480,7 +480,7 @@ bool IsTokenRegistrationOnInitEnabled();
 /// @endcode
 /// @endif
 ///
-/// or on iOS to your Info.plist:
+/// or on iOS or tvOS to your Info.plist:
 ///
 /// @if NOT_DOXYGEN
 ///   <key>FirebaseMessagingAutoInitEnabled</key>
@@ -528,9 +528,9 @@ enum Error {
 /// @brief Displays a prompt to the user requesting permission to display
 ///        notifications.
 ///
-/// The permission prompt only appears on iOS. If the user has already agreed to
-/// allow notifications, no prompt is displayed and the returned future is
-/// completed immediately.
+/// The permission prompt only appears on iOS and tvOS. If the user has
+/// already agreed to allow notifications, no prompt is displayed and the
+/// returned future is completed immediately.
 ///
 /// @return A future that completes when the notification prompt has been
 ///         dismissed.

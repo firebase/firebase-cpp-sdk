@@ -266,6 +266,7 @@ class Query {
   /// @returns A Query in this same location, filtering out child nodes that
   /// have a different sort value than the sort value specified.
   Query EqualTo(Variant order_value);
+
   /// @brief Get a Query constrained to nodes with the exact given sort value,
   /// and the exact given key.
   ///
@@ -274,7 +275,7 @@ class Query {
   /// as default), and the given key. Note that there is at most one such child
   /// as child key names are unique.
   ///
-  /// <b>Known issue</b> This currently does not work properly on iOS and
+  /// <b>Known issue</b> This currently does not work properly on iOS, tvOS and
   /// desktop. Please use EqualTo(Variant order_value) instead.
   ///
   /// @param[in] order_value The exact sort value the Query should include.

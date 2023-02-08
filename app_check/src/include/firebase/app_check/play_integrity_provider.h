@@ -20,6 +20,10 @@
 namespace firebase {
 namespace app_check {
 
+namespace internal {
+class PlayIntegrityProviderFactoryInternal;
+}
+
 /// Implementation of an {@link AppCheckProviderFactory} that builds
 /// PlayIntegrityProviders. This is the default implementation.
 class PlayIntegrityProviderFactory : public AppCheckProviderFactory {
@@ -37,6 +41,8 @@ class PlayIntegrityProviderFactory : public AppCheckProviderFactory {
 
  private:
   PlayIntegrityProviderFactory();
+
+  internal::PlayIntegrityProviderFactoryInternal* internal_;
 };
 
 }  // namespace app_check
