@@ -17,6 +17,7 @@
 #include "firestore/src/jni/arena_ref.h"
 
 #include <atomic>
+#include <utility>
 
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/jni/env.h"
@@ -31,6 +32,8 @@ namespace jni {
 namespace {
 
 HashMap* gArenaRefHashMap = nullptr;
+jclass gLongClass = nullptr;
+jmethodID gLongConstructor = nullptr;
 std::mutex mutex_;
 
 int64_t GetNextArenaRefKey() {
@@ -42,80 +45,78 @@ int64_t GetNextArenaRefKey() {
 
 ArenaRef::ArenaRef(Env& env, const Object& object)
     : key_(GetNextArenaRefKey()) {
-  std::unique_lock<std::mutex> lock(mutex_);
-  gArenaRefHashMap->Put(env, key_object(env), object);
+  Local<Long> key_ref = key_object(env);
+  std::lock_guard<std::mutex> lock(mutex_);
+  gArenaRefHashMap->Put(env, key_ref, object);
 }
 
 ArenaRef::ArenaRef(const ArenaRef& other)
-    : key_(other.key_ == -1 ? -1 : GetNextArenaRefKey()) {
-  if (other.key_ != -1) {
+    : key_(other.key_ == kInvalidKey ? kInvalidKey : GetNextArenaRefKey()) {
+  if (other.key_ != kInvalidKey) {
     Env env = FirestoreInternal::GetEnv();
     Local<Object> object = other.get(env);
-    std::unique_lock<std::mutex> lock(mutex_);
-    gArenaRefHashMap->Put(env, key_object(env), object);
+    Local<Long> key_ref = key_object(env);
+    std::lock_guard<std::mutex> lock(mutex_);
+    gArenaRefHashMap->Put(env, key_ref, object);
   }
 }
 
 ArenaRef::ArenaRef(ArenaRef&& other) { std::swap(key_, other.key_); }
 
 ArenaRef& ArenaRef::operator=(const ArenaRef& other) {
-  Env env = FirestoreInternal::GetEnv();
-
-  if (this == &other) {
+  if (this == &other || (key_ == kInvalidKey && other.key_ == kInvalidKey)) {
     return *this;
   }
 
-  {
-    std::unique_lock<std::mutex> lock(mutex_);
-    if (key_ != -1) {
-      gArenaRefHashMap->Remove(env, key_object(env));
-      key_ = -1;
-    }
-
-    if (other.key_ != -1) {
+  Env env = FirestoreInternal::GetEnv();
+  if (other.key_ != kInvalidKey) {
+    if (key_ == kInvalidKey) {
       key_ = GetNextArenaRefKey();
-      Local<Object> object = other.get(env);
-      gArenaRefHashMap->Put(env, key_object(env), object);
     }
+    Local<Object> object = other.get(env);
+    std::lock_guard<std::mutex> lock(mutex_);
+    gArenaRefHashMap->Put(env, key_object(env), object);
+  } else {
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      gArenaRefHashMap->Remove(env, key_object(env));
+    }
+    key_ = kInvalidKey;
   }
   return *this;
 }
 
 ArenaRef& ArenaRef::operator=(ArenaRef&& other) {
-  Env env = FirestoreInternal::GetEnv();
-
-  if (this == &other) {
-    return *this;
-  }
-
-  {
-    std::unique_lock<std::mutex> lock(mutex_);
-    if (key_ != -1) {
-      gArenaRefHashMap->Remove(env, key_object(env));
-    }
-    key_ = other.key_;
-    other.key_ = -1;
+  if (this != &other) {
+    std::swap(key_, other.key_);
   }
   return *this;
 }
 
 ArenaRef::~ArenaRef() {
-  if (key_ != -1) {
+  if (key_ != kInvalidKey) {
     Env env;
     ExceptionClearGuard block(env);
     {
-      std::unique_lock<std::mutex> lock(mutex_);
+      std::lock_guard<std::mutex> lock(mutex_);
       gArenaRefHashMap->Remove(env, key_object(env));
     }
     if (!env.ok()) {
-      env.ExceptionDescribe();
+      env.RecordException();
       env.ExceptionClear();
     }
   }
 }
 
 Local<Long> ArenaRef::key_object(Env& env) const {
-  return Long::Create(env, key_);
+  if (!env.ok()) return {};
+  // The reason why using raw JNI calls here rather than the JNI convenience
+  // layer is because we need to get rid of JNI convenience layer dependencies
+  // in the ArenaRef destructor to avoid racing condition when firestore object
+  // gets destroyed.
+  jobject key = env.get()->NewObject(gLongClass, gLongConstructor, key_);
+  env.RecordException();
+  return {env.get(), key};
 }
 
 void ArenaRef::Initialize(Env& env) {
@@ -124,6 +125,13 @@ void ArenaRef::Initialize(Env& env) {
   }
   Global<HashMap> hash_map(HashMap::Create(env));
   gArenaRefHashMap = new HashMap(hash_map.release());
+
+  auto long_class_local = env.get()->FindClass("java/lang/Long");
+  gLongClass = static_cast<jclass>(env.get()->NewGlobalRef(long_class_local));
+  env.get()->DeleteLocalRef(long_class_local);
+  gLongConstructor = env.get()->GetMethodID(gLongClass, "<init>", "(J)V");
+
+  if (!env.ok()) return;
 }
 
 Local<Object> ArenaRef::get(Env& env) const {

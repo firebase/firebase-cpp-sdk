@@ -123,8 +123,8 @@ class Env {
   /** Clears the last exception. */
   void ExceptionClear();
 
-  /** Prints out exception. */
-  void ExceptionDescribe() const { return env_->ExceptionDescribe(); }
+  /** Prints out exception to logcat if `Env` has an exception. */
+  void RecordException();
 
   /**
    * Returns the last Java exception to occur and clears the pending exception.
@@ -527,7 +527,6 @@ class Env {
     RecordException();
   }
 
-  void RecordException();
   std::string ErrorDescription(const Object& object);
   const char* ErrorName(jint error);
 

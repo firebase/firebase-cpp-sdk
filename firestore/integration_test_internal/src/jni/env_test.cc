@@ -128,6 +128,18 @@ TEST_F(EnvTest, CallsVoidMethods) {
   EXPECT_EQ(length, 42);
 }
 
+TEST_F(EnvTest, CallsValidArenaRef) {
+  Local<String> str = env().NewStringUtf("Foo");
+  ArenaRef arena_ref(env(), str);
+
+  Local<Class> clazz = env().FindClass("java/lang/String");
+  jmethodID to_lower_case =
+      env().GetMethodId(clazz, "toLowerCase", "()Ljava/lang/String;");
+
+  Local<Object> result = env().Call(arena_ref, Method<Object>(to_lower_case));
+  EXPECT_EQ("foo", result.ToString(env()));
+}
+
 TEST_F(EnvTest, GetsStaticFields) {
   Local<Class> clazz = env().FindClass("java/lang/String");
   jfieldID comparator = env().GetStaticFieldId(clazz, "CASE_INSENSITIVE_ORDER",
@@ -158,6 +170,13 @@ TEST_F(EnvTest, ToString) {
   Local<String> str = env().NewStringUtf("Foo");
   std::string result = str.ToString(env());
   EXPECT_EQ("Foo", result);
+}
+
+TEST_F(EnvTest, IsInstanceOfChecksValidArenaRef) {
+  Local<Class> clazz = env().FindClass("java/lang/String");
+  Local<String> str = env().NewStringUtf("Foo");
+  ArenaRef arena_ref(env(), str);
+  EXPECT_TRUE(env().IsInstanceOf(arena_ref, clazz));
 }
 
 TEST_F(EnvTest, Throw) {

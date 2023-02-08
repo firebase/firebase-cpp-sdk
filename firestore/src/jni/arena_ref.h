@@ -29,6 +29,10 @@ namespace firebase {
 namespace firestore {
 namespace jni {
 
+namespace {
+constexpr int64_t kInvalidKey = -1;
+}
+
 /**
  * ArenaRef is an RAII wrapper which serves the same purpose as Global<T>, both
  * of them manage the lifetime of JNI reference. Compared to Global<T>, the
@@ -55,7 +59,7 @@ class ArenaRef {
  private:
   Local<Long> key_object(Env&) const;
 
-  int64_t key_ = -1;
+  int64_t key_ = kInvalidKey;
 };
 
 }  // namespace jni

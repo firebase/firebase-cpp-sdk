@@ -121,8 +121,6 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS
 
 # These sources contain the actual tests that run on Android only.
 set(FIREBASE_INTEGRATION_TEST_ANDROID_TEST_SRCS
-    src/android/arena_ref_android_test.cc
-    src/android/env_android_test.cc
     src/android/field_path_portable_test.cc
     src/android/firestore_integration_test_android_test.cc
     src/android/geo_point_android_test.cc
@@ -133,6 +131,7 @@ set(FIREBASE_INTEGRATION_TEST_ANDROID_TEST_SRCS
     src/android/snapshot_metadata_android_test.cc
     src/android/timestamp_android_test.cc
     src/android/transaction_options_android_test.cc
+    src/jni/arena_ref_test.cc
     src/jni/declaration_test.cc
     src/jni/env_test.cc
     src/jni/object_test.cc
