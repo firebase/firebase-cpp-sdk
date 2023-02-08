@@ -230,6 +230,7 @@ Future<void> StorageReferenceInternal::DeleteLastResult() {
 }
 
 // Handy utility function, since REST calls have similar setup and teardown.
+// Can potentially block getting Future results for the Request.
 void StorageReferenceInternal::PrepareRequest(rest::Request* request,
                                               const char* url,
                                               const char* method,
@@ -260,7 +261,6 @@ void StorageReferenceInternal::PrepareRequest(rest::Request* request,
   bool succeeded = storage_->app()->function_registry()->CallFunction(
       ::firebase::internal::FnAppCheckGetTokenAsync, storage_->app(), nullptr,
       &app_check_future);
-  LogInfo("%d", succeeded);
   if (succeeded && app_check_future.status() != kFutureStatusInvalid) {
     const ::firebase::app_check::AppCheckToken* token =
         app_check_future.Await(30000);

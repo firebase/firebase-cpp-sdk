@@ -46,10 +46,8 @@ FIREBASE_APP_REGISTER_CALLBACKS(
       return ::firebase::kInitResultSuccess;
     },
     {
-      // TODO(amaurice): Call a version that doesn't create the app check if it
-      // doesn't exist.
       ::firebase::app_check::AppCheck* app_check =
-          ::firebase::app_check::AppCheck::GetInstance(app);
+          ::firebase::app_check::internal::GetExistingAppCheckInstance(app);
       if (app_check) {
         delete app_check;
       }
@@ -69,6 +67,23 @@ static std::map<::firebase::App*, AppCheck*>* g_app_check_map = nullptr;
 AppCheckListener::~AppCheckListener() {}
 AppCheckProvider::~AppCheckProvider() {}
 AppCheckProviderFactory::~AppCheckProviderFactory() {}
+
+namespace internal {
+
+AppCheck* GetExistingAppCheckInstance(::firebase::App* app) {
+  if (!app) return nullptr;
+
+  MutexLock lock(g_app_check_lock);
+  if (g_app_check_map) {
+    auto it = g_app_check_map->find(app);
+    if (it != g_app_check_map->end()) {
+      return it->second;
+    }
+  }
+  return nullptr;
+}
+
+}  // namespace internal
 
 AppCheck* AppCheck::GetInstance(::firebase::App* app) {
   if (!app) return nullptr;

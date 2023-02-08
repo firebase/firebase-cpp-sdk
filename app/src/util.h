@@ -91,8 +91,10 @@ class AppCallback {
 
   // Initialize a module instance.
   //
-  // Right now all module auto-initialization is disabled by default.  Module
-  // initialization can be enabled on a case by case basis using
+  // Module auto-initialization is determined by the enabled flag.
+  // Most products should default to false, except for App Check which
+  // needs to be aware of App creation, and may not require user calls.
+  // Module initialization can be enabled on a case by case basis using
   // SetEnabledByName() before creating an App object, for example:
   // SetEnabledByName("analytics", true);
   AppCallback(const char* module_name, Created created, Destroyed destroyed,
