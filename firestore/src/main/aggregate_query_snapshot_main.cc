@@ -42,11 +42,12 @@ AggregateQuery AggregateQuerySnapshotInternal::query() const {
 
 int64_t AggregateQuerySnapshotInternal::count() const { return count_result_; }
 
-bool operator==(const AggregateQuerySnapshotInternal& lhs, const AggregateQuerySnapshotInternal& rhs) {
+bool operator==(const AggregateQuerySnapshotInternal& lhs,
+                const AggregateQuerySnapshotInternal& rhs) {
   // TODO(tomandersen) - there needs to be equals operator defined on
   // api::AggregateQuery
-  return lhs.aggregate_query_.query() == rhs.aggregate_query_.query()
-      && lhs.count_result_ == rhs.count_result_;
+  return lhs.aggregate_query_.query() == rhs.aggregate_query_.query() &&
+         lhs.count_result_ == rhs.count_result_;
 }
 
 }  // namespace firestore

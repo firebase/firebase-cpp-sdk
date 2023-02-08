@@ -104,7 +104,8 @@ int64_t AggregateQuerySnapshot::count() const {
   return internal_->count();
 }
 
-bool operator==(const AggregateQuerySnapshot& lhs, const AggregateQuerySnapshot& rhs) {
+bool operator==(const AggregateQuerySnapshot& lhs,
+                const AggregateQuerySnapshot& rhs) {
   return EqualityCompare(lhs.internal_, rhs.internal_);
 }
 
