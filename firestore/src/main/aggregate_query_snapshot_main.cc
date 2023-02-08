@@ -23,8 +23,9 @@ namespace firebase {
 namespace firestore {
 
 AggregateQuerySnapshotInternal::AggregateQuerySnapshotInternal(
-    api::AggregateQuery aggregate_query, int64_t count_result)
-    : aggregate_query_(aggregate_query), count_result(count_result) {}
+    api::AggregateQuery&& aggregate_query, int64_t count_result)
+    : aggregate_query_(std::move(aggregate_query)),
+      count_result_(count_result) {}
 
 FirestoreInternal* AggregateQuerySnapshotInternal::firestore_internal() {
   return GetFirestoreInternal(&aggregate_query_.query());
@@ -39,7 +40,14 @@ AggregateQuery AggregateQuerySnapshotInternal::query() const {
   return MakePublic(api::AggregateQuery(aggregate_query_));
 }
 
-int64_t AggregateQuerySnapshotInternal::count() const { return count_result; }
+int64_t AggregateQuerySnapshotInternal::count() const { return count_result_; }
+
+bool operator==(const AggregateQuerySnapshotInternal& lhs, const AggregateQuerySnapshotInternal& rhs) {
+  // TODO(tomandersen) - there needs to be equals operator defined on
+  // api::AggregateQuery
+  return lhs.aggregate_query_.query() == rhs.aggregate_query_.query()
+      && lhs.count_result_ == rhs.count_result_;
+}
 
 }  // namespace firestore
 }  // namespace firebase

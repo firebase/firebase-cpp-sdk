@@ -48,8 +48,7 @@ AggregateQuery::AggregateQuery(AggregateQuery&& query) {
 
 AggregateQuery::AggregateQuery(AggregateQueryInternal* internal)
     : internal_(internal) {
-  // NOTE: We don't assert internal != nullptr here since internal can be
-  // nullptr when called by the CollectionReference copy constructor.
+  SIMPLE_HARD_ASSERT(internal != nullptr);
   CleanupFnQuery::Register(this, internal_);
 }
 

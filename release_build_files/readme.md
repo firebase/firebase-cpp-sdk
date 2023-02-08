@@ -643,7 +643,9 @@ code.
 
 ## Release Notes
 ### Upcoming Release
-    - Firestore: Add Count API.
+-   Changes
+    - Added `Query::Count()`, which fetches the number of documents in the result
+      set without actually downloading the documents ([#1174](https://github.com/firebase/firebase-cpp-sdk/pull/1174)).
 
 ### 10.4.0
 -   Changes

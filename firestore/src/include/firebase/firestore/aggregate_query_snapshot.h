@@ -27,10 +27,7 @@ class AggregateQuery;
 class AggregateQuerySnapshotInternal;
 
 /**
- * @brief A QuerySnapshot contains zero or more DocumentSnapshot objects.
- *
- * QuerySnapshot can be iterated using a range-based for loop, and its size can
- * be inspected with empty() and size().
+ * @brief The results of executing an AggregateQuery.
  *
  * @note Firestore classes are not meant to be subclassed except for use in test
  * mocks. Subclassing is not supported in production code and new SDK releases
@@ -39,7 +36,7 @@ class AggregateQuerySnapshotInternal;
 class AggregateQuerySnapshot {
  public:
   /**
-   * @brief AggregateQuerySnapshot an invalid Query that has to be reassigned
+   * @brief Creates an invalid AggregateQuerySnapshot that has to be reassigned
    * before it can be used.
    *
    * Calling any member function on an invalid AggregateQuerySnapshot will be a
