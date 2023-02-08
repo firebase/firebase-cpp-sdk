@@ -161,7 +161,8 @@ bool AppCheckInternal::GetAppCheckTokenAsyncForRegistry(App* app,
   AppCheck* app_check = AppCheck::GetInstance(app);
   if (app_check) {
     // TODO(amaurice): This should call some internal function instead of the
-    // public one, since this will change the *LastResult value behind the scenes.
+    // public one, since this will change the *LastResult value behind the
+    // scenes.
     *out_future = app_check->GetAppCheckToken(false);
     return true;
   }

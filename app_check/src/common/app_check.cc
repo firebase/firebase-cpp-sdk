@@ -26,6 +26,7 @@
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
 #include "app/src/util.h"
+#include "app_check/src/common/common.h"
 
 // Include the header that matches the platform being used.
 #if FIREBASE_PLATFORM_ANDROID
