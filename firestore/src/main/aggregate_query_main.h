@@ -31,7 +31,6 @@ namespace firestore {
 class AggregateQueryInternal {
  public:
   explicit AggregateQueryInternal(api::AggregateQuery&& aggregate_query);
-  ~AggregateQueryInternal() = default;
 
   FirestoreInternal* firestore_internal();
   const FirestoreInternal* firestore_internal() const;

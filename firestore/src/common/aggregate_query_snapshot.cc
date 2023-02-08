@@ -17,6 +17,7 @@
 #include "firestore/src/include/firebase/firestore/aggregate_query_snapshot.h"
 
 #include "firestore/src/common/cleanup.h"
+#include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore/aggregate_query.h"
 
 #if defined(__ANDROID__)
@@ -101,6 +102,10 @@ AggregateQuery AggregateQuerySnapshot::query() const {
 int64_t AggregateQuerySnapshot::count() const {
   if (!internal_) return 0;
   return internal_->count();
+}
+
+bool operator==(const AggregateQuerySnapshot& lhs, const AggregateQuerySnapshot& rhs) {
+  return EqualityCompare(lhs.internal_, rhs.internal_);
 }
 
 }  // namespace firestore

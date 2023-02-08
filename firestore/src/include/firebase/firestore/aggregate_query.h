@@ -39,8 +39,8 @@ class Query;
 class AggregateQuery {
  public:
   /**
-   * @brief AggregateQuery an invalid Query that has to be reassigned before it
-   * can be used.
+   * @brief Creates an invalid AggregateQuery that has to be reassigned before
+   * it can be used.
    *
    * Calling any member function on an invalid AggregateQuery will be a no-op.
    * If the function returns a value, it will return a zero, empty, or invalid
