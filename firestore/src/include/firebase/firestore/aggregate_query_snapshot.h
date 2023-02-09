@@ -51,9 +51,9 @@ class AggregateQuerySnapshot {
    * `AggregateQuerySnapshot` is immutable and can be efficiently copied (no
    * deep copy is performed).
    *
-   * @param[in] other `AggregateQuerySnapshot` to copy from.
+   * @param[in] snapshot `AggregateQuerySnapshot` to copy from.
    */
-  AggregateQuerySnapshot(const AggregateQuerySnapshot& other);
+  AggregateQuerySnapshot(const AggregateQuerySnapshot& snapshot);
 
   /**
    * @brief Move constructor.
@@ -62,9 +62,9 @@ class AggregateQuerySnapshot {
    * being moved from, a `AggregateQuerySnapshot` is equivalent to its
    * default-constructed state.
    *
-   * @param[in] other `AggregateQuerySnapshot` to move data from.
+   * @param[in] snapshot `AggregateQuerySnapshot` to move data from.
    */
-  AggregateQuerySnapshot(AggregateQuerySnapshot&& other);
+  AggregateQuerySnapshot(AggregateQuerySnapshot&& snapshot);
 
   virtual ~AggregateQuerySnapshot();
 

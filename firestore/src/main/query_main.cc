@@ -96,9 +96,7 @@ Future<QuerySnapshot> QueryInternal::Get(Source source) {
   return promise.future();
 }
 
-AggregateQuery QueryInternal::Count() {
-  return MakePublic(std::move(query_.Count()));
-}
+AggregateQuery QueryInternal::Count() { return MakePublic(query_.Count()); }
 
 Query QueryInternal::Where(const FieldPath& field_path,
                            Operator op,

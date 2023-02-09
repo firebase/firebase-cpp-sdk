@@ -49,15 +49,17 @@ Query AggregateQueryInternal::query() {
 
 Future<AggregateQuerySnapshot> AggregateQueryInternal::Get(
     AggregateSource source) {
-  auto aggregate_query = aggregate_query_;
+  api::AggregateQuery aggregate_query = aggregate_query_;
   auto promise =
       promise_factory_.CreatePromise<AggregateQuerySnapshot>(AsyncApis::kGet);
+  // TODO(C++14)
+  // https://en.wikipedia.org/wiki/C%2B%2B14#Lambda_capture_expressions
   aggregate_query_.Get(
       [aggregate_query, promise](util::StatusOr<int64_t> maybe_value) mutable {
         if (maybe_value.ok()) {
           int64_t count = maybe_value.ValueOrDie();
-          AggregateQuerySnapshotInternal internal =
-              AggregateQuerySnapshotInternal(aggregate_query, count);
+          AggregateQuerySnapshotInternal internal{std::move(aggregate_query),
+                                                  count};
           AggregateQuerySnapshot snapshot = MakePublic(std::move(internal));
           promise.SetValue(std::move(snapshot));
         } else {

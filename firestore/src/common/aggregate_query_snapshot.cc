@@ -35,24 +35,24 @@ using CleanupFnAggregateQuerySnapshot = CleanupFn<AggregateQuerySnapshot>;
 AggregateQuerySnapshot::AggregateQuerySnapshot() {}
 
 AggregateQuerySnapshot::AggregateQuerySnapshot(
-    const AggregateQuerySnapshot& query) {
-  if (query.internal_) {
-    internal_ = new AggregateQuerySnapshotInternal(*query.internal_);
+    const AggregateQuerySnapshot& snapshot) {
+  if (snapshot.internal_) {
+    internal_ = new AggregateQuerySnapshotInternal(*snapshot.internal_);
   }
   CleanupFnAggregateQuerySnapshot::Register(this, internal_);
 }
 
-AggregateQuerySnapshot::AggregateQuerySnapshot(AggregateQuerySnapshot&& query) {
-  CleanupFnAggregateQuerySnapshot::Unregister(&query, query.internal_);
-  std::swap(internal_, query.internal_);
+AggregateQuerySnapshot::AggregateQuerySnapshot(
+    AggregateQuerySnapshot&& snapshot) {
+  CleanupFnAggregateQuerySnapshot::Unregister(&snapshot, snapshot.internal_);
+  std::swap(internal_, snapshot.internal_);
   CleanupFnAggregateQuerySnapshot::Register(this, internal_);
 }
 
 AggregateQuerySnapshot::AggregateQuerySnapshot(
     AggregateQuerySnapshotInternal* internal)
     : internal_(internal) {
-  // NOTE: We don't assert internal != nullptr here since internal can be
-  // nullptr when called by the CollectionReference copy constructor.
+  SIMPLE_HARD_ASSERT(internal != nullptr);
   CleanupFnAggregateQuerySnapshot::Register(this, internal_);
 }
 

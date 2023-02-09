@@ -16,6 +16,7 @@
 
 #include "firestore/src/main/aggregate_query_snapshot_main.h"
 
+#include <utility>
 #include "firestore/src/main/converter_main.h"
 #include "firestore/src/main/util_main.h"
 

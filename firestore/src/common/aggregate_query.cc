@@ -33,16 +33,16 @@ using CleanupFnQuery = CleanupFn<AggregateQuery>;
 
 AggregateQuery::AggregateQuery() {}
 
-AggregateQuery::AggregateQuery(const AggregateQuery& query) {
-  if (query.internal_) {
-    internal_ = new AggregateQueryInternal(*query.internal_);
+AggregateQuery::AggregateQuery(const AggregateQuery& aggregate_query) {
+  if (aggregate_query.internal_) {
+    internal_ = new AggregateQueryInternal(*aggregate_query.internal_);
   }
   CleanupFnQuery::Register(this, internal_);
 }
 
-AggregateQuery::AggregateQuery(AggregateQuery&& query) {
-  CleanupFnQuery::Unregister(&query, query.internal_);
-  std::swap(internal_, query.internal_);
+AggregateQuery::AggregateQuery(AggregateQuery&& aggregate_query) {
+  CleanupFnQuery::Unregister(&aggregate_query, aggregate_query.internal_);
+  std::swap(internal_, aggregate_query.internal_);
   CleanupFnQuery::Register(this, internal_);
 }
 
@@ -58,15 +58,16 @@ AggregateQuery::~AggregateQuery() {
   internal_ = nullptr;
 }
 
-AggregateQuery& AggregateQuery::operator=(const AggregateQuery& query) {
-  if (this == &query) {
+AggregateQuery& AggregateQuery::operator=(
+    const AggregateQuery& aggregate_query) {
+  if (this == &aggregate_query) {
     return *this;
   }
 
   CleanupFnQuery::Unregister(this, internal_);
   delete internal_;
-  if (query.internal_) {
-    internal_ = new AggregateQueryInternal(*query.internal_);
+  if (aggregate_query.internal_) {
+    internal_ = new AggregateQueryInternal(*aggregate_query.internal_);
   } else {
     internal_ = nullptr;
   }
@@ -74,16 +75,16 @@ AggregateQuery& AggregateQuery::operator=(const AggregateQuery& query) {
   return *this;
 }
 
-AggregateQuery& AggregateQuery::operator=(AggregateQuery&& query) {
-  if (this == &query) {
+AggregateQuery& AggregateQuery::operator=(AggregateQuery&& aggregate_query) {
+  if (this == &aggregate_query) {
     return *this;
   }
 
-  CleanupFnQuery::Unregister(&query, query.internal_);
+  CleanupFnQuery::Unregister(&aggregate_query, aggregate_query.internal_);
   CleanupFnQuery::Unregister(this, internal_);
   delete internal_;
-  internal_ = query.internal_;
-  query.internal_ = nullptr;
+  internal_ = aggregate_query.internal_;
+  aggregate_query.internal_ = nullptr;
   CleanupFnQuery::Register(this, internal_);
   return *this;
 }
@@ -94,9 +95,9 @@ Query AggregateQuery::query() const {
 }
 
 Future<AggregateQuerySnapshot> AggregateQuery::Get(
-    AggregateSource aggregateSource) const {
+    AggregateSource aggregate_source) const {
   if (!internal_) return FailedFuture<AggregateQuerySnapshot>();
-  return internal_->Get(aggregateSource);
+  return internal_->Get(aggregate_source);
 }
 
 bool operator==(const AggregateQuery& lhs, const AggregateQuery& rhs) {
