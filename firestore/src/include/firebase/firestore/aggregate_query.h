@@ -105,14 +105,14 @@ class AggregateQuery {
   /**
    * @brief Executes this query.
    *
-   * @param[in] aggregateSource The source from which to acquire the aggregate
+   * @param[in] aggregate_source The source from which to acquire the aggregate
    * results.
    *
    * @return A Future that will be resolved with the results of the
    * AggregateQuery.
    */
   virtual Future<AggregateQuerySnapshot> Get(
-      AggregateSource aggregateSource) const;
+      AggregateSource aggregate_source) const;
 
   /**
    * @brief Returns true if this `AggregateQuery` is valid, false if it is not
@@ -134,7 +134,7 @@ class AggregateQuery {
   friend struct ConverterImpl;
 
   friend bool operator==(const AggregateQuery& lhs, const AggregateQuery& rhs);
-  friend std::size_t QuerySnapshotHash(const AggregateQuery& snapshot);
+  friend std::size_t AggregateQueryHash(const AggregateQuery& aggregate_query);
 
   template <typename T, typename U, typename F>
   friend struct CleanupFn;
