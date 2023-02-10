@@ -38,7 +38,7 @@
 namespace firebase {
 namespace firestore {
 
-using CleanupFnAggregateQuery = CleanupFn<Query>;
+using CleanupFnQuery = CleanupFn<Query>;
 
 Query::Query() {}
 
@@ -46,23 +46,23 @@ Query::Query(const Query& query) {
   if (query.internal_) {
     internal_ = new QueryInternal(*query.internal_);
   }
-  CleanupFnAggregateQuery::Register(this, internal_);
+  CleanupFnQuery::Register(this, internal_);
 }
 
 Query::Query(Query&& query) {
-  CleanupFnAggregateQuery::Unregister(&query, query.internal_);
+  CleanupFnQuery::Unregister(&query, query.internal_);
   std::swap(internal_, query.internal_);
-  CleanupFnAggregateQuery::Register(this, internal_);
+  CleanupFnQuery::Register(this, internal_);
 }
 
 Query::Query(QueryInternal* internal) : internal_(internal) {
   // NOTE: We don't assert internal != nullptr here since internal can be
   // nullptr when called by the CollectionReference copy constructor.
-  CleanupFnAggregateQuery::Register(this, internal_);
+  CleanupFnQuery::Register(this, internal_);
 }
 
 Query::~Query() {
-  CleanupFnAggregateQuery::Unregister(this, internal_);
+  CleanupFnQuery::Unregister(this, internal_);
   delete internal_;
   internal_ = nullptr;
 }
@@ -72,14 +72,14 @@ Query& Query::operator=(const Query& query) {
     return *this;
   }
 
-  CleanupFnAggregateQuery::Unregister(this, internal_);
+  CleanupFnQuery::Unregister(this, internal_);
   delete internal_;
   if (query.internal_) {
     internal_ = new QueryInternal(*query.internal_);
   } else {
     internal_ = nullptr;
   }
-  CleanupFnAggregateQuery::Register(this, internal_);
+  CleanupFnQuery::Register(this, internal_);
   return *this;
 }
 
@@ -88,12 +88,12 @@ Query& Query::operator=(Query&& query) {
     return *this;
   }
 
-  CleanupFnAggregateQuery::Unregister(&query, query.internal_);
-  CleanupFnAggregateQuery::Unregister(this, internal_);
+  CleanupFnQuery::Unregister(&query, query.internal_);
+  CleanupFnQuery::Unregister(this, internal_);
   delete internal_;
   internal_ = query.internal_;
   query.internal_ = nullptr;
-  CleanupFnAggregateQuery::Register(this, internal_);
+  CleanupFnQuery::Register(this, internal_);
   return *this;
 }
 
