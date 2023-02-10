@@ -41,7 +41,8 @@ AggregateQuery::AggregateQuery(const AggregateQuery& aggregate_query) {
 }
 
 AggregateQuery::AggregateQuery(AggregateQuery&& aggregate_query) {
-  CleanupFnAggregateQuery::Unregister(&aggregate_query, aggregate_query.internal_);
+  CleanupFnAggregateQuery::Unregister(&aggregate_query,
+                                      aggregate_query.internal_);
   std::swap(internal_, aggregate_query.internal_);
   CleanupFnAggregateQuery::Register(this, internal_);
 }
@@ -80,7 +81,8 @@ AggregateQuery& AggregateQuery::operator=(AggregateQuery&& aggregate_query) {
     return *this;
   }
 
-  CleanupFnAggregateQuery::Unregister(&aggregate_query, aggregate_query.internal_);
+  CleanupFnAggregateQuery::Unregister(&aggregate_query,
+                                      aggregate_query.internal_);
   CleanupFnAggregateQuery::Unregister(this, internal_);
   delete internal_;
   internal_ = aggregate_query.internal_;
