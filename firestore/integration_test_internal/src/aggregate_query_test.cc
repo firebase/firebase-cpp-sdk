@@ -14,6 +14,29 @@
  * limitations under the License.
  */
 
+#include "firebase/firestore.h"
+#include "firestore_integration_test.h"
+
+#include "gtest/gtest.h"
+
 namespace firebase {
-namespace firestore {}  // namespace firestore
+namespace firestore {
+
+using AggrgegateQueryTest = FirestoreIntegrationTest;
+
+size_t AggregateQueryHash(const AggregateQuery& aggregate_query) { return aggregate_query.Hash(); }
+
+TEST_F(AggrgegateQueryTest, TestHashCode) {
+  CollectionReference collection =
+      Collection({{"a", {{"k", FieldValue::String("a")}}},
+                  {"b", {{"k", FieldValue::String("b")}}}});
+  Query query1 =
+      collection.Limit(2).OrderBy("sort", Query::Direction::kAscending);
+  Query query2 =
+      collection.Limit(2).OrderBy("sort", Query::Direction::kDescending);
+  EXPECT_NE(AggregateQueryHash(query1.Count()), AggregateQueryHash(query2.Count()));
+  EXPECT_EQ(AggregateQueryHash(query1.Count()), AggregateQueryHash(query1.Count()));
+}
+
+}  // namespace firestore
 }  // namespace firebase
