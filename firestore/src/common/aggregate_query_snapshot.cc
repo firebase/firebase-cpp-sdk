@@ -109,5 +109,10 @@ bool operator==(const AggregateQuerySnapshot& lhs,
   return EqualityCompare(lhs.internal_, rhs.internal_);
 }
 
+size_t AggregateQuerySnapshot::Hash() const {
+  if (!internal_) return {};
+  return internal_->Hash();
+}
+
 }  // namespace firestore
 }  // namespace firebase

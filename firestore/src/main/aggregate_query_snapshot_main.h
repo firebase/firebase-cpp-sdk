@@ -42,6 +42,10 @@ class AggregateQuerySnapshotInternal {
   AggregateQuery query() const;
   int64_t count() const;
 
+  std::size_t Hash() const {
+    return util::Hash(aggregate_query_.query().Hash(), count_result_);
+  }
+
   friend bool operator==(const AggregateQuerySnapshotInternal& lhs,
                          const AggregateQuerySnapshotInternal& rhs);
 
