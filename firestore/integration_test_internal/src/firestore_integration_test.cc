@@ -255,6 +255,20 @@ QuerySnapshot FirestoreIntegrationTest::ReadDocuments(
   }
 }
 
+AggregateQuerySnapshot FirestoreIntegrationTest::ReadAggregate(
+    const AggregateQuery& reference) const {
+  SCOPED_TRACE("FirestoreIntegrationTest::ReadDocuments()");
+  Future<AggregateQuerySnapshot> future = reference.Get(AggregateSource::kServer);
+  Stopwatch stopwatch;
+  const AggregateQuerySnapshot* result = Await(future);
+  stopwatch.stop();
+  if (FailIfUnsuccessful("ReadDocuments", future, stopwatch)) {
+    return {};
+  } else {
+    return *result;
+  }
+}
+
 void FirestoreIntegrationTest::DeleteDocument(
     DocumentReference reference) const {
   SCOPED_TRACE("FirestoreIntegrationTest::DeleteDocument(" + reference.path() +
