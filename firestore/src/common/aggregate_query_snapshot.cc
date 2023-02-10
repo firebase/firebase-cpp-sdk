@@ -35,17 +35,17 @@ using CleanupFnAggregateQuerySnapshot = CleanupFn<AggregateQuerySnapshot>;
 AggregateQuerySnapshot::AggregateQuerySnapshot() {}
 
 AggregateQuerySnapshot::AggregateQuerySnapshot(
-    const AggregateQuerySnapshot& snapshot) {
-  if (snapshot.internal_) {
-    internal_ = new AggregateQuerySnapshotInternal(*snapshot.internal_);
+    const AggregateQuerySnapshot& other) {
+  if (other.internal_) {
+    internal_ = new AggregateQuerySnapshotInternal(*other.internal_);
   }
   CleanupFnAggregateQuerySnapshot::Register(this, internal_);
 }
 
 AggregateQuerySnapshot::AggregateQuerySnapshot(
-    AggregateQuerySnapshot&& snapshot) {
-  CleanupFnAggregateQuerySnapshot::Unregister(&snapshot, snapshot.internal_);
-  std::swap(internal_, snapshot.internal_);
+    AggregateQuerySnapshot&& other) {
+  CleanupFnAggregateQuerySnapshot::Unregister(&other, other.internal_);
+  std::swap(internal_, other.internal_);
   CleanupFnAggregateQuerySnapshot::Register(this, internal_);
 }
 
@@ -63,15 +63,15 @@ AggregateQuerySnapshot::~AggregateQuerySnapshot() {
 }
 
 AggregateQuerySnapshot& AggregateQuerySnapshot::operator=(
-    const AggregateQuerySnapshot& snapshot) {
-  if (this == &snapshot) {
+    const AggregateQuerySnapshot& other) {
+  if (this == &other) {
     return *this;
   }
 
   CleanupFnAggregateQuerySnapshot::Unregister(this, internal_);
   delete internal_;
-  if (snapshot.internal_) {
-    internal_ = new AggregateQuerySnapshotInternal(*snapshot.internal_);
+  if (other.internal_) {
+    internal_ = new AggregateQuerySnapshotInternal(*other.internal_);
   } else {
     internal_ = nullptr;
   }
@@ -80,16 +80,16 @@ AggregateQuerySnapshot& AggregateQuerySnapshot::operator=(
 }
 
 AggregateQuerySnapshot& AggregateQuerySnapshot::operator=(
-    AggregateQuerySnapshot&& snapshot) {
-  if (this == &snapshot) {
+    AggregateQuerySnapshot&& other) {
+  if (this == &other) {
     return *this;
   }
 
-  CleanupFnAggregateQuerySnapshot::Unregister(&snapshot, snapshot.internal_);
+  CleanupFnAggregateQuerySnapshot::Unregister(&other, other.internal_);
   CleanupFnAggregateQuerySnapshot::Unregister(this, internal_);
   delete internal_;
-  internal_ = snapshot.internal_;
-  snapshot.internal_ = nullptr;
+  internal_ = other.internal_;
+  other.internal_ = nullptr;
   CleanupFnAggregateQuerySnapshot::Register(this, internal_);
   return *this;
 }

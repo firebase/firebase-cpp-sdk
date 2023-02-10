@@ -33,17 +33,16 @@ using CleanupFnAggregateQuery = CleanupFn<AggregateQuery>;
 
 AggregateQuery::AggregateQuery() {}
 
-AggregateQuery::AggregateQuery(const AggregateQuery& aggregate_query) {
-  if (aggregate_query.internal_) {
-    internal_ = new AggregateQueryInternal(*aggregate_query.internal_);
+AggregateQuery::AggregateQuery(const AggregateQuery& other) {
+  if (other.internal_) {
+    internal_ = new AggregateQueryInternal(*other.internal_);
   }
   CleanupFnAggregateQuery::Register(this, internal_);
 }
 
-AggregateQuery::AggregateQuery(AggregateQuery&& aggregate_query) {
-  CleanupFnAggregateQuery::Unregister(&aggregate_query,
-                                      aggregate_query.internal_);
-  std::swap(internal_, aggregate_query.internal_);
+AggregateQuery::AggregateQuery(AggregateQuery&& other) {
+  CleanupFnAggregateQuery::Unregister(&other, other.internal_);
+  std::swap(internal_, other.internal_);
   CleanupFnAggregateQuery::Register(this, internal_);
 }
 
@@ -60,15 +59,15 @@ AggregateQuery::~AggregateQuery() {
 }
 
 AggregateQuery& AggregateQuery::operator=(
-    const AggregateQuery& aggregate_query) {
-  if (this == &aggregate_query) {
+    const AggregateQuery& other) {
+  if (this == &other) {
     return *this;
   }
 
   CleanupFnAggregateQuery::Unregister(this, internal_);
   delete internal_;
-  if (aggregate_query.internal_) {
-    internal_ = new AggregateQueryInternal(*aggregate_query.internal_);
+  if (other.internal_) {
+    internal_ = new AggregateQueryInternal(*other.internal_);
   } else {
     internal_ = nullptr;
   }
@@ -76,17 +75,16 @@ AggregateQuery& AggregateQuery::operator=(
   return *this;
 }
 
-AggregateQuery& AggregateQuery::operator=(AggregateQuery&& aggregate_query) {
-  if (this == &aggregate_query) {
+AggregateQuery& AggregateQuery::operator=(AggregateQuery&& other) {
+  if (this == &other) {
     return *this;
   }
 
-  CleanupFnAggregateQuery::Unregister(&aggregate_query,
-                                      aggregate_query.internal_);
+  CleanupFnAggregateQuery::Unregister(&other, other.internal_);
   CleanupFnAggregateQuery::Unregister(this, internal_);
   delete internal_;
-  internal_ = aggregate_query.internal_;
-  aggregate_query.internal_ = nullptr;
+  internal_ = other.internal_;
+  other.internal_ = nullptr;
   CleanupFnAggregateQuery::Register(this, internal_);
   return *this;
 }
