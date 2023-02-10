@@ -100,6 +100,11 @@ Future<AggregateQuerySnapshot> AggregateQuery::Get(
   return internal_->Get(aggregate_source);
 }
 
+size_t AggregateQuery::Hash() const {
+  if (!internal_) return {};
+  return internal_->Hash();
+}
+
 bool operator==(const AggregateQuery& lhs, const AggregateQuery& rhs) {
   return EqualityCompare(lhs.internal_, rhs.internal_);
 }
