@@ -20,6 +20,8 @@ else()
 endif()
 
 set(common_SRCS
+    src/common/aggregate_query.cc
+    src/common/aggregate_query_snapshot.cc
     src/common/cleanup.h
     src/common/collection_reference.cc
     src/common/compiler_info.cc
@@ -185,6 +187,10 @@ set(android_SRCS
 
 # Sources that apply to all non-Android platforms.
 set(main_SRCS
+    src/main/aggregate_query_main.cc
+    src/main/aggregate_query_main.h
+    src/main/aggregate_query_snapshot_main.cc
+    src/main/aggregate_query_snapshot_main.h
     src/main/collection_reference_main.cc
     src/main/collection_reference_main.h
     src/main/converter_main.h
