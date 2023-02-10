@@ -58,8 +58,7 @@ AggregateQuery::~AggregateQuery() {
   internal_ = nullptr;
 }
 
-AggregateQuery& AggregateQuery::operator=(
-    const AggregateQuery& other) {
+AggregateQuery& AggregateQuery::operator=(const AggregateQuery& other) {
   if (this == &other) {
     return *this;
   }

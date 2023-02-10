@@ -42,8 +42,7 @@ AggregateQuerySnapshot::AggregateQuerySnapshot(
   CleanupFnAggregateQuerySnapshot::Register(this, internal_);
 }
 
-AggregateQuerySnapshot::AggregateQuerySnapshot(
-    AggregateQuerySnapshot&& other) {
+AggregateQuerySnapshot::AggregateQuerySnapshot(AggregateQuerySnapshot&& other) {
   CleanupFnAggregateQuerySnapshot::Unregister(&other, other.internal_);
   std::swap(internal_, other.internal_);
   CleanupFnAggregateQuerySnapshot::Register(this, internal_);
