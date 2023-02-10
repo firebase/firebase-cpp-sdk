@@ -39,6 +39,8 @@ class AggregateQueryInternal {
 
   Future<AggregateQuerySnapshot> Get(AggregateSource source);
 
+  size_t Hash() const { return aggregate_query_.query().Hash(); }
+
   friend bool operator==(const AggregateQueryInternal& lhs,
                          const AggregateQueryInternal& rhs);
 
