@@ -179,6 +179,14 @@ TEST_F(EnvTest, IsInstanceOfChecksValidArenaRef) {
   EXPECT_TRUE(env().IsInstanceOf(arena_ref, clazz));
 }
 
+TEST_F(EnvTest, IsInstanceOfChecksNullArenaRef) {
+  GTEST_SKIP()
+      << "Skip until edge case of IsInstanceOf (b/268420201) is covered.";
+  Local<Class> clazz = env().FindClass("java/lang/String");
+  ArenaRef arena_ref;
+  EXPECT_FALSE(env().IsInstanceOf(arena_ref, clazz));
+}
+
 TEST_F(EnvTest, Throw) {
   Local<Class> clazz = env().FindClass("java/lang/Exception");
   jmethodID ctor = env().GetMethodId(clazz, "<init>", "(Ljava/lang/String;)V");

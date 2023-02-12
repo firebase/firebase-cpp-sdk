@@ -53,7 +53,7 @@ ArenaRef::ArenaRef(Env& env, const Object& object)
 ArenaRef::ArenaRef(const ArenaRef& other)
     : key_(other.key_ == kInvalidKey ? kInvalidKey : GetNextArenaRefKey()) {
   if (other.key_ != kInvalidKey) {
-    Env env = FirestoreInternal::GetEnv();
+    Env env;
     Local<Object> object = other.get(env);
     Local<Long> key_ref = key_object(env);
     std::lock_guard<std::mutex> lock(mutex_);
@@ -61,14 +61,17 @@ ArenaRef::ArenaRef(const ArenaRef& other)
   }
 }
 
-ArenaRef::ArenaRef(ArenaRef&& other) { std::swap(key_, other.key_); }
+ArenaRef::ArenaRef(ArenaRef&& other) {
+  using std::swap;  // go/using-std-swap
+  swap(key_, other.key_);
+}
 
 ArenaRef& ArenaRef::operator=(const ArenaRef& other) {
   if (this == &other || (key_ == kInvalidKey && other.key_ == kInvalidKey)) {
     return *this;
   }
 
-  Env env = FirestoreInternal::GetEnv();
+  Env env;
   if (other.key_ != kInvalidKey) {
     if (key_ == kInvalidKey) {
       key_ = GetNextArenaRefKey();
