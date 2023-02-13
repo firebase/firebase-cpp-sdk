@@ -24,7 +24,9 @@ namespace firestore {
 
 using AggrgegateQueryTest = FirestoreIntegrationTest;
 
-size_t AggregateQueryHash(const AggregateQuery& aggregate_query) { return aggregate_query.Hash(); }
+size_t AggregateQueryHash(const AggregateQuery& aggregate_query) {
+  return aggregate_query.Hash();
+}
 
 TEST_F(AggrgegateQueryTest, TestHashCode) {
   CollectionReference collection =
@@ -34,8 +36,10 @@ TEST_F(AggrgegateQueryTest, TestHashCode) {
       collection.Limit(2).OrderBy("sort", Query::Direction::kAscending);
   Query query2 =
       collection.Limit(2).OrderBy("sort", Query::Direction::kDescending);
-  EXPECT_NE(AggregateQueryHash(query1.Count()), AggregateQueryHash(query2.Count()));
-  EXPECT_EQ(AggregateQueryHash(query1.Count()), AggregateQueryHash(query1.Count()));
+  EXPECT_NE(AggregateQueryHash(query1.Count()),
+            AggregateQueryHash(query2.Count()));
+  EXPECT_EQ(AggregateQueryHash(query1.Count()),
+            AggregateQueryHash(query1.Count()));
 }
 
 }  // namespace firestore
