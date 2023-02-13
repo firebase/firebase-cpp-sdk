@@ -181,10 +181,6 @@ enum Error {
   // HTTP Mapping: 500 Internal Server Error
   kErrorDataLoss = 15,
 
-#ifdef INTERNAL_EXPERIMENTAL
-// LINT.ThenChange(//depot_firebase_cpp/functions/client/cpp/src/ios/\
-  //                 callable_reference_ios.mm)
-#endif  // INTERNAL_EXPERIMENTAL
 };
 
 #ifdef INTERNAL_EXPERIMENTAL

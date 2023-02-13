@@ -378,6 +378,9 @@ def main():
     value = filter_devices(value, args.device_type)
   if args.auto_diff:
     value = filter_values_on_diff(args.parm_key, value, args.auto_diff)
+  if args.parm_key == "platform" and args.apis:
+    # e.g. args.apis = "\"admob,analytics\""
+    value = filter_platforms_on_apis(value, args.apis.strip('"').split(','))
   print_value(value)
 
 
