@@ -367,5 +367,12 @@ TEST_F(FieldValueTest, TestIncrementChoosesTheCorrectType) {
   // clang-format on
 }
 
+TEST_F(FieldValueTest, TestArenaRefMinimunLimit) {
+  std::vector<FieldValue> numbers;
+  for (size_t i = 0U; i < 60000; i++) {
+    numbers.push_back(FieldValue::Integer(i));
+  }
+}
+
 }  // namespace firestore
 }  // namespace firebase
