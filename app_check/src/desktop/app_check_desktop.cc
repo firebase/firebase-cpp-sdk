@@ -17,6 +17,8 @@
 #include <ctime>
 #include <string>
 
+#include "app/src/function_registry.h"
+#include "app/src/log.h"
 #include "app_check/src/common/common.h"
 
 namespace firebase {
@@ -28,10 +30,12 @@ static AppCheckProviderFactory* g_provider_factory = nullptr;
 AppCheckInternal::AppCheckInternal(App* app)
     : app_(app), cached_token_(), cached_provider_() {
   future_manager().AllocFutureApi(this, kAppCheckFnCount);
+  InitRegistryCalls();
 }
 
 AppCheckInternal::~AppCheckInternal() {
   future_manager().ReleaseFutureApi(this);
+  CleanupRegistryCalls();
   app_ = nullptr;
   // Clear the cached token by setting the expiration
   cached_token_.expire_time_millis = 0;
@@ -124,6 +128,45 @@ void AppCheckInternal::RemoveAppCheckListener(AppCheckListener* listener) {
   if (listener) {
     token_listeners_.remove(listener);
   }
+}
+
+static int g_app_check_registry_count = 0;
+
+void AppCheckInternal::InitRegistryCalls() {
+  if (g_app_check_registry_count == 0) {
+    app_->function_registry()->RegisterFunction(
+        ::firebase::internal::FnAppCheckGetTokenAsync,
+        AppCheckInternal::GetAppCheckTokenAsyncForRegistry);
+  }
+  g_app_check_registry_count++;
+}
+
+void AppCheckInternal::CleanupRegistryCalls() {
+  g_app_check_registry_count--;
+  if (g_app_check_registry_count == 0) {
+    app_->function_registry()->UnregisterFunction(
+        ::firebase::internal::FnAppCheckGetTokenAsync);
+  }
+}
+
+// Static functions used by the internal registry tool
+bool AppCheckInternal::GetAppCheckTokenAsyncForRegistry(App* app,
+                                                        void* /*unused*/,
+                                                        void* out) {
+  Future<AppCheckToken>* out_future = static_cast<Future<AppCheckToken>*>(out);
+  if (!app || !out_future) {
+    return false;
+  }
+
+  AppCheck* app_check = AppCheck::GetInstance(app);
+  if (app_check) {
+    // TODO(amaurice): This should call some internal function instead of the
+    // public one, since this will change the *LastResult value behind the
+    // scenes.
+    *out_future = app_check->GetAppCheckToken(false);
+    return true;
+  }
+  return false;
 }
 
 }  // namespace internal

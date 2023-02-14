@@ -36,6 +36,7 @@
 #include "firebase/auth.h"
 #include "firebase/database.h"
 #include "firebase/internal/platform.h"
+#include "firebase/storage.h"
 #include "firebase/util.h"
 #include "firebase_test_framework.h"  // NOLINT
 
@@ -106,6 +107,14 @@ class FirebaseAppCheckTest : public FirebaseTest {
   // Initialize everything needed for Database tests.
   void InitializeAppAuthDatabase();
 
+  // Initialize Firebase Storage.
+  void InitializeStorage();
+  // Shut down Firebase Storage.
+  void TerminateStorage();
+
+  // Initialize everything needed for Storage tests.
+  void InitializeAppAuthStorage();
+
   firebase::database::DatabaseReference CreateWorkingPath(
       bool suppress_cleanup = false);
 
@@ -114,8 +123,9 @@ class FirebaseAppCheckTest : public FirebaseTest {
 
   bool initialized_;
   firebase::database::Database* database_;
-
   std::vector<firebase::database::DatabaseReference> cleanup_paths_;
+
+  firebase::storage::Storage* storage_;
 };
 
 // Listens for token changed notifications
@@ -157,6 +167,8 @@ void FirebaseAppCheckTest::TerminateAppCheck() {
       delete app_check;
     }
   }
+
+  firebase::app_check::AppCheck::SetAppCheckProviderFactory(nullptr);
 }
 
 void FirebaseAppCheckTest::InitializeApp() {
@@ -189,6 +201,7 @@ FirebaseAppCheckTest::FirebaseAppCheckTest()
       app_(nullptr),
       auth_(nullptr),
       database_(nullptr),
+      storage_(nullptr),
       cleanup_paths_() {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 }
@@ -201,6 +214,7 @@ FirebaseAppCheckTest::~FirebaseAppCheckTest() {
 void FirebaseAppCheckTest::TearDown() {
   // Teardown all the products
   TerminateDatabase();
+  TerminateStorage();
   TerminateAuth();
   TerminateAppCheck();
   TerminateApp();
@@ -296,6 +310,43 @@ void FirebaseAppCheckTest::InitializeAppAuthDatabase() {
   InitializeApp();
   InitializeAuth();
   InitializeDatabase();
+}
+
+void FirebaseAppCheckTest::InitializeStorage() {
+  LogDebug("Initializing Firebase Storage.");
+
+  ::firebase::ModuleInitializer initializer;
+  initializer.Initialize(
+      app_, &storage_, [](::firebase::App* app, void* target) {
+        LogDebug("Attempting to initialize Firebase Storage.");
+        ::firebase::InitResult result;
+        *reinterpret_cast<firebase::storage::Storage**>(target) =
+            firebase::storage::Storage::GetInstance(app, &result);
+        return result;
+      });
+
+  WaitForCompletion(initializer.InitializeLastResult(), "InitializeStorage");
+
+  ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
+      << initializer.InitializeLastResult().error_message();
+
+  LogDebug("Successfully initialized Firebase Storage.");
+}
+
+void FirebaseAppCheckTest::TerminateStorage() {
+  if (storage_) {
+    LogDebug("Shutdown the Storage library.");
+    delete storage_;
+    storage_ = nullptr;
+  }
+
+  ProcessEvents(100);
+}
+
+void FirebaseAppCheckTest::InitializeAppAuthStorage() {
+  InitializeApp();
+  InitializeAuth();
+  InitializeStorage();
 }
 
 void FirebaseAppCheckTest::SignIn() {
@@ -672,6 +723,33 @@ TEST_F(FirebaseAppCheckTest, DISABLED_TestRunTransaction) {
               kInitialScore + score_delta);
     EXPECT_EQ(read_result.value(), transaction_future.result()->value());
   }
+}
+
+TEST_F(FirebaseAppCheckTest, TestStorageReadFile) {
+  InitializeAppCheckWithDebug();
+  InitializeAppAuthStorage();
+  firebase::storage::StorageReference ref = storage_->GetReference("test.txt");
+  EXPECT_TRUE(ref.is_valid());
+  const size_t kBufferSize = 128;
+  char buffer[kBufferSize];
+  memset(buffer, 0, sizeof(buffer));
+  firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
+  WaitForCompletion(future, "GetBytes", firebase::storage::kErrorNone);
+  LogDebug("  buffer: %s", buffer);
+}
+
+TEST_F(FirebaseAppCheckTest, TestStorageReadFileUnauthenticated) {
+  // Don't set up AppCheck
+  InitializeAppAuthStorage();
+  firebase::storage::StorageReference ref = storage_->GetReference("test.txt");
+  EXPECT_TRUE(ref.is_valid());
+  const size_t kBufferSize = 128;
+  char buffer[kBufferSize];
+  memset(buffer, 0, sizeof(buffer));
+  firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
+  WaitForCompletion(future, "GetBytes",
+                    firebase::storage::kErrorUnauthenticated);
+  LogDebug("  buffer: %s", buffer);
 }
 
 }  // namespace firebase_testapp_automated
