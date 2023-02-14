@@ -234,10 +234,9 @@ const int kAppCheckTokenTimeoutMs = 10000;
 
 // Handy utility function, since REST calls have similar setup and teardown.
 // Can potentially block getting Future results for the Request.
-void StorageReferenceInternal::PrepareRequestBlocking(rest::Request* request,
-                                              const char* url,
-                                              const char* method,
-                                              const char* content_type) {
+void StorageReferenceInternal::PrepareRequestBlocking(
+    rest::Request* request, const char* url, const char* method,
+    const char* content_type) {
   request->set_url(url);
   request->set_method(method);
 
@@ -279,19 +278,20 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path,
                                                  Controller* controller_out) {
   auto handle = future()->SafeAlloc<size_t>(kStorageReferenceFnGetFile);
   std::string final_path = StripProtocol(path);
-  auto send_request_funct{[&, final_path, listener,
-                           controller_out]() -> BlockingResponse* {
-    auto* future_api = future();
-    auto handle =
-        future_api->SafeAlloc<size_t>(kStorageReferenceFnGetFileInternal);
-    storage::internal::Request* request = new storage::internal::Request();
-    PrepareRequestBlocking(request, storageUri_.AsHttpUrl().c_str(), rest::util::kGet);
-    GetFileResponse* response =
-        new GetFileResponse(final_path.c_str(), handle, future_api);
-    RestCall(request, request->notifier(), response, handle.get(), listener,
-             controller_out);
-    return response;
-  }};
+  auto send_request_funct{
+      [&, final_path, listener, controller_out]() -> BlockingResponse* {
+        auto* future_api = future();
+        auto handle =
+            future_api->SafeAlloc<size_t>(kStorageReferenceFnGetFileInternal);
+        storage::internal::Request* request = new storage::internal::Request();
+        PrepareRequestBlocking(request, storageUri_.AsHttpUrl().c_str(),
+                               rest::util::kGet);
+        GetFileResponse* response =
+            new GetFileResponse(final_path.c_str(), handle, future_api);
+        RestCall(request, request->notifier(), response, handle.get(), listener,
+                 controller_out);
+        return response;
+      }};
   SendRequestWithRetry(kStorageReferenceFnGetFileInternal, send_request_funct,
                        handle, storage_->max_download_retry_time());
 
@@ -315,7 +315,8 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
     auto handle =
         future_api->SafeAlloc<size_t>(kStorageReferenceFnGetBytesInternal);
     storage::internal::Request* request = new storage::internal::Request();
-    PrepareRequestBlocking(request, storageUri_.AsHttpUrl().c_str(), rest::util::kGet);
+    PrepareRequestBlocking(request, storageUri_.AsHttpUrl().c_str(),
+                           rest::util::kGet);
     GetBytesResponse* response =
         new GetBytesResponse(buffer, buffer_size, handle, future_api);
     RestCall(request, request->notifier(), response, handle.get(), listener,
@@ -442,8 +443,8 @@ Future<Metadata> StorageReferenceInternal::PutBytesInternal(
     storage::internal::RequestBinary* request =
         new storage::internal::RequestBinary(static_cast<const char*>(buffer),
                                              buffer_size);
-    PrepareRequestBlocking(request, storageUri_.AsHttpUrl().c_str(), rest::util::kPost,
-                   content_type_str.c_str());
+    PrepareRequestBlocking(request, storageUri_.AsHttpUrl().c_str(),
+                           rest::util::kPost, content_type_str.c_str());
     ReturnedMetadataResponse* response =
         new ReturnedMetadataResponse(handle, future_api, AsStorageReference());
     RestCall(request, request->notifier(), response, handle.get(), listener,
@@ -520,7 +521,7 @@ Future<Metadata> StorageReferenceInternal::PutFileInternal(
           handle, future_api, AsStorageReference());
 
       PrepareRequestBlocking(request, storageUri_.AsHttpUrl().c_str(),
-                     rest::util::kPost, content_type_str.c_str());
+                             rest::util::kPost, content_type_str.c_str());
       RestCall(request, request->notifier(), response, handle.get(), listener,
                controller_out);
       return response;
@@ -575,7 +576,7 @@ Future<Metadata> StorageReferenceInternal::GetMetadata() {
 
     storage::internal::Request* request = new storage::internal::Request();
     PrepareRequestBlocking(request, storageUri_.AsHttpMetadataUrl().c_str(),
-                   rest::util::kGet);
+                           rest::util::kGet);
 
     RestCall(request, request->notifier(), response, handle.get(), nullptr,
              nullptr);
@@ -611,7 +612,7 @@ Future<Metadata> StorageReferenceInternal::UpdateMetadata(
 
     storage::internal::Request* request = new storage::internal::Request();
     PrepareRequestBlocking(request, storageUri_.AsHttpUrl().c_str(), "PATCH",
-                   "application/json");
+                           "application/json");
 
     std::string metadata_json = metadata->internal_->ExportAsJson();
     request->set_post_fields(metadata_json.c_str(), metadata_json.length());
