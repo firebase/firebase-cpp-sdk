@@ -214,6 +214,7 @@ FirebaseAppCheckTest::~FirebaseAppCheckTest() {
 void FirebaseAppCheckTest::TearDown() {
   // Teardown all the products
   TerminateDatabase();
+  TerminateStorage();
   TerminateAuth();
   TerminateAppCheck();
   TerminateApp();

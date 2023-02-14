@@ -19,15 +19,14 @@ namespace firebase {
 namespace app_check {
 namespace internal {
 
-// Used by the function registry, so that other products can call App Check
-// functions without introducing a dependency.
+// Used by App Check functions that return a future
 enum AppCheckFn {
   kAppCheckFnGetAppCheckToken = 0,
   kAppCheckFnCount,
 };
 
-// Helper function to get an existing AppCheck instance, since GetInstance will
-// create one if needed.
+// Helper function to get an existing AppCheck instance or nullptr,
+// if an instance does not already exist.
 ::firebase::app_check::AppCheck* GetExistingAppCheckInstance(
     ::firebase::App* app);
 

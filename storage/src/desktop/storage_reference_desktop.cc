@@ -214,7 +214,7 @@ Future<void> StorageReferenceInternal::Delete() {
     EmptyResponse* response = new EmptyResponse(handle, future_api);
 
     storage::internal::Request* request = new storage::internal::Request();
-    PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), "DELETE");
+    PrepareRequestBlocking(request, storageUri_.AsHttpUrl().c_str(), "DELETE");
     RestCall(request, request->notifier(), response, handle.get(), nullptr,
              nullptr);
     return response;
@@ -229,9 +229,12 @@ Future<void> StorageReferenceInternal::DeleteLastResult() {
       future()->LastResult(kStorageReferenceFnDelete));
 }
 
+// The timeout time to wait for the App Check token.
+const int kAppCheckTokenTimeoutMs = 10000;
+
 // Handy utility function, since REST calls have similar setup and teardown.
 // Can potentially block getting Future results for the Request.
-void StorageReferenceInternal::PrepareRequest(rest::Request* request,
+void StorageReferenceInternal::PrepareRequestBlocking(rest::Request* request,
                                               const char* url,
                                               const char* method,
                                               const char* content_type) {
@@ -263,7 +266,7 @@ void StorageReferenceInternal::PrepareRequest(rest::Request* request,
       &app_check_future);
   if (succeeded && app_check_future.status() != kFutureStatusInvalid) {
     const ::firebase::app_check::AppCheckToken* token =
-        app_check_future.Await(30000);
+        app_check_future.Await(kAppCheckTokenTimeoutMs);
     if (token) {
       request->add_header("X-Firebase-AppCheck", token->token.c_str());
     }
@@ -282,7 +285,7 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path,
     auto handle =
         future_api->SafeAlloc<size_t>(kStorageReferenceFnGetFileInternal);
     storage::internal::Request* request = new storage::internal::Request();
-    PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), rest::util::kGet);
+    PrepareRequestBlocking(request, storageUri_.AsHttpUrl().c_str(), rest::util::kGet);
     GetFileResponse* response =
         new GetFileResponse(final_path.c_str(), handle, future_api);
     RestCall(request, request->notifier(), response, handle.get(), listener,
@@ -312,7 +315,7 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
     auto handle =
         future_api->SafeAlloc<size_t>(kStorageReferenceFnGetBytesInternal);
     storage::internal::Request* request = new storage::internal::Request();
-    PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), rest::util::kGet);
+    PrepareRequestBlocking(request, storageUri_.AsHttpUrl().c_str(), rest::util::kGet);
     GetBytesResponse* response =
         new GetBytesResponse(buffer, buffer_size, handle, future_api);
     RestCall(request, request->notifier(), response, handle.get(), listener,
@@ -439,7 +442,7 @@ Future<Metadata> StorageReferenceInternal::PutBytesInternal(
     storage::internal::RequestBinary* request =
         new storage::internal::RequestBinary(static_cast<const char*>(buffer),
                                              buffer_size);
-    PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), rest::util::kPost,
+    PrepareRequestBlocking(request, storageUri_.AsHttpUrl().c_str(), rest::util::kPost,
                    content_type_str.c_str());
     ReturnedMetadataResponse* response =
         new ReturnedMetadataResponse(handle, future_api, AsStorageReference());
@@ -516,7 +519,7 @@ Future<Metadata> StorageReferenceInternal::PutFileInternal(
       ReturnedMetadataResponse* response = new ReturnedMetadataResponse(
           handle, future_api, AsStorageReference());
 
-      PrepareRequest(request, storageUri_.AsHttpUrl().c_str(),
+      PrepareRequestBlocking(request, storageUri_.AsHttpUrl().c_str(),
                      rest::util::kPost, content_type_str.c_str());
       RestCall(request, request->notifier(), response, handle.get(), listener,
                controller_out);
@@ -571,7 +574,7 @@ Future<Metadata> StorageReferenceInternal::GetMetadata() {
         new ReturnedMetadataResponse(handle, future_api, AsStorageReference());
 
     storage::internal::Request* request = new storage::internal::Request();
-    PrepareRequest(request, storageUri_.AsHttpMetadataUrl().c_str(),
+    PrepareRequestBlocking(request, storageUri_.AsHttpMetadataUrl().c_str(),
                    rest::util::kGet);
 
     RestCall(request, request->notifier(), response, handle.get(), nullptr,
@@ -607,7 +610,7 @@ Future<Metadata> StorageReferenceInternal::UpdateMetadata(
         new ReturnedMetadataResponse(handle, future_api, AsStorageReference());
 
     storage::internal::Request* request = new storage::internal::Request();
-    PrepareRequest(request, storageUri_.AsHttpUrl().c_str(), "PATCH",
+    PrepareRequestBlocking(request, storageUri_.AsHttpUrl().c_str(), "PATCH",
                    "application/json");
 
     std::string metadata_json = metadata->internal_->ExportAsJson();

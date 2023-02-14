@@ -130,7 +130,7 @@ void AppCheckInternal::RemoveAppCheckListener(AppCheckListener* listener) {
   }
 }
 
-int g_app_check_registry_count = 0;
+static int g_app_check_registry_count = 0;
 
 void AppCheckInternal::InitRegistryCalls() {
   if (g_app_check_registry_count == 0) {
