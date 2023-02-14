@@ -642,6 +642,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### 10.5.0
+-   Changes
+    - General (Android): Update to Firebase Android BoM version 31.2.1.
+    - General (iOS): Update to Firebase Cocoapods version 10.5.0.
+
 ### 10.4.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 31.2.0.
