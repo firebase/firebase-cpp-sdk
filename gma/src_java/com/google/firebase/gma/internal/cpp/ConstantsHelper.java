@@ -16,13 +16,9 @@
 
 package com.google.firebase.gma.internal.cpp;
 
-/**
- * Helper class containing constants that are shared across the various GMA ad formats.
- */
+/** Helper class containing constants that are shared across the various GMA ad formats. */
 public final class ConstantsHelper {
-  /**
-   * Error codes used in completing futures. These match the AdError enumeration in the C++ API.
-   */
+  /** Error codes used in completing futures. These match the AdError enumeration in the C++ API. */
   public static final int CALLBACK_ERROR_NONE = 0;
 
   public static final int CALLBACK_ERROR_UNINITIALIZED = 1;
@@ -72,8 +68,8 @@ public final class ConstantsHelper {
   public static final String CALLBACK_ERROR_MESSAGE_UNKNOWN = "Unknown error occurred.";
 
   /**
-   * Ad view positions (matches the AdView::Position and NativeExpressAdView::Position
-   * enumerations in the public C++ API).
+   * Ad view positions (matches the AdView::Position and NativeExpressAdView::Position enumerations
+   * in the public C++ API).
    */
   public static final int AD_VIEW_POSITION_UNDEFINED = -1;
 

@@ -51,7 +51,7 @@ ResponseInfo::ResponseInfo(const ResponseInfoInternal& response_info_internal) {
   const int list_size = (int)env->CallIntMethod(
       j_adapter_response_info_list, util::list::GetMethodId(util::list::kSize));
   for (int i = 0; i < list_size; ++i) {
-    // AdatperResponseInfo for this adapter.
+    // AdapterResponseInfo for this adapter.
     jobject j_adapter_response_info =
         env->CallObjectMethod(j_adapter_response_info_list,
                               util::list::GetMethodId(util::list::kGet), i);

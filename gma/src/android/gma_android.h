@@ -175,7 +175,7 @@ METHOD_LOOKUP_DECLARATION(gma_initialization_helper,
 // Needed when GMA is initialized without Firebase.
 JNIEnv* GetJNI();
 
-// Retrieves the activity used to initalize GMA.
+// Retrieves the activity used to initialize GMA.
 jobject GetActivity();
 
 // Register the native callbacks needed by the Futures.

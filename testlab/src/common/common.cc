@@ -44,7 +44,8 @@ FIREBASE_APP_REGISTER_CALLBACKS(
       if (app == ::firebase::App::GetInstance()) {
         firebase::test_lab::game_loop::Terminate();
       }
-    });
+    },
+    false);
 
 namespace firebase {
 namespace test_lab {

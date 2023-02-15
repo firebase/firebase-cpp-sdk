@@ -576,7 +576,7 @@ class AdSize {
 
   /// Comparison operator.
   ///
-  /// @returns true if `rhs` refers to a different AdSize as `this`.
+  /// @return true if `rhs` refers to a different AdSize as `this`.
   bool operator!=(const AdSize& rhs) const;
 
   /// The width of the region represented by this AdSize.  Value is in
@@ -596,7 +596,7 @@ class AdSize {
  private:
   friend class firebase::gma::internal::AdViewInternal;
 
-  /// Returns an Anchor Adpative AdSize Object given a width and orientation.
+  /// Returns an Anchor Adaptive AdSize Object given a width and orientation.
   static AdSize GetAnchoredAdaptiveBannerAdSize(uint32_t width,
                                                 Orientation orientation);
 
@@ -709,7 +709,7 @@ class AdReward {
  public:
   /// Creates an @ref AdReward.
   AdReward(const std::string& type, int64_t amount)
-      : type_(type), amount_(amount) {}
+      : amount_(amount), type_(type) {}
 
   /// Returns the reward amount.
   int64_t amount() const { return amount_; }
@@ -728,7 +728,7 @@ class AdValue {
   /// Allowed constants for @ref precision_type().
   enum PrecisionType {
     /// An ad value with unknown precision.
-    kdValuePrecisionUnknown = 0,
+    kAdValuePrecisionUnknown = 0,
     /// An ad value estimated from aggregated data.
     kAdValuePrecisionEstimated,
     /// A publisher-provided ad value, such as manual CPMs in a mediation group.

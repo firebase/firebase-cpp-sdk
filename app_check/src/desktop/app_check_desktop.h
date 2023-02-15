@@ -60,6 +60,18 @@ class AppCheckInternal {
   // Get the Provider associated with the stored App used to create this.
   AppCheckProvider* GetProvider();
 
+  // Adds internal App Check functions to the function registry, which other
+  // products can then call to get App Check information without needing a
+  // direct dependency.
+  void InitRegistryCalls();
+
+  // Removes those functions from the registry.
+  void CleanupRegistryCalls();
+
+  // Gets a Future<AppCheckToken> for the given App, stored in the out_future.
+  static bool GetAppCheckTokenAsyncForRegistry(App* app, void* /*unused*/,
+                                               void* out_future);
+
   ::firebase::App* app_;
 
   FutureManager future_manager_;

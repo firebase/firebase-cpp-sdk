@@ -41,7 +41,8 @@ FIREBASE_APP_REGISTER_CALLBACKS(
       if (app == ::firebase::App::GetInstance()) {
         firebase::admob::Terminate();
       }
-    });
+    },
+    false);
 
 namespace firebase {
 namespace admob {

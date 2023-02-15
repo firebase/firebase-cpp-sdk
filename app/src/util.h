@@ -91,15 +91,18 @@ class AppCallback {
 
   // Initialize a module instance.
   //
-  // Right now all module auto-initialization is disabled by default.  Module
-  // initialization can be enabled on a case by case basis using
+  // Module auto-initialization is determined by the enabled flag.
+  // Most products should default to false, except for App Check which
+  // needs to be aware of App creation, and may not require user calls.
+  // Module initialization can be enabled on a case by case basis using
   // SetEnabledByName() before creating an App object, for example:
   // SetEnabledByName("analytics", true);
-  AppCallback(const char* module_name, Created created, Destroyed destroyed)
+  AppCallback(const char* module_name, Created created, Destroyed destroyed,
+              bool enabled_by_default)
       : module_name_(module_name),
         created_(created),
         destroyed_(destroyed),
-        enabled_(false) {
+        enabled_(enabled_by_default) {
     AddCallback(this);
   }
 
@@ -186,14 +189,15 @@ class AppCallback {
 //     }
 //   });
 #define FIREBASE_APP_REGISTER_CALLBACKS(module_name, created_code,             \
-                                        destroyed_code)                        \
+                                        destroyed_code, enabled_by_default)    \
   namespace firebase {                                                         \
   static InitResult module_name##Created(::firebase::App* app) {               \
     created_code;                                                              \
   }                                                                            \
   static void module_name##Destroyed(::firebase::App* app) { destroyed_code; } \
   static ::firebase::AppCallback module_name##_app_callback(                   \
-      #module_name, module_name##Created, module_name##Destroyed);             \
+      #module_name, module_name##Created, module_name##Destroyed,              \
+      enabled_by_default);                                                     \
   /* This is a global symbol that is referenced from all compilation units */  \
   /* that include this module. */                                              \
   void* FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_NAME(module_name)          \

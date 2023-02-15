@@ -21,14 +21,16 @@
 #include "remote_config/src/include/firebase/remote_config.h"
 
 // Register the module initializer.
-FIREBASE_APP_REGISTER_CALLBACKS(remote_config,
-                                {
-                                  // Nothing to do.
-                                  return kInitResultSuccess;
-                                },
-                                {
-                                    // Nothing to do.
-                                });
+FIREBASE_APP_REGISTER_CALLBACKS(
+    remote_config,
+    {
+      // Nothing to do.
+      return kInitResultSuccess;
+    },
+    {
+        // Nothing to do.
+    },
+    false);
 
 namespace firebase {
 namespace remote_config {
