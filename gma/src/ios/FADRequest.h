@@ -26,7 +26,7 @@ NS_ASSUME_NONNULL_BEGIN
 namespace firebase {
 namespace gma {
 
-/// Returns a GADRequest from an gma::AdRequest.
+/// Returns a GADRequest from a gma::AdRequest.
 /// Converts instances of the AdRequest struct used by the C++ wrapper to
 /// to Mobile Ads SDK GADRequest objects.
 ///
@@ -36,9 +36,9 @@ namespace gma {
 /// problems occurred.
 /// @param[out] error_message a string representation of any error that
 /// occurs.
-/// @return On succes, a pointer to a GADRequest object representing the
+/// @return On success, a pointer to a GADRequest object representing the
 /// AdRequest, or nullptr on error.
-GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
+GADRequest* GADRequestFromCppAdRequest(const AdRequest& adRequest,
                                        gma::AdErrorCode* error,
                                        std::string* error_message);
 
@@ -48,7 +48,8 @@ AdErrorCode MapAdRequestErrorCodeToCPPErrorCode(GADErrorCode error_code);
 
 // Converts the iOS error codes from attempting to show a full screen
 // ad into the platform independent error codes defined in AdError.
-AdErrorCode MapFullScreenContentErrorCodeToCPPErrorCode(GADPresentationErrorCode error_code);
+AdErrorCode MapFullScreenContentErrorCodeToCPPErrorCode(
+    GADPresentationErrorCode error_code);
 
 }  // namespace gma
 }  // namespace firebase

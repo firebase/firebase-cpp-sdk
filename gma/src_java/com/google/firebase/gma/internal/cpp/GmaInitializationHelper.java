@@ -21,9 +21,7 @@ import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.initialization.InitializationStatus;
 import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
 
-/**
- * Helper class for initializing the Google Mobile Ads SDK.
- */
+/** Helper class for initializing the Google Mobile Ads SDK. */
 public final class GmaInitializationHelper {
   public static void initializeGma(Context context) {
     MobileAds.initialize(context, new OnInitializationCompleteListener() {

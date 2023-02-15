@@ -25,8 +25,8 @@ extern "C" {
 #include <objc/objc.h>
 }  // extern "C"
 
-#include "gma/src/common/rewarded_ad_internal.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "gma/src/common/rewarded_ad_internal.h"
 
 namespace firebase {
 namespace gma {
@@ -45,13 +45,13 @@ class RewardedAdInternalIOS : public RewardedAdInternal {
 
 #ifdef __OBJC__
   void RewardedAdDidReceiveAd(GADRewardedAd* ad);
-  void RewardedAdDidFailToReceiveAdWithError(NSError *gad_error);
+  void RewardedAdDidFailToReceiveAdWithError(NSError* gad_error);
   void RewardedAdWillPresentScreen();
   void RewardedAdDidDismissScreen();
 #endif  // __OBJC__
 
  private:
-  /// Prevents duplicate invocations of initailize on the Rewarded Ad.
+  /// Prevents duplicate invocations of initialize on the Rewarded Ad.
   bool initialized_;
 
   /// Contains information to asynchronously complete the LoadAd Future.

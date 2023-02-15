@@ -54,8 +54,9 @@ class AdViewInternalIOS : public AdViewInternal {
   }
 
 #ifdef __OBJC__
-  void AdViewDidReceiveAd(int width, int height, GADResponseInfo *gad_response_info);
-  void AdViewDidFailToReceiveAdWithError(NSError *gad_error);
+  void AdViewDidReceiveAd(int width, int height,
+                          GADResponseInfo* gad_response_info);
+  void AdViewDidFailToReceiveAdWithError(NSError* gad_error);
 #endif  // __OBJC__
 
  private:
@@ -74,7 +75,7 @@ class AdViewInternalIOS : public AdViewInternal {
   /// and needs to be waited on in the destructor.
   Mutex destroy_mutex_;
 
-  /// Prevents duplicate invocations of initailize on the AdView.
+  /// Prevents duplicate invocations of initialize on the AdView.
   bool initialized_;
 
   // Mutex to guard against concurrent operations;

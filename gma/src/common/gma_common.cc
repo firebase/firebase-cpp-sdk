@@ -122,10 +122,10 @@ const AdSize AdSize::kLeaderboard(728, 90);
 const AdSize AdSize::kMediumRectangle(300, 250);
 
 AdSize::AdSize(uint32_t width, uint32_t height)
-    : width_(width),
+    : orientation_(AdSize::kOrientationCurrent),
+      width_(width),
       height_(height),
-      type_(AdSize::kTypeStandard),
-      orientation_(AdSize::kOrientationCurrent) {}
+      type_(AdSize::kTypeStandard) {}
 
 AdSize AdSize::GetAnchoredAdaptiveBannerAdSize(uint32_t width,
                                                Orientation orientation) {

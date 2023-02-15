@@ -22,34 +22,28 @@ import com.google.android.gms.ads.AdInspectorError;
 import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.OnAdInspectorClosedListener;
 
-/**
- * Helper class for listening to AdInspector closed events.
- */
+/** Helper class for listening to AdInspector closed events. */
 public final class AdInspectorHelper implements OnAdInspectorClosedListener {
   /**
-   * Pointer to the C++ AdInspectorClosedListener object to invoke
-   * when the AdInsepctor has been closed.
+   * Pointer to the C++ AdInspectorClosedListener object to invoke when the AdInspector has been
+   * closed.
    */
   private long mNativeCallbackPtr;
 
-  /**
-   * Constructor.
-   */
+  /** Constructor. */
   AdInspectorHelper(long nativeCallbackPtr) {
     mNativeCallbackPtr = nativeCallbackPtr;
   }
 
-  /**
-   * Method that the Android GMA SDK invokes when the AdInsepctor
-   * has been closed.
-   */
+  /** Method that the Android GMA SDK invokes when the AdInspector has been closed. */
+  @Override
   public void onAdInspectorClosed(AdInspectorError error) {
     adInspectorClosedCallback(mNativeCallbackPtr, error);
   }
 
   /**
-   * Native callback to which will signal the customer's application
-   * that the AdInsepctor has been closed.  A null AdError signifies success.
+   * Native callback to which will signal the customer's application that the AdInspector has been
+   * closed. A null AdError signifies success.
    */
   public static native void adInspectorClosedCallback(long nativeCallbackPtr, AdError error);
 }

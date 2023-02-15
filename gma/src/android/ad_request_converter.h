@@ -32,7 +32,7 @@ namespace gma {
 /// AdRequest.
 /// @param[out] error kAdErrorCodeNone on success, or another error if
 /// problems occurred.
-/// @return On succes, a local reference to an Android object representing the
+/// @return On success, a local reference to an Android object representing the
 /// AdRequest, or nullptr on error.
 jobject GetJavaAdRequestFromCPPAdRequest(const AdRequest& request,
                                          gma::AdErrorCode* error);
