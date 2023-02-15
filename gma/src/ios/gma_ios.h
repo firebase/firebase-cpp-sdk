@@ -32,19 +32,19 @@ namespace gma {
 
 // Completes AdResult futures for successful ad loads.
 void CompleteLoadAdInternalSuccess(
-  FutureCallbackData<AdResult>* callback_data,
-  const ResponseInfoInternal& response_info_internal);
+    FutureCallbackData<AdResult>* callback_data,
+    const ResponseInfoInternal& response_info_internal);
 
 // Resolves LoadAd errors that exist in the C++ SDK before they reach the iOS
 // SDK.
-void CompleteLoadAdInternalError(
-  FutureCallbackData<AdResult>* callback_data, AdErrorCode error_code,
-  const char* error_message);
+void CompleteLoadAdInternalError(FutureCallbackData<AdResult>* callback_data,
+                                 AdErrorCode error_code,
+                                 const char* error_message);
 
 // Parses information from the NSError to populate an AdResult
 // and completes the AdResult Future on iOS.
 void CompleteAdResultError(FutureCallbackData<AdResult>* callback_data,
-                         NSError *error, bool is_load_ad_error);
+                           NSError* error, bool is_load_ad_error);
 
 // Converts the iOS GMA GADAdValue structure into a CPP
 // firebase::gma::Advalue structure.

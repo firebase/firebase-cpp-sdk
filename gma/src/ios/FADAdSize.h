@@ -29,7 +29,7 @@ NS_ASSUME_NONNULL_BEGIN
 namespace firebase {
 namespace gma {
 
-/// Returns a GADAdSize from an gma::AdSize.
+/// Returns a GADAdSize from a gma::AdSize.
 GADAdSize GADSizeFromCppAdSize(const AdSize& ad_size);
 
 }  // namespace gma

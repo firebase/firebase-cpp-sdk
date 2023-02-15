@@ -28,7 +28,6 @@
 
 #include "app/src/log.h"
 #include "app/src/util_android.h"
-#include "gma/gma_resources.h"
 #include "gma/src/android/gma_android.h"
 #include "gma/src/common/gma_common.h"
 #include "gma/src/include/firebase/gma.h"

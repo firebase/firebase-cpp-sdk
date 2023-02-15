@@ -1050,7 +1050,7 @@ TEST_F(FirebaseGmaUITest, TestRewardedAdLoadAndShow) {
     LogDebug("Waiting for a moment to ensure all callbacks are recorded.");
     app_framework::ProcessEvents(2000);
 
-    // If not running the UI test in CI (running mannually), keep this check.
+    // If not running the UI test in CI (running manually), keep this check.
     // Else running the UI test in CI, skip this check.
     if (!ShouldRunUITests()) {
       EXPECT_EQ(content_listener.num_ad_clicked(), 1);

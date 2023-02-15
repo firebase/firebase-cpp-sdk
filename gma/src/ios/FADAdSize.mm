@@ -32,12 +32,13 @@ GADAdSize GADSizeFromCppAdSize(const AdSize& ad_size) {
         case AdSize::kOrientationCurrent:
           return GADCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(ad_size.width());
         default:
-          FIREBASE_ASSERT_MESSAGE(true, "Uknown AdSize Orientation");
+          FIREBASE_ASSERT_MESSAGE(true, "Unknown AdSize Orientation");
       }
       break;
     case AdSize::kTypeInlineAdaptive:
-      if(ad_size.height() != 0) {
-        return GADInlineAdaptiveBannerAdSizeWithWidthAndMaxHeight(ad_size.width(), ad_size.height());
+      if (ad_size.height() != 0) {
+        return GADInlineAdaptiveBannerAdSizeWithWidthAndMaxHeight(ad_size.width(),
+                                                                  ad_size.height());
       }
       switch (ad_size.orientation()) {
         case AdSize::kOrientationLandscape:
@@ -47,14 +48,14 @@ GADAdSize GADSizeFromCppAdSize(const AdSize& ad_size) {
         case AdSize::kOrientationCurrent:
           return GADCurrentOrientationInlineAdaptiveBannerAdSizeWithWidth(ad_size.width());
         default:
-          FIREBASE_ASSERT_MESSAGE(true, "Uknown AdSize Orientation");
+          FIREBASE_ASSERT_MESSAGE(true, "Unknown AdSize Orientation");
       }
-    break;
+      break;
     case AdSize::kTypeStandard:
       return GADAdSizeFromCGSize(CGSizeMake(ad_size.width(), ad_size.height()));
       break;
     default:
-      FIREBASE_ASSERT_MESSAGE(true, "Uknown AdSize Type");
+      FIREBASE_ASSERT_MESSAGE(true, "Unknown AdSize Type");
   }
 }
 
