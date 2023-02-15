@@ -43,11 +43,12 @@
 #endif  // FIREBASE_PLATFORM_WINDOWS
 
 // Register the module initializer.
-FIREBASE_APP_REGISTER_CALLBACKS(auth,
-                                { return ::firebase::kInitResultSuccess; },
-                                {
-                                    // Nothing to tear down.
-                                });
+FIREBASE_APP_REGISTER_CALLBACKS(
+    auth, { return ::firebase::kInitResultSuccess; },
+    {
+        // Nothing to tear down.
+    },
+    false);
 
 namespace firebase {
 namespace auth {

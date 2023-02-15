@@ -21,7 +21,8 @@ FIREBASE_APP_REGISTER_CALLBACKS(
       if (app == ::firebase::App::GetInstance()) {
         firebase::performance::Terminate();
       }
-    });
+    },
+    false);
 
 namespace firebase {
 namespace performance {

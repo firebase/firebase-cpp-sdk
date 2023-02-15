@@ -238,29 +238,29 @@ enum AuthError {
 
   /// Indicates that the reCAPTCHA token is not valid.
   ///
-  /// @note This error is iOS-specific.
+  /// @note This error is iOS and tvOS-specific.
   kAuthErrorCaptchaCheckFailed,
 
   /// Indicates that an invalid APNS device token was used in the verifyClient
   /// request.
   ///
-  /// @note This error is iOS-specific.
+  /// @note This error is iOS and tvOS-specific.
   kAuthErrorInvalidAppCredential,
 
   /// Indicates that the APNS device token is missing in the verifyClient
   /// request.
   ///
-  /// @note This error is iOS-specific.
+  /// @note This error is iOS and tvOS-specific.
   kAuthErrorMissingAppCredential,
 
   /// Indicates that the clientID used to invoke a web flow is invalid.
   ///
-  /// @note This error is iOS-specific.
+  /// @note This error is iOS and tvOS-specific.
   kAuthErrorInvalidClientId,
 
   /// Indicates that the domain specified in the continue URI is not valid.
   ///
-  /// @note This error is iOS-specific.
+  /// @note This error is iOS and tvOS-specific.
   kAuthErrorInvalidContinueUri,
 
   /// Indicates that a continue URI was not provided in a request to the backend
@@ -270,7 +270,7 @@ enum AuthError {
   /// Indicates an error occurred while attempting to access the keychain.
   /// Common error code for all API Methods.
   ///
-  /// @note This error is iOS-specific.
+  /// @note This error is iOS and tvOS-specific.
   kAuthErrorKeychainError,
 
   /// Indicates that the APNs device token could not be obtained. The app may
@@ -278,24 +278,24 @@ enum AuthError {
   /// forward the APNs device token to FIRAuth if app delegate swizzling is
   /// disabled.
   ///
-  /// @note This error is iOS-specific.
+  /// @note This error is iOS and tvOS-specific.
   kAuthErrorMissingAppToken,
 
   /// Indicates that the iOS bundle ID is missing when an iOS App Store ID is
   /// provided.
   ///
-  /// @note This error is iOS-specific.
+  /// @note This error is iOS and tvOS-specific.
   kAuthErrorMissingIosBundleId,
 
   /// Indicates that the app fails to forward remote notification to FIRAuth.
   ///
-  /// @note This error is iOS-specific.
+  /// @note This error is iOS and tvOS-specific.
   kAuthErrorNotificationNotForwarded,
 
   /// Indicates that the domain specified in the continue URL is not white-
   /// listed in the Firebase console.
   ///
-  /// @note This error is iOS-specific.
+  /// @note This error is iOS and tvOS-specific.
   kAuthErrorUnauthorizedDomain,
 
   /// Indicates that an attempt was made to present a new web context while one

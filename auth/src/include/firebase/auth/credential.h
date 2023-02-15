@@ -155,7 +155,7 @@ class FacebookAuthProvider {
   static const char* const kProviderId;
 };
 
-/// @brief GameCenter (iOS) auth provider
+/// @brief GameCenter (Apple) auth provider
 class GameCenterAuthProvider {
  public:
   /// Generate a credential from GameCenter for the current user.
@@ -243,7 +243,9 @@ class OAuthProvider {
 /// @brief Use phone number text messages to authenticate.
 ///
 /// Allows developers to use the phone number and SMS verification codes
-/// to authenticate a user.
+/// to authenticate a user on a mobile device.
+///
+/// This class is not supported on tvOS and Desktop platforms.
 ///
 /// The verification flow results in a Credential that can be used to,
 /// * Sign in to an existing phone number account/sign up with a new

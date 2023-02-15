@@ -141,7 +141,7 @@ class AdView {
   /// (x, y). Coordinates are in pixels from the top-left corner of the screen.
   ///
   /// When built for Android, the library will not display an ad on top of or
-  /// beneath an <code>Activity</code>'s status bar. If a call to SetPostion
+  /// beneath an <code>Activity</code>'s status bar. If a call to SetPosition
   /// would result in an overlap, the @ref AdView is placed just below the
   /// status bar, so no overlap occurs.
   /// @param[in] x The desired horizontal coordinate.

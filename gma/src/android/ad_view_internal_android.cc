@@ -25,7 +25,6 @@
 
 #include "app/src/assert.h"
 #include "app/src/util_android.h"
-#include "gma/gma_resources.h"
 #include "gma/src/android/ad_request_converter.h"
 #include "gma/src/android/gma_android.h"
 #include "gma/src/common/gma_common.h"
@@ -108,9 +107,9 @@ struct NulleryInvocationOnMainThreadData {
 
 AdViewInternalAndroid::AdViewInternalAndroid(AdView* base)
     : AdViewInternal(base),
+      destroyed_(false),
       helper_(nullptr),
-      initialized_(false),
-      destroyed_(false) {
+      initialized_(false) {
   firebase::MutexLock lock(mutex_);
 
   JNIEnv* env = ::firebase::gma::GetJNI();

@@ -139,7 +139,7 @@ class AdViewInternal {
   // Future data used to synchronize asynchronous calls.
   FutureData future_data_;
 
-  // Listener for AdView Lifecyle event callbacks.
+  // Listener for AdView Lifecycle event callbacks.
   AdListener* ad_listener_;
 
   // Tracks the size of the AdView.

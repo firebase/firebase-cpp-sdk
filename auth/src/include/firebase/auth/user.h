@@ -291,9 +291,9 @@ class User : public UserInfoInterface {
   /// authenticate with.
   /// @return A Future<SignInResult> with the result of the re-authentication
   /// request.
-  /// @note: This operation is supported only on iOS and Android platforms. On
-  /// non-mobile platforms this method will return a Future with a preset error
-  /// code: kAuthErrorUnimplemented.
+  /// @note: This operation is supported only on iOS, tvOS and Android
+  /// platforms. On other platforms this method will return a Future with a
+  /// preset error code: kAuthErrorUnimplemented.
   Future<SignInResult> ReauthenticateWithProvider(
       FederatedAuthProvider* provider) const;
 
@@ -341,9 +341,9 @@ class User : public UserInfoInterface {
   /// @return A Future<SignInResult> with the user data result of the link
   /// request.
   ///
-  /// @note: This operation is supported only on iOS and Android platforms. On
-  /// non-mobile platforms this method will return a Future with a preset error
-  /// code: kAuthErrorUnimplemented.
+  /// @note: This operation is supported only on iOS, tvOS and Android
+  /// platforms. On other platforms this method will return a Future with a
+  /// preset error code: kAuthErrorUnimplemented.
   Future<SignInResult> LinkWithProvider(FederatedAuthProvider* provider) const;
 
   /// Unlinks the current user from the provider specified.

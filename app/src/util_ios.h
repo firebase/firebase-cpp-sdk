@@ -313,7 +313,7 @@ class ClassMethodImplementationCache {
   // indexed by selector name with each element that referencing a dictionary
   // of potential names for the selector that contains the original method
   // implementation on the class.
-  // i.e
+  // i.e.
   // selector_implementation_names_dict = dict[original_selector_name];
   NSMutableDictionary *selector_implementation_names_per_selector_;
 

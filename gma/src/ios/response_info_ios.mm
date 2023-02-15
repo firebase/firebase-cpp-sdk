@@ -23,47 +23,43 @@
 #include "gma/src/include/firebase/gma/types.h"
 #include "gma/src/ios/adapter_response_info_ios.h"
 
-#include "gma/src/ios/ad_error_ios.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_ios.h"
+#include "gma/src/ios/ad_error_ios.h"
 
 namespace firebase {
 namespace gma {
 
-ResponseInfo::ResponseInfo() {
-  to_string_ = "This ResponseInfo has not been initialized.";
-}
+ResponseInfo::ResponseInfo() { to_string_ = "This ResponseInfo has not been initialized."; }
 
 ResponseInfo::ResponseInfo(const ResponseInfoInternal& response_info_internal) {
   if (response_info_internal.gad_response_info == nil) {
-      return;
+    return;
   }
 
-  response_id_ = util::NSStringToString(
-    response_info_internal.gad_response_info.responseIdentifier);
+  response_id_ =
+      util::NSStringToString(response_info_internal.gad_response_info.responseIdentifier);
 
-  mediation_adapter_class_name_ = util::NSStringToString(
-    response_info_internal.gad_response_info.adNetworkClassName );
+  mediation_adapter_class_name_ =
+      util::NSStringToString(response_info_internal.gad_response_info.adNetworkClassName);
 
-  NSEnumerator* enumerator = 
-    [response_info_internal.gad_response_info.adNetworkInfoArray
-      objectEnumerator];
+  NSEnumerator* enumerator =
+      [response_info_internal.gad_response_info.adNetworkInfoArray objectEnumerator];
 
   GADAdNetworkResponseInfo* gad_response_info;
   while (gad_response_info = [enumerator nextObject]) {
     AdapterResponseInfoInternal adapter_response_info_internal;
-    adapter_response_info_internal.ad_network_response_info =
-      gad_response_info;
-    adapter_responses_.push_back(
-      AdapterResponseInfo(adapter_response_info_internal));
+    adapter_response_info_internal.ad_network_response_info = gad_response_info;
+    adapter_responses_.push_back(AdapterResponseInfo(adapter_response_info_internal));
   }
 
-  NSString *to_string = [[NSString alloc]initWithFormat:@"ResponseInfo "
-    "response_id: %@, mediation_adapter_classname : %@, "
-    "adapter_response_info: %@", 
-    response_info_internal.gad_response_info.responseIdentifier,
-    response_info_internal.gad_response_info.adNetworkClassName,
-    response_info_internal.gad_response_info.adNetworkInfoArray];
+  NSString* to_string =
+      [[NSString alloc] initWithFormat:@"ResponseInfo "
+                                        "response_id: %@, mediation_adapter_classname : %@, "
+                                        "adapter_response_info: %@",
+                                       response_info_internal.gad_response_info.responseIdentifier,
+                                       response_info_internal.gad_response_info.adNetworkClassName,
+                                       response_info_internal.gad_response_info.adNetworkInfoArray];
   to_string_ = util::NSStringToString(to_string);
 }
 
