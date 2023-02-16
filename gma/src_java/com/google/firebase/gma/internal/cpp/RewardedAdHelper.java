@@ -79,31 +79,30 @@ public class RewardedAdHelper {
   public void initialize(final long callbackDataPtr, Activity activity) {
     this.activity = activity;
 
-    this.activity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            int errorCode;
-            String errorMessage;
-            synchronized (rewardedLock) {
-              if (rewarded == null) {
-                try {
-                  errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
-                  errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-                } catch (IllegalStateException e) {
-                  rewarded = null;
-                  // This exception can be thrown if the ad unit ID was already set.
-                  errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
-                  errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
-                }
-              } else {
-                errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
-                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
-              }
-              completeRewardedAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
+    this.activity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        int errorCode;
+        String errorMessage;
+        synchronized (rewardedLock) {
+          if (rewarded == null) {
+            try {
+              errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
+              errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
+            } catch (IllegalStateException e) {
+              rewarded = null;
+              // This exception can be thrown if the ad unit ID was already set.
+              errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
+              errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
             }
+          } else {
+            errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
           }
-        });
+          completeRewardedAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
+        }
+      }
+    });
   }
 
   /** Disconnect the helper from the interstital ad. */
@@ -117,19 +116,18 @@ public class RewardedAdHelper {
       return;
     }
 
-    activity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            synchronized (rewardedLock) {
-              if (rewarded != null) {
-                rewarded.setFullScreenContentCallback(null);
-                rewarded.setOnPaidEventListener(null);
-                rewarded = null;
-              }
-            }
+    activity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        synchronized (rewardedLock) {
+          if (rewarded != null) {
+            rewarded.setFullScreenContentCallback(null);
+            rewarded.setOnPaidEventListener(null);
+            rewarded = null;
           }
-        });
+        }
+      }
+    });
   }
 
   /** Loads an ad for the underlying {@link RewardedAd} object. */
@@ -139,8 +137,7 @@ public class RewardedAdHelper {
     }
     synchronized (rewardedLock) {
       if (loadAdCallbackDataPtr != CPP_NULLPTR) {
-        completeRewardedLoadAdInternalError(
-            callbackDataPtr,
+        completeRewardedLoadAdInternalError(callbackDataPtr,
             ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS,
             ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS);
         return;
@@ -150,69 +147,62 @@ public class RewardedAdHelper {
 
     this.adUnitId = adUnitId;
 
-    activity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            synchronized (rewardedLock) {
-              if (activity == null) {
-                completeRewardedLoadAdInternalError(
-                    loadAdCallbackDataPtr,
-                    ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
-                    ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
-                loadAdCallbackDataPtr = CPP_NULLPTR;
-              } else {
-                try {
-                  RewardedAd.load(
-                      activity, RewardedAdHelper.this.adUnitId, request, new RewardedAdListener());
-                } catch (IllegalStateException e) {
-                  completeRewardedLoadAdInternalError(
-                      loadAdCallbackDataPtr,
-                      ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
-                      ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
-                  loadAdCallbackDataPtr = CPP_NULLPTR;
-                }
-              }
+    activity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        synchronized (rewardedLock) {
+          if (activity == null) {
+            completeRewardedLoadAdInternalError(loadAdCallbackDataPtr,
+                ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
+                ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
+            loadAdCallbackDataPtr = CPP_NULLPTR;
+          } else {
+            try {
+              RewardedAd.load(
+                  activity, RewardedAdHelper.this.adUnitId, request, new RewardedAdListener());
+            } catch (IllegalStateException e) {
+              completeRewardedLoadAdInternalError(loadAdCallbackDataPtr,
+                  ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
+                  ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
+              loadAdCallbackDataPtr = CPP_NULLPTR;
             }
           }
-        });
+        }
+      }
+    });
   }
 
   /** Shows a previously loaded ad. */
-  public void show(
-      final long callbackDataPtr,
-      final String verificationCustomData,
+  public void show(final long callbackDataPtr, final String verificationCustomData,
       final String verificationUserId) {
-    activity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            synchronized (rewardedLock) {
-              int errorCode;
-              String errorMessage;
-              if (adUnitId == null) {
-                errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
-                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
-              } else if (rewarded == null) {
-                errorCode = ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS;
-                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS;
-              } else {
-                errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
-                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-                if (!verificationCustomData.isEmpty() || !verificationUserId.isEmpty()) {
-                  ServerSideVerificationOptions options =
-                      new ServerSideVerificationOptions.Builder()
-                          .setCustomData(verificationCustomData)
-                          .setUserId(verificationUserId)
-                          .build();
-                  rewarded.setServerSideVerificationOptions(options);
-                }
-                rewarded.show(activity, new UserEarnedRewardListener());
-              }
-              completeRewardedAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
+    activity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        synchronized (rewardedLock) {
+          int errorCode;
+          String errorMessage;
+          if (adUnitId == null) {
+            errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
+          } else if (rewarded == null) {
+            errorCode = ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS;
+          } else {
+            errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
+            if (!verificationCustomData.isEmpty() || !verificationUserId.isEmpty()) {
+              ServerSideVerificationOptions options = new ServerSideVerificationOptions.Builder()
+                                                          .setCustomData(verificationCustomData)
+                                                          .setUserId(verificationUserId)
+                                                          .build();
+              rewarded.setServerSideVerificationOptions(options);
             }
+            rewarded.show(activity, new UserEarnedRewardListener());
           }
-        });
+          completeRewardedAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
+        }
+      }
+    });
   }
 
   private class UserEarnedRewardListener implements OnUserEarnedRewardListener {
@@ -227,8 +217,8 @@ public class RewardedAdHelper {
     }
   }
 
-  private class RewardedAdFullScreenContentListener extends FullScreenContentCallback
-      implements OnPaidEventListener {
+  private class RewardedAdFullScreenContentListener
+      extends FullScreenContentCallback implements OnPaidEventListener {
     @Override
     public void onAdClicked() {
       synchronized (rewardedLock) {
@@ -278,10 +268,7 @@ public class RewardedAdHelper {
     public void onPaidEvent(AdValue value) {
       synchronized (rewardedLock) {
         if (rewardedAdInternalPtr != CPP_NULLPTR) {
-          notifyPaidEvent(
-              rewardedAdInternalPtr,
-              value.getCurrencyCode(),
-              value.getPrecisionType(),
+          notifyPaidEvent(rewardedAdInternalPtr, value.getCurrencyCode(), value.getPrecisionType(),
               value.getValueMicros());
         }
       }
