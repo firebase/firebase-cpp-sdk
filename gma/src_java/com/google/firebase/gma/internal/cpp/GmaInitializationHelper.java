@@ -24,14 +24,18 @@ import com.google.android.gms.ads.initialization.OnInitializationCompleteListene
 /** Helper class for initializing the Google Mobile Ads SDK. */
 public final class GmaInitializationHelper {
   public static void initializeGma(Context context) {
-    MobileAds.initialize(context, new OnInitializationCompleteListener() {
-      @Override
-      public void onInitializationComplete(InitializationStatus initializationStatus) {
-        initializationCompleteCallback(initializationStatus);
-      }
-    });
+    MobileAds.initialize(
+        context,
+        new OnInitializationCompleteListener() {
+          @Override
+          public void onInitializationComplete(InitializationStatus initializationStatus) {
+            initializationCompleteCallback(initializationStatus);
+          }
+        });
   }
 
   public static native void initializationCompleteCallback(
       InitializationStatus initializationStatus);
+
+  private GmaInitializationHelper() {}
 }

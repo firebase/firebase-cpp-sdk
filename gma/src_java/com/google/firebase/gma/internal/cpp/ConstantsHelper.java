@@ -84,4 +84,6 @@ public final class ConstantsHelper {
   public static final int AD_VIEW_POSITION_BOTTOM_LEFT = 4;
 
   public static final int AD_VIEW_POSITION_BOTTOM_RIGHT = 5;
+
+  private ConstantsHelper() {}
 }

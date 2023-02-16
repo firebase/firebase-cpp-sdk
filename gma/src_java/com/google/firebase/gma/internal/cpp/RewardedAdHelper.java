@@ -17,7 +17,6 @@
 package com.google.firebase.gma.internal.cpp;
 
 import android.app.Activity;
-import android.util.Log;
 import com.google.android.gms.ads.AdError;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdValue;
@@ -42,32 +41,32 @@ public class RewardedAdHelper {
 
   // Pointer to the RewardedAdInternalAndroid object that created this
   // object.
-  private long mRewardedAdInternalPtr;
+  private long rewardedAdInternalPtr;
 
   // The GMA SDK {@link RewardedAd} associated with this helper.
-  private RewardedAd mRewarded;
+  private RewardedAd rewarded;
 
   // Synchronization object for thread safe access to:
-  // * mRewarded
-  // * mRewardedAdInternalPtr
-  // * mLoadAdCallbackDataPtr
-  private final Object mRewardedLock;
+  // * rewarded
+  // * rewardedAdInternalPtr
+  // * loadAdCallbackDataPtr
+  private final Object rewardedLock;
 
   // The {@link Activity} this helper uses to display its
   // {@link RewardedAd}.
-  private Activity mActivity;
+  private Activity activity;
 
   // The ad unit ID to use for the {@link RewardedAd}.
-  private String mAdUnitId;
+  private String adUnitId;
 
   // Pointer to a FutureCallbackData in the C++ wrapper that will be used to
   // complete the Future associated with the latest call to LoadAd.
-  private long mLoadAdCallbackDataPtr;
+  private long loadAdCallbackDataPtr;
 
   /** Constructor. */
   public RewardedAdHelper(long rewardedAdInternalPtr) {
-    mRewardedAdInternalPtr = rewardedAdInternalPtr;
-    mRewardedLock = new Object();
+    this.rewardedAdInternalPtr = rewardedAdInternalPtr;
+    rewardedLock = new Object();
 
     // Test the callbacks and fail quickly if something's wrong.
     completeRewardedAdFutureCallback(CPP_NULLPTR, 0, ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
@@ -78,198 +77,211 @@ public class RewardedAdHelper {
    * object and sets it up.
    */
   public void initialize(final long callbackDataPtr, Activity activity) {
-    mActivity = activity;
+    this.activity = activity;
 
-    mActivity.runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
-        int errorCode;
-        String errorMessage;
-        synchronized (mRewardedLock) {
-          if (mRewarded == null) {
-            try {
-              errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
-              errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-            } catch (IllegalStateException e) {
-              mRewarded = null;
-              // This exception can be thrown if the ad unit ID was already set.
-              errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
-              errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
+    this.activity.runOnUiThread(
+        new Runnable() {
+          @Override
+          public void run() {
+            int errorCode;
+            String errorMessage;
+            synchronized (rewardedLock) {
+              if (rewarded == null) {
+                try {
+                  errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
+                  errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
+                } catch (IllegalStateException e) {
+                  rewarded = null;
+                  // This exception can be thrown if the ad unit ID was already set.
+                  errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
+                  errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
+                }
+              } else {
+                errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
+                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
+              }
+              completeRewardedAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
             }
-          } else {
-            errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
-            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
           }
-          completeRewardedAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
-        }
-      }
-    });
+        });
   }
 
   /** Disconnect the helper from the interstital ad. */
   public void disconnect() {
-    synchronized (mRewardedLock) {
-      mRewardedAdInternalPtr = CPP_NULLPTR;
-      mLoadAdCallbackDataPtr = CPP_NULLPTR;
+    synchronized (rewardedLock) {
+      rewardedAdInternalPtr = CPP_NULLPTR;
+      loadAdCallbackDataPtr = CPP_NULLPTR;
     }
 
-    if (mActivity == null) {
+    if (activity == null) {
       return;
     }
 
-    mActivity.runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
-        synchronized (mRewardedLock) {
-          if (mRewarded != null) {
-            mRewarded.setFullScreenContentCallback(null);
-            mRewarded.setOnPaidEventListener(null);
-            mRewarded = null;
+    activity.runOnUiThread(
+        new Runnable() {
+          @Override
+          public void run() {
+            synchronized (rewardedLock) {
+              if (rewarded != null) {
+                rewarded.setFullScreenContentCallback(null);
+                rewarded.setOnPaidEventListener(null);
+                rewarded = null;
+              }
+            }
           }
-        }
-      }
-    });
+        });
   }
 
   /** Loads an ad for the underlying {@link RewardedAd} object. */
   public void loadAd(long callbackDataPtr, String adUnitId, final AdRequest request) {
-    if (mActivity == null) {
+    if (activity == null) {
       return;
     }
-    synchronized (mRewardedLock) {
-      if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
-        completeRewardedLoadAdInternalError(callbackDataPtr,
+    synchronized (rewardedLock) {
+      if (loadAdCallbackDataPtr != CPP_NULLPTR) {
+        completeRewardedLoadAdInternalError(
+            callbackDataPtr,
             ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS,
             ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS);
         return;
       }
-      mLoadAdCallbackDataPtr = callbackDataPtr;
+      loadAdCallbackDataPtr = callbackDataPtr;
     }
 
-    mAdUnitId = adUnitId;
+    this.adUnitId = adUnitId;
 
-    mActivity.runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
-        synchronized (mRewardedLock) {
-          if (mActivity == null) {
-            completeRewardedLoadAdInternalError(mLoadAdCallbackDataPtr,
-                ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
-                ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
-            mLoadAdCallbackDataPtr = CPP_NULLPTR;
-          } else {
-            try {
-              RewardedAd.load(mActivity, mAdUnitId, request, new RewardedAdListener());
-            } catch (IllegalStateException e) {
-              completeRewardedLoadAdInternalError(mLoadAdCallbackDataPtr,
-                  ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
-                  ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
-              mLoadAdCallbackDataPtr = CPP_NULLPTR;
+    activity.runOnUiThread(
+        new Runnable() {
+          @Override
+          public void run() {
+            synchronized (rewardedLock) {
+              if (activity == null) {
+                completeRewardedLoadAdInternalError(
+                    loadAdCallbackDataPtr,
+                    ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
+                    ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
+                loadAdCallbackDataPtr = CPP_NULLPTR;
+              } else {
+                try {
+                  RewardedAd.load(
+                      activity, RewardedAdHelper.this.adUnitId, request, new RewardedAdListener());
+                } catch (IllegalStateException e) {
+                  completeRewardedLoadAdInternalError(
+                      loadAdCallbackDataPtr,
+                      ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
+                      ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
+                  loadAdCallbackDataPtr = CPP_NULLPTR;
+                }
+              }
             }
           }
-        }
-      }
-    });
+        });
   }
 
-  /**
-   * Shows a previously loaded ad.
-   */
-  public void show(final long callbackDataPtr, final String verificationCustomData,
+  /** Shows a previously loaded ad. */
+  public void show(
+      final long callbackDataPtr,
+      final String verificationCustomData,
       final String verificationUserId) {
-    mActivity.runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
-        synchronized (mRewardedLock) {
-          int errorCode;
-          String errorMessage;
-          if (mAdUnitId == null) {
-            errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
-            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
-          } else if (mRewarded == null) {
-            errorCode = ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS;
-            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS;
-          } else {
-            errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
-            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-            if (!verificationCustomData.isEmpty() || !verificationUserId.isEmpty()) {
-              ServerSideVerificationOptions options = new ServerSideVerificationOptions.Builder()
-                                                          .setCustomData(verificationCustomData)
-                                                          .setUserId(verificationUserId)
-                                                          .build();
-              mRewarded.setServerSideVerificationOptions(options);
+    activity.runOnUiThread(
+        new Runnable() {
+          @Override
+          public void run() {
+            synchronized (rewardedLock) {
+              int errorCode;
+              String errorMessage;
+              if (adUnitId == null) {
+                errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
+                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
+              } else if (rewarded == null) {
+                errorCode = ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS;
+                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS;
+              } else {
+                errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
+                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
+                if (!verificationCustomData.isEmpty() || !verificationUserId.isEmpty()) {
+                  ServerSideVerificationOptions options =
+                      new ServerSideVerificationOptions.Builder()
+                          .setCustomData(verificationCustomData)
+                          .setUserId(verificationUserId)
+                          .build();
+                  rewarded.setServerSideVerificationOptions(options);
+                }
+                rewarded.show(activity, new UserEarnedRewardListener());
+              }
+              completeRewardedAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
             }
-            mRewarded.show(mActivity, new UserEarnedRewardListener());
           }
-          completeRewardedAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
-        }
-      }
-    });
+        });
   }
 
   private class UserEarnedRewardListener implements OnUserEarnedRewardListener {
     @Override
     public void onUserEarnedReward(RewardItem rewardItem) {
-      synchronized (mRewardedLock) {
-        if (mRewardedAdInternalPtr != CPP_NULLPTR) {
+      synchronized (rewardedLock) {
+        if (rewardedAdInternalPtr != CPP_NULLPTR) {
           notifyUserEarnedRewardEvent(
-              mRewardedAdInternalPtr, rewardItem.getType(), rewardItem.getAmount());
+              rewardedAdInternalPtr, rewardItem.getType(), rewardItem.getAmount());
         }
       }
     }
   }
 
-  private class RewardedAdFullScreenContentListener
-      extends FullScreenContentCallback implements OnPaidEventListener {
+  private class RewardedAdFullScreenContentListener extends FullScreenContentCallback
+      implements OnPaidEventListener {
     @Override
     public void onAdClicked() {
-      synchronized (mRewardedLock) {
-        if (mRewardedAdInternalPtr != CPP_NULLPTR) {
-          notifyAdClickedFullScreenContentEvent(mRewardedAdInternalPtr);
+      synchronized (rewardedLock) {
+        if (rewardedAdInternalPtr != CPP_NULLPTR) {
+          notifyAdClickedFullScreenContentEvent(rewardedAdInternalPtr);
         }
       }
     }
 
     @Override
     public void onAdDismissedFullScreenContent() {
-      synchronized (mRewardedLock) {
-        if (mRewardedAdInternalPtr != CPP_NULLPTR) {
-          notifyAdDismissedFullScreenContentEvent(mRewardedAdInternalPtr);
+      synchronized (rewardedLock) {
+        if (rewardedAdInternalPtr != CPP_NULLPTR) {
+          notifyAdDismissedFullScreenContentEvent(rewardedAdInternalPtr);
         }
       }
     }
 
     @Override
     public void onAdFailedToShowFullScreenContent(AdError error) {
-      synchronized (mRewardedLock) {
-        if (mRewardedAdInternalPtr != CPP_NULLPTR) {
-          notifyAdFailedToShowFullScreenContentEvent(mRewardedAdInternalPtr, error);
+      synchronized (rewardedLock) {
+        if (rewardedAdInternalPtr != CPP_NULLPTR) {
+          notifyAdFailedToShowFullScreenContentEvent(rewardedAdInternalPtr, error);
         }
       }
     }
 
     @Override
     public void onAdImpression() {
-      synchronized (mRewardedLock) {
-        if (mRewardedAdInternalPtr != CPP_NULLPTR) {
-          notifyAdImpressionEvent(mRewardedAdInternalPtr);
+      synchronized (rewardedLock) {
+        if (rewardedAdInternalPtr != CPP_NULLPTR) {
+          notifyAdImpressionEvent(rewardedAdInternalPtr);
         }
       }
     }
 
     @Override
     public void onAdShowedFullScreenContent() {
-      synchronized (mRewardedLock) {
-        if (mRewardedAdInternalPtr != CPP_NULLPTR) {
-          notifyAdShowedFullScreenContentEvent(mRewardedAdInternalPtr);
+      synchronized (rewardedLock) {
+        if (rewardedAdInternalPtr != CPP_NULLPTR) {
+          notifyAdShowedFullScreenContentEvent(rewardedAdInternalPtr);
         }
       }
     }
 
+    @Override
     public void onPaidEvent(AdValue value) {
-      synchronized (mRewardedLock) {
-        if (mRewardedAdInternalPtr != CPP_NULLPTR) {
-          notifyPaidEvent(mRewardedAdInternalPtr, value.getCurrencyCode(), value.getPrecisionType(),
+      synchronized (rewardedLock) {
+        if (rewardedAdInternalPtr != CPP_NULLPTR) {
+          notifyPaidEvent(
+              rewardedAdInternalPtr,
+              value.getCurrencyCode(),
+              value.getPrecisionType(),
               value.getValueMicros());
         }
       }
@@ -279,25 +291,25 @@ public class RewardedAdHelper {
   private class RewardedAdListener extends RewardedAdLoadCallback {
     @Override
     public void onAdFailedToLoad(LoadAdError loadAdError) {
-      synchronized (mRewardedLock) {
-        if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
+      synchronized (rewardedLock) {
+        if (loadAdCallbackDataPtr != CPP_NULLPTR) {
           completeRewardedLoadAdError(
-              mLoadAdCallbackDataPtr, loadAdError, loadAdError.getCode(), loadAdError.getMessage());
-          mLoadAdCallbackDataPtr = CPP_NULLPTR;
+              loadAdCallbackDataPtr, loadAdError, loadAdError.getCode(), loadAdError.getMessage());
+          loadAdCallbackDataPtr = CPP_NULLPTR;
         }
       }
     }
 
     @Override
     public void onAdLoaded(RewardedAd ad) {
-      synchronized (mRewardedLock) {
-        if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
-          mRewarded = ad;
+      synchronized (rewardedLock) {
+        if (loadAdCallbackDataPtr != CPP_NULLPTR) {
+          rewarded = ad;
           RewardedAdFullScreenContentListener listener = new RewardedAdFullScreenContentListener();
-          mRewarded.setFullScreenContentCallback(listener);
-          mRewarded.setOnPaidEventListener(listener);
-          completeRewardedLoadedAd(mLoadAdCallbackDataPtr, mRewarded.getResponseInfo());
-          mLoadAdCallbackDataPtr = CPP_NULLPTR;
+          rewarded.setFullScreenContentCallback(listener);
+          rewarded.setOnPaidEventListener(listener);
+          completeRewardedLoadedAd(loadAdCallbackDataPtr, rewarded.getResponseInfo());
+          loadAdCallbackDataPtr = CPP_NULLPTR;
         }
       }
     }

@@ -16,10 +16,8 @@
 
 package com.google.firebase.gma.internal.cpp;
 
-import android.util.Log;
 import com.google.android.gms.ads.AdError;
 import com.google.android.gms.ads.AdInspectorError;
-import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.OnAdInspectorClosedListener;
 
 /** Helper class for listening to AdInspector closed events. */
@@ -28,17 +26,17 @@ public final class AdInspectorHelper implements OnAdInspectorClosedListener {
    * Pointer to the C++ AdInspectorClosedListener object to invoke when the AdInspector has been
    * closed.
    */
-  private long mNativeCallbackPtr;
+  private final long nativeCallbackPtr;
 
   /** Constructor. */
   AdInspectorHelper(long nativeCallbackPtr) {
-    mNativeCallbackPtr = nativeCallbackPtr;
+    this.nativeCallbackPtr = nativeCallbackPtr;
   }
 
   /** Method that the Android GMA SDK invokes when the AdInspector has been closed. */
   @Override
   public void onAdInspectorClosed(AdInspectorError error) {
-    adInspectorClosedCallback(mNativeCallbackPtr, error);
+    adInspectorClosedCallback(nativeCallbackPtr, error);
   }
 
   /**
