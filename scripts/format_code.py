@@ -73,7 +73,7 @@ def get_formatting_diff_lines(filename):
       be printed individually or joined into a single string using something
       like os.linesep.join(diff_lines), where `diff_lines` is the return value.
   """
-  args = ['/usr/bin/clang-format', '-style=file', filename]
+  args = ['clang-format', '-style=file', filename]
   result = subprocess.run(args, stdout=subprocess.PIPE, check=True)
 
   formatted_lines = [line.rstrip('\r\n')
@@ -94,7 +94,7 @@ def does_file_need_formatting(filename):
     bool: True if the file requires format changes, False if formatting would produce
     an identical file.
   """
-  args = ['/usr/bin/clang-format', '-style=file', '-output-replacements-xml', filename]
+  args = ['clang-format', '-style=file', '-output-replacements-xml', filename]
   result = subprocess.run(args, stdout=subprocess.PIPE, check=True)
   for line in result.stdout.decode('utf-8').splitlines():
     if line.strip().startswith("<replacement "):
@@ -111,7 +111,7 @@ def format_file(filename):
   Args:
    filename (string): path to the file to format.
   """
-  args = ['/usr/bin/clang-format', '-style=file', '-i', filename]
+  args = ['clang-format', '-style=file', '-i', filename]
   subprocess.run(args, check=True)
 
 def git_diff_list_files():
