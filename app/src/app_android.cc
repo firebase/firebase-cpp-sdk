@@ -573,6 +573,14 @@ bool App::IsDataCollectionDefaultEnabled() const {
 
 const char* App::GetUserAgent() { return app_common::GetUserAgent(); }
 
+void util::CallAfterEnsureMethodsCached(JNIEnv* env, jobject activity,
+                                        std::function<void()> callback) {
+  if (CacheMethods(env, activity)) {
+    callback();
+    ReleaseClasses(env);
+  }
+}
+
 JavaVM* App::java_vm() const { return internal_->java_vm(); }
 
 jobject App::GetPlatformApp() const { return internal_->GetLocalRef(); }

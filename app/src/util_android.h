@@ -1127,6 +1127,12 @@ jint AttachCurrentThread(JavaVM* java_vm, JNIEnv** env);
 // App. If there is no instantiated App, returns nullptr.
 JNIEnv* GetJNIEnvFromApp();
 
+// Make sure the Java classes and methods are cached before triggering the
+// the callback. Can be slow if this is called BEFORE any Firebase App is
+// created.
+void CallAfterEnsureMethodsCached(JNIEnv* env, jobject activity,
+                                  std::function<void()> callback);
+
 }  // namespace util
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase
