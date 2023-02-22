@@ -86,7 +86,8 @@ class AppCheckInternal {
   AppCheckToken cached_token_;
   // List of registered listeners for Token changes.
   std::list<AppCheckListener*> token_listeners_;
-  // Should it automatically get an App Check token if there is not a valid cached token.
+  // Should it automatically get an App Check token if there is not a valid
+  // cached token.
   bool is_token_auto_refresh_enabled_;
 };
 

@@ -263,8 +263,7 @@ void StorageReferenceInternal::PrepareRequestBlocking(
       ::firebase::internal::FnAppCheckGetTokenAsync, storage_->app(), nullptr,
       &app_check_future);
   if (succeeded && app_check_future.status() != kFutureStatusInvalid) {
-    const std::string* token =
-        app_check_future.Await(kAppCheckTokenTimeoutMs);
+    const std::string* token = app_check_future.Await(kAppCheckTokenTimeoutMs);
     if (token) {
       request->add_header("X-Firebase-AppCheck", token->c_str());
     }

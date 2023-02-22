@@ -28,7 +28,10 @@ namespace internal {
 static AppCheckProviderFactory* g_provider_factory = nullptr;
 
 AppCheckInternal::AppCheckInternal(App* app)
-    : app_(app), cached_token_(), cached_provider_(), is_token_auto_refresh_enabled_(true) {
+    : app_(app),
+      cached_token_(),
+      cached_provider_(),
+      is_token_auto_refresh_enabled_(true) {
   future_manager().AllocFutureApi(this, kAppCheckFnCount);
   InitRegistryCalls();
 }
@@ -140,8 +143,9 @@ Future<std::string> AppCheckInternal::GetAppCheckTokenStringInternal() {
           "No AppCheckProvider installed.");
     }
   } else {
-    future()->Complete(handle, kAppCheckErrorUnknown,
-                       "No AppCheck token available, and auto refresh is disabled");
+    future()->Complete(
+        handle, kAppCheckErrorUnknown,
+        "No AppCheck token available, and auto refresh is disabled");
   }
   return MakeFuture(future(), handle);
 }
