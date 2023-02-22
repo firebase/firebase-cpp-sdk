@@ -261,7 +261,7 @@ class LibraryRegistry {
 
 // Guards g_apps and g_default_app.
 static Mutex* g_app_mutex = new Mutex();
-static std::map<std::string, UniquePtr<AppData>>* g_apps;
+static std::map<std::string, UniquePtr<AppData>>* g_apps = nullptr;
 static App* g_default_app = nullptr;
 LibraryRegistry* LibraryRegistry::library_registry_ = nullptr;
 
@@ -293,21 +293,6 @@ App* AddApp(App* app, std::map<std::string, InitResult>* results) {
         app_options.database_url(), app_options.messaging_sender_id(),
         app_options.storage_bucket(), app_options.project_id(),
         static_cast<int>(reinterpret_cast<intptr_t>(app)));
-  }
-  LibraryRegistry::Initialize();
-  if (created_first_app) {
-    // This calls the platform specific method to propagate the registration to
-    // any SDKs in use by this library.
-    App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX,
-                         FIREBASE_VERSION_NUMBER_STRING);
-    App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX "-os",
-                         kOperatingSystem);
-    App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX "-arch",
-                         kCpuArchitecture);
-    App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX "-stl",
-                         kCppRuntimeOrStl);
-    App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX "-buildsrc",
-                         kBuildSource);
   }
   callback::Initialize();
   AppCallback::NotifyAllAppCreated(app, results);
@@ -431,6 +416,27 @@ void RegisterLibrariesFromUserAgent(const char* user_agent) {
     token = next_token;
   } while (token && next_token && next_token[0] != '\0');
   if (changed) registry->UpdateUserAgent();
+}
+
+void RegisterSdkUsage(void* platform_resource) {
+  MutexLock lock(*g_app_mutex);
+
+  // Only register libraries when no C++ apps was created before.
+  if (g_apps == nullptr) {
+    LibraryRegistry::Initialize();
+    // This calls the platform specific method to propagate the registration to
+    // any SDKs in use by this library.
+    App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX,
+                         FIREBASE_VERSION_NUMBER_STRING, platform_resource);
+    App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX "-os", kOperatingSystem,
+                         platform_resource);
+    App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX "-arch",
+                         kCpuArchitecture, platform_resource);
+    App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX "-stl",
+                         kCppRuntimeOrStl, platform_resource);
+    App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX "-buildsrc",
+                         kBuildSource, platform_resource);
+  }
 }
 
 const char* GetUserAgent() {

@@ -479,6 +479,9 @@ App* App::Create(const AppOptions& options, const char* name, JNIEnv* jni_env,
   }
   LogDebug("Creating Firebase App %s for %s", name, kFirebaseVersionString);
   if (CacheMethods(jni_env, activity)) {
+    // Register C++ user-agents before creating Android app.
+    app_common::RegisterSdkUsage(jni_env);
+
     // Try to get or create a new FirebaseApp object.
     jobject platform_app =
         CreateOrGetPlatformApp(jni_env, options, name, activity);
@@ -526,9 +529,14 @@ static void RegisterLibraryWithVersionRegistrar(JNIEnv* env,
   env->DeleteLocalRef(registrar);
 }
 
-void App::RegisterLibrary(const char* library, const char* version) {
-  RegisterLibraryWithVersionRegistrar(util::GetJNIEnvFromApp(), library,
-                                      version);
+void App::RegisterLibrary(const char* library, const char* version,
+                          void* platform_resource) {
+  FIREBASE_ASSERT(platform_resource);
+
+  // Always relies on platform_resource to get reference to JNIEnv* to reduce
+  // complexity.
+  RegisterLibraryWithVersionRegistrar(
+      reinterpret_cast<JNIEnv*>(platform_resource), library, version);
   app_common::RegisterLibrary(library, version);
 }
 
