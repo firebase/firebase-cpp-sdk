@@ -245,7 +245,7 @@ public class AdViewHelper implements ViewTreeObserver.OnPreDrawListener {
     if (activity == null) {
       return;
     }
-    var unused = updatePopUpLocation(callbackDataPtr);
+    boolean unused = updatePopUpLocation(callbackDataPtr);
   }
 
   /** Pauses the {@link AdView}. */
@@ -282,7 +282,7 @@ public class AdViewHelper implements ViewTreeObserver.OnPreDrawListener {
       desiredX = x;
       desiredY = y;
       if (popUp != null) {
-        var unused = updatePopUpLocation(callbackDataPtr);
+        boolean unused = updatePopUpLocation(callbackDataPtr);
       }
     }
   }
@@ -297,7 +297,7 @@ public class AdViewHelper implements ViewTreeObserver.OnPreDrawListener {
       shouldUseXYForPosition = false;
       desiredPosition = position;
       if (popUp != null) {
-        var unused = updatePopUpLocation(callbackDataPtr);
+        boolean unused = updatePopUpLocation(callbackDataPtr);
       }
     }
   }
