@@ -16,6 +16,7 @@
 #define FIREBASE_APP_CHECK_SRC_DESKTOP_APP_CHECK_DESKTOP_H_
 
 #include <list>
+#include <string>
 
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
