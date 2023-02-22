@@ -28,7 +28,7 @@ namespace internal {
 static AppCheckProviderFactory* g_provider_factory = nullptr;
 
 AppCheckInternal::AppCheckInternal(App* app)
-    : app_(app), cached_token_(), cached_provider_() {
+    : app_(app), cached_token_(), cached_provider_(), is_token_auto_refresh_enabled_(true) {
   future_manager().AllocFutureApi(this, kAppCheckFnCount);
   InitRegistryCalls();
 }
@@ -112,6 +112,40 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckTokenLastResult() {
       future()->LastResult(kAppCheckFnGetAppCheckToken));
 }
 
+Future<std::string> AppCheckInternal::GetAppCheckTokenStringInternal() {
+  auto handle = future()->SafeAlloc<std::string>(kAppCheckFnGetAppCheckToken);
+  if (HasValidCacheToken()) {
+    future()->CompleteWithResult(handle, 0, cached_token_.token);
+  } else if (is_token_auto_refresh_enabled_) {
+    // Only refresh the token if it is enabled
+    AppCheckProvider* provider = GetProvider();
+    if (provider != nullptr) {
+      // Get a new token, and pass the result into the future.
+      // Note that this is slightly different from the one above, as the
+      // Future result is just the string token, and not the full struct.
+      auto token_callback{
+          [this, handle](firebase::app_check::AppCheckToken token,
+                         int error_code, const std::string& error_message) {
+            if (error_code == firebase::app_check::kAppCheckErrorNone) {
+              UpdateCachedToken(token);
+              future()->CompleteWithResult(handle, 0, token.token);
+            } else {
+              future()->Complete(handle, error_code, error_message.c_str());
+            }
+          }};
+      provider->GetToken(token_callback);
+    } else {
+      future()->Complete(
+          handle, firebase::app_check::kAppCheckErrorInvalidConfiguration,
+          "No AppCheckProvider installed.");
+    }
+  } else {
+    future()->Complete(handle, kAppCheckErrorUnknown,
+                       "No AppCheck token available, and auto refresh is disabled");
+  }
+  return MakeFuture(future(), handle);
+}
+
 void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {
   if (listener) {
     token_listeners_.push_back(listener);
@@ -153,17 +187,14 @@ void AppCheckInternal::CleanupRegistryCalls() {
 bool AppCheckInternal::GetAppCheckTokenAsyncForRegistry(App* app,
                                                         void* /*unused*/,
                                                         void* out) {
-  Future<AppCheckToken>* out_future = static_cast<Future<AppCheckToken>*>(out);
+  Future<std::string>* out_future = static_cast<Future<std::string>*>(out);
   if (!app || !out_future) {
     return false;
   }
 
   AppCheck* app_check = AppCheck::GetInstance(app);
   if (app_check) {
-    // TODO(amaurice): This should call some internal function instead of the
-    // public one, since this will change the *LastResult value behind the
-    // scenes.
-    *out_future = app_check->GetAppCheckToken(false);
+    *out_future = app_check->GetAppCheckTokenStringInternal();
     return true;
   }
   return false;
