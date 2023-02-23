@@ -15,7 +15,7 @@
  */
 
 #if __cplusplus < 201400
-#warning \
-    "The next major release of the Firebase C++ SDK will drop support for \
-C++11, setting the new minimum C++ version to C++14."
+#pragma message                                            \
+    "The next major release of the Firebase C++ SDK will " \
+    "drop support for C++11, setting the new minimum C++ version to C++14."
 #endif
