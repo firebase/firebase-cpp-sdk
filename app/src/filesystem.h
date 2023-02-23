@@ -17,13 +17,9 @@
 #ifndef FIREBASE_APP_SRC_FILESYSTEM_H_
 #define FIREBASE_APP_SRC_FILESYSTEM_H_
 
-#include "app/src/include/firebase/internal/platform.h"
-
-#if FIREBASE_PLATFORM_WINDOWS
-#include <wstring>
-#else
 #include <string>
-#endif  // FIREBASE_PLATFORM_WINDOWS
+
+#include "app/src/include/firebase/internal/platform.h"
 
 namespace firebase {
 
