@@ -17,7 +17,13 @@
 #ifndef FIREBASE_APP_SRC_FILESYSTEM_H_
 #define FIREBASE_APP_SRC_FILESYSTEM_H_
 
+#include "app/src/include/firebase/internal/platform.h"
+
+#if FIREBASE_PLATFORM_WINDOWS
+#include <wstring>
+#else
 #include <string>
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 namespace firebase {
 
@@ -51,8 +57,25 @@ namespace firebase {
 //
 // TODO(b/171738655): use a separate function instead of the `should_create`
 // flag. Use `StatusOr` for returning errors.
-std::string AppDataDir(const char* app_name, bool should_create = true,
-                       std::string* out_error = nullptr);
+
+#if FIREBASE_PLATFORM_WINDOWS
+typedef std::wstring PathString;
+#define PathStringLiteral(x) PathString(L ## x)
+#define kPathStringEmpty PathString(L"")
+#define kPathStringSep PathString(L"\\")
+#define PathStringChar wchar
+#define PathStringLiteralPrefix L
+#else
+typedef std::string PathString;
+#define PathStringLiteral(x) PathString(x)
+#define kPathStringEmpty PathString("")
+#define kPathStringSep PathString("/")
+#define PathStringChar char
+#define PathStringLiteralPrefix
+#endif  // FIREBASE_PLATFORM_WINDOWS
+  
+PathString AppDataDir(const char* app_name, bool should_create = true,
+		      std::string* out_error = nullptr);
 
 }  // namespace firebase
 

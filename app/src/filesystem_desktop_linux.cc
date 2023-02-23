@@ -80,8 +80,8 @@ bool PathExists(const std::string& path) {
 
 }  // namespace
 
-std::string AppDataDir(const char* app_name, bool should_create,
-                       std::string* out_error) {
+PathString AppDataDir(const char* app_name, bool should_create,
+		      std::string* out_error) {
   if (!app_name || strlen(app_name) == 0) {
     if (out_error) {
       *out_error = "AppDataDir failed: no app_name provided";

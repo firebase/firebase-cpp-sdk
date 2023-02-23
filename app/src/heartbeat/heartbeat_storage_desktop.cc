@@ -39,25 +39,28 @@ using com::google::firebase::cpp::heartbeat::VerifyLoggedHeartbeatsBuffer;
 namespace {
 
 const char kHeartbeatDir[] = "firebase-heartbeat";
+#if FIREBASE_PLATFORM_WINDOWS
+const wchar_t kHeartbeatFilenamePrefix[] = L"heartbeats-";
+#else
 const char kHeartbeatFilenamePrefix[] = "heartbeats-";
+#endif
 
-std::string CreateFilename(const std::string& app_id, const Logger& logger) {
+PathString CreateFilename(const std::string& app_id, const Logger& logger) {
   std::string error;
-  std::string app_dir =
+  PathString app_dir =
       AppDataDir(kHeartbeatDir, /*should_create=*/true, &error);
   if (!error.empty()) {
     logger.LogError(error.c_str());
-    return "";
+    return kPathStringEmpty;
   }
   if (app_dir.empty()) {
-    return "";
+    return kPathStringEmpty;
   }
 
   // Remove any symbols from app_id that might not be allowed in filenames.
   auto app_id_without_symbols =
-      std::regex_replace(app_id, std::regex("[/\\\\?%*:|\"<>.,;=]"), "");
-  // Note: fstream will convert / to \ if needed on windows.
-  return app_dir + "/" + kHeartbeatFilenamePrefix + app_id_without_symbols;
+    std::regex_replace(app_id, std::regex(PathStringLiteral("[/\\\\?%*:|\"<>.,;=]")), kPathStringEmpty);
+  return app_dir + kPathStringSep + kHeartbeatFilenamePrefix + app_id_without_symbols;
 }
 
 }  // namespace
@@ -127,7 +130,7 @@ bool HeartbeatStorageDesktop::Write(const LoggedHeartbeats& heartbeats) const {
   return !file.fail();
 }
 
-const char* HeartbeatStorageDesktop::GetFilename() const {
+const PathStringChar* HeartbeatStorageDesktop::GetFilename() const {
   return filename_.c_str();
 }
 
