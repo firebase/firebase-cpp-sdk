@@ -197,8 +197,8 @@ bool AppCheckInternal::GetAppCheckTokenAsyncForRegistry(App* app,
   }
 
   AppCheck* app_check = AppCheck::GetInstance(app);
-  if (app_check) {
-    *out_future = app_check->GetAppCheckTokenStringInternal();
+  if (app_check && app_check->internal_) {
+    *out_future = app_check->internal_->GetAppCheckTokenStringInternal();
     return true;
   }
   return false;

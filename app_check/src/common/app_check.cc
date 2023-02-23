@@ -149,16 +149,6 @@ Future<AppCheckToken> AppCheck::GetAppCheckTokenLastResult() {
                    : Future<AppCheckToken>();
 }
 
-Future<std::string> AppCheck::GetAppCheckTokenStringInternal() {
-  // This is a call meant only to be used by the Desktop implementation
-#if FIREBASE_PLATFORM_DESKTOP
-  return internal_ ? internal_->GetAppCheckTokenStringInternal()
-                   : Future<std::string>();
-#else
-  return Future<std::string>();
-#endif  // FIREBASE_PLATFORM_DESKTOP
-}
-
 void AppCheck::AddAppCheckListener(AppCheckListener* listener) {
   if (!internal_) return;
   internal_->AddAppCheckListener(listener);

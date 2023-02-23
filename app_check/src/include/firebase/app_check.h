@@ -156,14 +156,10 @@ class AppCheck {
   explicit AppCheck(::firebase::App* app);
 
   void DeleteInternal();
-
-  internal::AppCheckInternal* internal_;
-
+  
+  // Make the Internal version a friend class, so that it can access itself.
   friend class internal::AppCheckInternal;
-  // Internal method that can be called by the function registry to handle
-  // other products retrieving an App Check token. Returned as a string, to
-  // not require those products depend on App Check for the struct definition.
-  Future<std::string> GetAppCheckTokenStringInternal();
+  internal::AppCheckInternal* internal_;
 };
 
 }  // namespace app_check
