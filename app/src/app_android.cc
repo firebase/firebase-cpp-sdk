@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include "app/src/app_android.h"
+
 #include <jni.h>
 #include <string.h>
 
@@ -57,6 +59,7 @@ JOBJECT_REFERENCE(AppInternal);
   X(GetInstanceByName, "getInstance",                                          \
     "(Ljava/lang/String;)Lcom/google/firebase/FirebaseApp;",                   \
     util::kMethodTypeStatic),                                                  \
+  X(GetName, "getName", "()Ljava/lang/String;", util::kMethodTypeInstance),    \
   X(GetOptions, "getOptions", "()Lcom/google/firebase/FirebaseOptions;",       \
     util::kMethodTypeInstance),                                                \
   X(Delete, "delete", "()V", util::kMethodTypeInstance),                       \
@@ -568,5 +571,25 @@ const char* App::GetUserAgent() { return app_common::GetUserAgent(); }
 JavaVM* App::java_vm() const { return internal_->java_vm(); }
 
 jobject App::GetPlatformApp() const { return internal_->GetLocalRef(); }
+
+namespace internal {
+
+// Default android app name.
+const char* const kDefaultAndroidAppName = "[DEFAULT]";
+
+// Get the corresponding App from an Android SDK FirebaseApp instance.
+App* GetAppFromPlatformApp(JNIEnv* jni_env, jobject platform_app) {
+  jobject app_name = jni_env->CallObjectMethod(
+      platform_app, app::GetMethodId(app::kGetName));
+  util::CheckAndClearJniExceptions(jni_env);
+  std::string app_name_str = util::JniStringToString(jni_env, app_name);
+  // Note: Android has a different default app name than C++
+  if (app_name_str == kDefaultAndroidAppName) {
+    app_name_str = kDefaultAppName;
+  }
+  return firebase::app_common::FindAppByName(app_name_str.c_str());
+}
+
+}  // namespace internal
 
 }  // namespace firebase

@@ -15,6 +15,7 @@
 #ifndef FIREBASE_APP_CHECK_SRC_ANDROID_APP_CHECK_ANDROID_H_
 #define FIREBASE_APP_CHECK_SRC_ANDROID_APP_CHECK_ANDROID_H_
 
+#include "app/src/util_android.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
@@ -50,6 +51,7 @@ class AppCheckInternal {
 
  private:
   ::firebase::App* app_;
+  jobject app_check_impl_;
 
   FutureManager future_manager_;
 };
