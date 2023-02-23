@@ -16,9 +16,9 @@
 
 package com.google.firebase.appcheck.internal.cpp;
 
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.appcheck.AppCheckProvider;
 import com.google.firebase.appcheck.AppCheckProviderFactory;
-import com.google.firebase.FirebaseApp;
 
 public class JniAppCheckProviderFactory implements AppCheckProviderFactory {
   private long cFactory;

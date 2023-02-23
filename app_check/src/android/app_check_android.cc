@@ -15,15 +15,15 @@
 #include "app_check/src/android/app_check_android.h"
 
 #include "app/src/app_android.h"
-#include "app/src/util_android.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "app/src/util_android.h"
+#include "app_check/app_check_resources.h"
 #include "app_check/src/android/common_android.h"
 #include "app_check/src/android/debug_provider_android.h"
 #include "app_check/src/android/play_integrity_provider_android.h"
 #include "app_check/src/common/common.h"
-#include "app_check/app_check_resources.h"
 
 namespace firebase {
 namespace app_check {
@@ -60,19 +60,19 @@ METHOD_LOOKUP_DEFINITION(app_check,
   X(Constructor, "<init>", "(J)V")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(jni_provider_factory, JNI_APP_CHECK_PROVIDER_FACTORY_METHODS)
+METHOD_LOOKUP_DECLARATION(jni_provider_factory,
+                          JNI_APP_CHECK_PROVIDER_FACTORY_METHODS)
 METHOD_LOOKUP_DEFINITION(
-    jni_provider_factory, "com/google/firebase/appcheck/internal/cpp/JniAppCheckProviderFactory",
+    jni_provider_factory,
+    "com/google/firebase/appcheck/internal/cpp/JniAppCheckProviderFactory",
     JNI_APP_CHECK_PROVIDER_FACTORY_METHODS)
 
 JNIEXPORT jlong JNICALL JniAppCheckProviderFactory_nativeCreateProvider(
     JNIEnv* env, jobject clazz, jlong c_factory, jobject j_app);
 
 static const JNINativeMethod kNativeJniAppCheckProviderFactoryMethods[] = {
-    {"nativeCreateProvider",
-     "(JLcom/google/firebase/FirebaseApp;)J",
-     reinterpret_cast<void*>(
-         JniAppCheckProviderFactory_nativeCreateProvider)},
+    {"nativeCreateProvider", "(JLcom/google/firebase/FirebaseApp;)J",
+     reinterpret_cast<void*>(JniAppCheckProviderFactory_nativeCreateProvider)},
 };
 
 // clang-format off
@@ -84,17 +84,18 @@ static const JNINativeMethod kNativeJniAppCheckProviderFactoryMethods[] = {
 
 METHOD_LOOKUP_DECLARATION(jni_provider, JNI_APP_CHECK_PROVIDER_METHODS)
 METHOD_LOOKUP_DEFINITION(
-    jni_provider, "com/google/firebase/appcheck/internal/cpp/JniAppCheckProvider",
+    jni_provider,
+    "com/google/firebase/appcheck/internal/cpp/JniAppCheckProvider",
     JNI_APP_CHECK_PROVIDER_METHODS)
 
 JNIEXPORT void JNICALL JniAppCheckProvider_nativeGetToken(
-    JNIEnv* env, jobject j_provider, jlong c_provider, jobject task_completion_source);
+    JNIEnv* env, jobject j_provider, jlong c_provider,
+    jobject task_completion_source);
 
 static const JNINativeMethod kNativeJniAppCheckProviderMethods[] = {
     {"nativeGetToken",
      "(JLcom/google/android/gms/tasks/TaskCompletionSource;)V",
-     reinterpret_cast<void*>(
-         JniAppCheckProvider_nativeGetToken)},
+     reinterpret_cast<void*>(JniAppCheckProvider_nativeGetToken)},
 };
 
 static const char* kApiIdentifier = "AppCheck";
@@ -102,11 +103,13 @@ static const char* kApiIdentifier = "AppCheck";
 static AppCheckProviderFactory* g_provider_factory = nullptr;
 static int g_initialized_count = 0;
 
-bool CacheAppCheckMethodIds(JNIEnv* env, jobject activity,
-      const std::vector<firebase::internal::EmbeddedFile>& embedded_files) {
+bool CacheAppCheckMethodIds(
+    JNIEnv* env, jobject activity,
+    const std::vector<firebase::internal::EmbeddedFile>& embedded_files) {
   // Cache the JniAppCheckProviderFactory class and register the native callback
   // methods.
-  if (!(jni_provider_factory::CacheClassFromFiles(env, activity, &embedded_files) &&
+  if (!(jni_provider_factory::CacheClassFromFiles(env, activity,
+                                                  &embedded_files) &&
         jni_provider_factory::CacheMethodIds(env, activity) &&
         jni_provider_factory::RegisterNatives(
             env, kNativeJniAppCheckProviderFactoryMethods,
@@ -143,7 +146,7 @@ static void ReleaseClasses(JNIEnv* env) {
 namespace {
 struct FutureDataHandle {
   FutureDataHandle(ReferenceCountedFutureImpl* _future_api,
-                const SafeFutureHandle<AppCheckToken>& _future_handle)
+                   const SafeFutureHandle<AppCheckToken>& _future_handle)
       : future_api(_future_api), future_handle(_future_handle) {}
   ReferenceCountedFutureImpl* future_api;
   SafeFutureHandle<AppCheckToken> future_handle;
@@ -165,45 +168,53 @@ void TokenResultCallback(JNIEnv* env, jobject result,
   }
   // Complete the provided future.
   auto* data_handle = reinterpret_cast<FutureDataHandle*>(callback_data);
-  data_handle->future_api->CompleteWithResult(
-    data_handle->future_handle, result_error_code, status_message, result_token);
+  data_handle->future_api->CompleteWithResult(data_handle->future_handle,
+                                              result_error_code, status_message,
+                                              result_token);
   delete data_handle;
 }
-} // anonymous namespace
+}  // anonymous namespace
 
 JNIEXPORT jlong JNICALL JniAppCheckProviderFactory_nativeCreateProvider(
     JNIEnv* env, jobject clazz, jlong c_factory, jobject j_app) {
-  // TODO(almostmatt): maybe handle the possibility of null app 
-  firebase::App* cpp_app = firebase::internal::GetAppFromPlatformApp(env, j_app);
-  AppCheckProviderFactory* provider_factory = reinterpret_cast<AppCheckProviderFactory*>(c_factory);
+  // TODO(almostmatt): maybe handle the possibility of null app
+  firebase::App* cpp_app =
+      firebase::internal::GetAppFromPlatformApp(env, j_app);
+  AppCheckProviderFactory* provider_factory =
+      reinterpret_cast<AppCheckProviderFactory*>(c_factory);
   AppCheckProvider* provider = provider_factory->CreateProvider(cpp_app);
   return reinterpret_cast<jlong>(provider);
 }
 
 JNIEXPORT void JNICALL JniAppCheckProvider_nativeGetToken(
-    JNIEnv* env, jobject j_provider, jlong c_provider, jobject task_completion_source) {
-  // Create GlobalReferences to the provider and task. These references will be deleted in the completion callback.
+    JNIEnv* env, jobject j_provider, jlong c_provider,
+    jobject task_completion_source) {
+  // Create GlobalReferences to the provider and task. These references will be
+  // deleted in the completion callback.
   jobject j_provider_global = env->NewGlobalRef(j_provider);
-  jobject task_completion_source_global = env->NewGlobalRef(task_completion_source);
+  jobject task_completion_source_global =
+      env->NewGlobalRef(task_completion_source);
 
-  // Defines a c++ callback method to call JniAppCheckProvider.HandleGetTokenResult with the resulting token 
-  auto token_callback{
-      [j_provider_global, task_completion_source_global](firebase::app_check::AppCheckToken token,
-                           int error_code, const std::string& error_message) {
-        // util::GetJNIEnvFromApp returns a threadsafe instance of JNIEnv.
-        JNIEnv* env = firebase::util::GetJNIEnvFromApp();
-        jstring error_string = env->NewStringUTF(error_message.c_str());
-        jstring token_string = env->NewStringUTF(token.token.c_str());
-        env->CallVoidMethod(
-          j_provider_global,
-          jni_provider::GetMethodId(jni_provider::kHandleGetTokenResult),
-          task_completion_source_global, token_string, token.expire_time_millis, error_code, error_string);
-        FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
-        env->DeleteLocalRef(token_string);
-        env->DeleteLocalRef(error_string);
-        env->DeleteGlobalRef(j_provider_global);
-        env->DeleteGlobalRef(task_completion_source_global);
-      }};
+  // Defines a c++ callback method to call
+  // JniAppCheckProvider.HandleGetTokenResult with the resulting token
+  auto token_callback{[j_provider_global, task_completion_source_global](
+                          firebase::app_check::AppCheckToken token,
+                          int error_code, const std::string& error_message) {
+    // util::GetJNIEnvFromApp returns a threadsafe instance of JNIEnv.
+    JNIEnv* env = firebase::util::GetJNIEnvFromApp();
+    jstring error_string = env->NewStringUTF(error_message.c_str());
+    jstring token_string = env->NewStringUTF(token.token.c_str());
+    env->CallVoidMethod(
+        j_provider_global,
+        jni_provider::GetMethodId(jni_provider::kHandleGetTokenResult),
+        task_completion_source_global, token_string, token.expire_time_millis,
+        error_code, error_string);
+    FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
+    env->DeleteLocalRef(token_string);
+    env->DeleteLocalRef(error_string);
+    env->DeleteGlobalRef(j_provider_global);
+    env->DeleteGlobalRef(task_completion_source_global);
+  }};
   AppCheckProvider* provider = reinterpret_cast<AppCheckProvider*>(c_provider);
   provider->GetToken(token_callback);
 }
@@ -218,11 +229,12 @@ AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
     if (util::Initialize(env, activity)) {
       // Cache embedded files and load embedded classes.
       const std::vector<firebase::internal::EmbeddedFile> embedded_files =
-          util::CacheEmbeddedFiles(env, activity,
-                                    firebase::internal::EmbeddedFile::ToVector(
-                                        firebase_app_check::app_check_resources_filename,
-                                        firebase_app_check::app_check_resources_data,
-                                        firebase_app_check::app_check_resources_size));
+          util::CacheEmbeddedFiles(
+              env, activity,
+              firebase::internal::EmbeddedFile::ToVector(
+                  firebase_app_check::app_check_resources_filename,
+                  firebase_app_check::app_check_resources_data,
+                  firebase_app_check::app_check_resources_size));
       // Terminate if unable to cache main classes
       if (!(CacheAppCheckMethodIds(env, activity, embedded_files) &&
             CacheCommonAndroidMethodIds(env, activity))) {
@@ -242,12 +254,13 @@ AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
   // Create the FirebaseAppCheck class in Java.
   jobject platform_app = app->GetPlatformApp();
   jobject j_app_check_local = env->CallStaticObjectMethod(
-      app_check::GetClass(), app_check::GetMethodId(app_check::kGetInstance), platform_app);
+      app_check::GetClass(), app_check::GetMethodId(app_check::kGetInstance),
+      platform_app);
   FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
   env->DeleteLocalRef(platform_app);
 
-  // Create a global reference for the app check instance. It will be 
-  // released in the AppCheckInternal destructor. 
+  // Create a global reference for the app check instance. It will be
+  // released in the AppCheckInternal destructor.
   if (j_app_check_local != nullptr) {
     app_check_impl_ = env->NewGlobalRef(j_app_check_local);
     env->DeleteLocalRef(j_app_check_local);
@@ -255,16 +268,16 @@ AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
     // Install the AppCheckProviderFactory for this instance of AppCheck.
     if (g_provider_factory) {
       // Create a Java ProviderFactory to wrap the C++ ProviderFactory
-      jobject j_factory =
-        env->NewObject(jni_provider_factory::GetClass(),
-                        jni_provider_factory::GetMethodId(jni_provider_factory::kConstructor),
-                        reinterpret_cast<jlong>(g_provider_factory));
+      jobject j_factory = env->NewObject(
+          jni_provider_factory::GetClass(),
+          jni_provider_factory::GetMethodId(jni_provider_factory::kConstructor),
+          reinterpret_cast<jlong>(g_provider_factory));
       FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
       // Install the Java ProviderFactory in the java AppCheck class.
       env->CallVoidMethod(
-        app_check_impl_,
-        app_check::GetMethodId(app_check::kInstallAppCheckProviderFactory),
-        j_factory);
+          app_check_impl_,
+          app_check::GetMethodId(app_check::kInstallAppCheckProviderFactory),
+          j_factory);
       FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
       env->DeleteLocalRef(j_factory);
     }
@@ -308,9 +321,9 @@ void AppCheckInternal::SetTokenAutoRefreshEnabled(
     bool is_token_auto_refresh_enabled) {
   JNIEnv* env = app_->GetJNIEnv();
   env->CallVoidMethod(
-    app_check_impl_,
-    app_check::GetMethodId(app_check::kSetTokenAutoRefreshEnabled),
-    static_cast<jboolean>(is_token_auto_refresh_enabled));
+      app_check_impl_,
+      app_check::GetMethodId(app_check::kSetTokenAutoRefreshEnabled),
+      static_cast<jboolean>(is_token_auto_refresh_enabled));
   FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
 }
 
@@ -318,21 +331,19 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
   JNIEnv* env = app_->GetJNIEnv();
   auto handle = future()->SafeAlloc<AppCheckToken>(kAppCheckFnGetAppCheckToken);
   jobject j_task = env->CallObjectMethod(
-    app_check_impl_,
-    app_check::GetMethodId(app_check::kGetToken),
-    static_cast<jboolean>(force_refresh));
+      app_check_impl_, app_check::GetMethodId(app_check::kGetToken),
+      static_cast<jboolean>(force_refresh));
 
   std::string error = util::GetAndClearExceptionMessage(env);
   if (error.empty()) {
     auto data_handle = new FutureDataHandle(future(), handle);
-    util::RegisterCallbackOnTask(
-        env, j_task, TokenResultCallback,
-        reinterpret_cast<void*>(data_handle),
-        kApiIdentifier);
+    util::RegisterCallbackOnTask(env, j_task, TokenResultCallback,
+                                 reinterpret_cast<void*>(data_handle),
+                                 kApiIdentifier);
   } else {
     AppCheckToken empty_token;
-    future()->CompleteWithResult(
-      handle, kAppCheckErrorUnknown, error.c_str(), empty_token);
+    future()->CompleteWithResult(handle, kAppCheckErrorUnknown, error.c_str(),
+                                 empty_token);
   }
   env->DeleteLocalRef(j_task);
   return MakeFuture(future(), handle);

@@ -15,10 +15,10 @@
 #ifndef FIREBASE_APP_CHECK_SRC_ANDROID_APP_CHECK_ANDROID_H_
 #define FIREBASE_APP_CHECK_SRC_ANDROID_APP_CHECK_ANDROID_H_
 
-#include "app/src/util_android.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/util_android.h"
 #include "app_check/src/include/firebase/app_check.h"
 
 namespace firebase {

@@ -579,8 +579,8 @@ const char* const kDefaultAndroidAppName = "[DEFAULT]";
 
 // Get the corresponding App from an Android SDK FirebaseApp instance.
 App* GetAppFromPlatformApp(JNIEnv* jni_env, jobject platform_app) {
-  jobject app_name = jni_env->CallObjectMethod(
-      platform_app, app::GetMethodId(app::kGetName));
+  jobject app_name =
+      jni_env->CallObjectMethod(platform_app, app::GetMethodId(app::kGetName));
   util::CheckAndClearJniExceptions(jni_env);
   std::string app_name_str = util::JniStringToString(jni_env, app_name);
   // Note: Android has a different default app name than C++

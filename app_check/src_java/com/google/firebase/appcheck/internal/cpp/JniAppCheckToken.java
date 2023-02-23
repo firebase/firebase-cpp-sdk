@@ -16,8 +16,8 @@
 
 package com.google.firebase.appcheck.internal.cpp;
 
-import com.google.firebase.appcheck.AppCheckToken;
 import androidx.annotation.NonNull;
+import com.google.firebase.appcheck.AppCheckToken;
 
 // A trivial implementation of the abstract class AppCheckToken
 public class JniAppCheckToken extends AppCheckToken {
@@ -25,18 +25,18 @@ public class JniAppCheckToken extends AppCheckToken {
   private long expiration;
 
   JniAppCheckToken(String token, long expiration) {
-      this.token = token;
-      this.expiration = expiration;
+    this.token = token;
+    this.expiration = expiration;
   }
 
   @NonNull
   @Override
   public String getToken() {
-      return token;
+    return token;
   }
 
   @Override
   public long getExpireTimeMillis() {
-      return expiration;
+    return expiration;
   }
 }

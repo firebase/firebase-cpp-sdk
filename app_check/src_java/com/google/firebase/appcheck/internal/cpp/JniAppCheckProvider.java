@@ -16,10 +16,10 @@
 
 package com.google.firebase.appcheck.internal.cpp;
 
-import com.google.firebase.appcheck.AppCheckToken;
-import com.google.firebase.appcheck.AppCheckProvider;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.TaskCompletionSource;
+import com.google.firebase.appcheck.AppCheckProvider;
+import com.google.firebase.appcheck.AppCheckToken;
 
 /**
 TODO(almostmatt): actual comment for this class
@@ -39,18 +39,18 @@ public class JniAppCheckProvider implements AppCheckProvider {
   }
 
   // Called by C++ once a token has been obtained in order to complete the java task.
-  public void handleGetTokenResult(
-    TaskCompletionSource<AppCheckToken> taskCompletionSource,
-    String token_string, long expiration_time_millis, int error_code, String error_message) {
-      if (error_code == 0) {
-        taskCompletionSource.setResult(new JniAppCheckToken(token_string, expiration_time_millis));
-      } else {
-        taskCompletionSource.setException(new Exception(error_message));
-      }
+  public void handleGetTokenResult(TaskCompletionSource<AppCheckToken> taskCompletionSource,
+      String token_string, long expiration_time_millis, int error_code, String error_message) {
+    if (error_code == 0) {
+      taskCompletionSource.setResult(new JniAppCheckToken(token_string, expiration_time_millis));
+    } else {
+      taskCompletionSource.setException(new Exception(error_message));
+    }
   }
- 
+
   /**
    * This function is implemented in the AppCheck C++ library (app_check_android.cc).
    */
-  private native void nativeGetToken(long cProvider, TaskCompletionSource<AppCheckToken> task_completion_source);
+  private native void nativeGetToken(
+      long cProvider, TaskCompletionSource<AppCheckToken> task_completion_source);
 }
