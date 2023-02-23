@@ -17,6 +17,7 @@
 #ifndef FIREBASE_APP_SRC_INCLUDE_FIREBASE_APP_H_
 #define FIREBASE_APP_SRC_INCLUDE_FIREBASE_APP_H_
 
+#include "cpp_warning.h"
 #include "firebase/internal/platform.h"
 
 #if FIREBASE_PLATFORM_ANDROID
