@@ -67,7 +67,7 @@ TEST_F(AggregateQueryTest, MoveConstructor) {
 
   AggregateQuery moved_snapshot_dest(std::move(aggregate_query));
 
-  EXPECT_EQ(aggregate_query.query(), query);
+  EXPECT_EQ(aggregate_query.query(), Query());
   EXPECT_EQ(moved_snapshot_dest.query(), query);
 }
 
@@ -77,7 +77,7 @@ TEST_F(AggregateQueryTest, MoveAssignmentOperator) {
 
   AggregateQuery snapshot_move_dest = std::move(aggregate_query);
 
-  EXPECT_EQ(aggregate_query.query(), query);
+  EXPECT_EQ(aggregate_query.query(), Query());
   EXPECT_EQ(snapshot_move_dest.query(), query);
 }
 
