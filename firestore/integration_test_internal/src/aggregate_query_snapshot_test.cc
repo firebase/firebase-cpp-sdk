@@ -50,6 +50,7 @@ TEST_F(AggregateQuerySnapshotTest, DefaultConstructor) {
   AggregateQuerySnapshot snapshot;
   EXPECT_EQ(snapshot.query(), AggregateQuery());
   EXPECT_EQ(snapshot.count(), 0);
+  EXPECT_FALSE(snapshot.is_valid());
 }
 
 TEST_F(AggregateQuerySnapshotTest, CopyConstructor) {
@@ -64,9 +65,11 @@ TEST_F(AggregateQuerySnapshotTest, CopyConstructor) {
 
   EXPECT_EQ(snapshot.count(), COUNT);
   EXPECT_EQ(snapshot.query(), aggregate_query);
+  EXPECT_TRUE(snapshot.is_valid());
 
   EXPECT_EQ(copied_snapshot.count(), COUNT);
   EXPECT_EQ(copied_snapshot.query(), aggregate_query);
+  EXPECT_TRUE(copied_snapshot.is_valid());
 }
 
 TEST_F(AggregateQuerySnapshotTest, CopyAssignmentOperator) {
@@ -81,9 +84,11 @@ TEST_F(AggregateQuerySnapshotTest, CopyAssignmentOperator) {
 
   EXPECT_EQ(snapshot.count(), COUNT);
   EXPECT_EQ(snapshot.query(), aggregate_query);
+  EXPECT_TRUE(snapshot.is_valid());
 
   EXPECT_EQ(snapshot_copy_dest.count(), COUNT);
   EXPECT_EQ(snapshot_copy_dest.query(), aggregate_query);
+  EXPECT_TRUE(snapshot_copy_dest.is_valid());
 }
 
 TEST_F(AggregateQuerySnapshotTest, MoveConstructor) {
@@ -98,9 +103,11 @@ TEST_F(AggregateQuerySnapshotTest, MoveConstructor) {
 
   EXPECT_EQ(snapshot.count(), 0);
   EXPECT_EQ(snapshot.query(), AggregateQuery());
+  EXPECT_FALSE(snapshot.is_valid());
 
   EXPECT_EQ(moved_snapshot_dest.count(), COUNT);
   EXPECT_EQ(moved_snapshot_dest.query(), aggregate_query);
+  EXPECT_TRUE(moved_snapshot_dest.is_valid());
 }
 
 TEST_F(AggregateQuerySnapshotTest, MoveAssignmentOperator) {
@@ -115,9 +122,11 @@ TEST_F(AggregateQuerySnapshotTest, MoveAssignmentOperator) {
 
   EXPECT_EQ(snapshot.count(), 0);
   EXPECT_EQ(snapshot.query(), AggregateQuery());
+  EXPECT_FALSE(snapshot.is_valid());
 
   EXPECT_EQ(snapshot_move_dest.count(), COUNT);
   EXPECT_EQ(snapshot_move_dest.query(), aggregate_query);
+  EXPECT_TRUE(snapshot_move_dest.is_valid());
 }
 
 TEST_F(AggregateQuerySnapshotTest, Equality1) {
@@ -269,6 +278,6 @@ TEST_F(AggregateQuerySnapshotTest, TestHashCode) {
             AggregateQuerySnapshotHash(snapshot4));
 }
 
-}
+}  // namespace
 }  // namespace firestore
 }  // namespace firebase

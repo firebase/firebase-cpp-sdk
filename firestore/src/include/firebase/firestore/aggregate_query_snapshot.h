@@ -119,7 +119,7 @@ class AggregateQuerySnapshot {
    * @return true if this `AggregateQuery` is valid, false if this
    * `AggregateQuerySnapshot` is invalid.
    */
-  bool is_valid() const;
+  bool is_valid() const { return internal_ != nullptr; }
 
  private:
   std::size_t Hash() const;

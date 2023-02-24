@@ -257,13 +257,13 @@ QuerySnapshot FirestoreIntegrationTest::ReadDocuments(
 
 AggregateQuerySnapshot FirestoreIntegrationTest::ReadAggregate(
     const AggregateQuery& reference) const {
-  SCOPED_TRACE("FirestoreIntegrationTest::ReadDocuments()");
+  SCOPED_TRACE("FirestoreIntegrationTest::ReadAggregate()");
   Future<AggregateQuerySnapshot> future =
       reference.Get(AggregateSource::kServer);
   Stopwatch stopwatch;
   const AggregateQuerySnapshot* result = Await(future);
   stopwatch.stop();
-  if (FailIfUnsuccessful("ReadDocuments", future, stopwatch)) {
+  if (FailIfUnsuccessful("ReadAggregate", future, stopwatch)) {
     return {};
   } else {
     return *result;

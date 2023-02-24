@@ -39,6 +39,7 @@ using AggregateQueryTest = FirestoreIntegrationTest;
 TEST_F(AggregateQueryTest, DefaultConstructor) {
   AggregateQuery aggregate_query;
   EXPECT_EQ(aggregate_query.query(), Query());
+  EXPECT_FALSE(aggregate_query.is_valid());
 }
 
 TEST_F(AggregateQueryTest, CopyConstructor) {
@@ -48,7 +49,10 @@ TEST_F(AggregateQueryTest, CopyConstructor) {
   AggregateQuery copied_aggregate_query(aggregate_query);
 
   EXPECT_EQ(aggregate_query.query(), query);
+  EXPECT_TRUE(aggregate_query.is_valid());
+
   EXPECT_EQ(copied_aggregate_query.query(), query);
+  EXPECT_TRUE(copied_aggregate_query.is_valid());
 }
 
 TEST_F(AggregateQueryTest, CopyAssignmentOperator) {
@@ -58,7 +62,10 @@ TEST_F(AggregateQueryTest, CopyAssignmentOperator) {
   AggregateQuery copied_aggregate_query = aggregate_query;
 
   EXPECT_EQ(aggregate_query.query(), query);
+  EXPECT_TRUE(aggregate_query.is_valid());
+
   EXPECT_EQ(copied_aggregate_query.query(), query);
+  EXPECT_TRUE(copied_aggregate_query.is_valid());
 }
 
 TEST_F(AggregateQueryTest, MoveConstructor) {
@@ -68,7 +75,10 @@ TEST_F(AggregateQueryTest, MoveConstructor) {
   AggregateQuery moved_snapshot_dest(std::move(aggregate_query));
 
   EXPECT_EQ(aggregate_query.query(), Query());
+  EXPECT_FALSE(aggregate_query.is_valid());
+
   EXPECT_EQ(moved_snapshot_dest.query(), query);
+  EXPECT_TRUE(moved_snapshot_dest.is_valid());
 }
 
 TEST_F(AggregateQueryTest, MoveAssignmentOperator) {
@@ -78,7 +88,10 @@ TEST_F(AggregateQueryTest, MoveAssignmentOperator) {
   AggregateQuery snapshot_move_dest = std::move(aggregate_query);
 
   EXPECT_EQ(aggregate_query.query(), Query());
+  EXPECT_FALSE(aggregate_query.is_valid());
+
   EXPECT_EQ(snapshot_move_dest.query(), query);
+  EXPECT_TRUE(snapshot_move_dest.is_valid());
 }
 
 TEST_F(AggregateQueryTest, TestHashCode) {
@@ -95,6 +108,6 @@ TEST_F(AggregateQueryTest, TestHashCode) {
             AggregateQueryHash(query1.Count()));
 }
 
-}
+}  // namespace
 }  // namespace firestore
 }  // namespace firebase
