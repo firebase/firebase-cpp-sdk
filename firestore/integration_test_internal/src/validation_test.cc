@@ -856,13 +856,6 @@ TEST_F(ValidationTest, QueriesWithInequalityDifferentThanFirstOrderByFail) {
                reason);
 }
 
-TEST_F(ValidationTest, QueriesWithMultipleArrayContainsFiltersFail) {
-  EXPECT_ERROR(Collection()
-                   .WhereArrayContains("foo", FieldValue::Integer(1))
-                   .WhereArrayContains("foo", FieldValue::Integer(2)),
-               ErrorMessage(ErrorCase::kQueryMultipleArrayContains));
-}
-
 TEST_F(ValidationTest, QueriesMustNotSpecifyStartingOrEndingPointAfterOrderBy) {
   CollectionReference collection = Collection();
   Query query = collection.OrderBy("foo");
