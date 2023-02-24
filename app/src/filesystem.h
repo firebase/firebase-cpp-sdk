@@ -56,7 +56,7 @@ namespace firebase {
 
 #if FIREBASE_PLATFORM_WINDOWS
 typedef std::wstring PathString;
-#define PathStringLiteral(x) PathString(L ## x)
+#define PathStringLiteral(x) PathString(L##x)
 #define kPathStringEmpty PathString(L"")
 #define kPathStringSep PathString(L"\\")
 #define PathStringChar wchar
@@ -69,9 +69,9 @@ typedef std::string PathString;
 #define PathStringChar char
 #define PathStringLiteralPrefix
 #endif  // FIREBASE_PLATFORM_WINDOWS
-  
+
 PathString AppDataDir(const char* app_name, bool should_create = true,
-		      std::string* out_error = nullptr);
+                      std::string* out_error = nullptr);
 
 }  // namespace firebase
 

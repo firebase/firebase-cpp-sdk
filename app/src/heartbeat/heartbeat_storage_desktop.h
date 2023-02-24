@@ -23,8 +23,8 @@
 #include <vector>
 
 #include "app/logged_heartbeats_generated.h"
-#include "app/src/logger.h"
 #include "app/src/filesystem.h"
+#include "app/src/logger.h"
 
 namespace firebase {
 namespace heartbeat {

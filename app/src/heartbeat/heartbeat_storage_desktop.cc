@@ -58,9 +58,11 @@ PathString CreateFilename(const std::string& app_id, const Logger& logger) {
   }
 
   // Remove any symbols from app_id that might not be allowed in filenames.
-  auto app_id_without_symbols =
-    std::regex_replace(app_id, std::regex(PathStringLiteral("[/\\\\?%*:|\"<>.,;=]")), kPathStringEmpty);
-  return app_dir + kPathStringSep + kHeartbeatFilenamePrefix + app_id_without_symbols;
+  auto app_id_without_symbols = std::regex_replace(
+      app_id, std::regex(PathStringLiteral("[/\\\\?%*:|\"<>.,;=]")),
+      kPathStringEmpty);
+  return app_dir + kPathStringSep + kHeartbeatFilenamePrefix +
+         app_id_without_symbols;
 }
 
 }  // namespace
