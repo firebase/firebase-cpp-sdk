@@ -79,7 +79,9 @@ void AppCheckInternal::SetAppCheckProviderFactory(
 }
 
 void AppCheckInternal::SetTokenAutoRefreshEnabled(
-    bool is_token_auto_refresh_enabled) {}
+    bool is_token_auto_refresh_enabled) {
+  is_token_auto_refresh_enabled_ = is_token_auto_refresh_enabled;
+}
 
 Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
   auto handle = future()->SafeAlloc<AppCheckToken>(kAppCheckFnGetAppCheckToken);
@@ -116,7 +118,7 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckTokenLastResult() {
 }
 
 Future<std::string> AppCheckInternal::GetAppCheckTokenStringInternal() {
-  auto handle = future()->SafeAlloc<std::string>(kAppCheckFnGetAppCheckToken);
+  auto handle = future()->SafeAlloc<std::string>(kAppCheckFnGetAppCheckStringInternal);
   if (HasValidCacheToken()) {
     future()->CompleteWithResult(handle, 0, cached_token_.token);
   } else if (is_token_auto_refresh_enabled_) {
