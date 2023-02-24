@@ -23,6 +23,9 @@ endif()
 # firestore.patch.txt accordingly.
 set(version 1.23)
 
+# Patch LevelDB with support for Windows Unicode paths.
+set(patch_file ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/leveldb/0001-windows-unicode-support.patch)
+
 ExternalProject_Add(
   leveldb
 
@@ -30,6 +33,7 @@ ExternalProject_Add(
   DOWNLOAD_NAME leveldb-${version}.tar.gz
   URL https://github.com/google/leveldb/archive/${version}.tar.gz
   URL_HASH SHA256=9a37f8a6174f09bd622bc723b55881dc541cd50747cbd08831c2a82d620f6d76
+  PATCH_COMMAND git apply ${patch_file} && git gc --aggressive
 
   PREFIX ${PROJECT_BINARY_DIR}
 

@@ -11,7 +11,10 @@ index 920bf2928..c5c9cc7ee 100644
 +# in the firebase-cpp-sdk. If this version ever changes then make sure
 +# to update leveldb.cmake in the firebase-cpp-sdk accordingly.
 +set(version 1.23)
- 
++
++# Patch LevelDB with support for Windows Unicode paths.
++set(patch_file ${CMAKE_SOURCE_DIR}/scripts/git/patches/leveldb/0001-windows-unicode-support.patch)
+
  ExternalProject_Get_property(snappy SOURCE_DIR)
  set(snappy_source_dir "${SOURCE_DIR}")
 @@ -39,7 +42,7 @@ ExternalProject_Add(
@@ -20,6 +23,7 @@ index 920bf2928..c5c9cc7ee 100644
    URL https://github.com/google/leveldb/archive/${version}.tar.gz
 -  URL_HASH SHA256=55423cac9e3306f4a9502c738a001e4a339d1a38ffbee7572d4a07d5d63949b2
 +  URL_HASH SHA256=9a37f8a6174f09bd622bc723b55881dc541cd50747cbd08831c2a82d620f6d76
++  PATCH_COMMAND git apply ${patch_file} && git gc --aggressive
  
    PREFIX ${PROJECT_BINARY_DIR}
  
