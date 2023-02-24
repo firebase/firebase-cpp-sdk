@@ -118,7 +118,8 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckTokenLastResult() {
 }
 
 Future<std::string> AppCheckInternal::GetAppCheckTokenStringInternal() {
-  auto handle = future()->SafeAlloc<std::string>(kAppCheckFnGetAppCheckStringInternal);
+  auto handle =
+      future()->SafeAlloc<std::string>(kAppCheckFnGetAppCheckStringInternal);
   if (HasValidCacheToken()) {
     future()->CompleteWithResult(handle, 0, cached_token_.token);
   } else if (is_token_auto_refresh_enabled_) {
