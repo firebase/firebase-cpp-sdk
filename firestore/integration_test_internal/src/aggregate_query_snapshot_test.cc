@@ -19,16 +19,149 @@
 
 #include "gtest/gtest.h"
 
+#if defined(__ANDROID__)
+#include "firestore/src/android/converter_android.h"
+#else
+#include "firestore/src/main/aggregate_query_snapshot_main.h"
+#include "firestore/src/main/converter_main.h"
+#endif  // defined(__ANDROID__)
+
 namespace firebase {
 namespace firestore {
 
-using AggregateQuerySnapshotTest = FirestoreIntegrationTest;
+class AggregateQuerySnapshotTest : public FirestoreIntegrationTest {
+ protected:
+  api::AggregateQuery TestApiAggregateQuery() {
+    return api::AggregateQuery(api::Query(
+        core::Query(), GetInternal(TestFirestore())->firestore_core()));
+  }
+  static AggregateQuerySnapshot TestAggregateQuerySnapshot(
+      api::AggregateQuery aggregateQuery, const int count) {
+    return MakePublic(
+        AggregateQuerySnapshotInternal(std::move(aggregateQuery), count));
+  }
+};
 
 std::size_t AggregateQuerySnapshotHash(const AggregateQuerySnapshot& snapshot) {
   return snapshot.Hash();
 }
 
-TEST_F(AggregateQuerySnapshotTest, Equality) {
+TEST_F(AggregateQuerySnapshotTest, DefaultConstructor) {
+  AggregateQuerySnapshot snapshot;
+  EXPECT_EQ(snapshot.query(), AggregateQuery());
+  EXPECT_EQ(snapshot.count(), 0);
+}
+
+TEST_F(AggregateQuerySnapshotTest, CopyConstructor) {
+  static const int COUNT = 5;
+  api::AggregateQuery api_aggregate_query = TestApiAggregateQuery();
+  AggregateQuerySnapshot snapshot =
+      TestAggregateQuerySnapshot(api_aggregate_query, COUNT);
+  const AggregateQuery& aggregate_query =
+      MakePublic(std::move(api_aggregate_query));
+
+  AggregateQuerySnapshot copied_snapshot(snapshot);
+
+  EXPECT_EQ(snapshot.count(), COUNT);
+  EXPECT_EQ(snapshot.query(), aggregate_query);
+
+  EXPECT_EQ(copied_snapshot.count(), COUNT);
+  EXPECT_EQ(copied_snapshot.query(), aggregate_query);
+}
+
+TEST_F(AggregateQuerySnapshotTest, CopyAssignmentOperator) {
+  static const int COUNT = 7;
+  api::AggregateQuery api_aggregate_query = TestApiAggregateQuery();
+  AggregateQuerySnapshot snapshot =
+      TestAggregateQuerySnapshot(api_aggregate_query, COUNT);
+  const AggregateQuery& aggregate_query =
+      MakePublic(std::move(api_aggregate_query));
+
+  AggregateQuerySnapshot snapshot_copy_dest = snapshot;
+
+  EXPECT_EQ(snapshot.count(), COUNT);
+  EXPECT_EQ(snapshot.query(), aggregate_query);
+
+  EXPECT_EQ(snapshot_copy_dest.count(), COUNT);
+  EXPECT_EQ(snapshot_copy_dest.query(), aggregate_query);
+}
+
+TEST_F(AggregateQuerySnapshotTest, MoveConstructor) {
+  static const int COUNT = 8;
+  api::AggregateQuery api_aggregate_query = TestApiAggregateQuery();
+  AggregateQuerySnapshot snapshot =
+      TestAggregateQuerySnapshot(api_aggregate_query, COUNT);
+  const AggregateQuery& aggregate_query =
+      MakePublic(std::move(api_aggregate_query));
+
+  AggregateQuerySnapshot moved_snapshot_dest(std::move(snapshot));
+
+  EXPECT_EQ(snapshot.count(), 0);
+  EXPECT_EQ(snapshot.query(), AggregateQuery());
+
+  EXPECT_EQ(moved_snapshot_dest.count(), COUNT);
+  EXPECT_EQ(moved_snapshot_dest.query(), aggregate_query);
+}
+
+TEST_F(AggregateQuerySnapshotTest, MoveAssignmentOperator) {
+  static const int COUNT = 3;
+  api::AggregateQuery api_aggregate_query = TestApiAggregateQuery();
+  AggregateQuerySnapshot snapshot =
+      TestAggregateQuerySnapshot(api_aggregate_query, COUNT);
+  const AggregateQuery& aggregate_query =
+      MakePublic(std::move(api_aggregate_query));
+
+  AggregateQuerySnapshot snapshot_move_dest = std::move(snapshot);
+
+  EXPECT_EQ(snapshot.count(), 0);
+  EXPECT_EQ(snapshot.query(), AggregateQuery());
+
+  EXPECT_EQ(snapshot_move_dest.count(), COUNT);
+  EXPECT_EQ(snapshot_move_dest.query(), aggregate_query);
+}
+
+TEST_F(AggregateQuerySnapshotTest, Equality1) {
+  CollectionReference collection =
+      Collection({{"a", {{"k", FieldValue::String("a")}}},
+                  {"b", {{"k", FieldValue::String("b")}}},
+                  {"c", {{"k", FieldValue::String("c")}}}});
+  AggregateQuerySnapshot snapshot1 = ReadAggregate(collection.Limit(1).Count());
+  AggregateQuerySnapshot snapshot2 = ReadAggregate(collection.Limit(1).Count());
+
+  EXPECT_TRUE(snapshot1 == snapshot1);
+  EXPECT_TRUE(snapshot1 == snapshot2);
+
+  EXPECT_FALSE(snapshot1 != snapshot1);
+  EXPECT_FALSE(snapshot1 != snapshot2);
+}
+
+TEST_F(AggregateQuerySnapshotTest, Equality2) {
+  CollectionReference collection =
+      Collection({{"a", {{"k", FieldValue::String("a")}}},
+                  {"b", {{"k", FieldValue::String("b")}}},
+                  {"c", {{"k", FieldValue::String("c")}}}});
+  AggregateQuerySnapshot snapshot1 = ReadAggregate(collection.Count());
+  AggregateQuerySnapshot snapshot2 = ReadAggregate(collection.Count());
+
+  EXPECT_TRUE(snapshot1 == snapshot1);
+  EXPECT_TRUE(snapshot1 == snapshot2);
+
+  EXPECT_FALSE(snapshot1 != snapshot1);
+  EXPECT_FALSE(snapshot1 != snapshot2);
+}
+
+TEST_F(AggregateQuerySnapshotTest, Equality3) {
+  AggregateQuerySnapshot snapshot1 = AggregateQuerySnapshot();
+  AggregateQuerySnapshot snapshot2 = AggregateQuerySnapshot();
+
+  EXPECT_TRUE(snapshot1 == snapshot1);
+  EXPECT_TRUE(snapshot1 == snapshot2);
+
+  EXPECT_FALSE(snapshot1 != snapshot1);
+  EXPECT_FALSE(snapshot1 != snapshot2);
+}
+
+TEST_F(AggregateQuerySnapshotTest, NonEquality) {
   CollectionReference collection =
       Collection({{"a", {{"k", FieldValue::String("a")}}},
                   {"b", {{"k", FieldValue::String("b")}}},
@@ -36,44 +169,71 @@ TEST_F(AggregateQuerySnapshotTest, Equality) {
   AggregateQuerySnapshot snapshot1 = ReadAggregate(
       collection.WhereEqualTo("k", FieldValue::String("d")).Count());
   AggregateQuerySnapshot snapshot2 = ReadAggregate(collection.Limit(1).Count());
-  AggregateQuerySnapshot snapshot3 = ReadAggregate(collection.Limit(1).Count());
-  AggregateQuerySnapshot snapshot4 = ReadAggregate(collection.Limit(3).Count());
-  AggregateQuerySnapshot snapshot5 = ReadAggregate(collection.Count());
-  AggregateQuerySnapshot snapshot6 = ReadAggregate(collection.Count());
+  AggregateQuerySnapshot snapshot3 = ReadAggregate(collection.Limit(3).Count());
+  AggregateQuerySnapshot snapshot4 = ReadAggregate(collection.Count());
+  AggregateQuerySnapshot snapshot5 = AggregateQuerySnapshot();
 
   EXPECT_TRUE(snapshot1 == snapshot1);
+  EXPECT_TRUE(snapshot2 == snapshot2);
+  EXPECT_TRUE(snapshot3 == snapshot3);
+  EXPECT_TRUE(snapshot4 == snapshot4);
+  EXPECT_TRUE(snapshot5 == snapshot5);
+
   EXPECT_TRUE(snapshot1 != snapshot2);
   EXPECT_TRUE(snapshot1 != snapshot3);
   EXPECT_TRUE(snapshot1 != snapshot4);
   EXPECT_TRUE(snapshot1 != snapshot5);
-  EXPECT_TRUE(snapshot1 != snapshot6);
-  EXPECT_TRUE(snapshot2 == snapshot2);
-  EXPECT_TRUE(snapshot2 == snapshot3);
+  EXPECT_TRUE(snapshot2 != snapshot3);
   EXPECT_TRUE(snapshot2 != snapshot4);
   EXPECT_TRUE(snapshot2 != snapshot5);
-  EXPECT_TRUE(snapshot2 != snapshot6);
-  EXPECT_TRUE(snapshot4 == snapshot4);
+  EXPECT_TRUE(snapshot3 != snapshot4);
+  EXPECT_TRUE(snapshot3 != snapshot5);
   EXPECT_TRUE(snapshot4 != snapshot5);
-  EXPECT_TRUE(snapshot4 != snapshot6);
-  EXPECT_TRUE(snapshot5 == snapshot5);
-  EXPECT_TRUE(snapshot5 == snapshot6);
 
   EXPECT_FALSE(snapshot1 != snapshot1);
+  EXPECT_FALSE(snapshot2 != snapshot2);
+  EXPECT_FALSE(snapshot3 != snapshot3);
+  EXPECT_FALSE(snapshot4 != snapshot4);
+  EXPECT_FALSE(snapshot5 != snapshot5);
+
   EXPECT_FALSE(snapshot1 == snapshot2);
   EXPECT_FALSE(snapshot1 == snapshot3);
   EXPECT_FALSE(snapshot1 == snapshot4);
   EXPECT_FALSE(snapshot1 == snapshot5);
-  EXPECT_FALSE(snapshot1 == snapshot6);
-  EXPECT_FALSE(snapshot2 != snapshot2);
-  EXPECT_FALSE(snapshot2 != snapshot3);
+  EXPECT_FALSE(snapshot2 == snapshot3);
   EXPECT_FALSE(snapshot2 == snapshot4);
   EXPECT_FALSE(snapshot2 == snapshot5);
-  EXPECT_FALSE(snapshot2 == snapshot6);
-  EXPECT_FALSE(snapshot4 != snapshot4);
+  EXPECT_FALSE(snapshot3 == snapshot4);
+  EXPECT_FALSE(snapshot3 == snapshot5);
   EXPECT_FALSE(snapshot4 == snapshot5);
-  EXPECT_FALSE(snapshot4 == snapshot6);
-  EXPECT_FALSE(snapshot5 != snapshot5);
-  EXPECT_FALSE(snapshot5 != snapshot6);
+}
+
+TEST_F(AggregateQuerySnapshotTest, TestHashCodeEquals1) {
+  CollectionReference collection =
+      Collection({{"a", {{"k", FieldValue::String("a")}}},
+                  {"b", {{"k", FieldValue::String("b")}}},
+                  {"c", {{"k", FieldValue::String("c")}}}});
+  AggregateQuerySnapshot snapshot1 = ReadAggregate(collection.Limit(1).Count());
+  AggregateQuerySnapshot snapshot2 = ReadAggregate(collection.Limit(1).Count());
+
+  EXPECT_EQ(AggregateQuerySnapshotHash(snapshot1),
+            AggregateQuerySnapshotHash(snapshot1));
+  EXPECT_EQ(AggregateQuerySnapshotHash(snapshot1),
+            AggregateQuerySnapshotHash(snapshot2));
+}
+
+TEST_F(AggregateQuerySnapshotTest, TestHashCodeEquals2) {
+  CollectionReference collection =
+      Collection({{"a", {{"k", FieldValue::String("a")}}},
+                  {"b", {{"k", FieldValue::String("b")}}},
+                  {"c", {{"k", FieldValue::String("c")}}}});
+  AggregateQuerySnapshot snapshot1 = ReadAggregate(collection.Count());
+  AggregateQuerySnapshot snapshot2 = ReadAggregate(collection.Count());
+
+  EXPECT_EQ(AggregateQuerySnapshotHash(snapshot1),
+            AggregateQuerySnapshotHash(snapshot1));
+  EXPECT_EQ(AggregateQuerySnapshotHash(snapshot1),
+            AggregateQuerySnapshotHash(snapshot2));
 }
 
 TEST_F(AggregateQuerySnapshotTest, TestHashCode) {
@@ -84,10 +244,8 @@ TEST_F(AggregateQuerySnapshotTest, TestHashCode) {
   AggregateQuerySnapshot snapshot1 = ReadAggregate(
       collection.WhereEqualTo("k", FieldValue::String("d")).Count());
   AggregateQuerySnapshot snapshot2 = ReadAggregate(collection.Limit(1).Count());
-  AggregateQuerySnapshot snapshot3 = ReadAggregate(collection.Limit(1).Count());
-  AggregateQuerySnapshot snapshot4 = ReadAggregate(collection.Limit(3).Count());
-  AggregateQuerySnapshot snapshot5 = ReadAggregate(collection.Count());
-  AggregateQuerySnapshot snapshot6 = ReadAggregate(collection.Count());
+  AggregateQuerySnapshot snapshot3 = ReadAggregate(collection.Limit(3).Count());
+  AggregateQuerySnapshot snapshot4 = ReadAggregate(collection.Count());
 
   EXPECT_EQ(AggregateQuerySnapshotHash(snapshot1),
             AggregateQuerySnapshotHash(snapshot1));
@@ -97,30 +255,18 @@ TEST_F(AggregateQuerySnapshotTest, TestHashCode) {
             AggregateQuerySnapshotHash(snapshot3));
   EXPECT_NE(AggregateQuerySnapshotHash(snapshot1),
             AggregateQuerySnapshotHash(snapshot4));
-  EXPECT_NE(AggregateQuerySnapshotHash(snapshot1),
-            AggregateQuerySnapshotHash(snapshot5));
-  EXPECT_NE(AggregateQuerySnapshotHash(snapshot1),
-            AggregateQuerySnapshotHash(snapshot6));
   EXPECT_EQ(AggregateQuerySnapshotHash(snapshot2),
             AggregateQuerySnapshotHash(snapshot2));
-  EXPECT_EQ(AggregateQuerySnapshotHash(snapshot2),
+  EXPECT_NE(AggregateQuerySnapshotHash(snapshot2),
             AggregateQuerySnapshotHash(snapshot3));
   EXPECT_NE(AggregateQuerySnapshotHash(snapshot2),
             AggregateQuerySnapshotHash(snapshot4));
-  EXPECT_NE(AggregateQuerySnapshotHash(snapshot2),
-            AggregateQuerySnapshotHash(snapshot5));
-  EXPECT_NE(AggregateQuerySnapshotHash(snapshot2),
-            AggregateQuerySnapshotHash(snapshot6));
+  EXPECT_EQ(AggregateQuerySnapshotHash(snapshot3),
+            AggregateQuerySnapshotHash(snapshot3));
+  EXPECT_NE(AggregateQuerySnapshotHash(snapshot3),
+            AggregateQuerySnapshotHash(snapshot4));
   EXPECT_EQ(AggregateQuerySnapshotHash(snapshot4),
             AggregateQuerySnapshotHash(snapshot4));
-  EXPECT_NE(AggregateQuerySnapshotHash(snapshot4),
-            AggregateQuerySnapshotHash(snapshot5));
-  EXPECT_NE(AggregateQuerySnapshotHash(snapshot4),
-            AggregateQuerySnapshotHash(snapshot6));
-  EXPECT_EQ(AggregateQuerySnapshotHash(snapshot5),
-            AggregateQuerySnapshotHash(snapshot5));
-  EXPECT_EQ(AggregateQuerySnapshotHash(snapshot5),
-            AggregateQuerySnapshotHash(snapshot6));
 }
 
 }  // namespace firestore

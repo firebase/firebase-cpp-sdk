@@ -129,6 +129,7 @@ class AggregateQuerySnapshot {
   friend std::size_t AggregateQuerySnapshotHash(
       const AggregateQuerySnapshot& snapshot);
   friend struct ConverterImpl;
+  friend class AggregateQuerySnapshotTest;
 
   template <typename T, typename U, typename F>
   friend struct CleanupFn;
