@@ -19,16 +19,69 @@
 
 #include "gtest/gtest.h"
 
+#if defined(__ANDROID__)
+#include "firestore/src/android/converter_android.h"
+#else
+#include "firestore/src/main/converter_main.h"
+#endif  // defined(__ANDROID__)
+
 namespace firebase {
 namespace firestore {
-
-using AggrgegateQueryTest = FirestoreIntegrationTest;
 
 size_t AggregateQueryHash(const AggregateQuery& aggregate_query) {
   return aggregate_query.Hash();
 }
 
-TEST_F(AggrgegateQueryTest, TestHashCode) {
+namespace {
+
+using AggregateQueryTest = FirestoreIntegrationTest;
+
+TEST_F(AggregateQueryTest, DefaultConstructor) {
+  AggregateQuery aggregate_query;
+  EXPECT_EQ(aggregate_query.query(), Query());
+}
+
+TEST_F(AggregateQueryTest, CopyConstructor) {
+  const Query& query = TestFirestore()->Collection("foo").Limit(10);
+  const AggregateQuery& aggregate_query = query.Count();
+
+  AggregateQuery copied_aggregate_query(aggregate_query);
+
+  EXPECT_EQ(aggregate_query.query(), query);
+  EXPECT_EQ(copied_aggregate_query.query(), query);
+}
+
+TEST_F(AggregateQueryTest, CopyAssignmentOperator) {
+  const Query& query = TestFirestore()->Collection("foo").Limit(10);
+  const AggregateQuery& aggregate_query = query.Count();
+
+  AggregateQuery copied_aggregate_query = aggregate_query;
+
+  EXPECT_EQ(aggregate_query.query(), query);
+  EXPECT_EQ(copied_aggregate_query.query(), query);
+}
+
+TEST_F(AggregateQueryTest, MoveConstructor) {
+  const Query& query = TestFirestore()->Collection("foo").Limit(10);
+  AggregateQuery aggregate_query = query.Count();
+
+  AggregateQuery moved_snapshot_dest(std::move(aggregate_query));
+
+  EXPECT_EQ(aggregate_query.query(), query);
+  EXPECT_EQ(moved_snapshot_dest.query(), query);
+}
+
+TEST_F(AggregateQueryTest, MoveAssignmentOperator) {
+  const Query& query = TestFirestore()->Collection("foo").Limit(10);
+  AggregateQuery aggregate_query = query.Count();
+
+  AggregateQuery snapshot_move_dest = std::move(aggregate_query);
+
+  EXPECT_EQ(aggregate_query.query(), query);
+  EXPECT_EQ(snapshot_move_dest.query(), query);
+}
+
+TEST_F(AggregateQueryTest, TestHashCode) {
   CollectionReference collection =
       Collection({{"a", {{"k", FieldValue::String("a")}}},
                   {"b", {{"k", FieldValue::String("b")}}}});
@@ -42,5 +95,6 @@ TEST_F(AggrgegateQueryTest, TestHashCode) {
             AggregateQueryHash(query1.Count()));
 }
 
+}
 }  // namespace firestore
 }  // namespace firebase

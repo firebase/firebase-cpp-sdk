@@ -31,12 +31,10 @@ namespace firestore {
 
 class AggregateQuerySnapshotTest : public FirestoreIntegrationTest {
  protected:
-  api::AggregateQuery TestApiAggregateQuery() {
-    return api::AggregateQuery(api::Query(
-        core::Query(), GetInternal(TestFirestore())->firestore_core()));
-  }
   static AggregateQuerySnapshot TestAggregateQuerySnapshot(
-      api::AggregateQuery aggregateQuery, const int count) {
+      AggregateQuery aggregate_query, const int count) {
+    api::AggregateQuery aggregateQuery =
+        GetInternal(&aggregate_query)->aggregate_query_;
     return MakePublic(
         AggregateQuerySnapshotInternal(std::move(aggregateQuery), count));
   }
@@ -46,6 +44,8 @@ std::size_t AggregateQuerySnapshotHash(const AggregateQuerySnapshot& snapshot) {
   return snapshot.Hash();
 }
 
+namespace {
+
 TEST_F(AggregateQuerySnapshotTest, DefaultConstructor) {
   AggregateQuerySnapshot snapshot;
   EXPECT_EQ(snapshot.query(), AggregateQuery());
@@ -53,12 +53,12 @@ TEST_F(AggregateQuerySnapshotTest, DefaultConstructor) {
 }
 
 TEST_F(AggregateQuerySnapshotTest, CopyConstructor) {
+  const Query& query = TestFirestore()->Collection("foo").Limit(10);
+  const AggregateQuery& aggregate_query = query.Count();
+
   static const int COUNT = 5;
-  api::AggregateQuery api_aggregate_query = TestApiAggregateQuery();
   AggregateQuerySnapshot snapshot =
-      TestAggregateQuerySnapshot(api_aggregate_query, COUNT);
-  const AggregateQuery& aggregate_query =
-      MakePublic(std::move(api_aggregate_query));
+      TestAggregateQuerySnapshot(aggregate_query, COUNT);
 
   AggregateQuerySnapshot copied_snapshot(snapshot);
 
@@ -70,12 +70,12 @@ TEST_F(AggregateQuerySnapshotTest, CopyConstructor) {
 }
 
 TEST_F(AggregateQuerySnapshotTest, CopyAssignmentOperator) {
+  const Query& query = TestFirestore()->Collection("foo").Limit(10);
+  const AggregateQuery& aggregate_query = query.Count();
+
   static const int COUNT = 7;
-  api::AggregateQuery api_aggregate_query = TestApiAggregateQuery();
   AggregateQuerySnapshot snapshot =
-      TestAggregateQuerySnapshot(api_aggregate_query, COUNT);
-  const AggregateQuery& aggregate_query =
-      MakePublic(std::move(api_aggregate_query));
+      TestAggregateQuerySnapshot(aggregate_query, COUNT);
 
   AggregateQuerySnapshot snapshot_copy_dest = snapshot;
 
@@ -87,12 +87,12 @@ TEST_F(AggregateQuerySnapshotTest, CopyAssignmentOperator) {
 }
 
 TEST_F(AggregateQuerySnapshotTest, MoveConstructor) {
+  const Query& query = TestFirestore()->Collection("foo").Limit(10);
+  const AggregateQuery& aggregate_query = query.Count();
+
   static const int COUNT = 8;
-  api::AggregateQuery api_aggregate_query = TestApiAggregateQuery();
   AggregateQuerySnapshot snapshot =
-      TestAggregateQuerySnapshot(api_aggregate_query, COUNT);
-  const AggregateQuery& aggregate_query =
-      MakePublic(std::move(api_aggregate_query));
+      TestAggregateQuerySnapshot(aggregate_query, COUNT);
 
   AggregateQuerySnapshot moved_snapshot_dest(std::move(snapshot));
 
@@ -104,12 +104,12 @@ TEST_F(AggregateQuerySnapshotTest, MoveConstructor) {
 }
 
 TEST_F(AggregateQuerySnapshotTest, MoveAssignmentOperator) {
+  const Query& query = TestFirestore()->Collection("foo").Limit(10);
+  const AggregateQuery& aggregate_query = query.Count();
+
   static const int COUNT = 3;
-  api::AggregateQuery api_aggregate_query = TestApiAggregateQuery();
   AggregateQuerySnapshot snapshot =
-      TestAggregateQuerySnapshot(api_aggregate_query, COUNT);
-  const AggregateQuery& aggregate_query =
-      MakePublic(std::move(api_aggregate_query));
+      TestAggregateQuerySnapshot(aggregate_query, COUNT);
 
   AggregateQuerySnapshot snapshot_move_dest = std::move(snapshot);
 
@@ -269,5 +269,6 @@ TEST_F(AggregateQuerySnapshotTest, TestHashCode) {
             AggregateQuerySnapshotHash(snapshot4));
 }
 
+}
 }  // namespace firestore
 }  // namespace firebase
