@@ -59,7 +59,7 @@ typedef std::wstring PathString;
 #define PathStringLiteral(x) PathString(L##x)
 #define kPathStringEmpty PathString(L"")
 #define kPathStringSep PathString(L"\\")
-#define PathStringChar wchar
+#define PathStringChar wchar_t
 #define PathStringLiteralPrefix L
 #else
 typedef std::string PathString;
