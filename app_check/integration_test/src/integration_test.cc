@@ -518,12 +518,6 @@ TEST_F(FirebaseAppCheckTest, TestDebugProviderValidToken) {
   ASSERT_NE(factory, nullptr);
   InitializeAppCheckWithDebug();
   InitializeApp();
-  // TODO(almostmatt): Once app initialization automatically initializes
-  // AppCheck, this test will no longer need to explicitly get an instance of
-  // AppCheck.
-  ::firebase::app_check::AppCheck* app_check =
-      ::firebase::app_check::AppCheck::GetInstance(app_);
-  ASSERT_NE(app_check, nullptr);
 
   firebase::app_check::AppCheckProvider* provider =
       factory->CreateProvider(app_);
@@ -605,12 +599,6 @@ TEST_F(FirebaseAppCheckTest, TestPlayIntegrityProvider) {
 #if FIREBASE_PLATFORM_ANDROID
   ASSERT_NE(factory, nullptr);
   InitializeApp();
-  // TODO(almostmatt): Once app initialization automatically initializes
-  // AppCheck, this test will no longer need to explicitly get an instance of
-  // AppCheck.
-  ::firebase::app_check::AppCheck* app_check =
-      ::firebase::app_check::AppCheck::GetInstance(app_);
-  ASSERT_NE(app_check, nullptr);
 
   firebase::app_check::AppCheckProvider* provider =
       factory->CreateProvider(app_);

@@ -116,7 +116,6 @@ set(desktop_SRCS
   src/stub/play_integrity_provider_stub.cc
 )
 
-
 if(ANDROID)
   set(app_check_platform_SRCS
       "${android_SRCS}")

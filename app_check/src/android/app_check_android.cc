@@ -14,6 +14,9 @@
 
 #include "app_check/src/android/app_check_android.h"
 
+#include <string>
+#include <vector>
+
 #include "app/src/app_android.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/future.h"
