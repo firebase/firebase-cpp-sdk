@@ -331,8 +331,23 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
   request_.set_future_handle(handle);
   request_.set_response(&response_);
 
-  // Start the request.
-  transport_.Perform(&request_, &response_, nullptr);
+  // Check for App Check token function
+  Future<std::string> app_check_future;
+  bool succeeded = functions_->app()->function_registry()->CallFunction(
+      ::firebase::internal::FnAppCheckGetTokenAsync, functions_->app(), nullptr,
+      &app_check_future);
+  if (succeeded && app_check_future.status() != kFutureStatusInvalid) {
+    // Perform the transform request on a completion
+    app_check_future.OnCompletion([&](const Future<std::string>& future_token) {
+      if (future_token.result()) {
+        request_.add_header("X-Firebase-AppCheck", future_token.result()->c_str());
+      }
+      transport_.Perform(&request_, &response_, nullptr);
+    });
+  } else {
+    // Start the request.
+    transport_.Perform(&request_, &response_, nullptr);
+  }
 
   return CallLastResult();
 }
