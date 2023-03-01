@@ -425,6 +425,25 @@ def main():
     if client_info:
       gen_string(root, 'google_app_id', client_info.get('mobilesdk_app_id'))
 
+    # Only include the first matching OAuth client ID per type.
+    client_id_web_parsed = False
+    client_id_android_parsed = False
+
+    oauth_client_list = selected_client.get('oauth_client')
+    if oauth_client_list:
+      for oauth_client in oauth_client_list:
+        client_type = oauth_client.get('client_type')
+        client_id = oauth_client.get('client_id')
+        if not (client_type and client_id): continue
+        if (client_type == OAUTH_CLIENT_TYPE_WEB and
+            not client_id_web_parsed):
+          gen_string(root, 'default_web_client_id', client_id)
+          client_id_web_parsed = True
+        if (client_type == OAUTH_CLIENT_TYPE_ANDROID_APP and
+            not client_id_android_parsed):
+          gen_string(root, 'default_android_client_id', client_id)
+          client_id_android_parsed = True
+
     services = selected_client.get('services')
     if services:
       ads_service = services.get('ads_service')
