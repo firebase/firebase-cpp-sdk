@@ -579,6 +579,7 @@ const char* const kDefaultAndroidAppName = "[DEFAULT]";
 
 // Get the corresponding App from an Android SDK FirebaseApp instance.
 App* GetAppFromPlatformApp(JNIEnv* jni_env, jobject platform_app) {
+  FIREBASE_ASSERT(platform_app);
   jobject app_name =
       jni_env->CallObjectMethod(platform_app, app::GetMethodId(app::kGetName));
   util::CheckAndClearJniExceptions(jni_env);

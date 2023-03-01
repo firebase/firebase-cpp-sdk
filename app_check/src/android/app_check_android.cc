@@ -180,9 +180,9 @@ void TokenResultCallback(JNIEnv* env, jobject result,
 
 JNIEXPORT jlong JNICALL JniAppCheckProviderFactory_nativeCreateProvider(
     JNIEnv* env, jobject clazz, jlong c_factory, jobject j_app) {
-  // TODO(almostmatt): maybe handle the possibility of null app
   firebase::App* cpp_app =
       firebase::internal::GetAppFromPlatformApp(env, j_app);
+  FIREBASE_ASSERT(cpp_app);
   AppCheckProviderFactory* provider_factory =
       reinterpret_cast<AppCheckProviderFactory*>(c_factory);
   AppCheckProvider* provider = provider_factory->CreateProvider(cpp_app);
