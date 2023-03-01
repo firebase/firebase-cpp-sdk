@@ -340,7 +340,8 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
     // Perform the transform request on a completion
     app_check_future.OnCompletion([&](const Future<std::string>& future_token) {
       if (future_token.result()) {
-        request_.add_header("X-Firebase-AppCheck", future_token.result()->c_str());
+        request_.add_header("X-Firebase-AppCheck",
+                            future_token.result()->c_str());
       }
       transport_.Perform(&request_, &response_, nullptr);
     });

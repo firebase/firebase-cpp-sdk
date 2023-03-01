@@ -804,7 +804,8 @@ TEST_F(FirebaseAppCheckTest, TestFunctionsSuccess) {
   data.map()["secondNumber"] = 7;
   firebase::Future<firebase::functions::HttpsCallableResult> future;
   future = ref.Call(data);
-  WaitForCompletion(future, "CallFunction addnumbers", firebase::functions::kErrorNone);
+  WaitForCompletion(future, "CallFunction addnumbers",
+                    firebase::functions::kErrorNone);
   firebase::Variant result = future.result()->data();
   EXPECT_TRUE(result.is_map());
   if (result.is_map()) {
@@ -823,7 +824,8 @@ TEST_F(FirebaseAppCheckTest, TestFunctionsFailure) {
   data.map()["secondNumber"] = 8;
   firebase::Future<firebase::functions::HttpsCallableResult> future;
   future = ref.Call(data);
-  WaitForCompletion(future, "CallFunction addnumbers", firebase::functions::kErrorUnauthenticated);
+  WaitForCompletion(future, "CallFunction addnumbers",
+                    firebase::functions::kErrorUnauthenticated);
 }
 
 }  // namespace firebase_testapp_automated
