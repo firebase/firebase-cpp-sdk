@@ -22,9 +22,10 @@ import com.google.firebase.appcheck.AppCheckProvider;
 import com.google.firebase.appcheck.AppCheckToken;
 
 /**
-TODO(almostmatt): actual comment for this class
-*/
+ * Java AppCheckProvider that uses a C++ AppCheckProvider internally.
+ */
 public class JniAppCheckProvider implements AppCheckProvider {
+  // Pointer to a C++ AppCheckProvider
   private long cProvider;
 
   public JniAppCheckProvider(long cProvider) {
@@ -32,13 +33,17 @@ public class JniAppCheckProvider implements AppCheckProvider {
   }
   @Override
   public Task<AppCheckToken> getToken() {
-    TaskCompletionSource<AppCheckToken> taskCompletionSource = new TaskCompletionSource<>();
-    // Call the C++ provider in order to get an AppCheckToken set the result of the task.
+    TaskCompletionSource<AppCheckToken> taskCompletionSource =
+        new TaskCompletionSource<AppCheckToken>();
+    // Call the C++ provider to get an AppCheckToken and set the task result.
+    // The C++ code will call handleGetTokenResult with the resulting token.
     nativeGetToken(cProvider, taskCompletionSource);
     return taskCompletionSource.getTask();
   }
 
-  // Called by C++ once a token has been obtained in order to complete the java task.
+  /**
+   *  Called by C++ with a token in order to complete the java task.
+   */
   public void handleGetTokenResult(TaskCompletionSource<AppCheckToken> taskCompletionSource,
       String token_string, long expiration_time_millis, int error_code, String error_message) {
     if (error_code == 0) {

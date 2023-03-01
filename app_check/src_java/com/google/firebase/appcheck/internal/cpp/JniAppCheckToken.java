@@ -19,7 +19,9 @@ package com.google.firebase.appcheck.internal.cpp;
 import androidx.annotation.NonNull;
 import com.google.firebase.appcheck.AppCheckToken;
 
-// A trivial implementation of the abstract class AppCheckToken
+/**
+ * A trivial implementation of the abstract class AppCheckToken
+ */
 public class JniAppCheckToken extends AppCheckToken {
   private String token;
   private long expiration;

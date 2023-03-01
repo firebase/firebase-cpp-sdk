@@ -20,7 +20,11 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.appcheck.AppCheckProvider;
 import com.google.firebase.appcheck.AppCheckProviderFactory;
 
+/**
+ * Java AppCheckProviderFactory that uses a C++ AppCheckProviderFactory internally.
+ */
 public class JniAppCheckProviderFactory implements AppCheckProviderFactory {
+  // Pointer to a C++ AppCheckProviderFactory
   private long cFactory;
 
   public JniAppCheckProviderFactory(long cFactory) {
@@ -29,14 +33,7 @@ public class JniAppCheckProviderFactory implements AppCheckProviderFactory {
 
   @Override
   public AppCheckProvider create(FirebaseApp firebaseApp) {
-    // Call C++ factory.createprovider to get a C++ provider
-    // Note: other examples of calling c++ from java does not appear
-    // to have a return value. Maybe I want an output parameter.
-    // one example jint
-
-    // for messaging, we define a single java listener and cpp logic calls into
-    // relevant cpp logic to notify cpp listeners
-    // could in cpp use app to determine which provider is relevant
+    // Call the C++ Factory's CreateProvider to get a C++ provider pointer.
     long cProvider = nativeCreateProvider(cFactory, firebaseApp);
 
     // Create a java provider to wrap the created C++ provider, and return that.
