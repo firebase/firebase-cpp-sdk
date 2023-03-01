@@ -48,6 +48,9 @@ DEFAULT_PLIST_INPUT_FILENAME = 'GoogleService-Info.plist'
 # Output filename for .json files, if it isn't set.
 DEFAULT_JSON_OUTPUT_FILENAME = 'google-services-desktop.json'
 
+OAUTH_CLIENT_TYPE_ANDROID_APP = 1
+OAUTH_CLIENT_TYPE_WEB = 3
+
 
 def read_xml_value(xml_node):
   """Utility method for reading values from the plist XML.
@@ -176,6 +179,11 @@ def construct_google_services_json(xml_dict):
         'configuration_version':
             '1'
     }
+    # OAuth client is optional, but include it if present.
+    if 'CLIENT_ID' in xml_dict:
+      json_struct['client'][0]['oauth_client'] = [{
+          'client_id': xml_dict['CLIENT_ID'],
+      }]
     return json.dumps(json_struct, indent=2)
   except KeyError as e:
     sys.stderr.write('Could not find key in plist file: [%s]\n' % (e.args[0]))
