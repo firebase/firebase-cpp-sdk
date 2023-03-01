@@ -16,6 +16,7 @@
 #define FIREBASE_APP_CHECK_SRC_DESKTOP_APP_CHECK_DESKTOP_H_
 
 #include <list>
+#include <string>
 
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
@@ -41,6 +42,10 @@ class AppCheckInternal {
   Future<AppCheckToken> GetAppCheckToken(bool force_refresh);
 
   Future<AppCheckToken> GetAppCheckTokenLastResult();
+
+  // Gets the App Check token as just the string, to be used by
+  // internal methods to not conflict with the publicly returned future.
+  Future<std::string> GetAppCheckTokenStringInternal();
 
   void AddAppCheckListener(AppCheckListener* listener);
 
@@ -82,6 +87,9 @@ class AppCheckInternal {
   AppCheckToken cached_token_;
   // List of registered listeners for Token changes.
   std::list<AppCheckListener*> token_listeners_;
+  // Should it automatically get an App Check token if there is not a valid
+  // cached token.
+  bool is_token_auto_refresh_enabled_;
 };
 
 }  // namespace internal
