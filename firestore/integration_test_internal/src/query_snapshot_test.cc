@@ -48,7 +48,7 @@ TEST_F(QuerySnapshotTest, Assignment) {
 
 #endif  // defined(__ANDROID__)
 
-TEST_F(QuerySnapshotTest, Equality1) {
+TEST_F(QuerySnapshotTest, IdenticalSnapshotFromCollectionQueriesWithLimitShouldBeEqual) {
   CollectionReference collection =
       Collection({{"a", {{"k", FieldValue::String("a")}}},
                   {"b", {{"k", FieldValue::String("b")}}},
@@ -62,7 +62,7 @@ TEST_F(QuerySnapshotTest, Equality1) {
   EXPECT_FALSE(snapshot1 != snapshot2);
 }
 
-TEST_F(QuerySnapshotTest, Equality2) {
+TEST_F(QuerySnapshotTest, IdenticalDefaultSnapshotShouldBeEqual) {
   QuerySnapshot snapshot1 = QuerySnapshot();
   QuerySnapshot snapshot2 = QuerySnapshot();
 
@@ -132,7 +132,7 @@ TEST_F(QuerySnapshotTest, NonEquality) {
   EXPECT_FALSE(snapshot5 == snapshot6);
 }
 
-TEST_F(QuerySnapshotTest, TestHashCodeEquality1) {
+TEST_F(QuerySnapshotTest, IdenticalSnapshotFromCollectionQueriesWithLimitShouldHaveSameHash) {
   CollectionReference collection =
       Collection({{"a", {{"k", FieldValue::String("a")}}},
                   {"b", {{"k", FieldValue::String("b")}}},
@@ -144,7 +144,7 @@ TEST_F(QuerySnapshotTest, TestHashCodeEquality1) {
   EXPECT_EQ(QuerySnapshotHash(snapshot1), QuerySnapshotHash(snapshot2));
 }
 
-TEST_F(QuerySnapshotTest, TestHashCodeEquality2) {
+TEST_F(QuerySnapshotTest, IdenticalDefaultSnapshotShouldHaveSameHash) {
   QuerySnapshot snapshot1 = QuerySnapshot();
   QuerySnapshot snapshot2 = QuerySnapshot();
 
