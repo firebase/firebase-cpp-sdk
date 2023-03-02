@@ -35,11 +35,11 @@
 namespace firebase {
 namespace firestore {
 
-// Glues together C++ Firebase App Check and Firestore: allows Firestore to listen to
-// App Check events and to retrieve App Check tokens. Thread-safe.
+// Glues together C++ Firebase App Check and Firestore: allows Firestore to
+// listen to App Check events and to retrieve App Check tokens. Thread-safe.
 //
-// This is a language-specific implementation of `AppCheckCredentialsProvider` that
-// works with the public C++ App Check.
+// This is a language-specific implementation of `AppCheckCredentialsProvider`
+// that works with the public C++ App Check.
 class CppAppCheckCredentialsProvider
     : public firestore::credentials::AppCheckCredentialsProvider {
  public:
@@ -53,11 +53,10 @@ class CppAppCheckCredentialsProvider
 
   // `firestore::credentials::AppCheckCredentialsProvider` interface.
   void SetCredentialChangeListener(
-      firestore::credentials::CredentialChangeListener<
-          std::string> listener) override;
+      firestore::credentials::CredentialChangeListener<std::string> listener)
+      override;
   void GetToken(
-      firestore::credentials::TokenListener<std::string>
-          listener) override;
+      firestore::credentials::TokenListener<std::string> listener) override;
 
  private:
   void AddAppCheckStateListener();

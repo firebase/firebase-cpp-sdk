@@ -71,13 +71,14 @@ void CppAppCheckCredentialsProvider::GetToken(
       ::firebase::internal::FnAppCheckGetTokenAsync, &(contents_->app), nullptr,
       &app_check_future);
   if (succeeded && app_check_future.status() != kFutureStatusInvalid) {
-    app_check_future.OnCompletion([listener](const Future<std::string>& future_token) {
-      if (future_token.result()) {
-        listener(*future_token.result());
-      } else {
-        listener(std::string());
-      }
-    });
+    app_check_future.OnCompletion(
+        [listener](const Future<std::string>& future_token) {
+          if (future_token.result()) {
+            listener(*future_token.result());
+          } else {
+            listener(std::string());
+          }
+        });
   } else {
     // Getting the Future failed, so assume there is no App Check token to use.
     listener(std::string());
@@ -95,11 +96,11 @@ void CppAppCheckCredentialsProvider::RemoveAppCheckStateListener() {
   App& app = contents_->app;
   auto callback = reinterpret_cast<void*>(OnAppCheckStateChanged);
   app.function_registry()->CallFunction(
-      ::firebase::internal::FnAppCheckRemoveListener, &app, callback,
-      this);
+      ::firebase::internal::FnAppCheckRemoveListener, &app, callback, this);
 }
 
-void CppAppCheckCredentialsProvider::OnAppCheckStateChanged(std::string token, void* context) {
+void CppAppCheckCredentialsProvider::OnAppCheckStateChanged(std::string token,
+                                                            void* context) {
   auto provider = static_cast<CppAppCheckCredentialsProvider*>(context);
   Contents* contents = provider->contents_.get();
 

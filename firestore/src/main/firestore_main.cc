@@ -53,8 +53,8 @@ namespace firebase {
 namespace firestore {
 namespace {
 
-using credentials::AuthCredentialsProvider;
 using credentials::AppCheckCredentialsProvider;
+using credentials::AuthCredentialsProvider;
 using credentials::EmptyAppCheckCredentialsProvider;
 using model::DatabaseId;
 using util::AsyncQueue;
@@ -102,13 +102,16 @@ void ValidateDoubleSlash(const char* path) {
 }  // namespace
 
 FirestoreInternal::FirestoreInternal(App* app)
-    : FirestoreInternal{app, CreateCredentialsProvider(*app), CreateAppCheckCredentialsProvider(*app)} {}
+    : FirestoreInternal{app, CreateCredentialsProvider(*app),
+                        CreateAppCheckCredentialsProvider(*app)} {}
 
 FirestoreInternal::FirestoreInternal(
-    App* app, std::unique_ptr<AuthCredentialsProvider> credentials,
+    App* app,
+    std::unique_ptr<AuthCredentialsProvider> credentials,
     std::unique_ptr<AppCheckCredentialsProvider> app_check)
     : app_(NOT_NULL(app)),
-      firestore_core_(CreateFirestore(app, std::move(credentials), std::move(app_check))),
+      firestore_core_(
+          CreateFirestore(app, std::move(credentials), std::move(app_check))),
       transaction_executor_(absl::ShareUniquePtr(Executor::CreateConcurrent(
           "com.google.firebase.firestore.transaction", /*threads=*/5))) {
   ApplyDefaultSettings();
@@ -123,7 +126,8 @@ FirestoreInternal::~FirestoreInternal() {
 }
 
 std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
-    App* app, std::unique_ptr<AuthCredentialsProvider> credentials,
+    App* app,
+    std::unique_ptr<AuthCredentialsProvider> credentials,
     std::unique_ptr<AppCheckCredentialsProvider> app_check) {
   const AppOptions& opt = app->options();
   return std::make_shared<api::Firestore>(

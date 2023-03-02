@@ -33,10 +33,12 @@ namespace firestore {
 using credentials::AppCheckCredentialsProvider;
 using credentials::FirebaseAppCheckCredentialsProvider;
 
-std::unique_ptr<AppCheckCredentialsProvider> CreateAppCheckCredentialsProvider(App& app) {
+std::unique_ptr<AppCheckCredentialsProvider> CreateAppCheckCredentialsProvider(
+    App& app) {
   FIRApp* ios_app = app.GetPlatformApp();
   auto ios_auth = FIR_COMPONENT(FIRAppCheckInterop, ios_app.container);
-  return absl::make_unique<FirebaseAppCheckCredentialsProvider>(ios_app, ios_auth);
+  return absl::make_unique<FirebaseAppCheckCredentialsProvider>(ios_app,
+                                                                ios_auth);
 }
 
 }  // namespace firestore

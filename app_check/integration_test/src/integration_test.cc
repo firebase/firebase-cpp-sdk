@@ -400,11 +400,13 @@ void FirebaseAppCheckTest::TerminateFirestore() {
   ProcessEvents(100);
 }
 
-firebase::firestore::CollectionReference FirebaseAppCheckTest::GetTestCollection() {
+firebase::firestore::CollectionReference
+FirebaseAppCheckTest::GetTestCollection() {
   if (collection_name_.empty()) {
     // Generate a collection for the test data based on the time in
     // milliseconds.
-    int64_t time_in_microseconds = app_framework::GetCurrentTimeInMicroseconds();
+    int64_t time_in_microseconds =
+        app_framework::GetCurrentTimeInMicroseconds();
 
     char buffer[21] = {0};
     snprintf(buffer, sizeof(buffer), "test%lld",
@@ -414,14 +416,15 @@ firebase::firestore::CollectionReference FirebaseAppCheckTest::GetTestCollection
   return firestore_->Collection(collection_name_.c_str());
 }
 
-firebase::firestore::DocumentReference FirebaseAppCheckTest::CreateFirestoreDoc() {
-  std::string path =
-      std::string(
-          ::testing::UnitTest::GetInstance()->current_test_info()->name());
-  firebase::firestore::DocumentReference doc = GetTestCollection().Document(path);
+firebase::firestore::DocumentReference
+FirebaseAppCheckTest::CreateFirestoreDoc() {
+  std::string path = std::string(
+      ::testing::UnitTest::GetInstance()->current_test_info()->name());
+  firebase::firestore::DocumentReference doc =
+      GetTestCollection().Document(path);
   // Only add to the cleanup set if it doesn't exist yet
   if (find(firestore_cleanup_.begin(), firestore_cleanup_.end(), doc) ==
-        firestore_cleanup_.end()) {
+      firestore_cleanup_.end()) {
     firestore_cleanup_.push_back(doc);
   }
   return doc;
@@ -436,7 +439,8 @@ void FirebaseAppCheckTest::CleanupFirestore(int expected_error = 0) {
       cleanups.push_back(firestore_cleanup_[i].Delete());
     }
     for (int i = 0; i < cleanups.size(); ++i) {
-      WaitForCompletion(cleanups[i], "Cleanup Firestore Document", expected_error);
+      WaitForCompletion(cleanups[i], "Cleanup Firestore Document",
+                        expected_error);
     }
     firestore_cleanup_.clear();
   }
@@ -858,7 +862,7 @@ TEST_F(FirebaseAppCheckTest, TestFirestoreSetGet) {
           {"int", firebase::firestore::FieldValue::Integer(123)}}),
       "document.Set");
   firebase::Future<firebase::firestore::DocumentSnapshot> future =
-      document.Get();
+      document.Get(firebase::firestore::Source::kServer);
   WaitForCompletion(future, "document.Get");
   EXPECT_NE(future.result(), nullptr);
   EXPECT_THAT(future.result()->GetData(),
@@ -880,7 +884,9 @@ TEST_F(FirebaseAppCheckTest, TestFirestoreSetGetFailure) {
           {"str", firebase::firestore::FieldValue::String("badfoo")},
           {"int", firebase::firestore::FieldValue::Integer(456)}}),
       "document.Set", firebase::firestore::kErrorPermissionDenied);
-  WaitForCompletion(document.Get(), "document.Get", firebase::firestore::kErrorPermissionDenied);
+  WaitForCompletion(document.Get(firebase::firestore::Source::kServer),
+                    "document.Get",
+                    firebase::firestore::kErrorPermissionDenied);
 
   CleanupFirestore(firebase::firestore::kErrorPermissionDenied);
 }
@@ -934,17 +940,28 @@ TEST_F(FirebaseAppCheckTest, TestFirestoreTransactionFailure) {
 
   firebase::firestore::DocumentReference document = CreateFirestoreDoc();
 
-  std::vector<firebase::firestore::MapFieldValue> document_snapshots;
+  bool received_pending_cache = false;
+  bool received_permission_denied = false;
   firebase::firestore::ListenerRegistration registration =
       document.AddSnapshotListener(
-          [&](const firebase::firestore::DocumentSnapshot& result,
+          [&received_pending_cache, &received_permission_denied](
+              const firebase::firestore::DocumentSnapshot& result,
               firebase::firestore::Error error_code,
               const std::string& error_message) {
-            // PROBLEM HERE
-            // This is called twice, once with no error code and the doc
-            // The second time, with the Permission Denied error, and no doc
-            EXPECT_EQ(error_code, firebase::firestore::kErrorPermissionDenied);
-            document_snapshots.push_back(result.GetData());
+            // We first expect one call for a successful change to the cache.
+            if (error_code == firebase::firestore::kErrorNone) {
+              EXPECT_FALSE(received_pending_cache);
+              EXPECT_TRUE(result.metadata().has_pending_writes());
+              EXPECT_TRUE(result.metadata().is_from_cache());
+              received_pending_cache = true;
+            } else {
+              // We expect one call with a Permission Denied error, from the
+              // server.
+              EXPECT_FALSE(received_permission_denied);
+              EXPECT_EQ(error_code,
+                        firebase::firestore::kErrorPermissionDenied);
+              received_permission_denied = true;
+            }
           });
 
   WaitForCompletion(
@@ -959,11 +976,62 @@ TEST_F(FirebaseAppCheckTest, TestFirestoreTransactionFailure) {
           {"val", firebase::firestore::FieldValue::String("final")}}),
       "document.Set final", firebase::firestore::kErrorPermissionDenied);
 
-  EXPECT_THAT(
-      document_snapshots,
-      testing::ElementsAre(
-          firebase::firestore::MapFieldValue{
-              {"val", firebase::firestore::FieldValue::String("transaction")}}));
+  EXPECT_TRUE(received_pending_cache);
+  EXPECT_TRUE(received_permission_denied);
+
+  CleanupFirestore(firebase::firestore::kErrorPermissionDenied);
+}
+
+TEST_F(FirebaseAppCheckTest, TestRunTransaction) {
+  InitializeAppCheckWithDebug();
+  InitializeApp();
+  InitializeFirestore();
+
+  firebase::firestore::DocumentReference document = CreateFirestoreDoc();
+
+  WaitForCompletion(
+      document.Set(firebase::firestore::MapFieldValue{
+          {"str", firebase::firestore::FieldValue::String("foo")}}),
+      "document.Set");
+
+  auto transaction_future = firestore_->RunTransaction(
+      [&](firebase::firestore::Transaction& transaction,
+          std::string&) -> firebase::firestore::Error {
+        transaction.Update(
+            document,
+            firebase::firestore::MapFieldValue{
+                {"int", firebase::firestore::FieldValue::Integer(123)}});
+        return firebase::firestore::kErrorOk;
+      });
+
+  WaitForCompletion(transaction_future, "firestore.RunTransaction");
+
+  // Confirm the updated doc is correct.
+  auto future = document.Get(firebase::firestore::Source::kServer);
+  WaitForCompletion(future, "document.Get");
+  EXPECT_THAT(future.result()->GetData(),
+              UnorderedElementsAre(
+                  Pair("str", firebase::firestore::FieldValue::String("foo")),
+                  Pair("int", firebase::firestore::FieldValue::Integer(123))));
+}
+
+TEST_F(FirebaseAppCheckTest, TestRunTransactionFailure) {
+  // Don't set up AppCheck
+  InitializeApp();
+  InitializeFirestore();
+
+  firebase::firestore::DocumentReference document = CreateFirestoreDoc();
+
+  auto transaction_future = firestore_->RunTransaction(
+      [](firebase::firestore::Transaction& transaction,
+         std::string&) -> firebase::firestore::Error {
+        // This might be called due to updating the cache, but in the end we
+        // only care that the transaction future is rejected by the server.
+        return firebase::firestore::kErrorOk;
+      });
+
+  WaitForCompletion(transaction_future, "firestore.RunTransaction",
+                    firebase::firestore::kErrorPermissionDenied);
 
   CleanupFirestore(firebase::firestore::kErrorPermissionDenied);
 }

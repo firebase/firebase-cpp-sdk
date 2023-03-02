@@ -218,11 +218,13 @@ bool AppCheckInternal::GetAppCheckTokenAsyncForRegistry(App* app,
   return false;
 }
 
-void FunctionRegistryAppCheckListener::AddListener(FunctionRegistryCallback callback, void* context) {
+void FunctionRegistryAppCheckListener::AddListener(
+    FunctionRegistryCallback callback, void* context) {
   callbacks_.emplace_back(callback, context);
 }
 
-void FunctionRegistryAppCheckListener::RemoveListener(FunctionRegistryCallback callback, void* context) {
+void FunctionRegistryAppCheckListener::RemoveListener(
+    FunctionRegistryCallback callback, void* context) {
   Entry entry = {callback, context};
 
   auto iter = std::find(callbacks_.begin(), callbacks_.end(), entry);
@@ -231,14 +233,16 @@ void FunctionRegistryAppCheckListener::RemoveListener(FunctionRegistryCallback c
   }
 }
 
-void FunctionRegistryAppCheckListener::OnAppCheckTokenChanged(const AppCheckToken& token) {
+void FunctionRegistryAppCheckListener::OnAppCheckTokenChanged(
+    const AppCheckToken& token) {
   for (const Entry& entry : callbacks_) {
     entry.first(token.token, entry.second);
   }
 }
 
 // static
-bool AppCheckInternal::AddAppCheckListenerForRegistry(App* app, void* callback, void* context) {
+bool AppCheckInternal::AddAppCheckListenerForRegistry(App* app, void* callback,
+                                                      void* context) {
   auto typed_callback = reinterpret_cast<FunctionRegistryCallback>(callback);
   if (!app || !typed_callback) {
     return false;
@@ -246,7 +250,8 @@ bool AppCheckInternal::AddAppCheckListenerForRegistry(App* app, void* callback, 
 
   AppCheck* app_check = AppCheck::GetInstance(app);
   if (app_check && app_check->internal_) {
-    app_check->internal_->internal_listener_.AddListener(typed_callback, context);
+    app_check->internal_->internal_listener_.AddListener(typed_callback,
+                                                         context);
     // If there is a cached token, pass it along to the callback
     if (app_check->internal_->HasValidCacheToken()) {
       typed_callback(app_check->internal_->cached_token_.token, context);
@@ -257,7 +262,9 @@ bool AppCheckInternal::AddAppCheckListenerForRegistry(App* app, void* callback, 
 }
 
 // static
-bool AppCheckInternal::RemoveAppCheckListenerForRegistry(App* app, void* callback, void* context) {
+bool AppCheckInternal::RemoveAppCheckListenerForRegistry(App* app,
+                                                         void* callback,
+                                                         void* context) {
   auto typed_callback = reinterpret_cast<FunctionRegistryCallback>(callback);
   if (!app || !typed_callback) {
     return false;
@@ -265,7 +272,8 @@ bool AppCheckInternal::RemoveAppCheckListenerForRegistry(App* app, void* callbac
 
   AppCheck* app_check = AppCheck::GetInstance(app);
   if (app_check && app_check->internal_) {
-    app_check->internal_->internal_listener_.RemoveListener(typed_callback, context);
+    app_check->internal_->internal_listener_.RemoveListener(typed_callback,
+                                                            context);
     return true;
   }
   return false;
