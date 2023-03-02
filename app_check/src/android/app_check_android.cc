@@ -17,7 +17,6 @@
 #include <string>
 #include <vector>
 
-#include "app/src/app_android.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -60,7 +59,7 @@ METHOD_LOOKUP_DEFINITION(app_check,
 
 // clang-format off
 #define JNI_APP_CHECK_PROVIDER_FACTORY_METHODS(X)                              \
-  X(Constructor, "<init>", "(J)V")
+  X(Constructor, "<init>", "(JJ)V")
 // clang-format on
 
 METHOD_LOOKUP_DECLARATION(jni_provider_factory,
@@ -71,10 +70,10 @@ METHOD_LOOKUP_DEFINITION(
     JNI_APP_CHECK_PROVIDER_FACTORY_METHODS)
 
 JNIEXPORT jlong JNICALL JniAppCheckProviderFactory_nativeCreateProvider(
-    JNIEnv* env, jobject clazz, jlong c_factory, jobject j_app);
+    JNIEnv* env, jobject clazz, jlong c_factory, jlong c_app);
 
 static const JNINativeMethod kNativeJniAppCheckProviderFactoryMethods[] = {
-    {"nativeCreateProvider", "(JLcom/google/firebase/FirebaseApp;)J",
+    {"nativeCreateProvider", "(JJ)J",
      reinterpret_cast<void*>(JniAppCheckProviderFactory_nativeCreateProvider)},
 };
 
@@ -179,10 +178,8 @@ void TokenResultCallback(JNIEnv* env, jobject result,
 }  // anonymous namespace
 
 JNIEXPORT jlong JNICALL JniAppCheckProviderFactory_nativeCreateProvider(
-    JNIEnv* env, jobject clazz, jlong c_factory, jobject j_app) {
-  firebase::App* cpp_app =
-      firebase::internal::GetAppFromPlatformApp(env, j_app);
-  FIREBASE_ASSERT(cpp_app);
+    JNIEnv* env, jobject clazz, jlong c_factory, jlong c_app) {
+  App* cpp_app = reinterpret_cast<App*>(c_app);
   AppCheckProviderFactory* provider_factory =
       reinterpret_cast<AppCheckProviderFactory*>(c_factory);
   AppCheckProvider* provider = provider_factory->CreateProvider(cpp_app);
@@ -271,10 +268,13 @@ AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
     // Install the AppCheckProviderFactory for this instance of AppCheck.
     if (g_provider_factory) {
       // Create a Java ProviderFactory to wrap the C++ ProviderFactory
+      // Since InstallAppCheckProviderFactory is done for a single instance of
+      // AppCheck, this factory will only be used for this App.
       jobject j_factory = env->NewObject(
           jni_provider_factory::GetClass(),
           jni_provider_factory::GetMethodId(jni_provider_factory::kConstructor),
-          reinterpret_cast<jlong>(g_provider_factory));
+          reinterpret_cast<jlong>(g_provider_factory),
+          reinterpret_cast<jlong>(app));
       FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
       // Install the Java ProviderFactory in the java AppCheck class.
       env->CallVoidMethod(

@@ -26,15 +26,18 @@ import com.google.firebase.appcheck.AppCheckProviderFactory;
 public class JniAppCheckProviderFactory implements AppCheckProviderFactory {
   // Pointer to a C++ AppCheckProviderFactory
   private long cFactory;
+  // Pointer to a C++ App
+  private long cApp;
 
-  public JniAppCheckProviderFactory(long cFactory) {
+  public JniAppCheckProviderFactory(long cFactory, long cApp) {
     this.cFactory = cFactory;
+    this.cApp = cApp;
   }
 
   @Override
   public AppCheckProvider create(FirebaseApp firebaseApp) {
     // Call the C++ Factory's CreateProvider to get a C++ provider pointer.
-    long cProvider = nativeCreateProvider(cFactory, firebaseApp);
+    long cProvider = nativeCreateProvider(cFactory, cApp);
 
     // Create a java provider to wrap the created C++ provider, and return that.
     return new JniAppCheckProvider(cProvider);
@@ -43,5 +46,5 @@ public class JniAppCheckProviderFactory implements AppCheckProviderFactory {
   /**
    * This function is implemented in the AppCheck C++ library (app_check_android.cc).
    */
-  private native long nativeCreateProvider(long cFactory, FirebaseApp firebaseApp);
+  private native long nativeCreateProvider(long cFactory, long cApp);
 }

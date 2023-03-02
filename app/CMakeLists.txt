@@ -309,7 +309,6 @@ set(app_android_HDRS
     ${app_resources_header}
     ${google_api_resources_header}
     ${invites_resources_header}
-    src/app_android.h
     src/invites/android/invites_android_helper.h
     src/invites/android/invites_receiver_internal_android.h)
 set(app_ios_HDRS
