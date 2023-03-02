@@ -36,7 +36,8 @@ TEST_F(AggregateQueryTest, DefaultConstructorReturnsValidObject) {
   EXPECT_FALSE(aggregate_query.is_valid());
 }
 
-TEST_F(AggregateQueryTest, CopyConstructorAppliedToValidObjectReturnsEqualObject) {
+TEST_F(AggregateQueryTest,
+       CopyConstructorAppliedToValidObjectReturnsEqualObject) {
   const Query query = TestFirestore()->Collection("foo").Limit(10);
   const AggregateQuery aggregate_query = query.Count();
 
@@ -67,7 +68,9 @@ TEST_F(AggregateQueryTest, CopyConstructorAppliedToDefaultReturnsEqualObject) {
   EXPECT_FALSE(copied_aggregate_query.is_valid());
 }
 
-TEST_F(AggregateQueryTest, DefaultObjectCopyAssignmentOperatorAppliedToValidObjectOperatorReturnsEqualObject) {
+TEST_F(
+    AggregateQueryTest,
+    DefaultObjectCopyAssignmentOperatorAppliedToValidObjectOperatorReturnsEqualObject) {
   const Query query = TestFirestore()->Collection("foo").Limit(10);
   const AggregateQuery aggregate_query = query.Count();
 
@@ -88,7 +91,9 @@ TEST_F(AggregateQueryTest, DefaultObjectCopyAssignmentOperatorAppliedToValidObje
   EXPECT_TRUE(copied_aggregate_query.is_valid());
 }
 
-TEST_F(AggregateQueryTest, DefaultObjectCopyAssignmentOperatorAppliedToDefaultObjectReturnsEqualObject) {
+TEST_F(
+    AggregateQueryTest,
+    DefaultObjectCopyAssignmentOperatorAppliedToDefaultObjectReturnsEqualObject) {
   const AggregateQuery aggregate_query = AggregateQuery();
 
   EXPECT_EQ(aggregate_query.query(), Query());
@@ -108,7 +113,8 @@ TEST_F(AggregateQueryTest, DefaultObjectCopyAssignmentOperatorAppliedToDefaultOb
   EXPECT_FALSE(copied_aggregate_query.is_valid());
 }
 
-TEST_F(AggregateQueryTest, ValidObjectCopyAssignmentAppliedToValidObjectReturnsEqualObject) {
+TEST_F(AggregateQueryTest,
+       ValidObjectCopyAssignmentAppliedToValidObjectReturnsEqualObject) {
   const Query query1 = TestFirestore()->Collection("foo").Limit(10);
   const Query query2 = TestFirestore()->Collection("bar").Limit(20);
   const AggregateQuery aggregate_query = query1.Count();
@@ -130,9 +136,10 @@ TEST_F(AggregateQueryTest, ValidObjectCopyAssignmentAppliedToValidObjectReturnsE
   EXPECT_TRUE(copied_aggregate_query.is_valid());
 }
 
-TEST_F(AggregateQueryTest, ValidObjectCopyAssignmentAppliedToDefaultReturnsEqualObject) {
+TEST_F(AggregateQueryTest,
+       ValidObjectCopyAssignmentAppliedToDefaultReturnsEqualObject) {
   const AggregateQuery aggregate_query = AggregateQuery();
-  
+
   EXPECT_EQ(aggregate_query.query(), Query());
   EXPECT_FALSE(aggregate_query.is_valid());
 
@@ -155,7 +162,7 @@ TEST_F(AggregateQueryTest, CopyAssignmentAppliedSelfReturnsEqualObject) {
   const Query query = TestFirestore()->Collection("foo").Limit(10);
 
   AggregateQuery aggregate_query = query.Count();
-  
+
   EXPECT_EQ(aggregate_query.query(), query);
   EXPECT_TRUE(aggregate_query.is_valid());
 
@@ -165,7 +172,8 @@ TEST_F(AggregateQueryTest, CopyAssignmentAppliedSelfReturnsEqualObject) {
   EXPECT_TRUE(aggregate_query.is_valid());
 }
 
-TEST_F(AggregateQueryTest, CopyAssignmentAppliedToValidObjectReturnsEqualObject) {
+TEST_F(AggregateQueryTest,
+       CopyAssignmentAppliedToValidObjectReturnsEqualObject) {
   const Query query = TestFirestore()->Collection("foo").Limit(10);
   const AggregateQuery aggregate_query = query.Count();
 
@@ -181,7 +189,8 @@ TEST_F(AggregateQueryTest, CopyAssignmentAppliedToValidObjectReturnsEqualObject)
   EXPECT_TRUE(copied_aggregate_query.is_valid());
 }
 
-TEST_F(AggregateQueryTest, MoveConstructorAppliedToValidObjectReturnsEqualObject) {
+TEST_F(AggregateQueryTest,
+       MoveConstructorAppliedToValidObjectReturnsEqualObject) {
   const Query query = TestFirestore()->Collection("foo").Limit(10);
   AggregateQuery aggregate_query = query.Count();
 
@@ -197,7 +206,8 @@ TEST_F(AggregateQueryTest, MoveConstructorAppliedToValidObjectReturnsEqualObject
   EXPECT_TRUE(moved_snapshot_dest.is_valid());
 }
 
-TEST_F(AggregateQueryTest, MoveConstructorAppliedToDefaultObjectReturnsEqualObject) {
+TEST_F(AggregateQueryTest,
+       MoveConstructorAppliedToDefaultObjectReturnsEqualObject) {
   AggregateQuery aggregate_query = AggregateQuery();
 
   EXPECT_EQ(aggregate_query.query(), Query());
@@ -212,7 +222,9 @@ TEST_F(AggregateQueryTest, MoveConstructorAppliedToDefaultObjectReturnsEqualObje
   EXPECT_FALSE(moved_snapshot_dest.is_valid());
 }
 
-TEST_F(AggregateQueryTest, DefaultObjectMoveAssignmentOperatorAppliedToValidObjectReturnsEqualObject) {
+TEST_F(
+    AggregateQueryTest,
+    DefaultObjectMoveAssignmentOperatorAppliedToValidObjectReturnsEqualObject) {
   const Query query = TestFirestore()->Collection("foo").Limit(10);
   AggregateQuery aggregate_query = query.Count();
 
@@ -228,7 +240,9 @@ TEST_F(AggregateQueryTest, DefaultObjectMoveAssignmentOperatorAppliedToValidObje
   EXPECT_TRUE(snapshot_move_dest.is_valid());
 }
 
-TEST_F(AggregateQueryTest, DefaultObjectMoveAssignmentOperatorAppliedToDefaultObjectReturnsEqualObject) {
+TEST_F(
+    AggregateQueryTest,
+    DefaultObjectMoveAssignmentOperatorAppliedToDefaultObjectReturnsEqualObject) {
   AggregateQuery aggregate_query = AggregateQuery();
 
   EXPECT_EQ(aggregate_query.query(), Query());
@@ -243,7 +257,9 @@ TEST_F(AggregateQueryTest, DefaultObjectMoveAssignmentOperatorAppliedToDefaultOb
   EXPECT_FALSE(snapshot_move_dest.is_valid());
 }
 
-TEST_F(AggregateQueryTest, ValidObjectMoveAssignmentOperatorAppliedToValidObjectReturnsEqualObject) {
+TEST_F(
+    AggregateQueryTest,
+    ValidObjectMoveAssignmentOperatorAppliedToValidObjectReturnsEqualObject) {
   const Query query1 = TestFirestore()->Collection("foo").Limit(10);
   const Query query2 = TestFirestore()->Collection("bar").Limit(20);
   AggregateQuery aggregate_query = query1.Count();
@@ -265,7 +281,9 @@ TEST_F(AggregateQueryTest, ValidObjectMoveAssignmentOperatorAppliedToValidObject
   EXPECT_TRUE(snapshot_move_dest.is_valid());
 }
 
-TEST_F(AggregateQueryTest, ValidObjectMoveAssignmentOperatorAppliedToDefaultObjectReturnsEqualObject) {
+TEST_F(
+    AggregateQueryTest,
+    ValidObjectMoveAssignmentOperatorAppliedToDefaultObjectReturnsEqualObject) {
   AggregateQuery aggregate_query = AggregateQuery();
 
   EXPECT_EQ(aggregate_query.query(), Query());

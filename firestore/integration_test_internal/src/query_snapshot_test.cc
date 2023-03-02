@@ -48,7 +48,8 @@ TEST_F(QuerySnapshotTest, Assignment) {
 
 #endif  // defined(__ANDROID__)
 
-TEST_F(QuerySnapshotTest, IdenticalSnapshotFromCollectionQueriesWithLimitShouldBeEqual) {
+TEST_F(QuerySnapshotTest,
+       IdenticalSnapshotFromCollectionQueriesWithLimitShouldBeEqual) {
   CollectionReference collection =
       Collection({{"a", {{"k", FieldValue::String("a")}}},
                   {"b", {{"k", FieldValue::String("b")}}},
@@ -132,7 +133,8 @@ TEST_F(QuerySnapshotTest, NonEquality) {
   EXPECT_FALSE(snapshot5 == snapshot6);
 }
 
-TEST_F(QuerySnapshotTest, IdenticalSnapshotFromCollectionQueriesWithLimitShouldHaveSameHash) {
+TEST_F(QuerySnapshotTest,
+       IdenticalSnapshotFromCollectionQueriesWithLimitShouldHaveSameHash) {
   CollectionReference collection =
       Collection({{"a", {{"k", FieldValue::String("a")}}},
                   {"b", {{"k", FieldValue::String("b")}}},
