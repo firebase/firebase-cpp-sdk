@@ -48,6 +48,7 @@ def firebaseResourceDependenciesMap = [
   'app' : [':app:app_resources',
            ':app:google_api_resources',
            ':app:invites_resources'],
+  'app_check' : [':app_check:app_check_resources'],
   'admob' : [':admob:admob_resources'],
   'auth' : [':auth:auth_resources'],
   'database' : [':database:database_resources'],

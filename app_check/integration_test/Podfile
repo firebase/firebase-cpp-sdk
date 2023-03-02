@@ -7,6 +7,8 @@ target 'integration_test' do
   pod 'Firebase/AppCheck', '10.5.0'
   pod 'Firebase/Database', '10.5.0'
   pod 'Firebase/Auth', '10.5.0'
+  pod 'Firebase/Storage', '10.5.0'
+  pod 'Firebase/Functions', '10.5.0'
   pod 'Firebase/Firestore', '10.5.0'
 end
 
@@ -15,6 +17,8 @@ target 'integration_test_tvos' do
   pod 'Firebase/AppCheck', '10.5.0'
   pod 'Firebase/Database', '10.5.0'
   pod 'Firebase/Auth', '10.5.0'
+  pod 'Firebase/Storage', '10.5.0'
+  pod 'Firebase/Functions', '10.5.0'
   pod 'Firebase/Firestore', '10.5.0'
 end
 

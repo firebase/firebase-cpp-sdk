@@ -312,6 +312,7 @@ set(app_android_HDRS
     src/invites/android/invites_android_helper.h
     src/invites/android/invites_receiver_internal_android.h)
 set(app_ios_HDRS
+    src/app_ios.h
     src/invites/ios/invites_receiver_internal_ios.h)
 set(app_desktop_HDRS
     src/invites/stub/invites_receiver_internal_stub.h)
