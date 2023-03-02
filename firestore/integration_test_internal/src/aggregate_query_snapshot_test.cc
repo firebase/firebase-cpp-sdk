@@ -361,7 +361,6 @@ TEST_F(
 
   AggregateQuerySnapshot snapshot_move_dest =
       TestAggregateQuerySnapshot(aggregate_query, 99);
-  ;
 
   EXPECT_EQ(snapshot_move_dest.count(), 99);
   EXPECT_EQ(snapshot_move_dest.query(), aggregate_query);
