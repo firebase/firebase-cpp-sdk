@@ -35,6 +35,7 @@
 #include "firebase/app_check/play_integrity_provider.h"
 #include "firebase/auth.h"
 #include "firebase/database.h"
+#include "firebase/functions.h"
 #include "firebase/internal/platform.h"
 #include "firebase/storage.h"
 #include "firebase/util.h"
@@ -115,6 +116,11 @@ class FirebaseAppCheckTest : public FirebaseTest {
   // Initialize everything needed for Storage tests.
   void InitializeAppAuthStorage();
 
+  // Initialize Firebase Functions.
+  void InitializeFunctions();
+  // Shut down Firebase Functions.
+  void TerminateFunctions();
+
   firebase::database::DatabaseReference CreateWorkingPath(
       bool suppress_cleanup = false);
 
@@ -126,6 +132,8 @@ class FirebaseAppCheckTest : public FirebaseTest {
   std::vector<firebase::database::DatabaseReference> cleanup_paths_;
 
   firebase::storage::Storage* storage_;
+
+  firebase::functions::Functions* functions_;
 };
 
 // Listens for token changed notifications
@@ -202,6 +210,7 @@ FirebaseAppCheckTest::FirebaseAppCheckTest()
       auth_(nullptr),
       database_(nullptr),
       storage_(nullptr),
+      functions_(nullptr),
       cleanup_paths_() {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 }
@@ -215,6 +224,7 @@ void FirebaseAppCheckTest::TearDown() {
   // Teardown all the products
   TerminateDatabase();
   TerminateStorage();
+  TerminateFunctions();
   TerminateAuth();
   TerminateAppCheck();
   TerminateApp();
@@ -347,6 +357,37 @@ void FirebaseAppCheckTest::InitializeAppAuthStorage() {
   InitializeApp();
   InitializeAuth();
   InitializeStorage();
+}
+
+void FirebaseAppCheckTest::InitializeFunctions() {
+  LogDebug("Initializing Firebase Functions.");
+
+  ::firebase::ModuleInitializer initializer;
+  initializer.Initialize(
+      app_, &functions_, [](::firebase::App* app, void* target) {
+        LogDebug("Attempting to initialize Firebase Functions.");
+        ::firebase::InitResult result;
+        *reinterpret_cast<firebase::functions::Functions**>(target) =
+            firebase::functions::Functions::GetInstance(app, &result);
+        return result;
+      });
+
+  WaitForCompletion(initializer.InitializeLastResult(), "InitializeFunctions");
+
+  ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
+      << initializer.InitializeLastResult().error_message();
+
+  LogDebug("Successfully initialized Firebase Functions.");
+}
+
+void FirebaseAppCheckTest::TerminateFunctions() {
+  if (functions_) {
+    LogDebug("Shutdown the Functions library.");
+    delete functions_;
+    functions_ = nullptr;
+  }
+
+  ProcessEvents(100);
 }
 
 void FirebaseAppCheckTest::SignIn() {
@@ -744,5 +785,40 @@ TEST_F(FirebaseAppCheckTest, TestStorageReadFileUnauthenticated) {
   LogDebug("  buffer: %s", buffer);
 }
 #endif  // !FIREBASE_PLATFORM_ANDROID
+
+TEST_F(FirebaseAppCheckTest, TestFunctionsSuccess) {
+  InitializeAppCheckWithDebug();
+  InitializeApp();
+  InitializeFunctions();
+  firebase::functions::HttpsCallableReference ref;
+  ref = functions_->GetHttpsCallable("addNumbers");
+  firebase::Variant data(firebase::Variant::EmptyMap());
+  data.map()["firstNumber"] = 5;
+  data.map()["secondNumber"] = 7;
+  firebase::Future<firebase::functions::HttpsCallableResult> future;
+  future = ref.Call(data);
+  WaitForCompletion(future, "CallFunction addnumbers",
+                    firebase::functions::kErrorNone);
+  firebase::Variant result = future.result()->data();
+  EXPECT_TRUE(result.is_map());
+  if (result.is_map()) {
+    EXPECT_EQ(result.map()["operationResult"], 12);
+  }
+}
+
+TEST_F(FirebaseAppCheckTest, TestFunctionsFailure) {
+  // Don't set up AppCheck
+  InitializeApp();
+  InitializeFunctions();
+  firebase::functions::HttpsCallableReference ref;
+  ref = functions_->GetHttpsCallable("addNumbers");
+  firebase::Variant data(firebase::Variant::EmptyMap());
+  data.map()["firstNumber"] = 6;
+  data.map()["secondNumber"] = 8;
+  firebase::Future<firebase::functions::HttpsCallableResult> future;
+  future = ref.Call(data);
+  WaitForCompletion(future, "CallFunction addnumbers",
+                    firebase::functions::kErrorUnauthenticated);
+}
 
 }  // namespace firebase_testapp_automated
