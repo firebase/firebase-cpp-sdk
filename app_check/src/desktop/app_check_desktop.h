@@ -17,6 +17,8 @@
 
 #include <list>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
