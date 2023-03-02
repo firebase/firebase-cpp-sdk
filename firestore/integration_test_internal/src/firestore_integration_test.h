@@ -334,7 +334,7 @@ class FirestoreIntegrationTest : public testing::Test {
   QuerySnapshot ReadDocuments(const Query& reference) const;
 
   // Read the aggregate.
-  AggregateQuerySnapshot ReadAggregate(const AggregateQuery& reference) const;
+  AggregateQuerySnapshot ReadAggregate(const AggregateQuery& aggregate_query) const;
 
   // Delete the specified document.
   void DeleteDocument(DocumentReference reference) const;

@@ -256,10 +256,10 @@ QuerySnapshot FirestoreIntegrationTest::ReadDocuments(
 }
 
 AggregateQuerySnapshot FirestoreIntegrationTest::ReadAggregate(
-    const AggregateQuery& reference) const {
+    const AggregateQuery& aggregate_query) const {
   SCOPED_TRACE("FirestoreIntegrationTest::ReadAggregate()");
   Future<AggregateQuerySnapshot> future =
-      reference.Get(AggregateSource::kServer);
+      aggregate_query.Get(AggregateSource::kServer);
   Stopwatch stopwatch;
   const AggregateQuerySnapshot* result = Await(future);
   stopwatch.stop();
