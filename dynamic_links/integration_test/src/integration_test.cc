@@ -316,9 +316,12 @@ TEST_F(FirebaseDynamicLinksTest, TestGetShortLinkFromComponents) {
   components.android_parameters = &android_parameters;
   components.social_meta_tag_parameters = &social_parameters;
 
-  firebase::Future<firebase::dynamic_links::GeneratedDynamicLink> future =
-      firebase::dynamic_links::GetShortLink(components);
+  firebase::Future<firebase::dynamic_links::GeneratedDynamicLink> future;
+
+  FLAKY_TEST_SECTION_BEGIN();  // Occasionally there can be a connection error.
+  future = firebase::dynamic_links::GetShortLink(components);
   WaitForCompletion(future, "GetShortLinkFromComponents");
+  FLAKY_TEST_SECTION_END();
 
   if (is_desktop_stub_) {
     // On desktop, it's enough that we just don't crash.
@@ -395,9 +398,13 @@ TEST_F(FirebaseDynamicLinksTest, TestGetShortLinkFromLongLink) {
 
   firebase::dynamic_links::DynamicLinkOptions options;
   options.path_length = firebase::dynamic_links::kPathLengthShort;
-  firebase::Future<firebase::dynamic_links::GeneratedDynamicLink> future =
+  firebase::Future<firebase::dynamic_links::GeneratedDynamicLink> future;
+
+  FLAKY_TEST_SECTION_BEGIN();  // Occasional connection errors.
+  future =
       firebase::dynamic_links::GetShortLink(long_link.url.c_str(), options);
   WaitForCompletion(future, "GetShortLinkFromLongLink");
+  FLAKY_TEST_SECTION_END();
 
   const firebase::dynamic_links::GeneratedDynamicLink& generated_link =
       *future.result();
@@ -572,8 +579,13 @@ TEST_F(FirebaseDynamicLinksTest, TestOpeningShortLinkFromLongLinkInRunningApp) {
     // Shorten link.
     firebase::dynamic_links::DynamicLinkOptions options;
     options.path_length = firebase::dynamic_links::kPathLengthShort;
-    firebase::Future<firebase::dynamic_links::GeneratedDynamicLink> future =
+    firebase::Future<firebase::dynamic_links::GeneratedDynamicLink> future;
+
+    FLAKY_TEST_SECTION_BEGIN();  // Occasional connection errors.
+    future =
         firebase::dynamic_links::GetShortLink(long_link.url.c_str(), options);
+    WaitForCompletion(future, "GetShortLinkFromLongLink");
+    FLAKY_TEST_SECTION_END();
 
     if (is_desktop_stub_) {
       // On desktop, it's enough that we just don't crash.
@@ -581,8 +593,6 @@ TEST_F(FirebaseDynamicLinksTest, TestOpeningShortLinkFromLongLinkInRunningApp) {
       SUCCEED();
       return;
     }
-
-    WaitForCompletion(future, "GetShortLinkFromLongLink");
     const firebase::dynamic_links::GeneratedDynamicLink& link =
         *future.result();
 
@@ -648,8 +658,12 @@ TEST_F(FirebaseDynamicLinksTest,
         "components...");
     firebase::dynamic_links::DynamicLinkComponents components =
         GenerateComponentsForTest(kUrlToOpen);
-    firebase::Future<firebase::dynamic_links::GeneratedDynamicLink> future =
-        firebase::dynamic_links::GetShortLink(components);
+
+    firebase::Future<firebase::dynamic_links::GeneratedDynamicLink> future;
+    FLAKY_TEST_SECTION_BEGIN();  // Occasional connection errors.
+    future = firebase::dynamic_links::GetShortLink(components);
+    WaitForCompletion(future, "GetShortLinkFromLongLink");
+    FLAKY_TEST_SECTION_END();  // Occasional connection errors.
 
     if (is_desktop_stub_) {
       // On desktop, it's enough that we just don't crash.
@@ -658,7 +672,6 @@ TEST_F(FirebaseDynamicLinksTest,
       return;
     }
 
-    WaitForCompletion(future, "GetShortLinkFromLongLink");
     const firebase::dynamic_links::GeneratedDynamicLink& link =
         *future.result();
 

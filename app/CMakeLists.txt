@@ -500,8 +500,7 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/app_attest_provider.h
     ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/debug_provider.h
     ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/device_check_provider.h
-    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/play_integrity_provider.h
-    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/safety_net_provider.h)
+    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/play_integrity_provider.h)
   set(auth_HDRS
     ${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth.h
     ${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth/credential.h
