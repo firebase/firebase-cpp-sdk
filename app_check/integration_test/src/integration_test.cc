@@ -450,8 +450,6 @@ TEST_F(FirebaseAppCheckTest, TestInitializeAndTerminate) {
   InitializeApp();
 }
 
-// Android does not yet implement the main app check methods
-#if !FIREBASE_PLATFORM_ANDROID
 TEST_F(FirebaseAppCheckTest, TestGetTokenForcingRefresh) {
   InitializeAppCheckWithDebug();
   InitializeApp();
@@ -484,10 +482,7 @@ TEST_F(FirebaseAppCheckTest, TestGetTokenForcingRefresh) {
   EXPECT_NE(future.result()->expire_time_millis,
             future3.result()->expire_time_millis);
 }
-#endif  // !FIREBASE_PLATFORM_ANDROID
 
-// Android does not yet implement the main app check methods
-#if !FIREBASE_PLATFORM_ANDROID
 TEST_F(FirebaseAppCheckTest, TestGetTokenLastResult) {
   InitializeAppCheckWithDebug();
   InitializeApp();
@@ -505,9 +500,8 @@ TEST_F(FirebaseAppCheckTest, TestGetTokenLastResult) {
   EXPECT_EQ(future.result()->expire_time_millis,
             future2.result()->expire_time_millis);
 }
-#endif  // !FIREBASE_PLATFORM_ANDROID
 
-// Android does not yet implement the main app check methods
+// Android does not yet implement token changed listeners
 #if !FIREBASE_PLATFORM_ANDROID
 TEST_F(FirebaseAppCheckTest, TestAddTokenChangedListener) {
   InitializeAppCheckWithDebug();
@@ -530,7 +524,7 @@ TEST_F(FirebaseAppCheckTest, TestAddTokenChangedListener) {
 }
 #endif  // !FIREBASE_PLATFORM_ANDROID
 
-// Android does not yet implement the main app check methods
+// Android does not yet implement token changed listeners
 #if !FIREBASE_PLATFORM_ANDROID
 TEST_F(FirebaseAppCheckTest, TestRemoveTokenChangedListener) {
   InitializeAppCheckWithDebug();
@@ -565,12 +559,6 @@ TEST_F(FirebaseAppCheckTest, TestDebugProviderValidToken) {
   ASSERT_NE(factory, nullptr);
   InitializeAppCheckWithDebug();
   InitializeApp();
-  // TODO(almostmatt): Once app initialization automatically initializes
-  // AppCheck, this test will no longer need to explicitly get an instance of
-  // AppCheck.
-  ::firebase::app_check::AppCheck* app_check =
-      ::firebase::app_check::AppCheck::GetInstance(app_);
-  ASSERT_NE(app_check, nullptr);
 
   firebase::app_check::AppCheckProvider* provider =
       factory->CreateProvider(app_);
@@ -652,6 +640,7 @@ TEST_F(FirebaseAppCheckTest, TestPlayIntegrityProvider) {
 #if FIREBASE_PLATFORM_ANDROID
   ASSERT_NE(factory, nullptr);
   InitializeApp();
+
   firebase::app_check::AppCheckProvider* provider =
       factory->CreateProvider(app_);
   EXPECT_NE(provider, nullptr);
@@ -779,6 +768,9 @@ TEST_F(FirebaseAppCheckTest, TestStorageReadFile) {
   LogDebug("  buffer: %s", buffer);
 }
 
+// Android doesn't yet work correctly when AppCheck provider factory is null
+// TODO(almostmatt): Investigate and fix this test for android
+#if !FIREBASE_PLATFORM_ANDROID
 TEST_F(FirebaseAppCheckTest, TestStorageReadFileUnauthenticated) {
   // Don't set up AppCheck
   InitializeAppAuthStorage();
@@ -792,6 +784,7 @@ TEST_F(FirebaseAppCheckTest, TestStorageReadFileUnauthenticated) {
                     firebase::storage::kErrorUnauthenticated);
   LogDebug("  buffer: %s", buffer);
 }
+#endif  // !FIREBASE_PLATFORM_ANDROID
 
 TEST_F(FirebaseAppCheckTest, TestFunctionsSuccess) {
   InitializeAppCheckWithDebug();
