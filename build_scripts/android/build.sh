@@ -27,7 +27,7 @@ absbuildpath=$( pwd -P )
 cd "${origpath}"
 
 # If NDK_ROOT is not set or is the wrong version, use to the version in /tmp.
-if [[ -z "${NDK_ROOT}" || ! $(grep -q "Pkg\.Revision = 21\." "${NDK_ROOT}/source.properties") ]]; then
+if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 21\." "${NDK_ROOT}/source.properties") ]]; then
     if [[ ! -d /tmp/android-ndk-r21e ]]; then
         echo "Recommended NDK version r21e not present in /tmp."
         echo "Please run install_prereqs.sh if you wish to use the recommended NDK version."
