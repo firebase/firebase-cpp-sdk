@@ -35,6 +35,7 @@
 #include "firebase/app_check/play_integrity_provider.h"
 #include "firebase/auth.h"
 #include "firebase/database.h"
+#include "firebase/firestore.h"
 #include "firebase/internal/platform.h"
 #include "firebase/storage.h"
 #include "firebase/util.h"
@@ -115,8 +116,17 @@ class FirebaseAppCheckTest : public FirebaseTest {
   // Initialize everything needed for Storage tests.
   void InitializeAppAuthStorage();
 
+  // Initialize Firestore.
+  void InitializeFirestore();
+  // Shut down Firestore.
+  void TerminateFirestore();
+
   firebase::database::DatabaseReference CreateWorkingPath(
       bool suppress_cleanup = false);
+
+  firebase::firestore::CollectionReference GetTestCollection();
+  firebase::firestore::DocumentReference CreateFirestoreDoc();
+  void CleanupFirestore(int expected_error);
 
   firebase::App* app_;
   firebase::auth::Auth* auth_;
@@ -126,6 +136,10 @@ class FirebaseAppCheckTest : public FirebaseTest {
   std::vector<firebase::database::DatabaseReference> cleanup_paths_;
 
   firebase::storage::Storage* storage_;
+
+  firebase::firestore::Firestore* firestore_;
+  std::string collection_name_;
+  std::vector<firebase::firestore::DocumentReference> firestore_cleanup_;
 };
 
 // Listens for token changed notifications
@@ -202,7 +216,9 @@ FirebaseAppCheckTest::FirebaseAppCheckTest()
       auth_(nullptr),
       database_(nullptr),
       storage_(nullptr),
-      cleanup_paths_() {
+      firestore_(nullptr),
+      cleanup_paths_(),
+      firestore_cleanup_() {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 }
 
@@ -215,6 +231,7 @@ void FirebaseAppCheckTest::TearDown() {
   // Teardown all the products
   TerminateDatabase();
   TerminateStorage();
+  TerminateFirestore();
   TerminateAuth();
   TerminateAppCheck();
   TerminateApp();
@@ -347,6 +364,82 @@ void FirebaseAppCheckTest::InitializeAppAuthStorage() {
   InitializeApp();
   InitializeAuth();
   InitializeStorage();
+}
+
+void FirebaseAppCheckTest::InitializeFirestore() {
+  LogDebug("Initializing Firebase Firestore.");
+
+  ::firebase::ModuleInitializer initializer;
+  initializer.Initialize(
+      app_, &firestore_, [](::firebase::App* app, void* target) {
+        LogDebug("Attempting to initialize Firebase Firestore.");
+        ::firebase::InitResult result;
+        *reinterpret_cast<firebase::firestore::Firestore**>(target) =
+            firebase::firestore::Firestore::GetInstance(app, &result);
+        return result;
+      });
+
+  WaitForCompletion(initializer.InitializeLastResult(), "InitializeFirestore");
+
+  ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
+      << initializer.InitializeLastResult().error_message();
+
+  LogDebug("Successfully initialized Firebase Firestore.");
+}
+
+void FirebaseAppCheckTest::TerminateFirestore() {
+  if (firestore_) {
+    LogDebug("Shutdown the Firestore library.");
+
+    CleanupFirestore(firebase::firestore::kErrorNone);
+
+    delete firestore_;
+    firestore_ = nullptr;
+  }
+
+  ProcessEvents(100);
+}
+
+firebase::firestore::CollectionReference FirebaseAppCheckTest::GetTestCollection() {
+  if (collection_name_.empty()) {
+    // Generate a collection for the test data based on the time in
+    // milliseconds.
+    int64_t time_in_microseconds = app_framework::GetCurrentTimeInMicroseconds();
+
+    char buffer[21] = {0};
+    snprintf(buffer, sizeof(buffer), "test%lld",
+             static_cast<long long>(time_in_microseconds));  // NOLINT
+    collection_name_ = buffer;
+  }
+  return firestore_->Collection(collection_name_.c_str());
+}
+
+firebase::firestore::DocumentReference FirebaseAppCheckTest::CreateFirestoreDoc() {
+  std::string path =
+      std::string(
+          ::testing::UnitTest::GetInstance()->current_test_info()->name());
+  firebase::firestore::DocumentReference doc = GetTestCollection().Document(path);
+  // Only add to the cleanup set if it doesn't exist yet
+  if (find(firestore_cleanup_.begin(), firestore_cleanup_.end(), doc) ==
+        firestore_cleanup_.end()) {
+    firestore_cleanup_.push_back(doc);
+  }
+  return doc;
+}
+
+void FirebaseAppCheckTest::CleanupFirestore(int expected_error = 0) {
+  if (!firestore_cleanup_.empty()) {
+    LogDebug("Cleaning up documents.");
+    std::vector<firebase::Future<void>> cleanups;
+    cleanups.reserve(firestore_cleanup_.size());
+    for (int i = 0; i < firestore_cleanup_.size(); ++i) {
+      cleanups.push_back(firestore_cleanup_[i].Delete());
+    }
+    for (int i = 0; i < cleanups.size(); ++i) {
+      WaitForCompletion(cleanups[i], "Cleanup Firestore Document", expected_error);
+    }
+    firestore_cleanup_.clear();
+  }
 }
 
 void FirebaseAppCheckTest::SignIn() {
@@ -750,6 +843,129 @@ TEST_F(FirebaseAppCheckTest, TestStorageReadFileUnauthenticated) {
   WaitForCompletion(future, "GetBytes",
                     firebase::storage::kErrorUnauthenticated);
   LogDebug("  buffer: %s", buffer);
+}
+
+TEST_F(FirebaseAppCheckTest, TestFirestoreSetGet) {
+  InitializeAppCheckWithDebug();
+  InitializeApp();
+  InitializeFirestore();
+
+  firebase::firestore::DocumentReference document = CreateFirestoreDoc();
+
+  WaitForCompletion(
+      document.Set(firebase::firestore::MapFieldValue{
+          {"str", firebase::firestore::FieldValue::String("foo")},
+          {"int", firebase::firestore::FieldValue::Integer(123)}}),
+      "document.Set");
+  firebase::Future<firebase::firestore::DocumentSnapshot> future =
+      document.Get();
+  WaitForCompletion(future, "document.Get");
+  EXPECT_NE(future.result(), nullptr);
+  EXPECT_THAT(future.result()->GetData(),
+              UnorderedElementsAre(
+                  Pair("str", firebase::firestore::FieldValue::String("foo")),
+                  Pair("int", firebase::firestore::FieldValue::Integer(123))));
+}
+
+TEST_F(FirebaseAppCheckTest, TestFirestoreSetGetFailure) {
+  // Don't set up AppCheck
+  InitializeApp();
+  InitializeFirestore();
+
+  firebase::firestore::DocumentReference document = CreateFirestoreDoc();
+
+  // Both operations should fail because AppCheck isn't configured.
+  WaitForCompletion(
+      document.Set(firebase::firestore::MapFieldValue{
+          {"str", firebase::firestore::FieldValue::String("badfoo")},
+          {"int", firebase::firestore::FieldValue::Integer(456)}}),
+      "document.Set", firebase::firestore::kErrorPermissionDenied);
+  WaitForCompletion(document.Get(), "document.Get", firebase::firestore::kErrorPermissionDenied);
+
+  CleanupFirestore(firebase::firestore::kErrorPermissionDenied);
+}
+
+TEST_F(FirebaseAppCheckTest, TestFirestoreTransaction) {
+  InitializeAppCheckWithDebug();
+  InitializeApp();
+  InitializeFirestore();
+
+  firebase::firestore::DocumentReference document = CreateFirestoreDoc();
+
+  WaitForCompletion(
+      document.Set(firebase::firestore::MapFieldValue{
+          {"val", firebase::firestore::FieldValue::String("start")}}),
+      "document.Set 0");
+
+  std::vector<firebase::firestore::MapFieldValue> document_snapshots;
+  firebase::firestore::ListenerRegistration registration =
+      document.AddSnapshotListener(
+          [&](const firebase::firestore::DocumentSnapshot& result,
+              firebase::firestore::Error error_code,
+              const std::string& error_message) {
+            EXPECT_EQ(error_code, firebase::firestore::kErrorOk);
+            EXPECT_EQ(error_message, "");
+            document_snapshots.push_back(result.GetData());
+          });
+
+  WaitForCompletion(
+      document.Set(firebase::firestore::MapFieldValue{
+          {"val", firebase::firestore::FieldValue::String("update")}}),
+      "document.Set 1");
+
+  registration.Remove();
+  WaitForCompletion(
+      document.Set(firebase::firestore::MapFieldValue{
+          {"val", firebase::firestore::FieldValue::String("final")}}),
+      "document.Set 2");
+  EXPECT_THAT(
+      document_snapshots,
+      testing::ElementsAre(
+          firebase::firestore::MapFieldValue{
+              {"val", firebase::firestore::FieldValue::String("start")}},
+          firebase::firestore::MapFieldValue{
+              {"val", firebase::firestore::FieldValue::String("update")}}));
+}
+
+TEST_F(FirebaseAppCheckTest, TestFirestoreTransactionFailure) {
+  // Don't set up AppCheck
+  InitializeApp();
+  InitializeFirestore();
+
+  firebase::firestore::DocumentReference document = CreateFirestoreDoc();
+
+  std::vector<firebase::firestore::MapFieldValue> document_snapshots;
+  firebase::firestore::ListenerRegistration registration =
+      document.AddSnapshotListener(
+          [&](const firebase::firestore::DocumentSnapshot& result,
+              firebase::firestore::Error error_code,
+              const std::string& error_message) {
+            // PROBLEM HERE
+            // This is called twice, once with no error code and the doc
+            // The second time, with the Permission Denied error, and no doc
+            EXPECT_EQ(error_code, firebase::firestore::kErrorPermissionDenied);
+            document_snapshots.push_back(result.GetData());
+          });
+
+  WaitForCompletion(
+      document.Set(firebase::firestore::MapFieldValue{
+          {"val", firebase::firestore::FieldValue::String("transaction")}}),
+      "document.Set transaction", firebase::firestore::kErrorPermissionDenied);
+
+  registration.Remove();
+
+  WaitForCompletion(
+      document.Set(firebase::firestore::MapFieldValue{
+          {"val", firebase::firestore::FieldValue::String("final")}}),
+      "document.Set final", firebase::firestore::kErrorPermissionDenied);
+
+  EXPECT_THAT(
+      document_snapshots,
+      testing::ElementsAre(
+          firebase::firestore::MapFieldValue{
+              {"val", firebase::firestore::FieldValue::String("transaction")}}));
+
+  CleanupFirestore(firebase::firestore::kErrorPermissionDenied);
 }
 
 }  // namespace firebase_testapp_automated
