@@ -54,7 +54,7 @@ TEST_F(AggregateQueryTest,
 }
 
 TEST_F(AggregateQueryTest, CopyConstructorAppliedToDefaultReturnsEqualObject) {
-  const AggregateQuery aggregate_query = AggregateQuery();
+  const AggregateQuery aggregate_query;
 
   EXPECT_EQ(aggregate_query.query(), Query());
   EXPECT_FALSE(aggregate_query.is_valid());
@@ -94,7 +94,7 @@ TEST_F(
 TEST_F(
     AggregateQueryTest,
     DefaultObjectCopyAssignmentOperatorAppliedToDefaultObjectReturnsEqualObject) {
-  const AggregateQuery aggregate_query = AggregateQuery();
+  const AggregateQuery aggregate_query;
 
   EXPECT_EQ(aggregate_query.query(), Query());
   EXPECT_FALSE(aggregate_query.is_valid());
@@ -104,7 +104,7 @@ TEST_F(
   EXPECT_EQ(copied_aggregate_query.query(), Query());
   EXPECT_FALSE(copied_aggregate_query.is_valid());
 
-  copied_aggregate_query = AggregateQuery();
+  copied_aggregate_query;
 
   EXPECT_EQ(aggregate_query.query(), Query());
   EXPECT_FALSE(aggregate_query.is_valid());
@@ -138,7 +138,7 @@ TEST_F(AggregateQueryTest,
 
 TEST_F(AggregateQueryTest,
        ValidObjectCopyAssignmentAppliedToDefaultReturnsEqualObject) {
-  const AggregateQuery aggregate_query = AggregateQuery();
+  const AggregateQuery aggregate_query;
 
   EXPECT_EQ(aggregate_query.query(), Query());
   EXPECT_FALSE(aggregate_query.is_valid());
@@ -208,7 +208,7 @@ TEST_F(AggregateQueryTest,
 
 TEST_F(AggregateQueryTest,
        MoveConstructorAppliedToDefaultObjectReturnsEqualObject) {
-  AggregateQuery aggregate_query = AggregateQuery();
+  AggregateQuery aggregate_query;
 
   EXPECT_EQ(aggregate_query.query(), Query());
   EXPECT_FALSE(aggregate_query.is_valid());
@@ -243,7 +243,7 @@ TEST_F(
 TEST_F(
     AggregateQueryTest,
     DefaultObjectMoveAssignmentOperatorAppliedToDefaultObjectReturnsEqualObject) {
-  AggregateQuery aggregate_query = AggregateQuery();
+  AggregateQuery aggregate_query;
 
   EXPECT_EQ(aggregate_query.query(), Query());
   EXPECT_FALSE(aggregate_query.is_valid());
@@ -299,7 +299,7 @@ TEST_F(AggregateQueryTest,
 TEST_F(
     AggregateQueryTest,
     ValidObjectMoveAssignmentOperatorAppliedToDefaultObjectReturnsEqualObject) {
-  AggregateQuery aggregate_query = AggregateQuery();
+  AggregateQuery aggregate_query;
 
   EXPECT_EQ(aggregate_query.query(), Query());
   EXPECT_FALSE(aggregate_query.is_valid());
