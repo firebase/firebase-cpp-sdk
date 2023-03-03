@@ -30,7 +30,7 @@ namespace {
 
 using AggregateQueryTest = FirestoreIntegrationTest;
 
-TEST_F(AggregateQueryTest, DefaultConstructorReturnsValidObject) {
+TEST_F(AggregateQueryTest, DefaultConstructorReturnsInvalidObject) {
   AggregateQuery aggregate_query;
   EXPECT_EQ(aggregate_query.query(), Query());
   EXPECT_FALSE(aggregate_query.is_valid());
@@ -279,6 +279,22 @@ TEST_F(
 
   EXPECT_EQ(snapshot_move_dest.query(), query1);
   EXPECT_TRUE(snapshot_move_dest.is_valid());
+}
+
+TEST_F(
+    AggregateQueryTest,
+    MoveAssignmentOperatorAppliedToSelfReturnsEqualObject) {
+  const Query query = TestFirestore()->Collection("foo").Limit(10);
+
+  AggregateQuery aggregate_query = query.Count();
+
+  EXPECT_EQ(aggregate_query.query(), query);
+  EXPECT_TRUE(aggregate_query.is_valid());
+
+  aggregate_query = std::move(aggregate_query);
+
+  EXPECT_EQ(aggregate_query.query(), query);
+  EXPECT_TRUE(aggregate_query.is_valid());
 }
 
 TEST_F(

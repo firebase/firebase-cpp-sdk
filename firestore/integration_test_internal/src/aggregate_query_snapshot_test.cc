@@ -46,7 +46,7 @@ std::size_t AggregateQuerySnapshotHash(const AggregateQuerySnapshot& snapshot) {
 
 namespace {
 
-TEST_F(AggregateQuerySnapshotTest, DefaultConstructorReturnsValidObject) {
+TEST_F(AggregateQuerySnapshotTest, DefaultConstructorReturnsInvalidObject) {
   AggregateQuerySnapshot snapshot;
   EXPECT_EQ(snapshot.query(), AggregateQuery());
   EXPECT_EQ(snapshot.count(), 0);
@@ -375,6 +375,26 @@ TEST_F(
   EXPECT_EQ(snapshot_move_dest.count(), 0);
   EXPECT_EQ(snapshot_move_dest.query(), AggregateQuery());
   EXPECT_FALSE(snapshot_move_dest.is_valid());
+}
+
+TEST_F(
+    AggregateQuerySnapshotTest,
+    MoveAssignmentOperatorAppliedToSelfReturnsEqualObject) {
+  const AggregateQuery aggregate_query =
+      TestFirestore()->Collection("foo").Limit(10).Count();
+
+  AggregateQuerySnapshot snapshot =
+      TestAggregateQuerySnapshot(aggregate_query, 99);
+
+  EXPECT_EQ(snapshot.count(), 99);
+  EXPECT_EQ(snapshot.query(), aggregate_query);
+  EXPECT_TRUE(snapshot.is_valid());
+
+  snapshot = std::move(snapshot);
+
+  EXPECT_EQ(snapshot.count(), 99);
+  EXPECT_EQ(snapshot.query(), aggregate_query);
+  EXPECT_TRUE(snapshot.is_valid());
 }
 
 TEST_F(AggregateQuerySnapshotTest,
