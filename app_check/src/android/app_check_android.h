@@ -52,6 +52,8 @@ class AppCheckInternal {
  private:
   ::firebase::App* app_;
   jobject app_check_impl_;
+  jobject j_app_check_listener_;
+  std::vector<AppCheckListener*> app_check_listeners_;
 
   FutureManager future_manager_;
 };
