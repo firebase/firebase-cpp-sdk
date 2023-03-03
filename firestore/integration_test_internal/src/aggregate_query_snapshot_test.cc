@@ -377,9 +377,8 @@ TEST_F(
   EXPECT_FALSE(snapshot_move_dest.is_valid());
 }
 
-TEST_F(
-    AggregateQuerySnapshotTest,
-    MoveAssignmentOperatorAppliedToSelfReturnsEqualObject) {
+TEST_F(AggregateQuerySnapshotTest,
+       MoveAssignmentOperatorAppliedToSelfReturnsEqualObject) {
   const AggregateQuery aggregate_query =
       TestFirestore()->Collection("foo").Limit(10).Count();
 
