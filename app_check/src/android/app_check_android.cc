@@ -26,6 +26,7 @@
 #include "app_check/src/android/debug_provider_android.h"
 #include "app_check/src/android/play_integrity_provider_android.h"
 #include "app_check/src/common/common.h"
+#include "app/src/include/firebase/internal/mutex.h"
 
 namespace firebase {
 namespace app_check {
@@ -113,7 +114,7 @@ METHOD_LOOKUP_DEFINITION(
     JNI_APP_CHECK_LISTENER_METHODS)
 
 JNIEXPORT void JNICALL JniAppCheckListener_nativeOnAppCheckTokenChanged(
-    JNIEnv* env, jobject clazz, jlong c_listeners, jobject token);
+    JNIEnv* env, jobject clazz, jlong c_app_check, jobject token);
 
 static const JNINativeMethod kNativeJniAppCheckListenerMethods[] = {
     {"nativeOnAppCheckTokenChanged",
@@ -251,16 +252,10 @@ JNIEXPORT void JNICALL JniAppCheckProvider_nativeGetToken(
 }
 
 JNIEXPORT void JNICALL JniAppCheckListener_nativeOnAppCheckTokenChanged(
-    JNIEnv* env, jobject clazz, jlong c_listeners, jobject token) {
-  // TODO: mutex on collection of listeners 
-  // did I do that for iOS? does android have a lock internally? 
-  // looking at android I do not see synchronization primitives in appCheckListenerList
-  auto listeners = reinterpret_cast<std::vector<AppCheckListener*>*>(c_listeners);
+    JNIEnv* env, jobject clazz, jlong c_app_check, jobject token) {
+  auto app_check_internal = reinterpret_cast<AppCheckInternal*>(c_app_check);
   AppCheckToken cpp_token = CppTokenFromAndroidToken(env, token);
-  for (AppCheckListener* listener : *listeners) {
-    AppCheckToken token;
-    listener->OnAppCheckTokenChanged(cpp_token);
-  }
+  app_check_internal->NotifyTokenChanged(cpp_token);
 }
 
 AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
@@ -333,7 +328,7 @@ AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
     jobject j_listener = env->NewObject(
         jni_app_check_listener::GetClass(),
         jni_app_check_listener::GetMethodId(jni_app_check_listener::kConstructor),
-        reinterpret_cast<jlong>(&app_check_listeners_));
+        reinterpret_cast<jlong>(this));
     FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
     env->CallVoidMethod(
         app_check_impl_,
@@ -425,20 +420,27 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckTokenLastResult() {
 }
 
 void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {
-  // TODO: mutex for listeners?
+  MutexLock lock(listeners_mutex_);
   auto it = std::find(
-      app_check_listeners_.begin(), app_check_listeners_.end(), listener);
-  if (it == app_check_listeners_.end()) {
-    app_check_listeners_.push_back(listener);
+      listeners_.begin(), listeners_.end(), listener);
+  if (it == listeners_.end()) {
+    listeners_.push_back(listener);
   }
 }
 
 void AppCheckInternal::RemoveAppCheckListener(AppCheckListener* listener) {
-  // TODO: mutex for listeners?
+  MutexLock lock(listeners_mutex_);
   auto it = std::find(
-    app_check_listeners_.begin(), app_check_listeners_.end(), listener);
-  if (it != app_check_listeners_.end()) {
-    app_check_listeners_.erase(it);
+    listeners_.begin(), listeners_.end(), listener);
+  if (it != listeners_.end()) {
+    listeners_.erase(it);
+  }
+}
+
+void AppCheckInternal::NotifyTokenChanged(AppCheckToken token) {
+  MutexLock lock(listeners_mutex_);
+  for (AppCheckListener* listener : listeners_) {
+    listener->OnAppCheckTokenChanged(token);
   }
 }
 

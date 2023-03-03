@@ -19,24 +19,24 @@ package com.google.firebase.appcheck.internal.cpp;
 import androidx.annotation.NonNull;
 import com.google.firebase.appcheck.FirebaseAppCheck.AppCheckListener;
 import com.google.firebase.appcheck.AppCheckToken;
+
 /**
  * An AppCheckListener that notifies C++ of token changes.
  */
 public class JniAppCheckListener implements AppCheckListener {
-  // A C++ pointer to a vector of AppCheckListeners
-  private long cListeners;
+  // A C++ pointer to AppCheckInternal
+  private long cAppCheck;
 
-  JniAppCheckListener(long cListeners) {
-    this.cListeners = cListeners;
+  JniAppCheckListener(long cAppCheck) {
+    this.cAppCheck = cAppCheck;
   }
 
-  // TODO see if I need safeRunNativeMethod or disconnect like AuthStateListener
   public void onAppCheckTokenChanged(@NonNull AppCheckToken token) {
-    nativeOnAppCheckTokenChanged(cListeners, token);
+    nativeOnAppCheckTokenChanged(cAppCheck, token);
   }
 
   /**
    * This function is implemented in the AppCheck C++ library (app_check_android.cc).
    */
-  private native void nativeOnAppCheckTokenChanged(long cListeners, AppCheckToken token);
+  private native void nativeOnAppCheckTokenChanged(long cAppCheck, AppCheckToken token);
 }
