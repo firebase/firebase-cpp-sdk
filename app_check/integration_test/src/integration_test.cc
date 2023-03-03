@@ -318,7 +318,8 @@ void FirebaseAppCheckTest::TerminateDatabase() {
         cleanups.push_back(database_cleanup_[i].RemoveValue());
       }
       for (int i = 0; i < cleanups.size(); ++i) {
-        std::string cleanup_name = "Cleanup (" + database_cleanup_[i].url() + ")";
+        std::string cleanup_name =
+            "Cleanup (" + database_cleanup_[i].url() + ")";
         WaitForCompletion(cleanups[i], cleanup_name.c_str());
       }
       database_cleanup_.clear();
