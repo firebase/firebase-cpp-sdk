@@ -19,6 +19,7 @@
 
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
 #include "app_check/app_check_resources.h"
@@ -26,7 +27,6 @@
 #include "app_check/src/android/debug_provider_android.h"
 #include "app_check/src/android/play_integrity_provider_android.h"
 #include "app_check/src/common/common.h"
-#include "app/src/include/firebase/internal/mutex.h"
 
 namespace firebase {
 namespace app_check {
@@ -118,7 +118,7 @@ JNIEXPORT void JNICALL JniAppCheckListener_nativeOnAppCheckTokenChanged(
 
 static const JNINativeMethod kNativeJniAppCheckListenerMethods[] = {
     {"nativeOnAppCheckTokenChanged",
-    "(JLcom/google/firebase/appcheck/AppCheckToken;)V",
+     "(JLcom/google/firebase/appcheck/AppCheckToken;)V",
      reinterpret_cast<void*>(JniAppCheckListener_nativeOnAppCheckTokenChanged)},
 };
 
@@ -151,7 +151,8 @@ bool CacheAppCheckMethodIds(
   }
   // Cache the JniAppCheckListener class and register the native callback
   // methods.
-  if (!(jni_app_check_listener::CacheClassFromFiles(env, activity, &embedded_files) &&
+  if (!(jni_app_check_listener::CacheClassFromFiles(env, activity,
+                                                    &embedded_files) &&
         jni_app_check_listener::CacheMethodIds(env, activity) &&
         jni_app_check_listener::RegisterNatives(
             env, kNativeJniAppCheckListenerMethods,
@@ -325,15 +326,15 @@ AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
     }
 
     // Add a token-changed listener and give it a pointer to the C++ listeners.
-    jobject j_listener = env->NewObject(
-        jni_app_check_listener::GetClass(),
-        jni_app_check_listener::GetMethodId(jni_app_check_listener::kConstructor),
-        reinterpret_cast<jlong>(this));
+    jobject j_listener =
+        env->NewObject(jni_app_check_listener::GetClass(),
+                       jni_app_check_listener::GetMethodId(
+                           jni_app_check_listener::kConstructor),
+                       reinterpret_cast<jlong>(this));
     FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
-    env->CallVoidMethod(
-        app_check_impl_,
-        app_check::GetMethodId(app_check::kAddAppCheckListener),
-        j_listener);
+    env->CallVoidMethod(app_check_impl_,
+                        app_check::GetMethodId(app_check::kAddAppCheckListener),
+                        j_listener);
     FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
     j_app_check_listener_ = env->NewGlobalRef(j_listener);
     env->DeleteLocalRef(j_listener);
@@ -421,8 +422,7 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckTokenLastResult() {
 
 void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {
   MutexLock lock(listeners_mutex_);
-  auto it = std::find(
-      listeners_.begin(), listeners_.end(), listener);
+  auto it = std::find(listeners_.begin(), listeners_.end(), listener);
   if (it == listeners_.end()) {
     listeners_.push_back(listener);
   }
@@ -430,8 +430,7 @@ void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {
 
 void AppCheckInternal::RemoveAppCheckListener(AppCheckListener* listener) {
   MutexLock lock(listeners_mutex_);
-  auto it = std::find(
-    listeners_.begin(), listeners_.end(), listener);
+  auto it = std::find(listeners_.begin(), listeners_.end(), listener);
   if (it != listeners_.end()) {
     listeners_.erase(it);
   }

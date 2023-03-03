@@ -17,8 +17,8 @@
 package com.google.firebase.appcheck.internal.cpp;
 
 import androidx.annotation.NonNull;
-import com.google.firebase.appcheck.FirebaseAppCheck.AppCheckListener;
 import com.google.firebase.appcheck.AppCheckToken;
+import com.google.firebase.appcheck.FirebaseAppCheck.AppCheckListener;
 
 /**
  * An AppCheckListener that notifies C++ of token changes.

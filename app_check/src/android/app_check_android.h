@@ -20,9 +20,9 @@
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_android.h"
 #include "app_check/src/include/firebase/app_check.h"
-#include "app/src/include/firebase/internal/mutex.h"
 
 namespace firebase {
 namespace app_check {
