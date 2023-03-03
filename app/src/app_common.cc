@@ -264,6 +264,7 @@ static Mutex* g_app_mutex = new Mutex();
 static std::map<std::string, UniquePtr<AppData>>* g_apps = nullptr;
 static App* g_default_app = nullptr;
 LibraryRegistry* LibraryRegistry::library_registry_ = nullptr;
+static bool g_is_user_agent_registered = false;
 
 App* AddApp(App* app, std::map<std::string, InitResult>* results) {
   bool created_first_app = false;
@@ -422,7 +423,8 @@ void RegisterSdkUsage(void* platform_resource) {
   MutexLock lock(*g_app_mutex);
 
   // Only register libraries when no C++ apps was created before.
-  if (g_apps == nullptr) {
+  if (!g_is_user_agent_registered) {
+    g_is_user_agent_registered = true;
     LibraryRegistry::Initialize();
     // This calls the platform specific method to propagate the registration to
     // any SDKs in use by this library.

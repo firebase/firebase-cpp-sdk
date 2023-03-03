@@ -1129,7 +1129,7 @@ JNIEnv* GetJNIEnvFromApp();
 
 // Make sure the Java classes and methods are cached before triggering the
 // the callback. Can be slow if this is called BEFORE any Firebase App is
-// created.
+// created. This is currently used by Unity SDK.
 void CallAfterEnsureMethodsCached(JNIEnv* env, jobject activity,
                                   std::function<void()> callback);
 

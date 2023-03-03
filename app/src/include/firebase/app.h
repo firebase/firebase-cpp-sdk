@@ -697,7 +697,8 @@ class App {
   /// @param library Name of the library to register as a user of the Firebase
   /// C++ SDK.
   /// @param version Version of the library being registered.
-  /// @param context Platform specific resource. Ex. for Android, this is JNIEnv
+  /// @param platform_resource Platform specific resource. Ex. for Android, this
+  /// is JNIEnv.
   static void RegisterLibrary(const char* library, const char* version,
                               void* platform_resource);
 
