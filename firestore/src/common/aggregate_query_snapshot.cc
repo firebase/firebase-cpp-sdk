@@ -17,12 +17,12 @@
 #include "firestore/src/include/firebase/firestore/aggregate_query_snapshot.h"
 
 #include "firestore/src/common/cleanup.h"
+#include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore/aggregate_query.h"
 
 #if defined(__ANDROID__)
-// TODO(tomandersen) #include
-// "firestore/src/android/aggregate_query_snapshot_android.h"
+#include "firestore/src/android/aggregate_query_snapshot_android.h"
 #else
 #include "firestore/src/main/aggregate_query_snapshot_main.h"
 #endif  // defined(__ANDROID__)
