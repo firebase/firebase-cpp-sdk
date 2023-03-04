@@ -190,7 +190,7 @@ struct AppData {
 // Tracks library registrations.
 class LibraryRegistry {
  private:
-  LibraryRegistry() {}
+  LibraryRegistry() : is_common_libraries_registered(false) {}
 
  public:
   // Register a library, returns true if the library version changed.
@@ -252,9 +252,23 @@ class LibraryRegistry {
     }
   }
 
+  static bool GetCommonLibrariesRegistered() {
+    if (library_registry_) {
+        return library_registry_->is_common_libraries_registered;
+    }
+    return false;
+  }
+
+  static void SetCommonLibrariesRegistered() {
+    if (library_registry_) {
+        library_registry_->is_common_libraries_registered = true;
+    }
+  }
+
  private:
   std::map<std::string, std::string> library_to_version_;
   std::string user_agent_;
+  bool is_common_libraries_registered;
 
   static LibraryRegistry* library_registry_;
 };
@@ -264,7 +278,6 @@ static Mutex* g_app_mutex = new Mutex();
 static std::map<std::string, UniquePtr<AppData>>* g_apps = nullptr;
 static App* g_default_app = nullptr;
 LibraryRegistry* LibraryRegistry::library_registry_ = nullptr;
-static bool g_is_user_agent_registered = false;
 
 App* AddApp(App* app, std::map<std::string, InitResult>* results) {
   bool created_first_app = false;
@@ -423,8 +436,7 @@ void RegisterSdkUsage(void* platform_resource) {
   MutexLock lock(*g_app_mutex);
 
   // Only register libraries when no C++ apps was created before.
-  if (!g_is_user_agent_registered) {
-    g_is_user_agent_registered = true;
+  if (!LibraryRegistry::GetCommonLibrariesRegistered()) {
     LibraryRegistry::Initialize();
     // This calls the platform specific method to propagate the registration to
     // any SDKs in use by this library.
@@ -438,6 +450,7 @@ void RegisterSdkUsage(void* platform_resource) {
                          kCppRuntimeOrStl, platform_resource);
     App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX "-buildsrc",
                          kBuildSource, platform_resource);
+    LibraryRegistry::SetCommonLibrariesRegistered();
   }
 }
 
