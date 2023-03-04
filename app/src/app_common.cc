@@ -254,14 +254,14 @@ class LibraryRegistry {
 
   static bool IsCommonLibrariesRegistered() {
     if (library_registry_) {
-        return library_registry_->is_common_libraries_registered;
+      return library_registry_->is_common_libraries_registered;
     }
     return false;
   }
 
   static void SetCommonLibrariesRegistered() {
     if (library_registry_) {
-        library_registry_->is_common_libraries_registered = true;
+      library_registry_->is_common_libraries_registered = true;
     }
   }
 
