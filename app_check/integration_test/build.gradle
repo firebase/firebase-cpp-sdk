@@ -63,7 +63,9 @@ android {
         "-DFIREBASE_INCLUDE_LIBRARY_DEFAULT=OFF",
         "-DFIREBASE_INCLUDE_APP_CHECK=ON",
         "-DFIREBASE_INCLUDE_AUTH=ON",
-        "-DFIREBASE_INCLUDE_DATABASE=ON"
+        "-DFIREBASE_INCLUDE_DATABASE=ON",
+        "-DFIREBASE_INCLUDE_STORAGE=ON",
+        "-DFIREBASE_INCLUDE_FUNCTIONS=ON"
     }
   }
   externalNativeBuild.cmake {
@@ -83,6 +85,8 @@ firebaseCpp.dependencies {
   appCheck
   auth
   database
+  storage
+  functions
 }
 
 apply plugin: 'com.google.gms.google-services'

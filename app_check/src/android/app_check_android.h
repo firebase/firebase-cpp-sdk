@@ -18,6 +18,7 @@
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/util_android.h"
 #include "app_check/src/include/firebase/app_check.h"
 
 namespace firebase {
@@ -50,6 +51,7 @@ class AppCheckInternal {
 
  private:
   ::firebase::App* app_;
+  jobject app_check_impl_;
 
   FutureManager future_manager_;
 };

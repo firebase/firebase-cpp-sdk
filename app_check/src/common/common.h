@@ -22,6 +22,7 @@ namespace internal {
 // Used by App Check functions that return a future
 enum AppCheckFn {
   kAppCheckFnGetAppCheckToken = 0,
+  kAppCheckFnGetAppCheckStringInternal,
   kAppCheckFnCount,
 };
 

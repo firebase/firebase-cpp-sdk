@@ -57,6 +57,7 @@ JOBJECT_REFERENCE(AppInternal);
   X(GetInstanceByName, "getInstance",                                          \
     "(Ljava/lang/String;)Lcom/google/firebase/FirebaseApp;",                   \
     util::kMethodTypeStatic),                                                  \
+  X(GetName, "getName", "()Ljava/lang/String;", util::kMethodTypeInstance),    \
   X(GetOptions, "getOptions", "()Lcom/google/firebase/FirebaseOptions;",       \
     util::kMethodTypeInstance),                                                \
   X(Delete, "delete", "()V", util::kMethodTypeInstance),                       \
