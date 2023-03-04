@@ -252,7 +252,7 @@ class LibraryRegistry {
     }
   }
 
-  static bool GetCommonLibrariesRegistered() {
+  static bool IsCommonLibrariesRegistered() {
     if (library_registry_) {
         return library_registry_->is_common_libraries_registered;
     }
@@ -436,7 +436,7 @@ void RegisterSdkUsage(void* platform_resource) {
   MutexLock lock(*g_app_mutex);
 
   // Only register libraries when no C++ apps was created before.
-  if (!LibraryRegistry::GetCommonLibrariesRegistered()) {
+  if (!LibraryRegistry::IsCommonLibrariesRegistered()) {
     LibraryRegistry::Initialize();
     // This calls the platform specific method to propagate the registration to
     // any SDKs in use by this library.
