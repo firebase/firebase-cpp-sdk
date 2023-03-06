@@ -50,8 +50,6 @@ class AggregateQueryInternal {
     kCount,
   };
 
-  friend class AggregateQuerySnapshotTest;
-
   api::AggregateQuery aggregate_query_;
   PromiseFactory<AsyncApis> promise_factory_;
 };

@@ -51,7 +51,7 @@ class AggregateQuerySnapshotInternal {
 
  private:
   api::AggregateQuery aggregate_query_;
-  int64_t count_result_ = 0;
+  int64_t count_result_;
 };
 
 inline bool operator!=(const AggregateQuerySnapshotInternal& lhs,
