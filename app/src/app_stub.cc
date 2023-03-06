@@ -72,7 +72,9 @@ internal::FunctionRegistry* App::function_registry() {
 }
 #endif
 
-void App::RegisterLibrary(const char* library, const char* version) {
+void App::RegisterLibrary(const char* library,
+                          const char* version,
+                          void* /* platform_resource */) {
   app_common::RegisterLibrary(library, version);
 }
 
