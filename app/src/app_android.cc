@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include "app/src/app_android.h"
+
 #include <jni.h>
 #include <string.h>
 

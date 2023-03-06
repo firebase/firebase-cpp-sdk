@@ -17,9 +17,9 @@
 #ifndef FIREBASE_APP_SRC_APP_ANDROID_H_
 #define FIREBASE_APP_SRC_APP_ANDROID_H_
 
-#include <functional>
-
 #include <jni.h>
+
+#include <functional>
 
 namespace firebase {
 // Make sure the Java classes and methods are cached before triggering the
