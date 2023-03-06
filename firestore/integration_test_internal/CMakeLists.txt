@@ -91,6 +91,8 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS
     # public API are performed.
     src/integration_test.cc
     # Internal tests below.
+    src/aggregate_query_snapshot_test.cc
+    src/aggregate_query_test.cc
     src/bundle_test.cc
     src/collection_reference_test.cc
     src/cursor_test.cc

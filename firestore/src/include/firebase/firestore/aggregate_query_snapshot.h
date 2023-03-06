@@ -119,7 +119,7 @@ class AggregateQuerySnapshot {
    * @return true if this `AggregateQuery` is valid, false if this
    * `AggregateQuerySnapshot` is invalid.
    */
-  bool is_valid() const;
+  bool is_valid() const { return internal_ != nullptr; }
 
  private:
   std::size_t Hash() const;
@@ -129,6 +129,7 @@ class AggregateQuerySnapshot {
   friend std::size_t AggregateQuerySnapshotHash(
       const AggregateQuerySnapshot& snapshot);
   friend struct ConverterImpl;
+  friend class AggregateQuerySnapshotTest;
 
   template <typename T, typename U, typename F>
   friend struct CleanupFn;
