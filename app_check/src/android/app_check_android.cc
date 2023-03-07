@@ -348,6 +348,7 @@ AppCheckInternal::~AppCheckInternal() {
   future_manager().ReleaseFutureApi(this);
   JNIEnv* env = app_->GetJNIEnv();
   app_ = nullptr;
+  listeners_.clear();
 
   if (j_app_check_listener_ != nullptr) {
     env->CallVoidMethod(
