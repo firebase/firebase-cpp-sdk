@@ -501,8 +501,6 @@ TEST_F(FirebaseAppCheckTest, TestGetTokenLastResult) {
             future2.result()->expire_time_millis);
 }
 
-// Android does not yet implement token changed listeners
-#if !FIREBASE_PLATFORM_ANDROID
 TEST_F(FirebaseAppCheckTest, TestAddTokenChangedListener) {
   InitializeAppCheckWithDebug();
   InitializeApp();
@@ -522,10 +520,7 @@ TEST_F(FirebaseAppCheckTest, TestAddTokenChangedListener) {
   ASSERT_EQ(token_changed_listener.num_token_changes_, 1);
   EXPECT_EQ(token_changed_listener.last_token_.token, token.token);
 }
-#endif  // !FIREBASE_PLATFORM_ANDROID
 
-// Android does not yet implement token changed listeners
-#if !FIREBASE_PLATFORM_ANDROID
 TEST_F(FirebaseAppCheckTest, TestRemoveTokenChangedListener) {
   InitializeAppCheckWithDebug();
   InitializeApp();
@@ -544,7 +539,6 @@ TEST_F(FirebaseAppCheckTest, TestRemoveTokenChangedListener) {
 
   ASSERT_EQ(token_changed_listener.num_token_changes_, 0);
 }
-#endif  // !FIREBASE_PLATFORM_ANDROID
 
 TEST_F(FirebaseAppCheckTest, TestSignIn) {
   InitializeAppCheckWithDebug();
