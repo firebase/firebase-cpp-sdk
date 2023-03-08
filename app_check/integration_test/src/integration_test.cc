@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <condition_variable>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -23,6 +24,7 @@
 #include <future>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 
@@ -934,7 +936,7 @@ TEST_F(FirebaseAppCheckTest, TestFirestoreSetGet) {
   firebase::Future<firebase::firestore::DocumentSnapshot> future =
       document.Get(firebase::firestore::Source::kServer);
   WaitForCompletion(future, "document.Get");
-  EXPECT_NE(future.result(), nullptr);
+  ASSERT_NE(future.result(), nullptr);
   EXPECT_THAT(future.result()->GetData(),
               UnorderedElementsAre(
                   Pair("str", firebase::firestore::FieldValue::String("foo")),
@@ -961,7 +963,11 @@ TEST_F(FirebaseAppCheckTest, TestFirestoreSetGetFailure) {
   CleanupFirestore(firebase::firestore::kErrorPermissionDenied);
 }
 
-TEST_F(FirebaseAppCheckTest, TestFirestoreTransaction) {
+TEST_F(FirebaseAppCheckTest, TestFirestoreListener) {
+  // NOTE: This test assumes that the SnapshotListener will be called
+  // before the future returned by Set is completed. If this does
+  // start to fail because of changes to that logic, it will need to
+  // be rewritten to handle that.
   InitializeAppCheckWithDebug();
   InitializeApp();
   InitializeFirestore();
@@ -973,15 +979,21 @@ TEST_F(FirebaseAppCheckTest, TestFirestoreTransaction) {
           {"val", firebase::firestore::FieldValue::String("start")}}),
       "document.Set 0");
 
-  std::vector<firebase::firestore::MapFieldValue> document_snapshots;
+  struct ListenerSnapshots {
+    std::mutex mutex;
+    std::vector<firebase::firestore::MapFieldValue> snapshots;
+  };
+  auto listener_snapshots = std::make_shared<ListenerSnapshots>();
   firebase::firestore::ListenerRegistration registration =
       document.AddSnapshotListener(
-          [&](const firebase::firestore::DocumentSnapshot& result,
+          [&listener_snapshots](const firebase::firestore::DocumentSnapshot& result,
               firebase::firestore::Error error_code,
               const std::string& error_message) {
+            std::lock_guard<std::mutex> lock(listener_snapshots->mutex);
+            SCOPED_TRACE("Listener called, current size: " + std::to_string(listener_snapshots->snapshots.size()));
             EXPECT_EQ(error_code, firebase::firestore::kErrorOk);
             EXPECT_EQ(error_message, "");
-            document_snapshots.push_back(result.GetData());
+            listener_snapshots->snapshots.push_back(result.GetData());
           });
 
   WaitForCompletion(
@@ -994,43 +1006,47 @@ TEST_F(FirebaseAppCheckTest, TestFirestoreTransaction) {
       document.Set(firebase::firestore::MapFieldValue{
           {"val", firebase::firestore::FieldValue::String("final")}}),
       "document.Set 2");
-  EXPECT_THAT(
-      document_snapshots,
-      testing::ElementsAre(
-          firebase::firestore::MapFieldValue{
-              {"val", firebase::firestore::FieldValue::String("start")}},
-          firebase::firestore::MapFieldValue{
-              {"val", firebase::firestore::FieldValue::String("update")}}));
+  {
+    std::lock_guard<std::mutex> lock(listener_snapshots->mutex);
+    EXPECT_THAT(
+        listener_snapshots->snapshots,
+        testing::ElementsAre(
+            firebase::firestore::MapFieldValue{
+                {"val", firebase::firestore::FieldValue::String("start")}},
+            firebase::firestore::MapFieldValue{
+                {"val", firebase::firestore::FieldValue::String("update")}}));
+  }
 }
 
-TEST_F(FirebaseAppCheckTest, TestFirestoreTransactionFailure) {
+TEST_F(FirebaseAppCheckTest, TestFirestoreListenerFailure) {
   // Don't set up AppCheck
   InitializeApp();
   InitializeFirestore();
 
   firebase::firestore::DocumentReference document = CreateFirestoreDoc();
 
-  bool received_pending_cache = false;
+  std::mutex mutex;
+  std::condition_variable cond_var;
   bool received_permission_denied = false;
   firebase::firestore::ListenerRegistration registration =
       document.AddSnapshotListener(
-          [&received_pending_cache, &received_permission_denied](
+          [&received_permission_denied, &mutex, &cond_var](
               const firebase::firestore::DocumentSnapshot& result,
               firebase::firestore::Error error_code,
               const std::string& error_message) {
-            // We first expect one call for a successful change to the cache.
             if (error_code == firebase::firestore::kErrorNone) {
-              EXPECT_FALSE(received_pending_cache);
+              // If we receive a success, it should only be for the cache.
               EXPECT_TRUE(result.metadata().has_pending_writes());
               EXPECT_TRUE(result.metadata().is_from_cache());
-              received_pending_cache = true;
             } else {
               // We expect one call with a Permission Denied error, from the
               // server.
+              std::lock_guard<std::mutex> lock(mutex);
               EXPECT_FALSE(received_permission_denied);
               EXPECT_EQ(error_code,
                         firebase::firestore::kErrorPermissionDenied);
               received_permission_denied = true;
+              cond_var.notify_one();
             }
           });
 
@@ -1046,8 +1062,15 @@ TEST_F(FirebaseAppCheckTest, TestFirestoreTransactionFailure) {
           {"val", firebase::firestore::FieldValue::String("final")}}),
       "document.Set final", firebase::firestore::kErrorPermissionDenied);
 
-  EXPECT_TRUE(received_pending_cache);
-  EXPECT_TRUE(received_permission_denied);
+  {
+    // Use a condition variable to guarantee that the listener has received
+    // the call.
+    std::unique_lock<std::mutex> lock(mutex);
+    if (!received_permission_denied) {
+      cond_var.wait_for(lock, std::chrono::seconds(30));
+    }
+    EXPECT_TRUE(received_permission_denied);
+  }
 
   CleanupFirestore(firebase::firestore::kErrorPermissionDenied);
 }
@@ -1079,6 +1102,7 @@ TEST_F(FirebaseAppCheckTest, TestRunTransaction) {
   // Confirm the updated doc is correct.
   auto future = document.Get(firebase::firestore::Source::kServer);
   WaitForCompletion(future, "document.Get");
+  ASSERT_NE(future.result(), nullptr);
   EXPECT_THAT(future.result()->GetData(),
               UnorderedElementsAre(
                   Pair("str", firebase::firestore::FieldValue::String("foo")),
