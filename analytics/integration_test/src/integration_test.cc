@@ -106,19 +106,35 @@ TEST_F(FirebaseAnalyticsTest, TestGetAnalyticsInstanceID) {
   EXPECT_FALSE(future.result()->empty());
 }
 
+TEST_F(FirebaseAnalyticsTest, TestLogEvents) {
+  // Log an event with no parameters.
+  firebase::analytics::LogEvent(firebase::analytics::kEventLogin);
+
+  // Log an event with a floating point parameter.
+  firebase::analytics::LogEvent("progress", "percent", 0.4f);
+
+  // Log an event with an integer parameter.
+  firebase::analytics::LogEvent(firebase::analytics::kEventPostScore,
+                                firebase::analytics::kParameterScore, 42);
+
+  // Log an event with a string parameter.
+  firebase::analytics::LogEvent(firebase::analytics::kEventJoinGroup,
+                                firebase::analytics::kParameterGroupID,
+                                "spoon_welders");
+}
+
 TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
-#if defined(__ANDROID__)
+  int version = GetGooglePlayServicesVersion();
+  LogInfo("Google Play services version: %d", version);
+  
   // Android continues to have random failures on this test despite the
   // workarounds below, so just skip it for now.
-  LogInfo("Skipping TestGetSessionID on Android");
-  GTEST_SKIP();
-  return;
-#endif
+  // SKIP_TEST_ON_ANDROID;
 
   // Android emulator tests are currently not working due to getSessionId being
   // disabled on virtual FTL devices, due to an older version of Google Play
   // services.
-  SKIP_TEST_ON_ANDROID_EMULATOR;
+  // SKIP_TEST_ON_ANDROID_EMULATOR;
 
   // iOS simulator tests are currently extra flaky, occasionally failing with an
   // "Analytics uninitialized" error even after multiple attempts.
@@ -193,23 +209,6 @@ TEST_F(FirebaseAnalyticsTest, TestSetProperties) {
   // Initiate on-device conversion measurement.
   firebase::analytics::InitiateOnDeviceConversionMeasurementWithEmailAddress(
       "my_email@site.com");
-}
-
-TEST_F(FirebaseAnalyticsTest, TestLogEvents) {
-  // Log an event with no parameters.
-  firebase::analytics::LogEvent(firebase::analytics::kEventLogin);
-
-  // Log an event with a floating point parameter.
-  firebase::analytics::LogEvent("progress", "percent", 0.4f);
-
-  // Log an event with an integer parameter.
-  firebase::analytics::LogEvent(firebase::analytics::kEventPostScore,
-                                firebase::analytics::kParameterScore, 42);
-
-  // Log an event with a string parameter.
-  firebase::analytics::LogEvent(firebase::analytics::kEventJoinGroup,
-                                firebase::analytics::kParameterGroupID,
-                                "spoon_welders");
 }
 
 TEST_F(FirebaseAnalyticsTest, TestLogEventWithMultipleParameters) {
