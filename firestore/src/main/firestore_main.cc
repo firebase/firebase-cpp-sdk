@@ -116,7 +116,11 @@ FirestoreInternal::FirestoreInternal(
           "com.google.firebase.firestore.transaction", /*threads=*/5))) {
   ApplyDefaultSettings();
 
-  App::RegisterLibrary("fire-fst", kFirestoreVersionString);
+#if FIREBASE_PLATFORM_ANDROID
+  App::RegisterLibrary("fire-fst", kFirestoreVersionString, app->GetJNIEnv());
+#else
+  App::RegisterLibrary("fire-fst", kFirestoreVersionString, nullptr);
+#endif
 }
 
 FirestoreInternal::~FirestoreInternal() {
