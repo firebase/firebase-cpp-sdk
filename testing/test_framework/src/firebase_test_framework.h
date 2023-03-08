@@ -206,19 +206,21 @@ namespace firebase_test_framework {
 #endif
 
 #if defined(ANDROID)
-#define SKIP_TEST_ON_ANDROID_GOOGLE_PLAY_SERVICES_BELOW(x)                     \
-  {                                                                            \
-   int _reqver_ = (x);                                                         \
-   /* Example: 23.1.2 has version code 230102???. */                           \
-   /* Allow specifying version as 23_01_02 or as 230102000. */                 \
-   if (_reqver_ < 10000000) { _reqver_ *= 1000; }                              \
-   if ((int _actver_ = GetGooglePlayServicesVersion()) < _reqver_){            \
-      app_framework::LogInfo(                                                  \
-         "Skipping %s, as Google Play services %d is below required %d",       \
-         test_info_->name(), _actver_, _reqver_);                              \
-      GTEST_SKIP();                                                            \
-      return;                                                                  \
-    }                                                                          \
+#define SKIP_TEST_ON_ANDROID_GOOGLE_PLAY_SERVICES_BELOW(x)                \
+  {                                                                       \
+    int _reqver_ = (x);                                                   \
+    /* Example: 23.1.2 has version code 230102???. */                     \
+    /* Allow specifying version as 23_01_02 or as 230102000. */           \
+    if (_reqver_ < 10000000) {                                            \
+      _reqver_ *= 1000;                                                   \
+    }                                                                     \
+    if ((int _actver_ = GetGooglePlayServicesVersion()) < _reqver_) {     \
+      app_framework::LogInfo(                                             \
+          "Skipping %s, as Google Play services %d is below required %d", \
+          test_info_->name(), _actver_, _reqver_);                        \
+      GTEST_SKIP();                                                       \
+      return;                                                             \
+    }                                                                     \
   }
 #else
 #define SKIP_TEST_ON_ANDROID_GOOGLE_PLAY_SERVICES_BELOW(x) ((void)0)

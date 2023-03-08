@@ -137,7 +137,7 @@ TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
 #if defined(__ANDROID__)
   // Log the Google Play services version for debugging in case this test fails.
   LogInfo("Google Play services version: %d", GetGooglePlayServicesVersion());
-  
+
   if (did_test_setconsent_) {
     LogInfo(
         "Skipping TestGetSessionID after TestSetConsent, as GetSessionId() "
