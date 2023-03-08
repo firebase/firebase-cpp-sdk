@@ -224,7 +224,7 @@ namespace firebase_test_framework {
   }
 #else
 #define SKIP_TEST_ON_ANDROID_GOOGLE_PLAY_SERVICES_BELOW(x) ((void)0)
-#endif
+#endif  // defined(ANDROID)
 
 #if defined(STLPORT)
 #define SKIP_TEST_IF_USING_STLPORT                                             \
