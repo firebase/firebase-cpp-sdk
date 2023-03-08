@@ -986,11 +986,13 @@ TEST_F(FirebaseAppCheckTest, TestFirestoreListener) {
   auto listener_snapshots = std::make_shared<ListenerSnapshots>();
   firebase::firestore::ListenerRegistration registration =
       document.AddSnapshotListener(
-          [&listener_snapshots](const firebase::firestore::DocumentSnapshot& result,
+          [&listener_snapshots](
+              const firebase::firestore::DocumentSnapshot& result,
               firebase::firestore::Error error_code,
               const std::string& error_message) {
             std::lock_guard<std::mutex> lock(listener_snapshots->mutex);
-            SCOPED_TRACE("Listener called, current size: " + std::to_string(listener_snapshots->snapshots.size()));
+            SCOPED_TRACE("Listener called, current size: " +
+                         std::to_string(listener_snapshots->snapshots.size()));
             EXPECT_EQ(error_code, firebase::firestore::kErrorOk);
             EXPECT_EQ(error_message, "");
             listener_snapshots->snapshots.push_back(result.GetData());
