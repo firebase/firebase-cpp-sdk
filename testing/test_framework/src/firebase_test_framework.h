@@ -215,7 +215,7 @@ namespace firebase_test_framework {
       _required_ver_ *= 1000;                                             \
     }                                                                     \
     int _actual_ver_ = GetGooglePlayServicesVersion();                    \
-    if (_actual_ver < _required_ver_) {                                   \
+    if (_actual_ver_ < _required_ver_) {                                  \
       app_framework::LogInfo(                                             \
           "Skipping %s, as Google Play services %d is below required %d", \
           test_info_->name(), _actual_ver_, _required_ver_);              \
