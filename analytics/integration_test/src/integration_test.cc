@@ -124,17 +124,8 @@ TEST_F(FirebaseAnalyticsTest, TestLogEvents) {
 }
 
 TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
-  int version = GetGooglePlayServicesVersion();
-  LogInfo("Google Play services version: %d", version);
-  
-  // Android continues to have random failures on this test despite the
-  // workarounds below, so just skip it for now.
-  // SKIP_TEST_ON_ANDROID;
-
-  // Android emulator tests are currently not working due to getSessionId being
-  // disabled on virtual FTL devices, due to an older version of Google Play
-  // services.
-  // SKIP_TEST_ON_ANDROID_EMULATOR;
+  // Don't run this test if Google Play services is < 23.0.0.
+  SKIP_TEST_ON_ANDROID_GOOGLE_PLAY_SERVICES_BELOW(23_00_00);
 
   // iOS simulator tests are currently extra flaky, occasionally failing with an
   // "Analytics uninitialized" error even after multiple attempts.
@@ -144,6 +135,9 @@ TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
   // needs to be restarted after consent is denied or it won't generate a new
   // sessionID. To not break the tests, skip this test in that case.
 #if defined(__ANDROID__)
+  // Log the Google Play services version for debugging in case this test fails.
+  LogInfo("Google Play services version: %d", GetGooglePlayServicesVersion());
+  
   if (did_test_setconsent_) {
     LogInfo(
         "Skipping TestGetSessionID after TestSetConsent, as GetSessionId() "
