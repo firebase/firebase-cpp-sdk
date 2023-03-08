@@ -106,23 +106,6 @@ TEST_F(FirebaseAnalyticsTest, TestGetAnalyticsInstanceID) {
   EXPECT_FALSE(future.result()->empty());
 }
 
-TEST_F(FirebaseAnalyticsTest, TestLogEvents) {
-  // Log an event with no parameters.
-  firebase::analytics::LogEvent(firebase::analytics::kEventLogin);
-
-  // Log an event with a floating point parameter.
-  firebase::analytics::LogEvent("progress", "percent", 0.4f);
-
-  // Log an event with an integer parameter.
-  firebase::analytics::LogEvent(firebase::analytics::kEventPostScore,
-                                firebase::analytics::kParameterScore, 42);
-
-  // Log an event with a string parameter.
-  firebase::analytics::LogEvent(firebase::analytics::kEventJoinGroup,
-                                firebase::analytics::kParameterGroupID,
-                                "spoon_welders");
-}
-
 TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
   // Don't run this test if Google Play services is < 23.0.0.
   SKIP_TEST_ON_ANDROID_GOOGLE_PLAY_SERVICES_BELOW(230000);
@@ -146,6 +129,10 @@ TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
     return;
   }
 #endif
+  // Log an event once, to ensure that there is currently an active Analytics
+  // session.
+  firebase::analytics::LogEvent(firebase::analytics::kEventSignUp);
+
   firebase::Future<int64_t> future;
 
   // Give Analytics a moment to initialize and create a session.
@@ -203,6 +190,23 @@ TEST_F(FirebaseAnalyticsTest, TestSetProperties) {
   // Initiate on-device conversion measurement.
   firebase::analytics::InitiateOnDeviceConversionMeasurementWithEmailAddress(
       "my_email@site.com");
+}
+
+TEST_F(FirebaseAnalyticsTest, TestLogEvents) {
+  // Log an event with no parameters.
+  firebase::analytics::LogEvent(firebase::analytics::kEventLogin);
+
+  // Log an event with a floating point parameter.
+  firebase::analytics::LogEvent("progress", "percent", 0.4f);
+
+  // Log an event with an integer parameter.
+  firebase::analytics::LogEvent(firebase::analytics::kEventPostScore,
+                                firebase::analytics::kParameterScore, 42);
+
+  // Log an event with a string parameter.
+  firebase::analytics::LogEvent(firebase::analytics::kEventJoinGroup,
+                                firebase::analytics::kParameterGroupID,
+                                "spoon_welders");
 }
 
 TEST_F(FirebaseAnalyticsTest, TestLogEventWithMultipleParameters) {
