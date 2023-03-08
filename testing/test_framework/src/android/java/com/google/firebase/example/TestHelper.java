@@ -15,6 +15,7 @@
 package com.google.firebase.example;
 
 import android.os.Build;
+import com.google.android.gms.common.GoogleApiAvailability;
 
 /**
  * A simple class with test helper methods.
@@ -27,5 +28,8 @@ public final class TestHelper {
         || Build.PRODUCT.contains("sdk") || Build.HARDWARE.contains("goldfish")
         || Build.MANUFACTURER.contains("Genymotion") || Build.PRODUCT.contains("vbox86p")
         || Build.DEVICE.contains("vbox86p") || Build.HARDWARE.contains("vbox86");
+  }
+  public static int getGooglePlayServicesVersion() {
+    return GoogleApiAvailability.getInstance().getApkVersion(getContext());
   }
 }
