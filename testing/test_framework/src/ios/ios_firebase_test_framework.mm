@@ -200,4 +200,9 @@ bool FirebaseTest::IsRunningOnEmulator() {
 #endif
 }
 
+int FirebaseTest::GetGooglePlayServicesVersion() {
+  // No Google Play services on iOS.
+  return 0;
+}
+
 }  // namespace firebase_test_framework

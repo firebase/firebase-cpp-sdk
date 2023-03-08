@@ -14,6 +14,7 @@
 
 package com.google.firebase.example;
 
+import android.content.Context;
 import android.os.Build;
 import com.google.android.gms.common.GoogleApiAvailability;
 
@@ -29,7 +30,7 @@ public final class TestHelper {
         || Build.MANUFACTURER.contains("Genymotion") || Build.PRODUCT.contains("vbox86p")
         || Build.DEVICE.contains("vbox86p") || Build.HARDWARE.contains("vbox86");
   }
-  public static int getGooglePlayServicesVersion() {
-    return GoogleApiAvailability.getInstance().getApkVersion(getContext());
+  public static int getGooglePlayServicesVersion(Context context) {
+    return GoogleApiAvailability.getInstance().getApkVersion(context);
   }
 }
