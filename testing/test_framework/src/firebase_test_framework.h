@@ -208,7 +208,7 @@ namespace firebase_test_framework {
 #if defined(ANDROID)
 #define SKIP_TEST_ON_ANDROID_GOOGLE_PLAY_SERVICES_BELOW(x)                \
   {                                                                       \
-    int _reqver_ = (x);                                                   \
+    int _required_ver_ = (x);                                             \
     /* Example: 23.1.2 has version code 230102???. */                     \
     /* Allow specifying version as 23_01_02 or as 230102000. */           \
     if (_required_ver_ < 10000000) {                                      \
