@@ -211,13 +211,14 @@ namespace firebase_test_framework {
     int _reqver_ = (x);                                                   \
     /* Example: 23.1.2 has version code 230102???. */                     \
     /* Allow specifying version as 23_01_02 or as 230102000. */           \
-    if (_reqver_ < 10000000) {                                            \
-      _reqver_ *= 1000;                                                   \
+    if (_required_ver_ < 10000000) {                                      \
+      _required_ver_ *= 1000;                                             \
     }                                                                     \
-    if ((int _actver_ = GetGooglePlayServicesVersion()) < _reqver_) {     \
+    int _actual_ver_ = GetGooglePlayServicesVersion();                    \
+    if (_actual_ver < _required_ver_) {                                   \
       app_framework::LogInfo(                                             \
           "Skipping %s, as Google Play services %d is below required %d", \
-          test_info_->name(), _actver_, _reqver_);                        \
+          test_info_->name(), _actual_ver_, _required_ver_);              \
       GTEST_SKIP();                                                       \
       return;                                                             \
     }                                                                     \
