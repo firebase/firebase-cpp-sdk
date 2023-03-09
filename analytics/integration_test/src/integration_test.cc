@@ -107,18 +107,8 @@ TEST_F(FirebaseAnalyticsTest, TestGetAnalyticsInstanceID) {
 }
 
 TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
-#if defined(__ANDROID__)
-  // Android continues to have random failures on this test despite the
-  // workarounds below, so just skip it for now.
-  LogInfo("Skipping TestGetSessionID on Android");
-  GTEST_SKIP();
-  return;
-#endif
-
-  // Android emulator tests are currently not working due to getSessionId being
-  // disabled on virtual FTL devices, due to an older version of Google Play
-  // services.
-  SKIP_TEST_ON_ANDROID_EMULATOR;
+  // Don't run this test if Google Play services is < 23.0.0.
+  SKIP_TEST_ON_ANDROID_GOOGLE_PLAY_SERVICES_BELOW(230000);
 
   // iOS simulator tests are currently extra flaky, occasionally failing with an
   // "Analytics uninitialized" error even after multiple attempts.
@@ -128,6 +118,9 @@ TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
   // needs to be restarted after consent is denied or it won't generate a new
   // sessionID. To not break the tests, skip this test in that case.
 #if defined(__ANDROID__)
+  // Log the Google Play services version for debugging in case this test fails.
+  LogInfo("Google Play services version: %d", GetGooglePlayServicesVersion());
+
   if (did_test_setconsent_) {
     LogInfo(
         "Skipping TestGetSessionID after TestSetConsent, as GetSessionId() "
@@ -136,6 +129,10 @@ TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
     return;
   }
 #endif
+  // Log an event once, to ensure that there is currently an active Analytics
+  // session.
+  firebase::analytics::LogEvent(firebase::analytics::kEventSignUp);
+
   firebase::Future<int64_t> future;
 
   // Give Analytics a moment to initialize and create a session.

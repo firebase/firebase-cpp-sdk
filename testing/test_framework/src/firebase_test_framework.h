@@ -205,6 +205,28 @@ namespace firebase_test_framework {
 #define SKIP_TEST_ON_ANDROID_EMULATOR ((void)0)
 #endif
 
+#if defined(ANDROID)
+#define SKIP_TEST_ON_ANDROID_GOOGLE_PLAY_SERVICES_BELOW(x)                \
+  {                                                                       \
+    int _required_ver_ = (x);                                             \
+    /* Example: 23.1.2 has version code 230102???. */                     \
+    /* Allow specifying version as 230102 or as 230102000. */             \
+    if (_required_ver_ < 10000000) {                                      \
+      _required_ver_ *= 1000;                                             \
+    }                                                                     \
+    int _actual_ver_ = GetGooglePlayServicesVersion();                    \
+    if (_actual_ver_ < _required_ver_) {                                  \
+      app_framework::LogInfo(                                             \
+          "Skipping %s, as Google Play services %d is below required %d", \
+          test_info_->name(), _actual_ver_, _required_ver_);              \
+      GTEST_SKIP();                                                       \
+      return;                                                             \
+    }                                                                     \
+  }
+#else
+#define SKIP_TEST_ON_ANDROID_GOOGLE_PLAY_SERVICES_BELOW(x) ((void)0)
+#endif  // defined(ANDROID)
+
 #if defined(STLPORT)
 #define SKIP_TEST_IF_USING_STLPORT                                             \
   {                                                                            \
@@ -331,6 +353,9 @@ class FirebaseTest : public testing::Test {
   // Return true if the app is running on simulator/emulator, false if
   // on a real device (or on desktop).
   static bool IsRunningOnEmulator();
+
+  // Return Google Play services version on Android, 0 elsewhere.
+  static int GetGooglePlayServicesVersion();
 
   // Returns true if the future completed as expected, fails the test and
   // returns false otherwise.
