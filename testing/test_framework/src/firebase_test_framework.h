@@ -354,8 +354,7 @@ class FirebaseTest : public testing::Test {
   // on a real device (or on desktop).
   static bool IsRunningOnEmulator();
 
-  // If on Android and Google Play services is available, returns the
-  // Google Play services version. Otherwise, returns 0.
+  // Return Google Play services version on Android, 0 elsewhere.
   static int GetGooglePlayServicesVersion();
 
   // Returns true if the future completed as expected, fails the test and

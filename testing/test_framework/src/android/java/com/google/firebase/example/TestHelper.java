@@ -16,8 +16,7 @@ package com.google.firebase.example;
 
 import android.content.Context;
 import android.os.Build;
-import java.lang.Class;
-import java.lang.reflect.Method;
+import com.google.android.gms.common.GoogleApiAvailability;
 
 /**
  * A simple class with test helper methods.
@@ -32,22 +31,6 @@ public final class TestHelper {
         || Build.DEVICE.contains("vbox86p") || Build.HARDWARE.contains("vbox86");
   }
   public static int getGooglePlayServicesVersion(Context context) {
-      // Use reflection to invoke GoogleApiAvailability.getInstance().getApkVersion(context).
-      // This avoids needing Google Play services to be present (and returns 0 if it's not)..
-
-      // GoogleApiAvailability
-      Class<?> googleApiAvailabilityClass = Class.forName("com.google.android.gms.common.GoogleApiAvailability");
-      if (googleApiAvailabilityClass == null) {
-	  return 0;
-      }
-      // .getInstance()
-      Method getInstanceMethod = googleApiAvailabilityClass.getDeclaredMethod("getInstance");
-      Object instance = getInstanceMethod.invoke(null);
-
-      // .getApkVersion(context)
-      Method getApkVersionMethod = googleApiAvailabilityClass.getMethod("getApkVersion", new Class[]{context.class});
-      Object apkVersionObject = getInstanceMethod.invoke(instance, context);
-
-      int apkVersion = apkVersionObject.intValue;
+    return GoogleApiAvailability.getInstance().getApkVersion(context);
   }
 }
