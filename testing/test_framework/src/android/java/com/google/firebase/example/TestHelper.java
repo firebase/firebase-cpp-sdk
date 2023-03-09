@@ -16,6 +16,7 @@ package com.google.firebase.example;
 
 import android.content.Context;
 import android.os.Build;
+import android.util.Log;
 import java.lang.Class;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -53,9 +54,17 @@ public final class TestHelper {
         return ((Integer) apkVersionObject).intValue();
       }
     } catch (ClassNotFoundException e) {
+	Log.e(TAG, e.toString());
+	return 1;
     } catch (IllegalAccessException e) {
+	Log.e(TAG, e.toString());
+	return 2;
     } catch (InvocationTargetException e) {
+	Log.e(TAG, e.toString());
+	return 3;
     } catch (NoSuchMethodException e) {
+	Log.e(TAG, e.toString());
+	return 4;
     }
     return 0;
   }
