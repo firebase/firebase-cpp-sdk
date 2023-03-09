@@ -34,26 +34,27 @@ public final class TestHelper {
   public static int getGooglePlayServicesVersion(Context context) {
     // Use reflection to invoke GoogleApiAvailability.getInstance().getApkVersion(context).
     // This avoids needing Google Play services to be present (and returns 0 if it's not)..
+    try {
+      // GoogleApiAvailability
+      Class<?> googleApiAvailabilityClass =
+          Class.forName("com.google.android.gms.common.GoogleApiAvailability");
 
-    // GoogleApiAvailability
-    Class<?> googleApiAvailabilityClass =
-        Class.forName("com.google.android.gms.common.GoogleApiAvailability");
-    if (googleApiAvailabilityClass == null) {
-      return 0;
-    }
-    // .getInstance()
-    Method getInstanceMethod = googleApiAvailabilityClass.getDeclaredMethod("getInstance");
-    Object instance = getInstanceMethod.invoke(null);
+      // .getInstance()
+      Method getInstanceMethod = googleApiAvailabilityClass.getDeclaredMethod("getInstance");
+      Object instance = getInstanceMethod.invoke(null);
 
-    // .getApkVersion(context)
-    Class[] getApkVersionParams = new Class[] {Class.forName("android.build.Context")};
-    Method getApkVersionMethod =
-        googleApiAvailabilityClass.getMethod("getApkVersion", getApkVersionParams);
-    Object apkVersionObject = getInstanceMethod.invoke(instance, context);
-    if (apkVersionObject instanceof Integer) {
-      return ((Integer) apkVersionObject).intValue();
-    } else {
-      return 0;
+      // .getApkVersion(context)
+      Class[] getApkVersionParams = new Class[] {Class.forName("android.build.Context")};
+      Method getApkVersionMethod =
+          googleApiAvailabilityClass.getMethod("getApkVersion", getApkVersionParams);
+      Object apkVersionObject = getInstanceMethod.invoke(instance, context);
+      if (apkVersionObject != null && apkVersionObject instanceof Integer) {
+        return ((Integer) apkVersionObject).intValue();
+      }
+    } catch (ClassNotFoundException e) {
+    } catch (IllegalAccessException e) {
+    } catch (NoSuchMethodException e) {
     }
+    return 0;
   }
 }
