@@ -88,6 +88,7 @@ namespace firebase_test_framework {
 // SKIP_TEST_ON_MACOS
 // SKIP_TEST_ON_SIMULATOR / SKIP_TEST_ON_EMULATOR (identical)
 // SKIP_TEST_ON_IOS_SIMULATOR / SKIP_TEST_ON_ANDROID_EMULATOR
+// SKIP_TEST_ON_ANDROID_IF_GOOGLE_PLAY_SERVICES_IS_OLDER_THAN(version_code)
 //
 // Also includes a special macro SKIP_TEST_IF_USING_STLPORT if compiling for
 // Android STLPort, which does not fully support C++11.
@@ -206,7 +207,7 @@ namespace firebase_test_framework {
 #endif
 
 #if defined(ANDROID)
-#define SKIP_TEST_ON_ANDROID_IF_GOOGLE_PLAY_SERVICES_BELOW(x)                \
+#define SKIP_TEST_ON_ANDROID_IF_GOOGLE_PLAY_SERVICES_IS_OLDER_THAN(x)     \
   {                                                                       \
     int _required_ver_ = (x);                                             \
     /* Example: 23.1.2 has version code 230102???. */                     \
@@ -224,7 +225,7 @@ namespace firebase_test_framework {
     }                                                                     \
   }
 #else
-#define SKIP_TEST_ON_ANDROID_IF_GOOGLE_PLAY_SERVICES_BELOW(x) ((void)0)
+#define SKIP_TEST_ON_ANDROID_IF_GOOGLE_PLAY_SERVICES_IS_OLDER_THAN(x) ((void)0)
 #endif  // defined(ANDROID)
 
 #if defined(STLPORT)
