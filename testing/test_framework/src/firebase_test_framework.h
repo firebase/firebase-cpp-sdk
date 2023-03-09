@@ -206,7 +206,7 @@ namespace firebase_test_framework {
 #endif
 
 #if defined(ANDROID)
-#define SKIP_TEST_ON_ANDROID_GOOGLE_PLAY_SERVICES_BELOW(x)                \
+#define SKIP_TEST_ON_ANDROID_IF_GOOGLE_PLAY_SERVICES_BELOW(x)                \
   {                                                                       \
     int _required_ver_ = (x);                                             \
     /* Example: 23.1.2 has version code 230102???. */                     \
@@ -224,7 +224,7 @@ namespace firebase_test_framework {
     }                                                                     \
   }
 #else
-#define SKIP_TEST_ON_ANDROID_GOOGLE_PLAY_SERVICES_BELOW(x) ((void)0)
+#define SKIP_TEST_ON_ANDROID_IF_GOOGLE_PLAY_SERVICES_BELOW(x) ((void)0)
 #endif  // defined(ANDROID)
 
 #if defined(STLPORT)
