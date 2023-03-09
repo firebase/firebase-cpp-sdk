@@ -980,7 +980,7 @@ TEST_F(FirebaseAppCheckTest, TestFirestoreListener) {
   auto listener_snapshots = std::make_shared<ListenerSnapshots>();
   firebase::firestore::ListenerRegistration registration =
       document.AddSnapshotListener(
-          [&listener_snapshots](
+          [listener_snapshots](
               const firebase::firestore::DocumentSnapshot& result,
               firebase::firestore::Error error_code,
               const std::string& error_message) {
