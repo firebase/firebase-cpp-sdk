@@ -32,8 +32,8 @@ public final class TestHelper {
         || Build.DEVICE.contains("vbox86p") || Build.HARDWARE.contains("vbox86");
   }
   public static int getGooglePlayServicesVersion(Context context) {
-    // Use reflection to invoke GoogleApiAvailability.getInstance().getApkVersion(context).
-    // This avoids needing Google Play services to be present (and returns 0 if it's not)..
+    // Use reflection to return GoogleApiAvailability.getInstance().getApkVersion(context);
+    // This avoids needing Google Play services to be present (and returns 0 if it's not).
     try {
       // GoogleApiAvailability
       Class<?> googleApiAvailabilityClass =
@@ -53,6 +53,7 @@ public final class TestHelper {
       }
     } catch (ClassNotFoundException e) {
     } catch (IllegalAccessException e) {
+    } catch (InvocationTargetException e) {
     } catch (NoSuchMethodException e) {
     }
     return 0;
