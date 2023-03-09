@@ -45,9 +45,14 @@ public final class TestHelper {
       Object instance = getInstanceMethod.invoke(null);
 
       // .getApkVersion(context)
-      Method getApkVersionMethod = googleApiAvailabilityClass.getMethod("getApkVersion", new Class[]{context.class});
+      Class[] getApkVersionParams = new Class[]{Class.forName("android.build.Context")};
+      Method getApkVersionMethod = googleApiAvailabilityClass.getMethod("getApkVersion", getApkVersionParams);
       Object apkVersionObject = getInstanceMethod.invoke(instance, context);
-
-      int apkVersion = apkVersionObject.intValue;
+      if (apkVersionObject is Integer) {
+	  return (apkVersionObject as Integer).intValue;
+      }
+      else {
+	  return 0;
+      }
   }
 }
