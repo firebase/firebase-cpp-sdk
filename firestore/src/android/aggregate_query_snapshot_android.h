@@ -18,12 +18,25 @@
 #define FIREBASE_FIRESTORE_SRC_ANDROID_AGGREGATE_QUERY_SNAPSHOT_ANDROID_H_
 
 #include "firestore/src/android/wrapper.h"
+#include "firestore/src/include/firebase/firestore/aggregate_query.h"
+#include "firestore/src/include/firebase/firestore/aggregate_query_snapshot.h"
 
 namespace firebase {
 namespace firestore {
 
+class AggregateQuery;
+
 class AggregateQuerySnapshotInternal : public Wrapper {
  public:
+  using Wrapper::Wrapper;
+
+  static AggregateQuerySnapshot Create(
+      jni::Env& env,
+      AggregateQueryInternal& aggregate_query_internal,
+      int64_t count
+  );
+
+  static void Initialize(jni::Loader& loader);
 
   AggregateQuery query() const;
   int64_t count() const;

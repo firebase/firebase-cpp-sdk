@@ -22,6 +22,7 @@
 
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
+#include "firestore/src/android/aggregate_query_snapshot_android.h"
 #include "firestore/src/android/converter_android.h"
 #include "firestore/src/android/document_snapshot_android.h"
 #include "firestore/src/android/exception_android.h"

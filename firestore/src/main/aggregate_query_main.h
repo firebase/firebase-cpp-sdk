@@ -18,7 +18,7 @@
 #define FIREBASE_FIRESTORE_SRC_MAIN_AGGREGATE_QUERY_MAIN_H_
 
 #include "Firestore/core/src/api/aggregate_query.h"
-#include "firestore/src/include/firebase/firestore/aggregate_query.h"
+#include "firestore/src/include/firebase/firestore/aggregate_source.h"
 #include "firestore/src/main/firestore_main.h"
 
 #if defined(__ANDROID__)
@@ -27,6 +27,8 @@
 
 namespace firebase {
 namespace firestore {
+
+class AggregateQuerySnapshot;
 
 class AggregateQueryInternal {
  public:

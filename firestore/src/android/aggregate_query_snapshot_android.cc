@@ -14,10 +14,62 @@
 * limitations under the License.
  */
 
+#include "firestore/src/android/aggregate_query_snapshot_android.h"
+
+#include "firestore/src/android/aggregate_query_android.h"
+#include "firestore/src/jni/compare.h"
+#include "firestore/src/jni/env.h"
+#include "firestore/src/jni/loader.h"
+
 namespace firebase {
 namespace firestore {
 namespace {
 
+using jni::Env;
+using jni::Local;
+using jni::Method;
+using jni::Object;
+using jni::Constructor;
+
+constexpr char kClassName[] =
+    PROGUARD_KEEP_CLASS "com/google/firebase/firestore/AggregateQuerySnapshot";
+Constructor<Object> kConstructor("(Lcom/google/firebase/firestore/AggregateQuery;J)V");
+Method<int64_t> kCount("getCount", "()J");
+Method<Object> kGetQuery("getQuery", "()Lcom/google/firebase/firestore/AggregateQuery;");
+Method<int32_t> kHashCode("hashCode", "()I");
+
+}  // namespace
+
+void AggregateQuerySnapshotInternal::Initialize(jni::Loader& loader) {
+  loader.LoadClass(kClassName, kConstructor, kCount, kGetQuery, kHashCode);
+}
+
+AggregateQuerySnapshot AggregateQuerySnapshotInternal::Create(
+    Env& env, AggregateQueryInternal& aggregate_query_internal, int64_t count) {
+  const Object& arg = aggregate_query_internal.ToJava();
+  Local<Object> instance = env.New(kConstructor, arg, count);
+  return aggregate_query_internal.firestore_internal()->NewAggregateQuerySnapshot(env, instance);
+}
+
+AggregateQuery AggregateQuerySnapshotInternal::query() const {
+  Env env = GetEnv();
+  Local<Object> query = env.Call(obj_, kGetQuery);
+  return firestore_->NewAggregateQuery(env, query);
+}
+
+int64_t AggregateQuerySnapshotInternal::count() const {
+  Env env = GetEnv();
+  return env.Call(obj_, kCount);
+}
+
+std::size_t AggregateQuerySnapshotInternal::Hash() const {
+  Env env = GetEnv();
+  return env.Call(obj_, kHashCode);
+}
+
+bool operator==(const AggregateQuerySnapshotInternal& lhs,
+                const AggregateQuerySnapshotInternal& rhs) {
+  return jni::EqualityCompareJni(lhs, rhs);
 }
 
 }  // namespace firestore

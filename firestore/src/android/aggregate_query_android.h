@@ -17,13 +17,29 @@
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_AGGREGATE_QUERY_ANDROID_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_AGGREGATE_QUERY_ANDROID_H_
 
+#include "firestore/src/android/promise_factory_android.h"
+#include "firestore/src/android/query_android.h"
 #include "firestore/src/android/wrapper.h"
+#include "firestore/src/include/firebase/firestore/aggregate_source.h"
 
 namespace firebase {
 namespace firestore {
 
 class AggregateQueryInternal : public Wrapper {
  public:
+  // Each API of AggregateQuery that returns a Future needs to define an enum value
+  // here. For example, a Future-returning method Foo() relies on the enum value
+  // kFoo. The enum values are used to identify and manage Future in the
+  // Firestore Future manager.
+  enum class AsyncFn {
+    kGet = 0,
+    kCount,  // Must be the last enum value.
+  };
+
+  static void Initialize(jni::Loader& loader);
+
+  AggregateQueryInternal(FirestoreInternal* firestore, const jni::Object& object)
+      : Wrapper(firestore, object), promises_(firestore) {}
 
   /**
    * @brief Returns the query whose aggregations will be calculated by this
@@ -43,6 +59,8 @@ class AggregateQueryInternal : public Wrapper {
 
   size_t Hash() const;
 
+ private:
+  PromiseFactory<AsyncFn> promises_;
 };
 
 bool operator==(const AggregateQueryInternal& lhs, const AggregateQueryInternal& rhs);

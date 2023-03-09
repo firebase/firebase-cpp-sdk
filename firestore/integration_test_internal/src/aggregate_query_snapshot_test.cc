@@ -14,14 +14,17 @@
  * limitations under the License.
  */
 
-#include "firebase/firestore.h"
 #include "firestore_integration_test.h"
+
+#include "firebase/firestore.h"
 
 #include "gtest/gtest.h"
 
 #if defined(__ANDROID__)
+#include "firestore/src/android/aggregate_query_android.h"
 #include "firestore/src/android/aggregate_query_snapshot_android.h"
 #include "firestore/src/android/converter_android.h"
+#include "firestore/src/jni/object.h"
 #else
 #include "firestore/src/main/aggregate_query_snapshot_main.h"
 #include "firestore/src/main/converter_main.h"
@@ -38,8 +41,10 @@ class AggregateQuerySnapshotTest : public FirestoreIntegrationTest {
 
 #if defined(__ANDROID__)
 AggregateQuerySnapshot AggregateQuerySnapshotTest::TestAggregateQuerySnapshot(firebase::firestore::AggregateQuery aggregate_query, const int count) {
-  return MakePublic(
-      AggregateQuerySnapshotInternal(AggregateQuery(), count));
+  AggregateQueryInternal* internal = GetInternal(&aggregate_query);
+  FirestoreInternal* firestoreInternal = internal->firestore_internal();
+  jni::Env env = firestoreInternal->GetEnv();
+  return AggregateQuerySnapshotInternal::Create(env, *internal, count);
 }
 #else
 AggregateQuerySnapshot AggregateQuerySnapshotTest::TestAggregateQuerySnapshot(firebase::firestore::AggregateQuery aggregate_query, const int count) {
