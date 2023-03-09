@@ -17,6 +17,7 @@ package com.google.firebase.example;
 import android.content.Context;
 import android.os.Build;
 import java.lang.Class;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 /**
