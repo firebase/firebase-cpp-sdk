@@ -626,12 +626,15 @@ Env FirestoreInternal::GetEnv() {
   return env;
 }
 
-AggregateQuery FirestoreInternal::NewAggregateQuery(Env& env, const jni::Object& aggregate_query) const {
+AggregateQuery FirestoreInternal::NewAggregateQuery(
+    Env& env, const jni::Object& aggregate_query) const {
   return MakePublic<AggregateQuery>(env, mutable_this(), aggregate_query);
 }
 
-AggregateQuerySnapshot FirestoreInternal::NewAggregateQuerySnapshot(Env& env, const jni::Object& aggregate_query_snapshot) const {
-  return MakePublic<AggregateQuerySnapshot>(env, mutable_this(), aggregate_query_snapshot);
+AggregateQuerySnapshot FirestoreInternal::NewAggregateQuerySnapshot(
+    Env& env, const jni::Object& aggregate_query_snapshot) const {
+  return MakePublic<AggregateQuerySnapshot>(env, mutable_this(),
+                                            aggregate_query_snapshot);
 }
 
 CollectionReference FirestoreInternal::NewCollectionReference(

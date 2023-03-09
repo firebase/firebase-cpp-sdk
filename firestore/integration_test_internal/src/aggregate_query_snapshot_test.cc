@@ -40,14 +40,16 @@ class AggregateQuerySnapshotTest : public FirestoreIntegrationTest {
 };
 
 #if defined(__ANDROID__)
-AggregateQuerySnapshot AggregateQuerySnapshotTest::TestAggregateQuerySnapshot(firebase::firestore::AggregateQuery aggregate_query, const int count) {
+AggregateQuerySnapshot AggregateQuerySnapshotTest::TestAggregateQuerySnapshot(
+    firebase::firestore::AggregateQuery aggregate_query, const int count) {
   AggregateQueryInternal* internal = GetInternal(&aggregate_query);
   FirestoreInternal* firestoreInternal = internal->firestore_internal();
   jni::Env env = firestoreInternal->GetEnv();
   return AggregateQuerySnapshotInternal::Create(env, *internal, count);
 }
 #else
-AggregateQuerySnapshot AggregateQuerySnapshotTest::TestAggregateQuerySnapshot(firebase::firestore::AggregateQuery aggregate_query, const int count) {
+AggregateQuerySnapshot AggregateQuerySnapshotTest::TestAggregateQuerySnapshot(
+    firebase::firestore::AggregateQuery aggregate_query, const int count) {
   api::AggregateQuery aggregateQuery =
       GetInternal(&aggregate_query)->aggregate_query_;
   return MakePublic(

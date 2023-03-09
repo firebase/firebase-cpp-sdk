@@ -1,17 +1,17 @@
 /*
-* Copyright 2022 Google LLC
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
+ * Copyright 2022 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include "firestore/src/android/aggregate_query_snapshot_android.h"
@@ -25,17 +25,19 @@ namespace firebase {
 namespace firestore {
 namespace {
 
+using jni::Constructor;
 using jni::Env;
 using jni::Local;
 using jni::Method;
 using jni::Object;
-using jni::Constructor;
 
 constexpr char kClassName[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/AggregateQuerySnapshot";
-Constructor<Object> kConstructor("(Lcom/google/firebase/firestore/AggregateQuery;J)V");
+Constructor<Object> kConstructor(
+    "(Lcom/google/firebase/firestore/AggregateQuery;J)V");
 Method<int64_t> kCount("getCount", "()J");
-Method<Object> kGetQuery("getQuery", "()Lcom/google/firebase/firestore/AggregateQuery;");
+Method<Object> kGetQuery("getQuery",
+                         "()Lcom/google/firebase/firestore/AggregateQuery;");
 Method<int32_t> kHashCode("hashCode", "()I");
 
 }  // namespace
@@ -48,7 +50,8 @@ AggregateQuerySnapshot AggregateQuerySnapshotInternal::Create(
     Env& env, AggregateQueryInternal& aggregate_query_internal, int64_t count) {
   const Object& arg = aggregate_query_internal.ToJava();
   Local<Object> instance = env.New(kConstructor, arg, count);
-  return aggregate_query_internal.firestore_internal()->NewAggregateQuerySnapshot(env, instance);
+  return aggregate_query_internal.firestore_internal()
+      ->NewAggregateQuerySnapshot(env, instance);
 }
 
 AggregateQuery AggregateQuerySnapshotInternal::query() const {

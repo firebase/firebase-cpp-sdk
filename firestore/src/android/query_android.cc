@@ -51,9 +51,8 @@ using jni::Task;
 
 constexpr char kClassName[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/Query";
-Method<Object> kCount(
-    "count",
-    "()Lcom/google/firebase/firestore/AggregateQuery;");
+Method<Object> kCount("count",
+                      "()Lcom/google/firebase/firestore/AggregateQuery;");
 Method<Object> kEqualTo(
     "whereEqualTo",
     "(Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;)"
@@ -153,7 +152,7 @@ Firestore* QueryInternal::firestore() {
 
 AggregateQuery QueryInternal::Count() const {
   Env env = GetEnv();
-  Local<Object> aggregate_query =  env.Call(obj_, kCount);
+  Local<Object> aggregate_query = env.Call(obj_, kCount);
   return firestore_->NewAggregateQuery(env, aggregate_query);
 }
 
