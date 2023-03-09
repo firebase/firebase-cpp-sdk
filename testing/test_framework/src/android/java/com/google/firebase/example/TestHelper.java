@@ -53,18 +53,8 @@ public final class TestHelper {
       if (apkVersionObject != null && apkVersionObject instanceof Integer) {
         return ((Integer) apkVersionObject).intValue();
       }
-    } catch (ClassNotFoundException e) {
-	Log.e(TAG, e.toString());
-	return -1;
-    } catch (IllegalAccessException e) {
-	Log.e(TAG, e.toString());
-	return -2;
-    } catch (InvocationTargetException e) {
-	Log.e(TAG, e.toString());
-	return -3;
-    } catch (NoSuchMethodException e) {
-	Log.e(TAG, e.toString());
-	return -4;
+    } catch (Exception e) {
+      Log.e(TAG, e.toString());
     }
     return 0;
   }
