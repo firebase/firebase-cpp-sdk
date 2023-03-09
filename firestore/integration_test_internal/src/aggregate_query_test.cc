@@ -30,7 +30,7 @@ namespace {
 
 using AggregateQueryTest = FirestoreIntegrationTest;
 
-TEST_F(AggregateQueryTest, DefaultConstructorReturnsValidObject) {
+TEST_F(AggregateQueryTest, DefaultConstructorReturnsInvalidObject) {
   AggregateQuery aggregate_query;
   EXPECT_EQ(aggregate_query.query(), Query());
   EXPECT_FALSE(aggregate_query.is_valid());
@@ -54,7 +54,7 @@ TEST_F(AggregateQueryTest,
 }
 
 TEST_F(AggregateQueryTest, CopyConstructorAppliedToDefaultReturnsEqualObject) {
-  const AggregateQuery aggregate_query = AggregateQuery();
+  const AggregateQuery aggregate_query;
 
   EXPECT_EQ(aggregate_query.query(), Query());
   EXPECT_FALSE(aggregate_query.is_valid());
@@ -94,7 +94,7 @@ TEST_F(
 TEST_F(
     AggregateQueryTest,
     DefaultObjectCopyAssignmentOperatorAppliedToDefaultObjectReturnsEqualObject) {
-  const AggregateQuery aggregate_query = AggregateQuery();
+  const AggregateQuery aggregate_query;
 
   EXPECT_EQ(aggregate_query.query(), Query());
   EXPECT_FALSE(aggregate_query.is_valid());
@@ -138,7 +138,7 @@ TEST_F(AggregateQueryTest,
 
 TEST_F(AggregateQueryTest,
        ValidObjectCopyAssignmentAppliedToDefaultReturnsEqualObject) {
-  const AggregateQuery aggregate_query = AggregateQuery();
+  const AggregateQuery aggregate_query;
 
   EXPECT_EQ(aggregate_query.query(), Query());
   EXPECT_FALSE(aggregate_query.is_valid());
@@ -208,7 +208,7 @@ TEST_F(AggregateQueryTest,
 
 TEST_F(AggregateQueryTest,
        MoveConstructorAppliedToDefaultObjectReturnsEqualObject) {
-  AggregateQuery aggregate_query = AggregateQuery();
+  AggregateQuery aggregate_query;
 
   EXPECT_EQ(aggregate_query.query(), Query());
   EXPECT_FALSE(aggregate_query.is_valid());
@@ -243,7 +243,7 @@ TEST_F(
 TEST_F(
     AggregateQueryTest,
     DefaultObjectMoveAssignmentOperatorAppliedToDefaultObjectReturnsEqualObject) {
-  AggregateQuery aggregate_query = AggregateQuery();
+  AggregateQuery aggregate_query;
 
   EXPECT_EQ(aggregate_query.query(), Query());
   EXPECT_FALSE(aggregate_query.is_valid());
@@ -281,10 +281,25 @@ TEST_F(
   EXPECT_TRUE(snapshot_move_dest.is_valid());
 }
 
+TEST_F(AggregateQueryTest,
+       MoveAssignmentOperatorAppliedToSelfReturnsEqualObject) {
+  const Query query = TestFirestore()->Collection("foo").Limit(10);
+
+  AggregateQuery aggregate_query = query.Count();
+
+  EXPECT_EQ(aggregate_query.query(), query);
+  EXPECT_TRUE(aggregate_query.is_valid());
+
+  aggregate_query = std::move(aggregate_query);
+
+  EXPECT_EQ(aggregate_query.query(), query);
+  EXPECT_TRUE(aggregate_query.is_valid());
+}
+
 TEST_F(
     AggregateQueryTest,
     ValidObjectMoveAssignmentOperatorAppliedToDefaultObjectReturnsEqualObject) {
-  AggregateQuery aggregate_query = AggregateQuery();
+  AggregateQuery aggregate_query;
 
   EXPECT_EQ(aggregate_query.query(), Query());
   EXPECT_FALSE(aggregate_query.is_valid());

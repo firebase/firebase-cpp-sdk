@@ -63,7 +63,7 @@ std::size_t AggregateQuerySnapshotHash(const AggregateQuerySnapshot& snapshot) {
 
 namespace {
 
-TEST_F(AggregateQuerySnapshotTest, DefaultConstructorReturnsValidObject) {
+TEST_F(AggregateQuerySnapshotTest, DefaultConstructorReturnsInvalidObject) {
   AggregateQuerySnapshot snapshot;
   EXPECT_EQ(snapshot.query(), AggregateQuery());
   EXPECT_EQ(snapshot.count(), 0);
@@ -72,7 +72,7 @@ TEST_F(AggregateQuerySnapshotTest, DefaultConstructorReturnsValidObject) {
 
 TEST_F(AggregateQuerySnapshotTest,
        CopyConstructorAppliedToDefaultObjectReturnsEqualObject) {
-  AggregateQuerySnapshot snapshot = AggregateQuerySnapshot();
+  AggregateQuerySnapshot snapshot;
 
   EXPECT_EQ(snapshot.count(), 0);
   EXPECT_EQ(snapshot.query(), AggregateQuery());
@@ -140,7 +140,7 @@ TEST_F(
 TEST_F(
     AggregateQuerySnapshotTest,
     DefaultObjectCopyAssignmentOperatorAppliedToDefaultObjectReturnsEqualObject) {
-  const AggregateQuerySnapshot snapshot = AggregateQuerySnapshot();
+  const AggregateQuerySnapshot snapshot;
 
   EXPECT_EQ(snapshot.count(), 0);
   EXPECT_EQ(snapshot.query(), AggregateQuery());
@@ -270,7 +270,7 @@ TEST_F(AggregateQuerySnapshotTest,
 
 TEST_F(AggregateQuerySnapshotTest,
        MoveConstructorAppliedToDefaultObjectReturnsEqualObject) {
-  AggregateQuerySnapshot snapshot = AggregateQuerySnapshot();
+  AggregateQuerySnapshot snapshot;
 
   EXPECT_EQ(snapshot.count(), 0);
   EXPECT_EQ(snapshot.query(), AggregateQuery());
@@ -314,7 +314,7 @@ TEST_F(
 TEST_F(
     AggregateQuerySnapshotTest,
     DefaultObjectMoveAssignmentOperatorAppliedToDefaultObjectReturnsEqualObject) {
-  AggregateQuerySnapshot snapshot = AggregateQuerySnapshot();
+  AggregateQuerySnapshot snapshot;
 
   EXPECT_EQ(snapshot.count(), 0);
   EXPECT_EQ(snapshot.query(), AggregateQuery());
@@ -367,7 +367,7 @@ TEST_F(
 TEST_F(
     AggregateQuerySnapshotTest,
     ValidObjectMoveAssignmentOperatorAppliedToDefaultObjectReturnsEqualObject) {
-  AggregateQuerySnapshot snapshot = AggregateQuerySnapshot();
+  AggregateQuerySnapshot snapshot;
 
   EXPECT_EQ(snapshot.count(), 0);
   EXPECT_EQ(snapshot.query(), AggregateQuery());
@@ -392,6 +392,25 @@ TEST_F(
   EXPECT_EQ(snapshot_move_dest.count(), 0);
   EXPECT_EQ(snapshot_move_dest.query(), AggregateQuery());
   EXPECT_FALSE(snapshot_move_dest.is_valid());
+}
+
+TEST_F(AggregateQuerySnapshotTest,
+       MoveAssignmentOperatorAppliedToSelfReturnsEqualObject) {
+  const AggregateQuery aggregate_query =
+      TestFirestore()->Collection("foo").Limit(10).Count();
+
+  AggregateQuerySnapshot snapshot =
+      TestAggregateQuerySnapshot(aggregate_query, 99);
+
+  EXPECT_EQ(snapshot.count(), 99);
+  EXPECT_EQ(snapshot.query(), aggregate_query);
+  EXPECT_TRUE(snapshot.is_valid());
+
+  snapshot = std::move(snapshot);
+
+  EXPECT_EQ(snapshot.count(), 99);
+  EXPECT_EQ(snapshot.query(), aggregate_query);
+  EXPECT_TRUE(snapshot.is_valid());
 }
 
 TEST_F(AggregateQuerySnapshotTest,
@@ -428,8 +447,8 @@ TEST_F(AggregateQuerySnapshotTest,
 
 TEST_F(AggregateQuerySnapshotTest,
        IdenticalDefaultAggregateSnapshotShouldBeEqual) {
-  AggregateQuerySnapshot snapshot1 = AggregateQuerySnapshot();
-  AggregateQuerySnapshot snapshot2 = AggregateQuerySnapshot();
+  AggregateQuerySnapshot snapshot1;
+  AggregateQuerySnapshot snapshot2;
 
   EXPECT_TRUE(snapshot1 == snapshot1);
   EXPECT_TRUE(snapshot1 == snapshot2);
@@ -448,7 +467,7 @@ TEST_F(AggregateQuerySnapshotTest, NonEquality) {
   AggregateQuerySnapshot snapshot2 = ReadAggregate(collection.Limit(1).Count());
   AggregateQuerySnapshot snapshot3 = ReadAggregate(collection.Limit(3).Count());
   AggregateQuerySnapshot snapshot4 = ReadAggregate(collection.Count());
-  AggregateQuerySnapshot snapshot5 = AggregateQuerySnapshot();
+  AggregateQuerySnapshot snapshot5;
 
   EXPECT_TRUE(snapshot1 == snapshot1);
   EXPECT_TRUE(snapshot2 == snapshot2);
