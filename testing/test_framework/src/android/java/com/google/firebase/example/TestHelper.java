@@ -49,22 +49,22 @@ public final class TestHelper {
       Class[] getApkVersionParams = new Class[] {Class.forName("android.build.Context")};
       Method getApkVersionMethod =
           googleApiAvailabilityClass.getMethod("getApkVersion", getApkVersionParams);
-      Object apkVersionObject = getInstanceMethod.invoke(instance, context);
+      Object apkVersionObject = getApkVersionMethod.invoke(instance, context);
       if (apkVersionObject != null && apkVersionObject instanceof Integer) {
         return ((Integer) apkVersionObject).intValue();
       }
     } catch (ClassNotFoundException e) {
 	Log.e(TAG, e.toString());
-	return 1;
+	return -1;
     } catch (IllegalAccessException e) {
 	Log.e(TAG, e.toString());
-	return 2;
+	return -2;
     } catch (InvocationTargetException e) {
 	Log.e(TAG, e.toString());
-	return 3;
+	return -3;
     } catch (NoSuchMethodException e) {
 	Log.e(TAG, e.toString());
-	return 4;
+	return -4;
     }
     return 0;
   }
