@@ -108,7 +108,7 @@ TEST_F(FirebaseAnalyticsTest, TestGetAnalyticsInstanceID) {
 
 TEST_F(FirebaseAnalyticsTest, TestGetSessionID) {
   // Don't run this test if Google Play services is < 23.0.0.
-  SKIP_TEST_ON_ANDROID_GOOGLE_PLAY_SERVICES_BELOW(230000);
+  SKIP_TEST_ON_ANDROID_IF_GOOGLE_PLAY_SERVICES_IS_OLDER_THAN(230000);
 
   // iOS simulator tests are currently extra flaky, occasionally failing with an
   // "Analytics uninitialized" error even after multiple attempts.

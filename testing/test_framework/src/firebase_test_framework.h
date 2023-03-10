@@ -88,6 +88,7 @@ namespace firebase_test_framework {
 // SKIP_TEST_ON_MACOS
 // SKIP_TEST_ON_SIMULATOR / SKIP_TEST_ON_EMULATOR (identical)
 // SKIP_TEST_ON_IOS_SIMULATOR / SKIP_TEST_ON_ANDROID_EMULATOR
+// SKIP_TEST_ON_ANDROID_IF_GOOGLE_PLAY_SERVICES_IS_OLDER_THAN(version_code)
 //
 // Also includes a special macro SKIP_TEST_IF_USING_STLPORT if compiling for
 // Android STLPort, which does not fully support C++11.
@@ -206,7 +207,7 @@ namespace firebase_test_framework {
 #endif
 
 #if defined(ANDROID)
-#define SKIP_TEST_ON_ANDROID_GOOGLE_PLAY_SERVICES_BELOW(x)                \
+#define SKIP_TEST_ON_ANDROID_IF_GOOGLE_PLAY_SERVICES_IS_OLDER_THAN(x)     \
   {                                                                       \
     int _required_ver_ = (x);                                             \
     /* Example: 23.1.2 has version code 230102???. */                     \
@@ -215,7 +216,7 @@ namespace firebase_test_framework {
       _required_ver_ *= 1000;                                             \
     }                                                                     \
     int _actual_ver_ = GetGooglePlayServicesVersion();                    \
-    if (_actual_ver_ < _required_ver_) {                                  \
+    if (_actual_ver_ > 0 && _actual_ver_ < _required_ver_) {              \
       app_framework::LogInfo(                                             \
           "Skipping %s, as Google Play services %d is below required %d", \
           test_info_->name(), _actual_ver_, _required_ver_);              \
@@ -224,7 +225,7 @@ namespace firebase_test_framework {
     }                                                                     \
   }
 #else
-#define SKIP_TEST_ON_ANDROID_GOOGLE_PLAY_SERVICES_BELOW(x) ((void)0)
+#define SKIP_TEST_ON_ANDROID_IF_GOOGLE_PLAY_SERVICES_IS_OLDER_THAN(x) ((void)0)
 #endif  // defined(ANDROID)
 
 #if defined(STLPORT)
@@ -354,7 +355,8 @@ class FirebaseTest : public testing::Test {
   // on a real device (or on desktop).
   static bool IsRunningOnEmulator();
 
-  // Return Google Play services version on Android, 0 elsewhere.
+  // If on Android and Google Play services is available, returns the
+  // Google Play services version. Otherwise, returns 0.
   static int GetGooglePlayServicesVersion();
 
   // Returns true if the future completed as expected, fails the test and
