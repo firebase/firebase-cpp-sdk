@@ -454,7 +454,7 @@ void ReauthenticateWithProviderGetCredentialCallback(FIRAuthCredential* _Nullabl
 Future<SignInResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
   assert(auth_data);
   ReferenceCountedFutureImpl& futures = auth_data->future_impl;
-  const auto handle = futures.SafeAlloc<SignInResult>(kAuthFn_SignInWithProvider, SignInResult());
+  const auto handle = futures.SafeAlloc<SignInResult>(kAuthFn_SignInWithProvider_DEPRECATED, SignInResult());
   FIROAuthProvider* ios_provider = (FIROAuthProvider*)[FIROAuthProvider
       providerWithProviderID:@(provider_data_.provider_id.c_str())
                         auth:AuthImpl(auth_data)];
@@ -480,7 +480,7 @@ Future<SignInResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
 Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
   assert(auth_data);
   ReferenceCountedFutureImpl& futures = auth_data->future_impl;
-  auto handle = futures.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider, SignInResult());
+  auto handle = futures.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider_DEPRECATED, SignInResult());
 #if FIREBASE_PLATFORM_IOS
   FIROAuthProvider* ios_provider = (FIROAuthProvider*)[FIROAuthProvider
       providerWithProviderID:@(provider_data_.provider_id.c_str())
@@ -514,7 +514,7 @@ Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
 Future<SignInResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data) {
   assert(auth_data);
   ReferenceCountedFutureImpl& futures = auth_data->future_impl;
-  auto handle = futures.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider, SignInResult());
+  auto handle = futures.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider_DEPRECATED, SignInResult());
 #if FIREBASE_PLATFORM_IOS
   FIROAuthProvider* ios_provider = (FIROAuthProvider*)[FIROAuthProvider
       providerWithProviderID:@(provider_data_.provider_id.c_str())

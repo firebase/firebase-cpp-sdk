@@ -81,7 +81,7 @@ Future<SignInResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), handler_);
   assert(auth_data);
   Future<SignInResult> future =
-      CreateAuthFuture(auth_data, kAuthFn_SignInWithProvider);
+      CreateAuthFuture(auth_data, kAuthFn_SignInWithProvider_DEPRECATED);
   if (future.status() == kFutureStatusPending) {
     AuthCompletionHandle* auth_completion_handle = new AuthCompletionHandle(
         SafeFutureHandle<SignInResult>(future.GetHandle()), auth_data);
@@ -94,7 +94,7 @@ Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
   assert(auth_data);
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), handler_);
   Future<SignInResult> future =
-      CreateAuthFuture(auth_data, kUserFn_LinkWithProvider);
+      CreateAuthFuture(auth_data, kUserFn_LinkWithProvider_DEPRECATED);
   if (future.status() == kFutureStatusPending) {
     AuthCompletionHandle* auth_completion_handle = new AuthCompletionHandle(
         SafeFutureHandle<SignInResult>(future.GetHandle()), auth_data);
@@ -108,7 +108,7 @@ Future<SignInResult> FederatedOAuthProvider::Reauthenticate(
   assert(auth_data);
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), handler_);
   Future<SignInResult> future =
-      CreateAuthFuture(auth_data, kUserFn_ReauthenticateWithProvider);
+      CreateAuthFuture(auth_data, kUserFn_ReauthenticateWithProvider_DEPRECATED);
   if (future.status() == kFutureStatusPending) {
     AuthCompletionHandle* auth_completion_handle = new AuthCompletionHandle(
         SafeFutureHandle<SignInResult>(future.GetHandle()), auth_data);

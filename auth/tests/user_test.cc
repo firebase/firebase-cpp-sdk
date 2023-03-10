@@ -368,7 +368,7 @@ TEST_F(UserTest, TestReauthenticateAndRetrieveData) {
       "}";
   firebase::testing::cppsdk::ConfigSet(config.c_str());
 
-  Future<SignInResult> result = firebase_user_->ReauthenticateAndRetrieveData(
+  Future<SignInResult> result = firebase_user_->ReauthenticateAndRetrieveData_DEPRECATED(
       EmailAuthProvider::GetCredential("i@email.com", "pw"));
   Verify(result);
 }
@@ -414,7 +414,7 @@ TEST_F(UserTest, TestLinkWithCredential) {
       "}";
   firebase::testing::cppsdk::ConfigSet(config.c_str());
 
-  Future<User*> result = firebase_user_->LinkWithCredential(
+  Future<User*> result = firebase_user_->LinkWithCredential_DEPRECATED(
       EmailAuthProvider::GetCredential("i@email.com", "pw"));
   Verify(result);
 }
@@ -422,7 +422,7 @@ TEST_F(UserTest, TestLinkWithCredential) {
 #if !defined(__APPLE__) && !defined(FIREBASE_WAIT_ASYNC_IN_TEST)
 TEST_F(UserTest, TestLinkAndRetrieveDataWithCredential) {
   // Test link and retrieve data with credential. This calls the same native SDK
-  // function as LinkWithCredential().
+  // function as LinkWithCredential_DEPRECATED().
   firebase::testing::cppsdk::ConfigSet(
       "{"
       "  config:["
@@ -461,7 +461,7 @@ TEST_F(UserTest, TestUnlink) {
   // MaybeWaitForFuture because to Reload will return immediately for mobile
   // wrappers, and Verify expects at least a single "tick".
   MaybeWaitForFuture(firebase_user_->Reload());
-  Future<User*> result = firebase_user_->Unlink("provider");
+  Future<User*> result = firebase_user_->Unlink_DEPRECATED("provider");
   Verify(result);
   // For desktop, the provider must have been removed. For mobile wrappers, the
   // whole flow must have been a no-op, and the provider list was empty to begin

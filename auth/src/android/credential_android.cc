@@ -1015,7 +1015,7 @@ Future<SignInResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
 
   ReferenceCountedFutureImpl& futures = auth_data->future_impl;
   const auto handle = futures.SafeAlloc<SignInResult>(
-      kAuthFn_SignInWithProvider, SignInResult());
+      kAuthFn_SignInWithProvider_DEPRECATED, SignInResult());
 
   jobject oauthprovider = ConstructOAuthProvider(auth_data, provider_data_);
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
@@ -1039,7 +1039,7 @@ Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
   JNIEnv* env = Env(auth_data);
   ReferenceCountedFutureImpl& futures = auth_data->future_impl;
   const auto handle =
-      futures.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider, SignInResult());
+      futures.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider_DEPRECATED, SignInResult());
 
   jobject oauthprovider = ConstructOAuthProvider(auth_data, provider_data_);
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
@@ -1064,7 +1064,7 @@ Future<SignInResult> FederatedOAuthProvider::Reauthenticate(
   JNIEnv* env = Env(auth_data);
   ReferenceCountedFutureImpl& futures = auth_data->future_impl;
   const auto handle = futures.SafeAlloc<SignInResult>(
-      kUserFn_ReauthenticateWithProvider, SignInResult());
+      kUserFn_ReauthenticateWithProvider_DEPRECATED, SignInResult());
 
   jobject oauthprovider = ConstructOAuthProvider(auth_data, provider_data_);
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {

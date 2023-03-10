@@ -532,7 +532,7 @@ void LinkCredential(const firebase::auth::Credential& credential,
   // Link the new credential to the currently active user.
   firebase::auth::User* current_user = auth->current_user_DEPRECATED();
   firebase::Future<firebase::auth::User*> result =
-      current_user->LinkWithCredential(credential);
+      current_user->LinkWithCredential_DEPRECATED(credential);
   // [END user_link]
 }
 
@@ -541,7 +541,7 @@ void UnLinkCredential(const char* providerId, firebase::auth::Auth* auth) {
   // Unlink the sign-in provider from the currently active user.
   firebase::auth::User* current_user = auth->current_user_DEPRECATED();
   firebase::Future<firebase::auth::User*> result =
-      current_user->Unlink(providerId);
+      current_user->Unlink_DEPRECATED(providerId);
   // [END user_unlink]
 }
 

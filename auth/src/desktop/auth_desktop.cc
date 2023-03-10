@@ -339,7 +339,7 @@ void Auth::DestroyPlatformAuth(AuthData* const auth_data) {
 
 Future<User*> Auth::SignInWithCustomToken_DEPRECATED(const char* const custom_token) {
   Promise<User*> promise(&auth_data_->future_impl,
-                         kAuthFn_SignInWithCustomToken);
+                         kAuthFn_SignInWithCustomToken_DEPRECATED);
   if (!custom_token || strlen(custom_token) == 0) {
     FailPromise(&promise, kAuthErrorInvalidCustomToken);
     return promise.LastResult();
@@ -357,7 +357,7 @@ Future<User*> Auth::SignInWithCustomToken_DEPRECATED(const char* const custom_to
 
 Future<User*> Auth::SignInWithCredential_DEPRECATED(const Credential& credential) {
   Promise<User*> promise(&auth_data_->future_impl,
-                         kAuthFn_SignInWithCredential);
+                         kAuthFn_SignInWithCredential_DEPRECATED);
   if (!ValidateCredential(&promise, credential.provider(), credential.impl_)) {
     return promise.LastResult();
   }
@@ -373,7 +373,7 @@ Future<SignInResult> Auth::SignInWithProvider_DEPRECATED(FederatedAuthProvider* 
 
   SafeFutureHandle<SignInResult> handle =
       auth_data_->future_impl.SafeAlloc<SignInResult>(
-          kAuthFn_SignInWithProvider);
+          kAuthFn_SignInWithProvider_DEPRECATED);
   auth_data_->future_impl.CompleteWithResult(
       handle, kAuthErrorUnimplemented,
       "Operation is not supported on non-mobile systems.",
@@ -382,7 +382,7 @@ Future<SignInResult> Auth::SignInWithProvider_DEPRECATED(FederatedAuthProvider* 
 }
 
 Future<User*> Auth::SignInAnonymously_DEPRECATED() {
-  Promise<User*> promise(&auth_data_->future_impl, kAuthFn_SignInAnonymously);
+  Promise<User*> promise(&auth_data_->future_impl, kAuthFn_SignInAnonymously_DEPRECATED);
 
   // If user is already signed in anonymously, return immediately.
   bool is_anonymous = false;
@@ -408,7 +408,7 @@ Future<User*> Auth::SignInAnonymously_DEPRECATED() {
 Future<User*> Auth::SignInWithEmailAndPassword_DEPRECATED(const char* const email,
                                                const char* const password) {
   Promise<User*> promise(&auth_data_->future_impl,
-                         kAuthFn_SignInWithEmailAndPassword);
+                         kAuthFn_SignInWithEmailAndPassword_DEPRECATED);
   if (!ValidateEmailAndPassword(&promise, email, password)) {
     return promise.LastResult();
   }
@@ -424,7 +424,7 @@ Future<User*> Auth::SignInWithEmailAndPassword_DEPRECATED(const char* const emai
 Future<User*> Auth::CreateUserWithEmailAndPassword_DEPRECATED(const char* const email,
                                                    const char* const password) {
   Promise<User*> promise(&auth_data_->future_impl,
-                         kAuthFn_CreateUserWithEmailAndPassword);
+                         kAuthFn_CreateUserWithEmailAndPassword_DEPRECATED);
   if (!ValidateEmailAndPassword(&promise, email, password)) {
     return promise.LastResult();
   }
@@ -441,7 +441,7 @@ Future<User*> Auth::CreateUserWithEmailAndPassword_DEPRECATED(const char* const 
 Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential_DEPRECATED(
     const Credential& credential) {
   Promise<SignInResult> promise(&auth_data_->future_impl,
-                                kAuthFn_SignInAndRetrieveDataWithCredential);
+                                kAuthFn_SignInAndRetrieveDataWithCredential_DEPRECATED);
   return DoSignInWithCredential(promise, auth_data_, credential.provider(),
                                 credential.impl_);
 }

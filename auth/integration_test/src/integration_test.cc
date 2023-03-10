@@ -512,7 +512,7 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential) {
                                                        kTestPassword);
   WaitForCompletion(user->LinkAndRetrieveDataWithCredential(credential),
                     "LinkAndRetrieveDataWithCredential");
-  WaitForCompletion(user->Unlink(credential.provider().c_str()), "Unlink");
+  WaitForCompletion(user->Unlink_DEPRECATED(credential.provider().c_str()), "Unlink");
   SignOut();
   WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(), "SignInAnonymously");
   EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
@@ -520,16 +520,16 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential) {
   firebase::auth::Credential credential1 =
       firebase::auth::EmailAuthProvider::GetCredential(email1.c_str(),
                                                        kTestPassword);
-  WaitForCompletion(user->LinkWithCredential(credential1),
+  WaitForCompletion(user->LinkWithCredential_DEPRECATED(credential1),
                     "LinkWithCredential 1");
   std::string email2 = GenerateEmailAddress();
   firebase::auth::Credential credential2 =
       firebase::auth::EmailAuthProvider::GetCredential(email2.c_str(),
                                                        kTestPassword);
-  WaitForCompletion(user->LinkWithCredential(credential2),
+  WaitForCompletion(user->LinkWithCredential_DEPRECATED(credential2),
                     "LinkWithCredential 2",
                     firebase::auth::kAuthErrorProviderAlreadyLinked);
-  WaitForCompletion(user->Unlink(credential.provider().c_str()), "Unlink 2");
+  WaitForCompletion(user->Unlink_DEPRECATED(credential.provider().c_str()), "Unlink 2");
   DeleteUser();
 }
 
@@ -540,7 +540,7 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithBadCredential) {
   firebase::auth::Credential twitter_cred =
       firebase::auth::TwitterAuthProvider::GetCredential(kTestIdTokenBad,
                                                          kTestAccessTokenBad);
-  WaitForCompletion(pre_link_user->LinkWithCredential(twitter_cred),
+  WaitForCompletion(pre_link_user->LinkWithCredential_DEPRECATED(twitter_cred),
                     "LinkWithCredential",
                     firebase::auth::kAuthErrorInvalidCredential);
   // Ensure that user stays the same.
@@ -1008,7 +1008,7 @@ TEST_F(FirebaseAuthTest, TestSuccessfulReauthenticateWithProvider) {
       auth_->SignInWithProvider_DEPRECATED(&provider);
   if (WaitForCompletion(sign_in_future, "SignInWithProvider", provider_id)) {
     WaitForCompletion(
-        sign_in_future.result()->user->ReauthenticateWithProvider(&provider),
+        sign_in_future.result()->user->ReauthenticateWithProvider_DEPRECATED(&provider),
         "ReauthenticateWithProvider", provider_id);
   }
   DeleteUser();
@@ -1027,7 +1027,7 @@ TEST_F(FirebaseAuthTest, TestSuccessfulReauthenticateWithProviderNoScopes) {
       auth_->SignInWithProvider_DEPRECATED(&provider);
   if (WaitForCompletion(sign_in_future, "SignInWithProvider", provider_id)) {
     WaitForCompletion(
-        sign_in_future.result()->user->ReauthenticateWithProvider(&provider),
+        sign_in_future.result()->user->ReauthenticateWithProvider_DEPRECATED(&provider),
         "ReauthenticateWithProvider", provider_id);
   }
   DeleteUser();
@@ -1047,7 +1047,7 @@ TEST_F(FirebaseAuthTest,
       auth_->SignInWithProvider_DEPRECATED(&provider);
   if (WaitForCompletion(sign_in_future, "SignInWithProvider", provider_id)) {
     WaitForCompletion(
-        sign_in_future.result()->user->ReauthenticateWithProvider(&provider),
+        sign_in_future.result()->user->ReauthenticateWithProvider_DEPRECATED(&provider),
         "ReauthenticateWithProvider", provider_id);
   }
   DeleteUser();
@@ -1067,7 +1067,7 @@ TEST_F(FirebaseAuthTest, TestReauthenticateWithProviderBadProviderIdFails) {
     provider_data.provider_id = "MadeUpProvider";
     firebase::auth::FederatedOAuthProvider provider(provider_data);
     firebase::Future<firebase::auth::SignInResult> reauth_future =
-        auth_->current_user_DEPRECATED()->ReauthenticateWithProvider(&provider);
+        auth_->current_user_DEPRECATED()->ReauthenticateWithProvider_DEPRECATED(&provider);
     WaitForCompletion(reauth_future, "ReauthenticateWithProvider",
                       firebase::auth::kAuthErrorInvalidProviderId);
   }
@@ -1086,7 +1086,7 @@ TEST_F(FirebaseAuthTest, TestSuccessfulLinkFederatedProviderNoScopes) {
       provider_id, /*scopes=*/{}, /*custom_parameters=*/{{"req_id", "1234"}});
   firebase::auth::FederatedOAuthProvider provider(provider_data);
   firebase::Future<firebase::auth::SignInResult> sign_in_future =
-      auth_->current_user_DEPRECATED()->LinkWithProvider(&provider);
+      auth_->current_user_DEPRECATED()->LinkWithProvider_DEPRECATED(&provider);
   WaitForCompletion(sign_in_future, "LinkWithProvider", provider_id);
   DeleteUser();
 }
@@ -1104,7 +1104,7 @@ TEST_F(FirebaseAuthTest,
       provider_id, /*scopes=*/{}, /*custom_parameters=*/{});
   firebase::auth::FederatedOAuthProvider provider(provider_data);
   firebase::Future<firebase::auth::SignInResult> sign_in_future =
-      auth_->current_user_DEPRECATED()->LinkWithProvider(&provider);
+      auth_->current_user_DEPRECATED()->LinkWithProvider_DEPRECATED(&provider);
   WaitForCompletion(sign_in_future, "LinkWithProvider", provider_id);
   DeleteUser();
 }
@@ -1123,7 +1123,7 @@ TEST_F(FirebaseAuthTest, TestSuccessfulLinkFederatedProvider) {
       /*custom_parameters=*/{{"req_id", "1234"}});
   firebase::auth::FederatedOAuthProvider provider(provider_data);
   firebase::Future<firebase::auth::SignInResult> sign_in_future =
-      auth_->current_user_DEPRECATED()->LinkWithProvider(&provider);
+      auth_->current_user_DEPRECATED()->LinkWithProvider_DEPRECATED(&provider);
   WaitForCompletion(sign_in_future, "LinkWithProvider", provider_id);
   DeleteUser();
 }
@@ -1140,7 +1140,7 @@ TEST_F(FirebaseAuthTest, TestLinkFederatedProviderBadProviderIdFails) {
       /*custom_parameters=*/{{"req_id", "1234"}});
   firebase::auth::FederatedOAuthProvider provider(provider_data);
   firebase::Future<firebase::auth::SignInResult> sign_in_future =
-      auth_->current_user_DEPRECATED()->LinkWithProvider(&provider);
+      auth_->current_user_DEPRECATED()->LinkWithProvider_DEPRECATED(&provider);
   WaitForCompletion(sign_in_future, "LinkWithProvider",
                     firebase::auth::kAuthErrorInvalidProviderId);
   DeleteUser();

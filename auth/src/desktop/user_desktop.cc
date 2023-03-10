@@ -811,8 +811,8 @@ Future<void> User::UpdateUserProfile(const UserProfile& profile) {
                                  PerformSetAccountInfoFlow<void>);
 }
 
-Future<User*> User::Unlink(const char* const provider) {
-  Promise<User*> promise(&auth_data_->future_impl, kUserFn_Unlink);
+Future<User*> User::Unlink_DEPRECATED(const char* const provider) {
+  Promise<User*> promise(&auth_data_->future_impl, kUserFn_Unlink_DEPRECATED);
   if (!provider || strlen(provider) == 0) {
     FailPromise(&promise, kAuthErrorNoSuchProvider);
     return promise.LastResult();
@@ -840,8 +840,8 @@ Future<User*> User::Unlink(const char* const provider) {
                                  PerformSetAccountInfoFlow<User*>);
 }
 
-Future<User*> User::LinkWithCredential(const Credential& credential) {
-  Promise<User*> promise(&auth_data_->future_impl, kUserFn_LinkWithCredential);
+Future<User*> User::LinkWithCredential_DEPRECATED(const Credential& credential) {
+  Promise<User*> promise(&auth_data_->future_impl, kUserFn_LinkWithCredential_DEPRECATED);
   return DoLinkCredential(promise, auth_data_, credential.provider(),
                           credential.impl_);
 }
@@ -854,13 +854,13 @@ Future<SignInResult> User::LinkAndRetrieveDataWithCredential(
                           credential.impl_);
 }
 
-Future<SignInResult> User::LinkWithProvider(
+Future<SignInResult> User::LinkWithProvider_DEPRECATED(
     FederatedAuthProvider* provider) const {
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
   // TODO(b/139363200)
   // return provider->Link(auth_data_);
   SafeFutureHandle<SignInResult> handle =
-      auth_data_->future_impl.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider);
+      auth_data_->future_impl.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider_DEPRECATED);
   auth_data_->future_impl.CompleteWithResult(
       handle, kAuthErrorUnimplemented,
       "Operation is not supported on non-mobile systems.",
@@ -874,22 +874,22 @@ Future<void> User::Reauthenticate(const Credential& credential) {
                           credential.impl_);
 }
 
-Future<SignInResult> User::ReauthenticateAndRetrieveData(
+Future<SignInResult> User::ReauthenticateAndRetrieveData_DEPRECATED(
     const Credential& credential) {
   Promise<SignInResult> promise(&auth_data_->future_impl,
-                                kUserFn_ReauthenticateAndRetrieveData);
+                                kUserFn_ReauthenticateAndRetrieveData_DEPRECATED);
   return DoReauthenticate(promise, auth_data_, credential.provider(),
                           credential.impl_);
 }
 
-Future<SignInResult> User::ReauthenticateWithProvider(
+Future<SignInResult> User::ReauthenticateWithProvider_DEPRECATED(
     FederatedAuthProvider* provider) const {
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
   // TODO(b/139363200)
   // return provider->Reauthenticate(auth_data_);
   SafeFutureHandle<SignInResult> handle =
       auth_data_->future_impl.SafeAlloc<SignInResult>(
-          kUserFn_ReauthenticateWithProvider);
+          kUserFn_ReauthenticateWithProvider_DEPRECATED);
   auth_data_->future_impl.CompleteWithResult(
       handle, kAuthErrorUnimplemented,
       "Operation is not supported on non-mobile systems.",
@@ -954,9 +954,9 @@ std::string User::provider_id() const {
 
 // Not implemented
 
-Future<User*> User::UpdatePhoneNumberCredential(const Credential& credential) {
+Future<User*> User::UpdatePhoneNumberCredential_DEPRECATED(const Credential& credential) {
   Promise<User*> promise(&auth_data_->future_impl,
-                         kUserFn_UpdatePhoneNumberCredential);
+                         kUserFn_UpdatePhoneNumberCredential_DEPRECATED);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
   }

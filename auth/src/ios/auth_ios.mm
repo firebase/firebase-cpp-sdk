@@ -362,7 +362,7 @@ void SignInResultCallback(FIRAuthDataResult *_Nullable auth_result, NSError *_Nu
 
 Future<User *> Auth::SignInWithCustomToken_DEPRECATED(const char *token) {
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<User *>(kAuthFn_SignInWithCustomToken, nullptr);
+  const auto handle = futures.SafeAlloc<User *>(kAuthFn_SignInWithCustomToken_DEPRECATED, nullptr);
 
   [AuthImpl(auth_data_)
       signInWithCustomToken:@(token)
@@ -375,7 +375,7 @@ Future<User *> Auth::SignInWithCustomToken_DEPRECATED(const char *token) {
 
 Future<User *> Auth::SignInWithCredential_DEPRECATED(const Credential &credential) {
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<User *>(kAuthFn_SignInWithCredential, nullptr);
+  const auto handle = futures.SafeAlloc<User *>(kAuthFn_SignInWithCredential_DEPRECATED, nullptr);
 
   [AuthImpl(auth_data_)
       signInWithCredential:CredentialFromImpl(credential.impl_)
@@ -389,7 +389,7 @@ Future<User *> Auth::SignInWithCredential_DEPRECATED(const Credential &credentia
 Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential_DEPRECATED(const Credential &credential) {
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle =
-      futures.SafeAlloc<SignInResult>(kAuthFn_SignInAndRetrieveDataWithCredential, SignInResult());
+      futures.SafeAlloc<SignInResult>(kAuthFn_SignInAndRetrieveDataWithCredential_DEPRECATED, SignInResult());
 
   [AuthImpl(auth_data_)
       signInWithCredential:CredentialFromImpl(credential.impl_)
@@ -407,7 +407,7 @@ Future<SignInResult> Auth::SignInWithProvider_DEPRECATED(FederatedAuthProvider *
 
 Future<User *> Auth::SignInAnonymously_DEPRECATED() {
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle = auth_data_->future_impl.SafeAlloc<User *>(kAuthFn_SignInAnonymously, nullptr);
+  const auto handle = auth_data_->future_impl.SafeAlloc<User *>(kAuthFn_SignInAnonymously_DEPRECATED, nullptr);
 
   [AuthImpl(auth_data_) signInAnonymouslyWithCompletion:^(FIRAuthDataResult *_Nullable auth_result,
                                                           NSError *_Nullable error) {
@@ -419,7 +419,7 @@ Future<User *> Auth::SignInAnonymously_DEPRECATED() {
 
 Future<User *> Auth::SignInWithEmailAndPassword_DEPRECATED(const char *email, const char *password) {
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<User *>(kAuthFn_SignInWithEmailAndPassword, nullptr);
+  const auto handle = futures.SafeAlloc<User *>(kAuthFn_SignInWithEmailAndPassword_DEPRECATED, nullptr);
   if (!email || strlen(email) == 0) {
     futures.Complete(handle, kAuthErrorMissingEmail, "Empty email is not allowed.");
   } else if (!password || strlen(password) == 0) {
@@ -437,7 +437,7 @@ Future<User *> Auth::SignInWithEmailAndPassword_DEPRECATED(const char *email, co
 
 Future<User *> Auth::CreateUserWithEmailAndPassword_DEPRECATED(const char *email, const char *password) {
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<User *>(kAuthFn_CreateUserWithEmailAndPassword, nullptr);
+  const auto handle = futures.SafeAlloc<User *>(kAuthFn_CreateUserWithEmailAndPassword_DEPRECATED, nullptr);
   if (!email || strlen(email) == 0) {
     futures.Complete(handle, kAuthErrorMissingEmail, "Empty email is not allowed.");
   } else if (!password || strlen(password) == 0) {

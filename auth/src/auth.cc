@@ -364,13 +364,14 @@ AUTH_NOTIFY_LISTENERS(NotifyIdTokenListeners, "ID token", id_token_listeners,
                       OnIdTokenChanged);
 
 AUTH_RESULT_FN(Auth, FetchProvidersForEmail, Auth::FetchProvidersResult)
-AUTH_RESULT_FN(Auth, SignInWithCustomToken_DEPRECATED, User*)
-AUTH_RESULT_FN(Auth, SignInWithCredential_DEPRECATED, User*)
-AUTH_RESULT_FN(Auth, SignInAndRetrieveDataWithCredential_DEPRECATED, SignInResult)
-AUTH_RESULT_FN(Auth, SignInAnonymously_DEPRECATED, User*)
-AUTH_RESULT_FN(Auth, SignInWithEmailAndPassword_DEPRECATED, User*)
-AUTH_RESULT_FN(Auth, CreateUserWithEmailAndPassword_DEPRECATED, User*)
 AUTH_RESULT_FN(Auth, SendPasswordResetEmail, void)
+
+AUTH_RESULT_DEPRECATED_FN(Auth, SignInWithCustomToken, User*)
+AUTH_RESULT_DEPRECATED_FN(Auth, SignInWithCredential, User*)
+AUTH_RESULT_DEPRECATED_FN(Auth, SignInAndRetrieveDataWithCredential, SignInResult)
+AUTH_RESULT_DEPRECATED_FN(Auth, SignInAnonymously, User*)
+AUTH_RESULT_DEPRECATED_FN(Auth, SignInWithEmailAndPassword, User*)
+AUTH_RESULT_DEPRECATED_FN(Auth, CreateUserWithEmailAndPassword, User*)
 
 }  // namespace auth
 }  // namespace firebase

@@ -277,7 +277,7 @@ class Auth {
   /// @note: This operation is supported only on iOS, tvOS and Android
   /// platforms. On other platforms this method will return a Future with a
   /// preset error code: kAuthErrorUnimplemented.
-  FIREBASE_DEPRECATED Future<SignInResult> SignInWithProvider_DEPRCATED(FederatedAuthProvider* provider);
+  FIREBASE_DEPRECATED Future<SignInResult> SignInWithProvider_DEPRECATED(FederatedAuthProvider* provider);
 
   /// @deprecated This is a deprecated method. Please use @SignInAndRetrieveDataWithCredential instead.
   ///

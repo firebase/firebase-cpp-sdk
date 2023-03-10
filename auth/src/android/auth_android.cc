@@ -395,7 +395,7 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(
 
 Future<User*> Auth::SignInWithCustomToken_DEPRECATED(const char* token) {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<User*>(kAuthFn_SignInWithCustomToken);
+  const auto handle = futures.SafeAlloc<User*>(kAuthFn_SignInWithCustomToken_DEPRECATED);
   JNIEnv* env = Env(auth_data_);
 
   jstring j_token = env->NewStringUTF(token);
@@ -414,7 +414,7 @@ Future<User*> Auth::SignInWithCustomToken_DEPRECATED(const char* token) {
 
 Future<User*> Auth::SignInWithCredential_DEPRECATED(const Credential& credential) {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<User*>(kAuthFn_SignInWithCredential);
+  const auto handle = futures.SafeAlloc<User*>(kAuthFn_SignInWithCredential_DEPRECATED);
   JNIEnv* env = Env(auth_data_);
 
   // If the credential itself is in an error state, don't try signing in.
@@ -439,7 +439,7 @@ Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential_DEPRECATED(
     const Credential& credential) {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<SignInResult>(
-      kAuthFn_SignInAndRetrieveDataWithCredential);
+      kAuthFn_SignInAndRetrieveDataWithCredential_DEPRECATED);
   JNIEnv* env = Env(auth_data_);
 
   // If the credential itself is in an error state, don't try signing in.
@@ -466,7 +466,7 @@ Future<SignInResult> Auth::SignInWithProvider_DEPRECATED(FederatedAuthProvider* 
 
 Future<User*> Auth::SignInAnonymously_DEPRECATED() {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<User*>(kAuthFn_SignInAnonymously);
+  const auto handle = futures.SafeAlloc<User*>(kAuthFn_SignInAnonymously_DEPRECATED);
   JNIEnv* env = Env(auth_data_);
 
   jobject pending_result = env->CallObjectMethod(
@@ -485,7 +485,7 @@ Future<User*> Auth::SignInWithEmailAndPassword_DEPRECATED(const char* email,
                                                const char* password) {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle =
-      futures.SafeAlloc<User*>(kAuthFn_SignInWithEmailAndPassword);
+      futures.SafeAlloc<User*>(kAuthFn_SignInWithEmailAndPassword_DEPRECATED);
 
   if (!email || strlen(email) == 0 || !password || strlen(password) == 0) {
     futures.Complete(handle,
@@ -518,7 +518,7 @@ Future<User*> Auth::CreateUserWithEmailAndPassword_DEPRECATED(const char* email,
                                                    const char* password) {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle =
-      futures.SafeAlloc<User*>(kAuthFn_CreateUserWithEmailAndPassword);
+      futures.SafeAlloc<User*>(kAuthFn_CreateUserWithEmailAndPassword_DEPRECATED);
 
   if (!email || strlen(email) == 0 || !password || strlen(password) == 0) {
     futures.Complete(handle,
@@ -533,7 +533,7 @@ Future<User*> Auth::CreateUserWithEmailAndPassword_DEPRECATED(const char* email,
   jstring j_password = env->NewStringUTF(password);
   jobject pending_result = env->CallObjectMethod(
       AuthImpl(auth_data_),
-      auth::GetMethodId(auth::kCreateUserWithEmailAndPassword), j_email,
+      auth::GetMethodId(auth::kCreateUserWithEmailAndPassword_DEPRECATED), j_email,
       j_password);
   env->DeleteLocalRef(j_email);
   env->DeleteLocalRef(j_password);
