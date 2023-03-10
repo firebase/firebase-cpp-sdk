@@ -276,10 +276,10 @@ class UserDesktopTest : public ::testing::Test {
     id_token_listener.ExpectChanges(2);
     auth_state_listener.ExpectChanges(2);
 
-    Future<User*> future = firebase_auth_->SignInAnonymously();
+    Future<User*> future = firebase_auth_->SignInAnonymously_DEPRECATED();
     while (future.status() == kFutureStatusPending) {
     }
-    firebase_user_ = firebase_auth_->current_user();
+    firebase_user_ = firebase_auth_->current_user_DEPRECATED();
     EXPECT_NE(nullptr, firebase_user_);
 
     // Reset listeners before tests are run.
@@ -343,8 +343,8 @@ class UserDesktopTest : public ::testing::Test {
 // Test that metadata is correctly being populated and exposed
 TEST_F(UserDesktopTest, TestAccountMetadata) {
   EXPECT_EQ(123,
-            firebase_auth_->current_user()->metadata().last_sign_in_timestamp);
-  EXPECT_EQ(456, firebase_auth_->current_user()->metadata().creation_timestamp);
+            firebase_auth_->current_user_DEPRECATED()->metadata().last_sign_in_timestamp);
+  EXPECT_EQ(456, firebase_auth_->current_user_DEPRECATED()->metadata().creation_timestamp);
 }
 
 TEST_F(UserDesktopTest, TestGetToken) {
@@ -890,7 +890,7 @@ TEST_F(UserDesktopTest, TestRaceCondition_SetAccountInfoAndSignOut) {
   }
 
   EXPECT_THAT(future.error(), AnyOf(kAuthErrorNone, kAuthErrorNoSignedInUser));
-  EXPECT_EQ(nullptr, firebase_auth_->current_user());
+  EXPECT_EQ(nullptr, firebase_auth_->current_user_DEPRECATED());
 }
 
 // LinkWithProvider tests.

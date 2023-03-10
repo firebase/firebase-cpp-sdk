@@ -1537,7 +1537,7 @@ TEST_F(FirestoreIntegrationTest, AuthWorks) {
   WriteDocument(doc, MapFieldValue{{"foo", FieldValue::Integer(42)}});
 
   // Signing in should trigger an AuthStateListener event.
-  auto signin = auth->SignInAnonymously();
+  auto signin = auth->SignInAnonymously_DEPRECATED();
   Stopwatch stopwatch;
   Await(signin);
   stopwatch.stop();

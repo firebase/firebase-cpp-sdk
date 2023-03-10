@@ -45,7 +45,7 @@ SignInResult AuthenticationResult::SetAsCurrentUser(
   // Save the previous user state to be able to check whether listeners should
   // be notified later on.
   UserData previous_user;
-  // Don't call Auth::current_user() to avoid locking the mutex twice.
+  // Don't call Auth::current_user_DEPRECATED() to avoid locking the mutex twice.
   User* api_user_to_return = nullptr;
   {
     UserView::Writer writer =

@@ -391,13 +391,13 @@ void FirebaseAppCheckTest::TerminateFunctions() {
 }
 
 void FirebaseAppCheckTest::SignIn() {
-  if (auth_->current_user() != nullptr) {
+  if (auth_->current_user_DEPRECATED() != nullptr) {
     // Already signed in.
     return;
   }
   LogDebug("Signing in.");
   firebase::Future<firebase::auth::User*> sign_in_future =
-      auth_->SignInAnonymously();
+      auth_->SignInAnonymously_DEPRECATED();
   WaitForCompletion(sign_in_future, "SignInAnonymously");
   if (sign_in_future.error() != 0) {
     FAIL() << "Ensure your application has the Anonymous sign-in provider "
@@ -411,15 +411,15 @@ void FirebaseAppCheckTest::SignOut() {
     // Auth is not set up.
     return;
   }
-  if (auth_->current_user() == nullptr) {
+  if (auth_->current_user_DEPRECATED() == nullptr) {
     // Already signed out.
     return;
   }
-  if (auth_->current_user()->is_anonymous()) {
+  if (auth_->current_user_DEPRECATED()->is_anonymous()) {
     // If signed in anonymously, delete the anonymous user.
-    WaitForCompletion(auth_->current_user()->Delete(), "DeleteAnonymousUser");
+    WaitForCompletion(auth_->current_user_DEPRECATED()->Delete(), "DeleteAnonymousUser");
     // If there was a problem deleting the user, try to sign out at least.
-    if (auth_->current_user()) {
+    if (auth_->current_user_DEPRECATED()) {
       auth_->SignOut();
     }
   } else {
@@ -428,11 +428,11 @@ void FirebaseAppCheckTest::SignOut() {
     auth_->SignOut();
 
     // Wait for the sign-out to finish.
-    while (auth_->current_user() != nullptr) {
+    while (auth_->current_user_DEPRECATED() != nullptr) {
       if (ProcessEvents(100)) break;
     }
   }
-  EXPECT_EQ(auth_->current_user(), nullptr);
+  EXPECT_EQ(auth_->current_user_DEPRECATED(), nullptr);
 }
 
 firebase::database::DatabaseReference FirebaseAppCheckTest::CreateWorkingPath(
@@ -544,7 +544,7 @@ TEST_F(FirebaseAppCheckTest, TestSignIn) {
   InitializeAppCheckWithDebug();
   InitializeApp();
   InitializeAuth();
-  EXPECT_NE(auth_->current_user(), nullptr);
+  EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
 }
 
 TEST_F(FirebaseAppCheckTest, TestDebugProviderValidToken) {

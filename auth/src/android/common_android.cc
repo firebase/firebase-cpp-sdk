@@ -498,7 +498,7 @@ void ReadSignInResult(jobject result, FutureCallbackData<SignInResult>* d,
     SignInResult* sign_in_result = static_cast<SignInResult*>(void_data);
 
     // Return a pointer to the user and gather the additional data.
-    sign_in_result->user = d->auth_data->auth->current_user();
+    sign_in_result->user = d->auth_data->auth->current_user_DEPRECATED();
     ReadAdditionalUserInfo(env, j_additional_user_info, &sign_in_result->info);
     env->DeleteLocalRef(j_additional_user_info);
   }
@@ -526,7 +526,7 @@ void ReadUserFromSignInResult(jobject result, FutureCallbackData<User*>* d,
 
   // Return a pointer to the current user, if the current user is valid.
   User** user_ptr = static_cast<User**>(void_data);
-  *user_ptr = d->auth_data->auth->current_user();
+  *user_ptr = d->auth_data->auth->current_user_DEPRECATED();
 }
 
 }  // namespace auth

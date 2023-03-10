@@ -167,9 +167,9 @@ class UserTest : public ::testing::Test {
         "}");
     firebase_app_ = testing::CreateApp();
     firebase_auth_ = Auth::GetAuth(firebase_app_);
-    Future<User*> result = firebase_auth_->SignInAnonymously();
+    Future<User*> result = firebase_auth_->SignInAnonymously_DEPRECATED();
     MaybeWaitForFuture(result);
-    firebase_user_ = firebase_auth_->current_user();
+    firebase_user_ = firebase_auth_->current_user_DEPRECATED();
     EXPECT_NE(nullptr, firebase_user_);
   }
 
@@ -342,7 +342,7 @@ TEST_F(UserTest, TestReauthenticate) {
 
   Credential credential = EmailAuthProvider::GetCredential("i@email.com", "pw");
   Future<User*> sign_in_result =
-      firebase_auth_->SignInWithCredential(credential);
+      firebase_auth_->SignInWithCredential_DEPRECATED(credential);
   Verify(sign_in_result);
 
   Future<void> reauthenticate_result =

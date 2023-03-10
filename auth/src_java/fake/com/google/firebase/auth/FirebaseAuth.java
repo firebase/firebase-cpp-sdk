@@ -186,7 +186,7 @@ public final class FirebaseAuth {
     return signInHelper("FirebaseAuth.signInWithCredential");
   }
 
-  public Task<AuthResult> signInAnonymously() {
+  public Task<AuthResult> signInAnonymously_DEPRECATED() {
     return signInHelper("FirebaseAuth.signInAnonymously");
   }
 
@@ -227,8 +227,8 @@ public final class FirebaseAuth {
     return signInHelper("FirebaseAuth.startActivityForSignInWithProvider");
   }
 
-  public Task<AuthResult> createUserWithEmailAndPassword(String email, String password) {
-    return signInHelper("FirebaseAuth.createUserWithEmailAndPassword");
+  public Task<AuthResult> createUserWithEmailAndPassword_DEPRECATED(String email, String password) {
+    return signInHelper("FirebaseAuth.createUserWithEmailAndPassword_DEPRECATED");
   }
 
   public Task<Void> sendPasswordResetEmail(String email) {

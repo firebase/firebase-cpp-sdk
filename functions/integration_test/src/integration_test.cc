@@ -185,7 +185,7 @@ void FirebaseFunctionsTest::Terminate() {
 void FirebaseFunctionsTest::SignIn() {
   LogDebug("Signing in.");
   firebase::Future<firebase::auth::User*> sign_in_future =
-      auth_->SignInAnonymously();
+      auth_->SignInAnonymously_DEPRECATED();
   WaitForCompletion(sign_in_future, "SignInAnonymously");
   if (sign_in_future.error() != 0) {
     FAIL() << "Ensure your application has the Anonymous sign-in provider "
@@ -252,7 +252,7 @@ TEST_F(FirebaseFunctionsTest, TestInitializeAndTerminate) {
 
 TEST_F(FirebaseFunctionsTest, TestSignIn) {
   SignIn();
-  EXPECT_NE(auth_->current_user(), nullptr);
+  EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
 }
 
 TEST_F(FirebaseFunctionsTest, TestFunction) {

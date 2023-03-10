@@ -105,7 +105,7 @@ GetTokenResult GetTokenIfFresh(const UserView::Reader& user,
   return GetTokenResult(kAuthErrorFailure);
 }
 
-// Makes sure that calling auth->current_user()->id_token() will result in
+// Makes sure that calling auth->current_user_DEPRECATED()->id_token() will result in
 // a token that is good for at least 5 minutes. Will fetch a new token from the
 // backend if necessary.
 //
@@ -426,7 +426,7 @@ UserDataPersist::UserDataPersist(
     : user_secure_manager_(std::move(user_secure_manager)) {}
 
 void UserDataPersist::OnAuthStateChanged(Auth* auth) {  // NOLINT
-  if (auth->current_user() != nullptr) {
+  if (auth->current_user_DEPRECATED() != nullptr) {
     SaveUserData(auth->auth_data_);
   } else {
     DeleteUserData(auth->auth_data_);

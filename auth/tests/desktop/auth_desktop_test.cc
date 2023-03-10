@@ -271,7 +271,7 @@ class AuthDesktopTest : public ::testing::Test {
     InitializeSignInWithProviderFakes(CreateGetAccountInfoFake());
     provider->SetProviderData(GetFakeOAuthProviderData());
     provider->SetAuthHandler(handler);
-    Future<SignInResult> future = firebase_auth_->SignInWithProvider(provider);
+    Future<SignInResult> future = firebase_auth_->SignInWithProvider_DEPRECATED(provider);
     if (trigger_sign_in) {
       handler->TriggerSignInComplete();
     }
@@ -287,7 +287,7 @@ class AuthDesktopTest : public ::testing::Test {
 
 TEST_F(AuthDesktopTest, TestSignInWithProviderReturnsUnsupportedError) {
   FederatedOAuthProvider provider;
-  Future<SignInResult> future = firebase_auth_->SignInWithProvider(&provider);
+  Future<SignInResult> future = firebase_auth_->SignInWithProvider_DEPRECATED(&provider);
   EXPECT_EQ(future.result()->user, nullptr);
   EXPECT_EQ(future.error(), kAuthErrorUnimplemented);
   EXPECT_EQ(std::string(future.error_message()),
@@ -300,7 +300,7 @@ TEST_F(AuthDesktopTest,
   OAuthProviderTestHandler handler(/*extra_integrity_checks_=*/true);
 
   InitializeSuccessfulSignInWithProviderFlow(&provider, &handler);
-  Future<SignInResult> future = firebase_auth_->SignInWithProvider(&provider);
+  Future<SignInResult> future = firebase_auth_->SignInWithProvider_DEPRECATED(&provider);
   handler.TriggerSignInComplete();
   SignInResult sign_in_result = WaitForFuture(future);
 }
@@ -316,9 +316,9 @@ TEST_F(AuthDesktopTest,
 
   OAuthProviderTestHandler handler2;
   provider2.SetAuthHandler(&handler2);
-  Future<SignInResult> future1 = firebase_auth_->SignInWithProvider(&provider1);
+  Future<SignInResult> future1 = firebase_auth_->SignInWithProvider_DEPRECATED(&provider1);
   EXPECT_EQ(future1.status(), kFutureStatusPending);
-  Future<SignInResult> future2 = firebase_auth_->SignInWithProvider(&provider2);
+  Future<SignInResult> future2 = firebase_auth_->SignInWithProvider_DEPRECATED(&provider2);
   VerifySignInResult(future2, kAuthErrorFederatedProviderAreadyInUse);
   handler1.TriggerSignInComplete();
   const SignInResult sign_in_result = WaitForFuture(future1);
@@ -500,7 +500,7 @@ TEST_F(AuthDesktopTest, CompleteSignInWithFailedResponse) {
 
   // Call the function and verify results.
   const User* const user =
-      WaitForFuture(firebase_auth_->SignInAnonymously(), kAuthErrorFailure);
+      WaitForFuture(firebase_auth_->SignInAnonymously_DEPRECATED(), kAuthErrorFailure);
   EXPECT_EQ(nullptr, user);
 }
 
@@ -526,7 +526,7 @@ TEST_F(AuthDesktopTest, CompleteSignInWithGetAccountInfoFailure) {
 
   // Call the function and verify results.
   const User* const user =
-      WaitForFuture(firebase_auth_->SignInAnonymously(), kAuthErrorFailure);
+      WaitForFuture(firebase_auth_->SignInAnonymously_DEPRECATED(), kAuthErrorFailure);
   EXPECT_EQ(nullptr, user);
 }
 
@@ -556,7 +556,7 @@ TEST_F(AuthDesktopTest, TestSignInAnonymously) {
   id_token_listener.ExpectChanges(2);
   auth_state_listener.ExpectChanges(2);
 
-  const User* const user = WaitForFuture(firebase_auth_->SignInAnonymously());
+  const User* const user = WaitForFuture(firebase_auth_->SignInAnonymously_DEPRECATED());
   EXPECT_TRUE(user->is_anonymous());
   EXPECT_EQ("localid123", user->uid());
   EXPECT_EQ("", user->email());
@@ -585,14 +585,14 @@ TEST_F(AuthDesktopTest, TestSignInWithEmailAndPassword) {
   auth_state_listener.ExpectChanges(2);
 
   // Call the function and verify results.
-  const Future<User*> future = firebase_auth_->SignInWithEmailAndPassword(
+  const Future<User*> future = firebase_auth_->SignInWithEmailAndPassword_DEPRECATED(
       "testsignin@example.com", "testsignin");
   const User* const user = WaitForFuture(future);
   EXPECT_FALSE(user->is_anonymous());
   VerifyUser(*user);
 }
 
-// Test Auth::CreateUserWithEmailAndPassword.
+// Test Auth::CreateUserWithEmailAndPassword_DEPRECATED.
 TEST_F(AuthDesktopTest, TestCreateUserWithEmailAndPassword) {
   FakeSetT fakes;
 
@@ -620,7 +620,7 @@ TEST_F(AuthDesktopTest, TestCreateUserWithEmailAndPassword) {
   id_token_listener.ExpectChanges(2);
   auth_state_listener.ExpectChanges(2);
 
-  const Future<User*> future = firebase_auth_->CreateUserWithEmailAndPassword(
+  const Future<User*> future = firebase_auth_->CreateUserWithEmailAndPassword_DEPRECATED(
       "testsignin@example.com", "testsignin");
   const User* const user = WaitForFuture(future);
   EXPECT_FALSE(user->is_anonymous());
@@ -644,7 +644,7 @@ TEST_F(AuthDesktopTest, TestSignInWithCustomToken) {
   auth_state_listener.ExpectChanges(2);
 
   const User* const user =
-      WaitForFuture(firebase_auth_->SignInWithCustomToken("fake_custom_token"));
+      WaitForFuture(firebase_auth_->SignInWithCustomToken_DEPRECATED("fake_custom_token"));
   EXPECT_FALSE(user->is_anonymous());
   VerifyUser(*user);
 }
@@ -660,7 +660,7 @@ TEST_F(AuthDesktopTest, TestSignInWithCredential_GoogleIdToken) {
   const Credential credential =
       GoogleAuthProvider::GetCredential("fake_id_token", "");
   const User* const user =
-      WaitForFuture(firebase_auth_->SignInWithCredential(credential));
+      WaitForFuture(firebase_auth_->SignInWithCredential_DEPRECATED(credential));
   EXPECT_FALSE(user->is_anonymous());
   VerifyUser(*user);
 }
@@ -674,7 +674,7 @@ TEST_F(AuthDesktopTest, TestSignInWithCredential_GoogleAccessToken) {
   const Credential credential =
       GoogleAuthProvider::GetCredential("", "fake_access_token");
   const User* const user =
-      WaitForFuture(firebase_auth_->SignInWithCredential(credential));
+      WaitForFuture(firebase_auth_->SignInWithCredential_DEPRECATED(credential));
   EXPECT_FALSE(user->is_anonymous());
   VerifyUser(*user);
 }
@@ -692,7 +692,7 @@ TEST_F(AuthDesktopTest,
   const Credential credential =
       GoogleAuthProvider::GetCredential("", "fake_access_token");
   const User* const user = WaitForFuture(
-      firebase_auth_->SignInWithCredential(credential), kAuthErrorFailure);
+      firebase_auth_->SignInWithCredential_DEPRECATED(credential), kAuthErrorFailure);
   EXPECT_EQ(nullptr, user);
 }
 
@@ -710,7 +710,7 @@ TEST_F(AuthDesktopTest,
   const Credential credential =
       GoogleAuthProvider::GetCredential("", "fake_access_token");
   const User* const user = WaitForFuture(
-      firebase_auth_->SignInWithCredential(credential), kAuthErrorFailure);
+      firebase_auth_->SignInWithCredential_DEPRECATED(credential), kAuthErrorFailure);
   EXPECT_EQ(nullptr, user);
 }
 
@@ -726,7 +726,7 @@ TEST_F(AuthDesktopTest, TestSignInWithCredential_NeedsConfirmation) {
 
   const Credential credential =
       GoogleAuthProvider::GetCredential("fake_id_token", "");
-  WaitForFuture(firebase_auth_->SignInWithCredential(credential),
+  WaitForFuture(firebase_auth_->SignInWithCredential_DEPRECATED(credential),
                 kAuthErrorAccountExistsWithDifferentCredentials);
 }
 
@@ -744,7 +744,7 @@ TEST_F(AuthDesktopTest, TestSignInAndRetrieveDataWithCredential_GitHub) {
   const Credential credential =
       GitHubAuthProvider::GetCredential("fake_access_token");
   const SignInResult sign_in_result = WaitForFuture(
-      firebase_auth_->SignInAndRetrieveDataWithCredential(credential));
+      firebase_auth_->SignInAndRetrieveDataWithCredential_DEPRECATED(credential));
   EXPECT_FALSE(sign_in_result.user->is_anonymous());
   VerifyUser(*sign_in_result.user);
 
@@ -773,7 +773,7 @@ TEST_F(AuthDesktopTest, TestSignInAndRetrieveDataWithCredential_Twitter) {
   const Credential credential = TwitterAuthProvider::GetCredential(
       "fake_access_token", "fake_oauth_token");
   const SignInResult sign_in_result = WaitForFuture(
-      firebase_auth_->SignInAndRetrieveDataWithCredential(credential));
+      firebase_auth_->SignInAndRetrieveDataWithCredential_DEPRECATED(credential));
   EXPECT_FALSE(sign_in_result.user->is_anonymous());
   VerifyUser(*sign_in_result.user);
 
@@ -793,7 +793,7 @@ TEST_F(AuthDesktopTest,
   const Credential credential = TwitterAuthProvider::GetCredential(
       "fake_access_token", "fake_oauth_token");
   const SignInResult sign_in_result = WaitForFuture(
-      firebase_auth_->SignInAndRetrieveDataWithCredential(credential));
+      firebase_auth_->SignInAndRetrieveDataWithCredential_DEPRECATED(credential));
   EXPECT_FALSE(sign_in_result.user->is_anonymous());
   VerifyUser(*sign_in_result.user);
 
@@ -816,7 +816,7 @@ TEST_F(AuthDesktopTest,
   const Credential credential = TwitterAuthProvider::GetCredential(
       "fake_access_token", "fake_oauth_token");
   const SignInResult sign_in_result = WaitForFuture(
-      firebase_auth_->SignInAndRetrieveDataWithCredential(credential));
+      firebase_auth_->SignInAndRetrieveDataWithCredential_DEPRECATED(credential));
   EXPECT_FALSE(sign_in_result.user->is_anonymous());
   VerifyUser(*sign_in_result.user);
 

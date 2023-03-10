@@ -67,7 +67,7 @@ using util::JniStringToString;
   X(SignInWithEmailAndPassword, "signInWithEmailAndPassword",                  \
     "(Ljava/lang/String;Ljava/lang/String;)"                                   \
     "Lcom/google/android/gms/tasks/Task;"),                                    \
-  X(CreateUserWithEmailAndPassword, "createUserWithEmailAndPassword",          \
+  X(CreateUserWithEmailAndPassword_DEPRECATED, "createUserWithEmailAndPassword_DEPRECATED",          \
     "(Ljava/lang/String;Ljava/lang/String;)"                                   \
     "Lcom/google/android/gms/tasks/Task;"),                                    \
   X(SendPasswordResetEmail, "sendPasswordResetEmail",                          \
@@ -393,7 +393,7 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(
   return MakeFuture(&futures, handle);
 }
 
-Future<User*> Auth::SignInWithCustomToken(const char* token) {
+Future<User*> Auth::SignInWithCustomToken_DEPRECATED(const char* token) {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<User*>(kAuthFn_SignInWithCustomToken);
   JNIEnv* env = Env(auth_data_);
@@ -412,7 +412,7 @@ Future<User*> Auth::SignInWithCustomToken(const char* token) {
   return MakeFuture(&futures, handle);
 }
 
-Future<User*> Auth::SignInWithCredential(const Credential& credential) {
+Future<User*> Auth::SignInWithCredential_DEPRECATED(const Credential& credential) {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<User*>(kAuthFn_SignInWithCredential);
   JNIEnv* env = Env(auth_data_);
@@ -435,7 +435,7 @@ Future<User*> Auth::SignInWithCredential(const Credential& credential) {
   return MakeFuture(&futures, handle);
 }
 
-Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential(
+Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential_DEPRECATED(
     const Credential& credential) {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<SignInResult>(
@@ -459,12 +459,12 @@ Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential(
   return MakeFuture(&futures, handle);
 }
 
-Future<SignInResult> Auth::SignInWithProvider(FederatedAuthProvider* provider) {
+Future<SignInResult> Auth::SignInWithProvider_DEPRECATED(FederatedAuthProvider* provider) {
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
   return provider->SignIn(auth_data_);
 }
 
-Future<User*> Auth::SignInAnonymously() {
+Future<User*> Auth::SignInAnonymously_DEPRECATED() {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<User*>(kAuthFn_SignInAnonymously);
   JNIEnv* env = Env(auth_data_);
@@ -481,7 +481,7 @@ Future<User*> Auth::SignInAnonymously() {
   return MakeFuture(&futures, handle);
 }
 
-Future<User*> Auth::SignInWithEmailAndPassword(const char* email,
+Future<User*> Auth::SignInWithEmailAndPassword_DEPRECATED(const char* email,
                                                const char* password) {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle =
@@ -514,7 +514,7 @@ Future<User*> Auth::SignInWithEmailAndPassword(const char* email,
   return MakeFuture(&futures, handle);
 }
 
-Future<User*> Auth::CreateUserWithEmailAndPassword(const char* email,
+Future<User*> Auth::CreateUserWithEmailAndPassword_DEPRECATED(const char* email,
                                                    const char* password) {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle =
@@ -549,7 +549,7 @@ Future<User*> Auth::CreateUserWithEmailAndPassword(const char* email,
 // It's safe to return a direct pointer to `current_user` because that class
 // holds nothing but a pointer to AuthData, which never changes.
 // All User functions that require synchronization go through AuthData's mutex.
-User* Auth::current_user() {
+User* Auth::current_user_DEPRECATED() {
   if (!auth_data_) return nullptr;
   MutexLock lock(auth_data_->future_impl.mutex());
 
