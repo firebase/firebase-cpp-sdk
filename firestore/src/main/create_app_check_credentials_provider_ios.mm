@@ -36,9 +36,9 @@ using credentials::FirebaseAppCheckCredentialsProvider;
 std::unique_ptr<AppCheckCredentialsProvider> CreateAppCheckCredentialsProvider(
     App& app) {
   FIRApp* ios_app = app.GetPlatformApp();
-  auto ios_auth = FIR_COMPONENT(FIRAppCheckInterop, ios_app.container);
+  auto ios_app_check = FIR_COMPONENT(FIRAppCheckInterop, ios_app.container);
   return absl::make_unique<FirebaseAppCheckCredentialsProvider>(ios_app,
-                                                                ios_auth);
+                                                                ios_app_check);
 }
 
 }  // namespace firestore

@@ -33,7 +33,7 @@ using credentials::CredentialChangeListener;
 using credentials::TokenListener;
 
 CppAppCheckCredentialsProvider::CppAppCheckCredentialsProvider(App& app)
-    : contents_(std::make_shared<Contents>(app)) {}
+    : app_(app) {}
 
 CppAppCheckCredentialsProvider::~CppAppCheckCredentialsProvider() {
   RemoveAppCheckStateListener();
@@ -41,34 +41,26 @@ CppAppCheckCredentialsProvider::~CppAppCheckCredentialsProvider() {
 
 void CppAppCheckCredentialsProvider::SetCredentialChangeListener(
     CredentialChangeListener<std::string> listener) {
-  {
-    std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
-
-    if (!listener) {
-      SIMPLE_HARD_ASSERT(change_listener_,
-                         "Change listener removed without being set!");
-      change_listener_ = {};
-      RemoveAppCheckStateListener();
-      return;
-    }
-
-    SIMPLE_HARD_ASSERT(!change_listener_, "Set change listener twice!");
-    change_listener_ = std::move(listener);
+  if (!listener) {
+    SIMPLE_HARD_ASSERT(change_listener_,
+                       "Change listener removed without being set!");
+    change_listener_ = {};
+    RemoveAppCheckStateListener();
+    return;
   }
+
+  SIMPLE_HARD_ASSERT(!change_listener_, "Set change listener twice!");
+  change_listener_ = std::move(listener);
 
   AddAppCheckStateListener();
 }
 
 void CppAppCheckCredentialsProvider::GetToken(
     TokenListener<std::string> listener) {
-  LogInfo("Firestore CppAppCheckCredentialsProvider::GetToken");
-
-  std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
-
   // Get token, tell the listener
   Future<std::string> app_check_future;
-  bool succeeded = contents_->app.function_registry()->CallFunction(
-      ::firebase::internal::FnAppCheckGetTokenAsync, &(contents_->app), nullptr,
+  bool succeeded = app_.function_registry()->CallFunction(
+      ::firebase::internal::FnAppCheckGetTokenAsync, &app_, nullptr,
       &app_check_future);
   if (succeeded && app_check_future.status() != kFutureStatusInvalid) {
     app_check_future.OnCompletion(
@@ -86,25 +78,20 @@ void CppAppCheckCredentialsProvider::GetToken(
 }
 
 void CppAppCheckCredentialsProvider::AddAppCheckStateListener() {
-  App& app = contents_->app;
   auto callback = reinterpret_cast<void*>(OnAppCheckStateChanged);
-  app.function_registry()->CallFunction(
-      ::firebase::internal::FnAppCheckAddListener, &app, callback, this);
+  app_.function_registry()->CallFunction(
+      ::firebase::internal::FnAppCheckAddListener, &app_, callback, this);
 }
 
 void CppAppCheckCredentialsProvider::RemoveAppCheckStateListener() {
-  App& app = contents_->app;
   auto callback = reinterpret_cast<void*>(OnAppCheckStateChanged);
-  app.function_registry()->CallFunction(
-      ::firebase::internal::FnAppCheckRemoveListener, &app, callback, this);
+  app_.function_registry()->CallFunction(
+      ::firebase::internal::FnAppCheckRemoveListener, &app_, callback, this);
 }
 
 void CppAppCheckCredentialsProvider::OnAppCheckStateChanged(std::string token,
                                                             void* context) {
   auto provider = static_cast<CppAppCheckCredentialsProvider*>(context);
-  Contents* contents = provider->contents_.get();
-
-  std::lock_guard<std::recursive_mutex> lock(contents->mutex);
 
   if (provider->change_listener_) {
     provider->change_listener_(token);

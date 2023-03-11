@@ -107,11 +107,11 @@ FirestoreInternal::FirestoreInternal(App* app)
 
 FirestoreInternal::FirestoreInternal(
     App* app,
-    std::unique_ptr<AuthCredentialsProvider> credentials,
-    std::unique_ptr<AppCheckCredentialsProvider> app_check)
+    std::unique_ptr<AuthCredentialsProvider> auth_credentials,
+    std::unique_ptr<AppCheckCredentialsProvider> app_check_credentials)
     : app_(NOT_NULL(app)),
       firestore_core_(
-          CreateFirestore(app, std::move(credentials), std::move(app_check))),
+          CreateFirestore(app, std::move(auth_credentials), std::move(app_check_credentials))),
       transaction_executor_(absl::ShareUniquePtr(Executor::CreateConcurrent(
           "com.google.firebase.firestore.transaction", /*threads=*/5))) {
   ApplyDefaultSettings();
@@ -131,12 +131,12 @@ FirestoreInternal::~FirestoreInternal() {
 
 std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
     App* app,
-    std::unique_ptr<AuthCredentialsProvider> credentials,
-    std::unique_ptr<AppCheckCredentialsProvider> app_check) {
+    std::unique_ptr<AuthCredentialsProvider> auth_credentials,
+    std::unique_ptr<AppCheckCredentialsProvider> app_check_credentials) {
   const AppOptions& opt = app->options();
   return std::make_shared<api::Firestore>(
-      DatabaseId{opt.project_id()}, app->name(), std::move(credentials),
-      std::move(app_check), CreateWorkerQueue(),
+      DatabaseId{opt.project_id()}, app->name(), std::move(auth_credentials),
+      std::move(app_check_credentials), CreateWorkerQueue(),
       CreateFirebaseMetadataProvider(*app), this);
 }
 

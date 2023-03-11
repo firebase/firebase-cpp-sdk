@@ -132,7 +132,7 @@ class FirebaseAppCheckTest : public FirebaseTest {
   firebase::database::DatabaseReference CreateWorkingPath(
       bool suppress_cleanup = false);
 
-  firebase::firestore::CollectionReference GetTestCollection();
+  firebase::firestore::CollectionReference GetFirestoreCollection();
   firebase::firestore::DocumentReference CreateFirestoreDoc();
   void CleanupFirestore(int expected_error);
 
@@ -445,7 +445,7 @@ void FirebaseAppCheckTest::TerminateFirestore() {
 }
 
 firebase::firestore::CollectionReference
-FirebaseAppCheckTest::GetTestCollection() {
+FirebaseAppCheckTest::GetFirestoreCollection() {
   if (collection_name_.empty()) {
     // Generate a collection for the test data based on the time in
     // milliseconds.
@@ -465,7 +465,7 @@ FirebaseAppCheckTest::CreateFirestoreDoc() {
   std::string path = std::string(
       ::testing::UnitTest::GetInstance()->current_test_info()->name());
   firebase::firestore::DocumentReference doc =
-      GetTestCollection().Document(path);
+      GetFirestoreCollection().Document(path);
   // Only add to the cleanup set if it doesn't exist yet
   if (find(firestore_cleanup_.begin(), firestore_cleanup_.end(), doc) ==
       firestore_cleanup_.end()) {

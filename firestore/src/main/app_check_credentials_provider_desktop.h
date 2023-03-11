@@ -17,8 +17,6 @@
 #ifndef FIREBASE_FIRESTORE_SRC_MAIN_APP_CHECK_CREDENTIALS_PROVIDER_DESKTOP_H_
 #define FIREBASE_FIRESTORE_SRC_MAIN_APP_CHECK_CREDENTIALS_PROVIDER_DESKTOP_H_
 
-#include <memory>
-#include <mutex>  // NOLINT(build/c++11)
 #include <string>
 
 #include "Firestore/core/src/credentials/credentials_fwd.h"
@@ -66,30 +64,7 @@ class CppAppCheckCredentialsProvider
   // interface.
   static void OnAppCheckStateChanged(std::string, void* context);
 
-  // Wraps the data that is used by `auth::User::GetToken` callback. This
-  // credentials provider holds a shared pointer to `Contents`, while the
-  // `GetToken` callback stores a weak pointer. This makes safe the case where
-  // the `GetToken` callback might be invoked after this credentials provider
-  // has already been destroyed (Auth may outlive Firestore).
-  struct Contents {
-    explicit Contents(App& app) : app(app) {}
-
-    // FirebaseCppCredentialsProvider may be used by more than one thread. The
-    // mutex is locked in all public member functions and none of the private
-    // member functions (with the exception of `RequestToken` that locks the
-    // mutex in a lambda that gets involved asynchronously later). Therefore,
-    // the invariant is that when a private member function is involved, the
-    // mutex is always already locked. The mutex is recursive to avoid one
-    // potential case of deadlock (attaching a continuation to a `Future` which
-    // may be invoked immediately or asynchronously).
-    //
-    // TODO(b/148688333): make sure not to hold the mutex while calling methods
-    // on `app`.
-    std::recursive_mutex mutex;
-
-    App& app;
-  };
-  std::shared_ptr<Contents> contents_;
+  App& app_;
 };
 
 }  // namespace firestore
