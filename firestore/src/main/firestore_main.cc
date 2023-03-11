@@ -110,8 +110,8 @@ FirestoreInternal::FirestoreInternal(
     std::unique_ptr<AuthCredentialsProvider> auth_credentials,
     std::unique_ptr<AppCheckCredentialsProvider> app_check_credentials)
     : app_(NOT_NULL(app)),
-      firestore_core_(
-          CreateFirestore(app, std::move(auth_credentials), std::move(app_check_credentials))),
+      firestore_core_(CreateFirestore(
+          app, std::move(auth_credentials), std::move(app_check_credentials))),
       transaction_executor_(absl::ShareUniquePtr(Executor::CreateConcurrent(
           "com.google.firebase.firestore.transaction", /*threads=*/5))) {
   ApplyDefaultSettings();
