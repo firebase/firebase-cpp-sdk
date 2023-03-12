@@ -282,7 +282,8 @@ Future<SignInResult> User::ReauthenticateAndRetrieveData_DEPRECATED(const Creden
   return MakeFuture(&futures, handle);
 }
 
-Future<SignInResult> User::ReauthenticateWithProvider_DEPRECATED(FederatedAuthProvider *provider) const {
+Future<SignInResult> User::ReauthenticateWithProvider_DEPRECATED(
+    FederatedAuthProvider *provider) const {
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
   return provider->Reauthenticate(auth_data_);
 }

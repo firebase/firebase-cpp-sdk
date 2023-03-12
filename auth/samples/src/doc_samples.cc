@@ -196,7 +196,8 @@ void VariousSignIns(firebase::auth::Auth* auth) {
   }
   {
     // [START auth_sign_in_anonymously]
-    firebase::Future<firebase::auth::User*> result = auth->SignInAnonymously_DEPRECATED();
+    firebase::Future<firebase::auth::User*> result =
+        auth->SignInAnonymously_DEPRECATED();
     // [END auth_sign_in_anonymously]
     (void)result;
   }
@@ -549,7 +550,8 @@ void LinkCredentialFailAppleSignIn(const firebase::auth::Credential& credential,
                                    firebase::auth::Auth* auth) {
   // [START link_credential_apple_signin]
   firebase::Future<firebase::auth::SignInResult> link_result =
-      auth->current_user_DEPRECATED()->LinkAndRetrieveDataWithCredential(credential);
+      auth->current_user_DEPRECATED()->LinkAndRetrieveDataWithCredential(
+          credential);
 
   // To keep example simple, wait on the current thread until call completes.
   while (link_result.status() == firebase::kFutureStatusPending) {
@@ -563,8 +565,9 @@ void LinkCredentialFailAppleSignIn(const firebase::auth::Credential& credential,
                  firebase::auth::kAuthErrorCredentialAlreadyInUse &&
              link_result.result()->info.updated_credential.is_valid()) {
     // Sign In with the new credential
-    firebase::Future<firebase::auth::User*> result = auth->SignInWithCredential_DEPRECATED(
-        link_result.result()->info.updated_credential);
+    firebase::Future<firebase::auth::User*> result =
+        auth->SignInWithCredential_DEPRECATED(
+            link_result.result()->info.updated_credential);
   } else {
     // Another link error occurred.
   }

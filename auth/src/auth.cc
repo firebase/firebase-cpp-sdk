@@ -227,8 +227,8 @@ void Auth::AddAuthStateListener(AuthStateListener* listener) {
   // If the listener is registered successfully and persistent cache has been
   // loaded, trigger OnAuthStateChanged() immediately.  Otherwise, wait until
   // the cache is loaded, through AuthStateListener event.
-  // NOTE: This should be called synchronously or current_user_DEPRECATED() for desktop
-  // implementation may not work.
+  // NOTE: This should be called synchronously or current_user_DEPRECATED() for
+  // desktop implementation may not work.
   if (added && !auth_data_->persistent_cache_load_pending) {
     listener->OnAuthStateChanged(this);
   }
@@ -368,7 +368,8 @@ AUTH_RESULT_FN(Auth, SendPasswordResetEmail, void)
 
 AUTH_RESULT_DEPRECATED_FN(Auth, SignInWithCustomToken, User*)
 AUTH_RESULT_DEPRECATED_FN(Auth, SignInWithCredential, User*)
-AUTH_RESULT_DEPRECATED_FN(Auth, SignInAndRetrieveDataWithCredential, SignInResult)
+AUTH_RESULT_DEPRECATED_FN(Auth, SignInAndRetrieveDataWithCredential,
+                          SignInResult)
 AUTH_RESULT_DEPRECATED_FN(Auth, SignInAnonymously, User*)
 AUTH_RESULT_DEPRECATED_FN(Auth, SignInWithEmailAndPassword, User*)
 AUTH_RESULT_DEPRECATED_FN(Auth, CreateUserWithEmailAndPassword, User*)

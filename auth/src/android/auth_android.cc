@@ -395,7 +395,8 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(
 
 Future<User*> Auth::SignInWithCustomToken_DEPRECATED(const char* token) {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<User*>(kAuthFn_SignInWithCustomToken_DEPRECATED);
+  const auto handle =
+      futures.SafeAlloc<User*>(kAuthFn_SignInWithCustomToken_DEPRECATED);
   JNIEnv* env = Env(auth_data_);
 
   jstring j_token = env->NewStringUTF(token);
@@ -412,9 +413,11 @@ Future<User*> Auth::SignInWithCustomToken_DEPRECATED(const char* token) {
   return MakeFuture(&futures, handle);
 }
 
-Future<User*> Auth::SignInWithCredential_DEPRECATED(const Credential& credential) {
+Future<User*> Auth::SignInWithCredential_DEPRECATED(
+    const Credential& credential) {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<User*>(kAuthFn_SignInWithCredential_DEPRECATED);
+  const auto handle =
+      futures.SafeAlloc<User*>(kAuthFn_SignInWithCredential_DEPRECATED);
   JNIEnv* env = Env(auth_data_);
 
   // If the credential itself is in an error state, don't try signing in.
@@ -459,14 +462,16 @@ Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential_DEPRECATED(
   return MakeFuture(&futures, handle);
 }
 
-Future<SignInResult> Auth::SignInWithProvider_DEPRECATED(FederatedAuthProvider* provider) {
+Future<SignInResult> Auth::SignInWithProvider_DEPRECATED(
+    FederatedAuthProvider* provider) {
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
   return provider->SignIn(auth_data_);
 }
 
 Future<User*> Auth::SignInAnonymously_DEPRECATED() {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<User*>(kAuthFn_SignInAnonymously_DEPRECATED);
+  const auto handle =
+      futures.SafeAlloc<User*>(kAuthFn_SignInAnonymously_DEPRECATED);
   JNIEnv* env = Env(auth_data_);
 
   jobject pending_result = env->CallObjectMethod(
@@ -481,8 +486,8 @@ Future<User*> Auth::SignInAnonymously_DEPRECATED() {
   return MakeFuture(&futures, handle);
 }
 
-Future<User*> Auth::SignInWithEmailAndPassword_DEPRECATED(const char* email,
-                                               const char* password) {
+Future<User*> Auth::SignInWithEmailAndPassword_DEPRECATED(
+    const char* email, const char* password) {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle =
       futures.SafeAlloc<User*>(kAuthFn_SignInWithEmailAndPassword_DEPRECATED);
@@ -514,11 +519,11 @@ Future<User*> Auth::SignInWithEmailAndPassword_DEPRECATED(const char* email,
   return MakeFuture(&futures, handle);
 }
 
-Future<User*> Auth::CreateUserWithEmailAndPassword_DEPRECATED(const char* email,
-                                                   const char* password) {
+Future<User*> Auth::CreateUserWithEmailAndPassword_DEPRECATED(
+    const char* email, const char* password) {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle =
-      futures.SafeAlloc<User*>(kAuthFn_CreateUserWithEmailAndPassword_DEPRECATED);
+  const auto handle = futures.SafeAlloc<User*>(
+      kAuthFn_CreateUserWithEmailAndPassword_DEPRECATED);
 
   if (!email || strlen(email) == 0 || !password || strlen(password) == 0) {
     futures.Complete(handle,

@@ -312,8 +312,9 @@ class TestAuthStateListener : public firebase::auth::AuthStateListener {
  public:
   virtual void OnAuthStateChanged(firebase::auth::Auth* auth) {  // NOLINT
     // Log the provider ID.
-    std::string provider =
-        auth->current_user_DEPRECATED() ? auth->current_user_DEPRECATED()->provider_id() : "";
+    std::string provider = auth->current_user_DEPRECATED()
+                               ? auth->current_user_DEPRECATED()->provider_id()
+                               : "";
     LogDebug("OnAuthStateChanged called, provider=%s", provider.c_str());
     if (auth_states_.empty() || auth_states_.back() != provider) {
       // Only log unique events.
@@ -409,7 +410,8 @@ TEST_F(FirebaseAuthTest, TestEmailAndPasswordSignin) {
   // Register a random email and password. This signs us in as that user.
   std::string password = kTestPassword;
   firebase::Future<firebase::auth::User*> create_user =
-      auth_->CreateUserWithEmailAndPassword_DEPRECATED(email.c_str(), password.c_str());
+      auth_->CreateUserWithEmailAndPassword_DEPRECATED(email.c_str(),
+                                                       password.c_str());
   WaitForCompletion(create_user, "CreateUserWithEmailAndPassword_DEPRECATED");
   EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
   // Sign out and log in using SignInWithCredential_DEPRECATED(EmailCredential).
@@ -437,15 +439,18 @@ TEST_F(FirebaseAuthTest, TestEmailAndPasswordSignin) {
   SignOut();
   // Sign in with SignInWithEmailAndPassword values.
   firebase::Future<firebase::auth::User*> sign_in_user =
-      auth_->SignInWithEmailAndPassword_DEPRECATED(email.c_str(), password.c_str());
+      auth_->SignInWithEmailAndPassword_DEPRECATED(email.c_str(),
+                                                   password.c_str());
   WaitForCompletion(sign_in_user, "SignInWithEmailAndPassword");
   ASSERT_NE(auth_->current_user_DEPRECATED(), nullptr);
 
   // Then delete the account.
-  firebase::Future<void> delete_user = auth_->current_user_DEPRECATED()->Delete();
+  firebase::Future<void> delete_user =
+      auth_->current_user_DEPRECATED()->Delete();
   WaitForCompletion(delete_user, "Delete");
   firebase::Future<firebase::auth::User*> invalid_sign_in_user =
-      auth_->SignInWithEmailAndPassword_DEPRECATED(email.c_str(), password.c_str());
+      auth_->SignInWithEmailAndPassword_DEPRECATED(email.c_str(),
+                                                   password.c_str());
   WaitForCompletion(invalid_sign_in_user,
                     "SignInWithEmailAndPassword (invalid user)",
                     firebase::auth::kAuthErrorUserNotFound);
@@ -455,7 +460,8 @@ TEST_F(FirebaseAuthTest, TestEmailAndPasswordSignin) {
 TEST_F(FirebaseAuthTest, TestUpdateUserProfile) {
   std::string email = GenerateEmailAddress();
   firebase::Future<firebase::auth::User*> create_user =
-      auth_->CreateUserWithEmailAndPassword_DEPRECATED(email.c_str(), kTestPassword);
+      auth_->CreateUserWithEmailAndPassword_DEPRECATED(email.c_str(),
+                                                       kTestPassword);
   WaitForCompletion(create_user, "CreateUserWithEmailAndPassword_DEPRECATED");
   EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
   // Set some user profile properties.
@@ -470,9 +476,9 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfile) {
   EXPECT_EQ(user->display_name(), kDisplayName);
   EXPECT_EQ(user->photo_url(), kPhotoUrl);
   SignOut();
-  WaitForCompletion(
-      auth_->SignInWithEmailAndPassword_DEPRECATED(email.c_str(), kTestPassword),
-      "SignInWithEmailAndPassword");
+  WaitForCompletion(auth_->SignInWithEmailAndPassword_DEPRECATED(email.c_str(),
+                                                                 kTestPassword),
+                    "SignInWithEmailAndPassword");
   EXPECT_EQ(user->display_name(), kDisplayName);
   EXPECT_EQ(user->photo_url(), kPhotoUrl);
   DeleteUser();
@@ -480,9 +486,9 @@ TEST_F(FirebaseAuthTest, TestUpdateUserProfile) {
 
 TEST_F(FirebaseAuthTest, TestUpdateEmailAndPassword) {
   std::string email = GenerateEmailAddress();
-  WaitForCompletion(
-      auth_->CreateUserWithEmailAndPassword_DEPRECATED(email.c_str(), kTestPassword),
-      "CreateUserWithEmailAndPassword_DEPRECATED");
+  WaitForCompletion(auth_->CreateUserWithEmailAndPassword_DEPRECATED(
+                        email.c_str(), kTestPassword),
+                    "CreateUserWithEmailAndPassword_DEPRECATED");
   ASSERT_NE(auth_->current_user_DEPRECATED(), nullptr);
   firebase::auth::User* user = auth_->current_user_DEPRECATED();
 
@@ -512,7 +518,8 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential) {
                                                        kTestPassword);
   WaitForCompletion(user->LinkAndRetrieveDataWithCredential(credential),
                     "LinkAndRetrieveDataWithCredential");
-  WaitForCompletion(user->Unlink_DEPRECATED(credential.provider().c_str()), "Unlink");
+  WaitForCompletion(user->Unlink_DEPRECATED(credential.provider().c_str()),
+                    "Unlink");
   SignOut();
   WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(), "SignInAnonymously");
   EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
@@ -529,7 +536,8 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential) {
   WaitForCompletion(user->LinkWithCredential_DEPRECATED(credential2),
                     "LinkWithCredential 2",
                     firebase::auth::kAuthErrorProviderAlreadyLinked);
-  WaitForCompletion(user->Unlink_DEPRECATED(credential.provider().c_str()), "Unlink 2");
+  WaitForCompletion(user->Unlink_DEPRECATED(credential.provider().c_str()),
+                    "Unlink 2");
   DeleteUser();
 }
 
@@ -549,55 +557,57 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithBadCredential) {
 }
 
 TEST_F(FirebaseAuthTest, TestSignInWithBadEmailFails) {
-  WaitForCompletion(
-      auth_->SignInWithEmailAndPassword_DEPRECATED(kTestEmailBad, kTestPassword),
-      "SignInWithEmailAndPassword", firebase::auth::kAuthErrorUserNotFound);
+  WaitForCompletion(auth_->SignInWithEmailAndPassword_DEPRECATED(kTestEmailBad,
+                                                                 kTestPassword),
+                    "SignInWithEmailAndPassword",
+                    firebase::auth::kAuthErrorUserNotFound);
   EXPECT_EQ(auth_->current_user_DEPRECATED(), nullptr);
 }
 
 TEST_F(FirebaseAuthTest, TestSignInWithBadPasswordFails) {
   std::string email = GenerateEmailAddress();
-  WaitForCompletion(
-      auth_->CreateUserWithEmailAndPassword_DEPRECATED(email.c_str(), kTestPassword),
-      "CreateUserWithEmailAndPassword_DEPRECATED");
+  WaitForCompletion(auth_->CreateUserWithEmailAndPassword_DEPRECATED(
+                        email.c_str(), kTestPassword),
+                    "CreateUserWithEmailAndPassword_DEPRECATED");
   EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
   SignOut();
-  WaitForCompletion(
-      auth_->SignInWithEmailAndPassword_DEPRECATED(email.c_str(), kTestPasswordBad),
-      "SignInWithEmailAndPassword", firebase::auth::kAuthErrorWrongPassword);
+  WaitForCompletion(auth_->SignInWithEmailAndPassword_DEPRECATED(
+                        email.c_str(), kTestPasswordBad),
+                    "SignInWithEmailAndPassword",
+                    firebase::auth::kAuthErrorWrongPassword);
   EXPECT_EQ(auth_->current_user_DEPRECATED(), nullptr);
   SignOut();
   // Sign back in and delete the user.
-  WaitForCompletion(
-      auth_->SignInWithEmailAndPassword_DEPRECATED(email.c_str(), kTestPassword),
-      "SignInWithEmailAndPassword");
+  WaitForCompletion(auth_->SignInWithEmailAndPassword_DEPRECATED(email.c_str(),
+                                                                 kTestPassword),
+                    "SignInWithEmailAndPassword");
   EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
   DeleteUser();
 }
 
 TEST_F(FirebaseAuthTest, TestCreateUserWithExistingEmailFails) {
   std::string email = GenerateEmailAddress();
-  WaitForCompletion(
-      auth_->CreateUserWithEmailAndPassword_DEPRECATED(email.c_str(), kTestPassword),
-      "CreateUserWithEmailAndPassword_DEPRECATED 1");
+  WaitForCompletion(auth_->CreateUserWithEmailAndPassword_DEPRECATED(
+                        email.c_str(), kTestPassword),
+                    "CreateUserWithEmailAndPassword_DEPRECATED 1");
   EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
   SignOut();
-  WaitForCompletion(
-      auth_->CreateUserWithEmailAndPassword_DEPRECATED(email.c_str(), kTestPassword),
-      "CreateUserWithEmailAndPassword_DEPRECATED 2",
-      firebase::auth::kAuthErrorEmailAlreadyInUse);
+  WaitForCompletion(auth_->CreateUserWithEmailAndPassword_DEPRECATED(
+                        email.c_str(), kTestPassword),
+                    "CreateUserWithEmailAndPassword_DEPRECATED 2",
+                    firebase::auth::kAuthErrorEmailAlreadyInUse);
   EXPECT_EQ(auth_->current_user_DEPRECATED(), nullptr);
   SignOut();
   // Try again with a different password.
-  WaitForCompletion(
-      auth_->CreateUserWithEmailAndPassword_DEPRECATED(email.c_str(), kTestPasswordBad),
-      "CreateUserWithEmailAndPassword_DEPRECATED 3",
-      firebase::auth::kAuthErrorEmailAlreadyInUse);
+  WaitForCompletion(auth_->CreateUserWithEmailAndPassword_DEPRECATED(
+                        email.c_str(), kTestPasswordBad),
+                    "CreateUserWithEmailAndPassword_DEPRECATED 3",
+                    firebase::auth::kAuthErrorEmailAlreadyInUse);
   EXPECT_EQ(auth_->current_user_DEPRECATED(), nullptr);
   SignOut();
-  WaitForCompletion(
-      auth_->SignInWithEmailAndPassword_DEPRECATED(email.c_str(), kTestPassword),
-      "SignInWithEmailAndPassword");
+  WaitForCompletion(auth_->SignInWithEmailAndPassword_DEPRECATED(email.c_str(),
+                                                                 kTestPassword),
+                    "SignInWithEmailAndPassword");
   EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
   DeleteUser();
 }
@@ -641,8 +651,9 @@ TEST_F(FirebaseAuthTest, TestSignInWithBadCredentials) {
                     firebase::auth::kAuthErrorInvalidCredential);
   EXPECT_EQ(auth_->current_user_DEPRECATED(), existing_user);
   WaitForCompletion(
-      auth_->SignInWithCredential_DEPRECATED(firebase::auth::OAuthProvider::GetCredential(
-          kTestIdProviderIdBad, kTestIdTokenBad, kTestAccessTokenBad)),
+      auth_->SignInWithCredential_DEPRECATED(
+          firebase::auth::OAuthProvider::GetCredential(
+              kTestIdProviderIdBad, kTestIdTokenBad, kTestAccessTokenBad)),
       "SignInWithCredential (OAuth)", firebase::auth::kAuthErrorFailure);
   EXPECT_EQ(auth_->current_user_DEPRECATED(), existing_user);
 
@@ -674,8 +685,9 @@ TEST_F(FirebaseAuthTest, TestGameCenterSignIn) {
 
   EXPECT_NE(credential_future.result(), nullptr);
   if (credential_future.result()) {
-    WaitForCompletion(auth_->SignInWithCredential_DEPRECATED(*credential_future.result()),
-                      "SignInWithCredential (Game Center)");
+    WaitForCompletion(
+        auth_->SignInWithCredential_DEPRECATED(*credential_future.result()),
+        "SignInWithCredential (Game Center)");
   }
   DeleteUser();
 }
@@ -684,9 +696,9 @@ TEST_F(FirebaseAuthTest, TestGameCenterSignIn) {
 TEST_F(FirebaseAuthTest, TestSendPasswordResetEmail) {
   // Test Auth::SendPasswordResetEmail().
   std::string email = GenerateEmailAddress();
-  WaitForCompletion(
-      auth_->CreateUserWithEmailAndPassword_DEPRECATED(email.c_str(), kTestPassword),
-      "CreateUserWithEmailAndPassword_DEPRECATED");
+  WaitForCompletion(auth_->CreateUserWithEmailAndPassword_DEPRECATED(
+                        email.c_str(), kTestPassword),
+                    "CreateUserWithEmailAndPassword_DEPRECATED");
   EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
   SignOut();
   // Send to correct email.
@@ -697,9 +709,9 @@ TEST_F(FirebaseAuthTest, TestSendPasswordResetEmail) {
                     "SendPasswordResetEmail (bad)",
                     firebase::auth::kAuthErrorUserNotFound);
   // Delete user now that we are done with it.
-  WaitForCompletion(
-      auth_->SignInWithEmailAndPassword_DEPRECATED(email.c_str(), kTestPassword),
-      "SignInWithEmailAndPassword");
+  WaitForCompletion(auth_->SignInWithEmailAndPassword_DEPRECATED(email.c_str(),
+                                                                 kTestPassword),
+                    "SignInWithEmailAndPassword");
   EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
   DeleteUser();
 }
@@ -714,7 +726,8 @@ TEST_F(FirebaseAuthTest, TestWithCustomEmailAndPassword) {
     return;
   }
   firebase::Future<firebase::auth::User*> sign_in_user =
-      auth_->SignInWithEmailAndPassword_DEPRECATED(kCustomTestEmail, kCustomTestPassword);
+      auth_->SignInWithEmailAndPassword_DEPRECATED(kCustomTestEmail,
+                                                   kCustomTestPassword);
   WaitForCompletion(sign_in_user, "SignInWithEmailAndPassword");
   EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
 }
@@ -745,16 +758,18 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
   FLAKY_TEST_SECTION_BEGIN();
 
   std::string email = GenerateEmailAddress();
-  WaitForCompletion(
-      auth_->CreateUserWithEmailAndPassword_DEPRECATED(email.c_str(), kTestPassword),
-      "CreateUserWithEmailAndPassword_DEPRECATED");
+  WaitForCompletion(auth_->CreateUserWithEmailAndPassword_DEPRECATED(
+                        email.c_str(), kTestPassword),
+                    "CreateUserWithEmailAndPassword_DEPRECATED");
   EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
   EXPECT_FALSE(auth_->current_user_DEPRECATED()->is_anonymous());
-  std::string prev_provider_id = auth_->current_user_DEPRECATED()->provider_id();
+  std::string prev_provider_id =
+      auth_->current_user_DEPRECATED()->provider_id();
   // Save the old provider ID list so we can make sure it's the same once
   // it's loaded again.
   std::vector<std::string> prev_provider_data_ids;
-  for (int i = 0; i < auth_->current_user_DEPRECATED()->provider_data().size(); i++) {
+  for (int i = 0; i < auth_->current_user_DEPRECATED()->provider_data().size();
+       i++) {
     prev_provider_data_ids.push_back(
         auth_->current_user_DEPRECATED()->provider_data()[i]->provider_id());
   }
@@ -767,16 +782,17 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
   // Make sure the provider IDs are the same as they were before.
   EXPECT_EQ(auth_->current_user_DEPRECATED()->provider_id(), prev_provider_id);
   std::vector<std::string> loaded_provider_data_ids;
-  for (int i = 0; i < auth_->current_user_DEPRECATED()->provider_data().size(); i++) {
+  for (int i = 0; i < auth_->current_user_DEPRECATED()->provider_data().size();
+       i++) {
     loaded_provider_data_ids.push_back(
         auth_->current_user_DEPRECATED()->provider_data()[i]->provider_id());
   }
   EXPECT_TRUE(loaded_provider_data_ids == prev_provider_data_ids);
 
   // Cleanup, ensure we are signed in as the user so we can delete it.
-  WaitForCompletion(
-      auth_->SignInWithEmailAndPassword_DEPRECATED(email.c_str(), kTestPassword),
-      "SignInWithEmailAndPassword");
+  WaitForCompletion(auth_->SignInWithEmailAndPassword_DEPRECATED(email.c_str(),
+                                                                 kTestPassword),
+                    "SignInWithEmailAndPassword");
   EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
   DeleteUser();
 
@@ -904,8 +920,9 @@ TEST_F(FirebaseAuthTest, TestPhoneAuth) {
   }
   if (listener.on_verification_complete_count() > 0) {
     LogDebug("Signing in with automatic verification code.");
-    WaitForCompletion(auth_->SignInWithCredential_DEPRECATED(listener.credential()),
-                      "SignInWithCredential_DEPRECATED(PhoneCredential) automatic");
+    WaitForCompletion(
+        auth_->SignInWithCredential_DEPRECATED(listener.credential()),
+        "SignInWithCredential_DEPRECATED(PhoneCredential) automatic");
   } else if (listener.on_verification_failed_count() > 0) {
     FAIL() << "Automatic verification failed.";
   } else {
@@ -1008,7 +1025,8 @@ TEST_F(FirebaseAuthTest, TestSuccessfulReauthenticateWithProvider) {
       auth_->SignInWithProvider_DEPRECATED(&provider);
   if (WaitForCompletion(sign_in_future, "SignInWithProvider", provider_id)) {
     WaitForCompletion(
-        sign_in_future.result()->user->ReauthenticateWithProvider_DEPRECATED(&provider),
+        sign_in_future.result()->user->ReauthenticateWithProvider_DEPRECATED(
+            &provider),
         "ReauthenticateWithProvider", provider_id);
   }
   DeleteUser();
@@ -1027,7 +1045,8 @@ TEST_F(FirebaseAuthTest, TestSuccessfulReauthenticateWithProviderNoScopes) {
       auth_->SignInWithProvider_DEPRECATED(&provider);
   if (WaitForCompletion(sign_in_future, "SignInWithProvider", provider_id)) {
     WaitForCompletion(
-        sign_in_future.result()->user->ReauthenticateWithProvider_DEPRECATED(&provider),
+        sign_in_future.result()->user->ReauthenticateWithProvider_DEPRECATED(
+            &provider),
         "ReauthenticateWithProvider", provider_id);
   }
   DeleteUser();
@@ -1047,7 +1066,8 @@ TEST_F(FirebaseAuthTest,
       auth_->SignInWithProvider_DEPRECATED(&provider);
   if (WaitForCompletion(sign_in_future, "SignInWithProvider", provider_id)) {
     WaitForCompletion(
-        sign_in_future.result()->user->ReauthenticateWithProvider_DEPRECATED(&provider),
+        sign_in_future.result()->user->ReauthenticateWithProvider_DEPRECATED(
+            &provider),
         "ReauthenticateWithProvider", provider_id);
   }
   DeleteUser();
@@ -1067,7 +1087,8 @@ TEST_F(FirebaseAuthTest, TestReauthenticateWithProviderBadProviderIdFails) {
     provider_data.provider_id = "MadeUpProvider";
     firebase::auth::FederatedOAuthProvider provider(provider_data);
     firebase::Future<firebase::auth::SignInResult> reauth_future =
-        auth_->current_user_DEPRECATED()->ReauthenticateWithProvider_DEPRECATED(&provider);
+        auth_->current_user_DEPRECATED()->ReauthenticateWithProvider_DEPRECATED(
+            &provider);
     WaitForCompletion(reauth_future, "ReauthenticateWithProvider",
                       firebase::auth::kAuthErrorInvalidProviderId);
   }

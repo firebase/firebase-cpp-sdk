@@ -107,8 +107,8 @@ Future<SignInResult> FederatedOAuthProvider::Reauthenticate(
     AuthData* auth_data) {
   assert(auth_data);
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), handler_);
-  Future<SignInResult> future =
-      CreateAuthFuture(auth_data, kUserFn_ReauthenticateWithProvider_DEPRECATED);
+  Future<SignInResult> future = CreateAuthFuture(
+      auth_data, kUserFn_ReauthenticateWithProvider_DEPRECATED);
   if (future.status() == kFutureStatusPending) {
     AuthCompletionHandle* auth_completion_handle = new AuthCompletionHandle(
         SafeFutureHandle<SignInResult>(future.GetHandle()), auth_data);

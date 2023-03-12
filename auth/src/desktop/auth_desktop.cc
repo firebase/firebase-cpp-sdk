@@ -337,7 +337,8 @@ void Auth::DestroyPlatformAuth(AuthData* const auth_data) {
 
 // RPCs
 
-Future<User*> Auth::SignInWithCustomToken_DEPRECATED(const char* const custom_token) {
+Future<User*> Auth::SignInWithCustomToken_DEPRECATED(
+    const char* const custom_token) {
   Promise<User*> promise(&auth_data_->future_impl,
                          kAuthFn_SignInWithCustomToken_DEPRECATED);
   if (!custom_token || strlen(custom_token) == 0) {
@@ -355,7 +356,8 @@ Future<User*> Auth::SignInWithCustomToken_DEPRECATED(const char* const custom_to
                    PerformSignInFlow<VerifyCustomTokenResponse>);
 }
 
-Future<User*> Auth::SignInWithCredential_DEPRECATED(const Credential& credential) {
+Future<User*> Auth::SignInWithCredential_DEPRECATED(
+    const Credential& credential) {
   Promise<User*> promise(&auth_data_->future_impl,
                          kAuthFn_SignInWithCredential_DEPRECATED);
   if (!ValidateCredential(&promise, credential.provider(), credential.impl_)) {
@@ -366,7 +368,8 @@ Future<User*> Auth::SignInWithCredential_DEPRECATED(const Credential& credential
                                 credential.impl_);
 }
 
-Future<SignInResult> Auth::SignInWithProvider_DEPRECATED(FederatedAuthProvider* provider) {
+Future<SignInResult> Auth::SignInWithProvider_DEPRECATED(
+    FederatedAuthProvider* provider) {
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
   // TODO(b/139363200)
   // return provider->SignIn(auth_data_);
@@ -382,7 +385,8 @@ Future<SignInResult> Auth::SignInWithProvider_DEPRECATED(FederatedAuthProvider* 
 }
 
 Future<User*> Auth::SignInAnonymously_DEPRECATED() {
-  Promise<User*> promise(&auth_data_->future_impl, kAuthFn_SignInAnonymously_DEPRECATED);
+  Promise<User*> promise(&auth_data_->future_impl,
+                         kAuthFn_SignInAnonymously_DEPRECATED);
 
   // If user is already signed in anonymously, return immediately.
   bool is_anonymous = false;
@@ -405,8 +409,8 @@ Future<User*> Auth::SignInAnonymously_DEPRECATED() {
                    PerformSignInFlow<SignUpNewUserResponse>);
 }
 
-Future<User*> Auth::SignInWithEmailAndPassword_DEPRECATED(const char* const email,
-                                               const char* const password) {
+Future<User*> Auth::SignInWithEmailAndPassword_DEPRECATED(
+    const char* const email, const char* const password) {
   Promise<User*> promise(&auth_data_->future_impl,
                          kAuthFn_SignInWithEmailAndPassword_DEPRECATED);
   if (!ValidateEmailAndPassword(&promise, email, password)) {
@@ -421,8 +425,8 @@ Future<User*> Auth::SignInWithEmailAndPassword_DEPRECATED(const char* const emai
                    PerformSignInFlow<VerifyPasswordResponse>);
 }
 
-Future<User*> Auth::CreateUserWithEmailAndPassword_DEPRECATED(const char* const email,
-                                                   const char* const password) {
+Future<User*> Auth::CreateUserWithEmailAndPassword_DEPRECATED(
+    const char* const email, const char* const password) {
   Promise<User*> promise(&auth_data_->future_impl,
                          kAuthFn_CreateUserWithEmailAndPassword_DEPRECATED);
   if (!ValidateEmailAndPassword(&promise, email, password)) {
@@ -440,8 +444,9 @@ Future<User*> Auth::CreateUserWithEmailAndPassword_DEPRECATED(const char* const 
 
 Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential_DEPRECATED(
     const Credential& credential) {
-  Promise<SignInResult> promise(&auth_data_->future_impl,
-                                kAuthFn_SignInAndRetrieveDataWithCredential_DEPRECATED);
+  Promise<SignInResult> promise(
+      &auth_data_->future_impl,
+      kAuthFn_SignInAndRetrieveDataWithCredential_DEPRECATED);
   return DoSignInWithCredential(promise, auth_data_, credential.provider(),
                                 credential.impl_);
 }
@@ -509,8 +514,8 @@ void Auth::SignOut() {
   AuthenticationResult::SignOut(auth_data_);
 }
 
-// AuthStateListener to wait for current_user_DEPRECATED() until persistent cache load is
-// finished.
+// AuthStateListener to wait for current_user_DEPRECATED() until persistent
+// cache load is finished.
 class CurrentUserBlockListener : public firebase::auth::AuthStateListener {
  public:
   explicit CurrentUserBlockListener() : semaphore_(0) {}

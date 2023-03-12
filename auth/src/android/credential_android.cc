@@ -1038,8 +1038,8 @@ Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
   assert(auth_data);
   JNIEnv* env = Env(auth_data);
   ReferenceCountedFutureImpl& futures = auth_data->future_impl;
-  const auto handle =
-      futures.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider_DEPRECATED, SignInResult());
+  const auto handle = futures.SafeAlloc<SignInResult>(
+      kUserFn_LinkWithProvider_DEPRECATED, SignInResult());
 
   jobject oauthprovider = ConstructOAuthProvider(auth_data, provider_data_);
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {

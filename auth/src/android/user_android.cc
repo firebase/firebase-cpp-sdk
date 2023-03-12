@@ -466,12 +466,14 @@ Future<void> User::UpdateUserProfile(const UserProfile& profile) {
   return MakeFuture(&futures, handle);
 }
 
-Future<User*> User::LinkWithCredential_DEPRECATED(const Credential& credential) {
+Future<User*> User::LinkWithCredential_DEPRECATED(
+    const Credential& credential) {
   if (!ValidUser(auth_data_)) {
     return Future<User*>();
   }
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle = futures.SafeAlloc<User*>(kUserFn_LinkWithCredential_DEPRECATED);
+  const auto handle =
+      futures.SafeAlloc<User*>(kUserFn_LinkWithCredential_DEPRECATED);
   JNIEnv* env = Env(auth_data_);
 
   jobject pending_result = env->CallObjectMethod(
@@ -534,7 +536,8 @@ Future<User*> User::Unlink_DEPRECATED(const char* provider) {
   return MakeFuture(&futures, handle);
 }
 
-Future<User*> User::UpdatePhoneNumberCredential_DEPRECATED(const Credential& credential) {
+Future<User*> User::UpdatePhoneNumberCredential_DEPRECATED(
+    const Credential& credential) {
   if (!ValidUser(auth_data_)) {
     return Future<User*>();
   }
@@ -604,8 +607,8 @@ Future<SignInResult> User::ReauthenticateAndRetrieveData_DEPRECATED(
     return Future<SignInResult>();
   }
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle =
-      futures.SafeAlloc<SignInResult>(kUserFn_ReauthenticateAndRetrieveData_DEPRECATED);
+  const auto handle = futures.SafeAlloc<SignInResult>(
+      kUserFn_ReauthenticateAndRetrieveData_DEPRECATED);
   JNIEnv* env = Env(auth_data_);
 
   jobject pending_result = env->CallObjectMethod(

@@ -105,9 +105,9 @@ GetTokenResult GetTokenIfFresh(const UserView::Reader& user,
   return GetTokenResult(kAuthErrorFailure);
 }
 
-// Makes sure that calling auth->current_user_DEPRECATED()->id_token() will result in
-// a token that is good for at least 5 minutes. Will fetch a new token from the
-// backend if necessary.
+// Makes sure that calling auth->current_user_DEPRECATED()->id_token() will
+// result in a token that is good for at least 5 minutes. Will fetch a new token
+// from the backend if necessary.
 //
 // If force_refresh is given, then a new token will be fetched without checking
 // the current token at all.
@@ -840,8 +840,10 @@ Future<User*> User::Unlink_DEPRECATED(const char* const provider) {
                                  PerformSetAccountInfoFlow<User*>);
 }
 
-Future<User*> User::LinkWithCredential_DEPRECATED(const Credential& credential) {
-  Promise<User*> promise(&auth_data_->future_impl, kUserFn_LinkWithCredential_DEPRECATED);
+Future<User*> User::LinkWithCredential_DEPRECATED(
+    const Credential& credential) {
+  Promise<User*> promise(&auth_data_->future_impl,
+                         kUserFn_LinkWithCredential_DEPRECATED);
   return DoLinkCredential(promise, auth_data_, credential.provider(),
                           credential.impl_);
 }
@@ -860,7 +862,8 @@ Future<SignInResult> User::LinkWithProvider_DEPRECATED(
   // TODO(b/139363200)
   // return provider->Link(auth_data_);
   SafeFutureHandle<SignInResult> handle =
-      auth_data_->future_impl.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider_DEPRECATED);
+      auth_data_->future_impl.SafeAlloc<SignInResult>(
+          kUserFn_LinkWithProvider_DEPRECATED);
   auth_data_->future_impl.CompleteWithResult(
       handle, kAuthErrorUnimplemented,
       "Operation is not supported on non-mobile systems.",
@@ -876,8 +879,9 @@ Future<void> User::Reauthenticate(const Credential& credential) {
 
 Future<SignInResult> User::ReauthenticateAndRetrieveData_DEPRECATED(
     const Credential& credential) {
-  Promise<SignInResult> promise(&auth_data_->future_impl,
-                                kUserFn_ReauthenticateAndRetrieveData_DEPRECATED);
+  Promise<SignInResult> promise(
+      &auth_data_->future_impl,
+      kUserFn_ReauthenticateAndRetrieveData_DEPRECATED);
   return DoReauthenticate(promise, auth_data_, credential.provider(),
                           credential.impl_);
 }
@@ -954,7 +958,8 @@ std::string User::provider_id() const {
 
 // Not implemented
 
-Future<User*> User::UpdatePhoneNumberCredential_DEPRECATED(const Credential& credential) {
+Future<User*> User::UpdatePhoneNumberCredential_DEPRECATED(
+    const Credential& credential) {
   Promise<User*> promise(&auth_data_->future_impl,
                          kUserFn_UpdatePhoneNumberCredential_DEPRECATED);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
