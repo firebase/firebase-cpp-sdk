@@ -325,7 +325,7 @@ TEST_F(AuthTest, TestCreateUserWithEmailAndPasswordSucceeded) {
   firebase::testing::cppsdk::ConfigSet(
       "{"
       "  config:["
-      "    {fake:'FirebaseAuth.createUserWithEmailAndPassword_DEPRECATED',"
+      "    {fake:'FirebaseAuth.createUserWithEmailAndPassword',"
       "     futuregeneric:{ticker:1}},"
       "    {fake:'FIRAuth.createUserWithEmail:password:completion:',"
       "     futuregeneric:{ticker:1}},"
@@ -454,7 +454,7 @@ TEST_F(AuthTest, TestCreateUserWithEmailAndPasswordFailed) {
   firebase::testing::cppsdk::ConfigSet(
       "{"
       "  config:["
-      "    {fake:'FirebaseAuth.createUserWithEmailAndPassword_DEPRECATED',"
+      "    {fake:'FirebaseAuth.createUserWithEmailAndPassword',"
       "     futuregeneric:{throwexception:true,"
       "                    "
       "exceptionmsg:'[FirebaseAuthUserCollisionException:ERROR_EMAIL_ALREADY_"

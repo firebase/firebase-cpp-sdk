@@ -67,7 +67,7 @@ using util::JniStringToString;
   X(SignInWithEmailAndPassword, "signInWithEmailAndPassword",                  \
     "(Ljava/lang/String;Ljava/lang/String;)"                                   \
     "Lcom/google/android/gms/tasks/Task;"),                                    \
-  X(CreateUserWithEmailAndPassword_DEPRECATED, "createUserWithEmailAndPassword_DEPRECATED",          \
+  X(CreateUserWithEmailAndPassword, "createUserWithEmailAndPassword",          \
     "(Ljava/lang/String;Ljava/lang/String;)"                                   \
     "Lcom/google/android/gms/tasks/Task;"),                                    \
   X(SendPasswordResetEmail, "sendPasswordResetEmail",                          \
@@ -533,7 +533,7 @@ Future<User*> Auth::CreateUserWithEmailAndPassword_DEPRECATED(const char* email,
   jstring j_password = env->NewStringUTF(password);
   jobject pending_result = env->CallObjectMethod(
       AuthImpl(auth_data_),
-      auth::GetMethodId(auth::kCreateUserWithEmailAndPassword_DEPRECATED), j_email,
+      auth::GetMethodId(auth::kCreateUserWithEmailAndPassword), j_email,
       j_password);
   env->DeleteLocalRef(j_email);
   env->DeleteLocalRef(j_password);
