@@ -9,6 +9,7 @@ target 'integration_test' do
   pod 'Firebase/Auth', '10.6.0'
   pod 'Firebase/Storage', '10.6.0'
   pod 'Firebase/Functions', '10.6.0'
+  pod 'Firebase/Firestore', '10.6.0'
 end
 
 target 'integration_test_tvos' do
@@ -18,6 +19,7 @@ target 'integration_test_tvos' do
   pod 'Firebase/Auth', '10.6.0'
   pod 'Firebase/Storage', '10.6.0'
   pod 'Firebase/Functions', '10.6.0'
+  pod 'Firebase/Firestore', '10.6.0'
 end
 
 post_install do |installer|
