@@ -29,11 +29,11 @@ AdError::AdError() {}
 
 AdError::AdError(const AdErrorInternal& ad_error_internal) {}
 
-AdError::AdError(const AdError& ad_result) : AdError() {}
+AdError::AdError(const AdError& ad_error) : AdError() {}
 
 AdError::~AdError() {}
 
-AdError& AdError::operator=(const AdError& ad_result) { return *this; }
+AdError& AdError::operator=(const AdError& obj) { return *this; }
 
 std::unique_ptr<AdError> AdError::GetCause() const {
   return std::unique_ptr<AdError>(nullptr);

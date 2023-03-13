@@ -25,8 +25,8 @@ extern "C" {
 #include <objc/objc.h>
 }  // extern "C"
 
-#include "gma/src/common/interstitial_ad_internal.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "gma/src/common/interstitial_ad_internal.h"
 
 namespace firebase {
 namespace gma {
@@ -44,7 +44,7 @@ class InterstitialAdInternalIOS : public InterstitialAdInternal {
 
 #ifdef __OBJC__
   void InterstitialDidReceiveAd(GADInterstitialAd* ad);
-  void InterstitialDidFailToReceiveAdWithError(NSError *gad_error);
+  void InterstitialDidFailToReceiveAdWithError(NSError* gad_error);
   void InterstitialWillPresentScreen();
   void InterstitialDidDismissScreen();
 #endif  // __OBJC__
@@ -52,7 +52,7 @@ class InterstitialAdInternalIOS : public InterstitialAdInternal {
   bool is_initialized() const override { return initialized_; }
 
  private:
-  /// Prevents duplicate invocations of initailize on the Interstitial Ad.
+  /// Prevents duplicate invocations of initialize on the Interstitial Ad.
   bool initialized_;
 
   /// Contains information to asynchronously complete the LoadAd Future.

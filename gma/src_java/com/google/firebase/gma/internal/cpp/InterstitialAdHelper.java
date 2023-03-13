@@ -104,9 +104,7 @@ public class InterstitialAdHelper {
     });
   }
 
-  /**
-   * Disconnect the helper from the interstital ad.
-   */
+  /** Disconnect the helper from the interstital ad. */
   public void disconnect() {
     synchronized (mInterstitialLock) {
       mInterstitialAdInternalPtr = CPP_NULLPTR;
@@ -131,9 +129,7 @@ public class InterstitialAdHelper {
     });
   }
 
-  /**
-   * Loads an ad for the underlying {@link InterstitialAd} object.
-   */
+  /** Loads an ad for the underlying {@link InterstitialAd} object. */
   public void loadAd(long callbackDataPtr, String adUnitId, final AdRequest request) {
     if (mActivity == null) {
       return;
@@ -176,9 +172,7 @@ public class InterstitialAdHelper {
     });
   }
 
-  /**
-   * Shows a previously loaded ad.
-   */
+  /** Shows a previously loaded ad. */
   public void show(final long callbackDataPtr) {
     mActivity.runOnUiThread(new Runnable() {
       @Override
@@ -286,36 +280,29 @@ public class InterstitialAdHelper {
     }
   }
 
-  /**
-   * Native callback to instruct the C++ wrapper to complete the corresponding future.
-   */
+  /** Native callback to instruct the C++ wrapper to complete the corresponding future. */
   public static native void completeInterstitialAdFutureCallback(
       long nativeInternalPtr, int errorCode, String errorMessage);
 
-  /**
-   * Native callback invoked upon successfully loading an ad.
-   */
+  /** Native callback invoked upon successfully loading an ad. */
   public static native void completeInterstitialLoadedAd(
       long nativeInternalPtr, ResponseInfo responseInfo);
 
   /**
-   * Native callback upon encountering an error loading an Ad Request. Returns
-   * Android Google Mobile Ads SDK error codes.
-   **/
+   * Native callback upon encountering an error loading an Ad Request. Returns Android Google Mobile
+   * Ads SDK error codes.
+   */
   public static native void completeInterstitialLoadAdError(
       long nativeInternalPtr, LoadAdError error, int errorCode, String errorMessage);
 
   /**
-   * Native callback upon encountering a wrapper/internal error when
-   * processing an Ad Request. Returns integers representing
-   * firebase::gma::AdError codes.
+   * Native callback upon encountering a wrapper/internal error when processing an Ad Request.
+   * Returns integers representing firebase::gma::AdError codes.
    */
   public static native void completeInterstitialLoadAdInternalError(
       long nativeInternalPtr, int gmaErrorCode, String errorMessage);
 
-  /**
-   * Native callbacks to notify the C++ wrapper of ad events
-   */
+  /** Native callbacks to notify the C++ wrapper of ad events */
   public static native void notifyAdClickedFullScreenContentEvent(long nativeInternalPtr);
 
   public static native void notifyAdDismissedFullScreenContentEvent(long nativeInternalPtr);

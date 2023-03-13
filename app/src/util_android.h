@@ -1126,7 +1126,6 @@ jint AttachCurrentThread(JavaVM* java_vm, JNIEnv** env);
 // firebase::App, either the default App (if it exists) or any valid
 // App. If there is no instantiated App, returns nullptr.
 JNIEnv* GetJNIEnvFromApp();
-
 }  // namespace util
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase

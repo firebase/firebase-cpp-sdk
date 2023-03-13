@@ -252,6 +252,10 @@ App* App::Create(const AppOptions& options, const char* name) {
     LogError("App %s already created, options will not be applied.", name);
     return app;
   }
+
+  // Register C++/Unity user-agents before creating iOS app.
+  app_common::RegisterSdkUsage(nullptr);
+
   LogDebug("Creating Firebase App %s for %s", name, kFirebaseVersionString);
   app = new App();
   app->options_ = options;
@@ -277,7 +281,7 @@ App* App::GetInstance() { return app_common::GetDefaultApp(); }
 
 App* App::GetInstance(const char* name) { return app_common::FindAppByName(name); }
 
-void App::RegisterLibrary(const char* library, const char* version) {
+void App::RegisterLibrary(const char* library, const char* version, void* /* platform_resource */) {
   [FIRApp registerLibrary:@(library) withVersion:@(version)];
   app_common::RegisterLibrariesFromUserAgent(
       util::NSStringToString([FIRApp firebaseUserAgent]).c_str());
