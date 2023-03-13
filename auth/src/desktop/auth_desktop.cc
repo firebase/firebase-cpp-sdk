@@ -518,7 +518,7 @@ void Auth::SignOut() {
 // cache load is finished.
 class CurrentUserBlockListener : public firebase::auth::AuthStateListener {
  public:
-  explicit CurrentUserBlockListener() : semaphore_(0) {}
+  CurrentUserBlockListener() : semaphore_(0) {}
   ~CurrentUserBlockListener() override {}
 
   void OnAuthStateChanged(Auth* auth) override { semaphore_.Post(); }
