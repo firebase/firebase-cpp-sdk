@@ -35,6 +35,7 @@ enum FunctionId {
   FnAuthGetCurrentUserUid,
   FnAuthAddAuthStateListener,
   FnAuthRemoveAuthStateListener,
+  FnAppCheckGetTokenAsync,
 };
 
 // Class for providing a generic way for firebase libraries to expose their

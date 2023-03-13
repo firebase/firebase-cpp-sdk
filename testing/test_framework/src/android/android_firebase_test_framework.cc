@@ -244,4 +244,27 @@ bool FirebaseTest::IsRunningOnEmulator() {
   return result ? true : false;
 }
 
+int FirebaseTest::GetGooglePlayServicesVersion() {
+  JNIEnv* env = app_framework::GetJniEnv();
+  jobject activity = app_framework::GetActivity();
+  jclass test_helper_class = app_framework::FindClass(
+      env, activity, "com/google/firebase/example/TestHelper");
+  if (env->ExceptionCheck()) {
+    env->ExceptionDescribe();
+    env->ExceptionClear();
+    return false;
+  }
+  jmethodID get_google_play_services_version =
+      env->GetStaticMethodID(test_helper_class, "getGooglePlayServicesVersion",
+                             "(Landroid/content/Context;)I");
+  jint result = env->CallStaticIntMethod(
+      test_helper_class, get_google_play_services_version, activity);
+  if (env->ExceptionCheck()) {
+    env->ExceptionDescribe();
+    env->ExceptionClear();
+    return false;
+  }
+  return static_cast<int>(result);
+}
+
 }  // namespace firebase_test_framework

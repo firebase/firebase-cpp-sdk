@@ -16,43 +16,40 @@
 
 #import "gma/src/ios/FADRequest.h"
 
-#include "gma/src/common/gma_common.h"
 #include "app/src/util_ios.h"
+#include "gma/src/common/gma_common.h"
 
 #include "app/src/log.h"
 
 namespace firebase {
 namespace gma {
 
-GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest, 
-                                      gma::AdErrorCode* error, 
-                                      std::string* error_message) {
+GADRequest* GADRequestFromCppAdRequest(const AdRequest& adRequest, gma::AdErrorCode* error,
+                                       std::string* error_message) {
   FIREBASE_ASSERT(error);
   FIREBASE_ASSERT(error_message);
   *error = kAdErrorCodeNone;
 
   // Create the GADRequest.
-  GADRequest *gadRequest = [GADRequest request];
+  GADRequest* gadRequest = [GADRequest request];
 
   // Keywords.
   const std::unordered_set<std::string>& keywords = adRequest.keywords();
-  if( keywords.size() > 0 ) {
-    NSMutableArray *gadKeywords = [[NSMutableArray alloc] init];
+  if (keywords.size() > 0) {
+    NSMutableArray* gadKeywords = [[NSMutableArray alloc] init];
     for (auto keyword = keywords.begin(); keyword != keywords.end(); ++keyword) {
-      [gadKeywords addObject: util::StringToNSString(*keyword)];
+      [gadKeywords addObject:util::StringToNSString(*keyword)];
     }
     gadRequest.keywords = gadKeywords;
   }
-  
+
   // Extras.
-  const std::map<std::string, std::map<std::string, std::string>>& extras =
-      adRequest.extras();
-  for (auto adapter_iter = extras.begin(); adapter_iter != extras.end(); 
-       ++adapter_iter) {
+  const std::map<std::string, std::map<std::string, std::string>>& extras = adRequest.extras();
+  for (auto adapter_iter = extras.begin(); adapter_iter != extras.end(); ++adapter_iter) {
     const std::string adapterClassName = adapter_iter->first;
     // Attempt to resolve the custom class.
     Class extrasClass = NSClassFromString(util::StringToNSString(adapterClassName));
-    if (extrasClass == nil ) {
+    if (extrasClass == nil) {
       *error_message = "Failed to resolve extras class: ";
       error_message->append(adapterClassName);
       LogError(error_message->c_str());
@@ -74,14 +71,14 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
     // Add the key/value dictionary to the object.
     // adpter_iter->second is a std::map of the key/value pairs.
     if (!adapter_iter->second.empty()) {
-      NSMutableDictionary *additionalParameters = [[NSMutableDictionary alloc] init];
-      for (auto extra_iter = adapter_iter->second.begin();
-           extra_iter != adapter_iter->second.end(); ++extra_iter) {
-        NSString *key = util::StringToNSString(extra_iter->first);
-        NSString *value = util::StringToNSString(extra_iter->second);
+      NSMutableDictionary* additionalParameters = [[NSMutableDictionary alloc] init];
+      for (auto extra_iter = adapter_iter->second.begin(); extra_iter != adapter_iter->second.end();
+           ++extra_iter) {
+        NSString* key = util::StringToNSString(extra_iter->first);
+        NSString* value = util::StringToNSString(extra_iter->second);
         additionalParameters[key] = value;
       }
-      
+
       GADExtras* gadExtras = (GADExtras*)gadExtrasId;
       gadExtras.additionalParameters = additionalParameters;
       [gadRequest registerAdNetworkExtras:gadExtras];
@@ -96,7 +93,7 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
   // Neighboring Content URLs
   if (!adRequest.neighboring_content_urls().empty()) {
     gadRequest.neighboringContentURLStrings =
-      util::StringUnorderedSetToNSMutableArray(adRequest.neighboring_content_urls());
+        util::StringUnorderedSetToNSMutableArray(adRequest.neighboring_content_urls());
   }
 
   // Set the request agent string so requests originating from this library can
@@ -109,38 +106,37 @@ GADRequest *GADRequestFromCppAdRequest(const AdRequest& adRequest,
 AdErrorCode MapAdRequestErrorCodeToCPPErrorCode(GADErrorCode error_code) {
   // iOS error code sourced from
   // https://developers.google.com/admob/ios/api/reference/Enums/GADErrorCode
-  switch(error_code)
-  {
-    case GADErrorInvalidRequest:               // 0
+  switch (error_code) {
+    case GADErrorInvalidRequest:  // 0
       return kAdErrorCodeInvalidRequest;
-    case GADErrorNoFill:                       // 1
+    case GADErrorNoFill:  // 1
       return kAdErrorCodeNoFill;
-    case GADErrorNetworkError:                 // 2
+    case GADErrorNetworkError:  // 2
       return kAdErrorCodeNetworkError;
-    case GADErrorServerError:                  // 3
+    case GADErrorServerError:  // 3
       return kAdErrorCodeServerError;
-    case GADErrorOSVersionTooLow:              // 4
+    case GADErrorOSVersionTooLow:  // 4
       return kAdErrorCodeOSVersionTooLow;
-    case GADErrorTimeout:                      // 5
+    case GADErrorTimeout:  // 5
       return kAdErrorCodeTimeout;
     // no error 6.
-    case GADErrorMediationDataError:           // 7
+    case GADErrorMediationDataError:  // 7
       return kAdErrorCodeMediationDataError;
-    case GADErrorMediationAdapterError:        // 8
+    case GADErrorMediationAdapterError:  // 8
       return kAdErrorCodeMediationAdapterError;
-    case GADErrorMediationNoFill:              // 9
+    case GADErrorMediationNoFill:  // 9
       return kAdErrorCodeMediationNoFill;
-    case GADErrorMediationInvalidAdSize:       // 10
+    case GADErrorMediationInvalidAdSize:  // 10
       return kAdErrorCodeMediationInvalidAdSize;
-    case GADErrorInternalError:                // 11
+    case GADErrorInternalError:  // 11
       return kAdErrorCodeInternalError;
-    case GADErrorInvalidArgument:              // 12
+    case GADErrorInvalidArgument:  // 12
       return kAdErrorCodeInvalidArgument;
-    case GADErrorReceivedInvalidResponse:      // 13
+    case GADErrorReceivedInvalidResponse:  // 13
       return kAdErrorCodeReceivedInvalidResponse;
-    case GADErrorAdAlreadyUsed:                // 19 (no error #s 14-18)
+    case GADErrorAdAlreadyUsed:  // 19 (no error #s 14-18)
       return kAdErrorCodeAdAlreadyUsed;
-    case GADErrorApplicationIdentifierMissing: // 20
+    case GADErrorApplicationIdentifierMissing:  // 20
       return kAdErrorCodeApplicationIdentifierMissing;
     default:
       return kAdErrorCodeUnknown;
@@ -150,19 +146,18 @@ AdErrorCode MapAdRequestErrorCodeToCPPErrorCode(GADErrorCode error_code) {
 AdErrorCode MapFullScreenContentErrorCodeToCPPErrorCode(GADPresentationErrorCode error_code) {
   // iOS error code sourced from
   // https://developers.google.com/admob/ios/api/reference/Enums/GADPresentationErrorCode
-  switch(error_code)
-  {
-    case GADPresentationErrorCodeAdNotReady:     // 15
+  switch (error_code) {
+    case GADPresentationErrorCodeAdNotReady:  // 15
       return kAdErrorCodeAdNotReady;
-    case GADPresentationErrorCodeAdTooLarge:     // 16
+    case GADPresentationErrorCodeAdTooLarge:  // 16
       return kAdErrorCodeAdTooLarge;
-    case GADPresentationErrorCodeInternal:       // 17
+    case GADPresentationErrorCodeInternal:  // 17
       return kAdErrorCodeInternalError;
     case GADPresentationErrorCodeAdAlreadyUsed:  // 18
       return kAdErrorCodeAdAlreadyUsed;
-    case GADPresentationErrorNotMainThread:      // 21
+    case GADPresentationErrorNotMainThread:  // 21
       return kAdErrorCodeNotMainThread;
-    case GADPresentationErrorMediation:          // 22
+    case GADPresentationErrorMediation:  // 22
       return kAdErrorCodeMediationShowError;
     default:
       return kAdErrorCodeUnknown;

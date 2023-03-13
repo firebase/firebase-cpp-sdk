@@ -35,7 +35,9 @@
 #include "firebase/app_check/play_integrity_provider.h"
 #include "firebase/auth.h"
 #include "firebase/database.h"
+#include "firebase/functions.h"
 #include "firebase/internal/platform.h"
+#include "firebase/storage.h"
 #include "firebase/util.h"
 #include "firebase_test_framework.h"  // NOLINT
 
@@ -106,6 +108,19 @@ class FirebaseAppCheckTest : public FirebaseTest {
   // Initialize everything needed for Database tests.
   void InitializeAppAuthDatabase();
 
+  // Initialize Firebase Storage.
+  void InitializeStorage();
+  // Shut down Firebase Storage.
+  void TerminateStorage();
+
+  // Initialize everything needed for Storage tests.
+  void InitializeAppAuthStorage();
+
+  // Initialize Firebase Functions.
+  void InitializeFunctions();
+  // Shut down Firebase Functions.
+  void TerminateFunctions();
+
   firebase::database::DatabaseReference CreateWorkingPath(
       bool suppress_cleanup = false);
 
@@ -114,8 +129,11 @@ class FirebaseAppCheckTest : public FirebaseTest {
 
   bool initialized_;
   firebase::database::Database* database_;
-
   std::vector<firebase::database::DatabaseReference> cleanup_paths_;
+
+  firebase::storage::Storage* storage_;
+
+  firebase::functions::Functions* functions_;
 };
 
 // Listens for token changed notifications
@@ -157,6 +175,8 @@ void FirebaseAppCheckTest::TerminateAppCheck() {
       delete app_check;
     }
   }
+
+  firebase::app_check::AppCheck::SetAppCheckProviderFactory(nullptr);
 }
 
 void FirebaseAppCheckTest::InitializeApp() {
@@ -189,6 +209,8 @@ FirebaseAppCheckTest::FirebaseAppCheckTest()
       app_(nullptr),
       auth_(nullptr),
       database_(nullptr),
+      storage_(nullptr),
+      functions_(nullptr),
       cleanup_paths_() {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 }
@@ -201,6 +223,8 @@ FirebaseAppCheckTest::~FirebaseAppCheckTest() {
 void FirebaseAppCheckTest::TearDown() {
   // Teardown all the products
   TerminateDatabase();
+  TerminateStorage();
+  TerminateFunctions();
   TerminateAuth();
   TerminateAppCheck();
   TerminateApp();
@@ -298,6 +322,74 @@ void FirebaseAppCheckTest::InitializeAppAuthDatabase() {
   InitializeDatabase();
 }
 
+void FirebaseAppCheckTest::InitializeStorage() {
+  LogDebug("Initializing Firebase Storage.");
+
+  ::firebase::ModuleInitializer initializer;
+  initializer.Initialize(
+      app_, &storage_, [](::firebase::App* app, void* target) {
+        LogDebug("Attempting to initialize Firebase Storage.");
+        ::firebase::InitResult result;
+        *reinterpret_cast<firebase::storage::Storage**>(target) =
+            firebase::storage::Storage::GetInstance(app, &result);
+        return result;
+      });
+
+  WaitForCompletion(initializer.InitializeLastResult(), "InitializeStorage");
+
+  ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
+      << initializer.InitializeLastResult().error_message();
+
+  LogDebug("Successfully initialized Firebase Storage.");
+}
+
+void FirebaseAppCheckTest::TerminateStorage() {
+  if (storage_) {
+    LogDebug("Shutdown the Storage library.");
+    delete storage_;
+    storage_ = nullptr;
+  }
+
+  ProcessEvents(100);
+}
+
+void FirebaseAppCheckTest::InitializeAppAuthStorage() {
+  InitializeApp();
+  InitializeAuth();
+  InitializeStorage();
+}
+
+void FirebaseAppCheckTest::InitializeFunctions() {
+  LogDebug("Initializing Firebase Functions.");
+
+  ::firebase::ModuleInitializer initializer;
+  initializer.Initialize(
+      app_, &functions_, [](::firebase::App* app, void* target) {
+        LogDebug("Attempting to initialize Firebase Functions.");
+        ::firebase::InitResult result;
+        *reinterpret_cast<firebase::functions::Functions**>(target) =
+            firebase::functions::Functions::GetInstance(app, &result);
+        return result;
+      });
+
+  WaitForCompletion(initializer.InitializeLastResult(), "InitializeFunctions");
+
+  ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
+      << initializer.InitializeLastResult().error_message();
+
+  LogDebug("Successfully initialized Firebase Functions.");
+}
+
+void FirebaseAppCheckTest::TerminateFunctions() {
+  if (functions_) {
+    LogDebug("Shutdown the Functions library.");
+    delete functions_;
+    functions_ = nullptr;
+  }
+
+  ProcessEvents(100);
+}
+
 void FirebaseAppCheckTest::SignIn() {
   if (auth_->current_user() != nullptr) {
     // Already signed in.
@@ -358,8 +450,6 @@ TEST_F(FirebaseAppCheckTest, TestInitializeAndTerminate) {
   InitializeApp();
 }
 
-// Android does not yet implement the main app check methods
-#if !FIREBASE_PLATFORM_ANDROID
 TEST_F(FirebaseAppCheckTest, TestGetTokenForcingRefresh) {
   InitializeAppCheckWithDebug();
   InitializeApp();
@@ -392,10 +482,7 @@ TEST_F(FirebaseAppCheckTest, TestGetTokenForcingRefresh) {
   EXPECT_NE(future.result()->expire_time_millis,
             future3.result()->expire_time_millis);
 }
-#endif  // !FIREBASE_PLATFORM_ANDROID
 
-// Android does not yet implement the main app check methods
-#if !FIREBASE_PLATFORM_ANDROID
 TEST_F(FirebaseAppCheckTest, TestGetTokenLastResult) {
   InitializeAppCheckWithDebug();
   InitializeApp();
@@ -413,10 +500,7 @@ TEST_F(FirebaseAppCheckTest, TestGetTokenLastResult) {
   EXPECT_EQ(future.result()->expire_time_millis,
             future2.result()->expire_time_millis);
 }
-#endif  // !FIREBASE_PLATFORM_ANDROID
 
-// Android does not yet implement the main app check methods
-#if !FIREBASE_PLATFORM_ANDROID
 TEST_F(FirebaseAppCheckTest, TestAddTokenChangedListener) {
   InitializeAppCheckWithDebug();
   InitializeApp();
@@ -436,10 +520,7 @@ TEST_F(FirebaseAppCheckTest, TestAddTokenChangedListener) {
   ASSERT_EQ(token_changed_listener.num_token_changes_, 1);
   EXPECT_EQ(token_changed_listener.last_token_.token, token.token);
 }
-#endif  // !FIREBASE_PLATFORM_ANDROID
 
-// Android does not yet implement the main app check methods
-#if !FIREBASE_PLATFORM_ANDROID
 TEST_F(FirebaseAppCheckTest, TestRemoveTokenChangedListener) {
   InitializeAppCheckWithDebug();
   InitializeApp();
@@ -458,7 +539,6 @@ TEST_F(FirebaseAppCheckTest, TestRemoveTokenChangedListener) {
 
   ASSERT_EQ(token_changed_listener.num_token_changes_, 0);
 }
-#endif  // !FIREBASE_PLATFORM_ANDROID
 
 TEST_F(FirebaseAppCheckTest, TestSignIn) {
   InitializeAppCheckWithDebug();
@@ -473,12 +553,6 @@ TEST_F(FirebaseAppCheckTest, TestDebugProviderValidToken) {
   ASSERT_NE(factory, nullptr);
   InitializeAppCheckWithDebug();
   InitializeApp();
-  // TODO(almostmatt): Once app initialization automatically initializes
-  // AppCheck, this test will no longer need to explicitly get an instance of
-  // AppCheck.
-  ::firebase::app_check::AppCheck* app_check =
-      ::firebase::app_check::AppCheck::GetInstance(app_);
-  ASSERT_NE(app_check, nullptr);
 
   firebase::app_check::AppCheckProvider* provider =
       factory->CreateProvider(app_);
@@ -560,6 +634,7 @@ TEST_F(FirebaseAppCheckTest, TestPlayIntegrityProvider) {
 #if FIREBASE_PLATFORM_ANDROID
   ASSERT_NE(factory, nullptr);
   InitializeApp();
+
   firebase::app_check::AppCheckProvider* provider =
       factory->CreateProvider(app_);
   EXPECT_NE(provider, nullptr);
@@ -672,6 +747,72 @@ TEST_F(FirebaseAppCheckTest, DISABLED_TestRunTransaction) {
               kInitialScore + score_delta);
     EXPECT_EQ(read_result.value(), transaction_future.result()->value());
   }
+}
+
+TEST_F(FirebaseAppCheckTest, TestStorageReadFile) {
+  InitializeAppCheckWithDebug();
+  InitializeAppAuthStorage();
+  firebase::storage::StorageReference ref = storage_->GetReference("test.txt");
+  EXPECT_TRUE(ref.is_valid());
+  const size_t kBufferSize = 128;
+  char buffer[kBufferSize];
+  memset(buffer, 0, sizeof(buffer));
+  firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
+  WaitForCompletion(future, "GetBytes", firebase::storage::kErrorNone);
+  LogDebug("  buffer: %s", buffer);
+}
+
+// Android doesn't yet work correctly when AppCheck provider factory is null
+// TODO(almostmatt): Investigate and fix this test for android
+#if !FIREBASE_PLATFORM_ANDROID
+TEST_F(FirebaseAppCheckTest, TestStorageReadFileUnauthenticated) {
+  // Don't set up AppCheck
+  InitializeAppAuthStorage();
+  firebase::storage::StorageReference ref = storage_->GetReference("test.txt");
+  EXPECT_TRUE(ref.is_valid());
+  const size_t kBufferSize = 128;
+  char buffer[kBufferSize];
+  memset(buffer, 0, sizeof(buffer));
+  firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
+  WaitForCompletion(future, "GetBytes",
+                    firebase::storage::kErrorUnauthenticated);
+  LogDebug("  buffer: %s", buffer);
+}
+#endif  // !FIREBASE_PLATFORM_ANDROID
+
+TEST_F(FirebaseAppCheckTest, TestFunctionsSuccess) {
+  InitializeAppCheckWithDebug();
+  InitializeApp();
+  InitializeFunctions();
+  firebase::functions::HttpsCallableReference ref;
+  ref = functions_->GetHttpsCallable("addNumbers");
+  firebase::Variant data(firebase::Variant::EmptyMap());
+  data.map()["firstNumber"] = 5;
+  data.map()["secondNumber"] = 7;
+  firebase::Future<firebase::functions::HttpsCallableResult> future;
+  future = ref.Call(data);
+  WaitForCompletion(future, "CallFunction addnumbers",
+                    firebase::functions::kErrorNone);
+  firebase::Variant result = future.result()->data();
+  EXPECT_TRUE(result.is_map());
+  if (result.is_map()) {
+    EXPECT_EQ(result.map()["operationResult"], 12);
+  }
+}
+
+TEST_F(FirebaseAppCheckTest, TestFunctionsFailure) {
+  // Don't set up AppCheck
+  InitializeApp();
+  InitializeFunctions();
+  firebase::functions::HttpsCallableReference ref;
+  ref = functions_->GetHttpsCallable("addNumbers");
+  firebase::Variant data(firebase::Variant::EmptyMap());
+  data.map()["firstNumber"] = 6;
+  data.map()["secondNumber"] = 8;
+  firebase::Future<firebase::functions::HttpsCallableResult> future;
+  future = ref.Call(data);
+  WaitForCompletion(future, "CallFunction addnumbers",
+                    firebase::functions::kErrorUnauthenticated);
 }
 
 }  // namespace firebase_testapp_automated

@@ -164,9 +164,6 @@ def construct_google_services_json(xml_dict):
                     'package_name': xml_dict['BUNDLE_ID']
                 }
             },
-            'oauth_client': [{
-                'client_id': xml_dict['CLIENT_ID'],
-            }],
             'api_key': [{
                 'current_key': xml_dict['API_KEY']
             }],
@@ -182,6 +179,11 @@ def construct_google_services_json(xml_dict):
         'configuration_version':
             '1'
     }
+    # OAuth client is optional, but include it if present.
+    if 'CLIENT_ID' in xml_dict:
+      json_struct['client'][0]['oauth_client'] = [{
+          'client_id': xml_dict['CLIENT_ID'],
+      }]
     return json.dumps(json_struct, indent=2)
   except KeyError as e:
     sys.stderr.write('Could not find key in plist file: [%s]\n' % (e.args[0]))

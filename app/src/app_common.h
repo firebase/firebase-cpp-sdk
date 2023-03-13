@@ -80,6 +80,10 @@ void RegisterLibrary(const char* library, const char* version);
 // This is useful when this SDK wraps other SDKs.
 void RegisterLibrariesFromUserAgent(const char* user_agent);
 
+// Register all user-agents related to C++ SDK usages.
+// platform_resource currently is only used for passing JNIEnv on Android
+void RegisterSdkUsage(void* platform_resource);
+
 // Get the user agent string for all registered libraries.
 // This is not thread safe w.r.t RegisterLibrary().
 // NOTE: This is an internal method, use App::UserAgent() instead.

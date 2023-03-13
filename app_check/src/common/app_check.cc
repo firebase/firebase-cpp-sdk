@@ -26,6 +26,7 @@
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
 #include "app/src/util.h"
+#include "app_check/src/common/common.h"
 
 // Include the header that matches the platform being used.
 #if FIREBASE_PLATFORM_ANDROID
@@ -38,11 +39,22 @@
         // FIREBASE_PLATFORM_TVOS
 
 // Register the module initializer.
-FIREBASE_APP_REGISTER_CALLBACKS(app_check,
-                                { return ::firebase::kInitResultSuccess; },
-                                {
-                                    // Nothing to tear down.
-                                });
+FIREBASE_APP_REGISTER_CALLBACKS(
+    app_check,
+    {
+      // Create the AppCheck object for the given app.
+      ::firebase::app_check::AppCheck::GetInstance(app);
+      return ::firebase::kInitResultSuccess;
+    },
+    {
+      ::firebase::app_check::AppCheck* app_check =
+          ::firebase::app_check::internal::GetExistingAppCheckInstance(app);
+      if (app_check) {
+        delete app_check;
+      }
+    },
+    // App Check wants to be turned on by default
+    true);
 
 namespace firebase {
 namespace app_check {
@@ -57,7 +69,26 @@ AppCheckListener::~AppCheckListener() {}
 AppCheckProvider::~AppCheckProvider() {}
 AppCheckProviderFactory::~AppCheckProviderFactory() {}
 
+namespace internal {
+
+AppCheck* GetExistingAppCheckInstance(::firebase::App* app) {
+  if (!app) return nullptr;
+
+  MutexLock lock(g_app_check_lock);
+  if (g_app_check_map) {
+    auto it = g_app_check_map->find(app);
+    if (it != g_app_check_map->end()) {
+      return it->second;
+    }
+  }
+  return nullptr;
+}
+
+}  // namespace internal
+
 AppCheck* AppCheck::GetInstance(::firebase::App* app) {
+  if (!app) return nullptr;
+
   MutexLock lock(g_app_check_lock);
   if (!g_app_check_map) {
     g_app_check_map = new std::map<::firebase::App*, AppCheck*>();

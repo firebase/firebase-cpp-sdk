@@ -24,9 +24,6 @@
 namespace firebase {
 namespace gma {
 
-const char kUninitializedError[] =
-    "Initialize() must be called before this method.";
-
 RewardedAd::RewardedAd() {
   FIREBASE_ASSERT(gma::IsInitialized());
   internal_ = internal::RewardedAdInternal::CreateInstance(this);
