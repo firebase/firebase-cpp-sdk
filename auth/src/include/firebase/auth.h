@@ -21,6 +21,7 @@
 
 #include "firebase/app.h"
 #include "firebase/auth/user.h"
+#include "firebase/cpp_version_warning.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 

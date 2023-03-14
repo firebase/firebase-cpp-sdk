@@ -642,6 +642,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming Release
+-   Changes
+    - General: Add build time warning for C++11, since the next major release of
+      the Firebase C++ SDK will set the new minimum C++ version to C++14.
+
 ### 10.6.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 31.2.3.
