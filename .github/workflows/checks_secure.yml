@@ -20,7 +20,7 @@ jobs:
         uses: scherermichael-oss/action-has-permission@1.0.6
         # This action sets outputs.has-permission to '1' or ''
         with:
-          required-permission: admin
+          required-permission: write
         env:
           GITHUB_TOKEN: ${{ github.token }}
       - uses: actions/checkout@v3
