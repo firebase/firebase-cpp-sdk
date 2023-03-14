@@ -17,6 +17,8 @@
 
 #include <list>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
@@ -26,6 +28,23 @@
 namespace firebase {
 namespace app_check {
 namespace internal {
+
+// The callback type for psuedo-AppCheckListeners added via the
+// function registry.
+using FunctionRegistryCallback = void (*)(std::string, void*);
+
+class FunctionRegistryAppCheckListener : public AppCheckListener {
+ public:
+  void AddListener(FunctionRegistryCallback callback, void* context);
+
+  void RemoveListener(FunctionRegistryCallback callback, void* context);
+
+  void OnAppCheckTokenChanged(const AppCheckToken& token) override;
+
+ private:
+  using Entry = std::pair<FunctionRegistryCallback, void*>;
+  std::vector<Entry> callbacks_;
+};
 
 class AppCheckInternal {
  public:
@@ -77,6 +96,12 @@ class AppCheckInternal {
   static bool GetAppCheckTokenAsyncForRegistry(App* app, void* /*unused*/,
                                                void* out_future);
 
+  static bool AddAppCheckListenerForRegistry(App* app, void* callback,
+                                             void* context);
+
+  static bool RemoveAppCheckListenerForRegistry(App* app, void* callback,
+                                                void* context);
+
   ::firebase::App* app_;
 
   FutureManager future_manager_;
@@ -87,6 +112,8 @@ class AppCheckInternal {
   AppCheckToken cached_token_;
   // List of registered listeners for Token changes.
   std::list<AppCheckListener*> token_listeners_;
+  // Internal listener used by the function registry to track Token changes.
+  FunctionRegistryAppCheckListener internal_listener_;
   // Should it automatically get an App Check token if there is not a valid
   // cached token.
   bool is_token_auto_refresh_enabled_;
