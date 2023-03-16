@@ -104,7 +104,7 @@ TEST_F(
   EXPECT_EQ(copied_aggregate_query.query(), Query());
   EXPECT_FALSE(copied_aggregate_query.is_valid());
 
-  copied_aggregate_query;
+  copied_aggregate_query = aggregate_query;
 
   EXPECT_EQ(aggregate_query.query(), Query());
   EXPECT_FALSE(aggregate_query.is_valid());
@@ -160,7 +160,6 @@ TEST_F(AggregateQueryTest,
 
 TEST_F(AggregateQueryTest, CopyAssignmentAppliedSelfReturnsEqualObject) {
   const Query query = TestFirestore()->Collection("foo").Limit(10);
-
   AggregateQuery aggregate_query = query.Count();
 
   EXPECT_EQ(aggregate_query.query(), query);
