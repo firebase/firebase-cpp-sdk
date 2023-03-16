@@ -21,6 +21,11 @@
 namespace firebase {
 namespace auth {
 
+const char* kUserNotInitializedErrorMessage =
+    "Operation attmpted on an invalid User object.";
+const char* kPhoneAuthNotSupportedErrorMessage =
+    "Phone Auth is not supported on this platform.";
+
 // static member variables
 const uint32_t PhoneAuthProvider::kMaxTimeoutMs = 3000;
 
@@ -45,6 +50,59 @@ ReferenceCountedFutureImpl* GetCredentialFutureImpl() {
   if (future_data == nullptr) return nullptr;
 
   return future_data->api();
+}
+
+void CompleteFuture(int error, const char* error_msg,
+                    SafeFutureHandle<void> handle, FutureData* future_data) {
+  if (future_data->future_impl.ValidFuture(handle)) {
+    future_data->future_impl.Complete(handle, error, error_msg);
+  }
+}
+
+void CompleteFuture(int error, const char* error_msg,
+                    SafeFutureHandle<std::string> handle,
+                    FutureData* future_data, const std::string& result) {
+  if (future_data->future_impl.ValidFuture(handle)) {
+    future_data->future_impl.CompleteWithResult(handle, error, error_msg,
+                                                result);
+  }
+}
+
+void CompleteFuture(int error, const char* error_msg,
+                    SafeFutureHandle<User*> handle, FutureData* future_data,
+                    User* user) {
+  if (future_data->future_impl.ValidFuture(handle)) {
+    future_data->future_impl.CompleteWithResult(handle, error, error_msg, user);
+  }
+}
+
+void CompleteFuture(int error, const char* error_msg,
+                    SafeFutureHandle<SignInResult> handle,
+                    FutureData* future_data, SignInResult sign_in_result) {
+  if (future_data->future_impl.ValidFuture(handle)) {
+    future_data->future_impl.CompleteWithResult(handle, error, error_msg,
+                                                sign_in_result);
+  }
+}
+
+// For calls that aren't asynchronous, we can create and complete at the
+// same time.
+Future<void> CreateAndCompleteFuture(int fn_idx, int error,
+                                     const char* error_msg,
+                                     FutureData* future_data) {
+  SafeFutureHandle<void> handle = CreateFuture<void>(fn_idx, future_data);
+  CompleteFuture(error, error_msg, handle, future_data);
+  return MakeFuture(&future_data->future_impl, handle);
+}
+
+Future<std::string> CreateAndCompleteFuture(int fn_idx, int error,
+                                            const char* error_msg,
+                                            FutureData* future_data,
+                                            const std::string& result) {
+  SafeFutureHandle<std::string> handle =
+      CreateFuture<std::string>(fn_idx, future_data);
+  CompleteFuture(error, error_msg, handle, future_data, result);
+  return MakeFuture(&future_data->future_impl, handle);
 }
 
 void CleanupCredentialFutureImpl() {

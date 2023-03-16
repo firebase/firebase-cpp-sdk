@@ -151,6 +151,7 @@ void *CreatePlatformAuth(App *app) {
 void UpdateCurrentUser(AuthData *auth_data) {
   MutexLock lock(auth_data->future_impl.mutex());
   FIRUser *user = [AuthImpl(auth_data) currentUser];
+  printf("UpdateCurrentUser calling SetUserImpl\n");
   SetUserImpl(auth_data, user);
 }
 
@@ -163,6 +164,7 @@ void Auth::InitPlatformAuth(AuthData *auth_data) {
   // auth state change.
   FIRAuthStateDidChangeListenerHandle listener_handle = [AuthImpl(auth_data)
       addAuthStateDidChangeListener:^(FIRAuth *_Nonnull __strong, FIRUser *_Nullable __strong) {
+        printf("addAuthStateDidChangeListener\n");
         @synchronized(listener_cpp_handle) {
           AuthData *data = listener_cpp_handle.authData;
           if (data) {
@@ -174,6 +176,7 @@ void Auth::InitPlatformAuth(AuthData *auth_data) {
   FIRIDTokenDidChangeListenerHandle id_token_listener_handle = [AuthImpl(auth_data)
       addIDTokenDidChangeListener:^(FIRAuth *_Nonnull __strong, FIRUser *_Nullable __strong) {
         @synchronized(listener_cpp_handle) {
+          printf("addIDTokenDidChangeListener\n");
           AuthData *data = listener_cpp_handle.authData;
           if (data) {
             UpdateCurrentUser(data);
@@ -190,6 +193,7 @@ void Auth::InitPlatformAuth(AuthData *auth_data) {
   // Ensure initial user value is correct.
   // It's possible for the user to be signed-in at creation, if the user signed-in during a
   // previous run, for example.
+  printf("InitPlatformAuth calling UpdateCurrentUser\n");
   UpdateCurrentUser(auth_data);
 }
 
@@ -216,6 +220,7 @@ void Auth::DestroyPlatformAuth(AuthData *auth_data) {
   delete id_token_listener_handle_holder;
   auth_data->id_token_listener_impl = nullptr;
 
+  printf("DestroyPlatformAuth calling SetUserImp\n");
   SetUserImpl(auth_data, nullptr);
 
   // Release the FIRAuth* that we allocated in CreatePlatformAuth().
@@ -261,23 +266,18 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(const char *emai
 User *Auth::current_user_DEPRECATED() {
   if (!auth_data_) return nullptr;
   MutexLock lock(auth_data_->future_impl.mutex());
-
-  // auth_data_->current_user should be available after Auth is created because
-  // [AuthImpl(auth_data) currentUser] is called during Auth::InitPlatformAuth()
-  // and it would block until persistence is loaded.
-  User *user = auth_data_->user_impl == nullptr ? nullptr : &auth_data_->current_user;
-  return user;
+  return &auth_data_->user_deprecated;
 }
 
 static User *AssignUser(FIRUser *_Nullable user, AuthData *auth_data) {
   // Update our pointer to the iOS user that we're wrapping.
   MutexLock lock(auth_data->future_impl.mutex());
   if (user) {
+    printf("Assign User calling SetUserImpl\n");
     SetUserImpl(auth_data, user);
   }
 
-  // If the returned `user` is non-null then the current user is active.
-  return auth_data->user_impl == nullptr ? nullptr : &auth_data->current_user;
+  return &auth_data->user_deprecated;
 }
 
 std::string Auth::language_code() const {
@@ -315,27 +315,36 @@ AuthError AuthErrorFromNSError(NSError *_Nullable error) {
 }
 
 void SignInCallback(FIRUser *_Nullable user, NSError *_Nullable error,
-                    SafeFutureHandle<User *> handle, AuthData *auth_data) {
+                    SafeFutureHandle<User *> handle, ReferenceCountedFutureImpl &future_impl,
+                    AuthData *auth_data) {
+  printf("SignInCallback start\n");
   User *result = AssignUser(user, auth_data);
 
-  // Finish off the asynchronous call so that the caller can read it.
-  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
-  futures.CompleteWithResult(handle, AuthErrorFromNSError(error),
-                             util::NSStringToString(error.localizedDescription).c_str(), result);
+  printf("SignInCallback checking for valid future\n");
+  if (future_impl.ValidFuture(handle)) {
+    printf("SignInCallback completing future");
+    // Finish off the asynchronous call so that the caller can read it.
+    future_impl.CompleteWithResult(handle, AuthErrorFromNSError(error),
+                                   util::NSStringToString(error.localizedDescription).c_str(),
+                                   result);
+    printf("SignInCallback future completed\n");
+  }
+  printf("SignInCallback done\n");
 }
 
 void SignInResultWithProviderCallback(
     FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error,
-    SafeFutureHandle<SignInResult> handle, AuthData *_Nonnull auth_data,
-    const FIROAuthProvider *_Nonnull ios_auth_provider /*unused */) {
+    SafeFutureHandle<SignInResult> handle, ReferenceCountedFutureImpl &future_impl,
+    AuthData *_Nonnull auth_data, const FIROAuthProvider *_Nonnull ios_auth_provider /*unused */) {
   // ios_auth_provider exists as a parameter to hold a reference to the FIROAuthProvider preventing
   // its release by the Objective-C runtime during the asynchronous SignIn operation.
   error = RemapBadProviderIDErrors(error);
-  SignInResultCallback(auth_result, error, handle, auth_data);
+  SignInResultCallback(auth_result, error, handle, future_impl, auth_data);
 }
 
 void SignInResultCallback(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error,
-                          SafeFutureHandle<SignInResult> handle, AuthData *auth_data) {
+                          SafeFutureHandle<SignInResult> handle,
+                          ReferenceCountedFutureImpl &future_impl, AuthData *auth_data) {
   User *user = AssignUser(auth_result.user, auth_data);
 
   SignInResult result;
@@ -355,9 +364,11 @@ void SignInResultCallback(FIRAuthDataResult *_Nullable auth_result, NSError *_Nu
     }
   }
 
-  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
-  futures.CompleteWithResult(handle, AuthErrorFromNSError(error),
-                             util::NSStringToString(error.localizedDescription).c_str(), result);
+  if (future_impl.ValidFuture(handle)) {
+    future_impl.CompleteWithResult(handle, AuthErrorFromNSError(error),
+                                   util::NSStringToString(error.localizedDescription).c_str(),
+                                   result);
+  }
 }
 
 Future<User *> Auth::SignInWithCustomToken_DEPRECATED(const char *token) {
@@ -367,7 +378,7 @@ Future<User *> Auth::SignInWithCustomToken_DEPRECATED(const char *token) {
   [AuthImpl(auth_data_)
       signInWithCustomToken:@(token)
                  completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-                   SignInCallback(auth_result.user, error, handle, auth_data_);
+                   SignInCallback(auth_result.user, error, handle, futures, auth_data_);
                  }];
 
   return MakeFuture(&futures, handle);
@@ -380,7 +391,7 @@ Future<User *> Auth::SignInWithCredential_DEPRECATED(const Credential &credentia
   [AuthImpl(auth_data_)
       signInWithCredential:CredentialFromImpl(credential.impl_)
                 completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-                  SignInCallback(auth_result.user, error, handle, auth_data_);
+                  SignInCallback(auth_result.user, error, handle, futures, auth_data_);
                 }];
 
   return MakeFuture(&futures, handle);
@@ -395,7 +406,7 @@ Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential_DEPRECATED(
   [AuthImpl(auth_data_)
       signInWithCredential:CredentialFromImpl(credential.impl_)
                 completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-                  SignInResultCallback(auth_result, error, handle, auth_data_);
+                  SignInResultCallback(auth_result, error, handle, futures, auth_data_);
                 }];
 
   return MakeFuture(&futures, handle);
@@ -413,7 +424,7 @@ Future<User *> Auth::SignInAnonymously_DEPRECATED() {
 
   [AuthImpl(auth_data_) signInAnonymouslyWithCompletion:^(FIRAuthDataResult *_Nullable auth_result,
                                                           NSError *_Nullable error) {
-    SignInCallback(auth_result.user, error, handle, auth_data_);
+    SignInCallback(auth_result.user, error, handle, futures, auth_data_);
   }];
 
   return MakeFuture(&futures, handle);
@@ -433,7 +444,7 @@ Future<User *> Auth::SignInWithEmailAndPassword_DEPRECATED(const char *email,
         signInWithEmail:@(email)
                password:@(password)
              completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-               SignInCallback(auth_result.user, error, handle, auth_data_);
+               SignInCallback(auth_result.user, error, handle, futures, auth_data_);
              }];
   }
   return MakeFuture(&futures, handle);
@@ -453,7 +464,7 @@ Future<User *> Auth::CreateUserWithEmailAndPassword_DEPRECATED(const char *email
         createUserWithEmail:@(email)
                    password:@(password)
                  completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-                   SignInCallback(auth_result.user, error, handle, auth_data_);
+                   SignInCallback(auth_result.user, error, handle, futures, auth_data_);
                  }];
   }
   return MakeFuture(&futures, handle);
@@ -463,6 +474,7 @@ void Auth::SignOut() {
   // TODO(jsanmiya): Verify with iOS team why this returns an error.
   NSError *_Nullable error;
   [AuthImpl(auth_data_) signOut:&error];
+  printf("Auth::SignOut calling SetUserImpl\n");
   SetUserImpl(auth_data_, NULL);
 }
 

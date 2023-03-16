@@ -41,7 +41,15 @@ enum AuthApiFunction {
   kAuthFn_CreateUserWithEmailAndPassword_DEPRECATED,
   kAuthFn_SendPasswordResetEmail,
 
-  // External functions in the User API.
+  // Internal functions that are still handles, but are only used internally:
+  kInternalFn_GetTokenForRefresher,
+  kInternalFn_GetTokenForFunctionRegistry,
+
+  kAuthFnCount
+};
+
+// Constants representing each User function that returns a Future.
+enum UserFn {
   kUserFn_GetToken,
   kUserFn_UpdateEmail,
   kUserFn_UpdatePassword,
@@ -51,7 +59,7 @@ enum AuthApiFunction {
   kUserFn_ConfirmEmailVerification,
   kUserFn_UpdateUserProfile,
   kUserFn_LinkWithCredential_DEPRECATED,
-  kUserFn_LinkAndRetrieveDataWithCredential,
+  kUserFn_LinkAndRetrieveDataWithCredential_DEPRECATED,
   kUserFn_LinkWithProvider_DEPRECATED,
   kUserFn_ReauthenticateWithProvider_DEPRECATED,
   kUserFn_Unlink_DEPRECATED,
@@ -59,11 +67,7 @@ enum AuthApiFunction {
   kUserFn_Reload,
   kUserFn_Delete,
 
-  // Internal functions that are still handles, but are only used internally:
-  kInternalFn_GetTokenForRefresher,
-  kInternalFn_GetTokenForFunctionRegistry,
-
-  kNumAuthFunctions
+  kUserFnCount
 };
 
 /// Delete all the user_infos in auth_data and reset the length to zero.
@@ -76,10 +80,9 @@ struct AuthData {
   AuthData()
       : app(nullptr),
         auth(nullptr),
-        future_impl(kNumAuthFunctions),
-        current_user(this),
+        future_impl(kAuthFnCount),
         auth_impl(nullptr),
-        user_impl(nullptr),
+        user_deprecated(nullptr),
         listener_impl(nullptr),
         id_token_listener_impl(nullptr),
         expect_id_token_listener_callback(false),
@@ -96,7 +99,6 @@ struct AuthData {
     app = nullptr;
     auth = nullptr;
     auth_impl = nullptr;
-    user_impl = nullptr;
     listener_impl = nullptr;
     id_token_listener_impl = nullptr;
   }
@@ -122,16 +124,13 @@ struct AuthData {
   /// Identifier used to track futures associated with future_impl.
   std::string future_api_id;
 
-  /// Unique user for this Auth. Note: we only support one user per Auth.
-  User current_user;
-
   /// Platform-dependent implementation of Auth (that we're wrapping).
   /// For example, on Android `jobject`.
   void* auth_impl;
 
   /// Platform-dependent implementation of User (that we're wrapping).
-  /// For example, on iOS `FIRUser`.
-  void* user_impl;
+  /// TODO: remove when Auth deprecation APIs are removed.
+  User user_deprecated;
 
   /// Platform-dependent implementation of AuthStateListener (that we're
   /// wrapping). For example, on Android `jobject`.

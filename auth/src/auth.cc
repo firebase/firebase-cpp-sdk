@@ -81,13 +81,13 @@ Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
 
   // Create a new Auth and initialize.
   Auth* auth = new Auth(app, auth_impl);
-  LogDebug("Creating Auth %p for App %p", auth, app);
 
   // Stick it in the global map so we remember it, and can delete it on
   // shutdown.
   g_auths[app] = auth;
 
   if (init_result_out) *init_result_out = kInitResultSuccess;
+
   return auth;
 }
 

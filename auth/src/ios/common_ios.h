@@ -29,6 +29,7 @@
 #include "app/src/log.h"
 #include "app/src/util_ios.h"
 #include "auth/src/common.h"
+#include "auth/src/include/firebase/auth.h"
 #include "auth/src/include/firebase/auth/user.h"
 
 @class FIRCPPAuthListenerHandle;
@@ -50,25 +51,108 @@ struct AuthDataIos {
   FIRCPPAuthListenerHandlePointer listener_handle;
 };
 
-/// Convert from the platform-independent void* to the Obj-C FIRUser pointer.
-static inline FIRUser *_Nullable UserImpl(AuthData *_Nonnull auth_data) {
-  return FIRUserPointer::SafeGet(static_cast<FIRUserPointer *>(auth_data->user_impl));
-}
+// Contains the interface between the public API and the underlying
+// Obj-C SDK FirebaseUser implemention.
+class UserInternal {
+ public:
+  // Constructor
+  UserInternal(FIRUser *user);
 
-/// Release the platform-dependent FIRUser object.
-static inline void SetUserImpl(AuthData *_Nonnull auth_data, FIRUser *_Nullable user) {
+  // Copy constructor.
+  UserInternal(const UserInternal &user_internal);
+
+  ~UserInternal();
+
+  bool is_valid() const;
+
+  Future<std::string> GetToken(bool force_refresh);
+  Future<std::string> GetTokenLastResult() const;
+
+  Future<void> UpdateEmail(const char *email);
+  Future<void> UpdateEmailLastResult() const;
+
+  std::vector<UserInfoInterface> provider_data() const;
+  const std::vector<UserInfoInterface *> &provider_data_DEPRECATED();
+
+  Future<void> UpdatePassword(const char *password);
+  Future<void> UpdatePasswordLastResult() const;
+
+  Future<void> UpdateUserProfile(const User::UserProfile &profile);
+  Future<void> UpdateUserProfileLastResult() const;
+
+  Future<void> SendEmailVerification();
+  Future<void> SendEmailVerificationLastResult() const;
+
+  Future<User *> LinkWithCredential_DEPRECATED(AuthData *auth_data, const Credential &credential);
+  Future<User *> LinkWithCredentialLastResult_DEPRECATED() const;
+
+  Future<SignInResult> LinkAndRetrieveDataWithCredential_DEPRECATED(AuthData *auth_data_,
+                                                                    const Credential &credential);
+  Future<SignInResult> LinkAndRetrieveDataWithCredentialLastResult_DEPRECATED() const;
+
+  Future<SignInResult> LinkWithProvider_DEPRECATED(AuthData *auth_data,
+                                                   FederatedAuthProvider *provider);
+  Future<SignInResult> LinkWithProviderLastResult_DEPRECATED() const;
+
+  Future<User *> Unlink_DEPRECATED(AuthData *auth_data, const char *provider);
+  Future<User *> UnlinkLastResult_DEPRECATED() const;
+
+  Future<User *> UpdatePhoneNumberCredential_DEPRECATED(AuthData *auth_data,
+                                                        const Credential &credential);
+  Future<User *> UpdatePhoneNumberCredentialLastResult_DEPRECATED() const;
+
+  Future<void> Reload();
+  Future<void> ReloadLastResult() const;
+
+  Future<void> Reauthenticate(const Credential &credential);
+  Future<void> ReauthenticateLastResult() const;
+
+  Future<SignInResult> ReauthenticateAndRetrieveData_DEPRECATED(AuthData *auth_data,
+                                                                const Credential &credential);
+  Future<SignInResult> ReauthenticateAndRetrieveDataLastResult_DEPRECATED() const;
+
+  Future<SignInResult> ReauthenticateWithProvider_DEPRECATED(AuthData *auth_data,
+                                                             FederatedAuthProvider *provider);
+  Future<SignInResult> ReauthenticateWithProviderLastResult_DEPRECATED() const;
+
+  Future<void> Delete(AuthData *auth_data);
+  Future<void> DeleteLastResult() const;
+
+  UserMetadata metadata() const;
+  bool is_email_verified() const;
+  bool is_anonymous() const;
+  std::string uid() const;
+  std::string email() const;
+  std::string display_name() const;
+  std::string phone_number() const;
+  std::string photo_url() const;
+  std::string provider_id() const;
+
+ private:
+  friend class firebase::auth::FederatedOAuthProvider;
+  friend class firebase::auth::User;
+
+  void clear_user_infos();
+
+  // Obj-c Implementation of a User object.
+  FIRUser *user_;
+
+  // Future data used to synchronize asynchronous calls.
+  FutureData future_data_;
+
+  // Used to support older method invocation of provider_data_DEPRECATED().
+  std::vector<UserInfoInterface *> user_infos_;
+
+  Mutex user_info_mutex_;
+};
+
+/// Replace the platform-dependent FIRUser object.
+/// Note: this function is only used to support DEPRECATED methods which return User*. This
+/// functionality should be removed when those deprecated methods are removed.
+static inline void SetUserImpl(AuthData *_Nonnull auth_data, FIRUser *_Nullable ios_user) {
+  printf("SetUserImpl, ios_user: %p  user_deprecated->is_valid(): %d\n", ios_user, auth_data->user_deprecated.is_valid());
   MutexLock lock(auth_data->future_impl.mutex());
-
-  // Delete existing pointer to FIRUser.
-  if (auth_data->user_impl != nullptr) {
-    delete static_cast<FIRUserPointer *>(auth_data->user_impl);
-    auth_data->user_impl = nullptr;
-  }
-
-  // Create new pointer to FIRUser.
-  if (user != nullptr) {
-    auth_data->user_impl = new FIRUserPointer(user);
-  }
+  auth_data->user_deprecated = User(new UserInternal(ios_user));
 }
 
 /// Convert from the platform-independent void* to the Obj-C FIRAuth pointer.
@@ -87,12 +171,14 @@ AuthError AuthErrorFromNSError(NSError *_Nullable error);
 /// Common code for all API calls that return a User*.
 /// Initialize `auth_data->current_user` and complete the `future`.
 void SignInCallback(FIRUser *_Nullable user, NSError *_Nullable error,
-                    SafeFutureHandle<User *> handle, AuthData *_Nonnull auth_data);
+                    SafeFutureHandle<User *> handle, ReferenceCountedFutureImpl &future_impl,
+                    AuthData *_Nonnull auth_data);
 
 /// Common code for all API calls that return a SignInResult.
 /// Initialize `auth_data->current_user` and complete the `future`.
 void SignInResultCallback(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error,
-                          SafeFutureHandle<SignInResult> handle, AuthData *_Nonnull auth_data);
+                          SafeFutureHandle<SignInResult> handle,
+                          ReferenceCountedFutureImpl &future_impl, AuthData *_Nonnull auth_data);
 
 /// Common code for all FederatedOAuth API calls which return a SignInResult and
 /// must hold a reference to a FIROAuthProvider so that the provider is not
@@ -101,6 +187,7 @@ void SignInResultCallback(FIRAuthDataResult *_Nullable auth_result, NSError *_Nu
 void SignInResultWithProviderCallback(FIRAuthDataResult *_Nullable auth_result,
                                       NSError *_Nullable error,
                                       SafeFutureHandle<SignInResult> handle,
+                                      ReferenceCountedFutureImpl &future_impl,
                                       AuthData *_Nonnull auth_data,
                                       const FIROAuthProvider *_Nonnull ios_auth_provider);
 
