@@ -152,7 +152,7 @@ TEST_F(
   EXPECT_EQ(snapshot_copy_dest.query(), AggregateQuery());
   EXPECT_FALSE(snapshot_copy_dest.is_valid());
 
-  snapshot_copy_dest = AggregateQuerySnapshot();
+  snapshot_copy_dest = snapshot;
 
   EXPECT_EQ(snapshot_copy_dest.count(), 0);
   EXPECT_EQ(snapshot_copy_dest.query(), AggregateQuery());

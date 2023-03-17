@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Google LLC
+ * Copyright 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,10 +30,6 @@ class AggregateQuerySnapshotInternal : public Wrapper {
  public:
   using Wrapper::Wrapper;
 
-  static AggregateQuerySnapshot Create(
-      jni::Env& env,
-      AggregateQueryInternal& aggregate_query_internal,
-      int64_t count);
 
   static void Initialize(jni::Loader& loader);
 
@@ -41,6 +37,13 @@ class AggregateQuerySnapshotInternal : public Wrapper {
   int64_t count() const;
 
   std::size_t Hash() const;
+
+ private:
+  friend class AggregateQuerySnapshotTest;
+  static AggregateQuerySnapshot Create(
+      jni::Env& env,
+      AggregateQueryInternal& aggregate_query_internal,
+      int64_t count);
 };
 
 bool operator==(const AggregateQuerySnapshotInternal& lhs,

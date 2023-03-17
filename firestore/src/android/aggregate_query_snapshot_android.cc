@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Google LLC
+ * Copyright 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ constexpr char kClassName[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/AggregateQuerySnapshot";
 Constructor<Object> kConstructor(
     "(Lcom/google/firebase/firestore/AggregateQuery;J)V");
-Method<int64_t> kCount("getCount", "()J");
+Method<int64_t> kGetCount("getCount", "()J");
 Method<Object> kGetQuery("getQuery",
                          "()Lcom/google/firebase/firestore/AggregateQuery;");
 Method<int32_t> kHashCode("hashCode", "()I");
@@ -43,7 +43,7 @@ Method<int32_t> kHashCode("hashCode", "()I");
 }  // namespace
 
 void AggregateQuerySnapshotInternal::Initialize(jni::Loader& loader) {
-  loader.LoadClass(kClassName, kConstructor, kCount, kGetQuery, kHashCode);
+  loader.LoadClass(kClassName, kConstructor, kGetCount, kGetQuery, kHashCode);
 }
 
 AggregateQuerySnapshot AggregateQuerySnapshotInternal::Create(
@@ -62,7 +62,7 @@ AggregateQuery AggregateQuerySnapshotInternal::query() const {
 
 int64_t AggregateQuerySnapshotInternal::count() const {
   Env env = GetEnv();
-  return env.Call(obj_, kCount);
+  return env.Call(obj_, kGetCount);
 }
 
 std::size_t AggregateQuerySnapshotInternal::Hash() const {

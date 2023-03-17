@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Google LLC
+ * Copyright 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ class AggregateQueryInternal : public Wrapper {
    * @brief Returns the query whose aggregations will be calculated by this
    * object.
    */
-  Query query();
+  Query query() const;
 
   /**
    * @brief Executes the aggregate query and returns the results as a
