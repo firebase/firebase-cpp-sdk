@@ -156,7 +156,6 @@ void UpdateCurrentUser(AuthData *auth_data) {
 
 // Platform-specific method to initialize AuthData.
 void Auth::InitPlatformAuth(AuthData *auth_data) {
-
   // Create persistent User data to continue to facilitate deprecated aysnc
   // methods which return a pointer to a User. Remove this structure when those
   // deprecated methods are removed.

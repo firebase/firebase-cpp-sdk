@@ -179,12 +179,6 @@ class User : public UserInfoInterface {
     const char* photo_url;
   };
 
-  // Internal only.
-  //
-  // Constructor of an internal opaque type. Memory ownership of UserInternal
-  // passes to to this User object.
-  User(AuthData* auth_data, UserInternal* user_internal);
-
   // Copy Constructor.
   User(const User&);
 
@@ -529,6 +523,15 @@ class User : public UserInfoInterface {
   virtual std::string phone_number() const;
 
  private:
+  // @deprecated User references to auth_data should only be needed during
+  // the Google I/O 23 breaking changes deprecation window.
+  //
+  // Internal only.
+  //
+  // Constructor of an internal opaque type. Memory ownership of UserInternal
+  // passes to to this User object.
+  User(AuthData* auth_data, UserInternal* user_internal);
+
   /// @cond FIREBASE_APP_INTERNAL
   friend struct AuthData;
 

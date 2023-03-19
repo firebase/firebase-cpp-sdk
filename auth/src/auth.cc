@@ -87,7 +87,6 @@ Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
   g_auths[app] = auth;
 
   if (init_result_out) *init_result_out = kInitResultSuccess;
-
   return auth;
 }
 

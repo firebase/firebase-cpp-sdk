@@ -287,7 +287,7 @@ class IOSWrappedUserInfo : public UserInfoInterface {
 UserInternal::UserInternal(FIRUser *user) : user_(user), future_data_(kUserFnCount) {}
 
 UserInternal::UserInternal(const UserInternal &user_internal)
-    : user_(user_internal.user_), future_data_(kUserFnCount) { }
+    : user_(user_internal.user_), future_data_(kUserFnCount) {}
 
 UserInternal::~UserInternal() {
   user_ = nil;

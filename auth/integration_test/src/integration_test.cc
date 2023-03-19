@@ -255,7 +255,6 @@ void FirebaseAuthTest::SignOut() {
   auth_->SignOut();
   // Wait for the sign-out to finish.
   while (auth_->current_user_DEPRECATED() != nullptr) {
-    printf("process events...\n");
     if (ProcessEvents(100)) break;
   }
   ProcessEvents(100);
