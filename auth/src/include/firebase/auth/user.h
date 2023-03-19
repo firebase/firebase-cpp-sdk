@@ -31,6 +31,7 @@ namespace auth {
 
 // Predeclarations.
 class Auth;
+class UserInternal;
 struct AuthData;
 
 class FederatedAuthProvider;
@@ -62,7 +63,7 @@ class UserInfoInterface {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  virtual std::string uid() const = 0;
+  virtual std::string uid() const;
 
   /// Gets email associated with the user, if any.
   /// <SWIG>
@@ -72,7 +73,7 @@ class UserInfoInterface {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  virtual std::string email() const = 0;
+  virtual std::string email() const;
 
   /// Gets the display name associated with the user, if any.
   /// <SWIG>
@@ -82,7 +83,7 @@ class UserInfoInterface {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  virtual std::string display_name() const = 0;
+  virtual std::string display_name() const;
 
   /// Gets the photo url associated with the user, if any.
   /// <SWIG>
@@ -92,7 +93,7 @@ class UserInfoInterface {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  virtual std::string photo_url() const = 0;
+  virtual std::string photo_url() const;
 
   /// Gets the provider ID for the user (For example, "Facebook").
   /// <SWIG>
@@ -102,10 +103,10 @@ class UserInfoInterface {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  virtual std::string provider_id() const = 0;
+  virtual std::string provider_id() const;
 
   /// Gets the phone number for the user, in E.164 format.
-  virtual std::string phone_number() const = 0;
+  virtual std::string phone_number() const;
 };
 
 /// @brief Additional user data returned from an identity provider.
@@ -178,7 +179,18 @@ class User : public UserInfoInterface {
     const char* photo_url;
   };
 
+  /// Copy Constructor.
+  User(const User&);
+
+  /// Assignment Operator.
+  User& operator=(const User& user);
+
   ~User();
+
+  /// Returns whether this User object represents a valid user. Could be false
+  /// on Users contained with @ref AuthResult structures from failed Auth
+  /// operations.
+  bool is_valid() const;
 
   /// The Java Web Token (JWT) that can be used to identify the user to
   /// the backend.
@@ -214,7 +226,11 @@ class User : public UserInfoInterface {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  const std::vector<UserInfoInterface*>& provider_data() const;
+  std::vector<UserInfoInterface> provider_data() const;
+
+  /// @deprecated This is a deprecated method. Please use @ref provider_data
+  /// instead.
+  const std::vector<UserInfoInterface*>& provider_data_DEPRECATED();
 
   /// Sets the email address for the user.
   ///
@@ -332,6 +348,9 @@ class User : public UserInfoInterface {
   FIREBASE_DEPRECATED Future<User*> LinkWithCredentialLastResult_DEPRECATED()
       const;
 
+  /// @deprecated This is a deprecated method. Please use
+  /// @ref LinkAndRetrieveDataWithCredential(const Credential&) instead.
+  ///
   /// Links the user with the given 3rd party credentials.
   ///
   /// For example, a Facebook login access token, a Twitter token/token-secret
@@ -343,12 +362,15 @@ class User : public UserInfoInterface {
   ///
   /// Data from the Identity Provider used to sign-in is returned in the
   /// @ref AdditionalUserInfo inside @ref SignInResult.
-  Future<SignInResult> LinkAndRetrieveDataWithCredential(
-      const Credential& credential);
+  FIREBASE_DEPRECATED Future<SignInResult>
+  LinkAndRetrieveDataWithCredential_DEPRECATED(const Credential& credential);
 
+  /// @deprecated
+  ///
   /// Get results of the most recent call to
-  /// @ref LinkAndRetrieveDataWithCredential.
-  Future<SignInResult> LinkAndRetrieveDataWithCredentialLastResult() const;
+  /// @ref LinkAndRetrieveDataWithCredential_DEPRECATED.
+  FIREBASE_DEPRECATED Future<SignInResult>
+  LinkAndRetrieveDataWithCredentialLastResult_DEPRECATED() const;
 
   /// @deprecated This is a deprecated method. Please use
   /// @ref LinkWithProvider(FederatedAuthProvider*) instead.
@@ -363,7 +385,7 @@ class User : public UserInfoInterface {
   /// @note: This operation is supported only on iOS, tvOS and Android
   /// platforms. On other platforms this method will return a Future with a
   /// preset error code: kAuthErrorUnimplemented.
-  Future<SignInResult> LinkWithProvider_DEPRECATED(
+  FIREBASE_DEPRECATED Future<SignInResult> LinkWithProvider_DEPRECATED(
       FederatedAuthProvider* provider) const;
 
   /// @deprecated This is a deprecated method. Please use @ref Unlink(const
@@ -371,12 +393,12 @@ class User : public UserInfoInterface {
   ///
   /// Unlinks the current user from the provider specified.
   /// Status will be an error if the user is not linked to the given provider.
-  Future<User*> Unlink_DEPRECATED(const char* provider);
+  FIREBASE_DEPRECATED Future<User*> Unlink_DEPRECATED(const char* provider);
 
   /// @deprecated
   ///
   /// Get results of the most recent call to @ref Unlink.
-  Future<User*> UnlinkLastResult_DEPRECATED() const;
+  FIREBASE_DEPRECATED Future<User*> UnlinkLastResult_DEPRECATED() const;
 
   /// @deprecated This is a deprecated method. Please use
   /// @ref UpdatePhoneNumberCredential(const PhoneAuthCredential&) instead.
@@ -386,7 +408,7 @@ class User : public UserInfoInterface {
   /// shortcut to calling Unlink_DEPRECATED(phone_credential.provider().c_str())
   /// and then LinkWithCredential_DEPRECATED(phone_credential). `credential`
   /// must have been created with @ref PhoneAuthProvider.
-  Future<User*> UpdatePhoneNumberCredential_DEPRECATED(
+  FIREBASE_DEPRECATED Future<User*> UpdatePhoneNumberCredential_DEPRECATED(
       const Credential& credential);
 
   /// @deprecated
@@ -501,16 +523,17 @@ class User : public UserInfoInterface {
   virtual std::string phone_number() const;
 
  private:
+  // @deprecated User references to auth_data should only be needed during
+  // the Google I/O 23 breaking changes deprecation window.
+  //
+  // Internal only.
+  //
+  // Constructor of an internal opaque type. Memory ownership of UserInternal
+  // passes to to this User object.
+  User(AuthData* auth_data, UserInternal* user_internal);
+
   /// @cond FIREBASE_APP_INTERNAL
   friend struct AuthData;
-  // Only exists in AuthData. Access via @ref Auth::CurrentUser().
-  explicit User(AuthData* auth_data) : auth_data_(auth_data) {}
-
-  // Disable copy constructor.
-  User(const User&) = delete;
-  // Disable copy operator.
-  User& operator=(const User&) = delete;
-  /// @endcond
 
 #if defined(INTERNAL_EXPERIMENTAL)
   // Doxygen should not make docs for this function.
@@ -525,6 +548,7 @@ class User : public UserInfoInterface {
 
   // Use the pimpl mechanism to hide data details in the cpp files.
   AuthData* auth_data_;
+  UserInternal* user_internal_;
 };
 
 }  // namespace auth

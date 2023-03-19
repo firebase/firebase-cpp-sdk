@@ -48,6 +48,7 @@ struct AuthCompletionHandle;
 class FederatedAuthProvider;
 class FederatedOAuthProvider;
 struct SignInResult;
+class UserInternal;
 
 /// @brief Firebase authentication object.
 ///
@@ -877,9 +878,13 @@ class FederatedAuthProvider {
  private:
   friend class ::firebase::auth::Auth;
   friend class ::firebase::auth::User;
+  friend class ::firebase::auth::UserInternal;
+
   virtual Future<SignInResult> SignIn(AuthData* auth_data) = 0;
-  virtual Future<SignInResult> Link(AuthData* auth_data) = 0;
-  virtual Future<SignInResult> Reauthenticate(AuthData* auth_data) = 0;
+  virtual Future<SignInResult> Link(AuthData* auth_data,
+                                    UserInternal* user_internal) = 0;
+  virtual Future<SignInResult> Reauthenticate(AuthData* auth_data,
+                                              UserInternal* user_internal) = 0;
 };
 
 /// @brief Authenticates with Federated OAuth Providers via the
@@ -961,10 +966,13 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
 
  private:
   friend class ::firebase::auth::Auth;
+  friend class ::firebase::auth::UserInternal;
 
   Future<SignInResult> SignIn(AuthData* auth_data) override;
-  Future<SignInResult> Link(AuthData* auth_data) override;
-  Future<SignInResult> Reauthenticate(AuthData* auth_data) override;
+  Future<SignInResult> Link(AuthData* auth_data,
+                            UserInternal* user_internal) override;
+  Future<SignInResult> Reauthenticate(AuthData* auth_data,
+                                      UserInternal* user_internal) override;
 
   FederatedOAuthProviderData provider_data_;
 #ifdef INTERNAL_EXPERIMENTAL

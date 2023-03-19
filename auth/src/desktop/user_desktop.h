@@ -26,7 +26,51 @@
 namespace firebase {
 namespace auth {
 
-// LINT.IfChange
+class UserInternal {
+ public:
+  // The user's ID, unique to the Firebase project.
+  std::string uid;
+
+  // The associated email, if any.
+  std::string email;
+
+  // The display name, if any.
+  std::string display_name;
+
+  // Associated photo url, if any.
+  std::string photo_url;
+
+  // A provider ID for the user e.g. "Facebook".
+  std::string provider_id;
+
+  // The user's phone number, if any.
+  std::string phone_number;
+
+  // Whether is anonymous.
+  bool is_anonymous;
+
+  // Whether email is verified.
+  bool is_email_verified;
+
+  // Tokens for authentication and authorization.
+  std::string id_token;  // an authorization code or access_token
+  std::string refresh_token;
+  std::string access_token;
+
+  // The approximate expiration date of the access token.
+  std::time_t access_token_expiration_date;
+
+  // Whether or not the user can be authenticated by provider 'password'.
+  bool has_email_password_credential;
+
+  /// The last sign in UTC timestamp in milliseconds.
+  /// See https://en.wikipedia.org/wiki/Unix_time for details of UTC.
+  uint64_t last_sign_in_timestamp;
+
+  /// The Firebase user creation UTC timestamp in milliseconds.
+  uint64_t creation_timestamp;
+};
+
 // The desktop-specific UserInfo implementation.
 struct UserInfoImpl {
   // Note: since Visual Studio 2013 and below don't autogenerate move
