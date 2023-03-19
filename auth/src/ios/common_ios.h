@@ -26,6 +26,9 @@
 #import "FIRUserInfo.h"
 #import "FIRUserMetadata.h"
 
+#include <string>
+#include <vector>
+
 #include "app/src/log.h"
 #include "app/src/util_ios.h"
 #include "auth/src/common.h"
@@ -56,7 +59,7 @@ struct AuthDataIos {
 class UserInternal {
  public:
   // Constructor
-  UserInternal(FIRUser *user);
+  explicit UserInternal(FIRUser *user);
 
   // Copy constructor.
   UserInternal(const UserInternal &user_internal);

@@ -17,6 +17,8 @@
 #ifndef FIREBASE_AUTH_SRC_COMMON_H_
 #define FIREBASE_AUTH_SRC_COMMON_H_
 
+#include <string>
+
 #include "auth/src/data.h"
 
 namespace firebase {
