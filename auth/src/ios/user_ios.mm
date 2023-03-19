@@ -34,8 +34,8 @@ const char kInvalidCredentialMessage[] = "Credential is not a phone credential."
 /// User Class
 /// Platform specific implementation
 ///
-User::User(UserInternal *user_internal) {
-  printf("User constructed %p internal: %p\n", this, user_internal);
+User::User(AuthData *auth_data, UserInternal *user_internal) {
+  assert(auth_data);
   if (user_internal == nullptr) {
     // Create an invalid user internal.
     // This will return is_valid() false, and operations will fail.
@@ -43,17 +43,16 @@ User::User(UserInternal *user_internal) {
   } else {
     user_internal_ = user_internal;
   }
+  auth_data_ = auth_data;
 }
 
 User::~User() {
-  printf("User::~User() %p deleting user_internal_: %p\n", this, user_internal_);
   delete user_internal_;
   user_internal_ = nullptr;
   auth_data_ = nullptr;
 }
 
 User &User::operator=(const User &user) {
-  printf("User operator= %p from %p deleting user_internal: %p\n", this, &user, user_internal_);
   assert(user_internal_);
   delete user_internal_;
   if (user.user_internal_ != nullptr) {
@@ -285,27 +284,26 @@ class IOSWrappedUserInfo : public UserInfoInterface {
 ///
 /// UserInternal Class
 ///
-UserInternal::UserInternal(FIRUser *user) : user_(user), future_data_(kUserFnCount) {
-  printf("UserInternal constructed %p FIRUser: %p\n", this, user);
-}
+UserInternal::UserInternal(FIRUser *user) : user_(user), future_data_(kUserFnCount) {}
 
 UserInternal::UserInternal(const UserInternal &user_internal)
-    : user_(user_internal.user_), future_data_(kUserFnCount) {
-      printf("UserInternal copy constructed: %p\n", this);
-}
+    : user_(user_internal.user_), future_data_(kUserFnCount) { }
 
 UserInternal::~UserInternal() {
-  printf("~UserInternal delete %p\n", this);
   user_ = nil;
   {
-    MutexLock user_info_lock(user_info_mutex_);
+    MutexLock user_info_lock(user_info_mutex_deprecated_);
     clear_user_infos();
   }
   // Make sure we don't have any pending futures in flight before we disappear.
-  while(!future_data_.future_impl.IsSafeToDelete()) {
+  while (!future_data_.future_impl.IsSafeToDelete()) {
     internal::Sleep(100);
   }
-  printf("~UserInternal delete %p done.\n", this);
+}
+
+void UserInternal::set_native_user_object_deprecated(FIRUser *user) {
+  MutexLock user_info_lock(user_mutex_);
+  user_ = user;
 }
 
 bool UserInternal::is_valid() const { return user_ != nil; }
@@ -319,6 +317,7 @@ void UserInternal::clear_user_infos() {
 }
 
 Future<std::string> UserInternal::GetToken(bool force_refresh) {
+  MutexLock user_info_lock(user_mutex_);
   if (!is_valid()) {
     return CreateAndCompleteFuture(kUserFn_GetToken, kAuthErrorInvalidUser,
                                    kUserNotInitializedErrorMessage, &future_data_, "");
@@ -353,7 +352,7 @@ std::vector<UserInfoInterface> UserInternal::provider_data() const {
 }
 
 const std::vector<UserInfoInterface *> &UserInternal::provider_data_DEPRECATED() {
-  MutexLock user_info_lock(user_info_mutex_);
+  MutexLock user_info_lock(user_info_mutex_deprecated_);
   clear_user_infos();
   if (is_valid()) {
     NSArray<id<FIRUserInfo>> *provider_data = user_.providerData;
@@ -368,6 +367,7 @@ const std::vector<UserInfoInterface *> &UserInternal::provider_data_DEPRECATED()
 }
 
 Future<void> UserInternal::UpdateEmail(const char *email) {
+  MutexLock user_info_lock(user_mutex_);
   if (!is_valid()) {
     return CreateAndCompleteFuture(kUserFn_UpdateEmail, kAuthErrorInvalidUser,
                                    kUserNotInitializedErrorMessage, &future_data_);
@@ -393,6 +393,7 @@ Future<void> UserInternal::UpdateEmailLastResult() const {
 }
 
 Future<void> UserInternal::UpdatePassword(const char *password) {
+  MutexLock user_info_lock(user_mutex_);
   if (!is_valid()) {
     return CreateAndCompleteFuture(kUserFn_UpdatePassword, kAuthErrorInvalidUser,
                                    kUserNotInitializedErrorMessage, &future_data_);
@@ -418,6 +419,7 @@ Future<void> UserInternal::UpdatePasswordLastResult() const {
 }
 
 Future<void> UserInternal::UpdateUserProfile(const User::UserProfile &profile) {
+  MutexLock user_info_lock(user_mutex_);
   if (!is_valid()) {
     return CreateAndCompleteFuture(kUserFn_UpdateUserProfile, kAuthErrorInvalidUser,
                                    kUserNotInitializedErrorMessage, &future_data_);
@@ -456,6 +458,7 @@ Future<void> UserInternal::UpdateUserProfileLastResult() const {
 }
 
 Future<void> UserInternal::SendEmailVerification() {
+  MutexLock user_info_lock(user_mutex_);
   if (!is_valid()) {
     return CreateAndCompleteFuture(kUserFn_SendEmailVerification, kAuthErrorInvalidUser,
                                    kUserNotInitializedErrorMessage, &future_data_);
@@ -482,6 +485,7 @@ Future<void> UserInternal::SendEmailVerificationLastResult() const {
 
 Future<User *> UserInternal::LinkWithCredential_DEPRECATED(AuthData *auth_data,
                                                            const Credential &credential) {
+  MutexLock user_info_lock(user_mutex_);
   if (!is_valid()) {
     SafeFutureHandle<User *> future_handle =
         future_data_.future_impl.SafeAlloc<User *>(kUserFn_LinkWithCredential_DEPRECATED);
@@ -512,7 +516,9 @@ Future<User *> UserInternal::LinkWithCredentialLastResult_DEPRECATED() const {
 
 Future<SignInResult> UserInternal::LinkAndRetrieveDataWithCredential_DEPRECATED(
     AuthData *auth_data, const Credential &credential) {
+  // MutexLock user_info_lock(user_mutex_);
   if (!is_valid()) {
+    printf("DEDB LinkAndRetrieveDataWithCredential_DEPRECATED user is not valid\n");
     SafeFutureHandle<SignInResult> future_handle = future_data_.future_impl.SafeAlloc<SignInResult>(
         kUserFn_LinkAndRetrieveDataWithCredential_DEPRECATED);
     Future<SignInResult> future = MakeFuture(&future_data_.future_impl, future_handle);
@@ -528,9 +534,11 @@ Future<SignInResult> UserInternal::LinkAndRetrieveDataWithCredential_DEPRECATED(
 
   [user_ linkWithCredential:CredentialFromImpl(credential.impl_)
                  completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
+                   NSLog(@"DEDB Completion auth_result: %p error: %p\n", auth_result, error);
                    SignInResultCallback(auth_result, error, callback_data->future_handle,
                                         callback_data->future_data->future_impl, auth_data);
-                   delete callback_data;
+                   NSLog(@"DEDB Completion SignInResultCallback returned\n");
+                   // delete callback_data;
                  }];
   return future;
 }
@@ -547,6 +555,7 @@ Future<SignInResult> UserInternal::LinkWithProvider_DEPRECATED(AuthData *auth_da
 }
 
 Future<User *> UserInternal::Unlink_DEPRECATED(AuthData *auth_data, const char *provider) {
+  MutexLock user_info_lock(user_mutex_);
   if (!is_valid()) {
     SafeFutureHandle<User *> future_handle =
         future_data_.future_impl.SafeAlloc<User *>(kUserFn_Unlink_DEPRECATED);
@@ -576,6 +585,7 @@ Future<User *> UserInternal::UnlinkLastResult_DEPRECATED() const {
 
 Future<User *> UserInternal::UpdatePhoneNumberCredential_DEPRECATED(AuthData *auth_data,
                                                                     const Credential &credential) {
+  MutexLock user_info_lock(user_mutex_);
 #if FIREBASE_PLATFORM_IOS
   if (!is_valid()) {
     SafeFutureHandle<User *> future_handle =
@@ -616,6 +626,7 @@ Future<User *> UserInternal::UpdatePhoneNumberCredential_DEPRECATED(AuthData *au
 }
 
 Future<void> UserInternal::Reload() {
+  MutexLock user_info_lock(user_mutex_);
   if (!is_valid()) {
     return CreateAndCompleteFuture(kUserFn_Reload, kAuthErrorInvalidUser,
                                    kUserNotInitializedErrorMessage, &future_data_);
@@ -639,6 +650,7 @@ Future<void> UserInternal::ReloadLastResult() const {
 }
 
 Future<void> UserInternal::Reauthenticate(const Credential &credential) {
+  MutexLock user_info_lock(user_mutex_);
   if (!is_valid()) {
     return CreateAndCompleteFuture(kUserFn_Reauthenticate, kAuthErrorInvalidUser,
                                    kUserNotInitializedErrorMessage, &future_data_);
@@ -666,6 +678,7 @@ Future<void> UserInternal::ReauthenticateLastResult() const {
 
 Future<SignInResult> UserInternal::ReauthenticateAndRetrieveData_DEPRECATED(
     AuthData *auth_data, const Credential &credential) {
+  MutexLock user_info_lock(user_mutex_);
   if (!is_valid()) {
     SafeFutureHandle<SignInResult> future_handle = future_data_.future_impl.SafeAlloc<SignInResult>(
         kUserFn_ReauthenticateAndRetrieveData_DEPRECATED);
@@ -703,9 +716,8 @@ Future<SignInResult> UserInternal::ReauthenticateWithProvider_DEPRECATED(
 }
 
 Future<void> UserInternal::Delete(AuthData *auth_data) {
-  printf("DEDB UserInternal::Delete() Start (UserInternal: %p) user_: %p\n", this, user_);
+  MutexLock user_info_lock(user_mutex_);
   if (!is_valid()) {
-    printf("DEDB UserInternal::Delete() is not valid\n");
     return CreateAndCompleteFuture(kUserFn_Delete, kAuthErrorInvalidUser,
                                    kUserNotInitializedErrorMessage, &future_data_);
   }
@@ -715,22 +727,16 @@ Future<void> UserInternal::Delete(AuthData *auth_data) {
   Future<void> future = MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 
   [user_ deleteWithCompletion:^(NSError *_Nullable error) {
-    printf("UserInternal::Delete user completion\n");
     if (!error) {
-      printf("UserInternal::Delete user no error\n");
       callback_data->future_data->future_impl.Complete(callback_data->future_handle, kAuthErrorNone,
                                                        "");
     } else {
-      printf("UserInternal::Delete user error\n");
       callback_data->future_data->future_impl.Complete(callback_data->future_handle,
                                                        AuthErrorFromNSError(error),
                                                        [error.localizedDescription UTF8String]);
     }
-    printf("UserInternal::Delete user future complete, deleting callback data\n");
     delete callback_data;
-    printf("UserInternal::Delete user future complete, callback data deleted\n");
   }];
-  printf("UserInternal::Delete user Done, returning future\n");
   return future;
 }
 

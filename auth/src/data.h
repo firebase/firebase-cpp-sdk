@@ -27,6 +27,20 @@
 namespace firebase {
 namespace auth {
 
+// @deprecated
+//
+// Fields that should be removed when the Auth Breaking Changes Deprecation
+// window ends.
+struct AuthDataDeprecatedFields {
+  // Used to return User* objects from deprecated methods.
+  User* user_deprecated;
+
+  // Internal implementation of user_deprecated. This object's contains a
+  // pointer the platform specific user object, which is updated on User
+  // operations.
+  UserInternal* user_internal_deprecated;
+};
+
 // Enumeration for API functions that return a Future.
 // This allows us to hold a Future for the most recent call to that API.
 enum AuthApiFunction {
@@ -82,7 +96,6 @@ struct AuthData {
         auth(nullptr),
         future_impl(kAuthFnCount),
         auth_impl(nullptr),
-        user_deprecated(nullptr),
         listener_impl(nullptr),
         id_token_listener_impl(nullptr),
         expect_id_token_listener_callback(false),
@@ -118,6 +131,14 @@ struct AuthData {
   /// Backpointer to the external Auth class that holds this internal data.
   Auth* auth;
 
+  /// @deprecated Remove when Auth deprecation APIs are removed.
+  ///
+  /// Contains a User object that's updated whenever the current user changes.
+  /// This is used to return User* values from deprecated Auth and User
+  /// methods. These methods have been replaced with methods that return
+  /// Users by value (now that we can copy users.)
+  AuthDataDeprecatedFields deprecated_fields;
+
   /// Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl;
 
@@ -127,10 +148,6 @@ struct AuthData {
   /// Platform-dependent implementation of Auth (that we're wrapping).
   /// For example, on Android `jobject`.
   void* auth_impl;
-
-  /// Platform-dependent implementation of User (that we're wrapping).
-  /// TODO: remove when Auth deprecation APIs are removed.
-  User user_deprecated;
 
   /// Platform-dependent implementation of AuthStateListener (that we're
   /// wrapping). For example, on Android `jobject`.

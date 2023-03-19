@@ -63,6 +63,12 @@ class UserInternal {
 
   ~UserInternal();
 
+  // @deprecated
+  //
+  // Provides a mechanism for the deprecated auth-contained user object to
+  // update its underlying FIRUser data.
+  void set_native_user_object_deprecated(FIRUser *user);
+
   bool is_valid() const;
 
   Future<std::string> GetToken(bool force_refresh);
@@ -143,16 +149,20 @@ class UserInternal {
   // Used to support older method invocation of provider_data_DEPRECATED().
   std::vector<UserInfoInterface *> user_infos_;
 
-  Mutex user_info_mutex_;
+  // Guard the creation and deletion of the vector of UserInfoInterface*
+  // allocations in provider_data_DEPRECATED().
+  Mutex user_info_mutex_deprecated_;
+
+  // Guard against changes to the user_ object.
+  Mutex user_mutex_;
 };
 
 /// Replace the platform-dependent FIRUser object.
 /// Note: this function is only used to support DEPRECATED methods which return User*. This
 /// functionality should be removed when those deprecated methods are removed.
 static inline void SetUserImpl(AuthData *_Nonnull auth_data, FIRUser *_Nullable ios_user) {
-  printf("SetUserImpl, ios_user: %p  user_deprecated->is_valid(): %d\n", ios_user, auth_data->user_deprecated.is_valid());
-  MutexLock lock(auth_data->future_impl.mutex());
-  auth_data->user_deprecated = User(new UserInternal(ios_user));
+  auth_data->deprecated_fields.user_internal_deprecated->set_native_user_object_deprecated(
+      ios_user);
 }
 
 /// Convert from the platform-independent void* to the Obj-C FIRAuth pointer.

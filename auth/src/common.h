@@ -120,7 +120,7 @@ void LogHeartbeat(Auth* auth);
 
 // Returns true if `auth_data` has a user that's currently active.
 inline bool ValidUser(const AuthData* auth_data) {
-  return auth_data->user_deprecated.is_valid();
+  return auth_data->deprecated_fields.user_deprecated->is_valid();
 }
 
 // Notify all the listeners of the state change.

@@ -183,7 +183,7 @@ class User : public UserInfoInterface {
   //
   // Constructor of an internal opaque type. Memory ownership of UserInternal
   // passes to to this User object.
-  User(UserInternal* user_internal);
+  User(AuthData* auth_data, UserInternal* user_internal);
 
   // Copy Constructor.
   User(const User&);

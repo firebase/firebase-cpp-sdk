@@ -151,12 +151,19 @@ void *CreatePlatformAuth(App *app) {
 void UpdateCurrentUser(AuthData *auth_data) {
   MutexLock lock(auth_data->future_impl.mutex());
   FIRUser *user = [AuthImpl(auth_data) currentUser];
-  printf("UpdateCurrentUser calling SetUserImpl\n");
   SetUserImpl(auth_data, user);
 }
 
 // Platform-specific method to initialize AuthData.
 void Auth::InitPlatformAuth(AuthData *auth_data) {
+
+  // Create persistent User data to continue to facilitate deprecated aysnc
+  // methods which return a pointer to a User. Remove this structure when those
+  // deprecated methods are removed.
+  auth_data->deprecated_fields.user_internal_deprecated = new UserInternal((FIRUser *)nil);
+  auth_data->deprecated_fields.user_deprecated =
+      new User(auth_data, auth_data->deprecated_fields.user_internal_deprecated);
+
   FIRCPPAuthListenerHandle *listener_cpp_handle = [[FIRCPPAuthListenerHandle alloc] init];
   listener_cpp_handle.authData = auth_data;
   reinterpret_cast<AuthDataIos *>(auth_data->auth_impl)->listener_handle = listener_cpp_handle;
@@ -164,7 +171,6 @@ void Auth::InitPlatformAuth(AuthData *auth_data) {
   // auth state change.
   FIRAuthStateDidChangeListenerHandle listener_handle = [AuthImpl(auth_data)
       addAuthStateDidChangeListener:^(FIRAuth *_Nonnull __strong, FIRUser *_Nullable __strong) {
-        printf("addAuthStateDidChangeListener\n");
         @synchronized(listener_cpp_handle) {
           AuthData *data = listener_cpp_handle.authData;
           if (data) {
@@ -176,7 +182,6 @@ void Auth::InitPlatformAuth(AuthData *auth_data) {
   FIRIDTokenDidChangeListenerHandle id_token_listener_handle = [AuthImpl(auth_data)
       addIDTokenDidChangeListener:^(FIRAuth *_Nonnull __strong, FIRUser *_Nullable __strong) {
         @synchronized(listener_cpp_handle) {
-          printf("addIDTokenDidChangeListener\n");
           AuthData *data = listener_cpp_handle.authData;
           if (data) {
             UpdateCurrentUser(data);
@@ -193,7 +198,6 @@ void Auth::InitPlatformAuth(AuthData *auth_data) {
   // Ensure initial user value is correct.
   // It's possible for the user to be signed-in at creation, if the user signed-in during a
   // previous run, for example.
-  printf("InitPlatformAuth calling UpdateCurrentUser\n");
   UpdateCurrentUser(auth_data);
 }
 
@@ -220,8 +224,14 @@ void Auth::DestroyPlatformAuth(AuthData *auth_data) {
   delete id_token_listener_handle_holder;
   auth_data->id_token_listener_impl = nullptr;
 
-  printf("DestroyPlatformAuth calling SetUserImp\n");
   SetUserImpl(auth_data, nullptr);
+
+  auth_data->deprecated_fields.user_internal_deprecated = nullptr;
+
+  // This also deletes auth_data->deprecated_fields.user_internal_deprecated
+  // since User has ownership of the UserInternal allocation.
+  delete auth_data->deprecated_fields.user_deprecated;
+  auth_data->deprecated_fields.user_deprecated = nullptr;
 
   // Release the FIRAuth* that we allocated in CreatePlatformAuth().
   delete auth_data_ios;
@@ -260,24 +270,29 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(const char *emai
   return MakeFuture(&futures, handle);
 }
 
-// It's safe to return a direct pointer to `current_user` because that class
-// holds nothing but a pointer to AuthData, which never changes.
-// All User functions that require synchronization go through AuthData's mutex.
+// Support the deprecated current_user method by returning a pointer to the
+// User contained within Auth. This maintains the older behavior of
+// current_user() via  current_user_DEPRECATED throughout the deprecation
+// window.
 User *Auth::current_user_DEPRECATED() {
   if (!auth_data_) return nullptr;
   MutexLock lock(auth_data_->future_impl.mutex());
-  return &auth_data_->user_deprecated;
+  if (auth_data_->deprecated_fields.user_deprecated == nullptr ||
+      !auth_data_->deprecated_fields.user_deprecated->is_valid()) {
+    return nullptr;
+  } else {
+    return auth_data_->deprecated_fields.user_deprecated;
+  }
 }
 
 static User *AssignUser(FIRUser *_Nullable user, AuthData *auth_data) {
   // Update our pointer to the iOS user that we're wrapping.
   MutexLock lock(auth_data->future_impl.mutex());
   if (user) {
-    printf("Assign User calling SetUserImpl\n");
     SetUserImpl(auth_data, user);
   }
 
-  return &auth_data->user_deprecated;
+  return auth_data->deprecated_fields.user_deprecated;
 }
 
 std::string Auth::language_code() const {
@@ -317,19 +332,14 @@ AuthError AuthErrorFromNSError(NSError *_Nullable error) {
 void SignInCallback(FIRUser *_Nullable user, NSError *_Nullable error,
                     SafeFutureHandle<User *> handle, ReferenceCountedFutureImpl &future_impl,
                     AuthData *auth_data) {
-  printf("SignInCallback start\n");
   User *result = AssignUser(user, auth_data);
 
-  printf("SignInCallback checking for valid future\n");
   if (future_impl.ValidFuture(handle)) {
-    printf("SignInCallback completing future");
     // Finish off the asynchronous call so that the caller can read it.
     future_impl.CompleteWithResult(handle, AuthErrorFromNSError(error),
                                    util::NSStringToString(error.localizedDescription).c_str(),
                                    result);
-    printf("SignInCallback future completed\n");
   }
-  printf("SignInCallback done\n");
 }
 
 void SignInResultWithProviderCallback(
@@ -474,7 +484,6 @@ void Auth::SignOut() {
   // TODO(jsanmiya): Verify with iOS team why this returns an error.
   NSError *_Nullable error;
   [AuthImpl(auth_data_) signOut:&error];
-  printf("Auth::SignOut calling SetUserImpl\n");
   SetUserImpl(auth_data_, NULL);
 }
 

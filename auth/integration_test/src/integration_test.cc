@@ -248,18 +248,18 @@ void FirebaseAuthTest::SignOut() {
     // Auth is not set up.
     return;
   }
-  if (!auth_->current_user_DEPRECATED()->is_valid()) {
+  if (auth_->current_user_DEPRECATED() == nullptr) {
     // Already signed out.
     return;
   }
   auth_->SignOut();
   // Wait for the sign-out to finish.
-  while (auth_->current_user_DEPRECATED()->is_valid()) {
+  while (auth_->current_user_DEPRECATED() != nullptr) {
     printf("process events...\n");
     if (ProcessEvents(100)) break;
   }
   ProcessEvents(100);
-  EXPECT_EQ(auth_->current_user_DEPRECATED()->is_valid(), false);
+  EXPECT_EQ(auth_->current_user_DEPRECATED(), nullptr);
 }
 
 void FirebaseAuthTest::DeleteUser() {
@@ -514,8 +514,9 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential) {
   firebase::auth::Credential credential =
       firebase::auth::EmailAuthProvider::GetCredential(email.c_str(),
                                                        kTestPassword);
-  WaitForCompletion(user->LinkAndRetrieveDataWithCredential_DEPRECATED(credential),
-                    "LinkAndRetrieveDataWithCredential_DEPRECATED");
+  WaitForCompletion(
+      user->LinkAndRetrieveDataWithCredential_DEPRECATED(credential),
+      "LinkAndRetrieveDataWithCredential_DEPRECATED");
   WaitForCompletion(user->Unlink_DEPRECATED(credential.provider().c_str()),
                     "Unlink");
   SignOut();
@@ -766,10 +767,12 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
   // Save the old provider ID list so we can make sure it's the same once
   // it's loaded again.
   std::vector<std::string> prev_provider_data_ids;
-  for (int i = 0; i < auth_->current_user_DEPRECATED()->provider_data_DEPRECATED().size();
+  for (int i = 0;
+       i < auth_->current_user_DEPRECATED()->provider_data_DEPRECATED().size();
        i++) {
-    prev_provider_data_ids.push_back(
-        auth_->current_user_DEPRECATED()->provider_data_DEPRECATED()[i]->provider_id());
+    prev_provider_data_ids.push_back(auth_->current_user_DEPRECATED()
+                                         ->provider_data_DEPRECATED()[i]
+                                         ->provider_id());
   }
   Terminate();
   ProcessEvents(2000);
@@ -780,10 +783,12 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
   // Make sure the provider IDs are the same as they were before.
   EXPECT_EQ(auth_->current_user_DEPRECATED()->provider_id(), prev_provider_id);
   std::vector<std::string> loaded_provider_data_ids;
-  for (int i = 0; i < auth_->current_user_DEPRECATED()->provider_data_DEPRECATED().size();
+  for (int i = 0;
+       i < auth_->current_user_DEPRECATED()->provider_data_DEPRECATED().size();
        i++) {
-    loaded_provider_data_ids.push_back(
-        auth_->current_user_DEPRECATED()->provider_data_DEPRECATED()[i]->provider_id());
+    loaded_provider_data_ids.push_back(auth_->current_user_DEPRECATED()
+                                           ->provider_data_DEPRECATED()[i]
+                                           ->provider_id());
   }
   EXPECT_TRUE(loaded_provider_data_ids == prev_provider_data_ids);
 
