@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_SRC_INCLUDE_FIREBASE_DATABASE_H_
 
 #include "firebase/app.h"
+#include "firebase/cpp_version_warning.h"
 #include "firebase/database/common.h"
 #include "firebase/database/data_snapshot.h"
 #include "firebase/database/database_reference.h"

@@ -646,6 +646,8 @@ code.
 -   Changes
     - Firestore: Added `Query::Count()`, which fetches the number of documents in the result
       set without actually downloading the documents ([#1174](https://github.com/firebase/firebase-cpp-sdk/pull/1174)).
+    - General: Add build time warning for C++11, since the next major release of
+      the Firebase C++ SDK will set the new minimum C++ version to C++14.
 
 ### 10.6.0
 -   Changes

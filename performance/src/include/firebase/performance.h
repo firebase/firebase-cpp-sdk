@@ -4,6 +4,7 @@
 #define FIREBASE_PERFORMANCE_SRC_INCLUDE_FIREBASE_PERFORMANCE_H_
 
 #include "firebase/app.h"
+#include "firebase/cpp_version_warning.h"
 #include "firebase/performance/http_metric.h"
 #include "firebase/performance/trace.h"
 

@@ -234,12 +234,18 @@ set(main_SRCS
 # the interface actually comes from the FirebaseFirestore CocoaPod, so there's
 # no implementation listed here.
 set(credentials_provider_desktop_SRCS
+    src/main/app_check_credentials_provider_desktop.cc
+    src/main/app_check_credentials_provider_desktop.h
+    src/main/create_app_check_credentials_provider.h
+    src/main/create_app_check_credentials_provider_desktop.cc
     src/main/create_credentials_provider.h
     src/main/create_credentials_provider_desktop.cc
     src/main/credentials_provider_desktop.cc
     src/main/credentials_provider_desktop.h)
 
 set(credentials_provider_ios_SRCS
+    src/main/create_app_check_credentials_provider.h
+    src/main/create_app_check_credentials_provider_ios.mm
     src/main/create_credentials_provider.h
     src/main/create_credentials_provider_ios.mm)
 
