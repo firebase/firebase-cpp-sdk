@@ -30,7 +30,6 @@ class AggregateQuerySnapshotInternal : public Wrapper {
  public:
   using Wrapper::Wrapper;
 
-
   static void Initialize(jni::Loader& loader);
 
   AggregateQuery query() const;
