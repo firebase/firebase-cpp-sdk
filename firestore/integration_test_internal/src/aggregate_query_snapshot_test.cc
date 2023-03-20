@@ -14,13 +14,17 @@
  * limitations under the License.
  */
 
-#include "firebase/firestore.h"
 #include "firestore_integration_test.h"
+
+#include "firebase/firestore.h"
 
 #include "gtest/gtest.h"
 
 #if defined(__ANDROID__)
+#include "firestore/src/android/aggregate_query_android.h"
+#include "firestore/src/android/aggregate_query_snapshot_android.h"
 #include "firestore/src/android/converter_android.h"
+#include "firestore/src/jni/object.h"
 #else
 #include "firestore/src/main/aggregate_query_snapshot_main.h"
 #include "firestore/src/main/converter_main.h"
@@ -32,13 +36,26 @@ namespace firestore {
 class AggregateQuerySnapshotTest : public FirestoreIntegrationTest {
  protected:
   static AggregateQuerySnapshot TestAggregateQuerySnapshot(
-      AggregateQuery aggregate_query, const int count) {
-    api::AggregateQuery aggregateQuery =
-        GetInternal(&aggregate_query)->aggregate_query_;
-    return MakePublic(
-        AggregateQuerySnapshotInternal(std::move(aggregateQuery), count));
-  }
+      AggregateQuery aggregate_query, const int count);
 };
+
+#if defined(__ANDROID__)
+AggregateQuerySnapshot AggregateQuerySnapshotTest::TestAggregateQuerySnapshot(
+    firebase::firestore::AggregateQuery aggregate_query, const int count) {
+  AggregateQueryInternal* internal = GetInternal(&aggregate_query);
+  FirestoreInternal* firestoreInternal = internal->firestore_internal();
+  jni::Env env = firestoreInternal->GetEnv();
+  return AggregateQuerySnapshotInternal::Create(env, *internal, count);
+}
+#else
+AggregateQuerySnapshot AggregateQuerySnapshotTest::TestAggregateQuerySnapshot(
+    firebase::firestore::AggregateQuery aggregate_query, const int count) {
+  api::AggregateQuery aggregateQuery =
+      GetInternal(&aggregate_query)->aggregate_query_;
+  return MakePublic(
+      AggregateQuerySnapshotInternal(std::move(aggregateQuery), count));
+}
+#endif  // defined(__ANDROID__)
 
 std::size_t AggregateQuerySnapshotHash(const AggregateQuerySnapshot& snapshot) {
   return snapshot.Hash();

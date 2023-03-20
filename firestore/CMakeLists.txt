@@ -67,6 +67,12 @@ binary_to_array("firestore_resources"
 
 set(android_SRCS
     ${firestore_resources_source}
+    src/android/aggregate_query_android.cc
+    src/android/aggregate_query_android.h
+    src/android/aggregate_query_snapshot_android.cc
+    src/android/aggregate_query_snapshot_android.h
+    src/android/aggregate_source_android.cc
+    src/android/aggregate_source_android.h
     src/android/blob_android.cc
     src/android/blob_android.h
     src/android/collection_reference_android.cc

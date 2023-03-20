@@ -25,7 +25,6 @@ namespace firestore {
 namespace {
 
 using jni::Class;
-using jni::Constructor;
 using jni::Env;
 using jni::Local;
 using jni::Method;
