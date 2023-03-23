@@ -776,13 +776,13 @@ TEST_F(QueryTest, TestQueriesCanUseInFilters) {
       "zip", {FieldValue::Integer(98101), FieldValue::Integer(98103),
               FieldValue::Array(
                   {FieldValue::Integer(98101), FieldValue::Integer(98102)})});
-  const QuerySnapshot snapshot = ReadDocuments(query1);
+  const QuerySnapshot snapshot1 = ReadDocuments(query1);
   EXPECT_EQ(std::vector<MapFieldValue>(
                 {{{"zip", FieldValue::Integer(98101)}},
                  {{"zip", FieldValue::Integer(98103)}},
                  {{"zip", FieldValue::Array({FieldValue::Integer(98101),
                                              FieldValue::Integer(98102)})}}}),
-            QuerySnapshotToValues(snapshot));
+            QuerySnapshotToValues(snapshot1));
 
   const AggregateQuery aggregate_query1 = query1.Count();
   const AggregateQuerySnapshot aggregate_snapshot1 =
@@ -793,11 +793,11 @@ TEST_F(QueryTest, TestQueriesCanUseInFilters) {
   // With objects.
   const Query query2 = collection.WhereIn(
       "zip", {FieldValue::Map({{"code", FieldValue::Integer(500)}})});
-  const snapshot = ReadDocuments(query2);
+  const QuerySnapshot snapshot2 = ReadDocuments(query2);
   EXPECT_EQ(
       std::vector<MapFieldValue>(
           {{{"zip", FieldValue::Map({{"code", FieldValue::Integer(500)}})}}}),
-      QuerySnapshotToValues(snapshot));
+      QuerySnapshotToValues(snapshot2));
 
   const AggregateQuery aggregate_query2 = query2.Count();
   const AggregateQuerySnapshot aggregate_snapshot2 =
