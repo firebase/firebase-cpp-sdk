@@ -54,6 +54,14 @@ struct AuthDataIos {
   FIRCPPAuthListenerHandlePointer listener_handle;
 };
 
+// Struct to contain the data required to complete
+// futures asynchronously on iOS.
+template <class T>
+struct FutureCallbackData {
+  FutureData *future_data;
+  SafeFutureHandle<T> future_handle;
+};
+
 // Contains the interface between the public API and the underlying
 // Obj-C SDK FirebaseUser implemention.
 class UserInternal {
@@ -160,6 +168,8 @@ class UserInternal {
   Mutex user_mutex_;
 };
 
+/// @deprecated
+///
 /// Replace the platform-dependent FIRUser object.
 /// Note: this function is only used to support DEPRECATED methods which return User*. This
 /// functionality should be removed when those deprecated methods are removed.

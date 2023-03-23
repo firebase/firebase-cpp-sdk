@@ -652,24 +652,24 @@ Future<Credential> GameCenterAuthProvider::GetCredential() {
   // Game Center is not available on Android
   bool is_gamecenter_available_on_android = false;
 
-  auto future_api = GetCredentialFutureImpl();
-  const auto handle =
-      future_api->SafeAlloc<Credential>(kCredentialFn_GameCenterGetCredential);
+  ReferenceCountedFutureImpl* future_impl = GetCredentialFutureImpl();
+  const auto future_handle =
+      future_impl->SafeAlloc<Credential>(kCredentialFn_GameCenterGetCredential);
 
-  future_api->Complete(handle, kAuthErrorInvalidCredential,
-                       "GameCenter is not supported on Android.");
+  future_impl->Complete(future_handle, kAuthErrorInvalidCredential,
+                        "GameCenter is not supported on Android.");
 
-  FIREBASE_ASSERT_RETURN(MakeFuture(future_api, handle),
+  FIREBASE_ASSERT_RETURN(MakeFuture(future_impl, future_handle),
                          is_gamecenter_available_on_android);
 
-  return MakeFuture(future_api, handle);
+  return MakeFuture(future_impl, future_handle);
 }
 
 // static
 Future<Credential> GameCenterAuthProvider::GetCredentialLastResult() {
-  auto future_api = GetCredentialFutureImpl();
+  ReferenceCountedFutureImpl* future_impl = GetCredentialFutureImpl();
   auto last_result =
-      future_api->LastResult(kCredentialFn_GameCenterGetCredential);
+      future_impl->LastResult(kCredentialFn_GameCenterGetCredential);
   return static_cast<const Future<Credential>&>(last_result);
 }
 
@@ -1013,75 +1013,82 @@ Future<SignInResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
   assert(auth_data);
   JNIEnv* env = Env(auth_data);
 
-  ReferenceCountedFutureImpl& futures = auth_data->future_impl;
-  const auto handle = futures.SafeAlloc<SignInResult>(
+  ReferenceCountedFutureImpl& future_impl = auth_data->future_impl;
+  const auto future_handle = future_impl.SafeAlloc<SignInResult>(
       kAuthFn_SignInWithProvider_DEPRECATED, SignInResult());
 
   jobject oauthprovider = ConstructOAuthProvider(auth_data, provider_data_);
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+  if (!CheckAndCompleteFutureOnError(env, &future_impl, future_handle)) {
     jobject task = env->CallObjectMethod(
         AuthImpl(auth_data),
         auth_idp::GetMethodId(auth_idp::kStartActivityForSignInWithProvider),
         auth_data->app->activity(), oauthprovider);
-    if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-      RegisterFederatedAuthProviderCallback(task, handle, auth_data,
-                                            ReadSignInResult);
+
+    if (!CheckAndCompleteFutureOnError(env, &future_impl, future_handle)) {
+      RegisterFederatedAuthProviderCallback(
+          Env(auth_data), auth_data, task, future_handle,
+          auth_data->future_api_id, &auth_data->future_impl, ReadSignInResult);
     }
     env->DeleteLocalRef(task);
   }
 
   env->DeleteLocalRef(oauthprovider);
-  return MakeFuture(&futures, handle);
+  return MakeFuture(&future_impl, future_handle);
 }
 
-Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
-  assert(auth_data);
-  JNIEnv* env = Env(auth_data);
-  ReferenceCountedFutureImpl& futures = auth_data->future_impl;
-  const auto handle = futures.SafeAlloc<SignInResult>(
+Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data,
+                                                  UserInternal* user_internal) {
+  ReferenceCountedFutureImpl& future_impl =
+      user_internal->future_data_.future_impl;
+  const auto future_handle = future_impl.SafeAlloc<SignInResult>(
       kUserFn_LinkWithProvider_DEPRECATED, SignInResult());
 
   jobject oauthprovider = ConstructOAuthProvider(auth_data, provider_data_);
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    jobject task = env->CallObjectMethod(
-        UserImpl(auth_data),
+  if (!CheckAndCompleteFutureOnError(user_internal->env_, &future_impl,
+                                     future_handle)) {
+    jobject task = user_internal->env_->CallObjectMethod(
+        user_internal->user_,
         user_idp::GetMethodId(user_idp::kStartActivityForLinkWithProvider),
         auth_data->app->activity(), oauthprovider);
-    if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-      RegisterFederatedAuthProviderCallback(task, handle, auth_data,
-                                            ReadSignInResult);
+    if (!CheckAndCompleteFutureOnError(user_internal->env_, &future_impl,
+                                       future_handle)) {
+      RegisterFederatedAuthProviderCallback(
+          Env(auth_data), auth_data, task, future_handle,
+          auth_data->future_api_id, &auth_data->future_impl, ReadSignInResult);
     }
-    env->DeleteLocalRef(task);
+    Env(auth_data)->DeleteLocalRef(task);
   }
 
-  env->DeleteLocalRef(oauthprovider);
-  return MakeFuture(&futures, handle);
+  user_internal->env_->DeleteLocalRef(oauthprovider);
+  return MakeFuture(&future_impl, future_handle);
 }
 
 Future<SignInResult> FederatedOAuthProvider::Reauthenticate(
-    AuthData* auth_data) {
-  assert(auth_data);
-  JNIEnv* env = Env(auth_data);
-  ReferenceCountedFutureImpl& futures = auth_data->future_impl;
-  const auto handle = futures.SafeAlloc<SignInResult>(
+    AuthData* auth_data, UserInternal* user_internal) {
+  ReferenceCountedFutureImpl& future_impl =
+      user_internal->future_data_.future_impl;
+  const auto future_handle = future_impl.SafeAlloc<SignInResult>(
       kUserFn_ReauthenticateWithProvider_DEPRECATED, SignInResult());
 
   jobject oauthprovider = ConstructOAuthProvider(auth_data, provider_data_);
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    jobject task = env->CallObjectMethod(
-        UserImpl(auth_data),
+  if (!CheckAndCompleteFutureOnError(user_internal->env_, &future_impl,
+                                     future_handle)) {
+    jobject task = user_internal->env_->CallObjectMethod(
+        user_internal->user_,
         user_idp::GetMethodId(
             user_idp::kStartActivityForReauthenticateWithProvider),
         auth_data->app->activity(), oauthprovider);
-    if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-      RegisterFederatedAuthProviderCallback(task, handle, auth_data,
-                                            ReadSignInResult);
+    if (!CheckAndCompleteFutureOnError(user_internal->env_, &future_impl,
+                                       future_handle)) {
+      RegisterFederatedAuthProviderCallback(
+          Env(auth_data), auth_data, task, future_handle,
+          auth_data->future_api_id, &auth_data->future_impl, ReadSignInResult);
     }
-    env->DeleteLocalRef(task);
+    user_internal->env_->DeleteLocalRef(task);
   }
 
-  env->DeleteLocalRef(oauthprovider);
-  return MakeFuture(&futures, handle);
+  user_internal->env_->DeleteLocalRef(oauthprovider);
+  return MakeFuture(&future_impl, future_handle);
 }
 
 }  // namespace auth

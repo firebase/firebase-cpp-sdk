@@ -429,8 +429,11 @@ enum AuthError {
 
 #endif  // INTERNAL_EXEPERIMENTAL
 
-  /// An operation was attempted on an invalid User.
+  /// Indicates that an operation was attempted on an invalid User.
   kAuthErrorInvalidUser,
+
+  /// Indicates that an invalid parameter was passed to an auth method.
+  kAuthErrorInvalidParameter,
 };
 
 /// @brief Contains information required to authenticate with a third party

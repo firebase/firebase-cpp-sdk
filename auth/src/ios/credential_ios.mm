@@ -522,7 +522,7 @@ Future<SignInResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data,
   assert(auth_data);
   assert(user_internal);
   auto handle = user_internal->future_data_.future_impl.SafeAlloc<SignInResult>(
-      kUserFn_LinkWithProvider_DEPRECATED, SignInResult());
+      kUserFn_ReauthenticateWithProvider_DEPRECATED, SignInResult());
 #if FIREBASE_PLATFORM_IOS
   FIROAuthProvider* ios_provider = (FIROAuthProvider*)[FIROAuthProvider
       providerWithProviderID:@(provider_data_.provider_id.c_str())

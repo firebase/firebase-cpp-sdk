@@ -25,6 +25,10 @@ const char* kUserNotInitializedErrorMessage =
     "Operation attmpted on an invalid User object.";
 const char* kPhoneAuthNotSupportedErrorMessage =
     "Phone Auth is not supported on this platform.";
+const char* kAuthInvalidParameterErrorMessage =
+    "A parameter pass to the auth method is null or invalid.";
+extern const char* kInvalidCredentialErrorMessage =
+    "The provided credential does not match the required type.";
 
 // static member variables
 const uint32_t PhoneAuthProvider::kMaxTimeoutMs = 3000;

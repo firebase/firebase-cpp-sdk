@@ -472,7 +472,7 @@ void SetImplFromLocalRef(JNIEnv* env, jobject j_local, void** impl) {
 // Reads the `AuthResult` in `result` and initialize the `User*` in `void_data`.
 void ReadSignInResult(jobject result, FutureCallbackData<SignInResult>* d,
                       bool success, void* void_data) {
-  JNIEnv* env = Env(d->auth_data);
+  JNIEnv* env = d->env;
 
   // Update the currently signed-in user on success.
   // Note: `result` is only valid when success is true.
@@ -485,7 +485,7 @@ void ReadSignInResult(jobject result, FutureCallbackData<SignInResult>* d,
     // Update our pointer to the Android FirebaseUser that we're wrapping.
     // Note: Cannot call UpdateCurrentUser(d->auth_data) because the Java
     //       Auth class has not been updated at this point.
-    SetImplFromLocalRef(env, j_user, &d->auth_data->user_impl);
+    SetUserImpl(d->auth_data, j_user);
 
     // Grab the additional user info too.
     // Additional user info is not guaranteed to exist, so could be nullptr.
@@ -521,7 +521,7 @@ void ReadUserFromSignInResult(jobject result, FutureCallbackData<User*>* d,
     // Update our pointer to the Android FirebaseUser that we're wrapping.
     // Note: Cannot call UpdateCurrentUser(d->auth_data) because the Java
     //       Auth class has not been updated at this point.
-    SetImplFromLocalRef(env, j_user, &d->auth_data->user_impl);
+    SetUserImpl(d->auth_data, j_user);
   }
 
   // Return a pointer to the current user, if the current user is valid.

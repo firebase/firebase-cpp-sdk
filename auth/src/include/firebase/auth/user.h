@@ -386,7 +386,7 @@ class User : public UserInfoInterface {
   /// platforms. On other platforms this method will return a Future with a
   /// preset error code: kAuthErrorUnimplemented.
   FIREBASE_DEPRECATED Future<SignInResult> LinkWithProvider_DEPRECATED(
-      FederatedAuthProvider* provider) const;
+      FederatedAuthProvider* provider);
 
   /// @deprecated This is a deprecated method. Please use @ref Unlink(const
   /// char*) instead.
@@ -523,11 +523,6 @@ class User : public UserInfoInterface {
   virtual std::string phone_number() const;
 
  private:
-  // @deprecated User references to auth_data should only be needed during
-  // the Google I/O 23 breaking changes deprecation window.
-  //
-  // Internal only.
-  //
   // Constructor of an internal opaque type. Memory ownership of UserInternal
   // passes to to this User object.
   User(AuthData* auth_data, UserInternal* user_internal);

@@ -50,18 +50,141 @@ template <typename T>
 struct FutureCallbackData {
   // During the callback, read `result` data from Java into the returned
   // C++ data in `d->future_data->Data()`.
-  typedef void ReadFutureResultFn(jobject result, FutureCallbackData* d,
+  typedef void ReadFutureResultFn(jobject result,
+                                  FutureCallbackData* future_callback_Data,
                                   bool success, void* void_data);
 
-  FutureCallbackData(const SafeFutureHandle<T>& handle, AuthData* auth_data,
+  FutureCallbackData(JNIEnv* env, AuthData* auth_data,
+                     const SafeFutureHandle<T>& handle,
+                     ReferenceCountedFutureImpl* future_impl,
                      ReadFutureResultFn* future_data_read_fn)
-      : handle(handle),
+      : env(env),
         auth_data(auth_data),
+        handle(handle),
+        future_impl(future_impl),
         future_data_read_fn(future_data_read_fn) {}
 
-  SafeFutureHandle<T> handle;
+  JNIEnv* env;
   AuthData* auth_data;
+  SafeFutureHandle<T> handle;
+  ReferenceCountedFutureImpl* future_impl;
   ReadFutureResultFn* future_data_read_fn;
+};
+
+// Contains the interface between the public API and the underlying
+// Android Java SDK FirebaseUser implemention.
+class UserInternal {
+ public:
+  // Constructor
+  explicit UserInternal(JNIEnv* env, jobject android_user);
+
+  // Copy constructor.
+  UserInternal(const UserInternal& user_internal);
+
+  ~UserInternal();
+
+  // @deprecated
+  //
+  // Provides a mechanism for the deprecated auth-contained user object to
+  // update its underlying Android Java SDK FirebaseUser object.
+  void set_native_user_object_deprecated(jobject android_user);
+
+  bool is_valid() const;
+
+  Future<std::string> GetToken(AuthData* auth_data, bool force_refresh);
+  Future<std::string> GetTokenLastResult() const;
+
+  Future<void> UpdateEmail(const char* email);
+  Future<void> UpdateEmailLastResult() const;
+
+  std::vector<UserInfoInterface> provider_data() const;
+  const std::vector<UserInfoInterface*>& provider_data_DEPRECATED();
+
+  Future<void> UpdatePassword(const char* password);
+  Future<void> UpdatePasswordLastResult() const;
+
+  Future<void> UpdateUserProfile(const User::UserProfile& profile);
+  Future<void> UpdateUserProfileLastResult() const;
+
+  Future<void> SendEmailVerification();
+  Future<void> SendEmailVerificationLastResult() const;
+
+  Future<User*> LinkWithCredential_DEPRECATED(AuthData* auth_data,
+                                              const Credential& credential);
+  Future<User*> LinkWithCredentialLastResult_DEPRECATED() const;
+
+  Future<SignInResult> LinkAndRetrieveDataWithCredential_DEPRECATED(
+      AuthData* auth_data_, const Credential& credential);
+  Future<SignInResult> LinkAndRetrieveDataWithCredentialLastResult_DEPRECATED()
+      const;
+
+  Future<SignInResult> LinkWithProvider_DEPRECATED(
+      AuthData* auth_data, FederatedAuthProvider* provider);
+  Future<SignInResult> LinkWithProviderLastResult_DEPRECATED() const;
+
+  Future<User*> Unlink_DEPRECATED(AuthData* auth_data, const char* provider);
+  Future<User*> UnlinkLastResult_DEPRECATED() const;
+
+  Future<User*> UpdatePhoneNumberCredential_DEPRECATED(
+      AuthData* auth_data, const Credential& credential);
+  Future<User*> UpdatePhoneNumberCredentialLastResult_DEPRECATED() const;
+
+  Future<void> Reload();
+  Future<void> ReloadLastResult() const;
+
+  Future<void> Reauthenticate(const Credential& credential);
+  Future<void> ReauthenticateLastResult() const;
+
+  Future<SignInResult> ReauthenticateAndRetrieveData_DEPRECATED(
+      AuthData* auth_data, const Credential& credential);
+  Future<SignInResult> ReauthenticateAndRetrieveDataLastResult_DEPRECATED()
+      const;
+
+  Future<SignInResult> ReauthenticateWithProvider_DEPRECATED(
+      AuthData* auth_data, FederatedAuthProvider* provider);
+  Future<SignInResult> ReauthenticateWithProviderLastResult_DEPRECATED() const;
+
+  Future<void> Delete(AuthData* auth_data);
+  Future<void> DeleteLastResult() const;
+
+  UserMetadata metadata() const;
+  bool is_email_verified() const;
+  bool is_anonymous() const;
+  std::string uid() const;
+  std::string email() const;
+  std::string display_name() const;
+  std::string phone_number() const;
+  std::string photo_url() const;
+  std::string provider_id() const;
+
+ private:
+  friend class firebase::auth::FederatedOAuthProvider;
+  friend class firebase::auth::User;
+
+  void clear_user_infos();
+
+  // Android Java SDK Implementation of a FirebaseUser object.
+  jobject user_;
+
+  // Pointer to the app's JNI environment context.
+  JNIEnv* env_;
+
+  // Future data used to synchronize asynchronous calls.
+  FutureData future_data_;
+
+  // Used to support older method invocation of provider_data_DEPRECATED().
+  std::vector<UserInfoInterface*> user_infos_;
+
+  // Guard the creation and deletion of the vector of UserInfoInterface*
+  // allocations in provider_data_DEPRECATED().
+  Mutex user_info_mutex_deprecated_;
+
+  // Guard against changes to the user_ object.
+  Mutex user_mutex_;
+
+  // Used to identify on-going futures in case we need to cancel them
+  // upon UserInternal destruction.
+  std::string future_api_id_;
 };
 
 // The `ReadFutureResultFn` for `SignIn` APIs.
@@ -112,16 +235,21 @@ inline JNIEnv* Env(AuthData* auth_data) { return auth_data->app->GetJNIEnv(); }
 // Delete the existing impl pointer global reference, if it already exists.
 void SetImplFromLocalRef(JNIEnv* env, jobject j_local, void** impl);
 
+/// @deprecated
+///
+/// Replace the platform-dependent FirebaseUser Android SDK object.
+/// Note: this function is only used to support DEPRECATED methods which return
+/// User*. This functionality should be removed when those deprecated methods
+/// are removed.
+inline void SetUserImpl(AuthData* _Nonnull auth_data, jobject j_user) {
+  auth_data->deprecated_fields.user_internal_deprecated
+      ->set_native_user_object_deprecated(j_user);
+}
+
 // Return the Java FirebaseAuth class from our platform-independent
 // representation.
 inline jobject AuthImpl(AuthData* auth_data) {
   return static_cast<jobject>(auth_data->auth_impl);
-}
-
-// Return the Java FirebaseUser class from our platform-independent
-// representation.
-inline jobject UserImpl(AuthData* auth_data) {
-  return static_cast<jobject>(auth_data->user_impl);
 }
 
 // Return a platform-independent representation of Java's FirebaseUser class.
@@ -177,24 +305,25 @@ AuthError MapFutureCallbackResultToAuthError(JNIEnv* env, jobject result,
 template <typename T>
 void FutureCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
                     const char* status_message, void* callback_data) {
-  FutureCallbackData<T>* data =
+  FutureCallbackData<T>* future_callback_data =
       static_cast<FutureCallbackData<T>*>(callback_data);
   bool success = false;
   const AuthError error =
       MapFutureCallbackResultToAuthError(env, result, result_code, &success);
   // Finish off the asynchronous call so that the caller can read it.
-  data->auth_data->future_impl.Complete(
-      data->handle, error, status_message,
-      [result, success, data](void* user_data) {
-        if (data->future_data_read_fn != nullptr) {
-          data->future_data_read_fn(result, data, success, user_data);
+  future_callback_data->future_impl->Complete(
+      future_callback_data->handle, error, status_message,
+      [result, success, future_callback_data](void* user_data) {
+        if (future_callback_data->future_data_read_fn != nullptr) {
+          future_callback_data->future_data_read_fn(
+              result, future_callback_data, success, user_data);
         }
       });
 
   // Remove the callback structure that was allocated when the callback was
   // created in SetupFuture().
-  delete data;
-  data = nullptr;
+  delete future_callback_data;
+  future_callback_data = nullptr;
 }
 
 // The function called by the Java thread when a result completes.
@@ -203,7 +332,7 @@ void FederatedAuthProviderFutureCallback(JNIEnv* env, jobject result,
                                          util::FutureResult result_code,
                                          const char* status_message,
                                          void* callback_data) {
-  FutureCallbackData<T>* data =
+  FutureCallbackData<T>* future_callback_data =
       static_cast<FutureCallbackData<T>*>(callback_data);
   bool success = false;
   AuthError error =
@@ -215,18 +344,19 @@ void FederatedAuthProviderFutureCallback(JNIEnv* env, jobject result,
     error = kAuthErrorInvalidProviderId;
   }
   // Finish off the asynchronous call so that the caller can read it.
-  data->auth_data->future_impl.Complete(
-      data->handle, error, status_message,
-      [result, success, data](void* user_data) {
-        if (data->future_data_read_fn != nullptr) {
-          data->future_data_read_fn(result, data, success, user_data);
+  future_callback_data->future_impl->Complete(
+      future_callback_data->handle, error, status_message,
+      [result, success, future_callback_data](void* user_data) {
+        if (future_callback_data->future_data_read_fn != nullptr) {
+          future_callback_data->future_data_read_fn(
+              result, future_callback_data, success, user_data);
         }
       });
 
   // Remove the callback structure that was allocated when the callback was
   // created in SetupFuture().
-  delete data;
-  data = nullptr;
+  delete future_callback_data;
+  future_callback_data = nullptr;
 }
 
 // Ensure `FutureCallback` gets called when `pending_result` completes.
@@ -234,13 +364,29 @@ void FederatedAuthProviderFutureCallback(JNIEnv* env, jobject result,
 // data from Java, and then complete the Future for `handle`.
 template <typename T>
 void RegisterCallback(
-    jobject pending_result, SafeFutureHandle<T> handle, AuthData* auth_data,
+    JNIEnv* env, jobject pending_result, SafeFutureHandle<T> handle,
+    const std::string& future_api_id, ReferenceCountedFutureImpl* future_impl,
     typename FutureCallbackData<T>::ReadFutureResultFn read_result_fn) {
   // The FutureCallbackData structure is deleted in FutureCallback().
   util::RegisterCallbackOnTask(
-      Env(auth_data), pending_result, FutureCallback<T>,
-      new FutureCallbackData<T>(handle, auth_data, read_result_fn),
-      auth_data->future_api_id.c_str());
+      env, pending_result, FutureCallback<T>,
+      new FutureCallbackData<T>(env, /*auth_data=*/nullptr, handle, future_impl,
+                                read_result_fn),
+      future_api_id.c_str());
+}
+
+template <typename T>
+void RegisterCallbackWithAuthData(
+    JNIEnv* env, AuthData* auth_data, jobject pending_result,
+    SafeFutureHandle<T> handle, const std::string& future_api_id,
+    ReferenceCountedFutureImpl* future_impl,
+    typename FutureCallbackData<T>::ReadFutureResultFn read_result_fn) {
+  // The FutureCallbackData structure is deleted in FutureCallback().
+  util::RegisterCallbackOnTask(
+      env, pending_result, FutureCallback<T>,
+      new FutureCallbackData<T>(env, auth_data, handle, future_impl,
+                                read_result_fn),
+      future_api_id.c_str());
 }
 
 // Akin to RegisterCallback above, but has a special callback handler
@@ -250,14 +396,17 @@ void RegisterCallback(
 // with the existing API behavior for other sign in events.
 template <typename T>
 void RegisterFederatedAuthProviderCallback(
-    jobject pending_result, SafeFutureHandle<T> handle, AuthData* auth_data,
+    JNIEnv* env, AuthData* auth_data, jobject pending_result,
+    SafeFutureHandle<T> handle, const std::string& future_api_id,
+    ReferenceCountedFutureImpl* future_impl,
     typename FutureCallbackData<T>::ReadFutureResultFn read_result_fn) {
   // The FutureCallbackData structure is deleted in
   // FederatedAuthProviderFutureCallback().
   util::RegisterCallbackOnTask(
-      Env(auth_data), pending_result, FederatedAuthProviderFutureCallback<T>,
-      new FutureCallbackData<T>(handle, auth_data, read_result_fn),
-      auth_data->future_api_id.c_str());
+      env, pending_result, FederatedAuthProviderFutureCallback<T>,
+      new FutureCallbackData<T>(env, auth_data, handle, future_impl,
+                                read_result_fn),
+      future_api_id.c_str());
 }
 
 // Checks if there was an error, and if so, completes the given future with the
