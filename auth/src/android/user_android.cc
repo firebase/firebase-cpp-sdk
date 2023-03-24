@@ -154,18 +154,20 @@ enum PropertyType { kPropertyTypeString, kPropertyTypeUri };
 
 class AndroidWrappedUserInfo : public UserInfoInterface {
  public:
-  AndroidWrappedUserInfo(JNIEnv *env, jobject user_info)
-      : env_(env), user_info_(user_info) {
+  AndroidWrappedUserInfo(AuthData *auth_data, jobject user_info)
+      : auth_data_(auth_data), user_info_(user_info) {
     // Convert `user_info` to a global reference.
-    user_info_ = env_->NewGlobalRef(user_info);
+    JNIEnv *env = Env(auth_data_);
+    user_info_ = env->NewGlobalRef(user_info);
     env->DeleteLocalRef(user_info);
   }
 
   virtual ~AndroidWrappedUserInfo() {
     // Delete global reference.
-    env_->DeleteGlobalRef(user_info_);
+    JNIEnv *env = Env(auth_data_);
+    env->DeleteGlobalRef(user_info_);
     user_info_ = nullptr;
-    env_ = nullptr;
+    auth_data_ = nullptr;
   }
 
   std::string uid() const override {
@@ -195,23 +197,24 @@ class AndroidWrappedUserInfo : public UserInfoInterface {
  private:
   std::string GetUserProperty(userinfo::Method method_id,
                               PropertyType type = kPropertyTypeString) const {
+    JNIEnv *env = Env(auth_data_);
     jobject property = user_info_
-                           ? env_->CallObjectMethod(
+                           ? env->CallObjectMethod(
                                  user_info_, userinfo::GetMethodId(method_id))
                            : nullptr;
-    if (firebase::util::CheckAndClearJniExceptions(env_) || !property) {
+    if (firebase::util::CheckAndClearJniExceptions(env) || !property) {
       return std::string();
     }
     if (type == kPropertyTypeUri) {
-      return JniUriToString(env_, property);
+      return JniUriToString(env, property);
     } else {
       // type == kPropertyTypeString
-      return JniStringToString(env_, property);
+      return JniStringToString(env, property);
     }
   }
 
-  /// The app's JNIEnv context. Required to invoke Java API methods.
-  JNIEnv *env_;
+  /// The AuthData context, required JNI environment data.
+  AuthData *auth_data_;
 
   /// Pointer to the main class.
   /// Needed for context in implementation of virtuals.
@@ -224,14 +227,14 @@ class AndroidWrappedUserInfo : public UserInfoInterface {
 ///
 User::User(AuthData *auth_data, UserInternal *user_internal) {
   assert(auth_data);
+  auth_data_ = auth_data;
   if (user_internal == nullptr) {
     // Create an invalid user internal.
     // This will return is_valid() false, and operations will fail.
-    user_internal_ = new UserInternal(Env(auth_data), nullptr);
+    user_internal_ = new UserInternal(auth_data_, nullptr);
   } else {
     user_internal_ = user_internal;
   }
-  auth_data_ = auth_data;
 }
 
 User::~User() {
@@ -243,13 +246,15 @@ User::~User() {
 User &User::operator=(const User &user) {
   assert(user_internal_);
   delete user_internal_;
-  if (user.user_internal_ != nullptr) {
-    user_internal_ =
-        new UserInternal(user.user_internal_->env_, user.user_internal_->user_);
-  } else {
-    user_internal_ = new UserInternal(Env(user.auth_data_), nullptr);
-  }
+
   auth_data_ = user.auth_data_;
+
+  if (user.user_internal_ != nullptr) {
+    user_internal_ = new UserInternal(auth_data_, user.user_internal_->user_);
+  } else {
+    user_internal_ = new UserInternal(user.auth_data_, nullptr);
+  }
+
   return *this;
 }
 
@@ -260,7 +265,7 @@ bool User::is_valid() const {
 
 Future<std::string> User::GetToken(bool force_refresh) {
   assert(user_internal_);
-  return user_internal_->GetToken(auth_data_, force_refresh);
+  return user_internal_->GetToken(force_refresh);
 }
 
 std::vector<UserInfoInterface> User::provider_data() const {
@@ -306,8 +311,7 @@ Future<void> User::ReauthenticateLastResult() const {
 Future<SignInResult> User::ReauthenticateAndRetrieveData_DEPRECATED(
     const Credential &credential) {
   assert(user_internal_);
-  return user_internal_->ReauthenticateAndRetrieveData_DEPRECATED(auth_data_,
-                                                                  credential);
+  return user_internal_->ReauthenticateAndRetrieveData_DEPRECATED(credential);
 }
 
 Future<SignInResult> User::ReauthenticateAndRetrieveDataLastResult_DEPRECATED()
@@ -319,8 +323,7 @@ Future<SignInResult> User::ReauthenticateAndRetrieveDataLastResult_DEPRECATED()
 Future<SignInResult> User::ReauthenticateWithProvider_DEPRECATED(
     FederatedAuthProvider *provider) const {
   assert(user_internal_);
-  return user_internal_->ReauthenticateWithProvider_DEPRECATED(auth_data_,
-                                                               provider);
+  return user_internal_->ReauthenticateWithProvider_DEPRECATED(provider);
 }
 
 Future<void> User::SendEmailVerification() {
@@ -346,7 +349,7 @@ Future<void> User::UpdateUserProfileLastResult() const {
 Future<User *> User::LinkWithCredential_DEPRECATED(
     const Credential &credential) {
   assert(user_internal_);
-  return user_internal_->LinkWithCredential_DEPRECATED(auth_data_, credential);
+  return user_internal_->LinkWithCredential_DEPRECATED(credential);
 }
 
 Future<User *> User::LinkWithCredentialLastResult_DEPRECATED() const {
@@ -358,7 +361,7 @@ Future<SignInResult> User::LinkAndRetrieveDataWithCredential_DEPRECATED(
     const Credential &credential) {
   assert(user_internal_);
   return user_internal_->LinkAndRetrieveDataWithCredential_DEPRECATED(
-      auth_data_, credential);
+      credential);
 }
 
 Future<SignInResult>
@@ -371,12 +374,12 @@ User::LinkAndRetrieveDataWithCredentialLastResult_DEPRECATED() const {
 Future<SignInResult> User::LinkWithProvider_DEPRECATED(
     FederatedAuthProvider *provider) {
   assert(user_internal_);
-  return user_internal_->LinkWithProvider_DEPRECATED(auth_data_, provider);
+  return user_internal_->LinkWithProvider_DEPRECATED(provider);
 }
 
 Future<User *> User::Unlink_DEPRECATED(const char *provider) {
   assert(user_internal_);
-  return user_internal_->Unlink_DEPRECATED(auth_data_, provider);
+  return user_internal_->Unlink_DEPRECATED(provider);
 }
 
 Future<User *> User::UnlinkLastResult_DEPRECATED() const {
@@ -387,8 +390,7 @@ Future<User *> User::UnlinkLastResult_DEPRECATED() const {
 Future<User *> User::UpdatePhoneNumberCredential_DEPRECATED(
     const Credential &credential) {
   assert(user_internal_);
-  return user_internal_->UpdatePhoneNumberCredential_DEPRECATED(auth_data_,
-                                                                credential);
+  return user_internal_->UpdatePhoneNumberCredential_DEPRECATED(credential);
 }
 
 Future<User *> User::UpdatePhoneNumberCredentialLastResult_DEPRECATED() const {
@@ -408,7 +410,7 @@ Future<void> User::ReloadLastResult() const {
 
 Future<void> User::Delete() {
   assert(user_internal_);
-  return user_internal_->Delete(auth_data_);
+  return user_internal_->Delete();
 }
 
 Future<void> User::DeleteLastResult() const {
@@ -475,23 +477,30 @@ void assign_future_id(UserInternal *user_internal, std::string *future_api_id) {
                reinterpret_cast<intptr_t>(user_internal)));
 }
 
-UserInternal::UserInternal(JNIEnv *env, jobject user)
-    : env_(env), user_(user), future_data_(kUserFnCount) {
+UserInternal::UserInternal(AuthData *auth_data, jobject user)
+    : auth_data_(auth_data), user_(nullptr), future_data_(kUserFnCount) {
+  assert(auth_data_);
+  JNIEnv *env = Env(auth_data_);
+  if (user != nullptr) {
+    user_ = env->NewGlobalRef(user);
+    assert(env->ExceptionCheck() == false);
+  }
   assign_future_id(this, &future_api_id_);
 }
 
 UserInternal::UserInternal(const UserInternal &user_internal)
-    : env_(user_internal.env_),
+    : auth_data_(user_internal.auth_data_),
       user_(user_internal.user_),
       future_data_(kUserFnCount) {
   assign_future_id(this, &future_api_id_);
 }
 
 UserInternal::~UserInternal() {
-  util::CancelCallbacks(env_, future_api_id_.c_str());
+  MutexLock user_lock(user_mutex_);
+  JNIEnv *env = Env(auth_data_);
+  util::CancelCallbacks(env, future_api_id_.c_str());
 
-  env_->DeleteGlobalRef(user_);
-  env_ = nullptr;
+  env->DeleteGlobalRef(user_);
   user_ = nullptr;
 
   {
@@ -503,17 +512,11 @@ UserInternal::~UserInternal() {
   while (!future_data_.future_impl.IsSafeToDelete()) {
     internal::Sleep(100);
   }
+  auth_data_ = nullptr;
 }
 
 void UserInternal::set_native_user_object_deprecated(jobject user) {
-  MutexLock user_info_lock(user_mutex_);
-  if (user_ != nullptr) {
-    env_->DeleteGlobalRef(user_);
-  }
-
-  if (user != nullptr) {
-    user = env_->NewGlobalRef(user);
-  }
+  MutexLock user_lock(user_mutex_);
   user_ = user;
 }
 
@@ -530,7 +533,7 @@ void UserInternal::clear_user_infos() {
 void ReadTokenResult(jobject result, FutureCallbackData<std::string> *d,
                      bool success, void *void_data) {
   auto data = static_cast<std::string *>(void_data);
-  JNIEnv *env = d->env;
+  JNIEnv *env = Env(d->auth_data);
 
   // `result` is of type GetTokenResult when `success` is true.
   if (success) {
@@ -549,17 +552,12 @@ void ReadTokenResult(jobject result, FutureCallbackData<std::string> *d,
   }
 }
 
-Future<std::string> UserInternal::GetToken(AuthData *auth_data,
-                                           bool force_refresh) {
+Future<std::string> UserInternal::GetToken(bool force_refresh) {
   MutexLock user_info_lock(user_mutex_);
   if (!is_valid()) {
     return CreateAndCompleteFuture(kUserFn_GetToken, kAuthErrorInvalidUser,
                                    kUserNotInitializedErrorMessage,
                                    &future_data_, "");
-  } else if (nullptr == auth_data) {
-    return CreateAndCompleteFuture(kUserFn_GetToken, kAuthErrorFailure,
-                                   "Internal AuthData nullptr", &future_data_,
-                                   "");
   }
 
   SafeFutureHandle<std::string> future_handle =
@@ -567,46 +565,47 @@ Future<std::string> UserInternal::GetToken(AuthData *auth_data,
   Future<std::string> future =
       MakeFuture(&future_data_.future_impl, future_handle);
 
-  auth_data->SetExpectIdTokenListenerCallback(force_refresh);
+  auth_data_->SetExpectIdTokenListenerCallback(force_refresh);
 
-  jobject pending_result = env_->CallObjectMethod(
+  JNIEnv *env = Env(auth_data_);
+  jobject pending_result = env->CallObjectMethod(
       user_, user::GetMethodId(user::kToken), force_refresh);
 
-  if (!CheckAndCompleteFutureOnError(env_, &future_data_.future_impl,
+  if (!CheckAndCompleteFutureOnError(env, &future_data_.future_impl,
                                      future_handle)) {
-    RegisterCallbackWithAuthData(env_, auth_data, pending_result, future_handle,
-                                 future_api_id_, &future_data_.future_impl,
-                                 ReadTokenResult);
-    env_->DeleteLocalRef(pending_result);
+    RegisterCallback(auth_data_, pending_result, future_handle, future_api_id_,
+                     &future_data_.future_impl, ReadTokenResult);
+    env->DeleteLocalRef(pending_result);
   } else {
     // If the method failed for some reason, clear the expected callback.
-    auth_data->SetExpectIdTokenListenerCallback(false);
+    auth_data_->SetExpectIdTokenListenerCallback(false);
   }
   return future;
 }
 
 std::vector<UserInfoInterface> UserInternal::provider_data() const {
+  JNIEnv *env = Env(auth_data_);
   std::vector<UserInfoInterface> local_user_infos;
   if (is_valid()) {
     const jobject list =
-        env_->CallObjectMethod(user_, user::GetMethodId(user::kProviderData));
-    assert(env_->ExceptionCheck() == false);
+        env->CallObjectMethod(user_, user::GetMethodId(user::kProviderData));
+    assert(env->ExceptionCheck() == false);
 
     if (list != nullptr) {
       const int num_providers =
-          env_->CallIntMethod(list, util::list::GetMethodId(util::list::kSize));
-      assert(env_->ExceptionCheck() == false);
+          env->CallIntMethod(list, util::list::GetMethodId(util::list::kSize));
+      assert(env->ExceptionCheck() == false);
       local_user_infos.resize(num_providers);
 
       for (int i = 0; i < num_providers; ++i) {
         // user_info is converted to a global reference in
         // AndroidWrappedUserInfo() and the local reference is released.
-        jobject user_info = env_->CallObjectMethod(
+        jobject user_info = env->CallObjectMethod(
             list, util::list::GetMethodId(util::list::kGet), i);
-        assert(env_->ExceptionCheck() == false);
-        local_user_infos[i] = AndroidWrappedUserInfo(env_, user_info);
+        assert(env->ExceptionCheck() == false);
+        local_user_infos[i] = AndroidWrappedUserInfo(auth_data_, user_info);
       }
-      env_->DeleteLocalRef(list);
+      env->DeleteLocalRef(list);
     }
   }
   return local_user_infos;
@@ -617,27 +616,28 @@ const std::vector<UserInfoInterface *>
   MutexLock user_info_lock(user_info_mutex_deprecated_);
   clear_user_infos();
   if (is_valid()) {
+    JNIEnv *env = Env(auth_data_);
     // getProviderData returns `List<? extends UserInfo>`
     const jobject list =
-        env_->CallObjectMethod(user_, user::GetMethodId(user::kProviderData));
-    assert(env_->ExceptionCheck() == false);
+        env->CallObjectMethod(user_, user::GetMethodId(user::kProviderData));
+    assert(env->ExceptionCheck() == false);
 
     // Copy the list into user_infos_.
     if (list != nullptr) {
       const int num_providers =
-          env_->CallIntMethod(list, util::list::GetMethodId(util::list::kSize));
-      assert(env_->ExceptionCheck() == false);
+          env->CallIntMethod(list, util::list::GetMethodId(util::list::kSize));
+      assert(env->ExceptionCheck() == false);
       user_infos_.resize(num_providers);
 
       for (int i = 0; i < num_providers; ++i) {
         // user_info is converted to a global reference in
         // AndroidWrappedUserInfo() and the local reference is released.
-        jobject user_info = env_->CallObjectMethod(
+        jobject user_info = env->CallObjectMethod(
             list, util::list::GetMethodId(util::list::kGet), i);
-        assert(env_->ExceptionCheck() == false);
-        user_infos_[i] = new AndroidWrappedUserInfo(env_, user_info);
+        assert(env->ExceptionCheck() == false);
+        user_infos_[i] = new AndroidWrappedUserInfo(auth_data_, user_info);
       }
-      env_->DeleteLocalRef(list);
+      env->DeleteLocalRef(list);
     }
   }
   // Return a reference to our internally-backed values.
@@ -655,16 +655,17 @@ Future<void> UserInternal::UpdateEmail(const char *email) {
       future_data_.future_impl.SafeAlloc<void>(kUserFn_UpdateEmail);
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
-  jstring j_email = env_->NewStringUTF(email);
-  jobject pending_result = env_->CallObjectMethod(
+  JNIEnv *env = Env(auth_data_);
+  jstring j_email = env->NewStringUTF(email);
+  jobject pending_result = env->CallObjectMethod(
       user_, user::GetMethodId(user::kUpdateEmail), j_email);
-  env_->DeleteLocalRef(j_email);
+  env->DeleteLocalRef(j_email);
 
-  if (!CheckAndCompleteFutureOnError(env_, &future_data_.future_impl,
+  if (!CheckAndCompleteFutureOnError(env, &future_data_.future_impl,
                                      future_handle)) {
-    RegisterCallback(env_, pending_result, future_handle, future_api_id_,
+    RegisterCallback(auth_data_, pending_result, future_handle, future_api_id_,
                      &future_data_.future_impl, nullptr);
-    env_->DeleteLocalRef(pending_result);
+    env->DeleteLocalRef(pending_result);
   }
   return future;
 }
@@ -685,16 +686,17 @@ Future<void> UserInternal::UpdatePassword(const char *password) {
       future_data_.future_impl.SafeAlloc<void>(kUserFn_UpdatePassword);
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
-  jstring j_password = env_->NewStringUTF(password);
-  jobject pending_result = env_->CallObjectMethod(
+  JNIEnv *env = Env(auth_data_);
+  jstring j_password = env->NewStringUTF(password);
+  jobject pending_result = env->CallObjectMethod(
       user_, user::GetMethodId(user::kUpdatePassword), j_password);
-  env_->DeleteLocalRef(j_password);
+  env->DeleteLocalRef(j_password);
 
-  if (!CheckAndCompleteFutureOnError(env_, &future_data_.future_impl,
+  if (!CheckAndCompleteFutureOnError(env, &future_data_.future_impl,
                                      future_handle)) {
-    RegisterCallback(env_, pending_result, future_handle, future_api_id_,
+    RegisterCallback(auth_data_, pending_result, future_handle, future_api_id_,
                      &future_data_.future_impl, nullptr);
-    env_->DeleteLocalRef(pending_result);
+    env->DeleteLocalRef(pending_result);
   }
   return future;
 }
@@ -716,61 +718,62 @@ Future<void> UserInternal::UpdateUserProfile(const User::UserProfile &profile) {
       future_data_.future_impl.SafeAlloc<void>(kUserFn_UpdateUserProfile);
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
+  JNIEnv *env = Env(auth_data_);
   AuthError error = kAuthErrorNone;
   std::string exception_error_message;
-  jobject j_user_profile_builder = env_->NewObject(
+  jobject j_user_profile_builder = env->NewObject(
       userprofilebuilder::GetClass(),
       userprofilebuilder::GetMethodId(userprofilebuilder::kConstructor));
 
   // Call UserProfileChangeRequest.Builder.setDisplayName.
   if (profile.display_name != nullptr) {
-    jstring j_display_name = env_->NewStringUTF(profile.display_name);
-    jobject j_builder_discard = env_->CallObjectMethod(
+    jstring j_display_name = env->NewStringUTF(profile.display_name);
+    jobject j_builder_discard = env->CallObjectMethod(
         j_user_profile_builder,
         userprofilebuilder::GetMethodId(userprofilebuilder::kSetDisplayName),
         j_display_name);
 
-    error = CheckAndClearJniAuthExceptions(env_, &exception_error_message);
+    error = CheckAndClearJniAuthExceptions(env, &exception_error_message);
     if (j_builder_discard) {
-      env_->DeleteLocalRef(j_builder_discard);
+      env->DeleteLocalRef(j_builder_discard);
     }
-    env_->DeleteLocalRef(j_display_name);
+    env->DeleteLocalRef(j_display_name);
   }
 
   // Call UserProfileChangeRequest.Builder.setPhotoUri.
   if (error == kAuthErrorNone && profile.photo_url != nullptr) {
-    jobject j_uri = CharsToJniUri(env_, profile.photo_url);
-    jobject j_builder_discard = env_->CallObjectMethod(
+    jobject j_uri = CharsToJniUri(env, profile.photo_url);
+    jobject j_builder_discard = env->CallObjectMethod(
         j_user_profile_builder,
         userprofilebuilder::GetMethodId(userprofilebuilder::kSetPhotoUri),
         j_uri);
-    error = CheckAndClearJniAuthExceptions(env_, &exception_error_message);
+    error = CheckAndClearJniAuthExceptions(env, &exception_error_message);
     if (j_builder_discard) {
-      env_->DeleteLocalRef(j_builder_discard);
+      env->DeleteLocalRef(j_builder_discard);
     }
-    env_->DeleteLocalRef(j_uri);
+    env->DeleteLocalRef(j_uri);
   }
 
   jobject j_user_profile_request = nullptr;
   if (error == kAuthErrorNone) {
     // Call UserProfileChangeRequest.Builder.build.
-    j_user_profile_request = env_->CallObjectMethod(
+    j_user_profile_request = env->CallObjectMethod(
         j_user_profile_builder,
         userprofilebuilder::GetMethodId(userprofilebuilder::kBuild));
-    error = CheckAndClearJniAuthExceptions(env_, &exception_error_message);
+    error = CheckAndClearJniAuthExceptions(env, &exception_error_message);
   }
 
   if (error == kAuthErrorNone) {
     // Call FirebaseUser.updateProfile.
-    jobject pending_result = env_->CallObjectMethod(
+    jobject pending_result = env->CallObjectMethod(
         user_, user::GetMethodId(user::kUpdateUserProfile),
         j_user_profile_request);
 
-    if (!CheckAndCompleteFutureOnError(env_, &future_data_.future_impl,
+    if (!CheckAndCompleteFutureOnError(env, &future_data_.future_impl,
                                        future_handle)) {
-      RegisterCallback(env_, pending_result, future_handle, future_api_id_,
-                       &future_data_.future_impl, nullptr);
-      env_->DeleteLocalRef(pending_result);
+      RegisterCallback(auth_data_, pending_result, future_handle,
+                       future_api_id_, &future_data_.future_impl, nullptr);
+      env->DeleteLocalRef(pending_result);
     }
     return future;
   } else {
@@ -778,9 +781,9 @@ Future<void> UserInternal::UpdateUserProfile(const User::UserProfile &profile) {
                                       exception_error_message.c_str());
   }
   if (j_user_profile_request) {
-    env_->DeleteLocalRef(j_user_profile_request);
+    env->DeleteLocalRef(j_user_profile_request);
   }
-  env_->DeleteLocalRef(j_user_profile_builder);
+  env->DeleteLocalRef(j_user_profile_builder);
   return future;
 }
 
@@ -801,14 +804,15 @@ Future<void> UserInternal::SendEmailVerification() {
       future_data_.future_impl.SafeAlloc<void>(kUserFn_SendEmailVerification);
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
-  jobject pending_result = env_->CallObjectMethod(
+  JNIEnv *env = Env(auth_data_);
+  jobject pending_result = env->CallObjectMethod(
       user_, user::GetMethodId(user::kSendEmailVerification));
 
-  if (!CheckAndCompleteFutureOnError(env_, &future_data_.future_impl,
+  if (!CheckAndCompleteFutureOnError(env, &future_data_.future_impl,
                                      future_handle)) {
-    RegisterCallback(env_, pending_result, future_handle, future_api_id_,
+    RegisterCallback(auth_data_, pending_result, future_handle, future_api_id_,
                      &future_data_.future_impl, nullptr);
-    env_->DeleteLocalRef(pending_result);
+    env->DeleteLocalRef(pending_result);
   }
   return future;
 }
@@ -819,7 +823,7 @@ Future<void> UserInternal::SendEmailVerificationLastResult() const {
 }
 
 Future<User *> UserInternal::LinkWithCredential_DEPRECATED(
-    AuthData *auth_data, const Credential &credential) {
+    const Credential &credential) {
   MutexLock user_info_lock(user_mutex_);
   SafeFutureHandle<User *> future_handle =
       future_data_.future_impl.SafeAlloc<User *>(
@@ -832,16 +836,16 @@ Future<User *> UserInternal::LinkWithCredential_DEPRECATED(
     return future;
   }
 
-  jobject pending_result = env_->CallObjectMethod(
-      user_, user::GetMethodId(user::kLinkWithCredential),
-      CredentialFromImpl(credential.impl_));
+  JNIEnv *env = Env(auth_data_);
+  jobject pending_result =
+      env->CallObjectMethod(user_, user::GetMethodId(user::kLinkWithCredential),
+                            CredentialFromImpl(credential.impl_));
 
-  if (!CheckAndCompleteFutureOnError(env_, &future_data_.future_impl,
+  if (!CheckAndCompleteFutureOnError(env, &future_data_.future_impl,
                                      future_handle)) {
-    RegisterCallbackWithAuthData(env_, auth_data, pending_result, future_handle,
-                                 future_api_id_, &future_data_.future_impl,
-                                 ReadUserFromSignInResult);
-    env_->DeleteLocalRef(pending_result);
+    RegisterCallback(auth_data_, pending_result, future_handle, future_api_id_,
+                     &future_data_.future_impl, ReadUserFromSignInResult);
+    env->DeleteLocalRef(pending_result);
   }
   return future;
 }
@@ -853,7 +857,7 @@ Future<User *> UserInternal::LinkWithCredentialLastResult_DEPRECATED() const {
 }
 
 Future<SignInResult> UserInternal::LinkAndRetrieveDataWithCredential_DEPRECATED(
-    AuthData *auth_data, const Credential &credential) {
+    const Credential &credential) {
   SafeFutureHandle<SignInResult> future_handle =
       future_data_.future_impl.SafeAlloc<SignInResult>(
           kUserFn_LinkAndRetrieveDataWithCredential_DEPRECATED);
@@ -865,16 +869,16 @@ Future<SignInResult> UserInternal::LinkAndRetrieveDataWithCredential_DEPRECATED(
     return future;
   }
 
-  jobject pending_result = env_->CallObjectMethod(
-      user_, user::GetMethodId(user::kLinkWithCredential),
-      CredentialFromImpl(credential.impl_));
+  JNIEnv *env = Env(auth_data_);
+  jobject pending_result =
+      env->CallObjectMethod(user_, user::GetMethodId(user::kLinkWithCredential),
+                            CredentialFromImpl(credential.impl_));
 
-  if (!CheckAndCompleteFutureOnError(env_, &future_data_.future_impl,
+  if (!CheckAndCompleteFutureOnError(env, &future_data_.future_impl,
                                      future_handle)) {
-    RegisterCallbackWithAuthData(env_, auth_data, pending_result, future_handle,
-                                 future_api_id_, &future_data_.future_impl,
-                                 ReadSignInResult);
-    env_->DeleteLocalRef(pending_result);
+    RegisterCallback(auth_data_, pending_result, future_handle, future_api_id_,
+                     &future_data_.future_impl, ReadSignInResult);
+    env->DeleteLocalRef(pending_result);
   }
   return future;
 }
@@ -887,7 +891,7 @@ UserInternal::LinkAndRetrieveDataWithCredentialLastResult_DEPRECATED() const {
 }
 
 Future<SignInResult> UserInternal::LinkWithProvider_DEPRECATED(
-    AuthData *auth_data, FederatedAuthProvider *provider) {
+    FederatedAuthProvider *provider) {
   if (!is_valid() || provider == nullptr) {
     SafeFutureHandle<SignInResult> future_handle =
         future_data_.future_impl.SafeAlloc<SignInResult>(
@@ -904,11 +908,10 @@ Future<SignInResult> UserInternal::LinkWithProvider_DEPRECATED(
     }
     return future;
   }
-  return provider->Link(auth_data, this);
+  return provider->Link(auth_data_, this);
 }
 
-Future<User *> UserInternal::Unlink_DEPRECATED(AuthData *auth_data,
-                                               const char *provider) {
+Future<User *> UserInternal::Unlink_DEPRECATED(const char *provider) {
   MutexLock user_info_lock(user_mutex_);
   SafeFutureHandle<User *> future_handle =
       future_data_.future_impl.SafeAlloc<User *>(kUserFn_Unlink_DEPRECATED);
@@ -920,17 +923,17 @@ Future<User *> UserInternal::Unlink_DEPRECATED(AuthData *auth_data,
     return future;
   }
 
-  jstring j_provider = env_->NewStringUTF(provider);
-  jobject pending_result = env_->CallObjectMethod(
+  JNIEnv *env = Env(auth_data_);
+  jstring j_provider = env->NewStringUTF(provider);
+  jobject pending_result = env->CallObjectMethod(
       user_, user::GetMethodId(user::kUnlink), j_provider);
-  env_->DeleteLocalRef(j_provider);
+  env->DeleteLocalRef(j_provider);
 
-  if (!CheckAndCompleteFutureOnError(env_, &future_data_.future_impl,
+  if (!CheckAndCompleteFutureOnError(env, &future_data_.future_impl,
                                      future_handle)) {
-    RegisterCallbackWithAuthData(env_, auth_data, pending_result, future_handle,
-                                 future_api_id_, &future_data_.future_impl,
-                                 ReadUserFromSignInResult);
-    env_->DeleteLocalRef(pending_result);
+    RegisterCallback(auth_data_, pending_result, future_handle, future_api_id_,
+                     &future_data_.future_impl, ReadUserFromSignInResult);
+    env->DeleteLocalRef(pending_result);
   }
   return future;
 }
@@ -941,7 +944,7 @@ Future<User *> UserInternal::UnlinkLastResult_DEPRECATED() const {
 }
 
 Future<User *> UserInternal::UpdatePhoneNumberCredential_DEPRECATED(
-    AuthData *auth_data, const Credential &credential) {
+    const Credential &credential) {
   MutexLock user_info_lock(user_mutex_);
   SafeFutureHandle<User *> future_handle =
       future_data_.future_impl.SafeAlloc<User *>(
@@ -954,18 +957,19 @@ Future<User *> UserInternal::UpdatePhoneNumberCredential_DEPRECATED(
     return future;
   }
 
+  JNIEnv *env = Env(auth_data_);
   jobject j_credential = CredentialFromImpl(credential.impl_);
-  if (env_->IsInstanceOf(j_credential, phonecredential::GetClass())) {
-    jobject pending_result = env_->CallObjectMethod(
+  if (env->IsInstanceOf(j_credential, phonecredential::GetClass())) {
+    jobject pending_result = env->CallObjectMethod(
         user_, user::GetMethodId(user::kUpdatePhoneNumberCredential),
         j_credential);
 
-    if (!CheckAndCompleteFutureOnError(env_, &future_data_.future_impl,
+    if (!CheckAndCompleteFutureOnError(env, &future_data_.future_impl,
                                        future_handle)) {
-      RegisterCallbackWithAuthData(
-          env_, auth_data, pending_result, future_handle, future_api_id_,
-          &future_data_.future_impl, ReadUserFromSignInResult);
-      env_->DeleteLocalRef(pending_result);
+      RegisterCallback(auth_data_, pending_result, future_handle,
+                       future_api_id_, &future_data_.future_impl,
+                       ReadUserFromSignInResult);
+      env->DeleteLocalRef(pending_result);
     }
   } else {
     CompleteFuture(kAuthErrorInvalidCredential, kInvalidCredentialErrorMessage,
@@ -993,14 +997,15 @@ Future<void> UserInternal::Reload() {
       future_data_.future_impl.SafeAlloc<void>(kUserFn_Reload);
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
+  JNIEnv *env = Env(auth_data_);
   jobject pending_result =
-      env_->CallObjectMethod(user_, user::GetMethodId(user::kReload));
+      env->CallObjectMethod(user_, user::GetMethodId(user::kReload));
 
-  if (!CheckAndCompleteFutureOnError(env_, &future_data_.future_impl,
+  if (!CheckAndCompleteFutureOnError(env, &future_data_.future_impl,
                                      future_handle)) {
-    RegisterCallback(env_, pending_result, future_handle, future_api_id_,
+    RegisterCallback(auth_data_, pending_result, future_handle, future_api_id_,
                      &future_data_.future_impl, nullptr);
-    env_->DeleteLocalRef(pending_result);
+    env->DeleteLocalRef(pending_result);
   }
   return future;
 }
@@ -1022,15 +1027,16 @@ Future<void> UserInternal::Reauthenticate(const Credential &credential) {
       future_data_.future_impl.SafeAlloc<void>(kUserFn_Reload);
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
+  JNIEnv *env = Env(auth_data_);
   jobject pending_result =
-      env_->CallObjectMethod(user_, user::GetMethodId(user::kReauthenticate),
-                             CredentialFromImpl(credential.impl_));
+      env->CallObjectMethod(user_, user::GetMethodId(user::kReauthenticate),
+                            CredentialFromImpl(credential.impl_));
 
-  if (!CheckAndCompleteFutureOnError(env_, &future_data_.future_impl,
+  if (!CheckAndCompleteFutureOnError(env, &future_data_.future_impl,
                                      future_handle)) {
-    RegisterCallback(env_, pending_result, future_handle, future_api_id_,
+    RegisterCallback(auth_data_, pending_result, future_handle, future_api_id_,
                      &future_data_.future_impl, nullptr);
-    env_->DeleteLocalRef(pending_result);
+    env->DeleteLocalRef(pending_result);
   }
   return future;
 }
@@ -1041,7 +1047,7 @@ Future<void> UserInternal::ReauthenticateLastResult() const {
 }
 
 Future<SignInResult> UserInternal::ReauthenticateAndRetrieveData_DEPRECATED(
-    AuthData *auth_data, const Credential &credential) {
+    const Credential &credential) {
   SafeFutureHandle<SignInResult> future_handle =
       future_data_.future_impl.SafeAlloc<SignInResult>(
           kUserFn_ReauthenticateAndRetrieveData_DEPRECATED);
@@ -1053,16 +1059,16 @@ Future<SignInResult> UserInternal::ReauthenticateAndRetrieveData_DEPRECATED(
     return future;
   }
 
-  jobject pending_result = env_->CallObjectMethod(
+  JNIEnv *env = Env(auth_data_);
+  jobject pending_result = env->CallObjectMethod(
       user_, user::GetMethodId(user::kReauthenticateAndRetrieveData),
       CredentialFromImpl(credential.impl_));
 
-  if (!CheckAndCompleteFutureOnError(env_, &future_data_.future_impl,
+  if (!CheckAndCompleteFutureOnError(env, &future_data_.future_impl,
                                      future_handle)) {
-    RegisterCallbackWithAuthData(env_, auth_data, pending_result, future_handle,
-                                 future_api_id_, &future_data_.future_impl,
-                                 ReadSignInResult);
-    env_->DeleteLocalRef(pending_result);
+    RegisterCallback(auth_data_, pending_result, future_handle, future_api_id_,
+                     &future_data_.future_impl, ReadSignInResult);
+    env->DeleteLocalRef(pending_result);
   }
   return future;
 }
@@ -1075,7 +1081,7 @@ UserInternal::ReauthenticateAndRetrieveDataLastResult_DEPRECATED() const {
 }
 
 Future<SignInResult> UserInternal::ReauthenticateWithProvider_DEPRECATED(
-    AuthData *auth_data, FederatedAuthProvider *provider) {
+    FederatedAuthProvider *provider) {
   if (!is_valid() || provider == nullptr) {
     SafeFutureHandle<SignInResult> future_handle =
         future_data_.future_impl.SafeAlloc<SignInResult>(
@@ -1092,10 +1098,10 @@ Future<SignInResult> UserInternal::ReauthenticateWithProvider_DEPRECATED(
     }
     return future;
   }
-  return provider->Reauthenticate(auth_data, this);
+  return provider->Reauthenticate(auth_data_, this);
 }
 
-Future<void> UserInternal::Delete(AuthData *auth_data) {
+Future<void> UserInternal::Delete() {
   MutexLock user_info_lock(user_mutex_);
   if (!is_valid()) {
     return CreateAndCompleteFuture(kUserFn_Delete, kAuthErrorInvalidUser,
@@ -1107,20 +1113,21 @@ Future<void> UserInternal::Delete(AuthData *auth_data) {
       future_data_.future_impl.SafeAlloc<void>(kUserFn_Reload);
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
+  JNIEnv *env = Env(auth_data_);
   jobject pending_result =
-      env_->CallObjectMethod(user_, user::GetMethodId(user::kDelete));
+      env->CallObjectMethod(user_, user::GetMethodId(user::kDelete));
 
-  if (!CheckAndCompleteFutureOnError(env_, &future_data_.future_impl,
+  if (!CheckAndCompleteFutureOnError(env, &future_data_.future_impl,
                                      future_handle)) {
-    RegisterCallback(env_, pending_result, future_handle, future_api_id_,
+    RegisterCallback(auth_data_, pending_result, future_handle, future_api_id_,
                      &future_data_.future_impl,
                      [](jobject result, FutureCallbackData<void> *d,
                         bool success, void *void_data) {
                        if (success) {
-                         UpdateCurrentUser(d->auth_data);
+                         UpdateCurrentUser(Env(d->auth_data), d->auth_data);
                        }
                      });
-    env_->DeleteLocalRef(pending_result);
+    env->DeleteLocalRef(pending_result);
   }
   return future;
 }
@@ -1134,20 +1141,21 @@ UserMetadata UserInternal::metadata() const {
   UserMetadata user_metadata;
   if (!is_valid()) return user_metadata;
 
+  JNIEnv *env = Env(auth_data_);
   jobject jUserMetadata =
-      env_->CallObjectMethod(user_, user::GetMethodId(user::kGetMetadata));
-  util::CheckAndClearJniExceptions(env_);
+      env->CallObjectMethod(user_, user::GetMethodId(user::kGetMetadata));
+  util::CheckAndClearJniExceptions(env);
 
   if (!jUserMetadata) return user_metadata;
 
-  user_metadata.last_sign_in_timestamp = env_->CallLongMethod(
+  user_metadata.last_sign_in_timestamp = env->CallLongMethod(
       jUserMetadata, metadata::GetMethodId(metadata::kGetLastSignInTimestamp));
-  assert(env_->ExceptionCheck() == false);
-  user_metadata.creation_timestamp = env_->CallLongMethod(
+  assert(env->ExceptionCheck() == false);
+  user_metadata.creation_timestamp = env->CallLongMethod(
       jUserMetadata, metadata::GetMethodId(metadata::kGetCreationTimestamp));
-  assert(env_->ExceptionCheck() == false);
+  assert(env->ExceptionCheck() == false);
 
-  env_->DeleteLocalRef(jUserMetadata);
+  env->DeleteLocalRef(jUserMetadata);
 
   return user_metadata;
 }
@@ -1155,99 +1163,87 @@ UserMetadata UserInternal::metadata() const {
 bool UserInternal::is_email_verified() const {
   if (!is_valid()) return false;
 
-  bool result = env_->CallBooleanMethod(
+  JNIEnv *env = Env(auth_data_);
+  bool result = env->CallBooleanMethod(
       user_, userinfo::GetMethodId(userinfo::kIsEmailVerified));
-  util::CheckAndClearJniExceptions(env_);
+  util::CheckAndClearJniExceptions(env);
   return result;
 }
 
 bool UserInternal::is_anonymous() const {
   if (!is_valid()) return false;
 
+  JNIEnv *env = Env(auth_data_);
   bool result =
-      env_->CallBooleanMethod(user_, user::GetMethodId(user::kIsAnonymous));
-  util::CheckAndClearJniExceptions(env_);
+      env->CallBooleanMethod(user_, user::GetMethodId(user::kIsAnonymous));
+  util::CheckAndClearJniExceptions(env);
   return result;
 }
 
-#if 0
-std::string GetUserProperty(userinfo::Method method_id,
-                                PropertyType type = kPropertyTypeString) {
-    jobject property = user_info_
-                           ? env_->CallObjectMethod(
-                                 user_info_, userinfo::GetMethodId(method_id))
-                           : nullptr;
-    if (firebase::util::CheckAndClearJniExceptions(env) || !property) {
-      return std::string();
-    }
-    if (type == kPropertyTypeUri) {
-      return JniUriToString(env_, property);
-    } else {
-      // type == kPropertyTypeString
-      return JniStringToString(env_, property);
-    }
-  }
-}
-#endif
-
 std::string UserInternal::uid() const {
   if (!is_valid()) return "";
+  JNIEnv *env = Env(auth_data_);
   jobject property =
-      env_->CallObjectMethod(user_, userinfo::GetMethodId(userinfo::kGetUid));
-  if (firebase::util::CheckAndClearJniExceptions(env_) || !property) {
+      env->CallObjectMethod(user_, userinfo::GetMethodId(userinfo::kGetUid));
+  if (firebase::util::CheckAndClearJniExceptions(env) || !property) {
     return std::string();
   }
-  return JniStringToString(env_, property);
+  return JniStringToString(env, property);
 }
 
 std::string UserInternal::email() const {
   if (!is_valid()) return "";
+  JNIEnv *env = Env(auth_data_);
   jobject property =
-      env_->CallObjectMethod(user_, userinfo::GetMethodId(userinfo::kGetEmail));
-  if (firebase::util::CheckAndClearJniExceptions(env_) || !property) {
+      env->CallObjectMethod(user_, userinfo::GetMethodId(userinfo::kGetEmail));
+  if (firebase::util::CheckAndClearJniExceptions(env) || !property) {
     return std::string();
   }
-  return JniStringToString(env_, property);
+  return JniStringToString(env, property);
 }
 
 std::string UserInternal::display_name() const {
   if (!is_valid()) return "";
-  jobject property = env_->CallObjectMethod(
+  JNIEnv *env = Env(auth_data_);
+  jobject property = env->CallObjectMethod(
       user_, userinfo::GetMethodId(userinfo::kGetDisplayName));
-  if (firebase::util::CheckAndClearJniExceptions(env_) || !property) {
+  if (firebase::util::CheckAndClearJniExceptions(env) || !property) {
     return std::string();
   }
-  return JniStringToString(env_, property);
+  return JniStringToString(env, property);
 }
 
 std::string UserInternal::photo_url() const {
   if (!is_valid()) return "";
-  jobject property = env_->CallObjectMethod(
+  JNIEnv *env = Env(auth_data_);
+  jobject property = env->CallObjectMethod(
       user_, userinfo::GetMethodId(userinfo::kGetPhotoUrl));
-  if (firebase::util::CheckAndClearJniExceptions(env_) || !property) {
+  if (firebase::util::CheckAndClearJniExceptions(env) || !property) {
     return std::string();
   }
-  return JniUriToString(env_, property);
+  return JniUriToString(env, property);
 }
 
 std::string UserInternal::provider_id() const {
   if (!is_valid()) return "";
-  jobject property = env_->CallObjectMethod(
+  JNIEnv *env = Env(auth_data_);
+  jobject property = env->CallObjectMethod(
       user_, userinfo::GetMethodId(userinfo::kGetProviderId));
-  if (firebase::util::CheckAndClearJniExceptions(env_) || !property) {
+  if (firebase::util::CheckAndClearJniExceptions(env) || !property) {
     return std::string();
   }
-  return JniStringToString(env_, property);
+  return JniStringToString(env, property);
 }
 
 std::string UserInternal::phone_number() const {
   if (!is_valid()) return "";
-  jobject property = env_->CallObjectMethod(
+  JNIEnv *env = Env(auth_data_);
+  jobject property = env->CallObjectMethod(
       user_, userinfo::GetMethodId(userinfo::kGetPhoneNumber));
-  if (firebase::util::CheckAndClearJniExceptions(env_) || !property) {
+  if (firebase::util::CheckAndClearJniExceptions(env) || !property) {
     return std::string();
   }
-  return JniStringToString(env_, property);
+  return JniStringToString(env, property);
 }
 
 }  // namespace auth

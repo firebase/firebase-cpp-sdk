@@ -39,6 +39,9 @@ struct AuthDataDeprecatedFields {
   // pointer the platform specific user object, which is updated on User
   // operations.
   UserInternal* user_internal_deprecated;
+
+  // JNI reference to the user object in the Firebase Android SDK.
+  void* android_user_impl;
 };
 
 // Enumeration for API functions that return a Future.

@@ -163,18 +163,19 @@ void ReleaseAuthClasses(JNIEnv* env) {
 }
 
 // Grab the user value from the Android SDK and remember it locally.
-void UpdateCurrentUser(AuthData* auth_data) {
+void UpdateCurrentUser(JNIEnv* env, AuthData* auth_data) {
   MutexLock lock(auth_data->future_impl.mutex());
-  JNIEnv* env = Env(auth_data);
-
   // Update our pointer to the Android FirebaseUser that we're wrapping.
   jobject j_user = env->CallObjectMethod(
       AuthImpl(auth_data), auth::GetMethodId(auth::kGetCurrentUser));
   if (firebase::util::CheckAndClearJniExceptions(env)) {
     j_user = nullptr;
   }
-
-  SetUserImpl(auth_data, j_user);
+  SetImplFromLocalRef(env, j_user,
+                      &auth_data->deprecated_fields.android_user_impl);
+  SetUserImpl(
+      env, auth_data,
+      static_cast<jobject>(auth_data->deprecated_fields.android_user_impl));
 }
 
 // Release cached Java classes.
@@ -229,6 +230,15 @@ void* CreatePlatformAuth(App* app) {
 void Auth::InitPlatformAuth(AuthData* auth_data) {
   JNIEnv* env = Env(auth_data);
 
+  // Create persistent User data to continue to facilitate deprecated aysnc
+  // methods which return a pointer to a User. Remove this structure when those
+  // deprecated methods are removed.
+  auth_data->deprecated_fields.android_user_impl = (jobject) nullptr;
+  auth_data->deprecated_fields.user_internal_deprecated =
+      new UserInternal(auth_data, (jobject) nullptr);
+  auth_data->deprecated_fields.user_deprecated = new User(
+      auth_data, auth_data->deprecated_fields.user_internal_deprecated);
+
   // Create the JniAuthStateListener class to redirect the state-change
   // from Java to C++.
   jobject j_listener =
@@ -260,7 +270,7 @@ void Auth::InitPlatformAuth(AuthData* auth_data) {
 
   // Ensure our User is in-line with underlying API's user.
   // It's possible for a user to already be logged-in on start-up.
-  UpdateCurrentUser(auth_data);
+  UpdateCurrentUser(env, auth_data);
 }
 
 void Auth::DestroyPlatformAuth(AuthData* auth_data) {
@@ -288,7 +298,9 @@ void Auth::DestroyPlatformAuth(AuthData* auth_data) {
 
   // Clear the retained User object, which is used to support those deprecated
   // Auth methods which return User pointer.
-  SetUserImpl(auth_data, nullptr);
+  SetImplFromLocalRef(env, nullptr,
+                      &auth_data->deprecated_fields.android_user_impl);
+  SetUserImpl(env, auth_data, nullptr);
 
   auth_data->deprecated_fields.user_internal_deprecated = nullptr;
 
@@ -326,7 +338,7 @@ JNIEXPORT void JNICALL JniAuthStateListener_nativeOnAuthStateChanged(
     JNIEnv* env, jobject clazz, jlong callback_data) {
   AuthData* auth_data = reinterpret_cast<AuthData*>(callback_data);
   // Update our pointer to the Android FirebaseUser that we're wrapping.
-  UpdateCurrentUser(auth_data);
+  UpdateCurrentUser(env, auth_data);
   NotifyAuthStateListeners(auth_data);
 }
 
@@ -335,7 +347,7 @@ JNIEXPORT void JNICALL JniIdTokenListener_nativeOnIdTokenChanged(
   AuthData* auth_data = reinterpret_cast<AuthData*>(callback_data);
   auth_data->SetExpectIdTokenListenerCallback(false);
   // Update our pointer to the Android FirebaseUser that we're wrapping.
-  UpdateCurrentUser(auth_data);
+  UpdateCurrentUser(env, auth_data);
   NotifyIdTokenListeners(auth_data);
 }
 
@@ -344,7 +356,7 @@ static void ReadProviderResult(
     jobject result, FutureCallbackData<Auth::FetchProvidersResult>* d,
     bool success, void* void_data) {
   auto data = static_cast<Auth::FetchProvidersResult*>(void_data);
-  JNIEnv* env = d->env;
+  JNIEnv* env = Env(d->auth_data);
 
   // `result` comes from the successfully completed Task in Java. If the Task
   // completed successfully, `result` should be valid.
@@ -389,8 +401,8 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(
   env->DeleteLocalRef(j_email);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(env, pending_result, handle, auth_data_->future_api_id,
-                     &futures, ReadProviderResult);
+    RegisterCallback(auth_data_, pending_result, handle,
+                     auth_data_->future_api_id, &futures, ReadProviderResult);
     env->DeleteLocalRef(pending_result);
   }
   return MakeFuture(&futures, handle);
@@ -411,10 +423,9 @@ Future<User*> Auth::SignInWithCustomToken_DEPRECATED(const char* token) {
   env->DeleteLocalRef(j_token);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, future_handle)) {
-    RegisterCallbackWithAuthData(env, auth_data_, pending_result, future_handle,
-                                 auth_data_->future_api_id,
-                                 &auth_data_->future_impl,
-                                 ReadUserFromSignInResult);
+    RegisterCallback(auth_data_, pending_result, future_handle,
+                     auth_data_->future_api_id, &auth_data_->future_impl,
+                     ReadUserFromSignInResult);
     env->DeleteLocalRef(pending_result);
   }
   return future;
@@ -437,9 +448,9 @@ Future<User*> Auth::SignInWithCredential_DEPRECATED(
         CredentialFromImpl(credential.impl_));
 
     if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-      RegisterCallbackWithAuthData(env, auth_data_, pending_result, handle,
-                                   auth_data_->future_api_id, &futures,
-                                   ReadUserFromSignInResult);
+      RegisterCallback(auth_data_, pending_result, handle,
+                       auth_data_->future_api_id, &futures,
+                       ReadUserFromSignInResult);
       env->DeleteLocalRef(pending_result);
     }
   }
@@ -463,9 +474,9 @@ Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential_DEPRECATED(
 
     if (!CheckAndCompleteFutureOnError(env, &auth_data_->future_impl,
                                        future_handle)) {
-      RegisterCallbackWithAuthData(env, auth_data_, pending_result,
-                                   future_handle, auth_data_->future_api_id,
-                                   &auth_data_->future_impl, ReadSignInResult);
+      RegisterCallback(auth_data_, pending_result, future_handle,
+                       auth_data_->future_api_id, &auth_data_->future_impl,
+                       ReadSignInResult);
       env->DeleteLocalRef(pending_result);
     }
   }
@@ -479,22 +490,21 @@ Future<SignInResult> Auth::SignInWithProvider_DEPRECATED(
 }
 
 Future<User*> Auth::SignInAnonymously_DEPRECATED() {
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle =
-      futures.SafeAlloc<User*>(kAuthFn_SignInAnonymously_DEPRECATED);
+  const auto handle = auth_data_->future_impl.SafeAlloc<User*>(
+      kAuthFn_SignInAnonymously_DEPRECATED);
   JNIEnv* env = Env(auth_data_);
 
   jobject pending_result = env->CallObjectMethod(
       AuthImpl(auth_data_), auth::GetMethodId(auth::kSignInAnonymously));
 
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallbackWithAuthData(env, auth_data_, pending_result, handle,
-                                 auth_data_->future_api_id, &futures,
-                                 ReadUserFromSignInResult);
+  if (!CheckAndCompleteFutureOnError(env, &auth_data_->future_impl, handle)) {
+    RegisterCallback(auth_data_, pending_result, handle,
+                     auth_data_->future_api_id, &auth_data_->future_impl,
+                     ReadUserFromSignInResult);
     env->DeleteLocalRef(pending_result);
   }
 
-  return MakeFuture(&futures, handle);
+  return MakeFuture(&auth_data_->future_impl, handle);
 }
 
 Future<User*> Auth::SignInWithEmailAndPassword_DEPRECATED(
@@ -522,9 +532,9 @@ Future<User*> Auth::SignInWithEmailAndPassword_DEPRECATED(
   env->DeleteLocalRef(j_password);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallbackWithAuthData(env, auth_data_, pending_result, handle,
-                                 auth_data_->future_api_id, &futures,
-                                 ReadUserFromSignInResult);
+    RegisterCallback(auth_data_, pending_result, handle,
+                     auth_data_->future_api_id, &futures,
+                     ReadUserFromSignInResult);
     env->DeleteLocalRef(pending_result);
   }
 
@@ -557,10 +567,9 @@ Future<User*> Auth::CreateUserWithEmailAndPassword_DEPRECATED(
 
   if (!CheckAndCompleteFutureOnError(env, &auth_data_->future_impl,
                                      future_handle)) {
-    RegisterCallbackWithAuthData(env, auth_data_, pending_result, future_handle,
-                                 auth_data_->future_api_id,
-                                 &auth_data_->future_impl,
-                                 ReadUserFromSignInResult);
+    RegisterCallback(auth_data_, pending_result, future_handle,
+                     auth_data_->future_api_id, &auth_data_->future_impl,
+                     ReadUserFromSignInResult);
     env->DeleteLocalRef(pending_result);
   }
   return MakeFuture(&auth_data_->future_impl, future_handle);
@@ -624,7 +633,9 @@ void Auth::SignOut() {
 
   // Release our current user implementation in Java.
   MutexLock lock(auth_data_->future_impl.mutex());
-  SetUserImpl(auth_data_, nullptr);
+  SetImplFromLocalRef(env, nullptr,
+                      &auth_data_->deprecated_fields.android_user_impl);
+  SetUserImpl(env, auth_data_, nullptr);
 }
 
 Future<void> Auth::SendPasswordResetEmail(const char* email) {
@@ -643,8 +654,8 @@ Future<void> Auth::SendPasswordResetEmail(const char* email) {
   env->DeleteLocalRef(j_email);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(env, pending_result, handle, auth_data_->future_api_id,
-                     &futures, nullptr);
+    RegisterCallback(auth_data_, pending_result, handle,
+                     auth_data_->future_api_id, &futures, nullptr);
     env->DeleteLocalRef(pending_result);
   }
   return MakeFuture(&futures, handle);

@@ -532,11 +532,9 @@ Future<SignInResult> UserInternal::LinkAndRetrieveDataWithCredential_DEPRECATED(
 
   [user_ linkWithCredential:CredentialFromImpl(credential.impl_)
                  completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-                   NSLog(@"DEDB Completion auth_result: %p error: %p\n", auth_result, error);
                    SignInResultCallback(auth_result, error, callback_data->future_handle,
                                         callback_data->future_data->future_impl, auth_data);
-                   NSLog(@"DEDB Completion SignInResultCallback returned\n");
-                   // delete callback_data;
+                   delete callback_data;
                  }];
   return future;
 }

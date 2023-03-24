@@ -48,6 +48,9 @@ OBJ_C_PTR_WRAPPER(FIRAuthCredential);
 OBJ_C_PTR_WRAPPER(FIRUser);
 OBJ_C_PTR_WRAPPER(FIRCPPAuthListenerHandle);
 
+// Synchronize the current user.
+void UpdateCurrentUser(AuthData *auth_data);
+
 // Auth implementation on iOS.
 struct AuthDataIos {
   FIRAuthPointer fir_auth;

@@ -127,9 +127,6 @@ void NotifyAuthStateListeners(AuthData* auth_data);
 // Notify all the listeners of the ID token change.
 void NotifyIdTokenListeners(AuthData* auth_data);
 
-// Synchronize the current user.
-void UpdateCurrentUser(AuthData* auth_data);
-
 // Get a FutureImpl to use for Credential methods that return Futures.
 ReferenceCountedFutureImpl* GetCredentialFutureImpl();
 
