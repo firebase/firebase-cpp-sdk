@@ -134,48 +134,55 @@ Auth::Auth(App* app, void* auth_impl) : auth_data_(new AuthData) {
 }
 
 void Auth::DeleteInternal() {
-  MutexLock lock(*g_auths_mutex);
-
-  if (!auth_data_) return;
-
+  // Mutex is contained within the auth_data_ object. Retain a pointer to it so
+  // that we can clean up its contents and then delete it after we leave the
+  // mutex.
+  AuthData* retained_auth_impl = auth_data_;
   {
-    MutexLock destructing_lock(auth_data_->desctruting_mutex);
-    auth_data_->destructing = true;
-  }
+    MutexLock(auth_data_->auth_mutex);
+    MutexLock lock(*g_auths_mutex);
 
-  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(auth_data_->app);
-  assert(notifier);
-  notifier->UnregisterObject(this);
+    if (!auth_data_) return;
 
-  int num_auths_remaining = 0;
-  {
-    // Remove `this` from the g_auths map.
-    // The mapping is 1:1, so we should only ever delete one.
-    for (auto it = g_auths.begin(); it != g_auths.end(); ++it) {
-      if (it->second == this) {
-        LogDebug("Deleting Auth %p for App %p", this, it->first);
-        g_auths.erase(it);
-        break;
-      }
+    {
+      MutexLock destructing_lock(auth_data_->destructing_mutex);
+      auth_data_->destructing = true;
     }
 
-    num_auths_remaining = g_auths.size();
+    CleanupNotifier* notifier = CleanupNotifier::FindByOwner(auth_data_->app);
+    assert(notifier);
+    notifier->UnregisterObject(this);
+
+    int num_auths_remaining = 0;
+    {
+      // Remove `this` from the g_auths map.
+      // The mapping is 1:1, so we should only ever delete one.
+      for (auto it = g_auths.begin(); it != g_auths.end(); ++it) {
+        if (it->second == this) {
+          LogDebug("Deleting Auth %p for App %p", this, it->first);
+          g_auths.erase(it);
+          break;
+        }
+      }
+
+      num_auths_remaining = g_auths.size();
+    }
+
+    auth_data_->ClearListeners();
+
+    // If this is the last Auth instance to be cleaned up, also clean up data
+    // for Credentials.
+    if (num_auths_remaining == 0) {
+      CleanupCredentialFutureImpl();
+    }
+
+    // Destroy the platform-specific object.
+    DestroyPlatformAuth(auth_data_);
+
+    auth_data_ = nullptr;
   }
-
-  auth_data_->ClearListeners();
-
-  // If this is the last Auth instance to be cleaned up, also clean up data for
-  // Credentials.
-  if (num_auths_remaining == 0) {
-    CleanupCredentialFutureImpl();
-  }
-
-  // Destroy the platform-specific object.
-  DestroyPlatformAuth(auth_data_);
-
   // Delete the pimpl data.
-  delete auth_data_;
-  auth_data_ = nullptr;
+  delete retained_auth_impl;
 }
 
 Auth::~Auth() { DeleteInternal(); }
@@ -183,6 +190,7 @@ Auth::~Auth() { DeleteInternal(); }
 // Always non-nullptr since set in constructor.
 App& Auth::app() {
   FIREBASE_ASSERT(auth_data_ != nullptr);
+  MutexLock(auth_data_->auth_mutex);
   return *auth_data_->app;
 }
 
@@ -217,6 +225,7 @@ static bool AddListener(T listener, std::vector<T>* listener_vector, Auth* auth,
 
 void Auth::AddAuthStateListener(AuthStateListener* listener) {
   if (!auth_data_) return;
+  MutexLock(auth_data_->auth_mutex);
   // Would have to lock mutex till the method ends to protect on race
   // conditions.
   MutexLock lock(auth_data_->listeners_mutex);
@@ -235,6 +244,7 @@ void Auth::AddAuthStateListener(AuthStateListener* listener) {
 
 void Auth::AddIdTokenListener(IdTokenListener* listener) {
   if (!auth_data_) return;
+  MutexLock(auth_data_->auth_mutex);
   // Would have to lock mutex till the method ends to protect on race
   // conditions.
   MutexLock lock(auth_data_->listeners_mutex);
@@ -289,12 +299,14 @@ static void RemoveListener(T listener, std::vector<T>* listener_vector,
 
 void Auth::RemoveAuthStateListener(AuthStateListener* listener) {
   if (!auth_data_) return;
+  MutexLock(auth_data_->auth_mutex);
   RemoveListener(listener, &auth_data_->listeners, this, &listener->auths_,
                  &auth_data_->listeners_mutex);
 }
 
 void Auth::RemoveIdTokenListener(IdTokenListener* listener) {
   if (!auth_data_) return;
+  MutexLock(auth_data_->auth_mutex);
   int listener_count = auth_data_->id_token_listeners.size();
   RemoveListener(listener, &auth_data_->id_token_listeners, this,
                  &listener->auths_, &auth_data_->listeners_mutex);

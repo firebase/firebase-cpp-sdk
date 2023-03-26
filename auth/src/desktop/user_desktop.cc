@@ -511,7 +511,7 @@ void AssignLoadedData(const Future<std::string>& future, AuthData* auth_data) {
 
 void HandleLoadedData(const Future<std::string>& future, void* auth_data) {
   auto cast_auth_data = static_cast<AuthData*>(auth_data);
-  MutexLock destructing_lock(cast_auth_data->desctruting_mutex);
+  MutexLock destructing_lock(cast_auth_data->destructing_mutex);
   if (cast_auth_data->destructing) {
     // If auth is destructing, abort.
     return;

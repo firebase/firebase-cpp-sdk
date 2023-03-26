@@ -274,6 +274,8 @@ void Auth::InitPlatformAuth(AuthData* auth_data) {
 }
 
 void Auth::DestroyPlatformAuth(AuthData* auth_data) {
+  // Note: auth_data->auth_mutex is already locked by Auth::DeleteInternal().
+  // Remove references from listener blocks.
   JNIEnv* env = Env(auth_data);
 
   util::CancelCallbacks(env, auth_data->future_api_id.c_str());
@@ -389,6 +391,8 @@ static void ReadProviderResult(
 
 Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(
     const char* email) {
+  FIREBASE_ASSERT_RETURN(Future<Auth::FetchProvidersResult>(), auth_data_);
+  MutexLock(auth_data_->auth_mutex);
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<Auth::FetchProvidersResult>(
       kAuthFn_FetchProvidersForEmail);
@@ -409,6 +413,8 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(
 }
 
 Future<User*> Auth::SignInWithCustomToken_DEPRECATED(const char* token) {
+  FIREBASE_ASSERT_RETURN(Future<User*>(), auth_data_);
+  MutexLock(auth_data_->auth_mutex);
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   SafeFutureHandle<User*> future_handle =
       auth_data_->future_impl.SafeAlloc<User*>(
@@ -433,6 +439,8 @@ Future<User*> Auth::SignInWithCustomToken_DEPRECATED(const char* token) {
 
 Future<User*> Auth::SignInWithCredential_DEPRECATED(
     const Credential& credential) {
+  FIREBASE_ASSERT_RETURN(Future<User*>(), auth_data_);
+  MutexLock(auth_data_->auth_mutex);
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle =
       futures.SafeAlloc<User*>(kAuthFn_SignInWithCredential_DEPRECATED);
@@ -459,6 +467,8 @@ Future<User*> Auth::SignInWithCredential_DEPRECATED(
 
 Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential_DEPRECATED(
     const Credential& credential) {
+  FIREBASE_ASSERT_RETURN(Future<SignInResult>(), auth_data_);
+  MutexLock(auth_data_->auth_mutex);
   const auto future_handle = auth_data_->future_impl.SafeAlloc<SignInResult>(
       kAuthFn_SignInAndRetrieveDataWithCredential_DEPRECATED);
   JNIEnv* env = Env(auth_data_);
@@ -485,15 +495,18 @@ Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential_DEPRECATED(
 
 Future<SignInResult> Auth::SignInWithProvider_DEPRECATED(
     FederatedAuthProvider* provider) {
+  FIREBASE_ASSERT_RETURN(Future<SignInResult>(), auth_data_);
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
+  MutexLock(auth_data_->auth_mutex);
   return provider->SignIn(auth_data_);
 }
 
 Future<User*> Auth::SignInAnonymously_DEPRECATED() {
   const auto handle = auth_data_->future_impl.SafeAlloc<User*>(
       kAuthFn_SignInAnonymously_DEPRECATED);
+  FIREBASE_ASSERT_RETURN(Future<User*>(), auth_data_);
+  MutexLock(auth_data_->auth_mutex);
   JNIEnv* env = Env(auth_data_);
-
   jobject pending_result = env->CallObjectMethod(
       AuthImpl(auth_data_), auth::GetMethodId(auth::kSignInAnonymously));
 
@@ -509,6 +522,8 @@ Future<User*> Auth::SignInAnonymously_DEPRECATED() {
 
 Future<User*> Auth::SignInWithEmailAndPassword_DEPRECATED(
     const char* email, const char* password) {
+  FIREBASE_ASSERT_RETURN(Future<User*>(), auth_data_);
+  MutexLock(auth_data_->auth_mutex);
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle =
       futures.SafeAlloc<User*>(kAuthFn_SignInWithEmailAndPassword_DEPRECATED);
@@ -543,6 +558,8 @@ Future<User*> Auth::SignInWithEmailAndPassword_DEPRECATED(
 
 Future<User*> Auth::CreateUserWithEmailAndPassword_DEPRECATED(
     const char* email, const char* password) {
+  FIREBASE_ASSERT_RETURN(Future<User*>(), auth_data_);
+  MutexLock(auth_data_->auth_mutex);
   const auto future_handle = auth_data_->future_impl.SafeAlloc<User*>(
       kAuthFn_CreateUserWithEmailAndPassword_DEPRECATED);
 
@@ -579,9 +596,8 @@ Future<User*> Auth::CreateUserWithEmailAndPassword_DEPRECATED(
 // holds nothing but a pointer to AuthData, which never changes.
 // All User functions that require synchronization go through AuthData's mutex.
 User* Auth::current_user_DEPRECATED() {
-  if (!auth_data_) return nullptr;
-  MutexLock lock(auth_data_->future_impl.mutex());
-
+  FIREBASE_ASSERT_RETURN(nullptr, auth_data_);
+  MutexLock lock(auth_data_->auth_mutex);
   if (auth_data_->deprecated_fields.user_deprecated == nullptr ||
       !auth_data_->deprecated_fields.user_deprecated->is_valid()) {
     return nullptr;
@@ -591,7 +607,8 @@ User* Auth::current_user_DEPRECATED() {
 }
 
 std::string Auth::language_code() const {
-  if (!auth_data_) return std::string();
+  FIREBASE_ASSERT_RETURN(std::string(), auth_data_);
+  MutexLock(auth_data_->auth_mutex);
   JNIEnv* env = Env(auth_data_);
   jobject j_pending_result = env->CallObjectMethod(
       AuthImpl(auth_data_), auth::GetMethodId(auth::kGetLanguageCode));
@@ -603,7 +620,8 @@ std::string Auth::language_code() const {
 }
 
 void Auth::set_language_code(const char* language_code) {
-  if (!auth_data_) return;
+  FIREBASE_ASSERT_RETURN_VOID(auth_data_);
+  MutexLock(auth_data_->auth_mutex);
   JNIEnv* env = Env(auth_data_);
   jstring j_language_code = nullptr;
   if (language_code != nullptr) {
@@ -619,7 +637,7 @@ void Auth::set_language_code(const char* language_code) {
 }
 
 void Auth::UseAppLanguage() {
-  if (!auth_data_) return;
+  FIREBASE_ASSERT_RETURN_VOID(auth_data_);
   JNIEnv* env = Env(auth_data_);
   env->CallVoidMethod(AuthImpl(auth_data_),
                       auth::GetMethodId(auth::kUseAppLanguage));
@@ -627,6 +645,8 @@ void Auth::UseAppLanguage() {
 }
 
 void Auth::SignOut() {
+  FIREBASE_ASSERT_RETURN_VOID(auth_data_);
+  MutexLock(auth_data_->auth_mutex);
   JNIEnv* env = Env(auth_data_);
   env->CallVoidMethod(AuthImpl(auth_data_), auth::GetMethodId(auth::kSignOut));
   firebase::util::CheckAndClearJniExceptions(env);
@@ -639,6 +659,8 @@ void Auth::SignOut() {
 }
 
 Future<void> Auth::SendPasswordResetEmail(const char* email) {
+  FIREBASE_ASSERT_RETURN(Future<void>(), auth_data_);
+  MutexLock(auth_data_->auth_mutex);
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kAuthFn_SendPasswordResetEmail);
 

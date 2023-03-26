@@ -198,7 +198,10 @@ struct AuthData {
   bool destructing;
 
   // Mutex protecting destructing
-  Mutex desctruting_mutex;
+  Mutex destructing_mutex;
+
+  // Mutex guarding the auth object for standard API operations.
+  Mutex auth_mutex;
 
   // Sets if the Id Token Listener is expecting a callback.
   // Used to workaround an issue where the Id Token is not reset with a new one,

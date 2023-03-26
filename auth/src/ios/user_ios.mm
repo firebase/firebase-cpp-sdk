@@ -290,15 +290,13 @@ UserInternal::UserInternal(const UserInternal &user_internal)
     : user_(user_internal.user_), future_data_(kUserFnCount) {}
 
 UserInternal::~UserInternal() {
-  user_ = nil;
-  {
-    MutexLock user_info_lock(user_info_mutex_deprecated_);
-    clear_user_infos();
-  }
+  MutexLock user_info_lock(user_mutex_);
   // Make sure we don't have any pending futures in flight before we disappear.
   while (!future_data_.future_impl.IsSafeToDelete()) {
     internal::Sleep(100);
   }
+  user_ = nil;
+  clear_user_infos();
 }
 
 void UserInternal::set_native_user_object_deprecated(FIRUser *user) {
@@ -352,7 +350,7 @@ std::vector<UserInfoInterface> UserInternal::provider_data() const {
 }
 
 const std::vector<UserInfoInterface *> &UserInternal::provider_data_DEPRECATED() {
-  MutexLock user_info_lock(user_info_mutex_deprecated_);
+  MutexLock user_info_lock(user_mutex_);
   clear_user_infos();
   if (is_valid()) {
     NSArray<id<FIRUserInfo>> *provider_data = user_.providerData;
@@ -516,6 +514,7 @@ Future<User *> UserInternal::LinkWithCredentialLastResult_DEPRECATED() const {
 
 Future<SignInResult> UserInternal::LinkAndRetrieveDataWithCredential_DEPRECATED(
     AuthData *auth_data, const Credential &credential) {
+  MutexLock user_info_lock(user_mutex_);
   if (!is_valid()) {
     SafeFutureHandle<SignInResult> future_handle = future_data_.future_impl.SafeAlloc<SignInResult>(
         kUserFn_LinkAndRetrieveDataWithCredential_DEPRECATED);
@@ -546,7 +545,8 @@ Future<SignInResult> UserInternal::LinkAndRetrieveDataWithCredentialLastResult_D
 
 Future<SignInResult> UserInternal::LinkWithProvider_DEPRECATED(AuthData *auth_data,
                                                                FederatedAuthProvider *provider) {
-  if (!is_valid() || provider == nullptr) {
+    MutexLock user_info_lock(user_mutex_);
+    if (!is_valid() || provider == nullptr) {
     SafeFutureHandle<SignInResult> future_handle =
         future_data_.future_impl.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider_DEPRECATED);
     Future<SignInResult> future = MakeFuture(&future_data_.future_impl, future_handle);
@@ -719,6 +719,7 @@ Future<SignInResult> UserInternal::ReauthenticateAndRetrieveDataLastResult_DEPRE
 
 Future<SignInResult> UserInternal::ReauthenticateWithProvider_DEPRECATED(
     AuthData *auth_data, FederatedAuthProvider *provider) {
+  MutexLock user_info_lock(user_mutex_);
   if (!is_valid() || provider == nullptr) {
     SafeFutureHandle<SignInResult> future_handle = future_data_.future_impl.SafeAlloc<SignInResult>(
         kUserFn_ReauthenticateWithProvider_DEPRECATED);

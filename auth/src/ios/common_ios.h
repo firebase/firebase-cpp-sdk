@@ -163,10 +163,6 @@ class UserInternal {
   // Used to support older method invocation of provider_data_DEPRECATED().
   std::vector<UserInfoInterface *> user_infos_;
 
-  // Guard the creation and deletion of the vector of UserInfoInterface*
-  // allocations in provider_data_DEPRECATED().
-  Mutex user_info_mutex_deprecated_;
-
   // Guard against changes to the user_ object.
   Mutex user_mutex_;
 };
