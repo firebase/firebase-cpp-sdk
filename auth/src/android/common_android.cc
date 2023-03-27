@@ -487,7 +487,7 @@ void ReadSignInResult(jobject result, FutureCallbackData<SignInResult>* d,
     //       Auth class has not been updated at this point.
     SetImplFromLocalRef(env, j_user,
                         &d->auth_data->deprecated_fields.android_user_impl);
-    SetUserImpl(env, d->auth_data,
+    SetUserImpl(d->auth_data,
                 static_cast<jobject>(
                     d->auth_data->deprecated_fields.android_user_impl));
 
@@ -527,7 +527,7 @@ void ReadUserFromSignInResult(jobject result, FutureCallbackData<User*>* d,
     //       Auth class has not been updated at this point.
     SetImplFromLocalRef(env, j_user,
                         &d->auth_data->deprecated_fields.android_user_impl);
-    SetUserImpl(env, d->auth_data,
+    SetUserImpl(d->auth_data,
                 static_cast<jobject>(
                     d->auth_data->deprecated_fields.android_user_impl));
   }

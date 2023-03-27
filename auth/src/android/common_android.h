@@ -237,8 +237,7 @@ void UpdateCurrentUser(JNIEnv* env, AuthData* auth_data);
 /// Note: this function is only used to support DEPRECATED methods which return
 /// User*. This functionality should be removed when those deprecated methods
 /// are removed.
-inline void SetUserImpl(JNIEnv* env, AuthData* _Nonnull auth_data,
-                        jobject j_user) {
+inline void SetUserImpl(AuthData* _Nonnull auth_data, jobject j_user) {
   assert(auth_data->deprecated_fields.user_internal_deprecated);
   auth_data->deprecated_fields.user_internal_deprecated
       ->set_native_user_object_deprecated(j_user);
