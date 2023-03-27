@@ -22,13 +22,15 @@ namespace firebase {
 namespace auth {
 
 const char* kUserNotInitializedErrorMessage =
-    "Operation attmpted on an invalid User object.";
+    "Operation attempted on an invalid User object.";
 const char* kPhoneAuthNotSupportedErrorMessage =
     "Phone Auth is not supported on this platform.";
 const char* kAuthInvalidParameterErrorMessage =
     "A parameter pass to the auth method is null or invalid.";
 extern const char* kInvalidCredentialErrorMessage =
     "The provided credential does not match the required type.";
+extern const char* kErrorEmptyEmailPasswordErrorMessage =
+    "Empty email or password are not allowed.";
 
 // static member variables
 const uint32_t PhoneAuthProvider::kMaxTimeoutMs = 3000;

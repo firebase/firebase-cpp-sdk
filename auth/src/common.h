@@ -30,6 +30,7 @@ extern const char* kUserNotInitializedErrorMessage;
 extern const char* kPhoneAuthNotSupportedErrorMessage;
 extern const char* kAuthInvalidParameterErrorMessage;
 extern const char* kInvalidCredentialErrorMessage;
+extern const char* kErrorEmptyEmailPasswordErrorMessage;
 
 // Enumeration for Credential API functions that return a Future.
 // This allows us to hold a Future for the most recent call to that API.
