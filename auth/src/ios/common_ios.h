@@ -48,10 +48,21 @@ OBJ_C_PTR_WRAPPER(FIRAuthCredential);
 OBJ_C_PTR_WRAPPER(FIRUser);
 OBJ_C_PTR_WRAPPER(FIRCPPAuthListenerHandle);
 
+// Synchronize the current user.
+void UpdateCurrentUser(AuthData *auth_data);
+
 // Auth implementation on iOS.
 struct AuthDataIos {
   FIRAuthPointer fir_auth;
   FIRCPPAuthListenerHandlePointer listener_handle;
+};
+
+// Struct to contain the data required to complete
+// futures asynchronously on iOS.
+template <class T>
+struct FutureCallbackData {
+  FutureData *future_data;
+  SafeFutureHandle<T> future_handle;
 };
 
 // Contains the interface between the public API and the underlying
@@ -152,14 +163,12 @@ class UserInternal {
   // Used to support older method invocation of provider_data_DEPRECATED().
   std::vector<UserInfoInterface *> user_infos_;
 
-  // Guard the creation and deletion of the vector of UserInfoInterface*
-  // allocations in provider_data_DEPRECATED().
-  Mutex user_info_mutex_deprecated_;
-
   // Guard against changes to the user_ object.
   Mutex user_mutex_;
 };
 
+/// @deprecated
+///
 /// Replace the platform-dependent FIRUser object.
 /// Note: this function is only used to support DEPRECATED methods which return User*. This
 /// functionality should be removed when those deprecated methods are removed.

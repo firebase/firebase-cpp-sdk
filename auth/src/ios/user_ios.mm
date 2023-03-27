@@ -36,6 +36,7 @@ const char kInvalidCredentialMessage[] = "Credential is not a phone credential."
 ///
 User::User(AuthData *auth_data, UserInternal *user_internal) {
   assert(auth_data);
+  auth_data_ = auth_data;
   if (user_internal == nullptr) {
     // Create an invalid user internal.
     // This will return is_valid() false, and operations will fail.
@@ -43,7 +44,18 @@ User::User(AuthData *auth_data, UserInternal *user_internal) {
   } else {
     user_internal_ = user_internal;
   }
-  auth_data_ = auth_data;
+}
+
+User::User(const User &user) {
+  assert(user.auth_data_);
+  auth_data_ = user.auth_data_;
+  if (user.user_internal_ == nullptr) {
+    // Create an invalid user internal.
+    // This will return is_valid() false, and operations will fail.
+    user_internal_ = new UserInternal(nullptr);
+  } else {
+    user_internal_ = new UserInternal(user.user_internal_->user_);
+  }
 }
 
 User::~User() {
@@ -171,7 +183,7 @@ Future<SignInResult> User::LinkAndRetrieveDataWithCredentialLastResult_DEPRECATE
   return user_internal_->LinkAndRetrieveDataWithCredentialLastResult_DEPRECATED();
 }
 
-Future<SignInResult> User::LinkWithProvider_DEPRECATED(FederatedAuthProvider *provider) const {
+Future<SignInResult> User::LinkWithProvider_DEPRECATED(FederatedAuthProvider *provider) {
   assert(user_internal_);
   return user_internal_->LinkWithProvider_DEPRECATED(auth_data_, provider);
 }
@@ -290,15 +302,13 @@ UserInternal::UserInternal(const UserInternal &user_internal)
     : user_(user_internal.user_), future_data_(kUserFnCount) {}
 
 UserInternal::~UserInternal() {
-  user_ = nil;
-  {
-    MutexLock user_info_lock(user_info_mutex_deprecated_);
-    clear_user_infos();
-  }
+  MutexLock user_info_lock(user_mutex_);
   // Make sure we don't have any pending futures in flight before we disappear.
   while (!future_data_.future_impl.IsSafeToDelete()) {
     internal::Sleep(100);
   }
+  user_ = nil;
+  clear_user_infos();
 }
 
 void UserInternal::set_native_user_object_deprecated(FIRUser *user) {
@@ -352,7 +362,7 @@ std::vector<UserInfoInterface> UserInternal::provider_data() const {
 }
 
 const std::vector<UserInfoInterface *> &UserInternal::provider_data_DEPRECATED() {
-  MutexLock user_info_lock(user_info_mutex_deprecated_);
+  MutexLock user_info_lock(user_mutex_);
   clear_user_infos();
   if (is_valid()) {
     NSArray<id<FIRUserInfo>> *provider_data = user_.providerData;
@@ -448,7 +458,6 @@ Future<void> UserInternal::UpdateUserProfile(const User::UserProfile &profile) {
                                                      [error.localizedDescription UTF8String]);
     delete callback_data;
   }];
-
   return future;
 }
 
@@ -474,7 +483,6 @@ Future<void> UserInternal::SendEmailVerification() {
                                                      [error.localizedDescription UTF8String]);
     delete callback_data;
   }];
-
   return future;
 }
 
@@ -516,9 +524,8 @@ Future<User *> UserInternal::LinkWithCredentialLastResult_DEPRECATED() const {
 
 Future<SignInResult> UserInternal::LinkAndRetrieveDataWithCredential_DEPRECATED(
     AuthData *auth_data, const Credential &credential) {
-  // MutexLock user_info_lock(user_mutex_);
+  MutexLock user_info_lock(user_mutex_);
   if (!is_valid()) {
-    printf("DEDB LinkAndRetrieveDataWithCredential_DEPRECATED user is not valid\n");
     SafeFutureHandle<SignInResult> future_handle = future_data_.future_impl.SafeAlloc<SignInResult>(
         kUserFn_LinkAndRetrieveDataWithCredential_DEPRECATED);
     Future<SignInResult> future = MakeFuture(&future_data_.future_impl, future_handle);
@@ -534,11 +541,9 @@ Future<SignInResult> UserInternal::LinkAndRetrieveDataWithCredential_DEPRECATED(
 
   [user_ linkWithCredential:CredentialFromImpl(credential.impl_)
                  completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-                   NSLog(@"DEDB Completion auth_result: %p error: %p\n", auth_result, error);
                    SignInResultCallback(auth_result, error, callback_data->future_handle,
                                         callback_data->future_data->future_impl, auth_data);
-                   NSLog(@"DEDB Completion SignInResultCallback returned\n");
-                   // delete callback_data;
+                   delete callback_data;
                  }];
   return future;
 }
@@ -550,8 +555,23 @@ Future<SignInResult> UserInternal::LinkAndRetrieveDataWithCredentialLastResult_D
 
 Future<SignInResult> UserInternal::LinkWithProvider_DEPRECATED(AuthData *auth_data,
                                                                FederatedAuthProvider *provider) {
-  FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
-  return provider->Link(auth_data, this);
+  MutexLock user_info_lock(user_mutex_);
+  if (!is_valid() || provider == nullptr) {
+    SafeFutureHandle<SignInResult> future_handle =
+        future_data_.future_impl.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider_DEPRECATED);
+    Future<SignInResult> future = MakeFuture(&future_data_.future_impl, future_handle);
+
+    if (!is_valid()) {
+      CompleteFuture(kAuthErrorInvalidUser, kUserNotInitializedErrorMessage, future_handle,
+                     &future_data_, SignInResult());
+    } else {
+      CompleteFuture(kAuthErrorInvalidParameter, kUserNotInitializedErrorMessage, future_handle,
+                     &future_data_, SignInResult());
+    }
+    return future;
+  } else {
+    return provider->Link(auth_data, this);
+  }
 }
 
 Future<User *> UserInternal::Unlink_DEPRECATED(AuthData *auth_data, const char *provider) {
@@ -610,19 +630,17 @@ Future<User *> UserInternal::UpdatePhoneNumberCredential_DEPRECATED(AuthData *au
                               delete callback_data;
                             }];
   } else {
-    CompleteFuture(kAuthErrorInvalidCredential, kInvalidCredentialMessage,
+    CompleteFuture(kAuthErrorInvalidCredential, kInvalidCredentialErrorMessage,
                    callback_data->future_handle, &future_data_, (User *)nullptr);
   }
-  return future;
-
 #else   // non iOS Apple platforms (eg: tvOS).
   SafeFutureHandle<User *> future_handle =
       future_data_.future_impl.SafeAlloc<User *>(kUserFn_UpdatePhoneNumberCredential_DEPRECATED);
   Future<User *> future = MakeFuture(&future_data_.future_impl, future_handle);
   CompleteFuture(kAuthErrorApiNotAvailable, kPhoneAuthNotSupportedErrorMessage, future_handle,
                  &future_data_, (User *)nullptr);
-  return future;
 #endif  // FIREBASE_PLATFORM_IOS
+  return future;
 }
 
 Future<void> UserInternal::Reload() {
@@ -711,7 +729,20 @@ Future<SignInResult> UserInternal::ReauthenticateAndRetrieveDataLastResult_DEPRE
 
 Future<SignInResult> UserInternal::ReauthenticateWithProvider_DEPRECATED(
     AuthData *auth_data, FederatedAuthProvider *provider) {
-  FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
+  MutexLock user_info_lock(user_mutex_);
+  if (!is_valid() || provider == nullptr) {
+    SafeFutureHandle<SignInResult> future_handle = future_data_.future_impl.SafeAlloc<SignInResult>(
+        kUserFn_ReauthenticateWithProvider_DEPRECATED);
+    Future<SignInResult> future = MakeFuture(&future_data_.future_impl, future_handle);
+    if (!is_valid()) {
+      CompleteFuture(kAuthErrorInvalidUser, kUserNotInitializedErrorMessage, future_handle,
+                     &future_data_, SignInResult());
+    } else {
+      CompleteFuture(kAuthErrorInvalidParameter, kUserNotInitializedErrorMessage, future_handle,
+                     &future_data_, SignInResult());
+    }
+    return future;
+  }
   return provider->Reauthenticate(auth_data, this);
 }
 

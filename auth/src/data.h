@@ -39,6 +39,9 @@ struct AuthDataDeprecatedFields {
   // pointer the platform specific user object, which is updated on User
   // operations.
   UserInternal* user_internal_deprecated;
+
+  // JNI reference to the user object in the Firebase Android SDK.
+  void* android_user_impl;
 };
 
 // Enumeration for API functions that return a Future.
@@ -195,7 +198,10 @@ struct AuthData {
   bool destructing;
 
   // Mutex protecting destructing
-  Mutex desctruting_mutex;
+  Mutex destructing_mutex;
+
+  // Mutex guarding the auth object for standard API operations.
+  Mutex auth_mutex;
 
   // Sets if the Id Token Listener is expecting a callback.
   // Used to workaround an issue where the Id Token is not reset with a new one,

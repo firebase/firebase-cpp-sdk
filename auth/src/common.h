@@ -28,6 +28,9 @@ namespace auth {
 // the AdErrorCode enumeration in the C++ API.
 extern const char* kUserNotInitializedErrorMessage;
 extern const char* kPhoneAuthNotSupportedErrorMessage;
+extern const char* kAuthInvalidParameterErrorMessage;
+extern const char* kInvalidCredentialErrorMessage;
+extern const char* kErrorEmptyEmailPasswordErrorMessage;
 
 // Enumeration for Credential API functions that return a Future.
 // This allows us to hold a Future for the most recent call to that API.
@@ -44,12 +47,6 @@ struct FutureData {
 
   // Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl;
-};
-
-template <class T>
-struct FutureCallbackData {
-  FutureData* future_data;
-  SafeFutureHandle<T> future_handle;
 };
 
 // Create a future and update the corresponding last result.
@@ -130,9 +127,6 @@ void NotifyAuthStateListeners(AuthData* auth_data);
 
 // Notify all the listeners of the ID token change.
 void NotifyIdTokenListeners(AuthData* auth_data);
-
-// Synchronize the current user.
-void UpdateCurrentUser(AuthData* auth_data);
 
 // Get a FutureImpl to use for Credential methods that return Futures.
 ReferenceCountedFutureImpl* GetCredentialFutureImpl();
