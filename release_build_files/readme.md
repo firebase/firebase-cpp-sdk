@@ -642,8 +642,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### 10.7.0
 -   Changes
+    - General (Android): Update to Firebase Android BoM version 31.3.0.
+    - General (iOS): Update to Firebase Cocoapods version 10.7.0.
     - General: Add build time warning for C++11, since the next major release of
       the Firebase C++ SDK will set the new minimum C++ version to C++14.
 
