@@ -114,8 +114,6 @@ METHOD_LOOKUP_DEFINITION(
     JNI_ID_TOKEN_LISTENER_CALLBACK_METHODS)
 
 static int g_initialized_count = 0;
-static const char* kErrorEmptyEmailPassword =
-    "Empty email or password are not allowed.";
 
 JNIEXPORT void JNICALL JniAuthStateListener_nativeOnAuthStateChanged(
     JNIEnv* env, jobject clazz, jlong callback_data);
@@ -532,7 +530,7 @@ Future<User*> Auth::SignInWithEmailAndPassword_DEPRECATED(
     futures.Complete(handle,
                      (!email || strlen(email) == 0) ? kAuthErrorMissingEmail
                                                     : kAuthErrorMissingPassword,
-                     kErrorEmptyEmailPassword);
+                     kErrorEmptyEmailPasswordErrorMessage);
     return MakeFuture(&futures, handle);
   }
   JNIEnv* env = Env(auth_data_);
@@ -568,7 +566,7 @@ Future<User*> Auth::CreateUserWithEmailAndPassword_DEPRECATED(
                                      (!email || strlen(email) == 0)
                                          ? kAuthErrorMissingEmail
                                          : kAuthErrorMissingPassword,
-                                     kErrorEmptyEmailPassword);
+                                     kErrorEmptyEmailPasswordErrorMessage);
     return MakeFuture(&auth_data_->future_impl, future_handle);
   }
   JNIEnv* env = Env(auth_data_);

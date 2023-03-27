@@ -237,6 +237,16 @@ User::User(AuthData *auth_data, UserInternal *user_internal) {
   }
 }
 
+User::User(const User &user) {
+  assert(user.auth_data_);
+  auth_data_ = user.auth_data_;
+  if (user.user_internal_ != nullptr) {
+    user_internal_ = new UserInternal(auth_data_, user.user_internal_->user_);
+  } else {
+    user_internal_ = new UserInternal(auth_data_, nullptr);
+  }
+}
+
 User::~User() {
   delete user_internal_;
   user_internal_ = nullptr;
@@ -252,7 +262,7 @@ User &User::operator=(const User &user) {
   if (user.user_internal_ != nullptr) {
     user_internal_ = new UserInternal(auth_data_, user.user_internal_->user_);
   } else {
-    user_internal_ = new UserInternal(user.auth_data_, nullptr);
+    user_internal_ = new UserInternal(auth_data_, nullptr);
   }
 
   return *this;
@@ -490,8 +500,14 @@ UserInternal::UserInternal(AuthData *auth_data, jobject user)
 
 UserInternal::UserInternal(const UserInternal &user_internal)
     : auth_data_(user_internal.auth_data_),
-      user_(user_internal.user_),
+      user_(nullptr),
       future_data_(kUserFnCount) {
+  assert(auth_data_);
+  JNIEnv *env = Env(auth_data_);
+  if (user_internal.user_ != nullptr) {
+    user_ = env->NewGlobalRef(user_internal.user_);
+    assert(env->ExceptionCheck() == false);
+  }
   assign_future_id(this, &future_api_id_);
 }
 
