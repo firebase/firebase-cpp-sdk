@@ -300,7 +300,7 @@ void Auth::DestroyPlatformAuth(AuthData* auth_data) {
   // Auth methods which return User pointer.
   SetImplFromLocalRef(env, nullptr,
                       &auth_data->deprecated_fields.android_user_impl);
-  SetUserImpl(env, auth_data, nullptr);
+  SetUserImpl(auth_data, nullptr);
 
   auth_data->deprecated_fields.user_internal_deprecated = nullptr;
 
@@ -653,7 +653,7 @@ void Auth::SignOut() {
   MutexLock lock(auth_data_->future_impl.mutex());
   SetImplFromLocalRef(env, nullptr,
                       &auth_data_->deprecated_fields.android_user_impl);
-  SetUserImpl(env, auth_data_, nullptr);
+  SetUserImpl(auth_data_, nullptr);
 }
 
 Future<void> Auth::SendPasswordResetEmail(const char* email) {
