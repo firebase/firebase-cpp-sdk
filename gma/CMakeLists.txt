@@ -22,6 +22,8 @@ set(common_SRCS
     src/common/interstitial_ad.cc
     src/common/interstitial_ad_internal.cc
     src/common/full_screen_ad_event_listener.cc
+    src/common/native_ad.cc
+    src/common/native_ad_internal.cc
     src/common/rewarded_ad.cc
     src/common/rewarded_ad_internal.cc)
 
@@ -42,6 +44,7 @@ set(android_SRCS
     src/android/gma_android.cc
     src/android/ad_view_internal_android.cc
     src/android/interstitial_ad_internal_android.cc
+    src/android/native_ad_internal_android.cc
     src/android/response_info_android.cc
     src/android/rewarded_ad_internal_android.cc)
 

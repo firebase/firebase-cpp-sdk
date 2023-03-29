@@ -29,6 +29,7 @@
 #include "firebase/cpp_version_warning.h"
 #include "firebase/gma/ad_view.h"
 #include "firebase/gma/interstitial_ad.h"
+#include "firebase/gma/internal/native_ad.h"
 #include "firebase/gma/rewarded_ad.h"
 #include "firebase/gma/types.h"
 #include "firebase/internal/common.h"

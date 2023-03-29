@@ -38,6 +38,7 @@
 #include "gma/src/android/ad_view_internal_android.h"
 #include "gma/src/android/adapter_response_info_android.h"
 #include "gma/src/android/interstitial_ad_internal_android.h"
+#include "gma/src/android/native_ad_internal_android.h"
 #include "gma/src/android/response_info_android.h"
 #include "gma/src/android/rewarded_ad_internal_android.h"
 #include "gma/src/common/gma_common.h"
@@ -337,6 +338,9 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
         interstitial_ad_helper::CacheClassFromFiles(
             env, activity, &embedded_files) != nullptr &&
         interstitial_ad_helper::CacheMethodIds(env, activity) &&
+        native_ad_helper::CacheClassFromFiles(
+            env, activity, &embedded_files) != nullptr &&
+        native_ad_helper::CacheMethodIds(env, activity) &&
         rewarded_ad_helper::CacheClassFromFiles(env, activity,
                                                 &embedded_files) != nullptr &&
         rewarded_ad_helper::CacheMethodIds(env, activity) &&
@@ -676,6 +680,7 @@ void ReleaseClasses(JNIEnv* env) {
   ad_view_helper::ReleaseClass(env);
   ad_view_helper_ad_view_listener::ReleaseClass(env);
   interstitial_ad_helper::ReleaseClass(env);
+  native_ad_helper::ReleaseClass(env);
   rewarded_ad_helper::ReleaseClass(env);
   load_ad_error::ReleaseClass(env);
 }
@@ -1131,6 +1136,19 @@ bool RegisterNatives() {
        reinterpret_cast<void*>(&JNI_notifyAdPaidEvent)},
   };
 
+  static const JNINativeMethod kNativeAdMethods[] = {
+      {"completeNativeAdFutureCallback", "(JILjava/lang/String;)V",
+       reinterpret_cast<void*>(&JNI_completeAdFutureCallback)},
+      {"completeNativeLoadedAd",
+       "(JLcom/google/android/gms/ads/ResponseInfo;)V",
+       reinterpret_cast<void*>(&JNI_completeLoadedAd)},
+      {"completeNativeLoadAdError",
+       "(JLcom/google/android/gms/ads/LoadAdError;ILjava/lang/String;)V",
+       reinterpret_cast<void*>(&JNI_completeLoadAdError)},
+      {"completeNativeLoadAdInternalError", "(JILjava/lang/String;)V",
+       reinterpret_cast<void*>(&JNI_completeLoadAdInternalError)},
+  };
+
   static const JNINativeMethod kRewardedAdMethods[] = {
       {"completeRewardedAdFutureCallback", "(JILjava/lang/String;)V",
        reinterpret_cast<void*>(&JNI_completeAdFutureCallback)},
@@ -1180,6 +1198,9 @@ bool RegisterNatives() {
          interstitial_ad_helper::RegisterNatives(
              env, kInterstitialMethods,
              FIREBASE_ARRAYSIZE(kInterstitialMethods)) &&
+         native_ad_helper::RegisterNatives(
+             env, kNativeAdMethods,
+             FIREBASE_ARRAYSIZE(kNativeAdMethods)) &&
          rewarded_ad_helper::RegisterNatives(
              env, kRewardedAdMethods, FIREBASE_ARRAYSIZE(kRewardedAdMethods)) &&
          gma_initialization_helper::RegisterNatives(
