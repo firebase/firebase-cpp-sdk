@@ -36,8 +36,7 @@ namespace internal {
 NativeAdInternal::NativeAdInternal(NativeAd* base)
     : base_(base), future_data_(kNativeAdFnCount) {}
 
-NativeAdInternal* NativeAdInternal::CreateInstance(
-    NativeAd* base) {
+NativeAdInternal* NativeAdInternal::CreateInstance(NativeAd* base) {
 #if FIREBASE_PLATFORM_ANDROID
   return new NativeAdInternalAndroid(base);
 #else

@@ -877,8 +877,7 @@ TEST_F(FirebaseGmaTest, TestNativeAdLoad) {
   SKIP_TEST_ON_SIMULATOR;
   SKIP_TEST_ON_IOS;
 
-  firebase::gma::NativeAd* native_ad =
-      new firebase::gma::NativeAd();
+  firebase::gma::NativeAd* native_ad = new firebase::gma::NativeAd();
 
   WaitForCompletion(native_ad->Initialize(app_framework::GetWindowContext()),
                     "Initialize");
@@ -2017,8 +2016,7 @@ TEST_F(FirebaseGmaTest, TestNativeAdLoadEmptyRequest) {
   SKIP_TEST_ON_SIMULATOR;
   SKIP_TEST_ON_IOS;
 
-  firebase::gma::NativeAd* native_ad =
-      new firebase::gma::NativeAd();
+  firebase::gma::NativeAd* native_ad = new firebase::gma::NativeAd();
 
   WaitForCompletion(native_ad->Initialize(app_framework::GetWindowContext()),
                     "Initialize");
@@ -2046,12 +2044,11 @@ TEST_F(FirebaseGmaTest, TestNativeAdErrorNotInitialized) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_IOS;
 
-  firebase::gma::NativeAd* native_ad =
-      new firebase::gma::NativeAd();
+  firebase::gma::NativeAd* native_ad = new firebase::gma::NativeAd();
 
   firebase::gma::AdRequest request = GetAdRequest();
-  WaitForCompletion(native_ad->LoadAd(kNativeAdUnit, request),
-                    "LoadAd", firebase::gma::kAdErrorCodeUninitialized);
+  WaitForCompletion(native_ad->LoadAd(kNativeAdUnit, request), "LoadAd",
+                    firebase::gma::kAdErrorCodeUninitialized);
 
   delete native_ad;
 }
@@ -2061,8 +2058,7 @@ TEST_F(FirebaseGmaTest, TesNativeAdErrorAlreadyInitialized) {
   SKIP_TEST_ON_IOS;
 
   {
-    firebase::gma::NativeAd* native_ad =
-        new firebase::gma::NativeAd();
+    firebase::gma::NativeAd* native_ad = new firebase::gma::NativeAd();
     firebase::Future<void> first_initialize =
         native_ad->Initialize(app_framework::GetWindowContext());
     firebase::Future<void> second_initialize =
@@ -2080,8 +2076,7 @@ TEST_F(FirebaseGmaTest, TesNativeAdErrorAlreadyInitialized) {
 
   // Reverse the order of the completion waits.
   {
-    firebase::gma::NativeAd* native_ad =
-        new firebase::gma::NativeAd();
+    firebase::gma::NativeAd* native_ad = new firebase::gma::NativeAd();
     firebase::Future<void> first_initialize =
         native_ad->Initialize(app_framework::GetWindowContext());
     firebase::Future<void> second_initialize =
@@ -2102,11 +2097,9 @@ TEST_F(FirebaseGmaTest, TestNativeAdErrorBadAdUnitId) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_IOS;
 
-  firebase::gma::NativeAd* native_ad =
-      new firebase::gma::NativeAd();
-  WaitForCompletion(
-      native_ad->Initialize(app_framework::GetWindowContext()),
-      "Initialize");
+  firebase::gma::NativeAd* native_ad = new firebase::gma::NativeAd();
+  WaitForCompletion(native_ad->Initialize(app_framework::GetWindowContext()),
+                    "Initialize");
 
   // Load the native ad.
   firebase::gma::AdRequest request = GetAdRequest();
@@ -2132,17 +2125,14 @@ TEST_F(FirebaseGmaTest, TestNativeAdErrorBadExtrasClassName) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_IOS;
 
-  firebase::gma::NativeAd* native_ad =
-      new firebase::gma::NativeAd();
-  WaitForCompletion(
-      native_ad->Initialize(app_framework::GetWindowContext()),
-      "Initialize");
+  firebase::gma::NativeAd* native_ad = new firebase::gma::NativeAd();
+  WaitForCompletion(native_ad->Initialize(app_framework::GetWindowContext()),
+                    "Initialize");
 
   // Load the native ad.
   firebase::gma::AdRequest request = GetAdRequest();
   request.add_extra(kAdNetworkExtrasInvalidClassName, "shouldnot", "work");
-  WaitForCompletion(native_ad->LoadAd(kNativeAdUnit, request),
-                    "LoadAd",
+  WaitForCompletion(native_ad->LoadAd(kNativeAdUnit, request), "LoadAd",
                     firebase::gma::kAdErrorCodeAdNetworkClassLoadError);
   delete native_ad;
 }

@@ -28,8 +28,7 @@ namespace internal {
 /// the Future for each method.
 class NativeAdInternalStub : public NativeAdInternal {
  public:
-  explicit NativeAdInternalStub(NativeAd* base)
-      : NativeAdInternal(base) {}
+  explicit NativeAdInternalStub(NativeAd* base) : NativeAdInternal(base) {}
 
   ~NativeAdInternalStub() override {}
 

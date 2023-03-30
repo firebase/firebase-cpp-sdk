@@ -34,15 +34,13 @@
 namespace firebase {
 namespace gma {
 
-METHOD_LOOKUP_DEFINITION(
-    native_ad_helper,
-    "com/google/firebase/gma/internal/cpp/NativeAdHelper",
-    NATIVEADHELPER_METHODS);
+METHOD_LOOKUP_DEFINITION(native_ad_helper,
+                         "com/google/firebase/gma/internal/cpp/NativeAdHelper",
+                         NATIVEADHELPER_METHODS);
 
 namespace internal {
 
-NativeAdInternalAndroid::NativeAdInternalAndroid(
-    NativeAd* base)
+NativeAdInternalAndroid::NativeAdInternalAndroid(NativeAd* base)
     : NativeAdInternal(base), helper_(nullptr), initialized_(false) {
   firebase::MutexLock lock(mutex_);
   JNIEnv* env = ::firebase::gma::GetJNI();
@@ -63,8 +61,8 @@ NativeAdInternalAndroid::~NativeAdInternalAndroid() {
   // Since it's currently not possible to destroy the native ad, just
   // disconnect from it so the listener doesn't initiate callbacks with stale
   // data.
-  env->CallVoidMethod(helper_, native_ad_helper::GetMethodId(
-                                   native_ad_helper::kDisconnect));
+  env->CallVoidMethod(
+      helper_, native_ad_helper::GetMethodId(native_ad_helper::kDisconnect));
   env->DeleteGlobalRef(helper_);
   helper_ = nullptr;
 }
@@ -91,14 +89,13 @@ Future<void> NativeAdInternalAndroid::Initialize(AdParent parent) {
   Future<void> future =
       MakeFuture(&future_data_.future_impl, callback_data->future_handle);
   env->CallVoidMethod(
-      helper_,
-      native_ad_helper::GetMethodId(native_ad_helper::kInitialize),
+      helper_, native_ad_helper::GetMethodId(native_ad_helper::kInitialize),
       reinterpret_cast<jlong>(callback_data), parent);
   return future;
 }
 
-Future<AdResult> NativeAdInternalAndroid::LoadAd(
-    const char* ad_unit_id, const AdRequest& request) {
+Future<AdResult> NativeAdInternalAndroid::LoadAd(const char* ad_unit_id,
+                                                 const AdRequest& request) {
   firebase::MutexLock lock(mutex_);
 
   if (!initialized_) {
@@ -130,8 +127,7 @@ Future<AdResult> NativeAdInternalAndroid::LoadAd(
 
   jstring j_ad_unit_str = env->NewStringUTF(ad_unit_id);
   ::firebase::gma::GetJNI()->CallVoidMethod(
-      helper_,
-      native_ad_helper::GetMethodId(native_ad_helper::kLoadAd),
+      helper_, native_ad_helper::GetMethodId(native_ad_helper::kLoadAd),
       reinterpret_cast<jlong>(callback_data), j_ad_unit_str, j_request);
   env->DeleteLocalRef(j_ad_unit_str);
   env->DeleteLocalRef(j_request);

@@ -57,12 +57,11 @@ Future<void> NativeAd::InitializeLastResult() const {
 }
 
 Future<AdResult> NativeAd::LoadAd(const char* ad_unit_id,
-                                        const AdRequest& request) {
+                                  const AdRequest& request) {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::gma::internal::kNativeAdFnLoadAd,
-        kAdErrorCodeUninitialized, kAdUninitializedErrorMessage,
-        &internal_->future_data_, AdResult());
+        firebase::gma::internal::kNativeAdFnLoadAd, kAdErrorCodeUninitialized,
+        kAdUninitializedErrorMessage, &internal_->future_data_, AdResult());
   }
 
   return internal_->LoadAd(ad_unit_id, request);
@@ -71,9 +70,8 @@ Future<AdResult> NativeAd::LoadAd(const char* ad_unit_id,
 Future<AdResult> NativeAd::LoadAdLastResult() const {
   if (!CheckIsInitialized(internal_)) {
     return CreateAndCompleteFutureWithResult(
-        firebase::gma::internal::kNativeAdFnLoadAd,
-        kAdErrorCodeUninitialized, kAdUninitializedErrorMessage,
-        &internal_->future_data_, AdResult());
+        firebase::gma::internal::kNativeAdFnLoadAd, kAdErrorCodeUninitialized,
+        kAdUninitializedErrorMessage, &internal_->future_data_, AdResult());
   }
   return internal_->GetLoadAdLastResult();
 }

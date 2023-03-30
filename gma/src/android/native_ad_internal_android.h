@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef THIRD_PARTY_FIREBASE_CPP_GMA_SRC_ANDROID_NATIVE_AD_INTERNAL_ANDROID_H_
-#define THIRD_PARTY_FIREBASE_CPP_GMA_SRC_ANDROID_NATIVE_AD_INTERNAL_ANDROID_H_
+#ifndef FIREBASE_GMA_SRC_ANDROID_NATIVE_AD_INTERNAL_ANDROID_H_
+#define FIREBASE_GMA_SRC_ANDROID_NATIVE_AD_INTERNAL_ANDROID_H_
 
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/util_android.h"
@@ -65,4 +65,4 @@ class NativeAdInternalAndroid : public NativeAdInternal {
 }  // namespace gma
 }  // namespace firebase
 
-#endif  // THIRD_PARTY_FIREBASE_CPP_GMA_SRC_ANDROID_NATIVE_AD_INTERNAL_ANDROID_H_
+#endif  // FIREBASE_GMA_SRC_ANDROID_NATIVE_AD_INTERNAL_ANDROID_H_

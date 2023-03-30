@@ -78,29 +78,28 @@ public class NativeAdHelper {
   public void initialize(final long callbackDataPtr, Activity activity) {
     mActivity = activity;
 
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            int errorCode;
-            String errorMessage;
-            if (mNative == null) {
-              try {
-                errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
-                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-              } catch (IllegalStateException e) {
-                mNative = null;
-                // This exception can be thrown if the ad unit ID was already set.
-                errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
-                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
-              }
-            } else {
-              errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
-              errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
-            }
-            completeNativeAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        int errorCode;
+        String errorMessage;
+        if (mNative == null) {
+          try {
+            errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
+          } catch (IllegalStateException e) {
+            mNative = null;
+            // This exception can be thrown if the ad unit ID was already set.
+            errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
           }
-        });
+        } else {
+          errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
+          errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
+        }
+        completeNativeAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
+      }
+    });
   }
 
   /** Disconnect the helper from the interstital ad. */
@@ -114,17 +113,16 @@ public class NativeAdHelper {
       return;
     }
 
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            synchronized (mNativeLock) {
-              if (mNative != null) {
-                mNative = null;
-              }
-            }
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        synchronized (mNativeLock) {
+          if (mNative != null) {
+            mNative = null;
           }
-        });
+        }
+      }
+    });
   }
 
   /** Loads an ad for the underlying NativeAd object. */
@@ -134,8 +132,7 @@ public class NativeAdHelper {
     }
     synchronized (mNativeLock) {
       if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
-        completeNativeLoadAdInternalError(
-            callbackDataPtr,
+        completeNativeLoadAdInternalError(callbackDataPtr,
             ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS,
             ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS);
         return;
@@ -145,38 +142,35 @@ public class NativeAdHelper {
 
     mAdUnitId = adUnitId;
 
-    mActivity.runOnUiThread(
-        new Runnable() {
-          @Override
-          public void run() {
-            if (mActivity == null) {
-              synchronized (mNativeLock) {
-                completeNativeLoadAdInternalError(
-                    mLoadAdCallbackDataPtr,
-                    ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
-                    ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
-                mLoadAdCallbackDataPtr = CPP_NULLPTR;
-              }
-            } else {
-              try {
-                mAdLoaderBuilder = new AdLoader.Builder(mActivity, mAdUnitId);
-                NativeAdListener listener = new NativeAdListener();
-                mAdLoaderBuilder.forNativeAd(listener);
-                mAdLoaderBuilder.withAdListener(listener);
-                mAdLoader = mAdLoaderBuilder.build();
-                mAdLoader.loadAd(request);
-              } catch (IllegalStateException e) {
-                synchronized (mNativeLock) {
-                  completeNativeLoadAdInternalError(
-                      mLoadAdCallbackDataPtr,
-                      ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
-                      ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
-                  mLoadAdCallbackDataPtr = CPP_NULLPTR;
-                }
-              }
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        if (mActivity == null) {
+          synchronized (mNativeLock) {
+            completeNativeLoadAdInternalError(mLoadAdCallbackDataPtr,
+                ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
+                ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
+            mLoadAdCallbackDataPtr = CPP_NULLPTR;
+          }
+        } else {
+          try {
+            mAdLoaderBuilder = new AdLoader.Builder(mActivity, mAdUnitId);
+            NativeAdListener listener = new NativeAdListener();
+            mAdLoaderBuilder.forNativeAd(listener);
+            mAdLoaderBuilder.withAdListener(listener);
+            mAdLoader = mAdLoaderBuilder.build();
+            mAdLoader.loadAd(request);
+          } catch (IllegalStateException e) {
+            synchronized (mNativeLock) {
+              completeNativeLoadAdInternalError(mLoadAdCallbackDataPtr,
+                  ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
+                  ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
+              mLoadAdCallbackDataPtr = CPP_NULLPTR;
             }
           }
-        });
+        }
+      }
+    });
   }
 
   private class NativeAdListener extends AdListener implements NativeAd.OnNativeAdLoadedListener {

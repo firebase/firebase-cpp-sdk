@@ -338,8 +338,8 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
         interstitial_ad_helper::CacheClassFromFiles(
             env, activity, &embedded_files) != nullptr &&
         interstitial_ad_helper::CacheMethodIds(env, activity) &&
-        native_ad_helper::CacheClassFromFiles(
-            env, activity, &embedded_files) != nullptr &&
+        native_ad_helper::CacheClassFromFiles(env, activity, &embedded_files) !=
+            nullptr &&
         native_ad_helper::CacheMethodIds(env, activity) &&
         rewarded_ad_helper::CacheClassFromFiles(env, activity,
                                                 &embedded_files) != nullptr &&
@@ -1199,8 +1199,7 @@ bool RegisterNatives() {
              env, kInterstitialMethods,
              FIREBASE_ARRAYSIZE(kInterstitialMethods)) &&
          native_ad_helper::RegisterNatives(
-             env, kNativeAdMethods,
-             FIREBASE_ARRAYSIZE(kNativeAdMethods)) &&
+             env, kNativeAdMethods, FIREBASE_ARRAYSIZE(kNativeAdMethods)) &&
          rewarded_ad_helper::RegisterNatives(
              env, kRewardedAdMethods, FIREBASE_ARRAYSIZE(kRewardedAdMethods)) &&
          gma_initialization_helper::RegisterNatives(
