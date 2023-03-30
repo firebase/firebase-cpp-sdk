@@ -64,8 +64,6 @@ User::~User() { auth_data_ = nullptr; }
 
 bool User::is_valid() const { return ValidUser(auth_data_); }
 
-User::~User() { auth_data_ = nullptr; }
-
 Future<std::string> User::GetToken(bool force_refresh) {
   if (!ValidUser(auth_data_)) {
     return Future<std::string>();
@@ -84,7 +82,7 @@ Future<std::string> User::GetToken(bool force_refresh) {
   return MakeFuture(&futures, handle);
 }
 
-const std::vector<UserInfoInterface *> &User::provider_data() const {
+const std::vector<UserInfoInterface *> &User::provider_data_DEPRECATED() const {
   ClearUserInfos(auth_data_);
 
   if (ValidUser(auth_data_)) {
@@ -180,13 +178,14 @@ Future<User *> User::LinkWithCredential_DEPRECATED(const Credential &credential)
   return MakeFuture(&futures, handle);
 }
 
-Future<SignInResult> User::LinkAndRetrieveDataWithCredential(const Credential &credential) {
+Future<SignInResult> User::LinkAndRetrieveDataWithCredential_DEPRECATED(
+    const Credential &credential) {
   if (!ValidUser(auth_data_)) {
     return Future<SignInResult>();
   }
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = auth_data_->future_impl.SafeAlloc<SignInResult>(
-      kUserFn_LinkAndRetrieveDataWithCredential, SignInResult());
+      kUserFn_LinkAndRetrieveDataWithCredential_DEPRECATED, SignInResult());
   [UserImpl(auth_data_)
       linkWithCredential:CredentialFromImpl(credential.impl_)
               completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
