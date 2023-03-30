@@ -171,6 +171,14 @@ GetTokenResult EnsureFreshToken(AuthData* const auth_data,
 // Don't call while holding the lock on AuthData::future_impl.mutex()!
 template <typename T>
 bool ValidateCurrentUser(Promise<T>* const promise, AuthData* const auth_data) {
+  if (promise == nullptr) {
+    return false;
+  }
+  if (auth_data == nullptr) {
+    promise->InvalidateLastResult();
+    return false;
+  }
+
   const bool is_user_signed_in = UserView::GetReader(auth_data).IsValid();
   if (!is_user_signed_in) {
     promise->InvalidateLastResult();
@@ -511,7 +519,7 @@ void AssignLoadedData(const Future<std::string>& future, AuthData* auth_data) {
 
 void HandleLoadedData(const Future<std::string>& future, void* auth_data) {
   auto cast_auth_data = static_cast<AuthData*>(auth_data);
-  MutexLock destructing_lock(cast_auth_data->desctruting_mutex);
+  MutexLock destructing_lock(cast_auth_data->destructing_mutex);
   if (cast_auth_data->destructing) {
     // If auth is destructing, abort.
     return;
@@ -610,11 +618,17 @@ Future<void> UserDataPersist::DeleteUserData(AuthData* auth_data) {
   return user_secure_manager_->DeleteUserData(auth_data->app->name());
 }
 
-User::~User() {
-  // Make sure we don't have any pending futures in flight before we disappear.
-  while (!auth_data_->future_impl.IsSafeToDelete()) {
-    internal::Sleep(100);
-  }
+User::User(const User& user) { auth_data_ = user.auth_data_; }
+
+User& User::operator=(const User& user) {
+  auth_data_ = user.auth_data_;
+  return *this;
+}
+
+User::~User() { auth_data_ = nullptr; }
+
+bool User::is_valid() const {
+  return ValidUser(auth_data_) && UserView::GetReader(auth_data_).IsValid();
 }
 
 // RPCs
@@ -626,6 +640,9 @@ Future<std::string> User::GetToken(const bool force_refresh) {
 Future<std::string> User::GetTokenInternal(const bool force_refresh,
                                            const int future_identifier) {
   Promise<std::string> promise(&auth_data_->future_impl, future_identifier);
+  if (!ValidateCurrentUser(&promise, auth_data_)) {
+    return promise.LastResult();
+  }
 
   GetTokenResult current_token(kAuthErrorFailure);
   const bool is_user_logged_in =
@@ -719,6 +736,10 @@ Future<void> User::SendEmailVerification() {
 
 Future<void> User::Reload() {
   Promise<void> promise(&auth_data_->future_impl, kUserFn_Reload);
+  if (!ValidateCurrentUser(&promise, auth_data_)) {
+    return promise.LastResult();
+  }
+
   std::string id_token;
   const bool is_user_logged_in = UserView::TryRead(
       auth_data_,
@@ -753,6 +774,9 @@ Future<void> User::Reload() {
 
 Future<void> User::UpdateEmail(const char* const email) {
   Promise<void> promise(&auth_data_->future_impl, kUserFn_UpdateEmail);
+  if (!ValidateCurrentUser(&promise, auth_data_)) {
+    return promise.LastResult();
+  }
   if (!ValidateEmail(&promise, email)) {
     return promise.LastResult();
   }
@@ -775,10 +799,10 @@ Future<void> User::UpdateEmail(const char* const email) {
 
 Future<void> User::UpdatePassword(const char* const password) {
   Promise<void> promise(&auth_data_->future_impl, kUserFn_UpdatePassword);
-  if (!ValidatePassword(&promise, password)) {
+  if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
   }
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
+  if (!ValidatePassword(&promise, password)) {
     return promise.LastResult();
   }
 
@@ -813,6 +837,9 @@ Future<void> User::UpdateUserProfile(const UserProfile& profile) {
 
 Future<User*> User::Unlink_DEPRECATED(const char* const provider) {
   Promise<User*> promise(&auth_data_->future_impl, kUserFn_Unlink_DEPRECATED);
+  if (!ValidateCurrentUser(&promise, auth_data_)) {
+    return promise.LastResult();
+  }
   if (!provider || strlen(provider) == 0) {
     FailPromise(&promise, kAuthErrorNoSuchProvider);
     return promise.LastResult();
@@ -844,14 +871,21 @@ Future<User*> User::LinkWithCredential_DEPRECATED(
     const Credential& credential) {
   Promise<User*> promise(&auth_data_->future_impl,
                          kUserFn_LinkWithCredential_DEPRECATED);
+  if (!ValidateCurrentUser(&promise, auth_data_)) {
+    return promise.LastResult();
+  }
   return DoLinkCredential(promise, auth_data_, credential.provider(),
                           credential.impl_);
 }
 
-Future<SignInResult> User::LinkAndRetrieveDataWithCredential(
+Future<SignInResult> User::LinkAndRetrieveDataWithCredential_DEPRECATED(
     const Credential& credential) {
-  Promise<SignInResult> promise(&auth_data_->future_impl,
-                                kUserFn_LinkAndRetrieveDataWithCredential);
+  Promise<SignInResult> promise(
+      &auth_data_->future_impl,
+      kUserFn_LinkAndRetrieveDataWithCredential_DEPRECATED);
+  if (!ValidateCurrentUser(&promise, auth_data_)) {
+    return promise.LastResult();
+  }
   return DoLinkCredential(promise, auth_data_, credential.provider(),
                           credential.impl_);
 }
@@ -873,6 +907,9 @@ Future<SignInResult> User::LinkWithProvider_DEPRECATED(
 
 Future<void> User::Reauthenticate(const Credential& credential) {
   Promise<void> promise(&auth_data_->future_impl, kUserFn_Reauthenticate);
+  if (!ValidateCurrentUser(&promise, auth_data_)) {
+    return promise.LastResult();
+  }
   return DoReauthenticate(promise, auth_data_, credential.provider(),
                           credential.impl_);
 }
@@ -882,6 +919,9 @@ Future<SignInResult> User::ReauthenticateAndRetrieveData_DEPRECATED(
   Promise<SignInResult> promise(
       &auth_data_->future_impl,
       kUserFn_ReauthenticateAndRetrieveData_DEPRECATED);
+  if (!ValidateCurrentUser(&promise, auth_data_)) {
+    return promise.LastResult();
+  }
   return DoReauthenticate(promise, auth_data_, credential.provider(),
                           credential.impl_);
 }
@@ -901,7 +941,7 @@ Future<SignInResult> User::ReauthenticateWithProvider_DEPRECATED(
   return MakeFuture(&auth_data_->future_impl, handle);
 }
 
-const std::vector<UserInfoInterface*>& User::provider_data() const {
+const std::vector<UserInfoInterface*>& User::provider_data_DEPRECATED() const {
   return auth_data_->user_infos;
 }
 
@@ -917,46 +957,44 @@ UserMetadata User::metadata() const {
 }
 
 bool User::is_email_verified() const {
-  const auto user = UserView::GetReader(auth_data_);
-  return user.IsValid() ? user->is_email_verified : false;
+  const auto user_view = UserView::GetReader(auth_data_);
+  return user_view.IsValid() ? user_view->is_email_verified : false;
 }
 
 bool User::is_anonymous() const {
-  const auto user = UserView::GetReader(auth_data_);
-  return user.IsValid() ? user->is_anonymous : true;
+  const auto user_view = UserView::GetReader(auth_data_);
+  return user_view.IsValid() ? user_view->is_anonymous : true;
 }
 
 std::string User::uid() const {
-  const auto user = UserView::GetReader(auth_data_);
-  return user.IsValid() ? user->uid : std::string();
+  const auto user_view = UserView::GetReader(auth_data_);
+  return user_view.IsValid() ? user_view->uid : std::string();
 }
 
 std::string User::email() const {
-  const auto user = UserView::GetReader(auth_data_);
-  return user.IsValid() ? user->email : std::string();
+  const auto user_view = UserView::GetReader(auth_data_);
+  return user_view.IsValid() ? user_view->email : std::string();
 }
 
 std::string User::display_name() const {
-  const auto user = UserView::GetReader(auth_data_);
-  return user.IsValid() ? user->display_name : std::string();
+  const auto user_view = UserView::GetReader(auth_data_);
+  return user_view.IsValid() ? user_view->display_name : std::string();
 }
 
 std::string User::phone_number() const {
-  const auto user = UserView::GetReader(auth_data_);
-  return user.IsValid() ? user->phone_number : std::string();
+  const auto user_view = UserView::GetReader(auth_data_);
+  return user_view.IsValid() ? user_view->phone_number : std::string();
 }
 
 std::string User::photo_url() const {
-  const auto user = UserView::GetReader(auth_data_);
-  return user.IsValid() ? user->photo_url : std::string();
+  const auto user_view = UserView::GetReader(auth_data_);
+  return user_view.IsValid() ? user_view->photo_url : std::string();
 }
 
 std::string User::provider_id() const {
-  const auto user = UserView::GetReader(auth_data_);
-  return user.IsValid() ? user->provider_id : std::string();
+  const auto user_view = UserView::GetReader(auth_data_);
+  return user_view.IsValid() ? user_view->provider_id : std::string();
 }
-
-// Not implemented
 
 Future<User*> User::UpdatePhoneNumberCredential_DEPRECATED(
     const Credential& credential) {
@@ -966,7 +1004,6 @@ Future<User*> User::UpdatePhoneNumberCredential_DEPRECATED(
     return promise.LastResult();
   }
 
-  // TODO(varconst): for now, phone auth is not supported on desktop.
   promise.Fail(kAuthErrorApiNotAvailable,
                "Phone Auth is not supported on desktop");
   return promise.LastResult();

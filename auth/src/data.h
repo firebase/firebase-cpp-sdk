@@ -51,7 +51,7 @@ enum AuthApiFunction {
   kUserFn_ConfirmEmailVerification,
   kUserFn_UpdateUserProfile,
   kUserFn_LinkWithCredential_DEPRECATED,
-  kUserFn_LinkAndRetrieveDataWithCredential,
+  kUserFn_LinkAndRetrieveDataWithCredential_DEPRECATED,
   kUserFn_LinkWithProvider_DEPRECATED,
   kUserFn_ReauthenticateWithProvider_DEPRECATED,
   kUserFn_Unlink_DEPRECATED,
@@ -179,7 +179,7 @@ struct AuthData {
   bool destructing;
 
   // Mutex protecting destructing
-  Mutex desctruting_mutex;
+  Mutex destructing_mutex;
 
   // Sets if the Id Token Listener is expecting a callback.
   // Used to workaround an issue where the Id Token is not reset with a new one,

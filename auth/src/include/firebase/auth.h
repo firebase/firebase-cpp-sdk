@@ -146,6 +146,14 @@ class Auth {
 
   ~Auth();
 
+  /// Synchronously gets the cached current user, or returns an object where
+  /// is_valid() == false if there is none.
+  ///
+  /// @note This function may block and wait until the Auth instance finishes
+  /// loading the saved user's state. This should only happen for a short
+  /// time after the Auth instance is created.
+  User current_user();
+
   /// @deprecated This is a deprecated method. Please use @current_user instead.
   ///
   /// Synchronously gets the cached current user, or nullptr if there is none.

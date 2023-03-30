@@ -53,12 +53,18 @@ class IOSWrappedUserInfo : public UserInfoInterface {
   id<FIRUserInfo> user_info_;
 };
 
-User::~User() {
-  // Make sure we don't have any pending futures in flight before we disappear.
-  while (!auth_data_->future_impl.IsSafeToDelete()) {
-    internal::Sleep(100);
-  }
+User::User(const User &user) { auth_data_ = user.auth_data_; }
+
+User &User::operator=(const User &user) {
+  auth_data_ = user.auth_data_;
+  return *this;
 }
+
+User::~User() { auth_data_ = nullptr; }
+
+bool User::is_valid() const { return ValidUser(auth_data_); }
+
+User::~User() { auth_data_ = nullptr; }
 
 Future<std::string> User::GetToken(bool force_refresh) {
   if (!ValidUser(auth_data_)) {

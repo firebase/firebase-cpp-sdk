@@ -108,6 +108,7 @@ Auth::Auth(App* app, void* auth_impl) : auth_data_(new AuthData) {
   auth_data_->app = app;
   auth_data_->auth = this;
   auth_data_->auth_impl = auth_impl;
+  auth_data_->user_impl = nullptr;
   InitPlatformAuth(auth_data_);
 
   std::string* future_id = &auth_data_->future_api_id;
@@ -140,8 +141,13 @@ void Auth::DeleteInternal() {
   if (!auth_data_) return;
 
   {
-    MutexLock destructing_lock(auth_data_->desctruting_mutex);
+    MutexLock destructing_lock(auth_data_->destructing_mutex);
     auth_data_->destructing = true;
+  }
+
+  // Make sure we don't have any pending futures in flight before we disappear.
+  while (!auth_data_->future_impl.IsSafeToDelete()) {
+    internal::Sleep(100);
   }
 
   CleanupNotifier* notifier = CleanupNotifier::FindByOwner(auth_data_->app);

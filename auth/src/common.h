@@ -62,7 +62,10 @@ void LogHeartbeat(Auth* auth);
 
 // Returns true if `auth_data` has a user that's currently active.
 inline bool ValidUser(const AuthData* auth_data) {
-  return auth_data->user_impl != nullptr;
+  if (auth_data == nullptr || auth_data->user_impl == nullptr) {
+    return false;
+  }
+  return true;
 }
 
 // Notify all the listeners of the state change.

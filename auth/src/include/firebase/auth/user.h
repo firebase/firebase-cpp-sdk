@@ -178,7 +178,18 @@ class User : public UserInfoInterface {
     const char* photo_url;
   };
 
+  // Copy constructor.
+  User(const User&);
+
+  // Assignment operator.
+  User& operator=(const User&);
+
   ~User();
+
+  /// Returns whether this User object represents a valid user. Could be false
+  /// on Users contained with @ref AuthResult structures from failed Auth
+  /// operations.
+  bool is_valid() const;
 
   /// The Java Web Token (JWT) that can be used to identify the user to
   /// the backend.
@@ -204,6 +215,9 @@ class User : public UserInfoInterface {
   /// Get results of the most recent call to @ref GetToken.
   Future<std::string> GetTokenLastResult() const;
 
+  /// @deprecated This is a deprecated method. Please use @ref provider_data()
+  /// instead.
+  ///
   /// Gets the third party profile data associated with this user returned by
   /// the authentication server, if any.
   /// <SWIG>
@@ -214,7 +228,7 @@ class User : public UserInfoInterface {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  const std::vector<UserInfoInterface*>& provider_data() const;
+  const std::vector<UserInfoInterface*>& provider_data_DEPRECATED() const;
 
   /// Sets the email address for the user.
   ///
@@ -332,6 +346,9 @@ class User : public UserInfoInterface {
   FIREBASE_DEPRECATED Future<User*> LinkWithCredentialLastResult_DEPRECATED()
       const;
 
+  /// @deprecated This is a deprecated method. Please use
+  /// @ref LinkAndRetreiveDataWithCredential(const Credential&) instead.
+  ///
   /// Links the user with the given 3rd party credentials.
   ///
   /// For example, a Facebook login access token, a Twitter token/token-secret
@@ -343,12 +360,15 @@ class User : public UserInfoInterface {
   ///
   /// Data from the Identity Provider used to sign-in is returned in the
   /// @ref AdditionalUserInfo inside @ref SignInResult.
-  Future<SignInResult> LinkAndRetrieveDataWithCredential(
+  Future<SignInResult> LinkAndRetrieveDataWithCredential_DEPRECATED(
       const Credential& credential);
 
+  /// @deprecated
+  ///
   /// Get results of the most recent call to
   /// @ref LinkAndRetrieveDataWithCredential.
-  Future<SignInResult> LinkAndRetrieveDataWithCredentialLastResult() const;
+  Future<SignInResult> LinkAndRetrieveDataWithCredentialLastResult_DEPRECATED()
+      const;
 
   /// @deprecated This is a deprecated method. Please use
   /// @ref LinkWithProvider(FederatedAuthProvider*) instead.
@@ -501,16 +521,9 @@ class User : public UserInfoInterface {
   virtual std::string phone_number() const;
 
  private:
-  /// @cond FIREBASE_APP_INTERNAL
   friend struct AuthData;
   // Only exists in AuthData. Access via @ref Auth::CurrentUser().
   explicit User(AuthData* auth_data) : auth_data_(auth_data) {}
-
-  // Disable copy constructor.
-  User(const User&) = delete;
-  // Disable copy operator.
-  User& operator=(const User&) = delete;
-  /// @endcond
 
 #if defined(INTERNAL_EXPERIMENTAL)
   // Doxygen should not make docs for this function.

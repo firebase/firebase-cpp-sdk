@@ -25,12 +25,12 @@ AUTH_RESULT_FN(User, UpdatePassword, void)
 AUTH_RESULT_FN(User, Reauthenticate, void)
 AUTH_RESULT_FN(User, SendEmailVerification, void)
 AUTH_RESULT_FN(User, UpdateUserProfile, void)
-AUTH_RESULT_FN(User, LinkAndRetrieveDataWithCredential, SignInResult)
 AUTH_RESULT_FN(User, Reload, void)
 AUTH_RESULT_FN(User, Delete, void)
 
 AUTH_RESULT_DEPRECATED_FN(User, ReauthenticateAndRetrieveData, SignInResult)
 AUTH_RESULT_DEPRECATED_FN(User, LinkWithCredential, User*)
+AUTH_RESULT_DEPRECATED_FN(User, LinkAndRetrieveDataWithCredential, SignInResult)
 AUTH_RESULT_DEPRECATED_FN(User, Unlink, User*)
 AUTH_RESULT_DEPRECATED_FN(User, UpdatePhoneNumberCredential, User*)
 

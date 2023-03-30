@@ -529,6 +529,15 @@ class CurrentUserBlockListener : public firebase::auth::AuthStateListener {
   Semaphore semaphore_;
 };
 
+User Auth::current_user() {
+  User* current_user = current_user_DEPRECATED();
+  if (current_user != nullptr) {
+    return *current_user;
+  }
+  // Return an invalid user.
+  return User(auth_data_);
+}
+
 // It's safe to return a direct pointer to `current_user` because that class
 // holds nothing but a pointer to AuthData, which never changes.
 // All User functions that require synchronization go through AuthData's mutex.
@@ -634,7 +643,7 @@ void DestroyUserDataPersist(AuthData* auth_data) {
 }
 
 void LoadFinishTriggerListeners(AuthData* auth_data) {
-  MutexLock destructing_lock(auth_data->desctruting_mutex);
+  MutexLock destructing_lock(auth_data->destructing_mutex);
   if (auth_data->destructing) {
     // If auth is destructing, abort.
     return;
