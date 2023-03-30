@@ -21,6 +21,10 @@
 #include "firebase/gma/types.h"
 #include "firebase/internal/common.h"
 
+// Doxygen breaks trying to parse this file, and since it is internal logic,
+// it doesn't need to be included in the generated documentation.
+#ifndef DOXYGEN
+
 namespace firebase {
 namespace gma {
 
@@ -61,4 +65,7 @@ class NativeAd {
 
 }  // namespace gma
 }  // namespace firebase
+
+#endif  // DOXYGEN
+
 #endif  // FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_INTERNAL_NATIVE_AD_H_
