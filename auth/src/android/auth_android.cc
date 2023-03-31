@@ -551,6 +551,15 @@ Future<User*> Auth::CreateUserWithEmailAndPassword_DEPRECATED(
   return MakeFuture(&futures, handle);
 }
 
+User Auth::current_user() {
+  User* current_user = current_user_DEPRECATED();
+  if (current_user != nullptr) {
+    return *current_user;
+  }
+  // Return an invalid user.
+  return User(auth_data_);
+}
+
 // It's safe to return a direct pointer to `current_user` because that class
 // holds nothing but a pointer to AuthData, which never changes.
 // All User functions that require synchronization go through AuthData's mutex.

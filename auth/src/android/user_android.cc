@@ -191,7 +191,16 @@ static std::string GetProviderId(AuthData* auth_data, jobject impl) {
   return GetUserProperty(auth_data, impl, userinfo::kGetProviderId);
 }
 
-User::~User() {}
+User::User(const User& user) { auth_data_ = user.auth_data_; }
+
+User& User::operator=(const User& user) {
+  auth_data_ = user.auth_data_;
+  return *this;
+}
+
+User::~User() { auth_data_ = nullptr; }
+
+bool User::is_valid() const { return ValidUser(auth_data_); }
 
 std::string User::uid() const {
   return ValidUser(auth_data_) ? GetUID(auth_data_, UserImpl(auth_data_)) : "";
@@ -317,7 +326,7 @@ Future<std::string> User::GetToken(bool force_refresh) {
   return MakeFuture(&futures, handle);
 }
 
-const std::vector<UserInfoInterface*>& User::provider_data() const {
+const std::vector<UserInfoInterface*>& User::provider_data_DEPRECATED() const {
   ClearUserInfos(auth_data_);
 
   if (ValidUser(auth_data_)) {
@@ -488,14 +497,14 @@ Future<User*> User::LinkWithCredential_DEPRECATED(
   return MakeFuture(&futures, handle);
 }
 
-Future<SignInResult> User::LinkAndRetrieveDataWithCredential(
+Future<SignInResult> User::LinkAndRetrieveDataWithCredential_DEPRECATED(
     const Credential& credential) {
   if (!ValidUser(auth_data_)) {
     return Future<SignInResult>();
   }
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<SignInResult>(
-      kUserFn_LinkAndRetrieveDataWithCredential);
+      kUserFn_LinkAndRetrieveDataWithCredential_DEPRECATED);
   JNIEnv* env = Env(auth_data_);
 
   jobject pending_result = env->CallObjectMethod(
