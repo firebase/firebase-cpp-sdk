@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Google LLC
+ * Copyright 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,6 +48,7 @@ NativeAdInternalAndroid::NativeAdInternalAndroid(NativeAd* base)
       native_ad_helper::GetClass(),
       native_ad_helper::GetMethodId(native_ad_helper::kConstructor),
       reinterpret_cast<jlong>(this));
+  util::CheckAndClearJniExceptions(env);
 
   FIREBASE_ASSERT(helper_ref);
   helper_ = env->NewGlobalRef(helper_ref);
@@ -63,6 +64,7 @@ NativeAdInternalAndroid::~NativeAdInternalAndroid() {
   // data.
   env->CallVoidMethod(
       helper_, native_ad_helper::GetMethodId(native_ad_helper::kDisconnect));
+  util::CheckAndClearJniExceptions(env);
   env->DeleteGlobalRef(helper_);
   helper_ = nullptr;
 }
@@ -91,6 +93,7 @@ Future<void> NativeAdInternalAndroid::Initialize(AdParent parent) {
   env->CallVoidMethod(
       helper_, native_ad_helper::GetMethodId(native_ad_helper::kInitialize),
       reinterpret_cast<jlong>(callback_data), parent);
+  util::CheckAndClearJniExceptions(env);
   return future;
 }
 
@@ -129,6 +132,7 @@ Future<AdResult> NativeAdInternalAndroid::LoadAd(const char* ad_unit_id,
   ::firebase::gma::GetJNI()->CallVoidMethod(
       helper_, native_ad_helper::GetMethodId(native_ad_helper::kLoadAd),
       reinterpret_cast<jlong>(callback_data), j_ad_unit_str, j_request);
+  util::CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(j_ad_unit_str);
   env->DeleteLocalRef(j_request);
   return future;

@@ -1,4 +1,4 @@
-// Copyright 2021 Google Inc. All rights reserved.
+// Copyright 2021 Google LLC. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -2053,7 +2053,7 @@ TEST_F(FirebaseGmaTest, TestNativeAdErrorNotInitialized) {
   delete native_ad;
 }
 
-TEST_F(FirebaseGmaTest, TesNativeAdErrorAlreadyInitialized) {
+TEST_F(FirebaseGmaTest, TestNativeAdErrorAlreadyInitialized) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_IOS;
 

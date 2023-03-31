@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Google LLC
+ * Copyright 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,8 +26,7 @@
 #include "gma/src/android/native_ad_internal_android.h"
 #else
 #include "gma/src/stub/native_ad_internal_stub.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
-        // FIREBASE_PLATFORM_TVOS
+#endif  // FIREBASE_PLATFORM_ANDROID
 
 namespace firebase {
 namespace gma {

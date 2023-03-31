@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Google LLC
+ * Copyright 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,12 +51,6 @@ public class NativeAdHelper {
 
   // The ad unit ID to use for the NativeAd.
   private String mAdUnitId;
-
-  // The AdLoader used to load native ads.
-  private AdLoader mAdLoader;
-
-  // The AdLoader.Builder used to construct an AdLoader.
-  private AdLoader.Builder mAdLoaderBuilder;
 
   // Pointer to a FutureCallbackData in the C++ wrapper that will be used to
   // complete the Future associated with the latest call to LoadAd.
@@ -154,12 +148,12 @@ public class NativeAdHelper {
           }
         } else {
           try {
-            mAdLoaderBuilder = new AdLoader.Builder(mActivity, mAdUnitId);
+            AdLoader.Builder adLoaderBuilder = new AdLoader.Builder(mActivity, mAdUnitId);
             NativeAdListener listener = new NativeAdListener();
-            mAdLoaderBuilder.forNativeAd(listener);
-            mAdLoaderBuilder.withAdListener(listener);
-            mAdLoader = mAdLoaderBuilder.build();
-            mAdLoader.loadAd(request);
+            adLoaderBuilder.forNativeAd(listener);
+            adLoaderBuilder.withAdListener(listener);
+            AdLoader adLoader = adLoaderBuilder.build();
+            adLoader.loadAd(request);
           } catch (IllegalStateException e) {
             synchronized (mNativeLock) {
               completeNativeLoadAdInternalError(mLoadAdCallbackDataPtr,
