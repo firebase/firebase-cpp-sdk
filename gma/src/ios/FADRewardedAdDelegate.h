@@ -33,7 +33,7 @@ class RewardedAdInternalIOS;
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface FADRewardedAdDelegate : NSObject<GADFullScreenContentDelegate>
+@interface FADRewardedAdDelegate : NSObject <GADFullScreenContentDelegate>
 
 /// Returns a FADInterstitialDelegate object with InterstitialAdInternalIOS.
 - (FADRewardedAdDelegate *)initWithInternalRewardedAd:

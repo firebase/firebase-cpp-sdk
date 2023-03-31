@@ -19,6 +19,7 @@
 #include <string>
 
 #include "firebase/app.h"
+#include "firebase/cpp_version_warning.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 

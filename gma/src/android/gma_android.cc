@@ -246,7 +246,7 @@ static AdapterInitializationStatus PopulateAdapterInitializationStatus(
 }
 
 // Initializes the Google Mobile Ads SDK using the MobileAds.initialize()
-// method. The GMA app ID is retreived from the App's android manifest.
+// method. The GMA app ID is retrieved from the App's android manifest.
 Future<AdapterInitializationStatus> InitializeGoogleMobileAds(JNIEnv* env) {
   Future<AdapterInitializationStatus> future_to_return;
   {
@@ -622,7 +622,6 @@ void CallOpenAdInspector(void* data) {
   OpenAdInspectorCallData* call_data =
       reinterpret_cast<OpenAdInspectorCallData*>(data);
   JNIEnv* env = firebase::util::GetThreadsafeJNIEnv(call_data->vm);
-  bool jni_env_exists = (env != nullptr);
   jlong jlistener = (jlong)call_data->listener;
 
   jobject ad_inspector_helper_ref = env->NewObject(
@@ -653,7 +652,7 @@ void OpenAdInspector(AdParent parent, AdInspectorClosedListener* listener) {
   call_data->ad_parent = env->NewGlobalRef(parent);
   call_data->listener = listener;
   jobject activity = ::firebase::gma::GetActivity();
-  util::RunOnMainThread(env, g_activity, CallOpenAdInspector, call_data);
+  util::RunOnMainThread(env, activity, CallOpenAdInspector, call_data);
 }
 
 void SetIsSameAppKeyEnabled(bool is_enabled) {}
@@ -816,8 +815,9 @@ AdValue::PrecisionType ConvertAndroidPrecisionTypeToCPPPrecisionType(
     default:
       LogWarning("Could not convert AdValue precisionType: %l",
                  j_precision_type);
+      return AdValue::kAdValuePrecisionUnknown;
     case 0:
-      return AdValue::kdValuePrecisionUnknown;
+      return AdValue::kAdValuePrecisionUnknown;
     case 1:  // ESTIMATED
       return AdValue::kAdValuePrecisionEstimated;
     case 2:  // PUBLISHER_PROVIDED
@@ -1216,10 +1216,10 @@ jobject CreateJavaAdSize(JNIEnv* env, jobject j_activity,
               ad_size::GetMethodId(
                   ad_size::kGetCurrentOrientationAnchoredAdaptiveBannerAdSize),
               j_activity, adsize.width());
-
+          break;
         default:
           FIREBASE_ASSERT_MESSAGE(true,
-                                  "Uknown Anchor Adaptive AdSize Orientation");
+                                  "Unknown Anchor Adaptive AdSize Orientation");
       }
       break;
     case AdSize::kTypeInlineAdaptive:
@@ -1253,7 +1253,7 @@ jobject CreateJavaAdSize(JNIEnv* env, jobject j_activity,
             break;
           default:
             FIREBASE_ASSERT_MESSAGE(
-                true, "Uknown Inline Adaptive AdSize Orientation");
+                true, "Unknown Inline Adaptive AdSize Orientation");
         }
       }
       break;
@@ -1263,7 +1263,7 @@ jobject CreateJavaAdSize(JNIEnv* env, jobject j_activity,
                                  adsize.width(), adsize.height());
       break;
     default:
-      FIREBASE_ASSERT_MESSAGE(true, "Uknown AdSize Type");
+      FIREBASE_ASSERT_MESSAGE(true, "Unknown AdSize Type");
   }
   bool jni_exception = util::CheckAndClearJniExceptions(env);
   FIREBASE_ASSERT(!jni_exception);

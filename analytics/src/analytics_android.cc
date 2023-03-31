@@ -56,6 +56,8 @@ static const ::firebase::App* g_app = nullptr;
   X(ResetAnalyticsData, "resetAnalyticsData", "()V"),                         \
   X(GetAppInstanceId, "getAppInstanceId",                                     \
     "()Lcom/google/android/gms/tasks/Task;"),                                 \
+  X(GetSessionId, "getSessionId",                                             \
+    "()Lcom/google/android/gms/tasks/Task;"),                                 \
   X(GetInstance, "getInstance", "(Landroid/content/Context;)"                 \
     "Lcom/google/firebase/analytics/FirebaseAnalytics;",                      \
     firebase::util::kMethodTypeStatic)
@@ -203,7 +205,11 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
             env->GetStaticObjectField(analytics_consent_type::GetClass(),
                                       analytics_consent_type::GetFieldId(
                                           analytics_consent_type::kAdStorage));
-        util::CheckAndClearJniExceptions(env);
+        if (util::LogException(env, kLogLevelError,
+                               "Failed to get ConsentTypeAdStorage")) {
+          env->DeleteLocalRef(consent_map);
+          return;
+        }
         break;
       case kConsentTypeAnalyticsStorage:
         consent_type = env->GetStaticObjectField(
@@ -211,7 +217,11 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
             analytics_consent_type::GetFieldId(
                 analytics_consent_type::kAnalyticsStorage));
 
-        util::CheckAndClearJniExceptions(env);
+        if (util::LogException(env, kLogLevelError,
+                               "Failed to get ConsentTypeAnalyticsStorage")) {
+          env->DeleteLocalRef(consent_map);
+          return;
+        }
         break;
       default:
         LogError("Unknown ConsentType value: %d", it->first);
@@ -225,14 +235,24 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
             env->GetStaticObjectField(analytics_consent_status::GetClass(),
                                       analytics_consent_status::GetFieldId(
                                           analytics_consent_status::kGranted));
-        util::CheckAndClearJniExceptions(env);
+        if (util::LogException(env, kLogLevelError,
+                               "Failed to get ConsentStatusGranted")) {
+          env->DeleteLocalRef(consent_map);
+          env->DeleteLocalRef(consent_type);
+          return;
+        }
         break;
       case kConsentStatusDenied:
         consent_status =
             env->GetStaticObjectField(analytics_consent_status::GetClass(),
                                       analytics_consent_status::GetFieldId(
                                           analytics_consent_status::kDenied));
-        util::CheckAndClearJniExceptions(env);
+        if (util::LogException(env, kLogLevelError,
+                               "Failed to get ConsentStatusDenied")) {
+          env->DeleteLocalRef(consent_map);
+          env->DeleteLocalRef(consent_type);
+          return;
+        }
         break;
       default:
         LogError("Unknown ConsentStatus value: %d", it->second);
@@ -240,6 +260,7 @@ void SetConsent(const std::map<ConsentType, ConsentStatus>& consent_settings) {
         env->DeleteLocalRef(consent_type);
         return;
     }
+    LogInfo("SetConsent: %d -> %d", consent_type, consent_status);
     jobject previous = env->CallObjectMethod(consent_map, put_method,
                                              consent_type, consent_status);
     util::CheckAndClearJniExceptions(env);
@@ -493,6 +514,79 @@ Future<std::string> GetAnalyticsInstanceIdLastResult() {
   return static_cast<const Future<std::string>&>(
       internal::FutureData::Get()->api()->LastResult(
           internal::kAnalyticsFnGetAnalyticsInstanceId));
+}
+
+Future<int64_t> GetSessionId() {
+  FIREBASE_ASSERT_RETURN(Future<int64_t>(), internal::IsInitialized());
+  auto* api = internal::FutureData::Get()->api();
+  const auto future_handle =
+      api->SafeAlloc<int64_t>(internal::kAnalyticsFnGetSessionId);
+  JNIEnv* env = g_app->GetJNIEnv();
+  jobject task =
+      env->CallObjectMethod(g_analytics_class_instance,
+                            analytics::GetMethodId(analytics::kGetSessionId));
+
+  std::string error = util::GetAndClearExceptionMessage(env);
+  if (error.empty()) {
+    util::RegisterCallbackOnTask(
+        env, task,
+        [](JNIEnv* env, jobject result, util::FutureResult result_code,
+           const char* status_message, void* callback_data) {
+          auto* future_data = internal::FutureData::Get();
+          if (future_data) {
+            FutureHandleId future_id =
+                reinterpret_cast<FutureHandleId>(callback_data);
+            FutureHandle handle(future_id);
+
+            if (result_code == util::kFutureResultSuccess) {
+              if (result != nullptr) {
+                // result is a Long class type, unbox it.
+                // It'll get deleted below.
+                uint64_t session_id = util::JLongToInt64(env, result);
+                util::CheckAndClearJniExceptions(env);
+                future_data->api()->CompleteWithResult(handle, 0, "",
+                                                       session_id);
+              } else {
+                // Succeeded, but with a nullptr result.
+                // This occurs when AnalyticsStorage consent is set to Denied or
+                // the session is expired.
+                future_data->api()->CompleteWithResult(
+                    handle, -2,
+                    (status_message && *status_message)
+                        ? status_message
+                        : "AnalyticsStorage consent is set to "
+                          "Denied, or session is expired.",
+                    0);
+              }
+            } else {
+              // Failed, result is an exception, don't parse it.
+              // It'll get deleted below.
+              future_data->api()->CompleteWithResult(
+                  handle, -1,
+                  status_message ? status_message : "Unknown error occurred",
+                  0);
+              LogError("getSessionId() returned an error: %s", status_message);
+            }
+          }
+          if (result) env->DeleteLocalRef(result);
+        },
+        reinterpret_cast<void*>(future_handle.get().id()),
+        internal::kAnalyticsModuleName);
+  } else {
+    LogError("GetSessionId() threw an exception: %s", error.c_str());
+    api->CompleteWithResult(future_handle.get(), -1, error.c_str(),
+                            static_cast<int64_t>(0L));
+  }
+  env->DeleteLocalRef(task);
+
+  return Future<int64_t>(api, future_handle.get());
+}
+
+Future<int64_t> GetSessionIdLastResult() {
+  FIREBASE_ASSERT_RETURN(Future<int64_t>(), internal::IsInitialized());
+  return static_cast<const Future<int64_t>&>(
+      internal::FutureData::Get()->api()->LastResult(
+          internal::kAnalyticsFnGetSessionId));
 }
 
 }  // namespace analytics

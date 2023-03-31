@@ -17,8 +17,8 @@
 #include "gma/src/ios/interstitial_ad_internal_ios.h"
 
 #import "gma/src/ios/FADRequest.h"
-
 #import "gma/src/ios/gma_ios.h"
+
 #include "app/src/util_ios.h"
 #include "gma/src/ios/response_info_ios.h"
 
@@ -26,17 +26,20 @@ namespace firebase {
 namespace gma {
 namespace internal {
 
-InterstitialAdInternalIOS::InterstitialAdInternalIOS(InterstitialAd* base)
-    : InterstitialAdInternal(base), initialized_(false),
-    ad_load_callback_data_(nil), interstitial_(nil),
-    parent_view_(nil), interstitial_delegate_(nil) {}
+InterstitialAdInternalIOS::InterstitialAdInternalIOS(InterstitialAd *base)
+    : InterstitialAdInternal(base),
+      initialized_(false),
+      ad_load_callback_data_(nil),
+      interstitial_(nil),
+      parent_view_(nil),
+      interstitial_delegate_(nil) {}
 
 InterstitialAdInternalIOS::~InterstitialAdInternalIOS() {
   firebase::MutexLock lock(mutex_);
-  ((GADInterstitialAd*)interstitial_).fullScreenContentDelegate = nil;
+  ((GADInterstitialAd *)interstitial_).fullScreenContentDelegate = nil;
   interstitial_delegate_ = nil;
   interstitial_ = nil;
-  if(ad_load_callback_data_ != nil) {
+  if (ad_load_callback_data_ != nil) {
     delete ad_load_callback_data_;
     ad_load_callback_data_ = nil;
   }
@@ -45,12 +48,12 @@ InterstitialAdInternalIOS::~InterstitialAdInternalIOS() {
 Future<void> InterstitialAdInternalIOS::Initialize(AdParent parent) {
   firebase::MutexLock lock(mutex_);
   const SafeFutureHandle<void> future_handle =
-    future_data_.future_impl.SafeAlloc<void>(kInterstitialAdFnInitialize);
+      future_data_.future_impl.SafeAlloc<void>(kInterstitialAdFnInitialize);
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
 
-  if(initialized_) {
-    CompleteFuture(kAdErrorCodeAlreadyInitialized,
-      kAdAlreadyInitializedErrorMessage, future_handle, &future_data_);
+  if (initialized_) {
+    CompleteFuture(kAdErrorCodeAlreadyInitialized, kAdAlreadyInitializedErrorMessage, future_handle,
+                   &future_data_);
   } else {
     initialized_ = true;
     parent_view_ = (UIView *)parent;
@@ -59,18 +62,16 @@ Future<void> InterstitialAdInternalIOS::Initialize(AdParent parent) {
   return future;
 }
 
-Future<AdResult> InterstitialAdInternalIOS::LoadAd(
-    const char* ad_unit_id, const AdRequest& request) {
+Future<AdResult> InterstitialAdInternalIOS::LoadAd(const char *ad_unit_id,
+                                                   const AdRequest &request) {
   firebase::MutexLock lock(mutex_);
-  FutureCallbackData<AdResult>* callback_data =
-      CreateAdResultFutureCallbackData(kInterstitialAdFnLoadAd,
-          &future_data_);
-  Future<AdResult> future = MakeFuture(&future_data_.future_impl,
-      callback_data->future_handle);
+  FutureCallbackData<AdResult> *callback_data =
+      CreateAdResultFutureCallbackData(kInterstitialAdFnLoadAd, &future_data_);
+  Future<AdResult> future = MakeFuture(&future_data_.future_impl, callback_data->future_handle);
 
   if (ad_load_callback_data_ != nil) {
     CompleteLoadAdInternalError(callback_data, kAdErrorCodeLoadInProgress,
-        kAdLoadInProgressErrorMessage);
+                                kAdLoadInProgressErrorMessage);
     return future;
   }
 
@@ -78,8 +79,7 @@ Future<AdResult> InterstitialAdInternalIOS::LoadAd(
   // SDK returns the AdResult.
   ad_load_callback_data_ = callback_data;
 
-  interstitial_delegate_ =
-    [[FADInterstitialDelegate alloc] initWithInternalInterstitialAd:this];
+  interstitial_delegate_ = [[FADInterstitialDelegate alloc] initWithInternalInterstitialAd:this];
 
   // Guard against parameter object destruction before the async operation
   // executes (below).
@@ -87,31 +87,30 @@ Future<AdResult> InterstitialAdInternalIOS::LoadAd(
   NSString *local_ad_unit_id = @(ad_unit_id);
 
   dispatch_async(dispatch_get_main_queue(), ^{
-    // Create a GADRequest from an gma::AdRequest.
+    // Create a GADRequest from a gma::AdRequest.
     AdErrorCode error_code = kAdErrorCodeNone;
     std::string error_message;
     GADRequest *ad_request =
-     GADRequestFromCppAdRequest(local_ad_request, &error_code, &error_message);
+        GADRequestFromCppAdRequest(local_ad_request, &error_code, &error_message);
     if (ad_request == nullptr) {
       if (error_code == kAdErrorCodeNone) {
         error_code = kAdErrorCodeInternalError;
         error_message = kAdCouldNotParseAdRequestErrorMessage;
       }
-      CompleteLoadAdInternalError(ad_load_callback_data_, error_code,
-          error_message.c_str());
+      CompleteLoadAdInternalError(ad_load_callback_data_, error_code, error_message.c_str());
       ad_load_callback_data_ = nil;
     } else {
       // Make the interstitial ad request.
       [GADInterstitialAd loadWithAdUnitID:local_ad_unit_id
                                   request:ad_request
                         completionHandler:^(GADInterstitialAd *ad, NSError *error)  // NO LINT
-        {
-          if (error) {
-            InterstitialDidFailToReceiveAdWithError(error);
-          } else {
-            InterstitialDidReceiveAd(ad);
-          }
-      }];
+                                          {
+                                            if (error) {
+                                              InterstitialDidFailToReceiveAdWithError(error);
+                                            } else {
+                                              InterstitialDidReceiveAd(ad);
+                                            }
+                                          }];
     }
   });
 
@@ -121,17 +120,16 @@ Future<AdResult> InterstitialAdInternalIOS::LoadAd(
 Future<void> InterstitialAdInternalIOS::Show() {
   firebase::MutexLock lock(mutex_);
   const firebase::SafeFutureHandle<void> future_handle =
-    future_data_.future_impl.SafeAlloc<void>(kInterstitialAdFnShow);
+      future_data_.future_impl.SafeAlloc<void>(kInterstitialAdFnShow);
   Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
   dispatch_async(dispatch_get_main_queue(), ^{
     AdErrorCode error_code = kAdErrorCodeLoadInProgress;
-    const char* error_message = kAdLoadInProgressErrorMessage;
+    const char *error_message = kAdLoadInProgressErrorMessage;
     if (interstitial_ == nil) {
       error_code = kAdErrorCodeUninitialized;
       error_message = kAdUninitializedErrorMessage;
     } else {
-      [interstitial_ presentFromRootViewController:[
-          parent_view_ window].rootViewController];
+      [interstitial_ presentFromRootViewController:[parent_view_ window].rootViewController];
       error_code = kAdErrorCodeNone;
       error_message = nullptr;
     }
@@ -140,18 +138,16 @@ Future<void> InterstitialAdInternalIOS::Show() {
   return future;
 }
 
-void InterstitialAdInternalIOS::InterstitialDidReceiveAd(GADInterstitialAd* ad) {
+void InterstitialAdInternalIOS::InterstitialDidReceiveAd(GADInterstitialAd *ad) {
   firebase::MutexLock lock(mutex_);
   interstitial_ = ad;
   ad.fullScreenContentDelegate = interstitial_delegate_;
   ad.paidEventHandler = ^void(GADAdValue *_Nonnull adValue) {
-    NotifyListenerOfPaidEvent(
-      firebase::gma::ConvertGADAdValueToCppAdValue(adValue));
+    NotifyListenerOfPaidEvent(firebase::gma::ConvertGADAdValueToCppAdValue(adValue));
   };
 
   if (ad_load_callback_data_ != nil) {
-    CompleteLoadAdInternalSuccess(ad_load_callback_data_,
-      ResponseInfoInternal({ ad.responseInfo }));
+    CompleteLoadAdInternalSuccess(ad_load_callback_data_, ResponseInfoInternal({ad.responseInfo}));
     ad_load_callback_data_ = nil;
   }
 }

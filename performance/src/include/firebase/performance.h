@@ -4,6 +4,7 @@
 #define FIREBASE_PERFORMANCE_SRC_INCLUDE_FIREBASE_PERFORMANCE_H_
 
 #include "firebase/app.h"
+#include "firebase/cpp_version_warning.h"
 #include "firebase/performance/http_metric.h"
 #include "firebase/performance/trace.h"
 
@@ -52,8 +53,8 @@ bool GetPerformanceCollectionEnabled();
 /// This setting is persisted across app sessions. By default it is enabled.
 ///
 /// This can be called before firebase::performance::Initialize(const App&
-/// app) on iOS, but that is not true on Android due to the way the SDK is
-/// initialized. If you need to disable firebase performance before that, see
+/// app) on iOS and tvOS, but that is not true on Android due to the way the SDK
+/// is initialized. If you need to disable firebase performance before that, see
 /// <a href="/docs/perf-mon/disable-sdk">the documentation</a>.
 ///
 /// @param[in] enabled true to enable performance collection, false to disable.

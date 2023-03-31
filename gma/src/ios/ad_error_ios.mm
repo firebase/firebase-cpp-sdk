@@ -22,12 +22,13 @@ extern "C" {
 
 #include <string>
 
+#include "app/src/assert.h"
+#include "app/src/util_ios.h"
 #include "gma/src/common/ad_error_internal.h"
 #include "gma/src/include/firebase/gma.h"
 #include "gma/src/ios/ad_error_ios.h"
 #include "gma/src/ios/response_info_ios.h"
 
-#include "app/src/util_ios.h"
 
 namespace firebase {
 namespace gma {
@@ -62,15 +63,14 @@ AdError::AdError(const AdErrorInternal& ad_error_internal) {
   response_info_ = new ResponseInfo();
 
   // AdErrors can be returned on success, or for errors encountered in the C++
-  // SDK wrapper, or in the iOS GMA SDK.  The stucture is populated
+  // SDK wrapper, or in the iOS GMA SDK.  The structure is populated
   // differently across these three scenarios.
   if (internal_->is_successful) {
     internal_->code = kAdErrorCodeNone;
     internal_->message = "";
     internal_->domain = "";
     internal_->to_string = "";
-  } else if (internal_->ad_error_type ==
-             AdErrorInternal::kAdErrorInternalWrapperError) {
+  } else if (internal_->ad_error_type == AdErrorInternal::kAdErrorInternalWrapperError) {
     // Wrapper errors come with prepopulated code, domain, etc, fields.
     internal_->code = ad_error_internal.code;
     internal_->domain = ad_error_internal.domain;
@@ -88,8 +88,8 @@ AdError::AdError(const AdErrorInternal& ad_error_internal) {
     switch (internal_->ad_error_type) {
       case AdErrorInternal::kAdErrorInternalFullScreenContentError:
         // Full screen content errors have their own error codes.
-        internal_->code =
-            MapFullScreenContentErrorCodeToCPPErrorCode((GADPresentationErrorCode)internal_->native_ad_error.code);
+        internal_->code = MapFullScreenContentErrorCodeToCPPErrorCode(
+            (GADPresentationErrorCode)internal_->native_ad_error.code);
         break;
       case AdErrorInternal::kAdErrorInternalOpenAdInspectorError:
         // OpenAdInspector errors are all internal errors on iOS.
@@ -101,22 +101,21 @@ AdError::AdError(const AdErrorInternal& ad_error_internal) {
     }
 
     internal_->domain = util::NSStringToString(internal_->native_ad_error.domain);
-    internal_->message =
-      util::NSStringToString(internal_->native_ad_error.localizedDescription);
+    internal_->message = util::NSStringToString(internal_->native_ad_error.localizedDescription);
 
     // Errors from LoadAd attempts have extra data pertaining to adapter
     // responses.
     if (internal_->ad_error_type == AdErrorInternal::kAdErrorInternalLoadAdError) {
-      ResponseInfoInternal response_info_internal = ResponseInfoInternal( {
-        ad_error_internal.native_ad_error.userInfo[GADErrorUserInfoKeyResponseInfo]
-      });
+      ResponseInfoInternal response_info_internal = ResponseInfoInternal(
+          {ad_error_internal.native_ad_error.userInfo[GADErrorUserInfoKeyResponseInfo]});
       *response_info_ = ResponseInfo(response_info_internal);
     }
 
-    NSString* ns_to_string = [[NSString alloc]initWithFormat:@"Received error with "
-        "domain: %@, code: %ld, message: %@", internal_->native_ad_error.domain,
-        (long)internal_->native_ad_error.code,
-        internal_->native_ad_error.localizedDescription];
+    NSString* ns_to_string = [[NSString alloc]
+        initWithFormat:@"Received error with "
+                        "domain: %@, code: %ld, message: %@",
+                       internal_->native_ad_error.domain, (long)internal_->native_ad_error.code,
+                       internal_->native_ad_error.localizedDescription];
     internal_->to_string = util::NSStringToString(ns_to_string);
   }
 }

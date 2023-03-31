@@ -251,6 +251,7 @@ endif()
 
 set(internal_HDRS
     src/include/firebase/app.h
+        src/include/firebase/cpp_version_warning.h
     src/include/firebase/future.h
     src/include/firebase/internal/common.h
     src/include/firebase/internal/future_impl.h
@@ -312,6 +313,7 @@ set(app_android_HDRS
     src/invites/android/invites_android_helper.h
     src/invites/android/invites_receiver_internal_android.h)
 set(app_ios_HDRS
+    src/app_ios.h
     src/invites/ios/invites_receiver_internal_ios.h)
 set(app_desktop_HDRS
     src/invites/stub/invites_receiver_internal_stub.h)
@@ -500,8 +502,7 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/app_attest_provider.h
     ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/debug_provider.h
     ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/device_check_provider.h
-    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/play_integrity_provider.h
-    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/safety_net_provider.h)
+    ${FIREBASE_SOURCE_DIR}/app_check/src/include/firebase/app_check/play_integrity_provider.h)
   set(auth_HDRS
     ${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth.h
     ${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth/credential.h

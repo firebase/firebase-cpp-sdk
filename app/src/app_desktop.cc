@@ -137,6 +137,9 @@ App* App::Create(const AppOptions& options, const char* name) {  // NOLINT
 
   AppOptions options_with_defaults = options;
   if (options_with_defaults.PopulateRequiredWithDefaults()) {
+    // Register C++/Unity user-agents
+    app_common::RegisterSdkUsage(nullptr);
+
     app = new App();
     app->name_ = name;
     app->options_ = options_with_defaults;
@@ -168,7 +171,8 @@ internal::FunctionRegistry* App::function_registry() {
 }
 #endif  // INTERNAL_EXPERIMENTAL
 
-void App::RegisterLibrary(const char* library, const char* version) {
+void App::RegisterLibrary(const char* library, const char* version,
+                          void* /* platform_resource */) {
   app_common::RegisterLibrary(library, version);
 }
 

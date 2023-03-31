@@ -23,6 +23,7 @@
 #include <string>
 
 #include "firebase/app.h"
+#include "firebase/cpp_version_warning.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 #include "firebase/variant.h"
@@ -479,9 +480,9 @@ void LogEvent(const char* name, const Parameter* parameters,
               size_t number_of_parameters);
 
 /// Initiates on-device conversion measurement given a user email address on iOS
-/// (no-op on Android). On iOS, requires dependency
-/// GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a
-/// no-op.
+/// and tvOS (no-op on Android). On iOS and tvOS, this method requires the
+/// dependency GoogleAppMeasurementOnDeviceConversion to be linked in,
+/// otherwise the invocation results in a no-op.
 /// @param[in] email_address User email address. Include a domain name for all
 /// email addresses (e.g. gmail.com or hotmail.co.jp).
 void InitiateOnDeviceConversionMeasurementWithEmailAddress(
@@ -546,6 +547,22 @@ Future<std::string> GetAnalyticsInstanceId();
 ///
 /// @returns Object which can be used to retrieve the analytics instance ID.
 Future<std::string> GetAnalyticsInstanceIdLastResult();
+
+/// Asynchronously retrieves the identifier of the current app
+/// session.
+///
+/// The session ID retrieval could fail due to Analytics collection
+/// disabled, or if the app session was expired.
+///
+/// @returns Object which can be used to retrieve the identifier of the current
+/// app session.
+Future<int64_t> GetSessionId();
+
+/// Get the result of the most recent GetSessionId() call.
+///
+/// @returns Object which can be used to retrieve the identifier of the current
+/// app session.
+Future<int64_t> GetSessionIdLastResult();
 
 }  // namespace analytics
 }  // namespace firebase

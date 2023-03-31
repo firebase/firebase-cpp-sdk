@@ -21,6 +21,7 @@
 
 #include "firebase/app.h"
 #include "firebase/auth/user.h"
+#include "firebase/cpp_version_warning.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 
@@ -174,7 +175,7 @@ class Auth {
   void set_language_code(const char* language_code);
 
   /// Sets the user-facing language code to be the default app language. This
-  /// uses a languge associated with the phone's locale data.  On desktop
+  /// uses a language associated with the device's locale data.  On desktop
   /// this will set the language code to the Firebase service's default. You
   /// may subsequently customize the language code again by invoking
   /// set_language_code().
@@ -262,9 +263,9 @@ class Auth {
   ///
   /// @return A Future with the result of the sign-in request.
   ///
-  /// @note: This operation is supported only on iOS and Android platforms. On
-  /// non-mobile platforms this method will return a Future with a preset error
-  /// code: kAuthErrorUnimplemented.
+  /// @note: This operation is supported only on iOS, tvOS and Android
+  /// platforms. On other platforms this method will return a Future with a
+  /// preset error code: kAuthErrorUnimplemented.
   Future<SignInResult> SignInWithProvider(FederatedAuthProvider* provider);
 
   /// Asynchronously logs into Firebase with the given credentials.
@@ -883,8 +884,8 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
   ///
   /// An AuthHandler is required on desktop platforms to facilitate custom
   /// implementations of OAuth authentication. The AuthHandler must outlive the
-  /// instance of this OAuthProvider on desktop systems and is ignored on iOS
-  /// and Android platforms.
+  /// instance of this OAuthProvider on desktop systems and is ignored on iOS,
+  /// tvOS, and Android platforms.
   ///
   /// @param[in] provider_data Contains information on the provider to
   /// authenticate with.
@@ -910,7 +911,7 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
   /// @brief Configures the use of an AuthHandler for non-mobile systems.
   ///
   /// The existence of a handler is required for non-mobile systems, and is
-  /// ignored on iOS and Android platforms.
+  /// ignored on iOS, tvOS and Android platforms.
   ///
   /// @param[in] handler An FederatedOAuthProviderData typed
   /// FederatedAuthProvider::Handler which be invoked on non-mobile systems

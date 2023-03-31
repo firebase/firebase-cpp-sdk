@@ -17,6 +17,7 @@
 #ifndef FIREBASE_APP_SRC_INCLUDE_FIREBASE_APP_H_
 #define FIREBASE_APP_SRC_INCLUDE_FIREBASE_APP_H_
 
+#include "cpp_version_warning.h"
 #include "firebase/internal/platform.h"
 
 #if FIREBASE_PLATFORM_ANDROID
@@ -697,7 +698,10 @@ class App {
   /// @param library Name of the library to register as a user of the Firebase
   /// C++ SDK.
   /// @param version Version of the library being registered.
-  static void RegisterLibrary(const char* library, const char* version);
+  /// @param platform_resource Platform specific resource. Ex. for Android, this
+  /// is JNIEnv.
+  static void RegisterLibrary(const char* library, const char* version,
+                              void* platform_resource);
 
   // Internal method to retrieve the combined string of registered libraries.
   static const char* GetUserAgent();
