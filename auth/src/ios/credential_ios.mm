@@ -129,6 +129,10 @@ PhoneAuthCredential& PhoneAuthCredential::operator=(const PhoneAuthCredential& r
 // string.
 std::string PhoneAuthCredential::sms_code() const { return sms_code_; }
 
+//
+// Provider methods
+//
+
 // static
 Credential EmailAuthProvider::GetCredential(const char* email, const char* password) {
   FIREBASE_ASSERT_RETURN(Credential(), email && password);

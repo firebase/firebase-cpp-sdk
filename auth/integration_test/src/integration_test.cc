@@ -1026,21 +1026,24 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
 class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
  public:
   PhoneListener()
-      : on_verification_complete_count_(0),
+      : on_verification_complete_credential_count_(0),
+        on_verification_complete_phone_auth_credential_count_(0),
         on_verification_failed_count_(0),
         on_code_sent_count_(0),
         on_code_auto_retrieval_time_out_count_(0) {}
 
   void OnVerificationCompleted(
       firebase::auth::PhoneAuthCredential phone_auth_credential) override {
-    LogDebug("PhoneListener: successful automatic verification.");
-    on_verification_complete_count_++;
-    credential_ = phone_auth_credential;
+    LogDebug(
+        "PhoneListener: PhoneAuthCredential successful automatic "
+        "verification.");
+    on_verification_complete_phone_auth_credential_count_++;
+    phone_auth_credential_ = phone_auth_credential;
   }
 
   void OnVerificationCompleted(firebase::auth::Credential credential) override {
-    LogDebug("PhoneListener: successful automatic verification.");
-    on_verification_complete_count_++;
+    LogDebug("PhoneListener: Credential successful automatic verification.");
+    on_verification_complete_credential_count_++;
     credential_ = credential;
   }
 
@@ -1072,7 +1075,14 @@ class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
     return force_resending_token_;
   }
   int on_verification_complete_count() const {
-    return on_verification_complete_count_;
+    return on_verification_complete_phone_auth_credential_count() +
+           on_verification_complete_credential_count();
+  }
+  int on_verification_complete_phone_auth_credential_count() const {
+    return on_verification_complete_phone_auth_credential_count_;
+  }
+  int on_verification_complete_credential_count() const {
+    return on_verification_complete_credential_count_;
   }
   int on_verification_failed_count() const {
     return on_verification_failed_count_;
@@ -1084,7 +1094,8 @@ class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
 
   // Helper functions for workflow.
   bool waiting_to_send_code() {
-    return on_verification_complete_count() == 0 &&
+    return on_verification_complete_credential_count() == 0 &&
+           on_verification_complete_phone_auth_credential_count() == 0 &&
            on_verification_failed_count() == 0 && on_code_sent_count() == 0;
   }
 
@@ -1095,12 +1106,17 @@ class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
   }
 
   firebase::auth::Credential credential() { return credential_; }
+  firebase::auth::PhoneAuthCredential phone_auth_credential() {
+    return phone_auth_credential_;
+  }
 
  private:
   std::string verification_id_;
   firebase::auth::PhoneAuthProvider::ForceResendingToken force_resending_token_;
   firebase::auth::Credential credential_;
-  int on_verification_complete_count_;
+  firebase::auth::PhoneAuthCredential phone_auth_credential_;
+  int on_verification_complete_phone_auth_credential_count_;
+  int on_verification_complete_credential_count_;
   int on_verification_failed_count_;
   int on_code_sent_count_;
   int on_code_auto_retrieval_time_out_count_;
@@ -1149,10 +1165,16 @@ TEST_F(FirebaseAuthTest, TestPhoneAuth) {
     ProcessEvents(kWaitIntervalMs);
     wait_ms += kWaitIntervalMs;
   }
+
+  LogDebug("phone_auth_credential sms code: %s",
+           listener.phone_auth_credential().sms_code().c_str());
+
   if (listener.on_verification_complete_count() > 0) {
+    EXPECT_EQ(listener.on_verification_complete_count(), 2);
     LogDebug("Signing in with automatic verification code.");
     WaitForCompletion(
-        auth_->SignInWithCredential_DEPRECATED(listener.credential()),
+        auth_->SignInWithCredential_DEPRECATED(
+            listener.phone_auth_credential()),
         "SignInWithCredential_DEPRECATED(PhoneCredential) automatic");
   } else if (listener.on_verification_failed_count() > 0) {
     FAIL() << "Automatic verification failed.";

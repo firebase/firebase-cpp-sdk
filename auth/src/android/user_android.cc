@@ -27,16 +27,6 @@ using util::JniStringToString;
 using util::JniUriToString;
 
 // clang-format off
-#define PHONE_CREDENTIAL_METHODS(X)                                            \
-    X(GetSmsCode, "getSmsCode", "()Ljava/lang/String;")
-// clang-format on
-METHOD_LOOKUP_DECLARATION(phonecredential, PHONE_CREDENTIAL_METHODS)
-METHOD_LOOKUP_DEFINITION(phonecredential,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/auth/PhoneAuthCredential",
-                         PHONE_CREDENTIAL_METHODS)
-
-// clang-format off
 #define TOKEN_RESULT_METHODS(X)                                                \
     X(GetToken, "getToken", "()Ljava/lang/String;")
 // clang-format on
@@ -129,8 +119,7 @@ METHOD_LOOKUP_DEFINITION(
     USER_PROFILE_BUILDER_METHODS)
 
 bool CacheUserMethodIds(JNIEnv* env, jobject activity) {
-  return phonecredential::CacheMethodIds(env, activity) &&
-         tokenresult::CacheMethodIds(env, activity) &&
+  return tokenresult::CacheMethodIds(env, activity) &&
          user::CacheMethodIds(env, activity) &&
          userinfo::CacheMethodIds(env, activity) &&
          metadata::CacheMethodIds(env, activity) &&
@@ -138,7 +127,6 @@ bool CacheUserMethodIds(JNIEnv* env, jobject activity) {
 }
 
 void ReleaseUserClasses(JNIEnv* env) {
-  phonecredential::ReleaseClass(env);
   tokenresult::ReleaseClass(env);
   user::ReleaseClass(env);
   userinfo::ReleaseClass(env);
