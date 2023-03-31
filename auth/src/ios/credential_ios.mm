@@ -94,6 +94,41 @@ std::string Credential::provider() const {
                           : util::StringFromNSString(CredentialFromImpl(impl_).provider);
 }
 
+//
+// PhoneAuthCredential methods
+//
+PhoneAuthCredential::PhoneAuthCredential() {}
+
+PhoneAuthCredential::PhoneAuthCredential(void* impl) {
+  impl_ = impl;
+  error_code_ = kAuthErrorNone;
+}
+
+PhoneAuthCredential::PhoneAuthCredential(const PhoneAuthCredential& rhs) {
+  if (rhs.impl_ != NULL) {
+    impl_ = new FIRPhoneAuthCredentialPointer(PhoneAuthCredentialFromImpl(rhs.impl_));
+  }
+  error_code_ = rhs.error_code_;
+  error_message_ = rhs.error_message_;
+  sms_code_ = rhs.sms_code_;
+}
+
+PhoneAuthCredential& PhoneAuthCredential::operator=(const PhoneAuthCredential& rhs) {
+  if (rhs.impl_ != NULL) {
+    delete static_cast<FIRPhoneAuthCredentialPointer*>(impl_);
+    impl_ = new FIRPhoneAuthCredentialPointer(PhoneAuthCredentialFromImpl(rhs.impl_));
+  }
+  error_code_ = rhs.error_code_;
+  error_message_ = rhs.error_message_;
+  sms_code_ = rhs.sms_code_;
+  return *this;
+}
+
+// Gets the automatically retrieved SMS verification code if applicable.
+// This method is only supported on Android, so return the default constructed
+// string.
+std::string PhoneAuthCredential::sms_code() const { return sms_code_; }
+
 // static
 Credential EmailAuthProvider::GetCredential(const char* email, const char* password) {
   FIREBASE_ASSERT_RETURN(Credential(), email && password);
@@ -350,17 +385,35 @@ void PhoneAuthProvider::VerifyPhoneNumber(const char* /*phone_number*/,
 #endif  // FIREBASE_PLATFORM_IOS
 
 #if FIREBASE_PLATFORM_IOS
-Credential PhoneAuthProvider::GetCredential(const char* verification_id,
-                                            const char* verification_code) {
+PhoneAuthCredential PhoneAuthProvider::GetCredential(const char* verification_id,
+                                                     const char* verification_code) {
+  FIREBASE_ASSERT_RETURN(PhoneAuthCredential(), verification_id && verification_code);
+  FIRPhoneAuthCredential* credential =
+      [data_->objc_provider credentialWithVerificationID:@(verification_id)
+                                        verificationCode:@(verification_code)];
+  return PhoneAuthCredential(new FIRPhoneAuthCredentialPointer(credential));
+}
+
+Credential PhoneAuthProvider::GetCredential_DEPRECATED(const char* verification_id,
+                                                       const char* verification_code) {
   FIREBASE_ASSERT_RETURN(Credential(), verification_id && verification_code);
   FIRPhoneAuthCredential* credential =
       [data_->objc_provider credentialWithVerificationID:@(verification_id)
                                         verificationCode:@(verification_code)];
   return Credential(new FIRAuthCredentialPointer((FIRAuthCredential*)credential));
 }
-#else   // non-iOS Apple platforms (eg: tvOS)
-Credential PhoneAuthProvider::GetCredential(const char* verification_id,
-                                            const char* verification_code) {
+#else
+// non-iOS Apple platforms (eg: tvOS)
+PhoneAuthCredential PhoneAuthProvider::GetCredential(const char* verification_id,
+                                                     const char* verification_code) {
+  FIREBASE_ASSERT_MESSAGE_RETURN(
+      PhoneAuthCredential(nullptr), false,
+      "Phone Auth is not supported on non iOS Apple platforms (eg:tvOS).");
+
+  return Credential(nullptr);
+}
+Credential PhoneAuthProvider::GetCredential_DEPRECTED(const char* verification_id,
+                                                      const char* verification_code) {
   FIREBASE_ASSERT_MESSAGE_RETURN(
       Credential(nullptr), false,
       "Phone Auth is not supported on non iOS Apple platforms (eg:tvOS).");

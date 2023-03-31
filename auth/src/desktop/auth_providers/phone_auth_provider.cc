@@ -75,8 +75,16 @@ void PhoneAuthProvider::VerifyPhoneNumber(
   listener->OnCodeSent(kMockVerificationId, token);
 }
 
-Credential PhoneAuthProvider::GetCredential(const char* verification_id,
-                                            const char* verification_code) {
+PhoneAuthCredential PhoneAuthProvider::GetCredential(
+    const char* verification_id, const char* verification_code) {
+  FIREBASE_ASSERT_MESSAGE_RETURN(PhoneAuthCredential(nullptr), false,
+                                 "Phone Auth is not supported on desktop");
+
+  return PhoneAuthCredential(nullptr);
+}
+
+Credential PhoneAuthProvider::GetCredential_DEPRECATED(
+    const char* verification_id, const char* verification_code) {
   FIREBASE_ASSERT_MESSAGE_RETURN(Credential(nullptr), false,
                                  "Phone Auth is not supported on desktop");
 
@@ -87,6 +95,22 @@ Credential PhoneAuthProvider::GetCredential(const char* verification_id,
 PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
   return auth->auth_data_->phone_auth_provider;
 }
+
+//
+// PhoneAuthCredential methods
+// NOTE: PhoneAuth isn't supported on desktop systems, so these methods are
+// no-ops.
+//
+PhoneAuthCredential::PhoneAuthCredential(void* impl) { impl_ = nullptr; }
+PhoneAuthCredential::PhoneAuthCredential(const PhoneAuthCredential& rhs) {}
+
+PhoneAuthCredential& PhoneAuthCredential::operator=(
+    const PhoneAuthCredential& rhs) {
+  return *this;
+}
+
+/// Gets the automatically retrieved SMS verification code if applicable.
+std::string PhoneAuthCredential::sms_code() const { return std::string(); }
 
 }  // namespace auth
 }  // namespace firebase

@@ -1031,6 +1031,13 @@ class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
         on_code_sent_count_(0),
         on_code_auto_retrieval_time_out_count_(0) {}
 
+  void OnVerificationCompleted(
+      firebase::auth::PhoneAuthCredential phone_auth_credential) override {
+    LogDebug("PhoneListener: successful automatic verification.");
+    on_verification_complete_count_++;
+    credential_ = phone_auth_credential;
+  }
+
   void OnVerificationCompleted(firebase::auth::Credential credential) override {
     LogDebug("PhoneListener: successful automatic verification.");
     on_verification_complete_count_++;
@@ -1154,7 +1161,7 @@ TEST_F(FirebaseAuthTest, TestPhoneAuth) {
     EXPECT_GT(listener.on_code_auto_retrieval_time_out_count(), 0);
     EXPECT_NE(listener.verification_id(), "");
     LogDebug("Signing in with verification code.");
-    const firebase::auth::Credential phone_credential =
+    const firebase::auth::PhoneAuthCredential phone_credential =
         phone_provider.GetCredential(listener.verification_id().c_str(),
                                      kPhoneAuthTestVerificationCode);
 
