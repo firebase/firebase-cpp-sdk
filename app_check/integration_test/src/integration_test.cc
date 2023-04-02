@@ -417,7 +417,8 @@ void FirebaseAppCheckTest::SignOut() {
   }
   if (auth_->current_user_DEPRECATED()->is_anonymous()) {
     // If signed in anonymously, delete the anonymous user.
-    WaitForCompletion(auth_->current_user_DEPRECATED()->Delete(), "DeleteAnonymousUser");
+    WaitForCompletion(auth_->current_user_DEPRECATED()->Delete(),
+                      "DeleteAnonymousUser");
     // If there was a problem deleting the user, try to sign out at least.
     if (auth_->current_user_DEPRECATED()) {
       auth_->SignOut();
