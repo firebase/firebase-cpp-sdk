@@ -601,7 +601,7 @@ class PhoneAuthProvider {
   PhoneAuthCredential GetCredential(const char* verification_id,
                                     const char* verification_code);
 
-  /// @deprecated This is a deprecated method. Please use @GetCredential
+  /// @deprecated This is a deprecated method. Please use @ref GetCredential
   /// instead.
   ///
   /// Generate a credential for the given phone number.
