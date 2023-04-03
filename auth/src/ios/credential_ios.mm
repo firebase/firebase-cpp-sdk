@@ -331,6 +331,40 @@ void PhoneAuthProvider::VerifyPhoneNumber(const char* phone_number,
     }
   }
 }
+
+void PhoneAuthProvider::VerifyPhoneNumber(const PhoneAuthOptions& options,
+                                          PhoneAuthProvider::Listener* listener) {
+  FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
+  const PhoneAuthProvider::ForceResendingToken invalid_resending_token;
+  PhoneListenerDataObjC* objc_listener_data = listener->data_->objc;
+
+  [data_->objc_provider
+      verifyPhoneNumber:@(options.phone_number.c_str())
+             UIDelegate:options.ui_parent
+             completion:^(NSString* _Nullable verificationID, NSError* _Nullable error) {
+               MutexLock lock(objc_listener_data->listener_mutex);
+
+               // If the listener has been deleted before this callback, do nothing.
+               if (objc_listener_data->active_listener == nullptr) return;
+
+               // Call OnVerificationFailed() or OnCodeSent() as appropriate.
+               if (verificationID == nullptr) {
+                 listener->OnVerificationFailed(
+                     util::StringFromNSString(error.localizedDescription));
+               } else {
+                 listener->OnCodeSent(util::StringFromNSString(verificationID),
+                                      invalid_resending_token);
+               }
+             }];
+
+  // Only call the callback when protected by the mutex.
+  {
+    MutexLock lock(objc_listener_data->listener_mutex);
+    if (objc_listener_data->active_listener != nullptr) {
+      listener->OnCodeAutoRetrievalTimeOut(std::string());
+    }
+  }
+}
 #else   // non-iOS Apple platforms (eg: tvOS)
 void PhoneAuthProvider::VerifyPhoneNumber(const char* /*phone_number*/,
                                           uint32_t /*auto_verify_time_out_ms*/,
@@ -342,6 +376,20 @@ void PhoneAuthProvider::VerifyPhoneNumber(const char* /*phone_number*/,
   ForceResendingToken token;
   if (force_resending_token != nullptr) {
     token = *force_resending_token;
+  }
+
+  listener->OnCodeAutoRetrievalTimeOut(kMockVerificationId);
+  listener->OnCodeSent(kMockVerificationId, token);
+}
+
+void PhoneAuthProvider::VerifyPhoneNumber(const PhoneAuthOptions& options,
+                                          PhoneAuthProvider::Listener* listener) {
+  FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
+
+  // Mock the tokens by sending a new one whenever it's unspecified.
+  ForceResendingToken token;
+  if (options.force_resending_token != nullptr) {
+    token = *options.force_resending_token;
   }
 
   listener->OnCodeAutoRetrievalTimeOut(kMockVerificationId);

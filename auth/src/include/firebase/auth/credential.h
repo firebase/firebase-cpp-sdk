@@ -24,6 +24,15 @@
 #include "firebase/auth/types.h"
 #include "firebase/internal/common.h"
 
+#if FIREBASE_PLATFORM_ANDROID
+#include <jni.h>
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+extern "C" {
+#include <objc/objc.h>
+}  // extern "C"
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
+
 namespace firebase {
 
 // Predeclarations.
@@ -36,6 +45,18 @@ class Future;
 
 namespace auth {
 
+#if FIREBASE_PLATFORM_ANDROID
+/// An Android Activity from Java.
+typedef jobject UIParent;
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+/// A pointer to a UIView.
+typedef id UIParent;
+#else
+/// A void pointer for stub classes.
+typedef void* AdParent;
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
+
 // Predeclarations.
 class Auth;
 class User;
@@ -43,6 +64,7 @@ class User;
 // Opaque internal types.
 struct AuthData;
 class ForceResendingTokenData;
+struct PhoneAuthOptions;
 struct PhoneAuthProviderData;
 struct PhoneListenerData;
 
@@ -534,6 +556,9 @@ class PhoneAuthProvider {
   /// in Android SDK</a>
   static const uint32_t kMaxTimeoutMs;
 
+  /// @deprecated This is a deprecated method. Please use @ref
+  /// VerifyPhoneNumber(const PhoneAuthOptions&, Listener*) instead.
+  ///
   /// Start the phone number authentication operation.
   ///
   /// @param[in] phone_number The phone number identifier supplied by the user.
@@ -556,6 +581,11 @@ class PhoneAuthProvider {
                          uint32_t auto_verify_time_out_ms,
                          const ForceResendingToken* force_resending_token,
                          Listener* listener);
+
+  /// Start the phone number authentication operation.
+  /// @param[in] phone_number The phone number identifier supplied by the user.
+  void VerifyPhoneNumber(const PhoneAuthOptions& options,
+                         PhoneAuthProvider::Listener* listener);
 
   /// Generate a credential for the given phone number.
   ///
@@ -589,6 +619,52 @@ class PhoneAuthProvider {
   ~PhoneAuthProvider();
 
   PhoneAuthProviderData* data_;
+};
+
+/// Options object for configuring phone validation flows in @ref
+/// PhoneAuthProvider.
+struct PhoneAuthOptions {
+  // Constructor
+  PhoneAuthOptions();
+
+  /// Specifies whether to force an SMS to be sent for second factor validation.
+  ///
+  /// This value is supported on Android devices only.
+  bool require_sms_validation;
+
+  /// @brief Sets the @ref PhoneAuthProvider::ForceResendingToken to force
+  /// another verification SMS to be sent before the auto-retrieval timeout.
+  ///
+  /// If nullptr, assume this is a new phone number to verify. If not-NULL,
+  /// bypass the verification session deduping and force resending a new SMS.
+  /// This token is received in @ref PhoneAuthProvider::Listener::OnCodeSent.
+  /// This should only be used when the user presses a Resend SMS button.
+  PhoneAuthProvider::ForceResendingToken* force_resending_token;
+
+  /// The phone number for sign-in, sign-up, or second factor enrollment.
+  std::string phone_number;
+
+  /// The maximum amount of time you’re willing to wait for SMS auto-retrieval
+  /// to be completed by the SDK.
+  ///
+  /// This value is supported on Android devices only.
+  ///
+  /// The minimum timeout is 30 seconds, and the maximum timeout is 2 minutes.
+  /// If you specified a positive value less than 30 seconds, the SDK will
+  /// default to 30 seconds. Specifying a timeout that is greater than 120
+  /// seconds will result in an IllegalArgumentException being thrown.
+  ///
+  /// Use 0 to disable SMS-auto-retrieval. This will also cause
+  /// @ref PhoneAuthProvider.Listener.OnCodeAutoRetrievalTimeOut to be called
+  /// immediately.
+  uint64_t timeout_milliseconds;
+
+  /// Sets the context to which the callbacks are scoped, and with which app
+  /// verification will be completed.
+  ///
+  /// If ui_parent isn’t defined (ie: nullptr or nil) then the FirebaseApp’s
+  /// default Activity or UIView will be used.
+  UIParent ui_parent;
 };
 
 /// @brief Use a server auth code provided by Google Play Games to authenticate.
