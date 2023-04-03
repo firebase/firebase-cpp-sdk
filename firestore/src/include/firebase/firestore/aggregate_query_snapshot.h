@@ -112,11 +112,11 @@ class AggregateQuerySnapshot {
    * @brief Returns true if this `AggregateQuerySnapshot` is valid, false if it
    * is not valid. An invalid `AggregateQuerySnapshot` could be the result of:
    *   - Creating a `AggregateQuerySnapshot` using the default constructor.
-   *   - Moving from the `AggregateQuery`.
+   *   - Moving from the `AggregateQuerySnapshot`.
    *   - Deleting your Firestore instance, which will invalidate all the
-   *     `AggregateQuery` instances associated with it.
+   *     `AggregateQuerySnapshot` instances associated with it.
    *
-   * @return true if this `AggregateQuery` is valid, false if this
+   * @return true if this `AggregateQuerySnapshot` is valid, false if this
    * `AggregateQuerySnapshot` is invalid.
    */
   bool is_valid() const { return internal_ != nullptr; }

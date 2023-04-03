@@ -21,7 +21,7 @@ namespace firebase {
 namespace firestore {
 
 /**
- * @brief The sources from which an AggregateQuery::Get can retrieve its
+ * @brief The sources from which AggregateQuery::Get can retrieve its
  * results.
  */
 enum class AggregateSource {

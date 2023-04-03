@@ -45,7 +45,7 @@ int64_t AggregateQuerySnapshotInternal::count() const { return count_result_; }
 
 bool operator==(const AggregateQuerySnapshotInternal& lhs,
                 const AggregateQuerySnapshotInternal& rhs) {
-  // TODO(tomandersen) - there needs to be equals operator defined on
+  // TODO(b/276440573) - there needs to be equals operator defined on
   // api::AggregateQuery
   return lhs.aggregate_query_.query() == rhs.aggregate_query_.query() &&
          lhs.count_result_ == rhs.count_result_;

@@ -156,7 +156,7 @@ class Query {
    * can even count the documents if the result set would be prohibitively large
    * to download entirely (e.g. thousands of documents).
    *
-   * @return An aggregate  query that counts the documents in the result set of
+   * @return An aggregate query that counts the documents in the result set of
    * this query.
    */
   virtual AggregateQuery Count() const;

@@ -645,7 +645,7 @@ code.
 ### Upcoming Release
 -   Changes
     - Firestore: Added `Query::Count()`, which fetches the number of documents in the result
-      set without actually downloading the documents ([#1207](https://github.com/firebase/firebase-cpp-sdk/pull/1174)).
+      set without actually downloading the documents ([#1207](https://github.com/firebase/firebase-cpp-sdk/pull/1207)).
 
 ### 10.7.0
 -   Changes

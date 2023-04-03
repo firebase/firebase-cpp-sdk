@@ -48,8 +48,7 @@ void AggregateQuerySnapshotInternal::Initialize(jni::Loader& loader) {
 
 AggregateQuerySnapshot AggregateQuerySnapshotInternal::Create(
     Env& env, AggregateQueryInternal& aggregate_query_internal, int64_t count) {
-  const Object& arg = aggregate_query_internal.ToJava();
-  Local<Object> instance = env.New(kConstructor, arg, count);
+  Local<Object> instance = env.New(kConstructor, aggregate_query_internal.ToJava(), count);
   return aggregate_query_internal.firestore_internal()
       ->NewAggregateQuerySnapshot(env, instance);
 }
