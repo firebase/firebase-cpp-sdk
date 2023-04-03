@@ -30,7 +30,8 @@ class ConfigUpdateListenerRegistration {
   ConfigUpdateListenerRegistration(
       std::function<void(ConfigUpdate&&, RemoteConfigError)>
           config_update_listener,
-      RemoteConfigInternal remote_config_internal);
+      std::function < void(std::function<(ConfigUpdate&&, RemoteConfigError)>)
+                          listener_removal_function);
 
   ~ConfigUpdateListenerRegistration();
 
@@ -41,7 +42,8 @@ class ConfigUpdateListenerRegistration {
 
  private:
   std::function<void(ConfigUpdate&&, RemoteConfigError)> configUpdateListener;
-  RemoteConfigInternal remoteConfigInternal;
+  std::function < void(std::function<(ConfigUpdate&&, RemoteConfigError)>)
+                      listenerRemovalFunction;
 };
 
 }  // namespace remote_config
