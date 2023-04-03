@@ -230,9 +230,9 @@ include_directories(${ABSEIL_CPP_ROOT})
 # Allow testing internal Firebase APIs.
 add_definitions(-DINTERNAL_EXPERIMENTAL)
 
-# Integration test stays in sync with SDK
+# Firebase C++ SDK requires C++14.
 set (CMAKE_CXX_STANDARD 14)
-set (CMAKE_CXX_STANDARD_REQUIRED ON)
+set (CMAKE_CXX_STANDARD_REQUIRED YES)  # Don't fall back to an earlier version.
 
 # Download and unpack googletest (and googlemock) at configure time
 set(GOOGLETEST_ROOT ${CMAKE_CURRENT_LIST_DIR}/external/googletest)
