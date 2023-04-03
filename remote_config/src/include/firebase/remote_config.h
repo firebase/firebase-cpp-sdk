@@ -85,9 +85,9 @@ enum RemoteConfigError {
 
 /// @brief Information about the updated config.
 struct ConfigUpdate {
-  // Parameter keys whose values have been updated from the currently activated
-  // values. Includes keys that are added, deleted, and whose value, value
-  // source, or metadata has changed.
+  /// @brief Parameter keys whose values have been updated from the currently activated
+  /// values. Includes keys that are added, deleted, and whose value, value
+  /// source, or metadata has changed.
   std::vector<std::string> updated_keys;
 };
 

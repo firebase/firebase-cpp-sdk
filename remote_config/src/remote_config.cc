@@ -235,7 +235,9 @@ const ConfigInfo RemoteConfig::GetInfo() { return internal_->GetInfo(); }
 
 ConfigUpdateListenerRegistration AddOnConfigUpdateListener(
     std::function<void(ConfigUpdate&&, RemoteConfigError)>
-        config_update_listener) {}
+        config_update_listener) {
+          return Null;
+        }
 
 }  // namespace remote_config
 }  // namespace firebase

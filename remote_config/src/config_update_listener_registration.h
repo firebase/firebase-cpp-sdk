@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_REMOTE_CONFIG_SRC_LISTENER_REGISTRATION_H_
-#define FIREBASE_REMOTE_CONFIG_SRC_LISTENER_REGISTRATION_H_
+#ifndef FIREBASE_REMOTE_CONFIG_SRC_CONFIG_UPDATE_LISTENER_REGISTRATION_H_
+#define FIREBASE_REMOTE_CONFIG_SRC_CONFIG_UPDATE_LISTENER_REGISTRATION_H_
 
-#include "include/firebase/remote_config.h"
+#include "remote_config/src/include/firebase/remote_config.h"
 
 namespace firebase {
 namespace remote_config {
@@ -30,7 +30,7 @@ class ConfigUpdateListenerRegistration {
   ConfigUpdateListenerRegistration(
       std::function<void(ConfigUpdate&&, RemoteConfigError)>
           config_update_listener,
-      RemoteConfigInternal remoteConfigInternal);
+      RemoteConfigInternal remote_config_internal);
 
   ~ConfigUpdateListenerRegistration();
 
@@ -40,11 +40,11 @@ class ConfigUpdateListenerRegistration {
   void Remove();
 
  private:
-  std::function<void(ConfigUpdate&&, RemoteConfigError)> config_update_listener;
+  std::function<void(ConfigUpdate&&, RemoteConfigError)> configUpdateListener;
   RemoteConfigInternal remoteConfigInternal;
 };
 
 }  // namespace remote_config
 }  // namespace firebase
 
-#endif  // FIREBASE_REMOTE_CONFIG_SRC_LISTENER_REGISTRATION_H_
+#endif  // FIREBASE_REMOTE_CONFIG_SRC_CONFIG_UPDATE_LISTENER_REGISTRATION_H_
