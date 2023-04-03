@@ -61,6 +61,20 @@ PhoneAuthProvider::PhoneAuthProvider() : data_(nullptr) {}
 PhoneAuthProvider::~PhoneAuthProvider() {}
 
 void PhoneAuthProvider::VerifyPhoneNumber(
+    const PhoneAuthOptions& options, PhoneAuthProvider::Listener* listener) {
+  FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
+
+  // Mock the tokens by sending a new one whenever it's unspecified.
+  ForceResendingToken token;
+  if (options.force_resending_token != nullptr) {
+    token = *options.force_resending_token;
+  }
+
+  listener->OnCodeAutoRetrievalTimeOut(kMockVerificationId);
+  listener->OnCodeSent(kMockVerificationId, token);
+}
+
+void PhoneAuthProvider::VerifyPhoneNumber(
     const char* /*phone_number*/, uint32_t /*auto_verify_time_out_ms*/,
     const ForceResendingToken* force_resending_token, Listener* listener) {
   FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);

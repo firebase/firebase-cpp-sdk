@@ -53,7 +53,7 @@ typedef jobject UIParent;
 typedef id UIParent;
 #else
 /// A void pointer for stub classes.
-typedef void* AdParent;
+typedef void* UIParent;
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
 
