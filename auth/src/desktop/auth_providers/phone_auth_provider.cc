@@ -101,6 +101,7 @@ PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
 // NOTE: PhoneAuth isn't supported on desktop systems, so these methods are
 // no-ops.
 //
+PhoneAuthCredential::PhoneAuthCredential() {}
 PhoneAuthCredential::PhoneAuthCredential(void* impl) { impl_ = nullptr; }
 PhoneAuthCredential::PhoneAuthCredential(const PhoneAuthCredential& rhs) {}
 
