@@ -24,6 +24,7 @@
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 #include "firebase/internal/platform.h"
+#include "remote_config/src/common.h"
 #include "remote_config/src/config_update_listener_registration.h"
 #ifndef SWIG
 #include "firebase/variant.h"
@@ -65,30 +66,6 @@ enum FetchFailureReason {
   kFetchFailureReasonThrottled,
   /// The most recent fetch failed for an unknown reason.
   kFetchFailureReasonError,
-};
-
-/// @brief Describes the error codes returned by Realtime.
-enum RemoteConfigError {
-  // No error.
-  kRemoteConfigErrorNone = 0,
-  // Unimplemented error found.
-  kRemoteConfigErrorUnimplemented = -1,
-  // Unable to make a connection to the Remote Config backend.
-  kRemoteConfigErrorConfigUpdateStreamError,
-  // The ConfigUpdate message was unparsable.
-  kRemoteConfigErrorConfigUpdateMessageInvalid,
-  // Unable to fetch the latest version of the config.
-  kRemoteConfigErrorConfigUpdateNotFetched,
-  // The Remote Config real-time config update service is unavailable.
-  kRemoteConfigErrorConfigUpdateUnavailable,
-};
-
-/// @brief Information about the updated config.
-struct ConfigUpdate {
-  /// @brief Parameter keys whose values have been updated from the currently
-  /// activated values. Includes keys that are added, deleted, and whose value,
-  /// value source, or metadata has changed.
-  std::vector<std::string> updated_keys;
 };
 
 /// @brief Describes the state of the most recent Fetch() call.

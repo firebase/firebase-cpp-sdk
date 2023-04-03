@@ -15,7 +15,7 @@
 #ifndef FIREBASE_REMOTE_CONFIG_SRC_CONFIG_UPDATE_LISTENER_REGISTRATION_H_
 #define FIREBASE_REMOTE_CONFIG_SRC_CONFIG_UPDATE_LISTENER_REGISTRATION_H_
 
-#include "remote_config/src/include/firebase/remote_config.h"
+#include "remote_config/src/common.h"
 
 namespace firebase {
 namespace remote_config {
