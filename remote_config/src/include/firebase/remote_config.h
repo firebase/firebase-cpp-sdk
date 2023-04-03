@@ -74,20 +74,21 @@ enum RemoteConfigError {
   // Unimplemented error found.
   kRemoteConfigErrorUnimplemented = -1,
   // Unable to make a connection to the Remote Config backend.
-  kRemoteConfigErrorConfigUpdateStreamError,     
+  kRemoteConfigErrorConfigUpdateStreamError,
   // The ConfigUpdate message was unparsable.
   kRemoteConfigErrorConfigUpdateMessageInvalid,
   // Unable to fetch the latest version of the config.
-  kRemoteConfigErrorConfigUpdateNotFetched,   
+  kRemoteConfigErrorConfigUpdateNotFetched,
   // The Remote Config real-time config update service is unavailable.
   kRemoteConfigErrorConfigUpdateUnavailable,
 };
 
-/// @brief Information about the updated config. 
+/// @brief Information about the updated config.
 struct ConfigUpdate {
-  // Parameter keys whose values have been updated from the currently activated values. Includes
-  // keys that are added, deleted, and whose value, value source, or metadata has changed.
-  std::vector<std::string> updated_keys;        
+  // Parameter keys whose values have been updated from the currently activated
+  // values. Includes keys that are added, deleted, and whose value, value
+  // source, or metadata has changed.
+  std::vector<std::string> updated_keys;
 };
 
 /// @brief Describes the state of the most recent Fetch() call.
@@ -528,11 +529,12 @@ class RemoteConfig {
   static RemoteConfig* GetInstance(App* app);
 
   /// @brief Real-time RC endpoint.
-  /// @param config_update_listener 
-  /// @return A registration object that allows the listener to remove the associated listener.
+  /// @param config_update_listener
+  /// @return A registration object that allows the listener to remove the
+  /// associated listener.
   ConfigUpdateListenerRegistration AddOnConfigUpdateListener(
-    std::function<void(ConfigUpdate&&, RemoteConfigError)> config_update_listener
-  );
+      std::function<void(ConfigUpdate&&, RemoteConfigError)>
+          config_update_listener);
 
  private:
   explicit RemoteConfig(App* app);

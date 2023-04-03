@@ -67,14 +67,12 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseRemoteConfig);
     "(Ljava/lang/String;)Ljava/util/Set;"),                                \
   X(GetInfo, "getInfo",                                                    \
     "()Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigInfo;"),      \
-  X(Fetch, "fetch", "(J)Lcom/google/android/gms/tasks/Task;")              \
-// clang-format on
+  X(Fetch, "fetch", "(J)Lcom/google/android/gms/tasks/Task;")  // clang-format on
 
 METHOD_LOOKUP_DECLARATION(config, REMOTE_CONFIG_METHODS)
 METHOD_LOOKUP_DEFINITION(
     config,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/remoteconfig/FirebaseRemoteConfig",
+    PROGUARD_KEEP_CLASS "com/google/firebase/remoteconfig/FirebaseRemoteConfig",
     REMOTE_CONFIG_METHODS)
 
 // Methods of FirebaseRemoteConfigValue
