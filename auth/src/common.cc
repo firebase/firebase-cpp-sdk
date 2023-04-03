@@ -63,7 +63,6 @@ void ClearUserInfos(AuthData* auth_data) {
 // PhoneAuthOptions
 //
 PhoneAuthOptions::PhoneAuthOptions() {
-  require_sms_validation = false;
   force_resending_token = nullptr;
   timeout_milliseconds = 0;
   ui_parent = nullptr;

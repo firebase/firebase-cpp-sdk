@@ -627,11 +627,6 @@ struct PhoneAuthOptions {
   // Constructor
   PhoneAuthOptions();
 
-  /// Specifies whether to force an SMS to be sent for second factor validation.
-  ///
-  /// This value is supported on Android devices only.
-  bool require_sms_validation;
-
   /// @brief Sets the @ref PhoneAuthProvider::ForceResendingToken to force
   /// another verification SMS to be sent before the auto-retrieval timeout.
   ///
@@ -657,7 +652,7 @@ struct PhoneAuthOptions {
   /// Use 0 to disable SMS-auto-retrieval. This will also cause
   /// @ref PhoneAuthProvider.Listener.OnCodeAutoRetrievalTimeOut to be called
   /// immediately.
-  uint64_t timeout_milliseconds;
+  uint32_t timeout_milliseconds;
 
   /// Sets the context to which the callbacks are scoped, and with which app
   /// verification will be completed.
