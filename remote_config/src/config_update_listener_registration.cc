@@ -20,7 +20,9 @@ namespace remote_config {
 ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
     std::function<void(ConfigUpdate&&, RemoteConfigError)>
         config_update_listener,
-    RemoteConfigInternal remote_config_internal) : configUpdateListener(config_update_listener), remoteConfigInternal(remote_config_internal) {}
+    RemoteConfigInternal remote_config_internal)
+    : configUpdateListener(config_update_listener),
+      remoteConfigInternal(remote_config_internal) {}
 
 ConfigUpdateListenerRegistration::~ConfigUpdateListenerRegistration() {}
 
