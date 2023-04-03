@@ -23,6 +23,7 @@
 #include "app/src/util_android.h"
 #include "firebase/app.h"
 #include "firebase/future.h"
+#include "remote_config/src/config_update_listener_registration.h"
 #include "remote_config/src/include/firebase/remote_config.h"
 
 namespace firebase {
@@ -79,6 +80,13 @@ class RemoteConfigInternal {
   std::map<std::string, Variant> GetAll();
 
   const ConfigInfo GetInfo() const;
+
+  ConfigUpdateListenerRegistration AddOnConfigUpdateListener(
+      std::function<void(ConfigUpdate&&, RemoteConfigError)>
+          config_update_listener);
+  void RemoveOnConfigUpdateListener(
+      std::function<void(ConfigUpdate&&, RemoteConfigError)>
+          config_update_listener);
 
   bool Initialized() const;
 

@@ -406,4 +406,8 @@ TEST_F(FirebaseRemoteConfigTest, TestFetchSecondsParameter) {
   FLAKY_TEST_SECTION_END();
 }
 
+TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {}
+
+TEST_F(FirebaseRemoteConfigTest, TestRemoveConfigUpdateListener) {}
+
 }  // namespace firebase_testapp_automated
