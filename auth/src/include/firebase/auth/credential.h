@@ -583,7 +583,11 @@ class PhoneAuthProvider {
                          Listener* listener);
 
   /// Start the phone number authentication operation.
-  /// @param[in] phone_number The phone number identifier supplied by the user.
+  ///
+  /// @param[in] options The PhoneAuthOptions struct with a verification
+  /// configuration.
+  /// @param[in,out] listener Class that receives notification whenever an SMS
+  ///    verification event occurs.
   void VerifyPhoneNumber(const PhoneAuthOptions& options,
                          PhoneAuthProvider::Listener* listener);
 
