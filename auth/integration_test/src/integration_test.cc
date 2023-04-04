@@ -101,6 +101,10 @@ class FirebaseAuthTest : public FirebaseTest {
   // Delete the current user if it's currently signed in.
   void DeleteUser();
 
+  // Delete the current user if it's currently signed in using the deprecated
+  // API surface.
+  void DeleteUser_DEPRECATED();
+
   // Passthrough method to the base class's WaitForCompletion.
   bool WaitForCompletion(firebase::Future<std::string> future, const char* fn,
                          int expected_error = firebase::auth::kAuthErrorNone) {
@@ -260,20 +264,29 @@ void FirebaseAuthTest::SignOut() {
     // Auth is not set up.
     return;
   }
-  if (auth_->current_user_DEPRECATED() == nullptr) {
+  if (!auth_->current_user().is_valid()) {
     // Already signed out.
     return;
   }
   auth_->SignOut();
   // Wait for the sign-out to finish.
-  while (auth_->current_user_DEPRECATED() != nullptr) {
+  while (auth_->current_user().is_valid()) {
     if (ProcessEvents(100)) break;
   }
   ProcessEvents(100);
-  EXPECT_EQ(auth_->current_user_DEPRECATED(), nullptr);
+  EXPECT_TRUE(auth_->current_user().is_valid());
 }
 
+
 void FirebaseAuthTest::DeleteUser() {
+  if (auth_ != nullptr && auth_->current_user().is_valid()) {
+    FirebaseTest::WaitForCompletion(auth_->current_user().Delete(),
+                                    "Delete User");
+    ProcessEvents(100);
+  }
+}
+
+void FirebaseAuthTest::DeleteUser_DEPRECATED() {
   if (auth_ != nullptr && auth_->current_user_DEPRECATED() != nullptr) {
     FirebaseTest::WaitForCompletion(auth_->current_user_DEPRECATED()->Delete(),
                                     "Delete User");
@@ -288,6 +301,14 @@ TEST_F(FirebaseAuthTest, TestInitialization) {
 }
 
 TEST_F(FirebaseAuthTest, TestAnonymousSignin) {
+  // Test notification on SignIn().
+  WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(), "SignInAnonymously");
+  EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
+  EXPECT_TRUE(auth_->current_user_DEPRECATED()->is_anonymous());
+  DeleteUser();
+}
+
+TEST_F(FirebaseAuthTest, TestAnonymousSignin_DEPRECATED) {
   // Test notification on SignIn().
   WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(), "SignInAnonymously");
   EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
