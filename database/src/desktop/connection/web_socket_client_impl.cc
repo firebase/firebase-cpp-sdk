@@ -15,6 +15,7 @@
 #include "database/src/desktop/connection/web_socket_client_impl.h"
 
 #include <cassert>
+#include <map>
 
 #include "app/src/app_common.h"
 #include "app/src/assert.h"

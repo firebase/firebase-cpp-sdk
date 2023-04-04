@@ -14,6 +14,9 @@
 
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_UTIL_CONNECTION_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_UTIL_CONNECTION_H_
+
+#include <string>
+
 #include "app/memory/unique_ptr.h"
 #include "app/src/logger.h"
 #include "app/src/scheduler.h"

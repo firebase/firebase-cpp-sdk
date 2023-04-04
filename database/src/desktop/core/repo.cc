@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/core/repo.h"
 
+#include <string>
+
 #include "app/src/callback.h"
 #include "app/src/filesystem.h"
 #include "app/src/function_registry.h"

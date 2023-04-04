@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/connection/util_connection.h"
 
+#include <string>
+
 #include "database/src/desktop/connection/web_socket_client_impl.h"
 
 namespace firebase {
