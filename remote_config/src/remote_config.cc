@@ -233,7 +233,7 @@ std::map<std::string, Variant> RemoteConfig::GetAll() {
 // TODO(b/147143718): Change to a more descriptive name.
 const ConfigInfo RemoteConfig::GetInfo() { return internal_->GetInfo(); }
 
-ConfigUpdateListenerRegistration* AddOnConfigUpdateListener(
+ConfigUpdateListenerRegistration* RemoteConfig::AddOnConfigUpdateListener(
     std::function<void(ConfigUpdate&&, RemoteConfigError)>
         config_update_listener) {
   return internal_->AddOnConfigUpdateListener(config_update_listener);
