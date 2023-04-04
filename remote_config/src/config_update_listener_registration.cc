@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "remote_config/src/config_update_listener_registration.h"
+#include "remote_config/src/include/firebase/config_update_listener_registration.h"
 
 namespace firebase {
 namespace remote_config {
