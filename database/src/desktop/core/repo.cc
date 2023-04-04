@@ -16,6 +16,7 @@
 
 #include "app/src/callback.h"
 #include "app/src/filesystem.h"
+#include "app/src/function_registry.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
 #include "app/src/scheduler.h"
@@ -134,6 +135,11 @@ Repo::~Repo() {
       s_scheduler_ = nullptr;
     }
   }
+
+  // Remove the App Check token listener
+  auto callback = reinterpret_cast<void*>(OnAppCheckTokenChanged);
+  database_->GetApp()->function_registry()->CallFunction(
+    ::firebase::internal::FnAppCheckRemoveListener, database_->GetApp(), callback, this);
 }
 
 void Repo::AddEventCallback(UniquePtr<EventRegistration> event_registration) {
@@ -449,6 +455,13 @@ static UniquePtr<PersistenceManagerInterface> CreatePersistenceManager(
 
 // Defers any initialization that is potentially expensive (e.g. disk access).
 void Repo::DeferredInitialization() {
+  // Add App Check state listener
+  {
+    auto callback = reinterpret_cast<void*>(OnAppCheckTokenChanged);
+    database_->GetApp()->function_registry()->CallFunction(
+        ::firebase::internal::FnAppCheckAddListener, database_->GetApp(), callback, this);
+  }
+
   // Set up server sync tree.
   {
     // The path path to the on-disk persistence cache, relative to the
@@ -1186,6 +1199,17 @@ void Repo::UpdateInfo(const std::string& key, const Variant& value) {
   Path path = Path(kDotInfo).GetChild(key);
   VariantUpdateChild(&info_data_, path, value);
   PostEvents(info_sync_tree_->ApplyServerOverwrite(path, value));
+}
+
+// static
+void Repo::OnAppCheckTokenChanged(std::string token, void* context) {
+  auto repo = static_cast<Repo*>(context);
+  if (repo) {
+    ThisRefLock lock(&repo->this_ref());
+    if (lock.GetReference() != nullptr) {
+      lock.GetReference()->connection_->RefreshAppCheckToken(token);
+    }
+  }
 }
 
 }  // namespace internal

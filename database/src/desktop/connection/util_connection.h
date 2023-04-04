@@ -30,7 +30,7 @@ namespace connection {
 UniquePtr<WebSocketClientInterface> CreateWebSocketClient(
     const HostInfo& info, WebSocketClientEventHandler* delegate,
     const char* opt_last_session_id, Logger* logger,
-    scheduler::Scheduler* scheduler);
+    scheduler::Scheduler* scheduler, const std::string& app_check_token);
 
 }  // namespace connection
 }  // namespace internal

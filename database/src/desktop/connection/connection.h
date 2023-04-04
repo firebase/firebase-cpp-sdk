@@ -75,7 +75,8 @@ class Connection : public WebSocketClientEventHandler {
 
   explicit Connection(scheduler::Scheduler* scheduler, const HostInfo& info,
                       const char* opt_last_session_id,
-                      ConnectionEventHandler* event_handler, Logger* logger);
+                      ConnectionEventHandler* event_handler, Logger* logger,
+                      const std::string& app_check_token);
   ~Connection() override;
 
   // Connection is neither copyable nor movable.

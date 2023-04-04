@@ -37,6 +37,7 @@ class WebSocketClientImpl : public WebSocketClientInterface {
  public:
   WebSocketClientImpl(const std::string& uri, const std::string& user_agent,
                       Logger* logger, scheduler::Scheduler* scheduler,
+                      const std::string& app_check_token,
                       WebSocketClientEventHandler* handler = nullptr);
   ~WebSocketClientImpl() override;
 
@@ -151,6 +152,9 @@ class WebSocketClientImpl : public WebSocketClientInterface {
 
   // User agent used when opening the connection.
   std::string user_agent_;
+
+  // App Check token used when opening the connection.
+  std::string app_check_token_;
 
   Logger* logger_;
 

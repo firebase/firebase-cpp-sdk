@@ -52,7 +52,8 @@ compat::Atomic<uint32_t> Connection::next_log_id_(0);
 
 Connection::Connection(scheduler::Scheduler* scheduler, const HostInfo& info,
                        const char* opt_last_session_id,
-                       ConnectionEventHandler* event_handler, Logger* logger)
+                       ConnectionEventHandler* event_handler, Logger* logger,
+                       const std::string& app_check_token)
     : safe_this_(this),
       event_handler_(event_handler),
       scheduler_(scheduler),
@@ -72,7 +73,7 @@ Connection::Connection(scheduler::Scheduler* scheduler, const HostInfo& info,
 
   // Create web socket client regardless of its implementation
   client_ = CreateWebSocketClient(host_info_, this, opt_last_session_id, logger,
-                                  scheduler);
+                                  scheduler, app_check_token);
 }
 
 Connection::~Connection() {
@@ -404,7 +405,10 @@ void Connection::OnConnectionShutdown(const std::string& reason) {
 
   event_handler_->OnKill(reason);
 
-  Close(kDisconnectReasonShutdownMessage);
+  // OnKill can result in the client being torn down, so check for that.
+  if (client_) {
+    Close(kDisconnectReasonShutdownMessage);
+  }
 }
 
 void Connection::OnHandshake(const Variant& handshake) {

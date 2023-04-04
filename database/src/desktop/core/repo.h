@@ -158,6 +158,9 @@ class Repo : public connection::PersistentConnectionEventHandler {
 
   void UpdateInfo(const std::string& key, const Variant& value);
 
+  // Callback function used to listen for App Check token changes, and updating the connection with them.
+  static void OnAppCheckTokenChanged(std::string token, void* context);
+
   DatabaseInternal* database_;
 
   SparseSnapshotTree on_disconnect_;
