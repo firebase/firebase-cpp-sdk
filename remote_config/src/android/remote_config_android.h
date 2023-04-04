@@ -23,7 +23,6 @@
 #include "app/src/util_android.h"
 #include "firebase/app.h"
 #include "firebase/future.h"
-#include "remote_config/src/config_update_listener_registration.h"
 #include "remote_config/src/include/firebase/remote_config.h"
 
 namespace firebase {

@@ -12,19 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_REMOTE_CONFIG_SRC_CONFIG_UPDATE_LISTENER_REGISTRATION_H_
-#define FIREBASE_REMOTE_CONFIG_SRC_CONFIG_UPDATE_LISTENER_REGISTRATION_H_
-
-#include "remote_config/src/common.h"
+#ifndef FIREBASE_REMOTE_CONFIG_SRC_INCLUDE_FIREBASE_CONFIG_UPDATE_LISTENER_REGISTRATION_H_
+#define FIREBASE_REMOTE_CONFIG_SRC_INCLUDE_FIREBASE_CONFIG_UPDATE_LISTENER_REGISTRATION_H_
 
 namespace firebase {
 namespace remote_config {
 
-//  Calling Remove stops the listener from receiving
-//  config updates and unregisters itself. If remove is called and no other
-//  listener registrations remain, the connection to the Remote Config backend
-//  is closed. Subsequently calling AddOnConfigUpdate will re-open the
-//  connection.
+/// @brief Calling Remove stops the listener from receiving
+///  config updates and unregisters itself. If remove is called and no other
+///  listener registrations remain, the connection to the Remote Config backend
+///  is closed. Subsequently calling AddOnConfigUpdate will re-open the
+///  connection.
 class ConfigUpdateListenerRegistration {
  public:
   ConfigUpdateListenerRegistration();
@@ -44,4 +42,4 @@ class ConfigUpdateListenerRegistration {
 }  // namespace remote_config
 }  // namespace firebase
 
-#endif  // FIREBASE_REMOTE_CONFIG_SRC_CONFIG_UPDATE_LISTENER_REGISTRATION_H_
+#endif  // FIREBASE_REMOTE_CONFIG_SRC_INCLUDE_FIREBASE_CONFIG_UPDATE_LISTENER_REGISTRATION_H_

@@ -22,7 +22,6 @@
 #include "app/src/assert.h"
 #include "app/src/log.h"
 #include "app/src/time.h"
-#include "remote_config/src/config_update_listener_registration.h"
 #include "remote_config/src/common.h"
 
 namespace firebase {

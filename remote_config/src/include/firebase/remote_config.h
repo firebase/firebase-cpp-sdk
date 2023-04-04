@@ -25,7 +25,7 @@
 #include "firebase/internal/common.h"
 #include "firebase/internal/platform.h"
 #include "remote_config/src/common.h"
-#include "remote_config/src/config_update_listener_registration.h"
+#include "remote_config/src/include/firebase/config_update_listener_registration.h"
 #ifndef SWIG
 #include "firebase/variant.h"
 #endif  // SWIG

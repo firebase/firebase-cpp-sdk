@@ -27,7 +27,6 @@
 #include "app/src/util.h"
 #include "app/src/util_android.h"
 #include "remote_config/src/common.h"
-#include "remote_config/src/config_update_listener_registration.h"
 
 namespace firebase {
 namespace remote_config {

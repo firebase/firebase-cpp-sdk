@@ -20,7 +20,6 @@
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_ios.h"
 #include "firebase/future.h"
-
 #include "remote_config/src/include/firebase/remote_config.h"
 
 #ifdef __OBJC__
