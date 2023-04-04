@@ -42,7 +42,7 @@ class ConfigUpdateListenerRegistration {
 
  private:
   std::function<void(ConfigUpdate&&, RemoteConfigError)> configUpdateListener;
-  std::function < void(std::function<(ConfigUpdate&&, RemoteConfigError)>)
+  std::function < void(std::function<void(ConfigUpdate&&, RemoteConfigError)>)
                       listenerRemovalFunction;
 };
 
