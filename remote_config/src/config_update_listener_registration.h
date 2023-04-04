@@ -38,7 +38,7 @@ class ConfigUpdateListenerRegistration {
   void Remove();
 
  private:
-  /// @brief Callback to invoke native platform's `Remove`
+  /// @brief Callback to invoke native platform's `Remove`.
   std::function<void()> listenerRemovalFunction;
 };
 
