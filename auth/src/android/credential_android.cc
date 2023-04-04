@@ -92,12 +92,6 @@ METHOD_LOOKUP_DEFINITION(googlecred,
                          GOOGLE_CRED_METHODS)
 
 // clang-format off
-#define PHONE_CREDENTIAL_METHODS(X)                                            \
-    X(GetSmsCode, "getSmsCode", "()Ljava/lang/String;")
-// clang-format on
-METHOD_LOOKUP_DECLARATION(phonecredential, PHONE_CREDENTIAL_METHODS)
-
-// clang-format off
 #define PLAY_GAMES_CRED_METHODS(X)                                             \
     X(GetCredential, "getCredential",                                          \
       "(Ljava/lang/String;)Lcom/google/firebase/auth/AuthCredential;",         \
