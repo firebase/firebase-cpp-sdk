@@ -28,19 +28,18 @@ namespace remote_config {
 class ConfigUpdateListenerRegistration {
  public:
   ConfigUpdateListenerRegistration(
-      ConfigUpdateListener config_update_listener,
-      std::function<void(ConfigUpdateListener)> listener_removal_function);
+      std::function<void()> listener_removal_function);
 
   ~ConfigUpdateListenerRegistration();
 
-  // Removes the listener being tracked by this
-  // ConfigUpdateListenerRegistration. After the initial call, subsequent calls
-  // to Remove have no effect.
+  /// @brief The listener being tracked by this
+  /// ConfigUpdateListenerRegistration. After the initial call, subsequent calls
+  /// to Remove have no effect.
   void Remove();
 
  private:
-  ConfigUpdateListener configUpdateListener;
-  std::function<void(ConfigUpdateListener)> listenerRemovalFunction;
+  /// @brief Callback to invoke native platform's `Remove`
+  std::function<void()> listenerRemovalFunction;
 };
 
 }  // namespace remote_config

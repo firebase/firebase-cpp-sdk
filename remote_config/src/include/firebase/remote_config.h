@@ -505,8 +505,11 @@ class RemoteConfig {
   /// @param[in] app The App to use for the RemoteConfig object.
   static RemoteConfig* GetInstance(App* app);
 
-  /// @brief Real-time RC endpoint.
-  /// @param config_update_listener
+  /// @brief Starts listening for real-time config updates from the Remote
+  /// Config backend and automatically fetches updates from the RC backend when
+  /// they are available.
+  /// @param config_update_listener An event handler callback that can be used
+  /// to respond to config updates when they're fetched
   /// @return A registration object that allows the listener to remove the
   /// associated listener.
   ConfigUpdateListenerRegistration* AddOnConfigUpdateListener(

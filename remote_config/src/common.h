@@ -34,7 +34,7 @@ enum RemoteConfigFn {
   kRemoteConfigFnCount
 };
 
-/// @brief Describes the error codes returned by Realtime.
+/// @brief Describes the error codes returned by Remote Config.
 enum RemoteConfigError {
   // No error.
   kRemoteConfigErrorNone = 0,
@@ -67,10 +67,6 @@ struct ConfigUpdate {
   /// value source, or metadata has changed.
   std::vector<std::string> updated_keys;
 };
-
-/// @brief Event listener interface for real-time Remote Config updates.
-typedef std::function<void(ConfigUpdate&&, RemoteConfigError)>
-    ConfigUpdateListener;
 
 // Data structure which holds the Future API implementation with the only
 // future required by this API (fetch_future_).
