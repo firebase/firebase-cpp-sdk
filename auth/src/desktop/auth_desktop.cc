@@ -82,6 +82,30 @@ Future<ResultT> DoSignInWithCredential(Promise<ResultT> promise,
   return promise.LastResult();
 }
 
+template <typename ResultT>
+Future<ResultT> DoSignInWithCredential_DEPRECATED(
+    Promise<ResultT> promise, AuthData* const auth_data,
+    const std::string& provider, const void* const raw_credential) {
+  FIREBASE_ASSERT_RETURN(Future<ResultT>(), auth_data && raw_credential);
+
+  if (!ValidateCredential(&promise, provider, raw_credential)) {
+    return promise.LastResult();
+  }
+
+  auto request =
+      CreateRequestFromCredential(auth_data, provider, raw_credential);
+
+  if (provider == kEmailPasswordAuthProviderId) {
+    CallAsync(auth_data, promise, std::move(request),
+              PerformSignInFlow_DEPRECATED<VerifyPasswordResponse>);
+  } else {
+    CallAsync(auth_data, promise, std::move(request),
+              PerformSignInFlow_DEPRECATED<VerifyAssertionResponse>);
+  }
+
+  return promise.LastResult();
+}
+
 }  // namespace
 
 void* CreatePlatformAuth(App* const app) {
@@ -336,6 +360,23 @@ void Auth::DestroyPlatformAuth(AuthData* const auth_data) {
 }
 
 // RPCs
+Future<AuthResult> Auth::SignInWithCustomToken(const char* custom_token) {
+  Promise<AuthResult> promise(&auth_data_->future_impl,
+                              kAuthFn_SignInWithCustomToken);
+  if (!custom_token || strlen(custom_token) == 0) {
+    FailPromise(&promise, kAuthErrorInvalidCustomToken);
+    return promise.LastResult();
+  }
+
+  typedef VerifyCustomTokenRequest RequestT;
+  // Note: std::make_unique is not supported by Visual Studio 2012, which is
+  // among our target compilers.
+  auto request = std::unique_ptr<RequestT>(  // NOLINT
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), custom_token));
+
+  return CallAsync(auth_data_, promise, std::move(request),
+                   PerformSignInFlow<VerifyCustomTokenResponse>);
+}
 
 Future<User*> Auth::SignInWithCustomToken_DEPRECATED(
     const char* const custom_token) {
@@ -353,7 +394,17 @@ Future<User*> Auth::SignInWithCustomToken_DEPRECATED(
       new RequestT(*auth_data_->app, GetApiKey(*auth_data_), custom_token));
 
   return CallAsync(auth_data_, promise, std::move(request),
-                   PerformSignInFlow<VerifyCustomTokenResponse>);
+                   PerformSignInFlow_DEPRECATED<VerifyCustomTokenResponse>);
+}
+
+Future<User> Auth::SignInWithCredential(const Credential& credential) {
+  Promise<User> promise(&auth_data_->future_impl, kAuthFn_SignInWithCredential);
+  if (!ValidateCredential(&promise, credential.provider(), credential.impl_)) {
+    return promise.LastResult();
+  }
+
+  return DoSignInWithCredential(promise, auth_data_, credential.provider(),
+                                credential.impl_);
 }
 
 Future<User*> Auth::SignInWithCredential_DEPRECATED(
@@ -364,8 +415,22 @@ Future<User*> Auth::SignInWithCredential_DEPRECATED(
     return promise.LastResult();
   }
 
-  return DoSignInWithCredential(promise, auth_data_, credential.provider(),
-                                credential.impl_);
+  return DoSignInWithCredential_DEPRECATED(
+      promise, auth_data_, credential.provider(), credential.impl_);
+}
+
+Future<AuthResult> Auth::SignInWithProvider(FederatedAuthProvider* provider) {
+  FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
+  // TODO(b/139363200)
+  // return provider->SignIn(auth_data_);
+
+  SafeFutureHandle<AuthResult> handle =
+      auth_data_->future_impl.SafeAlloc<AuthResult>(kAuthFn_SignInWithProvider);
+  auth_data_->future_impl.CompleteWithResult(
+      handle, kAuthErrorUnimplemented,
+      "Operation is not supported on non-mobile systems.",
+      /*result=*/{});
+  return MakeFuture(&auth_data_->future_impl, handle);
 }
 
 Future<SignInResult> Auth::SignInWithProvider_DEPRECATED(
@@ -382,6 +447,33 @@ Future<SignInResult> Auth::SignInWithProvider_DEPRECATED(
       "Operation is not supported on non-mobile systems.",
       /*result=*/{});
   return MakeFuture(&auth_data_->future_impl, handle);
+}
+
+Future<AuthResult> Auth::SignInAnonymously() {
+  Promise<AuthResult> promise(&auth_data_->future_impl,
+                              kAuthFn_SignInAnonymously);
+
+  // If user is already signed in anonymously, return immediately.
+  bool is_anonymous = false;
+  User* api_user_to_return = nullptr;
+  UserView::TryRead(auth_data_, [&](const UserView::Reader& reader) {
+    is_anonymous = reader->is_anonymous;
+    api_user_to_return = &auth_data_->current_user;
+  });
+
+  if (is_anonymous) {
+    AuthResult auth_result;
+    auth_result.user = *api_user_to_return;
+    promise.CompleteWithResult(auth_result);
+    return promise.LastResult();
+  }
+
+  typedef SignUpNewUserRequest RequestT;
+  auto request = std::unique_ptr<RequestT>(  // NOLINT
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_)));
+
+  return CallAsync(auth_data_, promise, std::move(request),
+                   PerformSignInFlow<SignUpNewUserResponse>);
 }
 
 Future<User*> Auth::SignInAnonymously_DEPRECATED() {
@@ -406,7 +498,23 @@ Future<User*> Auth::SignInAnonymously_DEPRECATED() {
       new RequestT(*auth_data_->app, GetApiKey(*auth_data_)));
 
   return CallAsync(auth_data_, promise, std::move(request),
-                   PerformSignInFlow<SignUpNewUserResponse>);
+                   PerformSignInFlow_DEPRECATED<SignUpNewUserResponse>);
+}
+
+Future<AuthResult> Auth::SignInWithEmailAndPassword(
+    const char* const email, const char* const password) {
+  Promise<AuthResult> promise(&auth_data_->future_impl,
+                              kAuthFn_SignInWithEmailAndPassword);
+  if (!ValidateEmailAndPassword(&promise, email, password)) {
+    return promise.LastResult();
+  }
+
+  typedef VerifyPasswordRequest RequestT;
+  auto request = std::unique_ptr<RequestT>(  // NOLINT
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), email, password));
+
+  return CallAsync(auth_data_, promise, std::move(request),
+                   PerformSignInFlow<VerifyPasswordResponse>);
 }
 
 Future<User*> Auth::SignInWithEmailAndPassword_DEPRECATED(
@@ -422,7 +530,24 @@ Future<User*> Auth::SignInWithEmailAndPassword_DEPRECATED(
       new RequestT(*auth_data_->app, GetApiKey(*auth_data_), email, password));
 
   return CallAsync(auth_data_, promise, std::move(request),
-                   PerformSignInFlow<VerifyPasswordResponse>);
+                   PerformSignInFlow_DEPRECATED<VerifyPasswordResponse>);
+}
+
+Future<AuthResult> Auth::CreateUserWithEmailAndPassword(
+    const char* const email, const char* const password) {
+  Promise<AuthResult> promise(&auth_data_->future_impl,
+                              kAuthFn_CreateUserWithEmailAndPassword);
+  if (!ValidateEmailAndPassword(&promise, email, password)) {
+    return promise.LastResult();
+  }
+
+  typedef SignUpNewUserRequest RequestT;
+  auto request = std::unique_ptr<RequestT>(  // NOLINT
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), email, password,
+                   ""));
+
+  return CallAsync(auth_data_, promise, std::move(request),
+                   PerformSignInFlow<SignUpNewUserResponse>);
 }
 
 Future<User*> Auth::CreateUserWithEmailAndPassword_DEPRECATED(
@@ -439,7 +564,15 @@ Future<User*> Auth::CreateUserWithEmailAndPassword_DEPRECATED(
                    ""));
 
   return CallAsync(auth_data_, promise, std::move(request),
-                   PerformSignInFlow<SignUpNewUserResponse>);
+                   PerformSignInFlow_DEPRECATED<SignUpNewUserResponse>);
+}
+
+Future<AuthResult> Auth::SignInAndRetrieveDataWithCredential(
+    const Credential& credential) {
+  Promise<AuthResult> promise(&auth_data_->future_impl,
+                              kAuthFn_SignInAndRetrieveDataWithCredential);
+  return DoSignInWithCredential(promise, auth_data_, credential.provider(),
+                                credential.impl_);
 }
 
 Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential_DEPRECATED(
@@ -447,8 +580,8 @@ Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential_DEPRECATED(
   Promise<SignInResult> promise(
       &auth_data_->future_impl,
       kAuthFn_SignInAndRetrieveDataWithCredential_DEPRECATED);
-  return DoSignInWithCredential(promise, auth_data_, credential.provider(),
-                                credential.impl_);
+  return DoSignInWithCredential_DEPRECATED(
+      promise, auth_data_, credential.provider(), credential.impl_);
 }
 
 Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(

@@ -152,8 +152,8 @@ void CompleteAuthHandle(
       AuthenticationResult auth_result = CompleteAuthenticedUserSignInFlow(
           completion_handle->auth_data, user_data);
       if (auth_result.IsValid()) {
-        sign_in_result =
-            auth_result.SetAsCurrentUser(completion_handle->auth_data);
+        sign_in_result = auth_result.SetAsCurrentUser_DEPRECATED(
+            completion_handle->auth_data);
       } else {
         auth_error = kAuthErrorInvalidAuthenticatedUserData;
         error_message = "Internal parse error";

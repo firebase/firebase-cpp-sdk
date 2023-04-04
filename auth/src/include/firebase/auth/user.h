@@ -32,7 +32,6 @@ namespace auth {
 // Predeclarations.
 class Auth;
 struct AuthData;
-
 class FederatedAuthProvider;
 
 /// @brief Interface implemented by each identity provider.
@@ -141,6 +140,8 @@ struct UserMetadata {
   uint64_t creation_timestamp;
 };
 
+/// @deprecated This structure will be replaced with @ref AuthResult.
+///
 /// @brief Result of operations that can affect authentication state.
 struct SignInResult {
   SignInResult() : user(NULL) {}
@@ -163,6 +164,9 @@ struct SignInResult {
 /// unlink from authentication providers, and refresh authentication tokens.
 class User : public UserInfoInterface {
  public:
+  // Default constructor - creates an invalid user.
+  User();
+
   /// Parameters to the UpdateUserProfile() function.
   ///
   /// For fields you don't want to update, pass NULL.
@@ -538,6 +542,21 @@ class User : public UserInfoInterface {
 
   // Use the pimpl mechanism to hide data details in the cpp files.
   AuthData* auth_data_;
+};
+
+/// @brief The result of operations that can affect authentication state.
+struct AuthResult {
+  /// Identity-provider specific information for the user, if the provider is
+  /// one of Facebook, GitHub, Google, or Twitter.
+  AdditionalUserInfo additional_user_info;
+
+  /// A Credential instance for the recently signed-in user. This is not
+  /// supported on desktop platforms.
+  Credential credential;
+
+  /// The currently signed-in @ref User, or an invalid @ref User if there isn't
+  /// one (i.e. if the user is signed-out then is_valid() will return false).
+  User user;
 };
 
 }  // namespace auth

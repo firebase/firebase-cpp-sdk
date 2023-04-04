@@ -32,12 +32,19 @@ namespace auth {
 enum AuthApiFunction {
   // External functions in the Auth API.
   kAuthFn_FetchProvidersForEmail,
+  kAuthFn_SignInWithCustomToken,
   kAuthFn_SignInWithCustomToken_DEPRECATED,
+  kAuthFn_SignInWithCredential,
   kAuthFn_SignInWithCredential_DEPRECATED,
+  kAuthFn_SignInAndRetrieveDataWithCredential,
   kAuthFn_SignInAndRetrieveDataWithCredential_DEPRECATED,
+  kAuthFn_SignInAnonymously,
   kAuthFn_SignInAnonymously_DEPRECATED,
+  kAuthFn_SignInWithEmailAndPassword,
   kAuthFn_SignInWithEmailAndPassword_DEPRECATED,
+  kAuthFn_SignInWithProvider,
   kAuthFn_SignInWithProvider_DEPRECATED,
+  kAuthFn_CreateUserWithEmailAndPassword,
   kAuthFn_CreateUserWithEmailAndPassword_DEPRECATED,
   kAuthFn_SendPasswordResetEmail,
 

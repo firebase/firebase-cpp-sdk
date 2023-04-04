@@ -350,7 +350,7 @@ Future<ResultT> DoLinkCredential(Promise<ResultT> promise,
 
         if (auth_result.IsValid()) {
           const SignInResult sign_in_result =
-              auth_result.SetAsCurrentUser(handle->auth_data);
+              auth_result.SetAsCurrentUser_DEPRECATED(handle->auth_data);
           CompletePromise(&handle->promise, sign_in_result);
         } else {
           SignOutIfUserNoLongerValid(handle->auth_data->auth,
@@ -385,7 +385,7 @@ void PerformReauthFlow(AuthDataHandle<FutureResultT, RequestT>* const handle) {
 
   if (auth_result.uid() == current_uid) {
     const SignInResult sign_in_result =
-        auth_result.SetAsCurrentUser(handle->auth_data);
+        auth_result.SetAsCurrentUser_DEPRECATED(handle->auth_data);
 
     TriggerSaveUserFlow(handle->auth_data);
     CompletePromise(&handle->promise, sign_in_result);

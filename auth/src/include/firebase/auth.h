@@ -248,6 +248,15 @@ class Auth {
   /// Get results of the most recent call to @ref FetchProvidersForEmail.
   Future<FetchProvidersResult> FetchProvidersForEmailLastResult() const;
 
+  /// Asynchronously logs into Firebase with the given @ref Auth token.
+  ///
+  /// An error is returned if the token is invalid, expired or otherwise not
+  /// accepted by the server.
+  Future<AuthResult> SignInWithCustomToken(const char* custom_token);
+
+  /// Get results of the most recent call to @ref SignInWithCustomToken.
+  Future<AuthResult> SignInWithCustomTokenLastResult() const;
+
   /// @deprecated This is a deprecated method. Please use @SignInWithCustomToken
   /// instead.
   ///
@@ -260,9 +269,19 @@ class Auth {
 
   /// @deprecated
   ///
-  /// Get results of the most recent call to @ref SignInWithCustomToken.
+  /// Get results of the most recent call to @ref
+  /// SignInWithCustomToken_DEPRECATED.
   FIREBASE_DEPRECATED Future<User*> SignInWithCustomTokenLastResult_DEPRECATED()
       const;
+
+  /// Convenience method for @ref SignInAndRetrieveDataWithCredential that
+  /// doesn't return additional identity provider data.
+  Future<User> SignInWithCredential(const Credential& credential);
+
+  /// @deprecated
+  ///
+  /// Get results of the most recent call to @ref SignInWithCredential.
+  Future<User> SignInWithCredentialLastResult() const;
 
   /// @deprecated This is a deprecated method. Please use @SignInWithCredential
   /// instead.
@@ -279,6 +298,18 @@ class Auth {
   FIREBASE_DEPRECATED Future<User*> SignInWithCredentialLastResult_DEPRECATED()
       const;
 
+  /// Sign-in a user authenticated via a federated auth provider.
+  ///
+  /// @param[in] provider Contains information on the provider to authenticate
+  /// with.
+  ///
+  /// @return A Future with the result of the sign-in request.
+  ///
+  /// @note: This operation is supported only on iOS, tvOS and Android
+  /// platforms. On other platforms this method will return a Future with a
+  /// preset error code: kAuthErrorUnimplemented.
+  Future<AuthResult> SignInWithProvider(FederatedAuthProvider* provider);
+
   /// @deprecated This is a deprecated method. Please use @SignInWithProvider
   /// instead.
   ///
@@ -294,6 +325,24 @@ class Auth {
   /// preset error code: kAuthErrorUnimplemented.
   FIREBASE_DEPRECATED Future<SignInResult> SignInWithProvider_DEPRECATED(
       FederatedAuthProvider* provider);
+
+  /// Asynchronously logs into Firebase with the given credentials.
+  ///
+  /// For example, the credential could wrap a Facebook login access token or
+  /// a Twitter token/token-secret pair.
+  ///
+  /// The AuthResult contains both a reference to the User (which is_valid()
+  /// will return false if the sign in failed), and AdditionalUserInfo, which
+  /// holds details specific to the Identity Provider used to sign in.
+  ///
+  /// An error is returned if the token is invalid, expired, or otherwise not
+  /// accepted by the server.
+  Future<AuthResult> SignInAndRetrieveDataWithCredential(
+      const Credential& credential);
+
+  /// Get results of the most recent call to
+  /// @ref SignInAndRetrieveDataWithCredential.
+  Future<AuthResult> SignInAndRetrieveDataWithCredentialLastResult() const;
 
   /// @deprecated This is a deprecated method. Please use
   /// @SignInAndRetrieveDataWithCredential instead.
@@ -319,9 +368,6 @@ class Auth {
   FIREBASE_DEPRECATED Future<SignInResult>
   SignInAndRetrieveDataWithCredentialLastResult_DEPRECATED() const;
 
-  /// @deprecated This is a deprecated method. Please use @SignInAnonymously
-  /// instead.
-  ///
   /// Asynchronously creates and becomes an anonymous user.
   /// If there is already an anonymous user signed in, that user will be
   /// returned instead.
@@ -359,14 +405,14 @@ class Auth {
   ///  // This function is called every frame.
   ///  bool SignIn(firebase::auth::Auth& auth) {
   ///    // Grab the result of the latest sign-in attempt.
-  ///    firebase::Future<firebase::auth::User*> future =
+  ///    firebase::Future<firebase::auth::AuthResult> future =
   ///        auth.SignInAnonymouslyLastResult();
   ///
   ///    // If we're in a state where we can try to sign in, do so.
   ///    if (future.status() == firebase::kFutureStatusInvalid ||
   ///        (future.status() == firebase::kFutureStatusComplete &&
   ///         future.error() != firebase::auth::kAuthErrorNone)) {
-  ///      auth.SignInAnonymously_DEPRECATED();
+  ///      auth.SignInAnonymously();
   ///    }
   ///
   ///    // We're signed in if the most recent result was successful.
@@ -375,10 +421,29 @@ class Auth {
   ///  }
   /// @endcode
   /// @endif
+  Future<AuthResult> SignInAnonymously();
+
+  /// Get results of the most recent call to @ref SignInAnonymously.
+  Future<AuthResult> SignInAnonymouslyLastResult() const;
+
+  /// @deprecated This is a deprecated method. Please use @SignInAnonymously
+  /// instead.
   Future<User*> SignInAnonymously_DEPRECATED();
 
+  /// @deprecated
+  ///
   /// Get results of the most recent call to @ref SignInAnonymously_DEPRECATED.
   Future<User*> SignInAnonymouslyLastResult_DEPRECATED() const;
+
+  /// Signs in using provided email address and password.
+  /// An error is returned if the password is wrong or otherwise not accepted
+  /// by the server.
+  FIREBASE_DEPRECATED Future<AuthResult> SignInWithEmailAndPassword(
+      const char* email, const char* password);
+
+  /// Get results of the most recent call to @ref
+  /// SignInWithEmailAndPassword.
+  Future<AuthResult> SignInWithEmailAndPasswordLastResult() const;
 
   /// @deprecated This is a deprecated method. Please use
   /// @SignInWithEmailAndPassword instead.
@@ -394,6 +459,18 @@ class Auth {
   /// Get results of the most recent call to @ref
   /// SignInWithEmailAndPassword_DEPRECATED.
   Future<User*> SignInWithEmailAndPasswordLastResult_DEPRECATED() const;
+
+  /// Creates, and on success, logs in a user with the given email address
+  /// and password.
+  ///
+  /// An error is returned when account creation is unsuccessful
+  /// (due to another existing account, invalid password, etc.).
+  Future<AuthResult> CreateUserWithEmailAndPassword(const char* email,
+                                                    const char* password);
+
+  /// Get results of the most recent call to
+  /// @ref CreateUserWithEmailAndPassword.
+  Future<AuthResult> CreateUserWithEmailAndPasswordLastResult() const;
 
   /// @deprecated This is a deprecated method. Please use
   /// @CreateUserWithEmailAndPassword instead.

@@ -59,12 +59,20 @@ void ClearUserInfos(AuthData* auth_data) {
   auth_data->user_infos.clear();
 }
 
+///
+/// PhoneAuthProvider
+///
 void PhoneAuthProvider::Listener::OnCodeSent(
     const std::string& /*verification_id*/,
     const ForceResendingToken& /*force_resending_token*/) {}
 
 void PhoneAuthProvider::Listener::OnCodeAutoRetrievalTimeOut(
     const std::string& /*verification_id*/) {}
+
+///
+/// User
+///
+User::User() { auth_data_ = nullptr; }
 
 }  // namespace auth
 }  // namespace firebase

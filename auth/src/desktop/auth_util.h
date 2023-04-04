@@ -52,6 +52,15 @@ const char* GetApiKey(const AuthData& auth_data);
 void CompletePromise(Promise<User*>* promise,
                      const SignInResult& sign_in_result);
 
+// Same as the version for Promise<User*>, but returns a copy
+// of a User from an AuthResult struct.
+void CompletePromise(Promise<User>* promise, const AuthResult& auth_result);
+
+// Same as the version for Promise<User*>, but additionally extracts
+// AdditionalUserInfo from AuthenticationResult if it was successful.
+void CompletePromise(Promise<AuthResult>* promise,
+                     const AuthResult& auth_result);
+
 // Same as the version for Promise<User*>, but additionally extracts
 // AdditionalUserInfo from AuthenticationResult if it was successful.
 void CompletePromise(Promise<SignInResult>* promise,

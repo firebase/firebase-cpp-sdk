@@ -372,12 +372,23 @@ AUTH_NOTIFY_LISTENERS(NotifyIdTokenListeners, "ID token", id_token_listeners,
 AUTH_RESULT_FN(Auth, FetchProvidersForEmail, Auth::FetchProvidersResult)
 AUTH_RESULT_FN(Auth, SendPasswordResetEmail, void)
 
+AUTH_RESULT_FN(Auth, SignInWithCustomToken, AuthResult)
 AUTH_RESULT_DEPRECATED_FN(Auth, SignInWithCustomToken, User*)
+
+AUTH_RESULT_FN(Auth, SignInWithCredential, User)
 AUTH_RESULT_DEPRECATED_FN(Auth, SignInWithCredential, User*)
+
+AUTH_RESULT_FN(Auth, SignInAndRetrieveDataWithCredential, AuthResult)
 AUTH_RESULT_DEPRECATED_FN(Auth, SignInAndRetrieveDataWithCredential,
                           SignInResult)
+
+AUTH_RESULT_FN(Auth, SignInAnonymously, AuthResult)
 AUTH_RESULT_DEPRECATED_FN(Auth, SignInAnonymously, User*)
+
+AUTH_RESULT_FN(Auth, SignInWithEmailAndPassword, AuthResult)
 AUTH_RESULT_DEPRECATED_FN(Auth, SignInWithEmailAndPassword, User*)
+
+AUTH_RESULT_FN(Auth, CreateUserWithEmailAndPassword, AuthResult)
 AUTH_RESULT_DEPRECATED_FN(Auth, CreateUserWithEmailAndPassword, User*)
 
 }  // namespace auth

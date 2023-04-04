@@ -60,6 +60,7 @@ class AuthenticationResult {
 
   // Whether the sign in operation was successful.
   bool IsValid() const { return error_ == kAuthErrorNone; }
+
   // Error code associated with this sign-in operation.
   AuthError error() const { return error_; }
 
@@ -75,7 +76,15 @@ class AuthenticationResult {
   // operation, and updates listeners if the user changed.
   //
   // Updates to AuthData are done in a thread-safe manner.
-  SignInResult SetAsCurrentUser(AuthData* auth_data) const;
+  AuthResult SetAsCurrentUser(AuthData* auth_data) const;
+
+  // @deprecated Use SetAsCurrentUser instead.
+  //
+  // Sets the currently signed in user to the one associated with this sign-in
+  // operation, and updates listeners if the user changed.
+  //
+  // Updates to AuthData are done in a thread-safe manner.
+  SignInResult SetAsCurrentUser_DEPRECATED(AuthData* auth_data) const;
 
   // Merges user information from the given response into current state.
   // The new response will override fields read from any previous response, but
@@ -91,7 +100,6 @@ class AuthenticationResult {
 
   UserData user_impl_;
   AdditionalUserInfo info_;
-
   GetAccountInfoResult user_account_info_;
 };
 
