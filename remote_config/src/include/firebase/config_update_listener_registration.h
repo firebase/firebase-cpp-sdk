@@ -27,8 +27,7 @@ namespace remote_config {
 //  connection.
 class ConfigUpdateListenerRegistration {
  public:
-  ConfigUpdateListenerRegistration(
-      std::function<void()> listener_removal_function);
+  ConfigUpdateListenerRegistration();
 
   ~ConfigUpdateListenerRegistration();
 

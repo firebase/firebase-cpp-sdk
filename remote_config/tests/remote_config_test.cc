@@ -703,7 +703,5 @@ TEST_F(RemoteConfigTest, GetInfo) {
   EXPECT_EQ(info.last_fetch_status, kLastFetchStatusFailure);
   EXPECT_EQ(info.last_fetch_failure_reason, kFetchFailureReasonThrottled);
 }
-
-TEST_F(RemoteConfigTest, AddOnConfigUpdateListener) {}
 }  // namespace remote_config
 }  // namespace firebase
