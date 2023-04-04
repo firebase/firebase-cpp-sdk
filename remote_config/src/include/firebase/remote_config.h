@@ -509,7 +509,7 @@ class RemoteConfig {
   /// @param config_update_listener
   /// @return A registration object that allows the listener to remove the
   /// associated listener.
-  ConfigUpdateListenerRegistration AddOnConfigUpdateListener(
+  ConfigUpdateListenerRegistration* AddOnConfigUpdateListener(
       std::function<void(ConfigUpdate&&, RemoteConfigError)>
           config_update_listener);
 
