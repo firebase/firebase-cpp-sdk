@@ -56,10 +56,10 @@ TEST_F(AggregateCountTest, TestKeyOrderIsDescendingForDescendingInequality) {
                   {"e", {{"foo", FieldValue::Double(21.0)}}},
                   {"f", {{"foo", FieldValue::Integer(66)}}},
                   {"g", {{"foo", FieldValue::Double(66.0)}}}});
-  const AggregateQuery aggregate_query = collection
-                                             .WhereGreaterThan("foo", FieldValue::Integer(21))
-                                             .OrderBy(FieldPath({"foo"}), Query::Direction::kDescending)
-                                             .Count();
+  const AggregateQuery aggregate_query =
+      collection.WhereGreaterThan("foo", FieldValue::Integer(21))
+          .OrderBy(FieldPath({"foo"}), Query::Direction::kDescending)
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot =
       ReadAggregate(aggregate_query);
   EXPECT_EQ(5, aggregate_snapshot.count());
@@ -74,10 +74,10 @@ TEST_F(AggregateCountTest, TestUnaryFilterQueries) {
         {{"null", FieldValue::Boolean(false)},
          {"nan", FieldValue::Double(NAN)}}}});
 
-  const AggregateQuery aggregate_query = collection
-                                             .WhereEqualTo("null", FieldValue::Null())
-                                             .WhereEqualTo("nan", FieldValue::Double(NAN))
-                                             .Count();
+  const AggregateQuery aggregate_query =
+      collection.WhereEqualTo("null", FieldValue::Null())
+          .WhereEqualTo("nan", FieldValue::Double(NAN))
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot =
       ReadAggregate(aggregate_query);
   EXPECT_EQ(1, aggregate_snapshot.count());
@@ -89,9 +89,10 @@ TEST_F(AggregateCountTest, TestQueryWithFieldPaths) {
       Collection({{"a", {{"a", FieldValue::Integer(1)}}},
                   {"b", {{"a", FieldValue::Integer(2)}}},
                   {"c", {{"a", FieldValue::Integer(3)}}}});
-  const AggregateQuery aggregate_query = collection
-                                             .WhereLessThan(FieldPath({"a"}), FieldValue::Integer(3))
-                                             .OrderBy(FieldPath({"a"}), Query::Direction::kDescending).Count();
+  const AggregateQuery aggregate_query =
+      collection.WhereLessThan(FieldPath({"a"}), FieldValue::Integer(3))
+          .OrderBy(FieldPath({"a"}), Query::Direction::kDescending)
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot =
       ReadAggregate(aggregate_query);
   EXPECT_EQ(2, aggregate_snapshot.count());
@@ -103,7 +104,8 @@ TEST_F(AggregateCountTest, TestFilterOnInfinity) {
       Collection({{"a", {{"inf", FieldValue::Double(INFINITY)}}},
                   {"b", {{"inf", FieldValue::Double(-INFINITY)}}}});
 
-  const AggregateQuery aggregate_query = collection.WhereEqualTo("inf", FieldValue::Double(INFINITY)).Count();
+  const AggregateQuery aggregate_query =
+      collection.WhereEqualTo("inf", FieldValue::Double(INFINITY)).Count();
   const AggregateQuerySnapshot aggregate_snapshot =
       ReadAggregate(aggregate_query);
   EXPECT_EQ(1, aggregate_snapshot.count());
@@ -118,21 +120,21 @@ TEST_F(AggregateCountTest, TestCanQueryByDocumentId) {
                   {"bb", {{"key", FieldValue::String("bb")}}}});
 
   // Query by Document Id.
-  const AggregateQuery aggregate_query1 = collection
-                                              .WhereEqualTo(FieldPath::DocumentId(),
-                                                                  FieldValue::String("ab"))
-                                              .Count();
+  const AggregateQuery aggregate_query1 =
+      collection.WhereEqualTo(FieldPath::DocumentId(), FieldValue::String("ab"))
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot1 =
       ReadAggregate(aggregate_query1);
   EXPECT_EQ(1, aggregate_snapshot1.count());
   EXPECT_EQ(aggregate_query1, aggregate_snapshot1.query());
 
   // Query by Document Ids.
-  const AggregateQuery aggregate_query2 = collection
-                                              .WhereGreaterThan(FieldPath::DocumentId(), FieldValue::String("aa"))
-                                              .WhereLessThanOrEqualTo(FieldPath::DocumentId(),
-                                                                      FieldValue::String("ba"))
-                                              .Count();
+  const AggregateQuery aggregate_query2 =
+      collection
+          .WhereGreaterThan(FieldPath::DocumentId(), FieldValue::String("aa"))
+          .WhereLessThanOrEqualTo(FieldPath::DocumentId(),
+                                  FieldValue::String("ba"))
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot2 =
       ReadAggregate(aggregate_query2);
   EXPECT_EQ(2, aggregate_snapshot2.count());
@@ -147,21 +149,25 @@ TEST_F(AggregateCountTest, TestCanQueryByDocumentIdUsingRefs) {
                   {"bb", {{"key", FieldValue::String("bb")}}}});
 
   // Query by Document Id.
-  const AggregateQuery aggregate_query1 = collection.WhereEqualTo(FieldPath::DocumentId(),
-                                                                  FieldValue::Reference(collection.Document("ab"))).Count();
+  const AggregateQuery aggregate_query1 =
+      collection
+          .WhereEqualTo(FieldPath::DocumentId(),
+                        FieldValue::Reference(collection.Document("ab")))
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot1 =
       ReadAggregate(aggregate_query1);
   EXPECT_EQ(1, aggregate_snapshot1.count());
   EXPECT_EQ(aggregate_query1, aggregate_snapshot1.query());
 
   // Query by Document Ids.
-  const AggregateQuery aggregate_query2 = collection
-                                              .WhereGreaterThan(FieldPath::DocumentId(),
-                                                                FieldValue::Reference(collection.Document("aa")))
-                                              .WhereLessThanOrEqualTo(
-                                                  FieldPath::DocumentId(),
-                                                  FieldValue::Reference(collection.Document("ba")))
-                                              .Count();
+  const AggregateQuery aggregate_query2 =
+      collection
+          .WhereGreaterThan(FieldPath::DocumentId(),
+                            FieldValue::Reference(collection.Document("aa")))
+          .WhereLessThanOrEqualTo(
+              FieldPath::DocumentId(),
+              FieldValue::Reference(collection.Document("ba")))
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot2 =
       ReadAggregate(aggregate_query2);
   EXPECT_EQ(2, aggregate_snapshot2.count());
@@ -191,7 +197,8 @@ TEST_F(AggregateCountTest, TestQueriesCanUseNotEqualFilters) {
   CollectionReference collection = Collection(docs);
 
   // Search for zips not matching 98101.
-  const AggregateQuery aggregate_query = collection.WhereNotEqualTo("zip", FieldValue::Integer(98101)).Count();
+  const AggregateQuery aggregate_query =
+      collection.WhereNotEqualTo("zip", FieldValue::Integer(98101)).Count();
   const AggregateQuerySnapshot aggregate_snapshot =
       ReadAggregate(aggregate_query);
   EXPECT_EQ(7, aggregate_snapshot.count());
@@ -220,10 +227,11 @@ TEST_F(AggregateCountTest, TestQueriesCanUseNotEqualFiltersWithObject) {
   };
   CollectionReference collection = Collection(docs);
 
-  const AggregateQuery aggregate_query = collection
-                                             .WhereNotEqualTo(
-                                                       "zip", FieldValue::Map({{"code", FieldValue::Integer(500)}}))
-                                             .Count();
+  const AggregateQuery aggregate_query =
+      collection
+          .WhereNotEqualTo(
+              "zip", FieldValue::Map({{"code", FieldValue::Integer(500)}}))
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot =
       ReadAggregate(aggregate_query);
   EXPECT_EQ(7, aggregate_snapshot.count());
@@ -253,10 +261,11 @@ TEST_F(AggregateCountTest, TestQueriesCanUseNotEqualFiltersWithNull) {
   CollectionReference collection = Collection(docs);
 
   // With Null.
-  const AggregateQuery aggregate_query = collection
-                                             .WhereNotEqualTo(
-                                                       "zip", FieldValue::Map({{"code", FieldValue::Null()}}))
-                                             .Count();
+  const AggregateQuery aggregate_query =
+      collection
+          .WhereNotEqualTo("zip",
+                           FieldValue::Map({{"code", FieldValue::Null()}}))
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot =
       ReadAggregate(aggregate_query);
   EXPECT_EQ(8, aggregate_snapshot.count());
@@ -285,7 +294,8 @@ TEST_F(AggregateCountTest, TestQueriesCanUseNotEqualFiltersWithNan) {
   };
   CollectionReference collection = Collection(docs);
 
-  const AggregateQuery aggregate_query = collection.WhereNotEqualTo("zip", FieldValue::Double(NAN)).Count();
+  const AggregateQuery aggregate_query =
+      collection.WhereNotEqualTo("zip", FieldValue::Double(NAN)).Count();
   const AggregateQuerySnapshot aggregate_snapshot =
       ReadAggregate(aggregate_query);
   EXPECT_EQ(7, aggregate_snapshot.count());
@@ -301,8 +311,10 @@ TEST_F(AggregateCountTest, TestQueriesCanUseNotEqualFiltersWithDocIds) {
   CollectionReference collection =
       Collection({{"aa", doc_a}, {"ab", doc_b}, {"ba", doc_c}, {"bb", doc_d}});
 
-  const AggregateQuery aggregate_query = collection.WhereNotEqualTo(FieldPath::DocumentId(),
-                                                                    FieldValue::String("aa")).Count();
+  const AggregateQuery aggregate_query =
+      collection
+          .WhereNotEqualTo(FieldPath::DocumentId(), FieldValue::String("aa"))
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot =
       ReadAggregate(aggregate_query);
   EXPECT_EQ(3, aggregate_snapshot.count());
@@ -326,8 +338,8 @@ TEST_F(AggregateCountTest, TestQueriesCanUseArrayContainsFilters) {
         {{"array", FieldValue::Array({FieldValue::Integer(42)})},
          {"array2", FieldValue::Array({FieldValue::String("bingo")})}}}});
   // Search for 42
-  const AggregateQuery aggregate_query = collection
-                                             .WhereArrayContains("array", FieldValue::Integer(42)).Count();
+  const AggregateQuery aggregate_query =
+      collection.WhereArrayContains("array", FieldValue::Integer(42)).Count();
   const AggregateQuerySnapshot aggregate_snapshot =
       ReadAggregate(aggregate_query);
   EXPECT_EQ(3, aggregate_snapshot.count());
@@ -353,18 +365,24 @@ TEST_F(AggregateCountTest, TestQueriesCanUseInFilters) {
         {{"zip", FieldValue::Array({FieldValue::Integer(98101),
                                     FieldValue::Integer(98102)})}}}});
   // Search for zips matching 98101, 98103, or [98101, 98102].
-  const AggregateQuery aggregate_query1 = collection.WhereIn(
-                                                        "zip", {FieldValue::Integer(98101), FieldValue::Integer(98103),
-                                                                FieldValue::Array(
-                                                                    {FieldValue::Integer(98101), FieldValue::Integer(98102)})}).Count();
+  const AggregateQuery aggregate_query1 =
+      collection
+          .WhereIn("zip",
+                   {FieldValue::Integer(98101), FieldValue::Integer(98103),
+                    FieldValue::Array({FieldValue::Integer(98101),
+                                       FieldValue::Integer(98102)})})
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot1 =
       ReadAggregate(aggregate_query1);
   EXPECT_EQ(3, aggregate_snapshot1.count());
   EXPECT_EQ(aggregate_query1, aggregate_snapshot1.query());
 
   // With objects.
-  const AggregateQuery aggregate_query2 = collection.WhereIn(
-                                                        "zip", {FieldValue::Map({{"code", FieldValue::Integer(500)}})}).Count();
+  const AggregateQuery aggregate_query2 =
+      collection
+          .WhereIn("zip",
+                   {FieldValue::Map({{"code", FieldValue::Integer(500)}})})
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot2 =
       ReadAggregate(aggregate_query2);
   EXPECT_EQ(1, aggregate_snapshot2.count());
@@ -378,8 +396,11 @@ TEST_F(AggregateCountTest, TestQueriesCanUseInFiltersWithDocIds) {
                   {"ba", {{"key", FieldValue::String("ba")}}},
                   {"bb", {{"key", FieldValue::String("bb")}}}});
 
-  const AggregateQuery aggregate_query = collection.WhereIn(FieldPath::DocumentId(),
-                                                            {FieldValue::String("aa"), FieldValue::String("ab")}).Count();
+  const AggregateQuery aggregate_query =
+      collection
+          .WhereIn(FieldPath::DocumentId(),
+                   {FieldValue::String("aa"), FieldValue::String("ab")})
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot =
       ReadAggregate(aggregate_query);
   EXPECT_EQ(2, aggregate_snapshot.count());
@@ -409,11 +430,13 @@ TEST_F(AggregateCountTest, TestQueriesCanUseNotInFilters) {
   CollectionReference collection = Collection(docs);
 
   // Search for zips not matching 98101, 98103 or [98101, 98102].
-  const AggregateQuery aggregate_query = collection
-                                             .WhereNotIn(
-                                                       "zip", {{FieldValue::Integer(98101), FieldValue::Integer(98103),
-                                                                FieldValue::Array({{FieldValue::Integer(98101),
-                                                                                    FieldValue::Integer(98102)}})}}).Count();
+  const AggregateQuery aggregate_query =
+      collection
+          .WhereNotIn("zip",
+                      {{FieldValue::Integer(98101), FieldValue::Integer(98103),
+                        FieldValue::Array({{FieldValue::Integer(98101),
+                                            FieldValue::Integer(98102)}})}})
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot =
       ReadAggregate(aggregate_query);
   EXPECT_EQ(5, aggregate_snapshot.count());
@@ -442,10 +465,11 @@ TEST_F(AggregateCountTest, TestQueriesCanUseNotInFiltersWithObject) {
   };
   CollectionReference collection = Collection(docs);
 
-  const AggregateQuery aggregate_query = collection
-                                             .WhereNotIn(
-                                                       "zip", {{FieldValue::Map({{"code", FieldValue::Integer(500)}})}})
-                                             .Count();
+  const AggregateQuery aggregate_query =
+      collection
+          .WhereNotIn("zip",
+                      {{FieldValue::Map({{"code", FieldValue::Integer(500)}})}})
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot =
       ReadAggregate(aggregate_query);
   EXPECT_EQ(7, aggregate_snapshot.count());
@@ -475,7 +499,8 @@ TEST_F(AggregateCountTest, TestQueriesCanUseNotInFiltersWithNull) {
   CollectionReference collection = Collection(docs);
 
   // With Null, this leads to no result.
-  const AggregateQuery aggregate_query = collection.WhereNotIn("zip", {{FieldValue::Null()}}).Count();
+  const AggregateQuery aggregate_query =
+      collection.WhereNotIn("zip", {{FieldValue::Null()}}).Count();
   const AggregateQuerySnapshot aggregate_snapshot =
       ReadAggregate(aggregate_query);
   EXPECT_EQ(0, aggregate_snapshot.count());
@@ -505,7 +530,8 @@ TEST_F(AggregateCountTest, TestQueriesCanUseNotInFiltersWithNan) {
   CollectionReference collection = Collection(docs);
 
   // With NAN.
-  const AggregateQuery aggregate_query = collection.WhereNotIn("zip", {{FieldValue::Double(NAN)}}).Count();
+  const AggregateQuery aggregate_query =
+      collection.WhereNotIn("zip", {{FieldValue::Double(NAN)}}).Count();
   const AggregateQuerySnapshot aggregate_snapshot =
       ReadAggregate(aggregate_query);
   // TODO(b/272502845): NaN Handling
@@ -536,10 +562,11 @@ TEST_F(AggregateCountTest, TestQueriesCanUseNotInFiltersWithNanAndNumber) {
   };
   CollectionReference collection = Collection(docs);
 
-  const AggregateQuery aggregate_query = collection
-                                             .WhereNotIn(
-                                                       "zip", {{FieldValue::Double(NAN), FieldValue::Integer(98101)}})
-                                             .Count();
+  const AggregateQuery aggregate_query =
+      collection
+          .WhereNotIn("zip",
+                      {{FieldValue::Double(NAN), FieldValue::Integer(98101)}})
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot =
       ReadAggregate(aggregate_query);
   // TODO(b/272502845): NaN Handling
@@ -557,9 +584,11 @@ TEST_F(AggregateCountTest, TestQueriesCanUseNotInFiltersWithDocIds) {
   CollectionReference collection =
       Collection({{"aa", doc_a}, {"ab", doc_b}, {"ba", doc_c}, {"bb", doc_d}});
 
-  const AggregateQuery aggregate_query = collection.WhereNotIn(
-                                                       FieldPath::DocumentId(),
-                                                       {{FieldValue::String("aa"), FieldValue::String("ab")}}).Count();
+  const AggregateQuery aggregate_query =
+      collection
+          .WhereNotIn(FieldPath::DocumentId(),
+                      {{FieldValue::String("aa"), FieldValue::String("ab")}})
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot =
       ReadAggregate(aggregate_query);
   EXPECT_EQ(2, aggregate_snapshot.count());
@@ -589,16 +618,22 @@ TEST_F(AggregateCountTest, TestQueriesCanUseArrayContainsAnyFilters) {
        {"g", {{"array", FieldValue::Integer(42)}}}});
 
   // Search for "array" to contain [42, 43]
-  const AggregateQuery aggregate_query1 = collection.WhereArrayContainsAny(
-                                                        "array", {FieldValue::Integer(42), FieldValue::Integer(43)}).Count();
+  const AggregateQuery aggregate_query1 =
+      collection
+          .WhereArrayContainsAny(
+              "array", {FieldValue::Integer(42), FieldValue::Integer(43)})
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot1 =
       ReadAggregate(aggregate_query1);
   EXPECT_EQ(4, aggregate_snapshot1.count());
   EXPECT_EQ(aggregate_query1, aggregate_snapshot1.query());
 
   // With objects
-  const AggregateQuery aggregate_query2 = collection.WhereArrayContainsAny(
-                                                        "array", {FieldValue::Map({{"a", FieldValue::Integer(42)}})}).Count();
+  const AggregateQuery aggregate_query2 =
+      collection
+          .WhereArrayContainsAny(
+              "array", {FieldValue::Map({{"a", FieldValue::Integer(42)}})})
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot2 =
       ReadAggregate(aggregate_query2);
   EXPECT_EQ(1, aggregate_snapshot2.count());
@@ -631,7 +666,8 @@ TEST_F(AggregateCountTest, TestCollectionGroupQueries) {
   }
   Await(batch.Commit());
 
-  const AggregateQuery aggregate_query = db->CollectionGroup(collection_group).Count();
+  const AggregateQuery aggregate_query =
+      db->CollectionGroup(collection_group).Count();
   const AggregateQuerySnapshot aggregate_snapshot =
       ReadAggregate(aggregate_query);
   EXPECT_EQ(5, aggregate_snapshot.count());
@@ -661,11 +697,12 @@ TEST_F(AggregateCountTest,
   }
   Await(batch.Commit());
 
-  const AggregateQuery aggregate_query = db->CollectionGroup(collection_group)
-                                             .OrderBy(FieldPath::DocumentId())
-                                             .StartAt({FieldValue::String("a/b")})
-                                             .EndAt({FieldValue::String("a/b0")})
-                                             .Count();
+  const AggregateQuery aggregate_query =
+      db->CollectionGroup(collection_group)
+          .OrderBy(FieldPath::DocumentId())
+          .StartAt({FieldValue::String("a/b")})
+          .EndAt({FieldValue::String("a/b0")})
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot =
       ReadAggregate(aggregate_query);
   EXPECT_EQ(3, aggregate_snapshot.count());
@@ -695,23 +732,25 @@ TEST_F(AggregateCountTest,
   }
   Await(batch.Commit());
 
-  const AggregateQuery aggregate_query1 = db->CollectionGroup(collection_group)
-                                              .WhereGreaterThanOrEqualTo(FieldPath::DocumentId(),
-                                                                         FieldValue::String("a/b"))
-                                              .WhereLessThanOrEqualTo(FieldPath::DocumentId(),
-                                                                      FieldValue::String("a/b0"))
-                                              .Count();
+  const AggregateQuery aggregate_query1 =
+      db->CollectionGroup(collection_group)
+          .WhereGreaterThanOrEqualTo(FieldPath::DocumentId(),
+                                     FieldValue::String("a/b"))
+          .WhereLessThanOrEqualTo(FieldPath::DocumentId(),
+                                  FieldValue::String("a/b0"))
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot1 =
       ReadAggregate(aggregate_query1);
   EXPECT_EQ(3, aggregate_snapshot1.count());
   EXPECT_EQ(aggregate_query1, aggregate_snapshot1.query());
 
-  const AggregateQuery aggregate_query2 = db->CollectionGroup(collection_group)
-                                              .WhereGreaterThan(FieldPath::DocumentId(), FieldValue::String("a/b"))
-                                              .WhereLessThan(
-                                                  FieldPath::DocumentId(),
-                                                  FieldValue::String("a/b/" + collection_group + "/cg-doc3"))
-                                              .Count();
+  const AggregateQuery aggregate_query2 =
+      db->CollectionGroup(collection_group)
+          .WhereGreaterThan(FieldPath::DocumentId(), FieldValue::String("a/b"))
+          .WhereLessThan(
+              FieldPath::DocumentId(),
+              FieldValue::String("a/b/" + collection_group + "/cg-doc3"))
+          .Count();
   const AggregateQuerySnapshot aggregate_snapshot2 =
       ReadAggregate(aggregate_query2);
   EXPECT_EQ(1, aggregate_snapshot2.count());
