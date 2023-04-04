@@ -582,6 +582,13 @@ const ConfigInfo RemoteConfigInternal::GetInfo() const {
   return configs_.metadata.info();
 }
 
+ConfigUpdateListenerRegistration*
+RemoteConfigInternal::AddOnConfigUpdateListener(
+    std::function<void(ConfigUpdate&&, RemoteConfigError)>
+        config_update_listener) {
+  return nullptr;
+}
+
 void RemoteConfigInternal::FetchInternal() {
   // Fetch fresh config from server.
   rest_.Fetch(app_, config_settings_.fetch_timeout_in_milliseconds);
