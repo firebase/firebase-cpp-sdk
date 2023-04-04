@@ -29,7 +29,7 @@ class ConfigUpdateListenerRegistration {
  public:
   ConfigUpdateListenerRegistration(
       ConfigUpdateListener config_update_listener,
-      std::function<ConfigUpdateListener> listener_removal_function);
+      std::function<void(ConfigUpdateListener)> listener_removal_function);
 
   ~ConfigUpdateListenerRegistration();
 

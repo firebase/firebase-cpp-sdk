@@ -68,7 +68,7 @@ struct ConfigUpdate {
   std::vector<std::string> updated_keys;
 };
 
-/// @brief
+/// @brief Event listener interface for real-time Remote Config updates.
 typedef std::function<void(ConfigUpdate&&, RemoteConfigError)>
     ConfigUpdateListener;
 
