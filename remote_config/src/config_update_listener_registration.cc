@@ -18,12 +18,10 @@ namespace firebase {
 namespace remote_config {
 
 ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
-    std::function<void(ConfigUpdate&&, RemoteConfigError)>
-        config_update_listener,
-    std::function < void(std::function<(ConfigUpdate&&, RemoteConfigError)>)
-                        listener_removal_function)
+    ConfigUpdateListener config_update_listener,
+    std::function<ConfigUpdateListener> listener_removal_function)
     : configUpdateListener(config_update_listener),
-      remoteRemovalFunction(listener_removal_function) {}
+      listenerRemovalFunction(listener_removal_function) {}
 
 ConfigUpdateListenerRegistration::~ConfigUpdateListenerRegistration() {}
 

@@ -68,6 +68,10 @@ struct ConfigUpdate {
   std::vector<std::string> updated_keys;
 };
 
+/// @brief
+typedef std::function<void(ConfigUpdate&&, RemoteConfigError)>
+    ConfigUpdateListener;
+
 // Data structure which holds the Future API implementation with the only
 // future required by this API (fetch_future_).
 class FutureData {
