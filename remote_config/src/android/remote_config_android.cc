@@ -27,6 +27,7 @@
 #include "app/src/util.h"
 #include "app/src/util_android.h"
 #include "remote_config/src/common.h"
+#include "remote_config/src/config_update_listener_registration.h"
 
 namespace firebase {
 namespace remote_config {
@@ -1067,6 +1068,12 @@ const ConfigInfo RemoteConfigInternal::GetInfo() const {
   JConfigInfoToConfigInfo(env, jinfo, &info);
   env->DeleteLocalRef(jinfo);
   return info;
+}
+
+ConfigUpdateListenerRegistration* AddOnConfigUpdateListener(
+    std::function<void(ConfigUpdate&&, RemoteConfigError)>
+        config_update_listener) {
+  return nullptr;
 }
 
 }  // namespace internal

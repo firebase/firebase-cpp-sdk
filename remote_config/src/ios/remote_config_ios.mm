@@ -22,6 +22,7 @@
 #include "app/src/assert.h"
 #include "app/src/log.h"
 #include "app/src/time.h"
+#include "remote_config/src/config_update_listener_registration.h"
 #include "remote_config/src/common.h"
 
 namespace firebase {
@@ -488,6 +489,12 @@ const ConfigInfo RemoteConfigInternal::GetInfo() const {
   ConfigInfo config_info;
   GetInfoFromFIRRemoteConfig(impl(), &config_info, throttled_end_time_in_sec_);
   return config_info;
+}
+
+ConfigUpdateListenerRegistration* AddOnConfigUpdateListener(
+      std::function<void(ConfigUpdate&&, RemoteConfigError)>
+          config_update_listener) {
+            return nullptr;
 }
 }  // namespace internal
 }  // namespace remote_config
