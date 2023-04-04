@@ -323,8 +323,8 @@ class PersistentConnection : public ConnectionEventHandler {
   static void OnAuthTokenFutureComplete(const Future<std::string>& auth_future,
                                         void* user_data);
   // Callback function when the App Check future to fetch token is complete.
-  static void OnAppCheckTokenFutureComplete(const Future<std::string>& app_check_future,
-                                            void* user_data);
+  static void OnAppCheckTokenFutureComplete(
+      const Future<std::string>& app_check_future, void* user_data);
   void HandleTokenFutures();
 
   // Mutex to protect pending_token_future_

@@ -139,7 +139,8 @@ Repo::~Repo() {
   // Remove the App Check token listener
   auto callback = reinterpret_cast<void*>(OnAppCheckTokenChanged);
   database_->GetApp()->function_registry()->CallFunction(
-    ::firebase::internal::FnAppCheckRemoveListener, database_->GetApp(), callback, this);
+      ::firebase::internal::FnAppCheckRemoveListener, database_->GetApp(),
+      callback, this);
 }
 
 void Repo::AddEventCallback(UniquePtr<EventRegistration> event_registration) {
@@ -459,7 +460,8 @@ void Repo::DeferredInitialization() {
   {
     auto callback = reinterpret_cast<void*>(OnAppCheckTokenChanged);
     database_->GetApp()->function_registry()->CallFunction(
-        ::firebase::internal::FnAppCheckAddListener, database_->GetApp(), callback, this);
+        ::firebase::internal::FnAppCheckAddListener, database_->GetApp(),
+        callback, this);
   }
 
   // Set up server sync tree.

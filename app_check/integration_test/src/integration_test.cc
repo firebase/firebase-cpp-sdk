@@ -333,8 +333,7 @@ void FirebaseAppCheckTest::CleanupDatabase(int expected_error) {
       cleanups.push_back(database_cleanup_[i].RemoveValue());
     }
     for (int i = 0; i < cleanups.size(); ++i) {
-      std::string cleanup_name =
-          "Cleanup (" + database_cleanup_[i].url() + ")";
+      std::string cleanup_name = "Cleanup (" + database_cleanup_[i].url() + ")";
       WaitForCompletion(cleanups[i], cleanup_name.c_str(), expected_error);
     }
     database_cleanup_.clear();
@@ -856,7 +855,8 @@ TEST_F(FirebaseAppCheckTest, TestDatabaseRunTransaction) {
 }
 
 TEST_F(FirebaseAppCheckTest, TestDatabaseUpdateToken) {
-  // Test that after forcing an App Check token update, the database connection still works.
+  // Test that after forcing an App Check token update, the database connection
+  // still works.
   InitializeAppCheckWithDebug();
   InitializeAppAuthDatabase();
 
