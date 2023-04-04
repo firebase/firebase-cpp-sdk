@@ -68,6 +68,30 @@ enum FetchFailureReason {
   kFetchFailureReasonError,
 };
 
+/// @brief Describes the error codes returned by Remote Config.
+enum RemoteConfigError {
+  // No error.
+  kRemoteConfigErrorNone = 0,
+  // Unimplemented error found.
+  kRemoteConfigErrorUnimplemented = -1,
+  // Unable to make a connection to the Remote Config backend.
+  kRemoteConfigErrorConfigUpdateStreamError,
+  // The ConfigUpdate message was unparsable.
+  kRemoteConfigErrorConfigUpdateMessageInvalid,
+  // Unable to fetch the latest version of the config.
+  kRemoteConfigErrorConfigUpdateNotFetched,
+  // The Remote Config real-time config update service is unavailable.
+  kRemoteConfigErrorConfigUpdateUnavailable,
+};
+
+/// @brief Information about the updated config.
+struct ConfigUpdate {
+  /// @brief Parameter keys whose values have been updated from the currently
+  /// activated values. Includes keys that are added, deleted, and whose value,
+  /// value source, or metadata has changed.
+  std::vector<std::string> updated_keys;
+};
+
 /// @brief Describes the state of the most recent Fetch() call.
 /// Normally returned as a result of the GetInfo() function.
 struct ConfigInfo {

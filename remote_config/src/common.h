@@ -34,22 +34,6 @@ enum RemoteConfigFn {
   kRemoteConfigFnCount
 };
 
-/// @brief Describes the error codes returned by Remote Config.
-enum RemoteConfigError {
-  // No error.
-  kRemoteConfigErrorNone = 0,
-  // Unimplemented error found.
-  kRemoteConfigErrorUnimplemented = -1,
-  // Unable to make a connection to the Remote Config backend.
-  kRemoteConfigErrorConfigUpdateStreamError,
-  // The ConfigUpdate message was unparsable.
-  kRemoteConfigErrorConfigUpdateMessageInvalid,
-  // Unable to fetch the latest version of the config.
-  kRemoteConfigErrorConfigUpdateNotFetched,
-  // The Remote Config real-time config update service is unavailable.
-  kRemoteConfigErrorConfigUpdateUnavailable,
-};
-
 /// @brief Describes the error codes returned by futures.
 enum FutureStatus {
   // The future returned successfully.
@@ -58,14 +42,6 @@ enum FutureStatus {
   kFutureStatusSuccess = 0,
   // The future returned unsuccessfully.  Check GetInfo() for further details.
   kFutureStatusFailure,
-};
-
-/// @brief Information about the updated config.
-struct ConfigUpdate {
-  /// @brief Parameter keys whose values have been updated from the currently
-  /// activated values. Includes keys that are added, deleted, and whose value,
-  /// value source, or metadata has changed.
-  std::vector<std::string> updated_keys;
 };
 
 // Data structure which holds the Future API implementation with the only
