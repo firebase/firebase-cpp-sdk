@@ -1032,6 +1032,10 @@ class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
         on_code_sent_count_(0),
         on_code_auto_retrieval_time_out_count_(0) {}
 
+  // Expect both OnVerificationCompleted methods to be called up
+  // PhoneAuthProvider VerifyPhonenumber invokcations. One is the newer
+  // method which accepts a PhoneAuthCredential object as parameter. The other
+  // is now decprecated and accepts a Credential object.
   void OnVerificationCompleted(
       firebase::auth::PhoneAuthCredential phone_auth_credential) override {
     LogDebug(
@@ -1078,9 +1082,13 @@ class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
     return on_verification_complete_phone_auth_credential_count() +
            on_verification_complete_credential_count();
   }
+  // Tracks the number of callbacks made on the new OnVerificationCompleted
+  // method which takes a PhoneAuthCredential as a parameter.
   int on_verification_complete_phone_auth_credential_count() const {
     return on_verification_complete_phone_auth_credential_count_;
   }
+  // Tracks the number of callbacks made on the deprecated
+  // OnVerificationCompleted method which takes a Credential as a parameter.
   int on_verification_complete_credential_count() const {
     return on_verification_complete_credential_count_;
   }
@@ -1170,7 +1178,10 @@ TEST_F(FirebaseAuthTest, TestPhoneAuth) {
            listener.phone_auth_credential().sms_code().c_str());
 
   if (listener.on_verification_complete_count() > 0) {
-    EXPECT_EQ(listener.on_verification_complete_count(), 2);
+    // Ensure both listener methods were invoked.
+    EXPECT_EQ(listener.on_verification_complete_phone_auth_credential_count(),
+              1);
+    EXPECT_EQ(listener.on_verification_complete_credential_count(), 1);
     LogDebug("Signing in with automatic verification code.");
     WaitForCompletion(
         auth_->SignInWithCredential_DEPRECATED(

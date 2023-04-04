@@ -115,7 +115,10 @@ PhoneAuthCredential::PhoneAuthCredential(const PhoneAuthCredential& rhs) {
 
 PhoneAuthCredential& PhoneAuthCredential::operator=(const PhoneAuthCredential& rhs) {
   if (rhs.impl_ != NULL) {
-    delete static_cast<FIRPhoneAuthCredentialPointer*>(impl_);
+    if (impl_ != nullptr) {
+      delete static_cast<FIRPhoneAuthCredentialPointer*>(impl_);
+      impl_ = nullptr;
+    }
     impl_ = new FIRPhoneAuthCredentialPointer(PhoneAuthCredentialFromImpl(rhs.impl_));
   }
   error_code_ = rhs.error_code_;

@@ -92,6 +92,12 @@ METHOD_LOOKUP_DEFINITION(googlecred,
                          GOOGLE_CRED_METHODS)
 
 // clang-format off
+#define PHONE_CREDENTIAL_METHODS(X)                                            \
+    X(GetSmsCode, "getSmsCode", "()Ljava/lang/String;")
+// clang-format on
+METHOD_LOOKUP_DECLARATION(phonecredential, PHONE_CREDENTIAL_METHODS)
+
+// clang-format off
 #define PLAY_GAMES_CRED_METHODS(X)                                             \
     X(GetCredential, "getCredential",                                          \
       "(Ljava/lang/String;)Lcom/google/firebase/auth/AuthCredential;",         \
@@ -366,15 +372,7 @@ Credential::~Credential() {
 
 Credential::Credential(const Credential& rhs)
     : impl_(nullptr), error_code_(kAuthErrorNone) {
-  if (rhs.impl_ != nullptr) {
-    JNIEnv* env = GetJniEnv();
-    jobject j_cred_ref = env->NewGlobalRef(static_cast<jobject>(rhs.impl_));
-    impl_ = static_cast<void*>(j_cred_ref);
-  } else {
-    impl_ = nullptr;
-  }
-  error_code_ = rhs.error_code_;
-  error_message_ = rhs.error_message_;
+  *this = rhs;
 }
 
 // Increase the reference count when copying.
@@ -468,15 +466,7 @@ PhoneAuthCredential::PhoneAuthCredential(void* impl) {
 }
 
 PhoneAuthCredential::PhoneAuthCredential(const PhoneAuthCredential& rhs) {
-  if (rhs.impl_ != nullptr) {
-    JNIEnv* env = GetJniEnv();
-    jobject j_cred_ref = env->NewGlobalRef(static_cast<jobject>(rhs.impl_));
-    impl_ = static_cast<void*>(j_cred_ref);
-  } else {
-    impl_ = nullptr;
-  }
-  error_code_ = rhs.error_code_;
-  error_message_ = rhs.error_message_;
+  *this = rhs;
 }
 
 PhoneAuthCredential& PhoneAuthCredential::operator=(
