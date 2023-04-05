@@ -97,33 +97,19 @@ std::string Credential::provider() const {
 //
 // PhoneAuthCredential methods
 //
-PhoneAuthCredential::PhoneAuthCredential() {}
-
-PhoneAuthCredential::PhoneAuthCredential(void* impl) {
-  impl_ = impl;
-  error_code_ = kAuthErrorNone;
-}
-
-PhoneAuthCredential::PhoneAuthCredential(const PhoneAuthCredential& rhs) {
-  if (rhs.impl_ != NULL) {
-    impl_ = new FIRPhoneAuthCredentialPointer(PhoneAuthCredentialFromImpl(rhs.impl_));
-  }
-  error_code_ = rhs.error_code_;
-  error_message_ = rhs.error_message_;
-  sms_code_ = rhs.sms_code_;
-}
-
 PhoneAuthCredential& PhoneAuthCredential::operator=(const PhoneAuthCredential& rhs) {
-  if (rhs.impl_ != NULL) {
+  if (impl_ != rhs.impl_) {
     if (impl_ != nullptr) {
       delete static_cast<FIRPhoneAuthCredentialPointer*>(impl_);
       impl_ = nullptr;
     }
-    impl_ = new FIRPhoneAuthCredentialPointer(PhoneAuthCredentialFromImpl(rhs.impl_));
+    if (rhs.impl_ != NULL) {
+      impl_ = new FIRPhoneAuthCredentialPointer(PhoneAuthCredentialFromImpl(rhs.impl_));
+    }
+    error_code_ = rhs.error_code_;
+    error_message_ = rhs.error_message_;
+    sms_code_ = rhs.sms_code_;
   }
-  error_code_ = rhs.error_code_;
-  error_message_ = rhs.error_message_;
-  sms_code_ = rhs.sms_code_;
   return *this;
 }
 

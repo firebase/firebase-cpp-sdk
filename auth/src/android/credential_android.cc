@@ -371,15 +371,21 @@ Credential::Credential(const Credential& rhs)
 
 // Increase the reference count when copying.
 Credential& Credential::operator=(const Credential& rhs) {
-  if (rhs.impl_) {
+  if (impl_ != rhs.impl_) {
     JNIEnv* env = GetJniEnv();
-    jobject j_cred_ref = env->NewGlobalRef(static_cast<jobject>(rhs.impl_));
-    impl_ = static_cast<void*>(j_cred_ref);
-  } else {
-    impl_ = nullptr;
+    if (impl_) {
+      env->DeleteGlobalRef(static_cast<jobject>(impl_));
+    }
+
+    if (rhs.impl_) {
+      jobject j_cred_ref = env->NewGlobalRef(static_cast<jobject>(rhs.impl_));
+      impl_ = static_cast<void*>(j_cred_ref);
+    } else {
+      impl_ = nullptr;
+    }
+    error_code_ = rhs.error_code_;
+    error_message_ = rhs.error_message_;
   }
-  error_code_ = rhs.error_code_;
-  error_message_ = rhs.error_message_;
   return *this;
 }
 
@@ -452,28 +458,10 @@ Credential EmailAuthProvider::GetCredential(const char* email,
 //
 // PhoneAuthCredential methods
 //
-PhoneAuthCredential::PhoneAuthCredential() {}
-
-PhoneAuthCredential::PhoneAuthCredential(void* impl) {
-  impl_ = impl;
-  error_code_ = kAuthErrorNone;
-}
-
-PhoneAuthCredential::PhoneAuthCredential(const PhoneAuthCredential& rhs) {
-  *this = rhs;
-}
-
 PhoneAuthCredential& PhoneAuthCredential::operator=(
     const PhoneAuthCredential& rhs) {
-  if (rhs.impl_ != nullptr) {
-    JNIEnv* env = GetJniEnv();
-    jobject j_cred_ref = env->NewGlobalRef(static_cast<jobject>(rhs.impl_));
-    impl_ = static_cast<void*>(j_cred_ref);
-  } else {
-    impl_ = nullptr;
-  }
-  error_code_ = rhs.error_code_;
-  error_message_ = rhs.error_message_;
+  Credential::operator=(rhs);
+  sms_code_ = rhs.sms_code_;
   return *this;
 }
 
