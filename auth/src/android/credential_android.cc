@@ -978,7 +978,7 @@ void PhoneAuthProvider::VerifyPhoneNumber(
   }
 
   if (phone_number != nullptr) {
-    options.phone_number = *phone_number;
+    options.phone_number = phone_number;
   }
 
   options.timeout_milliseconds = auto_verify_time_out_ms;

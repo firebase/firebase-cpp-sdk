@@ -661,6 +661,10 @@ struct PhoneAuthOptions {
   /// Sets the context to which the callbacks are scoped, and with which app
   /// verification will be completed.
   ///
+  /// On Android, the context should be a jobject referencing an Android
+  /// Activity. On Apple platforms, this should be a pointer to UIView.
+  /// For any other platforms, the context is ignored.
+  ///
   /// If ui_parent isn’t defined (ie: nullptr or nil) then the FirebaseApp’s
   /// default Activity or UIView will be used.
   UIParent ui_parent;
