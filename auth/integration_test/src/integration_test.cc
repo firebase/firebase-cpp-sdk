@@ -349,18 +349,18 @@ TEST_F(FirebaseAuthTest, TestInitialization) {
 
 TEST_F(FirebaseAuthTest, TestAnonymousSignin) {
   // Test notification on SignIn().
-  WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(), "SignInAnonymously");
-  EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
-  EXPECT_TRUE(auth_->current_user_DEPRECATED()->is_anonymous());
+  WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
+  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_TRUE(auth_->current_user().is_anonymous());
   DeleteUser();
 }
 
 TEST_F(FirebaseAuthTest, TestAnonymousSignin_DEPRECATED) {
   // Test notification on SignIn().
-  WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(), "SignInAnonymously");
+  WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(), "SignInAnonymously_DEPRECATED");
   EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
   EXPECT_TRUE(auth_->current_user_DEPRECATED()->is_anonymous());
-  DeleteUser();
+  DeleteUser_DEPRECATED();
 }
 
 TEST_F(FirebaseAuthTest, TestCredentialCopy) {
@@ -444,15 +444,15 @@ TEST_F(FirebaseAuthTest, TestTokensAndAuthStateListeners) {
   TestIdTokenListener token_listener;
   auth_->AddAuthStateListener(&listener);
   auth_->AddIdTokenListener(&token_listener);
-  WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(), "SignInAnonymously");
+  WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
   // Get an initial token.
   firebase::Future<std::string> token_future =
-      auth_->current_user_DEPRECATED()->GetToken(false);
+      auth_->current_user().GetToken(false);
   WaitForCompletion(token_future, "GetToken(false)");
   std::string first_token = *token_future.result();
   // Force a token refresh.
   ProcessEvents(1000);
-  token_future = auth_->current_user_DEPRECATED()->GetToken(true);
+  token_future = auth_->current_user().GetToken(true);
   WaitForCompletion(token_future, "GetToken(true)");
   EXPECT_NE(*token_future.result(), "");
   std::string second_token = *token_future.result();
@@ -574,7 +574,7 @@ TEST_F(FirebaseAuthTest, TestEmailAndPasswordSignin_DEPRECATED) {
                                                          password.c_str());
     WaitForCompletion(
         auth_->SignInAndRetrieveDataWithCredential_DEPRECATED(email_credential),
-        "SignAndRetrieveDataInWithCredential");
+        "SignInAndRetrieveDataWithCredential_DEPRECATED");
     EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
   }
   SignOut();
@@ -582,7 +582,7 @@ TEST_F(FirebaseAuthTest, TestEmailAndPasswordSignin_DEPRECATED) {
   firebase::Future<firebase::auth::User*> sign_in_user =
       auth_->SignInWithEmailAndPassword_DEPRECATED(email.c_str(),
                                                    password.c_str());
-  WaitForCompletion(sign_in_user, "SignInWithEmailAndPassword");
+  WaitForCompletion(sign_in_user, "SignInWithEmailAndPassword_DEPRECATED");
   ASSERT_NE(auth_->current_user_DEPRECATED(), nullptr);
 
   // Then delete the account.
@@ -593,13 +593,41 @@ TEST_F(FirebaseAuthTest, TestEmailAndPasswordSignin_DEPRECATED) {
       auth_->SignInWithEmailAndPassword_DEPRECATED(email.c_str(),
                                                    password.c_str());
   WaitForCompletion(invalid_sign_in_user,
-                    "SignInWithEmailAndPassword (invalid user)",
+                    "SignInWithEmailAndPassword_DEPRECATED (invalid user)",
                     firebase::auth::kAuthErrorUserNotFound);
   EXPECT_EQ(auth_->current_user_DEPRECATED(), nullptr);
 }
 
+TEST_F(FirebaseAuthTest, TestCopyUser) {
+  WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
+  EXPECT_TRUE(auth_->current_user().is_valid());
+  if (!auth_->current_user().is_valid()) return;
+
+  EXPECT_TRUE(auth_->current_user().is_anonymous());
+  EXPECT_TRUE(auth_->current_user().uid().size() != 0);
+
+  // Copy Constructor
+  firebase::auth::User copy_of_user(auth_->current_user());
+  EXPECT_TRUE(copy_of_user.is_valid());
+  EXPECT_TRUE(copy_of_user.is_anonymous());
+  EXPECT_EQ(auth_->current_user().uid(), copy_of_user.uid());
+
+  // Assignment operator
+  firebase::auth::User assigned_user = copy_of_user;
+  EXPECT_TRUE(assigned_user.is_valid());
+  EXPECT_TRUE(assigned_user.is_anonymous());
+  EXPECT_EQ(auth_->current_user().uid(), assigned_user.uid());
+
+  DeleteUser();
+
+  EXPECT_FALSE(copy_of_user.is_valid());
+  EXPECT_FALSE(assigned_user.is_valid());
+  EXPECT_EQ(copy_of_user.uid(), "");
+  EXPECT_EQ(assigned_user.uid(), "");
+}
+
 TEST_F(FirebaseAuthTest, TestCopyUser_DEPRECATED) {
-  WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(), "SignInAnonymously");
+  WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(), "SignInAnonymously_DEPRECATED");
   EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
   if (auth_->current_user_DEPRECATED() == nullptr) return;
 
@@ -625,6 +653,44 @@ TEST_F(FirebaseAuthTest, TestCopyUser_DEPRECATED) {
   EXPECT_FALSE(assigned_user.is_valid());
   EXPECT_EQ(copy_of_user.uid(), "");
   EXPECT_EQ(assigned_user.uid(), "");
+}
+
+TEST_F(FirebaseAuthTest, TestRetainedUser) {
+  std::string email = GenerateEmailAddress();
+  // Register a random email and password. This signs us in as that user.
+  std::string password = kTestPassword;
+  firebase::Future<firebase::auth::AuthResult> auth_result_future =
+      auth_->CreateUserWithEmailAndPassword(email.c_str(),
+                                                       password.c_str());
+  WaitForCompletion(auth_result_future, "CreateUserWithEmailAndPassword");
+  EXPECT_TRUE(auth_->current_user().is_valid());
+  if (!auth_->current_user().is_valid()) return;
+
+  firebase::auth::User retained_user = auth_->current_user();
+
+  DeleteUser();
+
+  EXPECT_EQ(retained_user.uid(), "");
+  EXPECT_EQ(retained_user.email(), "");
+
+  // Sign in a new account.
+  email = GenerateEmailAddress();
+  auth_result_future = auth_->CreateUserWithEmailAndPassword(
+      email.c_str(), auth_result_future.result()->user.email().c_str());
+  WaitForCompletion(auth_result_future, "CreateUserWithEmailAndPassword");
+  EXPECT_TRUE(auth_->current_user().is_valid());
+
+  EXPECT_NE(retained_user.uid(), "");
+  EXPECT_NE(retained_user.email(), "");
+  EXPECT_EQ(retained_user.uid(), auth_->current_user().uid());
+  EXPECT_EQ(retained_user.email(), auth_->current_user().email());
+
+  // Then delete the retained user.
+  firebase::Future<void> delete_user = retained_user.Delete();
+  WaitForCompletion(delete_user, "Delete retained user");
+
+  EXPECT_FALSE(auth_->current_user().is_valid());
+  EXPECT_FALSE(retained_user.is_valid());
 }
 
 TEST_F(FirebaseAuthTest, TestRetainedUser_DEPRECATED) {
@@ -665,71 +731,6 @@ TEST_F(FirebaseAuthTest, TestRetainedUser_DEPRECATED) {
   WaitForCompletion(delete_user, "Delete retained user");
 
   EXPECT_EQ(auth_->current_user_DEPRECATED(), nullptr);
-  EXPECT_FALSE(retained_user.is_valid());
-}
-
-TEST_F(FirebaseAuthTest, TestCopyUser) {
-  WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(), "SignInAnonymously");
-
-  EXPECT_TRUE(auth_->current_user().is_valid());
-  EXPECT_TRUE(auth_->current_user().is_anonymous());
-  EXPECT_TRUE(auth_->current_user().uid().size() != 0);
-
-  // Copy Constructor
-  firebase::auth::User copy_of_user = auth_->current_user();
-  EXPECT_TRUE(copy_of_user.is_valid());
-  EXPECT_TRUE(copy_of_user.is_anonymous());
-  EXPECT_EQ(auth_->current_user().uid(), copy_of_user.uid());
-
-  // Assignment operator
-  firebase::auth::User assigned_user = copy_of_user;
-  EXPECT_TRUE(assigned_user.is_valid());
-  EXPECT_TRUE(assigned_user.is_anonymous());
-  EXPECT_EQ(auth_->current_user().uid(), assigned_user.uid());
-
-  DeleteUser();
-
-  EXPECT_FALSE(copy_of_user.is_valid());
-  EXPECT_FALSE(assigned_user.is_valid());
-  EXPECT_EQ(copy_of_user.uid(), "");
-  EXPECT_EQ(assigned_user.uid(), "");
-}
-
-TEST_F(FirebaseAuthTest, TestRetainedUser) {
-  std::string email = GenerateEmailAddress();
-  // Register a random email and password. This signs us in as that user.
-  std::string password = kTestPassword;
-  firebase::Future<firebase::auth::User*> create_user =
-      auth_->CreateUserWithEmailAndPassword_DEPRECATED(email.c_str(),
-                                                       password.c_str());
-  WaitForCompletion(create_user, "CreateUserWithEmailAndPassword_DEPRECATED");
-  EXPECT_TRUE(auth_->current_user().is_valid());
-
-  firebase::auth::User retained_user = auth_->current_user();
-
-  DeleteUser();
-
-  EXPECT_EQ(retained_user.uid(), "");
-  EXPECT_EQ(retained_user.email(), "");
-
-  // Sign in a new account.
-  email = GenerateEmailAddress();
-  create_user = auth_->CreateUserWithEmailAndPassword_DEPRECATED(
-      email.c_str(), password.c_str());
-  WaitForCompletion(create_user, "CreateUserWithEmailAndPassword_DEPRECATED");
-  EXPECT_TRUE(auth_->current_user().is_valid());
-
-  EXPECT_NE(retained_user.uid(), "");
-  EXPECT_NE(retained_user.email(), "");
-
-  EXPECT_EQ(retained_user.uid(), auth_->current_user_DEPRECATED()->uid());
-  EXPECT_EQ(retained_user.email(), auth_->current_user_DEPRECATED()->email());
-
-  // Delete the retained user.
-  firebase::Future<void> delete_user = retained_user.Delete();
-  WaitForCompletion(delete_user, "Delete retained user");
-
-  EXPECT_FALSE(auth_->current_user().is_valid());
   EXPECT_FALSE(retained_user.is_valid());
 }
 
