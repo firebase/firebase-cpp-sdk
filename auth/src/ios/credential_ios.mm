@@ -405,8 +405,8 @@ PhoneAuthCredential PhoneAuthProvider::GetCredential(const char* verification_id
 
   return PhoneAuthCredential(nullptr);
 }
-Credential PhoneAuthProvider::GetCredential_DEPRECTED(const char* verification_id,
-                                                      const char* verification_code) {
+Credential PhoneAuthProvider::GetCredential_DEPRECATED(const char* verification_id,
+                                                       const char* verification_code) {
   FIREBASE_ASSERT_MESSAGE_RETURN(
       Credential(nullptr), false,
       "Phone Auth is not supported on non iOS Apple platforms (eg:tvOS).");
