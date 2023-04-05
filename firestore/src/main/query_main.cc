@@ -18,6 +18,7 @@
 
 #include <utility>
 
+#include "Firestore/core/src/api/aggregate_query.h"
 #include "Firestore/core/src/api/listener_registration.h"
 #include "Firestore/core/src/core/filter.h"
 #include "Firestore/core/src/core/listen_options.h"
@@ -33,6 +34,7 @@
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/main/aggregate_query_main.h"
 #include "firestore/src/main/converter_main.h"
 #include "firestore/src/main/document_snapshot_main.h"
 #include "firestore/src/main/listener_main.h"
@@ -93,6 +95,8 @@ Future<QuerySnapshot> QueryInternal::Get(Source source) {
   query_.GetDocuments(ToCoreApi(source), std::move(listener));
   return promise.future();
 }
+
+AggregateQuery QueryInternal::Count() { return MakePublic(query_.Count()); }
 
 Query QueryInternal::Where(const FieldPath& field_path,
                            Operator op,

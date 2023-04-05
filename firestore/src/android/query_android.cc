@@ -51,6 +51,8 @@ using jni::Task;
 
 constexpr char kClassName[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/Query";
+Method<Object> kCount("count",
+                      "()Lcom/google/firebase/firestore/AggregateQuery;");
 Method<Object> kEqualTo(
     "whereEqualTo",
     "(Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;)"
@@ -136,7 +138,7 @@ Method<int32_t> kHashCode("hashCode", "()I");
 
 void QueryInternal::Initialize(jni::Loader& loader) {
   loader.LoadClass(
-      kClassName, kEqualTo, kNotEqualTo, kLessThan, kLessThanOrEqualTo,
+      kClassName, kCount, kEqualTo, kNotEqualTo, kLessThan, kLessThanOrEqualTo,
       kGreaterThan, kGreaterThanOrEqualTo, kArrayContains, kArrayContainsAny,
       kIn, kNotIn, kOrderBy, kLimit, kLimitToLast, kStartAtSnapshot, kStartAt,
       kStartAfterSnapshot, kStartAfter, kEndBeforeSnapshot, kEndBefore,
@@ -146,6 +148,12 @@ void QueryInternal::Initialize(jni::Loader& loader) {
 Firestore* QueryInternal::firestore() {
   FIREBASE_ASSERT(firestore_->firestore_public() != nullptr);
   return firestore_->firestore_public();
+}
+
+AggregateQuery QueryInternal::Count() const {
+  Env env = GetEnv();
+  Local<Object> aggregate_query = env.Call(obj_, kCount);
+  return firestore_->NewAggregateQuery(env, aggregate_query);
 }
 
 Query QueryInternal::WhereEqualTo(const FieldPath& field,
