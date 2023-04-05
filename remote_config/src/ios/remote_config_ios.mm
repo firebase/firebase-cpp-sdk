@@ -489,6 +489,12 @@ const ConfigInfo RemoteConfigInternal::GetInfo() const {
   GetInfoFromFIRRemoteConfig(impl(), &config_info, throttled_end_time_in_sec_);
   return config_info;
 }
+
+ConfigUpdateListenerRegistration* RemoteConfigInternal::AddOnConfigUpdateListener(
+      std::function<void(ConfigUpdate&&, RemoteConfigError)>
+          config_update_listener) {
+            return nullptr;
+}
 }  // namespace internal
 }  // namespace remote_config
 }  // namespace firebase

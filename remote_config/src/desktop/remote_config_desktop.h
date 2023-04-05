@@ -123,6 +123,10 @@ class RemoteConfigInternal {
 
   const ConfigInfo GetInfo() const;
 
+  ConfigUpdateListenerRegistration* AddOnConfigUpdateListener(
+      std::function<void(ConfigUpdate&&, RemoteConfigError)>
+          config_update_listener);
+
   static bool IsBoolTrue(const std::string& str);
   static bool IsBoolFalse(const std::string& str);
   static bool ConvertToBool(const std::string& from, bool* out);
