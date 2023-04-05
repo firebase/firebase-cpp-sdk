@@ -562,8 +562,8 @@ if (IOS)
   set(messaging_HDRS
     ${FIREBASE_SOURCE_DIR}/messaging/src/include/firebase/messaging.h)
   set(remote_config_HDRS
-    ${FIREBASE_SOURCE_DIR}/remote_config/src/include/firebase/config_update_listener_registration.h
-    ${FIREBASE_SOURCE_DIR}/remote_config/src/include/firebase/remote_config.h)
+    ${FIREBASE_SOURCE_DIR}/remote_config/src/include/firebase/remote_config.h
+    ${FIREBASE_SOURCE_DIR}/remote_config/src/include/firebase/remote_config/config_update_listener_registration.h)
   set(storage_HDRS
     ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage.h
     ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/common.h
