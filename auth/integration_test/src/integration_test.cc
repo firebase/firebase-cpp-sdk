@@ -121,6 +121,16 @@ class FirebaseAuthTest : public FirebaseTest {
   bool WaitForCompletion(firebase::Future<firebase::auth::User*> future,
                          const char* fn,
                          int expected_error = firebase::auth::kAuthErrorNone);
+
+  // Custom WaitForCompletion that checks if User matches afterwards.
+  bool WaitForCompletion(firebase::Future<firebase::auth::User> future,
+                         const char* fn,
+                         int expected_error = firebase::auth::kAuthErrorNone);
+
+  // Custom WaitForCompletion that checks if User is valid afterwards.
+  bool WaitForCompletion(firebase::Future<firebase::auth::AuthResult> future,
+                         const char* fn,
+                         int expected_error = firebase::auth::kAuthErrorNone);
   // Custom WaitForCompletion that checks if User matches afterwards.
   bool WaitForCompletion(firebase::Future<firebase::auth::SignInResult> future,
                          const char* fn,
@@ -229,6 +239,44 @@ bool FirebaseAuthTest::WaitForCompletion(
 }
 
 bool FirebaseAuthTest::WaitForCompletion(
+    firebase::Future<firebase::auth::User> future, const char* fn,
+    int expected_error) {
+  bool succeeded = FirebaseTest::WaitForCompletion(future, fn, expected_error);
+
+  if (succeeded) {
+    if (expected_error == ::firebase::auth::kAuthErrorNone) {
+      const firebase::auth::User* future_result_user = future.result();
+      const firebase::auth::User auth_user = auth_->current_user();
+      EXPECT_TRUE(auth_user.is_valid());
+      EXPECT_TRUE(future_result_user->is_valid());
+      EXPECT_EQ(future_result_user->uid(), auth_user.uid())
+          << "User returned by Future doesn't match User in Auth";
+      return auth_user.is_valid() &&
+             (auth_user.uid() == future_result_user->uid());
+    }
+  }
+  return succeeded;
+}
+
+bool FirebaseAuthTest::WaitForCompletion(
+    firebase::Future<firebase::auth::AuthResult> future, const char* fn,
+    int expected_error) {
+  bool succeeded = FirebaseTest::WaitForCompletion(future, fn, expected_error);
+
+  if (succeeded) {
+    if (expected_error == ::firebase::auth::kAuthErrorNone) {
+      if (future.result() != nullptr) {
+        EXPECT_TRUE(future.result()->user.is_valid());
+        EXPECT_TRUE(auth_->current_user().is_valid());
+        succeeded = future.result()->user.is_valid() &&
+                    auth_->current_user().is_valid();
+      }
+    }
+  }
+  return succeeded;
+}
+
+bool FirebaseAuthTest::WaitForCompletion(
     firebase::Future<firebase::auth::SignInResult> future, const char* fn,
     int expected_error) {
   bool succeeded = FirebaseTest::WaitForCompletion(future, fn, expected_error);
@@ -274,9 +322,8 @@ void FirebaseAuthTest::SignOut() {
     if (ProcessEvents(100)) break;
   }
   ProcessEvents(100);
-  EXPECT_TRUE(auth_->current_user().is_valid());
+  EXPECT_FALSE(auth_->current_user().is_valid());
 }
-
 
 void FirebaseAuthTest::DeleteUser() {
   if (auth_ != nullptr && auth_->current_user().is_valid()) {
@@ -439,6 +486,70 @@ TEST_F(FirebaseAuthTest, TestEmailAndPasswordSignin) {
   std::string email = GenerateEmailAddress();
   // Register a random email and password. This signs us in as that user.
   std::string password = kTestPassword;
+  firebase::Future<firebase::auth::AuthResult> auth_result_future =
+      auth_->CreateUserWithEmailAndPassword(email.c_str(), password.c_str());
+  WaitForCompletion(auth_result_future, "CreateUserWithEmailAndPassword");
+
+  EXPECT_TRUE(auth_->current_user().is_valid());
+  if (auth_result_future.result() != nullptr) {
+    EXPECT_TRUE(auth_result_future.result()->user.is_valid());
+  }
+  // Sign out and log in using SignInWithCredential(EmailCredential).
+  SignOut();
+  {
+    firebase::auth::Credential email_credential =
+        firebase::auth::EmailAuthProvider::GetCredential(email.c_str(),
+                                                         password.c_str());
+    firebase::Future<firebase::auth::User> user_future =
+        auth_->SignInWithCredential(email_credential);
+    WaitForCompletion(user_future, "SignInWithCredential");
+    EXPECT_TRUE(auth_->current_user().is_valid());
+    if (user_future.result() != nullptr) {
+      EXPECT_TRUE(user_future.result()->is_valid());
+      EXPECT_EQ(user_future.result()->email(), email);
+    }
+  }
+  // Sign out and log in using
+  // SignInAndRetrieveDataWithCredential(EmailCredential).
+  SignOut();
+  {
+    firebase::auth::Credential email_credential =
+        firebase::auth::EmailAuthProvider::GetCredential(email.c_str(),
+                                                         password.c_str());
+    WaitForCompletion(
+        auth_->SignInAndRetrieveDataWithCredential(email_credential),
+        "SignAndRetrieveDataInWithCredential");
+    EXPECT_TRUE(auth_->current_user().is_valid());
+  }
+  SignOut();
+  // Sign in with SignInWithEmailAndPassword values.
+  auth_result_future =
+      auth_->SignInWithEmailAndPassword(email.c_str(), password.c_str());
+  WaitForCompletion(auth_result_future, "SignInWithEmailAndPassword");
+  EXPECT_TRUE(auth_->current_user().is_valid());
+  if (auth_result_future.result() != nullptr) {
+    EXPECT_TRUE(auth_result_future.result()->user.is_valid());
+    EXPECT_EQ(auth_result_future.result()->user.uid(),
+              auth_->current_user().uid());
+    EXPECT_EQ(auth_result_future.result()->user.email(), email);
+  }
+
+  // Then delete the account.
+  firebase::Future<void> delete_user = auth_->current_user().Delete();
+  WaitForCompletion(delete_user, "Delete");
+  EXPECT_FALSE(auth_->current_user().is_valid());
+  auth_result_future =
+      auth_->SignInWithEmailAndPassword(email.c_str(), password.c_str());
+  WaitForCompletion(auth_result_future,
+                    "SignInWithEmailAndPassword (invalid user)",
+                    firebase::auth::kAuthErrorUserNotFound);
+  EXPECT_FALSE(auth_->current_user().is_valid());
+}
+
+TEST_F(FirebaseAuthTest, TestEmailAndPasswordSignin_DEPRECATED) {
+  std::string email = GenerateEmailAddress();
+  // Register a random email and password. This signs us in as that user.
+  std::string password = kTestPassword;
   firebase::Future<firebase::auth::User*> create_user =
       auth_->CreateUserWithEmailAndPassword_DEPRECATED(email.c_str(),
                                                        password.c_str());
@@ -451,7 +562,7 @@ TEST_F(FirebaseAuthTest, TestEmailAndPasswordSignin) {
         firebase::auth::EmailAuthProvider::GetCredential(email.c_str(),
                                                          password.c_str());
     WaitForCompletion(auth_->SignInWithCredential_DEPRECATED(email_credential),
-                      "SignInWithCredential");
+                      "SignInWithCredential_DEPRECATED");
     EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
   }
   // Sign out and log in using
