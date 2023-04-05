@@ -196,7 +196,8 @@ TEST(WebSocketClientImpl, Test1) {
   TestClientEventHandler handler(&semaphore);
   Logger logger(nullptr);
   scheduler::Scheduler scheduler;
-  WebSocketClientImpl ws_client(uri.c_str(), "", &logger, &scheduler, "", &handler);
+  WebSocketClientImpl ws_client(uri.c_str(), "", &logger, &scheduler, "",
+                                &handler);
 
   // Connect to local server
   LogDebug("[Client] Connecting to %s", uri.c_str());
