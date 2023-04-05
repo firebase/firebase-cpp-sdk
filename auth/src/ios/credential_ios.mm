@@ -78,12 +78,18 @@ Credential::Credential(const Credential& rhs) : impl_(NULL) {
 
 // Default assigment.
 Credential& Credential::operator=(const Credential& rhs) {
-  if (rhs.impl_ != NULL) {
-    delete static_cast<FIRAuthCredentialPointer*>(impl_);
-    impl_ = new FIRAuthCredentialPointer(CredentialFromImpl(rhs.impl_));
+  if (impl_ != rhs.impl_) {
+    if (impl_ != nullptr) {
+      delete static_cast<FIRAuthCredentialPointer*>(impl_);
+      impl_ = nullptr;
+    }
+
+    if (rhs.impl_ != NULL) {
+      impl_ = new FIRAuthCredentialPointer(CredentialFromImpl(rhs.impl_));
+    }
+    error_code_ = rhs.error_code_;
+    error_message_ = rhs.error_message_;
   }
-  error_code_ = rhs.error_code_;
-  error_message_ = rhs.error_message_;
   return *this;
 }
 
