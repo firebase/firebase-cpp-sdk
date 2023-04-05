@@ -22,6 +22,9 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "firestore/firestore_resources.h"
+#include "firestore/src/android/aggregate_query_android.h"
+#include "firestore/src/android/aggregate_query_snapshot_android.h"
+#include "firestore/src/android/aggregate_source_android.h"
 #include "firestore/src/android/blob_android.h"
 #include "firestore/src/android/collection_reference_android.h"
 #include "firestore/src/android/converter_android.h"
@@ -318,6 +321,9 @@ bool FirestoreInternal::Initialize(App* app) {
     InitializeFirestoreTasks(loader);
     InitializeUserCallbackExecutor(loader);
 
+    AggregateQueryInternal::Initialize(loader);
+    AggregateQuerySnapshotInternal::Initialize(loader);
+    AggregateSourceInternal::Initialize(loader);
     BlobInternal::Initialize(loader);
     CollectionReferenceInternal::Initialize(loader);
     DirectionInternal::Initialize(loader);
@@ -618,6 +624,17 @@ Env FirestoreInternal::GetEnv() {
   Env env;
   env.SetUnhandledExceptionHandler(GlobalUnhandledExceptionHandler, nullptr);
   return env;
+}
+
+AggregateQuery FirestoreInternal::NewAggregateQuery(
+    Env& env, const jni::Object& aggregate_query) const {
+  return MakePublic<AggregateQuery>(env, mutable_this(), aggregate_query);
+}
+
+AggregateQuerySnapshot FirestoreInternal::NewAggregateQuerySnapshot(
+    Env& env, const jni::Object& aggregate_query_snapshot) const {
+  return MakePublic<AggregateQuerySnapshot>(env, mutable_this(),
+                                            aggregate_query_snapshot);
 }
 
 CollectionReference FirestoreInternal::NewCollectionReference(
