@@ -972,21 +972,13 @@ void PhoneAuthProvider::VerifyPhoneNumber(
   JNIEnv* env = GetJniEnv();
 
   PhoneAuthOptions options;
-  if (force_resending_token != nullptr) {
-    options.force_resending_token =
-        new ForceResendingToken(*force_resending_token);
-  }
-
+  options.force_resending_token = (ForceResendingToken*)force_resending_token;
+  options.timeout_milliseconds = auto_verify_time_out_ms;
   if (phone_number != nullptr) {
     options.phone_number = phone_number;
   }
 
-  options.timeout_milliseconds = auto_verify_time_out_ms;
   VerifyPhoneNumber(options, listener);
-  if (options.force_resending_token != nullptr) {
-    delete options.force_resending_token;
-    options.force_resending_token = nullptr;
-  }
 }
 
 Credential PhoneAuthProvider::GetCredential(const char* verification_id,
