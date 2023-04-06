@@ -20,6 +20,7 @@
 #include <memory>
 #include <utility>
 
+#include "Firestore/core/src/api/aggregate_query.h"
 #include "Firestore/core/src/api/collection_reference.h"
 #include "Firestore/core/src/api/document_change.h"
 #include "Firestore/core/src/api/document_reference.h"
@@ -30,8 +31,12 @@
 #include "Firestore/core/src/core/transaction.h"
 #include "Firestore/core/src/model/field_path.h"
 #include "absl/memory/memory.h"
+#include "firebase/firestore/aggregate_query.h"
+#include "firebase/firestore/aggregate_query_snapshot.h"
 #include "firestore/src/common/type_mapping.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/main/aggregate_query_main.h"
+#include "firestore/src/main/aggregate_query_snapshot_main.h"
 #include "firestore/src/main/collection_reference_main.h"
 #include "firestore/src/main/document_change_main.h"
 #include "firestore/src/main/document_reference_main.h"
@@ -82,6 +87,10 @@ struct ConverterImpl {
 
 // MakePublic
 
+inline AggregateQuery MakePublic(api::AggregateQuery&& from) {
+  return ConverterImpl::MakePublicFromCore<AggregateQuery>(std::move(from));
+}
+
 inline CollectionReference MakePublic(api::CollectionReference&& from) {
   return ConverterImpl::MakePublicFromCore<CollectionReference>(
       std::move(from));
@@ -101,6 +110,12 @@ inline DocumentSnapshot MakePublic(api::DocumentSnapshot&& from) {
 
 inline FieldValue MakePublic(FieldValueInternal&& from) {
   return ConverterImpl::MakePublicFromInternal<FieldValue>(std::move(from));
+}
+
+inline AggregateQuerySnapshot MakePublic(
+    AggregateQuerySnapshotInternal&& from) {
+  return ConverterImpl::MakePublicFromInternal<AggregateQuerySnapshot>(
+      std::move(from));
 }
 
 inline ListenerRegistration MakePublic(

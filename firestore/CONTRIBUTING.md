@@ -19,7 +19,7 @@ a Python3 installation.
 
 # Architecture
 
-It is easier to work this Firestore CPP SDK by keeping a high level archetecture in mind:
+It is easier to work this Firestore CPP SDK by keeping a high level architecture in mind:
 
 ![architecture.png](architecture.png)
 

@@ -23,6 +23,7 @@
 #include "firestore/src/common/futures.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/util.h"
+#include "firestore/src/include/firebase/firestore/aggregate_query.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
@@ -104,6 +105,11 @@ const Firestore* Query::firestore() const {
 Firestore* Query::firestore() {
   if (!internal_) return {};
   return internal_->firestore();
+}
+
+AggregateQuery Query::Count() const {
+  if (!internal_) return {};
+  return internal_->Count();
 }
 
 Query Query::WhereEqualTo(const std::string& field,

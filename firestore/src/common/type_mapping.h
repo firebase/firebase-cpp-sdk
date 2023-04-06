@@ -22,6 +22,10 @@
 namespace firebase {
 namespace firestore {
 
+class AggregateQuery;
+class AggregateQueryInternal;
+class AggregateQuerySnapshot;
+class AggregateQuerySnapshotInternal;
 class CollectionReference;
 class CollectionReferenceInternal;
 class DocumentChange;
@@ -54,6 +58,14 @@ class WriteBatchInternal;
 template <typename T>
 struct InternalTypeMap {};
 
+template <>
+struct InternalTypeMap<AggregateQuery> {
+  using type = AggregateQueryInternal;
+};
+template <>
+struct InternalTypeMap<AggregateQuerySnapshot> {
+  using type = AggregateQuerySnapshotInternal;
+};
 template <>
 struct InternalTypeMap<CollectionReference> {
   using type = CollectionReferenceInternal;
