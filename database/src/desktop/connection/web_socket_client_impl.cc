@@ -169,6 +169,10 @@ void WebSocketClientImpl::Send(const char* msg) {
       0, msg);
 }
 
+void WebSocketClientImpl::RefreshAppCheckToken(const std::string& token) {
+  app_check_token_ = token;
+}
+
 void WebSocketClientImpl::OnError(void* data) {
   assert(data != nullptr);
   WebSocketClientImpl* client = static_cast<WebSocketClientImpl*>(data);

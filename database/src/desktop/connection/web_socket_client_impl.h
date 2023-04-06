@@ -51,6 +51,12 @@ class WebSocketClientImpl : public WebSocketClientInterface {
   void Send(const char* msg) override;
   // END WebSocketClientInterface
 
+  // Refresh the stored App Check token being used by the connection.
+  // This doesn't change the connection itself, just the data used for
+  // establishing new connections.
+  // Expect to be called from scheduler thread.
+  void RefreshAppCheckToken(const std::string& token);
+
  private:
   typedef uWS::WebSocket<uWS::CLIENT> ClientWebSocket;
   typedef void (*Callback)(WebSocketClientImpl* client, int int_value,

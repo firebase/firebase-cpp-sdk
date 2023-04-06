@@ -21,6 +21,7 @@
 #include "app/src/log.h"
 #include "app/src/variant_util.h"
 #include "database/src/desktop/connection/util_connection.h"
+#include "database/src/desktop/connection/web_socket_client_impl.h"
 
 namespace firebase {
 namespace database {
@@ -464,6 +465,13 @@ void Connection::OnReset(const std::string& host) {
   event_handler_->OnCacheHost(host);
 
   Close(kDisconnectReasonServerReset);
+}
+
+void Connection::RefreshAppCheckToken(const std::string& token) {
+  WebSocketClientImpl* client_impl = dynamic_cast<WebSocketClientImpl*>(client_.get());
+  if (client_impl) {
+    client_impl->RefreshAppCheckToken(token);
+  }
 }
 
 }  // namespace connection
