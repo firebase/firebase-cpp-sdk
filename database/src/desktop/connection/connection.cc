@@ -16,6 +16,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
 #include "app/src/assert.h"
 #include "app/src/log.h"
