@@ -56,6 +56,18 @@ void ClearUserInfos(AuthData* auth_data) {
   auth_data->user_infos.clear();
 }
 
+//
+// PhoneAuthOptions
+//
+PhoneAuthOptions::PhoneAuthOptions() {
+  force_resending_token = nullptr;
+  timeout_milliseconds = 0;
+  ui_parent = nullptr;
+}
+
+//
+// PhoneAuthProvider
+//
 void PhoneAuthProvider::Listener::OnCodeSent(
     const std::string& /*verification_id*/,
     const ForceResendingToken& /*force_resending_token*/) {}

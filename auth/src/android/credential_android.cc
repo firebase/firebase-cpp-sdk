@@ -147,6 +147,38 @@ METHOD_LOOKUP_DECLARATION(timeunit, TIME_UNIT_METHODS, TIME_UNIT_FIELDS)
 METHOD_LOOKUP_DEFINITION(timeunit,
                          PROGUARD_KEEP_CLASS "java/util/concurrent/TimeUnit",
                          TIME_UNIT_METHODS, TIME_UNIT_FIELDS)
+
+// clang-format off
+#define PHONE_AUTH_OPTIONS_BUILDER_METHODS(X)                                  \
+  X(Constructor, "<init>",                                                     \
+    "(Lcom/google/firebase/auth/FirebaseAuth;)V"),                             \
+  X(Build, "build",                                                            \
+    "()Lcom/google/firebase/auth/PhoneAuthOptions;"),                          \
+  X(RequireSmsValidation, "requireSmsValidation", "(Z)"                        \
+    "Lcom/google/firebase/auth/PhoneAuthOptions$Builder;"),                    \
+  X(SetActivity, "setActivity", "(Landroid/app/Activity;)"                     \
+    "Lcom/google/firebase/auth/PhoneAuthOptions$Builder;"),                    \
+  X(SetCallbacks, "setCallbacks",                                              \
+    "(Lcom/google/firebase/auth/PhoneAuthProvider$"                            \
+      "OnVerificationStateChangedCallbacks;)"                                  \
+      "Lcom/google/firebase/auth/PhoneAuthOptions$Builder;"),                  \
+  X(SetForceResendingToken, "setForceResendingToken",                          \
+    "(Lcom/google/firebase/auth/PhoneAuthProvider$ForceResendingToken;)"       \
+    "Lcom/google/firebase/auth/PhoneAuthOptions$Builder;"),                    \
+  X(SetPhoneNumber, "setPhoneNumber", "(Ljava/lang/String;)"                   \
+    "Lcom/google/firebase/auth/PhoneAuthOptions$Builder;"),                    \
+  X(SetTimeout, "setTimeout",                                                  \
+    "(Ljava/lang/Long;Ljava/util/concurrent/TimeUnit;)"                        \
+    "Lcom/google/firebase/auth/PhoneAuthOptions$Builder;")
+
+// clang-format on
+METHOD_LOOKUP_DECLARATION(phone_auth_options_builder,
+                          PHONE_AUTH_OPTIONS_BUILDER_METHODS);
+METHOD_LOOKUP_DEFINITION(phone_auth_options_builder,
+                         PROGUARD_KEEP_CLASS
+                         "com/google/firebase/auth/PhoneAuthOptions$Builder",
+                         PHONE_AUTH_OPTIONS_BUILDER_METHODS)
+
 // clang-format off
 #define PHONE_AUTH_PROVIDER_METHODS(X)                                         \
     X(GetInstance, "getInstance",                                              \
@@ -158,12 +190,8 @@ METHOD_LOOKUP_DEFINITION(timeunit,
       "Lcom/google/firebase/auth/PhoneAuthCredential;",                        \
       util::kMethodTypeStatic),                                                \
     X(VerifyPhoneNumber, "verifyPhoneNumber",                                  \
-      "(Ljava/lang/String;J"                                                   \
-      "Ljava/util/concurrent/TimeUnit;"                                        \
-      "Landroid/app/Activity;"                                                 \
-      "Lcom/google/firebase/auth/PhoneAuthProvider$"                           \
-      "OnVerificationStateChangedCallbacks;"                                   \
-      "Lcom/google/firebase/auth/PhoneAuthProvider$ForceResendingToken;)V")
+      "(Lcom/google/firebase/auth/PhoneAuthOptions;)V",                        \
+      util::kMethodTypeStatic)
 // clang-format on
 METHOD_LOOKUP_DECLARATION(phoneauthprovider, PHONE_AUTH_PROVIDER_METHODS)
 METHOD_LOOKUP_DEFINITION(phoneauthprovider,
@@ -319,6 +347,7 @@ bool CacheCredentialMethodIds(
       oauthprovider_credentialbuilder::CacheMethodIds(env, activity) &&
       auth_idp::CacheMethodIds(env, activity) &&
       user_idp::CacheMethodIds(env, activity) &&
+      phone_auth_options_builder::CacheMethodIds(env, activity) &&
       phoneauthprovider::CacheMethodIds(env, activity) &&
       phonecredential::CacheMethodIds(env, activity) &&
       timeunit::CacheFieldIds(env, activity) &&
@@ -340,6 +369,7 @@ void ReleaseCredentialClasses(JNIEnv* env) {
   oauthprovider::ReleaseClass(env);
   oauthprovider_builder::ReleaseClass(env);
   oauthprovider_credentialbuilder::ReleaseClass(env);
+  phone_auth_options_builder::ReleaseClass(env);
   phoneauthprovider::ReleaseClass(env);
   phonecredential::ReleaseClass(env);
   timeunit::ReleaseClass(env);
@@ -845,43 +875,151 @@ PhoneAuthProvider::Listener::~Listener() {
 }
 
 void PhoneAuthProvider::VerifyPhoneNumber(
+    const PhoneAuthOptions& options, PhoneAuthProvider::Listener* listener) {
+  FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
+
+  if (options.phone_number.empty()) {
+    listener->OnVerificationFailed(
+        "VerifyPhoneNumber: unable to verify with empty phone number");
+    return;
+  }
+
+  JNIEnv* env = Env(data_->auth_data);
+  assert(env);
+
+  // phone auth builder
+  jobject builder =
+      env->NewObject(phone_auth_options_builder::GetClass(),
+                     phone_auth_options_builder::GetMethodId(
+                         phone_auth_options_builder::kConstructor),
+                     AuthImpl(data_->auth_data));
+  if (util::CheckAndClearJniExceptions(env)) {
+    listener->OnVerificationFailed(
+        "VerifyPhoneNumber: unable to construct PhoneAuthOptions builder.");
+    return;
+  }
+
+  // activity
+  jobject activity = options.ui_parent;
+  if (activity == nullptr) {
+    activity = data_->auth_data->app->activity();
+  }
+  jobject chained_ref =
+      env->CallObjectMethod(builder,
+                            phone_auth_options_builder::GetMethodId(
+                                phone_auth_options_builder::kSetActivity),
+                            activity);
+  if (util::CheckAndClearJniExceptions(env)) {
+    env->DeleteLocalRef(builder);
+    listener->OnVerificationFailed(
+        "VerifyPhoneNumber: unable set PhoneAuthOptions activity.");
+    return;
+  }
+  env->DeleteLocalRef(chained_ref);
+
+  // listener callbacks
+  chained_ref =
+      env->CallObjectMethod(builder,
+                            phone_auth_options_builder::GetMethodId(
+                                phone_auth_options_builder::kSetCallbacks),
+                            listener->data_->j_listener);
+  if (util::CheckAndClearJniExceptions(env)) {
+    env->DeleteLocalRef(builder);
+    listener->OnVerificationFailed(
+        "VerifyPhoneNumber: unable set PhoneAuthOptions listeners.");
+  }
+  env->DeleteLocalRef(chained_ref);
+
+  // phone number
+  jstring phone_number = env->NewStringUTF(options.phone_number.c_str());
+  chained_ref =
+      env->CallObjectMethod(builder,
+                            phone_auth_options_builder::GetMethodId(
+                                phone_auth_options_builder::kSetPhoneNumber),
+                            phone_number);
+  if (util::CheckAndClearJniExceptions(env)) {
+    env->DeleteLocalRef(phone_number);
+    env->DeleteLocalRef(builder);
+    listener->OnVerificationFailed(
+        "VerifyPhoneNumber: unable set PhoneAuthOptions phone number.");
+    return;
+  }
+  env->DeleteLocalRef(phone_number);
+  env->DeleteLocalRef(chained_ref);
+
+  // timeout
+  jobject timeout = env->NewObject(
+      util::long_class::GetClass(),
+      util::long_class::GetMethodId(util::long_class::kConstructor),
+      options.timeout_milliseconds);
+  if (util::CheckAndClearJniExceptions(env)) {
+    listener->OnVerificationFailed(
+        "VerifyPhoneNumber: couldn't convert timeout to java.lang.Long.");
+    return;
+  }
+  jobject milliseconds_time_unit = env->GetStaticObjectField(
+      timeunit::GetClass(), timeunit::GetFieldId(timeunit::kMilliseconds));
+  chained_ref =
+      env->CallObjectMethod(builder,
+                            phone_auth_options_builder::GetMethodId(
+                                phone_auth_options_builder::kSetTimeout),
+                            timeout, milliseconds_time_unit);
+  if (util::CheckAndClearJniExceptions(env)) {
+    env->DeleteLocalRef(timeout);
+    env->DeleteLocalRef(milliseconds_time_unit);
+    env->DeleteLocalRef(builder);
+    listener->OnVerificationFailed(
+        "VerifyPhoneNumber: unable set PhoneAuthOptions timeout.");
+    return;
+  }
+  env->DeleteLocalRef(timeout);
+  env->DeleteLocalRef(milliseconds_time_unit);
+  env->DeleteLocalRef(chained_ref);
+
+  // build
+  jobject phone_auth_options =
+      env->CallObjectMethod(builder, phone_auth_options_builder::GetMethodId(
+                                         phone_auth_options_builder::kBuild));
+
+  if (util::CheckAndClearJniExceptions(env)) {
+    env->DeleteLocalRef(builder);
+    listener->OnVerificationFailed(
+        "VerifyPhoneNumber: builder faild to create PhoneAuhtOptions");
+    return;
+  }
+  env->DeleteLocalRef(builder);
+
+  // verify
+  env->CallStaticVoidMethod(
+      phoneauthprovider::GetClass(),
+      phoneauthprovider::GetMethodId(phoneauthprovider::kVerifyPhoneNumber),
+      phone_auth_options);
+
+  if (firebase::util::CheckAndClearJniExceptions(env)) {
+    // If an error occurred with the call to verifyPhoneNumber, inform the
+    // listener that it failed.
+    listener->OnVerificationFailed(
+        "VerifyPhoneNumber: Android to verify the given phone number");
+  }
+
+  env->DeleteLocalRef(phone_auth_options);
+}
+
+void PhoneAuthProvider::VerifyPhoneNumber(
     const char* phone_number, uint32_t auto_verify_time_out_ms,
     const ForceResendingToken* force_resending_token, Listener* listener) {
   FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
   JNIEnv* env = GetJniEnv();
 
-  // Convert parameters to Java equivalents.
-  jstring j_phone_number = env->NewStringUTF(phone_number);
-  jobject j_milliseconds = env->GetStaticObjectField(
-      timeunit::GetClass(), timeunit::GetFieldId(timeunit::kMilliseconds));
-  jlong j_time_out = static_cast<jlong>(auto_verify_time_out_ms);
-  jobject j_token = force_resending_token == nullptr
-                        ? nullptr
-                        : force_resending_token->data_->token_global_ref();
-
-  // Call PhoneAuthProvider.verifyPhoneNumber in Java.
-  env->CallVoidMethod(
-      data_->j_phone_auth_provider,
-      phoneauthprovider::GetMethodId(phoneauthprovider::kVerifyPhoneNumber),
-      j_phone_number, j_time_out, j_milliseconds,
-      data_->auth_data->app->activity(), listener->data_->j_listener, j_token);
-
-  if (firebase::util::CheckAndClearJniExceptions(env)) {
-    // If an error occurred with the call to verifyPhoneNumber, inform the
-    // listener that it failed.
-    if (listener) {
-      if (!phone_number || !strlen(phone_number)) {
-        listener->OnVerificationFailed(
-            "Unable to verify with empty phone number");
-      } else {
-        listener->OnVerificationFailed(
-            "Unable to verify the given phone number");
-      }
-    }
+  PhoneAuthOptions options;
+  options.force_resending_token =
+      const_cast<ForceResendingToken*>(force_resending_token);
+  options.timeout_milliseconds = auto_verify_time_out_ms;
+  if (phone_number != nullptr) {
+    options.phone_number = phone_number;
   }
 
-  env->DeleteLocalRef(j_phone_number);
-  env->DeleteLocalRef(j_milliseconds);
+  VerifyPhoneNumber(options, listener);
 }
 
 PhoneAuthCredential PhoneAuthProvider::GetCredential(

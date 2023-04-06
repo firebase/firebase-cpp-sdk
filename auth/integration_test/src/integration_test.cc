@@ -1147,13 +1147,16 @@ TEST_F(FirebaseAuthTest, TestPhoneAuth) {
   LogDebug("Creating listener.");
   PhoneListener listener;
   LogDebug("Calling VerifyPhoneNumber.");
+
   // Randomly choose one of the phone numbers to avoid collisions.
-  const int random_phone_number =
+  const int random_phone_number_index =
       app_framework::GetCurrentTimeInMicroseconds() %
       kPhoneAuthTestNumPhoneNumbers;
-  phone_provider.VerifyPhoneNumber(
-      kPhoneAuthTestPhoneNumbers[random_phone_number], kPhoneAuthTimeoutMs,
-      nullptr, &listener);
+  firebase::auth::PhoneAuthOptions phone_options;
+  phone_options.phone_number =
+      kPhoneAuthTestPhoneNumbers[random_phone_number_index];
+  phone_options.timeout_milliseconds = kPhoneAuthTimeoutMs;
+  phone_provider.VerifyPhoneNumber(phone_options, &listener);
 
   // Wait for OnCodeSent() callback.
   int wait_ms = 0;
