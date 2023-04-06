@@ -1204,6 +1204,7 @@ void PersistentConnection::RefreshAppCheckToken(const std::string& token) {
           connection->logger_->LogDebug("%s Refreshing App Check token",
                                         connection->log_id_.c_str());
           connection->app_check_token_ = token;
+          connection->realtime_->RefreshAppCheckToken(token);
           Variant request = Variant::EmptyMap();
           request.map()["token"] = token;
           connection->SendSensitive(
