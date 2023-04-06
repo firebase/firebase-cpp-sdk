@@ -61,6 +61,20 @@ PhoneAuthProvider::PhoneAuthProvider() : data_(nullptr) {}
 PhoneAuthProvider::~PhoneAuthProvider() {}
 
 void PhoneAuthProvider::VerifyPhoneNumber(
+    const PhoneAuthOptions& options, PhoneAuthProvider::Listener* listener) {
+  FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
+
+  // Mock the tokens by sending a new one whenever it's unspecified.
+  ForceResendingToken token;
+  if (options.force_resending_token != nullptr) {
+    token = *options.force_resending_token;
+  }
+
+  listener->OnCodeAutoRetrievalTimeOut(kMockVerificationId);
+  listener->OnCodeSent(kMockVerificationId, token);
+}
+
+void PhoneAuthProvider::VerifyPhoneNumber(
     const char* /*phone_number*/, uint32_t /*auto_verify_time_out_ms*/,
     const ForceResendingToken* force_resending_token, Listener* listener) {
   FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
@@ -75,8 +89,16 @@ void PhoneAuthProvider::VerifyPhoneNumber(
   listener->OnCodeSent(kMockVerificationId, token);
 }
 
-Credential PhoneAuthProvider::GetCredential(const char* verification_id,
-                                            const char* verification_code) {
+PhoneAuthCredential PhoneAuthProvider::GetCredential(
+    const char* verification_id, const char* verification_code) {
+  FIREBASE_ASSERT_MESSAGE_RETURN(PhoneAuthCredential(nullptr), false,
+                                 "Phone Auth is not supported on desktop");
+
+  return PhoneAuthCredential(nullptr);
+}
+
+Credential PhoneAuthProvider::GetCredential_DEPRECATED(
+    const char* verification_id, const char* verification_code) {
   FIREBASE_ASSERT_MESSAGE_RETURN(Credential(nullptr), false,
                                  "Phone Auth is not supported on desktop");
 
@@ -87,6 +109,20 @@ Credential PhoneAuthProvider::GetCredential(const char* verification_id,
 PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
   return auth->auth_data_->phone_auth_provider;
 }
+
+//
+// PhoneAuthCredential platform-specific methods
+//
+// Note: PhoneAuth isn't supported on desktop systems, so these methods are
+// essentially no-ops.
+//
+PhoneAuthCredential& PhoneAuthCredential::operator=(
+    const PhoneAuthCredential& rhs) {
+  return *this;
+}
+
+/// Gets the automatically retrieved SMS verification code if applicable.
+std::string PhoneAuthCredential::sms_code() const { return std::string(); }
 
 }  // namespace auth
 }  // namespace firebase

@@ -43,6 +43,12 @@ METHOD_LOOKUP_DECLARATION(authresult, AUTH_RESULT_METHODS)
 // clang-format on
 METHOD_LOOKUP_DECLARATION(additional_user_info, ADDITIONAL_USER_INFO_METHODS)
 
+// clang-format off
+#define PHONE_CREDENTIAL_METHODS(X)                                            \
+    X(GetSmsCode, "getSmsCode", "()Ljava/lang/String;")
+// clang-format on
+METHOD_LOOKUP_DECLARATION(phonecredential, PHONE_CREDENTIAL_METHODS)
+
 // For each asynchronous call, a pointer to one of these structs is passed
 // into Java. When the call completes, Java returns the pointer via a callback
 // function. In this way, we match the context of the callback with the call.
