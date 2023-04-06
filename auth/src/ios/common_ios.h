@@ -41,6 +41,7 @@ namespace auth {
 
 OBJ_C_PTR_WRAPPER(FIRAuth);
 OBJ_C_PTR_WRAPPER(FIRAuthCredential);
+OBJ_C_PTR_WRAPPER(FIRPhoneAuthCredential);
 OBJ_C_PTR_WRAPPER(FIRUser);
 OBJ_C_PTR_WRAPPER(FIRCPPAuthListenerHandle);
 
@@ -80,6 +81,12 @@ static inline FIRAuth *_Nonnull AuthImpl(AuthData *_Nonnull auth_data) {
 /// FIRAuthCredential pointer.
 static inline FIRAuthCredential *_Nonnull CredentialFromImpl(void *_Nonnull impl) {
   return static_cast<FIRAuthCredentialPointer *>(impl)->get();
+}
+
+/// Convert from the void* credential implementation pointer into the Obj-C
+/// FIRPhoneAuthCredential pointer.
+static inline FIRPhoneAuthCredential *_Nonnull PhoneAuthCredentialFromImpl(void *_Nonnull impl) {
+  return static_cast<FIRPhoneAuthCredentialPointer *>(impl)->get();
 }
 
 AuthError AuthErrorFromNSError(NSError *_Nullable error);
