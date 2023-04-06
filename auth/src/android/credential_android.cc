@@ -180,7 +180,7 @@ METHOD_LOOKUP_DEFINITION(phone_auth_options_builder,
                          PHONE_AUTH_OPTIONS_BUILDER_METHODS)
 
 // clang-format off
-#define PHONE_CRED_METHODS(X)                                                  \
+#define PHONE_AUTH_PROVIDER_METHODS(X)                                         \
     X(GetInstance, "getInstance",                                              \
       "(Lcom/google/firebase/auth/FirebaseAuth;)"                              \
       "Lcom/google/firebase/auth/PhoneAuthProvider;",                          \
@@ -193,11 +193,12 @@ METHOD_LOOKUP_DEFINITION(phone_auth_options_builder,
       "(Lcom/google/firebase/auth/PhoneAuthOptions;)V",                        \
       util::kMethodTypeStatic)
 // clang-format on
-METHOD_LOOKUP_DECLARATION(phonecred, PHONE_CRED_METHODS)
-METHOD_LOOKUP_DEFINITION(phonecred,
+METHOD_LOOKUP_DECLARATION(phoneauthprovider, PHONE_AUTH_PROVIDER_METHODS)
+METHOD_LOOKUP_DEFINITION(phoneauthprovider,
                          PROGUARD_KEEP_CLASS
                          "com/google/firebase/auth/PhoneAuthProvider",
-                         PHONE_CRED_METHODS)
+                         PHONE_AUTH_PROVIDER_METHODS)
+
 // clang-format off
 #define OAUTHPROVIDER_BUILDER_METHODS(X)                                       \
   X(AddCustomParameters, "addCustomParameters",                                \
@@ -274,6 +275,11 @@ METHOD_LOOKUP_DEFINITION(
     jniphone, "com/google/firebase/auth/internal/cpp/JniAuthPhoneListener",
     JNI_PHONE_LISTENER_CALLBACK_METHODS)
 
+METHOD_LOOKUP_DEFINITION(phonecredential,
+                         PROGUARD_KEEP_CLASS
+                         "com/google/firebase/auth/PhoneAuthCredential",
+                         PHONE_CREDENTIAL_METHODS)
+
 // These static functions are wrapped in a class so that they can be "friends"
 // of Credential. Only Credential's friends can create new Credentials from
 // Java references to FirebaseCredentials.
@@ -342,7 +348,8 @@ bool CacheCredentialMethodIds(
       auth_idp::CacheMethodIds(env, activity) &&
       user_idp::CacheMethodIds(env, activity) &&
       phone_auth_options_builder::CacheMethodIds(env, activity) &&
-      phonecred::CacheMethodIds(env, activity) &&
+      phoneauthprovider::CacheMethodIds(env, activity) &&
+      phonecredential::CacheMethodIds(env, activity) &&
       timeunit::CacheFieldIds(env, activity) &&
       playgamescred::CacheMethodIds(env, activity) &&
       twittercred::CacheMethodIds(env, activity);
@@ -363,7 +370,8 @@ void ReleaseCredentialClasses(JNIEnv* env) {
   oauthprovider_builder::ReleaseClass(env);
   oauthprovider_credentialbuilder::ReleaseClass(env);
   phone_auth_options_builder::ReleaseClass(env);
-  phonecred::ReleaseClass(env);
+  phoneauthprovider::ReleaseClass(env);
+  phonecredential::ReleaseClass(env);
   timeunit::ReleaseClass(env);
   twittercred::ReleaseClass(env);
   user_idp::ReleaseClass(env);
@@ -393,15 +401,21 @@ Credential::Credential(const Credential& rhs)
 
 // Increase the reference count when copying.
 Credential& Credential::operator=(const Credential& rhs) {
-  JNIEnv* env = GetJniEnv();
-  if (rhs.impl_) {
-    jobject j_cred_ref = env->NewGlobalRef(static_cast<jobject>(rhs.impl_));
-    impl_ = static_cast<void*>(j_cred_ref);
-  } else {
-    impl_ = nullptr;
+  if (impl_ != rhs.impl_) {
+    JNIEnv* env = GetJniEnv();
+    if (impl_) {
+      env->DeleteGlobalRef(static_cast<jobject>(impl_));
+    }
+
+    if (rhs.impl_) {
+      jobject j_cred_ref = env->NewGlobalRef(static_cast<jobject>(rhs.impl_));
+      impl_ = static_cast<void*>(j_cred_ref);
+    } else {
+      impl_ = nullptr;
+    }
+    error_code_ = rhs.error_code_;
+    error_message_ = rhs.error_message_;
   }
-  error_code_ = rhs.error_code_;
-  error_message_ = rhs.error_message_;
   return *this;
 }
 
@@ -471,6 +485,32 @@ Credential EmailAuthProvider::GetCredential(const char* email,
   return cred;
 }
 
+//
+// PhoneAuthCredential methods
+//
+PhoneAuthCredential& PhoneAuthCredential::operator=(
+    const PhoneAuthCredential& rhs) {
+  Credential::operator=(rhs);
+  sms_code_ = rhs.sms_code_;
+  return *this;
+}
+
+// Gets the automatically retrieved SMS verification code if applicable.
+// This method is only supported on Android, so return the default constructed
+// string.
+std::string PhoneAuthCredential::sms_code() const {
+  if (!impl_) return std::string();
+  JNIEnv* env = GetJniEnv();
+  jobject j_sms_code = env->CallObjectMethod(
+      CredentialFromImpl(impl_),
+      phonecredential::GetMethodId(phonecredential::kGetSmsCode));
+  assert(env->ExceptionCheck() == false);
+  return JniStringToString(env, j_sms_code);
+}
+
+//
+// Provider methods
+//
 // static
 Credential FacebookAuthProvider::GetCredential(const char* access_token) {
   FIREBASE_ASSERT_RETURN(Credential(), access_token);
@@ -951,8 +991,8 @@ void PhoneAuthProvider::VerifyPhoneNumber(
 
   // verify
   env->CallStaticVoidMethod(
-      phonecred::GetClass(),
-      phonecred::GetMethodId(phonecred::kVerifyPhoneNumber),
+      phoneauthprovider::GetClass(),
+      phoneauthprovider::GetMethodId(phoneauthprovider::kVerifyPhoneNumber),
       phone_auth_options);
 
   if (firebase::util::CheckAndClearJniExceptions(env)) {
@@ -981,8 +1021,32 @@ void PhoneAuthProvider::VerifyPhoneNumber(
   VerifyPhoneNumber(options, listener);
 }
 
-Credential PhoneAuthProvider::GetCredential(const char* verification_id,
-                                            const char* verification_code) {
+PhoneAuthCredential PhoneAuthProvider::GetCredential(
+    const char* verification_id, const char* verification_code) {
+  FIREBASE_ASSERT_RETURN(PhoneAuthCredential(),
+                         verification_id && verification_code);
+  FIREBASE_ASSERT_MESSAGE_RETURN(PhoneAuthCredential(), g_methods_cached,
+                                 kMethodsNotCachedError);
+
+  JNIEnv* env = Env(data_->auth_data);
+
+  jstring j_verification_id = env->NewStringUTF(verification_id);
+  jstring j_verification_code = env->NewStringUTF(verification_code);
+
+  jobject j_cred = env->CallStaticObjectMethod(
+      phoneauthprovider::GetClass(),
+      phoneauthprovider::GetMethodId(phoneauthprovider::kGetCredential),
+      j_verification_id, j_verification_code);
+  if (firebase::util::CheckAndClearJniExceptions(env)) j_cred = nullptr;
+
+  env->DeleteLocalRef(j_verification_id);
+  env->DeleteLocalRef(j_verification_code);
+
+  return PhoneAuthCredential(CredentialLocalToGlobalRef(j_cred));
+}
+
+Credential PhoneAuthProvider::GetCredential_DEPRECATED(
+    const char* verification_id, const char* verification_code) {
   FIREBASE_ASSERT_RETURN(Credential(), verification_id && verification_code);
   FIREBASE_ASSERT_MESSAGE_RETURN(Credential(), g_methods_cached,
                                  kMethodsNotCachedError);
@@ -993,7 +1057,8 @@ Credential PhoneAuthProvider::GetCredential(const char* verification_id,
   jstring j_verification_code = env->NewStringUTF(verification_code);
 
   jobject j_cred = env->CallStaticObjectMethod(
-      phonecred::GetClass(), phonecred::GetMethodId(phonecred::kGetCredential),
+      phoneauthprovider::GetClass(),
+      phoneauthprovider::GetMethodId(phoneauthprovider::kGetCredential),
       j_verification_id, j_verification_code);
   if (firebase::util::CheckAndClearJniExceptions(env)) j_cred = nullptr;
 
@@ -1011,7 +1076,8 @@ PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
 
     // Get a global reference to the Java PhoneAuthProvider for this Auth.
     jobject j_phone_auth_provider_local = env->CallStaticObjectMethod(
-        phonecred::GetClass(), phonecred::GetMethodId(phonecred::kGetInstance),
+        phoneauthprovider::GetClass(),
+        phoneauthprovider::GetMethodId(phoneauthprovider::kGetInstance),
         AuthImpl(auth->auth_data_));
 
     // Create the implementation class that holds the global references.

@@ -89,6 +89,7 @@ class Credential {
   friend class TwitterAuthProvider;
   friend class YahooAuthProvider;
   friend class ServiceUpdatedCredentialProvider;
+  friend class PhoneAuthCredential;
   /// @endcond
 #endif  // !SWIG
 
@@ -142,6 +143,31 @@ class Credential {
   AuthError error_code_;
   std::string error_message_;
   /// @endcond
+};
+
+/// Wraps phone number and verification information for authentication purposes.
+class PhoneAuthCredential : public Credential {
+ public:
+  // Default constructor.
+  PhoneAuthCredential();
+
+  /// Copy constructor.
+  PhoneAuthCredential(const PhoneAuthCredential& rhs);
+
+  /// Copy a Credential.
+  PhoneAuthCredential& operator=(const PhoneAuthCredential& rhs);
+
+  /// Gets the automatically retrieved SMS verification code if applicable.
+  /// This method is only supported on Android.
+  std::string sms_code() const;
+
+ private:
+  friend class PhoneAuthProvider;
+
+  /// Should only be created by the `PhoneAuthProvider` class.
+  explicit PhoneAuthCredential(void* impl);
+
+  std::string sms_code_;
 };
 
 /// @brief Use email and password to authenticate.
@@ -486,6 +512,9 @@ class PhoneAuthProvider {
     Listener();
     virtual ~Listener();
 
+    /// @deprecated This method has been deprecated. Please use @ref
+    /// OnVerificationCompleted(PhoneAuthCredential) instead.
+    ///
     /// @brief Phone number auto-verification succeeded.
     ///
     /// Called when,
@@ -499,6 +528,20 @@ class PhoneAuthProvider {
     /// @param[in] credential The completed credential from the phone number
     ///    verification flow.
     virtual void OnVerificationCompleted(Credential credential) = 0;
+
+    /// @brief Phone number auto-verification succeeded.
+    ///
+    /// Called when,
+    ///  - auto-sms-retrieval has succeeded--flow (2) in @ref PhoneAuthProvider
+    ///  - instant validation has succeeded--flow (3) in @ref PhoneAuthProvider
+    ///
+    /// @note This callback is never called on iOS, since iOS does not have
+    ///    auto-validation. It is always called immediately in the stub desktop
+    ///    implementation, however, since it fakes immediate success.
+    ///
+    /// @param[in] credential The completed credential from the phone number
+    ///    verification flow.
+    virtual void OnVerificationCompleted(PhoneAuthCredential credential) = 0;
 
     /// @brief Phone number verification failed with an error.
     ///
@@ -546,16 +589,6 @@ class PhoneAuthProvider {
     PhoneListenerData* data_;
   };
 
-  /// Maximum value of `auto_verify_time_out_ms` in @ref VerifyPhoneNumber.
-  /// Larger values will be clamped.
-  ///
-  /// @deprecated This value is no longer used to clamp
-  /// `auto_verify_time_out_ms` in VerifyPhoneNumber. The range is
-  /// determined by the underlying SDK, ex. <a
-  /// href="/docs/reference/android/com/google/firebase/auth/PhoneAuthOptions.Builder"><code>PhoneAuthOptions.Build</code>
-  /// in Android SDK</a>
-  static const uint32_t kMaxTimeoutMs;
-
   /// @deprecated This is a deprecated method. Please use @ref
   /// VerifyPhoneNumber(const PhoneAuthOptions&, Listener*) instead.
   ///
@@ -600,8 +633,24 @@ class PhoneAuthProvider {
   ///    received in the SMS sent by @ref VerifyPhoneNumber.
   ///
   /// @returns New Credential.
-  Credential GetCredential(const char* verification_id,
-                           const char* verification_code);
+  PhoneAuthCredential GetCredential(const char* verification_id,
+                                    const char* verification_code);
+
+  /// @deprecated This is a deprecated method. Please use @ref GetCredential
+  /// instead.
+  ///
+  /// Generate a credential for the given phone number.
+  ///
+  /// @param[in] verification_id The id returned when sending the verification
+  ///    code. Sent to the caller via @ref Listener::OnCodeSent.
+  /// @param[in] verification_code The verification code supplied by the user,
+  ///    most likely by a GUI where the user manually enters the code
+  ///    received in the SMS sent by @ref VerifyPhoneNumber.
+  ///
+  /// @returns New Credential.
+  FIREBASE_DEPRECATED
+  Credential GetCredential_DEPRECATED(const char* verification_id,
+                                      const char* verification_code);
 
   /// Return the PhoneAuthProvider for the specified `auth`.
   ///
