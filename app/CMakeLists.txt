@@ -251,6 +251,7 @@ endif()
 
 set(internal_HDRS
     src/include/firebase/app.h
+        src/include/firebase/cpp_version_warning.h
     src/include/firebase/future.h
     src/include/firebase/internal/common.h
     src/include/firebase/internal/future_impl.h
@@ -522,6 +523,9 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/dynamic_links/src/include/firebase/dynamic_links/components.h)
   set(firestore_HDRS
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_query.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_query_snapshot.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_source.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/collection_reference.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_change.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_reference.h

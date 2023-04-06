@@ -23,10 +23,14 @@
 #include "firebase/internal/common.h"
 
 #include "firebase/app.h"
+#include "firebase/cpp_version_warning.h"
 #include "firebase/future.h"
 #include "firebase/log.h"
 // Include *all* the public headers to make sure including just "firestore.h" is
 // sufficient for users.
+#include "firebase/firestore/aggregate_query.h"
+#include "firebase/firestore/aggregate_query_snapshot.h"
+#include "firebase/firestore/aggregate_source.h"
 #include "firebase/firestore/collection_reference.h"
 #include "firebase/firestore/document_change.h"
 #include "firebase/firestore/document_reference.h"
