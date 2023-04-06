@@ -468,7 +468,8 @@ void Connection::OnReset(const std::string& host) {
 }
 
 void Connection::RefreshAppCheckToken(const std::string& token) {
-  WebSocketClientImpl* client_impl = dynamic_cast<WebSocketClientImpl*>(client_.get());
+  WebSocketClientImpl* client_impl =
+      dynamic_cast<WebSocketClientImpl*>(client_.get());
   if (client_impl) {
     client_impl->RefreshAppCheckToken(token);
   }
