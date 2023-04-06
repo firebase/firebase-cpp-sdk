@@ -1012,7 +1012,8 @@ void PhoneAuthProvider::VerifyPhoneNumber(
   JNIEnv* env = GetJniEnv();
 
   PhoneAuthOptions options;
-  options.force_resending_token = const_cast<ForceResendingToken*>(force_resending_token);
+  options.force_resending_token =
+      const_cast<ForceResendingToken*>(force_resending_token);
   options.timeout_milliseconds = auto_verify_time_out_ms;
   if (phone_number != nullptr) {
     options.phone_number = phone_number;
