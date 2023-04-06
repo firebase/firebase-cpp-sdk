@@ -54,6 +54,12 @@ void CompletePromise(Promise<SignInResult>* const promise,
 }
 
 void CompletePromise(Promise<void>* const promise,
+                     const AuthResult& /*unused*/) {
+  FIREBASE_ASSERT_RETURN_VOID(promise);
+  promise->Complete();
+}
+
+void CompletePromise(Promise<void>* const promise,
                      const SignInResult& /*unused*/) {
   FIREBASE_ASSERT_RETURN_VOID(promise);
   promise->Complete();

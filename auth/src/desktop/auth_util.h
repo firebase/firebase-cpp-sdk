@@ -44,6 +44,7 @@ using firebase::callback::NewCallback;
 
 const char* GetApiKey(const AuthData& auth_data);
 
+/// @deprecated
 // Completes the given promise by translating the AuthenticationResult. If the
 // AuthenticationResult is successful, promise will be completed successfully
 // with the currently signed-in user. If the AuthenticationResult is failed, the
@@ -52,6 +53,7 @@ const char* GetApiKey(const AuthData& auth_data);
 void CompletePromise(Promise<User*>* promise,
                      const SignInResult& sign_in_result);
 
+/// @deprecated
 // Same as the version for Promise<User*>, but returns a copy
 // of a User from an AuthResult struct.
 void CompletePromise(Promise<User>* promise, const AuthResult& auth_result);
@@ -61,11 +63,15 @@ void CompletePromise(Promise<User>* promise, const AuthResult& auth_result);
 void CompletePromise(Promise<AuthResult>* promise,
                      const AuthResult& auth_result);
 
+/// @deprecated
 // Same as the version for Promise<User*>, but additionally extracts
 // AdditionalUserInfo from AuthenticationResult if it was successful.
 void CompletePromise(Promise<SignInResult>* promise,
                      const SignInResult& sign_in_result);
 
+void CompletePromise(Promise<void>* promise, const AuthResult& sign_in_result);
+
+/// @deprecated
 void CompletePromise(Promise<void>* promise,
                      const SignInResult& sign_in_result);
 
