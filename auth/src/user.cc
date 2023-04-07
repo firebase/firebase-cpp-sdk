@@ -30,6 +30,7 @@ AUTH_RESULT_FN(User, Unlink, AuthResult)
 AUTH_RESULT_FN(User, UpdateUserProfile, void)
 AUTH_RESULT_FN(User, Reload, void)
 AUTH_RESULT_FN(User, Delete, void)
+AUTH_RESULT_FN(User, UpdatePhoneNumberCredential, User)
 
 AUTH_RESULT_DEPRECATED_FN(User, LinkWithCredential, User*)
 AUTH_RESULT_DEPRECATED_FN(User, LinkAndRetrieveDataWithCredential, SignInResult)

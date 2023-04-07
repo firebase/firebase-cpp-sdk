@@ -393,6 +393,25 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(
   return MakeFuture(&futures, handle);
 }
 
+Future<AuthResult> Auth::SignInWithCustomToken(const char* token) {
+  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
+  const auto handle =
+      futures.SafeAlloc<AuthResult>(kAuthFn_SignInWithCustomToken);
+  JNIEnv* env = Env(auth_data_);
+
+  jstring j_token = env->NewStringUTF(token);
+  jobject pending_result = env->CallObjectMethod(
+      AuthImpl(auth_data_), auth::GetMethodId(auth::kSignInWithCustomToken),
+      j_token);
+  env->DeleteLocalRef(j_token);
+
+  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+    RegisterCallback(pending_result, handle, auth_data_, ReadAuthResult);
+    env->DeleteLocalRef(pending_result);
+  }
+  return MakeFuture(&futures, handle);
+}
+
 Future<User*> Auth::SignInWithCustomToken_DEPRECATED(const char* token) {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle =
@@ -409,6 +428,29 @@ Future<User*> Auth::SignInWithCustomToken_DEPRECATED(const char* token) {
     RegisterCallback(pending_result, handle, auth_data_,
                      ReadUserFromSignInResult);
     env->DeleteLocalRef(pending_result);
+  }
+  return MakeFuture(&futures, handle);
+}
+
+Future<User> Auth::SignInWithCredential(const Credential& credential) {
+  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
+  const auto handle = futures.SafeAlloc<User>(kAuthFn_SignInWithCredential);
+  JNIEnv* env = Env(auth_data_);
+
+  // If the credential itself is in an error state, don't try signing in.
+  if (credential.error_code_ != kAuthErrorNone) {
+    futures.Complete(handle, credential.error_code_,
+                     credential.error_message_.c_str());
+  } else {
+    jobject pending_result = env->CallObjectMethod(
+        AuthImpl(auth_data_), auth::GetMethodId(auth::kSignInWithCredential),
+        CredentialFromImpl(credential.impl_));
+
+    if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+      RegisterCallback(pending_result, handle, auth_data_,
+                       ReadUserFromAuthResult);
+      env->DeleteLocalRef(pending_result);
+    }
   }
   return MakeFuture(&futures, handle);
 }
@@ -432,6 +474,30 @@ Future<User*> Auth::SignInWithCredential_DEPRECATED(
     if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
       RegisterCallback(pending_result, handle, auth_data_,
                        ReadUserFromSignInResult);
+      env->DeleteLocalRef(pending_result);
+    }
+  }
+  return MakeFuture(&futures, handle);
+}
+
+Future<AuthResult> Auth::SignInAndRetrieveDataWithCredential(
+    const Credential& credential) {
+  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
+  const auto handle = futures.SafeAlloc<AuthResult>(
+      kAuthFn_SignInAndRetrieveDataWithCredential);
+  JNIEnv* env = Env(auth_data_);
+
+  // If the credential itself is in an error state, don't try signing in.
+  if (credential.error_code_ != kAuthErrorNone) {
+    futures.Complete(handle, credential.error_code_,
+                     credential.error_message_.c_str());
+  } else {
+    jobject pending_result = env->CallObjectMethod(
+        AuthImpl(auth_data_), auth::GetMethodId(auth::kSignInWithCredential),
+        CredentialFromImpl(credential.impl_));
+
+    if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+      RegisterCallback(pending_result, handle, auth_data_, ReadAuthResult);
       env->DeleteLocalRef(pending_result);
     }
   }
@@ -462,10 +528,31 @@ Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential_DEPRECATED(
   return MakeFuture(&futures, handle);
 }
 
+Future<AuthResult> Auth::SignInWithProvider(FederatedAuthProvider* provider) {
+  FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
+  return provider->SignIn(auth_data_);
+}
+
 Future<SignInResult> Auth::SignInWithProvider_DEPRECATED(
     FederatedAuthProvider* provider) {
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
-  return provider->SignIn(auth_data_);
+  return provider->SignIn_DEPRECATED(auth_data_);
+}
+
+Future<AuthResult> Auth::SignInAnonymously() {
+  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
+  const auto handle = futures.SafeAlloc<AuthResult>(kAuthFn_SignInAnonymously);
+  JNIEnv* env = Env(auth_data_);
+
+  jobject pending_result = env->CallObjectMethod(
+      AuthImpl(auth_data_), auth::GetMethodId(auth::kSignInAnonymously));
+
+  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+    RegisterCallback(pending_result, handle, auth_data_, ReadAuthResult);
+    env->DeleteLocalRef(pending_result);
+  }
+
+  return MakeFuture(&futures, handle);
 }
 
 Future<User*> Auth::SignInAnonymously_DEPRECATED() {
@@ -480,6 +567,38 @@ Future<User*> Auth::SignInAnonymously_DEPRECATED() {
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
     RegisterCallback(pending_result, handle, auth_data_,
                      ReadUserFromSignInResult);
+    env->DeleteLocalRef(pending_result);
+  }
+
+  return MakeFuture(&futures, handle);
+}
+
+Future<AuthResult> Auth::SignInWithEmailAndPassword(const char* email,
+                                                    const char* password) {
+  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
+  const auto handle =
+      futures.SafeAlloc<AuthResult>(kAuthFn_SignInWithEmailAndPassword);
+
+  if (!email || strlen(email) == 0 || !password || strlen(password) == 0) {
+    futures.Complete(handle,
+                     (!email || strlen(email) == 0) ? kAuthErrorMissingEmail
+                                                    : kAuthErrorMissingPassword,
+                     kErrorEmptyEmailPassword);
+    return MakeFuture(&futures, handle);
+  }
+
+  JNIEnv* env = Env(auth_data_);
+  jstring j_email = env->NewStringUTF(email);
+  jstring j_password = env->NewStringUTF(password);
+  jobject pending_result = env->CallObjectMethod(
+      AuthImpl(auth_data_),
+      auth::GetMethodId(auth::kSignInWithEmailAndPassword), j_email,
+      j_password);
+  env->DeleteLocalRef(j_email);
+  env->DeleteLocalRef(j_password);
+
+  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+    RegisterCallback(pending_result, handle, auth_data_, ReadAuthResult);
     env->DeleteLocalRef(pending_result);
   }
 
@@ -516,6 +635,37 @@ Future<User*> Auth::SignInWithEmailAndPassword_DEPRECATED(
     env->DeleteLocalRef(pending_result);
   }
 
+  return MakeFuture(&futures, handle);
+}
+
+Future<AuthResult> Auth::CreateUserWithEmailAndPassword(const char* email,
+                                                        const char* password) {
+  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
+  const auto handle =
+      futures.SafeAlloc<AuthResult>(kAuthFn_CreateUserWithEmailAndPassword);
+
+  if (!email || strlen(email) == 0 || !password || strlen(password) == 0) {
+    futures.Complete(handle,
+                     (!email || strlen(email) == 0) ? kAuthErrorMissingEmail
+                                                    : kAuthErrorMissingPassword,
+                     kErrorEmptyEmailPassword);
+    return MakeFuture(&futures, handle);
+  }
+  JNIEnv* env = Env(auth_data_);
+
+  jstring j_email = env->NewStringUTF(email);
+  jstring j_password = env->NewStringUTF(password);
+  jobject pending_result = env->CallObjectMethod(
+      AuthImpl(auth_data_),
+      auth::GetMethodId(auth::kCreateUserWithEmailAndPassword), j_email,
+      j_password);
+  env->DeleteLocalRef(j_email);
+  env->DeleteLocalRef(j_password);
+
+  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+    RegisterCallback(pending_result, handle, auth_data_, ReadAuthResult);
+    env->DeleteLocalRef(pending_result);
+  }
   return MakeFuture(&futures, handle);
 }
 

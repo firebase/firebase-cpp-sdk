@@ -429,18 +429,19 @@ class Auth {
 
   /// @deprecated This is a deprecated method. Please use @SignInAnonymously
   /// instead.
-  Future<User*> SignInAnonymously_DEPRECATED();
+  FIREBASE_DEPRECATED Future<User*> SignInAnonymously_DEPRECATED();
 
   /// @deprecated
   ///
   /// Get results of the most recent call to @ref SignInAnonymously_DEPRECATED.
-  Future<User*> SignInAnonymouslyLastResult_DEPRECATED() const;
+  FIREBASE_DEPRECATED Future<User*> SignInAnonymouslyLastResult_DEPRECATED()
+      const;
 
   /// Signs in using provided email address and password.
   /// An error is returned if the password is wrong or otherwise not accepted
   /// by the server.
-  FIREBASE_DEPRECATED Future<AuthResult> SignInWithEmailAndPassword(
-      const char* email, const char* password);
+  Future<AuthResult> SignInWithEmailAndPassword(const char* email,
+                                                const char* password);
 
   /// Get results of the most recent call to @ref
   /// SignInWithEmailAndPassword.
@@ -459,7 +460,8 @@ class Auth {
   ///
   /// Get results of the most recent call to @ref
   /// SignInWithEmailAndPassword_DEPRECATED.
-  Future<User*> SignInWithEmailAndPasswordLastResult_DEPRECATED() const;
+  FIREBASE_DEPRECATED Future<User*>
+  SignInWithEmailAndPasswordLastResult_DEPRECATED() const;
 
   /// Creates, and on success, logs in a user with the given email address
   /// and password.
@@ -963,9 +965,15 @@ class FederatedAuthProvider {
  private:
   friend class ::firebase::auth::Auth;
   friend class ::firebase::auth::User;
-  virtual Future<SignInResult> SignIn(AuthData* auth_data) = 0;
-  virtual Future<SignInResult> Link(AuthData* auth_data) = 0;
-  virtual Future<SignInResult> Reauthenticate(AuthData* auth_data) = 0;
+  virtual Future<AuthResult> SignIn(AuthData* auth_data) = 0;
+  FIREBASE_DEPRECATED virtual Future<SignInResult> SignIn_DEPRECATED(
+      AuthData* auth_data) = 0;
+  virtual Future<AuthResult> Link(AuthData* auth_data) = 0;
+  FIREBASE_DEPRECATED virtual Future<SignInResult> Link_DEPRECATED(
+      AuthData* auth_data) = 0;
+  virtual Future<AuthResult> Reauthenticate(AuthData* auth_data) = 0;
+  FIREBASE_DEPRECATED virtual Future<SignInResult> Reauthenticate_DEPRECATED(
+      AuthData* auth_data) = 0;
 };
 
 /// @brief Authenticates with Federated OAuth Providers via the
@@ -1048,9 +1056,16 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
  private:
   friend class ::firebase::auth::Auth;
 
-  Future<SignInResult> SignIn(AuthData* auth_data) override;
-  Future<SignInResult> Link(AuthData* auth_data) override;
-  Future<SignInResult> Reauthenticate(AuthData* auth_data) override;
+  Future<AuthResult> SignIn(AuthData* auth_data) override;
+  Future<AuthResult> Link(AuthData* auth_data) override;
+  Future<AuthResult> Reauthenticate(AuthData* auth_data) override;
+
+  FIREBASE_DEPRECATED Future<SignInResult> SignIn_DEPRECATED(
+      AuthData* auth_data) override;
+  FIREBASE_DEPRECATED Future<SignInResult> Link_DEPRECATED(
+      AuthData* auth_data) override;
+  FIREBASE_DEPRECATED Future<SignInResult> Reauthenticate_DEPRECATED(
+      AuthData* auth_data) override;
 
   FederatedOAuthProviderData provider_data_;
 #ifdef INTERNAL_EXPERIMENTAL

@@ -1282,6 +1282,19 @@ std::string User::provider_id() const {
   return user_view.IsValid() ? user_view->provider_id : std::string();
 }
 
+Future<User> User::UpdatePhoneNumberCredential_DEPRECATED(
+    const Credential& credential) {
+  Promise<User> promise(&auth_data_->future_impl,
+                        kUserFn_UpdatePhoneNumberCredential);
+  if (!ValidateCurrentUser(&promise, auth_data_)) {
+    return promise.LastResult();
+  }
+
+  promise.Fail(kAuthErrorApiNotAvailable,
+               "Phone Auth is not supported on desktop");
+  return promise.LastResult();
+}
+
 Future<User*> User::UpdatePhoneNumberCredential_DEPRECATED(
     const Credential& credential) {
   Promise<User*> promise(&auth_data_->future_impl,
