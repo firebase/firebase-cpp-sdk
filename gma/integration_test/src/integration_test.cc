@@ -214,6 +214,14 @@ void FirebaseGmaTest::SetUpTestSuite() {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 
 #if defined(ANDROID)
+  LogDebug("almostmatt - Try to initialize GMA without firebase");
+  firebase::InitResult result;
+  ::firebase::gma::Initialize(
+    app_framework::GetJniEnv(),
+    app_framework::GetActivity(),
+    &result);
+  LogDebug("almostmatt - Successfully initialized gma!");
+
   shared_app_ = ::firebase::App::Create(app_framework::GetJniEnv(),
                                         app_framework::GetActivity());
 #else
