@@ -53,14 +53,13 @@ METHOD_LOOKUP_DECLARATION(additional_user_info, ADDITIONAL_USER_INFO_METHODS)
 // clang-format on
 METHOD_LOOKUP_DECLARATION(phonecredential, PHONE_CREDENTIAL_METHODS)
 
-// Invokes a private Credential  constructor with a local reference to an
-// Android Credential object. This constructor is only accessible by friends of
-// the Credential class.
+// Invokes a private Credential constructor only accessible by friends of the
+// Credential class.
 //
-// This is only used to marshall and return Credential objects from
-// AuthResults. That is, when credentials aren't created by our standard set
-// of providers by users' applications, but Credentials created internally
-// by the Android SDK.
+// This is used to marshall and return Credential objects from the Android SDK
+// AuthResult objects. That is, credentials that aren't created by our
+// users' applications, but creaed to represent Credentials created internally
+// by the Anrdoid SDK.
 class InternalAuthResultProvider {
  public:
   static Credential GetCredential(jobject credential);

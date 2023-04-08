@@ -149,9 +149,13 @@ void *CreatePlatformAuth(App *app) {
 
 // Grab the user value from the iOS API and remember it locally.
 void UpdateCurrentUser(AuthData *auth_data) {
+  LogError("UpdateCurrentUser locking mutex\n");
   MutexLock lock(auth_data->future_impl.mutex());
+  LogError("UpdateCurrentUser mutex locked\n");
   FIRUser *user = [AuthImpl(auth_data) currentUser];
+  LogError("UpdateCurrentUser calling SetUserImp with user: %p\n", user);
   SetUserImpl(auth_data, user);
+  LogError("UpdateCurrentUser calling SetUserImp returned\n");
 }
 
 // Platform-specific method to initialize AuthData.
@@ -323,6 +327,84 @@ AuthError AuthErrorFromNSError(NSError *_Nullable error) {
   return kAuthErrorUnimplemented;
 }
 
+void AuthResultCallback(FIRAuthDataResult *_Nullable fir_auth_result, NSError *_Nullable error,
+                        SafeFutureHandle<AuthResult> handle, AuthData *auth_data) {
+  LogError("DEDB AuthResultCallback\n");
+  LogError("DEDB AuthResultCallback fir_auth_result: %p\n", fir_auth_result);
+  LogError("DEDB AuthResultCallback error: %p\n", error);
+  LogError("DEDB AuthResultCallback auth_data: %p\n", auth_data);
+
+  User *current_user = AssignUser(fir_auth_result.user, auth_data);
+
+  LogError("DEDB AuthResultCallback assinged user returned: %p\n", current_user);
+  if (current_user != nullptr) {
+    LogError("DEDB AuthResultCallback assinged user is valid: %d\n", current_user->is_valid());
+  }
+
+  AuthResult result;
+  if (current_user != nullptr) {
+    LogError("DEDB AuthResultCallback filling out authresult object\n");
+    LogError("DEDB AuthResultCallback fir_auth_result.additionalUserInfo: %p\n",
+             fir_auth_result.additionalUserInfo);
+    LogError("DEDB AuthResultCallback fir_auth_result.additionalUserInfo.providerID: %p\n",
+             fir_auth_result.additionalUserInfo.providerID);
+    LogError("DEDB AuthResultCallback fir_auth_result.additionalUserInfo.username: %p\n",
+             fir_auth_result.additionalUserInfo.username);
+    LogError("DEDB AuthResultCallback fir_auth_result.additionalUserInfo.profile: %p\n",
+             fir_auth_result.additionalUserInfo.profile);
+    LogError("DEDB AuthResultCallback fir_auth_result.credential: %p\n",
+             fir_auth_result.credential);
+    result.user = *current_user;
+    result.additional_user_info.provider_id =
+        util::StringFromNSString(fir_auth_result.additionalUserInfo.providerID);
+    result.additional_user_info.user_name =
+        util::StringFromNSString(fir_auth_result.additionalUserInfo.username);
+    if (fir_auth_result.additionalUserInfo.profile != nil) {
+      util::NSDictionaryToStdMap(fir_auth_result.additionalUserInfo.profile,
+                                 &result.additional_user_info.profile);
+    }
+    if (fir_auth_result.credential != nil) {
+      result.credential = InternalAuthResultProvider::GetCredential(fir_auth_result.credential);
+    }
+  }
+
+  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
+  futures.CompleteWithResult(handle, AuthErrorFromNSError(error),
+                             util::NSStringToString(error.localizedDescription).c_str(), result);
+}
+
+void AuthResultCallback(FIRUser *_Nullable user, NSError *_Nullable error,
+                        SafeFutureHandle<AuthResult> handle, AuthData *auth_data) {
+  User *current_user = AssignUser(user, auth_data);
+  AuthResult auth_result;
+  if (current_user != nullptr) auth_result.user = *current_user;
+  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
+  futures.CompleteWithResult(handle, AuthErrorFromNSError(error),
+                             util::NSStringToString(error.localizedDescription).c_str(),
+                             auth_result);
+}
+
+void AuthResultCallback(FIRUser *_Nullable user, NSError *_Nullable error,
+                        SafeFutureHandle<User> handle, AuthData *auth_data) {
+  User *current_user = AssignUser(user, auth_data);
+  User user_result;
+  if (current_user != nullptr) user_result = *current_user;
+  ReferenceCountedFutureImpl &futures = auth_data->future_impl;
+  futures.CompleteWithResult(handle, AuthErrorFromNSError(error),
+                             util::NSStringToString(error.localizedDescription).c_str(),
+                             user_result);
+}
+
+void AuthResultWithProviderCallback(
+    FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error,
+    SafeFutureHandle<AuthResult> handle, AuthData *_Nonnull auth_data,
+    const FIROAuthProvider *_Nonnull ios_auth_provider /*unused */) {
+  // ios_auth_provider exists as a parameter to hold a reference to the FIROAuthProvider preventing
+  // its release by the Objective-C runtime during the asynchronous operations.
+  error = RemapBadProviderIDErrors(error);
+  AuthResultCallback(auth_result, error, handle, auth_data);
+}
+
 void SignInCallback(FIRUser *_Nullable user, NSError *_Nullable error,
                     SafeFutureHandle<User *> handle, AuthData *auth_data) {
   User *result = AssignUser(user, auth_data);
@@ -369,6 +451,19 @@ void SignInResultCallback(FIRAuthDataResult *_Nullable auth_result, NSError *_Nu
                              util::NSStringToString(error.localizedDescription).c_str(), result);
 }
 
+Future<AuthResult> Auth::SignInWithCustomToken(const char *token) {
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  const auto handle = futures.SafeAlloc<AuthResult>(kAuthFn_SignInWithCustomToken, AuthResult());
+
+  [AuthImpl(auth_data_)
+      signInWithCustomToken:@(token)
+                 completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
+                   AuthResultCallback(auth_result, error, handle, auth_data_);
+                 }];
+
+  return MakeFuture(&futures, handle);
+}
+
 Future<User *> Auth::SignInWithCustomToken_DEPRECATED(const char *token) {
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<User *>(kAuthFn_SignInWithCustomToken_DEPRECATED, nullptr);
@@ -382,6 +477,19 @@ Future<User *> Auth::SignInWithCustomToken_DEPRECATED(const char *token) {
   return MakeFuture(&futures, handle);
 }
 
+Future<User> Auth::SignInWithCredential(const Credential &credential) {
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  const auto handle = futures.SafeAlloc<User>(kAuthFn_SignInWithCredential, User());
+
+  [AuthImpl(auth_data_)
+      signInWithCredential:CredentialFromImpl(credential.impl_)
+                completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
+                  AuthResultCallback(auth_result.user, error, handle, auth_data_);
+                }];
+
+  return MakeFuture(&futures, handle);
+}
+
 Future<User *> Auth::SignInWithCredential_DEPRECATED(const Credential &credential) {
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<User *>(kAuthFn_SignInWithCredential_DEPRECATED, nullptr);
@@ -390,6 +498,20 @@ Future<User *> Auth::SignInWithCredential_DEPRECATED(const Credential &credentia
       signInWithCredential:CredentialFromImpl(credential.impl_)
                 completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
                   SignInCallback(auth_result.user, error, handle, auth_data_);
+                }];
+
+  return MakeFuture(&futures, handle);
+}
+
+Future<AuthResult> Auth::SignInAndRetrieveDataWithCredential(const Credential &credential) {
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  const auto handle =
+      futures.SafeAlloc<AuthResult>(kAuthFn_SignInAndRetrieveDataWithCredential, AuthResult());
+
+  [AuthImpl(auth_data_)
+      signInWithCredential:CredentialFromImpl(credential.impl_)
+                completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
+                  AuthResultCallback(auth_result, error, handle, auth_data_);
                 }];
 
   return MakeFuture(&futures, handle);
@@ -410,9 +532,27 @@ Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential_DEPRECATED(
   return MakeFuture(&futures, handle);
 }
 
+Future<AuthResult> Auth::SignInWithProvider(FederatedAuthProvider *provider) {
+  FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
+  return provider->SignIn(auth_data_);
+}
+
 Future<SignInResult> Auth::SignInWithProvider_DEPRECATED(FederatedAuthProvider *provider) {
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
-  return provider->SignIn(auth_data_);
+  return provider->SignIn_DEPRECATED(auth_data_);
+}
+
+Future<AuthResult> Auth::SignInAnonymously() {
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  const auto handle =
+      auth_data_->future_impl.SafeAlloc<AuthResult>(kAuthFn_SignInAnonymously, AuthResult());
+
+  [AuthImpl(auth_data_) signInAnonymouslyWithCompletion:^(FIRAuthDataResult *_Nullable auth_result,
+                                                          NSError *_Nullable error) {
+    AuthResultCallback(auth_result, error, handle, auth_data_);
+  }];
+
+  return MakeFuture(&futures, handle);
 }
 
 Future<User *> Auth::SignInAnonymously_DEPRECATED() {
@@ -425,6 +565,25 @@ Future<User *> Auth::SignInAnonymously_DEPRECATED() {
     SignInCallback(auth_result.user, error, handle, auth_data_);
   }];
 
+  return MakeFuture(&futures, handle);
+}
+
+Future<AuthResult> Auth::SignInWithEmailAndPassword(const char *email, const char *password) {
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  const auto handle =
+      futures.SafeAlloc<AuthResult>(kAuthFn_SignInWithEmailAndPassword, AuthResult());
+  if (!email || strlen(email) == 0) {
+    futures.Complete(handle, kAuthErrorMissingEmail, "Empty email is not allowed.");
+  } else if (!password || strlen(password) == 0) {
+    futures.Complete(handle, kAuthErrorMissingPassword, "Empty password is not allowed.");
+  } else {
+    [AuthImpl(auth_data_)
+        signInWithEmail:@(email)
+               password:@(password)
+             completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
+               AuthResultCallback(auth_result, error, handle, auth_data_);
+             }];
+  }
   return MakeFuture(&futures, handle);
 }
 
@@ -444,6 +603,25 @@ Future<User *> Auth::SignInWithEmailAndPassword_DEPRECATED(const char *email,
              completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
                SignInCallback(auth_result.user, error, handle, auth_data_);
              }];
+  }
+  return MakeFuture(&futures, handle);
+}
+
+Future<AuthResult> Auth::CreateUserWithEmailAndPassword(const char *email, const char *password) {
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  const auto handle =
+      futures.SafeAlloc<AuthResult>(kAuthFn_CreateUserWithEmailAndPassword, AuthResult());
+  if (!email || strlen(email) == 0) {
+    futures.Complete(handle, kAuthErrorMissingEmail, "Empty email is not allowed.");
+  } else if (!password || strlen(password) == 0) {
+    futures.Complete(handle, kAuthErrorMissingPassword, "Empty password is not allowed.");
+  } else {
+    [AuthImpl(auth_data_)
+        createUserWithEmail:@(email)
+                   password:@(password)
+                 completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
+                   AuthResultCallback(auth_result, error, handle, auth_data_);
+                 }];
   }
   return MakeFuture(&futures, handle);
 }

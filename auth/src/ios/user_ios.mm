@@ -82,6 +82,22 @@ Future<std::string> User::GetToken(bool force_refresh) {
   return MakeFuture(&futures, handle);
 }
 
+std::vector<UserInfoInterface> User::provider_data() const {
+  std::vector<UserInfoInterface> provider_data;
+  if (ValidUser(auth_data_)) {
+    NSArray<id<FIRUserInfo>> *fir_provider_data = UserImpl(auth_data_).providerData;
+    if (fir_provider_data != nullptr) {
+      // Wrap the FIRUserInfos in our IOSWrappedUserInfo class.
+      for (size_t i = 0; i < fir_provider_data.count; ++i) {
+        provider_data[i] = IOSWrappedUserInfo(fir_provider_data[i]);
+      }
+    }
+  }
+
+  // Return a reference to our internally-backed values.
+  return provider_data;
+}
+
 const std::vector<UserInfoInterface *> &User::provider_data_DEPRECATED() const {
   ClearUserInfos(auth_data_);
 
@@ -164,6 +180,20 @@ Future<void> User::SendEmailVerification() {
   return MakeFuture(&futures, handle);
 }
 
+Future<AuthResult> User::LinkWithCredential(const Credential &credential) {
+  if (!ValidUser(auth_data_)) {
+    return Future<AuthResult>();
+  }
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  const auto handle = futures.SafeAlloc<AuthResult>(kUserFn_LinkWithCredential, AuthResult());
+  [UserImpl(auth_data_)
+      linkWithCredential:CredentialFromImpl(credential.impl_)
+              completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
+                AuthResultCallback(auth_result, error, handle, auth_data_);
+              }];
+  return MakeFuture(&futures, handle);
+}
+
 Future<User *> User::LinkWithCredential_DEPRECATED(const Credential &credential) {
   if (!ValidUser(auth_data_)) {
     return Future<User *>();
@@ -174,6 +204,21 @@ Future<User *> User::LinkWithCredential_DEPRECATED(const Credential &credential)
       linkWithCredential:CredentialFromImpl(credential.impl_)
               completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
                 SignInCallback(auth_result.user, error, handle, auth_data_);
+              }];
+  return MakeFuture(&futures, handle);
+}
+
+Future<AuthResult> User::LinkAndRetrieveDataWithCredential(const Credential &credential) {
+  if (!ValidUser(auth_data_)) {
+    return Future<AuthResult>();
+  }
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  const auto handle = auth_data_->future_impl.SafeAlloc<AuthResult>(
+      kUserFn_LinkAndRetrieveDataWithCredential, AuthResult());
+  [UserImpl(auth_data_)
+      linkWithCredential:CredentialFromImpl(credential.impl_)
+              completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
+                AuthResultCallback(auth_result, error, handle, auth_data_);
               }];
   return MakeFuture(&futures, handle);
 }
@@ -194,9 +239,27 @@ Future<SignInResult> User::LinkAndRetrieveDataWithCredential_DEPRECATED(
   return MakeFuture(&futures, handle);
 }
 
+Future<AuthResult> User::LinkWithProvider(FederatedAuthProvider *provider) const {
+  FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
+  return provider->Link(auth_data_);
+}
+
 Future<SignInResult> User::LinkWithProvider_DEPRECATED(FederatedAuthProvider *provider) const {
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
-  return provider->Link(auth_data_);
+  return provider->Link_DEPRECATED(auth_data_);
+}
+
+Future<AuthResult> User::Unlink(const char *provider) {
+  if (!ValidUser(auth_data_)) {
+    return Future<AuthResult>();
+  }
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  const auto handle = futures.SafeAlloc<AuthResult>(kUserFn_Unlink);
+  [UserImpl(auth_data_) unlinkFromProvider:@(provider)
+                                completion:^(FIRUser *_Nullable user, NSError *_Nullable error) {
+                                  AuthResultCallback(user, error, handle, auth_data_);
+                                }];
+  return MakeFuture(&futures, handle);
 }
 
 Future<User *> User::Unlink_DEPRECATED(const char *provider) {
@@ -209,6 +272,29 @@ Future<User *> User::Unlink_DEPRECATED(const char *provider) {
                                 completion:^(FIRUser *_Nullable user, NSError *_Nullable error) {
                                   SignInCallback(user, error, handle, auth_data_);
                                 }];
+  return MakeFuture(&futures, handle);
+}
+
+Future<User> User::UpdatePhoneNumberCredential(const PhoneAuthCredential &credential) {
+  if (!ValidUser(auth_data_)) {
+    return Future<User>();
+  }
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  const auto handle = futures.SafeAlloc<User>(kUserFn_UpdatePhoneNumberCredential);
+
+#if FIREBASE_PLATFORM_IOS
+  FIRPhoneAuthCredential *objc_credential = PhoneAuthCredentialFromImpl(credential.impl_);
+  [UserImpl(auth_data_)
+      updatePhoneNumberCredential:objc_credential
+                       completion:^(NSError *_Nullable error) {
+                         futures.Complete(handle, AuthErrorFromNSError(error),
+                                          [error.localizedDescription UTF8String]);
+                       }];
+#else   // non iOS Apple platforms (eg: tvOS).
+  futures.Complete(handle, kAuthErrorApiNotAvailable,
+                   "Phone Auth is not supported on non-iOS apple platforms.");
+#endif  // FIREBASE_PLATFORM_IOS
+
   return MakeFuture(&futures, handle);
 }
 
@@ -270,6 +356,23 @@ Future<void> User::Reauthenticate(const Credential &credential) {
   return MakeFuture(&futures, handle);
 }
 
+Future<AuthResult> User::ReauthenticateAndRetrieveData(const Credential &credential) {
+  if (!ValidUser(auth_data_)) {
+    return Future<AuthResult>();
+  }
+  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
+  const auto handle = auth_data_->future_impl.SafeAlloc<AuthResult>(
+      kUserFn_ReauthenticateAndRetrieveData, AuthResult());
+
+  [UserImpl(auth_data_)
+      reauthenticateWithCredential:CredentialFromImpl(credential.impl_)
+                        completion:^(FIRAuthDataResult *_Nullable auth_result,
+                                     NSError *_Nullable error) {
+                          AuthResultCallback(auth_result, error, handle, auth_data_);
+                        }];
+  return MakeFuture(&futures, handle);
+}
+
 Future<SignInResult> User::ReauthenticateAndRetrieveData_DEPRECATED(const Credential &credential) {
   if (!ValidUser(auth_data_)) {
     return Future<SignInResult>();
@@ -287,10 +390,15 @@ Future<SignInResult> User::ReauthenticateAndRetrieveData_DEPRECATED(const Creden
   return MakeFuture(&futures, handle);
 }
 
+Future<AuthResult> User::ReauthenticateWithProvider(FederatedAuthProvider *provider) const {
+  FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
+  return provider->Reauthenticate(auth_data_);
+}
+
 Future<SignInResult> User::ReauthenticateWithProvider_DEPRECATED(
     FederatedAuthProvider *provider) const {
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
-  return provider->Reauthenticate(auth_data_);
+  return provider->Reauthenticate_DEPRECATED(auth_data_);
 }
 
 Future<void> User::Delete() {
@@ -299,7 +407,6 @@ Future<void> User::Delete() {
   }
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_Delete);
-
   [UserImpl(auth_data_) deleteWithCompletion:^(NSError *_Nullable error) {
     if (!error) {
       UpdateCurrentUser(auth_data_);

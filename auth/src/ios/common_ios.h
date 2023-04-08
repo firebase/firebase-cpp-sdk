@@ -51,6 +51,18 @@ struct AuthDataIos {
   FIRCPPAuthListenerHandlePointer listener_handle;
 };
 
+// Invokes a private Credential constructor only accessible by friends of the
+// Credential class.
+//
+// This is used to marshall and return Credential objects from the iOS SDK
+// FIRAuthDataResult objects. That is, credentials that aren't created by our
+// users' applications, but creaed to represent Credentials created internally
+// by the iOS SDK.
+class InternalAuthResultProvider {
+ public:
+  static Credential GetCredential(FIRAuthCredential *credential);
+};
+
 /// Convert from the platform-independent void* to the Obj-C FIRUser pointer.
 static inline FIRUser *_Nullable UserImpl(AuthData *_Nonnull auth_data) {
   return FIRUserPointer::SafeGet(static_cast<FIRUserPointer *>(auth_data->user_impl));
@@ -90,6 +102,31 @@ static inline FIRPhoneAuthCredential *_Nonnull PhoneAuthCredentialFromImpl(void 
 }
 
 AuthError AuthErrorFromNSError(NSError *_Nullable error);
+
+/// Common code for all API calls that return a AuthResult.
+/// Initialize `auth_data->current_user` and complete the `future`.
+void AuthResultCallback(FIRAuthDataResult *_Nullable fir_auth_result, NSError *_Nullable error,
+                        SafeFutureHandle<AuthResult> handle, AuthData *auth_data);
+
+/// Common code for all API calls that return a AuthResult where the iOS SDK
+/// only returns a FIRUser.
+/// Initialize `auth_data->current_user` and complete the `future`.
+void AuthResultCallback(FIRUser *_Nullable user, NSError *_Nullable error,
+                        SafeFutureHandle<AuthResult> handle, AuthData *auth_data);
+
+/// Common code for all API calls that return a User.
+/// Initialize `auth_data->current_user` and complete the `future`.
+void AuthResultCallback(FIRUser *_Nullable user, NSError *_Nullable error,
+                        SafeFutureHandle<User> handle, AuthData *auth_data);
+
+/// Common code for all FederatedOAuth API calls which return an AuthResult and
+/// must hold a reference to a FIROAuthProvider so that the provider is not
+/// deallocated by the Objective-C environment. Directly invokes
+/// AuthResultCallback().
+void AuthResultWithProviderCallback(FIRAuthDataResult *_Nullable auth_result,
+                                    NSError *_Nullable error, SafeFutureHandle<AuthResult> handle,
+                                    AuthData *_Nonnull auth_data,
+                                    const FIROAuthProvider *_Nonnull ios_auth_provider);
 
 /// Common code for all API calls that return a User*.
 /// Initialize `auth_data->current_user` and complete the `future`.

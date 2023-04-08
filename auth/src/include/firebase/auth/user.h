@@ -492,13 +492,14 @@ class User : public UserInfoInterface {
 
   /// Updates the currently linked phone number on the user.
   /// This is useful when a user wants to change their phone number. It is a
-  /// shortcut to calling Unlink_DEPRECATED(phone_credential.provider().c_str())
-  /// and then LinkWithCredential_DEPRECATED(phone_credential). `credential`
+  /// shortcut to calling Unlink(phone_credential.provider().c_str())
+  /// and then LinkWithCredential(phone_credential). `credential`
   /// must have been created with @ref PhoneAuthProvider.
-  Future<User> UpdatePhoneNumberCredential(const Credential& credential);
+  Future<User> UpdatePhoneNumberCredential(
+      const PhoneAuthCredential& credential);
 
   /// Get results of the most recent call to @ref
-  /// UpdatePhoneNumberCredentia.
+  /// UpdatePhoneNumberCredential.
   Future<User> UpdatePhoneNumberCredentialLastResult() const;
 
   /// @deprecated This is a deprecated method. Please use
