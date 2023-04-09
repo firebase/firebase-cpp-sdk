@@ -149,13 +149,9 @@ void *CreatePlatformAuth(App *app) {
 
 // Grab the user value from the iOS API and remember it locally.
 void UpdateCurrentUser(AuthData *auth_data) {
-  LogError("UpdateCurrentUser locking mutex\n");
   MutexLock lock(auth_data->future_impl.mutex());
-  LogError("UpdateCurrentUser mutex locked\n");
   FIRUser *user = [AuthImpl(auth_data) currentUser];
-  LogError("UpdateCurrentUser calling SetUserImp with user: %p\n", user);
   SetUserImpl(auth_data, user);
-  LogError("UpdateCurrentUser calling SetUserImp returned\n");
 }
 
 // Platform-specific method to initialize AuthData.
@@ -329,31 +325,10 @@ AuthError AuthErrorFromNSError(NSError *_Nullable error) {
 
 void AuthResultCallback(FIRAuthDataResult *_Nullable fir_auth_result, NSError *_Nullable error,
                         SafeFutureHandle<AuthResult> handle, AuthData *auth_data) {
-  LogError("DEDB AuthResultCallback\n");
-  LogError("DEDB AuthResultCallback fir_auth_result: %p\n", fir_auth_result);
-  LogError("DEDB AuthResultCallback error: %p\n", error);
-  LogError("DEDB AuthResultCallback auth_data: %p\n", auth_data);
-
   User *current_user = AssignUser(fir_auth_result.user, auth_data);
-
-  LogError("DEDB AuthResultCallback assinged user returned: %p\n", current_user);
-  if (current_user != nullptr) {
-    LogError("DEDB AuthResultCallback assinged user is valid: %d\n", current_user->is_valid());
-  }
 
   AuthResult result;
   if (current_user != nullptr) {
-    LogError("DEDB AuthResultCallback filling out authresult object\n");
-    LogError("DEDB AuthResultCallback fir_auth_result.additionalUserInfo: %p\n",
-             fir_auth_result.additionalUserInfo);
-    LogError("DEDB AuthResultCallback fir_auth_result.additionalUserInfo.providerID: %p\n",
-             fir_auth_result.additionalUserInfo.providerID);
-    LogError("DEDB AuthResultCallback fir_auth_result.additionalUserInfo.username: %p\n",
-             fir_auth_result.additionalUserInfo.username);
-    LogError("DEDB AuthResultCallback fir_auth_result.additionalUserInfo.profile: %p\n",
-             fir_auth_result.additionalUserInfo.profile);
-    LogError("DEDB AuthResultCallback fir_auth_result.credential: %p\n",
-             fir_auth_result.credential);
     result.user = *current_user;
     result.additional_user_info.provider_id =
         util::StringFromNSString(fir_auth_result.additionalUserInfo.providerID);

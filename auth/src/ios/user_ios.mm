@@ -186,10 +186,11 @@ Future<AuthResult> User::LinkWithCredential(const Credential &credential) {
   }
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<AuthResult>(kUserFn_LinkWithCredential, AuthResult());
-  [UserImpl(auth_data_)
+  AuthData *auth_data = auth_data_;
+  [UserImpl(auth_data)
       linkWithCredential:CredentialFromImpl(credential.impl_)
               completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-                AuthResultCallback(auth_result, error, handle, auth_data_);
+                AuthResultCallback(auth_result, error, handle, auth_data);
               }];
   return MakeFuture(&futures, handle);
 }
@@ -215,10 +216,11 @@ Future<AuthResult> User::LinkAndRetrieveDataWithCredential(const Credential &cre
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = auth_data_->future_impl.SafeAlloc<AuthResult>(
       kUserFn_LinkAndRetrieveDataWithCredential, AuthResult());
-  [UserImpl(auth_data_)
+  AuthData *auth_data = auth_data_;
+  [UserImpl(auth_data)
       linkWithCredential:CredentialFromImpl(credential.impl_)
               completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-                AuthResultCallback(auth_result, error, handle, auth_data_);
+                AuthResultCallback(auth_result, error, handle, auth_data);
               }];
   return MakeFuture(&futures, handle);
 }
@@ -231,10 +233,11 @@ Future<SignInResult> User::LinkAndRetrieveDataWithCredential_DEPRECATED(
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = auth_data_->future_impl.SafeAlloc<SignInResult>(
       kUserFn_LinkAndRetrieveDataWithCredential_DEPRECATED, SignInResult());
-  [UserImpl(auth_data_)
+  AuthData *auth_data = auth_data_;
+  [UserImpl(auth_data)
       linkWithCredential:CredentialFromImpl(credential.impl_)
               completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-                SignInResultCallback(auth_result, error, handle, auth_data_);
+                SignInResultCallback(auth_result, error, handle, auth_data);
               }];
   return MakeFuture(&futures, handle);
 }
@@ -255,10 +258,11 @@ Future<AuthResult> User::Unlink(const char *provider) {
   }
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<AuthResult>(kUserFn_Unlink);
-  [UserImpl(auth_data_) unlinkFromProvider:@(provider)
-                                completion:^(FIRUser *_Nullable user, NSError *_Nullable error) {
-                                  AuthResultCallback(user, error, handle, auth_data_);
-                                }];
+  AuthData *auth_data = auth_data_;
+  [UserImpl(auth_data) unlinkFromProvider:@(provider)
+                               completion:^(FIRUser *_Nullable user, NSError *_Nullable error) {
+                                 AuthResultCallback(user, error, handle, auth_data);
+                               }];
   return MakeFuture(&futures, handle);
 }
 
@@ -268,10 +272,11 @@ Future<User *> User::Unlink_DEPRECATED(const char *provider) {
   }
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<User *>(kUserFn_Unlink_DEPRECATED);
-  [UserImpl(auth_data_) unlinkFromProvider:@(provider)
-                                completion:^(FIRUser *_Nullable user, NSError *_Nullable error) {
-                                  SignInCallback(user, error, handle, auth_data_);
-                                }];
+  AuthData *auth_data = auth_data_;
+  [UserImpl(auth_data) unlinkFromProvider:@(provider)
+                               completion:^(FIRUser *_Nullable user, NSError *_Nullable error) {
+                                 SignInCallback(user, error, handle, auth_data);
+                               }];
   return MakeFuture(&futures, handle);
 }
 
@@ -363,12 +368,12 @@ Future<AuthResult> User::ReauthenticateAndRetrieveData(const Credential &credent
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = auth_data_->future_impl.SafeAlloc<AuthResult>(
       kUserFn_ReauthenticateAndRetrieveData, AuthResult());
-
-  [UserImpl(auth_data_)
+  AuthData *auth_data = auth_data_;
+  [UserImpl(auth_data)
       reauthenticateWithCredential:CredentialFromImpl(credential.impl_)
                         completion:^(FIRAuthDataResult *_Nullable auth_result,
                                      NSError *_Nullable error) {
-                          AuthResultCallback(auth_result, error, handle, auth_data_);
+                          AuthResultCallback(auth_result, error, handle, auth_data);
                         }];
   return MakeFuture(&futures, handle);
 }
@@ -380,12 +385,12 @@ Future<SignInResult> User::ReauthenticateAndRetrieveData_DEPRECATED(const Creden
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = auth_data_->future_impl.SafeAlloc<SignInResult>(
       kUserFn_ReauthenticateAndRetrieveData_DEPRECATED, SignInResult());
-
-  [UserImpl(auth_data_)
+  AuthData *auth_data = auth_data_;
+  [UserImpl(auth_data)
       reauthenticateWithCredential:CredentialFromImpl(credential.impl_)
                         completion:^(FIRAuthDataResult *_Nullable auth_result,
                                      NSError *_Nullable error) {
-                          SignInResultCallback(auth_result, error, handle, auth_data_);
+                          SignInResultCallback(auth_result, error, handle, auth_data);
                         }];
   return MakeFuture(&futures, handle);
 }
@@ -407,9 +412,10 @@ Future<void> User::Delete() {
   }
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_Delete);
-  [UserImpl(auth_data_) deleteWithCompletion:^(NSError *_Nullable error) {
+  AuthData *auth_data = auth_data_;
+  [UserImpl(auth_data) deleteWithCompletion:^(NSError *_Nullable error) {
     if (!error) {
-      UpdateCurrentUser(auth_data_);
+      UpdateCurrentUser(auth_data);
       futures.Complete(handle, kAuthErrorNone, "");
     } else {
       futures.Complete(handle, AuthErrorFromNSError(error),

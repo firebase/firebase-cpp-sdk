@@ -29,7 +29,7 @@
 #include "firebase/util.h"
 #include "firebase/variant.h"
 #include "firebase_test_framework.h"  // NOLINT
-#define ENABLE_OAUTH_TESTS 1
+
 // The TO_STRING macro is useful for command line defined strings as the quotes
 // get stripped.
 #define TO_STRING_EXPAND(X) #X
