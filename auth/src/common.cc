@@ -17,6 +17,7 @@
 #include "auth/src/common.h"
 
 #include <string.h>
+
 #include "app/src/util.h"
 
 namespace firebase {

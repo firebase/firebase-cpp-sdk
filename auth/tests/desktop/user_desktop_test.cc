@@ -276,7 +276,7 @@ class UserDesktopTest : public ::testing::Test {
     id_token_listener.ExpectChanges(2);
     auth_state_listener.ExpectChanges(2);
 
-    Future<User> future = firebase_auth_->SignInAnonymously_DEPRECATED();
+    Future<User*> future = firebase_auth_->SignInAnonymously_DEPRECATED();
     while (future.status() == kFutureStatusPending) {
     }
     firebase_user_ = firebase_auth_->current_user_DEPRECATED();
@@ -691,7 +691,7 @@ TEST_F(UserDesktopTest, TestLinkWithCredentialAndRetrieveData) {
   const Credential credential =
       GoogleAuthProvider::GetCredential("fake_id_token", "");
   const SignInResult sign_in_result = WaitForFuture(
-      firebase_user_->LinkAndRetrieveDataWithCredential(credential));
+      firebase_user_->LinkAndRetrieveDataWithCredential_DEPRECATED(credential));
   EXPECT_FALSE(sign_in_result.user->is_anonymous());
   VerifyUser(*sign_in_result.user);
 }
