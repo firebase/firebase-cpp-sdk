@@ -1448,6 +1448,7 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
   // Save the old provider ID list so we can make sure it's the same once
   // it's loaded again.
   std::vector<std::string> prev_provider_data_ids;
+  LogError("about to query provider data size\n");
   LogError("user.provider_data().size(): %d\n", user.provider_data().size());
   for (int i = 0; i < user.provider_data().size(); i++) {
     prev_provider_data_ids.push_back(user.provider_data()[i].provider_id());

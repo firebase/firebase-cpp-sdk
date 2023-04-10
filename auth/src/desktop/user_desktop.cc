@@ -1212,7 +1212,7 @@ std::vector<UserInfoInterface> User::provider_data() const {
       user_info_impl.photo_url = deprecated_provider_data[i]->photo_url();
       user_info_impl.provider_id = deprecated_provider_data[i]->provider_id();
       user_info_impl.phone_number = deprecated_provider_data[i]->phone_number();
-      provider_data[i] = UserInfoInterfaceImpl(user_info_impl);
+      provider_data.push_back(UserInfoInterfaceImpl(user_info_impl));
     }
   }
   printf("DEDB provider_data return length: %d\n", provider_data.size());
