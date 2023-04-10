@@ -62,7 +62,7 @@ class UserInfoInterface {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  virtual std::string uid() const = 0;
+  virtual std::string uid() const { return std::string(); }
 
   /// Gets email associated with the user, if any.
   /// <SWIG>
@@ -72,7 +72,7 @@ class UserInfoInterface {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  virtual std::string email() const = 0;
+  virtual std::string email() const { return std::string(); }
 
   /// Gets the display name associated with the user, if any.
   /// <SWIG>
@@ -82,7 +82,7 @@ class UserInfoInterface {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  virtual std::string display_name() const = 0;
+  virtual std::string display_name() const { return std::string(); }
 
   /// Gets the photo url associated with the user, if any.
   /// <SWIG>
@@ -92,7 +92,7 @@ class UserInfoInterface {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  virtual std::string photo_url() const = 0;
+  virtual std::string photo_url() const { return std::string(); }
 
   /// Gets the provider ID for the user (For example, "Facebook").
   /// <SWIG>
@@ -102,10 +102,10 @@ class UserInfoInterface {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  virtual std::string provider_id() const = 0;
+  virtual std::string provider_id() const { return std::string(); }
 
   /// Gets the phone number for the user, in E.164 format.
-  virtual std::string phone_number() const = 0;
+  virtual std::string phone_number() const { return std::string(); }
 };
 
 /// @brief Additional user data returned from an identity provider.

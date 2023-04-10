@@ -1440,6 +1440,7 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
   WaitForCompletion(
       auth_->CreateUserWithEmailAndPassword(email.c_str(), kTestPassword),
       "CreateUserWithEmailAndPassword");
+  LogError("User creation returned\n");
   EXPECT_TRUE(auth_->current_user().is_valid());
   EXPECT_FALSE(auth_->current_user().is_anonymous());
   firebase::auth::User user = auth_->current_user();
@@ -1447,9 +1448,11 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
   // Save the old provider ID list so we can make sure it's the same once
   // it's loaded again.
   std::vector<std::string> prev_provider_data_ids;
+  LogError("user.provider_data().size(): %d\n", user.provider_data().size());
   for (int i = 0; i < user.provider_data().size(); i++) {
     prev_provider_data_ids.push_back(user.provider_data()[i].provider_id());
   }
+  LogError("prev_provider_data_ids.size(): %d\n", prev_provider_data_ids.size());
   Terminate();
   ProcessEvents(2000);
   Initialize();
@@ -1460,9 +1463,11 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
   EXPECT_EQ(auth_->current_user().provider_id(), prev_provider_id);
   user = auth_->current_user();
   std::vector<std::string> loaded_provider_data_ids;
+  LogError("user.provider_data().size(): %d\n", user.provider_data().size());
   for (int i = 0; i < user.provider_data().size(); i++) {
     loaded_provider_data_ids.push_back(user.provider_data()[i].provider_id());
   }
+  LogError("loaded_provider_data_ids.size(): %d\n", loaded_provider_data_ids.size());
   EXPECT_TRUE(loaded_provider_data_ids == prev_provider_data_ids);
 
   // Cleanup, ensure we are signed in as the user so we can delete it.

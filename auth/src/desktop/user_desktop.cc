@@ -1195,11 +1195,16 @@ Future<SignInResult> User::ReauthenticateWithProvider_DEPRECATED(
 }
 
 std::vector<UserInfoInterface> User::provider_data() const {
+  printf("DEDB provider_data\n");
   std::vector<UserInfoInterface> provider_data;
   if (is_valid()) {
+    printf("DEDB is_valid\n");
     std::vector<UserInfoInterface*> deprecated_provider_data =
         provider_data_DEPRECATED();
+    printf("DEDB deprecated_provider_data size: %d\n", deprecated_provider_data.size());
+    provider_data.reserve(deprecated_provider_data.size());
     for (size_t i = 0; i < deprecated_provider_data.size(); ++i) {
+      printf("DEDB copying provider_data\n");
       UserInfoImpl user_info_impl;
       user_info_impl.uid = deprecated_provider_data[i]->uid();
       user_info_impl.email = deprecated_provider_data[i]->email();
@@ -1210,6 +1215,7 @@ std::vector<UserInfoInterface> User::provider_data() const {
       provider_data[i] = UserInfoInterfaceImpl(user_info_impl);
     }
   }
+  printf("DEDB provider_data return length: %d\n", provider_data.size());
   return provider_data;
 }
 
