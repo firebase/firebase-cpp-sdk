@@ -68,7 +68,7 @@ void VerifyProviderData(const User& user) {
   if (provider_data.empty()) {
     return;  // Avoid crashing on vector out-of-bounds access below
   }
-  EXPECT_EQ("fake_uid", provider_data[0]->uid());
+  EXPECT_EQ("fake_uid", provider_data[0].uid());
   EXPECT_EQ("fake_email@example.com", provider_data[0].email());
   EXPECT_EQ("fake_display_name", provider_data[0].display_name());
   EXPECT_EQ("fake_photo_url", provider_data[0].photo_url());
