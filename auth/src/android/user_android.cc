@@ -533,27 +533,6 @@ Future<User*> User::LinkWithCredential_DEPRECATED(
   return MakeFuture(&futures, handle);
 }
 
-Future<AuthResult> User::LinkAndRetrieveDataWithCredential(
-    const Credential& credential) {
-  if (!ValidUser(auth_data_)) {
-    return Future<AuthResult>();
-  }
-  ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
-  const auto handle =
-      futures.SafeAlloc<AuthResult>(kUserFn_LinkAndRetrieveDataWithCredential);
-  JNIEnv* env = Env(auth_data_);
-
-  jobject pending_result = env->CallObjectMethod(
-      UserImpl(auth_data_), user::GetMethodId(user::kLinkWithCredential),
-      CredentialFromImpl(credential.impl_));
-
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_, ReadAuthResult);
-    env->DeleteLocalRef(pending_result);
-  }
-  return MakeFuture(&futures, handle);
-}
-
 Future<SignInResult> User::LinkAndRetrieveDataWithCredential_DEPRECATED(
     const Credential& credential) {
   if (!ValidUser(auth_data_)) {

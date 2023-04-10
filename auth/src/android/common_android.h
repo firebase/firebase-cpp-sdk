@@ -58,8 +58,8 @@ METHOD_LOOKUP_DECLARATION(phonecredential, PHONE_CREDENTIAL_METHODS)
 //
 // This is used to marshall and return Credential objects from the Android SDK
 // AuthResult objects. That is, credentials that aren't created by our
-// users' applications, but creaed to represent Credentials created internally
-// by the Anrdoid SDK.
+// users' applications, but those created to represent Credentials created
+// internally by the Anrdoid SDK.
 class InternalAuthResultProvider {
  public:
   static Credential GetCredential(jobject credential);

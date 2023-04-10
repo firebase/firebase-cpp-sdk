@@ -485,11 +485,7 @@ void ReadAuthResult(jobject result, FutureCallbackData<AuthResult>* d,
     //       Auth class has not been updated at this point.
     SetImplFromLocalRef(env, j_user, &d->auth_data->user_impl);
 
-    // If additional user info exists, assume that the returned data is of
-    // type SignInResult (as opposed to just User*).
     AuthResult* auth_result = static_cast<AuthResult*>(void_data);
-
-    // Return a pointer to the user and gather the additional data.
     auth_result->user = d->auth_data->auth->current_user();
 
     // Grab the additional user info too.
@@ -497,19 +493,17 @@ void ReadAuthResult(jobject result, FutureCallbackData<AuthResult>* d,
     const jobject j_additional_user_info = env->CallObjectMethod(
         result, authresult::GetMethodId(authresult::kGetAdditionalUserInfo));
     util::CheckAndClearJniExceptions(env);
-
     ReadAdditionalUserInfo(env, j_additional_user_info,
                            &auth_result->additional_user_info);
-
     env->DeleteLocalRef(j_additional_user_info);
 
+    // Construct the AuthResult.credential, if it exists.
     const jobject j_credential = env->CallObjectMethod(
         result, authresult::GetMethodId(authresult::kGetCredential));
     util::CheckAndClearJniExceptions(env);
     if (j_credential != nullptr) {
-      // Return a pointer to the user and gather the additional data.
-      // Get credential converts the local reference to a global one, so no
-      // need to delete it here.
+      // This call converts the local reference to a global one, so no
+      // need to delete the local reference here.
       auth_result->credential =
           InternalAuthResultProvider::GetCredential(j_credential);
     }
@@ -552,8 +546,6 @@ void ReadSignInResult(jobject result, FutureCallbackData<SignInResult>* d,
   }
 }
 
-// The `ReadFutureResultFn` for `SignIn` APIs.
-// Reads the `AuthResult` in `result` and initialize the `User*` in `void_data`.
 void ReadUserFromAuthResult(jobject result, FutureCallbackData<User>* d,
                             bool success, void* void_data) {
   JNIEnv* env = Env(d->auth_data);
@@ -572,7 +564,6 @@ void ReadUserFromAuthResult(jobject result, FutureCallbackData<User>* d,
     SetImplFromLocalRef(env, j_user, &d->auth_data->user_impl);
   }
 
-  // Return a pointer to the current user, if the current user is valid.
   User* user_ptr = static_cast<User*>(void_data);
   *user_ptr = d->auth_data->auth->current_user();
 }

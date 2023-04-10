@@ -237,15 +237,8 @@ class User : public UserInfoInterface {
   ///
   /// Gets the third party profile data associated with this user returned by
   /// the authentication server, if any.
-  /// <SWIG>
-  /// @xmlonly
-  /// <csproperty name="ProviderData">
-  /// Gets the third party profile data associated with this user returned by
-  /// the authentication server, if any.
-  /// </csproperty>
-  /// @endxmlonly
-  /// </SWIG>
-  const std::vector<UserInfoInterface*>& provider_data_DEPRECATED() const;
+  FIREBASE_DEPRECATED const std::vector<UserInfoInterface*>&
+  provider_data_DEPRECATED() const;
 
   /// Sets the email address for the user.
   ///
@@ -364,8 +357,8 @@ class User : public UserInfoInterface {
   /// @note: This operation is supported only on iOS, tvOS and Android
   /// platforms. On other platforms this method will return a Future with a
   /// preset error code: kAuthErrorUnimplemented.
-  Future<SignInResult> ReauthenticateWithProvider_DEPRECATED(
-      FederatedAuthProvider* provider) const;
+  FIREBASE_DEPRECATED Future<SignInResult>
+  ReauthenticateWithProvider_DEPRECATED(FederatedAuthProvider* provider) const;
 
   /// Initiates email verification for the user.
   Future<void> SendEmailVerification();
@@ -379,8 +372,18 @@ class User : public UserInfoInterface {
   /// Get results of the most recent call to @ref UpdateUserProfile.
   Future<void> UpdateUserProfileLastResult() const;
 
-  /// Convenience function for @ref ReauthenticateAndRetrieveData that discards
-  /// the returned @ref AdditionalUserInfo in @ref SignInResult.
+  /// Links the user with the given 3rd party credentials.
+  ///
+  /// For example, a Facebook login access token, a Twitter token/token-secret
+  /// pair.
+  ///
+  /// Status will be an error if the token is invalid, expired, or otherwise
+  /// not accepted by the server as well as if the given 3rd party
+  /// user id is already linked with another user account or if the current user
+  /// is already linked with another id from the same provider.
+  ///
+  /// Data from the Identity Provider used to sign-in is returned in the
+  /// @ref AdditionalUserInfo inside @ref AuthResult.
   Future<AuthResult> LinkWithCredential(const Credential& credential);
 
   /// Get results of the most recent call to @ref LinkWithCredential.
@@ -400,28 +403,8 @@ class User : public UserInfoInterface {
   FIREBASE_DEPRECATED Future<User*> LinkWithCredentialLastResult_DEPRECATED()
       const;
 
-  /// Links the user with the given 3rd party credentials.
-  ///
-  /// For example, a Facebook login access token, a Twitter token/token-secret
-  /// pair.
-  /// Status will be an error if the token is invalid, expired, or otherwise
-  /// not accepted by the server as well as if the given 3rd party
-  /// user id is already linked with another user account or if the current user
-  /// is already linked with another id from the same provider.
-  ///
-  /// Data from the Identity Provider used to sign-in is returned in the
-  /// @ref AdditionalUserInfo inside @ref SignInResult.
-  Future<AuthResult> LinkAndRetrieveDataWithCredential(
-      const Credential& credential);
-
-  /// @deprecated
-  ///
-  /// Get results of the most recent call to
-  /// @ref LinkAndRetrieveDataWithCredential.
-  Future<AuthResult> LinkAndRetrieveDataWithCredentialLastResult() const;
-
   /// @deprecated This is a deprecated method. Please use
-  /// @ref LinkAndRetreiveDataWithCredential(const Credential&) instead.
+  /// @ref LinkWithCredential(const Credential&) instead.
   ///
   /// Links the user with the given 3rd party credentials.
   ///
@@ -434,15 +417,15 @@ class User : public UserInfoInterface {
   ///
   /// Data from the Identity Provider used to sign-in is returned in the
   /// @ref AdditionalUserInfo inside @ref SignInResult.
-  Future<SignInResult> LinkAndRetrieveDataWithCredential_DEPRECATED(
-      const Credential& credential);
+  FIREBASE_DEPRECATED Future<SignInResult>
+  LinkAndRetrieveDataWithCredential_DEPRECATED(const Credential& credential);
 
   /// @deprecated
   ///
   /// Get results of the most recent call to
   /// @ref LinkAndRetrieveDataWithCredential_DEPRECATED.
-  Future<SignInResult> LinkAndRetrieveDataWithCredentialLastResult_DEPRECATED()
-      const;
+  FIREBASE_DEPRECATED Future<SignInResult>
+  LinkAndRetrieveDataWithCredentialLastResult_DEPRECATED() const;
 
   ///
   /// @param[in] provider Contains information on the auth provider to link
@@ -468,7 +451,7 @@ class User : public UserInfoInterface {
   /// @note: This operation is supported only on iOS, tvOS and Android
   /// platforms. On other platforms this method will return a Future with a
   /// preset error code: kAuthErrorUnimplemented.
-  Future<SignInResult> LinkWithProvider_DEPRECATED(
+  FIREBASE_DEPRECATED Future<SignInResult> LinkWithProvider_DEPRECATED(
       FederatedAuthProvider* provider) const;
 
   /// Unlinks the current user from the provider specified.
@@ -483,12 +466,12 @@ class User : public UserInfoInterface {
   ///
   /// Unlinks the current user from the provider specified.
   /// Status will be an error if the user is not linked to the given provider.
-  Future<User*> Unlink_DEPRECATED(const char* provider);
+  FIREBASE_DEPRECATED Future<User*> Unlink_DEPRECATED(const char* provider);
 
   /// @deprecated
   ///
   /// Get results of the most recent call to @ref Unlink_DEPRECATED.
-  Future<User*> UnlinkLastResult_DEPRECATED() const;
+  FIREBASE_DEPRECATED Future<User*> UnlinkLastResult_DEPRECATED() const;
 
   /// Updates the currently linked phone number on the user.
   /// This is useful when a user wants to change their phone number. It is a
@@ -510,14 +493,15 @@ class User : public UserInfoInterface {
   /// shortcut to calling Unlink_DEPRECATED(phone_credential.provider().c_str())
   /// and then LinkWithCredential_DEPRECATED(phone_credential). `credential`
   /// must have been created with @ref PhoneAuthProvider.
-  Future<User*> UpdatePhoneNumberCredential_DEPRECATED(
+  FIREBASE_DEPRECATED Future<User*> UpdatePhoneNumberCredential_DEPRECATED(
       const Credential& credential);
 
   /// @deprecated
   ////
   /// Get results of the most recent call to @ref
   /// UpdatePhoneNumberCredential_DEPRECATED.
-  Future<User*> UpdatePhoneNumberCredentialLastResult_DEPRECATED() const;
+  FIREBASE_DEPRECATED Future<User*>
+  UpdatePhoneNumberCredentialLastResult_DEPRECATED() const;
 
   /// Refreshes the data for this user.
   ///

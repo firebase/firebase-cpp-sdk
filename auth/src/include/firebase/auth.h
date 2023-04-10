@@ -46,6 +46,7 @@ class AuthStateListener;
 class IdTokenListener;
 class PhoneAuthProvider;
 struct AuthCompletionHandle;
+struct AuthResultCompletionHandle;
 class FederatedAuthProvider;
 class FederatedOAuthProvider;
 struct SignInResult;
@@ -427,7 +428,7 @@ class Auth {
   /// Get results of the most recent call to @ref SignInAnonymously.
   Future<AuthResult> SignInAnonymouslyLastResult() const;
 
-  /// @deprecated This is a deprecated method. Please use @SignInAnonymously
+  /// @deprecated This is a deprecated method. Please use @ref SignInAnonymously
   /// instead.
   FIREBASE_DEPRECATED Future<User*> SignInAnonymously_DEPRECATED();
 
@@ -678,7 +679,7 @@ class Auth {
                                            void* out_future);
 
   // Provides access to the current user's uid, equivalent to calling
-  // this->current_user_DEPRECATED()->uid(). Returns the current user's uid or
+  // this->current_user().uid(). Returns the current user's uid or
   // an empty string, if there isn't one. The out pointer is expected to point
   // to an instance of std::string.
   static bool GetCurrentUserUidForRegistry(App* app, void* /*unused*/,
@@ -847,6 +848,8 @@ class FederatedAuthProvider {
 
     /// @brief Application sign-in handler.
     ///
+    /// Invoked in SignIn flows that use @ref Auth::SignInWithProvider.
+    ///
     /// The application must implement this method to handle federated auth user
     /// sign-in requests on non-mobile systems.
     ///
@@ -859,12 +862,36 @@ class FederatedAuthProvider {
     /// @see Auth#SignInWithProvider
     /// @see SignInComplete
     virtual void OnSignIn(const T& provider_data,
-                          AuthCompletionHandle* completion_handle) = 0;
+                          AuthResultCompletionHandle* completion_handle) {}
 
-    /// Completion for OnSignIn events.
+    /// @deprecated Invoked in SignIn flows that use @ref
+    /// Auth::SignInWithProvider_DEPRECATED. Use @ref Auth::SignInWithProvider
+    /// instead.
+    ///
+    /// @brief Application sign-in handler.
+    ///
+    /// Invoked in SignIn flows that use @ref
+    /// Auth::SignInWithProvider_DEPRECATED.
+    ///
+    /// The application must implement this method to handle federated auth user
+    /// sign-in requests on non-mobile systems.
+    ///
+    /// @param[in] provider_data Contains information on the provider to
+    /// authenticate with.
+    /// @param[in] completion_handle Internal data pertaining to this operation
+    /// which must be passed to SignInComplete once the handler has completed
+    /// the sign in operation.
+    ///
+    /// @see Auth#SignInWithProvider_DEPRECATED
+    /// @see SignInComplete_DEPRECATED
+    FIREBASE_DEPRECATED virtual void OnSignIn(
+        const T& provider_data, AuthCompletionHandle* completion_handle) {}
+
+    /// Completion for OnSignIn events started by a call to @ref
+    /// Auth::SignInWithProvider.
     ///
     /// Invoke this method once the corresponding OnSignIn has been fulfilled.
-    /// This method will trigger the associated Future<SignInResult> previously
+    /// This method will trigger the associated Future<AuthResult> previously
     /// returned from the Auth::SignInWithProvider method.
     ///
     /// @param[in] completion_handle The handle provided to the application's
@@ -878,11 +905,38 @@ class FederatedAuthProvider {
     ///
     /// @see OnSignIn
     /// @see Auth::SignInWithProvider
-    void SignInComplete(AuthCompletionHandle* completion_handle,
+    void SignInComplete(AuthResultCompletionHandle* completion_handle,
                         const AuthenticatedUserData& user_data,
                         AuthError auth_error, const char* error_message);
 
+    /// @deprecated
+    ///
+    /// Completion for OnSignIn events started by a call to @ref
+    /// Auth::SignInWithProvider_DEPRECATED.
+    ///
+    /// Invoke this method once the corresponding OnSignIn has been fulfilled.
+    /// This method will trigger the associated Future<SignInResult> previously
+    /// returned from the Auth::SignInWithProvider method.
+    ///
+    /// @param[in] completion_handle The handle provided to the application's
+    /// FederatedAuthProvider::Handler::OnSignIn_DEPRECATED method.
+    /// @param[in] user_data The application's resulting Firebase user
+    /// values following the authorization request.
+    /// @param[in] auth_error The enumerated status code of the authorization
+    /// request.
+    /// @param[in] error_message An optional error message to be set in the
+    ///  Future.
+    ///
+    /// @see OnSignIn
+    /// @see Auth::SignInWithProvider
+    FIREBASE_DEPRECATED void SignInComplete(
+        AuthCompletionHandle* completion_handle,
+        const AuthenticatedUserData& user_data, AuthError auth_error,
+        const char* error_message);
+
     /// @brief Application user account link handler.
+    ///
+    /// Invoked in Link flows that use @ref User::LinkWithProvider.
     ///
     /// The application must implement this method to handle federated auth user
     /// link requests on non-mobile systems.
@@ -895,12 +949,35 @@ class FederatedAuthProvider {
     ///
     /// @see User#LinkWithProvider
     virtual void OnLink(const T& provider_data,
-                        AuthCompletionHandle* completion_handle) = 0;
+                        AuthResultCompletionHandle* completion_handle) {}
+
+    /// @deprecated Invoked in Link flows that use @ref
+    /// User::LinkWithProvider_DEPRECATED. Use @ref User::LinkWithProvider
+    /// instead.
+    ///
+    /// @brief Application user account link handler.
+    ///
+    /// Invoked in Link flows that use @ref User::LinkWithProvider_DEPRECATED.
+    ///
+    /// @brief Application user account link handler.
+    ///
+    /// The application must implement this method to handle federated auth user
+    /// link requests on non-mobile systems.
+    ///
+    /// @param[in] provider_data Contains information on the provider to
+    /// authenticate with.
+    /// @param[in] completion_handle Internal data pertaining to this operation
+    /// which must be passed to LinkComplete once the handler has completed the
+    /// user link operation.
+    ///
+    /// @see User#LinkWithProvider_DEPRECATED
+    FIREBASE_DEPRECATED virtual void OnLink(
+        const T& provider_data, AuthCompletionHandle* completion_handle) {}
 
     /// Completion for non-mobile user authorization handlers.
     ///
-    /// Invoke this method once the OnLine process has been fulfilled. This
-    /// method will trigger the associated Future<SignInResult> previously
+    /// Invoke this method once the OnLink process has been fulfilled. This
+    /// method will trigger the associated Future<AuthResult> previously
     /// returned from an invocation of User::LinkWithProvider.
     ///
     /// @param[in] completion_handle The handle provided to the
@@ -914,9 +991,34 @@ class FederatedAuthProvider {
     ///
     /// @see OnLink
     /// @see User#LinkWithProvider
-    void LinkComplete(AuthCompletionHandle* completion_handle,
+    void LinkComplete(AuthResultCompletionHandle* completion_handle,
                       const AuthenticatedUserData& user_data,
                       AuthError auth_error, const char* error_message);
+
+    /// @deprecated
+    ///
+    /// Completion for OnLink events started by a call to @ref
+    /// User::LinkWithProvider_DEPRECATED.
+    ///
+    /// Invoke this method once the OnLink process has been fulfilled. This
+    /// method will trigger the associated Future<SignInResult> previously
+    /// returned from an invocation of User::LinkWithProvider_DEPRECATED.
+    ///
+    /// @param[in] completion_handle The handle provided to the
+    /// application's FederatedAuthProvider::Handler::OnLink method.
+    /// @param[in] user_data The application's resulting Firebase user
+    /// values following the user link request.
+    /// @param[in] auth_error The enumerated status code of the user link
+    /// request.
+    /// @param[in] error_message An optional error message to be set in the
+    ///  Future.
+    ///
+    /// @see OnLink
+    /// @see User#LinkWithProvider_DEPRECATED
+    FIREBASE_DEPRECATED void LinkComplete(
+        AuthCompletionHandle* completion_handle,
+        const AuthenticatedUserData& user_data, AuthError auth_error,
+        const char* error_message);
 
     /// @brief Application user re-authentication handler.
     ///
@@ -930,13 +1032,33 @@ class FederatedAuthProvider {
     /// completed the reauthentication operation.
     ///
     /// @see User#ReauthenticateWithProviderComplete
-    virtual void OnReauthenticate(const T& provider_data,
-                                  AuthCompletionHandle* completion_handle) = 0;
+    virtual void OnReauthenticate(
+        const T& provider_data, AuthResultCompletionHandle* completion_handle) {
+    }
+
+    /// @deprecated Invoked in Reauthenticate flows that use @ref
+    /// User::ReauthenticateWithProvider_DEPRECATED. Use @ref
+    /// User::ReauthenticateWithProvider instead.
+    ///
+    /// @brief Application user re-authentication handler.
+    ///
+    /// The application must implement this method to handle federated auth user
+    /// re-authentication requests on non-mobile systems.
+    ///
+    /// @param[in] provider_data Contains information on the provider to
+    /// authenticate with.
+    /// @param[in] completion_handle Internal data pertaining to this operation
+    /// which must be passed to ReauthenticateComplete_DEPREACTED once the
+    /// handler has completed the reauthentication operation.
+    ///
+    /// @see User#ReauthenticateWithProviderComplete
+    FIREBASE_DEPRECATED virtual void OnReauthenticate(
+        const T& provider_data, AuthCompletionHandle* completion_handle) {}
 
     /// Completion for non-mobile user authorization handlers.
     ///
     /// Invoke this method once the OnReauthenticate process has been
-    /// fulfilled. This method will trigger the associated Future<SignInResult>
+    /// fulfilled. This method will trigger the associated Future<AuthResult>
     /// previously returned from an invocation of
     /// User::ReauthenticateWithProvider.
     ///
@@ -951,10 +1073,33 @@ class FederatedAuthProvider {
     ///
     /// @see OnReauthenticate
     /// @see User#ReuthenticateWithProvider
-    void ReauthenticateComplete(AuthCompletionHandle* completion_handle,
+    void ReauthenticateComplete(AuthResultCompletionHandle* completion_handle,
                                 const AuthenticatedUserData& user_data,
                                 AuthError auth_error,
                                 const char* error_message);
+
+    /// Completion for non-mobile user authorization handlers.
+    ///
+    /// Invoke this method once the OnReauthenticate process has been
+    /// fulfilled. This method will trigger the associated Future<SignInResult>
+    /// previously returned from an invocation of
+    /// User::ReauthenticateWithProvider_DEPRECATED.
+    ///
+    /// @param[in] completion_handle The handle provided to the application's
+    /// FederatedAuthProvider::Handler::OnReauthenticate method.
+    /// @param[in] user_data The application's resulting Firebase user
+    /// values following the user re-authentication request.
+    /// @param[in] auth_error The enumerated status code of the reauthentication
+    /// request.
+    /// @param[in] error_message An optional error message to be set in the
+    ///  Future.
+    ///
+    /// @see OnReauthenticate
+    /// @see User#ReuthenticateWithProvider
+    FIREBASE_DEPRECATED void ReauthenticateComplete(
+        AuthCompletionHandle* completion_handle,
+        const AuthenticatedUserData& user_data, AuthError auth_error,
+        const char* error_message);
   };
 #endif  // not SWIG
 #endif  // INTERNAL_EXPERIMENTAL
@@ -965,12 +1110,15 @@ class FederatedAuthProvider {
  private:
   friend class ::firebase::auth::Auth;
   friend class ::firebase::auth::User;
+
   virtual Future<AuthResult> SignIn(AuthData* auth_data) = 0;
   FIREBASE_DEPRECATED virtual Future<SignInResult> SignIn_DEPRECATED(
       AuthData* auth_data) = 0;
+
   virtual Future<AuthResult> Link(AuthData* auth_data) = 0;
   FIREBASE_DEPRECATED virtual Future<SignInResult> Link_DEPRECATED(
       AuthData* auth_data) = 0;
+
   virtual Future<AuthResult> Reauthenticate(AuthData* auth_data) = 0;
   FIREBASE_DEPRECATED virtual Future<SignInResult> Reauthenticate_DEPRECATED(
       AuthData* auth_data) = 0;
@@ -1057,13 +1205,14 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
   friend class ::firebase::auth::Auth;
 
   Future<AuthResult> SignIn(AuthData* auth_data) override;
-  Future<AuthResult> Link(AuthData* auth_data) override;
-  Future<AuthResult> Reauthenticate(AuthData* auth_data) override;
-
   FIREBASE_DEPRECATED Future<SignInResult> SignIn_DEPRECATED(
       AuthData* auth_data) override;
+
+  Future<AuthResult> Link(AuthData* auth_data) override;
   FIREBASE_DEPRECATED Future<SignInResult> Link_DEPRECATED(
       AuthData* auth_data) override;
+
+  Future<AuthResult> Reauthenticate(AuthData* auth_data) override;
   FIREBASE_DEPRECATED Future<SignInResult> Reauthenticate_DEPRECATED(
       AuthData* auth_data) override;
 

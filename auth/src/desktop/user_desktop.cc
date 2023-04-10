@@ -274,7 +274,7 @@ void PerformSetAccountInfoFlow(
   }
 }
 
-/// @deprecated Supports to older SignInResult and User* return types.
+/// @deprecated Supports older SignInResult and User* return types.
 template <typename ResultT>
 void PerformSetAccountInfoFlow_DEPRECATED(
     AuthDataHandle<ResultT, SetAccountInfoRequest>* const handle) {
@@ -503,7 +503,7 @@ void PerformReauthFlow(AuthDataHandle<FutureResultT, RequestT>* const handle) {
   }
 }
 
-/// @deprecated Supports to older SignInResult return type.
+/// @deprecated Supports older SignInResult return type.
 ///
 // Reauthenticates the current user and completes the promise contained within
 // the given handle (either successfully or with an error, if the backend call
@@ -569,7 +569,7 @@ Future<ResultT> DoReauthenticate(Promise<ResultT> promise,
   return promise.LastResult();
 }
 
-/// @deprecated Supports to older SignInResult return type.
+/// @deprecated Supports older SignInResult return type.
 template <typename ResultT>
 Future<ResultT> DoReauthenticate_DEPRECATED(Promise<ResultT> promise,
                                             AuthData* const auth_data,
@@ -1095,17 +1095,6 @@ Future<User*> User::LinkWithCredential_DEPRECATED(
                                      credential.impl_);
 }
 
-Future<AuthResult> User::LinkAndRetrieveDataWithCredential(
-    const Credential& credential) {
-  Promise<AuthResult> promise(&auth_data_->future_impl,
-                              kUserFn_LinkAndRetrieveDataWithCredential);
-  if (!ValidateCurrentUser(&promise, auth_data_)) {
-    return promise.LastResult();
-  }
-  return DoLinkCredential(promise, auth_data_, credential.provider(),
-                          credential.impl_);
-}
-
 Future<SignInResult> User::LinkAndRetrieveDataWithCredential_DEPRECATED(
     const Credential& credential) {
   Promise<SignInResult> promise(
@@ -1180,8 +1169,6 @@ Future<SignInResult> User::ReauthenticateAndRetrieveData_DEPRECATED(
 Future<AuthResult> User::ReauthenticateWithProvider(
     FederatedAuthProvider* provider) const {
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
-  // TODO(b/139363200)
-  // return provider->Reauthenticate(auth_data_);
   SafeFutureHandle<AuthResult> handle =
       auth_data_->future_impl.SafeAlloc<AuthResult>(
           kUserFn_ReauthenticateWithProvider);
@@ -1220,7 +1207,6 @@ std::vector<UserInfoInterface> User::provider_data() const {
       user_info_impl.photo_url = deprecated_provider_data[i]->photo_url();
       user_info_impl.provider_id = deprecated_provider_data[i]->provider_id();
       user_info_impl.phone_number = deprecated_provider_data[i]->phone_number();
-
       provider_data[i] = UserInfoInterfaceImpl(user_info_impl);
     }
   }
@@ -1282,8 +1268,8 @@ std::string User::provider_id() const {
   return user_view.IsValid() ? user_view->provider_id : std::string();
 }
 
-Future<User> User::UpdatePhoneNumberCredential_DEPRECATED(
-    const Credential& credential) {
+Future<User> User::UpdatePhoneNumberCredential(
+    const PhoneAuthCredential& credential) {
   Promise<User> promise(&auth_data_->future_impl,
                         kUserFn_UpdatePhoneNumberCredential);
   if (!ValidateCurrentUser(&promise, auth_data_)) {

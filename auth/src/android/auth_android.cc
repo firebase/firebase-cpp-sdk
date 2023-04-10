@@ -618,8 +618,8 @@ Future<User*> Auth::SignInWithEmailAndPassword_DEPRECATED(
                      kErrorEmptyEmailPassword);
     return MakeFuture(&futures, handle);
   }
-  JNIEnv* env = Env(auth_data_);
 
+  JNIEnv* env = Env(auth_data_);
   jstring j_email = env->NewStringUTF(email);
   jstring j_password = env->NewStringUTF(password);
   jobject pending_result = env->CallObjectMethod(

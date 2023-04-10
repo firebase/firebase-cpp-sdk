@@ -136,7 +136,7 @@ class FirebaseAuthTest : public FirebaseTest {
                          const char* fn,
                          int expected_error = firebase::auth::kAuthErrorNone);
 
-  // Custom WaitForCompletions which check if user's Provider ID matches
+  // Custom WaitForCompletions which checks if user's Provider ID matches
   // afterwards.
   bool WaitForCompletion(firebase::Future<firebase::auth::AuthResult> future,
                          const char* fn, const std::string& provider_id);
@@ -271,6 +271,8 @@ bool FirebaseAuthTest::WaitForCompletion(
       if (future.result() != nullptr) {
         EXPECT_TRUE(future.result()->user.is_valid());
         EXPECT_TRUE(auth_->current_user().is_valid());
+        EXPECT_EQ(future.result()->user.uid(), auth_->current_user().uid())
+            << "User returned by Future doesn't match User in Auth";
         succeeded = future.result()->user.is_valid() &&
                     auth_->current_user().is_valid();
       }
@@ -306,6 +308,8 @@ bool FirebaseAuthTest::WaitForCompletion(
     const firebase::auth::AuthResult* result_ptr = future.result();
     EXPECT_TRUE(result_ptr->user.is_valid());
     EXPECT_EQ(result_ptr->additional_user_info.provider_id, provider_id);
+    EXPECT_EQ(result_ptr->user.uid(), auth_->current_user().uid());
+    EXPECT_TRUE(auth_->current_user().is_valid());
   }
   return succeeded;
 }
@@ -623,7 +627,7 @@ TEST_F(FirebaseAuthTest, TestCopyUser) {
   if (!auth_->current_user().is_valid()) return;
 
   EXPECT_TRUE(auth_->current_user().is_anonymous());
-  EXPECT_TRUE(auth_->current_user().uid().size() != 0);
+  EXPECT_NE(auth_->current_user().uid().size(), 0);
 
   // Copy Constructor
   firebase::auth::User copy_of_user(auth_->current_user());
@@ -801,12 +805,6 @@ TEST_F(FirebaseAuthTest, TestOperationsOnInvalidUser) {
   WaitForCompletionOrInvalidStatus(auth_result_future, "LinkWithCredential");
   EXPECT_NE(auth_result_future.error(), firebase::auth::kAuthErrorNone);
 
-  auth_result_future =
-      invalid_user.LinkAndRetrieveDataWithCredential(email_cred);
-  WaitForCompletionOrInvalidStatus(auth_result_future,
-                                   "LinkAndRetrieveDataWithCredential");
-  EXPECT_NE(auth_result_future.error(), firebase::auth::kAuthErrorNone);
-
   auth_result_future = invalid_user.Unlink(email_cred.provider().c_str());
   WaitForCompletionOrInvalidStatus(auth_result_future, "Unlink_DEPRECATED");
   EXPECT_NE(user_ptr_future.error(), firebase::auth::kAuthErrorNone);
@@ -930,17 +928,15 @@ TEST_F(FirebaseAuthTest, TestUpdateEmailAndPassword_DEPRECATED) {
 }
 
 TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential) {
-  WaitForCompletion(auth_->SignInAnonymously_DEPRECATED(), "SignInAnonymously");
+  WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
   firebase::auth::User user = auth_->current_user();
   EXPECT_TRUE(user.is_valid());
   std::string email = GenerateEmailAddress();
   firebase::auth::Credential credential =
       firebase::auth::EmailAuthProvider::GetCredential(email.c_str(),
                                                        kTestPassword);
-  WaitForCompletion(user.LinkAndRetrieveDataWithCredential(credential),
-                    "LinkAndRetrieveDataWithCredential");
-  WaitForCompletion(user.Unlink_DEPRECATED(credential.provider().c_str()),
-                    "Unlink");
+  WaitForCompletion(user.LinkWithCredential(credential), "LinkWithCredential");
+  WaitForCompletion(user.Unlink(credential.provider().c_str()), "Unlink");
   SignOut();
   WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
   user = auth_->current_user();
@@ -949,7 +945,7 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential) {
   firebase::auth::Credential credential1 =
       firebase::auth::EmailAuthProvider::GetCredential(email1.c_str(),
                                                        kTestPassword);
-  WaitForCompletion(user.LinkWithCredential_DEPRECATED(credential1),
+  WaitForCompletion(user.LinkWithCredential(credential1),
                     "LinkWithCredential 1");
   user = auth_->current_user();
   EXPECT_TRUE(user.is_valid());
@@ -961,8 +957,7 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential) {
   WaitForCompletion(user.LinkWithCredential(credential2),
                     "LinkWithCredential 2",
                     firebase::auth::kAuthErrorProviderAlreadyLinked);
-  WaitForCompletion(user.Unlink_DEPRECATED(credential.provider().c_str()),
-                    "Unlink 2");
+  WaitForCompletion(user.Unlink(credential.provider().c_str()), "Unlink 2");
   DeleteUser();
 }
 

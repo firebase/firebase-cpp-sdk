@@ -209,22 +209,6 @@ Future<User *> User::LinkWithCredential_DEPRECATED(const Credential &credential)
   return MakeFuture(&futures, handle);
 }
 
-Future<AuthResult> User::LinkAndRetrieveDataWithCredential(const Credential &credential) {
-  if (!ValidUser(auth_data_)) {
-    return Future<AuthResult>();
-  }
-  ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
-  const auto handle = auth_data_->future_impl.SafeAlloc<AuthResult>(
-      kUserFn_LinkAndRetrieveDataWithCredential, AuthResult());
-  AuthData *auth_data = auth_data_;
-  [UserImpl(auth_data)
-      linkWithCredential:CredentialFromImpl(credential.impl_)
-              completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
-                AuthResultCallback(auth_result, error, handle, auth_data);
-              }];
-  return MakeFuture(&futures, handle);
-}
-
 Future<SignInResult> User::LinkAndRetrieveDataWithCredential_DEPRECATED(
     const Credential &credential) {
   if (!ValidUser(auth_data_)) {

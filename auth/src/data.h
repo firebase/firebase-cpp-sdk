@@ -60,7 +60,6 @@ enum AuthApiFunction {
   kUserFn_UpdateUserProfile,
   kUserFn_LinkWithCredential,
   kUserFn_LinkWithCredential_DEPRECATED,
-  kUserFn_LinkAndRetrieveDataWithCredential,
   kUserFn_LinkAndRetrieveDataWithCredential_DEPRECATED,
   kUserFn_LinkWithProvider,
   kUserFn_LinkWithProvider_DEPRECATED,

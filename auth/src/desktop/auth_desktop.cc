@@ -421,8 +421,6 @@ Future<User*> Auth::SignInWithCredential_DEPRECATED(
 
 Future<AuthResult> Auth::SignInWithProvider(FederatedAuthProvider* provider) {
   FIREBASE_ASSERT_RETURN(Future<AuthResult>(), provider);
-  // TODO(b/139363200)
-  // return provider->SignIn(auth_data_);
 
   SafeFutureHandle<AuthResult> handle =
       auth_data_->future_impl.SafeAlloc<AuthResult>(kAuthFn_SignInWithProvider);
