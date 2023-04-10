@@ -420,25 +420,6 @@ TEST_F(UserTest, TestLinkWithCredential) {
   Verify(result);
 }
 
-#if !defined(__APPLE__) && !defined(FIREBASE_WAIT_ASYNC_IN_TEST)
-TEST_F(UserTest, TestLinkAndRetrieveDataWithCredential) {
-  // Test link and retrieve data with credential. This calls the same native SDK
-  // function as LinkWithCredential_DEPRECATED().
-  firebase::testing::cppsdk::ConfigSet(
-      "{"
-      "  config:["
-      "    {fake:'FirebaseUser.linkWithCredential', futuregeneric:{ticker:1}},"
-      "    {fake:'FIRUser.linkAndRetrieveDataWithCredential:completion:',"
-      "     futuregeneric:{ticker:1}}"
-      "  ]"
-      "}");
-  Future<SignInResult> result =
-      firebase_user_->LinkAndRetrieveDataWithCredential(
-          EmailAuthProvider::GetCredential("i@email.com", "pw"));
-  Verify(result);
-}
-#endif  // !defined(__APPLE__) && !defined(FIREBASE_WAIT_ASYNC_IN_TEST)
-
 TEST_F(UserTest, TestUnlink) {
   const std::string config =
       std::string(
