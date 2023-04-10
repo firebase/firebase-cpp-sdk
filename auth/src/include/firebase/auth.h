@@ -312,7 +312,7 @@ class Auth {
   /// preset error code: kAuthErrorUnimplemented.
   Future<AuthResult> SignInWithProvider(FederatedAuthProvider* provider);
 
-  /// @deprecated This is a deprecated method. Please use @SignInWithProvider
+  /// @deprecated This is a deprecated method. Please use SignInWithProvider
   /// instead.
   ///
   /// Sign-in a user authenticated via a federated auth provider.
@@ -477,7 +477,7 @@ class Auth {
   Future<AuthResult> CreateUserWithEmailAndPasswordLastResult() const;
 
   /// @deprecated This is a deprecated method. Please use
-  /// @CreateUserWithEmailAndPassword instead.
+  /// CreateUserWithEmailAndPassword instead.
   ///
   /// Creates, and on success, logs in a user with the given email address
   /// and password.
