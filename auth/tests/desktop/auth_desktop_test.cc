@@ -63,7 +63,7 @@ const char* const API_KEY = "MY-FAKE-API-KEY";
 const int kWaitForLoadMaxTryout = 500;
 
 void VerifyProviderData(const User& user) {
-  const std::vector<UserInfoInterface*>& provider_data = user.provider_data();
+  const std::vector<UserInfoInterface>& provider_data = user.provider_data();
   EXPECT_EQ(1, provider_data.size());
   if (provider_data.empty()) {
     return;  // Avoid crashing on vector out-of-bounds access below

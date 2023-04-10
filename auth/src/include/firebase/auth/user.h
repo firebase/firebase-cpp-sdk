@@ -346,7 +346,7 @@ class User : public UserInfoInterface {
       FederatedAuthProvider* provider) const;
 
   /// @deprecated This is a deprecated method. Please use
-  /// @ref ReauthenticateWithProvider(FederatedAuthProvider*) instead.
+  /// ReauthenticateWithProvider(FederatedAuthProvider*) instead.
   ///
   /// @brief Re-authenticates the user with a federated auth provider.
   ///
@@ -439,7 +439,7 @@ class User : public UserInfoInterface {
   Future<AuthResult> LinkWithProvider(FederatedAuthProvider* provider) const;
 
   /// @deprecated This is a deprecated method. Please use
-  /// @ref LinkWithProvider(FederatedAuthProvider*) instead.
+  /// LinkWithProvider(FederatedAuthProvider*) instead.
   ///
   /// Links this user with a federated auth provider.
   ///

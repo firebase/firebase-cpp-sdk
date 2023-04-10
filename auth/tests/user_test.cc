@@ -254,7 +254,7 @@ TEST_F(UserTest, TestGetToken) {
 TEST_F(UserTest, TestGetProviderData) {
   // Test get provider data. Right now, most of the sign-in does not have extra
   // data coming from providers.
-  const std::vector<UserInfoInterface*>& provider =
+  const std::vector<UserInfoInterface>& provider =
       firebase_user_->provider_data();
   EXPECT_TRUE(provider.empty());
 }

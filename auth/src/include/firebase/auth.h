@@ -259,8 +259,8 @@ class Auth {
   /// Get results of the most recent call to @ref SignInWithCustomToken.
   Future<AuthResult> SignInWithCustomTokenLastResult() const;
 
-  /// @deprecated This is a deprecated method. Please use @SignInWithCustomToken
-  /// instead.
+  /// @deprecated This is a deprecated method. Please use @ref
+  /// SignInWithCustomToken instead.
   ///
   /// Asynchronously logs into Firebase with the given Auth token.
   ///
@@ -285,7 +285,7 @@ class Auth {
   /// Get results of the most recent call to @ref SignInWithCredential.
   Future<User> SignInWithCredentialLastResult() const;
 
-  /// @deprecated This is a deprecated method. Please use @SignInWithCredential
+  /// @deprecated This is a deprecated method. Please use SignInWithCredential
   /// instead.
   ///
   /// Convenience method for @ref SignInAndRetrieveDataWithCredential that
@@ -347,7 +347,7 @@ class Auth {
   Future<AuthResult> SignInAndRetrieveDataWithCredentialLastResult() const;
 
   /// @deprecated This is a deprecated method. Please use
-  /// @SignInAndRetrieveDataWithCredential instead.
+  /// SignInAndRetrieveDataWithCredential instead.
   ///
   /// Asynchronously logs into Firebase with the given credentials.
   ///
@@ -449,7 +449,7 @@ class Auth {
   Future<AuthResult> SignInWithEmailAndPasswordLastResult() const;
 
   /// @deprecated This is a deprecated method. Please use
-  /// @SignInWithEmailAndPassword instead.
+  /// SignInWithEmailAndPassword instead.
   ///
   /// Signs in using provided email address and password.
   /// An error is returned if the password is wrong or otherwise not accepted
