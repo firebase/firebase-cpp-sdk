@@ -29,6 +29,9 @@ class ConfigUpdateListenerRegistration {
  public:
   ConfigUpdateListenerRegistration();
 
+  ConfigUpdateListenerRegistration(
+      std::function<void()> listener_removal_function);
+
   ~ConfigUpdateListenerRegistration();
 
   /// @brief The listener being tracked by this

@@ -85,9 +85,8 @@ class RemoteConfigInternal {
 
   const ConfigInfo GetInfo() const;
 
-  ConfigUpdateListenerRegistration* AddOnConfigUpdateListener(
-      std::function<void(ConfigUpdate&&, RemoteConfigError)>
-          config_update_listener);
+  template <class ConfigUpdateListener>
+  ConfigUpdateListenerRegistration* AddOnConfigUpdateListener(ConfigUpdateListener config_update_listener);
 
   bool Initialized() const;
 

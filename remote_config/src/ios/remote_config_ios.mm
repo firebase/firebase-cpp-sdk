@@ -23,6 +23,7 @@
 #include "app/src/log.h"
 #include "app/src/time.h"
 #include "remote_config/src/common.h"
+#include "remote_config/src/include/firebase/remote_config.h"
 
 namespace firebase {
 namespace remote_config {
@@ -171,6 +172,31 @@ static void GetInfoFromFIRRemoteConfig(FIRRemoteConfig *rc_instance, ConfigInfo 
       out_info->last_fetch_failure_reason = kFetchFailureReasonError;
       break;
   }
+}
+
+static RemoteConfigError ConvertFIRRemoteConfigUpdateError(NSError *error) {
+  switch(error.code) {
+    case FIRRemoteConfigUpdateErrorStreamError:
+      return kRemoteConfigErrorConfigUpdateStreamError;
+    case FIRRemoteConfigUpdateErrorNotFetched:
+      return kRemoteConfigErrorConfigUpdateNotFetched;
+    case FIRRemoteConfigUpdateErrorMessageInvalid:
+      return kRemoteConfigErrorConfigUpdateMessageInvalid;
+    case FIRRemoteConfigUpdateErrorUnavailable:
+      return kRemoteConfigErrorConfigUpdateUnavailable;
+    default:
+      return kRemoteConfigErrorUnimplemented;
+  }
+}
+
+static ConfigUpdate ConvertConfigUpdateKeys(NSSet<NSString *> *keys) {
+  ConfigUpdate configUpdate;
+
+  for (NSString *key in keys) {
+    configUpdate.updated_keys.push_back(util::NSStringToString(key).c_str());
+  }
+
+  return configUpdate;
 }
 
 namespace internal {
@@ -490,10 +516,26 @@ const ConfigInfo RemoteConfigInternal::GetInfo() const {
   return config_info;
 }
 
+template <class ConfigUpdateListener>
 ConfigUpdateListenerRegistration* RemoteConfigInternal::AddOnConfigUpdateListener(
-      std::function<void(ConfigUpdate&&, RemoteConfigError)>
-          config_update_listener) {
-            return nullptr;
+      ConfigUpdateListener config_update_listener) {
+    FIRConfigUpdateListenerRegistration *registration;
+    registration = [impl() addOnConfigUpdateListener: ^(FIRRemoteConfigUpdate *_Nullable update,
+                                  NSError *_Nullable error) {
+          if (error) {
+            config_update_listener(NULL, ConvertFIRRemoteConfigUpdateError(error));
+          }
+          if (update) {
+            config_update_listener(ConvertConfigUpdateKeys(update.updatedKeys), NULL);
+          }
+    }];
+
+    ConfigUpdateListenerRegistration *registrationWrapper =
+      new ConfigUpdateListenerRegistration([&registration]() {
+        [registration remove];
+      });
+
+    return registrationWrapper;
 }
 }  // namespace internal
 }  // namespace remote_config
