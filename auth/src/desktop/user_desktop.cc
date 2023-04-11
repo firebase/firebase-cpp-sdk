@@ -105,7 +105,7 @@ GetTokenResult GetTokenIfFresh(const UserView::Reader& user,
   return GetTokenResult(kAuthErrorFailure);
 }
 
-// Makes sure that calling auth->current_user().d_token() will
+// Makes sure that calling auth->current_user().id_token() will
 // result in a token that is good for at least 5 minutes. Will fetch a new token
 // from the backend if necessary.
 //
@@ -1199,6 +1199,7 @@ std::vector<UserInfoInterface> User::provider_data() const {
   if (is_valid()) {
     std::vector<UserInfoInterface*> deprecated_provider_data =
         provider_data_DEPRECATED();
+    provider_data.reserve(deprecated_provider_data.size());
     for (size_t i = 0; i < deprecated_provider_data.size(); ++i) {
       UserInfoImpl user_info_impl;
       user_info_impl.uid = deprecated_provider_data[i]->uid();
@@ -1207,7 +1208,7 @@ std::vector<UserInfoInterface> User::provider_data() const {
       user_info_impl.photo_url = deprecated_provider_data[i]->photo_url();
       user_info_impl.provider_id = deprecated_provider_data[i]->provider_id();
       user_info_impl.phone_number = deprecated_provider_data[i]->phone_number();
-      provider_data[i] = UserInfoInterfaceImpl(user_info_impl);
+      provider_data.push_back(UserInfoInterfaceImpl(user_info_impl));
     }
   }
   return provider_data;
