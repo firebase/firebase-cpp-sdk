@@ -87,9 +87,17 @@ std::vector<UserInfoInterface> User::provider_data() const {
   if (ValidUser(auth_data_)) {
     NSArray<id<FIRUserInfo>> *fir_provider_data = UserImpl(auth_data_).providerData;
     if (fir_provider_data != nullptr) {
-      // Wrap the FIRUserInfos in our IOSWrappedUserInfo class.
+      provider_data.reserve(fir_provider_data.count);
       for (size_t i = 0; i < fir_provider_data.count; ++i) {
-        provider_data[i] = IOSWrappedUserInfo(fir_provider_data[i]);
+        IOSWrappedUserInfo ios_user_info(fir_provider_data[i]);
+        UserInfoInterface user_info;
+        user_info.uid_ = ios_user_info.uid();
+        user_info.email_ = ios_user_info.email();
+        user_info.display_name_ = ios_user_info.display_name();
+        user_info.photo_url_ = ios_user_info.photo_url();
+        user_info.provider_id_ = ios_user_info.provider_id();
+        user_info.phone_number_ = ios_user_info.phone_number();
+        provider_data.push_back(user_info);
       }
     }
   }

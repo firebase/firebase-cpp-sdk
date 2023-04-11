@@ -1201,14 +1201,14 @@ std::vector<UserInfoInterface> User::provider_data() const {
         provider_data_DEPRECATED();
     provider_data.reserve(deprecated_provider_data.size());
     for (size_t i = 0; i < deprecated_provider_data.size(); ++i) {
-      UserInfoImpl user_info_impl;
-      user_info_impl.uid = deprecated_provider_data[i]->uid();
-      user_info_impl.email = deprecated_provider_data[i]->email();
-      user_info_impl.display_name = deprecated_provider_data[i]->display_name();
-      user_info_impl.photo_url = deprecated_provider_data[i]->photo_url();
-      user_info_impl.provider_id = deprecated_provider_data[i]->provider_id();
-      user_info_impl.phone_number = deprecated_provider_data[i]->phone_number();
-      provider_data.push_back(UserInfoInterfaceImpl(user_info_impl));
+      UserInfoInterface user_info;
+      user_info.uid_ = deprecated_provider_data[i]->uid();
+      user_info.email_ = deprecated_provider_data[i]->email();
+      user_info.display_name_ = deprecated_provider_data[i]->display_name();
+      user_info.photo_url_ = deprecated_provider_data[i]->photo_url();
+      user_info.provider_id_ = deprecated_provider_data[i]->provider_id();
+      user_info.phone_number_ = deprecated_provider_data[i]->phone_number();
+      provider_data.push_back(user_info);
     }
   }
   return provider_data;

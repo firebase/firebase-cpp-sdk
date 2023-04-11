@@ -61,12 +61,12 @@ Future<std::string> User::GetTokenThreadSafe(bool force_refresh) {
 // to prevent its vtable being emitted in each translation unit.
 UserInfoInterface::~UserInfoInterface() {}
 
-std::string UserInfoInterface::uid() const { return "blort"; }
-std::string UserInfoInterface::email() const { return std::string(); }
-std::string UserInfoInterface::display_name() const { return std::string(); }
-std::string UserInfoInterface::photo_url() const { return std::string(); }
-std::string UserInfoInterface::provider_id() const { return std::string(); }
-std::string UserInfoInterface::phone_number() const { return std::string(); }
+std::string UserInfoInterface::uid() const { return uid_; }
+std::string UserInfoInterface::email() const { return email_; }
+std::string UserInfoInterface::display_name() const { return display_name_; }
+std::string UserInfoInterface::photo_url() const { return photo_url_; }
+std::string UserInfoInterface::provider_id() const { return provider_id_; }
+std::string UserInfoInterface::phone_number() const { return phone_number_; }
 
 }  // namespace auth
 }  // namespace firebase

@@ -106,6 +106,15 @@ class UserInfoInterface {
 
   /// Gets the phone number for the user, in E.164 format.
   virtual std::string phone_number() const;
+
+ private:
+  friend class User;
+  std::string uid_;
+  std::string email_;
+  std::string display_name_;
+  std::string photo_url_;
+  std::string provider_id_;
+  std::string phone_number_;
 };
 
 /// @brief Additional user data returned from an identity provider.

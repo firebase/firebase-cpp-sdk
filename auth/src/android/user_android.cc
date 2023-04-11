@@ -329,13 +329,21 @@ std::vector<UserInfoInterface> User::provider_data() const {
       const int num_providers =
           env->CallIntMethod(list, util::list::GetMethodId(util::list::kSize));
       assert(env->ExceptionCheck() == false);
+      provider_data.reserve(num_providers);
       for (int i = 0; i < num_providers; ++i) {
-        // user_info is converted to a global reference in
-        // AndroidWrappedUserInfo() and the local reference is released.
-        jobject user_info = env->CallObjectMethod(
+        jobject j_user_info = env->CallObjectMethod(
             list, util::list::GetMethodId(util::list::kGet), i);
         assert(env->ExceptionCheck() == false);
-        provider_data[i] = AndroidWrappedUserInfo(auth_data_, user_info);
+        // AndroidWrappedUserInfo handles the reference clean up for us.
+        AndroidWrappedUserInfo android_user_info(auth_data_, j_user_info);
+        UserInfoInterface user_info;
+        user_info.uid_ = android_user_info.uid();
+        user_info.email_ = android_user_info.email();
+        user_info.display_name_ = android_user_info.display_name();
+        user_info.photo_url_ = android_user_info.photo_url();
+        user_info.provider_id_ = android_user_info.provider_id();
+        user_info.phone_number_ = android_user_info.phone_number();
+        provider_data.push_back(user_info);
       }
       env->DeleteLocalRef(list);
     }
