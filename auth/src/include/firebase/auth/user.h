@@ -192,10 +192,10 @@ class User : public UserInfoInterface {
     const char* photo_url;
   };
 
-  // Copy constructor.
+  /// Copy constructor.
   User(const User&);
 
-  // Assignment operator.
+  /// Assignment operator.
   User& operator=(const User&);
 
   ~User();
