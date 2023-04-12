@@ -385,7 +385,7 @@ TEST_F(FirebaseAuthTest, TestAnonymousSignin_DEPRECATED) {
   DeleteUser_DEPRECATED();
 }
 
-// TODO: Add a TestDeleteUser
+// TODO(jonsimantov): Add TestDeleteUser.
 
 TEST_F(FirebaseAuthTest, TestCredentialCopy) {
   // --- Credential copy tests -------------------------------------------------
