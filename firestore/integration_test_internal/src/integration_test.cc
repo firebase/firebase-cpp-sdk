@@ -275,7 +275,7 @@ void FirebaseFirestoreBasicTest::TerminateFirestore() {
 }
 
 void FirebaseFirestoreBasicTest::SignIn() {
-  if (shared_auth_->current_user().is_valid) {
+  if (shared_auth_->current_user().is_valid()) {
     // Already signed in.
     return;
   }
@@ -314,7 +314,7 @@ void FirebaseFirestoreBasicTest::SignOut() {
       if (ProcessEvents(100)) break;
     }
   }
-  EXPECT_FALSE(shared_auth_->current_user().is_valid);
+  EXPECT_FALSE(shared_auth_->current_user().is_valid());
 }
 
 firebase::firestore::CollectionReference
