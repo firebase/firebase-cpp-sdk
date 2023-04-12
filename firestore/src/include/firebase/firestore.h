@@ -179,7 +179,6 @@ class Firestore {
   static Firestore* GetInstance(const char* db_name,
                                 InitResult* init_result_out = nullptr);
 
-
   /**
    * @brief Destructor for the Firestore object.
    *

@@ -101,9 +101,18 @@ InitResult CheckInitialized(const FirestoreInternal& firestore) {
 void ValidateApp(App* app) {
   if (!app) {
     SimpleThrowInvalidArgument(
-        "firebase::App instance cannot be null. Use "
-        "firebase::App::GetInstance() without arguments if you'd like to use "
-        "the default instance.");
+        "firebase::App instance cannot be null. Use other "
+        "firebase::App::GetInstance() if you'd like to use the default "
+        "instance.");
+  }
+}
+
+void ValidateDatabase(const char* db_name) {
+  if (!db_name) {
+    SimpleThrowInvalidArgument(
+        "Provided database ID must not be null. Use other "
+        "firebase::App::GetInstance() if you'd like to use the default "
+        "database ID.");
   }
 }
 
@@ -133,15 +142,19 @@ Firestore* Firestore::GetInstance(InitResult* init_result_out) {
   return Firestore::GetInstance(app, init_result_out);
 }
 
-Firestore* Firestore::GetInstance(App* app,const char* db_name,InitResult* init_result_out) {
+Firestore* Firestore::GetInstance(App* app, const char* db_name, InitResult* init_result_out) {
+  ValidateApp(app);
+  ValidateDatabase(db_name);
   //TODO(Mila): Implement code
-  return nullptr;
+  return Firestore::GetInstance(app, init_result_out);
 }
 
 Firestore* Firestore::GetInstance(const char* db_name,InitResult* init_result_out) {
+  ValidateDatabase(db_name);
   //TODO(Mila): Implement code
-  return nullptr;
-} 
+  App* app = App::GetInstance();
+  return Firestore::GetInstance(app, init_result_out);
+}
 
 Firestore* Firestore::CreateFirestore(App* app,
                                       FirestoreInternal* internal,
