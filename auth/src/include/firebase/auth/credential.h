@@ -90,6 +90,7 @@ class Credential {
   friend class YahooAuthProvider;
   friend class ServiceUpdatedCredentialProvider;
   friend class PhoneAuthCredential;
+  friend class InternalAuthResultProvider;
   /// @endcond
 #endif  // !SWIG
 

@@ -16,6 +16,8 @@
 
 #include "auth/src/common.h"
 
+#include <string>
+
 #include "app/src/util.h"
 
 namespace firebase {
@@ -69,11 +71,16 @@ PhoneAuthOptions::PhoneAuthOptions() {
 // PhoneAuthProvider
 //
 void PhoneAuthProvider::Listener::OnCodeSent(
-    const std::string& /*verification_id*/,
-    const ForceResendingToken& /*force_resending_token*/) {}
+    const std::string& verification_id,
+    const ForceResendingToken& force_resending_token) {}
 
 void PhoneAuthProvider::Listener::OnCodeAutoRetrievalTimeOut(
-    const std::string& /*verification_id*/) {}
+    const std::string& verification_id) {}
+
+///
+/// User
+///
+User::User() { auth_data_ = nullptr; }
 
 }  // namespace auth
 }  // namespace firebase

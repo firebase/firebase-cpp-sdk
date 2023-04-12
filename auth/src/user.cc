@@ -22,15 +22,19 @@ namespace auth {
 AUTH_RESULT_FN(User, GetToken, std::string)
 AUTH_RESULT_FN(User, UpdateEmail, void)
 AUTH_RESULT_FN(User, UpdatePassword, void)
+AUTH_RESULT_FN(User, LinkWithCredential, AuthResult)
 AUTH_RESULT_FN(User, Reauthenticate, void)
+AUTH_RESULT_FN(User, ReauthenticateAndRetrieveData, AuthResult)
 AUTH_RESULT_FN(User, SendEmailVerification, void)
+AUTH_RESULT_FN(User, Unlink, AuthResult)
 AUTH_RESULT_FN(User, UpdateUserProfile, void)
 AUTH_RESULT_FN(User, Reload, void)
 AUTH_RESULT_FN(User, Delete, void)
+AUTH_RESULT_FN(User, UpdatePhoneNumberCredential, User)
 
-AUTH_RESULT_DEPRECATED_FN(User, ReauthenticateAndRetrieveData, SignInResult)
 AUTH_RESULT_DEPRECATED_FN(User, LinkWithCredential, User*)
 AUTH_RESULT_DEPRECATED_FN(User, LinkAndRetrieveDataWithCredential, SignInResult)
+AUTH_RESULT_DEPRECATED_FN(User, ReauthenticateAndRetrieveData, SignInResult)
 AUTH_RESULT_DEPRECATED_FN(User, Unlink, User*)
 AUTH_RESULT_DEPRECATED_FN(User, UpdatePhoneNumberCredential, User*)
 
@@ -56,6 +60,13 @@ Future<std::string> User::GetTokenThreadSafe(bool force_refresh) {
 // Non-inline implementation of UserInfoInterface's virtual destructor
 // to prevent its vtable being emitted in each translation unit.
 UserInfoInterface::~UserInfoInterface() {}
+
+std::string UserInfoInterface::uid() const { return uid_; }
+std::string UserInfoInterface::email() const { return email_; }
+std::string UserInfoInterface::display_name() const { return display_name_; }
+std::string UserInfoInterface::photo_url() const { return photo_url_; }
+std::string UserInfoInterface::provider_id() const { return provider_id_; }
+std::string UserInfoInterface::phone_number() const { return phone_number_; }
 
 }  // namespace auth
 }  // namespace firebase

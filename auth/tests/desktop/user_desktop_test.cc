@@ -204,17 +204,17 @@ void VerifyUser(const User& user) {
 }
 
 void VerifyProviderData(const User& user) {
-  const std::vector<UserInfoInterface*>& provider_data = user.provider_data();
+  const std::vector<UserInfoInterface>& provider_data = user.provider_data();
   EXPECT_EQ(1, provider_data.size());
   if (provider_data.empty()) {
     return;  // Avoid crashing on vector out-of-bounds access below
   }
-  EXPECT_EQ("fake_uid", provider_data[0]->uid());
-  EXPECT_EQ("fake_email@example.com", provider_data[0]->email());
-  EXPECT_EQ("fake_display_name", provider_data[0]->display_name());
-  EXPECT_EQ("fake_photo_url", provider_data[0]->photo_url());
-  EXPECT_EQ("fake_provider_id", provider_data[0]->provider_id());
-  EXPECT_EQ("123123", provider_data[0]->phone_number());
+  EXPECT_EQ("fake_uid", provider_data[0].uid());
+  EXPECT_EQ("fake_email@example.com", provider_data[0].email());
+  EXPECT_EQ("fake_display_name", provider_data[0].display_name());
+  EXPECT_EQ("fake_photo_url", provider_data[0].photo_url());
+  EXPECT_EQ("fake_provider_id", provider_data[0].provider_id());
+  EXPECT_EQ("123123", provider_data[0].phone_number());
 }
 
 void InitializeSuccessfulVerifyAssertionFlow(
@@ -691,7 +691,7 @@ TEST_F(UserDesktopTest, TestLinkWithCredentialAndRetrieveData) {
   const Credential credential =
       GoogleAuthProvider::GetCredential("fake_id_token", "");
   const SignInResult sign_in_result = WaitForFuture(
-      firebase_user_->LinkAndRetrieveDataWithCredential(credential));
+      firebase_user_->LinkAndRetrieveDataWithCredential_DEPRECATED(credential));
   EXPECT_FALSE(sign_in_result.user->is_anonymous());
   VerifyUser(*sign_in_result.user);
 }
