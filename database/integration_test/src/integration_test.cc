@@ -315,13 +315,13 @@ void FirebaseDatabaseTest::TerminateDatabase() {
 }
 
 void FirebaseDatabaseTest::SignIn() {
-  if (shared_auth_->current_user_DEPRECATED() != nullptr) {
+  if (shared_auth_->current_user().is_valid()) {
     // Already signed in.
     return;
   }
   LogDebug("Signing in.");
-  firebase::Future<firebase::auth::User*> sign_in_future =
-      shared_auth_->SignInAnonymously_DEPRECATED();
+  firebase::Future<firebase::auth::AuthResult> sign_in_future =
+      shared_auth_->SignInAnonymously();
   WaitForCompletion(sign_in_future, "SignInAnonymously");
   if (sign_in_future.error() != 0) {
     FAIL() << "Ensure your application has the Anonymous sign-in provider "
@@ -335,13 +335,13 @@ void FirebaseDatabaseTest::SignOut() {
     // Auth is not set up.
     return;
   }
-  if (shared_auth_->current_user_DEPRECATED() == nullptr) {
+  if (!shared_auth_->current_user().is_valid()) {
     // Already signed out.
     return;
   }
-  if (shared_auth_->current_user_DEPRECATED()->is_anonymous()) {
+  if (shared_auth_->current_user().is_anonymous()) {
     // If signed in anonymously, delete the anonymous user.
-    WaitForCompletion(shared_auth_->current_user_DEPRECATED()->Delete(),
+    WaitForCompletion(shared_auth_->current_user().Delete(),
                       "DeleteAnonymousUser");
   } else {
     // If not signed in anonymously (e.g. if the tests were modified to sign in
@@ -349,11 +349,11 @@ void FirebaseDatabaseTest::SignOut() {
     shared_auth_->SignOut();
 
     // Wait for the sign-out to finish.
-    while (shared_auth_->current_user_DEPRECATED() != nullptr) {
+    while (shared_auth_->current_user().is_valid()) {
       if (ProcessEvents(100)) break;
     }
   }
-  EXPECT_EQ(shared_auth_->current_user_DEPRECATED(), nullptr);
+  EXPECT_FALSE(shared_auth_->current_user().is_valid());
 }
 
 firebase::database::DatabaseReference FirebaseDatabaseTest::CreateWorkingPath(
@@ -371,7 +371,7 @@ TEST_F(FirebaseDatabaseTest, TestInitializeAndTerminate) {
 }
 
 TEST_F(FirebaseDatabaseTest, TestSignIn) {
-  EXPECT_NE(shared_auth_->current_user_DEPRECATED(), nullptr);
+  EXPECT_TRUE(shared_auth_->current_user().is_valid());
 }
 
 TEST_F(FirebaseDatabaseTest, TestCreateWorkingPath) {

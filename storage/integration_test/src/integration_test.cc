@@ -271,7 +271,7 @@ void FirebaseStorageTest::TerminateStorage() {
 }
 
 void FirebaseStorageTest::SignIn() {
-  if (shared_auth_->current_user_DEPRECATED() != nullptr) {
+  if (shared_auth_->current_user().is_valid()) {
     // Already signed in.
     return;
   }
@@ -291,13 +291,13 @@ void FirebaseStorageTest::SignOut() {
     // Auth is not set up.
     return;
   }
-  if (shared_auth_->current_user_DEPRECATED() == nullptr) {
+  if (!shared_auth_->current_user().is_valid()) {
     // Already signed out.
     return;
   }
-  if (shared_auth_->current_user_DEPRECATED()->is_anonymous()) {
+  if (shared_auth_->current_user().is_anonymous()) {
     // If signed in anonymously, delete the anonymous user.
-    WaitForCompletion(shared_auth_->current_user_DEPRECATED()->Delete(),
+    WaitForCompletion(shared_auth_->current_user().Delete(),
                       "DeleteAnonymousUser");
   } else {
     // If not signed in anonymously (e.g. if the tests were modified to sign in
@@ -305,11 +305,11 @@ void FirebaseStorageTest::SignOut() {
     shared_auth_->SignOut();
 
     // Wait for the sign-out to finish.
-    while (shared_auth_->current_user_DEPRECATED() != nullptr) {
+    while (shared_auth_->current_user().is_valid()) {
       if (ProcessEvents(100)) break;
     }
   }
-  EXPECT_EQ(shared_auth_->current_user_DEPRECATED(), nullptr);
+  EXPECT_FALSE(shared_auth_->current_user().is_valid());
 }
 
 firebase::storage::StorageReference FirebaseStorageTest::CreateFolder() {
@@ -330,7 +330,7 @@ TEST_F(FirebaseStorageTest, TestInitializeAndTerminate) {
 }
 
 TEST_F(FirebaseStorageTest, TestSignIn) {
-  EXPECT_NE(shared_auth_->current_user_DEPRECATED(), nullptr);
+  EXPECT_TRUE(shared_auth_->current_user().is_valid());
 }
 
 TEST_F(FirebaseStorageTest, TestCreateWorkingFolder) {

@@ -252,7 +252,7 @@ TEST_F(FirebaseFunctionsTest, TestInitializeAndTerminate) {
 
 TEST_F(FirebaseFunctionsTest, TestSignIn) {
   SignIn();
-  EXPECT_NE(auth_->current_user_DEPRECATED(), nullptr);
+  EXPECT_TRUE(auth_->current_user().is_valid);
 }
 
 TEST_F(FirebaseFunctionsTest, TestFunction) {
