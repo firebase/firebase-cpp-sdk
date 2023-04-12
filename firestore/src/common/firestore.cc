@@ -142,16 +142,19 @@ Firestore* Firestore::GetInstance(InitResult* init_result_out) {
   return Firestore::GetInstance(app, init_result_out);
 }
 
-Firestore* Firestore::GetInstance(App* app, const char* db_name, InitResult* init_result_out) {
+Firestore* Firestore::GetInstance(App* app,
+                                  const char* db_name,
+                                  InitResult* init_result_out) {
   ValidateApp(app);
   ValidateDatabase(db_name);
-  //TODO(Mila): Implement code
+  // TODO(Mila): Implement code
   return Firestore::GetInstance(app, init_result_out);
 }
 
-Firestore* Firestore::GetInstance(const char* db_name,InitResult* init_result_out) {
+Firestore* Firestore::GetInstance(const char* db_name,
+                                  InitResult* init_result_out) {
   ValidateDatabase(db_name);
-  //TODO(Mila): Implement code
+  // TODO(Mila): Implement code
   App* app = App::GetInstance();
   return Firestore::GetInstance(app, init_result_out);
 }
