@@ -133,6 +133,16 @@ Firestore* Firestore::GetInstance(InitResult* init_result_out) {
   return Firestore::GetInstance(app, init_result_out);
 }
 
+Firestore* Firestore::GetInstance(App* app,const char* db_name,InitResult* init_result_out) {
+  //TODO(Mila): Implement code
+  return nullptr;
+}
+
+Firestore* Firestore::GetInstance(const char* db_name,InitResult* init_result_out) {
+  //TODO(Mila): Implement code
+  return nullptr;
+} 
+
 Firestore* Firestore::CreateFirestore(App* app,
                                       FirestoreInternal* internal,
                                       InitResult* init_result_out) {

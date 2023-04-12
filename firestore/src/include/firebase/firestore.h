@@ -89,7 +89,8 @@ class TransactionManager;
 class Firestore {
  public:
   /**
-   * @brief Returns an instance of Firestore corresponding to the given App.
+   * @brief Returns an instance of Firestore corresponding to the given App
+   * with default database ID.
    *
    * Firebase Firestore uses firebase::App to communicate with Firebase
    * Authentication to authenticate users to the Firestore server backend.
@@ -104,13 +105,15 @@ class Firestore {
    * succeeded, or firebase::kInitResultFailedMissingDependency on Android if
    * Google Play services is not available on the current device.
    *
-   * @return An instance of Firestore corresponding to the given App.
+   * @return An instance of Firestore corresponding to the given App with
+   * default database ID.
    */
   static Firestore* GetInstance(::firebase::App* app,
                                 InitResult* init_result_out = nullptr);
 
   /**
-   * @brief Returns an instance of Firestore corresponding to the default App.
+   * @brief Returns an instance of Firestore corresponding to the default App
+   * with default database ID.
    *
    * Firebase Firestore uses the default App to communicate with Firebase
    * Authentication to authenticate users to the Firestore server backend.
@@ -122,9 +125,60 @@ class Firestore {
    * succeeded, or firebase::kInitResultFailedMissingDependency on Android if
    * Google Play services is not available on the current device.
    *
-   * @return An instance of Firestore corresponding to the default App.
+   * @return An instance of Firestore corresponding to the default App
+   * with default database ID.
    */
   static Firestore* GetInstance(InitResult* init_result_out = nullptr);
+
+  /**
+   * @brief Returns an instance of Firestore corresponding to the given App with
+   * the given database ID.
+   *
+   * Firebase Firestore uses firebase::App to communicate with Firebase
+   * Authentication to authenticate users to the Firestore server backend.
+   *
+   * If you call GetInstance() multiple times with the same App, you will get
+   * the same instance of Firestore.
+   *
+   * @param[in] app Your instance of firebase::App. Firebase Firestore will use
+   * this to communicate with Firebase Authentication.
+   * @param[in] db_name Name of the database. Firebase Firestore will use
+   * this to communicate with Firebase Authentication.
+   * @param[out] init_result_out If provided, the initialization result will be
+   * written here. Will be set to firebase::kInitResultSuccess if initialization
+   * succeeded, or firebase::kInitResultFailedMissingDependency on Android if
+   * Google Play services is not available on the current device.
+   *
+   * @return An instance of Firestore corresponding to the given App with
+   * the given database ID.
+   */
+  static Firestore* GetInstance(::firebase::App* app,
+                                const char* db_name,
+                                InitResult* init_result_out = nullptr);
+
+  /**
+   * @brief Returns an instance of Firestore corresponding to the default App
+   * with the given database ID.
+   *
+   * Firebase Firestore uses firebase::App to communicate with Firebase
+   * Authentication to authenticate users to the Firestore server backend.
+   *
+   * If you call GetInstance() multiple times with the same App, you will get
+   * the same instance of Firestore.
+   *
+   * @param[in] db_name Name of the database. Firebase Firestore will use
+   * this to communicate with Firebase Authentication.
+   * @param[out] init_result_out If provided, the initialization result will be
+   * written here. Will be set to firebase::kInitResultSuccess if initialization
+   * succeeded, or firebase::kInitResultFailedMissingDependency on Android if
+   * Google Play services is not available on the current device.
+   *
+   * @return An instance of Firestore corresponding to the default App with
+   * the given database ID.
+   */
+  static Firestore* GetInstance(const char* db_name,
+                                InitResult* init_result_out = nullptr);
+
 
   /**
    * @brief Destructor for the Firestore object.
