@@ -19,14 +19,16 @@ namespace remote_config {
 
 ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration() {}
 
-ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(std::function<void()> listener_removal_function) : listenerRemovalFunction(listener_removal_function) {}
+ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
+    std::function<void()> listener_removal_function)
+    : listenerRemovalFunction(listener_removal_function) {}
 
 ConfigUpdateListenerRegistration::~ConfigUpdateListenerRegistration() {}
 
 /// @brief the listener being tracked by this ConfigUpdateListenerRegistration.
 /// After the initial call, subsequent calls to Remove have no effect.
 void ConfigUpdateListenerRegistration::Remove() {
-    this->listenerRemovalFunction();
+  this->listenerRemovalFunction();
 }
 
 }  // namespace remote_config
