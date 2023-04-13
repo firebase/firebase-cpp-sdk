@@ -1071,7 +1071,7 @@ const ConfigInfo RemoteConfigInternal::GetInfo() const {
 
 ConfigUpdateListenerRegistration*
 RemoteConfigInternal::AddOnConfigUpdateListener(
-    std::function<void(ConfigUpdate&&, RemoteConfigError)>
+    LambdaConfigUpdateListener<ConfigUpdate, RemoteConfigError>*
         config_update_listener) {
   return nullptr;
 }

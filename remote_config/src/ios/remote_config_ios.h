@@ -86,7 +86,9 @@ class RemoteConfigInternal {
 
   const ConfigInfo GetInfo() const;
 
-  ConfigUpdateListenerRegistration* AddOnConfigUpdateListener(LambdaConfigUpdateListener<ConfigUpdate, RemoteConfigError> *config_update_listener);
+  ConfigUpdateListenerRegistration* AddOnConfigUpdateListener(
+    LambdaConfigUpdateListener<ConfigUpdate, RemoteConfigError> 
+      *config_update_listener);
 
   bool Initialized() const;
 
