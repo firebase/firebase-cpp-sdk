@@ -24,7 +24,6 @@
 #include "firebase/app.h"
 #include "firebase/log.h"
 #include "firebase/remote_config.h"
-#include "firebase/remote_config/config_update_listener_registration.h"
 #include "firebase/util.h"
 #include "firebase_test_framework.h"  // NOLINT
 

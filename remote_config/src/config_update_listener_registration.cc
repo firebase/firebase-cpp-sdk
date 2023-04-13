@@ -25,8 +25,6 @@ ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
 
 ConfigUpdateListenerRegistration::~ConfigUpdateListenerRegistration() {}
 
-/// @brief the listener being tracked by this ConfigUpdateListenerRegistration.
-/// After the initial call, subsequent calls to Remove have no effect.
 void ConfigUpdateListenerRegistration::Remove() {
   this->listenerRemovalFunction();
 }

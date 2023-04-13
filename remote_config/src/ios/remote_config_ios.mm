@@ -14,7 +14,6 @@
 
 #include "remote_config/src/ios/remote_config_ios.h"
 
-#include <functional>
 #include <map>
 #include <set>
 #include <string>
