@@ -236,7 +236,10 @@ const ConfigInfo RemoteConfig::GetInfo() { return internal_->GetInfo(); }
 ConfigUpdateListenerRegistration* RemoteConfig::AddOnConfigUpdateListener(
     std::function<void(ConfigUpdate&&, RemoteConfigError)>
         config_update_listener) {
-  return internal_->AddOnConfigUpdateListener(config_update_listener);
+  LambdaConfigUpdateListener<ConfigUpdate, RemoteConfigError>* listener =
+      new LambdaConfigUpdateListener<ConfigUpdate, RemoteConfigError>(
+          config_update_listener);
+  return internal_->AddOnConfigUpdateListener(listener);
 }
 
 }  // namespace remote_config

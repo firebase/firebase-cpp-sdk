@@ -20,6 +20,7 @@
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_ios.h"
 #include "firebase/future.h"
+#include "remote_config/src/common.h"
 
 #include "remote_config/src/include/firebase/remote_config.h"
 
@@ -85,8 +86,7 @@ class RemoteConfigInternal {
 
   const ConfigInfo GetInfo() const;
 
-  template <class ConfigUpdateListener>
-  ConfigUpdateListenerRegistration* AddOnConfigUpdateListener(ConfigUpdateListener config_update_listener);
+  ConfigUpdateListenerRegistration* AddOnConfigUpdateListener(LambdaConfigUpdateListener<ConfigUpdate, RemoteConfigError> *config_update_listener);
 
   bool Initialized() const;
 

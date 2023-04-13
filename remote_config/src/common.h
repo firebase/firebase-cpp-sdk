@@ -15,8 +15,11 @@
 #ifndef FIREBASE_REMOTE_CONFIG_SRC_COMMON_H_
 #define FIREBASE_REMOTE_CONFIG_SRC_COMMON_H_
 
+#include <functional>
+
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/semaphore.h"
+#include "remote_config/src/include/firebase/remote_config.h"
 
 namespace firebase {
 namespace remote_config {
@@ -28,7 +31,8 @@ enum RemoteConfigFn {
   kRemoteConfigFnFetchAndActivate,
   kRemoteConfigFnSetDefaults,
   kRemoteConfigFnSetConfigSettings,
-  kRemoteConfigFnCount
+  kRemoteConfigFnCount,
+  kRemoteConficFnAddOnConfigUpdateListener
 };
 
 /// @brief Describes the error codes returned by futures.
@@ -61,6 +65,25 @@ class FutureData {
   ReferenceCountedFutureImpl api_;
 
   static FutureData* s_future_data_;
+};
+
+template <typename TConfigUpdate, typename TRemoteConfigError>
+class LambdaConfigUpdateListener {
+ public:
+  LambdaConfigUpdateListener(
+      std::function<void(TConfigUpdate, TRemoteConfigError)> callback)
+      : callback_(callback) {}
+
+  void onUpdate(TConfigUpdate configUpdate) {
+    callback_(configUpdate, kRemoteConfigErrorNone);
+  }
+
+  void onError(TRemoteConfigError remoteConfigError) {
+    callback_({}, remoteConfigError);
+  }
+
+ private:
+  std::function<void(TConfigUpdate, TRemoteConfigError)> callback_;
 };
 
 namespace internal {

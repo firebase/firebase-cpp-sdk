@@ -14,6 +14,7 @@
 
 #include "remote_config/src/ios/remote_config_ios.h"
 
+#include <functional>
 #include <map>
 #include <set>
 #include <string>
@@ -22,7 +23,6 @@
 #include "app/src/assert.h"
 #include "app/src/log.h"
 #include "app/src/time.h"
-#include "remote_config/src/common.h"
 #include "remote_config/src/include/firebase/remote_config.h"
 
 namespace firebase {
@@ -516,17 +516,16 @@ const ConfigInfo RemoteConfigInternal::GetInfo() const {
   return config_info;
 }
 
-template <class ConfigUpdateListener>
 ConfigUpdateListenerRegistration* RemoteConfigInternal::AddOnConfigUpdateListener(
-      ConfigUpdateListener config_update_listener) {
+      LambdaConfigUpdateListener<ConfigUpdate, RemoteConfigError> *config_update_listener) {
     FIRConfigUpdateListenerRegistration *registration;
     registration = [impl() addOnConfigUpdateListener: ^(FIRRemoteConfigUpdate *_Nullable update,
                                   NSError *_Nullable error) {
           if (error) {
-            config_update_listener(NULL, ConvertFIRRemoteConfigUpdateError(error));
+            config_update_listener->onError(ConvertFIRRemoteConfigUpdateError(error));
           }
           if (update) {
-            config_update_listener(ConvertConfigUpdateKeys(update.updatedKeys), NULL);
+            config_update_listener->onUpdate(ConvertConfigUpdateKeys(update.updatedKeys));
           }
     }];
 

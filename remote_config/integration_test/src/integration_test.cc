@@ -24,6 +24,7 @@
 #include "firebase/app.h"
 #include "firebase/log.h"
 #include "firebase/remote_config.h"
+#include "firebase/remote_config/config_update_listener_registration.h"
 #include "firebase/util.h"
 #include "firebase_test_framework.h"  // NOLINT
 
@@ -408,12 +409,14 @@ TEST_F(FirebaseRemoteConfigTest, TestFetchSecondsParameter) {
 
 TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
   EXPECT_EQ(nullptr, rc_->AddOnConfigUpdateListener(
-                         [](ConfigUpdate&&, RemoteConfigError) {}));
+                         [](firebase::remote_config::ConfigUpdate&&,
+                            firebase::remote_config::RemoteConfigError) {}));
 }
 
 TEST_F(FirebaseRemoteConfigTest, TestRemoveConfigUpdateListener) {
   EXPECT_EQ(nullptr, rc_->AddOnConfigUpdateListener(
-                         [](ConfigUpdate&&, RemoteConfigError) {}));
+                         [](firebase::remote_config::ConfigUpdate&&,
+                            firebase::remote_config::RemoteConfigError) {}));
 }
 
 }  // namespace firebase_testapp_automated
