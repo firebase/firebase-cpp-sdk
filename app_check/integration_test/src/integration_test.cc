@@ -496,8 +496,8 @@ void FirebaseAppCheckTest::SignIn() {
     return;
   }
   LogDebug("Signing in.");
-  firebase::Future<firebase::auth::User*> sign_in_future =
-      auth_->SignInAnonymously_DEPRECATED();
+  firebase::Future<firebase::auth::AuthResult> sign_in_future =
+      auth_->SignInAnonymously();
   WaitForCompletion(sign_in_future, "SignInAnonymously");
   if (sign_in_future.error() != 0) {
     FAIL() << "Ensure your application has the Anonymous sign-in provider "
@@ -517,8 +517,7 @@ void FirebaseAppCheckTest::SignOut() {
   }
   if (auth_->current_user().is_anonymous()) {
     // If signed in anonymously, delete the anonymous user.
-    WaitForCompletion(auth_->current_user().Delete(),
-                      "DeleteAnonymousUser");
+    WaitForCompletion(auth_->current_user().Delete(), "DeleteAnonymousUser");
     // If there was a problem deleting the user, try to sign out at least.
     if (auth_->current_user().is_valid()) {
       auth_->SignOut();
