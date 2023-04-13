@@ -24,9 +24,12 @@
 
 #if FIREBASE_PLATFORM_ANDROID
 #include "gma/src/android/native_ad_internal_android.h"
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#include "gma/src/ios/native_ad_internal_ios.h"
 #else
 #include "gma/src/stub/native_ad_internal_stub.h"
-#endif  // FIREBASE_PLATFORM_ANDROID
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
 
 namespace firebase {
 namespace gma {
@@ -38,6 +41,8 @@ NativeAdInternal::NativeAdInternal(NativeAd* base)
 NativeAdInternal* NativeAdInternal::CreateInstance(NativeAd* base) {
 #if FIREBASE_PLATFORM_ANDROID
   return new NativeAdInternalAndroid(base);
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+  return new NativeAdInternalIOS(base);
 #else
   return new NativeAdInternalStub(base);
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,

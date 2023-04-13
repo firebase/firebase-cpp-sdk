@@ -53,6 +53,7 @@ set(ios_SRCS
     src/ios/FADAdSize.mm
     src/ios/FADAdView.mm
     src/ios/FADInterstitialDelegate.mm
+    src/ios/FADNativeDelegate.mm
     src/ios/FADRequest.mm
     src/ios/FADRewardedAdDelegate.mm
     src/ios/ad_error_ios.mm
@@ -60,6 +61,7 @@ set(ios_SRCS
     src/ios/gma_ios.mm
     src/ios/ad_view_internal_ios.mm
     src/ios/interstitial_ad_internal_ios.mm
+    src/ios/native_ad_internal_ios.mm
     src/ios/response_info_ios.mm
     src/ios/rewarded_ad_internal_ios.mm)
 

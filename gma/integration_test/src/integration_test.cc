@@ -875,7 +875,6 @@ TEST_F(FirebaseGmaTest, TestRewardedAdLoad) {
 TEST_F(FirebaseGmaTest, TestNativeAdLoad) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
-  SKIP_TEST_ON_IOS;
 
   firebase::gma::NativeAd* native_ad = new firebase::gma::NativeAd();
 
@@ -2014,7 +2013,6 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadExtrasClassName) {
 TEST_F(FirebaseGmaTest, TestNativeAdLoadEmptyRequest) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
-  SKIP_TEST_ON_IOS;
 
   firebase::gma::NativeAd* native_ad = new firebase::gma::NativeAd();
 
@@ -2042,7 +2040,6 @@ TEST_F(FirebaseGmaTest, TestNativeAdLoadEmptyRequest) {
 
 TEST_F(FirebaseGmaTest, TestNativeAdErrorNotInitialized) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_IOS;
 
   firebase::gma::NativeAd* native_ad = new firebase::gma::NativeAd();
 
@@ -2055,7 +2052,6 @@ TEST_F(FirebaseGmaTest, TestNativeAdErrorNotInitialized) {
 
 TEST_F(FirebaseGmaTest, TestNativeAdErrorAlreadyInitialized) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_IOS;
 
   {
     firebase::gma::NativeAd* native_ad = new firebase::gma::NativeAd();
@@ -2095,7 +2091,6 @@ TEST_F(FirebaseGmaTest, TestNativeAdErrorAlreadyInitialized) {
 
 TEST_F(FirebaseGmaTest, TestNativeAdErrorBadAdUnitId) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_IOS;
 
   firebase::gma::NativeAd* native_ad = new firebase::gma::NativeAd();
   WaitForCompletion(native_ad->Initialize(app_framework::GetWindowContext()),
@@ -2123,7 +2118,6 @@ TEST_F(FirebaseGmaTest, TestNativeAdErrorBadAdUnitId) {
 
 TEST_F(FirebaseGmaTest, TestNativeAdErrorBadExtrasClassName) {
   SKIP_TEST_ON_DESKTOP;
-  SKIP_TEST_ON_IOS;
 
   firebase::gma::NativeAd* native_ad = new firebase::gma::NativeAd();
   WaitForCompletion(native_ad->Initialize(app_framework::GetWindowContext()),
