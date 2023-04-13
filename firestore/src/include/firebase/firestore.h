@@ -495,8 +495,8 @@ class Firestore {
   friend class csharp::ApiHeaders;
   friend class csharp::TransactionManager;
 
-  Firestore(::firebase::App* app, const char* database_id = kDefaultDatabase);
-
+  explicit Firestore(::firebase::App* app,
+                     const char* database_id = kDefaultDatabase);
   explicit Firestore(FirestoreInternal* internal);
 
   static Firestore* CreateFirestore(::firebase::App* app,
