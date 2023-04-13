@@ -31,8 +31,7 @@ enum RemoteConfigFn {
   kRemoteConfigFnFetchAndActivate,
   kRemoteConfigFnSetDefaults,
   kRemoteConfigFnSetConfigSettings,
-  kRemoteConfigFnCount,
-  kRemoteConficFnAddOnConfigUpdateListener
+  kRemoteConfigFnCount
 };
 
 /// @brief Describes the error codes returned by futures.
