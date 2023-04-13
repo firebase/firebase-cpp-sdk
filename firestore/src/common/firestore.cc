@@ -127,19 +127,22 @@ Firestore* Firestore::GetInstance(App* app, InitResult* init_result_out) {
   if (from_cache) {
     return from_cache;
   }
-
-  return AddFirestoreToCache(new Firestore(app), init_result_out);
+  return Firestore::GetInstance(app, kDefault, init_result_out);
 }
 
-Firestore* Firestore::GetInstance(InitResult* init_result_out) {
+Firestore* Firestore::GetInstance(App* app, InitResult* init_result_out) {
+  return Firestore::GetInstance(app, kDefault, init_result_out);
+}
+
+Firestore* Firestore::GetInstance(const char* db_name,
+                                  InitResult* init_result_out) {
   App* app = App::GetInstance();
   if (!app) {
     SimpleThrowInvalidArgument(
         "Failed to get firebase::App instance. Please call "
         "firebase::App::Create before using Firestore");
   }
-
-  return Firestore::GetInstance(app, init_result_out);
+  return Firestore::GetInstance(app, db_name, init_result_out);
 }
 
 Firestore* Firestore::GetInstance(App* app,
@@ -147,16 +150,14 @@ Firestore* Firestore::GetInstance(App* app,
                                   InitResult* init_result_out) {
   ValidateApp(app);
   ValidateDatabase(db_name);
-  // TODO(Mila): Implement code
-  return Firestore::GetInstance(app, init_result_out);
-}
 
-Firestore* Firestore::GetInstance(const char* db_name,
-                                  InitResult* init_result_out) {
-  ValidateDatabase(db_name);
-  // TODO(Mila): Implement code
-  App* app = App::GetInstance();
-  return Firestore::GetInstance(app, init_result_out);
+  MutexLock lock(*g_firestores_lock);
+  Firestore* from_cache = FindFirestoreInCache(app, init_result_out);
+  if (from_cache) {
+    return from_cache;
+  }
+
+  return AddFirestoreToCache(new Firestore(app, db_name), init_result_out);
 }
 
 Firestore* Firestore::CreateFirestore(App* app,
@@ -190,8 +191,8 @@ Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,
   return firestore;
 }
 
-Firestore::Firestore(::firebase::App* app)
-    : Firestore{new FirestoreInternal{app}} {}
+Firestore::Firestore(::firebase::App* app, const char* database_id)
+    : Firestore{new FirestoreInternal{app, database_id}} {}
 
 Firestore::Firestore(FirestoreInternal* internal)
     // TODO(wuandy): use make_unique once it is supported for our build here.
