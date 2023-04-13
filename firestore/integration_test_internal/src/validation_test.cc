@@ -407,11 +407,37 @@ TEST_F(ValidationTest, DisableSslWithoutSettingHostFails) {
 }
 
 TEST_F(ValidationTest, FirestoreGetInstanceWithNullAppFails) {
-  EXPECT_ERROR(
-      Firestore::GetInstance(/*app=*/nullptr, /*init_result=*/nullptr),
-      "firebase::App instance cannot be null. Use "
-      "firebase::App::GetInstance() without arguments if you'd like to use "
-      "the default instance.");
+  EXPECT_ERROR(Firestore::GetInstance(/*app=*/(App*)nullptr,
+                                      /*init_result=*/(InitResult*)nullptr),
+               "firebase::App instance cannot be null. Use other "
+               "firebase::App::GetInstance() if you'd like to use the default "
+               "instance.");
+}
+
+TEST_F(ValidationTest, FirestoreGetInstanceWithNullDatabaseNameFails) {
+  EXPECT_ERROR(Firestore::GetInstance(/*db_name=*/(char*)nullptr,
+                                      /*init_result=*/(InitResult*)nullptr),
+               "Provided database ID must not be null. Use other "
+               "firebase::App::GetInstance() if you'd like to use the default "
+               "database ID.");
+}
+
+TEST_F(ValidationTest,
+       FirestoreGetInstanceWithNonNullDatabaseIdButNullAppFails) {
+  EXPECT_ERROR(Firestore::GetInstance(/*app=*/(App*)nullptr, "foo",
+                                      /*init_result=*/(InitResult*)nullptr),
+               "firebase::App instance cannot be null. Use other "
+               "firebase::App::GetInstance() if you'd like to use the default "
+               "instance.");
+}
+
+TEST_F(ValidationTest,
+       FirestoreGetInstanceWithNonNullAppButNullDatabaseNameFails) {
+  EXPECT_ERROR(Firestore::GetInstance(app(), /*db_name=*/(char*)nullptr,
+                                      /*init_result=*/(InitResult*)nullptr),
+               "Provided database ID must not be null. Use other "
+               "firebase::App::GetInstance() if you'd like to use the default "
+               "database ID.");
 }
 
 TEST_F(ValidationTest,
