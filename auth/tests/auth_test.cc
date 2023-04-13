@@ -124,7 +124,7 @@ class AuthTest : public ::testing::Test {
   void MakeAuth() {
     firebase_app_ = testing::CreateApp();
     firebase_auth_ = Auth::GetAuth(firebase_app_);
-    if (firebase_auth_->current_user().is_vaild()) {
+    if (firebase_auth_->current_user().is_valid()) {
       firebase_auth_->SignOut();
     }
   }
