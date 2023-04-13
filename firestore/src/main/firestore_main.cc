@@ -101,18 +101,20 @@ void ValidateDoubleSlash(const char* path) {
 
 }  // namespace
 
-FirestoreInternal::FirestoreInternal(App* app, const char*  database_id)
-    : FirestoreInternal{app, database_id,CreateCredentialsProvider(*app),
+FirestoreInternal::FirestoreInternal(App* app, const char* database_id)
+    : FirestoreInternal{app, database_id, CreateCredentialsProvider(*app),
                         CreateAppCheckCredentialsProvider(*app)} {}
 
 FirestoreInternal::FirestoreInternal(
     App* app,
-    const char*  database_id,
+    const char* database_id,
     std::unique_ptr<AuthCredentialsProvider> auth_credentials,
     std::unique_ptr<AppCheckCredentialsProvider> app_check_credentials)
     : app_(NOT_NULL(app)),
-      firestore_core_(CreateFirestore(
-          app, database_id,std::move(auth_credentials), std::move(app_check_credentials))),
+      firestore_core_(CreateFirestore(app,
+                                      database_id,
+                                      std::move(auth_credentials),
+                                      std::move(app_check_credentials))),
       transaction_executor_(absl::ShareUniquePtr(Executor::CreateConcurrent(
           "com.google.firebase.firestore.transaction", /*threads=*/5))) {
   ApplyDefaultSettings();
@@ -122,7 +124,6 @@ FirestoreInternal::FirestoreInternal(
 #else
   App::RegisterLibrary("fire-fst", kFirestoreVersionString, nullptr);
 #endif
-
 }
 
 FirestoreInternal::~FirestoreInternal() {
@@ -133,14 +134,14 @@ FirestoreInternal::~FirestoreInternal() {
 
 std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
     App* app,
-    const char*  database_id,
+    const char* database_id,
     std::unique_ptr<AuthCredentialsProvider> auth_credentials,
     std::unique_ptr<AppCheckCredentialsProvider> app_check_credentials) {
   const AppOptions& opt = app->options();
   return std::make_shared<api::Firestore>(
-      DatabaseId{opt.project_id(),database_id }, app->name(), std::move(auth_credentials),
-      std::move(app_check_credentials), CreateWorkerQueue(),
-      CreateFirebaseMetadataProvider(*app), this);
+      DatabaseId{opt.project_id(), database_id}, app->name(),
+      std::move(auth_credentials), std::move(app_check_credentials),
+      CreateWorkerQueue(), CreateFirebaseMetadataProvider(*app), this);
 }
 
 CollectionReference FirestoreInternal::Collection(

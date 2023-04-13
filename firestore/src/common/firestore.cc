@@ -118,20 +118,18 @@ void ValidateDatabase(const char* db_name) {
 
 }  // namespace
 
-Firestore* Firestore::GetInstance(App* app, InitResult* init_result_out) {
-  ValidateApp(app);
-
-  MutexLock lock(*g_firestores_lock);
-
-  Firestore* from_cache = FindFirestoreInCache(app, init_result_out);
-  if (from_cache) {
-    return from_cache;
+Firestore* Firestore::GetInstance(InitResult* init_result_out) {
+  App* app = App::GetInstance();
+  if (!app) {
+    SimpleThrowInvalidArgument(
+        "Failed to get firebase::App instance. Please call "
+        "firebase::App::Create before using Firestore");
   }
-  return Firestore::GetInstance(app, kDefault, init_result_out);
+  return Firestore::GetInstance(app, kDefaultDatabase, init_result_out);
 }
 
 Firestore* Firestore::GetInstance(App* app, InitResult* init_result_out) {
-  return Firestore::GetInstance(app, kDefault, init_result_out);
+  return Firestore::GetInstance(app, kDefaultDatabase, init_result_out);
 }
 
 Firestore* Firestore::GetInstance(const char* db_name,

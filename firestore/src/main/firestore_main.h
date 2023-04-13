@@ -150,7 +150,7 @@ class FirestoreInternal {
 
   FirestoreInternal(
       App* app,
-      const char*  database_id,
+      const char* database_id,
       std::unique_ptr<credentials::AuthCredentialsProvider> auth_credentials,
       std::unique_ptr<credentials::AppCheckCredentialsProvider>
           app_check_credentials);
