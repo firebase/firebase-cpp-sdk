@@ -124,7 +124,7 @@ class AuthTest : public ::testing::Test {
   void MakeAuth() {
     firebase_app_ = testing::CreateApp();
     firebase_auth_ = Auth::GetAuth(firebase_app_);
-    if (firebase_auth_->current_user_DEPRECATED()) {
+    if (firebase_auth_->current_user().is_valid()) {
       firebase_auth_->SignOut();
     }
   }
@@ -510,16 +510,16 @@ TEST_F(AuthTest, TestCurrentUserAndSignOut) {
   MakeAuth();
 
   // No user is signed in.
-  EXPECT_EQ(nullptr, firebase_auth_->current_user_DEPRECATED());
+  EXPECT_FALSE(firebase_auth_->current_user().is_valid());
 
   // Now sign-in, say anonymously.
   Future<User*> result = firebase_auth_->SignInAnonymously_DEPRECATED();
   MaybeWaitForFuture(result);
-  EXPECT_NE(nullptr, firebase_auth_->current_user_DEPRECATED());
+  EXPECT_TRUE(firebase_auth_->current_user().is_valid());
 
   // Now sign-out.
   firebase_auth_->SignOut();
-  EXPECT_EQ(nullptr, firebase_auth_->current_user_DEPRECATED());
+  EXPECT_FALSE(firebase_auth_->current_user().is_valid());
 }
 
 TEST_F(AuthTest, TestSendPasswordResetEmailSucceeded) {
