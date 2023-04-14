@@ -211,7 +211,8 @@ void VariousSignInChecks(firebase::auth::Auth* auth) {
     if (result.status() == firebase::kFutureStatusComplete) {
       if (result.error() == firebase::auth::kAuthErrorNone) {
         const firebase::auth::AuthResult auth_result = *result.result();
-        printf("Create user succeeded for email %s\n", auth_result.user.email().c_str());
+        printf("Create user succeeded for email %s\n",
+               auth_result.user.email().c_str());
       } else {
         printf("Created user failed with error '%s'\n", result.error_message());
       }
@@ -225,7 +226,8 @@ void VariousSignInChecks(firebase::auth::Auth* auth) {
     if (result.status() == firebase::kFutureStatusComplete) {
       if (result.error() == firebase::auth::kAuthErrorNone) {
         const firebase::auth::AuthResult auth_result = *result.result();
-        printf("Sign in succeeded for email %s\n", auth_result.user.email().c_str());
+        printf("Sign in succeeded for email %s\n",
+               auth_result.user.email().c_str());
       } else {
         printf("Sign in failed with error '%s'\n", result.error_message());
       }
@@ -239,7 +241,8 @@ void VariousSignInChecks(firebase::auth::Auth* auth) {
     if (result.status() == firebase::kFutureStatusComplete) {
       if (result.error() == firebase::auth::kAuthErrorNone) {
         firebase::auth::AuthResult auth_result = *result.result();
-        printf("Sign in succeeded for `%s`\n", auth_result.user.display_name().c_str());
+        printf("Sign in succeeded for `%s`\n",
+               auth_result.user.display_name().c_str());
       } else {
         printf("Sign in failed with error '%s'\n", result.error_message());
       }
@@ -253,7 +256,8 @@ void VariousSignInChecks(firebase::auth::Auth* auth) {
     if (result.status() == firebase::kFutureStatusComplete) {
       if (result.error() == firebase::auth::kAuthErrorNone) {
         firebase::auth::AuthResult auth_result = *result.result();
-        printf("Sign in succeeded for `%s`\n", auth_result.user.display_name().c_str());
+        printf("Sign in succeeded for `%s`\n",
+               auth_result.user.display_name().c_str());
       } else {
         printf("Sign in failed with error '%s'\n", result.error_message());
       }
@@ -267,7 +271,8 @@ void VariousSignInChecks(firebase::auth::Auth* auth) {
     if (result.status() == firebase::kFutureStatusComplete) {
       if (result.error() == firebase::auth::kAuthErrorNone) {
         firebase::auth::AuthResult auth_result = *result.result();
-        printf("Sign in succeeded for `%s`\n", auth_result.user.display_name().c_str());
+        printf("Sign in succeeded for `%s`\n",
+               auth_result.user.display_name().c_str());
       } else {
         printf("Sign in failed with error '%s'\n", result.error_message());
       }
@@ -562,7 +567,8 @@ void LinkCredentialFailAppleSignIn(const firebase::auth::Credential& credential,
     // user linked correctly.
   } else if (link_result.error() ==
                  firebase::auth::kAuthErrorCredentialAlreadyInUse &&
-             link_result.result()->additional_user_info.updated_credential.is_valid()) {
+             link_result.result()
+                 ->additional_user_info.updated_credential.is_valid()) {
     // Sign In with the new credential
     firebase::Future<firebase::auth::AuthResult> result =
         auth->SignInAndRetrieveDataWithCredential(
@@ -655,8 +661,9 @@ firebase::auth::Auth* AuthOverview(firebase::App* app) {
     printf("Sign in failed with error `%s`\n", sign_in_future.error_message());
   } else {
     firebase::auth::AuthResult auth_result = *sign_in_future.result();
-    printf("Signed in as %s user.\n",
-           auth_result.user.is_anonymous() ? "an anonymous" : "a non-anonymous");
+    printf("Signed in as %s user.\n", auth_result.user.is_anonymous()
+                                          ? "an anonymous"
+                                          : "a non-anonymous");
   }
   /// [Auth overview]
 
@@ -771,7 +778,8 @@ class PhoneVerifier : public firebase::auth::PhoneAuthProvider::Listener {
 
   ~PhoneVerifier() override {}
 
-  void OnVerificationCompleted(firebase::auth::PhoneAuthCredential credential) override {
+  void OnVerificationCompleted(
+      firebase::auth::PhoneAuthCredential credential) override {
     // Grab `mutex_` for the scope of `lock`. Callbacks can be called on other
     // threads, so this mutex ensures data access is atomic.
     MutexLock lock(mutex_);
