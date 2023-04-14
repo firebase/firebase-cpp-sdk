@@ -503,6 +503,7 @@ class Firestore {
                                     FirestoreInternal* internal,
                                     InitResult* init_result_out);
   static Firestore* AddFirestoreToCache(Firestore* firestore,
+                                        const char* database_id,
                                         InitResult* init_result_out);
 
   static void SetClientLanguage(const std::string& language_token);
