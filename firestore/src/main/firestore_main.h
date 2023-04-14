@@ -55,7 +55,7 @@ class Executor;
 class FirestoreInternal {
  public:
   // Note: call `set_firestore_public` immediately after construction.
-  explicit FirestoreInternal(App* app);
+  FirestoreInternal(App* app, const char* database_id);
   ~FirestoreInternal();
 
   FirestoreInternal(const FirestoreInternal&) = delete;
@@ -150,12 +150,14 @@ class FirestoreInternal {
 
   FirestoreInternal(
       App* app,
+      const char* database_id,
       std::unique_ptr<credentials::AuthCredentialsProvider> auth_credentials,
       std::unique_ptr<credentials::AppCheckCredentialsProvider>
           app_check_credentials);
 
   std::shared_ptr<api::Firestore> CreateFirestore(
       App* app,
+      const char* database_id,
       std::unique_ptr<credentials::AuthCredentialsProvider> auth_credentials,
       std::unique_ptr<credentials::AppCheckCredentialsProvider>
           app_check_credentials);

@@ -441,11 +441,35 @@ TEST_F(ValidationTest,
 }
 
 TEST_F(ValidationTest,
+       FirestoreGetInstanceWithNoArgumentsReturnsNonNullInstance) {
+  InitResult result;
+  EXPECT_NO_THROW(Firestore::GetInstance(&result));
+  EXPECT_EQ(kInitResultSuccess, result);
+  EXPECT_NE(Firestore::GetInstance(), nullptr);
+}
+
+TEST_F(ValidationTest,
        FirestoreGetInstanceWithNonNullAppReturnsNonNullInstance) {
   InitResult result;
   EXPECT_NO_THROW(Firestore::GetInstance(app(), &result));
   EXPECT_EQ(kInitResultSuccess, result);
   EXPECT_NE(Firestore::GetInstance(app()), nullptr);
+}
+
+TEST_F(ValidationTest,
+       FirestoreGetInstanceWithAppAndDatabaseNameReturnsNonNullInstance) {
+  InitResult result;
+  EXPECT_NO_THROW(Firestore::GetInstance(app(), "foo", &result));
+  EXPECT_EQ(kInitResultSuccess, result);
+  EXPECT_NE(Firestore::GetInstance(app(), "foo"), nullptr);
+}
+
+TEST_F(ValidationTest,
+       FirestoreGetInstanceWithDatabaseNameReturnsNonNullInstance) {
+  InitResult result;
+  EXPECT_NO_THROW(Firestore::GetInstance("foo", &result));
+  EXPECT_EQ(kInitResultSuccess, result);
+  EXPECT_NE(Firestore::GetInstance("foo"), nullptr);
 }
 
 TEST_F(ValidationTest, CollectionPathsMustBeOddLength) {

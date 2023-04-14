@@ -72,6 +72,9 @@ class TransactionManager;
 
 }  // namespace csharp
 
+/** The default name for "unset" database ID in resource names. */
+static const char* kDefaultDatabase = "(default)";
+
 /**
  * @brief Entry point for the Firebase Firestore C++ SDK.
  *
@@ -492,7 +495,8 @@ class Firestore {
   friend class csharp::ApiHeaders;
   friend class csharp::TransactionManager;
 
-  explicit Firestore(::firebase::App* app);
+  explicit Firestore(::firebase::App* app,
+                     const char* database_id = kDefaultDatabase);
   explicit Firestore(FirestoreInternal* internal);
 
   static Firestore* CreateFirestore(::firebase::App* app,

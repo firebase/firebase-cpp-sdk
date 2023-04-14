@@ -37,7 +37,8 @@ struct TestFriend {
   static FirestoreInternal* CreateTestFirestoreInternal(App* app) {
 #if !defined(__ANDROID__)
     return new FirestoreInternal(
-        app, absl::make_unique<credentials::EmptyAuthCredentialsProvider>(),
+        app, /*database_id=*/"(default)",
+        absl::make_unique<credentials::EmptyAuthCredentialsProvider>(),
         absl::make_unique<credentials::EmptyAppCheckCredentialsProvider>());
 #else
     return new FirestoreInternal(app);
