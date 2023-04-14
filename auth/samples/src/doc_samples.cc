@@ -118,8 +118,8 @@ void VariousCredentials(firebase::auth::Auth* auth) {
 void VariousSignIns(firebase::auth::Auth* auth) {
   {
     // [START auth_create_user]
-    firebase::Future<firebase::auth::User*> result =
-        auth->CreateUserWithEmailAndPassword_DEPRECATED(email, password);
+    firebase::Future<firebase::auth::AuthResult> result =
+        auth->CreateUserWithEmailAndPassword(email, password);
     // [END auth_create_user]
     (void)result;
   }
@@ -128,15 +128,15 @@ void VariousSignIns(firebase::auth::Auth* auth) {
     firebase::auth::Credential credential =
         firebase::auth::OAuthProvider::GetCredential(
             "apple.com", apple_id_token, raw_nonce, nullptr);
-    firebase::Future<firebase::auth::User*> result =
-        auth->SignInWithCredential_DEPRECATED(credential);
+    firebase::Future<firebase::auth::AuthResult> result =
+        auth->SignInAndRetrieveDataWithCredential(credential);
     // [END auth_sign_in_apple]
     (void)result;
   }
   {
     // [START auth_sign_in_email]
-    firebase::Future<firebase::auth::User*> result =
-        auth->SignInWithEmailAndPassword_DEPRECATED(email, password);
+    firebase::Future<firebase::auth::AuthResult> result =
+        auth->SignInWithEmailAndPassword(email, password);
     // [END auth_sign_in_email]
     (void)result;
   }
@@ -145,8 +145,8 @@ void VariousSignIns(firebase::auth::Auth* auth) {
     firebase::auth::Credential credential =
         firebase::auth::GoogleAuthProvider::GetCredential(google_id_token,
                                                           nullptr);
-    firebase::Future<firebase::auth::User*> result =
-        auth->SignInWithCredential_DEPRECATED(credential);
+    firebase::Future<firebase::auth::AuthResult> result =
+        auth->SignInAndRetrieveDataWithCredential(credential);
     // [END auth_sign_in_google]
     (void)result;
   }
@@ -155,8 +155,8 @@ void VariousSignIns(firebase::auth::Auth* auth) {
     firebase::auth::Credential credential =
         firebase::auth::PlayGamesAuthProvider::GetCredential(server_auth_code);
 
-    firebase::Future<firebase::auth::User*> result =
-        auth->SignInWithCredential_DEPRECATED(credential);
+    firebase::Future<firebase::auth::AuthResult> result =
+        auth->SignInAndRetrieveDataWithCredential(credential);
     // [END auth_sign_in_play_games]
     (void)result;
   }
@@ -164,8 +164,8 @@ void VariousSignIns(firebase::auth::Auth* auth) {
     // [START auth_sign_in_facebook]
     firebase::auth::Credential credential =
         firebase::auth::FacebookAuthProvider::GetCredential(access_token);
-    firebase::Future<firebase::auth::User*> result =
-        auth->SignInWithCredential_DEPRECATED(credential);
+    firebase::Future<firebase::auth::AuthResult> result =
+        auth->SignInAndRetrieveDataWithCredential(credential);
     // [END auth_sign_in_facebook]
     (void)result;
   }
@@ -173,8 +173,8 @@ void VariousSignIns(firebase::auth::Auth* auth) {
     // [START auth_sign_in_github]
     firebase::auth::Credential credential =
         firebase::auth::GitHubAuthProvider::GetCredential(token);
-    firebase::Future<firebase::auth::User*> result =
-        auth->SignInWithCredential_DEPRECATED(credential);
+    firebase::Future<firebase::auth::AuthResult> result =
+        auth->SignInAndRetrieveDataWithCredential(credential);
     // [END auth_sign_in_github]
     (void)result;
   }
@@ -182,22 +182,22 @@ void VariousSignIns(firebase::auth::Auth* auth) {
     // [START auth_sign_in_twitter]
     firebase::auth::Credential credential =
         firebase::auth::TwitterAuthProvider::GetCredential(token, secret);
-    firebase::Future<firebase::auth::User*> result =
-        auth->SignInWithCredential_DEPRECATED(credential);
+    firebase::Future<firebase::auth::AuthResult> result =
+        auth->SignInAndRetrieveDataWithCredential(credential);
     // [END auth_sign_in_twitter]
     (void)result;
   }
   {
     // [START auth_sign_in_custom_token]
-    firebase::Future<firebase::auth::User*> result =
-        auth->SignInWithCustomToken_DEPRECATED(custom_token);
+    firebase::Future<firebase::auth::AuthResult> result =
+        auth->SignInWithCustomToken(custom_token);
     // [END auth_sign_in_custom_token]
     (void)result;
   }
   {
     // [START auth_sign_in_anonymously]
-    firebase::Future<firebase::auth::User*> result =
-        auth->SignInAnonymously_DEPRECATED();
+    firebase::Future<firebase::auth::AuthResult> result =
+        auth->SignInAnonymously();
     // [END auth_sign_in_anonymously]
     (void)result;
   }
@@ -206,12 +206,12 @@ void VariousSignIns(firebase::auth::Auth* auth) {
 void VariousSignInChecks(firebase::auth::Auth* auth) {
   {
     // [START auth_create_user_check]
-    firebase::Future<firebase::auth::User*> result =
+    firebase::Future<firebase::auth::AuthResult> result =
         auth->CreateUserWithEmailAndPasswordLastResult();
     if (result.status() == firebase::kFutureStatusComplete) {
       if (result.error() == firebase::auth::kAuthErrorNone) {
-        firebase::auth::User* user = *result.result();
-        printf("Create user succeeded for email %s\n", user->email().c_str());
+        const firebase::auth::AuthResult auth_result = *result.result();
+        printf("Create user succeeded for email %s\n", auth_result.user.email().c_str());
       } else {
         printf("Created user failed with error '%s'\n", result.error_message());
       }
@@ -220,12 +220,12 @@ void VariousSignInChecks(firebase::auth::Auth* auth) {
   }
   {
     // [START auth_sign_in_email_check]
-    firebase::Future<firebase::auth::User*> result =
-        auth->SignInWithEmailAndPasswordLastResult_DEPRECATED();
+    firebase::Future<firebase::auth::AuthResult> result =
+        auth->SignInWithEmailAndPasswordLastResult();
     if (result.status() == firebase::kFutureStatusComplete) {
       if (result.error() == firebase::auth::kAuthErrorNone) {
-        firebase::auth::User* user = *result.result();
-        printf("Sign in succeeded for email %s\n", user->email().c_str());
+        const firebase::auth::AuthResult auth_result = *result.result();
+        printf("Sign in succeeded for email %s\n", auth_result.user.email().c_str());
       } else {
         printf("Sign in failed with error '%s'\n", result.error_message());
       }
@@ -234,12 +234,12 @@ void VariousSignInChecks(firebase::auth::Auth* auth) {
   }
   {
     // [START auth_sign_in_credential_check]
-    firebase::Future<firebase::auth::User*> result =
-        auth->SignInWithCredentialLastResult_DEPRECATED();
+    firebase::Future<firebase::auth::AuthResult> result =
+        auth->SignInAndRetrieveDataWithCredentialLastResult();
     if (result.status() == firebase::kFutureStatusComplete) {
       if (result.error() == firebase::auth::kAuthErrorNone) {
-        firebase::auth::User* user = *result.result();
-        printf("Sign in succeeded for `%s`\n", user->display_name().c_str());
+        firebase::auth::AuthResult auth_result = *result.result();
+        printf("Sign in succeeded for `%s`\n", auth_result.user.display_name().c_str());
       } else {
         printf("Sign in failed with error '%s'\n", result.error_message());
       }
@@ -248,12 +248,12 @@ void VariousSignInChecks(firebase::auth::Auth* auth) {
   }
   {
     // [START auth_sign_in_custom_token_check]
-    firebase::Future<firebase::auth::User*> result =
+    firebase::Future<firebase::auth::AuthResult> result =
         auth->SignInWithCustomTokenLastResult();
     if (result.status() == firebase::kFutureStatusComplete) {
       if (result.error() == firebase::auth::kAuthErrorNone) {
-        firebase::auth::User* user = *result.result();
-        printf("Sign in succeeded for `%s`\n", user->display_name().c_str());
+        firebase::auth::AuthResult auth_result = *result.result();
+        printf("Sign in succeeded for `%s`\n", auth_result.user.display_name().c_str());
       } else {
         printf("Sign in failed with error '%s'\n", result.error_message());
       }
@@ -262,12 +262,12 @@ void VariousSignInChecks(firebase::auth::Auth* auth) {
   }
   {
     // [START auth_sign_in_anonymously_check]
-    firebase::Future<firebase::auth::User*> result =
-        auth->SignInAnonymouslyLastResult_DEPRECATED();
+    firebase::Future<firebase::auth::AuthResult> result =
+        auth->SignInAnonymouslyLastResult();
     if (result.status() == firebase::kFutureStatusComplete) {
       if (result.error() == firebase::auth::kAuthErrorNone) {
-        firebase::auth::User* user = *result.result();
-        printf("Sign in succeeded for `%s`\n", user->display_name().c_str());
+        firebase::auth::AuthResult auth_result = *result.result();
+        printf("Sign in succeeded for `%s`\n", auth_result.user.display_name().c_str());
       } else {
         printf("Sign in failed with error '%s'\n", result.error_message());
       }
@@ -280,10 +280,10 @@ void VariousSignInChecks(firebase::auth::Auth* auth) {
 class MyAuthStateListener : public firebase::auth::AuthStateListener {
  public:
   void OnAuthStateChanged(firebase::auth::Auth* auth) override {
-    firebase::auth::User* user = auth->current_user_DEPRECATED();
-    if (user != nullptr) {
+    firebase::auth::User user = auth->current_user();
+    if (user.is_valid()) {
       // User is signed in
-      printf("OnAuthStateChanged: signed_in %s\n", user->uid().c_str());
+      printf("OnAuthStateChanged: signed_in %s\n", user.uid().c_str());
     } else {
       // User is signed out
       printf("OnAuthStateChanged: signed_out\n");
@@ -304,47 +304,47 @@ void VariousUserManagementChecks(firebase::auth::Auth* auth) {
   }
   {
     // [START auth_user_info_check]
-    firebase::auth::User* user = auth->current_user_DEPRECATED();
-    if (user != nullptr) {
-      std::string name = user->display_name();
-      std::string email = user->email();
-      std::string photo_url = user->photo_url();
+    firebase::auth::User user = auth->current_user();
+    if (user.is_valid()) {
+      std::string name = user.display_name();
+      std::string email = user.email();
+      std::string photo_url = user.photo_url();
       // The user's ID, unique to the Firebase project.
       // Do NOT use this value to authenticate with your backend server,
       // if you have one. Use firebase::auth::User::Token() instead.
-      std::string uid = user->uid();
+      std::string uid = user.uid();
     }
     // [END auth_user_info_check]
   }
   {
     // [START auth_user_profile_data_check]
-    firebase::auth::User* user = auth->current_user_DEPRECATED();
-    if (user != nullptr) {
-      for (auto it = user->provider_data().begin();
-           it != user->provider_data().end(); ++it) {
-        firebase::auth::UserInfoInterface* profile = *it;
+    firebase::auth::User user = auth->current_user();
+    if (user.is_valid()) {
+      for (auto it = user.provider_data().begin();
+           it != user.provider_data().end(); ++it) {
+        firebase::auth::UserInfoInterface profile = *it;
         // Id of the provider (ex: google.com)
-        std::string providerId = profile->provider_id();
+        std::string providerId = profile.provider_id();
 
         // UID specific to the provider
-        std::string uid = profile->uid();
+        std::string uid = profile.uid();
 
         // Name, email address, and profile photo Url
-        std::string name = profile->display_name();
-        std::string email = profile->email();
-        std::string photoUrl = profile->photo_url();
+        std::string name = profile.display_name();
+        std::string email = profile.email();
+        std::string photoUrl = profile.photo_url();
       }
     }
     // [END auth_user_profile_data_check]
   }
   {
     // [START auth_profile_edit_check]
-    firebase::auth::User* user = auth->current_user_DEPRECATED();
-    if (user != nullptr) {
+    firebase::auth::User user = auth->current_user();
+    if (user.is_valid()) {
       firebase::auth::User::UserProfile profile;
       profile.display_name = "Jane Q. User";
       profile.photo_url = "https://example.com/jane-q-user/profile.jpg";
-      user->UpdateUserProfile(profile).OnCompletion(
+      user.UpdateUserProfile(profile).OnCompletion(
           [](const firebase::Future<void>& completed_future, void* user_data) {
             // We are probably in a different thread right now.
             if (completed_future.error() == 0) {
@@ -357,9 +357,9 @@ void VariousUserManagementChecks(firebase::auth::Auth* auth) {
   }
   {
     // [START auth_set_email_check]
-    firebase::auth::User* user = auth->current_user_DEPRECATED();
-    if (user != nullptr) {
-      user->UpdateEmail("user@example.com")
+    firebase::auth::User user = auth->current_user();
+    if (user.is_valid()) {
+      user.UpdateEmail("user@example.com")
           .OnCompletion(
               [](const firebase::Future<void>& completed_future,
                  void* user_data) {
@@ -374,9 +374,9 @@ void VariousUserManagementChecks(firebase::auth::Auth* auth) {
   }
   {
     // [START auth_user_verify_email_check]
-    firebase::auth::User* user = auth->current_user_DEPRECATED();
-    if (user != nullptr) {
-      user->SendEmailVerification().OnCompletion(
+    firebase::auth::User user = auth->current_user();
+    if (user.is_valid()) {
+      user.SendEmailVerification().OnCompletion(
           [](const firebase::Future<void>& completed_future, void* user_data) {
             // We are probably in a different thread right now.
             if (completed_future.error() == 0) {
@@ -389,11 +389,11 @@ void VariousUserManagementChecks(firebase::auth::Auth* auth) {
   }
   {
     // [START auth_user_update_password_check]
-    firebase::auth::User* user = auth->current_user_DEPRECATED();
+    firebase::auth::User user = auth->current_user();
     std::string newPassword = "SOME-SECURE-PASSWORD";
 
-    if (user != nullptr) {
-      user->UpdatePassword(newPassword.c_str())
+    if (user.is_valid()) {
+      user.UpdatePassword(newPassword.c_str())
           .OnCompletion(
               [](const firebase::Future<void>& completed_future,
                  void* user_data) {
@@ -428,9 +428,9 @@ void VariousUserManagementChecks(firebase::auth::Auth* auth) {
   }
   {
     // [START auth_user_delete_check]
-    firebase::auth::User* user = auth->current_user_DEPRECATED();
-    if (user != nullptr) {
-      user->Delete().OnCompletion(
+    firebase::auth::User user = auth->current_user();
+    if (user.is_valid()) {
+      user.Delete().OnCompletion(
           [](const firebase::Future<void>& completed_future, void* user_data) {
             if (completed_future.error() == 0) {
               // User deleted.
@@ -446,7 +446,7 @@ void VariousUserManagementChecks(firebase::auth::Auth* auth) {
   }
   {
     // [START auth_user_reauthenticate_check]
-    firebase::auth::User* user = auth->current_user_DEPRECATED();
+    firebase::auth::User user = auth->current_user();
 
     // Get auth credentials from the user for re-authentication. The example
     // below shows email and password credentials but there are multiple
@@ -455,8 +455,8 @@ void VariousUserManagementChecks(firebase::auth::Auth* auth) {
         firebase::auth::EmailAuthProvider::GetCredential("user@example.com",
                                                          "password1234");
 
-    if (user != nullptr) {
-      user->Reauthenticate(credential)
+    if (user.is_valid()) {
+      user.Reauthenticate(credential)
           .OnCompletion(
               [](const firebase::Future<void>& completed_future,
                  void* user_data) {
@@ -496,7 +496,7 @@ void OnCreateCallback(const firebase::Future<firebase::auth::User*>& result,
 
 void CreateUser(firebase::auth::Auth* auth) {
   // Callbacks work the same for any firebase::Future.
-  firebase::Future<firebase::auth::User*> result =
+  firebase::Future<firebase::auth::AuthResult> result =
       auth->CreateUserWithEmailAndPasswordLastResult();
 
   // `&my_program_context` is passed verbatim to OnCreateCallback().
@@ -507,7 +507,7 @@ void CreateUser(firebase::auth::Auth* auth) {
 // [START future_lambda]
 void CreateUserUsingLambda(firebase::auth::Auth* auth) {
   // Callbacks work the same for any firebase::Future.
-  firebase::Future<firebase::auth::User*> result =
+  firebase::Future<firebase::auth::AuthResult> result =
       auth->CreateUserWithEmailAndPasswordLastResult();
 
   // The lambda has the same signature as the callback function.
@@ -531,27 +531,26 @@ void LinkCredential(const firebase::auth::Credential& credential,
                     firebase::auth::Auth* auth) {
   // [START user_link]
   // Link the new credential to the currently active user.
-  firebase::auth::User* current_user = auth->current_user_DEPRECATED();
-  firebase::Future<firebase::auth::User*> result =
-      current_user->LinkWithCredential_DEPRECATED(credential);
+  firebase::auth::User current_user = auth->current_user();
+  firebase::Future<firebase::auth::AuthResult> result =
+      current_user.LinkWithCredential(credential);
   // [END user_link]
 }
 
 void UnLinkCredential(const char* providerId, firebase::auth::Auth* auth) {
   // [START user_unlink]
   // Unlink the sign-in provider from the currently active user.
-  firebase::auth::User* current_user = auth->current_user_DEPRECATED();
-  firebase::Future<firebase::auth::User*> result =
-      current_user->Unlink_DEPRECATED(providerId);
+  firebase::auth::User current_user = auth->current_user();
+  firebase::Future<firebase::auth::AuthResult> result =
+      current_user.Unlink(providerId);
   // [END user_unlink]
 }
 
 void LinkCredentialFailAppleSignIn(const firebase::auth::Credential& credential,
                                    firebase::auth::Auth* auth) {
   // [START link_credential_apple_signin]
-  firebase::Future<firebase::auth::SignInResult> link_result =
-      auth->current_user_DEPRECATED()->LinkAndRetrieveDataWithCredential(
-          credential);
+  firebase::Future<firebase::auth::AuthResult> link_result =
+      auth->current_user().LinkWithCredential(credential);
 
   // To keep example simple, wait on the current thread until call completes.
   while (link_result.status() == firebase::kFutureStatusPending) {
@@ -563,11 +562,11 @@ void LinkCredentialFailAppleSignIn(const firebase::auth::Credential& credential,
     // user linked correctly.
   } else if (link_result.error() ==
                  firebase::auth::kAuthErrorCredentialAlreadyInUse &&
-             link_result.result()->info.updated_credential.is_valid()) {
+             link_result.result()->additional_user_info.updated_credential.is_valid()) {
     // Sign In with the new credential
-    firebase::Future<firebase::auth::User*> result =
-        auth->SignInWithCredential_DEPRECATED(
-            link_result.result()->info.updated_credential);
+    firebase::Future<firebase::auth::AuthResult> result =
+        auth->SignInAndRetrieveDataWithCredential(
+            link_result.result()->additional_user_info.updated_credential);
   } else {
     // Another link error occurred.
   }
@@ -578,15 +577,15 @@ void MergeCredentials(const firebase::auth::Credential& credential,
                       firebase::auth::Auth* auth) {
   // [START user_merge]
   // Gather data for the currently signed in User.
-  firebase::auth::User* current_user = auth->current_user_DEPRECATED();
-  std::string current_email = current_user->email();
-  std::string current_provider_id = current_user->provider_id();
-  std::string current_display_name = current_user->display_name();
-  std::string current_photo_url = current_user->photo_url();
+  firebase::auth::User current_user = auth->current_user();
+  std::string current_email = current_user.email();
+  std::string current_provider_id = current_user.provider_id();
+  std::string current_display_name = current_user.display_name();
+  std::string current_photo_url = current_user.photo_url();
 
   // Sign in with the new credentials.
-  firebase::Future<firebase::auth::User*> result =
-      auth->SignInWithCredential_DEPRECATED(credential);
+  firebase::Future<firebase::auth::AuthResult> result =
+      auth->SignInAndRetrieveDataWithCredential(credential);
 
   // To keep example simple, wait on the current thread until call completes.
   while (result.status() == firebase::kFutureStatusPending) {
@@ -611,24 +610,24 @@ void MergeCredentials(const firebase::auth::Credential& credential,
 
 void NextSteps(firebase::auth::Auth* auth) {
   // [START next_steps]
-  firebase::auth::User* user = auth->current_user_DEPRECATED();
-  if (user != nullptr) {
-    std::string name = user->display_name();
-    std::string email = user->email();
-    std::string photo_url = user->photo_url();
+  firebase::auth::User user = auth->current_user();
+  if (user.is_valid()) {
+    std::string name = user.display_name();
+    std::string email = user.email();
+    std::string photo_url = user.photo_url();
     // The user's ID, unique to the Firebase project.
     // Do NOT use this value to authenticate with your backend server,
     // if you have one. Use firebase::auth::User::Token() instead.
-    std::string uid = user->uid();
+    std::string uid = user.uid();
   }
   // [END next_steps]
 }
 
 void SendIdTokenToBackend(firebase::auth::Auth* auth) {
   // [START send_id_token_to_backend]
-  firebase::auth::User* user = auth->current_user_DEPRECATED();
-  if (user != nullptr) {
-    firebase::Future<std::string> idToken = user->GetToken(true);
+  firebase::auth::User user = auth->current_user();
+  if (user.is_valid()) {
+    firebase::Future<std::string> idToken = user.GetToken(true);
 
     // Send token to your backend via HTTPS
     // ...
@@ -642,8 +641,8 @@ firebase::auth::Auth* AuthOverview(firebase::App* app) {
   firebase::auth::Auth* auth = firebase::auth::Auth::GetAuth(app);
 
   // Request anonymous sign-in and wait until asynchronous call completes.
-  firebase::Future<firebase::auth::User*> sign_in_future =
-      auth->SignInAnonymously_DEPRECATED();
+  firebase::Future<firebase::auth::AuthResult> sign_in_future =
+      auth->SignInAnonymously();
   while (sign_in_future.status() == firebase::kFutureStatusPending) {
     Wait(100);
     printf("Signing in...\n");
@@ -655,9 +654,9 @@ firebase::auth::Auth* AuthOverview(firebase::App* app) {
   if (error != firebase::auth::kAuthErrorNone) {
     printf("Sign in failed with error `%s`\n", sign_in_future.error_message());
   } else {
-    firebase::auth::User* user = *sign_in_future.result();
+    firebase::auth::AuthResult auth_result = *sign_in_future.result();
     printf("Signed in as %s user.\n",
-           user->is_anonymous() ? "an anonymous" : "a non-anonymous");
+           auth_result.user.is_anonymous() ? "an anonymous" : "a non-anonymous");
   }
   /// [Auth overview]
 
@@ -711,14 +710,14 @@ const char* DisplayIdentityProviders(const char* email,
 // This function is called every frame.
 bool SignIn(firebase::auth::Auth* auth) {
   // Grab the result of the latest sign-in attempt.
-  firebase::Future<firebase::auth::User*> future =
-      auth->SignInAnonymouslyLastResult_DEPRECATED();
+  firebase::Future<firebase::auth::AuthResult> future =
+      auth->SignInAnonymouslyLastResult();
 
   // If we're in a state where we can try to sign in, do so.
   if (future.status() == firebase::kFutureStatusInvalid ||
       (future.status() == firebase::kFutureStatusComplete &&
        future.error() != firebase::auth::kAuthErrorNone)) {
-    auth->SignInAnonymously_DEPRECATED();
+    auth->SignInAnonymously();
   }
 
   // We're signed in if the most recent result was successful.
@@ -772,7 +771,7 @@ class PhoneVerifier : public firebase::auth::PhoneAuthProvider::Listener {
 
   ~PhoneVerifier() override {}
 
-  void OnVerificationCompleted(firebase::auth::Credential credential) override {
+  void OnVerificationCompleted(firebase::auth::PhoneAuthCredential credential) override {
     // Grab `mutex_` for the scope of `lock`. Callbacks can be called on other
     // threads, so this mutex ensures data access is atomic.
     MutexLock lock(mutex_);
@@ -856,7 +855,7 @@ class PhoneVerifier : public firebase::auth::PhoneAuthProvider::Listener {
   std::string phone_number_;
   std::string verification_id_;
   firebase::auth::PhoneAuthProvider::ForceResendingToken force_resending_token_;
-  firebase::auth::Credential credential_;
+  firebase::auth::PhoneAuthCredential credential_;
 
   // Callbacks can be called on other threads, so guard them with a mutex.
   Mutex mutex_;
