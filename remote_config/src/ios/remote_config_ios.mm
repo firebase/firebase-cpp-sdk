@@ -194,7 +194,6 @@ static ConfigUpdate ConvertConfigUpdateKeys(NSSet<NSString *> *keys) {
   for (NSString *key in keys) {
     configUpdate.updated_keys.push_back(util::NSStringToString(key).c_str());
   }
-
   return configUpdate;
 }
 
@@ -529,7 +528,7 @@ ConfigUpdateListenerRegistration* RemoteConfigInternal::AddOnConfigUpdateListene
     }];
 
     ConfigUpdateListenerRegistration *registrationWrapper =
-      new ConfigUpdateListenerRegistration([&registration]() {
+      new ConfigUpdateListenerRegistration([registration]() {
         [registration remove];
       });
 
