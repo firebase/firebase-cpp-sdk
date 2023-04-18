@@ -95,7 +95,8 @@ void DebugAppCheckProvider::GetToken(
   const char* debug_token = std::getenv("APP_CHECK_DEBUG_TOKEN");
 
   if (!debug_token) {
-    completion_callback({}, kAppCheckErrorInvalidConfiguration, "Missing debug token");
+    completion_callback({}, kAppCheckErrorInvalidConfiguration,
+                        "Missing debug token");
     return;
   }
 

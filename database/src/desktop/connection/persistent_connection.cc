@@ -539,7 +539,8 @@ void PersistentConnection::TryScheduleReconnect() {
 
         // Check that the futures are actually valid (assuming they were made)
         auth_succeeded &= auth_future.status() != kFutureStatusInvalid;
-        app_check_succeeded &= app_check_future.status() != kFutureStatusInvalid;
+        app_check_succeeded &=
+            app_check_future.status() != kFutureStatusInvalid;
 
         if (auth_succeeded || app_check_succeeded) {
           // If either succeeded, we need to wait for the successful one(s) to
