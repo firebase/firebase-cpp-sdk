@@ -75,6 +75,7 @@ android {
   }
   packagingOptions {
     exclude 'META-INF/proguard/coroutines.pro'
+    exclude 'META-INF/com.android.tools/proguard/coroutines.pro'
   }
 }
 
