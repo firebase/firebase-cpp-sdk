@@ -89,8 +89,8 @@ void CppAppCheckCredentialsProvider::RemoveAppCheckStateListener() {
       ::firebase::internal::FnAppCheckRemoveListener, &app_, callback, this);
 }
 
-void CppAppCheckCredentialsProvider::OnAppCheckStateChanged(const std::string& token,
-                                                            void* context) {
+void CppAppCheckCredentialsProvider::OnAppCheckStateChanged(
+    const std::string& token, void* context) {
   auto provider = static_cast<CppAppCheckCredentialsProvider*>(context);
 
   if (provider->change_listener_) {
