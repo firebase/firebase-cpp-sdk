@@ -202,15 +202,25 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
           [&, config_update_promise](
               firebase::remote_config::ConfigUpdate&& configUpdate,
               firebase::remote_config::RemoteConfigError remoteConfigError) {
-            EXPECT_TRUE(configUpdate.updated_keys.size() > 0);
+            EXPECT_EQ(configUpdate.updated_keys.size(), 6);
             EXPECT_TRUE(WaitForCompletion(rc_->Activate(), "Activate"));
             LogDebug("Real-time Config Update keys retrieved.");
+
+            std::map<std::string, firebase::Variant> key_values = rc_->GetAll();
+            EXPECT_EQ(key_values.size(), 6);
+
+            for (auto key_valur_pair : kServerValue) {
+              firebase::Variant k_value = key_valur_pair.value;
+              firebase::Variant fetched_value = key_values[key_valur_pair.key];
+              EXPECT_EQ(k_value.type(), fetched_value.type());
+              EXPECT_EQ(k_value, fetched_value);
+            }
             config_update_promise->set_value();
           });
   EXPECT_NE(nullptr, registration);
   auto config_update_future = config_update_promise->get_future();
   ASSERT_EQ(std::future_status::ready,
-            config_update_future.wait_for(std::chrono::milliseconds(5000)));
+            config_update_future.wait_for(std::chrono::milliseconds(10000)));
 
   registration->Remove();
 
