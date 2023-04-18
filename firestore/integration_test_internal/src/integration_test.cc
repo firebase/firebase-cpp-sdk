@@ -343,9 +343,9 @@ firebase::firestore::DocumentReference FirebaseFirestoreBasicTest::Doc(
 
 // Test cases below.
 
-// TEST_F(FirebaseFirestoreBasicTest, TestInitializeAndTerminate) {
-//   // Already tested via SetUp() and TearDown().
-// }
+TEST_F(FirebaseFirestoreBasicTest, TestInitializeAndTerminate) {
+  // Already tested via SetUp() and TearDown().
+}
 
 TEST_F(FirebaseFirestoreBasicTest, TestSignIn) {
   SKIP_TEST_ON_QUICK_CHECK;
