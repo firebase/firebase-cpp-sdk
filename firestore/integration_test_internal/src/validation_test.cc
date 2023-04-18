@@ -472,6 +472,117 @@ TEST_F(ValidationTest,
   EXPECT_NE(Firestore::GetInstance("foo"), nullptr);
 }
 
+TEST_F(ValidationTest,
+       FirestoreGetInstanceCalledMultipleTimeReturnSameInstance) {
+  {
+    InitResult result1;
+    Firestore* instance1 = Firestore::GetInstance(&result1);
+    EXPECT_EQ(kInitResultSuccess, result1);
+    InitResult result2;
+    Firestore* instance2 = Firestore::GetInstance(&result2);
+    EXPECT_EQ(kInitResultSuccess, result2);
+    EXPECT_EQ(result1, result2);
+  }
+  {
+    InitResult result1;
+    Firestore* instance1 = Firestore::GetInstance(app(), &result1);
+    EXPECT_EQ(kInitResultSuccess, result1);
+    InitResult result2;
+    Firestore* instance2 = Firestore::GetInstance(app(), &result2);
+    EXPECT_EQ(kInitResultSuccess, result2);
+    EXPECT_EQ(result1, result2);
+  }
+  {
+    InitResult result1;
+    Firestore* instance1 = Firestore::GetInstance("foo", &result1);
+    EXPECT_EQ(kInitResultSuccess, result1);
+    InitResult result2;
+    Firestore* instance2 = Firestore::GetInstance("foo", &result2);
+    EXPECT_EQ(kInitResultSuccess, result2);
+    EXPECT_EQ(result1, result2);
+  }
+  {
+    InitResult result1;
+    Firestore* instance1 = Firestore::GetInstance(app(), "foo", &result1);
+    EXPECT_EQ(kInitResultSuccess, result1);
+    InitResult result2;
+    Firestore* instance2 = Firestore::GetInstance(app(), "foo", &result2);
+    EXPECT_EQ(kInitResultSuccess, result2);
+    EXPECT_EQ(result1, result2);
+  }
+}
+
+TEST_F(ValidationTest,
+       differentFirestoreGetInstanceCanGetSameDefaultFirestoreInstance) {
+  InitResult result1;
+  Firestore* instance1 = Firestore::GetInstance(&result1);
+  EXPECT_EQ(kInitResultSuccess, result1);
+
+  InitResult result2;
+  Firestore* instance2 = Firestore::GetInstance(app(), &result2);
+  EXPECT_EQ(kInitResultSuccess, result2);
+
+  InitResult result3;
+  Firestore* instance3 = Firestore::GetInstance("(default)", &result3);
+  EXPECT_EQ(kInitResultSuccess, result3);
+
+  InitResult result4;
+  Firestore* instance4 = Firestore::GetInstance(app(), "(default)", &result4);
+  EXPECT_EQ(kInitResultSuccess, result4);
+
+  EXPECT_EQ(result1, result2);
+  EXPECT_EQ(result1, result3);
+  EXPECT_EQ(result1, result4);
+  EXPECT_EQ(result2, result3);
+  EXPECT_EQ(result2, result4);
+  EXPECT_EQ(result3, result4);
+}
+
+TEST_F(
+    ValidationTest,
+    differentFirestoreGetInstanceWithSameDatabaseNameShouldGetSameFirestoreInstance) {
+  InitResult result1;
+  Firestore* instance1 = Firestore::GetInstance("foo", &result1);
+  EXPECT_EQ(kInitResultSuccess, result1);
+
+  InitResult result2;
+  Firestore* instance2 = Firestore::GetInstance(app(), "foo", &result2);
+  EXPECT_EQ(kInitResultSuccess, result2);
+
+  EXPECT_EQ(result1, result2);
+}
+
+TEST_F(
+    ValidationTest,
+    differentFirestoreGetInstanceWithDifferentDatabaseNameShouldGetDifferentFirestoreInstance) {
+  {
+    InitResult result1;
+    Firestore* instance1 = Firestore::GetInstance("foo", &result1);
+    EXPECT_EQ(kInitResultSuccess, result1);
+    InitResult result2;
+    Firestore* instance2 = Firestore::GetInstance("bar", &result2);
+    EXPECT_EQ(kInitResultSuccess, result2);
+    EXPECT_EQ(result1, result2);
+  }
+  {
+    InitResult result1;
+    Firestore* instance1 = Firestore::GetInstance(app(), "foo", &result1);
+    EXPECT_EQ(kInitResultSuccess, result1);
+    InitResult result2;
+    Firestore* instance2 = Firestore::GetInstance(app(), "bar", &result2);
+    EXPECT_EQ(kInitResultSuccess, result2);
+    EXPECT_EQ(result1, result2);
+  }
+  {
+    InitResult result1;
+    Firestore* instance1 = Firestore::GetInstance("foo", &result1);
+    EXPECT_EQ(kInitResultSuccess, result1);
+    InitResult result2;
+    Firestore* instance2 = Firestore::GetInstance(app(), "bar", &result2);
+    EXPECT_EQ(kInitResultSuccess, result2);
+    EXPECT_EQ(result1, result2);
+  }
+}
 TEST_F(ValidationTest, CollectionPathsMustBeOddLength) {
   Firestore* db = TestFirestore();
   DocumentReference base_document = db->Document("foo/bar");
