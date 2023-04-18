@@ -73,6 +73,9 @@ android {
       proguardFile file('proguard.pro')
     }
   }
+  packagingOptions {
+    pickFirst 'META-INF/proguard/coroutines.pro'
+  }
 }
 
 apply from: "$gradle.firebase_cpp_sdk_dir/Android/firebase_dependencies.gradle"
