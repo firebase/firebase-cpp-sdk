@@ -73,7 +73,7 @@ android {
     }
   }
   packagingOptions {
-    exclude 'META-INF/com.android.tools/proguard/coroutines.pro'
+    pickFirst 'META-INF/**/coroutines.pro'
   }
 }
 
