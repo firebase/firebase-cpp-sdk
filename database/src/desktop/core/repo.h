@@ -160,7 +160,7 @@ class Repo : public connection::PersistentConnectionEventHandler {
 
   // Callback function used to listen for App Check token changes, and updating
   // the connection with them.
-  static void OnAppCheckTokenChanged(std::string token, void* context);
+  static void OnAppCheckTokenChanged(const std::string& token, void* context);
 
   DatabaseInternal* database_;
 

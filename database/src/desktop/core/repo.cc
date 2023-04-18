@@ -1206,7 +1206,7 @@ void Repo::UpdateInfo(const std::string& key, const Variant& value) {
 }
 
 // static
-void Repo::OnAppCheckTokenChanged(std::string token, void* context) {
+void Repo::OnAppCheckTokenChanged(const std::string& token, void* context) {
   auto repo = static_cast<Repo*>(context);
   if (repo) {
     ThisRefLock lock(&repo->this_ref());
