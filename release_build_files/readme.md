@@ -643,9 +643,11 @@ code.
 
 ## Release Notes
 ### Upcoming Release
--   Changes
+-   10.8.0
+    - General (iOS): Update to Firebase Cocoapods version 10.8.0.
     - Firestore: Added `Query::Count()`, which fetches the number of documents in the result
-      set without actually downloading the documents ([#1207](https://github.com/firebase/firebase-cpp-sdk/pull/1207)).
+      set without actually downloading the documents
+      ([#1207](https://github.com/firebase/firebase-cpp-sdk/pull/1207)).
 
 ### 10.7.0
 -   Changes
