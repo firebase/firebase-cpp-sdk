@@ -94,6 +94,11 @@ void DebugAppCheckProvider::GetToken(
   // options.
   const char* debug_token = std::getenv("APP_CHECK_DEBUG_TOKEN");
 
+  if (!debug_token) {
+    completion_callback({}, kAppCheckErrorInvalidConfiguration, "Missing debug token");
+    return;
+  }
+
   // Exchange debug token with the backend to get a proper attestation token.
   auto request = MakeShared<DebugTokenRequest>(app_);
   request->SetDebugToken(debug_token);

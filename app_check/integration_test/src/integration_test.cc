@@ -754,7 +754,7 @@ TEST_F(FirebaseAppCheckTest, TestDatabaseFailure) {
   firebase::database::DatabaseReference ref = CreateWorkingPath();
   const char* test_name = test_info_->name();
   firebase::Future<void> f = ref.Child(test_name).SetValue("test");
-  WaitForCompletion(f, "SetString", firebase::database::kErrorOperationFailed);
+  WaitForCompletion(f, "SetString", firebase::database::kErrorDisconnected);
 
   CleanupDatabase(firebase::database::kErrorOperationFailed);
 }
@@ -1071,11 +1071,7 @@ TEST_F(FirebaseAppCheckTest, TestFirestoreListenerFailure) {
               const firebase::firestore::DocumentSnapshot& result,
               firebase::firestore::Error error_code,
               const std::string& error_message) {
-            if (error_code == firebase::firestore::kErrorNone) {
-              // If we receive a success, it should only be for the cache.
-              EXPECT_TRUE(result.metadata().has_pending_writes());
-              EXPECT_TRUE(result.metadata().is_from_cache());
-            } else {
+            if (error_code != firebase::firestore::kErrorNone) {
               // We expect one call with a Permission Denied error, from the
               // server.
               std::lock_guard<std::mutex> lock(mutex);

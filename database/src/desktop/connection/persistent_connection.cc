@@ -132,7 +132,7 @@ PersistentConnection::~PersistentConnection() {
   // executing code which requires reference to this.
   safe_this_.ClearReference();
 
-  // Clear OnCompletion function for pending token future
+  // Clear pending token futures
   {
     MutexLock future_lock(pending_token_future_mutex_);
     pending_auth_token_future_ = Future<std::string>();
@@ -332,7 +332,7 @@ void PersistentConnection::OnKill(const std::string& reason) {
   InterruptInternal(kInterruptServerKill);
   // Since the connection is permanently dead, also get rid of
   // any outstanding writes that are queued.
-  PurgeOutstandingWrites(kErrorOperationFailed);
+  PurgeOutstandingWrites(kErrorDisconnected);
 }
 
 void PersistentConnection::ScheduleInitialize() {
@@ -536,6 +536,10 @@ void PersistentConnection::TryScheduleReconnect() {
             connection->app_->function_registry()->CallFunction(
                 ::firebase::internal::FnAppCheckGetTokenAsync, connection->app_,
                 nullptr, &app_check_future);
+
+        // Check that the futures are actually valid (assuming they were made)
+        auth_succeeded &= auth_future.status() != kFutureStatusInvalid;
+        app_check_succeeded &= app_check_future.status() != kFutureStatusInvalid;
 
         if (auth_succeeded || app_check_succeeded) {
           // If either succeeded, we need to wait for the successful one(s) to
@@ -1185,7 +1189,7 @@ void PersistentConnection::RefreshAppCheckToken(const std::string& token) {
       safe_this_, token, [](ThisRef ref, std::string token) {
         ThisRefLock lock(&ref);
         if (lock.GetReference() != nullptr) {
-          auto* connection = lock.GetReference();
+          auto connection = lock.GetReference();
           if (!connection) return;
           if (!connection->IsConnected()) {
             // The initial connection is handled in a different manner.
