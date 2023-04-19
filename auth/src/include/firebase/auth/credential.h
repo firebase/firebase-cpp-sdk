@@ -528,7 +528,7 @@ class PhoneAuthProvider {
     ///
     /// @param[in] credential The completed credential from the phone number
     ///    verification flow.
-    virtual void OnVerificationCompleted(Credential credential) = 0;
+    virtual void OnVerificationCompleted(Credential credential) {}
 
     /// @brief Phone number auto-verification succeeded.
     ///
