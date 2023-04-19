@@ -21,21 +21,19 @@ import java.util.HashMap;
 import java.util.Map;
 
 public final class AggregateQuerySnapshotHelper {
-
-  private AggregateQuerySnapshotHelper() {
-  }
+  private AggregateQuerySnapshotHelper() {}
 
   /**
-   * Creates an object appropriate for specifying to the AggregateQuerySnapshot constructor
-   * that conveys the given "count" as the lone aggregate result.
+   * Creates an object appropriate for specifying to the AggregateQuerySnapshot
+   * constructor that conveys the given "count" as the lone aggregate result.
    *
-   * This class should be deleted and replaced with a proper mechanism once SUM/AVERAGE are
-   * ported to this SDK.
+   * This class should be deleted and replaced with a proper mechanism once
+   * SUM/AVERAGE are ported to this SDK.
    */
-  public static Map<String, Value> createAggregateQuerySnapshotConstructorArg(long count) {
+  public static Map<String, Value> createAggregateQuerySnapshotConstructorArg(
+      long count) {
     HashMap<String, Value> map = new HashMap<>();
     map.put("count", Value.newBuilder().setIntegerValue(count).build());
     return map;
   }
-
 }
