@@ -17,7 +17,6 @@
 
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/semaphore.h"
-#include "remote_config/src/include/firebase/remote_config.h"
 
 namespace firebase {
 namespace remote_config {
