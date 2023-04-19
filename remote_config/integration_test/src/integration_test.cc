@@ -194,7 +194,12 @@ static Future<void> SetZeroIntervalConfigSettings(RemoteConfig* rc) {
 // Test cases below.
 
 TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
+  ASSERT_NE(rc_, nullptr);
+
+  EXPECT_TRUE(WaitForCompletion(SetDefaults(rc_), "SetDefaults"));
+
 #if FIREBASE_PLATFORM_IOS
+
   auto config_update_promise = std::make_shared<std::promise<void>>();
 
   firebase::remote_config::ConfigUpdateListenerRegistration* registration =
@@ -202,7 +207,7 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
           [&, config_update_promise](
               firebase::remote_config::ConfigUpdate&& configUpdate,
               firebase::remote_config::RemoteConfigError remoteConfigError) {
-            EXPECT_EQ(configUpdate.updated_keys.size(), 6);
+            EXPECT_EQ(configUpdate.updated_keys.size(), 5);
             EXPECT_TRUE(WaitForCompletion(rc_->Activate(), "Activate"));
             LogDebug("Real-time Config Update keys retrieved.");
 
