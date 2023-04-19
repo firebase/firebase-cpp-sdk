@@ -92,7 +92,7 @@ TEST_F(FirestoreIntegrationTest, GetInstanceWithNamedDatabase) {
   EXPECT_NE(nullptr, app);
 
   InitResult result;
-  Firestore* instance = Firestore::GetInstance(app,"foo", &result);
+  Firestore* instance = Firestore::GetInstance(app, "foo", &result);
   EXPECT_EQ(kInitResultSuccess, result);
   EXPECT_NE(nullptr, instance);
   EXPECT_EQ(app, instance->app());
@@ -1362,13 +1362,14 @@ TEST_F(FirestoreIntegrationTest, RestartFirestoreLeadsToNewInstance) {
   delete db1;
 }
 
-TEST_F(FirestoreIntegrationTest, RestartFirestoreLeadsToNewNamedDatabaseInstance) {
+TEST_F(FirestoreIntegrationTest,
+       RestartFirestoreLeadsToNewNamedDatabaseInstance) {
   // TODO(Mila): Run this test against emulator.
   GTEST_SKIP();
 
   App* app = App::GetInstance();
   InitResult init_result;
-  Firestore* db1 = Firestore::GetInstance(app,"test-db", &init_result);
+  Firestore* db1 = Firestore::GetInstance(app, "test-db", &init_result);
   ASSERT_EQ(kInitResultSuccess, init_result);
 
   // Create a document that we can use for verification later.
@@ -1381,7 +1382,7 @@ TEST_F(FirestoreIntegrationTest, RestartFirestoreLeadsToNewNamedDatabaseInstance
 
   // Verify that GetInstance() returns a new instance since the old instance has
   // been terminated.
-  Firestore* db2 = Firestore::GetInstance(app,"test-db", &init_result);
+  Firestore* db2 = Firestore::GetInstance(app, "test-db", &init_result);
   ASSERT_EQ(kInitResultSuccess, init_result);
   EXPECT_NE(db1, db2);
 
