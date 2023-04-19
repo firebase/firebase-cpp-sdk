@@ -76,6 +76,9 @@ android {
   lintOptions {
     abortOnError false
   }
+  packagingOptions {
+    exclude 'META-INF/com.android.tools/proguard/coroutines.pro'
+  }
 }
 
 apply from: "$gradle.firebase_cpp_sdk_dir/Android/firebase_dependencies.gradle"
