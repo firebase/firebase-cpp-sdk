@@ -22,6 +22,7 @@
 #include "app/src/assert.h"
 #include "app/src/log.h"
 #include "app/src/time.h"
+#include "remote_config/src/common.h"
 #include "remote_config/src/include/firebase/remote_config.h"
 
 namespace firebase {
@@ -515,16 +516,17 @@ const ConfigInfo RemoteConfigInternal::GetInfo() const {
 }
 
 ConfigUpdateListenerRegistration* RemoteConfigInternal::AddOnConfigUpdateListener(
-      LambdaConfigUpdateListener<ConfigUpdate, RemoteConfigError> *config_update_listener) {
+      std::function<void(ConfigUpdate&&, RemoteConfigError)>
+        config_update_listener) {
     FIRConfigUpdateListenerRegistration *registration;
     registration = [impl() addOnConfigUpdateListener: ^(FIRRemoteConfigUpdate *_Nullable update,
                                   NSError *_Nullable error) {
           if (error) {
-            config_update_listener->onError(ConvertFIRRemoteConfigUpdateError(error));
+            config_update_listener({}, ConvertFIRRemoteConfigUpdateError(error));
+            return;
           }
-          if (update) {
-            config_update_listener->onUpdate(ConvertConfigUpdateKeys(update.updatedKeys));
-          }
+
+          config_update_listener(ConvertConfigUpdateKeys(update.updatedKeys), kRemoteConfigErrorNone);
     }];
 
     ConfigUpdateListenerRegistration *registrationWrapper =

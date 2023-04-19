@@ -25,7 +25,6 @@
 #include "app/src/scheduler.h"
 #include "firebase/app.h"
 #include "firebase/future.h"
-#include "remote_config/src/common.h"
 #include "remote_config/src/desktop/config_data.h"
 #include "remote_config/src/desktop/file_manager.h"
 #include "remote_config/src/desktop/notification_channel.h"
@@ -125,7 +124,7 @@ class RemoteConfigInternal {
   const ConfigInfo GetInfo() const;
 
   ConfigUpdateListenerRegistration* AddOnConfigUpdateListener(
-      LambdaConfigUpdateListener<ConfigUpdate, RemoteConfigError>*
+      std::function<void(ConfigUpdate&&, RemoteConfigError)>
           config_update_listener);
 
   static bool IsBoolTrue(const std::string& str);
