@@ -49,7 +49,7 @@ const int kCheckIntervalMillis = 100;
 // The timeout of waiting for a Future or a listener.
 const int kTimeOutMillis = 15000;
 
-FirestoreInternal* CreateTestFirestoreInternal(App* app, const char* database_id = kDefaultDatabase);
+FirestoreInternal* CreateTestFirestoreInternal(App* app);
 
 App* GetApp();
 App* GetApp(const char* name, const std::string& override_project_id);

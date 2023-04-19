@@ -34,11 +34,11 @@ namespace firebase {
 namespace firestore {
 
 struct TestFriend {
-  static FirestoreInternal* CreateTestFirestoreInternal(
-      App* app, const char* database_id) {
+  static FirestoreInternal* CreateTestFirestoreInternal(App* app) {
 #if !defined(__ANDROID__)
     return new FirestoreInternal(
-        app, database_id,
+        app,
+        /*database_id=*/"(default)",  // TODO(Mila): use dynamic database ID
         absl::make_unique<credentials::EmptyAuthCredentialsProvider>(),
         absl::make_unique<credentials::EmptyAppCheckCredentialsProvider>());
 #else
@@ -80,9 +80,8 @@ App* GetApp(const char* name, const std::string& override_project_id) {
 
 App* GetApp() { return GetApp(/*name=*/nullptr, /*project_id=*/""); }
 
-FirestoreInternal* CreateTestFirestoreInternal(
-    App* app, const char* database_id = kDefaultDatabase) {
-  return TestFriend::CreateTestFirestoreInternal(app, database_id);
+FirestoreInternal* CreateTestFirestoreInternal(App* app) {
+  return TestFriend::CreateTestFirestoreInternal(app);
 }
 
 }  // namespace firestore

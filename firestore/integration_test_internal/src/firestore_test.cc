@@ -87,6 +87,20 @@ TEST_F(FirestoreIntegrationTest, GetInstance) {
   delete auth;
 }
 
+TEST_F(FirestoreIntegrationTest, GetInstanceWithNamedDatabase) {
+  App* app = this->app();
+  EXPECT_NE(nullptr, app);
+
+  InitResult result;
+  Firestore* instance = Firestore::GetInstance(app,"foo", &result);
+  EXPECT_EQ(kInitResultSuccess, result);
+  EXPECT_NE(nullptr, instance);
+  EXPECT_EQ(app, instance->app());
+  // TODO(Mila): check the database name is "foo".
+
+  delete instance;
+}
+
 // Sanity test for stubs.
 TEST_F(FirestoreIntegrationTest, TestCanCreateCollectionAndDocumentReferences) {
   Firestore* db = TestFirestore();
@@ -1332,6 +1346,42 @@ TEST_F(FirestoreIntegrationTest, RestartFirestoreLeadsToNewInstance) {
   // Verify that GetInstance() returns a new instance since the old instance has
   // been terminated.
   Firestore* db2 = Firestore::GetInstance(app, &init_result);
+  ASSERT_EQ(kInitResultSuccess, init_result);
+  EXPECT_NE(db1, db2);
+
+  // Verify that the new instance points to the same database by verifying that
+  // the document created with the old instance exists in the new instance.
+  DocumentReference doc2 = db2->Document(doc_path);
+  const DocumentSnapshot* snapshot2 = Await(doc2.Get(Source::kCache));
+  ASSERT_NE(snapshot2, nullptr);
+  EXPECT_TRUE(snapshot2->exists());
+  EXPECT_THAT(snapshot2->GetData(),
+              ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
+
+  delete db2;
+  delete db1;
+}
+
+TEST_F(FirestoreIntegrationTest, RestartFirestoreLeadsToNewNamedDatabaseInstance) {
+  // TODO(Mila): Run this test against emulator.
+  GTEST_SKIP();
+
+  App* app = App::GetInstance();
+  InitResult init_result;
+  Firestore* db1 = Firestore::GetInstance(app,"test-db", &init_result);
+  ASSERT_EQ(kInitResultSuccess, init_result);
+
+  // Create a document that we can use for verification later.
+  DocumentReference doc1 = db1->Collection("abc").Document();
+  const std::string doc_path = doc1.path();
+  EXPECT_THAT(doc1.Set({{"foo", FieldValue::String("bar")}}), FutureSucceeds());
+
+  // Terminate `db1` so that it will be removed from the instance cache.
+  EXPECT_THAT(db1->Terminate(), FutureSucceeds());
+
+  // Verify that GetInstance() returns a new instance since the old instance has
+  // been terminated.
+  Firestore* db2 = Firestore::GetInstance(app,"test-db", &init_result);
   ASSERT_EQ(kInitResultSuccess, init_result);
   EXPECT_NE(db1, db2);
 

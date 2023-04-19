@@ -19,7 +19,6 @@
 #include <cassert>
 #include <cstring>
 #include <map>
-#include <iostream>
 
 #include "app/meta/move.h"
 #include "app/src/cleanup_notifier.h"
@@ -164,10 +163,7 @@ Firestore* Firestore::GetInstance(App* app,
 
   MutexLock lock(*g_firestores_lock);
   Firestore* from_cache = FindFirestoreInCache(app, db_name, init_result_out);
-  std::cout<<"FirestoreCache db_name:"<<db_name<<std::endl;
   if (from_cache) {
-    std::cout<<"FirestoreCache value:"<<from_cache<<std::endl;
-
     return from_cache;
   }
 
@@ -194,8 +190,6 @@ Firestore* Firestore::CreateFirestore(App* app,
 Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,
                                           const char* database_id,
                                           InitResult* init_result_out) {
-  std::cout<<"FirestoreCache value:"<<firestore<<std::endl;
-
   InitResult init_result = CheckInitialized(*firestore->internal_);
   if (init_result_out) {
     *init_result_out = init_result;

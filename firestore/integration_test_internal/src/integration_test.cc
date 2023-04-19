@@ -236,6 +236,7 @@ void FirebaseFirestoreBasicTest::TearDown() {
   FirebaseTest::TearDown();
 }
 
+// TODO(Mila): initialize named DB
 void FirebaseFirestoreBasicTest::InitializeFirestore() {
   LogDebug("Initializing Firebase Firestore.");
 
@@ -261,6 +262,7 @@ void FirebaseFirestoreBasicTest::InitializeFirestore() {
   initialized_ = true;
 }
 
+// TODO(Mila): terminate named DB
 void FirebaseFirestoreBasicTest::TerminateFirestore() {
   if (!initialized_) return;
 
