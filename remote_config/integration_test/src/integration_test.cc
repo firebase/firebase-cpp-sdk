@@ -193,6 +193,8 @@ static Future<void> SetZeroIntervalConfigSettings(RemoteConfig* rc) {
 
 // Test cases below.
 
+/// This test requires to be run on a device or simulator that does not have the
+/// template version number stored on the disk.
 TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
   ASSERT_NE(rc_, nullptr);
 
