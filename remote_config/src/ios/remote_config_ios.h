@@ -15,12 +15,13 @@
 #ifndef FIREBASE_REMOTE_CONFIG_SRC_IOS_REMOTE_CONFIG_IOS_H_
 #define FIREBASE_REMOTE_CONFIG_SRC_IOS_REMOTE_CONFIG_IOS_H_
 
+#include <functional>
+
 #include "firebase/app.h"
 #include "app/memory/unique_ptr.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_ios.h"
 #include "firebase/future.h"
-#include "remote_config/src/common.h"
 
 #include "remote_config/src/include/firebase/remote_config.h"
 
@@ -87,8 +88,8 @@ class RemoteConfigInternal {
   const ConfigInfo GetInfo() const;
 
   ConfigUpdateListenerRegistration* AddOnConfigUpdateListener(
-    LambdaConfigUpdateListener<ConfigUpdate, RemoteConfigError>
-      *config_update_listener);
+    std::function<void(ConfigUpdate&&, RemoteConfigError)>
+        config_update_listener);
 
   bool Initialized() const;
 
