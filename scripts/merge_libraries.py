@@ -418,7 +418,7 @@ def get_top_level_namespaces(demangled_symbols):
   # It will specifically not match second-level or deeper namespaces:
   #   matched_namespace::unmatched_namespace::Class::Method()
   regex_top_level_namespaces = re.compile(
-      r"(?<![a-zA-Z0-9_])(?<!::)([a-zA-Z_~\{\$][a-zA-Z0-9_\{\}]*)::(?=[a-zA-Z_~` \{\}\$])")
+      r"(?<![a-zA-Z0-9_])(?<!::)([a-zA-Z_~\{\$][a-zA-Z0-9_\{\}\#]*)::(?=[a-zA-Z_~` \{\$])")
   found_namespaces = set()
   for cppsymbol in demangled_symbols:
     m = regex_top_level_namespaces.findall(cppsymbol)
