@@ -750,8 +750,24 @@ TEST_F(FirebaseAppCheckTest, DISABLED_TestDatabaseFailure) {
   firebase::database::DatabaseReference ref = CreateWorkingPath();
   const char* test_name = test_info_->name();
   firebase::Future<void> f = ref.Child(test_name).SetValue("test");
-  // It is unclear if this should fail, or hang, so disabled for now.
-  WaitForCompletion(f, "SetString");
+#if FIREBASE_PLATFORM_ANDROID
+  // On Android the future will not complete. This is present in the
+  // underlying Android SDK, so work around it here.
+  ASSERT_EQ(f.status(), firebase::kFutureStatusPending);
+  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+  ASSERT_EQ(f.status(), firebase::kFutureStatusPending);
+  // Likewise, removal won't finish, so don't wait for it.
+  if (!database_cleanup_.empty()) {
+    LogDebug("Cleaning up Database...");
+    for (int i = 0; i < database_cleanup_.size(); ++i) {
+      database_cleanup_[i].RemoveValue();
+    }
+    database_cleanup_.clear();
+  }
+#else
+  WaitForCompletion(f, "SetString", firebase::database::kErrorDisconnected);
+  CleanupDatabase(firebase::database::kErrorOperationFailed);
+#endif
 }
 
 TEST_F(FirebaseAppCheckTest, DISABLED_TestDatabaseCreateWorkingPath) {
