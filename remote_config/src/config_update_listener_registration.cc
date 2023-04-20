@@ -17,13 +17,16 @@
 namespace firebase {
 namespace remote_config {
 
-ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration() {}
+ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
+    std::function<void()> listener_removal_function)
+    : listenerRemovalFunction(listener_removal_function) {}
 
 ConfigUpdateListenerRegistration::~ConfigUpdateListenerRegistration() {}
 
-// Removes the listener being tracked by this ConfigUpdateListenerRegistration.
-// After the initial call, subsequent calls to Remove have no effect.
-void ConfigUpdateListenerRegistration::Remove() {}
+// TODO: almostmatt, merge this with quan's ios changes. also see about whether to make this no-op after first call
+void ConfigUpdateListenerRegistration::Remove() {
+  this->listenerRemovalFunction();
+}
 
 }  // namespace remote_config
 }  // namespace firebase

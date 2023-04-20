@@ -20,12 +20,14 @@
 #include <string>
 
 #include "app/src/assert.h"
+#include "app/src/embedded_file.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/time.h"
 #include "app/src/util.h"
 #include "app/src/util_android.h"
+#include "remote_config/remote_config_resources.h"
 #include "remote_config/src/common.h"
 
 namespace firebase {
@@ -61,13 +63,15 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseRemoteConfig);
   X(GetValue, "getValue",                                                  \
     "(Ljava/lang/String;)"                                                 \
     "Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigValue;"),       \
-  X(GetAll, "getAll",                                                  \
-    "()Ljava/util/Map;"),       \
+  X(GetAll, "getAll", "()Ljava/util/Map;"),                                \
   X(GetKeysByPrefix, "getKeysByPrefix",                                    \
     "(Ljava/lang/String;)Ljava/util/Set;"),                                \
   X(GetInfo, "getInfo",                                                    \
     "()Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigInfo;"),      \
-  X(Fetch, "fetch", "(J)Lcom/google/android/gms/tasks/Task;")  // clang-format on
+  X(Fetch, "fetch", "(J)Lcom/google/android/gms/tasks/Task;")              \
+  X(AddRemoteConfigListener, "addRemoteConfigListener",                            \
+    "(Lcom/google/firebase/remoteconfig/FirebaseRemoteConfig$RemoteConfigListener;)V")
+// clang-format on
 
 METHOD_LOOKUP_DECLARATION(config, REMOTE_CONFIG_METHODS)
 METHOD_LOOKUP_DEFINITION(
@@ -154,6 +158,42 @@ METHOD_LOOKUP_DEFINITION(throttled_exception,
                          "FirebaseRemoteConfigFetchThrottledException",
                          REMOTE_CONFIG_THROTTLED_EXCEPTION_METHODS)
 
+
+// Methods of JniConfigUpdateListener
+// clang-format off
+#define JNI_CONFIG_UPDATE_LISTENER_METHODS(X)                              \
+  X(Constructor, "<init>", "(J)V")
+// clang-format on
+
+METHOD_LOOKUP_DECLARATION(jni_config_update_listener,
+                          JNI_CONFIG_UPDATE_LISTENER_METHODS)
+METHOD_LOOKUP_DEFINITION(
+    jni_config_update_listener,
+    "com/google/firebase/remoteconfig/internal/cpp/JniConfigUpdateListener",
+    JNI_CONFIG_UPDATE_LISTENER_METHODS)
+
+JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnConfigUpdate(
+    JNIEnv* env, jobject clazz, jlong c_remote_config, jobject token);
+
+static const JNINativeMethod kNativeJniRemoteConfigListenerMethods[] = {
+    {"nativeOnRemoteConfigTokenChanged",
+     "(JLcom/google/firebase/remoteconfig/RemoteConfigToken;)V",
+     reinterpret_cast<void*>(JniRemoteConfigListener_nativeOnRemoteConfigTokenChanged)},
+};
+
+// Methods of ConfigUpdateRegistration
+// clang-format off
+#define CONFIG_UPDATE_LISTENER_REGISTRATION_METHODS(X)                              \
+  X(Constructor, "<init>", "(J)V")
+// clang-format on
+
+METHOD_LOOKUP_DECLARATION(config_update_listener_registration,
+                          CONFIG_UPDATE_LISTENER_REGISTRATION_METHODS)
+METHOD_LOOKUP_DEFINITION(
+    config_update_listener_registration,
+    "com/google/firebase/remoteconfig/ConfigUpdateListenerRegistration",
+    CONFIG_UPDATE_LISTENER_REGISTRATION_METHODS)
+
 using firebase::internal::ReferenceCount;
 using firebase::internal::ReferenceCountLock;
 
@@ -169,22 +209,38 @@ static const char* kApiIdentifier = "Remote Config";
 
 ReferenceCount internal::RemoteConfigInternal::initializer_;  // NOLINT
 
-static bool CacheJNIMethodIds(JNIEnv* env, jobject activity) {
+static bool CacheJNIMethodIds(JNIEnv* env, jobject activity,
+    const std::vector<firebase::internal::EmbeddedFile>& embedded_files) {
+  // Cache the JniRemoteConfigListener class and register the native callbacks.
+  if (!(jni_config_update_listener::CacheClassFromFiles(env, activity,
+                                                    &embedded_files) &&
+        jni_config_update_listener::CacheMethodIds(env, activity) &&
+        jni_config_update_listener::RegisterNatives(
+            env, kNativeJniRemoteConfigListenerMethods,
+            FIREBASE_ARRAYSIZE(kNativeJniRemoteConfigListenerMethods)))) {
+    return false;
+  }
+
+  // Cache all other classes and methods
   return (config::CacheMethodIds(env, activity) &&
           config_value::CacheMethodIds(env, activity) &&
           config_info::CacheMethodIds(env, activity) &&
           config_settings::CacheMethodIds(env, activity) &&
           config_settings_builder::CacheMethodIds(env, activity) &&
-          throttled_exception::CacheMethodIds(env, activity));
+          throttled_exception::CacheMethodIds(env, activity) && 
+          config_update_listener_registration::CacheMethodIds(env, activity));
 }
 
 static void ReleaseClasses(JNIEnv* env) {
+  jni_remote_config_listener::ReleaseClass(env);
+
   config::ReleaseClass(env);
   config_value::ReleaseClass(env);
   config_info::ReleaseClass(env);
   config_settings::ReleaseClass(env);
   config_settings_builder::ReleaseClass(env);
   throttled_exception::ReleaseClass(env);
+  config_update_listener_registration::ReleaseClass(env);
 }
 
 template <typename T>
@@ -442,8 +498,16 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
       return;
     }
 
+    // Cache embedded files and load embedded classes.
+    const std::vector<firebase::internal::EmbeddedFile> embedded_files =
+        util::CacheEmbeddedFiles(
+            env, activity,
+            firebase::internal::EmbeddedFile::ToVector(
+                firebase_remote_config::remote_config_resources_filename,
+                firebase_remote_config::remote_config_resources_data,
+                firebase_remote_config::remote_config_resources_size));
     // Cache method pointers.
-    if (!CacheJNIMethodIds(env, activity)) {
+    if (!CacheJNIMethodIds(env, activity, embedded_files)) {
       ReleaseClasses(env);
       util::Terminate(env);
       lock.RemoveReference();
@@ -464,7 +528,10 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
   LogDebug("%s API Initialized", kApiIdentifier);
 }
 
-RemoteConfigInternal::~RemoteConfigInternal() {}
+RemoteConfigInternal::~RemoteConfigInternal() {
+  // TODO almostmatt - maybe call delete for any created registrations
+  // same for ios to avoid memory leak.
+}
 
 bool RemoteConfigInternal::Initialized() const {
   return internal_obj_ != nullptr;
@@ -1073,7 +1140,46 @@ ConfigUpdateListenerRegistration*
 RemoteConfigInternal::AddOnConfigUpdateListener(
     std::function<void(ConfigUpdate&&, RemoteConfigError)>
         config_update_listener) {
-  return nullptr;
+    // Construct a java ConfigUpdateListener that wraps the c++ listener.
+    jobject j_listener =
+        env->NewObject(jni_config_update_listener::GetClass(),
+                       jni_config_update_listener::GetMethodId(
+                           jni_config_update_listener::kConstructor),
+                       reinterpret_cast<jlong>(config_update_listener));
+    FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
+
+    jobject j_local_registration = env->CallObjectMethod(internal_obj_,
+                        remote_config::GetMethodId(remote_config::kAddConfigUpdateListener),
+                        j_listener);
+    FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
+    
+    // Create a global reference to the registration
+    j_registration = env->NewGlobalRef(j_local_registration);
+    env->DeleteLocalRef(j_local_registration);
+
+    // Create a C++ registration to wrap the native registration
+    ConfigUpdateListenerRegistration *registration_wrapper =
+      new ConfigUpdateListenerRegistration([j_registration]() {
+        env->CallVoidMethod(j_registration,
+                            config_update_listener_registration::GetMethodId(
+                              config_update_listener_registration::kRemove));
+        FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
+      });
+    return registration_wrapper;
+}
+
+JNIEXPORT void JNICALL JniRemoteConfigListener_nativeOnRemoteConfigUpdate(
+    JNIEnv* env, jobject clazz, jlong c_remote_config, jobject token) {
+  // TODO: almostmatt, actually convert java configupdate
+  // add a helper if needed
+  ConfigUpdate config_update;
+  for (NSString *key in keys) {
+    config_update.updated_keys.push_back(util::NSStringToString(key).c_str());
+  }
+  auto config_update_listener = reinterpret_cast<RemoteConfigInternal*>(c_listener);
+  // TODO: case logic for empty update vs error
+  // maybe just convert both and have such logic in java
+  config_update_listener(config_update, error_code);
 }
 
 }  // namespace internal
