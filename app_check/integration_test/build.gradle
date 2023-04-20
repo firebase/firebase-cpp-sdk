@@ -68,7 +68,6 @@ android {
         "-DFIREBASE_INCLUDE_FUNCTIONS=ON",
         "-DFIREBASE_INCLUDE_FIRESTORE=ON"
     }
-    multiDexEnabled true
   }
   externalNativeBuild.cmake {
     path 'CMakeLists.txt'
@@ -79,9 +78,6 @@ android {
       proguardFile getDefaultProguardFile('proguard-android.txt')
       proguardFile file('proguard.pro')
     }
-  }
-  lintOptions {
-    abortOnError false
   }
 }
 

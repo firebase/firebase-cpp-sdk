@@ -59,17 +59,6 @@ METHOD_LOOKUP_DEFINITION(app_check,
                          APP_CHECK_METHODS)
 
 // clang-format off
-#define DEFAULT_APP_CHECK_IMPL_METHODS(X)               \
-  X(ResetAppCheckState, "resetAppCheckState", "()V")
-// clang-format on
-
-METHOD_LOOKUP_DECLARATION(default_app_check_impl, DEFAULT_APP_CHECK_IMPL_METHODS)
-METHOD_LOOKUP_DEFINITION(default_app_check_impl,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/appcheck/internal/DefaultFirebaseAppCheck",
-                         DEFAULT_APP_CHECK_IMPL_METHODS)
-
-// clang-format off
 #define JNI_APP_CHECK_PROVIDER_FACTORY_METHODS(X)                              \
   X(Constructor, "<init>", "(JJ)V")
 // clang-format on
@@ -170,13 +159,11 @@ bool CacheAppCheckMethodIds(
             FIREBASE_ARRAYSIZE(kNativeJniAppCheckListenerMethods)))) {
     return false;
   }
-  return app_check::CacheMethodIds(env, activity) &&
-         default_app_check_impl::CacheMethodIds(env, activity);
+  return app_check::CacheMethodIds(env, activity);
 }
 
 void ReleaseAppCheckClasses(JNIEnv* env) {
   app_check::ReleaseClass(env);
-  default_app_check_impl::ReleaseClass(env);
   jni_provider_factory::ReleaseClass(env);
   jni_provider::ReleaseClass(env);
   jni_app_check_listener::ReleaseClass(env);
@@ -372,20 +359,6 @@ AppCheckInternal::~AppCheckInternal() {
     env->DeleteGlobalRef(j_app_check_listener_);
   }
   if (app_check_impl_ != nullptr) {
-    // The Android App Check library holds onto the provider,
-    // which can be a problem if it tries to call up to C++
-    // after being deleted. So we use a hidden function meant
-    // for testing purposes to clear out the App Check state,
-    // to prevent this. Note, this assumes that the java object
-    // is a DefaultFirebaseAppCheck (instead of a FirebaseAppCheck)
-    // which is currently true, but may not be in the future.
-    // We will have to rely on tests to detect if this changes.
-    env->CallVoidMethod(
-      app_check_impl_,
-      default_app_check_impl::GetMethodId(
-        default_app_check_impl::kResetAppCheckState));
-    FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
-
     env->DeleteGlobalRef(app_check_impl_);
   }
 
