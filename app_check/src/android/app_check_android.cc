@@ -63,11 +63,13 @@ METHOD_LOOKUP_DEFINITION(app_check,
   X(ResetAppCheckState, "resetAppCheckState", "()V")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(default_app_check_impl, DEFAULT_APP_CHECK_IMPL_METHODS)
-METHOD_LOOKUP_DEFINITION(default_app_check_impl,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/appcheck/internal/DefaultFirebaseAppCheck",
-                         DEFAULT_APP_CHECK_IMPL_METHODS)
+METHOD_LOOKUP_DECLARATION(default_app_check_impl,
+                          DEFAULT_APP_CHECK_IMPL_METHODS)
+METHOD_LOOKUP_DEFINITION(
+    default_app_check_impl,
+    PROGUARD_KEEP_CLASS
+    "com/google/firebase/appcheck/internal/DefaultFirebaseAppCheck",
+    DEFAULT_APP_CHECK_IMPL_METHODS)
 
 // clang-format off
 #define JNI_APP_CHECK_PROVIDER_FACTORY_METHODS(X)                              \
@@ -380,10 +382,9 @@ AppCheckInternal::~AppCheckInternal() {
     // is a DefaultFirebaseAppCheck (instead of a FirebaseAppCheck)
     // which is currently true, but may not be in the future.
     // We will have to rely on tests to detect if this changes.
-    env->CallVoidMethod(
-      app_check_impl_,
-      default_app_check_impl::GetMethodId(
-        default_app_check_impl::kResetAppCheckState));
+    env->CallVoidMethod(app_check_impl_,
+                        default_app_check_impl::GetMethodId(
+                            default_app_check_impl::kResetAppCheckState));
     FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
 
     env->DeleteGlobalRef(app_check_impl_);
