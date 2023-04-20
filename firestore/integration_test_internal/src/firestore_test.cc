@@ -1304,6 +1304,16 @@ TEST_F(FirestoreIntegrationTest, TerminateCanBeCalledMultipleTimes) {
 }
 #endif  // defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
 
+TEST_F(FirestoreIntegrationTest, canTerminateFirestoreInstance) {
+  App* app = App::GetInstance();
+  InitResult init_result;
+  Firestore* db = Firestore::GetInstance(app, "foo", &init_result);
+  ASSERT_EQ(kInitResultSuccess, init_result);
+
+  EXPECT_THAT(db->Terminate(), FutureSucceeds());
+  delete db;
+}
+
 TEST_F(FirestoreIntegrationTest, MaintainsPersistenceAfterRestarting) {
   Firestore* db = TestFirestore();
   App* app = db->app();
