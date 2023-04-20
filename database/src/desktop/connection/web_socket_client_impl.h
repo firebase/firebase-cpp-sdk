@@ -37,6 +37,7 @@ class WebSocketClientImpl : public WebSocketClientInterface {
  public:
   WebSocketClientImpl(const std::string& uri, const std::string& user_agent,
                       Logger* logger, scheduler::Scheduler* scheduler,
+                      const std::string& app_check_token,
                       WebSocketClientEventHandler* handler = nullptr);
   ~WebSocketClientImpl() override;
 
@@ -49,6 +50,12 @@ class WebSocketClientImpl : public WebSocketClientInterface {
   void Close() override;
   void Send(const char* msg) override;
   // END WebSocketClientInterface
+
+  // Refresh the stored App Check token being used by the connection.
+  // This doesn't change the connection itself, just the data used for
+  // establishing new connections.
+  // Expect to be called from scheduler thread.
+  void RefreshAppCheckToken(const std::string& token);
 
  private:
   typedef uWS::WebSocket<uWS::CLIENT> ClientWebSocket;
@@ -151,6 +158,9 @@ class WebSocketClientImpl : public WebSocketClientInterface {
 
   // User agent used when opening the connection.
   std::string user_agent_;
+
+  // App Check token used when opening the connection.
+  std::string app_check_token_;
 
   Logger* logger_;
 

@@ -75,7 +75,8 @@ class Connection : public WebSocketClientEventHandler {
 
   explicit Connection(scheduler::Scheduler* scheduler, const HostInfo& info,
                       const char* opt_last_session_id,
-                      ConnectionEventHandler* event_handler, Logger* logger);
+                      ConnectionEventHandler* event_handler, Logger* logger,
+                      const std::string& app_check_token = "");
   ~Connection() override;
 
   // Connection is neither copyable nor movable.
@@ -103,6 +104,12 @@ class Connection : public WebSocketClientEventHandler {
   void OnClose() override;
   void OnError(const WebSocketClientErrorData& error_data) override;
   // END WebSocketClientEventHandler
+
+  // Refresh the stored App Check token being used by the connection.
+  // This doesn't change the connection itself, just the data used for
+  // establishing new connections.
+  // Expect to be called from scheduler thread.
+  void RefreshAppCheckToken(const std::string& token);
 
  private:
   // State of the connection
