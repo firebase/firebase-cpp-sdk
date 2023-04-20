@@ -483,9 +483,13 @@ void ReadSignInResult(jobject result, FutureCallbackData<SignInResult>* d,
     util::CheckAndClearJniExceptions(env);
 
     // Update our pointer to the Android FirebaseUser that we're wrapping.
-    // Note: Cannot call UpdateCurrentUser(d->auth_data) because the Java
+    // Note: Cannot call UpdateCurrentUser(env, d->auth_data) because the Java
     //       Auth class has not been updated at this point.
-    SetImplFromLocalRef(env, j_user, &d->auth_data->user_impl);
+    SetImplFromLocalRef(env, j_user,
+                        &d->auth_data->deprecated_fields.android_user_impl);
+    SetUserImpl(d->auth_data,
+                static_cast<jobject>(
+                    d->auth_data->deprecated_fields.android_user_impl));
 
     // Grab the additional user info too.
     // Additional user info is not guaranteed to exist, so could be nullptr.
@@ -498,7 +502,7 @@ void ReadSignInResult(jobject result, FutureCallbackData<SignInResult>* d,
     SignInResult* sign_in_result = static_cast<SignInResult*>(void_data);
 
     // Return a pointer to the user and gather the additional data.
-    sign_in_result->user = d->auth_data->auth->current_user();
+    sign_in_result->user = d->auth_data->auth->current_user_DEPRECATED();
     ReadAdditionalUserInfo(env, j_additional_user_info, &sign_in_result->info);
     env->DeleteLocalRef(j_additional_user_info);
   }
@@ -519,14 +523,18 @@ void ReadUserFromSignInResult(jobject result, FutureCallbackData<User*>* d,
     util::CheckAndClearJniExceptions(env);
 
     // Update our pointer to the Android FirebaseUser that we're wrapping.
-    // Note: Cannot call UpdateCurrentUser(d->auth_data) because the Java
+    // Note: Cannot call UpdateCurrentUser(env, d->auth_data) because the Java
     //       Auth class has not been updated at this point.
-    SetImplFromLocalRef(env, j_user, &d->auth_data->user_impl);
+    SetImplFromLocalRef(env, j_user,
+                        &d->auth_data->deprecated_fields.android_user_impl);
+    SetUserImpl(d->auth_data,
+                static_cast<jobject>(
+                    d->auth_data->deprecated_fields.android_user_impl));
   }
 
   // Return a pointer to the current user, if the current user is valid.
   User** user_ptr = static_cast<User**>(void_data);
-  *user_ptr = d->auth_data->auth->current_user();
+  *user_ptr = d->auth_data->auth->current_user_DEPRECATED();
 }
 
 }  // namespace auth

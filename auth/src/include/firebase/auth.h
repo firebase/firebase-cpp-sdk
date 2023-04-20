@@ -49,6 +49,7 @@ struct AuthCompletionHandle;
 class FederatedAuthProvider;
 class FederatedOAuthProvider;
 struct SignInResult;
+class UserInternal;
 
 /// @brief Firebase authentication object.
 ///
@@ -103,7 +104,7 @@ struct SignInResult;
 ///
 /// // Request anonymous sign-in and wait until asynchronous call completes.
 /// firebase::Future<firebase::auth::User*> sign_in_future =
-///     auth->SignInAnonymously();
+///     auth->SignInAnonymously_DEPRECATED();
 /// while(sign_in_future.status() == firebase::kFutureStatusPending) {
 ///     // when polling, like this, make sure you service your platform's
 ///     // message loop
@@ -147,6 +148,8 @@ class Auth {
 
   ~Auth();
 
+  /// @deprecated This is a deprecated method. Please use @current_user instead.
+  ///
   /// Synchronously gets the cached current user, or nullptr if there is none.
   /// @note This function may block and wait until the Auth instance finishes
   /// loading the saved user's state. This should only happen for a short
@@ -161,7 +164,7 @@ class Auth {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  User* current_user();
+  FIREBASE_DEPRECATED User* current_user_DEPRECATED();
 
   /// The current user language code. This can be set to the app’s current
   /// language by calling set_language_code. The string must be a language code
@@ -239,23 +242,40 @@ class Auth {
   /// Get results of the most recent call to @ref FetchProvidersForEmail.
   Future<FetchProvidersResult> FetchProvidersForEmailLastResult() const;
 
-  // ----- Sign In ---------------------------------------------------------
+  /// @deprecated This is a deprecated method. Please use @SignInWithCustomToken
+  /// instead.
+  ///
   /// Asynchronously logs into Firebase with the given Auth token.
   ///
   /// An error is returned, if the token is invalid, expired or otherwise
   /// not accepted by the server.
-  Future<User*> SignInWithCustomToken(const char* token);
+  FIREBASE_DEPRECATED Future<User*> SignInWithCustomToken_DEPRECATED(
+      const char* token);
 
+  /// @deprecated
+  ///
   /// Get results of the most recent call to @ref SignInWithCustomToken.
-  Future<User*> SignInWithCustomTokenLastResult() const;
+  FIREBASE_DEPRECATED Future<User*> SignInWithCustomTokenLastResult_DEPRECATED()
+      const;
 
+  /// @deprecated This is a deprecated method. Please use @SignInWithCredential
+  /// instead.
+  ///
   /// Convenience method for @ref SignInAndRetrieveDataWithCredential that
   /// doesn't return additional identity provider data.
-  Future<User*> SignInWithCredential(const Credential& credential);
+  FIREBASE_DEPRECATED Future<User*> SignInWithCredential_DEPRECATED(
+      const Credential& credential);
 
-  /// Get results of the most recent call to @ref SignInWithCredential.
-  Future<User*> SignInWithCredentialLastResult() const;
+  /// @deprecated
+  ///
+  /// Get results of the most recent call to @ref
+  /// SignInWithCredential_DEPRECATED.
+  FIREBASE_DEPRECATED Future<User*> SignInWithCredentialLastResult_DEPRECATED()
+      const;
 
+  /// @deprecated This is a deprecated method. Please use @SignInWithProvider
+  /// instead.
+  ///
   /// Sign-in a user authenticated via a federated auth provider.
   ///
   /// @param[in] provider Contains information on the provider to authenticate
@@ -266,8 +286,12 @@ class Auth {
   /// @note: This operation is supported only on iOS, tvOS and Android
   /// platforms. On other platforms this method will return a Future with a
   /// preset error code: kAuthErrorUnimplemented.
-  Future<SignInResult> SignInWithProvider(FederatedAuthProvider* provider);
+  FIREBASE_DEPRECATED Future<SignInResult> SignInWithProvider_DEPRECATED(
+      FederatedAuthProvider* provider);
 
+  /// @deprecated This is a deprecated method. Please use
+  /// @SignInAndRetrieveDataWithCredential instead.
+  ///
   /// Asynchronously logs into Firebase with the given credentials.
   ///
   /// For example, the credential could wrap a Facebook login access token or
@@ -279,13 +303,19 @@ class Auth {
   ///
   /// An error is returned if the token is invalid, expired, or otherwise not
   /// accepted by the server.
-  Future<SignInResult> SignInAndRetrieveDataWithCredential(
-      const Credential& credential);
+  FIREBASE_DEPRECATED Future<SignInResult>
+  SignInAndRetrieveDataWithCredential_DEPRECATED(const Credential& credential);
 
+  /// @deprecated
+  ///
   /// Get results of the most recent call to
-  /// @ref SignInAndRetrieveDataWithCredential.
-  Future<SignInResult> SignInAndRetrieveDataWithCredentialLastResult() const;
+  /// @ref SignInAndRetrieveDataWithCredential_DEPRECATED.
+  FIREBASE_DEPRECATED Future<SignInResult>
+  SignInAndRetrieveDataWithCredentialLastResult_DEPRECATED() const;
 
+  /// @deprecated This is a deprecated method. Please use @SignInAnonymously
+  /// instead.
+  ///
   /// Asynchronously creates and becomes an anonymous user.
   /// If there is already an anonymous user signed in, that user will be
   /// returned instead.
@@ -330,7 +360,7 @@ class Auth {
   ///    if (future.status() == firebase::kFutureStatusInvalid ||
   ///        (future.status() == firebase::kFutureStatusComplete &&
   ///         future.error() != firebase::auth::kAuthErrorNone)) {
-  ///      auth.SignInAnonymously();
+  ///      auth.SignInAnonymously_DEPRECATED();
   ///    }
   ///
   ///    // We're signed in if the most recent result was successful.
@@ -339,31 +369,41 @@ class Auth {
   ///  }
   /// @endcode
   /// @endif
-  Future<User*> SignInAnonymously();
+  Future<User*> SignInAnonymously_DEPRECATED();
 
-  /// Get results of the most recent call to @ref SignInAnonymously.
-  Future<User*> SignInAnonymouslyLastResult() const;
+  /// Get results of the most recent call to @ref SignInAnonymously_DEPRECATED.
+  Future<User*> SignInAnonymouslyLastResult_DEPRECATED() const;
 
+  /// @deprecated This is a deprecated method. Please use
+  /// @SignInWithEmailAndPassword instead.
+  ///
   /// Signs in using provided email address and password.
   /// An error is returned if the password is wrong or otherwise not accepted
   /// by the server.
-  Future<User*> SignInWithEmailAndPassword(const char* email,
-                                           const char* password);
+  FIREBASE_DEPRECATED Future<User*> SignInWithEmailAndPassword_DEPRECATED(
+      const char* email, const char* password);
 
-  /// Get results of the most recent call to @ref SignInWithEmailAndPassword.
-  Future<User*> SignInWithEmailAndPasswordLastResult() const;
+  /// @deprecated
+  ///
+  /// Get results of the most recent call to @ref
+  /// SignInWithEmailAndPassword_DEPRECATED.
+  Future<User*> SignInWithEmailAndPasswordLastResult_DEPRECATED() const;
 
+  /// @deprecated This is a deprecated method. Please use
+  /// @CreateUserWithEmailAndPassword instead.
+  ///
   /// Creates, and on success, logs in a user with the given email address
   /// and password.
   ///
   /// An error is returned when account creation is unsuccessful
   /// (due to another existing account, invalid password, etc.).
-  Future<User*> CreateUserWithEmailAndPassword(const char* email,
-                                               const char* password);
+  FIREBASE_DEPRECATED Future<User*> CreateUserWithEmailAndPassword_DEPRECATED(
+      const char* email, const char* password);
 
   /// Get results of the most recent call to
-  /// @ref CreateUserWithEmailAndPassword.
-  Future<User*> CreateUserWithEmailAndPasswordLastResult() const;
+  /// @ref CreateUserWithEmailAndPassword_DEPRECATED.
+  FIREBASE_DEPRECATED Future<User*>
+  CreateUserWithEmailAndPasswordLastResult_DEPRECATED() const;
 
   /// Removes any existing authentication credentials from this client.
   /// This function always succeeds.
@@ -552,9 +592,9 @@ class Auth {
                                            void* out_future);
 
   // Provides access to the current user's uid, equivalent to calling
-  // this->current_user()->uid(). Returns the current user's uid or an empty
-  // string, if there isn't one. The out pointer is expected to point to an
-  // instance of std::string.
+  // this->current_user_DEPRECATED()->uid(). Returns the current user's uid or
+  // an empty string, if there isn't one. The out pointer is expected to point
+  // to an instance of std::string.
   static bool GetCurrentUserUidForRegistry(App* app, void* /*unused*/,
                                            void* out);
 
@@ -839,9 +879,13 @@ class FederatedAuthProvider {
  private:
   friend class ::firebase::auth::Auth;
   friend class ::firebase::auth::User;
+  friend class ::firebase::auth::UserInternal;
+
   virtual Future<SignInResult> SignIn(AuthData* auth_data) = 0;
-  virtual Future<SignInResult> Link(AuthData* auth_data) = 0;
-  virtual Future<SignInResult> Reauthenticate(AuthData* auth_data) = 0;
+  virtual Future<SignInResult> Link(AuthData* auth_data,
+                                    UserInternal* user_internal) = 0;
+  virtual Future<SignInResult> Reauthenticate(AuthData* auth_data,
+                                              UserInternal* user_internal) = 0;
 };
 
 /// @brief Authenticates with Federated OAuth Providers via the
@@ -923,10 +967,13 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
 
  private:
   friend class ::firebase::auth::Auth;
+  friend class ::firebase::auth::UserInternal;
 
   Future<SignInResult> SignIn(AuthData* auth_data) override;
-  Future<SignInResult> Link(AuthData* auth_data) override;
-  Future<SignInResult> Reauthenticate(AuthData* auth_data) override;
+  Future<SignInResult> Link(AuthData* auth_data,
+                            UserInternal* user_internal) override;
+  Future<SignInResult> Reauthenticate(AuthData* auth_data,
+                                      UserInternal* user_internal) override;
 
   FederatedOAuthProviderData provider_data_;
 #ifdef INTERNAL_EXPERIMENTAL

@@ -28,6 +28,7 @@ namespace firebase {
 
 // Predeclarations.
 class App;
+class UserInternal;
 
 /// @cond FIREBASE_APP_INTERNAL
 template <typename T>
@@ -109,6 +110,7 @@ class Credential {
   /// @cond FIREBASE_APP_INTERNAL
   friend class Auth;
   friend class User;
+  friend class UserInternal;
 
   /// Platform-specific implementation.
   /// For example, FIRAuthCredential* on iOS.

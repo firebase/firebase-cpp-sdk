@@ -170,10 +170,12 @@ Credential OAuthProvider::GetCredential(const char* provider_id, const char* id_
 
 // static
 Future<Credential> GameCenterAuthProvider::GetCredential() {
-  auto future_api = GetCredentialFutureImpl();
-  FIREBASE_ASSERT(future_api != nullptr);
+  ReferenceCountedFutureImpl* future_impl = GetCredentialFutureImpl();
+  FIREBASE_ASSERT(future_impl != nullptr);
+  const auto future_handle =
+      future_impl->SafeAlloc<Credential>(kCredentialFn_GameCenterGetCredential);
+  Future<Credential> future = MakeFuture(future_impl, future_handle);
 
-  const auto handle = future_api->SafeAlloc<Credential>(kCredentialFn_GameCenterGetCredential);
   /**
    Linking GameKit.framework without using it on macOS results in App Store rejection.
    Thus we don't link GameKit.framework to our SDK directly. `optionalLocalPlayer` is used for
@@ -184,20 +186,19 @@ Future<Credential> GameCenterAuthProvider::GetCredential() {
 
   // Early-out if GameKit is not linked
   if (!optionalLocalPlayer) {
-    future_api->Complete(handle, kAuthErrorInvalidCredential,
-                         "GameCenter authentication is unavailable - missing GameKit capability.");
-    return MakeFuture(future_api, handle);
+    future_impl->Complete(future_handle, kAuthErrorInvalidCredential,
+                          "GameCenter authentication is unavailable - missing GameKit capability.");
+  } else {
+    [FIRGameCenterAuthProvider
+        getCredentialWithCompletion:^(FIRAuthCredential* _Nullable credential,
+                                      NSError* _Nullable error) {
+          Credential result(new FIRAuthCredentialPointer(credential));
+          future_impl->CompleteWithResult(
+              future_handle, AuthErrorFromNSError(error),
+              util::NSStringToString(error.localizedDescription).c_str(), result);
+        }];
   }
-
-  [FIRGameCenterAuthProvider getCredentialWithCompletion:^(FIRAuthCredential* _Nullable credential,
-                                                           NSError* _Nullable error) {
-    Credential result(new FIRAuthCredentialPointer(credential));
-    future_api->CompleteWithResult(handle, AuthErrorFromNSError(error),
-                                   util::NSStringToString(error.localizedDescription).c_str(),
-                                   result);
-  }];
-
-  return MakeFuture(future_api, handle);
+  return future;
 }
 
 // static
@@ -407,22 +408,21 @@ void FederatedOAuthProvider::SetProviderData(const FederatedOAuthProviderData& p
 // current API.
 void LinkWithProviderGetCredentialCallback(FIRAuthCredential* _Nullable credential,
                                            NSError* _Nullable error,
-                                           SafeFutureHandle<SignInResult> handle,
-                                           AuthData* auth_data,
+                                           SafeFutureHandle<SignInResult> future_handle,
+                                           ReferenceCountedFutureImpl& future_impl,
+                                           AuthData* auth_data, FIRUser* user,
                                            const FIROAuthProvider* ios_auth_provider) {
   if (error && error.code != 0) {
-    ReferenceCountedFutureImpl& futures = auth_data->future_impl;
     error = RemapBadProviderIDErrors(error);
-    futures.CompleteWithResult(handle, AuthErrorFromNSError(error),
-                               util::NSStringToString(error.localizedDescription).c_str(),
-                               SignInResult());
+    future_impl.CompleteWithResult(future_handle, AuthErrorFromNSError(error),
+                                   util::NSStringToString(error.localizedDescription).c_str(),
+                                   SignInResult());
   } else {
-    [UserImpl(auth_data)
-        linkWithCredential:credential
-                completion:^(FIRAuthDataResult* _Nullable auth_result, NSError* _Nullable error) {
-                  SignInResultWithProviderCallback(auth_result, error, handle, auth_data,
-                                                   ios_auth_provider);
-                }];
+    [user linkWithCredential:credential
+                  completion:^(FIRAuthDataResult* _Nullable auth_result, NSError* _Nullable error) {
+                    SignInResultWithProviderCallback(auth_result, error, future_handle, future_impl,
+                                                     auth_data, ios_auth_provider);
+                  }];
   }
 }
 
@@ -431,30 +431,33 @@ void LinkWithProviderGetCredentialCallback(FIRAuthCredential* _Nullable credenti
 // accessible via their current API.
 void ReauthenticateWithProviderGetCredentialCallback(FIRAuthCredential* _Nullable credential,
                                                      NSError* _Nullable error,
-                                                     SafeFutureHandle<SignInResult> handle,
-                                                     AuthData* auth_data,
+                                                     SafeFutureHandle<SignInResult> future_handle,
+                                                     ReferenceCountedFutureImpl& future_impl,
+                                                     AuthData* auth_data, FIRUser* user,
                                                      const FIROAuthProvider* ios_auth_provider) {
   if (error && error.code != 0) {
-    ReferenceCountedFutureImpl& futures = auth_data->future_impl;
     error = RemapBadProviderIDErrors(error);
-    futures.CompleteWithResult(handle, AuthErrorFromNSError(error),
-                               util::NSStringToString(error.localizedDescription).c_str(),
-                               SignInResult());
+    future_impl.CompleteWithResult(future_handle, AuthErrorFromNSError(error),
+                                   util::NSStringToString(error.localizedDescription).c_str(),
+                                   SignInResult());
   } else {
-    [UserImpl(auth_data)
-        reauthenticateWithCredential:credential
-                          completion:^(FIRAuthDataResult* _Nullable auth_result,
-                                       NSError* _Nullable error) {
-                            SignInResultWithProviderCallback(auth_result, error, handle, auth_data,
-                                                             ios_auth_provider);
-                          }];
+    [user reauthenticateWithCredential:credential
+                            completion:^(FIRAuthDataResult* _Nullable auth_result,
+                                         NSError* _Nullable error) {
+                              SignInResultWithProviderCallback(auth_result, error, future_handle,
+                                                               future_impl, auth_data,
+                                                               ios_auth_provider);
+                            }];
   }
 }
 
 Future<SignInResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
   assert(auth_data);
-  ReferenceCountedFutureImpl& futures = auth_data->future_impl;
-  const auto handle = futures.SafeAlloc<SignInResult>(kAuthFn_SignInWithProvider, SignInResult());
+  ReferenceCountedFutureImpl& future_impl = auth_data->future_impl;
+  const auto future_handle =
+      future_impl.SafeAlloc<SignInResult>(kAuthFn_SignInWithProvider_DEPRECATED, SignInResult());
+  Future<SignInResult> future = MakeFuture(&future_impl, future_handle);
+
   FIROAuthProvider* ios_provider = (FIROAuthProvider*)[FIROAuthProvider
       providerWithProviderID:@(provider_data_.provider_id.c_str())
                         auth:AuthImpl(auth_data)];
@@ -465,22 +468,25 @@ Future<SignInResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
         signInWithProvider:ios_provider
                 UIDelegate:nullptr
                 completion:^(FIRAuthDataResult* _Nullable auth_result, NSError* _Nullable error) {
-                  SignInResultWithProviderCallback(auth_result, error, handle, auth_data,
-                                                   ios_provider);
+                  SignInResultWithProviderCallback(auth_result, error, future_handle, future_impl,
+                                                   auth_data, ios_provider);
                 }];
-    return MakeFuture(&futures, handle);
   } else {
-    Future<SignInResult> future = MakeFuture(&futures, handle);
-    futures.CompleteWithResult(handle, kAuthErrorFailure, "Internal error constructing provider.",
-                               SignInResult());
-    return future;
+    future_impl.CompleteWithResult(future_handle, kAuthErrorFailure,
+                                   "Internal error constructing provider.", SignInResult());
   }
+  return future;
 }
 
-Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
+Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data,
+                                                  UserInternal* user_internal) {
   assert(auth_data);
-  ReferenceCountedFutureImpl& futures = auth_data->future_impl;
-  auto handle = futures.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider, SignInResult());
+  assert(user_internal);
+  ReferenceCountedFutureImpl& future_impl = user_internal->future_data_.future_impl;
+  auto future_handle =
+      future_impl.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider_DEPRECATED, SignInResult());
+  Future<SignInResult> future = MakeFuture(&future_impl, future_handle);
+
 #if FIREBASE_PLATFORM_IOS
   FIROAuthProvider* ios_provider = (FIROAuthProvider*)[FIROAuthProvider
       providerWithProviderID:@(provider_data_.provider_id.c_str())
@@ -488,33 +494,39 @@ Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
   if (ios_provider != nullptr) {
     ios_provider.customParameters = util::StringMapToNSDictionary(provider_data_.custom_parameters);
     ios_provider.scopes = util::StringVectorToNSMutableArray(provider_data_.scopes);
+    FIRUser* user = user_internal->user_;
     // TODO(b/138788092) invoke FIRUser linkWithProvider instead, once that method is added to the
     // iOS SDK.
     [ios_provider getCredentialWithUIDelegate:nullptr
                                    completion:^(FIRAuthCredential* _Nullable credential,
                                                 NSError* _Nullable error) {
                                      LinkWithProviderGetCredentialCallback(
-                                         credential, error, handle, auth_data, ios_provider);
+                                         credential, error, future_handle,
+                                         user_internal->future_data_.future_impl, auth_data, user,
+                                         ios_provider);
                                    }];
-    return MakeFuture(&futures, handle);
   } else {
-    Future<SignInResult> future = MakeFuture(&futures, handle);
-    futures.CompleteWithResult(handle, kAuthErrorFailure, "Internal error constructing provider.",
-                               SignInResult());
-    return future;
+    future_impl.CompleteWithResult(future_handle, kAuthErrorFailure,
+                                   "Internal error constructing provider.", SignInResult());
   }
 
 #else   // non-iOS Apple platforms (eg: tvOS)
-  Future<SignInResult> future = MakeFuture(&futures, handle);
-  futures.Complete(handle, kAuthErrorApiNotAvailable,
-                   "OAuth provider linking is not supported on non-iOS Apple platforms.");
+  future_impl.CompleteWithResult(
+      future_handle, kAuthErrorApiNotAvailable,
+      "OAuth provider linking is not supported on non-iOS Apple platforms.", SignInResult());
 #endif  // FIREBASE_PLATFORM_IOS
+  return future;
 }
 
-Future<SignInResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data) {
+Future<SignInResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data,
+                                                            UserInternal* user_internal) {
   assert(auth_data);
-  ReferenceCountedFutureImpl& futures = auth_data->future_impl;
-  auto handle = futures.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider, SignInResult());
+  assert(user_internal);
+  ReferenceCountedFutureImpl& future_impl = user_internal->future_data_.future_impl;
+  auto future_handle = future_impl.SafeAlloc<SignInResult>(
+      kUserFn_ReauthenticateWithProvider_DEPRECATED, SignInResult());
+  Future<SignInResult> future = MakeFuture(&future_impl, future_handle);
+
 #if FIREBASE_PLATFORM_IOS
   FIROAuthProvider* ios_provider = (FIROAuthProvider*)[FIROAuthProvider
       providerWithProviderID:@(provider_data_.provider_id.c_str())
@@ -522,27 +534,26 @@ Future<SignInResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data)
   if (ios_provider != nullptr) {
     ios_provider.customParameters = util::StringMapToNSDictionary(provider_data_.custom_parameters);
     ios_provider.scopes = util::StringVectorToNSMutableArray(provider_data_.scopes);
+    FIRUser* user = user_internal->user_;
     // TODO(b/138788092) invoke FIRUser:reuthenticateWithProvider instead, once that method is added
     // to the iOS SDK.
     [ios_provider getCredentialWithUIDelegate:nullptr
                                    completion:^(FIRAuthCredential* _Nullable credential,
                                                 NSError* _Nullable error) {
                                      ReauthenticateWithProviderGetCredentialCallback(
-                                         credential, error, handle, auth_data, ios_provider);
+                                         credential, error, future_handle, future_impl, auth_data,
+                                         user, ios_provider);
                                    }];
-    return MakeFuture(&futures, handle);
   } else {
-    Future<SignInResult> future = MakeFuture(&futures, handle);
-    futures.CompleteWithResult(handle, kAuthErrorFailure, "Internal error constructing provider.",
-                               SignInResult());
-    return future;
+    future_impl.CompleteWithResult(future_handle, kAuthErrorFailure,
+                                   "Internal error constructing provider.", SignInResult());
   }
-
 #else   // non-iOS Apple platforms (eg: tvOS)
-  Future<SignInResult> future = MakeFuture(&futures, handle);
-  futures.Complete(handle, kAuthErrorApiNotAvailable,
-                   "OAuth reauthentication is not supported on non-iOS Apple platforms.");
+  future_impl.CompleteWithResult(
+      future_handle, kAuthErrorApiNotAvailable,
+      "OAuth reauthentication is not supported on non-iOS Apple platforms.", SignInResult());
 #endif  // FIREBASE_PLATFORM_IOS
+  return future;
 }
 
 }  // namespace auth

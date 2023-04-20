@@ -111,7 +111,7 @@ void IdTokenRefreshListener::OnIdTokenChanged(Auth* auth) {
   // to prevent deadlocks!
   MutexLock lock(mutex_);
   MutexLock future_lock(auth->auth_data_->future_impl.mutex());
-  if (auth->current_user()) {
+  if (auth->current_user_DEPRECATED()) {
     ResetTokenRefreshCounter(auth->auth_data_);
 
     // Retrieve id_token from auth_data
@@ -151,7 +151,7 @@ bool Auth::GetAuthTokenForRegistry(App* app, void* /*unused*/, void* out) {
   Auth* auth = Auth::FindAuth(app);
   if (auth) {
     // Make sure the persistent cache is loaded.
-    auth->current_user();
+    auth->current_user_DEPRECATED();
 
     auto result = static_cast<std::string*>(out);
     MutexLock lock(auth->auth_data_->token_listener_mutex);
@@ -176,7 +176,7 @@ bool Auth::GetAuthTokenAsyncForRegistry(App* app, void* force_refresh,
 
   Auth* auth = Auth::FindAuth(app);
   if (auth) {
-    User* user = auth->current_user();
+    User* user = auth->current_user_DEPRECATED();
     if (user) {
       Future<std::string> future = user->GetTokenInternal(
           *in_force_refresh, kInternalFn_GetTokenForFunctionRegistry);
@@ -199,7 +199,7 @@ bool Auth::GetCurrentUserUidForRegistry(App* app, void* /*unused*/, void* out) {
   Auth* auth = Auth::FindAuth(app);
   if (!auth) return false;
 
-  User* user = auth->current_user();
+  User* user = auth->current_user_DEPRECATED();
   if (!user) return false;
 
   if (out_string) {
@@ -337,9 +337,10 @@ void Auth::DestroyPlatformAuth(AuthData* const auth_data) {
 
 // RPCs
 
-Future<User*> Auth::SignInWithCustomToken(const char* const custom_token) {
+Future<User*> Auth::SignInWithCustomToken_DEPRECATED(
+    const char* const custom_token) {
   Promise<User*> promise(&auth_data_->future_impl,
-                         kAuthFn_SignInWithCustomToken);
+                         kAuthFn_SignInWithCustomToken_DEPRECATED);
   if (!custom_token || strlen(custom_token) == 0) {
     FailPromise(&promise, kAuthErrorInvalidCustomToken);
     return promise.LastResult();
@@ -355,9 +356,10 @@ Future<User*> Auth::SignInWithCustomToken(const char* const custom_token) {
                    PerformSignInFlow<VerifyCustomTokenResponse>);
 }
 
-Future<User*> Auth::SignInWithCredential(const Credential& credential) {
+Future<User*> Auth::SignInWithCredential_DEPRECATED(
+    const Credential& credential) {
   Promise<User*> promise(&auth_data_->future_impl,
-                         kAuthFn_SignInWithCredential);
+                         kAuthFn_SignInWithCredential_DEPRECATED);
   if (!ValidateCredential(&promise, credential.provider(), credential.impl_)) {
     return promise.LastResult();
   }
@@ -366,14 +368,15 @@ Future<User*> Auth::SignInWithCredential(const Credential& credential) {
                                 credential.impl_);
 }
 
-Future<SignInResult> Auth::SignInWithProvider(FederatedAuthProvider* provider) {
+Future<SignInResult> Auth::SignInWithProvider_DEPRECATED(
+    FederatedAuthProvider* provider) {
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
   // TODO(b/139363200)
   // return provider->SignIn(auth_data_);
 
   SafeFutureHandle<SignInResult> handle =
       auth_data_->future_impl.SafeAlloc<SignInResult>(
-          kAuthFn_SignInWithProvider);
+          kAuthFn_SignInWithProvider_DEPRECATED);
   auth_data_->future_impl.CompleteWithResult(
       handle, kAuthErrorUnimplemented,
       "Operation is not supported on non-mobile systems.",
@@ -381,8 +384,9 @@ Future<SignInResult> Auth::SignInWithProvider(FederatedAuthProvider* provider) {
   return MakeFuture(&auth_data_->future_impl, handle);
 }
 
-Future<User*> Auth::SignInAnonymously() {
-  Promise<User*> promise(&auth_data_->future_impl, kAuthFn_SignInAnonymously);
+Future<User*> Auth::SignInAnonymously_DEPRECATED() {
+  Promise<User*> promise(&auth_data_->future_impl,
+                         kAuthFn_SignInAnonymously_DEPRECATED);
 
   // If user is already signed in anonymously, return immediately.
   bool is_anonymous = false;
@@ -405,10 +409,10 @@ Future<User*> Auth::SignInAnonymously() {
                    PerformSignInFlow<SignUpNewUserResponse>);
 }
 
-Future<User*> Auth::SignInWithEmailAndPassword(const char* const email,
-                                               const char* const password) {
+Future<User*> Auth::SignInWithEmailAndPassword_DEPRECATED(
+    const char* const email, const char* const password) {
   Promise<User*> promise(&auth_data_->future_impl,
-                         kAuthFn_SignInWithEmailAndPassword);
+                         kAuthFn_SignInWithEmailAndPassword_DEPRECATED);
   if (!ValidateEmailAndPassword(&promise, email, password)) {
     return promise.LastResult();
   }
@@ -421,10 +425,10 @@ Future<User*> Auth::SignInWithEmailAndPassword(const char* const email,
                    PerformSignInFlow<VerifyPasswordResponse>);
 }
 
-Future<User*> Auth::CreateUserWithEmailAndPassword(const char* const email,
-                                                   const char* const password) {
+Future<User*> Auth::CreateUserWithEmailAndPassword_DEPRECATED(
+    const char* const email, const char* const password) {
   Promise<User*> promise(&auth_data_->future_impl,
-                         kAuthFn_CreateUserWithEmailAndPassword);
+                         kAuthFn_CreateUserWithEmailAndPassword_DEPRECATED);
   if (!ValidateEmailAndPassword(&promise, email, password)) {
     return promise.LastResult();
   }
@@ -438,10 +442,11 @@ Future<User*> Auth::CreateUserWithEmailAndPassword(const char* const email,
                    PerformSignInFlow<SignUpNewUserResponse>);
 }
 
-Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential(
+Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential_DEPRECATED(
     const Credential& credential) {
-  Promise<SignInResult> promise(&auth_data_->future_impl,
-                                kAuthFn_SignInAndRetrieveDataWithCredential);
+  Promise<SignInResult> promise(
+      &auth_data_->future_impl,
+      kAuthFn_SignInAndRetrieveDataWithCredential_DEPRECATED);
   return DoSignInWithCredential(promise, auth_data_, credential.provider(),
                                 credential.impl_);
 }
@@ -509,11 +514,11 @@ void Auth::SignOut() {
   AuthenticationResult::SignOut(auth_data_);
 }
 
-// AuthStateListener to wait for current_user() until persistent cache load is
-// finished.
+// AuthStateListener to wait for current_user_DEPRECATED() until persistent
+// cache load is finished.
 class CurrentUserBlockListener : public firebase::auth::AuthStateListener {
  public:
-  explicit CurrentUserBlockListener() : semaphore_(0) {}
+  CurrentUserBlockListener() : semaphore_(0) {}
   ~CurrentUserBlockListener() override {}
 
   void OnAuthStateChanged(Auth* auth) override { semaphore_.Post(); }
@@ -527,7 +532,7 @@ class CurrentUserBlockListener : public firebase::auth::AuthStateListener {
 // It's safe to return a direct pointer to `current_user` because that class
 // holds nothing but a pointer to AuthData, which never changes.
 // All User functions that require synchronization go through AuthData's mutex.
-User* Auth::current_user() {
+User* Auth::current_user_DEPRECATED() {
   if (!auth_data_) return nullptr;
 
   // Add a listener and wait for the first trigger.

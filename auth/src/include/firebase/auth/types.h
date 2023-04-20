@@ -428,6 +428,12 @@ enum AuthError {
   kAuthErrorTokenRefreshUnavailable,
 
 #endif  // INTERNAL_EXEPERIMENTAL
+
+  /// Indicates that an operation was attempted on an invalid User.
+  kAuthErrorInvalidUser,
+
+  /// Indicates that an invalid parameter was passed to an auth method.
+  kAuthErrorInvalidParameter,
 };
 
 /// @brief Contains information required to authenticate with a third party
