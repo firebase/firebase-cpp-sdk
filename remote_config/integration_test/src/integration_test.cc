@@ -15,15 +15,20 @@
 #include <inttypes.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <future>
+#include <memory>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
+#include "firebase/internal/platform.h"
 #include "firebase/log.h"
 #include "firebase/remote_config.h"
+#include "firebase/remote_config/config_update_listener_registration.h"
 #include "firebase/util.h"
 #include "firebase_test_framework.h"  // NOLINT
 
@@ -187,6 +192,60 @@ static Future<void> SetZeroIntervalConfigSettings(RemoteConfig* rc) {
 }
 
 // Test cases below.
+
+/// This test requires to be run on a device or simulator that does not have the
+/// template version number stored on the disk.
+TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
+  ASSERT_NE(rc_, nullptr);
+
+  EXPECT_TRUE(WaitForCompletion(SetDefaults(rc_), "SetDefaults"));
+
+#if FIREBASE_PLATFORM_IOS
+
+  auto config_update_promise = std::make_shared<std::promise<void>>();
+
+  firebase::remote_config::ConfigUpdateListenerRegistration* registration =
+      rc_->AddOnConfigUpdateListener(
+          [&, config_update_promise](
+              firebase::remote_config::ConfigUpdate&& configUpdate,
+              firebase::remote_config::RemoteConfigError remoteConfigError) {
+            EXPECT_EQ(configUpdate.updated_keys.size(), 5);
+            EXPECT_TRUE(WaitForCompletion(rc_->Activate(), "Activate"));
+            LogDebug("Real-time Config Update keys retrieved.");
+
+            std::map<std::string, firebase::Variant> key_values = rc_->GetAll();
+            EXPECT_EQ(key_values.size(), 6);
+
+            for (auto key_valur_pair : kServerValue) {
+              firebase::Variant k_value = key_valur_pair.value;
+              firebase::Variant fetched_value = key_values[key_valur_pair.key];
+              EXPECT_EQ(k_value.type(), fetched_value.type());
+              EXPECT_EQ(k_value, fetched_value);
+            }
+            config_update_promise->set_value();
+          });
+  EXPECT_NE(nullptr, registration);
+  auto config_update_future = config_update_promise->get_future();
+  ASSERT_EQ(std::future_status::ready,
+            config_update_future.wait_for(std::chrono::milliseconds(10000)));
+
+  registration->Remove();
+
+#endif
+}
+
+TEST_F(FirebaseRemoteConfigTest, TestRemoveConfigUpdateListener) {
+#if FIREBASE_PLATFORM_IOS
+
+  firebase::remote_config::ConfigUpdateListenerRegistration* registration =
+      rc_->AddOnConfigUpdateListener(
+          [](firebase::remote_config::ConfigUpdate&& configUpdate,
+             firebase::remote_config::RemoteConfigError remoteConfigError) {});
+
+  registration->Remove();
+
+#endif
+}
 
 TEST_F(FirebaseRemoteConfigTest, TestInitializeAndTerminate) {
   // Already tested via SetUp() and TearDown().
@@ -405,15 +464,4 @@ TEST_F(FirebaseRemoteConfigTest, TestFetchSecondsParameter) {
 
   FLAKY_TEST_SECTION_END();
 }
-
-TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
-  EXPECT_EQ(nullptr, rc_->AddOnConfigUpdateListener(
-                         [](ConfigUpdate&&, RemoteConfigError) {}));
-}
-
-TEST_F(FirebaseRemoteConfigTest, TestRemoveConfigUpdateListener) {
-  EXPECT_EQ(nullptr, rc_->AddOnConfigUpdateListener(
-                         [](ConfigUpdate&&, RemoteConfigError) {}));
-}
-
 }  // namespace firebase_testapp_automated

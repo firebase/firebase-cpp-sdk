@@ -21,9 +21,12 @@ ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
     std::function<void()> listener_removal_function)
     : listenerRemovalFunction(listener_removal_function) {}
 
+ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
+    std::function<void()> listener_removal_function)
+    : listenerRemovalFunction(listener_removal_function) {}
+
 ConfigUpdateListenerRegistration::~ConfigUpdateListenerRegistration() {}
 
-// TODO: almostmatt, merge this with quan's ios changes. also see about whether to make this no-op after first call
 void ConfigUpdateListenerRegistration::Remove() {
   this->listenerRemovalFunction();
 }

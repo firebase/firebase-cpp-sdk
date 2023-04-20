@@ -29,6 +29,12 @@ class ConfigUpdateListenerRegistration {
  public:
   ConfigUpdateListenerRegistration(std::function<void()> listener_removal_function);
 
+  /// @brief ConfigUpdateListenerRegistration constructor that takes in a
+  /// function as a parameter. The parameter function connects `Remove` to the
+  /// native platform's `Remove` method.
+  ConfigUpdateListenerRegistration(
+      std::function<void()> listener_removal_function);
+
   ~ConfigUpdateListenerRegistration();
 
   /// @brief The listener being tracked by this

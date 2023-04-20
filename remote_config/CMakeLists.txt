@@ -45,8 +45,7 @@ build_flatbuffers("${flatbuffer_schemas}"
 # Common source files used by all platforms
 set(common_SRCS
     src/common.cc
-    src/remote_config.cc
-    src/config_update_listener_registration.cc)
+    src/remote_config.cc)
 
 
 # Run gradle command to make jar
@@ -64,6 +63,7 @@ set(android_SRCS
 
 # Source files used by the iOS implementation.
 set(ios_SRCS
+    src/ios/config_update_listener_registration.cc
     src/ios/remote_config_ios.mm)
 
 # Source files used by the desktop implementation.
