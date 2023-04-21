@@ -73,6 +73,9 @@ android {
       proguardFile file('proguard.pro')
     }
   }
+  packagingOptions {
+    pickFirst 'META-INF/**/coroutines.pro'
+  }
   lintOptions {
     abortOnError false
   }
