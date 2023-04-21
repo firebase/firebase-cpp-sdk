@@ -289,8 +289,9 @@ class Auth {
   /// @deprecated This is a deprecated method. Please use @ref
   /// SignInWithCredential instead.
   ///
-  /// Convenience method for @ref SignInAndRetrieveDataWithCredential that
-  /// doesn't return additional identity provider data.
+  /// Convenience method for @ref
+  /// SignInAndRetrieveDataWithCredential_DEPRECATED that doesn't
+  /// return additional identity provider data.
   FIREBASE_DEPRECATED Future<User*> SignInWithCredential_DEPRECATED(
       const Credential& credential);
 
