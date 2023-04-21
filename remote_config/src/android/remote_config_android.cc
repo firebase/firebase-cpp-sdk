@@ -1179,6 +1179,8 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
     ConfigUpdateListenerRegistration *registration_wrapper =
       new ConfigUpdateListenerRegistration([j_registration]() {
         // TODO almostmatt - get threadsafe jni env. see appcheck.
+        // alternatively, define a new type for android ConfigUpdateListenerRegistration
+        // and give it the pointer and let it handle global ref in its destructor
         env->CallVoidMethod(j_registration,
                             config_update_listener_registration::GetMethodId(
                               config_update_listener_registration::kRemove));
