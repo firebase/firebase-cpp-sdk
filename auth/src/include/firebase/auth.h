@@ -156,7 +156,8 @@ class Auth {
   /// time after the Auth instance is created.
   User current_user();
 
-  /// @deprecated This is a deprecated method. Please use current_user instead.
+  /// @deprecated This is a deprecated method. Please use @ref
+  /// current_user instead.
   ///
   /// Synchronously gets the cached current user, or nullptr if there is none.
   /// @note This function may block and wait until the Auth instance finishes
@@ -285,8 +286,8 @@ class Auth {
   /// Get results of the most recent call to @ref SignInWithCredential.
   Future<User> SignInWithCredentialLastResult() const;
 
-  /// @deprecated This is a deprecated method. Please use SignInWithCredential
-  /// instead.
+  /// @deprecated This is a deprecated method. Please use @ref
+  /// SignInWithCredential instead.
   ///
   /// Convenience method for @ref SignInAndRetrieveDataWithCredential that
   /// doesn't return additional identity provider data.
@@ -312,8 +313,8 @@ class Auth {
   /// preset error code: kAuthErrorUnimplemented.
   Future<AuthResult> SignInWithProvider(FederatedAuthProvider* provider);
 
-  /// @deprecated This is a deprecated method. Please use SignInWithProvider
-  /// instead.
+  /// @deprecated This is a deprecated method. Please use @ref
+  /// SignInWithProvider instead.
   ///
   /// Sign-in a user authenticated via a federated auth provider.
   ///
@@ -346,7 +347,7 @@ class Auth {
   /// @ref SignInAndRetrieveDataWithCredential.
   Future<AuthResult> SignInAndRetrieveDataWithCredentialLastResult() const;
 
-  /// @deprecated This is a deprecated method. Please use
+  /// @deprecated This is a deprecated method. Please use @ref
   /// SignInAndRetrieveDataWithCredential instead.
   ///
   /// Asynchronously logs into Firebase with the given credentials.
@@ -448,7 +449,7 @@ class Auth {
   /// SignInWithEmailAndPassword.
   Future<AuthResult> SignInWithEmailAndPasswordLastResult() const;
 
-  /// @deprecated This is a deprecated method. Please use
+  /// @deprecated This is a deprecated method. Please use @ref
   /// SignInWithEmailAndPassword instead.
   ///
   /// Signs in using provided email address and password.
@@ -476,7 +477,7 @@ class Auth {
   /// @ref CreateUserWithEmailAndPassword.
   Future<AuthResult> CreateUserWithEmailAndPasswordLastResult() const;
 
-  /// @deprecated This is a deprecated method. Please use
+  /// @deprecated This is a deprecated method. Please use @ref
   /// CreateUserWithEmailAndPassword instead.
   ///
   /// Creates, and on success, logs in a user with the given email address
