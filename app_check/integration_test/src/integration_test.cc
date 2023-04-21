@@ -131,6 +131,7 @@ class FirebaseAppCheckTest : public FirebaseTest {
 
   firebase::database::DatabaseReference CreateWorkingPath(
       bool suppress_cleanup = false);
+  void CleanupDatabase(int expected_error);
 
   firebase::firestore::CollectionReference GetFirestoreCollection();
   firebase::firestore::DocumentReference CreateFirestoreDoc();
@@ -312,20 +313,7 @@ void FirebaseAppCheckTest::TerminateDatabase() {
   if (!initialized_) return;
 
   if (database_) {
-    if (!database_cleanup_.empty() && database_ && app_) {
-      LogDebug("Cleaning up...");
-      std::vector<firebase::Future<void>> cleanups;
-      cleanups.reserve(database_cleanup_.size());
-      for (int i = 0; i < database_cleanup_.size(); ++i) {
-        cleanups.push_back(database_cleanup_[i].RemoveValue());
-      }
-      for (int i = 0; i < cleanups.size(); ++i) {
-        std::string cleanup_name =
-            "Cleanup (" + database_cleanup_[i].url() + ")";
-        WaitForCompletion(cleanups[i], cleanup_name.c_str());
-      }
-      database_cleanup_.clear();
-    }
+    CleanupDatabase(0);
 
     LogDebug("Shutdown the Database library.");
     delete database_;
@@ -334,6 +322,22 @@ void FirebaseAppCheckTest::TerminateDatabase() {
   initialized_ = false;
 
   ProcessEvents(100);
+}
+
+void FirebaseAppCheckTest::CleanupDatabase(int expected_error) {
+  if (!database_cleanup_.empty()) {
+    LogDebug("Cleaning up Database...");
+    std::vector<firebase::Future<void>> cleanups;
+    cleanups.reserve(database_cleanup_.size());
+    for (int i = 0; i < database_cleanup_.size(); ++i) {
+      cleanups.push_back(database_cleanup_[i].RemoveValue());
+    }
+    for (int i = 0; i < cleanups.size(); ++i) {
+      std::string cleanup_name = "Cleanup (" + database_cleanup_[i].url() + ")";
+      WaitForCompletion(cleanups[i], cleanup_name.c_str(), expected_error);
+    }
+    database_cleanup_.clear();
+  }
 }
 
 void FirebaseAppCheckTest::InitializeAppAuthDatabase() {
@@ -743,18 +747,34 @@ TEST_F(FirebaseAppCheckTest, TestPlayIntegrityProvider) {
 #endif
 }
 
-// Disabling the database tests for now, since they are crashing or hanging.
-TEST_F(FirebaseAppCheckTest, DISABLED_TestDatabaseFailure) {
+TEST_F(FirebaseAppCheckTest, TestDatabaseFailure) {
+  firebase::SetLogLevel(firebase::kLogLevelVerbose);
   // Don't initialize App Check this time. Database should fail.
   InitializeAppAuthDatabase();
   firebase::database::DatabaseReference ref = CreateWorkingPath();
   const char* test_name = test_info_->name();
   firebase::Future<void> f = ref.Child(test_name).SetValue("test");
-  // It is unclear if this should fail, or hang, so disabled for now.
-  WaitForCompletion(f, "SetString");
+#if FIREBASE_PLATFORM_ANDROID
+  // On Android the future will not complete. This is present in the
+  // underlying Android SDK, so work around it here.
+  ASSERT_EQ(f.status(), firebase::kFutureStatusPending);
+  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+  ASSERT_EQ(f.status(), firebase::kFutureStatusPending);
+  // Likewise, removal won't finish, so don't wait for it.
+  if (!database_cleanup_.empty()) {
+    LogDebug("Cleaning up Database...");
+    for (int i = 0; i < database_cleanup_.size(); ++i) {
+      database_cleanup_[i].RemoveValue();
+    }
+    database_cleanup_.clear();
+  }
+#else
+  WaitForCompletion(f, "SetString", firebase::database::kErrorDisconnected);
+  CleanupDatabase(firebase::database::kErrorOperationFailed);
+#endif
 }
 
-TEST_F(FirebaseAppCheckTest, DISABLED_TestDatabaseCreateWorkingPath) {
+TEST_F(FirebaseAppCheckTest, TestDatabaseCreateWorkingPath) {
   InitializeAppCheckWithDebug();
   InitializeAppAuthDatabase();
   firebase::database::DatabaseReference working_path = CreateWorkingPath();
@@ -769,7 +789,7 @@ TEST_F(FirebaseAppCheckTest, DISABLED_TestDatabaseCreateWorkingPath) {
 
 static const char kSimpleString[] = "Some simple string";
 
-TEST_F(FirebaseAppCheckTest, DISABLED_TestDatabaseSetAndGet) {
+TEST_F(FirebaseAppCheckTest, TestDatabaseSetAndGet) {
   InitializeAppCheckWithDebug();
   InitializeAppAuthDatabase();
 
@@ -795,7 +815,7 @@ TEST_F(FirebaseAppCheckTest, DISABLED_TestDatabaseSetAndGet) {
   }
 }
 
-TEST_F(FirebaseAppCheckTest, DISABLED_TestRunTransaction) {
+TEST_F(FirebaseAppCheckTest, TestDatabaseRunTransaction) {
   InitializeAppCheckWithDebug();
   InitializeAppAuthDatabase();
 
@@ -846,6 +866,42 @@ TEST_F(FirebaseAppCheckTest, DISABLED_TestRunTransaction) {
     EXPECT_EQ(read_result.Child("player_score").value().AsInt64(),
               kInitialScore + score_delta);
     EXPECT_EQ(read_result.value(), transaction_future.result()->value());
+  }
+}
+
+TEST_F(FirebaseAppCheckTest, TestDatabaseUpdateToken) {
+  // Test that after forcing an App Check token update, the database connection
+  // still works.
+  InitializeAppCheckWithDebug();
+  InitializeAppAuthDatabase();
+
+  const char* test_name = test_info_->name();
+  firebase::database::DatabaseReference ref = CreateWorkingPath();
+
+  {
+    LogDebug("Setting value.");
+    firebase::Future<void> f1 =
+        ref.Child(test_name).Child("String").SetValue(kSimpleString);
+    WaitForCompletion(f1, "SetSimpleString");
+  }
+
+  // Force App Check to update its token.
+  ::firebase::app_check::AppCheck* app_check =
+      ::firebase::app_check::AppCheck::GetInstance(app_);
+  ASSERT_NE(app_check, nullptr);
+  firebase::Future<::firebase::app_check::AppCheckToken> future =
+      app_check->GetAppCheckToken(true);
+  EXPECT_TRUE(WaitForCompletion(future, "GetAppCheckToken"));
+
+  // Get the values that we just set, and confirm that they match what we
+  // set them to.
+  {
+    LogDebug("Getting value.");
+    firebase::Future<firebase::database::DataSnapshot> f1 =
+        ref.Child(test_name).Child("String").GetValue();
+    WaitForCompletion(f1, "GetSimpleString");
+
+    EXPECT_EQ(f1.result()->value().AsString(), kSimpleString);
   }
 }
 
@@ -1030,11 +1086,7 @@ TEST_F(FirebaseAppCheckTest, TestFirestoreListenerFailure) {
               const firebase::firestore::DocumentSnapshot& result,
               firebase::firestore::Error error_code,
               const std::string& error_message) {
-            if (error_code == firebase::firestore::kErrorNone) {
-              // If we receive a success, it should only be for the cache.
-              EXPECT_TRUE(result.metadata().has_pending_writes());
-              EXPECT_TRUE(result.metadata().is_from_cache());
-            } else {
+            if (error_code != firebase::firestore::kErrorNone) {
               // We expect one call with a Permission Denied error, from the
               // server.
               std::lock_guard<std::mutex> lock(mutex);

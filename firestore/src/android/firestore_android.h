@@ -144,6 +144,12 @@ class FirestoreInternal {
 
   static jni::Env GetEnv();
 
+  AggregateQuery NewAggregateQuery(jni::Env& env,
+                                   const jni::Object& aggregate_query) const;
+
+  AggregateQuerySnapshot NewAggregateQuerySnapshot(
+      jni::Env& env, const jni::Object& aggregate_query_snapshot) const;
+
   CollectionReference NewCollectionReference(
       jni::Env& env, const jni::Object& reference) const;
   DocumentReference NewDocumentReference(jni::Env& env,
