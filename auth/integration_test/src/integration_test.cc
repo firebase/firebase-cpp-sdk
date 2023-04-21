@@ -659,7 +659,7 @@ TEST_F(FirebaseAuthTest, TestCopyUser_DEPRECATED) {
 
   EXPECT_TRUE(auth_->current_user_DEPRECATED()->is_valid());
   EXPECT_TRUE(auth_->current_user_DEPRECATED()->is_anonymous());
-  EXPECT_TRUE(auth_->current_user_DEPRECATED()->uid().size() != 0);
+  EXPECT_NE(auth_->current_user_DEPRECATED()->uid().size(), 0);
 
   // Copy Constructor
   firebase::auth::User copy_of_user(*auth_->current_user_DEPRECATED());
