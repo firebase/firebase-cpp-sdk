@@ -87,7 +87,7 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-All Firebase SDKs          | platform(com.google.firebase:firebase-bom:31.3.0)
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:31.5.0)
 |                          | (Android Bill of Materials)
 Firebase AdMob             | libfirebase_admob.a
 | (deprecated)             | libfirebase_app.a
@@ -133,7 +133,7 @@ Google Mobile Ads          | libfirebase_gma.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.android.gms:play-services-ads:21.5.0
+|                          | com.google.android.gms:play-services-ads:22.0.0
 |                          | (Maven package)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
@@ -146,7 +146,7 @@ Firebase Messaging         | libfirebase_messaging.a
 |                          | com.google.firebase:firebase-messaging
 |                          | (Maven package)
 |                          | libmessaging_java.jar (Android service)
-|                          | androidx.core:core:1.9.0  (Maven package)
+|                          | androidx.core:core:1.10.0  (Maven package)
 Firebase Realtime Database | libfirebase_database.a
 |                          | libfirebase_auth.a
 |                          | libfirebase_app.a
@@ -643,8 +643,10 @@ code.
 
 ## Release Notes
 ### Upcoming Release
--   10.8.0
+-   Changes
     - General (iOS): Update to Firebase Cocoapods version 10.8.0.
+    - General (Android): Update to Firebase Android BoM version 31.5.0.
+    - GMA (Android): Updated dependency to play-services-ads version 22.0.0.
     - Firestore: Added `Query::Count()`, which fetches the number of documents in the result
       set without actually downloading the documents
       ([#1207](https://github.com/firebase/firebase-cpp-sdk/pull/1207)).
