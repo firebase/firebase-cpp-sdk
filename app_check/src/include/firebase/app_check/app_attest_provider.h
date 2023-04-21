@@ -37,7 +37,7 @@ class AppAttestProviderFactory : public AppCheckProviderFactory {
   /// Gets the AppCheckProvider associated with the given
   /// {@link App} instance, or creates one if none
   /// already exists.
-  AppCheckProvider* CreateProvider(App* app) override;
+  firebase::app_check::AppCheckProvider* CreateProvider(App* app) override;
 
  private:
   AppAttestProviderFactory();
