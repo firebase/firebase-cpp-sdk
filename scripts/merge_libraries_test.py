@@ -51,8 +51,12 @@ class MergeLibrariesTest(absltest.TestCase):
         "topleveldestructor::~topleveldestructor()": {"topleveldestructor"},
         "rtti::RttiClass::`RTTI Class Hierarchy Descriptor'": {"rtti"},
         "toplevelrtti::`RTTI Class Hierarchy Descriptor'": {"toplevelrtti"},
+        # Test some complicated grpc cases that required special handling.
         "public: virtual enum grpc_security_level __cdecl grpc_call_credentials::min_security_level(void) const": {
           "grpc_call_credentials"
+        },
+        "grpc_slice_malloc_large::{lambda(grpc_slice_refcount*)#1}::_FUN(grpc_slice_refcount*)": {
+          "grpc_slice_malloc_large"
         },
         # std namespaces are used by get_top_level_namespaces but not by add_automatic_namespaces
         "std::dont_use_this<std::other_thing>()": {"std"},
