@@ -95,6 +95,9 @@ find_program(FIREBASE_PYTHON_EXECUTABLE
 set(FIREBASE_XCODE_TARGET_FORMAT "frameworks" CACHE STRING
                                  "Format to output, 'frameworks' or 'libraries'")
 
+# We turn this off because our dependencies, specifically curl, expect it to be off.
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+
 # Define this directory to be the root of the C++ SDK, which the libraries can
 # then refer to.
 set(FIREBASE_CPP_SDK_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
