@@ -18,7 +18,6 @@
 #include <string>
 
 #include "firebase/app.h"
-#include "firebase/cpp_version_warning.h"
 #include "firebase/functions/callable_reference.h"
 #include "firebase/functions/callable_result.h"
 #include "firebase/functions/common.h"

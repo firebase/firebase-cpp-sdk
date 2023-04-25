@@ -69,11 +69,9 @@ libs/windows              | Windows static libraries (desktop or stub
 
 ## C++ Language Standards
 
-The Firebase C++ SDK supports the C++11 language standard.
-
-Note: The next major release of the Firebase C++ SDK will set the new minimum
-C++ version to C++14. For more information please see our
-[C++ Language Standard Support Criteria](https://opensource.google/documentation/policies/cplusplus-support#c_language_standard).
+The Firebase C++ SDK supports the C++14 language standard. For more information,
+please see our [C++ Language Standard Support
+Criteria](https://opensource.google/documentation/policies/cplusplus-support#c_language_standard).
 
 ## Library / XCFramework Dependencies
 
@@ -607,6 +605,7 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
+    - General: Update minimum supported C++ standard to C++14.
     - General (iOS): Update to Firebase Cocoapods version 10.8.0.
     - General (Android): Update to Firebase Android BoM version 31.5.0.
     - AdMob: Removed deprecated AdMob SDK. Please use the included Google

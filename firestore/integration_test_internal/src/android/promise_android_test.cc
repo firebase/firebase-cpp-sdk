@@ -31,7 +31,6 @@
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/promise_factory_android.h"
-#include "firestore/src/common/make_unique.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/integer.h"
@@ -210,7 +209,7 @@ class TestCompletion : public TestCompletionBase<PublicType, InternalType> {
     if (result == nullptr) {
       result_.reset(nullptr);
     } else {
-      result_ = make_unique<PublicType>(*result);
+      result_ = std::make_unique<PublicType>(*result);
     }
   }
 
