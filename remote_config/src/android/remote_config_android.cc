@@ -245,6 +245,7 @@ static bool CacheJNIMethodIds(
           config_settings::CacheMethodIds(env, activity) &&
           config_settings_builder::CacheMethodIds(env, activity) &&
           throttled_exception::CacheMethodIds(env, activity) &&
+          config_update::CacheMethodIds(env, activity) &&
           config_update_listener_registration::CacheMethodIds(env, activity));
 }
 
@@ -256,6 +257,7 @@ static void ReleaseClasses(JNIEnv* env) {
   config_settings::ReleaseClass(env);
   config_settings_builder::ReleaseClass(env);
   throttled_exception::ReleaseClass(env);
+  config_update::ReleaseClass(env);
   config_update_listener_registration::ReleaseClass(env);
 }
 
