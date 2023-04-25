@@ -28,7 +28,7 @@ public class JniConfigUpdateListener implements ConfigUpdateListener {
   // A C++ pointer to a ConfigUpdate listener function
   private long cListener;
 
-  JniAppCheckListener(long cListener) {
+  JniConfigUpdateListener(long cListener) {
     this.cListener = cListener;
   }
 
@@ -36,7 +36,7 @@ public class JniConfigUpdateListener implements ConfigUpdateListener {
     nativeOnUpdate(cListener, configUpdate);
   }
 
-  public onError(@NonNull FirebaseRemoteConfigException error) {
+  public void onError(@NonNull FirebaseRemoteConfigException error) {
     nativeOnError(cListener, error.getCode().value());
   }
 

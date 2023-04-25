@@ -69,7 +69,7 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseRemoteConfig);
   X(GetInfo, "getInfo",                                                    \
     "()Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigInfo;"),      \
   X(Fetch, "fetch", "(J)Lcom/google/android/gms/tasks/Task;")              \
-  X(AddOnConfigListener, "addOnConfigUpdateListener",                      \
+  X(AddOnConfigUpdateListener, "addOnConfigUpdateListener",                      \
     "(Lcom/google/firebase/remoteconfig/ConfigUpdateListener;)"            \
     "Lcom/google/firebase/remoteconfig/ConfigUpdateListenerRegistration;")
 // clang-format on
@@ -166,7 +166,6 @@ METHOD_LOOKUP_DEFINITION(remote_config_exception,
                          "com/google/firebase/remoteconfig/"
                          "FirebaseRemoteConfigFetchThrottledException",
                          REMOTE_CONFIG_THROTTLED_EXCEPTION_METHODS)
-FirebaseRemoteConfigException.Code FirebaseRemoteConfigException.getCode()
 
 // Methods of JniConfigUpdateListener
 // clang-format off
@@ -190,8 +189,8 @@ JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnError(
 static const JNINativeMethod kNativeJniConfigUpdateListenerMethods[] = {
     {"nativeOnUpdate",
      "(JLcom/google/firebase/remoteconfig/ConfigUpdate;)V",
-     reinterpret_cast<void*>(JniConfigUpdateListener_nativeOnUpdate),
-     "nativeOnError",
+     reinterpret_cast<void*>(JniConfigUpdateListener_nativeOnUpdate)},
+    {"nativeOnError",
      // TODO(almostmatt): decide between error code vs int
      // "(JLcom/google/firebase/remoteconfig/FirebaseRemoteConfigException$Code;)V",
      "(JI)V",
@@ -249,7 +248,7 @@ static bool CacheJNIMethodIds(JNIEnv* env, jobject activity,
 }
 
 static void ReleaseClasses(JNIEnv* env) {
-  jni_remote_config_listener::ReleaseClass(env);
+  jni_config_update_listener::ReleaseClass(env);
   config::ReleaseClass(env);
   config_value::ReleaseClass(env);
   config_info::ReleaseClass(env);
@@ -499,6 +498,14 @@ struct RCDataHandle {
   SafeFutureHandle<T> future_handle;
   RemoteConfigInternal* rc_internal;
   std::vector<std::string> default_keys;
+};
+
+// An object wrapping a ConfigUpdateListener callback method
+struct ConfigUpdateListenerWrapper {
+  ConfigUpdateListenerWrapper(
+      std::function<void(ConfigUpdate&&, RemoteConfigError)> listener_)
+      : listener(listener_) {}
+  std::function<void(ConfigUpdate&&, RemoteConfigError)> listener;
 };
 
 RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
@@ -1156,31 +1163,39 @@ ConfigUpdateListenerRegistration*
 RemoteConfigInternal::AddOnConfigUpdateListener(
     std::function<void(ConfigUpdate&&, RemoteConfigError)>
         config_update_listener) {
+    JNIEnv* env = app_.GetJNIEnv();
     // Construct a java ConfigUpdateListener that wraps the c++ listener.
     // TODO almostmatt - casting function to pointer is weird. make a class to wrap it
     // see appcheck or other.
+    // NOTE: cast from function to long is not allowed.
+    // alternatively, define a new type for android ConfigUpdateListenerRegistration
+    // and give it the pointer and let it handle global ref in its destructor
+
+    // Create a struct to wrap the listener function. 
+    ConfigUpdateListenerWrapper* listener_wrapper =
+        new ConfigUpdateListenerWrapper(config_update_listener);
+    // Create a Java Listener and give it a pointer to the listener struct.
     jobject j_listener =
         env->NewObject(jni_config_update_listener::GetClass(),
                        jni_config_update_listener::GetMethodId(
                            jni_config_update_listener::kConstructor),
-                       reinterpret_cast<jlong>(config_update_listener));
+                       reinterpret_cast<jlong>(listener_wrapper));
     FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
 
     jobject j_local_registration = env->CallObjectMethod(internal_obj_,
-                        remote_config::GetMethodId(remote_config::kAddOnConfigUpdateListener),
+                        config::GetMethodId(config::kAddOnConfigUpdateListener),
                         j_listener);
     FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
     
     // Create a global reference to the registration
-    j_registration = env->NewGlobalRef(j_local_registration);
+    jobject j_registration = env->NewGlobalRef(j_local_registration);
     env->DeleteLocalRef(j_local_registration);
 
     // Create a C++ registration to wrap the native registration
     ConfigUpdateListenerRegistration *registration_wrapper =
       new ConfigUpdateListenerRegistration([j_registration]() {
-        // TODO almostmatt - get threadsafe jni env. see appcheck.
-        // alternatively, define a new type for android ConfigUpdateListenerRegistration
-        // and give it the pointer and let it handle global ref in its destructor
+        // util::GetJNIEnvFromApp returns a threadsafe instance of JNIEnv.
+        JNIEnv* env = firebase::util::GetJNIEnvFromApp();
         env->CallVoidMethod(j_registration,
                             config_update_listener_registration::GetMethodId(
                               config_update_listener_registration::kRemove));
@@ -1194,13 +1209,17 @@ JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnUpdate(
   // TODO: almostmatt, actually convert java configupdate
   // add a helper if needed
   ConfigUpdate config_update;
+  /*
   for (NSString *key in keys) {
     config_update.updated_keys.push_back(util::NSStringToString(key).c_str());
   }
-  auto config_update_listener = reinterpret_cast<RemoteConfigInternal*>(c_listener);
+  */
+  auto config_update_listener = reinterpret_cast<ConfigUpdateListenerWrapper*>(c_listener_ptr);
   // TODO: case logic for empty update vs error
   // maybe just convert both and have such logic in java
-  config_update_listener(config_update, kRemoteConfigErrorNone);
+  // Note - matt - provided configupdate should be an rvalue
+  // like the return value of a helper function
+  config_update_listener->listener({}, kRemoteConfigErrorNone);
 }
 
 JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnError(
@@ -1211,27 +1230,20 @@ JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnError(
   // TODO: define a map and add a comment linking to the underlying error code
   // https://github.com/firebase/firebase-android-sdk/blob/master/firebase-config/src/main/java/com/google/firebase/remoteconfig/FirebaseRemoteConfigException.java#L51
 
-
+  /*
   public enum Code {
-    /** Unknown code value. */
     UNKNOWN(0),
-
-    /** Unable to make a connection to the real-time RC backend. */
     CONFIG_UPDATE_STREAM_ERROR(1),
-
-    /** A config update stream message from the real-time RC backend is unparsable. */
     CONFIG_UPDATE_MESSAGE_INVALID(2),
-
-    /** Unable to fetch the latest config. */
     CONFIG_UPDATE_NOT_FETCHED(3),
-
-    /** The real-time RC backend is unavailable. */
     CONFIG_UPDATE_UNAVAILABLE(4);
+  */
+  RemoteConfigError error_code = kRemoteConfigErrorNone;
 
-  auto config_update_listener = reinterpret_cast<RemoteConfigInternal*>(c_listener);
+  auto config_update_listener = reinterpret_cast<ConfigUpdateListenerWrapper*>(c_listener_ptr);
   // TODO: case logic for empty update vs error
   // maybe just convert both and have such logic in java
-  config_update_listener({}, error_code);
+  config_update_listener->listener({}, error_code);
 }
 
 }  // namespace internal
