@@ -14,6 +14,7 @@ env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
   GITHUB_TOKEN: ${{ github.token }}
   xcodeVersion: "13.3.1"  # Only affects Mac runners, and only for prerequisites.
+  CMAKE_BUILD_PARALLEL_LEVEL: 8 # Number of default parallel clang processes.
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref }}
