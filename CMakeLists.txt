@@ -27,8 +27,6 @@ option(FIREBASE_INCLUDE_LIBRARY_DEFAULT
        "Should each library be included by default." ON)
 # Different options to enable/disable each library being included during
 # configuration.
-option(FIREBASE_INCLUDE_ADMOB "Include the AdMob library."
-       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_ANALYTICS
        "Include the Google Analytics for Firebase library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
@@ -124,8 +122,7 @@ if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)
 endif()
 
 if (PLATFORM STREQUAL TVOS OR PLATFORM STREQUAL SIMULATOR_TVOS)
-  # AdMob, GMA and FDL are not supported on tvOS.
-  set(FIREBASE_INCLUDE_ADMOB OFF)
+  #  GMA and FDL are not supported on tvOS.
   set(FIREBASE_INCLUDE_DYNAMIC_LINKS OFF)
   set(FIREBASE_INCLUDE_GMA OFF)
 endif()
@@ -592,9 +589,6 @@ else()
   )
 endif()
 
-if (FIREBASE_INCLUDE_ADMOB)
-  add_subdirectory(admob)
-endif()
 if (FIREBASE_INCLUDE_ANALYTICS)
   add_subdirectory(analytics)
   add_dependencies(FIREBASE_GENERATED_HEADERS FIREBASE_ANALYTICS_GENERATED_HEADERS)

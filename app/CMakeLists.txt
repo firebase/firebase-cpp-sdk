@@ -456,15 +456,6 @@ if (IOS)
     )
   endif()
 
-  # framework header files
-  set(admob_HDRS
-    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob.h
-    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob/banner_view.h
-    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob/interstitial_ad.h
-    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob/native_express_ad_view.h
-    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob/rewarded_video.h
-    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob/types.h)
-
   # Generate the analytics header file
   # Copy from analytics/CMakeList.txt
   function(generate_analytics_header OBJC_FILE CPP_FILE)
@@ -576,7 +567,6 @@ if (IOS)
 
   list(APPEND framework_HDRS
     src/include/firebase/internal/platform.h
-    ${admob_HDRS}
     ${analytics_HDRS}
     ${app_check_HDRS}
     ${auth_HDRS}
