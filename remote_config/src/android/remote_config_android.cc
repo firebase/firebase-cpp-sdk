@@ -32,6 +32,7 @@
 
 namespace firebase {
 namespace remote_config {
+namespace internal {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseRemoteConfig);
 
@@ -222,7 +223,7 @@ static const ValueSource kFirebaseRemoteConfigSourceToValueSourceMap[] = {
 
 static const char* kApiIdentifier = "Remote Config";
 
-ReferenceCount internal::RemoteConfigInternal::initializer_;  // NOLINT
+ReferenceCount RemoteConfigInternal::initializer_;  // NOLINT
 
 static bool CacheJNIMethodIds(
     JNIEnv* env, jobject activity,
@@ -520,25 +521,6 @@ static void JConfigInfoToConfigInfo(JNIEnv* env, jobject jinfo,
   }
   util::CheckAndClearJniExceptions(env);
 }
-
-JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnUpdate(
-    JNIEnv* env, jobject clazz, jlong c_listener_ptr, jobject j_config_update) {
-  auto config_update_listener =
-      reinterpret_cast<internal::ConfigUpdateListenerWrapper*>(c_listener_ptr);
-  config_update_listener->listener(
-      ConfigUpdateFromJavaConfigUpdate(env, j_config_update),
-      kRemoteConfigErrorNone);
-}
-
-JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnError(
-    JNIEnv* env, jobject clazz, jlong c_listener_ptr, jint j_error_code) {
-  auto config_update_listener =
-      reinterpret_cast<internal::ConfigUpdateListenerWrapper*>(c_listener_ptr);
-  config_update_listener->listener(
-      {}, RemoteConfigErrorFromJavaErrorCode(static_cast<int>(j_error_code)));
-}
-
-namespace internal {
 
 template <typename T>
 struct RCDataHandle {
@@ -1249,6 +1231,23 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
         FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
       });
   return registration_wrapper;
+}
+
+JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnUpdate(
+    JNIEnv* env, jobject clazz, jlong c_listener_ptr, jobject j_config_update) {
+  auto config_update_listener =
+      reinterpret_cast<ConfigUpdateListenerWrapper*>(c_listener_ptr);
+  config_update_listener->listener(
+      ConfigUpdateFromJavaConfigUpdate(env, j_config_update),
+      kRemoteConfigErrorNone);
+}
+
+JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnError(
+    JNIEnv* env, jobject clazz, jlong c_listener_ptr, jint j_error_code) {
+  auto config_update_listener =
+      reinterpret_cast<ConfigUpdateListenerWrapper*>(c_listener_ptr);
+  config_update_listener->listener(
+      {}, RemoteConfigErrorFromJavaErrorCode(static_cast<int>(j_error_code)));
 }
 
 }  // namespace internal
