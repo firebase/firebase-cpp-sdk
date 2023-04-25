@@ -647,6 +647,13 @@ code.
     - General (iOS): Update to Firebase Cocoapods version 10.8.0.
     - General (Android): Update to Firebase Android BoM version 31.5.0.
     - GMA (Android): Updated dependency to play-services-ads version 22.0.0.
+    - Auth: Deprecated a number of methods, appending `_DEPRECATED` to some of
+      their names. This is a breaking change; you must either modify your code
+      to refer to the `_DEPRECATED` methods, or switch to the new methods, which
+      have new return types `AuthResult` and `User` (rather than `SignInResult`
+      and `User *`). The deprecated methods will be removed in the *next* major
+      release of the Firebase C++ SDK. *(Note: do not mix and match using the old
+      and new methods or undefined behavior may result.)*
     - Firestore: Added `Query::Count()`, which fetches the number of documents in the result
       set without actually downloading the documents
       ([#1207](https://github.com/firebase/firebase-cpp-sdk/pull/1207)).
