@@ -27,6 +27,8 @@ namespace remote_config {
 ///  connection.
 class ConfigUpdateListenerRegistration {
  public:
+  ConfigUpdateListenerRegistration();
+
   /// @brief ConfigUpdateListenerRegistration constructor that takes in a
   /// function as a parameter. The parameter function connects `Remove` to the
   /// native platform's `Remove` method.

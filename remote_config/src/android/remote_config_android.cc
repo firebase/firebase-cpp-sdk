@@ -68,8 +68,8 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseRemoteConfig);
     "(Ljava/lang/String;)Ljava/util/Set;"),                                \
   X(GetInfo, "getInfo",                                                    \
     "()Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigInfo;"),      \
-  X(Fetch, "fetch", "(J)Lcom/google/android/gms/tasks/Task;")              \
-  X(AddOnConfigUpdateListener, "addOnConfigUpdateListener",                      \
+  X(Fetch, "fetch", "(J)Lcom/google/android/gms/tasks/Task;"),             \
+  X(AddOnConfigUpdateListener, "addOnConfigUpdateListener",                \
     "(Lcom/google/firebase/remoteconfig/ConfigUpdateListener;)"            \
     "Lcom/google/firebase/remoteconfig/ConfigUpdateListenerRegistration;")
 // clang-format on
@@ -154,14 +154,6 @@ METHOD_LOOKUP_DEFINITION(
 METHOD_LOOKUP_DECLARATION(throttled_exception,
                           REMOTE_CONFIG_THROTTLED_EXCEPTION_METHODS)
 METHOD_LOOKUP_DEFINITION(throttled_exception,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/remoteconfig/"
-                         "FirebaseRemoteConfigFetchThrottledException",
-                         REMOTE_CONFIG_THROTTLED_EXCEPTION_METHODS)
-
-METHOD_LOOKUP_DECLARATION(remote_config_exception,
-                          REMOTE_CONFIG_THROTTLED_EXCEPTION_METHODS)
-METHOD_LOOKUP_DEFINITION(remote_config_exception,
                          PROGUARD_KEEP_CLASS
                          "com/google/firebase/remoteconfig/"
                          "FirebaseRemoteConfigFetchThrottledException",
@@ -1192,6 +1184,8 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
     env->DeleteLocalRef(j_local_registration);
 
     // Create a C++ registration to wrap the native registration
+    // TODO: almostmatt - move ConfigUpdateListenerRegistration source
+    // to a common cc file unless it needs custom logic to release android references
     ConfigUpdateListenerRegistration *registration_wrapper =
       new ConfigUpdateListenerRegistration([j_registration]() {
         // util::GetJNIEnvFromApp returns a threadsafe instance of JNIEnv.
@@ -1204,6 +1198,12 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
     return registration_wrapper;
 }
 
+}  // namespace internal
+
+// TODO: almostmatt - decide if these should be in internal namespace.
+// if so, the definitions and references when defining jni methods should also be
+// in internal.
+// in fact, can I just put the whole class in internal?
 JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnUpdate(
     JNIEnv* env, jobject clazz, jlong c_listener_ptr, jobject j_config_update) {
   // TODO: almostmatt, actually convert java configupdate
@@ -1214,7 +1214,7 @@ JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnUpdate(
     config_update.updated_keys.push_back(util::NSStringToString(key).c_str());
   }
   */
-  auto config_update_listener = reinterpret_cast<ConfigUpdateListenerWrapper*>(c_listener_ptr);
+  auto config_update_listener = reinterpret_cast<internal::ConfigUpdateListenerWrapper*>(c_listener_ptr);
   // TODO: case logic for empty update vs error
   // maybe just convert both and have such logic in java
   // Note - matt - provided configupdate should be an rvalue
@@ -1240,12 +1240,11 @@ JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnError(
   */
   RemoteConfigError error_code = kRemoteConfigErrorNone;
 
-  auto config_update_listener = reinterpret_cast<ConfigUpdateListenerWrapper*>(c_listener_ptr);
+  auto config_update_listener = reinterpret_cast<internal::ConfigUpdateListenerWrapper*>(c_listener_ptr);
   // TODO: case logic for empty update vs error
   // maybe just convert both and have such logic in java
   config_update_listener->listener({}, error_code);
 }
 
-}  // namespace internal
 }  // namespace remote_config
 }  // namespace firebase

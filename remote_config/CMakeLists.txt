@@ -59,6 +59,7 @@ binary_to_array("remote_config_resources"
 # Source files used by the Android implementation.
 set(android_SRCS
     ${remote_config_resources_source}
+    src/android/config_update_listener_registration.cc
     src/android/remote_config_android.cc)
 
 # Source files used by the iOS implementation.
