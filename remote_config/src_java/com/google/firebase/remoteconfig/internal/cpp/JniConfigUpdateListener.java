@@ -43,9 +43,7 @@ public class JniConfigUpdateListener implements ConfigUpdateListener {
   /**
    * These functions are implemented in the RemoteConfig C++ library.
    */
-  private native void nativeOnUpdate(
-    long cListener, ConfigUpdate configUpdate);
+  private native void nativeOnUpdate(long cListener, ConfigUpdate configUpdate);
 
-  private native void nativeOnError(
-    long cListener, int error);
+  private native void nativeOnError(long cListener, int error);
 }
