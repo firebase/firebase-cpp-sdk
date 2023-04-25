@@ -251,7 +251,6 @@ endif()
 
 set(internal_HDRS
     src/include/firebase/app.h
-        src/include/firebase/cpp_version_warning.h
     src/include/firebase/future.h
     src/include/firebase/internal/common.h
     src/include/firebase/internal/future_impl.h
