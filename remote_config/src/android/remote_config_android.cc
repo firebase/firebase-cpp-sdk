@@ -183,11 +183,22 @@ static const JNINativeMethod kNativeJniConfigUpdateListenerMethods[] = {
      "(JLcom/google/firebase/remoteconfig/ConfigUpdate;)V",
      reinterpret_cast<void*>(JniConfigUpdateListener_nativeOnUpdate)},
     {"nativeOnError",
-     // TODO(almostmatt): decide between error code vs int
-     // "(JLcom/google/firebase/remoteconfig/FirebaseRemoteConfigException$Code;)V",
      "(JI)V",
      reinterpret_cast<void*>(JniConfigUpdateListener_nativeOnError)},
 };
+
+// Methods of ConfigUpdate
+// clang-format off
+#define CONFIG_UPDATE_METHODS(X)                              \
+  X(GetUpdatedKeys, "getUpdatedKeys", "()Ljava/util/Set;")
+// clang-format on
+
+METHOD_LOOKUP_DECLARATION(config_update,
+                          CONFIG_UPDATE_METHODS)
+METHOD_LOOKUP_DEFINITION(
+    config_update,
+    "com/google/firebase/remoteconfig/ConfigUpdate",
+    CONFIG_UPDATE_METHODS)
 
 // Methods of ConfigUpdateRegistration
 // clang-format off
@@ -420,6 +431,20 @@ static jobject GetValue(JNIEnv* env, jobject rc_obj, const char* key,
     }
   }
   return configFetchFailed ? nullptr : config_value;
+}
+
+// Convert a java ConfigUpdate to the corresponding C++ ConfigUpdate.
+static ConfigUpdate ConfigUpdateFromJavaConfigUpdate(
+    JNIEnv* env, jobject j_config_update) {
+  ConfigUpdate config_update;
+  jobject key_set_java = env->CallObjectMethod(
+      j_config_update, config_update::GetMethodId(config_update::kGetUpdatedKeys));
+  if (util::CheckAndClearJniExceptions(env)) key_set_java = nullptr;
+  if (key_set_java) {
+    util::JavaSetToStdStringVector(env, &(config_update.updated_keys), key_set_java);
+    env->DeleteLocalRef(key_set_java);
+  }
+  return config_update;
 }
 
 // Generate the logic to retrieve an integral type value from the
@@ -1206,20 +1231,9 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
 // in fact, can I just put the whole class in internal?
 JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnUpdate(
     JNIEnv* env, jobject clazz, jlong c_listener_ptr, jobject j_config_update) {
-  // TODO: almostmatt, actually convert java configupdate
-  // add a helper if needed
-  ConfigUpdate config_update;
-  /*
-  for (NSString *key in keys) {
-    config_update.updated_keys.push_back(util::NSStringToString(key).c_str());
-  }
-  */
   auto config_update_listener = reinterpret_cast<internal::ConfigUpdateListenerWrapper*>(c_listener_ptr);
-  // TODO: case logic for empty update vs error
-  // maybe just convert both and have such logic in java
-  // Note - matt - provided configupdate should be an rvalue
-  // like the return value of a helper function
-  config_update_listener->listener({}, kRemoteConfigErrorNone);
+  config_update_listener->listener(
+    ConfigUpdateFromJavaConfigUpdate(env, j_config_update), kRemoteConfigErrorNone);
 }
 
 JNIEXPORT void JNICALL JniConfigUpdateListener_nativeOnError(
