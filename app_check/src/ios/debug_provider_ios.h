@@ -35,6 +35,8 @@ class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
 
   AppCheckProvider* CreateProvider(App* app) override;
 
+  void SetDebugToken(const std::string& token);
+
  private:
 #ifdef __OBJC__
   FIRAppCheckDebugProviderFactory* ios_provider_factory_;

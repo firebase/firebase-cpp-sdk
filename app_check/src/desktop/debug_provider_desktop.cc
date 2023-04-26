@@ -34,7 +34,7 @@ namespace internal {
 
 class DebugAppCheckProvider : public AppCheckProvider {
  public:
-  explicit DebugAppCheckProvider(App* app);
+  DebugAppCheckProvider(App* app, const std::string& token);
   ~DebugAppCheckProvider() override;
 
   void GetToken(std::function<void(AppCheckToken, int, const std::string&)>
@@ -44,10 +44,12 @@ class DebugAppCheckProvider : public AppCheckProvider {
   App* app_;
 
   scheduler::Scheduler scheduler_;
+
+  std::string debug_token_;
 };
 
-DebugAppCheckProvider::DebugAppCheckProvider(App* app)
-    : app_(app), scheduler_() {
+DebugAppCheckProvider::DebugAppCheckProvider(App* app, const std::string& token)
+    : app_(app), scheduler_(), debug_token_(token) {
   firebase::rest::util::Initialize();
   firebase::rest::InitTransportCurl();
 }
@@ -90,9 +92,12 @@ void DebugAppCheckProvider::GetToken(
     std::function<void(AppCheckToken, int, const std::string&)>
         completion_callback) {
   // Identify the user's debug token
-  // TODO(amaurice): For now uses an environment variable, but should use other
-  // options.
-  const char* debug_token = std::getenv("APP_CHECK_DEBUG_TOKEN");
+  const char* debug_token;
+  if (!debug_token_.empty()) {
+    debug_token = debug_token_.c_str();
+  } else {
+    debug_token = std::getenv("APP_CHECK_DEBUG_TOKEN");
+  }
 
   if (!debug_token) {
     completion_callback({}, kAppCheckErrorInvalidConfiguration,
@@ -111,7 +116,7 @@ void DebugAppCheckProvider::GetToken(
 }
 
 DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal()
-    : provider_map_() {}
+    : provider_map_(), debug_token_() {}
 
 DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
   // Clear the map
@@ -129,9 +134,13 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
     return it->second;
   }
   // Create a new provider and cache it
-  AppCheckProvider* provider = new DebugAppCheckProvider(app);
+  AppCheckProvider* provider = new DebugAppCheckProvider(app, debug_token_);
   provider_map_[app] = provider;
   return provider;
+}
+
+void DebugAppCheckProviderFactoryInternal::SetDebugToken(const std::string& token) {
+  debug_token_ = token;
 }
 
 }  // namespace internal
