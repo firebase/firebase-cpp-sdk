@@ -29,7 +29,7 @@ class AppAttestProviderFactoryInternal;
 class AppAttestProviderFactory : public AppCheckProviderFactory {
  public:
   AppAttestProviderFactory(const AppAttestProviderFactory&) = delete;
-  AppAttestProviderFactory& operator= (const AppAttestProviderFactory&) = delete;
+  AppAttestProviderFactory& operator=(const AppAttestProviderFactory&) = delete;
 
   /// Gets an instance of this class for installation into a
   /// firebase::app_check::AppCheck instance.

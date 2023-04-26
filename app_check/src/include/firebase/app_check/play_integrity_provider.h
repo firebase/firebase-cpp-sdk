@@ -29,7 +29,8 @@ class PlayIntegrityProviderFactoryInternal;
 class PlayIntegrityProviderFactory : public AppCheckProviderFactory {
  public:
   PlayIntegrityProviderFactory(const PlayIntegrityProviderFactory&) = delete;
-  PlayIntegrityProviderFactory& operator= (const PlayIntegrityProviderFactory&) = delete;
+  PlayIntegrityProviderFactory& operator=(const PlayIntegrityProviderFactory&) =
+      delete;
 
   /// Gets an instance of this class for installation into a
   /// firebase::app_check::AppCheck instance.

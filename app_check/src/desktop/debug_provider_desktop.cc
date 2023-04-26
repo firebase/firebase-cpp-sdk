@@ -139,7 +139,8 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
   return provider;
 }
 
-void DebugAppCheckProviderFactoryInternal::SetDebugToken(const std::string& token) {
+void DebugAppCheckProviderFactoryInternal::SetDebugToken(
+    const std::string& token) {
   debug_token_ = token;
 }
 

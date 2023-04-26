@@ -26,7 +26,6 @@ import com.google.firebase.FirebaseApp;
  * instead of trying to use environment variables and helper classes.
  */
 public class JniAppCheckDebugHelper {
-
   static final String PREFS_TEMPLATE = "com.google.firebase.appcheck.debug.store.%s";
 
   static final String DEBUG_SECRET_KEY = "com.google.firebase.appcheck.debug.DEBUG_SECRET";
@@ -34,7 +33,8 @@ public class JniAppCheckDebugHelper {
   public static void SetDebugToken(FirebaseApp firebaseApp, String token) {
     Context context = firebaseApp.getApplicationContext();
     String prefsName = String.format(PREFS_TEMPLATE, firebaseApp.getPersistenceKey());
-    SharedPreferences sharedPreferences = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE);
+    SharedPreferences sharedPreferences =
+        context.getSharedPreferences(prefsName, Context.MODE_PRIVATE);
     sharedPreferences.edit().putString(DEBUG_SECRET_KEY, token).apply();
   }
 }

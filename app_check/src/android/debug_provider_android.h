@@ -27,7 +27,9 @@ namespace app_check {
 namespace internal {
 
 // Cache the method ids so we don't have to look up JNI functions by name.
-bool CacheDebugProviderMethodIds(JNIEnv* env, jobject activity, const std::vector<firebase::internal::EmbeddedFile>& embedded_files);
+bool CacheDebugProviderMethodIds(
+    JNIEnv* env, jobject activity,
+    const std::vector<firebase::internal::EmbeddedFile>& embedded_files);
 
 // Release provider classes cached by CacheDebugProviderMethodIds().
 void ReleaseDebugProviderClasses(JNIEnv* env);

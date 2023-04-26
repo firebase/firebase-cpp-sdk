@@ -54,8 +54,7 @@ METHOD_LOOKUP_DEFINITION(
     util::kMethodTypeStatic)
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(jni_debug_helper,
-                          JNI_APP_CHECK_DEBUG_HELPER_METHODS)
+METHOD_LOOKUP_DECLARATION(jni_debug_helper, JNI_APP_CHECK_DEBUG_HELPER_METHODS)
 METHOD_LOOKUP_DEFINITION(
     jni_debug_helper,
     "com/google/firebase/appcheck/internal/cpp/JniAppCheckDebugHelper",
@@ -66,12 +65,14 @@ static bool g_methods_cached = false;
 const char kMethodsNotCachedError[] =
     "DebugAppCheckProviderFactory methods were not cached.";
 
-bool CacheDebugProviderMethodIds(JNIEnv* env, jobject activity, const std::vector<firebase::internal::EmbeddedFile>& embedded_files) {
+bool CacheDebugProviderMethodIds(
+    JNIEnv* env, jobject activity,
+    const std::vector<firebase::internal::EmbeddedFile>& embedded_files) {
   // Cache the DebugProvider and JniAppCheckDebugHelper classes.
-  g_methods_cached = debug_provider_factory::CacheMethodIds(env, activity) &&
-  jni_debug_helper::CacheClassFromFiles(env, activity,
-                                              &embedded_files) &&
-        jni_debug_helper::CacheMethodIds(env, activity);
+  g_methods_cached =
+      debug_provider_factory::CacheMethodIds(env, activity) &&
+      jni_debug_helper::CacheClassFromFiles(env, activity, &embedded_files) &&
+      jni_debug_helper::CacheMethodIds(env, activity);
   return g_methods_cached;
 }
 
@@ -82,7 +83,9 @@ void ReleaseDebugProviderClasses(JNIEnv* env) {
 }
 
 DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal()
-    : created_providers_(), android_provider_factory_(nullptr), debug_token_() {}
+    : created_providers_(),
+      android_provider_factory_(nullptr),
+      debug_token_() {}
 
 DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
   for (auto it = created_providers_.begin(); it != created_providers_.end();
@@ -126,10 +129,9 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
   if (!debug_token_.empty()) {
     jstring java_token = env->NewStringUTF(debug_token_.c_str());
     env->CallStaticVoidMethod(
-            jni_debug_helper::GetClass(),
-            jni_debug_helper::GetMethodId(jni_debug_helper::kSetDebugToken),
-            platform_app,
-            java_token);
+        jni_debug_helper::GetClass(),
+        jni_debug_helper::GetMethodId(jni_debug_helper::kSetDebugToken),
+        platform_app, java_token);
     FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
     env->DeleteLocalRef(java_token);
   }
@@ -150,9 +152,10 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
   return cpp_provider;
 }
 
-void DebugAppCheckProviderFactoryInternal::SetDebugToken(const std::string& token) {
+void DebugAppCheckProviderFactoryInternal::SetDebugToken(
+    const std::string& token) {
   // The App may not exist yet, so we save the debug token to use later.
-  debug_token_ = token;  
+  debug_token_ = token;
 }
 
 }  // namespace internal

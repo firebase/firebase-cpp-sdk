@@ -37,7 +37,8 @@ class DebugAppCheckProviderFactoryInternal;
 class DebugAppCheckProviderFactory : public AppCheckProviderFactory {
  public:
   DebugAppCheckProviderFactory(const DebugAppCheckProviderFactory&) = delete;
-  DebugAppCheckProviderFactory& operator= (const DebugAppCheckProviderFactory&) = delete;
+  DebugAppCheckProviderFactory& operator=(const DebugAppCheckProviderFactory&) =
+      delete;
 
   /// Gets an instance of this class for installation into a
   /// firebase::app_check::AppCheck instance.

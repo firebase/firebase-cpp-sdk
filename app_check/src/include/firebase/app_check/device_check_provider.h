@@ -29,7 +29,8 @@ class DeviceCheckProviderFactoryInternal;
 class DeviceCheckProviderFactory : public AppCheckProviderFactory {
  public:
   DeviceCheckProviderFactory(const DeviceCheckProviderFactory&) = delete;
-  DeviceCheckProviderFactory& operator= (const DeviceCheckProviderFactory&) = delete;
+  DeviceCheckProviderFactory& operator=(const DeviceCheckProviderFactory&) =
+      delete;
 
   /// Gets an instance of this class for installation into a
   /// firebase::app_check::AppCheck instance.

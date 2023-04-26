@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "firebase/app_check/debug_provider.h"
-
 #include <string>
+
+#include "firebase/app_check/debug_provider.h"
 
 // Include the header that matches the platform being used.
 #if FIREBASE_PLATFORM_ANDROID
