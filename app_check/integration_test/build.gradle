@@ -83,6 +83,9 @@ android {
   lintOptions {
     abortOnError false
   }
+  packagingOptions {
+    pickFirst 'META-INF/**/coroutines.pro'
+  }
 }
 
 apply from: "$gradle.firebase_cpp_sdk_dir/Android/firebase_dependencies.gradle"
