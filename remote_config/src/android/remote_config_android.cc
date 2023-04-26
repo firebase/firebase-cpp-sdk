@@ -1231,6 +1231,7 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
                             config_update_listener_registration::GetMethodId(
                                 config_update_listener_registration::kRemove));
         FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
+        env->DeleteGlobalRef(j_registration);
       });
   return registration_wrapper;
 }

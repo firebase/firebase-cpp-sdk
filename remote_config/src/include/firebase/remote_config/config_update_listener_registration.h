@@ -44,7 +44,10 @@ class ConfigUpdateListenerRegistration {
 
  private:
   /// @brief Callback to invoke native platform's `Remove`.
-  std::function<void()> listenerRemovalFunction;
+  std::function<void()> listener_removal_function_;
+
+  /// @brief Indicates whether or not Remove has been called.
+  bool listener_removed_ = false;
 };
 
 }  // namespace remote_config
