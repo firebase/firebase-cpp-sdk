@@ -58,7 +58,7 @@ void DeviceCheckProvider::GetToken(
 }
 
 DeviceCheckProviderFactoryInternal::DeviceCheckProviderFactoryInternal() : created_providers_() {
-  ios_provider_factory_ = [[FIRDeviceCheckProviderFactory alloc] init];
+  ios_provider_factory_ = MakeUnique<FIRDeviceCheckProviderFactoryPointer>([[FIRDeviceCheckProviderFactory alloc] init]);
 }
 
 DeviceCheckProviderFactoryInternal::~DeviceCheckProviderFactoryInternal() {
@@ -77,7 +77,7 @@ AppCheckProvider* DeviceCheckProviderFactoryInternal::CreateProvider(App* app) {
   }
   // Otherwise, create a new provider
   FIRDeviceCheckProvider* ios_provider =
-      [ios_provider_factory_ createProviderWithApp:app->GetPlatformApp()];
+      [ios_provider_factory() createProviderWithApp:app->GetPlatformApp()];
   AppCheckProvider* cpp_provider = new internal::DeviceCheckProvider(ios_provider);
   created_providers_[app] = cpp_provider;
   return cpp_provider;

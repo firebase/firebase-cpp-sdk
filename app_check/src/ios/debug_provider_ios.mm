@@ -59,7 +59,7 @@ void DebugAppCheckProvider::GetToken(
 
 DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal()
     : created_providers_() {
-  ios_provider_factory_ = [[FIRAppCheckDebugProviderFactory alloc] init];
+  ios_provider_factory_ = MakeUnique<FIRAppCheckDebugProviderFactoryPointer>([[FIRAppCheckDebugProviderFactory alloc] init]);
 }
 
 DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
@@ -78,7 +78,7 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app)
   }
   // Otherwise, create a new provider
   FIRAppCheckDebugProvider* ios_provider =
-      [ios_provider_factory_ createProviderWithApp:app->GetPlatformApp()];
+      [ios_provider_factory() createProviderWithApp:app->GetPlatformApp()];
   AppCheckProvider* cpp_provider = new internal::DebugAppCheckProvider(ios_provider);
   created_providers_[app] = cpp_provider;
   return cpp_provider;
