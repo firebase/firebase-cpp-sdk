@@ -221,7 +221,7 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
   ASSERT_EQ(std::future_status::ready,
             config_update_future.wait_for(std::chrono::milliseconds(10000)));
 
-  // TODO(almostmatt): move Activate and the following checks back inside the 
+  // TODO(almostmatt): move Activate and the following checks back inside the
   // ConfigUpdateListener callback.
   // There is currently an issue on Android where Activate deadlocks if called
   // inside the ConfigUpdateListener callback.
