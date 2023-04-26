@@ -29,8 +29,9 @@ namespace firebase {
 namespace app_check {
 namespace internal {
 
-// This defines the class FIRAppCheckDebugProviderFactoryPointer, which is a C++-compatible
-// wrapper around the FIRAppCheckDebugProviderFactory Obj-C class.
+// This defines the class FIRAppCheckDebugProviderFactoryPointer, which is a
+// C++-compatible wrapper around the FIRAppCheckDebugProviderFactory Obj-C
+// class.
 OBJ_C_PTR_WRAPPER(FIRAppCheckDebugProviderFactory);
 
 class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
@@ -43,7 +44,9 @@ class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
 
  private:
 #ifdef __OBJC__
-  FIRAppCheckDebugProviderFactory* ios_provider_factory() const { return ios_provider_factory_->get(); }
+  FIRAppCheckDebugProviderFactory* ios_provider_factory() const {
+    return ios_provider_factory_->get();
+  }
 #endif  // __OBJC__
 
   // Object lifetime managed by Objective C ARC.

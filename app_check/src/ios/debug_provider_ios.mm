@@ -59,7 +59,8 @@ void DebugAppCheckProvider::GetToken(
 
 DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal()
     : created_providers_() {
-  ios_provider_factory_ = MakeUnique<FIRAppCheckDebugProviderFactoryPointer>([[FIRAppCheckDebugProviderFactory alloc] init]);
+  ios_provider_factory_ = MakeUnique<FIRAppCheckDebugProviderFactoryPointer>(
+      [[FIRAppCheckDebugProviderFactory alloc] init]);
 }
 
 DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
