@@ -200,9 +200,13 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
 
   EXPECT_TRUE(WaitForCompletion(SetDefaults(rc_), "SetDefaults"));
 
-#if FIREBASE_PLATFORM_IOS
-
-  auto config_update_promise = std::make_shared<std::promise<void>>();
+// Realtime RC is not yet supported on desktop.
+#if FIREBASE_PLATFORM_DESKTOP
+  EXPECT_EQ(nullptr, rc_->AddOnConfigUpdateListener(
+                         [](firebase::remote_config::ConfigUpdate&&,
+                            firebase::remote_config::RemoteConfigError) {}));
+#else
+  auto config_update_promise = std::make_shared<std::promise<void> >();
 
   firebase::remote_config::ConfigUpdateListenerRegistration* registration =
       rc_->AddOnConfigUpdateListener(
@@ -210,18 +214,6 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
               firebase::remote_config::ConfigUpdate&& configUpdate,
               firebase::remote_config::RemoteConfigError remoteConfigError) {
             EXPECT_EQ(configUpdate.updated_keys.size(), 5);
-            EXPECT_TRUE(WaitForCompletion(rc_->Activate(), "Activate"));
-            LogDebug("Real-time Config Update keys retrieved.");
-
-            std::map<std::string, firebase::Variant> key_values = rc_->GetAll();
-            EXPECT_EQ(key_values.size(), 6);
-
-            for (auto key_valur_pair : kServerValue) {
-              firebase::Variant k_value = key_valur_pair.value;
-              firebase::Variant fetched_value = key_values[key_valur_pair.key];
-              EXPECT_EQ(k_value.type(), fetched_value.type());
-              EXPECT_EQ(k_value, fetched_value);
-            }
             config_update_promise->set_value();
           });
   EXPECT_NE(nullptr, registration);
@@ -229,6 +221,22 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
   ASSERT_EQ(std::future_status::ready,
             config_update_future.wait_for(std::chrono::milliseconds(10000)));
 
+  // TODO(almostmatt): move Activate and the following checks back inside the
+  // ConfigUpdateListener callback.
+  // There is currently an issue on Android where Activate deadlocks if called
+  // inside the ConfigUpdateListener callback.
+  EXPECT_TRUE(WaitForCompletion(rc_->Activate(), "Activate"));
+  LogDebug("Real-time Config Update keys retrieved.");
+
+  std::map<std::string, firebase::Variant> key_values = rc_->GetAll();
+  EXPECT_EQ(key_values.size(), 6);
+
+  for (auto key_valur_pair : kServerValue) {
+    firebase::Variant k_value = key_valur_pair.value;
+    firebase::Variant fetched_value = key_values[key_valur_pair.key];
+    EXPECT_EQ(k_value.type(), fetched_value.type());
+    EXPECT_EQ(k_value, fetched_value);
+  }
   registration->Remove();
 
 #endif

@@ -45,15 +45,25 @@ build_flatbuffers("${flatbuffer_schemas}"
 # Common source files used by all platforms
 set(common_SRCS
     src/common.cc
+    src/config_update_listener_registration.cc
     src/remote_config.cc)
+
+
+# Run gradle command to make jar
+firebase_cpp_gradle(":remote_config:remote_config_resources:generateDexJarRelease"
+    "${CMAKE_CURRENT_LIST_DIR}/remote_config_resources/build/remote_config_resources_lib.jar")
+binary_to_array("remote_config_resources"
+    "${CMAKE_CURRENT_LIST_DIR}/remote_config_resources/build/remote_config_resources_lib.jar"
+    "firebase_remote_config"
+    "${FIREBASE_GEN_FILE_DIR}/remote_config")
 
 # Source files used by the Android implementation.
 set(android_SRCS
+    ${remote_config_resources_source}
     src/android/remote_config_android.cc)
 
 # Source files used by the iOS implementation.
 set(ios_SRCS
-    src/ios/config_update_listener_registration.cc
     src/ios/remote_config_ios.mm)
 
 # Source files used by the desktop implementation.

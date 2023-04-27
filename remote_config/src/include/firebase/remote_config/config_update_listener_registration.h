@@ -27,12 +27,12 @@ namespace remote_config {
 ///  connection.
 class ConfigUpdateListenerRegistration {
  public:
-  ConfigUpdateListenerRegistration();
+  ConfigUpdateListenerRegistration() = delete;
 
   /// @brief ConfigUpdateListenerRegistration constructor that takes in a
   /// function as a parameter. The parameter function connects `Remove` to the
   /// native platform's `Remove` method.
-  ConfigUpdateListenerRegistration(
+  explicit ConfigUpdateListenerRegistration(
       std::function<void()> listener_removal_function);
 
   ~ConfigUpdateListenerRegistration();
@@ -44,7 +44,10 @@ class ConfigUpdateListenerRegistration {
 
  private:
   /// @brief Callback to invoke native platform's `Remove`.
-  std::function<void()> listenerRemovalFunction;
+  std::function<void()> listener_removal_function_;
+
+  /// @brief Indicates whether or not Remove has been called.
+  bool listener_removed_ = false;
 };
 
 }  // namespace remote_config
