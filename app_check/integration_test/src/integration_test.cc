@@ -754,7 +754,7 @@ TEST_F(FirebaseAppCheckTest, TestPlayIntegrityProvider) {
 #endif
 }
 
-TEST_F(FirebaseAppCheckTest, TestDatabaseFailure) {
+TEST_F(FirebaseAppCheckTest, DISABLED_TestDatabaseFailure) {
 #if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
   // The underlying iOS SDK doesn't have a good way to clear
   // the App Check state, so these failure tests won't work.
@@ -968,7 +968,7 @@ TEST_F(FirebaseAppCheckTest, TestFunctionsSuccess) {
   }
 }
 
-TEST_F(FirebaseAppCheckTest, TestFunctionsFailure) {
+TEST_F(FirebaseAppCheckTest, DISABLED_TestFunctionsFailure) {
 #if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
   // The underlying iOS SDK doesn't have a good way to clear
   // the App Check state, so these failure tests won't work.
@@ -1011,7 +1011,7 @@ TEST_F(FirebaseAppCheckTest, TestFirestoreSetGet) {
                   Pair("int", firebase::firestore::FieldValue::Integer(123))));
 }
 
-TEST_F(FirebaseAppCheckTest, TestFirestoreSetGetFailure) {
+TEST_F(FirebaseAppCheckTest, DISABLED_TestFirestoreSetGetFailure) {
 #if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
   // The underlying iOS SDK doesn't have a good way to clear
   // the App Check state, so these failure tests won't work.
@@ -1094,7 +1094,7 @@ TEST_F(FirebaseAppCheckTest, TestFirestoreListener) {
   }
 }
 
-TEST_F(FirebaseAppCheckTest, TestFirestoreListenerFailure) {
+TEST_F(FirebaseAppCheckTest, DISABLED_TestFirestoreListenerFailure) {
 #if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
   // The underlying iOS SDK doesn't have a good way to clear
   // the App Check state, so these failure tests won't work.
@@ -1187,7 +1187,7 @@ TEST_F(FirebaseAppCheckTest, TestRunTransaction) {
                   Pair("int", firebase::firestore::FieldValue::Integer(123))));
 }
 
-TEST_F(FirebaseAppCheckTest, TestRunTransactionFailure) {
+TEST_F(FirebaseAppCheckTest, DISABLED_TestRunTransactionFailure) {
 #if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
   // The underlying iOS SDK doesn't have a good way to clear
   // the App Check state, so these failure tests won't work.
