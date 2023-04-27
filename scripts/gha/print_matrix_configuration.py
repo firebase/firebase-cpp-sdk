@@ -133,7 +133,7 @@ PARAMETERS = {
       }
     },
     "config": {
-      "apis": "analytics,auth,database,dynamic_links,firestore,functions,gma,installations,messaging,remote_config,storage",
+      "apis": "analytics,app_check,auth,database,dynamic_links,firestore,functions,gma,installations,messaging,remote_config,storage",
       "mobile_test_on": "real,virtual"
     }
   },

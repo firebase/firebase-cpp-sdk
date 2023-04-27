@@ -58,6 +58,10 @@
 
 namespace firebase_testapp_automated {
 
+// Your Firebase project's Debug token goes here.
+// You can get this from Firebase Console, in the App Check settings.
+const char kAppCheckDebugToken[] = "REPLACE_WITH_APP_CHECK_TOKEN";
+
 using app_framework::LogDebug;
 using app_framework::LogError;
 using app_framework::LogInfo;
@@ -178,6 +182,9 @@ class TestAppCheckListener : public firebase::app_check::AppCheckListener {
 
 void FirebaseAppCheckTest::InitializeAppCheckWithDebug() {
   LogDebug("Initialize Firebase App Check with Debug Provider");
+
+  // Set the App Check Debug Token before providing the Factory.
+  firebase::app_check::DebugAppCheckProviderFactory::GetInstance()->SetDebugToken(kAppCheckDebugToken);
 
   firebase::app_check::AppCheck::SetAppCheckProviderFactory(
       firebase::app_check::DebugAppCheckProviderFactory::GetInstance());
@@ -748,7 +755,12 @@ TEST_F(FirebaseAppCheckTest, TestPlayIntegrityProvider) {
 }
 
 TEST_F(FirebaseAppCheckTest, TestDatabaseFailure) {
-  firebase::SetLogLevel(firebase::kLogLevelVerbose);
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+  // The underlying iOS SDK doesn't have a good way to clear
+  // the App Check state, so these failure tests won't work.
+  return;
+#endif
+
   // Don't initialize App Check this time. Database should fail.
   InitializeAppAuthDatabase();
   firebase::database::DatabaseReference ref = CreateWorkingPath();
@@ -957,6 +969,12 @@ TEST_F(FirebaseAppCheckTest, TestFunctionsSuccess) {
 }
 
 TEST_F(FirebaseAppCheckTest, TestFunctionsFailure) {
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+  // The underlying iOS SDK doesn't have a good way to clear
+  // the App Check state, so these failure tests won't work.
+  return;
+#endif
+
   // Don't set up AppCheck
   InitializeApp();
   InitializeFunctions();
@@ -994,6 +1012,12 @@ TEST_F(FirebaseAppCheckTest, TestFirestoreSetGet) {
 }
 
 TEST_F(FirebaseAppCheckTest, TestFirestoreSetGetFailure) {
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+  // The underlying iOS SDK doesn't have a good way to clear
+  // the App Check state, so these failure tests won't work.
+  return;
+#endif
+
   // Don't set up AppCheck
   InitializeApp();
   InitializeFirestore();
@@ -1071,6 +1095,12 @@ TEST_F(FirebaseAppCheckTest, TestFirestoreListener) {
 }
 
 TEST_F(FirebaseAppCheckTest, TestFirestoreListenerFailure) {
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+  // The underlying iOS SDK doesn't have a good way to clear
+  // the App Check state, so these failure tests won't work.
+  return;
+#endif
+
   // Don't set up AppCheck
   InitializeApp();
   InitializeFirestore();
@@ -1158,6 +1188,12 @@ TEST_F(FirebaseAppCheckTest, TestRunTransaction) {
 }
 
 TEST_F(FirebaseAppCheckTest, TestRunTransactionFailure) {
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+  // The underlying iOS SDK doesn't have a good way to clear
+  // the App Check state, so these failure tests won't work.
+  return;
+#endif
+
   // Don't set up AppCheck
   InitializeApp();
   InitializeFirestore();
