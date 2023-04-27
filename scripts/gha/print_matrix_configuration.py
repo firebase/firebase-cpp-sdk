@@ -112,7 +112,7 @@ PARAMETERS = {
       "msvc_runtime": ["dynamic"],
       "cpp_compiler_windows": ["VisualStudio2019"],
       "cpp_compiler_linux": ["clang-11.0"],
-      "xcode_version": ["13.3.1"],  # only the first one is used
+      "xcode_version": ["14.1"],  # only the first one is used
       "ndk_version": ["r22b"],
       "platform_version": ["28"],
       "build_tools_version": ["28.0.3"],
