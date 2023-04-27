@@ -20,15 +20,16 @@ import java.util.Calendar;
 import java.util.Date;
 
 /**
- * Helper class to make interactions between the GMA C++ wrapper and Java
- * AdRequest objects cleaner. This involves translating calls coming from C++
- * into their (typically more complicated) Java equivalents.
+ * Helper class to make interactions between the GMA C++ wrapper and Java AdRequest objects cleaner.
+ * This involves translating calls coming from C++ into their (typically more complicated) Java
+ * equivalents.
  */
 public class AdRequestHelper {
   public AdRequestHelper() {}
 
   /**
    * Creates a {@link java.lang.Date} from the provided date information.
+   *
    * @param year The year to use in creating the Date object
    * @param month The month to use in creating the Date object
    * @param day The day to use in creating the Date object

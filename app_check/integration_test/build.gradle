@@ -63,8 +63,12 @@ android {
         "-DFIREBASE_INCLUDE_LIBRARY_DEFAULT=OFF",
         "-DFIREBASE_INCLUDE_APP_CHECK=ON",
         "-DFIREBASE_INCLUDE_AUTH=ON",
-        "-DFIREBASE_INCLUDE_DATABASE=ON"
+        "-DFIREBASE_INCLUDE_DATABASE=ON",
+        "-DFIREBASE_INCLUDE_STORAGE=ON",
+        "-DFIREBASE_INCLUDE_FUNCTIONS=ON",
+        "-DFIREBASE_INCLUDE_FIRESTORE=ON"
     }
+    multiDexEnabled true
   }
   externalNativeBuild.cmake {
     path 'CMakeLists.txt'
@@ -76,6 +80,9 @@ android {
       proguardFile file('proguard.pro')
     }
   }
+  lintOptions {
+    abortOnError false
+  }
 }
 
 apply from: "$gradle.firebase_cpp_sdk_dir/Android/firebase_dependencies.gradle"
@@ -83,6 +90,9 @@ firebaseCpp.dependencies {
   appCheck
   auth
   database
+  storage
+  functions
+  firestore
 }
 
 apply plugin: 'com.google.gms.google-services'

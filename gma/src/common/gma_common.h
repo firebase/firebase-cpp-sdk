@@ -165,7 +165,7 @@ class GmaInternal {
 
   // Update the AdViewInternal's AdSize width and height after it has been
   // loaded as AdViews with adaptive AdSizes may have varying dimensions.
-  // This is done through the GmaInternal since its a friend of AdViewInternal.
+  // This is done through the GmaInternal since it's a friend of AdViewInternal.
   static void UpdateAdViewInternalAdSizeDimensions(
       internal::AdViewInternal* ad_view_internal, int width, int height);
 };

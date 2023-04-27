@@ -37,6 +37,7 @@ class Future;
 
 namespace firestore {
 
+class AggregateQuery;
 class DocumentSnapshot;
 template <typename T>
 class EventListener;
@@ -142,6 +143,23 @@ class Query {
    * @return Firebase Firestore instance that this Query refers to.
    */
   virtual Firestore* firestore();
+
+  /**
+   * @brief Returns a query that counts the documents in the result set of this
+   * query.
+   *
+   * The returned query, when executed, counts the documents in the result set
+   * of this query without actually downloading the documents.
+   *
+   * Using the returned query to count the documents is efficient because only
+   * the final count, not the documents' data, is downloaded. The returned query
+   * can even count the documents if the result set would be prohibitively large
+   * to download entirely (e.g. thousands of documents).
+   *
+   * @return An aggregate query that counts the documents in the result set of
+   * this query.
+   */
+  virtual AggregateQuery Count() const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that

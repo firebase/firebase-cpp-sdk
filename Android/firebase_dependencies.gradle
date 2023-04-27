@@ -20,7 +20,7 @@ def firebaseDependenciesMap = [
   'app_check' : ['com.google.firebase:firebase-appcheck',
                  'com.google.firebase:firebase-appcheck-debug',
                  'com.google.firebase:firebase-appcheck-playintegrity'],
-  'play_services' : ['com.google.android.gms:play-services-base:18.1.0'],
+  'play_services' : ['com.google.android.gms:play-services-base:18.2.0'],
   'admob' : ['com.google.firebase:firebase-ads:19.8.0',
              'com.google.firebase:firebase-analytics'],
   'analytics' : ['com.google.firebase:firebase-analytics'],
@@ -29,7 +29,7 @@ def firebaseDependenciesMap = [
   'dynamic_links' : ['com.google.firebase:firebase-dynamic-links'],
   'firestore' : ['com.google.firebase:firebase-firestore'],
   'functions' : ['com.google.firebase:firebase-functions'],
-  'gma' : ['com.google.android.gms:play-services-ads:21.4.0'],
+  'gma' : ['com.google.android.gms:play-services-ads:22.0.0'],
   'installations' : ['com.google.firebase:firebase-installations'],
   'invites' : ['com.google.firebase:firebase-invites'],
   // Messaging has an additional local dependency to include.
@@ -48,6 +48,7 @@ def firebaseResourceDependenciesMap = [
   'app' : [':app:app_resources',
            ':app:google_api_resources',
            ':app:invites_resources'],
+  'app_check' : [':app_check:app_check_resources'],
   'admob' : [':admob:admob_resources'],
   'auth' : [':auth:auth_resources'],
   'database' : [':database:database_resources'],
@@ -162,7 +163,7 @@ project.afterEvaluate {
 
     // Add the bill-of-materials
     project.dependencies {
-      implementation platform('com.google.firebase:firebase-bom:31.2.0')
+      implementation platform('com.google.firebase:firebase-bom:31.5.0')
     }
     for (String lib : firebaseCpp.dependencies.libSet) {
       // Generate and include the proguard file

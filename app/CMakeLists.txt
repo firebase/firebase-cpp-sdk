@@ -312,6 +312,7 @@ set(app_android_HDRS
     src/invites/android/invites_android_helper.h
     src/invites/android/invites_receiver_internal_android.h)
 set(app_ios_HDRS
+    src/app_ios.h
     src/invites/ios/invites_receiver_internal_ios.h)
 set(app_desktop_HDRS
     src/invites/stub/invites_receiver_internal_stub.h)
@@ -521,6 +522,9 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/dynamic_links/src/include/firebase/dynamic_links/components.h)
   set(firestore_HDRS
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_query.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_query_snapshot.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_source.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/collection_reference.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_change.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_reference.h

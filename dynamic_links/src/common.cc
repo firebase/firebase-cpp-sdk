@@ -35,7 +35,8 @@ FIREBASE_APP_REGISTER_CALLBACKS(
       if (app == ::firebase::App::GetInstance()) {
         firebase::dynamic_links::Terminate();
       }
-    });
+    },
+    false);
 
 namespace firebase {
 namespace dynamic_links {

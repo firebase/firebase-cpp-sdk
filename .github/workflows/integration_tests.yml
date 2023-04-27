@@ -39,6 +39,8 @@ on:
         description: 'Optional: Packaging run # to build against?'
       test_pull_request:
         description: 'Optional: Pull request # to build and test? (With optional commit hash, separated by a colon. Specify the FULL hash.)'
+      firestore_dep_source:
+        description: 'Optional: Where to get firestore iOS SDK from: "RELEASED", "TIP" or "<git-commit> from firestore-ios-sdk"'
 
 env:
   triggerLabelPrefix: "tests-requested: "
@@ -330,6 +332,8 @@ jobs:
           if [[ "${{ github.event.schedule }}" == "0 11 * * *" ]]; then
             # at 3am PST/4am PDT. Running firestore desktop integration test aginst tip-of-tree ios repo
             additional_flags+=(--cmake_flag=-DFIRESTORE_DEP_SOURCE=TIP)
+          elif [[ "${{ github.event.inputs.firestore_dep_source }}" ]]; then
+            additional_flags+=(--cmake_flag=-DFIRESTORE_DEP_SOURCE=${{ github.event.inputs.firestore_dep_source }})
           fi
           python scripts/gha/build_testapps.py --p Desktop \
             --t ${{ needs.check_and_prepare.outputs.apis }} \

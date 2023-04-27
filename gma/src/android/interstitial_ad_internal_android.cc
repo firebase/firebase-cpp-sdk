@@ -24,7 +24,6 @@
 
 #include "app/src/assert.h"
 #include "app/src/util_android.h"
-#include "gma/gma_resources.h"
 #include "gma/src/android/ad_request_converter.h"
 #include "gma/src/android/gma_android.h"
 #include "gma/src/common/gma_common.h"

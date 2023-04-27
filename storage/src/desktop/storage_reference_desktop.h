@@ -187,8 +187,9 @@ class StorageReferenceInternal {
                 BlockingResponse* response, FutureHandle handle,
                 Listener* listener, Controller* controller_out);
 
-  void PrepareRequest(rest::Request* request, const char* url,
-                      const char* method, const char* content_type = nullptr);
+  void PrepareRequestBlocking(rest::Request* request, const char* url,
+                              const char* method,
+                              const char* content_type = nullptr);
 
   void SetupMetadataChain(Future<Metadata> starting_future,
                           MetadataChainData* data);

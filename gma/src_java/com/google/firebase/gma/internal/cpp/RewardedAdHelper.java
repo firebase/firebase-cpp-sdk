@@ -32,9 +32,9 @@ import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 import com.google.android.gms.ads.rewarded.ServerSideVerificationOptions;
 
 /**
- * Helper class to make interactions between the GMA C++ wrapper and Java {@link RewardedAd}
- * objects cleaner. It's designed to wrap and adapt a single instance of {@link RewardedAd},
- * translate calls coming from C++ into their (typically more complicated) Java equivalents.
+ * Helper class to make interactions between the GMA C++ wrapper and Java {@link RewardedAd} objects
+ * cleaner. It's designed to wrap and adapt a single instance of {@link RewardedAd}, translate calls
+ * coming from C++ into their (typically more complicated) Java equivalents.
  */
 public class RewardedAdHelper {
   // C++ nullptr for use with the callbacks.
@@ -64,9 +64,7 @@ public class RewardedAdHelper {
   // complete the Future associated with the latest call to LoadAd.
   private long mLoadAdCallbackDataPtr;
 
-  /**
-   * Constructor.
-   */
+  /** Constructor. */
   public RewardedAdHelper(long rewardedAdInternalPtr) {
     mRewardedAdInternalPtr = rewardedAdInternalPtr;
     mRewardedLock = new Object();
@@ -76,8 +74,8 @@ public class RewardedAdHelper {
   }
 
   /**
-   * Initializes the {@link RewardedAd}. This creates the corresponding GMA SDK {@link
-   * RewardedAd} object and sets it up.
+   * Initializes the {@link RewardedAd}. This creates the corresponding GMA SDK {@link RewardedAd}
+   * object and sets it up.
    */
   public void initialize(final long callbackDataPtr, Activity activity) {
     mActivity = activity;
@@ -108,9 +106,7 @@ public class RewardedAdHelper {
     });
   }
 
-  /**
-   * Disconnect the helper from the interstital ad.
-   */
+  /** Disconnect the helper from the interstital ad. */
   public void disconnect() {
     synchronized (mRewardedLock) {
       mRewardedAdInternalPtr = CPP_NULLPTR;
@@ -135,9 +131,7 @@ public class RewardedAdHelper {
     });
   }
 
-  /**
-   * Loads an ad for the underlying {@link RewardedAd} object.
-   */
+  /** Loads an ad for the underlying {@link RewardedAd} object. */
   public void loadAd(long callbackDataPtr, String adUnitId, final AdRequest request) {
     if (mActivity == null) {
       return;
@@ -309,36 +303,29 @@ public class RewardedAdHelper {
     }
   }
 
-  /**
-   * Native callback to instruct the C++ wrapper to complete the corresponding future.
-   */
+  /** Native callback to instruct the C++ wrapper to complete the corresponding future. */
   public static native void completeRewardedAdFutureCallback(
       long nativeInternalPtr, int errorCode, String errorMessage);
 
-  /**
-   * Native callback invoked upon successfully loading an ad.
-   */
+  /** Native callback invoked upon successfully loading an ad. */
   public static native void completeRewardedLoadedAd(
       long nativeInternalPtr, ResponseInfo responseInfo);
 
   /**
-   * Native callback upon encountering an error loading an Ad Request. Returns
-   * Android Google Mobile Ads SDK error codes.
-   **/
+   * Native callback upon encountering an error loading an Ad Request. Returns Android Google Mobile
+   * Ads SDK error codes.
+   */
   public static native void completeRewardedLoadAdError(
       long nativeInternalPtr, LoadAdError error, int errorCode, String errorMessage);
 
   /**
-   * Native callback upon encountering a wrapper/internal error when
-   * processing an Ad Request. Returns integers representing
-   * firebase::gma::AdError codes.
+   * Native callback upon encountering a wrapper/internal error when processing an Ad Request.
+   * Returns integers representing firebase::gma::AdError codes.
    */
   public static native void completeRewardedLoadAdInternalError(
       long nativeInternalPtr, int gmaErrorCode, String errorMessage);
 
-  /**
-   * Native callbacks to notify the C++ wrapper of ad events
-   */
+  /** Native callbacks to notify the C++ wrapper of ad events */
   public static native void notifyUserEarnedRewardEvent(
       long mRewardedAdInternalPtr, String type, int amount);
 

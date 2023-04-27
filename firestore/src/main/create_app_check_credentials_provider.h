@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Google LLC
+ * Copyright 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,24 +14,27 @@
  * limitations under the License.
  */
 
-// Note: This is needed since std::make_unique is only available starting C++14.
-// TODO(b/191981857): Remove this file when possible.
-
-#ifndef FIREBASE_FIRESTORE_SRC_COMMON_MAKE_UNIQUE_H_
-#define FIREBASE_FIRESTORE_SRC_COMMON_MAKE_UNIQUE_H_
+#ifndef FIREBASE_FIRESTORE_SRC_MAIN_CREATE_APP_CHECK_CREDENTIALS_PROVIDER_H_
+#define FIREBASE_FIRESTORE_SRC_MAIN_CREATE_APP_CHECK_CREDENTIALS_PROVIDER_H_
 
 #include <memory>
-#include <utility>
+
+#include "Firestore/core/src/credentials/credentials_fwd.h"
+
+#if defined(__ANDROID__)
+#error "This header should not be used on Android."
+#endif
 
 namespace firebase {
+
+class App;
+
 namespace firestore {
 
-template <typename T, typename... Args>
-std::unique_ptr<T> make_unique(Args&&... args) {
-  return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
+std::unique_ptr<credentials::AppCheckCredentialsProvider>
+CreateAppCheckCredentialsProvider(App& app);
 
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_SRC_COMMON_MAKE_UNIQUE_H_
+#endif  // FIREBASE_FIRESTORE_SRC_MAIN_CREATE_APP_CHECK_CREDENTIALS_PROVIDER_H_

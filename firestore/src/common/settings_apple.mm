@@ -17,9 +17,9 @@
 #include "firestore/src/include/firebase/firestore/settings.h"
 
 #include <dispatch/dispatch.h>
+#include <memory>
 
 #include "Firestore/core/src/util/executor_libdispatch.h"
-#include "absl/memory/memory.h"
 
 namespace firebase {
 namespace firestore {
@@ -39,7 +39,7 @@ Settings::Settings()
           Executor::CreateSerial("com.google.firebase.firestore.callback")) {}
 
 std::unique_ptr<Executor> Settings::CreateExecutor() const {
-  return absl::make_unique<ExecutorLibdispatch>(dispatch_queue());
+  return std::make_unique<ExecutorLibdispatch>(dispatch_queue());
 }
 
 dispatch_queue_t Settings::dispatch_queue() const {
@@ -52,7 +52,7 @@ dispatch_queue_t Settings::dispatch_queue() const {
 }
 
 void Settings::set_dispatch_queue(dispatch_queue_t queue) {
-  executor_ = absl::make_unique<ExecutorLibdispatch>(queue);
+  executor_ = std::make_unique<ExecutorLibdispatch>(queue);
 }
 
 }  // namespace firestore
