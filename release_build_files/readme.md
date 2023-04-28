@@ -238,7 +238,7 @@ Firebase Functions         | firebase_functions.xcframework
 Google Mobile Ads          | firebase_gma.xcframework
 |                          | firebase.xcframework
 |                          | Firebase/Analytics Cocoapod (10.9.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (10.4.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (10.3.0)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
 |                          | FirebaseInstallations Cocoapod (10.9.0)
@@ -297,7 +297,7 @@ Firebase Functions         | libfirebase_functions.a
 Google Mobile Ads          | libfirebase_gma.a
 |                          | libfirebase_app.a
 |                          | Firebase/Analytics Cocoapod (10.9.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (10.4.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (10.3.0)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
 |                          | FirebaseInstallations Cocoapod (10.9.0)
@@ -606,7 +606,7 @@ code.
 ### Upcoming Release
 -   Changes
     - General: Update minimum supported C++ standard to C++14.
-    - General (iOS): Update to Firebase Cocoapods version 10.8.0.
+    - General (iOS): Update to Firebase Cocoapods version 10.9.0.
     - General (Android): Update to Firebase Android BoM version 31.5.0.
     - AdMob: Removed deprecated AdMob SDK. Please use the included Google
       Mobile Ads SDK ("GMA") instead.
