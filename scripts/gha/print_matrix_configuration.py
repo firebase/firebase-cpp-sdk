@@ -76,12 +76,12 @@ PARAMETERS = {
       "build_type": ["Release", "Debug"],
       "architecture": ["x64", "x86", "arm64"],
       "msvc_runtime": ["static","dynamic"],
-      "xcode_version": ["13.3.1"],
+      "xcode_version": ["14.1"],
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
         "os": ["ubuntu-20.04", "macos-12", "windows-latest"],
-        "xcode_version": ["13.3.1"],
+        "xcode_version": ["14.1"],
       }
     }
   },
@@ -112,7 +112,7 @@ PARAMETERS = {
       "msvc_runtime": ["dynamic"],
       "cpp_compiler_windows": ["VisualStudio2019"],
       "cpp_compiler_linux": ["clang-11.0"],
-      "xcode_version": ["13.3.1"],  # only the first one is used
+      "xcode_version": ["14.1"],  # only the first one is used
       "ndk_version": ["r22b"],
       "platform_version": ["28"],
       "build_tools_version": ["28.0.3"],
@@ -140,10 +140,10 @@ PARAMETERS = {
 
   "ios": {
     "matrix": {
-      "xcode_version": ["13.3.1"],
+      "xcode_version": ["14.1"],
 
       EXPANDED_KEY: {
-        "xcode_version": ["13.3.1"]
+        "xcode_version": ["14.1"]
       }
     }
   },
