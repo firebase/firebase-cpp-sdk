@@ -92,14 +92,14 @@ void DebugAppCheckProvider::GetToken(
     std::function<void(AppCheckToken, int, const std::string&)>
         completion_callback) {
   // Identify the user's debug token
-  const char* debug_token;
+  const char* debug_token_cstr;
   if (!debug_token_.empty()) {
-    debug_token = debug_token_.c_str();
+    debug_token_cstr = debug_token_.c_str();
   } else {
-    debug_token = std::getenv("APP_CHECK_DEBUG_TOKEN");
+    debug_token_cstr = std::getenv("APP_CHECK_DEBUG_TOKEN");
   }
 
-  if (!debug_token) {
+  if (!debug_token_cstr) {
     completion_callback({}, kAppCheckErrorInvalidConfiguration,
                         "Missing debug token");
     return;
@@ -107,7 +107,7 @@ void DebugAppCheckProvider::GetToken(
 
   // Exchange debug token with the backend to get a proper attestation token.
   auto request = MakeShared<DebugTokenRequest>(app_);
-  request->SetDebugToken(debug_token);
+  request->SetDebugToken(debug_token_cstr);
 
   // Use an async call, since we don't want to block on the server response.
   auto async_call =
