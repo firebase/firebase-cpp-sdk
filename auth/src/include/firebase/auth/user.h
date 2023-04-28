@@ -427,14 +427,14 @@ class User : public UserInfoInterface {
   /// Data from the Identity Provider used to sign-in is returned in the
   /// @ref AdditionalUserInfo inside @ref SignInResult.
   FIREBASE_DEPRECATED Future<SignInResult>
-  LinkAndRetrieveDataWithCredential_DEPRECATED(const Credential& credential);
+  LinkAndRetrieveDataWithCredential(const Credential& credential);
 
   /// @deprecated
   ///
   /// Get results of the most recent call to
-  /// @ref LinkAndRetrieveDataWithCredential_DEPRECATED.
+  /// @ref LinkAndRetrieveDataWithCredential.
   FIREBASE_DEPRECATED Future<SignInResult>
-  LinkAndRetrieveDataWithCredentialLastResult_DEPRECATED() const;
+  LinkAndRetrieveDataWithCredentialLastResult() const;
 
   ///
   /// @param[in] provider Contains information on the auth provider to link

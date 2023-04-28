@@ -973,8 +973,8 @@ TEST_F(FirebaseAuthTest, TestLinkAnonymousUserWithEmailCredential_DEPRECATED) {
       firebase::auth::EmailAuthProvider::GetCredential(email.c_str(),
                                                        kTestPassword);
   WaitForCompletion(
-      user->LinkAndRetrieveDataWithCredential_DEPRECATED(credential),
-      "LinkAndRetrieveDataWithCredential_DEPRECATED");
+      user->LinkAndRetrieveDataWithCredential(credential),
+      "LinkAndRetrieveDataWithCredential");
   WaitForCompletion(user->Unlink_DEPRECATED(credential.provider().c_str()),
                     "Unlink");
   SignOut();

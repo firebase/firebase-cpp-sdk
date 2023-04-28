@@ -541,14 +541,14 @@ Future<User*> User::LinkWithCredential_DEPRECATED(
   return MakeFuture(&futures, handle);
 }
 
-Future<SignInResult> User::LinkAndRetrieveDataWithCredential_DEPRECATED(
+Future<SignInResult> User::LinkAndRetrieveDataWithCredential(
     const Credential& credential) {
   if (!ValidUser(auth_data_)) {
     return Future<SignInResult>();
   }
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<SignInResult>(
-      kUserFn_LinkAndRetrieveDataWithCredential_DEPRECATED);
+      kUserFn_LinkAndRetrieveDataWithCredential);
   JNIEnv* env = Env(auth_data_);
 
   jobject pending_result = env->CallObjectMethod(
