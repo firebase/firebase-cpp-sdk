@@ -184,7 +184,8 @@ void FirebaseAppCheckTest::InitializeAppCheckWithDebug() {
   LogDebug("Initialize Firebase App Check with Debug Provider");
 
   // Set the App Check Debug Token before providing the Factory.
-  firebase::app_check::DebugAppCheckProviderFactory::GetInstance()->SetDebugToken(kAppCheckDebugToken);
+  firebase::app_check::DebugAppCheckProviderFactory::GetInstance()
+      ->SetDebugToken(kAppCheckDebugToken);
 
   firebase::app_check::AppCheck::SetAppCheckProviderFactory(
       firebase::app_check::DebugAppCheckProviderFactory::GetInstance());
