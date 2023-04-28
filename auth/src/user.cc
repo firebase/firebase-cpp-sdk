@@ -33,7 +33,10 @@ AUTH_RESULT_FN(User, Delete, void)
 AUTH_RESULT_FN(User, UpdatePhoneNumberCredential, User)
 
 AUTH_RESULT_DEPRECATED_FN(User, LinkWithCredential, User*)
-AUTH_RESULT_DEPRECATED_FN(User, LinkAndRetrieveDataWithCredential, SignInResult)
+// LinkAndRetrieveDataWithCredential is deprecated but there is no conflict,
+// therefore no need of DEPRECATED suffix. Put it here for easier removal in the
+// future.
+AUTH_RESULT_FN(User, LinkAndRetrieveDataWithCredential, SignInResult)
 AUTH_RESULT_DEPRECATED_FN(User, ReauthenticateAndRetrieveData, SignInResult)
 AUTH_RESULT_DEPRECATED_FN(User, Unlink, User*)
 AUTH_RESULT_DEPRECATED_FN(User, UpdatePhoneNumberCredential, User*)
