@@ -34,7 +34,7 @@ Example log mode output (will be slightly different with --github_log):
 
 INTEGRATION TEST FAILURES
 
-admob:
+analytics:
   Errors and Failures (1):
   - [BUILD] [ERROR] [Windows] [boringssl]
 functions:

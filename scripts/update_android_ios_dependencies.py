@@ -171,7 +171,6 @@ PODSPEC_REPOSITORY = 'https://github.com/CocoaPods/Specs.git'
 PODS = (
   'Firebase',
   'FirebaseCore',
-  'FirebaseAdMob',
   'FirebaseAnalytics',
   'FirebaseAuth',
   'FirebaseCrashlytics',
