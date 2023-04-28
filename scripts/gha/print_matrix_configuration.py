@@ -133,7 +133,7 @@ PARAMETERS = {
       }
     },
     "config": {
-      "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,gma,installations,messaging,remote_config,storage",
+      "apis": "analytics,auth,database,dynamic_links,firestore,functions,gma,installations,messaging,remote_config,storage",
       "mobile_test_on": "real,virtual"
     }
   },
@@ -354,7 +354,7 @@ def main():
     if not args.config:
       args.override = args.override.split(',')
     if args.parm_key == "platform" and args.apis:
-      # e.g. args.apis = "\"admob,analytics\""
+      # e.g. args.apis = "\"auth,analytics\""
       args.override = filter_platforms_on_apis(args.override, args.apis.strip('"').split(','))
 
     print_value(args.override)
@@ -379,7 +379,7 @@ def main():
   if args.auto_diff:
     value = filter_values_on_diff(args.parm_key, value, args.auto_diff)
   if args.parm_key == "platform" and args.apis:
-    # e.g. args.apis = "\"admob,analytics\""
+    # e.g. args.apis = "\"auth,analytics\""
     value = filter_platforms_on_apis(value, args.apis.strip('"').split(','))
   print_value(value)
 
