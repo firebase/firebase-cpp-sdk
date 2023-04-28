@@ -1097,9 +1097,8 @@ Future<User*> User::LinkWithCredential_DEPRECATED(
 
 Future<SignInResult> User::LinkAndRetrieveDataWithCredential(
     const Credential& credential) {
-  Promise<SignInResult> promise(
-      &auth_data_->future_impl,
-      kUserFn_LinkAndRetrieveDataWithCredential);
+  Promise<SignInResult> promise(&auth_data_->future_impl,
+                                kUserFn_LinkAndRetrieveDataWithCredential);
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
   }

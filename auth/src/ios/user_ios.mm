@@ -217,8 +217,7 @@ Future<User *> User::LinkWithCredential_DEPRECATED(const Credential &credential)
   return MakeFuture(&futures, handle);
 }
 
-Future<SignInResult> User::LinkAndRetrieveDataWithCredential(
-    const Credential &credential) {
+Future<SignInResult> User::LinkAndRetrieveDataWithCredential(const Credential &credential) {
   if (!ValidUser(auth_data_)) {
     return Future<SignInResult>();
   }
