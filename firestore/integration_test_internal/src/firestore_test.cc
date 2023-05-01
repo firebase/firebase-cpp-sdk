@@ -40,11 +40,13 @@
 #include "util/future_test_util.h"
 #if !defined(__ANDROID__)
 #include "Firestore/core/src/util/autoid.h"
+#include "firestore/src/main/firestore_main.h"
 #else
 #include "android/util_autoid.h"
 #endif  // !defined(__ANDROID__)
 #include "Firestore/core/src/util/firestore_exceptions.h"
 #include "firebase_test_framework.h"
+#include "util/locate_emulator.h"
 
 // These test cases are in sync with native iOS client SDK test
 //   Firestore/Example/Tests/Integration/API/FIRDatabaseTests.mm
@@ -60,7 +62,17 @@ using ::firebase::auth::Auth;
 using ::testing::ContainerEq;
 using ::testing::HasSubstr;
 
-TEST_F(FirestoreIntegrationTest, GetInstance) {
+
+class FirestoreTest : public FirestoreIntegrationTest {
+ protected:
+  const std::string GetFirestoreDatabaseId(Firestore* firestore) {
+//    return "";
+    return firestore->internal_->database_id().database_id();
+  }
+};
+
+
+TEST_F(FirestoreTest, GetInstance) {
   // Create App.
   App* app = this->app();
   EXPECT_NE(nullptr, app);
@@ -87,7 +99,7 @@ TEST_F(FirestoreIntegrationTest, GetInstance) {
   delete auth;
 }
 
-TEST_F(FirestoreIntegrationTest, GetInstanceWithNamedDatabase) {
+TEST_F(FirestoreTest, GetInstanceWithNamedDatabase) {
   App* app = this->app();
   EXPECT_NE(nullptr, app);
 
@@ -96,10 +108,12 @@ TEST_F(FirestoreIntegrationTest, GetInstanceWithNamedDatabase) {
   EXPECT_EQ(kInitResultSuccess, result);
   EXPECT_NE(nullptr, instance);
   EXPECT_EQ(app, instance->app());
-  // TODO(Mila): check the database name is "foo".
+  EXPECT_EQ(GetFirestoreDatabaseId(instance), "foo");
 
   delete instance;
 }
+
+// TODO(Mila): change test names below to subclass
 
 // Sanity test for stubs.
 TEST_F(FirestoreIntegrationTest, TestCanCreateCollectionAndDocumentReferences) {
@@ -1374,25 +1388,29 @@ TEST_F(FirestoreIntegrationTest, RestartFirestoreLeadsToNewInstance) {
 
 TEST_F(FirestoreIntegrationTest,
        RestartFirestoreLeadsToNewNamedDatabaseInstance) {
-  // TODO(Mila): Run this test against emulator.
-  GTEST_SKIP();
+  // TODO(Mila): Remove the emulator env check after prod supports multiDB.
+  if(!firestore::isUsingFirestoreEmulator()){
+      GTEST_SKIP();
+  }
 
   App* app = App::GetInstance();
   InitResult init_result;
   Firestore* db1 = Firestore::GetInstance(app, "test-db", &init_result);
+  firestore::LocateEmulator(db1);
   ASSERT_EQ(kInitResultSuccess, init_result);
 
   // Create a document that we can use for verification later.
   DocumentReference doc1 = db1->Collection("abc").Document();
   const std::string doc_path = doc1.path();
   EXPECT_THAT(doc1.Set({{"foo", FieldValue::String("bar")}}), FutureSucceeds());
-
+  std::cout<<"======="<<std::endl;
   // Terminate `db1` so that it will be removed from the instance cache.
   EXPECT_THAT(db1->Terminate(), FutureSucceeds());
 
   // Verify that GetInstance() returns a new instance since the old instance has
   // been terminated.
   Firestore* db2 = Firestore::GetInstance(app, "test-db", &init_result);
+  firestore::LocateEmulator(db2);
   ASSERT_EQ(kInitResultSuccess, init_result);
   EXPECT_NE(db1, db2);
 

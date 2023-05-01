@@ -30,6 +30,7 @@ void LocateEmulator(Firestore* db) {
     return;
   }
 
+
 #if defined(__ANDROID__)
   // Special IP to access the hosting OS from Android Emulator.
   std::string local_host = "10.0.2.2";
@@ -53,5 +54,13 @@ void LocateEmulator(Firestore* db) {
   db->set_settings(settings);
 }
 
+// Set Firestore up to use Firestore Emulator via USE_FIRESTORE_EMULATOR
+bool isUsingFirestoreEmulator() {
+  // Use emulator as long as this env variable is set, regardless its value.
+  if (std::getenv("USE_FIRESTORE_EMULATOR") == nullptr) {
+    return false;
+  }
+  return true;
+}
 }  // namespace firestore
 }  // namespace firebase
