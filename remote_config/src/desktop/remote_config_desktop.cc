@@ -586,6 +586,8 @@ ConfigUpdateListenerRegistration
 RemoteConfigInternal::AddOnConfigUpdateListener(
     std::function<void(ConfigUpdate&&, RemoteConfigError)>
         config_update_listener) {
+  // Realtime RC is not yet implemented on desktop, so just return a
+  // registration object that is no-op.
   return ConfigUpdateListenerRegistration();
 }
 

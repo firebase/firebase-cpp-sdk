@@ -35,26 +35,30 @@
 
 namespace firebase {
 namespace remote_config {
+
 // ConfigUpdateListenerRegistration specific fact:
-//   ConfigUpdateListenerRegistration does NOT own the
-//   ConfigUpdateListenerRegistrationInternal object, which is different from
-//   other wrapper types. RemoteConfigInternal owns all
-//   ConfigUpdateListenerRegistrationInternal objects instead. So
-//   RemoteConfigInternal can remove all listeners upon destruction.
+// ConfigUpdateListenerRegistration does NOT own the
+// ConfigUpdateListenerRegistrationInternal object, which is different from
+// other wrapper types. RemoteConfigInternal owns all
+// ConfigUpdateListenerRegistrationInternal objects instead. So
+// RemoteConfigInternal can remove all listeners upon destruction.
 
 using CleanupFnConfigUpdateListenerRegistration =
     CleanupFn<ConfigUpdateListenerRegistration, internal::RemoteConfigInternal>;
 
 ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
     const ConfigUpdateListenerRegistration& registration)
-    : remote_config_(registration.remote_config_) {
-  internal_ = registration.internal_;
+    : remote_config_(registration.remote_config_),
+      internal_(registration.internal_) {
+  // Copy constructor. Register cleanup for the newly created object.
   CleanupFnConfigUpdateListenerRegistration::Register(this, remote_config_);
 }
 
 ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
     ConfigUpdateListenerRegistration&& registration)
     : remote_config_(registration.remote_config_) {
+  // Move constructor. Unregister cleanup for the old object and transfer
+  // ownership of the internal data.
   CleanupFnConfigUpdateListenerRegistration::Unregister(
       &registration, registration.remote_config_);
   std::swap(internal_, registration.internal_);
@@ -66,10 +70,12 @@ ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
     : remote_config_(internal == nullptr ? nullptr
                                          : internal->remote_config_internal()),
       internal_(internal) {
+  // Normal constructor. Register cleanup for the newly created registration.
   CleanupFnConfigUpdateListenerRegistration::Register(this, remote_config_);
 }
 
 ConfigUpdateListenerRegistration::~ConfigUpdateListenerRegistration() {
+  // Destructor. Unregister cleanup as it is no longer needed.
   CleanupFnConfigUpdateListenerRegistration::Unregister(this, remote_config_);
   internal_ = nullptr;
 }
@@ -80,8 +86,11 @@ ConfigUpdateListenerRegistration& ConfigUpdateListenerRegistration::operator=(
     return *this;
   }
 
-  remote_config_ = registration.remote_config_;
+  // Copy assignment operator. Unregister cleanup for this object before
+  // changing the value of remote_config_ in case it was previously owned
+  // by a different instance of remote config.
   CleanupFnConfigUpdateListenerRegistration::Unregister(this, remote_config_);
+  remote_config_ = registration.remote_config_;
   internal_ = registration.internal_;
   CleanupFnConfigUpdateListenerRegistration::Register(this, remote_config_);
   return *this;
@@ -93,10 +102,15 @@ ConfigUpdateListenerRegistration& ConfigUpdateListenerRegistration::operator=(
     return *this;
   }
 
-  remote_config_ = registration.remote_config_;
+  // Move assignment operator.
+  // Unregister cleanup for the object that we are moving from.
   CleanupFnConfigUpdateListenerRegistration::Unregister(
       &registration, registration.remote_config_);
+  // Unregister cleanup for this object before changing the value of
+  // remote_config_ in case it was previously owned by a different instance
+  // of remote config.
   CleanupFnConfigUpdateListenerRegistration::Unregister(this, remote_config_);
+  remote_config_ = registration.remote_config_;
   internal_ = registration.internal_;
   CleanupFnConfigUpdateListenerRegistration::Register(this, remote_config_);
   return *this;
