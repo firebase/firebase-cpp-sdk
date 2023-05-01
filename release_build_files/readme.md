@@ -603,7 +603,7 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### 11.0.0
 -   Changes
     - General: Update minimum supported C++ standard to C++14.
     - General (iOS): Update to Firebase Cocoapods version 10.8.0.
