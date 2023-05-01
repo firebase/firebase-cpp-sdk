@@ -608,8 +608,8 @@ code.
     - General: Update minimum supported C++ standard to C++14.
     - General (Android): Update to Firebase Android BoM version 31.5.0.
     - General (iOS): Update to Firebase Cocoapods version 10.8.0.
-    - General (iOS): iOS SDKs are now built using Xcode 14.1.
-    - General (Desktop): macOS SDKs are now built using Xcode 14.1.
+    - General (iOS, tvOS, Desktop): iOS, tvOS, and macOS SDKs are now built
+      using Xcode 14.1.
     - AdMob: Removed deprecated AdMob SDK. Please use the included Google
       Mobile Ads SDK ("GMA") instead.
     - GMA (Android): Updated dependency to play-services-ads version 22.0.0.
