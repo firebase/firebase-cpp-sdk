@@ -21,8 +21,6 @@ def firebaseDependenciesMap = [
                  'com.google.firebase:firebase-appcheck-debug',
                  'com.google.firebase:firebase-appcheck-playintegrity'],
   'play_services' : ['com.google.android.gms:play-services-base:18.2.0'],
-  'admob' : ['com.google.firebase:firebase-ads:19.8.0',
-             'com.google.firebase:firebase-analytics'],
   'analytics' : ['com.google.firebase:firebase-analytics'],
   'auth' : ['com.google.firebase:firebase-auth'],
   'database' : ['com.google.firebase:firebase-database'],
@@ -49,7 +47,6 @@ def firebaseResourceDependenciesMap = [
            ':app:google_api_resources',
            ':app:invites_resources'],
   'app_check' : [':app_check:app_check_resources'],
-  'admob' : [':admob:admob_resources'],
   'auth' : [':auth:auth_resources'],
   'database' : [':database:database_resources'],
   'firestore' : [':firestore:firestore_resources'],
@@ -75,9 +72,6 @@ class Dependencies {
   }
   def getAppWithoutPlayServices() {
     libSet.add('app')
-  }
-  def getAdmob() {
-    libSet.add('admob')
   }
   def getAnalytics() {
     libSet.add('analytics')
@@ -125,7 +119,7 @@ class Dependencies {
 
 // Extension to handle which Firebase C++ dependencies are being added to the
 // gradle project.
-// They are added via: firebaseCpp.dependencies "admob", "analytics", ...
+// They are added via: firebaseCpp.dependencies "auth", "analytics", ...
 class FirebaseCppExtension {
   Dependencies dependencies = new Dependencies()
 

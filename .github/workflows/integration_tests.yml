@@ -17,7 +17,7 @@ on:
         required: true
       apis:
         description: 'CSV of apis to build and test'
-        default: 'admob,analytics,auth,database,dynamic_links,firestore,functions,gma,installations,messaging,remote_config,storage'
+        default: 'analytics,auth,database,dynamic_links,firestore,functions,gma,installations,messaging,remote_config,storage'
         required: true
       operating_systems:
         description: 'CSV of VMs to run on'
@@ -39,6 +39,8 @@ on:
         description: 'Optional: Packaging run # to build against?'
       test_pull_request:
         description: 'Optional: Pull request # to build and test? (With optional commit hash, separated by a colon. Specify the FULL hash.)'
+      firestore_dep_source:
+        description: 'Optional: Where to get firestore iOS SDK from: "RELEASED", "TIP" or "<git-commit> from firestore-ios-sdk"'
 
 env:
   triggerLabelPrefix: "tests-requested: "
@@ -185,7 +187,7 @@ jobs:
         # list. Then we can use fromJson to define the field in the matrix for the tests job.
         if [[ "${{ github.event.schedule }}" == "0 9 * * *" ]]; then
           # at 1am PST/2am PDT. Running integration tests and generate test report for all testapps except firestore
-          apis="admob,analytics,auth,database,dynamic_links,functions,gma,installations,messaging,remote_config,storage"
+          apis="analytics,auth,database,dynamic_links,functions,gma,installations,messaging,remote_config,storage"
         elif [[ "${{ github.event.schedule }}" == "0 10 * * *" || "${{ github.event.schedule }}" == "0 11 * * *" ]]; then
           # at 2am PST/3am PDT and 3am PST/4am PDT. Running integration tests for firestore and generate test report.
           apis="firestore"
@@ -330,6 +332,8 @@ jobs:
           if [[ "${{ github.event.schedule }}" == "0 11 * * *" ]]; then
             # at 3am PST/4am PDT. Running firestore desktop integration test aginst tip-of-tree ios repo
             additional_flags+=(--cmake_flag=-DFIRESTORE_DEP_SOURCE=TIP)
+          elif [[ "${{ github.event.inputs.firestore_dep_source }}" ]]; then
+            additional_flags+=(--cmake_flag=-DFIRESTORE_DEP_SOURCE=${{ github.event.inputs.firestore_dep_source }})
           fi
           python scripts/gha/build_testapps.py --p Desktop \
             --t ${{ needs.check_and_prepare.outputs.apis }} \

@@ -20,7 +20,6 @@
 #include <string>
 
 #include "firebase/app.h"
-#include "firebase/cpp_version_warning.h"
 #include "firebase/internal/common.h"
 
 #if !defined(DOXYGEN) && !defined(SWIG)

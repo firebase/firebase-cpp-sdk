@@ -22,7 +22,6 @@
 #include "app/meta/move.h"
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/common/macros.h"
-#include "firestore/src/common/make_unique.h"
 #include "firestore/src/jni/array.h"
 #include "firestore_integration_test.h"
 #include "gtest/gtest.h"
@@ -33,7 +32,7 @@ namespace jni {
 
 class EnvTest : public FirestoreIntegrationTest {
  public:
-  EnvTest() : env_(make_unique<Env>(GetEnv())) {}
+  EnvTest() : env_(std::make_unique<Env>(GetEnv())) {}
 
   ~EnvTest() override {
     // Ensure that after the test is done that any pending exception is cleared
