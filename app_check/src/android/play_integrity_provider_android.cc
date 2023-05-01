@@ -120,14 +120,9 @@ AppCheckProvider* PlayIntegrityProviderFactoryInternal::CreateProvider(
 
 }  // namespace internal
 
-static PlayIntegrityProviderFactory* g_play_integrity_provider_factory =
-    nullptr;
-
 PlayIntegrityProviderFactory* PlayIntegrityProviderFactory::GetInstance() {
-  if (!g_play_integrity_provider_factory) {
-    g_play_integrity_provider_factory = new PlayIntegrityProviderFactory();
-  }
-  return g_play_integrity_provider_factory;
+  static PlayIntegrityProviderFactory g_play_integrity_provider_factory;
+  return &g_play_integrity_provider_factory;
 }
 
 PlayIntegrityProviderFactory::PlayIntegrityProviderFactory()
