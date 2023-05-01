@@ -18,11 +18,23 @@
 
 #include <utility>
 
+#include "app/src/include/firebase/internal/platform.h"
 #include "remote_config/src/cleanup.h"
 #include "remote_config/src/config_update_listener_registration_internal.h"
 
-namespace firebase {
 
+// The Platform-specific implementation of RemoteConfigInternal is needed
+// so that CleanupFn can reference the cleanup_notifier
+#if FIREBASE_PLATFORM_ANDROID
+#include "remote_config/src/android/remote_config_android.h"
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#include "remote_config/src/ios/remote_config_ios.h"
+#else
+#include "remote_config/src/desktop/remote_config_desktop.h"
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
+
+namespace firebase {
 namespace remote_config {
 // ConfigUpdateListenerRegistration specific fact:
 //   ConfigUpdateListenerRegistration does NOT own the
@@ -31,7 +43,7 @@ namespace remote_config {
 //   ConfigUpdateListenerRegistrationInternal objects instead. So
 //   RemoteConfigInternal can remove all listeners upon destruction.
 
-using CleanupFnConfigUpdateListenerRegistration = CleanupFn<ConfigUpdateListenerRegistration, RemoteConfigInternal>;
+using CleanupFnConfigUpdateListenerRegistration = CleanupFn<ConfigUpdateListenerRegistration, internal::RemoteConfigInternal>;
 
 ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
     const ConfigUpdateListenerRegistration& registration)
@@ -49,7 +61,7 @@ ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(ConfigUpdateL
 }
 
 ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
-    ConfigUpdateListenerRegistrationInternal* internal)
+    internal::ConfigUpdateListenerRegistrationInternal* internal)
     : remote_config_(internal == nullptr ? nullptr
                                      : internal->remote_config_internal()),
       internal_(internal) {

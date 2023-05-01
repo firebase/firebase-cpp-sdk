@@ -1225,7 +1225,7 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
 
   // Create a C++ registration to wrap the native registration
   ConfigUpdateListenerRegistrationInternal* registration_internal =
-      new ConfigUpdateListenerRegistrationInternal([j_registration]() {
+      new ConfigUpdateListenerRegistrationInternal(this, [j_registration]() {
         // util::GetJNIEnvFromApp returns a threadsafe instance of JNIEnv.
         JNIEnv* env = firebase::util::GetJNIEnvFromApp();
         env->CallVoidMethod(j_registration,

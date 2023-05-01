@@ -35,7 +35,8 @@ class ConfigUpdateListenerRegistrationInternal {
   /// @brief ConfigUpdateListenerRegistrationInternal constructor that takes in a
   /// function as a parameter. The parameter function connects `Remove` to the
   /// native platform's `Remove` method.
-  explicit ConfigUpdateListenerRegistrationInternal(
+  ConfigUpdateListenerRegistrationInternal(
+      RemoteConfigInternal* remote_config,
       std::function<void()> listener_removal_function);
 
   // Delete the default copy and move constructors to make the ownership more

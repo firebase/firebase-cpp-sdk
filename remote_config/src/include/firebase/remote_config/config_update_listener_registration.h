@@ -101,6 +101,7 @@ class ConfigUpdateListenerRegistration {
 
  private:
   friend class internal::RemoteConfigInternal;
+  template <typename T, typename R>
   friend struct CleanupFn;
 
   explicit ConfigUpdateListenerRegistration(

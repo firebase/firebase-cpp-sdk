@@ -531,7 +531,7 @@ ConfigUpdateListenerRegistration RemoteConfigInternal::AddOnConfigUpdateListener
     }];
 
     ConfigUpdateListenerRegistrationInternal* registration_internal =
-        new ConfigUpdateListenerRegistrationInternal([registration]() {
+        new ConfigUpdateListenerRegistrationInternal(this, [registration]() {
           [registration remove];
         });
 

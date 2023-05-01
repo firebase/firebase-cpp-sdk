@@ -47,6 +47,7 @@ set(common_SRCS
     src/common.cc
     src/cleanup.h
     src/config_update_listener_registration.cc
+    src/config_update_listener_registration_internal.cc
     src/remote_config.cc)
 
 
