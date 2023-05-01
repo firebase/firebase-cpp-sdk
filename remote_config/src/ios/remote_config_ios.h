@@ -16,9 +16,12 @@
 #define FIREBASE_REMOTE_CONFIG_SRC_IOS_REMOTE_CONFIG_IOS_H_
 
 #include <functional>
+#include <string>
+#include <vector>
 
 #include "firebase/app.h"
 #include "app/memory/unique_ptr.h"
+#include "app/src/cleanup_notifier.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_ios.h"
 #include "firebase/future.h"
@@ -87,13 +90,16 @@ class RemoteConfigInternal {
 
   const ConfigInfo GetInfo() const;
 
-  ConfigUpdateListenerRegistration* AddOnConfigUpdateListener(
+  ConfigUpdateListenerRegistration AddOnConfigUpdateListener(
     std::function<void(ConfigUpdate&&, RemoteConfigError)>
         config_update_listener);
 
   bool Initialized() const;
 
   void Cleanup();
+
+  // When this is deleted, it will clean up all ListenerRegistrations.
+  CleanupNotifier& cleanup_notifier() { return cleanup_; }
 
  private:
 #ifdef __OBJC__
@@ -106,6 +112,8 @@ class RemoteConfigInternal {
 
   /// Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl_;
+
+  CleanupNotifier cleanup_;
 
   // Saved default keys.
   std::vector<std::string> default_keys_;

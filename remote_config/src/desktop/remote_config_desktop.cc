@@ -582,11 +582,13 @@ const ConfigInfo RemoteConfigInternal::GetInfo() const {
   return configs_.metadata.info();
 }
 
-ConfigUpdateListenerRegistration*
+ConfigUpdateListenerRegistration
 RemoteConfigInternal::AddOnConfigUpdateListener(
     std::function<void(ConfigUpdate&&, RemoteConfigError)>
         config_update_listener) {
-  return nullptr;
+  // Realtime RC is not yet implemented on desktop, so just return a
+  // registration object that is no-op.
+  return ConfigUpdateListenerRegistration();
 }
 
 void RemoteConfigInternal::FetchInternal() {

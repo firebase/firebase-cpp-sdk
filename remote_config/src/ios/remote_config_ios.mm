@@ -24,6 +24,7 @@
 #include "app/src/time.h"
 #include "remote_config/src/common.h"
 #include "remote_config/src/include/firebase/remote_config.h"
+#include "remote_config/src/config_update_listener_registration_internal.h"
 
 namespace firebase {
 namespace remote_config {
@@ -207,6 +208,12 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App &app)
 
 RemoteConfigInternal::~RemoteConfigInternal() {
   // Destructor is necessary for ARC garbage collection.
+  
+  // Trigger CleanupNotifier Cleanup. This will delete
+  // ConfigUpdateListenerRegistrationInternal instances and it will update
+  // ConfigUpdateListenerRegistration instances to no longer point to the
+  // corresponding internal objects.
+  cleanup_notifier().CleanupAll();
 }
 
 bool RemoteConfigInternal::Initialized() const{
@@ -515,7 +522,7 @@ const ConfigInfo RemoteConfigInternal::GetInfo() const {
   return config_info;
 }
 
-ConfigUpdateListenerRegistration* RemoteConfigInternal::AddOnConfigUpdateListener(
+ConfigUpdateListenerRegistration RemoteConfigInternal::AddOnConfigUpdateListener(
       std::function<void(ConfigUpdate&&, RemoteConfigError)>
         config_update_listener) {
     FIRConfigUpdateListenerRegistration *registration;
@@ -529,13 +536,19 @@ ConfigUpdateListenerRegistration* RemoteConfigInternal::AddOnConfigUpdateListene
           config_update_listener(ConvertConfigUpdateKeys(update.updatedKeys), kRemoteConfigErrorNone);
     }];
 
-    ConfigUpdateListenerRegistration *registrationWrapper =
-      new ConfigUpdateListenerRegistration([registration]() {
-        [registration remove];
-      });
+    ConfigUpdateListenerRegistrationInternal* registration_internal =
+        new ConfigUpdateListenerRegistrationInternal(this, [registration]() {
+          [registration remove];
+        });
+  // Delete the internal registration when RemoteConfigInternal is cleaned up.
+  cleanup_notifier().RegisterObject(registration_internal, [](void* registration) {
+    delete reinterpret_cast<ConfigUpdateListenerRegistrationInternal*>(registration);
+  });
 
-    return registrationWrapper;
+  ConfigUpdateListenerRegistration registration_wrapper(registration_internal);
+  return registrationWrapper;
 }
+
 }  // namespace internal
 }  // namespace remote_config
 }  // namespace firebase

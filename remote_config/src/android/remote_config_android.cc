@@ -29,6 +29,7 @@
 #include "app/src/util_android.h"
 #include "remote_config/remote_config_resources.h"
 #include "remote_config/src/common.h"
+#include "remote_config/src/config_update_listener_registration_internal.h"
 
 namespace firebase {
 namespace remote_config {
@@ -592,7 +593,13 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
   LogDebug("%s API Initialized", kApiIdentifier);
 }
 
-RemoteConfigInternal::~RemoteConfigInternal() {}
+RemoteConfigInternal::~RemoteConfigInternal() {
+  // Trigger CleanupNotifier Cleanup. This will delete
+  // ConfigUpdateListenerRegistrationInternal instances and it will update
+  // ConfigUpdateListenerRegistration instances to no longer point to the
+  // corresponding internal objects.
+  cleanup_notifier().CleanupAll();
+}
 
 bool RemoteConfigInternal::Initialized() const {
   return internal_obj_ != nullptr;
@@ -1197,7 +1204,7 @@ const ConfigInfo RemoteConfigInternal::GetInfo() const {
   return info;
 }
 
-ConfigUpdateListenerRegistration*
+ConfigUpdateListenerRegistration
 RemoteConfigInternal::AddOnConfigUpdateListener(
     std::function<void(ConfigUpdate&&, RemoteConfigError)>
         config_update_listener) {
@@ -1223,8 +1230,8 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
   env->DeleteLocalRef(j_local_registration);
 
   // Create a C++ registration to wrap the native registration
-  ConfigUpdateListenerRegistration* registration_wrapper =
-      new ConfigUpdateListenerRegistration([j_registration]() {
+  ConfigUpdateListenerRegistrationInternal* registration_internal =
+      new ConfigUpdateListenerRegistrationInternal(this, [j_registration]() {
         // util::GetJNIEnvFromApp returns a threadsafe instance of JNIEnv.
         JNIEnv* env = firebase::util::GetJNIEnvFromApp();
         env->CallVoidMethod(j_registration,
@@ -1233,6 +1240,14 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
         FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
         env->DeleteGlobalRef(j_registration);
       });
+  // Delete the internal registration when RemoteConfigInternal is cleaned up.
+  cleanup_notifier().RegisterObject(
+      registration_internal, [](void* registration) {
+        delete reinterpret_cast<ConfigUpdateListenerRegistrationInternal*>(
+            registration);
+      });
+
+  ConfigUpdateListenerRegistration registration_wrapper(registration_internal);
   return registration_wrapper;
 }
 
