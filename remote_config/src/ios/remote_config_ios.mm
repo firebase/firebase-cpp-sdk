@@ -208,6 +208,12 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App &app)
 
 RemoteConfigInternal::~RemoteConfigInternal() {
   // Destructor is necessary for ARC garbage collection.
+  
+  // Trigger CleanupNotifier Cleanup. This will delete
+  // ConfigUpdateListenerRegistrationInternal instances and it will update
+  // ConfigUpdateListenerRegistration instances to no longer point to the
+  // corresponding internal objects.
+  cleanup_notifier().CleanupAll();
 }
 
 bool RemoteConfigInternal::Initialized() const{

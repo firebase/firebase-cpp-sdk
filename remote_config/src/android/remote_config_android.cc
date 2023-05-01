@@ -593,7 +593,13 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
   LogDebug("%s API Initialized", kApiIdentifier);
 }
 
-RemoteConfigInternal::~RemoteConfigInternal() {}
+RemoteConfigInternal::~RemoteConfigInternal() {
+  // Trigger CleanupNotifier Cleanup. This will delete
+  // ConfigUpdateListenerRegistrationInternal instances and it will update
+  // ConfigUpdateListenerRegistration instances to no longer point to the
+  // corresponding internal objects.
+  cleanup_notifier().CleanupAll();
+}
 
 bool RemoteConfigInternal::Initialized() const {
   return internal_obj_ != nullptr;
