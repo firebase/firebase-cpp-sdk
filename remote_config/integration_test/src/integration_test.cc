@@ -208,7 +208,7 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
 #else
   auto config_update_promise = std::make_shared<std::promise<void> >();
 
-  firebase::remote_config::ConfigUpdateListenerRegistration* registration =
+  firebase::remote_config::ConfigUpdateListenerRegistration registration =
       rc_->AddOnConfigUpdateListener(
           [&, config_update_promise](
               firebase::remote_config::ConfigUpdate&& configUpdate,
@@ -216,7 +216,6 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
             EXPECT_EQ(configUpdate.updated_keys.size(), 5);
             config_update_promise->set_value();
           });
-  EXPECT_NE(nullptr, registration);
   auto config_update_future = config_update_promise->get_future();
   ASSERT_EQ(std::future_status::ready,
             config_update_future.wait_for(std::chrono::milliseconds(10000)));
@@ -237,20 +236,20 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
     EXPECT_EQ(k_value.type(), fetched_value.type());
     EXPECT_EQ(k_value, fetched_value);
   }
-  registration->Remove();
+  registration.Remove();
 
 #endif
 }
 
 TEST_F(FirebaseRemoteConfigTest, TestRemoveConfigUpdateListener) {
-#if FIREBASE_PLATFORM_IOS
+#if !FIREBASE_PLATFORM_DESKTOP
 
-  firebase::remote_config::ConfigUpdateListenerRegistration* registration =
+  firebase::remote_config::ConfigUpdateListenerRegistration registration =
       rc_->AddOnConfigUpdateListener(
           [](firebase::remote_config::ConfigUpdate&& configUpdate,
              firebase::remote_config::RemoteConfigError remoteConfigError) {});
 
-  registration->Remove();
+  registration.Remove();
 
 #endif
 }

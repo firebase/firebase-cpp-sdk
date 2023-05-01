@@ -582,11 +582,11 @@ const ConfigInfo RemoteConfigInternal::GetInfo() const {
   return configs_.metadata.info();
 }
 
-ConfigUpdateListenerRegistration*
+ConfigUpdateListenerRegistration
 RemoteConfigInternal::AddOnConfigUpdateListener(
     std::function<void(ConfigUpdate&&, RemoteConfigError)>
         config_update_listener) {
-  return nullptr;
+  return ConfigUpdateListenerRegistration();
 }
 
 void RemoteConfigInternal::FetchInternal() {

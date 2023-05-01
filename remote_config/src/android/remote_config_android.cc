@@ -1197,7 +1197,7 @@ const ConfigInfo RemoteConfigInternal::GetInfo() const {
   return info;
 }
 
-ConfigUpdateListenerRegistration*
+ConfigUpdateListenerRegistration
 RemoteConfigInternal::AddOnConfigUpdateListener(
     std::function<void(ConfigUpdate&&, RemoteConfigError)>
         config_update_listener) {
@@ -1223,8 +1223,8 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
   env->DeleteLocalRef(j_local_registration);
 
   // Create a C++ registration to wrap the native registration
-  ConfigUpdateListenerRegistration* registration_wrapper =
-      new ConfigUpdateListenerRegistration([j_registration]() {
+  ConfigUpdateListenerRegistrationInternal* registration_internal =
+      new ConfigUpdateListenerRegistrationInternal([j_registration]() {
         // util::GetJNIEnvFromApp returns a threadsafe instance of JNIEnv.
         JNIEnv* env = firebase::util::GetJNIEnvFromApp();
         env->CallVoidMethod(j_registration,
@@ -1233,6 +1233,8 @@ RemoteConfigInternal::AddOnConfigUpdateListener(
         FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
         env->DeleteGlobalRef(j_registration);
       });
+  ConfigUpdateListenerRegistration registration_wrapper(registration_internal);
+  // TODO(almostmatt): store registration_internal and delete in destructor
   return registration_wrapper;
 }
 

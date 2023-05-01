@@ -515,7 +515,7 @@ const ConfigInfo RemoteConfigInternal::GetInfo() const {
   return config_info;
 }
 
-ConfigUpdateListenerRegistration* RemoteConfigInternal::AddOnConfigUpdateListener(
+ConfigUpdateListenerRegistration RemoteConfigInternal::AddOnConfigUpdateListener(
       std::function<void(ConfigUpdate&&, RemoteConfigError)>
         config_update_listener) {
     FIRConfigUpdateListenerRegistration *registration;
@@ -529,13 +529,16 @@ ConfigUpdateListenerRegistration* RemoteConfigInternal::AddOnConfigUpdateListene
           config_update_listener(ConvertConfigUpdateKeys(update.updatedKeys), kRemoteConfigErrorNone);
     }];
 
-    ConfigUpdateListenerRegistration *registrationWrapper =
-      new ConfigUpdateListenerRegistration([registration]() {
-        [registration remove];
-      });
+    ConfigUpdateListenerRegistrationInternal* registration_internal =
+        new ConfigUpdateListenerRegistrationInternal([registration]() {
+          [registration remove];
+        });
 
-    return registrationWrapper;
+  ConfigUpdateListenerRegistration registration_wrapper(registration_internal);
+  // TODO(almostmatt): store registration_internal and delete in destructor
+  return registrationWrapper;
 }
+
 }  // namespace internal
 }  // namespace remote_config
 }  // namespace firebase

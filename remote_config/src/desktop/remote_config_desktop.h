@@ -123,7 +123,7 @@ class RemoteConfigInternal {
 
   const ConfigInfo GetInfo() const;
 
-  ConfigUpdateListenerRegistration* AddOnConfigUpdateListener(
+  ConfigUpdateListenerRegistration AddOnConfigUpdateListener(
       std::function<void(ConfigUpdate&&, RemoteConfigError)>
           config_update_listener);
 
@@ -138,6 +138,9 @@ class RemoteConfigInternal {
 
   bool Initialized() const;
   void Cleanup();
+
+  // When this is deleted, it will clean up all ListenerRegistrations.
+  CleanupNotifier& CleanupNotifier() { return cleanup_; }
 
  private:
   // Open a new thread for saving state in the file. Thread will wait
@@ -215,6 +218,8 @@ class RemoteConfigInternal {
 
   // Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl_;
+
+  CleanupNotifier cleanup_;
 
   scheduler::Scheduler scheduler_;
 

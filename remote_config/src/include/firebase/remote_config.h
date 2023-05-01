@@ -535,7 +535,7 @@ class RemoteConfig {
   /// to respond to config updates when they're fetched
   /// @return A registration object that allows the listener to remove the
   /// associated listener.
-  ConfigUpdateListenerRegistration* AddOnConfigUpdateListener(
+  ConfigUpdateListenerRegistration AddOnConfigUpdateListener(
       std::function<void(ConfigUpdate&&, RemoteConfigError)>
           config_update_listener);
 

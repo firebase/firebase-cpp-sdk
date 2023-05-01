@@ -20,6 +20,9 @@
 namespace firebase {
 namespace remote_config {
 
+class RemoteConfigInternal;
+class ConfigUpdateListenerRegistrationInternal;
+
 /// @brief Calling Remove stops the listener from receiving
 ///  config updates and unregisters itself. If remove is called and no other
 ///  listener registrations remain, the connection to the Remote Config backend
@@ -27,27 +30,86 @@ namespace remote_config {
 ///  connection.
 class ConfigUpdateListenerRegistration {
  public:
-  ConfigUpdateListenerRegistration() = delete;
+  /**
+   * @brief Creates an invalid ConfigUpdateListenerRegistration that has to be reassigned
+   * before it can be used.
+   *
+   * Calling Remove() on an invalid ConfigUpdateListenerRegistration is a no-op.
+   */
+  ConfigUpdateListenerRegistration();
 
-  /// @brief ConfigUpdateListenerRegistration constructor that takes in a
-  /// function as a parameter. The parameter function connects `Remove` to the
-  /// native platform's `Remove` method.
-  explicit ConfigUpdateListenerRegistration(
-      std::function<void()> listener_removal_function);
+  /**
+   * @brief Copy constructor.
+   *
+   * `ConfigUpdateListenerRegistration` can be efficiently copied because it simply refers
+   * to the same underlying listener. If there is more than one copy of
+   * a `ConfigUpdateListenerRegistration`, after calling `Remove` on one of them, the
+   * listener is removed, and calling `Remove` on any other copies will be
+   * a no-op.
+   *
+   * @param[in] other `ConfigUpdateListenerRegistration` to copy from.
+   */
+  ConfigUpdateListenerRegistration(const ConfigUpdateListenerRegistration& other);
+
+  /**
+   * @brief Move constructor.
+   *
+   * Moving is more efficient than copying for a `ConfigUpdateListenerRegistration`. After
+   * being moved from, a `ConfigUpdateListenerRegistration` is equivalent to its
+   * default-constructed state.
+   *
+   * @param[in] other `ConfigUpdateListenerRegistration` to move data from.
+   */
+  ConfigUpdateListenerRegistration(ConfigUpdateListenerRegistration&& other);
+
+  virtual ~ConfigUpdateListenerRegistration();
+
+  /**
+   * @brief Copy assignment operator.
+   *
+   * `ConfigUpdateListenerRegistration` can be efficiently copied because it simply refers
+   * to the same underlying listener. If there is more than one copy of
+   * a `ConfigUpdateListenerRegistration`, after calling `Remove` on one of them, the
+   * listener is removed, and calling `Remove` on any other copies will be
+   * a no-op.
+   *
+   * @param[in] other `ConfigUpdateListenerRegistration` to copy from.
+   *
+   * @return Reference to the destination `ConfigUpdateListenerRegistration`.
+   */
+  ConfigUpdateListenerRegistration& operator=(const ConfigUpdateListenerRegistration& other);
+
+  /**
+   * @brief Move assignment operator.
+   *
+   * Moving is more efficient than copying for a `ConfigUpdateListenerRegistration`. After
+   * being moved from, a `ConfigUpdateListenerRegistration` is equivalent to its
+   * default-constructed state.
+   *
+   * @param[in] other `ConfigUpdateListenerRegistration` to move data from.
+   *
+   * @return Reference to the destination `ConfigUpdateListenerRegistration`.
+   */
+  ConfigUpdateListenerRegistration& operator=(ConfigUpdateListenerRegistration&& other);
 
   ~ConfigUpdateListenerRegistration();
 
-  /// @brief The listener being tracked by this
+  /// @brief Remove the listener being tracked by this
   /// ConfigUpdateListenerRegistration. After the initial call, subsequent calls
   /// to Remove have no effect.
   void Remove();
 
  private:
-  /// @brief Callback to invoke native platform's `Remove`.
-  std::function<void()> listener_removal_function_;
+  friend class RemoteConfigInternal;
 
-  /// @brief Indicates whether or not Remove has been called.
-  bool listener_removed_ = false;
+  explicit ConfigUpdateListenerRegistration(
+      ConfigUpdateListenerRegistrationInternal* internal);
+
+  /// @brief Method to cleanup any references to internal data.
+  void Cleanup();
+
+  RemoteConfigInternal* remote_config_ = nullptr;
+  mutable ConfigUpdateListenerRegistrationInternal* internal_ = nullptr;
 };
 
 }  // namespace remote_config

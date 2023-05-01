@@ -45,6 +45,7 @@ build_flatbuffers("${flatbuffer_schemas}"
 # Common source files used by all platforms
 set(common_SRCS
     src/common.cc
+    src/cleanup.h
     src/config_update_listener_registration.cc
     src/remote_config.cc)
 

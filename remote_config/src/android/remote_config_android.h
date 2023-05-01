@@ -80,13 +80,16 @@ class RemoteConfigInternal {
 
   const ConfigInfo GetInfo() const;
 
-  ConfigUpdateListenerRegistration* AddOnConfigUpdateListener(
+  ConfigUpdateListenerRegistration AddOnConfigUpdateListener(
       std::function<void(ConfigUpdate&&, RemoteConfigError)>
           config_update_listener);
 
   bool Initialized() const;
 
   void Cleanup();
+
+  // When this is deleted, it will clean up all ListenerRegistrations.
+  CleanupNotifier& CleanupNotifier() { return cleanup_; }
 
   void set_throttled_end_time(int64_t end_time) {
     throttled_end_time_ = end_time;
@@ -108,6 +111,8 @@ class RemoteConfigInternal {
 
   /// Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl_;
+
+  CleanupNotifier cleanup_;
 
   jobject internal_obj_;
 
