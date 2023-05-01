@@ -407,7 +407,7 @@ Firebase Installations (stub)   | firebase_installations.framework
 Firebase Cloud Messaging (stub) | firebase_messaging.framework
 |                               | firebase.framework
 
-The provided libraries have been tested using Xcode 13.3.1. When building C++
+The provided libraries have been tested using Xcode 14.1. When building C++
 desktop apps on OS X, you will need to link the `gssapi_krb5` and `pthread`
 system libraries, as well as the `CoreFoundation`, `Foundation`, `GSS`, and
 `Security` OS X system frameworks (consult your compiler documentation for more
@@ -606,13 +606,15 @@ code.
 ### Upcoming Release
 -   Changes
     - General: Update minimum supported C++ standard to C++14.
-    - General (iOS): Update to Firebase Cocoapods version 10.8.0.
     - General (Android): Update to Firebase Android BoM version 31.5.0.
+    - General (iOS): Update to Firebase Cocoapods version 10.8.0.
+    - General (iOS, tvOS, Desktop): iOS, tvOS, and macOS SDKs are now built
+      using Xcode 14.1.
     - AdMob: Removed deprecated AdMob SDK. Please use the included Google
       Mobile Ads SDK ("GMA") instead.
     - GMA (Android): Updated dependency to play-services-ads version 22.0.0.
-    - Firestore: Added `Query::Count()`, which fetches the number of documents in the result
-      set without actually downloading the documents
+    - Firestore: Added `Query::Count()`, which fetches the number of documents
+      in the result set without actually downloading the documents
       ([#1207](https://github.com/firebase/firebase-cpp-sdk/pull/1207)).
 
 ### 10.7.0
