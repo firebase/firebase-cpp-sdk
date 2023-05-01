@@ -137,7 +137,6 @@ class FirestoreInternal {
   friend class TestFriend;
   friend class FirestoreTest;
 
-
   enum class AsyncApi {
     kEnableNetwork = 0,
     kDisableNetwork,

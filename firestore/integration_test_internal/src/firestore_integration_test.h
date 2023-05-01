@@ -232,7 +232,6 @@ class FirestoreDebugLogEnabler {
 // Note it keeps a cache of created Firestore instances, and is thread-unsafe.
 class FirestoreIntegrationTest : public testing::Test {
   friend class TransactionTester;
-  friend class FirestoreInternal;
 
  public:
   FirestoreIntegrationTest();
