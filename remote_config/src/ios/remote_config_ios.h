@@ -16,9 +16,11 @@
 #define FIREBASE_REMOTE_CONFIG_SRC_IOS_REMOTE_CONFIG_IOS_H_
 
 #include <functional>
+#include <string>
 
 #include "firebase/app.h"
 #include "app/memory/unique_ptr.h"
+#include "app/src/cleanup_notifier.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_ios.h"
 #include "firebase/future.h"
@@ -96,7 +98,7 @@ class RemoteConfigInternal {
   void Cleanup();
 
   // When this is deleted, it will clean up all ListenerRegistrations.
-  CleanupNotifier& CleanupNotifier() { return cleanup_; }
+  CleanupNotifier& cleanup_notifier() { return cleanup_; }
 
  private:
 #ifdef __OBJC__

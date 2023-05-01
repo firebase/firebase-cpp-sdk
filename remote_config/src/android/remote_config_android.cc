@@ -29,6 +29,7 @@
 #include "app/src/util_android.h"
 #include "remote_config/remote_config_resources.h"
 #include "remote_config/src/common.h"
+#include "remote_config/src/config_update_listener_registration_internal.h"
 
 namespace firebase {
 namespace remote_config {

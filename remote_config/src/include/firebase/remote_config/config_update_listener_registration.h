@@ -20,8 +20,10 @@
 namespace firebase {
 namespace remote_config {
 
+namespace internal {
 class RemoteConfigInternal;
 class ConfigUpdateListenerRegistrationInternal;
+}  // namespace internal
 
 /// @brief Calling Remove stops the listener from receiving
 ///  config updates and unregisters itself. If remove is called and no other
@@ -92,24 +94,23 @@ class ConfigUpdateListenerRegistration {
    */
   ConfigUpdateListenerRegistration& operator=(ConfigUpdateListenerRegistration&& other);
 
-  ~ConfigUpdateListenerRegistration();
-
   /// @brief Remove the listener being tracked by this
   /// ConfigUpdateListenerRegistration. After the initial call, subsequent calls
   /// to Remove have no effect.
   void Remove();
 
  private:
-  friend class RemoteConfigInternal;
+  friend class internal::RemoteConfigInternal;
+  friend struct CleanupFn;
 
   explicit ConfigUpdateListenerRegistration(
-      ConfigUpdateListenerRegistrationInternal* internal);
+      internal::ConfigUpdateListenerRegistrationInternal* internal);
 
   /// @brief Method to cleanup any references to internal data.
   void Cleanup();
 
-  RemoteConfigInternal* remote_config_ = nullptr;
-  mutable ConfigUpdateListenerRegistrationInternal* internal_ = nullptr;
+  internal::RemoteConfigInternal* remote_config_ = nullptr;
+  mutable internal::ConfigUpdateListenerRegistrationInternal* internal_ = nullptr;
 };
 
 }  // namespace remote_config

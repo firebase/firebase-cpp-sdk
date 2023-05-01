@@ -31,21 +31,21 @@ namespace remote_config {
 //   ConfigUpdateListenerRegistrationInternal objects instead. So
 //   RemoteConfigInternal can remove all listeners upon destruction.
 
-using CleanupFnListenerRegistration = CleanupFn<ConfigUpdateListenerRegistration, RemoteConfigInternal>;
+using CleanupFnConfigUpdateListenerRegistration = CleanupFn<ConfigUpdateListenerRegistration, RemoteConfigInternal>;
 
 ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
     const ConfigUpdateListenerRegistration& registration)
     : remote_config_(registration.remote_config_) {
   internal_ = registration.internal_;
-  CleanupFnListenerRegistration::Register(this, remote_config_);
+  CleanupFnConfigUpdateListenerRegistration::Register(this, remote_config_);
 }
 
 ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(ConfigUpdateListenerRegistration&& registration)
     : remote_config_(registration.remote_config_) {
-  CleanupFnListenerRegistration::Unregister(&registration,
+  CleanupFnConfigUpdateListenerRegistration::Unregister(&registration,
                                             registration.remote_config_);
   std::swap(internal_, registration.internal_);
-  CleanupFnListenerRegistration::Register(this, remote_config_);
+  CleanupFnConfigUpdateListenerRegistration::Register(this, remote_config_);
 }
 
 ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
@@ -53,11 +53,11 @@ ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
     : remote_config_(internal == nullptr ? nullptr
                                      : internal->remote_config_internal()),
       internal_(internal) {
-  CleanupFnListenerRegistration::Register(this, remote_config_);
+  CleanupFnConfigUpdateListenerRegistration::Register(this, remote_config_);
 }
 
 ConfigUpdateListenerRegistration::~ConfigUpdateListenerRegistration() {
-  CleanupFnListenerRegistration::Unregister(this, remote_config_);
+  CleanupFnConfigUpdateListenerRegistration::Unregister(this, remote_config_);
   internal_ = nullptr;
 }
 
@@ -68,9 +68,9 @@ ConfigUpdateListenerRegistration& ConfigUpdateListenerRegistration::operator=(
   }
 
   remote_config_ = registration.remote_config_;
-  CleanupFnListenerRegistration::Unregister(this, remote_config_);
+  CleanupFnConfigUpdateListenerRegistration::Unregister(this, remote_config_);
   internal_ = registration.internal_;
-  CleanupFnListenerRegistration::Register(this, remote_config_);
+  CleanupFnConfigUpdateListenerRegistration::Register(this, remote_config_);
   return *this;
 }
 
@@ -81,11 +81,11 @@ ConfigUpdateListenerRegistration& ConfigUpdateListenerRegistration::operator=(
   }
 
   remote_config_ = registration.remote_config_;
-  CleanupFnListenerRegistration::Unregister(&registration,
+  CleanupFnConfigUpdateListenerRegistration::Unregister(&registration,
                                             registration.remote_config_);
-  CleanupFnListenerRegistration::Unregister(this, remote_config_);
+  CleanupFnConfigUpdateListenerRegistration::Unregister(this, remote_config_);
   internal_ = registration.internal_;
-  CleanupFnListenerRegistration::Register(this, remote_config_);
+  CleanupFnConfigUpdateListenerRegistration::Register(this, remote_config_);
   return *this;
 }
 

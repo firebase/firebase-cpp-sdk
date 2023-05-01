@@ -19,6 +19,7 @@
 #include <string>
 #include <thread>  // NOLINT
 
+#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/safe_reference.h"
@@ -140,7 +141,7 @@ class RemoteConfigInternal {
   void Cleanup();
 
   // When this is deleted, it will clean up all ListenerRegistrations.
-  CleanupNotifier& CleanupNotifier() { return cleanup_; }
+  CleanupNotifier& cleanup_notifier() { return cleanup_; }
 
  private:
   // Open a new thread for saving state in the file. Thread will wait

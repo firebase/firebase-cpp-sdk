@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_REMOTE_CONFIG_SRC_INCLUDE_FIREBASE_REMOTE_CONFIG_CONFIG_UPDATE_LISTENER_REGISTRATION_INTERNAL_H_
-#define FIREBASE_REMOTE_CONFIG_SRC_INCLUDE_FIREBASE_REMOTE_CONFIG_CONFIG_UPDATE_LISTENER_REGISTRATION_INTERNAL_H_
+#ifndef FIREBASE_REMOTE_CONFIG_SRC_CONFIG_UPDATE_LISTENER_REGISTRATION_INTERNAL_H_
+#define FIREBASE_REMOTE_CONFIG_SRC_CONFIG_UPDATE_LISTENER_REGISTRATION_INTERNAL_H_
 
 #include <functional>
 
 namespace firebase {
 namespace remote_config {
+namespace internal {
 
 class RemoteConfigInternal;
 
@@ -71,7 +72,8 @@ class ConfigUpdateListenerRegistrationInternal {
   bool listener_removed_ = false;
 };
 
+}  // namespace internal
 }  // namespace remote_config
 }  // namespace firebase
 
-#endif  // FIREBASE_REMOTE_CONFIG_SRC_INCLUDE_FIREBASE_REMOTE_CONFIG_CONFIG_UPDATE_LISTENER_REGISTRATION_INTERNAL_H_
+#endif  // FIREBASE_REMOTE_CONFIG_SRC_CONFIG_UPDATE_LISTENER_REGISTRATION_INTERNAL_H_
