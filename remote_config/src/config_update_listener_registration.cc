@@ -113,21 +113,17 @@ void ConfigUpdateListenerRegistration::Remove() {
   // Unregister a nullptr or invalid ListenerRegistration is a no-op.
   if (internal_ && remote_config_) {
     internal_->Remove();
-    // TODO(almostmatt): maybe unregister hte cleanup fn?
-    // though theoretically it is fine to stay registered for now
-    // remote_config_->UnregisterListenerRegistration(internal_);
-    // this might be comparable to just calling the destructor on internal.
-    // Note: would like to call each destructor once. I think that is what
-    // is accomplished by
-    // firestore->UnregisterListenerRegistration(internal_);
-    // a simpler version might just register and delete on delete.
     internal_ = nullptr;
   }
 }
 
+// This cleanup method is called by RemoteConfig's CleanupNotifier when
+// RemoteConfigInternal is being destroyed.
 void ConfigUpdateListenerRegistration::Cleanup() {
-  Remove();
+  // Just clear references to internal types. No need to call Remove here
+  // since RemoteConfigInternal will cleanup the internal objects separately.
   remote_config_ = nullptr;
+  internal_ = nullptr;
 }
 
 }  // namespace remote_config

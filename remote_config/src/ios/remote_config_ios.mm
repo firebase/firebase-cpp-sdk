@@ -534,9 +534,12 @@ ConfigUpdateListenerRegistration RemoteConfigInternal::AddOnConfigUpdateListener
         new ConfigUpdateListenerRegistrationInternal(this, [registration]() {
           [registration remove];
         });
+  // Delete the internal registration when RemoteConfigInternal is cleaned up.
+  cleanup_notifier().RegisterObject(registration_internal, [](void* registration) {
+    delete reinterpret_cast<ConfigUpdateListenerRegistrationInternal*>(registration);
+  });
 
   ConfigUpdateListenerRegistration registration_wrapper(registration_internal);
-  // TODO(almostmatt): store registration_internal and delete in destructor
   return registrationWrapper;
 }
 
