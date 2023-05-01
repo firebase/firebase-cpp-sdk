@@ -22,7 +22,6 @@
 #include "remote_config/src/cleanup.h"
 #include "remote_config/src/config_update_listener_registration_internal.h"
 
-
 // The Platform-specific implementation of RemoteConfigInternal is needed
 // so that CleanupFn can reference the cleanup_notifier
 #if FIREBASE_PLATFORM_ANDROID
@@ -43,7 +42,8 @@ namespace remote_config {
 //   ConfigUpdateListenerRegistrationInternal objects instead. So
 //   RemoteConfigInternal can remove all listeners upon destruction.
 
-using CleanupFnConfigUpdateListenerRegistration = CleanupFn<ConfigUpdateListenerRegistration, internal::RemoteConfigInternal>;
+using CleanupFnConfigUpdateListenerRegistration =
+    CleanupFn<ConfigUpdateListenerRegistration, internal::RemoteConfigInternal>;
 
 ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
     const ConfigUpdateListenerRegistration& registration)
@@ -52,10 +52,11 @@ ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
   CleanupFnConfigUpdateListenerRegistration::Register(this, remote_config_);
 }
 
-ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(ConfigUpdateListenerRegistration&& registration)
+ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
+    ConfigUpdateListenerRegistration&& registration)
     : remote_config_(registration.remote_config_) {
-  CleanupFnConfigUpdateListenerRegistration::Unregister(&registration,
-                                            registration.remote_config_);
+  CleanupFnConfigUpdateListenerRegistration::Unregister(
+      &registration, registration.remote_config_);
   std::swap(internal_, registration.internal_);
   CleanupFnConfigUpdateListenerRegistration::Register(this, remote_config_);
 }
@@ -63,7 +64,7 @@ ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(ConfigUpdateL
 ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
     internal::ConfigUpdateListenerRegistrationInternal* internal)
     : remote_config_(internal == nullptr ? nullptr
-                                     : internal->remote_config_internal()),
+                                         : internal->remote_config_internal()),
       internal_(internal) {
   CleanupFnConfigUpdateListenerRegistration::Register(this, remote_config_);
 }
@@ -93,8 +94,8 @@ ConfigUpdateListenerRegistration& ConfigUpdateListenerRegistration::operator=(
   }
 
   remote_config_ = registration.remote_config_;
-  CleanupFnConfigUpdateListenerRegistration::Unregister(&registration,
-                                            registration.remote_config_);
+  CleanupFnConfigUpdateListenerRegistration::Unregister(
+      &registration, registration.remote_config_);
   CleanupFnConfigUpdateListenerRegistration::Unregister(this, remote_config_);
   internal_ = registration.internal_;
   CleanupFnConfigUpdateListenerRegistration::Register(this, remote_config_);
@@ -102,11 +103,11 @@ ConfigUpdateListenerRegistration& ConfigUpdateListenerRegistration::operator=(
 }
 
 void ConfigUpdateListenerRegistration::Remove() {
-  // The check for remote_config_ is required. User can hold a ListenerRegistration
-  // instance indefinitely even after RemoteConfig is destructed, in which case
-  // remote_config_ will be reset to nullptr by the Cleanup function.
-  // The check for internal_ is optional. Actually internal_ can be of following
-  // cases:
+  // The check for remote_config_ is required. User can hold a
+  // ListenerRegistration instance indefinitely even after RemoteConfig is
+  // destructed, in which case remote_config_ will be reset to nullptr by the
+  // Cleanup function. The check for internal_ is optional. Actually internal_
+  // can be of following cases:
   //   * nullptr if already called Remove() on the same instance;
   //   * not nullptr but invalid if Remove() is called on a copy of this;
   //   * not nullptr and valid.

@@ -17,6 +17,7 @@
 
 #include <functional>
 #include <string>
+#include <vector>
 
 #include "firebase/app.h"
 #include "app/memory/unique_ptr.h"

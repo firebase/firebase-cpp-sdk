@@ -24,7 +24,8 @@
 #include "include/firebase/remote_config.h"
 #include "remote_config/src/common.h"
 
-// RemoteConfigInternal is defined in these 3 files, one implementation for each OS.
+// RemoteConfigInternal is defined in these 3 files, one implementation for each
+// OS.
 #if FIREBASE_PLATFORM_ANDROID
 #include "remote_config/src/android/remote_config_android.h"
 #elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS

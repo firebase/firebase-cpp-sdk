@@ -35,7 +35,8 @@ struct CleanupFn {
 
   static void Register(T* obj, R* remote_config) {
     if (remote_config) {
-      remote_config->cleanup_notifier().RegisterObject(obj, CleanupFn<T, R>::Cleanup);
+      remote_config->cleanup_notifier().RegisterObject(
+          obj, CleanupFn<T, R>::Cleanup);
     }
   }
 

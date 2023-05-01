@@ -33,8 +33,8 @@ class ConfigUpdateListenerRegistrationInternal;
 class ConfigUpdateListenerRegistration {
  public:
   /**
-   * @brief Creates an invalid ConfigUpdateListenerRegistration that has to be reassigned
-   * before it can be used.
+   * @brief Creates an invalid ConfigUpdateListenerRegistration that has to be
+   * reassigned before it can be used.
    *
    * Calling Remove() on an invalid ConfigUpdateListenerRegistration is a no-op.
    */
@@ -43,22 +43,24 @@ class ConfigUpdateListenerRegistration {
   /**
    * @brief Copy constructor.
    *
-   * `ConfigUpdateListenerRegistration` can be efficiently copied because it simply refers
-   * to the same underlying listener. If there is more than one copy of
-   * a `ConfigUpdateListenerRegistration`, after calling `Remove` on one of them, the
-   * listener is removed, and calling `Remove` on any other copies will be
-   * a no-op.
+   * `ConfigUpdateListenerRegistration` can be efficiently copied because it
+   * simply refers to the same underlying listener. If there is more than one
+   * copy of a `ConfigUpdateListenerRegistration`, after calling `Remove` on one
+   * of them, the listener is removed, and calling `Remove` on any other copies
+   * will be a no-op.
    *
    * @param[in] other `ConfigUpdateListenerRegistration` to copy from.
    */
-  ConfigUpdateListenerRegistration(const ConfigUpdateListenerRegistration& other);
+  ConfigUpdateListenerRegistration(
+      const ConfigUpdateListenerRegistration& other);
 
   /**
    * @brief Move constructor.
    *
-   * Moving is more efficient than copying for a `ConfigUpdateListenerRegistration`. After
-   * being moved from, a `ConfigUpdateListenerRegistration` is equivalent to its
-   * default-constructed state.
+   * Moving is more efficient than copying for a
+   * `ConfigUpdateListenerRegistration`. After being moved from, a
+   * `ConfigUpdateListenerRegistration` is equivalent to its default-constructed
+   * state.
    *
    * @param[in] other `ConfigUpdateListenerRegistration` to move data from.
    */
@@ -69,30 +71,33 @@ class ConfigUpdateListenerRegistration {
   /**
    * @brief Copy assignment operator.
    *
-   * `ConfigUpdateListenerRegistration` can be efficiently copied because it simply refers
-   * to the same underlying listener. If there is more than one copy of
-   * a `ConfigUpdateListenerRegistration`, after calling `Remove` on one of them, the
-   * listener is removed, and calling `Remove` on any other copies will be
-   * a no-op.
+   * `ConfigUpdateListenerRegistration` can be efficiently copied because it
+   * simply refers to the same underlying listener. If there is more than one
+   * copy of a `ConfigUpdateListenerRegistration`, after calling `Remove` on one
+   * of them, the listener is removed, and calling `Remove` on any other copies
+   * will be a no-op.
    *
    * @param[in] other `ConfigUpdateListenerRegistration` to copy from.
    *
    * @return Reference to the destination `ConfigUpdateListenerRegistration`.
    */
-  ConfigUpdateListenerRegistration& operator=(const ConfigUpdateListenerRegistration& other);
+  ConfigUpdateListenerRegistration& operator=(
+      const ConfigUpdateListenerRegistration& other);
 
   /**
    * @brief Move assignment operator.
    *
-   * Moving is more efficient than copying for a `ConfigUpdateListenerRegistration`. After
-   * being moved from, a `ConfigUpdateListenerRegistration` is equivalent to its
-   * default-constructed state.
+   * Moving is more efficient than copying for a
+   * `ConfigUpdateListenerRegistration`. After being moved from, a
+   * `ConfigUpdateListenerRegistration` is equivalent to its default-constructed
+   * state.
    *
    * @param[in] other `ConfigUpdateListenerRegistration` to move data from.
    *
    * @return Reference to the destination `ConfigUpdateListenerRegistration`.
    */
-  ConfigUpdateListenerRegistration& operator=(ConfigUpdateListenerRegistration&& other);
+  ConfigUpdateListenerRegistration& operator=(
+      ConfigUpdateListenerRegistration&& other);
 
   /// @brief Remove the listener being tracked by this
   /// ConfigUpdateListenerRegistration. After the initial call, subsequent calls
@@ -111,7 +116,8 @@ class ConfigUpdateListenerRegistration {
   void Cleanup();
 
   internal::RemoteConfigInternal* remote_config_ = nullptr;
-  mutable internal::ConfigUpdateListenerRegistrationInternal* internal_ = nullptr;
+  mutable internal::ConfigUpdateListenerRegistrationInternal* internal_ =
+      nullptr;
 };
 
 }  // namespace remote_config

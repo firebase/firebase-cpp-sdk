@@ -32,8 +32,8 @@ class ConfigUpdateListenerRegistrationInternal {
  public:
   ConfigUpdateListenerRegistrationInternal() = delete;
 
-  /// @brief ConfigUpdateListenerRegistrationInternal constructor that takes in a
-  /// function as a parameter. The parameter function connects `Remove` to the
+  /// @brief ConfigUpdateListenerRegistrationInternal constructor that takes in
+  /// a function as a parameter. The parameter function connects `Remove` to the
   /// native platform's `Remove` method.
   ConfigUpdateListenerRegistrationInternal(
       RemoteConfigInternal* remote_config,
@@ -42,9 +42,10 @@ class ConfigUpdateListenerRegistrationInternal {
   // Delete the default copy and move constructors to make the ownership more
   // obvious i.e. RemoteConfigInternal owns each instance and forbid anyone else
   // to make copies.
-  ConfigUpdateListenerRegistrationInternal(const ConfigUpdateListenerRegistrationInternal& another) =
-      delete;
-  ConfigUpdateListenerRegistrationInternal(ConfigUpdateListenerRegistrationInternal&& another) = delete;
+  ConfigUpdateListenerRegistrationInternal(
+      const ConfigUpdateListenerRegistrationInternal& another) = delete;
+  ConfigUpdateListenerRegistrationInternal(
+      ConfigUpdateListenerRegistrationInternal&& another) = delete;
 
   // So far, there is no use of assignment. So we do not bother to define our
   // own and delete the default one, which does not copy internal data properly.
