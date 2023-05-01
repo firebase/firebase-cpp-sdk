@@ -297,7 +297,7 @@ AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
         util::Terminate(env);
       } else {
         // Each provider is optional as a user may or may not use it.
-        CacheDebugProviderMethodIds(env, activity);
+        CacheDebugProviderMethodIds(env, activity, embedded_files);
         CachePlayIntegrityProviderMethodIds(env, activity);
         g_initialized_count++;
       }
