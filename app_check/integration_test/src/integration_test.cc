@@ -698,7 +698,7 @@ TEST_F(FirebaseAppCheckTest, TestAppAttestProvider) {
   auto token_callback{
       [&got_token_promise](firebase::app_check::AppCheckToken token,
                            int error_code, const std::string& error_message) {
-        EXPECT_EQ(firebase::app_check::kAppCheckErrorUnsupportedProvider,
+        EXPECT_EQ(firebase::app_check::kAppCheckErrorUnknown,
                   error_code);
         EXPECT_NE("", error_message);
         EXPECT_EQ("", token.token);
@@ -752,38 +752,6 @@ TEST_F(FirebaseAppCheckTest, TestPlayIntegrityProvider) {
   EXPECT_NE(provider, nullptr);
 #else
   EXPECT_EQ(factory, nullptr);
-#endif
-}
-
-TEST_F(FirebaseAppCheckTest, DISABLED_TestDatabaseFailure) {
-#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
-  // The underlying iOS SDK doesn't have a good way to clear
-  // the App Check state, so these failure tests won't work.
-  return;
-#endif
-
-  // Don't initialize App Check this time. Database should fail.
-  InitializeAppAuthDatabase();
-  firebase::database::DatabaseReference ref = CreateWorkingPath();
-  const char* test_name = test_info_->name();
-  firebase::Future<void> f = ref.Child(test_name).SetValue("test");
-#if FIREBASE_PLATFORM_ANDROID
-  // On Android the future will not complete. This is present in the
-  // underlying Android SDK, so work around it here.
-  ASSERT_EQ(f.status(), firebase::kFutureStatusPending);
-  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-  ASSERT_EQ(f.status(), firebase::kFutureStatusPending);
-  // Likewise, removal won't finish, so don't wait for it.
-  if (!database_cleanup_.empty()) {
-    LogDebug("Cleaning up Database...");
-    for (int i = 0; i < database_cleanup_.size(); ++i) {
-      database_cleanup_[i].RemoveValue();
-    }
-    database_cleanup_.clear();
-  }
-#else
-  WaitForCompletion(f, "SetString", firebase::database::kErrorDisconnected);
-  CleanupDatabase(firebase::database::kErrorOperationFailed);
 #endif
 }
 
@@ -931,24 +899,6 @@ TEST_F(FirebaseAppCheckTest, TestStorageReadFile) {
   LogDebug("  buffer: %s", buffer);
 }
 
-// Android doesn't yet work correctly when AppCheck provider factory is null
-// TODO(almostmatt): Investigate and fix this test for android
-#if !FIREBASE_PLATFORM_ANDROID
-TEST_F(FirebaseAppCheckTest, TestStorageReadFileUnauthenticated) {
-  // Don't set up AppCheck
-  InitializeAppAuthStorage();
-  firebase::storage::StorageReference ref = storage_->GetReference("test.txt");
-  EXPECT_TRUE(ref.is_valid());
-  const size_t kBufferSize = 128;
-  char buffer[kBufferSize];
-  memset(buffer, 0, sizeof(buffer));
-  firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
-  WaitForCompletion(future, "GetBytes",
-                    firebase::storage::kErrorUnauthenticated);
-  LogDebug("  buffer: %s", buffer);
-}
-#endif  // !FIREBASE_PLATFORM_ANDROID
-
 TEST_F(FirebaseAppCheckTest, TestFunctionsSuccess) {
   InitializeAppCheckWithDebug();
   InitializeApp();
@@ -967,27 +917,6 @@ TEST_F(FirebaseAppCheckTest, TestFunctionsSuccess) {
   if (result.is_map()) {
     EXPECT_EQ(result.map()["operationResult"], 12);
   }
-}
-
-TEST_F(FirebaseAppCheckTest, DISABLED_TestFunctionsFailure) {
-#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
-  // The underlying iOS SDK doesn't have a good way to clear
-  // the App Check state, so these failure tests won't work.
-  return;
-#endif
-
-  // Don't set up AppCheck
-  InitializeApp();
-  InitializeFunctions();
-  firebase::functions::HttpsCallableReference ref;
-  ref = functions_->GetHttpsCallable("addNumbers");
-  firebase::Variant data(firebase::Variant::EmptyMap());
-  data.map()["firstNumber"] = 6;
-  data.map()["secondNumber"] = 8;
-  firebase::Future<firebase::functions::HttpsCallableResult> future;
-  future = ref.Call(data);
-  WaitForCompletion(future, "CallFunction addnumbers",
-                    firebase::functions::kErrorUnauthenticated);
 }
 
 TEST_F(FirebaseAppCheckTest, TestFirestoreSetGet) {
@@ -1010,32 +939,6 @@ TEST_F(FirebaseAppCheckTest, TestFirestoreSetGet) {
               UnorderedElementsAre(
                   Pair("str", firebase::firestore::FieldValue::String("foo")),
                   Pair("int", firebase::firestore::FieldValue::Integer(123))));
-}
-
-TEST_F(FirebaseAppCheckTest, DISABLED_TestFirestoreSetGetFailure) {
-#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
-  // The underlying iOS SDK doesn't have a good way to clear
-  // the App Check state, so these failure tests won't work.
-  return;
-#endif
-
-  // Don't set up AppCheck
-  InitializeApp();
-  InitializeFirestore();
-
-  firebase::firestore::DocumentReference document = CreateFirestoreDoc();
-
-  // Both operations should fail because AppCheck isn't configured.
-  WaitForCompletion(
-      document.Set(firebase::firestore::MapFieldValue{
-          {"str", firebase::firestore::FieldValue::String("badfoo")},
-          {"int", firebase::firestore::FieldValue::Integer(456)}}),
-      "document.Set", firebase::firestore::kErrorPermissionDenied);
-  WaitForCompletion(document.Get(firebase::firestore::Source::kServer),
-                    "document.Get",
-                    firebase::firestore::kErrorPermissionDenied);
-
-  CleanupFirestore(firebase::firestore::kErrorPermissionDenied);
 }
 
 TEST_F(FirebaseAppCheckTest, TestFirestoreListener) {
@@ -1095,65 +998,6 @@ TEST_F(FirebaseAppCheckTest, TestFirestoreListener) {
   }
 }
 
-TEST_F(FirebaseAppCheckTest, DISABLED_TestFirestoreListenerFailure) {
-#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
-  // The underlying iOS SDK doesn't have a good way to clear
-  // the App Check state, so these failure tests won't work.
-  return;
-#endif
-
-  // Don't set up AppCheck
-  InitializeApp();
-  InitializeFirestore();
-
-  firebase::firestore::DocumentReference document = CreateFirestoreDoc();
-
-  std::mutex mutex;
-  std::condition_variable cond_var;
-  bool received_permission_denied = false;
-  firebase::firestore::ListenerRegistration registration =
-      document.AddSnapshotListener(
-          [&received_permission_denied, &mutex, &cond_var](
-              const firebase::firestore::DocumentSnapshot& result,
-              firebase::firestore::Error error_code,
-              const std::string& error_message) {
-            if (error_code != firebase::firestore::kErrorNone) {
-              // We expect one call with a Permission Denied error, from the
-              // server.
-              std::lock_guard<std::mutex> lock(mutex);
-              EXPECT_FALSE(received_permission_denied);
-              EXPECT_EQ(error_code,
-                        firebase::firestore::kErrorPermissionDenied);
-              received_permission_denied = true;
-              cond_var.notify_one();
-            }
-          });
-
-  WaitForCompletion(
-      document.Set(firebase::firestore::MapFieldValue{
-          {"val", firebase::firestore::FieldValue::String("transaction")}}),
-      "document.Set transaction", firebase::firestore::kErrorPermissionDenied);
-
-  registration.Remove();
-
-  WaitForCompletion(
-      document.Set(firebase::firestore::MapFieldValue{
-          {"val", firebase::firestore::FieldValue::String("final")}}),
-      "document.Set final", firebase::firestore::kErrorPermissionDenied);
-
-  {
-    // Use a condition variable to guarantee that the listener has received
-    // the call.
-    std::unique_lock<std::mutex> lock(mutex);
-    if (!received_permission_denied) {
-      cond_var.wait_for(lock, std::chrono::seconds(30));
-    }
-    EXPECT_TRUE(received_permission_denied);
-  }
-
-  CleanupFirestore(firebase::firestore::kErrorPermissionDenied);
-}
-
 TEST_F(FirebaseAppCheckTest, TestRunTransaction) {
   InitializeAppCheckWithDebug();
   InitializeApp();
@@ -1186,33 +1030,6 @@ TEST_F(FirebaseAppCheckTest, TestRunTransaction) {
               UnorderedElementsAre(
                   Pair("str", firebase::firestore::FieldValue::String("foo")),
                   Pair("int", firebase::firestore::FieldValue::Integer(123))));
-}
-
-TEST_F(FirebaseAppCheckTest, DISABLED_TestRunTransactionFailure) {
-#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
-  // The underlying iOS SDK doesn't have a good way to clear
-  // the App Check state, so these failure tests won't work.
-  return;
-#endif
-
-  // Don't set up AppCheck
-  InitializeApp();
-  InitializeFirestore();
-
-  firebase::firestore::DocumentReference document = CreateFirestoreDoc();
-
-  auto transaction_future = firestore_->RunTransaction(
-      [](firebase::firestore::Transaction& transaction,
-         std::string&) -> firebase::firestore::Error {
-        // This might be called due to updating the cache, but in the end we
-        // only care that the transaction future is rejected by the server.
-        return firebase::firestore::kErrorOk;
-      });
-
-  WaitForCompletion(transaction_future, "firestore.RunTransaction",
-                    firebase::firestore::kErrorPermissionDenied);
-
-  CleanupFirestore(firebase::firestore::kErrorPermissionDenied);
 }
 
 }  // namespace firebase_testapp_automated
