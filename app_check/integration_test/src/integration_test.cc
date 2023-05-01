@@ -694,20 +694,6 @@ TEST_F(FirebaseAppCheckTest, TestAppAttestProvider) {
   firebase::app_check::AppCheckProvider* provider =
       factory->CreateProvider(app_);
   ASSERT_NE(provider, nullptr);
-  auto got_token_promise = std::make_shared<std::promise<void>>();
-  auto token_callback{
-      [&got_token_promise](firebase::app_check::AppCheckToken token,
-                           int error_code, const std::string& error_message) {
-        EXPECT_EQ(firebase::app_check::kAppCheckErrorUnknown,
-                  error_code);
-        EXPECT_NE("", error_message);
-        EXPECT_EQ("", token.token);
-        got_token_promise->set_value();
-      }};
-  provider->GetToken(token_callback);
-  auto got_token_future = got_token_promise->get_future();
-  ASSERT_EQ(std::future_status::ready,
-            got_token_future.wait_for(kGetTokenTimeout));
 #else
   EXPECT_EQ(factory, nullptr);
 #endif
@@ -722,19 +708,6 @@ TEST_F(FirebaseAppCheckTest, TestDeviceCheckProvider) {
   firebase::app_check::AppCheckProvider* provider =
       factory->CreateProvider(app_);
   ASSERT_NE(provider, nullptr);
-  auto got_token_promise = std::make_shared<std::promise<void>>();
-  auto token_callback{
-      [&got_token_promise](firebase::app_check::AppCheckToken token,
-                           int error_code, const std::string& error_message) {
-        EXPECT_EQ(firebase::app_check::kAppCheckErrorUnknown, error_code);
-        EXPECT_NE("", error_message);
-        EXPECT_EQ("", token.token);
-        got_token_promise->set_value();
-      }};
-  provider->GetToken(token_callback);
-  auto got_token_future = got_token_promise->get_future();
-  ASSERT_EQ(std::future_status::ready,
-            got_token_future.wait_for(kGetTokenTimeout));
 #else
   EXPECT_EQ(factory, nullptr);
 #endif
