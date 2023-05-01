@@ -191,12 +191,12 @@ static RemoteConfigError ConvertFIRRemoteConfigUpdateError(NSError *error) {
 }
 
 static ConfigUpdate ConvertConfigUpdateKeys(NSSet<NSString *> *keys) {
-  ConfigUpdate configUpdate;
+  ConfigUpdate config_update;
 
   for (NSString *key in keys) {
-    configUpdate.updated_keys.push_back(util::NSStringToString(key).c_str());
+    config_update.updated_keys.push_back(util::NSStringToString(key).c_str());
   }
-  return configUpdate;
+  return config_update;
 }
 
 namespace internal {
@@ -546,7 +546,7 @@ ConfigUpdateListenerRegistration RemoteConfigInternal::AddOnConfigUpdateListener
   });
 
   ConfigUpdateListenerRegistration registration_wrapper(registration_internal);
-  return registrationWrapper;
+  return registration_wrapper;
 }
 
 }  // namespace internal
