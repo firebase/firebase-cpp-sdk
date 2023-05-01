@@ -1384,10 +1384,8 @@ TEST_F(FirestoreTest, RestartFirestoreLeadsToNewNamedDatabaseInstance) {
   }
 
   App* app = App::GetInstance();
-  InitResult init_result;
-  Firestore* db1 = Firestore::GetInstance(app, "test-db", &init_result);
+  Firestore* db1 = Firestore::GetInstance(app, "test-db");
   firestore::LocateEmulator(db1);
-  ASSERT_EQ(kInitResultSuccess, init_result);
 
   // Create a document that we can use for verification later.
   DocumentReference doc1 = db1->Collection("abc").Document();
@@ -1399,9 +1397,8 @@ TEST_F(FirestoreTest, RestartFirestoreLeadsToNewNamedDatabaseInstance) {
 
   // Verify that GetInstance() returns a new instance since the old instance has
   // been terminated.
-  Firestore* db2 = Firestore::GetInstance(app, "test-db", &init_result);
+  Firestore* db2 = Firestore::GetInstance(app, "test-db");
   firestore::LocateEmulator(db2);
-  ASSERT_EQ(kInitResultSuccess, init_result);
   EXPECT_NE(db1, db2);
 
   // Verify that the new instance points to the same database by verifying that
@@ -1412,6 +1409,80 @@ TEST_F(FirestoreTest, RestartFirestoreLeadsToNewNamedDatabaseInstance) {
   EXPECT_TRUE(snapshot2->exists());
   EXPECT_THAT(snapshot2->GetData(),
               ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
+
+  delete db2;
+  delete db1;
+}
+
+TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOnline) {
+  // TODO(Mila): Remove the emulator env check after prod supports multiDB.
+  if (!firestore::IsUsingFirestoreEmulator()) {
+    GTEST_SKIP();
+  }
+
+  // Create two DB instances in the same app.
+  App* app = App::GetInstance();
+  Firestore* db1 = Firestore::GetInstance(app, "db1");
+  firestore::LocateEmulator(db1);
+
+  Firestore* db2 = Firestore::GetInstance(app, "db2");
+  firestore::LocateEmulator(db2);
+  EXPECT_NE(db1, db2);
+
+  // Create a document in the first DB instance.
+  DocumentReference doc1 = db1->Collection("abc").Document();
+  const std::string doc_path = doc1.path();
+  EXPECT_THAT(doc1.Set({{"foo", FieldValue::String("bar")}}), FutureSucceeds());
+  const DocumentSnapshot* snapshot1 = Await(doc1.Get());
+  EXPECT_TRUE(snapshot1->exists());
+  EXPECT_THAT(snapshot1->GetData(),
+              ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
+
+  // Verify that the previously saved document only exists in the first DB
+  // instance by verifying that the document does not exist in the second
+  // instance.
+  DocumentReference doc2 = db2->Document(doc_path);
+  const DocumentSnapshot* snapshot2 = Await(doc2.Get());
+  EXPECT_FALSE(snapshot2->exists());
+  EXPECT_THAT(snapshot2->GetData(), ContainerEq(MapFieldValue{}));
+
+  delete db2;
+  delete db1;
+}
+
+TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOffline) {
+  // TODO(Mila): Remove the emulator env check after prod supports multiDB.
+  if (!firestore::IsUsingFirestoreEmulator()) {
+    GTEST_SKIP();
+  }
+
+  // Create two DB instances in the same app.
+  App* app = App::GetInstance();
+  Firestore* db1 = Firestore::GetInstance(app, "db1");
+  firestore::LocateEmulator(db1);
+
+  Firestore* db2 = Firestore::GetInstance(app, "db2");
+  firestore::LocateEmulator(db2);
+  EXPECT_NE(db1, db2);
+
+  DisableNetwork();
+  DisableNetwork();
+
+  // Create a document in the first DB instance.
+  DocumentReference doc1 = db1->Collection("abc").Document();
+  const std::string doc_path = doc1.path();
+  EXPECT_THAT(doc1.Set({{"foo", FieldValue::String("bar")}}), FutureSucceeds());
+  const DocumentSnapshot* snapshot1 = Await(doc1.Get(Source::kCache));
+  EXPECT_TRUE(snapshot1->exists());
+  EXPECT_THAT(snapshot1->GetData(),
+              ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
+  // Verify that the previously saved document only exists in the first DB
+  // instance by verifying that the document does not exist in the second
+  // instance.
+  DocumentReference doc2 = db2->Document(doc_path);
+  const DocumentSnapshot* snapshot2 = Await(doc2.Get(Source::kCache));
+  EXPECT_FALSE(snapshot2->exists());
+  EXPECT_THAT(snapshot2->GetData(), ContainerEq(MapFieldValue{}));
 
   delete db2;
   delete db1;
