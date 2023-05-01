@@ -175,10 +175,10 @@ TEST_DEVICES = {
   "ios_min": {"type": "ftl", "device": "model=iphone8,version=14.7"},
   "ios_target": {"type": "ftl", "device": "model=iphone13pro,version=15.7"},
   "ios_latest": {"type": "ftl", "device": "model=iphone11pro,version=16.3"},
-  "simulator_min": {"type": "virtual", "name":"iPhone 8", "version":"13.7"},
-  "simulator_target": {"type": "virtual", "name":"iPhone 8", "version":"14.5"},
-  "simulator_latest": {"type": "virtual", "name":"iPhone 11", "version":"15.2"},
-  "tvos_simulator": {"type": "virtual", "name":"Apple TV", "version":"14.3"},
+  "simulator_min": {"type": "virtual", "name":"iPhone 8", "version":"15.2"},
+  "simulator_target": {"type": "virtual", "name":"iPhone 8", "version":"16.1"},
+  "simulator_latest": {"type": "virtual", "name":"iPhone 11", "version":"16.3.1"},
+  "tvos_simulator": {"type": "virtual", "name":"Apple TV", "version":"15.2"},
 }
  
 
