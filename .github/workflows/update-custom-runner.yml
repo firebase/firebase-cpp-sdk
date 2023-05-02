@@ -59,13 +59,22 @@ jobs:
         run: |
           softwareupdate -l -r 2>&1
           softwareupdate -l -r 2>&1 | tr '\n' '|' | sed 's/|/%0A/g' | sed 's/^/::warning ::/'
-        
-      - name: Update OS
+
+      - name: Download OS updates
         if: github.event.inputs.update_os == 1
         shell: bash
         run: |
-          # First, download updates.
+          # Ignore errors
+          set +e
+          # Download updates in a separate step.
           softwareupdate -d -r
+        
+      - name: Install OS updates
+        if: github.event.inputs.update_os == 1
+        shell: bash
+        run: |
+          # Ignore errors
+          set +e
 
           # Need to use sudo to run the update with reboot. Set up a temporary
           # script to provide the password.
@@ -77,7 +86,7 @@ jobs:
           #!/usr/bin/env bash
           rm -f "${tmpfile}"
           EOF
-          
+
           chmod u+x "${tmpfile}"
 
           # Continue without bash variable substitution:
