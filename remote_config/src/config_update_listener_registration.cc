@@ -46,6 +46,11 @@ namespace remote_config {
 using CleanupFnConfigUpdateListenerRegistration =
     CleanupFn<ConfigUpdateListenerRegistration, internal::RemoteConfigInternal>;
 
+ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration()
+    : remote_config_(nullptr), internal_(nullptr) {
+  // Default constructor. Creates a no-op registration, no cleanup needed.
+}
+
 ConfigUpdateListenerRegistration::ConfigUpdateListenerRegistration(
     const ConfigUpdateListenerRegistration& registration)
     : remote_config_(registration.remote_config_),

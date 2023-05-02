@@ -203,8 +203,8 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
 // Realtime RC is not yet supported on desktop.
 #if FIREBASE_PLATFORM_DESKTOP
   rc_->AddOnConfigUpdateListener(
-                         [](firebase::remote_config::ConfigUpdate&&,
-                            firebase::remote_config::RemoteConfigError) {});
+      [](firebase::remote_config::ConfigUpdate&&,
+         firebase::remote_config::RemoteConfigError) {});
 #else
   auto config_update_promise = std::make_shared<std::promise<void> >();
 
@@ -220,10 +220,8 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
   ASSERT_EQ(std::future_status::ready,
             config_update_future.wait_for(std::chrono::milliseconds(10000)));
 
-  // TODO(almostmatt): move Activate and the following checks back inside the
-  // ConfigUpdateListener callback.
-  // There is currently an issue on Android where Activate deadlocks if called
-  // inside the ConfigUpdateListener callback.
+  // On Android WaitForCompletion must be called from the main thread,
+  // so Activate is called here outside of the listener.
   EXPECT_TRUE(WaitForCompletion(rc_->Activate(), "Activate"));
   LogDebug("Real-time Config Update keys retrieved.");
 
