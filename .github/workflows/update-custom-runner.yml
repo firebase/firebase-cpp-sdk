@@ -23,11 +23,11 @@ jobs:
   update_custom_runners:
     name: update-custom-runner-${{ matrix.runner_hostname }}
     runs-on: [self-hosted, '${{ matrix.runner_hostname }}' ]
-    if: ${{ github.event.input.runner_list }}
+    if: ${{ github.event.input.runner_list != '' }}
 
     strategy:
       matrix:
-        runner_hostname: ${{ github.event.input.runner_list }}
+        runner_hostname: [ ${{ github.event.input.runner_list }} ]
 
     steps:
       - name: Update tools
