@@ -57,12 +57,7 @@ jobs:
       - name: Check for OS updates
         shell: bash
         run: |
-          if softwareupdate -l -r | grep -q 'No new software available'
-          then
-            echo "No OS updates available."
-          else
-            softwareupdate -l -r | tr '\n' '|' | sed 's/|/%0A/g' | sed 's/^/::warning ::OS updates available:%0A/'
-          fi
+          softwareupdate -l -r | tr '\n' '|' | sed 's/|/%0A/g' | sed 's/^/::warning ::/'
         
       - name: Update OS
         if: ${{ github.event.inputs.update_os }}
