@@ -51,6 +51,7 @@ jobs:
         if: ${{ github.event.inputs.update_tools }}
         shell: bash
         run: |
+          set -ex
           echo "npm install -g firebase-tools"
 
       - name: Check for OS updates
@@ -67,4 +68,5 @@ jobs:
         if: ${{ github.event.inputs.update_os }}
         shell: bash
         run: |
+          set -ex
           echo "softwareupdate -i -r -f"
