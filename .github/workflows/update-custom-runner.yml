@@ -60,15 +60,6 @@ jobs:
           softwareupdate -l -r 2>&1
           softwareupdate -l -r 2>&1 | tr '\n' '|' | sed 's/|/%0A/g' | sed 's/^/::warning ::/'
 
-      - name: Download OS updates
-        if: github.event.inputs.update_os == 1
-        shell: bash
-        run: |
-          # Ignore errors
-          set +e
-          # Download updates in a separate step, so if it's cancelled, they won't be installed.
-          softwareupdate -d -r
-        
       - name: Install OS updates
         if: github.event.inputs.update_os == 1
         shell: bash
