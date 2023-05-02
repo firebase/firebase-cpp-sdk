@@ -48,7 +48,7 @@ jobs:
 
     steps:
       - name: Update tools
-        if: ${{ github.event.inputs.update_tools }}
+        if: github.event.inputs.update_tools
         shell: bash
         run: |
           set -ex
@@ -61,13 +61,13 @@ jobs:
           softwareupdate -l -r 2>&1 | tr '\n' '|' | sed 's/|/%0A/g' | sed 's/^/::warning ::/'
         
       - name: Update OS
-        if: ${{ github.event.inputs.update_os }}
+        if: github.event.inputs.update_os
         shell: bash
         run: |
           # Need to use sudo to run the update with reboot. Set up a temporary
           # script to provide the password.
           tmpfile="$(mktemp)"
-          trap "rm -f \"${tmpfile}\"" EXIT HUP QUIT PIPE ALARM INT
+          trap "rm -f \"${tmpfile}\"" EXIT HUP QUIT PIPE INT
           cat > ${tmpfile} <<EOF
           #!/usr/bin/env bash
           rm -f "${tmpfile}"
