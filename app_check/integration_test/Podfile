@@ -4,20 +4,20 @@ use_frameworks! :linkage => :static
 
 target 'integration_test' do
   platform :ios, '11.0'
-  pod 'Firebase/AppCheck', '10.8.0'
-  pod 'Firebase/Database', '10.8.0'
-  pod 'Firebase/Auth', '10.8.0'
-  pod 'Firebase/Storage', '10.8.0'
-  pod 'Firebase/Functions', '10.8.0'
+  pod 'Firebase/AppCheck', '10.9.0'
+  pod 'Firebase/Database', '10.9.0'
+  pod 'Firebase/Auth', '10.9.0'
+  pod 'Firebase/Storage', '10.9.0'
+  pod 'Firebase/Functions', '10.9.0'
 end
 
 target 'integration_test_tvos' do
   platform :tvos, '12.0'
-  pod 'Firebase/AppCheck', '10.8.0'
-  pod 'Firebase/Database', '10.8.0'
-  pod 'Firebase/Auth', '10.8.0'
-  pod 'Firebase/Storage', '10.8.0'
-  pod 'Firebase/Functions', '10.8.0'
+  pod 'Firebase/AppCheck', '10.9.0'
+  pod 'Firebase/Database', '10.9.0'
+  pod 'Firebase/Auth', '10.9.0'
+  pod 'Firebase/Storage', '10.9.0'
+  pod 'Firebase/Functions', '10.9.0'
 end
 
 post_install do |installer|

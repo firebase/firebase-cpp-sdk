@@ -76,12 +76,12 @@ PARAMETERS = {
       "build_type": ["Release", "Debug"],
       "architecture": ["x64", "x86", "arm64"],
       "msvc_runtime": ["static","dynamic"],
-      "xcode_version": ["13.3.1"],
+      "xcode_version": ["14.1"],
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
         "os": ["ubuntu-20.04", "macos-12", "windows-latest"],
-        "xcode_version": ["13.3.1"],
+        "xcode_version": ["14.1"],
       }
     }
   },
@@ -112,7 +112,7 @@ PARAMETERS = {
       "msvc_runtime": ["dynamic"],
       "cpp_compiler_windows": ["VisualStudio2019"],
       "cpp_compiler_linux": ["clang-11.0"],
-      "xcode_version": ["13.3.1"],  # only the first one is used
+      "xcode_version": ["14.1"],  # only the first one is used
       "ndk_version": ["r22b"],
       "platform_version": ["28"],
       "build_tools_version": ["28.0.3"],
@@ -140,10 +140,10 @@ PARAMETERS = {
 
   "ios": {
     "matrix": {
-      "xcode_version": ["13.3.1"],
+      "xcode_version": ["14.1"],
 
       EXPANDED_KEY: {
-        "xcode_version": ["13.3.1"]
+        "xcode_version": ["14.1"]
       }
     }
   },
@@ -175,12 +175,12 @@ TEST_DEVICES = {
   "ios_min": {"type": "ftl", "device": "model=iphone8,version=14.7"},
   "ios_target": {"type": "ftl", "device": "model=iphone13pro,version=15.7"},
   "ios_latest": {"type": "ftl", "device": "model=iphone11pro,version=16.3"},
-  "simulator_min": {"type": "virtual", "name":"iPhone 8", "version":"13.7"},
-  "simulator_target": {"type": "virtual", "name":"iPhone 8", "version":"14.5"},
-  "simulator_latest": {"type": "virtual", "name":"iPhone 11", "version":"15.2"},
-  "tvos_simulator": {"type": "virtual", "name":"Apple TV", "version":"14.3"},
+  "simulator_min": {"type": "virtual", "name":"iPhone 8", "version":"15.2"},
+  "simulator_target": {"type": "virtual", "name":"iPhone 8", "version":"16.1"},
+  "simulator_latest": {"type": "virtual", "name":"iPhone 11", "version":"16.3.1"},
+  "tvos_simulator": {"type": "virtual", "name":"Apple TV", "version":"16.1"},
 }
- 
+
 
 
 def get_value(workflow, test_matrix, parm_key, config_parms_only=False):

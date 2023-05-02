@@ -47,7 +47,7 @@ env:
   triggerLabelFull: "tests-requested: full"
   triggerLabelQuick: "tests-requested: quick"
   pythonVersion: '3.7'
-  xcodeVersion: '13.3.1'
+  xcodeVersion: '14.1'
   artifactRetentionDays: 2
   GITHUB_TOKEN: ${{ github.token }}
   # All self-hosted ARM Mac runners should have this label. Due to how
