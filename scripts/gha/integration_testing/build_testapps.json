@@ -37,9 +37,12 @@
         "firebase_app_check.xcframework",
         "firebase_auth.xcframework",
         "firebase_database.xcframework",
+        "firebase_functions.xcframework",
+        "firebase_storage.xcframework",
         "firebase.xcframework"
       ],
-      "provision": "Firebase_Dev_Wildcard.mobileprovision"
+      "provision": "Firebase_Dev_Wildcard.mobileprovision",
+      "minify": "proguard"
     },
     {
       "name": "auth",
@@ -237,6 +240,7 @@
     ]
   },
   "android_dep_key_mapping": {
+    "app_check": ["firebase-appcheck"],
     "database": ["firebase-database"],
     "dynamic_links": ["firebase-dynamic-links"],
     "firestore": ["firebase-firestore"],
