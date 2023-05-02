@@ -57,8 +57,9 @@ jobs:
       - name: Check for OS updates
         shell: bash
         run: |
-          softwareupdate -l -r 2>&1
-          softwareupdate -l -r 2>&1 | tr '\n' '|' | sed 's/|/%0A/g' | sed 's/^/::warning ::/'
+          # If there is no new software, exit.
+          softwareupdate -l -r 2>&1 | grep -q 'No new software' || exit
+          softwareupdate -l -r | tr '\n' '|' | sed 's/|/%0A/g' | sed 's/^/::warning ::/'
 
       - name: Install OS updates
         if: github.event.inputs.update_os == 1
