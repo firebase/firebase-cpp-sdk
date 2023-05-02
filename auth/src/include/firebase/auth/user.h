@@ -198,8 +198,10 @@ class User : public UserInfoInterface {
   /// Assignment operator.
   User& operator=(const User&);
 
-  /// Comparison operator.
+  /// Equality operator.
   bool operator==(const User&) const;
+
+  /// Inequality operator.
   bool operator!=(const User&) const;
 
   ~User();
