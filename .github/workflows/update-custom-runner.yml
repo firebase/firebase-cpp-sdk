@@ -64,6 +64,9 @@ jobs:
         if: github.event.inputs.update_os == 1
         shell: bash
         run: |
+          # First, download updates.
+          software-update -d -r
+
           # Need to use sudo to run the update with reboot. Set up a temporary
           # script to provide the password.
           tmpfile="$(mktemp)"
@@ -86,7 +89,7 @@ jobs:
 
           # sudo -A -k will force run the generated script, which will then
           # immediately delete itself.
-          SUDO_ASKPASS="${tmpfile}" sudo -A -k softwareupdate -l -r -R -f 2>&1
+          SUDO_ASKPASS="${tmpfile}" sudo -A -k softwareupdate -l -r -R 2>&1
 
           # Just to be safe, delete the file again.
           rm -f "${tmpfile}"
