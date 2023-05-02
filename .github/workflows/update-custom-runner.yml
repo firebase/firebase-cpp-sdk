@@ -20,14 +20,30 @@ env:
   GITHUB_TOKEN: ${{ github.token }}
 
 jobs:
+  prepare:
+    name: prepare
+    runs-on: ubuntu-20.04
+    if: github.event.inputs.runner_list != ''
+    outputs:
+      runner_hostnames: ${{ steps.prepare_inputs.outputs.runner_hostnames }}
+    steps:
+      - name: Prepare inputs
+        id: prepare_inputs
+        shell: bash
+        run: |
+          csv='${{github.event.inputs.runner_hostnames}}'
+          json="['$(echo ${csv} | sed s/,/\',\'/g)']"
+          echo "runner_hostnames=${csv}" >> $GITHUB_OUTPUT
+        
   update_custom_runners:
     name: update-custom-runner-${{ matrix.runner_hostname }}
+    needs: [ prepare ]
     runs-on: [self-hosted, '${{ matrix.runner_hostname }}' ]
     if: github.event.inputs.runner_list != ''
 
     strategy:
       matrix:
-        runner_hostname: ${{ github.event.inputs.runner_list }}
+        runner_hostname: ${{ fromJson(needs.prepare.outputs.runner_hostnames) }}
 
     steps:
       - name: Update tools
