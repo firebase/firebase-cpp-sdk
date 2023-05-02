@@ -58,7 +58,8 @@ jobs:
         shell: bash
         run: |
           # If there is no new software, exit.
-          softwareupdate -l -r 2>&1 | grep -q 'No new software' || exit
+          set +e
+          softwareupdate -l -r 2>&1 | grep -q 'No new software' && exit
           softwareupdate -l -r | tr '\n' '|' | sed 's/|/%0A/g' | sed 's/^/::warning ::/'
 
       - name: Install OS updates
