@@ -59,9 +59,9 @@ jobs:
         run: |
           if softwareupdate -l -r | grep -q 'No new software available'
           then
-            echo "::warning ::Host ${{matrix.runner_hostname}} has no OS updates available."
+            echo "No OS updates available."
           else
-           softwareupdate -l -r | tr '\n' '|' | sed 's/|/%0A/g' | sed 's/^/::warning ::Host ${{matrix.runner_hostname}} has OS updates:%0A/'
+            softwareupdate -l -r | tr '\n' '|' | sed 's/|/%0A/g' | sed 's/^/::warning ::Host ${{matrix.runner_hostname}} has OS updates:%0A/'
           fi
         
       - name: Update OS
@@ -69,4 +69,4 @@ jobs:
         shell: bash
         run: |
           set -ex
-          echo "softwareupdate -i -r -f"
+          softwareupdate -i -r -f
