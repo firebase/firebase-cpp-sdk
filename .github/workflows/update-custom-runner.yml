@@ -65,7 +65,7 @@ jobs:
         shell: bash
         run: |
           # First, download updates.
-          software-update -d -r
+          softwareupdate -d -r
 
           # Need to use sudo to run the update with reboot. Set up a temporary
           # script to provide the password.
