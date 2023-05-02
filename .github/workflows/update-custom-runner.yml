@@ -48,7 +48,7 @@ jobs:
 
     steps:
       - name: Update tools
-        if: github.event.inputs.update_tools
+        if: github.event.inputs.update_tools == 1
         shell: bash
         run: |
           set -ex
@@ -61,7 +61,7 @@ jobs:
           softwareupdate -l -r 2>&1 | tr '\n' '|' | sed 's/|/%0A/g' | sed 's/^/::warning ::/'
         
       - name: Update OS
-        if: github.event.inputs.update_os
+        if: github.event.inputs.update_os == 1
         shell: bash
         run: |
           # Need to use sudo to run the update with reboot. Set up a temporary
