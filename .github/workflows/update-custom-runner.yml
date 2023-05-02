@@ -76,4 +76,4 @@ jobs:
           END_OF_FILE
           EOF
           chmod u+x "${tmpfile}"
-          SUDO_ASKPASS="${tmpfile}" sudo softwareupdate -l -r -R -f 2>&1
+          SUDO_ASKPASS="${tmpfile}" sudo -A softwareupdate -l -r -R -f 2>&1
