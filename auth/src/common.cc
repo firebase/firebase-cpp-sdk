@@ -85,7 +85,7 @@ User::User() { auth_data_ = nullptr; }
 bool User::operator==(const User& user) const {
   // This is based on the assumption that there is only one user before
   // Auth rewrite.
-  // TODO: Must change during Auth Rewrite
+  // TODO(AuthRewrite): Must change during Auth Rewrite
   return is_valid() == user.is_valid();
 }
 
