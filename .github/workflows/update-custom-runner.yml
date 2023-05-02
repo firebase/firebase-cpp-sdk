@@ -68,12 +68,25 @@ jobs:
           # script to provide the password.
           tmpfile="$(mktemp)"
           trap "rm -f \"${tmpfile}\"" EXIT HUP QUIT PIPE INT
-          cat > ${tmpfile} <<EOF
+
+          # Generate a script for sudo to use.
+          cat > "${tmpfile}" <<EOF
           #!/usr/bin/env bash
           rm -f "${tmpfile}"
-          cat <<END_OF_FILE
+          EOF
+          
+          chmod u+x "${tmpfile}"
+
+          # Continue without bash variable substitution:
+          cat >> "${tmpfile}" <<'EOF'
+          cat <<'END_OF_FILE'
           ${{secrets.CUSTOM_RUNNER_PW}}
           END_OF_FILE
           EOF
-          chmod u+x "${tmpfile}"
-          SUDO_ASKPASS="${tmpfile}" sudo -A softwareupdate -l -r -R -f 2>&1
+
+          # sudo -A -k will force run the generated script, which will then
+          # immediately delete itself.
+          SUDO_ASKPASS="${tmpfile}" sudo -A -k softwareupdate -l -r -R -f 2>&1
+
+          # Just to be safe, delete the file again.
+          rm -f "${tmpfile}"
