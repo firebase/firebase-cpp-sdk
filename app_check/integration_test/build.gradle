@@ -65,8 +65,7 @@ android {
         "-DFIREBASE_INCLUDE_AUTH=ON",
         "-DFIREBASE_INCLUDE_DATABASE=ON",
         "-DFIREBASE_INCLUDE_STORAGE=ON",
-        "-DFIREBASE_INCLUDE_FUNCTIONS=ON",
-        "-DFIREBASE_INCLUDE_FIRESTORE=ON"
+        "-DFIREBASE_INCLUDE_FUNCTIONS=ON"
     }
     multiDexEnabled true
   }
@@ -95,7 +94,6 @@ firebaseCpp.dependencies {
   database
   storage
   functions
-  firestore
 }
 
 apply plugin: 'com.google.gms.google-services'
