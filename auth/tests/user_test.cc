@@ -523,52 +523,52 @@ TEST_F(UserTest, TestGetter) {
 }
 
 TEST_F(UserTest, TestComparisonOperator) {
-    {
-        // Two invalid users
-        User user_invalid1;
-        User user_invalid2;
-        EXPECT_EQ(user_invalid1, user_invalid2);
-    }
+  {
+    // Two invalid users
+    User user_invalid1;
+    User user_invalid2;
+    EXPECT_EQ(user_invalid1, user_invalid2);
+  }
 
-    {
-        // A invalid user
-        User user_invalid;
-        EXPECT_NE(&firebase_user_, user_invalid);
-    }
+  {
+    // A invalid user
+    User user_invalid;
+    EXPECT_NE(&firebase_user_, user_invalid);
+  }
 
-    {
-        // Copied valid user
-        User user_copy(&firebase_user_);
-        EXPECT_EQ(&firebase_user_, user_copy);
-    }
+  {
+    // Copied valid user
+    User user_copy(&firebase_user_);
+    EXPECT_EQ(&firebase_user_, user_copy);
+  }
 
-    {
-        // Copied invalid user
-        User user_invalid;
-        User user_invalid_copy(user_invalid);
-        EXPECT_EQ(user_invalid, user_invalid_copy);
-    }
+  {
+    // Copied invalid user
+    User user_invalid;
+    User user_invalid_copy(user_invalid);
+    EXPECT_EQ(user_invalid, user_invalid_copy);
+  }
 
-    {
-        // Two copied of current_user()
-        User user1 = firebase_auth_->current_user();
-        User user2 = firebase_auth_->current_user();
-        EXPECT_EQ(user1, user2);
-    }
+  {
+    // Two copied of current_user()
+    User user1 = firebase_auth_->current_user();
+    User user2 = firebase_auth_->current_user();
+    EXPECT_EQ(user1, user2);
+  }
 
-    {
-        // Two copied of current_user_DEPRECATED()
-        User* user1 = firebase_auth_->current_user_DEPRECATED();
-        User* user2 = firebase_auth_->current_user_DEPRECATED();
-        EXPECT_EQ(&user1, &user2);
-    }
+  {
+    // Two copied of current_user_DEPRECATED()
+    User* user1 = firebase_auth_->current_user_DEPRECATED();
+    User* user2 = firebase_auth_->current_user_DEPRECATED();
+    EXPECT_EQ(&user1, &user2);
+  }
 
-    {
-        // User from deprecated API and new API
-        User* user_deprecated = firebase_auth_->current_user_DEPRECATED();
-        User user_new = firebase_auth_->current_user();
-        EXPECT_EQ(user_deprecated, user_new);
-    }
+  {
+    // User from deprecated API and new API
+    User* user_deprecated = firebase_auth_->current_user_DEPRECATED();
+    User user_new = firebase_auth_->current_user();
+    EXPECT_EQ(user_deprecated, user_new);
+  }
 }
 
 }  // namespace auth
