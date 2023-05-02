@@ -64,5 +64,16 @@ jobs:
         if: ${{ github.event.inputs.update_os }}
         shell: bash
         run: |
-          set -ex
-          softwareupdate -i -r -R -f
+          # Need to use sudo to run the update with reboot. Set up a temporary
+          # script to provide the password.
+          tmpfile="$(mktemp)"
+          trap "rm -f \"${tmpfile}\"" EXIT HUP QUIT PIPE ALARM INT
+          cat > ${tmpfile} <<EOF
+          #!/usr/bin/env bash
+          rm -f "${tmpfile}"
+          cat <<END_OF_FILE
+          ${{secrets.CUSTOM_RUNNER_PW}}
+          END_OF_FILE
+          EOF
+          chmod u+x "${tmpfile}"
+          SUDO_ASKPASS="${tmpfile}" sudo softwareupdate -l -r -R -f 2>&1
