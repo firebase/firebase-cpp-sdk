@@ -57,7 +57,7 @@ jobs:
       - name: Check for OS updates
         shell: bash
         run: |
-          # If there is no new software, exit.
+          # If there is new software, print the list.
           set +e
           softwareupdate -l -r 2>&1 | grep -q 'No new software' && exit
           softwareupdate -l -r | tr '\n' '|' | sed 's/|/%0A/g' | sed 's/^/::warning ::/'
