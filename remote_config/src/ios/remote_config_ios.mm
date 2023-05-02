@@ -23,6 +23,8 @@
 #include "app/src/log.h"
 #include "app/src/time.h"
 #include "remote_config/src/common.h"
+#include "remote_config/src/include/firebase/remote_config.h"
+#include "remote_config/src/config_update_listener_registration_internal.h"
 
 namespace firebase {
 namespace remote_config {
@@ -173,6 +175,30 @@ static void GetInfoFromFIRRemoteConfig(FIRRemoteConfig *rc_instance, ConfigInfo 
   }
 }
 
+static RemoteConfigError ConvertFIRRemoteConfigUpdateError(NSError *error) {
+  switch(error.code) {
+    case FIRRemoteConfigUpdateErrorStreamError:
+      return kRemoteConfigErrorConfigUpdateStreamError;
+    case FIRRemoteConfigUpdateErrorNotFetched:
+      return kRemoteConfigErrorConfigUpdateNotFetched;
+    case FIRRemoteConfigUpdateErrorMessageInvalid:
+      return kRemoteConfigErrorConfigUpdateMessageInvalid;
+    case FIRRemoteConfigUpdateErrorUnavailable:
+      return kRemoteConfigErrorConfigUpdateUnavailable;
+    default:
+      return kRemoteConfigErrorUnimplemented;
+  }
+}
+
+static ConfigUpdate ConvertConfigUpdateKeys(NSSet<NSString *> *keys) {
+  ConfigUpdate config_update;
+
+  for (NSString *key in keys) {
+    config_update.updated_keys.push_back(util::NSStringToString(key).c_str());
+  }
+  return config_update;
+}
+
 namespace internal {
 RemoteConfigInternal::RemoteConfigInternal(const firebase::App &app)
     : app_(app), future_impl_(kRemoteConfigFnCount) {
@@ -182,6 +208,12 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App &app)
 
 RemoteConfigInternal::~RemoteConfigInternal() {
   // Destructor is necessary for ARC garbage collection.
+  
+  // Trigger CleanupNotifier Cleanup. This will delete
+  // ConfigUpdateListenerRegistrationInternal instances and it will update
+  // ConfigUpdateListenerRegistration instances to no longer point to the
+  // corresponding internal objects.
+  cleanup_notifier().CleanupAll();
 }
 
 bool RemoteConfigInternal::Initialized() const{
@@ -489,6 +521,34 @@ const ConfigInfo RemoteConfigInternal::GetInfo() const {
   GetInfoFromFIRRemoteConfig(impl(), &config_info, throttled_end_time_in_sec_);
   return config_info;
 }
+
+ConfigUpdateListenerRegistration RemoteConfigInternal::AddOnConfigUpdateListener(
+      std::function<void(ConfigUpdate&&, RemoteConfigError)>
+        config_update_listener) {
+    FIRConfigUpdateListenerRegistration *registration;
+    registration = [impl() addOnConfigUpdateListener: ^(FIRRemoteConfigUpdate *_Nullable update,
+                                  NSError *_Nullable error) {
+          if (error) {
+            config_update_listener({}, ConvertFIRRemoteConfigUpdateError(error));
+            return;
+          }
+
+          config_update_listener(ConvertConfigUpdateKeys(update.updatedKeys), kRemoteConfigErrorNone);
+    }];
+
+    ConfigUpdateListenerRegistrationInternal* registration_internal =
+        new ConfigUpdateListenerRegistrationInternal(this, [registration]() {
+          [registration remove];
+        });
+  // Delete the internal registration when RemoteConfigInternal is cleaned up.
+  cleanup_notifier().RegisterObject(registration_internal, [](void* registration) {
+    delete reinterpret_cast<ConfigUpdateListenerRegistrationInternal*>(registration);
+  });
+
+  ConfigUpdateListenerRegistration registration_wrapper(registration_internal);
+  return registration_wrapper;
+}
+
 }  // namespace internal
 }  // namespace remote_config
 }  // namespace firebase

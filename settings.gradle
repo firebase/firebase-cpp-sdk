@@ -20,5 +20,6 @@ include ':app',
         ':messaging',
         ':messaging:messaging_java',
         ':remote_config',
+        ':remote_config:remote_config_resources',
         ':storage',
         ':storage:storage_resources'

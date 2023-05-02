@@ -616,6 +616,12 @@ code.
     - Firestore: Added `Query::Count()`, which fetches the number of documents
       in the result set without actually downloading the documents
       ([#1207](https://github.com/firebase/firebase-cpp-sdk/pull/1207)).
+    - Remote Config: Added support for real-time config updates. Use the new
+      `addOnConfigUpdateListener` API to get real-time updates. Existing
+      [`Fetch`](https://firebase.google.com/docs/reference/cpp/class/firebase/remote-config/remote-config#fetch)
+      and [`Activate`](https://firebase.google.com/docs/reference/cpp/class/firebase/remote-config/remote-config#activate)
+      APIs aren't affected by this change. To learn more, see
+  [Get started with Firebase Remote Config](https://firebase.google.com/docs/remote-config/get-started?platform=cpp#add-real-time-listener).
 
 ### 10.7.0
 -   Changes
