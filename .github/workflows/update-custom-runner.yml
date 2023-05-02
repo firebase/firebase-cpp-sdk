@@ -61,6 +61,7 @@ jobs:
             echo "::warning ::No OS updates available."
           else
             echo "softwareupdate -l -r | tr '\n' '|' | sed 's/|/%0A/g' | sed "
+          fi
         
       - name: Update OS
         if: ${{ github.event.inputs.update_os }}
