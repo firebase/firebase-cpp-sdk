@@ -27,7 +27,7 @@ jobs:
 
     strategy:
       matrix:
-        runner_hostname: fromJSON('[' + ${{ github.event.input.runner_list }} + ']')
+        runner_hostname: [ 'fplmac1' ] #fromJSON('[' + ${{ github.event.input.runner_list }} + ']')
 
     steps:
       - name: Update tools
