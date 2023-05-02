@@ -92,5 +92,4 @@ jobs:
 
           # sudo -A -k will force run the generated script, which will then
           # immediately delete itself.
-          SUDO_ASKPASS="${tmpfile}" sudo -A -k softwareupdate -i -r -R --user root --stdinpass '' 2>&1 &
-          sleep 15
+          SUDO_ASKPASS="${tmpfile}" sudo -A -k softwareupdate -i -r -R --user root --stdinpass '' 2>&1
