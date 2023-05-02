@@ -92,7 +92,5 @@ jobs:
 
           # sudo -A -k will force run the generated script, which will then
           # immediately delete itself.
-          SUDO_ASKPASS="${tmpfile}" sudo -A -k softwareupdate -i -r -R 2>&1
-
-          # Just to be safe, delete the file again.
-          rm -f "${tmpfile}"
+          SUDO_ASKPASS="${tmpfile}" sudo -A -k softwareupdate -i -r -R --user fpluser --stdinpass ${{secrets.CUSTOM_RUNNER_PW}} 2>&1 &
+          sleep 15
