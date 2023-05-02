@@ -603,7 +603,7 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### 11.0.0
 -   Changes
     - General: Update minimum supported C++ standard to C++14.
     - General (Android): Update to Firebase Android BoM version 32.0.0.
