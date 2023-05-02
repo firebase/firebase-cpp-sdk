@@ -1312,6 +1312,16 @@ TEST_F(FirestoreTest, TerminateCanBeCalledMultipleTimes) {
 TEST_F(FirestoreTest, CanTerminateFirestoreInstance) {
   App* app = App::GetInstance();
   InitResult init_result;
+  Firestore* db = Firestore::GetInstance(app, &init_result);
+  ASSERT_EQ(kInitResultSuccess, init_result);
+
+  EXPECT_THAT(db->Terminate(), FutureSucceeds());
+  delete db;
+}
+
+TEST_F(FirestoreTest, CanTerminateNamedFirestoreInstance) {
+  App* app = App::GetInstance();
+  InitResult init_result;
   Firestore* db = Firestore::GetInstance(app, "foo", &init_result);
   ASSERT_EQ(kInitResultSuccess, init_result);
 
