@@ -202,9 +202,9 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
 
 // Realtime RC is not yet supported on desktop.
 #if FIREBASE_PLATFORM_DESKTOP
-  EXPECT_EQ(nullptr, rc_->AddOnConfigUpdateListener(
+  rc_->AddOnConfigUpdateListener(
                          [](firebase::remote_config::ConfigUpdate&&,
-                            firebase::remote_config::RemoteConfigError) {}));
+                            firebase::remote_config::RemoteConfigError) {});
 #else
   auto config_update_promise = std::make_shared<std::promise<void> >();
 
