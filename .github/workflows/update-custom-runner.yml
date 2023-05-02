@@ -66,7 +66,7 @@ jobs:
         run: |
           # Ignore errors
           set +e
-          # Download updates in a separate step.
+          # Download updates in a separate step, so if it's cancelled, they won't be installed.
           softwareupdate -d -r
         
       - name: Install OS updates
@@ -76,12 +76,15 @@ jobs:
           # Ignore errors
           set +e
 
+          # Pause a minute before installing updates.
+          sleep 60
+
           # Need to use sudo to run the update with reboot. Set up a temporary
-          # script to provide the password.
+          # "askpass" script to provide sudo with the password.
           tmpfile="$(mktemp)"
           trap "rm -f \"${tmpfile}\"" EXIT HUP QUIT PIPE INT
 
-          # Generate a script for sudo to use.
+          # Generate a script for sudo to use, which immediately deletes itself.
           cat > "${tmpfile}" <<EOF
           #!/usr/bin/env bash
           rm -f "${tmpfile}"
@@ -89,7 +92,7 @@ jobs:
 
           chmod u+x "${tmpfile}"
 
-          # Continue without bash variable substitution:
+          # Continue without variable substitution, to output the password:
           cat >> "${tmpfile}" <<'EOF'
           cat <<'END_OF_FILE'
           ${{secrets.CUSTOM_RUNNER_PW}}
