@@ -606,8 +606,8 @@ code.
 ### Upcoming Release
 -   Changes
     - General: Update minimum supported C++ standard to C++14.
-    - General (Android): Update to Firebase Android BoM version 31.5.0.
-    - General (iOS): Update to Firebase Cocoapods version 10.8.0.
+    - General (Android): Update to Firebase Android BoM version 32.0.0.
+    - General (iOS): Update to Firebase Cocoapods version 10.9.0.
     - General (iOS, tvOS, Desktop): iOS, tvOS, and macOS SDKs are now built
       using Xcode 14.1.
     - AdMob: Removed deprecated AdMob SDK. Please use the included Google
