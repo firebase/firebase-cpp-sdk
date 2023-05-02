@@ -193,6 +193,10 @@ static Future<void> SetZeroIntervalConfigSettings(RemoteConfig* rc) {
 
 // Test cases below.
 
+TEST_F(FirebaseRemoteConfigTest, TestInitializeAndTerminate) {
+  // Already tested via SetUp() and TearDown().
+}
+
 /// This test requires to be run on a device or simulator that does not have a
 /// newer version of the config saved on disk from a previous test run.
 TEST_F(FirebaseRemoteConfigTest, TestSetDefault) {
@@ -342,10 +346,6 @@ TEST_F(FirebaseRemoteConfigTest, TestRemoveConfigUpdateListener) {
   registration.Remove();
 
 #endif  // !FIREBASE_PLATFORM_DESKTOP
-}
-
-TEST_F(FirebaseRemoteConfigTest, TestInitializeAndTerminate) {
-  // Already tested via SetUp() and TearDown().
 }
 
 TEST_F(FirebaseRemoteConfigTest, TestGetKeys) {
