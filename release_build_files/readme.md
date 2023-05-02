@@ -84,7 +84,7 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-All Firebase SDKs          | platform(com.google.firebase:firebase-bom:31.5.0)
+All Firebase SDKs          | platform(com.google.firebase:firebase-bom:32.0.0)
 |                          | (Android Bill of Materials)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
@@ -606,8 +606,8 @@ code.
 ### 11.0.0
 -   Changes
     - General: Update minimum supported C++ standard to C++14.
-    - General (Android): Update to Firebase Android BoM version 31.5.0.
-    - General (iOS): Update to Firebase Cocoapods version 10.8.0.
+    - General (Android): Update to Firebase Android BoM version 32.0.0.
+    - General (iOS): Update to Firebase Cocoapods version 10.9.0.
     - General (iOS, tvOS, Desktop): iOS, tvOS, and macOS SDKs are now built
       using Xcode 14.1.
     - AdMob: Removed deprecated AdMob SDK. Please use the included Google
