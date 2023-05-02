@@ -61,7 +61,7 @@ jobs:
           then
             echo "No OS updates available."
           else
-            softwareupdate -l -r | tr '\n' '|' | sed 's/|/%0A/g' | sed 's/^/::warning ::Host ${{matrix.runner_hostname}} has OS updates:%0A/'
+            softwareupdate -l -r | tr '\n' '|' | sed 's/|/%0A/g' | sed 's/^/::warning ::OS updates available:%0A/'
           fi
         
       - name: Update OS
