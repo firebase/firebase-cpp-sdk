@@ -591,7 +591,7 @@ TEST_F(FirebaseAppCheckTest, TestDebugProviderValidToken) {
 TEST_F(FirebaseAppCheckTest, TestAppAttestProvider) {
   firebase::app_check::AppAttestProviderFactory* factory =
       firebase::app_check::AppAttestProviderFactory::GetInstance();
-#if FIREBASE_PLATFORM_IOS
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
   ASSERT_NE(factory, nullptr);
   InitializeApp();
   firebase::app_check::AppCheckProvider* provider =
@@ -605,7 +605,7 @@ TEST_F(FirebaseAppCheckTest, TestAppAttestProvider) {
 TEST_F(FirebaseAppCheckTest, TestDeviceCheckProvider) {
   firebase::app_check::DeviceCheckProviderFactory* factory =
       firebase::app_check::DeviceCheckProviderFactory::GetInstance();
-#if FIREBASE_PLATFORM_IOS
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
   ASSERT_NE(factory, nullptr);
   InitializeApp();
   firebase::app_check::AppCheckProvider* provider =
