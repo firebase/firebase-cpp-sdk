@@ -33,7 +33,8 @@ jobs:
         run: |
           csv='${{github.event.inputs.runner_list}}'
           json="['$(echo ${csv} | sed s/,/\',\'/g)']"
-          echo "runner_hostnames=${csv}" >> $GITHUB_OUTPUT
+          echo "runner_hostnames=${json}"
+          echo "runner_hostnames=${json}" >> $GITHUB_OUTPUT
         
   update_custom_runners:
     name: update-custom-runner-${{ matrix.runner_hostname }}
