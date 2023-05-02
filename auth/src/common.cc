@@ -89,9 +89,7 @@ bool User::operator==(const User& user) const {
   return is_valid() == user.is_valid();
 }
 
-bool User::operator!=(const User& user) const {
-  return !(*this == user);
-}
+bool User::operator!=(const User& user) const { return !(*this == user); }
 
 }  // namespace auth
 }  // namespace firebase
