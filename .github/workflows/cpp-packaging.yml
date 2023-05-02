@@ -827,7 +827,7 @@ jobs:
             -w integration_tests.yml \
             -p test_packaged_sdk ${{ github.run_id }} \
             -p use_expanded_matrix ${USE_EXPANDED_MATRIX} \
-            -p apis "analytics,auth,database,dynamic_links,functions,installations,messaging,remote_config,storage" \
+            -p apis "analytics,app_check,auth,database,dynamic_links,functions,installations,messaging,remote_config,storage" \
             -p test_pull_request nightly-packaging \
             -s 10 \
             -A ${verbose_flag}

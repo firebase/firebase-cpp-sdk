@@ -4,6 +4,7 @@ The Firebase C++ SDK provides C++ interfaces for the following Firebase services
 on *iOS* and *Android*:
 
 *   Firebase Analytics
+*   Firebase App Check
 *   Firebase Authentication
 *   Firebase Cloud Messaging
 *   Firebase Dynamic Links
@@ -22,6 +23,7 @@ The Firebase C++ SDK includes desktop workflow support for the following subset
 of Firebase features, enabling their use on Windows, OS X, and Linux:
 
 *   Firebase Authentication
+*   Firebase App Check
 *   Cloud Firestore
 *   Firebase Functions
 *   Firebase Remote Config
@@ -89,6 +91,14 @@ All Firebase SDKs          | platform(com.google.firebase:firebase-bom:32.0.0)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics
+|                          | (Maven package)
+Firebase App Check         | libfirebase_app_check.a
+|                          | libfirebase_app.a
+|                          | com.google.firebase:firebase-appcheck
+|                          | (Maven package)
+|                          | com.google.firebase:firebase-appcheck-debug
+|                          | (Maven package)
+|                          | com.google.firebase:firebase-appcheck-playintegrity
 |                          | (Maven package)
 Firebase Authentication    | libfirebase_auth.a
 |                          | libfirebase_app.a
@@ -182,8 +192,8 @@ using):
 apply from: "$gradle.firebase_cpp_sdk_dir/Android/firebase_dependencies.gradle"
 firebaseCpp.dependencies {
   app  // Recommended for all apps using Firebase.
-  admob
   analytics
+  appCheck
   auth
   database
   dynamicLinks
@@ -219,6 +229,9 @@ Feature                    | Required Frameworks and Cocoapods
 Firebase Analytics         | firebase_analytics.xcframework
 |                          | firebase.xcframework
 |                          | Firebase/Analytics Cocoapod (10.9.0)
+Firebase App Check         | firebase_app_check.xcframework
+|                          | firebase.xcframework
+|                          | Firebase/AppCheck Cocoapod (10.9.0)
 Firebase Authentication    | firebase_auth.xcframework
 |                          | firebase.xcframework
 |                          | Firebase/Auth Cocoapod (10.9.0)
@@ -278,6 +291,9 @@ Feature                    | Required Libraries and Cocoapods
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
 |                          | Firebase/Analytics Cocoapod (10.9.0)
+Firebase App Check         | firebase_app_check.xcframework
+|                          | firebase.xcframework
+|                          | Firebase/AppCheck Cocoapod (10.9.0)
 Firebase Authentication    | libfirebase_auth.a
 |                          | libfirebase_app.a
 |                          | Firebase/Auth Cocoapod (10.9.0)
@@ -341,6 +357,8 @@ Feature                         | Required Libraries
 ------------------------------- | -----------------------------
 Firebase Authentication         | libfirebase_auth.a
 |                               | libfirebase_app.a
+Firebase App Check              | libfirebase_app_check.a
+|                               | libfirebase_app.a
 Cloud Firestore                 | libfirebase_firestore.a
 |                               | libfirebase_auth.a
 |                               | libfirebase_app.a
@@ -382,6 +400,8 @@ Feature                         | Required Frameworks
 ------------------------------- | ----------------------------------
 Firebase Authentication         | firebase_auth.framework
 |                               | firebase.framework
+Firebase App Check              | libfirebase_app_check.framework
+|                               | libfirebase_app.framework
 Cloud Firestore                 | firebase_firestore.framework
 |                               | firebase_auth.framework
 |                               | firebase.framework
@@ -424,6 +444,8 @@ Feature                         | Required Libraries and Gradle Packages
 ------------------------------- | --------------------------------------
 Firebase Authentication         | firebase_auth.lib
 |                               | firebase_app.lib
+Firebase App Check              | libfirebase_app_check.lib
+|                               | libfirebase_app.lib
 Cloud Firestore                 | firebase_firestore.lib
 |                               | firebase_auth.lib
 |                               | firebase_app.lib
@@ -457,6 +479,7 @@ information):
 Firebase C++ Library | Windows SDK library dependencies
 -------------------- | -----------------------------------------------------
 Authentication       | `advapi32, ws2_32, crypt32`
+App Check            | `advapi32, ws2_32, crypt32`
 Firestore            | `advapi32, ws2_32, crypt32, rpcrt4, ole32, shell32, dbghelp, bcrypt`
 Functions            | `advapi32, ws2_32, crypt32, rpcrt4, ole32`
 Realtime Database    | `advapi32, ws2_32, crypt32, iphlpapi, psapi, userenv, shell32`
@@ -553,6 +576,7 @@ library.
 Firebase C++ Library | Google Play services required?
 -------------------- | ---------------------------------
 Analytics            | Not required
+App Check            | Not required
 Cloud Messaging      | Required
 Auth                 | Required
 Dynamic Links        | Required
@@ -612,6 +636,8 @@ code.
       using Xcode 14.1.
     - AdMob: Removed deprecated AdMob SDK. Please use the included Google
       Mobile Ads SDK ("GMA") instead.
+    - App Check: Adds support for Firebase App Check on Android, iOS, tvOS,
+      and desktop platforms.
     - GMA (Android): Updated dependency to play-services-ads version 22.0.0.
     - Firestore: Added `Query::Count()`, which fetches the number of documents
       in the result set without actually downloading the documents

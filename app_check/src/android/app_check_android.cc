@@ -393,6 +393,7 @@ AppCheckInternal::~AppCheckInternal() {
   FIREBASE_ASSERT(g_initialized_count);
   g_initialized_count--;
   if (g_initialized_count == 0) {
+    util::CancelCallbacks(env, kApiIdentifier);
     ReleaseClasses(env);
     util::Terminate(env);
   }
