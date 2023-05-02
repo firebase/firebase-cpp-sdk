@@ -82,5 +82,9 @@ void PhoneAuthProvider::Listener::OnCodeAutoRetrievalTimeOut(
 ///
 User::User() { auth_data_ = nullptr; }
 
+bool User::operator==(const User& user) const {
+  return auth_data_ == user.auth_data_;
+}
+
 }  // namespace auth
 }  // namespace firebase
