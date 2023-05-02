@@ -31,7 +31,7 @@ jobs:
         id: prepare_inputs
         shell: bash
         run: |
-          csv='${{github.event.inputs.runner_hostnames}}'
+          csv='${{github.event.inputs.runner_list}}'
           json="['$(echo ${csv} | sed s/,/\',\'/g)']"
           echo "runner_hostnames=${csv}" >> $GITHUB_OUTPUT
         
