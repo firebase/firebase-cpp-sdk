@@ -16,6 +16,8 @@
 
 #include "gma/src/common/native_ad_internal.h"
 
+#include <string>
+
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/internal/platform.h"

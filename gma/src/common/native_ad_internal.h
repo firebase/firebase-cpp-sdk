@@ -17,6 +17,9 @@
 #ifndef FIREBASE_GMA_SRC_COMMON_NATIVE_AD_INTERNAL_H_
 #define FIREBASE_GMA_SRC_COMMON_NATIVE_AD_INTERNAL_H_
 
+#include <string>
+#include <vector>
+
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "gma/src/common/gma_common.h"

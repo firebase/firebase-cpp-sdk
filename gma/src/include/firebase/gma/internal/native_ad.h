@@ -17,6 +17,9 @@
 #ifndef FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_INTERNAL_NATIVE_AD_H_
 #define FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_INTERNAL_NATIVE_AD_H_
 
+#include <string>
+#include <vector>
+
 #include "firebase/future.h"
 #include "firebase/gma/types.h"
 #include "firebase/internal/common.h"

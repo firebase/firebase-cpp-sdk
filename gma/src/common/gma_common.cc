@@ -29,6 +29,8 @@
 #include "gma/src/include/firebase/gma.h"
 #include "gma/src/include/firebase/gma/ad_view.h"
 #include "gma/src/include/firebase/gma/internal/native_ad.h"
+#include "gma/src/include/firebase/gma/interstitial_ad.h"
+#include "gma/src/include/firebase/gma/rewarded_ad.h"
 #include "gma/src/include/firebase/gma/types.h"
 
 FIREBASE_APP_REGISTER_CALLBACKS(

@@ -38,7 +38,7 @@ NativeAdImage& NativeAdImage::operator=(const NativeAdImage& obj) {
 
 /// Gets the image scale, which denotes the ratio of pixels to dp.
 double NativeAdImage::scale() const {
-  static const double empty;
+  static const double empty = 0.0;
   return empty;
 }
 
