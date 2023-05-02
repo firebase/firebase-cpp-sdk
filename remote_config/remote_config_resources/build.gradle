@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42,17 +42,15 @@ android {
     main {
       manifest.srcFile '../../android_build_files/AndroidManifest.xml'
       java {
-        srcDirs = ['../src_java/com/google/firebase/auth/internal/cpp']
+        srcDirs = ['../src_java/com/google/firebase/remoteconfig/internal/cpp']
       }
     }
   }
 }
 
 dependencies {
-  implementation platform('com.google.firebase:firebase-bom:32.0.0')
-  implementation 'com.google.firebase:firebase-analytics'
-  implementation 'com.google.firebase:firebase-auth'
-  implementation project(':app:app_resources')
+  implementation platform('com.google.firebase:firebase-bom:31.5.0')
+  implementation 'com.google.firebase:firebase-config'
 }
 
 afterEvaluate {
@@ -60,4 +58,4 @@ afterEvaluate {
 }
 
 apply from: "$rootDir/android_build_files/extract_and_dex.gradle"
-extractAndDexAarFile('auth_resources')
+extractAndDexAarFile('remote_config_resources')
