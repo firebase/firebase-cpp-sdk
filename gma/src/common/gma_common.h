@@ -26,6 +26,7 @@
 
 #include "app/src/cleanup_notifier.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "gma/src/include/firebase/gma/internal/native_ad.h"
 #include "gma/src/include/firebase/gma/types.h"
 
 namespace firebase {
@@ -40,7 +41,8 @@ extern const char* kAdUninitializedErrorMessage;
 
 namespace internal {
 class AdViewInternal;
-}
+class NativeAdInternal;
+}  // namespace internal
 
 // Determine whether GMA is initialized.
 bool IsInitialized();
@@ -104,7 +106,7 @@ struct FutureCallbackData {
   SafeFutureHandle<T> future_handle;
 };
 
-// Constructs a FutureCallbbackData instance to handle operations that return
+// Constructs a FutureCallbackData instance to handle operations that return
 // void Futures.
 FutureCallbackData<void>* CreateVoidFutureCallbackData(int fn_idx,
                                                        FutureData* future_data);
@@ -168,6 +170,19 @@ class GmaInternal {
   // This is done through the GmaInternal since it's a friend of AdViewInternal.
   static void UpdateAdViewInternalAdSizeDimensions(
       internal::AdViewInternal* ad_view_internal, int width, int height);
+
+  // Add to the NativeAdInternal's image assets, after the native ad has loaded.
+  // This is done through the GmaInternal since it's a friend of
+  // NativeAdInternal.
+  static void InsertNativeInternalImage(
+      internal::NativeAdInternal* native_ad_internal,
+      const NativeAdImageInternal& native_image_internal,
+      std::string image_type, bool clear_existing_images);
+
+  // Constructs and returns an NativeAdImage object given an
+  // NativeAdImageInternal object.
+  // static NativeAdImage CreateNativeAdImage(
+  //     const NativeAdImageInternal& native_image_internal);
 };
 
 }  // namespace gma

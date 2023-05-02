@@ -33,6 +33,11 @@ namespace internal {
 class NativeAdInternal;
 }  // namespace internal
 
+struct NativeAdImageInternal;
+
+class GmaInternal;
+class NativeAdImage;
+
 class NativeAd {
  public:
   NativeAd();
@@ -57,10 +62,46 @@ class NativeAd {
   /// LoadAd.
   Future<AdResult> LoadAdLastResult() const;
 
+  /// Returns the associated icon asset of the native ad.
+  const NativeAdImage icon() const;
+
+  /// Returns the associated image assets of the native ad.
+  const std::vector<NativeAdImage>& images() const;
+
  private:
   // An internal, platform-specific implementation object that this class uses
   // to interact with the Google Mobile Ads SDKs for iOS and Android.
   internal::NativeAdInternal* internal_;
+};
+
+class NativeAdImage {
+ public:
+  /// Default Constructor.
+  NativeAdImage();
+
+  /// Copy Constructor.
+  NativeAdImage(const NativeAdImage& source_native_image);
+
+  /// Returns the image scale, which denotes the ratio of pixels to dp.
+  double scale() const;
+
+  /// Returns the image uri.
+  const std::string& image_uri() const;
+
+  virtual ~NativeAdImage();
+
+  /// Assignment operator.
+  NativeAdImage& operator=(const NativeAdImage& obj);
+
+ private:
+  friend class NativeAd;
+  friend class GmaInternal;
+
+  explicit NativeAdImage(const NativeAdImageInternal& native_ad_image_internal);
+
+  // An internal, platform-specific implementation object that this class uses
+  // to interact with the Google Mobile Ads SDKs for iOS and Android.
+  NativeAdImageInternal* internal_;
 };
 
 }  // namespace gma

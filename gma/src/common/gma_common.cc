@@ -25,10 +25,10 @@
 #include "app/src/include/firebase/version.h"
 #include "app/src/util.h"
 #include "gma/src/common/ad_view_internal.h"
+#include "gma/src/common/native_ad_internal.h"
 #include "gma/src/include/firebase/gma.h"
 #include "gma/src/include/firebase/gma/ad_view.h"
-#include "gma/src/include/firebase/gma/interstitial_ad.h"
-#include "gma/src/include/firebase/gma/rewarded_ad.h"
+#include "gma/src/include/firebase/gma/internal/native_ad.h"
 #include "gma/src/include/firebase/gma/types.h"
 
 FIREBASE_APP_REGISTER_CALLBACKS(
@@ -93,6 +93,19 @@ void GmaInternal::UpdateAdViewInternalAdSizeDimensions(
     internal::AdViewInternal* ad_view_internal, int width, int height) {
   assert(ad_view_internal);
   ad_view_internal->update_ad_size_dimensions(width, height);
+}
+
+void GmaInternal::InsertNativeInternalImage(
+    internal::NativeAdInternal* native_ad_internal,
+    const NativeAdImageInternal& native_image_internal, std::string image_type,
+    bool clear_existing_images) {
+  assert(native_ad_internal);
+
+  if (clear_existing_images) {
+    native_ad_internal->clear_existing_images();
+  }
+  NativeAdImage icon_image = NativeAdImage(native_image_internal);
+  native_ad_internal->insert_image(icon_image, image_type);
 }
 
 // AdInspectorClosedListener

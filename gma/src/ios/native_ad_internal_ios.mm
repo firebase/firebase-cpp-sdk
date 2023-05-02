@@ -21,6 +21,7 @@
 
 #include "app/src/util_ios.h"
 #include "gma/src/ios/response_info_ios.h"
+#include "gma/src/ios/native_ad_image_ios.h"
 
 namespace firebase {
 namespace gma {
@@ -118,6 +119,18 @@ Future<AdResult> NativeAdInternalIOS::LoadAd(const char *ad_unit_id, const AdReq
 void NativeAdInternalIOS::NativeAdDidReceiveAd(GADNativeAd *ad) {
   firebase::MutexLock lock(mutex_);
   native_ad_ = ad;
+
+  NativeAdImageInternal icon_internal;
+  icon_internal.native_ad_image = ad.icon;
+  GmaInternal::InsertNativeInternalImage(this, icon_internal, std::string("icon"), true );
+
+  NSArray *gad_images = ad.images;
+  for(NSObject *gad_image in gad_images)
+  {
+    NativeAdImageInternal image_internal;
+    image_internal.native_ad_image = gad_image;
+    GmaInternal::InsertNativeInternalImage(this, image_internal,std::string("image"), false );
+  }
 
   if (ad_load_callback_data_ != nil) {
     CompleteLoadAdInternalSuccess(ad_load_callback_data_, ResponseInfoInternal({ad.responseInfo}));

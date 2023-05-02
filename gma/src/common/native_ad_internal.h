@@ -54,18 +54,38 @@ class NativeAdInternal {
   // Returns true if the NativeAd has been initialized.
   virtual bool is_initialized() const = 0;
 
+  // Returns the associated icon asset of the native ad.
+  const NativeAdImage icon() const { return icon_; }
+
+  // Returns the associated image assets of the native ad.
+  const std::vector<NativeAdImage>& images() const { return images_; }
+
  protected:
   friend class firebase::gma::NativeAd;
+  friend class firebase::gma::NativeAdImage;
+  friend class firebase::gma::GmaInternal;
 
   // Used by CreateInstance() to create an appropriate one for the current
   // platform.
   explicit NativeAdInternal(NativeAd* base);
+
+  // Invoked after a native ad has been loaded to fill native ad image assets.
+  void insert_image(const NativeAdImage& ad_image, std::string image_type);
+
+  // Invoked before filling native ad image assets.
+  void clear_existing_images();
 
   // A pointer back to the NativeAd class that created us.
   NativeAd* base_;
 
   // Future data used to synchronize asynchronous calls.
   FutureData future_data_;
+
+  // Tracks the native ad icon asset.
+  NativeAdImage icon_;
+
+  // Tracks the native ad image assets.
+  std::vector<NativeAdImage> images_;
 };
 
 }  // namespace internal
