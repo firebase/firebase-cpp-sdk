@@ -1311,22 +1311,40 @@ TEST_F(FirestoreTest, TerminateCanBeCalledMultipleTimes) {
 
 TEST_F(FirestoreTest, CanTerminateFirestoreInstance) {
   App* app = App::GetInstance();
-  InitResult init_result;
-  Firestore* db = Firestore::GetInstance(app, &init_result);
-  ASSERT_EQ(kInitResultSuccess, init_result);
+  InitResult init_result1;
+  auto db1 =
+      std::unique_ptr<Firestore>(Firestore::GetInstance(app, &init_result1));
+  ASSERT_EQ(kInitResultSuccess, init_result1);
 
-  EXPECT_THAT(db->Terminate(), FutureSucceeds());
-  delete db;
+  EXPECT_THAT(db1->Terminate(), FutureSucceeds());
+
+  InitResult init_result2;
+  auto db2 =
+      std::unique_ptr<Firestore>(Firestore::GetInstance(app, &init_result2));
+  ASSERT_EQ(kInitResultSuccess, init_result2);
+
+  EXPECT_NE(db1, db2);
+  db1.reset();
+  db2.reset();
 }
 
 TEST_F(FirestoreTest, CanTerminateNamedFirestoreInstance) {
   App* app = App::GetInstance();
-  InitResult init_result;
-  Firestore* db = Firestore::GetInstance(app, "foo", &init_result);
-  ASSERT_EQ(kInitResultSuccess, init_result);
+  InitResult init_result1;
+  auto db1 = std::unique_ptr<Firestore>(
+      Firestore::GetInstance(app, "foo", &init_result1));
+  ASSERT_EQ(kInitResultSuccess, init_result1);
 
-  EXPECT_THAT(db->Terminate(), FutureSucceeds());
-  delete db;
+  EXPECT_THAT(db1->Terminate(), FutureSucceeds());
+
+  InitResult init_result2;
+  auto db2 = std::unique_ptr<Firestore>(
+      Firestore::GetInstance(app, "foo", &init_result2));
+  ASSERT_EQ(kInitResultSuccess, init_result2);
+
+  EXPECT_NE(db1, db2);
+  db1.reset();
+  db2.reset();
 }
 
 TEST_F(FirestoreTest, MaintainsPersistenceAfterRestarting) {
@@ -1394,8 +1412,7 @@ TEST_F(FirestoreTest, RestartFirestoreLeadsToNewNamedDatabaseInstance) {
   }
 
   App* app = App::GetInstance();
-  Firestore* db1 = Firestore::GetInstance(app, "test-db");
-  firestore::LocateEmulator(db1);
+  Firestore* db1 = TestFirestoreWithDatabaseId(app->name(), "test-db");
 
   // Create a document that we can use for verification later.
   DocumentReference doc1 = db1->Collection("abc").Document();
@@ -1404,24 +1421,21 @@ TEST_F(FirestoreTest, RestartFirestoreLeadsToNewNamedDatabaseInstance) {
 
   // Terminate `db1` so that it will be removed from the instance cache.
   EXPECT_THAT(db1->Terminate(), FutureSucceeds());
+  DeleteFirestore(db1);
 
-  // Verify that GetInstance() returns a new instance since the old instance has
-  // been terminated.
-  Firestore* db2 = Firestore::GetInstance(app, "test-db");
-  firestore::LocateEmulator(db2);
+  // Verify that GetInstance() returns a new instance since the old instance
+  // has been terminated.
+  Firestore* db2 = TestFirestoreWithDatabaseId(app->name(), "test-db");
   EXPECT_NE(db1, db2);
 
-  // Verify that the new instance points to the same database by verifying that
-  // the document created with the old instance exists in the new instance.
+  // Verify that the new instance points to the same database by verifying
+  // that the document created with the old instance exists in the new instance.
   DocumentReference doc2 = db2->Document(doc_path);
   const DocumentSnapshot* snapshot2 = Await(doc2.Get(Source::kCache));
   ASSERT_NE(snapshot2, nullptr);
   EXPECT_TRUE(snapshot2->exists());
   EXPECT_THAT(snapshot2->GetData(),
               ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
-
-  delete db2;
-  delete db1;
 }
 
 TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOnline) {
@@ -1432,11 +1446,9 @@ TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOnline) {
 
   // Create two DB instances in the same app.
   App* app = App::GetInstance();
-  Firestore* db1 = Firestore::GetInstance(app, "db1");
-  firestore::LocateEmulator(db1);
+  Firestore* db1 = TestFirestoreWithDatabaseId(app->name(), "db1");
+  Firestore* db2 = TestFirestoreWithDatabaseId(app->name(), "db2");
 
-  Firestore* db2 = Firestore::GetInstance(app, "db2");
-  firestore::LocateEmulator(db2);
   EXPECT_NE(db1, db2);
 
   // Create a document in the first DB instance.
@@ -1455,9 +1467,6 @@ TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOnline) {
   const DocumentSnapshot* snapshot2 = Await(doc2.Get());
   EXPECT_FALSE(snapshot2->exists());
   EXPECT_THAT(snapshot2->GetData(), ContainerEq(MapFieldValue{}));
-
-  delete db2;
-  delete db1;
 }
 
 TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOffline) {
@@ -1468,11 +1477,10 @@ TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOffline) {
 
   // Create two DB instances in the same app.
   App* app = App::GetInstance();
-  Firestore* db1 = Firestore::GetInstance(app, "db1");
-  firestore::LocateEmulator(db1);
+  Firestore* db1 = TestFirestoreWithDatabaseId(app->name(), "db1");
 
-  Firestore* db2 = Firestore::GetInstance(app, "db2");
-  firestore::LocateEmulator(db2);
+  Firestore* db2 = TestFirestoreWithDatabaseId(app->name(), "db2");
+
   EXPECT_NE(db1, db2);
 
   DisableNetwork();
@@ -1493,9 +1501,6 @@ TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOffline) {
   const DocumentSnapshot* snapshot2 = Await(doc2.Get(Source::kCache));
   EXPECT_FALSE(snapshot2->exists());
   EXPECT_THAT(snapshot2->GetData(), ContainerEq(MapFieldValue{}));
-
-  delete db2;
-  delete db1;
 }
 
 TEST_F(FirestoreTest, CanStopListeningAfterTerminate) {
