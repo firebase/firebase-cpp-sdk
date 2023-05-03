@@ -639,6 +639,7 @@ code.
     - App Check: Adds support for Firebase App Check on Android, iOS, tvOS,
       and desktop platforms.
     - GMA (Android): Updated dependency to play-services-ads version 22.0.0.
+    - GMA (iOS): Updated dependency to Google-Mobile-Ads-SDK version 10.4.0.
     - Auth: Deprecated a number of methods, appending `_DEPRECATED` to some of
       their names. This is a breaking change; you must either modify your code
       to refer to the `_DEPRECATED` methods, or switch to the new methods, which
