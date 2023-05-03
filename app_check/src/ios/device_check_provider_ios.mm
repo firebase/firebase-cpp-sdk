@@ -86,13 +86,9 @@ AppCheckProvider* DeviceCheckProviderFactoryInternal::CreateProvider(App* app) {
 
 }  // namespace internal
 
-static DeviceCheckProviderFactory* g_device_check_check_provider_factory = nullptr;
-
 DeviceCheckProviderFactory* DeviceCheckProviderFactory::GetInstance() {
-  if (!g_device_check_check_provider_factory) {
-    g_device_check_check_provider_factory = new DeviceCheckProviderFactory();
-  }
-  return g_device_check_check_provider_factory;
+  static DeviceCheckProviderFactory g_device_check_check_provider_factory;
+  return &g_device_check_check_provider_factory;
 }
 
 DeviceCheckProviderFactory::DeviceCheckProviderFactory()
