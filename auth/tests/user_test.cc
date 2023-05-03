@@ -533,13 +533,13 @@ TEST_F(UserTest, TestComparisonOperator) {
   {
     // A invalid user
     User user_invalid;
-    EXPECT_NE(&firebase_user_, user_invalid);
+    EXPECT_NE(*firebase_user_, user_invalid);
   }
 
   {
     // Copied valid user
-    User user_copy(&firebase_user_);
-    EXPECT_EQ(&firebase_user_, user_copy);
+    User user_copy(*firebase_user_);
+    EXPECT_EQ(*firebase_user_, user_copy);
   }
 
   {
@@ -560,14 +560,14 @@ TEST_F(UserTest, TestComparisonOperator) {
     // Two copied of current_user_DEPRECATED()
     User* user1 = firebase_auth_->current_user_DEPRECATED();
     User* user2 = firebase_auth_->current_user_DEPRECATED();
-    EXPECT_EQ(&user1, &user2);
+    EXPECT_EQ(*user1, *user2);
   }
 
   {
     // User from deprecated API and new API
     User* user_deprecated = firebase_auth_->current_user_DEPRECATED();
     User user_new = firebase_auth_->current_user();
-    EXPECT_EQ(user_deprecated, user_new);
+    EXPECT_EQ(*user_deprecated, user_new);
   }
 }
 
