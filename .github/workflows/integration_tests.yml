@@ -17,7 +17,7 @@ on:
         required: true
       apis:
         description: 'CSV of apis to build and test'
-        default: 'analytics,auth,database,dynamic_links,firestore,functions,gma,installations,messaging,remote_config,storage'
+        default: 'analytics,app_check,auth,database,dynamic_links,firestore,functions,gma,installations,messaging,remote_config,storage'
         required: true
       operating_systems:
         description: 'CSV of VMs to run on'
@@ -187,7 +187,7 @@ jobs:
         # list. Then we can use fromJson to define the field in the matrix for the tests job.
         if [[ "${{ github.event.schedule }}" == "0 9 * * *" ]]; then
           # at 1am PST/2am PDT. Running integration tests and generate test report for all testapps except firestore
-          apis="analytics,auth,database,dynamic_links,functions,gma,installations,messaging,remote_config,storage"
+          apis="analytics,app_check,auth,database,dynamic_links,functions,gma,installations,messaging,remote_config,storage"
         elif [[ "${{ github.event.schedule }}" == "0 10 * * *" || "${{ github.event.schedule }}" == "0 11 * * *" ]]; then
           # at 2am PST/3am PDT and 3am PST/4am PDT. Running integration tests for firestore and generate test report.
           apis="firestore"
@@ -911,7 +911,7 @@ jobs:
             # ARM Mac requires a firestore.json to specify the host as 127.0.0.1 rather than localhost.
             # Otherwise the Firestore emulator cannot connect, probably because localhost is ipv6.
             echo '{"emulators":{"firestore":{"port":"8080","host":"127.0.0.1"}}}' > firebase.json
-
+            echo "::warning ::Firestore emulator version: $(firebase --version)"
             set -x
             firebase emulators:exec --only firestore --project demo-example \
               'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}" --cmd_prefix='"\"${cmd_prefix}\""

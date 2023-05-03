@@ -37,7 +37,6 @@
 #include "firebase/app_check/play_integrity_provider.h"
 #include "firebase/auth.h"
 #include "firebase/database.h"
-#include "firebase/firestore.h"
 #include "firebase/functions.h"
 #include "firebase/internal/platform.h"
 #include "firebase/storage.h"
@@ -57,6 +56,10 @@
 #endif  // FIREBASE_CONFIG
 
 namespace firebase_testapp_automated {
+
+// Your Firebase project's Debug token goes here.
+// You can get this from Firebase Console, in the App Check settings.
+const char kAppCheckDebugToken[] = "REPLACE_WITH_APP_CHECK_TOKEN";
 
 using app_framework::LogDebug;
 using app_framework::LogError;
@@ -124,18 +127,9 @@ class FirebaseAppCheckTest : public FirebaseTest {
   // Shut down Firebase Functions.
   void TerminateFunctions();
 
-  // Initialize Firestore.
-  void InitializeFirestore();
-  // Shut down Firestore.
-  void TerminateFirestore();
-
   firebase::database::DatabaseReference CreateWorkingPath(
       bool suppress_cleanup = false);
   void CleanupDatabase(int expected_error);
-
-  firebase::firestore::CollectionReference GetFirestoreCollection();
-  firebase::firestore::DocumentReference CreateFirestoreDoc();
-  void CleanupFirestore(int expected_error);
 
   firebase::App* app_;
   firebase::auth::Auth* auth_;
@@ -147,10 +141,6 @@ class FirebaseAppCheckTest : public FirebaseTest {
   firebase::storage::Storage* storage_;
 
   firebase::functions::Functions* functions_;
-
-  firebase::firestore::Firestore* firestore_;
-  std::string collection_name_;
-  std::vector<firebase::firestore::DocumentReference> firestore_cleanup_;
 };
 
 // Listens for token changed notifications
@@ -178,6 +168,10 @@ class TestAppCheckListener : public firebase::app_check::AppCheckListener {
 
 void FirebaseAppCheckTest::InitializeAppCheckWithDebug() {
   LogDebug("Initialize Firebase App Check with Debug Provider");
+
+  // Set the App Check Debug Token before providing the Factory.
+  firebase::app_check::DebugAppCheckProviderFactory::GetInstance()
+      ->SetDebugToken(kAppCheckDebugToken);
 
   firebase::app_check::AppCheck::SetAppCheckProviderFactory(
       firebase::app_check::DebugAppCheckProviderFactory::GetInstance());
@@ -228,9 +222,7 @@ FirebaseAppCheckTest::FirebaseAppCheckTest()
       database_(nullptr),
       storage_(nullptr),
       functions_(nullptr),
-      firestore_(nullptr),
-      database_cleanup_(),
-      firestore_cleanup_() {
+      database_cleanup_() {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 }
 
@@ -244,7 +236,6 @@ void FirebaseAppCheckTest::TearDown() {
   TerminateDatabase();
   TerminateStorage();
   TerminateFunctions();
-  TerminateFirestore();
   TerminateAuth();
   TerminateAppCheck();
   TerminateApp();
@@ -412,86 +403,6 @@ void FirebaseAppCheckTest::TerminateFunctions() {
   }
 
   ProcessEvents(100);
-}
-
-void FirebaseAppCheckTest::InitializeFirestore() {
-  LogDebug("Initializing Firebase Firestore.");
-
-  ::firebase::ModuleInitializer initializer;
-  initializer.Initialize(
-      app_, &firestore_, [](::firebase::App* app, void* target) {
-        LogDebug("Attempting to initialize Firebase Firestore.");
-        ::firebase::InitResult result;
-        *reinterpret_cast<firebase::firestore::Firestore**>(target) =
-            firebase::firestore::Firestore::GetInstance(app, &result);
-        return result;
-      });
-
-  WaitForCompletion(initializer.InitializeLastResult(), "InitializeFirestore");
-
-  ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
-      << initializer.InitializeLastResult().error_message();
-
-  LogDebug("Successfully initialized Firebase Firestore.");
-}
-
-void FirebaseAppCheckTest::TerminateFirestore() {
-  if (firestore_) {
-    LogDebug("Shutdown the Firestore library.");
-
-    CleanupFirestore(firebase::firestore::kErrorNone);
-
-    delete firestore_;
-    firestore_ = nullptr;
-  }
-
-  ProcessEvents(100);
-}
-
-firebase::firestore::CollectionReference
-FirebaseAppCheckTest::GetFirestoreCollection() {
-  if (collection_name_.empty()) {
-    // Generate a collection for the test data based on the time in
-    // milliseconds.
-    int64_t time_in_microseconds =
-        app_framework::GetCurrentTimeInMicroseconds();
-
-    char buffer[21] = {0};
-    snprintf(buffer, sizeof(buffer), "test%lld",
-             static_cast<long long>(time_in_microseconds));  // NOLINT
-    collection_name_ = buffer;
-  }
-  return firestore_->Collection(collection_name_.c_str());
-}
-
-firebase::firestore::DocumentReference
-FirebaseAppCheckTest::CreateFirestoreDoc() {
-  std::string path = std::string(
-      ::testing::UnitTest::GetInstance()->current_test_info()->name());
-  firebase::firestore::DocumentReference doc =
-      GetFirestoreCollection().Document(path);
-  // Only add to the cleanup set if it doesn't exist yet
-  if (find(firestore_cleanup_.begin(), firestore_cleanup_.end(), doc) ==
-      firestore_cleanup_.end()) {
-    firestore_cleanup_.push_back(doc);
-  }
-  return doc;
-}
-
-void FirebaseAppCheckTest::CleanupFirestore(int expected_error = 0) {
-  if (!firestore_cleanup_.empty()) {
-    LogDebug("Cleaning up documents.");
-    std::vector<firebase::Future<void>> cleanups;
-    cleanups.reserve(firestore_cleanup_.size());
-    for (int i = 0; i < firestore_cleanup_.size(); ++i) {
-      cleanups.push_back(firestore_cleanup_[i].Delete());
-    }
-    for (int i = 0; i < cleanups.size(); ++i) {
-      WaitForCompletion(cleanups[i], "Cleanup Firestore Document",
-                        expected_error);
-    }
-    firestore_cleanup_.clear();
-  }
 }
 
 void FirebaseAppCheckTest::SignIn() {
@@ -663,8 +574,8 @@ TEST_F(FirebaseAppCheckTest, TestDebugProviderValidToken) {
   ASSERT_NE(provider, nullptr);
   auto got_token_promise = std::make_shared<std::promise<void>>();
   auto token_callback{
-      [&got_token_promise](firebase::app_check::AppCheckToken token,
-                           int error_code, const std::string& error_message) {
+      [got_token_promise](firebase::app_check::AppCheckToken token,
+                          int error_code, const std::string& error_message) {
         EXPECT_EQ(firebase::app_check::kAppCheckErrorNone, error_code);
         EXPECT_EQ("", error_message);
         EXPECT_NE(0, token.expire_time_millis);
@@ -680,26 +591,12 @@ TEST_F(FirebaseAppCheckTest, TestDebugProviderValidToken) {
 TEST_F(FirebaseAppCheckTest, TestAppAttestProvider) {
   firebase::app_check::AppAttestProviderFactory* factory =
       firebase::app_check::AppAttestProviderFactory::GetInstance();
-#if FIREBASE_PLATFORM_IOS
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
   ASSERT_NE(factory, nullptr);
   InitializeApp();
   firebase::app_check::AppCheckProvider* provider =
       factory->CreateProvider(app_);
   ASSERT_NE(provider, nullptr);
-  auto got_token_promise = std::make_shared<std::promise<void>>();
-  auto token_callback{
-      [&got_token_promise](firebase::app_check::AppCheckToken token,
-                           int error_code, const std::string& error_message) {
-        EXPECT_EQ(firebase::app_check::kAppCheckErrorUnsupportedProvider,
-                  error_code);
-        EXPECT_NE("", error_message);
-        EXPECT_EQ("", token.token);
-        got_token_promise->set_value();
-      }};
-  provider->GetToken(token_callback);
-  auto got_token_future = got_token_promise->get_future();
-  ASSERT_EQ(std::future_status::ready,
-            got_token_future.wait_for(kGetTokenTimeout));
 #else
   EXPECT_EQ(factory, nullptr);
 #endif
@@ -708,25 +605,12 @@ TEST_F(FirebaseAppCheckTest, TestAppAttestProvider) {
 TEST_F(FirebaseAppCheckTest, TestDeviceCheckProvider) {
   firebase::app_check::DeviceCheckProviderFactory* factory =
       firebase::app_check::DeviceCheckProviderFactory::GetInstance();
-#if FIREBASE_PLATFORM_IOS
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
   ASSERT_NE(factory, nullptr);
   InitializeApp();
   firebase::app_check::AppCheckProvider* provider =
       factory->CreateProvider(app_);
   ASSERT_NE(provider, nullptr);
-  auto got_token_promise = std::make_shared<std::promise<void>>();
-  auto token_callback{
-      [&got_token_promise](firebase::app_check::AppCheckToken token,
-                           int error_code, const std::string& error_message) {
-        EXPECT_EQ(firebase::app_check::kAppCheckErrorUnknown, error_code);
-        EXPECT_NE("", error_message);
-        EXPECT_EQ("", token.token);
-        got_token_promise->set_value();
-      }};
-  provider->GetToken(token_callback);
-  auto got_token_future = got_token_promise->get_future();
-  ASSERT_EQ(std::future_status::ready,
-            got_token_future.wait_for(kGetTokenTimeout));
 #else
   EXPECT_EQ(factory, nullptr);
 #endif
@@ -744,33 +628,6 @@ TEST_F(FirebaseAppCheckTest, TestPlayIntegrityProvider) {
   EXPECT_NE(provider, nullptr);
 #else
   EXPECT_EQ(factory, nullptr);
-#endif
-}
-
-TEST_F(FirebaseAppCheckTest, TestDatabaseFailure) {
-  firebase::SetLogLevel(firebase::kLogLevelVerbose);
-  // Don't initialize App Check this time. Database should fail.
-  InitializeAppAuthDatabase();
-  firebase::database::DatabaseReference ref = CreateWorkingPath();
-  const char* test_name = test_info_->name();
-  firebase::Future<void> f = ref.Child(test_name).SetValue("test");
-#if FIREBASE_PLATFORM_ANDROID
-  // On Android the future will not complete. This is present in the
-  // underlying Android SDK, so work around it here.
-  ASSERT_EQ(f.status(), firebase::kFutureStatusPending);
-  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-  ASSERT_EQ(f.status(), firebase::kFutureStatusPending);
-  // Likewise, removal won't finish, so don't wait for it.
-  if (!database_cleanup_.empty()) {
-    LogDebug("Cleaning up Database...");
-    for (int i = 0; i < database_cleanup_.size(); ++i) {
-      database_cleanup_[i].RemoveValue();
-    }
-    database_cleanup_.clear();
-  }
-#else
-  WaitForCompletion(f, "SetString", firebase::database::kErrorDisconnected);
-  CleanupDatabase(firebase::database::kErrorOperationFailed);
 #endif
 }
 
@@ -918,24 +775,6 @@ TEST_F(FirebaseAppCheckTest, TestStorageReadFile) {
   LogDebug("  buffer: %s", buffer);
 }
 
-// Android doesn't yet work correctly when AppCheck provider factory is null
-// TODO(almostmatt): Investigate and fix this test for android
-#if !FIREBASE_PLATFORM_ANDROID
-TEST_F(FirebaseAppCheckTest, TestStorageReadFileUnauthenticated) {
-  // Don't set up AppCheck
-  InitializeAppAuthStorage();
-  firebase::storage::StorageReference ref = storage_->GetReference("test.txt");
-  EXPECT_TRUE(ref.is_valid());
-  const size_t kBufferSize = 128;
-  char buffer[kBufferSize];
-  memset(buffer, 0, sizeof(buffer));
-  firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
-  WaitForCompletion(future, "GetBytes",
-                    firebase::storage::kErrorUnauthenticated);
-  LogDebug("  buffer: %s", buffer);
-}
-#endif  // !FIREBASE_PLATFORM_ANDROID
-
 TEST_F(FirebaseAppCheckTest, TestFunctionsSuccess) {
   InitializeAppCheckWithDebug();
   InitializeApp();
@@ -954,228 +793,6 @@ TEST_F(FirebaseAppCheckTest, TestFunctionsSuccess) {
   if (result.is_map()) {
     EXPECT_EQ(result.map()["operationResult"], 12);
   }
-}
-
-TEST_F(FirebaseAppCheckTest, TestFunctionsFailure) {
-  // Don't set up AppCheck
-  InitializeApp();
-  InitializeFunctions();
-  firebase::functions::HttpsCallableReference ref;
-  ref = functions_->GetHttpsCallable("addNumbers");
-  firebase::Variant data(firebase::Variant::EmptyMap());
-  data.map()["firstNumber"] = 6;
-  data.map()["secondNumber"] = 8;
-  firebase::Future<firebase::functions::HttpsCallableResult> future;
-  future = ref.Call(data);
-  WaitForCompletion(future, "CallFunction addnumbers",
-                    firebase::functions::kErrorUnauthenticated);
-}
-
-TEST_F(FirebaseAppCheckTest, TestFirestoreSetGet) {
-  InitializeAppCheckWithDebug();
-  InitializeApp();
-  InitializeFirestore();
-
-  firebase::firestore::DocumentReference document = CreateFirestoreDoc();
-
-  WaitForCompletion(
-      document.Set(firebase::firestore::MapFieldValue{
-          {"str", firebase::firestore::FieldValue::String("foo")},
-          {"int", firebase::firestore::FieldValue::Integer(123)}}),
-      "document.Set");
-  firebase::Future<firebase::firestore::DocumentSnapshot> future =
-      document.Get(firebase::firestore::Source::kServer);
-  WaitForCompletion(future, "document.Get");
-  ASSERT_NE(future.result(), nullptr);
-  EXPECT_THAT(future.result()->GetData(),
-              UnorderedElementsAre(
-                  Pair("str", firebase::firestore::FieldValue::String("foo")),
-                  Pair("int", firebase::firestore::FieldValue::Integer(123))));
-}
-
-TEST_F(FirebaseAppCheckTest, TestFirestoreSetGetFailure) {
-  // Don't set up AppCheck
-  InitializeApp();
-  InitializeFirestore();
-
-  firebase::firestore::DocumentReference document = CreateFirestoreDoc();
-
-  // Both operations should fail because AppCheck isn't configured.
-  WaitForCompletion(
-      document.Set(firebase::firestore::MapFieldValue{
-          {"str", firebase::firestore::FieldValue::String("badfoo")},
-          {"int", firebase::firestore::FieldValue::Integer(456)}}),
-      "document.Set", firebase::firestore::kErrorPermissionDenied);
-  WaitForCompletion(document.Get(firebase::firestore::Source::kServer),
-                    "document.Get",
-                    firebase::firestore::kErrorPermissionDenied);
-
-  CleanupFirestore(firebase::firestore::kErrorPermissionDenied);
-}
-
-TEST_F(FirebaseAppCheckTest, TestFirestoreListener) {
-  // NOTE: This test assumes that the SnapshotListener will be called
-  // before the future returned by Set is completed. If this does
-  // start to fail because of changes to that logic, it will need to
-  // be rewritten to handle that.
-  InitializeAppCheckWithDebug();
-  InitializeApp();
-  InitializeFirestore();
-
-  firebase::firestore::DocumentReference document = CreateFirestoreDoc();
-
-  WaitForCompletion(
-      document.Set(firebase::firestore::MapFieldValue{
-          {"val", firebase::firestore::FieldValue::String("start")}}),
-      "document.Set 0");
-
-  struct ListenerSnapshots {
-    std::mutex mutex;
-    std::vector<firebase::firestore::MapFieldValue> snapshots;
-  };
-  auto listener_snapshots = std::make_shared<ListenerSnapshots>();
-  firebase::firestore::ListenerRegistration registration =
-      document.AddSnapshotListener(
-          [listener_snapshots](
-              const firebase::firestore::DocumentSnapshot& result,
-              firebase::firestore::Error error_code,
-              const std::string& error_message) {
-            std::lock_guard<std::mutex> lock(listener_snapshots->mutex);
-            SCOPED_TRACE("Listener called, current size: " +
-                         std::to_string(listener_snapshots->snapshots.size()));
-            EXPECT_EQ(error_code, firebase::firestore::kErrorOk);
-            EXPECT_EQ(error_message, "");
-            listener_snapshots->snapshots.push_back(result.GetData());
-          });
-
-  WaitForCompletion(
-      document.Set(firebase::firestore::MapFieldValue{
-          {"val", firebase::firestore::FieldValue::String("update")}}),
-      "document.Set 1");
-
-  registration.Remove();
-  WaitForCompletion(
-      document.Set(firebase::firestore::MapFieldValue{
-          {"val", firebase::firestore::FieldValue::String("final")}}),
-      "document.Set 2");
-  {
-    std::lock_guard<std::mutex> lock(listener_snapshots->mutex);
-    EXPECT_THAT(
-        listener_snapshots->snapshots,
-        testing::ElementsAre(
-            firebase::firestore::MapFieldValue{
-                {"val", firebase::firestore::FieldValue::String("start")}},
-            firebase::firestore::MapFieldValue{
-                {"val", firebase::firestore::FieldValue::String("update")}}));
-  }
-}
-
-TEST_F(FirebaseAppCheckTest, TestFirestoreListenerFailure) {
-  // Don't set up AppCheck
-  InitializeApp();
-  InitializeFirestore();
-
-  firebase::firestore::DocumentReference document = CreateFirestoreDoc();
-
-  std::mutex mutex;
-  std::condition_variable cond_var;
-  bool received_permission_denied = false;
-  firebase::firestore::ListenerRegistration registration =
-      document.AddSnapshotListener(
-          [&received_permission_denied, &mutex, &cond_var](
-              const firebase::firestore::DocumentSnapshot& result,
-              firebase::firestore::Error error_code,
-              const std::string& error_message) {
-            if (error_code != firebase::firestore::kErrorNone) {
-              // We expect one call with a Permission Denied error, from the
-              // server.
-              std::lock_guard<std::mutex> lock(mutex);
-              EXPECT_FALSE(received_permission_denied);
-              EXPECT_EQ(error_code,
-                        firebase::firestore::kErrorPermissionDenied);
-              received_permission_denied = true;
-              cond_var.notify_one();
-            }
-          });
-
-  WaitForCompletion(
-      document.Set(firebase::firestore::MapFieldValue{
-          {"val", firebase::firestore::FieldValue::String("transaction")}}),
-      "document.Set transaction", firebase::firestore::kErrorPermissionDenied);
-
-  registration.Remove();
-
-  WaitForCompletion(
-      document.Set(firebase::firestore::MapFieldValue{
-          {"val", firebase::firestore::FieldValue::String("final")}}),
-      "document.Set final", firebase::firestore::kErrorPermissionDenied);
-
-  {
-    // Use a condition variable to guarantee that the listener has received
-    // the call.
-    std::unique_lock<std::mutex> lock(mutex);
-    if (!received_permission_denied) {
-      cond_var.wait_for(lock, std::chrono::seconds(30));
-    }
-    EXPECT_TRUE(received_permission_denied);
-  }
-
-  CleanupFirestore(firebase::firestore::kErrorPermissionDenied);
-}
-
-TEST_F(FirebaseAppCheckTest, TestRunTransaction) {
-  InitializeAppCheckWithDebug();
-  InitializeApp();
-  InitializeFirestore();
-
-  firebase::firestore::DocumentReference document = CreateFirestoreDoc();
-
-  WaitForCompletion(
-      document.Set(firebase::firestore::MapFieldValue{
-          {"str", firebase::firestore::FieldValue::String("foo")}}),
-      "document.Set");
-
-  auto transaction_future = firestore_->RunTransaction(
-      [&](firebase::firestore::Transaction& transaction,
-          std::string&) -> firebase::firestore::Error {
-        transaction.Update(
-            document,
-            firebase::firestore::MapFieldValue{
-                {"int", firebase::firestore::FieldValue::Integer(123)}});
-        return firebase::firestore::kErrorOk;
-      });
-
-  WaitForCompletion(transaction_future, "firestore.RunTransaction");
-
-  // Confirm the updated doc is correct.
-  auto future = document.Get(firebase::firestore::Source::kServer);
-  WaitForCompletion(future, "document.Get");
-  ASSERT_NE(future.result(), nullptr);
-  EXPECT_THAT(future.result()->GetData(),
-              UnorderedElementsAre(
-                  Pair("str", firebase::firestore::FieldValue::String("foo")),
-                  Pair("int", firebase::firestore::FieldValue::Integer(123))));
-}
-
-TEST_F(FirebaseAppCheckTest, TestRunTransactionFailure) {
-  // Don't set up AppCheck
-  InitializeApp();
-  InitializeFirestore();
-
-  firebase::firestore::DocumentReference document = CreateFirestoreDoc();
-
-  auto transaction_future = firestore_->RunTransaction(
-      [](firebase::firestore::Transaction& transaction,
-         std::string&) -> firebase::firestore::Error {
-        // This might be called due to updating the cache, but in the end we
-        // only care that the transaction future is rejected by the server.
-        return firebase::firestore::kErrorOk;
-      });
-
-  WaitForCompletion(transaction_future, "firestore.RunTransaction",
-                    firebase::firestore::kErrorPermissionDenied);
-
-  CleanupFirestore(firebase::firestore::kErrorPermissionDenied);
 }
 
 }  // namespace firebase_testapp_automated

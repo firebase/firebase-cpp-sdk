@@ -1,0 +1,52 @@
+name: Update custom GitHub runners
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner_list:
+        description: 'Runner hostname to update (comma-separated)'
+        default: 'fplmac1,fplmac2'
+        required: true
+      update_tools:
+        description: 'Update tools?'
+        default: '1'
+        required: true
+      update_os:
+        description: 'Update OS?'
+        default: '0'
+        required: true
+
+env:
+  GITHUB_TOKEN: ${{ github.token }}
+
+jobs:
+  update_custom_runners:
+    name: update-custom-runner-${{ matrix.runner_hostname }}
+    runs-on: [self-hosted, '${{ matrix.runner_hostname }}' ]
+    if: ${{ github.event.input.runner_list }}
+
+    strategy:
+      matrix:
+        runner_hostname: ${{ github.event.input.runner_list }}
+
+    steps:
+      - name: Update tools
+        if: ${{ github.event.inputs.update_tools }}
+        shell: bash
+        run: |
+          echo "npm install -g firebase-tools"
+
+      - name: Check for OS updates
+        shell: bash
+        run: |
+          if softwareupdate -l -r | grep -q 'No new software available'
+          then
+            echo "::warning ::No OS updates available."
+          else
+            echo "softwareupdate -l -r | tr '\n' '|' | sed 's/|/%0A/g' | sed "
+        
+      - name: Update OS
+        if: ${{ github.event.inputs.update_os }}
+        shell: bash
+        run: |
+          echo "softwareupdate -i -r -f"
