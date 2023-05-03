@@ -406,12 +406,12 @@ void FirebaseAppCheckTest::TerminateFunctions() {
 }
 
 void FirebaseAppCheckTest::SignIn() {
-  if (auth_->current_user() != nullptr) {
+  if (auth_->current_user().is_valid()) {
     // Already signed in.
     return;
   }
   LogDebug("Signing in.");
-  firebase::Future<firebase::auth::User*> sign_in_future =
+  firebase::Future<firebase::auth::AuthResult> sign_in_future =
       auth_->SignInAnonymously();
   WaitForCompletion(sign_in_future, "SignInAnonymously");
   if (sign_in_future.error() != 0) {
@@ -426,15 +426,15 @@ void FirebaseAppCheckTest::SignOut() {
     // Auth is not set up.
     return;
   }
-  if (auth_->current_user() == nullptr) {
+  if (!auth_->current_user().is_valid()) {
     // Already signed out.
     return;
   }
-  if (auth_->current_user()->is_anonymous()) {
+  if (auth_->current_user().is_anonymous()) {
     // If signed in anonymously, delete the anonymous user.
-    WaitForCompletion(auth_->current_user()->Delete(), "DeleteAnonymousUser");
+    WaitForCompletion(auth_->current_user().Delete(), "DeleteAnonymousUser");
     // If there was a problem deleting the user, try to sign out at least.
-    if (auth_->current_user()) {
+    if (auth_->current_user().is_valid()) {
       auth_->SignOut();
     }
   } else {
@@ -443,11 +443,11 @@ void FirebaseAppCheckTest::SignOut() {
     auth_->SignOut();
 
     // Wait for the sign-out to finish.
-    while (auth_->current_user() != nullptr) {
+    while (auth_->current_user().is_valid()) {
       if (ProcessEvents(100)) break;
     }
   }
-  EXPECT_EQ(auth_->current_user(), nullptr);
+  EXPECT_FALSE(auth_->current_user().is_valid());
 }
 
 firebase::database::DatabaseReference FirebaseAppCheckTest::CreateWorkingPath(
@@ -559,7 +559,7 @@ TEST_F(FirebaseAppCheckTest, TestSignIn) {
   InitializeAppCheckWithDebug();
   InitializeApp();
   InitializeAuth();
-  EXPECT_NE(auth_->current_user(), nullptr);
+  EXPECT_TRUE(auth_->current_user().is_valid());
 }
 
 TEST_F(FirebaseAppCheckTest, TestDebugProviderValidToken) {
