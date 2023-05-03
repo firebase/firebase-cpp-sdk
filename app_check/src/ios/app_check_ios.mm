@@ -176,7 +176,7 @@ void AppCheckInternal::SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_ena
 }
 
 Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
-  SafeFutureHandle<AppCheckToken> handle =
+  __block SafeFutureHandle<AppCheckToken> handle =
       future()->SafeAlloc<AppCheckToken>(kAppCheckFnGetAppCheckToken);
 
   [impl()
