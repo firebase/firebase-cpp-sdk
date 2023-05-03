@@ -198,6 +198,12 @@ class User : public UserInfoInterface {
   /// Assignment operator.
   User& operator=(const User&);
 
+  /// Equality operator.
+  bool operator==(const User&) const;
+
+  /// Inequality operator.
+  bool operator!=(const User&) const;
+
   ~User();
 
   /// Returns whether this User object represents a valid user. Could be false
