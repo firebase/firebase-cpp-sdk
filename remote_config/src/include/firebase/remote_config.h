@@ -68,10 +68,10 @@ enum FetchFailureReason {
 
 /// @brief Describes the error codes returned by Remote Config.
 enum RemoteConfigError {
-  // No error.
-  kRemoteConfigErrorNone = 0,
   // Unimplemented error found.
   kRemoteConfigErrorUnimplemented = -1,
+  // No error.
+  kRemoteConfigErrorNone = 0,
   // Unable to make a connection to the Remote Config backend.
   kRemoteConfigErrorConfigUpdateStreamError,
   // The ConfigUpdate message was unparsable.
