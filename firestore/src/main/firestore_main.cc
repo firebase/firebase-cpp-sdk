@@ -191,6 +191,9 @@ Settings FirestoreInternal::settings() const {
   result.set_ssl_enabled(from.ssl_enabled());
   result.set_persistence_enabled(from.persistence_enabled());
   result.set_cache_size_bytes(from.cache_size_bytes());
+  // TODO(wuandy): This line should be deleted when legacy cache config is
+  // removed.
+  result.used_legacy_cache_settings_ = false;
 
   return result;
 }
@@ -199,7 +202,11 @@ void FirestoreInternal::set_settings(Settings from) {
   api::Settings settings;
   settings.set_host(std::move(from.host()));
   settings.set_ssl_enabled(from.is_ssl_enabled());
-  if (!from.used_legacy_cache_settings_) {
+  // TODO(wuandy): Checking `from.local_cache_settings_` is required, because
+  // FirestoreInternal::settings() overrides used_legacy_cache_settings_. All
+  // this special logic should go away when legacy cache config is removed.
+  if (!from.used_legacy_cache_settings_ &&
+      from.local_cache_settings_ != nullptr) {
     settings.set_local_cache_settings(
         from.local_cache_settings()->core_cache_settings());
   } else {

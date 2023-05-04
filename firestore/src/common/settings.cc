@@ -24,6 +24,7 @@
 #include "Firestore/core/src/util/hard_assert.h"
 #include "app/meta/move.h"
 #include "firebase/firestore/local_cache_settings.h"
+#include "firestore/src/common/exception_common.h"
 
 #if !defined(__ANDROID__)
 #include "Firestore/core/src/util/executor.h"
@@ -75,7 +76,12 @@ std::shared_ptr<LocalCacheSettings> Settings::local_cache_settings() const {
 }
 
 void Settings::set_local_cache_settings(const LocalCacheSettings& cache) {
-  HARD_ASSERT(!used_legacy_cache_settings_, "");
+  if (used_legacy_cache_settings_) {
+    SimpleThrowIllegalState(
+        "Cannot mix set_local_cache_settings() with legacy cache api like "
+        "set_persistence_enabled() or set_cache_size_bytes()");
+  }
+
   if (cache.kind() == api::LocalCacheSettings::Kind::kPersistent) {
     local_cache_settings_ = std::make_shared<PersistentCacheSettings>(
         *static_cast<const PersistentCacheSettings&>(cache).settings_internal_);
@@ -86,13 +92,23 @@ void Settings::set_local_cache_settings(const LocalCacheSettings& cache) {
 }
 
 void Settings::set_persistence_enabled(bool enabled) {
-  HARD_ASSERT(local_cache_settings() == nullptr, "");
+  if (local_cache_settings_ != nullptr) {
+    SimpleThrowIllegalState(
+        "Cannot mix legacy cache api set_persistence_enabled() with new cache "
+        "api set_local_cache_settings()");
+  }
+
   persistence_enabled_ = enabled;
   used_legacy_cache_settings_ = true;
 }
 
 void Settings::set_cache_size_bytes(int64_t value) {
-  HARD_ASSERT(local_cache_settings() == nullptr, "");
+  if (local_cache_settings_ != nullptr) {
+    SimpleThrowIllegalState(
+        "Cannot mix legacy cache api set_cache_size_bytes() with new cache api "
+        "set_local_cache_settings()");
+  }
+
   cache_size_bytes_ = value;
   used_legacy_cache_settings_ = true;
 }

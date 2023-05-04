@@ -52,7 +52,6 @@ class PersistentCacheSettings final : public LocalCacheSettings {
   PersistentCacheSettings(const PersistentCacheSettingsInternal& other);
 
   PersistentCacheSettings WithSizeBytes(int64_t size) const;
-  const CoreCacheSettings& core_cache_settings() const override;
   api::LocalCacheSettings::Kind kind() const override {
     return api::LocalCacheSettings::Kind::kPersistent;
   }
@@ -62,6 +61,8 @@ class PersistentCacheSettings final : public LocalCacheSettings {
 
   PersistentCacheSettings();
 
+  const CoreCacheSettings& core_cache_settings() const override;
+
   std::unique_ptr<PersistentCacheSettingsInternal> settings_internal_;
 };
 
@@ -70,7 +71,6 @@ class MemoryCacheSettings final : public LocalCacheSettings {
   static MemoryCacheSettings Create();
   ~MemoryCacheSettings();
 
-  const CoreCacheSettings& core_cache_settings() const override;
   api::LocalCacheSettings::Kind kind() const override {
     return api::LocalCacheSettings::Kind::kMemory;
   }
@@ -81,6 +81,7 @@ class MemoryCacheSettings final : public LocalCacheSettings {
   friend class Settings;
 
   MemoryCacheSettings();
+  const CoreCacheSettings& core_cache_settings() const override;
 
   std::unique_ptr<MemoryCacheSettingsInternal> settings_internal_;
 };

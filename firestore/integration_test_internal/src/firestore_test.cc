@@ -20,6 +20,11 @@
 #include <future>
 #include <memory>
 #include <stdexcept>
+#include "firebase/firestore/document_snapshot.h"
+#include "firebase/firestore/field_value.h"
+#include "firebase/firestore/local_cache_settings.h"
+#include "firebase/firestore/map_field_value.h"
+#include "firebase/firestore/source.h"
 
 #if defined(__ANDROID__)
 #include "android/firestore_integration_test_android.h"
@@ -1497,6 +1502,90 @@ TEST_F(FirestoreIntegrationTest, ClearPersistenceWhileRunningFails) {
   EXPECT_EQ(await_clear_persistence.status(),
             FutureStatus::kFutureStatusComplete);
   EXPECT_EQ(await_clear_persistence.error(), Error::kErrorFailedPrecondition);
+}
+
+TEST_F(FirestoreIntegrationTest, LegacyCacheConfigForMemoryCacheWorks) {
+  auto* db = TestFirestore("legacy_memory_cache");
+  auto settings = db->settings();
+  settings.set_persistence_enabled(false);
+  db->set_settings(std::move(settings));
+
+  Await(db->Document("rooms/eros")
+            .Set(MapFieldValue{{"desc", FieldValue::String("eros")}}));
+
+  auto get_future = db->Document("rooms/eros").Get(Source::kCache);
+  const DocumentSnapshot* snapshot = Await(get_future);
+  EXPECT_EQ(get_future.status(), FutureStatus::kFutureStatusComplete);
+  EXPECT_FALSE(snapshot->is_valid());
+  snapshot->id();
+}
+
+TEST_F(FirestoreIntegrationTest, LegacyCacheConfigForPersistenceCacheWorks) {
+  auto* db = TestFirestore("legacy_persistent_cache");
+  auto settings = db->settings();
+  settings.set_persistence_enabled(true);
+  db->set_settings(std::move(settings));
+
+  Await(db->Document("rooms/eros")
+            .Set(MapFieldValue{{"desc", FieldValue::String("eros")}}));
+
+  auto get_future = db->Document("rooms/eros").Get(Source::kCache);
+  const DocumentSnapshot* snapshot = Await(get_future);
+  EXPECT_EQ(get_future.status(), FutureStatus::kFutureStatusComplete);
+  EXPECT_TRUE(snapshot->is_valid());
+  EXPECT_THAT(snapshot->GetData(),
+              ContainerEq(MapFieldValue{{"desc", FieldValue::String("eros")}}));
+}
+
+TEST_F(FirestoreIntegrationTest, NewCacheConfigForMemoryCacheWorks) {
+  auto* db = TestFirestore("new_memory_cache");
+  auto settings = db->settings();
+  settings.set_local_cache_settings(MemoryCacheSettings::Create());
+  db->set_settings(std::move(settings));
+
+  Await(db->Document("rooms/eros")
+            .Set(MapFieldValue{{"desc", FieldValue::String("eros")}}));
+
+  auto get_future = db->Document("rooms/eros").Get(Source::kCache);
+  const DocumentSnapshot* snapshot = Await(get_future);
+  EXPECT_EQ(get_future.status(), FutureStatus::kFutureStatusComplete);
+  EXPECT_FALSE(snapshot->is_valid());
+}
+
+TEST_F(FirestoreIntegrationTest, NewCacheConfigForPersistenceCacheWorks) {
+  auto* db = TestFirestore("new_persistent_cache");
+  auto settings = db->settings();
+  settings.set_local_cache_settings(
+      PersistentCacheSettings::Create().WithSizeBytes(50 * 1024 * 1024));
+  db->set_settings(std::move(settings));
+
+  Await(db->Document("rooms/eros")
+            .Set(MapFieldValue{{"desc", FieldValue::String("eros")}}));
+
+  auto get_future = db->Document("rooms/eros").Get(Source::kCache);
+  const DocumentSnapshot* snapshot = Await(get_future);
+  EXPECT_EQ(get_future.status(), FutureStatus::kFutureStatusComplete);
+  EXPECT_TRUE(snapshot->is_valid());
+  EXPECT_THAT(snapshot->GetData(),
+              ContainerEq(MapFieldValue{{"desc", FieldValue::String("eros")}}));
+}
+
+TEST_F(FirestoreIntegrationTest, CannotMixNewAndLegacyCacheConfig) {
+  {
+    auto* db = TestFirestore("mixing_1");
+    auto settings = db->settings();
+    settings.set_local_cache_settings(
+        PersistentCacheSettings::Create().WithSizeBytes(50 * 1024 * 1024));
+    EXPECT_THROW(settings.set_cache_size_bytes(0), std::logic_error);
+  }
+  {
+    auto* db = TestFirestore("mixing_2");
+    auto settings = db->settings();
+    settings.set_persistence_enabled(false);
+    EXPECT_THROW(
+        settings.set_local_cache_settings(MemoryCacheSettings::Create()),
+        std::logic_error);
+  }
 }
 
 // Note: this test only exists in C++.
