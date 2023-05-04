@@ -491,7 +491,6 @@ class Firestore {
   friend class IncludesTest;
   template <typename T, typename U, typename F>
   friend struct CleanupFn;
-  friend class FirestoreTest;
 
   friend class csharp::ApiHeaders;
   friend class csharp::TransactionManager;

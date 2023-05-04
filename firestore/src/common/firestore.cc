@@ -180,11 +180,14 @@ Firestore* Firestore::CreateFirestore(App* app,
 
   MutexLock lock(*g_firestores_lock);
 
-  Firestore* from_cache = FindFirestoreInCache(app, nullptr, init_result_out);
+  const char* database_id = internal->database_id().database_id().c_str();
+  Firestore* from_cache =
+      FindFirestoreInCache(app, database_id, init_result_out);
   SIMPLE_HARD_ASSERT(from_cache == nullptr,
                      "Firestore must not be created already");
 
-  return AddFirestoreToCache(new Firestore(internal), nullptr, init_result_out);
+  return AddFirestoreToCache(new Firestore(internal), database_id,
+                             init_result_out);
 }
 
 Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,

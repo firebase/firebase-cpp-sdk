@@ -254,7 +254,7 @@ class FirestoreIntegrationTest : public testing::Test {
   Firestore* TestFirestore(const std::string& name = kDefaultAppName) const;
 
   // Returns a Firestore instance for an app with the given `name`, associated
-  // with the database with the given `project_id`.
+  // with the database with the given `project_id` and default `database_id`.
   Firestore* TestFirestoreWithProjectId(
       const std::string& name,
       const std::string& project_id,

@@ -16,6 +16,7 @@
 
 #include "firebase/firestore.h"
 
+#include <firestore/src/main/converter_main.h>
 #include <algorithm>
 #include <future>
 #include <memory>
@@ -65,7 +66,7 @@ using ::testing::HasSubstr;
 class FirestoreTest : public FirestoreIntegrationTest {
  protected:
   const std::string GetFirestoreDatabaseId(Firestore* firestore) {
-    return firestore->internal_->database_id().database_id();
+    return GetInternal(firestore)->database_id().database_id();
   }
 };
 
@@ -100,14 +101,14 @@ TEST_F(FirestoreTest, GetInstanceWithNamedDatabase) {
   App* app = this->app();
   EXPECT_NE(nullptr, app);
 
-  InitResult result;
-  Firestore* instance = Firestore::GetInstance(app, "foo", &result);
-  EXPECT_EQ(kInitResultSuccess, result);
+  InitResult init_result;
+  auto instance = std::unique_ptr<Firestore>(
+      Firestore::GetInstance(app, "foo", &init_result));
+  ASSERT_EQ(kInitResultSuccess, init_result);
+
   EXPECT_NE(nullptr, instance);
   EXPECT_EQ(app, instance->app());
-  EXPECT_EQ(GetFirestoreDatabaseId(instance), "foo");
-
-  delete instance;
+  EXPECT_EQ(GetFirestoreDatabaseId(instance.get()), "foo");
 }
 
 // Sanity test for stubs.
@@ -1330,21 +1331,13 @@ TEST_F(FirestoreTest, CanTerminateFirestoreInstance) {
 
 TEST_F(FirestoreTest, CanTerminateNamedFirestoreInstance) {
   App* app = App::GetInstance();
-  InitResult init_result1;
-  auto db1 = std::unique_ptr<Firestore>(
-      Firestore::GetInstance(app, "foo", &init_result1));
-  ASSERT_EQ(kInitResultSuccess, init_result1);
+  Firestore* db1 = TestFirestoreWithDatabaseId(app->name(), "foo");
 
   EXPECT_THAT(db1->Terminate(), FutureSucceeds());
+  DeleteFirestore(db1);
 
-  InitResult init_result2;
-  auto db2 = std::unique_ptr<Firestore>(
-      Firestore::GetInstance(app, "foo", &init_result2));
-  ASSERT_EQ(kInitResultSuccess, init_result2);
-
+  Firestore* db2 = TestFirestoreWithDatabaseId(app->name(), "foo");
   EXPECT_NE(db1, db2);
-  db1.reset();
-  db2.reset();
 }
 
 TEST_F(FirestoreTest, MaintainsPersistenceAfterRestarting) {
@@ -1407,7 +1400,7 @@ TEST_F(FirestoreTest, RestartFirestoreLeadsToNewInstance) {
 
 TEST_F(FirestoreTest, RestartFirestoreLeadsToNewNamedDatabaseInstance) {
   // TODO(Mila): Remove the emulator env check after prod supports multiDB.
-  if (!firestore::IsUsingFirestoreEmulator()) {
+  if (!IsUsingFirestoreEmulator()) {
     GTEST_SKIP();
   }
 
@@ -1440,7 +1433,7 @@ TEST_F(FirestoreTest, RestartFirestoreLeadsToNewNamedDatabaseInstance) {
 
 TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOnline) {
   // TODO(Mila): Remove the emulator env check after prod supports multiDB.
-  if (!firestore::IsUsingFirestoreEmulator()) {
+  if (!IsUsingFirestoreEmulator()) {
     GTEST_SKIP();
   }
 
@@ -1471,7 +1464,7 @@ TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOnline) {
 
 TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOffline) {
   // TODO(Mila): Remove the emulator env check after prod supports multiDB.
-  if (!firestore::IsUsingFirestoreEmulator()) {
+  if (!IsUsingFirestoreEmulator()) {
     GTEST_SKIP();
   }
 
@@ -1483,7 +1476,6 @@ TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOffline) {
 
   EXPECT_NE(db1, db2);
 
-  DisableNetwork();
   DisableNetwork();
 
   // Create a document in the first DB instance.

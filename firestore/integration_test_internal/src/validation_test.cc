@@ -497,7 +497,7 @@ TEST_F(ValidationTest,
 }
 
 TEST_F(ValidationTest,
-       differentFirestoreGetInstanceCanGetSameDefaultFirestoreInstance) {
+       DifferentFirestoreGetInstanceCanGetSameDefaultFirestoreInstance) {
   Firestore* instance1 = Firestore::GetInstance();
   Firestore* instance2 = Firestore::GetInstance(app());
   Firestore* instance3 = Firestore::GetInstance("(default)");
@@ -513,7 +513,7 @@ TEST_F(ValidationTest,
 
 TEST_F(
     ValidationTest,
-    differentFirestoreGetInstanceWithSameDatabaseNameShouldGetSameFirestoreInstance) {
+    DifferentFirestoreGetInstanceWithSameDatabaseNameShouldGetSameFirestoreInstance) {
   Firestore* instance1 = Firestore::GetInstance("foo");
   Firestore* instance2 = Firestore::GetInstance(app(), "foo");
   EXPECT_EQ(instance1, instance2);
@@ -521,7 +521,7 @@ TEST_F(
 
 TEST_F(
     ValidationTest,
-    differentFirestoreGetInstanceWithDifferentDatabaseNameShouldGetDifferentFirestoreInstance) {
+    DifferentFirestoreGetInstanceWithDifferentDatabaseNameShouldGetDifferentFirestoreInstance) {
   {
     Firestore* instance1 = Firestore::GetInstance();
     Firestore* instance2 = Firestore::GetInstance("bar");
