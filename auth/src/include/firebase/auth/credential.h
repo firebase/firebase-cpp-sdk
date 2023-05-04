@@ -513,7 +513,7 @@ class PhoneAuthProvider {
     Listener();
     virtual ~Listener();
 
-    /// @deprecated This method has been deprecated. Please use @ref
+    /// @deprecated This method has been deprecated. Please use
     /// OnVerificationCompleted(PhoneAuthCredential) instead.
     ///
     /// @brief Phone number auto-verification succeeded.
@@ -590,7 +590,7 @@ class PhoneAuthProvider {
     PhoneListenerData* data_;
   };
 
-  /// @deprecated This is a deprecated method. Please use @ref
+  /// @deprecated This is a deprecated method. Please use
   /// VerifyPhoneNumber(const PhoneAuthOptions&, Listener*) instead.
   ///
   /// Start the phone number authentication operation.
@@ -637,7 +637,7 @@ class PhoneAuthProvider {
   PhoneAuthCredential GetCredential(const char* verification_id,
                                     const char* verification_code);
 
-  /// @deprecated This is a deprecated method. Please use @ref GetCredential
+  /// @deprecated This is a deprecated method. Please use GetCredential
   /// instead.
   ///
   /// Generate a credential for the given phone number.
