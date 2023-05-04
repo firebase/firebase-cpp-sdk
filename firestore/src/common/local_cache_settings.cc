@@ -48,6 +48,10 @@ PersistentCacheSettings PersistentCacheSettings::WithSizeBytes(
       settings_internal_->core_settings().WithSizeBytes(size)}};
 }
 
+const CoreCacheSettings& PersistentCacheSettings::core_cache_settings() const {
+  return settings_internal_->core_settings();
+}
+
 MemoryCacheSettings MemoryCacheSettings::Create() { return {}; }
 
 MemoryCacheSettings::MemoryCacheSettings() {
@@ -61,5 +65,10 @@ MemoryCacheSettings::MemoryCacheSettings(
     const MemoryCacheSettingsInternal& other) {
   settings_internal_ = std::make_unique<MemoryCacheSettingsInternal>(other);
 }
+
+const CoreCacheSettings& MemoryCacheSettings::core_cache_settings() const {
+  return settings_internal_->core_settings();
+}
+
 }  // namespace firestore
 }  // namespace firebase

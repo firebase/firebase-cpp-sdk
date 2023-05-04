@@ -23,6 +23,7 @@
 
 #include "Firestore/core/src/api/document_reference.h"
 #include "Firestore/core/src/api/query_core.h"
+#include "Firestore/core/src/api/settings.h"
 #include "Firestore/core/src/credentials/empty_credentials_provider.h"
 #include "Firestore/core/src/model/database_id.h"
 #include "Firestore/core/src/model/resource_path.h"
@@ -198,8 +199,13 @@ void FirestoreInternal::set_settings(Settings from) {
   api::Settings settings;
   settings.set_host(std::move(from.host()));
   settings.set_ssl_enabled(from.is_ssl_enabled());
-  settings.set_persistence_enabled(from.is_persistence_enabled());
-  settings.set_cache_size_bytes(from.cache_size_bytes());
+  if (!from.used_legacy_cache_settings_) {
+    settings.set_local_cache_settings(
+        from.local_cache_settings()->core_cache_settings());
+  } else {
+    settings.set_persistence_enabled(from.is_persistence_enabled());
+    settings.set_cache_size_bytes(from.cache_size_bytes());
+  }
   firestore_core_->set_settings(settings);
 
   std::unique_ptr<Executor> user_executor = from.CreateExecutor();

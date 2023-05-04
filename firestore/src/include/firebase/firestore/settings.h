@@ -17,6 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_SETTINGS_H_
 #define FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_SETTINGS_H_
 
+#include "firebase/firestore/local_cache_settings.h"
 #if defined(__OBJC__)
 #include <dispatch/dispatch.h>
 #endif
@@ -47,6 +48,7 @@ class Executor;
 #endif
 
 class FirestoreInternal;
+class LocalCacheSettings;
 
 /** Settings used to configure a Firestore instance. */
 class Settings final {
@@ -136,6 +138,9 @@ class Settings final {
    */
   void set_ssl_enabled(bool enabled);
 
+  std::shared_ptr<LocalCacheSettings> local_cache_settings() const;
+  void set_local_cache_settings(const LocalCacheSettings& cache);
+
   /**
    * Enables or disables local persistent storage.
    *
@@ -213,6 +218,10 @@ class Settings final {
 
   std::string host_;
   bool ssl_enabled_ = true;
+
+  std::shared_ptr<LocalCacheSettings> local_cache_settings_ = nullptr;
+
+  bool used_legacy_cache_settings_ = false;
   bool persistence_enabled_ = true;
   int64_t cache_size_bytes_ = kDefaultCacheSizeBytes;
 

@@ -21,42 +21,66 @@
 #include <memory>
 
 #include "Firestore/core/src/api/settings.h"
+#include "firestore/src/main/firestore_main.h"
 
 namespace firebase {
 namespace firestore {
 
+using CoreCacheSettings = api::LocalCacheSettings;
 using CoreMemorySettings = api::MemoryCacheSettings;
 using CorePersistentSettings = api::PersistentCacheSettings;
 
+class Settings;
 class PersistentCacheSettingsInternal;
 class MemoryCacheSettingsInternal;
 
 class LocalCacheSettings {
-  virtual ~LocalCacheSettings() = 0;
-};
-
-class PersistentCacheSettings : public LocalCacheSettings {
  public:
-  static PersistentCacheSettings Create();
-
-  PersistentCacheSettings WithSizeBytes(int64_t size) const;
+  virtual api::LocalCacheSettings::Kind kind() const = 0;
+  virtual ~LocalCacheSettings() = default;
 
  private:
-  PersistentCacheSettings();
-  PersistentCacheSettings(const PersistentCacheSettingsInternal& other);
+  friend class FirestoreInternal;
+
+  virtual const CoreCacheSettings& core_cache_settings() const = 0;
+};
+
+class PersistentCacheSettings final : public LocalCacheSettings {
+ public:
+  static PersistentCacheSettings Create();
   ~PersistentCacheSettings();
+  PersistentCacheSettings(const PersistentCacheSettingsInternal& other);
+
+  PersistentCacheSettings WithSizeBytes(int64_t size) const;
+  const CoreCacheSettings& core_cache_settings() const override;
+  api::LocalCacheSettings::Kind kind() const override {
+    return api::LocalCacheSettings::Kind::kPersistent;
+  }
+
+ private:
+  friend class Settings;
+
+  PersistentCacheSettings();
 
   std::unique_ptr<PersistentCacheSettingsInternal> settings_internal_;
 };
 
-class MemoryCacheSettings : public LocalCacheSettings {
+class MemoryCacheSettings final : public LocalCacheSettings {
  public:
   static MemoryCacheSettings Create();
+  ~MemoryCacheSettings();
+
+  const CoreCacheSettings& core_cache_settings() const override;
+  api::LocalCacheSettings::Kind kind() const override {
+    return api::LocalCacheSettings::Kind::kMemory;
+  }
+
+  MemoryCacheSettings(const MemoryCacheSettingsInternal& other);
 
  private:
+  friend class Settings;
+
   MemoryCacheSettings();
-  MemoryCacheSettings(const MemoryCacheSettingsInternal& other);
-  ~MemoryCacheSettings();
 
   std::unique_ptr<MemoryCacheSettingsInternal> settings_internal_;
 };

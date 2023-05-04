@@ -41,6 +41,7 @@ set(common_SRCS
     src/common/hard_assert_common.h
     src/common/listener_registration.cc
     src/common/load_bundle_task_progress.cc
+    src/common/local_cache_settings.cc
     src/common/macros.h
     src/common/query.cc
     src/common/query_snapshot.cc

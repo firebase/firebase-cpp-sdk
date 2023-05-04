@@ -29,7 +29,8 @@ using CorePersistentSettings = api::PersistentCacheSettings;
 
 class LocalCacheSettingsInternal {};
 
-class PersistentCacheSettingsInternal : public LocalCacheSettingsInternal {
+class PersistentCacheSettingsInternal final
+    : public LocalCacheSettingsInternal {
  public:
   explicit PersistentCacheSettingsInternal(
       const CorePersistentSettings& core_settings)
@@ -43,7 +44,7 @@ class PersistentCacheSettingsInternal : public LocalCacheSettingsInternal {
   CorePersistentSettings settings_;
 };
 
-class MemoryCacheSettingsInternal : public LocalCacheSettingsInternal {
+class MemoryCacheSettingsInternal final : public LocalCacheSettingsInternal {
  public:
   explicit MemoryCacheSettingsInternal(const CoreMemorySettings& core_settings)
       : settings_(std::move(core_settings)) {}

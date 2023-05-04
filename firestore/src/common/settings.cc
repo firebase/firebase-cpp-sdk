@@ -16,10 +16,14 @@
 
 #include "firestore/src/include/firebase/firestore/settings.h"
 
+#include <memory>
 #include <ostream>
 #include <sstream>
 
+#include "Firestore/core/src/api/settings.h"
+#include "Firestore/core/src/util/hard_assert.h"
 #include "app/meta/move.h"
+#include "firebase/firestore/local_cache_settings.h"
 
 #if !defined(__ANDROID__)
 #include "Firestore/core/src/util/executor.h"
@@ -51,12 +55,46 @@ void Settings::set_host(std::string host) { host_ = firebase::Move(host); }
 
 void Settings::set_ssl_enabled(bool enabled) { ssl_enabled_ = enabled; }
 
+std::shared_ptr<LocalCacheSettings> Settings::local_cache_settings() const {
+  if (used_legacy_cache_settings_) {
+    if (is_persistence_enabled()) {
+      return std::make_shared<PersistentCacheSettings>(
+          *PersistentCacheSettings::Create()
+               .WithSizeBytes(cache_size_bytes())
+               .settings_internal_);
+    } else {
+      return std::make_shared<MemoryCacheSettings>(
+          *MemoryCacheSettings::Create().settings_internal_);
+    }
+  } else if (local_cache_settings_ != nullptr) {
+    return local_cache_settings_;
+  }
+
+  return std::make_shared<PersistentCacheSettings>(
+      *PersistentCacheSettings::Create().settings_internal_);
+}
+
+void Settings::set_local_cache_settings(const LocalCacheSettings& cache) {
+  HARD_ASSERT(!used_legacy_cache_settings_, "");
+  if (cache.kind() == api::LocalCacheSettings::Kind::kPersistent) {
+    local_cache_settings_ = std::make_shared<PersistentCacheSettings>(
+        *static_cast<const PersistentCacheSettings&>(cache).settings_internal_);
+  } else {
+    local_cache_settings_ = std::make_shared<MemoryCacheSettings>(
+        *static_cast<const MemoryCacheSettings&>(cache).settings_internal_);
+  }
+}
+
 void Settings::set_persistence_enabled(bool enabled) {
+  HARD_ASSERT(local_cache_settings() == nullptr, "");
   persistence_enabled_ = enabled;
+  used_legacy_cache_settings_ = true;
 }
 
 void Settings::set_cache_size_bytes(int64_t value) {
+  HARD_ASSERT(local_cache_settings() == nullptr, "");
   cache_size_bytes_ = value;
+  used_legacy_cache_settings_ = true;
 }
 
 std::string Settings::ToString() const {

@@ -47,6 +47,7 @@ class Firestore;
 class ListenerRegistrationInternal;
 class Transaction;
 class WriteBatch;
+class Settings;
 
 namespace util {
 class Executor;
