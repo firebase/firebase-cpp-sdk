@@ -109,6 +109,7 @@ TEST_F(FirestoreTest, GetInstanceWithNamedDatabase) {
   EXPECT_NE(nullptr, instance);
   EXPECT_EQ(app, instance->app());
   EXPECT_EQ(GetFirestoreDatabaseId(instance.get()), "foo");
+  instance.reset();
 }
 
 // Sanity test for stubs.
@@ -1398,14 +1399,17 @@ TEST_F(FirestoreTest, RestartFirestoreLeadsToNewInstance) {
   delete db1;
 }
 
-TEST_F(FirestoreTest, RestartFirestoreLeadsToNewNamedDatabaseInstance) {
-  // TODO(Mila): Remove the emulator env check after prod supports multiDB.
+TEST_F(FirestoreTest,
+       CanReadDocsAfterRestartFirestoreAndCreateNewNamedDatabaseInstance) {
+  // TODO(Mila): Remove the emulator env check and LocateEmulator call after
+  // prod supports multiDB.
   if (!IsUsingFirestoreEmulator()) {
     GTEST_SKIP();
   }
 
   App* app = App::GetInstance();
-  Firestore* db1 = TestFirestoreWithDatabaseId(app->name(), "test-db");
+  auto db1 = std::unique_ptr<Firestore>(Firestore::GetInstance(app, "test-db"));
+  firestore::LocateEmulator(db1.get());
 
   // Create a document that we can use for verification later.
   DocumentReference doc1 = db1->Collection("abc").Document();
@@ -1414,21 +1418,24 @@ TEST_F(FirestoreTest, RestartFirestoreLeadsToNewNamedDatabaseInstance) {
 
   // Terminate `db1` so that it will be removed from the instance cache.
   EXPECT_THAT(db1->Terminate(), FutureSucceeds());
-  DeleteFirestore(db1);
 
-  // Verify that GetInstance() returns a new instance since the old instance
-  // has been terminated.
-  Firestore* db2 = TestFirestoreWithDatabaseId(app->name(), "test-db");
+  // Verify that GetInstance() returns a new instance since the old instance has
+  // been terminated.
+  auto db2 = std::unique_ptr<Firestore>(Firestore::GetInstance(app, "test-db"));
+  firestore::LocateEmulator(db2.get());
   EXPECT_NE(db1, db2);
 
-  // Verify that the new instance points to the same database by verifying
-  // that the document created with the old instance exists in the new instance.
+  // Verify that the new instance points to the same database by verifying that
+  // the document created with the old instance exists in the new instance.
   DocumentReference doc2 = db2->Document(doc_path);
   const DocumentSnapshot* snapshot2 = Await(doc2.Get(Source::kCache));
   ASSERT_NE(snapshot2, nullptr);
   EXPECT_TRUE(snapshot2->exists());
   EXPECT_THAT(snapshot2->GetData(),
               ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
+
+  db1.reset();
+  db2.reset();
 }
 
 TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOnline) {
