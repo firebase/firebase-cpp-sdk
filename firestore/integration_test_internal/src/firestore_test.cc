@@ -109,7 +109,6 @@ TEST_F(FirestoreTest, GetInstanceWithNamedDatabase) {
   EXPECT_NE(nullptr, instance);
   EXPECT_EQ(app, instance->app());
   EXPECT_EQ(GetFirestoreDatabaseId(instance.get()), "foo");
-  instance.reset();
 }
 
 // Sanity test for stubs.
@@ -1326,18 +1325,22 @@ TEST_F(FirestoreTest, CanTerminateFirestoreInstance) {
   ASSERT_EQ(kInitResultSuccess, init_result2);
 
   EXPECT_NE(db1, db2);
-  db1.reset();
-  db2.reset();
 }
 
 TEST_F(FirestoreTest, CanTerminateNamedFirestoreInstance) {
   App* app = App::GetInstance();
-  Firestore* db1 = TestFirestoreWithDatabaseId(app->name(), "foo");
+  InitResult init_result1;
+  auto db1 = std::unique_ptr<Firestore>(
+      Firestore::GetInstance(app, "foo", &init_result1));
+  ASSERT_EQ(kInitResultSuccess, init_result1);
 
   EXPECT_THAT(db1->Terminate(), FutureSucceeds());
-  DeleteFirestore(db1);
 
-  Firestore* db2 = TestFirestoreWithDatabaseId(app->name(), "foo");
+  InitResult init_result2;
+  auto db2 = std::unique_ptr<Firestore>(
+      Firestore::GetInstance(app, "foo", &init_result2));
+  ASSERT_EQ(kInitResultSuccess, init_result2);
+
   EXPECT_NE(db1, db2);
 }
 
@@ -1433,9 +1436,6 @@ TEST_F(FirestoreTest,
   EXPECT_TRUE(snapshot2->exists());
   EXPECT_THAT(snapshot2->GetData(),
               ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
-
-  db1.reset();
-  db2.reset();
 }
 
 TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOnline) {
