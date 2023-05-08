@@ -61,6 +61,7 @@
 #include "firestore/src/android/write_batch_android.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/jni/arena_ref.h"
 #include "firestore/src/jni/array.h"
 #include "firestore/src/jni/array_list.h"
 #include "firestore/src/jni/boolean.h"
@@ -315,6 +316,7 @@ bool FirestoreInternal::Initialize(App* app) {
     jni::List::Initialize(loader);
     jni::Long::Initialize(loader);
     jni::Map::Initialize(loader);
+    jni::ArenaRef::Initialize(loader);
 
     InitializeFirestore(loader);
     InitializeFirestoreTasks(loader);

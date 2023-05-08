@@ -17,12 +17,45 @@
 #ifndef FIREBASE_FIRESTORE_SRC_JNI_ARENA_REF_H_
 #define FIREBASE_FIRESTORE_SRC_JNI_ARENA_REF_H_
 
+#include <cstdint>
+
 #include <jni.h>
+
+#include "firestore/src/jni/env.h"
+#include "firestore/src/jni/loader.h"
+#include "firestore/src/jni/object.h"
+#include "firestore/src/jni/ownership.h"
 
 namespace firebase {
 namespace firestore {
 namespace jni {
 
+class ArenaRef final {
+ public:
+  ArenaRef() = default;
+  ArenaRef(Env&, jobject, AdoptExisting);
+
+  ~ArenaRef();
+
+  ArenaRef(const ArenaRef&) = delete;
+  ArenaRef(ArenaRef&&) = delete;
+  ArenaRef* operator=(const ArenaRef&) = delete;
+  ArenaRef* operator=(ArenaRef&&) = delete;
+
+  static void Initialize(Loader&);
+
+  bool is_valid() const {
+    return valid_;
+  }
+
+  Local<Object> Get(Env&) const;
+
+ private:
+  ArenaRef(JNIEnv*, jobject);
+
+  bool valid_ = false;
+  jlong id_ = -1;
+};
 
 }  // namespace jni
 }  // namespace firestore
