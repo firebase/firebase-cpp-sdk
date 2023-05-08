@@ -77,7 +77,7 @@ TEST_F(ArenaRefTest, DefaultConstructorShouldCreateInvalidObject) {
 TEST_F(ArenaRefTest, AdoptingConstructorShouldAcceptNull) {
   Env env;
 
-  ArenaRef arena_ref_with_null_object(env, nullptr, AdoptExisting::kYes);
+  ArenaRef arena_ref_with_null_object(env, nullptr);
 
   EXPECT_EQ(arena_ref_with_null_object.get(env).get(), nullptr);
 }
@@ -86,7 +86,7 @@ TEST_F(ArenaRefTest, AdoptingConstructorShouldAcceptNonNull) {
   Env env;
   jstring java_string = NewJavaString(env, "hello world");
 
-  ArenaRef arena_ref_with_non_null_object(env, java_string, AdoptExisting::kYes);
+  ArenaRef arena_ref_with_non_null_object(env, java_string);
 
   EXPECT_TRUE(env.get()->IsSameObject(arena_ref_with_non_null_object.get(env).get(), java_string));
 }
@@ -104,7 +104,7 @@ TEST_F(ArenaRefTest, CopyConstructorShouldCopyInvalidInstance) {
 TEST_F(ArenaRefTest, CopyConstructorShouldCopyValidInstance) {
   Env env;
   jstring java_string = NewJavaString(env, "hello world");
-  ArenaRef arena_ref_copy_src(env, java_string, AdoptExisting::kYes);
+  ArenaRef arena_ref_copy_src(env, java_string);
 
   ArenaRef arena_ref_copy_dest(arena_ref_copy_src);
 
@@ -117,7 +117,7 @@ TEST_F(ArenaRefTest, CopyConstructorShouldCopyValidInstance) {
 TEST_F(ArenaRefTest, CopyConstructorShouldCreateAnIndependentInstance) {
   Env env;
   jstring java_string = NewJavaString(env, "hello world");
-  auto arena_ref_copy_src = std::make_unique<ArenaRef>(env, java_string, AdoptExisting::kYes);
+  auto arena_ref_copy_src = std::make_unique<ArenaRef>(env, java_string);
 
   auto arena_ref_copy_dest1 = std::make_unique<ArenaRef>(*arena_ref_copy_src);
   auto arena_ref_copy_dest2 = std::make_unique<ArenaRef>(*arena_ref_copy_src);
@@ -158,7 +158,7 @@ TEST_F(ArenaRefTest, MoveConstructorShouldMoveInvalidInstance) {
 TEST_F(ArenaRefTest, MoveConstructorShouldMoveValidInstance) {
   Env env;
   jstring java_string = NewJavaString(env, "hello world");
-  ArenaRef arena_ref_move_src(env, java_string, AdoptExisting::kYes);
+  ArenaRef arena_ref_move_src(env, java_string);
 
   ArenaRef arena_ref_move_dest(std::move(arena_ref_move_src));
 
@@ -170,7 +170,7 @@ TEST_F(ArenaRefTest, MoveConstructorShouldMoveValidInstance) {
 TEST_F(ArenaRefTest, MoveConstructorShouldCreateAnIndependentInstance) {
   Env env;
   jstring java_string = NewJavaString(env, "hello world");
-  auto arena_ref_move_src = std::make_unique<ArenaRef>(env, java_string, AdoptExisting::kYes);
+  auto arena_ref_move_src = std::make_unique<ArenaRef>(env, java_string);
 
   auto arena_ref_move_dest = std::make_unique<ArenaRef>(std::move(*arena_ref_move_src));
 
@@ -194,7 +194,7 @@ TEST_F(ArenaRefTest, CopyAssignmentOperatorShouldCopyInvalidToInvalid) {
 TEST_F(ArenaRefTest, CopyAssignmentOperatorShouldCopyValidToInvalid) {
   Env env;
   jstring java_string = NewJavaString(env, "hello world");
-  ArenaRef arena_ref_copy_src(env, java_string, AdoptExisting::kYes);
+  ArenaRef arena_ref_copy_src(env, java_string);
   ArenaRef originally_invalid_arena_ref_copy_dest;
 
   originally_invalid_arena_ref_copy_dest = arena_ref_copy_src;
@@ -209,7 +209,7 @@ TEST_F(ArenaRefTest, CopyAssignmentOperatorShouldCopyInvalidToValid) {
   Env env;
   jstring java_string = NewJavaString(env, "hello world");
   ArenaRef invalid_arena_ref_copy_src;
-  ArenaRef originally_valid_arena_ref_copy_dest(env, java_string, AdoptExisting::kYes);
+  ArenaRef originally_valid_arena_ref_copy_dest(env, java_string);
 
   originally_valid_arena_ref_copy_dest = invalid_arena_ref_copy_src;
 
@@ -221,8 +221,8 @@ TEST_F(ArenaRefTest, CopyAssignmentOperatorShouldCopyValidToValid) {
   Env env;
   jstring java_string_src = NewJavaString(env, "hello world 1");
   jstring java_string_dest = NewJavaString(env, "hello world 2");
-  ArenaRef arena_ref_copy_src(env, java_string_src, AdoptExisting::kYes);
-  ArenaRef arena_ref_copy_dest(env, java_string_dest, AdoptExisting::kYes);
+  ArenaRef arena_ref_copy_src(env, java_string_src);
+  ArenaRef arena_ref_copy_dest(env, java_string_dest);
 
   arena_ref_copy_dest = arena_ref_copy_src;
 
@@ -243,7 +243,7 @@ TEST_F(ArenaRefTest, CopyAssignmentOperatorShouldCopySelfWhenInvalid) {
 TEST_F(ArenaRefTest, CopyAssignmentOperatorShouldCopySelfWhenValid) {
   Env env;
   jstring java_string = NewJavaString(env, "hello world");
-  ArenaRef arena_ref(env, java_string, AdoptExisting::kYes);
+  ArenaRef arena_ref(env, java_string);
 
   arena_ref = arena_ref;
 
@@ -255,7 +255,7 @@ TEST_F(ArenaRefTest, CopyAssignmentOperatorShouldKeepOriginallyInvalidInstancesI
   Env env;
   jstring java_string = NewJavaString(env, "hello world");
   auto invalid_arena_ref_copy_src = std::make_unique<ArenaRef>();
-  ArenaRef valid_arena_ref(env, java_string, AdoptExisting::kYes);
+  ArenaRef valid_arena_ref(env, java_string);
 
   auto arena_ref_copy_dest1 = std::make_unique<ArenaRef>(*invalid_arena_ref_copy_src);
   auto arena_ref_copy_dest2 = std::make_unique<ArenaRef>(*invalid_arena_ref_copy_src);
@@ -289,7 +289,7 @@ TEST_F(ArenaRefTest, CopyAssignmentOperatorShouldKeepOriginallyInvalidInstancesI
 TEST_F(ArenaRefTest, CopyAssignmentOperatorShouldKeepOriginallyValidInstancesIndependent) {
   Env env;
   jstring java_string = NewJavaString(env, "hello world");
-  auto arena_ref_copy_src = std::make_unique<ArenaRef>(env, java_string, AdoptExisting::kYes);
+  auto arena_ref_copy_src = std::make_unique<ArenaRef>(env, java_string);
   ArenaRef invalid_arena_ref;
 
   auto arena_ref_copy_dest1 = std::make_unique<ArenaRef>(*arena_ref_copy_src);
@@ -350,7 +350,7 @@ TEST_F(ArenaRefTest, MoveAssignmentOperatorShouldMoveInvalidToInvalid) {
 TEST_F(ArenaRefTest, MoveAssignmentOperatorShouldMoveValidToInvalid) {
   Env env;
   jstring java_string = NewJavaString(env, "hello world");
-  ArenaRef arena_ref_move_src(env, java_string, AdoptExisting::kYes);
+  ArenaRef arena_ref_move_src(env, java_string);
   ArenaRef originally_invalid_arena_ref_move_dest;
 
   originally_invalid_arena_ref_move_dest = std::move(arena_ref_move_src);
@@ -364,7 +364,7 @@ TEST_F(ArenaRefTest, MoveAssignmentOperatorShouldMoveInvalidToValid) {
   Env env;
   jstring java_string = NewJavaString(env, "hello world");
   ArenaRef invalid_arena_ref_move_src;
-  ArenaRef originally_valid_arena_ref_move_dest(env, java_string, AdoptExisting::kYes);
+  ArenaRef originally_valid_arena_ref_move_dest(env, java_string);
 
   originally_valid_arena_ref_move_dest = std::move(invalid_arena_ref_move_src);
 
@@ -377,8 +377,8 @@ TEST_F(ArenaRefTest, MoveAssignmentOperatorShouldMoveValidToValid) {
   Env env;
   jstring java_string_src = NewJavaString(env, "hello world 1");
   jstring java_string_dest = NewJavaString(env, "hello world 2");
-  ArenaRef arena_ref_move_src(env, java_string_src, AdoptExisting::kYes);
-  ArenaRef arena_ref_move_dest(env, java_string_dest, AdoptExisting::kYes);
+  ArenaRef arena_ref_move_src(env, java_string_src);
+  ArenaRef arena_ref_move_dest(env, java_string_dest);
 
   arena_ref_move_dest = std::move(arena_ref_move_src);
 
@@ -399,7 +399,7 @@ TEST_F(ArenaRefTest, MoveAssignmentOperatorShouldMoveSelfWhenInvalid) {
 TEST_F(ArenaRefTest, MoveAssignmentOperatorShouldMoveSelfWhenValid) {
   Env env;
   jstring java_string = NewJavaString(env, "hello world");
-  ArenaRef arena_ref(env, java_string, AdoptExisting::kYes);
+  ArenaRef arena_ref(env, java_string);
 
   arena_ref = std::move(arena_ref);
 
@@ -411,7 +411,7 @@ TEST_F(ArenaRefTest, MoveAssignmentOperatorShouldKeepOriginallyInvalidInstancesI
   Env env;
   jstring java_string = NewJavaString(env, "hello world");
   auto invalid_arena_ref_move_src = std::make_unique<ArenaRef>();
-  ArenaRef valid_arena_ref(env, java_string, AdoptExisting::kYes);
+  ArenaRef valid_arena_ref(env, java_string);
 
   auto arena_ref_move_dest1 = std::make_unique<ArenaRef>(std::move(*invalid_arena_ref_move_src));
   auto arena_ref_move_dest2 = std::make_unique<ArenaRef>(std::move(*arena_ref_move_dest1));
@@ -446,9 +446,9 @@ TEST_F(ArenaRefTest, MoveAssignmentOperatorShouldKeepOriginallyValidInstancesInd
   Env env;
   jstring java_string1 = NewJavaString(env, "hello world 1");
   jstring java_string2 = NewJavaString(env, "hello world2");
-  auto arena_ref_move_src = std::make_unique<ArenaRef>(env, java_string1, AdoptExisting::kYes);
+  auto arena_ref_move_src = std::make_unique<ArenaRef>(env, java_string1);
   const ArenaRef invalid_arena_ref;
-  const ArenaRef valid_arena_ref(env, java_string2, AdoptExisting::kYes);
+  const ArenaRef valid_arena_ref(env, java_string2);
 
   auto arena_ref_move_dest1 = std::make_unique<ArenaRef>(std::move(*arena_ref_move_src));
   auto arena_ref_move_dest2 = std::make_unique<ArenaRef>(std::move(*arena_ref_move_dest1));

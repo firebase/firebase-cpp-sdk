@@ -367,5 +367,14 @@ TEST_F(FieldValueTest, TestIncrementChoosesTheCorrectType) {
   // clang-format on
 }
 
+// Regression test for https://github.com/firebase/firebase-unity-sdk/issues/569
+// As long as this test doesn't crash, then it passes.
+TEST_F(FieldValueTest, GlobalRefsExhaustion) {
+  std::vector<FieldValue> numbers;
+  for (int i=0; i<60000; i++) {
+    numbers.push_back(FieldValue::Integer(i));
+  }
+}
+
 }  // namespace firestore
 }  // namespace firebase

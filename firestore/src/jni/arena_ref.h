@@ -21,10 +21,8 @@
 
 #include <jni.h>
 
-#include "firestore/src/jni/env.h"
-#include "firestore/src/jni/loader.h"
+#include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/object.h"
-#include "firestore/src/jni/ownership.h"
 
 namespace firebase {
 namespace firestore {
@@ -33,7 +31,7 @@ namespace jni {
 class ArenaRef final {
  public:
   ArenaRef() = default;
-  ArenaRef(Env&, jobject, AdoptExisting);
+  ArenaRef(Env&, jobject);
 
   ~ArenaRef();
 
@@ -49,10 +47,9 @@ class ArenaRef final {
   }
 
   Local<Object> get(Env&) const;
+  void reset(Env& env, const Object&);
 
  private:
-  ArenaRef(JNIEnv*, jobject);
-
   bool valid_ = false;
   jlong id_ = -1;
 };

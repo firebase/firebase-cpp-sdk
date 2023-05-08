@@ -33,6 +33,10 @@ public final class ObjectArena {
     return map.get(id);
   }
 
+  public synchronized void update(long id, Object object) {
+    map.put(id, object);
+  }
+
   public synchronized void remove(long id) {
     map.remove(id);
   }

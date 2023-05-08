@@ -25,6 +25,7 @@
 #include "firebase/firestore/timestamp.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
+#include "firestore/src/jni/arena_ref.h"
 #include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/ownership.h"
@@ -87,7 +88,7 @@ class FieldValueInternal {
   std::vector<FieldValue> array_value() const;
   MapFieldValue map_value() const;
 
-  const jni::Global<jni::Object>& ToJava() const { return object_; }
+  jni::Local<jni::Object> ToJava() const;
 
   static FieldValue Delete();
   static FieldValue ServerTimestamp();
@@ -96,7 +97,7 @@ class FieldValueInternal {
   static FieldValue IntegerIncrement(int64_t by_value);
   static FieldValue DoubleIncrement(double by_value);
 
-  static jni::Object ToJava(const FieldValue& value);
+  static jni::Local<jni::Object> ToJava(const FieldValue& value);
 
  private:
   friend class FirestoreInternal;
@@ -107,7 +108,10 @@ class FieldValueInternal {
   // This performs a run-time `instanceof` check to verify that the object
   // has the type `T::GetClass()`.
   template <typename T>
-  T Cast(jni::Env& env, Type type) const;
+  jni::Local<T> Cast(jni::Env& env, Type type) const;
+
+  template <>
+  jni::Local<jni::String> Cast<jni::String>(jni::Env& env, Type type) const;
 
   static jni::Local<jni::Array<jni::Object>> MakeArray(
       jni::Env& env, const std::vector<FieldValue>& elements);
@@ -116,26 +120,13 @@ class FieldValueInternal {
 
   static jni::Env GetEnv();
 
-  jni::Global<jni::Object> object_;
+  jni::ArenaRef object_;
 
   // Below are cached type information. It is costly to get type info from
   // jobject of Object type. So we cache it if we have already known.
   mutable Type cached_type_ = Type::kNull;
   mutable std::shared_ptr<std::vector<uint8_t>> cached_blob_;
 };
-
-inline jni::Object ToJava(const FieldValue& value) {
-  // This indirection is required to make use of the `friend` in FieldValue.
-  return FieldValueInternal::ToJava(value);
-}
-
-inline jobject ToJni(const FieldValueInternal* value) {
-  return value->ToJava().get();
-}
-
-inline jobject ToJni(const FieldValueInternal& value) {
-  return value.ToJava().get();
-}
 
 }  // namespace firestore
 }  // namespace firebase
