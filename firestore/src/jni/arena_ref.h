@@ -38,9 +38,9 @@ class ArenaRef final {
   ~ArenaRef();
 
   ArenaRef(const ArenaRef&);
-  ArenaRef(ArenaRef&&);
-  ArenaRef* operator=(const ArenaRef&) = delete;
-  ArenaRef* operator=(ArenaRef&&) = delete;
+  ArenaRef(ArenaRef&&) noexcept;
+  ArenaRef& operator=(const ArenaRef&);
+  ArenaRef& operator=(ArenaRef&&) = delete;
 
   static void Initialize(Loader&);
 

@@ -36,7 +36,8 @@ struct ObjectArenaMethodIds {
   jmethodID get{};
   jmethodID put{};
   jmethodID remove{};
-  jmethodID dup{};
+  jmethodID dup1{};
+  jmethodID dup2{};
   bool initialized = false;
 };
 
@@ -78,7 +79,8 @@ void LoadObjectArenaMethodIds(JNIEnv* env) {
   kObjectArenaMethodIds.get = LoadObjectArenaMethodId(env, "get", "(J)Ljava/lang/Object;");
   kObjectArenaMethodIds.put = LoadObjectArenaMethodId(env, "put", "(Ljava/lang/Object;)J");
   kObjectArenaMethodIds.remove = LoadObjectArenaMethodId(env, "remove", "(J)V");
-  kObjectArenaMethodIds.dup = LoadObjectArenaMethodId(env, "dup", "(J)J");
+  kObjectArenaMethodIds.dup1 = LoadObjectArenaMethodId(env, "dup", "(J)J");
+  kObjectArenaMethodIds.dup2 = LoadObjectArenaMethodId(env, "dup", "(JJ)V");
   if (!env->ExceptionCheck()) {
     kObjectArenaMethodIds.initialized = true;
   }
@@ -106,7 +108,7 @@ void LoadObjectArenaSingletonInstance(JNIEnv* env) {
 
 jlong DupArenaRefId(jlong id) {
   Env env;
-  return env.get()->CallLongMethod(kObjectArenaSingletonInstance, kObjectArenaMethodIds.dup, id);
+  return env.get()->CallLongMethod(kObjectArenaSingletonInstance, kObjectArenaMethodIds.dup1, id);
 }
 
 }  // namespace
@@ -142,7 +144,42 @@ ArenaRef::~ArenaRef() {
 ArenaRef::ArenaRef(const ArenaRef& other) : valid_(other.valid_), id_(DupArenaRefId(other.id_)) {
 }
 
-ArenaRef::ArenaRef(ArenaRef&& other) : valid_(std::exchange(other.valid_, false)), id_(other.id_) {
+ArenaRef::ArenaRef(ArenaRef&& other) noexcept : valid_(std::exchange(other.valid_, false)), id_(other.id_) {
+}
+
+ArenaRef& ArenaRef::operator=(const ArenaRef& other) {
+  if (&other == this) {
+    return *this;
+  }
+
+  Env env;
+  JNIEnv* jni_env = env.get();
+
+  if (!other.is_valid()) {
+    if (valid_) {
+      jni_env->CallVoidMethod(kObjectArenaSingletonInstance, kObjectArenaMethodIds.remove, id_);
+      if (jni_env->ExceptionCheck()) {
+        jni_env->ExceptionDescribe();
+        firebase::LogAssert("ArenaRef::operator=(const ArenaRef&) ObjectArena.remove() failed");
+      }
+    }
+    valid_ = false;
+  } else if (valid_) {
+    jni_env->CallVoidMethod(kObjectArenaSingletonInstance, kObjectArenaMethodIds.dup2, other.id_, id_);
+    if (jni_env->ExceptionCheck()) {
+      jni_env->ExceptionDescribe();
+      firebase::LogAssert("ArenaRef::operator=(const ArenaRef&) ObjectArena.dup(long, long) failed");
+    }
+  } else {
+    id_ = jni_env->CallLongMethod(kObjectArenaSingletonInstance, kObjectArenaMethodIds.dup1, other.id_);
+    if (jni_env->ExceptionCheck()) {
+      jni_env->ExceptionDescribe();
+      firebase::LogAssert("ArenaRef::operator=(const ArenaRef&) ObjectArena.dup(long) failed");
+    }
+    valid_ = true;
+  }
+
+  return *this;
 }
 
 Local<Object> ArenaRef::get(Env& env) const {

@@ -43,4 +43,8 @@ public final class ObjectArena {
     return newId;
   }
 
+  public synchronized void dup(long srcId, long destId) {
+    map.put(destId, map.get(srcId));
+  }
+
 }
