@@ -16,7 +16,6 @@
 
 #include "firestore/src/jni/arena_ref.h"
 
-#include <string>
 #include <vector>
 
 #include "android/firestore_integration_test_android.h"
@@ -37,19 +36,36 @@ class ArenaRefTest : public FirestoreAndroidIntegrationTest {
  public:
   ~ArenaRefTest() override {
     Env env;
-    for (jstring java_string : java_strings_) {
-      env.get()->DeleteGlobalRef(java_string);
+    for (jobject created_java_object : created_java_objects_) {
+      env.get()->DeleteGlobalRef(created_java_object);
     }
   }
 
   jstring NewJavaString(Env& env, const char* contents_modified_utf8) {
-    jstring java_string = env.get()->NewStringUTF(contents_modified_utf8);
-    java_strings_.push_back(java_string);
-    return java_string;
+    SCOPED_TRACE("NewJavaString");
+    JNIEnv* jni_env = env.get();
+
+    jstring java_string_localref = jni_env->NewStringUTF(contents_modified_utf8);
+    if (jni_env->ExceptionCheck()) {
+      jni_env->ExceptionDescribe();
+      ADD_FAILURE() << "NewStringUTF(\"" << contents_modified_utf8 << "\") failed";
+      return {};
+    }
+
+    jobject java_string_globalref = jni_env->NewGlobalRef(java_string_localref);
+    jni_env->DeleteLocalRef(java_string_localref);
+    if (jni_env->ExceptionCheck()) {
+      jni_env->ExceptionDescribe();
+      ADD_FAILURE() << "NewGlobalRef(\"" << contents_modified_utf8 << "\") failed";
+      return {};
+    }
+
+    created_java_objects_.push_back(java_string_globalref);
+    return (jstring)java_string_globalref;
   }
 
  private:
-  std::vector<jstring> java_strings_;
+  std::vector<jobject> created_java_objects_;
 };
 
 TEST_F(ArenaRefTest, DefaultConstructorShouldCreateInvalidObject) {
@@ -58,7 +74,6 @@ TEST_F(ArenaRefTest, DefaultConstructorShouldCreateInvalidObject) {
 }
 
 TEST_F(ArenaRefTest, AdoptingConstructorShouldAcceptNull) {
-  GTEST_SKIP();
   Env env;
 
   ArenaRef arena_ref_with_null_object(env, nullptr, AdoptExisting::kYes);
