@@ -151,7 +151,6 @@ TEST_F(ArenaRefTest, MoveConstructorShouldMoveInvalidInstance) {
 
   ArenaRef invalid_arena_ref_move_dest(std::move(invalid_arena_ref_move_src));
 
-  // NOLINTNEXTLINE(bugprone-use-after-move)
   EXPECT_FALSE(invalid_arena_ref_move_src.is_valid());
   EXPECT_FALSE(invalid_arena_ref_move_dest.is_valid());
 }
@@ -163,7 +162,6 @@ TEST_F(ArenaRefTest, MoveConstructorShouldMoveValidInstance) {
 
   ArenaRef arena_ref_move_dest(std::move(arena_ref_move_src));
 
-  // NOLINTNEXTLINE(bugprone-use-after-move)
   ASSERT_FALSE(arena_ref_move_src.is_valid());
   ASSERT_TRUE(arena_ref_move_dest.is_valid());
   EXPECT_TRUE(env.get()->IsSameObject(arena_ref_move_dest.get(env).get(), java_string));
@@ -325,6 +323,163 @@ TEST_F(ArenaRefTest, CopyAssignmentOperatorShouldKeepOriginallyValidInstancesInd
   arena_ref_copy_dest1.reset();
   ASSERT_TRUE(arena_ref_copy_dest2->is_valid());
   EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_dest2->get(env).get(), java_string));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+TEST_F(ArenaRefTest, MoveAssignmentOperatorShouldMoveInvalidToInvalid) {
+  ArenaRef invalid_arena_ref_move_src;
+  ArenaRef originally_invalid_arena_ref_move_dest;
+  
+  originally_invalid_arena_ref_move_dest = std::move(invalid_arena_ref_move_src);
+
+  EXPECT_FALSE(originally_invalid_arena_ref_move_dest.is_valid());
+  EXPECT_FALSE(invalid_arena_ref_move_src.is_valid());
+}
+
+TEST_F(ArenaRefTest, MoveAssignmentOperatorShouldMoveValidToInvalid) {
+  Env env;
+  jstring java_string = NewJavaString(env, "hello world");
+  ArenaRef arena_ref_move_src(env, java_string, AdoptExisting::kYes);
+  ArenaRef originally_invalid_arena_ref_move_dest;
+
+  originally_invalid_arena_ref_move_dest = std::move(arena_ref_move_src);
+
+  ASSERT_TRUE(originally_invalid_arena_ref_move_dest.is_valid());
+  EXPECT_TRUE(env.get()->IsSameObject(originally_invalid_arena_ref_move_dest.get(env).get(), java_string));
+  EXPECT_FALSE(arena_ref_move_src.is_valid());
+}
+
+TEST_F(ArenaRefTest, MoveAssignmentOperatorShouldMoveInvalidToValid) {
+  Env env;
+  jstring java_string = NewJavaString(env, "hello world");
+  ArenaRef invalid_arena_ref_move_src;
+  ArenaRef originally_valid_arena_ref_move_dest(env, java_string, AdoptExisting::kYes);
+
+  originally_valid_arena_ref_move_dest = std::move(invalid_arena_ref_move_src);
+
+  EXPECT_FALSE(originally_valid_arena_ref_move_dest.is_valid());
+  ASSERT_TRUE(invalid_arena_ref_move_src.is_valid());
+  EXPECT_TRUE(env.get()->IsSameObject(invalid_arena_ref_move_src.get(env).get(), java_string));
+}
+
+TEST_F(ArenaRefTest, MoveAssignmentOperatorShouldMoveValidToValid) {
+  Env env;
+  jstring java_string_src = NewJavaString(env, "hello world 1");
+  jstring java_string_dest = NewJavaString(env, "hello world 2");
+  ArenaRef arena_ref_move_src(env, java_string_src, AdoptExisting::kYes);
+  ArenaRef arena_ref_move_dest(env, java_string_dest, AdoptExisting::kYes);
+
+  arena_ref_move_dest = std::move(arena_ref_move_src);
+
+  ASSERT_TRUE(arena_ref_move_dest.is_valid());
+  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_move_dest.get(env).get(), java_string_src));
+  ASSERT_TRUE(arena_ref_move_src.is_valid());
+  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_move_src.get(env).get(), java_string_dest));
+}
+
+TEST_F(ArenaRefTest, MoveAssignmentOperatorShouldMoveSelfWhenInvalid) {
+  ArenaRef arena_ref;
+
+  arena_ref = std::move(arena_ref);
+
+  EXPECT_FALSE(arena_ref.is_valid());
+}
+
+TEST_F(ArenaRefTest, MoveAssignmentOperatorShouldMoveSelfWhenValid) {
+  Env env;
+  jstring java_string = NewJavaString(env, "hello world");
+  ArenaRef arena_ref(env, java_string, AdoptExisting::kYes);
+
+  arena_ref = std::move(arena_ref);
+
+  ASSERT_TRUE(arena_ref.is_valid());
+  EXPECT_TRUE(env.get()->IsSameObject(arena_ref.get(env).get(), java_string));
+}
+
+TEST_F(ArenaRefTest, MoveAssignmentOperatorShouldKeepOriginallyInvalidInstancesIndependent) {
+  Env env;
+  jstring java_string = NewJavaString(env, "hello world");
+  auto invalid_arena_ref_move_src = std::make_unique<ArenaRef>();
+  ArenaRef valid_arena_ref(env, java_string, AdoptExisting::kYes);
+
+  auto arena_ref_move_dest1 = std::make_unique<ArenaRef>(std::move(*invalid_arena_ref_move_src));
+  auto arena_ref_move_dest2 = std::make_unique<ArenaRef>(std::move(*arena_ref_move_dest1));
+
+  // Re-assign the "move source" ArenaRef to a new value and verify that the
+  // copies are unaffected.
+  *invalid_arena_ref_move_src = valid_arena_ref;
+  EXPECT_FALSE(arena_ref_move_dest1->is_valid());
+  EXPECT_FALSE(arena_ref_move_dest2->is_valid());
+  ASSERT_TRUE(invalid_arena_ref_move_src->is_valid());
+  EXPECT_TRUE(env.get()->IsSameObject(invalid_arena_ref_move_src->get(env).get(), java_string));
+
+  // Delete the "move source" ArenaRef and verify that the copies are unaffected.
+  invalid_arena_ref_move_src.reset();
+  EXPECT_FALSE(arena_ref_move_dest1->is_valid());
+  EXPECT_FALSE(arena_ref_move_dest2->is_valid());
+
+  // Re-assign one of the "move dest" ArenaRef objects and verify that the other
+  // move is unaffected.
+  *arena_ref_move_dest1 = valid_arena_ref;
+  EXPECT_FALSE(arena_ref_move_dest2->is_valid());
+  ASSERT_TRUE(arena_ref_move_dest1->is_valid());
+  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_move_dest1->get(env).get(), java_string));
+
+  // Delete the "move dest" ArenaRef object that was re-assigned and verify that
+  // the other move is unaffected.
+  arena_ref_move_dest1.reset();
+  EXPECT_FALSE(arena_ref_move_dest2->is_valid());
+}
+
+TEST_F(ArenaRefTest, MoveAssignmentOperatorShouldKeepOriginallyValidInstancesIndependent) {
+  Env env;
+  jstring java_string1 = NewJavaString(env, "hello world 1");
+  jstring java_string2 = NewJavaString(env, "hello world2");
+  auto arena_ref_move_src = std::make_unique<ArenaRef>(env, java_string1, AdoptExisting::kYes);
+  const ArenaRef invalid_arena_ref;
+  const ArenaRef valid_arena_ref(env, java_string2, AdoptExisting::kYes);
+
+  auto arena_ref_move_dest1 = std::make_unique<ArenaRef>(std::move(*arena_ref_move_src));
+  auto arena_ref_move_dest2 = std::make_unique<ArenaRef>(std::move(*arena_ref_move_dest1));
+
+  // Re-assign the "move source" ArenaRef to a new value and verify that the
+  // copies are unaffected.
+  *arena_ref_move_src = invalid_arena_ref;
+  EXPECT_FALSE(arena_ref_move_src->is_valid());
+  EXPECT_FALSE(arena_ref_move_dest1->is_valid());
+  ASSERT_TRUE(arena_ref_move_dest2->is_valid());
+  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_move_dest2->get(env).get(), java_string1));
+
+  // Delete the "move source" ArenaRef and verify that the copies are unaffected.
+  arena_ref_move_src.reset();
+  EXPECT_FALSE(arena_ref_move_dest1->is_valid());
+  ASSERT_TRUE(arena_ref_move_dest2->is_valid());
+  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_move_dest2->get(env).get(), java_string1));
+
+  // Re-assign one of the "move dest" ArenaRef objects and verify that the other
+  // move is unaffected.
+  *arena_ref_move_dest1 = valid_arena_ref;
+  ASSERT_TRUE(arena_ref_move_dest1->is_valid());
+  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_move_dest1->get(env).get(), java_string2));
+  ASSERT_TRUE(arena_ref_move_dest2->is_valid());
+  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_move_dest2->get(env).get(), java_string1));
+
+  // Delete the "move dest" ArenaRef object that was re-assigned and verify that
+  // the other move is unaffected.
+  arena_ref_move_dest1.reset();
+  ASSERT_TRUE(arena_ref_move_dest2->is_valid());
+  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_move_dest2->get(env).get(), java_string1));
 }
 
 }  // namespace

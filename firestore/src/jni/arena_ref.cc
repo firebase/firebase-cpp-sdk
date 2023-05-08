@@ -182,6 +182,14 @@ ArenaRef& ArenaRef::operator=(const ArenaRef& other) {
   return *this;
 }
 
+ArenaRef& ArenaRef::operator=(ArenaRef&& other) noexcept {
+  // go/using-std-swap
+  using std::swap;
+  swap(valid_, other.valid_);
+  swap(id_, other.id_);
+  return *this;
+}
+
 Local<Object> ArenaRef::get(Env& env) const {
   FIREBASE_ASSERT_MESSAGE(valid_, "ArenaRef::Get() must not be called when valid() is false");
   JNIEnv* jni_env = env.get();

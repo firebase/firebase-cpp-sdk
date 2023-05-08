@@ -40,7 +40,7 @@ class ArenaRef final {
   ArenaRef(const ArenaRef&);
   ArenaRef(ArenaRef&&) noexcept;
   ArenaRef& operator=(const ArenaRef&);
-  ArenaRef& operator=(ArenaRef&&) = delete;
+  ArenaRef& operator=(ArenaRef&&) noexcept;
 
   static void Initialize(Loader&);
 
