@@ -24,6 +24,8 @@
 namespace firebase {
 namespace firestore {
 
+using CoreMemoryEagerGcSettings = api::MemoryEagerGcSettings;
+using CoreMemoryLruGcSettings = api::MemoryLruGcSettings;
 using CoreMemorySettings = api::MemoryCacheSettings;
 using CorePersistentSettings = api::PersistentCacheSettings;
 
@@ -42,6 +44,38 @@ class PersistentCacheSettingsInternal final
 
  private:
   CorePersistentSettings settings_;
+};
+
+class MemoryGarbageCollectorSettingsInternal {};
+
+class MemoryEagerGCSettingsInternal final
+    : public MemoryGarbageCollectorSettingsInternal {
+ public:
+  explicit MemoryEagerGCSettingsInternal(
+      const CoreMemoryEagerGcSettings& core_settings)
+      : settings_(std::move(core_settings)) {}
+  const CoreMemoryEagerGcSettings& core_settings() { return settings_; }
+  void set_core_settings(const CoreMemoryEagerGcSettings& settings) {
+    settings_ = settings;
+  }
+
+ private:
+  CoreMemoryEagerGcSettings settings_;
+};
+
+class MemoryLruGCSettingsInternal final
+    : public MemoryGarbageCollectorSettingsInternal {
+ public:
+  explicit MemoryLruGCSettingsInternal(
+      const CoreMemoryLruGcSettings& core_settings)
+      : settings_(std::move(core_settings)) {}
+  const CoreMemoryLruGcSettings& core_settings() { return settings_; }
+  void set_core_settings(const CoreMemoryLruGcSettings& settings) {
+    settings_ = settings;
+  }
+
+ private:
+  CoreMemoryLruGcSettings settings_;
 };
 
 class MemoryCacheSettingsInternal final : public LocalCacheSettingsInternal {

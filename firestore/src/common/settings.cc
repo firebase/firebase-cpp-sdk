@@ -56,23 +56,21 @@ void Settings::set_host(std::string host) { host_ = firebase::Move(host); }
 
 void Settings::set_ssl_enabled(bool enabled) { ssl_enabled_ = enabled; }
 
-std::shared_ptr<LocalCacheSettings> Settings::local_cache_settings() const {
+std::shared_ptr<LocalCacheSettings> Settings::local_cache_settings() {
   if (used_legacy_cache_settings_) {
     if (is_persistence_enabled()) {
-      return std::make_shared<PersistentCacheSettings>(
-          *PersistentCacheSettings::Create()
-               .WithSizeBytes(cache_size_bytes())
-               .settings_internal_);
+      local_cache_settings_ = std::make_shared<PersistentCacheSettings>(
+          PersistentCacheSettings::Create().WithSizeBytes(cache_size_bytes()));
     } else {
-      return std::make_shared<MemoryCacheSettings>(
-          *MemoryCacheSettings::Create().settings_internal_);
+      local_cache_settings_ =
+          std::make_shared<MemoryCacheSettings>(MemoryCacheSettings::Create());
     }
-  } else if (local_cache_settings_ != nullptr) {
-    return local_cache_settings_;
+  } else if (local_cache_settings_ == nullptr) {
+    local_cache_settings_ = std::make_shared<PersistentCacheSettings>(
+        PersistentCacheSettings::Create());
   }
 
-  return std::make_shared<PersistentCacheSettings>(
-      *PersistentCacheSettings::Create().settings_internal_);
+  return local_cache_settings_;
 }
 
 void Settings::set_local_cache_settings(const LocalCacheSettings& cache) {
@@ -84,10 +82,10 @@ void Settings::set_local_cache_settings(const LocalCacheSettings& cache) {
 
   if (cache.kind() == api::LocalCacheSettings::Kind::kPersistent) {
     local_cache_settings_ = std::make_shared<PersistentCacheSettings>(
-        *static_cast<const PersistentCacheSettings&>(cache).settings_internal_);
+        static_cast<const PersistentCacheSettings&>(cache));
   } else {
     local_cache_settings_ = std::make_shared<MemoryCacheSettings>(
-        *static_cast<const MemoryCacheSettings&>(cache).settings_internal_);
+        static_cast<const MemoryCacheSettings&>(cache));
   }
 }
 

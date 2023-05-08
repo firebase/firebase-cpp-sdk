@@ -43,6 +43,7 @@
 #include "firestore/src/common/macros.h"
 #include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/include/firebase/firestore/local_cache_settings.h"
 #include "firestore/src/main/converter_main.h"
 #include "firestore/src/main/create_app_check_credentials_provider.h"
 #include "firestore/src/main/create_credentials_provider.h"

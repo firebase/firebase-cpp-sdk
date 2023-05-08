@@ -17,7 +17,6 @@
 #ifndef FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_SETTINGS_H_
 #define FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_SETTINGS_H_
 
-#include "firebase/firestore/local_cache_settings.h"
 #if defined(__OBJC__)
 #include <dispatch/dispatch.h>
 #endif
@@ -138,7 +137,7 @@ class Settings final {
    */
   void set_ssl_enabled(bool enabled);
 
-  std::shared_ptr<LocalCacheSettings> local_cache_settings() const;
+  std::shared_ptr<LocalCacheSettings> local_cache_settings();
   void set_local_cache_settings(const LocalCacheSettings& cache);
 
   /**

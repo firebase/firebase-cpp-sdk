@@ -38,18 +38,49 @@ PersistentCacheSettings::~PersistentCacheSettings() {
 }
 
 PersistentCacheSettings::PersistentCacheSettings(
-    const PersistentCacheSettingsInternal& other) {
-  settings_internal_ = std::make_unique<PersistentCacheSettingsInternal>(other);
+    const PersistentCacheSettings& other) {
+  settings_internal_ = std::make_unique<PersistentCacheSettingsInternal>(
+      *other.settings_internal_);
 }
 
 PersistentCacheSettings PersistentCacheSettings::WithSizeBytes(
     int64_t size) const {
-  return {PersistentCacheSettingsInternal{
-      settings_internal_->core_settings().WithSizeBytes(size)}};
+  PersistentCacheSettings new_settings{*this};
+  new_settings.settings_internal_->set_core_settings(
+      new_settings.settings_internal_->core_settings().WithSizeBytes(size));
+  return new_settings;
 }
 
 const CoreCacheSettings& PersistentCacheSettings::core_cache_settings() const {
   return settings_internal_->core_settings();
+}
+
+MemoryEagerGCSettings MemoryEagerGCSettings::Create() { return {}; }
+
+MemoryEagerGCSettings::MemoryEagerGCSettings() {
+  settings_internal_ = std::make_unique<MemoryEagerGCSettingsInternal>(
+      CoreMemoryEagerGcSettings{});
+}
+
+MemoryEagerGCSettings::~MemoryEagerGCSettings() { settings_internal_.reset(); }
+
+MemoryLruGCSettings MemoryLruGCSettings::Create() { return {}; }
+
+MemoryLruGCSettings::MemoryLruGCSettings() {
+  settings_internal_ =
+      std::make_unique<MemoryLruGCSettingsInternal>(CoreMemoryLruGcSettings{});
+}
+
+MemoryLruGCSettings::MemoryLruGCSettings(
+    const MemoryLruGCSettingsInternal& other) {
+  settings_internal_ = std::make_unique<MemoryLruGCSettingsInternal>(other);
+}
+
+MemoryLruGCSettings::~MemoryLruGCSettings() { settings_internal_.reset(); }
+
+MemoryLruGCSettings MemoryLruGCSettings::WithSizeBytes(int64_t size) {
+  return {MemoryLruGCSettingsInternal{
+      settings_internal_->core_settings().WithSizeBytes(size)}};
 }
 
 MemoryCacheSettings MemoryCacheSettings::Create() { return {}; }
@@ -59,12 +90,12 @@ MemoryCacheSettings::MemoryCacheSettings() {
       std::make_unique<MemoryCacheSettingsInternal>(CoreMemorySettings{});
 }
 
-MemoryCacheSettings::~MemoryCacheSettings() { settings_internal_.reset(); }
-
-MemoryCacheSettings::MemoryCacheSettings(
-    const MemoryCacheSettingsInternal& other) {
-  settings_internal_ = std::make_unique<MemoryCacheSettingsInternal>(other);
+MemoryCacheSettings::MemoryCacheSettings(const MemoryCacheSettings& other) {
+  settings_internal_ =
+      std::make_unique<MemoryCacheSettingsInternal>(*other.settings_internal_);
 }
+
+MemoryCacheSettings::~MemoryCacheSettings() { settings_internal_.reset(); }
 
 const CoreCacheSettings& MemoryCacheSettings::core_cache_settings() const {
   return settings_internal_->core_settings();
