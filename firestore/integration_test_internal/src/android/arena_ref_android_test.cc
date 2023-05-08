@@ -145,4 +145,42 @@ TEST_F(ArenaRefTest, CopyConstructorShouldCreateAnIndependentInstance) {
   EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_dest2->get(env).get(), java_string));
 }
 
+TEST_F(ArenaRefTest, MoveConstructorShouldMoveInvalidInstance) {
+  Env env;
+  ArenaRef invalid_arena_ref_move_src;
+
+  ArenaRef invalid_arena_ref_move_dest(std::move(invalid_arena_ref_move_src));
+
+  // NOLINTNEXTLINE(bugprone-use-after-move)
+  EXPECT_FALSE(invalid_arena_ref_move_src.is_valid());
+  EXPECT_FALSE(invalid_arena_ref_move_dest.is_valid());
+}
+
+TEST_F(ArenaRefTest, MoveConstructorShouldMoveValidInstance) {
+  Env env;
+  jstring java_string = NewJavaString(env, "hello world");
+  ArenaRef arena_ref_move_src(env, java_string, AdoptExisting::kYes);
+
+  ArenaRef arena_ref_move_dest(std::move(arena_ref_move_src));
+
+  // NOLINTNEXTLINE(bugprone-use-after-move)
+  ASSERT_FALSE(arena_ref_move_src.is_valid());
+  ASSERT_TRUE(arena_ref_move_dest.is_valid());
+  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_move_dest.get(env).get(), java_string));
+}
+
+TEST_F(ArenaRefTest, MoveConstructorShouldCreateAnIndependentInstance) {
+  Env env;
+  jstring java_string = NewJavaString(env, "hello world");
+  auto arena_ref_move_src = std::make_unique<ArenaRef>(env, java_string, AdoptExisting::kYes);
+
+  auto arena_ref_move_dest = std::make_unique<ArenaRef>(std::move(*arena_ref_move_src));
+
+  // Delete the moved-from ArenaRef and verify that the moved-to ArenaRef still
+  // refers to the same Java object.
+  arena_ref_move_src.reset();
+  ASSERT_TRUE(arena_ref_move_dest->is_valid());
+  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_move_dest->get(env).get(), java_string));
+}
+
 }  // namespace

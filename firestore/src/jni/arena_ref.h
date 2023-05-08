@@ -38,7 +38,7 @@ class ArenaRef final {
   ~ArenaRef();
 
   ArenaRef(const ArenaRef&);
-  ArenaRef(ArenaRef&&) = delete;
+  ArenaRef(ArenaRef&&);
   ArenaRef* operator=(const ArenaRef&) = delete;
   ArenaRef* operator=(ArenaRef&&) = delete;
 

@@ -15,6 +15,8 @@
  */
 #include "firestore/src/jni/arena_ref.h"
 
+#include <utility>
+
 #include "app/src/assert.h"
 #include "app/src/log.h"
 #include "firestore/src/jni/env.h"
@@ -138,6 +140,9 @@ ArenaRef::~ArenaRef() {
 }
 
 ArenaRef::ArenaRef(const ArenaRef& other) : valid_(other.valid_), id_(DupArenaRefId(other.id_)) {
+}
+
+ArenaRef::ArenaRef(ArenaRef&& other) : valid_(std::exchange(other.valid_, false)), id_(other.id_) {
 }
 
 Local<Object> ArenaRef::get(Env& env) const {
