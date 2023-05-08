@@ -16,6 +16,7 @@
 
 #include "firestore/src/jni/arena_ref.h"
 
+#include <memory>
 #include <vector>
 
 #include "android/firestore_integration_test_android.h"
@@ -78,7 +79,7 @@ TEST_F(ArenaRefTest, AdoptingConstructorShouldAcceptNull) {
 
   ArenaRef arena_ref_with_null_object(env, nullptr, AdoptExisting::kYes);
 
-  EXPECT_EQ(arena_ref_with_null_object.Get(env).get(), nullptr);
+  EXPECT_EQ(arena_ref_with_null_object.get(env).get(), nullptr);
 }
 
 TEST_F(ArenaRefTest, AdoptingConstructorShouldAcceptNonNull) {
@@ -87,7 +88,61 @@ TEST_F(ArenaRefTest, AdoptingConstructorShouldAcceptNonNull) {
 
   ArenaRef arena_ref_with_non_null_object(env, java_string, AdoptExisting::kYes);
 
-  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_with_non_null_object.Get(env).get(), java_string));
+  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_with_non_null_object.get(env).get(), java_string));
+}
+
+TEST_F(ArenaRefTest, CopyConstructorShouldCopyInvalidInstance) {
+  Env env;
+  ArenaRef invalid_arena_ref_copy_src;
+
+  ArenaRef invalid_arena_ref_copy_dest(invalid_arena_ref_copy_src);
+
+  EXPECT_FALSE(invalid_arena_ref_copy_src.is_valid());
+  EXPECT_FALSE(invalid_arena_ref_copy_dest.is_valid());
+}
+
+TEST_F(ArenaRefTest, CopyConstructorShouldCopyValidInstance) {
+  Env env;
+  jstring java_string = NewJavaString(env, "hello world");
+  ArenaRef arena_ref_copy_src(env, java_string, AdoptExisting::kYes);
+
+  ArenaRef arena_ref_copy_dest(arena_ref_copy_src);
+
+  ASSERT_TRUE(arena_ref_copy_src.is_valid());
+  ASSERT_TRUE(arena_ref_copy_dest.is_valid());
+  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_src.get(env).get(), java_string));
+  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_dest.get(env).get(), java_string));
+}
+
+TEST_F(ArenaRefTest, CopyConstructorShouldCreateAnIndependentInstance) {
+  Env env;
+  jstring java_string = NewJavaString(env, "hello world");
+  auto arena_ref_copy_src = std::make_unique<ArenaRef>(env, java_string, AdoptExisting::kYes);
+
+  auto arena_ref_copy_dest1 = std::make_unique<ArenaRef>(*arena_ref_copy_src);
+  auto arena_ref_copy_dest2 = std::make_unique<ArenaRef>(*arena_ref_copy_src);
+
+  // Verify that all 3 ArenaRef objects refer to the same Java object.
+  ASSERT_TRUE(arena_ref_copy_src->is_valid());
+  ASSERT_TRUE(arena_ref_copy_dest1->is_valid());
+  ASSERT_TRUE(arena_ref_copy_dest2->is_valid());
+  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_src->get(env).get(), java_string));
+  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_dest1->get(env).get(), java_string));
+  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_dest2->get(env).get(), java_string));
+
+  // Delete the original "source" ArenaRef and verify that the remaining two
+  // ArenaRef objects still refer to the same Java object.
+  arena_ref_copy_src.reset();
+  ASSERT_TRUE(arena_ref_copy_dest1->is_valid());
+  ASSERT_TRUE(arena_ref_copy_dest2->is_valid());
+  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_dest1->get(env).get(), java_string));
+  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_dest2->get(env).get(), java_string));
+
+  // Delete the first "copy" ArenaRef and verify that the remaining
+  // ArenaRef object still refers to the same Java object.
+  arena_ref_copy_dest1.reset();
+  ASSERT_TRUE(arena_ref_copy_dest2->is_valid());
+  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_dest2->get(env).get(), java_string));
 }
 
 }  // namespace

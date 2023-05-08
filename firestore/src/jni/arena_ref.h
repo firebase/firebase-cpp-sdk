@@ -37,7 +37,7 @@ class ArenaRef final {
 
   ~ArenaRef();
 
-  ArenaRef(const ArenaRef&) = delete;
+  ArenaRef(const ArenaRef&);
   ArenaRef(ArenaRef&&) = delete;
   ArenaRef* operator=(const ArenaRef&) = delete;
   ArenaRef* operator=(ArenaRef&&) = delete;
@@ -48,7 +48,7 @@ class ArenaRef final {
     return valid_;
   }
 
-  Local<Object> Get(Env&) const;
+  Local<Object> get(Env&) const;
 
  private:
   ArenaRef(JNIEnv*, jobject);

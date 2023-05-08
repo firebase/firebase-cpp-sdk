@@ -102,6 +102,11 @@ void LoadObjectArenaSingletonInstance(JNIEnv* env) {
   kObjectArenaSingletonInstance = object_arena_instance_globalref;
 }
 
+jlong DupArenaRefId(jlong id) {
+  Env env;
+  return env.get()->CallLongMethod(kObjectArenaSingletonInstance, kObjectArenaMethodIds.dup, id);
+}
+
 }  // namespace
 
 ArenaRef::ArenaRef(Env& env, jobject object, AdoptExisting) : ArenaRef(env.get(), object) {
@@ -132,7 +137,10 @@ ArenaRef::~ArenaRef() {
   }
 }
 
-Local<Object> ArenaRef::Get(Env& env) const {
+ArenaRef::ArenaRef(const ArenaRef& other) : valid_(other.valid_), id_(DupArenaRefId(other.id_)) {
+}
+
+Local<Object> ArenaRef::get(Env& env) const {
   FIREBASE_ASSERT_MESSAGE(valid_, "ArenaRef::Get() must not be called when valid() is false");
   JNIEnv* jni_env = env.get();
 
@@ -140,7 +148,7 @@ Local<Object> ArenaRef::Get(Env& env) const {
 
   if (jni_env->ExceptionCheck()) {
     jni_env->ExceptionDescribe();
-    firebase::LogAssert("ArenaRef::Get() failed");
+    firebase::LogAssert("ArenaRef::get() failed");
   }
 
   return {jni_env, object};
