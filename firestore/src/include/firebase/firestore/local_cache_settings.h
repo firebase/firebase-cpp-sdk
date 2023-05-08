@@ -28,6 +28,7 @@ namespace firebase {
 namespace firestore {
 
 using CoreCacheSettings = api::LocalCacheSettings;
+using CoreMemoryGarbageCollectorSettings = api::MemoryGargabeCollectorSettings;
 
 class PersistentCacheSettingsInternal;
 class MemoryCacheSettingsInternal;
@@ -57,7 +58,6 @@ class PersistentCacheSettings final : public LocalCacheSettings {
   friend class Settings;
 
   PersistentCacheSettings();
-  PersistentCacheSettings(const PersistentCacheSettingsInternal& other);
 
   api::LocalCacheSettings::Kind kind() const override {
     return api::LocalCacheSettings::Kind::kPersistent;
@@ -68,34 +68,7 @@ class PersistentCacheSettings final : public LocalCacheSettings {
   std::unique_ptr<PersistentCacheSettingsInternal> settings_internal_;
 };
 
-class MemoryGarbageCollectorSettings {
- public:
-  virtual ~MemoryGarbageCollectorSettings() = default;
-
- private:
-};
-
-class MemoryEagerGCSettings final : MemoryGarbageCollectorSettings {
-  static MemoryEagerGCSettings Create();
-  ~MemoryEagerGCSettings();
-
- private:
-  MemoryEagerGCSettings();
-
-  std::unique_ptr<MemoryEagerGCSettingsInternal> settings_internal_;
-};
-
-class MemoryLruGCSettings final : MemoryGarbageCollectorSettings {
-  static MemoryLruGCSettings Create();
-  ~MemoryLruGCSettings();
-  MemoryLruGCSettings WithSizeBytes(int64_t size);
-
- private:
-  MemoryLruGCSettings();
-  MemoryLruGCSettings(const MemoryLruGCSettingsInternal& other);
-
-  std::unique_ptr<MemoryLruGCSettingsInternal> settings_internal_;
-};
+class MemoryGarbageCollectorSettings;
 
 class MemoryCacheSettings final : public LocalCacheSettings {
  public:
@@ -104,13 +77,12 @@ class MemoryCacheSettings final : public LocalCacheSettings {
   ~MemoryCacheSettings();
 
   MemoryCacheSettings WithGarbageCollectorSettings(
-      const MemoryGarbageCollectorSettings& settings);
+      const MemoryGarbageCollectorSettings& settings) const;
 
  private:
   friend class Settings;
 
   MemoryCacheSettings();
-  MemoryCacheSettings(const MemoryCacheSettingsInternal& other);
 
   api::LocalCacheSettings::Kind kind() const override {
     return api::LocalCacheSettings::Kind::kMemory;
@@ -119,6 +91,50 @@ class MemoryCacheSettings final : public LocalCacheSettings {
   const CoreCacheSettings& core_cache_settings() const override;
 
   std::unique_ptr<MemoryCacheSettingsInternal> settings_internal_;
+};
+
+class MemoryGarbageCollectorSettings {
+ public:
+  virtual ~MemoryGarbageCollectorSettings() = default;
+
+ private:
+  friend class MemoryCacheSettings;
+  virtual const CoreMemoryGarbageCollectorSettings& core_gc_settings()
+      const = 0;
+};
+
+class MemoryEagerGCSettings final : public MemoryGarbageCollectorSettings {
+ public:
+  static MemoryEagerGCSettings Create();
+  ~MemoryEagerGCSettings();
+
+ private:
+  friend class MemoryCacheSettings;
+  MemoryEagerGCSettings();
+
+  const CoreMemoryGarbageCollectorSettings& core_gc_settings() const override {
+    return settings_internal_->core_settings();
+  }
+
+  std::unique_ptr<MemoryEagerGCSettingsInternal> settings_internal_;
+};
+
+class MemoryLruGCSettings final : public MemoryGarbageCollectorSettings {
+ public:
+  static MemoryLruGCSettings Create();
+  ~MemoryLruGCSettings();
+  MemoryLruGCSettings WithSizeBytes(int64_t size);
+
+ private:
+  friend class MemoryCacheSettings;
+  MemoryLruGCSettings();
+  MemoryLruGCSettings(const MemoryLruGCSettingsInternal& other);
+
+  const CoreMemoryGarbageCollectorSettings& core_gc_settings() const override {
+    return settings_internal_->core_settings();
+  }
+
+  std::unique_ptr<MemoryLruGCSettingsInternal> settings_internal_;
 };
 
 }  // namespace firestore

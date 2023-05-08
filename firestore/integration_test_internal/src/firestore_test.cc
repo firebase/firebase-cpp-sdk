@@ -1588,6 +1588,42 @@ TEST_F(FirestoreIntegrationTest, CannotMixNewAndLegacyCacheConfig) {
   }
 }
 
+TEST_F(FirestoreIntegrationTest, CanGetDocumentFromCacheWithMemoryLruGC) {
+  auto* db = TestFirestore("new_persistent_cache");
+  auto settings = db->settings();
+  settings.set_local_cache_settings(
+      MemoryCacheSettings::Create().WithGarbageCollectorSettings(
+          MemoryLruGCSettings::Create()));
+  db->set_settings(std::move(settings));
+
+  Await(db->Document("rooms/eros")
+            .Set(MapFieldValue{{"desc", FieldValue::String("eros")}}));
+
+  auto get_future = db->Document("rooms/eros").Get(Source::kCache);
+  const DocumentSnapshot* snapshot = Await(get_future);
+  EXPECT_EQ(get_future.status(), FutureStatus::kFutureStatusComplete);
+  EXPECT_TRUE(snapshot->is_valid());
+  EXPECT_THAT(snapshot->GetData(),
+              ContainerEq(MapFieldValue{{"desc", FieldValue::String("eros")}}));
+}
+
+TEST_F(FirestoreIntegrationTest, CannotGetDocumentFromCacheFromMemoryEagerGC) {
+  auto* db = TestFirestore("new_persistent_cache");
+  auto settings = db->settings();
+  settings.set_local_cache_settings(
+      MemoryCacheSettings::Create().WithGarbageCollectorSettings(
+          MemoryEagerGCSettings::Create()));
+  db->set_settings(std::move(settings));
+
+  Await(db->Document("rooms/eros")
+            .Set(MapFieldValue{{"desc", FieldValue::String("eros")}}));
+
+  auto get_future = db->Document("rooms/eros").Get(Source::kCache);
+  const DocumentSnapshot* snapshot = Await(get_future);
+  EXPECT_EQ(get_future.status(), FutureStatus::kFutureStatusComplete);
+  EXPECT_FALSE(snapshot->is_valid());
+}
+
 // Note: this test only exists in C++.
 TEST_F(FirestoreIntegrationTest, DomainObjectsReferToSameFirestoreInstance) {
   EXPECT_EQ(TestFirestore(), TestFirestore()->Document("foo/bar").firestore());

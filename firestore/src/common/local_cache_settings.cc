@@ -97,6 +97,16 @@ MemoryCacheSettings::MemoryCacheSettings(const MemoryCacheSettings& other) {
 
 MemoryCacheSettings::~MemoryCacheSettings() { settings_internal_.reset(); }
 
+MemoryCacheSettings MemoryCacheSettings::WithGarbageCollectorSettings(
+    const MemoryGarbageCollectorSettings& settings) const {
+  MemoryCacheSettings result{*this};
+  CoreMemorySettings core_settings = result.settings_internal_->core_settings();
+  result.settings_internal_->set_core_settings(
+      core_settings.WithMemoryGarbageCollectorSettings(
+          settings.core_gc_settings()));
+  return result;
+}
+
 const CoreCacheSettings& MemoryCacheSettings::core_cache_settings() const {
   return settings_internal_->core_settings();
 }
