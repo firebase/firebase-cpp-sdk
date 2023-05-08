@@ -310,6 +310,7 @@ bool FirebaseAuthTest::WaitForCompletion(
     EXPECT_EQ(result_ptr->additional_user_info.provider_id, provider_id);
     EXPECT_EQ(result_ptr->user.uid(), auth_->current_user().uid());
     EXPECT_TRUE(auth_->current_user().is_valid());
+    EXPECT_TRUE(result_ptr->credential.is_valid());
   }
   return succeeded;
 }

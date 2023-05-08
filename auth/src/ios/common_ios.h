@@ -91,8 +91,8 @@ static inline FIRAuth *_Nonnull AuthImpl(AuthData *_Nonnull auth_data) {
 
 /// Convert from the void* credential implementation pointer into the Obj-C
 /// FIRAuthCredential pointer.
-static inline FIRAuthCredential *_Nonnull CredentialFromImpl(void *_Nonnull impl) {
-  return static_cast<FIRAuthCredentialPointer *>(impl)->get();
+static inline FIRAuthCredential *_Nullable CredentialFromImpl(void *_Nullable impl) {
+  return impl ? static_cast<FIRAuthCredentialPointer *>(impl)->get() : nil;
 }
 
 /// Convert from the void* credential implementation pointer into the Obj-C
