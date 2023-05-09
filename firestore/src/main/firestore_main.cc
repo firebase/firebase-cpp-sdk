@@ -51,6 +51,7 @@
 #include "firestore/src/main/document_reference_main.h"
 #include "firestore/src/main/document_snapshot_main.h"
 #include "firestore/src/main/listener_main.h"
+#include "firestore/src/main/local_cache_settings_main.h"
 
 namespace firebase {
 namespace firestore {
@@ -190,11 +191,24 @@ Settings FirestoreInternal::settings() const {
   const api::Settings& from = firestore_core_->settings();
   result.set_host(from.host());
   result.set_ssl_enabled(from.ssl_enabled());
-  result.set_persistence_enabled(from.persistence_enabled());
-  result.set_cache_size_bytes(from.cache_size_bytes());
-  // TODO(wuandy): This line should be deleted when legacy cache config is
-  // removed.
-  result.used_legacy_cache_settings_ = false;
+
+  if(from.local_cache_settings() == nullptr) {
+    if(from.persistence_enabled()) {
+     result.set_local_cache_settings(PersistentCacheSettings::Create().WithSizeBytes(from.cache_size_bytes()));
+    } else {
+      result.set_local_cache_settings(MemoryCacheSettings::Create());
+    }
+  }
+  else if (from.local_cache_settings()->kind() ==
+      api::LocalCacheSettings::Kind::kMemory) {
+    result.set_local_cache_settings(MemoryCacheSettings::CreateFromCoreSettings(
+        dynamic_cast<const CoreMemorySettings&>(*from.local_cache_settings())));
+  } else {
+    result.set_local_cache_settings(
+        PersistentCacheSettings::CreateFromCoreSettings(
+            dynamic_cast<const CorePersistentSettings&>(
+                *from.local_cache_settings())));
+  }
 
   return result;
 }
