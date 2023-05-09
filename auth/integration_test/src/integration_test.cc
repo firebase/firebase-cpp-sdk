@@ -275,7 +275,7 @@ bool FirebaseAuthTest::WaitForCompletion(
             << "User returned by Future doesn't match User in Auth";
         // Expect no crash.
         // TODO(b/281590792): Properly validate AuthResult fields case-by-case.
-        future.result()->credential.is_valid();
+        (void)future.result()->credential.is_valid();
         succeeded = future.result()->user.is_valid() &&
                     auth_->current_user().is_valid();
       }
@@ -315,7 +315,7 @@ bool FirebaseAuthTest::WaitForCompletion(
     EXPECT_TRUE(auth_->current_user().is_valid());
     // Expect no crash.
     // TODO(b/281590792): Properly validate AuthResult fields case-by-case.
-    result_ptr->credential.is_valid();
+    (void)result_ptr->credential.is_valid();
   }
   return succeeded;
 }
