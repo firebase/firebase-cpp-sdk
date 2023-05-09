@@ -21,6 +21,7 @@ extern "C" {
 #import "gma/src/ios/FADRequest.h"
 
 #include <string>
+#include <vector>
 
 #include "app/src/assert.h"
 #include "app/src/util_ios.h"

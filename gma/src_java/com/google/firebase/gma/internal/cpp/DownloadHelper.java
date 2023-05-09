@@ -30,7 +30,6 @@ import java.util.Map;
  * designed to download static ad assets from network.
  */
 public class DownloadHelper {
-
   // URL to download the asset from.
   private URL url;
 

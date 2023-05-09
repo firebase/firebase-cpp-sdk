@@ -20,6 +20,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "gma/src/android/gma_android.h"
 #include "gma/src/common/gma_common.h"

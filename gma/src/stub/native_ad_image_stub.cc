@@ -15,6 +15,7 @@
  */
 
 #include <string>
+#include <vector>
 
 #include "gma/src/common/native_ad_image_internal.h"
 #include "gma/src/include/firebase/gma.h"
