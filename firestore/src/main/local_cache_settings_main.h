@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_FIRESTORE_SRC_MAIN_LOCAL_CACHE_SETINGS_MAIN_H_
-#define FIREBASE_FIRESTORE_SRC_MAIN_LOCAL_CACHE_SETINGS_MAIN_H_
+#ifndef FIREBASE_FIRESTORE_SRC_MAIN_LOCAL_CACHE_SETTINGS_MAIN_H_
+#define FIREBASE_FIRESTORE_SRC_MAIN_LOCAL_CACHE_SETTINGS_MAIN_H_
 
 #include <cstdint>
+#include <utility>
 
 #include "Firestore/core/src/api/settings.h"
 
@@ -94,4 +95,4 @@ class MemoryCacheSettingsInternal final : public LocalCacheSettingsInternal {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_SRC_MAIN_LOCAL_CACHE_SETINGS_MAIN_H_
+#endif  // FIREBASE_FIRESTORE_SRC_MAIN_LOCAL_CACHE_SETTINGS_MAIN_H_

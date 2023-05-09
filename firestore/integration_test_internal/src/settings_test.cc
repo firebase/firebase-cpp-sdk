@@ -17,6 +17,7 @@
 #include <stdint.h>
 
 #include "firebase/firestore.h"
+#include "firebase_test_framework.h"
 
 #include "gtest/gtest.h"
 
@@ -31,39 +32,39 @@ TEST(SettingsTest, Equality) {
   Settings settings1;
   settings1.set_host("foo");
   settings1.set_ssl_enabled(true);
-  settings1.set_persistence_enabled(true);
-  settings1.set_cache_size_bytes(kFiveMb);
+  WITH_DEPRECATED_API(settings1.set_persistence_enabled(true));
+  WITH_DEPRECATED_API(settings1.set_cache_size_bytes(kFiveMb));
 
   Settings settings2;
   settings2.set_host("bar");
   settings2.set_ssl_enabled(true);
-  settings2.set_persistence_enabled(true);
-  settings2.set_cache_size_bytes(kFiveMb);
+  WITH_DEPRECATED_API(settings2.set_persistence_enabled(true));
+  WITH_DEPRECATED_API(settings2.set_cache_size_bytes(kFiveMb));
 
   Settings settings3;
   settings3.set_host("foo");
   settings3.set_ssl_enabled(false);
-  settings3.set_persistence_enabled(true);
-  settings3.set_cache_size_bytes(kFiveMb);
+  WITH_DEPRECATED_API(settings3.set_persistence_enabled(true));
+  WITH_DEPRECATED_API(settings3.set_cache_size_bytes(kFiveMb));
 
   Settings settings4;
   settings4.set_host("foo");
   settings4.set_ssl_enabled(true);
-  settings4.set_persistence_enabled(false);
-  settings4.set_cache_size_bytes(kFiveMb);
+  WITH_DEPRECATED_API(settings4.set_persistence_enabled(false));
+  WITH_DEPRECATED_API(settings4.set_cache_size_bytes(kFiveMb));
 
   Settings settings5;
   settings5.set_host("foo");
   settings5.set_ssl_enabled(true);
-  settings5.set_persistence_enabled(true);
-  settings5.set_cache_size_bytes(kSixMb);
+  WITH_DEPRECATED_API(settings5.set_persistence_enabled(true));
+  WITH_DEPRECATED_API(settings5.set_cache_size_bytes(kSixMb));
 
   // This is the same as settings4.
   Settings settings6;
   settings6.set_host("foo");
   settings6.set_ssl_enabled(true);
-  settings6.set_persistence_enabled(false);
-  settings6.set_cache_size_bytes(kFiveMb);
+  WITH_DEPRECATED_API(settings6.set_persistence_enabled(false));
+  WITH_DEPRECATED_API(settings6.set_cache_size_bytes(kFiveMb));
 
   EXPECT_TRUE(settings1 == settings1);
   EXPECT_TRUE(settings6 == settings4);

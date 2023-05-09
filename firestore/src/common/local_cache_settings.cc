@@ -28,6 +28,14 @@ namespace firestore {
 
 PersistentCacheSettings PersistentCacheSettings::Create() { return {}; }
 
+PersistentCacheSettings PersistentCacheSettings::CreateFromCoreSettings(
+    const CorePersistentSettings& core_settings) {
+  auto result = PersistentCacheSettings{};
+  result.settings_internal_ =
+      std::make_unique<PersistentCacheSettingsInternal>(core_settings);
+  return result;
+}
+
 PersistentCacheSettings::PersistentCacheSettings() {
   settings_internal_ = std::make_unique<PersistentCacheSettingsInternal>(
       CorePersistentSettings{});
@@ -84,6 +92,14 @@ MemoryLruGCSettings MemoryLruGCSettings::WithSizeBytes(int64_t size) {
 }
 
 MemoryCacheSettings MemoryCacheSettings::Create() { return {}; }
+
+MemoryCacheSettings MemoryCacheSettings::CreateFromCoreSettings(
+    const CoreMemorySettings& core_settings) {
+  auto result = MemoryCacheSettings{};
+  result.settings_internal_ =
+      std::make_unique<MemoryCacheSettingsInternal>(core_settings);
+  return result;
+}
 
 MemoryCacheSettings::MemoryCacheSettings() {
   settings_internal_ =

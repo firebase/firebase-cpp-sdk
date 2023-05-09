@@ -1507,7 +1507,7 @@ TEST_F(FirestoreIntegrationTest, ClearPersistenceWhileRunningFails) {
 TEST_F(FirestoreIntegrationTest, LegacyCacheConfigForMemoryCacheWorks) {
   auto* db = TestFirestore("legacy_memory_cache");
   auto settings = db->settings();
-  settings.set_persistence_enabled(false);
+  WITH_DEPRECATED_API(settings.set_persistence_enabled(false));
   db->set_settings(std::move(settings));
 
   Await(db->Document("rooms/eros")
@@ -1523,7 +1523,7 @@ TEST_F(FirestoreIntegrationTest, LegacyCacheConfigForMemoryCacheWorks) {
 TEST_F(FirestoreIntegrationTest, LegacyCacheConfigForPersistenceCacheWorks) {
   auto* db = TestFirestore("legacy_persistent_cache");
   auto settings = db->settings();
-  settings.set_persistence_enabled(true);
+  WITH_DEPRECATED_API(settings.set_persistence_enabled(true));
   db->set_settings(std::move(settings));
 
   Await(db->Document("rooms/eros")
@@ -1576,12 +1576,14 @@ TEST_F(FirestoreIntegrationTest, CannotMixNewAndLegacyCacheConfig) {
     auto settings = db->settings();
     settings.set_local_cache_settings(
         PersistentCacheSettings::Create().WithSizeBytes(50 * 1024 * 1024));
-    EXPECT_THROW(settings.set_cache_size_bytes(0), std::logic_error);
+
+  WITH_DEPRECATED_API(EXPECT_THROW(settings.set_cache_size_bytes(0), std::logic_error));
   }
+
   {
     auto* db = TestFirestore("mixing_2");
     auto settings = db->settings();
-    settings.set_persistence_enabled(false);
+  WITH_DEPRECATED_API(settings.set_persistence_enabled(false));
     EXPECT_THROW(
         settings.set_local_cache_settings(MemoryCacheSettings::Create()),
         std::logic_error);

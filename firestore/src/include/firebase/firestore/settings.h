@@ -17,6 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_SETTINGS_H_
 #define FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_SETTINGS_H_
 
+#include "firebase/internal/common.h"
 #if defined(__OBJC__)
 #include <dispatch/dispatch.h>
 #endif
@@ -137,17 +138,38 @@ class Settings final {
    */
   void set_ssl_enabled(bool enabled);
 
+  /**
+   * Returns a shared pointer to the `LocalCacheSettings` instance
+   * used to configure this SDK.
+   */
   std::shared_ptr<LocalCacheSettings> local_cache_settings();
+
+  /**
+   * Configures the SDK with the given `LocalCacheSettings` instance.
+   *
+   * By default, persistence cache is enabled, with a cache size of 100 MB.
+   *
+   * See documentation of `PersistentCacheSettings` to under the default
+   * settings.
+   *
+   * @param cache_settings Settings object to configue this SDK.
+   */
   void set_local_cache_settings(const LocalCacheSettings& cache);
 
   /**
+   * NOTE: This method is deprecated in favor of `set_local_cache_settings()`.
+   * It will be deleted in a future major release.
+   *
    * Enables or disables local persistent storage.
    *
    * @param enabled Set true to enable local persistent storage.
    */
-  void set_persistence_enabled(bool enabled);
+  FIREBASE_DEPRECATED void set_persistence_enabled(bool enabled);
 
   /**
+   * NOTE: This method is deprecated in favor of `set_local_cache_settings()`.
+   * It will be deleted in a future major release.
+   *
    * Sets an approximate cache size threshold for the on-disk data. If the cache
    * grows beyond this size, Cloud Firestore will start removing data that
    * hasn't been recently used. The size is not a guarantee that the cache will
@@ -157,7 +179,7 @@ class Settings final {
    * By default, collection is enabled with a cache size of 100 MB. The minimum
    * value is 1 MB.
    */
-  void set_cache_size_bytes(int64_t value);
+  FIREBASE_DEPRECATED void set_cache_size_bytes(int64_t value);
 
 #if defined(__OBJC__) || defined(DOXYGEN)
   /**
