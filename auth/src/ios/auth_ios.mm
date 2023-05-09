@@ -455,6 +455,10 @@ Future<User *> Auth::SignInWithCustomToken_DEPRECATED(const char *token) {
 Future<User> Auth::SignInWithCredential(const Credential &credential) {
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<User>(kAuthFn_SignInWithCredential, User());
+  if (!credential.is_valid()) {
+    futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
+    return MakeFuture(&futures, handle);
+  }
 
   [AuthImpl(auth_data_)
       signInWithCredential:CredentialFromImpl(credential.impl_)
@@ -468,6 +472,10 @@ Future<User> Auth::SignInWithCredential(const Credential &credential) {
 Future<User *> Auth::SignInWithCredential_DEPRECATED(const Credential &credential) {
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<User *>(kAuthFn_SignInWithCredential_DEPRECATED, nullptr);
+  if (!credential.is_valid()) {
+    futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
+    return MakeFuture(&futures, handle);
+  }
 
   [AuthImpl(auth_data_)
       signInWithCredential:CredentialFromImpl(credential.impl_)
@@ -482,6 +490,10 @@ Future<AuthResult> Auth::SignInAndRetrieveDataWithCredential(const Credential &c
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle =
       futures.SafeAlloc<AuthResult>(kAuthFn_SignInAndRetrieveDataWithCredential, AuthResult());
+  if (!credential.is_valid()) {
+    futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
+    return MakeFuture(&futures, handle);
+  }
 
   [AuthImpl(auth_data_)
       signInWithCredential:CredentialFromImpl(credential.impl_)
@@ -497,6 +509,10 @@ Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential_DEPRECATED(
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<SignInResult>(
       kAuthFn_SignInAndRetrieveDataWithCredential_DEPRECATED, SignInResult());
+  if (!credential.is_valid()) {
+    futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
+    return MakeFuture(&futures, handle);
+  }
 
   [AuthImpl(auth_data_)
       signInWithCredential:CredentialFromImpl(credential.impl_)

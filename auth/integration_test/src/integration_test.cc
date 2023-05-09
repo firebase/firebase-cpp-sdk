@@ -273,6 +273,9 @@ bool FirebaseAuthTest::WaitForCompletion(
         EXPECT_TRUE(auth_->current_user().is_valid());
         EXPECT_EQ(future.result()->user.uid(), auth_->current_user().uid())
             << "User returned by Future doesn't match User in Auth";
+        // Expect no crash.
+        // TODO(b/281590792): Properly validate AuthResult fields case-by-case.
+        (void)future.result()->credential.is_valid();
         succeeded = future.result()->user.is_valid() &&
                     auth_->current_user().is_valid();
       }
@@ -310,6 +313,9 @@ bool FirebaseAuthTest::WaitForCompletion(
     EXPECT_EQ(result_ptr->additional_user_info.provider_id, provider_id);
     EXPECT_EQ(result_ptr->user.uid(), auth_->current_user().uid());
     EXPECT_TRUE(auth_->current_user().is_valid());
+    // Expect no crash.
+    // TODO(b/281590792): Properly validate AuthResult fields case-by-case.
+    (void)result_ptr->credential.is_valid();
   }
   return succeeded;
 }
@@ -368,6 +374,7 @@ TEST_F(FirebaseAuthTest, TestInitialization) {
 
 TEST_F(FirebaseAuthTest, TestAnonymousSignin) {
   // Test notification on SignIn().
+
   WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
   EXPECT_TRUE(auth_->current_user().is_valid());
   EXPECT_TRUE(auth_->current_user().is_anonymous());

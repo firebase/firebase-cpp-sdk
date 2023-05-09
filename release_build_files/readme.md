@@ -627,6 +627,11 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### 11.0.1
+-   Changes
+    - Auth (iOS): Fixed a crash in `Credential::is_valid()` when an `AuthResult`
+      contains an invalid credential, such as when signing in anonymously.
+
 ### 11.0.0
 -   Changes
     - General: Update minimum supported C++ standard to C++14.

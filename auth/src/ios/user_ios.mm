@@ -194,6 +194,10 @@ Future<AuthResult> User::LinkWithCredential(const Credential &credential) {
   }
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<AuthResult>(kUserFn_LinkWithCredential, AuthResult());
+  if (!credential.is_valid()) {
+    futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
+    return MakeFuture(&futures, handle);
+  }
   AuthData *auth_data = auth_data_;
   [UserImpl(auth_data)
       linkWithCredential:CredentialFromImpl(credential.impl_)
@@ -209,6 +213,10 @@ Future<User *> User::LinkWithCredential_DEPRECATED(const Credential &credential)
   }
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<User *>(kUserFn_LinkWithCredential_DEPRECATED);
+  if (!credential.is_valid()) {
+    futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
+    return MakeFuture(&futures, handle);
+  }
   [UserImpl(auth_data_)
       linkWithCredential:CredentialFromImpl(credential.impl_)
               completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
@@ -224,6 +232,10 @@ Future<SignInResult> User::LinkAndRetrieveDataWithCredential(const Credential &c
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = auth_data_->future_impl.SafeAlloc<SignInResult>(
       kUserFn_LinkAndRetrieveDataWithCredential, SignInResult());
+  if (!credential.is_valid()) {
+    futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
+    return MakeFuture(&futures, handle);
+  }
   AuthData *auth_data = auth_data_;
   [UserImpl(auth_data)
       linkWithCredential:CredentialFromImpl(credential.impl_)
@@ -279,6 +291,10 @@ Future<User> User::UpdatePhoneNumberCredential(const PhoneAuthCredential &creden
   const auto handle = futures.SafeAlloc<User>(kUserFn_UpdatePhoneNumberCredential);
 
 #if FIREBASE_PLATFORM_IOS
+  if (!credential.is_valid()) {
+    futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
+    return MakeFuture(&futures, handle);
+  }
   FIRPhoneAuthCredential *objc_credential = PhoneAuthCredentialFromImpl(credential.impl_);
   [UserImpl(auth_data_)
       updatePhoneNumberCredential:objc_credential
@@ -302,6 +318,10 @@ Future<User *> User::UpdatePhoneNumberCredential_DEPRECATED(const Credential &cr
   const auto handle = futures.SafeAlloc<User *>(kUserFn_UpdatePhoneNumberCredential_DEPRECATED);
 
 #if FIREBASE_PLATFORM_IOS
+  if (!credential.is_valid()) {
+    futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
+    return MakeFuture(&futures, handle);
+  }
   FIRAuthCredential *objc_credential = CredentialFromImpl(credential.impl_);
   if ([objc_credential isKindOfClass:[FIRPhoneAuthCredential class]]) {
     [UserImpl(auth_data_)
@@ -341,6 +361,10 @@ Future<void> User::Reauthenticate(const Credential &credential) {
   }
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_Reauthenticate);
+  if (!credential.is_valid()) {
+    futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
+    return MakeFuture(&futures, handle);
+  }
 
   [UserImpl(auth_data_)
       reauthenticateWithCredential:CredentialFromImpl(credential.impl_)
@@ -359,6 +383,10 @@ Future<AuthResult> User::ReauthenticateAndRetrieveData(const Credential &credent
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = auth_data_->future_impl.SafeAlloc<AuthResult>(
       kUserFn_ReauthenticateAndRetrieveData, AuthResult());
+  if (!credential.is_valid()) {
+    futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
+    return MakeFuture(&futures, handle);
+  }
   AuthData *auth_data = auth_data_;
   [UserImpl(auth_data)
       reauthenticateWithCredential:CredentialFromImpl(credential.impl_)
@@ -376,6 +404,10 @@ Future<SignInResult> User::ReauthenticateAndRetrieveData_DEPRECATED(const Creden
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = auth_data_->future_impl.SafeAlloc<SignInResult>(
       kUserFn_ReauthenticateAndRetrieveData_DEPRECATED, SignInResult());
+  if (!credential.is_valid()) {
+    futures.Complete(handle, kAuthErrorInvalidCredential, "Invalid credential is not allowed.");
+    return MakeFuture(&futures, handle);
+  }
   AuthData *auth_data = auth_data_;
   [UserImpl(auth_data)
       reauthenticateWithCredential:CredentialFromImpl(credential.impl_)
