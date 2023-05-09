@@ -472,6 +472,96 @@ TEST_F(ValidationTest,
   EXPECT_NE(Firestore::GetInstance("foo"), nullptr);
 }
 
+TEST_F(ValidationTest,
+       FirestoreGetInstanceCalledMultipleTimeReturnSameInstance) {
+  {
+    Firestore* instance1 = Firestore::GetInstance();
+    Firestore* instance2 = Firestore::GetInstance();
+    EXPECT_EQ(instance1, instance2);
+    delete instance1;
+    delete instance2;
+  }
+  {
+    Firestore* instance1 = Firestore::GetInstance(app());
+    Firestore* instance2 = Firestore::GetInstance(app());
+    EXPECT_EQ(instance1, instance2);
+    delete instance1;
+    delete instance2;
+  }
+  {
+    Firestore* instance1 = Firestore::GetInstance("foo");
+    Firestore* instance2 = Firestore::GetInstance("foo");
+    EXPECT_EQ(instance1, instance2);
+    delete instance1;
+    delete instance2;
+  }
+  {
+    Firestore* instance1 = Firestore::GetInstance(app(), "foo");
+    Firestore* instance2 = Firestore::GetInstance(app(), "foo");
+    EXPECT_EQ(instance1, instance2);
+    delete instance1;
+    delete instance2;
+  }
+}
+
+TEST_F(ValidationTest,
+       DifferentFirestoreGetInstanceCanGetSameDefaultFirestoreInstance) {
+  Firestore* instance1 = Firestore::GetInstance();
+  Firestore* instance2 = Firestore::GetInstance(app());
+  Firestore* instance3 = Firestore::GetInstance("(default)");
+  Firestore* instance4 = Firestore::GetInstance(app(), "(default)");
+
+  EXPECT_EQ(instance1, instance2);
+  EXPECT_EQ(instance1, instance3);
+  EXPECT_EQ(instance1, instance4);
+  delete instance1;
+  delete instance2;
+  delete instance3;
+  delete instance4;
+}
+
+TEST_F(
+    ValidationTest,
+    DifferentFirestoreGetInstanceWithSameDatabaseNameShouldGetSameFirestoreInstance) {
+  Firestore* instance1 = Firestore::GetInstance("foo");
+  Firestore* instance2 = Firestore::GetInstance(app(), "foo");
+  EXPECT_EQ(instance1, instance2);
+  delete instance1;
+  delete instance2;
+}
+
+TEST_F(
+    ValidationTest,
+    DifferentFirestoreGetInstanceWithDifferentDatabaseNameShouldGetDifferentFirestoreInstance) {
+  {
+    Firestore* instance1 = Firestore::GetInstance();
+    Firestore* instance2 = Firestore::GetInstance("bar");
+    EXPECT_NE(instance1, instance2);
+    delete instance1;
+    delete instance2;
+  }
+  {
+    Firestore* instance1 = Firestore::GetInstance("foo");
+    Firestore* instance2 = Firestore::GetInstance("bar");
+    EXPECT_NE(instance1, instance2);
+    delete instance1;
+    delete instance2;
+  }
+  {
+    Firestore* instance1 = Firestore::GetInstance(app(), "foo");
+    Firestore* instance2 = Firestore::GetInstance(app(), "bar");
+    EXPECT_NE(instance1, instance2);
+    delete instance1;
+    delete instance2;
+  }
+  {
+    Firestore* instance1 = Firestore::GetInstance("foo");
+    Firestore* instance2 = Firestore::GetInstance(app(), "bar");
+    EXPECT_NE(instance1, instance2);
+    delete instance1;
+    delete instance2;
+  }
+}
 TEST_F(ValidationTest, CollectionPathsMustBeOddLength) {
   Firestore* db = TestFirestore();
   DocumentReference base_document = db->Document("foo/bar");

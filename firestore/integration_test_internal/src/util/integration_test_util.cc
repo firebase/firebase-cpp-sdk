@@ -15,6 +15,7 @@
  */
 
 #include <chrono>  // NOLINT(build/c++11)
+#include <iostream>
 #include <thread>  // NOLINT(build/c++11)
 
 #include "absl/memory/memory.h"
@@ -34,10 +35,11 @@ namespace firebase {
 namespace firestore {
 
 struct TestFriend {
-  static FirestoreInternal* CreateTestFirestoreInternal(App* app) {
+  static FirestoreInternal* CreateTestFirestoreInternal(
+      App* app, const std::string& database_id) {
 #if !defined(__ANDROID__)
     return new FirestoreInternal(
-        app, /*database_id=*/"(default)",
+        app, database_id.c_str(),
         absl::make_unique<credentials::EmptyAuthCredentialsProvider>(),
         absl::make_unique<credentials::EmptyAppCheckCredentialsProvider>());
 #else
@@ -79,8 +81,9 @@ App* GetApp(const char* name, const std::string& override_project_id) {
 
 App* GetApp() { return GetApp(/*name=*/nullptr, /*project_id=*/""); }
 
-FirestoreInternal* CreateTestFirestoreInternal(App* app) {
-  return TestFriend::CreateTestFirestoreInternal(app);
+FirestoreInternal* CreateTestFirestoreInternal(App* app,
+                                               const std::string& database_id) {
+  return TestFriend::CreateTestFirestoreInternal(app, database_id);
 }
 
 }  // namespace firestore

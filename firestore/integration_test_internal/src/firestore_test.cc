@@ -16,6 +16,7 @@
 
 #include "firebase/firestore.h"
 
+#include <firestore/src/main/converter_main.h>
 #include <algorithm>
 #include <future>
 #include <memory>
@@ -40,11 +41,13 @@
 #include "util/future_test_util.h"
 #if !defined(__ANDROID__)
 #include "Firestore/core/src/util/autoid.h"
+#include "firestore/src/main/firestore_main.h"
 #else
 #include "android/util_autoid.h"
 #endif  // !defined(__ANDROID__)
 #include "Firestore/core/src/util/firestore_exceptions.h"
 #include "firebase_test_framework.h"
+#include "util/locate_emulator.h"
 
 // These test cases are in sync with native iOS client SDK test
 //   Firestore/Example/Tests/Integration/API/FIRDatabaseTests.mm
@@ -60,7 +63,14 @@ using ::firebase::auth::Auth;
 using ::testing::ContainerEq;
 using ::testing::HasSubstr;
 
-TEST_F(FirestoreIntegrationTest, GetInstance) {
+class FirestoreTest : public FirestoreIntegrationTest {
+ protected:
+  const std::string GetFirestoreDatabaseId(Firestore* firestore) {
+    return GetInternal(firestore)->database_id().database_id();
+  }
+};
+
+TEST_F(FirestoreTest, GetInstance) {
   // Create App.
   App* app = this->app();
   EXPECT_NE(nullptr, app);
@@ -87,8 +97,22 @@ TEST_F(FirestoreIntegrationTest, GetInstance) {
   delete auth;
 }
 
+TEST_F(FirestoreTest, GetInstanceWithNamedDatabase) {
+  App* app = this->app();
+  EXPECT_NE(nullptr, app);
+
+  InitResult init_result;
+  auto instance = std::unique_ptr<Firestore>(
+      Firestore::GetInstance(app, "foo", &init_result));
+  ASSERT_EQ(kInitResultSuccess, init_result);
+
+  EXPECT_NE(nullptr, instance);
+  EXPECT_EQ(app, instance->app());
+  EXPECT_EQ(GetFirestoreDatabaseId(instance.get()), "foo");
+}
+
 // Sanity test for stubs.
-TEST_F(FirestoreIntegrationTest, TestCanCreateCollectionAndDocumentReferences) {
+TEST_F(FirestoreTest, TestCanCreateCollectionAndDocumentReferences) {
   Firestore* db = TestFirestore();
   CollectionReference c = db->Collection("a/b/c").Document("d").Parent();
   DocumentReference d = db->Document("a/b").Collection("c/d/e").Parent();
@@ -102,7 +126,7 @@ TEST_F(FirestoreIntegrationTest, TestCanCreateCollectionAndDocumentReferences) {
   // If any of these assert, the test will fail.
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanReadNonExistentDocuments) {
+TEST_F(FirestoreTest, TestCanReadNonExistentDocuments) {
   DocumentReference doc = Collection("rooms").Document();
 
   DocumentSnapshot snap = ReadDocument(doc);
@@ -110,7 +134,7 @@ TEST_F(FirestoreIntegrationTest, TestCanReadNonExistentDocuments) {
   EXPECT_THAT(snap.GetData(), ContainerEq(MapFieldValue()));
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanUpdateAnExistingDocument) {
+TEST_F(FirestoreTest, TestCanUpdateAnExistingDocument) {
   DocumentReference document = Collection("rooms").Document("eros");
   Await(document.Set(MapFieldValue{
       {"desc", FieldValue::String("Description")},
@@ -131,7 +155,7 @@ TEST_F(FirestoreIntegrationTest, TestCanUpdateAnExistingDocument) {
                             {"email", FieldValue::String("new@xyz.com")}})}}));
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanUpdateAnUnknownDocument) {
+TEST_F(FirestoreTest, TestCanUpdateAnUnknownDocument) {
   DocumentReference writer_reference =
       TestFirestore("writer")->Collection("collection").Document();
   DocumentReference reader_reference = TestFirestore("reader")
@@ -165,7 +189,7 @@ TEST_F(FirestoreIntegrationTest, TestCanUpdateAnUnknownDocument) {
   EXPECT_FALSE(reader_snapshot.metadata().is_from_cache());
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanOverwriteAnExistingDocumentUsingSet) {
+TEST_F(FirestoreTest, TestCanOverwriteAnExistingDocumentUsingSet) {
   DocumentReference document = Collection("rooms").Document();
   Await(document.Set(MapFieldValue{
       {"desc", FieldValue::String("Description")},
@@ -186,8 +210,7 @@ TEST_F(FirestoreIntegrationTest, TestCanOverwriteAnExistingDocumentUsingSet) {
            FieldValue::Map({{"name", FieldValue::String("Sebastian")}})}}));
 }
 
-TEST_F(FirestoreIntegrationTest,
-       TestCanMergeDataWithAnExistingDocumentUsingSet) {
+TEST_F(FirestoreTest, TestCanMergeDataWithAnExistingDocumentUsingSet) {
   DocumentReference document = Collection("rooms").Document("eros");
   Await(document.Set(MapFieldValue{
       {"desc", FieldValue::String("Description")},
@@ -212,7 +235,7 @@ TEST_F(FirestoreIntegrationTest,
                             {"email", FieldValue::String("abc@xyz.com")}})}}));
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanMergeServerTimestamps) {
+TEST_F(FirestoreTest, TestCanMergeServerTimestamps) {
   DocumentReference document = Collection("rooms").Document("eros");
   Await(document.Set(MapFieldValue{{"untouched", FieldValue::Boolean(true)}}));
   Await(document.Set(
@@ -226,7 +249,7 @@ TEST_F(FirestoreIntegrationTest, TestCanMergeServerTimestamps) {
   EXPECT_TRUE(snapshot.Get("nested.time").is_timestamp());
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanMergeEmptyObject) {
+TEST_F(FirestoreTest, TestCanMergeEmptyObject) {
   DocumentReference document = Document();
   EventAccumulator<DocumentSnapshot> accumulator;
   ListenerRegistration registration =
@@ -262,7 +285,7 @@ TEST_F(FirestoreIntegrationTest, TestCanMergeEmptyObject) {
   registration.Remove();
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanDeleteFieldUsingMerge) {
+TEST_F(FirestoreTest, TestCanDeleteFieldUsingMerge) {
   DocumentReference document = Collection("rooms").Document("eros");
   Await(document.Set(MapFieldValue{
       {"untouched", FieldValue::Boolean(true)},
@@ -287,7 +310,7 @@ TEST_F(FirestoreIntegrationTest, TestCanDeleteFieldUsingMerge) {
   EXPECT_FALSE(snapshot.Get("nested.foo").is_valid());
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanDeleteFieldUsingMergeFields) {
+TEST_F(FirestoreTest, TestCanDeleteFieldUsingMergeFields) {
   DocumentReference document = Collection("rooms").Document("eros");
   Await(document.Set(MapFieldValue{
       {"untouched", FieldValue::Boolean(true)},
@@ -314,7 +337,7 @@ TEST_F(FirestoreIntegrationTest, TestCanDeleteFieldUsingMergeFields) {
            FieldValue::Map({{"untouched", FieldValue::Boolean(true)}})}}));
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanSetServerTimestampsUsingMergeFields) {
+TEST_F(FirestoreTest, TestCanSetServerTimestampsUsingMergeFields) {
   DocumentReference document = Collection("rooms").Document("eros");
   Await(document.Set(MapFieldValue{
       {"untouched", FieldValue::Boolean(true)},
@@ -335,7 +358,7 @@ TEST_F(FirestoreIntegrationTest, TestCanSetServerTimestampsUsingMergeFields) {
   EXPECT_TRUE(snapshot.Get("nested.foo").is_timestamp());
 }
 
-TEST_F(FirestoreIntegrationTest, TestMergeReplacesArrays) {
+TEST_F(FirestoreTest, TestMergeReplacesArrays) {
   DocumentReference document = Collection("rooms").Document("eros");
   Await(document.Set(MapFieldValue{
       {"untouched", FieldValue::Boolean(true)},
@@ -363,8 +386,7 @@ TEST_F(FirestoreIntegrationTest, TestMergeReplacesArrays) {
                              {{"data", FieldValue::String("new")}})})}}));
 }
 
-TEST_F(FirestoreIntegrationTest,
-       TestCanDeepMergeDataWithAnExistingDocumentUsingSet) {
+TEST_F(FirestoreTest, TestCanDeepMergeDataWithAnExistingDocumentUsingSet) {
   DocumentReference document = Collection("rooms").Document("eros");
   Await(document.Set(MapFieldValue{
       {"owner.data",
@@ -391,7 +413,7 @@ TEST_F(FirestoreIntegrationTest,
 #if defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
 // TODO(b/136012313): iOS currently doesn't rethrow native exceptions as C++
 // exceptions.
-TEST_F(FirestoreIntegrationTest, TestFieldMaskCannotContainMissingFields) {
+TEST_F(FirestoreTest, TestFieldMaskCannotContainMissingFields) {
   DocumentReference document = Collection("rooms").Document();
   try {
     document.Set(MapFieldValue{{"desc", FieldValue::String("NewDescription")}},
@@ -406,7 +428,7 @@ TEST_F(FirestoreIntegrationTest, TestFieldMaskCannotContainMissingFields) {
 }
 #endif  // defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
 
-TEST_F(FirestoreIntegrationTest, TestFieldsNotInFieldMaskAreIgnored) {
+TEST_F(FirestoreTest, TestFieldsNotInFieldMaskAreIgnored) {
   DocumentReference document = Collection("rooms").Document("eros");
   Await(document.Set(MapFieldValue{
       {"desc", FieldValue::String("Description")},
@@ -428,7 +450,7 @@ TEST_F(FirestoreIntegrationTest, TestFieldsNotInFieldMaskAreIgnored) {
                             {"email", FieldValue::String("abc@xyz.com")}})}}));
 }
 
-TEST_F(FirestoreIntegrationTest, TestFieldDeletesNotInFieldMaskAreIgnored) {
+TEST_F(FirestoreTest, TestFieldDeletesNotInFieldMaskAreIgnored) {
   DocumentReference document = Collection("rooms").Document("eros");
   Await(document.Set(MapFieldValue{
       {"desc", FieldValue::String("Description")},
@@ -450,7 +472,7 @@ TEST_F(FirestoreIntegrationTest, TestFieldDeletesNotInFieldMaskAreIgnored) {
                             {"email", FieldValue::String("abc@xyz.com")}})}}));
 }
 
-TEST_F(FirestoreIntegrationTest, TestFieldTransformsNotInFieldMaskAreIgnored) {
+TEST_F(FirestoreTest, TestFieldTransformsNotInFieldMaskAreIgnored) {
   DocumentReference document = Collection("rooms").Document("eros");
   Await(document.Set(MapFieldValue{
       {"desc", FieldValue::String("Description")},
@@ -472,7 +494,7 @@ TEST_F(FirestoreIntegrationTest, TestFieldTransformsNotInFieldMaskAreIgnored) {
                             {"email", FieldValue::String("abc@xyz.com")}})}}));
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanSetEmptyFieldMask) {
+TEST_F(FirestoreTest, TestCanSetEmptyFieldMask) {
   DocumentReference document = Collection("rooms").Document("eros");
   Await(document.Set(MapFieldValue{
       {"desc", FieldValue::String("Description")},
@@ -493,7 +515,7 @@ TEST_F(FirestoreIntegrationTest, TestCanSetEmptyFieldMask) {
                             {"email", FieldValue::String("abc@xyz.com")}})}}));
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanSpecifyFieldsMultipleTimesInFieldMask) {
+TEST_F(FirestoreTest, TestCanSpecifyFieldsMultipleTimesInFieldMask) {
   DocumentReference document = Collection("rooms").Document("eros");
   Await(document.Set(MapFieldValue{
       {"desc", FieldValue::String("Description")},
@@ -518,7 +540,7 @@ TEST_F(FirestoreIntegrationTest, TestCanSpecifyFieldsMultipleTimesInFieldMask) {
                             {"email", FieldValue::String("new@new.com")}})}}));
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanDeleteAFieldWithAnUpdate) {
+TEST_F(FirestoreTest, TestCanDeleteAFieldWithAnUpdate) {
   DocumentReference document = Collection("rooms").Document("eros");
   Await(document.Set(MapFieldValue{
       {"desc", FieldValue::String("Description")},
@@ -535,7 +557,7 @@ TEST_F(FirestoreIntegrationTest, TestCanDeleteAFieldWithAnUpdate) {
                    FieldValue::Map({{"name", FieldValue::String("Jonny")}})}}));
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanUpdateFieldsWithDots) {
+TEST_F(FirestoreTest, TestCanUpdateFieldsWithDots) {
   DocumentReference document = Collection("rooms").Document("eros");
   Await(document.Set(MapFieldValue{{"a.b", FieldValue::String("old")},
                                    {"c.d", FieldValue::String("old")},
@@ -550,7 +572,7 @@ TEST_F(FirestoreIntegrationTest, TestCanUpdateFieldsWithDots) {
                                         {"e.f", FieldValue::String("old")}}));
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanUpdateNestedFields) {
+TEST_F(FirestoreTest, TestCanUpdateNestedFields) {
   DocumentReference document = Collection("rooms").Document("eros");
   Await(document.Set(MapFieldValue{
       {"a", FieldValue::Map({{"b", FieldValue::String("old")}})},
@@ -569,7 +591,7 @@ TEST_F(FirestoreIntegrationTest, TestCanUpdateNestedFields) {
 
 // Verify that multiple deletes in a single update call work.
 // https://github.com/firebase/quickstart-unity/issues/882
-TEST_F(FirestoreIntegrationTest, TestCanUpdateFieldsWithMultipleDeletes) {
+TEST_F(FirestoreTest, TestCanUpdateFieldsWithMultipleDeletes) {
   DocumentReference document = Collection("rooms").Document();
   Await(document.Set(MapFieldValue{{"key1", FieldValue::String("value1")},
                                    {"key2", FieldValue::String("value2")},
@@ -586,7 +608,7 @@ TEST_F(FirestoreIntegrationTest, TestCanUpdateFieldsWithMultipleDeletes) {
                                       {"key4", FieldValue::String("value4")}}));
 }
 
-TEST_F(FirestoreIntegrationTest, TestDeleteDocument) {
+TEST_F(FirestoreTest, TestDeleteDocument) {
   DocumentReference document = Collection("rooms").Document("eros");
   WriteDocument(document, MapFieldValue{{"value", FieldValue::String("bar")}});
   DocumentSnapshot snapshot = ReadDocument(document);
@@ -599,7 +621,7 @@ TEST_F(FirestoreIntegrationTest, TestDeleteDocument) {
   EXPECT_FALSE(snapshot.exists());
 }
 
-TEST_F(FirestoreIntegrationTest, TestCannotUpdateNonexistentDocument) {
+TEST_F(FirestoreTest, TestCannotUpdateNonexistentDocument) {
   DocumentReference document = Collection("rooms").Document();
   Future<void> future =
       document.Update(MapFieldValue{{"owner", FieldValue::String("abc")}});
@@ -610,7 +632,7 @@ TEST_F(FirestoreIntegrationTest, TestCannotUpdateNonexistentDocument) {
   EXPECT_FALSE(snapshot.exists());
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanRetrieveNonexistentDocument) {
+TEST_F(FirestoreTest, TestCanRetrieveNonexistentDocument) {
   DocumentReference document = Collection("rooms").Document();
   DocumentSnapshot snapshot = ReadDocument(document);
   EXPECT_FALSE(snapshot.exists());
@@ -623,7 +645,7 @@ TEST_F(FirestoreIntegrationTest, TestCanRetrieveNonexistentDocument) {
   registration.Remove();
 }
 
-TEST_F(FirestoreIntegrationTest,
+TEST_F(FirestoreTest,
        TestAddingToACollectionYieldsTheCorrectDocumentReference) {
   DocumentReference document = Collection("rooms").Document();
   Await(document.Set(MapFieldValue{{"foo", FieldValue::Double(1.0)}}));
@@ -633,8 +655,7 @@ TEST_F(FirestoreIntegrationTest,
               ContainerEq(MapFieldValue{{"foo", FieldValue::Double(1.0)}}));
 }
 
-TEST_F(FirestoreIntegrationTest,
-       TestSnapshotsInSyncListenerFiresAfterListenersInSync) {
+TEST_F(FirestoreTest, TestSnapshotsInSyncListenerFiresAfterListenersInSync) {
   class TestData {
    public:
     void AddEvent(const std::string& event) {
@@ -723,7 +744,7 @@ TEST_F(FirestoreIntegrationTest,
   sync_registration.Remove();
 }
 
-TEST_F(FirestoreIntegrationTest, TestQueriesAreValidatedOnClient) {
+TEST_F(FirestoreTest, TestQueriesAreValidatedOnClient) {
   // NOTE: Failure cases are validated in ValidationTest.
   CollectionReference collection = Collection();
   Query query =
@@ -755,7 +776,7 @@ TEST_F(FirestoreIntegrationTest, TestQueriesAreValidatedOnClient) {
 
 // The test harness will generate Java JUnit test regardless whether this is
 // inside a #if or not. So we move #if inside instead of enclose the whole case.
-TEST_F(FirestoreIntegrationTest, TestListenCanBeCalledMultipleTimes) {
+TEST_F(FirestoreTest, TestListenCanBeCalledMultipleTimes) {
   class TestData {
    public:
     void SetDocumentSnapshot(const DocumentSnapshot& document_snapshot) {
@@ -803,7 +824,7 @@ TEST_F(FirestoreIntegrationTest, TestListenCanBeCalledMultipleTimes) {
               ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
 }
 
-TEST_F(FirestoreIntegrationTest, TestDocumentSnapshotEventsNonExistent) {
+TEST_F(FirestoreTest, TestDocumentSnapshotEventsNonExistent) {
   DocumentReference document = Collection("rooms").Document();
   TestEventListener<DocumentSnapshot> listener("TestNonExistent");
   ListenerRegistration registration =
@@ -815,7 +836,7 @@ TEST_F(FirestoreIntegrationTest, TestDocumentSnapshotEventsNonExistent) {
   registration.Remove();
 }
 
-TEST_F(FirestoreIntegrationTest, TestDocumentSnapshotEventsForAdd) {
+TEST_F(FirestoreTest, TestDocumentSnapshotEventsForAdd) {
   DocumentReference document = Collection("rooms").Document();
   TestEventListener<DocumentSnapshot> listener("TestForAdd");
   ListenerRegistration registration =
@@ -839,7 +860,7 @@ TEST_F(FirestoreIntegrationTest, TestDocumentSnapshotEventsForAdd) {
   registration.Remove();
 }
 
-TEST_F(FirestoreIntegrationTest, TestDocumentSnapshotEventsForChange) {
+TEST_F(FirestoreTest, TestDocumentSnapshotEventsForChange) {
   CollectionReference collection =
       Collection(std::map<std::string, MapFieldValue>{
           {"doc", MapFieldValue{{"a", FieldValue::Double(1.0)}}}});
@@ -873,7 +894,7 @@ TEST_F(FirestoreIntegrationTest, TestDocumentSnapshotEventsForChange) {
   registration.Remove();
 }
 
-TEST_F(FirestoreIntegrationTest, TestDocumentSnapshotEventsForDelete) {
+TEST_F(FirestoreTest, TestDocumentSnapshotEventsForDelete) {
   CollectionReference collection =
       Collection(std::map<std::string, MapFieldValue>{
           {"doc", MapFieldValue{{"a", FieldValue::Double(1.0)}}}});
@@ -897,7 +918,7 @@ TEST_F(FirestoreIntegrationTest, TestDocumentSnapshotEventsForDelete) {
   registration.Remove();
 }
 
-TEST_F(FirestoreIntegrationTest, TestDocumentSnapshotErrorReporting) {
+TEST_F(FirestoreTest, TestDocumentSnapshotErrorReporting) {
   DocumentReference document = Collection("col").Document("__badpath__");
   TestEventListener<DocumentSnapshot> listener("TestBadPath");
   ListenerRegistration registration =
@@ -910,7 +931,7 @@ TEST_F(FirestoreIntegrationTest, TestDocumentSnapshotErrorReporting) {
   registration.Remove();
 }
 
-TEST_F(FirestoreIntegrationTest, TestQuerySnapshotEventsForAdd) {
+TEST_F(FirestoreTest, TestQuerySnapshotEventsForAdd) {
   CollectionReference collection = Collection();
   DocumentReference document = collection.Document();
   TestEventListener<QuerySnapshot> listener("TestForCollectionAdd");
@@ -937,7 +958,7 @@ TEST_F(FirestoreIntegrationTest, TestQuerySnapshotEventsForAdd) {
   registration.Remove();
 }
 
-TEST_F(FirestoreIntegrationTest, TestQuerySnapshotEventsForChange) {
+TEST_F(FirestoreTest, TestQuerySnapshotEventsForChange) {
   CollectionReference collection =
       Collection(std::map<std::string, MapFieldValue>{
           {"doc", MapFieldValue{{"a", FieldValue::Double(1.0)}}}});
@@ -971,7 +992,7 @@ TEST_F(FirestoreIntegrationTest, TestQuerySnapshotEventsForChange) {
   registration.Remove();
 }
 
-TEST_F(FirestoreIntegrationTest, TestQuerySnapshotEventsForDelete) {
+TEST_F(FirestoreTest, TestQuerySnapshotEventsForDelete) {
   CollectionReference collection =
       Collection(std::map<std::string, MapFieldValue>{
           {"doc", MapFieldValue{{"a", FieldValue::Double(1.0)}}}});
@@ -995,7 +1016,7 @@ TEST_F(FirestoreIntegrationTest, TestQuerySnapshotEventsForDelete) {
   registration.Remove();
 }
 
-TEST_F(FirestoreIntegrationTest, TestQuerySnapshotErrorReporting) {
+TEST_F(FirestoreTest, TestQuerySnapshotErrorReporting) {
   CollectionReference collection =
       Collection("a").Document("__badpath__").Collection("b");
   TestEventListener<QuerySnapshot> listener("TestBadPath");
@@ -1009,8 +1030,7 @@ TEST_F(FirestoreIntegrationTest, TestQuerySnapshotErrorReporting) {
   registration.Remove();
 }
 
-TEST_F(FirestoreIntegrationTest,
-       TestMetadataOnlyChangesAreNotFiredWhenNoOptionsProvided) {
+TEST_F(FirestoreTest, TestMetadataOnlyChangesAreNotFiredWhenNoOptionsProvided) {
   DocumentReference document = Collection().Document();
   TestEventListener<DocumentSnapshot> listener("TestForNoMetadataOnlyChanges");
   ListenerRegistration registration = listener.AttachTo(&document);
@@ -1027,7 +1047,7 @@ TEST_F(FirestoreIntegrationTest,
   registration.Remove();
 }
 
-TEST_F(FirestoreIntegrationTest, TestDocumentReferenceExposesFirestore) {
+TEST_F(FirestoreTest, TestDocumentReferenceExposesFirestore) {
   Firestore* db = TestFirestore();
   // EXPECT_EQ(db, db->Document("foo/bar").firestore());
   // TODO(varconst): use the commented out check above.
@@ -1041,19 +1061,19 @@ TEST_F(FirestoreIntegrationTest, TestDocumentReferenceExposesFirestore) {
   EXPECT_NE(nullptr, db->Document("foo/bar").firestore());
 }
 
-TEST_F(FirestoreIntegrationTest, TestCollectionReferenceExposesFirestore) {
+TEST_F(FirestoreTest, TestCollectionReferenceExposesFirestore) {
   Firestore* db = TestFirestore();
   // EXPECT_EQ(db, db->Collection("foo").firestore());
   EXPECT_NE(nullptr, db->Collection("foo").firestore());
 }
 
-TEST_F(FirestoreIntegrationTest, TestQueryExposesFirestore) {
+TEST_F(FirestoreTest, TestQueryExposesFirestore) {
   Firestore* db = TestFirestore();
   // EXPECT_EQ(db, db->Collection("foo").Limit(5).firestore());
   EXPECT_NE(nullptr, db->Collection("foo").Limit(5).firestore());
 }
 
-TEST_F(FirestoreIntegrationTest, TestDocumentReferenceEquality) {
+TEST_F(FirestoreTest, TestDocumentReferenceEquality) {
   Firestore* db = TestFirestore();
   DocumentReference document = db->Document("foo/bar");
   EXPECT_EQ(document, db->Document("foo/bar"));
@@ -1065,7 +1085,7 @@ TEST_F(FirestoreIntegrationTest, TestDocumentReferenceEquality) {
   EXPECT_NE(document, another_db->Document("foo/bar"));
 }
 
-TEST_F(FirestoreIntegrationTest, TestQueryReferenceEquality) {
+TEST_F(FirestoreTest, TestQueryReferenceEquality) {
   Firestore* db = TestFirestore();
   Query query = db->Collection("foo").OrderBy("bar").WhereEqualTo(
       "baz", FieldValue::Integer(42));
@@ -1081,7 +1101,7 @@ TEST_F(FirestoreIntegrationTest, TestQueryReferenceEquality) {
   // So we skip the testing of two queries with different Firestore instance.
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanTraverseCollectionsAndDocuments) {
+TEST_F(FirestoreTest, TestCanTraverseCollectionsAndDocuments) {
   Firestore* db = TestFirestore();
 
   // doc path from root Firestore.
@@ -1097,7 +1117,7 @@ TEST_F(FirestoreIntegrationTest, TestCanTraverseCollectionsAndDocuments) {
   EXPECT_EQ("a/b/c/d/e", db->Document("a/b").Collection("c/d/e").path());
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanTraverseCollectionAndDocumentParents) {
+TEST_F(FirestoreTest, TestCanTraverseCollectionAndDocumentParents) {
   Firestore* db = TestFirestore();
   CollectionReference collection = db->Collection("a/b/c");
   EXPECT_EQ("a/b/c", collection.path());
@@ -1112,17 +1132,17 @@ TEST_F(FirestoreIntegrationTest, TestCanTraverseCollectionAndDocumentParents) {
   EXPECT_FALSE(invalidDoc.is_valid());
 }
 
-TEST_F(FirestoreIntegrationTest, TestCollectionId) {
+TEST_F(FirestoreTest, TestCollectionId) {
   EXPECT_EQ("foo", TestFirestore()->Collection("foo").id());
   EXPECT_EQ("baz", TestFirestore()->Collection("foo/bar/baz").id());
 }
 
-TEST_F(FirestoreIntegrationTest, TestDocumentId) {
+TEST_F(FirestoreTest, TestDocumentId) {
   EXPECT_EQ(TestFirestore()->Document("foo/bar").id(), "bar");
   EXPECT_EQ(TestFirestore()->Document("foo/bar/baz/qux").id(), "qux");
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanQueueWritesWhileOffline) {
+TEST_F(FirestoreTest, TestCanQueueWritesWhileOffline) {
   // Arrange
   DocumentReference document = Collection("rooms").Document("eros");
 
@@ -1150,7 +1170,7 @@ TEST_F(FirestoreIntegrationTest, TestCanQueueWritesWhileOffline) {
   EXPECT_FALSE(snapshot.metadata().is_from_cache());
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanGetDocumentsWhileOffline) {
+TEST_F(FirestoreTest, TestCanGetDocumentsWhileOffline) {
   DocumentReference document = Collection("rooms").Document();
   Await(TestFirestore()->DisableNetwork());
   Future<DocumentSnapshot> future = document.Get();
@@ -1200,7 +1220,7 @@ TEST_F(FirestoreIntegrationTest, TestCanGetDocumentsWhileOffline) {
 // really unit tests that have to be run in integration tests setup. The
 // existing Objective-C and Android tests cover these cases fairly well.
 
-TEST_F(FirestoreIntegrationTest, TestCanDisableAndEnableNetworking) {
+TEST_F(FirestoreTest, TestCanDisableAndEnableNetworking) {
   // There's not currently a way to check if networking is in fact disabled,
   // so for now just test that the method is well-behaved and doesn't throw.
   Firestore* db = TestFirestore();
@@ -1212,7 +1232,7 @@ TEST_F(FirestoreIntegrationTest, TestCanDisableAndEnableNetworking) {
 }
 
 // TODO(varconst): split this test.
-TEST_F(FirestoreIntegrationTest, TestToString) {
+TEST_F(FirestoreTest, TestToString) {
   Settings settings;
   settings.set_host("foo.bar");
   settings.set_ssl_enabled(false);
@@ -1242,12 +1262,12 @@ TEST_F(FirestoreIntegrationTest, TestToString) {
 // TODO(wuandy): Enable this for other platforms when they can handle
 // exceptions.
 #if defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
-TEST_F(FirestoreIntegrationTest, ClientCallsAfterTerminateFails) {
+TEST_F(FirestoreTest, ClientCallsAfterTerminateFails) {
   EXPECT_THAT(TestFirestore()->Terminate(), FutureSucceeds());
   EXPECT_THROW(Await(TestFirestore()->DisableNetwork()), std::logic_error);
 }
 
-TEST_F(FirestoreIntegrationTest, NewOperationThrowsAfterFirestoreTerminate) {
+TEST_F(FirestoreTest, NewOperationThrowsAfterFirestoreTerminate) {
   auto instance = TestFirestore();
   DocumentReference reference = TestFirestore()->Document("abc/123");
   Await(reference.Set({{"Field", FieldValue::Integer(100)}}));
@@ -1273,7 +1293,7 @@ TEST_F(FirestoreIntegrationTest, NewOperationThrowsAfterFirestoreTerminate) {
                std::logic_error);
 }
 
-TEST_F(FirestoreIntegrationTest, TerminateCanBeCalledMultipleTimes) {
+TEST_F(FirestoreTest, TerminateCanBeCalledMultipleTimes) {
   auto instance = TestFirestore();
   DocumentReference reference = instance->Document("abc/123");
   Await(reference.Set({{"Field", FieldValue::Integer(100)}}));
@@ -1290,7 +1310,41 @@ TEST_F(FirestoreIntegrationTest, TerminateCanBeCalledMultipleTimes) {
 }
 #endif  // defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
 
-TEST_F(FirestoreIntegrationTest, MaintainsPersistenceAfterRestarting) {
+TEST_F(FirestoreTest, CanTerminateFirestoreInstance) {
+  App* app = App::GetInstance();
+  InitResult init_result1;
+  auto db1 =
+      std::unique_ptr<Firestore>(Firestore::GetInstance(app, &init_result1));
+  ASSERT_EQ(kInitResultSuccess, init_result1);
+
+  EXPECT_THAT(db1->Terminate(), FutureSucceeds());
+
+  InitResult init_result2;
+  auto db2 =
+      std::unique_ptr<Firestore>(Firestore::GetInstance(app, &init_result2));
+  ASSERT_EQ(kInitResultSuccess, init_result2);
+
+  EXPECT_NE(db1, db2);
+}
+
+TEST_F(FirestoreTest, CanTerminateNamedFirestoreInstance) {
+  App* app = App::GetInstance();
+  InitResult init_result1;
+  auto db1 = std::unique_ptr<Firestore>(
+      Firestore::GetInstance(app, "foo", &init_result1));
+  ASSERT_EQ(kInitResultSuccess, init_result1);
+
+  EXPECT_THAT(db1->Terminate(), FutureSucceeds());
+
+  InitResult init_result2;
+  auto db2 = std::unique_ptr<Firestore>(
+      Firestore::GetInstance(app, "foo", &init_result2));
+  ASSERT_EQ(kInitResultSuccess, init_result2);
+
+  EXPECT_NE(db1, db2);
+}
+
+TEST_F(FirestoreTest, MaintainsPersistenceAfterRestarting) {
   Firestore* db = TestFirestore();
   App* app = db->app();
   DocumentReference doc = db->Collection("col1").Document("doc1");
@@ -1304,7 +1358,7 @@ TEST_F(FirestoreIntegrationTest, MaintainsPersistenceAfterRestarting) {
   EXPECT_TRUE(snap->exists());
 }
 
-TEST_F(FirestoreIntegrationTest, RestartFirestoreLeadsToNewInstance) {
+TEST_F(FirestoreTest, RestartFirestoreLeadsToNewInstance) {
   // Get App and Settings objects to use in the test.
   Firestore* db_template = TestFirestore("restart_firestore_new_instance_test");
   App* app = db_template->app();
@@ -1348,7 +1402,107 @@ TEST_F(FirestoreIntegrationTest, RestartFirestoreLeadsToNewInstance) {
   delete db1;
 }
 
-TEST_F(FirestoreIntegrationTest, CanStopListeningAfterTerminate) {
+TEST_F(FirestoreTest,
+       CanReadDocsAfterRestartFirestoreAndCreateNewNamedDatabaseInstance) {
+  // TODO(Mila): Remove the emulator env check and LocateEmulator call after
+  // prod supports multiDB.
+  if (!IsUsingFirestoreEmulator()) {
+    GTEST_SKIP();
+  }
+
+  App* app = App::GetInstance();
+  auto db1 = std::unique_ptr<Firestore>(Firestore::GetInstance(app, "test-db"));
+  firestore::LocateEmulator(db1.get());
+
+  // Create a document that we can use for verification later.
+  DocumentReference doc1 = db1->Collection("abc").Document();
+  const std::string doc_path = doc1.path();
+  EXPECT_THAT(doc1.Set({{"foo", FieldValue::String("bar")}}), FutureSucceeds());
+
+  // Terminate `db1` so that it will be removed from the instance cache.
+  EXPECT_THAT(db1->Terminate(), FutureSucceeds());
+
+  // Verify that GetInstance() returns a new instance since the old instance has
+  // been terminated.
+  auto db2 = std::unique_ptr<Firestore>(Firestore::GetInstance(app, "test-db"));
+  firestore::LocateEmulator(db2.get());
+  EXPECT_NE(db1, db2);
+
+  // Verify that the new instance points to the same database by verifying that
+  // the document created with the old instance exists in the new instance.
+  DocumentReference doc2 = db2->Document(doc_path);
+  const DocumentSnapshot* snapshot2 = Await(doc2.Get(Source::kCache));
+  ASSERT_NE(snapshot2, nullptr);
+  EXPECT_TRUE(snapshot2->exists());
+  EXPECT_THAT(snapshot2->GetData(),
+              ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
+}
+
+TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOnline) {
+  // TODO(Mila): Remove the emulator env check after prod supports multiDB.
+  if (!IsUsingFirestoreEmulator()) {
+    GTEST_SKIP();
+  }
+
+  // Create two DB instances in the same app.
+  App* app = App::GetInstance();
+  Firestore* db1 = TestFirestoreWithDatabaseId(app->name(), "db1");
+  Firestore* db2 = TestFirestoreWithDatabaseId(app->name(), "db2");
+
+  EXPECT_NE(db1, db2);
+
+  // Create a document in the first DB instance.
+  DocumentReference doc1 = db1->Collection("abc").Document();
+  const std::string doc_path = doc1.path();
+  EXPECT_THAT(doc1.Set({{"foo", FieldValue::String("bar")}}), FutureSucceeds());
+  const DocumentSnapshot* snapshot1 = Await(doc1.Get());
+  EXPECT_TRUE(snapshot1->exists());
+  EXPECT_THAT(snapshot1->GetData(),
+              ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
+
+  // Verify that the previously saved document only exists in the first DB
+  // instance by verifying that the document does not exist in the second
+  // instance.
+  DocumentReference doc2 = db2->Document(doc_path);
+  const DocumentSnapshot* snapshot2 = Await(doc2.Get());
+  EXPECT_FALSE(snapshot2->exists());
+  EXPECT_THAT(snapshot2->GetData(), ContainerEq(MapFieldValue{}));
+}
+
+TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOffline) {
+  // TODO(Mila): Remove the emulator env check after prod supports multiDB.
+  if (!IsUsingFirestoreEmulator()) {
+    GTEST_SKIP();
+  }
+
+  // Create two DB instances in the same app.
+  App* app = App::GetInstance();
+  Firestore* db1 = TestFirestoreWithDatabaseId(app->name(), "db1");
+
+  Firestore* db2 = TestFirestoreWithDatabaseId(app->name(), "db2");
+
+  EXPECT_NE(db1, db2);
+
+  DisableNetwork();
+
+  // Create a document in the first DB instance.
+  DocumentReference doc1 = db1->Collection("abc").Document();
+  const std::string doc_path = doc1.path();
+  EXPECT_THAT(doc1.Set({{"foo", FieldValue::String("bar")}}), FutureSucceeds());
+  const DocumentSnapshot* snapshot1 = Await(doc1.Get(Source::kCache));
+  EXPECT_TRUE(snapshot1->exists());
+  EXPECT_THAT(snapshot1->GetData(),
+              ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
+  // Verify that the previously saved document only exists in the first DB
+  // instance by verifying that the document does not exist in the second
+  // instance.
+  DocumentReference doc2 = db2->Document(doc_path);
+  const DocumentSnapshot* snapshot2 = Await(doc2.Get(Source::kCache));
+  EXPECT_FALSE(snapshot2->exists());
+  EXPECT_THAT(snapshot2->GetData(), ContainerEq(MapFieldValue{}));
+}
+
+TEST_F(FirestoreTest, CanStopListeningAfterTerminate) {
   auto instance = TestFirestore();
   DocumentReference reference = instance->Document("abc/123");
   EventAccumulator<DocumentSnapshot> accumulator;
@@ -1364,7 +1518,7 @@ TEST_F(FirestoreIntegrationTest, CanStopListeningAfterTerminate) {
   registration.Remove();
 }
 
-TEST_F(FirestoreIntegrationTest, WaitForPendingWritesResolves) {
+TEST_F(FirestoreTest, WaitForPendingWritesResolves) {
   DocumentReference document = Collection("abc").Document("123");
 
   Await(TestFirestore()->DisableNetwork());
@@ -1390,9 +1544,9 @@ TEST_F(FirestoreIntegrationTest, WaitForPendingWritesResolves) {
 
 // TODO(wuandy): This test requires to create underlying firestore instance with
 // a MockCredentialProvider first.
-// TEST_F(FirestoreIntegrationTest, WaitForPendingWritesFailsWhenUserChanges) {}
+// TEST_F(FirestoreTest, WaitForPendingWritesFailsWhenUserChanges) {}
 
-TEST_F(FirestoreIntegrationTest,
+TEST_F(FirestoreTest,
        WaitForPendingWritesResolvesWhenOfflineIfThereIsNoPending) {
   Await(TestFirestore()->DisableNetwork());
   Future<void> await_pending_writes = TestFirestore()->WaitForPendingWrites();
@@ -1403,7 +1557,7 @@ TEST_F(FirestoreIntegrationTest,
   EXPECT_EQ(await_pending_writes.status(), FutureStatus::kFutureStatusComplete);
 }
 
-TEST_F(FirestoreIntegrationTest, CanClearPersistenceTestHarnessVerification) {
+TEST_F(FirestoreTest, CanClearPersistenceTestHarnessVerification) {
   // Verify that TestFirestore(), DeleteFirestore(), and DeleteApp() behave how
   // we expect; otherwise, the tests for ClearPersistence() could yield false
   // positives.
@@ -1426,7 +1580,7 @@ TEST_F(FirestoreIntegrationTest, CanClearPersistenceTestHarnessVerification) {
               ContainerEq(MapFieldValue{{"foo", FieldValue::Integer(42)}}));
 }
 
-TEST_F(FirestoreIntegrationTest, CanClearPersistenceAfterRestarting) {
+TEST_F(FirestoreTest, CanClearPersistenceAfterRestarting) {
   Firestore* db = TestFirestore();
   App* app = db->app();
   const std::string app_name = app->name();
@@ -1458,7 +1612,7 @@ TEST_F(FirestoreIntegrationTest, CanClearPersistenceAfterRestarting) {
   EXPECT_EQ(await_get.error(), Error::kErrorUnavailable);
 }
 
-TEST_F(FirestoreIntegrationTest, CanClearPersistenceOnANewFirestoreInstance) {
+TEST_F(FirestoreTest, CanClearPersistenceOnANewFirestoreInstance) {
   Firestore* db = TestFirestore();
   App* app = db->app();
   const std::string app_name = app->name();
@@ -1487,7 +1641,7 @@ TEST_F(FirestoreIntegrationTest, CanClearPersistenceOnANewFirestoreInstance) {
   EXPECT_EQ(await_get.error(), Error::kErrorUnavailable);
 }
 
-TEST_F(FirestoreIntegrationTest, ClearPersistenceWhileRunningFails) {
+TEST_F(FirestoreTest, ClearPersistenceWhileRunningFails) {
   // Call EnableNetwork() in order to ensure that Firestore is fully
   // initialized before clearing persistence. EnableNetwork() is chosen because
   // it is easy to call.
@@ -1500,12 +1654,12 @@ TEST_F(FirestoreIntegrationTest, ClearPersistenceWhileRunningFails) {
 }
 
 // Note: this test only exists in C++.
-TEST_F(FirestoreIntegrationTest, DomainObjectsReferToSameFirestoreInstance) {
+TEST_F(FirestoreTest, DomainObjectsReferToSameFirestoreInstance) {
   EXPECT_EQ(TestFirestore(), TestFirestore()->Document("foo/bar").firestore());
   EXPECT_EQ(TestFirestore(), TestFirestore()->Collection("foo").firestore());
 }
 
-TEST_F(FirestoreIntegrationTest, AuthWorks) {
+TEST_F(FirestoreTest, AuthWorks) {
   SKIP_TEST_ON_QUICK_CHECK;
   // This app instance is managed by the text fixture.
   App* app = GetApp();
@@ -1549,7 +1703,7 @@ TEST_F(FirestoreIntegrationTest, AuthWorks) {
 
 // This test is to ensure b/172986326 doesn't regress.
 // Note: this test only exists in C++.
-TEST_F(FirestoreIntegrationTest, FirestoreCanBeDeletedFromTransactionAsync) {
+TEST_F(FirestoreTest, FirestoreCanBeDeletedFromTransactionAsync) {
   Firestore* db = TestFirestore();
   DisownFirestore(db);
 
@@ -1571,7 +1725,7 @@ TEST_F(FirestoreIntegrationTest, FirestoreCanBeDeletedFromTransactionAsync) {
 
 // This test is to ensure b/172986326 doesn't regress.
 // Note: this test only exists in C++.
-TEST_F(FirestoreIntegrationTest, FirestoreCanBeDeletedFromTransaction) {
+TEST_F(FirestoreTest, FirestoreCanBeDeletedFromTransaction) {
   Firestore* db = TestFirestore();
   DisownFirestore(db);
 
