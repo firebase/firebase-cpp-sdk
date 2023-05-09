@@ -1577,13 +1577,14 @@ TEST_F(FirestoreIntegrationTest, CannotMixNewAndLegacyCacheConfig) {
     settings.set_local_cache_settings(
         PersistentCacheSettings::Create().WithSizeBytes(50 * 1024 * 1024));
 
-  WITH_DEPRECATED_API(EXPECT_THROW(settings.set_cache_size_bytes(0), std::logic_error));
+    WITH_DEPRECATED_API(
+        EXPECT_THROW(settings.set_cache_size_bytes(0), std::logic_error));
   }
 
   {
     auto* db = TestFirestore("mixing_2");
     auto settings = db->settings();
-  WITH_DEPRECATED_API(settings.set_persistence_enabled(false));
+    WITH_DEPRECATED_API(settings.set_persistence_enabled(false));
     EXPECT_THROW(
         settings.set_local_cache_settings(MemoryCacheSettings::Create()),
         std::logic_error);
