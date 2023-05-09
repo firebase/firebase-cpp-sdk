@@ -97,8 +97,8 @@ static inline FIRAuthCredential *_Nullable CredentialFromImpl(void *_Nullable im
 
 /// Convert from the void* credential implementation pointer into the Obj-C
 /// FIRPhoneAuthCredential pointer.
-static inline FIRPhoneAuthCredential *_Nonnull PhoneAuthCredentialFromImpl(void *_Nonnull impl) {
-  return static_cast<FIRPhoneAuthCredentialPointer *>(impl)->get();
+static inline FIRPhoneAuthCredential *_Nullable PhoneAuthCredentialFromImpl(void *_Nullable impl) {
+  return impl ? static_cast<FIRPhoneAuthCredentialPointer *>(impl)->get() : nil;
 }
 
 AuthError AuthErrorFromNSError(NSError *_Nullable error);
