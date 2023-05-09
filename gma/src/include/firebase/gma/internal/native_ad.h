@@ -91,6 +91,9 @@ class NativeAdImage {
   /// Returns the image uri.
   const std::string& image_uri() const;
 
+  /// Returns the autoloaded image.
+  const std::vector<unsigned char> image() const;
+
   virtual ~NativeAdImage();
 
   /// Assignment operator.

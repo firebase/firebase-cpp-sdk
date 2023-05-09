@@ -31,6 +31,57 @@ extern "C" {
 namespace firebase {
 namespace gma {
 
+// A simple helper function for performing synchronous network requests, used
+// for downloading static assets.
+static bool DownloadHelper(const std::string url, const std::map<std::string, std::string>& headers,
+                           unsigned char* response_stream, int* response_len) {
+  NSMutableURLRequest* url_request = [[NSMutableURLRequest alloc] init];
+  url_request.URL = [NSURL URLWithString:@(url.c_str())];
+
+  const char* method = "GET";
+  url_request.HTTPMethod = @(method);
+
+  // Default HTTP timeout of 1 minute.
+  url_request.timeoutInterval = 60;
+
+  // Set all the headers.
+  for (auto i = headers.begin(); i != headers.end(); ++i) {
+    [url_request addValue:@(i->second.c_str()) forHTTPHeaderField:@(i->first.c_str())];
+  }
+
+  __block dispatch_semaphore_t sem = dispatch_semaphore_create(0);
+  __block NSError* response_error;
+  __block NSHTTPURLResponse* http_response;
+  __block NSData* response_data;
+  @try {
+    [[NSURLSession.sharedSession
+        dataTaskWithRequest:url_request
+          completionHandler:^(NSData* __nullable data, NSURLResponse* __nullable response,
+                              NSError* __nullable error) {
+            response_data = data;
+            http_response = (NSHTTPURLResponse*)(response);
+            response_error = error;
+            dispatch_semaphore_signal(sem);
+          }] resume];
+  } @catch (NSException* e) {
+    LogError("NSURLSession exception: %s", e.reason.UTF8String);
+    return false;
+  }
+  dispatch_semaphore_wait(sem, DISPATCH_TIME_FOREVER);
+
+  if (response_data) {
+    response_stream =
+        const_cast<unsigned char*>(reinterpret_cast<const unsigned char*>([response_data bytes]));
+    *response_len = static_cast<int>([response_data length]);
+  }
+
+  if (response_error) {
+    LogError("HTTP error: %s", response_error.localizedDescription.UTF8String);
+    return false;
+  }
+  return true;
+}
+
 NativeAdImage::NativeAdImage() {
   // Initialize the default constructor with some helpful debug values in the
   // case a NativeAdImage makes it to the application in this default state.
@@ -52,7 +103,6 @@ NativeAdImage::NativeAdImage(const NativeAdImageInternal& native_ad_image_intern
   FIREBASE_ASSERT(gad_native_image);
 
   internal_->uri = util::NSStringToString(gad_native_image.imageURL.absoluteString);
-  NSLog(gad_native_image.imageURL.absoluteString);
   internal_->scale = (double)gad_native_image.scale;
 }
 
@@ -98,10 +148,32 @@ const std::string& NativeAdImage::image_uri() const {
   return internal_->uri;
 }
 
-//// Gets the image scale, which denotes the ratio of pixels to dp.
+/// Gets the image scale, which denotes the ratio of pixels to dp.
 double NativeAdImage::scale() const {
   FIREBASE_ASSERT(internal_);
   return internal_->scale;
+}
+
+/// Gets the auto loaded image as a vector of bytes.
+const std::vector<unsigned char> NativeAdImage::image() const {
+  FIREBASE_ASSERT(internal_);
+
+  std::vector<unsigned char> img_data;
+  if (internal_->uri.empty()) {
+    return img_data;
+  }
+
+  unsigned char* response_stream;
+  int* response_len;
+  std::map<std::string, std::string> headers;
+  bool download_success =
+      firebase::gma::DownloadHelper(internal_->uri, headers, response_stream, response_len);
+
+  if (download_success) {
+    img_data = std::vector<unsigned char>(response_stream, response_stream + *response_len);
+  }
+
+  return img_data;
 }
 
 }  // namespace gma

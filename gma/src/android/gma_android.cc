@@ -343,6 +343,7 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
             nullptr &&
         native_ad_helper::CacheMethodIds(env, activity) &&
         native_image::CacheMethodIds(env, activity) &&
+        download_helper::CacheMethodIds(env, activity) &&
         rewarded_ad_helper::CacheClassFromFiles(env, activity,
                                                 &embedded_files) != nullptr &&
         rewarded_ad_helper::CacheMethodIds(env, activity) &&
@@ -685,6 +686,7 @@ void ReleaseClasses(JNIEnv* env) {
   native_ad_helper::ReleaseClass(env);
   rewarded_ad_helper::ReleaseClass(env);
   native_image::ReleaseClass(env);
+  download_helper::ReleaseClass(env);
   load_ad_error::ReleaseClass(env);
 }
 

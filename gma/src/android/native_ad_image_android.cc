@@ -34,6 +34,10 @@ METHOD_LOOKUP_DEFINITION(native_image,
                          "com/google/android/gms/ads/nativead/NativeAd$Image",
                          NATIVEADIMAGE_METHODS);
 
+METHOD_LOOKUP_DEFINITION(download_helper,
+                         "com/google/firebase/gma/internal/cpp/DownloadHelper",
+                         DOWNLOADHELPER_METHODS);
+
 NativeAdImage::NativeAdImage() {
   // Initialize the default constructor with some helpful debug values in the
   // case a NativeAdImage makes it to the application in this default state.
@@ -135,10 +139,47 @@ const std::string& NativeAdImage::image_uri() const {
   return internal_->uri;
 }
 
-//// Gets the image scale, which denotes the ratio of pixels to dp.
+/// Gets the image scale, which denotes the ratio of pixels to dp.
 double NativeAdImage::scale() const {
   FIREBASE_ASSERT(internal_);
   return internal_->scale;
+}
+
+/// Gets the auto loaded image as a vector of bytes.
+const std::vector<unsigned char> NativeAdImage::image() const {
+  JNIEnv* env = ::firebase::gma::GetJNI();
+  FIREBASE_ASSERT(env);
+  FIREBASE_ASSERT(internal_);
+
+  std::vector<unsigned char> img_data;
+  if (internal_->uri.empty()) {
+    return img_data;
+  }
+
+  jstring uri_jstring = env->NewStringUTF(internal_->uri.c_str());
+  jobject helper = env->NewObject(
+      download_helper::GetClass(),
+      download_helper::GetMethodId(download_helper::kConstructor), uri_jstring);
+
+  FIREBASE_ASSERT(helper);
+  env->DeleteLocalRef(uri_jstring);
+  if (util::CheckAndClearJniExceptions(env)) {
+    if (helper) env->DeleteLocalRef(helper);
+    return img_data;
+  }
+
+  jobject img_bytes = env->CallObjectMethod(
+      helper, download_helper::GetMethodId(download_helper::kDownload));
+
+  FIREBASE_ASSERT(img_bytes);
+  if (util::CheckAndClearJniExceptions(env)) {
+    if (helper) env->DeleteLocalRef(helper);
+    img_bytes = nullptr;
+    return img_data;
+  }
+
+  env->DeleteLocalRef(helper);
+  return util::JniByteArrayToVector(env, img_bytes);
 }
 
 }  // namespace gma
