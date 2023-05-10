@@ -20,7 +20,7 @@ endif()
 
 # If the format of the line below changes, then be sure to update
 # https://github.com/firebase/firebase-cpp-sdk/blob/fd054fa016/.github/workflows/update-dependencies.yml#L81
-set(version release-10.9.0-with-patch)
+set(version jsimantov-patch-leveldb-windows-utf16)
 
 function(GetReleasedDep)
   message("Getting released firebase-ios-sdk @ ${version}")
