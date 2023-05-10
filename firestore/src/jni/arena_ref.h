@@ -17,12 +17,9 @@
 #ifndef FIREBASE_FIRESTORE_SRC_JNI_ARENA_REF_H_
 #define FIREBASE_FIRESTORE_SRC_JNI_ARENA_REF_H_
 
-#include <cstdint>
-
 #include <jni.h>
 
 #include "firestore/src/jni/jni_fwd.h"
-#include "firestore/src/jni/object.h"
 
 namespace firebase {
 namespace firestore {
@@ -46,6 +43,8 @@ class ArenaRef final {
   void reset(Env& env, const Object&) const;
 
  private:
+  static jlong GenerateUniqueId();
+
   jlong id_ = -1;
 };
 

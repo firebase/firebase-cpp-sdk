@@ -18,10 +18,14 @@
 #include <atomic>
 #include <utility>
 
+#include <jni.h>
+
 #include "app/src/assert.h"
 #include "app/src/log.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
+#include "firestore/src/jni/object.h"
+#include "firestore/src/jni/ownership.h"
 
 namespace firebase {
 namespace firestore {
@@ -39,7 +43,7 @@ class ObjectArena {
   ObjectArena& operator=(ObjectArena&&) = delete;
 
   static const ObjectArena& GetInstance() {
-    ObjectArena& instance = GetOrCreateSingletonInstance();
+    const ObjectArena& instance = GetOrCreateSingletonInstance();
     FIREBASE_ASSERT_MESSAGE(instance.initialized_, "ObjectArena initialization failed");
     return instance;
   }
@@ -84,8 +88,8 @@ class ObjectArena {
   ObjectArena() = default;
 
   static ObjectArena& GetOrCreateSingletonInstance() {
-    static ObjectArena instance;
-    return instance;
+    static auto* instance = new ObjectArena;
+    return *instance;
   }
 
   void Initialize_(Loader& loader) {
@@ -142,17 +146,12 @@ class ObjectArena {
   bool initialized_ = false;
 };
 
-jlong GenerateUniqueArenaRefId() {
-  static std::atomic<jlong> gNextId(42420000);
-  return gNextId.fetch_add(1);
-}
-
 }  // namespace
 
-ArenaRef::ArenaRef() : id_(GenerateUniqueArenaRefId()) {
+ArenaRef::ArenaRef() : id_(GenerateUniqueId()) {
 }
 
-ArenaRef::ArenaRef(Env& env, jobject object) : id_(GenerateUniqueArenaRefId()) {
+ArenaRef::ArenaRef(Env& env, jobject object) : id_(GenerateUniqueId()) {
   ObjectArena::GetInstance().Set(env, id_, object);
 }
 
@@ -168,12 +167,12 @@ ArenaRef::~ArenaRef() {
   }
 }
 
-ArenaRef::ArenaRef(const ArenaRef& other) : id_(GenerateUniqueArenaRefId()) {
+ArenaRef::ArenaRef(const ArenaRef& other) : id_(GenerateUniqueId()) {
   Env env;
   ObjectArena::GetInstance().Dup(env, other.id_, id_);
 }
 
-ArenaRef::ArenaRef(ArenaRef&& other) noexcept : id_(std::exchange(other.id_, GenerateUniqueArenaRefId())) {
+ArenaRef::ArenaRef(ArenaRef&& other) noexcept : id_(std::exchange(other.id_, GenerateUniqueId())) {
 }
 
 ArenaRef& ArenaRef::operator=(const ArenaRef& other) {
@@ -206,6 +205,15 @@ void ArenaRef::reset(Env& env, const Object& object) const {
 
 void ArenaRef::Initialize(Loader& loader) {
   ObjectArena::Initialize(loader);
+}
+
+jlong ArenaRef::GenerateUniqueId() {
+  // Start the IDs at a large number with an easily-identifiable prefix to make
+  // it easier to determine if an instance's ID is "valid". Even though this
+  // initial value is large, it still leaves room for almost nine quintillion
+  // (8,799,130,036,854,775,807) positive values, which should be enough :)
+  static std::atomic<jlong> gNextId(424242000000000000L);
+  return gNextId.fetch_add(1);
 }
 
 }  // namespace jni
