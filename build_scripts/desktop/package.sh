@@ -40,6 +40,10 @@ temp_dir=
 run_in_parallel=0
 use_llvm_binutils=0
 premerge_threshold=0
+# With this setting, if a given merge is split into multiple subtasks, this will
+# process the "grpc" library on its own; since it's by far the largest library,
+# this optimization speeds things up.
+grpc_special_case=1
 
 . "${root_dir}/build_scripts/packaging.conf"
 
@@ -376,7 +380,7 @@ for product in ${product_list[*]}; do
       # Split the dependencies list into ${split_count} pieces, alternating
       # libraries in each list. Put them in size order first.
       deps_sorted=$(ls -S ${deps[*]} ${libfile_src})
-      if [[ "${deps_sorted}" == *"grpc"* ]]; then
+      if [[ ${grpc_special_case} -eq 1 && "${deps_sorted}" == *"grpc"* ]]; then
         # Special case: if grpc is included, let the largest library (which will
         # be grpc) be alone in the 0th slot, so it can take up the entire time
         # by itself.
@@ -395,6 +399,11 @@ for product in ${product_list[*]}; do
       for ((num=0; num < ${split_count}; num++)); do
         premerge_script="${merge_libraries_tmp}/merge_${product}_0${num}.sh"
         echo "#!/bin/bash -e" > "${premerge_script}"
+        if [[ $num -eq 0 && ${grpc_special_case} -eq 1 && "${split_deps[$num]}" == *"grpc"* ]]; then
+          # Special case: fake the 0th set with "grpc" as being quite large, so
+          # it gets scheduled first.
+          echo "# ${split_deps[*]}" >> "${premerge_script}"
+        fi
         premerge_out_basename="premerge_${num}_${libfile_out}"
         premerge_out="${merge_libraries_tmp}/${premerge_out_basename}"
         echo "echo \"${premerge_out_basename} <- ${split_deps[$num]}\"" >> "${premerge_script}"
