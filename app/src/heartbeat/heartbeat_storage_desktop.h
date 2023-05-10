@@ -60,6 +60,7 @@ class HeartbeatStorageDesktop {
 #else
   std::string GetFilename() const;
 #endif  // FIREBASE_PLATFORM_WINDOWS
+
  private:
   LoggedHeartbeats LoggedHeartbeatsFromFlatbuffer(
       const LoggedHeartbeatsFlatbuffer& heartbeats_fb) const;
