@@ -25,11 +25,12 @@
 namespace firebase {
 namespace firestore {
 
+namespace {
 using CoreMemoryEagerGcSettings = api::MemoryEagerGcSettings;
 using CoreMemoryLruGcSettings = api::MemoryLruGcSettings;
 using CoreMemorySettings = api::MemoryCacheSettings;
 using CorePersistentSettings = api::PersistentCacheSettings;
-
+}  // namespace
 class LocalCacheSettingsInternal {};
 
 class PersistentCacheSettingsInternal final
@@ -38,6 +39,12 @@ class PersistentCacheSettingsInternal final
   explicit PersistentCacheSettingsInternal(
       const CorePersistentSettings& core_settings)
       : settings_(std::move(core_settings)) {}
+
+  friend bool operator==(const PersistentCacheSettingsInternal& lhs,
+                         const PersistentCacheSettingsInternal& rhs) {
+    return &lhs == &rhs || lhs.settings_ == rhs.settings_;
+  }
+
   const CorePersistentSettings& core_settings() { return settings_; }
   void set_core_settings(const CorePersistentSettings& settings) {
     settings_ = settings;
@@ -55,6 +62,12 @@ class MemoryEagerGCSettingsInternal final
   explicit MemoryEagerGCSettingsInternal(
       const CoreMemoryEagerGcSettings& core_settings)
       : settings_(std::move(core_settings)) {}
+
+  friend bool operator==(const MemoryEagerGCSettingsInternal& lhs,
+                         const MemoryEagerGCSettingsInternal& rhs) {
+    return &lhs == &rhs || lhs.settings_ == rhs.settings_;
+  }
+
   const CoreMemoryEagerGcSettings& core_settings() { return settings_; }
   void set_core_settings(const CoreMemoryEagerGcSettings& settings) {
     settings_ = settings;
@@ -70,6 +83,12 @@ class MemoryLruGCSettingsInternal final
   explicit MemoryLruGCSettingsInternal(
       const CoreMemoryLruGcSettings& core_settings)
       : settings_(std::move(core_settings)) {}
+
+  friend bool operator==(const MemoryLruGCSettingsInternal& lhs,
+                         const MemoryLruGCSettingsInternal& rhs) {
+    return &lhs == &rhs || lhs.settings_ == rhs.settings_;
+  }
+
   const CoreMemoryLruGcSettings& core_settings() { return settings_; }
   void set_core_settings(const CoreMemoryLruGcSettings& settings) {
     settings_ = settings;
@@ -83,6 +102,12 @@ class MemoryCacheSettingsInternal final : public LocalCacheSettingsInternal {
  public:
   explicit MemoryCacheSettingsInternal(const CoreMemorySettings& core_settings)
       : settings_(std::move(core_settings)) {}
+
+  friend bool operator==(const MemoryCacheSettingsInternal& lhs,
+                         const MemoryCacheSettingsInternal& rhs) {
+    return &lhs == &rhs || lhs.settings_ == rhs.settings_;
+  }
+
   const CoreMemorySettings& core_settings() { return settings_; }
   void set_core_settings(const CoreMemorySettings& settings) {
     settings_ = settings;
@@ -91,6 +116,18 @@ class MemoryCacheSettingsInternal final : public LocalCacheSettingsInternal {
  private:
   CoreMemorySettings settings_;
 };
+
+bool operator!=(const MemoryCacheSettingsInternal& lhs,
+                const MemoryCacheSettingsInternal& rhs);
+
+bool operator!=(const MemoryLruGCSettingsInternal& lhs,
+                const MemoryLruGCSettingsInternal& rhs);
+
+bool operator!=(const MemoryEagerGCSettingsInternal& lhs,
+                const MemoryEagerGCSettingsInternal& rhs);
+
+bool operator!=(const PersistentCacheSettingsInternal& lhs,
+                const PersistentCacheSettingsInternal& rhs);
 
 }  // namespace firestore
 }  // namespace firebase

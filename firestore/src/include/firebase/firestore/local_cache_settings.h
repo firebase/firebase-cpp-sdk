@@ -71,7 +71,14 @@ class PersistentCacheSettings final : public LocalCacheSettings {
 
   /** Copy constructor. */
   PersistentCacheSettings(const PersistentCacheSettings& other);
+
+  /** Copy assignment. */
+  PersistentCacheSettings& operator=(const PersistentCacheSettings& other);
+
   ~PersistentCacheSettings();
+
+  friend bool operator==(const PersistentCacheSettings& lhs,
+                         const PersistentCacheSettings& rhs);
 
   /**
    * Copies this settings instance, with the approximate cache size threshold
@@ -87,6 +94,14 @@ class PersistentCacheSettings final : public LocalCacheSettings {
    * minimum value is 1 MB.
    */
   PersistentCacheSettings WithSizeBytes(int64_t size) const;
+
+  /**
+   * Returns the approximate cache size threshold configured. Garbage collection
+   * kicks in once the cache size exceeds this threshold.
+   */
+  int64_t size_bytes() const {
+    return settings_internal_->core_settings().size_bytes();
+  }
 
  private:
   friend class Settings;
@@ -123,7 +138,14 @@ class MemoryCacheSettings final : public LocalCacheSettings {
 
   /** Copy constructor. */
   MemoryCacheSettings(const MemoryCacheSettings& other);
+
+  /** Copy assignment. */
+  MemoryCacheSettings& operator=(const MemoryCacheSettings& other);
+
   ~MemoryCacheSettings();
+
+  friend bool operator==(const MemoryCacheSettings& lhs,
+                         const MemoryCacheSettings& rhs);
 
   /**
    * Copies this settings instance, with its `MemoryGarbageCollectorSettins` set
@@ -186,7 +208,11 @@ class MemoryEagerGCSettings final : public MemoryGarbageCollectorSettings {
  public:
   /** Create a default instance `MemoryEagerGCSettings`. */
   static MemoryEagerGCSettings Create();
+
   ~MemoryEagerGCSettings();
+
+  friend bool operator==(const MemoryEagerGCSettings& lhs,
+                         const MemoryEagerGCSettings& rhs);
 
  private:
   friend class MemoryCacheSettings;
@@ -221,6 +247,9 @@ class MemoryLruGCSettings final : public MemoryGarbageCollectorSettings {
   static MemoryLruGCSettings Create();
   ~MemoryLruGCSettings();
 
+  friend bool operator==(const MemoryLruGCSettings& lhs,
+                         const MemoryLruGCSettings& rhs);
+
   /**
    * Copies this settings instance, with the approximate cache size threshold
    * for the memory data set to the given number in term of number of bytes, and
@@ -236,6 +265,14 @@ class MemoryLruGCSettings final : public MemoryGarbageCollectorSettings {
    */
   MemoryLruGCSettings WithSizeBytes(int64_t size);
 
+  /**
+   * Returns the approximate cache size threshold configured. Garbage collection
+   * kicks in once the cache size exceeds this threshold.
+   */
+  int64_t size_bytes() const {
+    return settings_internal_->core_settings().size_bytes();
+  }
+
  private:
   friend class MemoryCacheSettings;
   MemoryLruGCSettings();
@@ -247,6 +284,26 @@ class MemoryLruGCSettings final : public MemoryGarbageCollectorSettings {
 
   std::unique_ptr<MemoryLruGCSettingsInternal> settings_internal_;
 };
+
+bool operator==(const MemoryCacheSettings& lhs, const MemoryCacheSettings& rhs);
+
+bool operator!=(const MemoryCacheSettings& lhs, const MemoryCacheSettings& rhs);
+
+bool operator==(const PersistentCacheSettings& lhs,
+                const PersistentCacheSettings& rhs);
+
+bool operator!=(const PersistentCacheSettings& lhs,
+                const PersistentCacheSettings& rhs);
+
+bool operator==(const MemoryEagerGCSettings& lhs,
+                const MemoryEagerGCSettings& rhs);
+
+bool operator!=(const MemoryEagerGCSettings& lhs,
+                const MemoryEagerGCSettings& rhs);
+
+bool operator==(const MemoryLruGCSettings& lhs, const MemoryLruGCSettings& rhs);
+
+bool operator!=(const MemoryLruGCSettings& lhs, const MemoryLruGCSettings& rhs);
 
 }  // namespace firestore
 }  // namespace firebase

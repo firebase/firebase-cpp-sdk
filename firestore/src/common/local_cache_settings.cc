@@ -51,6 +51,16 @@ PersistentCacheSettings::PersistentCacheSettings(
       *other.settings_internal_);
 }
 
+PersistentCacheSettings& PersistentCacheSettings::operator=(
+    const PersistentCacheSettings& other) {
+  if (this == &other) {
+    return *this;
+  }
+  settings_internal_ = std::make_unique<PersistentCacheSettingsInternal>(
+      *other.settings_internal_);
+  return *this;
+}
+
 PersistentCacheSettings PersistentCacheSettings::WithSizeBytes(
     int64_t size) const {
   PersistentCacheSettings new_settings{*this};
@@ -111,6 +121,17 @@ MemoryCacheSettings::MemoryCacheSettings(const MemoryCacheSettings& other) {
       std::make_unique<MemoryCacheSettingsInternal>(*other.settings_internal_);
 }
 
+MemoryCacheSettings& MemoryCacheSettings::operator=(
+    const MemoryCacheSettings& other) {
+  if (this == &other) {
+    return *this;
+  }
+
+  settings_internal_ =
+      std::make_unique<MemoryCacheSettingsInternal>(*other.settings_internal_);
+  return *this;
+}
+
 MemoryCacheSettings::~MemoryCacheSettings() { settings_internal_.reset(); }
 
 MemoryCacheSettings MemoryCacheSettings::WithGarbageCollectorSettings(
@@ -125,6 +146,46 @@ MemoryCacheSettings MemoryCacheSettings::WithGarbageCollectorSettings(
 
 const CoreCacheSettings& MemoryCacheSettings::core_cache_settings() const {
   return settings_internal_->core_settings();
+}
+
+bool operator==(const MemoryCacheSettings& lhs,
+                const MemoryCacheSettings& rhs) {
+  return &lhs == &rhs || (*lhs.settings_internal_ == *rhs.settings_internal_);
+}
+
+bool operator!=(const MemoryCacheSettings& lhs,
+                const MemoryCacheSettings& rhs) {
+  return !(lhs == rhs);
+}
+
+bool operator==(const PersistentCacheSettings& lhs,
+                const PersistentCacheSettings& rhs) {
+  return &lhs == &rhs || (*lhs.settings_internal_ == *rhs.settings_internal_);
+}
+
+bool operator!=(const PersistentCacheSettings& lhs,
+                const PersistentCacheSettings& rhs) {
+  return !(lhs == rhs);
+}
+
+bool operator==(const MemoryEagerGCSettings& lhs,
+                const MemoryEagerGCSettings& rhs) {
+  return &lhs == &rhs || (*lhs.settings_internal_ == *rhs.settings_internal_);
+}
+
+bool operator!=(const MemoryEagerGCSettings& lhs,
+                const MemoryEagerGCSettings& rhs) {
+  return !(lhs == rhs);
+}
+
+bool operator==(const MemoryLruGCSettings& lhs,
+                const MemoryLruGCSettings& rhs) {
+  return &lhs == &rhs || (*lhs.settings_internal_ == *rhs.settings_internal_);
+}
+
+bool operator!=(const MemoryLruGCSettings& lhs,
+                const MemoryLruGCSettings& rhs) {
+  return !(lhs == rhs);
 }
 
 }  // namespace firestore
