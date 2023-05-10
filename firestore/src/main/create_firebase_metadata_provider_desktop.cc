@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-#include "absl/memory/memory.h"
+#include <memory>
+
 #include "firestore/src/main/create_firebase_metadata_provider.h"
 #include "firestore/src/main/firebase_metadata_provider_desktop.h"
 
@@ -25,7 +26,7 @@ using remote::FirebaseMetadataProvider;
 
 std::unique_ptr<FirebaseMetadataProvider> CreateFirebaseMetadataProvider(
     App& app) {
-  return absl::make_unique<FirebaseMetadataProviderCpp>(app);
+  return std::make_unique<FirebaseMetadataProviderCpp>(app);
 }
 
 }  // namespace firestore

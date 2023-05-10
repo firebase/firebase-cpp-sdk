@@ -20,6 +20,8 @@ else()
 endif()
 
 set(common_SRCS
+    src/common/aggregate_query.cc
+    src/common/aggregate_query_snapshot.cc
     src/common/cleanup.h
     src/common/collection_reference.cc
     src/common/compiler_info.cc
@@ -65,6 +67,12 @@ binary_to_array("firestore_resources"
 
 set(android_SRCS
     ${firestore_resources_source}
+    src/android/aggregate_query_android.cc
+    src/android/aggregate_query_android.h
+    src/android/aggregate_query_snapshot_android.cc
+    src/android/aggregate_query_snapshot_android.h
+    src/android/aggregate_source_android.cc
+    src/android/aggregate_source_android.h
     src/android/blob_android.cc
     src/android/blob_android.h
     src/android/collection_reference_android.cc
@@ -185,6 +193,10 @@ set(android_SRCS
 
 # Sources that apply to all non-Android platforms.
 set(main_SRCS
+    src/main/aggregate_query_main.cc
+    src/main/aggregate_query_main.h
+    src/main/aggregate_query_snapshot_main.cc
+    src/main/aggregate_query_snapshot_main.h
     src/main/collection_reference_main.cc
     src/main/collection_reference_main.h
     src/main/converter_main.h
@@ -222,12 +234,18 @@ set(main_SRCS
 # the interface actually comes from the FirebaseFirestore CocoaPod, so there's
 # no implementation listed here.
 set(credentials_provider_desktop_SRCS
+    src/main/app_check_credentials_provider_desktop.cc
+    src/main/app_check_credentials_provider_desktop.h
+    src/main/create_app_check_credentials_provider.h
+    src/main/create_app_check_credentials_provider_desktop.cc
     src/main/create_credentials_provider.h
     src/main/create_credentials_provider_desktop.cc
     src/main/credentials_provider_desktop.cc
     src/main/credentials_provider_desktop.h)
 
 set(credentials_provider_ios_SRCS
+    src/main/create_app_check_credentials_provider.h
+    src/main/create_app_check_credentials_provider_ios.mm
     src/main/create_credentials_provider.h
     src/main/create_credentials_provider_ios.mm)
 

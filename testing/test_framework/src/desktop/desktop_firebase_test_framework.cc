@@ -54,4 +54,9 @@ bool FirebaseTest::IsRunningOnEmulator() {
   return false;
 }
 
+int FirebaseTest::GetGooglePlayServicesVersion() {
+  // No Google Play services on desktop.
+  return 0;
+}
+
 }  // namespace firebase_test_framework

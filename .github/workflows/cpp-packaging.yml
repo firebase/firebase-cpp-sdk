@@ -32,9 +32,9 @@ env:
   demumbleVer: "df938e45c2b0e064fb5323d88b692d03b451d271"
   # Use SHA256 for hashing files.
   hashCommand: "sha256sum"
-  # Xcode version 13.3.1 is the version we build the SDK with.
+  # Xcode version 14.1 is the version we build the SDK with.
   # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
-  xcodeVersion: "13.3.1"
+  xcodeVersion: "14.1"
   # LLVM version with ARM MachO support has no version number yet.
   llvmVer: "5f187f0afaad33013ba03454c4749d99b1362534"
   GITHUB_TOKEN: ${{ github.token }}
@@ -827,7 +827,7 @@ jobs:
             -w integration_tests.yml \
             -p test_packaged_sdk ${{ github.run_id }} \
             -p use_expanded_matrix ${USE_EXPANDED_MATRIX} \
-            -p apis "admob,analytics,auth,database,dynamic_links,functions,installations,messaging,remote_config,storage" \
+            -p apis "analytics,app_check,auth,database,dynamic_links,functions,installations,messaging,remote_config,storage" \
             -p test_pull_request nightly-packaging \
             -s 10 \
             -A ${verbose_flag}

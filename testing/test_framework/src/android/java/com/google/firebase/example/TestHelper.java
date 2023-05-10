@@ -14,7 +14,12 @@
 
 package com.google.firebase.example;
 
+import android.content.Context;
 import android.os.Build;
+import android.util.Log;
+import java.lang.Class;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 /**
  * A simple class with test helper methods.
@@ -27,5 +32,30 @@ public final class TestHelper {
         || Build.PRODUCT.contains("sdk") || Build.HARDWARE.contains("goldfish")
         || Build.MANUFACTURER.contains("Genymotion") || Build.PRODUCT.contains("vbox86p")
         || Build.DEVICE.contains("vbox86p") || Build.HARDWARE.contains("vbox86");
+  }
+  public static int getGooglePlayServicesVersion(Context context) {
+    // Use reflection to return GoogleApiAvailability.getInstance().getApkVersion(context);
+    // This avoids needing Google Play services to be present (and returns 0 if it's not).
+    try {
+      // GoogleApiAvailability
+      Class<?> googleApiAvailabilityClass =
+          Class.forName("com.google.android.gms.common.GoogleApiAvailability");
+
+      // .getInstance()
+      Method getInstanceMethod = googleApiAvailabilityClass.getDeclaredMethod("getInstance");
+      Object instance = getInstanceMethod.invoke(null);
+
+      // .getApkVersion(context)
+      Class[] getApkVersionParams = new Class[] {Class.forName("android.content.Context")};
+      Method getApkVersionMethod =
+          googleApiAvailabilityClass.getMethod("getApkVersion", getApkVersionParams);
+      Object apkVersionObject = getApkVersionMethod.invoke(instance, context);
+      if (apkVersionObject != null && apkVersionObject instanceof Integer) {
+        return ((Integer) apkVersionObject).intValue();
+      }
+    } catch (Exception e) {
+      Log.e(TAG, e.toString());
+    }
+    return 0;
   }
 }

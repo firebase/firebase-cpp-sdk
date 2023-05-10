@@ -50,13 +50,6 @@
             ReferencedContainer = "container:integration_test.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
-      <EnvironmentVariables>
-         <EnvironmentVariable
-            key = "FIRAAppCheckDebugToken"
-            value = "REPLACE_WITH_APP_CHECK_TOKEN"
-            isEnabled = "YES">
-         </EnvironmentVariable>
-      </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
