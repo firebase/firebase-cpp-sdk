@@ -15,6 +15,7 @@
  */
 #include "firestore/src/jni/arena_ref.h"
 
+#include <atomic>
 #include <utility>
 
 #include "app/src/assert.h"
@@ -28,130 +29,151 @@ namespace jni {
 
 namespace {
 
-constexpr char kObjectArenaClassName[] =
-    PROGUARD_KEEP_CLASS "com/google/firebase/firestore/internal/cpp/ObjectArena";
+constexpr char kObjectArenaClassName[] = PROGUARD_KEEP_CLASS "com/google/firebase/firestore/internal/cpp/ObjectArena";
 
-struct ObjectArenaMethodIds {
-  jmethodID constructor{};
-  jmethodID get{};
-  jmethodID put{};
-  jmethodID update{};
-  jmethodID remove{};
-  jmethodID dup1{};
-  jmethodID dup2{};
-  bool initialized = false;
+class ObjectArena {
+ public:
+  ObjectArena(const ObjectArena&) = delete;
+  ObjectArena(ObjectArena&&) = delete;
+  ObjectArena& operator=(const ObjectArena&) = delete;
+  ObjectArena& operator=(ObjectArena&&) = delete;
+
+  static const ObjectArena& GetInstance() {
+    ObjectArena& instance = GetOrCreateSingletonInstance();
+    FIREBASE_ASSERT_MESSAGE(instance.initialized_, "ObjectArena initialization failed");
+    return instance;
+  }
+
+  static void Initialize(Loader& loader) {
+    GetOrCreateSingletonInstance().Initialize_(loader);
+  }
+
+  void Set(Env& env, jlong id, jobject value) const {
+    if (!env.ok()) {
+      return;
+    }
+    env.get()->CallStaticVoidMethod(java_class_, set_, id, value);
+  }
+
+  jobject Get(Env& env, jlong id) const {
+    if (!env.ok()) {
+      return nullptr;
+    }
+    jobject result = env.get()->CallStaticObjectMethod(java_class_, get_, id);
+    if (!env.ok()) {
+      return nullptr;
+    }
+    return result;
+  }
+
+  void Remove(Env& env, jlong id) const {
+    if (!env.ok()) {
+      return;
+    }
+    env.get()->CallStaticVoidMethod(java_class_, remove_, id);
+  }
+
+  void Dup(Env& env, jlong src_id, jlong dest_id) const {
+    if (!env.ok()) {
+      return;
+    }
+    env.get()->CallStaticVoidMethod(java_class_, dup_, src_id, dest_id);
+  }
+
+ private:
+  ObjectArena() = default;
+
+  static ObjectArena& GetOrCreateSingletonInstance() {
+    static ObjectArena instance;
+    return instance;
+  }
+
+  void Initialize_(Loader& loader) {
+    if (initialized_) {
+      return;
+    }
+
+    if (!java_class_) {
+      jclass java_class = LoadObjectArenaClass(loader);
+      if (!loader.ok()) {
+        return;
+      }
+      java_class_ = java_class;
+    }
+
+    get_ = LoadObjectArenaMethodId(loader, "get", "(J)Ljava/lang/Object;");
+    set_ = LoadObjectArenaMethodId(loader, "set", "(JLjava/lang/Object;)V");
+    remove_ = LoadObjectArenaMethodId(loader, "remove", "(J)V");
+    dup_ = LoadObjectArenaMethodId(loader, "dup", "(JJ)V");
+
+    initialized_ = loader.ok();
+  }
+
+  static jclass LoadObjectArenaClass(Loader& loader) {
+    jclass clazz = loader.LoadClass(kObjectArenaClassName);
+    if (!loader.ok()) {
+      return {};
+    }
+
+    jobject clazz_globalref = loader.env()->NewGlobalRef(clazz);
+    if (! loader.ok()) {
+      return {};
+    }
+
+    return (jclass)clazz_globalref;
+  }
+
+  jmethodID LoadObjectArenaMethodId(Loader& loader, const char* name, const char* signature) const {
+    if (!loader.ok()) {
+      return {};
+    }
+    jmethodID method_id = loader.env()->GetStaticMethodID(java_class_, name, signature);
+    if (!loader.ok()) {
+      return {};
+    }
+    return method_id;
+  }
+
+  jclass java_class_{};
+  jmethodID get_{};
+  jmethodID set_{};
+  jmethodID remove_{};
+  jmethodID dup_{};
+  bool initialized_ = false;
 };
 
-jclass kObjectArenaClass;
-ObjectArenaMethodIds kObjectArenaMethodIds;
-jobject kObjectArenaSingletonInstance;
-
-void LoadObjectArenaClass(Loader& loader) {
-  JNIEnv* env = loader.env();
-  if (kObjectArenaClass || !loader.ok() || env->ExceptionCheck()) {
-    return;
-  }
-
-  jclass object_arena_class_loaderref = loader.LoadClass(kObjectArenaClassName);
-  if (env->ExceptionCheck()) {
-    return;
-  }
-
-  jobject object_arena_class_globalref = env->NewGlobalRef(object_arena_class_loaderref);
-  if (env->ExceptionCheck()) {
-    return;
-  }
-
-  kObjectArenaClass = (jclass)object_arena_class_globalref;
-}
-
-jmethodID LoadObjectArenaMethodId(JNIEnv* env, const char* name, const char* signature) {
-  if (!kObjectArenaClass || env->ExceptionCheck()) {
-    return {};
-  }
-  return env->GetMethodID(kObjectArenaClass, name, signature);
-}
-
-void LoadObjectArenaMethodIds(JNIEnv* env) {
-  if (!kObjectArenaClass || kObjectArenaMethodIds.initialized) {
-    return;
-  }
-  kObjectArenaMethodIds.constructor = LoadObjectArenaMethodId(env, "<init>", "()V");
-  kObjectArenaMethodIds.get = LoadObjectArenaMethodId(env, "get", "(J)Ljava/lang/Object;");
-  kObjectArenaMethodIds.put = LoadObjectArenaMethodId(env, "put", "(Ljava/lang/Object;)J");
-  kObjectArenaMethodIds.update = LoadObjectArenaMethodId(env, "update", "(JLjava/lang/Object;)V");
-  kObjectArenaMethodIds.remove = LoadObjectArenaMethodId(env, "remove", "(J)V");
-  kObjectArenaMethodIds.dup1 = LoadObjectArenaMethodId(env, "dup", "(J)J");
-  kObjectArenaMethodIds.dup2 = LoadObjectArenaMethodId(env, "dup", "(JJ)V");
-  if (!env->ExceptionCheck()) {
-    kObjectArenaMethodIds.initialized = true;
-  }
-}
-
-void LoadObjectArenaSingletonInstance(JNIEnv* env) {
-  if (kObjectArenaSingletonInstance || !kObjectArenaMethodIds.initialized || env->ExceptionCheck()) {
-    return;
-  }
-
-  // Create the global singleton instance of ObjectArena.
-  jobject object_arena_instance_localref = env->NewObject(kObjectArenaClass, kObjectArenaMethodIds.constructor);
-  if (env->ExceptionCheck()) {
-    return;
-  }
-
-  // Save the global singleton ObjectArena instance to a global variable.
-  jobject object_arena_instance_globalref = env->NewGlobalRef(object_arena_instance_localref);
-  env->DeleteLocalRef(object_arena_instance_localref);
-  if (env->ExceptionCheck()) {
-    return;
-  }
-  kObjectArenaSingletonInstance = object_arena_instance_globalref;
+jlong GenerateUniqueArenaRefId() {
+  static std::atomic<jlong> gNextId(42420000);
+  return gNextId.fetch_add(1);
 }
 
 }  // namespace
 
-ArenaRef::ArenaRef(Env& env, jobject object) {
-  if (!env.ok()) {
-    valid_ = false;
-  } else {
-    id_ = env.get()->CallLongMethod(kObjectArenaSingletonInstance, kObjectArenaMethodIds.put, object);
-    valid_ = env.ok();
-  }
+ArenaRef::ArenaRef() : id_(GenerateUniqueArenaRefId()) {
+}
+
+ArenaRef::ArenaRef(Env& env, jobject object) : id_(GenerateUniqueArenaRefId()) {
+  ObjectArena::GetInstance().Set(env, id_, object);
 }
 
 ArenaRef::~ArenaRef() {
-  if (!valid_) {
-    return;
-  }
-
   Env env;
   ExceptionClearGuard exception_clear_guard(env);
-  JNIEnv* jni_env = env.get();
+  ObjectArena::GetInstance().Remove(env, id_);
 
-  jni_env->CallVoidMethod(kObjectArenaSingletonInstance, kObjectArenaMethodIds.remove, id_);
-
-  if (jni_env->ExceptionCheck()) {
-    jni_env->ExceptionDescribe();
-    jni_env->ExceptionClear();
+  if (!env.ok()) {
+    env.get()->ExceptionDescribe();
+    env.get()->ExceptionClear();
     firebase::LogWarning("ArenaRef::~ArenaRef() failed");
   }
 }
 
-ArenaRef::ArenaRef(const ArenaRef& other) {
+ArenaRef::ArenaRef(const ArenaRef& other) : id_(GenerateUniqueArenaRefId()) {
   Env env;
-  if (! env.ok()) {
-    valid_ = false;
-    return;
-  }
-
-  valid_ = other.valid_;
-  if (valid_) {
-    id_ = env.get()->CallLongMethod(kObjectArenaSingletonInstance, kObjectArenaMethodIds.dup1, other.id_);
-    valid_ = env.ok();
-  }
+  ObjectArena::GetInstance().Dup(env, other.id_, id_);
 }
 
-ArenaRef::ArenaRef(ArenaRef&& other) noexcept : valid_(std::exchange(other.valid_, false)), id_(other.id_) {
+ArenaRef::ArenaRef(ArenaRef&& other) noexcept : id_(std::exchange(other.id_, GenerateUniqueArenaRefId())) {
 }
 
 ArenaRef& ArenaRef::operator=(const ArenaRef& other) {
@@ -160,84 +182,30 @@ ArenaRef& ArenaRef::operator=(const ArenaRef& other) {
   }
 
   Env env;
-  if (!env.ok()) {
-    return *this;
-  }
-  JNIEnv* jni_env = env.get();
-
-  if (!other.valid_) {
-    if (valid_) {
-      jni_env->CallVoidMethod(kObjectArenaSingletonInstance, kObjectArenaMethodIds.remove, id_);
-      if (jni_env->ExceptionCheck()) {
-        jni_env->ExceptionDescribe();
-        firebase::LogAssert("ArenaRef::operator=(const ArenaRef&) ObjectArena.remove() failed");
-      }
-    }
-    valid_ = false;
-  } else if (valid_) {
-    jni_env->CallVoidMethod(kObjectArenaSingletonInstance, kObjectArenaMethodIds.dup2, other.id_, id_);
-    if (jni_env->ExceptionCheck()) {
-      jni_env->ExceptionDescribe();
-      firebase::LogAssert("ArenaRef::operator=(const ArenaRef&) ObjectArena.dup(long, long) failed");
-    }
-  } else {
-    id_ = jni_env->CallLongMethod(kObjectArenaSingletonInstance, kObjectArenaMethodIds.dup1, other.id_);
-    if (jni_env->ExceptionCheck()) {
-      jni_env->ExceptionDescribe();
-      firebase::LogAssert("ArenaRef::operator=(const ArenaRef&) ObjectArena.dup(long) failed");
-    }
-    valid_ = true;
-  }
+  ObjectArena::GetInstance().Dup(env, other.id_, id_);
 
   return *this;
 }
 
 ArenaRef& ArenaRef::operator=(ArenaRef&& other) noexcept {
-  // go/using-std-swap
-  using std::swap;
-  swap(valid_, other.valid_);
-  swap(id_, other.id_);
+  std::swap(id_, other.id_);
   return *this;
 }
 
 Local<Object> ArenaRef::get(Env& env) const {
-  if (! env.ok() || !valid_) {
+  jobject result = ObjectArena::GetInstance().Get(env, id_);
+  if (! env.ok()) {
     return {};
   }
-  JNIEnv* jni_env = env.get();
-
-  jobject object = jni_env->CallObjectMethod(kObjectArenaSingletonInstance, kObjectArenaMethodIds.get, id_);
-
-  return {jni_env, object};
+  return {env.get(), result};
 }
 
-void ArenaRef::reset(Env& env, const Object& object) {
-  if (! env.ok()) {
-    return;
-  }
-  JNIEnv* jni_env = env.get();
-
-  if (valid_) {
-    jni_env->CallObjectMethod(kObjectArenaSingletonInstance, kObjectArenaMethodIds.update, id_, object.get());
-  } else {
-    id_ = jni_env->CallLongMethod(kObjectArenaSingletonInstance, kObjectArenaMethodIds.put, object.get());
-    valid_ = true;
-  }
+void ArenaRef::reset(Env& env, const Object& object) const {
+  ObjectArena::GetInstance().Set(env, id_, object.get());
 }
 
 void ArenaRef::Initialize(Loader& loader) {
-  if (!loader.ok()) {
-    return;
-  }
-
-  LoadObjectArenaClass(loader);
-  JNIEnv* env = loader.env();
-  LoadObjectArenaMethodIds(env);
-  LoadObjectArenaSingletonInstance(env);
-  if (env->ExceptionCheck()) {
-    env->ExceptionDescribe();
-    firebase::LogAssert("ArenaRef::Initialize() failed");
-  }
+  ObjectArena::Initialize(loader);
 }
 
 }  // namespace jni

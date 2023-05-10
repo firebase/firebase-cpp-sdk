@@ -30,7 +30,7 @@ namespace jni {
 
 class ArenaRef final {
  public:
-  ArenaRef() = default;
+  ArenaRef();
   ArenaRef(Env&, jobject);
 
   ~ArenaRef();
@@ -43,10 +43,9 @@ class ArenaRef final {
   static void Initialize(Loader&);
 
   Local<Object> get(Env&) const;
-  void reset(Env& env, const Object&);
+  void reset(Env& env, const Object&) const;
 
  private:
-  bool valid_ = false;
   jlong id_ = -1;
 };
 

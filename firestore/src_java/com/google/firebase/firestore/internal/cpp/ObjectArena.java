@@ -20,34 +20,25 @@ import java.util.HashMap;
 
 public final class ObjectArena {
 
-  private long nextId = 99487580000L;
-  private final HashMap<Long, Object> map = new HashMap<>();
+  private static final HashMap<Long, Object> map = new HashMap<>();
 
-  public synchronized long put(Object object) {
-    long id = nextId++;
-    map.put(id, object);
-    return id;
+  private ObjectArena() {
+    throw new RuntimeException("do not create instances of " + getClass().getName());
   }
 
-  public synchronized Object get(long id) {
+  public static synchronized void set(long id, Object object) {
+    map.put(id, object);
+  }
+
+  public static synchronized Object get(long id) {
     return map.get(id);
   }
 
-  public synchronized void update(long id, Object object) {
-    map.put(id, object);
-  }
-
-  public synchronized void remove(long id) {
+  public static synchronized void remove(long id) {
     map.remove(id);
   }
 
-  public synchronized long dup(long id) {
-    long newId = nextId++;
-    map.put(newId, map.get(id));
-    return newId;
-  }
-
-  public synchronized void dup(long srcId, long destId) {
+  public static synchronized void dup(long srcId, long destId) {
     map.put(destId, map.get(srcId));
   }
 
