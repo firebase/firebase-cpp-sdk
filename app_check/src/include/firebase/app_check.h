@@ -157,6 +157,8 @@ class AppCheck {
 
   void DeleteInternal();
 
+  // Make the Internal version a friend class, so that it can access itself.
+  friend class internal::AppCheckInternal;
   internal::AppCheckInternal* internal_;
 };
 

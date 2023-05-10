@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   dismiss_stale_approvals:
-    # Dismiss stale approvals for non-admins or if this PR comes from a fork.
+    # Dismiss stale approvals for users without write access, or if this PR comes from a fork.
     runs-on: ubuntu-20.04
     # Only if another commit was added to the PR.
     steps:
@@ -20,7 +20,7 @@ jobs:
         uses: scherermichael-oss/action-has-permission@1.0.6
         # This action sets outputs.has-permission to '1' or ''
         with:
-          required-permission: admin
+          required-permission: write
         env:
           GITHUB_TOKEN: ${{ github.token }}
       - uses: actions/checkout@v3

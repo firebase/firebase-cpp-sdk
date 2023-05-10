@@ -57,6 +57,8 @@ class QueryInternal {
 
   virtual Future<QuerySnapshot> Get(Source source);
 
+  AggregateQuery Count();
+
   ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes, EventListener<QuerySnapshot>* listener);
 

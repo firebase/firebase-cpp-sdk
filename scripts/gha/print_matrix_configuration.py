@@ -76,12 +76,12 @@ PARAMETERS = {
       "build_type": ["Release", "Debug"],
       "architecture": ["x64", "x86", "arm64"],
       "msvc_runtime": ["static","dynamic"],
-      "xcode_version": ["13.3.1"],
+      "xcode_version": ["14.1"],
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
         "os": ["ubuntu-20.04", "macos-12", "windows-latest"],
-        "xcode_version": ["13.3.1"],
+        "xcode_version": ["14.1"],
       }
     }
   },
@@ -112,7 +112,7 @@ PARAMETERS = {
       "msvc_runtime": ["dynamic"],
       "cpp_compiler_windows": ["VisualStudio2019"],
       "cpp_compiler_linux": ["clang-11.0"],
-      "xcode_version": ["13.3.1"],  # only the first one is used
+      "xcode_version": ["14.1"],  # only the first one is used
       "ndk_version": ["r22b"],
       "platform_version": ["28"],
       "build_tools_version": ["28.0.3"],
@@ -133,17 +133,17 @@ PARAMETERS = {
       }
     },
     "config": {
-      "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,gma,installations,messaging,remote_config,storage",
+      "apis": "analytics,app_check,auth,database,dynamic_links,firestore,functions,gma,installations,messaging,remote_config,storage",
       "mobile_test_on": "real,virtual"
     }
   },
 
   "ios": {
     "matrix": {
-      "xcode_version": ["13.3.1"],
+      "xcode_version": ["14.1"],
 
       EXPANDED_KEY: {
-        "xcode_version": ["13.3.1"]
+        "xcode_version": ["14.1"]
       }
     }
   },
@@ -172,15 +172,15 @@ TEST_DEVICES = {
   "emulator_target": {"type": "virtual", "image":"system-images;android-30;google_apis;x86_64"},
   "emulator_latest": {"type": "virtual", "image":"system-images;android-32;google_apis;x86_64"},
   "emulator_32bit": {"type": "virtual", "image":"system-images;android-30;google_apis;x86"},
-  "ios_min": {"type": "ftl", "device": "model=iphonexr,version=13.2"},
-  "ios_target": {"type": "ftl", "device": "model=iphone8,version=13.6"},
-  "ios_latest": {"type": "ftl", "device": "model=iphone11pro,version=14.7"},
-  "simulator_min": {"type": "virtual", "name":"iPhone 8", "version":"13.7"},
-  "simulator_target": {"type": "virtual", "name":"iPhone 8", "version":"14.5"},
-  "simulator_latest": {"type": "virtual", "name":"iPhone 11", "version":"15.2"},
-  "tvos_simulator": {"type": "virtual", "name":"Apple TV", "version":"14.3"},
+  "ios_min": {"type": "ftl", "device": "model=iphone8,version=14.7"},
+  "ios_target": {"type": "ftl", "device": "model=iphone13pro,version=15.7"},
+  "ios_latest": {"type": "ftl", "device": "model=iphone11pro,version=16.3"},
+  "simulator_min": {"type": "virtual", "name":"iPhone 8", "version":"15.2"},
+  "simulator_target": {"type": "virtual", "name":"iPhone 8", "version":"16.1"},
+  "simulator_latest": {"type": "virtual", "name":"iPhone 11", "version":"16.2"},
+  "tvos_simulator": {"type": "virtual", "name":"Apple TV", "version":"16.1"},
 }
- 
+
 
 
 def get_value(workflow, test_matrix, parm_key, config_parms_only=False):
@@ -354,7 +354,7 @@ def main():
     if not args.config:
       args.override = args.override.split(',')
     if args.parm_key == "platform" and args.apis:
-      # e.g. args.apis = "\"admob,analytics\""
+      # e.g. args.apis = "\"auth,analytics\""
       args.override = filter_platforms_on_apis(args.override, args.apis.strip('"').split(','))
 
     print_value(args.override)
@@ -379,7 +379,7 @@ def main():
   if args.auto_diff:
     value = filter_values_on_diff(args.parm_key, value, args.auto_diff)
   if args.parm_key == "platform" and args.apis:
-    # e.g. args.apis = "\"admob,analytics\""
+    # e.g. args.apis = "\"auth,analytics\""
     value = filter_platforms_on_apis(value, args.apis.strip('"').split(','))
   print_value(value)
 

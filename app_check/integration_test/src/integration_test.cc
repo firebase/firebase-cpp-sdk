@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <condition_variable>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -23,6 +24,7 @@
 #include <future>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 
@@ -35,6 +37,7 @@
 #include "firebase/app_check/play_integrity_provider.h"
 #include "firebase/auth.h"
 #include "firebase/database.h"
+#include "firebase/functions.h"
 #include "firebase/internal/platform.h"
 #include "firebase/storage.h"
 #include "firebase/util.h"
@@ -53,6 +56,10 @@
 #endif  // FIREBASE_CONFIG
 
 namespace firebase_testapp_automated {
+
+// Your Firebase project's Debug token goes here.
+// You can get this from Firebase Console, in the App Check settings.
+const char kAppCheckDebugToken[] = "REPLACE_WITH_APP_CHECK_TOKEN";
 
 using app_framework::LogDebug;
 using app_framework::LogError;
@@ -115,17 +122,25 @@ class FirebaseAppCheckTest : public FirebaseTest {
   // Initialize everything needed for Storage tests.
   void InitializeAppAuthStorage();
 
+  // Initialize Firebase Functions.
+  void InitializeFunctions();
+  // Shut down Firebase Functions.
+  void TerminateFunctions();
+
   firebase::database::DatabaseReference CreateWorkingPath(
       bool suppress_cleanup = false);
+  void CleanupDatabase(int expected_error);
 
   firebase::App* app_;
   firebase::auth::Auth* auth_;
 
   bool initialized_;
   firebase::database::Database* database_;
-  std::vector<firebase::database::DatabaseReference> cleanup_paths_;
+  std::vector<firebase::database::DatabaseReference> database_cleanup_;
 
   firebase::storage::Storage* storage_;
+
+  firebase::functions::Functions* functions_;
 };
 
 // Listens for token changed notifications
@@ -153,6 +168,10 @@ class TestAppCheckListener : public firebase::app_check::AppCheckListener {
 
 void FirebaseAppCheckTest::InitializeAppCheckWithDebug() {
   LogDebug("Initialize Firebase App Check with Debug Provider");
+
+  // Set the App Check Debug Token before providing the Factory.
+  firebase::app_check::DebugAppCheckProviderFactory::GetInstance()
+      ->SetDebugToken(kAppCheckDebugToken);
 
   firebase::app_check::AppCheck::SetAppCheckProviderFactory(
       firebase::app_check::DebugAppCheckProviderFactory::GetInstance());
@@ -202,7 +221,8 @@ FirebaseAppCheckTest::FirebaseAppCheckTest()
       auth_(nullptr),
       database_(nullptr),
       storage_(nullptr),
-      cleanup_paths_() {
+      functions_(nullptr),
+      database_cleanup_() {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 }
 
@@ -215,6 +235,7 @@ void FirebaseAppCheckTest::TearDown() {
   // Teardown all the products
   TerminateDatabase();
   TerminateStorage();
+  TerminateFunctions();
   TerminateAuth();
   TerminateAppCheck();
   TerminateApp();
@@ -283,19 +304,7 @@ void FirebaseAppCheckTest::TerminateDatabase() {
   if (!initialized_) return;
 
   if (database_) {
-    if (!cleanup_paths_.empty() && database_ && app_) {
-      LogDebug("Cleaning up...");
-      std::vector<firebase::Future<void>> cleanups;
-      cleanups.reserve(cleanup_paths_.size());
-      for (int i = 0; i < cleanup_paths_.size(); ++i) {
-        cleanups.push_back(cleanup_paths_[i].RemoveValue());
-      }
-      for (int i = 0; i < cleanups.size(); ++i) {
-        std::string cleanup_name = "Cleanup (" + cleanup_paths_[i].url() + ")";
-        WaitForCompletion(cleanups[i], cleanup_name.c_str());
-      }
-      cleanup_paths_.clear();
-    }
+    CleanupDatabase(0);
 
     LogDebug("Shutdown the Database library.");
     delete database_;
@@ -304,6 +313,22 @@ void FirebaseAppCheckTest::TerminateDatabase() {
   initialized_ = false;
 
   ProcessEvents(100);
+}
+
+void FirebaseAppCheckTest::CleanupDatabase(int expected_error) {
+  if (!database_cleanup_.empty()) {
+    LogDebug("Cleaning up Database...");
+    std::vector<firebase::Future<void>> cleanups;
+    cleanups.reserve(database_cleanup_.size());
+    for (int i = 0; i < database_cleanup_.size(); ++i) {
+      cleanups.push_back(database_cleanup_[i].RemoveValue());
+    }
+    for (int i = 0; i < cleanups.size(); ++i) {
+      std::string cleanup_name = "Cleanup (" + database_cleanup_[i].url() + ")";
+      WaitForCompletion(cleanups[i], cleanup_name.c_str(), expected_error);
+    }
+    database_cleanup_.clear();
+  }
 }
 
 void FirebaseAppCheckTest::InitializeAppAuthDatabase() {
@@ -349,13 +374,44 @@ void FirebaseAppCheckTest::InitializeAppAuthStorage() {
   InitializeStorage();
 }
 
+void FirebaseAppCheckTest::InitializeFunctions() {
+  LogDebug("Initializing Firebase Functions.");
+
+  ::firebase::ModuleInitializer initializer;
+  initializer.Initialize(
+      app_, &functions_, [](::firebase::App* app, void* target) {
+        LogDebug("Attempting to initialize Firebase Functions.");
+        ::firebase::InitResult result;
+        *reinterpret_cast<firebase::functions::Functions**>(target) =
+            firebase::functions::Functions::GetInstance(app, &result);
+        return result;
+      });
+
+  WaitForCompletion(initializer.InitializeLastResult(), "InitializeFunctions");
+
+  ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
+      << initializer.InitializeLastResult().error_message();
+
+  LogDebug("Successfully initialized Firebase Functions.");
+}
+
+void FirebaseAppCheckTest::TerminateFunctions() {
+  if (functions_) {
+    LogDebug("Shutdown the Functions library.");
+    delete functions_;
+    functions_ = nullptr;
+  }
+
+  ProcessEvents(100);
+}
+
 void FirebaseAppCheckTest::SignIn() {
-  if (auth_->current_user() != nullptr) {
+  if (auth_->current_user().is_valid()) {
     // Already signed in.
     return;
   }
   LogDebug("Signing in.");
-  firebase::Future<firebase::auth::User*> sign_in_future =
+  firebase::Future<firebase::auth::AuthResult> sign_in_future =
       auth_->SignInAnonymously();
   WaitForCompletion(sign_in_future, "SignInAnonymously");
   if (sign_in_future.error() != 0) {
@@ -370,15 +426,15 @@ void FirebaseAppCheckTest::SignOut() {
     // Auth is not set up.
     return;
   }
-  if (auth_->current_user() == nullptr) {
+  if (!auth_->current_user().is_valid()) {
     // Already signed out.
     return;
   }
-  if (auth_->current_user()->is_anonymous()) {
+  if (auth_->current_user().is_anonymous()) {
     // If signed in anonymously, delete the anonymous user.
-    WaitForCompletion(auth_->current_user()->Delete(), "DeleteAnonymousUser");
+    WaitForCompletion(auth_->current_user().Delete(), "DeleteAnonymousUser");
     // If there was a problem deleting the user, try to sign out at least.
-    if (auth_->current_user()) {
+    if (auth_->current_user().is_valid()) {
       auth_->SignOut();
     }
   } else {
@@ -387,18 +443,18 @@ void FirebaseAppCheckTest::SignOut() {
     auth_->SignOut();
 
     // Wait for the sign-out to finish.
-    while (auth_->current_user() != nullptr) {
+    while (auth_->current_user().is_valid()) {
       if (ProcessEvents(100)) break;
     }
   }
-  EXPECT_EQ(auth_->current_user(), nullptr);
+  EXPECT_FALSE(auth_->current_user().is_valid());
 }
 
 firebase::database::DatabaseReference FirebaseAppCheckTest::CreateWorkingPath(
     bool suppress_cleanup) {
   auto ref = database_->GetReference(kIntegrationTestRootPath).PushChild();
   if (!suppress_cleanup) {
-    cleanup_paths_.push_back(ref);
+    database_cleanup_.push_back(ref);
   }
   return ref;
 }
@@ -409,8 +465,6 @@ TEST_F(FirebaseAppCheckTest, TestInitializeAndTerminate) {
   InitializeApp();
 }
 
-// Android does not yet implement the main app check methods
-#if !FIREBASE_PLATFORM_ANDROID
 TEST_F(FirebaseAppCheckTest, TestGetTokenForcingRefresh) {
   InitializeAppCheckWithDebug();
   InitializeApp();
@@ -443,10 +497,7 @@ TEST_F(FirebaseAppCheckTest, TestGetTokenForcingRefresh) {
   EXPECT_NE(future.result()->expire_time_millis,
             future3.result()->expire_time_millis);
 }
-#endif  // !FIREBASE_PLATFORM_ANDROID
 
-// Android does not yet implement the main app check methods
-#if !FIREBASE_PLATFORM_ANDROID
 TEST_F(FirebaseAppCheckTest, TestGetTokenLastResult) {
   InitializeAppCheckWithDebug();
   InitializeApp();
@@ -464,10 +515,7 @@ TEST_F(FirebaseAppCheckTest, TestGetTokenLastResult) {
   EXPECT_EQ(future.result()->expire_time_millis,
             future2.result()->expire_time_millis);
 }
-#endif  // !FIREBASE_PLATFORM_ANDROID
 
-// Android does not yet implement the main app check methods
-#if !FIREBASE_PLATFORM_ANDROID
 TEST_F(FirebaseAppCheckTest, TestAddTokenChangedListener) {
   InitializeAppCheckWithDebug();
   InitializeApp();
@@ -487,10 +535,7 @@ TEST_F(FirebaseAppCheckTest, TestAddTokenChangedListener) {
   ASSERT_EQ(token_changed_listener.num_token_changes_, 1);
   EXPECT_EQ(token_changed_listener.last_token_.token, token.token);
 }
-#endif  // !FIREBASE_PLATFORM_ANDROID
 
-// Android does not yet implement the main app check methods
-#if !FIREBASE_PLATFORM_ANDROID
 TEST_F(FirebaseAppCheckTest, TestRemoveTokenChangedListener) {
   InitializeAppCheckWithDebug();
   InitializeApp();
@@ -509,13 +554,12 @@ TEST_F(FirebaseAppCheckTest, TestRemoveTokenChangedListener) {
 
   ASSERT_EQ(token_changed_listener.num_token_changes_, 0);
 }
-#endif  // !FIREBASE_PLATFORM_ANDROID
 
 TEST_F(FirebaseAppCheckTest, TestSignIn) {
   InitializeAppCheckWithDebug();
   InitializeApp();
   InitializeAuth();
-  EXPECT_NE(auth_->current_user(), nullptr);
+  EXPECT_TRUE(auth_->current_user().is_valid());
 }
 
 TEST_F(FirebaseAppCheckTest, TestDebugProviderValidToken) {
@@ -524,20 +568,14 @@ TEST_F(FirebaseAppCheckTest, TestDebugProviderValidToken) {
   ASSERT_NE(factory, nullptr);
   InitializeAppCheckWithDebug();
   InitializeApp();
-  // TODO(almostmatt): Once app initialization automatically initializes
-  // AppCheck, this test will no longer need to explicitly get an instance of
-  // AppCheck.
-  ::firebase::app_check::AppCheck* app_check =
-      ::firebase::app_check::AppCheck::GetInstance(app_);
-  ASSERT_NE(app_check, nullptr);
 
   firebase::app_check::AppCheckProvider* provider =
       factory->CreateProvider(app_);
   ASSERT_NE(provider, nullptr);
   auto got_token_promise = std::make_shared<std::promise<void>>();
   auto token_callback{
-      [&got_token_promise](firebase::app_check::AppCheckToken token,
-                           int error_code, const std::string& error_message) {
+      [got_token_promise](firebase::app_check::AppCheckToken token,
+                          int error_code, const std::string& error_message) {
         EXPECT_EQ(firebase::app_check::kAppCheckErrorNone, error_code);
         EXPECT_EQ("", error_message);
         EXPECT_NE(0, token.expire_time_millis);
@@ -553,26 +591,12 @@ TEST_F(FirebaseAppCheckTest, TestDebugProviderValidToken) {
 TEST_F(FirebaseAppCheckTest, TestAppAttestProvider) {
   firebase::app_check::AppAttestProviderFactory* factory =
       firebase::app_check::AppAttestProviderFactory::GetInstance();
-#if FIREBASE_PLATFORM_IOS
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
   ASSERT_NE(factory, nullptr);
   InitializeApp();
   firebase::app_check::AppCheckProvider* provider =
       factory->CreateProvider(app_);
   ASSERT_NE(provider, nullptr);
-  auto got_token_promise = std::make_shared<std::promise<void>>();
-  auto token_callback{
-      [&got_token_promise](firebase::app_check::AppCheckToken token,
-                           int error_code, const std::string& error_message) {
-        EXPECT_EQ(firebase::app_check::kAppCheckErrorUnsupportedProvider,
-                  error_code);
-        EXPECT_NE("", error_message);
-        EXPECT_EQ("", token.token);
-        got_token_promise->set_value();
-      }};
-  provider->GetToken(token_callback);
-  auto got_token_future = got_token_promise->get_future();
-  ASSERT_EQ(std::future_status::ready,
-            got_token_future.wait_for(kGetTokenTimeout));
 #else
   EXPECT_EQ(factory, nullptr);
 #endif
@@ -581,25 +605,12 @@ TEST_F(FirebaseAppCheckTest, TestAppAttestProvider) {
 TEST_F(FirebaseAppCheckTest, TestDeviceCheckProvider) {
   firebase::app_check::DeviceCheckProviderFactory* factory =
       firebase::app_check::DeviceCheckProviderFactory::GetInstance();
-#if FIREBASE_PLATFORM_IOS
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
   ASSERT_NE(factory, nullptr);
   InitializeApp();
   firebase::app_check::AppCheckProvider* provider =
       factory->CreateProvider(app_);
   ASSERT_NE(provider, nullptr);
-  auto got_token_promise = std::make_shared<std::promise<void>>();
-  auto token_callback{
-      [&got_token_promise](firebase::app_check::AppCheckToken token,
-                           int error_code, const std::string& error_message) {
-        EXPECT_EQ(firebase::app_check::kAppCheckErrorUnknown, error_code);
-        EXPECT_NE("", error_message);
-        EXPECT_EQ("", token.token);
-        got_token_promise->set_value();
-      }};
-  provider->GetToken(token_callback);
-  auto got_token_future = got_token_promise->get_future();
-  ASSERT_EQ(std::future_status::ready,
-            got_token_future.wait_for(kGetTokenTimeout));
 #else
   EXPECT_EQ(factory, nullptr);
 #endif
@@ -611,6 +622,7 @@ TEST_F(FirebaseAppCheckTest, TestPlayIntegrityProvider) {
 #if FIREBASE_PLATFORM_ANDROID
   ASSERT_NE(factory, nullptr);
   InitializeApp();
+
   firebase::app_check::AppCheckProvider* provider =
       factory->CreateProvider(app_);
   EXPECT_NE(provider, nullptr);
@@ -619,18 +631,7 @@ TEST_F(FirebaseAppCheckTest, TestPlayIntegrityProvider) {
 #endif
 }
 
-// Disabling the database tests for now, since they are crashing or hanging.
-TEST_F(FirebaseAppCheckTest, DISABLED_TestDatabaseFailure) {
-  // Don't initialize App Check this time. Database should fail.
-  InitializeAppAuthDatabase();
-  firebase::database::DatabaseReference ref = CreateWorkingPath();
-  const char* test_name = test_info_->name();
-  firebase::Future<void> f = ref.Child(test_name).SetValue("test");
-  // It is unclear if this should fail, or hang, so disabled for now.
-  WaitForCompletion(f, "SetString");
-}
-
-TEST_F(FirebaseAppCheckTest, DISABLED_TestDatabaseCreateWorkingPath) {
+TEST_F(FirebaseAppCheckTest, TestDatabaseCreateWorkingPath) {
   InitializeAppCheckWithDebug();
   InitializeAppAuthDatabase();
   firebase::database::DatabaseReference working_path = CreateWorkingPath();
@@ -645,7 +646,7 @@ TEST_F(FirebaseAppCheckTest, DISABLED_TestDatabaseCreateWorkingPath) {
 
 static const char kSimpleString[] = "Some simple string";
 
-TEST_F(FirebaseAppCheckTest, DISABLED_TestDatabaseSetAndGet) {
+TEST_F(FirebaseAppCheckTest, TestDatabaseSetAndGet) {
   InitializeAppCheckWithDebug();
   InitializeAppAuthDatabase();
 
@@ -671,7 +672,7 @@ TEST_F(FirebaseAppCheckTest, DISABLED_TestDatabaseSetAndGet) {
   }
 }
 
-TEST_F(FirebaseAppCheckTest, DISABLED_TestRunTransaction) {
+TEST_F(FirebaseAppCheckTest, TestDatabaseRunTransaction) {
   InitializeAppCheckWithDebug();
   InitializeAppAuthDatabase();
 
@@ -725,6 +726,42 @@ TEST_F(FirebaseAppCheckTest, DISABLED_TestRunTransaction) {
   }
 }
 
+TEST_F(FirebaseAppCheckTest, TestDatabaseUpdateToken) {
+  // Test that after forcing an App Check token update, the database connection
+  // still works.
+  InitializeAppCheckWithDebug();
+  InitializeAppAuthDatabase();
+
+  const char* test_name = test_info_->name();
+  firebase::database::DatabaseReference ref = CreateWorkingPath();
+
+  {
+    LogDebug("Setting value.");
+    firebase::Future<void> f1 =
+        ref.Child(test_name).Child("String").SetValue(kSimpleString);
+    WaitForCompletion(f1, "SetSimpleString");
+  }
+
+  // Force App Check to update its token.
+  ::firebase::app_check::AppCheck* app_check =
+      ::firebase::app_check::AppCheck::GetInstance(app_);
+  ASSERT_NE(app_check, nullptr);
+  firebase::Future<::firebase::app_check::AppCheckToken> future =
+      app_check->GetAppCheckToken(true);
+  EXPECT_TRUE(WaitForCompletion(future, "GetAppCheckToken"));
+
+  // Get the values that we just set, and confirm that they match what we
+  // set them to.
+  {
+    LogDebug("Getting value.");
+    firebase::Future<firebase::database::DataSnapshot> f1 =
+        ref.Child(test_name).Child("String").GetValue();
+    WaitForCompletion(f1, "GetSimpleString");
+
+    EXPECT_EQ(f1.result()->value().AsString(), kSimpleString);
+  }
+}
+
 TEST_F(FirebaseAppCheckTest, TestStorageReadFile) {
   InitializeAppCheckWithDebug();
   InitializeAppAuthStorage();
@@ -738,18 +775,24 @@ TEST_F(FirebaseAppCheckTest, TestStorageReadFile) {
   LogDebug("  buffer: %s", buffer);
 }
 
-TEST_F(FirebaseAppCheckTest, TestStorageReadFileUnauthenticated) {
-  // Don't set up AppCheck
-  InitializeAppAuthStorage();
-  firebase::storage::StorageReference ref = storage_->GetReference("test.txt");
-  EXPECT_TRUE(ref.is_valid());
-  const size_t kBufferSize = 128;
-  char buffer[kBufferSize];
-  memset(buffer, 0, sizeof(buffer));
-  firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
-  WaitForCompletion(future, "GetBytes",
-                    firebase::storage::kErrorUnauthenticated);
-  LogDebug("  buffer: %s", buffer);
+TEST_F(FirebaseAppCheckTest, TestFunctionsSuccess) {
+  InitializeAppCheckWithDebug();
+  InitializeApp();
+  InitializeFunctions();
+  firebase::functions::HttpsCallableReference ref;
+  ref = functions_->GetHttpsCallable("addNumbers");
+  firebase::Variant data(firebase::Variant::EmptyMap());
+  data.map()["firstNumber"] = 5;
+  data.map()["secondNumber"] = 7;
+  firebase::Future<firebase::functions::HttpsCallableResult> future;
+  future = ref.Call(data);
+  WaitForCompletion(future, "CallFunction addnumbers",
+                    firebase::functions::kErrorNone);
+  firebase::Variant result = future.result()->data();
+  EXPECT_TRUE(result.is_map());
+  if (result.is_map()) {
+    EXPECT_EQ(result.map()["operationResult"], 12);
+  }
 }
 
 }  // namespace firebase_testapp_automated

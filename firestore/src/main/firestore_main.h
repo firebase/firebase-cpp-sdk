@@ -150,11 +150,15 @@ class FirestoreInternal {
 
   FirestoreInternal(
       App* app,
-      std::unique_ptr<credentials::AuthCredentialsProvider> credentials);
+      std::unique_ptr<credentials::AuthCredentialsProvider> auth_credentials,
+      std::unique_ptr<credentials::AppCheckCredentialsProvider>
+          app_check_credentials);
 
   std::shared_ptr<api::Firestore> CreateFirestore(
       App* app,
-      std::unique_ptr<credentials::AuthCredentialsProvider> credentials);
+      std::unique_ptr<credentials::AuthCredentialsProvider> auth_credentials,
+      std::unique_ptr<credentials::AppCheckCredentialsProvider>
+          app_check_credentials);
 
   // Gets the reference-counted Future implementation of this instance, which
   // can be used to create a Future.

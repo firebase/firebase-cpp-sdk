@@ -35,10 +35,28 @@ void CompletePromise(Promise<User*>* const promise,
   promise->CompleteWithResult(sign_in_result.user);
 }
 
+void CompletePromise(Promise<User>* const promise,
+                     const AuthResult& auth_result) {
+  FIREBASE_ASSERT_RETURN_VOID(promise);
+  promise->CompleteWithResult(auth_result.user);
+}
+
+void CompletePromise(Promise<AuthResult>* const promise,
+                     const AuthResult& auth_result) {
+  FIREBASE_ASSERT_RETURN_VOID(promise);
+  promise->CompleteWithResult(auth_result);
+}
+
 void CompletePromise(Promise<SignInResult>* const promise,
                      const SignInResult& sign_in_result) {
   FIREBASE_ASSERT_RETURN_VOID(promise);
   promise->CompleteWithResult(sign_in_result);
+}
+
+void CompletePromise(Promise<void>* const promise,
+                     const AuthResult& /*unused*/) {
+  FIREBASE_ASSERT_RETURN_VOID(promise);
+  promise->Complete();
 }
 
 void CompletePromise(Promise<void>* const promise,

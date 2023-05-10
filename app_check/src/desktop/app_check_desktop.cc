@@ -14,6 +14,7 @@
 
 #include "app_check/src/desktop/app_check_desktop.h"
 
+#include <algorithm>
 #include <ctime>
 #include <string>
 
@@ -28,8 +29,12 @@ namespace internal {
 static AppCheckProviderFactory* g_provider_factory = nullptr;
 
 AppCheckInternal::AppCheckInternal(App* app)
-    : app_(app), cached_token_(), cached_provider_() {
+    : app_(app),
+      cached_token_(),
+      cached_provider_(),
+      is_token_auto_refresh_enabled_(true) {
   future_manager().AllocFutureApi(this, kAppCheckFnCount);
+  AddAppCheckListener(&internal_listener_);
   InitRegistryCalls();
 }
 
@@ -76,7 +81,9 @@ void AppCheckInternal::SetAppCheckProviderFactory(
 }
 
 void AppCheckInternal::SetTokenAutoRefreshEnabled(
-    bool is_token_auto_refresh_enabled) {}
+    bool is_token_auto_refresh_enabled) {
+  is_token_auto_refresh_enabled_ = is_token_auto_refresh_enabled;
+}
 
 Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
   auto handle = future()->SafeAlloc<AppCheckToken>(kAppCheckFnGetAppCheckToken);
@@ -112,6 +119,42 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckTokenLastResult() {
       future()->LastResult(kAppCheckFnGetAppCheckToken));
 }
 
+Future<std::string> AppCheckInternal::GetAppCheckTokenStringInternal() {
+  auto handle =
+      future()->SafeAlloc<std::string>(kAppCheckFnGetAppCheckStringInternal);
+  if (HasValidCacheToken()) {
+    future()->CompleteWithResult(handle, 0, cached_token_.token);
+  } else if (is_token_auto_refresh_enabled_) {
+    // Only refresh the token if it is enabled
+    AppCheckProvider* provider = GetProvider();
+    if (provider != nullptr) {
+      // Get a new token, and pass the result into the future.
+      // Note that this is slightly different from the one above, as the
+      // Future result is just the string token, and not the full struct.
+      auto token_callback{
+          [this, handle](firebase::app_check::AppCheckToken token,
+                         int error_code, const std::string& error_message) {
+            if (error_code == firebase::app_check::kAppCheckErrorNone) {
+              UpdateCachedToken(token);
+              future()->CompleteWithResult(handle, 0, token.token);
+            } else {
+              future()->Complete(handle, error_code, error_message.c_str());
+            }
+          }};
+      provider->GetToken(token_callback);
+    } else {
+      future()->Complete(
+          handle, firebase::app_check::kAppCheckErrorInvalidConfiguration,
+          "No AppCheckProvider installed.");
+    }
+  } else {
+    future()->Complete(
+        handle, kAppCheckErrorUnknown,
+        "No AppCheck token available, and auto refresh is disabled");
+  }
+  return MakeFuture(future(), handle);
+}
+
 void AppCheckInternal::AddAppCheckListener(AppCheckListener* listener) {
   if (listener) {
     token_listeners_.push_back(listener);
@@ -137,6 +180,12 @@ void AppCheckInternal::InitRegistryCalls() {
     app_->function_registry()->RegisterFunction(
         ::firebase::internal::FnAppCheckGetTokenAsync,
         AppCheckInternal::GetAppCheckTokenAsyncForRegistry);
+    app_->function_registry()->RegisterFunction(
+        ::firebase::internal::FnAppCheckAddListener,
+        AppCheckInternal::AddAppCheckListenerForRegistry);
+    app_->function_registry()->RegisterFunction(
+        ::firebase::internal::FnAppCheckRemoveListener,
+        AppCheckInternal::RemoveAppCheckListenerForRegistry);
   }
   g_app_check_registry_count++;
 }
@@ -146,6 +195,10 @@ void AppCheckInternal::CleanupRegistryCalls() {
   if (g_app_check_registry_count == 0) {
     app_->function_registry()->UnregisterFunction(
         ::firebase::internal::FnAppCheckGetTokenAsync);
+    app_->function_registry()->UnregisterFunction(
+        ::firebase::internal::FnAppCheckAddListener);
+    app_->function_registry()->UnregisterFunction(
+        ::firebase::internal::FnAppCheckRemoveListener);
   }
 }
 
@@ -153,17 +206,75 @@ void AppCheckInternal::CleanupRegistryCalls() {
 bool AppCheckInternal::GetAppCheckTokenAsyncForRegistry(App* app,
                                                         void* /*unused*/,
                                                         void* out) {
-  Future<AppCheckToken>* out_future = static_cast<Future<AppCheckToken>*>(out);
+  Future<std::string>* out_future = static_cast<Future<std::string>*>(out);
   if (!app || !out_future) {
     return false;
   }
 
   AppCheck* app_check = AppCheck::GetInstance(app);
-  if (app_check) {
-    // TODO(amaurice): This should call some internal function instead of the
-    // public one, since this will change the *LastResult value behind the
-    // scenes.
-    *out_future = app_check->GetAppCheckToken(false);
+  if (app_check && app_check->internal_) {
+    *out_future = app_check->internal_->GetAppCheckTokenStringInternal();
+    return true;
+  }
+  return false;
+}
+
+void FunctionRegistryAppCheckListener::AddListener(
+    FunctionRegistryCallback callback, void* context) {
+  callbacks_.emplace_back(callback, context);
+}
+
+void FunctionRegistryAppCheckListener::RemoveListener(
+    FunctionRegistryCallback callback, void* context) {
+  Entry entry = {callback, context};
+
+  auto iter = std::find(callbacks_.begin(), callbacks_.end(), entry);
+  if (iter != callbacks_.end()) {
+    callbacks_.erase(iter);
+  }
+}
+
+void FunctionRegistryAppCheckListener::OnAppCheckTokenChanged(
+    const AppCheckToken& token) {
+  for (const Entry& entry : callbacks_) {
+    entry.first(token.token, entry.second);
+  }
+}
+
+// static
+bool AppCheckInternal::AddAppCheckListenerForRegistry(App* app, void* callback,
+                                                      void* context) {
+  auto typed_callback = reinterpret_cast<FunctionRegistryCallback>(callback);
+  if (!app || !typed_callback) {
+    return false;
+  }
+
+  AppCheck* app_check = AppCheck::GetInstance(app);
+  if (app_check && app_check->internal_) {
+    app_check->internal_->internal_listener_.AddListener(typed_callback,
+                                                         context);
+    // If there is a cached token, pass it along to the callback
+    if (app_check->internal_->HasValidCacheToken()) {
+      typed_callback(app_check->internal_->cached_token_.token, context);
+    }
+    return true;
+  }
+  return false;
+}
+
+// static
+bool AppCheckInternal::RemoveAppCheckListenerForRegistry(App* app,
+                                                         void* callback,
+                                                         void* context) {
+  auto typed_callback = reinterpret_cast<FunctionRegistryCallback>(callback);
+  if (!app || !typed_callback) {
+    return false;
+  }
+
+  AppCheck* app_check = AppCheck::GetInstance(app);
+  if (app_check && app_check->internal_) {
+    app_check->internal_->internal_listener_.RemoveListener(typed_callback,
+                                                            context);
     return true;
   }
   return false;

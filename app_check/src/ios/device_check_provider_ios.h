@@ -17,6 +17,8 @@
 
 #include <map>
 
+#include "app/memory/unique_ptr.h"
+#include "app/src/util_ios.h"
 #include "firebase/app_check.h"
 
 #ifdef __OBJC__
@@ -26,6 +28,10 @@
 namespace firebase {
 namespace app_check {
 namespace internal {
+
+// This defines the class FIRDeviceCheckProviderFactoryPointer, which is a
+// C++-compatible wrapper around the FIRDeviceCheckProviderFactory Obj-C class.
+OBJ_C_PTR_WRAPPER(FIRDeviceCheckProviderFactory);
 
 class DeviceCheckProviderFactoryInternal : public AppCheckProviderFactory {
  public:
@@ -37,8 +43,13 @@ class DeviceCheckProviderFactoryInternal : public AppCheckProviderFactory {
 
  private:
 #ifdef __OBJC__
-  FIRDeviceCheckProviderFactory* ios_provider_factory_;
+  FIRDeviceCheckProviderFactory* ios_provider_factory() const {
+    return ios_provider_factory_->get();
+  }
 #endif  // __OBJC__
+
+  // Object lifetime managed by Objective C ARC.
+  UniquePtr<FIRDeviceCheckProviderFactoryPointer> ios_provider_factory_;
 
   std::map<App*, AppCheckProvider*> created_providers_;
 };
