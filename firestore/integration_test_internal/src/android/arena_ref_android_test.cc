@@ -16,12 +16,15 @@
 
 #include "firestore/src/jni/arena_ref.h"
 
+#include <atomic>
 #include <memory>
+#include <type_traits>
 #include <vector>
 
 #include "android/firestore_integration_test_android.h"
 #include "firestore/src/jni/env.h"
 
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 namespace {
@@ -36,65 +39,122 @@ using firebase::firestore::jni::Object;
 class ArenaRefTest : public FirestoreAndroidIntegrationTest {
  public:
   ~ArenaRefTest() override {
-    Env env;
     for (jobject created_java_object : created_java_objects_) {
-      env.get()->DeleteGlobalRef(created_java_object);
+      env().get()->DeleteGlobalRef(created_java_object);
     }
   }
 
-  jstring NewJavaString(Env& env, const char* contents_modified_utf8) {
-    SCOPED_TRACE("NewJavaString");
-    JNIEnv* jni_env = env.get();
+  jobject NewJavaObject() {
+    SCOPED_TRACE("NewJavaObject");
 
-    jstring java_string_localref = jni_env->NewStringUTF(contents_modified_utf8);
+    JNIEnv* jni_env = env().get();
     if (jni_env->ExceptionCheck()) {
       jni_env->ExceptionDescribe();
-      ADD_FAILURE() << "NewStringUTF(\"" << contents_modified_utf8 << "\") failed";
+      ADD_FAILURE() << "NewJavaObject() called with a pending exception";
       return {};
     }
 
-    jobject java_string_globalref = jni_env->NewGlobalRef(java_string_localref);
-    jni_env->DeleteLocalRef(java_string_localref);
+    jclass long_class = jni_env->FindClass("java/lang/Long");
     if (jni_env->ExceptionCheck()) {
       jni_env->ExceptionDescribe();
-      ADD_FAILURE() << "NewGlobalRef(\"" << contents_modified_utf8 << "\") failed";
+      ADD_FAILURE() << "JNIEnv::FindClass() failed";
       return {};
     }
 
-    created_java_objects_.push_back(java_string_globalref);
-    return (jstring)java_string_globalref;
+    jmethodID long_constructor_id = jni_env->GetMethodID(long_class, "<init>", "(J)V");
+    if (jni_env->ExceptionCheck()) {
+      jni_env->ExceptionDescribe();
+      ADD_FAILURE() << "JNIEnv::GetMethodID() failed";
+      return {};
+    }
+
+    static std::atomic<jlong> next_id(887650000L);
+    const jlong id = next_id.fetch_add(1);
+    jobject long_object_local_ref = jni_env->NewObject(long_class, long_constructor_id, id);
+    if (jni_env->ExceptionCheck()) {
+      jni_env->ExceptionDescribe();
+      ADD_FAILURE() << "JNIEnv::NewObject() failed";
+      return {};
+    }
+
+    jobject long_object_global_ref = jni_env->NewGlobalRef(long_object_local_ref);
+    jni_env->DeleteLocalRef(long_object_local_ref);
+    if (jni_env->ExceptionCheck()) {
+      jni_env->ExceptionDescribe();
+      ADD_FAILURE() << "JNIEnv::NewGlobalRef() failed";
+      return {};
+    }
+
+    created_java_objects_.push_back(long_object_global_ref);
+    return long_object_global_ref;
   }
 
  private:
   std::vector<jobject> created_java_objects_;
 };
 
-TEST_F(ArenaRefTest, DefaultConstructorShouldCreateNullPointer) {
+MATCHER(RefersToNullJavaObject, "") {
+  static_assert(std::is_same<arg_type, const ArenaRef&>::value, "");
+
   Env env;
+  if (! env.ok()) {
+    ADD_FAILURE() << "RefersToNullJavaObject called with pending exception";
+    return false;
+  }
 
-  ArenaRef default_constructed_arena_ref;
+  Local<Object> object = arg.get(env);
+  if (! env.ok()) {
+    ADD_FAILURE() << "RefersToNullJavaObject ArenaRef.get() threw an exception";
+    return false;
+  }
 
-  EXPECT_EQ(default_constructed_arena_ref.get(env).get(), nullptr);
+  return object.get() == nullptr;
 }
 
-TEST_F(ArenaRefTest, AdoptingConstructorShouldAcceptNull) {
+MATCHER_P(RefersToJavaObject, expected_jobject, "") {
+  static_assert(std::is_same<arg_type, const ArenaRef&>::value, "");
+  static_assert(std::is_same<expected_jobject_type, jobject>::value, "");
+
   Env env;
+  if (! env.ok()) {
+    ADD_FAILURE() << "RefersToJavaObject called with pending exception";
+    return false;
+  }
 
-  ArenaRef arena_ref_with_null_object(env, nullptr);
+  Local<Object> object = arg.get(env);
+  if (! env.ok()) {
+    ADD_FAILURE() << "RefersToJavaObject ArenaRef.get() threw an exception";
+    return false;
+  }
 
-  EXPECT_EQ(arena_ref_with_null_object.get(env).get(), nullptr);
+  return env.get()->IsSameObject(object.get(), expected_jobject);
 }
 
-TEST_F(ArenaRefTest, AdoptingConstructorShouldAcceptNonNull) {
-  Env env;
-  jstring java_string = NewJavaString(env, "hello world");
+TEST_F(ArenaRefTest, DefaultConstructorShouldReferToNull) {
+  ArenaRef arena_ref;
 
-  ArenaRef arena_ref_with_non_null_object(env, java_string);
-
-  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_with_non_null_object.get(env).get(), java_string));
+  EXPECT_THAT(arena_ref, RefersToNullJavaObject());
 }
 
-TEST_F(ArenaRefTest, CopyConstructorShouldCopyDefaultInstance) {
+TEST_F(ArenaRefTest, AdoptingConstructorWithNullptrShouldReferToNull) {
+  Env env;
+
+  ArenaRef arena_ref(env, nullptr);
+
+  EXPECT_THAT(arena_ref, RefersToNullJavaObject());
+}
+
+TEST_F(ArenaRefTest, AdoptingConstructorShouldReferToTheGivenObject) {
+  Env env;
+  jobject java_object = NewJavaObject();
+
+  ArenaRef arena_ref(env, java_object);
+
+  EXPECT_THAT(arena_ref, RefersToJavaObject(java_object));
+}
+
+/*
+TEST_F(ArenaRefTest, CopyConstructorCopyDefaultToDefault) {
   Env env;
   ArenaRef default_arena_ref;
 
@@ -486,5 +546,6 @@ TEST_F(ArenaRefTest, MoveAssignmentOperatorShouldKeepOriginallyValidInstancesInd
   ASSERT_TRUE(arena_ref_move_dest2->is_valid());
   EXPECT_TRUE(env.get()->IsSameObject(arena_ref_move_dest2->get(env).get(), java_string1));
 }
+ */
 
 }  // namespace

@@ -165,7 +165,7 @@ ArenaRef& ArenaRef::operator=(const ArenaRef& other) {
   }
   JNIEnv* jni_env = env.get();
 
-  if (!other.is_valid()) {
+  if (!other.valid_) {
     if (valid_) {
       jni_env->CallVoidMethod(kObjectArenaSingletonInstance, kObjectArenaMethodIds.remove, id_);
       if (jni_env->ExceptionCheck()) {

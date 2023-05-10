@@ -181,50 +181,51 @@ Type FieldValueInternal::type() const {
   if (cached_type_ != Type::kNull) {
     return cached_type_;
   }
-  if (!object_.is_valid()) {
-    return Type::kNull;
-  }
 
   // We do not have any knowledge on the type yet. Check the runtime type with
   // each known type.
   Env env = GetEnv();
-  if (env.IsInstanceOf(object_, Boolean::GetClass())) {
+  Local<Object> object = object_.get(env);
+  if (! object) {
+    return Type::kNull;
+  }
+  if (env.IsInstanceOf(object, Boolean::GetClass())) {
     cached_type_ = Type::kBoolean;
     return Type::kBoolean;
   }
-  if (env.IsInstanceOf(object_, Long::GetClass())) {
+  if (env.IsInstanceOf(object, Long::GetClass())) {
     cached_type_ = Type::kInteger;
     return Type::kInteger;
   }
-  if (env.IsInstanceOf(object_, Double::GetClass())) {
+  if (env.IsInstanceOf(object, Double::GetClass())) {
     cached_type_ = Type::kDouble;
     return Type::kDouble;
   }
-  if (env.IsInstanceOf(object_, TimestampInternal::GetClass())) {
+  if (env.IsInstanceOf(object, TimestampInternal::GetClass())) {
     cached_type_ = Type::kTimestamp;
     return Type::kTimestamp;
   }
-  if (env.IsInstanceOf(object_, String::GetClass())) {
+  if (env.IsInstanceOf(object, String::GetClass())) {
     cached_type_ = Type::kString;
     return Type::kString;
   }
-  if (env.IsInstanceOf(object_, BlobInternal::GetClass())) {
+  if (env.IsInstanceOf(object, BlobInternal::GetClass())) {
     cached_type_ = Type::kBlob;
     return Type::kBlob;
   }
-  if (env.IsInstanceOf(object_, DocumentReferenceInternal::GetClass())) {
+  if (env.IsInstanceOf(object, DocumentReferenceInternal::GetClass())) {
     cached_type_ = Type::kReference;
     return Type::kReference;
   }
-  if (env.IsInstanceOf(object_, GeoPointInternal::GetClass())) {
+  if (env.IsInstanceOf(object, GeoPointInternal::GetClass())) {
     cached_type_ = Type::kGeoPoint;
     return Type::kGeoPoint;
   }
-  if (env.IsInstanceOf(object_, List::GetClass())) {
+  if (env.IsInstanceOf(object, List::GetClass())) {
     cached_type_ = Type::kArray;
     return Type::kArray;
   }
-  if (env.IsInstanceOf(object_, Map::GetClass())) {
+  if (env.IsInstanceOf(object, Map::GetClass())) {
     cached_type_ = Type::kMap;
     return Type::kMap;
   }
@@ -389,7 +390,7 @@ bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs) {
 template <typename T>
 Local<T> FieldValueInternal::Cast(jni::Env& env, Type type) const {
   if (cached_type_ == Type::kNull) {
-    FIREBASE_ASSERT(env.IsInstanceOf(object_, T::GetClass()));
+    FIREBASE_ASSERT(env.IsInstanceOf(object_.get(env), T::GetClass()));
     cached_type_ = type;
   } else {
     FIREBASE_ASSERT(cached_type_ == type);
@@ -400,7 +401,7 @@ Local<T> FieldValueInternal::Cast(jni::Env& env, Type type) const {
 template <>
 Local<String> FieldValueInternal::Cast<String>(jni::Env& env, Type type) const {
   if (cached_type_ == Type::kNull) {
-    FIREBASE_ASSERT(env.IsInstanceOf(object_, String::GetClass()));
+    FIREBASE_ASSERT(env.IsInstanceOf(object_.get(env), String::GetClass()));
     cached_type_ = type;
   } else {
     FIREBASE_ASSERT(cached_type_ == type);

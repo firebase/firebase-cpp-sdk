@@ -96,6 +96,12 @@ class FirestoreAndroidIntegrationTest : public FirestoreIntegrationTest {
   /** Blocks until the given `Task` has completed or times out. */
   static void Await(jni::Env& env, const jni::Task& task);
 
+  /** Returns an Env object for the calling thread, creating it if necessary. */
+  static jni::Env& env() {
+    thread_local jni::Env env;
+    return env;
+  }
+
  private:
   jni::Loader loader_;
 };

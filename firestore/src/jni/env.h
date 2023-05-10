@@ -184,9 +184,6 @@ class Env {
   bool IsInstanceOf(jobject object, jclass clazz) {
     return IsInstanceOf(Object(object), Class(clazz));
   }
-  bool IsInstanceOf(const ArenaRef& object, const Class& clazz) {
-    return IsInstanceOf(object.get(*this), clazz);
-  }
 
   bool IsSameObject(const Object& object1, const Object& object2);
 
