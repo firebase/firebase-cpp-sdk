@@ -42,10 +42,6 @@ class ArenaRef final {
 
   static void Initialize(Loader&);
 
-  bool is_valid() const {
-    return valid_;
-  }
-
   Local<Object> get(Env&) const;
   void reset(Env& env, const Object&);
 

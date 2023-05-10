@@ -69,9 +69,12 @@ class ArenaRefTest : public FirestoreAndroidIntegrationTest {
   std::vector<jobject> created_java_objects_;
 };
 
-TEST_F(ArenaRefTest, DefaultConstructorShouldCreateInvalidObject) {
+TEST_F(ArenaRefTest, DefaultConstructorShouldCreateNullPointer) {
+  Env env;
+
   ArenaRef default_constructed_arena_ref;
-  EXPECT_EQ(default_constructed_arena_ref.is_valid(), false);
+
+  EXPECT_EQ(default_constructed_arena_ref.get(env).get(), nullptr);
 }
 
 TEST_F(ArenaRefTest, AdoptingConstructorShouldAcceptNull) {
@@ -91,25 +94,33 @@ TEST_F(ArenaRefTest, AdoptingConstructorShouldAcceptNonNull) {
   EXPECT_TRUE(env.get()->IsSameObject(arena_ref_with_non_null_object.get(env).get(), java_string));
 }
 
-TEST_F(ArenaRefTest, CopyConstructorShouldCopyInvalidInstance) {
+TEST_F(ArenaRefTest, CopyConstructorShouldCopyDefaultInstance) {
   Env env;
-  ArenaRef invalid_arena_ref_copy_src;
+  ArenaRef default_arena_ref;
 
-  ArenaRef invalid_arena_ref_copy_dest(invalid_arena_ref_copy_src);
+  ArenaRef arena_ref_copy_dest(default_arena_ref);
 
-  EXPECT_FALSE(invalid_arena_ref_copy_src.is_valid());
-  EXPECT_FALSE(invalid_arena_ref_copy_dest.is_valid());
+  EXPECT_EQ(default_arena_ref.get(env).get(), nullptr);
+  EXPECT_EQ(arena_ref_copy_dest.get(env).get(), nullptr);
 }
 
-TEST_F(ArenaRefTest, CopyConstructorShouldCopyValidInstance) {
+TEST_F(ArenaRefTest, CopyConstructorShouldCopyInstanceWithNullObject) {
+  Env env;
+  ArenaRef arena_ref_with_null_object(env, nullptr);
+
+  ArenaRef arena_ref_copy_dest(arena_ref_with_null_object);
+
+  EXPECT_EQ(arena_ref_with_null_object.get(env).get(), nullptr);
+  EXPECT_EQ(arena_ref_copy_dest.get(env).get(), nullptr);
+}
+
+TEST_F(ArenaRefTest, CopyConstructorShouldCopyInstanceWithNonNullObject) {
   Env env;
   jstring java_string = NewJavaString(env, "hello world");
   ArenaRef arena_ref_copy_src(env, java_string);
 
   ArenaRef arena_ref_copy_dest(arena_ref_copy_src);
 
-  ASSERT_TRUE(arena_ref_copy_src.is_valid());
-  ASSERT_TRUE(arena_ref_copy_dest.is_valid());
   EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_src.get(env).get(), java_string));
   EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_dest.get(env).get(), java_string));
 }
@@ -123,9 +134,6 @@ TEST_F(ArenaRefTest, CopyConstructorShouldCreateAnIndependentInstance) {
   auto arena_ref_copy_dest2 = std::make_unique<ArenaRef>(*arena_ref_copy_src);
 
   // Verify that all 3 ArenaRef objects refer to the same Java object.
-  ASSERT_TRUE(arena_ref_copy_src->is_valid());
-  ASSERT_TRUE(arena_ref_copy_dest1->is_valid());
-  ASSERT_TRUE(arena_ref_copy_dest2->is_valid());
   EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_src->get(env).get(), java_string));
   EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_dest1->get(env).get(), java_string));
   EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_dest2->get(env).get(), java_string));
@@ -133,26 +141,23 @@ TEST_F(ArenaRefTest, CopyConstructorShouldCreateAnIndependentInstance) {
   // Delete the original "source" ArenaRef and verify that the remaining two
   // ArenaRef objects still refer to the same Java object.
   arena_ref_copy_src.reset();
-  ASSERT_TRUE(arena_ref_copy_dest1->is_valid());
-  ASSERT_TRUE(arena_ref_copy_dest2->is_valid());
   EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_dest1->get(env).get(), java_string));
   EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_dest2->get(env).get(), java_string));
 
   // Delete the first "copy" ArenaRef and verify that the remaining
   // ArenaRef object still refers to the same Java object.
   arena_ref_copy_dest1.reset();
-  ASSERT_TRUE(arena_ref_copy_dest2->is_valid());
   EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_dest2->get(env).get(), java_string));
 }
 
-TEST_F(ArenaRefTest, MoveConstructorShouldMoveInvalidInstance) {
+TEST_F(ArenaRefTest, MoveConstructorShouldMoveDefaultInstance) {
   Env env;
-  ArenaRef invalid_arena_ref_move_src;
+  ArenaRef default_arena_ref;
 
-  ArenaRef invalid_arena_ref_move_dest(std::move(invalid_arena_ref_move_src));
+  ArenaRef arena_ref_move_dest(std::move(default_arena_ref));
 
-  EXPECT_FALSE(invalid_arena_ref_move_src.is_valid());
-  EXPECT_FALSE(invalid_arena_ref_move_dest.is_valid());
+  EXPECT_TRUE(env.get()->IsSameObject(default_arena_ref.get(env).get(), nullptr));
+  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_move_dest.get(env).get(), nullptr));
 }
 
 TEST_F(ArenaRefTest, MoveConstructorShouldMoveValidInstance) {

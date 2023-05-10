@@ -201,8 +201,7 @@ ArenaRef& ArenaRef::operator=(ArenaRef&& other) noexcept {
 }
 
 Local<Object> ArenaRef::get(Env& env) const {
-  FIREBASE_ASSERT_MESSAGE(valid_, "ArenaRef::Get() must not be called when valid() is false");
-  if (! env.ok()) {
+  if (! env.ok() || !valid_) {
     return {};
   }
   JNIEnv* jni_env = env.get();
