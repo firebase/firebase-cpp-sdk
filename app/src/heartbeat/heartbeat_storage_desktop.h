@@ -60,7 +60,7 @@ class HeartbeatStorageDesktop {
       const LoggedHeartbeats& heartbeats_struct) const;
 
   // local variables for state
-#ifdef FIREBASE_PLATFORM_WINDOWS
+#if FIREBASE_PLATFORM_WINDOWS
   // Use a wide string on Windows, to support international characters in the
   // path.
   std::wstring filename_;
