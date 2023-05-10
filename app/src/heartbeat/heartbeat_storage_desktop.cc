@@ -45,13 +45,9 @@ const char kHeartbeatDir[] = "firebase-heartbeat";
 const char kHeartbeatFilenamePrefix[] = "heartbeats-";
 
 #if FIREBASE_PLATFORM_WINDOWS
-std::wstring HeartbeatStorageDesktop::GetFilename() const { return filename_; }
-
 std::wstring CreateFilename(const std::string& app_id, const Logger& logger) {
   const std::wstring empty_string;
 #else
-std::string HeartbeatStorageDesktop::GetFilename() const { return filename_; }
-
 std::string CreateFilename(const std::string& app_id, const Logger& logger) {
   const std::string empty_string;
 #endif  // FIREBASE_PLATFORM_WINDOWS
@@ -132,6 +128,12 @@ bool HeartbeatStorageDesktop::ReadTo(LoggedHeartbeats& heartbeats_output) {
   delete[] buffer;
   return true;
 }
+
+#if FIREBASE_PLATFORM_WINDOWS
+std::wstring HeartbeatStorageDesktop::GetFilename() const { return filename_; }
+#else
+std::string HeartbeatStorageDesktop::GetFilename() const { return filename_; }
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 bool HeartbeatStorageDesktop::Write(const LoggedHeartbeats& heartbeats) const {
   // Clear the file before writing.
