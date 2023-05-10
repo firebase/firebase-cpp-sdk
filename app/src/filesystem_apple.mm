@@ -44,12 +44,12 @@ bool Mkdir(const std::string& path, std::string* out_error) {
 
 }  // namespace
 
-std::string AppDataDir(const char* app_name, bool should_create, std::string* out_error) {
+std::path AppDataDir(const char* app_name, bool should_create, std::string* out_error) {
   if (!app_name || std::strlen(app_name) == 0) {
     if (out_error) {
       *out_error = "AppDataDir failed: no app_name provided";
     }
-    return "";
+    return std::path("");
   }
 
 #if TARGET_OS_IOS || TARGET_OS_OSX
@@ -66,16 +66,15 @@ std::string AppDataDir(const char* app_name, bool should_create, std::string* ou
 
   if (should_create) {
     // App name might contain path separators. Split it to get list of subdirs.
-    for (const std::string& nested_dir : SplitString(app_name, '/')) {
-      path += "/";
-      path += nested_dir;
+    for (const std::path& nested_dir : SplitString(app_name, '/')) {
+      path /= nested_dir;
       bool created = Mkdir(path, out_error);
       if (!created) return "";
     }
 
     return path;
   } else {
-    return path + "/" + app_name;
+    return path / app_name;
   }
 }
 

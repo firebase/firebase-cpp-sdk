@@ -295,15 +295,15 @@ LevelDbPersistenceStorageEngine::LevelDbPersistenceStorageEngine(
     : database_(nullptr), inside_transaction_(false), logger_(logger) {}
 
 bool LevelDbPersistenceStorageEngine::Initialize(
-    const std::string& level_db_path) {
+    const std::path level_db_path) {
   Options options;
   options.create_if_missing = true;
   DB* database;
-  Status status = DB::Open(options, level_db_path, &database);
+  Status status = DB::Open(options, level_db_path.u8string(), &database);
   if (!status.ok()) {
     logger_->LogError(
         "Failed to initialize persistence storage engine at path %s: %s",
-        level_db_path.c_str(), status.ToString().c_str());
+        level_db_path.u8string().c_str(), status.ToString().c_str());
     assert(false);
   }
   database_.reset(database);

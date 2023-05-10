@@ -41,16 +41,16 @@ namespace {
 const char kHeartbeatDir[] = "firebase-heartbeat";
 const char kHeartbeatFilenamePrefix[] = "heartbeats-";
 
-std::string CreateFilename(const std::string& app_id, const Logger& logger) {
+std::path CreateFilename(const std::string& app_id, const Logger& logger) {
   std::string error;
-  std::string app_dir =
+  std::path app_dir =
       AppDataDir(kHeartbeatDir, /*should_create=*/true, &error);
   if (!error.empty()) {
     logger.LogError(error.c_str());
-    return "";
+    return std::path();
   }
   if (app_dir.empty()) {
-    return "";
+    return std::path();
   }
 
   // Remove any symbols from app_id that might not be allowed in filenames.

@@ -164,13 +164,13 @@ bool Mkdir(const std::wstring& path, std::string* out_error) {
 
 }  // namespace
 
-std::string AppDataDir(const char* app_name, bool should_create,
-                       std::string* out_error) {
+std::path AppDataDir(const char* app_name, bool should_create,
+                     std::string* out_error) {
   if (!app_name || std::strlen(app_name) == 0) {
     if (out_error) {
       *out_error = "AppDataDir failed: no app_name provided";
     }
-    return "";
+    return std::path();
   }
 
   if (std::string(app_name).find('\\') != std::string::npos) {
@@ -178,7 +178,7 @@ std::string AppDataDir(const char* app_name, bool should_create,
       *out_error =
           "AppDataDir failed: app_name should not contain backward slashes";
     }
-    return "";
+    return std::path();
   }
 
   wchar_t* path = nullptr;
@@ -192,7 +192,7 @@ std::string AppDataDir(const char* app_name, bool should_create,
           std::to_string(hr) + ")";
     }
 
-    return "";
+    return std::path();
   }
 
   std::wstring base_dir(path, wcslen(path));
@@ -210,14 +210,13 @@ std::string AppDataDir(const char* app_name, bool should_create,
       if (!created) return "";
     }
 
-    return NativeToUtf8(current_path, out_error);
-
+    return std::path(current_path);
   } else {
     auto app_name_utf16 = Utf8ToNative(app_name, out_error);
     if (app_name_utf16.empty()) {
       return "";
     }
-    return NativeToUtf8(base_dir + L"/" + app_name_utf16, out_error);
+    Return std::path(base_dir + L"/" + app_name_utf16, out_error);
   }
 }
 

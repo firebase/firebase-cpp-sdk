@@ -80,13 +80,13 @@ bool PathExists(const std::string& path) {
 
 }  // namespace
 
-std::string AppDataDir(const char* app_name, bool should_create,
+std::path AppDataDir(const char* app_name, bool should_create,
                        std::string* out_error) {
   if (!app_name || strlen(app_name) == 0) {
     if (out_error) {
       *out_error = "AppDataDir failed: no app_name provided";
     }
-    return "";
+    return std::path();
   }
 
   std::string app_dir = app_name;
@@ -95,7 +95,7 @@ std::string AppDataDir(const char* app_name, bool should_create,
   std::string home = XdgDataHomeDir(out_error);
   if (home.empty()) {
     home = HomeDir(out_error);
-    if (home.empty()) return "";
+    if (home.empty()) return std::path();
     app_dir = std::string(".local/share/") + app_name;
   }
 
@@ -108,13 +108,13 @@ std::string AppDataDir(const char* app_name, bool should_create,
 
       if (!PathExists(current_path)) {
         bool created = Mkdir(current_path, out_error);
-        if (!created) return "";
+        if (!created) return std::path();
       }
       current_path += '/';
     }
   }
 
-  return home + "/" + app_dir;
+  return std::path(home + "/" + app_dir);
 }
 
 }  // namespace firebase

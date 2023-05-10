@@ -436,7 +436,7 @@ void Repo::AckWriteAndRerunTransactions(WriteId write_id, const Path& path,
 }
 
 static UniquePtr<PersistenceManagerInterface> CreatePersistenceManager(
-    const char* app_data_path, LoggerBase* logger) {
+    std::path app_data_path, LoggerBase* logger) {
   static const uint64_t kDefaultCacheSize = 10 * 1024 * 1024;
 
   auto persistence_storage_engine =
@@ -492,7 +492,7 @@ void Repo::DeferredInitialization() {
     database_path += url_domain;
 
     std::string app_data_path_error;
-    std::string app_data_path =
+    std::path app_data_path =
         AppDataDir(database_path.c_str(),
                    /* should_create = */ true, &app_data_path_error);
     if (app_data_path.empty()) {
@@ -502,7 +502,7 @@ void Repo::DeferredInitialization() {
       return;
     }
 
-    logger_->LogDebug("app_data_path: %s", app_data_path.c_str());
+    logger_->LogDebug("app_data_path: %s", app_data_path.string().c_str());
 
     // Set up write tree.
     auto pending_write_tree = MakeUnique<WriteTree>();
@@ -511,7 +511,7 @@ void Repo::DeferredInitialization() {
     UniquePtr<PersistenceManagerInterface> persistence_manager;
     if (persistence_enabled_) {
       persistence_manager =
-          CreatePersistenceManager(app_data_path.c_str(), logger_);
+          CreatePersistenceManager(app_data_path, logger_);
     } else {
       persistence_manager = MakeUnique<NoopPersistenceManager>();
     }

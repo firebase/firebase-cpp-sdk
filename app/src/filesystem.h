@@ -17,7 +17,14 @@
 #ifndef FIREBASE_APP_SRC_FILESYSTEM_H_
 #define FIREBASE_APP_SRC_FILESYSTEM_H_
 
-#include <string>
+#include <filesystem>
+
+#if __cplusplus < 201700
+// Pre C++17, std::path was in std::experimental::path.
+namespace std {
+typedef ::std::experimental::path path;
+}  // namespace std
+#endif  // __cplusplus < 201700
 
 namespace firebase {
 
@@ -51,8 +58,8 @@ namespace firebase {
 //
 // TODO(b/171738655): use a separate function instead of the `should_create`
 // flag. Use `StatusOr` for returning errors.
-std::string AppDataDir(const char* app_name, bool should_create = true,
-                       std::string* out_error = nullptr);
+std::path AppDataDir(const char* app_name, bool should_create = true,
+                     std::string* out_error = nullptr);
 
 }  // namespace firebase
 
