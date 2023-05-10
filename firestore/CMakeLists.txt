@@ -214,8 +214,6 @@ set(main_SRCS
     src/main/listener_main.h
     src/main/listener_registration_main.cc
     src/main/listener_registration_main.h
-    src/main/local_cache_settings_main.cc
-    src/main/local_cache_settings_main.h
     src/main/promise_factory_main.h
     src/main/promise_main.h
     src/main/query_main.cc

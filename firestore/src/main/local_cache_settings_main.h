@@ -117,17 +117,25 @@ class MemoryCacheSettingsInternal final : public LocalCacheSettingsInternal {
   CoreMemorySettings settings_;
 };
 
-bool operator!=(const MemoryCacheSettingsInternal& lhs,
-                const MemoryCacheSettingsInternal& rhs);
+inline bool operator!=(const MemoryCacheSettingsInternal& lhs,
+                       const MemoryCacheSettingsInternal& rhs) {
+  return !(lhs == rhs);
+}
 
-bool operator!=(const MemoryLruGCSettingsInternal& lhs,
-                const MemoryLruGCSettingsInternal& rhs);
+inline bool operator!=(const MemoryLruGCSettingsInternal& lhs,
+                       const MemoryLruGCSettingsInternal& rhs) {
+  return !(lhs == rhs);
+}
 
-bool operator!=(const MemoryEagerGCSettingsInternal& lhs,
-                const MemoryEagerGCSettingsInternal& rhs);
+inline bool operator!=(const MemoryEagerGCSettingsInternal& lhs,
+                       const MemoryEagerGCSettingsInternal& rhs) {
+  return !(lhs == rhs);
+}
 
-bool operator!=(const PersistentCacheSettingsInternal& lhs,
-                const PersistentCacheSettingsInternal& rhs);
+inline bool operator!=(const PersistentCacheSettingsInternal& lhs,
+                       const PersistentCacheSettingsInternal& rhs) {
+  return !(lhs == rhs);
+}
 
 }  // namespace firestore
 }  // namespace firebase

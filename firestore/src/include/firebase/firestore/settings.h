@@ -234,6 +234,9 @@ class Settings final {
    */
   friend std::ostream& operator<<(std::ostream& out, const Settings& settings);
 
+  /** Checks `lhs` and `rhs` for equality. */
+  friend bool operator==(const Settings& lhs, const Settings& rhs);
+
  private:
   static constexpr int64_t kDefaultCacheSizeBytes = 100 * 1024 * 1024;
 
@@ -257,14 +260,6 @@ class Settings final {
   std::shared_ptr<const util::Executor> executor_;
 #endif
 };
-
-/** Checks `lhs` and `rhs` for equality. */
-inline bool operator==(const Settings& lhs, const Settings& rhs) {
-  return lhs.host() == rhs.host() &&
-         lhs.is_ssl_enabled() == rhs.is_ssl_enabled() &&
-         lhs.is_persistence_enabled() == rhs.is_persistence_enabled() &&
-         lhs.cache_size_bytes() == rhs.cache_size_bytes();
-}
 
 /** Checks `lhs` and `rhs` for inequality. */
 inline bool operator!=(const Settings& lhs, const Settings& rhs) {

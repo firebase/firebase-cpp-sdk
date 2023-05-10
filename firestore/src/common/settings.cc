@@ -122,6 +122,25 @@ std::ostream& operator<<(std::ostream& out, const Settings& settings) {
   return out << settings.ToString();
 }
 
+bool operator==(const Settings& lhs, const Settings& rhs) {
+  bool eq = lhs.host() == rhs.host() &&
+            lhs.is_ssl_enabled() == rhs.is_ssl_enabled() &&
+            lhs.is_persistence_enabled() == rhs.is_persistence_enabled() &&
+            lhs.cache_size_bytes() == rhs.cache_size_bytes();
+
+  if (eq) {
+    if (lhs.local_cache_settings_ != rhs.local_cache_settings_) {
+      if (lhs.local_cache_settings_ != nullptr &&
+          rhs.local_cache_settings_ != nullptr) {
+        eq = (*lhs.local_cache_settings_ == *rhs.local_cache_settings_);
+      } else {
+        eq = false;
+      }
+    }
+  }
+  return eq;
+}
+
 // Apple uses a different mechanism, defined in `settings_apple.mm`.
 #if !defined(__APPLE__) && !defined(__ANDROID__)
 std::unique_ptr<util::Executor> Settings::CreateExecutor() const {

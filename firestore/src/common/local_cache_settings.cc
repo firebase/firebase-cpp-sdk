@@ -26,6 +26,11 @@
 namespace firebase {
 namespace firestore {
 
+bool operator==(const LocalCacheSettings& lhs, const LocalCacheSettings& rhs) {
+  return lhs.kind() == rhs.kind() &&
+         lhs.core_cache_settings() == rhs.core_cache_settings();
+}
+
 PersistentCacheSettings PersistentCacheSettings::Create() { return {}; }
 
 PersistentCacheSettings PersistentCacheSettings::CreateFromCoreSettings(

@@ -46,6 +46,9 @@ class LocalCacheSettings {
  public:
   virtual ~LocalCacheSettings() = default;
 
+  friend bool operator==(const LocalCacheSettings& lhs,
+                         const LocalCacheSettings& rhs);
+
  private:
   friend class FirestoreInternal;
   friend class Settings;
