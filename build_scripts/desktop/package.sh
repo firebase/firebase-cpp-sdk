@@ -390,7 +390,8 @@ for product in ${product_list[*]}; do
       # Clear out the dependencies list for later.
       libfile_src=
       deps=()
-      # Make a list of the premerge scripts to run in parallel.
+      # Create the premerge scripts, which the main merge script will run in
+      # parallel.
       for ((num=0; num < ${split_count}; num++)); do
         premerge_script="${merge_libraries_tmp}/premerge_${product}_0${num}.sh"
         echo "#!/bin/bash -e" > "${premerge_script}"
