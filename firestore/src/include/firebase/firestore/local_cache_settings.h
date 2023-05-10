@@ -28,11 +28,6 @@
 namespace firebase {
 namespace firestore {
 
-namespace {
-using CoreCacheSettings = api::LocalCacheSettings;
-using CoreMemoryGarbageCollectorSettings = api::MemoryGargabeCollectorSettings;
-}  // namespace
-
 class PersistentCacheSettingsInternal;
 class MemoryCacheSettingsInternal;
 
@@ -46,6 +41,7 @@ class LocalCacheSettings {
  public:
   virtual ~LocalCacheSettings() = default;
 
+  /** Equality function. */
   friend bool operator==(const LocalCacheSettings& lhs,
                          const LocalCacheSettings& rhs);
 
@@ -54,7 +50,7 @@ class LocalCacheSettings {
   friend class Settings;
 
   virtual api::LocalCacheSettings::Kind kind() const = 0;
-  virtual const CoreCacheSettings& core_cache_settings() const = 0;
+  virtual const api::LocalCacheSettings& core_cache_settings() const = 0;
 };
 
 /**
@@ -80,6 +76,7 @@ class PersistentCacheSettings final : public LocalCacheSettings {
 
   ~PersistentCacheSettings();
 
+  /** Equality function. */
   friend bool operator==(const PersistentCacheSettings& lhs,
                          const PersistentCacheSettings& rhs);
 
@@ -111,7 +108,7 @@ class PersistentCacheSettings final : public LocalCacheSettings {
   friend class FirestoreInternal;
 
   static PersistentCacheSettings CreateFromCoreSettings(
-      const CorePersistentSettings& core_settings);
+      const api::PersistentCacheSettings& core_settings);
   PersistentCacheSettings();
 
   api::LocalCacheSettings::Kind kind() const override {
@@ -119,7 +116,7 @@ class PersistentCacheSettings final : public LocalCacheSettings {
   }
 
   // Get the corresponding settings object from the core sdk.
-  const CoreCacheSettings& core_cache_settings() const override;
+  const api::LocalCacheSettings& core_cache_settings() const override;
 
   std::unique_ptr<PersistentCacheSettingsInternal> settings_internal_;
 };
@@ -147,6 +144,7 @@ class MemoryCacheSettings final : public LocalCacheSettings {
 
   ~MemoryCacheSettings();
 
+  /** Equality function. */
   friend bool operator==(const MemoryCacheSettings& lhs,
                          const MemoryCacheSettings& rhs);
 
@@ -162,7 +160,7 @@ class MemoryCacheSettings final : public LocalCacheSettings {
   friend class FirestoreInternal;
 
   static MemoryCacheSettings CreateFromCoreSettings(
-      const CoreMemorySettings& core_settings);
+      const api::MemoryCacheSettings& core_settings);
   MemoryCacheSettings();
 
   api::LocalCacheSettings::Kind kind() const override {
@@ -170,7 +168,7 @@ class MemoryCacheSettings final : public LocalCacheSettings {
   }
 
   // Get the corresponding settings object from the core sdk.
-  const CoreCacheSettings& core_cache_settings() const override;
+  const api::LocalCacheSettings& core_cache_settings() const override;
 
   std::unique_ptr<MemoryCacheSettingsInternal> settings_internal_;
 };
@@ -188,7 +186,7 @@ class MemoryGarbageCollectorSettings {
 
  private:
   friend class MemoryCacheSettings;
-  virtual const CoreMemoryGarbageCollectorSettings& core_gc_settings()
+  virtual const api::MemoryGargabeCollectorSettings& core_gc_settings()
       const = 0;
 };
 
@@ -214,6 +212,7 @@ class MemoryEagerGCSettings final : public MemoryGarbageCollectorSettings {
 
   ~MemoryEagerGCSettings();
 
+  /** Equality function. */
   friend bool operator==(const MemoryEagerGCSettings& lhs,
                          const MemoryEagerGCSettings& rhs);
 
@@ -221,7 +220,7 @@ class MemoryEagerGCSettings final : public MemoryGarbageCollectorSettings {
   friend class MemoryCacheSettings;
   MemoryEagerGCSettings();
 
-  const CoreMemoryGarbageCollectorSettings& core_gc_settings() const override {
+  const api::MemoryGargabeCollectorSettings& core_gc_settings() const override {
     return settings_internal_->core_settings();
   }
 
@@ -250,6 +249,7 @@ class MemoryLruGCSettings final : public MemoryGarbageCollectorSettings {
   static MemoryLruGCSettings Create();
   ~MemoryLruGCSettings();
 
+  /** Equality function. */
   friend bool operator==(const MemoryLruGCSettings& lhs,
                          const MemoryLruGCSettings& rhs);
 
@@ -281,31 +281,25 @@ class MemoryLruGCSettings final : public MemoryGarbageCollectorSettings {
   MemoryLruGCSettings();
   MemoryLruGCSettings(const MemoryLruGCSettingsInternal& other);
 
-  const CoreMemoryGarbageCollectorSettings& core_gc_settings() const override {
+  const api::MemoryGargabeCollectorSettings& core_gc_settings() const override {
     return settings_internal_->core_settings();
   }
 
   std::unique_ptr<MemoryLruGCSettingsInternal> settings_internal_;
 };
 
-bool operator==(const MemoryCacheSettings& lhs, const MemoryCacheSettings& rhs);
-
+/** Inequality function. */
 bool operator!=(const MemoryCacheSettings& lhs, const MemoryCacheSettings& rhs);
 
-bool operator==(const PersistentCacheSettings& lhs,
-                const PersistentCacheSettings& rhs);
-
+/** Inequality function. */
 bool operator!=(const PersistentCacheSettings& lhs,
                 const PersistentCacheSettings& rhs);
 
-bool operator==(const MemoryEagerGCSettings& lhs,
-                const MemoryEagerGCSettings& rhs);
-
+/** Inequality function. */
 bool operator!=(const MemoryEagerGCSettings& lhs,
                 const MemoryEagerGCSettings& rhs);
 
-bool operator==(const MemoryLruGCSettings& lhs, const MemoryLruGCSettings& rhs);
-
+/** Inequality function. */
 bool operator!=(const MemoryLruGCSettings& lhs, const MemoryLruGCSettings& rhs);
 
 }  // namespace firestore

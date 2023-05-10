@@ -154,7 +154,7 @@ class Settings final {
    *
    * @param cache_settings Settings object to configue this SDK.
    */
-  void set_local_cache_settings(const LocalCacheSettings& cache);
+  void set_local_cache_settings(const LocalCacheSettings& cache_settings);
 
   /**
    * NOTE: This method is deprecated in favor of `set_local_cache_settings()`.

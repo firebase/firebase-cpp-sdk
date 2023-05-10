@@ -17,6 +17,7 @@
 #include "firestore/src/include/firebase/firestore/local_cache_settings.h"
 #include <memory>
 
+#include "Firestore/core/src/api/settings.h"
 #include "firestore/src/common/hard_assert_common.h"
 #if defined(__ANDROID__)
 #else
@@ -25,6 +26,15 @@
 
 namespace firebase {
 namespace firestore {
+
+namespace {
+using CoreCacheSettings = api::LocalCacheSettings;
+using CorePersistentSettings = api::PersistentCacheSettings;
+using CoreMemorySettings = api::MemoryCacheSettings;
+using CoreMemoryGarbageCollectorSettings = api::MemoryGargabeCollectorSettings;
+using CoreMemoryEagerGcSettings = api::MemoryEagerGcSettings;
+using CoreMemoryLruGcSettings = api::MemoryLruGcSettings;
+}  // namespace
 
 bool operator==(const LocalCacheSettings& lhs, const LocalCacheSettings& rhs) {
   return lhs.kind() == rhs.kind() &&

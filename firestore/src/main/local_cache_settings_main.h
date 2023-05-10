@@ -25,19 +25,13 @@
 namespace firebase {
 namespace firestore {
 
-namespace {
-using CoreMemoryEagerGcSettings = api::MemoryEagerGcSettings;
-using CoreMemoryLruGcSettings = api::MemoryLruGcSettings;
-using CoreMemorySettings = api::MemoryCacheSettings;
-using CorePersistentSettings = api::PersistentCacheSettings;
-}  // namespace
 class LocalCacheSettingsInternal {};
 
 class PersistentCacheSettingsInternal final
     : public LocalCacheSettingsInternal {
  public:
   explicit PersistentCacheSettingsInternal(
-      const CorePersistentSettings& core_settings)
+      const api::PersistentCacheSettings& core_settings)
       : settings_(std::move(core_settings)) {}
 
   friend bool operator==(const PersistentCacheSettingsInternal& lhs,
@@ -45,13 +39,13 @@ class PersistentCacheSettingsInternal final
     return &lhs == &rhs || lhs.settings_ == rhs.settings_;
   }
 
-  const CorePersistentSettings& core_settings() { return settings_; }
-  void set_core_settings(const CorePersistentSettings& settings) {
+  const api::PersistentCacheSettings& core_settings() { return settings_; }
+  void set_core_settings(const api::PersistentCacheSettings& settings) {
     settings_ = settings;
   }
 
  private:
-  CorePersistentSettings settings_;
+  api::PersistentCacheSettings settings_;
 };
 
 class MemoryGarbageCollectorSettingsInternal {};
@@ -60,7 +54,7 @@ class MemoryEagerGCSettingsInternal final
     : public MemoryGarbageCollectorSettingsInternal {
  public:
   explicit MemoryEagerGCSettingsInternal(
-      const CoreMemoryEagerGcSettings& core_settings)
+      const api::MemoryEagerGcSettings& core_settings)
       : settings_(std::move(core_settings)) {}
 
   friend bool operator==(const MemoryEagerGCSettingsInternal& lhs,
@@ -68,20 +62,20 @@ class MemoryEagerGCSettingsInternal final
     return &lhs == &rhs || lhs.settings_ == rhs.settings_;
   }
 
-  const CoreMemoryEagerGcSettings& core_settings() { return settings_; }
-  void set_core_settings(const CoreMemoryEagerGcSettings& settings) {
+  const api::MemoryEagerGcSettings& core_settings() { return settings_; }
+  void set_core_settings(const api::MemoryEagerGcSettings& settings) {
     settings_ = settings;
   }
 
  private:
-  CoreMemoryEagerGcSettings settings_;
+  api::MemoryEagerGcSettings settings_;
 };
 
 class MemoryLruGCSettingsInternal final
     : public MemoryGarbageCollectorSettingsInternal {
  public:
   explicit MemoryLruGCSettingsInternal(
-      const CoreMemoryLruGcSettings& core_settings)
+      const api::MemoryLruGcSettings& core_settings)
       : settings_(std::move(core_settings)) {}
 
   friend bool operator==(const MemoryLruGCSettingsInternal& lhs,
@@ -89,18 +83,19 @@ class MemoryLruGCSettingsInternal final
     return &lhs == &rhs || lhs.settings_ == rhs.settings_;
   }
 
-  const CoreMemoryLruGcSettings& core_settings() { return settings_; }
-  void set_core_settings(const CoreMemoryLruGcSettings& settings) {
+  const api::MemoryLruGcSettings& core_settings() { return settings_; }
+  void set_core_settings(const api::MemoryLruGcSettings& settings) {
     settings_ = settings;
   }
 
  private:
-  CoreMemoryLruGcSettings settings_;
+  api::MemoryLruGcSettings settings_;
 };
 
 class MemoryCacheSettingsInternal final : public LocalCacheSettingsInternal {
  public:
-  explicit MemoryCacheSettingsInternal(const CoreMemorySettings& core_settings)
+  explicit MemoryCacheSettingsInternal(
+      const api::MemoryCacheSettings& core_settings)
       : settings_(std::move(core_settings)) {}
 
   friend bool operator==(const MemoryCacheSettingsInternal& lhs,
@@ -108,13 +103,13 @@ class MemoryCacheSettingsInternal final : public LocalCacheSettingsInternal {
     return &lhs == &rhs || lhs.settings_ == rhs.settings_;
   }
 
-  const CoreMemorySettings& core_settings() { return settings_; }
-  void set_core_settings(const CoreMemorySettings& settings) {
+  const api::MemoryCacheSettings& core_settings() { return settings_; }
+  void set_core_settings(const api::MemoryCacheSettings& settings) {
     settings_ = settings;
   }
 
  private:
-  CoreMemorySettings settings_;
+  api::MemoryCacheSettings settings_;
 };
 
 inline bool operator!=(const MemoryCacheSettingsInternal& lhs,
