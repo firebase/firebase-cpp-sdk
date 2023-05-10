@@ -68,27 +68,77 @@ void FirestoreAndroidIntegrationTest::SetUp() {
 }
 
 void FirestoreAndroidIntegrationTest::TearDown() {
-  // Fail the test if there is a pending Java exception. Clear the pending
-  // exception as well so that it doesn't bleed into the next test.
-  Env env;
-  Local<Throwable> pending_exception = env.ClearExceptionOccurred();
-  EXPECT_FALSE(pending_exception)
-      << "Test completed with a pending Java exception: "
-      << pending_exception.ToString(env);
-  env.ExceptionClear();
+  FailTestIfPendingException();
   FirestoreIntegrationTest::TearDown();
 }
 
-Local<Throwable> FirestoreAndroidIntegrationTest::CreateException(
-    Env& env, const std::string& message) {
-  ExceptionClearGuard block(env);
-  Local<String> java_message = env.NewStringUtf(message);
-  return env.New(kExceptionConstructor, java_message);
+void FirestoreAndroidIntegrationTest::FailTestIfPendingException() {
+  // Fail the test if there is a pending Java exception. Clear the pending
+  // exception as well so that it doesn't bleed into the next test.
+  Local<Throwable> pending_exception = env().ClearExceptionOccurred();
+  if (! pending_exception) {
+    return;
+  }
+
+  // Ignore the exception if an invocation of ClearCurrentExceptionAfterTest()
+  // requested that it be ignored.
+  if (env().IsSameObject(pending_exception, exception_to_clear_after_test_)) {
+    return;
+  }
+
+  // Fail the test since the test completed with an unexpected pending exception.
+  std::string pending_exception_as_string = pending_exception.ToString(env());
+  env().ExceptionClear();
+  FAIL() << "Test completed with a pending Java exception: " << pending_exception_as_string;
 }
 
-void FirestoreAndroidIntegrationTest::Await(Env& env, const Task& task) {
+Local<Throwable> FirestoreAndroidIntegrationTest::CreateException() {
+  return CreateException("Test exception created by FirestoreAndroidIntegrationTest::CreateException()");
+}
+
+Local<Throwable> FirestoreAndroidIntegrationTest::CreateException(const std::string& message) {
+  ExceptionClearGuard block(env());
+  Local<String> java_message = env().NewStringUtf(message);
+  return env().New(kExceptionConstructor, java_message);
+}
+
+Local<Throwable> FirestoreAndroidIntegrationTest::ThrowException() {
+  return ThrowException("Test exception thrown by FirestoreAndroidIntegrationTest::ThrowException()");
+}
+
+Local<Throwable> FirestoreAndroidIntegrationTest::ThrowException(const std::string& message) {
+  if (! env().ok()) {
+    ADD_FAILURE() << "ThrowException() invoked while there is already a pending exception";
+    return {};
+  }
+  Local<Throwable> exception = CreateException(message);
+  env().Throw(exception);
+  return exception;
+}
+
+Local<Throwable> FirestoreAndroidIntegrationTest::ClearCurrentExceptionAfterTest() {
+  if (exception_to_clear_after_test_) {
+    ADD_FAILURE() << "ClearCurrentExceptionAfterTest() may only be invoked at most once per test";
+    return {};
+  }
+
+  Local<Throwable> exception = env().ExceptionOccurred();
+  if (!exception) {
+    ADD_FAILURE() << "ClearCurrentExceptionAfterTest() must be invoked when there is a pending Java exception";
+    return {};
+  }
+
+  {
+    ExceptionClearGuard exception_clear_guard(env());
+    exception_to_clear_after_test_ = exception;
+  }
+
+  return exception;
+}
+
+void FirestoreAndroidIntegrationTest::Await(const Task& task) {
   int cycles = kTimeOutMillis / kCheckIntervalMillis;
-  while (env.ok() && !task.IsComplete(env)) {
+  while (env().ok() && !task.IsComplete(env())) {
     if (ProcessEvents(kCheckIntervalMillis)) {
       std::cout << "WARNING: app receives an event requesting exit."
                 << std::endl;
@@ -96,10 +146,11 @@ void FirestoreAndroidIntegrationTest::Await(Env& env, const Task& task) {
     }
     --cycles;
   }
-  if (env.ok()) {
+  if (env().ok()) {
     EXPECT_GT(cycles, 0) << "Waiting for Task timed out.";
   }
 }
+
 
 }  // namespace firestore
 }  // namespace firebase

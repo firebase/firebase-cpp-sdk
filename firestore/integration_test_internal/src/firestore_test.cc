@@ -1598,7 +1598,7 @@ TEST_F(FirestoreAndroidIntegrationTest,
 
   jni::Local<jni::Task> task = runnable.RunOnMainThread(env);
 
-  Await(env, task);
+  Await(task);
   EXPECT_TRUE(task.IsSuccessful(env));
   DisownFirestore(db);  // Avoid double-deletion of the `db`.
 }

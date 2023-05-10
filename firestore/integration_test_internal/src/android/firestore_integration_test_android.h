@@ -74,6 +74,26 @@ MATCHER_P(JavaEq,
   return jni::Object::Equals(env, object, arg);
 }
 
+/**
+ * A gmock matcher that compares two Java objects for equality using the ==
+ * operator; that is, that they both refer to the _same_ Java object.
+ *
+ * Example:
+ *
+ * jni::Env env;
+ * jni::Local<jni::String> object1 = env.NewStringUtf("string");
+ * jni::Local<jni::String> object2 = object1;
+ * EXPECT_THAT(object1, RefersToSameJavaObjectAs(object2));
+ */
+MATCHER_P(RefersToSameJavaObjectAs,
+          object,
+          std::string("is ") + (negation ? "not " : "") +
+              " referring to the same object as " + ToDebugString(object)) {
+  jni::Env env;
+  jni::ExceptionClearGuard block(env);
+  return env.IsSameObject(arg, object);
+}
+
 /** Adds Android-specific functionality to `FirestoreIntegrationTest`. */
 class FirestoreAndroidIntegrationTest : public FirestoreIntegrationTest {
  public:
@@ -85,16 +105,39 @@ class FirestoreAndroidIntegrationTest : public FirestoreIntegrationTest {
 
   jni::Loader& loader() { return loader_; }
 
-  /** Creates and returns a new Java `Exception` object with a message. */
-  jni::Local<jni::Throwable> CreateException(jni::Env& env,
-                                             const std::string& message);
+  /** Creates and returns a new Java `Exception` with a default message. */
+  static jni::Local<jni::Throwable> CreateException();
+  /** Creates and returns a new Java `Exception` with the given message. */
+  static jni::Local<jni::Throwable> CreateException(const std::string& message);
+
+  /** Throws a Java `Exception` object with a default message. */
+  static jni::Local<jni::Throwable> ThrowException();
+  /** Throws a Java `Exception` object with the given message. */
+  static jni::Local<jni::Throwable> ThrowException(const std::string& message);
+
+  /**
+   * If the currently-pending Java exception is still pending at the end of the
+   * test, then clear it.
+   *
+   * If this function is invoked without a pending Java exception then the test
+   * will fail and this function will do nothing. Otherwise, if the currently-
+   * pending exception is still pending when the test completes then it will be
+   * cleared and ignored. If there are no exceptions pending when the test
+   * completes, or some other exception is pending when the test completes, then
+   * the normal behavior, as if this function was never invoked, will occur.
+   *
+   * This function can only be invoked at most once per test; subsequent
+   * invocations are in error, will cause the test to fail, and will have no
+   * effect.
+   */
+  jni::Local<jni::Throwable> ClearCurrentExceptionAfterTest();
 
   // Bring definitions of `Await()` from the superclass into this class so that
   // the definition below *overloads* instead of *hides* them.
   using FirestoreIntegrationTest::Await;
 
   /** Blocks until the given `Task` has completed or times out. */
-  static void Await(jni::Env& env, const jni::Task& task);
+  static void Await(const jni::Task& task);
 
   /** Returns an Env object for the calling thread, creating it if necessary. */
   static jni::Env& env() {
@@ -103,7 +146,10 @@ class FirestoreAndroidIntegrationTest : public FirestoreIntegrationTest {
   }
 
  private:
+  void FailTestIfPendingException();
+
   jni::Loader loader_;
+  jni::Global<jni::Throwable> exception_to_clear_after_test_;
 };
 
 }  // namespace firestore

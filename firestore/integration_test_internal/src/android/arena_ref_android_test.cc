@@ -136,6 +136,15 @@ TEST_F(ArenaRefTest, DefaultConstructorShouldReferToNull) {
   EXPECT_THAT(arena_ref, RefersToNullJavaObject());
 }
 
+TEST_F(ArenaRefTest, DefaultConstructorShouldSucceedIfInvokedWithPendingException) {
+  ThrowException();
+  ClearCurrentExceptionAfterTest();
+
+  ArenaRef arena_ref;
+
+  EXPECT_THAT(arena_ref, RefersToNullJavaObject());
+}
+
 TEST_F(ArenaRefTest, AdoptingConstructorWithNullptrShouldReferToNull) {
   Env env;
 
