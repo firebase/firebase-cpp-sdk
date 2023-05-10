@@ -16,8 +16,11 @@
 
 #include "app/src/heartbeat/heartbeat_storage_desktop.h"
 
+#include <codecvt>
 #include <fstream>
+#include <locale>
 #include <regex>
+#include <string>
 #include <vector>
 
 #include "app/logged_heartbeats_generated.h"
@@ -41,7 +44,11 @@ namespace {
 const char kHeartbeatDir[] = "firebase-heartbeat";
 const char kHeartbeatFilenamePrefix[] = "heartbeats-";
 
+#ifdef FIREBASE_PLATFORM_WINDOWS
+std::wstring CreateFilename(const std::string& app_id, const Logger& logger) {
+#else   // FIREBASE_PLATFORM_WINDOWS
 std::string CreateFilename(const std::string& app_id, const Logger& logger) {
+#endif  // FIREBASE_PLATFORM_WINDOWS
   std::string error;
   std::string app_dir =
       AppDataDir(kHeartbeatDir, /*should_create=*/true, &error);
@@ -57,7 +64,14 @@ std::string CreateFilename(const std::string& app_id, const Logger& logger) {
   auto app_id_without_symbols =
       std::regex_replace(app_id, std::regex("[/\\\\?%*:|\"<>.,;=]"), "");
   // Note: fstream will convert / to \ if needed on windows.
-  return app_dir + "/" + kHeartbeatFilenamePrefix + app_id_without_symbols;
+  std::string final_path_utf8 =
+      app_dir + "/" + kHeartbeatFilenamePrefix + app_id_without_symbols;
+#if FIREBASE_PLATFORM_WINDOWS
+  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> final_path_utf16;
+  return final_path_utf16.from_bytes(final_path_utf8);
+#else
+  return final_path_utf8;
+#endif
 }
 
 }  // namespace
@@ -125,10 +139,6 @@ bool HeartbeatStorageDesktop::Write(const LoggedHeartbeats& heartbeats) const {
   file.write((char*)fbb.GetBufferPointer(), fbb.GetSize());
 
   return !file.fail();
-}
-
-const char* HeartbeatStorageDesktop::GetFilename() const {
-  return filename_.c_str();
 }
 
 LoggedHeartbeats HeartbeatStorageDesktop::LoggedHeartbeatsFromFlatbuffer(

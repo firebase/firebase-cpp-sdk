@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "app/logged_heartbeats_generated.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/logger.h"
 
 namespace firebase {
@@ -52,8 +53,6 @@ class HeartbeatStorageDesktop {
   // write operation fails.
   bool Write(const LoggedHeartbeats& heartbeats) const;
 
-  const char* GetFilename() const;
-
  private:
   LoggedHeartbeats LoggedHeartbeatsFromFlatbuffer(
       const LoggedHeartbeatsFlatbuffer& heartbeats_fb) const;
@@ -61,7 +60,13 @@ class HeartbeatStorageDesktop {
       const LoggedHeartbeats& heartbeats_struct) const;
 
   // local variables for state
+#ifdef FIREBASE_PLATFORM_WINDOWS
+  // Use a wide string on Windows, to support international characters in the
+  // path.
+  std::wstring filename_;
+#else   // FIREBASE_PLATFORM_WINDOWS
   std::string filename_;
+#endif  // FIREBASE_PLATFORM_WINDOWS
   const Logger& logger_;
 };
 
