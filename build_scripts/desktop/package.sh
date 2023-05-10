@@ -356,10 +356,10 @@ for product in ${product_list[*]}; do
                     --hide_c_symbols="${deps_hidden}" \
                     ${libfile_src} ${deps[*]}
     fi
-    merge_script="${merge_libraries_tmp}/merge_${product}.sh"
-    echo "#!/bin/bash -e" > "${merge_script}"
     # Place the merge command in a script so we can optionally run them in parallel.
+    merge_script="${merge_libraries_tmp}/merge_${product}.sh"
     if [[ premerge_threshold -gt 0 && ${run_in_parallel} -eq 1 && ${#deps[@]} -ge ${premerge_threshold} ]]; then
+      merge_script="${merge_libraries_tmp}/postmerge_${product}.sh"
       # Some libraries (e.g. Firestore) have lots of dependencies.  To speed
       # these up on Windows, split up the dependencies list, and do all parts
       # separately in parallel in a "premerge" step. Then do the final merge
@@ -368,11 +368,11 @@ for product in ${product_list[*]}; do
       num=0
       reset=0
       split_count=$(( (${#deps[@]}+${premerge_threshold}-1) / ${premerge_threshold} ))
-      echo "echo \"${libfile_out} SPLIT into ${split_count}\"" >> "${merge_script}"
+      ### echo "echo \"${libfile_out} SPLIT into ${split_count}\"" >> "${merge_script}"
       # Add the original list of deps as a comment in the merge script, to
       # preserve its rough size for prioritization purposes. (Since it runs the
       # largest script first.)
-      echo "# ${allfiles} ${deps_hidden} ${deps[*]}" >> "${merge_script}"
+      ### echo "# ${allfiles} ${deps_hidden} ${deps[*]}" >> "${merge_script}"
       # Split the dependencies list into ${split_count} pieces, alternating
       # libraries in each list. Put them in size order first.
       deps_sorted=$(ls -S ${deps[*]} ${libfile_src})
@@ -390,10 +390,10 @@ for product in ${product_list[*]}; do
       # Clear out the dependencies list for later.
       libfile_src=
       deps=()
-      # Create the premerge scripts, which the main merge script will run in
-      # parallel.
+      # Create the premerge scripts, which will be added to the list of scripts
+      # to run in parallel.
       for ((num=0; num < ${split_count}; num++)); do
-        premerge_script="${merge_libraries_tmp}/premerge_${product}_0${num}.sh"
+        premerge_script="${merge_libraries_tmp}/merge_${product}_0${num}.sh"
         echo "#!/bin/bash -e" > "${premerge_script}"
         premerge_out_basename="premerge_${num}_${libfile_out}"
         premerge_out="${merge_libraries_tmp}/${premerge_out_basename}"
@@ -412,12 +412,8 @@ for product in ${product_list[*]}; do
         deps+=("${premerge_out}")
       done
       # In the main merge script, run the premerges in parallel.
-      if [[ ${use_gnu_parallel} -eq 1 ]]; then
-        echo \"${parallel_command}\" --lb ::: $(ls "${merge_libraries_tmp}"/premerge_${product}_0*.sh) >> "${merge_script}"
-      else
-        echo \"${parallel_command}\" -- $(ls "${merge_libraries_tmp}"/premerge_${product}_0*.sh) >> "${merge_script}"
-      fi
     fi
+    echo "#!/bin/bash -e" > "${merge_script}"
     if [[ ! -z ${deps_basenames[*]} ]]; then
       echo "echo \"${libfile_out} <- ${deps[*]}\"" >> "${merge_script}"
     else
@@ -472,6 +468,9 @@ if [[ ${run_in_parallel} -ne 0 ]]; then
     # Default version of parallel has a slightly different syntax.
     "${parallel_command}" -- $(ls -S "${merge_libraries_tmp}"/merge_*.sh)
   fi
+  for postmerge in $(ls "${merge_libraries_tmp}"/postmerge_*.sh 2> /dev/null); do
+    ${postmerge}
+  done
   echo "All jobs finished!"
 fi
 

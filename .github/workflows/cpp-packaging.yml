@@ -487,22 +487,15 @@ jobs:
           runs_on_platform: ubuntu-20.04
         - sdk_platform: windows
           suffix: '-x64-Debug-static'
-          runs_on_platform: macos-12
+          runs_on_platform: ubuntu-20.04
         - sdk_platform: windows
           suffix: '-x64-Debug-dynamic'
-          runs_on_platform: macos-12
+          runs_on_platform: ubuntu-20.04
         - sdk_platform: darwin
           runs_on_platform: macos-12
         exclude:
         - sdk_platform: windows
           suffix: ''
-          # Package the following two configurations on Mac, with more CPUs.
-        - sdk_platform: windows
-          suffix: '-x64-Debug-dynamic'
-          runs_on_platform: ubuntu-20.04
-        - sdk_platform: windows
-          suffix: '-x64-Debug-static'
-          runs_on_platform: ubuntu-20.04
         - sdk_platform: darwin
           runs_on_platform: ubuntu-20.04
     steps:
