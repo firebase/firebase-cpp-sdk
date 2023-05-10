@@ -231,6 +231,7 @@ TEST_F(FirestoreAndroidIntegrationTest,
 
   Local<Throwable> returned_exception = ClearCurrentExceptionAfterTest();
 
+  env().ClearExceptionOccurred();
   EXPECT_THAT(returned_exception, RefersToSameJavaObjectAs(thrown_exception));
 }
 
