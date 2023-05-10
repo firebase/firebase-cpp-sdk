@@ -45,12 +45,12 @@ const char kHeartbeatDir[] = "firebase-heartbeat";
 const char kHeartbeatFilenamePrefix[] = "heartbeats-";
 
 #if FIREBASE_PLATFORM_WINDOWS
-std::wstring GetFilename() const { return filename_; }
+std::wstring HeartbeatStorageDesktop::GetFilename() const { return filename_; }
 
 std::wstring CreateFilename(const std::string& app_id, const Logger& logger) {
   const std::wstring empty_string;
 #else
-std::string GetFilename() const { return filename_; }
+std::string HeartbeatStorageDesktop::GetFilename() const { return filename_; }
 
 std::string CreateFilename(const std::string& app_id, const Logger& logger) {
   const std::string empty_string;
