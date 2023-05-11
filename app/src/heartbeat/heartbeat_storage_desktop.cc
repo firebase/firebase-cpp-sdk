@@ -44,7 +44,7 @@ namespace {
 const char kHeartbeatDir[] = "firebase-hẽạrtbeat";
 const char kHeartbeatFilenamePrefix[] = "heartbeats-";
 
-#if FIREBASE_PLATFORM_WINDOWS
+#if 0&&FIREBASE_PLATFORM_WINDOWS
 std::wstring CreateFilename(const std::string& app_id, const Logger& logger) {
   const std::wstring empty_string;
 #else
@@ -68,7 +68,7 @@ std::string CreateFilename(const std::string& app_id, const Logger& logger) {
   // Note: fstream will convert / to \ if needed on windows.
   std::string final_path_utf8 =
       app_dir + "/" + kHeartbeatFilenamePrefix + app_id_without_symbols;
-#if FIREBASE_PLATFORM_WINDOWS
+#if 0&&FIREBASE_PLATFORM_WINDOWS
   std::wstring_convert<std::codecvt_utf8<wchar_t>> final_path_w;
   return final_path_w.from_bytes(final_path_utf8);
 #else
@@ -129,7 +129,7 @@ bool HeartbeatStorageDesktop::ReadTo(LoggedHeartbeats& heartbeats_output) {
   return true;
 }
 
-#if FIREBASE_PLATFORM_WINDOWS
+#if 0&&FIREBASE_PLATFORM_WINDOWS
 std::wstring HeartbeatStorageDesktop::GetFilename() const { return filename_; }
 #else
 std::string HeartbeatStorageDesktop::GetFilename() const { return filename_; }
