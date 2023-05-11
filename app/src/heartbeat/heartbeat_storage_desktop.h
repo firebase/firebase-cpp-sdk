@@ -53,7 +53,7 @@ class HeartbeatStorageDesktop {
   // write operation fails.
   bool Write(const LoggedHeartbeats& heartbeats) const;
 
-#if 0&&FIREBASE_PLATFORM_WINDOWS
+#if FIREBASE_PLATFORM_WINDOWS
   // Use a wide string on Windows, to support international characters in the
   // path.
   std::wstring GetFilename() const;
@@ -68,7 +68,7 @@ class HeartbeatStorageDesktop {
       const LoggedHeartbeats& heartbeats_struct) const;
 
   // local variables for state
-#if 0&&FIREBASE_PLATFORM_WINDOWS
+#if FIREBASE_PLATFORM_WINDOWS
   // Use a wide string on Windows, to support international characters in the
   // path.
   std::wstring filename_;
