@@ -24,6 +24,15 @@
 #include "firebase/auth/types.h"
 #include "firebase/internal/common.h"
 
+#if FIREBASE_PLATFORM_ANDROID
+#include <jni.h>
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+extern "C" {
+#include <objc/objc.h>
+}  // extern "C"
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
+
 namespace firebase {
 
 // Predeclarations.
@@ -36,6 +45,18 @@ class Future;
 
 namespace auth {
 
+#if FIREBASE_PLATFORM_ANDROID
+/// An Android Activity from Java.
+typedef jobject UIParent;
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+/// A pointer to a UIView.
+typedef id UIParent;
+#else
+/// A void pointer for stub classes.
+typedef void* UIParent;
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
+
 // Predeclarations.
 class Auth;
 class User;
@@ -43,6 +64,7 @@ class User;
 // Opaque internal types.
 struct AuthData;
 class ForceResendingTokenData;
+struct PhoneAuthOptions;
 struct PhoneAuthProviderData;
 struct PhoneListenerData;
 
@@ -67,6 +89,8 @@ class Credential {
   friend class TwitterAuthProvider;
   friend class YahooAuthProvider;
   friend class ServiceUpdatedCredentialProvider;
+  friend class PhoneAuthCredential;
+  friend class InternalAuthResultProvider;
   /// @endcond
 #endif  // !SWIG
 
@@ -120,6 +144,31 @@ class Credential {
   AuthError error_code_;
   std::string error_message_;
   /// @endcond
+};
+
+/// Wraps phone number and verification information for authentication purposes.
+class PhoneAuthCredential : public Credential {
+ public:
+  // Default constructor.
+  PhoneAuthCredential();
+
+  /// Copy constructor.
+  PhoneAuthCredential(const PhoneAuthCredential& rhs);
+
+  /// Copy a Credential.
+  PhoneAuthCredential& operator=(const PhoneAuthCredential& rhs);
+
+  /// Gets the automatically retrieved SMS verification code if applicable.
+  /// This method is only supported on Android.
+  std::string sms_code() const;
+
+ private:
+  friend class PhoneAuthProvider;
+
+  /// Should only be created by the `PhoneAuthProvider` class.
+  explicit PhoneAuthCredential(void* impl);
+
+  std::string sms_code_;
 };
 
 /// @brief Use email and password to authenticate.
@@ -464,6 +513,9 @@ class PhoneAuthProvider {
     Listener();
     virtual ~Listener();
 
+    /// @deprecated This method has been deprecated. Please use
+    /// OnVerificationCompleted(PhoneAuthCredential) instead.
+    ///
     /// @brief Phone number auto-verification succeeded.
     ///
     /// Called when,
@@ -476,7 +528,21 @@ class PhoneAuthProvider {
     ///
     /// @param[in] credential The completed credential from the phone number
     ///    verification flow.
-    virtual void OnVerificationCompleted(Credential credential) = 0;
+    virtual void OnVerificationCompleted(Credential credential) {}
+
+    /// @brief Phone number auto-verification succeeded.
+    ///
+    /// Called when,
+    ///  - auto-sms-retrieval has succeeded--flow (2) in @ref PhoneAuthProvider
+    ///  - instant validation has succeeded--flow (3) in @ref PhoneAuthProvider
+    ///
+    /// @note This callback is never called on iOS, since iOS does not have
+    ///    auto-validation. It is always called immediately in the stub desktop
+    ///    implementation, however, since it fakes immediate success.
+    ///
+    /// @param[in] credential The completed credential from the phone number
+    ///    verification flow.
+    virtual void OnVerificationCompleted(PhoneAuthCredential credential) = 0;
 
     /// @brief Phone number verification failed with an error.
     ///
@@ -524,16 +590,9 @@ class PhoneAuthProvider {
     PhoneListenerData* data_;
   };
 
-  /// Maximum value of `auto_verify_time_out_ms` in @ref VerifyPhoneNumber.
-  /// Larger values will be clamped.
+  /// @deprecated This is a deprecated method. Please use
+  /// VerifyPhoneNumber(const PhoneAuthOptions&, Listener*) instead.
   ///
-  /// @deprecated This value is no longer used to clamp
-  /// `auto_verify_time_out_ms` in VerifyPhoneNumber. The range is
-  /// determined by the underlying SDK, ex. <a
-  /// href="/docs/reference/android/com/google/firebase/auth/PhoneAuthOptions.Builder"><code>PhoneAuthOptions.Build</code>
-  /// in Android SDK</a>
-  static const uint32_t kMaxTimeoutMs;
-
   /// Start the phone number authentication operation.
   ///
   /// @param[in] phone_number The phone number identifier supplied by the user.
@@ -557,6 +616,15 @@ class PhoneAuthProvider {
                          const ForceResendingToken* force_resending_token,
                          Listener* listener);
 
+  /// Start the phone number authentication operation.
+  ///
+  /// @param[in] options The PhoneAuthOptions struct with a verification
+  /// configuration.
+  /// @param[in,out] listener Class that receives notification whenever an SMS
+  ///    verification event occurs.
+  void VerifyPhoneNumber(const PhoneAuthOptions& options,
+                         PhoneAuthProvider::Listener* listener);
+
   /// Generate a credential for the given phone number.
   ///
   /// @param[in] verification_id The id returned when sending the verification
@@ -566,8 +634,24 @@ class PhoneAuthProvider {
   ///    received in the SMS sent by @ref VerifyPhoneNumber.
   ///
   /// @returns New Credential.
-  Credential GetCredential(const char* verification_id,
-                           const char* verification_code);
+  PhoneAuthCredential GetCredential(const char* verification_id,
+                                    const char* verification_code);
+
+  /// @deprecated This is a deprecated method. Please use GetCredential
+  /// instead.
+  ///
+  /// Generate a credential for the given phone number.
+  ///
+  /// @param[in] verification_id The id returned when sending the verification
+  ///    code. Sent to the caller via @ref Listener::OnCodeSent.
+  /// @param[in] verification_code The verification code supplied by the user,
+  ///    most likely by a GUI where the user manually enters the code
+  ///    received in the SMS sent by @ref VerifyPhoneNumber.
+  ///
+  /// @returns New Credential.
+  FIREBASE_DEPRECATED
+  Credential GetCredential_DEPRECATED(const char* verification_id,
+                                      const char* verification_code);
 
   /// Return the PhoneAuthProvider for the specified `auth`.
   ///
@@ -589,6 +673,51 @@ class PhoneAuthProvider {
   ~PhoneAuthProvider();
 
   PhoneAuthProviderData* data_;
+};
+
+/// Options object for configuring phone validation flows in @ref
+/// PhoneAuthProvider.
+struct PhoneAuthOptions {
+  // Constructor
+  PhoneAuthOptions();
+
+  /// @brief Sets the @ref PhoneAuthProvider::ForceResendingToken to force
+  /// another verification SMS to be sent before the auto-retrieval timeout.
+  ///
+  /// If nullptr, assume this is a new phone number to verify. If not-NULL,
+  /// bypass the verification session deduping and force resending a new SMS.
+  /// This token is received in @ref PhoneAuthProvider::Listener::OnCodeSent.
+  /// This should only be used when the user presses a Resend SMS button.
+  PhoneAuthProvider::ForceResendingToken* force_resending_token;
+
+  /// The phone number for sign-in, sign-up, or second factor enrollment.
+  std::string phone_number;
+
+  /// The maximum amount of time you’re willing to wait for SMS auto-retrieval
+  /// to be completed by the SDK.
+  ///
+  /// This value is supported on Android devices only.
+  ///
+  /// The minimum timeout is 30 seconds, and the maximum timeout is 2 minutes.
+  /// If you specified a positive value less than 30 seconds, the SDK will
+  /// default to 30 seconds. Specifying a timeout that is greater than 120
+  /// seconds will result in an IllegalArgumentException being thrown.
+  ///
+  /// Use 0 to disable SMS-auto-retrieval. This will also cause
+  /// @ref PhoneAuthProvider.Listener.OnCodeAutoRetrievalTimeOut to be called
+  /// immediately.
+  uint32_t timeout_milliseconds;
+
+  /// Sets the context to which the callbacks are scoped, and with which app
+  /// verification will be completed.
+  ///
+  /// On Android, the context should be a jobject referencing an Android
+  /// Activity. On Apple platforms, this should be a pointer to UIView.
+  /// For any other platforms, the context is ignored.
+  ///
+  /// If ui_parent isn’t defined (ie: nullptr or nil) then the FirebaseApp’s
+  /// default Activity or UIView will be used.
+  UIParent ui_parent;
 };
 
 /// @brief Use a server auth code provided by Google Play Games to authenticate.
