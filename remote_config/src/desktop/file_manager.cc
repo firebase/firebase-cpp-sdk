@@ -27,7 +27,11 @@ namespace firebase {
 namespace remote_config {
 namespace internal {
 
+#if FIREBASE_PLATFORM_WINDOWS
+RemoteConfigFileManager::RemoteConfigFileManager(const std::wstring& file_path)
+#else
 RemoteConfigFileManager::RemoteConfigFileManager(const std::string& file_path)
+#endif
     : file_path_(file_path) {}
 
 bool RemoteConfigFileManager::Load(LayeredConfigs* configs) const {

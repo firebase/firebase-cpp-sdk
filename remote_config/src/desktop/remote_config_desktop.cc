@@ -24,8 +24,13 @@
 #include <thread>  // NOLINT
 #include <vector>
 
+#if FIREBASE_PLATFORM_WINDOWS
+#include <wchar.h>
+#endif
+
 #include "app/src/callback.h"
 #include "app/src/time.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "remote_config/src/common.h"
 #include "remote_config/src/include/firebase/remote_config.h"
 
@@ -45,7 +50,11 @@ const int64_t RemoteConfigInternal::kDefaultValueForLong = 0L;
 const double RemoteConfigInternal::kDefaultValueForDouble = 0.0;
 const bool RemoteConfigInternal::kDefaultValueForBool = false;
 
+#if FIREBASE_PLATFORM_WINDOWS
+static const wchar_t* kFilePathSuffix = L"remote_config_data";
+#else
 static const char* kFilePathSuffix = "remote_config_data";
+#endif
 
 template <typename T>
 struct RCDataHandle {

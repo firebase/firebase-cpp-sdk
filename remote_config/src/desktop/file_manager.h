@@ -17,6 +17,7 @@
 
 #include <string>
 
+#include "app/src/include/firebase/internal/platform.h"
 #include "remote_config/src/desktop/config_data.h"
 
 namespace firebase {
@@ -27,7 +28,11 @@ namespace internal {
 // load from file.
 class RemoteConfigFileManager {
  public:
+#if FIREBASE_PLATFORM_WINDOWS
+  explicit RemoteConfigFileManager(const std::wstring& file_path);
+#else
   explicit RemoteConfigFileManager(const std::string& file_path);
+#endif
 
   // Load `configs` from file. Will return `true` if success.
   bool Load(LayeredConfigs* configs) const;
@@ -36,8 +41,12 @@ class RemoteConfigFileManager {
   bool Save(const LayeredConfigs& configs) const;
 
  private:
-  // Path to file with data.
+  // Path to file with data. On Windows, use a UTF-16 path string.
+#if FIREBASE_PLATFORM_WINDOWS
+  std::wstring file_path_;
+#else
   std::string file_path_;
+#endif
 };
 
 }  // namespace internal
