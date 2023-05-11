@@ -32,10 +32,11 @@
 #define ftello _ftelli64
 
 // Also include files needed for path conversion.
+#include <wchar.h>  // NOLINT
+
 #include <codecvt>
 #include <locale>
 #include <string>
-#include <wchar.h>  // NOLINT
 #endif  // FIREBASE_PLATFORM_WINDOWS
 
 namespace firebase {
