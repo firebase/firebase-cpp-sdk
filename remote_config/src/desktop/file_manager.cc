@@ -21,8 +21,8 @@
 #include <string>
 #include <utility>
 
-#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/filesystem.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "remote_config/src/desktop/config_data.h"
 
 #if FIREBASE_PLATFORM_WINDOWS
@@ -36,9 +36,11 @@ namespace internal {
 
 RemoteConfigFileManager::RemoteConfigFileManager(const std::string& filename,
                                                  const firebase::App& app) {
-  std::string app_data_prefix = std::string(app.options().package_name()) + "/" + app.name() + "/" + "TẽstPạth";
+  std::string app_data_prefix = std::string(app.options().package_name()) +
+                                "/" + app.name() + "/" + "TẽstPạth";
   std::string file_path =
-    AppDataDir(app_data_prefix.c_str(), /*should_create=*/true) + "/" + filename;
+      AppDataDir(app_data_prefix.c_str(), /*should_create=*/true) + "/" +
+      filename;
 #if FIREBASE_PLATFORM_WINDOWS
   std::wstring_convert<std::codecvt_utf8<wchar_t>> utf8_to_wstring;
   file_path_ = utf8_to_wstring.from_bytes(file_path);
