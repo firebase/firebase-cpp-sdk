@@ -22,7 +22,7 @@
 #include <utility>
 
 #include "app/src/include/firebase/internal/platform.h"
-#include "app/src/util.h"
+#include "app/src/filesystem.h"
 #include "remote_config/src/desktop/config_data.h"
 
 #if FIREBASE_PLATFORM_WINDOWS
