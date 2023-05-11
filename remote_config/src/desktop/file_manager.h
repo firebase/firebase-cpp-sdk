@@ -17,6 +17,7 @@
 
 #include <string>
 
+#include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "remote_config/src/desktop/config_data.h"
 
@@ -28,11 +29,8 @@ namespace internal {
 // load from file.
 class RemoteConfigFileManager {
  public:
-#if FIREBASE_PLATFORM_WINDOWS
-  explicit RemoteConfigFileManager(const std::wstring& file_path);
-#else
-  explicit RemoteConfigFileManager(const std::string& file_path);
-#endif
+  RemoteConfigFileManager(const std::string& file_path,
+			  const firebase::App& app);
 
   // Load `configs` from file. Will return `true` if success.
   bool Load(LayeredConfigs* configs) const;

@@ -21,18 +21,30 @@
 #include <string>
 #include <utility>
 
+#include "app/src/util.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "remote_config/src/desktop/config_data.h"
+
+#if FIREBASE_PLATFORM_WINDOWS
+#include <locale>
+#include <codecvt>
+#endif
 
 namespace firebase {
 namespace remote_config {
 namespace internal {
 
+  RemoteConfigFileManager::RemoteConfigFileManager(const std::string& filename,
+						   const firebase::App& app)
+{
+  std::string error;
+  std::string file_path = GetUniqueDataDirectory(app, "remote_config", &error) + "/" + filename;
 #if FIREBASE_PLATFORM_WINDOWS
-RemoteConfigFileManager::RemoteConfigFileManager(const std::wstring& file_path)
+  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> utf8_to_utf16;
+  file_path_ = utf8_to_utf16.from_bytes(file_path);
 #else
-RemoteConfigFileManager::RemoteConfigFileManager(const std::string& file_path)
+  file_path_ = file_path;
 #endif
-    : file_path_(file_path) {
 }
 
 bool RemoteConfigFileManager::Load(LayeredConfigs* configs) const {

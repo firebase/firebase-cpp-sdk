@@ -29,6 +29,7 @@
 #include "app/src/include/google_play_services/availability.h"
 #include "app/src/util_android.h"
 #endif  // FIREBASE_PLATFORM_ANDROID
+#include "app/src/filesystem.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -340,6 +341,18 @@ std::vector<std::string> SplitString(const std::string& s,
         s.substr(delimiter_search_start, len - delimiter_search_start));
   }
   return split_parts;
+}
+
+std::string GetUniqueDataDirectory(const App& app, const std::string& suffix,
+				   std::string* error) {
+#if FIREBASE_PLATFORM_DESKTOP
+  // On desktop, use the package name and the app name.
+  std::string path = std::string(app.options().package_name()) + "/" + app.name() + "/" + suffix;
+#else
+  // On mobile, it's always sandboxed, so just use the app name.
+  std::string path = std::string(app.name()) + "/" + suffix;
+#endif
+  return AppDataDir(path.c_str(), /*should_create=*/true, error);
 }
 
 // NOLINTNEXTLINE - allow namespace overridden

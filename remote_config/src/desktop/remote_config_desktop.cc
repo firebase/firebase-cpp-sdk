@@ -30,10 +30,6 @@
 #include "remote_config/src/common.h"
 #include "remote_config/src/include/firebase/remote_config.h"
 
-#if FIREBASE_PLATFORM_WINDOWS
-#include <wchar.h>
-#endif
-
 #ifndef SWIG
 #include "firebase/variant.h"
 #endif  // SWIG
@@ -50,11 +46,7 @@ const int64_t RemoteConfigInternal::kDefaultValueForLong = 0L;
 const double RemoteConfigInternal::kDefaultValueForDouble = 0.0;
 const bool RemoteConfigInternal::kDefaultValueForBool = false;
 
-#if FIREBASE_PLATFORM_WINDOWS
-static const wchar_t* kFilePathSuffix = L"remote_config_data";
-#else
 static const char* kFilePathSuffix = "remote_config_data";
-#endif
 
 template <typename T>
 struct RCDataHandle {
@@ -87,7 +79,7 @@ RemoteConfigInternal::RemoteConfigInternal(
 
 RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
     : app_(app),
-      file_manager_(kFilePathSuffix),
+      file_manager_(kFilePathSuffix, app),
       is_fetch_process_have_task_(false),
       future_impl_(kRemoteConfigFnCount),
       safe_this_(this),
