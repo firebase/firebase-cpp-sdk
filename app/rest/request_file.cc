@@ -50,7 +50,7 @@ RequestFile::RequestFile(const char* filename, size_t offset) : file_size_(0) {
   std::string filename_utf8(filename);
   std::wstring_convert<std::codecvt_utf8<wchar_t>> utf8_to_utf16;
   std::wstring filename_utf16 = utf8_to_utf16.from_bytes(filename_utf8);
-  file_ = _wfopen(filename_utf16.c_str(), "rb");
+  file_ = _wfopen(filename_utf16.c_str(), L"rb");
 #else
   file_ = fopen(filename, "rb");
 #endif

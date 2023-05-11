@@ -113,7 +113,7 @@ static void LogToFile(LogLevel log_level, const char* format, va_list args) {
     MutexLock lock(*g_log_mutex);
     if (!log_file) {
 #if FIREBASE_PLATFORM_WINDOWS
-      log_file = _wfopen(FIREBASE_LOG_FILENAME_W, "wt");
+      log_file = _wfopen(FIREBASE_LOG_FILENAME_W, L"wt");
 #else
       log_file = fopen(FIREBASE_LOG_FILENAME, "wt");
 #endif
