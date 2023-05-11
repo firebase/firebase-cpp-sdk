@@ -343,6 +343,11 @@ TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
 #endif  // defined(ANDROID)
   EXPECT_EQ(result, ::firebase::kInitResultSuccess);
   LogDebug("Successfully initialized GMA.");
+  // Workaround: GMA does some of its initialization in the main
+  // thread, so if you terminate it too quickly after initialization
+  // it can cause issues.  Add a small delay here in case most of the
+  // tests are skipped.
+  ProcessEvents(1000);
   LogDebug("Shutdown GMA.");
   firebase::gma::Terminate();
 }
