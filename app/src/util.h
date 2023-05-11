@@ -239,7 +239,7 @@ class StaticFutureData {
 std::vector<std::string> SplitString(const std::string& s, char delimiter);
 
 // Using GetAppDataDir(), get a unique directory for this Firebase instance.
-std::string GetUniqueDataDirectory(const App& app, const std::string& suffix,
+std::string GetUniqueDataDirectory(const App& app, const char* suffix = nullptr,
                                    std::string* error = nullptr);
 
 // NOLINTNEXTLINE - allow namespace overridden

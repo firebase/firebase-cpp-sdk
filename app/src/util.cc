@@ -343,15 +343,21 @@ std::vector<std::string> SplitString(const std::string& s,
   return split_parts;
 }
 
-std::string GetUniqueDataDirectory(const App& app, const std::string& suffix,
+std::string GetUniqueDataDirectory(const App& app, const char *suffix,
                                    std::string* error) {
+  std::string suffix_str;
+  if (suffix) {
+    suffix_str += "/";
+    suffix_str += suffix;
+  }
+      
 #if FIREBASE_PLATFORM_DESKTOP
   // On desktop, use the package name and the app name.
   std::string path = std::string(app.options().package_name()) + "/" +
-                     app.name() + "/" + suffix;
+                     app.name() + "/" + suffix_str;
 #else
   // On mobile, it's always sandboxed, so just use the app name.
-  std::string path = std::string(app.name()) + "/" + suffix;
+  std::string path = std::string(app.name()) + "/" + suffix_str;
 #endif
   return AppDataDir(path.c_str(), /*should_create=*/true, error);
 }
