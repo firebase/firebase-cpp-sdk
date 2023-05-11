@@ -627,6 +627,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### Upcoming release
+-   Changes
+    - GMA (Android): Fixed a crash when Initializing GMA without a Firebase App.
+
 ### 11.0.1
 -   Changes
     - Auth (iOS): Fixed a crash in `Credential::is_valid()` when an `AuthResult`
