@@ -25,8 +25,8 @@
 #include <vector>
 
 #include "app/src/callback.h"
-#include "app/src/time.h"
 #include "app/src/include/firebase/internal/platform.h"
+#include "app/src/time.h"
 #include "remote_config/src/common.h"
 #include "remote_config/src/include/firebase/remote_config.h"
 

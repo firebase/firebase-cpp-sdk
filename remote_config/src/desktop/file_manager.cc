@@ -32,7 +32,8 @@ RemoteConfigFileManager::RemoteConfigFileManager(const std::wstring& file_path)
 #else
 RemoteConfigFileManager::RemoteConfigFileManager(const std::string& file_path)
 #endif
-    : file_path_(file_path) {}
+    : file_path_(file_path) {
+}
 
 bool RemoteConfigFileManager::Load(LayeredConfigs* configs) const {
   std::fstream input(file_path_, std::ios::in | std::ios::binary);
