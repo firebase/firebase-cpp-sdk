@@ -333,15 +333,12 @@ void FirebaseGmaPreInitializationTests::SetUpTestSuite() {
 // Test cases below.
 
 TEST_F(FirebaseGmaMinimalTest, TestInitializeGmaWithoutFirebase) {
-
   LogDebug("Initializing GMA without a Firebase App.");
   firebase::InitResult result;
 #if defined(ANDROID)
-  ::firebase::gma::Initialize(
-    app_framework::GetJniEnv(),
-    app_framework::GetActivity(),
-    &result);
-#else  // !defined(ANDROID)
+  ::firebase::gma::Initialize(app_framework::GetJniEnv(),
+                              app_framework::GetActivity(), &result);
+#else   // !defined(ANDROID)
   ::firebase::gma::Initialize(&result);
 #endif  // defined(ANDROID)
   EXPECT_EQ(result, ::firebase::kInitResultSuccess);
