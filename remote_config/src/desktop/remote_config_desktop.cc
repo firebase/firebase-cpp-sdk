@@ -24,15 +24,15 @@
 #include <thread>  // NOLINT
 #include <vector>
 
-#if FIREBASE_PLATFORM_WINDOWS
-#include <wchar.h>
-#endif
-
 #include "app/src/callback.h"
 #include "app/src/time.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "remote_config/src/common.h"
 #include "remote_config/src/include/firebase/remote_config.h"
+
+#if FIREBASE_PLATFORM_WINDOWS
+#include <wchar.h>
+#endif
 
 #ifndef SWIG
 #include "firebase/variant.h"
