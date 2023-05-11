@@ -203,7 +203,7 @@ std::string AppDataDir(const char* app_name, bool should_create,
   // Debugging: Add international characters in the string.
   base_dir += L"/";
   base_dir += L"T\x1EBDstP\x1EA1th";  // "TestPath" with some squiggles.
-  if (should_create) Mkdir(base_dir);
+  if (should_create) Mkdir(base_dir, out_error);
 
   std::wstring current_path = base_dir;
   if (should_create) {
