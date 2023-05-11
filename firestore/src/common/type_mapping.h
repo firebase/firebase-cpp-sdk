@@ -50,6 +50,8 @@ class Transaction;
 class TransactionInternal;
 class WriteBatch;
 class WriteBatchInternal;
+class DatabaseIdInternal;
+
 
 // `InternalType<T>` is the internal type corresponding to a public type T.
 // For example, `InternalType<Firestore>` is `FirestoreInternal`. Several other
@@ -118,7 +120,10 @@ template <>
 struct InternalTypeMap<void> {
   using type = void;
 };
-
+template <>
+struct InternalTypeMap<model::DatabaseId> {
+  using type = DatabaseIdInternal;
+};
 template <typename T>
 using InternalType = typename InternalTypeMap<typename decay<T>::type>::type;
 

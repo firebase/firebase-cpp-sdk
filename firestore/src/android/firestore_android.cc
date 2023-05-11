@@ -114,12 +114,11 @@ Method<SettingsInternal> kGetSettings(
     "getFirestoreSettings",
     "()Lcom/google/firebase/firestore/FirebaseFirestoreSettings;");
 Method<Object> kGetDatabaseId(
-    "getDatabaseId",
-    "()Lcom/google/firebase/firestore/model/DatabaseId");
+    "getDatabaseId", "()Lcom/google/firebase/firestore/model/DatabaseId");
 StaticMethod<Object> kGetInstance(
     "getInstance",
     "(Lcom/google/firebase/FirebaseApp;"
-    "Ljava/lang/String;)" // TODO(Mila -remove)add the database_id string
+    "Ljava/lang/String;)"  // TODO(Mila -remove)add the database_id string
     "Lcom/google/firebase/firestore/FirebaseFirestore;");
 StaticMethod<void> kSetLoggingEnabled("setLoggingEnabled", "(Z)V");
 StaticMethod<void> kSetClientLanguage("setClientLanguage",
@@ -273,7 +272,8 @@ FirestoreInternal::FirestoreInternal(App* app, const char* database_id) {
   Env env = GetEnv();
   Local<Object> platform_app(env.get(), app_->GetPlatformApp());
   Local<String> java_path = env.NewStringUtf(database_id);
-  Local<Object> java_firestore = env.Call(kGetInstance, platform_app, java_path);
+  Local<Object> java_firestore =
+      env.Call(kGetInstance, platform_app, java_path);
   FIREBASE_ASSERT(java_firestore.get() != nullptr);
   obj_ = java_firestore;
 
@@ -465,8 +465,11 @@ const model::DatabaseId& FirestoreInternal::database_id() const {
   return NewDatabaseId(env, database_id);
 }
 
-model::DatabaseId FirestoreInternal::NewDatabaseId(Env& env, const jni::Object& database_id) const {
-  return model::DatabaseId(""); // TODO(Mila) return database_id with correct type
+model::DatabaseId FirestoreInternal::NewDatabaseId(
+    Env& env, const jni::Object& database_id) const {
+  // return model::DatabaseId(""); // TODO(Mila) return database_id with correct
+  // type
+  return MakePublic<model::DatabaseId>(env, mutable_this(), database_id);
 }
 
 void FirestoreInternal::set_settings(Settings settings) {
