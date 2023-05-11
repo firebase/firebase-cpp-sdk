@@ -69,8 +69,8 @@ std::string CreateFilename(const std::string& app_id, const Logger& logger) {
   std::string final_path_utf8 =
       app_dir + "/" + kHeartbeatFilenamePrefix + app_id_without_symbols;
 #if FIREBASE_PLATFORM_WINDOWS
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> final_path_utf16;
-  return final_path_utf16.from_bytes(final_path_utf8);
+  std::wstring_convert<std::codecvt_utf8<wchar_t>> final_path_w;
+  return final_path_w.from_bytes(final_path_utf8);
 #else
   return final_path_utf8;
 #endif
