@@ -283,11 +283,7 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
     env->GetJavaVM(&g_java_vm);
   }
 
-  // GMA requires Google Play services if the class
-  // "com.google.android.gms.ads.internal.ClientApi" does not exist.
-  if (!util::FindClass(env, "com/google/android/gms/ads/internal/ClientApi") &&
-      google_play_services::CheckAvailability(env, activity) !=
-          google_play_services::kAvailabilityAvailable) {
+  if (!util::Initialize(env, activity)) {
     if (init_result_out) {
       *init_result_out = kInitResultFailedMissingDependency;
     }
@@ -296,7 +292,11 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
     return Future<AdapterInitializationStatus>();
   }
 
-  if (!util::Initialize(env, activity)) {
+  // GMA requires Google Play services if the class
+  // "com.google.android.gms.ads.internal.ClientApi" does not exist.
+  if (!util::FindClass(env, "com/google/android/gms/ads/internal/ClientApi") &&
+      google_play_services::CheckAvailability(env, activity) !=
+          google_play_services::kAvailabilityAvailable) {
     if (init_result_out) {
       *init_result_out = kInitResultFailedMissingDependency;
     }
