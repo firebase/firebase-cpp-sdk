@@ -41,7 +41,7 @@ using com::google::firebase::cpp::heartbeat::VerifyLoggedHeartbeatsBuffer;
 // Using an anonymous namespace for helper to construct filename
 namespace {
 
-const char kHeartbeatDir[] = "firebase-heartbeat";
+const char kHeartbeatDir[] = "firebase-hẽạrtbeat";
 const char kHeartbeatFilenamePrefix[] = "heartbeats-";
 
 #if FIREBASE_PLATFORM_WINDOWS
