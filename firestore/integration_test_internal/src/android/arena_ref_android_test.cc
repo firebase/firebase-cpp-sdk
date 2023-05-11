@@ -44,6 +44,20 @@ class ArenaRefTest : public FirestoreAndroidIntegrationTest {
     }
   }
 
+  /**
+   * Creates and returns a brand new Java object.
+   *
+   * The returned object is a global reference that this object retains
+   * ownership of. The global reference will be automatically deleted by this
+   * object's destructor.
+   *
+   * If creating the new Java object fails, such as if this function is called
+   * with a pending Java exception, then a null object is returned and the
+   * calling test case will fail.
+   *
+   * @return a global reference to the newly-created Java object, or null if
+   * creating the object fails.
+   */
   jobject NewJavaObject() {
     SCOPED_TRACE("NewJavaObject");
 
@@ -54,45 +68,51 @@ class ArenaRefTest : public FirestoreAndroidIntegrationTest {
       return {};
     }
 
-    jclass long_class = jni_env->FindClass("java/lang/Long");
+    jclass object_class = jni_env->FindClass("java/lang/Object");
     if (jni_env->ExceptionCheck()) {
       jni_env->ExceptionDescribe();
       ADD_FAILURE() << "JNIEnv::FindClass() failed";
       return {};
     }
 
-    jmethodID long_constructor_id = jni_env->GetMethodID(long_class, "<init>", "(J)V");
+    jmethodID object_constructor_id = jni_env->GetMethodID(object_class, "<init>", "()V");
     if (jni_env->ExceptionCheck()) {
       jni_env->ExceptionDescribe();
       ADD_FAILURE() << "JNIEnv::GetMethodID() failed";
       return {};
     }
 
-    static std::atomic<jlong> next_id(887650000L);
-    const jlong id = next_id.fetch_add(1);
-    jobject long_object_local_ref = jni_env->NewObject(long_class, long_constructor_id, id);
+    jobject object_local_ref = jni_env->NewObject(object_class, object_constructor_id);
     if (jni_env->ExceptionCheck()) {
       jni_env->ExceptionDescribe();
       ADD_FAILURE() << "JNIEnv::NewObject() failed";
       return {};
     }
 
-    jobject long_object_global_ref = jni_env->NewGlobalRef(long_object_local_ref);
-    jni_env->DeleteLocalRef(long_object_local_ref);
+    jobject object_global_ref = jni_env->NewGlobalRef(object_local_ref);
+    jni_env->DeleteLocalRef(object_local_ref);
     if (jni_env->ExceptionCheck()) {
       jni_env->ExceptionDescribe();
       ADD_FAILURE() << "JNIEnv::NewGlobalRef() failed";
       return {};
     }
 
-    created_java_objects_.push_back(long_object_global_ref);
-    return long_object_global_ref;
+    created_java_objects_.push_back(object_global_ref);
+    return object_global_ref;
   }
 
  private:
   std::vector<jobject> created_java_objects_;
 };
 
+/**
+ * A googletest "matcher" that verifies that an ArenaRef refers to a null Java
+ * object.
+ *
+ * Example:
+ * ArenaRef arena_ref;
+ * EXPECT_THAT(arena_ref, RefersToNullJavaObject());
+ */
 MATCHER(RefersToNullJavaObject, "") {
   static_assert(std::is_same<arg_type, const ArenaRef&>::value, "");
 
@@ -111,7 +131,16 @@ MATCHER(RefersToNullJavaObject, "") {
   return object.get() == nullptr;
 }
 
-MATCHER_P(RefersToJavaObject, expected_jobject, "") {
+/**
+ * A googletest "matcher" that verifies that an ArenaRef refers to the given
+ * Java object, compared as if using the `==` operator in Java.
+ *
+ * Example:
+ * jobject java_object = NewJavaObject();
+ * ArenaRef arena_ref(env, java_object);
+ * EXPECT_THAT(arena_ref, RefersToJavaObject(java_object));
+ */
+ MATCHER_P(RefersToJavaObject, expected_jobject, "") {
   static_assert(std::is_same<arg_type, const ArenaRef&>::value, "");
   static_assert(std::is_same<expected_jobject_type, jobject>::value, "");
 
@@ -136,89 +165,121 @@ TEST_F(ArenaRefTest, DefaultConstructorShouldReferToNull) {
   EXPECT_THAT(arena_ref, RefersToNullJavaObject());
 }
 
-TEST_F(ArenaRefTest, DefaultConstructorShouldSucceedIfInvokedWithPendingException) {
+TEST_F(ArenaRefTest, DefaultConstructorShouldSucceedIfCalledWithPendingException) {
   ThrowException();
   ClearCurrentExceptionAfterTest();
 
   ArenaRef arena_ref;
 
+  env().ClearExceptionOccurred();
   EXPECT_THAT(arena_ref, RefersToNullJavaObject());
 }
 
 TEST_F(ArenaRefTest, AdoptingConstructorWithNullptrShouldReferToNull) {
-  Env env;
-
-  ArenaRef arena_ref(env, nullptr);
+  const ArenaRef arena_ref(env(), nullptr);
 
   EXPECT_THAT(arena_ref, RefersToNullJavaObject());
 }
 
 TEST_F(ArenaRefTest, AdoptingConstructorShouldReferToTheGivenObject) {
-  Env env;
   jobject java_object = NewJavaObject();
 
-  ArenaRef arena_ref(env, java_object);
+  ArenaRef arena_ref(env(), java_object);
 
   EXPECT_THAT(arena_ref, RefersToJavaObject(java_object));
 }
 
-/*
-TEST_F(ArenaRefTest, CopyConstructorCopyDefaultToDefault) {
-  Env env;
-  ArenaRef default_arena_ref;
+TEST_F(ArenaRefTest, AdoptingConstructorShouldReferToNullIfCalledWithPendingException) {
+  jobject java_object = NewJavaObject();
+  ThrowException();
+  ClearCurrentExceptionAfterTest();
+
+  ArenaRef arena_ref(env(), java_object);
+
+  env().ClearExceptionOccurred();
+  EXPECT_THAT(arena_ref, RefersToNullJavaObject());
+}
+
+TEST_F(ArenaRefTest, CopyConstructorWithDefaultConstructedInstance) {
+  const ArenaRef default_arena_ref;
 
   ArenaRef arena_ref_copy_dest(default_arena_ref);
 
-  EXPECT_EQ(default_arena_ref.get(env).get(), nullptr);
-  EXPECT_EQ(arena_ref_copy_dest.get(env).get(), nullptr);
+  EXPECT_THAT(arena_ref_copy_dest, RefersToNullJavaObject());
+  EXPECT_THAT(default_arena_ref, RefersToNullJavaObject());
 }
 
-TEST_F(ArenaRefTest, CopyConstructorShouldCopyInstanceWithNullObject) {
-  Env env;
-  ArenaRef arena_ref_with_null_object(env, nullptr);
+TEST_F(ArenaRefTest, CopyConstructorWithNull) {
+  const ArenaRef arena_ref_referring_to_null(env(), nullptr);
 
-  ArenaRef arena_ref_copy_dest(arena_ref_with_null_object);
+  ArenaRef arena_ref_copy_dest(arena_ref_referring_to_null);
 
-  EXPECT_EQ(arena_ref_with_null_object.get(env).get(), nullptr);
-  EXPECT_EQ(arena_ref_copy_dest.get(env).get(), nullptr);
+  EXPECT_THAT(arena_ref_copy_dest, RefersToNullJavaObject());
+  EXPECT_THAT(arena_ref_referring_to_null, RefersToNullJavaObject());
 }
 
-TEST_F(ArenaRefTest, CopyConstructorShouldCopyInstanceWithNonNullObject) {
-  Env env;
-  jstring java_string = NewJavaString(env, "hello world");
-  ArenaRef arena_ref_copy_src(env, java_string);
+TEST_F(ArenaRefTest, CopyConstructorWithNonNull) {
+  jobject java_object = NewJavaObject();
+  ArenaRef arena_ref_referring_to_non_null(env(), java_object);
 
-  ArenaRef arena_ref_copy_dest(arena_ref_copy_src);
 
-  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_src.get(env).get(), java_string));
-  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_dest.get(env).get(), java_string));
+  ArenaRef arena_ref_copy_dest(arena_ref_referring_to_non_null);
+
+  EXPECT_THAT(arena_ref_copy_dest, RefersToJavaObject(java_object));
+  EXPECT_THAT(arena_ref_referring_to_non_null, RefersToJavaObject(java_object));
 }
 
-TEST_F(ArenaRefTest, CopyConstructorShouldCreateAnIndependentInstance) {
-  Env env;
-  jstring java_string = NewJavaString(env, "hello world");
-  auto arena_ref_copy_src = std::make_unique<ArenaRef>(env, java_string);
+TEST_F(ArenaRefTest, CopyConstructorShouldReferToNullIfCalledWithPendingException) {
+  const ArenaRef default_arena_ref;
+  const ArenaRef arena_ref_referring_to_null(env(), nullptr);
+  const ArenaRef arena_ref_referring_to_non_null(env(), NewJavaObject());
+  ThrowException();
+  ClearCurrentExceptionAfterTest();
 
-  auto arena_ref_copy_dest1 = std::make_unique<ArenaRef>(*arena_ref_copy_src);
-  auto arena_ref_copy_dest2 = std::make_unique<ArenaRef>(*arena_ref_copy_src);
+  ArenaRef default_arena_ref_copy_dest(default_arena_ref);
+  ArenaRef arena_ref_referring_to_null_copy_dest(arena_ref_referring_to_null);
+  ArenaRef arena_ref_referring_to_non_null_copy_dest(arena_ref_referring_to_non_null);
 
-  // Verify that all 3 ArenaRef objects refer to the same Java object.
-  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_src->get(env).get(), java_string));
-  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_dest1->get(env).get(), java_string));
-  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_dest2->get(env).get(), java_string));
-
-  // Delete the original "source" ArenaRef and verify that the remaining two
-  // ArenaRef objects still refer to the same Java object.
-  arena_ref_copy_src.reset();
-  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_dest1->get(env).get(), java_string));
-  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_dest2->get(env).get(), java_string));
-
-  // Delete the first "copy" ArenaRef and verify that the remaining
-  // ArenaRef object still refers to the same Java object.
-  arena_ref_copy_dest1.reset();
-  EXPECT_TRUE(env.get()->IsSameObject(arena_ref_copy_dest2->get(env).get(), java_string));
+  env().ClearExceptionOccurred();
+  EXPECT_THAT(default_arena_ref_copy_dest, RefersToNullJavaObject());
+  EXPECT_THAT(arena_ref_referring_to_null_copy_dest, RefersToNullJavaObject());
+  EXPECT_THAT(arena_ref_referring_to_non_null_copy_dest, RefersToNullJavaObject());
 }
 
+TEST_F(ArenaRefTest, CopyConstructorShouldCreateIndependentInstances) {
+  auto default_arena_ref = std::make_unique<const ArenaRef>();
+  auto arena_ref_referring_to_null = std::make_unique<const ArenaRef>(env(), nullptr);
+  jobject java_object = NewJavaObject();
+  auto arena_ref_referring_to_non_null = std::make_unique<const ArenaRef>(env(), java_object);
+
+  ArenaRef default_arena_ref_copy_dest(*default_arena_ref);
+  ArenaRef arena_ref_referring_to_null_copy_dest(*arena_ref_referring_to_null);
+  ArenaRef arena_ref_referring_to_non_null_copy_dest(*arena_ref_referring_to_non_null);
+
+  jobject java_object1 = NewJavaObject();
+  default_arena_ref_copy_dest.reset(env(), Object(java_object1));
+  jobject java_object2 = NewJavaObject();
+  arena_ref_referring_to_null_copy_dest.reset(env(), Object(java_object2));
+  jobject java_object3 = NewJavaObject();
+  arena_ref_referring_to_non_null_copy_dest.reset(env(), Object(java_object3));
+
+  EXPECT_THAT(*default_arena_ref, RefersToNullJavaObject());
+  EXPECT_THAT(*arena_ref_referring_to_null, RefersToNullJavaObject());
+  EXPECT_THAT(*arena_ref_referring_to_non_null, RefersToJavaObject(java_object));
+  EXPECT_THAT(default_arena_ref_copy_dest, RefersToJavaObject(java_object1));
+  EXPECT_THAT(arena_ref_referring_to_null_copy_dest, RefersToJavaObject(java_object2));
+  EXPECT_THAT(arena_ref_referring_to_non_null_copy_dest, RefersToJavaObject(java_object3));
+
+  default_arena_ref.reset();
+  arena_ref_referring_to_null.reset();
+  arena_ref_referring_to_non_null.reset();
+
+  EXPECT_THAT(default_arena_ref_copy_dest, RefersToJavaObject(java_object1));
+  EXPECT_THAT(arena_ref_referring_to_null_copy_dest, RefersToJavaObject(java_object2));
+  EXPECT_THAT(arena_ref_referring_to_non_null_copy_dest, RefersToJavaObject(java_object3));
+}
+
+/*
 TEST_F(ArenaRefTest, MoveConstructorShouldMoveDefaultInstance) {
   Env env;
   ArenaRef default_arena_ref;
