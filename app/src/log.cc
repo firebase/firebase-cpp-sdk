@@ -23,6 +23,7 @@
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/include/firebase/internal/platform.h"
 
 #if !defined(FIREBASE_LOG_DEBUG)
 #define FIREBASE_LOG_DEBUG 0
@@ -86,6 +87,8 @@ static void DefaultLogCallback(LogLevel log_level, const char* message,
 // Log a message to a log file.
 static void LogToFile(LogLevel log_level, const char* format, va_list args) {
 #define FIREBASE_LOG_FILENAME "firebase.log"
+// Wide string version for Windows.
+#define FIREBASE_LOG_FILENAME_W L"firebase.log"
   static FILE* log_file = nullptr;
   static bool attempted_to_open_log_file = false;
   static const char* kLogLevelToPrefixString[] = {
@@ -109,7 +112,11 @@ static void LogToFile(LogLevel log_level, const char* format, va_list args) {
   } else {
     MutexLock lock(*g_log_mutex);
     if (!log_file) {
+#if FIREBASE_PLATFORM_WINDOWS
+      log_file = _wfopen(FIREBASE_LOG_FILENAME_W, "wt");
+#else
       log_file = fopen(FIREBASE_LOG_FILENAME, "wt");
+#endif
       if (!log_file) {
         g_log_callback(kLogLevelError,
                        "Unable to open log file " FIREBASE_LOG_FILENAME,
