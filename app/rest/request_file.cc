@@ -45,8 +45,7 @@ namespace rest {
 // This file isn't opened until the first call to ReadBody().
 // Note that on Windows, the filename will be UTF-8 encoded
 // and needs to be converted to utf16.
-RequestFile::RequestFile(const char* filename, size_t offset)
-{
+RequestFile::RequestFile(const char* filename, size_t offset) : file_size_(0) {
 #if FIREBASE_PLATFORM_WINDOWS
   std::string filename_utf8(filename);
   std::wstring_convert<std::codecvt_utf8<wchar_t>> utf8_to_utf16;
@@ -55,7 +54,6 @@ RequestFile::RequestFile(const char* filename, size_t offset)
 #else
   file_ = fopen(filename, "rb");
 #endif
-  file_size_ = 0;
   options_.stream_post_fields = true;
   // If the file exists, seek to the end of the file and get the size.
   if (file_ && fseeko(file_, 0, SEEK_END) == 0) {
