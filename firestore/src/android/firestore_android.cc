@@ -113,9 +113,13 @@ Method<Object> kCollectionGroup("collectionGroup",
 Method<SettingsInternal> kGetSettings(
     "getFirestoreSettings",
     "()Lcom/google/firebase/firestore/FirebaseFirestoreSettings;");
+Method<Object> kGetDatabaseId(
+    "getDatabaseId",
+    "()Lcom/google/firebase/firestore/model/DatabaseId");
 StaticMethod<Object> kGetInstance(
     "getInstance",
-    "(Lcom/google/firebase/FirebaseApp;)"
+    "(Lcom/google/firebase/FirebaseApp;"
+    "Ljava/lang/String;)" // TODO(Mila -remove)add the database_id string
     "Lcom/google/firebase/firestore/FirebaseFirestore;");
 StaticMethod<void> kSetLoggingEnabled("setLoggingEnabled", "(Z)V");
 StaticMethod<void> kSetClientLanguage("setClientLanguage",
@@ -261,14 +265,15 @@ Local<LoadBundleTaskInternal> CreateLoadBundleTask(Env& env,
 
 const char kApiIdentifier[] = "Firestore";
 
-FirestoreInternal::FirestoreInternal(App* app) {
+FirestoreInternal::FirestoreInternal(App* app, const char* database_id) {
   FIREBASE_ASSERT(app != nullptr);
   if (!Initialize(app)) return;
   app_ = app;
 
   Env env = GetEnv();
   Local<Object> platform_app(env.get(), app_->GetPlatformApp());
-  Local<Object> java_firestore = env.Call(kGetInstance, platform_app);
+  Local<String> java_path = env.NewStringUtf(database_id);
+  Local<Object> java_firestore = env.Call(kGetInstance, platform_app, java_path);
   FIREBASE_ASSERT(java_firestore.get() != nullptr);
   obj_ = java_firestore;
 
@@ -450,6 +455,18 @@ Settings FirestoreInternal::settings() const {
 
   if (!env.ok()) return {};
   return settings.ToPublic(env);
+}
+
+const model::DatabaseId& FirestoreInternal::database_id() const {
+  Env env = GetEnv();
+  Local<Object> database_id = env.Call(obj_, kGetDatabaseId);
+
+  if (!env.ok()) return {};
+  return NewDatabaseId(env, database_id);
+}
+
+model::DatabaseId FirestoreInternal::NewDatabaseId(Env& env, const jni::Object& database_id) const {
+  return model::DatabaseId(""); // TODO(Mila) return database_id with correct type
 }
 
 void FirestoreInternal::set_settings(Settings settings) {

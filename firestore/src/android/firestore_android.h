@@ -24,6 +24,7 @@
 #include <mutex>
 #include <unordered_set>
 
+#include "Firestore/core/src/model/database_id.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
@@ -75,7 +76,7 @@ class FirestoreInternal {
   };
 
   // Note: call `set_firestore_public` immediately after construction.
-  explicit FirestoreInternal(App* app);
+  FirestoreInternal(App* app, const char* database_id);
   ~FirestoreInternal();
 
   App* app() const { return app_; }
@@ -134,6 +135,8 @@ class FirestoreInternal {
   void UnregisterListenerRegistration(
       ListenerRegistrationInternal* registration);
   void ClearListeners();
+
+  const model::DatabaseId& database_id() const;
 
   // Bundles
   Future<LoadBundleTaskProgress> LoadBundle(const std::string& bundle);
@@ -211,6 +214,8 @@ class FirestoreInternal {
   std::unique_ptr<PromiseFactory<AsyncFn>> promises_;
 
   CleanupNotifier cleanup_;
+  model::DatabaseId NewDatabaseId(jni::Env& env,
+                                  const jni::Object& database_id) const;
 };
 
 // Holds a "weak reference" to a `FirestoreInternal` object.
