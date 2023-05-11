@@ -30,7 +30,7 @@ namespace internal {
 class RemoteConfigFileManager {
  public:
   RemoteConfigFileManager(const std::string& file_path,
-			  const firebase::App& app);
+                          const firebase::App& app);
 
   // Load `configs` from file. Will return `true` if success.
   bool Load(LayeredConfigs* configs) const;
