@@ -105,7 +105,7 @@ def main():
     if utils.is_linux_os():
       if not utils.glob_exists("/usr/share/doc/python3.*-venv"):
         utils.run_command(['apt', 'install', '-y', 'python3-venv'], as_root=True)
-    
+
     # Install required python dependencies.
     # On Catalina, python2 in installed as default python.
     # Example command:

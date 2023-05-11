@@ -68,7 +68,7 @@ def is_command_installed(tool):
 
 def glob_exists(glob_path):
   """Check if any file/directory exists at a given path glob."""
-  return len(glob.glob(glob_path)) == 0
+  return len(glob.glob(glob_path)) > 0
 
 
 def delete_directory(dir_path):
@@ -266,4 +266,3 @@ def install_x86_support_libraries(gha_build=False):
       with open(os.devnull, "w") as devnull:
         subprocess.run(["dpkg", "-s"] + packages, stdout=devnull, stderr=subprocess.STDOUT,
                        check=True)
-
