@@ -20,7 +20,8 @@ import java.util.HashMap;
 
 public final class ObjectArena {
 
-  private static final HashMap<Long, Object> map = new HashMap<>();
+  //private static final HashMap<Long, Object> map = new HashMap<>();
+  private static final LongObjectHashMap map = new LongObjectHashMap();
 
   private ObjectArena() {
     throw new RuntimeException("do not create instances of " + getClass().getName());

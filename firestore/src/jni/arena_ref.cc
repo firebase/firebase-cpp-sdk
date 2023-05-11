@@ -212,6 +212,8 @@ jlong ArenaRef::GenerateUniqueId() {
   // it easier to determine if an instance's ID is "valid". Even though this
   // initial value is large, it still leaves room for almost nine quintillion
   // (8,799,130,036,854,775,807) positive values, which should be enough :)
+  // Also note that LongObjectHashMap does not support 0 as a key, so be sure
+  // to never return 0 from this function.
   static std::atomic<jlong> gNextId(424242000000000000L);
   return gNextId.fetch_add(1);
 }
