@@ -200,6 +200,11 @@ std::string AppDataDir(const char* app_name, bool should_create,
 
   if (base_dir.empty()) return "";
 
+  // Debugging: Add international characters in the string.
+  base_dir += L"/";
+  base_dir += L"T\x1EBDstP\x1EA1th";  // "TestPath" with some squiggles.
+  if (should_create) Mkdir(base_dir);
+
   std::wstring current_path = base_dir;
   if (should_create) {
     // App name might contain path separators. Split it to get list of subdirs.
