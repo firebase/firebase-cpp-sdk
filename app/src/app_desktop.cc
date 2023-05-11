@@ -143,7 +143,7 @@ App* App::Create(const AppOptions& options, const char* name) {  // NOLINT
     app = new App();
     app->name_ = name;
     app->options_ = options_with_defaults;
-    std::string unique_name = app->name_ + "." + app->options_.package_name();
+    std::string unique_name = std::string(app->options_.package_name()) + "." + app->name_;
     app = app_common::AddApp(app, &app->init_results_);
     app->internal_->heartbeat_controller_ =
         std::make_shared<heartbeat::HeartbeatController>(
