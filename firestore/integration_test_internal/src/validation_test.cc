@@ -483,28 +483,24 @@ TEST_F(ValidationTest,
     Firestore* instance2 = Firestore::GetInstance();
     EXPECT_EQ(instance1, instance2);
     delete instance1;
-    delete instance2;
   }
   {
     Firestore* instance1 = Firestore::GetInstance(app());
     Firestore* instance2 = Firestore::GetInstance(app());
     EXPECT_EQ(instance1, instance2);
     delete instance1;
-    delete instance2;
   }
   {
     Firestore* instance1 = Firestore::GetInstance("foo");
     Firestore* instance2 = Firestore::GetInstance("foo");
     EXPECT_EQ(instance1, instance2);
     delete instance1;
-    delete instance2;
   }
   {
     Firestore* instance1 = Firestore::GetInstance(app(), "foo");
     Firestore* instance2 = Firestore::GetInstance(app(), "foo");
     EXPECT_EQ(instance1, instance2);
     delete instance1;
-    delete instance2;
   }
 }
 
@@ -519,9 +515,6 @@ TEST_F(ValidationTest,
   EXPECT_EQ(instance1, instance3);
   EXPECT_EQ(instance1, instance4);
   delete instance1;
-  delete instance2;
-  delete instance3;
-  delete instance4;
 }
 
 TEST_F(
@@ -531,7 +524,6 @@ TEST_F(
   Firestore* instance2 = Firestore::GetInstance(app(), "foo");
   EXPECT_EQ(instance1, instance2);
   delete instance1;
-  delete instance2;
 }
 
 TEST_F(
