@@ -14,19 +14,6 @@
       "provision": "Google_Development.mobileprovision"
     },
     {
-      "name": "admob",
-      "full_name": "FirebaseAdmob",
-      "bundle_id": "com.google.ios.admob.testapp",
-      "ios_target": "integration_test",
-      "tvos_target": "",
-      "testapp_path": "admob/integration_test",
-      "frameworks": [
-        "firebase_admob.xcframework",
-        "firebase.xcframework"
-      ],
-      "provision": "Google_Development.mobileprovision"
-    },
-    {
       "name": "analytics",
       "full_name": "FirebaseAnalytics",
       "bundle_id": "com.google.ios.analytics.testapp",
@@ -50,9 +37,12 @@
         "firebase_app_check.xcframework",
         "firebase_auth.xcframework",
         "firebase_database.xcframework",
+        "firebase_functions.xcframework",
+        "firebase_storage.xcframework",
         "firebase.xcframework"
       ],
-      "provision": "Firebase_Dev_Wildcard.mobileprovision"
+      "provision": "Firebase_Dev_Wildcard.mobileprovision",
+      "minify": "proguard"
     },
     {
       "name": "auth",
@@ -250,6 +240,7 @@
     ]
   },
   "android_dep_key_mapping": {
+    "app_check": ["firebase-appcheck"],
     "database": ["firebase-database"],
     "dynamic_links": ["firebase-dynamic-links"],
     "firestore": ["firebase-firestore"],
@@ -260,7 +251,6 @@
   "unreleased_dep_versions": [
     "def firebaseDependenciesMap = [",
     "'app' : ['com.google.firebase:firebase-analytics:[0,)'],",
-    "'admob' : ['com.google.firebase:firebase-ads:[0,)',",
     "'com.google.android.gms:play-services-measurement-sdk-api:[0,)'],",
     "'analytics' : ['com.google.firebase:firebase-analytics:[0,)'],",
     "'app_check' : ['com.google.firebase:firebase-appcheck:[0,)'],",

@@ -251,7 +251,6 @@ endif()
 
 set(internal_HDRS
     src/include/firebase/app.h
-        src/include/firebase/cpp_version_warning.h
     src/include/firebase/future.h
     src/include/firebase/internal/common.h
     src/include/firebase/internal/future_impl.h
@@ -456,15 +455,6 @@ if (IOS)
     )
   endif()
 
-  # framework header files
-  set(admob_HDRS
-    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob.h
-    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob/banner_view.h
-    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob/interstitial_ad.h
-    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob/native_express_ad_view.h
-    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob/rewarded_video.h
-    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob/types.h)
-
   # Generate the analytics header file
   # Copy from analytics/CMakeList.txt
   function(generate_analytics_header OBJC_FILE CPP_FILE)
@@ -565,7 +555,8 @@ if (IOS)
   set(messaging_HDRS
     ${FIREBASE_SOURCE_DIR}/messaging/src/include/firebase/messaging.h)
   set(remote_config_HDRS
-    ${FIREBASE_SOURCE_DIR}/remote_config/src/include/firebase/remote_config.h)
+    ${FIREBASE_SOURCE_DIR}/remote_config/src/include/firebase/remote_config.h
+    ${FIREBASE_SOURCE_DIR}/remote_config/src/include/firebase/remote_config/config_update_listener_registration.h)
   set(storage_HDRS
     ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage.h
     ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/common.h
@@ -576,7 +567,6 @@ if (IOS)
 
   list(APPEND framework_HDRS
     src/include/firebase/internal/platform.h
-    ${admob_HDRS}
     ${analytics_HDRS}
     ${app_check_HDRS}
     ${auth_HDRS}

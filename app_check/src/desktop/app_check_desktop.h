@@ -31,7 +31,7 @@ namespace internal {
 
 // The callback type for psuedo-AppCheckListeners added via the
 // function registry.
-using FunctionRegistryCallback = void (*)(std::string, void*);
+using FunctionRegistryCallback = void (*)(const std::string&, void*);
 
 class FunctionRegistryAppCheckListener : public AppCheckListener {
  public:

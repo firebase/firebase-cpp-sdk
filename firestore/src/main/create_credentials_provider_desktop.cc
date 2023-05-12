@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-#include "absl/memory/memory.h"
+#include <memory>
+
 #include "auth/src/include/firebase/auth.h"
 #include "firestore/src/main/create_credentials_provider.h"
 #include "firestore/src/main/credentials_provider_desktop.h"
@@ -26,7 +27,7 @@ using credentials::AuthCredentialsProvider;
 using firebase::auth::Auth;
 
 std::unique_ptr<AuthCredentialsProvider> CreateCredentialsProvider(App& app) {
-  return absl::make_unique<FirebaseCppCredentialsProvider>(app);
+  return std::make_unique<FirebaseCppCredentialsProvider>(app);
 }
 
 }  // namespace firestore

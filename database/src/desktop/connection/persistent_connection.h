@@ -154,9 +154,9 @@ class PersistentConnection : public ConnectionEventHandler {
   void Merge(const Path& path, const Variant& data, ResponsePtr response);
 
   // Purge all outstanding Put/Merge/OnDisconnectPut/OnDisconnectMerge requests.
-  // All response callback will be triggered with "write_canceled" error code.
+  // All response callback will be triggered with the given error code.
   // This should only be called from scheduler thread.
-  void PurgeOutstandingWrites();
+  void PurgeOutstandingWrites(Error error = kErrorWriteCanceled);
 
   // Overwrite the value at the given path on disconnection.
   // This should only be called from scheduler thread.
@@ -185,6 +185,8 @@ class PersistentConnection : public ConnectionEventHandler {
   // Check if the connection is currently interrupted manually.
   // This should only be called from scheduler thread.
   bool IsInterrupted();
+
+  void RefreshAppCheckToken(const std::string& token);
 
  private:
   // Enum of all the reason to interrupt the connection.
@@ -317,15 +319,26 @@ class PersistentConnection : public ConnectionEventHandler {
   // Try to reconnect to RT DB server.
   void TryScheduleReconnect();
 
-  // Callback function when the future to fetch token is complete.
-  static void OnTokenFutureComplete(const Future<std::string>& result_data,
-                                    void* user_data);
-  void HandleTokenFuture(Future<std::string> future);
+  // Callback function when the Auth future to fetch token is complete.
+  static void OnAuthTokenFutureComplete(const Future<std::string>& auth_future,
+                                        void* user_data);
+  // Callback function when the App Check future to fetch token is complete.
+  static void OnAppCheckTokenFutureComplete(
+      const Future<std::string>& app_check_future, void* user_data);
+  void HandleTokenFutures();
 
-  // Pending future to fetch the token.
-  Future<std::string> pending_token_future_;
   // Mutex to protect pending_token_future_
   Mutex pending_token_future_mutex_;
+  enum TokenFutureStatus {
+    kInvalidTokenFuture = 0,
+    kWaitingForTokenFuture,
+    kCompletedTokenFuture,
+  };
+  // Pending future to fetch the auth token.
+  Future<std::string> pending_auth_token_future_;
+  TokenFutureStatus auth_token_future_status_;
+  Future<std::string> pending_app_check_token_future_;
+  TokenFutureStatus app_check_token_future_status_;
 
   // Start to establish connection to RT DB server.
   void OpenNetworkConnection();
@@ -414,6 +427,11 @@ class PersistentConnection : public ConnectionEventHandler {
                                uint64_t outstanding_id);
 
   void OnAuthRevoked(Error error_code, const std::string& reason);
+
+  // ConnectionResponseHandler function for SendAuthToken request.
+  void HandleAppCheckTokenResponse(const Variant& message,
+                                   const ResponsePtr& response,
+                                   uint64_t outstanding_id);
 
   static void TriggerResponse(const ResponsePtr& response_ptr, Error error_code,
                               const std::string& error_message);
@@ -514,6 +532,9 @@ class PersistentConnection : public ConnectionEventHandler {
   // Auth
   std::string auth_token_;
   bool force_auth_refresh_;
+
+  // App Check
+  std::string app_check_token_;
 
   // Interrupt
   std::set<InterruptReason> interrupt_reasons_;

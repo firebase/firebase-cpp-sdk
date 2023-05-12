@@ -51,6 +51,7 @@ build_flatbuffers("${flatbuffer_schemas}"
 # Common source files used by all platforms
 set(common_SRCS
     src/auth.cc
+    src/credential.cc
     src/common.cc
     src/common.h
     src/data.h

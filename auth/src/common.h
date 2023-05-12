@@ -51,9 +51,21 @@ void LogHeartbeat(Auth* auth);
         auth_data_->future_impl.LastResult(k##class_name##Fn_##fn_name)); \
   }
 
+// All the result functions are similar.
+// Just return the local Future, cast to the proper result type.
+#define AUTH_RESULT_DEPRECATED_FN(class_name, fn_name, result_type)        \
+  Future<result_type> class_name::fn_name##LastResult_DEPRECATED() const { \
+    return static_cast<const Future<result_type>&>(                        \
+        auth_data_->future_impl.LastResult(                                \
+            k##class_name##Fn_##fn_name##_DEPRECATED));                    \
+  }
+
 // Returns true if `auth_data` has a user that's currently active.
 inline bool ValidUser(const AuthData* auth_data) {
-  return auth_data->user_impl != nullptr;
+  if (auth_data == nullptr || auth_data->user_impl == nullptr) {
+    return false;
+  }
+  return true;
 }
 
 // Notify all the listeners of the state change.

@@ -16,9 +16,9 @@
 
 #include <chrono>  // NOLINT(build/c++11)
 #include <iostream>
+#include <memory>
 #include <thread>  // NOLINT(build/c++11)
 
-#include "absl/memory/memory.h"
 #include "app_framework.h"
 #include "firebase/app.h"
 #include "firebase/firestore.h"

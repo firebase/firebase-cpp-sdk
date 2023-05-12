@@ -26,7 +26,6 @@
 #include <vector>
 
 #include "firebase/app.h"
-#include "firebase/cpp_version_warning.h"
 #include "firebase/gma/ad_view.h"
 #include "firebase/gma/interstitial_ad.h"
 #include "firebase/gma/rewarded_ad.h"
