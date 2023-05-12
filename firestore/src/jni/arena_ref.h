@@ -17,6 +17,8 @@
 #ifndef FIREBASE_FIRESTORE_SRC_JNI_ARENA_REF_H_
 #define FIREBASE_FIRESTORE_SRC_JNI_ARENA_REF_H_
 
+#include <memory>
+
 #include <jni.h>
 
 #include "firestore/src/jni/jni_fwd.h"
@@ -27,25 +29,23 @@ namespace jni {
 
 class ArenaRef final {
  public:
-  ArenaRef();
+  ArenaRef() = default;
   ArenaRef(Env&, jobject);
 
-  ~ArenaRef();
+  ArenaRef(const ArenaRef&) = default;
+  ArenaRef(ArenaRef&&) = default;
+  ArenaRef& operator=(const ArenaRef&) = default;
+  ArenaRef& operator=(ArenaRef&&) = default;
 
-  ArenaRef(const ArenaRef&);
-  ArenaRef(ArenaRef&&) noexcept;
-  ArenaRef& operator=(const ArenaRef&);
-  ArenaRef& operator=(ArenaRef&&) noexcept;
+  Local<Object> get(Env&) const;
+  void reset(Env& env, const Object&);
 
   static void Initialize(Loader&);
 
-  Local<Object> get(Env&) const;
-  void reset(Env& env, const Object&) const;
-
  private:
-  static jlong GenerateUniqueId();
+  void RegenerateId();
 
-  jlong id_ = -1;
+  std::shared_ptr<jlong> id_;
 };
 
 }  // namespace jni

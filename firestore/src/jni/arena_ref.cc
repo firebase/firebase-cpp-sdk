@@ -16,7 +16,6 @@
 #include "firestore/src/jni/arena_ref.h"
 
 #include <atomic>
-#include <utility>
 
 #include <jni.h>
 
@@ -77,13 +76,6 @@ class ObjectArena {
     env.get()->CallStaticVoidMethod(java_class_, remove_, id);
   }
 
-  void Dup(Env& env, jlong src_id, jlong dest_id) const {
-    if (!env.ok()) {
-      return;
-    }
-    env.get()->CallStaticVoidMethod(java_class_, dup_, src_id, dest_id);
-  }
-
  private:
   ObjectArena() = default;
 
@@ -108,7 +100,6 @@ class ObjectArena {
     get_ = LoadObjectArenaMethodId(loader, "get", "(J)Ljava/lang/Object;");
     set_ = LoadObjectArenaMethodId(loader, "set", "(JLjava/lang/Object;)V");
     remove_ = LoadObjectArenaMethodId(loader, "remove", "(J)V");
-    dup_ = LoadObjectArenaMethodId(loader, "dup", "(JJ)V");
 
     initialized_ = loader.ok();
   }
@@ -142,72 +133,10 @@ class ObjectArena {
   jmethodID get_{};
   jmethodID set_{};
   jmethodID remove_{};
-  jmethodID dup_{};
   bool initialized_ = false;
 };
 
-}  // namespace
-
-ArenaRef::ArenaRef() : id_(GenerateUniqueId()) {
-}
-
-ArenaRef::ArenaRef(Env& env, jobject object) : id_(GenerateUniqueId()) {
-  ObjectArena::GetInstance().Set(env, id_, object);
-}
-
-ArenaRef::~ArenaRef() {
-  Env env;
-  ExceptionClearGuard exception_clear_guard(env);
-  ObjectArena::GetInstance().Remove(env, id_);
-
-  if (!env.ok()) {
-    env.get()->ExceptionDescribe();
-    env.get()->ExceptionClear();
-    firebase::LogWarning("ArenaRef::~ArenaRef() failed");
-  }
-}
-
-ArenaRef::ArenaRef(const ArenaRef& other) : id_(GenerateUniqueId()) {
-  Env env;
-  ObjectArena::GetInstance().Dup(env, other.id_, id_);
-}
-
-ArenaRef::ArenaRef(ArenaRef&& other) noexcept : id_(std::exchange(other.id_, GenerateUniqueId())) {
-}
-
-ArenaRef& ArenaRef::operator=(const ArenaRef& other) {
-  if (&other == this) {
-    return *this;
-  }
-
-  Env env;
-  ObjectArena::GetInstance().Dup(env, other.id_, id_);
-
-  return *this;
-}
-
-ArenaRef& ArenaRef::operator=(ArenaRef&& other) noexcept {
-  std::swap(id_, other.id_);
-  return *this;
-}
-
-Local<Object> ArenaRef::get(Env& env) const {
-  jobject result = ObjectArena::GetInstance().Get(env, id_);
-  if (! env.ok()) {
-    return {};
-  }
-  return {env.get(), result};
-}
-
-void ArenaRef::reset(Env& env, const Object& object) const {
-  ObjectArena::GetInstance().Set(env, id_, object.get());
-}
-
-void ArenaRef::Initialize(Loader& loader) {
-  ObjectArena::Initialize(loader);
-}
-
-jlong ArenaRef::GenerateUniqueId() {
+jlong GenerateUniqueArenaRefId() {
   // Start the IDs at a large number with an easily-identifiable prefix to make
   // it easier to determine if an instance's ID is "valid". Even though this
   // initial value is large, it still leaves room for almost nine quintillion
@@ -216,6 +145,52 @@ jlong ArenaRef::GenerateUniqueId() {
   // to never return 0 from this function.
   static std::atomic<jlong> gNextId(424242000000000000L);
   return gNextId.fetch_add(1);
+}
+
+void ArenaRefSharedPtrDeleter(jlong* id_ptr) {
+  const jlong id = *id_ptr;
+  delete id_ptr;
+
+  Env env;
+  ExceptionClearGuard exception_clear_guard(env);
+  ObjectArena::GetInstance().Remove(env, id);
+
+  if (!env.ok()) {
+    env.get()->ExceptionDescribe();
+    env.get()->ExceptionClear();
+    firebase::LogWarning("ArenaRefSharedPtrDeleter() failed");
+  }
+}
+
+}  // namespace
+
+ArenaRef::ArenaRef(Env& env, jobject object) {
+  RegenerateId();
+  ObjectArena::GetInstance().Set(env, *id_, object);
+}
+
+Local<Object> ArenaRef::get(Env& env) const {
+  if (!id_) {
+    return {};
+  }
+  jobject result = ObjectArena::GetInstance().Get(env, *id_);
+  if (! env.ok()) {
+    return {};
+  }
+  return {env.get(), result};
+}
+
+void ArenaRef::RegenerateId() {
+  id_.reset(new jlong{GenerateUniqueArenaRefId()}, ArenaRefSharedPtrDeleter);
+}
+
+void ArenaRef::reset(Env& env, const Object& object) {
+  RegenerateId();
+  ObjectArena::GetInstance().Set(env, *id_, object.get());
+}
+
+void ArenaRef::Initialize(Loader& loader) {
+  ObjectArena::Initialize(loader);
 }
 
 }  // namespace jni

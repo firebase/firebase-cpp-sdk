@@ -23,7 +23,7 @@ public final class ObjectArena {
   private static final HashMap<Long, Object> map = new HashMap<>();
 
   private ObjectArena() {
-    throw new RuntimeException("do not create instances of " + getClass().getName());
+    throw new UnsupportedOperationException();
   }
 
   public static synchronized void set(long id, Object object) {
@@ -36,10 +36,6 @@ public final class ObjectArena {
 
   public static synchronized void remove(long id) {
     map.remove(id);
-  }
-
-  public static synchronized void dup(long srcId, long destId) {
-    map.put(destId, map.get(srcId));
   }
 
 }

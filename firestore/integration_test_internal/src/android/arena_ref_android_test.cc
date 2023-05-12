@@ -241,10 +241,11 @@ TEST_F(ArenaRefTest, CopyConstructorWithNonNull) {
   EXPECT_THAT(arena_ref_referring_to_non_null, RefersToJavaObject(java_object));
 }
 
-TEST_F(ArenaRefTest, CopyConstructorShouldReferToNullIfCalledWithPendingException) {
+TEST_F(ArenaRefTest, CopyConstructorShouldCopyIfCalledWithPendingException) {
   const ArenaRef default_arena_ref;
   const ArenaRef arena_ref_referring_to_null(env(), nullptr);
-  const ArenaRef arena_ref_referring_to_non_null(env(), NewJavaObject());
+  jobject java_object = NewJavaObject();
+  const ArenaRef arena_ref_referring_to_non_null(env(), java_object);
   ThrowException();
   ClearCurrentExceptionAfterTest();
 
@@ -255,7 +256,7 @@ TEST_F(ArenaRefTest, CopyConstructorShouldReferToNullIfCalledWithPendingExceptio
   env().ClearExceptionOccurred();
   EXPECT_THAT(default_arena_ref_copy_dest, RefersToNullJavaObject());
   EXPECT_THAT(arena_ref_referring_to_null_copy_dest, RefersToNullJavaObject());
-  EXPECT_THAT(arena_ref_referring_to_non_null_copy_dest, RefersToNullJavaObject());
+  EXPECT_THAT(arena_ref_referring_to_non_null_copy_dest, RefersToJavaObject(java_object));
 }
 
 TEST_F(ArenaRefTest, ObjectCreatedWithTheCopyConstructorShouldBeUnaffectedByChangesToTheCopiedObject) {
@@ -573,7 +574,7 @@ TEST_F(ArenaRefTest, CopyAssignmentOpCorrectlyAssignsSelfWhenSelfIsAnInstanceRef
   EXPECT_EQ(&return_value, &arena_ref_referring_to_non_null);
 }
 
-TEST_F(ArenaRefTest, CopyAssignmentOpOnADefaultInstanceWithAPendingJavaExceptionDoesNothing) {
+TEST_F(ArenaRefTest, CopyAssignmentOpOnADefaultInstanceShouldCopyIfCalledWithPendingException) {
   ArenaRef default_arena_ref;
   jobject java_object = NewJavaObject();
   const ArenaRef arena_ref_referring_to_non_null(env(), java_object);
@@ -583,12 +584,12 @@ TEST_F(ArenaRefTest, CopyAssignmentOpOnADefaultInstanceWithAPendingJavaException
   const ArenaRef& return_value = (default_arena_ref = arena_ref_referring_to_non_null);
 
   env().ClearExceptionOccurred();
-  EXPECT_THAT(default_arena_ref, RefersToNullJavaObject());
+  EXPECT_THAT(default_arena_ref, RefersToJavaObject(java_object));
   EXPECT_EQ(&return_value, &default_arena_ref);
   EXPECT_THAT(arena_ref_referring_to_non_null, RefersToJavaObject(java_object));
 }
 
-TEST_F(ArenaRefTest, CopyAssignmentOpOnAnInstanceReferringToNullWithAPendingJavaExceptionDoesNothing) {
+TEST_F(ArenaRefTest, CopyAssignmentOpOnAnInstanceReferringToNullShouldCopyIfCalledWithPendingException) {
   ArenaRef arena_ref_referring_to_null(env(), nullptr);
   jobject java_object = NewJavaObject();
   const ArenaRef arena_ref_referring_to_non_null(env(), java_object);
@@ -598,24 +599,24 @@ TEST_F(ArenaRefTest, CopyAssignmentOpOnAnInstanceReferringToNullWithAPendingJava
   const ArenaRef& return_value = (arena_ref_referring_to_null = arena_ref_referring_to_non_null);
 
   env().ClearExceptionOccurred();
-  EXPECT_THAT(arena_ref_referring_to_null, RefersToNullJavaObject());
+  EXPECT_THAT(arena_ref_referring_to_null, RefersToJavaObject(java_object));
   EXPECT_EQ(&return_value, &arena_ref_referring_to_null);
   EXPECT_THAT(arena_ref_referring_to_non_null, RefersToJavaObject(java_object));
 }
 
-TEST_F(ArenaRefTest, CopyAssignmentOpOnAnInstanceReferringToNonNullWithAPendingJavaExceptionDoesNothing) {
+TEST_F(ArenaRefTest, CopyAssignmentOpOnAnInstanceReferringToNonNullShouldCopyIfCalledWithPendingException) {
+  ArenaRef arena_ref_referring_to_non_null(env(), NewJavaObject());
   jobject java_object = NewJavaObject();
-  ArenaRef arena_ref_referring_to_non_null(env(), java_object);
-  const ArenaRef arena_ref_referring_to_null(env(), nullptr);
+  const ArenaRef another_arena_ref_referring_to_non_null(env(), java_object);
   ThrowException();
   ClearCurrentExceptionAfterTest();
 
-  const ArenaRef& return_value = (arena_ref_referring_to_non_null = arena_ref_referring_to_null);
+  const ArenaRef& return_value = (arena_ref_referring_to_non_null = another_arena_ref_referring_to_non_null);
 
   env().ClearExceptionOccurred();
   EXPECT_THAT(arena_ref_referring_to_non_null, RefersToJavaObject(java_object));
   EXPECT_EQ(&return_value, &arena_ref_referring_to_non_null);
-  EXPECT_THAT(arena_ref_referring_to_null, RefersToNullJavaObject());
+  EXPECT_THAT(another_arena_ref_referring_to_non_null, RefersToJavaObject(java_object));
 }
 
 TEST_F(ArenaRefTest, DestObjectOfCopyAssignmentOperatorShouldBeUnaffectedByChangesToSourceObject) {
