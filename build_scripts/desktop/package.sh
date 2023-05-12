@@ -184,7 +184,7 @@ fi
 
 # Desktop packaging settings.
 if [[ "${platform}" == "windows" ]]; then
-    premerge_threshold=20
+    premerge_threshold=40
     if [[ "${variant}" == *'Debug'* ]]; then
         subdir='Debug/'
         suffix='-d'
