@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "app/logged_heartbeats_generated.h"
+#include "app/src/filesystem.h"
 #include "app/src/logger.h"
 
 namespace firebase {
@@ -52,7 +53,7 @@ class HeartbeatStorageDesktop {
   // write operation fails.
   bool Write(const LoggedHeartbeats& heartbeats) const;
 
-  const char* GetFilename() const;
+  const PathStringChar* GetFilename() const;
 
  private:
   LoggedHeartbeats LoggedHeartbeatsFromFlatbuffer(
@@ -61,7 +62,7 @@ class HeartbeatStorageDesktop {
       const LoggedHeartbeats& heartbeats_struct) const;
 
   // local variables for state
-  std::string filename_;
+  PathString filename_;
   const Logger& logger_;
 };
 
