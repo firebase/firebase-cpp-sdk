@@ -16,15 +16,16 @@
 
 #include "firebase/firestore.h"
 
-#include <firestore/src/main/converter_main.h>
 #include <algorithm>
 #include <future>
 #include <memory>
 #include <stdexcept>
 
 #if defined(__ANDROID__)
+#include <firestore/src/android/converter_android.h>
 #include "android/firestore_integration_test_android.h"
 #include "firestore/src/android/exception_android.h"
+#include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/jni_runnable_android.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/ownership.h"
@@ -40,8 +41,10 @@
 #include "util/event_accumulator.h"
 #include "util/future_test_util.h"
 #if !defined(__ANDROID__)
+#include <firestore/src/main/converter_main.h>
 #include "Firestore/core/src/util/autoid.h"
 #include "firestore/src/main/firestore_main.h"
+
 #else
 #include "android/util_autoid.h"
 #endif  // !defined(__ANDROID__)
@@ -66,7 +69,7 @@ using ::testing::HasSubstr;
 class FirestoreTest : public FirestoreIntegrationTest {
  protected:
   const std::string GetFirestoreDatabaseId(Firestore* firestore) {
-    return GetInternal(firestore)->database_id().database_id();
+    return GetInternal(firestore)->database_name();
   }
 };
 

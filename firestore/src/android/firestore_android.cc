@@ -287,6 +287,7 @@ FirestoreInternal::FirestoreInternal(App* app, const char* database_id) {
   user_callback_executor_ = java_user_callback_executor;
 
   promises_ = std::make_unique<PromiseFactory<AsyncFn>>(this);
+  database_name_ = database_id;
 }
 
 /* static */
