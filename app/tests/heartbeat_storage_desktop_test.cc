@@ -22,6 +22,7 @@
 
 #include "app/logged_heartbeats_generated.h"
 #include "app/src/filesystem.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "gtest/gtest.h"
 
 namespace firebase {
@@ -129,10 +130,17 @@ TEST_F(HeartbeatStorageDesktopTest, ReadNonexistentFile) {
 TEST_F(HeartbeatStorageDesktopTest, FilenameIgnoresSymbolsInAppId) {
   std::string app_id = "idstart/\\?%*:|\"<>.,;=idend";
   HeartbeatStorageDesktop storage = HeartbeatStorageDesktop(app_id, logger_);
+#if FIREBASE_PLATFORM_WINDOWS
+  std::wstring filename = storage.GetFilename();
+  // Verify that the actual filename contains the non-symbol characters in
+  // app_id.
+  EXPECT_TRUE(filename.find(L"idstartidend") != std::string::npos) << filename;
+#else
   std::string filename = storage.GetFilename();
   // Verify that the actual filename contains the non-symbol characters in
   // app_id.
   EXPECT_TRUE(filename.find("idstartidend") != std::string::npos) << filename;
+#endif
 }
 
 TEST_F(HeartbeatStorageDesktopTest, ReadCorruptedData) {
