@@ -204,17 +204,17 @@ void VerifyUser(const User& user) {
 }
 
 void VerifyProviderData(const User& user) {
-  const std::vector<UserInfoInterface*>& provider_data = user.provider_data();
+  const std::vector<UserInfoInterface>& provider_data = user.provider_data();
   EXPECT_EQ(1, provider_data.size());
   if (provider_data.empty()) {
     return;  // Avoid crashing on vector out-of-bounds access below
   }
-  EXPECT_EQ("fake_uid", provider_data[0]->uid());
-  EXPECT_EQ("fake_email@example.com", provider_data[0]->email());
-  EXPECT_EQ("fake_display_name", provider_data[0]->display_name());
-  EXPECT_EQ("fake_photo_url", provider_data[0]->photo_url());
-  EXPECT_EQ("fake_provider_id", provider_data[0]->provider_id());
-  EXPECT_EQ("123123", provider_data[0]->phone_number());
+  EXPECT_EQ("fake_uid", provider_data[0].uid());
+  EXPECT_EQ("fake_email@example.com", provider_data[0].email());
+  EXPECT_EQ("fake_display_name", provider_data[0].display_name());
+  EXPECT_EQ("fake_photo_url", provider_data[0].photo_url());
+  EXPECT_EQ("fake_provider_id", provider_data[0].provider_id());
+  EXPECT_EQ("123123", provider_data[0].phone_number());
 }
 
 void InitializeSuccessfulVerifyAssertionFlow(
@@ -276,10 +276,10 @@ class UserDesktopTest : public ::testing::Test {
     id_token_listener.ExpectChanges(2);
     auth_state_listener.ExpectChanges(2);
 
-    Future<User*> future = firebase_auth_->SignInAnonymously();
+    Future<User*> future = firebase_auth_->SignInAnonymously_DEPRECATED();
     while (future.status() == kFutureStatusPending) {
     }
-    firebase_user_ = firebase_auth_->current_user();
+    firebase_user_ = firebase_auth_->current_user_DEPRECATED();
     EXPECT_NE(nullptr, firebase_user_);
 
     // Reset listeners before tests are run.
@@ -311,7 +311,8 @@ class UserDesktopTest : public ::testing::Test {
       FederatedOAuthProvider* provider, OAuthProviderTestHandler* handler,
       bool trigger_link) {
     InitializeSuccessfulAuthenticateWithProviderFlow(provider, handler);
-    Future<SignInResult> future = firebase_user_->LinkWithProvider(provider);
+    Future<SignInResult> future =
+        firebase_user_->LinkWithProvider_DEPRECATED(provider);
     if (trigger_link) {
       handler->TriggerLinkComplete();
     }
@@ -323,7 +324,7 @@ class UserDesktopTest : public ::testing::Test {
       bool trigger_reauthenticate) {
     InitializeSuccessfulAuthenticateWithProviderFlow(provider, handler);
     Future<SignInResult> future =
-        firebase_user_->ReauthenticateWithProvider(provider);
+        firebase_user_->ReauthenticateWithProvider_DEPRECATED(provider);
     if (trigger_reauthenticate) {
       handler->TriggerReauthenticateComplete();
     }
@@ -342,9 +343,12 @@ class UserDesktopTest : public ::testing::Test {
 
 // Test that metadata is correctly being populated and exposed
 TEST_F(UserDesktopTest, TestAccountMetadata) {
-  EXPECT_EQ(123,
-            firebase_auth_->current_user()->metadata().last_sign_in_timestamp);
-  EXPECT_EQ(456, firebase_auth_->current_user()->metadata().creation_timestamp);
+  EXPECT_EQ(123, firebase_auth_->current_user_DEPRECATED()
+                     ->metadata()
+                     .last_sign_in_timestamp);
+  EXPECT_EQ(
+      456,
+      firebase_auth_->current_user_DEPRECATED()->metadata().creation_timestamp);
 }
 
 TEST_F(UserDesktopTest, TestGetToken) {
@@ -531,7 +535,7 @@ TEST_F(UserDesktopTest, TestUnlink) {
   auth_state_listener.ExpectChanges(0);
 
   WaitForFuture(firebase_user_->Reload());
-  WaitForFuture(firebase_user_->Unlink("fake_provider_id"));
+  WaitForFuture(firebase_user_->Unlink_DEPRECATED("fake_provider_id"));
   VerifyProviderData(*firebase_user_);
 }
 
@@ -542,7 +546,7 @@ TEST_F(UserDesktopTest, TestUnlink_NonLinkedProvider) {
   id_token_listener.ExpectChanges(0);
   auth_state_listener.ExpectChanges(0);
 
-  WaitForFuture(firebase_user_->Unlink("no_such_provider"),
+  WaitForFuture(firebase_user_->Unlink_DEPRECATED("no_such_provider"),
                 kAuthErrorNoSuchProvider);
 }
 
@@ -557,7 +561,7 @@ TEST_F(UserDesktopTest, TestLinkWithCredential_OauthCredential) {
   const Credential credential =
       GoogleAuthProvider::GetCredential("fake_id_token", "");
   const User* const user =
-      WaitForFuture(firebase_user_->LinkWithCredential(credential));
+      WaitForFuture(firebase_user_->LinkWithCredential_DEPRECATED(credential));
   EXPECT_FALSE(user->is_anonymous());
   VerifyUser(*user);
 }
@@ -577,7 +581,7 @@ TEST_F(UserDesktopTest, TestLinkWithCredential_EmailCredential) {
   EXPECT_TRUE(firebase_user_->is_anonymous());
   const Credential credential =
       EmailAuthProvider::GetCredential(new_email.c_str(), "fake_password");
-  WaitForFuture(firebase_user_->LinkWithCredential(credential));
+  WaitForFuture(firebase_user_->LinkWithCredential_DEPRECATED(credential));
   EXPECT_EQ(new_email, firebase_user_->email());
   EXPECT_FALSE(firebase_user_->is_anonymous());
 }
@@ -594,7 +598,7 @@ TEST_F(UserDesktopTest, TestLinkWithCredential_NeedsConfirmation) {
 
   const Credential credential =
       GoogleAuthProvider::GetCredential("fake_id_token", "");
-  WaitForFuture(firebase_user_->LinkWithCredential(credential),
+  WaitForFuture(firebase_user_->LinkWithCredential_DEPRECATED(credential),
                 kAuthErrorAccountExistsWithDifferentCredentials);
 }
 
@@ -624,11 +628,13 @@ TEST_F(UserDesktopTest, TestLinkWithCredential_ChecksAlreadyLinkedProviders) {
 
   const Credential google_credential =
       GoogleAuthProvider::GetCredential("fake_id_token", "");
-  WaitForFuture(firebase_user_->LinkWithCredential(google_credential));
+  WaitForFuture(
+      firebase_user_->LinkWithCredential_DEPRECATED(google_credential));
 
   // The same provider shouldn't be linked twice.
-  WaitForFuture(firebase_user_->LinkWithCredential(google_credential),
-                kAuthErrorProviderAlreadyLinked);
+  WaitForFuture(
+      firebase_user_->LinkWithCredential_DEPRECATED(google_credential),
+      kAuthErrorProviderAlreadyLinked);
 
   id_token_listener.VerifyAndReset();
   auth_state_listener.VerifyAndReset();
@@ -662,14 +668,17 @@ TEST_F(UserDesktopTest, TestLinkWithCredential_ChecksAlreadyLinkedProviders) {
   // Should be able to link a different provider.
   const Credential facebook_credential =
       FacebookAuthProvider::GetCredential("fake_access_token");
-  WaitForFuture(firebase_user_->LinkWithCredential(facebook_credential));
+  WaitForFuture(
+      firebase_user_->LinkWithCredential_DEPRECATED(facebook_credential));
 
   // The same provider shouldn't be linked twice.
-  WaitForFuture(firebase_user_->LinkWithCredential(facebook_credential),
-                kAuthErrorProviderAlreadyLinked);
+  WaitForFuture(
+      firebase_user_->LinkWithCredential_DEPRECATED(facebook_credential),
+      kAuthErrorProviderAlreadyLinked);
   // Check that the previously linked provider wasn't overridden.
-  WaitForFuture(firebase_user_->LinkWithCredential(google_credential),
-                kAuthErrorProviderAlreadyLinked);
+  WaitForFuture(
+      firebase_user_->LinkWithCredential_DEPRECATED(google_credential),
+      kAuthErrorProviderAlreadyLinked);
 }
 
 TEST_F(UserDesktopTest, TestLinkWithCredentialAndRetrieveData) {
@@ -726,8 +735,8 @@ TEST_F(UserDesktopTest, TestReauthenticateAndRetrieveData) {
 
   const Credential credential =
       GoogleAuthProvider::GetCredential("fake_id_token", "");
-  const SignInResult sign_in_result =
-      WaitForFuture(firebase_user_->ReauthenticateAndRetrieveData(credential));
+  const SignInResult sign_in_result = WaitForFuture(
+      firebase_user_->ReauthenticateAndRetrieveData_DEPRECATED(credential));
   EXPECT_FALSE(sign_in_result.user->is_anonymous());
   VerifyUser(*sign_in_result.user);
 }
@@ -830,7 +839,7 @@ TEST_F(UserDesktopTestSignOutOnError, Unlink) {
       GetUrlForApi(API_KEY, "setAccountInfo"), "USER_NOT_FOUND",
       kAuthErrorUserNotFound, [&] {
         sem_.Post();
-        return firebase_user_->Unlink("fake_provider_id");
+        return firebase_user_->Unlink_DEPRECATED("fake_provider_id");
       });
   sem_.Wait();
 }
@@ -840,7 +849,7 @@ TEST_F(UserDesktopTestSignOutOnError, LinkWithEmail) {
       GetUrlForApi(API_KEY, "setAccountInfo"), "USER_NOT_FOUND",
       kAuthErrorUserNotFound, [&] {
         sem_.Post();
-        return firebase_user_->LinkWithCredential(
+        return firebase_user_->LinkWithCredential_DEPRECATED(
             EmailAuthProvider::GetCredential("fake_email@example.com",
                                              "fake_password"));
       });
@@ -852,7 +861,7 @@ TEST_F(UserDesktopTestSignOutOnError, LinkWithOauthCredential) {
       GetUrlForApi(API_KEY, "verifyAssertion"), "USER_NOT_FOUND",
       kAuthErrorUserNotFound, [&] {
         sem_.Post();
-        return firebase_user_->LinkWithCredential(
+        return firebase_user_->LinkWithCredential_DEPRECATED(
             GoogleAuthProvider::GetCredential("fake_id_token", ""));
       });
   sem_.Wait();
@@ -890,13 +899,14 @@ TEST_F(UserDesktopTest, TestRaceCondition_SetAccountInfoAndSignOut) {
   }
 
   EXPECT_THAT(future.error(), AnyOf(kAuthErrorNone, kAuthErrorNoSignedInUser));
-  EXPECT_EQ(nullptr, firebase_auth_->current_user());
+  EXPECT_EQ(nullptr, firebase_auth_->current_user_DEPRECATED());
 }
 
 // LinkWithProvider tests.
 TEST_F(UserDesktopTest, TestLinkWithProviderReturnsUnsupportedError) {
   FederatedOAuthProvider provider;
-  Future<SignInResult> future = firebase_user_->LinkWithProvider(&provider);
+  Future<SignInResult> future =
+      firebase_user_->LinkWithProvider_DEPRECATED(&provider);
   EXPECT_EQ(future.result()->user, nullptr);
   EXPECT_EQ(future.error(), kAuthErrorUnimplemented);
   EXPECT_EQ(std::string(future.error_message()),
@@ -911,7 +921,8 @@ TEST_F(UserDesktopTest,
   test::OAuthProviderTestHandler handler(/*extra_integrity_checks_=*/true);
   InitializeSuccessfulAuthenticateWithProviderFlow(&provider, &handler);
 
-  Future<SignInResult> future = firebase_user_->LinkWithProvider(&provider);
+  Future<SignInResult> future =
+      firebase_user_->LinkWithProvider_DEPRECATED(&provider);
   handler.TriggerLinkComplete();
   SignInResult sign_in_result = WaitForFuture(future);
 }
@@ -927,9 +938,11 @@ TEST_F(UserDesktopTest,
 
   OAuthProviderTestHandler handler2;
   provider2.SetAuthHandler(&handler2);
-  Future<SignInResult> future1 = firebase_user_->LinkWithProvider(&provider1);
+  Future<SignInResult> future1 =
+      firebase_user_->LinkWithProvider_DEPRECATED(&provider1);
   EXPECT_EQ(future1.status(), kFutureStatusPending);
-  Future<SignInResult> future2 = firebase_user_->LinkWithProvider(&provider2);
+  Future<SignInResult> future2 =
+      firebase_user_->LinkWithProvider_DEPRECATED(&provider2);
   VerifySignInResult(future2, kAuthErrorFederatedProviderAreadyInUse);
   handler1.TriggerLinkComplete();
   const SignInResult sign_in_result = WaitForFuture(future1);
@@ -1056,7 +1069,7 @@ TEST_F(UserDesktopTest, DISABLED_TestLinkCompleteNullErrorMessageFails) {
 TEST_F(UserDesktopTest, TestReauthentciateWithProviderReturnsUnsupportedError) {
   FederatedOAuthProvider provider;
   Future<SignInResult> future =
-      firebase_user_->ReauthenticateWithProvider(&provider);
+      firebase_user_->ReauthenticateWithProvider_DEPRECATED(&provider);
   EXPECT_EQ(future.result()->user, nullptr);
   EXPECT_EQ(future.error(), kAuthErrorUnimplemented);
   EXPECT_EQ(std::string(future.error_message()),
@@ -1073,7 +1086,7 @@ TEST_F(
   InitializeSuccessfulAuthenticateWithProviderFlow(&provider, &handler);
 
   Future<SignInResult> future =
-      firebase_user_->ReauthenticateWithProvider(&provider);
+      firebase_user_->ReauthenticateWithProvider_DEPRECATED(&provider);
   handler.TriggerReauthenticateComplete();
   SignInResult sign_in_result = WaitForFuture(future);
 }
@@ -1090,10 +1103,10 @@ TEST_F(UserDesktopTest,
   OAuthProviderTestHandler handler2;
   provider2.SetAuthHandler(&handler2);
   Future<SignInResult> future1 =
-      firebase_user_->ReauthenticateWithProvider(&provider1);
+      firebase_user_->ReauthenticateWithProvider_DEPRECATED(&provider1);
   EXPECT_EQ(future1.status(), kFutureStatusPending);
   Future<SignInResult> future2 =
-      firebase_user_->ReauthenticateWithProvider(&provider2);
+      firebase_user_->ReauthenticateWithProvider_DEPRECATED(&provider2);
   VerifySignInResult(future2, kAuthErrorFederatedProviderAreadyInUse);
   handler1.TriggerReauthenticateComplete();
   const SignInResult sign_in_result = WaitForFuture(future1);

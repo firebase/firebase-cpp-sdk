@@ -23,7 +23,6 @@
 #include "firebase/internal/common.h"
 
 #include "firebase/app.h"
-#include "firebase/cpp_version_warning.h"
 #include "firebase/future.h"
 #include "firebase/log.h"
 // Include *all* the public headers to make sure including just "firestore.h" is

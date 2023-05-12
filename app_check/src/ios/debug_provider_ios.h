@@ -16,7 +16,10 @@
 #define FIREBASE_APP_CHECK_SRC_IOS_DEBUG_PROVIDER_IOS_H_
 
 #include <map>
+#include <string>
 
+#include "app/memory/unique_ptr.h"
+#include "app/src/util_ios.h"
 #include "firebase/app_check.h"
 
 #ifdef __OBJC__
@@ -27,6 +30,11 @@ namespace firebase {
 namespace app_check {
 namespace internal {
 
+// This defines the class FIRAppCheckDebugProviderFactoryPointer, which is a
+// C++-compatible wrapper around the FIRAppCheckDebugProviderFactory Obj-C
+// class.
+OBJ_C_PTR_WRAPPER(FIRAppCheckDebugProviderFactory);
+
 class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
  public:
   DebugAppCheckProviderFactoryInternal();
@@ -35,10 +43,17 @@ class DebugAppCheckProviderFactoryInternal : public AppCheckProviderFactory {
 
   AppCheckProvider* CreateProvider(App* app) override;
 
+  void SetDebugToken(const std::string& token);
+
  private:
 #ifdef __OBJC__
-  FIRAppCheckDebugProviderFactory* ios_provider_factory_;
+  FIRAppCheckDebugProviderFactory* ios_provider_factory() const {
+    return ios_provider_factory_->get();
+  }
 #endif  // __OBJC__
+
+  // Object lifetime managed by Objective C ARC.
+  UniquePtr<FIRAppCheckDebugProviderFactoryPointer> ios_provider_factory_;
 
   std::map<App*, AppCheckProvider*> created_providers_;
 };
