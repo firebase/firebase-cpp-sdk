@@ -136,7 +136,7 @@ class FirestoreInternal {
       ListenerRegistrationInternal* registration);
   void ClearListeners();
 
-  const model::DatabaseId& database_id() const;
+  const model::DatabaseId& database_id() const { return this->database_id(); };
 
   // Bundles
   Future<LoadBundleTaskProgress> LoadBundle(const std::string& bundle);
@@ -214,8 +214,6 @@ class FirestoreInternal {
   std::unique_ptr<PromiseFactory<AsyncFn>> promises_;
 
   CleanupNotifier cleanup_;
-  model::DatabaseId NewDatabaseId(jni::Env& env,
-                                  const jni::Object& database_id) const;
 };
 
 // Holds a "weak reference" to a `FirestoreInternal` object.

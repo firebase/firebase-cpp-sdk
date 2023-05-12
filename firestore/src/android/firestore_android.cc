@@ -113,8 +113,6 @@ Method<Object> kCollectionGroup("collectionGroup",
 Method<SettingsInternal> kGetSettings(
     "getFirestoreSettings",
     "()Lcom/google/firebase/firestore/FirebaseFirestoreSettings;");
-Method<Object> kGetDatabaseId(
-    "getDatabaseId", "()Lcom/google/firebase/firestore/model/DatabaseId");
 StaticMethod<Object> kGetInstance(
     "getInstance",
     "(Lcom/google/firebase/FirebaseApp;"
@@ -455,21 +453,6 @@ Settings FirestoreInternal::settings() const {
 
   if (!env.ok()) return {};
   return settings.ToPublic(env);
-}
-
-const model::DatabaseId& FirestoreInternal::database_id() const {
-  Env env = GetEnv();
-  Local<Object> database_id = env.Call(obj_, kGetDatabaseId);
-
-  if (!env.ok()) return {};
-  return NewDatabaseId(env, database_id);
-}
-
-model::DatabaseId FirestoreInternal::NewDatabaseId(
-    Env& env, const jni::Object& database_id) const {
-  // return model::DatabaseId(""); // TODO(Mila) return database_id with correct
-  // type
-  return MakePublic<model::DatabaseId>(env, mutable_this(), database_id);
 }
 
 void FirestoreInternal::set_settings(Settings settings) {
