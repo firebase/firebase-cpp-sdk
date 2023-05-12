@@ -118,6 +118,7 @@ template <>
 struct InternalTypeMap<void> {
   using type = void;
 };
+
 template <typename T>
 using InternalType = typename InternalTypeMap<typename decay<T>::type>::type;
 

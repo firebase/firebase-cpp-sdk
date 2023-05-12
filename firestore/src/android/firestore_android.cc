@@ -115,8 +115,7 @@ Method<SettingsInternal> kGetSettings(
     "()Lcom/google/firebase/firestore/FirebaseFirestoreSettings;");
 StaticMethod<Object> kGetInstance(
     "getInstance",
-    "(Lcom/google/firebase/FirebaseApp;"
-    "Ljava/lang/String;)"  // TODO(Mila -remove)add the database_id string
+    "(Lcom/google/firebase/FirebaseApp;Ljava/lang/String;)"
     "Lcom/google/firebase/firestore/FirebaseFirestore;");
 StaticMethod<void> kSetLoggingEnabled("setLoggingEnabled", "(Z)V");
 StaticMethod<void> kSetClientLanguage("setClientLanguage",

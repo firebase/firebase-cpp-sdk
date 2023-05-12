@@ -136,7 +136,7 @@ class FirestoreInternal {
       ListenerRegistrationInternal* registration);
   void ClearListeners();
 
-  const model::DatabaseId& database_id() const { return this->database_id(); };
+  const model::DatabaseId& database_id() const { return this->database_id(); }
 
   // Bundles
   Future<LoadBundleTaskProgress> LoadBundle(const std::string& bundle);
