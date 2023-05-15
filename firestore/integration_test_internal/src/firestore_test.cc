@@ -1424,13 +1424,13 @@ TEST_F(FirestoreTest, CanCreateMultipleDatabases) {
   // other.
   EXPECT_THAT(doc1.Set({{"foo", FieldValue::String("bar1")}}),
               FutureSucceeds());
+  EXPECT_THAT(doc2.Set({{"foo", FieldValue::String("bar2")}}),
+              FutureSucceeds());
+
   const DocumentSnapshot* snapshot1 = Await(doc1.Get());
   EXPECT_TRUE(snapshot1->exists());
   EXPECT_THAT(snapshot1->GetData(),
               ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar1")}}));
-
-  EXPECT_THAT(doc2.Set({{"foo", FieldValue::String("bar2")}}),
-              FutureSucceeds());
   const DocumentSnapshot* snapshot2 = Await(doc2.Get());
   EXPECT_TRUE(snapshot2->exists());
   EXPECT_THAT(snapshot2->GetData(),
