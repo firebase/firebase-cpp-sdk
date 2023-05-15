@@ -53,7 +53,7 @@ LocalCacheSettings LocalCacheSettings::WithCacheSettings(const LocalCacheSetting
 }
 
 bool operator==(const LocalCacheSettings& lhs, const LocalCacheSettings& rhs) {
-  return lhs.impl_ == rhs.impl_;
+  return *lhs.impl_ == *rhs.impl_;
 }
 
 bool LocalCacheSettings::Impl::operator==(const Impl& other) const {
@@ -79,7 +79,7 @@ int64_t LocalCacheSettings::PersistentCacheSettings::size_bytes() const {
 }
 
 bool operator==(const LocalCacheSettings::PersistentCacheSettings& lhs, const LocalCacheSettings::PersistentCacheSettings& rhs) {
-  return lhs.impl_ == rhs.impl_;
+  return *lhs.impl_ == *rhs.impl_;
 }
 
 bool LocalCacheSettings::PersistentCacheSettings::Impl::operator==(const Impl& other) const {
@@ -97,7 +97,7 @@ LocalCacheSettings::MemoryCacheSettings::MemoryCacheSettings(Impl impl) : impl_(
 }
 
 bool operator==(const LocalCacheSettings::MemoryCacheSettings& lhs, const LocalCacheSettings::MemoryCacheSettings& rhs) {
-  return lhs.impl_ == rhs.impl_;
+  return *lhs.impl_ == *rhs.impl_;
 }
 
 bool LocalCacheSettings::MemoryCacheSettings::Impl::operator==(const Impl& other) const {
@@ -123,7 +123,7 @@ LocalCacheSettings::MemoryCacheSettings LocalCacheSettings::MemoryCacheSettings:
 }
 
 bool operator==(const LocalCacheSettings::MemoryCacheSettings::EagerGCSettings& lhs, const LocalCacheSettings::MemoryCacheSettings::EagerGCSettings& rhs) {
-  return lhs.impl_ == rhs.impl_;
+  return *lhs.impl_ == *rhs.impl_;
 }
 
 bool LocalCacheSettings::MemoryCacheSettings::EagerGCSettings::Impl::operator==(const Impl& other) const {
@@ -149,7 +149,7 @@ int64_t LocalCacheSettings::MemoryCacheSettings::LruGCSettings::size_bytes() con
 }
 
 bool operator==(const LocalCacheSettings::MemoryCacheSettings::LruGCSettings& lhs, const LocalCacheSettings::MemoryCacheSettings::LruGCSettings& rhs) {
-  return lhs.impl_ == rhs.impl_;
+  return *lhs.impl_ == *rhs.impl_;
 }
 
 bool LocalCacheSettings::MemoryCacheSettings::LruGCSettings::Impl::operator==(const Impl& other) const {
