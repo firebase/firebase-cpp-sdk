@@ -267,9 +267,9 @@ FirestoreInternal::FirestoreInternal(App* app, const char* database_id) {
 
   Env env = GetEnv();
   Local<Object> platform_app(env.get(), app_->GetPlatformApp());
-  Local<String> java_path = env.NewStringUtf(database_id);
+  Local<String> java_database_id = env.NewStringUtf(database_id);
   Local<Object> java_firestore =
-      env.Call(kGetInstance, platform_app, java_path);
+      env.Call(kGetInstance, platform_app, java_database_id);
   FIREBASE_ASSERT(java_firestore.get() != nullptr);
   obj_ = java_firestore;
 
