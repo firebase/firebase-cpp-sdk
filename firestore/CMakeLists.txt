@@ -41,7 +41,6 @@ set(common_SRCS
     src/common/hard_assert_common.h
     src/common/listener_registration.cc
     src/common/load_bundle_task_progress.cc
-    src/common/local_cache_settings.cc
     src/common/macros.h
     src/common/query.cc
     src/common/query_snapshot.cc
@@ -214,6 +213,8 @@ set(main_SRCS
     src/main/listener_main.h
     src/main/listener_registration_main.cc
     src/main/listener_registration_main.h
+    src/main/local_cache_settings_main.cc
+    src/main/local_cache_settings_main.h
     src/main/promise_factory_main.h
     src/main/promise_main.h
     src/main/query_main.cc

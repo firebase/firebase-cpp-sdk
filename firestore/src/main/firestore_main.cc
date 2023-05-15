@@ -194,14 +194,14 @@ Settings FirestoreInternal::settings() const {
   result.set_ssl_enabled(from.ssl_enabled());
 
   // TODO(wuandy): We use the deprecated API for default settings, but mark
-  // `used_legacy_cache_settings_` as false such that new settings API is not
+  // `cache_settings_source_` as kNone such that new settings API is not
   // rejected by runtime checks. This should be removed when legacy API is
   // removed.
   SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN()
   result.set_persistence_enabled(from.persistence_enabled());
   result.set_cache_size_bytes(from.cache_size_bytes());
   SUPPRESS_END()
-  result.used_legacy_cache_settings_ = false;
+  result.cache_settings_source_ = Settings::CacheSettingsSource::kNone;
 
   return result;
 }
@@ -210,16 +210,23 @@ void FirestoreInternal::set_settings(Settings from) {
   api::Settings settings;
   settings.set_host(std::move(from.host()));
   settings.set_ssl_enabled(from.is_ssl_enabled());
+
   // TODO(wuandy): Checking `from.local_cache_settings_` is required, because
   // FirestoreInternal::settings() overrides used_legacy_cache_settings_. All
   // this special logic should go away when legacy cache config is removed.
-  if (!from.used_legacy_cache_settings_ &&
-      from.local_cache_settings_ != nullptr) {
-    settings.set_local_cache_settings(
-        from.local_cache_settings()->core_cache_settings());
-  } else {
-    settings.set_persistence_enabled(from.is_persistence_enabled());
-    settings.set_cache_size_bytes(from.cache_size_bytes());
+  switch (from.cache_settings_source_) {
+    case Settings::CacheSettingsSource::kNone:
+    case Settings::CacheSettingsSource::kOld:
+      settings.set_persistence_enabled(from.is_persistence_enabled());
+      settings.set_cache_size_bytes(from.cache_size_bytes());
+      break;
+    case Settings::CacheSettingsSource::kNew: {
+      std::unique_ptr<api::LocalCacheSettings> local_cache_settings = from.local_cache_settings().impl_->ToCoreSettings();
+      settings.set_local_cache_settings(*local_cache_settings);
+      break;
+    }
+    default:
+      FIRESTORE_UNREACHABLE();
   }
   firestore_core_->set_settings(settings);
 

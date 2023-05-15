@@ -17,120 +17,174 @@
 #ifndef FIREBASE_FIRESTORE_SRC_MAIN_LOCAL_CACHE_SETTINGS_MAIN_H_
 #define FIREBASE_FIRESTORE_SRC_MAIN_LOCAL_CACHE_SETTINGS_MAIN_H_
 
-#include <cstdint>
-#include <utility>
+#include <memory>
 
+#include "firestore/src/include/firebase/firestore/local_cache_settings.h"
+#include "firestore/src/common/macros.h"
 #include "Firestore/core/src/api/settings.h"
+#include "absl/types/optional.h"
+#include "absl/types/variant.h"
 
 namespace firebase {
 namespace firestore {
 
-class LocalCacheSettingsInternal {};
-
-class PersistentCacheSettingsInternal final
-    : public LocalCacheSettingsInternal {
+class LocalCacheSettings::MemoryCacheSettings::LruGCSettings::Impl {
  public:
-  explicit PersistentCacheSettingsInternal(
-      const api::PersistentCacheSettings& core_settings)
-      : settings_(std::move(core_settings)) {}
+  Impl() = default;
 
-  friend bool operator==(const PersistentCacheSettingsInternal& lhs,
-                         const PersistentCacheSettingsInternal& rhs) {
-    return &lhs == &rhs || lhs.settings_ == rhs.settings_;
+  const api::MemoryLruGcSettings& core_settings() const {
+    return settings_;
   }
 
-  const api::PersistentCacheSettings& core_settings() { return settings_; }
-  void set_core_settings(const api::PersistentCacheSettings& settings) {
-    settings_ = settings;
+  int64_t size_bytes() const {
+    return settings_.size_bytes();
+  }
+
+  Impl WithSizeBytes(int64_t size_bytes) {
+    return Impl(settings_.WithSizeBytes(size_bytes));
+  }
+
+  bool operator==(const Impl&) const;
+  bool operator!=(const Impl& rhs) const {
+    return !(*this == rhs);
   }
 
  private:
-  api::PersistentCacheSettings settings_;
-};
-
-class MemoryGarbageCollectorSettingsInternal {};
-
-class MemoryEagerGCSettingsInternal final
-    : public MemoryGarbageCollectorSettingsInternal {
- public:
-  explicit MemoryEagerGCSettingsInternal(
-      const api::MemoryEagerGcSettings& core_settings)
-      : settings_(std::move(core_settings)) {}
-
-  friend bool operator==(const MemoryEagerGCSettingsInternal& lhs,
-                         const MemoryEagerGCSettingsInternal& rhs) {
-    return &lhs == &rhs || lhs.settings_ == rhs.settings_;
+  explicit Impl(api::MemoryLruGcSettings settings) : settings_(std::move(settings)) {
   }
 
-  const api::MemoryEagerGcSettings& core_settings() { return settings_; }
-  void set_core_settings(const api::MemoryEagerGcSettings& settings) {
-    settings_ = settings;
-  }
-
- private:
-  api::MemoryEagerGcSettings settings_;
-};
-
-class MemoryLruGCSettingsInternal final
-    : public MemoryGarbageCollectorSettingsInternal {
- public:
-  explicit MemoryLruGCSettingsInternal(
-      const api::MemoryLruGcSettings& core_settings)
-      : settings_(std::move(core_settings)) {}
-
-  friend bool operator==(const MemoryLruGCSettingsInternal& lhs,
-                         const MemoryLruGCSettingsInternal& rhs) {
-    return &lhs == &rhs || lhs.settings_ == rhs.settings_;
-  }
-
-  const api::MemoryLruGcSettings& core_settings() { return settings_; }
-  void set_core_settings(const api::MemoryLruGcSettings& settings) {
-    settings_ = settings;
-  }
-
- private:
   api::MemoryLruGcSettings settings_;
 };
 
-class MemoryCacheSettingsInternal final : public LocalCacheSettingsInternal {
+class LocalCacheSettings::MemoryCacheSettings::EagerGCSettings::Impl {
  public:
-  explicit MemoryCacheSettingsInternal(
-      const api::MemoryCacheSettings& core_settings)
-      : settings_(std::move(core_settings)) {}
+  Impl() = default;
 
-  friend bool operator==(const MemoryCacheSettingsInternal& lhs,
-                         const MemoryCacheSettingsInternal& rhs) {
-    return &lhs == &rhs || lhs.settings_ == rhs.settings_;
+  const api::MemoryEagerGcSettings& core_settings() const {
+    return settings_;
   }
 
-  const api::MemoryCacheSettings& core_settings() { return settings_; }
-  void set_core_settings(const api::MemoryCacheSettings& settings) {
-    settings_ = settings;
+  bool operator==(const Impl&) const;
+  bool operator!=(const Impl& rhs) const {
+    return !(*this == rhs);
   }
 
  private:
-  api::MemoryCacheSettings settings_;
+  explicit Impl(api::MemoryEagerGcSettings settings) : settings_(std::move(settings)) {
+  }
+
+  api::MemoryEagerGcSettings settings_;
 };
 
-inline bool operator!=(const MemoryCacheSettingsInternal& lhs,
-                       const MemoryCacheSettingsInternal& rhs) {
-  return !(lhs == rhs);
-}
+class LocalCacheSettings::MemoryCacheSettings::Impl {
+ public:
+  Impl() = default;
 
-inline bool operator!=(const MemoryLruGCSettingsInternal& lhs,
-                       const MemoryLruGCSettingsInternal& rhs) {
-  return !(lhs == rhs);
-}
+  std::unique_ptr<api::MemoryCacheSettings> ToCoreSettings() const {
+    if (! settings_.has_value()) {
+      return {};
+    }
+    if (absl::holds_alternative<EagerGCSettings::Impl>(*settings_)) {
+      return std::make_unique<api::MemoryCacheSettings>(api::MemoryCacheSettings().WithMemoryGarbageCollectorSettings(absl::get<EagerGCSettings::Impl>(*settings_).core_settings()));
+    }
+    if (absl::holds_alternative<LruGCSettings::Impl>(*settings_)) {
+      return std::make_unique<api::MemoryCacheSettings>(api::MemoryCacheSettings().WithMemoryGarbageCollectorSettings(absl::get<LruGCSettings::Impl>(*settings_).core_settings()));
+    }
+    FIRESTORE_UNREACHABLE();
+  }
 
-inline bool operator!=(const MemoryEagerGCSettingsInternal& lhs,
-                       const MemoryEagerGCSettingsInternal& rhs) {
-  return !(lhs == rhs);
-}
+  Impl WithGarbageCollectorSettings(LruGCSettings::Impl settings) const {
+    return Impl(std::move(settings));
+  }
 
-inline bool operator!=(const PersistentCacheSettingsInternal& lhs,
-                       const PersistentCacheSettingsInternal& rhs) {
-  return !(lhs == rhs);
-}
+  Impl WithGarbageCollectorSettings(EagerGCSettings::Impl settings) const {
+    return Impl(std::move(settings));
+  }
+
+  bool operator==(const Impl&) const;
+  bool operator!=(const Impl& rhs) const {
+    return !(*this == rhs);
+  }
+
+ private:
+  explicit Impl(LruGCSettings::Impl impl) : settings_(std::move(impl)) {
+  }
+  explicit Impl(EagerGCSettings::Impl impl) : settings_(std::move(impl)) {
+  }
+
+  absl::optional<absl::variant<EagerGCSettings::Impl, LruGCSettings::Impl>> settings_;
+};
+
+class LocalCacheSettings::PersistentCacheSettings::Impl {
+ public:
+  Impl() = default;
+
+  std::unique_ptr<api::PersistentCacheSettings> ToCoreSettings() const {
+    return std::make_unique<api::PersistentCacheSettings>(settings_);
+  }
+
+  int64_t size_bytes() const {
+    return settings_.size_bytes();
+  }
+
+  Impl WithSizeBytes(int64_t size_bytes) {
+    return Impl(settings_.WithSizeBytes(size_bytes));
+  }
+
+  bool operator==(const Impl&) const;
+  bool operator!=(const Impl& rhs) const {
+    return !(*this == rhs);
+  }
+
+ private:
+  explicit Impl(api::PersistentCacheSettings settings) : settings_(std::move(settings)) {
+  }
+
+  api::PersistentCacheSettings settings_;
+};
+
+class LocalCacheSettings::Impl {
+ public:
+  Impl() = default;
+
+  std::unique_ptr<api::LocalCacheSettings> ToCoreSettings() const {
+    if (! settings_.has_value()) {
+      return {};
+    }
+    if (absl::holds_alternative<MemoryCacheSettings::Impl>(*settings_)) {
+      absl::get<MemoryCacheSettings::Impl>(*settings_).ToCoreSettings();
+    }
+    if (absl::holds_alternative<PersistentCacheSettings::Impl>(*settings_)) {
+      absl::get<PersistentCacheSettings::Impl>(*settings_).ToCoreSettings();
+    }
+    FIRESTORE_UNREACHABLE();
+  }
+
+  Impl WithCacheSettings(MemoryCacheSettings::Impl settings) const {
+    return Impl(std::move(settings));
+  }
+
+  Impl WithCacheSettings(PersistentCacheSettings::Impl settings) const {
+    return Impl(std::move(settings));
+  }
+
+  const absl::optional<absl::variant<MemoryCacheSettings::Impl, PersistentCacheSettings::Impl>>& settings() const {
+    return settings_;
+  }
+
+  bool operator==(const Impl&) const;
+  bool operator!=(const Impl& rhs) const {
+    return !(*this == rhs);
+  }
+
+ private:
+  explicit Impl(MemoryCacheSettings::Impl impl) : settings_(std::move(impl)) {
+  }
+  explicit Impl(PersistentCacheSettings::Impl impl) : settings_(std::move(impl)) {
+  }
+
+  absl::optional<absl::variant<MemoryCacheSettings::Impl, PersistentCacheSettings::Impl>> settings_;
+};
 
 }  // namespace firestore
 }  // namespace firebase

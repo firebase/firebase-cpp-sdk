@@ -17,6 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_SETTINGS_H_
 #define FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_SETTINGS_H_
 
+#include "firebase/firestore/local_cache_settings.h"
 #include "firebase/internal/common.h"
 #if defined(__OBJC__)
 #include <dispatch/dispatch.h>
@@ -48,7 +49,6 @@ class Executor;
 #endif
 
 class FirestoreInternal;
-class LocalCacheSettings;
 
 /** Settings used to configure a Firestore instance. */
 class Settings final {
@@ -142,7 +142,7 @@ class Settings final {
    * Returns a shared pointer to the `LocalCacheSettings` instance
    * used to configure this SDK.
    */
-  std::shared_ptr<LocalCacheSettings> local_cache_settings();
+  LocalCacheSettings local_cache_settings() const;
 
   /**
    * Configures the SDK with the given `LocalCacheSettings` instance.
@@ -154,7 +154,7 @@ class Settings final {
    *
    * @param cache_settings Settings object to configue this SDK.
    */
-  void set_local_cache_settings(const LocalCacheSettings& cache_settings);
+  void set_local_cache_settings(LocalCacheSettings);
 
   /**
    * NOTE: This method is deprecated in favor of `set_local_cache_settings()`.
@@ -164,7 +164,8 @@ class Settings final {
    *
    * @param enabled Set true to enable local persistent storage.
    */
-  FIREBASE_DEPRECATED void set_persistence_enabled(bool enabled);
+  [[deprecated("Use set_local_cache_settings() instead")]]
+  void set_persistence_enabled(bool enabled);
 
   /**
    * NOTE: This method is deprecated in favor of `set_local_cache_settings()`.
@@ -179,7 +180,8 @@ class Settings final {
    * By default, collection is enabled with a cache size of 100 MB. The minimum
    * value is 1 MB.
    */
-  FIREBASE_DEPRECATED void set_cache_size_bytes(int64_t value);
+  [[deprecated("Use set_local_cache_settings() instead")]]
+  void set_cache_size_bytes(int64_t value);
 
 #if defined(__OBJC__) || defined(DOXYGEN)
   /**
@@ -239,13 +241,13 @@ class Settings final {
 
  private:
   static constexpr int64_t kDefaultCacheSizeBytes = 100 * 1024 * 1024;
+  enum class CacheSettingsSource { kNone, kNew, kOld };
 
   std::string host_;
   bool ssl_enabled_ = true;
+  CacheSettingsSource cache_settings_source_{CacheSettingsSource::kNone};
+  LocalCacheSettings local_cache_settings_;
 
-  std::shared_ptr<LocalCacheSettings> local_cache_settings_ = nullptr;
-
-  bool used_legacy_cache_settings_ = false;
   bool persistence_enabled_ = true;
   int64_t cache_size_bytes_ = kDefaultCacheSizeBytes;
 

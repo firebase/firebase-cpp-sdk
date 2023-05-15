@@ -45,6 +45,7 @@
 #include "util/future_test_util.h"
 #if !defined(__ANDROID__)
 #include "Firestore/core/src/util/autoid.h"
+#include "Firestore/core/src/util/warnings.h"
 #else
 #include "android/util_autoid.h"
 #endif  // !defined(__ANDROID__)
@@ -1533,7 +1534,9 @@ class FirestoreCacheConfigTest : public FirestoreIntegrationTest {
 TEST_F(FirestoreCacheConfigTest, LegacyCacheConfigForMemoryCacheWorks) {
   auto* db = TestFirestore("legacy_memory_cache");
   auto settings = db->settings();
-  WITH_DEPRECATED_API(settings.set_persistence_enabled(false));
+  SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN()
+  settings.set_persistence_enabled(false);
+  SUPPRESS_END()
   db->set_settings(std::move(settings));
 
   VerifyCachedDocumentDeletedImmediately(db);
@@ -1542,7 +1545,9 @@ TEST_F(FirestoreCacheConfigTest, LegacyCacheConfigForMemoryCacheWorks) {
 TEST_F(FirestoreCacheConfigTest, LegacyCacheConfigForPersistenceCacheWorks) {
   auto* db = TestFirestore("legacy_persistent_cache");
   auto settings = db->settings();
-  WITH_DEPRECATED_API(settings.set_persistence_enabled(true));
+  SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN()
+  settings.set_persistence_enabled(true);
+  SUPPRESS_END()
   db->set_settings(std::move(settings));
 
   VerifyCachedDocumentStaysAround(db);
@@ -1551,7 +1556,7 @@ TEST_F(FirestoreCacheConfigTest, LegacyCacheConfigForPersistenceCacheWorks) {
 TEST_F(FirestoreCacheConfigTest, NewCacheConfigForMemoryCacheWorks) {
   auto* db = TestFirestore("new_memory_cache");
   auto settings = db->settings();
-  settings.set_local_cache_settings(MemoryCacheSettings::Create());
+  settings.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::MemoryCacheSettings()));
   db->set_settings(std::move(settings));
 
   VerifyCachedDocumentDeletedImmediately(db);
@@ -1560,8 +1565,7 @@ TEST_F(FirestoreCacheConfigTest, NewCacheConfigForMemoryCacheWorks) {
 TEST_F(FirestoreCacheConfigTest, NewCacheConfigForPersistenceCacheWorks) {
   auto* db = TestFirestore("new_persistent_cache");
   auto settings = db->settings();
-  settings.set_local_cache_settings(
-      PersistentCacheSettings::Create().WithSizeBytes(50 * 1024 * 1024));
+  settings.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::PersistentCacheSettings().WithSizeBytes(50 * 1024 * 1024)));
   db->set_settings(std::move(settings));
 
   VerifyCachedDocumentStaysAround(db);
@@ -1571,29 +1575,27 @@ TEST_F(FirestoreCacheConfigTest, CannotMixNewAndLegacyCacheConfig) {
   {
     auto* db = TestFirestore("mixing_1");
     auto settings = db->settings();
-    settings.set_local_cache_settings(
-        PersistentCacheSettings::Create().WithSizeBytes(50 * 1024 * 1024));
+    settings.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::PersistentCacheSettings().WithSizeBytes(50 * 1024 * 1024)));
 
-    WITH_DEPRECATED_API(
-        EXPECT_THROW(settings.set_cache_size_bytes(0), std::logic_error));
+    SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN()
+    EXPECT_THROW(settings.set_cache_size_bytes(0), std::logic_error);
+    SUPPRESS_END()
   }
 
   {
     auto* db = TestFirestore("mixing_2");
     auto settings = db->settings();
-    WITH_DEPRECATED_API(settings.set_persistence_enabled(false));
-    EXPECT_THROW(
-        settings.set_local_cache_settings(MemoryCacheSettings::Create()),
-        std::logic_error);
+    SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN()
+    settings.set_persistence_enabled(false);
+    SUPPRESS_END()
+    EXPECT_THROW(settings.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::MemoryCacheSettings())), std::logic_error);
   }
 }
 
 TEST_F(FirestoreCacheConfigTest, CanGetDocumentFromCacheWithMemoryLruGC) {
   auto* db = TestFirestore("new_persistent_cache");
   auto settings = db->settings();
-  settings.set_local_cache_settings(
-      MemoryCacheSettings::Create().WithGarbageCollectorSettings(
-          MemoryLruGCSettings::Create()));
+  settings.set_local_cache_settings( LocalCacheSettings().WithCacheSettings( LocalCacheSettings::MemoryCacheSettings().WithGarbageCollectorSettings(LocalCacheSettings::MemoryCacheSettings::LruGCSettings())));
   db->set_settings(std::move(settings));
 
   VerifyCachedDocumentStaysAround(db);
@@ -1602,9 +1604,7 @@ TEST_F(FirestoreCacheConfigTest, CanGetDocumentFromCacheWithMemoryLruGC) {
 TEST_F(FirestoreCacheConfigTest, CannotGetDocumentFromCacheFromMemoryEagerGC) {
   auto* db = TestFirestore("new_persistent_cache");
   auto settings = db->settings();
-  settings.set_local_cache_settings(
-      MemoryCacheSettings::Create().WithGarbageCollectorSettings(
-          MemoryEagerGCSettings::Create()));
+  settings.set_local_cache_settings( LocalCacheSettings().WithCacheSettings( LocalCacheSettings::MemoryCacheSettings().WithGarbageCollectorSettings(LocalCacheSettings::MemoryCacheSettings::EagerGCSettings())));
   db->set_settings(std::move(settings));
 
   VerifyCachedDocumentDeletedImmediately(db);

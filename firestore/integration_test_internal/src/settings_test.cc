@@ -22,6 +22,11 @@
 
 #include "gtest/gtest.h"
 
+#if !defined(__ANDROID__)
+#include "Firestore/core/src/util/warnings.h"
+#else
+#endif  // !defined(__ANDROID__)
+
 namespace firebase {
 namespace firestore {
 namespace {
@@ -33,39 +38,51 @@ TEST(SettingsTest, Equality) {
   Settings settings1;
   settings1.set_host("foo");
   settings1.set_ssl_enabled(true);
-  WITH_DEPRECATED_API(settings1.set_persistence_enabled(true));
-  WITH_DEPRECATED_API(settings1.set_cache_size_bytes(kFiveMb));
+  SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN()
+  settings1.set_persistence_enabled(true);
+  settings1.set_cache_size_bytes(kFiveMb);
+  SUPPRESS_END()
 
   Settings settings2;
   settings2.set_host("bar");
   settings2.set_ssl_enabled(true);
-  WITH_DEPRECATED_API(settings2.set_persistence_enabled(true));
-  WITH_DEPRECATED_API(settings2.set_cache_size_bytes(kFiveMb));
+  SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN()
+  settings2.set_persistence_enabled(true);
+  settings2.set_cache_size_bytes(kFiveMb);
+  SUPPRESS_END()
 
   Settings settings3;
   settings3.set_host("foo");
   settings3.set_ssl_enabled(false);
-  WITH_DEPRECATED_API(settings3.set_persistence_enabled(true));
-  WITH_DEPRECATED_API(settings3.set_cache_size_bytes(kFiveMb));
+  SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN()
+  settings3.set_persistence_enabled(true);
+  settings3.set_cache_size_bytes(kFiveMb);
+  SUPPRESS_END()
 
   Settings settings4;
   settings4.set_host("foo");
   settings4.set_ssl_enabled(true);
-  WITH_DEPRECATED_API(settings4.set_persistence_enabled(false));
-  WITH_DEPRECATED_API(settings4.set_cache_size_bytes(kFiveMb));
+  SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN()
+  settings4.set_persistence_enabled(false);
+  settings4.set_cache_size_bytes(kFiveMb);
+  SUPPRESS_END()
 
   Settings settings5;
   settings5.set_host("foo");
   settings5.set_ssl_enabled(true);
-  WITH_DEPRECATED_API(settings5.set_persistence_enabled(true));
-  WITH_DEPRECATED_API(settings5.set_cache_size_bytes(kSixMb));
+  SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN()
+  settings5.set_persistence_enabled(true);
+  settings5.set_cache_size_bytes(kSixMb);
+  SUPPRESS_END()
 
   // This is the same as settings4.
   Settings settings6;
   settings6.set_host("foo");
   settings6.set_ssl_enabled(true);
-  WITH_DEPRECATED_API(settings6.set_persistence_enabled(false));
-  WITH_DEPRECATED_API(settings6.set_cache_size_bytes(kFiveMb));
+  SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN()
+  settings6.set_persistence_enabled(false);
+  settings6.set_cache_size_bytes(kFiveMb);
+  SUPPRESS_END()
 
   EXPECT_TRUE(settings1 == settings1);
   EXPECT_TRUE(settings6 == settings4);
@@ -103,60 +120,48 @@ TEST(SettingsTest, EqualityWithLocalCacheSettings) {
   Settings settings1;
   settings1.set_host("foo");
   settings1.set_ssl_enabled(true);
-  settings1.set_local_cache_settings(
-      PersistentCacheSettings::Create().WithSizeBytes(kFiveMb));
+  settings1.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::PersistentCacheSettings().WithSizeBytes(kFiveMb)));
 
   Settings settings2;
   settings2.set_host("bar");
   settings2.set_ssl_enabled(true);
-  settings2.set_local_cache_settings(
-      PersistentCacheSettings::Create().WithSizeBytes(kFiveMb));
+  settings2.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::PersistentCacheSettings().WithSizeBytes(kFiveMb)));
 
   Settings settings3;
   settings3.set_host("foo");
   settings3.set_ssl_enabled(false);
-  settings3.set_local_cache_settings(
-      PersistentCacheSettings::Create().WithSizeBytes(kFiveMb));
+  settings3.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::PersistentCacheSettings().WithSizeBytes(kFiveMb)));
 
   Settings settings4;
   settings4.set_host("foo");
   settings4.set_ssl_enabled(true);
-  settings4.set_local_cache_settings(MemoryCacheSettings::Create());
+  settings4.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::MemoryCacheSettings()));
 
   Settings settings5;
   settings5.set_host("foo");
   settings5.set_ssl_enabled(true);
-  settings5.set_local_cache_settings(
-      PersistentCacheSettings::Create().WithSizeBytes(kSixMb));
+  settings5.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::PersistentCacheSettings().WithSizeBytes(kSixMb)));
 
   Settings settings6;
   settings6.set_host("foo");
   settings6.set_ssl_enabled(true);
-  settings6.set_local_cache_settings(
-      MemoryCacheSettings::Create().WithGarbageCollectorSettings(
-          MemoryEagerGCSettings::Create()));
+  settings6.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::MemoryCacheSettings().WithGarbageCollectorSettings(LocalCacheSettings::MemoryCacheSettings::EagerGCSettings())));
 
   Settings settings7;
   settings7.set_host("foo");
   settings7.set_ssl_enabled(true);
-  settings7.set_local_cache_settings(
-      MemoryCacheSettings::Create().WithGarbageCollectorSettings(
-          MemoryLruGCSettings::Create().WithSizeBytes(kFiveMb)));
+  settings7.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::MemoryCacheSettings().WithGarbageCollectorSettings(LocalCacheSettings::MemoryCacheSettings::LruGCSettings().WithSizeBytes(kFiveMb))));
 
   Settings settings8;
   settings8.set_host("foo");
   settings8.set_ssl_enabled(true);
-  settings8.set_local_cache_settings(
-      MemoryCacheSettings::Create().WithGarbageCollectorSettings(
-          MemoryLruGCSettings::Create().WithSizeBytes(kSixMb)));
+  settings8.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::MemoryCacheSettings().WithGarbageCollectorSettings(LocalCacheSettings::MemoryCacheSettings::LruGCSettings().WithSizeBytes(kSixMb))));
 
   // Same as settings7
   Settings settings9;
   settings9.set_host("foo");
   settings9.set_ssl_enabled(true);
-  settings9.set_local_cache_settings(
-      MemoryCacheSettings::Create().WithGarbageCollectorSettings(
-          MemoryLruGCSettings::Create().WithSizeBytes(kFiveMb)));
+  settings9.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::MemoryCacheSettings().WithGarbageCollectorSettings(LocalCacheSettings::MemoryCacheSettings::LruGCSettings().WithSizeBytes(kFiveMb))));
 
   EXPECT_TRUE(settings1 == settings1);
   EXPECT_TRUE(settings6 == settings4);

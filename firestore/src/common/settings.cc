@@ -56,59 +56,46 @@ void Settings::set_host(std::string host) { host_ = firebase::Move(host); }
 
 void Settings::set_ssl_enabled(bool enabled) { ssl_enabled_ = enabled; }
 
-std::shared_ptr<LocalCacheSettings> Settings::local_cache_settings() {
-  if (used_legacy_cache_settings_) {
-    if (is_persistence_enabled()) {
-      local_cache_settings_ = std::make_shared<PersistentCacheSettings>(
-          PersistentCacheSettings::Create().WithSizeBytes(cache_size_bytes()));
-    } else {
-      local_cache_settings_ =
-          std::make_shared<MemoryCacheSettings>(MemoryCacheSettings::Create());
-    }
-  } else if (local_cache_settings_ == nullptr) {
-    local_cache_settings_ = std::make_shared<PersistentCacheSettings>(
-        PersistentCacheSettings::Create());
+LocalCacheSettings Settings::local_cache_settings() const {
+  if (cache_settings_source_ == CacheSettingsSource::kNew) {
+    return local_cache_settings_;
+  } else if (is_persistence_enabled()) {
+    return LocalCacheSettings().WithCacheSettings(LocalCacheSettings::PersistentCacheSettings().WithSizeBytes(cache_size_bytes()));
+  } else {
+    return LocalCacheSettings().WithCacheSettings(LocalCacheSettings::MemoryCacheSettings());
   }
-
-  return local_cache_settings_;
 }
 
-void Settings::set_local_cache_settings(const LocalCacheSettings& cache) {
-  if (used_legacy_cache_settings_) {
+void Settings::set_local_cache_settings(LocalCacheSettings cache) {
+  if (cache_settings_source_ == CacheSettingsSource::kOld) {
     SimpleThrowIllegalState(
         "Cannot mix set_local_cache_settings() with legacy cache api like "
         "set_persistence_enabled() or set_cache_size_bytes()");
   }
-
-  if (cache.kind() == LocalCacheSettings::Kind::kPersistent) {
-    local_cache_settings_ = std::make_shared<PersistentCacheSettings>(
-        static_cast<const PersistentCacheSettings&>(cache));
-  } else {
-    local_cache_settings_ = std::make_shared<MemoryCacheSettings>(
-        static_cast<const MemoryCacheSettings&>(cache));
-  }
+  cache_settings_source_ = CacheSettingsSource::kNew;
+  local_cache_settings_ = firebase::Move(cache);
 }
 
 void Settings::set_persistence_enabled(bool enabled) {
-  if (local_cache_settings_ != nullptr) {
+  if (cache_settings_source_ == CacheSettingsSource::kNew) {
     SimpleThrowIllegalState(
         "Cannot mix legacy cache api set_persistence_enabled() with new cache "
         "api set_local_cache_settings()");
   }
 
+  cache_settings_source_ == CacheSettingsSource::kOld;
   persistence_enabled_ = enabled;
-  used_legacy_cache_settings_ = true;
 }
 
 void Settings::set_cache_size_bytes(int64_t value) {
-  if (local_cache_settings_ != nullptr) {
+  if (cache_settings_source_ == CacheSettingsSource::kNew) {
     SimpleThrowIllegalState(
         "Cannot mix legacy cache api set_cache_size_bytes() with new cache api "
         "set_local_cache_settings()");
   }
 
+  cache_settings_source_ = CacheSettingsSource::kOld;
   cache_size_bytes_ = value;
-  used_legacy_cache_settings_ = true;
 }
 
 std::string Settings::ToString() const {
@@ -123,22 +110,21 @@ std::ostream& operator<<(std::ostream& out, const Settings& settings) {
 }
 
 bool operator==(const Settings& lhs, const Settings& rhs) {
-  bool eq = lhs.host() == rhs.host() &&
-            lhs.is_ssl_enabled() == rhs.is_ssl_enabled() &&
-            lhs.is_persistence_enabled() == rhs.is_persistence_enabled() &&
-            lhs.cache_size_bytes() == rhs.cache_size_bytes();
-
-  if (eq) {
-    if (lhs.local_cache_settings_ != rhs.local_cache_settings_) {
-      if (lhs.local_cache_settings_ != nullptr &&
-          rhs.local_cache_settings_ != nullptr) {
-        eq = (*lhs.local_cache_settings_ == *rhs.local_cache_settings_);
-      } else {
-        eq = false;
-      }
-    }
+  if (lhs.host() != rhs.host()) {
+    return false;
   }
-  return eq;
+  if (lhs.is_ssl_enabled() != rhs.is_ssl_enabled()) {
+    return false;
+  }
+  if (lhs.local_cache_settings() != rhs.local_cache_settings()) {
+    return false;
+  }
+  #if defined(__OBJC__)
+  if (lhs.dispatch_queue() != rhs.dispatch_queue()) {
+    return false;
+  }
+  #endif  // defined(__OBJC__)
+  return true;
 }
 
 // Apple uses a different mechanism, defined in `settings_apple.mm`.
