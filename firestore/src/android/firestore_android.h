@@ -22,6 +22,7 @@
 #include <list>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <unordered_set>
 
 #include "app/src/cleanup_notifier.h"

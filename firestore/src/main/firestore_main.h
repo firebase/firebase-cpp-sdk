@@ -21,6 +21,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>  // NOLINT(build/c++11)
+#include <string>
 #include <unordered_set>
 
 #include "Firestore/core/src/api/firestore.h"
