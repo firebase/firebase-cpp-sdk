@@ -1404,6 +1404,62 @@ TEST_F(FirestoreTest, RestartFirestoreLeadsToNewInstance) {
   delete db1;
 }
 
+TEST_F(FirestoreTest, CanCreateMultipleDatabases) {
+  // TODO(Mila): Remove the emulator env check after prod supports multiDB.
+  if (!IsUsingFirestoreEmulator()) {
+    GTEST_SKIP();
+  }
+
+  // Create two database instances in the same app.
+  App* app = App::GetInstance();
+  Firestore* db1 = TestFirestoreWithDatabaseId(app->name(), "db1");
+  Firestore* db2 = TestFirestoreWithDatabaseId(app->name(), "db2");
+  EXPECT_NE(db1, db2);
+
+  // Create collections with same name in different databases.
+  DocumentReference doc1 = db1->Collection("abc").Document();
+  DocumentReference doc2 = db2->Collection("abc").Document();
+
+  // Databases can store and retrieve documents without interfering with each
+  // other.
+  EXPECT_THAT(doc1.Set({{"foo", FieldValue::String("bar1")}}),
+              FutureSucceeds());
+  const DocumentSnapshot* snapshot1 = Await(doc1.Get());
+  EXPECT_TRUE(snapshot1->exists());
+  EXPECT_THAT(snapshot1->GetData(),
+              ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar1")}}));
+
+  EXPECT_THAT(doc2.Set({{"foo", FieldValue::String("bar2")}}),
+              FutureSucceeds());
+  const DocumentSnapshot* snapshot2 = Await(doc2.Get());
+  EXPECT_TRUE(snapshot2->exists());
+  EXPECT_THAT(snapshot2->GetData(),
+              ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar2")}}));
+}
+
+TEST_F(FirestoreTest, CanTerminateMultipleDatabases) {
+  // TODO(Mila): Remove the emulator env check after prod supports multiDB.
+  if (!IsUsingFirestoreEmulator()) {
+    GTEST_SKIP();
+  }
+
+  // Create two database instances in the same app.
+  App* app = App::GetInstance();
+  Firestore* db1 = TestFirestoreWithDatabaseId(app->name(), "db1");
+  Firestore* db2 = TestFirestoreWithDatabaseId(app->name(), "db2");
+  EXPECT_NE(db1, db2);
+
+  // A database can be terminated without affecting other databases.
+  DeleteFirestore(db1);
+
+  DocumentReference doc = db2->Collection("abc").Document();
+  EXPECT_THAT(doc.Set({{"foo", FieldValue::String("bar")}}), FutureSucceeds());
+  const DocumentSnapshot* snapshot = Await(doc.Get());
+  EXPECT_TRUE(snapshot->exists());
+  EXPECT_THAT(snapshot->GetData(),
+              ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
+}
+
 TEST_F(FirestoreTest,
        CanReadDocsAfterRestartFirestoreAndCreateNewNamedDatabaseInstance) {
   // TODO(Mila): Remove the emulator env check and LocateEmulator call after
