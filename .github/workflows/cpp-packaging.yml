@@ -479,7 +479,6 @@ jobs:
         - sdk_platform: windows
           suffix: '-x64-Release-dynamic'
           runs_on_platform: ubuntu-20.04
-        # Debug builds take longer, so run on Mac runners which have 3 CPUs.
         - sdk_platform: windows
           suffix: '-x86-Debug-static'
           runs_on_platform: ubuntu-20.04
