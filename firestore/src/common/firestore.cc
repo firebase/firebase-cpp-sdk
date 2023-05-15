@@ -180,7 +180,7 @@ Firestore* Firestore::CreateFirestore(App* app,
 
   MutexLock lock(*g_firestores_lock);
 
-  const char* database_id = internal->database_id().database_id().c_str();
+  const char* database_id = internal->database_name().c_str();
   Firestore* from_cache =
       FindFirestoreInCache(app, database_id, init_result_out);
   SIMPLE_HARD_ASSERT(from_cache == nullptr,
@@ -244,7 +244,7 @@ void Firestore::DeleteInternal() {
   if (!internal_) return;
 
   App* my_app = app();
-  const std::string database_id = internal_->database_id().database_id();
+  const std::string database_id = internal_->database_name();
 
   // Only need to unregister if internal_ is initialized.
   if (internal_->initialized()) {
@@ -383,7 +383,7 @@ Future<void> Firestore::EnableNetwork() {
 
 Future<void> Firestore::Terminate() {
   if (!internal_) return FailedFuture<void>();
-  const std::string& database_id = internal_->database_id().database_id();
+  const std::string& database_id = internal_->database_name();
   FirestoreMap::key_type key = MakeKey(app(), database_id.c_str());
 
   FirestoreCache()->erase(key);

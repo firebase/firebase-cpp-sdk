@@ -443,33 +443,37 @@ TEST_F(ValidationTest,
 TEST_F(ValidationTest,
        FirestoreGetInstanceWithNoArgumentsReturnsNonNullInstance) {
   InitResult result;
-  EXPECT_NO_THROW(Firestore::GetInstance(&result));
+  Firestore* instance = Firestore::GetInstance(&result);
   EXPECT_EQ(kInitResultSuccess, result);
-  EXPECT_NE(Firestore::GetInstance(), nullptr);
+  EXPECT_NE(instance, nullptr);
+  delete instance;
 }
 
 TEST_F(ValidationTest,
        FirestoreGetInstanceWithNonNullAppReturnsNonNullInstance) {
   InitResult result;
-  EXPECT_NO_THROW(Firestore::GetInstance(app(), &result));
+  Firestore* instance = Firestore::GetInstance(app(), &result);
   EXPECT_EQ(kInitResultSuccess, result);
-  EXPECT_NE(Firestore::GetInstance(app()), nullptr);
+  EXPECT_NE(instance, nullptr);
+  delete instance;
 }
 
 TEST_F(ValidationTest,
        FirestoreGetInstanceWithAppAndDatabaseNameReturnsNonNullInstance) {
   InitResult result;
-  EXPECT_NO_THROW(Firestore::GetInstance(app(), "foo", &result));
+  Firestore* instance = Firestore::GetInstance(app(), "foo", &result);
   EXPECT_EQ(kInitResultSuccess, result);
-  EXPECT_NE(Firestore::GetInstance(app(), "foo"), nullptr);
+  EXPECT_NE(instance, nullptr);
+  delete instance;
 }
 
 TEST_F(ValidationTest,
        FirestoreGetInstanceWithDatabaseNameReturnsNonNullInstance) {
   InitResult result;
-  EXPECT_NO_THROW(Firestore::GetInstance("foo", &result));
+  Firestore* instance = Firestore::GetInstance("foo", &result);
   EXPECT_EQ(kInitResultSuccess, result);
-  EXPECT_NE(Firestore::GetInstance("foo"), nullptr);
+  EXPECT_NE(instance, nullptr);
+  delete instance;
 }
 
 TEST_F(ValidationTest,
@@ -479,28 +483,24 @@ TEST_F(ValidationTest,
     Firestore* instance2 = Firestore::GetInstance();
     EXPECT_EQ(instance1, instance2);
     delete instance1;
-    delete instance2;
   }
   {
     Firestore* instance1 = Firestore::GetInstance(app());
     Firestore* instance2 = Firestore::GetInstance(app());
     EXPECT_EQ(instance1, instance2);
     delete instance1;
-    delete instance2;
   }
   {
     Firestore* instance1 = Firestore::GetInstance("foo");
     Firestore* instance2 = Firestore::GetInstance("foo");
     EXPECT_EQ(instance1, instance2);
     delete instance1;
-    delete instance2;
   }
   {
     Firestore* instance1 = Firestore::GetInstance(app(), "foo");
     Firestore* instance2 = Firestore::GetInstance(app(), "foo");
     EXPECT_EQ(instance1, instance2);
     delete instance1;
-    delete instance2;
   }
 }
 
@@ -515,9 +515,6 @@ TEST_F(ValidationTest,
   EXPECT_EQ(instance1, instance3);
   EXPECT_EQ(instance1, instance4);
   delete instance1;
-  delete instance2;
-  delete instance3;
-  delete instance4;
 }
 
 TEST_F(
@@ -527,7 +524,6 @@ TEST_F(
   Firestore* instance2 = Firestore::GetInstance(app(), "foo");
   EXPECT_EQ(instance1, instance2);
   delete instance1;
-  delete instance2;
 }
 
 TEST_F(

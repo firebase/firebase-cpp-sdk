@@ -43,7 +43,7 @@ struct TestFriend {
         absl::make_unique<credentials::EmptyAuthCredentialsProvider>(),
         absl::make_unique<credentials::EmptyAppCheckCredentialsProvider>());
 #else
-    return new FirestoreInternal(app);
+    return new FirestoreInternal(app, database_id.c_str());
 #endif  // !defined(__ANDROID__)
   }
 };
