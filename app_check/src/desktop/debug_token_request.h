@@ -29,7 +29,7 @@ namespace internal {
 
 // The server url to exchange the debug token with for a attestation token.
 static const char* kDebugTokenRequestServerUrlBase =
-    "https://firebaseappcheck.googleapis.com/v1beta/projects/";
+    "https://firebaseappcheck.googleapis.com/v1/projects/";
 // The header used to pass the project's API key.
 static const char* kDebugTokenRequestHeader = "X-Goog-Api-Key";
 

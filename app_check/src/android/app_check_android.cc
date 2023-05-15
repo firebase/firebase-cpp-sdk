@@ -297,7 +297,7 @@ AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
         util::Terminate(env);
       } else {
         // Each provider is optional as a user may or may not use it.
-        CacheDebugProviderMethodIds(env, activity);
+        CacheDebugProviderMethodIds(env, activity, embedded_files);
         CachePlayIntegrityProviderMethodIds(env, activity);
         g_initialized_count++;
       }
@@ -393,6 +393,7 @@ AppCheckInternal::~AppCheckInternal() {
   FIREBASE_ASSERT(g_initialized_count);
   g_initialized_count--;
   if (g_initialized_count == 0) {
+    util::CancelCallbacks(env, kApiIdentifier);
     ReleaseClasses(env);
     util::Terminate(env);
   }

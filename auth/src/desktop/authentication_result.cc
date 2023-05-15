@@ -35,7 +35,44 @@ std::string AuthenticationResult::uid() const {
                                       : user_impl_.uid;
 }
 
-SignInResult AuthenticationResult::SetAsCurrentUser(
+AuthResult AuthenticationResult::SetAsCurrentUser(
+    AuthData* const auth_data) const {
+  FIREBASE_ASSERT_RETURN(AuthResult(), auth_data);
+  if (!IsValid()) {
+    return AuthResult();
+  }
+
+  // Save the previous user state to be able to check whether listeners should
+  // be notified later on.
+  UserData previous_user;
+  // Don't call Auth::current_user_DEPRECATED() to avoid locking the mutex
+  // twice.
+  User* api_user_to_return = nullptr;
+  {
+    UserView::Writer writer =
+        UserView::ResetUser(auth_data, user_impl_, &previous_user);
+    if (user_account_info_.IsValid()) {
+      user_account_info_.MergeToUser(writer);
+    }
+    api_user_to_return = &auth_data->current_user;
+  }
+
+  if (previous_user.uid != uid()) {
+    NotifyAuthStateListeners(auth_data);
+  }
+  if (previous_user.id_token != id_token()) {
+    NotifyIdTokenListeners(auth_data);
+  }
+
+  AuthResult result;
+  if (api_user_to_return != nullptr) {
+    result.user = *api_user_to_return;
+  }
+  result.additional_user_info = info_;
+  return result;
+}
+
+SignInResult AuthenticationResult::SetAsCurrentUser_DEPRECATED(
     AuthData* const auth_data) const {
   FIREBASE_ASSERT_RETURN(SignInResult(), auth_data);
   if (!IsValid()) {
@@ -45,7 +82,8 @@ SignInResult AuthenticationResult::SetAsCurrentUser(
   // Save the previous user state to be able to check whether listeners should
   // be notified later on.
   UserData previous_user;
-  // Don't call Auth::current_user() to avoid locking the mutex twice.
+  // Don't call Auth::current_user_DEPRECATED() to avoid locking the mutex
+  // twice.
   User* api_user_to_return = nullptr;
   {
     UserView::Writer writer =
