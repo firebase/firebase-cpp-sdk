@@ -33,6 +33,7 @@
 #include "Firestore/core/src/util/executor.h"
 #include "Firestore/core/src/util/log.h"
 #include "Firestore/core/src/util/status.h"
+#include "Firestore/core/src/util/warnings.h"
 #include "absl/memory/memory.h"
 #include "absl/types/any.h"
 #include "app/src/include/firebase/future.h"
@@ -196,11 +197,10 @@ Settings FirestoreInternal::settings() const {
   // `used_legacy_cache_settings_` as false such that new settings API is not
   // rejected by runtime checks. This should be removed when legacy API is
   // removed.
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+  SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN()
   result.set_persistence_enabled(from.persistence_enabled());
   result.set_cache_size_bytes(from.cache_size_bytes());
-#pragma clang diagnostic pop
+  SUPPRESS_END()
   result.used_legacy_cache_settings_ = false;
 
   return result;

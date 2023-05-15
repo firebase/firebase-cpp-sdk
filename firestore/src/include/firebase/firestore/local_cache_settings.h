@@ -20,7 +20,6 @@
 #include <cstdint>
 #include <memory>
 
-#include "Firestore/core/src/api/settings.h"
 #include "firestore/src/include/firebase/firestore/settings.h"
 #include "firestore/src/main/firestore_main.h"
 #include "firestore/src/main/local_cache_settings_main.h"
@@ -45,11 +44,14 @@ class LocalCacheSettings {
   friend bool operator==(const LocalCacheSettings& lhs,
                          const LocalCacheSettings& rhs);
 
+ protected:
+  enum class Kind { kMemory, kPersistent };
+
  private:
   friend class FirestoreInternal;
   friend class Settings;
 
-  virtual api::LocalCacheSettings::Kind kind() const = 0;
+  virtual Kind kind() const = 0;
   virtual const api::LocalCacheSettings& core_cache_settings() const = 0;
 };
 
@@ -74,7 +76,13 @@ class PersistentCacheSettings final : public LocalCacheSettings {
   /** Copy assignment. */
   PersistentCacheSettings& operator=(const PersistentCacheSettings& other);
 
-  ~PersistentCacheSettings();
+  /** Move constructor. */
+  PersistentCacheSettings(PersistentCacheSettings&& other) = default;
+
+  /** Move assignment. */
+  PersistentCacheSettings& operator=(PersistentCacheSettings&& other) = default;
+
+  ~PersistentCacheSettings() override;
 
   /** Equality function. */
   friend bool operator==(const PersistentCacheSettings& lhs,
@@ -109,10 +117,11 @@ class PersistentCacheSettings final : public LocalCacheSettings {
 
   static PersistentCacheSettings CreateFromCoreSettings(
       const api::PersistentCacheSettings& core_settings);
+
   PersistentCacheSettings();
 
-  api::LocalCacheSettings::Kind kind() const override {
-    return api::LocalCacheSettings::Kind::kPersistent;
+  LocalCacheSettings::Kind kind() const override {
+    return LocalCacheSettings::Kind::kPersistent;
   }
 
   // Get the corresponding settings object from the core sdk.
@@ -142,7 +151,7 @@ class MemoryCacheSettings final : public LocalCacheSettings {
   /** Copy assignment. */
   MemoryCacheSettings& operator=(const MemoryCacheSettings& other);
 
-  ~MemoryCacheSettings();
+  ~MemoryCacheSettings() override;
 
   /** Equality function. */
   friend bool operator==(const MemoryCacheSettings& lhs,
@@ -163,8 +172,8 @@ class MemoryCacheSettings final : public LocalCacheSettings {
       const api::MemoryCacheSettings& core_settings);
   MemoryCacheSettings();
 
-  api::LocalCacheSettings::Kind kind() const override {
-    return api::LocalCacheSettings::Kind::kMemory;
+  LocalCacheSettings::Kind kind() const override {
+    return LocalCacheSettings::Kind::kMemory;
   }
 
   // Get the corresponding settings object from the core sdk.
@@ -210,7 +219,7 @@ class MemoryEagerGCSettings final : public MemoryGarbageCollectorSettings {
   /** Create a default instance `MemoryEagerGCSettings`. */
   static MemoryEagerGCSettings Create();
 
-  ~MemoryEagerGCSettings();
+  ~MemoryEagerGCSettings() override;
 
   /** Equality function. */
   friend bool operator==(const MemoryEagerGCSettings& lhs,
@@ -247,7 +256,7 @@ class MemoryLruGCSettings final : public MemoryGarbageCollectorSettings {
  public:
   /** Create a default instance `MemoryLruGCSettings`. */
   static MemoryLruGCSettings Create();
-  ~MemoryLruGCSettings();
+  ~MemoryLruGCSettings() override;
 
   /** Equality function. */
   friend bool operator==(const MemoryLruGCSettings& lhs,
@@ -289,18 +298,28 @@ class MemoryLruGCSettings final : public MemoryGarbageCollectorSettings {
 };
 
 /** Inequality function. */
-bool operator!=(const MemoryCacheSettings& lhs, const MemoryCacheSettings& rhs);
+inline bool operator!=(const MemoryCacheSettings& lhs,
+                       const MemoryCacheSettings& rhs) {
+  return !(lhs == rhs);
+}
 
 /** Inequality function. */
-bool operator!=(const PersistentCacheSettings& lhs,
-                const PersistentCacheSettings& rhs);
+inline bool operator!=(const PersistentCacheSettings& lhs,
+                       const PersistentCacheSettings& rhs) {
+  return !(lhs == rhs);
+}
 
 /** Inequality function. */
-bool operator!=(const MemoryEagerGCSettings& lhs,
-                const MemoryEagerGCSettings& rhs);
+inline bool operator!=(const MemoryEagerGCSettings& lhs,
+                       const MemoryEagerGCSettings& rhs) {
+  return !(lhs == rhs);
+}
 
 /** Inequality function. */
-bool operator!=(const MemoryLruGCSettings& lhs, const MemoryLruGCSettings& rhs);
+inline bool operator!=(const MemoryLruGCSettings& lhs,
+                       const MemoryLruGCSettings& rhs) {
+  return !(lhs == rhs);
+}
 
 }  // namespace firestore
 }  // namespace firebase

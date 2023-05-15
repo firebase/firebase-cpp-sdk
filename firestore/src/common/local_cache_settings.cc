@@ -168,19 +168,9 @@ bool operator==(const MemoryCacheSettings& lhs,
   return &lhs == &rhs || (*lhs.settings_internal_ == *rhs.settings_internal_);
 }
 
-bool operator!=(const MemoryCacheSettings& lhs,
-                const MemoryCacheSettings& rhs) {
-  return !(lhs == rhs);
-}
-
 bool operator==(const PersistentCacheSettings& lhs,
                 const PersistentCacheSettings& rhs) {
   return &lhs == &rhs || (*lhs.settings_internal_ == *rhs.settings_internal_);
-}
-
-bool operator!=(const PersistentCacheSettings& lhs,
-                const PersistentCacheSettings& rhs) {
-  return !(lhs == rhs);
 }
 
 bool operator==(const MemoryEagerGCSettings& lhs,
@@ -188,19 +178,9 @@ bool operator==(const MemoryEagerGCSettings& lhs,
   return &lhs == &rhs || (*lhs.settings_internal_ == *rhs.settings_internal_);
 }
 
-bool operator!=(const MemoryEagerGCSettings& lhs,
-                const MemoryEagerGCSettings& rhs) {
-  return !(lhs == rhs);
-}
-
 bool operator==(const MemoryLruGCSettings& lhs,
                 const MemoryLruGCSettings& rhs) {
   return &lhs == &rhs || (*lhs.settings_internal_ == *rhs.settings_internal_);
-}
-
-bool operator!=(const MemoryLruGCSettings& lhs,
-                const MemoryLruGCSettings& rhs) {
-  return !(lhs == rhs);
 }
 
 }  // namespace firestore

@@ -1504,73 +1504,70 @@ TEST_F(FirestoreIntegrationTest, ClearPersistenceWhileRunningFails) {
   EXPECT_EQ(await_clear_persistence.error(), Error::kErrorFailedPrecondition);
 }
 
-TEST_F(FirestoreIntegrationTest, LegacyCacheConfigForMemoryCacheWorks) {
+class FirestoreCacheConfigTest : public FirestoreIntegrationTest {
+ protected:
+  void VerifyCachedDocumentDeletedImmediately(Firestore* db) {
+    Await(db->Document("rooms/eros")
+              .Set(MapFieldValue{{"desc", FieldValue::String("eros")}}));
+
+    auto get_future = db->Document("rooms/eros").Get(Source::kCache);
+    const DocumentSnapshot* snapshot = Await(get_future);
+    ASSERT_NE(snapshot, nullptr);
+    ASSERT_FALSE(snapshot->is_valid());
+  }
+
+  void VerifyCachedDocumentStaysAround(Firestore* db) {
+    Await(db->Document("rooms/eros")
+              .Set(MapFieldValue{{"desc", FieldValue::String("eros")}}));
+
+    auto get_future = db->Document("rooms/eros").Get(Source::kCache);
+    const DocumentSnapshot* snapshot = Await(get_future);
+    ASSERT_NE(snapshot, nullptr);
+    ASSERT_TRUE(snapshot->is_valid());
+    ASSERT_THAT(
+        snapshot->GetData(),
+        ContainerEq(MapFieldValue{{"desc", FieldValue::String("eros")}}));
+  }
+};
+
+TEST_F(FirestoreCacheConfigTest, LegacyCacheConfigForMemoryCacheWorks) {
   auto* db = TestFirestore("legacy_memory_cache");
   auto settings = db->settings();
   WITH_DEPRECATED_API(settings.set_persistence_enabled(false));
   db->set_settings(std::move(settings));
 
-  Await(db->Document("rooms/eros")
-            .Set(MapFieldValue{{"desc", FieldValue::String("eros")}}));
-
-  auto get_future = db->Document("rooms/eros").Get(Source::kCache);
-  const DocumentSnapshot* snapshot = Await(get_future);
-  EXPECT_EQ(get_future.status(), FutureStatus::kFutureStatusComplete);
-  EXPECT_FALSE(snapshot->is_valid());
-  snapshot->id();
+  VerifyCachedDocumentDeletedImmediately(db);
 }
 
-TEST_F(FirestoreIntegrationTest, LegacyCacheConfigForPersistenceCacheWorks) {
+TEST_F(FirestoreCacheConfigTest, LegacyCacheConfigForPersistenceCacheWorks) {
   auto* db = TestFirestore("legacy_persistent_cache");
   auto settings = db->settings();
   WITH_DEPRECATED_API(settings.set_persistence_enabled(true));
   db->set_settings(std::move(settings));
 
-  Await(db->Document("rooms/eros")
-            .Set(MapFieldValue{{"desc", FieldValue::String("eros")}}));
-
-  auto get_future = db->Document("rooms/eros").Get(Source::kCache);
-  const DocumentSnapshot* snapshot = Await(get_future);
-  EXPECT_EQ(get_future.status(), FutureStatus::kFutureStatusComplete);
-  EXPECT_TRUE(snapshot->is_valid());
-  EXPECT_THAT(snapshot->GetData(),
-              ContainerEq(MapFieldValue{{"desc", FieldValue::String("eros")}}));
+  VerifyCachedDocumentStaysAround(db);
 }
 
-TEST_F(FirestoreIntegrationTest, NewCacheConfigForMemoryCacheWorks) {
+TEST_F(FirestoreCacheConfigTest, NewCacheConfigForMemoryCacheWorks) {
   auto* db = TestFirestore("new_memory_cache");
   auto settings = db->settings();
   settings.set_local_cache_settings(MemoryCacheSettings::Create());
   db->set_settings(std::move(settings));
 
-  Await(db->Document("rooms/eros")
-            .Set(MapFieldValue{{"desc", FieldValue::String("eros")}}));
-
-  auto get_future = db->Document("rooms/eros").Get(Source::kCache);
-  const DocumentSnapshot* snapshot = Await(get_future);
-  EXPECT_EQ(get_future.status(), FutureStatus::kFutureStatusComplete);
-  EXPECT_FALSE(snapshot->is_valid());
+  VerifyCachedDocumentDeletedImmediately(db);
 }
 
-TEST_F(FirestoreIntegrationTest, NewCacheConfigForPersistenceCacheWorks) {
+TEST_F(FirestoreCacheConfigTest, NewCacheConfigForPersistenceCacheWorks) {
   auto* db = TestFirestore("new_persistent_cache");
   auto settings = db->settings();
   settings.set_local_cache_settings(
       PersistentCacheSettings::Create().WithSizeBytes(50 * 1024 * 1024));
   db->set_settings(std::move(settings));
 
-  Await(db->Document("rooms/eros")
-            .Set(MapFieldValue{{"desc", FieldValue::String("eros")}}));
-
-  auto get_future = db->Document("rooms/eros").Get(Source::kCache);
-  const DocumentSnapshot* snapshot = Await(get_future);
-  EXPECT_EQ(get_future.status(), FutureStatus::kFutureStatusComplete);
-  EXPECT_TRUE(snapshot->is_valid());
-  EXPECT_THAT(snapshot->GetData(),
-              ContainerEq(MapFieldValue{{"desc", FieldValue::String("eros")}}));
+  VerifyCachedDocumentStaysAround(db);
 }
 
-TEST_F(FirestoreIntegrationTest, CannotMixNewAndLegacyCacheConfig) {
+TEST_F(FirestoreCacheConfigTest, CannotMixNewAndLegacyCacheConfig) {
   {
     auto* db = TestFirestore("mixing_1");
     auto settings = db->settings();
@@ -1591,7 +1588,7 @@ TEST_F(FirestoreIntegrationTest, CannotMixNewAndLegacyCacheConfig) {
   }
 }
 
-TEST_F(FirestoreIntegrationTest, CanGetDocumentFromCacheWithMemoryLruGC) {
+TEST_F(FirestoreCacheConfigTest, CanGetDocumentFromCacheWithMemoryLruGC) {
   auto* db = TestFirestore("new_persistent_cache");
   auto settings = db->settings();
   settings.set_local_cache_settings(
@@ -1599,18 +1596,10 @@ TEST_F(FirestoreIntegrationTest, CanGetDocumentFromCacheWithMemoryLruGC) {
           MemoryLruGCSettings::Create()));
   db->set_settings(std::move(settings));
 
-  Await(db->Document("rooms/eros")
-            .Set(MapFieldValue{{"desc", FieldValue::String("eros")}}));
-
-  auto get_future = db->Document("rooms/eros").Get(Source::kCache);
-  const DocumentSnapshot* snapshot = Await(get_future);
-  EXPECT_EQ(get_future.status(), FutureStatus::kFutureStatusComplete);
-  EXPECT_TRUE(snapshot->is_valid());
-  EXPECT_THAT(snapshot->GetData(),
-              ContainerEq(MapFieldValue{{"desc", FieldValue::String("eros")}}));
+  VerifyCachedDocumentStaysAround(db);
 }
 
-TEST_F(FirestoreIntegrationTest, CannotGetDocumentFromCacheFromMemoryEagerGC) {
+TEST_F(FirestoreCacheConfigTest, CannotGetDocumentFromCacheFromMemoryEagerGC) {
   auto* db = TestFirestore("new_persistent_cache");
   auto settings = db->settings();
   settings.set_local_cache_settings(
@@ -1618,13 +1607,7 @@ TEST_F(FirestoreIntegrationTest, CannotGetDocumentFromCacheFromMemoryEagerGC) {
           MemoryEagerGCSettings::Create()));
   db->set_settings(std::move(settings));
 
-  Await(db->Document("rooms/eros")
-            .Set(MapFieldValue{{"desc", FieldValue::String("eros")}}));
-
-  auto get_future = db->Document("rooms/eros").Get(Source::kCache);
-  const DocumentSnapshot* snapshot = Await(get_future);
-  EXPECT_EQ(get_future.status(), FutureStatus::kFutureStatusComplete);
-  EXPECT_FALSE(snapshot->is_valid());
+  VerifyCachedDocumentDeletedImmediately(db);
 }
 
 // Note: this test only exists in C++.

@@ -80,7 +80,7 @@ void Settings::set_local_cache_settings(const LocalCacheSettings& cache) {
         "set_persistence_enabled() or set_cache_size_bytes()");
   }
 
-  if (cache.kind() == api::LocalCacheSettings::Kind::kPersistent) {
+  if (cache.kind() == LocalCacheSettings::Kind::kPersistent) {
     local_cache_settings_ = std::make_shared<PersistentCacheSettings>(
         static_cast<const PersistentCacheSettings&>(cache));
   } else {
