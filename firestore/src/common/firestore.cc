@@ -180,7 +180,7 @@ Firestore* Firestore::CreateFirestore(App* app,
 
   MutexLock lock(*g_firestores_lock);
 
-  const char* database_id = internal->database_name();
+  const char* database_id = internal->database_name().c_str();
   Firestore* from_cache =
       FindFirestoreInCache(app, database_id, init_result_out);
   SIMPLE_HARD_ASSERT(from_cache == nullptr,

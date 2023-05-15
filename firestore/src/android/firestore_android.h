@@ -135,7 +135,7 @@ class FirestoreInternal {
       ListenerRegistrationInternal* registration);
   void ClearListeners();
 
-  const char* database_name() const { return database_name_; }
+  const std::string& database_name() const { return database_name_; }
 
   // Bundles
   Future<LoadBundleTaskProgress> LoadBundle(const std::string& bundle);
@@ -214,7 +214,7 @@ class FirestoreInternal {
 
   CleanupNotifier cleanup_;
 
-  const char* database_name_;
+  std::string database_name_;
 };
 
 // Holds a "weak reference" to a `FirestoreInternal` object.

@@ -22,8 +22,8 @@
 #include <stdexcept>
 
 #if defined(__ANDROID__)
-#include <firestore/src/android/converter_android.h>
 #include "android/firestore_integration_test_android.h"
+#include "firestore/src/android/converter_android.h"
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/jni_runnable_android.h"
@@ -41,10 +41,9 @@
 #include "util/event_accumulator.h"
 #include "util/future_test_util.h"
 #if !defined(__ANDROID__)
-#include <firestore/src/main/converter_main.h>
 #include "Firestore/core/src/util/autoid.h"
+#include "firestore/src/main/converter_main.h"
 #include "firestore/src/main/firestore_main.h"
-
 #else
 #include "android/util_autoid.h"
 #endif  // !defined(__ANDROID__)

@@ -107,7 +107,7 @@ class FirestoreInternal {
     return firestore_core_->database_id();
   }
 
-  const char* database_name() const { return database_name_; }
+  const std::string& database_name() const { return database_name_; }
 
   // Bundles
   Future<LoadBundleTaskProgress> LoadBundle(const std::string& bundle);
@@ -186,7 +186,7 @@ class FirestoreInternal {
   std::unordered_set<ListenerRegistrationInternal*> listeners_;
 
   std::shared_ptr<util::Executor> transaction_executor_;
-  const char* database_name_;
+  std::string database_name_;
 };
 
 }  // namespace firestore
