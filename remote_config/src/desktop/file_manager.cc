@@ -37,7 +37,7 @@ namespace internal {
 RemoteConfigFileManager::RemoteConfigFileManager(const std::string& filename,
                                                  const firebase::App& app) {
   std::string app_data_prefix = std::string(app.options().package_name()) +
-                                "/" + app.name() + "/" + "TẽstPạth";
+                                "/" + app.name();
   std::string file_path =
       AppDataDir(app_data_prefix.c_str(), /*should_create=*/true) + "/" +
       filename;
