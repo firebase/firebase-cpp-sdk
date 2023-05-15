@@ -18,6 +18,9 @@ if(TARGET leveldb)
   return()
 endif()
 
+set(patch_file 
+  ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/leveldb/0001-leveldb-1.23-windows-paths.patch)
+
 # This version must be kept in sync with the version in firestore.patch.txt.
 # If this version ever changes then make sure to update the version in
 # firestore.patch.txt accordingly.
@@ -27,9 +30,8 @@ ExternalProject_Add(
   leveldb
 
   DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
-  DOWNLOAD_NAME leveldb-${version}.tar.gz
-  URL https://github.com/google/leveldb/archive/${version}.tar.gz
-  URL_HASH SHA256=9a37f8a6174f09bd622bc723b55881dc541cd50747cbd08831c2a82d620f6d76
+  GIT_REPOSITORY https://github.com/google/leveldb.git
+  GIT_TAG "${version}"
 
   PREFIX ${PROJECT_BINARY_DIR}
 
@@ -38,4 +40,5 @@ ExternalProject_Add(
   INSTALL_COMMAND   ""
   TEST_COMMAND      ""
   HTTP_HEADER "${EXTERNAL_PROJECT_HTTP_HEADER}"
+  PATCH_COMMAND git apply ${patch_file} && git gc --aggressive
 )

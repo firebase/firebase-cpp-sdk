@@ -19,14 +19,17 @@ if(TARGET flatbuffers OR NOT DOWNLOAD_FLATBUFFERS)
 endif()
 
 set(version 99aa1ef21dd9dc3f9d4fb0eb82f4b59d0bb5e4c5)
+set(patch_file
+  ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/flatbuffers/0001-remove-unused-var.patch)
 
 ExternalProject_Add(
   flatbuffers
 
-  DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
-  DOWNLOAD_NAME flatbuffers-${version}.tar.gz
-  URL https://github.com/google/flatbuffers/archive/${version}.tar.gz
+  DOWNLOAD_COMMAND
+    COMMAND git init flatbuffers
+    COMMAND cd flatbuffers && git fetch --depth=1 https://github.com/google/flatbuffers.git ${version} && git reset --hard FETCH_HEAD
 
+  PATCH_COMMAND git apply ${patch_file} && git gc --aggressive
   PREFIX ${PROJECT_BINARY_DIR}
 
   CONFIGURE_COMMAND ""
