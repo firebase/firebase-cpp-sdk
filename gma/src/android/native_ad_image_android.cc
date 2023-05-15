@@ -62,6 +62,7 @@ NativeAdImage::NativeAdImage(
   jobject j_uri =
       env->CallObjectMethod(internal_->native_ad_image,
                             native_image::GetMethodId(native_image::kGetUri));
+  util::CheckAndClearJniExceptions(env);
   FIREBASE_ASSERT(j_uri);
   internal_->uri = util::JniUriToString(env, j_uri);
 
@@ -69,6 +70,7 @@ NativeAdImage::NativeAdImage(
   jdouble j_scale =
       env->CallDoubleMethod(internal_->native_ad_image,
                             native_image::GetMethodId(native_image::kGetScale));
+  util::CheckAndClearJniExceptions(env);
   FIREBASE_ASSERT(j_scale);
   internal_->scale = static_cast<double>(j_scale);
 }
@@ -135,7 +137,7 @@ const std::string& NativeAdImage::image_uri() const {
   return internal_->uri;
 }
 
-//// Gets the image scale, which denotes the ratio of pixels to dp.
+/// Gets the image scale, which denotes the ratio of pixels to dp.
 double NativeAdImage::scale() const {
   FIREBASE_ASSERT(internal_);
   return internal_->scale;

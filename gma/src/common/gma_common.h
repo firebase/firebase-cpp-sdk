@@ -176,13 +176,8 @@ class GmaInternal {
   // NativeAdInternal.
   static void InsertNativeInternalImage(
       internal::NativeAdInternal* native_ad_internal,
-      const NativeAdImageInternal& native_image_internal,
-      std::string image_type, bool clear_existing_images);
-
-  // Constructs and returns an NativeAdImage object given an
-  // NativeAdImageInternal object.
-  // static NativeAdImage CreateNativeAdImage(
-  //     const NativeAdImageInternal& native_image_internal);
+      const NativeAdImageInternal& native_image_internal, const bool& is_icon,
+      const bool& clear_existing_images);
 };
 
 }  // namespace gma

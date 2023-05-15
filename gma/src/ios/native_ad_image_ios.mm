@@ -52,7 +52,6 @@ NativeAdImage::NativeAdImage(const NativeAdImageInternal& native_ad_image_intern
   FIREBASE_ASSERT(gad_native_image);
 
   internal_->uri = util::NSStringToString(gad_native_image.imageURL.absoluteString);
-  NSLog(gad_native_image.imageURL.absoluteString);
   internal_->scale = (double)gad_native_image.scale;
 }
 
@@ -98,7 +97,7 @@ const std::string& NativeAdImage::image_uri() const {
   return internal_->uri;
 }
 
-//// Gets the image scale, which denotes the ratio of pixels to dp.
+/// Gets the image scale, which denotes the ratio of pixels to dp.
 double NativeAdImage::scale() const {
   FIREBASE_ASSERT(internal_);
   return internal_->scale;
