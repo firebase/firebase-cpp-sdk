@@ -1405,7 +1405,8 @@ TEST_F(FirestoreTest, RestartFirestoreLeadsToNewInstance) {
 }
 
 TEST_F(FirestoreTest, CanCreateMultipleFirestoreInstances) {
-  // TODO(Mila): Remove the emulator env check after prod supports multiDB.
+  // TODO(b/282947967): Remove the emulator env check after prod supports
+  // multiDB.
   if (!IsUsingFirestoreEmulator()) {
     GTEST_SKIP();
   }
@@ -1438,7 +1439,8 @@ TEST_F(FirestoreTest, CanCreateMultipleFirestoreInstances) {
 }
 
 TEST_F(FirestoreTest, CanTerminateMultipleFirestoreInstances) {
-  // TODO(Mila): Remove the emulator env check after prod supports multiDB.
+  // TODO(b/282947967): Remove the emulator env check after prod supports
+  // multiDB.
   if (!IsUsingFirestoreEmulator()) {
     GTEST_SKIP();
   }
@@ -1461,8 +1463,8 @@ TEST_F(FirestoreTest, CanTerminateMultipleFirestoreInstances) {
 }
 
 TEST_F(FirestoreTest, CanReadDocsAfterRestartFirestoreAndCreateNewInstance) {
-  // TODO(Mila): Remove the emulator env check and LocateEmulator call after
-  // prod supports multiDB.
+  // TODO(b/282947967): Remove the emulator env check and LocateEmulator call
+  // after prod supports multiDB.
   if (!IsUsingFirestoreEmulator()) {
     GTEST_SKIP();
   }
@@ -1496,7 +1498,8 @@ TEST_F(FirestoreTest, CanReadDocsAfterRestartFirestoreAndCreateNewInstance) {
 }
 
 TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOnline) {
-  // TODO(Mila): Remove the emulator env check after prod supports multiDB.
+  // TODO(b/282947967): Remove the emulator env check after prod supports
+  // multiDB.
   if (!IsUsingFirestoreEmulator()) {
     GTEST_SKIP();
   }
@@ -1526,7 +1529,8 @@ TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOnline) {
 }
 
 TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOffline) {
-  // TODO(Mila): Remove the emulator env check after prod supports multiDB.
+  // TODO(b/282947967): Remove the emulator env check after prod supports
+  // multiDB.
   if (!IsUsingFirestoreEmulator()) {
     GTEST_SKIP();
   }
