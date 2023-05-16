@@ -122,14 +122,14 @@ void NativeAdInternalIOS::NativeAdDidReceiveAd(GADNativeAd *ad) {
 
   NativeAdImageInternal icon_internal;
   icon_internal.native_ad_image = ad.icon;
-  GmaInternal::InsertNativeInternalImage(this, icon_internal, std::string("icon"), true );
+  GmaInternal::InsertNativeInternalImage(this, icon_internal, true, true );
 
   NSArray *gad_images = ad.images;
   for(NSObject *gad_image in gad_images)
   {
     NativeAdImageInternal image_internal;
     image_internal.native_ad_image = gad_image;
-    GmaInternal::InsertNativeInternalImage(this, image_internal,std::string("image"), false );
+    GmaInternal::InsertNativeInternalImage(this, image_internal, false, false );
   }
 
   if (ad_load_callback_data_ != nil) {

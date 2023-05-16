@@ -99,15 +99,15 @@ void GmaInternal::UpdateAdViewInternalAdSizeDimensions(
 
 void GmaInternal::InsertNativeInternalImage(
     internal::NativeAdInternal* native_ad_internal,
-    const NativeAdImageInternal& native_image_internal, std::string image_type,
-    bool clear_existing_images) {
+    const NativeAdImageInternal& native_image_internal, const bool& is_icon,
+    const bool& clear_existing_images) {
   assert(native_ad_internal);
 
   if (clear_existing_images) {
     native_ad_internal->clear_existing_images();
   }
-  NativeAdImage icon_image = NativeAdImage(native_image_internal);
-  native_ad_internal->insert_image(icon_image, image_type);
+  NativeAdImage image_asset = NativeAdImage(native_image_internal);
+  native_ad_internal->insert_image(image_asset, is_icon);
 }
 
 // AdInspectorClosedListener

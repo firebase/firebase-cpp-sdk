@@ -73,7 +73,7 @@ class NativeAdInternal {
   explicit NativeAdInternal(NativeAd* base);
 
   // Invoked after a native ad has been loaded to fill native ad image assets.
-  void insert_image(const NativeAdImage& ad_image, std::string image_type);
+  void insert_image(const NativeAdImage& ad_image, const bool& is_icon);
 
   // Invoked before filling native ad image assets.
   void clear_existing_images();

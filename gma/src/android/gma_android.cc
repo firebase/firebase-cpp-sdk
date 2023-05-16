@@ -918,7 +918,7 @@ void JNI_NativeAd_completeLoadedAd(JNIEnv* env, jclass clazz, jlong data_ptr,
 
   // Invoke a friend of NativeAdInternal to update its icon image asset.
   GmaInternal::InsertNativeInternalImage(native_ad_internal, icon_internal,
-                                         std::string("icon"), true);
+                                         true, true);
 
   const size_t len = env->GetArrayLength(j_images);
   // Loop through images array.
@@ -927,7 +927,7 @@ void JNI_NativeAd_completeLoadedAd(JNIEnv* env, jclass clazz, jlong data_ptr,
     NativeAdImageInternal image_internal;
     image_internal.native_ad_image = j_image;
     GmaInternal::InsertNativeInternalImage(native_ad_internal, image_internal,
-                                           std::string("image"), false);
+                                           false, false);
   }
 
   FutureCallbackData<AdResult>* callback_data =
