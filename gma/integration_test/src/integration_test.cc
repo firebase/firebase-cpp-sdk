@@ -902,9 +902,6 @@ TEST_F(FirebaseGmaTest, TestNativeAdLoad) {
 
   // Verify autoload for icon image, as it is smaller in size.
   EXPECT_GT(native_ad->icon().image().size(), 0);
-  LogDebug("Icon image url:  %s", native_ad->icon().image_uri().c_str());
-  LogDebug("Icon image downloaded bytes:  %d",
-           native_ad->icon().image().size());
 
   // Native ads usually contain only one large image asset.
   // Check the validity of the first asset from the vector.

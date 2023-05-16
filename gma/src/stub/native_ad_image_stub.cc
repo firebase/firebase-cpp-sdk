@@ -51,7 +51,7 @@ const std::string& NativeAdImage::image_uri() const {
 
 /// Gets the auto loaded image as a vector of bytes.
 const std::vector<unsigned char> NativeAdImage::image() const {
-  static const std::vector<unsigned char> empty_img_data;
+  const std::vector<unsigned char> empty_img_data;
   return empty_img_data;
 }
 
