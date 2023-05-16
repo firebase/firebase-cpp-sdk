@@ -99,7 +99,7 @@ TEST_F(FirestoreTest, GetInstance) {
   delete auth;
 }
 
-TEST_F(FirestoreTest, GetInstanceWithNamedDatabase) {
+TEST_F(FirestoreTest, GetInstanceWithDynamicDatabaseId) {
   App* app = this->app();
   EXPECT_NE(nullptr, app);
 
@@ -1404,13 +1404,13 @@ TEST_F(FirestoreTest, RestartFirestoreLeadsToNewInstance) {
   delete db1;
 }
 
-TEST_F(FirestoreTest, CanCreateMultipleDatabases) {
+TEST_F(FirestoreTest, CanCreateMultipleFirestoreInstances) {
   // TODO(Mila): Remove the emulator env check after prod supports multiDB.
   if (!IsUsingFirestoreEmulator()) {
     GTEST_SKIP();
   }
 
-  // Create two database instances in the same app.
+  // Create two Firestore instances in the same app.
   App* app = App::GetInstance();
   Firestore* db1 = TestFirestoreWithDatabaseId(app->name(), "db1");
   Firestore* db2 = TestFirestoreWithDatabaseId(app->name(), "db2");
@@ -1437,13 +1437,13 @@ TEST_F(FirestoreTest, CanCreateMultipleDatabases) {
               ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar2")}}));
 }
 
-TEST_F(FirestoreTest, CanTerminateMultipleDatabases) {
+TEST_F(FirestoreTest, CanTerminateMultipleFirestoreInstances) {
   // TODO(Mila): Remove the emulator env check after prod supports multiDB.
   if (!IsUsingFirestoreEmulator()) {
     GTEST_SKIP();
   }
 
-  // Create two database instances in the same app.
+  // Create two Firestore instances in the same app.
   App* app = App::GetInstance();
   Firestore* db1 = TestFirestoreWithDatabaseId(app->name(), "db1");
   Firestore* db2 = TestFirestoreWithDatabaseId(app->name(), "db2");
@@ -1460,8 +1460,7 @@ TEST_F(FirestoreTest, CanTerminateMultipleDatabases) {
               ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
 }
 
-TEST_F(FirestoreTest,
-       CanReadDocsAfterRestartFirestoreAndCreateNewNamedDatabaseInstance) {
+TEST_F(FirestoreTest, CanReadDocsAfterRestartFirestoreAndCreateNewInstance) {
   // TODO(Mila): Remove the emulator env check and LocateEmulator call after
   // prod supports multiDB.
   if (!IsUsingFirestoreEmulator()) {
@@ -1502,14 +1501,13 @@ TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOnline) {
     GTEST_SKIP();
   }
 
-  // Create two DB instances in the same app.
+  // Create two Firestore instances in the same app.
   App* app = App::GetInstance();
   Firestore* db1 = TestFirestoreWithDatabaseId(app->name(), "db1");
   Firestore* db2 = TestFirestoreWithDatabaseId(app->name(), "db2");
-
   EXPECT_NE(db1, db2);
 
-  // Create a document in the first DB instance.
+  // Create a document in the first Firestore instance.
   DocumentReference doc1 = db1->Collection("abc").Document();
   const std::string doc_path = doc1.path();
   EXPECT_THAT(doc1.Set({{"foo", FieldValue::String("bar")}}), FutureSucceeds());
@@ -1518,9 +1516,9 @@ TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOnline) {
   EXPECT_THAT(snapshot1->GetData(),
               ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
 
-  // Verify that the previously saved document only exists in the first DB
-  // instance by verifying that the document does not exist in the second
-  // instance.
+  // Verify that the previously saved document only exists in the first
+  // Firestore instance by verifying that the document does not exist in the
+  // second instance.
   DocumentReference doc2 = db2->Document(doc_path);
   const DocumentSnapshot* snapshot2 = Await(doc2.Get());
   EXPECT_FALSE(snapshot2->exists());
@@ -1533,17 +1531,15 @@ TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOffline) {
     GTEST_SKIP();
   }
 
-  // Create two DB instances in the same app.
+  // Create two Firestore instances in the same app.
   App* app = App::GetInstance();
   Firestore* db1 = TestFirestoreWithDatabaseId(app->name(), "db1");
-
   Firestore* db2 = TestFirestoreWithDatabaseId(app->name(), "db2");
-
   EXPECT_NE(db1, db2);
 
   DisableNetwork();
 
-  // Create a document in the first DB instance.
+  // Create a document in the first Firestore instance.
   DocumentReference doc1 = db1->Collection("abc").Document();
   const std::string doc_path = doc1.path();
   EXPECT_THAT(doc1.Set({{"foo", FieldValue::String("bar")}}), FutureSucceeds());
@@ -1551,9 +1547,10 @@ TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOffline) {
   EXPECT_TRUE(snapshot1->exists());
   EXPECT_THAT(snapshot1->GetData(),
               ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
-  // Verify that the previously saved document only exists in the first DB
-  // instance by verifying that the document does not exist in the second
-  // instance.
+
+  // Verify that the previously saved document only exists in the first
+  // Firestore instance by verifying that the document does not exist in the
+  // second instance.
   DocumentReference doc2 = db2->Document(doc_path);
   const DocumentSnapshot* snapshot2 = Await(doc2.Get(Source::kCache));
   EXPECT_FALSE(snapshot2->exists());

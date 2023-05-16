@@ -15,7 +15,6 @@
  */
 
 #include <chrono>  // NOLINT(build/c++11)
-#include <iostream>
 #include <memory>
 #include <thread>  // NOLINT(build/c++11)
 
