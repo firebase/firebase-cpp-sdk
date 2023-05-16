@@ -24,8 +24,6 @@ namespace firebase {
 namespace firestore {
 
 class LocalCacheSettings final {
-  friend class FirestoreInternal;
-
  public:
   LocalCacheSettings();
 
@@ -45,6 +43,8 @@ class LocalCacheSettings final {
   friend bool operator==(const LocalCacheSettings&, const LocalCacheSettings&);
 
  private:
+  friend class FirestoreInternal;
+
   class Impl;
 
   explicit LocalCacheSettings(Impl);
@@ -97,7 +97,6 @@ class LocalCacheSettings::PersistentCacheSettings final {
 
  private:
   friend class LocalCacheSettings;
-  friend class LocalCacheSettings::Impl;
 
   class Impl;
 
@@ -136,14 +135,13 @@ class LocalCacheSettings::MemoryCacheSettings final {
   MemoryCacheSettings WithGarbageCollectorSettings(const LruGCSettings&) const;
 
   /**
-   * Copies this settings instance, with its `MemoryGarbageCollectorSettins` set
+   * Copies this settings instance, with its `MemoryGarbageCollectorSettings` set
    * the the given parameter, and returns the new settings instance.
    */
   MemoryCacheSettings WithGarbageCollectorSettings(const EagerGCSettings&) const;
 
  private:
   friend class LocalCacheSettings;
-  friend class LocalCacheSettings::Impl;
 
   class Impl;
 
@@ -181,7 +179,6 @@ class LocalCacheSettings::MemoryCacheSettings::EagerGCSettings final {
 
  private:
   friend class LocalCacheSettings::MemoryCacheSettings;
-  friend class LocalCacheSettings::MemoryCacheSettings::Impl;
 
   class Impl;
 
@@ -241,7 +238,6 @@ class LocalCacheSettings::MemoryCacheSettings::LruGCSettings final {
 
  private:
   friend class LocalCacheSettings::MemoryCacheSettings;
-  friend class LocalCacheSettings::MemoryCacheSettings::Impl;
 
   class Impl;
 

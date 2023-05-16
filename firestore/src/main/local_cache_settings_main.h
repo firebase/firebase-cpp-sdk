@@ -18,6 +18,7 @@
 #define FIREBASE_FIRESTORE_SRC_MAIN_LOCAL_CACHE_SETTINGS_MAIN_H_
 
 #include <memory>
+#include <type_traits>
 
 #include "firestore/src/include/firebase/firestore/local_cache_settings.h"
 #include "firestore/src/common/macros.h"
@@ -28,9 +29,12 @@
 namespace firebase {
 namespace firestore {
 
-class LocalCacheSettings::MemoryCacheSettings::LruGCSettings::Impl {
+class LocalCacheSettings::MemoryCacheSettings::LruGCSettings::Impl final {
  public:
   Impl() = default;
+
+  explicit Impl(api::MemoryLruGcSettings settings) : settings_(std::move(settings)) {
+  }
 
   const api::MemoryLruGcSettings& core_settings() const {
     return settings_;
@@ -50,15 +54,15 @@ class LocalCacheSettings::MemoryCacheSettings::LruGCSettings::Impl {
   }
 
  private:
-  explicit Impl(api::MemoryLruGcSettings settings) : settings_(std::move(settings)) {
-  }
-
   api::MemoryLruGcSettings settings_;
 };
 
-class LocalCacheSettings::MemoryCacheSettings::EagerGCSettings::Impl {
+class LocalCacheSettings::MemoryCacheSettings::EagerGCSettings::Impl final {
  public:
   Impl() = default;
+
+  explicit Impl(api::MemoryEagerGcSettings settings) : settings_(std::move(settings)) {
+  }
 
   const api::MemoryEagerGcSettings& core_settings() const {
     return settings_;
@@ -70,15 +74,18 @@ class LocalCacheSettings::MemoryCacheSettings::EagerGCSettings::Impl {
   }
 
  private:
-  explicit Impl(api::MemoryEagerGcSettings settings) : settings_(std::move(settings)) {
-  }
-
   api::MemoryEagerGcSettings settings_;
 };
 
-class LocalCacheSettings::MemoryCacheSettings::Impl {
+class LocalCacheSettings::MemoryCacheSettings::Impl final {
  public:
   Impl() = default;
+
+  explicit Impl(LruGCSettings::Impl impl) : settings_(std::move(impl)) {
+  }
+
+  explicit Impl(EagerGCSettings::Impl impl) : settings_(std::move(impl)) {
+  }
 
   std::unique_ptr<api::MemoryCacheSettings> ToCoreSettings() const {
     if (! settings_.has_value()) {
@@ -107,17 +114,15 @@ class LocalCacheSettings::MemoryCacheSettings::Impl {
   }
 
  private:
-  explicit Impl(LruGCSettings::Impl impl) : settings_(std::move(impl)) {
-  }
-  explicit Impl(EagerGCSettings::Impl impl) : settings_(std::move(impl)) {
-  }
-
   absl::optional<absl::variant<EagerGCSettings::Impl, LruGCSettings::Impl>> settings_;
 };
 
-class LocalCacheSettings::PersistentCacheSettings::Impl {
+class LocalCacheSettings::PersistentCacheSettings::Impl final {
  public:
   Impl() = default;
+
+  explicit Impl(api::PersistentCacheSettings settings) : settings_(std::move(settings)) {
+  }
 
   std::unique_ptr<api::PersistentCacheSettings> ToCoreSettings() const {
     return std::make_unique<api::PersistentCacheSettings>(settings_);
@@ -137,15 +142,17 @@ class LocalCacheSettings::PersistentCacheSettings::Impl {
   }
 
  private:
-  explicit Impl(api::PersistentCacheSettings settings) : settings_(std::move(settings)) {
-  }
-
   api::PersistentCacheSettings settings_;
 };
 
-class LocalCacheSettings::Impl {
+class LocalCacheSettings::Impl final {
  public:
   Impl() = default;
+
+  explicit Impl(MemoryCacheSettings::Impl impl) : settings_(std::move(impl)) {
+  }
+  explicit Impl(PersistentCacheSettings::Impl impl) : settings_(std::move(impl)) {
+  }
 
   std::unique_ptr<api::LocalCacheSettings> ToCoreSettings() const {
     if (! settings_.has_value()) {
@@ -178,11 +185,6 @@ class LocalCacheSettings::Impl {
   }
 
  private:
-  explicit Impl(MemoryCacheSettings::Impl impl) : settings_(std::move(impl)) {
-  }
-  explicit Impl(PersistentCacheSettings::Impl impl) : settings_(std::move(impl)) {
-  }
-
   absl::optional<absl::variant<MemoryCacheSettings::Impl, PersistentCacheSettings::Impl>> settings_;
 };
 
