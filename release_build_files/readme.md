@@ -633,6 +633,7 @@ code.
       home directory contains non-ANSI characters (Unicode above U+00FF).
     - Storage (Desktop): Fixed a crash on Windows when uploading files from a
       path containing non-ANSI characters (Unicode above U+00FF).
+    - Firestore: Added MultiDb support.
 
 ### 11.0.1
 -   Changes
