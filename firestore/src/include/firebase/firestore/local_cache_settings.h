@@ -27,20 +27,23 @@ namespace firestore {
 
 class LocalCacheSettings final {
  public:
+  class PersistentCacheSettings;
+  class MemoryCacheSettings;
+
   LocalCacheSettings();
+  explicit LocalCacheSettings(PersistentCacheSettings);
+  explicit LocalCacheSettings(MemoryCacheSettings);
 
   LocalCacheSettings(const LocalCacheSettings&) = default;
   LocalCacheSettings& operator=(const LocalCacheSettings&) = default;
   LocalCacheSettings(LocalCacheSettings&&) = default;
   LocalCacheSettings& operator=(LocalCacheSettings&&) = default;
 
-  class PersistentCacheSettings;
   std::unique_ptr<PersistentCacheSettings> persistent_cache_settings() const;
-  LocalCacheSettings WithCacheSettings(const PersistentCacheSettings&) const;
+  LocalCacheSettings WithCacheSettings(PersistentCacheSettings) const;
 
-  class MemoryCacheSettings;
   std::unique_ptr<MemoryCacheSettings> memory_cache_settings() const;
-  LocalCacheSettings WithCacheSettings(const MemoryCacheSettings&) const;
+  LocalCacheSettings WithCacheSettings(MemoryCacheSettings) const;
 
   friend bool operator==(const LocalCacheSettings&, const LocalCacheSettings&);
 
@@ -138,7 +141,12 @@ class LocalCacheSettings::PersistentCacheSettings final {
  */
 class LocalCacheSettings::MemoryCacheSettings final {
  public:
+  class LruGCSettings;
+  class EagerGCSettings;
+
   MemoryCacheSettings();
+  explicit MemoryCacheSettings(LruGCSettings);
+  explicit MemoryCacheSettings(EagerGCSettings);
 
   MemoryCacheSettings(const MemoryCacheSettings&) = default;
   MemoryCacheSettings& operator=(const MemoryCacheSettings&) = default;
@@ -159,21 +167,17 @@ class LocalCacheSettings::MemoryCacheSettings final {
 
   std::string ToString() const { return (std::ostringstream() << *this).str(); }
 
-  class LruGCSettings;
-  class EagerGCSettings;
+  /**
+   * Copies this settings instance, with its `MemoryGarbageCollectorSettings`
+   * set the the given parameter, and returns the new settings instance.
+   */
+  MemoryCacheSettings WithGarbageCollectorSettings(LruGCSettings) const;
 
   /**
    * Copies this settings instance, with its `MemoryGarbageCollectorSettings`
    * set the the given parameter, and returns the new settings instance.
    */
-  MemoryCacheSettings WithGarbageCollectorSettings(const LruGCSettings&) const;
-
-  /**
-   * Copies this settings instance, with its `MemoryGarbageCollectorSettings`
-   * set the the given parameter, and returns the new settings instance.
-   */
-  MemoryCacheSettings WithGarbageCollectorSettings(
-      const EagerGCSettings&) const;
+  MemoryCacheSettings WithGarbageCollectorSettings(EagerGCSettings) const;
 
  private:
   friend class LocalCacheSettings;
@@ -283,7 +287,7 @@ class LocalCacheSettings::MemoryCacheSettings::LruGCSettings final {
    * By default, memory LRU cache is enabled with a cache size of 100 MB. The
    * minimum value is 1 MB.
    */
-  LruGCSettings WithSizeBytes(int64_t size) const;
+  LruGCSettings WithSizeBytes(int64_t size_bytes) const;
 
   /**
    * Returns the approximate cache size threshold configured. Garbage collection

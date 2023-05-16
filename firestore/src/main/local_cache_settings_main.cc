@@ -26,6 +26,16 @@ namespace firestore {
 
 LocalCacheSettings::LocalCacheSettings() : impl_(std::make_shared<Impl>()) {}
 
+LocalCacheSettings::LocalCacheSettings(
+    PersistentCacheSettings persistent_cache_settings)
+    : impl_(
+          std::make_shared<Impl>(*std::move(persistent_cache_settings.impl_))) {
+}
+
+LocalCacheSettings::LocalCacheSettings(
+    MemoryCacheSettings memory_cache_settings)
+    : impl_(std::make_shared<Impl>(std::move(*memory_cache_settings.impl_))) {}
+
 LocalCacheSettings::LocalCacheSettings(Impl impl)
     : impl_(std::make_shared<Impl>(std::move(impl))) {}
 
@@ -42,8 +52,9 @@ LocalCacheSettings::persistent_cache_settings() const {
 }
 
 LocalCacheSettings LocalCacheSettings::WithCacheSettings(
-    const PersistentCacheSettings& settings) const {
-  return LocalCacheSettings(impl_->WithCacheSettings(*settings.impl_));
+    PersistentCacheSettings settings) const {
+  return LocalCacheSettings(
+      impl_->WithCacheSettings(std::move(*settings.impl_)));
 }
 
 std::unique_ptr<LocalCacheSettings::MemoryCacheSettings>
@@ -59,8 +70,9 @@ LocalCacheSettings::memory_cache_settings() const {
 }
 
 LocalCacheSettings LocalCacheSettings::WithCacheSettings(
-    const LocalCacheSettings::MemoryCacheSettings& settings) const {
-  return LocalCacheSettings(impl_->WithCacheSettings(*settings.impl_));
+    LocalCacheSettings::MemoryCacheSettings settings) const {
+  return LocalCacheSettings(
+      impl_->WithCacheSettings(std::move(*settings.impl_)));
 }
 
 void LocalCacheSettings::PrintTo(std::ostream& out) const { out << *impl_; }
@@ -136,6 +148,14 @@ void LocalCacheSettings::PersistentCacheSettings::Impl::PrintTo(
 LocalCacheSettings::MemoryCacheSettings::MemoryCacheSettings()
     : impl_(std::make_shared<Impl>()) {}
 
+LocalCacheSettings::MemoryCacheSettings::MemoryCacheSettings(
+    LocalCacheSettings::MemoryCacheSettings::LruGCSettings lru_gc_settings)
+    : impl_(std::make_shared<Impl>(std::move(*lru_gc_settings.impl_))) {}
+
+LocalCacheSettings::MemoryCacheSettings::MemoryCacheSettings(
+    LocalCacheSettings::MemoryCacheSettings::EagerGCSettings eager_gc_settings)
+    : impl_(std::make_shared<Impl>(std::move(*eager_gc_settings.impl_))) {}
+
 LocalCacheSettings::MemoryCacheSettings::MemoryCacheSettings(Impl impl)
     : impl_(std::make_shared<Impl>(std::move(impl))) {}
 
@@ -181,16 +201,16 @@ LocalCacheSettings::MemoryCacheSettings::EagerGCSettings::EagerGCSettings(
 
 LocalCacheSettings::MemoryCacheSettings
 LocalCacheSettings::MemoryCacheSettings::WithGarbageCollectorSettings(
-    const LruGCSettings& settings) const {
+    LruGCSettings settings) const {
   return MemoryCacheSettings(
-      impl_->WithGarbageCollectorSettings(*settings.impl_));
+      impl_->WithGarbageCollectorSettings(std::move(*settings.impl_)));
 }
 
 LocalCacheSettings::MemoryCacheSettings
 LocalCacheSettings::MemoryCacheSettings::WithGarbageCollectorSettings(
-    const EagerGCSettings& settings) const {
+    EagerGCSettings settings) const {
   return MemoryCacheSettings(
-      impl_->WithGarbageCollectorSettings(*settings.impl_));
+      impl_->WithGarbageCollectorSettings(std::move(*settings.impl_)));
 }
 
 void LocalCacheSettings::MemoryCacheSettings::EagerGCSettings::PrintTo(

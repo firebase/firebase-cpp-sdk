@@ -125,53 +125,53 @@ TEST(SettingsTest, EqualityWithLocalCacheSettings) {
   Settings settings1;
   settings1.set_host("foo");
   settings1.set_ssl_enabled(true);
-  settings1.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(
+  settings1.set_local_cache_settings(LocalCacheSettings(
       LocalCacheSettings::PersistentCacheSettings().WithSizeBytes(kFiveMb)));
 
   Settings settings2;
   settings2.set_host("bar");
   settings2.set_ssl_enabled(true);
-  settings2.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(
+  settings2.set_local_cache_settings(LocalCacheSettings(
       LocalCacheSettings::PersistentCacheSettings().WithSizeBytes(kFiveMb)));
 
   Settings settings3;
   settings3.set_host("foo");
   settings3.set_ssl_enabled(false);
-  settings3.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(
+  settings3.set_local_cache_settings(LocalCacheSettings(
       LocalCacheSettings::PersistentCacheSettings().WithSizeBytes(kFiveMb)));
 
   Settings settings4;
   settings4.set_host("foo");
   settings4.set_ssl_enabled(true);
-  settings4.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(
-      LocalCacheSettings::MemoryCacheSettings()));
+  settings4.set_local_cache_settings(
+      LocalCacheSettings(LocalCacheSettings::MemoryCacheSettings()));
 
   Settings settings5;
   settings5.set_host("foo");
   settings5.set_ssl_enabled(true);
-  settings5.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(
+  settings5.set_local_cache_settings(LocalCacheSettings(
       LocalCacheSettings::PersistentCacheSettings().WithSizeBytes(kSixMb)));
 
   Settings settings6;
   settings6.set_host("foo");
   settings6.set_ssl_enabled(true);
-  settings6.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(
-      LocalCacheSettings::MemoryCacheSettings().WithGarbageCollectorSettings(
+  settings6.set_local_cache_settings(
+      LocalCacheSettings(LocalCacheSettings::MemoryCacheSettings(
           LocalCacheSettings::MemoryCacheSettings::EagerGCSettings())));
 
   Settings settings7;
   settings7.set_host("foo");
   settings7.set_ssl_enabled(true);
-  settings7.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(
-      LocalCacheSettings::MemoryCacheSettings().WithGarbageCollectorSettings(
+  settings7.set_local_cache_settings(
+      LocalCacheSettings(LocalCacheSettings::MemoryCacheSettings(
           LocalCacheSettings::MemoryCacheSettings::LruGCSettings()
               .WithSizeBytes(kFiveMb))));
 
   Settings settings8;
   settings8.set_host("foo");
   settings8.set_ssl_enabled(true);
-  settings8.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(
-      LocalCacheSettings::MemoryCacheSettings().WithGarbageCollectorSettings(
+  settings8.set_local_cache_settings(
+      LocalCacheSettings(LocalCacheSettings::MemoryCacheSettings(
           LocalCacheSettings::MemoryCacheSettings::LruGCSettings()
               .WithSizeBytes(kSixMb))));
 
@@ -179,8 +179,8 @@ TEST(SettingsTest, EqualityWithLocalCacheSettings) {
   Settings settings9;
   settings9.set_host("foo");
   settings9.set_ssl_enabled(true);
-  settings9.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(
-      LocalCacheSettings::MemoryCacheSettings().WithGarbageCollectorSettings(
+  settings9.set_local_cache_settings(
+      LocalCacheSettings(LocalCacheSettings::MemoryCacheSettings(
           LocalCacheSettings::MemoryCacheSettings::LruGCSettings()
               .WithSizeBytes(kFiveMb))));
 
