@@ -53,6 +53,17 @@ class LocalCacheSettings::MemoryCacheSettings::LruGCSettings::Impl final {
     return !(*this == rhs);
   }
 
+  void PrintTo(std::ostream& out) const;
+
+  friend std::ostream& operator<<(std::ostream& out, const Impl& self) {
+    self.PrintTo(out);
+    return out;
+  }
+
+  std::string ToString() const {
+    return (std::ostringstream() << *this).str();
+  }
+
  private:
   api::MemoryLruGcSettings settings_;
 };
@@ -73,6 +84,17 @@ class LocalCacheSettings::MemoryCacheSettings::EagerGCSettings::Impl final {
     return !(*this == rhs);
   }
 
+  void PrintTo(std::ostream& out) const;
+
+  friend std::ostream& operator<<(std::ostream& out, const Impl& self) {
+    self.PrintTo(out);
+    return out;
+  }
+
+  std::string ToString() const {
+    return (std::ostringstream() << *this).str();
+  }
+
  private:
   api::MemoryEagerGcSettings settings_;
 };
@@ -89,7 +111,7 @@ class LocalCacheSettings::MemoryCacheSettings::Impl final {
 
   std::unique_ptr<api::MemoryCacheSettings> ToCoreSettings() const {
     if (! settings_.has_value()) {
-      return {};
+      return std::make_unique<api::MemoryCacheSettings>();
     }
     if (absl::holds_alternative<EagerGCSettings::Impl>(*settings_)) {
       return std::make_unique<api::MemoryCacheSettings>(api::MemoryCacheSettings().WithMemoryGarbageCollectorSettings(absl::get<EagerGCSettings::Impl>(*settings_).core_settings()));
@@ -111,6 +133,17 @@ class LocalCacheSettings::MemoryCacheSettings::Impl final {
   bool operator==(const Impl&) const;
   bool operator!=(const Impl& rhs) const {
     return !(*this == rhs);
+  }
+
+  void PrintTo(std::ostream& out) const;
+
+  friend std::ostream& operator<<(std::ostream& out, const Impl& self) {
+    self.PrintTo(out);
+    return out;
+  }
+
+  std::string ToString() const {
+    return (std::ostringstream() << *this).str();
   }
 
  private:
@@ -141,6 +174,17 @@ class LocalCacheSettings::PersistentCacheSettings::Impl final {
     return !(*this == rhs);
   }
 
+  void PrintTo(std::ostream& out) const;
+
+  friend std::ostream& operator<<(std::ostream& out, const Impl& self) {
+    self.PrintTo(out);
+    return out;
+  }
+
+  std::string ToString() const {
+    return (std::ostringstream() << *this).str();
+  }
+
  private:
   api::PersistentCacheSettings settings_;
 };
@@ -156,13 +200,13 @@ class LocalCacheSettings::Impl final {
 
   std::unique_ptr<api::LocalCacheSettings> ToCoreSettings() const {
     if (! settings_.has_value()) {
-      return {};
+      return std::make_unique<api::PersistentCacheSettings>();
     }
     if (absl::holds_alternative<MemoryCacheSettings::Impl>(*settings_)) {
-      absl::get<MemoryCacheSettings::Impl>(*settings_).ToCoreSettings();
+      return absl::get<MemoryCacheSettings::Impl>(*settings_).ToCoreSettings();
     }
     if (absl::holds_alternative<PersistentCacheSettings::Impl>(*settings_)) {
-      absl::get<PersistentCacheSettings::Impl>(*settings_).ToCoreSettings();
+      return absl::get<PersistentCacheSettings::Impl>(*settings_).ToCoreSettings();
     }
     FIRESTORE_UNREACHABLE();
   }
@@ -182,6 +226,17 @@ class LocalCacheSettings::Impl final {
   bool operator==(const Impl&) const;
   bool operator!=(const Impl& rhs) const {
     return !(*this == rhs);
+  }
+
+  void PrintTo(std::ostream& out) const;
+
+  friend std::ostream& operator<<(std::ostream& out, const Impl& self) {
+    self.PrintTo(out);
+    return out;
+  }
+
+  std::string ToString() const {
+    return (std::ostringstream() << *this).str();
   }
 
  private:

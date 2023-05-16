@@ -18,7 +18,9 @@
 #define FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_LOCAL_CACHE_SETTINGS_H_
 
 #include <cstdint>
+#include <iostream>
 #include <memory>
+#include <sstream>
 
 namespace firebase {
 namespace firestore {
@@ -41,6 +43,17 @@ class LocalCacheSettings final {
   LocalCacheSettings WithCacheSettings(const MemoryCacheSettings&) const;
 
   friend bool operator==(const LocalCacheSettings&, const LocalCacheSettings&);
+
+  void PrintTo(std::ostream& out) const;
+
+  friend std::ostream& operator<<(std::ostream& out, const LocalCacheSettings& self) {
+    self.PrintTo(out);
+    return out;
+  }
+
+  std::string ToString() const {
+    return (std::ostringstream() << *this).str();
+  }
 
  private:
   friend class FirestoreInternal;
@@ -74,6 +87,17 @@ class LocalCacheSettings::PersistentCacheSettings final {
   /** Equality function. */
   friend bool operator==(const PersistentCacheSettings&, const PersistentCacheSettings&);
 
+  void PrintTo(std::ostream& out) const;
+
+  friend std::ostream& operator<<(std::ostream& out, const PersistentCacheSettings& self) {
+    self.PrintTo(out);
+    return out;
+  }
+
+  std::string ToString() const {
+    return (std::ostringstream() << *this).str();
+  }
+
   /**
    * Copies this settings instance, with the approximate cache size threshold
    * for the on-disk data set to the given number in term of number of bytes,
@@ -101,7 +125,7 @@ class LocalCacheSettings::PersistentCacheSettings final {
   class Impl;
 
   explicit PersistentCacheSettings(Impl);
-  
+
   std::shared_ptr<Impl> impl_;
 };
 
@@ -124,6 +148,17 @@ class LocalCacheSettings::MemoryCacheSettings final {
 
   /** Equality function. */
   friend bool operator==(const MemoryCacheSettings&, const MemoryCacheSettings&);
+
+  void PrintTo(std::ostream& out) const;
+
+  friend std::ostream& operator<<(std::ostream& out, const MemoryCacheSettings& self) {
+    self.PrintTo(out);
+    return out;
+  }
+
+  std::string ToString() const {
+    return (std::ostringstream() << *this).str();
+  }
 
   class LruGCSettings;
   class EagerGCSettings;
@@ -177,6 +212,17 @@ class LocalCacheSettings::MemoryCacheSettings::EagerGCSettings final {
   /** Equality function. */
   friend bool operator==(const EagerGCSettings&, const EagerGCSettings&);
 
+  void PrintTo(std::ostream& out) const;
+
+  friend std::ostream& operator<<(std::ostream& out, const EagerGCSettings& self) {
+    self.PrintTo(out);
+    return out;
+  }
+
+  std::string ToString() const {
+    return (std::ostringstream() << *this).str();
+  }
+
  private:
   friend class LocalCacheSettings::MemoryCacheSettings;
 
@@ -214,6 +260,17 @@ class LocalCacheSettings::MemoryCacheSettings::LruGCSettings final {
 
   /** Equality function. */
   friend bool operator==(const LruGCSettings&, const LruGCSettings&);
+
+  void PrintTo(std::ostream& out) const;
+
+  friend std::ostream& operator<<(std::ostream& out, const LruGCSettings& self) {
+    self.PrintTo(out);
+    return out;
+  }
+
+  std::string ToString() const {
+    return (std::ostringstream() << *this).str();
+  }
 
   /**
    * Copies this settings instance, with the approximate cache size threshold
