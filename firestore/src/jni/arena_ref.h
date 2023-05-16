@@ -17,9 +17,9 @@
 #ifndef FIREBASE_FIRESTORE_SRC_JNI_ARENA_REF_H_
 #define FIREBASE_FIRESTORE_SRC_JNI_ARENA_REF_H_
 
-#include <memory>
-
 #include <jni.h>
+
+#include <memory>
 
 #include "firestore/src/jni/jni_fwd.h"
 

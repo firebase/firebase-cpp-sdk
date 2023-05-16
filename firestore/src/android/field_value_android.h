@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "firebase/firestore/geo_point.h"
 #include "firebase/firestore/timestamp.h"

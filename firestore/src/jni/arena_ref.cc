@@ -15,9 +15,9 @@
  */
 #include "firestore/src/jni/arena_ref.h"
 
-#include <atomic>
-
 #include <jni.h>
+
+#include <atomic>
 
 #include "app/src/assert.h"
 #include "app/src/log.h"
