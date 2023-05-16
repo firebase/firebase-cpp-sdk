@@ -20,7 +20,6 @@
 #include <string>
 
 namespace firebase {
-
 /**
  * Returns a system-defined best directory in which to create application
  * data. Values vary wildly across platforms. They include:
