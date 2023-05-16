@@ -633,6 +633,10 @@ code.
       home directory contains non-ANSI characters (Unicode above U+00FF).
     - Storage (Desktop): Fixed a crash on Windows when uploading files from a
       path containing non-ANSI characters (Unicode above U+00FF).
+    - Firestore (Android): Fix the intermittent global references exhaustion
+      crash when working with documents with a large number of keys and/or large
+      map and/or array fields.
+      ([#1325](https://github.com/firebase/firebase-cpp-sdk/pull/1325)).
 
 ### 11.0.1
 -   Changes
