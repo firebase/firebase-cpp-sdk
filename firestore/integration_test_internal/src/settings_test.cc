@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-#include <memory>
 #include <stdint.h>
+#include <memory>
 #include <string>
 #include <vector>
 
+#include "absl/types/optional.h"
+#include "absl/types/variant.h"
 #include "firebase/firestore.h"
 #include "firebase/firestore/local_cache_settings.h"
 #include "firebase_test_framework.h"
-#include "absl/types/optional.h"
-#include "absl/types/variant.h"
 
 #include "gtest/gtest.h"
 
@@ -125,48 +125,64 @@ TEST(SettingsTest, EqualityWithLocalCacheSettings) {
   Settings settings1;
   settings1.set_host("foo");
   settings1.set_ssl_enabled(true);
-  settings1.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::PersistentCacheSettings().WithSizeBytes(kFiveMb)));
+  settings1.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(
+      LocalCacheSettings::PersistentCacheSettings().WithSizeBytes(kFiveMb)));
 
   Settings settings2;
   settings2.set_host("bar");
   settings2.set_ssl_enabled(true);
-  settings2.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::PersistentCacheSettings().WithSizeBytes(kFiveMb)));
+  settings2.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(
+      LocalCacheSettings::PersistentCacheSettings().WithSizeBytes(kFiveMb)));
 
   Settings settings3;
   settings3.set_host("foo");
   settings3.set_ssl_enabled(false);
-  settings3.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::PersistentCacheSettings().WithSizeBytes(kFiveMb)));
+  settings3.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(
+      LocalCacheSettings::PersistentCacheSettings().WithSizeBytes(kFiveMb)));
 
   Settings settings4;
   settings4.set_host("foo");
   settings4.set_ssl_enabled(true);
-  settings4.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::MemoryCacheSettings()));
+  settings4.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(
+      LocalCacheSettings::MemoryCacheSettings()));
 
   Settings settings5;
   settings5.set_host("foo");
   settings5.set_ssl_enabled(true);
-  settings5.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::PersistentCacheSettings().WithSizeBytes(kSixMb)));
+  settings5.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(
+      LocalCacheSettings::PersistentCacheSettings().WithSizeBytes(kSixMb)));
 
   Settings settings6;
   settings6.set_host("foo");
   settings6.set_ssl_enabled(true);
-  settings6.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::MemoryCacheSettings().WithGarbageCollectorSettings(LocalCacheSettings::MemoryCacheSettings::EagerGCSettings())));
+  settings6.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(
+      LocalCacheSettings::MemoryCacheSettings().WithGarbageCollectorSettings(
+          LocalCacheSettings::MemoryCacheSettings::EagerGCSettings())));
 
   Settings settings7;
   settings7.set_host("foo");
   settings7.set_ssl_enabled(true);
-  settings7.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::MemoryCacheSettings().WithGarbageCollectorSettings(LocalCacheSettings::MemoryCacheSettings::LruGCSettings().WithSizeBytes(kFiveMb))));
+  settings7.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(
+      LocalCacheSettings::MemoryCacheSettings().WithGarbageCollectorSettings(
+          LocalCacheSettings::MemoryCacheSettings::LruGCSettings()
+              .WithSizeBytes(kFiveMb))));
 
   Settings settings8;
   settings8.set_host("foo");
   settings8.set_ssl_enabled(true);
-  settings8.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::MemoryCacheSettings().WithGarbageCollectorSettings(LocalCacheSettings::MemoryCacheSettings::LruGCSettings().WithSizeBytes(kSixMb))));
+  settings8.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(
+      LocalCacheSettings::MemoryCacheSettings().WithGarbageCollectorSettings(
+          LocalCacheSettings::MemoryCacheSettings::LruGCSettings()
+              .WithSizeBytes(kSixMb))));
 
   // Same as settings7
   Settings settings9;
   settings9.set_host("foo");
   settings9.set_ssl_enabled(true);
-  settings9.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::MemoryCacheSettings().WithGarbageCollectorSettings(LocalCacheSettings::MemoryCacheSettings::LruGCSettings().WithSizeBytes(kFiveMb))));
+  settings9.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(
+      LocalCacheSettings::MemoryCacheSettings().WithGarbageCollectorSettings(
+          LocalCacheSettings::MemoryCacheSettings::LruGCSettings()
+              .WithSizeBytes(kFiveMb))));
 
   EXPECT_TRUE(settings1 == settings1);
   EXPECT_TRUE(settings6 == settings4);
@@ -244,9 +260,12 @@ TEST(SettingsTest, EqualityAssumptionsAboutVariantAreCorrect) {
   absl::variant<std::string, std::vector<int>> variant_with_string1("zzyzx");
   absl::variant<std::string, std::vector<int>> variant_with_string2("zzyzx");
   absl::variant<std::string, std::vector<int>> variant_with_string3("abcde");
-  absl::variant<std::string, std::vector<int>> variant_with_vector1(std::vector<int>{1, 2, 3});
-  absl::variant<std::string, std::vector<int>> variant_with_vector2(std::vector<int>{1, 2, 3});
-  absl::variant<std::string, std::vector<int>> variant_with_vector3(std::vector<int>{9, 8, 7});
+  absl::variant<std::string, std::vector<int>> variant_with_vector1(
+      std::vector<int>{1, 2, 3});
+  absl::variant<std::string, std::vector<int>> variant_with_vector2(
+      std::vector<int>{1, 2, 3});
+  absl::variant<std::string, std::vector<int>> variant_with_vector3(
+      std::vector<int>{9, 8, 7});
 
   EXPECT_TRUE(invalid_variant1 == invalid_variant1);
   EXPECT_TRUE(invalid_variant1 == invalid_variant2);

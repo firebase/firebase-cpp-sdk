@@ -164,8 +164,8 @@ class Settings final {
    *
    * @param enabled Set true to enable local persistent storage.
    */
-  [[deprecated("Use set_local_cache_settings() instead")]]
-  void set_persistence_enabled(bool enabled);
+  [[deprecated("Use set_local_cache_settings() instead")]] void
+  set_persistence_enabled(bool enabled);
 
   /**
    * NOTE: This method is deprecated in favor of `set_local_cache_settings()`.
@@ -180,8 +180,8 @@ class Settings final {
    * By default, collection is enabled with a cache size of 100 MB. The minimum
    * value is 1 MB.
    */
-  [[deprecated("Use set_local_cache_settings() instead")]]
-  void set_cache_size_bytes(int64_t value);
+  [[deprecated("Use set_local_cache_settings() instead")]] void
+  set_cache_size_bytes(int64_t value);
 
 #if defined(__OBJC__) || defined(DOXYGEN)
   /**

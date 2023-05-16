@@ -60,9 +60,12 @@ LocalCacheSettings Settings::local_cache_settings() const {
   if (cache_settings_source_ == CacheSettingsSource::kNew) {
     return local_cache_settings_;
   } else if (is_persistence_enabled()) {
-    return LocalCacheSettings().WithCacheSettings(LocalCacheSettings::PersistentCacheSettings().WithSizeBytes(cache_size_bytes()));
+    return LocalCacheSettings().WithCacheSettings(
+        LocalCacheSettings::PersistentCacheSettings().WithSizeBytes(
+            cache_size_bytes()));
   } else {
-    return LocalCacheSettings().WithCacheSettings(LocalCacheSettings::MemoryCacheSettings());
+    return LocalCacheSettings().WithCacheSettings(
+        LocalCacheSettings::MemoryCacheSettings());
   }
 }
 
@@ -119,11 +122,11 @@ bool operator==(const Settings& lhs, const Settings& rhs) {
   if (lhs.local_cache_settings() != rhs.local_cache_settings()) {
     return false;
   }
-  #if defined(__OBJC__)
+#if defined(__OBJC__)
   if (lhs.dispatch_queue() != rhs.dispatch_queue()) {
     return false;
   }
-  #endif  // defined(__OBJC__)
+#endif  // defined(__OBJC__)
   return true;
 }
 

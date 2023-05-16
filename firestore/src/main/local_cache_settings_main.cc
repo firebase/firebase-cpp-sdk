@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include "firestore/src/include/firebase/firestore/local_cache_settings.h"
 #include "firestore/src/main/local_cache_settings_main.h"
+#include "firestore/src/include/firebase/firestore/local_cache_settings.h"
 
 namespace firebase {
 namespace firestore {
@@ -24,37 +24,46 @@ namespace firestore {
 // class LocalCacheSettings
 ////////////////////////////////////////////////////////////////////////////////
 
-LocalCacheSettings::LocalCacheSettings() : impl_(std::make_shared<Impl>()) {
-}
+LocalCacheSettings::LocalCacheSettings() : impl_(std::make_shared<Impl>()) {}
 
-LocalCacheSettings::LocalCacheSettings(Impl impl) : impl_(std::make_shared<Impl>(std::move(impl))) {
-}
+LocalCacheSettings::LocalCacheSettings(Impl impl)
+    : impl_(std::make_shared<Impl>(std::move(impl))) {}
 
-std::unique_ptr<LocalCacheSettings::PersistentCacheSettings> LocalCacheSettings::persistent_cache_settings() const {
-  if (!impl_->settings().has_value() || !absl::holds_alternative<PersistentCacheSettings::Impl>(impl_->settings().value())) {
+std::unique_ptr<LocalCacheSettings::PersistentCacheSettings>
+LocalCacheSettings::persistent_cache_settings() const {
+  if (!impl_->settings().has_value() ||
+      !absl::holds_alternative<PersistentCacheSettings::Impl>(
+          impl_->settings().value())) {
     return {};
   }
-  return std::make_unique<LocalCacheSettings::PersistentCacheSettings>(LocalCacheSettings::PersistentCacheSettings(absl::get<PersistentCacheSettings::Impl>(impl_->settings().value())));
+  return std::make_unique<LocalCacheSettings::PersistentCacheSettings>(
+      LocalCacheSettings::PersistentCacheSettings(
+          absl::get<PersistentCacheSettings::Impl>(impl_->settings().value())));
 }
 
-LocalCacheSettings LocalCacheSettings::WithCacheSettings(const PersistentCacheSettings& settings) const {
+LocalCacheSettings LocalCacheSettings::WithCacheSettings(
+    const PersistentCacheSettings& settings) const {
   return LocalCacheSettings(impl_->WithCacheSettings(*settings.impl_));
 }
 
-std::unique_ptr<LocalCacheSettings::MemoryCacheSettings> LocalCacheSettings::memory_cache_settings() const {
-  if (!impl_->settings().has_value() || !absl::holds_alternative<PersistentCacheSettings::Impl>(impl_->settings().value())) {
+std::unique_ptr<LocalCacheSettings::MemoryCacheSettings>
+LocalCacheSettings::memory_cache_settings() const {
+  if (!impl_->settings().has_value() ||
+      !absl::holds_alternative<PersistentCacheSettings::Impl>(
+          impl_->settings().value())) {
     return {};
   }
-  return std::make_unique<LocalCacheSettings::MemoryCacheSettings>(LocalCacheSettings::MemoryCacheSettings(absl::get<MemoryCacheSettings::Impl>(impl_->settings().value())));
+  return std::make_unique<LocalCacheSettings::MemoryCacheSettings>(
+      LocalCacheSettings::MemoryCacheSettings(
+          absl::get<MemoryCacheSettings::Impl>(impl_->settings().value())));
 }
 
-LocalCacheSettings LocalCacheSettings::WithCacheSettings(const LocalCacheSettings::MemoryCacheSettings& settings) const {
+LocalCacheSettings LocalCacheSettings::WithCacheSettings(
+    const LocalCacheSettings::MemoryCacheSettings& settings) const {
   return LocalCacheSettings(impl_->WithCacheSettings(*settings.impl_));
 }
 
-void LocalCacheSettings::PrintTo(std::ostream& out) const {
-  out << *impl_;
-}
+void LocalCacheSettings::PrintTo(std::ostream& out) const { out << *impl_; }
 
 bool operator==(const LocalCacheSettings& lhs, const LocalCacheSettings& rhs) {
   return *lhs.impl_ == *rhs.impl_;
@@ -66,11 +75,12 @@ bool LocalCacheSettings::Impl::operator==(const Impl& other) const {
 
 void LocalCacheSettings::Impl::PrintTo(std::ostream& out) const {
   out << "LocalCacheSettings{";
-  if (! settings_.has_value()) {
+  if (!settings_.has_value()) {
     out << "<unset>";
   } else if (absl::holds_alternative<MemoryCacheSettings::Impl>(*settings_)) {
     out << absl::get<MemoryCacheSettings::Impl>(*settings_);
-  } else if (absl::holds_alternative<PersistentCacheSettings::Impl>(*settings_)) {
+  } else if (absl::holds_alternative<PersistentCacheSettings::Impl>(
+                 *settings_)) {
     out << absl::get<PersistentCacheSettings::Impl>(*settings_);
   } else {
     FIRESTORE_UNREACHABLE();
@@ -81,13 +91,15 @@ void LocalCacheSettings::Impl::PrintTo(std::ostream& out) const {
 // class LocalCacheSettings::PersistentCacheSettings
 ////////////////////////////////////////////////////////////////////////////////
 
-LocalCacheSettings::PersistentCacheSettings::PersistentCacheSettings() : impl_(std::make_shared<Impl>()) {
-}
+LocalCacheSettings::PersistentCacheSettings::PersistentCacheSettings()
+    : impl_(std::make_shared<Impl>()) {}
 
-LocalCacheSettings::PersistentCacheSettings::PersistentCacheSettings(Impl impl) : impl_(std::make_shared<Impl>(std::move(impl))) {
-}
+LocalCacheSettings::PersistentCacheSettings::PersistentCacheSettings(Impl impl)
+    : impl_(std::make_shared<Impl>(std::move(impl))) {}
 
-LocalCacheSettings::PersistentCacheSettings LocalCacheSettings::PersistentCacheSettings::WithSizeBytes(int64_t size_bytes) const {
+LocalCacheSettings::PersistentCacheSettings
+LocalCacheSettings::PersistentCacheSettings::WithSizeBytes(
+    int64_t size_bytes) const {
   return PersistentCacheSettings(impl_->WithSizeBytes(size_bytes));
 }
 
@@ -95,19 +107,23 @@ int64_t LocalCacheSettings::PersistentCacheSettings::size_bytes() const {
   return impl_->size_bytes();
 }
 
-void LocalCacheSettings::PersistentCacheSettings::PrintTo(std::ostream& out) const {
+void LocalCacheSettings::PersistentCacheSettings::PrintTo(
+    std::ostream& out) const {
   out << *impl_;
 }
 
-bool operator==(const LocalCacheSettings::PersistentCacheSettings& lhs, const LocalCacheSettings::PersistentCacheSettings& rhs) {
+bool operator==(const LocalCacheSettings::PersistentCacheSettings& lhs,
+                const LocalCacheSettings::PersistentCacheSettings& rhs) {
   return *lhs.impl_ == *rhs.impl_;
 }
 
-bool LocalCacheSettings::PersistentCacheSettings::Impl::operator==(const Impl& other) const {
+bool LocalCacheSettings::PersistentCacheSettings::Impl::operator==(
+    const Impl& other) const {
   return settings_ == other.settings_;
 }
 
-void LocalCacheSettings::PersistentCacheSettings::Impl::PrintTo(std::ostream& out) const {
+void LocalCacheSettings::PersistentCacheSettings::Impl::PrintTo(
+    std::ostream& out) const {
   out << "PersistentCacheSettings{";
   out << "size_bytes=" << settings_.size_bytes();
   out << "}";
@@ -117,27 +133,30 @@ void LocalCacheSettings::PersistentCacheSettings::Impl::PrintTo(std::ostream& ou
 // class LocalCacheSettings::MemoryCacheSettings
 ////////////////////////////////////////////////////////////////////////////////
 
-LocalCacheSettings::MemoryCacheSettings::MemoryCacheSettings() : impl_(std::make_shared<Impl>()) {
-}
+LocalCacheSettings::MemoryCacheSettings::MemoryCacheSettings()
+    : impl_(std::make_shared<Impl>()) {}
 
-LocalCacheSettings::MemoryCacheSettings::MemoryCacheSettings(Impl impl) : impl_(std::make_shared<Impl>(std::move(impl))) {
-}
+LocalCacheSettings::MemoryCacheSettings::MemoryCacheSettings(Impl impl)
+    : impl_(std::make_shared<Impl>(std::move(impl))) {}
 
 void LocalCacheSettings::MemoryCacheSettings::PrintTo(std::ostream& out) const {
   out << *impl_;
 }
 
-bool operator==(const LocalCacheSettings::MemoryCacheSettings& lhs, const LocalCacheSettings::MemoryCacheSettings& rhs) {
+bool operator==(const LocalCacheSettings::MemoryCacheSettings& lhs,
+                const LocalCacheSettings::MemoryCacheSettings& rhs) {
   return *lhs.impl_ == *rhs.impl_;
 }
 
-bool LocalCacheSettings::MemoryCacheSettings::Impl::operator==(const Impl& other) const {
+bool LocalCacheSettings::MemoryCacheSettings::Impl::operator==(
+    const Impl& other) const {
   return settings_ == other.settings_;
 }
 
-void LocalCacheSettings::MemoryCacheSettings::Impl::PrintTo(std::ostream& out) const {
+void LocalCacheSettings::MemoryCacheSettings::Impl::PrintTo(
+    std::ostream& out) const {
   out << "MemoryCacheSettings{";
-  if (! settings_.has_value()) {
+  if (!settings_.has_value()) {
     out << "<unset>";
   } else if (absl::holds_alternative<EagerGCSettings::Impl>(*settings_)) {
     out << absl::get<EagerGCSettings::Impl>(*settings_);
@@ -153,33 +172,45 @@ void LocalCacheSettings::MemoryCacheSettings::Impl::PrintTo(std::ostream& out) c
 // class LocalCacheSettings::MemoryCacheSettings::EagerGCSettings
 ////////////////////////////////////////////////////////////////////////////////
 
-LocalCacheSettings::MemoryCacheSettings::EagerGCSettings::EagerGCSettings() : impl_(std::make_shared<Impl>()) {
+LocalCacheSettings::MemoryCacheSettings::EagerGCSettings::EagerGCSettings()
+    : impl_(std::make_shared<Impl>()) {}
+
+LocalCacheSettings::MemoryCacheSettings::EagerGCSettings::EagerGCSettings(
+    Impl impl)
+    : impl_(std::make_shared<Impl>(std::move(impl))) {}
+
+LocalCacheSettings::MemoryCacheSettings
+LocalCacheSettings::MemoryCacheSettings::WithGarbageCollectorSettings(
+    const LruGCSettings& settings) const {
+  return MemoryCacheSettings(
+      impl_->WithGarbageCollectorSettings(*settings.impl_));
 }
 
-LocalCacheSettings::MemoryCacheSettings::EagerGCSettings::EagerGCSettings(Impl impl) : impl_(std::make_shared<Impl>(std::move(impl))) {
+LocalCacheSettings::MemoryCacheSettings
+LocalCacheSettings::MemoryCacheSettings::WithGarbageCollectorSettings(
+    const EagerGCSettings& settings) const {
+  return MemoryCacheSettings(
+      impl_->WithGarbageCollectorSettings(*settings.impl_));
 }
 
-LocalCacheSettings::MemoryCacheSettings LocalCacheSettings::MemoryCacheSettings::WithGarbageCollectorSettings(const LruGCSettings& settings) const {
-  return MemoryCacheSettings(impl_->WithGarbageCollectorSettings(*settings.impl_));
-}
-
-LocalCacheSettings::MemoryCacheSettings LocalCacheSettings::MemoryCacheSettings::WithGarbageCollectorSettings(const EagerGCSettings& settings) const {
-  return MemoryCacheSettings(impl_->WithGarbageCollectorSettings(*settings.impl_));
-}
-
-void LocalCacheSettings::MemoryCacheSettings::EagerGCSettings::PrintTo(std::ostream& out) const {
+void LocalCacheSettings::MemoryCacheSettings::EagerGCSettings::PrintTo(
+    std::ostream& out) const {
   out << *impl_;
 }
 
-bool operator==(const LocalCacheSettings::MemoryCacheSettings::EagerGCSettings& lhs, const LocalCacheSettings::MemoryCacheSettings::EagerGCSettings& rhs) {
+bool operator==(
+    const LocalCacheSettings::MemoryCacheSettings::EagerGCSettings& lhs,
+    const LocalCacheSettings::MemoryCacheSettings::EagerGCSettings& rhs) {
   return *lhs.impl_ == *rhs.impl_;
 }
 
-bool LocalCacheSettings::MemoryCacheSettings::EagerGCSettings::Impl::operator==(const Impl& other) const {
+bool LocalCacheSettings::MemoryCacheSettings::EagerGCSettings::Impl::operator==(
+    const Impl& other) const {
   return settings_ == other.settings_;
 }
 
-void LocalCacheSettings::MemoryCacheSettings::EagerGCSettings::Impl::PrintTo(std::ostream& out) const {
+void LocalCacheSettings::MemoryCacheSettings::EagerGCSettings::Impl::PrintTo(
+    std::ostream& out) const {
   out << "EagerGCSettings{}";
 }
 
@@ -187,33 +218,41 @@ void LocalCacheSettings::MemoryCacheSettings::EagerGCSettings::Impl::PrintTo(std
 // class LocalCacheSettings::MemoryCacheSettings::LruGCSettings
 ////////////////////////////////////////////////////////////////////////////////
 
-LocalCacheSettings::MemoryCacheSettings::LruGCSettings::LruGCSettings() : impl_(std::make_shared<Impl>()) {
-}
+LocalCacheSettings::MemoryCacheSettings::LruGCSettings::LruGCSettings()
+    : impl_(std::make_shared<Impl>()) {}
 
-LocalCacheSettings::MemoryCacheSettings::LruGCSettings::LruGCSettings(Impl impl) : impl_(std::make_shared<Impl>(std::move(impl))) {
-}
+LocalCacheSettings::MemoryCacheSettings::LruGCSettings::LruGCSettings(Impl impl)
+    : impl_(std::make_shared<Impl>(std::move(impl))) {}
 
-LocalCacheSettings::MemoryCacheSettings::LruGCSettings LocalCacheSettings::MemoryCacheSettings::LruGCSettings::WithSizeBytes(int64_t size_bytes) const {
+LocalCacheSettings::MemoryCacheSettings::LruGCSettings
+LocalCacheSettings::MemoryCacheSettings::LruGCSettings::WithSizeBytes(
+    int64_t size_bytes) const {
   return LruGCSettings(impl_->WithSizeBytes(size_bytes));
 }
 
-int64_t LocalCacheSettings::MemoryCacheSettings::LruGCSettings::size_bytes() const {
+int64_t LocalCacheSettings::MemoryCacheSettings::LruGCSettings::size_bytes()
+    const {
   return impl_->size_bytes();
 }
 
-void LocalCacheSettings::MemoryCacheSettings::LruGCSettings::PrintTo(std::ostream& out) const {
+void LocalCacheSettings::MemoryCacheSettings::LruGCSettings::PrintTo(
+    std::ostream& out) const {
   out << *impl_;
 }
 
-bool operator==(const LocalCacheSettings::MemoryCacheSettings::LruGCSettings& lhs, const LocalCacheSettings::MemoryCacheSettings::LruGCSettings& rhs) {
+bool operator==(
+    const LocalCacheSettings::MemoryCacheSettings::LruGCSettings& lhs,
+    const LocalCacheSettings::MemoryCacheSettings::LruGCSettings& rhs) {
   return *lhs.impl_ == *rhs.impl_;
 }
 
-bool LocalCacheSettings::MemoryCacheSettings::LruGCSettings::Impl::operator==(const Impl& other) const {
+bool LocalCacheSettings::MemoryCacheSettings::LruGCSettings::Impl::operator==(
+    const Impl& other) const {
   return settings_ == other.settings_;
 }
 
-void LocalCacheSettings::MemoryCacheSettings::LruGCSettings::Impl::PrintTo(std::ostream& out) const {
+void LocalCacheSettings::MemoryCacheSettings::LruGCSettings::Impl::PrintTo(
+    std::ostream& out) const {
   out << "LruGCSettings{";
   out << "size_bytes=" << this->size_bytes();
   out << "}";

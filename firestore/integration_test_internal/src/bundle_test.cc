@@ -328,7 +328,8 @@ TEST_F(BundleTest, LoadedDocumentsShouldNotBeGarbageCollectedRightAway) {
   // This test really only makes sense with memory persistence, as disk
   // persistence only ever lazily deletes data.
   auto new_settings = db->settings();
-  new_settings.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(LocalCacheSettings::MemoryCacheSettings()));
+  new_settings.set_local_cache_settings(LocalCacheSettings().WithCacheSettings(
+      LocalCacheSettings::MemoryCacheSettings()));
   db->set_settings(new_settings);
 
   auto bundle = CreateTestBundle(db);

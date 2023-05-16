@@ -221,7 +221,8 @@ void FirestoreInternal::set_settings(Settings from) {
       settings.set_cache_size_bytes(from.cache_size_bytes());
       break;
     case Settings::CacheSettingsSource::kNew: {
-      std::unique_ptr<api::LocalCacheSettings> local_cache_settings = from.local_cache_settings().impl_->ToCoreSettings();
+      std::unique_ptr<api::LocalCacheSettings> local_cache_settings =
+          from.local_cache_settings().impl_->ToCoreSettings();
       settings.set_local_cache_settings(*local_cache_settings);
       break;
     }

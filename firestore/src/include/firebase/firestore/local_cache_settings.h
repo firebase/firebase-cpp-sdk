@@ -46,14 +46,13 @@ class LocalCacheSettings final {
 
   void PrintTo(std::ostream& out) const;
 
-  friend std::ostream& operator<<(std::ostream& out, const LocalCacheSettings& self) {
+  friend std::ostream& operator<<(std::ostream& out,
+                                  const LocalCacheSettings& self) {
     self.PrintTo(out);
     return out;
   }
 
-  std::string ToString() const {
-    return (std::ostringstream() << *this).str();
-  }
+  std::string ToString() const { return (std::ostringstream() << *this).str(); }
 
  private:
   friend class FirestoreInternal;
@@ -85,18 +84,18 @@ class LocalCacheSettings::PersistentCacheSettings final {
   PersistentCacheSettings& operator=(PersistentCacheSettings&&) = default;
 
   /** Equality function. */
-  friend bool operator==(const PersistentCacheSettings&, const PersistentCacheSettings&);
+  friend bool operator==(const PersistentCacheSettings&,
+                         const PersistentCacheSettings&);
 
   void PrintTo(std::ostream& out) const;
 
-  friend std::ostream& operator<<(std::ostream& out, const PersistentCacheSettings& self) {
+  friend std::ostream& operator<<(std::ostream& out,
+                                  const PersistentCacheSettings& self) {
     self.PrintTo(out);
     return out;
   }
 
-  std::string ToString() const {
-    return (std::ostringstream() << *this).str();
-  }
+  std::string ToString() const { return (std::ostringstream() << *this).str(); }
 
   /**
    * Copies this settings instance, with the approximate cache size threshold
@@ -147,33 +146,34 @@ class LocalCacheSettings::MemoryCacheSettings final {
   MemoryCacheSettings& operator=(MemoryCacheSettings&&) = default;
 
   /** Equality function. */
-  friend bool operator==(const MemoryCacheSettings&, const MemoryCacheSettings&);
+  friend bool operator==(const MemoryCacheSettings&,
+                         const MemoryCacheSettings&);
 
   void PrintTo(std::ostream& out) const;
 
-  friend std::ostream& operator<<(std::ostream& out, const MemoryCacheSettings& self) {
+  friend std::ostream& operator<<(std::ostream& out,
+                                  const MemoryCacheSettings& self) {
     self.PrintTo(out);
     return out;
   }
 
-  std::string ToString() const {
-    return (std::ostringstream() << *this).str();
-  }
+  std::string ToString() const { return (std::ostringstream() << *this).str(); }
 
   class LruGCSettings;
   class EagerGCSettings;
 
   /**
-   * Copies this settings instance, with its `MemoryGarbageCollectorSettings` set
-   * the the given parameter, and returns the new settings instance.
+   * Copies this settings instance, with its `MemoryGarbageCollectorSettings`
+   * set the the given parameter, and returns the new settings instance.
    */
   MemoryCacheSettings WithGarbageCollectorSettings(const LruGCSettings&) const;
 
   /**
-   * Copies this settings instance, with its `MemoryGarbageCollectorSettings` set
-   * the the given parameter, and returns the new settings instance.
+   * Copies this settings instance, with its `MemoryGarbageCollectorSettings`
+   * set the the given parameter, and returns the new settings instance.
    */
-  MemoryCacheSettings WithGarbageCollectorSettings(const EagerGCSettings&) const;
+  MemoryCacheSettings WithGarbageCollectorSettings(
+      const EagerGCSettings&) const;
 
  private:
   friend class LocalCacheSettings;
@@ -214,14 +214,13 @@ class LocalCacheSettings::MemoryCacheSettings::EagerGCSettings final {
 
   void PrintTo(std::ostream& out) const;
 
-  friend std::ostream& operator<<(std::ostream& out, const EagerGCSettings& self) {
+  friend std::ostream& operator<<(std::ostream& out,
+                                  const EagerGCSettings& self) {
     self.PrintTo(out);
     return out;
   }
 
-  std::string ToString() const {
-    return (std::ostringstream() << *this).str();
-  }
+  std::string ToString() const { return (std::ostringstream() << *this).str(); }
 
  private:
   friend class LocalCacheSettings::MemoryCacheSettings;
@@ -263,14 +262,13 @@ class LocalCacheSettings::MemoryCacheSettings::LruGCSettings final {
 
   void PrintTo(std::ostream& out) const;
 
-  friend std::ostream& operator<<(std::ostream& out, const LruGCSettings& self) {
+  friend std::ostream& operator<<(std::ostream& out,
+                                  const LruGCSettings& self) {
     self.PrintTo(out);
     return out;
   }
 
-  std::string ToString() const {
-    return (std::ostringstream() << *this).str();
-  }
+  std::string ToString() const { return (std::ostringstream() << *this).str(); }
 
   /**
    * Copies this settings instance, with the approximate cache size threshold
@@ -304,27 +302,34 @@ class LocalCacheSettings::MemoryCacheSettings::LruGCSettings final {
 };
 
 /** Inequality function. */
-inline bool operator!=(const LocalCacheSettings& lhs, const LocalCacheSettings& rhs) {
+inline bool operator!=(const LocalCacheSettings& lhs,
+                       const LocalCacheSettings& rhs) {
   return !(lhs == rhs);
 }
 
 /** Inequality function. */
-inline bool operator!=(const LocalCacheSettings::MemoryCacheSettings& lhs, const LocalCacheSettings::MemoryCacheSettings& rhs) {
+inline bool operator!=(const LocalCacheSettings::MemoryCacheSettings& lhs,
+                       const LocalCacheSettings::MemoryCacheSettings& rhs) {
   return !(lhs == rhs);
 }
 
 /** Inequality function. */
-inline bool operator!=(const LocalCacheSettings::PersistentCacheSettings& lhs, const LocalCacheSettings::PersistentCacheSettings& rhs) {
+inline bool operator!=(const LocalCacheSettings::PersistentCacheSettings& lhs,
+                       const LocalCacheSettings::PersistentCacheSettings& rhs) {
   return !(lhs == rhs);
 }
 
 /** Inequality function. */
-inline bool operator!=(const LocalCacheSettings::MemoryCacheSettings::EagerGCSettings& lhs, const LocalCacheSettings::MemoryCacheSettings::EagerGCSettings& rhs) {
+inline bool operator!=(
+    const LocalCacheSettings::MemoryCacheSettings::EagerGCSettings& lhs,
+    const LocalCacheSettings::MemoryCacheSettings::EagerGCSettings& rhs) {
   return !(lhs == rhs);
 }
 
 /** Inequality function. */
-inline bool operator!=(const LocalCacheSettings::MemoryCacheSettings::LruGCSettings& lhs, const LocalCacheSettings::MemoryCacheSettings::LruGCSettings& rhs) {
+inline bool operator!=(
+    const LocalCacheSettings::MemoryCacheSettings::LruGCSettings& lhs,
+    const LocalCacheSettings::MemoryCacheSettings::LruGCSettings& rhs) {
   return !(lhs == rhs);
 }
 
