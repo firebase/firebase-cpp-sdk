@@ -83,7 +83,7 @@ void Settings::set_persistence_enabled(bool enabled) {
         "api set_local_cache_settings()");
   }
 
-  cache_settings_source_ == CacheSettingsSource::kOld;
+  cache_settings_source_ = CacheSettingsSource::kOld;
   persistence_enabled_ = enabled;
 }
 
