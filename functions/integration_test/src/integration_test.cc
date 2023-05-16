@@ -184,7 +184,7 @@ void FirebaseFunctionsTest::Terminate() {
 
 void FirebaseFunctionsTest::SignIn() {
   LogDebug("Signing in.");
-  firebase::Future<firebase::auth::User*> sign_in_future =
+  firebase::Future<firebase::auth::AuthResult> sign_in_future =
       auth_->SignInAnonymously();
   WaitForCompletion(sign_in_future, "SignInAnonymously");
   if (sign_in_future.error() != 0) {
@@ -252,7 +252,7 @@ TEST_F(FirebaseFunctionsTest, TestInitializeAndTerminate) {
 
 TEST_F(FirebaseFunctionsTest, TestSignIn) {
   SignIn();
-  EXPECT_NE(auth_->current_user(), nullptr);
+  EXPECT_TRUE(auth_->current_user().is_valid());
 }
 
 TEST_F(FirebaseFunctionsTest, TestFunction) {

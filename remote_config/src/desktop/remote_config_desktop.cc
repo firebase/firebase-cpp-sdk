@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "app/src/callback.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/time.h"
 #include "remote_config/src/common.h"
 #include "remote_config/src/include/firebase/remote_config.h"
@@ -78,7 +79,7 @@ RemoteConfigInternal::RemoteConfigInternal(
 
 RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
     : app_(app),
-      file_manager_(kFilePathSuffix),
+      file_manager_(kFilePathSuffix, app),
       is_fetch_process_have_task_(false),
       future_impl_(kRemoteConfigFnCount),
       safe_this_(this),
@@ -580,6 +581,15 @@ bool RemoteConfigInternal::ActivateFetched() {
 const ConfigInfo RemoteConfigInternal::GetInfo() const {
   MutexLock lock(internal_mutex_);
   return configs_.metadata.info();
+}
+
+ConfigUpdateListenerRegistration
+RemoteConfigInternal::AddOnConfigUpdateListener(
+    std::function<void(ConfigUpdate&&, RemoteConfigError)>
+        config_update_listener) {
+  // Realtime RC is not yet implemented on desktop, so just return a
+  // registration object that is no-op.
+  return ConfigUpdateListenerRegistration();
 }
 
 void RemoteConfigInternal::FetchInternal() {
