@@ -88,7 +88,6 @@ class JniRunnableTest : public FirestoreAndroidIntegrationTest {
     Local<Object> expected_state = env().Get(kThreadStateBlocked);
     return Object::Equals(env(), expected_state, actual_state);
   }
-
 };
 
 TEST_F(JniRunnableTest, JavaRunCallsCppRun) {
@@ -117,9 +116,7 @@ TEST_F(JniRunnableTest, JavaRunCallsCppRunOncePerInvocation) {
 
 TEST_F(JniRunnableTest, JavaRunPropagatesExceptions) {
   Global<Throwable> exception = CreateException();
-  auto runnable = MakeJniRunnable(env(), [=] {
-    env().Throw(exception);
-  });
+  auto runnable = MakeJniRunnable(env(), [=] { env().Throw(exception); });
   Local<Object> java_runnable = runnable.GetJavaRunnable();
 
   env().Call(java_runnable, kRunnableRun);
@@ -199,9 +196,8 @@ TEST_F(JniRunnableTest, DestructionCausesJavaRunToDoNothing) {
 
 TEST_F(JniRunnableTest, RunOnMainThreadRunsOnTheMainThread) {
   std::atomic<jlong> captured_thread_id(-1);
-  auto runnable = MakeJniRunnable(env(), [&] {
-    captured_thread_id = GetCurrentThreadId();
-  });
+  auto runnable = MakeJniRunnable(
+      env(), [&] { captured_thread_id = GetCurrentThreadId(); });
 
   Local<Task> task = runnable.RunOnMainThread(env());
 
@@ -211,9 +207,7 @@ TEST_F(JniRunnableTest, RunOnMainThreadRunsOnTheMainThread) {
 
 TEST_F(JniRunnableTest, RunOnMainThreadTaskFailsIfRunThrowsException) {
   Global<Throwable> exception = CreateException();
-  auto runnable = MakeJniRunnable(env(), [&] {
-    env().Throw(exception);
-  });
+  auto runnable = MakeJniRunnable(env(), [&] { env().Throw(exception); });
 
   Local<Task> task = runnable.RunOnMainThread(env());
 
@@ -225,18 +219,17 @@ TEST_F(JniRunnableTest, RunOnMainThreadTaskFailsIfRunThrowsException) {
 
 TEST_F(JniRunnableTest, RunOnMainThreadRunsSynchronouslyFromMainThread) {
   std::atomic<bool> is_recursive_call(false);
-  auto runnable =
-      MakeJniRunnable(env(), [&](JniRunnableBase& runnable) {
-        EXPECT_EQ(GetCurrentThreadId(), GetMainThreadId());
-        if (is_recursive_call) {
-          return;
-        }
-        is_recursive_call = true;
-        Local<Task> task = runnable.RunOnMainThread(env());
-        EXPECT_TRUE(task.IsComplete(env()));
-        EXPECT_TRUE(task.IsSuccessful(env()));
-        is_recursive_call = false;
-      });
+  auto runnable = MakeJniRunnable(env(), [&](JniRunnableBase& runnable) {
+    EXPECT_EQ(GetCurrentThreadId(), GetMainThreadId());
+    if (is_recursive_call) {
+      return;
+    }
+    is_recursive_call = true;
+    Local<Task> task = runnable.RunOnMainThread(env());
+    EXPECT_TRUE(task.IsComplete(env()));
+    EXPECT_TRUE(task.IsSuccessful(env()));
+    is_recursive_call = false;
+  });
 
   Local<Task> task = runnable.RunOnMainThread(env());
 
@@ -245,9 +238,8 @@ TEST_F(JniRunnableTest, RunOnMainThreadRunsSynchronouslyFromMainThread) {
 
 TEST_F(JniRunnableTest, RunOnNewThreadRunsOnANonMainThread) {
   std::atomic<jlong> captured_thread_id(-1);
-  auto runnable = MakeJniRunnable(env(), [&] {
-    captured_thread_id = GetCurrentThreadId();
-  });
+  auto runnable = MakeJniRunnable(
+      env(), [&] { captured_thread_id = GetCurrentThreadId(); });
 
   Local<Task> task = runnable.RunOnNewThread(env());
 
@@ -259,9 +251,7 @@ TEST_F(JniRunnableTest, RunOnNewThreadRunsOnANonMainThread) {
 
 TEST_F(JniRunnableTest, RunOnNewThreadTaskFailsIfRunThrowsException) {
   Global<Throwable> exception = CreateException();
-  auto runnable = MakeJniRunnable(env(), [&] {
-    env().Throw(exception);
-  });
+  auto runnable = MakeJniRunnable(env(), [&] { env().Throw(exception); });
 
   Local<Task> task = runnable.RunOnNewThread(env());
 
@@ -276,29 +266,27 @@ TEST_F(JniRunnableTest, DetachReturnsAfterLastRunOnAnotherThreadCompletes) {
   std::mutex detach_thread_mutex;
   Global<Object> detach_thread;
 
-  auto runnable1 = MakeJniRunnable(
-      env(), [&] {
-        runnable1_run_invoke_count.fetch_add(1);
-        // Wait for `detach()` to be called and start blocking; then, return to
-        // allow `detach()` to unblock and do its job.
-        while (env().ok()) {
-          std::lock_guard<std::mutex> lock(detach_thread_mutex);
-          if (detach_thread && IsThreadBlocked(detach_thread)) {
-            break;
-          }
-        }
-        EXPECT_TRUE(env().ok()) << "IsThreadBlocked() failed with an exception";
-      });
+  auto runnable1 = MakeJniRunnable(env(), [&] {
+    runnable1_run_invoke_count.fetch_add(1);
+    // Wait for `detach()` to be called and start blocking; then, return to
+    // allow `detach()` to unblock and do its job.
+    while (env().ok()) {
+      std::lock_guard<std::mutex> lock(detach_thread_mutex);
+      if (detach_thread && IsThreadBlocked(detach_thread)) {
+        break;
+      }
+    }
+    EXPECT_TRUE(env().ok()) << "IsThreadBlocked() failed with an exception";
+  });
 
-  auto runnable2 =
-      MakeJniRunnable(env(), [&] {
-        {
-          std::lock_guard<std::mutex> lock(detach_thread_mutex);
-          detach_thread = env().Call(kCurrentThread);
-        }
-        runnable1.Detach(env());
-        EXPECT_TRUE(env().ok()) << "Detach() failed with an exception";
-      });
+  auto runnable2 = MakeJniRunnable(env(), [&] {
+    {
+      std::lock_guard<std::mutex> lock(detach_thread_mutex);
+      detach_thread = env().Call(kCurrentThread);
+    }
+    runnable1.Detach(env());
+    EXPECT_TRUE(env().ok()) << "Detach() failed with an exception";
+  });
 
   // Wait for the `runnable1.Run()` to start to ensure that the lock is held.
   Local<Task> task1 = runnable1.RunOnNewThread(env());

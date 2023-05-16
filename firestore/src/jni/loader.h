@@ -159,9 +159,7 @@ class Loader {
 
   void Unload();
 
-  JNIEnv* env() {
-    return env_;
-  }
+  JNIEnv* env() { return env_; }
 
  private:
   App* app_ = nullptr;

@@ -32,7 +32,8 @@ namespace jni {
 
 namespace {
 
-constexpr char kObjectArenaClassName[] = PROGUARD_KEEP_CLASS "com/google/firebase/firestore/internal/cpp/ObjectArena";
+constexpr char kObjectArenaClassName[] = PROGUARD_KEEP_CLASS
+    "com/google/firebase/firestore/internal/cpp/ObjectArena";
 
 class ObjectArena {
  public:
@@ -43,7 +44,8 @@ class ObjectArena {
 
   static const ObjectArena& GetInstance() {
     const ObjectArena& instance = GetOrCreateSingletonInstance();
-    FIREBASE_ASSERT_MESSAGE(instance.initialized_, "ObjectArena initialization failed");
+    FIREBASE_ASSERT_MESSAGE(instance.initialized_,
+                            "ObjectArena initialization failed");
     return instance;
   }
 
@@ -111,18 +113,21 @@ class ObjectArena {
     }
 
     jobject clazz_globalref = loader.env()->NewGlobalRef(clazz);
-    if (! loader.ok()) {
+    if (!loader.ok()) {
       return {};
     }
 
     return (jclass)clazz_globalref;
   }
 
-  jmethodID LoadObjectArenaMethodId(Loader& loader, const char* name, const char* signature) const {
+  jmethodID LoadObjectArenaMethodId(Loader& loader,
+                                    const char* name,
+                                    const char* signature) const {
     if (!loader.ok()) {
       return {};
     }
-    jmethodID method_id = loader.env()->GetStaticMethodID(java_class_, name, signature);
+    jmethodID method_id =
+        loader.env()->GetStaticMethodID(java_class_, name, signature);
     if (!loader.ok()) {
       return {};
     }
@@ -174,7 +179,7 @@ Local<Object> ArenaRef::get(Env& env) const {
     return {};
   }
   jobject result = ObjectArena::GetInstance().Get(env, *id_);
-  if (! env.ok()) {
+  if (!env.ok()) {
     return {};
   }
   return {env.get(), result};
@@ -189,9 +194,7 @@ void ArenaRef::reset(Env& env, const Object& object) {
   ObjectArena::GetInstance().Set(env, *id_, object.get());
 }
 
-void ArenaRef::Initialize(Loader& loader) {
-  ObjectArena::Initialize(loader);
-}
+void ArenaRef::Initialize(Loader& loader) { ObjectArena::Initialize(loader); }
 
 }  // namespace jni
 }  // namespace firestore

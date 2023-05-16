@@ -371,7 +371,7 @@ TEST_F(FieldValueTest, TestIncrementChoosesTheCorrectType) {
 // As long as this test doesn't crash, then it passes.
 TEST_F(FieldValueTest, GlobalRefsExhaustion) {
   std::vector<FieldValue> numbers;
-  for (int i=0; i<60000; i++) {
+  for (int i = 0; i < 60000; i++) {
     numbers.push_back(FieldValue::Integer(i));
   }
 }

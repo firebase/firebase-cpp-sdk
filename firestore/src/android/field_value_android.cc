@@ -98,37 +98,44 @@ FieldValue FieldValueInternal::Create(Env& env,
 
 FieldValueInternal::FieldValueInternal() : cached_type_(Type::kNull) {}
 
-FieldValueInternal::FieldValueInternal(const Object& object) : cached_type_(Type::kNull) {
+FieldValueInternal::FieldValueInternal(const Object& object)
+    : cached_type_(Type::kNull) {
   Env env = GetEnv();
   object_.reset(env, object);
 }
 
-FieldValueInternal::FieldValueInternal(Type type, const Object& object) : cached_type_(type) {
+FieldValueInternal::FieldValueInternal(Type type, const Object& object)
+    : cached_type_(type) {
   Env env = GetEnv();
   object_.reset(env, object);
 }
 
-FieldValueInternal::FieldValueInternal(bool value) : cached_type_(Type::kBoolean) {
+FieldValueInternal::FieldValueInternal(bool value)
+    : cached_type_(Type::kBoolean) {
   Env env = GetEnv();
   object_.reset(env, Boolean::Create(env, value));
 }
 
-FieldValueInternal::FieldValueInternal(int64_t value) : cached_type_(Type::kInteger) {
+FieldValueInternal::FieldValueInternal(int64_t value)
+    : cached_type_(Type::kInteger) {
   Env env = GetEnv();
   object_.reset(env, Long::Create(env, value));
 }
 
-FieldValueInternal::FieldValueInternal(double value) : cached_type_(Type::kDouble) {
+FieldValueInternal::FieldValueInternal(double value)
+    : cached_type_(Type::kDouble) {
   Env env = GetEnv();
   object_.reset(env, Double::Create(env, value));
 }
 
-FieldValueInternal::FieldValueInternal(Timestamp value) : cached_type_(Type::kTimestamp) {
+FieldValueInternal::FieldValueInternal(Timestamp value)
+    : cached_type_(Type::kTimestamp) {
   Env env = GetEnv();
   object_.reset(env, TimestampInternal::Create(env, value));
 }
 
-FieldValueInternal::FieldValueInternal(std::string value) : cached_type_(Type::kString) {
+FieldValueInternal::FieldValueInternal(std::string value)
+    : cached_type_(Type::kString) {
   Env env = GetEnv();
   object_.reset(env, env.NewStringUtf(value));
 }
@@ -137,19 +144,22 @@ FieldValueInternal::FieldValueInternal(std::string value) : cached_type_(Type::k
 // with const uint8_t* is generally used for updating Firestore while
 // cached_blob_ is only needed when reading from Firestore and calling with
 // blob_value().
-FieldValueInternal::FieldValueInternal(const uint8_t* value, size_t size) : cached_type_(Type::kBlob) {
+FieldValueInternal::FieldValueInternal(const uint8_t* value, size_t size)
+    : cached_type_(Type::kBlob) {
   Env env = GetEnv();
   object_.reset(env, BlobInternal::Create(env, value, size));
 }
 
-FieldValueInternal::FieldValueInternal(DocumentReference value) : cached_type_{Type::kReference} {
+FieldValueInternal::FieldValueInternal(DocumentReference value)
+    : cached_type_{Type::kReference} {
   if (value.internal_ != nullptr) {
     Env env = GetEnv();
     object_.reset(env, value.internal_->ToJava());
   }
 }
 
-FieldValueInternal::FieldValueInternal(GeoPoint value) : cached_type_(Type::kGeoPoint) {
+FieldValueInternal::FieldValueInternal(GeoPoint value)
+    : cached_type_(Type::kGeoPoint) {
   Env env = GetEnv();
   object_.reset(env, GeoPointInternal::Create(env, value));
 }
@@ -186,7 +196,7 @@ Type FieldValueInternal::type() const {
   // each known type.
   Env env = GetEnv();
   Local<Object> object = object_.get(env);
-  if (! object) {
+  if (!object) {
     return Type::kNull;
   }
   if (env.IsInstanceOf(object, Boolean::GetClass())) {

@@ -242,7 +242,9 @@ class Env {
   }
 
   template <typename T, typename... Args>
-  ResultType<T> Call(const ArenaRef& object, const Method<T>& method, Args&&... args) {
+  ResultType<T> Call(const ArenaRef& object,
+                     const Method<T>& method,
+                     Args&&... args) {
     return Call(object.get(*this), method, Forward<Args>(args)...);
   }
 

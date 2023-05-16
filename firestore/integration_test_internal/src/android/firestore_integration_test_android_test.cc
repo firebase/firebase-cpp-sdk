@@ -33,8 +33,8 @@ namespace {
 
 using jni::ArrayList;
 using jni::Env;
-using jni::Local;
 using jni::Global;
+using jni::Local;
 using jni::Object;
 using jni::String;
 using jni::Throwable;
@@ -131,7 +131,8 @@ TEST_F(FirestoreAndroidIntegrationTest,
   EXPECT_THAT(list_object, Not(JavaEq(string_object)));
 }
 
-TEST_F(FirestoreAndroidIntegrationTest, RefersToSameJavaObjectAsShouldReturnTrueForSameObjects) {
+TEST_F(FirestoreAndroidIntegrationTest,
+       RefersToSameJavaObjectAsShouldReturnTrueForSameObjects) {
   Local<String> object1 = env().NewStringUtf("string");
   Global<String> object2 = object1;
 
@@ -160,38 +161,32 @@ TEST_F(FirestoreAndroidIntegrationTest,
   Local<String> null_reference;
   Local<String> non_null_reference = env().NewStringUtf("string2");
 
-  EXPECT_THAT(null_reference, Not(RefersToSameJavaObjectAs(non_null_reference)));
-  EXPECT_THAT(non_null_reference, Not(RefersToSameJavaObjectAs(null_reference)));
+  EXPECT_THAT(null_reference,
+              Not(RefersToSameJavaObjectAs(non_null_reference)));
+  EXPECT_THAT(non_null_reference,
+              Not(RefersToSameJavaObjectAs(null_reference)));
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 TEST_F(FirestoreAndroidIntegrationTest,
        ThrowExceptionWithNoMessageShouldSetPendingExceptionWithAMessage) {
   Local<Throwable> throw_exception_return_value = ThrowException();
   Local<Throwable> actually_thrown_exception = env().ClearExceptionOccurred();
   ASSERT_TRUE(actually_thrown_exception);
-  EXPECT_THAT(actually_thrown_exception, RefersToSameJavaObjectAs(throw_exception_return_value));
+  EXPECT_THAT(actually_thrown_exception,
+              RefersToSameJavaObjectAs(throw_exception_return_value));
   EXPECT_THAT(actually_thrown_exception.GetMessage(env()), Not(IsEmpty()));
 }
 
 TEST_F(FirestoreAndroidIntegrationTest,
        ThrowExceptionWithAMessageShouldSetPendingExceptionWithTheGivenMessage) {
-  Local<Throwable> throw_exception_return_value = ThrowException("my test message");
+  Local<Throwable> throw_exception_return_value =
+      ThrowException("my test message");
   Local<Throwable> actually_thrown_exception = env().ClearExceptionOccurred();
   ASSERT_TRUE(actually_thrown_exception);
-  EXPECT_THAT(actually_thrown_exception, RefersToSameJavaObjectAs(throw_exception_return_value));
-  EXPECT_THAT(actually_thrown_exception.GetMessage(env()), StrEq("my test message"));
+  EXPECT_THAT(actually_thrown_exception,
+              RefersToSameJavaObjectAs(throw_exception_return_value));
+  EXPECT_THAT(actually_thrown_exception.GetMessage(env()),
+              StrEq("my test message"));
 }
 
 TEST_F(FirestoreAndroidIntegrationTest,
@@ -208,12 +203,6 @@ TEST_F(FirestoreAndroidIntegrationTest,
   EXPECT_THAT(exception.GetMessage(env()), StrEq("my test message"));
 }
 
-
-
-
-
-
-
 TEST_F(FirestoreAndroidIntegrationTest,
        ClearCurrentExceptionAfterTestShouldClearTheExceptionInTearDown) {
   ThrowException();
@@ -225,8 +214,9 @@ TEST_F(FirestoreAndroidIntegrationTest,
   EXPECT_FALSE(env().ok());
 }
 
-TEST_F(FirestoreAndroidIntegrationTest,
-       ClearCurrentExceptionAfterTestShouldReturnTheExceptionThatWillBeCleared) {
+TEST_F(
+    FirestoreAndroidIntegrationTest,
+    ClearCurrentExceptionAfterTestShouldReturnTheExceptionThatWillBeCleared) {
   Local<Throwable> thrown_exception = ThrowException();
 
   Local<Throwable> returned_exception = ClearCurrentExceptionAfterTest();
@@ -244,7 +234,9 @@ TEST_F(FirestoreAndroidIntegrationTest,
   static std::atomic<decltype(lambda)*> static_lambda;
   static_lambda = &lambda;
 
-  EXPECT_NONFATAL_FAILURE((*static_lambda)(), "must be invoked when there is a pending Java exception");
+  EXPECT_NONFATAL_FAILURE(
+      (*static_lambda)(),
+      "must be invoked when there is a pending Java exception");
   EXPECT_FALSE(returned_object);
 }
 
@@ -262,7 +254,8 @@ TEST_F(FirestoreAndroidIntegrationTest,
   static std::atomic<decltype(lambda)*> static_lambda;
   static_lambda = &lambda;
 
-  EXPECT_NONFATAL_FAILURE((*static_lambda)(), "may only be invoked at most once per test");
+  EXPECT_NONFATAL_FAILURE((*static_lambda)(),
+                          "may only be invoked at most once per test");
   EXPECT_FALSE(returned_object);
 }
 

@@ -280,7 +280,8 @@ Query QueryInternal::Where(const FieldPath& field,
                            const FieldValue& value) const {
   Env env = GetEnv();
   Local<Object> java_field = FieldPathConverter::Create(env, field);
-  Local<Object> query = env.Call(obj_, method, java_field, FieldValueInternal::ToJava(value));
+  Local<Object> query =
+      env.Call(obj_, method, java_field, FieldValueInternal::ToJava(value));
   return firestore_->NewQuery(env, query);
 }
 
