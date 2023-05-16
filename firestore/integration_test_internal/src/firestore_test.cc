@@ -1490,7 +1490,7 @@ TEST_F(FirestoreTest, CanReadDocsAfterRestartFirestoreAndCreateNewInstance) {
   // Verify that the new instance points to the same database by verifying that
   // the document created with the old instance exists in the new instance.
   DocumentReference doc2 = db2->Document(doc_path);
-  const DocumentSnapshot* snapshot2 = Await(doc2.Get(Source::kCache));
+  const DocumentSnapshot* snapshot2 = Await(doc2.Get());
   ASSERT_NE(snapshot2, nullptr);
   EXPECT_TRUE(snapshot2->exists());
   EXPECT_THAT(snapshot2->GetData(),

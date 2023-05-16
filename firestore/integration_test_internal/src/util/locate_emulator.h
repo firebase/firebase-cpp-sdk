@@ -24,7 +24,7 @@ namespace firestore {
 // Set Firestore up to use Firestore Emulator via USE_FIRESTORE_EMULATOR
 void LocateEmulator(Firestore* db);
 
-// Check if firestore is using Firestore Emulator via USE_FIRESTORE_EMULATOR.
+// Check if firestore is using Firestore Emulator.
 bool IsUsingFirestoreEmulator();
 
 }  // namespace firestore

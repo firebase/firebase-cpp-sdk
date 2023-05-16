@@ -117,9 +117,9 @@ FirestoreInternal::FirestoreInternal(
                                       std::move(auth_credentials),
                                       std::move(app_check_credentials))),
       transaction_executor_(absl::ShareUniquePtr(Executor::CreateConcurrent(
-          "com.google.firebase.firestore.transaction", /*threads=*/5))) {
+          "com.google.firebase.firestore.transaction", /*threads=*/5))),
+      database_name_(database_id) {
   ApplyDefaultSettings();
-  database_name_ = database_id;
 
 #if FIREBASE_PLATFORM_ANDROID
   App::RegisterLibrary("fire-fst", kFirestoreVersionString, app->GetJNIEnv());

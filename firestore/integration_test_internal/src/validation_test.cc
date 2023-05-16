@@ -410,15 +410,15 @@ TEST_F(ValidationTest, FirestoreGetInstanceWithNullAppFails) {
   EXPECT_ERROR(Firestore::GetInstance(/*app=*/(App*)nullptr,
                                       /*init_result=*/(InitResult*)nullptr),
                "firebase::App instance cannot be null. Use other "
-               "firebase::App::GetInstance() if you'd like to use the default "
-               "instance.");
+               "Firestore::GetInstance() if you'd like to use the default "
+               "app instance.");
 }
 
 TEST_F(ValidationTest, FirestoreGetInstanceWithNullDatabaseNameFails) {
   EXPECT_ERROR(Firestore::GetInstance(/*db_name=*/(char*)nullptr,
                                       /*init_result=*/(InitResult*)nullptr),
                "Provided database ID must not be null. Use other "
-               "firebase::App::GetInstance() if you'd like to use the default "
+               "Firestore::GetInstance() if you'd like to use the default "
                "database ID.");
 }
 
@@ -427,8 +427,8 @@ TEST_F(ValidationTest,
   EXPECT_ERROR(Firestore::GetInstance(/*app=*/(App*)nullptr, "foo",
                                       /*init_result=*/(InitResult*)nullptr),
                "firebase::App instance cannot be null. Use other "
-               "firebase::App::GetInstance() if you'd like to use the default "
-               "instance.");
+               "Firestore::GetInstance() if you'd like to use the default "
+               "app instance.");
 }
 
 TEST_F(ValidationTest,
@@ -436,7 +436,7 @@ TEST_F(ValidationTest,
   EXPECT_ERROR(Firestore::GetInstance(app(), /*db_name=*/(char*)nullptr,
                                       /*init_result=*/(InitResult*)nullptr),
                "Provided database ID must not be null. Use other "
-               "firebase::App::GetInstance() if you'd like to use the default "
+               "Firestore::GetInstance() if you'd like to use the default "
                "database ID.");
 }
 
@@ -505,7 +505,7 @@ TEST_F(ValidationTest,
 }
 
 TEST_F(ValidationTest,
-       DifferentFirestoreGetInstanceCanGetSameDefaultFirestoreInstance) {
+       DifferentFirestoreGetInstanceMethodCanGetSameDefaultFirestoreInstance) {
   Firestore* instance1 = Firestore::GetInstance();
   Firestore* instance2 = Firestore::GetInstance(app());
   Firestore* instance3 = Firestore::GetInstance("(default)");
@@ -531,7 +531,7 @@ TEST_F(
     DifferentFirestoreGetInstanceWithDifferentDatabaseNameShouldGetDifferentFirestoreInstance) {
   {
     Firestore* instance1 = Firestore::GetInstance();
-    Firestore* instance2 = Firestore::GetInstance("bar");
+    Firestore* instance2 = Firestore::GetInstance("foo");
     EXPECT_NE(instance1, instance2);
     delete instance1;
     delete instance2;

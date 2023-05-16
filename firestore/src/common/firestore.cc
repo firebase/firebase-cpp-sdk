@@ -114,8 +114,8 @@ void ValidateApp(App* app) {
   if (!app) {
     SimpleThrowInvalidArgument(
         "firebase::App instance cannot be null. Use other "
-        "firebase::App::GetInstance() if you'd like to use the default "
-        "instance.");
+        "Firestore::GetInstance() if you'd like to use the default "
+        "app instance.");
   }
 }
 
@@ -123,7 +123,7 @@ void ValidateDatabase(const char* database_id) {
   if (!database_id) {
     SimpleThrowInvalidArgument(
         "Provided database ID must not be null. Use other "
-        "firebase::App::GetInstance() if you'd like to use the default "
+        "Firestore::GetInstance() if you'd like to use the default "
         "database ID.");
   }
 }
@@ -242,8 +242,6 @@ void Firestore::DeleteInternal() {
   if (!internal_) return;
 
   App* my_app = app();
-  // Store the database id here as it will be deleted
-  const std::string database_id = internal_->database_name();
 
   // Only need to unregister if internal_ is initialized.
   if (internal_->initialized()) {
@@ -264,6 +262,8 @@ void Firestore::DeleteInternal() {
 
   // Force cleanup to happen first.
   internal_->cleanup().CleanupAll();
+  // Store the database id before deleting the firestore instance.
+  const std::string database_id = internal_->database_name();
   delete internal_;
   internal_ = nullptr;
   // If a Firestore is explicitly deleted, remove it from our cache.
