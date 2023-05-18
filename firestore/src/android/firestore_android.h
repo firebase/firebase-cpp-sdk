@@ -166,9 +166,7 @@ class FirestoreInternal {
     firestore_public_ = firestore_public;
   }
 
-  const model::DatabaseId& database_id() const {
-    return this->database_id();
-  }
+  const model::DatabaseId& database_id() const { return this->database_id(); }
 
   Firestore* firestore_public() { return firestore_public_; }
   const Firestore* firestore_public() const { return firestore_public_; }
