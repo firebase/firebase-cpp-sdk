@@ -66,6 +66,10 @@ App* App::GetInstance(const char* name) {
   return app_common::FindAppByName(name);
 }
 
+std::vector<App*> App::GetApps() {
+  return app_common::GetAllApps();
+}
+
 #ifdef INTERNAL_EXPERIMENTAL
 internal::FunctionRegistry* App::function_registry() {
   return static_cast<internal::FunctionRegistry*>(data_);

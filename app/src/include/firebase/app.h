@@ -570,6 +570,11 @@ class App {
   /// Get the App with the given name, or nullptr if none have been created.
   static App* GetInstance(const char* name);
 
+#if !defined(DOXYGEN)
+  /// Get all the apps, including the default one.
+  static std::vector<App*> GetApps();
+#endif //!defined(DOXYGEN), to hide the api from public documentation.
+
 #ifndef SWIG
 // <SWIG>
 // Unity doesn't need the JNI from here, it has its method to access JNI.

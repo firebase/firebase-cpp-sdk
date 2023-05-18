@@ -60,6 +60,8 @@ App* GetDefaultApp();
 // will be returned.
 App* GetAnyApp();
 
+std::vector<App*> GetAllApps();
+
 // Remove an app from the set of apps.
 // Call this method before destroying an app.
 void RemoveApp(App* app);

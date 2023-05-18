@@ -65,4 +65,26 @@ TEST_F(FirebaseAppTest, TestDefaultAppWithDefaultOptions) {
   default_app = nullptr;
 }
 
+TEST_F(FirebaseAppTest, TestGetAll) {
+  std::vector<firebase::App*> all_apps = firebase::App::GetApps();
+  EXPECT_EQ(all_apps.size(), 0);
+  
+  firebase::App* default_app;
+  default_app = firebase::App::Create(APP_CREATE_PARAMS);
+  
+  all_apps = firebase::App::GetApps();
+  EXPECT_EQ(all_apps.size(), 1);
+
+  firebase::App* second_app; 
+  second_app = firebase::App::Create(firebase::AppOptions(), "2ndApp");
+
+  all_apps = firebase::App::GetApps();
+  EXPECT_EQ(all_apps.size(), 2);
+
+  delete default_app;
+  default_app = nullptr;
+  delete second_app;
+  second_app = nullptr;
+}
+
 }  // namespace firebase_testapp_automated
