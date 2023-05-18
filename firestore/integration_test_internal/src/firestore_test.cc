@@ -1407,9 +1407,7 @@ TEST_F(FirestoreTest, RestartFirestoreLeadsToNewInstance) {
 TEST_F(FirestoreTest, CanCreateMultipleFirestoreInstances) {
   // TODO(b/282947967): Remove the emulator env check after prod supports
   // multiDB.
-  if (!IsUsingFirestoreEmulator()) {
-    GTEST_SKIP();
-  }
+  RUN_TEST_ONLY_AGAINST_FIRESTORE_EMULATOR;
 
   // Create two Firestore instances in the same app.
   App* app = App::GetInstance();
@@ -1441,9 +1439,7 @@ TEST_F(FirestoreTest, CanCreateMultipleFirestoreInstances) {
 TEST_F(FirestoreTest, CanTerminateMultipleFirestoreInstances) {
   // TODO(b/282947967): Remove the emulator env check after prod supports
   // multiDB.
-  if (!IsUsingFirestoreEmulator()) {
-    GTEST_SKIP();
-  }
+  RUN_TEST_ONLY_AGAINST_FIRESTORE_EMULATOR;
 
   // Create two Firestore instances in the same app.
   App* app = App::GetInstance();
@@ -1465,9 +1461,7 @@ TEST_F(FirestoreTest, CanTerminateMultipleFirestoreInstances) {
 TEST_F(FirestoreTest, CanReadDocsAfterRestartFirestoreAndCreateNewInstance) {
   // TODO(b/282947967): Remove the emulator env check and LocateEmulator call
   // after prod supports multiDB.
-  if (!IsUsingFirestoreEmulator()) {
-    GTEST_SKIP();
-  }
+  RUN_TEST_ONLY_AGAINST_FIRESTORE_EMULATOR;
 
   App* app = App::GetInstance();
   auto db1 = std::unique_ptr<Firestore>(Firestore::GetInstance(app, "test-db"));
@@ -1500,9 +1494,7 @@ TEST_F(FirestoreTest, CanReadDocsAfterRestartFirestoreAndCreateNewInstance) {
 TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOnline) {
   // TODO(b/282947967): Remove the emulator env check after prod supports
   // multiDB.
-  if (!IsUsingFirestoreEmulator()) {
-    GTEST_SKIP();
-  }
+  RUN_TEST_ONLY_AGAINST_FIRESTORE_EMULATOR;
 
   // Create two Firestore instances in the same app.
   App* app = App::GetInstance();
@@ -1531,9 +1523,7 @@ TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOnline) {
 TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOffline) {
   // TODO(b/282947967): Remove the emulator env check after prod supports
   // multiDB.
-  if (!IsUsingFirestoreEmulator()) {
-    GTEST_SKIP();
-  }
+  RUN_TEST_ONLY_AGAINST_FIRESTORE_EMULATOR;
 
   // Create two Firestore instances in the same app.
   App* app = App::GetInstance();

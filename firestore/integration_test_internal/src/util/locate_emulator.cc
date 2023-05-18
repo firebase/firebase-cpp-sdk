@@ -53,13 +53,5 @@ void LocateEmulator(Firestore* db) {
   db->set_settings(settings);
 }
 
-bool IsUsingFirestoreEmulator() {
-  // Emulator is used if `USE_FIRESTORE_EMULATOR` is set, regardless of its
-  // value.
-  if (std::getenv("USE_FIRESTORE_EMULATOR") == nullptr) {
-    return false;
-  }
-  return true;
-}
 }  // namespace firestore
 }  // namespace firebase
