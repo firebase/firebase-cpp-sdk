@@ -21,6 +21,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include "app/src/include/firebase/app.h"
 #include "app/src/logger.h"
@@ -60,6 +61,7 @@ App* GetDefaultApp();
 // will be returned.
 App* GetAnyApp();
 
+// Get all existing apps
 std::vector<App*> GetAllApps();
 
 // Remove an app from the set of apps.

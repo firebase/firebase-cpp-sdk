@@ -26,6 +26,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 #if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #ifdef __OBJC__
