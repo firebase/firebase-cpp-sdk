@@ -67,8 +67,8 @@ using ::testing::HasSubstr;
 
 class FirestoreTest : public FirestoreIntegrationTest {
  protected:
-  const std::string& GetFirestoreDatabaseId(Firestore* firestore) {
-    return GetInternal(firestore)->database_id().database_id();
+  const std::string GetFirestoreDatabaseId(Firestore* firestore) {
+    return GetInternal(firestore)->database_name();
   }
 };
 

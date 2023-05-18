@@ -199,8 +199,8 @@ Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,
     return nullptr;
   }
 
-  FirestoreMap::key_type key = MakeKey(
-      firestore->app(), firestore->internal_->database_id().database_id());
+  FirestoreMap::key_type key =
+      MakeKey(firestore->app(), firestore->internal_->database_id().database_id());
   FirestoreCache()->emplace(key, firestore);
   return firestore;
 }
@@ -381,8 +381,7 @@ Future<void> Firestore::EnableNetwork() {
 
 Future<void> Firestore::Terminate() {
   if (!internal_) return FailedFuture<void>();
-  FirestoreMap::key_type key =
-      MakeKey(app(), internal_->database_id().database_id());
+  FirestoreMap::key_type key = MakeKey(app(), internal_->database_id().database_id());
 
   FirestoreCache()->erase(key);
   return internal_->Terminate();
