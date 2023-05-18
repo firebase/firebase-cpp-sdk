@@ -179,7 +179,7 @@ Firestore* Firestore::CreateFirestore(App* app,
 
   MutexLock lock(*g_firestores_lock);
 
-  const char* database_id = internal->database_id().database_id().c_str();
+  const char* database_id = internal->database_name().c_str();
   Firestore* from_cache =
       FindFirestoreInCache(app, database_id, init_result_out);
   SIMPLE_HARD_ASSERT(from_cache == nullptr,
@@ -200,7 +200,7 @@ Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,
   }
 
   FirestoreMap::key_type key =
-      MakeKey(firestore->app(), firestore->internal_->database_id().database_id());
+      MakeKey(firestore->app(), firestore->internal_->database_name());
   FirestoreCache()->emplace(key, firestore);
   return firestore;
 }
@@ -263,7 +263,7 @@ void Firestore::DeleteInternal() {
   // Force cleanup to happen first.
   internal_->cleanup().CleanupAll();
   // Store the database id before deleting the firestore instance.
-  const std::string database_id = internal_->database_id().database_id();
+  const std::string database_id = internal_->database_name();
   delete internal_;
   internal_ = nullptr;
   // If a Firestore is explicitly deleted, remove it from our cache.
@@ -381,7 +381,7 @@ Future<void> Firestore::EnableNetwork() {
 
 Future<void> Firestore::Terminate() {
   if (!internal_) return FailedFuture<void>();
-  FirestoreMap::key_type key = MakeKey(app(), internal_->database_id().database_id());
+  FirestoreMap::key_type key = MakeKey(app(), internal_->database_name());
 
   FirestoreCache()->erase(key);
   return internal_->Terminate();
