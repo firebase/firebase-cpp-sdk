@@ -264,7 +264,6 @@ FirestoreInternal::FirestoreInternal(App* app, const char* database_id) {
   FIREBASE_ASSERT(app != nullptr);
   if (!Initialize(app)) return;
   app_ = app;
-  database_name_ = database_id;
 
   Env env = GetEnv();
   Local<Object> platform_app(env.get(), app_->GetPlatformApp());
