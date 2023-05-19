@@ -38,11 +38,11 @@ struct TestFriend {
       App* app, const std::string& database_id) {
 #if !defined(__ANDROID__)
     return new FirestoreInternal(
-        app, database_id.c_str(),
+        app, database_id,
         absl::make_unique<credentials::EmptyAuthCredentialsProvider>(),
         absl::make_unique<credentials::EmptyAppCheckCredentialsProvider>());
 #else
-    return new FirestoreInternal(app, database_id.c_str());
+    return new FirestoreInternal(app, database_id);
 #endif  // !defined(__ANDROID__)
   }
 };
