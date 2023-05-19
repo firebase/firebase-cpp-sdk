@@ -76,7 +76,7 @@ class FirestoreInternal {
   };
 
   // Note: call `set_firestore_public` immediately after construction.
-  FirestoreInternal(App* app, const char* database_id);
+  FirestoreInternal(App* app, const std::string& database_id);
   ~FirestoreInternal();
 
   App* app() const { return app_; }

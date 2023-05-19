@@ -1449,7 +1449,6 @@ TEST_F(FirestoreTest, CanTerminateMultipleFirestoreInstances) {
 
   // A database can be terminated without affecting other databases.
   DeleteFirestore(db1);
-
   DocumentReference doc = db2->Collection("abc").Document();
   EXPECT_THAT(doc.Set({{"foo", FieldValue::String("bar")}}), FutureSucceeds());
   const DocumentSnapshot* snapshot = Await(doc.Get());
@@ -1549,6 +1548,62 @@ TEST_F(FirestoreTest, CanKeepDocsSeparateWithMultiDBWhenOffline) {
   const DocumentSnapshot* snapshot2 = Await(doc2.Get(Source::kCache));
   EXPECT_FALSE(snapshot2->exists());
   EXPECT_THAT(snapshot2->GetData(), ContainerEq(MapFieldValue{}));
+}
+
+TEST_F(FirestoreTest, ComprehensiveTestOnMultiDbCreationAndTermination) {
+  // TODO(b/282947967): Remove the emulator env check and LocateEmulator call
+  // after prod supports multiDB.
+  RUN_TEST_ONLY_AGAINST_FIRESTORE_EMULATOR;
+
+  // Create 2 firestore instances.
+  App* app = App::GetInstance();
+  Firestore* db1 = Firestore::GetInstance(app, "db1");
+  Firestore* db2 = Firestore::GetInstance(app, "db2");
+  firestore::LocateEmulator(db1);
+  firestore::LocateEmulator(db2);
+  EXPECT_NE(db1, db2);
+
+  // Each firestore can store and read documents independently.
+  DocumentReference doc1 = db1->Collection("abc").Document();
+  EXPECT_THAT(doc1.Set({{"foo", FieldValue::String("bar1")}}),
+              FutureSucceeds());
+  DocumentReference doc2 = db2->Collection("abc").Document();
+  EXPECT_THAT(doc2.Set({{"foo", FieldValue::String("bar2")}}),
+              FutureSucceeds());
+  const DocumentSnapshot* snapshot1 = Await(doc1.Get());
+  EXPECT_TRUE(snapshot1->exists());
+  EXPECT_THAT(snapshot1->GetData(),
+              ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar1")}}));
+
+  // Save the doc path in db1 for verification later.
+  const std::string doc_path = doc1.path();
+
+  // Terminate `db1` so that it will be removed from the instance cache.
+  EXPECT_THAT(db1->Terminate(), FutureSucceeds());
+  delete db1;
+
+  // Termination of one firestore instance will not affect other instances.
+  const DocumentSnapshot* snapshot2 = Await(doc2.Get());
+  EXPECT_TRUE(snapshot2->exists());
+  EXPECT_THAT(snapshot2->GetData(),
+              ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar2")}}));
+
+  // GetInstance() returns a new instance since the old instance has been
+  // terminated.
+  Firestore* db3 = Firestore::GetInstance(app, "db1");
+  firestore::LocateEmulator(db3);
+
+  // The new instance points to the same database by verifying that the document
+  // created with the old instance exists in the new instance.
+  DocumentReference doc3 = db3->Document(doc_path);
+  const DocumentSnapshot* snapshot3 = Await(doc3.Get());
+  ASSERT_NE(snapshot3, nullptr);
+  EXPECT_TRUE(snapshot3->exists());
+  EXPECT_THAT(snapshot3->GetData(),
+              ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar1")}}));
+
+  delete db2;
+  delete db3;
 }
 
 TEST_F(FirestoreTest, CanStopListeningAfterTerminate) {

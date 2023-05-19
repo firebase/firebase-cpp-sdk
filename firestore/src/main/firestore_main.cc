@@ -102,13 +102,13 @@ void ValidateDoubleSlash(const char* path) {
 
 }  // namespace
 
-FirestoreInternal::FirestoreInternal(App* app, const char* database_id)
+FirestoreInternal::FirestoreInternal(App* app, const std::string& database_id)
     : FirestoreInternal{app, database_id, CreateCredentialsProvider(*app),
                         CreateAppCheckCredentialsProvider(*app)} {}
 
 FirestoreInternal::FirestoreInternal(
     App* app,
-    const char* database_id,
+    const std::string& database_id,
     std::unique_ptr<AuthCredentialsProvider> auth_credentials,
     std::unique_ptr<AppCheckCredentialsProvider> app_check_credentials)
     : app_(NOT_NULL(app)),
@@ -136,7 +136,7 @@ FirestoreInternal::~FirestoreInternal() {
 
 std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
     App* app,
-    const char* database_id,
+    const std::string& database_id,
     std::unique_ptr<AuthCredentialsProvider> auth_credentials,
     std::unique_ptr<AppCheckCredentialsProvider> app_check_credentials) {
   const AppOptions& opt = app->options();

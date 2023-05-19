@@ -260,7 +260,7 @@ Local<LoadBundleTaskInternal> CreateLoadBundleTask(Env& env,
 
 const char kApiIdentifier[] = "Firestore";
 
-FirestoreInternal::FirestoreInternal(App* app, const char* database_id) {
+FirestoreInternal::FirestoreInternal(App* app, const std::string& database_id) {
   FIREBASE_ASSERT(app != nullptr);
   if (!Initialize(app)) return;
   app_ = app;

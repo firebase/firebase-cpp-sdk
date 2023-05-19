@@ -87,7 +87,7 @@ FirestoreMap* FirestoreCache() {
 // Prerequisite: `g_firestores_lock` must be locked before calling this
 // function.
 Firestore* FindFirestoreInCache(App* app,
-                                const char* database_id,
+                                const std::string& database_id,
                                 InitResult* init_result_out) {
   auto* cache = FirestoreCache();
 
@@ -179,7 +179,7 @@ Firestore* Firestore::CreateFirestore(App* app,
 
   MutexLock lock(*g_firestores_lock);
 
-  const char* database_id = internal->database_name().c_str();
+  const std::string& database_id = internal->database_name();
   Firestore* from_cache =
       FindFirestoreInCache(app, database_id, init_result_out);
   SIMPLE_HARD_ASSERT(from_cache == nullptr,
@@ -205,7 +205,7 @@ Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,
   return firestore;
 }
 
-Firestore::Firestore(::firebase::App* app, const char* database_id)
+Firestore::Firestore(::firebase::App* app, const std::string& database_id)
     : Firestore{new FirestoreInternal{app, database_id}} {}
 
 Firestore::Firestore(FirestoreInternal* internal)
