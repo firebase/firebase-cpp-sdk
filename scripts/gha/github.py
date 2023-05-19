@@ -179,14 +179,18 @@ def list_artifacts(token, run_id):
     return response.json()["artifacts"]
 
 
-def download_artifact(token, artifact_id, output_path):
+def download_artifact(token, artifact_id, output_path=None):
   """https://docs.github.com/en/rest/reference/actions#download-an-artifact"""
   url = f'{GITHUB_API_URL}/actions/artifacts/{artifact_id}/zip'
   headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
-  with requests.get(url, headers=headers, stream=True, timeout=TIMEOUT) as response:
+  with requests_retry_session().get(url, headers=headers, stream=True, timeout=TIMEOUT_LONG) as response:
     logging.info("download_artifact: %s response: %s", url, response)
-    with open(output_path, 'wb') as file:
-        shutil.copyfileobj(response.raw, file)
+    if output_path:
+      with open(output_path, 'wb') as file:
+          shutil.copyfileobj(response.raw, file)
+    elif response.status_code == 200:
+      return response.content
+  return None
 
 
 def dismiss_review(token, pull_number, review_id, message):
@@ -273,9 +277,38 @@ def list_pull_requests(token, state, head, base):
     keep_going = False
     with requests_retry_session().get(url, headers=headers, params=params,
                       stream=True, timeout=TIMEOUT) as response:
-      logging.info("get_reviews: %s response: %s", url, response)
+      logging.info("list_pull_requests: %s response: %s", url, response)
       results = results + response.json()
       # If exactly per_page results were retrieved, read the next page.
       keep_going = (len(response.json()) == per_page)
+  return results
+
+
+def list_workflow_runs(token, workflow_id, branch=None, event=None, limit=200):
+  """https://docs.github.com/en/rest/actions/workflow-runs?list-workflow-runs-for-a-required-workflow"""
+  url = f'{GITHUB_API_URL}/actions/workflows/{workflow_id}/runs'
+  headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
+  page = 1
+  per_page = 100
+  results = []
+  keep_going = True
+  while keep_going:
+    params = {'per_page': per_page, 'page': page}
+    if branch: params.update({'branch': branch})
+    if event: params.update({'event': event})
+    page = page + 1
+    keep_going = False
+    with requests_retry_session().get(url, headers=headers, params=params,
+                      stream=True, timeout=TIMEOUT) as response:
+      logging.info("list_workflow_runs: %s page %d, response: %s", url, params['page'], response)
+      if 'workflow_runs' not in response.json():
+        break
+      run_list_results = response.json()['workflow_runs']
+      results = results + run_list_results
+      # If exactly per_page results were retrieved, read the next page.
+      keep_going = (len(run_list_results) == per_page)
+      if limit > 0 and len(results) >= limit:
+        keep_going = False
+        results = results[:limit]
   return results
 
