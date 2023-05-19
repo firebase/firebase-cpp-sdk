@@ -344,8 +344,7 @@ std::vector<App*> GetAllApps() {
   MutexLock lock(*g_app_mutex);
   if (g_apps) {
     for (auto it = g_apps->begin(); it != g_apps->end(); ++it) {
-      if (it->second->app != default_app)
-        result.push_back(it->second->app);
+      if (it->second->app != default_app) result.push_back(it->second->app);
     }
     if (default_app) result.push_back(default_app);
   }

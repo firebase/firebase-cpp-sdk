@@ -509,9 +509,7 @@ App* App::GetInstance(const char* name) {
   return app_common::FindAppByName(name);
 }
 
-std::vector<App*> App::GetApps() {
-  return app_common::GetAllApps();
-}
+std::vector<App*> App::GetApps() { return app_common::GetAllApps(); }
 
 JNIEnv* App::GetJNIEnv() const { return util::GetThreadsafeJNIEnv(java_vm()); }
 
