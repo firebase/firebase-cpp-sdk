@@ -19,6 +19,7 @@
 #include <cassert>
 #include <cstring>
 #include <map>
+#include <utility>
 
 #include "app/meta/move.h"
 #include "app/src/cleanup_notifier.h"
@@ -63,25 +64,37 @@ const char* GetPlatform() {
 #endif
 }
 
+// Use the combination of the App address and database ID to identify a
+// firestore instance in cache.
+using FirestoreMap = std::map<std::pair<App*, std::string>, Firestore*>;
+
+FirestoreMap::key_type MakeKey(App* app, std::string database_id) {
+  return std::make_pair(app, std::move(database_id));
+}
+
 Mutex* g_firestores_lock = new Mutex();
-std::map<App*, Firestore*>* g_firestores = nullptr;
+FirestoreMap* g_firestores = nullptr;
 
 // Ensures that the cache is initialized.
 // Prerequisite: `g_firestores_lock` must be locked before calling this
 // function.
-std::map<App*, Firestore*>* FirestoreCache() {
+FirestoreMap* FirestoreCache() {
   if (!g_firestores) {
-    g_firestores = new std::map<App*, Firestore*>();
+    g_firestores = new FirestoreMap();
   }
   return g_firestores;
 }
 
 // Prerequisite: `g_firestores_lock` must be locked before calling this
 // function.
-Firestore* FindFirestoreInCache(App* app, InitResult* init_result_out) {
+Firestore* FindFirestoreInCache(App* app,
+                                const std::string& database_id,
+                                InitResult* init_result_out) {
   auto* cache = FirestoreCache();
 
-  auto found = cache->find(app);
+  FirestoreMap::key_type key = MakeKey(app, database_id);
+  FirestoreMap::iterator found = g_firestores->find(key);
+
   if (found != cache->end()) {
     if (init_result_out) *init_result_out = kInitResultSuccess;
     return found->second;
@@ -101,26 +114,22 @@ InitResult CheckInitialized(const FirestoreInternal& firestore) {
 void ValidateApp(App* app) {
   if (!app) {
     SimpleThrowInvalidArgument(
-        "firebase::App instance cannot be null. Use "
-        "firebase::App::GetInstance() without arguments if you'd like to use "
-        "the default instance.");
+        "firebase::App instance cannot be null. Use other "
+        "Firestore::GetInstance() if you'd like to use the default "
+        "app instance.");
+  }
+}
+
+void ValidateDatabase(const char* database_id) {
+  if (!database_id) {
+    SimpleThrowInvalidArgument(
+        "Provided database ID must not be null. Use other "
+        "Firestore::GetInstance() if you'd like to use the default "
+        "database ID.");
   }
 }
 
 }  // namespace
-
-Firestore* Firestore::GetInstance(App* app, InitResult* init_result_out) {
-  ValidateApp(app);
-
-  MutexLock lock(*g_firestores_lock);
-
-  Firestore* from_cache = FindFirestoreInCache(app, init_result_out);
-  if (from_cache) {
-    return from_cache;
-  }
-
-  return AddFirestoreToCache(new Firestore(app), init_result_out);
-}
 
 Firestore* Firestore::GetInstance(InitResult* init_result_out) {
   App* app = App::GetInstance();
@@ -129,8 +138,37 @@ Firestore* Firestore::GetInstance(InitResult* init_result_out) {
         "Failed to get firebase::App instance. Please call "
         "firebase::App::Create before using Firestore");
   }
+  return Firestore::GetInstance(app, kDefaultDatabase, init_result_out);
+}
 
-  return Firestore::GetInstance(app, init_result_out);
+Firestore* Firestore::GetInstance(App* app, InitResult* init_result_out) {
+  return Firestore::GetInstance(app, kDefaultDatabase, init_result_out);
+}
+
+Firestore* Firestore::GetInstance(const char* db_name,
+                                  InitResult* init_result_out) {
+  App* app = App::GetInstance();
+  if (!app) {
+    SimpleThrowInvalidArgument(
+        "Failed to get firebase::App instance. Please call "
+        "firebase::App::Create before using Firestore");
+  }
+  return Firestore::GetInstance(app, db_name, init_result_out);
+}
+
+Firestore* Firestore::GetInstance(App* app,
+                                  const char* db_name,
+                                  InitResult* init_result_out) {
+  ValidateApp(app);
+  ValidateDatabase(db_name);
+
+  MutexLock lock(*g_firestores_lock);
+  Firestore* from_cache = FindFirestoreInCache(app, db_name, init_result_out);
+  if (from_cache) {
+    return from_cache;
+  }
+
+  return AddFirestoreToCache(new Firestore(app, db_name), init_result_out);
 }
 
 Firestore* Firestore::CreateFirestore(App* app,
@@ -142,7 +180,9 @@ Firestore* Firestore::CreateFirestore(App* app,
 
   MutexLock lock(*g_firestores_lock);
 
-  Firestore* from_cache = FindFirestoreInCache(app, init_result_out);
+  const std::string& database_id = internal->database_name();
+  Firestore* from_cache =
+      FindFirestoreInCache(app, database_id, init_result_out);
   SIMPLE_HARD_ASSERT(from_cache == nullptr,
                      "Firestore must not be created already");
 
@@ -160,12 +200,14 @@ Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,
     return nullptr;
   }
 
-  FirestoreCache()->emplace(firestore->app(), firestore);
+  FirestoreMap::key_type key =
+      MakeKey(firestore->app(), firestore->internal_->database_name());
+  FirestoreCache()->emplace(std::move(key), firestore);
   return firestore;
 }
 
-Firestore::Firestore(::firebase::App* app)
-    : Firestore{new FirestoreInternal{app}} {}
+Firestore::Firestore(::firebase::App* app, const std::string& database_id)
+    : Firestore{new FirestoreInternal{app, database_id}} {}
 
 Firestore::Firestore(FirestoreInternal* internal)
     // TODO(wuandy): use make_unique once it is supported for our build here.
@@ -201,6 +243,8 @@ void Firestore::DeleteInternal() {
   if (!internal_) return;
 
   App* my_app = app();
+  // Store the database id before deleting the firestore instance.
+  const std::string database_id = internal_->database_name();
 
   // Only need to unregister if internal_ is initialized.
   if (internal_->initialized()) {
@@ -224,8 +268,9 @@ void Firestore::DeleteInternal() {
   delete internal_;
   internal_ = nullptr;
   // If a Firestore is explicitly deleted, remove it from our cache.
-  FirestoreCache()->erase(my_app);
-  // If it's the last one, delete the map.
+
+  FirestoreMap::key_type key = MakeKey(my_app, database_id);
+  FirestoreCache()->erase(key);
   if (g_firestores->empty()) {
     delete g_firestores;
     g_firestores = nullptr;
@@ -337,7 +382,9 @@ Future<void> Firestore::EnableNetwork() {
 
 Future<void> Firestore::Terminate() {
   if (!internal_) return FailedFuture<void>();
-  FirestoreCache()->erase(app());
+  FirestoreMap::key_type key = MakeKey(app(), internal_->database_name());
+
+  FirestoreCache()->erase(key);
   return internal_->Terminate();
 }
 
