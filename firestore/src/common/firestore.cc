@@ -19,6 +19,7 @@
 #include <cassert>
 #include <cstring>
 #include <map>
+#include <utility>
 
 #include "app/meta/move.h"
 #include "app/src/cleanup_notifier.h"
@@ -201,7 +202,7 @@ Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,
 
   FirestoreMap::key_type key =
       MakeKey(firestore->app(), firestore->internal_->database_name());
-  FirestoreCache()->emplace(key, firestore);
+  FirestoreCache()->emplace(std::move(key), firestore);
   return firestore;
 }
 
@@ -242,6 +243,8 @@ void Firestore::DeleteInternal() {
   if (!internal_) return;
 
   App* my_app = app();
+  // Store the database id before deleting the firestore instance.
+  const std::string database_id = internal_->database_name();
 
   // Only need to unregister if internal_ is initialized.
   if (internal_->initialized()) {
@@ -262,8 +265,6 @@ void Firestore::DeleteInternal() {
 
   // Force cleanup to happen first.
   internal_->cleanup().CleanupAll();
-  // Store the database id before deleting the firestore instance.
-  const std::string database_id = internal_->database_name();
   delete internal_;
   internal_ = nullptr;
   // If a Firestore is explicitly deleted, remove it from our cache.
