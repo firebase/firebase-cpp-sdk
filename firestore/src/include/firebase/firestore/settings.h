@@ -142,7 +142,7 @@ class Settings final {
    * Returns a shared pointer to the `LocalCacheSettings` instance
    * used to configure this SDK.
    */
-  std::shared_ptr<LocalCacheSettings> local_cache_settings();
+  const LocalCacheSettings& local_cache_settings();
 
   /**
    * Configures the SDK with the given `LocalCacheSettings` instance.

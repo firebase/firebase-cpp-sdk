@@ -56,7 +56,7 @@ void Settings::set_host(std::string host) { host_ = firebase::Move(host); }
 
 void Settings::set_ssl_enabled(bool enabled) { ssl_enabled_ = enabled; }
 
-std::shared_ptr<LocalCacheSettings> Settings::local_cache_settings() {
+const LocalCacheSettings& Settings::local_cache_settings() {
   if (used_legacy_cache_settings_) {
     if (is_persistence_enabled()) {
       local_cache_settings_ = std::make_shared<PersistentCacheSettings>(
@@ -70,7 +70,7 @@ std::shared_ptr<LocalCacheSettings> Settings::local_cache_settings() {
         PersistentCacheSettings::Create());
   }
 
-  return local_cache_settings_;
+  return *local_cache_settings_;
 }
 
 void Settings::set_local_cache_settings(const LocalCacheSettings& cache) {

@@ -115,9 +115,6 @@ class PersistentCacheSettings final : public LocalCacheSettings {
   friend class Settings;
   friend class FirestoreInternal;
 
-  static PersistentCacheSettings CreateFromCoreSettings(
-      const api::PersistentCacheSettings& core_settings);
-
   PersistentCacheSettings();
 
   LocalCacheSettings::Kind kind() const override {
@@ -168,8 +165,6 @@ class MemoryCacheSettings final : public LocalCacheSettings {
   friend class Settings;
   friend class FirestoreInternal;
 
-  static MemoryCacheSettings CreateFromCoreSettings(
-      const api::MemoryCacheSettings& core_settings);
   MemoryCacheSettings();
 
   LocalCacheSettings::Kind kind() const override {

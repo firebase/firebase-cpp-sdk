@@ -221,7 +221,7 @@ void FirestoreInternal::set_settings(Settings from) {
   if (!from.used_legacy_cache_settings_ &&
       from.local_cache_settings_ != nullptr) {
     settings.set_local_cache_settings(
-        from.local_cache_settings()->core_cache_settings());
+        from.local_cache_settings().core_cache_settings());
   } else {
     settings.set_persistence_enabled(from.is_persistence_enabled());
     settings.set_cache_size_bytes(from.cache_size_bytes());
