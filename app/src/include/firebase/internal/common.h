@@ -108,15 +108,10 @@ struct AlignedStorage {
 #define FIREBASE_DEPRECATED
 #endif  // defined(SWIG) || defined(DOXYGEN)
 
+// TODO: Replace all usages of the FIREBASE_DEPRECATED macro with the C++14
+// [[deprecated]] attribute.
 #ifndef FIREBASE_DEPRECATED
-#ifdef __GNUC__
-#define FIREBASE_DEPRECATED __attribute__((deprecated))
-#elif defined(_MSC_VER)
-#define FIREBASE_DEPRECATED __declspec(deprecated)
-#else
-// We don't know how to mark functions as "deprecated" with this compiler.
-#define FIREBASE_DEPRECATED
-#endif
+#define FIREBASE_DEPRECATED [[deprecated]]
 #endif  // FIREBASE_DEPRECATED
 
 // Calculates the number of elements in an array.
