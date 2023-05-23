@@ -114,7 +114,7 @@ Method<SettingsInternal> kGetSettings(
     "()Lcom/google/firebase/firestore/FirebaseFirestoreSettings;");
 StaticMethod<Object> kGetInstance(
     "getInstance",
-    "(Lcom/google/firebase/FirebaseApp;)"
+    "(Lcom/google/firebase/FirebaseApp;Ljava/lang/String;)"
     "Lcom/google/firebase/firestore/FirebaseFirestore;");
 StaticMethod<void> kSetLoggingEnabled("setLoggingEnabled", "(Z)V");
 StaticMethod<void> kSetClientLanguage("setClientLanguage",
@@ -260,14 +260,17 @@ Local<LoadBundleTaskInternal> CreateLoadBundleTask(Env& env,
 
 const char kApiIdentifier[] = "Firestore";
 
-FirestoreInternal::FirestoreInternal(App* app) {
+FirestoreInternal::FirestoreInternal(App* app, const std::string& database_id) {
   FIREBASE_ASSERT(app != nullptr);
   if (!Initialize(app)) return;
   app_ = app;
+  database_name_ = database_id;
 
   Env env = GetEnv();
   Local<Object> platform_app(env.get(), app_->GetPlatformApp());
-  Local<Object> java_firestore = env.Call(kGetInstance, platform_app);
+  Local<String> java_database_id = env.NewStringUtf(database_id);
+  Local<Object> java_firestore =
+      env.Call(kGetInstance, platform_app, java_database_id);
   FIREBASE_ASSERT(java_firestore.get() != nullptr);
   obj_ = java_firestore;
 

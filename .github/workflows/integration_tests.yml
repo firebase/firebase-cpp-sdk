@@ -190,12 +190,15 @@ jobs:
           apis="analytics,app_check,auth,database,dynamic_links,functions,gma,installations,messaging,remote_config,storage"
         elif [[ "${{ github.event.schedule }}" == "0 10 * * *" || "${{ github.event.schedule }}" == "0 11 * * *" ]]; then
           # at 2am PST/3am PDT and 3am PST/4am PDT. Running integration tests for firestore and generate test report.
+          echo "::warning ::Running Firestore nightly tests"
           apis="firestore"
         else
+          echo "::warning ::Running main nightly tests"
           apis=$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k apis -o "${{github.event.inputs.apis}}" ${TEST_MATRIX_PARAM} )
         fi
         if [[ "${{ github.event.schedule }}" == "0 11 * * *" ]]; then
-          # at 3am PST/4am PDT. Running  firestore desktop integration test aginst tip-of-tree ios repo
+          # at 3am PST/4am PDT. Running firestore desktop integration test aginst tip-of-tree ios repo
+          echo "::warning ::Running against Firestore tip-of-tree"
           matrix_platform="Desktop"
           matrix_os=$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${TEST_MATRIX_PARAM} -k os -o "ubuntu-20.04,macos-12")
         else

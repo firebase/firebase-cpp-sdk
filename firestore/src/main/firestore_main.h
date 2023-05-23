@@ -21,6 +21,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>  // NOLINT(build/c++11)
+#include <string>
 #include <unordered_set>
 
 #include "Firestore/core/src/api/firestore.h"
@@ -56,7 +57,7 @@ class Executor;
 class FirestoreInternal {
  public:
   // Note: call `set_firestore_public` immediately after construction.
-  explicit FirestoreInternal(App* app);
+  FirestoreInternal(App* app, const std::string& database_id);
   ~FirestoreInternal();
 
   FirestoreInternal(const FirestoreInternal&) = delete;
@@ -108,6 +109,8 @@ class FirestoreInternal {
     return firestore_core_->database_id();
   }
 
+  const std::string& database_name() const { return database_name_; }
+
   // Bundles
   Future<LoadBundleTaskProgress> LoadBundle(const std::string& bundle);
   Future<LoadBundleTaskProgress> LoadBundle(
@@ -151,12 +154,14 @@ class FirestoreInternal {
 
   FirestoreInternal(
       App* app,
+      const std::string& database_id,
       std::unique_ptr<credentials::AuthCredentialsProvider> auth_credentials,
       std::unique_ptr<credentials::AppCheckCredentialsProvider>
           app_check_credentials);
 
   std::shared_ptr<api::Firestore> CreateFirestore(
       App* app,
+      const std::string& database_id,
       std::unique_ptr<credentials::AuthCredentialsProvider> auth_credentials,
       std::unique_ptr<credentials::AppCheckCredentialsProvider>
           app_check_credentials);
@@ -183,6 +188,7 @@ class FirestoreInternal {
   std::unordered_set<ListenerRegistrationInternal*> listeners_;
 
   std::shared_ptr<util::Executor> transaction_executor_;
+  std::string database_name_;
 };
 
 }  // namespace firestore

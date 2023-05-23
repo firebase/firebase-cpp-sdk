@@ -191,7 +191,7 @@ def main(argv):
   summarize_logs(FLAGS.dir, FLAGS.markdown, FLAGS.github_log)
 
 
-def summarize_logs(dir, markdown=False, github_log=False):
+def summarize_logs(dir, markdown=False, github_log=False, quiet=False):
   build_log_files = glob.glob(os.path.join(dir, BUILD_FILE_PATTERN))
   test_log_files = glob.glob(os.path.join(dir, TEST_FILE_PATTERN))
   # Replace the "*" in the file glob with a regex capture group,
@@ -267,7 +267,7 @@ def summarize_logs(dir, markdown=False, github_log=False):
     log_lines = print_log(log_results)
 
   log_summary = "\n".join(log_lines)
-  print(log_summary)
+  if not quiet: print(log_summary)
   return (success_or_only_flakiness, log_summary)
 
 
