@@ -28,9 +28,10 @@ namespace auth {
 
 class GetAccountInfoRequest : public AuthRequest {
  public:
-  explicit GetAccountInfoRequest(::firebase::App& app, const char* api_key);
+  explicit GetAccountInfoRequest(::firebase::App& app, const char* api_key,
+                                 const char* tenant_id);
   GetAccountInfoRequest(::firebase::App& app, const char* api_key,
-                        const char* id_token);
+                        const char* id_token, const char* tenant_id);
 
   void SetIdToken(const char* const id_token) {
     // This is actually access token, named ID token for backward compatibility.

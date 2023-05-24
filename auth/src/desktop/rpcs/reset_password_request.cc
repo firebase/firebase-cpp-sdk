@@ -24,7 +24,8 @@ namespace auth {
 ResetPasswordRequest::ResetPasswordRequest(::firebase::App& app,
                                            const char* api_key,
                                            const char* oob_code,
-                                           const char* new_password)
+                                           const char* new_password,
+                                           const char* tenant_id)
     : AuthRequest(app, request_resource_data, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
@@ -46,6 +47,9 @@ ResetPasswordRequest::ResetPasswordRequest(::firebase::App& app,
     application_data_->newPassword = new_password;
   } else {
     LogError("No new password given.");
+  }
+  if (tenant_id != nullptr){
+    application_data_->tenantId = tenant_id;
   }
   UpdatePostFields();
 }

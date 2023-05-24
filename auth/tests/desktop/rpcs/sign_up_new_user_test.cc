@@ -28,7 +28,7 @@ namespace auth {
 // Test SignUpNewUserRequest for making anonymous signin
 TEST(SignUpNewUserTest, TestAnonymousSignInRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
-  SignUpNewUserRequest request(*app, "APIKEY");
+  SignUpNewUserRequest request(*app, "APIKEY", nullptr);
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "signupNewUser?key=APIKEY",
@@ -40,10 +40,26 @@ TEST(SignUpNewUserTest, TestAnonymousSignInRequest) {
       request.options().post_fields);
 }
 
+// Test SignUpNewUserRequest for making anonymous signin with tenant id
+TEST(SignUpNewUserTest, TestAnonymousSignInTenantRequest) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  SignUpNewUserRequest request(*app, "APIKEY","tenant123");
+  EXPECT_EQ(
+      "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "signupNewUser?key=APIKEY",
+      request.options().url);
+  EXPECT_EQ(
+      "{\n"
+      "  returnSecureToken: true,\n"
+      "  tenantId: \"tenant123\"\n"
+      "}\n",
+      request.options().post_fields);
+}
+
 // Test SignUpNewUserRequest for using password signin
 TEST(SignUpNewUserTest, TestEmailPasswordSignInRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
-  SignUpNewUserRequest request(*app, "APIKEY", "e@mail", "pwd", "rabbit");
+  SignUpNewUserRequest request(*app, "APIKEY", "e@mail", "pwd", "rabbit", nullptr);
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "signupNewUser?key=APIKEY",
@@ -54,6 +70,25 @@ TEST(SignUpNewUserTest, TestEmailPasswordSignInRequest) {
       "  password: \"pwd\",\n"
       "  displayName: \"rabbit\",\n"
       "  returnSecureToken: true\n"
+      "}\n",
+      request.options().post_fields);
+}
+
+// Test SignUpNewUserRequest for using password signin with tenant id
+TEST(SignUpNewUserTest, TestEmailPasswordSignInTenantRequest) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  SignUpNewUserRequest request(*app, "APIKEY", "e@mail", "pwd", "rabbit", "tenant123");
+  EXPECT_EQ(
+      "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "signupNewUser?key=APIKEY",
+      request.options().url);
+  EXPECT_EQ(
+      "{\n"
+      "  email: \"e@mail\",\n"
+      "  password: \"pwd\",\n"
+      "  displayName: \"rabbit\",\n"
+      "  returnSecureToken: true,\n"
+      "  tenantId: \"tenant123\"\n"
       "}\n",
       request.options().post_fields);
 }

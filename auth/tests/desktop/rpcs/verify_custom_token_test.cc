@@ -29,7 +29,7 @@ namespace auth {
 // Test VerifyCustomTokenRequest
 TEST(VerifyCustomTokenTest, TestVerifyCustomTokenRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
-  VerifyCustomTokenRequest request(*app, "APIKEY", "token123");
+  VerifyCustomTokenRequest request(*app, "APIKEY", "token123", nullptr);
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "verifyCustomToken?key=APIKEY",
@@ -38,6 +38,23 @@ TEST(VerifyCustomTokenTest, TestVerifyCustomTokenRequest) {
       "{\n"
       "  returnSecureToken: true,\n"
       "  token: \"token123\"\n"
+      "}\n",
+      request.options().post_fields);
+}
+
+// Test VerifyCustomTokenRequest with tenant
+TEST(VerifyCustomTokenTest, TestVerifyCustomTokenTenantRequest) {
+  std::unique_ptr<App> app(testing::CreateApp());
+  VerifyCustomTokenRequest request(*app, "APIKEY", "token123", "tenant123");
+  EXPECT_EQ(
+      "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+      "verifyCustomToken?key=APIKEY",
+      request.options().url);
+  EXPECT_EQ(
+      "{\n"
+      "  returnSecureToken: true,\n"
+      "  token: \"token123\",\n"
+      "  tenantId: \"tenant123\"\n"
       "}\n",
       request.options().post_fields);
 }

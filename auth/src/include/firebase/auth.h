@@ -185,6 +185,12 @@ class Auth {
   /// language code should follow the conventions defined by the IETF in BCP 47.
   void set_language_code(const char* language_code);
 
+  /// Get tenant id
+  std::string tenant_id() const;
+
+  /// Set tenant id for multi-tenant authentication
+  void set_tenant_id(const char* tenant_id);
+
   /// Sets the user-facing language code to be the default app language. This
   /// uses a language associated with the device's locale data.  On desktop
   /// this will set the language code to the Firebase service's default. You

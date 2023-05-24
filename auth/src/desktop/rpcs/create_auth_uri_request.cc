@@ -23,7 +23,8 @@ namespace auth {
 
 CreateAuthUriRequest::CreateAuthUriRequest(::firebase::App& app,
                                            const char* api_key,
-                                           const char* identifier)
+                                           const char* identifier,
+                                           const char* tenant_id)
     : AuthRequest(app, request_resource_data, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
@@ -40,6 +41,10 @@ CreateAuthUriRequest::CreateAuthUriRequest(::firebase::App& app,
     application_data_->identifier = identifier;
   } else {
     LogError("No identifier given.");
+  }
+
+  if (tenant_id != nullptr){
+    application_data_->tenantId = tenant_id;
   }
 
   // This parameter is only relevant for the web SDK; for desktop, it can have

@@ -32,19 +32,21 @@ namespace auth {
 class SetAccountInfoRequest : public AuthRequest {
  public:
   static std::unique_ptr<SetAccountInfoRequest> CreateUpdateEmailRequest(
-      ::firebase::App& app, const char* api_key, const char* email);
+      ::firebase::App& app, const char* api_key, const char* email,
+      const char* tenant_id);
   static std::unique_ptr<SetAccountInfoRequest> CreateUpdatePasswordRequest(
       ::firebase::App& app, const char* api_key, const char* password,
-      const char* language_code = nullptr);
+      const char* language_code = nullptr, const char* tenant_id = nullptr);
   static std::unique_ptr<SetAccountInfoRequest>
   CreateLinkWithEmailAndPasswordRequest(::firebase::App& app,
                                         const char* api_key, const char* email,
-                                        const char* password);
+                                        const char* password, const char* tenant_id);
   static std::unique_ptr<SetAccountInfoRequest> CreateUpdateProfileRequest(
       ::firebase::App& app, const char* api_key, const char* set_display_name,
-      const char* set_photo_url);
+      const char* set_photo_url, const char* tenant_id);
   static std::unique_ptr<SetAccountInfoRequest> CreateUnlinkProviderRequest(
-      ::firebase::App& app, const char* api_key, const char* provider);
+      ::firebase::App& app, const char* api_key, const char* provider,
+      const char* tenant_id);
 
   void SetIdToken(const char* const id_token) {
     if (id_token) {
@@ -56,9 +58,10 @@ class SetAccountInfoRequest : public AuthRequest {
   }
 
  private:
-  explicit SetAccountInfoRequest(::firebase::App& app, const char* api_key);
+  explicit SetAccountInfoRequest(::firebase::App& app, const char* api_key,
+                                 const char* tenant_id);
   static std::unique_ptr<SetAccountInfoRequest> CreateRequest(
-      ::firebase::App& app, const char* api_key);
+      ::firebase::App& app, const char* api_key, const char* tenant_id);
 };
 
 }  // namespace auth

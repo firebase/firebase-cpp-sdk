@@ -24,7 +24,8 @@ namespace auth {
 VerifyPasswordRequest::VerifyPasswordRequest(::firebase::App& app,
                                              const char* api_key,
                                              const char* email,
-                                             const char* password)
+                                             const char* password,
+                                             const char* tenant_id)
     : AuthRequest(app, request_resource_data, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
@@ -46,6 +47,9 @@ VerifyPasswordRequest::VerifyPasswordRequest(::firebase::App& app,
     application_data_->password = password;
   } else {
     LogError("No password given");
+  }
+  if (tenant_id != nullptr){
+    application_data_->tenantId = tenant_id;
   }
   application_data_->returnSecureToken = true;
   UpdatePostFields();

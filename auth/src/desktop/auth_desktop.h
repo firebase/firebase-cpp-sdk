@@ -187,6 +187,9 @@ struct AuthImpl {
   // The current user language code. This can be set to the app’s current
   // language by calling SetLanguageCode.
   std::string language_code;
+
+  // The tenant id used for multi tenant authentication
+  std::string tenant_id = nullptr;
 };
 
 // Constant, describing how often we automatically fetch a new auth token.

@@ -34,15 +34,18 @@ class OAuthCredential : public IdentityProviderCredential {
   std::string GetProvider() const override { return provider_id_; }
 
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
-      ::firebase::App& app, const char* const api_key) const override {
+      ::firebase::App& app, const char* const api_key,
+      const char* tenant_id) const override {
     const char* raw_nonce =
         (!raw_nonce_.empty()) ? raw_nonce_.c_str() : nullptr;
     if (!id_token_.empty()) {
       return VerifyAssertionRequest::FromIdToken(
-          app, api_key, provider_id_.c_str(), id_token_.c_str(), raw_nonce);
+          app, api_key, provider_id_.c_str(), id_token_.c_str(), raw_nonce,
+          tenant_id);
     } else {
       return VerifyAssertionRequest::FromAccessToken(
-          app, api_key, provider_id_.c_str(), access_token_.c_str(), raw_nonce);
+          app, api_key, provider_id_.c_str(), access_token_.c_str(), raw_nonce,
+          tenant_id);
     }
   }
 

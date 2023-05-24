@@ -21,7 +21,8 @@ namespace firebase {
 namespace auth {
 
 SetAccountInfoRequest::SetAccountInfoRequest(::firebase::App& app,
-                                             const char* const api_key)
+                                             const char* const api_key,
+                                             const char* tenant_id)
     : AuthRequest(app, request_resource_data, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
@@ -35,13 +36,18 @@ SetAccountInfoRequest::SetAccountInfoRequest(::firebase::App& app,
   set_url(url.c_str());
 
   application_data_->returnSecureToken = true;
+
+  if (tenant_id != nullptr){
+    application_data_->tenantId =tenant_id;
+  }
 }
 
 std::unique_ptr<SetAccountInfoRequest>
 SetAccountInfoRequest::CreateUpdateEmailRequest(::firebase::App& app,
                                                 const char* const api_key,
-                                                const char* const email) {
-  auto request = CreateRequest(app, api_key);
+                                                const char* const email,
+                                                const char* tenant_id) {
+  auto request = CreateRequest(app, api_key, tenant_id);
   if (email) {
     request->application_data_->email = email;
   } else {
@@ -54,8 +60,8 @@ SetAccountInfoRequest::CreateUpdateEmailRequest(::firebase::App& app,
 std::unique_ptr<SetAccountInfoRequest>
 SetAccountInfoRequest::CreateUpdatePasswordRequest(
     ::firebase::App& app, const char* const api_key, const char* const password,
-    const char* const language_code) {
-  auto request = CreateRequest(app, api_key);
+    const char* const language_code, const char* tenant_id) {
+  auto request = CreateRequest(app, api_key, tenant_id);
   if (language_code != nullptr) {
     request->add_header(kHeaderFirebaseLocale, language_code);
   }
@@ -71,8 +77,8 @@ SetAccountInfoRequest::CreateUpdatePasswordRequest(
 std::unique_ptr<SetAccountInfoRequest>
 SetAccountInfoRequest::CreateLinkWithEmailAndPasswordRequest(
     ::firebase::App& app, const char* const api_key, const char* const email,
-    const char* const password) {
-  auto request = CreateRequest(app, api_key);
+    const char* const password, const char* tenant_id) {
+  auto request = CreateRequest(app, api_key, tenant_id);
   if (email) {
     request->application_data_->email = email;
   } else {
@@ -90,8 +96,9 @@ SetAccountInfoRequest::CreateLinkWithEmailAndPasswordRequest(
 std::unique_ptr<SetAccountInfoRequest>
 SetAccountInfoRequest::CreateUpdateProfileRequest(
     ::firebase::App& app, const char* const api_key,
-    const char* const set_display_name, const char* const set_photo_url) {
-  auto request = CreateRequest(app, api_key);
+    const char* const set_display_name, const char* const set_photo_url,
+    const char* tenant_id) {
+  auto request = CreateRequest(app, api_key, tenant_id);
 
   // It's fine for either set_photo_url or set_photo_url to be null.
   if (set_display_name) {
@@ -119,8 +126,9 @@ SetAccountInfoRequest::CreateUpdateProfileRequest(
 std::unique_ptr<SetAccountInfoRequest>
 SetAccountInfoRequest::CreateUnlinkProviderRequest(::firebase::App& app,
                                                    const char* const api_key,
-                                                   const char* const provider) {
-  auto request = CreateRequest(app, api_key);
+                                                   const char* const provider,
+                                                   const char* tenant_id) {
+  auto request = CreateRequest(app, api_key, tenant_id);
   if (provider) {
     request->application_data_->deleteProvider.push_back(provider);
   }
@@ -130,9 +138,9 @@ SetAccountInfoRequest::CreateUnlinkProviderRequest(::firebase::App& app,
 }
 
 std::unique_ptr<SetAccountInfoRequest> SetAccountInfoRequest::CreateRequest(
-    ::firebase::App& app, const char* const api_key) {
+    ::firebase::App& app, const char* const api_key, const char* tenant_id) {
   return std::unique_ptr<SetAccountInfoRequest>(
-      new SetAccountInfoRequest(app, api_key));  // NOLINT
+      new SetAccountInfoRequest(app, api_key, tenant_id));  // NOLINT
 }
 
 }  // namespace auth

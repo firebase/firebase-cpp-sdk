@@ -28,7 +28,7 @@ namespace auth {
 class VerifyCustomTokenRequest : public AuthRequest {
  public:
   VerifyCustomTokenRequest(::firebase::App& app, const char* api_key,
-                           const char* token);
+                           const char* token,  const char* tenant_id);
 };
 
 }  // namespace auth

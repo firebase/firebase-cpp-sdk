@@ -25,7 +25,7 @@ namespace auth {
 bool GetNewUserLocalIdAndIdToken(::firebase::App& app,
                                  const char* const api_key,
                                  std::string* local_id, std::string* id_token) {
-  SignUpNewUserRequest request(app, api_key);
+  SignUpNewUserRequest request(app, api_key,nullptr);
   SignUpNewUserResponse response;
 
   firebase::rest::CreateTransport()->Perform(request, &response);
@@ -43,7 +43,7 @@ bool GetNewUserLocalIdAndRefreshToken(::firebase::App& app,
                                       const char* const api_key,
                                       std::string* local_id,
                                       std::string* refresh_token) {
-  SignUpNewUserRequest request(app, api_key);
+  SignUpNewUserRequest request(app, api_key,nullptr);
   SignUpNewUserResponse response;
 
   firebase::rest::CreateTransport()->Perform(request, &response);
@@ -60,7 +60,7 @@ bool GetNewUserLocalIdAndRefreshToken(::firebase::App& app,
 std::string SignUpNewUserAndGetIdToken(::firebase::App& app,
                                        const char* const api_key,
                                        const char* const email) {
-  SignUpNewUserRequest request(app, api_key, email, "fake_password", "");
+  SignUpNewUserRequest request(app, api_key, email, "fake_password", "", nullptr);
   SignUpNewUserResponse response;
 
   firebase::rest::CreateTransport()->Perform(request, &response);

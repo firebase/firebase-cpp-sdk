@@ -34,9 +34,9 @@ class PlayGamesAuthCredential : public IdentityProviderCredential {
   std::string GetProvider() const override { return kPlayGamesAuthProviderId; }
 
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
-      ::firebase::App& app, const char* const api_key) const override {
+      ::firebase::App& app, const char* const api_key, const char* tenant_id) const override {
     return VerifyAssertionRequest::FromAuthCode(
-        app, api_key, GetProvider().c_str(), server_auth_code_.c_str());
+        app, api_key, GetProvider().c_str(), server_auth_code_.c_str(), tenant_id);
   }
 
  private:

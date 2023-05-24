@@ -29,7 +29,7 @@ namespace auth {
 // Test CreateAuthUriRequest
 TEST(CreateAuthUriTest, TestCreateAuthUriRequest) {
   std::unique_ptr<App> app(testing::CreateApp());
-  CreateAuthUriRequest request(*app, "APIKEY", "email");
+  CreateAuthUriRequest request(*app, "APIKEY", "email", "tenant123");
   EXPECT_EQ(
       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
       "createAuthUri?key=APIKEY",
@@ -37,7 +37,8 @@ TEST(CreateAuthUriTest, TestCreateAuthUriRequest) {
   EXPECT_EQ(
       "{\n"
       "  identifier: \"email\",\n"
-      "  continueUri: \"http://localhost\"\n"
+      "  continueUri: \"http://localhost\",\n"
+      "  tenantId: \"tenant123\"\n"
       "}\n",
       request.options().post_fields);
 }

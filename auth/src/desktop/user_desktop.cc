@@ -310,7 +310,8 @@ Future<ResultT> DoLinkWithEmailAndPassword(
   auto request = RequestT::CreateLinkWithEmailAndPasswordRequest(
       *auth_data->app, GetApiKey(*auth_data),
       email_credential->GetEmail().c_str(),
-      email_credential->GetPassword().c_str());
+      email_credential->GetPassword().c_str(),
+      GetTenantId(*auth_data));
 
   return CallAsyncWithFreshToken(auth_data, promise, std::move(request),
                                  PerformSetAccountInfoFlow<ResultT>);
@@ -333,7 +334,8 @@ Future<ResultT> DoLinkWithEmailAndPassword_DEPRECATED(
   auto request = RequestT::CreateLinkWithEmailAndPasswordRequest(
       *auth_data->app, GetApiKey(*auth_data),
       email_credential->GetEmail().c_str(),
-      email_credential->GetPassword().c_str());
+      email_credential->GetPassword().c_str(),
+      GetTenantId(*auth_data));
 
   return CallAsyncWithFreshToken(auth_data, promise, std::move(request),
                                  PerformSetAccountInfoFlow_DEPRECATED<ResultT>);
@@ -863,7 +865,7 @@ Future<void> User::Delete() {
   // Note: make_unique can't be used because it's not supported by Visual Studio
   // 2012.
   auto request = std::unique_ptr<RequestT>(  // NOLINT
-      new RequestT(*auth_data_->app, GetApiKey(*auth_data_)));
+      new RequestT(*auth_data_->app, GetApiKey(*auth_data_), GetTenantId(*auth_data_)));
 
   const auto callback = [](AuthDataHandle<void, RequestT>* const handle) {
     const auto response = GetResponse<DeleteAccountResponse>(*handle->request);
@@ -894,7 +896,8 @@ Future<void> User::SendEmailVerification() {
 
   typedef GetOobConfirmationCodeRequest RequestT;
   auto request = RequestT::CreateSendEmailVerificationRequest(
-      *auth_data_->app, GetApiKey(*auth_data_), language_code);
+      *auth_data_->app, GetApiKey(*auth_data_), language_code,
+      GetTenantId(*auth_data_));
 
   const auto callback = [](AuthDataHandle<void, RequestT>* const handle) {
     const auto response =
@@ -928,7 +931,7 @@ Future<void> User::Reload() {
   typedef GetAccountInfoRequest RequestT;
   auto request = std::unique_ptr<RequestT>(
       new RequestT(*auth_data_->app, GetApiKey(*auth_data_),
-                   id_token.c_str()));  // NOLINT
+                   id_token.c_str(), GetTenantId(*auth_data_)));  // NOLINT
 
   const auto callback = [](AuthDataHandle<void, RequestT>* const handle) {
     const GetAccountInfoResult account_info = GetAccountInfo(*handle->request);
@@ -968,7 +971,7 @@ Future<void> User::UpdateEmail(const char* const email) {
 
   typedef SetAccountInfoRequest RequestT;
   auto request = RequestT::CreateUpdateEmailRequest(
-      *auth_data_->app, GetApiKey(*auth_data_), email);
+      *auth_data_->app, GetApiKey(*auth_data_), email, GetTenantId(*auth_data_));
   return CallAsyncWithFreshToken(auth_data_, promise, std::move(request),
                                  PerformSetAccountInfoFlow<void>);
 }
@@ -990,7 +993,8 @@ Future<void> User::UpdatePassword(const char* const password) {
 
   typedef SetAccountInfoRequest RequestT;
   auto request = RequestT::CreateUpdatePasswordRequest(
-      *auth_data_->app, GetApiKey(*auth_data_), password, language_code);
+      *auth_data_->app, GetApiKey(*auth_data_), password, language_code,
+      GetTenantId(*auth_data_));
 
   return CallAsyncWithFreshToken(auth_data_, promise, std::move(request),
                                  PerformSetAccountInfoFlow<void>);
@@ -1005,7 +1009,7 @@ Future<void> User::UpdateUserProfile(const UserProfile& profile) {
   typedef SetAccountInfoRequest RequestT;
   auto request = RequestT::CreateUpdateProfileRequest(
       *auth_data_->app, GetApiKey(*auth_data_), profile.display_name,
-      profile.photo_url);
+      profile.photo_url, GetTenantId(*auth_data_));
 
   return CallAsyncWithFreshToken(auth_data_, promise, std::move(request),
                                  PerformSetAccountInfoFlow<void>);
@@ -1037,7 +1041,7 @@ Future<AuthResult> User::Unlink(const char* const provider) {
 
   typedef SetAccountInfoRequest RequestT;
   auto request = RequestT::CreateUnlinkProviderRequest(
-      *auth_data_->app, GetApiKey(*auth_data_), provider);
+      *auth_data_->app, GetApiKey(*auth_data_), provider, GetTenantId(*auth_data_));
 
   return CallAsyncWithFreshToken(auth_data_, promise, std::move(request),
                                  PerformSetAccountInfoFlow<AuthResult>);
@@ -1069,7 +1073,7 @@ Future<User*> User::Unlink_DEPRECATED(const char* const provider) {
 
   typedef SetAccountInfoRequest RequestT;
   auto request = RequestT::CreateUnlinkProviderRequest(
-      *auth_data_->app, GetApiKey(*auth_data_), provider);
+      *auth_data_->app, GetApiKey(*auth_data_), provider, GetTenantId(*auth_data_));
 
   return CallAsyncWithFreshToken(auth_data_, promise, std::move(request),
                                  PerformSetAccountInfoFlow_DEPRECATED<User*>);

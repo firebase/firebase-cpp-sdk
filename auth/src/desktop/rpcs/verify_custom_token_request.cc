@@ -23,7 +23,8 @@ namespace auth {
 
 VerifyCustomTokenRequest::VerifyCustomTokenRequest(::firebase::App& app,
                                                    const char* api_key,
-                                                   const char* token)
+                                                   const char* token,
+                                                   const char* tenant_id)
     : AuthRequest(app, request_resource_data, true) {
   FIREBASE_ASSERT_RETURN_VOID(api_key);
 
@@ -40,6 +41,9 @@ VerifyCustomTokenRequest::VerifyCustomTokenRequest(::firebase::App& app,
     application_data_->token = token;
   } else {
     LogError("No token given.");
+  }
+  if (tenant_id != nullptr) {
+    application_data_->tenantId = tenant_id;
   }
   application_data_->returnSecureToken = true;
   UpdatePostFields();

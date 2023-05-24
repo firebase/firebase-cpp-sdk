@@ -41,7 +41,7 @@ namespace auth {
 class IdentityProviderCredential : public AuthCredential {
  public:
   virtual std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
-      ::firebase::App& app, const char* api_key) const = 0;
+      ::firebase::App& app, const char* api_key, const char* tenant_id) const = 0;
 };
 
 }  // namespace auth
