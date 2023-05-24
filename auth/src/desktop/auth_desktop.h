@@ -189,7 +189,7 @@ struct AuthImpl {
   std::string language_code;
 
   // The tenant id used for multi tenant authentication
-  std::string tenant_id = nullptr;
+  std::string tenant_id;
 };
 
 // Constant, describing how often we automatically fetch a new auth token.

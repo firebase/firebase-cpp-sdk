@@ -114,7 +114,6 @@ void* CreatePlatformAuth(App* const app) {
   AuthImpl* const auth = new AuthImpl();
   auth->api_key = app->options().api_key();
   auth->app_name = app->name();
-  auth->tenant_id = nullptr;
   return auth;
 }
 
