@@ -24,6 +24,7 @@ extern "C" {
 #import <Foundation/Foundation.h>
 #import <GoogleMobileAds/GoogleMobileAds.h>
 
+#include <vector>
 #include "gma/src/common/gma_common.h"
 #include "gma/src/include/firebase/gma/types.h"
 
