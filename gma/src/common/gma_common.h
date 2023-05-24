@@ -39,6 +39,8 @@ extern const char* kAdCouldNotParseAdRequestErrorMessage;
 extern const char* kAdLoadInProgressErrorMessage;
 extern const char* kAdUninitializedErrorMessage;
 
+extern const char* kImageUrlMalformedErrorMessage;
+
 namespace internal {
 class AdViewInternal;
 class NativeAdInternal;
@@ -100,6 +102,12 @@ Future<AdResult> CreateAndCompleteFutureWithResult(int fn_idx, int error,
                                                    FutureData* future_data,
                                                    const AdResult& result);
 
+// For calls that aren't asynchronous, create and complete a future with a
+// result at the same time.
+Future<ImageResult> CreateAndCompleteFutureWithImageResult(
+    int fn_idx, int error, const char* error_msg, FutureData* future_data,
+    const ImageResult& result);
+
 template <class T>
 struct FutureCallbackData {
   FutureData* future_data;
@@ -114,6 +122,11 @@ FutureCallbackData<void>* CreateVoidFutureCallbackData(int fn_idx,
 // Constructs a FutureCallbackData instance to handle results from LoadAd.
 // requests.
 FutureCallbackData<AdResult>* CreateAdResultFutureCallbackData(
+    int fn_idx, FutureData* future_data);
+
+// Constructs a FutureCallbackData instance to handle results from LoadImage.
+// requests.
+FutureCallbackData<ImageResult>* CreateImageResultFutureCallbackData(
     int fn_idx, FutureData* future_data);
 
 // Template function implementations.
@@ -142,6 +155,16 @@ class GmaInternal {
       FutureCallbackData<AdResult>* callback_data, int error_code,
       const std::string& error_message,
       const AdErrorInternal& ad_error_internal);
+
+  // Completes an ImageResult future with a successful result.
+  static void CompleteLoadImageFutureSuccess(
+      FutureCallbackData<ImageResult>* callback_data,
+      const std::vector<unsigned char>& img_data);
+
+  // Completes an ImageResult future as an error.
+  static void CompleteLoadImageFutureFailure(
+      FutureCallbackData<ImageResult>* callback_data, int error_code,
+      const std::string& error_message);
 
   // Constructs and returns an AdError object given an AdErrorInternal object.
   static AdError CreateAdError(const AdErrorInternal& ad_error_internal);

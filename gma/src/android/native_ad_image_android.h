@@ -39,7 +39,7 @@ namespace gma {
 #define DOWNLOADHELPER_METHODS(X)                                        \
   X(Constructor, "<init>", "(Ljava/lang/String;)V"),                     \
   X(AddHeader, "addHeader", "(Ljava/lang/String;Ljava/lang/String;)V"),  \
-  X(Download, "download", "()[B"),                                       \
+  X(Download, "download", "(J)V"),                                       \
   X(GetResponseCode, "getResponseCode", "()I")
 // clang-format on
 

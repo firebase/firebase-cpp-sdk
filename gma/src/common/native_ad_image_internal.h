@@ -19,6 +19,7 @@
 
 #include <string>
 
+#include "app/src/include/firebase/future.h"
 #include "gma/src/common/gma_common.h"
 #include "gma/src/include/firebase/gma/internal/native_ad.h"
 
@@ -33,9 +34,15 @@ typedef NSObject* NativeSdkNativeAdImage;
 typedef void* NativeSdkNativeAdImage;
 #endif
 
+enum NativeAdImageFn { kNativeAdImageFnLoadImage, kNativeImageFnCount };
+
 struct NativeAdImageInternal {
   // Default constructor.
-  NativeAdImageInternal() { native_ad_image = nullptr; }
+  NativeAdImageInternal() : future_data(kNativeImageFnCount) {
+    native_ad_image = nullptr;
+    helper = nullptr;
+    callback_data = nullptr;
+  }
 
   // A cached value of native ad image URI.
   std::string uri;
@@ -43,9 +50,18 @@ struct NativeAdImageInternal {
   // A cached value of native ad image scale.
   double scale;
 
+  // Future data used to synchronize asynchronous calls.
+  FutureData future_data;
+
   // native_ad_image is a reference to a NativeAdImage object returned by the
   // iOS or Android GMA SDK.
   NativeSdkNativeAdImage native_ad_image;
+
+  // helper is a reference to a download helper object.
+  NativeSdkNativeAdImage helper;
+
+  // Contains information to asynchronously complete the LoadImage Future.
+  FutureCallbackData<ImageResult>* callback_data;
 
   Mutex mutex;
 };

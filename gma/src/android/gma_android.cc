@@ -343,6 +343,8 @@ Future<AdapterInitializationStatus> Initialize(JNIEnv* env, jobject activity,
             nullptr &&
         native_ad_helper::CacheMethodIds(env, activity) &&
         native_image::CacheMethodIds(env, activity) &&
+        download_helper::CacheClassFromFiles(env, activity, &embedded_files) !=
+            nullptr &&
         download_helper::CacheMethodIds(env, activity) &&
         rewarded_ad_helper::CacheClassFromFiles(env, activity,
                                                 &embedded_files) != nullptr &&
@@ -938,6 +940,37 @@ void JNI_NativeAd_completeLoadedAd(JNIEnv* env, jclass clazz, jlong data_ptr,
   env->DeleteLocalRef(j_response_info);
 }
 
+void JNI_NativeImage_completeLoadedImage(JNIEnv* env, jclass clazz,
+                                         jlong data_ptr,
+                                         jobject j_image_bytes) {
+  FIREBASE_ASSERT(env);
+  FIREBASE_ASSERT(data_ptr);
+  FIREBASE_ASSERT(j_image_bytes);
+
+  std::vector<unsigned char> img_data =
+      util::JniByteArrayToVector(env, j_image_bytes);
+
+  FutureCallbackData<ImageResult>* callback_data =
+      reinterpret_cast<FutureCallbackData<ImageResult>*>(data_ptr);
+  GmaInternal::CompleteLoadImageFutureSuccess(callback_data, img_data);
+}
+
+void JNI_completeLoadImageError(JNIEnv* env, jclass clazz, jlong data_ptr,
+                                jint j_error_code, jstring j_error_message) {
+  FIREBASE_ASSERT(env);
+  FIREBASE_ASSERT(data_ptr);
+  FIREBASE_ASSERT(j_error_message);
+
+  std::string error_message = util::JStringToString(env, j_error_message);
+  const AdErrorCode error_code =
+      MapAndroidAdRequestErrorCodeToCPPErrorCode(j_error_code);
+
+  FutureCallbackData<ImageResult>* callback_data =
+      reinterpret_cast<FutureCallbackData<ImageResult>*>(data_ptr);
+  GmaInternal::CompleteLoadImageFutureFailure(callback_data, error_code,
+                                              error_message);
+}
+
 void JNI_completeLoadAdError(JNIEnv* env, jclass clazz, jlong data_ptr,
                              jobject j_load_ad_error, jint j_error_code,
                              jstring j_error_message) {
@@ -1196,6 +1229,15 @@ bool RegisterNatives() {
        reinterpret_cast<void*>(&JNI_completeLoadAdInternalError)},
   };
 
+  static const JNINativeMethod kNativeImageMethods[] = {
+      {"completeNativeImageFutureCallback", "(JILjava/lang/String;)V",
+       reinterpret_cast<void*>(&JNI_completeAdFutureCallback)},
+      {"completeNativeLoadedImage", "(J[B)V",
+       reinterpret_cast<void*>(&JNI_NativeImage_completeLoadedImage)},
+      {"completeNativeLoadImageError", "(JILjava/lang/String;)V",
+       reinterpret_cast<void*>(&JNI_completeLoadImageError)},
+  };
+
   static const JNINativeMethod kRewardedAdMethods[] = {
       {"completeRewardedAdFutureCallback", "(JILjava/lang/String;)V",
        reinterpret_cast<void*>(&JNI_completeAdFutureCallback)},
@@ -1247,6 +1289,9 @@ bool RegisterNatives() {
              FIREBASE_ARRAYSIZE(kInterstitialMethods)) &&
          native_ad_helper::RegisterNatives(
              env, kNativeAdMethods, FIREBASE_ARRAYSIZE(kNativeAdMethods)) &&
+         download_helper::RegisterNatives(
+             env, kNativeImageMethods,
+             FIREBASE_ARRAYSIZE(kNativeImageMethods)) &&
          rewarded_ad_helper::RegisterNatives(
              env, kRewardedAdMethods, FIREBASE_ARRAYSIZE(kRewardedAdMethods)) &&
          gma_initialization_helper::RegisterNatives(

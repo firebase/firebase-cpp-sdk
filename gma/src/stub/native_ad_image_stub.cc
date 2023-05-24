@@ -49,10 +49,16 @@ const std::string& NativeAdImage::image_uri() const {
   return empty;
 }
 
-/// Gets the auto loaded image as a vector of bytes.
-const std::vector<unsigned char> NativeAdImage::image() const {
-  const std::vector<unsigned char> empty_img_data;
-  return empty_img_data;
+Future<ImageResult> NativeAdImage::LoadImage() const {
+  return CreateAndCompleteFutureWithImageResult(
+      kNativeAdImageFnLoadImage, kAdErrorCodeNone, nullptr,
+      &internal_->future_data, ImageResult());
+}
+
+Future<ImageResult> NativeAdImage::LoadImageLastResult() const {
+  return CreateAndCompleteFutureWithImageResult(
+      kNativeAdImageFnLoadImage, kAdErrorCodeNone, nullptr,
+      &internal_->future_data, ImageResult());
 }
 
 }  // namespace gma

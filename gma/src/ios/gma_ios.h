@@ -41,6 +41,18 @@ void CompleteLoadAdInternalError(FutureCallbackData<AdResult>* callback_data,
                                  AdErrorCode error_code,
                                  const char* error_message);
 
+// Completes ImageResult futures for successful image loads.
+void CompleteLoadImageInternalSuccess(
+    FutureCallbackData<ImageResult>* callback_data,
+    const std::vector<unsigned char>& img_data);
+
+// Resolves LoadImage errors that exist in the C++ SDK before initiating image
+// loads.
+void CompleteLoadImageInternalError(
+    FutureCallbackData<ImageResult>* callback_data,
+    int error_code,
+    const char* error_message);
+
 // Parses information from the NSError to populate an AdResult
 // and completes the AdResult Future on iOS.
 void CompleteAdResultError(FutureCallbackData<AdResult>* callback_data,

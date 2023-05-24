@@ -58,7 +58,7 @@ class NativeAdInternal {
   virtual bool is_initialized() const = 0;
 
   // Returns the associated icon asset of the native ad.
-  const NativeAdImage icon() const { return icon_; }
+  const NativeAdImage& icon() const { return icon_; }
 
   // Returns the associated image assets of the native ad.
   const std::vector<NativeAdImage>& images() const { return images_; }

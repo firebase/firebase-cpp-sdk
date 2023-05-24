@@ -40,6 +40,7 @@ struct NativeAdImageInternal;
 
 class GmaInternal;
 class NativeAdImage;
+class ImageResult;
 
 class NativeAd {
  public:
@@ -66,7 +67,7 @@ class NativeAd {
   Future<AdResult> LoadAdLastResult() const;
 
   /// Returns the associated icon asset of the native ad.
-  const NativeAdImage icon() const;
+  const NativeAdImage& icon() const;
 
   /// Returns the associated image assets of the native ad.
   const std::vector<NativeAdImage>& images() const;
@@ -75,6 +76,36 @@ class NativeAd {
   // An internal, platform-specific implementation object that this class uses
   // to interact with the Google Mobile Ads SDKs for iOS and Android.
   internal::NativeAdInternal* internal_;
+};
+
+/// Information about the result of a load image operation.
+class ImageResult {
+ public:
+  /// Default Constructor.
+  ImageResult();
+
+  /// Destructor.
+  virtual ~ImageResult();
+
+  /// Returns true if the operation was successful.
+  bool is_successful() const;
+
+  /// If the ImageResult::is_successful() returned false, then the
+  /// vector returned via this method will contain no contextual
+  /// information.
+  const std::vector<unsigned char>& image() const;
+
+ private:
+  friend class GmaInternal;
+
+  /// Constructor invoked upon successful image load.
+  explicit ImageResult(const std::vector<unsigned char>& image_info);
+
+  /// Denotes if the ImageResult represents a success or an error.
+  bool is_successful_;
+
+  /// Contains the loaded image asset.
+  std::vector<unsigned char> image_info_;
 };
 
 class NativeAdImage {
@@ -91,8 +122,12 @@ class NativeAdImage {
   /// Returns the image uri.
   const std::string& image_uri() const;
 
-  /// Returns the autoloaded image.
-  const std::vector<unsigned char> image() const;
+  /// Begins an asynchronous request for loading an image asset.
+  Future<ImageResult> LoadImage() const;
+
+  // Returns a Future containing the status of the last call to
+  // LoadImage.
+  Future<ImageResult> LoadImageLastResult() const;
 
   virtual ~NativeAdImage();
 
