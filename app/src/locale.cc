@@ -29,12 +29,14 @@
 #elif FIREBASE_PLATFORM_LINUX
 #include <clocale>
 #include <ctime>
-#include <locale>
 #else
 #error "Unknown platform."
 #endif  // platform selector
 
 #include <algorithm>
+#include <codecvt>
+#include <locale>
+#include <string>
 #include <vector>
 
 namespace firebase {
@@ -91,11 +93,13 @@ std::string GetLocale() {
 std::string GetTimezone() {
 #if FIREBASE_PLATFORM_WINDOWS
   // If "TZ" environment variable is defined, use it, else use _get_tzname.
-  int tz_bytes = GetEnvironmentVariable("TZ", nullptr, 0);
-  if (tz_bytes > 0) {
-    std::vector<char> buffer(tz_bytes);
-    GetEnvironmentVariable("TZ", &buffer[0], tz_bytes);
-    return std::string(&buffer[0]);
+  int tz_chars = GetEnvironmentVariableW("TZ", nullptr, 0);
+  if (tz_chars > 0) {
+    std::vector<wchar_t> buffer(tz_chars + 1);
+    GetEnvironmentVariableW("TZ", &buffer[0], tz_chars);
+    std::wstring tz_utf16(&buffer[0]);
+    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
+    return converter.to_bytes(wstring_string);
   }
   int daylight;  // daylight savings time?
   if (_get_daylight(&daylight) != 0) return "";
