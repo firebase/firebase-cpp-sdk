@@ -55,6 +55,7 @@ std::string GetLocale() {
   std::string output(woutput.begin(), woutput.end());
   // Change all hyphens to underscores to normalize the locale.
   std::replace(output.begin(), output.end(), '-', '_');
+  LogInfo("Locale: %s", output.c_str());
   return output;
 #elif FIREBASE_PLATFORM_LINUX
   // If std::locale() has been customized, return it, else return the contents
@@ -106,6 +107,7 @@ std::string GetTimezone() {
   if (_get_tzname(&length, &namebuf[0], length, daylight ? 1 : 0) != 0)
     return "";
   std::string name_str(&namebuf[0]);
+  LogInfo("Time zone: %s", name_str.c_str());
   return name_str;
 #elif FIREBASE_PLATFORM_LINUX
   // If TZ environment variable is defined and not empty, use it, else use
