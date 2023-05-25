@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include <string>
+#include <vector>
 
 #include "app/src/app_common.h"
 #include "app/src/assert.h"

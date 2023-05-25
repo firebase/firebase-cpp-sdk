@@ -21,6 +21,7 @@
 #include <fstream>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "app/src/app_common.h"
 #include "app/src/function_registry.h"
