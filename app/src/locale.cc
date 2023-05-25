@@ -93,10 +93,10 @@ std::string GetLocale() {
 std::string GetTimezone() {
 #if FIREBASE_PLATFORM_WINDOWS
   // If "TZ" environment variable is defined, use it, else use _get_tzname.
-  int tz_chars = GetEnvironmentVariableW("TZ", nullptr, 0);
+  int tz_chars = GetEnvironmentVariableW(L"TZ", nullptr, 0);
   if (tz_chars > 0) {
     std::vector<wchar_t> buffer(tz_chars + 1);
-    GetEnvironmentVariableW("TZ", &buffer[0], tz_chars);
+    GetEnvironmentVariableW(L"TZ", &buffer[0], tz_chars);
     std::wstring tz_utf16(&buffer[0]);
     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
     return converter.to_bytes(wstring_string);
