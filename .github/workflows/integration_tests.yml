@@ -779,8 +779,8 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
       - name: Set time zone
-        shell: bash
-        run: echo TZ='Paris, Madrid (heure d'"'"'été)' >> $GITHUB_ENV
+        if: startsWith(matrix.os, 'windows')
+        run: tzutil /s "Paris, Madrid (heure d'été)"
       - name: Run Desktop integration tests
         env:
           USE_FIRESTORE_EMULATOR: true
