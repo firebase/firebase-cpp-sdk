@@ -72,15 +72,20 @@ TEST_F(FirebaseAppTest, TestGetAll) {
   firebase::App* default_app = firebase::App::Create(APP_CREATE_PARAMS);
   EXPECT_THAT(firebase::App::GetApps(), UnorderedElementsAre(default_app));
 
-  firebase::App* second_app = firebase::App::Create(firebase::AppOptions(), "2ndApp");
-  EXPECT_THAT(firebase::App::GetApps(), UnorderedElementsAre(default_app, second_app));
+  firebase::App* second_app =
+      firebase::App::Create(firebase::AppOptions(), "2ndApp");
+  EXPECT_THAT(firebase::App::GetApps(),
+              UnorderedElementsAre(default_app, second_app));
 
-  firebase::App* third_app = firebase::App::Create(firebase::AppOptions(), "3rdApp");
-  EXPECT_THAT(firebase::App::GetApps(), UnorderedElementsAre(default_app, second_app, third_app));
+  firebase::App* third_app =
+      firebase::App::Create(firebase::AppOptions(), "3rdApp");
+  EXPECT_THAT(firebase::App::GetApps(),
+              UnorderedElementsAre(default_app, second_app, third_app));
 
   delete third_app;
   third_app = nullptr;
-  EXPECT_THAT(firebase::App::GetApps(), UnorderedElementsAre(default_app, second_app));
+  EXPECT_THAT(firebase::App::GetApps(),
+              UnorderedElementsAre(default_app, second_app));
 
   delete default_app;
   default_app = nullptr;
