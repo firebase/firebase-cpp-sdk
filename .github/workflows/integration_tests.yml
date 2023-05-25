@@ -778,12 +778,14 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+      - name: Set time zone
+        shell: bash
+        run: echo TZ='Paris, Madrid (heure d\'été\)' >> $GITHUB_ENV
       - name: Run Desktop integration tests
         env:
           USE_FIRESTORE_EMULATOR: true
         shell: bash
         run: |
-	  export TZ='Paris, Madrid \(heure d\'\ét\é\)'
           if [[ "${{ needs.check_and_prepare.outputs.apis }}" == *"firestore"* ]]; then
             firebase emulators:exec --only firestore --project demo-example 'python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.ssl_variant }}"'
           else
