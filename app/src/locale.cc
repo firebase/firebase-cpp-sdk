@@ -92,15 +92,11 @@ std::string GetLocale() {
 // Get the current time zone, e.g. "US/Pacific"
 std::string GetTimezone() {
 #if FIREBASE_PLATFORM_WINDOWS
-  // If "TZ" environment variable is defined, use it, else use _get_tzname.
-  int tz_chars = GetEnvironmentVariableW(L"TZ", nullptr, 0);
-  if (tz_chars > 0) {
-    std::vector<wchar_t> buffer(tz_chars + 1);
-    GetEnvironmentVariableW(L"TZ", &buffer[0], tz_chars);
-    std::wstring tz_utf16(&buffer[0]);
-    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
-    std::string tz_utf8 = converter.to_bytes(tz_utf16);
-    return tz_utf8;
+  static bool tz_was_set = false;
+  if (!tz_was_set) {
+    _tzset();  // Set the time zone used by the below functions, based on OS
+	       // settings or the TZ variable, as appropriate.
+    tz_was_set = true;
   }
   int daylight;  // daylight savings time?
   if (_get_daylight(&daylight) != 0) return "";
