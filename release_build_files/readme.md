@@ -629,6 +629,8 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
+    - General (Android): Fix for deadlock within JniResultCallback, commonly
+      seen within Messaging, but affecting other products as well.
     - Database/Firestore (Desktop): Fixed a crash on Windows when the user's
       home directory contains non-ANSI characters (Unicode above U+00FF).
     - Storage (Desktop): Fixed a crash on Windows when uploading files from a
