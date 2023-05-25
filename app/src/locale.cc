@@ -96,7 +96,7 @@ std::string GetTimezone() {
   static bool tz_was_set = false;
   if (!tz_was_set) {
     _tzset();  // Set the time zone used by the below functions, based on OS
-	       // settings or the TZ variable, as appropriate.
+               // settings or the TZ variable, as appropriate.
     tz_was_set = true;
   }
   int daylight;  // daylight savings time?
