@@ -99,7 +99,8 @@ std::string GetTimezone() {
     GetEnvironmentVariableW(L"TZ", &buffer[0], tz_chars);
     std::wstring tz_utf16(&buffer[0]);
     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
-    return converter.to_bytes(wstring_string);
+    std::string tz_utf8 = converter.to_bytes(tz_utf16);
+    return tz_utf8;
   }
   int daylight;  // daylight savings time?
   if (_get_daylight(&daylight) != 0) return "";
