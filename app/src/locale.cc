@@ -26,6 +26,9 @@
 #elif FIREBASE_PLATFORM_WINDOWS
 #include <time.h>
 #include <windows.h>
+// To convert Windows time zone names to IANA time zone names:
+#define UCHAR_TYPE wchar_t
+#include <icu.h>
 #elif FIREBASE_PLATFORM_LINUX
 #include <clocale>
 #include <ctime>
@@ -107,8 +110,44 @@ std::string GetTimezone() {
   if (_get_tzname(&length, &namebuf[0], length, daylight ? 1 : 0) != 0)
     return "";
   std::string name_str(&namebuf[0]);
-  LogInfo("Time zone: %s", name_str.c_str());
-  return name_str;
+  LogInfo("Windows time zone: %s", name_str.c_str());
+  std::wstring windows_time_zone_id(name_str);
+
+  std::string locale_name = GetLocale();
+  wchar_t iana_time_zone_buffer[128];
+  UErrorCode error_status;
+  int32_t size;
+  bool got_time_zone = false;
+  if (locale_name.size() >= 5) {
+    // Try time zone first with the region code returned above, assuming it's at
+    // least 5 characters. For example, "en_US" -> "US"
+    std::string region_code = std::string(&locale_name[3], 2);
+    size = ucal_getTimeZoneIDForWindowsID(windows_time_zone_id.c_str(), -1,
+					  region_code.c_str(),
+					  iana_time_zone_buffer,
+					  sizeof(iana_time_zone_buffer),
+					  &error_status);
+    got_time_zone = (U_SUCCESS(error_code) && size > 0);
+  }
+  if (!got_time_zone) {
+    // Try without specifying a region
+    size = ucal_getTimeZoneIDForWindowsID(windows_time_zone_id.c_str(), -1,
+					  nullptr,
+					  iana_time_zone_buffer,
+					  sizeof(iana_time_zone_buffer),
+					  &error_status);
+    got_time_zone = (U_SUCCESS(error_code) && size > 0);
+  }
+  if (got_time_zone) {
+    std::wstring tz_utf16(iana_time_zone_buffer);
+    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
+    return converter.to_bytes(tz_utf16);
+  } else {
+    // Couldn't convert to IANA
+    LogError("Couldn't convert time zone %s to IANA", name_str.c_str());
+    return name_str;
+  }
+  
 #elif FIREBASE_PLATFORM_LINUX
   // If TZ environment variable is defined and not empty, use it, else use
   // tzname.
