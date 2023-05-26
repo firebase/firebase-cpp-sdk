@@ -780,7 +780,7 @@ jobs:
           java-version: '17'
       - name: Set time zone
         if: startsWith(matrix.os, 'windows')
-        run: tzutil /l
+        run: tzutil /s "Romance Daylight Time"
       - name: Run Desktop integration tests
         env:
           USE_FIRESTORE_EMULATOR: true
