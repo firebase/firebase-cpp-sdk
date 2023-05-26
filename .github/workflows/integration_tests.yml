@@ -780,7 +780,8 @@ jobs:
           java-version: '17'
       - name: Set time zone
         if: startsWith(matrix.os, 'windows')
-        run: tzutil /s "Paris, Madrid (heure d'été)"
+        run: tzutil /l
+	# "Paris, Madrid (heure d'été)"
       - name: Run Desktop integration tests
         env:
           USE_FIRESTORE_EMULATOR: true
