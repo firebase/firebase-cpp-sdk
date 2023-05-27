@@ -132,8 +132,10 @@ std::string GetTimezone() {
         &error_code);
     got_time_zone = (U_SUCCESS(error_code) && size > 0);
     if (!got_time_zone) {
-      LogWarning("Couldn't convert time zone %s with region %s to IANA: %d",
-                 windows_tz_utf8.c_str(), region_code.c_str(), error_code);
+      LogWarning(
+          "Couldn't convert Windows time zone '%s' with region '%s' to IANA: "
+          "%d",
+          windows_tz_utf8.c_str(), region_code.c_str(), error_code);
     }
   }
   if (!got_time_zone) {
@@ -143,17 +145,22 @@ std::string GetTimezone() {
         sizeof(iana_time_zone_buffer) / sizeof(iana_time_zone_buffer[0]),
         &error_code);
     got_time_zone = (U_SUCCESS(error_code) && size > 0);
+    if (!got_time_zone) {
+      // Couldn't convert to IANA
+      LogError("Couldn't convert time zone '%s' to IANA: %d",
+               windows_tz_utf8.c_str(), error_code);
+    }
   }
-  if (got_time_zone) {
-    std::wstring iana_tz_utf16(iana_time_zone_buffer);
-    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> to_utf8;
-    return to_utf8.to_bytes(tz_utf16);
-  } else {
-    // Couldn't convert to IANA
-    LogError("Couldn't convert time zone %s to IANA: %d", name_str.c_str(),
-             error_code);
-    return name_str;
+  if (!got_time_zone) {
+    // Return the Windows time zone ID as a backup.
+    return windows_tz_utf8;
   }
+
+  std::wstring iana_tz_utf16(iana_time_zone_buffer);
+  std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> to_utf8;
+  std::string iana_tz_utf8 = to_utf8.to_bytes(tz_utf16);
+  LogInfo("IANA time zone: %s", iana_tz_utf8.c_str());
+  return iana_tz_utf8;
 
 #elif FIREBASE_PLATFORM_LINUX
   // If TZ environment variable is defined and not empty, use it, else use
