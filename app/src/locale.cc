@@ -158,7 +158,7 @@ std::string GetTimezone() {
 
   std::wstring iana_tz_utf16(iana_time_zone_buffer);
   std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> to_utf8;
-  std::string iana_tz_utf8 = to_utf8.to_bytes(tz_utf16);
+  std::string iana_tz_utf8 = to_utf8.to_bytes(iana_tz_utf16);
   LogInfo("IANA time zone: %s", iana_tz_utf8.c_str());
   return iana_tz_utf8;
 
