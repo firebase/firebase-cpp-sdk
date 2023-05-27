@@ -20,6 +20,7 @@ platforms.
 """
 
 import distutils.spawn
+import glob
 import platform
 import shutil
 import subprocess
@@ -63,6 +64,11 @@ def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False,
 def is_command_installed(tool):
   """Check if a command is installed on the system."""
   return distutils.spawn.find_executable(tool)
+
+
+def glob_exists(glob_path):
+  """Check if any file/directory exists at a given path glob."""
+  return len(glob.glob(glob_path)) > 0
 
 
 def delete_directory(dir_path):
@@ -260,4 +266,3 @@ def install_x86_support_libraries(gha_build=False):
       with open(os.devnull, "w") as devnull:
         subprocess.run(["dpkg", "-s"] + packages, stdout=devnull, stderr=subprocess.STDOUT,
                        check=True)
-

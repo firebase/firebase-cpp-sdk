@@ -138,7 +138,7 @@ def main(argv):
     app_check_token = _decrypt(app_check_token_path, passphrase)
     app_check_project = os.path.join(
       repo_dir, "app_check", "integration_test")
-    _patch_xcschemes(
+    _patch_main_src(
       app_check_project, "REPLACE_WITH_APP_CHECK_TOKEN", app_check_token)
 
   print("Attempting to decrypt GCS service account key file.")

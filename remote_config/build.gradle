@@ -84,4 +84,5 @@ apply from: "$rootDir/android_build_files/extract_and_dex.gradle"
 apply from: "$rootDir/android_build_files/generate_proguard.gradle"
 project.afterEvaluate {
   generateProguardFile('remote_config')
+  setupDexDependencies(':remote_config:remote_config_resources')
 }

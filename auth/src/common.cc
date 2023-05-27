@@ -16,13 +16,12 @@
 
 #include "auth/src/common.h"
 
+#include <string>
+
 #include "app/src/util.h"
 
 namespace firebase {
 namespace auth {
-
-// static member variables
-const uint32_t PhoneAuthProvider::kMaxTimeoutMs = 3000;
 
 namespace {
 static const char kCredentialFutureIdentifier[17] = "Auth-Credentials";
@@ -59,12 +58,38 @@ void ClearUserInfos(AuthData* auth_data) {
   auth_data->user_infos.clear();
 }
 
+//
+// PhoneAuthOptions
+//
+PhoneAuthOptions::PhoneAuthOptions() {
+  force_resending_token = nullptr;
+  timeout_milliseconds = 0;
+  ui_parent = nullptr;
+}
+
+//
+// PhoneAuthProvider
+//
 void PhoneAuthProvider::Listener::OnCodeSent(
-    const std::string& /*verification_id*/,
-    const ForceResendingToken& /*force_resending_token*/) {}
+    const std::string& verification_id,
+    const ForceResendingToken& force_resending_token) {}
 
 void PhoneAuthProvider::Listener::OnCodeAutoRetrievalTimeOut(
-    const std::string& /*verification_id*/) {}
+    const std::string& verification_id) {}
+
+///
+/// User
+///
+User::User() { auth_data_ = nullptr; }
+
+bool User::operator==(const User& user) const {
+  // This is based on the assumption that there is only one user before
+  // Auth rewrite.
+  // TODO(AuthRewrite): Must change during Auth Rewrite
+  return is_valid() == user.is_valid();
+}
+
+bool User::operator!=(const User& user) const { return !(*this == user); }
 
 }  // namespace auth
 }  // namespace firebase

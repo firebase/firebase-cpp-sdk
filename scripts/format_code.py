@@ -31,6 +31,7 @@ Returns:
 import difflib
 import io
 import os
+import re
 import subprocess
 import sys
 
@@ -56,6 +57,10 @@ flags.DEFINE_boolean("github_log", False, 'Pring special github log format items
 # Constants:
 FILE_TYPE_EXTENSIONS = ('.cpp', '.cc', '.c', '.h', '.m', '.mm', '.java')
 """Tuple: The file types to run clang-format on.
+Used to filter out results when searching across directories or git diffs.
+"""
+FILE_PATHS_TO_IGNORE = re.compile(r'.*ios_pod/swift_headers/.*\.h')
+"""Regex pattern for files paths to ignore.
 Used to filter out results when searching across directories or git diffs.
 """
 
@@ -133,6 +138,8 @@ def git_diff_list_files():
   result = subprocess.run(args, stdout=subprocess.PIPE)
   for line in result.stdout.decode('utf-8').splitlines():
     line = line.rstrip()
+    if(FILE_PATHS_TO_IGNORE.match(line)):
+      continue
     if(line.endswith(FILE_TYPE_EXTENSIONS)):
       filenames.append(line.strip())
       if FLAGS.verbose:
@@ -158,6 +165,8 @@ def list_files_from_directory(path, recurse):
   filenames = []
   for root, dirs, files in os.walk(path):
     for filename in files:
+      if(FILE_PATHS_TO_IGNORE.match(line)):
+        continue
       if filename.endswith(FILE_TYPE_EXTENSIONS):
         full_path = os.path.join(root, filename)
         if FLAGS.verbose:

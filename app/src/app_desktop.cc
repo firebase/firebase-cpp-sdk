@@ -21,6 +21,7 @@
 #include <fstream>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "app/src/app_common.h"
 #include "app/src/function_registry.h"
@@ -143,10 +144,12 @@ App* App::Create(const AppOptions& options, const char* name) {  // NOLINT
     app = new App();
     app->name_ = name;
     app->options_ = options_with_defaults;
+    std::string unique_name =
+        std::string(app->options_.package_name()) + "." + app->name_;
     app = app_common::AddApp(app, &app->init_results_);
     app->internal_->heartbeat_controller_ =
         std::make_shared<heartbeat::HeartbeatController>(
-            name, *app_common::FindAppLoggerByName(name),
+            unique_name, *app_common::FindAppLoggerByName(name),
             app->internal_->date_provider_);
 #ifndef SWIG
     // Log a heartbeat after creating an App. In the Unity SDK this will happen
@@ -164,6 +167,8 @@ App* App::GetInstance() {  // NOLINT
 App* App::GetInstance(const char* name) {  // NOLINT
   return app_common::FindAppByName(name);
 }
+
+std::vector<App*> App::GetApps() { return app_common::GetAllApps(); }
 
 #ifdef INTERNAL_EXPERIMENTAL
 internal::FunctionRegistry* App::function_registry() {

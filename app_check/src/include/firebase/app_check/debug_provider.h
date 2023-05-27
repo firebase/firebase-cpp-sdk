@@ -15,6 +15,8 @@
 #ifndef FIREBASE_APP_CHECK_SRC_INCLUDE_FIREBASE_APP_CHECK_DEBUG_PROVIDER_H_
 #define FIREBASE_APP_CHECK_SRC_INCLUDE_FIREBASE_APP_CHECK_DEBUG_PROVIDER_H_
 
+#include <string>
+
 #include "firebase/app_check.h"
 
 namespace firebase {
@@ -34,7 +36,9 @@ class DebugAppCheckProviderFactoryInternal;
 /// NOTE: Do not use the debug provider in applications used by real users.
 class DebugAppCheckProviderFactory : public AppCheckProviderFactory {
  public:
-  ~DebugAppCheckProviderFactory() override;
+  DebugAppCheckProviderFactory(const DebugAppCheckProviderFactory&) = delete;
+  DebugAppCheckProviderFactory& operator=(const DebugAppCheckProviderFactory&) =
+      delete;
 
   /// Gets an instance of this class for installation into a
   /// firebase::app_check::AppCheck instance.
@@ -45,8 +49,14 @@ class DebugAppCheckProviderFactory : public AppCheckProviderFactory {
   /// already exists.
   firebase::app_check::AppCheckProvider* CreateProvider(App* app) override;
 
+  /// Sets the Debug Token to use when communicating with the backend.
+  /// This should match a debug token set in the Firebase console for your
+  /// App.
+  void SetDebugToken(const std::string& token);
+
  private:
   DebugAppCheckProviderFactory();
+  ~DebugAppCheckProviderFactory() override;
 
   internal::DebugAppCheckProviderFactoryInternal* internal_;
 };

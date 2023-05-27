@@ -45,6 +45,10 @@ public class JniResultCallback<TResult> {
 
   public static final String TAG = "FirebaseCb";
 
+  // Object used to synchronize around. All synchronization should be done with this,
+  // as there isn't a guarantee on which function will be called first.
+  private final Object lockObject = new Object();
+
   /**
    * This class is registered with a Task object as an OnSuccessListener, OnFailureListener, and
    * OnCanceledListener, redirecting completion status to the C++ method nativeOnResult.
@@ -52,7 +56,6 @@ public class JniResultCallback<TResult> {
   private class TaskCallback<TResult>
       implements OnSuccessListener<TResult>, OnFailureListener, OnCanceledListener, Callback {
     private Task<TResult> task;
-    private final Object lockObject = new Object();
     /**
      * Register with a Task instance to capture the completion callback.
      */
@@ -129,7 +132,7 @@ public class JniResultCallback<TResult> {
 
   /** Initialize / attach the instance to a pending result or task object. */
   protected void initializeWithTask(Task<TResult> task) {
-    synchronized (this) {
+    synchronized (lockObject) {
       callbackHandler = new TaskCallback<TResult>(task);
       callbackHandler.register();
     }
@@ -146,7 +149,7 @@ public class JniResultCallback<TResult> {
   /** Call nativeOnResult with the registered callbackFn and callbackData. */
   public void onCompletion(
       Object result, boolean success, boolean cancelled, String statusMessage) {
-    synchronized (this) {
+    synchronized (lockObject) {
       if (callbackHandler != null) {
         nativeOnResult(result, success, cancelled, statusMessage, callbackFn, callbackData);
         callbackHandler.disconnect();
