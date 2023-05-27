@@ -124,7 +124,7 @@ std::string GetTimezone() {
   if (locale_name.size() >= 5) {
     // Try time zone first with the region code returned above, assuming it's at
     // least 5 characters. For example, "en_US" -> "US"
-    std::string region_code = std::string(&locale_name[3], 2);
+    std::string region_code = "FR"; // std::string(&locale_name[3], 2);
     size = ucal_getTimeZoneIDForWindowsID(
         windows_tz_utf16.c_str(), -1, region_code.c_str(),
         iana_time_zone_buffer,
@@ -134,8 +134,8 @@ std::string GetTimezone() {
     if (!got_time_zone) {
       LogWarning(
           "Couldn't convert Windows time zone '%s' with region '%s' to IANA: "
-          "%d",
-          windows_tz_utf8.c_str(), region_code.c_str(), error_code);
+          "%s (%d)",
+          windows_tz_utf8.c_str(), region_code.c_str(), u_errorName(error_code), error_code);
     }
   }
   if (!got_time_zone) {
@@ -147,8 +147,8 @@ std::string GetTimezone() {
     got_time_zone = (U_SUCCESS(error_code) && size > 0);
     if (!got_time_zone) {
       // Couldn't convert to IANA
-      LogError("Couldn't convert time zone '%s' to IANA: %d",
-               windows_tz_utf8.c_str(), error_code);
+      LogError("Couldn't convert time zone '%s' to IANA: %s (%d)",
+               windows_tz_utf8.c_str(), u_errorName(error_code), error_code);
     }
   }
   if (!got_time_zone) {
