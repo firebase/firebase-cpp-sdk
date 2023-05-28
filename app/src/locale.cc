@@ -105,7 +105,8 @@ std::string GetTimezone() {
   int daylight;  // daylight savings time?
   if (_get_daylight(&daylight) != 0) return "";
   size_t length = 0;  // get the needed string length
-  if (_get_tzname(&length, nullptr, 0, daylight ? 1 : 0) != 0) return "";
+  //if (_get_tzname(&length, nullptr, 0, daylight ? 1 : 0) != 0) return "";
+  if (_get_tzname(&length, nullptr, /* daylight = */ 0, 1) != 0) return "";
   std::vector<char> namebuf(length);
   if (_get_tzname(&length, &namebuf[0], length, daylight ? 1 : 0) != 0)
     return "";
