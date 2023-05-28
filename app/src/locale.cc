@@ -121,7 +121,7 @@ std::string GetTimezone() {
   bool got_time_zone = false;
   if (locale_name.size() >= 5) {
     wcscpy(iana_time_zone_buffer, L"");
-    UErrorCode error_code = 0;
+    UErrorCode error_code = (UErrorCode)0;
     int32_t size = 0;
     // Try time zone first with the region code returned above, assuming it's at
     // least 5 characters. For example, "en_US" -> "US"
@@ -141,7 +141,7 @@ std::string GetTimezone() {
   }
   if (!got_time_zone) {
     wcscpy(iana_time_zone_buffer, L"");
-    UErrorCode error_code = 0;
+    UErrorCode error_code = (UErrorCode)0;
     int32_t size = 0;
     // Try without specifying a region
     size = ucal_getTimeZoneIDForWindowsID(
