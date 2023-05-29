@@ -27,48 +27,59 @@ namespace firestore {
 class FilterInternal;
 
 class Filter {
-  public:
-    static Filter ArrayContains(const std::string &field, const FieldValue & value);
-    static Filter ArrayContainsAny(const std::string &field, const std::vector<FieldValue> &values);
-    static Filter EqualTo(const std::string &field, const FieldValue &value);
-    static Filter NotEqualTo(const std::string &field, const FieldValue &value);
-    static Filter GreaterThan(const std::string &field, const FieldValue &value);
-    static Filter GreaterThanOrEqualTo(const std::string &field, const FieldValue &value);
-    static Filter LessThan(const std::string &field, const FieldValue &value);
-    static Filter LessThanOrEqualTo(const std::string &field, const FieldValue &value);
-    static Filter In(const std::string &field, const std::vector<FieldValue> &values);
-    static Filter NotIn(const std::string &field, const std::vector<FieldValue> &values);
+ public:
+  static Filter ArrayContains(const std::string& field,
+                              const FieldValue& value);
+  static Filter ArrayContainsAny(const std::string& field,
+                                 const std::vector<FieldValue>& values);
+  static Filter EqualTo(const std::string& field, const FieldValue& value);
+  static Filter NotEqualTo(const std::string& field, const FieldValue& value);
+  static Filter GreaterThan(const std::string& field, const FieldValue& value);
+  static Filter GreaterThanOrEqualTo(const std::string& field,
+                                     const FieldValue& value);
+  static Filter LessThan(const std::string& field, const FieldValue& value);
+  static Filter LessThanOrEqualTo(const std::string& field,
+                                  const FieldValue& value);
+  static Filter In(const std::string& field,
+                   const std::vector<FieldValue>& values);
+  static Filter NotIn(const std::string& field,
+                      const std::vector<FieldValue>& values);
 
-    static Filter ArrayContains(const FieldPath &field, const FieldValue &value);
-    static Filter ArrayContainsAny(const FieldPath &field, const std::vector<FieldValue> &values);
-    static Filter EqualTo(const FieldPath &field, const FieldValue &value);
-    static Filter NotEqualTo(const FieldPath &field, const FieldValue &value);
-    static Filter GreaterThan(const FieldPath &field, const FieldValue &value);
-    static Filter GreaterThanOrEqualTo(const FieldPath &field, const FieldValue &value);
-    static Filter LessThan(const FieldPath &field, const FieldValue &value);
-    static Filter LessThanOrEqualTo(const FieldPath &field, const FieldValue &value);
-    static Filter In(const FieldPath &field, const std::vector<FieldValue> &values);
-    static Filter NotIn(const FieldPath &field, const std::vector<FieldValue> &values);
+  static Filter ArrayContains(const FieldPath& field, const FieldValue& value);
+  static Filter ArrayContainsAny(const FieldPath& field,
+                                 const std::vector<FieldValue>& values);
+  static Filter EqualTo(const FieldPath& field, const FieldValue& value);
+  static Filter NotEqualTo(const FieldPath& field, const FieldValue& value);
+  static Filter GreaterThan(const FieldPath& field, const FieldValue& value);
+  static Filter GreaterThanOrEqualTo(const FieldPath& field,
+                                     const FieldValue& value);
+  static Filter LessThan(const FieldPath& field, const FieldValue& value);
+  static Filter LessThanOrEqualTo(const FieldPath& field,
+                                  const FieldValue& value);
+  static Filter In(const FieldPath& field,
+                   const std::vector<FieldValue>& values);
+  static Filter NotIn(const FieldPath& field,
+                      const std::vector<FieldValue>& values);
 
-    template <class ... Filters>
-    static Filter Or(const Filter& filter, const Filters & ... filters);
+  template <class... Filters>
+  static Filter Or(const Filter& filter, const Filters&... filters);
 
-    template <typename ... Filters>
-    static Filter And(const Filter & filter, const Filters & ... filters);
+  template <typename... Filters>
+  static Filter And(const Filter& filter, const Filters&... filters);
 
-    Filter(const Filter& other);
-    Filter(Filter&& other) noexcept;
-    Filter& operator=(const Filter& other);
-    Filter& operator=(Filter&& other) noexcept;
+  Filter(const Filter& other);
+  Filter(Filter&& other) noexcept;
+  Filter& operator=(const Filter& other);
+  Filter& operator=(Filter&& other) noexcept;
 
-    ~Filter();
+  ~Filter();
 
-  private:
-    friend bool operator==(const Filter& lhs, const Filter& rhs);
-    friend struct ConverterImpl;
+ private:
+  friend bool operator==(const Filter& lhs, const Filter& rhs);
+  friend struct ConverterImpl;
 
-    explicit Filter(FilterInternal* internal);
-    FilterInternal* internal_;
+  explicit Filter(FilterInternal* internal);
+  FilterInternal* internal_;
 };
 
 /** Checks `lhs` and `rhs` for equality. */

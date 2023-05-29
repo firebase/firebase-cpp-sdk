@@ -1,18 +1,18 @@
 /*
-* Copyright 2023 Google LLC
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2023 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "firebase/firestore.h"
 #include "firestore_integration_test.h"
@@ -29,8 +29,10 @@ TEST_F(FilterTest, IdenticalShouldBeEqual) {
   Filter filter1a = Filter::ArrayContains("foo", FieldValue::Integer(42));
   Filter filter1b = Filter::ArrayContains(foo_path, FieldValue::Integer(42));
 
-  Filter filter2a = Filter::ArrayContainsAny("foo", std::vector<FieldValue>{FieldValue::Integer(42)});
-  Filter filter2b = Filter::ArrayContainsAny(foo_path, std::vector<FieldValue>{FieldValue::Integer(42)});
+  Filter filter2a = Filter::ArrayContainsAny(
+      "foo", std::vector<FieldValue>{FieldValue::Integer(42)});
+  Filter filter2b = Filter::ArrayContainsAny(
+      foo_path, std::vector<FieldValue>{FieldValue::Integer(42)});
 
   Filter filter3a = Filter::EqualTo("foo", FieldValue::Integer(42));
   Filter filter3b = Filter::EqualTo(foo_path, FieldValue::Integer(42));
@@ -41,20 +43,27 @@ TEST_F(FilterTest, IdenticalShouldBeEqual) {
   Filter filter5a = Filter::GreaterThan("foo", FieldValue::Integer(42));
   Filter filter5b = Filter::GreaterThan(foo_path, FieldValue::Integer(42));
 
-  Filter filter6a = Filter::GreaterThanOrEqualTo("foo", FieldValue::Integer(42));
-  Filter filter6b = Filter::GreaterThanOrEqualTo(foo_path, FieldValue::Integer(42));
+  Filter filter6a =
+      Filter::GreaterThanOrEqualTo("foo", FieldValue::Integer(42));
+  Filter filter6b =
+      Filter::GreaterThanOrEqualTo(foo_path, FieldValue::Integer(42));
 
   Filter filter7a = Filter::LessThan("foo", FieldValue::Integer(42));
   Filter filter7b = Filter::LessThan(foo_path, FieldValue::Integer(42));
 
   Filter filter8a = Filter::LessThanOrEqualTo("foo", FieldValue::Integer(42));
-  Filter filter8b = Filter::LessThanOrEqualTo(foo_path, FieldValue::Integer(42));
+  Filter filter8b =
+      Filter::LessThanOrEqualTo(foo_path, FieldValue::Integer(42));
 
-  Filter filter9a = Filter::In("foo", std::vector<FieldValue>{FieldValue::Integer(42)});
-  Filter filter9b = Filter::In(foo_path, std::vector<FieldValue>{FieldValue::Integer(42)});
+  Filter filter9a =
+      Filter::In("foo", std::vector<FieldValue>{FieldValue::Integer(42)});
+  Filter filter9b =
+      Filter::In(foo_path, std::vector<FieldValue>{FieldValue::Integer(42)});
 
-  Filter filter10a = Filter::NotIn("foo", std::vector<FieldValue>{FieldValue::Integer(42)});
-  Filter filter10b = Filter::NotIn(foo_path, std::vector<FieldValue>{FieldValue::Integer(42)});
+  Filter filter10a =
+      Filter::NotIn("foo", std::vector<FieldValue>{FieldValue::Integer(42)});
+  Filter filter10b =
+      Filter::NotIn(foo_path, std::vector<FieldValue>{FieldValue::Integer(42)});
 
   EXPECT_TRUE(filter1a == filter1a);
   EXPECT_TRUE(filter2a == filter2a);
@@ -160,8 +169,10 @@ TEST_F(FilterTest, DifferentValuesAreNotEqual) {
   Filter filter4a = Filter::GreaterThan("foo", FieldValue::Integer(24));
   Filter filter4b = Filter::GreaterThan("foo", FieldValue::Integer(42));
 
-  Filter filter5a = Filter::GreaterThanOrEqualTo("foo", FieldValue::Integer(24));
-  Filter filter5b = Filter::GreaterThanOrEqualTo("foo", FieldValue::Integer(42));
+  Filter filter5a =
+      Filter::GreaterThanOrEqualTo("foo", FieldValue::Integer(24));
+  Filter filter5b =
+      Filter::GreaterThanOrEqualTo("foo", FieldValue::Integer(42));
 
   Filter filter6a = Filter::LessThan("foo", FieldValue::Integer(24));
   Filter filter6b = Filter::LessThan("foo", FieldValue::Integer(42));
@@ -187,14 +198,10 @@ TEST_F(FilterTest, DifferentValuesAreNotEqual) {
 }
 
 TEST_F(FilterTest, DifferentOrderOfValuesAreNotEqual) {
-  const std::vector<FieldValue>& valueOrderA = std::vector<FieldValue>{
-      FieldValue::Integer(1),
-      FieldValue::Integer(2)
-  };
-  const std::vector<FieldValue>& valueOrderB = std::vector<FieldValue>{
-      FieldValue::Integer(2),
-      FieldValue::Integer(1)
-  };
+  const std::vector<FieldValue>& valueOrderA =
+      std::vector<FieldValue>{FieldValue::Integer(1), FieldValue::Integer(2)};
+  const std::vector<FieldValue>& valueOrderB =
+      std::vector<FieldValue>{FieldValue::Integer(2), FieldValue::Integer(1)};
 
   {
     Filter filter1 = Filter::ArrayContainsAny("foo", valueOrderA);
@@ -218,7 +225,7 @@ TEST_F(FilterTest, DifferentOrderOfValuesAreNotEqual) {
   }
 }
 
-}
+}  // namespace
 
 }  // namespace firestore
 }  // namespace firebase
