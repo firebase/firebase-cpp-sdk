@@ -106,9 +106,9 @@ std::string GetTimezone() {
   if (_get_daylight(&daylight) != 0) return "";
   size_t length = 0;  // get the needed string length
   //if (_get_tzname(&length, nullptr, 0, daylight ? 1 : 0) != 0) return "";
-  if (_get_tzname(&length, nullptr, 0, /* daylight = */ 0) != 0) return "";
+  if (_get_tzname(&length, nullptr, 0, 0) != 0) return "";
   std::vector<char> namebuf(length);
-  if (_get_tzname(&length, &namebuf[0], length, daylight ? 1 : 0) != 0)
+  if (_get_tzname(&length, &namebuf[0], length, 0) != 0)
     return "";
   std::string windows_tz_utf8(&namebuf[0]);
   LogInfo("Windows time zone: %s", windows_tz_utf8.c_str());
