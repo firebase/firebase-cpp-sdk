@@ -102,15 +102,15 @@ std::string GetTimezone() {
                // settings or the TZ variable, as appropriate.
     tz_was_set = true;
   }
-  int daylight;  // daylight savings time?
-  if (_get_daylight(&daylight) != 0) return "";
-  size_t length = 0;  // get the needed string length
-  //if (_get_tzname(&length, nullptr, 0, daylight ? 1 : 0) != 0) return "";
-  if (_get_tzname(&length, nullptr, 0, 0) != 0) return "";
-  std::vector<char> namebuf(length);
-  if (_get_tzname(&length, &namebuf[0], length, 0) != 0)
-    return "";
-  std::string windows_tz_utf8(&namebuf[0]);
+  // Get the standard time zone name.
+  std::string windows_tz_utf8;
+  {
+    size_t length = 0;  // get the needed string length
+    if (_get_tzname(&length, nullptr, 0, 0) != 0) return "";
+    std::vector<char> namebuf(length);
+    if (_get_tzname(&length, &namebuf[0], length, 0) != 0) return "";
+    windows_tz_utf8 = std::string(&namebuf[0]);
+  }
   LogInfo("Windows time zone: %s", windows_tz_utf8.c_str());
 
   // Convert time zone name to wide string
@@ -126,7 +126,7 @@ std::string GetTimezone() {
     int32_t size = 0;
     // Try time zone first with the region code returned above, assuming it's at
     // least 5 characters. For example, "en_US" -> "US"
-    std::string region_code = "FR"; // std::string(&locale_name[3], 2);
+    std::string region_code = "FR";  // std::string(&locale_name[3], 2);
     size = ucal_getTimeZoneIDForWindowsID(
         windows_tz_utf16.c_str(), -1, region_code.c_str(),
         iana_time_zone_buffer,
@@ -137,7 +137,8 @@ std::string GetTimezone() {
       LogWarning(
           "Couldn't convert Windows time zone '%s' with region '%s' to IANA: "
           "%s (%x)",
-          windows_tz_utf8.c_str(), region_code.c_str(), u_errorName(error_code), error_code);
+          windows_tz_utf8.c_str(), region_code.c_str(), u_errorName(error_code),
+          error_code);
     }
   }
   if (!got_time_zone) {
@@ -156,12 +157,22 @@ std::string GetTimezone() {
                windows_tz_utf8.c_str(), u_errorName(error_code), error_code);
     }
   }
-  /*
   if (!got_time_zone) {
     // Return the Windows time zone ID as a backup.
+    // In this case, we need to get the correct daylight savings time
+    // setting to get the right name.
+    int daylight = 0;  // daylight savings time?
+    if (_get_daylight(&daylight) != 0) return windows_tz_utf8;
+    if (daylight) {
+      size_t length = 0;  // get the needed string length
+      if (_get_tzname(&length, nullptr, 0, 1) != 0) return windows_tz_utf8;
+      std::vector<char> namebuf(length);
+      if (_get_tzname(&length, &namebuf[0], length, 1) != 0)
+        return windows_tz_utf8;
+      windows_tz_utf8 = std::string(&namebuf[0]);
+    }
     return windows_tz_utf8;
   }
-  */
 
   std::wstring iana_tz_utf16(iana_time_zone_buffer);
   std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> to_utf8;
