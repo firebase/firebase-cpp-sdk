@@ -1792,9 +1792,9 @@ class FirestoreCacheConfigTest : public FirestoreIntegrationTest {
 TEST_F(FirestoreCacheConfigTest, LegacyCacheConfigForMemoryCacheWorks) {
   auto* db = TestFirestore("legacy_memory_cache");
   auto settings = db->settings();
-SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN();
+  SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN();
   settings.set_persistence_enabled(false);
-SUPPRESS_END();
+  SUPPRESS_END();
   db->set_settings(std::move(settings));
 
   VerifyCachedDocumentDeletedImmediately(db);
@@ -1803,9 +1803,9 @@ SUPPRESS_END();
 TEST_F(FirestoreCacheConfigTest, LegacyCacheConfigForPersistenceCacheWorks) {
   auto* db = TestFirestore("legacy_persistent_cache");
   auto settings = db->settings();
-SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN();
+  SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN();
   settings.set_persistence_enabled(true);
-SUPPRESS_END();
+  SUPPRESS_END();
   db->set_settings(std::move(settings));
 
   VerifyCachedDocumentStaysAround(db);
@@ -1837,17 +1837,17 @@ TEST_F(FirestoreCacheConfigTest, CannotMixNewAndLegacyCacheConfig) {
     settings.set_local_cache_settings(
         PersistentCacheSettings::Create().WithSizeBytes(50 * 1024 * 1024));
 
-SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN();
-        EXPECT_THROW(settings.set_cache_size_bytes(0), std::logic_error);
-SUPPRESS_END();
+    SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN();
+    EXPECT_THROW(settings.set_cache_size_bytes(0), std::logic_error);
+    SUPPRESS_END();
   }
 
   {
     auto* db = TestFirestore("mixing_2");
     auto settings = db->settings();
-SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN();
+    SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN();
     settings.set_persistence_enabled(false);
-SUPPRESS_END();
+    SUPPRESS_END();
     EXPECT_THROW(
         settings.set_local_cache_settings(MemoryCacheSettings::Create()),
         std::logic_error);

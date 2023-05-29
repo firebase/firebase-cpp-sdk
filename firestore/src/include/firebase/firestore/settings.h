@@ -139,7 +139,7 @@ class Settings final {
   void set_ssl_enabled(bool enabled);
 
   /**
-   * Returns a shared pointer to the `LocalCacheSettings` instance
+   * Returns a reference to the `LocalCacheSettings` instance
    * used to configure this SDK.
    */
   const LocalCacheSettings& local_cache_settings();
@@ -239,13 +239,14 @@ class Settings final {
 
  private:
   static constexpr int64_t kDefaultCacheSizeBytes = 100 * 1024 * 1024;
+  enum class CacheSettingsSource { kNone, kNew, kOld };
 
   std::string host_;
   bool ssl_enabled_ = true;
 
-  std::shared_ptr<LocalCacheSettings> local_cache_settings_ = nullptr;
+  CacheSettingsSource cache_settings_source_{CacheSettingsSource::kNone};
 
-  bool used_legacy_cache_settings_ = false;
+  std::shared_ptr<LocalCacheSettings> local_cache_settings_;
   bool persistence_enabled_ = true;
   int64_t cache_size_bytes_ = kDefaultCacheSizeBytes;
 

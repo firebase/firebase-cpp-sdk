@@ -39,6 +39,7 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "firebase/firestore/firestore_version.h"
+#include "firebase/firestore/settings.h"
 #include "firestore/src/common/exception_common.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/macros.h"
@@ -199,14 +200,14 @@ Settings FirestoreInternal::settings() const {
   result.set_ssl_enabled(from.ssl_enabled());
 
   // TODO(wuandy): We use the deprecated API for default settings, but mark
-  // `used_legacy_cache_settings_` as false such that new settings API is not
+  // `cache_settings_source_` as `kNew` such that new settings API is not
   // rejected by runtime checks. This should be removed when legacy API is
   // removed.
   SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN()
   result.set_persistence_enabled(from.persistence_enabled());
   result.set_cache_size_bytes(from.cache_size_bytes());
   SUPPRESS_END()
-  result.used_legacy_cache_settings_ = false;
+  result.cache_settings_source_ = Settings::CacheSettingsSource::kNone;
 
   return result;
 }
@@ -218,8 +219,7 @@ void FirestoreInternal::set_settings(Settings from) {
   // TODO(wuandy): Checking `from.local_cache_settings_` is required, because
   // FirestoreInternal::settings() overrides used_legacy_cache_settings_. All
   // this special logic should go away when legacy cache config is removed.
-  if (!from.used_legacy_cache_settings_ &&
-      from.local_cache_settings_ != nullptr) {
+  if (from.cache_settings_source_ == Settings::CacheSettingsSource::kNew) {
     settings.set_local_cache_settings(
         from.local_cache_settings().core_cache_settings());
   } else {

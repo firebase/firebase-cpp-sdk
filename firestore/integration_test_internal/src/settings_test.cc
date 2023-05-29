@@ -16,10 +16,10 @@
 
 #include <stdint.h>
 
+#include "Firestore/core/src/util/warnings.h"
 #include "firebase/firestore.h"
 #include "firebase/firestore/local_cache_settings.h"
 #include "firebase_test_framework.h"
-#include "Firestore/core/src/util/warnings.h"
 
 #include "gtest/gtest.h"
 
@@ -34,51 +34,51 @@ TEST(SettingsTest, Equality) {
   Settings settings1;
   settings1.set_host("foo");
   settings1.set_ssl_enabled(true);
-SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN();
+  SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN();
   settings1.set_persistence_enabled(true);
   settings1.set_cache_size_bytes(kFiveMb);
-SUPPRESS_END();
+  SUPPRESS_END();
 
   Settings settings2;
   settings2.set_host("bar");
   settings2.set_ssl_enabled(true);
-SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN();
+  SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN();
   settings2.set_persistence_enabled(true);
   settings2.set_cache_size_bytes(kFiveMb);
-SUPPRESS_END();
+  SUPPRESS_END();
 
   Settings settings3;
   settings3.set_host("foo");
   settings3.set_ssl_enabled(false);
-SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN();
+  SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN();
   settings3.set_persistence_enabled(true);
   settings3.set_cache_size_bytes(kFiveMb);
-SUPPRESS_END();
+  SUPPRESS_END();
 
   Settings settings4;
   settings4.set_host("foo");
   settings4.set_ssl_enabled(true);
-SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN();
+  SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN();
   settings4.set_persistence_enabled(false);
   settings4.set_cache_size_bytes(kFiveMb);
-SUPPRESS_END();
+  SUPPRESS_END();
 
   Settings settings5;
   settings5.set_host("foo");
   settings5.set_ssl_enabled(true);
-SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN();
+  SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN();
   settings5.set_persistence_enabled(true);
   settings5.set_cache_size_bytes(kSixMb);
-SUPPRESS_END();
+  SUPPRESS_END();
 
   // This is the same as settings4.
   Settings settings6;
   settings6.set_host("foo");
   settings6.set_ssl_enabled(true);
-SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN();
+  SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN();
   settings6.set_persistence_enabled(false);
   settings6.set_cache_size_bytes(kFiveMb);
-SUPPRESS_END();
+  SUPPRESS_END();
 
   EXPECT_TRUE(settings1 == settings1);
   EXPECT_TRUE(settings6 == settings4);

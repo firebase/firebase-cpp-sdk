@@ -293,6 +293,12 @@ class MemoryLruGCSettings final : public MemoryGarbageCollectorSettings {
 };
 
 /** Inequality function. */
+inline bool operator!=(const LocalCacheSettings& lhs,
+                       const LocalCacheSettings& rhs) {
+  return !(lhs == rhs);
+}
+
+/** Inequality function. */
 inline bool operator!=(const MemoryCacheSettings& lhs,
                        const MemoryCacheSettings& rhs) {
   return !(lhs == rhs);
