@@ -41,6 +41,7 @@ class AggregateQuery;
 class DocumentSnapshot;
 template <typename T>
 class EventListener;
+class Filter;
 class FieldPath;
 class FieldValue;
 class ListenerRegistration;
@@ -160,6 +161,14 @@ class Query {
    * this query.
    */
   virtual AggregateQuery Count() const;
+
+  /**
+   * @brief Creates and returns a new Query with the additional filter.
+   *
+   * @param filter The new filter to apply to the existing query.
+   * @return The created Query.
+   */
+  virtual Query Where(const Filter& filter) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
