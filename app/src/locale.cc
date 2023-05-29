@@ -126,7 +126,7 @@ std::string GetTimezone() {
     int32_t size = 0;
     // Try time zone first with the region code returned above, assuming it's at
     // least 5 characters. For example, "en_US" -> "US"
-    std::string region_code = "FR";  // std::string(&locale_name[3], 2);
+    std::string region_code = std::string(&locale_name[3], 2);
     size = ucal_getTimeZoneIDForWindowsID(
         windows_tz_utf16.c_str(), -1, region_code.c_str(),
         iana_time_zone_buffer,
