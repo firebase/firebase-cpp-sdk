@@ -627,12 +627,16 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### 11.1.0
 -   Changes
+    - General (Android): Update to Firebase Android BoM version 32.1.0.
+    - General (iOS): Update to Firebase Cocoapods version 10.10.0.
     - General (Android): Fix for deadlock within JniResultCallback, commonly
       seen within Messaging, but affecting other products as well.
     - Database/Firestore (Desktop): Fixed a crash on Windows when the user's
       home directory contains non-ANSI characters (Unicode above U+00FF).
+    - GMA (Android): Updated dependency to play-services-ads version 22.1.0.
+    - GMA (iOS): Updated dependency to Google-Mobile-Ads-SDK version 10.5.0.
     - Storage (Desktop): Fixed a crash on Windows when uploading files from a
       path containing non-ANSI characters (Unicode above U+00FF).
     - Firestore: Added MultiDb support. ([#1321](https://github.com/firebase/firebase-cpp-sdk/pull/1321)).
