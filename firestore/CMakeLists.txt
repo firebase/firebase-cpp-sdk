@@ -311,6 +311,15 @@ if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
   )
 endif()
 
+# Add absl_variant as a dependency, as symbols around ThrowBadVariantAccess
+# are missing otherwise.
+if(IOS)
+  target_link_libraries(firebase_firestore
+    PUBLIC
+      absl_variant
+  )
+endif()
+
 # Public C++ headers all refer to each other relative to the src/include
 # directory, while private headers are relative to the entire C++ SDK
 # directory.
