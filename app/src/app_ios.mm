@@ -281,6 +281,8 @@ App* App::GetInstance() { return app_common::GetDefaultApp(); }
 
 App* App::GetInstance(const char* name) { return app_common::FindAppByName(name); }
 
+std::vector<App*> App::GetApps() { return app_common::GetAllApps(); }
+
 void App::RegisterLibrary(const char* library, const char* version, void* /* platform_resource */) {
   [FIRApp registerLibrary:@(library) withVersion:@(version)];
   app_common::RegisterLibrariesFromUserAgent(

@@ -338,6 +338,19 @@ App* GetAnyApp() {
   return nullptr;
 }
 
+std::vector<App*> GetAllApps() {
+  std::vector<App*> result;
+  App* const default_app = GetDefaultApp();
+  MutexLock lock(*g_app_mutex);
+  if (g_apps) {
+    for (auto it = g_apps->begin(); it != g_apps->end(); ++it) {
+      if (it->second->app != default_app) result.push_back(it->second->app);
+    }
+    if (default_app) result.push_back(default_app);
+  }
+  return result;
+}
+
 void RemoveApp(App* app) {
   assert(app);
   MutexLock lock(*g_app_mutex);

@@ -10,6 +10,9 @@ __pycache__/
 **/build/
 **/.externalNativeBuild/
 
+### IDE generated files
+.vscode/
+
 # Unencrypted secret files
 google-services.json
 GoogleService-Info.plist
