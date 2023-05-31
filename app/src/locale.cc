@@ -134,9 +134,9 @@ std::string GetTimezone() {
         &error_code);
     got_time_zone = (U_SUCCESS(error_code) && size > 0);
     if (!got_time_zone) {
-      LogWarning(
+      LogDebug(
           "Couldn't convert Windows time zone '%s' with region '%s' to IANA: "
-          "%s (%x)",
+          "%s (%x). Falling back to non-region time zone conversion.",
           windows_tz_utf8.c_str(), region_code.c_str(), u_errorName(error_code),
           error_code);
     }
@@ -153,8 +153,10 @@ std::string GetTimezone() {
     got_time_zone = (U_SUCCESS(error_code) && size > 0);
     if (!got_time_zone) {
       // Couldn't convert to IANA
-      LogError("Couldn't convert time zone '%s' to IANA: %s (%x)",
-               windows_tz_utf8.c_str(), u_errorName(error_code), error_code);
+      LogDebug(
+          "Couldn't convert time zone '%s' to IANA: %s (%x). Falling back to "
+          "Windows time zone name.",
+          windows_tz_utf8.c_str(), u_errorName(error_code), error_code);
     }
   }
   if (!got_time_zone) {
