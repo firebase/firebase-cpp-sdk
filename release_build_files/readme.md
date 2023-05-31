@@ -483,7 +483,7 @@ App Check            | `advapi32, ws2_32, crypt32`
 Firestore            | `advapi32, ws2_32, crypt32, rpcrt4, ole32, shell32, dbghelp, bcrypt`
 Functions            | `advapi32, ws2_32, crypt32, rpcrt4, ole32`
 Realtime Database    | `advapi32, ws2_32, crypt32, iphlpapi, psapi, userenv, shell32`
-Remote Config        | `advapi32, ws2_32, crypt32, rpcrt4, ole32`
+Remote Config        | `advapi32, ws2_32, crypt32, rpcrt4, ole32, icu`
 Storage              | `advapi32, ws2_32, crypt32`
 
 ## Getting Started
@@ -627,6 +627,13 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+### 11.2.0
+-   Changes
+    - Remote Config (Desktop): Fixed handling of time zones on Windows to work
+      regardless of system language. This adds a requirement for applications
+      using Remote Config on Windows desktop to link the "icu.dll" system
+      library.
+
 ### 11.1.0
 -   Changes
     - General (Android): Update to Firebase Android BoM version 32.1.0.
