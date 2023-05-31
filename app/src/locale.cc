@@ -58,7 +58,7 @@ std::string GetLocale() {
   std::string output(woutput.begin(), woutput.end());
   // Change all hyphens to underscores to normalize the locale.
   std::replace(output.begin(), output.end(), '-', '_');
-  LogInfo("Locale: %s", output.c_str());
+  LogDebug("Locale: %s", output.c_str());
   return output;
 #elif FIREBASE_PLATFORM_LINUX
   // If std::locale() has been customized, return it, else return the contents
@@ -111,7 +111,7 @@ std::string GetTimezone() {
     if (_get_tzname(&length, &namebuf[0], length, 0) != 0) return "";
     windows_tz_utf8 = std::string(&namebuf[0]);
   }
-  LogInfo("Windows time zone: %s", windows_tz_utf8.c_str());
+  LogDebug("Windows time zone: %s", windows_tz_utf8.c_str());
 
   // Convert time zone name to wide string
   std::wstring_convert<std::codecvt_utf8<wchar_t>> to_utf16;
@@ -177,7 +177,7 @@ std::string GetTimezone() {
   std::wstring iana_tz_utf16(iana_time_zone_buffer);
   std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> to_utf8;
   std::string iana_tz_utf8 = to_utf8.to_bytes(iana_tz_utf16);
-  LogInfo("IANA time zone: %s", iana_tz_utf8.c_str());
+  LogDebug("IANA time zone: %s", iana_tz_utf8.c_str());
   return iana_tz_utf8;
 
 #elif FIREBASE_PLATFORM_LINUX
