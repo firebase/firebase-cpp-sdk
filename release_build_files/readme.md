@@ -627,7 +627,7 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### 11.2.0
+### Upcoming Release
 -   Changes
     - Remote Config (Desktop): Fixed handling of time zones on Windows to work
       regardless of system language. This adds a requirement for applications
