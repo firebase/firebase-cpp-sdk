@@ -107,6 +107,11 @@ else()
       ${PROJECT_BINARY_DIR}/..)
   set(additional_link_LIB
       firebase_rest_lib)
+  if(MSVC)
+    # Remote Config on Windows requires the icu.dll system library for time zone
+    # handling.
+    set(additional_link_LIB ${additional_link_LIB} icu)
+  endif()
 endif()
 
 add_library(firebase_remote_config STATIC
