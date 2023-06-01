@@ -37,6 +37,8 @@ NativeAd::NativeAd() {
 }
 
 NativeAd::~NativeAd() {
+  FIREBASE_ASSERT(internal_);
+
   GetOrCreateCleanupNotifier()->UnregisterObject(this);
   delete internal_;
 }
@@ -74,6 +76,12 @@ Future<AdResult> NativeAd::LoadAdLastResult() const {
         kAdUninitializedErrorMessage, &internal_->future_data_, AdResult());
   }
   return internal_->GetLoadAdLastResult();
+}
+
+const NativeAdImage& NativeAd::icon() const { return internal_->icon(); }
+
+const std::vector<NativeAdImage>& NativeAd::images() const {
+  return internal_->images();
 }
 
 }  // namespace gma

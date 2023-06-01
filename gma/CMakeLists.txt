@@ -44,6 +44,7 @@ set(android_SRCS
     src/android/gma_android.cc
     src/android/ad_view_internal_android.cc
     src/android/interstitial_ad_internal_android.cc
+    src/android/native_ad_image_android.cc
     src/android/native_ad_internal_android.cc
     src/android/response_info_android.cc
     src/android/rewarded_ad_internal_android.cc)
@@ -61,6 +62,7 @@ set(ios_SRCS
     src/ios/gma_ios.mm
     src/ios/ad_view_internal_ios.mm
     src/ios/interstitial_ad_internal_ios.mm
+    src/ios/native_ad_image_ios.mm
     src/ios/native_ad_internal_ios.mm
     src/ios/response_info_ios.mm
     src/ios/rewarded_ad_internal_ios.mm)
@@ -70,6 +72,7 @@ set(stub_SRCS
     src/stub/ad_error_stub.cc
     src/stub/adapter_response_info_stub.cc
     src/stub/gma_stub.cc
+    src/stub/native_ad_image_stub.cc
     src/stub/response_info_stub.cc)
 
 if(ANDROID)

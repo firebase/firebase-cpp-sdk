@@ -23,6 +23,7 @@ import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.LoadAdError;
 import com.google.android.gms.ads.ResponseInfo;
 import com.google.android.gms.ads.nativead.NativeAd;
+import java.util.List;
 
 /**
  * Helper class to make interactions between the GMA C++ wrapper and Java objects cleaner. It's
@@ -183,7 +184,12 @@ public class NativeAdHelper {
       synchronized (mNativeLock) {
         mNative = ad;
         if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
-          completeNativeLoadedAd(mLoadAdCallbackDataPtr, ad.getResponseInfo());
+          List<NativeAd.Image> imgList = ad.getImages();
+          NativeAd.Image[] imgArray = new NativeAd.Image[imgList.size()];
+          imgArray = imgList.toArray(imgArray);
+
+          completeNativeLoadedAd(mLoadAdCallbackDataPtr, mNativeAdInternalPtr, ad.getIcon(),
+              imgArray, ad.getResponseInfo());
           mLoadAdCallbackDataPtr = CPP_NULLPTR;
         }
       }
@@ -195,8 +201,9 @@ public class NativeAdHelper {
       long nativeInternalPtr, int errorCode, String errorMessage);
 
   /** Native callback invoked upon successfully loading an ad. */
-  public static native void completeNativeLoadedAd(
-      long nativeInternalPtr, ResponseInfo responseInfo);
+  public static native void completeNativeLoadedAd(long nativeInternalPtr,
+      long mNativeAdInternalPtr, NativeAd.Image icon, NativeAd.Image[] images,
+      ResponseInfo responseInfo);
 
   /**
    * Native callback upon encountering an error loading an Ad Request. Returns Android Google Mobile
