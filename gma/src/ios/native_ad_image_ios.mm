@@ -19,8 +19,10 @@ extern "C" {
 }  // extern "C"
 
 #import "gma/src/ios/FADRequest.h"
+#import "gma/src/ios/gma_ios.h"
 
 #include <string>
+#include <vector>
 
 #include "app/src/assert.h"
 #include "app/src/util_ios.h"
@@ -30,6 +32,49 @@ extern "C" {
 
 namespace firebase {
 namespace gma {
+
+// A simple helper function for performing asynchronous network requests, used
+// for downloading static assets.
+static void DownloadHelper(FutureCallbackData<ImageResult>* callback_data, const std::string url,
+                            const std::map<std::string, std::string>& headers) {
+  NSMutableURLRequest* url_request = [[NSMutableURLRequest alloc] init];
+  url_request.URL = [NSURL URLWithString:@(url.c_str())];
+
+  const char* method = "GET";
+  url_request.HTTPMethod = @(method);
+
+  // Default HTTP timeout of 1 minute.
+  url_request.timeoutInterval = 60;
+
+  // Set all the headers.
+  for (auto i = headers.begin(); i != headers.end(); ++i) {
+    [url_request addValue:@(i->second.c_str()) forHTTPHeaderField:@(i->first.c_str())];
+  }
+
+  @try {
+    [[NSURLSession.sharedSession
+        dataTaskWithRequest:url_request
+          completionHandler:^(NSData* __nullable data, NSURLResponse* __nullable response,
+                              NSError* __nullable error) {
+            if(error) {
+              CompleteLoadImageInternalError(callback_data, kAdErrorCodeNetworkError,
+                                  util::NSStringToString([error localizedDescription]).c_str());
+            } else {
+              unsigned char* response_stream = const_cast<unsigned char*>(
+                reinterpret_cast<const unsigned char*>([data bytes]));
+              int response_len = static_cast<int>([data length]);
+              std::vector<unsigned char> img_data =
+                std::vector<unsigned char>(response_stream, response_stream + response_len);
+              CompleteLoadImageInternalSuccess(callback_data, img_data);
+            }
+          }] resume];
+  } @catch (NSException* e) {
+    CompleteLoadImageInternalError(callback_data, kAdErrorCodeInternalError,
+                                  util::NSStringToString(e.reason).c_str());
+  }
+
+  return;
+}
 
 NativeAdImage::NativeAdImage() {
   // Initialize the default constructor with some helpful debug values in the
@@ -64,6 +109,9 @@ NativeAdImage::~NativeAdImage() {
   FIREBASE_ASSERT(internal_);
 
   internal_->native_ad_image = nil;
+  internal_->helper = nil;
+  internal_->callback_data = nullptr;
+
   delete internal_;
   internal_ = nullptr;
 }
@@ -101,6 +149,45 @@ const std::string& NativeAdImage::image_uri() const {
 double NativeAdImage::scale() const {
   FIREBASE_ASSERT(internal_);
   return internal_->scale;
+}
+
+/// Triggers the auto loaded image and returns an ImageResult future.
+Future<ImageResult> NativeAdImage::LoadImage() const {
+  firebase::MutexLock lock(internal_->mutex);
+
+  if (internal_->uri.empty()) {
+    return CreateAndCompleteFutureWithImageResult(
+        kNativeAdImageFnLoadImage,
+        kAdErrorCodeImageUrlMalformed, kImageUrlMalformedErrorMessage,
+        &internal_->future_data, ImageResult());
+  }
+
+  if (internal_->callback_data != nil) {
+    return CreateAndCompleteFutureWithImageResult(
+        kNativeAdImageFnLoadImage,
+        kAdErrorCodeLoadInProgress, kAdLoadInProgressErrorMessage,
+        &internal_->future_data, ImageResult());
+  }
+
+  // Persist a pointer to the callback data so that we can reject duplicate LoadImage requests
+  // while a download is in progress.
+  internal_->callback_data =
+      CreateImageResultFutureCallbackData(kNativeAdImageFnLoadImage,
+                                       &internal_->future_data);
+
+  Future<ImageResult> future = MakeFuture(&internal_->future_data.future_impl,
+                                       internal_->callback_data->future_handle);
+
+  std::map<std::string, std::string> headers;
+  firebase::gma::DownloadHelper(internal_->callback_data, internal_->uri, headers);
+
+  return future;
+}
+
+Future<ImageResult> NativeAdImage::LoadImageLastResult() const {
+  return static_cast<const Future<ImageResult>&>(
+      internal_->future_data.future_impl.LastResult(
+          kNativeAdImageFnLoadImage));
 }
 
 }  // namespace gma

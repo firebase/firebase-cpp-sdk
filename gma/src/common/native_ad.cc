@@ -78,7 +78,7 @@ Future<AdResult> NativeAd::LoadAdLastResult() const {
   return internal_->GetLoadAdLastResult();
 }
 
-const NativeAdImage NativeAd::icon() const { return internal_->icon(); }
+const NativeAdImage& NativeAd::icon() const { return internal_->icon(); }
 
 const std::vector<NativeAdImage>& NativeAd::images() const {
   return internal_->images();

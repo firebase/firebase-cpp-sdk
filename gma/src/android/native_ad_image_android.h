@@ -35,9 +35,16 @@ namespace gma {
   X(GetScale, "getScale", "()D"),                                            \
   X(GetUri, "getUri", "()Landroid/net/Uri;"),                                \
   X(GetDrawable, "getDrawable", "()Landroid/graphics/drawable/Drawable;")
+
+#define DOWNLOADHELPER_METHODS(X)                                        \
+  X(Constructor, "<init>", "(Ljava/lang/String;)V"),                     \
+  X(AddHeader, "addHeader", "(Ljava/lang/String;Ljava/lang/String;)V"),  \
+  X(Download, "download", "(J)V"),                                       \
+  X(GetResponseCode, "getResponseCode", "()I")
 // clang-format on
 
 METHOD_LOOKUP_DECLARATION(native_image, NATIVEADIMAGE_METHODS);
+METHOD_LOOKUP_DECLARATION(download_helper, DOWNLOADHELPER_METHODS);
 
 }  // namespace gma
 }  // namespace firebase

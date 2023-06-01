@@ -24,6 +24,7 @@
 #include "gma/src/android/gma_android.h"
 #include "gma/src/common/gma_common.h"
 #include "gma/src/include/firebase/gma.h"
+#include "gma/src/include/firebase/gma/internal/native_ad.h"
 #include "gma/src/include/firebase/gma/types.h"
 
 namespace firebase {
@@ -33,6 +34,10 @@ METHOD_LOOKUP_DEFINITION(native_image,
                          PROGUARD_KEEP_CLASS
                          "com/google/android/gms/ads/nativead/NativeAd$Image",
                          NATIVEADIMAGE_METHODS);
+
+METHOD_LOOKUP_DEFINITION(download_helper,
+                         "com/google/firebase/gma/internal/cpp/DownloadHelper",
+                         DOWNLOADHELPER_METHODS);
 
 NativeAdImage::NativeAdImage() {
   // Initialize the default constructor with some helpful debug values in the
@@ -120,12 +125,18 @@ NativeAdImage& NativeAdImage::operator=(const NativeAdImage& r_native_image) {
 NativeAdImage::~NativeAdImage() {
   FIREBASE_ASSERT(internal_);
 
+  JNIEnv* env = GetJNI();
+  FIREBASE_ASSERT(env);
   if (internal_->native_ad_image != nullptr) {
-    JNIEnv* env = GetJNI();
-    FIREBASE_ASSERT(env);
     env->DeleteGlobalRef(internal_->native_ad_image);
     internal_->native_ad_image = nullptr;
   }
+
+  if (internal_->helper != nullptr) {
+    env->DeleteGlobalRef(internal_->helper);
+    internal_->helper = nullptr;
+  }
+  internal_->callback_data = nullptr;
 
   delete internal_;
   internal_ = nullptr;
@@ -141,6 +152,55 @@ const std::string& NativeAdImage::image_uri() const {
 double NativeAdImage::scale() const {
   FIREBASE_ASSERT(internal_);
   return internal_->scale;
+}
+
+/// Triggers the auto loaded image and returns an ImageResult future.
+Future<ImageResult> NativeAdImage::LoadImage() const {
+  firebase::MutexLock lock(internal_->mutex);
+
+  JNIEnv* env = ::firebase::gma::GetJNI();
+  FIREBASE_ASSERT(env);
+
+  if (internal_->uri.empty()) {
+    return CreateAndCompleteFutureWithImageResult(
+        kNativeAdImageFnLoadImage, kAdErrorCodeImageUrlMalformed,
+        kImageUrlMalformedErrorMessage, &internal_->future_data, ImageResult());
+  }
+
+  jstring uri_jstring = env->NewStringUTF(internal_->uri.c_str());
+  jobject helper_ref = env->NewObject(
+      download_helper::GetClass(),
+      download_helper::GetMethodId(download_helper::kConstructor), uri_jstring);
+
+  FIREBASE_ASSERT(helper_ref);
+  internal_->helper = env->NewGlobalRef(helper_ref);
+  FIREBASE_ASSERT(internal_->helper);
+
+  env->DeleteLocalRef(uri_jstring);
+  if (util::CheckAndClearJniExceptions(env)) {
+    return CreateAndCompleteFutureWithImageResult(
+        kNativeAdImageFnLoadImage, kAdErrorCodeImageUrlMalformed,
+        kImageUrlMalformedErrorMessage, &internal_->future_data, ImageResult());
+  }
+
+  FutureCallbackData<ImageResult>* callback_data =
+      CreateImageResultFutureCallbackData(kNativeAdImageFnLoadImage,
+                                          &internal_->future_data);
+
+  Future<ImageResult> future = MakeFuture(&internal_->future_data.future_impl,
+                                          callback_data->future_handle);
+
+  env->CallVoidMethod(internal_->helper,
+                      download_helper::GetMethodId(download_helper::kDownload),
+                      reinterpret_cast<jlong>(callback_data));
+
+  util::CheckAndClearJniExceptions(env);
+  return future;
+}
+
+Future<ImageResult> NativeAdImage::LoadImageLastResult() const {
+  return static_cast<const Future<ImageResult>&>(
+      internal_->future_data.future_impl.LastResult(kNativeAdImageFnLoadImage));
 }
 
 }  // namespace gma

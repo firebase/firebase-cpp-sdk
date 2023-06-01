@@ -15,6 +15,7 @@
  */
 
 #include <string>
+#include <vector>
 
 #include "gma/src/common/native_ad_image_internal.h"
 #include "gma/src/include/firebase/gma.h"
@@ -46,6 +47,18 @@ double NativeAdImage::scale() const {
 const std::string& NativeAdImage::image_uri() const {
   static const std::string empty;
   return empty;
+}
+
+Future<ImageResult> NativeAdImage::LoadImage() const {
+  return CreateAndCompleteFutureWithImageResult(
+      kNativeAdImageFnLoadImage, kAdErrorCodeNone, nullptr,
+      &internal_->future_data, ImageResult());
+}
+
+Future<ImageResult> NativeAdImage::LoadImageLastResult() const {
+  return CreateAndCompleteFutureWithImageResult(
+      kNativeAdImageFnLoadImage, kAdErrorCodeNone, nullptr,
+      &internal_->future_data, ImageResult());
 }
 
 }  // namespace gma
