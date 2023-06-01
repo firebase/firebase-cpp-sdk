@@ -16,6 +16,8 @@
 
 #include "gma/src/common/native_ad_internal.h"
 
+#include <string>
+
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/include/firebase/internal/platform.h"
@@ -24,9 +26,12 @@
 
 #if FIREBASE_PLATFORM_ANDROID
 #include "gma/src/android/native_ad_internal_android.h"
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#include "gma/src/ios/native_ad_internal_ios.h"
 #else
 #include "gma/src/stub/native_ad_internal_stub.h"
-#endif  // FIREBASE_PLATFORM_ANDROID
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
 
 namespace firebase {
 namespace gma {
@@ -38,6 +43,8 @@ NativeAdInternal::NativeAdInternal(NativeAd* base)
 NativeAdInternal* NativeAdInternal::CreateInstance(NativeAd* base) {
 #if FIREBASE_PLATFORM_ANDROID
   return new NativeAdInternalAndroid(base);
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+  return new NativeAdInternalIOS(base);
 #else
   return new NativeAdInternalStub(base);
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
@@ -53,6 +60,16 @@ Future<AdResult> NativeAdInternal::GetLoadAdLastResult() {
   return static_cast<const Future<AdResult>&>(
       future_data_.future_impl.LastResult(kNativeAdFnLoadAd));
 }
+
+void NativeAdInternal::insert_image(const NativeAdImage& image,
+                                    const bool& is_icon) {
+  if (is_icon) {
+    icon_ = image;
+  } else {
+    images_.push_back(image);
+  }
+}
+void NativeAdInternal::clear_existing_images() { images_.clear(); }
 
 }  // namespace internal
 }  // namespace gma
