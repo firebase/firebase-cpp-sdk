@@ -208,6 +208,8 @@ firebase_cpp_cc_test(firebase_app_path_test
 )
 
 if (MSVC)
+  # On Windows, our locale library's GetTimezone() function requires the icu.dll
+  # system library for converting from Windows time zones to IANA time zones.
   set(LOCALE_TEST_DEPS icu)
 else()
   set(LOCALE_TEST_DEPS)
