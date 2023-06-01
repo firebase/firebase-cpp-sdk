@@ -629,10 +629,10 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
-    - Remote Config (Desktop): Fixed handling of time zones on Windows to work
-      regardless of system language. This adds a requirement for applications
-      using Remote Config on Windows desktop to link the "icu.dll" system
-      library.
+    - Remote Config (Desktop): Fixed handling of time zones on Windows when the
+      time zone name in the current system language contains an accented
+      character or apostrophe. This adds a requirement for applications using
+      Remote Config on Windows desktop to link the "icu.dll" system library.
 
 ### 11.1.0
 -   Changes
