@@ -686,9 +686,9 @@ void ReleaseClasses(JNIEnv* env) {
   ad_view_helper_ad_view_listener::ReleaseClass(env);
   interstitial_ad_helper::ReleaseClass(env);
   native_ad_helper::ReleaseClass(env);
-  rewarded_ad_helper::ReleaseClass(env);
   native_image::ReleaseClass(env);
   download_helper::ReleaseClass(env);
+  rewarded_ad_helper::ReleaseClass(env);
   load_ad_error::ReleaseClass(env);
 }
 

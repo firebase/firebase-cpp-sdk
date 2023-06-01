@@ -65,7 +65,6 @@ const char* kAdCouldNotParseAdRequestErrorMessage =
     "Could Not Parse AdRequest.";
 const char* kAdLoadInProgressErrorMessage = "Ad is currently loading.";
 const char* kAdUninitializedErrorMessage = "Ad has not been fully initialized.";
-
 const char* kImageUrlMalformedErrorMessage =
     "Image URL is malformed or missing.";
 

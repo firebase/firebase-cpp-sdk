@@ -38,7 +38,6 @@ extern const char* kAdAlreadyInitializedErrorMessage;
 extern const char* kAdCouldNotParseAdRequestErrorMessage;
 extern const char* kAdLoadInProgressErrorMessage;
 extern const char* kAdUninitializedErrorMessage;
-
 extern const char* kImageUrlMalformedErrorMessage;
 
 namespace internal {
