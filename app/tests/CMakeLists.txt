@@ -207,11 +207,17 @@ firebase_cpp_cc_test(firebase_app_path_test
     firebase_app
 )
 
+if (MSVC)
+  set(LOCALE_TEST_DEPS icu)
+else()
+  set(LOCALE_TEST_DEPS)
+endif()
+
 firebase_cpp_cc_test(firebase_app_locale_test
   SOURCES
     locale_test.cc
   DEPENDS
-    firebase_app
+    firebase_app ${LOCALE_TEST_DEPS}
 )
 
 firebase_cpp_cc_test(firebase_app_callback_test
