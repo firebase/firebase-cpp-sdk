@@ -28,9 +28,11 @@ class PlayIntegrityProviderFactoryInternal;
 /// PlayIntegrityProviders. This is the default implementation.
 class PlayIntegrityProviderFactory : public AppCheckProviderFactory {
  public:
+#if !defined(DOXYGEN)
   PlayIntegrityProviderFactory(const PlayIntegrityProviderFactory&) = delete;
   PlayIntegrityProviderFactory& operator=(const PlayIntegrityProviderFactory&) =
       delete;
+#endif  // !defined(DOXYGEN)
 
   /// Gets an instance of this class for installation into a
   /// firebase::app_check::AppCheck instance.
