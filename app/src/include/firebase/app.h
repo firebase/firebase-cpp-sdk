@@ -572,9 +572,10 @@ class App {
   static App* GetInstance(const char* name);
 
 #if !defined(DOXYGEN)
+  // Hidden from the public API for now
   /// Get all the apps, including the default one.
   static std::vector<App*> GetApps();
-#endif  //! defined(DOXYGEN), to hide the api from public documentation.
+#endif  //! defined(DOXYGEN)
 
 #ifndef SWIG
 // <SWIG>
