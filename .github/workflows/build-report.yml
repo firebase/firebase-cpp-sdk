@@ -49,7 +49,7 @@ jobs:
         cat >> comment.md <<EOF
 
         <details><summary>View extended history</summary>
-	EOF
+        EOF
         cat report_extended.md >> comment.md
         cat >> comment.md <<EOF
         </details>
