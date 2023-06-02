@@ -28,7 +28,7 @@ jobs:
         max_attempts: 3
         command: |
           python3 scripts/gha/install_prereqs_desktop.py --gha_build
-          python3 -m pip install python-dateutil progress attrs
+          python3 -m pip install requests python-dateutil progress attrs
     - name: Fetch GitHub jobs
       run: |
         python3 scripts/gha/report_build_status.py --token {{ github.token }} --days ${{ env.numDays }} --write_cache build_status.cache
