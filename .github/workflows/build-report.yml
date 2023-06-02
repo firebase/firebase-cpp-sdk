@@ -14,6 +14,21 @@ jobs:
   generate-report:
     runs-on: ubuntu-20.04
     steps:
+    - name: Setup python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Install Desktop SDK prerequisites
+      uses: nick-invision/retry@v2
+      with:
+        timeout_minutes: 15
+        max_attempts: 3
+        command: |
+          python3 scripts/gha/install_prereqs_desktop.py --gha_build
+	  python3 -m pip install python-dateutil progress attrs
     - name: Fetch GitHub jobs
       run: |
-        true
+        python3 scripts/gha/report_build_status --token {{ github.token }} --days ${{ env.numDays }} --write_cache build_status.cache
