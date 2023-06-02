@@ -28,19 +28,21 @@ class AppAttestProviderFactoryInternal;
 /// AppAttestProviders. This is the default implementation.
 class AppAttestProviderFactory : public AppCheckProviderFactory {
  public:
+  AppAttestProviderFactory(const AppAttestProviderFactory&) = delete;
+  AppAttestProviderFactory& operator=(const AppAttestProviderFactory&) = delete;
+
   /// Gets an instance of this class for installation into a
   /// firebase::app_check::AppCheck instance.
   static AppAttestProviderFactory* GetInstance();
 
-  virtual ~AppAttestProviderFactory();
-
   /// Gets the AppCheckProvider associated with the given
   /// {@link App} instance, or creates one if none
   /// already exists.
-  AppCheckProvider* CreateProvider(App* app) override;
+  firebase::app_check::AppCheckProvider* CreateProvider(App* app) override;
 
  private:
   AppAttestProviderFactory();
+  ~AppAttestProviderFactory() override;
 
   internal::AppAttestProviderFactoryInternal* internal_;
 };

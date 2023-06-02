@@ -14,7 +14,11 @@
 
 #include "app_check/src/android/debug_provider_android.h"
 
+#include <string>
+#include <vector>
+
 #include "app/src/app_common.h"
+#include "app/src/embedded_file.h"
 #include "app/src/util_android.h"
 #include "app_check/src/android/common_android.h"
 #include "firebase/app_check/debug_provider.h"
@@ -43,24 +47,45 @@ METHOD_LOOKUP_DEFINITION(
     "com/google/firebase/appcheck/debug/DebugAppCheckProviderFactory",
     DEBUG_PROVIDER_FACTORY_METHODS)
 
+// clang-format off
+#define JNI_APP_CHECK_DEBUG_HELPER_METHODS(X)                    \
+  X(SetDebugToken, "SetDebugToken",                             \
+    "(Lcom/google/firebase/FirebaseApp;Ljava/lang/String;)V",    \
+    util::kMethodTypeStatic)
+// clang-format on
+
+METHOD_LOOKUP_DECLARATION(jni_debug_helper, JNI_APP_CHECK_DEBUG_HELPER_METHODS)
+METHOD_LOOKUP_DEFINITION(
+    jni_debug_helper,
+    "com/google/firebase/appcheck/internal/cpp/JniAppCheckDebugHelper",
+    JNI_APP_CHECK_DEBUG_HELPER_METHODS)
+
 static bool g_methods_cached = false;
 
 const char kMethodsNotCachedError[] =
     "DebugAppCheckProviderFactory methods were not cached.";
 
-bool CacheDebugProviderMethodIds(JNIEnv* env, jobject activity) {
-  // Cache the DebugProvider classes.
-  g_methods_cached = debug_provider_factory::CacheMethodIds(env, activity);
+bool CacheDebugProviderMethodIds(
+    JNIEnv* env, jobject activity,
+    const std::vector<firebase::internal::EmbeddedFile>& embedded_files) {
+  // Cache the DebugProvider and JniAppCheckDebugHelper classes.
+  g_methods_cached =
+      debug_provider_factory::CacheMethodIds(env, activity) &&
+      jni_debug_helper::CacheClassFromFiles(env, activity, &embedded_files) &&
+      jni_debug_helper::CacheMethodIds(env, activity);
   return g_methods_cached;
 }
 
 void ReleaseDebugProviderClasses(JNIEnv* env) {
   debug_provider_factory::ReleaseClass(env);
+  jni_debug_helper::ReleaseClass(env);
   g_methods_cached = false;
 }
 
 DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal()
-    : created_providers_(), android_provider_factory_(nullptr) {}
+    : created_providers_(),
+      android_provider_factory_(nullptr),
+      debug_token_() {}
 
 DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
   for (auto it = created_providers_.begin(); it != created_providers_.end();
@@ -98,6 +123,19 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
     env->DeleteLocalRef(j_provider_factory_local);
   }
   jobject platform_app = app->GetPlatformApp();
+
+  // Before making the Provider, which is when Android reads the Debug token,
+  // if we have a token to override it with, use it.
+  if (!debug_token_.empty()) {
+    jstring java_token = env->NewStringUTF(debug_token_.c_str());
+    env->CallStaticVoidMethod(
+        jni_debug_helper::GetClass(),
+        jni_debug_helper::GetMethodId(jni_debug_helper::kSetDebugToken),
+        platform_app, java_token);
+    FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
+    env->DeleteLocalRef(java_token);
+  }
+
   jobject j_android_provider_local = env->CallObjectMethod(
       android_provider_factory_,
       debug_provider_factory::GetMethodId(debug_provider_factory::kCreate),
@@ -112,6 +150,12 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
   env->DeleteLocalRef(j_android_provider_local);
   created_providers_[app] = cpp_provider;
   return cpp_provider;
+}
+
+void DebugAppCheckProviderFactoryInternal::SetDebugToken(
+    const std::string& token) {
+  // The App may not exist yet, so we save the debug token to use later.
+  debug_token_ = token;
 }
 
 }  // namespace internal

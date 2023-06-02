@@ -28,19 +28,22 @@ class DeviceCheckProviderFactoryInternal;
 /// DeviceCheckProviders. This is the default implementation.
 class DeviceCheckProviderFactory : public AppCheckProviderFactory {
  public:
+  DeviceCheckProviderFactory(const DeviceCheckProviderFactory&) = delete;
+  DeviceCheckProviderFactory& operator=(const DeviceCheckProviderFactory&) =
+      delete;
+
   /// Gets an instance of this class for installation into a
   /// firebase::app_check::AppCheck instance.
   static DeviceCheckProviderFactory* GetInstance();
 
-  virtual ~DeviceCheckProviderFactory();
-
   /// Gets the AppCheckProvider associated with the given
   /// {@link App} instance, or creates one if none
   /// already exists.
-  AppCheckProvider* CreateProvider(App* app) override;
+  firebase::app_check::AppCheckProvider* CreateProvider(App* app) override;
 
  private:
   DeviceCheckProviderFactory();
+  ~DeviceCheckProviderFactory() override;
 
   internal::DeviceCheckProviderFactoryInternal* internal_;
 };

@@ -100,10 +100,29 @@ class IdTokenRefreshThread {
 };
 
 // Facilitates completion of Federated Auth operations on non-mobile
-// environments. Custom application logic fulfills the authentication request
-// and uses this completion handle in callbacks. Our callbacks observe
-// contextual information in these handles to access to trigger the
-// corresponding Future<SignInResult>.
+// environments which return AuthResults. Custom application logic fulfills the
+// authentication request and uses this completion handle in callbacks. Our
+// callbacks observe contextual information in these handles to access to
+// trigger the corresponding Future<SignInResult>.
+struct AuthResultCompletionHandle {
+ public:
+  AuthResultCompletionHandle(const SafeFutureHandle<AuthResult>& handle,
+                             AuthData* auth_data)
+      : future_handle(handle), auth_data(auth_data) {}
+
+  AuthResultCompletionHandle() = delete;
+
+  virtual ~AuthResultCompletionHandle() { auth_data = nullptr; }
+
+  SafeFutureHandle<AuthResult> future_handle;
+  AuthData* auth_data;
+};
+
+// Facilitates completion of Federated Auth operations on non-mobile
+// environments which return SignInResults. Custom application logic fulfills
+// the authentication request and uses this completion handle in callbacks. Our
+// callbacks observe contextual information in these handles to access to
+// trigger the corresponding Future<SignInResult>.
 struct AuthCompletionHandle {
  public:
   AuthCompletionHandle(const SafeFutureHandle<SignInResult>& handle,

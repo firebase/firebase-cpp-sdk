@@ -614,8 +614,7 @@ METHOD_LOOKUP_DECLARATION(double_class, DOUBLE_METHODS);
   X(Equals, "equals",               \
     "(Ljava/lang/Object;)Z"),       \
   X(Name, "name",                   \
-    "()Ljava/lang/String;")         \
-// clang-format on
+    "()Ljava/lang/String;")  // clang-format on
 METHOD_LOOKUP_DECLARATION(enum_class, ENUM_METHODS);
 
 // clang-format off

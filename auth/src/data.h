@@ -33,12 +33,19 @@ enum AuthApiFunction {
   // External functions in the Auth API.
   kAuthFn_FetchProvidersForEmail,
   kAuthFn_SignInWithCustomToken,
+  kAuthFn_SignInWithCustomToken_DEPRECATED,
   kAuthFn_SignInWithCredential,
+  kAuthFn_SignInWithCredential_DEPRECATED,
   kAuthFn_SignInAndRetrieveDataWithCredential,
+  kAuthFn_SignInAndRetrieveDataWithCredential_DEPRECATED,
   kAuthFn_SignInAnonymously,
+  kAuthFn_SignInAnonymously_DEPRECATED,
   kAuthFn_SignInWithEmailAndPassword,
+  kAuthFn_SignInWithEmailAndPassword_DEPRECATED,
   kAuthFn_SignInWithProvider,
+  kAuthFn_SignInWithProvider_DEPRECATED,
   kAuthFn_CreateUserWithEmailAndPassword,
+  kAuthFn_CreateUserWithEmailAndPassword_DEPRECATED,
   kAuthFn_SendPasswordResetEmail,
 
   // External functions in the User API.
@@ -47,15 +54,21 @@ enum AuthApiFunction {
   kUserFn_UpdatePassword,
   kUserFn_Reauthenticate,
   kUserFn_ReauthenticateAndRetrieveData,
+  kUserFn_ReauthenticateAndRetrieveData_DEPRECATED,
   kUserFn_SendEmailVerification,
   kUserFn_ConfirmEmailVerification,
   kUserFn_UpdateUserProfile,
   kUserFn_LinkWithCredential,
+  kUserFn_LinkWithCredential_DEPRECATED,
   kUserFn_LinkAndRetrieveDataWithCredential,
   kUserFn_LinkWithProvider,
+  kUserFn_LinkWithProvider_DEPRECATED,
   kUserFn_ReauthenticateWithProvider,
+  kUserFn_ReauthenticateWithProvider_DEPRECATED,
   kUserFn_Unlink,
+  kUserFn_Unlink_DEPRECATED,
   kUserFn_UpdatePhoneNumberCredential,
+  kUserFn_UpdatePhoneNumberCredential_DEPRECATED,
   kUserFn_Reload,
   kUserFn_Delete,
 
@@ -179,7 +192,7 @@ struct AuthData {
   bool destructing;
 
   // Mutex protecting destructing
-  Mutex desctruting_mutex;
+  Mutex destructing_mutex;
 
   // Sets if the Id Token Listener is expecting a callback.
   // Used to workaround an issue where the Id Token is not reset with a new one,

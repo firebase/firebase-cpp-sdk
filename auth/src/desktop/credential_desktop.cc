@@ -20,6 +20,9 @@
 namespace firebase {
 namespace auth {
 
+//
+// Credential methods
+//
 Credential::~Credential() { delete static_cast<CredentialImpl*>(impl_); }
 
 Credential::Credential(const Credential& rhs) : impl_(nullptr) {

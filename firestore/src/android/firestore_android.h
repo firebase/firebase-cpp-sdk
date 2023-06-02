@@ -22,6 +22,7 @@
 #include <list>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <unordered_set>
 
 #include "app/src/cleanup_notifier.h"
@@ -75,7 +76,7 @@ class FirestoreInternal {
   };
 
   // Note: call `set_firestore_public` immediately after construction.
-  explicit FirestoreInternal(App* app);
+  FirestoreInternal(App* app, const std::string& database_id);
   ~FirestoreInternal();
 
   App* app() const { return app_; }
@@ -135,6 +136,8 @@ class FirestoreInternal {
       ListenerRegistrationInternal* registration);
   void ClearListeners();
 
+  const std::string& database_name() const { return database_name_; }
+
   // Bundles
   Future<LoadBundleTaskProgress> LoadBundle(const std::string& bundle);
   Future<LoadBundleTaskProgress> LoadBundle(
@@ -143,6 +146,12 @@ class FirestoreInternal {
   Future<Query> NamedQuery(const std::string& query_name);
 
   static jni::Env GetEnv();
+
+  AggregateQuery NewAggregateQuery(jni::Env& env,
+                                   const jni::Object& aggregate_query) const;
+
+  AggregateQuerySnapshot NewAggregateQuerySnapshot(
+      jni::Env& env, const jni::Object& aggregate_query_snapshot) const;
 
   CollectionReference NewCollectionReference(
       jni::Env& env, const jni::Object& reference) const;
@@ -205,6 +214,8 @@ class FirestoreInternal {
   std::unique_ptr<PromiseFactory<AsyncFn>> promises_;
 
   CleanupNotifier cleanup_;
+
+  std::string database_name_;
 };
 
 // Holds a "weak reference" to a `FirestoreInternal` object.

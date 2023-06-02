@@ -10,6 +10,9 @@ __pycache__/
 **/build/
 **/.externalNativeBuild/
 
+### IDE generated files
+.vscode/
+
 # Unencrypted secret files
 google-services.json
 GoogleService-Info.plist
@@ -19,7 +22,7 @@ gcs_key_file.json
 
 # Folders for cmake/test output
 *_build/
-*cmake-build-debug/
+cmake-build-*/
 testing/test_framework/external/
 
 # XCode user specific folders

@@ -23,11 +23,13 @@
 #include "firebase/internal/common.h"
 
 #include "firebase/app.h"
-#include "firebase/cpp_version_warning.h"
 #include "firebase/future.h"
 #include "firebase/log.h"
 // Include *all* the public headers to make sure including just "firestore.h" is
 // sufficient for users.
+#include "firebase/firestore/aggregate_query.h"
+#include "firebase/firestore/aggregate_query_snapshot.h"
+#include "firebase/firestore/aggregate_source.h"
 #include "firebase/firestore/collection_reference.h"
 #include "firebase/firestore/document_change.h"
 #include "firebase/firestore/document_reference.h"
@@ -69,6 +71,9 @@ class TransactionManager;
 
 }  // namespace csharp
 
+/** The default name for "unset" database ID in resource names. */
+static const char* kDefaultDatabase = "(default)";
+
 /**
  * @brief Entry point for the Firebase Firestore C++ SDK.
  *
@@ -86,7 +91,8 @@ class TransactionManager;
 class Firestore {
  public:
   /**
-   * @brief Returns an instance of Firestore corresponding to the given App.
+   * @brief Returns an instance of Firestore corresponding to the given App
+   * with default database ID.
    *
    * Firebase Firestore uses firebase::App to communicate with Firebase
    * Authentication to authenticate users to the Firestore server backend.
@@ -101,13 +107,15 @@ class Firestore {
    * succeeded, or firebase::kInitResultFailedMissingDependency on Android if
    * Google Play services is not available on the current device.
    *
-   * @return An instance of Firestore corresponding to the given App.
+   * @return An instance of Firestore corresponding to the given App with
+   * default database ID.
    */
   static Firestore* GetInstance(::firebase::App* app,
                                 InitResult* init_result_out = nullptr);
 
   /**
-   * @brief Returns an instance of Firestore corresponding to the default App.
+   * @brief Returns an instance of Firestore corresponding to the default App
+   * with default database ID.
    *
    * Firebase Firestore uses the default App to communicate with Firebase
    * Authentication to authenticate users to the Firestore server backend.
@@ -119,9 +127,59 @@ class Firestore {
    * succeeded, or firebase::kInitResultFailedMissingDependency on Android if
    * Google Play services is not available on the current device.
    *
-   * @return An instance of Firestore corresponding to the default App.
+   * @return An instance of Firestore corresponding to the default App
+   * with default database ID.
    */
   static Firestore* GetInstance(InitResult* init_result_out = nullptr);
+
+  /**
+   * @brief Returns an instance of Firestore corresponding to the given App with
+   * the given database ID.
+   *
+   * Firebase Firestore uses firebase::App to communicate with Firebase
+   * Authentication to authenticate users to the Firestore server backend.
+   *
+   * If you call GetInstance() multiple times with the same App, you will get
+   * the same instance of Firestore.
+   *
+   * @param[in] app Your instance of firebase::App. Firebase Firestore will use
+   * this to communicate with Firebase Authentication.
+   * @param[in] db_name Name of the database. Firebase Firestore will use
+   * this to communicate with Firebase Authentication.
+   * @param[out] init_result_out If provided, the initialization result will be
+   * written here. Will be set to firebase::kInitResultSuccess if initialization
+   * succeeded, or firebase::kInitResultFailedMissingDependency on Android if
+   * Google Play services is not available on the current device.
+   *
+   * @return An instance of Firestore corresponding to the given App with
+   * the given database ID.
+   */
+  static Firestore* GetInstance(::firebase::App* app,
+                                const char* db_name,
+                                InitResult* init_result_out = nullptr);
+
+  /**
+   * @brief Returns an instance of Firestore corresponding to the default App
+   * with the given database ID.
+   *
+   * Firebase Firestore uses firebase::App to communicate with Firebase
+   * Authentication to authenticate users to the Firestore server backend.
+   *
+   * If you call GetInstance() multiple times with the same App, you will get
+   * the same instance of Firestore.
+   *
+   * @param[in] db_name Name of the database. Firebase Firestore will use
+   * this to communicate with Firebase Authentication.
+   * @param[out] init_result_out If provided, the initialization result will be
+   * written here. Will be set to firebase::kInitResultSuccess if initialization
+   * succeeded, or firebase::kInitResultFailedMissingDependency on Android if
+   * Google Play services is not available on the current device.
+   *
+   * @return An instance of Firestore corresponding to the default App with
+   * the given database ID.
+   */
+  static Firestore* GetInstance(const char* db_name,
+                                InitResult* init_result_out = nullptr);
 
   /**
    * @brief Destructor for the Firestore object.
@@ -436,7 +494,8 @@ class Firestore {
   friend class csharp::ApiHeaders;
   friend class csharp::TransactionManager;
 
-  explicit Firestore(::firebase::App* app);
+  explicit Firestore(::firebase::App* app,
+                     const std::string& database_id = kDefaultDatabase);
   explicit Firestore(FirestoreInternal* internal);
 
   static Firestore* CreateFirestore(::firebase::App* app,

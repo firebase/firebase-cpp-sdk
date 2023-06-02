@@ -28,19 +28,22 @@ class PlayIntegrityProviderFactoryInternal;
 /// PlayIntegrityProviders. This is the default implementation.
 class PlayIntegrityProviderFactory : public AppCheckProviderFactory {
  public:
+  PlayIntegrityProviderFactory(const PlayIntegrityProviderFactory&) = delete;
+  PlayIntegrityProviderFactory& operator=(const PlayIntegrityProviderFactory&) =
+      delete;
+
   /// Gets an instance of this class for installation into a
   /// firebase::app_check::AppCheck instance.
   static PlayIntegrityProviderFactory* GetInstance();
 
-  virtual ~PlayIntegrityProviderFactory();
-
   /// Gets the AppCheckProvider associated with the given
   /// {@link App} instance, or creates one if none
   /// already exists.
-  AppCheckProvider* CreateProvider(App* app) override;
+  firebase::app_check::AppCheckProvider* CreateProvider(App* app) override;
 
  private:
   PlayIntegrityProviderFactory();
+  ~PlayIntegrityProviderFactory() override;
 
   internal::PlayIntegrityProviderFactoryInternal* internal_;
 };

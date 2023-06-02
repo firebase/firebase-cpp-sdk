@@ -20,6 +20,7 @@
 #include "app/src/embedded_file.h"
 #include "app/src/util_android.h"
 #include "auth/src/common.h"
+#include "auth/src/include/firebase/auth/credential.h"
 #include "auth/src/include/firebase/auth/user.h"
 
 namespace firebase {
@@ -31,6 +32,9 @@ namespace auth {
     util::kMethodTypeInstance),                                                \
   X(GetAdditionalUserInfo, "getAdditionalUserInfo",                            \
     "()Lcom/google/firebase/auth/AdditionalUserInfo;",                         \
+    util::kMethodTypeInstance),                                                \
+  X(GetCredential, "getCredential",                                            \
+    "()Lcom/google/firebase/auth/AuthCredential;",                             \
     util::kMethodTypeInstance)
 // clang-format on
 METHOD_LOOKUP_DECLARATION(authresult, AUTH_RESULT_METHODS)
@@ -42,6 +46,24 @@ METHOD_LOOKUP_DECLARATION(authresult, AUTH_RESULT_METHODS)
   X(GetUsername, "getUsername", "()Ljava/lang/String;")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(additional_user_info, ADDITIONAL_USER_INFO_METHODS)
+
+// clang-format off
+#define PHONE_CREDENTIAL_METHODS(X)                                            \
+    X(GetSmsCode, "getSmsCode", "()Ljava/lang/String;")
+// clang-format on
+METHOD_LOOKUP_DECLARATION(phonecredential, PHONE_CREDENTIAL_METHODS)
+
+// Invokes a private Credential constructor only accessible by friends of the
+// Credential class.
+//
+// This is used to marshall and return Credential objects from the Android SDK
+// AuthResult objects. That is, credentials that aren't created by our
+// users' applications, but those created to represent Credentials created
+// internally by the Anrdoid SDK.
+class InternalAuthResultProvider {
+ public:
+  static Credential GetCredential(jobject credential);
+};
 
 // For each asynchronous call, a pointer to one of these structs is passed
 // into Java. When the call completes, Java returns the pointer via a callback
@@ -64,13 +86,24 @@ struct FutureCallbackData {
   ReadFutureResultFn* future_data_read_fn;
 };
 
+// The `ReadFutureResultFn` for `AuthResult` APIs.
+// Reads the `AuthResult` in `result` and returns the C++ counterpart.
+void ReadAuthResult(jobject result, FutureCallbackData<AuthResult>* d,
+                    bool success, void* void_data);
+
 // The `ReadFutureResultFn` for `SignIn` APIs.
 // Reads the `AuthResult` in `result` and initialize the `User*` in `void_data`.
 void ReadSignInResult(jobject result, FutureCallbackData<SignInResult>* d,
                       bool success, void* void_data);
 
 // The `ReadFutureResultFn` for `SignIn` APIs.
-// Reads the `AuthResult` in `result` and initialize the `User*` in `void_data`.
+// Reads the `AuthResult` in `result` and initializes the `User` in `void_data`.
+void ReadUserFromAuthResult(jobject result, FutureCallbackData<User>* d,
+                            bool success, void* void_data);
+
+// The `ReadFutureResultFn` for `SignIn` APIs.
+// Reads the `AuthResult` in `result` and initializes the `User*` in
+// `void_data`.
 void ReadUserFromSignInResult(jobject result, FutureCallbackData<User*>* d,
                               bool success, void* void_data);
 

@@ -22,6 +22,9 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "firestore/firestore_resources.h"
+#include "firestore/src/android/aggregate_query_android.h"
+#include "firestore/src/android/aggregate_query_snapshot_android.h"
+#include "firestore/src/android/aggregate_source_android.h"
 #include "firestore/src/android/blob_android.h"
 #include "firestore/src/android/collection_reference_android.h"
 #include "firestore/src/android/converter_android.h"
@@ -57,7 +60,6 @@
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/android/write_batch_android.h"
 #include "firestore/src/common/hard_assert_common.h"
-#include "firestore/src/common/make_unique.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/jni/array.h"
 #include "firestore/src/jni/array_list.h"
@@ -112,7 +114,7 @@ Method<SettingsInternal> kGetSettings(
     "()Lcom/google/firebase/firestore/FirebaseFirestoreSettings;");
 StaticMethod<Object> kGetInstance(
     "getInstance",
-    "(Lcom/google/firebase/FirebaseApp;)"
+    "(Lcom/google/firebase/FirebaseApp;Ljava/lang/String;)"
     "Lcom/google/firebase/firestore/FirebaseFirestore;");
 StaticMethod<void> kSetLoggingEnabled("setLoggingEnabled", "(Z)V");
 StaticMethod<void> kSetClientLanguage("setClientLanguage",
@@ -258,14 +260,17 @@ Local<LoadBundleTaskInternal> CreateLoadBundleTask(Env& env,
 
 const char kApiIdentifier[] = "Firestore";
 
-FirestoreInternal::FirestoreInternal(App* app) {
+FirestoreInternal::FirestoreInternal(App* app, const std::string& database_id) {
   FIREBASE_ASSERT(app != nullptr);
   if (!Initialize(app)) return;
   app_ = app;
+  database_name_ = database_id;
 
   Env env = GetEnv();
   Local<Object> platform_app(env.get(), app_->GetPlatformApp());
-  Local<Object> java_firestore = env.Call(kGetInstance, platform_app);
+  Local<String> java_database_id = env.NewStringUtf(database_id);
+  Local<Object> java_firestore =
+      env.Call(kGetInstance, platform_app, java_database_id);
   FIREBASE_ASSERT(java_firestore.get() != nullptr);
   obj_ = java_firestore;
 
@@ -282,7 +287,7 @@ FirestoreInternal::FirestoreInternal(App* app) {
   FIREBASE_ASSERT(java_user_callback_executor.get() != nullptr);
   user_callback_executor_ = java_user_callback_executor;
 
-  promises_ = make_unique<PromiseFactory<AsyncFn>>(this);
+  promises_ = std::make_unique<PromiseFactory<AsyncFn>>(this);
 }
 
 /* static */
@@ -318,6 +323,9 @@ bool FirestoreInternal::Initialize(App* app) {
     InitializeFirestoreTasks(loader);
     InitializeUserCallbackExecutor(loader);
 
+    AggregateQueryInternal::Initialize(loader);
+    AggregateQuerySnapshotInternal::Initialize(loader);
+    AggregateSourceInternal::Initialize(loader);
     BlobInternal::Initialize(loader);
     CollectionReferenceInternal::Initialize(loader);
     DirectionInternal::Initialize(loader);
@@ -618,6 +626,17 @@ Env FirestoreInternal::GetEnv() {
   Env env;
   env.SetUnhandledExceptionHandler(GlobalUnhandledExceptionHandler, nullptr);
   return env;
+}
+
+AggregateQuery FirestoreInternal::NewAggregateQuery(
+    Env& env, const jni::Object& aggregate_query) const {
+  return MakePublic<AggregateQuery>(env, mutable_this(), aggregate_query);
+}
+
+AggregateQuerySnapshot FirestoreInternal::NewAggregateQuerySnapshot(
+    Env& env, const jni::Object& aggregate_query_snapshot) const {
+  return MakePublic<AggregateQuerySnapshot>(env, mutable_this(),
+                                            aggregate_query_snapshot);
 }
 
 CollectionReference FirestoreInternal::NewCollectionReference(

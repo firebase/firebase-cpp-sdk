@@ -16,6 +16,8 @@
 
 #include "firestore/src/main/create_credentials_provider.h"
 
+#include <memory>
+
 #import "FIRAppInternal.h"
 #import "FIRAuthInterop.h"
 #import "FIRComponent.h"
@@ -24,7 +26,6 @@
 #import "FirebaseCore.h"
 
 #include "Firestore/core/src/credentials/firebase_auth_credentials_provider_apple.h"
-#include "absl/memory/memory.h"
 #include "app/src/include/firebase/app.h"
 
 namespace firebase {
@@ -36,7 +37,7 @@ using credentials::FirebaseAuthCredentialsProvider;
 std::unique_ptr<AuthCredentialsProvider> CreateCredentialsProvider(App& app) {
   FIRApp* ios_app = app.GetPlatformApp();
   auto ios_auth = FIR_COMPONENT(FIRAuthInterop, ios_app.container);
-  return absl::make_unique<FirebaseAuthCredentialsProvider>(ios_app, ios_auth);
+  return std::make_unique<FirebaseAuthCredentialsProvider>(ios_app, ios_auth);
 }
 
 }  // namespace firestore

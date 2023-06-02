@@ -84,8 +84,9 @@ set(FIREBASE_INTEGRATION_TEST_SRCS
 # The include directory for the testapp.
 include_directories(src)
 
-# Integration test uses some features that require C++ 11, such as lambdas.
-set (CMAKE_CXX_STANDARD 11)
+# Firebase C++ SDK requires C++14.
+set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_STANDARD_REQUIRED YES)  # Don't fall back to an earlier version.
 
 # Download and unpack googletest (and googlemock) at configure time
 set(GOOGLETEST_ROOT ${CMAKE_CURRENT_LIST_DIR}/external/googletest)
@@ -208,7 +209,7 @@ else()
       "-framework Security"
     )
   elseif(MSVC)
-    set(ADDITIONAL_LIBS advapi32 ws2_32 crypt32)
+    set(ADDITIONAL_LIBS advapi32 ws2_32 crypt32 icu)
   else()
     set(ADDITIONAL_LIBS pthread)
   endif()
