@@ -28,8 +28,10 @@ import dateutil
 import dateutil.parser
 import dateutil.relativedelta
 import dateutil.utils
+import fcntl
 import io
 import os
+import pickle
 import progress
 import progress.bar
 import re
@@ -38,6 +40,7 @@ import shutil
 import sys
 import tempfile
 import zipfile
+import pickle
 
 from absl import app
 from absl import flags
@@ -73,18 +76,30 @@ flags.DEFINE_bool(
     "Output a table header row. Forced true if outputting markdown.")
 
 flags.DEFINE_bool(
-    "output_username", True,
-    "Include a username column in the outputted table.")
+    "output_username", False,
+    "Include a username column in the outputted table, otherwise include a blank column.")
+
+flags.DEFINE_bool(
+    "include_blank_column", True,
+    "In text output, include a blank column to match the build log spreadsheet format.")
+
+flags.DEFINE_string(
+    "write_cache", None,
+    "Write a cache file that can be used with --read_cache on a subsequent run.")
+
+flags.DEFINE_string(
+    "read_cache", None,
+    "Read a cache file that was written by a previous run via --write_cache.")
 
 _WORKFLOW_TESTS = 'integration_tests.yml'
 _WORKFLOW_PACKAGING = 'cpp-packaging.yml'
 _TRIGGER_USER = 'firebase-workflow-trigger[bot]'
 _BRANCH = 'main'
-_LIMIT = 300
+_LIMIT = 300  # Hard limit on how many jobs to fetch.
 
 _PASS_TEXT = "Pass"
 _FAILURE_TEXT = "Failure"
-_FLAKY_TEXT = "Flaky Failure"
+_FLAKY_TEXT = "Pass (flaky)"
 
 general_test_time = ' 09:0'
 firestore_test_time = ' 10:0'
@@ -280,132 +295,156 @@ def main(argv):
     _PASS_TEXT = "✅ " + _PASS_TEXT
     _FLAKY_TEXT = _PASS_TEXT + " (flaky)"
 
-  with progress.bar.Bar('Reading jobs...', max=3) as bar:
-    workflow_id = _WORKFLOW_TESTS
-    all_runs = github.list_workflow_runs(FLAGS.token, workflow_id, _BRANCH, 'schedule', _LIMIT)
-    bar.next()
-    source_tests = {}
-    for run in reversed(all_runs):
-      run['date'] = dateutil.parser.parse(run['created_at'], ignoretz=True)
-      run['day'] = run['date'].date()
-      day = str(run['date'].date())
-      if day in source_tests: continue
-      if run['status'] != 'completed': continue
-      if run['day'] < start_date or run['day'] > end_date: continue
-      run['duration'] = dateutil.parser.parse(run['updated_at'], ignoretz=True) - run['date']
-      if general_test_time in str(run['date']):
-        source_tests[day] = run
-        all_days.add(day)
-      # elif firestore_test_time in str(run['date']):
-      #   firestore_tests[day] = run
-  
-    workflow_id = _WORKFLOW_PACKAGING
-    all_runs = github.list_workflow_runs(FLAGS.token, workflow_id, _BRANCH, 'schedule', _LIMIT)
-    bar.next()
-    packaging_runs = {}
-    packaging_run_ids = set()
-    for run in reversed(all_runs):
-      run['date'] = dateutil.parser.parse(run['created_at'], ignoretz=True)
-      day = str(run['date'].date())
-      run['day'] = run['date'].date()
-      if day in packaging_runs: continue
-      if run['status'] != 'completed': continue
-      if run['day'] < start_date or run['day'] > end_date: continue
-      day = str(run['date'].date())
-      all_days.add(day)
-      packaging_runs[day] = run
-      packaging_run_ids.add(str(run['id']))
-  
-    workflow_id = _WORKFLOW_TESTS
-    all_runs = github.list_workflow_runs(FLAGS.token, workflow_id, _BRANCH, 'workflow_dispatch', _LIMIT)
-    bar.next()
-    package_tests_all = []
-    for run in reversed(all_runs):
-      run['date'] = dateutil.parser.parse(run['created_at'], ignoretz=True)
-      day = str(run['date'].date())
-      run['day'] = run['date'].date()
-      if day not in packaging_runs: continue
-      if run['status'] != 'completed': continue
-      if run['day'] < start_date or run['day'] > end_date: continue
-      if run['triggering_actor']['login'] != _TRIGGER_USER: continue
-      package_tests_all.append(run)
+  if FLAGS.read_cache:
+    logging.info("Reading cache file: %s", FLAGS.read_cache)
+    with open(FLAGS.read_cache, "rb") as handle:
+      fcntl.lockf(handle, fcntl.LOCK_SH)  # For reading, shared lock is OK.
+      _cache = pickle.load(handle)
+      fcntl.lockf(handle, fcntl.LOCK_UN)
 
-  logs_summary = {}
+      all_days = _cache['all_days']
+      source_tests = _cache['source_tests']
+      packaging_runs = _cache['packaging_runs']
+      package_tests = _cache['package_tests']
+  else:
+    _cache = {}
 
-  # For each run in pack
-  package_tests = {}
-
-  logging.info("Source tests: %s %s", list(source_tests.keys()),  [source_tests[r]['id'] for r in source_tests.keys()])
-  logging.info("Packaging runs: %s %s", list(packaging_runs.keys()), [packaging_runs[r]['id'] for r in packaging_runs.keys()])
-
-  with progress.bar.Bar('Downloading triggered workflow logs...', max=len(package_tests_all)) as bar:
-    for run in package_tests_all:
-      day = str(run['date'].date())
-      if day in package_tests and int(package_tests[day]['id']) < int(run['id']):
-        bar.next()
-        continue
-  
-      packaging_run = 0
-
-      logs_url = run['logs_url']
-      headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': 'Bearer %s' % FLAGS.token}
-      with requests.get(logs_url, headers=headers, stream=True) as response:
-        if response.status_code == 200:
-          logs_compressed_data = io.BytesIO(response.content)
-          logs_zip = zipfile.ZipFile(logs_compressed_data)
-          m = get_message_from_github_log(
-            logs_zip,
-            r'check_and_prepare/.*Run if.*expanded.*then.*\.txt',
-            r'\[warning\]Downloading SDK package from previous run:[^\n]*/([0-9]*)$')
-          if m:
-            packaging_run = m.group(1)
-      if str(packaging_run) in packaging_run_ids:
-        package_tests[day] = run
+    with progress.bar.Bar('Reading jobs...', max=3) as bar:
+      workflow_id = _WORKFLOW_TESTS
+      all_runs = github.list_workflow_runs(FLAGS.token, workflow_id, _BRANCH, 'schedule', _LIMIT)
       bar.next()
-
-  logging.info("Package tests: %s %s", list(package_tests.keys()), [package_tests[r]['id'] for r in package_tests.keys()])
-
-  with progress.bar.Bar('Downloading test summaries...', max=len(source_tests)+len(package_tests)) as bar:
-    for tests in source_tests, package_tests:
-      for day in tests:
-        run = tests[day]
-        run['log_success'] = True
-        run['log_results'] = ''
-        artifacts = github.list_artifacts(FLAGS.token, run['id'])
-        if 'log-artifact' in [a['name'] for a in artifacts]:
-          artifact_id = [a['id'] for a in artifacts if a['name'] == 'log-artifact'][0]
-          artifact_contents = github.download_artifact(FLAGS.token, artifact_id)
-          if artifact_contents:
-            artifact_data = io.BytesIO(artifact_contents)
-            artifact_zip = zipfile.ZipFile(artifact_data)
-            with tempfile.TemporaryDirectory() as tmpdir:
-              artifact_zip.extractall(path=tmpdir)
-              (success, results) = summarize_test_results.summarize_logs(tmpdir, False, False, True)
-              run['log_success'] = success
-              run['log_results'] = results
-          else:
-            logging.info("Reading github logs for run %s instead", run['id'])
-            # artifact_contents is empty, get the github logs which is much slower
-            logs_url = run['logs_url']
-            headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': 'Bearer %s' % FLAGS.token}
-            with requests.get(logs_url, headers=headers, stream=True) as response:
-              if response.status_code == 200:
-                logs_compressed_data = io.BytesIO(response.content)
-                logs_zip = zipfile.ZipFile(logs_compressed_data)
-                m = get_message_from_github_log(
-                  logs_zip,
-                  r'summarize-results/.*Summarize results into GitHub',
-                  r'\[error\]INTEGRATION TEST FAILURES\n—+\n(.*)$')
-                if m:
-                  run['log_success'] = False
-                  m2 = re.match(r'(.*?)^' + day, m.group(1), re.MULTILINE | re.DOTALL)
-                  if m2:
-                    run['log_results'] = m2.group(1)
-                  else:
-                    run['log_results'] = m.group(1)
-                  logging.debug("Integration test results: %s", run['log_results'])
-        tests[day] = run
+      source_tests = {}
+      for run in reversed(all_runs):
+        run['date'] = dateutil.parser.parse(run['created_at'], ignoretz=True)
+        run['day'] = run['date'].date()
+        day = str(run['date'].date())
+        if day in source_tests: continue
+        if run['status'] != 'completed': continue
+        if run['day'] < start_date or run['day'] > end_date: continue
+        run['duration'] = dateutil.parser.parse(run['updated_at'], ignoretz=True) - run['date']
+        if general_test_time in str(run['date']):
+          source_tests[day] = run
+          all_days.add(day)
+        # elif firestore_test_time in str(run['date']):
+        #   firestore_tests[day] = run
+    
+      workflow_id = _WORKFLOW_PACKAGING
+      all_runs = github.list_workflow_runs(FLAGS.token, workflow_id, _BRANCH, 'schedule', _LIMIT)
+      bar.next()
+      packaging_runs = {}
+      packaging_run_ids = set()
+      for run in reversed(all_runs):
+        run['date'] = dateutil.parser.parse(run['created_at'], ignoretz=True)
+        day = str(run['date'].date())
+        run['day'] = run['date'].date()
+        if day in packaging_runs: continue
+        if run['status'] != 'completed': continue
+        if run['day'] < start_date or run['day'] > end_date: continue
+        day = str(run['date'].date())
+        all_days.add(day)
+        packaging_runs[day] = run
+        packaging_run_ids.add(str(run['id']))
+    
+      workflow_id = _WORKFLOW_TESTS
+      all_runs = github.list_workflow_runs(FLAGS.token, workflow_id, _BRANCH, 'workflow_dispatch', _LIMIT)
+      bar.next()
+      package_tests_all = []
+      for run in reversed(all_runs):
+        run['date'] = dateutil.parser.parse(run['created_at'], ignoretz=True)
+        day = str(run['date'].date())
+        run['day'] = run['date'].date()
+        if day not in packaging_runs: continue
+        if run['status'] != 'completed': continue
+        if run['day'] < start_date or run['day'] > end_date: continue
+        if run['triggering_actor']['login'] != _TRIGGER_USER: continue
+        package_tests_all.append(run)
+  
+    # For each run in pack
+    package_tests = {}
+  
+    logging.info("Source tests: %s %s", list(source_tests.keys()),  [source_tests[r]['id'] for r in source_tests.keys()])
+    logging.info("Packaging runs: %s %s", list(packaging_runs.keys()), [packaging_runs[r]['id'] for r in packaging_runs.keys()])
+  
+    with progress.bar.Bar('Downloading triggered workflow logs...', max=len(package_tests_all)) as bar:
+      for run in package_tests_all:
+        day = str(run['date'].date())
+        if day in package_tests and int(package_tests[day]['id']) < int(run['id']):
+          bar.next()
+          continue
+    
+        packaging_run = 0
+  
+        logs_url = run['logs_url']
+        headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': 'Bearer %s' % FLAGS.token}
+        with requests.get(logs_url, headers=headers, stream=True) as response:
+          if response.status_code == 200:
+            logs_compressed_data = io.BytesIO(response.content)
+            logs_zip = zipfile.ZipFile(logs_compressed_data)
+            m = get_message_from_github_log(
+              logs_zip,
+              r'check_and_prepare/.*Run if.*expanded.*then.*\.txt',
+              r'\[warning\]Downloading SDK package from previous run:[^\n]*/([0-9]*)$')
+            if m:
+              packaging_run = m.group(1)
+        if str(packaging_run) in packaging_run_ids:
+          package_tests[day] = run
         bar.next()
+  
+    logging.info("Package tests: %s %s", list(package_tests.keys()), [package_tests[r]['id'] for r in package_tests.keys()])
+  
+    with progress.bar.Bar('Downloading test summaries...', max=len(source_tests)+len(package_tests)) as bar:
+      for tests in source_tests, package_tests:
+        for day in tests:
+          run = tests[day]
+          run['log_success'] = True
+          run['log_results'] = ''
+          artifacts = github.list_artifacts(FLAGS.token, run['id'])
+          if 'log-artifact' in [a['name'] for a in artifacts]:
+            artifact_id = [a['id'] for a in artifacts if a['name'] == 'log-artifact'][0]
+            artifact_contents = github.download_artifact(FLAGS.token, artifact_id)
+            if artifact_contents:
+              artifact_data = io.BytesIO(artifact_contents)
+              artifact_zip = zipfile.ZipFile(artifact_data)
+              with tempfile.TemporaryDirectory() as tmpdir:
+                artifact_zip.extractall(path=tmpdir)
+                (success, results) = summarize_test_results.summarize_logs(tmpdir, False, False, True)
+                run['log_success'] = success
+                run['log_results'] = results
+            else:
+              logging.info("Reading github logs for run %s instead", run['id'])
+              # artifact_contents is empty, get the github logs which is much slower
+              logs_url = run['logs_url']
+              headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': 'Bearer %s' % FLAGS.token}
+              with requests.get(logs_url, headers=headers, stream=True) as response:
+                if response.status_code == 200:
+                  logs_compressed_data = io.BytesIO(response.content)
+                  logs_zip = zipfile.ZipFile(logs_compressed_data)
+                  m = get_message_from_github_log(
+                    logs_zip,
+                    r'summarize-results/.*Summarize results into GitHub',
+                    r'\[error\]INTEGRATION TEST FAILURES\n—+\n(.*)$')
+                  if m:
+                    run['log_success'] = False
+                    m2 = re.match(r'(.*?)^' + day, m.group(1), re.MULTILINE | re.DOTALL)
+                    if m2:
+                      run['log_results'] = m2.group(1)
+                    else:
+                      run['log_results'] = m.group(1)
+                    logging.debug("Integration test results: %s", run['log_results'])
+          tests[day] = run
+          bar.next()
+
+    _cache['all_days'] = all_days
+    _cache['source_tests'] = source_tests
+    _cache['packaging_runs'] = packaging_runs
+    _cache['package_tests'] = package_tests
+
+    if FLAGS.write_cache:
+      logging.info("Writing cache file: %s", FLAGS.write_cache)
+      with open(FLAGS.write_cache, "wb") as handle:
+        fcntl.lockf(handle, fcntl.LOCK_EX)  # For writing, need exclusive lock.
+        pickle.dump(_cache, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        fcntl.lockf(handle, fcntl.LOCK_UN)
 
   prev_notes = ''
   last_good_day = None
@@ -415,7 +454,8 @@ def main(argv):
 
   table_fields = (
       ["Date"] +
-      (["Build Bulbasaur"] if FLAGS.output_username else []) +
+      (["Build Bulbasaur"] if FLAGS.output_username else [""]) +
+      ([""] if FLAGS.include_blank_column else []) +
       ["Build vs Source Repo", "Test vs Source Repo",
        "SDK Packaging", "Build vs SDK Package", "Test vs SDK Package",
        "Notes"]
@@ -430,7 +470,7 @@ def main(argv):
   table_row_fmt = row_prefix + row_separator.join([" %s " for f in table_fields]) + row_suffix
   print(table_header_string)
   
-  if FLAGS.output_header:
+  if FLAGS.output_header and FLAGS.output_markdown:
     print(table_row_fmt.replace(" %s ", "---"))
         
   for day in sorted(all_days):
@@ -459,7 +499,8 @@ def main(argv):
 
     table_row_contents = (
         [day_str] +
-        ([os.getlogin()] if FLAGS.output_username else []) +
+        ([os.getlogin()] if FLAGS.output_username else [""]) +
+        ([""] if FLAGS.include_blank_column else []) +
         [source_tests_log[0],
          source_tests_log[1],
          package_build_log,
