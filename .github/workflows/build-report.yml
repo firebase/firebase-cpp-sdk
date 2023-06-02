@@ -1,4 +1,4 @@
-name: Generate Weekly Test Report
+name: Generate Test Report Table
 
 on:
   workflow_dispatch:
@@ -31,4 +31,4 @@ jobs:
           python3 -m pip install python-dateutil progress attrs
     - name: Fetch GitHub jobs
       run: |
-        python3 scripts/gha/report_build_status --token {{ github.token }} --days ${{ env.numDays }} --write_cache build_status.cache
+        python3 scripts/gha/report_build_status.py --token {{ github.token }} --days ${{ env.numDays }} --write_cache build_status.cache
