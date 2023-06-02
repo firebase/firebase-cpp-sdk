@@ -1,0 +1,13 @@
+name: Generate Weekly Test Report
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 16 * * *"  # 4pm UTC = 8am PST / 9am PDT, 7 hours after testapps run
+
+env:
+  GITHUB_TOKEN: ${{ github.token }}
+  numDays: 7
+  numDaysExtended: 30
+
+jobs:
