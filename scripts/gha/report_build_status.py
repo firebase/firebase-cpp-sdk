@@ -72,12 +72,16 @@ flags.DEFINE_bool(
     "Output a Markdown-formatted table.")
 
 flags.DEFINE_bool(
+    "reverse", False,
+    "Reverse output, so most recent is first.")
+
+flags.DEFINE_bool(
     "output_header", True,
     "Output a table header row. Forced true if outputting markdown.")
 
 flags.DEFINE_bool(
     "output_username", False,
-    "Include a username column in the outputted table, otherwise include a blank column.")
+    "Include a username column in the outputted table, otherwise include a blank column in text or no column in Markdown.")
 
 flags.DEFINE_bool(
     "include_blank_column", True,
@@ -95,7 +99,7 @@ _WORKFLOW_TESTS = 'integration_tests.yml'
 _WORKFLOW_PACKAGING = 'cpp-packaging.yml'
 _TRIGGER_USER = 'firebase-workflow-trigger[bot]'
 _BRANCH = 'main'
-_LIMIT = 300  # Hard limit on how many jobs to fetch.
+_LIMIT = 400  # Hard limit on how many jobs to fetch.
 
 _PASS_TEXT = "Pass"
 _FAILURE_TEXT = "Failure"
@@ -454,26 +458,30 @@ def main(argv):
 
   table_fields = (
       ["Date"] +
-      (["Build Bulbasaur"] if FLAGS.output_username else [""]) +
-      ([""] if FLAGS.include_blank_column else []) +
+      (["Build Bulbasaur"] if FLAGS.output_username else ([] if FLAGS.output_markdown else [""])) +
+      ([""] if FLAGS.include_blank_column and not FLAGS.output_markdown else []) +
       ["Build vs Source Repo", "Test vs Source Repo",
        "SDK Packaging", "Build vs SDK Package", "Test vs SDK Package",
        "Notes"]
   )
   if FLAGS.output_markdown:
-      row_prefix = row_separator = row_suffix = "|"
+      row_prefix = "| "
+      row_separator = "|"
+      row_suffix = " |"
   else:
       row_prefix = row_suffix = ""
       row_separator = "\t"
 
   table_header_string = row_prefix + row_separator.join(table_fields) + row_suffix
-  table_row_fmt = row_prefix + row_separator.join([" %s " for f in table_fields]) + row_suffix
+  table_row_fmt = row_prefix + row_separator.join(["%s" for f in table_fields]) + row_suffix
   print(table_header_string)
   
   if FLAGS.output_header and FLAGS.output_markdown:
-    print(table_row_fmt.replace(" %s ", "---"))
-        
-  for day in sorted(all_days):
+    print(table_row_fmt.replace("%s", "---").replace(" ", ""))
+
+  days_sorted = sorted(all_days)
+  if FLAGS.reverse: days_sorted = reversed(days_sorted)
+  for day in days_sorted:
     day_str = day
     if FLAGS.output_markdown:
         day_str = day_str.replace("-", "&#8209;")  # non-breaking hyphen.
@@ -499,8 +507,8 @@ def main(argv):
 
     table_row_contents = (
         [day_str] +
-        ([os.getlogin()] if FLAGS.output_username else [""]) +
-        ([""] if FLAGS.include_blank_column else []) +
+        ([os.getlogin()] if FLAGS.output_username else ([] if FLAGS.output_markdown else [""])) +
+        ([""] if FLAGS.include_blank_column and not FLAGS.output_markdown else []) +
         [source_tests_log[0],
          source_tests_log[1],
          package_build_log,
