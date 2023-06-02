@@ -14,6 +14,6 @@ jobs:
   generate-report:
     runs-on: ubuntu-20.04
     steps:
-      - name: Fetch GitHub jobs
-        run: |
-	  true
+    - name: Fetch GitHub jobs
+      run: |
+        true
