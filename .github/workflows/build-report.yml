@@ -31,29 +31,25 @@ jobs:
           python3 -m pip install requests python-dateutil progress attrs
     - name: Fetch GitHub jobs
       run: |
+        python3 scripts/gha/report_build_status.py --token ${{ github.token }} --days ${{ env.numDays }} --write_cache build_status_short.cache
         python3 scripts/gha/report_build_status.py --token ${{ github.token }} --days ${{ env.numDaysExtended }} --write_cache build_status.cache
     - name: Generate report files
       run: |
-        python3 scripts/gha/report_build_status.py --token ${{ github.token }} --days ${{ env.numDays }} --output_markdown --read_cache build_status.cache > report_short.md
+        python3 scripts/gha/report_build_status.py --token ${{ github.token }} --days ${{ env.numDays }} --output_markdown --read_cache build_status_short.cache > report_short.md
         python3 scripts/gha/report_build_status.py --token ${{ github.token }} --days ${{ env.numDaysExtended }} --output_markdown --read_cache build_status.cache > report_extended.md
-        python3 scripts/gha/report_build_status.py --token ${{ github.token }} --days ${{ env.numDays }} --read_cache build_status.cache > report.txt
+        python3 scripts/gha/report_build_status.py --token ${{ github.token }} --days ${{ env.numDays }} --read_cache build_status_short.cache > report.txt
     - name: Generate comment string
       run: |
         echo -n > comment.md
         cat >> comment.md <<EOF
         ***
 
-        ### Testing History (last ${{ env.numDays }} days)
-
         EOF
         cat report_short.md >> comment.md
         cat >> comment.md <<EOF
 
         <details><summary>View extended history</summary>
-
-        ### Testing History (last ${{ env.numDaysExtended }} days)
-
-        EOF
+	EOF
         cat report_extended.md >> comment.md
         cat >> comment.md <<EOF
         </details>
@@ -71,3 +67,8 @@ jobs:
       with:
         name: comment.md
         path: comment.md
+    - name: Upload build status cache (debugging)
+      uses: actions/upload-artifact@v3
+      with:
+        name: build_status.cache
+        path: build_status.cache
