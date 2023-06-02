@@ -41,12 +41,12 @@ jobs:
       run: |
         echo -n > comment.md
         cat >> comment.md <<EOF
-	***
+        ***
 
         ### Testing History (last ${{ env.numDays }} days)
 
         EOF
-	cat report_short.md >> comment.md
+        cat report_short.md >> comment.md
         cat >> comment.md <<EOF
 
         <details><summary>View extended history</summary>
@@ -54,15 +54,15 @@ jobs:
         ### Testing History (last ${{ env.numDaysExtended }} days)
 
         EOF
-	cat report_extended.md >> comment.md
-	cat >> comment.md <<EOF
-	</details>
-	<details><summary>📄</summary><pre>
-	EOF
-	cat report.txt >> comment.md
-	cat >> comment.md <<EOF
-	</pre></details>
-	EOF
+        cat report_extended.md >> comment.md
+        cat >> comment.md <<EOF
+        </details>
+        <details><summary>📄</summary><pre>
+        EOF
+        cat report.txt >> comment.md
+        cat >> comment.md <<EOF
+        </pre></details>
+        EOF
     - name: Show comment string
       run: |
         cat comment.md
