@@ -28,8 +28,10 @@ class AppAttestProviderFactoryInternal;
 /// AppAttestProviders. This is the default implementation.
 class AppAttestProviderFactory : public AppCheckProviderFactory {
  public:
+#if !defined(DOXYGEN)
   AppAttestProviderFactory(const AppAttestProviderFactory&) = delete;
   AppAttestProviderFactory& operator=(const AppAttestProviderFactory&) = delete;
+#endif  // !defined(DOXYGEN)
 
   /// Gets an instance of this class for installation into a
   /// firebase::app_check::AppCheck instance.
