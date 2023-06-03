@@ -58,6 +58,17 @@ namespace firebase_test_framework {
     return;                                                               \
   }
 
+#define RUN_TEST_ONLY_AGAINST_FIRESTORE_EMULATOR                \
+  {                                                             \
+    if (std::getenv("USE_FIRESTORE_EMULATOR") == nullptr) {     \
+      app_framework::LogInfo(                                   \
+          "Skipping %s on non firestore emulator environment.", \
+          test_info_->name());                                  \
+      GTEST_SKIP();                                             \
+      return;                                                   \
+    }                                                           \
+  }
+
 #if TARGET_OS_IPHONE
 #define TEST_REQUIRES_USER_INTERACTION_ON_IOS TEST_REQUIRES_USER_INTERACTION
 #define TEST_REQUIRES_USER_INTERACTION_ON_ANDROID ((void)0)

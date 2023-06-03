@@ -36,9 +36,11 @@ class DebugAppCheckProviderFactoryInternal;
 /// NOTE: Do not use the debug provider in applications used by real users.
 class DebugAppCheckProviderFactory : public AppCheckProviderFactory {
  public:
+#if !defined(DOXYGEN)
   DebugAppCheckProviderFactory(const DebugAppCheckProviderFactory&) = delete;
   DebugAppCheckProviderFactory& operator=(const DebugAppCheckProviderFactory&) =
       delete;
+#endif  // !defined(DOXYGEN)
 
   /// Gets an instance of this class for installation into a
   /// firebase::app_check::AppCheck instance.

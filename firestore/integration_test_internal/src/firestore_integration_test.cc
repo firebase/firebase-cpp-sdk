@@ -116,11 +116,19 @@ Firestore* FirestoreIntegrationTest::TestFirestore(
   return TestFirestoreWithProjectId(name, /*project_id=*/"");
 }
 
+Firestore* FirestoreIntegrationTest::TestFirestoreWithDatabaseId(
+    const std::string& name, const std::string& database_id) const {
+  return TestFirestoreWithProjectId(name, /*project_id=*/"", database_id);
+}
+
 Firestore* FirestoreIntegrationTest::TestFirestoreWithProjectId(
-    const std::string& name, const std::string& project_id) const {
+    const std::string& name,
+    const std::string& project_id,
+    const std::string& database_id) const {
   for (const auto& entry : firestores_) {
     const FirestoreInfo& firestore_info = entry.second;
-    if (firestore_info.name() == name) {
+    if (firestore_info.name() == name &&
+        firestore_info.database_id() == database_id) {
       return firestore_info.firestore();
     }
   }
@@ -129,9 +137,9 @@ Firestore* FirestoreIntegrationTest::TestFirestoreWithProjectId(
   if (apps_.find(app) == apps_.end()) {
     apps_[app] = std::unique_ptr<App>(app);
   }
-
-  Firestore* db = new Firestore(CreateTestFirestoreInternal(app));
-  firestores_[db] = FirestoreInfo(name, std::unique_ptr<Firestore>(db));
+  Firestore* db = new Firestore(CreateTestFirestoreInternal(app, database_id));
+  firestores_[db] =
+      FirestoreInfo(name, database_id, std::unique_ptr<Firestore>(db));
 
   firestore::LocateEmulator(db);
   return db;

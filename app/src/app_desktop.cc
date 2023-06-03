@@ -21,6 +21,7 @@
 #include <fstream>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "app/src/app_common.h"
 #include "app/src/function_registry.h"
@@ -166,6 +167,8 @@ App* App::GetInstance() {  // NOLINT
 App* App::GetInstance(const char* name) {  // NOLINT
   return app_common::FindAppByName(name);
 }
+
+std::vector<App*> App::GetApps() { return app_common::GetAllApps(); }
 
 #ifdef INTERNAL_EXPERIMENTAL
 internal::FunctionRegistry* App::function_registry() {
