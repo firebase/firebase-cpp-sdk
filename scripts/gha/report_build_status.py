@@ -20,7 +20,7 @@
 
 USAGE:
   python scripts/gha/report_build_status.py \
-    --token ${{github.token}} \
+    --token ${{github.token}}
 """
 
 import datetime
