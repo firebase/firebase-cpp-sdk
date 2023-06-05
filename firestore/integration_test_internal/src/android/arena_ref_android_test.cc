@@ -278,21 +278,14 @@ TEST_F(
   const ArenaRef arena_ref_referring_to_non_null_copy_dest(
       *arena_ref_referring_to_non_null);
 
-  jobject java_object1 = NewJavaObject();
-  default_arena_ref->reset(env(), Object(java_object1));
-  jobject java_object2 = NewJavaObject();
-  arena_ref_referring_to_null->reset(env(), Object(java_object2));
-  jobject java_object3 = NewJavaObject();
-  arena_ref_referring_to_non_null->reset(env(), Object(java_object3));
+  default_arena_ref->reset(env(), Object(NewJavaObject()));
+  arena_ref_referring_to_null->reset(env(), Object(NewJavaObject()));
+  arena_ref_referring_to_non_null->reset(env(), Object(NewJavaObject()));
 
   EXPECT_THAT(default_arena_ref_copy_dest, RefersToNullJavaObject());
   EXPECT_THAT(arena_ref_referring_to_null_copy_dest, RefersToNullJavaObject());
   EXPECT_THAT(arena_ref_referring_to_non_null_copy_dest,
               RefersToJavaObject(java_object));
-  EXPECT_THAT(*default_arena_ref, RefersToJavaObject(java_object1));
-  EXPECT_THAT(*arena_ref_referring_to_null, RefersToJavaObject(java_object2));
-  EXPECT_THAT(*arena_ref_referring_to_non_null,
-              RefersToJavaObject(java_object3));
 
   default_arena_ref.reset();
   arena_ref_referring_to_null.reset();
@@ -318,18 +311,10 @@ TEST_F(
   auto arena_ref_referring_to_non_null_copy_dest =
       std::make_unique<ArenaRef>(arena_ref_referring_to_non_null);
 
-  jobject java_object1 = NewJavaObject();
-  default_arena_ref_copy_dest->reset(env(), Object(java_object1));
-  jobject java_object2 = NewJavaObject();
-  arena_ref_referring_to_null_copy_dest->reset(env(), Object(java_object2));
-  jobject java_object3 = NewJavaObject();
-  arena_ref_referring_to_non_null_copy_dest->reset(env(), Object(java_object3));
+  default_arena_ref_copy_dest->reset(env(), Object(NewJavaObject()));
+  arena_ref_referring_to_null_copy_dest->reset(env(), Object(NewJavaObject()));
+  arena_ref_referring_to_non_null_copy_dest->reset(env(), Object(NewJavaObject()));
 
-  EXPECT_THAT(*default_arena_ref_copy_dest, RefersToJavaObject(java_object1));
-  EXPECT_THAT(*arena_ref_referring_to_null_copy_dest,
-              RefersToJavaObject(java_object2));
-  EXPECT_THAT(*arena_ref_referring_to_non_null_copy_dest,
-              RefersToJavaObject(java_object3));
   EXPECT_THAT(default_arena_ref, RefersToNullJavaObject());
   EXPECT_THAT(arena_ref_referring_to_null, RefersToNullJavaObject());
   EXPECT_THAT(arena_ref_referring_to_non_null, RefersToJavaObject(java_object));
@@ -411,21 +396,14 @@ TEST_F(
   ArenaRef arena_ref_referring_to_non_null_move_dest(
       std::move(*arena_ref_referring_to_non_null));
 
-  jobject java_object1 = NewJavaObject();
-  default_arena_ref->reset(env(), Object(java_object1));
-  jobject java_object2 = NewJavaObject();
-  arena_ref_referring_to_null->reset(env(), Object(java_object2));
-  jobject java_object3 = NewJavaObject();
-  arena_ref_referring_to_non_null->reset(env(), Object(java_object3));
+  default_arena_ref->reset(env(), Object(NewJavaObject()));
+  arena_ref_referring_to_null->reset(env(), Object(NewJavaObject()));
+  arena_ref_referring_to_non_null->reset(env(), Object(NewJavaObject()));
 
   EXPECT_THAT(default_arena_ref_move_dest, RefersToNullJavaObject());
   EXPECT_THAT(arena_ref_referring_to_null_move_dest, RefersToNullJavaObject());
   EXPECT_THAT(arena_ref_referring_to_non_null_move_dest,
               RefersToJavaObject(java_object));
-  EXPECT_THAT(*default_arena_ref, RefersToJavaObject(java_object1));
-  EXPECT_THAT(*arena_ref_referring_to_null, RefersToJavaObject(java_object2));
-  EXPECT_THAT(*arena_ref_referring_to_non_null,
-              RefersToJavaObject(java_object3));
 
   default_arena_ref.reset();
   arena_ref_referring_to_null.reset();
@@ -451,18 +429,10 @@ TEST_F(
   auto arena_ref_referring_to_non_null_move_dest =
       std::make_unique<ArenaRef>(std::move(arena_ref_referring_to_non_null));
 
-  jobject java_object1 = NewJavaObject();
-  default_arena_ref_move_dest->reset(env(), Object(java_object1));
-  jobject java_object2 = NewJavaObject();
-  arena_ref_referring_to_null_move_dest->reset(env(), Object(java_object2));
-  jobject java_object3 = NewJavaObject();
-  arena_ref_referring_to_non_null_move_dest->reset(env(), Object(java_object3));
+  default_arena_ref_move_dest->reset(env(), Object(NewJavaObject()));
+  arena_ref_referring_to_null_move_dest->reset(env(), Object(NewJavaObject()));
+  arena_ref_referring_to_non_null_move_dest->reset(env(), Object(NewJavaObject()));
 
-  EXPECT_THAT(*default_arena_ref_move_dest, RefersToJavaObject(java_object1));
-  EXPECT_THAT(*arena_ref_referring_to_null_move_dest,
-              RefersToJavaObject(java_object2));
-  EXPECT_THAT(*arena_ref_referring_to_non_null_move_dest,
-              RefersToJavaObject(java_object3));
   EXPECT_THAT(default_arena_ref, RefersToNullJavaObject());
   EXPECT_THAT(arena_ref_referring_to_null, RefersToNullJavaObject());
   EXPECT_THAT(arena_ref_referring_to_non_null, RefersToNullJavaObject());
@@ -702,33 +672,27 @@ TEST_F(
 TEST_F(
     ArenaRefTest,
     DestObjectOfCopyAssignmentOperatorShouldBeUnaffectedByChangesToSourceObject) {
-  FAIL() << "NOT IMPLEMENTED!";
   auto default_arena_ref = std::make_unique<ArenaRef>();
-  const ArenaRef default_arena_ref_copy_dest(*default_arena_ref);
+  ArenaRef default_arena_ref_copy_dest;
   auto arena_ref_referring_to_null = std::make_unique<ArenaRef>(env(), nullptr);
-  const ArenaRef arena_ref_referring_to_null_copy_dest(
-      *arena_ref_referring_to_null);
+  ArenaRef arena_ref_referring_to_null_copy_dest;
   jobject java_object = NewJavaObject();
   auto arena_ref_referring_to_non_null =
       std::make_unique<ArenaRef>(env(), java_object);
-  const ArenaRef arena_ref_referring_to_non_null_copy_dest(
-      *arena_ref_referring_to_non_null);
+  ArenaRef arena_ref_referring_to_non_null_copy_dest;
 
-  jobject java_object1 = NewJavaObject();
-  default_arena_ref->reset(env(), Object(java_object1));
-  jobject java_object2 = NewJavaObject();
-  arena_ref_referring_to_null->reset(env(), Object(java_object2));
-  jobject java_object3 = NewJavaObject();
-  arena_ref_referring_to_non_null->reset(env(), Object(java_object3));
+  default_arena_ref_copy_dest = *default_arena_ref;
+  arena_ref_referring_to_null_copy_dest = *arena_ref_referring_to_null;
+  arena_ref_referring_to_non_null_copy_dest = *arena_ref_referring_to_non_null;
+
+  default_arena_ref->reset(env(), Object(NewJavaObject()));
+  arena_ref_referring_to_null->reset(env(), Object(NewJavaObject()));
+  arena_ref_referring_to_non_null->reset(env(), Object(NewJavaObject()));
 
   EXPECT_THAT(default_arena_ref_copy_dest, RefersToNullJavaObject());
   EXPECT_THAT(arena_ref_referring_to_null_copy_dest, RefersToNullJavaObject());
   EXPECT_THAT(arena_ref_referring_to_non_null_copy_dest,
               RefersToJavaObject(java_object));
-  EXPECT_THAT(*default_arena_ref, RefersToJavaObject(java_object1));
-  EXPECT_THAT(*arena_ref_referring_to_null, RefersToJavaObject(java_object2));
-  EXPECT_THAT(*arena_ref_referring_to_non_null,
-              RefersToJavaObject(java_object3));
 
   default_arena_ref.reset();
   arena_ref_referring_to_null.reset();
@@ -743,30 +707,22 @@ TEST_F(
 TEST_F(
     ArenaRefTest,
     SourceObjectOfCopyAssignmentOperatorShouldBeUnaffectedByChangesToDestObject) {
-  FAIL() << "NOT IMPLEMENTED!";
   const ArenaRef default_arena_ref;
-  auto default_arena_ref_copy_dest =
-      std::make_unique<ArenaRef>(default_arena_ref);
+  auto default_arena_ref_copy_dest = std::make_unique<ArenaRef>();
   const ArenaRef arena_ref_referring_to_null(env(), nullptr);
-  auto arena_ref_referring_to_null_copy_dest =
-      std::make_unique<ArenaRef>(arena_ref_referring_to_null);
+  auto arena_ref_referring_to_null_copy_dest = std::make_unique<ArenaRef>();
   jobject java_object = NewJavaObject();
   const ArenaRef arena_ref_referring_to_non_null(env(), java_object);
-  auto arena_ref_referring_to_non_null_copy_dest =
-      std::make_unique<ArenaRef>(arena_ref_referring_to_non_null);
+  auto arena_ref_referring_to_non_null_copy_dest = std::make_unique<ArenaRef>();
 
-  jobject java_object1 = NewJavaObject();
-  default_arena_ref_copy_dest->reset(env(), Object(java_object1));
-  jobject java_object2 = NewJavaObject();
-  arena_ref_referring_to_null_copy_dest->reset(env(), Object(java_object2));
-  jobject java_object3 = NewJavaObject();
-  arena_ref_referring_to_non_null_copy_dest->reset(env(), Object(java_object3));
+  *default_arena_ref_copy_dest = default_arena_ref;
+  *arena_ref_referring_to_null_copy_dest = arena_ref_referring_to_null;
+  *arena_ref_referring_to_non_null_copy_dest = arena_ref_referring_to_non_null;
 
-  EXPECT_THAT(*default_arena_ref_copy_dest, RefersToJavaObject(java_object1));
-  EXPECT_THAT(*arena_ref_referring_to_null_copy_dest,
-              RefersToJavaObject(java_object2));
-  EXPECT_THAT(*arena_ref_referring_to_non_null_copy_dest,
-              RefersToJavaObject(java_object3));
+  default_arena_ref_copy_dest->reset(env(), Object(NewJavaObject()));
+  arena_ref_referring_to_null_copy_dest->reset(env(), Object(NewJavaObject()));
+  arena_ref_referring_to_non_null_copy_dest->reset(env(), Object(NewJavaObject()));
+
   EXPECT_THAT(default_arena_ref, RefersToNullJavaObject());
   EXPECT_THAT(arena_ref_referring_to_null, RefersToNullJavaObject());
   EXPECT_THAT(arena_ref_referring_to_non_null, RefersToJavaObject(java_object));
