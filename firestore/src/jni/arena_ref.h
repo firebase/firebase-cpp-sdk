@@ -99,11 +99,11 @@ class ArenaRef final {
   static void Initialize(Loader&);
 
  private:
-  class ObjectArenaId;
+  class ObjectArenaEntry;
 
   void reset(Env& env, jobject);
 
-  std::shared_ptr<ObjectArenaId> id_;
+  std::shared_ptr<ObjectArenaEntry> entry_;
 };
 
 }  // namespace jni

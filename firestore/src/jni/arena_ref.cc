@@ -35,6 +35,34 @@ namespace {
 constexpr char kObjectArenaClassName[] = PROGUARD_KEEP_CLASS
     "com/google/firebase/firestore/internal/cpp/ObjectArena";
 
+// A convenience class for repeatedly loading Java JNI method IDs from a given
+// Java class.
+class MethodLoader {
+ public:
+  MethodLoader(Loader& loader, jclass java_class)
+      : loader_(loader), java_class_(java_class) {}
+
+  jmethodID LoadMethodId(const char* name, const char* signature) const {
+    if (!loader_.ok()) {
+      return {};
+    }
+    jmethodID method_id =
+        loader_.env()->GetStaticMethodID(java_class_, name, signature);
+    if (!loader_.ok()) {
+      return {};
+    }
+    return method_id;
+  }
+
+ private:
+  Loader& loader_;
+  jclass java_class_{};
+};
+
+// Wrapper class for calling methods on the `ObjectArena` Java class.
+// `Initialize()` must be invoked _before_ calling *any* other static or
+// non-static member functions. After calling `Initialize()`, the initialized
+// global singleton instance can be retrieved using `GetInstance()`.
 class ObjectArena {
  public:
   ObjectArena(const ObjectArena&) = delete;
@@ -45,7 +73,7 @@ class ObjectArena {
   static const ObjectArena& GetInstance() {
     const ObjectArena& instance = GetOrCreateSingletonInstance();
     FIREBASE_ASSERT_MESSAGE(instance.initialized_,
-                            "ObjectArena initialization failed");
+                            "ObjectArena should be initialized");
     return instance;
   }
 
@@ -91,63 +119,56 @@ class ObjectArena {
       return;
     }
 
-    if (!java_class_) {
-      jclass java_class = LoadObjectArenaClass(loader);
+    jclass java_class = java_class_;
+    if (!java_class) {
+      java_class = loader.LoadClass(kObjectArenaClassName);
+      if (!loader.ok()) {
+        return;
+      }
+      java_class = (jclass)loader.env()->NewGlobalRef(java_class);
       if (!loader.ok()) {
         return;
       }
       java_class_ = java_class;
     }
 
-    get_ = LoadObjectArenaMethodId(loader, "get", "(J)Ljava/lang/Object;");
-    set_ = LoadObjectArenaMethodId(loader, "set", "(JLjava/lang/Object;)V");
-    remove_ = LoadObjectArenaMethodId(loader, "remove", "(J)V");
+    MethodLoader method_loader(loader, java_class);
+    get_ = method_loader.LoadMethodId("get", "(J)Ljava/lang/Object;");
+    set_ = method_loader.LoadMethodId("set", "(JLjava/lang/Object;)V");
+    remove_ = method_loader.LoadMethodId("remove", "(J)V");
 
     initialized_ = loader.ok();
   }
 
-  static jclass LoadObjectArenaClass(Loader& loader) {
-    jclass clazz = loader.LoadClass(kObjectArenaClassName);
-    if (!loader.ok()) {
-      return {};
-    }
-
-    jobject clazz_globalref = loader.env()->NewGlobalRef(clazz);
-    if (!loader.ok()) {
-      return {};
-    }
-
-    return (jclass)clazz_globalref;
-  }
-
-  jmethodID LoadObjectArenaMethodId(Loader& loader,
-                                    const char* name,
-                                    const char* signature) const {
-    if (!loader.ok()) {
-      return {};
-    }
-    jmethodID method_id =
-        loader.env()->GetStaticMethodID(java_class_, name, signature);
-    if (!loader.ok()) {
-      return {};
-    }
-    return method_id;
-  }
-
-  jclass java_class_{};
-  jmethodID get_{};
-  jmethodID set_{};
-  jmethodID remove_{};
-  bool initialized_ = false;
+  // Wrap the member variables below in `std::atomic` so that their values set
+  // by `Initialize()` are guaranteed to be visible to all threads.
+  std::atomic<jclass> java_class_{};
+  std::atomic<jmethodID> get_{};
+  std::atomic<jmethodID> set_{};
+  std::atomic<jmethodID> remove_{};
+  std::atomic<bool> initialized_{false};
 };
 
 }  // namespace
 
-class ArenaRef::ObjectArenaId final {
+// Manages an entry in the Java `ObjectArena` map, creating the entry in the
+// constructor from a uniquely-generated `jlong` value, and removing the entry
+// in the destructor.
+class ArenaRef::ObjectArenaEntry final {
  public:
-  ObjectArenaId() : id_(GenerateUniqueId()) {}
+  ObjectArenaEntry(Env& env, jobject object) : id_(GenerateUniqueId()) {
+    ObjectArena::GetInstance().Set(env, id_, object);
+  }
 
-  ~ObjectArenaId() {
+  // Delete the copy and move constructors and assignment operators to enforce
+  // the requirement that every instance has a distinct value for its `id_`
+  // member variable.
+  ObjectArenaEntry(const ObjectArenaEntry&) = delete;
+  ObjectArenaEntry(ObjectArenaEntry&&) = delete;
+  ObjectArenaEntry& operator=(const ObjectArenaEntry&) = delete;
+  ObjectArenaEntry& operator=(ObjectArenaEntry&&) = delete;
+
+  ~ObjectArenaEntry() {
     Env env;
     ExceptionClearGuard exception_clear_guard(env);
     ObjectArena::GetInstance().Remove(env, id_);
@@ -159,7 +180,13 @@ class ArenaRef::ObjectArenaId final {
     }
   }
 
-  jlong get() const { return id_; }
+  Local<Object> GetReferent(Env& env) const {
+    jobject result = ObjectArena::GetInstance().Get(env, id_);
+    if (!env.ok()) {
+      return {};
+    }
+    return {env.get(), result};
+  }
 
  private:
   static jlong GenerateUniqueId() {
@@ -172,20 +199,18 @@ class ArenaRef::ObjectArenaId final {
     return gNextId.fetch_add(1);
   }
 
-  jlong id_;
+  // Mark `id_` as `const` to solidify the expectation that instances are
+  // immutable and do not support copy/move assignment.
+  const jlong id_;
 };
 
 ArenaRef::ArenaRef(Env& env, jobject object) { reset(env, object); }
 
 Local<Object> ArenaRef::get(Env& env) const {
-  if (!id_) {
+  if (!entry_) {
     return {};
   }
-  jobject result = ObjectArena::GetInstance().Get(env, id_->get());
-  if (!env.ok()) {
-    return {};
-  }
-  return {env.get(), result};
+  return entry_->GetReferent(env);
 }
 
 void ArenaRef::reset(Env& env, const Object& object) {
@@ -193,8 +218,7 @@ void ArenaRef::reset(Env& env, const Object& object) {
 }
 
 void ArenaRef::reset(Env& env, jobject object) {
-  id_ = std::make_shared<ArenaRef::ObjectArenaId>();
-  ObjectArena::GetInstance().Set(env, id_->get(), object);
+  entry_ = std::make_shared<ArenaRef::ObjectArenaEntry>(env, object);
 }
 
 void ArenaRef::Initialize(Loader& loader) { ObjectArena::Initialize(loader); }
