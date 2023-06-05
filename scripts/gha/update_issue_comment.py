@@ -61,6 +61,7 @@ flags.DEFINE_string(
 
 
 def get_issue_number(token, title, label):
+  """Get the GitHub isssue number for a given issue title and label"""
   issues = github.search_issues_by_label(label)
   for issue in issues:
     if issue["title"] == title:
@@ -71,8 +72,6 @@ def get_issue_number(token, title, label):
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
-  #if not FLAGS.verbosity:
-  #  logging.set_verbosity(logging.WARN)
 
   comment_start = "\r\n<hidden value=\"%s\"></hidden>\r\n" % FLAGS.start_tag
   comment_end = "\r\n<hidden value=\"%s\"></hidden>\r\n" % FLAGS.end_tag
@@ -82,7 +81,7 @@ def main(argv):
     logging.fatal("Couldn't find a '%s' issue matching '%s'",
                   FLAGS.issue_label,
                   FLAGS.issue_title)
-  logging.info("Got issue number: %d", issue_number)
+  logging.info("Found issue number: %d", issue_number)
   
   previous_comment = github.get_issue_body(FLAGS.token, issue_number)
   if comment_start not in previous_comment:
@@ -90,20 +89,17 @@ def main(argv):
   if comment_end not in previous_comment:
     logging.fatal("Couldn't find end tag '%s' in previous comment", comment_end)
 
-  logging.info("Got previous comment (%d bytes)", len(previous_comment))
-
   if comment_start == comment_end:
     [prefix, _, suffix] = previous_comment.split(comment_start)
   else:
     [prefix, remainder] = previous_comment.split(comment_start)
     [_, suffix] = remainder.split(comment_end)
 
-  logging.info("Prefix is %d bytes, suffix is %d bytes", len(prefix), len(suffix))
-
   new_text = sys.stdin.read()
-  new_comment = prefix + comment_start + new_text + comment_end + suffix
+  comment = prefix + comment_start + new_text + comment_end + suffix
 
-  print(new_comment)
+  github.update_issue_comment(FLAGS.token, issue_number, comment)
+
 
 
 if __name__ == "__main__":
