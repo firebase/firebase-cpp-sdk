@@ -42,6 +42,7 @@ jobs:
       run: |
         echo -n > comment.md
         cat >> comment.md <<EOF
+
         ***
 
         EOF
@@ -49,11 +50,13 @@ jobs:
         cat >> comment.md <<EOF
 
         <details><summary>View extended history</summary>
+
         EOF
         cat report_extended.md >> comment.md
         cat >> comment.md <<EOF
         </details>
         <details><summary>📄</summary><pre>
+
         EOF
         cat report.txt >> comment.md
         cat >> comment.md <<EOF
