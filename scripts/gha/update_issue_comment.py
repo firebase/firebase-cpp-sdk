@@ -29,6 +29,7 @@ USAGE:
     --end_tag "hidden-tag-end" < updated-comment-section.md
 """
 
+import sys
 
 from absl import app
 from absl import flags
@@ -70,25 +71,39 @@ def get_issue_number(token, title, label):
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
-  if not FLAGS.verbosity:
-    logging.set_verbosity(logging.WARN)
+  #if not FLAGS.verbosity:
+  #  logging.set_verbosity(logging.WARN)
 
-  comment_start = "\r\n<hidden value=\"%s\"></hidden>\r\n" % FLAGS.comment_start
-  comment_end = "\r\n<hidden value=\"%s\"></hidden>\r\n" % FLAGS.comment_end
+  comment_start = "\r\n<hidden value=\"%s\"></hidden>\r\n" % FLAGS.start_tag
+  comment_end = "\r\n<hidden value=\"%s\"></hidden>\r\n" % FLAGS.end_tag
 
   issue_number = get_issue_number(FLAGS.token, FLAGS.issue_title, FLAGS.issue_label)
   if not issue_number:
     logging.fatal("Couldn't find a '%s' issue matching '%s'",
                   FLAGS.issue_label,
                   FLAGS.issue_title)
+  logging.info("Got issue number: %d", issue_number)
   
   previous_comment = github.get_issue_body(FLAGS.token, issue_number)
   if comment_start not in previous_comment:
     logging.fatal("Couldn't find start tag '%s' in previous comment", comment_start)
   if comment_end not in previous_comment:
     logging.fatal("Couldn't find end tag '%s' in previous comment", comment_end)
-  
 
+  logging.info("Got previous comment (%d bytes)", len(previous_comment))
+
+  if comment_start == comment_end:
+    [prefix, _, suffix] = previous_comment.split(comment_start)
+  else:
+    [prefix, remainder] = previous_comment.split(comment_start)
+    [_, suffix] = remainder.split(comment_end)
+
+  logging.info("Prefix is %d bytes, suffix is %d bytes", len(prefix), len(suffix))
+
+  new_text = sys.stdin.read()
+  new_comment = prefix + comment_start + new_text + comment_end + suffix
+
+  print(new_comment)
 
 
 if __name__ == "__main__":
