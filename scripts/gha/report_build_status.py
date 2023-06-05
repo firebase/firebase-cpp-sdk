@@ -109,6 +109,7 @@ general_test_time = ' 09:0'
 firestore_test_time = ' 10:0'
 
 def rename_key(old_dict,old_name,new_name):
+    """Rename a key in a dictionary, preserving the order."""
     new_dict = {}
     for key,value in zip(old_dict.keys(),old_dict.values()):
         new_key = key if key != old_name else new_name
@@ -117,6 +118,9 @@ def rename_key(old_dict,old_name,new_name):
 
 
 def english_list(items, sep=','):
+  """Format a list in English. If there are two items, separate with "and".
+     If more than 2 items, separate with commas as well.
+  """
   if len(items) == 2:
     return items[0] + " and " + items[1]
   else:
@@ -126,12 +130,18 @@ def english_list(items, sep=','):
 
 
 def decorate_url(text, url):
+  """Put the text in a URL and replace spaces with nonbreaking spaces.
+     If not outputting Markdown, this does nothing.
+  """
   if not FLAGS.output_markdown:
     return text
   return ("[%s](%s)" % (text.replace(" ", "&nbsp;"), url))
 
 
 def analyze_log(text, url):
+  """Do a simple analysis of the log summary text to determine if the build
+     or test succeeded, flaked, or failed.
+  """
   build_status = decorate_url(_PASS_TEXT, url)
   test_status = decorate_url(_PASS_TEXT, url)
   if '[BUILD] [ERROR]' in text:
@@ -146,6 +156,7 @@ def analyze_log(text, url):
 
 
 def format_errors(all_errors, severity, event):
+  """Return a list of English-language formatted errors."""
   product_errors = []
   if severity not in all_errors: return None
   if event not in all_errors[severity]: return None
@@ -214,6 +225,8 @@ def format_errors(all_errors, severity, event):
 
 
 def create_notes(text):
+  """Combine the sets of errors into a single string.
+  """
   if not text: return ''
   errors = {}
   text += '\n'
@@ -272,6 +285,7 @@ def create_notes(text):
 def get_message_from_github_log(logs_zip,
                                 regex_filename,
                                 regex_line, debug=False):
+  """Find a specific line inside a single file from a GitHub run's logs."""
   for log in logs_zip.namelist():
     if re.search(regex_filename, log):
       log_text = logs_zip.read(log).decode()
@@ -363,7 +377,7 @@ def main(argv):
         if run['triggering_actor']['login'] != _TRIGGER_USER: continue
         package_tests_all.append(run)
   
-    # For each run in pack
+    # For each workflow_trigger run of the tests, determine which packaging run it goes with.
     package_tests = {}
   
     logging.info("Source tests: %s %s", list(source_tests.keys()),  [source_tests[r]['id'] for r in source_tests.keys()])
@@ -415,8 +429,11 @@ def main(argv):
                 run['log_success'] = success
                 run['log_results'] = results
             else:
+              # Artifacts expire after some time, so if they are gone, we need
+              # to read the GitHub logs instead.  This is much slower, so we
+              # prefer to read artifacts instead whenever possible.
               logging.info("Reading github logs for run %s instead", run['id'])
-              # artifact_contents is empty, get the github logs which is much slower
+
               logs_url = run['logs_url']
               headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': 'Bearer %s' % FLAGS.token}
               with requests.get(logs_url, headers=headers, stream=True) as response:
