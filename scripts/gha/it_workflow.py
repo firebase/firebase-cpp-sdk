@@ -222,7 +222,7 @@ def test_report(token, actor, commit, run_id, build_against, build_apis):
     report_title = _REPORT_TITLE
     firestore_issue_number = _get_issue_number(token, _REPORT_TITLE_FIRESTORE, _REPORT_LABEL)
     firestore_issue_url = "https://github.com/firebase/firebase-cpp-sdk/issues/%s" % firestore_issue_number
-    prefix = "Note: This report excludes firestore. Please also check **[the report for firestore](%s)**\n***\n" % firestore_issue_url
+    prefix = "Note: This report excludes Firestore. Please also check **[the report for Firestore](%s).**\n***\n" % firestore_issue_url
 
   issue_number = _get_issue_number(token, report_title, _REPORT_LABEL)
   previous_comment = github.get_issue_body(token, issue_number)
