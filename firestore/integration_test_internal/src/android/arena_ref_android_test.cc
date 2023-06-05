@@ -30,6 +30,7 @@
 namespace {
 
 using firebase::firestore::FirestoreAndroidIntegrationTest;
+using firebase::firestore::RefersToSameJavaObjectAs;
 using firebase::firestore::jni::AdoptExisting;
 using firebase::firestore::jni::ArenaRef;
 using firebase::firestore::jni::Env;
@@ -734,6 +735,328 @@ TEST_F(
   EXPECT_THAT(default_arena_ref, RefersToNullJavaObject());
   EXPECT_THAT(arena_ref_referring_to_null, RefersToNullJavaObject());
   EXPECT_THAT(arena_ref_referring_to_non_null, RefersToJavaObject(java_object));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for ArenaRef::operator=(ArenaRef&&) (move assignment operator)
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_F(ArenaRefTest,
+       MoveAssignmentOpCorrectlyAssignsADefaultInstanceFromADefaultInstance) {
+  ArenaRef arena_ref_move_dest;
+  ArenaRef default_arena_ref;
+
+  const ArenaRef& return_value = (arena_ref_move_dest = std::move(default_arena_ref));
+
+  EXPECT_THAT(arena_ref_move_dest, RefersToNullJavaObject());
+  EXPECT_THAT(default_arena_ref, RefersToNullJavaObject());
+  EXPECT_EQ(&return_value, &arena_ref_move_dest);
+}
+
+TEST_F(
+    ArenaRefTest,
+    MoveAssignmentOpCorrectlyAssignsADefaultInstanceFromAnInstanceReferringToNull) {
+  ArenaRef arena_ref_move_dest;
+  const ArenaRef arena_ref_referring_to_null(env(), nullptr);
+
+  const ArenaRef& return_value =
+      (arena_ref_move_dest = std::move(arena_ref_referring_to_null));
+
+  EXPECT_THAT(arena_ref_move_dest, RefersToNullJavaObject());
+  EXPECT_THAT(arena_ref_referring_to_null, RefersToNullJavaObject());
+  EXPECT_EQ(&return_value, &arena_ref_move_dest);
+}
+
+TEST_F(
+    ArenaRefTest,
+    MoveAssignmentOpCorrectlyAssignsADefaultInstanceFromAnInstanceReferringToNonNull) {
+  ArenaRef arena_ref_move_dest;
+  jobject java_object = NewJavaObject();
+  ArenaRef arena_ref_referring_to_non_null(env(), java_object);
+
+  const ArenaRef& return_value =
+      (arena_ref_move_dest = std::move(arena_ref_referring_to_non_null));
+
+  EXPECT_THAT(arena_ref_move_dest, RefersToJavaObject(java_object));
+  EXPECT_THAT(arena_ref_referring_to_non_null, RefersToNullJavaObject());
+  EXPECT_EQ(&return_value, &arena_ref_move_dest);
+}
+
+TEST_F(
+    ArenaRefTest,
+    MoveAssignmentOpCorrectlyAssignsAnInstanceReferringToNullFromADefaultInstance) {
+  ArenaRef arena_ref_move_dest(env(), nullptr);
+  ArenaRef default_arena_ref;
+
+  const ArenaRef& return_value = (arena_ref_move_dest = std::move(default_arena_ref));
+
+  EXPECT_THAT(arena_ref_move_dest, RefersToNullJavaObject());
+  EXPECT_THAT(default_arena_ref, RefersToNullJavaObject());
+  EXPECT_EQ(&return_value, &arena_ref_move_dest);
+}
+
+TEST_F(
+    ArenaRefTest,
+    MoveAssignmentOpCorrectlyAssignsAnInstanceReferringToNullFromAnInstanceReferringToNull) {
+  ArenaRef arena_ref_move_dest(env(), nullptr);
+  ArenaRef arena_ref_referring_to_null(env(), nullptr);
+
+  const ArenaRef& return_value =
+      (arena_ref_move_dest = std::move(arena_ref_referring_to_null));
+
+  EXPECT_THAT(arena_ref_move_dest, RefersToNullJavaObject());
+  EXPECT_THAT(arena_ref_referring_to_null, RefersToNullJavaObject());
+  EXPECT_EQ(&return_value, &arena_ref_move_dest);
+}
+
+TEST_F(
+    ArenaRefTest,
+    MoveAssignmentOpCorrectlyAssignsAnInstanceReferringToNullFromAnInstanceReferringToNonNull) {
+  ArenaRef arena_ref_move_dest(env(), nullptr);
+  jobject java_object = NewJavaObject();
+  ArenaRef arena_ref_referring_to_non_null(env(), java_object);
+
+  const ArenaRef& return_value =
+      (arena_ref_move_dest = std::move(arena_ref_referring_to_non_null));
+
+  EXPECT_THAT(arena_ref_move_dest, RefersToJavaObject(java_object));
+  EXPECT_THAT(arena_ref_referring_to_non_null, RefersToNullJavaObject());
+  EXPECT_EQ(&return_value, &arena_ref_move_dest);
+}
+
+TEST_F(
+    ArenaRefTest,
+    MoveAssignmentOpCorrectlyAssignsAnInstanceReferringToNonNullFromADefaultInstance) {
+  jobject java_object = NewJavaObject();
+  ArenaRef arena_ref_move_dest(env(), java_object);
+  ArenaRef default_arena_ref;
+
+  const ArenaRef& return_value = (arena_ref_move_dest = std::move(default_arena_ref));
+
+  EXPECT_THAT(arena_ref_move_dest, RefersToNullJavaObject());
+  EXPECT_THAT(default_arena_ref, RefersToNullJavaObject());
+  EXPECT_EQ(&return_value, &arena_ref_move_dest);
+}
+
+TEST_F(
+    ArenaRefTest,
+    MoveAssignmentOpCorrectlyAssignsAnInstanceReferringToNonNullFromAnInstanceReferringToNull) {
+  jobject java_object = NewJavaObject();
+  ArenaRef arena_ref_move_dest(env(), java_object);
+  ArenaRef arena_ref_referring_to_null(env(), nullptr);
+
+  const ArenaRef& return_value =
+      (arena_ref_move_dest = std::move(arena_ref_referring_to_null));
+
+  EXPECT_THAT(arena_ref_move_dest, RefersToNullJavaObject());
+  EXPECT_THAT(arena_ref_referring_to_null, RefersToNullJavaObject());
+  EXPECT_EQ(&return_value, &arena_ref_move_dest);
+}
+
+TEST_F(
+    ArenaRefTest,
+    MoveAssignmentOpCorrectlyAssignsAnInstanceReferringToNonNullFromAnInstanceReferringToNonNull) {
+  ArenaRef arena_ref_move_dest(env(), NewJavaObject());
+  jobject java_object = NewJavaObject();
+  ArenaRef arena_ref_referring_to_non_null(env(), java_object);
+
+  const ArenaRef& return_value =
+      (arena_ref_move_dest = std::move(arena_ref_referring_to_non_null));
+
+  EXPECT_THAT(arena_ref_move_dest, RefersToJavaObject(java_object));
+  EXPECT_THAT(arena_ref_referring_to_non_null, RefersToNullJavaObject());
+  EXPECT_EQ(&return_value, &arena_ref_move_dest);
+}
+
+TEST_F(ArenaRefTest,
+       MoveAssignmentOpCorrectlyAssignsSelfWhenSelfIsDefaultInstance) {
+  ArenaRef default_arena_ref;
+
+  const ArenaRef& return_value = (default_arena_ref = std::move(default_arena_ref));
+
+  EXPECT_THAT(default_arena_ref, RefersToNullJavaObject());
+  EXPECT_EQ(&return_value, &default_arena_ref);
+}
+
+TEST_F(
+    ArenaRefTest,
+    MoveAssignmentOpCorrectlyAssignsSelfWhenSelfIsAnInstanceReferringToNull) {
+  ArenaRef arena_ref_referring_to_null(env(), nullptr);
+
+  const ArenaRef& return_value =
+      (arena_ref_referring_to_null = std::move(arena_ref_referring_to_null));
+
+  EXPECT_THAT(arena_ref_referring_to_null, RefersToNullJavaObject());
+  EXPECT_EQ(&return_value, &arena_ref_referring_to_null);
+}
+
+TEST_F(
+    ArenaRefTest,
+    MoveAssignmentOpCorrectlyAssignsSelfWhenSelfIsAnInstanceReferringToNonNull) {
+  jobject java_object = NewJavaObject();
+  ArenaRef arena_ref_referring_to_non_null(env(), java_object);
+
+  const ArenaRef& return_value =
+      (arena_ref_referring_to_non_null = std::move(arena_ref_referring_to_non_null));
+
+  EXPECT_THAT(arena_ref_referring_to_non_null, RefersToJavaObject(java_object));
+  EXPECT_EQ(&return_value, &arena_ref_referring_to_non_null);
+}
+
+TEST_F(
+    ArenaRefTest,
+    MoveAssignmentOpOnADefaultInstanceShouldMoveIfCalledWithPendingException) {
+  ArenaRef default_arena_ref;
+  jobject java_object = NewJavaObject();
+  ArenaRef arena_ref_referring_to_non_null(env(), java_object);
+  ThrowException();
+  ClearCurrentExceptionAfterTest();
+
+  const ArenaRef& return_value =
+      (default_arena_ref = std::move(arena_ref_referring_to_non_null));
+
+  env().ClearExceptionOccurred();
+  EXPECT_THAT(default_arena_ref, RefersToJavaObject(java_object));
+  EXPECT_EQ(&return_value, &default_arena_ref);
+  EXPECT_THAT(arena_ref_referring_to_non_null, RefersToNullJavaObject());
+}
+
+TEST_F(
+    ArenaRefTest,
+    MoveAssignmentOpOnAnInstanceReferringToNullShouldMoveIfCalledWithPendingException) {
+  ArenaRef arena_ref_referring_to_null(env(), nullptr);
+  jobject java_object = NewJavaObject();
+  ArenaRef arena_ref_referring_to_non_null(env(), java_object);
+  ThrowException();
+  ClearCurrentExceptionAfterTest();
+
+  const ArenaRef& return_value = (arena_ref_referring_to_null = std::move(arena_ref_referring_to_non_null));
+
+  env().ClearExceptionOccurred();
+  EXPECT_THAT(arena_ref_referring_to_null, RefersToJavaObject(java_object));
+  EXPECT_EQ(&return_value, &arena_ref_referring_to_null);
+  EXPECT_THAT(arena_ref_referring_to_non_null, RefersToNullJavaObject());
+}
+
+TEST_F(
+    ArenaRefTest,
+    MoveAssignmentOpOnAnInstanceReferringToNonNullShouldMoveIfCalledWithPendingException) {
+  ArenaRef arena_ref_referring_to_non_null(env(), NewJavaObject());
+  jobject java_object = NewJavaObject();
+  ArenaRef another_arena_ref_referring_to_non_null(env(), java_object);
+  ThrowException();
+  ClearCurrentExceptionAfterTest();
+
+  const ArenaRef& return_value = (arena_ref_referring_to_non_null = std::move(another_arena_ref_referring_to_non_null));
+
+  env().ClearExceptionOccurred();
+  EXPECT_THAT(arena_ref_referring_to_non_null, RefersToJavaObject(java_object));
+  EXPECT_EQ(&return_value, &arena_ref_referring_to_non_null);
+  EXPECT_THAT(another_arena_ref_referring_to_non_null, RefersToNullJavaObject());
+}
+
+TEST_F(
+    ArenaRefTest,
+    DestObjectOfMoveAssignmentOperatorShouldBeUnaffectedByChangesToSourceObject) {
+  auto default_arena_ref = std::make_unique<ArenaRef>();
+  ArenaRef default_arena_ref_move_dest;
+  auto arena_ref_referring_to_null = std::make_unique<ArenaRef>(env(), nullptr);
+  ArenaRef arena_ref_referring_to_null_move_dest;
+  jobject java_object = NewJavaObject();
+  auto arena_ref_referring_to_non_null =
+      std::make_unique<ArenaRef>(env(), java_object);
+  ArenaRef arena_ref_referring_to_non_null_move_dest;
+
+  default_arena_ref_move_dest = std::move(*default_arena_ref);
+  arena_ref_referring_to_null_move_dest = std::move(*arena_ref_referring_to_null);
+  arena_ref_referring_to_non_null_move_dest = std::move(*arena_ref_referring_to_non_null);
+
+  default_arena_ref->reset(env(), Object(NewJavaObject()));
+  arena_ref_referring_to_null->reset(env(), Object(NewJavaObject()));
+  arena_ref_referring_to_non_null->reset(env(), Object(NewJavaObject()));
+
+  EXPECT_THAT(default_arena_ref_move_dest, RefersToNullJavaObject());
+  EXPECT_THAT(arena_ref_referring_to_null_move_dest, RefersToNullJavaObject());
+  EXPECT_THAT(arena_ref_referring_to_non_null_move_dest,
+              RefersToJavaObject(java_object));
+
+  default_arena_ref.reset();
+  arena_ref_referring_to_null.reset();
+  arena_ref_referring_to_non_null.reset();
+
+  EXPECT_THAT(default_arena_ref_move_dest, RefersToNullJavaObject());
+  EXPECT_THAT(arena_ref_referring_to_null_move_dest, RefersToNullJavaObject());
+  EXPECT_THAT(arena_ref_referring_to_non_null_move_dest,
+              RefersToJavaObject(java_object));
+}
+
+TEST_F(
+    ArenaRefTest,
+    SourceObjectOfMoveAssignmentOperatorShouldBeUnaffectedByChangesToDestObject) {
+  ArenaRef default_arena_ref;
+  auto default_arena_ref_move_dest = std::make_unique<ArenaRef>();
+  ArenaRef arena_ref_referring_to_null(env(), nullptr);
+  auto arena_ref_referring_to_null_move_dest = std::make_unique<ArenaRef>();
+  jobject java_object = NewJavaObject();
+  ArenaRef arena_ref_referring_to_non_null(env(), java_object);
+  auto arena_ref_referring_to_non_null_move_dest = std::make_unique<ArenaRef>();
+
+  *default_arena_ref_move_dest = std::move(default_arena_ref);
+  *arena_ref_referring_to_null_move_dest = std::move(arena_ref_referring_to_null);
+  *arena_ref_referring_to_non_null_move_dest = std::move(arena_ref_referring_to_non_null);
+
+  default_arena_ref_move_dest->reset(env(), Object(NewJavaObject()));
+  arena_ref_referring_to_null_move_dest->reset(env(), Object(NewJavaObject()));
+  arena_ref_referring_to_non_null_move_dest->reset(env(), Object(NewJavaObject()));
+
+  EXPECT_THAT(default_arena_ref, RefersToNullJavaObject());
+  EXPECT_THAT(arena_ref_referring_to_null, RefersToNullJavaObject());
+  EXPECT_THAT(arena_ref_referring_to_non_null, RefersToNullJavaObject());
+
+  default_arena_ref_move_dest.reset();
+  arena_ref_referring_to_null_move_dest.reset();
+  arena_ref_referring_to_non_null_move_dest.reset();
+
+  EXPECT_THAT(default_arena_ref, RefersToNullJavaObject());
+  EXPECT_THAT(arena_ref_referring_to_null, RefersToNullJavaObject());
+  EXPECT_THAT(arena_ref_referring_to_non_null, RefersToNullJavaObject());
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for ArenaRef::get()
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_F(ArenaRefTest, GetReturnsNullIfInvokedOnADefaultInstance) {
+  const ArenaRef default_arena_ref;
+
+  Local<Object> return_value = default_arena_ref.get(env());
+
+  EXPECT_EQ(return_value.get(), nullptr);
+}
+
+TEST_F(ArenaRefTest, GetReturnsNullIfInvokedOnAnInstanceThatAdoptedNull) {
+  const ArenaRef arena_ref_referring_to_null(env(), nullptr);
+
+  Local<Object> return_value = arena_ref_referring_to_null.get(env());
+
+  EXPECT_EQ(return_value.get(), nullptr);
+}
+
+TEST_F(ArenaRefTest, GetReturnsTheNonNullObjectThatItWasCreatedWith) {
+  jobject java_object = NewJavaObject();
+  const ArenaRef arena_ref_referring_to_non_null(env(), java_object);
+
+  Local<Object> return_value = arena_ref_referring_to_non_null.get(env());
+
+  EXPECT_THAT(return_value, RefersToSameJavaObjectAs(Object(java_object)));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests for ArenaRef::reset()
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_F(ArenaRefTest, ResetTest) {
+  FAIL() << "Add tests for reset()";
 }
 
 }  // namespace
