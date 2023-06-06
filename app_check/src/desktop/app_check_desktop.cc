@@ -53,8 +53,9 @@ ReferenceCountedFutureImpl* AppCheckInternal::future() {
 }
 
 bool AppCheckInternal::HasValidCacheToken() const {
-  // Get the current time, in milliseconds
-  int64_t current_time = std::time(nullptr) * 1000;
+  // Get the current time, in milliseconds (Done in two lines because of x86)
+  int64_t current_time = std::time(nullptr);
+  current_time *= 1000;
   // TODO(amaurice): Add some additional time to the check
   return cached_token_.expire_time_millis > current_time;
 }
