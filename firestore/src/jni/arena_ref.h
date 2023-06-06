@@ -93,6 +93,9 @@ class ArenaRef final {
    *
    * Subsequent invocations of `get()` will return the given object. The given
    * object may be a Java "null" object.
+   *
+   * If invoked with a pending Java exception then this `ArenaRef` is set to a
+   * `null` Java object reference.
    */
   void reset(Env& env, const Object&);
 
