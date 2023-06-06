@@ -491,10 +491,11 @@ def main(argv):
 
   table_header_string = row_prefix + row_separator.join(table_fields) + row_suffix
   table_row_fmt = row_prefix + row_separator.join(["%s" for f in table_fields]) + row_suffix
-  print(table_header_string)
-  
-  if FLAGS.output_header and FLAGS.output_markdown:
-    print(table_row_fmt.replace("%s", "---").replace(" ", ""))
+
+  if FLAGS.output_header:
+    print(table_header_string)
+    if FLAGS.output_markdown:
+      print(table_row_fmt.replace("%s", "---").replace(" ", ""))
 
   days_sorted = sorted(all_days)
   if FLAGS.reverse: days_sorted = reversed(days_sorted)
