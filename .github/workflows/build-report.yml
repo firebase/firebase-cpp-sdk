@@ -56,7 +56,6 @@ jobs:
         cat >> comment.md <<EOF
         </details>
         <details><summary>📄</summary><pre>
-
         EOF
         cat report.txt >> comment.md
         cat >> comment.md <<EOF
