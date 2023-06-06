@@ -475,7 +475,7 @@ def main(argv):
 
   table_fields = (
       ["Date"] +
-      (["Build Bulbasaur"] if FLAGS.output_username else ([] if FLAGS.output_markdown else [""])) +
+      (["Username"] if FLAGS.output_username else ([] if FLAGS.output_markdown else [""])) +
       ([""] if FLAGS.include_blank_column and not FLAGS.output_markdown else []) +
       ["Build vs Source Repo", "Test vs Source Repo",
        "SDK Packaging", "Build vs SDK Package", "Test vs SDK Package",
