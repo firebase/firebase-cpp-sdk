@@ -21,14 +21,12 @@
 #include <memory>
 
 #include "firestore/src/include/firebase/firestore/settings.h"
+#include "firestore/src/main/local_cache_settings_main.h"
 
 namespace firebase {
 namespace firestore {
-namespace api {
-class LocalCacheSettings;
-class MemoryGargabeCollectorSettings;
-}  // namespace api
 
+class LocalCacheSettingsInternal;
 class PersistentCacheSettingsInternal;
 class MemoryCacheSettingsInternal;
 class MemoryLruGCSettingsInternal;
@@ -56,7 +54,7 @@ class LocalCacheSettings {
   friend class Settings;
 
   virtual Kind kind() const = 0;
-  virtual const api::LocalCacheSettings& core_cache_settings() const = 0;
+  virtual const LocalCacheSettingsInternal& internal() const = 0;
 };
 
 /**
@@ -110,7 +108,9 @@ class PersistentCacheSettings final : public LocalCacheSettings {
   }
 
   // Get the corresponding settings object from the core sdk.
-  const api::LocalCacheSettings& core_cache_settings() const override;
+  const PersistentCacheSettingsInternal& internal() const override {
+    return *settings_internal_;
+  }
 
   std::shared_ptr<PersistentCacheSettingsInternal> settings_internal_;
 };
@@ -152,7 +152,9 @@ class MemoryCacheSettings final : public LocalCacheSettings {
   }
 
   // Get the corresponding settings object from the core sdk.
-  const api::LocalCacheSettings& core_cache_settings() const override;
+  const MemoryCacheSettingsInternal& internal() const override {
+    return *settings_internal_;
+  }
 
   std::shared_ptr<MemoryCacheSettingsInternal> settings_internal_;
 };
@@ -173,8 +175,7 @@ class MemoryGarbageCollectorSettings {
 
  private:
   friend class MemoryCacheSettings;
-  virtual const api::MemoryGargabeCollectorSettings& core_gc_settings()
-      const = 0;
+  virtual const MemoryGarbageCollectorSettingsInternal& internal() const = 0;
 };
 
 /**
@@ -204,8 +205,9 @@ class MemoryEagerGCSettings final : public MemoryGarbageCollectorSettings {
  private:
   friend class MemoryCacheSettings;
   MemoryEagerGCSettings();
-
-  const api::MemoryGargabeCollectorSettings& core_gc_settings() const override;
+  const MemoryEagerGCSettingsInternal& internal() const override {
+    return *settings_internal_;
+  }
 
   std::shared_ptr<MemoryEagerGCSettingsInternal> settings_internal_;
 };
@@ -261,7 +263,9 @@ class MemoryLruGCSettings final : public MemoryGarbageCollectorSettings {
   MemoryLruGCSettings();
   MemoryLruGCSettings(const MemoryLruGCSettingsInternal& other);
 
-  const api::MemoryGargabeCollectorSettings& core_gc_settings() const override;
+  const MemoryLruGCSettingsInternal& internal() const override {
+    return *settings_internal_;
+  }
 
   std::shared_ptr<MemoryLruGCSettingsInternal> settings_internal_;
 };

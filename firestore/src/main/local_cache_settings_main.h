@@ -25,7 +25,10 @@
 namespace firebase {
 namespace firestore {
 
-class LocalCacheSettingsInternal {};
+class LocalCacheSettingsInternal {
+ public:
+  virtual const api::LocalCacheSettings& core_settings() const = 0;
+};
 
 class PersistentCacheSettingsInternal final
     : public LocalCacheSettingsInternal {
@@ -39,7 +42,9 @@ class PersistentCacheSettingsInternal final
     return &lhs == &rhs || lhs.settings_ == rhs.settings_;
   }
 
-  const api::PersistentCacheSettings& core_settings() { return settings_; }
+  const api::PersistentCacheSettings& core_settings() const override {
+    return settings_;
+  }
   void set_core_settings(const api::PersistentCacheSettings& settings) {
     settings_ = settings;
   }
@@ -48,7 +53,10 @@ class PersistentCacheSettingsInternal final
   api::PersistentCacheSettings settings_;
 };
 
-class MemoryGarbageCollectorSettingsInternal {};
+class MemoryGarbageCollectorSettingsInternal {
+ public:
+  virtual const api::MemoryGargabeCollectorSettings& core_settings() const = 0;
+};
 
 class MemoryEagerGCSettingsInternal final
     : public MemoryGarbageCollectorSettingsInternal {
@@ -62,7 +70,9 @@ class MemoryEagerGCSettingsInternal final
     return &lhs == &rhs || lhs.settings_ == rhs.settings_;
   }
 
-  const api::MemoryEagerGcSettings& core_settings() { return settings_; }
+  const api::MemoryEagerGcSettings& core_settings() const override {
+    return settings_;
+  }
   void set_core_settings(const api::MemoryEagerGcSettings& settings) {
     settings_ = settings;
   }
@@ -83,7 +93,9 @@ class MemoryLruGCSettingsInternal final
     return &lhs == &rhs || lhs.settings_ == rhs.settings_;
   }
 
-  const api::MemoryLruGcSettings& core_settings() { return settings_; }
+  const api::MemoryLruGcSettings& core_settings() const override {
+    return settings_;
+  }
   void set_core_settings(const api::MemoryLruGcSettings& settings) {
     settings_ = settings;
   }
@@ -103,7 +115,9 @@ class MemoryCacheSettingsInternal final : public LocalCacheSettingsInternal {
     return &lhs == &rhs || lhs.settings_ == rhs.settings_;
   }
 
-  const api::MemoryCacheSettings& core_settings() { return settings_; }
+  const api::MemoryCacheSettings& core_settings() const override {
+    return settings_;
+  }
   void set_core_settings(const api::MemoryCacheSettings& settings) {
     settings_ = settings;
   }
