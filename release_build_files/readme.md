@@ -629,6 +629,7 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
+    - App Check (Desktop): Fixed expired tokens being cached on 32-bit systems.
     - Remote Config (Desktop): Fixed handling of time zones on Windows when the
       time zone name in the current system language contains an accented
       character or apostrophe. This adds a requirement for applications using
