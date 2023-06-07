@@ -52,6 +52,10 @@ class LocalCacheSettings {
  private:
   friend class FirestoreInternal;
   friend class Settings;
+  friend class PersistentCacheSettings;
+  friend class MemoryCacheSettings;
+
+  LocalCacheSettings() = default;
 
   virtual Kind kind() const = 0;
   virtual const LocalCacheSettingsInternal& internal() const = 0;
@@ -87,7 +91,7 @@ class PersistentCacheSettings final : public LocalCacheSettings {
    * cleanup will be attempted.
    *
    * By default, persistence cache is enabled with a cache size of 100 MB. The
-   * minimum value is 1 MB.
+   * minimum value is 1 MB (1 * 1024 * 1024 bytes).
    */
   PersistentCacheSettings WithSizeBytes(int64_t size) const;
 
@@ -248,7 +252,7 @@ class MemoryLruGCSettings final : public MemoryGarbageCollectorSettings {
    * cleanup will be attempted.
    *
    * By default, memory LRU cache is enabled with a cache size of 100 MB. The
-   * minimum value is 1 MB.
+   * minimum value is 1 MB (1 * 1024 * 1024 bytes).
    */
   MemoryLruGCSettings WithSizeBytes(int64_t size);
 
