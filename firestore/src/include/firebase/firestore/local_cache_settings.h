@@ -21,14 +21,18 @@
 #include <memory>
 
 #include "firestore/src/include/firebase/firestore/settings.h"
-#include "firestore/src/main/firestore_main.h"
-#include "firestore/src/main/local_cache_settings_main.h"
 
 namespace firebase {
 namespace firestore {
+namespace api {
+class LocalCacheSettings;
+class MemoryGargabeCollectorSettings;
+}  // namespace api
 
 class PersistentCacheSettingsInternal;
 class MemoryCacheSettingsInternal;
+class MemoryLruGCSettingsInternal;
+class MemoryEagerGCSettingsInternal;
 
 /**
  * Abstract class implemented by all supported cache settings.
@@ -70,20 +74,6 @@ class PersistentCacheSettings final : public LocalCacheSettings {
   /** Create a default instance `PersistenceCacheSettings`. */
   static PersistentCacheSettings Create();
 
-  /** Copy constructor. */
-  PersistentCacheSettings(const PersistentCacheSettings& other);
-
-  /** Copy assignment. */
-  PersistentCacheSettings& operator=(const PersistentCacheSettings& other);
-
-  /** Move constructor. */
-  PersistentCacheSettings(PersistentCacheSettings&& other) = default;
-
-  /** Move assignment. */
-  PersistentCacheSettings& operator=(PersistentCacheSettings&& other) = default;
-
-  ~PersistentCacheSettings() override;
-
   /** Equality function. */
   friend bool operator==(const PersistentCacheSettings& lhs,
                          const PersistentCacheSettings& rhs);
@@ -107,9 +97,7 @@ class PersistentCacheSettings final : public LocalCacheSettings {
    * Returns the approximate cache size threshold configured. Garbage collection
    * kicks in once the cache size exceeds this threshold.
    */
-  int64_t size_bytes() const {
-    return settings_internal_->core_settings().size_bytes();
-  }
+  int64_t size_bytes() const;
 
  private:
   friend class Settings;
@@ -124,7 +112,7 @@ class PersistentCacheSettings final : public LocalCacheSettings {
   // Get the corresponding settings object from the core sdk.
   const api::LocalCacheSettings& core_cache_settings() const override;
 
-  std::unique_ptr<PersistentCacheSettingsInternal> settings_internal_;
+  std::shared_ptr<PersistentCacheSettingsInternal> settings_internal_;
 };
 
 class MemoryGarbageCollectorSettings;
@@ -141,14 +129,6 @@ class MemoryCacheSettings final : public LocalCacheSettings {
  public:
   /** Create a default instance `MemoryCacheSettings`. */
   static MemoryCacheSettings Create();
-
-  /** Copy constructor. */
-  MemoryCacheSettings(const MemoryCacheSettings& other);
-
-  /** Copy assignment. */
-  MemoryCacheSettings& operator=(const MemoryCacheSettings& other);
-
-  ~MemoryCacheSettings() override;
 
   /** Equality function. */
   friend bool operator==(const MemoryCacheSettings& lhs,
@@ -174,7 +154,7 @@ class MemoryCacheSettings final : public LocalCacheSettings {
   // Get the corresponding settings object from the core sdk.
   const api::LocalCacheSettings& core_cache_settings() const override;
 
-  std::unique_ptr<MemoryCacheSettingsInternal> settings_internal_;
+  std::shared_ptr<MemoryCacheSettingsInternal> settings_internal_;
 };
 
 /**
@@ -187,6 +167,9 @@ class MemoryCacheSettings final : public LocalCacheSettings {
 class MemoryGarbageCollectorSettings {
  public:
   virtual ~MemoryGarbageCollectorSettings() = default;
+  /** Equality function. */
+  friend bool operator==(const MemoryGarbageCollectorSettings& lhs,
+                         const MemoryGarbageCollectorSettings& rhs);
 
  private:
   friend class MemoryCacheSettings;
@@ -214,8 +197,6 @@ class MemoryEagerGCSettings final : public MemoryGarbageCollectorSettings {
   /** Create a default instance `MemoryEagerGCSettings`. */
   static MemoryEagerGCSettings Create();
 
-  ~MemoryEagerGCSettings() override;
-
   /** Equality function. */
   friend bool operator==(const MemoryEagerGCSettings& lhs,
                          const MemoryEagerGCSettings& rhs);
@@ -224,11 +205,9 @@ class MemoryEagerGCSettings final : public MemoryGarbageCollectorSettings {
   friend class MemoryCacheSettings;
   MemoryEagerGCSettings();
 
-  const api::MemoryGargabeCollectorSettings& core_gc_settings() const override {
-    return settings_internal_->core_settings();
-  }
+  const api::MemoryGargabeCollectorSettings& core_gc_settings() const override;
 
-  std::unique_ptr<MemoryEagerGCSettingsInternal> settings_internal_;
+  std::shared_ptr<MemoryEagerGCSettingsInternal> settings_internal_;
 };
 
 /**
@@ -251,7 +230,6 @@ class MemoryLruGCSettings final : public MemoryGarbageCollectorSettings {
  public:
   /** Create a default instance `MemoryLruGCSettings`. */
   static MemoryLruGCSettings Create();
-  ~MemoryLruGCSettings() override;
 
   /** Equality function. */
   friend bool operator==(const MemoryLruGCSettings& lhs,
@@ -276,20 +254,16 @@ class MemoryLruGCSettings final : public MemoryGarbageCollectorSettings {
    * Returns the approximate cache size threshold configured. Garbage collection
    * kicks in once the cache size exceeds this threshold.
    */
-  int64_t size_bytes() const {
-    return settings_internal_->core_settings().size_bytes();
-  }
+  int64_t size_bytes() const;
 
  private:
   friend class MemoryCacheSettings;
   MemoryLruGCSettings();
   MemoryLruGCSettings(const MemoryLruGCSettingsInternal& other);
 
-  const api::MemoryGargabeCollectorSettings& core_gc_settings() const override {
-    return settings_internal_->core_settings();
-  }
+  const api::MemoryGargabeCollectorSettings& core_gc_settings() const override;
 
-  std::unique_ptr<MemoryLruGCSettingsInternal> settings_internal_;
+  std::shared_ptr<MemoryLruGCSettingsInternal> settings_internal_;
 };
 
 /** Inequality function. */
@@ -307,6 +281,12 @@ inline bool operator!=(const MemoryCacheSettings& lhs,
 /** Inequality function. */
 inline bool operator!=(const PersistentCacheSettings& lhs,
                        const PersistentCacheSettings& rhs) {
+  return !(lhs == rhs);
+}
+
+/** Inequality function. */
+inline bool operator!=(const MemoryGarbageCollectorSettings& lhs,
+                       const MemoryGarbageCollectorSettings& rhs) {
   return !(lhs == rhs);
 }
 

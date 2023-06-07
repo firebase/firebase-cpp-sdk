@@ -44,28 +44,8 @@ bool operator==(const LocalCacheSettings& lhs, const LocalCacheSettings& rhs) {
 PersistentCacheSettings PersistentCacheSettings::Create() { return {}; }
 
 PersistentCacheSettings::PersistentCacheSettings() {
-  settings_internal_ = std::make_unique<PersistentCacheSettingsInternal>(
+  settings_internal_ = std::make_shared<PersistentCacheSettingsInternal>(
       CorePersistentSettings{});
-}
-
-PersistentCacheSettings::~PersistentCacheSettings() {
-  settings_internal_.reset();
-}
-
-PersistentCacheSettings::PersistentCacheSettings(
-    const PersistentCacheSettings& other) {
-  settings_internal_ = std::make_unique<PersistentCacheSettingsInternal>(
-      *other.settings_internal_);
-}
-
-PersistentCacheSettings& PersistentCacheSettings::operator=(
-    const PersistentCacheSettings& other) {
-  if (this == &other) {
-    return *this;
-  }
-  settings_internal_ = std::make_unique<PersistentCacheSettingsInternal>(
-      *other.settings_internal_);
-  return *this;
 }
 
 PersistentCacheSettings PersistentCacheSettings::WithSizeBytes(
@@ -80,58 +60,54 @@ const CoreCacheSettings& PersistentCacheSettings::core_cache_settings() const {
   return settings_internal_->core_settings();
 }
 
+int64_t PersistentCacheSettings::size_bytes() const {
+  return settings_internal_->core_settings().size_bytes();
+}
+
 MemoryEagerGCSettings MemoryEagerGCSettings::Create() { return {}; }
 
 MemoryEagerGCSettings::MemoryEagerGCSettings() {
-  settings_internal_ = std::make_unique<MemoryEagerGCSettingsInternal>(
+  settings_internal_ = std::make_shared<MemoryEagerGCSettingsInternal>(
       CoreMemoryEagerGcSettings{});
 }
 
-MemoryEagerGCSettings::~MemoryEagerGCSettings() { settings_internal_.reset(); }
+const api::MemoryGargabeCollectorSettings&
+MemoryEagerGCSettings::core_gc_settings() const {
+  return settings_internal_->core_settings();
+}
 
 MemoryLruGCSettings MemoryLruGCSettings::Create() { return {}; }
 
 MemoryLruGCSettings::MemoryLruGCSettings() {
   settings_internal_ =
-      std::make_unique<MemoryLruGCSettingsInternal>(CoreMemoryLruGcSettings{});
+      std::make_shared<MemoryLruGCSettingsInternal>(CoreMemoryLruGcSettings{});
 }
 
 MemoryLruGCSettings::MemoryLruGCSettings(
     const MemoryLruGCSettingsInternal& other) {
-  settings_internal_ = std::make_unique<MemoryLruGCSettingsInternal>(other);
+  settings_internal_ = std::make_shared<MemoryLruGCSettingsInternal>(other);
 }
-
-MemoryLruGCSettings::~MemoryLruGCSettings() { settings_internal_.reset(); }
 
 MemoryLruGCSettings MemoryLruGCSettings::WithSizeBytes(int64_t size) {
   return {MemoryLruGCSettingsInternal{
       settings_internal_->core_settings().WithSizeBytes(size)}};
 }
 
+int64_t MemoryLruGCSettings::size_bytes() const {
+  return settings_internal_->core_settings().size_bytes();
+}
+
+const api::MemoryGargabeCollectorSettings&
+MemoryLruGCSettings::core_gc_settings() const {
+  return settings_internal_->core_settings();
+}
+
 MemoryCacheSettings MemoryCacheSettings::Create() { return {}; }
 
 MemoryCacheSettings::MemoryCacheSettings() {
   settings_internal_ =
-      std::make_unique<MemoryCacheSettingsInternal>(CoreMemorySettings{});
+      std::make_shared<MemoryCacheSettingsInternal>(CoreMemorySettings{});
 }
-
-MemoryCacheSettings::MemoryCacheSettings(const MemoryCacheSettings& other) {
-  settings_internal_ =
-      std::make_unique<MemoryCacheSettingsInternal>(*other.settings_internal_);
-}
-
-MemoryCacheSettings& MemoryCacheSettings::operator=(
-    const MemoryCacheSettings& other) {
-  if (this == &other) {
-    return *this;
-  }
-
-  settings_internal_ =
-      std::make_unique<MemoryCacheSettingsInternal>(*other.settings_internal_);
-  return *this;
-}
-
-MemoryCacheSettings::~MemoryCacheSettings() { settings_internal_.reset(); }
 
 MemoryCacheSettings MemoryCacheSettings::WithGarbageCollectorSettings(
     const MemoryGarbageCollectorSettings& settings) const {
@@ -155,6 +131,11 @@ bool operator==(const MemoryCacheSettings& lhs,
 bool operator==(const PersistentCacheSettings& lhs,
                 const PersistentCacheSettings& rhs) {
   return &lhs == &rhs || (*lhs.settings_internal_ == *rhs.settings_internal_);
+}
+
+bool operator==(const MemoryGarbageCollectorSettings& lhs,
+                const MemoryGarbageCollectorSettings& rhs) {
+  return lhs.core_gc_settings() == rhs.core_gc_settings();
 }
 
 bool operator==(const MemoryEagerGCSettings& lhs,
