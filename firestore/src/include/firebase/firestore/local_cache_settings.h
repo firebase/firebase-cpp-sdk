@@ -179,6 +179,11 @@ class MemoryGarbageCollectorSettings {
 
  private:
   friend class MemoryCacheSettings;
+  friend class MemoryEagerGCSettings;
+  friend class MemoryLruGCSettings;
+
+  MemoryGarbageCollectorSettings() = default;
+
   virtual const MemoryGarbageCollectorSettingsInternal& internal() const = 0;
 };
 
