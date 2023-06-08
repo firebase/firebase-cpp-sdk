@@ -548,6 +548,7 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ad_view.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/interstitial_ad.h
+    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/internal/native_ad.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/rewarded_ad.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/types.h)
   set(installations_HDRS
