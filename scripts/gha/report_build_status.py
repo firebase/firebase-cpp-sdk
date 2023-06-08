@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Installing prerequisites:
-# 
+#
 # sudo python3 -m pip install python-dateutil progress attrs
 
 """A utility to report on daily build status.
@@ -166,14 +166,14 @@ def format_errors(all_errors, severity, event):
   individual_errors = 0
   for product, platform_dict in errors.items():
     platforms = list(platform_dict.keys())
-      
+
     if product == 'missing_log':
       product_name = 'missing logs'
     elif product == 'gma':
       product_name = product.upper()
     else:
       product_name = product.replace('_', ' ').title()
-    
+
     if 'iOS' in platforms:
       all_simulator = True
       for descriptors in platform_dict['iOS']:
@@ -182,7 +182,7 @@ def format_errors(all_errors, severity, event):
       if all_simulator:
         platform_dict = rename_key(platform_dict, 'iOS', 'iOS simulator')
         platforms = list(platform_dict.keys())
-      
+
     if 'Android' in platforms:
       all_emulator = True
       for descriptors in platform_dict['Android']:
@@ -202,7 +202,7 @@ def format_errors(all_errors, severity, event):
 
   event_text = event.lower()
   severity_text = 'flake' if severity == 'FLAKINESS' else severity.lower()
-  
+
   if total_errors == 0:
     return None
 
@@ -345,7 +345,7 @@ def main(argv):
           all_days.add(day)
         # elif firestore_test_time in str(run['date']):
         #   firestore_tests[day] = run
-    
+
       workflow_id = _WORKFLOW_PACKAGING
       all_runs = github.list_workflow_runs(FLAGS.token, workflow_id, _BRANCH, 'schedule', _LIMIT)
       bar.next()
@@ -362,7 +362,7 @@ def main(argv):
         all_days.add(day)
         packaging_runs[day] = run
         packaging_run_ids.add(str(run['id']))
-    
+
       workflow_id = _WORKFLOW_TESTS
       all_runs = github.list_workflow_runs(FLAGS.token, workflow_id, _BRANCH, 'workflow_dispatch', _LIMIT)
       bar.next()
@@ -376,22 +376,22 @@ def main(argv):
         if run['day'] < start_date or run['day'] > end_date: continue
         if run['triggering_actor']['login'] != _TRIGGER_USER: continue
         package_tests_all.append(run)
-  
+
     # For each workflow_trigger run of the tests, determine which packaging run it goes with.
     package_tests = {}
-  
+
     logging.info("Source tests: %s %s", list(source_tests.keys()),  [source_tests[r]['id'] for r in source_tests.keys()])
     logging.info("Packaging runs: %s %s", list(packaging_runs.keys()), [packaging_runs[r]['id'] for r in packaging_runs.keys()])
-  
+
     with progress.bar.Bar('Downloading triggered workflow logs...', max=len(package_tests_all)) as bar:
       for run in package_tests_all:
         day = str(run['date'].date())
         if day in package_tests and int(package_tests[day]['id']) < int(run['id']):
           bar.next()
           continue
-    
+
         packaging_run = 0
-  
+
         logs_url = run['logs_url']
         headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': 'Bearer %s' % FLAGS.token}
         with requests.get(logs_url, headers=headers, stream=True) as response:
@@ -407,9 +407,9 @@ def main(argv):
         if str(packaging_run) in packaging_run_ids:
           package_tests[day] = run
         bar.next()
-  
+
     logging.info("Package tests: %s %s", list(package_tests.keys()), [package_tests[r]['id'] for r in package_tests.keys()])
-  
+
     with progress.bar.Bar('Downloading test summaries...', max=len(source_tests)+len(package_tests)) as bar:
       for tests in source_tests, package_tests:
         for day in tests:
