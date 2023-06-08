@@ -77,7 +77,7 @@ jobs:
     - name: Update GitHub issue (with retry)
       uses: nick-invision/retry@v2
       with:
-        timeout_minutes: 1
+        timeout_minutes: 5
         max_attempts: 3
         shell: bash
         command: python3 scripts/gha/update_issue_comment.py --token ${{ github.token }} --issue_title '[C++] Nightly Integration Testing Report' --start_tag build-dashboard-comment-start --end_tag build-dashboard-comment-end < comment.md
