@@ -519,7 +519,7 @@ def main(argv):
     if FLAGS.output_markdown and notes:
         notes = "<details><summary>&nbsp;</summary>" + notes + "</details>"
     if notes == prev_notes and not FLAGS.output_markdown:
-      if len(notes) > 0: notes = '\'\"\"'
+      if len(notes) > 0: notes = "'''"  # Creates a "ditto" mark.
     else:
       prev_notes = notes
 
