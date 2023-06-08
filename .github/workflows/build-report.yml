@@ -52,9 +52,6 @@ jobs:
       run: |
         echo -n > comment.md
         cat >> comment.md <<EOF
-
-        ***
-
         EOF
         cat report_short.md >> comment.md
         cat >> comment.md <<EOF
@@ -70,6 +67,9 @@ jobs:
         cat report.txt >> comment.md
         cat >> comment.md <<EOF
         </pre></details>
+
+        ***
+       
         EOF
     - name: Show comment string
       run: |
