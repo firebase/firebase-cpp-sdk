@@ -119,7 +119,7 @@ TEST_F(JniRunnableTest, JavaRunCallsCppRunOncePerInvocation) {
 
 TEST_F(JniRunnableTest, JavaRunPropagatesExceptions) {
   Env env;
-  Local<Throwable> exception = CreateException(env, "Forced exception");
+  Local<Throwable> exception = CreateException(env);
   auto runnable = MakeJniRunnable(env, [exception] {
     Env env;
     env.Throw(exception);
@@ -166,7 +166,7 @@ TEST_F(JniRunnableTest, DetachDetachesEvenIfAnExceptionIsPending) {
   bool invoked = false;
   auto runnable = MakeJniRunnable(env, [&invoked] { invoked = true; });
   Local<Object> java_runnable = runnable.GetJavaRunnable();
-  Local<Throwable> exception = CreateException(env, "Forced exception");
+  Local<Throwable> exception = CreateException(env);
   env.Throw(exception);
   EXPECT_FALSE(env.ok());
 
@@ -230,7 +230,7 @@ TEST_F(JniRunnableTest, RunOnMainThreadRunsOnTheMainThread) {
 
 TEST_F(JniRunnableTest, RunOnMainThreadTaskFailsIfRunThrowsException) {
   Env env;
-  Global<Throwable> exception = CreateException(env, "Forced exception");
+  Global<Throwable> exception = CreateException(env);
   auto runnable = MakeJniRunnable(env, [exception] {
     Env env;
     env.Throw(exception);
@@ -284,7 +284,7 @@ TEST_F(JniRunnableTest, RunOnNewThreadRunsOnANonMainThread) {
 
 TEST_F(JniRunnableTest, RunOnNewThreadTaskFailsIfRunThrowsException) {
   Env env;
-  Global<Throwable> exception = CreateException(env, "Forced exception");
+  Global<Throwable> exception = CreateException(env);
   auto runnable = MakeJniRunnable(env, [exception] {
     Env env;
     env.Throw(exception);
