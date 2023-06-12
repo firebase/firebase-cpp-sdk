@@ -41,8 +41,11 @@ class NativeAdInternalIOS : public NativeAdInternal {
   Future<AdResult> LoadAd(const char* ad_unit_id,
                           const AdRequest& request) override;
   bool is_initialized() const override { return initialized_; }
+  Future<void> RecordImpression(const Variant& impression_data) override;
+  Future<void> PerformClick(const Variant& click_data) override;
 
 #ifdef __OBJC__
+  NSDictionary* variantmap_to_nsdictionary(const Variant &variant_data);
   void NativeAdDidReceiveAd(GADNativeAd* ad);
   void NativeAdDidFailToReceiveAdWithError(NSError* gad_error);
 #endif  // __OBJC__

@@ -2058,6 +2058,61 @@ TEST_F(FirebaseGmaTest, TestNativeAdLoadEmptyRequest) {
   delete native_ad;
 }
 
+TEST_F(FirebaseGmaTest, TestNativeRecordImpressionAndClick) {
+  SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
+
+  firebase::gma::NativeAd* native_ad = new firebase::gma::NativeAd();
+
+  WaitForCompletion(native_ad->Initialize(app_framework::GetWindowContext()),
+                    "Initialize");
+
+  // When the NativeAd is initialized, load an ad.
+  firebase::Future<firebase::gma::AdResult> load_ad_future =
+      native_ad->LoadAd(kNativeAdUnit, GetAdRequest());
+
+  WaitForCompletion(load_ad_future, "LoadAd");
+  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
+  ASSERT_NE(result_ptr, nullptr);
+  EXPECT_TRUE(result_ptr->is_successful());
+
+  load_ad_future.Release();
+
+  firebase::Variant in_key = firebase::Variant::FromMutableString("inner_key");
+  firebase::Variant in_val = firebase::Variant::FromMutableString("inner_val");
+  firebase::Variant out_key = firebase::Variant::FromMutableString("outer_key");
+
+  firebase::Variant out_val = firebase::Variant::EmptyMap();
+  out_val.map()[in_key] = in_val;
+
+  firebase::Variant impression_payload = firebase::Variant::EmptyMap();
+  impression_payload.map()[out_key] = out_val;
+
+#if defined(ANDROID)
+  // Android doesn't have a return type for this API.
+  WaitForCompletion(native_ad->RecordImpression(impression_payload),
+                    "RecordImpression");
+#else  // iOS
+  // Test Ad unit IDs are not allowlisted to record impression and the request
+  // is expected to be rejected by the server. iOS returns the failure.
+  WaitForCompletion(native_ad->RecordImpression(impression_payload),
+                    "RecordImpression",
+                    firebase::gma::kAdErrorCodeInvalidRequest);
+#endif
+
+  WaitForCompletion(native_ad->RecordImpression(in_key), "RecordImpression 2",
+                    firebase::gma::kAdErrorCodeInvalidArgument);
+
+  // Android and iOS doesn't have a return type for this API.
+  WaitForCompletion(native_ad->PerformClick(impression_payload),
+                    "PerformClick");
+
+  WaitForCompletion(native_ad->PerformClick(in_key), "PerformClick 2",
+                    firebase::gma::kAdErrorCodeInvalidArgument);
+
+  delete native_ad;
+}
+
 TEST_F(FirebaseGmaTest, TestNativeAdErrorNotInitialized) {
   SKIP_TEST_ON_DESKTOP;
 
@@ -2065,6 +2120,12 @@ TEST_F(FirebaseGmaTest, TestNativeAdErrorNotInitialized) {
 
   firebase::gma::AdRequest request = GetAdRequest();
   WaitForCompletion(native_ad->LoadAd(kNativeAdUnit, request), "LoadAd",
+                    firebase::gma::kAdErrorCodeUninitialized);
+
+  firebase::Variant variant = firebase::Variant::EmptyMap();
+  WaitForCompletion(native_ad->RecordImpression(variant), "RecordImpression",
+                    firebase::gma::kAdErrorCodeUninitialized);
+  WaitForCompletion(native_ad->PerformClick(variant), "PerformClick",
                     firebase::gma::kAdErrorCodeUninitialized);
 
   delete native_ad;
