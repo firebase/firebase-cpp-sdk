@@ -41,6 +41,14 @@ class NativeAdInternalStub : public NativeAdInternal {
     return CreateAndCompleteAdResultFutureStub(kNativeAdFnLoadAd);
   }
 
+  Future<void> RecordImpression(const Variant& impression_data) override {
+    return CreateAndCompleteFutureStub(kNativeAdFnRecordImpression);
+  }
+
+  Future<void> PerformClick(const Variant& click_data) override {
+    return CreateAndCompleteFutureStub(kNativeAdFnPerformClick);
+  }
+
   bool is_initialized() const override { return true; }
 
  private:
