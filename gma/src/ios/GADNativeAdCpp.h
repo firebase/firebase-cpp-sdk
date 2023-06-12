@@ -18,7 +18,7 @@
 #import <GoogleMobileAds/GADNativeAd.h>
 #import <UIKit/UIKit.h>
 
-@interface GADNativeAd ()
+@interface GADNativeAd()
 
 /// Used only by allowlisted ad units. Provide a dictionary containing click data.
 - (void)performClickWithData:(nonnull NSDictionary *)clickData;
@@ -28,3 +28,4 @@
 - (BOOL)recordImpressionWithData:(nonnull NSDictionary *)impressionData;
 
 @end
+
