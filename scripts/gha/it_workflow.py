@@ -82,8 +82,8 @@ _COMMENT_IDENTIFIER = "integration-test-status-comment"
 _COMMENT_HIDDEN_DIVIDER = f'\r\n<hidden value="{_COMMENT_IDENTIFIER}"></hidden>\r\n'
 
 _COMMENT_IDENTIFIER_DASHBOARD = "build-dashboard-comment"
-_COMMENT_DASHBOARD_START = f'\r\n<hidden value="{_COMMENT_IDENTIFIER_DASHBOARD}"-start></hidden>\r\n'
-_COMMENT_DASHBOARD_END = f'\r\n<hidden value="{_COMMENT_IDENTIFIER_DASHBOARD}"-end></hidden>\r\n'
+_COMMENT_DASHBOARD_START = f'\r\n<hidden value="{_COMMENT_IDENTIFIER_DASHBOARD}-start"></hidden>\r\n'
+_COMMENT_DASHBOARD_END = f'\r\n<hidden value="{_COMMENT_IDENTIFIER_DASHBOARD}-end"></hidden>\r\n'
 
 _LOG_ARTIFACT_NAME = "log-artifact"
 _LOG_OUTPUT_DIR = "test_results"
@@ -235,12 +235,17 @@ def test_report(token, actor, commit, run_id, build_against, build_apis):
   previous_comment = github.get_issue_body(token, issue_number)
   [previous_prefix, previous_comment_repo, previous_comment_sdk,
    previous_comment_tip] = previous_comment.split(_COMMENT_HIDDEN_DIVIDER)
+  logging.info("Previous prefix: %s", previous_prefix)
   # If there is a build dashboard, preserve it.
   if (_COMMENT_DASHBOARD_START in previous_prefix and
       _COMMENT_DASHBOARD_END in previous_prefix):
+    logging.info("Found dashboard comment, preserving.")
     [_, previous_dashboard_plus_the_rest] = previous_prefix.split(_COMMENT_DASHBOARD_START)
     [previous_dashboard, _] = previous_dashboard_plus_the_rest.split(_COMMENT_DASHBOARD_END)
     prefix = prefix + _COMMENT_DASHBOARD_START + previous_dashboard + _COMMENT_DASHBOARD_END
+    logging.info("New prefix: %s", prefix)
+  else:
+    logging.info("No dashboard comment '%s' or '%s'", _COMMENT_DASHBOARD_START, _COMMENT_DASHBOARD_END)
 
   success_or_only_flakiness, log_summary = _get_summary_table(token, run_id)
   if success_or_only_flakiness and not log_summary:
