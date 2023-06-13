@@ -26,6 +26,7 @@
 #include "Firestore/core/src/core/composite_filter.h"
 #include "Firestore/core/src/core/field_filter.h"
 #include "Firestore/core/src/core/filter.h"
+#include "Firestore/core/src/api/query_core.h"
 #include "firestore/src/include/firebase/firestore/filter.h"
 #include "firestore/src/main/user_data_converter_main.h"
 
@@ -35,48 +36,48 @@ namespace firestore {
 class FilterInternal {
  public:
   static Filter ArrayContains(const FieldPath& field, const FieldValue& value) {
-    return UnaryFilter(field, UnaryOperator::ArrayContains, value);
+    return UnaryFilter(field, FieldFilterOperator::ArrayContains, value);
   }
 
   static Filter ArrayContainsAny(const FieldPath& field,
                                  const std::vector<FieldValue>& values) {
-    return UnaryFilter(field, UnaryOperator::ArrayContainsAny, values);
+    return UnaryFilter(field, FieldFilterOperator::ArrayContainsAny, values);
   }
 
   static Filter EqualTo(const FieldPath& field, const FieldValue& value) {
-    return UnaryFilter(field, UnaryOperator::Equal, value);
+    return UnaryFilter(field, FieldFilterOperator::Equal, value);
   }
 
   static Filter NotEqualTo(const FieldPath& field, const FieldValue& value) {
-    return UnaryFilter(field, UnaryOperator::NotEqual, value);
+    return UnaryFilter(field, FieldFilterOperator::NotEqual, value);
   }
 
   static Filter GreaterThan(const FieldPath& field, const FieldValue& value) {
-    return UnaryFilter(field, UnaryOperator::GreaterThan, value);
+    return UnaryFilter(field, FieldFilterOperator::GreaterThan, value);
   }
 
   static Filter GreaterThanOrEqualTo(const FieldPath& field,
                                      const FieldValue& value) {
-    return UnaryFilter(field, UnaryOperator::GreaterThanOrEqual, value);
+    return UnaryFilter(field, FieldFilterOperator::GreaterThanOrEqual, value);
   }
 
   static Filter LessThan(const FieldPath& field, const FieldValue& value) {
-    return UnaryFilter(field, UnaryOperator::LessThan, value);
+    return UnaryFilter(field, FieldFilterOperator::LessThan, value);
   }
 
   static Filter LessThanOrEqualTo(const FieldPath& field,
                                   const FieldValue& value) {
-    return UnaryFilter(field, UnaryOperator::LessThanOrEqual, value);
+    return UnaryFilter(field, FieldFilterOperator::LessThanOrEqual, value);
   }
 
   static Filter In(const FieldPath& field,
                    const std::vector<FieldValue>& values) {
-    return UnaryFilter(field, UnaryOperator::In, values);
+    return UnaryFilter(field, FieldFilterOperator::In, values);
   }
 
   static Filter NotIn(const FieldPath& field,
                       const std::vector<FieldValue>& values) {
-    return UnaryFilter(field, UnaryOperator::NotIn, values);
+    return UnaryFilter(field, FieldFilterOperator::NotIn, values);
   }
 
   virtual core::Filter filter_core(
@@ -110,14 +111,14 @@ class FilterInternal {
 
   virtual FilterInternal* clone() = 0;
 
-  using UnaryOperator = core::FieldFilter::Operator;
+  using FieldFilterOperator = core::FieldFilter::Operator;
   using CompositeOperator = core::CompositeFilter::Operator;
 
   static Filter UnaryFilter(const FieldPath& field_path,
-                            UnaryOperator op,
+                            FieldFilterOperator op,
                             const FieldValue& value);
   static Filter UnaryFilter(const FieldPath& field_path,
-                            UnaryOperator op,
+                            FieldFilterOperator op,
                             const std::vector<FieldValue>& values);
 
   static Filter CompositeFilter(CompositeOperator op, const Filter& filter) {

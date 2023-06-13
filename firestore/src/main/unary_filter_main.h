@@ -21,6 +21,8 @@
 #error "This header should not be used on Android."
 #endif
 
+#include <vector>
+
 #include "Firestore/core/src/api/query_core.h"
 #include "firestore/src/main/filter_main.h"
 

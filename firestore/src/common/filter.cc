@@ -25,6 +25,8 @@
 #include "firestore/src/main/filter_main.h"
 #endif  // defined(__ANDROID__)
 
+#include "firestore/src/common/util.h"
+
 namespace firebase {
 namespace firestore {
 
@@ -165,7 +167,7 @@ Filter Filter::And(const Filter& filter, const Filters&... filters) {
 }
 
 bool operator==(const Filter& lhs, const Filter& rhs) {
-  return &lhs == &rhs || *lhs.internal_ == *rhs.internal_;
+  return EqualityCompare(lhs.internal_, rhs.internal_);
 }
 
 }  // namespace firestore

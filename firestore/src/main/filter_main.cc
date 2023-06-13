@@ -28,13 +28,13 @@ FilterInternal::FilterInternal(FilterInternal::FilterType filter_type)
     : filter_type_(filter_type) {}
 
 Filter FilterInternal::UnaryFilter(const FieldPath& field_path,
-                                   UnaryOperator op,
+                                   FieldFilterOperator op,
                                    const FieldValue& value) {
   return MakePublic(UnaryFilterInternal(field_path, op, value));
 }
 
 Filter FilterInternal::UnaryFilter(const FieldPath& field_path,
-                                   UnaryOperator op,
+                                   FieldFilterOperator op,
                                    const std::vector<FieldValue>& values) {
   return MakePublic(UnaryFilterInternal(field_path, op, values));
 }
