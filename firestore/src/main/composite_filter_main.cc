@@ -18,6 +18,9 @@
 #error "This header should not be used on Android."
 #endif
 
+#include <utility>
+#include <vector>
+
 #include "firestore/src/main/composite_filter_main.h"
 #include "Firestore/core/src/core/composite_filter.h"
 

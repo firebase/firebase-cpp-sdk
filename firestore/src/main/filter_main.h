@@ -21,6 +21,8 @@
 #error "This header should not be used on Android."
 #endif
 
+#include <vector>
+
 #include "Firestore/core/src/core/composite_filter.h"
 #include "Firestore/core/src/core/field_filter.h"
 #include "Firestore/core/src/core/filter.h"
@@ -89,7 +91,7 @@ class FilterInternal {
   template <typename... Filters>
   static Filter And(const Filter& filter, const Filters&... filters) {
     return CompositeFilter(CompositeOperator::And, filter, filters...);
-  };
+  }
 
   virtual ~FilterInternal() = default;
 

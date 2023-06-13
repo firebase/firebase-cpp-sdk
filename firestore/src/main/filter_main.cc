@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <vector>
+
 #include "firestore/src/main/filter_main.h"
 #include "firestore/src/main/composite_filter_main.h"
 #include "firestore/src/main/converter_main.h"

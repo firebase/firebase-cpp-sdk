@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <utility>
+#include <vector>
+
 #include "firestore/src/main/unary_filter_main.h"
 
 #include "Firestore/core/src/nanopb/message.h"

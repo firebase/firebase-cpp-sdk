@@ -17,6 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_FILTER_H_
 #define FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_FILTER_H_
 
+#include <string>
 #include <vector>
 
 #include "firebase/firestore/field_value.h"
