@@ -159,6 +159,7 @@ class FirebaseGmaTest : public FirebaseTest {
 
  protected:
   firebase::gma::AdRequest GetAdRequest();
+  firebase::Variant GetVariantMap();
 
   static firebase::App* shared_app_;
 };
@@ -285,6 +286,20 @@ firebase::gma::AdRequest FirebaseGmaTest::GetAdRequest() {
   return request;
 }
 
+firebase::Variant FirebaseGmaTest::GetVariantMap() {
+  firebase::Variant in_key = firebase::Variant::FromMutableString("inner_key");
+  firebase::Variant in_val = firebase::Variant::FromMutableString("inner_val");
+  firebase::Variant out_key = firebase::Variant::FromMutableString("outer_key");
+
+  firebase::Variant out_val = firebase::Variant::EmptyMap();
+  out_val.map()[in_key] = in_val;
+
+  firebase::Variant variant_map = firebase::Variant::EmptyMap();
+  variant_map.map()[out_key] = out_val;
+
+  return variant_map;
+}
+
 FirebaseGmaUITest::FirebaseGmaUITest() {}
 
 FirebaseGmaUITest::~FirebaseGmaUITest() {}
@@ -398,6 +413,8 @@ TEST_F(FirebaseGmaTest, TestSetAppKeyEnabled) {
 }
 
 TEST_F(FirebaseGmaTest, TestGetAdRequest) { GetAdRequest(); }
+
+TEST_F(FirebaseGmaTest, TestGetVariantMap) { GetVariantMap(); }
 
 TEST_F(FirebaseGmaTest, TestGetAdRequestValues) {
   SKIP_TEST_ON_DESKTOP;
@@ -2058,7 +2075,7 @@ TEST_F(FirebaseGmaTest, TestNativeAdLoadEmptyRequest) {
   delete native_ad;
 }
 
-TEST_F(FirebaseGmaTest, TestNativeRecordImpressionAndClick) {
+TEST_F(FirebaseGmaTest, TestNativeRecordImpression) {
   SKIP_TEST_ON_DESKTOP;
   SKIP_TEST_ON_SIMULATOR;
 
@@ -2078,15 +2095,7 @@ TEST_F(FirebaseGmaTest, TestNativeRecordImpressionAndClick) {
 
   load_ad_future.Release();
 
-  firebase::Variant in_key = firebase::Variant::FromMutableString("inner_key");
-  firebase::Variant in_val = firebase::Variant::FromMutableString("inner_val");
-  firebase::Variant out_key = firebase::Variant::FromMutableString("outer_key");
-
-  firebase::Variant out_val = firebase::Variant::EmptyMap();
-  out_val.map()[in_key] = in_val;
-
-  firebase::Variant impression_payload = firebase::Variant::EmptyMap();
-  impression_payload.map()[out_key] = out_val;
+  firebase::Variant impression_payload = GetVariantMap();
 
 #if defined(ANDROID)
   // Android doesn't have a return type for this API.
@@ -2100,14 +2109,41 @@ TEST_F(FirebaseGmaTest, TestNativeRecordImpressionAndClick) {
                     firebase::gma::kAdErrorCodeInvalidRequest);
 #endif
 
-  WaitForCompletion(native_ad->RecordImpression(in_key), "RecordImpression 2",
+  firebase::Variant str_variant = firebase::Variant::FromMutableString("test");
+  WaitForCompletion(native_ad->RecordImpression(str_variant),
+                    "RecordImpression 2",
                     firebase::gma::kAdErrorCodeInvalidArgument);
 
-  // Android and iOS doesn't have a return type for this API.
-  WaitForCompletion(native_ad->PerformClick(impression_payload),
-                    "PerformClick");
+  delete native_ad;
+}
 
-  WaitForCompletion(native_ad->PerformClick(in_key), "PerformClick 2",
+TEST_F(FirebaseGmaTest, TestNativePerformClick) {
+  SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_SIMULATOR;
+
+  firebase::gma::NativeAd* native_ad = new firebase::gma::NativeAd();
+
+  WaitForCompletion(native_ad->Initialize(app_framework::GetWindowContext()),
+                    "Initialize");
+
+  // When the NativeAd is initialized, load an ad.
+  firebase::Future<firebase::gma::AdResult> load_ad_future =
+      native_ad->LoadAd(kNativeAdUnit, GetAdRequest());
+
+  WaitForCompletion(load_ad_future, "LoadAd");
+  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
+  ASSERT_NE(result_ptr, nullptr);
+  EXPECT_TRUE(result_ptr->is_successful());
+
+  load_ad_future.Release();
+
+  firebase::Variant click_payload = GetVariantMap();
+
+  // Android and iOS doesn't have a return type for this API.
+  WaitForCompletion(native_ad->PerformClick(click_payload), "PerformClick");
+
+  firebase::Variant str_variant = firebase::Variant::FromMutableString("test");
+  WaitForCompletion(native_ad->PerformClick(str_variant), "PerformClick 2",
                     firebase::gma::kAdErrorCodeInvalidArgument);
 
   delete native_ad;
