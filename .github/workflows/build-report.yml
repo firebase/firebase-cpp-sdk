@@ -9,6 +9,7 @@ env:
   GITHUB_TOKEN: ${{ github.token }}
   numDays: 7
   numDaysExtended: 30
+  numTestsSummary: 10
 
 jobs:
   generate-report:
@@ -47,7 +48,7 @@ jobs:
       run: |
         python3 scripts/gha/report_build_status.py --token ${{ github.token }} --days ${{ env.numDays }} --output_markdown --read_cache build_status_short.cache > report_short.md
         python3 scripts/gha/report_build_status.py --token ${{ github.token }} --days ${{ env.numDaysExtended }} --output_markdown --read_cache build_status.cache > report_extended.md
-        python3 scripts/gha/report_build_status.py --token ${{ github.token }} --days ${{ env.numDaysExtended }} --output_markdown --read_cache build_status.cache --report=test_summary > test_summary.md
+        python3 scripts/gha/report_build_status.py --token ${{ github.token }} --days ${{ env.numDaysExtended }} --output_markdown --read_cache build_status.cache --report=test_summary --summary_count=${{ env.numTestsSummary }}> test_summary.md
         python3 scripts/gha/report_build_status.py --token ${{ github.token }} --days ${{ env.numDays }} --nooutput_header --read_cache build_status_short.cache > report.txt
     - name: Generate comment string
       run: |
@@ -63,7 +64,7 @@ jobs:
         cat report_extended.md >> comment.md
         cat >> comment.md <<EOF
         </details>
-        <details><summary>Top failing tests (last ${{ env.numDaysExtended }} days)</summary>
+        <details><summary>Top ${{ env.numTestsSummary }} flakes/failures (last ${{ env.numDaysExtended }} days)</summary>
 
         EOF
         cat test_summary.md >> comment.md
