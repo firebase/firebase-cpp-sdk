@@ -605,7 +605,7 @@ def main(argv):
               if not test_names:
                 test_names = ['unspecified']
               for test_name in test_names:
-                if test_name == "CRASH/TIMEOUT": continue
+                if test_name == "CRASH/TIMEOUT": test_name = "crash/timeout"
                 test_id = "%s | %s | %s" % (product, platform, test_name)
                 if test_id not in test_list:
                   test_list[test_id] = {}
@@ -617,7 +617,7 @@ def main(argv):
     test_list_sorted = reversed(sorted(test_list.keys(), key=lambda x: test_list[x]['count']))
     if FLAGS.output_header:
       if FLAGS.output_markdown:
-        print("| Failure&nbsp;Count | Product | Platform | Test | Links |")
+        print("| Count | Product | Platform | Test | Links |")
         print("|---|---|---|---|---|")
       else:
         print("Count\tProduct\tPlatform\tTest Name")
