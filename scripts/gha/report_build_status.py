@@ -607,7 +607,7 @@ def main(argv):
             for platform in platforms:
               test_names = list(test_entries[product][platform]['test_list'])
               if not test_names:
-                test_names = ['unspecified']
+                test_names = ['Unknown']
               for test_name in test_names:
                 if test_name == "CRASH/TIMEOUT" and not FLAGS.summary_include_crashes: continue
                 test_id = "%s | %s | %s | %s" % (sev.lower(), product, platform, test_name)
@@ -617,32 +617,50 @@ def main(argv):
                   test_list[test_id]['links'] = []
                 test_list[test_id]['count'] += 1
                 test_list[test_id]['links'].append(test_link)
-                test_list[test_id]['recent'] = day
+                test_list[test_id]['latest'] = day
 
     test_list_sorted = reversed(sorted(test_list.keys(), key=lambda x: test_list[x]['count']))
     if FLAGS.output_header:
       if FLAGS.output_markdown:
-        print("| Count | Most Recent | Severity | Product | Platform | Test | Links |")
-        print("|---|---|---|---|---|---|---|")
+        print("| # | Latest | Product | Platform | Test Name &amp; Notes |")
+        print("|---|---|---|---|---|")
       else:
-        print("Count\tMost Recent\tProduct\tPlatform\tTest Name")
+        print("Count\tLatest\tSeverity\tProduct\tPlatform\tTest Name")
 
     num_shown = 0
 
     for test_id in test_list_sorted:
       (severity, product, platform, test_name) = test_id.split(" | ")
+      days_ago = (dateutil.utils.today() - dateutil.parser.parse(test_list[test_id]['latest'])).days
+      if days_ago <= 0:
+        latest = "Today"
+      else:
+        latest = "%s day%s ago" % (days_ago, '' if days_ago == 1 else 's')
       if FLAGS.output_markdown:
+        if severity == "error":
+          severity = "(failure)"
+        elif severity == "flakiness":
+          severity = "(flaky)"
+        latest = latest.replace(" ", "&nbsp;")
+        product = product.replace("_", " ")
+        product = product.upper() if product == "gma" else product.title()
+        if len(test_list[test_id]['links']) > 0:
+          latest = "[%s](%s)" % (latest, test_list[test_id]['links'][-1])
+
         link_list = []
         seen = set()
         num = 1
+
         for link in test_list[test_id]['links']:
           if link not in seen:
             seen.add(link)
             link_list.append("[%d](%s)" % (num, link))
             num += 1
-        print("| %d | %s | %s | %s | %s | %s | %s |" % (test_list[test_id]['count'], test_list[test_id]['recent'], severity, product, platform, test_name, " ".join(link_list)))
+        print("| %d | %s | %s | %s | %s&nbsp;%s<br/><li>Logs: %s</li> |" % (test_list[test_id]['count'], latest,
+                                                        product, platform,
+                                                        test_name, severity, " ".join(link_list)))
       else:
-        print("%d\t%s\t%s\t%s\t%s" % (test_list[test_id]['count'], severity, product, platform, test_name))
+        print("%d\t%s\t%s\t%s\t%s\t%s" % (test_list[test_id]['count'], latest, severity, product, platform, test_name))
       num_shown += 1
       if num_shown >= FLAGS.summary_count:
         break
