@@ -108,6 +108,10 @@ flags.DEFINE_enum(
     "summary_type", "all", ["all", "errors", "flakes"],
     "Whether to include flakes, errors, or all in the test summary.")
 
+flags.DEFINE_bool(
+    "summary_include_crashes", True,
+    "Whether to include CRASH/TIMEOUT in the test summary.")
+
 _WORKFLOW_TESTS = 'integration_tests.yml'
 _WORKFLOW_PACKAGING = 'cpp-packaging.yml'
 _TRIGGER_USER = 'firebase-workflow-trigger[bot]'
@@ -605,7 +609,7 @@ def main(argv):
               if not test_names:
                 test_names = ['unspecified']
               for test_name in test_names:
-                if test_name == "CRASH/TIMEOUT": test_name = "crash/timeout"
+                if test_name == "CRASH/TIMEOUT" and not FLAGS.summary_include_crashes: continue
                 test_id = "%s | %s | %s" % (product, platform, test_name)
                 if test_id not in test_list:
                   test_list[test_id] = {}
