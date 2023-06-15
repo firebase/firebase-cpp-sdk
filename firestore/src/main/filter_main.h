@@ -23,76 +23,44 @@
 
 #include <vector>
 
+#include "Firestore/core/src/api/query_core.h"
 #include "Firestore/core/src/core/composite_filter.h"
 #include "Firestore/core/src/core/field_filter.h"
 #include "Firestore/core/src/core/filter.h"
-#include "Firestore/core/src/api/query_core.h"
 #include "firestore/src/include/firebase/firestore/filter.h"
 #include "firestore/src/main/user_data_converter_main.h"
 
 namespace firebase {
 namespace firestore {
 
+class Filter;
+
 class FilterInternal {
  public:
-  static Filter ArrayContains(const FieldPath& field, const FieldValue& value) {
-    return UnaryFilter(field, FieldFilterOperator::ArrayContains, value);
-  }
-
+  static Filter ArrayContains(const FieldPath& field, const FieldValue& value);
   static Filter ArrayContainsAny(const FieldPath& field,
-                                 const std::vector<FieldValue>& values) {
-    return UnaryFilter(field, FieldFilterOperator::ArrayContainsAny, values);
-  }
-
-  static Filter EqualTo(const FieldPath& field, const FieldValue& value) {
-    return UnaryFilter(field, FieldFilterOperator::Equal, value);
-  }
-
-  static Filter NotEqualTo(const FieldPath& field, const FieldValue& value) {
-    return UnaryFilter(field, FieldFilterOperator::NotEqual, value);
-  }
-
-  static Filter GreaterThan(const FieldPath& field, const FieldValue& value) {
-    return UnaryFilter(field, FieldFilterOperator::GreaterThan, value);
-  }
-
+                                 const std::vector<FieldValue>& values);
+  static Filter EqualTo(const FieldPath& field, const FieldValue& value);
+  static Filter NotEqualTo(const FieldPath& field, const FieldValue& value);
+  static Filter GreaterThan(const FieldPath& field, const FieldValue& value);
   static Filter GreaterThanOrEqualTo(const FieldPath& field,
-                                     const FieldValue& value) {
-    return UnaryFilter(field, FieldFilterOperator::GreaterThanOrEqual, value);
-  }
-
-  static Filter LessThan(const FieldPath& field, const FieldValue& value) {
-    return UnaryFilter(field, FieldFilterOperator::LessThan, value);
-  }
-
+                                     const FieldValue& value);
+  static Filter LessThan(const FieldPath& field, const FieldValue& value);
   static Filter LessThanOrEqualTo(const FieldPath& field,
-                                  const FieldValue& value) {
-    return UnaryFilter(field, FieldFilterOperator::LessThanOrEqual, value);
-  }
-
+                                  const FieldValue& value);
   static Filter In(const FieldPath& field,
-                   const std::vector<FieldValue>& values) {
-    return UnaryFilter(field, FieldFilterOperator::In, values);
-  }
-
+                   const std::vector<FieldValue>& values);
   static Filter NotIn(const FieldPath& field,
-                      const std::vector<FieldValue>& values) {
-    return UnaryFilter(field, FieldFilterOperator::NotIn, values);
-  }
+                      const std::vector<FieldValue>& values);
 
-  virtual core::Filter filter_core(
+  virtual core::Filter ToCoreFilter(
       const api::Query& query,
-      const UserDataConverter& user_data_converter) const = 0;
+      const firebase::firestore::UserDataConverter& user_data_converter)
+      const = 0;
 
-  template <typename... Filters>
-  static Filter Or(const Filter& filter, const Filters&... filters) {
-    return CompositeFilter(CompositeOperator::Or, filter, filters...);
-  }
+  static Filter Or(const std::vector<const Filter>& filters);
 
-  template <typename... Filters>
-  static Filter And(const Filter& filter, const Filters&... filters) {
-    return CompositeFilter(CompositeOperator::And, filter, filters...);
-  }
+  static Filter And(const std::vector<const Filter>& filters);
 
   virtual ~FilterInternal() = default;
 
@@ -104,6 +72,8 @@ class FilterInternal {
   explicit FilterInternal(FilterType filterType);
 
   const FilterType filter_type_;
+
+  virtual bool IsEmpty() const = 0;
 
  private:
   friend class Filter;
@@ -121,15 +91,11 @@ class FilterInternal {
                             FieldFilterOperator op,
                             const std::vector<FieldValue>& values);
 
-  static Filter CompositeFilter(CompositeOperator op, const Filter& filter) {
-    return filter;
-  }
-
-  template <typename... Filters>
   static Filter CompositeFilter(CompositeOperator op,
-                                const Filter& filter,
-                                const Filters&... filters);
+                                const std::vector<const Filter>& filters);
 };
+
+bool operator==(const FilterInternal& lhs, const FilterInternal& rhs);
 
 inline bool operator!=(const FilterInternal& lhs, const FilterInternal& rhs) {
   return !(lhs == rhs);

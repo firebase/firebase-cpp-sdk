@@ -16,13 +16,71 @@
 
 #include <vector>
 
-#include "firestore/src/main/filter_main.h"
 #include "firestore/src/main/composite_filter_main.h"
 #include "firestore/src/main/converter_main.h"
+#include "firestore/src/main/filter_main.h"
 #include "firestore/src/main/unary_filter_main.h"
 
 namespace firebase {
 namespace firestore {
+
+Filter FilterInternal::ArrayContains(const FieldPath& field,
+                                     const FieldValue& value) {
+  return UnaryFilter(field, FieldFilterOperator::ArrayContains, value);
+}
+
+Filter FilterInternal::ArrayContainsAny(const FieldPath& field,
+                                        const std::vector<FieldValue>& values) {
+  return UnaryFilter(field, FieldFilterOperator::ArrayContainsAny, values);
+}
+
+Filter FilterInternal::EqualTo(const FieldPath& field,
+                               const FieldValue& value) {
+  return UnaryFilter(field, FieldFilterOperator::Equal, value);
+}
+
+Filter FilterInternal::NotEqualTo(const FieldPath& field,
+                                  const FieldValue& value) {
+  return UnaryFilter(field, FieldFilterOperator::NotEqual, value);
+}
+
+Filter FilterInternal::GreaterThan(const FieldPath& field,
+                                   const FieldValue& value) {
+  return UnaryFilter(field, FieldFilterOperator::GreaterThan, value);
+}
+
+Filter FilterInternal::GreaterThanOrEqualTo(const FieldPath& field,
+                                            const FieldValue& value) {
+  return UnaryFilter(field, FieldFilterOperator::GreaterThanOrEqual, value);
+}
+
+Filter FilterInternal::LessThan(const FieldPath& field,
+                                const FieldValue& value) {
+  return UnaryFilter(field, FieldFilterOperator::LessThan, value);
+}
+
+Filter FilterInternal::LessThanOrEqualTo(const FieldPath& field,
+                                         const FieldValue& value) {
+  return UnaryFilter(field, FieldFilterOperator::LessThanOrEqual, value);
+}
+
+Filter FilterInternal::In(const FieldPath& field,
+                          const std::vector<FieldValue>& values) {
+  return UnaryFilter(field, FieldFilterOperator::In, values);
+}
+
+Filter FilterInternal::NotIn(const FieldPath& field,
+                             const std::vector<FieldValue>& values) {
+  return UnaryFilter(field, FieldFilterOperator::NotIn, values);
+}
+
+Filter FilterInternal::Or(const std::vector<const Filter>& filters) {
+  return CompositeFilter(CompositeOperator::Or, filters);
+}
+
+Filter FilterInternal::And(const std::vector<const Filter>& filters) {
+  return CompositeFilter(CompositeOperator::And, filters);
+}
 
 FilterInternal::FilterInternal(FilterInternal::FilterType filter_type)
     : filter_type_(filter_type) {}
@@ -39,11 +97,17 @@ Filter FilterInternal::UnaryFilter(const FieldPath& field_path,
   return MakePublic(UnaryFilterInternal(field_path, op, values));
 }
 
-template <typename... Filters>
-Filter FilterInternal::CompositeFilter(core::CompositeFilter::Operator op,
-                                       const Filter& filter,
-                                       const Filters&... filters) {
-  return MakePublic(CompositeFilterInternal(op, filter, filters...));
+Filter FilterInternal::CompositeFilter(
+    core::CompositeFilter::Operator op,
+    const std::vector<const Filter>& filters) {
+  std::vector<const Filter> nonEmptyFilters;
+  std::copy_if(filters.begin(), filters.end(),
+               std::back_inserter(nonEmptyFilters),
+               [](Filter filter) { return !GetInternal(&filter)->IsEmpty(); });
+  if (nonEmptyFilters.size() == 1) {
+    return filters[0];
+  }
+  return MakePublic(CompositeFilterInternal(op, std::move(nonEmptyFilters)));
 }
 
 bool operator==(const FilterInternal& lhs, const FilterInternal& rhs) {

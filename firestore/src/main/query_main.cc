@@ -100,8 +100,9 @@ Future<QuerySnapshot> QueryInternal::Get(Source source) {
 AggregateQuery QueryInternal::Count() { return MakePublic(query_.Count()); }
 
 Query QueryInternal::Where(const Filter& filter) const {
+  SIMPLE_HARD_ASSERT(!filter.IsEmpty());
   core::Filter core_filter =
-      GetInternal(&filter)->filter_core(query_, user_data_converter_);
+      GetInternal(&filter)->ToCoreFilter(query_, user_data_converter_);
   api::Query decorated = query_.AddNewFilter(std::move(core_filter));
   return MakePublic(std::move(decorated));
 }
@@ -109,29 +110,13 @@ Query QueryInternal::Where(const Filter& filter) const {
 Query QueryInternal::Where(const FieldPath& field_path,
                            Operator op,
                            const FieldValue& value) const {
-  const model::FieldPath& path = GetInternal(field_path);
-  Message<google_firestore_v1_Value> parsed =
-      user_data_converter_.ParseQueryValue(value);
-  auto describer = [&value] { return Describe(value.type()); };
-
-  api::Query decorated = query_.AddNewFilter(
-      query_.ParseFieldFilter(path, op, std::move(parsed), describer));
-  return MakePublic(std::move(decorated));
+  return Where(UnaryFilterInternal::UnaryFilter(field_path, op, value));
 }
 
 Query QueryInternal::Where(const FieldPath& field_path,
                            Operator op,
                            const std::vector<FieldValue>& values) const {
-  // return Where(field_path, op, FieldValue::Array(values));
-  const model::FieldPath& path = GetInternal(field_path);
-  auto array_value = FieldValue::Array(values);
-  Message<google_firestore_v1_Value> parsed =
-      user_data_converter_.ParseQueryValue(array_value, true);
-  auto describer = [&array_value] { return Describe(array_value.type()); };
-
-  api::Query decorated = query_.AddNewFilter(
-      query_.ParseFieldFilter(path, op, std::move(parsed), describer));
-  return MakePublic(std::move(decorated));
+  return Where(UnaryFilterInternal::UnaryFilter(field_path, op, values));
 }
 
 Query QueryInternal::WithBound(BoundPosition bound_pos,

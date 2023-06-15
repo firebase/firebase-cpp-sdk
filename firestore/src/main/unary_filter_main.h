@@ -38,12 +38,15 @@ class UnaryFilterInternal final : public FilterInternal {
                       core::FieldFilter::Operator op,
                       const std::vector<FieldValue>& values);
 
-  core::Filter filter_core(
-      const api::Query& query,
-      const UserDataConverter& user_data_converter) const override;
+  core::Filter ToCoreFilter(const api::Query& query,
+                            const firebase::firestore::UserDataConverter&
+                                user_data_converter) const override;
 
   friend bool operator==(const UnaryFilterInternal& lhs,
                          const UnaryFilterInternal& rhs);
+
+ protected:
+  bool IsEmpty() const override { return false; }
 
  private:
   UnaryFilterInternal* clone() override;
@@ -53,6 +56,8 @@ class UnaryFilterInternal final : public FilterInternal {
   const core::FieldFilter::Operator op_;
   const FieldValue value_;
 };
+
+bool operator==(const UnaryFilterInternal& lhs, const UnaryFilterInternal& rhs);
 
 inline bool operator!=(const UnaryFilterInternal& lhs,
                        const UnaryFilterInternal& rhs) {

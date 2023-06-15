@@ -21,29 +21,32 @@
 #include <utility>
 #include <vector>
 
-#include "firestore/src/main/composite_filter_main.h"
 #include "Firestore/core/src/core/composite_filter.h"
+#include "firestore/src/main/composite_filter_main.h"
+#include "firestore/src/main/converter_main.h"
 
 namespace firebase {
 namespace firestore {
 
-template <typename... Ts>
 CompositeFilterInternal::CompositeFilterInternal(
-    core::CompositeFilter::Operator op, const Filter& filter, Ts... filters)
+    core::CompositeFilter::Operator op, std::vector<const Filter>&& filters)
     : FilterInternal(FilterType::Composite),
       op_(op),
-      filters_(filter, filters...) {}
+      filters_(std::move(filters)) {}
 
 CompositeFilterInternal* CompositeFilterInternal::clone() {
   return new CompositeFilterInternal(*this);
 }
 
-core::Filter CompositeFilterInternal::filter_core(
+bool CompositeFilterInternal::IsEmpty() const { return filters_.empty(); }
+
+core::Filter CompositeFilterInternal::ToCoreFilter(
     const api::Query& query,
     const firebase::firestore::UserDataConverter& user_data_converter) const {
   std::vector<core::Filter> core_filters;
   for (auto& filter : filters_) {
-    core_filters.push_back(filter->filter_core(query, user_data_converter));
+    core_filters.push_back(
+        GetInternal(&filter)->ToCoreFilter(query, user_data_converter));
   }
   return core::CompositeFilter::Create(std::move(core_filters), op_);
 }

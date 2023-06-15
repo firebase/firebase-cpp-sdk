@@ -115,6 +115,11 @@ AggregateQuery Query::Count() const {
 
 Query Query::Where(const Filter& filter) const {
   if (!internal_) return {};
+  if (filter.IsEmpty()) {
+    // Return the existing query if not adding any more filters (e.g. an empty
+    // composite filter).
+    return *this;
+  }
   return internal_->Where(filter);
 }
 

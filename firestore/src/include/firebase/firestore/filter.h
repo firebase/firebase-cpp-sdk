@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "firebase/firestore/field_value.h"
+#include "firestore/src/main/filter_main.h"
 
 namespace firebase {
 namespace firestore {
@@ -62,11 +63,23 @@ class Filter {
   static Filter NotIn(const FieldPath& field,
                       const std::vector<FieldValue>& values);
 
-  template <class... Filters>
-  static Filter Or(const Filter& filter, const Filters&... filters);
+  static Filter And(const Filter filter) { return filter; }
 
   template <typename... Filters>
-  static Filter And(const Filter& filter, const Filters&... filters);
+  static Filter And(const Filters&... filters) {
+    return And(std::vector<const Filter>({filters...}));
+  }
+
+  static Filter And(const std::vector<const Filter>& filters);
+
+  static Filter Or(const Filter filter) { return filter; }
+
+  template <typename... Filters>
+  static Filter Or(const Filters&... filters) {
+    return Or(std::vector<const Filter>({filters...}));
+  }
+
+  static Filter Or(const std::vector<const Filter>& filters);
 
   Filter(const Filter& other);
   Filter(Filter&& other) noexcept;
@@ -76,8 +89,12 @@ class Filter {
   ~Filter();
 
  private:
+  friend class Query;
+  friend class QueryInternal;
   friend bool operator==(const Filter& lhs, const Filter& rhs);
   friend struct ConverterImpl;
+
+  bool IsEmpty() const;
 
   explicit Filter(FilterInternal* internal);
   FilterInternal* internal_;

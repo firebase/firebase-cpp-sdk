@@ -156,19 +156,19 @@ Filter Filter::NotIn(const FieldPath& field,
   return FilterInternal::NotIn(field, values);
 }
 
-template <typename... Filters>
-Filter Filter::Or(const Filter& filter, const Filters&... filters) {
-  return FilterInternal::Or(filter, filters...);
+Filter Filter::And(const std::vector<const Filter>& filters) {
+  return FilterInternal::And(filters);
 }
 
-template <typename... Filters>
-Filter Filter::And(const Filter& filter, const Filters&... filters) {
-  return FilterInternal::And(filter, filters...);
+Filter Filter::Or(const std::vector<const Filter>& filters) {
+  return FilterInternal::Or(filters);
 }
 
 bool operator==(const Filter& lhs, const Filter& rhs) {
   return EqualityCompare(lhs.internal_, rhs.internal_);
 }
+
+bool Filter::IsEmpty() const { return internal_->IsEmpty(); }
 
 }  // namespace firestore
 }  // namespace firebase

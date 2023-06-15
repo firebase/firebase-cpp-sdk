@@ -31,6 +31,7 @@ UnaryFilterInternal::UnaryFilterInternal(FieldPath field_path,
                                          core::FieldFilter::Operator op,
                                          FieldValue value)
     : FilterInternal(FilterType::Unary),
+      allow_arrays_(false),
       path_(std::move(field_path)),
       op_(op),
       value_(std::move(value)) {}
@@ -48,9 +49,9 @@ UnaryFilterInternal* UnaryFilterInternal::clone() {
   return new UnaryFilterInternal(*this);
 }
 
-core::Filter UnaryFilterInternal::filter_core(
+core::Filter UnaryFilterInternal::ToCoreFilter(
     const api::Query& query,
-    const UserDataConverter& user_data_converter) const {
+    const firebase::firestore::UserDataConverter& user_data_converter) const {
   const model::FieldPath& path = GetInternal(path_);
   Message<google_firestore_v1_Value> parsed =
       user_data_converter.ParseQueryValue(value_, allow_arrays_);
