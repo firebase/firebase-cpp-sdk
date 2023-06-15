@@ -607,9 +607,11 @@ def main(argv):
             for platform in platforms:
               test_names = list(test_entries[product][platform]['test_list'])
               if not test_names:
-                test_names = ['Unknown']
+                test_names = ['Unspecified test']
               for test_name in test_names:
-                if test_name == "CRASH/TIMEOUT" and not FLAGS.summary_include_crashes: continue
+                if test_name == "CRASH/TIMEOUT":
+                    if not FLAGS.summary_include_crashes: continue
+                    else: test_name = "Crash or timeout"
                 test_id = "%s | %s | %s | %s" % (sev.lower(), product, platform, test_name)
                 if test_id not in test_list:
                   test_list[test_id] = {}
