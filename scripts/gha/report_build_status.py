@@ -658,9 +658,10 @@ def main(argv):
             seen.add(link)
             link_list.append("[%d](%s)" % (num, link))
             num += 1
-        print("| %d | %s | %s | %s | %s&nbsp;%s<br/><li>Logs: %s</li> |" % (test_list[test_id]['count'], latest,
-                                                        product, platform,
-                                                        test_name, severity, " ".join(link_list)))
+        print("| %d | %s | %s | %s | %s&nbsp;%s<br/>&nbsp;&nbsp;&nbsp;Logs: %s |" % (
+            test_list[test_id]['count'], latest,
+            product, platform,
+            test_name, severity, " ".join(link_list)))
       else:
         print("%d\t%s\t%s\t%s\t%s\t%s" % (test_list[test_id]['count'], latest, severity, product, platform, test_name))
       num_shown += 1
