@@ -610,26 +610,27 @@ def main(argv):
                 test_names = ['unspecified']
               for test_name in test_names:
                 if test_name == "CRASH/TIMEOUT" and not FLAGS.summary_include_crashes: continue
-                test_id = "%s | %s | %s" % (product, platform, test_name)
+                test_id = "%s | %s | %s | %s" % (sev.lower(), product, platform, test_name)
                 if test_id not in test_list:
                   test_list[test_id] = {}
                   test_list[test_id]['count'] = 0
                   test_list[test_id]['links'] = []
                 test_list[test_id]['count'] += 1
                 test_list[test_id]['links'].append(test_link)
+                test_list[test_id]['recent'] = day
 
     test_list_sorted = reversed(sorted(test_list.keys(), key=lambda x: test_list[x]['count']))
     if FLAGS.output_header:
       if FLAGS.output_markdown:
-        print("| Count | Product | Platform | Test | Links |")
-        print("|---|---|---|---|---|")
+        print("| Count | Most Recent | Severity | Product | Platform | Test | Links |")
+        print("|---|---|---|---|---|---|---|")
       else:
-        print("Count\tProduct\tPlatform\tTest Name")
+        print("Count\tMost Recent\tProduct\tPlatform\tTest Name")
 
     num_shown = 0
 
     for test_id in test_list_sorted:
-      (product, platform, test_name) = test_id.split(" | ")
+      (severity, product, platform, test_name) = test_id.split(" | ")
       if FLAGS.output_markdown:
         link_list = []
         seen = set()
@@ -639,9 +640,9 @@ def main(argv):
             seen.add(link)
             link_list.append("[%d](%s)" % (num, link))
             num += 1
-        print("| %d | %s | %s | %s | %s |" % (test_list[test_id]['count'], product, platform, test_name, " ".join(link_list)))
+        print("| %d | %s | %s | %s | %s | %s | %s |" % (test_list[test_id]['count'], test_list[test_id]['recent'], severity, product, platform, test_name, " ".join(link_list)))
       else:
-        print("%d\t%s\t%s\t%s" % (test_list[test_id]['count'], product, platform, test_name))
+        print("%d\t%s\t%s\t%s\t%s" % (test_list[test_id]['count'], severity, product, platform, test_name))
       num_shown += 1
       if num_shown >= FLAGS.summary_count:
         break
