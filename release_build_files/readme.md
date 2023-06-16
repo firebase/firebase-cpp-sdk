@@ -630,6 +630,8 @@ code.
 ### Upcoming Release
 -   Changes
     - App Check (Desktop): Fixed expired tokens being cached on 32-bit systems.
+    - Remote Config (Android): Fixed the ConfigUpdate classes being missing
+      from the proguard files.
     - Remote Config (Desktop): Fixed handling of time zones on Windows when the
       time zone name in the current system language contains an accented
       character or apostrophe. This adds a requirement for applications using
