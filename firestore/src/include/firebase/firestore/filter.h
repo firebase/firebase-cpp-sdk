@@ -91,6 +91,7 @@ class Filter {
  private:
   friend class Query;
   friend class QueryInternal;
+  friend class FilterInternal;
   friend bool operator==(const Filter& lhs, const Filter& rhs);
   friend struct ConverterImpl;
 

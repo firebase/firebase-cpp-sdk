@@ -29,10 +29,12 @@ namespace firebase {
 namespace firestore {
 
 CompositeFilterInternal::CompositeFilterInternal(
-    core::CompositeFilter::Operator op, std::vector<const Filter>&& filters)
-    : FilterInternal(FilterType::Composite),
-      op_(op),
-      filters_(std::move(filters)) {}
+    core::CompositeFilter::Operator op, std::vector<FilterInternal*>& filters)
+    : FilterInternal(FilterType::Composite), op_(op) {
+  for (FilterInternal* filter_internal : filters) {
+    filters_.emplace_back(std::shared_ptr<FilterInternal>(filter_internal));
+  }
+}
 
 CompositeFilterInternal* CompositeFilterInternal::clone() {
   return new CompositeFilterInternal(*this);
@@ -45,8 +47,7 @@ core::Filter CompositeFilterInternal::ToCoreFilter(
     const firebase::firestore::UserDataConverter& user_data_converter) const {
   std::vector<core::Filter> core_filters;
   for (auto& filter : filters_) {
-    core_filters.push_back(
-        GetInternal(&filter)->ToCoreFilter(query, user_data_converter));
+    core_filters.push_back(filter->ToCoreFilter(query, user_data_converter));
   }
   return core::CompositeFilter::Create(std::move(core_filters), op_);
 }

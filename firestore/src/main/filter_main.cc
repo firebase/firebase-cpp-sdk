@@ -100,14 +100,17 @@ Filter FilterInternal::UnaryFilter(const FieldPath& field_path,
 Filter FilterInternal::CompositeFilter(
     core::CompositeFilter::Operator op,
     const std::vector<const Filter>& filters) {
-  std::vector<const Filter> nonEmptyFilters;
-  std::copy_if(filters.begin(), filters.end(),
-               std::back_inserter(nonEmptyFilters),
-               [](Filter filter) { return !GetInternal(&filter)->IsEmpty(); });
-  if (nonEmptyFilters.size() == 1) {
-    return filters[0];
+  std::vector<FilterInternal*> nonEmptyFilters;
+  for (const Filter& filter : filters) {
+    FilterInternal* filterInternal = GetInternal(&filter);
+    if (!filterInternal->IsEmpty()) {
+      nonEmptyFilters.push_back(filterInternal->clone());
+    }
   }
-  return MakePublic(CompositeFilterInternal(op, std::move(nonEmptyFilters)));
+  if (nonEmptyFilters.size() == 1) {
+    return Filter(nonEmptyFilters[0]);
+  }
+  return MakePublic(CompositeFilterInternal(op, nonEmptyFilters));
 }
 
 bool operator==(const FilterInternal& lhs, const FilterInternal& rhs) {

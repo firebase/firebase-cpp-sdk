@@ -32,8 +32,8 @@ namespace firestore {
 
 class CompositeFilterInternal : public FilterInternal {
  public:
-  explicit CompositeFilterInternal(core::CompositeFilter::Operator op,
-                                   std::vector<const Filter>&& filters);
+  CompositeFilterInternal(core::CompositeFilter::Operator op,
+                          std::vector<FilterInternal*>& filters);
 
   core::Filter ToCoreFilter(const api::Query& query,
                             const firebase::firestore::UserDataConverter&
@@ -49,7 +49,7 @@ class CompositeFilterInternal : public FilterInternal {
   CompositeFilterInternal* clone() override;
 
   const core::CompositeFilter::Operator op_;
-  const std::vector<const Filter> filters_;
+  std::vector<std::shared_ptr<FilterInternal>> filters_;
 };
 
 bool operator==(const CompositeFilterInternal& lhs,

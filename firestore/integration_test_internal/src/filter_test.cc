@@ -239,12 +239,12 @@ TEST_F(FilterTest, EmptyCompositeIsIgnored) {
   Filter filter5 = Filter::Or(Filter::Or(), Filter::Or());
   Filter filter6 = Filter::Or(Filter::And(), Filter::And());
 
-  CollectionReference collection = Collection();
-
   EXPECT_EQ(filter1, filter2);
   EXPECT_EQ(filter1, filter3);
   EXPECT_EQ(filter4, filter5);
   EXPECT_EQ(filter4, filter6);
+
+  CollectionReference collection = Collection();
 
   Query query1 = collection.Where(filter1);
   Query query2 = collection.Where(filter2);
