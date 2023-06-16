@@ -624,7 +624,7 @@ def main(argv):
     test_list_sorted = reversed(sorted(test_list.keys(), key=lambda x: test_list[x]['count']))
     if FLAGS.output_header:
       if FLAGS.output_markdown:
-        print("| # | Latest | Product | Platform | Test Name &amp; Notes |")
+        print("| # | Latest | Product | Platform | Test Info |")
         print("|---|---|---|---|---|")
       else:
         print("Count\tLatest\tSeverity\tProduct\tPlatform\tTest Name")
