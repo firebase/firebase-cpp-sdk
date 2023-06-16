@@ -658,10 +658,18 @@ def main(argv):
             seen.add(link)
             link_list.append("[%d](%s)" % (num, link))
             num += 1
+        # If test_name looks like FirebaseSomethingTest.Something, link it to code search.
+        m = re.match(r"(Firebase[A-Za-z]*Test)\.(.*)", test_name)
+        if m:
+          search_url = "http://github.com/search?q=repo:firebase/firebase-cpp-sdk%%20\"%s,%%20%s\"" % (m.group(1), m.group(2))
+          test_name_str = "[%s](%s)" % (test_name, search_url)
+        else:
+          test_name_str = test_name
+
         print("| %d | %s | %s | %s | %s&nbsp;%s<br/>&nbsp;&nbsp;&nbsp;Logs: %s |" % (
             test_list[test_id]['count'], latest,
             product, platform,
-            test_name, severity, " ".join(link_list)))
+            test_name_str, severity, " ".join(link_list)))
       else:
         print("%d\t%s\t%s\t%s\t%s\t%s" % (test_list[test_id]['count'], latest, severity, product, platform, test_name))
       num_shown += 1
