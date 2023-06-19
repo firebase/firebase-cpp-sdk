@@ -627,7 +627,7 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### 11.2.0
 -   Changes
     - App Check (Desktop): Fixed expired tokens being cached on 32-bit systems.
     - Remote Config (Android): Fixed the ConfigUpdate classes being missing
