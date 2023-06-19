@@ -265,12 +265,19 @@ class Filter {
   static Filter NotIn(const FieldPath& field,
                       const std::vector<FieldValue>& values);
 
+  /**
+   * @brief Conjunction of a single filter will simply return original filter.
+   *
+   * @param[in] filter Single filter for conjunction.
+   *
+   * @return Same as filter passed in as parameter.
+   */
   static Filter And(const Filter filter) { return filter; }
 
   /**
    * @brief Creates a new filter that is a conjunction of the given filters. A
-   * conjunction filter includes a document if it satisfies <em>all</em> of the
-   * given filters.
+   * conjunction filter includes a document if it satisfies all of the given
+   * filters.
    *
    * @param[in] filters The filters to perform a conjunction for.
    *
@@ -281,8 +288,13 @@ class Filter {
     return And(std::vector<const Filter>({filters...}));
   }
 
-  static Filter And(const std::vector<const Filter>& filters);
-
+  /**
+   * @brief Disjunction of a single filter will simply return original filter.
+   *
+   * @param[in] filter Single filter for disjunction.
+   *
+   * @return Same as filter passed in as parameter.
+   */
   static Filter Or(const Filter filter) { return filter; }
 
   /**
@@ -298,8 +310,6 @@ class Filter {
   static Filter Or(const Filters&... filters) {
     return Or(std::vector<const Filter>({filters...}));
   }
-
-  static Filter Or(const std::vector<const Filter>& filters);
 
   /**
    * @brief Copy constructor.
@@ -345,6 +355,9 @@ class Filter {
   friend class FilterInternal;
   friend bool operator==(const Filter& lhs, const Filter& rhs);
   friend struct ConverterImpl;
+
+  static Filter And(const std::vector<const Filter>& filters);
+  static Filter Or(const std::vector<const Filter>& filters);
 
   bool IsEmpty() const;
 
