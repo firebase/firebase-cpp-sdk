@@ -84,8 +84,7 @@ class Query {
   /**
    * @brief Copy constructor.
    *
-   * `Query` is immutable and can be efficiently copied (no deep copy is
-   * performed).
+   * `Query` is immutable and can be efficiently copied.
    *
    * @param[in] other `Query` to copy from.
    */
@@ -106,8 +105,7 @@ class Query {
   /**
    * @brief Copy assignment operator.
    *
-   * `Query` is immutable and can be efficiently copied (no deep copy is
-   * performed).
+   * `Query` is immutable and can be efficiently copied.
    *
    * @param[in] other `Query` to copy from.
    *

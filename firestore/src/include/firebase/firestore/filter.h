@@ -28,6 +28,10 @@ namespace firestore {
 
 class FilterInternal;
 
+/**
+ * @brief A Filter represents a restriction on one or more field values and can
+ * be used to refine the results of a Query.
+ */
 class Filter {
  public:
   /**
@@ -297,9 +301,40 @@ class Filter {
 
   static Filter Or(const std::vector<const Filter>& filters);
 
+  /**
+   * @brief Copy constructor.
+   *
+   * `Filter` is immutable and can be efficiently copied.
+   *
+   * @param[in] other `Filter` to copy from.
+   */
   Filter(const Filter& other);
+
+  /**
+   * @brief Move constructor.
+   *
+   * @param[in] other `Filter` to move data from.
+   */
   Filter(Filter&& other) noexcept;
+
+  /**
+   * @brief Copy assignment operator.
+   *
+   * `Filter` is immutable and can be efficiently copied.
+   *
+   * @param[in] other `Filter` to copy from.
+   *
+   * @return Reference to the destination `Filter`.
+   */
   Filter& operator=(const Filter& other);
+
+  /**
+   * @brief Move assignment operator.
+   *
+   * @param[in] other `Filter` to move data from.
+   *
+   * @return Reference to the destination `Filter`.
+   */
   Filter& operator=(Filter&& other) noexcept;
 
   ~Filter();
