@@ -25,8 +25,10 @@
 #include "app/src/include/firebase/version.h"
 #include "app/src/util.h"
 #include "gma/src/common/ad_view_internal.h"
+#include "gma/src/common/native_ad_internal.h"
 #include "gma/src/include/firebase/gma.h"
 #include "gma/src/include/firebase/gma/ad_view.h"
+#include "gma/src/include/firebase/gma/internal/native_ad.h"
 #include "gma/src/include/firebase/gma/interstitial_ad.h"
 #include "gma/src/include/firebase/gma/rewarded_ad.h"
 #include "gma/src/include/firebase/gma/types.h"
@@ -63,6 +65,8 @@ const char* kAdCouldNotParseAdRequestErrorMessage =
     "Could Not Parse AdRequest.";
 const char* kAdLoadInProgressErrorMessage = "Ad is currently loading.";
 const char* kAdUninitializedErrorMessage = "Ad has not been fully initialized.";
+const char* kImageUrlMalformedErrorMessage =
+    "Image URL is malformed or missing.";
 
 // GmaInternal
 void GmaInternal::CompleteLoadAdFutureSuccess(
@@ -85,6 +89,25 @@ void GmaInternal::CompleteLoadAdFutureFailure(
   delete callback_data;
 }
 
+void GmaInternal::CompleteLoadImageFutureSuccess(
+    FutureCallbackData<ImageResult>* callback_data,
+    const std::vector<unsigned char>& img_data) {
+  callback_data->future_data->future_impl.CompleteWithResult(
+      callback_data->future_handle, static_cast<int>(kAdErrorCodeNone), "",
+      ImageResult(img_data));
+  delete callback_data;
+}
+
+void GmaInternal::CompleteLoadImageFutureFailure(
+    FutureCallbackData<ImageResult>* callback_data, int error_code,
+    const std::string& error_message) {
+  callback_data->future_data->future_impl.CompleteWithResult(
+      callback_data->future_handle, static_cast<int>(error_code),
+      error_message.c_str(), ImageResult());
+  // This method is responsible for disposing of the callback data struct.
+  delete callback_data;
+}
+
 AdError GmaInternal::CreateAdError(const AdErrorInternal& ad_error_internal) {
   return AdError(ad_error_internal);
 }
@@ -93,6 +116,19 @@ void GmaInternal::UpdateAdViewInternalAdSizeDimensions(
     internal::AdViewInternal* ad_view_internal, int width, int height) {
   assert(ad_view_internal);
   ad_view_internal->update_ad_size_dimensions(width, height);
+}
+
+void GmaInternal::InsertNativeInternalImage(
+    internal::NativeAdInternal* native_ad_internal,
+    const NativeAdImageInternal& native_image_internal, const bool& is_icon,
+    const bool& clear_existing_images) {
+  assert(native_ad_internal);
+
+  if (clear_existing_images) {
+    native_ad_internal->clear_existing_images();
+  }
+  NativeAdImage image_asset = NativeAdImage(native_image_internal);
+  native_ad_internal->insert_image(image_asset, is_icon);
 }
 
 // AdInspectorClosedListener
@@ -109,6 +145,17 @@ AdResult::~AdResult() {}
 bool AdResult::is_successful() const { return is_successful_; }
 const AdError& AdResult::ad_error() const { return ad_error_; }
 const ResponseInfo& AdResult::response_info() const { return response_info_; }
+
+// ImageResult
+ImageResult::ImageResult() : is_successful_(false) {}
+ImageResult::ImageResult(const std::vector<unsigned char>& image_info)
+    : is_successful_(true), image_info_(image_info) {}
+
+ImageResult::~ImageResult() {}
+bool ImageResult::is_successful() const { return is_successful_; }
+const std::vector<unsigned char>& ImageResult::image() const {
+  return image_info_;
+}
 
 // AdSize
 // Hardcoded values are from publicly available documentation:
@@ -308,6 +355,15 @@ Future<AdResult> CreateAndCompleteFutureWithResult(int fn_idx, int error,
   return MakeFuture(&future_data->future_impl, handle);
 }
 
+Future<ImageResult> CreateAndCompleteFutureWithImageResult(
+    int fn_idx, int error, const char* error_msg, FutureData* future_data,
+    const ImageResult& result) {
+  SafeFutureHandle<ImageResult> handle =
+      CreateFuture<ImageResult>(fn_idx, future_data);
+  CompleteFuture(error, error_msg, handle, future_data, result);
+  return MakeFuture(&future_data->future_impl, handle);
+}
+
 FutureCallbackData<void>* CreateVoidFutureCallbackData(
     int fn_idx, FutureData* future_data) {
   return new FutureCallbackData<void>{
@@ -319,6 +375,13 @@ FutureCallbackData<AdResult>* CreateAdResultFutureCallbackData(
   return new FutureCallbackData<AdResult>{
       future_data,
       future_data->future_impl.SafeAlloc<AdResult>(fn_idx, AdResult())};
+}
+
+FutureCallbackData<ImageResult>* CreateImageResultFutureCallbackData(
+    int fn_idx, FutureData* future_data) {
+  return new FutureCallbackData<ImageResult>{
+      future_data,
+      future_data->future_impl.SafeAlloc<ImageResult>(fn_idx, ImageResult())};
 }
 
 }  // namespace gma

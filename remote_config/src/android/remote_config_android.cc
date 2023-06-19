@@ -171,6 +171,7 @@ METHOD_LOOKUP_DECLARATION(jni_config_update_listener,
                           JNI_CONFIG_UPDATE_LISTENER_METHODS)
 METHOD_LOOKUP_DEFINITION(
     jni_config_update_listener,
+    PROGUARD_KEEP_CLASS
     "com/google/firebase/remoteconfig/internal/cpp/JniConfigUpdateListener",
     JNI_CONFIG_UPDATE_LISTENER_METHODS)
 
@@ -195,6 +196,7 @@ static const JNINativeMethod kNativeJniConfigUpdateListenerMethods[] = {
 
 METHOD_LOOKUP_DECLARATION(config_update, CONFIG_UPDATE_METHODS)
 METHOD_LOOKUP_DEFINITION(config_update,
+                         PROGUARD_KEEP_CLASS
                          "com/google/firebase/remoteconfig/ConfigUpdate",
                          CONFIG_UPDATE_METHODS)
 
@@ -208,6 +210,7 @@ METHOD_LOOKUP_DECLARATION(config_update_listener_registration,
                           CONFIG_UPDATE_LISTENER_REGISTRATION_METHODS)
 METHOD_LOOKUP_DEFINITION(
     config_update_listener_registration,
+    PROGUARD_KEEP_CLASS
     "com/google/firebase/remoteconfig/ConfigUpdateListenerRegistration",
     CONFIG_UPDATE_LISTENER_REGISTRATION_METHODS)
 
