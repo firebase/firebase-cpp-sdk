@@ -59,7 +59,13 @@ Env::Env(JNIEnv* env)
     : env_(env), initial_pending_exceptions_(CurrentExceptionCount()) {}
 
 Env::~Env() noexcept(false) {
-  if (ok()) return;
+  // Avoid calling ok() if there is no registered exception handler. It is
+  // slightly more efficient in the common case that no exception handler is
+  // specified, and also avoids calling into the JVM in the rare case that the
+  // thread is already detached.
+  if (!exception_handler_ || ok()) {
+    return;
+  }
 
   if (exception_handler_ &&
       CurrentExceptionCount() == initial_pending_exceptions_) {
