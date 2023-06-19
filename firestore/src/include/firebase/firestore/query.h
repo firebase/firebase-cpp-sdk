@@ -404,7 +404,7 @@ class Query {
    * A Query can have only one `WhereIn()` filter and it cannot be
    * combined with `WhereArrayContainsAny()`.
    *
-   * @param[in] field The name of the field containing an array to search.
+   * @param[in] field The name of the field to compare.
    * @param[in] values The list that contains the values to match.
    *
    * @return The created Query.
@@ -420,7 +420,7 @@ class Query {
    * A Query can have only one `WhereIn()` filter and it cannot be
    * combined with `WhereArrayContainsAny()`.
    *
-   * @param[in] field The path of the field containing an array to search.
+   * @param[in] field The path of the field to compare.
    * @param[in] values The list that contains the values to match.
    *
    * @return The created Query.
@@ -442,7 +442,7 @@ class Query {
    * combined with `WhereArrayContains()`, `WhereArrayContainsAny()`,
    * `WhereIn()`, or `WhereNotEqualTo()`.
    *
-   * @param[in] field The name of the field containing an array to search.
+   * @param[in] field The name of the field to compare.
    * @param[in] values The list that contains the values to match.
    *
    * @return The created Query.
@@ -464,7 +464,7 @@ class Query {
    * combined with `WhereArrayContains()`, `WhereArrayContainsAny()`,
    * `WhereIn()`, or `WhereNotEqualTo()`.
    *
-   * @param[in] field The path of the field containing an array to search.
+   * @param[in] field The path of the field to compare.
    * @param[in] values The list that contains the values to match.
    *
    * @return The created Query.

@@ -30,41 +30,248 @@ class FilterInternal;
 
 class Filter {
  public:
+  /**
+   * @brief Creates a new filter for checking that the given array field
+   * contains the given value.
+   *
+   * @param[in] field The name of the field containing an array to search.
+   * @param[in] value The value that must be contained in the array.
+   *
+   * @return The newly created filter.
+   */
   static Filter ArrayContains(const std::string& field,
                               const FieldValue& value);
+
+  /**
+   * @brief Creates a new filter for checking that the given array field
+   * contains any of the given values.
+   *
+   * @param[in] field The name of the field containing an array to search.
+   * @param[in] values The list of values to match.
+   *
+   * @return The newly created filter.
+   */
   static Filter ArrayContainsAny(const std::string& field,
                                  const std::vector<FieldValue>& values);
+
+  /**
+   * @brief Creates a new filter for checking that the given field is equal to
+   * the given value.
+   *
+   * @param[in] field The name of the field to compare.
+   * @param[in] value The value for comparison
+   *
+   * @return The newly created filter.
+   */
   static Filter EqualTo(const std::string& field, const FieldValue& value);
+
+  /**
+   * @brief Creates a new filter for checking that the given field is not equal
+   * to the given value.
+   *
+   * @param[in] field The name of the field to compare.
+   * @param[in] value The value for comparison
+   *
+   * @return The newly created filter.
+   */
   static Filter NotEqualTo(const std::string& field, const FieldValue& value);
+
+  /**
+   * @brief Creates a new filter for checking that the given field is greater
+   * than the given value.
+   *
+   * @param[in] field The name of the field to compare.
+   * @param[in] value The value for comparison
+   *
+   * @return The newly created filter.
+   */
   static Filter GreaterThan(const std::string& field, const FieldValue& value);
+
+  /**
+   * @brief Creates a new filter for checking that the given field is greater
+   * than or equal to the given value.
+   *
+   * @param[in] field The name of the field to compare.
+   * @param[in] value The value for comparison
+   *
+   * @return The newly created filter.
+   */
   static Filter GreaterThanOrEqualTo(const std::string& field,
                                      const FieldValue& value);
+
+  /**
+   * @brief Creates a new filter for checking that the given field is less than
+   * the given value.
+   *
+   * @param[in] field The name of the field to compare.
+   * @param[in] value The value for comparison
+   *
+   * @return The newly created filter.
+   */
   static Filter LessThan(const std::string& field, const FieldValue& value);
+
+  /**
+   * @brief Creates a new filter for checking that the given field is less than
+   * or equal to the given value.
+   *
+   * @param[in] field The name of the field to compare.
+   * @param[in] value The value for comparison
+   *
+   * @return The newly created filter.
+   */
   static Filter LessThanOrEqualTo(const std::string& field,
                                   const FieldValue& value);
+
+  /**
+   * @brief Creates a new filter for checking that the given field equals any of
+   * the given values.
+   *
+   * @param[in] field The name of the field to compare.
+   * @param[in] values The list of values to match.
+   *
+   * @return The newly created filter.
+   */
   static Filter In(const std::string& field,
                    const std::vector<FieldValue>& values);
+
+  /**
+   * @brief Creates a new filter for checking that the given field does not
+   * equal any of the given values.
+   *
+   * @param[in] field The name of the field to compare.
+   * @param[in] values The list of values to match.
+   *
+   * @return The newly created filter.
+   */
   static Filter NotIn(const std::string& field,
                       const std::vector<FieldValue>& values);
 
+  /**
+   * @brief Creates a new filter for checking that the given array field
+   * contains the given value.
+   *
+   * @param[in] field The path of the field containing an array to search.
+   * @param[in] value The value that must be contained in the array.
+   *
+   * @return The newly created filter.
+   */
   static Filter ArrayContains(const FieldPath& field, const FieldValue& value);
+
+  /**
+   * @brief Creates a new filter for checking that the given array field
+   * contains any of the given values.
+   *
+   * @param[in] field The path of the field containing an array to search.
+   * @param[in] values The list of values to match.
+   *
+   * @return The newly created filter.
+   */
   static Filter ArrayContainsAny(const FieldPath& field,
                                  const std::vector<FieldValue>& values);
+
+  /**
+   * @brief Creates a new filter for checking that the given field is equal to
+   * the given value.
+   *
+   * @param[in] field The path of the field to compare.
+   * @param[in] value The value for comparison
+   *
+   * @return The newly created filter.
+   */
   static Filter EqualTo(const FieldPath& field, const FieldValue& value);
+
+  /**
+   * @brief Creates a new filter for checking that the given field is not equal
+   * to the given value.
+   *
+   * @param[in] field The path of the field to compare.
+   * @param[in] value The value for comparison
+   *
+   * @return The newly created filter.
+   */
   static Filter NotEqualTo(const FieldPath& field, const FieldValue& value);
+
+  /**
+   * @brief Creates a new filter for checking that the given field is greater
+   * than the given value.
+   *
+   * @param[in] field The path of the field to compare.
+   * @param[in] value The value for comparison
+   *
+   * @return The newly created filter.
+   */
   static Filter GreaterThan(const FieldPath& field, const FieldValue& value);
+
+  /**
+   * @brief Creates a new filter for checking that the given field is greater
+   * than or equal to the given value.
+   *
+   * @param[in] field The path of the field to compare.
+   * @param[in] value The value for comparison
+   *
+   * @return The newly created filter.
+   */
   static Filter GreaterThanOrEqualTo(const FieldPath& field,
                                      const FieldValue& value);
+
+  /**
+   * @brief Creates a new filter for checking that the given field is less than
+   * the given value.
+   *
+   * @param[in] field The path of the field to compare.
+   * @param[in] value The value for comparison
+   *
+   * @return The newly created filter.
+   */
   static Filter LessThan(const FieldPath& field, const FieldValue& value);
+
+  /**
+   * @brief Creates a new filter for checking that the given field is less than
+   * or equal to the given value.
+   *
+   * @param[in] field The path of the field to compare.
+   * @param[in] value The value for comparison
+   *
+   * @return The newly created filter.
+   */
   static Filter LessThanOrEqualTo(const FieldPath& field,
                                   const FieldValue& value);
+
+  /**
+   * @brief Creates a new filter for checking that the given field equals any of
+   * the given values.
+   *
+   * @param[in] field The path of the field to compare.
+   * @param[in] values The list of values to match.
+   *
+   * @return The newly created filter.
+   */
   static Filter In(const FieldPath& field,
                    const std::vector<FieldValue>& values);
+
+  /**
+   * @brief Creates a new filter for checking that the given field does not
+   * equal any of the given values.
+   *
+   * @param[in] field The path of the field to compare.
+   * @param[in] values The list of values to match.
+   *
+   * @return The newly created filter.
+   */
   static Filter NotIn(const FieldPath& field,
                       const std::vector<FieldValue>& values);
 
   static Filter And(const Filter filter) { return filter; }
 
+  /**
+   * @brief Creates a new filter that is a conjunction of the given filters. A
+   * conjunction filter includes a document if it satisfies <em>all</em> of the
+   * given filters.
+   *
+   * @param[in] filters The filters to perform a conjunction for.
+   *
+   * @return The newly created filter.
+   */
   template <typename... Filters>
   static Filter And(const Filters&... filters) {
     return And(std::vector<const Filter>({filters...}));
@@ -74,6 +281,15 @@ class Filter {
 
   static Filter Or(const Filter filter) { return filter; }
 
+  /**
+   * @brief Creates a new filter that is a disjunction of the given filters. A
+   * disjunction filter includes a document if it satisfies <em>any</em> of the
+   * given filters.
+   *
+   * @param[in] filters The filters to perform a disjunction for.
+   *
+   * @return The newly created filter.
+   */
   template <typename... Filters>
   static Filter Or(const Filters&... filters) {
     return Or(std::vector<const Filter>({filters...}));
