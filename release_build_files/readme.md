@@ -629,6 +629,9 @@ code.
 ## Release Notes
 ### 11.2.0
 -   Changes
+    - General (Android): Update to Firebase Android BoM version 32.1.1.
+    - General (iOS): Update to Firebase Cocoapods version 10.11.0.
+    - GMA (iOS): Updated dependency to Google-Mobile-Ads-SDK version 10.6.0.
     - App Check (Desktop): Fixed expired tokens being cached on 32-bit systems.
     - Remote Config (Android): Fixed the ConfigUpdate classes being missing
       from the proguard files.
