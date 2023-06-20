@@ -58,9 +58,8 @@ bool operator==(const CompositeFilterInternal& lhs,
   if (lhs.op_ != rhs.op_) return false;
   const std::vector<std::shared_ptr<FilterInternal>>& lhs_filters = lhs.filters_;
   const std::vector<std::shared_ptr<FilterInternal>>& rhs_filters = rhs.filters_;
-  const unsigned long size = lhs_filters.size();
-  if (size != rhs_filters.size()) return false;
-  for (int i = 0; i < size; i++) {
+  if (lhs_filters.size() != rhs_filters.size()) return false;
+  for (int i = 0; i < lhs_filters.size(); i++) {
     if (lhs_filters[i] != rhs_filters[i] && *lhs_filters[i] != *rhs_filters[i]) return false;
   }
   return true;
