@@ -433,6 +433,29 @@ TEST_F(FilterTest, CompositeComparison) {
   EXPECT_NE(or3, or4);
 }
 
+TEST_F(FilterTest, QueryWhereComposite) {
+  MapFieldValue doc_aa = {{"x", FieldValue::String("a")}, {"y", FieldValue::String("a")}};
+  MapFieldValue doc_ab = {{"x", FieldValue::String("a")}, {"y", FieldValue::String("b")}};
+  MapFieldValue doc_ba = {{"x", FieldValue::String("b")}, {"y", FieldValue::String("a")}};
+  MapFieldValue doc_bb = {{"x", FieldValue::String("b")}, {"y", FieldValue::String("b")}};
+  CollectionReference collection =
+      Collection({{"aa", doc_aa},
+                  {"ab", doc_ab},
+                  {"ba", doc_ba},
+                  {"bb", doc_bb}});
+
+  Filter filter_xa = Filter::EqualTo("x", FieldValue::String("a"));
+  Filter filter_yb = Filter::EqualTo("y", FieldValue::String("b"));
+
+  QuerySnapshot snapshot1 =
+      ReadDocuments(collection.Where(Filter::And(filter_xa, filter_yb)));
+  EXPECT_EQ(std::vector<MapFieldValue>({doc_ab}), QuerySnapshotToValues(snapshot1));
+
+  QuerySnapshot snapshot2 =
+      ReadDocuments(collection.Where(Filter::Or(filter_xa, filter_yb)));
+  EXPECT_EQ(std::vector<MapFieldValue>({doc_aa, doc_ab, doc_bb}), QuerySnapshotToValues(snapshot2));
+}
+
 }  // namespace
 
 }  // namespace firestore
