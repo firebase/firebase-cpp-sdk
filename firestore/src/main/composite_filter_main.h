@@ -35,6 +35,8 @@ class CompositeFilterInternal : public FilterInternal {
   CompositeFilterInternal(core::CompositeFilter::Operator op,
                           std::vector<FilterInternal*>& filters);
 
+  ~CompositeFilterInternal() override = default;
+
   core::Filter ToCoreFilter(const api::Query& query,
                             const firebase::firestore::UserDataConverter&
                                 user_data_converter) const override;

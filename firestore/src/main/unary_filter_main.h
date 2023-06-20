@@ -38,6 +38,8 @@ class UnaryFilterInternal final : public FilterInternal {
                       core::FieldFilter::Operator op,
                       const std::vector<FieldValue>& values);
 
+  ~UnaryFilterInternal() override = default;
+
   core::Filter ToCoreFilter(const api::Query& query,
                             const firebase::firestore::UserDataConverter&
                                 user_data_converter) const override;

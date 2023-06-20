@@ -24,6 +24,7 @@
 #include "Firestore/core/src/core/composite_filter.h"
 #include "firestore/src/main/composite_filter_main.h"
 #include "firestore/src/main/converter_main.h"
+#include "absl/algorithm/container.h"
 
 namespace firebase {
 namespace firestore {
@@ -54,7 +55,15 @@ core::Filter CompositeFilterInternal::ToCoreFilter(
 
 bool operator==(const CompositeFilterInternal& lhs,
                 const CompositeFilterInternal& rhs) {
-  return lhs.op_ == rhs.op_ && lhs.filters_ == rhs.filters_;
+  if (lhs.op_ != rhs.op_) return false;
+  const std::vector<std::shared_ptr<FilterInternal>>& lhs_filters = lhs.filters_;
+  const std::vector<std::shared_ptr<FilterInternal>>& rhs_filters = rhs.filters_;
+  const unsigned long size = lhs_filters.size();
+  if (size != rhs_filters.size()) return false;
+  for (int i = 0; i < size; i++) {
+    if (lhs_filters[i] != rhs_filters[i] && *lhs_filters[i] != *rhs_filters[i]) return false;
+  }
+  return true;
 }
 
 }  // namespace firestore

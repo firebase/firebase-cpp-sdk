@@ -362,7 +362,7 @@ class Filter {
   bool IsEmpty() const;
 
   explicit Filter(FilterInternal* internal);
-  FilterInternal* internal_;
+  FilterInternal* internal_ = nullptr;
 };
 
 /** Checks `lhs` and `rhs` for equality. */

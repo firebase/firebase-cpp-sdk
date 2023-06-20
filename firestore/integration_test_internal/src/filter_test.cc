@@ -23,16 +23,109 @@ namespace {
 
 using FilterTest = FirestoreIntegrationTest;
 
-TEST_F(FilterTest, IdenticalShouldBeEqual) {
+TEST_F(FilterTest, CopyConstructorReturnsEqualObject) {
+  const Filter filter1a = Filter::EqualTo("foo", FieldValue::Integer(42));
+  const Filter filter2a = Filter::ArrayContainsAny(
+      "bar", {FieldValue::Integer(4), FieldValue::Integer(2)});
+  const Filter filter3a = Filter::And(filter1a, filter2a);
+
+  const Filter filter1b(filter1a);
+  const Filter filter2b(filter2a);
+  const Filter filter3b(filter3a);
+
+  EXPECT_EQ(filter1a, filter1b);
+  EXPECT_EQ(filter2a, filter2b);
+  EXPECT_EQ(filter3a, filter3b);
+}
+
+TEST_F(FilterTest, CopyAssignementReturnsEqualObject) {
+  const Filter filter1 = Filter::EqualTo("foo", FieldValue::Integer(42));
+  const Filter filter2 = Filter::ArrayContainsAny(
+      "bar", {FieldValue::Integer(4), FieldValue::Integer(2)});
+  const Filter filter3 = Filter::And(filter1, filter2);
+
+  Filter filter = Filter::And();
+
+  EXPECT_NE(filter, filter1);
+  EXPECT_NE(filter, filter2);
+  EXPECT_NE(filter, filter3);
+
+  filter = filter1;
+
+  EXPECT_EQ(filter, filter1);
+  EXPECT_NE(filter, filter2);
+  EXPECT_NE(filter, filter3);
+
+  filter = filter2;
+
+  EXPECT_NE(filter, filter1);
+  EXPECT_EQ(filter, filter2);
+  EXPECT_NE(filter, filter3);
+
+  filter = filter3;
+
+  EXPECT_NE(filter, filter1);
+  EXPECT_NE(filter, filter2);
+  EXPECT_EQ(filter, filter3);
+}
+
+TEST_F(FilterTest, MoveConstructorReturnsEqualObject) {
+  Filter filter1a = Filter::EqualTo("foo", FieldValue::Integer(42));
+  Filter filter2a = Filter::ArrayContainsAny(
+      "bar", {FieldValue::Integer(4), FieldValue::Integer(2)});
+  Filter filter3a = Filter::And(filter1a, filter2a);
+
+  Filter filter1b(std::move(filter1a));
+  EXPECT_EQ(filter1b, Filter::EqualTo("foo", FieldValue::Integer(42)));
+
+  Filter filter2b(std::move(filter2a));
+  EXPECT_EQ(filter2b, Filter::ArrayContainsAny("bar", {FieldValue::Integer(4), FieldValue::Integer(2)}));
+
+  Filter filter3b(std::move(filter3a));
+  EXPECT_EQ(filter3b, Filter::And(filter1b, filter2b));
+}
+
+TEST_F(FilterTest, MoveAssignmentReturnsEqualObject) {
+  Filter filter1a = Filter::EqualTo("foo", FieldValue::Integer(42));
+  Filter filter2a = Filter::ArrayContainsAny(
+      "bar", {FieldValue::Integer(4), FieldValue::Integer(2)});
+  Filter filter3a = Filter::And(filter1a, filter2a);
+
+  Filter filter1b = std::move(filter1a);
+  EXPECT_EQ(filter1b, Filter::EqualTo("foo", FieldValue::Integer(42)));
+
+  Filter filter2b = std::move(filter2a);
+  EXPECT_EQ(filter2b, Filter::ArrayContainsAny("bar", {FieldValue::Integer(4), FieldValue::Integer(2)}));
+
+  Filter filter3b = std::move(filter3a);
+  EXPECT_EQ(filter3b, Filter::And(filter1b, filter2b));
+}
+
+TEST_F(FilterTest, MoveAssignmentAppliedToSelfReturnsEqualObject) {
+  Filter filter1 = Filter::EqualTo("foo", FieldValue::Integer(42));
+  Filter filter2 = Filter::ArrayContainsAny(
+      "bar", {FieldValue::Integer(4), FieldValue::Integer(2)});
+  Filter filter3 = Filter::And(filter1, filter2);
+
+  filter1 = std::move(filter1);
+  EXPECT_EQ(filter1, Filter::EqualTo("foo", FieldValue::Integer(42)));
+
+  filter2 = std::move(filter2);
+  EXPECT_EQ(filter2, Filter::ArrayContainsAny("bar", {FieldValue::Integer(4), FieldValue::Integer(2)}));
+
+  filter3 = std::move(filter3);
+  EXPECT_EQ(filter3, Filter::And(filter1, filter2));
+}
+
+TEST_F(FilterTest, IdenticalFilterShouldBeEqual) {
   FieldPath foo_path{std::vector<std::string>{"foo"}};
 
   Filter filter1a = Filter::ArrayContains("foo", FieldValue::Integer(42));
   Filter filter1b = Filter::ArrayContains(foo_path, FieldValue::Integer(42));
 
-  Filter filter2a = Filter::ArrayContainsAny(
-      "foo", std::vector<FieldValue>{FieldValue::Integer(42)});
-  Filter filter2b = Filter::ArrayContainsAny(
-      foo_path, std::vector<FieldValue>{FieldValue::Integer(42)});
+  Filter filter2a = Filter::ArrayContainsAny("foo", {FieldValue::Integer(42)});
+  Filter filter2b =
+      Filter::ArrayContainsAny(foo_path, {FieldValue::Integer(42)});
 
   Filter filter3a = Filter::EqualTo("foo", FieldValue::Integer(42));
   Filter filter3b = Filter::EqualTo(foo_path, FieldValue::Integer(42));
@@ -55,15 +148,17 @@ TEST_F(FilterTest, IdenticalShouldBeEqual) {
   Filter filter8b =
       Filter::LessThanOrEqualTo(foo_path, FieldValue::Integer(42));
 
-  Filter filter9a =
-      Filter::In("foo", std::vector<FieldValue>{FieldValue::Integer(42)});
-  Filter filter9b =
-      Filter::In(foo_path, std::vector<FieldValue>{FieldValue::Integer(42)});
+  Filter filter9a = Filter::In("foo", {FieldValue::Integer(42)});
+  Filter filter9b = Filter::In(foo_path, {FieldValue::Integer(42)});
 
-  Filter filter10a =
-      Filter::NotIn("foo", std::vector<FieldValue>{FieldValue::Integer(42)});
-  Filter filter10b =
-      Filter::NotIn(foo_path, std::vector<FieldValue>{FieldValue::Integer(42)});
+  Filter filter10a = Filter::NotIn("foo", {FieldValue::Integer(42)});
+  Filter filter10b = Filter::NotIn(foo_path, {FieldValue::Integer(42)});
+
+  Filter filter11a = Filter::And(filter1a, filter2a);
+  Filter filter11b = Filter::And(filter1b, filter2b);
+
+  Filter filter12a = Filter::Or(filter3a, filter4a, filter5a, filter6a, filter7a);
+  Filter filter12b = Filter::Or(filter3b, filter4b, filter5b, filter6b, filter7b);
 
   EXPECT_TRUE(filter1a == filter1a);
   EXPECT_TRUE(filter2a == filter2a);
@@ -75,6 +170,8 @@ TEST_F(FilterTest, IdenticalShouldBeEqual) {
   EXPECT_TRUE(filter8a == filter8a);
   EXPECT_TRUE(filter9a == filter9a);
   EXPECT_TRUE(filter10a == filter10a);
+  EXPECT_TRUE(filter11a == filter11a);
+  EXPECT_TRUE(filter12a == filter12a);
 
   EXPECT_TRUE(filter1a == filter1b);
   EXPECT_TRUE(filter2a == filter2b);
@@ -86,6 +183,8 @@ TEST_F(FilterTest, IdenticalShouldBeEqual) {
   EXPECT_TRUE(filter8a == filter8b);
   EXPECT_TRUE(filter9a == filter9b);
   EXPECT_TRUE(filter10a == filter10b);
+  EXPECT_TRUE(filter11a == filter11b);
+  EXPECT_TRUE(filter12a == filter12b);
 
   EXPECT_FALSE(filter1a != filter1a);
   EXPECT_FALSE(filter2a != filter2a);
@@ -97,6 +196,8 @@ TEST_F(FilterTest, IdenticalShouldBeEqual) {
   EXPECT_FALSE(filter8a != filter8a);
   EXPECT_FALSE(filter9a != filter9a);
   EXPECT_FALSE(filter10a != filter10a);
+  EXPECT_FALSE(filter11a != filter11a);
+  EXPECT_FALSE(filter12a != filter12a);
 
   EXPECT_FALSE(filter1a != filter1b);
   EXPECT_FALSE(filter2a != filter2b);
@@ -108,6 +209,8 @@ TEST_F(FilterTest, IdenticalShouldBeEqual) {
   EXPECT_FALSE(filter8a != filter8b);
   EXPECT_FALSE(filter9a != filter9b);
   EXPECT_FALSE(filter10a != filter10b);
+  EXPECT_FALSE(filter11a != filter11b);
+  EXPECT_FALSE(filter12a != filter12b);
 
   EXPECT_TRUE(filter1a != filter2a);
   EXPECT_TRUE(filter1a != filter3a);
@@ -118,6 +221,8 @@ TEST_F(FilterTest, IdenticalShouldBeEqual) {
   EXPECT_TRUE(filter1a != filter8a);
   EXPECT_TRUE(filter1a != filter9a);
   EXPECT_TRUE(filter1a != filter10a);
+  EXPECT_TRUE(filter1a != filter11a);
+  EXPECT_TRUE(filter1a != filter12a);
   EXPECT_TRUE(filter2a != filter3a);
   EXPECT_TRUE(filter2a != filter4a);
   EXPECT_TRUE(filter2a != filter5a);
@@ -126,6 +231,8 @@ TEST_F(FilterTest, IdenticalShouldBeEqual) {
   EXPECT_TRUE(filter2a != filter8a);
   EXPECT_TRUE(filter2a != filter9a);
   EXPECT_TRUE(filter2a != filter10a);
+  EXPECT_TRUE(filter2a != filter11a);
+  EXPECT_TRUE(filter2a != filter12a);
   EXPECT_TRUE(filter3a != filter4a);
   EXPECT_TRUE(filter3a != filter5a);
   EXPECT_TRUE(filter3a != filter6a);
@@ -133,27 +240,44 @@ TEST_F(FilterTest, IdenticalShouldBeEqual) {
   EXPECT_TRUE(filter3a != filter8a);
   EXPECT_TRUE(filter3a != filter9a);
   EXPECT_TRUE(filter3a != filter10a);
+  EXPECT_TRUE(filter3a != filter11a);
+  EXPECT_TRUE(filter3a != filter12a);
   EXPECT_TRUE(filter4a != filter5a);
   EXPECT_TRUE(filter4a != filter6a);
   EXPECT_TRUE(filter4a != filter7a);
   EXPECT_TRUE(filter4a != filter8a);
   EXPECT_TRUE(filter4a != filter9a);
   EXPECT_TRUE(filter4a != filter10a);
+  EXPECT_TRUE(filter4a != filter11a);
+  EXPECT_TRUE(filter4a != filter12a);
   EXPECT_TRUE(filter5a != filter6a);
   EXPECT_TRUE(filter5a != filter7a);
   EXPECT_TRUE(filter5a != filter8a);
   EXPECT_TRUE(filter5a != filter9a);
   EXPECT_TRUE(filter5a != filter10a);
+  EXPECT_TRUE(filter5a != filter11a);
+  EXPECT_TRUE(filter5a != filter12a);
   EXPECT_TRUE(filter6a != filter7a);
   EXPECT_TRUE(filter6a != filter8a);
   EXPECT_TRUE(filter6a != filter9a);
   EXPECT_TRUE(filter6a != filter10a);
+  EXPECT_TRUE(filter6a != filter11a);
+  EXPECT_TRUE(filter6a != filter12a);
   EXPECT_TRUE(filter7a != filter8a);
   EXPECT_TRUE(filter7a != filter9a);
   EXPECT_TRUE(filter7a != filter10a);
+  EXPECT_TRUE(filter7a != filter11a);
+  EXPECT_TRUE(filter7a != filter12a);
   EXPECT_TRUE(filter8a != filter9a);
   EXPECT_TRUE(filter8a != filter10a);
+  EXPECT_TRUE(filter8a != filter11a);
+  EXPECT_TRUE(filter8a != filter12a);
   EXPECT_TRUE(filter9a != filter10a);
+  EXPECT_TRUE(filter9a != filter11a);
+  EXPECT_TRUE(filter9a != filter12a);
+  EXPECT_TRUE(filter10a != filter11a);
+  EXPECT_TRUE(filter10a != filter12a);
+  EXPECT_TRUE(filter11a != filter12a);
 }
 
 TEST_F(FilterTest, DifferentValuesAreNotEqual) {
@@ -231,7 +355,7 @@ TEST_F(FilterTest, CompositesWithOneFilterAreTheSameAsFilter) {
   EXPECT_FALSE(filter1 != filter3);
 }
 
-TEST_F(FilterTest, EmptyCompositeIsIgnored) {
+TEST_F(FilterTest, EmptyCompositeIsIgnoredByCompositesAndQueries) {
   Filter filter1 = Filter::And();
   Filter filter2 = Filter::And(Filter::And(), Filter::And());
   Filter filter3 = Filter::And(Filter::Or(), Filter::Or());
@@ -287,7 +411,9 @@ TEST_F(FilterTest, CompositeComparison) {
   EXPECT_EQ(or3, or3);
   EXPECT_EQ(or4, or4);
 
+  // Is equal because single filter composite is same as filter itself.
   EXPECT_EQ(and1, or1);
+
   EXPECT_NE(and2, or2);
   EXPECT_NE(and3, or3);
   EXPECT_NE(and4, or4);
