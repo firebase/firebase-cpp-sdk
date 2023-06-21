@@ -1850,14 +1850,13 @@ TEST_F(FirestoreTest, FirestoreCanBeDeletedFromTransaction) {
 #if defined(__ANDROID__)
 TEST_F(FirestoreAndroidIntegrationTest,
        CanDeleteFirestoreInstanceOnJavaMainThread) {
-  jni::Env env;
   Firestore* db = TestFirestore();
-  auto runnable = MakeJniRunnable(env, [db] { delete db; });
+  auto runnable = MakeJniRunnable(env(), [db] { delete db; });
 
-  jni::Local<jni::Task> task = runnable.RunOnMainThread(env);
+  jni::Local<jni::Task> task = runnable.RunOnMainThread(env());
 
   Await(task);
-  EXPECT_TRUE(task.IsSuccessful(env));
+  EXPECT_TRUE(task.IsSuccessful(env()));
   DisownFirestore(db);  // Avoid double-deletion of the `db`.
 }
 #endif  // defined(__ANDROID__)

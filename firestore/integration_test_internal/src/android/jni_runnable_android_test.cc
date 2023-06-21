@@ -32,7 +32,6 @@ namespace firestore {
 
 namespace {
 
-using jni::Env;
 using jni::Global;
 using jni::Local;
 using jni::Method;

@@ -42,7 +42,6 @@ void PrintTo(const Object& object, std::ostream* os) {
 }  // namespace jni
 
 using jni::Constructor;
-using jni::Env;
 using jni::ExceptionClearGuard;
 using jni::Local;
 using jni::String;
