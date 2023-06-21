@@ -61,7 +61,7 @@ TEST_F(FirestoreAndroidIntegrationTest,
        ToDebugStringWithPendingExceptionAndNonNullObject) {
   Env env;
   Local<String> object = env.NewStringUtf("Test Value");
-  env.Throw(CreateException("forced exception"));
+  ThrowException();
   ASSERT_FALSE(env.ok());
 
   std::string debug_string = ToDebugString(object);
@@ -74,7 +74,7 @@ TEST_F(FirestoreAndroidIntegrationTest,
        ToDebugStringWithPendingExceptionAndNullObject) {
   Env env;
   Object null_reference;
-  env.Throw(CreateException("forced exception"));
+  ThrowException();
   ASSERT_FALSE(env.ok());
 
   std::string debug_string = ToDebugString(null_reference);

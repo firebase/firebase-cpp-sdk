@@ -80,8 +80,7 @@ void FirestoreAndroidIntegrationTest::FailTestIfPendingException() {
     return;
   }
 
-  // Ignore the exception if an invocation of ClearCurrentExceptionAfterTest()
-  // requested that it be ignored.
+  // Ignore the exception if it was thrown by the last ThrowException() call.
   if (env().IsSameObject(pending_exception, last_thrown_exception_)) {
     return;
   }
@@ -102,7 +101,7 @@ Local<Throwable> FirestoreAndroidIntegrationTest::CreateException() {
 
 Local<Throwable> FirestoreAndroidIntegrationTest::CreateException(
     const std::string& message) {
-  ExceptionClearGuard block(env());
+  ExceptionClearGuard exception_clear_guard(env());
   Local<String> java_message = env().NewStringUtf(message);
   return env().New(kExceptionConstructor, java_message);
 }
@@ -121,6 +120,10 @@ Local<Throwable> FirestoreAndroidIntegrationTest::ThrowException(
     return {};
   }
   Local<Throwable> exception = CreateException(message);
+
+  // Silently discard this exception if the test ends with it still pending.
+  last_thrown_exception_ = exception;
+
   env().Throw(exception);
   return exception;
 }
