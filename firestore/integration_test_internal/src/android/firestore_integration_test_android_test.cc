@@ -25,8 +25,6 @@
 #include "firestore/src/jni/ownership.h"
 #include "firestore/src/jni/string.h"
 
-#include "gtest/gtest-spi.h"
-
 namespace firebase {
 namespace firestore {
 namespace {
@@ -201,62 +199,6 @@ TEST_F(FirestoreAndroidIntegrationTest,
   Local<Throwable> exception = CreateException("my test message");
   ASSERT_TRUE(exception);
   EXPECT_THAT(exception.GetMessage(env()), StrEq("my test message"));
-}
-
-TEST_F(FirestoreAndroidIntegrationTest,
-       ClearCurrentExceptionAfterTestShouldClearTheExceptionInTearDown) {
-  ThrowException();
-
-  ClearCurrentExceptionAfterTest();
-
-  // There is nothing to assert; the test should pass despite this function
-  // ending with a pending exception.
-  EXPECT_FALSE(env().ok());
-}
-
-TEST_F(
-    FirestoreAndroidIntegrationTest,
-    ClearCurrentExceptionAfterTestShouldReturnTheExceptionThatWillBeCleared) {
-  Local<Throwable> thrown_exception = ThrowException();
-
-  Local<Throwable> returned_exception = ClearCurrentExceptionAfterTest();
-
-  env().ClearExceptionOccurred();
-  EXPECT_THAT(returned_exception, RefersToSameJavaObjectAs(thrown_exception));
-}
-
-TEST_F(FirestoreAndroidIntegrationTest,
-       ClearExceptionShouldFailTestIfThereIsNoPendingException) {
-  Local<Throwable> returned_object;
-  auto lambda = [&]() { returned_object = ClearCurrentExceptionAfterTest(); };
-  // The use of a static pointer here is to work around EXPECT_NONFATAL_FAILURE
-  // not being able to invoke non-static functions.
-  static std::atomic<decltype(lambda)*> static_lambda;
-  static_lambda = &lambda;
-
-  EXPECT_NONFATAL_FAILURE(
-      (*static_lambda)(),
-      "must be invoked when there is a pending Java exception");
-  EXPECT_FALSE(returned_object);
-}
-
-TEST_F(FirestoreAndroidIntegrationTest,
-       ClearExceptionShouldFailTestIfItWasAlreadyInvoked) {
-  ThrowException();
-  // Invoke ClearCurrentExceptionAfterTest() once so that the subsequent
-  // invocation will fail the test.
-  ClearCurrentExceptionAfterTest();
-
-  Local<Throwable> returned_object;
-  auto lambda = [&]() { returned_object = ClearCurrentExceptionAfterTest(); };
-  // The use of a static pointer here is to work around EXPECT_NONFATAL_FAILURE
-  // not being able to invoke non-static functions.
-  static std::atomic<decltype(lambda)*> static_lambda;
-  static_lambda = &lambda;
-
-  EXPECT_NONFATAL_FAILURE((*static_lambda)(),
-                          "may only be invoked at most once per test");
-  EXPECT_FALSE(returned_object);
 }
 
 }  // namespace

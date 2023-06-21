@@ -175,7 +175,6 @@ TEST_F(ArenaRefTest, DefaultConstructorShouldReferToNull) {
 TEST_F(ArenaRefTest,
        DefaultConstructorShouldSucceedIfCalledWithPendingException) {
   ThrowException();
-  ClearCurrentExceptionAfterTest();
 
   ArenaRef arena_ref;
 
@@ -205,7 +204,6 @@ TEST_F(ArenaRefTest,
        AdoptingConstructorShouldReferToNullIfCalledWithPendingException) {
   jobject java_object = NewJavaObject();
   ThrowException();
-  ClearCurrentExceptionAfterTest();
 
   ArenaRef arena_ref(env(), java_object);
 
@@ -251,7 +249,6 @@ TEST_F(ArenaRefTest, CopyConstructorShouldCopyIfCalledWithPendingException) {
   jobject java_object = NewJavaObject();
   const ArenaRef arena_ref_referring_to_non_null(env(), java_object);
   ThrowException();
-  ClearCurrentExceptionAfterTest();
 
   ArenaRef default_arena_ref_copy_dest(default_arena_ref);
   ArenaRef arena_ref_referring_to_null_copy_dest(arena_ref_referring_to_null);
@@ -369,7 +366,6 @@ TEST_F(ArenaRefTest,
   jobject java_object = NewJavaObject();
   ArenaRef arena_ref_referring_to_non_null(env(), java_object);
   ThrowException();
-  ClearCurrentExceptionAfterTest();
 
   ArenaRef default_arena_ref_move_dest(std::move(default_arena_ref));
   ArenaRef arena_ref_referring_to_null_move_dest(
@@ -624,7 +620,6 @@ TEST_F(
   jobject java_object = NewJavaObject();
   const ArenaRef arena_ref_referring_to_non_null(env(), java_object);
   ThrowException();
-  ClearCurrentExceptionAfterTest();
 
   const ArenaRef& return_value =
       (default_arena_ref = arena_ref_referring_to_non_null);
@@ -642,7 +637,6 @@ TEST_F(
   jobject java_object = NewJavaObject();
   const ArenaRef arena_ref_referring_to_non_null(env(), java_object);
   ThrowException();
-  ClearCurrentExceptionAfterTest();
 
   const ArenaRef& return_value =
       (arena_ref_referring_to_null = arena_ref_referring_to_non_null);
@@ -660,7 +654,6 @@ TEST_F(
   jobject java_object = NewJavaObject();
   const ArenaRef another_arena_ref_referring_to_non_null(env(), java_object);
   ThrowException();
-  ClearCurrentExceptionAfterTest();
 
   const ArenaRef& return_value = (arena_ref_referring_to_non_null =
                                       another_arena_ref_referring_to_non_null);
@@ -917,7 +910,6 @@ TEST_F(
   jobject java_object = NewJavaObject();
   ArenaRef arena_ref_referring_to_non_null(env(), java_object);
   ThrowException();
-  ClearCurrentExceptionAfterTest();
 
   const ArenaRef& return_value =
       (default_arena_ref = std::move(arena_ref_referring_to_non_null));
@@ -935,7 +927,6 @@ TEST_F(
   jobject java_object = NewJavaObject();
   ArenaRef arena_ref_referring_to_non_null(env(), java_object);
   ThrowException();
-  ClearCurrentExceptionAfterTest();
 
   const ArenaRef& return_value = (arena_ref_referring_to_null = std::move(
                                       arena_ref_referring_to_non_null));
@@ -953,7 +944,6 @@ TEST_F(
   jobject java_object = NewJavaObject();
   ArenaRef another_arena_ref_referring_to_non_null(env(), java_object);
   ThrowException();
-  ClearCurrentExceptionAfterTest();
 
   const ArenaRef& return_value = (arena_ref_referring_to_non_null = std::move(
                                       another_arena_ref_referring_to_non_null));
@@ -1070,7 +1060,6 @@ TEST_F(ArenaRefTest, GetShouldReturnNullIfCalledWithPendingException) {
   jobject java_object = NewJavaObject();
   ArenaRef arena_ref(env(), java_object);
   ThrowException();
-  ClearCurrentExceptionAfterTest();
 
   Local<Object> return_value = arena_ref.get(env());
 
@@ -1140,7 +1129,6 @@ TEST_F(ArenaRefTest, ResetShouldSetToNullIfCalledWithPendingException) {
   ArenaRef arena_ref(env(), original_java_object);
   jobject reset_java_object = NewJavaObject();
   ThrowException();
-  ClearCurrentExceptionAfterTest();
 
   arena_ref.reset(env(), Object(reset_java_object));
 

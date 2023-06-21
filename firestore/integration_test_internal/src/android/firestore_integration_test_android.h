@@ -111,26 +111,9 @@ class FirestoreAndroidIntegrationTest : public FirestoreIntegrationTest {
   static jni::Local<jni::Throwable> CreateException(const std::string& message);
 
   /** Throws a Java `Exception` object with a default message. */
-  static jni::Local<jni::Throwable> ThrowException();
+  jni::Local<jni::Throwable> ThrowException();
   /** Throws a Java `Exception` object with the given message. */
-  static jni::Local<jni::Throwable> ThrowException(const std::string& message);
-
-  /**
-   * If the currently-pending Java exception is still pending at the end of the
-   * test, then clear it.
-   *
-   * If this function is invoked without a pending Java exception then the test
-   * will fail and this function will do nothing. Otherwise, if the currently-
-   * pending exception is still pending when the test completes then it will be
-   * cleared and ignored. If there are no exceptions pending when the test
-   * completes, or some other exception is pending when the test completes, then
-   * the normal behavior, as if this function was never invoked, will occur.
-   *
-   * This function can only be invoked at most once per test; subsequent
-   * invocations are in error, will cause the test to fail, and will have no
-   * effect.
-   */
-  jni::Local<jni::Throwable> ClearCurrentExceptionAfterTest();
+  jni::Local<jni::Throwable> ThrowException(const std::string& message);
 
   // Bring definitions of `Await()` from the superclass into this class so that
   // the definition below *overloads* instead of *hides* them.
@@ -149,7 +132,7 @@ class FirestoreAndroidIntegrationTest : public FirestoreIntegrationTest {
   void FailTestIfPendingException();
 
   jni::Loader loader_;
-  jni::Global<jni::Throwable> exception_to_clear_after_test_;
+  jni::Global<jni::Throwable> last_thrown_exception_;
 };
 
 }  // namespace firestore
