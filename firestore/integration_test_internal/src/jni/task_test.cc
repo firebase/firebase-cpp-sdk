@@ -78,7 +78,7 @@ TEST_F(TaskTest, GetResultShouldReturnTheResult) {
 
   Local<Object> actual_result = task.GetResult(env());
 
-  ASSERT_THAT(actual_result, RefersToSameJavaObjectAs(result));
+  ASSERT_THAT(actual_result, JavaEq(result));
 }
 
 TEST_F(TaskTest, GetExceptionShouldReturnTheException) {
