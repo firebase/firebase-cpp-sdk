@@ -149,11 +149,11 @@ Filter FilterInternal::NotIn(const FieldPath& field,
   return Where(field, kNotIn, values);
 }
 
-Filter FilterInternal::And(const std::vector<const Filter>& filters) {
+Filter FilterInternal::And(const std::vector<Filter>& filters) {
   return Where(kAnd, filters);
 }
 
-Filter FilterInternal::Or(const std::vector<const Filter>& filters) {
+Filter FilterInternal::Or(const std::vector<Filter>& filters) {
   return Where(kOr, filters);
 }
 
@@ -185,7 +185,7 @@ Filter FilterInternal::Where(const FieldPath& field,
 }
 
 Filter FilterInternal::Where(const StaticMethod<Object>& method,
-                             const std::vector<const Filter>& filters) {
+                             const std::vector<Filter>& filters) {
   Env env = GetEnv();
   size_t size = filters.size();
   Local<Array<Object>> java_filters = env.NewArray(size, Object::GetClass());

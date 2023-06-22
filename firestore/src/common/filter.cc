@@ -156,11 +156,11 @@ Filter Filter::NotIn(const FieldPath& field,
   return FilterInternal::NotIn(field, values);
 }
 
-Filter Filter::And(const std::vector<const Filter>& filters) {
+Filter Filter::And(const std::vector<Filter>& filters) {
   return FilterInternal::And(filters);
 }
 
-Filter Filter::Or(const std::vector<const Filter>& filters) {
+Filter Filter::Or(const std::vector<Filter>& filters) {
   return FilterInternal::Or(filters);
 }
 

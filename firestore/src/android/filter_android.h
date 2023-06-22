@@ -48,8 +48,8 @@ class FilterInternal final {
                    const std::vector<FieldValue>& values);
   static Filter NotIn(const FieldPath& field,
                       const std::vector<FieldValue>& values);
-  static Filter Or(const std::vector<const Filter>& filters);
-  static Filter And(const std::vector<const Filter>& filters);
+  static Filter Or(const std::vector<Filter>& filters);
+  static Filter And(const std::vector<Filter>& filters);
 
   const jni::Global<jni::Object>& ToJava() const { return object_; }
 
@@ -74,7 +74,7 @@ class FilterInternal final {
                       const jni::StaticMethod<jni::Object>& method,
                       const std::vector<FieldValue>& values);
   static Filter Where(const jni::StaticMethod<jni::Object>& method,
-                      const std::vector<const Filter>& filters);
+                      const std::vector<Filter>& filters);
 };
 
 bool operator==(const FilterInternal& lhs, const FilterInternal& rhs);

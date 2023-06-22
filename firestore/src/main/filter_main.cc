@@ -74,11 +74,11 @@ Filter FilterInternal::NotIn(const FieldPath& field,
   return UnaryFilter(field, FieldFilterOperator::NotIn, values);
 }
 
-Filter FilterInternal::Or(const std::vector<const Filter>& filters) {
+Filter FilterInternal::Or(const std::vector<Filter>& filters) {
   return CompositeFilter(CompositeOperator::Or, filters);
 }
 
-Filter FilterInternal::And(const std::vector<const Filter>& filters) {
+Filter FilterInternal::And(const std::vector<Filter>& filters) {
   return CompositeFilter(CompositeOperator::And, filters);
 }
 
@@ -99,7 +99,7 @@ Filter FilterInternal::UnaryFilter(const FieldPath& field_path,
 
 Filter FilterInternal::CompositeFilter(
     core::CompositeFilter::Operator op,
-    const std::vector<const Filter>& filters) {
+    const std::vector<Filter>& filters) {
   std::vector<FilterInternal*> nonEmptyFilters;
   for (const Filter& filter : filters) {
     FilterInternal* filterInternal = GetInternal(&filter);

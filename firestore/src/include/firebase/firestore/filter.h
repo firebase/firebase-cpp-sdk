@@ -284,7 +284,7 @@ class Filter {
    */
   template <typename... Filters>
   static Filter And(const Filters&... filters) {
-    return And(std::vector<const Filter>({filters...}));
+    return And(std::vector<Filter>({filters...}));
   }
 
   /**
@@ -307,7 +307,7 @@ class Filter {
    */
   template <typename... Filters>
   static Filter Or(const Filters&... filters) {
-    return Or(std::vector<const Filter>({filters...}));
+    return Or(std::vector<Filter>({filters...}));
   }
 
   /**
@@ -355,8 +355,8 @@ class Filter {
   friend bool operator==(const Filter& lhs, const Filter& rhs);
   friend struct ConverterImpl;
 
-  static Filter And(const std::vector<const Filter>& filters);
-  static Filter Or(const std::vector<const Filter>& filters);
+  static Filter And(const std::vector<Filter>& filters);
+  static Filter Or(const std::vector<Filter>& filters);
 
   bool IsEmpty() const;
 

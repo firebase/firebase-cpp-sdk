@@ -52,8 +52,8 @@ class FilterInternal {
                    const std::vector<FieldValue>& values);
   static Filter NotIn(const FieldPath& field,
                       const std::vector<FieldValue>& values);
-  static Filter Or(const std::vector<const Filter>& filters);
-  static Filter And(const std::vector<const Filter>& filters);
+  static Filter Or(const std::vector<Filter>& filters);
+  static Filter And(const std::vector<Filter>& filters);
 
   virtual core::Filter ToCoreFilter(
       const api::Query& query,
@@ -90,7 +90,7 @@ class FilterInternal {
                             const std::vector<FieldValue>& values);
 
   static Filter CompositeFilter(CompositeOperator op,
-                                const std::vector<const Filter>& filters);
+                                const std::vector<Filter>& filters);
 };
 
 bool operator==(const FilterInternal& lhs, const FilterInternal& rhs);
