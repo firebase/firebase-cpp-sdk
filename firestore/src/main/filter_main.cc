@@ -97,9 +97,8 @@ Filter FilterInternal::UnaryFilter(const FieldPath& field_path,
   return MakePublic(UnaryFilterInternal(field_path, op, values));
 }
 
-Filter FilterInternal::CompositeFilter(
-    core::CompositeFilter::Operator op,
-    const std::vector<Filter>& filters) {
+Filter FilterInternal::CompositeFilter(core::CompositeFilter::Operator op,
+                                       const std::vector<Filter>& filters) {
   std::vector<FilterInternal*> nonEmptyFilters;
   for (const Filter& filter : filters) {
     FilterInternal* filterInternal = GetInternal(&filter);
