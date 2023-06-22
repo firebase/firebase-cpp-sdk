@@ -143,5 +143,10 @@ void FirestoreAndroidIntegrationTest::Await(const Task& task) {
   }
 }
 
+jni::Env& FirestoreAndroidIntegrationTest::env() {
+  thread_local jni::Env env;
+  return env;
+}
+
 }  // namespace firestore
 }  // namespace firebase

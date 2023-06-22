@@ -123,10 +123,7 @@ class FirestoreAndroidIntegrationTest : public FirestoreIntegrationTest {
   static void Await(const jni::Task& task);
 
   /** Returns an Env object for the calling thread, creating it if necessary. */
-  static jni::Env& env() {
-    thread_local jni::Env env;
-    return env;
-  }
+  static jni::Env& env();
 
  private:
   void FailTestIfPendingException();
