@@ -57,9 +57,7 @@ class FilterInternal final {
   friend class Filter;
   friend class FirestoreInternal;
 
-  FilterInternal* clone() {
-      return new FilterInternal(*this);
-  }
+  FilterInternal* clone() { return new FilterInternal(*this); }
 
   bool IsEmpty() const { return is_empty_; }
 
@@ -70,13 +68,13 @@ class FilterInternal final {
 
   // A generalized function for all WhereFoo calls.
   static Filter Where(const FieldPath& field,
-              const jni::StaticMethod<jni::Object>& method,
-              const FieldValue& value);
+                      const jni::StaticMethod<jni::Object>& method,
+                      const FieldValue& value);
   static Filter Where(const FieldPath& field,
-              const jni::StaticMethod<jni::Object>& method,
-              const std::vector<FieldValue>& values);
+                      const jni::StaticMethod<jni::Object>& method,
+                      const std::vector<FieldValue>& values);
   static Filter Where(const jni::StaticMethod<jni::Object>& method,
-               const std::vector<const Filter>& filters);
+                      const std::vector<const Filter>& filters);
 };
 
 bool operator==(const FilterInternal& lhs, const FilterInternal& rhs);

@@ -21,9 +21,9 @@
 #include "firestore/src/android/direction_android.h"
 #include "firestore/src/android/document_snapshot_android.h"
 #include "firestore/src/android/event_listener_android.h"
-#include "firestore/src/android/filter_android.h"
 #include "firestore/src/android/field_path_android.h"
 #include "firestore/src/android/field_value_android.h"
+#include "firestore/src/android/filter_android.h"
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/lambda_event_listener.h"
 #include "firestore/src/android/listener_registration_android.h"
@@ -54,10 +54,9 @@ constexpr char kClassName[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/Query";
 Method<Object> kCount("count",
                       "()Lcom/google/firebase/firestore/AggregateQuery;");
-Method<Object> kWhere(
-    "where",
-    "(Lcom/google/firebase/firestore/Filter;)"
-    "Lcom/google/firebase/firestore/Query;");
+Method<Object> kWhere("where",
+                      "(Lcom/google/firebase/firestore/Filter;)"
+                      "Lcom/google/firebase/firestore/Query;");
 Method<Object> kEqualTo(
     "whereEqualTo",
     "(Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;)"

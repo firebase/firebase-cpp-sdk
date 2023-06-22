@@ -19,9 +19,9 @@
 #include "firestore/src/android/filter_android.h"
 
 #include "firestore/src/android/converter_android.h"
-#include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/field_path_android.h"
 #include "firestore/src/android/field_value_android.h"
+#include "firestore/src/android/firestore_android.h"
 
 #include "firestore/src/jni/array.h"
 #include "firestore/src/jni/array_list.h"
@@ -37,8 +37,8 @@ using jni::Array;
 using jni::ArrayList;
 using jni::Env;
 using jni::Local;
-using jni::StaticMethod;
 using jni::Object;
+using jni::StaticMethod;
 
 constexpr char kClassName[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/Filter";
@@ -74,80 +74,78 @@ StaticMethod<Object> kArrayContainsAny(
     "arrayContainsAny",
     "(Lcom/google/firebase/firestore/FieldPath;Ljava/util/List;)"
     "Lcom/google/firebase/firestore/Filter;");
-StaticMethod<Object> kIn("in",
-                   "(Lcom/google/firebase/firestore/FieldPath;Ljava/util/List;)"
-                   "Lcom/google/firebase/firestore/Filter;");
+StaticMethod<Object> kIn(
+    "in",
+    "(Lcom/google/firebase/firestore/FieldPath;Ljava/util/List;)"
+    "Lcom/google/firebase/firestore/Filter;");
 StaticMethod<Object> kNotIn(
     "notIn",
     "(Lcom/google/firebase/firestore/FieldPath;Ljava/util/List;)"
     "Lcom/google/firebase/firestore/Filter;");
-StaticMethod<Object> kAnd(
-    "and",
-    "([Lcom/google/firebase/firestore/Filter;)"
-    "Lcom/google/firebase/firestore/Filter;");
-StaticMethod<Object> kOr(
-    "or",
-    "([Lcom/google/firebase/firestore/Filter;)"
-    "Lcom/google/firebase/firestore/Filter;");
+StaticMethod<Object> kAnd("and",
+                          "([Lcom/google/firebase/firestore/Filter;)"
+                          "Lcom/google/firebase/firestore/Filter;");
+StaticMethod<Object> kOr("or",
+                         "([Lcom/google/firebase/firestore/Filter;)"
+                         "Lcom/google/firebase/firestore/Filter;");
 }  // namespace
 
 void FilterInternal::Initialize(jni::Loader& loader) {
-  loader.LoadClass(
-      kClassName, kEqualTo, kNotEqualTo, kLessThan, kLessThanOrEqualTo,
-      kGreaterThan, kGreaterThanOrEqualTo, kArrayContains, kArrayContainsAny,
-      kIn, kNotIn, kAnd, kOr);
+  loader.LoadClass(kClassName, kEqualTo, kNotEqualTo, kLessThan,
+                   kLessThanOrEqualTo, kGreaterThan, kGreaterThanOrEqualTo,
+                   kArrayContains, kArrayContainsAny, kIn, kNotIn, kAnd, kOr);
 }
 
 FilterInternal::FilterInternal(jni::Object&& object, bool is_empty)
     : object_(object), is_empty_(is_empty) {}
 
 Filter FilterInternal::EqualTo(const FieldPath& field,
-                                  const FieldValue& value) {
+                               const FieldValue& value) {
   return Where(field, kEqualTo, value);
 }
 
 Filter FilterInternal::NotEqualTo(const FieldPath& field,
-                                     const FieldValue& value) {
+                                  const FieldValue& value) {
   return Where(field, kNotEqualTo, value);
 }
 
 Filter FilterInternal::LessThan(const FieldPath& field,
-                                   const FieldValue& value) {
+                                const FieldValue& value) {
   return Where(field, kLessThan, value);
 }
 
 Filter FilterInternal::LessThanOrEqualTo(const FieldPath& field,
-                                            const FieldValue& value) {
+                                         const FieldValue& value) {
   return Where(field, kLessThanOrEqualTo, value);
 }
 
 Filter FilterInternal::GreaterThan(const FieldPath& field,
-                                      const FieldValue& value) {
+                                   const FieldValue& value) {
   return Where(field, kGreaterThan, value);
 }
 
 Filter FilterInternal::GreaterThanOrEqualTo(const FieldPath& field,
-                                               const FieldValue& value) {
+                                            const FieldValue& value) {
   return Where(field, kGreaterThanOrEqualTo, value);
 }
 
 Filter FilterInternal::ArrayContains(const FieldPath& field,
-                                        const FieldValue& value) {
+                                     const FieldValue& value) {
   return Where(field, kArrayContains, value);
 }
 
-Filter FilterInternal::ArrayContainsAny(
-    const FieldPath& field, const std::vector<FieldValue>& values) {
+Filter FilterInternal::ArrayContainsAny(const FieldPath& field,
+                                        const std::vector<FieldValue>& values) {
   return Where(field, kArrayContainsAny, values);
 }
 
 Filter FilterInternal::In(const FieldPath& field,
-                             const std::vector<FieldValue>& values) {
+                          const std::vector<FieldValue>& values) {
   return Where(field, kIn, values);
 }
 
 Filter FilterInternal::NotIn(const FieldPath& field,
-                                const std::vector<FieldValue>& values) {
+                             const std::vector<FieldValue>& values) {
   return Where(field, kNotIn, values);
 }
 
@@ -166,7 +164,8 @@ Filter FilterInternal::Where(const FieldPath& field,
                              const FieldValue& value) {
   Env env = GetEnv();
   Local<Object> java_field = FieldPathConverter::Create(env, field);
-  Object filter = env.Call(method, java_field, FieldValueInternal::ToJava(value));
+  Object filter =
+      env.Call(method, java_field, FieldValueInternal::ToJava(value));
   return Filter(new FilterInternal(std::move(filter), false));
 }
 
