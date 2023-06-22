@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <utility>
+
 #include "firestore/src/android/filter_android.h"
 
 #include "firestore/src/android/converter_android.h"
@@ -202,7 +204,7 @@ Filter FilterInternal::Where(const StaticMethod<Object>& method,
 
 bool operator==(const FilterInternal& lhs, const FilterInternal& rhs) {
   return jni::EqualityCompareJni(lhs, rhs);
-}
+}  // namespace
 
 }  // namespace firestore
 }  // namespace firebase

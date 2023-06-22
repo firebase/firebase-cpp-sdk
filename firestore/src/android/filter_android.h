@@ -77,7 +77,6 @@ class FilterInternal final {
               const std::vector<FieldValue>& values);
   static Filter Where(const jni::StaticMethod<jni::Object>& method,
                const std::vector<const Filter>& filters);
-
 };
 
 bool operator==(const FilterInternal& lhs, const FilterInternal& rhs);

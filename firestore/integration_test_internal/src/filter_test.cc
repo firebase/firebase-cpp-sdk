@@ -79,7 +79,9 @@ TEST_F(FilterTest, MoveConstructorReturnsEqualObject) {
   EXPECT_EQ(filter1b, Filter::EqualTo("foo", FieldValue::Integer(42)));
 
   Filter filter2b(std::move(filter2a));
-  EXPECT_EQ(filter2b, Filter::ArrayContainsAny("bar", {FieldValue::Integer(4), FieldValue::Integer(2)}));
+  EXPECT_EQ(filter2b,
+            Filter::ArrayContainsAny(
+                "bar", {FieldValue::Integer(4), FieldValue::Integer(2)}));
 
   Filter filter3b(std::move(filter3a));
   EXPECT_EQ(filter3b, Filter::And(filter1b, filter2b));
@@ -95,7 +97,9 @@ TEST_F(FilterTest, MoveAssignmentReturnsEqualObject) {
   EXPECT_EQ(filter1b, Filter::EqualTo("foo", FieldValue::Integer(42)));
 
   Filter filter2b = std::move(filter2a);
-  EXPECT_EQ(filter2b, Filter::ArrayContainsAny("bar", {FieldValue::Integer(4), FieldValue::Integer(2)}));
+  EXPECT_EQ(filter2b,
+            Filter::ArrayContainsAny(
+                "bar", {FieldValue::Integer(4), FieldValue::Integer(2)}));
 
   Filter filter3b = std::move(filter3a);
   EXPECT_EQ(filter3b, Filter::And(filter1b, filter2b));
@@ -111,7 +115,8 @@ TEST_F(FilterTest, MoveAssignmentAppliedToSelfReturnsEqualObject) {
   EXPECT_EQ(filter1, Filter::EqualTo("foo", FieldValue::Integer(42)));
 
   filter2 = std::move(filter2);
-  EXPECT_EQ(filter2, Filter::ArrayContainsAny("bar", {FieldValue::Integer(4), FieldValue::Integer(2)}));
+  EXPECT_EQ(filter2, Filter::ArrayContainsAny("bar", {FieldValue::Integer(4),
+                                                      FieldValue::Integer(2)}));
 
   filter3 = std::move(filter3);
   EXPECT_EQ(filter3, Filter::And(filter1, filter2));
@@ -157,8 +162,10 @@ TEST_F(FilterTest, IdenticalFilterShouldBeEqual) {
   Filter filter11a = Filter::And(filter1a, filter2a);
   Filter filter11b = Filter::And(filter1b, filter2b);
 
-  Filter filter12a = Filter::Or(filter3a, filter4a, filter5a, filter6a, filter7a);
-  Filter filter12b = Filter::Or(filter3b, filter4b, filter5b, filter6b, filter7b);
+  Filter filter12a =
+      Filter::Or(filter3a, filter4a, filter5a, filter6a, filter7a);
+  Filter filter12b =
+      Filter::Or(filter3b, filter4b, filter5b, filter6b, filter7b);
 
   EXPECT_TRUE(filter1a == filter1a);
   EXPECT_TRUE(filter2a == filter2a);
@@ -434,26 +441,29 @@ TEST_F(FilterTest, CompositeComparison) {
 }
 
 TEST_F(FilterTest, QueryWhereComposite) {
-  MapFieldValue doc_aa = {{"x", FieldValue::String("a")}, {"y", FieldValue::String("a")}};
-  MapFieldValue doc_ab = {{"x", FieldValue::String("a")}, {"y", FieldValue::String("b")}};
-  MapFieldValue doc_ba = {{"x", FieldValue::String("b")}, {"y", FieldValue::String("a")}};
-  MapFieldValue doc_bb = {{"x", FieldValue::String("b")}, {"y", FieldValue::String("b")}};
-  CollectionReference collection =
-      Collection({{"aa", doc_aa},
-                  {"ab", doc_ab},
-                  {"ba", doc_ba},
-                  {"bb", doc_bb}});
+  MapFieldValue doc_aa = {{"x", FieldValue::String("a")},
+                          {"y", FieldValue::String("a")}};
+  MapFieldValue doc_ab = {{"x", FieldValue::String("a")},
+                          {"y", FieldValue::String("b")}};
+  MapFieldValue doc_ba = {{"x", FieldValue::String("b")},
+                          {"y", FieldValue::String("a")}};
+  MapFieldValue doc_bb = {{"x", FieldValue::String("b")},
+                          {"y", FieldValue::String("b")}};
+  CollectionReference collection = Collection(
+      {{"aa", doc_aa}, {"ab", doc_ab}, {"ba", doc_ba}, {"bb", doc_bb}});
 
   Filter filter_xa = Filter::EqualTo("x", FieldValue::String("a"));
   Filter filter_yb = Filter::EqualTo("y", FieldValue::String("b"));
 
   QuerySnapshot snapshot1 =
       ReadDocuments(collection.Where(Filter::And(filter_xa, filter_yb)));
-  EXPECT_EQ(std::vector<MapFieldValue>({doc_ab}), QuerySnapshotToValues(snapshot1));
+  EXPECT_EQ(std::vector<MapFieldValue>({doc_ab}),
+            QuerySnapshotToValues(snapshot1));
 
   QuerySnapshot snapshot2 =
       ReadDocuments(collection.Where(Filter::Or(filter_xa, filter_yb)));
-  EXPECT_EQ(std::vector<MapFieldValue>({doc_aa, doc_ab, doc_bb}), QuerySnapshotToValues(snapshot2));
+  EXPECT_EQ(std::vector<MapFieldValue>({doc_aa, doc_ab, doc_bb}),
+            QuerySnapshotToValues(snapshot2));
 }
 
 }  // namespace

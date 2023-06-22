@@ -25,8 +25,8 @@
 
 #include "Firestore/core/src/api/query_core.h"
 #include "Firestore/core/src/core/composite_filter.h"
-#include "Firestore/core/src/core/field_filter.h"
 #include "Firestore/core/src/core/filter.h"
+#include "Firestore/core/src/model/field_path.h"
 #include "firestore/src/include/firebase/firestore/filter.h"
 #include "firestore/src/main/user_data_converter_main.h"
 
@@ -52,15 +52,13 @@ class FilterInternal {
                    const std::vector<FieldValue>& values);
   static Filter NotIn(const FieldPath& field,
                       const std::vector<FieldValue>& values);
+  static Filter Or(const std::vector<const Filter>& filters);
+  static Filter And(const std::vector<const Filter>& filters);
 
   virtual core::Filter ToCoreFilter(
       const api::Query& query,
       const firebase::firestore::UserDataConverter& user_data_converter)
       const = 0;
-
-  static Filter Or(const std::vector<const Filter>& filters);
-
-  static Filter And(const std::vector<const Filter>& filters);
 
   virtual ~FilterInternal() = default;
 
