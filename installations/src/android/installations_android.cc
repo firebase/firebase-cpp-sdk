@@ -175,7 +175,7 @@ InstallationsInternal::InstallationsInternal(const firebase::App& app)
 
 InstallationsInternal::~InstallationsInternal() {
   JNIEnv* env = app_.GetJNIEnv();
-  util::CancelCallbacks(env, jni_task_id_);
+  util::CancelCallbacks(env, jni_task_id_.c_str());
 }
 
 bool InstallationsInternal::Initialized() const {
@@ -216,7 +216,7 @@ Future<std::string> InstallationsInternal::GetId() {
 
   util::RegisterCallbackOnTask(env, task, StringResultCallback,
                                reinterpret_cast<void*>(data_handle),
-                               jni_task_id_);
+                               jni_task_id_.c_str());
 
   env->DeleteLocalRef(task);
 
@@ -241,7 +241,7 @@ Future<std::string> InstallationsInternal::GetToken(bool forceRefresh) {
 
   util::RegisterCallbackOnTask(env, task, TokenResultCallback,
                                reinterpret_cast<void*>(data_handle),
-                               jni_task_id_);
+                               jni_task_id_.c_str());
 
   env->DeleteLocalRef(task);
 
@@ -263,7 +263,7 @@ Future<void> InstallationsInternal::Delete() {
 
   util::RegisterCallbackOnTask(env, task, CompleteVoidCallback,
                                reinterpret_cast<void*>(data_handle),
-                               jni_task_id_);
+                               jni_task_id_.c_str());
 
   env->DeleteLocalRef(task);
 
