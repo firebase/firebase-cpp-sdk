@@ -89,7 +89,7 @@ StaticMethod<Object> kOr(
     "or",
     "([Lcom/google/firebase/firestore/Filter;)"
     "Lcom/google/firebase/firestore/Filter;");
-}
+}  // namespace
 
 void FilterInternal::Initialize(jni::Loader& loader) {
   loader.LoadClass(
@@ -204,7 +204,7 @@ Filter FilterInternal::Where(const StaticMethod<Object>& method,
 
 bool operator==(const FilterInternal& lhs, const FilterInternal& rhs) {
   return jni::EqualityCompareJni(lhs, rhs);
-}  // namespace
+}
 
 }  // namespace firestore
 }  // namespace firebase

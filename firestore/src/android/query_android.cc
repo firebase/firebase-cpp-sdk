@@ -165,7 +165,6 @@ Query QueryInternal::Where(const firebase::firestore::Filter& filter) const {
   Env env = GetEnv();
   Local<Object> query = env.Call(obj_, kWhere, filter.internal_->ToJava());
   return firestore_->NewQuery(env, query);
-
 }
 
 Query QueryInternal::WhereEqualTo(const FieldPath& field,
