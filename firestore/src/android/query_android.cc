@@ -21,6 +21,7 @@
 #include "firestore/src/android/direction_android.h"
 #include "firestore/src/android/document_snapshot_android.h"
 #include "firestore/src/android/event_listener_android.h"
+#include "firestore/src/android/filter_android.h"
 #include "firestore/src/android/field_path_android.h"
 #include "firestore/src/android/field_value_android.h"
 #include "firestore/src/android/firestore_android.h"
@@ -53,6 +54,10 @@ constexpr char kClassName[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/Query";
 Method<Object> kCount("count",
                       "()Lcom/google/firebase/firestore/AggregateQuery;");
+Method<Object> kWhere(
+    "where",
+    "(Lcom/google/firebase/firestore/Filter;)"
+    "Lcom/google/firebase/firestore/Query;");
 Method<Object> kEqualTo(
     "whereEqualTo",
     "(Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;)"
@@ -154,6 +159,13 @@ AggregateQuery QueryInternal::Count() const {
   Env env = GetEnv();
   Local<Object> aggregate_query = env.Call(obj_, kCount);
   return firestore_->NewAggregateQuery(env, aggregate_query);
+}
+
+Query QueryInternal::Where(const firebase::firestore::Filter& filter) const {
+  Env env = GetEnv();
+  Local<Object> query = env.Call(obj_, kWhere, filter.internal_->ToJava());
+  return firestore_->NewQuery(env, query);
+
 }
 
 Query QueryInternal::WhereEqualTo(const FieldPath& field,

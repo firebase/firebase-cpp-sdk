@@ -21,7 +21,6 @@
 #include <vector>
 
 #include "firebase/firestore/field_value.h"
-#include "firestore/src/main/filter_main.h"
 
 namespace firebase {
 namespace firestore {

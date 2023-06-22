@@ -71,6 +71,8 @@ class QueryInternal : public Wrapper {
    */
   virtual AggregateQuery Count() const;
 
+  Query Where(const Filter& filter) const;
+
   /**
    * @brief Creates and returns a new Query with the additional filter that
    * documents must contain the specified field and the value should be equal to

@@ -98,6 +98,8 @@ set(android_SRCS
     src/android/field_path_portable.h
     src/android/field_value_android.cc
     src/android/field_value_android.h
+    src/android/filter_android.cc
+    src/android/filter_android.h
     src/android/firestore_android.cc
     src/android/firestore_android.h
     src/android/firestore_exceptions_android.h
