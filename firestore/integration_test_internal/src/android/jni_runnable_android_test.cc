@@ -157,7 +157,8 @@ TEST_F(JniRunnableTest, DetachDetachesEvenIfAnExceptionIsPending) {
   bool invoked = false;
   auto runnable = MakeJniRunnable(env(), [&invoked] { invoked = true; });
   Local<Object> java_runnable = runnable.GetJavaRunnable();
-  Local<Throwable> exception = ThrowException();
+  Local<Throwable> exception = CreateException();
+  env().Throw(exception);
   EXPECT_FALSE(env().ok());
 
   runnable.Detach(env());
