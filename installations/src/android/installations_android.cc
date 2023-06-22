@@ -136,6 +136,7 @@ void TokenResultCallback(JNIEnv* env, jobject result,
 InstallationsInternal::InstallationsInternal(const firebase::App& app)
     : app_(app), future_impl_(kInstallationsFnCount) {
   ReferenceCountLock<ReferenceCount> lock(&initializer_);
+  static const char* kApiIdentifier = "Installations";
   LogDebug("%s API Initializing", kApiIdentifier);
   JNIEnv* env = app_.GetJNIEnv();
 
@@ -156,7 +157,6 @@ InstallationsInternal::InstallationsInternal(const firebase::App& app)
     }
   }
 
-  static const char* kApiIdentifier = "Installations";
   jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
 
   // Create the underlying Installations java object.
