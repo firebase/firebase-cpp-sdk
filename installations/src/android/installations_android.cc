@@ -57,8 +57,6 @@ using firebase::internal::ReferenceCountLock;
 
 ReferenceCount internal::InstallationsInternal::initializer_;  // NOLINT
 
-static const char* kApiIdentifier = "Installations";
-
 template <typename T>
 struct FISDataHandle {
   FISDataHandle(ReferenceCountedFutureImpl* _future_api,
@@ -158,7 +156,10 @@ InstallationsInternal::InstallationsInternal(const firebase::App& app)
     }
   }
 
-  // Create the remote config class.
+  static const char* kApiIdentifier = "Installations";
+  jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
+
+  // Create the underlying Installations java object.
   jobject platform_app = app_.GetPlatformApp();
 
   jclass installations_class = installations::GetClass();
@@ -172,7 +173,10 @@ InstallationsInternal::InstallationsInternal(const firebase::App& app)
   LogDebug("%s API Initialized", kApiIdentifier);
 }
 
-InstallationsInternal::~InstallationsInternal() {}
+InstallationsInternal::~InstallationsInternal() {
+  JNIEnv* env = app_.GetJNIEnv();
+  util::CancelCallbacks(env, jni_task_id_);
+}
 
 bool InstallationsInternal::Initialized() const {
   return internal_obj_ != nullptr;
@@ -212,7 +216,7 @@ Future<std::string> InstallationsInternal::GetId() {
 
   util::RegisterCallbackOnTask(env, task, StringResultCallback,
                                reinterpret_cast<void*>(data_handle),
-                               kApiIdentifier);
+                               jni_task_id_);
 
   env->DeleteLocalRef(task);
 
@@ -237,7 +241,7 @@ Future<std::string> InstallationsInternal::GetToken(bool forceRefresh) {
 
   util::RegisterCallbackOnTask(env, task, TokenResultCallback,
                                reinterpret_cast<void*>(data_handle),
-                               kApiIdentifier);
+                               jni_task_id_);
 
   env->DeleteLocalRef(task);
 
@@ -259,7 +263,7 @@ Future<void> InstallationsInternal::Delete() {
 
   util::RegisterCallbackOnTask(env, task, CompleteVoidCallback,
                                reinterpret_cast<void*>(data_handle),
-                               kApiIdentifier);
+                               jni_task_id_);
 
   env->DeleteLocalRef(task);
 

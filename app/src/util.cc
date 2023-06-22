@@ -342,5 +342,17 @@ std::vector<std::string> SplitString(const std::string& s,
   return split_parts;
 }
 
+std::string CreateApiIdentifier(const char* api_id, void* object) {
+  std::string created;
+  created.reserve(strlen(api_id) +
+                  16 /* hex characters in the pointer */ +
+                  1 /* null terminator */);
+  snprintf(&(created[0]), created.capacity(), "%s0x%016llx",
+           api_id,
+           static_cast<unsigned long long>(  // NOLINT
+               reinterpret_cast<intptr_t>(object)));
+  return created;
+}
+
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase

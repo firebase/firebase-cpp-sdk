@@ -238,7 +238,10 @@ class StaticFutureData {
 // delimiter. Returns a vector of constituent parts.
 std::vector<std::string> SplitString(const std::string& s, char delimiter);
 
-// NOLINTNEXTLINE - allow namespace overridden
+// Helper function to combine a string and other object into a unique identifier.
+// Primarily used to manage listening to JNI Tasks on Android.
+std::string CreateApiIdentifier(const char* api_id, void* object);
+
 }  // namespace firebase
 
 #endif  // FIREBASE_APP_SRC_UTIL_H_

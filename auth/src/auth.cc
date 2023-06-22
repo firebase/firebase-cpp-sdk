@@ -111,15 +111,8 @@ Auth::Auth(App* app, void* auth_impl) : auth_data_(new AuthData) {
   auth_data_->user_impl = nullptr;
   InitPlatformAuth(auth_data_);
 
-  std::string* future_id = &auth_data_->future_api_id;
   static const char* kApiIdentifier = "Auth";
-  future_id->reserve(strlen(kApiIdentifier) +
-                     16 /* hex characters in the pointer */ +
-                     1 /* null terminator */);
-  snprintf(&((*future_id)[0]), future_id->capacity(), "%s0x%016llx",
-           kApiIdentifier,
-           static_cast<unsigned long long>(  // NOLINT
-               reinterpret_cast<intptr_t>(this)));
+  auth_data_->future_api_id = CreateApiIdentifier(kApiIdentifier, this);
 
   // Cleanup this object if app is destroyed.
   CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
