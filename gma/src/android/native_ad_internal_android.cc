@@ -228,6 +228,7 @@ jobject NativeAdInternalAndroid::variantmap_to_bundle(
       return nullptr;
     }
     jstring key_str = env->NewStringUTF(key.string_value());
+    util::CheckAndClearJniExceptions(env);
 
     if (value.is_int64()) {
       jlong val_long = (jlong)value.int64_value();
@@ -253,7 +254,6 @@ jobject NativeAdInternalAndroid::variantmap_to_bundle(
       env->DeleteLocalRef(val_bundle);
     } else {
       // Unsupported value type.
-      util::CheckAndClearJniExceptions(env);
       env->DeleteLocalRef(key_str);
       return nullptr;
     }
