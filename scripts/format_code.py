@@ -165,7 +165,7 @@ def list_files_from_directory(path, recurse):
   filenames = []
   for root, dirs, files in os.walk(path):
     for filename in files:
-      if(FILE_PATHS_TO_IGNORE.match(line)):
+      if(FILE_PATHS_TO_IGNORE.match(filename)):
         continue
       if filename.endswith(FILE_TYPE_EXTENSIONS):
         full_path = os.path.join(root, filename)

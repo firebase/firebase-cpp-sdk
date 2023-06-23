@@ -58,7 +58,7 @@ class TaskTest : public FirestoreAndroidIntegrationTest {
   }
 
   Local<Task> CreateFailedTask(Env& env) {
-    auto exception = CreateException(env, "Test Exception");
+    auto exception = CreateException(env);
     return CreateFailedTask(env, exception);
   }
 
@@ -86,7 +86,7 @@ TEST_F(TaskTest, GetResultShouldReturnTheResult) {
 
 TEST_F(TaskTest, GetExceptionShouldReturnTheException) {
   Env env;
-  Local<Throwable> exception = CreateException(env, "Test Exception");
+  Local<Throwable> exception = CreateException(env);
   Local<Task> task = CreateFailedTask(env, exception);
 
   Local<Throwable> actual_exception = task.GetException(env);

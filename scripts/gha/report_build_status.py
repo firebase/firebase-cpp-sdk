@@ -95,6 +95,23 @@ flags.DEFINE_string(
     "read_cache", None,
     "Read a cache file that was written by a previous run via --write_cache.")
 
+flags.DEFINE_enum(
+    "report", "daily_log",
+    ["daily_log", "test_summary"],
+    "Choose whether to report a daily build/test log or a summary of failing and flaky tests.")
+
+flags.DEFINE_integer(
+    "summary_count", 10,
+    "If --report=test_summary, how many of the top tests to show.")
+
+flags.DEFINE_enum(
+    "summary_type", "all", ["all", "errors", "flakes"],
+    "Whether to include flakes, errors, or all in the test summary.")
+
+flags.DEFINE_bool(
+    "summary_include_crashes", True,
+    "Whether to include CRASH/TIMEOUT in the test summary.")
+
 _WORKFLOW_TESTS = 'integration_tests.yml'
 _WORKFLOW_PACKAGING = 'cpp-packaging.yml'
 _TRIGGER_USER = 'firebase-workflow-trigger[bot]'
@@ -142,13 +159,14 @@ def analyze_log(text, url):
   """Do a simple analysis of the log summary text to determine if the build
      or test succeeded, flaked, or failed.
   """
+  if not text: text = ""
   build_status = decorate_url(_PASS_TEXT, url)
   test_status = decorate_url(_PASS_TEXT, url)
-  if '[BUILD] [ERROR]' in text:
+  if '[BUILD] [ERROR]' in text or '[BUILD] [FAILURE]' in text:
     build_status = decorate_url(_FAILURE_TEXT, url)
   elif '[BUILD] [FLAKINESS]' in text:
     build_status =decorate_url(_FLAKY_TEXT, url)
-  if '[TEST] [ERROR]' in text:
+  if '[TEST] [ERROR]' in text or '[TEST] [FAILURE]' in text:
     test_status = decorate_url(_FAILURE_TEXT, url)
   elif '[TEST] [FLAKINESS]' in text:
     test_status = decorate_url(_FLAKY_TEXT, url)
@@ -224,15 +242,20 @@ def format_errors(all_errors, severity, event):
   return final_text
 
 
-def create_notes(text):
-  """Combine the sets of errors into a single string.
-  """
-  if not text: return ''
-  errors = {}
+def aggregate_errors_from_log(text, debug=False):
+  if not text: return {}
   text += '\n'
+  errors = {}
   lines = text.split('\n')
   current_product = None
+  event = None
+  severity = None
+  platform = None
+  other = None
+  product = None
+
   for line in lines:
+    if debug: print(line)
     if not current_product:
       m = re.search(r'^([a-z_]+):', line)
       if m:
@@ -243,11 +266,12 @@ def create_notes(text):
         current_product = None
       else:
         m = re.search(
-          r'\[(BUILD|TEST)\] \[(ERROR|FLAKINESS)\] \[([a-zA-Z]+)\] (\[.*\])',
+          r'\[(BUILD|TEST)\] \[(ERROR|FAILURE|FLAKINESS)\] \[([a-zA-Z]+)\] (\[.*\])',
           line)
         if m:
           event = m.group(1)
           severity = m.group(2)
+          if severity == "FAILURE": severity = "ERROR"
           platform = m.group(3)
           other = m.group(4)
           product = current_product
@@ -259,8 +283,24 @@ def create_notes(text):
           if product not in errors[severity][event]:
             errors[severity][event][product] = {}
           if platform not in errors[severity][event][product]:
-            errors[severity][event][product][platform] = set()
-          errors[severity][event][product][platform].add(other)
+            errors[severity][event][product][platform] = {}
+            errors[severity][event][product][platform]['description'] = set()
+            errors[severity][event][product][platform]['test_list'] = set()
+          errors[severity][event][product][platform]['description'].add(other)
+        else:
+          m2 = re.search(r"failed tests: \[\'(.*)\'\]", line)
+          if m2:
+            test_list = m2.group(1).split("', '")
+            for test_name in test_list:
+              errors[severity][event][product][platform]['test_list'].add(test_name)
+  return errors
+
+
+def create_notes(text, debug=False):
+  """Combine the sets of errors into a single string.
+  """
+  if not text: return ''
+  errors = aggregate_errors_from_log(text, debug)
 
   log_items = []
   text = format_errors(errors, 'ERROR', 'BUILD')
@@ -470,8 +510,10 @@ def main(argv):
   prev_notes = ''
   last_good_day = None
 
+  output = ""
+
   if FLAGS.output_markdown:
-    print("### Testing History (last %d days)\n" % len(all_days))
+    output += "### Testing History (last %d days)\n\n" % len(all_days)
 
   table_fields = (
       ["Date"] +
@@ -493,9 +535,9 @@ def main(argv):
   table_row_fmt = row_prefix + row_separator.join(["%s" for f in table_fields]) + row_suffix
 
   if FLAGS.output_header:
-    print(table_header_string)
+    output += table_header_string + "\n"
     if FLAGS.output_markdown:
-      print(table_row_fmt.replace("%s", "---").replace(" ", ""))
+      output += table_row_fmt.replace("%s", "---").replace(" ", "") + "\n"
 
   days_sorted = sorted(all_days)
   if FLAGS.reverse: days_sorted = reversed(days_sorted)
@@ -534,7 +576,106 @@ def main(argv):
          package_tests_log[1],
          notes]
     )
-    print(table_row_fmt % tuple(table_row_contents))
+    output += (table_row_fmt % tuple(table_row_contents)) + "\n"
+
+  if FLAGS.report == "daily_log":
+    print(output)
+  elif FLAGS.report == "test_summary":
+    test_list = {}
+    for day in days_sorted:
+      if source_tests[day]['log_results']:
+        errors = aggregate_errors_from_log(source_tests[day]['log_results'])
+        test_link = source_tests[day]['html_url']
+      elif package_tests[day]['log_results']:
+        errors = aggregate_errors_from_log(package_tests[day]['log_results'])
+        test_link = package_tests[day]['html_url']
+      else:
+        continue
+
+      sev_list = []
+      if FLAGS.summary_type == "all" or FLAGS.summary_type == "flakes":
+        sev_list.append('FLAKINESS')
+      if FLAGS.summary_type == "all" or FLAGS.summary_type == "errors":
+        sev_list.append('ERROR')
+      for sev in sev_list:
+        if sev in errors and 'TEST' in errors[sev]:
+          test_entries = errors[sev]['TEST']
+          for product, platform_dict in test_entries.items():
+            if product == "missing_log":
+              continue
+            platforms = list(platform_dict.keys())
+            for platform in platforms:
+              test_names = list(test_entries[product][platform]['test_list'])
+              if not test_names:
+                test_names = ['Unspecified test']
+              for test_name in test_names:
+                if test_name == "CRASH/TIMEOUT":
+                    if not FLAGS.summary_include_crashes: continue
+                    else: test_name = "Crash or timeout"
+                test_id = "%s | %s | %s | %s" % (sev.lower(), product, platform, test_name)
+                if test_id not in test_list:
+                  test_list[test_id] = {}
+                  test_list[test_id]['count'] = 0
+                  test_list[test_id]['links'] = []
+                test_list[test_id]['count'] += 1
+                test_list[test_id]['links'].append(test_link)
+                test_list[test_id]['latest'] = day
+
+    test_list_sorted = reversed(sorted(test_list.keys(), key=lambda x: test_list[x]['count']))
+    if FLAGS.output_header:
+      if FLAGS.output_markdown:
+        print("| # | Latest | Product | Platform | Test Info |")
+        print("|---|---|---|---|---|")
+      else:
+        print("Count\tLatest\tSeverity\tProduct\tPlatform\tTest Name")
+
+    num_shown = 0
+
+    for test_id in test_list_sorted:
+      (severity, product, platform, test_name) = test_id.split(" | ")
+      days_ago = (dateutil.utils.today() - dateutil.parser.parse(test_list[test_id]['latest'])).days
+      if days_ago <= 0:
+        latest = "Today"
+      else:
+        latest = "%s day%s ago" % (days_ago, '' if days_ago == 1 else 's')
+      if FLAGS.output_markdown:
+        if severity == "error":
+          severity = "(failure)"
+        elif severity == "flakiness":
+          severity = "(flaky)"
+        latest = latest.replace(" ", "&nbsp;")
+        product = product.replace("_", " ")
+        product = product.upper() if product == "gma" else product.title()
+        if len(test_list[test_id]['links']) > 0:
+          latest = "[%s](%s)" % (latest, test_list[test_id]['links'][-1])
+
+        link_list = []
+        seen = set()
+        num = 1
+
+        for link in test_list[test_id]['links']:
+          if link not in seen:
+            seen.add(link)
+            link_list.append("[%d](%s)" % (num, link))
+            num += 1
+        # If test_name looks like FirebaseSomethingTest.Something, link it to code search.
+        m = re.match(r"(Firebase[A-Za-z]*Test)\.(.*)", test_name)
+        if m:
+          search_url = "http://github.com/search?q=repo:firebase/firebase-cpp-sdk%%20\"%s,%%20%s\"" % (m.group(1), m.group(2))
+          test_name_str = "[%s](%s)" % (test_name, search_url)
+        else:
+          test_name_str = test_name
+
+        print("| %d | %s | %s | %s | %s&nbsp;%s<br/>&nbsp;&nbsp;&nbsp;Logs: %s |" % (
+            test_list[test_id]['count'], latest,
+            product, platform,
+            test_name_str, severity, " ".join(link_list)))
+      else:
+        print("%d\t%s\t%s\t%s\t%s\t%s" % (test_list[test_id]['count'], latest, severity, product, platform, test_name))
+      num_shown += 1
+      if num_shown >= FLAGS.summary_count:
+        break
+
 
 if __name__ == "__main__":
   flags.mark_flag_as_required("token")
