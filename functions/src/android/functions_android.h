@@ -19,6 +19,7 @@
 
 #include <map>
 #include <set>
+#include <string>
 
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
