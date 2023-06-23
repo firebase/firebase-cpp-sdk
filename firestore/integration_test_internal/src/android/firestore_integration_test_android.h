@@ -106,23 +106,24 @@ class FirestoreAndroidIntegrationTest : public FirestoreIntegrationTest {
   jni::Loader& loader() { return loader_; }
 
   /** Creates and returns a new Java `Exception` with a default message. */
-  static jni::Local<jni::Throwable> CreateException(jni::Env&);
+  static jni::Local<jni::Throwable> CreateException();
   /** Creates and returns a new Java `Exception` with the given message. */
-  static jni::Local<jni::Throwable> CreateException(jni::Env&,
-                                                    const std::string& message);
+  static jni::Local<jni::Throwable> CreateException(const std::string& message);
 
   /** Throws a Java `Exception` object with a default message. */
-  jni::Local<jni::Throwable> ThrowException(jni::Env&);
+  jni::Local<jni::Throwable> ThrowException();
   /** Throws a Java `Exception` object with the given message. */
-  jni::Local<jni::Throwable> ThrowException(jni::Env&,
-                                            const std::string& message);
+  jni::Local<jni::Throwable> ThrowException(const std::string& message);
 
   // Bring definitions of `Await()` from the superclass into this class so that
   // the definition below *overloads* instead of *hides* them.
   using FirestoreIntegrationTest::Await;
 
   /** Blocks until the given `Task` has completed or times out. */
-  static void Await(jni::Env& env, const jni::Task& task);
+  static void Await(const jni::Task& task);
+
+  /** Returns an Env object for the calling thread, creating it if necessary. */
+  static jni::Env& env();
 
  private:
   void FailTestIfPendingException();
