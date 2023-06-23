@@ -124,6 +124,9 @@ class RemoteConfigInternal {
   // If a fetch was throttled, this is set to the time when throttling is
   // finished, in milliseconds since epoch.
   int64_t throttled_end_time_ = 0;
+
+  // String to be used when registering for JNI task callbacks.
+  std::string jni_task_id_;
 };
 
 }  // namespace internal

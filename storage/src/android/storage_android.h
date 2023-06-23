@@ -55,10 +55,6 @@ METHOD_LOOKUP_DECLARATION(cpp_byte_downloader, CPP_BYTE_DOWNLOADER_METHODS)
 // clang-format on
 METHOD_LOOKUP_DECLARATION(cpp_byte_uploader, CPP_BYTE_UPLOADER_METHODS)
 
-// Used for registering global callbacks. See
-// firebase::util::RegisterCallbackOnTask for context.
-extern const char kApiIdentifier[];
-
 class StorageInternal {
  public:
   // Build a Storage. A nullptr or empty url uses the default getInstance.
@@ -114,6 +110,10 @@ class StorageInternal {
   // objects.
   CleanupNotifier& cleanup() { return cleanup_; }
 
+  // Used for registering global callbacks. See
+  // firebase::util::RegisterCallbackOnTask for context.
+  const char* jni_task_id() { return jni_task_id_.c_str(); }
+
  private:
   // Initialize JNI for all classes.
   static bool Initialize(App* app);
@@ -135,6 +135,9 @@ class StorageInternal {
   std::string url_;
 
   CleanupNotifier cleanup_;
+
+  // String to be used when registering for JNI task callbacks.
+  std::string jni_task_id_;
 };
 
 }  // namespace internal
