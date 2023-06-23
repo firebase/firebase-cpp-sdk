@@ -23,6 +23,7 @@
 #include "firebase/future.h"
 #include "firebase/gma/types.h"
 #include "firebase/internal/common.h"
+#include "firebase/variant.h"
 
 // Doxygen breaks trying to parse this file, and since it is internal logic,
 // it doesn't need to be included in the generated documentation.
@@ -71,6 +72,20 @@ class NativeAd {
 
   /// Returns the associated image assets of the native ad.
   const std::vector<NativeAdImage>& images() const;
+
+  /// Only allowlisted ad units use this api.
+  Future<void> RecordImpression(const Variant& impression_data);
+
+  /// Returns a Future containing the status of the last call to
+  /// RecordImpression.
+  Future<void> RecordImpressionLastResult() const;
+
+  /// Only allowlisted ad units use this api.
+  Future<void> PerformClick(const Variant& click_data);
+
+  /// Returns a Future containing the status of the last call to
+  /// PerformClick.
+  Future<void> PerformClickLastResult() const;
 
  private:
   // An internal, platform-specific implementation object that this class uses

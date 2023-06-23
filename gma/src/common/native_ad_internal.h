@@ -22,6 +22,7 @@
 
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "app/src/include/firebase/variant.h"
 #include "gma/src/common/gma_common.h"
 #include "gma/src/include/firebase/gma/internal/native_ad.h"
 
@@ -30,7 +31,13 @@ namespace gma {
 namespace internal {
 
 // Constants representing each NativeAd function that returns a Future.
-enum NativeAdFn { kNativeAdFnInitialize, kNativeAdFnLoadAd, kNativeAdFnCount };
+enum NativeAdFn {
+  kNativeAdFnInitialize,
+  kNativeAdFnLoadAd,
+  kNativeAdFnRecordImpression,
+  kNativeAdFnPerformClick,
+  kNativeAdFnCount
+};
 
 class NativeAdInternal {
  public:
@@ -62,6 +69,12 @@ class NativeAdInternal {
 
   // Returns the associated image assets of the native ad.
   const std::vector<NativeAdImage>& images() const { return images_; }
+
+  // Only used by allowlisted ad units.
+  virtual Future<void> RecordImpression(const Variant& impression_data) = 0;
+
+  // Only used by allowlisted ad units.
+  virtual Future<void> PerformClick(const Variant& click_data) = 0;
 
  protected:
   friend class firebase::gma::NativeAd;

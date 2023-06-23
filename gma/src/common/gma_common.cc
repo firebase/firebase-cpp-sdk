@@ -67,6 +67,9 @@ const char* kAdLoadInProgressErrorMessage = "Ad is currently loading.";
 const char* kAdUninitializedErrorMessage = "Ad has not been fully initialized.";
 const char* kImageUrlMalformedErrorMessage =
     "Image URL is malformed or missing.";
+const char* kUnsupportedVariantTypeErrorMessage = "Unsupported variant type.";
+const char* kRecordImpressionFailureErrorMessage =
+    "Failed to record impression.";
 
 // GmaInternal
 void GmaInternal::CompleteLoadAdFutureSuccess(

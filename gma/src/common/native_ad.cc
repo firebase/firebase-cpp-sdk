@@ -18,6 +18,7 @@
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/include/firebase/variant.h"
 #include "gma/src/common/gma_common.h"
 #include "gma/src/common/native_ad_internal.h"
 
@@ -82,6 +83,36 @@ const NativeAdImage& NativeAd::icon() const { return internal_->icon(); }
 
 const std::vector<NativeAdImage>& NativeAd::images() const {
   return internal_->images();
+}
+
+Future<void> NativeAd::RecordImpression(const Variant& impression_data) {
+  if (!impression_data.is_map()) {
+    return CreateAndCompleteFuture(
+        firebase::gma::internal::kNativeAdFnRecordImpression,
+        kAdErrorCodeInvalidArgument, kUnsupportedVariantTypeErrorMessage,
+        &internal_->future_data_);
+  }
+  return internal_->RecordImpression(impression_data);
+}
+
+Future<void> NativeAd::RecordImpressionLastResult() const {
+  return internal_->GetLastResult(
+      firebase::gma::internal::kNativeAdFnRecordImpression);
+}
+
+Future<void> NativeAd::PerformClick(const Variant& click_data) {
+  if (!click_data.is_map()) {
+    return CreateAndCompleteFuture(
+        firebase::gma::internal::kNativeAdFnPerformClick,
+        kAdErrorCodeInvalidArgument, kUnsupportedVariantTypeErrorMessage,
+        &internal_->future_data_);
+  }
+  return internal_->PerformClick(click_data);
+}
+
+Future<void> NativeAd::PerformClickLastResult() const {
+  return internal_->GetLastResult(
+      firebase::gma::internal::kNativeAdFnPerformClick);
 }
 
 }  // namespace gma

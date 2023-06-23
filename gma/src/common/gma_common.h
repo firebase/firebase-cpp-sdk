@@ -39,6 +39,8 @@ extern const char* kAdCouldNotParseAdRequestErrorMessage;
 extern const char* kAdLoadInProgressErrorMessage;
 extern const char* kAdUninitializedErrorMessage;
 extern const char* kImageUrlMalformedErrorMessage;
+extern const char* kUnsupportedVariantTypeErrorMessage;
+extern const char* kRecordImpressionFailureErrorMessage;
 
 namespace internal {
 class AdViewInternal;
