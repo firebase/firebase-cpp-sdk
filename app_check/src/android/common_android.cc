@@ -152,7 +152,8 @@ void AndroidAppCheckProvider::GetToken(
         new TokenResultCallbackData(completion_callback);
     util::RegisterCallbackOnTask(
         env, j_task, TokenResultCallback,
-        reinterpret_cast<void*>(completion_callback_data), jni_task_id_.c_str());
+        reinterpret_cast<void*>(completion_callback_data),
+        jni_task_id_.c_str());
   } else {
     AppCheckToken empty_token;
     completion_callback(empty_token, kAppCheckErrorUnknown, error.c_str());
