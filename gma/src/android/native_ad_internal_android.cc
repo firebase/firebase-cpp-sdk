@@ -253,6 +253,8 @@ jobject NativeAdInternalAndroid::variantmap_to_bundle(
       env->DeleteLocalRef(val_bundle);
     } else {
       // Unsupported value type.
+      util::CheckAndClearJniExceptions(env);
+      env->DeleteLocalRef(key_str);
       return nullptr;
     }
 
