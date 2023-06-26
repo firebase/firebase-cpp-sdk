@@ -23,7 +23,7 @@
 #include <string>
 #include <vector>
 
-#include "app/memory/atomic.h"
+#include <atomic>"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"
@@ -488,7 +488,7 @@ class PersistentConnection : public ConnectionEventHandler {
   static int kInvalidAuthTokenThreshold;
 
   // Log id.  Unique for each persistent connection.
-  static compat::Atomic<uint32_t> next_log_id_;
+  static std::atomic<uint32_t> next_log_id_;
   std::string log_id_;
 
   // Reference to Firebase App.  Primarily used to get auth token.

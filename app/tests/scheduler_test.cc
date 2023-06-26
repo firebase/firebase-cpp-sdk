@@ -16,7 +16,7 @@
 
 #include "app/src/scheduler.h"
 
-#include "app/memory/atomic.h"
+#include <atomic>
 #include "app/src/semaphore.h"
 #include "app/src/time.h"
 #include "gmock/gmock.h"
@@ -65,7 +65,7 @@ class SchedulerTest : public ::testing::Test {
     }
   }
 
-  static compat::Atomic<int> atomic_count_;
+  static std::atomic<int> atomic_count_;
   static Semaphore callback_sem1_;
   static Semaphore callback_sem2_;
   static std::vector<int> ordered_value_;
@@ -75,7 +75,7 @@ class SchedulerTest : public ::testing::Test {
   Scheduler scheduler_;
 };
 
-compat::Atomic<int> SchedulerTest::atomic_count_(0);
+std::atomic<int> SchedulerTest::atomic_count_(0);
 Semaphore SchedulerTest::callback_sem1_(0);      // NOLINT
 Semaphore SchedulerTest::callback_sem2_(0);      // NOLINT
 std::vector<int> SchedulerTest::ordered_value_;  // NOLINT
@@ -253,15 +253,15 @@ TEST_F(SchedulerTest, CancelImmediateCallback) {
   auto test_func = [](int delay) {
     // Use standalone scheduler and counter
     Scheduler scheduler;
-    compat::Atomic<int> count(0);
+    std::atomic<int> count(0);
     int success_cancel = 0;
     for (int i = 0; i < kThreadTestIteration; ++i) {
       bool cancelled =
           scheduler
               .Schedule(
-                  new callback::CallbackValue1<compat::Atomic<int>*>(
+                  new callback::CallbackValue1<std::Atomic<int>*>(
                       &count,
-                      [](compat::Atomic<int>* count) { count->fetch_add(1); }),
+                      [](std::atomic<int>* count) { count->fetch_add(1); }),
                   0)
               .Cancel();
       if (cancelled) {
@@ -292,14 +292,14 @@ TEST_F(SchedulerTest, CancelRepeatCallback) {
   auto test_func = [](int delay, int repeat, int wait_repeat) {
     // Use standalone scheduler and counter for iterations
     Scheduler scheduler;
-    compat::Atomic<int> count(0);
+    std::atomic<int> count(0);
     while (callback_sem1_.TryWait()) {
     }
 
     RequestHandle handler =
-        scheduler.Schedule(new callback::CallbackValue1<compat::Atomic<int>*>(
+        scheduler.Schedule(new callback::CallbackValue1<std::atomic<int>*>(
                                &count,
-                               [](compat::Atomic<int>* count) {
+                               [](std::atomic<int>* count) {
                                  count->fetch_add(1);
                                  callback_sem1_.Post();
                                }),

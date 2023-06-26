@@ -19,7 +19,7 @@
 #include <queue>
 #include <string>
 
-#include "app/memory/atomic.h"
+#include <atomic>"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/logger.h"
 #include "app/src/safe_reference.h"
@@ -150,7 +150,7 @@ class WebSocketClientImpl : public WebSocketClientInterface {
   // is not guarded by any synchronization primitives and is changed outside of
   // the event loop.  If referenced during the event loop, make sure the racing
   // condition will not cause the problem.
-  compat::Atomic<int> is_destructing_;
+  std::atomic<int> is_destructing_;
 
   // The websocket handler to send message, to receive message and to close the
   // connection.  Should only be used in the event loop.  Not thread safe

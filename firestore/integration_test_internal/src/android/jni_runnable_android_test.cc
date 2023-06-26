@@ -17,7 +17,7 @@
 #include "firestore/src/android/jni_runnable_android.h"
 
 #include "android/firestore_integration_test_android.h"
-#include "app/memory/atomic.h"
+#include <atomic>"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "firestore/src/jni/declaration.h"
 #include "firestore/src/jni/object.h"
@@ -276,7 +276,7 @@ TEST_F(JniRunnableTest, RunOnNewThreadTaskFailsIfRunThrowsException) {
 }
 
 TEST_F(JniRunnableTest, DetachReturnsAfterLastRunOnAnotherThreadCompletes) {
-  compat::Atomic<int32_t> runnable1_run_invoke_count;
+  std::atomic<int32_t> runnable1_run_invoke_count;
   runnable1_run_invoke_count.store(0);
   Mutex detach_thread_mutex;
   Global<Object> detach_thread;

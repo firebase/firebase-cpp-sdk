@@ -18,7 +18,7 @@
 #include <memory>"
 #include <sstream>
 
-#include "app/memory/atomic.h"
+#include <atomic>"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/logger.h"
 #include "app/src/safe_reference.h"
@@ -177,7 +177,7 @@ class Connection : public WebSocketClientEventHandler {
   static const char* const kServerHelloSessionId;
 
   // Log id.  Unique for each connection.
-  static compat::Atomic<uint32_t> next_log_id_;
+  static std::atomic<uint32_t> next_log_id_;
   std::string log_id_;
 
   // Safe reference to this.  Set in constructor and cleared in destructor

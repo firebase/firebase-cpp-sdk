@@ -89,7 +89,7 @@ const char* PersistentConnection::kServerResponseData = "d";
 
 int PersistentConnection::kInvalidAuthTokenThreshold = 3;
 
-compat::Atomic<uint32_t> PersistentConnection::next_log_id_(0);
+std::atomic<uint32_t> PersistentConnection::next_log_id_(0);
 
 // Util function to print QuerySpec in debug logs.
 std::string GetDebugQuerySpecString(const QuerySpec& query_spec) {
