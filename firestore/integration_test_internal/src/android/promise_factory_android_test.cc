@@ -26,6 +26,7 @@
 #include "firestore/src/jni/integer.h"
 #include "firestore/src/jni/ownership.h"
 #include "firestore/src/jni/task.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 namespace firebase {
