@@ -135,6 +135,7 @@ static const std::vector<std::string> kNeighboringContentURLs = {
     "test_url1", "test_url2", "test_url3"};
 
 using app_framework::LogDebug;
+using app_framework::LogWarning;
 using app_framework::ProcessEvents;
 
 using firebase_test_framework::FirebaseTest;
@@ -938,6 +939,8 @@ TEST_F(FirebaseGmaTest, TestNativeAdLoad) {
     EXPECT_GT(img_result_ptr->image().size(), 0);
 
     load_image_future.Release();
+  } else if (load_ad_future.error() == firebase::gma::kAdErrorCodeNoFill) {
+    LogWarning("LoadAd returned NoFill in TestNativeAdLoad");
   }
 
   load_ad_future.Release();
@@ -2084,6 +2087,8 @@ TEST_F(FirebaseGmaTest, TestNativeAdLoadEmptyRequest) {
         result_ptr->response_info().mediation_adapter_class_name().empty());
     EXPECT_FALSE(result_ptr->response_info().response_id().empty());
     EXPECT_FALSE(result_ptr->response_info().ToString().empty());
+  } else if (load_ad_future.error() == firebase::gma::kAdErrorCodeNoFill) {
+    LogWarning("LoadAd returned NoFill in TestNativeAdLoadEmptyRequest");
   }
 
   load_ad_future.Release();
@@ -2133,6 +2138,8 @@ TEST_F(FirebaseGmaTest, TestNativeRecordImpression) {
     WaitForCompletion(native_ad->RecordImpression(str_variant),
                       "RecordImpression 2",
                       firebase::gma::kAdErrorCodeInvalidArgument);
+  } else if (load_ad_future.error() == firebase::gma::kAdErrorCodeNoFill) {
+    LogWarning("LoadAd returned NoFill in TestNativeRecordImpression");
   }
 
   load_ad_future.Release();
@@ -2172,6 +2179,8 @@ TEST_F(FirebaseGmaTest, TestNativePerformClick) {
         firebase::Variant::FromMutableString("test");
     WaitForCompletion(native_ad->PerformClick(str_variant), "PerformClick 2",
                       firebase::gma::kAdErrorCodeInvalidArgument);
+  } else if (load_ad_future.error() == firebase::gma::kAdErrorCodeNoFill) {
+    LogWarning("LoadAd returned NoFill in TestNativePerformClick");
   }
 
   load_ad_future.Release();
