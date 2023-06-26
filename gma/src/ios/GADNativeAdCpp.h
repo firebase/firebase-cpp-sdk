@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Google LLC
+ * Copyright 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,24 +14,18 @@
  * limitations under the License.
  */
 
-#include "firestore/src/android/geo_point_android.h"
+#import <Foundation/Foundation.h>
+#import <GoogleMobileAds/GADNativeAd.h>
+#import <UIKit/UIKit.h>
 
-#include "android/firestore_integration_test_android.h"
-#include "firebase/firestore/geo_point.h"
-#include "gtest/gtest.h"
+@interface GADNativeAd()
 
-namespace firebase {
-namespace firestore {
-namespace {
+/// Used only by allowlisted ad units. Provide a dictionary containing click data.
+- (void)performClickWithData:(nonnull NSDictionary *)clickData;
 
-using GeoPointTest = FirestoreAndroidIntegrationTest;
+/// Used only by allowlisted ad units. Provide a dictionary containing impression data. Returns YES
+/// if the impression is successfully recorded, otherwise returns NO.
+- (BOOL)recordImpressionWithData:(nonnull NSDictionary *)impressionData;
 
-TEST_F(GeoPointTest, Converts) {
-  GeoPoint point{12.0, 34.0};
-  auto java_point = GeoPointInternal::Create(env(), point);
-  EXPECT_EQ(point, java_point.ToPublic(env()));
-}
+@end
 
-}  // namespace
-}  // namespace firestore
-}  // namespace firebase
