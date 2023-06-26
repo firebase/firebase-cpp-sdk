@@ -28,10 +28,12 @@ namespace gma {
 // time spent looking up methods by string.
 // clang-format off
 #define NATIVEADHELPER_METHODS(X)                                        \
-  X(Constructor, "<init>", "(J)V"),                                            \
-  X(Initialize, "initialize", "(JLandroid/app/Activity;)V"),                   \
-  X(LoadAd, "loadAd",                                                          \
-    "(JLjava/lang/String;Lcom/google/android/gms/ads/AdRequest;)V"),           \
+  X(Constructor, "<init>", "(J)V"),                                      \
+  X(Initialize, "initialize", "(JLandroid/app/Activity;)V"),             \
+  X(LoadAd, "loadAd",                                                    \
+    "(JLjava/lang/String;Lcom/google/android/gms/ads/AdRequest;)V"),     \
+  X(RecordImpression, "recordImpression", "(JLandroid/os/Bundle;)V"),    \
+  X(PerformClick, "performClick", "(JLandroid/os/Bundle;)V"),            \
   X(Disconnect, "disconnect", "()V")
 // clang-format on
 
@@ -48,6 +50,9 @@ class NativeAdInternalAndroid : public NativeAdInternal {
   Future<AdResult> LoadAd(const char* ad_unit_id,
                           const AdRequest& request) override;
   bool is_initialized() const override { return initialized_; }
+  Future<void> RecordImpression(const Variant& impression_data) override;
+  Future<void> PerformClick(const Variant& click_data) override;
+  jobject variantmap_to_bundle(const Variant& variant_data);
 
  private:
   // Reference to the Java helper object used to interact with the Mobile Ads
