@@ -54,5 +54,10 @@ TEST(UtilTest, SplitStringDelimetersOnly) {
   EXPECT_THAT(SplitString("///", '/'), IsEmpty());
 }
 
+TEST(UtilTest, CreateApiIdentifierUnique) {
+  EXPECT_STRNE(CreateApiIdentifier("Test", &v1).c_str(),
+               CreateApiIdentifier("Test", &v2).c_str());
+}
+
 }  // namespace
 }  // namespace firebase
