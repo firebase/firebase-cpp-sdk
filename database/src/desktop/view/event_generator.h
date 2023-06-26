@@ -17,7 +17,7 @@
 
 #include <vector>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/event_registration.h"
@@ -34,7 +34,7 @@ namespace internal {
 std::vector<Event> GenerateEventsForChanges(
     const QuerySpec& query_spec, const std::vector<Change>& changes,
     const IndexedVariant& event_cache,
-    const std::vector<UniquePtr<EventRegistration>>& event_registrations);
+    const std::vector<std::unique_ptr<EventRegistration>>& event_registrations);
 
 }  // namespace internal
 }  // namespace database

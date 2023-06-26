@@ -15,7 +15,7 @@
 #ifndef FIREBASE_STORAGE_SRC_IOS_STORAGE_REFERENCE_IOS_H_
 #define FIREBASE_STORAGE_SRC_IOS_STORAGE_REFERENCE_IOS_H_
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -43,7 +43,7 @@ OBJ_C_PTR_WRAPPER(FIRStorageObservableTask);
 class StorageReferenceInternal {
  public:
   explicit StorageReferenceInternal(StorageInternal* _Nonnull storage,
-                                    UniquePtr<FIRStorageReferencePointer> impl);
+                                    std::unique_ptr<FIRStorageReferencePointer> impl);
 
   ~StorageReferenceInternal();
 
@@ -179,7 +179,7 @@ class StorageReferenceInternal {
   StorageInternal* _Nullable storage_;
 
   // Object lifetime managed by Objective C ARC.
-  UniquePtr<FIRStorageReferencePointer> impl_;
+  std::unique_ptr<FIRStorageReferencePointer> impl_;
 
   Mutex controller_init_mutex_;
 };

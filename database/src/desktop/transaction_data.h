@@ -18,7 +18,7 @@
 #include <list>
 #include <queue>
 
-#include "app/memory/shared_ptr.h"
+#include <memory>"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
@@ -63,7 +63,7 @@ struct TransactionData {
                   ReferenceCountedFutureImpl* ref_future, const Path& path,
                   DoTransactionWithContext function, void* context,
                   void (*delete_context)(void*), bool trigger_local_events,
-                  UniquePtr<ValueListener> outstanding_listener)
+                  std::unique_ptr<ValueListener> outstanding_listener)
       : future_handle(handle),
         ref_future(ref_future),
         path(path),
@@ -101,7 +101,7 @@ struct TransactionData {
   bool trigger_local_events;
 
   // Reference to the listener for this transaction to keep local cache fresh
-  UniquePtr<ValueListener> outstanding_listener;
+  std::unique_ptr<ValueListener> outstanding_listener;
 
   // Transaction order to ensure transactions are rerun in order.
   uint64_t transaction_order;
@@ -128,7 +128,7 @@ struct TransactionData {
   // std::string abort_reason;
   Error abort_reason;
 };
-typedef SharedPtr<TransactionData> TransactionDataPtr;
+typedef std::shared_ptr<TransactionData> TransactionDataPtr;
 
 }  // namespace internal
 }  // namespace database

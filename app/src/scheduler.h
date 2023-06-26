@@ -19,7 +19,7 @@
 
 #include <queue>
 
-#include "app/memory/shared_ptr.h"
+#include <memory>"
 #include "app/src/callback.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/semaphore.h"
@@ -57,12 +57,12 @@ struct RequestStatusBlock {
 
 // The handle used to check the status of a scheduled task or to cancel it.
 // This handle is safe to be copied or be moved.  However, it is NOT safe to
-// modify or reference the same handle from different threads since SharedPtr
+// modify or reference the same handle from different threads since std::shared_ptr
 // is not thread-safe.
 class RequestHandle {
  public:
   RequestHandle() : status_() {}
-  explicit RequestHandle(const SharedPtr<RequestStatusBlock>& status)
+  explicit RequestHandle(const std::shared_ptr<RequestStatusBlock>& status)
       : status_(status) {}
 
   // Attempt to cancel the scheduled task.  return true if success or false if
@@ -79,7 +79,7 @@ class RequestHandle {
   bool IsTriggered() const;
 
  private:
-  SharedPtr<RequestStatusBlock> status_;
+  std::shared_ptr<RequestStatusBlock> status_;
 };
 
 // Scheduler can be used to trigger a callback from the same worker thread.
@@ -134,7 +134,7 @@ class Scheduler {
     RequestId id;
 
     // The callback to be triggered.
-    SharedPtr<callback::Callback> cb;
+    std::shared_ptr<callback::Callback> cb;
 
     // Delay to trigger in milliseconds
     ScheduleTimeMs delay_ms;
@@ -146,14 +146,14 @@ class Scheduler {
     uint64_t due_timestamp;
 
     // Status block shared with handlers
-    SharedPtr<RequestStatusBlock> status;
+    std::shared_ptr<RequestStatusBlock> status;
   };
 
-  // SharedPtr of request data.  Ideally this should be UniquePtr and there
+  // std::shared_ptr of request data.  Ideally this should be std::unique_ptr and there
   // should only have one copy of it in request_queue_ .  However, STLPort queue
-  // uses copy instead of move() while reordering heap element, and UniquePtr is
-  // not copyable.  Therefore, use SharedPtr here.
-  typedef SharedPtr<RequestData> RequestDataPtr;
+  // uses copy instead of move() while reordering heap element, and std::unique_ptr is
+  // not copyable.  Therefore, use std::shared_ptr here.
+  typedef std::shared_ptr<RequestData> RequestDataPtr;
 
   // Comparer struct for priority_queue.  If the operator return true, lhs will
   // output later than rhs, due to the implementation of std::priority_queue.

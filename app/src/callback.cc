@@ -18,7 +18,7 @@
 
 #include <list>
 
-#include "app/memory/shared_ptr.h"
+#include <memory>"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
 #include "app/src/semaphore.h"
@@ -29,7 +29,7 @@ namespace callback {
 
 class CallbackEntry;
 
-class CallbackQueue : public std::list<SharedPtr<CallbackEntry>> {
+class CallbackQueue : public std::list<std::shared_ptr<CallbackEntry>> {
  public:
   CallbackQueue() {}
   ~CallbackQueue() {}
@@ -148,9 +148,9 @@ class CallbackDispatcher {
     Mutex* queue_mutex = queue_.mutex();
     queue_mutex->Acquire();
     while (!queue_.empty()) {
-      // Make a copy of the SharedPtr in case FlushCallbacks() is called
+      // Make a copy of the std::shared_ptr in case FlushCallbacks() is called
       // currently.
-      SharedPtr<CallbackEntry> callback_entry = queue_.front();
+      std::shared_ptr<CallbackEntry> callback_entry = queue_.front();
       queue_.pop_front();
       queue_mutex->Release();
       callback_entry->Execute();

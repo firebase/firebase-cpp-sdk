@@ -19,7 +19,7 @@
 #include <cstring>
 #include <vector>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/assert.h"
 #include "app/src/variant_util.h"
 #include "database/src/common/query_spec.h"
@@ -35,7 +35,7 @@ namespace internal {
 static void GenerateEventsForType(
     const QuerySpec& query_spec, EventType event_type,
     const std::vector<Change>& changes,
-    const std::vector<UniquePtr<EventRegistration>>& event_registrations,
+    const std::vector<std::unique_ptr<EventRegistration>>& event_registrations,
     const IndexedVariant& event_cache, std::vector<Event>* events);
 
 static Event GenerateEvent(const QuerySpec& query_spec, const Change& change,
@@ -45,7 +45,7 @@ static Event GenerateEvent(const QuerySpec& query_spec, const Change& change,
 std::vector<Event> GenerateEventsForChanges(
     const QuerySpec& query_spec, const std::vector<Change>& changes,
     const IndexedVariant& event_cache,
-    const std::vector<UniquePtr<EventRegistration>>& event_registrations) {
+    const std::vector<std::unique_ptr<EventRegistration>>& event_registrations) {
   std::vector<Event> events;
   std::vector<Change> moves;
   QueryParamsComparator comparator(&query_spec.params);
@@ -95,7 +95,7 @@ class ChangeLesser {
 void GenerateEventsForType(
     const QuerySpec& query_spec, EventType event_type,
     const std::vector<Change>& changes,
-    const std::vector<UniquePtr<EventRegistration>>& event_registrations,
+    const std::vector<std::unique_ptr<EventRegistration>>& event_registrations,
     const IndexedVariant& event_cache, std::vector<Event>* events) {
   std::vector<const Change*> filtered_changes;
   filtered_changes.reserve(changes.size());
@@ -123,7 +123,7 @@ void GenerateEventsForType(
     const Change* change = *change_iter;
     for (auto registration_iter = event_registrations.begin();
          registration_iter != event_registrations.end(); ++registration_iter) {
-      const UniquePtr<EventRegistration>& registration = *registration_iter;
+      const std::unique_ptr<EventRegistration>& registration = *registration_iter;
       if (registration->RespondsTo(event_type)) {
         events->push_back(GenerateEvent(query_spec, *change, registration.get(),
                                         event_cache));

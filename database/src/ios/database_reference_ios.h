@@ -48,7 +48,7 @@ class DatabaseReferenceInternal : public QueryInternal {
  public:
   explicit DatabaseReferenceInternal(
       DatabaseInternal* database,
-      UniquePtr<FIRDatabaseReferencePointer> impl);
+      std::unique_ptr<FIRDatabaseReferencePointer> impl);
 
   virtual ~DatabaseReferenceInternal();
 
@@ -171,7 +171,7 @@ class DatabaseReferenceInternal : public QueryInternal {
   ReferenceCountedFutureImpl* ref_future();
 
   // Object lifetime managed by Objective C ARC.
-  UniquePtr<FIRDatabaseReferencePointer> impl_;
+  std::unique_ptr<FIRDatabaseReferencePointer> impl_;
 
   DisconnectionHandler* _Nullable cached_disconnection_handler_;
 

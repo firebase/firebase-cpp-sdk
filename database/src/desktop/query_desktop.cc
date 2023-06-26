@@ -16,7 +16,7 @@
 
 #include <sstream>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/rest/transport_builder.h"
 #include "app/rest/transport_curl.h"
 #include "app/rest/util.h"
@@ -136,7 +136,7 @@ QueryInternal::~QueryInternal() {}
 class SingleValueEventRegistration : public ValueEventRegistration {
  public:
   SingleValueEventRegistration(DatabaseInternal* database,
-                               UniquePtr<SingleValueListener> listener,
+                               std::unique_ptr<SingleValueListener> listener,
                                const QuerySpec& query_spec)
       : ValueEventRegistration(database, listener.get(), query_spec),
         active_(true),
@@ -172,7 +172,7 @@ class SingleValueEventRegistration : public ValueEventRegistration {
 
   bool active_;
   DatabaseInternal* database_;
-  UniquePtr<SingleValueListener> listener_;
+  std::unique_ptr<SingleValueListener> listener_;
 };
 
 Future<DataSnapshot> QueryInternal::GetValue() {
@@ -213,11 +213,11 @@ void QueryInternal::RemoveAllValueListeners() {
 }
 
 void QueryInternal::AddEventRegistration(
-    UniquePtr<EventRegistration> registration, void* listener_ptr) {
+    std::unique_ptr<EventRegistration> registration, void* listener_ptr) {
   database_->AddEventRegistration(query_spec_, listener_ptr,
                                   registration.get());
   Repo::scheduler().Schedule(NewCallback(
-      [](Repo::ThisRef ref, UniquePtr<EventRegistration> registration) {
+      [](Repo::ThisRef ref, std::unique_ptr<EventRegistration> registration) {
         Repo::ThisRefLock lock(&ref);
         if (lock.GetReference() != nullptr) {
           lock.GetReference()->AddEventCallback(Move(registration));

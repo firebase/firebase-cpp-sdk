@@ -81,12 +81,12 @@ void LogException(Logger* logger, const char* name, const char* url, NSException
 }
 };
 
-QueryInternal::QueryInternal(DatabaseInternal* database, UniquePtr<FIRDatabaseQueryPointer> query)
+QueryInternal::QueryInternal(DatabaseInternal* database, std::unique_ptr<FIRDatabaseQueryPointer> query)
     : database_(database), impl_(std::move(query)) {
   database_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
 }
 
-QueryInternal::QueryInternal(DatabaseInternal* database, UniquePtr<FIRDatabaseQueryPointer> query,
+QueryInternal::QueryInternal(DatabaseInternal* database, std::unique_ptr<FIRDatabaseQueryPointer> query,
                              const QuerySpec& query_spec)
     : query_spec_(query_spec), database_(database), impl_(std::move(query)) {
   database_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);

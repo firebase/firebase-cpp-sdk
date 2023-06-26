@@ -30,7 +30,7 @@ using util::IdToVariant;
 using util::VariantToId;
 
 MutableDataInternal::MutableDataInternal(DatabaseInternal* database,
-                                         UniquePtr<FIRMutableDataPointer> impl)
+                                         std::unique_ptr<FIRMutableDataPointer> impl)
     : db_(database), impl_(std::move(impl)) {}
 
 MutableDataInternal::~MutableDataInternal() {}

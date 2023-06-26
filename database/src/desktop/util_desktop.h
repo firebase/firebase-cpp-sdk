@@ -17,7 +17,7 @@
 
 #include <string>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
@@ -336,7 +336,7 @@ bool QueryParamsIsDefault(const QueryParams& params);
 // names a path but does not have any other parameters set on it.
 QuerySpec MakeDefaultQuerySpec(const QuerySpec& query_spec);
 
-UniquePtr<VariantFilter> VariantFilterFromQueryParams(
+std::unique_ptr<VariantFilter> VariantFilterFromQueryParams(
     const QueryParams& params);
 
 // Convert Path which is used in wire protocol to string

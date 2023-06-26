@@ -47,9 +47,9 @@ class EventGeneratorTest : public testing::Test {
         new ValueEventRegistration(nullptr, nullptr, QuerySpec());
     child_registration_ =
         new ChildEventRegistration(nullptr, nullptr, QuerySpec());
-    event_registrations_ = std::vector<UniquePtr<EventRegistration>>{
-        UniquePtr<EventRegistration>(value_registration_),
-        UniquePtr<EventRegistration>(child_registration_),
+    event_registrations_ = std::vector<std::unique_ptr<EventRegistration>>{
+        std::unique_ptr<EventRegistration>(value_registration_),
+        std::unique_ptr<EventRegistration>(child_registration_),
     };
   }
 
@@ -59,7 +59,7 @@ class EventGeneratorTest : public testing::Test {
   IndexedVariant event_cache_;
   ValueEventRegistration* value_registration_;
   ChildEventRegistration* child_registration_;
-  std::vector<UniquePtr<EventRegistration>> event_registrations_;
+  std::vector<std::unique_ptr<EventRegistration>> event_registrations_;
 };
 
 class EventGeneratorDeathTest : public EventGeneratorTest {};

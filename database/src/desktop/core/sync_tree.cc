@@ -16,7 +16,7 @@
 
 #include <vector>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/assert.h"
 #include "app/src/callback.h"
 #include "app/src/include/firebase/variant.h"
@@ -97,7 +97,7 @@ std::vector<Event> SyncTree::AckUserWrite(WriteId write_id, AckStatus revert,
 }
 
 std::vector<Event> SyncTree::AddEventRegistration(
-    UniquePtr<EventRegistration> event_registration) {
+    std::unique_ptr<EventRegistration> event_registration) {
   std::vector<Event> events;
 
   persistence_manager_->RunInTransaction([&, this]() -> bool {

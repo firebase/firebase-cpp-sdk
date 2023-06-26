@@ -71,7 +71,7 @@ std::vector<Event> SyncPoint::ApplyOperation(
 }
 
 std::vector<Event> SyncPoint::AddEventRegistration(
-    UniquePtr<EventRegistration> event_registration,
+    std::unique_ptr<EventRegistration> event_registration,
     const WriteTreeRef& writes_cache, const CacheNode& server_cache,
     PersistenceManagerInterface* persistence_manager) {
   const QuerySpec& query_spec = event_registration->query_spec();

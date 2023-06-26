@@ -31,9 +31,9 @@ namespace internal {
 class MockPersistenceManager : public PersistenceManager {
  public:
   MockPersistenceManager(
-      UniquePtr<PersistenceStorageEngine> storage_engine,
-      UniquePtr<TrackedQueryManagerInterface> tracked_query_manager,
-      UniquePtr<CachePolicy> cache_policy, LoggerBase* logger)
+      std::unique_ptr<PersistenceStorageEngine> storage_engine,
+      std::unique_ptr<TrackedQueryManagerInterface> tracked_query_manager,
+      std::unique_ptr<CachePolicy> cache_policy, LoggerBase* logger)
       : PersistenceManager(std::move(storage_engine),
                            std::move(tracked_query_manager),
                            std::move(cache_policy), logger) {}

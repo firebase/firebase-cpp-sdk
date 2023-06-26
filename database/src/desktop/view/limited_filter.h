@@ -58,7 +58,7 @@ class LimitedFilter : public VariantFilter {
       const Variant& childSnap, const CompleteChildSource* source,
       ChildChangeAccumulator* opt_change_accumulator) const;
 
-  UniquePtr<RangedFilter> ranged_filter_;
+  std::unique_ptr<RangedFilter> ranged_filter_;
   int limit_;
   bool reverse_;
 };

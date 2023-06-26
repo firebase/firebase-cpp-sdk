@@ -14,7 +14,7 @@
 
 #include "database/src/desktop/core/tree.h"
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/optional.h"
 #include "app/src/path.h"
 #include "gmock/gmock.h"
@@ -141,7 +141,7 @@ TEST(TreeTest, GetSetValue) {
 
 TEST(TreeTest, GetSetRValue) {
   {
-    Tree<UniquePtr<int>> tree(MakeUnique<int>(1));
+    Tree<std::unique_ptr<int>> tree(MakeUnique<int>(1));
     EXPECT_TRUE(tree.value().has_value());
     EXPECT_EQ(*tree.value().value(), 1);
 
@@ -271,7 +271,7 @@ TEST(TreeTest, SetValueAt) {
 
 TEST(TreeTest, SetValueAtRValue) {
   {
-    Tree<UniquePtr<int>> tree;
+    Tree<std::unique_ptr<int>> tree;
     tree.SetValueAt(Path(""), MakeUnique<int>(1));
 
     EXPECT_TRUE(tree.value().has_value());
@@ -280,7 +280,7 @@ TEST(TreeTest, SetValueAtRValue) {
   }
 
   {
-    Tree<UniquePtr<int>> tree(MakeUnique<int>(1));
+    Tree<std::unique_ptr<int>> tree(MakeUnique<int>(1));
     tree.SetValueAt(Path("A"), MakeUnique<int>(2));
     tree.SetValueAt(Path("B"), MakeUnique<int>(3));
 
@@ -288,17 +288,17 @@ TEST(TreeTest, SetValueAtRValue) {
     EXPECT_EQ(tree.value().value(), 1);
     EXPECT_EQ(tree.children().size(), 2);
 
-    UniquePtr<int>* child_a = tree.GetValueAt(Path("A"));
+    std::unique_ptr<int>* child_a = tree.GetValueAt(Path("A"));
     EXPECT_NE(child_a, nullptr);
     EXPECT_EQ(**child_a, 2);
 
-    UniquePtr<int>* child_b = tree.GetValueAt(Path("B"));
+    std::unique_ptr<int>* child_b = tree.GetValueAt(Path("B"));
     EXPECT_NE(child_b, nullptr);
     EXPECT_EQ(**child_b, 3);
   }
 
   {
-    Tree<UniquePtr<int>> tree(MakeUnique<int>(1));
+    Tree<std::unique_ptr<int>> tree(MakeUnique<int>(1));
     tree.SetValueAt(Path("A"), MakeUnique<int>(2));
     tree.SetValueAt(Path("A/A1"), MakeUnique<int>(20));
     tree.SetValueAt(Path("B/B1"), MakeUnique<int>(30));
@@ -307,18 +307,18 @@ TEST(TreeTest, SetValueAtRValue) {
     EXPECT_EQ(tree.value().value(), 1);
     EXPECT_EQ(tree.children().size(), 2);
 
-    UniquePtr<int>* child_a = tree.GetValueAt(Path("A"));
+    std::unique_ptr<int>* child_a = tree.GetValueAt(Path("A"));
     EXPECT_NE(child_a, nullptr);
     EXPECT_EQ(**child_a, 2);
 
-    UniquePtr<int>* child_a_a1 = tree.GetValueAt(Path("A/A1"));
+    std::unique_ptr<int>* child_a_a1 = tree.GetValueAt(Path("A/A1"));
     EXPECT_NE(child_a_a1, nullptr);
     EXPECT_EQ(**child_a_a1, 20);
 
-    UniquePtr<int>* child_b = tree.GetValueAt(Path("B"));
+    std::unique_ptr<int>* child_b = tree.GetValueAt(Path("B"));
     EXPECT_EQ(child_b, nullptr);
 
-    UniquePtr<int>* child_b_b1 = tree.GetValueAt(Path("B/B1"));
+    std::unique_ptr<int>* child_b_b1 = tree.GetValueAt(Path("B/B1"));
     EXPECT_NE(child_b_b1, nullptr);
     EXPECT_EQ(**child_b_b1, 30);
   }

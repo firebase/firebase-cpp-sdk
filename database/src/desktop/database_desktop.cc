@@ -18,7 +18,7 @@
 #include <queue>
 #include <stack>
 
-#include "app/memory/shared_ptr.h"
+#include <memory>"
 #include "app/src/app_common.h"
 #include "app/src/assert.h"
 #include "app/src/function_registry.h"

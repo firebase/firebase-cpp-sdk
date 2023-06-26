@@ -16,7 +16,7 @@
 
 #include <vector>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
@@ -37,7 +37,7 @@ namespace internal {
 View::View(const QuerySpec& query_spec, const ViewCache& initial_view_cache)
     : query_spec_(query_spec) {
   IndexedFilter index_filter(query_spec.params);
-  UniquePtr<VariantFilter> filter =
+  std::unique_ptr<VariantFilter> filter =
       VariantFilterFromQueryParams(query_spec.params);
   const CacheNode& initial_server_cache = initial_view_cache.server_snap();
   const CacheNode& initial_event_cache = initial_view_cache.local_snap();
@@ -106,7 +106,7 @@ const Variant* View::GetCompleteServerCache(const Path& path) const {
   return nullptr;
 }
 
-void View::AddEventRegistration(UniquePtr<EventRegistration> registration) {
+void View::AddEventRegistration(std::unique_ptr<EventRegistration> registration) {
   event_registrations_.emplace_back(std::move(registration));
 }
 
@@ -122,7 +122,7 @@ std::vector<Event> View::RemoveEventRegistration(void* listener_ptr,
     Path path(query_spec_.path);
     for (auto iter = event_registrations_.begin();
          iter != event_registrations_.end(); ++iter) {
-      UniquePtr<EventRegistration>& event_registration = *iter;
+      std::unique_ptr<EventRegistration>& event_registration = *iter;
       cancel_events.push_back(
           Event(std::move(event_registration), cancel_error, path));
     }
@@ -134,7 +134,7 @@ std::vector<Event> View::RemoveEventRegistration(void* listener_ptr,
     // If a specific listener is being removed, just find remove the one.
     for (auto iter = event_registrations_.begin();
          iter != event_registrations_.end(); ++iter) {
-      UniquePtr<EventRegistration>& event_registration = *iter;
+      std::unique_ptr<EventRegistration>& event_registration = *iter;
       if (event_registration->MatchesListener(listener_ptr)) {
         event_registrations_.erase(iter);
         break;
@@ -199,14 +199,14 @@ std::vector<Event> View::GenerateEvents(const std::vector<Change>& changes,
   // In the case where we're passing along a single registration, we have to
   // manually set up a temporary vector to hold the registration, making sure to
   // release it at the end without deallocating it.
-  std::vector<UniquePtr<EventRegistration>> temp_registrations;
+  std::vector<std::unique_ptr<EventRegistration>> temp_registrations;
   if (registration) {
     temp_registrations.emplace_back(registration);
   }
 
   // Decide if we're using the individual registration that was passed in, or
   // the entire list of registrations.
-  std::vector<UniquePtr<EventRegistration>>& registrations =
+  std::vector<std::unique_ptr<EventRegistration>>& registrations =
       registration ? temp_registrations : event_registrations_;
 
   std::vector<Event> results = GenerateEventsForChanges(

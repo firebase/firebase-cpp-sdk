@@ -19,7 +19,7 @@
 #include <string>
 #include <utility>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/rest/transport_builder.h"
 #include "app/rest/transport_curl.h"
 #include "app/rest/transport_mock.h"

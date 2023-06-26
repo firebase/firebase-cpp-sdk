@@ -18,7 +18,7 @@
 #include <string>
 #include <utility>
 
-#include "app/memory/shared_ptr.h"
+#include <memory>"
 #include "app/rest/transport_curl.h"
 #include "app/src/app_common.h"
 #include "app/src/app_identifier.h"

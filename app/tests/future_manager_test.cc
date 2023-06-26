@@ -21,7 +21,7 @@
 #include <ctime>
 #include <vector>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/include/firebase/future.h"
 #include "app/src/semaphore.h"
 #include "app/src/thread.h"

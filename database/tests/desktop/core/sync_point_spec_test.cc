@@ -164,8 +164,8 @@ class TestEventRegistration : public EventRegistration {
   }
 };
 
-UniquePtr<QueryInternal> ParseQuery(
-    UniquePtr<QueryInternal> query,
+std::unique_ptr<QueryInternal> ParseQuery(
+    std::unique_ptr<QueryInternal> query,
     const test_data::QueryParams* query_params) {
   EXPECT_NE(query_params->tag(), 0) << "Non-default queries must have a tag";
   if (query_params->orderBy()) {
@@ -249,7 +249,7 @@ void SyncTreeTest::RunTest(const test_data::TestCase* test_spec,
     }
     switch (spec->type()) {
       case test_data::StepType_listen: {
-        UniquePtr<QueryInternal> query(new QueryInternal(reference));
+        std::unique_ptr<QueryInternal> query(new QueryInternal(reference));
         if (spec->params()) {
           query = ParseQuery(std::move(query), spec->params());
         }
@@ -265,7 +265,7 @@ void SyncTreeTest::RunTest(const test_data::TestCase* test_spec,
           }
         }
         std::vector<Event> actual = sync_tree_->AddEventRegistration(
-            UniquePtr<EventRegistration>(event_registration));
+            std::unique_ptr<EventRegistration>(event_registration));
         EXPECT_THAT(actual, Pointwise(EventEq(), expected));
         break;
       }

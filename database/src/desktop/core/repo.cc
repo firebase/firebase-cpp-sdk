@@ -145,7 +145,7 @@ Repo::~Repo() {
       callback, this);
 }
 
-void Repo::AddEventCallback(UniquePtr<EventRegistration> event_registration) {
+void Repo::AddEventCallback(std::unique_ptr<EventRegistration> event_registration) {
   std::vector<Event> events;
   if (StringStartsWith(event_registration->query_spec().path.str(), kDotInfo)) {
     events = info_sync_tree_->AddEventRegistration(Move(event_registration));
@@ -435,7 +435,7 @@ void Repo::AckWriteAndRerunTransactions(WriteId write_id, const Path& path,
   PostEvents(events);
 }
 
-static UniquePtr<PersistenceManagerInterface> CreatePersistenceManager(
+static std::unique_ptr<PersistenceManagerInterface> CreatePersistenceManager(
     const char* app_data_path, LoggerBase* logger) {
   static const uint64_t kDefaultCacheSize = 10 * 1024 * 1024;
 
@@ -444,7 +444,7 @@ static UniquePtr<PersistenceManagerInterface> CreatePersistenceManager(
 
   if (!persistence_storage_engine->Initialize(app_data_path)) {
     logger->LogError("Could not initialize persistence");
-    return UniquePtr<PersistenceManager>();
+    return std::unique_ptr<PersistenceManager>();
   }
   auto tracked_query_manager =
       MakeUnique<TrackedQueryManager>(persistence_storage_engine.get(), logger);
@@ -508,7 +508,7 @@ void Repo::DeferredInitialization() {
     auto pending_write_tree = MakeUnique<WriteTree>();
 
     // Set up persistence manager
-    UniquePtr<PersistenceManagerInterface> persistence_manager;
+    std::unique_ptr<PersistenceManagerInterface> persistence_manager;
     if (persistence_enabled_) {
       persistence_manager =
           CreatePersistenceManager(app_data_path.c_str(), logger_);
@@ -662,7 +662,7 @@ void Repo::StartTransaction(const Path& path,
   DatabaseReferenceInternal* ref_impl =
       new DatabaseReferenceInternal(database_, path);
   DatabaseReference watch_ref(ref_impl);
-  UniquePtr<NoopListener> listener = MakeUnique<NoopListener>();
+  std::unique_ptr<NoopListener> listener = MakeUnique<NoopListener>();
   NoopListener* listener_ptr = listener.get();
   QuerySpec query_spec(path);
   AddEventCallback(

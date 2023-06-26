@@ -36,7 +36,7 @@ Event KeepSyncedEventRegistration::GenerateEvent(const Change& change,
   FIREBASE_DEV_ASSERT_MESSAGE(
       false,
       "GenerateEvent should never be reached on KeepSyncedEventRegistration");
-  return Event(UniquePtr<EventRegistration>(nullptr), kErrorUnknownError,
+  return Event(std::unique_ptr<EventRegistration>(nullptr), kErrorUnknownError,
                Path());
 }
 

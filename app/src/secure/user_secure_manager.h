@@ -41,7 +41,7 @@ class UserSecureManager {
 
   // Overloaded constructor to set the internal instance.
   explicit UserSecureManager(
-      UniquePtr<UserSecureInternal> user_secure_internal);
+      std::unique_ptr<UserSecureInternal> user_secure_internal);
 
   // Load persisted user data for given app name.
   Future<std::string> LoadUserData(const std::string& app_name);
@@ -67,7 +67,7 @@ class UserSecureManager {
 
   void CancelOperation(SecureOperationType operation_type);
 
-  UniquePtr<UserSecureInternal> user_secure_;
+  std::unique_ptr<UserSecureInternal> user_secure_;
   ReferenceCountedFutureImpl future_api_;
 
   static void CreateScheduler();
@@ -83,7 +83,7 @@ class UserSecureManager {
   std::map<SecureOperationType, scheduler::RequestHandle> operation_handles_;
 
   // Safe reference to this.  Set in constructor and cleared in destructor
-  // Should be safe to be copied in any thread because the SharedPtr never
+  // Should be safe to be copied in any thread because the std::shared_ptr never
   // changes, until safe_this_ is completely destroyed.
   typedef firebase::internal::SafeReference<UserSecureManager> ThisRef;
   typedef firebase::internal::SafeReferenceLock<UserSecureManager> ThisRefLock;

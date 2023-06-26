@@ -18,7 +18,7 @@
 #include <map>
 #include <set>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
@@ -164,11 +164,11 @@ class DatabaseInternal {
   App* app_;
 
   // Object lifetime managed by Objective C ARC.
-  UniquePtr<FIRDatabasePointer> impl_;
+  std::unique_ptr<FIRDatabasePointer> impl_;
 
   // Lock used to guard access to C++ objects referenced by FIRDatabaseQuery
   // callbacks.
-  UniquePtr<NSRecursiveLockPointer> query_lock_;
+  std::unique_ptr<NSRecursiveLockPointer> query_lock_;
 
   // For registering listeners.
   Mutex listener_mutex_;

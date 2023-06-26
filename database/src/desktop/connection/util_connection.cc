@@ -23,7 +23,7 @@ namespace database {
 namespace internal {
 namespace connection {
 
-UniquePtr<WebSocketClientInterface> CreateWebSocketClient(
+std::unique_ptr<WebSocketClientInterface> CreateWebSocketClient(
     const HostInfo& info, WebSocketClientEventHandler* delegate,
     const char* opt_last_session_id, Logger* logger,
     scheduler::Scheduler* scheduler, const std::string& app_check_token) {

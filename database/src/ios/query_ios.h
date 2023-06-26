@@ -15,7 +15,7 @@
 #ifndef FIREBASE_DATABASE_SRC_IOS_QUERY_IOS_H_
 #define FIREBASE_DATABASE_SRC_IOS_QUERY_IOS_H_
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -83,10 +83,10 @@ OBJ_C_PTR_WRAPPER(FIRCPPDatabaseQueryCallbackState);
 class QueryInternal {
  public:
   QueryInternal(DatabaseInternal* database,
-                UniquePtr<FIRDatabaseQueryPointer> query);
+                std::unique_ptr<FIRDatabaseQueryPointer> query);
 
   QueryInternal(DatabaseInternal* database,
-                UniquePtr<FIRDatabaseQueryPointer> query,
+                std::unique_ptr<FIRDatabaseQueryPointer> query,
                 const internal::QuerySpec& query_spec);
 
   QueryInternal(const QueryInternal& query);
@@ -215,7 +215,7 @@ class QueryInternal {
   ReferenceCountedFutureImpl* query_future();
 
   // Object lifetime managed by Objective C ARC.
-  UniquePtr<FIRDatabaseQueryPointer> impl_;
+  std::unique_ptr<FIRDatabaseQueryPointer> impl_;
 
   // The memory location of this member variable is used to look up our
   // ReferenceCountedFutureImpl. We can't use "this" because QueryInternal and
@@ -243,7 +243,7 @@ class SingleValueListener : public ValueListener {
  private:
   ReferenceCountedFutureImpl* _Nonnull future_;
   SafeFutureHandle<DataSnapshot> handle_;
-  UniquePtr<FIRCPPDatabaseQueryCallbackStatePointer> callback_state_;
+  std::unique_ptr<FIRCPPDatabaseQueryCallbackStatePointer> callback_state_;
 };
 
 }  // namespace internal

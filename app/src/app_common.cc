@@ -24,7 +24,7 @@
 #include <utility>  // Used to detect STL variant.
 #include <vector>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/assert.h"
 #include "app/src/callback.h"
 #include "app/src/cleanup_notifier.h"
@@ -275,7 +275,7 @@ class LibraryRegistry {
 
 // Guards g_apps and g_default_app.
 static Mutex* g_app_mutex = new Mutex();
-static std::map<std::string, UniquePtr<AppData>>* g_apps = nullptr;
+static std::map<std::string, std::unique_ptr<AppData>>* g_apps = nullptr;
 static App* g_default_app = nullptr;
 LibraryRegistry* LibraryRegistry::library_registry_ = nullptr;
 
@@ -289,11 +289,11 @@ App* AddApp(App* app, std::map<std::string, InitResult>* results) {
     assert(!g_default_app);
     g_default_app = app;
   }
-  UniquePtr<AppData> app_data = MakeUnique<AppData>();
+  std::unique_ptr<AppData> app_data = MakeUnique<AppData>();
   app_data->app = app;
   app_data->cleanup_notifier.RegisterOwner(app);
   if (!g_apps) {
-    g_apps = new std::map<std::string, UniquePtr<AppData>>();
+    g_apps = new std::map<std::string, std::unique_ptr<AppData>>();
     created_first_app = true;
   }
   (*g_apps)[std::string(app->name())] = app_data;

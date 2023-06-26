@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "firebase/app.h"
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_ios.h"
@@ -108,7 +108,7 @@ class RemoteConfigInternal {
   // app
   const firebase::App& app_;
 
-  UniquePtr<FIRRemoteConfigPointer> impl_;
+  std::unique_ptr<FIRRemoteConfigPointer> impl_;
 
   /// Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl_;

@@ -19,7 +19,7 @@
 #include <string>
 
 #include "app/memory/atomic.h"
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/logger.h"
 #include "app/src/safe_reference.h"
@@ -104,7 +104,7 @@ class WebSocketClientImpl : public WebSocketClientInterface {
   WebSocketClientEventHandler* handler_;
 
   // The thread to host the event loop of hub_
-  UniquePtr<Thread> thread_;
+  std::unique_ptr<Thread> thread_;
 
   // The access point for uWebSockets which contains event loops and
   // different sockets.
@@ -167,7 +167,7 @@ class WebSocketClientImpl : public WebSocketClientInterface {
   scheduler::Scheduler* scheduler_;
 
   // Safe reference to this.  Set in constructor and cleared in destructor
-  // Should be safe to be copied in any thread because the SharedPtr never
+  // Should be safe to be copied in any thread because the std::shared_ptr never
   // changes, until safe_this_ is completely destroyed.
   typedef firebase::internal::SafeReference<WebSocketClientImpl> ClientRef;
   typedef firebase::internal::SafeReferenceLock<WebSocketClientImpl>

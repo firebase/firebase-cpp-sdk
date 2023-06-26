@@ -15,7 +15,7 @@
 #ifndef FIREBASE_DATABASE_SRC_IOS_DISCONNECTION_IOS_H_
 #define FIREBASE_DATABASE_SRC_IOS_DISCONNECTION_IOS_H_
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -95,7 +95,7 @@ class DisconnectionHandlerInternal {
 
   explicit DisconnectionHandlerInternal(
       DatabaseInternal* database,
-      UniquePtr<FIRDatabaseReferencePointer> impl);
+      std::unique_ptr<FIRDatabaseReferencePointer> impl);
 
 #ifdef __OBJC__
   FIRDatabaseReference* impl() const;
@@ -106,7 +106,7 @@ class DisconnectionHandlerInternal {
 
   DatabaseInternal* database_;
 
-  UniquePtr<FIRDatabaseReferencePointer> impl_;
+  std::unique_ptr<FIRDatabaseReferencePointer> impl_;
 };
 
 #pragma clang assume_nonnull end

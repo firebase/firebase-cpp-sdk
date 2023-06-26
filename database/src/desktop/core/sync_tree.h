@@ -17,7 +17,7 @@
 
 #include <vector>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/optional.h"
 #include "app/src/path.h"
@@ -45,9 +45,9 @@ enum Persist {
 
 class SyncTree {
  public:
-  SyncTree(UniquePtr<WriteTree> pending_write_tree,
-           UniquePtr<PersistenceManagerInterface> persistence_manager,
-           UniquePtr<ListenProvider> listen_provider)
+  SyncTree(std::unique_ptr<WriteTree> pending_write_tree,
+           std::unique_ptr<PersistenceManagerInterface> persistence_manager,
+           std::unique_ptr<ListenProvider> listen_provider)
       : pending_write_tree_(std::move(pending_write_tree)),
         persistence_manager_(std::move(persistence_manager)),
         next_query_tag_(1L),
@@ -70,7 +70,7 @@ class SyncTree {
   // to the sync tree. Also generate any initial that need to be sent to the
   // Listener based on the data already cached.
   virtual std::vector<Event> AddEventRegistration(
-      UniquePtr<EventRegistration> event_registration);
+      std::unique_ptr<EventRegistration> event_registration);
 
   // Listening is now complete at the location in the QuerySpec associated with
   // the given tag (which can be for a number of reasons, like losing read
@@ -183,11 +183,11 @@ class SyncTree {
 
   // A tree of all pending user writes (user-initiated set()'s, transaction()'s,
   // update()'s, etc.).
-  UniquePtr<WriteTree> pending_write_tree_;
+  std::unique_ptr<WriteTree> pending_write_tree_;
 
   // The persistence manager, which is used to interact with the persisted data
   // on disk (both reads and writes).
-  UniquePtr<PersistenceManagerInterface> persistence_manager_;
+  std::unique_ptr<PersistenceManagerInterface> persistence_manager_;
 
   // A tree that contains the SyncPoints for each location being watched in the
   // database.
@@ -211,7 +211,7 @@ class SyncTree {
   // ListenProvider to get updates from the server. And when we stop watching a
   // location the ListenProvider must be notified to stop getting updates on
   // that location.
-  UniquePtr<ListenProvider> listen_provider_;
+  std::unique_ptr<ListenProvider> listen_provider_;
 };
 
 }  // namespace internal

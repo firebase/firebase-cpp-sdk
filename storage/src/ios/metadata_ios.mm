@@ -58,7 +58,7 @@ MetadataInternal::MetadataInternal(StorageInternal* storage)
 }
 
 MetadataInternal::MetadataInternal(StorageInternal* storage,
-                                   UniquePtr<FIRStorageMetadataPointer> impl)
+                                   std::unique_ptr<FIRStorageMetadataPointer> impl)
     : storage_(storage), impl_(std::move(impl)), custom_metadata_(nullptr) {}
 
 MetadataInternal::MetadataInternal(const MetadataInternal& metadata)

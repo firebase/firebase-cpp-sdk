@@ -61,7 +61,7 @@ DebugAppCheckProvider::~DebugAppCheckProvider() {
 
 // Performs the given rest request, and calls the callback based on the
 // response.
-void GetTokenAsync(SharedPtr<DebugTokenRequest> request,
+void GetTokenAsync(std::shared_ptr<DebugTokenRequest> request,
                    std::function<void(AppCheckToken, int, const std::string&)>
                        completion_callback) {
   TokenResponse response;

@@ -17,7 +17,7 @@
 
 #include <string>
 
-#include "app/memory/shared_ptr.h"
+#include <memory>"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
 #include "database/src/include/firebase/database/mutable_data.h"
@@ -91,7 +91,7 @@ class MutableDataInternal {
   Path path_;
 
   // A shared Variant to be modified
-  SharedPtr<Variant> holder_;
+  std::shared_ptr<Variant> holder_;
 };
 
 }  // namespace internal

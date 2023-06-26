@@ -14,7 +14,7 @@
 
 #include "app/src/secure/user_secure_manager_fake.h"
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/secure/user_secure_fake_internal.h"
 

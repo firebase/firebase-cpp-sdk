@@ -17,7 +17,7 @@
 
 #include <string>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/logger.h"
 #include "app/src/scheduler.h"
 #include "database/src/desktop/connection/host_info.h"
@@ -30,7 +30,7 @@ namespace connection {
 
 // Helper function to create a websocket client regardless its implementation or
 // platform
-UniquePtr<WebSocketClientInterface> CreateWebSocketClient(
+std::unique_ptr<WebSocketClientInterface> CreateWebSocketClient(
     const HostInfo& info, WebSocketClientEventHandler* delegate,
     const char* opt_last_session_id, Logger* logger,
     scheduler::Scheduler* scheduler, const std::string& app_check_token);

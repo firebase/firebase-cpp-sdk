@@ -17,7 +17,7 @@
 
 #include <cstdint>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/util_ios.h"
 #include "storage/src/ios/storage_reference_ios.h"
 
@@ -83,7 +83,7 @@ class ControllerInternal {
   StorageInternal *_Nullable storage_;
 
   // Object lifetime managed by Objective C ARC.
-  UniquePtr<FIRStorageObservableTaskPointer> task_impl_;
+  std::unique_ptr<FIRStorageObservableTaskPointer> task_impl_;
 
   Mutex pending_calls_mutex_;
 

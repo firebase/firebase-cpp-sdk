@@ -20,7 +20,7 @@
 #include <string>
 #include <vector>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
@@ -37,9 +37,9 @@ namespace internal {
 class PersistenceManager : public PersistenceManagerInterface {
  public:
   PersistenceManager(
-      UniquePtr<PersistenceStorageEngine> storage_engine,
-      UniquePtr<TrackedQueryManagerInterface> tracked_query_manager,
-      UniquePtr<CachePolicy> cache_policy, LoggerBase* logger);
+      std::unique_ptr<PersistenceStorageEngine> storage_engine,
+      std::unique_ptr<TrackedQueryManagerInterface> tracked_query_manager,
+      std::unique_ptr<CachePolicy> cache_policy, LoggerBase* logger);
 
   // Persist a user write to the storage engine.
   //
@@ -126,11 +126,11 @@ class PersistenceManager : public PersistenceManagerInterface {
  private:
   void DoPruneCheckAfterServerUpdate();
 
-  UniquePtr<PersistenceStorageEngine> storage_engine_;
+  std::unique_ptr<PersistenceStorageEngine> storage_engine_;
 
-  UniquePtr<TrackedQueryManagerInterface> tracked_query_manager_;
+  std::unique_ptr<TrackedQueryManagerInterface> tracked_query_manager_;
 
-  UniquePtr<CachePolicy> cache_policy_;
+  std::unique_ptr<CachePolicy> cache_policy_;
 
   uint64_t server_cache_updates_since_last_prune_check_;
 

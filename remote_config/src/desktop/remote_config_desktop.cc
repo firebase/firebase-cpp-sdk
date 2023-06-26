@@ -167,7 +167,7 @@ Future<bool> RemoteConfigInternal::FetchAndActivate() {
         MakeShared<RCDataHandle<bool>>(&future_impl_, future_handle, this);
 
     auto callback = NewCallback(
-        [](ThisRef ref, SharedPtr<RCDataHandle<bool>> handle) {
+        [](ThisRef ref, std::shared_ptr<RCDataHandle<bool>> handle) {
           ThisRefLock lock(&ref);
           if (lock.GetReference() != nullptr) {
             MutexLock lock(handle->rc_internal->internal_mutex_);
@@ -635,7 +635,7 @@ Future<void> RemoteConfigInternal::Fetch(uint64_t cache_expiration_in_seconds) {
         MakeShared<RCDataHandle<void>>(&future_impl_, future_handle, this);
 
     auto callback = NewCallback(
-        [](ThisRef ref, SharedPtr<RCDataHandle<void>> handle) {
+        [](ThisRef ref, std::shared_ptr<RCDataHandle<void>> handle) {
           ThisRefLock lock(&ref);
           if (lock.GetReference() != nullptr) {
             MutexLock lock(handle->rc_internal->internal_mutex_);

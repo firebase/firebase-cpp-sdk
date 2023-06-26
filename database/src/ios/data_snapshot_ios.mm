@@ -31,7 +31,7 @@ namespace internal {
 using util::IdToVariant;
 
 DataSnapshotInternal::DataSnapshotInternal(DatabaseInternal* database,
-                                           UniquePtr<FIRDataSnapshotPointer> impl)
+                                           std::unique_ptr<FIRDataSnapshotPointer> impl)
     : database_(database), impl_(std::move(impl)) {}
 
 DataSnapshotInternal::DataSnapshotInternal(const DataSnapshotInternal& other)

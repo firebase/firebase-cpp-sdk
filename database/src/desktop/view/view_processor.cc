@@ -103,7 +103,7 @@ class NoCompleteSource : public CompleteChildSource {
   }
 };
 
-ViewProcessor::ViewProcessor(UniquePtr<VariantFilter> filter)
+ViewProcessor::ViewProcessor(std::unique_ptr<VariantFilter> filter)
     : filter_(std::move(filter)) {}
 
 ViewProcessor::~ViewProcessor() {}

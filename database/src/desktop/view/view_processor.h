@@ -15,7 +15,7 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_VIEW_VIEW_PROCESSOR_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_VIEW_VIEW_PROCESSOR_H_
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/path.h"
 #include "database/src/desktop/core/operation.h"
 #include "database/src/desktop/core/tree.h"
@@ -37,7 +37,7 @@ class NoCompleteSource;
 // or server).
 class ViewProcessor {
  public:
-  explicit ViewProcessor(UniquePtr<VariantFilter> filter);
+  explicit ViewProcessor(std::unique_ptr<VariantFilter> filter);
 
   ~ViewProcessor();
 
@@ -130,7 +130,7 @@ class ViewProcessor {
   // A filter on this location. This is generated based on the parameters of the
   // QuerySpect, and is used to determine what fields are visible to the
   // ViewProcessor, pruning the ones that are not.
-  UniquePtr<VariantFilter> filter_;
+  std::unique_ptr<VariantFilter> filter_;
 };
 
 }  // namespace internal

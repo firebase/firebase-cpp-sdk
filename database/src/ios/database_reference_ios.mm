@@ -32,7 +32,7 @@ namespace internal {
 using util::VariantToId;
 
 DatabaseReferenceInternal::DatabaseReferenceInternal(DatabaseInternal* database,
-                                                     UniquePtr<FIRDatabaseReferencePointer> impl)
+                                                     std::unique_ptr<FIRDatabaseReferencePointer> impl)
     : QueryInternal(database, MakeUnique<FIRDatabaseQueryPointer>(impl->get())),
       cached_disconnection_handler_(nullptr) {
   impl_ = std::move(impl);

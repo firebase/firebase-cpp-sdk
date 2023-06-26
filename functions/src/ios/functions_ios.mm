@@ -14,7 +14,7 @@
 
 #include "functions/src/ios/functions_ios.h"
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/app_ios.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"

@@ -19,7 +19,7 @@
 #include <string>
 #include <utility>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/thread.h"
 #include "app/src/time.h"
@@ -90,7 +90,7 @@ class CallbackTest : public ::testing::Test {
   }
 
   // Adds the value passed to CallbackMoveValue1 to callback_value1_sum_.
-  static void SumCallbackMoveValue1(UniquePtr<int>* value) {
+  static void SumCallbackMoveValue1(std::unique_ptr<int>* value) {
     callback_value1_sum_ += **value;
   }
 
@@ -290,12 +290,12 @@ TEST_F(CallbackTest, CallCallbackValue2String1) {
   EXPECT_THAT(value_and_string_.second, Eq("meaning"));
 }
 
-// Call a callback passing the UniquePtr
+// Call a callback passing the std::unique_ptr
 TEST_F(CallbackTest, CallCallbackMoveValue1) {
-  callback::AddCallback(new callback::CallbackMoveValue1<UniquePtr<int>>(
+  callback::AddCallback(new callback::CallbackMoveValue1<std::unique_ptr<int>>(
       MakeUnique<int>(10), SumCallbackMoveValue1));
-  UniquePtr<int> ptr(new int(5));
-  callback::AddCallback(new callback::CallbackMoveValue1<UniquePtr<int>>(
+  std::unique_ptr<int> ptr(new int(5));
+  callback::AddCallback(new callback::CallbackMoveValue1<std::unique_ptr<int>>(
       Move(ptr), SumCallbackMoveValue1));
   callback::PollCallbacks();
   EXPECT_THAT(callback_value1_sum_, Eq(15));

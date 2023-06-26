@@ -16,7 +16,7 @@
 
 #include <vector>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -29,11 +29,11 @@ namespace internal {
 
 TEST(SmartPtrRawPtrEq, Matcher) {
   int* five = new int(5);
-  EXPECT_THAT(std::make_tuple(UniquePtr<int>(five), five), SmartPtrRawPtrEq());
+  EXPECT_THAT(std::make_tuple(std::unique_ptr<int>(five), five), SmartPtrRawPtrEq());
 
   int* ten = new int(10);
   int* different_ten = new int(10);
-  EXPECT_THAT(std::make_tuple(UniquePtr<int>(ten), different_ten),
+  EXPECT_THAT(std::make_tuple(std::unique_ptr<int>(ten), different_ten),
               Not(SmartPtrRawPtrEq()));
   delete different_ten;
 }
@@ -44,11 +44,11 @@ TEST(SmartPtrRawPtrEq, Pointwise) {
   int* fifteen = new int(15);
   int* twenty = new int(20);
   int* different_twenty = new int(20);
-  std::vector<UniquePtr<int>> unique_values{
-      UniquePtr<int>(five),
-      UniquePtr<int>(ten),
-      UniquePtr<int>(fifteen),
-      UniquePtr<int>(twenty),
+  std::vector<std::unique_ptr<int>> unique_values{
+      std::unique_ptr<int>(five),
+      std::unique_ptr<int>(ten),
+      std::unique_ptr<int>(fifteen),
+      std::unique_ptr<int>(twenty),
   };
   std::vector<int*> raw_values{
       five,

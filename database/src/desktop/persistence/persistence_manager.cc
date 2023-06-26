@@ -34,9 +34,9 @@ namespace database {
 namespace internal {
 
 PersistenceManager::PersistenceManager(
-    UniquePtr<PersistenceStorageEngine> storage_engine,
-    UniquePtr<TrackedQueryManagerInterface> tracked_query_manager,
-    UniquePtr<CachePolicy> cache_policy, LoggerBase* logger)
+    std::unique_ptr<PersistenceStorageEngine> storage_engine,
+    std::unique_ptr<TrackedQueryManagerInterface> tracked_query_manager,
+    std::unique_ptr<CachePolicy> cache_policy, LoggerBase* logger)
     : storage_engine_(std::move(storage_engine)),
       tracked_query_manager_(std::move(tracked_query_manager)),
       cache_policy_(std::move(cache_policy)),

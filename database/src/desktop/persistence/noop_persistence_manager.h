@@ -20,7 +20,7 @@
 #include <string>
 #include <vector>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"

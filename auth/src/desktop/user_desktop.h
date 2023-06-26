@@ -103,7 +103,7 @@ class UserDataPersist : public firebase::auth::AuthStateListener {
 
   // Overloaded constructor to set the internal instance.
   explicit UserDataPersist(
-      UniquePtr<firebase::app::secure::UserSecureManager> user_secure_manager);
+      std::unique_ptr<firebase::app::secure::UserSecureManager> user_secure_manager);
 
   void OnAuthStateChanged(Auth* auth) override;
 
@@ -112,7 +112,7 @@ class UserDataPersist : public firebase::auth::AuthStateListener {
   Future<void> DeleteUserData(AuthData* auth_data);
 
  private:
-  UniquePtr<firebase::app::secure::UserSecureManager> user_secure_manager_;
+  std::unique_ptr<firebase::app::secure::UserSecureManager> user_secure_manager_;
 };
 
 }  // namespace auth

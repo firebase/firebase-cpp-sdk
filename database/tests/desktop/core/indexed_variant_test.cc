@@ -17,7 +17,7 @@
 #include <fstream>
 #include <sstream>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/variant_util.h"
 #include "database/src/desktop/util_desktop.h"
 #include "gmock/gmock.h"
@@ -120,7 +120,7 @@ void VerifyIndex(const Variant* input_variant,
   //   IndexedVariant(Variant, QueryParams) - both are NOT null
   // Additionally, we test the copy constructor in all cases
   //   IndexedVariant(IndexedVariant) - A copy of an existing IndexedVariant
-  UniquePtr<IndexedVariant> index_variant;
+  std::unique_ptr<IndexedVariant> index_variant;
   if (input_variant == nullptr && input_query_params == nullptr) {
     index_variant = MakeUnique<IndexedVariant>();
   } else if (input_variant != nullptr && input_query_params == nullptr) {

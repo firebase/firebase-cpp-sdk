@@ -606,7 +606,7 @@ UserDataPersist::UserDataPersist(const char* app_id) {
 }
 
 UserDataPersist::UserDataPersist(
-    UniquePtr<UserSecureManager> user_secure_manager)
+    std::unique_ptr<UserSecureManager> user_secure_manager)
     : user_secure_manager_(std::move(user_secure_manager)) {}
 
 void UserDataPersist::OnAuthStateChanged(Auth* auth) {  // NOLINT

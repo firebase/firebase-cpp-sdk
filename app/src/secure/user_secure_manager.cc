@@ -61,7 +61,7 @@ UserSecureManager::UserSecureManager(const char* domain, const char* app_id)
 }
 
 UserSecureManager::UserSecureManager(
-    UniquePtr<UserSecureInternal> user_secure_internal)
+    std::unique_ptr<UserSecureInternal> user_secure_internal)
     : user_secure_(std::move(user_secure_internal)),
       future_api_(kUserSecureFnCount),
       safe_this_(this) {
@@ -85,7 +85,7 @@ Future<std::string> UserSecureManager::LoadUserData(
       app_name, "", &future_api_, future_handle);
 
   auto callback = NewCallback(
-      [](ThisRef ref, SharedPtr<UserSecureDataHandle<std::string>> handle,
+      [](ThisRef ref, std::shared_ptr<UserSecureDataHandle<std::string>> handle,
          UserSecureInternal* internal) {
         FIREBASE_ASSERT(internal);
         ThisRefLock lock(&ref);
@@ -121,7 +121,7 @@ Future<void> UserSecureManager::SaveUserData(const std::string& app_name,
       app_name, user_data, &future_api_, future_handle);
 
   auto callback = NewCallback(
-      [](ThisRef ref, SharedPtr<UserSecureDataHandle<void>> handle,
+      [](ThisRef ref, std::shared_ptr<UserSecureDataHandle<void>> handle,
          UserSecureInternal* internal) {
         FIREBASE_ASSERT(internal);
         ThisRefLock lock(&ref);
@@ -144,7 +144,7 @@ Future<void> UserSecureManager::DeleteUserData(const std::string& app_name) {
       app_name, "", &future_api_, future_handle);
 
   auto callback = NewCallback(
-      [](ThisRef ref, SharedPtr<UserSecureDataHandle<void>> handle,
+      [](ThisRef ref, std::shared_ptr<UserSecureDataHandle<void>> handle,
          UserSecureInternal* internal) {
         FIREBASE_ASSERT(internal);
         ThisRefLock lock(&ref);
@@ -167,7 +167,7 @@ Future<void> UserSecureManager::DeleteAllData() {
       "", "", &future_api_, future_handle);
 
   auto callback = NewCallback(
-      [](ThisRef ref, SharedPtr<UserSecureDataHandle<void>> handle,
+      [](ThisRef ref, std::shared_ptr<UserSecureDataHandle<void>> handle,
          UserSecureInternal* internal) {
         FIREBASE_ASSERT(internal);
         ThisRefLock lock(&ref);

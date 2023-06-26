@@ -116,7 +116,7 @@ FirestoreInternal::FirestoreInternal(
                                       database_id,
                                       std::move(auth_credentials),
                                       std::move(app_check_credentials))),
-      transaction_executor_(absl::ShareUniquePtr(Executor::CreateConcurrent(
+      transaction_executor_(absl::Sharestd::unique_ptr(Executor::CreateConcurrent(
           "com.google.firebase.firestore.transaction", /*threads=*/5))),
       database_name_(database_id) {
   ApplyDefaultSettings();

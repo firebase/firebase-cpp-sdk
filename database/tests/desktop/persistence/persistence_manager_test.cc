@@ -35,14 +35,14 @@ class PersistenceManagerTest : public Test {
  public:
   void SetUp() override {
     storage_engine_ = new NiceMock<MockPersistenceStorageEngine>();
-    UniquePtr<MockPersistenceStorageEngine> storage_engine_ptr(storage_engine_);
+    std::unique_ptr<MockPersistenceStorageEngine> storage_engine_ptr(storage_engine_);
 
     tracked_query_manager_ = new NiceMock<MockTrackedQueryManager>();
-    UniquePtr<MockTrackedQueryManager> tracked_query_manager_ptr(
+    std::unique_ptr<MockTrackedQueryManager> tracked_query_manager_ptr(
         tracked_query_manager_);
 
     cache_policy_ = new NiceMock<MockCachePolicy>();
-    UniquePtr<MockCachePolicy> cache_policy_ptr(cache_policy_);
+    std::unique_ptr<MockCachePolicy> cache_policy_ptr(cache_policy_);
 
     manager_ = new PersistenceManager(std::move(storage_engine_ptr),
                                       std::move(tracked_query_manager_ptr),
@@ -344,15 +344,15 @@ TEST_F(PersistenceManagerTest, UpdateTrackedQueryKeys) {
 TEST(PersistenceManager, DoPruneCheckAfterServerUpdate_DoNotCheckCacheSize) {
   MockPersistenceStorageEngine* storage_engine =
       new NiceMock<MockPersistenceStorageEngine>();
-  UniquePtr<MockPersistenceStorageEngine> storage_engine_ptr(storage_engine);
+  std::unique_ptr<MockPersistenceStorageEngine> storage_engine_ptr(storage_engine);
 
   MockTrackedQueryManager* tracked_query_manager =
       new NiceMock<MockTrackedQueryManager>();
-  UniquePtr<MockTrackedQueryManager> tracked_query_manager_ptr(
+  std::unique_ptr<MockTrackedQueryManager> tracked_query_manager_ptr(
       tracked_query_manager);
 
   MockCachePolicy* cache_policy = new StrictMock<MockCachePolicy>();
-  UniquePtr<MockCachePolicy> cache_policy_ptr(cache_policy);
+  std::unique_ptr<MockCachePolicy> cache_policy_ptr(cache_policy);
 
   SystemLogger logger;
   PersistenceManager manager(std::move(storage_engine_ptr),
@@ -370,15 +370,15 @@ TEST(PersistenceManager, DoPruneCheckAfterServerUpdate_DoNotCheckCacheSize) {
 TEST(PersistenceManager, DoPruneCheckAfterServerUpdate_DoCheckCacheSize) {
   MockPersistenceStorageEngine* storage_engine =
       new NiceMock<MockPersistenceStorageEngine>();
-  UniquePtr<MockPersistenceStorageEngine> storage_engine_ptr(storage_engine);
+  std::unique_ptr<MockPersistenceStorageEngine> storage_engine_ptr(storage_engine);
 
   MockTrackedQueryManager* tracked_query_manager =
       new NiceMock<MockTrackedQueryManager>();
-  UniquePtr<MockTrackedQueryManager> tracked_query_manager_ptr(
+  std::unique_ptr<MockTrackedQueryManager> tracked_query_manager_ptr(
       tracked_query_manager);
 
   MockCachePolicy* cache_policy = new StrictMock<MockCachePolicy>();
-  UniquePtr<MockCachePolicy> cache_policy_ptr(cache_policy);
+  std::unique_ptr<MockCachePolicy> cache_policy_ptr(cache_policy);
 
   SystemLogger logger;
   PersistenceManager manager(std::move(storage_engine_ptr),
@@ -398,15 +398,15 @@ TEST(PersistenceManager, DoPruneCheckAfterServerUpdate_DoCheckCacheSize) {
 TEST(PersistenceManager, DoPruneCheckAfterServerUpdate_PruneStuff) {
   MockPersistenceStorageEngine* storage_engine =
       new NiceMock<MockPersistenceStorageEngine>();
-  UniquePtr<MockPersistenceStorageEngine> storage_engine_ptr(storage_engine);
+  std::unique_ptr<MockPersistenceStorageEngine> storage_engine_ptr(storage_engine);
 
   MockTrackedQueryManager* tracked_query_manager =
       new NiceMock<MockTrackedQueryManager>();
-  UniquePtr<MockTrackedQueryManager> tracked_query_manager_ptr(
+  std::unique_ptr<MockTrackedQueryManager> tracked_query_manager_ptr(
       tracked_query_manager);
 
   MockCachePolicy* cache_policy = new StrictMock<MockCachePolicy>();
-  UniquePtr<MockCachePolicy> cache_policy_ptr(cache_policy);
+  std::unique_ptr<MockCachePolicy> cache_policy_ptr(cache_policy);
 
   SystemLogger logger;
   PersistenceManager manager(std::move(storage_engine_ptr),

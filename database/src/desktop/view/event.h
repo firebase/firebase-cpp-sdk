@@ -17,7 +17,7 @@
 
 #include <string>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>"
 #include "app/src/optional.h"
 #include "app/src/path.h"
 #include "database/src/desktop/core/event_registration.h"
@@ -59,7 +59,7 @@ struct Event {
         error(kErrorNone),
         path() {}
 
-  Event(UniquePtr<EventRegistration> _event_registration, Error _error,
+  Event(std::unique_ptr<EventRegistration> _event_registration, Error _error,
         const Path& _path)
       : type(kEventTypeError),
         event_registration(_event_registration.get()),
@@ -90,7 +90,7 @@ struct Event {
   Path path;
 
   // If the Event is a cancel event, the event registration is removed from the
-  // View it is attached to. Since they are stored in UniquePtrs this would
+  // View it is attached to. Since they are stored in std::unique_ptrs this would
   // normally mean they get deallocated when they're removed, but we need it to
   // live long enough to fire the Event. So instead, the event takes ownership
   // of the pointer.
@@ -99,7 +99,7 @@ struct Event {
   // to take ownership. To keep the code streamlined, any time the pointer is
   // needed, owned or not, it will go through the event_registration field
   // above.
-  UniquePtr<EventRegistration> event_registration_ownership_ptr;
+  std::unique_ptr<EventRegistration> event_registration_ownership_ptr;
 };
 
 inline bool operator==(const Event& lhs, const Event& rhs) {

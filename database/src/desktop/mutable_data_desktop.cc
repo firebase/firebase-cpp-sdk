@@ -19,7 +19,7 @@
 #include <cassert>
 #include <sstream>
 
-#include "app/memory/shared_ptr.h"
+#include <memory>"
 #include "app/src/log.h"
 #include "database/src/common/database_reference.h"
 #include "database/src/desktop/database_desktop.h"

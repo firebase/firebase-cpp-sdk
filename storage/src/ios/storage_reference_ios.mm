@@ -46,7 +46,7 @@ enum StorageReferenceFn {
 };
 
 StorageReferenceInternal::StorageReferenceInternal(StorageInternal* storage,
-                                                   UniquePtr<FIRStorageReferencePointer> impl)
+                                                   std::unique_ptr<FIRStorageReferencePointer> impl)
     : storage_(storage), impl_(std::move(impl)) {
   storage_->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
 }
