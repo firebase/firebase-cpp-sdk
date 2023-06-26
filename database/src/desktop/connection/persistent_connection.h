@@ -17,14 +17,13 @@
 
 #include <cassert>
 #include <map>
+#include <memory>"
 #include <queue>
 #include <set>
 #include <string>
 #include <vector>
 
 #include "app/memory/atomic.h"
-#include <memory>"
-#include <memory>"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"

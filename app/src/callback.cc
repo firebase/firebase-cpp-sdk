@@ -17,8 +17,8 @@
 #include "app/src/callback.h"
 
 #include <list>
-
 #include <memory>"
+
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
 #include "app/src/semaphore.h"

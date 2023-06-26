@@ -20,12 +20,12 @@
 #include <iomanip>
 #include <map>
 #include <memory>
+#include <memory>"
 #include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
 
-#include <memory>"
 #include "app/rest/zlibwrapper.h"
 #include "app/src/app_common.h"
 #include "app/src/base64.h"
@@ -112,7 +112,8 @@ std::string HeartbeatController::GetAndResetStoredHeartbeats() {
   last_read_all_heartbeats_time_ = now;
 
   std::shared_ptr<std::string> output_str = MakeShared<std::string>("");
-  std::shared_ptr<Semaphore> scheduled_work_semaphore = MakeShared<Semaphore>(0);
+  std::shared_ptr<Semaphore> scheduled_work_semaphore =
+      MakeShared<Semaphore>(0);
 
   std::function<void(void)> get_and_reset_function =
       [&, output_str, scheduled_work_semaphore]() {
@@ -163,7 +164,8 @@ std::string HeartbeatController::GetAndResetTodaysStoredHeartbeats() {
   }
   last_read_todays_heartbeat_time_ = now;
   std::shared_ptr<std::string> output_str = MakeShared<std::string>("");
-  std::shared_ptr<Semaphore> scheduled_work_semaphore = MakeShared<Semaphore>(0);
+  std::shared_ptr<Semaphore> scheduled_work_semaphore =
+      MakeShared<Semaphore>(0);
 
   std::function<void(void)> get_and_reset_function =
       [&, output_str, scheduled_work_semaphore]() {

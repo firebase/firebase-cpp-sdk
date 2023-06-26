@@ -15,10 +15,10 @@
 #include "auth/src/desktop/auth_desktop.h"
 
 #include <memory>
+#include <memory>"
 #include <string>
 #include <utility>
 
-#include <memory>"
 #include "app/rest/transport_curl.h"
 #include "app/src/app_common.h"
 #include "app/src/app_identifier.h"

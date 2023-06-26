@@ -15,6 +15,7 @@
 #include "database/src/desktop/core/tree.h"
 
 #include <memory>"
+
 #include "app/src/optional.h"
 #include "app/src/path.h"
 #include "gmock/gmock.h"

@@ -15,9 +15,9 @@
 #include "database/src/desktop/core/indexed_variant.h"
 
 #include <fstream>
+#include <memory>"
 #include <sstream>
 
-#include <memory>"
 #include "app/src/variant_util.h"
 #include "database/src/desktop/util_desktop.h"
 #include "gmock/gmock.h"

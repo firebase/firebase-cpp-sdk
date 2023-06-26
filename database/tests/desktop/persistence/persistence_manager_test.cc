@@ -35,7 +35,8 @@ class PersistenceManagerTest : public Test {
  public:
   void SetUp() override {
     storage_engine_ = new NiceMock<MockPersistenceStorageEngine>();
-    std::unique_ptr<MockPersistenceStorageEngine> storage_engine_ptr(storage_engine_);
+    std::unique_ptr<MockPersistenceStorageEngine> storage_engine_ptr(
+        storage_engine_);
 
     tracked_query_manager_ = new NiceMock<MockTrackedQueryManager>();
     std::unique_ptr<MockTrackedQueryManager> tracked_query_manager_ptr(
@@ -344,7 +345,8 @@ TEST_F(PersistenceManagerTest, UpdateTrackedQueryKeys) {
 TEST(PersistenceManager, DoPruneCheckAfterServerUpdate_DoNotCheckCacheSize) {
   MockPersistenceStorageEngine* storage_engine =
       new NiceMock<MockPersistenceStorageEngine>();
-  std::unique_ptr<MockPersistenceStorageEngine> storage_engine_ptr(storage_engine);
+  std::unique_ptr<MockPersistenceStorageEngine> storage_engine_ptr(
+      storage_engine);
 
   MockTrackedQueryManager* tracked_query_manager =
       new NiceMock<MockTrackedQueryManager>();
@@ -370,7 +372,8 @@ TEST(PersistenceManager, DoPruneCheckAfterServerUpdate_DoNotCheckCacheSize) {
 TEST(PersistenceManager, DoPruneCheckAfterServerUpdate_DoCheckCacheSize) {
   MockPersistenceStorageEngine* storage_engine =
       new NiceMock<MockPersistenceStorageEngine>();
-  std::unique_ptr<MockPersistenceStorageEngine> storage_engine_ptr(storage_engine);
+  std::unique_ptr<MockPersistenceStorageEngine> storage_engine_ptr(
+      storage_engine);
 
   MockTrackedQueryManager* tracked_query_manager =
       new NiceMock<MockTrackedQueryManager>();
@@ -398,7 +401,8 @@ TEST(PersistenceManager, DoPruneCheckAfterServerUpdate_DoCheckCacheSize) {
 TEST(PersistenceManager, DoPruneCheckAfterServerUpdate_PruneStuff) {
   MockPersistenceStorageEngine* storage_engine =
       new NiceMock<MockPersistenceStorageEngine>();
-  std::unique_ptr<MockPersistenceStorageEngine> storage_engine_ptr(storage_engine);
+  std::unique_ptr<MockPersistenceStorageEngine> storage_engine_ptr(
+      storage_engine);
 
   MockTrackedQueryManager* tracked_query_manager =
       new NiceMock<MockTrackedQueryManager>();

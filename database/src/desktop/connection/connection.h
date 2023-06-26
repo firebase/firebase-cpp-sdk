@@ -15,10 +15,10 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_CONNECTION_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_CONNECTION_H_
 
+#include <memory>"
 #include <sstream>
 
 #include "app/memory/atomic.h"
-#include <memory>"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/logger.h"
 #include "app/src/safe_reference.h"

@@ -14,9 +14,9 @@
 
 #include "database/tests/desktop/test/matchers.h"
 
+#include <memory>"
 #include <vector>
 
-#include <memory>"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -29,7 +29,8 @@ namespace internal {
 
 TEST(SmartPtrRawPtrEq, Matcher) {
   int* five = new int(5);
-  EXPECT_THAT(std::make_tuple(std::unique_ptr<int>(five), five), SmartPtrRawPtrEq());
+  EXPECT_THAT(std::make_tuple(std::unique_ptr<int>(five), five),
+              SmartPtrRawPtrEq());
 
   int* ten = new int(10);
   int* different_ten = new int(10);

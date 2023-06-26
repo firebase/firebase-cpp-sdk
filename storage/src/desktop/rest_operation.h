@@ -16,8 +16,8 @@
 #define FIREBASE_STORAGE_SRC_DESKTOP_REST_OPERATION_H_
 
 #include <memory>
-
 #include <memory>"
+
 #include "app/rest/controller_interface.h"
 #include "app/rest/request.h"
 #include "app/rest/transport_curl.h"

@@ -15,9 +15,9 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CORE_REPO_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CORE_REPO_H_
 
+#include <memory>"
 #include <vector>
 
-#include <memory>"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
 #include "app/src/reference_counted_future_impl.h"

@@ -16,10 +16,10 @@
 
 #include "app/src/callback.h"
 
+#include <memory>"
 #include <string>
 #include <utility>
 
-#include <memory>"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/thread.h"
 #include "app/src/time.h"

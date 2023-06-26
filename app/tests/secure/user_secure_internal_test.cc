@@ -250,8 +250,9 @@ TEST_F(UserSecureInternalTest, SetLargeDataThenDeleteIt) {
 
 TEST_F(UserSecureInternalTest, TestMultipleDomains) {
   // Set up an alternate UserSecureInternal with a different domain.
-  std::unique_ptr<USER_SECURE_TYPE> alt_user_secure = MakeUnique<USER_SECURE_TYPE>(
-      "alternate_test", USER_SECURE_TEST_NAMESPACE);
+  std::unique_ptr<USER_SECURE_TYPE> alt_user_secure =
+      MakeUnique<USER_SECURE_TYPE>("alternate_test",
+                                   USER_SECURE_TEST_NAMESPACE);
   alt_user_secure->DeleteAllData();
 
   user_secure_->SaveUserData(kAppName1, kUserData1);

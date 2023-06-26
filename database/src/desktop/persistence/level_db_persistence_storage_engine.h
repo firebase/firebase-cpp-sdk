@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_SRC_DESKTOP_PERSISTENCE_LEVEL_DB_PERSISTENCE_STORAGE_ENGINE_H_
 
 #include <memory>"
+
 #include "app/src/include/firebase/variant.h"
 #include "app/src/logger.h"
 #include "app/src/path.h"

@@ -15,9 +15,9 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_MUTABLE_DATA_DESKTOP_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_MUTABLE_DATA_DESKTOP_H_
 
+#include <memory>"
 #include <string>
 
-#include <memory>"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
 #include "database/src/include/firebase/database/mutable_data.h"

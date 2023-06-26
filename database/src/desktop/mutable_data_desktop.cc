@@ -17,9 +17,9 @@
 #include <stdlib.h>
 
 #include <cassert>
+#include <memory>"
 #include <sstream>
 
-#include <memory>"
 #include "app/src/log.h"
 #include "database/src/common/database_reference.h"
 #include "database/src/desktop/database_desktop.h"

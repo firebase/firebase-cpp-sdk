@@ -145,7 +145,8 @@ Repo::~Repo() {
       callback, this);
 }
 
-void Repo::AddEventCallback(std::unique_ptr<EventRegistration> event_registration) {
+void Repo::AddEventCallback(
+    std::unique_ptr<EventRegistration> event_registration) {
   std::vector<Event> events;
   if (StringStartsWith(event_registration->query_spec().path.str(), kDotInfo)) {
     events = info_sync_tree_->AddEventRegistration(Move(event_registration));

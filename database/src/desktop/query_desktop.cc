@@ -14,9 +14,9 @@
 
 #include "database/src/desktop/query_desktop.h"
 
+#include <memory>"
 #include <sstream>
 
-#include <memory>"
 #include "app/rest/transport_builder.h"
 #include "app/rest/transport_curl.h"
 #include "app/rest/util.h"

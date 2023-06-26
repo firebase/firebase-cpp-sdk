@@ -19,9 +19,9 @@
 #include <stdlib.h>
 
 #include <ctime>
+#include <memory>"
 #include <vector>
 
-#include <memory>"
 #include "app/src/include/firebase/future.h"
 #include "app/src/semaphore.h"
 #include "app/src/thread.h"

@@ -15,9 +15,9 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_VIEW_VIEW_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_VIEW_VIEW_H_
 
+#include <memory>"
 #include <vector>
 
-#include <memory>"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/optional.h"
 #include "app/src/path.h"
@@ -91,7 +91,8 @@ class View {
   const ViewCache& view_cache() const { return view_cache_; }
 
   // The EventRegistrations owned by this View of the database.
-  const std::vector<std::unique_ptr<EventRegistration>>& event_registrations() const {
+  const std::vector<std::unique_ptr<EventRegistration>>& event_registrations()
+      const {
     return event_registrations_;
   }
 

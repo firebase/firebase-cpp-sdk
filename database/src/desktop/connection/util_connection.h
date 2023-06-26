@@ -15,9 +15,9 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_UTIL_CONNECTION_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_UTIL_CONNECTION_H_
 
+#include <memory>"
 #include <string>
 
-#include <memory>"
 #include "app/src/logger.h"
 #include "app/src/scheduler.h"
 #include "database/src/desktop/connection/host_info.h"

@@ -15,10 +15,10 @@
 #include "database/src/desktop/database_desktop.h"
 
 #include <memory>
+#include <memory>"
 #include <queue>
 #include <stack>
 
-#include <memory>"
 #include "app/src/app_common.h"
 #include "app/src/assert.h"
 #include "app/src/function_registry.h"

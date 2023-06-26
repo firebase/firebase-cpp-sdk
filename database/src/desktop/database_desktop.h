@@ -17,9 +17,9 @@
 
 #include <list>
 #include <memory>
+#include <memory>"
 #include <string>
 
-#include <memory>"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"

@@ -14,9 +14,9 @@
 
 #include "database/src/desktop/view/view.h"
 
+#include <memory>"
 #include <vector>
 
-#include <memory>"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
@@ -106,7 +106,8 @@ const Variant* View::GetCompleteServerCache(const Path& path) const {
   return nullptr;
 }
 
-void View::AddEventRegistration(std::unique_ptr<EventRegistration> registration) {
+void View::AddEventRegistration(
+    std::unique_ptr<EventRegistration> registration) {
   event_registrations_.emplace_back(std::move(registration));
 }
 

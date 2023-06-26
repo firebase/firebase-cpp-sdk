@@ -16,9 +16,9 @@
 #define FIREBASE_DATABASE_SRC_DESKTOP_TRANSACTION_DATA_H_
 
 #include <list>
+#include <memory>"
 #include <queue>
 
-#include <memory>"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"

@@ -15,9 +15,9 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_VIEW_EVENT_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_VIEW_EVENT_H_
 
+#include <memory>"
 #include <string>
 
-#include <memory>"
 #include "app/src/optional.h"
 #include "app/src/path.h"
 #include "database/src/desktop/core/event_registration.h"
@@ -90,10 +90,10 @@ struct Event {
   Path path;
 
   // If the Event is a cancel event, the event registration is removed from the
-  // View it is attached to. Since they are stored in std::unique_ptrs this would
-  // normally mean they get deallocated when they're removed, but we need it to
-  // live long enough to fire the Event. So instead, the event takes ownership
-  // of the pointer.
+  // View it is attached to. Since they are stored in std::unique_ptrs this
+  // would normally mean they get deallocated when they're removed, but we need
+  // it to live long enough to fire the Event. So instead, the event takes
+  // ownership of the pointer.
   //
   // This field is not used to access any data, it's only used
   // to take ownership. To keep the code streamlined, any time the pointer is

@@ -15,6 +15,7 @@
 #include "database/src/desktop/view/view.h"
 
 #include <memory>"
+
 #include "app/src/variant_util.h"
 #include "database/src/desktop/core/event_registration.h"
 #include "database/src/desktop/core/value_event_registration.h"
@@ -229,7 +230,8 @@ TEST(View, IsNotEmpty) {
 
   ValueEventRegistration* registration =
       new ValueEventRegistration(nullptr, nullptr, QuerySpec());
-  view.AddEventRegistration(std::unique_ptr<ValueEventRegistration>(registration));
+  view.AddEventRegistration(
+      std::unique_ptr<ValueEventRegistration>(registration));
 
   EXPECT_FALSE(view.IsEmpty());
 }
@@ -255,10 +257,14 @@ TEST(View, AddEventRegistration) {
       new ValueEventRegistration(nullptr, nullptr, QuerySpec());
   ValueEventRegistration* registration4 =
       new ValueEventRegistration(nullptr, nullptr, QuerySpec());
-  view.AddEventRegistration(std::unique_ptr<ValueEventRegistration>(registration1));
-  view.AddEventRegistration(std::unique_ptr<ValueEventRegistration>(registration2));
-  view.AddEventRegistration(std::unique_ptr<ValueEventRegistration>(registration3));
-  view.AddEventRegistration(std::unique_ptr<ValueEventRegistration>(registration4));
+  view.AddEventRegistration(
+      std::unique_ptr<ValueEventRegistration>(registration1));
+  view.AddEventRegistration(
+      std::unique_ptr<ValueEventRegistration>(registration2));
+  view.AddEventRegistration(
+      std::unique_ptr<ValueEventRegistration>(registration3));
+  view.AddEventRegistration(
+      std::unique_ptr<ValueEventRegistration>(registration4));
 
   std::vector<EventRegistration*> expected_registrations{
       registration1,
@@ -339,10 +345,14 @@ TEST(View, RemoveEventRegistration_RemoveAll) {
       new ValueEventRegistration(nullptr, &listener3, QuerySpec());
   ValueEventRegistration* registration4 =
       new ValueEventRegistration(nullptr, &listener4, QuerySpec());
-  view.AddEventRegistration(std::unique_ptr<ValueEventRegistration>(registration1));
-  view.AddEventRegistration(std::unique_ptr<ValueEventRegistration>(registration2));
-  view.AddEventRegistration(std::unique_ptr<ValueEventRegistration>(registration3));
-  view.AddEventRegistration(std::unique_ptr<ValueEventRegistration>(registration4));
+  view.AddEventRegistration(
+      std::unique_ptr<ValueEventRegistration>(registration1));
+  view.AddEventRegistration(
+      std::unique_ptr<ValueEventRegistration>(registration2));
+  view.AddEventRegistration(
+      std::unique_ptr<ValueEventRegistration>(registration3));
+  view.AddEventRegistration(
+      std::unique_ptr<ValueEventRegistration>(registration4));
 
   std::vector<Event> results =
       view.RemoveEventRegistration(nullptr, kErrorDisconnected);

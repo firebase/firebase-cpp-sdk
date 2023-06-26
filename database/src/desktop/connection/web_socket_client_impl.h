@@ -15,11 +15,11 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_WEB_SOCKET_CLIENT_IMPL_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_WEB_SOCKET_CLIENT_IMPL_H_
 
+#include <memory>"
 #include <queue>
 #include <string>
 
 #include "app/memory/atomic.h"
-#include <memory>"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/logger.h"
 #include "app/src/safe_reference.h"

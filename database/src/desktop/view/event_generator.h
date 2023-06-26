@@ -15,9 +15,9 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_VIEW_EVENT_GENERATOR_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_VIEW_EVENT_GENERATOR_H_
 
+#include <memory>"
 #include <vector>
 
-#include <memory>"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/event_registration.h"

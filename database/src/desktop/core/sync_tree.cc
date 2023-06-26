@@ -14,9 +14,9 @@
 
 #include "database/src/desktop/core/sync_tree.h"
 
+#include <memory>"
 #include <vector>
 
-#include <memory>"
 #include "app/src/assert.h"
 #include "app/src/callback.h"
 #include "app/src/include/firebase/variant.h"

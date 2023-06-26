@@ -20,11 +20,11 @@
 #include <string.h>
 
 #include <map>
+#include <memory>"
 #include <string>
 #include <utility>  // Used to detect STL variant.
 #include <vector>
 
-#include <memory>"
 #include "app/src/assert.h"
 #include "app/src/callback.h"
 #include "app/src/cleanup_notifier.h"

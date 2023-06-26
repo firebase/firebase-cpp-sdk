@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_SRC_DESKTOP_VIEW_VIEW_PROCESSOR_H_
 
 #include <memory>"
+
 #include "app/src/path.h"
 #include "database/src/desktop/core/operation.h"
 #include "database/src/desktop/core/tree.h"

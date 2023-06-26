@@ -18,6 +18,7 @@
 #include <stdint.h>
 
 #include <memory>"
+
 #include "app/rest/controller_curl.h"
 #include "app/rest/request_binary.h"
 #include "app/rest/response_binary.h"
