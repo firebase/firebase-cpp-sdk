@@ -67,13 +67,15 @@ void FirestoreAndroidIntegrationTest::SetUp() {
 }
 
 void FirestoreAndroidIntegrationTest::TearDown() {
+  // Fail the test if there is a pending Java exception. Clear the pending
+  // exception as well so that it doesn't bleed into the next test.
   FailTestIfPendingException();
+
+  // Perform the tear-down steps of the superclass.
   FirestoreIntegrationTest::TearDown();
 }
 
 void FirestoreAndroidIntegrationTest::FailTestIfPendingException() {
-  // Fail the test if there is a pending Java exception. Clear the pending
-  // exception as well so that it doesn't bleed into the next test.
   Local<Throwable> pending_exception = env().ClearExceptionOccurred();
   if (!pending_exception) {
     return;
@@ -84,8 +86,7 @@ void FirestoreAndroidIntegrationTest::FailTestIfPendingException() {
     return;
   }
 
-  // Fail the test since the test completed with an unexpected pending
-  // exception.
+  // Fail the test since the test completed with a pending exception.
   std::string pending_exception_as_string = pending_exception.ToString(env());
   env().ExceptionClear();
   FAIL() << "Test completed with a pending Java exception: "

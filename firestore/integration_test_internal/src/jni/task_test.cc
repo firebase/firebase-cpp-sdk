@@ -78,7 +78,7 @@ TEST_F(TaskTest, GetResultShouldReturnTheResult) {
 
   Local<Object> actual_result = task.GetResult(env());
 
-  ASSERT_THAT(actual_result, RefersToSameJavaObjectAs(result));
+  ASSERT_THAT(actual_result, JavaEq(result));
 }
 
 TEST_F(TaskTest, GetExceptionShouldReturnTheException) {
@@ -87,7 +87,7 @@ TEST_F(TaskTest, GetExceptionShouldReturnTheException) {
 
   Local<Throwable> actual_exception = task.GetException(env());
 
-  ASSERT_THAT(actual_exception, RefersToSameJavaObjectAs(exception));
+  ASSERT_THAT(actual_exception, JavaEq(exception));
 }
 
 // Tests for Task.IsComplete()
