@@ -630,7 +630,7 @@ code.
 ### Upcoming Release
 -   Changes
     - Auth (Android): Fixed an issue where VerifyPhoneNumber's internal
-      builder failed to create PhoneAuthOptions.
+      builder failed to create PhoneAuthOptions with certain compiler settings.
 
 ### 11.2.0
 -   Changes
