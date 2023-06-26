@@ -902,36 +902,44 @@ TEST_F(FirebaseGmaTest, TestNativeAdLoad) {
   firebase::Future<firebase::gma::AdResult> load_ad_future =
       native_ad->LoadAd(kNativeAdUnit, GetAdRequest());
 
-  WaitForCompletion(load_ad_future, "LoadAd");
-  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
-  ASSERT_NE(result_ptr, nullptr);
-  EXPECT_TRUE(result_ptr->is_successful());
-  EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
-  EXPECT_FALSE(
-      result_ptr->response_info().mediation_adapter_class_name().empty());
-  EXPECT_FALSE(result_ptr->response_info().response_id().empty());
-  EXPECT_FALSE(result_ptr->response_info().ToString().empty());
+  // Don't fail loadAd, if NoFill occurred.
+  WaitForCompletionAnyResult(load_ad_future, "LoadAd (ignoring NoFill error)");
+  EXPECT_TRUE(load_ad_future.error() == firebase::gma::kAdErrorCodeNone ||
+              load_ad_future.error() == firebase::gma::kAdErrorCodeNoFill);
 
-  // Check image assets.
-  EXPECT_FALSE(native_ad->icon().image_uri().empty());
-  EXPECT_GT(native_ad->icon().scale(), 0);
-  EXPECT_FALSE(native_ad->images().empty());
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    const firebase::gma::AdResult* result_ptr = load_ad_future.result();
+    ASSERT_NE(result_ptr, nullptr);
+    EXPECT_TRUE(result_ptr->is_successful());
+    EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
+    EXPECT_FALSE(
+        result_ptr->response_info().mediation_adapter_class_name().empty());
+    EXPECT_FALSE(result_ptr->response_info().response_id().empty());
+    EXPECT_FALSE(result_ptr->response_info().ToString().empty());
 
-  // Native ads usually contain only one large image asset.
-  // Check the validity of the first asset from the vector.
-  EXPECT_FALSE(native_ad->images().at(0).image_uri().empty());
-  EXPECT_GT(native_ad->images().at(0).scale(), 0);
+    // Check image assets.
+    EXPECT_FALSE(native_ad->icon().image_uri().empty());
+    EXPECT_GT(native_ad->icon().scale(), 0);
+    EXPECT_FALSE(native_ad->images().empty());
 
-  // When the NativeAd is loaded, try loading icon image asset.
-  firebase::Future<firebase::gma::ImageResult> load_image_future =
-      native_ad->icon().LoadImage();
-  WaitForCompletion(load_image_future, "LoadImage");
-  const firebase::gma::ImageResult* img_result_ptr = load_image_future.result();
-  ASSERT_NE(img_result_ptr, nullptr);
-  EXPECT_TRUE(img_result_ptr->is_successful());
-  EXPECT_GT(img_result_ptr->image().size(), 0);
+    // Native ads usually contain only one large image asset.
+    // Check the validity of the first asset from the vector.
+    EXPECT_FALSE(native_ad->images().at(0).image_uri().empty());
+    EXPECT_GT(native_ad->images().at(0).scale(), 0);
 
-  load_image_future.Release();
+    // When the NativeAd is loaded, try loading icon image asset.
+    firebase::Future<firebase::gma::ImageResult> load_image_future =
+        native_ad->icon().LoadImage();
+    WaitForCompletion(load_image_future, "LoadImage");
+    const firebase::gma::ImageResult* img_result_ptr =
+        load_image_future.result();
+    ASSERT_NE(img_result_ptr, nullptr);
+    EXPECT_TRUE(img_result_ptr->is_successful());
+    EXPECT_GT(img_result_ptr->image().size(), 0);
+
+    load_image_future.Release();
+  }
+
   load_ad_future.Release();
   delete native_ad;
 }
@@ -2062,16 +2070,23 @@ TEST_F(FirebaseGmaTest, TestNativeAdLoadEmptyRequest) {
   firebase::Future<firebase::gma::AdResult> load_ad_future =
       native_ad->LoadAd(kNativeAdUnit, request);
 
-  WaitForCompletion(load_ad_future, "LoadAd");
-  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
-  ASSERT_NE(result_ptr, nullptr);
-  EXPECT_TRUE(result_ptr->is_successful());
-  EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
-  EXPECT_FALSE(
-      result_ptr->response_info().mediation_adapter_class_name().empty());
-  EXPECT_FALSE(result_ptr->response_info().response_id().empty());
-  EXPECT_FALSE(result_ptr->response_info().ToString().empty());
+  // Don't fail loadAd, if NoFill occurred.
+  WaitForCompletionAnyResult(load_ad_future, "LoadAd (ignoring NoFill error)");
+  EXPECT_TRUE(load_ad_future.error() == firebase::gma::kAdErrorCodeNone ||
+              load_ad_future.error() == firebase::gma::kAdErrorCodeNoFill);
 
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    const firebase::gma::AdResult* result_ptr = load_ad_future.result();
+    ASSERT_NE(result_ptr, nullptr);
+    EXPECT_TRUE(result_ptr->is_successful());
+    EXPECT_FALSE(result_ptr->response_info().adapter_responses().empty());
+    EXPECT_FALSE(
+        result_ptr->response_info().mediation_adapter_class_name().empty());
+    EXPECT_FALSE(result_ptr->response_info().response_id().empty());
+    EXPECT_FALSE(result_ptr->response_info().ToString().empty());
+  }
+
+  load_ad_future.Release();
   delete native_ad;
 }
 
@@ -2088,32 +2103,39 @@ TEST_F(FirebaseGmaTest, TestNativeRecordImpression) {
   firebase::Future<firebase::gma::AdResult> load_ad_future =
       native_ad->LoadAd(kNativeAdUnit, GetAdRequest());
 
-  WaitForCompletion(load_ad_future, "LoadAd");
-  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
-  ASSERT_NE(result_ptr, nullptr);
-  EXPECT_TRUE(result_ptr->is_successful());
+  // Don't fail loadAd, if NoFill occurred.
+  WaitForCompletionAnyResult(load_ad_future, "LoadAd (ignoring NoFill error)");
+  EXPECT_TRUE(load_ad_future.error() == firebase::gma::kAdErrorCodeNone ||
+              load_ad_future.error() == firebase::gma::kAdErrorCodeNoFill);
 
-  load_ad_future.Release();
+  // Proceed verifying the RecordImpression, only when loadAd is successful.
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    const firebase::gma::AdResult* result_ptr = load_ad_future.result();
+    ASSERT_NE(result_ptr, nullptr);
+    EXPECT_TRUE(result_ptr->is_successful());
 
-  firebase::Variant impression_payload = GetVariantMap();
+    firebase::Variant impression_payload = GetVariantMap();
 
 #if defined(ANDROID)
-  // Android doesn't have a return type for this API.
-  WaitForCompletion(native_ad->RecordImpression(impression_payload),
-                    "RecordImpression");
+    // Android doesn't have a return type for this API.
+    WaitForCompletion(native_ad->RecordImpression(impression_payload),
+                      "RecordImpression");
 #else  // iOS
-  // Test Ad unit IDs are not allowlisted to record impression and the request
-  // is expected to be rejected by the server. iOS returns the failure.
-  WaitForCompletion(native_ad->RecordImpression(impression_payload),
-                    "RecordImpression",
-                    firebase::gma::kAdErrorCodeInvalidRequest);
+    // Test Ad unit IDs are not allowlisted to record impression and the request
+    // is expected to be rejected by the server. iOS returns the failure.
+    WaitForCompletion(native_ad->RecordImpression(impression_payload),
+                      "RecordImpression",
+                      firebase::gma::kAdErrorCodeInvalidRequest);
 #endif
 
-  firebase::Variant str_variant = firebase::Variant::FromMutableString("test");
-  WaitForCompletion(native_ad->RecordImpression(str_variant),
-                    "RecordImpression 2",
-                    firebase::gma::kAdErrorCodeInvalidArgument);
+    firebase::Variant str_variant =
+        firebase::Variant::FromMutableString("test");
+    WaitForCompletion(native_ad->RecordImpression(str_variant),
+                      "RecordImpression 2",
+                      firebase::gma::kAdErrorCodeInvalidArgument);
+  }
 
+  load_ad_future.Release();
   delete native_ad;
 }
 
@@ -2130,22 +2152,29 @@ TEST_F(FirebaseGmaTest, TestNativePerformClick) {
   firebase::Future<firebase::gma::AdResult> load_ad_future =
       native_ad->LoadAd(kNativeAdUnit, GetAdRequest());
 
-  WaitForCompletion(load_ad_future, "LoadAd");
-  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
-  ASSERT_NE(result_ptr, nullptr);
-  EXPECT_TRUE(result_ptr->is_successful());
+  // Don't fail loadAd, if NoFill occurred.
+  WaitForCompletionAnyResult(load_ad_future, "LoadAd (ignoring NoFill error)");
+  EXPECT_TRUE(load_ad_future.error() == firebase::gma::kAdErrorCodeNone ||
+              load_ad_future.error() == firebase::gma::kAdErrorCodeNoFill);
+
+  // Proceed verifying the PerformClick, only when loadAd is successful.
+  if (load_ad_future.error() == firebase::gma::kAdErrorCodeNone) {
+    const firebase::gma::AdResult* result_ptr = load_ad_future.result();
+    ASSERT_NE(result_ptr, nullptr);
+    EXPECT_TRUE(result_ptr->is_successful());
+
+    firebase::Variant click_payload = GetVariantMap();
+
+    // Android and iOS doesn't have a return type for this API.
+    WaitForCompletion(native_ad->PerformClick(click_payload), "PerformClick");
+
+    firebase::Variant str_variant =
+        firebase::Variant::FromMutableString("test");
+    WaitForCompletion(native_ad->PerformClick(str_variant), "PerformClick 2",
+                      firebase::gma::kAdErrorCodeInvalidArgument);
+  }
 
   load_ad_future.Release();
-
-  firebase::Variant click_payload = GetVariantMap();
-
-  // Android and iOS doesn't have a return type for this API.
-  WaitForCompletion(native_ad->PerformClick(click_payload), "PerformClick");
-
-  firebase::Variant str_variant = firebase::Variant::FromMutableString("test");
-  WaitForCompletion(native_ad->PerformClick(str_variant), "PerformClick 2",
-                    firebase::gma::kAdErrorCodeInvalidArgument);
-
   delete native_ad;
 }
 
