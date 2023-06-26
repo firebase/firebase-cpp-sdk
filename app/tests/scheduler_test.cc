@@ -17,6 +17,7 @@
 #include "app/src/scheduler.h"
 
 #include <atomic>
+
 #include "app/src/semaphore.h"
 #include "app/src/time.h"
 #include "gmock/gmock.h"

@@ -16,8 +16,8 @@
 
 #include "firestore/src/android/jni_runnable_android.h"
 
-#include "android/firestore_integration_test_android.h"
 #include <atomic>"
+#include "android/firestore_integration_test_android.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "firestore/src/jni/declaration.h"
 #include "firestore/src/jni/object.h"

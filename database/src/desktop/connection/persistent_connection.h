@@ -15,6 +15,7 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_PERSISTENT_CONNECTION_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_PERSISTENT_CONNECTION_H_
 
+#include <atomic>"
 #include <cassert>
 #include <map>
 #include <memory>"
@@ -23,7 +24,6 @@
 #include <string>
 #include <vector>
 
-#include <atomic>"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"
