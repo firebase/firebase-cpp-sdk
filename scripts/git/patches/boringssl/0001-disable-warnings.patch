@@ -1,5 +1,5 @@
---- a/src/CMakeLists.txt
-+++ b/src/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
 @@ -193,6 +193,11 @@ elseif(MSVC)
                # possible loss of data
        "C4244" # 'function' : conversion from 'int' to 'uint8_t',
