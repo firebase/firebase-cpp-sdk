@@ -14,9 +14,14 @@
  * limitations under the License.
  */
 
+extern "C" {
+#include <objc/objc.h>
+}  // extern "C"
+
 #include "gma/src/ios/native_ad_internal_ios.h"
 
 #import "gma/src/ios/FADRequest.h"
+#import "gma/src/ios/GADNativeAdCpp.h"
 #import "gma/src/ios/gma_ios.h"
 
 #include "app/src/util_ios.h"
@@ -62,6 +67,103 @@ Future<void> NativeAdInternalIOS::Initialize(AdParent parent) {
     CompleteFuture(kAdErrorCodeNone, nullptr, future_handle, &future_data_);
   }
   return future;
+}
+
+Future<void> NativeAdInternalIOS::RecordImpression(const Variant& impression_data) {
+  firebase::MutexLock lock(mutex_);
+  if (!initialized_) {
+    return CreateAndCompleteFuture(kNativeAdFnRecordImpression,
+                                   kAdErrorCodeUninitialized,
+                                   kAdUninitializedErrorMessage, &future_data_);
+  }
+
+  NSDictionary *impression_payload = variantmap_to_nsdictionary(impression_data);
+  if (impression_payload == nullptr) {
+    return CreateAndCompleteFuture(
+        kNativeAdFnRecordImpression, kAdErrorCodeInvalidArgument,
+        kUnsupportedVariantTypeErrorMessage, &future_data_);
+  }
+
+  const SafeFutureHandle<void> future_handle =
+      future_data_.future_impl.SafeAlloc<void>(kNativeAdFnRecordImpression);
+  Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
+
+  dispatch_async(dispatch_get_main_queue(), ^{
+    bool recorded = [(GADNativeAd*)native_ad_ recordImpressionWithData:impression_payload];
+    if(recorded) {
+      CompleteFuture(kAdErrorCodeNone, nullptr, future_handle, &future_data_);
+    } else {
+      CompleteFuture(kAdErrorCodeInvalidRequest, kRecordImpressionFailureErrorMessage,
+                     future_handle, &future_data_);
+    }
+  });
+
+  return future;
+}
+
+Future<void> NativeAdInternalIOS::PerformClick(const Variant& click_data) {
+  firebase::MutexLock lock(mutex_);
+  if (!initialized_) {
+    return CreateAndCompleteFuture(kNativeAdFnPerformClick,
+                                   kAdErrorCodeUninitialized,
+                                   kAdUninitializedErrorMessage, &future_data_);
+  }
+
+  NSDictionary *click_payload = variantmap_to_nsdictionary(click_data);
+  if (click_payload == nullptr) {
+    return CreateAndCompleteFuture(
+        kNativeAdFnPerformClick, kAdErrorCodeInvalidArgument,
+        kUnsupportedVariantTypeErrorMessage, &future_data_);
+  }
+
+  const SafeFutureHandle<void> future_handle =
+      future_data_.future_impl.SafeAlloc<void>(kNativeAdFnPerformClick);
+  Future<void> future = MakeFuture(&future_data_.future_impl, future_handle);
+
+  dispatch_async(dispatch_get_main_queue(), ^{
+    [(GADNativeAd*)native_ad_ performClickWithData:click_payload];
+    CompleteFuture(kAdErrorCodeNone, nullptr, future_handle, &future_data_);
+  });
+
+  return future;
+}
+
+NSDictionary* NativeAdInternalIOS::variantmap_to_nsdictionary(const Variant &variant_data) {
+  if (!variant_data.is_map()) {
+    return nullptr;
+  }
+
+  NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
+
+  for (const auto& kvp : variant_data.map()) {
+    const Variant& key = kvp.first;
+    const Variant& value = kvp.second;
+
+    if (!key.is_string()) {
+      return nullptr;
+    }
+
+    if (value.is_int64()) {
+      [dict setObject:[NSNumber numberWithLongLong:value.int64_value()]
+                     forKey:@(key.string_value())];
+    } else if (value.is_double()) {
+      [dict setObject:[NSNumber numberWithDouble:value.double_value()]
+                     forKey:@(key.string_value())];
+    } else if (value.is_string()) {
+      [dict setObject:@(value.string_value())
+                     forKey:@(key.string_value())];
+    } else if (value.is_map()) {
+      NSDictionary *val_dict = variantmap_to_nsdictionary(value);
+      [dict setObject:val_dict
+                     forKey:@(key.string_value())];
+    } else {
+      // Unsupported value type.
+      return nullptr;
+    }
+  }
+
+  NSDictionary *ret = [dict copy];
+  return ret;
 }
 
 Future<AdResult> NativeAdInternalIOS::LoadAd(const char *ad_unit_id, const AdRequest &request) {
