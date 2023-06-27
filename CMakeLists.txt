@@ -264,9 +264,10 @@ if(DESKTOP)
 
   if(FIREBASE_USE_BORINGSSL)
     # Use BoringSSL instead of OpenSSL.
-    set(BORINGSSL_ROOT_DIR ${PROJECT_BINARY_DIR}/external/src/boringssl/src CACHE STRING "" FORCE)
+    set(BORINGSSL_ROOT_DIR ${PROJECT_BINARY_DIR}/external/src/boringssl CACHE STRING "" FORCE)
     set(BORINGSSL_BINARY_DIR ${PROJECT_BINARY_DIR}/external/src/boringssl-build CACHE STRING "" FORCE)
     set(OPENSSL_ROOT_DIR ${BORINGSSL_ROOT_DIR} CACHE STRING "" FORCE)
+    message("BoringSSL directory: ${BORINGSSL_ROOT_DIR}")
 
     # The call below to build_external_dependencies will make sure that these
     # libraries exist before the libraries are imported via add_library.
