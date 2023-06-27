@@ -110,7 +110,7 @@ std::vector<Event> SyncPoint::AddEventRegistration(
 
   // The view is guaranteed to exist now.
   std::vector<Event> results = view->GetInitialEvents(event_registration.get());
-  view->AddEventRegistration(Move(event_registration));
+  view->AddEventRegistration(std::move(event_registration));
   return results;
 }
 

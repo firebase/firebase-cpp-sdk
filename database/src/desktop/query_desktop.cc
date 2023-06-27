@@ -183,7 +183,7 @@ Future<DataSnapshot> QueryInternal::GetValue() {
                                                         query_future(), handle);
   void* listener_ptr = listener.get();
   AddEventRegistration(std::make_unique<SingleValueEventRegistration>(
-                           database_, Move(listener), query_spec_),
+                           database_, std::move(listener), query_spec_),
                        listener_ptr);
   return MakeFuture(query_future(), handle);
 }
@@ -223,7 +223,7 @@ void QueryInternal::AddEventRegistration(
           lock.GetReference()->AddEventCallback(Move(registration));
         }
       },
-      database_->repo()->this_ref(), Move(registration)));
+      database_->repo()->this_ref(), std::move(registration)));
 }
 
 void QueryInternal::RemoveEventRegistration(void* listener_ptr,

@@ -71,6 +71,26 @@ struct Event {
     event_registration_ownership_ptr = std::move(_event_registration);
   }
 
+  Event(const Event& src)
+      : type(src.type),
+        event_registration(src.event_registration),
+        snapshot(src.snapshot),
+        prev_name(src.prev_name),
+        error(src.error),
+        path(src.path),
+        event_registration_ownership_ptr(std::move(src.event_registration_ownership_ptr)) {}
+
+  Event& operator=(const Event& src) {
+    type = src.type;
+    event_registration = src.event_registration;
+    snapshot = src.snapshot;
+    prev_name = src.prev_name;
+    error = src.error;
+    path = src.path;
+    event_registration_ownership_ptr = std::move(src.event_registration_ownership_ptr);
+    return *this;
+  }
+
   // The type of the event.
   EventType type;
 
@@ -99,7 +119,7 @@ struct Event {
   // to take ownership. To keep the code streamlined, any time the pointer is
   // needed, owned or not, it will go through the event_registration field
   // above.
-  std::unique_ptr<EventRegistration> event_registration_ownership_ptr;
+  mutable std::unique_ptr<EventRegistration> event_registration_ownership_ptr;
 };
 
 inline bool operator==(const Event& lhs, const Event& rhs) {

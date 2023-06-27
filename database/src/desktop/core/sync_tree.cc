@@ -200,7 +200,7 @@ std::vector<Event> SyncTree::AddEventRegistration(
       tag_to_query_spec_map_[*tag] = query_spec;
     }
     WriteTreeRef writes_cache = pending_write_tree_->ChildWrites(path);
-    events = sync_point->AddEventRegistration(Move(event_registration),
+    events = sync_point->AddEventRegistration(std::move(event_registration),
                                               writes_cache, server_cache,
                                               persistence_manager_.get());
     if (!view_already_exists && !found_ancestor_default_view) {
