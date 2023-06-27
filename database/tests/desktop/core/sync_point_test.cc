@@ -53,9 +53,9 @@ class SyncPointTest : public ::testing::Test {
   SyncPointTest()
       : logger_(),
         sync_point_(),
-        persistence_manager_(MakeUnique<MockPersistenceStorageEngine>(),
-                             MakeUnique<MockTrackedQueryManager>(),
-                             MakeUnique<MockCachePolicy>(), &logger_) {}
+        persistence_manager_(std::make_unique<MockPersistenceStorageEngine>(),
+                             std::make_unique<MockTrackedQueryManager>(),
+                             std::make_unique<MockCachePolicy>(), &logger_) {}
 
  protected:
   SystemLogger logger_;
@@ -343,7 +343,7 @@ TEST_F(SyncPointTest, GetCompleteView_FromQuerySpecThatLoadsAllData) {
   CacheNode good_server_cache(IndexedVariant(Variant("good"), good_params),
                               true, true);
   sync_point_.AddEventRegistration(
-      MakeUnique<ValueEventRegistration>(nullptr, nullptr, good_spec),
+      std::make_unique<ValueEventRegistration>(nullptr, nullptr, good_spec),
       write_tree_ref, good_server_cache, &persistence_manager_);
 
   // Values to feed to AddEventRegistration that will not result in an
@@ -355,7 +355,7 @@ TEST_F(SyncPointTest, GetCompleteView_FromQuerySpecThatLoadsAllData) {
   CacheNode incorrect_server_cache(IndexedVariant(Variant("bad"), bad_params),
                                    true, true);
   sync_point_.AddEventRegistration(
-      MakeUnique<ValueEventRegistration>(nullptr, nullptr, bad_spec),
+      std::make_unique<ValueEventRegistration>(nullptr, nullptr, bad_spec),
       write_tree_ref, incorrect_server_cache, &persistence_manager_);
 
   const View* result = sync_point_.GetCompleteView();
@@ -378,7 +378,7 @@ TEST_F(SyncPointTest, GetCompleteView_FromQuerySpecThatDoesNotLoadsAllData) {
   CacheNode incorrect_server_cache(IndexedVariant(Variant("bad"), bad_params),
                                    true, true);
   sync_point_.AddEventRegistration(
-      MakeUnique<ValueEventRegistration>(nullptr, nullptr, bad_spec),
+      std::make_unique<ValueEventRegistration>(nullptr, nullptr, bad_spec),
       write_tree_ref, incorrect_server_cache, &persistence_manager_);
 
   EXPECT_EQ(sync_point_.GetCompleteView(), nullptr);

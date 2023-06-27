@@ -15,7 +15,7 @@
 #include "database/src/desktop/core/indexed_variant.h"
 
 #include <fstream>
-#include <memory>"
+#include <memory>
 #include <sstream>
 
 #include "app/src/variant_util.h"
@@ -122,12 +122,12 @@ void VerifyIndex(const Variant* input_variant,
   //   IndexedVariant(IndexedVariant) - A copy of an existing IndexedVariant
   std::unique_ptr<IndexedVariant> index_variant;
   if (input_variant == nullptr && input_query_params == nullptr) {
-    index_variant = MakeUnique<IndexedVariant>();
+    index_variant = std::make_unique<IndexedVariant>();
   } else if (input_variant != nullptr && input_query_params == nullptr) {
-    index_variant = MakeUnique<IndexedVariant>(*input_variant);
+    index_variant = std::make_unique<IndexedVariant>(*input_variant);
   } else if (input_variant != nullptr && input_query_params != nullptr) {
     index_variant =
-        MakeUnique<IndexedVariant>(*input_variant, *input_query_params);
+        std::make_unique<IndexedVariant>(*input_variant, *input_query_params);
   }
 
   // assert if input_variant is null but input_query_params is not null

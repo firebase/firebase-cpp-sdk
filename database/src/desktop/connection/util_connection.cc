@@ -29,8 +29,8 @@ std::unique_ptr<WebSocketClientInterface> CreateWebSocketClient(
     scheduler::Scheduler* scheduler, const std::string& app_check_token) {
   // Currently we use uWebSockets implementation.
   std::string uri = info.GetConnectionUrl(opt_last_session_id);
-  return MakeUnique<WebSocketClientImpl>(uri, info.user_agent(), logger,
-                                         scheduler, app_check_token, delegate);
+  return std::make_unique<WebSocketClientImpl>(
+      uri, info.user_agent(), logger, scheduler, app_check_token, delegate);
 }
 
 }  // namespace connection

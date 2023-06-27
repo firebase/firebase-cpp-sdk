@@ -15,7 +15,7 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CORE_SYNC_TREE_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CORE_SYNC_TREE_H_
 
-#include <memory>"
+#include <memory>
 #include <vector>
 
 #include "app/src/include/firebase/variant.h"

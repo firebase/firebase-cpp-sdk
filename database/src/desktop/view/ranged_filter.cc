@@ -29,7 +29,7 @@ namespace internal {
 
 RangedFilter::RangedFilter(const QueryParams& params)
     : VariantFilter(params),
-      indexed_filter_(MakeUnique<IndexedFilter>(params)),
+      indexed_filter_(std::make_unique<IndexedFilter>(params)),
       start_post_(GetStartPost(params)),
       end_post_(GetEndPost(params)) {}
 

@@ -20,7 +20,7 @@
 #include <string.h>
 
 #include <map>
-#include <memory>"
+#include <memory>
 #include <string>
 #include <utility>  // Used to detect STL variant.
 #include <vector>
@@ -289,7 +289,7 @@ App* AddApp(App* app, std::map<std::string, InitResult>* results) {
     assert(!g_default_app);
     g_default_app = app;
   }
-  std::unique_ptr<AppData> app_data = MakeUnique<AppData>();
+  std::unique_ptr<AppData> app_data = std::make_unique<AppData>();
   app_data->app = app;
   app_data->cleanup_notifier.RegisterOwner(app);
   if (!g_apps) {

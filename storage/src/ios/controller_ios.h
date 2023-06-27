@@ -17,7 +17,7 @@
 
 #include <cstdint>
 
-#include <memory>"
+#include <memory>
 #include "app/src/util_ios.h"
 #include "storage/src/ios/storage_reference_ios.h"
 

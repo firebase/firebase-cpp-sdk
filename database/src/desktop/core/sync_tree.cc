@@ -14,7 +14,7 @@
 
 #include "database/src/desktop/core/sync_tree.h"
 
-#include <memory>"
+#include <memory>
 #include <vector>
 
 #include "app/src/assert.h"
@@ -527,7 +527,7 @@ void SyncTree::SetKeepSynchronized(const QuerySpec& query_spec,
       keep_synced_queries_.find(query_spec) != keep_synced_queries_.end();
   if (keep_synchronized && !contains) {
     AddEventRegistration(
-        MakeUnique<KeepSyncedEventRegistration>(this, query_spec));
+        std::make_unique<KeepSyncedEventRegistration>(this, query_spec));
     keep_synced_queries_.insert(query_spec);
   } else if (!keep_synchronized && contains) {
     RemoveEventRegistration(query_spec, this, kErrorNone);

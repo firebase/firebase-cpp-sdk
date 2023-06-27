@@ -17,7 +17,7 @@
 #ifndef FIREBASE_APP_SRC_SCHEDULER_H_
 #define FIREBASE_APP_SRC_SCHEDULER_H_
 
-#include <memory>"
+#include <memory>
 #include <queue>
 
 #include "app/src/callback.h"

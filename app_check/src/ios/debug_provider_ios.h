@@ -16,7 +16,7 @@
 #define FIREBASE_APP_CHECK_SRC_IOS_DEBUG_PROVIDER_IOS_H_
 
 #include <map>
-#include <memory>"
+#include <memory>
 #include <string>
 
 #include "app/src/util_ios.h"

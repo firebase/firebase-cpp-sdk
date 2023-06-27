@@ -16,7 +16,7 @@
 #define FIREBASE_INSTALLATIONS_SRC_IOS_INSTALLATIONS_IOS_H_
 
 #include "firebase/app.h"
-#include <memory>"
+#include <memory>
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_ios.h"
 #include "firebase/future.h"

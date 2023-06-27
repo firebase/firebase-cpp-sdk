@@ -17,7 +17,6 @@
 
 #include <list>
 #include <memory>
-#include <memory>"
 #include <string>
 
 #include "app/src/cleanup_notifier.h"

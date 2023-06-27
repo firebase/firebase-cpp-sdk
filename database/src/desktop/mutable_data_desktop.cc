@@ -17,7 +17,7 @@
 #include <stdlib.h>
 
 #include <cassert>
-#include <memory>"
+#include <memory>
 #include <sstream>
 
 #include "app/src/log.h"

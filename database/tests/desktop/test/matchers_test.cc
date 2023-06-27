@@ -14,7 +14,7 @@
 
 #include "database/tests/desktop/test/matchers.h"
 
-#include <memory>"
+#include <memory>
 #include <vector>
 
 #include "gmock/gmock.h"

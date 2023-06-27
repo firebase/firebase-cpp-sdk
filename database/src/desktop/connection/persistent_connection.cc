@@ -369,8 +369,8 @@ void PersistentConnection::Listen(const QuerySpec& query_spec, const Tag& tag,
   // is received.
   uint64_t listen_id = next_listen_id_++;
   auto it = listens_.insert(Move(std::pair<QuerySpec, OutstandingListenPtr>(
-      query_spec, Move(MakeUnique<OutstandingListen>(query_spec, tag, response,
-                                                     listen_id)))));
+      query_spec, Move(std::make_unique<OutstandingListen>(
+                      query_spec, tag, response, listen_id)))));
   listen_id_to_query_[listen_id] = query_spec;
 
   // If the connection is established, send the request immediately.  Otherwise,
@@ -437,7 +437,7 @@ void PersistentConnection::OnDisconnectPut(const Path& path,
   if (CanSendWrites()) {
     SendOnDisconnect(kRequestActionOnDisconnectPut, path, data, Move(response));
   } else {
-    outstanding_ondisconnects_.push(MakeUnique<OutstandingOnDisconnect>(
+    outstanding_ondisconnects_.push(std::make_unique<OutstandingOnDisconnect>(
         kRequestActionOnDisconnectPut, path, data, Move(response)));
   }
 }
@@ -450,7 +450,7 @@ void PersistentConnection::OnDisconnectMerge(const Path& path,
     SendOnDisconnect(kRequestActionOnDisconnectMerge, path, updates,
                      Move(response));
   } else {
-    outstanding_ondisconnects_.push(MakeUnique<OutstandingOnDisconnect>(
+    outstanding_ondisconnects_.push(std::make_unique<OutstandingOnDisconnect>(
         kRequestActionOnDisconnectMerge, path, updates, Move(response)));
   }
 }
@@ -462,7 +462,7 @@ void PersistentConnection::OnDisconnectCancel(const Path& path,
     SendOnDisconnect(kRequestActionOnDisconnectCancel, path, Variant::Null(),
                      Move(response));
   } else {
-    outstanding_ondisconnects_.push(MakeUnique<OutstandingOnDisconnect>(
+    outstanding_ondisconnects_.push(std::make_unique<OutstandingOnDisconnect>(
         kRequestActionOnDisconnectCancel, path, Variant::Null(),
         Move(response)));
   }
@@ -700,7 +700,7 @@ void PersistentConnection::OpenNetworkConnection() {
 
   connection_state_ = kConnecting;
 
-  realtime_ = MakeUnique<Connection>(
+  realtime_ = std::make_unique<Connection>(
       scheduler_, host_info_,
       last_session_id_.empty() ? nullptr : last_session_id_.c_str(), this,
       logger_, app_check_token_);
@@ -927,7 +927,7 @@ void PersistentConnection::PutInternal(const char* action, const Path& path,
 
   uint64_t write_id = next_write_id_++;
   outstanding_puts_[write_id] =
-      MakeUnique<OutstandingPut>(action, request, response);
+      std::make_unique<OutstandingPut>(action, request, response);
 
   if (CanSendWrites()) {
     SendPut(write_id);
@@ -1032,7 +1032,7 @@ void PersistentConnection::SendSensitive(const char* action, bool sensitive,
 
   // TODO(chkuang): Add timeout handle
   request_map_[rn] =
-      MakeUnique<RequestData>(Move(response), callback, outstanding_id);
+      std::make_unique<RequestData>(Move(response), callback, outstanding_id);
 }
 
 void PersistentConnection::RestoreOutstandingRequests() {

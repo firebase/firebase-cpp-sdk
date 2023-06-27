@@ -20,7 +20,7 @@
 
 #include <dispatch/dispatch.h>
 
-#include <memory>"
+#include <memory>
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"

@@ -56,13 +56,13 @@ StorageInternal::~StorageInternal() {
 
 StorageReferenceInternal* StorageInternal::GetReference() const {
   return new StorageReferenceInternal(const_cast<StorageInternal*>(this),
-                                      MakeUnique<FIRStorageReferencePointer>(impl().reference));
+                                      std::make_unique<FIRStorageReferencePointer>(impl().reference));
 }
 
 StorageReferenceInternal* StorageInternal::GetReference(const char* path) const {
   return new StorageReferenceInternal(
       const_cast<StorageInternal*>(this),
-      MakeUnique<FIRStorageReferencePointer>([impl() referenceWithPath:@(path)]));
+      std::make_unique<FIRStorageReferencePointer>([impl() referenceWithPath:@(path)]));
 }
 
 StorageReferenceInternal* StorageInternal::GetReferenceFromUrl(const char* url) const {
@@ -76,7 +76,7 @@ StorageReferenceInternal* StorageInternal::GetReferenceFromUrl(const char* url) 
     return nullptr;
   }
   return new StorageReferenceInternal(const_cast<StorageInternal*>(this),
-                                      MakeUnique<FIRStorageReferencePointer>(reference));
+                                      std::make_unique<FIRStorageReferencePointer>(reference));
 }
 
 double StorageInternal::max_download_retry_time() const { return impl().maxDownloadRetryTime; }

@@ -56,7 +56,7 @@ int32_t UserSecureManager::s_scheduler_ref_count_;
 
 UserSecureManager::UserSecureManager(const char* domain, const char* app_id)
     : future_api_(kUserSecureFnCount), safe_this_(this) {
-  user_secure_ = MakeUnique<USER_SECURE_TYPE>(domain, app_id);
+  user_secure_ = std::make_unique<USER_SECURE_TYPE>(domain, app_id);
   CreateScheduler();
 }
 

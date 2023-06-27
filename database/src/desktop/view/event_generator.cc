@@ -17,7 +17,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
-#include <memory>"
+#include <memory>
 #include <vector>
 
 #include "app/src/assert.h"

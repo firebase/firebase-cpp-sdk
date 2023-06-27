@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "firebase/app.h"
-#include <memory>"
+#include <memory>
 #include "app/src/cleanup_notifier.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_ios.h"

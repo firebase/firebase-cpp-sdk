@@ -17,7 +17,6 @@
 
 #include <limits>
 #include <memory>
-#include <memory>"
 
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"

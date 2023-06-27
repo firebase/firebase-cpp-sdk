@@ -14,7 +14,7 @@
 
 #include "functions/src/ios/functions_ios.h"
 
-#include <memory>"
+#include <memory>
 #include "app/src/app_ios.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
@@ -45,7 +45,7 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(const char* 
   // HttpsCallableReferenceInternal handles deleting the wrapper pointer.
   return new HttpsCallableReferenceInternal(
       const_cast<FunctionsInternal*>(this),
-      MakeUnique<FIRHTTPSCallablePointer>([impl_.get()->get() HTTPSCallableWithName:@(name)]));
+      std::make_unique<FIRHTTPSCallablePointer>([impl_.get()->get() HTTPSCallableWithName:@(name)]));
 }
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(const char* url) const {
@@ -53,7 +53,7 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallableFromURL(const
   NSURL *nsurl = [NSURL URLWithString:@(url)];
   return new HttpsCallableReferenceInternal(
       const_cast<FunctionsInternal*>(this),
-      MakeUnique<FIRHTTPSCallablePointer>([impl_.get()->get() HTTPSCallableWithURL:nsurl]));
+      std::make_unique<FIRHTTPSCallablePointer>([impl_.get()->get() HTTPSCallableWithURL:nsurl]));
 }
 
 void FunctionsInternal::UseFunctionsEmulator(const char* origin) {

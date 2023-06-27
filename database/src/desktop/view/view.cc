@@ -14,7 +14,7 @@
 
 #include "database/src/desktop/view/view.h"
 
-#include <memory>"
+#include <memory>
 #include <vector>
 
 #include "app/src/assert.h"
@@ -59,7 +59,7 @@ View::View(const QuerySpec& query_spec, const ViewCache& initial_view_cache)
 
   view_cache_ = ViewCache(new_event_cache, new_server_cache);
 
-  view_processor_ = MakeUnique<ViewProcessor>(std::move(filter));
+  view_processor_ = std::make_unique<ViewProcessor>(std::move(filter));
 }
 
 View::View(const View& other)

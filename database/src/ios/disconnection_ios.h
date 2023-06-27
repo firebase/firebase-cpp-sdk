@@ -15,7 +15,7 @@
 #ifndef FIREBASE_DATABASE_SRC_IOS_DISCONNECTION_IOS_H_
 #define FIREBASE_DATABASE_SRC_IOS_DISCONNECTION_IOS_H_
 
-#include <memory>"
+#include <memory>
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/reference_counted_future_impl.h"

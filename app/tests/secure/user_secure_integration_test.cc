@@ -116,7 +116,7 @@ const char kTestNameSpaceShort[] = "firebase_test";
 class UserSecureTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    user_secure_test_helper_ = MakeUnique<USER_SECURE_TEST_HELPER>();
+    user_secure_test_helper_ = std::make_unique<USER_SECURE_TEST_HELPER>();
     UserSecureInternal* internal =
         new USER_SECURE_TYPE(kDomain, USER_SECURE_TEST_NAMESPACE);
     std::unique_ptr<UserSecureInternal> user_secure_ptr(internal);

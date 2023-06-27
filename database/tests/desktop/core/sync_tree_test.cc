@@ -59,7 +59,8 @@ class SyncTreeTest : public Test {
   void SetUp() override {
     // These mocks are very noisy, so we make them NiceMocks and explicitly call
     // EXPECT_CALL when there are specific things we expect to have happen.
-    std::unique_ptr<WriteTree> pending_write_tree_ptr(MakeUnique<WriteTree>());
+    std::unique_ptr<WriteTree> pending_write_tree_ptr(
+        std::make_unique<WriteTree>());
 
     persistence_storage_engine_ = new NiceMock<MockPersistenceStorageEngine>();
     std::unique_ptr<MockPersistenceStorageEngine> storage_engine_ptr(
@@ -763,14 +764,14 @@ TEST(SyncTree, CalcCompleteEventCache) {
   std::unique_ptr<MockWriteTree> pending_write_tree_ptr(pending_write_tree);
   MockPersistenceManager* persistence_manager =
       new NiceMock<MockPersistenceManager>(
-          MakeUnique<NiceMock<MockPersistenceStorageEngine>>(),
-          MakeUnique<NiceMock<MockTrackedQueryManager>>(),
-          MakeUnique<NiceMock<MockCachePolicy>>(), &logger);
+          std::make_unique<NiceMock<MockPersistenceStorageEngine>>(),
+          std::make_unique<NiceMock<MockTrackedQueryManager>>(),
+          std::make_unique<NiceMock<MockCachePolicy>>(), &logger);
   std::unique_ptr<MockPersistenceManager> persistence_manager_ptr(
       persistence_manager);
   SyncTree sync_tree(std::move(pending_write_tree_ptr),
                      std::move(persistence_manager_ptr),
-                     MakeUnique<NiceMock<MockListenProvider>>());
+                     std::make_unique<NiceMock<MockListenProvider>>());
 
   Path path("aaa/bbb/ccc");
   QuerySpec query_spec(path);

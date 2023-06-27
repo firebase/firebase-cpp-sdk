@@ -15,7 +15,7 @@
 #ifndef FIREBASE_APP_CHECK_SRC_IOS_APP_CHECK_IOS_H_
 #define FIREBASE_APP_CHECK_SRC_IOS_APP_CHECK_IOS_H_
 
-#include <memory>"
+#include <memory>
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"

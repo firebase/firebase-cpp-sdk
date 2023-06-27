@@ -14,7 +14,7 @@
 
 #include "database/src/desktop/core/tree.h"
 
-#include <memory>"
+#include <memory>
 
 #include "app/src/optional.h"
 #include "app/src/path.h"
@@ -142,11 +142,11 @@ TEST(TreeTest, GetSetValue) {
 
 TEST(TreeTest, GetSetRValue) {
   {
-    Tree<std::unique_ptr<int>> tree(MakeUnique<int>(1));
+    Tree<std::unique_ptr<int>> tree(std::make_unique<int>(1));
     EXPECT_TRUE(tree.value().has_value());
     EXPECT_EQ(*tree.value().value(), 1);
 
-    tree.set_value(MakeUnique<int>(2));
+    tree.set_value(std::make_unique<int>(2));
     EXPECT_TRUE(tree.value().has_value());
     EXPECT_EQ(*tree.value().value(), 2);
   }
@@ -273,7 +273,7 @@ TEST(TreeTest, SetValueAt) {
 TEST(TreeTest, SetValueAtRValue) {
   {
     Tree<std::unique_ptr<int>> tree;
-    tree.SetValueAt(Path(""), MakeUnique<int>(1));
+    tree.SetValueAt(Path(""), std::make_unique<int>(1));
 
     EXPECT_TRUE(tree.value().has_value());
     EXPECT_EQ(tree.value().value(), 1);
@@ -281,9 +281,9 @@ TEST(TreeTest, SetValueAtRValue) {
   }
 
   {
-    Tree<std::unique_ptr<int>> tree(MakeUnique<int>(1));
-    tree.SetValueAt(Path("A"), MakeUnique<int>(2));
-    tree.SetValueAt(Path("B"), MakeUnique<int>(3));
+    Tree<std::unique_ptr<int>> tree(std::make_unique<int>(1));
+    tree.SetValueAt(Path("A"), std::make_unique<int>(2));
+    tree.SetValueAt(Path("B"), std::make_unique<int>(3));
 
     EXPECT_TRUE(tree.value().has_value());
     EXPECT_EQ(tree.value().value(), 1);
@@ -299,10 +299,10 @@ TEST(TreeTest, SetValueAtRValue) {
   }
 
   {
-    Tree<std::unique_ptr<int>> tree(MakeUnique<int>(1));
-    tree.SetValueAt(Path("A"), MakeUnique<int>(2));
-    tree.SetValueAt(Path("A/A1"), MakeUnique<int>(20));
-    tree.SetValueAt(Path("B/B1"), MakeUnique<int>(30));
+    Tree<std::unique_ptr<int>> tree(std::make_unique<int>(1));
+    tree.SetValueAt(Path("A"), std::make_unique<int>(2));
+    tree.SetValueAt(Path("A/A1"), std::make_unique<int>(20));
+    tree.SetValueAt(Path("B/B1"), std::make_unique<int>(30));
 
     EXPECT_TRUE(tree.value().has_value());
     EXPECT_EQ(tree.value().value(), 1);

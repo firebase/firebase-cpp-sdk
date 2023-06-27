@@ -14,7 +14,7 @@
 
 #include "database/src/desktop/view/view.h"
 
-#include <memory>"
+#include <memory>
 
 #include "app/src/variant_util.h"
 #include "database/src/desktop/core/event_registration.h"

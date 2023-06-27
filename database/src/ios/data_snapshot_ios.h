@@ -18,7 +18,7 @@
 #include <stddef.h>
 #include <string>
 
-#include <memory>"
+#include <memory>
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/util_ios.h"

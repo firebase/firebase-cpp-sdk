@@ -14,7 +14,7 @@
 
 #include "app/src/secure/user_secure_manager_fake.h"
 
-#include <memory>"
+#include <memory>
 
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/secure/user_secure_fake_internal.h"
@@ -48,7 +48,7 @@ static std::string GetTestTmpDir(const char test_namespace[]) {
 
 UserSecureManagerFake::UserSecureManagerFake(const char* domain,
                                              const char* app_id)
-    : UserSecureManager(MakeUnique<UserSecureFakeInternal>(
+    : UserSecureManager(std::make_unique<UserSecureFakeInternal>(
           domain, GetTestTmpDir(app_id).c_str())) {}
 
 }  // namespace secure

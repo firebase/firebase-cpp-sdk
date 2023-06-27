@@ -16,7 +16,7 @@
 #define FIREBASE_DATABASE_SRC_DESKTOP_PERSISTENCE_NOOP_PERSISTENCE_MANAGER_H_
 
 #include <functional>
-#include <memory>"
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>

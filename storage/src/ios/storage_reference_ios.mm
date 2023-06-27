@@ -71,7 +71,7 @@ StorageReferenceInternal& StorageReferenceInternal::operator=(
 StorageReferenceInternal::StorageReferenceInternal(StorageReferenceInternal&& other)
     : storage_(other.storage_), impl_(std::move(other.impl_)) {
   other.storage_ = nullptr;
-  other.impl_ = MakeUnique<FIRStorageReferencePointer>(nil);
+  other.impl_ = std::make_unique<FIRStorageReferencePointer>(nil);
   storage_->future_manager().MoveFutureApi(&other, this);
 }
 
@@ -80,7 +80,7 @@ StorageReferenceInternal& StorageReferenceInternal::operator=(
   storage_ = other.storage_;
   impl_ = std::move(other.impl_);
   other.storage_ = nullptr;
-  other.impl_ = MakeUnique<FIRStorageReferencePointer>(nil);
+  other.impl_ = std::make_unique<FIRStorageReferencePointer>(nil);
   storage_->future_manager().MoveFutureApi(&other, this);
   return *this;
 }
@@ -92,7 +92,7 @@ Storage* StorageReferenceInternal::storage() {
 
 StorageReferenceInternal* StorageReferenceInternal::Child(const char* path) const {
   return new StorageReferenceInternal(
-      storage_, MakeUnique<FIRStorageReferencePointer>([impl() child:@(path)]));
+      storage_, std::make_unique<FIRStorageReferencePointer>([impl() child:@(path)]));
 }
 
 Future<void> StorageReferenceInternal::Delete() {
@@ -249,7 +249,7 @@ Future<Metadata> StorageReferenceInternal::GetMetadata() {
     if (metadata != nil) {
       future_impl->CompleteWithResult(
           handle, error_code, error_string,
-          Metadata(new MetadataInternal(storage, MakeUnique<FIRStorageMetadataPointer>(metadata))));
+          Metadata(new MetadataInternal(storage, std::make_unique<FIRStorageMetadataPointer>(metadata))));
     } else {
       future_impl->CompleteWithResult(handle, error_code, error_string, Metadata(nullptr));
     }
@@ -277,7 +277,7 @@ Future<Metadata> StorageReferenceInternal::UpdateMetadata(const Metadata* metada
       future_impl->CompleteWithResult(
           handle, error_code, error_string,
           Metadata(
-              new MetadataInternal(storage, MakeUnique<FIRStorageMetadataPointer>(metadata_impl))));
+              new MetadataInternal(storage, std::make_unique<FIRStorageMetadataPointer>(metadata_impl))));
     } else {
       future_impl->CompleteWithResult(handle, error_code, error_string,
                                       Metadata(nullptr));
@@ -297,7 +297,7 @@ std::string StorageReferenceInternal::name() { return std::string(impl().name.UT
 
 StorageReferenceInternal* StorageReferenceInternal::GetParent() {
   return new StorageReferenceInternal(storage_,
-                                      MakeUnique<FIRStorageReferencePointer>(impl().parent));
+                                      std::make_unique<FIRStorageReferencePointer>(impl().parent));
 }
 
 Future<Metadata> StorageReferenceInternal::PutBytes(
@@ -322,7 +322,7 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
       future_impl->CompleteWithResult(
           handle, error_code, error_string,
           Metadata(new MetadataInternal(
-              storage, MakeUnique<FIRStorageMetadataPointer>(resultant_metadata))));
+              storage, std::make_unique<FIRStorageMetadataPointer>(resultant_metadata))));
     } else {
       future_impl->CompleteWithResult(handle, error_code, error_string, Metadata(nullptr));
     }
@@ -387,7 +387,7 @@ Future<Metadata> StorageReferenceInternal::PutFile(
       future_impl->CompleteWithResult(
           handle, error_code, error_string,
           Metadata(new MetadataInternal(
-              storage, MakeUnique<FIRStorageMetadataPointer>(resultant_metadata))));
+              storage, std::make_unique<FIRStorageMetadataPointer>(resultant_metadata))));
     } else {
       future_impl->CompleteWithResult(handle, error_code, error_string, Metadata(nullptr));
     }

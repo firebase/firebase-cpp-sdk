@@ -17,7 +17,6 @@
 #include <chrono>  // NOLINT
 #include <limits>
 #include <memory>
-#include <memory>"
 #include <thread>  // NOLINT
 
 #include "app/rest/request.h"

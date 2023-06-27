@@ -15,7 +15,6 @@
 #include "database/src/desktop/database_desktop.h"
 
 #include <memory>
-#include <memory>"
 #include <queue>
 #include <stack>
 
@@ -305,8 +304,8 @@ EventRegistration* DatabaseInternal::ActiveEventRegistration(
 void DatabaseInternal::EnsureRepo() {
   MutexLock lock(repo_mutex_);
   if (!repo_) {
-    repo_ = MakeUnique<Repo>(app_, this, database_url_.c_str(), &logger_,
-                             persistence_enabled_);
+    repo_ = std::make_unique<Repo>(app_, this, database_url_.c_str(), &logger_,
+                                   persistence_enabled_);
   }
 }
 

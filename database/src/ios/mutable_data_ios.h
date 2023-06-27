@@ -16,7 +16,7 @@
 #define FIREBASE_DATABASE_SRC_IOS_MUTABLE_DATA_IOS_H_
 
 #include <string>
-#include <memory>"
+#include <memory>
 #include "app/src/include/firebase/variant.h"
 #include "app/src/util_ios.h"
 #include "database/src/include/firebase/database/mutable_data.h"

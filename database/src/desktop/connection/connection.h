@@ -16,7 +16,7 @@
 #define FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_CONNECTION_H_
 
 #include <atomic>"
-#include <memory>"
+#include <memory>
 #include <sstream>
 
 #include "app/src/include/firebase/variant.h"

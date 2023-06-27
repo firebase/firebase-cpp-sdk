@@ -110,9 +110,9 @@ class SyncTreeTest : public Test {
   }
 
   void SetUp() override {
-    sync_tree_ = new SyncTree(MakeUnique<WriteTree>(),
-                              MakeUnique<NoopPersistenceManager>(),
-                              MakeUnique<FakeListenProvider>(&logger_));
+    sync_tree_ = new SyncTree(std::make_unique<WriteTree>(),
+                              std::make_unique<NoopPersistenceManager>(),
+                              std::make_unique<FakeListenProvider>(&logger_));
   }
 
   void TearDown() override { delete sync_tree_; }

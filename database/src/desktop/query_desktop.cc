@@ -14,7 +14,7 @@
 
 #include "database/src/desktop/query_desktop.h"
 
-#include <memory>"
+#include <memory>
 #include <sstream>
 
 #include "app/rest/transport_builder.h"
@@ -179,10 +179,10 @@ Future<DataSnapshot> QueryInternal::GetValue() {
   SafeFutureHandle<DataSnapshot> handle =
       query_future()->SafeAlloc<DataSnapshot>(kQueryFnGetValue,
                                               DataSnapshot(nullptr));
-  auto listener = MakeUnique<SingleValueListener>(database_, query_spec_,
-                                                  query_future(), handle);
+  auto listener = std::make_unique<SingleValueListener>(database_, query_spec_,
+                                                        query_future(), handle);
   void* listener_ptr = listener.get();
-  AddEventRegistration(MakeUnique<SingleValueEventRegistration>(
+  AddEventRegistration(std::make_unique<SingleValueEventRegistration>(
                            database_, Move(listener), query_spec_),
                        listener_ptr);
   return MakeFuture(query_future(), handle);
@@ -195,9 +195,9 @@ Future<DataSnapshot> QueryInternal::GetValueLastResult() {
 
 void QueryInternal::AddValueListener(ValueListener* listener) {
   ValueListenerCleanupData cleanup_data(query_spec_);
-  AddEventRegistration(
-      MakeUnique<ValueEventRegistration>(database_, listener, query_spec_),
-      static_cast<void*>(listener));
+  AddEventRegistration(std::make_unique<ValueEventRegistration>(
+                           database_, listener, query_spec_),
+                       static_cast<void*>(listener));
   database_->RegisterValueListener(query_spec_, listener,
                                    std::move(cleanup_data));
 }
@@ -261,9 +261,9 @@ void QueryInternal::RemoveEventRegistration(ChildListener* listener,
 
 void QueryInternal::AddChildListener(ChildListener* listener) {
   ChildListenerCleanupData cleanup_data(query_spec_);
-  AddEventRegistration(
-      MakeUnique<ChildEventRegistration>(database_, listener, query_spec_),
-      static_cast<void*>(listener));
+  AddEventRegistration(std::make_unique<ChildEventRegistration>(
+                           database_, listener, query_spec_),
+                       static_cast<void*>(listener));
   database_->RegisterChildListener(query_spec_, listener,
                                    std::move(cleanup_data));
 }

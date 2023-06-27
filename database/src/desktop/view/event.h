@@ -15,7 +15,7 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_VIEW_EVENT_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_VIEW_EVENT_H_
 
-#include <memory>"
+#include <memory>
 #include <string>
 
 #include "app/src/optional.h"

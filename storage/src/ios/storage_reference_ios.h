@@ -15,7 +15,7 @@
 #ifndef FIREBASE_STORAGE_SRC_IOS_STORAGE_REFERENCE_IOS_H_
 #define FIREBASE_STORAGE_SRC_IOS_STORAGE_REFERENCE_IOS_H_
 
-#include <memory>"
+#include <memory>
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/reference_counted_future_impl.h"

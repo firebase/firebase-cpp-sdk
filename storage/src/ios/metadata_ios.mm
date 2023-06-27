@@ -84,7 +84,7 @@ MetadataInternal::MetadataInternal(MetadataInternal&& other) {
   storage_ = other.storage_;
   other.storage_ = nullptr;
   impl_ = std::move(other.impl_);
-  other.impl_ = MakeUnique<FIRStorageMetadataPointer>([[FIRStorageMetadata alloc] init]);
+  other.impl_ = std::make_unique<FIRStorageMetadataPointer>([[FIRStorageMetadata alloc] init]);
   custom_metadata_ = std::move(other.custom_metadata_);
 }
 
@@ -92,7 +92,7 @@ MetadataInternal& MetadataInternal::operator=(MetadataInternal&& other) {
   storage_ = other.storage_;
   other.storage_ = nullptr;
   impl_ = other.impl_;
-  other.impl_ = MakeUnique<FIRStorageMetadataPointer>([[FIRStorageMetadata alloc] init]);
+  other.impl_ = std::make_unique<FIRStorageMetadataPointer>([[FIRStorageMetadata alloc] init]);
   if (custom_metadata_) delete custom_metadata_;
   custom_metadata_ = std::move(other.custom_metadata_);
   return *this;
@@ -185,7 +185,7 @@ const char* MetadataInternal::path() { return NSStringToCString(impl().path, &pa
 StorageReferenceInternal* MetadataInternal::GetReference() {
   if (storage_ && impl()) {
     return new StorageReferenceInternal(
-        storage_, MakeUnique<FIRStorageReferencePointer>(impl().storageReference));
+        storage_, std::make_unique<FIRStorageReferencePointer>(impl().storageReference));
   } else {
     return nullptr;
   }
