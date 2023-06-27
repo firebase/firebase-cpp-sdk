@@ -16,7 +16,7 @@
 
 #include "firestore/src/jni/declaration.h"
 
-#include <memory>
+#include "app/memory/unique_ptr.h"
 #include "app/src/util_android.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/hash_map.h"

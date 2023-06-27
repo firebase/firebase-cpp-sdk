@@ -71,26 +71,6 @@ struct Event {
     event_registration_ownership_ptr = std::move(_event_registration);
   }
 
-  Event(const Event& src)
-      : type(src.type),
-        event_registration(src.event_registration),
-        snapshot(src.snapshot),
-        prev_name(src.prev_name),
-        error(src.error),
-        path(src.path),
-        event_registration_ownership_ptr(std::move(src.event_registration_ownership_ptr)) {}
-
-  Event& operator=(const Event& src) {
-    type = src.type;
-    event_registration = src.event_registration;
-    snapshot = src.snapshot;
-    prev_name = src.prev_name;
-    error = src.error;
-    path = src.path;
-    event_registration_ownership_ptr = std::move(src.event_registration_ownership_ptr);
-    return *this;
-  }
-
   // The type of the event.
   EventType type;
 
@@ -110,16 +90,13 @@ struct Event {
   Path path;
 
   // If the Event is a cancel event, the event registration is removed from the
-  // View it is attached to. Since they are stored in std::unique_ptrs this
-  // would normally mean they get deallocated when they're removed, but we need
-  // it to live long enough to fire the Event. So instead, the event takes
-  // ownership of the pointer.
+  // View it is attached to. Since they are stored in std::shared_ptrs, they are
+  // only deallocated when all references are gone.
   //
-  // This field is not used to access any data, it's only used
-  // to take ownership. To keep the code streamlined, any time the pointer is
-  // needed, owned or not, it will go through the event_registration field
-  // above.
-  mutable std::unique_ptr<EventRegistration> event_registration_ownership_ptr;
+  // This field is not used to access any data, it's only used to take
+  // ownership. To keep the code streamlined, any time the pointer is needed,
+  // owned or not, it will go through the event_registration field above.
+  std::shared_ptr<EventRegistration> event_registration_ownership_ptr;
 };
 
 inline bool operator==(const Event& lhs, const Event& rhs) {

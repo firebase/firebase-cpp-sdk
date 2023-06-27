@@ -217,13 +217,14 @@ void QueryInternal::AddEventRegistration(
   database_->AddEventRegistration(query_spec_, listener_ptr,
                                   registration.get());
   Repo::scheduler().Schedule(NewCallback(
-      [](Repo::ThisRef ref, std::unique_ptr<EventRegistration> registration) {
+      [](Repo::ThisRef ref, EventRegistration* registration_released) {
         Repo::ThisRefLock lock(&ref);
+        std::unique_ptr<EventRegistration> registration(registration_released);
         if (lock.GetReference() != nullptr) {
           lock.GetReference()->AddEventCallback(std::move(registration));
         }
       },
-      database_->repo()->this_ref(), std::move(registration)));
+      database_->repo()->this_ref(), registration.release()));
 }
 
 void QueryInternal::RemoveEventRegistration(void* listener_ptr,

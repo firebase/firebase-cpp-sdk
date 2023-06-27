@@ -368,9 +368,10 @@ void PersistentConnection::Listen(const QuerySpec& query_spec, const Tag& tag,
   // listen_id is used to search for QuerySpec later when the response message
   // is received.
   uint64_t listen_id = next_listen_id_++;
-  auto it = listens_.insert(std::move(std::pair<QuerySpec, OutstandingListenPtr>(
-      query_spec, std::move(std::make_unique<OutstandingListen>(
-                      query_spec, tag, response, listen_id)))));
+  auto it =
+      listens_.insert(std::move(std::pair<QuerySpec, OutstandingListenPtr>(
+          query_spec, std::move(std::make_unique<OutstandingListen>(
+                          query_spec, tag, response, listen_id)))));
   listen_id_to_query_[listen_id] = query_spec;
 
   // If the connection is established, send the request immediately.  Otherwise,
@@ -397,7 +398,8 @@ void PersistentConnection::Unlisten(const QuerySpec& query_spec) {
 void PersistentConnection::Put(const Path& path, const Variant& data,
                                ResponsePtr response) {
   CheckAuthTokenAndSendOnChange();
-  PutInternal(kRequestActionPut, path, data, /*hash=*/nullptr, std::move(response));
+  PutInternal(kRequestActionPut, path, data, /*hash=*/nullptr,
+              std::move(response));
 }
 
 void PersistentConnection::CompareAndPut(const Path& path, const Variant& data,
@@ -435,7 +437,8 @@ void PersistentConnection::OnDisconnectPut(const Path& path,
                                            ResponsePtr response) {
   CheckAuthTokenAndSendOnChange();
   if (CanSendWrites()) {
-    SendOnDisconnect(kRequestActionOnDisconnectPut, path, data, std::move(response));
+    SendOnDisconnect(kRequestActionOnDisconnectPut, path, data,
+                     std::move(response));
   } else {
     outstanding_ondisconnects_.push(std::make_unique<OutstandingOnDisconnect>(
         kRequestActionOnDisconnectPut, path, data, std::move(response)));
@@ -1031,8 +1034,8 @@ void PersistentConnection::SendSensitive(const char* action, bool sensitive,
   realtime_->Send(request, sensitive);
 
   // TODO(chkuang): Add timeout handle
-  request_map_[rn] =
-      std::make_unique<RequestData>(std::move(response), callback, outstanding_id);
+  request_map_[rn] = std::make_unique<RequestData>(std::move(response),
+                                                   callback, outstanding_id);
 }
 
 void PersistentConnection::RestoreOutstandingRequests() {
@@ -1108,9 +1111,10 @@ void PersistentConnection::SendAuthToken(const std::string& token,
   logger_->LogDebug("%s Sending auth token", log_id_.c_str());
   Variant request = Variant::EmptyMap();
   request.map()[kRequestCredential] = token;
-  SendSensitive(kRequestActionAuth, true, request,
-                std::make_shared<SendAuthResponse>(restore_outstanding_on_response),
-                &PersistentConnection::HandleAuthTokenResponse, 0);
+  SendSensitive(
+      kRequestActionAuth, true, request,
+      std::make_shared<SendAuthResponse>(restore_outstanding_on_response),
+      &PersistentConnection::HandleAuthTokenResponse, 0);
 }
 
 void PersistentConnection::SendUnauth() {

@@ -18,7 +18,7 @@
 
 #include <jni.h>
 
-#include <memory>
+#include "app/memory/unique_ptr.h"
 #include "firestore/src/jni/jni.h"
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/traits.h"

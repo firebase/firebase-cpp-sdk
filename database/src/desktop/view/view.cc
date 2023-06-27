@@ -64,7 +64,7 @@ View::View(const QuerySpec& query_spec, const ViewCache& initial_view_cache)
 
 View::View(const View& other)
     : query_spec_(std::move(const_cast<View*>(&other)->query_spec_)),
-      view_processor_(const_cast<View*>(&other)->view_processor_),
+      view_processor_(std::move(const_cast<View*>(&other)->view_processor_)),
       view_cache_(std::move(const_cast<View*>(&other)->view_cache_)),
       event_registrations_(
           std::move(const_cast<View*>(&other)->event_registrations_)) {}
@@ -80,7 +80,7 @@ View& View::operator=(const View& other) {
 
 View::View(View&& other)
     : query_spec_(std::move(other.query_spec_)),
-      view_processor_(other.view_processor_),
+      view_processor_(std::move(other.view_processor_)),
       view_cache_(std::move(other.view_cache_)),
       event_registrations_(std::move(other.event_registrations_)) {}
 
@@ -214,7 +214,7 @@ std::vector<Event> View::GenerateEvents(const std::vector<Change>& changes,
       query_spec_, changes, event_cache, registrations);
 
   // Clean up the temporary vector we filled in initially.
-  for (auto temp_registration : temp_registrations) {
+  for (auto& temp_registration : temp_registrations) {
     temp_registration.release();
   }
   return results;

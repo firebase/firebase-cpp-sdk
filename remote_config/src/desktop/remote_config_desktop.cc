@@ -163,8 +163,8 @@ Future<bool> RemoteConfigInternal::FetchAndActivate() {
   if (!is_fetch_process_have_task_ &&
       ((cache_expiration_in_seconds_ == 0) ||
        (cache_expiration_timestamp < milliseconds_since_epoch))) {
-    auto data_handle =
-        std::make_shared<RCDataHandle<bool>>(&future_impl_, future_handle, this);
+    auto data_handle = std::make_shared<RCDataHandle<bool>>(
+        &future_impl_, future_handle, this);
 
     auto callback = NewCallback(
         [](ThisRef ref, std::shared_ptr<RCDataHandle<bool>> handle) {
@@ -631,8 +631,8 @@ Future<void> RemoteConfigInternal::Fetch(uint64_t cache_expiration_in_seconds) {
   if (!is_fetch_process_have_task_ &&
       ((cache_expiration_in_seconds_ == 0) ||
        (cache_expiration_timestamp < milliseconds_since_epoch))) {
-    auto data_handle =
-        std::make_shared<RCDataHandle<void>>(&future_impl_, future_handle, this);
+    auto data_handle = std::make_shared<RCDataHandle<void>>(
+        &future_impl_, future_handle, this);
 
     auto callback = NewCallback(
         [](ThisRef ref, std::shared_ptr<RCDataHandle<void>> handle) {
