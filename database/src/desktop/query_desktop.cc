@@ -141,7 +141,7 @@ class SingleValueEventRegistration : public ValueEventRegistration {
       : ValueEventRegistration(database, listener.get(), query_spec),
         active_(true),
         database_(database),
-        listener_(Move(listener)) {}
+        listener_(std::move(listener)) {}
 
   void FireEvent(const Event& event) override {
     if (active_) {
@@ -220,7 +220,7 @@ void QueryInternal::AddEventRegistration(
       [](Repo::ThisRef ref, std::unique_ptr<EventRegistration> registration) {
         Repo::ThisRefLock lock(&ref);
         if (lock.GetReference() != nullptr) {
-          lock.GetReference()->AddEventCallback(Move(registration));
+          lock.GetReference()->AddEventCallback(std::move(registration));
         }
       },
       database_->repo()->this_ref(), std::move(registration)));

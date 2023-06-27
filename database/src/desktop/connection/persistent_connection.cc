@@ -368,7 +368,7 @@ void PersistentConnection::Listen(const QuerySpec& query_spec, const Tag& tag,
   // listen_id is used to search for QuerySpec later when the response message
   // is received.
   uint64_t listen_id = next_listen_id_++;
-  auto it = listens_.insert(Move(std::pair<QuerySpec, OutstandingListenPtr>(
+  auto it = listens_.insert(std::move(std::pair<QuerySpec, OutstandingListenPtr>(
       query_spec, std::move(std::make_unique<OutstandingListen>(
                       query_spec, tag, response, listen_id)))));
   listen_id_to_query_[listen_id] = query_spec;
@@ -977,7 +977,7 @@ void PersistentConnection::CancelSentTransactions() {
     if (it_put->second->data.map().find(kRequestDataHash) !=
             it_put->second->data.map().end() &&
         it_put->second->WasSent()) {
-      cancelled_transaction_writes.push_back(Move(it_put->second));
+      cancelled_transaction_writes.push_back(std::move(it_put->second));
       outstanding_puts_.erase(it_put);
     } else {
       ++it_put;
@@ -1032,7 +1032,7 @@ void PersistentConnection::SendSensitive(const char* action, bool sensitive,
 
   // TODO(chkuang): Add timeout handle
   request_map_[rn] =
-      std::make_unique<RequestData>(Move(response), callback, outstanding_id);
+      std::make_unique<RequestData>(std::move(response), callback, outstanding_id);
 }
 
 void PersistentConnection::RestoreOutstandingRequests() {
