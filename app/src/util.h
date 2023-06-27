@@ -240,6 +240,7 @@ std::vector<std::string> SplitString(const std::string& s, char delimiter);
 
 // Helper function to combine a string and other object into a unique
 // identifier. Primarily used to manage listening to JNI Tasks on Android.
+// Note that repeated calls are expected to return different values.
 std::string CreateApiIdentifier(const char* api_id, void* object);
 
 }  // namespace firebase
