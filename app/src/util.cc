@@ -348,9 +348,9 @@ static int g_api_identifier_count = 0;
 std::string CreateApiIdentifier(const char* api_id, void* object) {
   std::string created;
   const char* format = "%s0x%016llx_%d";
-  unsigned long long object_ptr =  // NOLINT
+  unsigned long long object_ptr =       // NOLINT
       static_cast<unsigned long long>(  // NOLINT
-        reinterpret_cast<intptr_t>(object));
+          reinterpret_cast<intptr_t>(object));
   int extra_id = g_api_identifier_count++;
   int size = snprintf(nullptr, 0, format, api_id, object_ptr, extra_id) + 1;
   created.reserve(size);
