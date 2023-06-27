@@ -206,7 +206,7 @@ class OnDisconnectResponse : public connection::Response {
 void Repo::OnDisconnectSetValue(const SafeFutureHandle<void>& handle,
                                 ReferenceCountedFutureImpl* ref_future,
                                 const Path& path, const Variant& data) {
-  connection::ResponsePtr response = MakeShared<OnDisconnectResponse>(
+  connection::ResponsePtr response = std::make_shared<OnDisconnectResponse>(
       this, handle, ref_future, path, data,
       [](const connection::ResponsePtr& ptr) {
         OnDisconnectResponse* response =
@@ -236,7 +236,7 @@ void Repo::OnDisconnectSetValue(const SafeFutureHandle<void>& handle,
 void Repo::OnDisconnectCancel(const SafeFutureHandle<void>& handle,
                               ReferenceCountedFutureImpl* ref_future,
                               const Path& path) {
-  connection::ResponsePtr response = MakeShared<OnDisconnectResponse>(
+  connection::ResponsePtr response = std::make_shared<OnDisconnectResponse>(
       this, handle, ref_future, path, Variant::Null(),
       [](const connection::ResponsePtr& ptr) {
         OnDisconnectResponse* response =
@@ -265,7 +265,7 @@ void Repo::OnDisconnectCancel(const SafeFutureHandle<void>& handle,
 void Repo::OnDisconnectUpdate(const SafeFutureHandle<void>& handle,
                               ReferenceCountedFutureImpl* ref_future,
                               const Path& path, const Variant& data) {
-  connection::ResponsePtr response = MakeShared<OnDisconnectResponse>(
+  connection::ResponsePtr response = std::make_shared<OnDisconnectResponse>(
       this, handle, ref_future, path, data,
       [](const connection::ResponsePtr& ptr) {
         OnDisconnectResponse* response =
@@ -357,7 +357,7 @@ void Repo::SetValue(const Path& path, const Variant& new_data_unresolved,
   PostEvents(events);
 
   connection_->Put(path, new_data_unresolved,
-                   MakeShared<SetValueResponse>(
+                   std::make_shared<SetValueResponse>(
                        Repo::ThisRef(this), path, write_id, api, handle,
                        [](const connection::ResponsePtr& ptr) {
                          auto* response =
@@ -396,7 +396,7 @@ void Repo::UpdateChildren(const Path& path, const Variant& data,
   PostEvents(events);
 
   connection_->Merge(path, data,
-                     MakeShared<SetValueResponse>(
+                     std::make_shared<SetValueResponse>(
                          Repo::ThisRef(this), path, write_id, api, handle,
                          [](const connection::ResponsePtr& ptr) {
                            auto* response =
@@ -670,7 +670,7 @@ void Repo::StartTransaction(const Path& path,
   AddEventCallback(std::make_unique<ValueEventRegistration>(
       database_, listener_ptr, query_spec));
 
-  TransactionDataPtr transaction_data = MakeShared<TransactionData>(
+  TransactionDataPtr transaction_data = std::make_shared<TransactionData>(
       handle, api, query_spec.path, transaction_function, context,
       delete_context, trigger_local_events, std::move(listener));
 
@@ -906,7 +906,7 @@ void Repo::SendTransactionQueue(const std::vector<TransactionDataPtr>& queue,
                      transaction->current_output_snapshot_raw);
   }
 
-  connection::ResponsePtr response = MakeShared<TransactionResponse>(
+  connection::ResponsePtr response = std::make_shared<TransactionResponse>(
       safe_this_, path, queue, [](const connection::ResponsePtr& ptr) {
         TransactionResponse* response =
             static_cast<TransactionResponse*>(ptr.get());

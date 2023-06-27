@@ -71,7 +71,7 @@ struct TransactionData {
         context(context),
         delete_context(delete_context),
         trigger_local_events(trigger_local_events),
-        outstanding_listener(outstanding_listener),
+        outstanding_listener(std::move(outstanding_listener)),
         status(kStatusInitializing),
         retry_count(0) {}
 

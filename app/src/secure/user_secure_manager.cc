@@ -81,7 +81,7 @@ Future<std::string> UserSecureManager::LoadUserData(
   const auto future_handle =
       future_api_.SafeAlloc<std::string>(kUserSecureFnLoad);
 
-  auto data_handle = MakeShared<UserSecureDataHandle<std::string>>(
+  auto data_handle = std::make_shared<UserSecureDataHandle<std::string>>(
       app_name, "", &future_api_, future_handle);
 
   auto callback = NewCallback(
@@ -117,7 +117,7 @@ Future<void> UserSecureManager::SaveUserData(const std::string& app_name,
                                              const std::string& user_data) {
   const auto future_handle = future_api_.SafeAlloc<void>(kUserSecureFnSave);
 
-  auto data_handle = MakeShared<UserSecureDataHandle<void>>(
+  auto data_handle = std::make_shared<UserSecureDataHandle<void>>(
       app_name, user_data, &future_api_, future_handle);
 
   auto callback = NewCallback(
@@ -140,7 +140,7 @@ Future<void> UserSecureManager::SaveUserData(const std::string& app_name,
 Future<void> UserSecureManager::DeleteUserData(const std::string& app_name) {
   const auto future_handle = future_api_.SafeAlloc<void>(kUserSecureFnDelete);
 
-  auto data_handle = MakeShared<UserSecureDataHandle<void>>(
+  auto data_handle = std::make_shared<UserSecureDataHandle<void>>(
       app_name, "", &future_api_, future_handle);
 
   auto callback = NewCallback(
@@ -163,7 +163,7 @@ Future<void> UserSecureManager::DeleteUserData(const std::string& app_name) {
 Future<void> UserSecureManager::DeleteAllData() {
   auto future_handle = future_api_.SafeAlloc<void>(kUserSecureFnDeleteAll);
 
-  auto data_handle = MakeShared<UserSecureDataHandle<void>>(
+  auto data_handle = std::make_shared<UserSecureDataHandle<void>>(
       "", "", &future_api_, future_handle);
 
   auto callback = NewCallback(

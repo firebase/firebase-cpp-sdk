@@ -15,7 +15,7 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_PERSISTENT_CONNECTION_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_PERSISTENT_CONNECTION_H_
 
-#include <atomic>"
+#include <atomic>
 #include <cassert>
 #include <map>
 #include <memory>

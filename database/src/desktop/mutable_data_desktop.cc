@@ -33,7 +33,7 @@ namespace internal {
 
 MutableDataInternal::MutableDataInternal(DatabaseInternal* database,
                                          const Variant& data)
-    : db_(database), path_(), holder_(MakeShared<Variant>(data)) {
+    : db_(database), path_(), holder_(std::make_shared<Variant>(data)) {
   if (HasVector(*holder_)) {
     ConvertVectorToMap(holder_.get());
   }

@@ -1109,7 +1109,7 @@ void PersistentConnection::SendAuthToken(const std::string& token,
   Variant request = Variant::EmptyMap();
   request.map()[kRequestCredential] = token;
   SendSensitive(kRequestActionAuth, true, request,
-                MakeShared<SendAuthResponse>(restore_outstanding_on_response),
+                std::make_shared<SendAuthResponse>(restore_outstanding_on_response),
                 &PersistentConnection::HandleAuthTokenResponse, 0);
 }
 

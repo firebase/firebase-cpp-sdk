@@ -70,7 +70,7 @@ class RequestHandle {
   bool Cancel();
 
   // Return true if the handler is pointing to a request
-  bool IsValid() const { return status_; }
+  bool IsValid() const { return (status_ != nullptr); }
 
   // Thread-safe call to check if the scheduled callback has been cancelled.
   bool IsCancelled() const;

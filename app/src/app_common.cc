@@ -296,7 +296,7 @@ App* AddApp(App* app, std::map<std::string, InitResult>* results) {
     g_apps = new std::map<std::string, std::unique_ptr<AppData>>();
     created_first_app = true;
   }
-  (*g_apps)[std::string(app->name())] = app_data;
+  (*g_apps)[std::string(app->name())] = std::move(app_data);
   // Create a cleanup notifier for the app.
   {
     const AppOptions& app_options = app->options();

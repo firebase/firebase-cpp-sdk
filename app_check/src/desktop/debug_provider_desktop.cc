@@ -106,7 +106,7 @@ void DebugAppCheckProvider::GetToken(
   }
 
   // Exchange debug token with the backend to get a proper attestation token.
-  auto request = MakeShared<DebugTokenRequest>(app_);
+  auto request = std::make_shared<DebugTokenRequest>(app_);
   request->SetDebugToken(debug_token_cstr);
 
   // Use an async call, since we don't want to block on the server response.

@@ -123,7 +123,7 @@ class CallbackDispatcher {
   // Add a callback to the dispatch queue returning a reference
   // to the entry which can be optionally be removed prior to dispatch.
   void* AddCallback(Callback* callback) {
-    auto entry = MakeShared<CallbackEntry>(callback, &execution_mutex_);
+    auto entry = std::make_shared<CallbackEntry>(callback, &execution_mutex_);
     MutexLock lock(*queue_.mutex());
     queue_.push_back(entry);
     return entry.get();

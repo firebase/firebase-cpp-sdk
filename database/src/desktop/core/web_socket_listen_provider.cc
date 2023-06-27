@@ -61,7 +61,7 @@ void WebSocketListenProvider::StartListening(const QuerySpec& query_spec,
                                              const Tag& tag, const View* view) {
   connection_->Listen(
       query_spec, tag,
-      MakeShared<WebSocketListenResponse>(
+      std::make_shared<WebSocketListenResponse>(
           [](const std::shared_ptr<connection::Response>& connection_response) {
             WebSocketListenResponse* response =
                 static_cast<WebSocketListenResponse*>(
