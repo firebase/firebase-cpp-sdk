@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Google LLC
+ * Copyright 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,6 @@ namespace {
 
 using firebase::firestore::FirestoreAndroidIntegrationTest;
 using firebase::firestore::RefersToSameJavaObjectAs;
-using firebase::firestore::jni::AdoptExisting;
 using firebase::firestore::jni::ArenaRef;
 using firebase::firestore::jni::Env;
 using firebase::firestore::jni::Local;

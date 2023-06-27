@@ -59,17 +59,29 @@ class MethodLoader {
   jclass java_class_{};
 };
 
-// Wrapper class for calling methods on the `ObjectArena` Java class.
-// `Initialize()` must be invoked _before_ calling *any* other static or
-// non-static member functions. After calling `Initialize()`, the initialized
-// global singleton instance can be retrieved using `GetInstance()`.
+// Helper class for calling methods on the Java `ObjectArena` class.
 class ObjectArena {
  public:
+  // Disable copy and move, since this class has a global singleton instance.
   ObjectArena(const ObjectArena&) = delete;
   ObjectArena(ObjectArena&&) = delete;
   ObjectArena& operator=(const ObjectArena&) = delete;
   ObjectArena& operator=(ObjectArena&&) = delete;
 
+  // Delete the destructor to prevent the global singleton instance from being
+  // deleted.
+  ~ObjectArena() = delete;
+
+  // Initialize the global singleton instance of this class.
+  // This function must be invoked prior to invoking any other static or
+  // non-static member functions in this class.
+  // This function is NOT thread-safe, and must not be invoked concurrently.
+  static void Initialize(Loader& loader) {
+    GetOrCreateSingletonInstance().Initialize_(loader);
+  }
+
+  // Returns a reference to the global singleton instance of this class.
+  // Note that `Initialize()` must be called before this function.
   static const ObjectArena& GetInstance() {
     const ObjectArena& instance = GetOrCreateSingletonInstance();
     FIREBASE_ASSERT_MESSAGE(instance.initialized_,
@@ -77,10 +89,7 @@ class ObjectArena {
     return instance;
   }
 
-  static void Initialize(Loader& loader) {
-    GetOrCreateSingletonInstance().Initialize_(loader);
-  }
-
+  // Calls the Java method ObjectArena.set() with the given arguments.
   void Set(Env& env, jlong id, jobject value) const {
     if (!env.ok()) {
       return;
@@ -88,6 +97,8 @@ class ObjectArena {
     env.get()->CallStaticVoidMethod(java_class_, set_, id, value);
   }
 
+  // Calls the Java method ObjectArena.get() with the given argument, returning
+  // whatever it returns.
   jobject Get(Env& env, jlong id) const {
     if (!env.ok()) {
       return nullptr;
@@ -99,6 +110,7 @@ class ObjectArena {
     return result;
   }
 
+  // Calls the Java method ObjectArena.remove() with the given argument.
   void Remove(Env& env, jlong id) const {
     if (!env.ok()) {
       return;
@@ -107,9 +119,15 @@ class ObjectArena {
   }
 
  private:
+  // Make the constructor private so that instances cannot be created, except
+  // for the global singleton instance.
   ObjectArena() = default;
 
   static ObjectArena& GetOrCreateSingletonInstance() {
+    // Create the global singleton instance on the heap so that the destructor
+    // is never invoked. This avoids potential use-after-free issues on
+    // application shutdown where some other static object's destructor tries to
+    // use the global singleton instance _after_ its destructor has run.
     static auto* instance = new ObjectArena;
     return *instance;
   }
@@ -176,7 +194,7 @@ class ArenaRef::ObjectArenaEntry final {
     if (!env.ok()) {
       env.get()->ExceptionDescribe();
       env.get()->ExceptionClear();
-      firebase::LogWarning("ArenaRefSharedPtrDeleter() failed");
+      firebase::LogWarning("~ObjectArenaEntry(): ObjectArena::Remove() failed");
     }
   }
 
@@ -191,7 +209,7 @@ class ArenaRef::ObjectArenaEntry final {
  private:
   static jlong GenerateUniqueId() {
     // Start the IDs at a large number with an easily-identifiable prefix to
-    // make it easier to determine if an instance's ID is "valid" while
+    // make it easier to determine if an instance's ID is "valid" during
     // debugging. Even though this initial value is large, it still leaves room
     // for almost nine quintillion (8,799,130,036,854,775,807) positive values,
     // which should be enough :)
@@ -199,7 +217,7 @@ class ArenaRef::ObjectArenaEntry final {
     return gNextId.fetch_add(1);
   }
 
-  // Mark `id_` as `const` to solidify the expectation that instances are
+  // Mark `id_` as `const` to reinforce the expectation that instances are
   // immutable and do not support copy/move assignment.
   const jlong id_;
 };
