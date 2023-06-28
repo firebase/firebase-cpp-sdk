@@ -217,8 +217,18 @@ void QueryInternal::AddEventRegistration(
     std::unique_ptr<EventRegistration> registration, void* listener_ptr) {
   database_->AddEventRegistration(query_spec_, listener_ptr,
                                   registration.get());
-  // Wrap the registration pointer into a shared pointer, so we can pass it
-  // safely to the callback.
+  // NewCallback() does not allow you to pass in a move-only object
+  // such as the unique_ptr above. To avoid the need for that, we can
+  // wrap the unique_ptr into a shared_ptr. This will allow us to
+  // safely pass it to the callback, which will then release the pointer
+  // from the unique_ptr and create its own unique_ptr.
+  //
+  // This guarantees that the pointer is always owned by something: either the
+  // shared_ptr created here, or (once it's removed from the inner unique_ptr)
+  // the newly-created unique_ptr in the callback.
+  //
+  // TODO(b/289284829): Refactor NewCallback to support move semantics for
+  // callback arguments.
   std::shared_ptr<std::unique_ptr<EventRegistration>> reg_wrapped =
       std::make_shared<std::unique_ptr<EventRegistration>>(
           std::move(registration));
