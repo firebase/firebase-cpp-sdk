@@ -17,14 +17,13 @@
 #include <jni.h>
 
 #include "app/src/include/firebase/app.h"
+#include "app/src/util.h"
 #include "app/src/util_android.h"
 #include "functions/src/android/callable_reference_android.h"
 
 namespace firebase {
 namespace functions {
 namespace internal {
-
-const char kApiIdentifier[] = "Functions";
 
 // clang-format off
 #define FIREBASE_FUNCTIONS_METHODS(X)                                   \
@@ -86,6 +85,8 @@ FunctionsInternal::FunctionsInternal(App* app, const char* region)
   app_ = nullptr;
   if (!Initialize(app)) return;
   app_ = app;
+  const char kApiIdentifier[] = "Functions";
+  jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
   JNIEnv* env = app_->GetJNIEnv();
   jstring region_str = env->NewStringUTF(region);
   jobject platform_app = app_->GetPlatformApp();
@@ -106,6 +107,7 @@ FunctionsInternal::~FunctionsInternal() {
   if (app_ == nullptr) return;
 
   JNIEnv* env = app_->GetJNIEnv();
+  util::CancelCallbacks(env, jni_task_id_.c_str());
   env->DeleteGlobalRef(obj_);
   obj_ = nullptr;
   Terminate(app_);

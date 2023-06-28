@@ -15,6 +15,8 @@
 #ifndef FIREBASE_REMOTE_CONFIG_SRC_ANDROID_REMOTE_CONFIG_ANDROID_H_
 #define FIREBASE_REMOTE_CONFIG_SRC_ANDROID_REMOTE_CONFIG_ANDROID_H_
 
+#include <string>
+
 #include "app/meta/move.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/common.h"
@@ -124,6 +126,9 @@ class RemoteConfigInternal {
   // If a fetch was throttled, this is set to the time when throttling is
   // finished, in milliseconds since epoch.
   int64_t throttled_end_time_ = 0;
+
+  // String to be used when registering for JNI task callbacks.
+  std::string jni_task_id_;
 };
 
 }  // namespace internal

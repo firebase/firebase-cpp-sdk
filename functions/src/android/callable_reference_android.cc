@@ -188,7 +188,7 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(
           handle, future(), functions_, kCallableReferenceFnCall)),
-      kApiIdentifier);
+      functions_->jni_task_id());
 
   util::CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(task);
@@ -219,7 +219,7 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(
           handle, future(), functions_, kCallableReferenceFnCall)),
-      kApiIdentifier);
+      functions_->jni_task_id());
 
   util::CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(task);
