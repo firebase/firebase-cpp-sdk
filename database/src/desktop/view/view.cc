@@ -15,6 +15,7 @@
 #include "database/src/desktop/view/view.h"
 
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "app/src/assert.h"

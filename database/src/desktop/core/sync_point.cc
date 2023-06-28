@@ -14,7 +14,9 @@
 
 #include "database/src/desktop/core/sync_point.h"
 
+#include <memory>
 #include <set>
+#include <utility>
 #include <vector>
 
 #include "app/src/log.h"

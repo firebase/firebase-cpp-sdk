@@ -15,6 +15,9 @@
 #ifndef FIREBASE_DATABASE_TESTS_DESKTOP_TEST_MOCK_PERSISTENCE_MANAGER_H_
 #define FIREBASE_DATABASE_TESTS_DESKTOP_TEST_MOCK_PERSISTENCE_MANAGER_H_
 
+#include <memory>
+#include <utility>
+
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
 #include "database/src/desktop/core/cache_policy.h"
