@@ -441,29 +441,107 @@ TEST_F(FilterTest, CompositeComparison) {
 }
 
 TEST_F(FilterTest, QueryWhereComposite) {
-  MapFieldValue doc_aa = {{"x", FieldValue::String("a")},
-                          {"y", FieldValue::String("a")}};
-  MapFieldValue doc_ab = {{"x", FieldValue::String("a")},
-                          {"y", FieldValue::String("b")}};
-  MapFieldValue doc_ba = {{"x", FieldValue::String("b")},
-                          {"y", FieldValue::String("a")}};
-  MapFieldValue doc_bb = {{"x", FieldValue::String("b")},
-                          {"y", FieldValue::String("b")}};
-  CollectionReference collection = Collection(
-      {{"aa", doc_aa}, {"ab", doc_ab}, {"ba", doc_ba}, {"bb", doc_bb}});
+  MapFieldValue doc_aaa = {{"x", FieldValue::String("a")},
+                           {"y", FieldValue::String("a")},
+                           {"z", FieldValue::String("a")}};
+  MapFieldValue doc_aab = {{"x", FieldValue::String("a")},
+                           {"y", FieldValue::String("a")},
+                           {"z", FieldValue::String("b")}};
+  MapFieldValue doc_aba = {{"x", FieldValue::String("a")},
+                           {"y", FieldValue::String("b")},
+                           {"z", FieldValue::String("a")}};
+  MapFieldValue doc_abb = {{"x", FieldValue::String("a")},
+                           {"y", FieldValue::String("b")},
+                           {"z", FieldValue::String("b")}};
+  MapFieldValue doc_baa = {{"x", FieldValue::String("b")},
+                           {"y", FieldValue::String("a")},
+                           {"z", FieldValue::String("a")}};
+  MapFieldValue doc_bab = {{"x", FieldValue::String("b")},
+                           {"y", FieldValue::String("a")},
+                           {"z", FieldValue::String("b")}};
+  MapFieldValue doc_bba = {{"x", FieldValue::String("b")},
+                           {"y", FieldValue::String("b")},
+                           {"z", FieldValue::String("a")}};
+  MapFieldValue doc_bbb = {{"x", FieldValue::String("b")},
+                           {"y", FieldValue::String("b")},
+                           {"z", FieldValue::String("b")}};
+  CollectionReference collection = Collection({{"aaa", doc_aaa},
+                                               {"aab", doc_aab},
+                                               {"aba", doc_aba},
+                                               {"abb", doc_abb},
+                                               {"baa", doc_baa},
+                                               {"bab", doc_bab},
+                                               {"bba", doc_bba},
+                                               {"bbb", doc_bbb}});
 
   Filter filter_xa = Filter::EqualTo("x", FieldValue::String("a"));
+  Filter filter_ya = Filter::EqualTo("y", FieldValue::String("a"));
   Filter filter_yb = Filter::EqualTo("y", FieldValue::String("b"));
+  Filter filter_za = Filter::EqualTo("z", FieldValue::String("a"));
 
+  // And(x=a)
   QuerySnapshot snapshot1 =
-      ReadDocuments(collection.Where(Filter::And(filter_xa, filter_yb)));
-  EXPECT_EQ(std::vector<MapFieldValue>({doc_ab}),
+      ReadDocuments(collection.Where(Filter::And(filter_xa)));
+  EXPECT_EQ(std::vector<MapFieldValue>({doc_aaa, doc_aab, doc_aba, doc_abb}),
             QuerySnapshotToValues(snapshot1));
 
+  // And(x=a, y=b)
   QuerySnapshot snapshot2 =
-      ReadDocuments(collection.Where(Filter::Or(filter_xa, filter_yb)));
-  EXPECT_EQ(std::vector<MapFieldValue>({doc_aa, doc_ab, doc_bb}),
+      ReadDocuments(collection.Where(Filter::And(filter_xa, filter_yb)));
+  EXPECT_EQ(std::vector<MapFieldValue>({doc_aba, doc_abb}),
             QuerySnapshotToValues(snapshot2));
+
+  // And(Or(And(x=a)),Or(And(Or()))
+  QuerySnapshot snapshot3 = ReadDocuments(
+      collection.Where(Filter::And(Filter::Or(Filter::And(filter_xa)),
+                                   Filter::Or(Filter::And(Filter::Or())))));
+  EXPECT_EQ(std::vector<MapFieldValue>({doc_aaa, doc_aab, doc_aba, doc_abb}),
+            QuerySnapshotToValues(snapshot3));
+
+  // Or(x=a)
+  QuerySnapshot snapshot4 =
+      ReadDocuments(collection.Where(Filter::Or(filter_xa)));
+  EXPECT_EQ(std::vector<MapFieldValue>({doc_aaa, doc_aab, doc_aba, doc_abb}),
+            QuerySnapshotToValues(snapshot4));
+
+  // Or(x=a, y=b)
+  QuerySnapshot snapshot5 =
+      ReadDocuments(collection.Where(Filter::Or(filter_xa, filter_yb)));
+  EXPECT_EQ(std::vector<MapFieldValue>(
+                {doc_aaa, doc_aab, doc_aba, doc_abb, doc_bba, doc_bbb}),
+            QuerySnapshotToValues(snapshot5));
+
+  // Or(And(Or(x=a)),And(Or(And()))
+  QuerySnapshot snapshot6 = ReadDocuments(
+      collection.Where(Filter::Or(Filter::And(Filter::Or(filter_xa)),
+                                  Filter::And(Filter::Or(Filter::And())))));
+  EXPECT_EQ(std::vector<MapFieldValue>({doc_aaa, doc_aab, doc_aba, doc_abb}),
+            QuerySnapshotToValues(snapshot6));
+
+  // And(x=b, Or(y=a, And(y=b, z=a)))
+  QuerySnapshot snapshot7 = ReadDocuments(collection.Where(Filter::And(
+      filter_xa, Filter::Or(filter_ya, Filter::And(filter_yb, filter_za)))));
+  EXPECT_EQ(std::vector<MapFieldValue>({doc_aaa, doc_aab, doc_aba}),
+            QuerySnapshotToValues(snapshot7));
+}
+
+TEST_F(FilterTest, QueryEmptyWhereComposite) {
+  MapFieldValue doc = {{"foo", FieldValue::String("bar")}};
+  CollectionReference collection = Collection({{"x", doc}});
+
+  QuerySnapshot s1 = ReadDocuments(collection.Where(Filter::And()));
+  EXPECT_EQ(std::vector<MapFieldValue>({doc}), QuerySnapshotToValues(s1));
+
+  QuerySnapshot s2 =
+      ReadDocuments(collection.Where(Filter::And(Filter::Or(), Filter::Or())));
+  EXPECT_EQ(std::vector<MapFieldValue>({doc}), QuerySnapshotToValues(s2));
+
+  QuerySnapshot s3 = ReadDocuments(collection.Where(Filter::Or()));
+  EXPECT_EQ(std::vector<MapFieldValue>({doc}), QuerySnapshotToValues(s3));
+
+  QuerySnapshot s4 =
+      ReadDocuments(collection.Where(Filter::Or(Filter::And(), Filter::And())));
+  EXPECT_EQ(std::vector<MapFieldValue>({doc}), QuerySnapshotToValues(s4));
 }
 
 }  // namespace

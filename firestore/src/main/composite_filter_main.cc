@@ -23,6 +23,7 @@
 
 #include "Firestore/core/src/core/composite_filter.h"
 #include "absl/algorithm/container.h"
+#include "firestore/src/common/util.h"
 #include "firestore/src/main/composite_filter_main.h"
 #include "firestore/src/main/converter_main.h"
 
@@ -46,7 +47,7 @@ bool CompositeFilterInternal::IsEmpty() const { return filters_.empty(); }
 core::Filter CompositeFilterInternal::ToCoreFilter(
     const api::Query& query,
     const firebase::firestore::UserDataConverter& user_data_converter) const {
-  std::vector<core::Filter> core_filters;
+  std::vector<core::Filter> core_filters{};
   for (auto& filter : filters_) {
     core_filters.push_back(filter->ToCoreFilter(query, user_data_converter));
   }
@@ -55,18 +56,14 @@ core::Filter CompositeFilterInternal::ToCoreFilter(
 
 bool operator==(const CompositeFilterInternal& lhs,
                 const CompositeFilterInternal& rhs) {
-  if (lhs.op_ != rhs.op_) return false;
-  const std::vector<std::shared_ptr<FilterInternal>>& lhs_filters =
-      lhs.filters_;
-  const std::vector<std::shared_ptr<FilterInternal>>& rhs_filters =
-      rhs.filters_;
-  size_t size = lhs_filters.size();
-  if (size != rhs_filters.size()) return false;
-  for (int i = 0; i < size; i++) {
-    if (lhs_filters[i] != rhs_filters[i] && *lhs_filters[i] != *rhs_filters[i])
-      return false;
-  }
-  return true;
+  return lhs.op_ == rhs.op_ && lhs.filters_.size() == rhs.filters_.size() &&
+         std::equal(lhs.filters_.begin(), lhs.filters_.end(),
+                    rhs.filters_.begin(), rhs.filters_.end(),
+                    [](const std::shared_ptr<FilterInternal>& lhs_filter,
+                       const std::shared_ptr<FilterInternal>& rhs_filter) {
+                      return EqualityCompare(lhs_filter.get(),
+                                             rhs_filter.get());
+                    });
 }
 
 }  // namespace firestore

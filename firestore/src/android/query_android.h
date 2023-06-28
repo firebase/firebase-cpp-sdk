@@ -71,6 +71,12 @@ class QueryInternal : public Wrapper {
    */
   virtual AggregateQuery Count() const;
 
+  /**
+   * @brief Creates and returns a new Query with the additional filter.
+   *
+   * @param filter The new filter to apply to the existing query.
+   * @return The created Query.
+   */
   Query Where(const Filter& filter) const;
 
   /**

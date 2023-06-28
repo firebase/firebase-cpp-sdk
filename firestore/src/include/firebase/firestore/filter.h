@@ -265,18 +265,13 @@ class Filter {
                       const std::vector<FieldValue>& values);
 
   /**
-   * @brief Conjunction of a single filter will simply return original filter.
-   *
-   * @param[in] filter Single filter for conjunction.
-   *
-   * @return Same as filter passed in as parameter.
-   */
-  static Filter And(const Filter filter) { return filter; }
-
-  /**
    * @brief Creates a new filter that is a conjunction of the given filters. A
    * conjunction filter includes a document if it satisfies all of the given
    * filters.
+   *
+   * If no filter is given, the composite filter is a no-op, and if only one
+   * filter is given, the composite filter has the same behavior as the
+   * underlying filter.
    *
    * @param[in] filters The filters to perform a conjunction for.
    *
@@ -284,22 +279,33 @@ class Filter {
    */
   template <typename... Filters>
   static Filter And(const Filters&... filters) {
-    return And(std::vector<Filter>({filters...}));
+    return AndInternal(filters...);
   }
 
   /**
-   * @brief Disjunction of a single filter will simply return original filter.
+   * @brief Creates a new filter that is a conjunction of the given filters. A
+   * conjunction filter includes a document if it satisfies all of the given
+   * filters.
    *
-   * @param[in] filter Single filter for disjunction.
+   * If no filter is given, the composite filter is a no-op, and if only one
+   * filter is given, the composite filter has the same behavior as the
+   * underlying filter.
    *
-   * @return Same as filter passed in as parameter.
+   * @param[in] filters The list that contains filters to perform a conjunction
+   * for.
+   *
+   * @return The newly created filter.
    */
-  static Filter Or(const Filter filter) { return filter; }
+  static Filter And(const std::vector<Filter>& filters);
 
   /**
    * @brief Creates a new filter that is a disjunction of the given filters. A
    * disjunction filter includes a document if it satisfies <em>any</em> of the
    * given filters.
+   *
+   * If no filter is given, the composite filter is a no-op, and if only one
+   * filter is given, the composite filter has the same behavior as the
+   * underlying filter.
    *
    * @param[in] filters The filters to perform a disjunction for.
    *
@@ -307,8 +313,24 @@ class Filter {
    */
   template <typename... Filters>
   static Filter Or(const Filters&... filters) {
-    return Or(std::vector<Filter>({filters...}));
+    return OrInternal(filters...);
   }
+
+  /**
+   * @brief Creates a new filter that is a disjunction of the given filters. A
+   * disjunction filter includes a document if it satisfies <em>any</em> of the
+   * given filters.
+   *
+   * If no filter is given, the composite filter is a no-op, and if only one
+   * filter is given, the composite filter has the same behavior as the
+   * underlying filter.
+   *
+   * @param[in] filters The list that contains filters to perform a disjunction
+   * for.
+   *
+   * @return The newly created filter.
+   */
+  static Filter Or(const std::vector<Filter>& filters);
 
   /**
    * @brief Copy constructor.
@@ -355,8 +377,19 @@ class Filter {
   friend bool operator==(const Filter& lhs, const Filter& rhs);
   friend struct ConverterImpl;
 
-  static Filter And(const std::vector<Filter>& filters);
-  static Filter Or(const std::vector<Filter>& filters);
+  static inline Filter AndInternal(const Filter& filter) { return filter; }
+
+  template <typename... Filters>
+  static inline Filter AndInternal(const Filters&... filters) {
+    return And(std::vector<Filter>({filters...}));
+  }
+
+  static inline Filter OrInternal(const Filter& filter) { return filter; }
+
+  template <typename... Filters>
+  static inline Filter OrInternal(const Filters&... filters) {
+    return Or(std::vector<Filter>({filters...}));
+  }
 
   bool IsEmpty() const;
 

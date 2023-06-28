@@ -146,7 +146,7 @@ void QueryInternal::Initialize(jni::Loader& loader) {
       kGreaterThan, kGreaterThanOrEqualTo, kArrayContains, kArrayContainsAny,
       kIn, kNotIn, kOrderBy, kLimit, kLimitToLast, kStartAtSnapshot, kStartAt,
       kStartAfterSnapshot, kStartAfter, kEndBeforeSnapshot, kEndBefore,
-      kEndAtSnapshot, kEndAt, kGet, kAddSnapshotListener, kHashCode);
+      kEndAtSnapshot, kEndAt, kGet, kAddSnapshotListener, kHashCode, kWhere);
 }
 
 Firestore* QueryInternal::firestore() {

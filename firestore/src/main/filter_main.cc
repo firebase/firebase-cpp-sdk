@@ -99,7 +99,7 @@ Filter FilterInternal::UnaryFilter(const FieldPath& field_path,
 
 Filter FilterInternal::CompositeFilter(core::CompositeFilter::Operator op,
                                        const std::vector<Filter>& filters) {
-  std::vector<FilterInternal*> nonEmptyFilters;
+  std::vector<FilterInternal*> nonEmptyFilters{};
   for (const Filter& filter : filters) {
     FilterInternal* filterInternal = GetInternal(&filter);
     if (!filterInternal->IsEmpty()) {

@@ -56,7 +56,7 @@ class Wrapper {
   // Similar to a copy constructor, but can handle the case where `rhs` is null.
   explicit Wrapper(Wrapper* rhs);
 
-  static jni::Env GetEnv();
+  jni::Env GetEnv() const;
 
   FirestoreInternal* firestore_ = nullptr;  // not owning
   jni::Global<jni::Object> obj_;
