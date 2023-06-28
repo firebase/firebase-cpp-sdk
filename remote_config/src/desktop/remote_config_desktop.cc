@@ -18,6 +18,7 @@
 #include <chrono>  // NOLINT
 #include <cstdint>
 #include <cstdlib>
+#include <memory>
 #include <set>
 #include <sstream>
 #include <string>

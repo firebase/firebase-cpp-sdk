@@ -17,6 +17,7 @@
 
 #include <map>
 #include <set>
+#include <string>
 
 #include <memory>
 #include "app/src/cleanup_notifier.h"

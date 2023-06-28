@@ -15,6 +15,7 @@
 #include "app_check/src/desktop/debug_provider_desktop.h"
 
 #include <map>
+#include <memory>
 #include <string>
 #include <utility>
 
