@@ -216,15 +216,23 @@ void QueryInternal::AddEventRegistration(
     std::unique_ptr<EventRegistration> registration, void* listener_ptr) {
   database_->AddEventRegistration(query_spec_, listener_ptr,
                                   registration.get());
+  // Wrap the registration pointer into a shared pointer, so we can pass it
+  // safely to the callback.
+  std::shared_ptr<std::unique_ptr<EventRegistration>> reg_wrapped =
+      std::make_shared<std::unique_ptr<EventRegistration>>(
+          std::move(registration));
   Repo::scheduler().Schedule(NewCallback(
-      [](Repo::ThisRef ref, EventRegistration* registration_released) {
+      [](Repo::ThisRef ref, std::shared_ptr<std::unique_ptr<EventRegistration>>
+                                reg_ptr_shared) {
         Repo::ThisRefLock lock(&ref);
-        std::unique_ptr<EventRegistration> registration(registration_released);
+	// Transfer ownership of the internal pointer to a new unique_ptr.
+        EventRegistration* reg_ptr = reg_ptr_shared->release();
+	std::unique_ptr<EventRegistration> reg(reg_ptr);
         if (lock.GetReference() != nullptr) {
-          lock.GetReference()->AddEventCallback(std::move(registration));
+          lock.GetReference()->AddEventCallback(std::move(reg));
         }
       },
-      database_->repo()->this_ref(), registration.release()));
+      database_->repo()->this_ref(), reg_wrapped));
 }
 
 void QueryInternal::RemoveEventRegistration(void* listener_ptr,
