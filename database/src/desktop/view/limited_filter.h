@@ -15,6 +15,7 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_VIEW_LIMITED_FILTER_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_VIEW_LIMITED_FILTER_H_
 
+#include <memory>
 #include <string>
 
 #include "app/src/include/firebase/variant.h"
