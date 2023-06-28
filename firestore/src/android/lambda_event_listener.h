@@ -35,7 +35,7 @@ class LambdaEventListener : public EventListener<T> {
  public:
   LambdaEventListener(
       std::function<void(const T&, Error, const std::string&)> callback)
-      : callback_(firebase::Move(callback)) {
+      : callback_(std::move(callback)) {
     FIREBASE_ASSERT(callback_);
   }
 
@@ -53,7 +53,7 @@ template <>
 class LambdaEventListener<void> : public EventListener<void> {
  public:
   LambdaEventListener(std::function<void()> callback)
-      : callback_(firebase::Move(callback)) {
+      : callback_(std::move(callback)) {
     FIREBASE_ASSERT(callback_);
   }
 

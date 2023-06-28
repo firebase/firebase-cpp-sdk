@@ -44,7 +44,7 @@ class LambdaTransactionFunction
  public:
   LambdaTransactionFunction(
       std::function<Error(Transaction&, std::string&)> update)
-      : update_(firebase::Move(update)) {
+      : update_(std::move(update)) {
     FIREBASE_ASSERT(update_);
   }
 
