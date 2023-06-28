@@ -513,7 +513,7 @@ def _create_and_boot_simulator(apple_platform, device_name, device_os):
     if (device_os not in available_versions):
       logging.warning("Unable to find version %s, will fall back to %s", device_os, available_versions[-1])
       if FLAGS.ci:
-        print("::warning ::Unable to find version %s, will fall back to %s" % (device_os, available_versions[-1]))
+        print("::warning ::Unable to find %s version %s, will fall back to %s" % (apple_platform, device_os, available_versions[-1]))
       device_os = available_versions[-1]
 
     args = ["xcodes", "runtimes", "install", "%s %s" % (apple_platform, device_os)]
