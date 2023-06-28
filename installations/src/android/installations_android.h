@@ -15,6 +15,8 @@
 #ifndef FIREBASE_INSTALLATIONS_SRC_ANDROID_INSTALLATIONS_ANDROID_H_
 #define FIREBASE_INSTALLATIONS_SRC_ANDROID_INSTALLATIONS_ANDROID_H_
 
+#include <string>
+
 #include "app/src/reference_count.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
@@ -60,6 +62,9 @@ class InstallationsInternal {
   ReferenceCountedFutureImpl future_impl_;
 
   jobject internal_obj_;
+
+  // String to be used when registering for JNI task callbacks.
+  std::string jni_task_id_;
 };
 
 }  // namespace internal

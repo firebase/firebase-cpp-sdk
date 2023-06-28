@@ -120,7 +120,7 @@ Future<void> DisconnectionHandlerInternal::Cancel() {
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(handle, future(), db_)),
-      kApiIdentifier);
+      db_->jni_task_id());
   util::CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(task);
   return MakeFuture(future(), handle);
@@ -141,7 +141,7 @@ Future<void> DisconnectionHandlerInternal::RemoveValue() {
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(handle, future(), db_)),
-      kApiIdentifier);
+      db_->jni_task_id());
   util::CheckAndClearJniExceptions(env);
   return MakeFuture(future(), handle);
 }
@@ -166,7 +166,7 @@ Future<void> DisconnectionHandlerInternal::SetValue(Variant value) {
         env, task, FutureCallback,
         // FutureCallback will delete the newed FutureCallbackData.
         reinterpret_cast<void*>(new FutureCallbackData(handle, future(), db_)),
-        kApiIdentifier);
+        db_->jni_task_id());
     util::CheckAndClearJniExceptions(env);
     env->DeleteLocalRef(task);
     if (value_obj) env->DeleteLocalRef(value_obj);
@@ -211,7 +211,7 @@ Future<void> DisconnectionHandlerInternal::SetValueAndPriority(
         env, task, FutureCallback,
         // FutureCallback will delete the newed FutureCallbackData.
         reinterpret_cast<void*>(new FutureCallbackData(handle, future(), db_)),
-        kApiIdentifier);
+        db_->jni_task_id());
     env->DeleteLocalRef(task);
     if (value_obj) env->DeleteLocalRef(value_obj);
   }
@@ -240,7 +240,7 @@ Future<void> DisconnectionHandlerInternal::UpdateChildren(Variant values) {
         env, task, FutureCallback,
         // FutureCallback will delete the newed FutureCallbackData.
         reinterpret_cast<void*>(new FutureCallbackData(handle, future(), db_)),
-        kApiIdentifier);
+        db_->jni_task_id());
     env->DeleteLocalRef(task);
     if (values_obj) env->DeleteLocalRef(values_obj);
   }
