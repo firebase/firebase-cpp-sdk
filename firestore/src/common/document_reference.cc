@@ -178,8 +178,7 @@ Future<void> DocumentReference::Delete() {
 ListenerRegistration DocumentReference::AddSnapshotListener(
     std::function<void(const DocumentSnapshot&, Error, const std::string&)>
         callback) {
-  return AddSnapshotListener(MetadataChanges::kExclude,
-                             std::move(callback));
+  return AddSnapshotListener(MetadataChanges::kExclude, std::move(callback));
 }
 
 ListenerRegistration DocumentReference::AddSnapshotListener(
@@ -191,8 +190,7 @@ ListenerRegistration DocumentReference::AddSnapshotListener(
       "Snapshot listener callback parameter cannot be an empty function.");
 
   if (!internal_) return {};
-  return internal_->AddSnapshotListener(metadata_changes,
-                                        std::move(callback));
+  return internal_->AddSnapshotListener(metadata_changes, std::move(callback));
 }
 
 std::string DocumentReference::ToString() const {

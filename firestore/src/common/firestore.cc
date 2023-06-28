@@ -365,8 +365,7 @@ Future<void> Firestore::RunTransaction(
   }
 
   if (!internal_) return FailedFuture<void>();
-  return internal_->RunTransaction(std::move(update),
-                                   options.max_attempts());
+  return internal_->RunTransaction(std::move(update), options.max_attempts());
 }
 
 Future<void> Firestore::DisableNetwork() {

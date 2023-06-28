@@ -292,8 +292,7 @@ Future<QuerySnapshot> Query::Get(Source source) const {
 ListenerRegistration Query::AddSnapshotListener(
     std::function<void(const QuerySnapshot&, Error, const std::string&)>
         callback) {
-  return AddSnapshotListener(MetadataChanges::kExclude,
-                             std::move(callback));
+  return AddSnapshotListener(MetadataChanges::kExclude, std::move(callback));
 }
 
 ListenerRegistration Query::AddSnapshotListener(
@@ -304,8 +303,7 @@ ListenerRegistration Query::AddSnapshotListener(
                      "Snapshot listener callback cannot be an empty function.");
 
   if (!internal_) return {};
-  return internal_->AddSnapshotListener(metadata_changes,
-                                        std::move(callback));
+  return internal_->AddSnapshotListener(metadata_changes, std::move(callback));
 }
 
 size_t Query::Hash() const {

@@ -321,8 +321,7 @@ ListenerRegistration QueryInternal::AddSnapshotListener(
     MetadataChanges metadata_changes,
     std::function<void(const QuerySnapshot&, Error, const std::string&)>
         callback) {
-  auto* listener =
-      new LambdaEventListener<QuerySnapshot>(std::move(callback));
+  auto* listener = new LambdaEventListener<QuerySnapshot>(std::move(callback));
   return AddSnapshotListener(metadata_changes, listener,
                              /*passing_listener_ownership=*/true);
 }
