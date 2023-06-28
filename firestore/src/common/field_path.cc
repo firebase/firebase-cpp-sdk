@@ -20,8 +20,6 @@
 #include <ostream>
 #include <utility>
 
-#include <utility>
-
 #if defined(__ANDROID__)
 #include "firestore/src/android/field_path_portable.h"
 #else

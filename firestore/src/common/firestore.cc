@@ -21,7 +21,6 @@
 #include <map>
 #include <utility>
 
-#include <utility>
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"

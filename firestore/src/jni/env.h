@@ -23,7 +23,6 @@
 #include <utility>
 #include <vector>
 
-#include <utility>
 #include "firestore/src/jni/call_traits.h"
 #include "firestore/src/jni/class.h"
 #include "firestore/src/jni/declaration.h"
