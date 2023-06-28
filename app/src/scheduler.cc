@@ -103,7 +103,7 @@ RequestHandle Scheduler::Schedule(callback::Callback* callback,
 
   RequestHandle handler(request->status);
 
-  AddToQueue(Move(request), internal::GetTimestamp(), delay);
+  AddToQueue(std::move(request), internal::GetTimestamp(), delay);
 
   // Increase semaphore count by one for unfinished request
   sleep_sem_.Post();
@@ -135,7 +135,7 @@ void Scheduler::WorkerThreadRoutine(void* data) {
       if (!scheduler->request_queue_.empty()) {
         auto due = scheduler->request_queue_.top()->due_timestamp;
         if (due <= current) {
-          request = Move(scheduler->request_queue_.top());
+          request = std::move(scheduler->request_queue_.top());
           scheduler->request_queue_.pop();
         } else {
           sleep_time = due - current;
@@ -169,7 +169,7 @@ void Scheduler::WorkerThreadRoutine(void* data) {
     if (request && scheduler->TriggerCallback(request)) {
       MutexLock lock(scheduler->request_mutex_);
       ScheduleTimeMs repeat = request->repeat_ms;
-      scheduler->AddToQueue(Move(request), current, repeat);
+      scheduler->AddToQueue(std::move(request), current, repeat);
     }
   }
 }
@@ -180,7 +180,7 @@ void Scheduler::AddToQueue(RequestDataPtr request, uint64_t current,
   request->due_timestamp = current + after;
 
   // Push the request to the priority queue
-  request_queue_.push(Move(request));
+  request_queue_.push(std::move(request));
 }
 
 bool Scheduler::TriggerCallback(const RequestDataPtr& request) {

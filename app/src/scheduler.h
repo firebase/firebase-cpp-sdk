@@ -56,9 +56,8 @@ struct RequestStatusBlock {
 };
 
 // The handle used to check the status of a scheduled task or to cancel it.
-// This handle is safe to be copied or be moved.  However, it is NOT safe to
-// modify or reference the same handle from different threads since
-// std::shared_ptr is not thread-safe.
+// This handle is safe to be copied or be moved. However, it is NOT safe to
+// modify or reference the same handle from different threads.
 class RequestHandle {
  public:
   RequestHandle() : status_() {}
@@ -149,11 +148,9 @@ class Scheduler {
     std::shared_ptr<RequestStatusBlock> status;
   };
 
-  // std::shared_ptr of request data.  Ideally this should be std::unique_ptr
-  // and there should only have one copy of it in request_queue_ .  However,
-  // STLPort queue uses copy instead of move() while reordering heap element,
-  // and std::unique_ptr is not copyable.  Therefore, use std::shared_ptr here.
-  typedef std::shared_ptr<RequestData> RequestDataPtr;
+  // Request data. Reordering the heap uses std::move in modern STL
+  // implementations, so this can be stored in a unique_ptr.
+  typedef std::unique_ptr<RequestData> RequestDataPtr;
 
   // Comparer struct for priority_queue.  If the operator return true, lhs will
   // output later than rhs, due to the implementation of std::priority_queue.
