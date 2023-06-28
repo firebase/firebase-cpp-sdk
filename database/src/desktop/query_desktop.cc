@@ -222,12 +222,12 @@ void QueryInternal::AddEventRegistration(
       std::make_shared<std::unique_ptr<EventRegistration>>(
           std::move(registration));
   Repo::scheduler().Schedule(NewCallback(
-      [](Repo::ThisRef ref, std::shared_ptr<std::unique_ptr<EventRegistration>>
-                                reg_ptr_shared) {
+      [](Repo::ThisRef ref,
+         std::shared_ptr<std::unique_ptr<EventRegistration>> reg_ptr_shared) {
         Repo::ThisRefLock lock(&ref);
-	// Transfer ownership of the internal pointer to a new unique_ptr.
+        // Transfer ownership of the internal pointer to a new unique_ptr.
         EventRegistration* reg_ptr = reg_ptr_shared->release();
-	std::unique_ptr<EventRegistration> reg(reg_ptr);
+        std::unique_ptr<EventRegistration> reg(reg_ptr);
         if (lock.GetReference() != nullptr) {
           lock.GetReference()->AddEventCallback(std::move(reg));
         }

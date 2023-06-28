@@ -14,6 +14,8 @@
 
 #include "app/src/secure/user_secure_manager.h"
 
+#include <utility>
+
 #include "app/src/base64.h"
 #include "app/src/callback.h"
 #include "app/src/include/firebase/internal/platform.h"
