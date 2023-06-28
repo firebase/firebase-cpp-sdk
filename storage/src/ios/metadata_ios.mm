@@ -91,7 +91,7 @@ MetadataInternal::MetadataInternal(MetadataInternal&& other) {
 MetadataInternal& MetadataInternal::operator=(MetadataInternal&& other) {
   storage_ = other.storage_;
   other.storage_ = nullptr;
-  impl_ = other.impl_;
+  impl_ = std::move(other.impl_);
   other.impl_ = std::make_unique<FIRStorageMetadataPointer>([[FIRStorageMetadata alloc] init]);
   if (custom_metadata_) delete custom_metadata_;
   custom_metadata_ = std::move(other.custom_metadata_);
