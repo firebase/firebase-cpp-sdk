@@ -21,6 +21,7 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "app/src/util.h"
 #include "app/src/util_android.h"
 #include "app_check/app_check_resources.h"
 #include "app_check/src/android/common_android.h"
@@ -134,8 +135,6 @@ static const JNINativeMethod kNativeJniAppCheckListenerMethods[] = {
      "(JLcom/google/firebase/appcheck/AppCheckToken;)V",
      reinterpret_cast<void*>(JniAppCheckListener_nativeOnAppCheckTokenChanged)},
 };
-
-static const char* kApiIdentifier = "AppCheck";
 
 static AppCheckProviderFactory* g_provider_factory = nullptr;
 static int g_initialized_count = 0;
@@ -306,6 +305,9 @@ AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
     g_initialized_count++;
   }
 
+  static const char* kApiIdentifier = "AppCheck";
+  jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
+
   // Create the FirebaseAppCheck class in Java.
   jobject platform_app = app->GetPlatformApp();
   jobject j_app_check_local = env->CallStaticObjectMethod(
@@ -364,6 +366,7 @@ AppCheckInternal::~AppCheckInternal() {
   JNIEnv* env = app_->GetJNIEnv();
   app_ = nullptr;
   listeners_.clear();
+  util::CancelCallbacks(env, jni_task_id_.c_str());
 
   if (j_app_check_listener_ != nullptr) {
     env->CallVoidMethod(
@@ -393,7 +396,6 @@ AppCheckInternal::~AppCheckInternal() {
   FIREBASE_ASSERT(g_initialized_count);
   g_initialized_count--;
   if (g_initialized_count == 0) {
-    util::CancelCallbacks(env, kApiIdentifier);
     ReleaseClasses(env);
     util::Terminate(env);
   }
@@ -435,7 +437,7 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
     auto data_handle = new FutureDataHandle(future(), handle);
     util::RegisterCallbackOnTask(env, j_task, TokenResultCallback,
                                  reinterpret_cast<void*>(data_handle),
-                                 kApiIdentifier);
+                                 jni_task_id_.c_str());
   } else {
     AppCheckToken empty_token;
     future()->CompleteWithResult(handle, kAppCheckErrorUnknown, error.c_str(),

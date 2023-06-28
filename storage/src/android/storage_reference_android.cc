@@ -349,7 +349,7 @@ Future<void> StorageReferenceInternal::Delete() {
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(
           handle, future(), storage_, kStorageReferenceFnDelete)),
-      kApiIdentifier);
+      storage_->jni_task_id());
   util::CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(task);
   return DeleteLastResult();
@@ -391,7 +391,7 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path,
       reinterpret_cast<void*>(new FutureCallbackData(handle, future(), storage_,
                                                      kStorageReferenceFnGetFile,
                                                      java_listener)),
-      kApiIdentifier);
+      storage_->jni_task_id());
   if (controller_out) {
     controller_out->internal_->AssignTask(storage_, task);
   }
@@ -454,7 +454,7 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
       reinterpret_cast<void*>(new FutureCallbackData(
           handle, future(), storage_, kStorageReferenceFnGetBytes,
           java_listener, buffer, buffer_size, byte_downloader)),
-      kApiIdentifier);
+      storage_->jni_task_id());
   if (controller_out) {
     controller_out->internal_->AssignTask(storage_, task);
   }
@@ -480,7 +480,7 @@ Future<std::string> StorageReferenceInternal::GetDownloadUrl() {
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(
           handle, future(), storage_, kStorageReferenceFnGetDownloadUrl)),
-      kApiIdentifier);
+      storage_->jni_task_id());
   env->DeleteLocalRef(task);
   util::CheckAndClearJniExceptions(env);
 
@@ -504,7 +504,7 @@ Future<Metadata> StorageReferenceInternal::GetMetadata() {
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(
           handle, future(), storage_, kStorageReferenceFnGetMetadata)),
-      kApiIdentifier);
+      storage_->jni_task_id());
   util::CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(task);
   return GetMetadataLastResult();
@@ -530,7 +530,7 @@ Future<Metadata> StorageReferenceInternal::UpdateMetadata(
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(
           handle, future(), storage_, kStorageReferenceFnUpdateMetadata)),
-      kApiIdentifier);
+      storage_->jni_task_id());
   util::CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(task);
   return UpdateMetadataLastResult();
@@ -607,7 +607,7 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
           reinterpret_cast<void*>(new FutureCallbackData(
               handle, future_impl, storage_, kStorageReferenceFnPutBytes,
               java_listener, nullptr, 0, nullptr, env->NewGlobalRef(uploader))),
-          kApiIdentifier);
+          storage_->jni_task_id());
       if (controller_out) controller_out->internal_->AssignTask(storage_, task);
       env->DeleteLocalRef(task);
     }
@@ -641,7 +641,7 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
       reinterpret_cast<void*>(new FutureCallbackData(handle, future(), storage_,
                                                      kStorageReferenceFnPutFile,
                                                      java_listener)),
-      kApiIdentifier);
+      storage_->jni_task_id());
   if (controller_out) {
     controller_out->internal_->AssignTask(storage_, task);
   }
@@ -672,7 +672,7 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
       reinterpret_cast<void*>(new FutureCallbackData(handle, future(), storage_,
                                                      kStorageReferenceFnPutFile,
                                                      java_listener)),
-      kApiIdentifier);
+      storage_->jni_task_id());
   if (controller_out) {
     controller_out->internal_->AssignTask(storage_, task);
   }
