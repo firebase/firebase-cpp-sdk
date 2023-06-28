@@ -16,8 +16,8 @@
 #define FIREBASE_REMOTE_CONFIG_SRC_ANDROID_REMOTE_CONFIG_ANDROID_H_
 
 #include <string>
-
 #include <utility>
+
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"

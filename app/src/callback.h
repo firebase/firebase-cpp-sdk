@@ -18,6 +18,7 @@
 #define FIREBASE_APP_SRC_CALLBACK_H_
 
 #include <utility>
+
 #include "firebase/internal/common.h"
 
 #ifdef FIREBASE_USE_STD_FUNCTION

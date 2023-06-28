@@ -17,6 +17,7 @@
 #include "firestore/src/android/exception_android.h"
 
 #include <stdexcept>
+#include <utility>
 
 #include "firestore/src/android/firestore_exceptions_android.h"
 #include "firestore/src/common/macros.h"

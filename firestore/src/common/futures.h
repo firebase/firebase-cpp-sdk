@@ -45,8 +45,9 @@ Future<T> SuccessfulFuture(T&& result) {
 
   // The Future API doesn't directly support completing a future with a moved
   // value. Use the callback form to work around this.
-  api->Complete(handle, Error::kErrorOk, "",
-                [&](T* future_value) { *future_value = std::forward<T>(result); });
+  api->Complete(handle, Error::kErrorOk, "", [&](T* future_value) {
+    *future_value = std::forward<T>(result);
+  });
   return Future<T>(api, handle.get());
 }
 

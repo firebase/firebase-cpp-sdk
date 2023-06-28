@@ -22,6 +22,7 @@
 #include <queue>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "app/src/include/firebase/app.h"
@@ -266,7 +267,10 @@ class PersistentConnection : public ConnectionEventHandler {
   struct OutstandingOnDisconnect {
     explicit OutstandingOnDisconnect(const char* action, const Path& path,
                                      const Variant& data, ResponsePtr response)
-        : action(action), path(path), data(data), response(std::move(response)) {}
+        : action(action),
+          path(path),
+          data(data),
+          response(std::move(response)) {}
 
     // Action of the request such as PUT, MERGE and CANCEL
     std::string action;
@@ -287,7 +291,10 @@ class PersistentConnection : public ConnectionEventHandler {
   struct OutstandingPut {
     explicit OutstandingPut(const char* action, const Variant& data,
                             ResponsePtr response)
-        : action(action), data(data), response(std::move(response)), sent(false) {}
+        : action(action),
+          data(data),
+          response(std::move(response)),
+          sent(false) {}
 
     // Action of the request such as PUT, MERGE and CANCEL
     std::string action;

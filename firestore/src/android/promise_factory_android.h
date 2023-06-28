@@ -17,6 +17,8 @@
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_PROMISE_FACTORY_ANDROID_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_PROMISE_FACTORY_ANDROID_H_
 
+#include <utility>
+
 #include "firestore/src/android/promise_android.h"
 #include "firestore/src/common/type_mapping.h"
 #include "firestore/src/jni/task.h"

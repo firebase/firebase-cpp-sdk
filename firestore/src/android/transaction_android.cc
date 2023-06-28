@@ -20,7 +20,6 @@
 #include <utility>
 
 #include "Firestore/core/src/util/firestore_exceptions.h"
-#include <utility>
 #include "app/src/include/firebase/internal/common.h"
 #include "firestore/src/android/document_reference_android.h"
 #include "firestore/src/android/exception_android.h"

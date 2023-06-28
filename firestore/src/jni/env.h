@@ -155,8 +155,8 @@ class Env {
   Local<T> New(const Class& clazz, jmethodID method, Args&&... args) {
     if (!ok()) return {};
 
-    jobject result =
-        env_->NewObject(clazz.get(), method, ToJni(std::forward<Args>(args))...);
+    jobject result = env_->NewObject(clazz.get(), method,
+                                     ToJni(std::forward<Args>(args))...);
     RecordException();
     return MakeResult<T>(result);
   }
@@ -165,8 +165,8 @@ class Env {
   Local<T> New(const Constructor<T>& ctor, Args&&... args) {
     if (!ok()) return {};
 
-    auto result =
-        env_->NewObject(ctor.clazz(), ctor.id(), ToJni(std::forward<Args>(args))...);
+    auto result = env_->NewObject(ctor.clazz(), ctor.id(),
+                                  ToJni(std::forward<Args>(args))...);
     RecordException();
     return MakeResult<T>(result);
   }

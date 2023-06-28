@@ -15,11 +15,11 @@
  */
 
 #include <memory>
+#include <utility>
 
 #include "firestore/src/jni/env.h"
 
 #include "Firestore/core/src/util/firestore_exceptions.h"
-#include <utility>
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/jni/array.h"
