@@ -33,7 +33,7 @@ namespace firestore {
 template <typename T>
 class LambdaEventListener : public EventListener<T> {
  public:
-  explicit LambdaEventListener(
+  LambdaEventListener(
       std::function<void(const T&, Error, const std::string&)> callback)
       : callback_(std::move(callback)) {
     FIREBASE_ASSERT(callback_);
@@ -52,7 +52,7 @@ class LambdaEventListener : public EventListener<T> {
 template <>
 class LambdaEventListener<void> : public EventListener<void> {
  public:
-  LambdaEventListener(std::function<void()> callback)
+  explicit LambdaEventListener(std::function<void()> callback)
       : callback_(std::move(callback)) {
     FIREBASE_ASSERT(callback_);
   }
