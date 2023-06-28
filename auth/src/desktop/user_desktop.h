@@ -18,6 +18,7 @@
 #include <firebase/auth.h>
 
 #include <ctime>
+#include <memory>
 #include <string>
 #include <vector>
 
