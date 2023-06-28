@@ -351,7 +351,6 @@ add_library(firebase_app STATIC
     ${utility_HDRS}
     ${app_platform_HDRS}
     ${FIREBASE_GEN_FILE_DIR}/app/google_services_generated.h
-    meta/move.h
     ${app_flatbuffers_srcs})
 
 set_property(TARGET firebase_app PROPERTY FOLDER "Firebase Cpp")

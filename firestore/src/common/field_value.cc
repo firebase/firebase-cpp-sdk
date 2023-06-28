@@ -20,7 +20,7 @@
 #include <ostream>
 #include <sstream>
 
-#include "app/meta/move.h"
+#include <utility>
 #include "firebase/firestore/geo_point.h"
 #include "firebase/firestore/timestamp.h"
 #include "firestore/src/common/hard_assert_common.h"

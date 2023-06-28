@@ -296,7 +296,7 @@ TEST_F(CallbackTest, CallCallbackMoveValue1) {
       std::make_unique<int>(10), SumCallbackMoveValue1));
   std::unique_ptr<int> ptr(new int(5));
   callback::AddCallback(new callback::CallbackMoveValue1<std::unique_ptr<int>>(
-      Move(ptr), SumCallbackMoveValue1));
+      std::move(ptr), SumCallbackMoveValue1));
   callback::PollCallbacks();
   EXPECT_THAT(callback_value1_sum_, Eq(15));
   EXPECT_THAT(callback::IsInitialized(), Eq(false));

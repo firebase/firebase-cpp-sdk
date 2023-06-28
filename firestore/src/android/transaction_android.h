@@ -20,7 +20,7 @@
 #include <memory>
 #include <string>
 
-#include "app/meta/move.h"
+#include <utility>
 #include "app/src/embedded_file.h"
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/common/transaction_function.h"

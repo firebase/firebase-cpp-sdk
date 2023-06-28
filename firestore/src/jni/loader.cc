@@ -16,7 +16,7 @@
 
 #include "firestore/src/jni/loader.h"
 
-#include "app/meta/move.h"
+#include <utility>
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/util_android.h"

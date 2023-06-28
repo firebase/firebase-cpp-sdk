@@ -19,7 +19,7 @@
 #include <memory>
 #include <sstream>
 
-#include "app/meta/move.h"
+#include <utility>
 #include "app/rest/transport_builder.h"
 #include "app/rest/transport_curl.h"
 #include "app/rest/transport_interface.h"

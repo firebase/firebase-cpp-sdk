@@ -19,7 +19,7 @@
 #include <ostream>
 #include <sstream>
 
-#include "app/meta/move.h"
+#include <utility>
 
 #if !defined(__ANDROID__)
 #include "Firestore/core/src/util/executor.h"

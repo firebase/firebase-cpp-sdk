@@ -20,7 +20,7 @@
 #include <ostream>
 #include <utility>
 
-#include "app/meta/move.h"
+#include <utility>
 
 #if defined(__ANDROID__)
 #include "firestore/src/android/field_path_portable.h"
@@ -77,7 +77,7 @@ FieldPath FieldPath::DocumentId() {
 FieldPath::FieldPathInternal* FieldPath::InternalFromSegments(
     std::vector<std::string> field_names) {
   return new FieldPathInternal(
-      FieldPathInternal::FromSegments(Move(field_names)));
+      FieldPathInternal::FromSegments(std::move(field_names)));
 }
 
 /* static */

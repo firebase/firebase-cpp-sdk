@@ -19,7 +19,7 @@
 #include <ostream>
 #include <sstream>
 
-#include "app/meta/move.h"
+#include <utility>
 #include "firestore/src/common/macros.h"
 
 namespace firebase {
@@ -185,7 +185,7 @@ std::string GetFullCompilerInfo() {
   std::ostringstream os;
   os << CompilerId() << "-" << CompilerVersion() << "-" << CompilerFeatures()
      << "-" << LanguageVersion() << "-" << StandardLibraryVendor();
-  return Move(os).str();
+  return std::move(os).str();
 }
 
 }  // namespace firestore

@@ -17,7 +17,7 @@
 
 #include <string>
 
-#include "app/meta/move.h"
+#include <utility>
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"

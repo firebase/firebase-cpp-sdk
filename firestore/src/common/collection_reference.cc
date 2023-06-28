@@ -16,7 +16,7 @@
 
 #include "firestore/src/include/firebase/firestore/collection_reference.h"
 
-#include "app/meta/move.h"
+#include <utility>
 #include "app/src/include/firebase/future.h"
 #include "firestore/src/common/exception_common.h"
 #include "firestore/src/common/futures.h"

@@ -18,7 +18,7 @@
 
 #include <ostream>
 
-#include "app/meta/move.h"
+#include <utility>
 #include "app/src/include/firebase/future.h"
 #include "firestore/src/common/cleanup.h"
 #include "firestore/src/common/event_listener.h"

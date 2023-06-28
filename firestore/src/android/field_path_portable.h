@@ -20,7 +20,7 @@
 #include <string>
 #include <vector>
 
-#include "app/meta/move.h"
+#include <utility>
 #include "app/src/assert.h"
 
 namespace firebase {

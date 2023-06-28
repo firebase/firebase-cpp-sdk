@@ -46,7 +46,7 @@ class PromiseFactory {
   }
 
   PromiseFactory(PromiseFactory&& rhs)
-      : firestore_ref_(Move(rhs.firestore_ref_)) {
+      : firestore_ref_(std::move(rhs.firestore_ref_)) {
     firestore_ref_.RunIfValid([this, &rhs](FirestoreInternal& firestore) {
       firestore.future_manager().MoveFutureApi(&rhs, this);
     });

@@ -17,7 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_JNI_RUNNABLE_ANDROID_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_JNI_RUNNABLE_ANDROID_H_
 
-#include "app/meta/move.h"
+#include <utility>
 #include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/ownership.h"

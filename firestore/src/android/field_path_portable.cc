@@ -153,7 +153,7 @@ bool FieldPathPortable::IsKeyFieldPath() const {
 FieldPathPortable FieldPathPortable::FromSegments(
     std::vector<std::string> segments) {
   ValidateSegments(segments);
-  return FieldPathPortable(Move(segments));
+  return FieldPathPortable(std::move(segments));
 }
 
 FieldPathPortable FieldPathPortable::FromDotSeparatedString(

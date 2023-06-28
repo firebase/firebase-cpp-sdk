@@ -16,7 +16,7 @@
 
 #include "firestore/src/android/field_value_android.h"
 
-#include "app/meta/move.h"
+#include <utility>
 #include "firestore/src/android/blob_android.h"
 #include "firestore/src/android/document_reference_android.h"
 #include "firestore/src/android/geo_point_android.h"

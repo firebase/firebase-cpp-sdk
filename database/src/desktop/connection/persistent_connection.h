@@ -222,7 +222,7 @@ class PersistentConnection : public ConnectionEventHandler {
   struct RequestData {
     explicit RequestData(ResponsePtr response, ConnectionResponseHandler cb,
                          uint64_t id)
-        : response(Move(response)), callback(cb), outstanding_id(id) {}
+        : response(std::move(response)), callback(cb), outstanding_id(id) {}
 
     // Pointer to the response.  Can be nullptr
     ResponsePtr response;
@@ -266,7 +266,7 @@ class PersistentConnection : public ConnectionEventHandler {
   struct OutstandingOnDisconnect {
     explicit OutstandingOnDisconnect(const char* action, const Path& path,
                                      const Variant& data, ResponsePtr response)
-        : action(action), path(path), data(data), response(Move(response)) {}
+        : action(action), path(path), data(data), response(std::move(response)) {}
 
     // Action of the request such as PUT, MERGE and CANCEL
     std::string action;
@@ -287,7 +287,7 @@ class PersistentConnection : public ConnectionEventHandler {
   struct OutstandingPut {
     explicit OutstandingPut(const char* action, const Variant& data,
                             ResponsePtr response)
-        : action(action), data(data), response(Move(response)), sent(false) {}
+        : action(action), data(data), response(std::move(response)), sent(false) {}
 
     // Action of the request such as PUT, MERGE and CANCEL
     std::string action;

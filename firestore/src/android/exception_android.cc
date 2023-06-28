@@ -138,7 +138,7 @@ Local<Throwable> ExceptionInternal::Create(Env& env,
 Local<Throwable> ExceptionInternal::Wrap(Env& env,
                                          Local<Throwable>&& exception) {
   if (IsFirestoreException(env, exception)) {
-    return Move(exception);
+    return std::move(exception);
   } else {
     return Create(env, GetErrorCode(env, exception),
                   ToString(env, exception).c_str());

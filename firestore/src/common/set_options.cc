@@ -16,7 +16,7 @@
 
 #include "firestore/src/include/firebase/firestore/set_options.h"
 
-#include "app/meta/move.h"
+#include <utility>
 
 namespace firebase {
 namespace firestore {

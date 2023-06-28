@@ -19,7 +19,7 @@
 #include "firestore/src/jni/env.h"
 
 #include "Firestore/core/src/util/firestore_exceptions.h"
-#include "app/meta/move.h"
+#include <utility>
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/jni/array.h"
@@ -271,7 +271,7 @@ TEST_F(EnvTest, DestructorCallsExceptionHandler) {
     env.ExceptionClear();
 
     auto result = static_cast<Result*>(context);
-    result->exception = Move(exception);
+    result->exception = std::move(exception);
     result->calls++;
   };
 

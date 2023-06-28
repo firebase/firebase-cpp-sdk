@@ -16,7 +16,7 @@
 
 #include "firestore/src/android/query_android.h"
 
-#include "app/meta/move.h"
+#include <utility>
 #include "app/src/assert.h"
 #include "firestore/src/android/direction_android.h"
 #include "firestore/src/android/document_snapshot_android.h"

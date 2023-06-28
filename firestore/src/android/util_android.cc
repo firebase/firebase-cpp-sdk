@@ -64,7 +64,7 @@ UpdateFieldPathArgs MakeUpdateFieldPathArgs(Env& env,
     varargs.Set(env, index++, value);
   }
 
-  return UpdateFieldPathArgs{Move(first_field), first_value, Move(varargs)};
+  return UpdateFieldPathArgs{Move(first_field), first_value, std::move(varargs)};
 }
 
 }  // namespace firestore

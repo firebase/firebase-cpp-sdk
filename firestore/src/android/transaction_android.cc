@@ -20,7 +20,7 @@
 #include <utility>
 
 #include "Firestore/core/src/util/firestore_exceptions.h"
-#include "app/meta/move.h"
+#include <utility>
 #include "app/src/include/firebase/internal/common.h"
 #include "firestore/src/android/document_reference_android.h"
 #include "firestore/src/android/exception_android.h"
@@ -144,7 +144,7 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
       // For Firestore exceptions, the user decides whether to raise the error
       // or let the transaction succeed through the error code/message the
       // `TransactionFunction` returns.
-      PreserveException(env, Move(exception));
+      PreserveException(env, std::move(exception));
     }
     return DocumentSnapshot{};
 
@@ -180,7 +180,7 @@ void TransactionInternal::ExceptionHandler(Env& env,
                                            void* context) {
   auto* transaction = static_cast<TransactionInternal*>(context);
   env.ExceptionClear();
-  transaction->PreserveException(env, Move(exception));
+  transaction->PreserveException(env, std::move(exception));
 }
 
 void TransactionInternal::PreserveException(jni::Env& env,
@@ -191,7 +191,7 @@ void TransactionInternal::PreserveException(jni::Env& env,
   }
 
   if (ExceptionInternal::IsAnyExceptionThrownByFirestore(env, exception)) {
-    exception = ExceptionInternal::Wrap(env, Move(exception));
+    exception = ExceptionInternal::Wrap(env, std::move(exception));
   }
   *first_exception_ = std::move(exception);
 }
