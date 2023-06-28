@@ -19,6 +19,7 @@
 
 #include <map>
 #include <set>
+#include <string>
 
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
@@ -33,10 +34,6 @@
 namespace firebase {
 namespace functions {
 namespace internal {
-
-// Used for registering global callbacks. See
-// firebase::util::RegisterCallbackOnTask for context.
-extern const char kApiIdentifier[];
 
 class FunctionsInternal {
  public:
@@ -77,6 +74,10 @@ class FunctionsInternal {
   // objects.
   CleanupNotifier& cleanup() { return cleanup_; }
 
+  // Used for registering global callbacks. See
+  // firebase::util::RegisterCallbackOnTask for context.
+  const char* jni_task_id() { return jni_task_id_.c_str(); }
+
  private:
   // Initialize JNI for all classes.
   static bool Initialize(App* app);
@@ -97,6 +98,9 @@ class FunctionsInternal {
   FutureManager future_manager_;
 
   CleanupNotifier cleanup_;
+
+  // String to be used when registering for JNI task callbacks.
+  std::string jni_task_id_;
 };
 
 }  // namespace internal

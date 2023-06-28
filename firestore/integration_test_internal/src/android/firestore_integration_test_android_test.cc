@@ -30,7 +30,6 @@ namespace firestore {
 namespace {
 
 using jni::ArrayList;
-using jni::Env;
 using jni::Global;
 using jni::Local;
 using jni::Object;
@@ -42,9 +41,7 @@ using ::testing::Not;
 using ::testing::StrEq;
 
 TEST_F(FirestoreAndroidIntegrationTest, ToDebugStringWithNonNull) {
-  Env env;
-
-  std::string debug_string = ToDebugString(env.NewStringUtf("Test Value"));
+  std::string debug_string = ToDebugString(env().NewStringUtf("Test Value"));
 
   EXPECT_EQ(debug_string, "Test Value");
 }
@@ -59,50 +56,45 @@ TEST_F(FirestoreAndroidIntegrationTest, ToDebugStringWithNull) {
 
 TEST_F(FirestoreAndroidIntegrationTest,
        ToDebugStringWithPendingExceptionAndNonNullObject) {
-  Env env;
-  Local<String> object = env.NewStringUtf("Test Value");
-  ThrowException(env);
-  ASSERT_FALSE(env.ok());
+  Local<String> object = env().NewStringUtf("Test Value");
+  ThrowException();
+  ASSERT_FALSE(env().ok());
 
   std::string debug_string = ToDebugString(object);
 
   EXPECT_EQ(debug_string, "Test Value");
-  env.ExceptionClear();
+  env().ExceptionClear();
 }
 
 TEST_F(FirestoreAndroidIntegrationTest,
        ToDebugStringWithPendingExceptionAndNullObject) {
-  Env env;
   Object null_reference;
-  ThrowException(env);
-  ASSERT_FALSE(env.ok());
+  ThrowException();
+  ASSERT_FALSE(env().ok());
 
   std::string debug_string = ToDebugString(null_reference);
 
   EXPECT_EQ(debug_string, "null");
-  env.ExceptionClear();
+  env().ExceptionClear();
 }
 
 TEST_F(FirestoreAndroidIntegrationTest, JavaEqShouldReturnTrueForEqualObjects) {
-  Env env;
-  Local<String> object1 = env.NewStringUtf("string");
-  Local<String> object2 = env.NewStringUtf("string");
+  Local<String> object1 = env().NewStringUtf("string");
+  Local<String> object2 = env().NewStringUtf("string");
 
   EXPECT_THAT(object1, JavaEq(object2));
 }
 
 TEST_F(FirestoreAndroidIntegrationTest,
        JavaEqShouldReturnFalseForUnequalObjects) {
-  Env env;
-  Local<String> object1 = env.NewStringUtf("string1");
-  Local<String> object2 = env.NewStringUtf("string2");
+  Local<String> object1 = env().NewStringUtf("string1");
+  Local<String> object2 = env().NewStringUtf("string2");
 
   EXPECT_THAT(object1, Not(JavaEq(object2)));
 }
 
 TEST_F(FirestoreAndroidIntegrationTest,
        JavaEqShouldReturnTrueForTwoNullReferences) {
-  Env env;
   Local<Object> null_reference1;
   Local<Object> null_reference2;
 
@@ -111,9 +103,8 @@ TEST_F(FirestoreAndroidIntegrationTest,
 
 TEST_F(FirestoreAndroidIntegrationTest,
        JavaEqShouldReturnFalseIfExactlyOneObjectIsNull) {
-  Env env;
   Local<String> null_reference;
-  Local<String> non_null_reference = env.NewStringUtf("string2");
+  Local<String> non_null_reference = env().NewStringUtf("string2");
 
   EXPECT_THAT(null_reference, Not(JavaEq(non_null_reference)));
   EXPECT_THAT(non_null_reference, Not(JavaEq(null_reference)));
@@ -121,9 +112,8 @@ TEST_F(FirestoreAndroidIntegrationTest,
 
 TEST_F(FirestoreAndroidIntegrationTest,
        JavaEqShouldReturnFalseForObjectOfDifferentTypes) {
-  Env env;
-  Local<String> string_object = env.NewStringUtf("string2");
-  Local<ArrayList> list_object = ArrayList::Create(env);
+  Local<String> string_object = env().NewStringUtf("string2");
+  Local<ArrayList> list_object = ArrayList::Create(env());
 
   EXPECT_THAT(string_object, Not(JavaEq(list_object)));
   EXPECT_THAT(list_object, Not(JavaEq(string_object)));
@@ -131,8 +121,7 @@ TEST_F(FirestoreAndroidIntegrationTest,
 
 TEST_F(FirestoreAndroidIntegrationTest,
        RefersToSameJavaObjectAsShouldReturnTrueForSameObjects) {
-  Env env;
-  Local<String> object1 = env.NewStringUtf("string");
+  Local<String> object1 = env().NewStringUtf("string");
   Global<String> object2 = object1;
 
   EXPECT_THAT(object1, RefersToSameJavaObjectAs(object2));
@@ -148,19 +137,17 @@ TEST_F(FirestoreAndroidIntegrationTest,
 
 TEST_F(FirestoreAndroidIntegrationTest,
        RefersToSameJavaObjectAsShouldReturnFalseForDistinctObjects) {
-  Env env;
-  Local<String> object1 = env.NewStringUtf("test string");
-  Local<String> object2 = env.NewStringUtf("test string");
-  ASSERT_FALSE(env.IsSameObject(object1, object2));
+  Local<String> object1 = env().NewStringUtf("test string");
+  Local<String> object2 = env().NewStringUtf("test string");
+  ASSERT_FALSE(env().IsSameObject(object1, object2));
 
   EXPECT_THAT(object1, Not(RefersToSameJavaObjectAs(object2)));
 }
 
 TEST_F(FirestoreAndroidIntegrationTest,
        RefersToSameJavaObjectAsShouldReturnFalseIfExactlyOneObjectIsNull) {
-  Env env;
   Local<String> null_reference;
-  Local<String> non_null_reference = env.NewStringUtf("string2");
+  Local<String> non_null_reference = env().NewStringUtf("string2");
 
   EXPECT_THAT(null_reference,
               Not(RefersToSameJavaObjectAs(non_null_reference)));
@@ -170,42 +157,38 @@ TEST_F(FirestoreAndroidIntegrationTest,
 
 TEST_F(FirestoreAndroidIntegrationTest,
        ThrowExceptionWithNoMessageShouldSetPendingExceptionWithAMessage) {
-  Env env;
-  Local<Throwable> throw_exception_return_value = ThrowException(env);
-  Local<Throwable> actually_thrown_exception = env.ClearExceptionOccurred();
+  Local<Throwable> throw_exception_return_value = ThrowException();
+  Local<Throwable> actually_thrown_exception = env().ClearExceptionOccurred();
   ASSERT_TRUE(actually_thrown_exception);
   EXPECT_THAT(actually_thrown_exception,
               RefersToSameJavaObjectAs(throw_exception_return_value));
-  EXPECT_THAT(actually_thrown_exception.GetMessage(env), Not(IsEmpty()));
+  EXPECT_THAT(actually_thrown_exception.GetMessage(env()), Not(IsEmpty()));
 }
 
 TEST_F(FirestoreAndroidIntegrationTest,
        ThrowExceptionWithAMessageShouldSetPendingExceptionWithTheGivenMessage) {
-  Env env;
   Local<Throwable> throw_exception_return_value =
-      ThrowException(env, "my test message");
-  Local<Throwable> actually_thrown_exception = env.ClearExceptionOccurred();
+      ThrowException("my test message");
+  Local<Throwable> actually_thrown_exception = env().ClearExceptionOccurred();
   ASSERT_TRUE(actually_thrown_exception);
   EXPECT_THAT(actually_thrown_exception,
               RefersToSameJavaObjectAs(throw_exception_return_value));
-  EXPECT_THAT(actually_thrown_exception.GetMessage(env),
+  EXPECT_THAT(actually_thrown_exception.GetMessage(env()),
               StrEq("my test message"));
 }
 
 TEST_F(FirestoreAndroidIntegrationTest,
        CreateExceptionWithNoMessageShouldReturnAnExceptionWithAMessage) {
-  Env env;
-  Local<Throwable> exception = CreateException(env);
+  Local<Throwable> exception = CreateException();
   ASSERT_TRUE(exception);
-  EXPECT_THAT(exception.GetMessage(env), Not(IsEmpty()));
+  EXPECT_THAT(exception.GetMessage(env()), Not(IsEmpty()));
 }
 
 TEST_F(FirestoreAndroidIntegrationTest,
        CreateExceptionWithAMessageShouldReturnAnExceptionWithTheGivenMessage) {
-  Env env;
-  Local<Throwable> exception = CreateException(env, "my test message");
+  Local<Throwable> exception = CreateException("my test message");
   ASSERT_TRUE(exception);
-  EXPECT_THAT(exception.GetMessage(env), StrEq("my test message"));
+  EXPECT_THAT(exception.GetMessage(env()), StrEq("my test message"));
 }
 
 }  // namespace

@@ -17,6 +17,7 @@
 package com.google.firebase.gma.internal.cpp;
 
 import android.app.Activity;
+import android.os.Bundle;
 import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdLoader;
 import com.google.android.gms.ads.AdRequest;
@@ -115,6 +116,64 @@ public class NativeAdHelper {
           if (mNative != null) {
             mNative = null;
           }
+        }
+      }
+    });
+  }
+
+  /** Record Impression for allowlisted ad units. */
+  public void recordImpression(final long callbackDataPtr, final Bundle payload) {
+    if (mActivity == null) {
+      return;
+    }
+
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        synchronized (mNativeLock) {
+          int errorCode;
+          String errorMessage;
+          if (mAdUnitId == null) {
+            errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
+          } else if (mNative == null) {
+            errorCode = ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS;
+          } else {
+            errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
+            mNative.recordImpression(payload);
+          }
+          completeNativeAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
+        }
+      }
+    });
+  }
+
+  /** Perform click for allowlisted ad units. */
+  public void performClick(final long callbackDataPtr, final Bundle payload) {
+    if (mActivity == null) {
+      return;
+    }
+
+    mActivity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        synchronized (mNativeLock) {
+          int errorCode;
+          String errorMessage;
+          if (mAdUnitId == null) {
+            errorCode = ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED;
+          } else if (mNative == null) {
+            errorCode = ConstantsHelper.CALLBACK_ERROR_LOAD_IN_PROGRESS;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_LOAD_IN_PROGRESS;
+          } else {
+            errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
+            mNative.performClick(payload);
+          }
+          completeNativeAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
         }
       }
     });

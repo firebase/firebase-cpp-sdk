@@ -24,6 +24,7 @@
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/log.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "app/src/util.h"
 #include "app/src/util_android.h"
 #include "database/database_resources.h"
 #include "database/src/android/data_snapshot_android.h"
@@ -172,6 +173,7 @@ DatabaseInternal::DatabaseInternal(App* app)
   app_ = nullptr;
   if (!Initialize(app)) return;
   app_ = app;
+  jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
 
   JNIEnv* env = app_->GetJNIEnv();
   jobject platform_app = app->GetPlatformApp();
@@ -198,6 +200,7 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
   app_ = nullptr;
   if (!Initialize(app)) return;
   app_ = app;
+  jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
 
   JNIEnv* env = app_->GetJNIEnv();
   jobject url_string = env->NewStringUTF(url);
@@ -399,6 +402,7 @@ DatabaseInternal::~DatabaseInternal() {
   cleanup_.CleanupAll();
 
   JNIEnv* env = app_->GetJNIEnv();
+  util::CancelCallbacks(env, jni_task_id_.c_str());
   {
     // If there are any pending listeners, delete their pointers.
     MutexLock lock(listener_mutex_);

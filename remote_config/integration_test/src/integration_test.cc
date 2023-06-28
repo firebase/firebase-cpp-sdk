@@ -314,7 +314,7 @@ TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
   if (!has_cached_data) {
     auto config_update_future = config_update_promise->get_future();
     ASSERT_EQ(std::future_status::ready,
-              config_update_future.wait_for(std::chrono::milliseconds(10000)));
+              config_update_future.wait_for(std::chrono::milliseconds(30000)));
 
     // On Android WaitForCompletion must be called from the main thread,
     // so Activate is called here outside of the listener.
