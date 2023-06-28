@@ -19,7 +19,7 @@ This script helps to update PR/Issue comments and labels during testing process.
 For PR comment, this script will update (create if not exist) the "Test Result" in comment.
 stage value: [start, progress, end]
 USAGE:
-  python scripts/gha/it_workflow.py --stage <stage> \
+  python3 scripts/gha/it_workflow.py --stage <stage> \
     --token ${{github.token}} \
     --issue_number ${{needs.check_trigger.outputs.pr_number}}\
     --actor ${{github.actor}} \
@@ -31,7 +31,7 @@ For Daily Report, this script will update (create if not exist) the "Test Result
 with title "Nightly Integration Testing Report" and label "nightly-testing".
 stage value: [report]
 USAGE:
-  python scripts/gha/it_workflow.py --stage report \
+  python3 scripts/gha/it_workflow.py --stage report \
     --token ${{github.token}} \
     --actor ${{github.actor}} \
     --commit ${{needs.prepare_matrix.outputs.github_ref}} \

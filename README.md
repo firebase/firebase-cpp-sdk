@@ -53,8 +53,8 @@ directories to your PATH as needed.
 Note: Once python is installed you can use the following commands to install
 required packages:
 
-* python -m ensurepip --default-pip
-* python -m pip install --user absl-py
+* python3 -m ensurepip --default-pip
+* python3 -m pip install --user absl-py
 
 ### Prerequisites for Desktop
 The following prerequisites are required when building the libraries for
@@ -203,7 +203,7 @@ deliverable for both iOS and tvOS targets in the same XCode project.
 ``` bash
 # Install prereqs (like cocoapods)
 ./build_scripts/tvos/install_prereqs.sh
-python scripts/gha/build_ios_tvos.py -s . -b ios_tvos_build
+python3 scripts/gha/build_ios_tvos.py -s . -b ios_tvos_build
 ```
 
 

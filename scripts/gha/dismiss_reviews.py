@@ -15,7 +15,7 @@
 """A utility to dismiss PR reviews.
 
 USAGE:
-  python scripts/gha/dismiss_reviews.py \
+  python3 scripts/gha/dismiss_reviews.py \
     --token ${{github.token}} \
     --pull_number ${{needs.check_trigger.outputs.pr_number}} \
     [--message 'Message to be posted on the dismissal.'] \
