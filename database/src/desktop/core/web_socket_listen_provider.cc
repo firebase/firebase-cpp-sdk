@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/core/web_socket_listen_provider.h"
 
+#include <memory>
+
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/connection/persistent_connection.h"
 #include "database/src/desktop/core/listen_provider.h"

@@ -15,6 +15,7 @@
 #include "database/src/desktop/core/sync_tree.h"
 
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "app/src/assert.h"

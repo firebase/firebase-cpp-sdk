@@ -14,7 +14,7 @@
 
 #include "database/src/desktop/view/ranged_filter.h"
 
-#include <utility>
+#include <memory>
 
 #include "app/src/assert.h"
 #include "app/src/path.h"

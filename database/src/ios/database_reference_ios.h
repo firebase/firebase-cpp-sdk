@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_SRC_IOS_DATABASE_REFERENCE_IOS_H_
 
 #include <map>
+#include <memory>
 #include <string>
 
 #include "app/src/include/firebase/future.h"

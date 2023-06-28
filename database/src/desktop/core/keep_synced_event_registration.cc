@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/core/keep_synced_event_registration.h"
 
+#include <memory>
+
 #include "app/src/assert.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/include/firebase/database/common.h"

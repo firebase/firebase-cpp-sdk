@@ -18,6 +18,7 @@
 #include <list>
 #include <memory>
 #include <queue>
+#include <utility>
 
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"

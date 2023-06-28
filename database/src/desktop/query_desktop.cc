@@ -16,6 +16,7 @@
 
 #include <memory>
 #include <sstream>
+#include <utility>
 
 #include "app/rest/transport_builder.h"
 #include "app/rest/transport_curl.h"

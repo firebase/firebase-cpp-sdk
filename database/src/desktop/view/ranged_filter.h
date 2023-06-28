@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_SRC_DESKTOP_VIEW_RANGED_FILTER_H_
 
 #include <string>
+#include <utility>
 
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
