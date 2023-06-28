@@ -759,6 +759,51 @@ jobs:
           name: firebase_cpp_sdk.zip
           path: firebase_cpp_sdk.zip
 
+  create_windows_only_package:
+    name: create-windows-only-package
+    runs-on: ubuntu-20.04
+    needs: [merge_packages]
+    steps:
+      - name: download SDK zip
+        uses: actions/download-artifact@v3
+        with:
+          name: firebase_cpp_sdk.zip
+      - name: unzip SDK and remove non-Windows files
+        run: |
+          set -x
+          unzip -q firebase_cpp_sdk.zip -d windows-sdk
+          cd windows-sdk
+          # Rename the top-level directory.
+          mv firebase_cpp_sdk firebase_cpp_sdk_windows
+          cd firebase_cpp_sdk_windows
+          # Remove all non-Windows files.
+          rm -rf xcframeworks frameworks libs/linux libs/ios libs/tvos libs/darwin libs/android Android
+          cat > readme_windows.md <<EOF
+          # Firebase C++ SDK - Windows only
+
+          This package contains only the subset of the Firebase C++ SDK needed for use on
+          Windows. For general SDK information, see the accompanying readme.md file.
+          EOF
+          cd ..
+          zip -9 -r -y ../firebase_cpp_sdk_windows.zip firebase_cpp_sdk_windows
+          cd ..
+      - name: compute Windows SDK hash
+        shell: bash
+        run: |
+          ${{ env.hashCommand }} --tag firebase_cpp_sdk_windows.zip > firebase_cpp_sdk_windows_hash.txt
+          echo "::warning ::$(cat firebase_cpp_sdk_windows_hash.txt)"
+      - name: upload Windows hash
+        uses: actions/upload-artifact@v3
+        with:
+          name: firebase_cpp_sdk_windows_hash.txt
+          path: firebase_cpp_sdk_windows_hash.txt
+      - name: upload Windows SDK zip
+        uses: actions/upload-artifact@v3
+        with:
+          name: firebase_cpp_sdk_windows.zip
+          path: firebase_cpp_sdk_windows.zip
+        
+
   cleanup_packaging_artifacts:
     # Clean up intermediate artifacts from packaging step.
     # This can happen after the final package merge is finished.
