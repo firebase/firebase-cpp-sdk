@@ -343,7 +343,7 @@ MapFieldValue FieldValueInternal::map_value() const {
     Local<Object> java_value = map.Get(env, java_key);
     FieldValue value = FieldValueInternal::Create(env, java_value);
 
-    result.insert(std::make_pair(std::move(key), firebase::Move(value)));
+    result.insert(std::make_pair(firebase::Move(key), firebase::Move(value)));
   }
 
   if (!env.ok()) return MapFieldValue();

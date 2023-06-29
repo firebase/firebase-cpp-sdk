@@ -47,7 +47,7 @@ std::string ToStr(int64_t v) {
 Settings::Settings() : host_(kDefaultHost) {}
 #endif
 
-void Settings::set_host(std::string host) { host_ = std::move(host); }
+void Settings::set_host(std::string host) { host_ = firebase::Move(host); }
 
 void Settings::set_ssl_enabled(bool enabled) { ssl_enabled_ = enabled; }
 

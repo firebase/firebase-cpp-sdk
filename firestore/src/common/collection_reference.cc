@@ -48,7 +48,7 @@ CollectionReference::CollectionReference(const CollectionReference& reference)
                 : nullptr) {}
 
 CollectionReference::CollectionReference(CollectionReference&& reference)
-    : Query(std::move(reference)) {}
+    : Query(firebase::Move(reference)) {}
 
 CollectionReference::CollectionReference(CollectionReferenceInternal* internal)
     : Query(internal) {}
@@ -61,7 +61,7 @@ CollectionReference& CollectionReference::operator=(
 
 CollectionReference& CollectionReference::operator=(
     CollectionReference&& reference) {
-  Query::operator=(std::move(reference));
+  Query::operator=(firebase::Move(reference));
   return *this;
 }
 

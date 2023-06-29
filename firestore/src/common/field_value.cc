@@ -157,7 +157,7 @@ FieldValue FieldValue::Timestamp(class Timestamp value) {
 
 /* static */
 FieldValue FieldValue::String(std::string value) {
-  return FieldValue{new FieldValueInternal(std::move(value))};
+  return FieldValue{new FieldValueInternal(firebase::Move(value))};
 }
 
 /* static */
@@ -167,7 +167,7 @@ FieldValue FieldValue::Blob(const uint8_t* value, size_t size) {
 
 /* static */
 FieldValue FieldValue::Reference(DocumentReference value) {
-  return FieldValue{new FieldValueInternal(std::move(value))};
+  return FieldValue{new FieldValueInternal(firebase::Move(value))};
 }
 
 /* static */
@@ -177,12 +177,12 @@ FieldValue FieldValue::GeoPoint(class GeoPoint value) {
 
 /* static */
 FieldValue FieldValue::Array(std::vector<FieldValue> value) {
-  return FieldValue{new FieldValueInternal(std::move(value))};
+  return FieldValue{new FieldValueInternal(firebase::Move(value))};
 }
 
 /* static */
 FieldValue FieldValue::Map(MapFieldValue value) {
-  return FieldValue{new FieldValueInternal(std::move(value))};
+  return FieldValue{new FieldValueInternal(firebase::Move(value))};
 }
 
 Type FieldValue::type() const {
@@ -262,12 +262,12 @@ FieldValue FieldValue::ServerTimestamp() {
 
 /* static */
 FieldValue FieldValue::ArrayUnion(std::vector<FieldValue> elements) {
-  return FieldValueInternal::ArrayUnion(std::move(elements));
+  return FieldValueInternal::ArrayUnion(firebase::Move(elements));
 }
 
 /* static */
 FieldValue FieldValue::ArrayRemove(std::vector<FieldValue> elements) {
-  return FieldValueInternal::ArrayRemove(std::move(elements));
+  return FieldValueInternal::ArrayRemove(firebase::Move(elements));
 }
 
 /* static */

@@ -100,7 +100,7 @@ std::vector<std::string> SplitOnDots(const std::string& input) {
       fail_validation();
     }
 
-    result.push_back(std::move(current_segment));
+    result.push_back(firebase::Move(current_segment));
   }
 
   return result;

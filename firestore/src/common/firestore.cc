@@ -344,7 +344,7 @@ Settings Firestore::settings() const {
 
 void Firestore::set_settings(Settings settings) {
   if (!internal_) return;
-  internal_->set_settings(std::move(settings));
+  internal_->set_settings(firebase::Move(settings));
 }
 
 WriteBatch Firestore::batch() const {
@@ -366,7 +366,7 @@ Future<void> Firestore::RunTransaction(
   }
 
   if (!internal_) return FailedFuture<void>();
-  return internal_->RunTransaction(std::move(update),
+  return internal_->RunTransaction(firebase::Move(update),
                                    options.max_attempts());
 }
 

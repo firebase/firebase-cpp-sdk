@@ -22,7 +22,7 @@ namespace firebase {
 namespace firestore {
 
 SetOptions::SetOptions(Type type, std::unordered_set<FieldPath> fields)
-    : type_(type), fields_(std::move(fields)) {}
+    : type_(type), fields_(firebase::Move(fields)) {}
 
 SetOptions::~SetOptions() {}
 
@@ -38,7 +38,7 @@ SetOptions SetOptions::MergeFields(const std::vector<std::string>& fields) {
   for (const std::string& field : fields) {
     field_paths.insert(FieldPath::FromDotSeparatedString(field));
   }
-  return SetOptions{Type::kMergeSpecific, std::move(field_paths)};
+  return SetOptions{Type::kMergeSpecific, firebase::Move(field_paths)};
 }
 
 /* static */

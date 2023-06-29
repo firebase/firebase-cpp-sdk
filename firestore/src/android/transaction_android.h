@@ -47,7 +47,7 @@ class TransactionInternal : public Wrapper {
       : Wrapper(rhs), first_exception_(rhs.first_exception_) {}
 
   TransactionInternal(TransactionInternal&& rhs)
-      : Wrapper(std::move(rhs)),
+      : Wrapper(firebase::Move(rhs)),
         first_exception_(std::move(rhs.first_exception_)) {}
 
   void Set(const DocumentReference& document,

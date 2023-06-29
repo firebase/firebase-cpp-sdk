@@ -182,7 +182,7 @@ ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
     std::function<void(const DocumentSnapshot&, Error, const std::string&)>
         callback) {
   LambdaEventListener<DocumentSnapshot>* listener =
-      new LambdaEventListener<DocumentSnapshot>(std::move(callback));
+      new LambdaEventListener<DocumentSnapshot>(firebase::Move(callback));
   return AddSnapshotListener(metadata_changes, listener,
                              /*passing_listener_ownership=*/true);
 }

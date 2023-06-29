@@ -293,7 +293,7 @@ ListenerRegistration Query::AddSnapshotListener(
     std::function<void(const QuerySnapshot&, Error, const std::string&)>
         callback) {
   return AddSnapshotListener(MetadataChanges::kExclude,
-                             std::move(callback));
+                             firebase::Move(callback));
 }
 
 ListenerRegistration Query::AddSnapshotListener(
@@ -305,7 +305,7 @@ ListenerRegistration Query::AddSnapshotListener(
 
   if (!internal_) return {};
   return internal_->AddSnapshotListener(metadata_changes,
-                                        std::move(callback));
+                                        firebase::Move(callback));
 }
 
 size_t Query::Hash() const {
