@@ -631,10 +631,7 @@ code.
 -   Changes
     - Auth (Android): Fixed an issue where VerifyPhoneNumber's internal
       builder failed to create PhoneAuthOptions with certain compiler settings.
-    - Remote Config (Desktop): Fix handling of time zones on Windows when
-      the time zone name in the current system language contains a high-numbered
-      Unicode code point that cannot be represented in a single UTF-16
-      character.
+    - Remote Config (Desktop): Fixed handling of time zones on Windows.
     - Storage (Desktop): Fixed a crash on Windows when uploading files from a
       path containing a high-numbered Unicode code point (above U+FFFF).
 
