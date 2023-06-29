@@ -113,8 +113,9 @@ std::string GetTimezone() {
 
   // Convert time zone name to wide string
   std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> to_utf16;
+  std::wstring windows_tz_utf16;
   try {
-    std::wstring windows_tz_utf16 = to_utf16.from_bytes(windows_tz_utf8);
+    windows_tz_utf16 = to_utf16.from_bytes(windows_tz_utf8);
   } catch (std::range_error& ex) {
     LogError("Failed to convert UTF-8 time zone '%s' to UTF-16: %s",
              windows_tz_utf8, ex.what());
@@ -182,8 +183,9 @@ std::string GetTimezone() {
 
   std::wstring iana_tz_utf16(iana_time_zone_buffer);
   std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> to_utf8;
+  std::string iana_tz_utf8;
   try {
-    std::string iana_tz_utf8 = to_utf8.to_bytes(iana_tz_utf16);
+    iana_tz_utf8 = to_utf8.to_bytes(iana_tz_utf16);
   } catch (std::range_error& ex) {
     LogError("Failed to convert IANA time zone to UTF-8: %s", ex.what());
     return "";
