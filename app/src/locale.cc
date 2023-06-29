@@ -157,7 +157,8 @@ std::string GetTimezone() {
   }
 
   // Convert time zone name to wide string, then into UTF-8.
-  std::wstring windows_tz_utf16 = convert_cp1252_to_utf16(windows_tz_cp1252.c_str());
+  std::wstring windows_tz_utf16 =
+      convert_cp1252_to_utf16(windows_tz_cp1252.c_str());
   std::string windows_tz_utf8;
   {
     std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> to_utf8;
@@ -206,33 +207,59 @@ std::string GetTimezone() {
           windows_tz_utf8.c_str(), u_errorName(error_code), error_code);
     }
   }
+  if (got_time_zone) {
+    // One of the above two succeeded, convert the new time zone name back to
+    // UTF-8.
+    std::wstring iana_tz_utf16(iana_time_zone_buffer);
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> to_utf8;
+    std::string iana_tz_utf8;
+    try {
+      iana_tz_utf8 = to_utf8.to_bytes(iana_tz_utf16);
+    } catch (std::range_error& ex) {
+      LogError("Failed to convert IANA time zone to UTF-8: %s", ex.what());
+      got_time_zone = false;
+    }
+    if (got_time_zone) {
+      return iana_tz_utf8;
+    }
+  }
   if (!got_time_zone) {
-    // Return the Windows time zone ID as a backup.
-    // In this case, we need to get the correct daylight savings time
-    // setting to get the right name.
+    // Either the IANA time zone couldn't be determined, or couldn't be
+    // converted into UTF-8 for some reason (the std::range_error above).
+    //
+    // In any case, return the Windows time zone ID as a backup. We now need to
+    // get the correct daylight saving time setting to get the right name.
+    //
+    // Also, note as above that _get_tzname() doesn't return a UTF-8 name,
+    // rather CP-1252, so convert it to UTF-8 (via UTF-16) before returning.
+
     int daylight = 0;  // daylight savings time?
-    if (_get_daylight(&daylight) != 0) return windows_tz_utf8;
+    if (_get_daylight(&daylight) != 0) {
+      // Couldn't determine daylight saving time, return the old name.
+      return windows_tz_utf8;
+    }
     if (daylight) {
+      // Daylight saving time is active, get a new tzname and convert to UTF-8.
       size_t length = 0;  // get the needed string length
-      if (_get_tzname(&length, nullptr, 0, 1) != 0) return windows_tz_utf8;
-      std::vector<char> namebuf(length);
-      if (_get_tzname(&length, &namebuf[0], length, 1) != 0)
+      if (_get_tzname(&length, nullptr, 0, 1) != 0) {
+        // Couldn't get tzname length, return the old name.
         return windows_tz_utf8;
-      windows_tz_utf8 = std::string(&namebuf[0]);
+      }
+      std::vector<char> namebuf(length);
+      if (_get_tzname(&length, &namebuf[0], length, 1) != 0) {
+        // Couldn't get tzname, return the old name.
+        return windows_tz_utf8;
+      }
+      windows_tz_cp1252 = std::string(&namebuf[0]);
+      // Convert time zone name to wide string, then into UTF-8.
+      windows_tz_utf16 = convert_cp1252_to_utf16(windows_tz_cp1252.c_str());
+      {
+        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> to_utf8;
+        windows_tz_utf8 = to_utf8.to_bytes(windows_tz_utf16);
+      }
     }
     return windows_tz_utf8;
   }
-
-  std::wstring iana_tz_utf16(iana_time_zone_buffer);
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> to_utf8;
-  std::string iana_tz_utf8;
-  try {
-    iana_tz_utf8 = to_utf8.to_bytes(iana_tz_utf16);
-  } catch (std::range_error& ex) {
-    LogError("Failed to convert IANA time zone to UTF-8: %s", ex.what());
-    return "";
-  }
-  return iana_tz_utf8;
 
 #elif FIREBASE_PLATFORM_LINUX
   // If TZ environment variable is defined and not empty, use it, else use
