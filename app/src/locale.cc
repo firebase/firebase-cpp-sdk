@@ -131,7 +131,7 @@ static std::wstring convert_cp1252_to_utf16(const char* str_cp1252) {
   size_t len = strlen(str_cp1252);
   std::vector<wchar_t> buf_utf16(len + 1);
   for (int i = 0; i < len + 1; i++) {
-    buf_utf16[i] = lookup_cp1252_to_utf16(str_cp1252[i]);
+    buf_utf16[i] = lookup_cp1252_to_utf16[str_cp1252[i]];
   }
   return std::wstring(&buf_utf16[0]);
 }
