@@ -148,12 +148,8 @@ class Scheduler {
     std::shared_ptr<RequestStatusBlock> status;
   };
 
-  // Request data. This should actually be a unique_ptr, but because it's stored
-  // in request_queue_, and because priority_queue.top() does not allow you to
-  // std::move() out of it, we can't use a unique_ptr here without adding a
-  // const_cast in WorkerThreadRoutine. That seems like it would be worse than
-  // just using shared_ptr here.
-  typedef std::shared_ptr<RequestData> RequestDataPtr;
+  // Request data.
+  typedef std::unique_ptr<RequestData> RequestDataPtr;
 
   // Comparer struct for priority_queue.  If the operator return true, lhs will
   // output later than rhs, due to the implementation of std::priority_queue.
