@@ -260,7 +260,7 @@ TEST_F(SchedulerTest, CancelImmediateCallback) {
       bool cancelled =
           scheduler
               .Schedule(
-                  new callback::CallbackValue1<std::Atomic<int>*>(
+                  new callback::CallbackValue1<std::atomic<int>*>(
                       &count,
                       [](std::atomic<int>* count) { count->fetch_add(1); }),
                   0)
