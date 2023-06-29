@@ -132,7 +132,7 @@ template <typename CallbackT>
 class JniRunnable : public JniRunnableBase {
  public:
   JniRunnable(jni::Env& env, CallbackT callback)
-      : JniRunnableBase(env), callback_(firebase::Move(callback)) {}
+      : JniRunnableBase(env), callback_(std::move(callback)) {}
 
   void Run() override { Run(*this, callback_); }
 
@@ -164,7 +164,7 @@ class JniRunnable : public JniRunnableBase {
  */
 template <typename CallbackT>
 JniRunnable<CallbackT> MakeJniRunnable(jni::Env& env, CallbackT callback) {
-  return JniRunnable<CallbackT>(env, firebase::Move(callback));
+  return JniRunnable<CallbackT>(env, std::move(callback));
 }
 
 }  // namespace firestore

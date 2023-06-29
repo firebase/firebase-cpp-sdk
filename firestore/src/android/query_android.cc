@@ -320,7 +320,7 @@ ListenerRegistration QueryInternal::AddSnapshotListener(
     std::function<void(const QuerySnapshot&, Error, const std::string&)>
         callback) {
   auto* listener =
-      new LambdaEventListener<QuerySnapshot>(firebase::Move(callback));
+      new LambdaEventListener<QuerySnapshot>(std::move(callback));
   return AddSnapshotListener(metadata_changes, listener,
                              /*passing_listener_ownership=*/true);
 }

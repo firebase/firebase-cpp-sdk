@@ -179,7 +179,7 @@ ListenerRegistration DocumentReference::AddSnapshotListener(
     std::function<void(const DocumentSnapshot&, Error, const std::string&)>
         callback) {
   return AddSnapshotListener(MetadataChanges::kExclude,
-                             firebase::Move(callback));
+                             std::move(callback));
 }
 
 ListenerRegistration DocumentReference::AddSnapshotListener(
@@ -192,7 +192,7 @@ ListenerRegistration DocumentReference::AddSnapshotListener(
 
   if (!internal_) return {};
   return internal_->AddSnapshotListener(metadata_changes,
-                                        firebase::Move(callback));
+                                        std::move(callback));
 }
 
 std::string DocumentReference::ToString() const {
