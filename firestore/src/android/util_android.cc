@@ -66,7 +66,7 @@ UpdateFieldPathArgs MakeUpdateFieldPathArgs(Env& env,
     varargs.Set(env, index++, value);
   }
 
-  return UpdateFieldPathArgs{Move(first_field), first_value,
+  return UpdateFieldPathArgs{std::move(first_field), first_value,
                              std::move(varargs)};
 }
 
