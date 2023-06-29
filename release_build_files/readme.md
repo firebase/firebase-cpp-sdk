@@ -644,6 +644,8 @@ code.
       time zone name in the current system language contains an accented
       character or apostrophe. This adds a requirement for applications using
       Remote Config on Windows desktop to link the "icu.dll" system library.
+    - Firestore: Add support for disjunctions in queries (OR queries) 
+      ([#1335](https://github.com/firebase/firebase-cpp-sdk/pull/1335)).
 
 ### 11.1.0
 -   Changes
