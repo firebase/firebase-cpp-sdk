@@ -125,16 +125,15 @@ static wchar_t lookup_cp1252_to_utf16[256] = {
     0x00E1, 0x00E2, 0x00E3, 0x00E4, 0x00E5, 0x00E6, 0x00E7, 0x00E8, 0x00E9,
     0x00EA, 0x00EB, 0x00EC, 0x00ED, 0x00EE, 0x00EF, 0x00F0, 0x00F1, 0x00F2,
     0x00F3, 0x00F4, 0x00F5, 0x00F6, 0x00F7, 0x00F8, 0x00F9, 0x00FA, 0x00FB,
-    0x00FC, 0x00FD, 0x00FE, 0x00FF
-};
+    0x00FC, 0x00FD, 0x00FE, 0x00FF};
 
 static std::wstring convert_cp1252_to_utf16(const char* str_cp1252) {
   size_t len = strlen(str_cp1252);
-  wchar_t str_utf16[len + 1];
+  std::vector<wchar_t> buf_utf16(len + 1);
   for (int i = 0; i < len + 1; i++) {
-    str_utf16[i] = lookup_cp1252_to_utf16(str_cp1252[i]);
+    buf_utf16[i] = lookup_cp1252_to_utf16(str_cp1252[i]);
   }
-  return std::wstring(str_utf16);
+  return std::wstring(&buf_utf16[0]);
 }
 #endif  // FIREBASE_PLATFORM_WINDOWS
 
