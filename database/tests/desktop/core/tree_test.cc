@@ -286,7 +286,7 @@ TEST(TreeTest, SetValueAtRValue) {
     tree.SetValueAt(Path("B"), std::make_unique<int>(3));
 
     EXPECT_TRUE(tree.value().has_value());
-    EXPECT_EQ(tree.value().value(), 1);
+    EXPECT_EQ(*tree.value().value(), 1);
     EXPECT_EQ(tree.children().size(), 2);
 
     std::unique_ptr<int>* child_a = tree.GetValueAt(Path("A"));
@@ -305,7 +305,7 @@ TEST(TreeTest, SetValueAtRValue) {
     tree.SetValueAt(Path("B/B1"), std::make_unique<int>(30));
 
     EXPECT_TRUE(tree.value().has_value());
-    EXPECT_EQ(tree.value().value(), 1);
+    EXPECT_EQ(*tree.value().value(), 1);
     EXPECT_EQ(tree.children().size(), 2);
 
     std::unique_ptr<int>* child_a = tree.GetValueAt(Path("A"));
