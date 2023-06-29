@@ -47,10 +47,11 @@ class EventGeneratorTest : public testing::Test {
         new ValueEventRegistration(nullptr, nullptr, QuerySpec());
     child_registration_ =
         new ChildEventRegistration(nullptr, nullptr, QuerySpec());
-    event_registrations_ = std::vector<std::unique_ptr<EventRegistration>>{
-        std::unique_ptr<EventRegistration>(value_registration_),
-        std::unique_ptr<EventRegistration>(child_registration_),
-    };
+    event_registrations_ = std::vector<std::unique_ptr<EventRegistration>>();
+    event_registrations_.push_back(
+        std::move(std::unique_ptr<EventRegistration>(value_registration_)));
+    event_registrations_.push_back(
+        std::move(std::unique_ptr<EventRegistration>(child_registration_)));
   }
 
  protected:

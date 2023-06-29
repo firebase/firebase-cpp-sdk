@@ -15,6 +15,7 @@
 #include "database/tests/desktop/test/matchers.h"
 
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -45,12 +46,11 @@ TEST(SmartPtrRawPtrEq, Pointwise) {
   int* fifteen = new int(15);
   int* twenty = new int(20);
   int* different_twenty = new int(20);
-  std::vector<std::unique_ptr<int>> unique_values{
-      std::unique_ptr<int>(five),
-      std::unique_ptr<int>(ten),
-      std::unique_ptr<int>(fifteen),
-      std::unique_ptr<int>(twenty),
-  };
+  std::vector<std::unique_ptr<int>> unique_values;
+  unique_values.push_back(std::move(std::unique_ptr<int>(five)));
+  unique_values.push_back(std::move(std::unique_ptr<int>(ten)));
+  unique_values.push_back(std::move(std::unique_ptr<int>(fifteen)));
+  unique_values.push_back(std::move(std::unique_ptr<int>(twenty)));
   std::vector<int*> raw_values{
       five,
       ten,
