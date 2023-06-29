@@ -18,6 +18,7 @@
 
 #include <jni.h>
 #include <memory>
+#include <utility>
 
 #include "firestore/src/jni/jni.h"
 #include "firestore/src/jni/object.h"
