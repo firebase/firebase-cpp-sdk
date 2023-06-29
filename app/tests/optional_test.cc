@@ -36,7 +36,7 @@ class SpecialFunctionsNotifier {
   virtual void Construct() = 0;
   virtual void Copy() = 0;
 #ifdef FIREBASE_USE_MOVE_OPERATORS
-  virtual void std::move() = 0;
+  virtual void Move() = 0;
 #endif
   virtual void Destruct() = 0;
 };
@@ -112,7 +112,7 @@ class ExpectCallSetup {
                                size_t expectecMoveCallCount) {
 #ifdef FIREBASE_USE_MOVE_OPERATORS
     EXPECT_CALL(*mock_notifier_, Copy()).Times(expectecCopyCallCount);
-    EXPECT_CALL(*mock_notifier_, std::move()).Times(expectecMoveCallCount);
+    EXPECT_CALL(*mock_notifier_, Move()).Times(expectecMoveCallCount);
 #else
     EXPECT_CALL(*mock_notifier_, Copy())
         .Times(expectecCopyCallCount + expectecMoveCallCount);
