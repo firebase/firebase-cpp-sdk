@@ -12,24 +12,19 @@ if [[ -z $(which cmake) ]]; then
     exit 1
 fi
 
-python=python
-if [[ -z $(which ${python}) ]]; then
-    python=python3
-    if [[ -z $(which ${python}) ]]; then
-      echo "Error, python is not installed as python or python3, or is not in the PATH."
-      exit 1
+if [[ -z $(which python) ]]; then
+    echo "Error, python is not installed or is not in the PATH."
+    exit 1
+else
+    updated_pip=0
+    if ! $(echo "import absl"$'\n'"import google.protobuf" | python - 2> /dev/null); then
+	echo "Installing python packages."
+	set -x
+	sudo python -m pip install --upgrade pip
+	pip install absl-py protobuf
+	set +x
     fi
 fi
-
-updated_pip=0
-if ! $(echo "import absl"$'\n'"import google.protobuf" | ${python} - 2> /dev/null); then
-    echo "Installing python packages."
-    set -x
-    sudo ${python} -m pip install --upgrade pip
-    pip install absl-py protobuf
-    set +x
-fi
-
 
 if [[ -z $(which xcodebuild) || -z $(which xcode-select) ]]; then
     echo "Error, Xcode command line tools not installed."
