@@ -46,7 +46,7 @@ from absl import app
 from absl import flags
 from absl import logging
 
-import github
+import firebase_github
 import summarize_test_results
 
 FLAGS = flags.FLAGS
@@ -369,7 +369,7 @@ def main(argv):
 
     with progress.bar.Bar('Reading jobs...', max=3) as bar:
       workflow_id = _WORKFLOW_TESTS
-      all_runs = github.list_workflow_runs(FLAGS.token, workflow_id, _BRANCH, 'schedule', _LIMIT)
+      all_runs = firebase_github.list_workflow_runs(FLAGS.token, workflow_id, _BRANCH, 'schedule', _LIMIT)
       bar.next()
       source_tests = {}
       for run in reversed(all_runs):
@@ -387,7 +387,7 @@ def main(argv):
         #   firestore_tests[day] = run
 
       workflow_id = _WORKFLOW_PACKAGING
-      all_runs = github.list_workflow_runs(FLAGS.token, workflow_id, _BRANCH, 'schedule', _LIMIT)
+      all_runs = firebase_github.list_workflow_runs(FLAGS.token, workflow_id, _BRANCH, 'schedule', _LIMIT)
       bar.next()
       packaging_runs = {}
       packaging_run_ids = set()
@@ -404,7 +404,7 @@ def main(argv):
         packaging_run_ids.add(str(run['id']))
 
       workflow_id = _WORKFLOW_TESTS
-      all_runs = github.list_workflow_runs(FLAGS.token, workflow_id, _BRANCH, 'workflow_dispatch', _LIMIT)
+      all_runs = firebase_github.list_workflow_runs(FLAGS.token, workflow_id, _BRANCH, 'workflow_dispatch', _LIMIT)
       bar.next()
       package_tests_all = []
       for run in reversed(all_runs):
@@ -456,10 +456,10 @@ def main(argv):
           run = tests[day]
           run['log_success'] = True
           run['log_results'] = ''
-          artifacts = github.list_artifacts(FLAGS.token, run['id'])
+          artifacts = firebase_github.list_artifacts(FLAGS.token, run['id'])
           if 'log-artifact' in [a['name'] for a in artifacts]:
             artifact_id = [a['id'] for a in artifacts if a['name'] == 'log-artifact'][0]
-            artifact_contents = github.download_artifact(FLAGS.token, artifact_id)
+            artifact_contents = firebase_github.download_artifact(FLAGS.token, artifact_id)
             if artifact_contents:
               artifact_data = io.BytesIO(artifact_contents)
               artifact_zip = zipfile.ZipFile(artifact_data)
