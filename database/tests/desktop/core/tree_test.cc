@@ -276,7 +276,7 @@ TEST(TreeTest, SetValueAtRValue) {
     tree.SetValueAt(Path(""), std::make_unique<int>(1));
 
     EXPECT_TRUE(tree.value().has_value());
-    EXPECT_EQ(tree.value().value(), 1);
+    EXPECT_EQ(*tree.value().value(), 1);
     EXPECT_EQ(tree.children().size(), 0);
   }
 
