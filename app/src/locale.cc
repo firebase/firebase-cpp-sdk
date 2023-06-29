@@ -157,7 +157,7 @@ std::string GetTimezone() {
   }
 
   // Convert time zone name to wide string, then into UTF-8.
-  std::wstring windows_tz_utf16 = convert_cp1252_to_utf16(windows_tz_cp1252);
+  std::wstring windows_tz_utf16 = convert_cp1252_to_utf16(windows_tz_cp1252.c_str());
   std::string windows_tz_utf8;
   {
     std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> to_utf8;
