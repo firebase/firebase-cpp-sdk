@@ -63,7 +63,6 @@ TEST_F(FirestoreAndroidIntegrationTest,
   std::string debug_string = ToDebugString(object);
 
   EXPECT_EQ(debug_string, "Test Value");
-  env().ExceptionClear();
 }
 
 TEST_F(FirestoreAndroidIntegrationTest,
@@ -75,7 +74,6 @@ TEST_F(FirestoreAndroidIntegrationTest,
   std::string debug_string = ToDebugString(null_reference);
 
   EXPECT_EQ(debug_string, "null");
-  env().ExceptionClear();
 }
 
 TEST_F(FirestoreAndroidIntegrationTest, JavaEqShouldReturnTrueForEqualObjects) {
