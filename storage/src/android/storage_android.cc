@@ -20,6 +20,7 @@
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/util.h"
 #include "app/src/util_android.h"
 #include "storage/src/android/controller_android.h"
 #include "storage/src/android/metadata_android.h"
@@ -29,8 +30,6 @@
 namespace firebase {
 namespace storage {
 namespace internal {
-
-const char kApiIdentifier[] = "Storage";
 
 // clang-format off
 #define FIREBASE_STORAGE_METHODS(X)                                     \
@@ -142,6 +141,8 @@ StorageInternal::StorageInternal(App* app, const char* url) {
   if (!Initialize(app)) return;
   app_ = app;
   url_ = url ? url : "";
+  const char kApiIdentifier[] = "Storage";
+  jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
 
   JNIEnv* env = app_->GetJNIEnv();
   jobject url_jstring = env->NewStringUTF(url_.c_str());
@@ -173,6 +174,7 @@ StorageInternal::~StorageInternal() {
   if (app_ == nullptr) return;
 
   JNIEnv* env = app_->GetJNIEnv();
+  util::CancelCallbacks(env, jni_task_id_.c_str());
   env->DeleteGlobalRef(obj_);
   obj_ = nullptr;
   Terminate(app_);
