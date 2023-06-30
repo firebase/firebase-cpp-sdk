@@ -147,14 +147,14 @@ Future<void> DocumentReferenceInternal::Set(const MapFieldValue& data,
   Env env = GetEnv();
   FieldValueInternal map_value(data);
   Local<Object> java_options = SetOptionsInternal::Create(env, options);
-  Local<Task> task = env.Call(obj_, kSet, map_value, java_options);
+  Local<Task> task = env.Call(obj_, kSet, map_value.ToJava(), java_options);
   return promises_.NewFuture<void>(env, AsyncFn::kSet, task);
 }
 
 Future<void> DocumentReferenceInternal::Update(const MapFieldValue& data) {
   Env env = GetEnv();
   FieldValueInternal map_value(data);
-  Local<Task> task = env.Call(obj_, kUpdate, map_value);
+  Local<Task> task = env.Call(obj_, kUpdate, map_value.ToJava());
   return promises_.NewFuture<void>(env, AsyncFn::kUpdate, task);
 }
 

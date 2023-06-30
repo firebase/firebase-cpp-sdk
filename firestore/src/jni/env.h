@@ -23,6 +23,7 @@
 #include <utility>
 #include <vector>
 
+#include "firestore/src/jni/arena_ref.h"
 #include "firestore/src/jni/call_traits.h"
 #include "firestore/src/jni/class.h"
 #include "firestore/src/jni/declaration.h"
@@ -237,6 +238,13 @@ class Env {
     auto env_method = CallTraits<JniType<T>>::kCall;
     return CallHelper<T>(env_method, object, method.id(),
                          ToJni(std::forward<Args>(args))...);
+  }
+
+  template <typename T, typename... Args>
+  ResultType<T> Call(const ArenaRef& object,
+                     const Method<T>& method,
+                     Args&&... args) {
+    return Call(object.get(*this), method, Forward<Args>(args)...);
   }
 
   // MARK: Accessing Static Fields

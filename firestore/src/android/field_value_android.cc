@@ -38,6 +38,7 @@ namespace firebase {
 namespace firestore {
 namespace {
 
+using jni::ArenaRef;
 using jni::Array;
 using jni::ArrayList;
 using jni::Boolean;
@@ -98,39 +99,45 @@ FieldValue FieldValueInternal::Create(Env& env,
 FieldValueInternal::FieldValueInternal() : cached_type_(Type::kNull) {}
 
 FieldValueInternal::FieldValueInternal(const Object& object)
-    : object_(object), cached_type_(Type::kNull) {}
+    : cached_type_(Type::kNull) {
+  Env env = GetEnv();
+  object_.reset(env, object);
+}
 
 FieldValueInternal::FieldValueInternal(Type type, const Object& object)
-    : object_(object), cached_type_(type) {}
+    : cached_type_(type) {
+  Env env = GetEnv();
+  object_.reset(env, object);
+}
 
 FieldValueInternal::FieldValueInternal(bool value)
     : cached_type_(Type::kBoolean) {
   Env env = GetEnv();
-  object_ = Boolean::Create(env, value);
+  object_.reset(env, Boolean::Create(env, value));
 }
 
 FieldValueInternal::FieldValueInternal(int64_t value)
     : cached_type_(Type::kInteger) {
   Env env = GetEnv();
-  object_ = Long::Create(env, value);
+  object_.reset(env, Long::Create(env, value));
 }
 
 FieldValueInternal::FieldValueInternal(double value)
     : cached_type_(Type::kDouble) {
   Env env = GetEnv();
-  object_ = Double::Create(env, value);
+  object_.reset(env, Double::Create(env, value));
 }
 
 FieldValueInternal::FieldValueInternal(Timestamp value)
     : cached_type_(Type::kTimestamp) {
   Env env = GetEnv();
-  object_ = TimestampInternal::Create(env, value);
+  object_.reset(env, TimestampInternal::Create(env, value));
 }
 
 FieldValueInternal::FieldValueInternal(std::string value)
     : cached_type_(Type::kString) {
   Env env = GetEnv();
-  object_ = env.NewStringUtf(value);
+  object_.reset(env, env.NewStringUtf(value));
 }
 
 // We do not initialize cached_blob_ with value here as the instance constructed
@@ -140,20 +147,21 @@ FieldValueInternal::FieldValueInternal(std::string value)
 FieldValueInternal::FieldValueInternal(const uint8_t* value, size_t size)
     : cached_type_(Type::kBlob) {
   Env env = GetEnv();
-  object_ = BlobInternal::Create(env, value, size);
+  object_.reset(env, BlobInternal::Create(env, value, size));
 }
 
 FieldValueInternal::FieldValueInternal(DocumentReference value)
     : cached_type_{Type::kReference} {
   if (value.internal_ != nullptr) {
-    object_ = value.internal_->ToJava();
+    Env env = GetEnv();
+    object_.reset(env, value.internal_->ToJava());
   }
 }
 
 FieldValueInternal::FieldValueInternal(GeoPoint value)
     : cached_type_(Type::kGeoPoint) {
   Env env = GetEnv();
-  object_ = GeoPointInternal::Create(env, value);
+  object_.reset(env, GeoPointInternal::Create(env, value));
 }
 
 FieldValueInternal::FieldValueInternal(const std::vector<FieldValue>& value)
@@ -164,7 +172,7 @@ FieldValueInternal::FieldValueInternal(const std::vector<FieldValue>& value)
     // TODO(b/150016438): don't conflate invalid `FieldValue`s and null.
     list.Add(env, ToJava(element));
   }
-  object_ = list;
+  object_.reset(env, list);
 }
 
 FieldValueInternal::FieldValueInternal(const MapFieldValue& value)
@@ -176,63 +184,64 @@ FieldValueInternal::FieldValueInternal(const MapFieldValue& value)
     Local<String> key = env.NewStringUtf(kv.first);
     map.Put(env, key, ToJava(kv.second));
   }
-  object_ = map;
+  object_.reset(env, map);
 }
 
 Type FieldValueInternal::type() const {
   if (cached_type_ != Type::kNull) {
     return cached_type_;
   }
-  if (!object_) {
-    return Type::kNull;
-  }
 
   // We do not have any knowledge on the type yet. Check the runtime type with
   // each known type.
   Env env = GetEnv();
-  if (env.IsInstanceOf(object_, Boolean::GetClass())) {
+  Local<Object> object = object_.get(env);
+  if (!object) {
+    return Type::kNull;
+  }
+  if (env.IsInstanceOf(object, Boolean::GetClass())) {
     cached_type_ = Type::kBoolean;
     return Type::kBoolean;
   }
-  if (env.IsInstanceOf(object_, Long::GetClass())) {
+  if (env.IsInstanceOf(object, Long::GetClass())) {
     cached_type_ = Type::kInteger;
     return Type::kInteger;
   }
-  if (env.IsInstanceOf(object_, Double::GetClass())) {
+  if (env.IsInstanceOf(object, Double::GetClass())) {
     cached_type_ = Type::kDouble;
     return Type::kDouble;
   }
-  if (env.IsInstanceOf(object_, TimestampInternal::GetClass())) {
+  if (env.IsInstanceOf(object, TimestampInternal::GetClass())) {
     cached_type_ = Type::kTimestamp;
     return Type::kTimestamp;
   }
-  if (env.IsInstanceOf(object_, String::GetClass())) {
+  if (env.IsInstanceOf(object, String::GetClass())) {
     cached_type_ = Type::kString;
     return Type::kString;
   }
-  if (env.IsInstanceOf(object_, BlobInternal::GetClass())) {
+  if (env.IsInstanceOf(object, BlobInternal::GetClass())) {
     cached_type_ = Type::kBlob;
     return Type::kBlob;
   }
-  if (env.IsInstanceOf(object_, DocumentReferenceInternal::GetClass())) {
+  if (env.IsInstanceOf(object, DocumentReferenceInternal::GetClass())) {
     cached_type_ = Type::kReference;
     return Type::kReference;
   }
-  if (env.IsInstanceOf(object_, GeoPointInternal::GetClass())) {
+  if (env.IsInstanceOf(object, GeoPointInternal::GetClass())) {
     cached_type_ = Type::kGeoPoint;
     return Type::kGeoPoint;
   }
-  if (env.IsInstanceOf(object_, List::GetClass())) {
+  if (env.IsInstanceOf(object, List::GetClass())) {
     cached_type_ = Type::kArray;
     return Type::kArray;
   }
-  if (env.IsInstanceOf(object_, Map::GetClass())) {
+  if (env.IsInstanceOf(object, Map::GetClass())) {
     cached_type_ = Type::kMap;
     return Type::kMap;
   }
 
   FIREBASE_ASSERT_MESSAGE(false, "Unsupported FieldValue type: %s",
-                          Class::GetClassName(env, object_).c_str());
+                          Class::GetClassName(env, object_.get(env)).c_str());
   return Type::kNull;
 }
 
@@ -389,15 +398,25 @@ bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs) {
 }
 
 template <typename T>
-T FieldValueInternal::Cast(jni::Env& env, Type type) const {
+Local<T> FieldValueInternal::Cast(jni::Env& env, Type type) const {
   if (cached_type_ == Type::kNull) {
-    FIREBASE_ASSERT(env.IsInstanceOf(object_, T::GetClass()));
+    FIREBASE_ASSERT(env.IsInstanceOf(object_.get(env), T::GetClass()));
     cached_type_ = type;
   } else {
     FIREBASE_ASSERT(cached_type_ == type);
   }
-  auto typed_value = static_cast<jni::JniType<T>>(object_.get());
-  return T(typed_value);
+  return object_.get(env).CastTo<T>();
+}
+
+template <>
+Local<String> FieldValueInternal::Cast<String>(jni::Env& env, Type type) const {
+  if (cached_type_ == Type::kNull) {
+    FIREBASE_ASSERT(env.IsInstanceOf(object_.get(env), String::GetClass()));
+    cached_type_ = type;
+  } else {
+    FIREBASE_ASSERT(cached_type_ == type);
+  }
+  return env.NewStringUtf(object_.get(env).ToString(env));
 }
 
 Local<Array<Object>> FieldValueInternal::MakeArray(
@@ -411,8 +430,14 @@ Local<Array<Object>> FieldValueInternal::MakeArray(
 
 Env FieldValueInternal::GetEnv() { return FirestoreInternal::GetEnv(); }
 
-Object FieldValueInternal::ToJava(const FieldValue& value) {
-  return value.internal_ ? value.internal_->object_ : Object();
+Local<Object> FieldValueInternal::ToJava() const {
+  Env env = GetEnv();
+  return object_.get(env);
+}
+
+Local<Object> FieldValueInternal::ToJava(const FieldValue& value) {
+  Env env = GetEnv();
+  return value.internal_ ? value.internal_->object_.get(env) : Local<Object>();
 }
 
 }  // namespace firestore

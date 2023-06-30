@@ -149,6 +149,8 @@ set(android_SRCS
     src/jni/array.h
     src/jni/array_list.cc
     src/jni/array_list.h
+    src/jni/arena_ref.cc
+    src/jni/arena_ref.h
     src/jni/boolean.cc
     src/jni/boolean.h
     src/jni/call_traits.h
