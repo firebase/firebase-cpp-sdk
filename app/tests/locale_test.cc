@@ -56,9 +56,9 @@ TEST_F(LocaleTest, TestGetLocale) {
 TEST_F(LocaleTest, TestConvertingStringEncodings) {
   // "Mitteleuropäische Zeit € d'été ‘Žœ’" in CP-1252 encoding
   const unsigned char original_cp1252_array[] = {
-      'M', 'i', 't', 't', 'e', 'l', 'e', 'u', 'r', 'o', 'p',  0xe4, 'i',
-      's', 'c', 'h', 'e', ' ', 'Z', 'e', 'i', 't', ' ', 0x80, ' ',
-      'd', '\'', 0xe9, 't', 0xe9, ' ', 0x91, 0x8e, 0x9c, 0x92, '\0'};
+      'M', 'i', 't',  't',  'e', 'l',  'e', 'u',  'r',  'o',  'p',  0xe4,
+      'i', 's', 'c',  'h',  'e', ' ',  'Z', 'e',  'i',  't',  ' ',  0x80,
+      ' ', 'd', '\'', 0xe9, 't', 0xe9, ' ', 0x91, 0x8e, 0x9c, 0x92, '\0'};
   std::string original_cp1252(
       reinterpret_cast<const char*>(original_cp1252_array));
 
@@ -71,10 +71,10 @@ TEST_F(LocaleTest, TestConvertingStringEncodings) {
   EXPECT_EQ(cp1252_converted_to_utf16, original_utf16);
 
   const unsigned char original_utf8_array[] = {
-      'M', 'i', 't', 't', 'e', 'l', 'e', 'u', 'r', 'o', 'p',  0xc3, 0xa4, 'i',
-      's', 'c', 'h', 'e', ' ', 'Z', 'e', 'i', 't', ' ', 0xe2, 0x82, 0xac, ' ',
-      'd', '\'', 0xc3, 0xa9, 't', 0xc3, 0xa9, ' ', 0xe2, 0x80, 0x98,
-      0xc5, 0xbd, 0xc5, 0x93, 0xe2, 0x80, 0x99, '\0'};
+      'M',  'i',  't',  't',  'e',  'l',  'e',  'u',  'r',  'o',  'p',  0xc3,
+      0xa4, 'i',  's',  'c',  'h',  'e',  ' ',  'Z',  'e',  'i',  't',  ' ',
+      0xe2, 0x82, 0xac, ' ',  'd',  '\'', 0xc3, 0xa9, 't',  0xc3, 0xa9, ' ',
+      0xe2, 0x80, 0x98, 0xc5, 0xbd, 0xc5, 0x93, 0xe2, 0x80, 0x99, '\0'};
   std::string original_utf8(reinterpret_cast<const char*>(original_utf8_array));
   std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> to_utf8;
 
