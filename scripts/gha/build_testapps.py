@@ -466,7 +466,7 @@ def _summarize_results(testapps, platforms, failures, root_output_dir, artifact_
     summary.append("SOME ERRORS OCCURRED:")
     for i, failure in enumerate(failures, start=1):
       summary.append("%d: %s" % (i, failure.describe()))
-  if generated_files:
+  if generated_files and not FLAGS.gha_build:
     summary.append("GENERATED FILES:")
     summary.extend(generated_files)
 
