@@ -29,14 +29,18 @@ namespace firebase {
 namespace firestore {
 namespace {
 
+using jni::ArenaRef;
 using jni::Env;
+using jni::Local;
 using jni::Object;
 
 }  // namespace
 
 Wrapper::Wrapper(FirestoreInternal* firestore, const Object& obj)
-    : firestore_(firestore), obj_(obj) {
+    : firestore_(firestore) {
   FIREBASE_ASSERT(obj);
+  Env env = GetEnv();
+  obj_.reset(env, obj);
 }
 
 Wrapper::Wrapper() {
@@ -58,8 +62,9 @@ Wrapper::~Wrapper() = default;
 
 jni::Env Wrapper::GetEnv() const { return firestore_->GetEnv(); }
 
-Object Wrapper::ToJava(const FieldValue& value) {
-  return FieldValueInternal::ToJava(value);
+Local<Object> Wrapper::ToJava() const {
+  Env env = GetEnv();
+  return obj_.get(env);
 }
 
 }  // namespace firestore

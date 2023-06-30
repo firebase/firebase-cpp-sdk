@@ -59,7 +59,7 @@ TEST_F(DocumentReferenceTest, RecoverFirestore) {
   DocumentReference doc = Document();
   ASSERT_EQ(db, doc.firestore());  // Sanity check
 
-  jni::Object doc_java = GetInternal(doc)->ToJava();
+  jni::Local<jni::Object> doc_java = GetInternal(doc)->ToJava();
   result = DocumentReferenceInternal::Create(env, doc_java);
   ASSERT_EQ(db, result.firestore());
 }
