@@ -20,6 +20,8 @@
 
 #include <string>
 
+#include "app/src/include/firebase/internal/platform.h"
+
 namespace firebase {
 namespace internal {
 
