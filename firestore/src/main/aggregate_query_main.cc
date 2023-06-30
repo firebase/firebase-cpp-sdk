@@ -71,9 +71,7 @@ Future<AggregateQuerySnapshot> AggregateQueryInternal::Get(
 
 bool operator==(const AggregateQueryInternal& lhs,
                 const AggregateQueryInternal& rhs) {
-  // TODO(b/276440573) - there needs to be equals operator defined on
-  // api::AggregateQuery
-  return lhs.aggregate_query_.query() == rhs.aggregate_query_.query();
+  return lhs.aggregate_query_ == rhs.aggregate_query_;
 }
 
 }  // namespace firestore
