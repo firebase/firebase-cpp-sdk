@@ -16,6 +16,7 @@
 
 #include "app/src/locale.h"
 
+#include <codecvt>
 #include <string>
 
 #include "app/src/include/firebase/internal/platform.h"
@@ -23,11 +24,8 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-#if FIREBASE_PLATFORM_WINDOWS
-
-#else
+#if !FIREBASE_PLATFORM_WINDOWS
 #include <clocale>
-#include <codecvt>
 #endif  // FIREBASE_PLATFORM_WINDOWS
 
 namespace firebase {
@@ -53,41 +51,40 @@ TEST_F(LocaleTest, TestGetLocale) {
   EXPECT_NE(loc.find('_'), std::string::npos);
 }
 
-#if FIREBASE_PLATFORM_WINDOWS
+#if FIREBASE_PLATFORM_WINDOWS || FIREBASE_PLATFORM_LINUX
 
 TEST_F(LocaleTest, TestConvertingStringEncodings) {
-  // "Mitteleuropäische Zeit €"
-  const char original_cp1252[] = {
-    'M', 'i', 't', 't', 'e', 'l', 'e', 'u', 'r',
-    'o', 'p', 0xe4, 'i', 's', 'c', 'h', 'e', ' ',
-    'Z', 'e', 'i', 't', 0x80, '\0'
-  };
-  std::string original_cp1252_str(original_cp1252);
-  const wchar_t original_utf16[] = L"Mitteleuropäische Zeit €";
-  std::wstring original_utf16_str(original_utf16);
+  // "Mitteleuropäische Zeit €" in CP-1252 encoding
+  const unsigned char original_cp1252_array[] = {
+      'M', 'i', 't', 't', 'e', 'l', 'e', 'u', 'r', 'o', 'p',  0xe4, 'i',
+      's', 'c', 'h', 'e', ' ', 'Z', 'e', 'i', 't', ' ', 0x80, '\0'};
+  std::string original_cp1252(
+      reinterpret_cast<const char*>(original_cp1252_array));
+
+  // "Mitteleuropäische Zeit €" in UTF-16 encoding
+  const wchar_t original_utf16_array[] = L"Mitteleuropäische Zeit €";
+  std::wstring original_utf16(original_utf16_array);
 
   std::wstring cp1252_converted_to_utf16 =
-    ::firebase::internal::convert_cp1252_to_utf16(original_cp1252_str.c_str());
-  EXPECT_EQ(cp1252_converted_to_utf16, original_utf16_str);
+      convert_cp1252_to_utf16(original_cp1252.c_str());
+  EXPECT_EQ(cp1252_converted_to_utf16, original_utf16);
 
+  const unsigned char original_utf8_array[] = {
+      'M', 'i', 't', 't', 'e', 'l', 'e', 'u', 'r', 'o', 'p',  0xc3, 0xa4, 'i',
+      's', 'c', 'h', 'e', ' ', 'Z', 'e', 'i', 't', ' ', 0xe2, 0x82, 0xac, '\0'};
+  std::string original_utf8(reinterpret_cast<const char*>(original_utf8_array));
   std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> to_utf8;
 
-  const char original_utf8[] = {
-    'M', 'i', 't', 't', 'e', 'l', 'e', 'u', 'r',
-    'o', 'p', 0xc3, 0xa4, 'i', 's', 'c', 'h', 'e', ' ',
-    'Z', 'e', 'i', 't', ' ', 0xe2, 0x82, 0xac, '\0'
-  };
-  std::string original_utf8_str(original_utf8);
+  std::string utf16_converted_to_utf8 =
+      to_utf8.to_bytes(cp1252_converted_to_utf16);
+  EXPECT_EQ(utf16_converted_to_utf8, original_utf8);
 
-  utf16_converted_to_utf8 = to_utf8.to_bytes(cp1252_converted_to_utf16);
-  EXPECT_EQ(utf16_converted_to_utf8, original_utf8_str);
-
-  utf8_converted_to_utf16 = to_utf8.from_bytes(utf16_converted_to_utf8);
-  EXPECT_EQ(utf8_converted_to_utf16, original_utf16_str);
+  std::wstring utf8_converted_to_utf16 =
+      to_utf8.from_bytes(utf16_converted_to_utf8);
+  EXPECT_EQ(utf8_converted_to_utf16, original_utf16);
 }
 
-#endif  // FIREBASE_PLATFORM_WINDOWS
-
+#endif  // FIREBASE_PLATFORM_WINDOWS || FIREBASE_PLATFORM_LINUX
 
 }  // namespace internal
 }  // namespace firebase

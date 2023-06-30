@@ -30,9 +30,9 @@ std::string GetLocale();
 // Get the current time zone, e.g. "US/Pacific" or "EDT".
 std::string GetTimezone();
 
-#if FIREBASE_PLATFORM_WINDOWS
+#if FIREBASE_PLATFORM_WINDOWS || FIREBASE_PLATFORM_LINUX
 std::wstring convert_cp1252_to_utf16(const char* str_cp1252);
-#endif  // FIREBASE_PLATFORM_WINDOWS
+#endif  // FIREBASE_PLATFORM_WINDOWS || FIREBASE_PLATFORM_LINUX
 
 }  // namespace internal
 }  // namespace firebase
