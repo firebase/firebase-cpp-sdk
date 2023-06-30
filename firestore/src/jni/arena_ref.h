@@ -99,6 +99,18 @@ class ArenaRef final {
    */
   void reset(Env& env, const Object&);
 
+  /**
+   * Performs one-time initialization of the `ArenaRef` class.
+   *
+   * This function _must_ be called before any instances of `ArenaRef` are
+   * created. Violating this requirement results in undefined behavior.
+   *
+   * It is safe to call this function multiple times: subsequent invocations
+   * have no effect.
+   *
+   * This function is _not_ thread-safe; calling concurrently from multiple
+   * threads results in undefined behavior.
+   */
   static void Initialize(Loader&);
 
  private:

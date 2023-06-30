@@ -19,13 +19,23 @@ package com.google.firebase.firestore.internal.cpp;
 import java.util.HashMap;
 
 /**
- * A companion class used by the C++ class firebase::firestore::jni::ArenaRef to
- * map long primitive values to Objects.
+ * A companion class used by the C++ class
+ * {@code firebase::firestore::jni::ArenaRef} to map {@code long} primitive
+ * values to objects.
  *
- * Technically, this could have been written using JNI calling HashMap methods
- * directly; however, that is extremely slow and sidesteps an amazing
- * optimization done by Android's ART runtime that elides the boxing and
- * unboxing of the Long keys.
+ * This class cannot be instantiated; all uses must be done through the static
+ * methods. This effectively serves as a global singleton map that exists for
+ * the entire lifetime of the Java application.
+ *
+ * Technically, the logic in this class could have been written entirely in C++,
+ * using JNI to create the {@code HashMap} and call its methods; however, this
+ * proved to be slow, mostly due to the boxing and unboxing of the {@code long}
+ * primitive values to and from {@code Long} objects, respectively. By instead
+ * writing the class in Java, Android's ART runtime elides the boxing and
+ * unboxing since it can prove to itself that the code does not rely on object
+ * identity of the {@code Long} objects. This improves the performance by an
+ * order of magnitude compared the the equivalent JNI calls, which cannot have
+ * the boxing and unboxing optimized away.
  */
 public final class ObjectArena {
   private static final HashMap<Long, Object> map = new HashMap<>();
