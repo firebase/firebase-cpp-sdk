@@ -127,7 +127,7 @@ static wchar_t lookup_cp1252_to_utf16[256] = {
     0x00F3, 0x00F4, 0x00F5, 0x00F6, 0x00F7, 0x00F8, 0x00F9, 0x00FA, 0x00FB,
     0x00FC, 0x00FD, 0x00FE, 0x00FF};
 
-static std::wstring convert_cp1252_to_utf16(const char* str_cp1252) {
+std::wstring convert_cp1252_to_utf16(const char* str_cp1252) {
   size_t len = strlen(str_cp1252);
   std::vector<wchar_t> buf_utf16(len + 1);
   for (int i = 0; i < len + 1; i++) {
@@ -135,6 +135,7 @@ static std::wstring convert_cp1252_to_utf16(const char* str_cp1252) {
   }
   return std::wstring(&buf_utf16[0]);
 }
+
 #endif  // FIREBASE_PLATFORM_WINDOWS
 
 // Get the current time zone, e.g. "US/Pacific"
