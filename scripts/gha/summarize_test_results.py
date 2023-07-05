@@ -16,7 +16,7 @@
 
 USAGE:
 
-python summarize_test_results.py --dir <directory> --markdown
+python3 summarize_test_results.py --dir <directory> --markdown
 
 Example table mode output (with --markdown):
 
@@ -28,7 +28,7 @@ Example table mode output (with --markdown):
 |            |[TEST] [FAILURE] [Android] [macos] [emulator_target]|
 |            |▼(1 failed tests)                                   |
 
-python summarize_test_results.py --dir <directory> [--github_log]
+python3 summarize_test_results.py --dir <directory> [--github_log]
 
 Example log mode output (will be slightly different with --github_log):
 

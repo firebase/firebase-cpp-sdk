@@ -16,7 +16,7 @@ r"""Tool for mobile testapps to Test on iOS Simulator / Android Emulator locally
 
 Usage:
 
-  python test_simulator.py --testapp_dir ~/testapps --test_type gameloop
+  python3 test_simulator.py --testapp_dir ~/testapps --test_type gameloop
 
 This will recursively search ~/testapps for apps,
 test on local simulators/emulators, and validate their results. The validation is 

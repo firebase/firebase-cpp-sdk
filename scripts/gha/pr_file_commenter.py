@@ -16,7 +16,7 @@
 """Take warnings/error lines from stdin and turn them into PR file comments.
 
 Usage:
-python pr_file_commenter.py -t github_token -p pr_number
+python3 pr_file_commenter.py -t github_token -p pr_number
        -T comment_tag [-r git_repo_url] [-C curl_command]
        [-P comment_prefix] [-S comment_suffix] [-d base_directory]
        < COMMENT_LINES
