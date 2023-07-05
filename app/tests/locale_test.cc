@@ -63,13 +63,13 @@ TEST_F(LocaleTest, TestConvertingStringEncodings) {
       reinterpret_cast<const char*>(original_cp1252_array));
 
   // "Mitteleuropäische Zeit €" in UTF-16 encoding
-  const wchar_t original_utf16_array[] =  {
-	  'M','i','t','t','e','l','e','u','r','o','p',0x00E4,
-	  'i','s','c','h','e',' ','Z','e','i','t',' ',0x20AC,
-	  ' ','d','\'',0x00E9,'t',0x00E9,' ',0x2018,0x17D,0x153,0x2019,
-	  '\0'};
-  std::wstring original_utf16(reinterpret_cast<const wchar_t*>(original_utf16_array));
-  
+  const wchar_t original_utf16_array[] = {
+      'M',    'i', 't',    't', 'e',    'l',    'e',   'u',    'r',
+      'o',    'p', 0x00E4, 'i', 's',    'c',    'h',   'e',    ' ',
+      'Z',    'e', 'i',    't', ' ',    0x20AC, ' ',   'd',    '\'',
+      0x00E9, 't', 0x00E9, ' ', 0x2018, 0x17D,  0x153, 0x2019, '\0'};
+  std::wstring original_utf16(
+      reinterpret_cast<const wchar_t*>(original_utf16_array));
 
   std::wstring cp1252_converted_to_utf16 =
       convert_cp1252_to_utf16(original_cp1252.c_str());
