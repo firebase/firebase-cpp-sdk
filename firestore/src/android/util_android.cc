@@ -16,6 +16,8 @@
 
 #include "firestore/src/android/util_android.h"
 
+#include <utility>
+
 #include "app/src/assert.h"
 #include "firestore/src/android/field_path_android.h"
 #include "firestore/src/android/field_value_android.h"
@@ -64,8 +66,8 @@ UpdateFieldPathArgs MakeUpdateFieldPathArgs(Env& env,
     varargs.Set(env, index++, value);
   }
 
-  return UpdateFieldPathArgs{Move(first_field), Move(first_value),
-                             Move(varargs)};
+  return UpdateFieldPathArgs{std::move(first_field), std::move(first_value),
+                             std::move(varargs)};
 }
 
 }  // namespace firestore

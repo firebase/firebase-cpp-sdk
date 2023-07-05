@@ -16,7 +16,7 @@
 
 #include "firestore/src/android/field_value_android.h"
 
-#include "app/meta/move.h"
+#include <utility>
 #include "firestore/src/android/blob_android.h"
 #include "firestore/src/android/document_reference_android.h"
 #include "firestore/src/android/geo_point_android.h"
@@ -352,7 +352,7 @@ MapFieldValue FieldValueInternal::map_value() const {
     Local<Object> java_value = map.Get(env, java_key);
     FieldValue value = FieldValueInternal::Create(env, java_value);
 
-    result.insert(std::make_pair(firebase::Move(key), firebase::Move(value)));
+    result.insert(std::make_pair(std::move(key), std::move(value)));
   }
 
   if (!env.ok()) return MapFieldValue();

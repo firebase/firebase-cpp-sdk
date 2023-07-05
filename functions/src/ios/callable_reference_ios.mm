@@ -58,7 +58,7 @@ enum CallableReferenceFn {
 };
 
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
-    FunctionsInternal* functions, UniquePtr<FIRHTTPSCallablePointer> impl)
+    FunctionsInternal* functions, std::unique_ptr<FIRHTTPSCallablePointer> impl)
     : functions_(functions), impl_(std::move(impl)) {
   // impl_ was newed by the caller, this class will take ownership and delete it in the destructor.
   functions_->future_manager().AllocFutureApi(this, kCallableReferenceFnCount);

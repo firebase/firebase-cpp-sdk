@@ -359,27 +359,6 @@ firebase_cpp_cc_test(firebase_app_user_secure_internal_test
     ${SECURE_STORAGE_DEFINES}
 )
 
-firebase_cpp_cc_test(firebase_app_memory_atomic_test
-  SOURCES
-    ${FIREBASE_CPP_SDK_ROOT_DIR}/app/memory/atomic_test.cc
-  DEPENDS
-    firebase_app
-)
-
-firebase_cpp_cc_test(firebase_app_memory_shared_ptr_test
-  SOURCES
-    ${FIREBASE_CPP_SDK_ROOT_DIR}/app/memory/shared_ptr_test.cc
-  DEPENDS
-    firebase_app
-)
-
-firebase_cpp_cc_test(firebase_app_memory_unique_ptr_test
-  SOURCES
-    ${FIREBASE_CPP_SDK_ROOT_DIR}/app/memory/unique_ptr_test.cc
-  DEPENDS
-    firebase_app
-)
-
 #[[ google3 Dependencies
 
 # google3 - FLAGS_test_srcdir

@@ -15,7 +15,7 @@
 #ifndef FIREBASE_STORAGE_SRC_IOS_LISTENER_IOS_H_
 #define FIREBASE_STORAGE_SRC_IOS_LISTENER_IOS_H_
 
-#include "app/memory/unique_ptr.h"
+#include <memory>
 #include "app/src/util_ios.h"
 #include "storage/src/include/firebase/storage/listener.h"
 #include "storage/src/ios/storage_ios.h"
@@ -88,16 +88,16 @@ class ListenerInternal {
 
   // Guards task_, pause_observer_handle_, progress_observer_handle_,
   // listener_handle.
-  UniquePtr<NSRecursiveLockPointer> listener_handle_lock_;
+  std::unique_ptr<NSRecursiveLockPointer> listener_handle_lock_;
   // Task monitored by this listener.
-  UniquePtr<FIRStorageObservableTaskPointer> task_;
+  std::unique_ptr<FIRStorageObservableTaskPointer> task_;
   // Handle to the pause observer block, used to unregister pause notifications.
-  UniquePtr<FIRStorageHandlePointer> pause_observer_handle_;
+  std::unique_ptr<FIRStorageHandlePointer> pause_observer_handle_;
   // Handle to the progress observer block, used to unregister progress
   // notifications.
-  UniquePtr<FIRStorageHandlePointer> progress_observer_handle_;
+  std::unique_ptr<FIRStorageHandlePointer> progress_observer_handle_;
   // Obj-C reference to this object.
-  UniquePtr<FIRCPPStorageListenerHandlePointer> listener_handle_;
+  std::unique_ptr<FIRCPPStorageListenerHandlePointer> listener_handle_;
   // Previously seen byte count from progress updates.
   // Used to debounce duplicate progress updates.
   int64_t previous_progress_count_;

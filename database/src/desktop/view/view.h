@@ -15,9 +15,9 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_VIEW_VIEW_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_VIEW_VIEW_H_
 
+#include <memory>
 #include <vector>
 
-#include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/optional.h"
 #include "app/src/path.h"
@@ -63,7 +63,7 @@ class View {
 
   // Adds the given registration to the list of registrations this view manages.
   // Adding a registration gives ownership of the registration to the view.
-  void AddEventRegistration(UniquePtr<EventRegistration> registration);
+  void AddEventRegistration(std::unique_ptr<EventRegistration> registration);
 
   // Removes an EventRegistration given the pointer to its listener. If no
   // listener_ptr is supplied, all registrations are removed.
@@ -91,7 +91,8 @@ class View {
   const ViewCache& view_cache() const { return view_cache_; }
 
   // The EventRegistrations owned by this View of the database.
-  const std::vector<UniquePtr<EventRegistration>>& event_registrations() const {
+  const std::vector<std::unique_ptr<EventRegistration>>& event_registrations()
+      const {
     return event_registrations_;
   }
 
@@ -111,9 +112,9 @@ class View {
                                     EventRegistration* registration);
 
   QuerySpec query_spec_;
-  UniquePtr<ViewProcessor> view_processor_;
+  std::unique_ptr<ViewProcessor> view_processor_;
   ViewCache view_cache_;
-  std::vector<UniquePtr<EventRegistration>> event_registrations_;
+  std::vector<std::unique_ptr<EventRegistration>> event_registrations_;
 };
 
 }  // namespace internal

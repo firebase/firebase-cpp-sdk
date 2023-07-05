@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/core/web_socket_listen_provider.h"
 
+#include <memory>
+
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/connection/persistent_connection.h"
 #include "database/src/desktop/core/listen_provider.h"
@@ -61,8 +63,8 @@ void WebSocketListenProvider::StartListening(const QuerySpec& query_spec,
                                              const Tag& tag, const View* view) {
   connection_->Listen(
       query_spec, tag,
-      MakeShared<WebSocketListenResponse>(
-          [](const SharedPtr<connection::Response>& connection_response) {
+      std::make_shared<WebSocketListenResponse>(
+          [](const std::shared_ptr<connection::Response>& connection_response) {
             WebSocketListenResponse* response =
                 static_cast<WebSocketListenResponse*>(
                     connection_response.get());

@@ -19,9 +19,9 @@
 #include <stdlib.h>
 
 #include <ctime>
+#include <memory>
 #include <vector>
 
-#include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/semaphore.h"
 #include "app/src/thread.h"
@@ -112,7 +112,7 @@ TEST_F(FutureManagerTest, TestOrphaningFutures) {
 }
 
 TEST_F(FutureManagerTest, TestFutureManagerCanBeDeletedByFutureCallback) {
-  auto future_manager = MakeUnique<FutureManager>();
+  auto future_manager = std::make_unique<FutureManager>();
 
   future_manager->AllocFutureApi(&value1_, kTestFnCount);
   ReferenceCountedFutureImpl* future_impl =
@@ -131,7 +131,7 @@ TEST_F(FutureManagerTest, TestFutureManagerCanBeDeletedByFutureCallback) {
 }
 
 TEST_F(FutureManagerTest, TestFutureManagerCanBeDeletedByFutureInParallel) {
-  auto future_manager = MakeUnique<FutureManager>();
+  auto future_manager = std::make_unique<FutureManager>();
   future_manager->AllocFutureApi(&value1_, 2);
   ReferenceCountedFutureImpl* future_impl =
       future_manager->GetFutureApi(&value1_);

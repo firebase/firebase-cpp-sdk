@@ -23,7 +23,6 @@
 #include <utility>
 #include <vector>
 
-#include "app/meta/move.h"
 #include "firestore/src/jni/arena_ref.h"
 #include "firestore/src/jni/call_traits.h"
 #include "firestore/src/jni/class.h"
@@ -156,8 +155,8 @@ class Env {
   Local<T> New(const Class& clazz, jmethodID method, Args&&... args) {
     if (!ok()) return {};
 
-    jobject result =
-        env_->NewObject(clazz.get(), method, ToJni(Forward<Args>(args))...);
+    jobject result = env_->NewObject(clazz.get(), method,
+                                     ToJni(std::forward<Args>(args))...);
     RecordException();
     return MakeResult<T>(result);
   }
@@ -166,8 +165,8 @@ class Env {
   Local<T> New(const Constructor<T>& ctor, Args&&... args) {
     if (!ok()) return {};
 
-    auto result =
-        env_->NewObject(ctor.clazz(), ctor.id(), ToJni(Forward<Args>(args))...);
+    auto result = env_->NewObject(ctor.clazz(), ctor.id(),
+                                  ToJni(std::forward<Args>(args))...);
     RecordException();
     return MakeResult<T>(result);
   }
@@ -211,7 +210,7 @@ class Env {
   ResultType<T> Call(const Object& object, jmethodID method, Args&&... args) {
     auto env_method = CallTraits<JniType<T>>::kCall;
     return CallHelper<T>(env_method, object.get(), method,
-                         ToJni(Forward<Args>(args))...);
+                         ToJni(std::forward<Args>(args))...);
   }
 
   // Temporarily allow passing the object parameter with type jobject.
@@ -220,7 +219,7 @@ class Env {
   ResultType<T> Call(jobject object, jmethodID method, Args&&... args) {
     auto env_method = CallTraits<JniType<T>>::kCall;
     return CallHelper<T>(env_method, object, method,
-                         ToJni(Forward<Args>(args))...);
+                         ToJni(std::forward<Args>(args))...);
   }
 
   template <typename T, typename... Args>
@@ -229,7 +228,7 @@ class Env {
                      Args&&... args) {
     auto env_method = CallTraits<JniType<T>>::kCall;
     return CallHelper<T>(env_method, object.get(), method.id(),
-                         ToJni(Forward<Args>(args))...);
+                         ToJni(std::forward<Args>(args))...);
   }
 
   // Temporarily allow passing the object parameter with type jobject.
@@ -238,14 +237,14 @@ class Env {
   ResultType<T> Call(jobject object, const Method<T>& method, Args&&... args) {
     auto env_method = CallTraits<JniType<T>>::kCall;
     return CallHelper<T>(env_method, object, method.id(),
-                         ToJni(Forward<Args>(args))...);
+                         ToJni(std::forward<Args>(args))...);
   }
 
   template <typename T, typename... Args>
   ResultType<T> Call(const ArenaRef& object,
                      const Method<T>& method,
                      Args&&... args) {
-    return Call(object.get(*this), method, Forward<Args>(args)...);
+    return Call(object.get(*this), method, std::forward<Args>(args)...);
   }
 
   // MARK: Accessing Static Fields
@@ -312,14 +311,14 @@ class Env {
                            Args&&... args) {
     auto env_method = CallTraits<JniType<T>>::kCallStatic;
     return CallHelper<T>(env_method, clazz.get(), method,
-                         ToJni(Forward<Args>(args))...);
+                         ToJni(std::forward<Args>(args))...);
   }
 
   template <typename T, typename... Args>
   ResultType<T> Call(const StaticMethod<T>& method, Args&&... args) {
     auto env_method = CallTraits<JniType<T>>::kCallStatic;
     return CallHelper<T>(env_method, method.clazz(), method.id(),
-                         ToJni(Forward<Args>(args))...);
+                         ToJni(std::forward<Args>(args))...);
   }
 
   // MARK: String Operations
@@ -502,7 +501,7 @@ class Env {
       M&& env_method, Args&&... args) {
     if (!ok()) return {};
 
-    auto result = INVOKE(env_, env_method, Forward<Args>(args)...);
+    auto result = INVOKE(env_, env_method, std::forward<Args>(args)...);
     RecordException();
     return MakeResult<T>(result);
   }
@@ -517,7 +516,7 @@ class Env {
       M&& env_method, Args&&... args) {
     if (!ok()) return;
 
-    INVOKE(env_, env_method, Forward<Args>(args)...);
+    INVOKE(env_, env_method, std::forward<Args>(args)...);
     RecordException();
   }
 

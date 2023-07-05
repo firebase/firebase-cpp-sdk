@@ -17,7 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_COMMON_FUTURES_H_
 #define FIREBASE_FIRESTORE_SRC_COMMON_FUTURES_H_
 
-#include "app/meta/move.h"
+#include <utility>
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "firebase/firestore/firestore_errors.h"
@@ -45,8 +45,9 @@ Future<T> SuccessfulFuture(T&& result) {
 
   // The Future API doesn't directly support completing a future with a moved
   // value. Use the callback form to work around this.
-  api->Complete(handle, Error::kErrorOk, "",
-                [&](T* future_value) { *future_value = Forward<T>(result); });
+  api->Complete(handle, Error::kErrorOk, "", [&](T* future_value) {
+    *future_value = std::forward<T>(result);
+  });
   return Future<T>(api, handle.get());
 }
 

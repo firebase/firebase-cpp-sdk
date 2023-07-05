@@ -16,7 +16,7 @@
 
 #include "firestore/src/android/document_reference_android.h"
 
-#include "app/meta/move.h"
+#include <utility>
 #include "app/src/assert.h"
 #include "firestore/src/android/collection_reference_android.h"
 #include "firestore/src/android/event_listener_android.h"
@@ -182,7 +182,7 @@ ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
     std::function<void(const DocumentSnapshot&, Error, const std::string&)>
         callback) {
   LambdaEventListener<DocumentSnapshot>* listener =
-      new LambdaEventListener<DocumentSnapshot>(firebase::Move(callback));
+      new LambdaEventListener<DocumentSnapshot>(std::move(callback));
   return AddSnapshotListener(metadata_changes, listener,
                              /*passing_listener_ownership=*/true);
 }
