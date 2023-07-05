@@ -20,7 +20,7 @@ token. It uses the GitHub REST API documented here:
 https://docs.github.com/en/rest/reference/actions#create-a-workflow-dispatch-event
 
 Usage:
-python lint_commenter.py -t github_token -p pr_number
+python3 lint_commenter.py -t github_token -p pr_number
        [-r git_repo_url] [-C curl_command] [-l lint_command]
 
 If -r is unspecified, uses the current repo.

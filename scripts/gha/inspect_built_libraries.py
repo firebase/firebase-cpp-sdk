@@ -26,11 +26,11 @@ Ideally the script could be run from anywhere and only depends upon the `utils.p
 module but it is a good practice to run it from the root of the repo.
 
 # Inspect specific libraries by providing them explicitly.
-$ python scripts/gha/inspect_built_libraries.py build/app/libfirebase_app.a build/auth/libfirebase_auth.a
+$ python3 scripts/gha/inspect_built_libraries.py build/app/libfirebase_app.a build/auth/libfirebase_auth.a
 
 # Inspect all firebase libraries (default value for --library_filter is "firebase_")
 # by searching specified directory recursively.
-$ python scripts/gha/inspect_built_libraries.py build/
+$ python3 scripts/gha/inspect_built_libraries.py build/
 ****************************************************
 Library                                Architecture
 ****************************************************
@@ -42,7 +42,7 @@ libfirebase_dynamic_links.a            x86_64
 ...
 
 # To print full paths to libraries and specify a different library filter.
-$ python scripts/gha/inspect_built_libraries.py build/ --library_filter "grpc" --print_full_paths
+$ python3 scripts/gha/inspect_built_libraries.py build/ --library_filter "grpc" --print_full_paths
 ************************************************************************************
 Library                                                                Architecture
 ************************************************************************************
@@ -50,10 +50,10 @@ build/external/src/firestore-build/external/src/grpc-build/libgrpc++.a x86_64
 build/external/src/firestore-build/external/src/grpc-build/libgrpc.a   x86_64
 
 # To print information for all libraries, set library_filter to an empty string.
-$ python scripts/gha/inspect_built_libraries.py build/ --library_filter ""
+$ python3 scripts/gha/inspect_built_libraries.py build/ --library_filter ""
 
 # On Windows, there is an additional column of information for msvc runtime.
-$ python scripts/gha/inspect_built_libraries.py build/
+$ python3 scripts/gha/inspect_built_libraries.py build/
 ******************************************************************
 Library                                 Architecture MSVC_Runtime
 ******************************************************************

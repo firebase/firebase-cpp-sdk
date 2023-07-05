@@ -15,7 +15,7 @@
 """Runs and validates desktop C++ testapps.
 
 Usage:
-  python desktop_tester.py --testapp_dir ~/Downloads/testapps
+  python3 desktop_tester.py --testapp_dir ~/Downloads/testapps
 
 This will search --testapp_dir for files whose name is given by --testapp_name
 (default: "integration_test", or "integration_test.exe" on Windows), execute
