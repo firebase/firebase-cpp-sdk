@@ -94,6 +94,7 @@ std::string GetLocale() {
 #endif  // platform selector
 }
 
+#if FIREBASE_PLATFORM_WINDOWS
 std::wstring GetWindowsTimezoneInEnglish(int daylight) {
   struct TzNames {
     std::wstring standard;
@@ -112,6 +113,7 @@ std::wstring GetWindowsTimezoneInEnglish(int daylight) {
 
   return daylight ? tz_names.daylight : tz_names.standard;
 }
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 // Get the current time zone, e.g. "US/Pacific"
 std::string GetTimezone() {
@@ -123,6 +125,9 @@ std::string GetTimezone() {
     tz_was_set = true;
   }
 
+  // Get the non-daylight time zone, as the IANA conversion below requires the
+  // name of the standard time zone. For example, "Central European Standard
+  // Time" which converts to "Europe/Warsaw" or similar.
   std::wstring windows_tz_utf16 = GetWindowsTimezoneInEnglish(0);
   std::string windows_tz_utf8;
   {
