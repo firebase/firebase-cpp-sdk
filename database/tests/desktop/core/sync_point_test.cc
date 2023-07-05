@@ -53,9 +53,9 @@ class SyncPointTest : public ::testing::Test {
   SyncPointTest()
       : logger_(),
         sync_point_(),
-        persistence_manager_(MakeUnique<MockPersistenceStorageEngine>(),
-                             MakeUnique<MockTrackedQueryManager>(),
-                             MakeUnique<MockCachePolicy>(), &logger_) {}
+        persistence_manager_(std::make_unique<MockPersistenceStorageEngine>(),
+                             std::make_unique<MockTrackedQueryManager>(),
+                             std::make_unique<MockCachePolicy>(), &logger_) {}
 
  protected:
   SystemLogger logger_;
@@ -71,7 +71,7 @@ TEST_F(SyncPointTest, IsNotEmpty) {
       new ValueEventRegistration(nullptr, nullptr, QuerySpec());
 
   sync_point_.AddEventRegistration(
-      UniquePtr<EventRegistration>(event_registration), writes_cache_ref,
+      std::unique_ptr<EventRegistration>(event_registration), writes_cache_ref,
       server_cache, &persistence_manager_);
 
   EXPECT_FALSE(sync_point_.IsEmpty());
@@ -111,10 +111,10 @@ TEST_F(SyncPointTest, AddEventRegistration) {
       new ChildEventRegistration(nullptr, nullptr, child_spec);
 
   std::vector<Event> value_events = sync_point_.AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(value_event_registration),
+      std::unique_ptr<ValueEventRegistration>(value_event_registration),
       writes_cache_ref, server_cache, &persistence_manager_);
   std::vector<Event> child_events = sync_point_.AddEventRegistration(
-      UniquePtr<ChildEventRegistration>(child_event_registration),
+      std::unique_ptr<ChildEventRegistration>(child_event_registration),
       writes_cache_ref, server_cache, &persistence_manager_);
 
   std::vector<const View*> view_results = sync_point_.GetIncompleteQueryViews();
@@ -180,10 +180,10 @@ TEST_F(SyncPointTest, RemoveEventRegistration_FromCompleteView) {
 
   // Add some EventRegistrations...
   sync_point_.AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(value_event_registration),
+      std::unique_ptr<ValueEventRegistration>(value_event_registration),
       writes_cache_ref, server_cache, &persistence_manager_);
   sync_point_.AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(another_value_event_registration),
+      std::unique_ptr<ValueEventRegistration>(another_value_event_registration),
       writes_cache_ref, server_cache, &persistence_manager_);
 
   // ...And then remove one of them.
@@ -240,10 +240,10 @@ TEST_F(SyncPointTest, RemoveEventRegistration_FromIncompleteView) {
 
   // Add some EventRegistrations...
   sync_point_.AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(value_event_registration),
+      std::unique_ptr<ValueEventRegistration>(value_event_registration),
       writes_cache_ref, server_cache, &persistence_manager_);
   sync_point_.AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(another_value_event_registration),
+      std::unique_ptr<ValueEventRegistration>(another_value_event_registration),
       writes_cache_ref, server_cache, &persistence_manager_);
 
   // ...And then remove one of them.
@@ -305,10 +305,10 @@ TEST_F(SyncPointTest, GetCompleteServerCache) {
                                  bananas_query_spec);
 
   sync_point_.AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(apples_event_registration),
+      std::unique_ptr<ValueEventRegistration>(apples_event_registration),
       writes_cache_ref, apples_server_cache, &persistence_manager_);
   sync_point_.AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(bananas_event_registration),
+      std::unique_ptr<ValueEventRegistration>(bananas_event_registration),
       writes_cache_ref, bananas_server_cache, &persistence_manager_);
 
   QueryParams carrots_query_params;
@@ -343,7 +343,7 @@ TEST_F(SyncPointTest, GetCompleteView_FromQuerySpecThatLoadsAllData) {
   CacheNode good_server_cache(IndexedVariant(Variant("good"), good_params),
                               true, true);
   sync_point_.AddEventRegistration(
-      MakeUnique<ValueEventRegistration>(nullptr, nullptr, good_spec),
+      std::make_unique<ValueEventRegistration>(nullptr, nullptr, good_spec),
       write_tree_ref, good_server_cache, &persistence_manager_);
 
   // Values to feed to AddEventRegistration that will not result in an
@@ -355,7 +355,7 @@ TEST_F(SyncPointTest, GetCompleteView_FromQuerySpecThatLoadsAllData) {
   CacheNode incorrect_server_cache(IndexedVariant(Variant("bad"), bad_params),
                                    true, true);
   sync_point_.AddEventRegistration(
-      MakeUnique<ValueEventRegistration>(nullptr, nullptr, bad_spec),
+      std::make_unique<ValueEventRegistration>(nullptr, nullptr, bad_spec),
       write_tree_ref, incorrect_server_cache, &persistence_manager_);
 
   const View* result = sync_point_.GetCompleteView();
@@ -378,7 +378,7 @@ TEST_F(SyncPointTest, GetCompleteView_FromQuerySpecThatDoesNotLoadsAllData) {
   CacheNode incorrect_server_cache(IndexedVariant(Variant("bad"), bad_params),
                                    true, true);
   sync_point_.AddEventRegistration(
-      MakeUnique<ValueEventRegistration>(nullptr, nullptr, bad_spec),
+      std::make_unique<ValueEventRegistration>(nullptr, nullptr, bad_spec),
       write_tree_ref, incorrect_server_cache, &persistence_manager_);
 
   EXPECT_EQ(sync_point_.GetCompleteView(), nullptr);

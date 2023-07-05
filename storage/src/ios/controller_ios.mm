@@ -111,7 +111,7 @@ StorageReferenceInternal* ControllerInternal::GetReference() const {
   FIRStorageTaskSnapshot* snapshot = task_impl() ? task_impl().snapshot : nil;
   if (snapshot) {
     return new StorageReferenceInternal(storage_,
-                                        MakeUnique<FIRStorageReferencePointer>(snapshot.reference));
+                                        std::make_unique<FIRStorageReferencePointer>(snapshot.reference));
   }
   return nullptr;
 }

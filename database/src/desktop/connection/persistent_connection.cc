@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <sstream>
+#include <utility>
 
 #include "app/src/app_common.h"
 #include "app/src/assert.h"
@@ -89,7 +90,7 @@ const char* PersistentConnection::kServerResponseData = "d";
 
 int PersistentConnection::kInvalidAuthTokenThreshold = 3;
 
-compat::Atomic<uint32_t> PersistentConnection::next_log_id_(0);
+std::atomic<uint32_t> PersistentConnection::next_log_id_(0);
 
 // Util function to print QuerySpec in debug logs.
 std::string GetDebugQuerySpecString(const QuerySpec& query_spec) {
@@ -259,7 +260,7 @@ void PersistentConnection::OnDataMessage(const Variant& message) {
     auto it_request = request_map_.find(rn);
     FIREBASE_DEV_ASSERT(it_request != request_map_.end());
     if (it_request != request_map_.end()) {
-      request_ptr = Move(it_request->second);
+      request_ptr = std::move(it_request->second);
       request_map_.erase(it_request);
     }
     FIREBASE_DEV_ASSERT(request_ptr);
@@ -368,9 +369,10 @@ void PersistentConnection::Listen(const QuerySpec& query_spec, const Tag& tag,
   // listen_id is used to search for QuerySpec later when the response message
   // is received.
   uint64_t listen_id = next_listen_id_++;
-  auto it = listens_.insert(Move(std::pair<QuerySpec, OutstandingListenPtr>(
-      query_spec, Move(MakeUnique<OutstandingListen>(query_spec, tag, response,
-                                                     listen_id)))));
+  auto it =
+      listens_.insert(std::move(std::pair<QuerySpec, OutstandingListenPtr>(
+          query_spec, std::move(std::make_unique<OutstandingListen>(
+                          query_spec, tag, response, listen_id)))));
   listen_id_to_query_[listen_id] = query_spec;
 
   // If the connection is established, send the request immediately.  Otherwise,
@@ -385,7 +387,7 @@ void PersistentConnection::Unlisten(const QuerySpec& query_spec) {
   logger_->LogDebug("%s Unlisten on %s", log_id_.c_str(),
                     GetDebugQuerySpecString(query_spec).c_str());
 
-  OutstandingListenPtr listen = Move(RemoveListen(query_spec));
+  OutstandingListenPtr listen = std::move(RemoveListen(query_spec));
 
   // If the connection is established, send the request immediately.  Otherwise,
   // do nothing because all listen request is cancelled when disconnected.
@@ -397,20 +399,21 @@ void PersistentConnection::Unlisten(const QuerySpec& query_spec) {
 void PersistentConnection::Put(const Path& path, const Variant& data,
                                ResponsePtr response) {
   CheckAuthTokenAndSendOnChange();
-  PutInternal(kRequestActionPut, path, data, /*hash=*/nullptr, Move(response));
+  PutInternal(kRequestActionPut, path, data, /*hash=*/nullptr,
+              std::move(response));
 }
 
 void PersistentConnection::CompareAndPut(const Path& path, const Variant& data,
                                          const std::string& hash,
                                          ResponsePtr response) {
   CheckAuthTokenAndSendOnChange();
-  PutInternal(kRequestActionPut, path, data, hash.c_str(), Move(response));
+  PutInternal(kRequestActionPut, path, data, hash.c_str(), std::move(response));
 }
 
 void PersistentConnection::Merge(const Path& path, const Variant& data,
                                  ResponsePtr response) {
   CheckAuthTokenAndSendOnChange();
-  PutInternal(kRequestActionMerge, path, data, nullptr, Move(response));
+  PutInternal(kRequestActionMerge, path, data, nullptr, std::move(response));
 }
 
 void PersistentConnection::PurgeOutstandingWrites(Error error) {
@@ -423,7 +426,7 @@ void PersistentConnection::PurgeOutstandingWrites(Error error) {
   // Purge outstanding OnDisconnect requests
   while (!outstanding_ondisconnects_.empty()) {
     OutstandingOnDisconnectPtr ondisconnect =
-        Move(outstanding_ondisconnects_.front());
+        std::move(outstanding_ondisconnects_.front());
     outstanding_ondisconnects_.pop();
 
     TriggerResponse(ondisconnect->response, error, GetErrorMessage(error));
@@ -435,10 +438,11 @@ void PersistentConnection::OnDisconnectPut(const Path& path,
                                            ResponsePtr response) {
   CheckAuthTokenAndSendOnChange();
   if (CanSendWrites()) {
-    SendOnDisconnect(kRequestActionOnDisconnectPut, path, data, Move(response));
+    SendOnDisconnect(kRequestActionOnDisconnectPut, path, data,
+                     std::move(response));
   } else {
-    outstanding_ondisconnects_.push(MakeUnique<OutstandingOnDisconnect>(
-        kRequestActionOnDisconnectPut, path, data, Move(response)));
+    outstanding_ondisconnects_.push(std::make_unique<OutstandingOnDisconnect>(
+        kRequestActionOnDisconnectPut, path, data, std::move(response)));
   }
 }
 
@@ -448,10 +452,10 @@ void PersistentConnection::OnDisconnectMerge(const Path& path,
   CheckAuthTokenAndSendOnChange();
   if (CanSendWrites()) {
     SendOnDisconnect(kRequestActionOnDisconnectMerge, path, updates,
-                     Move(response));
+                     std::move(response));
   } else {
-    outstanding_ondisconnects_.push(MakeUnique<OutstandingOnDisconnect>(
-        kRequestActionOnDisconnectMerge, path, updates, Move(response)));
+    outstanding_ondisconnects_.push(std::make_unique<OutstandingOnDisconnect>(
+        kRequestActionOnDisconnectMerge, path, updates, std::move(response)));
   }
 }
 
@@ -460,11 +464,11 @@ void PersistentConnection::OnDisconnectCancel(const Path& path,
   CheckAuthTokenAndSendOnChange();
   if (CanSendWrites()) {
     SendOnDisconnect(kRequestActionOnDisconnectCancel, path, Variant::Null(),
-                     Move(response));
+                     std::move(response));
   } else {
-    outstanding_ondisconnects_.push(MakeUnique<OutstandingOnDisconnect>(
+    outstanding_ondisconnects_.push(std::make_unique<OutstandingOnDisconnect>(
         kRequestActionOnDisconnectCancel, path, Variant::Null(),
-        Move(response)));
+        std::move(response)));
   }
 }
 
@@ -700,7 +704,7 @@ void PersistentConnection::OpenNetworkConnection() {
 
   connection_state_ = kConnecting;
 
-  realtime_ = MakeUnique<Connection>(
+  realtime_ = std::make_unique<Connection>(
       scheduler_, host_info_,
       last_session_id_.empty() ? nullptr : last_session_id_.c_str(), this,
       logger_, app_check_token_);
@@ -824,10 +828,10 @@ PersistentConnection::OutstandingListenPtr PersistentConnection::RemoveListen(
         log_id_.c_str(), GetDebugQuerySpecString(query_spec).c_str());
     return OutstandingListenPtr();
   } else {
-    OutstandingListenPtr listen_ptr = Move(it_listen->second);
+    OutstandingListenPtr listen_ptr = std::move(it_listen->second);
     listens_.erase(it_listen);
     listen_id_to_query_.erase(listen_ptr->outstanding_id);
-    return Move(listen_ptr);
+    return std::move(listen_ptr);
   }
 }
 
@@ -927,7 +931,7 @@ void PersistentConnection::PutInternal(const char* action, const Path& path,
 
   uint64_t write_id = next_write_id_++;
   outstanding_puts_[write_id] =
-      MakeUnique<OutstandingPut>(action, request, response);
+      std::make_unique<OutstandingPut>(action, request, response);
 
   if (CanSendWrites()) {
     SendPut(write_id);
@@ -977,7 +981,7 @@ void PersistentConnection::CancelSentTransactions() {
     if (it_put->second->data.map().find(kRequestDataHash) !=
             it_put->second->data.map().end() &&
         it_put->second->WasSent()) {
-      cancelled_transaction_writes.push_back(Move(it_put->second));
+      cancelled_transaction_writes.push_back(std::move(it_put->second));
       outstanding_puts_.erase(it_put);
     } else {
       ++it_put;
@@ -999,7 +1003,7 @@ void PersistentConnection::SendOnDisconnect(const char* action,
   request.map()[kRequestPath] = path.str();
   request.map()[kRequestDataPayload] = data;
 
-  SendSensitive(action, false, request, Move(response),
+  SendSensitive(action, false, request, std::move(response),
                 &PersistentConnection::HandleOnDisconnectResponse, 0);
 }
 
@@ -1031,8 +1035,8 @@ void PersistentConnection::SendSensitive(const char* action, bool sensitive,
   realtime_->Send(request, sensitive);
 
   // TODO(chkuang): Add timeout handle
-  request_map_[rn] =
-      MakeUnique<RequestData>(Move(response), callback, outstanding_id);
+  request_map_[rn] = std::make_unique<RequestData>(std::move(response),
+                                                   callback, outstanding_id);
 }
 
 void PersistentConnection::RestoreOutstandingRequests() {
@@ -1056,7 +1060,7 @@ void PersistentConnection::RestoreOutstandingRequests() {
   while (!outstanding_ondisconnects_.empty()) {
     auto& front = outstanding_ondisconnects_.front();
     SendOnDisconnect(front->action.c_str(), front->path, front->data,
-                     Move(front->response));
+                     std::move(front->response));
     outstanding_ondisconnects_.pop();
   }
 }
@@ -1108,9 +1112,10 @@ void PersistentConnection::SendAuthToken(const std::string& token,
   logger_->LogDebug("%s Sending auth token", log_id_.c_str());
   Variant request = Variant::EmptyMap();
   request.map()[kRequestCredential] = token;
-  SendSensitive(kRequestActionAuth, true, request,
-                MakeShared<SendAuthResponse>(restore_outstanding_on_response),
-                &PersistentConnection::HandleAuthTokenResponse, 0);
+  SendSensitive(
+      kRequestActionAuth, true, request,
+      std::make_shared<SendAuthResponse>(restore_outstanding_on_response),
+      &PersistentConnection::HandleAuthTokenResponse, 0);
 }
 
 void PersistentConnection::SendUnauth() {

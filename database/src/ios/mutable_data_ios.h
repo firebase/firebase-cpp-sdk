@@ -16,7 +16,7 @@
 #define FIREBASE_DATABASE_SRC_IOS_MUTABLE_DATA_IOS_H_
 
 #include <string>
-#include "app/memory/unique_ptr.h"
+#include <memory>
 #include "app/src/include/firebase/variant.h"
 #include "app/src/util_ios.h"
 #include "database/src/include/firebase/database/mutable_data.h"
@@ -82,14 +82,14 @@ class MutableDataInternal {
   friend class DatabaseReferenceInternal;
 
   MutableDataInternal(DatabaseInternal* database,
-                      UniquePtr<FIRMutableDataPointer> impl);
+                      std::unique_ptr<FIRMutableDataPointer> impl);
 
 #ifdef __OBJC__
   FIRMutableData* impl() const { return impl_->get(); }
 #endif  // __OBJC__
 
   DatabaseInternal* db_;
-  UniquePtr<FIRMutableDataPointer> impl_;
+  std::unique_ptr<FIRMutableDataPointer> impl_;
 };
 
 #pragma clang assume_nonnull end

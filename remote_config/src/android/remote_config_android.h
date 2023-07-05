@@ -16,8 +16,8 @@
 #define FIREBASE_REMOTE_CONFIG_SRC_ANDROID_REMOTE_CONFIG_ANDROID_H_
 
 #include <string>
+#include <utility>
 
-#include "app/meta/move.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
@@ -101,7 +101,7 @@ class RemoteConfigInternal {
   void SaveTmpKeysToDefault(std::vector<std::string> tmp_default_keys) {
     MutexLock lock(default_key_mutex_);
 #if defined(FIREBASE_USE_MOVE_OPERATORS)
-    default_keys_ = firebase::Move(tmp_default_keys);
+    default_keys_ = std::move(tmp_default_keys);
 #else
     default_keys_ = tmp_default_keys;
 #endif  // FIREBASE_USE_MOVE_OPERATORS

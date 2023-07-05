@@ -15,8 +15,9 @@
 #ifndef FIREBASE_INSTALLATIONS_SRC_IOS_INSTALLATIONS_IOS_H_
 #define FIREBASE_INSTALLATIONS_SRC_IOS_INSTALLATIONS_IOS_H_
 
+#include <memory>
+
 #include "firebase/app.h"
-#include "app/memory/unique_ptr.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_ios.h"
 #include "firebase/future.h"
@@ -66,7 +67,7 @@ class InstallationsInternal {
   // app
   const firebase::App& app_;
 
-  UniquePtr<FIRInstallationsPointer> impl_;
+  std::unique_ptr<FIRInstallationsPointer> impl_;
 
   /// Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl_;

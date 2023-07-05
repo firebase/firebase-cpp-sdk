@@ -17,8 +17,8 @@
 #include "app/src/callback.h"
 
 #include <list>
+#include <memory>
 
-#include "app/memory/shared_ptr.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/log.h"
 #include "app/src/semaphore.h"
@@ -29,7 +29,7 @@ namespace callback {
 
 class CallbackEntry;
 
-class CallbackQueue : public std::list<SharedPtr<CallbackEntry>> {
+class CallbackQueue : public std::list<std::shared_ptr<CallbackEntry>> {
  public:
   CallbackQueue() {}
   ~CallbackQueue() {}
@@ -123,7 +123,7 @@ class CallbackDispatcher {
   // Add a callback to the dispatch queue returning a reference
   // to the entry which can be optionally be removed prior to dispatch.
   void* AddCallback(Callback* callback) {
-    auto entry = MakeShared<CallbackEntry>(callback, &execution_mutex_);
+    auto entry = std::make_shared<CallbackEntry>(callback, &execution_mutex_);
     MutexLock lock(*queue_.mutex());
     queue_.push_back(entry);
     return entry.get();
@@ -148,9 +148,9 @@ class CallbackDispatcher {
     Mutex* queue_mutex = queue_.mutex();
     queue_mutex->Acquire();
     while (!queue_.empty()) {
-      // Make a copy of the SharedPtr in case FlushCallbacks() is called
+      // Make a copy of the std::shared_ptr in case FlushCallbacks() is called
       // currently.
-      SharedPtr<CallbackEntry> callback_entry = queue_.front();
+      std::shared_ptr<CallbackEntry> callback_entry = queue_.front();
       queue_.pop_front();
       queue_mutex->Release();
       callback_entry->Execute();

@@ -17,7 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_JNI_RUNNABLE_ANDROID_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_JNI_RUNNABLE_ANDROID_H_
 
-#include "app/meta/move.h"
+#include <utility>
 #include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/ownership.h"
@@ -132,7 +132,7 @@ template <typename CallbackT>
 class JniRunnable : public JniRunnableBase {
  public:
   JniRunnable(jni::Env& env, CallbackT callback)
-      : JniRunnableBase(env), callback_(firebase::Move(callback)) {}
+      : JniRunnableBase(env), callback_(std::move(callback)) {}
 
   void Run() override { Run(*this, callback_); }
 
@@ -164,7 +164,7 @@ class JniRunnable : public JniRunnableBase {
  */
 template <typename CallbackT>
 JniRunnable<CallbackT> MakeJniRunnable(jni::Env& env, CallbackT callback) {
-  return JniRunnable<CallbackT>(env, firebase::Move(callback));
+  return JniRunnable<CallbackT>(env, std::move(callback));
 }
 
 }  // namespace firestore

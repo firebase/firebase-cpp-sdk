@@ -15,6 +15,7 @@
 #include "app_check/src/desktop/debug_provider_desktop.h"
 
 #include <map>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -61,7 +62,7 @@ DebugAppCheckProvider::~DebugAppCheckProvider() {
 
 // Performs the given rest request, and calls the callback based on the
 // response.
-void GetTokenAsync(SharedPtr<DebugTokenRequest> request,
+void GetTokenAsync(std::shared_ptr<DebugTokenRequest> request,
                    std::function<void(AppCheckToken, int, const std::string&)>
                        completion_callback) {
   TokenResponse response;
@@ -106,7 +107,7 @@ void DebugAppCheckProvider::GetToken(
   }
 
   // Exchange debug token with the backend to get a proper attestation token.
-  auto request = MakeShared<DebugTokenRequest>(app_);
+  auto request = std::make_shared<DebugTokenRequest>(app_);
   request->SetDebugToken(debug_token_cstr);
 
   // Use an async call, since we don't want to block on the server response.

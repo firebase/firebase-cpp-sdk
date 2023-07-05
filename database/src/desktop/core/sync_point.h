@@ -15,6 +15,7 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CORE_SYNC_POINT_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CORE_SYNC_POINT_H_
 
+#include <memory>
 #include <set>
 #include <vector>
 
@@ -64,7 +65,7 @@ class SyncPoint {
 
   // Add an event callback for the specified query.
   std::vector<Event> AddEventRegistration(
-      UniquePtr<EventRegistration> event_registration,
+      std::unique_ptr<EventRegistration> event_registration,
       const WriteTreeRef& writes_cache, const CacheNode& server_cache,
       PersistenceManagerInterface* persistence_manager);
 

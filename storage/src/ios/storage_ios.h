@@ -15,12 +15,12 @@
 #ifndef FIREBASE_STORAGE_SRC_IOS_STORAGE_IOS_H_
 #define FIREBASE_STORAGE_SRC_IOS_STORAGE_IOS_H_
 
-#include <map>
-#include <set>
-
 #include <dispatch/dispatch.h>
 
-#include "app/memory/unique_ptr.h"
+#include <map>
+#include <memory>
+#include <set>
+
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
@@ -109,7 +109,7 @@ class StorageInternal {
   App* _Nonnull app_;
 
   // Object lifetime managed by Objective C ARC.
-  UniquePtr<FIRStoragePointer> impl_;
+  std::unique_ptr<FIRStoragePointer> impl_;
 
   FutureManager future_manager_;
 

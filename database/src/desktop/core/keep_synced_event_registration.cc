@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/core/keep_synced_event_registration.h"
 
+#include <memory>
+
 #include "app/src/assert.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/include/firebase/database/common.h"
@@ -36,7 +38,7 @@ Event KeepSyncedEventRegistration::GenerateEvent(const Change& change,
   FIREBASE_DEV_ASSERT_MESSAGE(
       false,
       "GenerateEvent should never be reached on KeepSyncedEventRegistration");
-  return Event(UniquePtr<EventRegistration>(nullptr), kErrorUnknownError,
+  return Event(std::unique_ptr<EventRegistration>(nullptr), kErrorUnknownError,
                Path());
 }
 

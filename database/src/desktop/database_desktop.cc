@@ -18,7 +18,6 @@
 #include <queue>
 #include <stack>
 
-#include "app/memory/shared_ptr.h"
 #include "app/src/app_common.h"
 #include "app/src/assert.h"
 #include "app/src/function_registry.h"
@@ -305,8 +304,8 @@ EventRegistration* DatabaseInternal::ActiveEventRegistration(
 void DatabaseInternal::EnsureRepo() {
   MutexLock lock(repo_mutex_);
   if (!repo_) {
-    repo_ = MakeUnique<Repo>(app_, this, database_url_.c_str(), &logger_,
-                             persistence_enabled_);
+    repo_ = std::make_unique<Repo>(app_, this, database_url_.c_str(), &logger_,
+                                   persistence_enabled_);
   }
 }
 

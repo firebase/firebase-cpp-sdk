@@ -28,7 +28,6 @@
 #include <utility>
 #include <vector>
 
-#include "app/meta/move.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"

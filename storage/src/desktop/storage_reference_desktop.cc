@@ -19,7 +19,6 @@
 #include <memory>
 #include <thread>  // NOLINT
 
-#include "app/memory/unique_ptr.h"
 #include "app/rest/request.h"
 #include "app/rest/request_binary.h"
 #include "app/rest/request_file.h"
@@ -653,7 +652,7 @@ Future<std::string> StorageReferenceInternal::GetDownloadUrl() {
   // complete in the metadata onCompletion handler.
   metadata_future.OnCompletion(
       [](const Future<Metadata>& result, void* data) {
-        auto on_completion_data = UniquePtr<GetUrlOnCompletionData>(
+        auto on_completion_data = std::unique_ptr<GetUrlOnCompletionData>(
             static_cast<GetUrlOnCompletionData*>(data));
         if (result.error() != 0) {
           on_completion_data->future->Complete(on_completion_data->handle,

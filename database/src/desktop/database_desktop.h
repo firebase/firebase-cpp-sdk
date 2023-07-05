@@ -19,7 +19,6 @@
 #include <memory>
 #include <string>
 
-#include "app/memory/unique_ptr.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
@@ -183,7 +182,7 @@ class DatabaseInternal {
 
   Mutex repo_mutex_;
   // The local copy of the repository, for offline support and local caching.
-  UniquePtr<Repo> repo_;
+  std::unique_ptr<Repo> repo_;
 };
 
 }  // namespace internal

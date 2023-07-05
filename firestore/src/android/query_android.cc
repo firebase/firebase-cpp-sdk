@@ -16,7 +16,9 @@
 
 #include "firestore/src/android/query_android.h"
 
-#include "app/meta/move.h"
+#include <string>
+#include <utility>
+
 #include "app/src/assert.h"
 #include "firestore/src/android/direction_android.h"
 #include "firestore/src/android/document_snapshot_android.h"
@@ -320,8 +322,7 @@ ListenerRegistration QueryInternal::AddSnapshotListener(
     MetadataChanges metadata_changes,
     std::function<void(const QuerySnapshot&, Error, const std::string&)>
         callback) {
-  auto* listener =
-      new LambdaEventListener<QuerySnapshot>(firebase::Move(callback));
+  auto* listener = new LambdaEventListener<QuerySnapshot>(std::move(callback));
   return AddSnapshotListener(metadata_changes, listener,
                              /*passing_listener_ownership=*/true);
 }

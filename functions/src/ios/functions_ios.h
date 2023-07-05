@@ -17,8 +17,9 @@
 
 #include <map>
 #include <set>
+#include <string>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
@@ -76,7 +77,7 @@ class FunctionsInternal {
   // The region that this Functions was created with.
   std::string region_;
 
-  UniquePtr<FIRFunctionsPointer> impl_;
+  std::unique_ptr<FIRFunctionsPointer> impl_;
 
   FutureManager future_manager_;
 

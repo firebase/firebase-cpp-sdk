@@ -18,7 +18,7 @@
 #include <map>
 #include <string>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>
 #include "app/src/util_ios.h"
 #include "storage/src/include/firebase/storage/metadata.h"
 #include "storage/src/ios/storage_reference_ios.h"
@@ -45,7 +45,7 @@ class MetadataInternal {
   explicit MetadataInternal(StorageInternal* _Nullable storage);
 
   MetadataInternal(StorageInternal* storage,
-                   UniquePtr<FIRStorageMetadataPointer> impl);
+                   std::unique_ptr<FIRStorageMetadataPointer> impl);
 
   MetadataInternal(const MetadataInternal& metadata);
 
@@ -144,7 +144,7 @@ class MetadataInternal {
   StorageInternal* storage_;
 
   // Object lifetime managed by Objective C ARC.
-  UniquePtr<FIRStorageMetadataPointer> impl_;
+  std::unique_ptr<FIRStorageMetadataPointer> impl_;
 
   // Backing store for string properties.
   std::string bucket_;
