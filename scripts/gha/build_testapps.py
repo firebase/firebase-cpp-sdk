@@ -311,9 +311,11 @@ def main(argv):
           short_output_paths=FLAGS.short_output_paths)
       logging.info("END building for %s", testapp)
   
-  _collect_integration_tests(testapps, root_output_dir, output_dir, FLAGS.artifact_name)
+  integration_test_files = _collect_integration_tests(
+      testapps, root_output_dir, output_dir, FLAGS.artifact_name)
 
-  _summarize_results(testapps, platforms, failures, root_output_dir, FLAGS.artifact_name)
+  _summarize_results(
+    testapps, platforms, failures, root_output_dir, FLAGS.artifact_name, integration_test_files)
   return 1 if failures else 0
 
 
@@ -434,9 +436,11 @@ def _collect_integration_tests(testapps, root_output_dir, output_dir, artifact_n
   _rm_dir_safe(artifact_path)
   for testapp in testapps:
     os.makedirs(os.path.join(artifact_path, testapp))
+  generated_files = []
   for path in testapp_paths:
     for testapp in testapps:
       if testapp in path:
+        generated_files.append(os.path.join(artifact_path, testapp, os.path.basename(path)))
         if os.path.isfile(path):
           shutil.copy(path, os.path.join(artifact_path, testapp))
           if path.endswith(desktop_testapp_name) and testapp_google_services.get(testapp):
@@ -444,9 +448,10 @@ def _collect_integration_tests(testapps, root_output_dir, output_dir, artifact_n
         else:
           dir_util.copy_tree(path, os.path.join(artifact_path, testapp, os.path.basename(path)))
         break
+  return generated_files
 
 
-def _summarize_results(testapps, platforms, failures, root_output_dir, artifact_name):
+def _summarize_results(testapps, platforms, failures, root_output_dir, artifact_name, generated_files):
   """Logs a readable summary of the results of the build."""
   file_name = "build-results-" + artifact_name + ".log"
 
@@ -461,6 +466,10 @@ def _summarize_results(testapps, platforms, failures, root_output_dir, artifact_
     summary.append("SOME ERRORS OCCURRED:")
     for i, failure in enumerate(failures, start=1):
       summary.append("%d: %s" % (i, failure.describe()))
+  if generated_files and not FLAGS.gha_build:
+    summary.append("GENERATED FILES:")
+    summary.extend(generated_files)
+
   summary = "\n".join(summary)
 
   logging.info(summary)
