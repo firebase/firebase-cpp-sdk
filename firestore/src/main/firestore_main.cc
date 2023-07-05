@@ -221,7 +221,7 @@ void FirestoreInternal::set_settings(Settings from) {
   // this special logic should go away when legacy cache config is removed.
   if (from.cache_settings_source_ == Settings::CacheSettingsSource::kNew) {
     settings.set_local_cache_settings(
-        from.local_cache_settings().internal().core_settings());
+        from.local_cache_settings().core_settings());
   } else {
     settings.set_persistence_enabled(from.is_persistence_enabled());
     settings.set_cache_size_bytes(from.cache_size_bytes());

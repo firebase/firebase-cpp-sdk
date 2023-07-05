@@ -55,11 +55,20 @@ int64_t PersistentCacheSettings::size_bytes() const {
   return settings_internal_->core_settings().size_bytes();
 }
 
+const CoreCacheSettings& PersistentCacheSettings::core_settings() const {
+  return settings_internal_->core_settings();
+}
+
 MemoryEagerGCSettings MemoryEagerGCSettings::Create() { return {}; }
 
 MemoryEagerGCSettings::MemoryEagerGCSettings() {
   settings_internal_ = std::make_shared<MemoryEagerGCSettingsInternal>(
       CoreMemoryEagerGcSettings{});
+}
+
+const CoreMemoryGarbageCollectorSettings& MemoryEagerGCSettings::core_settings()
+    const {
+  return settings_internal_->core_settings();
 }
 
 MemoryLruGCSettings MemoryLruGCSettings::Create() { return {}; }
@@ -83,6 +92,11 @@ int64_t MemoryLruGCSettings::size_bytes() const {
   return settings_internal_->core_settings().size_bytes();
 }
 
+const CoreMemoryGarbageCollectorSettings& MemoryLruGCSettings::core_settings()
+    const {
+  return settings_internal_->core_settings();
+}
+
 MemoryCacheSettings MemoryCacheSettings::Create() { return {}; }
 
 MemoryCacheSettings::MemoryCacheSettings() {
@@ -96,13 +110,16 @@ MemoryCacheSettings MemoryCacheSettings::WithGarbageCollectorSettings(
   CoreMemorySettings core_settings = result.settings_internal_->core_settings();
   result.settings_internal_->set_core_settings(
       core_settings.WithMemoryGarbageCollectorSettings(
-          settings.internal().core_settings()));
+          settings.core_settings()));
   return result;
 }
 
+const CoreCacheSettings& MemoryCacheSettings::core_settings() const {
+  return settings_internal_->core_settings();
+}
+
 bool operator==(const LocalCacheSettings& lhs, const LocalCacheSettings& rhs) {
-  return lhs.kind() == rhs.kind() &&
-         lhs.internal().core_settings() == rhs.internal().core_settings();
+  return lhs.kind() == rhs.kind() && lhs.core_settings() == rhs.core_settings();
 }
 
 bool operator==(const MemoryCacheSettings& lhs,
@@ -117,7 +134,7 @@ bool operator==(const PersistentCacheSettings& lhs,
 
 bool operator==(const MemoryGarbageCollectorSettings& lhs,
                 const MemoryGarbageCollectorSettings& rhs) {
-  return lhs.internal().core_settings() == rhs.internal().core_settings();
+  return lhs.core_settings() == rhs.core_settings();
 }
 
 bool operator==(const MemoryEagerGCSettings& lhs,
