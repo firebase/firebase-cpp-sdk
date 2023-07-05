@@ -24,7 +24,9 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-#if !FIREBASE_PLATFORM_WINDOWS
+#if FIREBASE_PLATFORM_WINDOWS
+#include <windows.h>
+#else
 #include <clocale>
 #endif  // FIREBASE_PLATFORM_WINDOWS
 
@@ -51,48 +53,23 @@ TEST_F(LocaleTest, TestGetLocale) {
   EXPECT_NE(loc.find('_'), std::string::npos);
 }
 
-#if FIREBASE_PLATFORM_WINDOWS || FIREBASE_PLATFORM_LINUX
+#if FIREBASE_PLATFORM_WINDOWS
 
-TEST_F(LocaleTest, TestConvertingStringEncodings) {
-  // "Mitteleuropäische Zeit € d'été ‘Žœ’" in CP-1252 encoding
-  const unsigned char original_cp1252_array[] = {
-      'M', 'i', 't',  't',  'e', 'l',  'e', 'u',  'r',  'o',  'p',  0xe4,
-      'i', 's', 'c',  'h',  'e', ' ',  'Z', 'e',  'i',  't',  ' ',  0x80,
-      ' ', 'd', '\'', 0xe9, 't', 0xe9, ' ', 0x91, 0x8e, 0x9c, 0x92, '\0'};
-  std::string original_cp1252(
-      reinterpret_cast<const char*>(original_cp1252_array));
+TEST_F(LocaleTest, TestTimeZoneNameInEnglish) {
+  LANGID prev_lang = GetThreadUILanguage();
 
-  // "Mitteleuropäische Zeit €" in UTF-16 encoding
-  const wchar_t original_utf16_array[] = {
-      'M',    'i', 't',    't', 'e',    'l',     'e',    'u',    'r',
-      'o',    'p', 0x00E4, 'i', 's',    'c',     'h',    'e',    ' ',
-      'Z',    'e', 'i',    't', ' ',    0x20AC,  ' ',    'd',    '\'',
-      0x00E9, 't', 0x00E9, ' ', 0x2018, 0x017D,  0x0153, 0x2019, '\0'};
-  std::wstring original_utf16(
-      reinterpret_cast<const wchar_t*>(original_utf16_array));
-
-  std::wstring cp1252_converted_to_utf16 =
-      convert_cp1252_to_utf16(original_cp1252.c_str());
-  EXPECT_EQ(cp1252_converted_to_utf16, original_utf16);
-
-  const unsigned char original_utf8_array[] = {
-      'M',  'i',  't',  't',  'e',  'l',  'e',  'u',  'r',  'o',  'p',  0xc3,
-      0xa4, 'i',  's',  'c',  'h',  'e',  ' ',  'Z',  'e',  'i',  't',  ' ',
-      0xe2, 0x82, 0xac, ' ',  'd',  '\'', 0xc3, 0xa9, 't',  0xc3, 0xa9, ' ',
-      0xe2, 0x80, 0x98, 0xc5, 0xbd, 0xc5, 0x93, 0xe2, 0x80, 0x99, '\0'};
-  std::string original_utf8(reinterpret_cast<const char*>(original_utf8_array));
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> to_utf8;
-
-  std::string utf16_converted_to_utf8 =
-      to_utf8.to_bytes(cp1252_converted_to_utf16);
-  EXPECT_EQ(utf16_converted_to_utf8, original_utf8);
-
-  std::wstring utf8_converted_to_utf16 =
-      to_utf8.from_bytes(utf16_converted_to_utf8);
-  EXPECT_EQ(utf8_converted_to_utf16, original_utf16);
+  SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
+  std::string timezone_english = GetTimezone();  
+  
+  SetThreadUILanguage(MAKELANGID(LANG_GERMAN, SUBLANG_GERMAN));
+  std::string timezone_german = GetTimezone();
+  
+  EXPECT_EQ(timezone_english, timezone_german);
+ 
+  SetThreadUILanguage(prev_lang);
 }
 
-#endif  // FIREBASE_PLATFORM_WINDOWS || FIREBASE_PLATFORM_LINUX
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 }  // namespace internal
 }  // namespace firebase
