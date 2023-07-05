@@ -59,13 +59,13 @@ TEST_F(LocaleTest, TestTimeZoneNameInEnglish) {
   LANGID prev_lang = GetThreadUILanguage();
 
   SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
-  std::string timezone_english = GetTimezone();  
-  
+  std::string timezone_english = GetTimezone();
+
   SetThreadUILanguage(MAKELANGID(LANG_GERMAN, SUBLANG_GERMAN));
   std::string timezone_german = GetTimezone();
-  
+
   EXPECT_EQ(timezone_english, timezone_german);
- 
+
   SetThreadUILanguage(prev_lang);
 }
 

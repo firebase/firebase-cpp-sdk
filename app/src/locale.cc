@@ -96,18 +96,20 @@ std::string GetLocale() {
 
 std::wstring GetWindowsTimezoneInEnglish(int daylight) {
   struct TzNames {
-	  std::wstring standard;
-	  std::wstring daylight;
+    std::wstring standard;
+    std::wstring daylight;
   } tz_names;
-  Thread thread([](TzNames* tz_names_ptr) {
-    SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
-    TIME_ZONE_INFORMATION tzi;
-    GetTimeZoneInformation(&tzi);
-    tz_names_ptr->standard = tzi.StandardName;
-	tz_names_ptr->daylight = tzi.DaylightName;
-  }, &tz_names);
+  Thread thread(
+      [](TzNames* tz_names_ptr) {
+        SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
+        TIME_ZONE_INFORMATION tzi;
+        GetTimeZoneInformation(&tzi);
+        tz_names_ptr->standard = tzi.StandardName;
+        tz_names_ptr->daylight = tzi.DaylightName;
+      },
+      &tz_names);
   thread.Join();
-  
+
   return daylight ? tz_names.daylight : tz_names.standard;
 }
 
@@ -115,12 +117,12 @@ std::wstring GetWindowsTimezoneInEnglish(int daylight) {
 std::string GetTimezone() {
 #if FIREBASE_PLATFORM_WINDOWS
   static bool tz_was_set = false;
-if (!tz_was_set) {
+  if (!tz_was_set) {
     _tzset();  // Set the time zone used by the below functions, based on OS
                // settings or the TZ variable, as appropriate.
     tz_was_set = true;
   }
-  
+
   std::wstring windows_tz_utf16 = GetWindowsTimezoneInEnglish(0);
   std::string windows_tz_utf8;
   {
@@ -201,8 +203,8 @@ if (!tz_was_set) {
       // Couldn't determine daylight saving time, return the old name.
       return windows_tz_utf8;
     }
-    if (daylight) {	 
-	  windows_tz_utf16 = GetWindowsTimezoneInEnglish(daylight);
+    if (daylight) {
+      windows_tz_utf16 = GetWindowsTimezoneInEnglish(daylight);
       {
         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> to_utf8;
         windows_tz_utf8 = to_utf8.to_bytes(windows_tz_utf16);
