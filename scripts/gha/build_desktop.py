@@ -24,13 +24,13 @@ It does the following,
 
 Usage examples:
 # Build all targets with x64 architecture, Release config and 8 cpu cores
-python scripts/gha/build_desktop.py --arch x64 --config Release -j 8
+python3 scripts/gha/build_desktop.py --arch x64 --config Release -j 8
 
 # Build all targets with default options and also build unit tests
-python scripts/gha/build_desktop.py --build_tests --arch x64
+python3 scripts/gha/build_desktop.py --build_tests --arch x64
 
 # Build only firebase_app and firebase_auth
-python scripts/gha/build_desktop.py --target firebase_app firebase_auth
+python3 scripts/gha/build_desktop.py --target firebase_app firebase_auth
 
 """
 

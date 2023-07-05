@@ -15,7 +15,7 @@
 """A utility to create pull requests.
 
 USAGE:
-  python scripts/gha/create_pull_request.py \
+  python3 scripts/gha/create_pull_request.py \
     --token ${{github.token}} \
     --head pr_branch \
     --base main \

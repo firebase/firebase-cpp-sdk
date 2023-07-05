@@ -21,7 +21,7 @@ The comment text should be entered in stdin. The script preserves the previous
 text before and affer the hidden tags.
 
 USAGE:
-  python scripts/gha/update_issue_comment.py \
+  python3 scripts/gha/update_issue_comment.py \
     --token GITHUB_TOKEN \
     --issue_title "Issue title goes here" \
     --issue_label "Issue label goes here" \

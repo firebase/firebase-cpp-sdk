@@ -19,7 +19,7 @@
 """A utility to report on daily build status.
 
 USAGE:
-  python scripts/gha/report_build_status.py \
+  python3 scripts/gha/report_build_status.py \
     --token ${{github.token}}
 """
 
