@@ -20,7 +20,7 @@ token. It uses the GitHub REST API documented here:
 https://docs.github.com/en/rest/reference/actions#create-a-workflow-dispatch-event
 
 Usage:
-python trigger_workflow.py -w workflow_filename -t github_token [-b branch_name]
+python3 trigger_workflow.py -w workflow_filename -t github_token [-b branch_name]
        [-r git_repo_url] [-p <input1> <value1> -p <input2> <value2> ...]'
        [-C curl_command]
 

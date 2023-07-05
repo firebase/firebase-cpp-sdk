@@ -19,7 +19,7 @@ USAGE:
 This tool has a number of dependencies (listed below). Once those are taken
 care of, here is an example of an execution of the tool (on MacOS):
 
-python build_testapps.py --t auth,messaging --p iOS
+python3 build_testapps.py --t auth,messaging --p iOS
 
 Critical flags:
 --t (full name: testapps, default: None)
@@ -29,7 +29,7 @@ By default, this tool will build integration tests from source, which involves
 building the underlying SDK libraries. To build from a packaged/released SDK,
 supply the path to the SDK to --packaged_sdk:
 
-python build_testapps.py --t auth --p iOS --packaged_sdk ~/firebase_cpp_sdk
+python3 build_testapps.py --t auth --p iOS --packaged_sdk ~/firebase_cpp_sdk
 
 Under most circumstances the other flags don't need to be set, but can be
 seen by running --help. Note that all path flags will forcefully expand
@@ -47,7 +47,7 @@ Path specified by the flag:
 ----Python Dependencies----
 The requirements.txt file has the required dependencies for this Python tool.
 
-    pip install -r requirements.txt
+    pip3 install -r requirements.txt
 
 ----CMake (Desktop only)----
 CMake must be installed and on the system path.
