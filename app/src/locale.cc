@@ -185,7 +185,7 @@ std::string GetTimezone() {
   FILE* tz_file = fopen("/etc/timezone", "r");
   if (tz_file) {
     const size_t kBufSize = 128;
-    char buf[128];
+    char buf[kBufSize];
     if (fgets(buf, kBufSize, tz_file)) {
       // Remove a trailing '\n', if any.
       size_t len = strlen(buf);
