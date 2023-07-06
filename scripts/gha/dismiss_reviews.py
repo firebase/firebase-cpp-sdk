@@ -30,7 +30,7 @@ from absl import app
 from absl import flags
 from absl import logging
 
-import github
+import firebase_github
 
 FLAGS = flags.FLAGS
 _DEFAULT_MESSAGE = "Dismissing stale review."
@@ -60,7 +60,7 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
   # Get list of reviews from PR.
-  reviews = github.get_reviews(FLAGS.token, FLAGS.pull_number)
+  reviews = firebase_github.get_reviews(FLAGS.token, FLAGS.pull_number)
   logging.debug("Found %d reviews", len(reviews))
 
   # Filter out already-dismissed reviews.
@@ -76,7 +76,7 @@ def main(argv):
     review_ids = [r['id'] for r in reviews]
     logging.debug("Dismissing reviews: %s", review_ids)
     for review_id in review_ids:
-      github.dismiss_review(FLAGS.token, FLAGS.pull_number,
+      firebase_github.dismiss_review(FLAGS.token, FLAGS.pull_number,
                             review_id, FLAGS.message)
 
 if __name__ == "__main__":
