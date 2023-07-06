@@ -31,6 +31,7 @@
 #include <icu.h>
 #elif FIREBASE_PLATFORM_LINUX
 #include <stdio.h>
+
 #include <clocale>
 #include <ctime>
 #else
@@ -189,8 +190,8 @@ std::string GetTimezone() {
     if (fgets(buf, kBufSize, tz_file)) {
       // Remove a trailing '\n', if any.
       size_t len = strlen(buf);
-      if (buf[len-1] == '\n') {
-        buf[len-1] = '\0';
+      if (buf[len - 1] == '\n') {
+        buf[len - 1] = '\0';
       }
       return std::string(buf);
     }
