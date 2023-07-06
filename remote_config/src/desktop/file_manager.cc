@@ -42,7 +42,7 @@ RemoteConfigFileManager::RemoteConfigFileManager(const std::string& filename,
       AppDataDir(app_data_prefix.c_str(), /*should_create=*/true) + "/" +
       filename;
 #if FIREBASE_PLATFORM_WINDOWS
-  std::wstring_convert<std::codecvt_utf8<wchar_t>> utf8_to_wstring;
+  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> utf8_to_wstring;
   file_path_ = utf8_to_wstring.from_bytes(file_path);
 #else
   file_path_ = file_path;

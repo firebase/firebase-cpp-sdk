@@ -633,6 +633,8 @@ code.
       builder failed to create PhoneAuthOptions with certain compiler settings.
     - Auth (iOS): Fixed an issue where functions that return AuthResult
       were not including updated credentials when encountering errors.
+    - Remote Config (Desktop): Additional fix for handling of non-English time
+      zone names on Windows.
 
 ### 11.2.0
 -   Changes
