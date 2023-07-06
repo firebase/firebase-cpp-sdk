@@ -30,6 +30,8 @@
 #define UCHAR_TYPE wchar_t
 #include <icu.h>
 #elif FIREBASE_PLATFORM_LINUX
+#include <stdio.h>
+
 #include <clocale>
 #include <ctime>
 #else
@@ -180,6 +182,20 @@ std::string GetTimezone() {
   return iana_tz_utf8;
 
 #elif FIREBASE_PLATFORM_LINUX
+  // Ubuntu: Check /etc/timezone for the full time zone name.
+  FILE* tz_file = fopen("/etc/timezone", "r");
+  if (tz_file) {
+    const size_t kBufSize = 128;
+    char buf[kBufSize];
+    if (fgets(buf, kBufSize, tz_file)) {
+      // Remove a trailing '\n', if any.
+      size_t len = strlen(buf);
+      if (buf[len - 1] == '\n') {
+        buf[len - 1] = '\0';
+      }
+      return std::string(buf);
+    }
+  }
   // If TZ environment variable is defined and not empty, use it, else use
   // tzname.
   return (getenv("TZ") && *getenv("TZ")) ? getenv("TZ")
