@@ -343,6 +343,15 @@ void AuthResultCallback(FIRAuthDataResult *_Nullable fir_auth_result, NSError *_
     }
   }
 
+  // If there is an error, and it has an updated credential, pass that along via the result.
+  if (error.userInfo != nullptr) {
+    if (error.userInfo[FIRAuthErrorUserInfoUpdatedCredentialKey] != nullptr) {
+      result.additional_user_info.updated_credential =
+          ServiceUpdatedCredentialProvider::GetCredential(new FIRAuthCredentialPointer(
+              error.userInfo[FIRAuthErrorUserInfoUpdatedCredentialKey]));
+    }
+  }
+
   ReferenceCountedFutureImpl &futures = auth_data->future_impl;
   futures.CompleteWithResult(handle, AuthErrorFromNSError(error),
                              util::NSStringToString(error.localizedDescription).c_str(), result);
@@ -353,6 +362,16 @@ void AuthResultCallback(FIRUser *_Nullable user, NSError *_Nullable error,
   User *current_user = AssignUser(user, auth_data);
   AuthResult auth_result;
   if (current_user != nullptr) auth_result.user = *current_user;
+
+  // If there is an error, and it has an updated credential, pass that along via the result.
+  if (error.userInfo != nullptr) {
+    if (error.userInfo[FIRAuthErrorUserInfoUpdatedCredentialKey] != nullptr) {
+      auth_result.additional_user_info.updated_credential =
+          ServiceUpdatedCredentialProvider::GetCredential(new FIRAuthCredentialPointer(
+              error.userInfo[FIRAuthErrorUserInfoUpdatedCredentialKey]));
+    }
+  }
+
   ReferenceCountedFutureImpl &futures = auth_data->future_impl;
   futures.CompleteWithResult(handle, AuthErrorFromNSError(error),
                              util::NSStringToString(error.localizedDescription).c_str(),

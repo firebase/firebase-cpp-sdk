@@ -631,6 +631,8 @@ code.
 -   Changes
     - Auth (Android): Fixed an issue where VerifyPhoneNumber's internal
       builder failed to create PhoneAuthOptions with certain compiler settings.
+    - Auth (iOS): Fixed an issue where functions that return AuthResult
+      were not including updated credentials when encountering errors.
 
 ### 11.2.0
 -   Changes
