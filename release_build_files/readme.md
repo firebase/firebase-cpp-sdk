@@ -631,6 +631,8 @@ code.
 -   Changes
     - Auth (Android): Fixed an issue where VerifyPhoneNumber's internal
       builder failed to create PhoneAuthOptions with certain compiler settings.
+    - Remote Config (Desktop): Additional fix for handling of non-English time
+      zone names on Windows.
 
 ### 11.2.0
 -   Changes
