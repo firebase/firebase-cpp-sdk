@@ -194,7 +194,7 @@ def format_errors(all_errors, severity, event):
 
     if 'iOS' in platforms:
       all_simulator = True
-      for descriptors in platform_dict['iOS']:
+      for descriptors in platform_dict['iOS']['description']:
         if 'simulator_' not in descriptors:
           all_simulator = False
       if all_simulator:
@@ -203,7 +203,7 @@ def format_errors(all_errors, severity, event):
 
     if 'Android' in platforms:
       all_emulator = True
-      for descriptors in platform_dict['Android']:
+      for descriptors in platform_dict['Android']['description']:
         if 'emulator_' not in descriptors:
           all_emulator = False
       if all_emulator:
