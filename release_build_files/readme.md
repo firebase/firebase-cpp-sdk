@@ -633,6 +633,8 @@ code.
       builder failed to create PhoneAuthOptions with certain compiler settings.
     - Auth (iOS): Fixed an issue where functions that return AuthResult
       were not including updated credentials when encountering errors.
+    - GMA (iOS): Updated dependency to Google-Mobile-Ads-SDK version 10.7.0.
+    - GMA (Android): Updated dependency to play-services-ads version 22.2.0.
     - Remote Config (Desktop): Additional fix for handling of non-English time
       zone names on Windows.
 
