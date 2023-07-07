@@ -5,7 +5,7 @@ use_frameworks!
 target 'GetPods' do
   pod 'Firebase/Core', '10.11.0'
 
-  pod 'Google-Mobile-Ads-SDK', '10.6.0'
+  pod 'Google-Mobile-Ads-SDK', '10.7.0'
   pod 'Firebase/Analytics', '10.11.0'
   pod 'Firebase/AppCheck', '10.11.0'
   pod 'Firebase/Auth', '10.11.0'

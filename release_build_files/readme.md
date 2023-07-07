@@ -134,7 +134,7 @@ Google Mobile Ads          | libfirebase_gma.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics
 |                          | (Maven package)
-|                          | com.google.android.gms:play-services-ads:22.1.0
+|                          | com.google.android.gms:play-services-ads:22.2.0
 |                          | (Maven package)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
@@ -251,7 +251,7 @@ Firebase Functions         | firebase_functions.xcframework
 Google Mobile Ads          | firebase_gma.xcframework
 |                          | firebase.xcframework
 |                          | Firebase/Analytics Cocoapod (10.11.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (10.6.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (10.7.0)
 Firebase Installations     | firebase_installations.xcframework
 |                          | firebase.xcframework
 |                          | FirebaseInstallations Cocoapod (10.11.0)
@@ -313,7 +313,7 @@ Firebase Functions         | libfirebase_functions.a
 Google Mobile Ads          | libfirebase_gma.a
 |                          | libfirebase_app.a
 |                          | Firebase/Analytics Cocoapod (10.11.0)
-|                          | Google-Mobile-Ads-SDK Cocoapod (10.6.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (10.7.0)
 Firebase Installations     | libfirebase_installations.a
 |                          | libfirebase_app.a
 |                          | FirebaseInstallations Cocoapod (10.11.0)
@@ -633,6 +633,8 @@ code.
       builder failed to create PhoneAuthOptions with certain compiler settings.
     - Auth (iOS): Fixed an issue where functions that return AuthResult
       were not including updated credentials when encountering errors.
+    - GMA (iOS): Updated dependency to Google-Mobile-Ads-SDK version 10.7.0.
+    - GMA (Android): Updated dependency to play-services-ads version 22.2.0.
     - Remote Config (Desktop): Additional fix for handling of non-English time
       zone names on Windows.
 
