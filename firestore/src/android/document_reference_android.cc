@@ -16,7 +16,7 @@
 
 #include "firestore/src/android/document_reference_android.h"
 
-#include "app/meta/move.h"
+#include <utility>
 #include "app/src/assert.h"
 #include "firestore/src/android/collection_reference_android.h"
 #include "firestore/src/android/event_listener_android.h"
@@ -147,14 +147,14 @@ Future<void> DocumentReferenceInternal::Set(const MapFieldValue& data,
   Env env = GetEnv();
   FieldValueInternal map_value(data);
   Local<Object> java_options = SetOptionsInternal::Create(env, options);
-  Local<Task> task = env.Call(obj_, kSet, map_value, java_options);
+  Local<Task> task = env.Call(obj_, kSet, map_value.ToJava(), java_options);
   return promises_.NewFuture<void>(env, AsyncFn::kSet, task);
 }
 
 Future<void> DocumentReferenceInternal::Update(const MapFieldValue& data) {
   Env env = GetEnv();
   FieldValueInternal map_value(data);
-  Local<Task> task = env.Call(obj_, kUpdate, map_value);
+  Local<Task> task = env.Call(obj_, kUpdate, map_value.ToJava());
   return promises_.NewFuture<void>(env, AsyncFn::kUpdate, task);
 }
 
@@ -182,7 +182,7 @@ ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
     std::function<void(const DocumentSnapshot&, Error, const std::string&)>
         callback) {
   LambdaEventListener<DocumentSnapshot>* listener =
-      new LambdaEventListener<DocumentSnapshot>(firebase::Move(callback));
+      new LambdaEventListener<DocumentSnapshot>(std::move(callback));
   return AddSnapshotListener(metadata_changes, listener,
                              /*passing_listener_ownership=*/true);
 }

@@ -16,8 +16,8 @@
 
 Usage:
 
-python restore_secrets.py --passphrase [--repo_dir <path_to_repo>]
-python restore_secrets.py --passphrase_file [--repo_dir <path_to_repo>]
+python3 restore_secrets.py --passphrase [--repo_dir <path_to_repo>]
+python3 restore_secrets.py --passphrase_file [--repo_dir <path_to_repo>]
 
 --passphrase: Passphrase to decrypt the files. This option is insecure on a
     multi-user machine; use the --passphrase_file option instead.

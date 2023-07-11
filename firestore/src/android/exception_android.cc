@@ -17,6 +17,7 @@
 #include "firestore/src/android/exception_android.h"
 
 #include <stdexcept>
+#include <utility>
 
 #include "firestore/src/android/firestore_exceptions_android.h"
 #include "firestore/src/common/macros.h"
@@ -138,7 +139,7 @@ Local<Throwable> ExceptionInternal::Create(Env& env,
 Local<Throwable> ExceptionInternal::Wrap(Env& env,
                                          Local<Throwable>&& exception) {
   if (IsFirestoreException(env, exception)) {
-    return Move(exception);
+    return std::move(exception);
   } else {
     return Create(env, GetErrorCode(env, exception),
                   ToString(env, exception).c_str());

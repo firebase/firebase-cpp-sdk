@@ -1112,14 +1112,14 @@ QuerySpec MakeDefaultQuerySpec(const QuerySpec& query_spec) {
   return QuerySpec(query_spec.path);
 }
 
-UniquePtr<VariantFilter> VariantFilterFromQueryParams(
+std::unique_ptr<VariantFilter> VariantFilterFromQueryParams(
     const QueryParams& params) {
   if (QueryParamsLoadsAllData(params)) {
-    return MakeUnique<IndexedFilter>(params);
+    return std::make_unique<IndexedFilter>(params);
   } else if (params.limit_first || params.limit_last) {
-    return MakeUnique<LimitedFilter>(params);
+    return std::make_unique<LimitedFilter>(params);
   } else {
-    return MakeUnique<RangedFilter>(params);
+    return std::make_unique<RangedFilter>(params);
   }
 }
 

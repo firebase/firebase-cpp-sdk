@@ -80,7 +80,7 @@ binary_to_array("token_response_resource"
 set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
     "--no-union-value-namespacing"
     "--gen-object-api"
-    "--cpp-ptr-type" "flatbuffers::unique_ptr")
+    "--cpp-ptr-type" "std::unique_ptr")
 set(flatbuffer_schemas
     ${CMAKE_CURRENT_LIST_DIR}/src/desktop/debug_token_request.fbs
     ${CMAKE_CURRENT_LIST_DIR}/src/desktop/token_response.fbs)

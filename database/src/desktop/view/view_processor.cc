@@ -15,6 +15,7 @@
 #include "database/src/desktop/view/view_processor.h"
 
 #include <algorithm>
+#include <utility>
 #include <vector>
 
 #include "app/src/assert.h"
@@ -103,7 +104,7 @@ class NoCompleteSource : public CompleteChildSource {
   }
 };
 
-ViewProcessor::ViewProcessor(UniquePtr<VariantFilter> filter)
+ViewProcessor::ViewProcessor(std::unique_ptr<VariantFilter> filter)
     : filter_(std::move(filter)) {}
 
 ViewProcessor::~ViewProcessor() {}

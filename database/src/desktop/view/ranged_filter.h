@@ -15,7 +15,9 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_VIEW_RANGED_FILTER_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_VIEW_RANGED_FILTER_H_
 
+#include <memory>
 #include <string>
+#include <utility>
 
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
@@ -34,7 +36,7 @@ class RangedFilter : public VariantFilter {
   explicit RangedFilter(const QueryParams& params);
 
   RangedFilter(const QueryParams& params,
-               UniquePtr<VariantFilter> indexed_filter);
+               std::unique_ptr<VariantFilter> indexed_filter);
 
   ~RangedFilter() override;
 
@@ -63,7 +65,7 @@ class RangedFilter : public VariantFilter {
   bool Matches(const Variant& key, const Variant& value) const;
 
  private:
-  UniquePtr<VariantFilter> indexed_filter_;
+  std::unique_ptr<VariantFilter> indexed_filter_;
   std::pair<Variant, Variant> start_post_;
   std::pair<Variant, Variant> end_post_;
 };

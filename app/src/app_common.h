@@ -21,6 +21,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include "app/src/include/firebase/app.h"
 #include "app/src/logger.h"
@@ -59,6 +60,9 @@ App* GetDefaultApp();
 // Get an instantiated App. If there is more than one App, an unspecified App
 // will be returned.
 App* GetAnyApp();
+
+// Get all existing apps
+std::vector<App*> GetAllApps();
 
 // Remove an app from the set of apps.
 // Call this method before destroying an app.

@@ -15,7 +15,7 @@
 """A utility to create pull requests.
 
 USAGE:
-  python scripts/gha/create_pull_request.py \
+  python3 scripts/gha/create_pull_request.py \
     --token ${{github.token}} \
     --head pr_branch \
     --base main \
@@ -32,7 +32,7 @@ from absl import app
 from absl import flags
 from absl import logging
 
-import github
+import firebase_github
 
 FLAGS = flags.FLAGS
 _DEFAULT_MESSAGE = "Creating pull request."
@@ -60,9 +60,9 @@ flags.DEFINE_string(
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
-  if github.create_pull_request(FLAGS.token, FLAGS.head, FLAGS.base, FLAGS.title, FLAGS.body, True):
+  if firebase_github.create_pull_request(FLAGS.token, FLAGS.head, FLAGS.base, FLAGS.title, FLAGS.body, True):
     # Find the most recent pull_request with the given base and head, that's ours.
-    pull_requests = github.list_pull_requests(FLAGS.token, "open", FLAGS.head, FLAGS.base)
+    pull_requests = firebase_github.list_pull_requests(FLAGS.token, "open", FLAGS.head, FLAGS.base)
     print(pull_requests[0]['number'])
   else:
     exit(1)

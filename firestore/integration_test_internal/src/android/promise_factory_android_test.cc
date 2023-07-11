@@ -23,7 +23,6 @@
 #include "firebase/future.h"
 #include "firestore/src/android/converter_android.h"
 #include "firestore/src/android/firestore_android.h"
-#include "firestore/src/jni/env.h"
 #include "firestore/src/jni/integer.h"
 #include "firestore/src/jni/ownership.h"
 #include "firestore/src/jni/task.h"
@@ -34,7 +33,6 @@ namespace firebase {
 namespace firestore {
 namespace {
 
-using jni::Env;
 using jni::Integer;
 using jni::Local;
 using jni::Task;
@@ -54,24 +52,24 @@ class PromiseFactoryTest : public FirestoreAndroidIntegrationTest {
   };
 
  protected:
-  void AssertCreatesValidFutures(Env& env,
-                                 PromiseFactory<AsyncFn>& promise_factory) {
-    Local<TaskCompletionSource> tcs = TaskCompletionSource::Create(env);
-    Local<Task> task = tcs.GetTask(env);
+  static void AssertCreatesValidFutures(
+      PromiseFactory<AsyncFn>& promise_factory) {
+    Local<TaskCompletionSource> tcs = TaskCompletionSource::Create(env());
+    Local<Task> task = tcs.GetTask(env());
     Future<void> future =
-        promise_factory.NewFuture<void>(env, AsyncFn::kFn, task);
+        promise_factory.NewFuture<void>(env(), AsyncFn::kFn, task);
     EXPECT_EQ(future.status(), FutureStatus::kFutureStatusPending);
-    tcs.SetResult(env, jni::Integer::Create(env, 42));
+    tcs.SetResult(env(), jni::Integer::Create(env(), 42));
     Await(future);
     EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
   }
 
-  void AssertCreatesInvalidFutures(Env& env,
-                                   PromiseFactory<AsyncFn>& promise_factory) {
-    Local<TaskCompletionSource> tcs = TaskCompletionSource::Create(env);
-    Local<Task> task = tcs.GetTask(env);
+  static void AssertCreatesInvalidFutures(
+      PromiseFactory<AsyncFn>& promise_factory) {
+    Local<TaskCompletionSource> tcs = TaskCompletionSource::Create(env());
+    Local<Task> task = tcs.GetTask(env());
     Future<void> future =
-        promise_factory.NewFuture<void>(env, AsyncFn::kFn, task);
+        promise_factory.NewFuture<void>(env(), AsyncFn::kFn, task);
     EXPECT_EQ(future.status(), FutureStatus::kFutureStatusInvalid);
   }
 };
@@ -82,14 +80,13 @@ TEST_F(PromiseFactoryTest, CopyConstructor) {
 
   PromiseFactory<AsyncFn> promise_factory2(promise_factory1);
 
-  Env env;
   {
     SCOPED_TRACE("promise_factory1");
-    AssertCreatesValidFutures(env, promise_factory1);
+    AssertCreatesValidFutures(promise_factory1);
   }
   {
     SCOPED_TRACE("promise_factory2");
-    AssertCreatesValidFutures(env, promise_factory2);
+    AssertCreatesValidFutures(promise_factory2);
   }
 }
 
@@ -100,14 +97,13 @@ TEST_F(PromiseFactoryTest, CopyConstructorWithDeletedFirestore) {
 
   PromiseFactory<AsyncFn> promise_factory2(promise_factory1);
 
-  Env env;
   {
     SCOPED_TRACE("promise_factory1");
-    AssertCreatesInvalidFutures(env, promise_factory1);
+    AssertCreatesInvalidFutures(promise_factory1);
   }
   {
     SCOPED_TRACE("promise_factory2");
-    AssertCreatesInvalidFutures(env, promise_factory2);
+    AssertCreatesInvalidFutures(promise_factory2);
   }
 }
 
@@ -117,8 +113,7 @@ TEST_F(PromiseFactoryTest, MoveConstructor) {
 
   PromiseFactory<AsyncFn> promise_factory2(std::move(promise_factory1));
 
-  Env env;
-  AssertCreatesValidFutures(env, promise_factory2);
+  AssertCreatesValidFutures(promise_factory2);
 }
 
 TEST_F(PromiseFactoryTest, MoveConstructorWithDeletedFirestore) {
@@ -128,17 +123,15 @@ TEST_F(PromiseFactoryTest, MoveConstructorWithDeletedFirestore) {
 
   PromiseFactory<AsyncFn> promise_factory2(std::move(promise_factory1));
 
-  Env env;
-  AssertCreatesInvalidFutures(env, promise_factory2);
+  AssertCreatesInvalidFutures(promise_factory2);
 }
 
 TEST_F(PromiseFactoryTest, ShouldCreateInvalidPromisesIfFirestoreIsDeleted) {
   Firestore* firestore = TestFirestore();
   PromiseFactory<AsyncFn> promise_factory(GetFirestoreInternal(firestore));
   DeleteFirestore(firestore);
-  Env env;
 
-  AssertCreatesInvalidFutures(env, promise_factory);
+  AssertCreatesInvalidFutures(promise_factory);
 }
 
 }  // namespace

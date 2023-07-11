@@ -28,9 +28,11 @@ class DeviceCheckProviderFactoryInternal;
 /// DeviceCheckProviders. This is the default implementation.
 class DeviceCheckProviderFactory : public AppCheckProviderFactory {
  public:
+#if !defined(DOXYGEN)
   DeviceCheckProviderFactory(const DeviceCheckProviderFactory&) = delete;
   DeviceCheckProviderFactory& operator=(const DeviceCheckProviderFactory&) =
       delete;
+#endif  // !defined(DOXYGEN)
 
   /// Gets an instance of this class for installation into a
   /// firebase::app_check::AppCheck instance.

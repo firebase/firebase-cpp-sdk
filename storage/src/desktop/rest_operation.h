@@ -17,7 +17,6 @@
 
 #include <memory>
 
-#include "app/memory/unique_ptr.h"
 #include "app/rest/controller_interface.h"
 #include "app/rest/request.h"
 #include "app/rest/transport_curl.h"
@@ -100,9 +99,9 @@ class RestOperation {
 
  private:
   StorageInternal* storage_internal_;
-  UniquePtr<rest::Request> request_;
+  std::unique_ptr<rest::Request> request_;
   Notifier* request_notifier_;
-  UniquePtr<BlockingResponse> response_;
+  std::unique_ptr<BlockingResponse> response_;
   // Guards this object's state.
   mutable Mutex mutex_;
   Listener* listener_;

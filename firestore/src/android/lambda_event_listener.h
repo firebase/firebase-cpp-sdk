@@ -19,7 +19,7 @@
 
 #include <functional>
 
-#include "app/meta/move.h"
+#include <utility>
 #include "firebase/firestore/firestore_errors.h"
 #include "firestore/src/common/event_listener.h"
 
@@ -35,7 +35,7 @@ class LambdaEventListener : public EventListener<T> {
  public:
   LambdaEventListener(
       std::function<void(const T&, Error, const std::string&)> callback)
-      : callback_(firebase::Move(callback)) {
+      : callback_(std::move(callback)) {
     FIREBASE_ASSERT(callback_);
   }
 
@@ -52,8 +52,8 @@ class LambdaEventListener : public EventListener<T> {
 template <>
 class LambdaEventListener<void> : public EventListener<void> {
  public:
-  LambdaEventListener(std::function<void()> callback)
-      : callback_(firebase::Move(callback)) {
+  explicit LambdaEventListener(std::function<void()> callback)
+      : callback_(std::move(callback)) {
     FIREBASE_ASSERT(callback_);
   }
 

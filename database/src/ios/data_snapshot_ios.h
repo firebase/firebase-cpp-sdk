@@ -18,7 +18,7 @@
 #include <stddef.h>
 #include <string>
 
-#include "app/memory/unique_ptr.h"
+#include <memory>
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/util_ios.h"
@@ -47,7 +47,7 @@ OBJ_C_PTR_WRAPPER(FIRDataSnapshot);
 class DataSnapshotInternal {
  public:
   DataSnapshotInternal(DatabaseInternal* database,
-                       UniquePtr<FIRDataSnapshotPointer> impl);
+                       std::unique_ptr<FIRDataSnapshotPointer> impl);
 
   DataSnapshotInternal(const DataSnapshotInternal& snapshot);
 
@@ -117,7 +117,7 @@ class DataSnapshotInternal {
   DatabaseInternal* database_;
 
   // Object lifetime managed by Objective C ARC.
-  UniquePtr<FIRDataSnapshotPointer> impl_;
+  std::unique_ptr<FIRDataSnapshotPointer> impl_;
 };
 
 #pragma clang assume_nonnull end

@@ -36,21 +36,21 @@ if [[ -z $(which cmake) ]]; then
     exit 1
 fi
 
-if [[ -z $(which python) ]]; then
-    echo "Error, python is not installed or is not in the PATH."
+if [[ -z $(which python3) ]]; then
+    echo "Error, python3 is not installed or is not in the PATH."
     exit 1
 else
     updated_pip=0
-    if ! $(echo "import absl"$'\n' | python - 2> /dev/null); then
+    if ! $(echo "import absl"$'\n' | python3 - 2> /dev/null); then
       echo "Installing python packages."
       set -x
       # On Windows bash shell, sudo doesn't exist
       if [[ $(uname) == "Linux" ]] || [[ $(uname) == "Darwin" ]]; then
-        sudo python -m pip install --upgrade pip
+        sudo python3 -m pip install --upgrade pip
       else
-        python -m pip install  --upgrade pip
+        python3 -m pip install  --upgrade pip
       fi
-      pip install absl-py
+      pip3 install absl-py
       set +x
     fi
 fi

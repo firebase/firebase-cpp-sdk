@@ -17,9 +17,9 @@
 #include <stdlib.h>
 
 #include <cassert>
+#include <memory>
 #include <sstream>
 
-#include "app/memory/shared_ptr.h"
 #include "app/src/log.h"
 #include "database/src/common/database_reference.h"
 #include "database/src/desktop/database_desktop.h"
@@ -33,7 +33,7 @@ namespace internal {
 
 MutableDataInternal::MutableDataInternal(DatabaseInternal* database,
                                          const Variant& data)
-    : db_(database), path_(), holder_(MakeShared<Variant>(data)) {
+    : db_(database), path_(), holder_(std::make_shared<Variant>(data)) {
   if (HasVector(*holder_)) {
     ConvertVectorToMap(holder_.get());
   }

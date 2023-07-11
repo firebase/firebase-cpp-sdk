@@ -45,7 +45,7 @@ case "$OSTYPE" in
 esac
 echo "OS: ${OS}"
 
-pip install -r scripts/gha/python_requirements.txt
+pip3 install -r scripts/gha/python_requirements.txt
 
 git config --global credential.helper 'store --file /tmp/git-credentials'
 echo 'https://${GITHUB_TOKEN}@github.com' > /tmp/git-credentials
@@ -69,7 +69,7 @@ if [[ "${PLATFORM}" == "Desktop" ]]; then
     fi
     echo "VCPKG_TRIPLET=${VCPKG_TRIPLET}" >> $GITHUB_ENV
     echo "VCPKG_RESPONSE_FILE=external/vcpkg_${VCPKG_TRIPLET}_response_file.txt" >> $GITHUB_ENV
-    python scripts/gha/install_prereqs_desktop.py --gha_build --arch "${ARCH}" --ssl "${SSL}" ${TEST_ONLY} 
+    python3 scripts/gha/install_prereqs_desktop.py --gha_build --arch "${ARCH}" --ssl "${SSL}" ${TEST_ONLY} 
 fi
 
 if [[ "${TEST_ONLY}" == "" ]]; then

@@ -955,7 +955,7 @@ void PhoneAuthProvider::VerifyPhoneNumber(
   jobject timeout = env->NewObject(
       util::long_class::GetClass(),
       util::long_class::GetMethodId(util::long_class::kConstructor),
-      options.timeout_milliseconds);
+      static_cast<jlong>(options.timeout_milliseconds));
   if (util::CheckAndClearJniExceptions(env)) {
     listener->OnVerificationFailed(
         "VerifyPhoneNumber: couldn't convert timeout to java.lang.Long.");
@@ -988,7 +988,7 @@ void PhoneAuthProvider::VerifyPhoneNumber(
   if (util::CheckAndClearJniExceptions(env)) {
     env->DeleteLocalRef(builder);
     listener->OnVerificationFailed(
-        "VerifyPhoneNumber: builder faild to create PhoneAuhtOptions");
+        "VerifyPhoneNumber: builder failed to create PhoneAuthOptions");
     return;
   }
   env->DeleteLocalRef(builder);
@@ -1003,7 +1003,7 @@ void PhoneAuthProvider::VerifyPhoneNumber(
     // If an error occurred with the call to verifyPhoneNumber, inform the
     // listener that it failed.
     listener->OnVerificationFailed(
-        "VerifyPhoneNumber: Android to verify the given phone number");
+        "VerifyPhoneNumber: Android failed to verify the given phone number");
   }
 
   env->DeleteLocalRef(phone_auth_options);

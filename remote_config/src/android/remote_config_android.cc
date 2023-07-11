@@ -171,6 +171,7 @@ METHOD_LOOKUP_DECLARATION(jni_config_update_listener,
                           JNI_CONFIG_UPDATE_LISTENER_METHODS)
 METHOD_LOOKUP_DEFINITION(
     jni_config_update_listener,
+    PROGUARD_KEEP_CLASS
     "com/google/firebase/remoteconfig/internal/cpp/JniConfigUpdateListener",
     JNI_CONFIG_UPDATE_LISTENER_METHODS)
 
@@ -195,6 +196,7 @@ static const JNINativeMethod kNativeJniConfigUpdateListenerMethods[] = {
 
 METHOD_LOOKUP_DECLARATION(config_update, CONFIG_UPDATE_METHODS)
 METHOD_LOOKUP_DEFINITION(config_update,
+                         PROGUARD_KEEP_CLASS
                          "com/google/firebase/remoteconfig/ConfigUpdate",
                          CONFIG_UPDATE_METHODS)
 
@@ -208,6 +210,7 @@ METHOD_LOOKUP_DECLARATION(config_update_listener_registration,
                           CONFIG_UPDATE_LISTENER_REGISTRATION_METHODS)
 METHOD_LOOKUP_DEFINITION(
     config_update_listener_registration,
+    PROGUARD_KEEP_CLASS
     "com/google/firebase/remoteconfig/ConfigUpdateListenerRegistration",
     CONFIG_UPDATE_LISTENER_REGISTRATION_METHODS)
 
@@ -221,8 +224,6 @@ static const ValueSource kFirebaseRemoteConfigSourceToValueSourceMap[] = {
     kValueSourceDefaultValue,  // FirebaseRemoteConfig.VALUE_SOURCE_DEFAULT (1)
     kValueSourceRemoteValue,   // FirebaseRemoteConfig.VALUE_SOURCE_REMOTE (2)
 };
-
-static const char* kApiIdentifier = "Remote Config";
 
 ReferenceCount RemoteConfigInternal::initializer_;  // NOLINT
 
@@ -554,6 +555,8 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
     : app_(app), future_impl_(kRemoteConfigFnCount) {
   ReferenceCountLock<ReferenceCount> lock(&initializer_);
   LogDebug("Firebase RemoteConfig API Initializing");
+  static const char* kApiIdentifier = "Remote Config";
+  jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
   JNIEnv* env = app_.GetJNIEnv();
   if (lock.AddReference() == 0) {
     // Initialize
@@ -599,6 +602,8 @@ RemoteConfigInternal::~RemoteConfigInternal() {
   // ConfigUpdateListenerRegistration instances to no longer point to the
   // corresponding internal objects.
   cleanup_notifier().CleanupAll();
+  JNIEnv* env = app_.GetJNIEnv();
+  util::CancelCallbacks(env, jni_task_id_.c_str());
 }
 
 bool RemoteConfigInternal::Initialized() const {
@@ -709,7 +714,7 @@ Future<ConfigInfo> RemoteConfigInternal::EnsureInitialized() {
 
     util::RegisterCallbackOnTask(env, task, EnsureInitializedCallback,
                                  reinterpret_cast<void*>(data_handle),
-                                 kApiIdentifier);
+                                 jni_task_id_.c_str());
   }
   env->DeleteLocalRef(task);
   return MakeFuture<ConfigInfo>(&future_impl_, handle);
@@ -733,7 +738,7 @@ Future<bool> RemoteConfigInternal::Activate() {
     auto data_handle = new RCDataHandle<bool>(&future_impl_, handle, this);
     util::RegisterCallbackOnTask(env, task, BoolResultCallback,
                                  reinterpret_cast<void*>(data_handle),
-                                 kApiIdentifier);
+                                 jni_task_id_.c_str());
   }
 
   env->DeleteLocalRef(task);
@@ -759,7 +764,7 @@ Future<bool> RemoteConfigInternal::FetchAndActivate() {
     auto data_handle = new RCDataHandle<bool>(&future_impl_, handle, this);
     util::RegisterCallbackOnTask(env, task, BoolResultCallback,
                                  reinterpret_cast<void*>(data_handle),
-                                 kApiIdentifier);
+                                 jni_task_id_.c_str());
   }
 
   env->DeleteLocalRef(task);
@@ -786,7 +791,7 @@ Future<void> RemoteConfigInternal::Fetch(uint64_t cache_expiration_in_seconds) {
 
     util::RegisterCallbackOnTask(env, task, FetchCallback,
                                  reinterpret_cast<void*>(data_handle),
-                                 kApiIdentifier);
+                                 jni_task_id_.c_str());
   }
   env->DeleteLocalRef(task);
   return MakeFuture<void>(&future_impl_, handle);
@@ -812,7 +817,7 @@ Future<void> RemoteConfigInternal::SetDefaults(int defaults_resource_id) {
     auto data_handle = new RCDataHandle<void>(&future_impl_, handle, this);
     util::RegisterCallbackOnTask(env, task, SetDefaultsCallback,
                                  reinterpret_cast<void*>(data_handle),
-                                 kApiIdentifier);
+                                 jni_task_id_.c_str());
   }
   env->DeleteLocalRef(task);
   return MakeFuture<void>(&future_impl_, handle);
@@ -839,7 +844,7 @@ Future<void> RemoteConfigInternal::SetDefaults(
 
     util::RegisterCallbackOnTask(env, task, SetDefaultsCallback,
                                  reinterpret_cast<void*>(data_handle),
-                                 kApiIdentifier);
+                                 jni_task_id_.c_str());
   }
   env->DeleteLocalRef(task);
   env->DeleteLocalRef(hash_map);
@@ -867,7 +872,7 @@ Future<void> RemoteConfigInternal::SetDefaults(const ConfigKeyValue* defaults,
 
     util::RegisterCallbackOnTask(env, task, SetDefaultsCallback,
                                  reinterpret_cast<void*>(data_handle),
-                                 kApiIdentifier);
+                                 jni_task_id_.c_str());
   }
   env->DeleteLocalRef(task);
   env->DeleteLocalRef(hash_map);
@@ -930,7 +935,7 @@ Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
 
       util::RegisterCallbackOnTask(env, task, CompleteVoidCallback,
                                    reinterpret_cast<void*>(data_handle),
-                                   kApiIdentifier);
+                                   jni_task_id_.c_str());
     }
     env->DeleteLocalRef(task);
   }

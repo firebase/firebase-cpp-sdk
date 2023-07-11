@@ -23,7 +23,7 @@ with gsutil. (Should be installed by FTL GHA already.)
 
 Usage:
 
-  python read_ftl_test_result.py --test_result ${JSON_format_output_from_FTL_GHA} \
+  python3 read_ftl_test_result.py --test_result ${JSON_format_output_from_FTL_GHA} \
     --output_path ${log_path}
 
 """

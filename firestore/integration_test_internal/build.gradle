@@ -52,6 +52,14 @@ android {
     }
   }
 
+  Properties localProperties = new Properties()
+  try {
+    localProperties.load(project.rootProject.file('local.properties').newDataInputStream())
+  } catch (FileNotFoundException e) {
+    // Ignore the situation where local.properties does not exist, effectively treating it the same
+    // as if it existed but was empty.
+  }
+
   defaultConfig {
     applicationId 'com.google.firebase.cpp.firestore.testapp'
     minSdkVersion 19
@@ -60,6 +68,13 @@ android {
     versionName '1.0'
     externalNativeBuild.cmake {
       arguments "-DFIREBASE_CPP_SDK_DIR=$gradle.firebase_cpp_sdk_dir"
+      // Only build the targets that Firestore needs, instead of everything.
+      targets 'firebase_firestore', 'firebase_auth', 'android_integration_test_main'
+      // Add the line `abiFilter=<abi>` to `local.properties` to speed up local builds by only
+      // building the required ABI, where `<abi>` is x86, x86_64, or arm64-v8a (for Mac M1).
+      if (localProperties["abiFilter"] != null) {
+        abiFilters localProperties["abiFilter"]
+      }
     }
     multiDexEnabled true
   }
@@ -92,7 +107,7 @@ apply plugin: 'com.google.gms.google-services'
 task copyIntegrationTestFiles(type:Exec) {
   // If this is running form inside the SDK directory, run the setup script.
   if (project.file('../../setup_integration_tests.py').exists()) {
-    commandLine 'python', '../../setup_integration_tests.py', project.projectDir.toString()
+    commandLine 'python3', '../../setup_integration_tests.py', project.projectDir.toString()
   }
   else {
     commandLine 'echo', ''

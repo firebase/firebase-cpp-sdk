@@ -58,7 +58,7 @@ void DeviceCheckProvider::GetToken(
 }
 
 DeviceCheckProviderFactoryInternal::DeviceCheckProviderFactoryInternal() : created_providers_() {
-  ios_provider_factory_ = MakeUnique<FIRDeviceCheckProviderFactoryPointer>(
+  ios_provider_factory_ = std::make_unique<FIRDeviceCheckProviderFactoryPointer>(
       [[FIRDeviceCheckProviderFactory alloc] init]);
 }
 

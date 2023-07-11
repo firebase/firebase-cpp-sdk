@@ -39,7 +39,7 @@ namespace internal {
 namespace {
 
 TEST(ViewProcessor, Constructor) {
-  ViewProcessor view_processor(MakeUnique<IndexedFilter>(QueryParams()));
+  ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
 
   // No tests, just making sure the indexed filter doesn't leak after
   // destruction.
@@ -48,7 +48,7 @@ TEST(ViewProcessor, Constructor) {
 // Apply an Overwrite operation that was initiated by the user, using an empty
 // path.
 TEST(ViewProcessor, ApplyOperationUserOverwrite_WithEmptyPath) {
-  ViewProcessor view_processor(MakeUnique<IndexedFilter>(QueryParams()));
+  ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
 
   // Set up some dummy data.
   CacheNode initial_local_cache(Variant("local_values"), true, false);
@@ -86,7 +86,7 @@ TEST(ViewProcessor, ApplyOperationUserOverwrite_WithEmptyPath) {
 // Apply an Overwrite operation that was initiated by the user, using a
 // .priority path.
 TEST(ViewProcessor, ApplyOperationUserOverwrite_WithPriorityPath) {
-  ViewProcessor view_processor(MakeUnique<IndexedFilter>(QueryParams()));
+  ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
 
   // Set up some dummy data.
   CacheNode initial_local_cache(Variant("local_values"), true, false);
@@ -124,7 +124,7 @@ TEST(ViewProcessor, ApplyOperationUserOverwrite_WithPriorityPath) {
 // Apply an Overwrite operation that was initiated by the user, regular
 // non-empty path.
 TEST(ViewProcessor, ApplyOperationUserOverwrite_WithRegularPath) {
-  ViewProcessor view_processor(MakeUnique<IndexedFilter>(QueryParams()));
+  ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
 
   // Set up some dummy data.
   CacheNode initial_local_cache(Variant("local_values"), true, false);
@@ -178,7 +178,7 @@ TEST(ViewProcessor, ApplyOperationUserOverwrite_WithRegularPath) {
 // Apply an Overwrite operation that was initiated by the server, using an empty
 // path.
 TEST(ViewProcessor, ApplyOperationServerOverwrite_WithEmptyPath) {
-  ViewProcessor view_processor(MakeUnique<IndexedFilter>(QueryParams()));
+  ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
 
   // Set up some dummy data.
   CacheNode initial_local_cache(Variant("local_values"), true, false);
@@ -215,7 +215,7 @@ TEST(ViewProcessor, ApplyOperationServerOverwrite_WithEmptyPath) {
 // Apply an Overwrite operation that was initiated by the server, using a
 // regular path.
 TEST(ViewProcessor, ApplyOperationServerOverwrite_RegularPath) {
-  ViewProcessor view_processor(MakeUnique<IndexedFilter>(QueryParams()));
+  ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
 
   // Set up some dummy data.
   CacheNode initial_local_cache(Variant("local_values"), true, false);
@@ -270,7 +270,7 @@ TEST(ViewProcessor, ApplyOperationServerOverwrite_RegularPath) {
 // Apply an Overwrite operation that was initiated by the server, using a path
 // that is deeper than a direct child of the location.
 TEST(ViewProcessor, ApplyOperationServerOverwrite_DistantDescendantChange) {
-  ViewProcessor view_processor(MakeUnique<IndexedFilter>(QueryParams()));
+  ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
 
   // Set up some dummy data.
   CacheNode initial_cache(Variant(std::map<Variant, Variant>{std::make_pair(
@@ -336,7 +336,7 @@ TEST(ViewProcessor, ApplyOperationServerOverwrite_DistantDescendantChange) {
 
 // Apply a Merge operation that was initiated by the user.
 TEST(ViewProcessor, ApplyOperationUserMerge) {
-  ViewProcessor view_processor(MakeUnique<IndexedFilter>(QueryParams()));
+  ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
   // Set up some dummy data.
   CacheNode initial_local_cache(
       Variant(std::map<Variant, Variant>{
@@ -428,7 +428,7 @@ TEST(ViewProcessor, ApplyOperationUserMerge) {
 }
 
 TEST(ViewProcessor, ApplyOperationServerMerge) {
-  ViewProcessor view_processor(MakeUnique<IndexedFilter>(QueryParams()));
+  ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
 
   // Set up some dummy data.
   CacheNode initial_local_cache(
@@ -528,7 +528,7 @@ TEST(ViewProcessor, ApplyOperationServerMerge) {
 }
 
 TEST(ViewProcessor, ApplyOperationAck_HasShadowingWrite) {
-  ViewProcessor view_processor(MakeUnique<IndexedFilter>(QueryParams()));
+  ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
 
   // Set up some dummy data.
   CacheNode initial_local_cache(Variant("local_values"), true, false);
@@ -567,7 +567,7 @@ TEST(ViewProcessor, ApplyOperationAck_HasShadowingWrite) {
 }
 
 TEST(ViewProcessor, ApplyOperationAck_IsOverwrite) {
-  ViewProcessor view_processor(MakeUnique<IndexedFilter>(QueryParams()));
+  ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
 
   // Set up some dummy data.
   CacheNode initial_local_cache(
@@ -618,7 +618,7 @@ TEST(ViewProcessor, ApplyOperationAck_IsOverwrite) {
 }
 
 TEST(ViewProcessor, ApplyOperationAckRevert) {
-  ViewProcessor view_processor(MakeUnique<IndexedFilter>(QueryParams()));
+  ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
 
   // Set up some dummy data.
   CacheNode initial_local_cache(
@@ -686,7 +686,7 @@ TEST(ViewProcessor, ApplyOperationAckRevert) {
 }
 
 TEST(ViewProcessor, ApplyOperationListenComplete) {
-  ViewProcessor view_processor(MakeUnique<IndexedFilter>(QueryParams()));
+  ViewProcessor view_processor(std::make_unique<IndexedFilter>(QueryParams()));
 
   // Set up some dummy data.
   CacheNode initial_local_cache(Variant("local_values"), true, false);

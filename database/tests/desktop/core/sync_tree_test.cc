@@ -44,9 +44,9 @@ namespace internal {
 namespace {
 
 TEST(SyncTree, Constructor) {
-  UniquePtr<WriteTree> write_tree;
-  UniquePtr<PersistenceManager> persistence_manager;
-  UniquePtr<ListenProvider> listen_provider;
+  std::unique_ptr<WriteTree> write_tree;
+  std::unique_ptr<PersistenceManager> persistence_manager;
+  std::unique_ptr<ListenProvider> listen_provider;
   SyncTree sync_tree(std::move(write_tree), std::move(persistence_manager),
                      std::move(listen_provider));
 
@@ -59,27 +59,28 @@ class SyncTreeTest : public Test {
   void SetUp() override {
     // These mocks are very noisy, so we make them NiceMocks and explicitly call
     // EXPECT_CALL when there are specific things we expect to have happen.
-    UniquePtr<WriteTree> pending_write_tree_ptr(MakeUnique<WriteTree>());
+    std::unique_ptr<WriteTree> pending_write_tree_ptr(
+        std::make_unique<WriteTree>());
 
     persistence_storage_engine_ = new NiceMock<MockPersistenceStorageEngine>();
-    UniquePtr<MockPersistenceStorageEngine> storage_engine_ptr(
+    std::unique_ptr<MockPersistenceStorageEngine> storage_engine_ptr(
         persistence_storage_engine_);
 
     tracked_query_manager_ = new NiceMock<MockTrackedQueryManager>();
-    UniquePtr<MockTrackedQueryManager> tracked_query_manager_ptr(
+    std::unique_ptr<MockTrackedQueryManager> tracked_query_manager_ptr(
         tracked_query_manager_);
 
     cache_policy_ = new NiceMock<MockCachePolicy>();
-    UniquePtr<MockCachePolicy> cache_policy_ptr(cache_policy_);
+    std::unique_ptr<MockCachePolicy> cache_policy_ptr(cache_policy_);
 
     persistence_manager_ = new NiceMock<MockPersistenceManager>(
         std::move(storage_engine_ptr), std::move(tracked_query_manager_ptr),
         std::move(cache_policy_ptr), &logger_);
-    UniquePtr<MockPersistenceManager> persistence_manager_ptr(
+    std::unique_ptr<MockPersistenceManager> persistence_manager_ptr(
         persistence_manager_);
 
     listen_provider_ = new NiceMock<MockListenProvider>();
-    UniquePtr<MockListenProvider> listen_provider_ptr(listen_provider_);
+    std::unique_ptr<MockListenProvider> listen_provider_ptr(listen_provider_);
 
     sync_tree_ = new SyncTree(std::move(pending_write_tree_ptr),
                               std::move(persistence_manager_ptr),
@@ -115,7 +116,7 @@ TEST_F(SyncTreeTest, AddEventRegistration) {
   EXPECT_TRUE(sync_tree_->IsEmpty());
   EXPECT_CALL(*persistence_manager_, SetQueryActive(query_spec));
   sync_tree_->AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(event_registration));
+      std::unique_ptr<ValueEventRegistration>(event_registration));
   EXPECT_FALSE(sync_tree_->IsEmpty());
 }
 
@@ -133,7 +134,7 @@ TEST_F(SyncTreeTest, ApplyListenComplete) {
   EXPECT_CALL(*persistence_manager_, ServerCache(query_spec))
       .WillOnce(Return(initial_cache));
   sync_tree_->AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(event_registration));
+      std::unique_ptr<ValueEventRegistration>(event_registration));
 
   // Applying a ListenComplete should tell the PersistenceManager that listening
   // on the given query is complete.
@@ -163,7 +164,7 @@ TEST_F(SyncTreeTest, ApplyServerMerge) {
   EXPECT_CALL(*persistence_manager_, ServerCache(query_spec))
       .WillOnce(Return(initial_cache));
   sync_tree_->AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(event_registration));
+      std::unique_ptr<ValueEventRegistration>(event_registration));
 
   // Change one element in the database, and add one new one.
   std::map<Path, Variant> changed_children{
@@ -212,7 +213,7 @@ TEST_F(SyncTreeTest, ApplyServerOverwrite) {
   EXPECT_CALL(*persistence_manager_, ServerCache(query_spec))
       .WillOnce(Return(initial_cache));
   sync_tree_->AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(event_registration));
+      std::unique_ptr<ValueEventRegistration>(event_registration));
 
   // Change one element in the database, and add one new one.
   std::map<Variant, Variant> changed_children{
@@ -263,7 +264,7 @@ TEST_F(SyncTreeTest, ApplyUserMerge) {
   EXPECT_CALL(*persistence_manager_, ServerCache(query_spec))
       .WillOnce(Return(initial_cache));
   sync_tree_->AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(event_registration));
+      std::unique_ptr<ValueEventRegistration>(event_registration));
 
   // Change one element in the database, and add one new one.
   CompoundWrite unresolved_children =
@@ -321,7 +322,7 @@ TEST_F(SyncTreeTest, ApplyUserOverwrite) {
   EXPECT_CALL(*persistence_manager_, ServerCache(query_spec))
       .WillOnce(Return(initial_cache));
   sync_tree_->AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(event_registration));
+      std::unique_ptr<ValueEventRegistration>(event_registration));
 
   // Change one element in the database, and add one new one.
   Variant unresolved_new_data(std::map<Variant, Variant>{
@@ -381,7 +382,7 @@ TEST_F(SyncTreeTest, AckUserWrite) {
   EXPECT_CALL(*persistence_manager_, ServerCache(query_spec))
       .WillOnce(Return(initial_cache));
   sync_tree_->AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(event_registration));
+      std::unique_ptr<ValueEventRegistration>(event_registration));
 
   // Change one element in the database, and add one new one.
   Variant unresolved_new_data(std::map<Variant, Variant>{
@@ -459,7 +460,7 @@ TEST_F(SyncTreeTest, AckUserWriteRevert) {
   EXPECT_CALL(*persistence_manager_, ServerCache(query_spec))
       .WillOnce(Return(initial_cache));
   sync_tree_->AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(event_registration));
+      std::unique_ptr<ValueEventRegistration>(event_registration));
 
   // Change one element in the database, and add one new one.
   Variant unresolved_new_data(std::map<Variant, Variant>{
@@ -539,7 +540,7 @@ TEST_F(SyncTreeTest, RemoveAllWrites) {
   EXPECT_CALL(*persistence_manager_, ServerCache(query_spec))
       .WillOnce(Return(initial_cache));
   sync_tree_->AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(event_registration));
+      std::unique_ptr<ValueEventRegistration>(event_registration));
 
   // Change one element in the database, and add one new one.
   Variant unresolved_new_data(std::map<Variant, Variant>{
@@ -620,13 +621,13 @@ TEST_F(SyncTreeTest, RemoveAllEventRegistrations) {
   ChildEventRegistration* event_registration4 =
       new ChildEventRegistration(nullptr, &listener4, query_spec4);
   sync_tree_->AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(event_registration1));
+      std::unique_ptr<ValueEventRegistration>(event_registration1));
   sync_tree_->AddEventRegistration(
-      UniquePtr<ChildEventRegistration>(event_registration2));
+      std::unique_ptr<ChildEventRegistration>(event_registration2));
   sync_tree_->AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(event_registration3));
+      std::unique_ptr<ValueEventRegistration>(event_registration3));
   sync_tree_->AddEventRegistration(
-      UniquePtr<ChildEventRegistration>(event_registration4));
+      std::unique_ptr<ChildEventRegistration>(event_registration4));
 
   std::vector<Event> results;
   // This will not cause any calls to StopListening because the listener
@@ -649,7 +650,7 @@ TEST_F(SyncTreeTest, RemoveAllEventRegistrations) {
       sync_tree_->RemoveAllEventRegistrations(query_spec4, kErrorExpiredToken);
 
   // I have to manually construct this because normally building an 'error'
-  // event requres that I pass in a UniquePtr.
+  // event requres that I pass in a std::unique_ptr.
   Event expected_event;
   expected_event.type = kEventTypeError;
   expected_event.event_registration = event_registration4;
@@ -684,13 +685,13 @@ TEST_F(SyncTreeTest, RemoveEventRegistration) {
   ChildEventRegistration* event_registration4 =
       new ChildEventRegistration(nullptr, &listener4, query_spec4);
   sync_tree_->AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(event_registration1));
+      std::unique_ptr<ValueEventRegistration>(event_registration1));
   sync_tree_->AddEventRegistration(
-      UniquePtr<ChildEventRegistration>(event_registration2));
+      std::unique_ptr<ChildEventRegistration>(event_registration2));
   sync_tree_->AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(event_registration3));
+      std::unique_ptr<ValueEventRegistration>(event_registration3));
   sync_tree_->AddEventRegistration(
-      UniquePtr<ChildEventRegistration>(event_registration4));
+      std::unique_ptr<ChildEventRegistration>(event_registration4));
 
   std::vector<Event> results;
   // This will not cause any calls to StopListening because the listener
@@ -723,7 +724,7 @@ TEST_F(SyncTreeTest, RemoveEventRegistration) {
                                                 kErrorExpiredToken);
 
   // I have to manually construct this because normally constructing an 'error'
-  // event requres that I pass in a UniquePtr.
+  // event requres that I pass in a std::unique_ptr.
   Event expected_event;
   expected_event.type = kEventTypeError;
   expected_event.event_registration = event_registration4;
@@ -745,7 +746,7 @@ TEST_F(SyncTreeDeathTest, RemoveEventRegistration) {
   ChildEventRegistration* event_registration =
       new ChildEventRegistration(nullptr, &listener, query_spec);
   sync_tree_->AddEventRegistration(
-      UniquePtr<ChildEventRegistration>(event_registration));
+      std::unique_ptr<ChildEventRegistration>(event_registration));
   EXPECT_DEATH(sync_tree_->RemoveEventRegistration(query_spec, &listener,
                                                    kErrorExpiredToken),
                DEATHTEST_SIGABRT);
@@ -760,17 +761,17 @@ TEST(SyncTree, CalcCompleteEventCache) {
   // filling in the expected values to calls to the write tree.
   SystemLogger logger;
   MockWriteTree* pending_write_tree = new NiceMock<MockWriteTree>();
-  UniquePtr<MockWriteTree> pending_write_tree_ptr(pending_write_tree);
+  std::unique_ptr<MockWriteTree> pending_write_tree_ptr(pending_write_tree);
   MockPersistenceManager* persistence_manager =
       new NiceMock<MockPersistenceManager>(
-          MakeUnique<NiceMock<MockPersistenceStorageEngine>>(),
-          MakeUnique<NiceMock<MockTrackedQueryManager>>(),
-          MakeUnique<NiceMock<MockCachePolicy>>(), &logger);
-  UniquePtr<MockPersistenceManager> persistence_manager_ptr(
+          std::make_unique<NiceMock<MockPersistenceStorageEngine>>(),
+          std::make_unique<NiceMock<MockTrackedQueryManager>>(),
+          std::make_unique<NiceMock<MockCachePolicy>>(), &logger);
+  std::unique_ptr<MockPersistenceManager> persistence_manager_ptr(
       persistence_manager);
   SyncTree sync_tree(std::move(pending_write_tree_ptr),
                      std::move(persistence_manager_ptr),
-                     MakeUnique<NiceMock<MockListenProvider>>());
+                     std::make_unique<NiceMock<MockListenProvider>>());
 
   Path path("aaa/bbb/ccc");
   QuerySpec query_spec(path);
@@ -793,7 +794,7 @@ TEST(SyncTree, CalcCompleteEventCache) {
       .WillOnce(Return(initial_cache));
 
   sync_tree.AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(event_registration));
+      std::unique_ptr<ValueEventRegistration>(event_registration));
 
   std::vector<WriteId> write_ids_to_exclude{1, 2, 3, 4};
   Variant expected_server_cache(std::map<Variant, Variant>{

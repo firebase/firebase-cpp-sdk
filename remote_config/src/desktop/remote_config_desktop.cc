@@ -18,6 +18,7 @@
 #include <chrono>  // NOLINT
 #include <cstdint>
 #include <cstdlib>
+#include <memory>
 #include <set>
 #include <sstream>
 #include <string>
@@ -163,11 +164,11 @@ Future<bool> RemoteConfigInternal::FetchAndActivate() {
   if (!is_fetch_process_have_task_ &&
       ((cache_expiration_in_seconds_ == 0) ||
        (cache_expiration_timestamp < milliseconds_since_epoch))) {
-    auto data_handle =
-        MakeShared<RCDataHandle<bool>>(&future_impl_, future_handle, this);
+    auto data_handle = std::make_shared<RCDataHandle<bool>>(
+        &future_impl_, future_handle, this);
 
     auto callback = NewCallback(
-        [](ThisRef ref, SharedPtr<RCDataHandle<bool>> handle) {
+        [](ThisRef ref, std::shared_ptr<RCDataHandle<bool>> handle) {
           ThisRefLock lock(&ref);
           if (lock.GetReference() != nullptr) {
             MutexLock lock(handle->rc_internal->internal_mutex_);
@@ -631,11 +632,11 @@ Future<void> RemoteConfigInternal::Fetch(uint64_t cache_expiration_in_seconds) {
   if (!is_fetch_process_have_task_ &&
       ((cache_expiration_in_seconds_ == 0) ||
        (cache_expiration_timestamp < milliseconds_since_epoch))) {
-    auto data_handle =
-        MakeShared<RCDataHandle<void>>(&future_impl_, future_handle, this);
+    auto data_handle = std::make_shared<RCDataHandle<void>>(
+        &future_impl_, future_handle, this);
 
     auto callback = NewCallback(
-        [](ThisRef ref, SharedPtr<RCDataHandle<void>> handle) {
+        [](ThisRef ref, std::shared_ptr<RCDataHandle<void>> handle) {
           ThisRefLock lock(&ref);
           if (lock.GetReference() != nullptr) {
             MutexLock lock(handle->rc_internal->internal_mutex_);

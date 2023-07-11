@@ -15,7 +15,7 @@
 #ifndef FIREBASE_APP_CHECK_SRC_IOS_APP_CHECK_IOS_H_
 #define FIREBASE_APP_CHECK_SRC_IOS_APP_CHECK_IOS_H_
 
-#include "app/memory/unique_ptr.h"
+#include <memory>
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
@@ -89,9 +89,9 @@ class AppCheckInternal {
   }
 #endif  // __OBJC__
 
-  UniquePtr<FIRAppCheckPointer> impl_;
+  std::unique_ptr<FIRAppCheckPointer> impl_;
 
-  UniquePtr<AppCheckNotificationCenterWrapperPointer> notification_center_wrapper_;
+  std::unique_ptr<AppCheckNotificationCenterWrapperPointer> notification_center_wrapper_;
 
   ::firebase::App* app_;
 

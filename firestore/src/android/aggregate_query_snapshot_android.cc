@@ -34,30 +34,26 @@ using jni::StaticMethod;
 
 constexpr char kClassName[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/AggregateQuerySnapshot";
-Constructor<Object> kConstructor(
-    "(Lcom/google/firebase/firestore/AggregateQuery;Ljava/util/Map;)V");
 Method<int64_t> kGetCount("getCount", "()J");
 Method<Object> kGetQuery("getQuery",
                          "()Lcom/google/firebase/firestore/AggregateQuery;");
 Method<int32_t> kHashCode("hashCode", "()I");
-
-constexpr char kHelperClassName[] = PROGUARD_KEEP_CLASS
-    "com/google/firebase/firestore/internal/cpp/AggregateQuerySnapshotHelper";
-StaticMethod<Object> kCreateConstructorArg(
-    "createAggregateQuerySnapshotConstructorArg", "(J)Ljava/util/Map;");
+StaticMethod<Object> kCreateWithCount(
+    "createWithCount",
+    "(Lcom/google/firebase/firestore/AggregateQuery;J)"
+    "Lcom/google/firebase/firestore/AggregateQuerySnapshot;");
 
 }  // namespace
 
 void AggregateQuerySnapshotInternal::Initialize(jni::Loader& loader) {
-  loader.LoadClass(kClassName, kConstructor, kGetCount, kGetQuery, kHashCode);
-  loader.LoadClass(kHelperClassName, kCreateConstructorArg);
+  loader.LoadClass(kClassName, kGetCount, kGetQuery, kHashCode,
+                   kCreateWithCount);
 }
 
 AggregateQuerySnapshot AggregateQuerySnapshotInternal::Create(
     Env& env, AggregateQueryInternal& aggregate_query_internal, int64_t count) {
-  Local<Object> snapshot_data = env.Call(kCreateConstructorArg, count);
   Local<Object> instance =
-      env.New(kConstructor, aggregate_query_internal.ToJava(), snapshot_data);
+      env.Call(kCreateWithCount, aggregate_query_internal.ToJava(), count);
   return aggregate_query_internal.firestore_internal()
       ->NewAggregateQuerySnapshot(env, instance);
 }

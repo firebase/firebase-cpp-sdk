@@ -342,5 +342,21 @@ std::vector<std::string> SplitString(const std::string& s,
   return split_parts;
 }
 
+// Id used as part of the logic to make unique api identifiers.
+static int g_api_identifier_count = 0;
+
+std::string CreateApiIdentifier(const char* api_id, void* object) {
+  std::string created;
+  const char* format = "%s0x%016llx_%d";
+  unsigned long long object_ptr =       // NOLINT
+      static_cast<unsigned long long>(  // NOLINT
+          reinterpret_cast<intptr_t>(object));
+  int extra_id = g_api_identifier_count++;
+  int size = snprintf(nullptr, 0, format, api_id, object_ptr, extra_id) + 1;
+  created.reserve(size);
+  snprintf(&(created[0]), size, format, api_id, object_ptr, extra_id);
+  return created;
+}
+
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase

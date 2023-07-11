@@ -31,7 +31,7 @@ namespace internal {
 using util::IdToVariant;
 
 DataSnapshotInternal::DataSnapshotInternal(DatabaseInternal* database,
-                                           UniquePtr<FIRDataSnapshotPointer> impl)
+                                           std::unique_ptr<FIRDataSnapshotPointer> impl)
     : database_(database), impl_(std::move(impl)) {}
 
 DataSnapshotInternal::DataSnapshotInternal(const DataSnapshotInternal& other)
@@ -49,13 +49,13 @@ DataSnapshotInternal& DataSnapshotInternal::operator=(const DataSnapshotInternal
 DataSnapshotInternal::DataSnapshotInternal(DataSnapshotInternal&& other) {
   database_ = std::move(other.database_);
   impl_ = std::move(other.impl_);
-  other.impl_ = MakeUnique<FIRDataSnapshotPointer>(nil);
+  other.impl_ = std::make_unique<FIRDataSnapshotPointer>(nil);
 }
 
 DataSnapshotInternal& DataSnapshotInternal::operator=(DataSnapshotInternal&& other) {
   database_ = std::move(other.database_);
   impl_ = std::move(other.impl_);
-  other.impl_ = MakeUnique<FIRDataSnapshotPointer>(nil);
+  other.impl_ = std::make_unique<FIRDataSnapshotPointer>(nil);
   return *this;
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
@@ -66,14 +66,14 @@ bool DataSnapshotInternal::Exists() const { return [impl() exists] != NO ? true 
 
 DataSnapshotInternal* DataSnapshotInternal::Child(const char* path) const {
   return new DataSnapshotInternal(
-      database_, MakeUnique<FIRDataSnapshotPointer>([impl() childSnapshotForPath:@(path)]));
+      database_, std::make_unique<FIRDataSnapshotPointer>([impl() childSnapshotForPath:@(path)]));
 }
 
 std::vector<DataSnapshot> DataSnapshotInternal::GetChildren() {
   std::vector<DataSnapshot> result;
   for (FIRDataSnapshot* child in impl().children) {
     result.push_back(DataSnapshot(
-        new DataSnapshotInternal(database_, MakeUnique<FIRDataSnapshotPointer>(child))));
+        new DataSnapshotInternal(database_, std::make_unique<FIRDataSnapshotPointer>(child))));
   }
   return result;
 }
@@ -94,7 +94,7 @@ Variant DataSnapshotInternal::GetPriority() { return IdToVariant(impl().priority
 
 DatabaseReferenceInternal* DataSnapshotInternal::GetReference() const {
   return new DatabaseReferenceInternal(database_,
-                                       MakeUnique<FIRDatabaseReferencePointer>(impl().ref));
+                                       std::make_unique<FIRDatabaseReferencePointer>(impl().ref));
 }
 
 bool DataSnapshotInternal::HasChild(const char* path) {

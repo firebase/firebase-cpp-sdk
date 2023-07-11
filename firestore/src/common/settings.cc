@@ -19,9 +19,9 @@
 #include <memory>
 #include <ostream>
 #include <sstream>
+#include <utility>
 
 #include "Firestore/core/src/util/hard_assert.h"
-#include "app/meta/move.h"
 #include "firebase/firestore/local_cache_settings.h"
 #include "firestore/src/common/exception_common.h"
 
@@ -54,7 +54,7 @@ Settings::Settings()
           PersistentCacheSettings::Create())) {}
 #endif
 
-void Settings::set_host(std::string host) { host_ = firebase::Move(host); }
+void Settings::set_host(std::string host) { host_ = std::move(host); }
 
 void Settings::set_ssl_enabled(bool enabled) { ssl_enabled_ = enabled; }
 

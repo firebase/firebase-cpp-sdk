@@ -34,23 +34,23 @@ Raises:
 
 Usage examples:
 # Query value for matrix (default) parameter "os" for "desktop" (default) workflow.
-python scripts/gha/print_matrix_configuration.py -k os
+python3 scripts/gha/print_matrix_configuration.py -k os
 
 # Query value for matrix (default) parameter "os" for "android" workflow.
-python scripts/gha/print_matrix_configuration.py -w android -k os
+python3 scripts/gha/print_matrix_configuration.py -w android -k os
 
 # Query value for expanded matrix (default) parameter "os" for "android" workflow.
-python scripts/gha/print_matrix_configuration.py -w android -e 1 -k os
+python3 scripts/gha/print_matrix_configuration.py -w android -e 1 -k os
 
 # Override the value for "os" for "integration_tests"
-python scripts/gha/print_matrix_configuration.py -w integration_tests
+python3 scripts/gha/print_matrix_configuration.py -w integration_tests
         -o my_custom_os -k os
 
 # Query value for config parameter "apis" for "integration_tests" workflow.
-python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k apis
+python3 scripts/gha/print_matrix_configuration.py -c -w integration_tests -k apis
 
 # Override the value for config parameters "apis" for integration_tests
-python scripts/gha/print_matrix_configuration.py -c -w integration_tests
+python3 scripts/gha/print_matrix_configuration.py -c -w integration_tests
         -o my_custom_api -k apis
 """
 

@@ -59,7 +59,7 @@ set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
     "--no-union-value-namespacing"
     "--gen-generated"
     "--gen-object-api"
-    "--cpp-ptr-type" "flatbuffers::unique_ptr")
+    "--cpp-ptr-type" "std::unique_ptr")
 # Because of a bug in the version of Flatbuffers we are pinned to,
 # additional flags need to be set.
 set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
@@ -180,7 +180,7 @@ set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
     "--no-union-value-namespacing"
     "--gen-generated"
     "--gen-object-api"
-    "--cpp-ptr-type" "flatbuffers::unique_ptr")
+    "--cpp-ptr-type" "std::unique_ptr")
 # Because of a bug in the version of Flatbuffers we are pinned to,
 # additional flags need to be set.
 # also see if app_generated_includes will conflict
@@ -351,10 +351,6 @@ add_library(firebase_app STATIC
     ${utility_HDRS}
     ${app_platform_HDRS}
     ${FIREBASE_GEN_FILE_DIR}/app/google_services_generated.h
-    memory/atomic.h
-    meta/move.h
-    memory/unique_ptr.h
-    memory/shared_ptr.h
     ${app_flatbuffers_srcs})
 
 set_property(TARGET firebase_app PROPERTY FOLDER "Firebase Cpp")
@@ -548,6 +544,7 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ad_view.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/interstitial_ad.h
+    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/internal/native_ad.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/rewarded_ad.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/types.h)
   set(installations_HDRS
