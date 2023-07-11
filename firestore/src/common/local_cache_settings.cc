@@ -17,7 +17,6 @@
 #include "firestore/src/include/firebase/firestore/local_cache_settings.h"
 #include <memory>
 
-#include "Firestore/core/src/api/settings.h"
 #include "firestore/src/common/hard_assert_common.h"
 #if defined(__ANDROID__)
 #else
@@ -27,55 +26,44 @@
 namespace firebase {
 namespace firestore {
 
-namespace {
-using CoreCacheSettings = api::LocalCacheSettings;
-using CorePersistentSettings = api::PersistentCacheSettings;
-using CoreMemorySettings = api::MemoryCacheSettings;
-using CoreMemoryGarbageCollectorSettings = api::MemoryGargabeCollectorSettings;
-using CoreMemoryEagerGcSettings = api::MemoryEagerGcSettings;
-using CoreMemoryLruGcSettings = api::MemoryLruGcSettings;
-}  // namespace
-
 PersistentCacheSettings PersistentCacheSettings::Create() { return {}; }
 
 PersistentCacheSettings::PersistentCacheSettings() {
-  settings_internal_ = std::make_shared<PersistentCacheSettingsInternal>(
-      CorePersistentSettings{});
+  settings_internal_ = std::make_shared<PersistentCacheSettingsInternal>();
 }
 
 PersistentCacheSettings PersistentCacheSettings::WithSizeBytes(
     int64_t size) const {
-  PersistentCacheSettings new_settings{*this};
-  new_settings.settings_internal_->set_core_settings(
-      new_settings.settings_internal_->core_settings().WithSizeBytes(size));
+  PersistentCacheSettings new_settings;
+  new_settings.settings_internal_ =
+      std::make_shared<PersistentCacheSettingsInternal>(
+          this->settings_internal_->WithSizeBytes(size));
   return new_settings;
 }
 
 int64_t PersistentCacheSettings::size_bytes() const {
-  return settings_internal_->core_settings().size_bytes();
+  return settings_internal_->size_bytes();
 }
 
-const CoreCacheSettings& PersistentCacheSettings::core_settings() const {
-  return settings_internal_->core_settings();
+const LocalCacheSettingsInternal& PersistentCacheSettings::internal() const {
+  return *settings_internal_;
 }
 
 MemoryEagerGCSettings MemoryEagerGCSettings::Create() { return {}; }
 
 MemoryEagerGCSettings::MemoryEagerGCSettings() {
-  settings_internal_ = std::make_shared<MemoryEagerGCSettingsInternal>(
-      CoreMemoryEagerGcSettings{});
+  settings_internal_ = std::make_shared<MemoryEagerGCSettingsInternal>();
 }
 
-const CoreMemoryGarbageCollectorSettings& MemoryEagerGCSettings::core_settings()
+const MemoryGarbageCollectorSettingsInternal& MemoryEagerGCSettings::internal()
     const {
-  return settings_internal_->core_settings();
+  return *settings_internal_;
 }
 
 MemoryLruGCSettings MemoryLruGCSettings::Create() { return {}; }
 
 MemoryLruGCSettings::MemoryLruGCSettings() {
-  settings_internal_ =
-      std::make_shared<MemoryLruGCSettingsInternal>(CoreMemoryLruGcSettings{});
+  settings_internal_ = std::make_shared<MemoryLruGCSettingsInternal>();
 }
 
 MemoryLruGCSettings::MemoryLruGCSettings(
@@ -84,42 +72,41 @@ MemoryLruGCSettings::MemoryLruGCSettings(
 }
 
 MemoryLruGCSettings MemoryLruGCSettings::WithSizeBytes(int64_t size) {
-  return {MemoryLruGCSettingsInternal{
-      settings_internal_->core_settings().WithSizeBytes(size)}};
+  MemoryLruGCSettings result;
+  result.settings_internal_ = std::make_shared<MemoryLruGCSettingsInternal>(
+      this->settings_internal_->WithSizeBytes(size));
+  return result;
 }
 
 int64_t MemoryLruGCSettings::size_bytes() const {
-  return settings_internal_->core_settings().size_bytes();
+  return settings_internal_->size_bytes();
 }
 
-const CoreMemoryGarbageCollectorSettings& MemoryLruGCSettings::core_settings()
+const MemoryGarbageCollectorSettingsInternal& MemoryLruGCSettings::internal()
     const {
-  return settings_internal_->core_settings();
+  return *settings_internal_;
 }
 
 MemoryCacheSettings MemoryCacheSettings::Create() { return {}; }
 
 MemoryCacheSettings::MemoryCacheSettings() {
-  settings_internal_ =
-      std::make_shared<MemoryCacheSettingsInternal>(CoreMemorySettings{});
+  settings_internal_ = std::make_shared<MemoryCacheSettingsInternal>();
 }
 
 MemoryCacheSettings MemoryCacheSettings::WithGarbageCollectorSettings(
     const MemoryGarbageCollectorSettings& settings) const {
-  MemoryCacheSettings result{*this};
-  CoreMemorySettings core_settings = result.settings_internal_->core_settings();
-  result.settings_internal_->set_core_settings(
-      core_settings.WithMemoryGarbageCollectorSettings(
-          settings.core_settings()));
+  MemoryCacheSettings result;
+  result.settings_internal_ = std::make_shared<MemoryCacheSettingsInternal>(
+      this->settings_internal_->WithGarbageCollectorSettings(settings));
   return result;
 }
 
-const CoreCacheSettings& MemoryCacheSettings::core_settings() const {
-  return settings_internal_->core_settings();
+const LocalCacheSettingsInternal& MemoryCacheSettings::internal() const {
+  return *settings_internal_;
 }
 
 bool operator==(const LocalCacheSettings& lhs, const LocalCacheSettings& rhs) {
-  return lhs.kind() == rhs.kind() && lhs.core_settings() == rhs.core_settings();
+  return lhs.kind() == rhs.kind() && lhs.internal() == rhs.internal();
 }
 
 bool operator==(const MemoryCacheSettings& lhs,
@@ -134,7 +121,7 @@ bool operator==(const PersistentCacheSettings& lhs,
 
 bool operator==(const MemoryGarbageCollectorSettings& lhs,
                 const MemoryGarbageCollectorSettings& rhs) {
-  return lhs.core_settings() == rhs.core_settings();
+  return lhs.internal() == rhs.internal();
 }
 
 bool operator==(const MemoryEagerGCSettings& lhs,
