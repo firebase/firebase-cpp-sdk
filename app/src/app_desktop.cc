@@ -22,12 +22,14 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <codecvt>
 
 #include "app/src/app_common.h"
 #include "app/src/function_registry.h"
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
 #include "app/src/semaphore.h"
@@ -46,7 +48,21 @@ static const int kMaxBuffersize = 1024 * 500;
 static bool LoadAppOptionsFromJsonConfigFile(const char* path,
                                              AppOptions* options) {
   bool loaded_options = false;
+#if FIREBASE_PLATFORM_WINDOWS
+  // Convert the path from UTF-8 to UTF-16 before opening on Windows.
+  std::wstring path_utf16;
+  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> utf16_converter;
+  try {
+    path_utf16 = utf16_converter.from_bytes(path);
+  }
+  catch (std::range_error& ex) {
+    LogError("Can't convert path '%s' to UTF-16: %s", path, ex.what());
+    return false;
+  }
+  std::ifstream infile(path_utf16.c_str(), std::ifstream::binary);
+#else
   std::ifstream infile(path, std::ifstream::binary);
+#endif
   if (infile) {
     infile.seekg(0, infile.end);
     int file_length = infile.tellg();
