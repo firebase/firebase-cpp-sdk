@@ -93,6 +93,14 @@ firebase_cpp_cc_test_on_ios(firebase_app_test
     UIKit
 )
 
+firebase_cpp_cc_test(firebase_app_desktop_test
+  SOURCES
+    ${FIREBASE_SOURCE_DIR}/app/tests/app_desktop_test.cc
+  DEPENDS
+    firebase_app
+	flatbuffers
+)
+
 firebase_cpp_cc_test(firebase_app_log_test
   SOURCES
     ${FIREBASE_SOURCE_DIR}/app/tests/log_test.cc
