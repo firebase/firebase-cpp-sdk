@@ -18,11 +18,11 @@
 
 #include <string.h>
 
+#include <codecvt>
 #include <fstream>
 #include <memory>
 #include <string>
 #include <vector>
-#include <codecvt>
 
 #include "app/src/app_common.h"
 #include "app/src/function_registry.h"
@@ -50,11 +50,11 @@ bool LoadAppOptionsFromJsonConfigFile(const char* path, AppOptions* options) {
 #if FIREBASE_PLATFORM_WINDOWS
   // Convert the path from UTF-8 to UTF-16 before opening on Windows.
   std::wstring path_utf16;
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> utf16_converter;
+  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>
+      utf16_converter;
   try {
     path_utf16 = utf16_converter.from_bytes(path);
-  }
-  catch (std::range_error& ex) {
+  } catch (std::range_error& ex) {
     LogError("Can't convert path '%s' to UTF-16: %s", path, ex.what());
     return false;
   }
@@ -107,7 +107,8 @@ AppOptions* AppOptions::LoadDefault(AppOptions* options) {
   for (size_t i = 0; i < number_of_config_filenames; i++) {
     std::string full_path =
         internal::g_default_config_path + kDefaultGoogleServicesNames[i];
-    if (internal::LoadAppOptionsFromJsonConfigFile(full_path.c_str(), options)) {
+    if (internal::LoadAppOptionsFromJsonConfigFile(full_path.c_str(),
+                                                   options)) {
       return options;
     }
     config_files += full_path;

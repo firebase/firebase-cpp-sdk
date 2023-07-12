@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include "app/src/app_desktop.h"
+
 #include <stdio.h>
 
 #include <codecvt>
@@ -22,12 +24,10 @@
 #include <string>
 
 #include "app/src/app_common.h"
-#include "app/src/app_desktop.h"
 #include "app/src/app_identifier.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
-
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -78,7 +78,7 @@ static std::string GetCurrentDirectoryUtf8() {
 #else
   char path_buffer[FILENAME_MAX];
   getcwd(path_buffer, FILENAME_MAX);
-  return std::string(path_buffer);	  
+  return std::string(path_buffer);
 #endif
 }
 
@@ -164,86 +164,90 @@ static const char kGoogleServicesJsonContent[] = R"""(
 }
 )""";
 
-
 namespace internal {
 // Defined in app_desktop.cc
 bool LoadAppOptionsFromJsonConfigFile(const char* path, AppOptions* options);
 }  // namespace internal
 
 TEST(AppDesktopTest, TestLoadAppOptionsFromJsonConfigFile) {
-	// Write out a config file and then load it from a full path.
+  // Write out a config file and then load it from a full path.
 #if FIREBASE_PLATFORM_WINDOWS
-    std::wofstream outfile(L"fake-google-services-1.json");
-	const char kPathSep[] = "\\";
+  std::wofstream outfile(L"fake-google-services-1.json");
+  const char kPathSep[] = "\\";
 #else
-    std::ofstream outfile("fake-google-services-1.json");
-	const char kPathSep[] = "/";
-#endif // FIREBASE_PLATFORM_WINDOWS
+  std::ofstream outfile("fake-google-services-1.json");
+  const char kPathSep[] = "/";
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
-	outfile << kGoogleServicesJsonContent;
-	outfile.close();
-	
-	std::string json_path = GetCurrentDirectoryUtf8() + kPathSep + "fake-google-services-1.json";
+  outfile << kGoogleServicesJsonContent;
+  outfile.close();
 
-	LogInfo("JSON path: %s", json_path.c_str());
+  std::string json_path =
+      GetCurrentDirectoryUtf8() + kPathSep + "fake-google-services-1.json";
 
-	AppOptions options;
-	EXPECT_TRUE(internal::LoadAppOptionsFromJsonConfigFile(json_path.c_str(), &options));
-	
-	EXPECT_STREQ("fake app id", options.app_id());
-    EXPECT_STREQ("fake api key", options.api_key());
-    EXPECT_STREQ("fake project id", options.project_id());
-	
+  LogInfo("JSON path: %s", json_path.c_str());
+
+  AppOptions options;
+  EXPECT_TRUE(
+      internal::LoadAppOptionsFromJsonConfigFile(json_path.c_str(), &options));
+
+  EXPECT_STREQ("fake app id", options.app_id());
+  EXPECT_STREQ("fake api key", options.api_key());
+  EXPECT_STREQ("fake project id", options.project_id());
+
 #if FIREBASE_PLATFORM_WINDOWS
-	EXPECT_EQ(_wremove(L"fake-google-services-1.json"), 0);
+  EXPECT_EQ(_wremove(L"fake-google-services-1.json"), 0);
 #else
-	EXPECT_EQ(remove("fake-google-services-1.json"), 0);
+  EXPECT_EQ(remove("fake-google-services-1.json"), 0);
 #endif  // FIREBASE_PLATFORM_WINDOWS
 }
 
 TEST(AppDesktopTest, TestLoadAppOptionsFromJsonConfigFileInInternationalPath) {
-	// Save the current directory.
-	std::string previous_directory = GetCurrentDirectoryUtf8();
-	EXPECT_NE(previous_directory, "");
+  // Save the current directory.
+  std::string previous_directory = GetCurrentDirectoryUtf8();
+  EXPECT_NE(previous_directory, "");
 
-    // Make a new directory, with international characters.
-    std::string new_dir = "téŝt";
-	if (!ChangeDirectoryUtf8(new_dir)) {
-	  // If the target directory doesn't exist, make it.
-	  LogInfo("Mkdir(%s)", new_dir.c_str());
-	  EXPECT_TRUE(MakeDirectoryUtf8(new_dir));
-	  EXPECT_TRUE(ChangeDirectoryUtf8(new_dir));
-	}
-	// Write out a config file and then load it from a full path with international characters.
+  // Make a new directory, with international characters.
+  std::string new_dir = "téŝt";
+  if (!ChangeDirectoryUtf8(new_dir)) {
+    // If the target directory doesn't exist, make it.
+    LogInfo("Mkdir(%s)", new_dir.c_str());
+    EXPECT_TRUE(MakeDirectoryUtf8(new_dir));
+    EXPECT_TRUE(ChangeDirectoryUtf8(new_dir));
+  }
+  // Write out a config file and then load it from a full path with
+  // international characters.
 #if FIREBASE_PLATFORM_WINDOWS
-	const char kPathSep[] = "\\";
-    std::wofstream outfile(L"fake-google-services-2.json");
+  const char kPathSep[] = "\\";
+  std::wofstream outfile(L"fake-google-services-2.json");
 #else
-	const char kPathSep[] = "/";
-    std::ofstream outfile("fake-google-services-2.json");
-#endif // FIREBASE_PLATFORM_WINDOWS
-
-	outfile << kGoogleServicesJsonContent;
-	outfile.close();
-	
-	std::string json_path = GetCurrentDirectoryUtf8() + kPathSep + "fake-google-services-2.json";
-
-	LogInfo("JSON path: %s", json_path.c_str());
-
-	AppOptions options;
-	EXPECT_TRUE(internal::LoadAppOptionsFromJsonConfigFile(json_path.c_str(), &options));
-	
-	EXPECT_STREQ("fake app id", options.app_id());
-    EXPECT_STREQ("fake api key", options.api_key());
-    EXPECT_STREQ("fake project id", options.project_id());
-
-#if FIREBASE_PLATFORM_WINDOWS
-	EXPECT_EQ(_wremove(L"fake-google-services-2.json"), 0);
-#else
-	EXPECT_EQ(remove("fake-google-services-2.json"), 0);
+  const char kPathSep[] = "/";
+  std::ofstream outfile("fake-google-services-2.json");
 #endif  // FIREBASE_PLATFORM_WINDOWS
-	
-	EXPECT_TRUE(ChangeDirectoryUtf8(previous_directory));
-	EXPECT_TRUE(RemoveDirectoryUtf8(new_dir));
+
+  outfile << kGoogleServicesJsonContent;
+  outfile.close();
+
+  std::string json_path =
+      GetCurrentDirectoryUtf8() + kPathSep + "fake-google-services-2.json";
+
+  LogInfo("JSON path: %s", json_path.c_str());
+
+  AppOptions options;
+  EXPECT_TRUE(
+      internal::LoadAppOptionsFromJsonConfigFile(json_path.c_str(), &options));
+
+  EXPECT_STREQ("fake app id", options.app_id());
+  EXPECT_STREQ("fake api key", options.api_key());
+  EXPECT_STREQ("fake project id", options.project_id());
+
+#if FIREBASE_PLATFORM_WINDOWS
+  EXPECT_EQ(_wremove(L"fake-google-services-2.json"), 0);
+#else
+  EXPECT_EQ(remove("fake-google-services-2.json"), 0);
+#endif  // FIREBASE_PLATFORM_WINDOWS
+
+  EXPECT_TRUE(ChangeDirectoryUtf8(previous_directory));
+  EXPECT_TRUE(RemoveDirectoryUtf8(new_dir));
 }
 }  // namespace firebase
