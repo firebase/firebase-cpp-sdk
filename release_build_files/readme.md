@@ -629,6 +629,9 @@ code.
 ## Release Notes
 ### Upcoming Release
 -   Changes
+    - General (Desktop): Fixed a crash loading google-services.json and
+      google-services-desktop.json files from paths with international
+      characters on Windows.
     - Auth (Android): Fixed an issue where VerifyPhoneNumber's internal
       builder failed to create PhoneAuthOptions with certain compiler settings.
     - Auth (iOS): Fixed an issue where functions that return AuthResult
