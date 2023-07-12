@@ -208,12 +208,12 @@ TEST(AppDesktopTest, TestLoadAppOptionsFromJsonConfigFileInInternationalPath) {
   EXPECT_NE(previous_directory, "");
 
   // Make a new directory, with international characters.
-  std::string new_dir = "téŝt";
+  std::string new_dir = "téŝt_dir";
   if (!ChangeDirectoryUtf8(new_dir)) {
     // If the target directory doesn't exist, make it.
-    LogInfo("Mkdir(%s)", new_dir.c_str());
-    EXPECT_TRUE(MakeDirectoryUtf8(new_dir));
-    EXPECT_TRUE(ChangeDirectoryUtf8(new_dir));
+    LogInfo("Creating directory: %s", new_dir.c_str());
+    ASSERT_TRUE(MakeDirectoryUtf8(new_dir));
+    ASSERT_TRUE(ChangeDirectoryUtf8(new_dir));
   }
   // Write out a config file and then load it from a full path with
   // international characters.
