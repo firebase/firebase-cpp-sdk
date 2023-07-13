@@ -33,6 +33,8 @@
 
 #if FIREBASE_PLATFORM_WINDOWS
 #include <direct.h>
+#else
+#include <unistd.h>
 #endif
 
 namespace firebase {
