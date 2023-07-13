@@ -55,7 +55,7 @@ static bool MakeDirectoryUtf8(std::string dir_utf8) {
   std::wstring dir_utf16 = cvt.from_bytes(dir_utf8);
   return (_wmkdir(dir_utf16.c_str()) == 0);
 #else
-  return (mkdir(dir_utf8.c_str()) == 0);
+  return (mkdir(dir_utf8.c_str(), 0700) == 0);
 #endif
 }
 
