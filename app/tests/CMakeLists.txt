@@ -98,7 +98,7 @@ firebase_cpp_cc_test(firebase_app_desktop_test
     ${FIREBASE_SOURCE_DIR}/app/tests/app_desktop_test.cc
   DEPENDS
     firebase_app
-        flatbuffers
+    flatbuffers
 )
 
 firebase_cpp_cc_test(firebase_app_log_test
