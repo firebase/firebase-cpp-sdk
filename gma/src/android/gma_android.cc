@@ -907,7 +907,6 @@ void JNI_NativeAd_completeLoadedAd(JNIEnv* env, jclass clazz, jlong data_ptr,
   FIREBASE_ASSERT(env);
   FIREBASE_ASSERT(data_ptr);
   FIREBASE_ASSERT(native_internal_data_ptr);
-  FIREBASE_ASSERT(j_icon);
   FIREBASE_ASSERT(j_images);
   FIREBASE_ASSERT(j_response_info);
 
@@ -915,12 +914,16 @@ void JNI_NativeAd_completeLoadedAd(JNIEnv* env, jclass clazz, jlong data_ptr,
       reinterpret_cast<internal::NativeAdInternalAndroid*>(
           native_internal_data_ptr);
 
-  NativeAdImageInternal icon_internal;
-  icon_internal.native_ad_image = j_icon;
+  // getIcon() is nullable and a valid ad can exist without an icon image.
+  if (j_icon != nullptr) {
+    NativeAdImageInternal icon_internal;
+    icon_internal.native_ad_image = j_icon;
 
-  // Invoke a friend of NativeAdInternal to update its icon image asset.
-  GmaInternal::InsertNativeInternalImage(native_ad_internal, icon_internal,
-                                         true, true);
+    // Invoke a friend of NativeAdInternal to update its icon image asset.
+    GmaInternal::InsertNativeInternalImage(native_ad_internal, icon_internal,
+                                           true, true);
+    env->DeleteLocalRef(j_icon);
+  }
 
   const size_t len = env->GetArrayLength(j_images);
   // Loop through images array.
@@ -936,7 +939,7 @@ void JNI_NativeAd_completeLoadedAd(JNIEnv* env, jclass clazz, jlong data_ptr,
       reinterpret_cast<FutureCallbackData<AdResult>*>(data_ptr);
   GmaInternal::CompleteLoadAdFutureSuccess(
       callback_data, ResponseInfoInternal({j_response_info}));
-  env->DeleteLocalRef(j_icon);
+
   env->DeleteLocalRef(j_response_info);
 }
 
