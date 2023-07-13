@@ -222,9 +222,13 @@ void NativeAdInternalIOS::NativeAdDidReceiveAd(GADNativeAd *ad) {
   firebase::MutexLock lock(mutex_);
   native_ad_ = ad;
 
-  NativeAdImageInternal icon_internal;
-  icon_internal.native_ad_image = ad.icon;
-  GmaInternal::InsertNativeInternalImage(this, icon_internal, true, true );
+  NSObject *gad_icon = ad.icon;
+  if (gad_icon != nil)
+  {
+    NativeAdImageInternal icon_internal;
+    icon_internal.native_ad_image = gad_icon;
+    GmaInternal::InsertNativeInternalImage(this, icon_internal, true, true );
+  }
 
   NSArray *gad_images = ad.images;
   for(NSObject *gad_image in gad_images)
