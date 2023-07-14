@@ -627,8 +627,10 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
-### Upcoming Release
+### 11.3.0
 -   Changes
+    - General (Android): Update to Firebase Android BoM version 32.2.0.
+    - General (iOS): Update to Firebase Cocoapods version 10.12.0.
     - General (Desktop): Fixed an error loading google-services.json and
       google-services-desktop.json from paths with international characters on
       Windows.
