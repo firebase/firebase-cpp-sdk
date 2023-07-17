@@ -15,7 +15,7 @@
 #ifndef FIREBASE_FUNCTIONS_SRC_IOS_CALLABLE_REFERENCE_IOS_H_
 #define FIREBASE_FUNCTIONS_SRC_IOS_CALLABLE_REFERENCE_IOS_H_
 
-#include "app/memory/unique_ptr.h"
+#include <memory>
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -41,7 +41,7 @@ namespace internal {
 class HttpsCallableReferenceInternal {
  public:
   explicit HttpsCallableReferenceInternal(FunctionsInternal* functions,
-                                          UniquePtr<FIRHTTPSCallablePointer> impl);
+                                          std::unique_ptr<FIRHTTPSCallablePointer> impl);
 
   ~HttpsCallableReferenceInternal();
 
@@ -89,7 +89,7 @@ class HttpsCallableReferenceInternal {
   // Keep track of the Functions object for managing Futures.
   FunctionsInternal* functions_;
 
-  UniquePtr<FIRHTTPSCallablePointer> impl_;
+  std::unique_ptr<FIRHTTPSCallablePointer> impl_;
 
   Mutex controller_init_mutex_;
 };

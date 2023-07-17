@@ -30,7 +30,7 @@ const char kAppName1[] = "app_name_1";
 const char kUserData1[] = "123456";
 
 TEST(UserSecureManager, Constructor) {
-  UniquePtr<UserSecureInternal> user_secure;
+  std::unique_ptr<UserSecureInternal> user_secure;
   UserSecureManager manager(std::move(user_secure));
 
   // Just making sure this constructor doesn't crash or leak memory. No further
@@ -53,7 +53,7 @@ class UserSecureManagerTest : public ::testing::Test {
   friend class UserSecureManager;
   void SetUp() override {
     user_secure_ = new testing::StrictMock<UserSecureInternalMock>();
-    UniquePtr<UserSecureInternalMock> user_secure_ptr(user_secure_);
+    std::unique_ptr<UserSecureInternalMock> user_secure_ptr(user_secure_);
 
     manager_ = new UserSecureManager(std::move(user_secure_ptr));
   }

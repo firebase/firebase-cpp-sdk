@@ -17,8 +17,9 @@
 #include "firestore/src/jni/ownership.h"
 
 #include <jni.h>
+#include <memory>
+#include <utility>
 
-#include "app/memory/unique_ptr.h"
 #include "firestore/src/jni/jni.h"
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/traits.h"
@@ -276,14 +277,14 @@ TEST_F(OwnershipTest, GlobalCopyAssignFromDefaultConstructedLocal) {
 TEST_F(OwnershipTest, GlobalMoveFromLocal) {
   Local<Object> local(env_, refs_.NewLocalObject());
   {
-    Global<Object> global(Move(local));
+    Global<Object> global(std::move(local));
     refs_.ExpectLiveIsExactly(global);
   }
 }
 
 TEST_F(OwnershipTest, GlobalMoveFromDefaultConstructedLocal) {
   Local<Object> local;
-  Global<Object> global(Move(local));
+  Global<Object> global(std::move(local));
   refs_.ExpectNull(local, global);
 }
 
@@ -291,7 +292,7 @@ TEST_F(OwnershipTest, GlobalMoveAssignFromLocal) {
   Local<Object> local(env_, refs_.NewLocalObject());
   {
     Global<Object> global;
-    global = Move(local);
+    global = std::move(local);
     refs_.ExpectLiveIsExactly(global);
   }
 }
@@ -299,7 +300,7 @@ TEST_F(OwnershipTest, GlobalMoveAssignFromLocal) {
 TEST_F(OwnershipTest, GlobalMoveAssignFromDefaultConstructedLocal) {
   Local<Object> local;
   Global<Object> global;
-  global = Move(local);
+  global = std::move(local);
   refs_.ExpectNull(local, global);
 }
 
@@ -346,14 +347,14 @@ TEST_F(OwnershipTest, LocalCopyAssignFromDefaultConstructedGlobal) {
 TEST_F(OwnershipTest, LocalMoveGlobal) {
   Global<Object> global(refs_.NewGlobalObject(), AdoptExisting::kYes);
   {
-    Local<Object> local(Move(global));
+    Local<Object> local(std::move(global));
     refs_.ExpectLiveIsExactly(local);
   }
 }
 
 TEST_F(OwnershipTest, LocalMoveFromDefaultConstructedGlobal) {
   Global<Object> global;
-  Local<Object> local(Move(global));
+  Local<Object> local(std::move(global));
   refs_.ExpectNull(local, global);
 }
 
@@ -361,7 +362,7 @@ TEST_F(OwnershipTest, LocalMoveAssignFromGlobal) {
   Global<Object> global(refs_.NewGlobalObject(), AdoptExisting::kYes);
   {
     Local<Object> local;
-    local = Move(global);
+    local = std::move(global);
     refs_.ExpectLiveIsExactly(local);
   }
 }
@@ -369,7 +370,7 @@ TEST_F(OwnershipTest, LocalMoveAssignFromGlobal) {
 TEST_F(OwnershipTest, LocalMoveAssignFromDefaultConstructedGlobal) {
   Global<Object> global;
   Local<Object> local;
-  local = Move(global);
+  local = std::move(global);
   refs_.ExpectNull(local, global);
 }
 

@@ -919,18 +919,15 @@ TEST_F(FirebaseGmaTest, TestNativeAdLoad) {
     EXPECT_FALSE(result_ptr->response_info().ToString().empty());
 
     // Check image assets.
-    EXPECT_FALSE(native_ad->icon().image_uri().empty());
-    EXPECT_GT(native_ad->icon().scale(), 0);
-    EXPECT_FALSE(native_ad->images().empty());
-
     // Native ads usually contain only one large image asset.
     // Check the validity of the first asset from the vector.
+    EXPECT_FALSE(native_ad->images().empty());
     EXPECT_FALSE(native_ad->images().at(0).image_uri().empty());
     EXPECT_GT(native_ad->images().at(0).scale(), 0);
 
-    // When the NativeAd is loaded, try loading icon image asset.
+    // Try loading large image asset.
     firebase::Future<firebase::gma::ImageResult> load_image_future =
-        native_ad->icon().LoadImage();
+        native_ad->images().at(0).LoadImage();
     WaitForCompletion(load_image_future, "LoadImage");
     const firebase::gma::ImageResult* img_result_ptr =
         load_image_future.result();
@@ -1734,6 +1731,7 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdLoadEmptyRequest) {
   EXPECT_FALSE(result_ptr->response_info().response_id().empty());
   EXPECT_FALSE(result_ptr->response_info().ToString().empty());
 
+  load_ad_future.Release();
   delete interstitial;
 }
 
@@ -1827,6 +1825,9 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorLoadInProgress) {
   const firebase::gma::ResponseInfo response_info =
       result_ptr->ad_error().response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());
+
+  first_load_ad.Release();
+  second_load_ad.Release();
   delete interstitial_ad;
 }
 
@@ -1841,12 +1842,12 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorBadAdUnitId) {
 
   // Load the interstitial ad.
   firebase::gma::AdRequest request = GetAdRequest();
-  firebase::Future<firebase::gma::AdResult> load_ad =
+  firebase::Future<firebase::gma::AdResult> load_ad_future =
       interstitial_ad->LoadAd(kBadAdUnit, request);
-  WaitForCompletion(load_ad, "LoadAd",
+  WaitForCompletion(load_ad_future, "LoadAd",
                     firebase::gma::kAdErrorCodeInvalidRequest);
 
-  const firebase::gma::AdResult* result_ptr = load_ad.result();
+  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
   EXPECT_EQ(result_ptr->ad_error().code(),
@@ -1856,6 +1857,8 @@ TEST_F(FirebaseGmaTest, TestInterstitialAdErrorBadAdUnitId) {
   const firebase::gma::ResponseInfo response_info =
       result_ptr->ad_error().response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());
+
+  load_ad_future.Release();
   delete interstitial_ad;
 }
 
@@ -2011,6 +2014,9 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorLoadInProgress) {
   const firebase::gma::ResponseInfo response_info =
       result_ptr->ad_error().response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());
+
+  first_load_ad.Release();
+  second_load_ad.Release();
   delete rewarded;
 }
 
@@ -2023,12 +2029,12 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadAdUnitId) {
 
   // Load the rewarded ad.
   firebase::gma::AdRequest request = GetAdRequest();
-  firebase::Future<firebase::gma::AdResult> load_ad =
+  firebase::Future<firebase::gma::AdResult> load_ad_future =
       rewarded->LoadAd(kBadAdUnit, request);
-  WaitForCompletion(load_ad, "LoadAd",
+  WaitForCompletion(load_ad_future, "LoadAd",
                     firebase::gma::kAdErrorCodeInvalidRequest);
 
-  const firebase::gma::AdResult* result_ptr = load_ad.result();
+  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
   EXPECT_EQ(result_ptr->ad_error().code(),
@@ -2038,6 +2044,8 @@ TEST_F(FirebaseGmaTest, TestRewardedAdErrorBadAdUnitId) {
   const firebase::gma::ResponseInfo response_info =
       result_ptr->ad_error().response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());
+
+  load_ad_future.Release();
   delete rewarded;
 }
 
@@ -2253,12 +2261,12 @@ TEST_F(FirebaseGmaTest, TestNativeAdErrorBadAdUnitId) {
 
   // Load the native ad.
   firebase::gma::AdRequest request = GetAdRequest();
-  firebase::Future<firebase::gma::AdResult> load_ad =
+  firebase::Future<firebase::gma::AdResult> load_ad_future =
       native_ad->LoadAd(kBadAdUnit, request);
-  WaitForCompletion(load_ad, "LoadAd",
+  WaitForCompletion(load_ad_future, "LoadAd",
                     firebase::gma::kAdErrorCodeInvalidRequest);
 
-  const firebase::gma::AdResult* result_ptr = load_ad.result();
+  const firebase::gma::AdResult* result_ptr = load_ad_future.result();
   ASSERT_NE(result_ptr, nullptr);
   EXPECT_FALSE(result_ptr->is_successful());
   EXPECT_EQ(result_ptr->ad_error().code(),
@@ -2268,6 +2276,8 @@ TEST_F(FirebaseGmaTest, TestNativeAdErrorBadAdUnitId) {
   const firebase::gma::ResponseInfo response_info =
       result_ptr->ad_error().response_info();
   EXPECT_TRUE(response_info.adapter_responses().empty());
+
+  load_ad_future.Release();
   delete native_ad;
 }
 

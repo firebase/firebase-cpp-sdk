@@ -19,7 +19,7 @@ This script helps to update PR/Issue comments and labels during testing process.
 For PR comment, this script will update (create if not exist) the "Test Result" in comment.
 stage value: [start, progress, end]
 USAGE:
-  python scripts/gha/it_workflow.py --stage <stage> \
+  python3 scripts/gha/it_workflow.py --stage <stage> \
     --token ${{github.token}} \
     --issue_number ${{needs.check_trigger.outputs.pr_number}}\
     --actor ${{github.actor}} \
@@ -31,7 +31,7 @@ For Daily Report, this script will update (create if not exist) the "Test Result
 with title "Nightly Integration Testing Report" and label "nightly-testing".
 stage value: [report]
 USAGE:
-  python scripts/gha/it_workflow.py --stage report \
+  python3 scripts/gha/it_workflow.py --stage report \
     --token ${{github.token}} \
     --actor ${{github.actor}} \
     --commit ${{needs.prepare_matrix.outputs.github_ref}} \
@@ -47,7 +47,7 @@ from absl import app
 from absl import flags
 from absl import logging
 
-import github
+import firebase_github
 import summarize_test_results as summarize
 
 _REPORT_LABEL = "nightly-testing"
@@ -144,9 +144,9 @@ flags.DEFINE_string(
 
 def test_start(token, issue_number, actor, commit, run_id):
   """In PR, when start testing, add comment and label \"tests: in-progress\""""
-  github.add_label(token, issue_number, _LABEL_PROGRESS)
+  firebase_github.add_label(token, issue_number, _LABEL_PROGRESS)
   for label in [_LABEL_TRIGGER_FULL, _LABEL_TRIGGER_QUICK, _LABEL_FAILED, _LABEL_SUCCEED]:
-    github.delete_label(token, issue_number, label)
+    firebase_github.delete_label(token, issue_number, label)
 
   comment = (_COMMENT_TITLE_PROGESS +
              _get_description(actor, commit, run_id) +
@@ -168,7 +168,7 @@ def test_progress(token, issue_number, actor, commit, run_id):
     else:
       # failures/errors still exist after retry
       title = _COMMENT_TITLE_PROGESS_FAIL
-      github.add_label(token, issue_number, _LABEL_FAILED)
+      firebase_github.add_label(token, issue_number, _LABEL_FAILED)
     comment = (title +
                _get_description(actor, commit, run_id) +
                log_summary +
@@ -184,7 +184,7 @@ def test_end(token, issue_number, actor, commit, run_id, new_token):
   success_or_only_flakiness, log_summary = _get_summary_table(token, run_id)
   if success_or_only_flakiness and not log_summary:
     # succeeded (without flakiness)
-    github.add_label(token, issue_number, _LABEL_SUCCEED)
+    firebase_github.add_label(token, issue_number, _LABEL_SUCCEED)
     comment = (_COMMENT_TITLE_SUCCEED +
                _get_description(actor, commit, run_id) +
                _COMMENT_HIDDEN_DIVIDER)
@@ -193,11 +193,11 @@ def test_end(token, issue_number, actor, commit, run_id, new_token):
     if success_or_only_flakiness:
       # all failures/errors are due to flakiness (succeeded after retry)
       title = _COMMENT_TITLE_FLAKY
-      github.add_label(token, issue_number, _LABEL_SUCCEED)
+      firebase_github.add_label(token, issue_number, _LABEL_SUCCEED)
     else:
       # failures/errors still exist after retry
       title = _COMMENT_TITLE_FAIL
-      github.add_label(token, issue_number, _LABEL_FAILED)
+      firebase_github.add_label(token, issue_number, _LABEL_FAILED)
     comment = (title +
                _get_description(actor, commit, run_id) +
                log_summary +
@@ -205,7 +205,7 @@ def test_end(token, issue_number, actor, commit, run_id, new_token):
                _COMMENT_HIDDEN_DIVIDER)
     _update_comment(token, issue_number, comment)
 
-  github.delete_label(new_token, issue_number, _LABEL_PROGRESS)
+  firebase_github.delete_label(new_token, issue_number, _LABEL_PROGRESS)
 
 
 def test_report(token, actor, commit, run_id, build_against, build_apis):
@@ -232,7 +232,7 @@ def test_report(token, actor, commit, run_id, build_against, build_apis):
     prefix = "Note: This report excludes Firestore. Please also check **[the report for Firestore](%s).**\n***\n" % firestore_issue_url
 
   issue_number = _get_issue_number(token, report_title, _REPORT_LABEL)
-  previous_comment = github.get_issue_body(token, issue_number)
+  previous_comment = firebase_github.get_issue_body(token, issue_number)
   [previous_prefix, previous_comment_repo, previous_comment_sdk,
    previous_comment_tip] = previous_comment.split(_COMMENT_HIDDEN_DIVIDER)
   logging.info("Previous prefix: %s", previous_prefix)
@@ -284,15 +284,15 @@ def test_report(token, actor, commit, run_id, build_against, build_apis):
     comment = prefix + _COMMENT_HIDDEN_DIVIDER + previous_comment_repo + _COMMENT_HIDDEN_DIVIDER + previous_comment_sdk + _COMMENT_HIDDEN_DIVIDER + comment
 
   if (_COMMENT_TITLE_SUCCEED_REPO in comment) and (_COMMENT_TITLE_SUCCEED_SDK in comment) and (build_apis != _BUILD_API_FIRESTORE or _COMMENT_TITLE_SUCCEED_TIP in comment):
-    github.close_issue(token, issue_number)
+    firebase_github.close_issue(token, issue_number)
   else:
-    github.open_issue(token, issue_number)
+    firebase_github.open_issue(token, issue_number)
 
-  github.update_issue_comment(token, issue_number, comment)
+  firebase_github.update_issue_comment(token, issue_number, comment)
 
 
 def _get_issue_number(token, title, label):
-  issues = github.search_issues_by_label(label)
+  issues = firebase_github.search_issues_by_label(label)
   for issue in issues:
     if issue["title"] == title:
       return issue["number"]
@@ -303,19 +303,19 @@ def _get_issue_number(token, title, label):
                    _COMMENT_HIDDEN_DIVIDER + " " +
                    _COMMENT_HIDDEN_DIVIDER + " "
                    )
-  return github.create_issue(token, title, label, empty_comment)["number"]
+  return firebase_github.create_issue(token, title, label, empty_comment)["number"]
 
 
 def _update_comment(token, issue_number, comment):
   comment_id = _get_comment_id(token, issue_number, _COMMENT_HIDDEN_DIVIDER)
   if not comment_id:
-    github.add_comment(token, issue_number, comment)
+    firebase_github.add_comment(token, issue_number, comment)
   else:
-    github.update_comment(token, comment_id, comment)
+    firebase_github.update_comment(token, comment_id, comment)
 
 
 def _get_comment_id(token, issue_number, comment_identifier):
-  comments = github.list_comments(token, issue_number)
+  comments = firebase_github.list_comments(token, issue_number)
   for comment in comments:
     if comment_identifier in comment['body']:
       return comment['id']
@@ -342,7 +342,7 @@ def _get_summary_table(token, run_id):
 
 
 def _get_artifact_id(token, run_id, name):
-  artifacts = github.list_artifacts(token, run_id)
+  artifacts = firebase_github.list_artifacts(token, run_id)
   for artifact in artifacts:
     if artifact["name"] == name:
       return artifact["id"]

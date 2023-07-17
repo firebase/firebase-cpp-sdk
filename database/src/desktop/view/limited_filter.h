@@ -15,7 +15,9 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_VIEW_LIMITED_FILTER_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_VIEW_LIMITED_FILTER_H_
 
+#include <memory>
 #include <string>
+#include <utility>
 
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
@@ -58,7 +60,7 @@ class LimitedFilter : public VariantFilter {
       const Variant& childSnap, const CompleteChildSource* source,
       ChildChangeAccumulator* opt_change_accumulator) const;
 
-  UniquePtr<RangedFilter> ranged_filter_;
+  std::unique_ptr<RangedFilter> ranged_filter_;
   int limit_;
   bool reverse_;
 };

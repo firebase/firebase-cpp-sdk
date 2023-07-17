@@ -148,8 +148,8 @@ namespace internal {
 
 AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
   future_manager().AllocFutureApi(this, kAppCheckFnCount);
-  impl_ = MakeUnique<FIRAppCheckPointer>([FIRAppCheck appCheck]);
-  notification_center_wrapper_ = MakeUnique<AppCheckNotificationCenterWrapperPointer>(
+  impl_ = std::make_unique<FIRAppCheckPointer>([FIRAppCheck appCheck]);
+  notification_center_wrapper_ = std::make_unique<AppCheckNotificationCenterWrapperPointer>(
       [[AppCheckNotificationCenterWrapper alloc] init]);
 }
 

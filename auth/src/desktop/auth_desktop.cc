@@ -18,7 +18,6 @@
 #include <string>
 #include <utility>
 
-#include "app/memory/shared_ptr.h"
 #include "app/rest/transport_curl.h"
 #include "app/src/app_common.h"
 #include "app/src/app_identifier.h"
@@ -729,7 +728,7 @@ void DestroyTokenRefresher(AuthData* auth_data) {
 void InitializeFunctionRegistryListener(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->internal_listeners =
-      MakeUnique<FunctionRegistryAuthStateListener>();
+      std::make_unique<FunctionRegistryAuthStateListener>();
   auth_data->auth->AddAuthStateListener(auth_impl->internal_listeners.get());
 }
 
@@ -760,7 +759,7 @@ void ResetTokenRefreshCounter(AuthData* auth_data) {
 
 void InitializeUserDataPersist(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
-  auth_impl->user_data_persist = MakeUnique<UserDataPersist>(
+  auth_impl->user_data_persist = std::make_unique<UserDataPersist>(
       internal::CreateAppIdentifierFromOptions(auth_data->app->options())
           .c_str());
 

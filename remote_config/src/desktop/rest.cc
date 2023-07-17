@@ -18,8 +18,8 @@
 #include <cstdint>
 #include <memory>
 #include <sstream>
+#include <utility>
 
-#include "app/meta/move.h"
 #include "app/rest/transport_builder.h"
 #include "app/rest/transport_curl.h"
 #include "app/rest/transport_interface.h"

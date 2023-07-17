@@ -16,7 +16,7 @@ r"""Tool for mobile testapps to Test on iOS Simulator / Android Emulator locally
 
 Usage:
 
-  python test_simulator.py --testapp_dir ~/testapps --test_type gameloop
+  python3 test_simulator.py --testapp_dir ~/testapps --test_type gameloop
 
 This will recursively search ~/testapps for apps,
 test on local simulators/emulators, and validate their results. The validation is 
@@ -517,7 +517,7 @@ def _create_and_boot_simulator(apple_platform, device_name, device_os):
         print("::warning ::Unable to find %s version %s, will fall back to %s" % (apple_platform, device_os, available_versions[-1]))
       device_os = available_versions[-1]
 
-    args = ["xcodes", "runtimes", "install", "%s %s" % (apple_platform, device_os)]
+    args = ["sudo", "xcodes", "runtimes", "install", "%s %s" % (apple_platform, device_os)]
     logging.info("Download simulator: %s", " ".join(args))
     subprocess.run(args=args, check=False)
     

@@ -27,7 +27,7 @@ namespace internal {
 // Check a smart pointer with a raw pointer for equality. Ideally we would just
 // do:
 //
-//   Pointwise(Property(&UniquePtr<T>::get, Eq())),
+//   Pointwise(Property(&std::unique_ptr<T>::get, Eq())),
 //
 // but Property can't handle tuple matchers.
 MATCHER(SmartPtrRawPtrEq, "CheckSmartPtrRawPtrEq") {

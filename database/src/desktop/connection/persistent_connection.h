@@ -15,16 +15,16 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_PERSISTENT_CONNECTION_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_PERSISTENT_CONNECTION_H_
 
+#include <atomic>
 #include <cassert>
 #include <map>
+#include <memory>
 #include <queue>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
-#include "app/memory/atomic.h"
-#include "app/memory/shared_ptr.h"
-#include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"
@@ -63,7 +63,7 @@ class PersistentConnectionEventHandler;
 // structure reference to update.
 class Response {
  public:
-  typedef void (*ResponseCallback)(const SharedPtr<Response>& response);
+  typedef void (*ResponseCallback)(const std::shared_ptr<Response>& response);
   explicit Response(ResponseCallback callback) : callback_(callback) {
     // Do not enforce non-null callback here since the Response can be used
     // to purely capture data when request is created, ex. SendAuthResponse.
@@ -96,7 +96,7 @@ class Response {
   friend class PersistentConnection;
 };
 // Use shared point so that it is easier to be forwarded to callbacks.
-typedef SharedPtr<Response> ResponsePtr;
+typedef std::shared_ptr<Response> ResponsePtr;
 
 class PersistentConnection : public ConnectionEventHandler {
  public:
@@ -223,7 +223,7 @@ class PersistentConnection : public ConnectionEventHandler {
   struct RequestData {
     explicit RequestData(ResponsePtr response, ConnectionResponseHandler cb,
                          uint64_t id)
-        : response(Move(response)), callback(cb), outstanding_id(id) {}
+        : response(std::move(response)), callback(cb), outstanding_id(id) {}
 
     // Pointer to the response.  Can be nullptr
     ResponsePtr response;
@@ -235,7 +235,7 @@ class PersistentConnection : public ConnectionEventHandler {
     // Custom id to find outstanding puts or listens
     uint64_t outstanding_id;
   };
-  typedef UniquePtr<RequestData> RequestDataPtr;
+  typedef std::unique_ptr<RequestData> RequestDataPtr;
 
   // Capture the outstanding or ongoing listen requests.
   struct OutstandingListen {
@@ -260,14 +260,17 @@ class PersistentConnection : public ConnectionEventHandler {
     // std::function with lambda capture in RequestData.
     uint64_t outstanding_id;
   };
-  typedef UniquePtr<OutstandingListen> OutstandingListenPtr;
+  typedef std::unique_ptr<OutstandingListen> OutstandingListenPtr;
 
   // Capture the outstanding OnDisconnect requests when the connection is not
   // established yet.
   struct OutstandingOnDisconnect {
     explicit OutstandingOnDisconnect(const char* action, const Path& path,
                                      const Variant& data, ResponsePtr response)
-        : action(action), path(path), data(data), response(Move(response)) {}
+        : action(action),
+          path(path),
+          data(data),
+          response(std::move(response)) {}
 
     // Action of the request such as PUT, MERGE and CANCEL
     std::string action;
@@ -281,14 +284,17 @@ class PersistentConnection : public ConnectionEventHandler {
     // Response pointer to be triggered once the response is received
     ResponsePtr response;
   };
-  typedef UniquePtr<OutstandingOnDisconnect> OutstandingOnDisconnectPtr;
+  typedef std::unique_ptr<OutstandingOnDisconnect> OutstandingOnDisconnectPtr;
 
   // Capture the outstanding Put requests when the connection is not
   // established yet.
   struct OutstandingPut {
     explicit OutstandingPut(const char* action, const Variant& data,
                             ResponsePtr response)
-        : action(action), data(data), response(Move(response)), sent(false) {}
+        : action(action),
+          data(data),
+          response(std::move(response)),
+          sent(false) {}
 
     // Action of the request such as PUT, MERGE and CANCEL
     std::string action;
@@ -306,7 +312,7 @@ class PersistentConnection : public ConnectionEventHandler {
 
     bool WasSent() { return sent; }
   };
-  typedef UniquePtr<OutstandingPut> OutstandingPutPtr;
+  typedef std::unique_ptr<OutstandingPut> OutstandingPutPtr;
 
   void InterruptInternal(InterruptReason reason);
   void ResumeInternal(InterruptReason reason);
@@ -489,14 +495,14 @@ class PersistentConnection : public ConnectionEventHandler {
   static int kInvalidAuthTokenThreshold;
 
   // Log id.  Unique for each persistent connection.
-  static compat::Atomic<uint32_t> next_log_id_;
+  static std::atomic<uint32_t> next_log_id_;
   std::string log_id_;
 
   // Reference to Firebase App.  Primarily used to get auth token.
   ::firebase::App* app_;
 
   // Safe reference to this.  Set in constructor and cleared in destructor
-  // Should be safe to be copied in any thread because the SharedPtr never
+  // Should be safe to be copied in any thread because the std::shared_ptr never
   // changes, until safe_this_ is completely destroyed.
   typedef firebase::internal::SafeReference<PersistentConnection> ThisRef;
   typedef firebase::internal::SafeReferenceLock<PersistentConnection>
@@ -513,7 +519,7 @@ class PersistentConnection : public ConnectionEventHandler {
   PersistentConnectionEventHandler* event_handler_;
 
   // Current connection.
-  UniquePtr<Connection> realtime_;
+  std::unique_ptr<Connection> realtime_;
 
   // States
   ConnectionState connection_state_;

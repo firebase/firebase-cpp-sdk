@@ -15,6 +15,7 @@
 #include "database/src/desktop/core/repo.h"
 
 #include <string>
+#include <utility>
 
 #include "app/src/callback.h"
 #include "app/src/filesystem.h"
@@ -145,12 +146,15 @@ Repo::~Repo() {
       callback, this);
 }
 
-void Repo::AddEventCallback(UniquePtr<EventRegistration> event_registration) {
+void Repo::AddEventCallback(
+    std::unique_ptr<EventRegistration> event_registration) {
   std::vector<Event> events;
   if (StringStartsWith(event_registration->query_spec().path.str(), kDotInfo)) {
-    events = info_sync_tree_->AddEventRegistration(Move(event_registration));
+    events =
+        info_sync_tree_->AddEventRegistration(std::move(event_registration));
   } else {
-    events = server_sync_tree_->AddEventRegistration(Move(event_registration));
+    events =
+        server_sync_tree_->AddEventRegistration(std::move(event_registration));
   }
   PostEvents(events);
 }
@@ -205,7 +209,7 @@ class OnDisconnectResponse : public connection::Response {
 void Repo::OnDisconnectSetValue(const SafeFutureHandle<void>& handle,
                                 ReferenceCountedFutureImpl* ref_future,
                                 const Path& path, const Variant& data) {
-  connection::ResponsePtr response = MakeShared<OnDisconnectResponse>(
+  connection::ResponsePtr response = std::make_shared<OnDisconnectResponse>(
       this, handle, ref_future, path, data,
       [](const connection::ResponsePtr& ptr) {
         OnDisconnectResponse* response =
@@ -235,7 +239,7 @@ void Repo::OnDisconnectSetValue(const SafeFutureHandle<void>& handle,
 void Repo::OnDisconnectCancel(const SafeFutureHandle<void>& handle,
                               ReferenceCountedFutureImpl* ref_future,
                               const Path& path) {
-  connection::ResponsePtr response = MakeShared<OnDisconnectResponse>(
+  connection::ResponsePtr response = std::make_shared<OnDisconnectResponse>(
       this, handle, ref_future, path, Variant::Null(),
       [](const connection::ResponsePtr& ptr) {
         OnDisconnectResponse* response =
@@ -264,7 +268,7 @@ void Repo::OnDisconnectCancel(const SafeFutureHandle<void>& handle,
 void Repo::OnDisconnectUpdate(const SafeFutureHandle<void>& handle,
                               ReferenceCountedFutureImpl* ref_future,
                               const Path& path, const Variant& data) {
-  connection::ResponsePtr response = MakeShared<OnDisconnectResponse>(
+  connection::ResponsePtr response = std::make_shared<OnDisconnectResponse>(
       this, handle, ref_future, path, data,
       [](const connection::ResponsePtr& ptr) {
         OnDisconnectResponse* response =
@@ -356,7 +360,7 @@ void Repo::SetValue(const Path& path, const Variant& new_data_unresolved,
   PostEvents(events);
 
   connection_->Put(path, new_data_unresolved,
-                   MakeShared<SetValueResponse>(
+                   std::make_shared<SetValueResponse>(
                        Repo::ThisRef(this), path, write_id, api, handle,
                        [](const connection::ResponsePtr& ptr) {
                          auto* response =
@@ -395,7 +399,7 @@ void Repo::UpdateChildren(const Path& path, const Variant& data,
   PostEvents(events);
 
   connection_->Merge(path, data,
-                     MakeShared<SetValueResponse>(
+                     std::make_shared<SetValueResponse>(
                          Repo::ThisRef(this), path, write_id, api, handle,
                          [](const connection::ResponsePtr& ptr) {
                            auto* response =
@@ -435,25 +439,25 @@ void Repo::AckWriteAndRerunTransactions(WriteId write_id, const Path& path,
   PostEvents(events);
 }
 
-static UniquePtr<PersistenceManagerInterface> CreatePersistenceManager(
+static std::unique_ptr<PersistenceManagerInterface> CreatePersistenceManager(
     const char* app_data_path, LoggerBase* logger) {
   static const uint64_t kDefaultCacheSize = 10 * 1024 * 1024;
 
   auto persistence_storage_engine =
-      MakeUnique<LevelDbPersistenceStorageEngine>(logger);
+      std::make_unique<LevelDbPersistenceStorageEngine>(logger);
 
   if (!persistence_storage_engine->Initialize(app_data_path)) {
     logger->LogError("Could not initialize persistence");
-    return UniquePtr<PersistenceManager>();
+    return std::unique_ptr<PersistenceManager>();
   }
-  auto tracked_query_manager =
-      MakeUnique<TrackedQueryManager>(persistence_storage_engine.get(), logger);
+  auto tracked_query_manager = std::make_unique<TrackedQueryManager>(
+      persistence_storage_engine.get(), logger);
 
-  auto cache_policy = MakeUnique<LRUCachePolicy>(kDefaultCacheSize);
+  auto cache_policy = std::make_unique<LRUCachePolicy>(kDefaultCacheSize);
 
-  return MakeUnique<PersistenceManager>(std::move(persistence_storage_engine),
-                                        std::move(tracked_query_manager),
-                                        std::move(cache_policy), logger);
+  return std::make_unique<PersistenceManager>(
+      std::move(persistence_storage_engine), std::move(tracked_query_manager),
+      std::move(cache_policy), logger);
 }
 
 // Defers any initialization that is potentially expensive (e.g. disk access).
@@ -505,38 +509,39 @@ void Repo::DeferredInitialization() {
     logger_->LogDebug("app_data_path: %s", app_data_path.c_str());
 
     // Set up write tree.
-    auto pending_write_tree = MakeUnique<WriteTree>();
+    auto pending_write_tree = std::make_unique<WriteTree>();
 
     // Set up persistence manager
-    UniquePtr<PersistenceManagerInterface> persistence_manager;
+    std::unique_ptr<PersistenceManagerInterface> persistence_manager;
     if (persistence_enabled_) {
       persistence_manager =
           CreatePersistenceManager(app_data_path.c_str(), logger_);
     } else {
-      persistence_manager = MakeUnique<NoopPersistenceManager>();
+      persistence_manager = std::make_unique<NoopPersistenceManager>();
     }
 
     // Set up listen provider.
-    auto listen_provider =
-        MakeUnique<WebSocketListenProvider>(this, connection_.get(), logger_);
+    auto listen_provider = std::make_unique<WebSocketListenProvider>(
+        this, connection_.get(), logger_);
     WebSocketListenProvider* listen_provider_ptr = listen_provider.get();
 
     // Set up sync Tree.
-    server_sync_tree_ = MakeUnique<SyncTree>(std::move(pending_write_tree),
-                                             std::move(persistence_manager),
-                                             std::move(listen_provider));
+    server_sync_tree_ = std::make_unique<SyncTree>(
+        std::move(pending_write_tree), std::move(persistence_manager),
+        std::move(listen_provider));
     listen_provider_ptr->set_sync_tree(server_sync_tree_.get());
   }
 
   // Set up info sync tree.
   {
-    auto pending_write_tree = MakeUnique<WriteTree>();
-    auto persistence_manager = MakeUnique<NoopPersistenceManager>();
-    auto listen_provider = MakeUnique<InfoListenProvider>(this, &info_data_);
+    auto pending_write_tree = std::make_unique<WriteTree>();
+    auto persistence_manager = std::make_unique<NoopPersistenceManager>();
+    auto listen_provider =
+        std::make_unique<InfoListenProvider>(this, &info_data_);
     InfoListenProvider* listen_provider_ptr = listen_provider.get();
-    info_sync_tree_ = MakeUnique<SyncTree>(std::move(pending_write_tree),
-                                           std::move(persistence_manager),
-                                           std::move(listen_provider));
+    info_sync_tree_ = std::make_unique<SyncTree>(std::move(pending_write_tree),
+                                                 std::move(persistence_manager),
+                                                 std::move(listen_provider));
     listen_provider_ptr->set_sync_tree(info_sync_tree_.get());
   }
 
@@ -662,13 +667,13 @@ void Repo::StartTransaction(const Path& path,
   DatabaseReferenceInternal* ref_impl =
       new DatabaseReferenceInternal(database_, path);
   DatabaseReference watch_ref(ref_impl);
-  UniquePtr<NoopListener> listener = MakeUnique<NoopListener>();
+  std::unique_ptr<NoopListener> listener = std::make_unique<NoopListener>();
   NoopListener* listener_ptr = listener.get();
   QuerySpec query_spec(path);
-  AddEventCallback(
-      MakeUnique<ValueEventRegistration>(database_, listener_ptr, query_spec));
+  AddEventCallback(std::make_unique<ValueEventRegistration>(
+      database_, listener_ptr, query_spec));
 
-  TransactionDataPtr transaction_data = MakeShared<TransactionData>(
+  TransactionDataPtr transaction_data = std::make_shared<TransactionData>(
       handle, api, query_spec.path, transaction_function, context,
       delete_context, trigger_local_events, std::move(listener));
 
@@ -904,7 +909,7 @@ void Repo::SendTransactionQueue(const std::vector<TransactionDataPtr>& queue,
                      transaction->current_output_snapshot_raw);
   }
 
-  connection::ResponsePtr response = MakeShared<TransactionResponse>(
+  connection::ResponsePtr response = std::make_shared<TransactionResponse>(
       safe_this_, path, queue, [](const connection::ResponsePtr& ptr) {
         TransactionResponse* response =
             static_cast<TransactionResponse*>(ptr.get());

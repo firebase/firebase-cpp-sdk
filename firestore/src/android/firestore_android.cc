@@ -16,7 +16,7 @@
 
 #include "firestore/src/android/firestore_android.h"
 
-#include "app/meta/move.h"
+#include <utility>
 #include "app/src/assert.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/future.h"
@@ -61,6 +61,7 @@
 #include "firestore/src/android/write_batch_android.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/jni/arena_ref.h"
 #include "firestore/src/jni/array.h"
 #include "firestore/src/jni/array_list.h"
 #include "firestore/src/jni/boolean.h"
@@ -318,6 +319,7 @@ bool FirestoreInternal::Initialize(App* app) {
     jni::List::Initialize(loader);
     jni::Long::Initialize(loader);
     jni::Map::Initialize(loader);
+    jni::ArenaRef::Initialize(loader);
 
     InitializeFirestore(loader);
     InitializeFirestoreTasks(loader);
@@ -362,7 +364,7 @@ bool FirestoreInternal::Initialize(App* app) {
     }
 
     FIREBASE_DEV_ASSERT(global_loader == nullptr);
-    global_loader = new Loader(Move(loader));
+    global_loader = new Loader(std::move(loader));
 
     if (initial_log_state != InitialLogState::kUnset) {
       bool enabled = initial_log_state == InitialLogState::kSetEnabled;
@@ -473,7 +475,7 @@ Future<void> FirestoreInternal::RunTransaction(
     int32_t max_attempts) {
   SIMPLE_HARD_ASSERT(max_attempts > 0);
 
-  auto* lambda_update = new LambdaTransactionFunction(Move(update));
+  auto* lambda_update = new LambdaTransactionFunction(std::move(update));
   Env env = GetEnv();
   Local<Object> transaction_function =
       TransactionInternal::Create(env, this, lambda_update);
@@ -539,7 +541,7 @@ ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
 
 ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
     std::function<void()> callback) {
-  auto* listener = new LambdaEventListener<void>(firebase::Move(callback));
+  auto* listener = new LambdaEventListener<void>(std::move(callback));
   return AddSnapshotsInSyncListener(listener,
                                     /*passing_listener_ownership=*/true);
 }

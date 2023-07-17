@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/view/limited_filter.h"
 
+#include <memory>
+
 #include "app/src/assert.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
@@ -28,7 +30,7 @@ namespace internal {
 
 LimitedFilter::LimitedFilter(const QueryParams& params)
     : VariantFilter(params),
-      ranged_filter_(MakeUnique<RangedFilter>(params)),
+      ranged_filter_(std::make_unique<RangedFilter>(params)),
       limit_(params.limit_first ? params.limit_first : params.limit_last),
       reverse_(!!params.limit_last) {}
 

@@ -17,7 +17,8 @@
 #ifndef FIREBASE_APP_SRC_CALLBACK_H_
 #define FIREBASE_APP_SRC_CALLBACK_H_
 
-#include "app/meta/move.h"
+#include <utility>
+
 #include "firebase/internal/common.h"
 
 #ifdef FIREBASE_USE_STD_FUNCTION
@@ -265,7 +266,7 @@ class CallbackMoveValue1 : public Callback {
   typedef void (*UserCallback)(T* data);
 
   CallbackMoveValue1(T data, UserCallback user_callback)
-      : data_(Move(data)), user_callback_(user_callback) {}
+      : data_(std::move(data)), user_callback_(user_callback) {}
   ~CallbackMoveValue1() override {}
   void Run() override { user_callback_(&data_); }
 

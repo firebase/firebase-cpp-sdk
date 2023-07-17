@@ -756,8 +756,8 @@ class JavaThreadContext {
   // A typical usage pattern is:
   //
   // util::RunOnBackgroundThread(env, [](void* function_data) {
-  //     SharedPtr<JavaThreadContext> context =
-  //       *(static_cast<SharedPtr<JavaThreadContext>*>(function_data));
+  //     std::shared_ptr<JavaThreadContext> context =
+  //       *(static_cast<std::shared_ptr<JavaThreadContext>*>(function_data));
   //     context->ReleaseExecuteCancelLock();
   //     // Perform a slow operation.
   //     if (context->AcquireExecuteCancelLock()) {
