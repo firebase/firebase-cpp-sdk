@@ -2440,11 +2440,13 @@ TEST_F(FirebaseGmaTest, TestAdViewMultithreadDeletion) {
 #endif  // #if defined(ANDROID) || (defined(TARGET_OS_IPHONE) &&
         // TARGET_OS_IPHONE)
 
-
+// Tests for User Messaging Platform
 class FirebaseGmaUmpTest : public FirebaseTest {
+public:
   void SetUpTestSuite();
   void TearDownTestSuite();
-  
+
+protected:
   static firebase::App* shared_app_;
 };
 
@@ -2461,7 +2463,7 @@ void FirebaseGmaUmpTest::SetUpTestSuite() {
 #endif  // defined(ANDROID)
 }
 
-void FirebaseGmaTest::TearDownTestSuite() {
+void FirebaseGmaUmpTest::TearDownTestSuite() {
   LogDebug("Shutdown Firebase App.");
   delete shared_app_;
   shared_app_ = nullptr;
