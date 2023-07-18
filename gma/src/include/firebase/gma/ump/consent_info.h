@@ -109,7 +109,7 @@ class ConsentInfo {
       const ConsentRequestParameters& params);
 
   /// The user’s consent status. This value is cached between app sessions and
-  /// can be read before requesting updated parameters.
+  /// can be read before calling RequestConsentStatus().
   ConsentStatus GetConsentStatus();
 
   /// Consent form status. This value defaults to kConsentFormStatusUnknown and
@@ -122,7 +122,7 @@ class ConsentInfo {
   /// Presents the full screen consent form using the given FormParent, which is
   /// defined as an Activity on Android and a UIViewController on iOS. The form
   /// will be dismissed and the Future will be completed after the user selects
-  /// an option. GetConsentStatus()  is updated prior to the Future being
+  /// an option. GetConsentStatus() is updated prior to the Future being
   /// completed.
   Future<ConsentStatus> ShowConsentForm(FormParent parent);
 
