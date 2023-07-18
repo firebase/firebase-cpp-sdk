@@ -108,6 +108,9 @@ class ConsentInfo {
   Future<ConsentStatus> RequestConsentStatus(
       const ConsentRequestParameters& params);
 
+  /// Get the Future from the most recent call to RequestConsentStatus().
+  Future<ConsentStatus> RequestConsentStatusLastResult();
+
   /// The user’s consent status. This value is cached between app sessions and
   /// can be read before calling RequestConsentStatus().
   ConsentStatus GetConsentStatus();
@@ -118,6 +121,9 @@ class ConsentInfo {
 
   /// Loads a consent form.
   Future<ConsentFormStatus> LoadConsentForm();
+
+  /// Get the Future from the most recent call to LoadConsentForm().
+  Future<ConsentFormStatus> LoadConsentFormLastResult();
 
   /// Presents the full screen consent form using the given FormParent, which is
   /// defined as an Activity on Android and a UIViewController on iOS. The form
