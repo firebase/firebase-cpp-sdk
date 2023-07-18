@@ -53,7 +53,9 @@ class ConsentRequestParameters {
     has_tag_for_under_age_of_consent_ = true;
   }
   // Get the age of consent tag.
-  bool tag_for_under_age_of_consent() const { return tag_for_under_age_of_consent_; }
+  bool tag_for_under_age_of_consent() const {
+    return tag_for_under_age_of_consent_;
+  }
   // Get whether the age of consent tag was previously set.
   bool has_tag_for_under_age_of_consent() const {
     return has_tag_for_under_age_of_consent_;

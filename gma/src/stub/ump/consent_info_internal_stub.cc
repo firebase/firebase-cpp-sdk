@@ -36,8 +36,9 @@ ConsentStatus ConsentInfoInternalStub::GetConsentStatus() {
 ConsentFormStatus ConsentInfoInternalStub::GetConsentFormStatus() {
   return kConsentFormStatusUnknown;
 }
-  
-Future<ConsentStatus> ConsentInfoInternalStub::RequestConsentStatus(const ConsentRequestParameters& params) {
+
+Future<ConsentStatus> ConsentInfoInternalStub::RequestConsentStatus(
+    const ConsentRequestParameters& params) {
   ConsentRequestError error = kConsentRequestSuccess;
   if (!params.has_tag_for_under_age_of_consent()) {
     error = kConsentRequestErrorTagForAgeOfConsentNotSet;
@@ -49,9 +50,12 @@ Future<ConsentFormStatus> ConsentInfoInternalStub::LoadConsentForm() {
   return Future<ConsentFormStatus>();
 }
 
-Future<ConsentStatus> ConsentInfoInternalStub::ShowConsentForm(FormParent parent) {
+Future<ConsentStatus> ConsentInfoInternalStub::ShowConsentForm(
+    FormParent parent) {
   return Future<ConsentStatus>();
 }
+
+void ConsentInfoInternalStub::Reset() {}
 
 }  // namespace internal
 }  // namespace ump

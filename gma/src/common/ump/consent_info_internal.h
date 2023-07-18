@@ -45,10 +45,13 @@ class ConsentInfoInternal {
 
   virtual ConsentStatus GetConsentStatus() = 0;
   virtual ConsentFormStatus GetConsentFormStatus() = 0;
-  
-  virtual Future<ConsentStatus> RequestConsentStatus(const ConsentRequestParameters& params) = 0;
+
+  virtual Future<ConsentStatus> RequestConsentStatus(
+      const ConsentRequestParameters& params) = 0;
   virtual Future<ConsentFormStatus> LoadConsentForm() = 0;
   virtual Future<ConsentStatus> ShowConsentForm(FormParent parent) = 0;
+
+  virtual void Reset() = 0;
 
  protected:
   ConsentInfoInternal();
