@@ -30,7 +30,11 @@ namespace gma {
 /// See the ConsentInfo class for details.
 namespace ump {
 
-// More information is available in ump/consent_info.h.
+/// Returns a static string describing the given error code.
+const char* GetConsentRequestErrorMessage(ConsentRequestError code);
+
+/// Returns a static string describing the given error code.
+const char* GetConsentFormErrorMessage(ConsentFormError code);
 
 }  // namespace ump
 }  // namespace gma
