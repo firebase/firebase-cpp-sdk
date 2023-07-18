@@ -17,11 +17,9 @@
 #ifndef FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_UMP_CONSENT_INFO_H_
 #define FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_UMP_CONSENT_INFO_H_
 
-#include "app/src/assert.h"
 #include "firebase/app.h"
 #include "firebase/future.h"
 #include "firebase/gma/ump/types.h"
-#include "firebase/internal/common.h"
 #include "firebase/internal/platform.h"
 
 #if FIREBASE_PLATFORM_ANDROID
@@ -146,7 +144,7 @@ class ConsentInfo {
 #endif  // FIREBASE_PLATFORM_ANDROID
   void Terminate();
 
-  static ConsentInfo* instance_;
+  static ConsentInfo* s_instance_;
 
 #if FIREBASE_PLATFORM_ANDROID
   JavaVM* java_vm() { return java_vm_; }

@@ -21,7 +21,8 @@ namespace gma {
 namespace ump {
 namespace internal {
 
-// This explicitly implements the constructor for the outer class.
+// This explicitly implements the constructor for the outer class,
+// ConsentInfoInternal.
 ConsentInfoInternal* ConsentInfoInternal::CreateInstance() {
   return new ConsentInfoInternalStub();
 };

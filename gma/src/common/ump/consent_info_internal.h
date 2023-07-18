@@ -17,8 +17,6 @@
 #ifndef FIREBASE_GMA_SRC_COMMON_UMP_CONSENT_INFO_INTERNAL_H_
 #define FIREBASE_GMA_SRC_COMMON_UMP_CONSENT_INFO_INTERNAL_H_
 
-#include "firebase/gma/ump.h"
-
 namespace firebase {
 namespace gma {
 namespace ump {
