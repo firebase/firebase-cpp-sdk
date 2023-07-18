@@ -140,4 +140,4 @@ class ConsentInfo {
 }  // namespace gma
 }  // namespace firebase
 
-#endif  // FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_CONSENT_INFO_H_
+#endif  // FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_UMP_CONSENT_INFO_H_
