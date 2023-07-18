@@ -53,9 +53,9 @@ class ConsentRequestParameters {
     has_tag_for_under_age_of_consent_ = true;
   }
   // Get the age of consent tag.
-  bool tag_for_under_age_of_consent() { return tag_for_under_age_of_consent_; }
+  bool tag_for_under_age_of_consent() const { return tag_for_under_age_of_consent_; }
   // Get whether the age of consent tag was previously set.
-  bool has_tag_for_under_age_of_consent() {
+  bool has_tag_for_under_age_of_consent() const {
     return has_tag_for_under_age_of_consent_;
   }
 
@@ -71,9 +71,9 @@ class ConsentRequestParameters {
     has_debug_settings_ = true;
   }
   // Get the debug settings.
-  ConsentDebugSettings debug_settings() { return debug_settings_; }
+  ConsentDebugSettings debug_settings() const { return debug_settings_; }
   // Get whether debug settings were set.
-  bool has_debug_settings() { return has_debug_settings_; }
+  bool has_debug_settings() const { return has_debug_settings_; }
 
  private:
   ConsentDebugSettings debug_settings_;

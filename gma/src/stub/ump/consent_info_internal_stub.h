@@ -28,6 +28,13 @@ class ConsentInfoInternalStub : public ConsentInfoInternal {
  public:
   ConsentInfoInternalStub() {}
   ~ConsentInfoInternalStub() override;
+
+  ConsentStatus GetConsentStatus() override;
+  ConsentFormStatus GetConsentFormStatus() override;
+  
+  Future<ConsentStatus> RequestConsentStatus(const ConsentRequestParameters& params) override;
+  Future<ConsentFormStatus> LoadConsentForm() override;
+  Future<ConsentStatus> ShowConsentForm(FormParent parent) override;
 };
 
 }  // namespace internal

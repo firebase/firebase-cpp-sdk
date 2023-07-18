@@ -20,6 +20,7 @@
 #include "app/src/cleanup_notifier.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "firebase/future.h"
+#include "firebase/gma/ump/types.h"
 
 namespace firebase {
 namespace gma {
@@ -41,6 +42,13 @@ class ConsentInfoInternal {
   // Implemented in platform-specific code to instantiate a
   // platform-specific subclass.
   static ConsentInfoInternal* CreateInstance();
+
+  virtual ConsentStatus GetConsentStatus() = 0;
+  virtual ConsentFormStatus GetConsentFormStatus() = 0;
+  
+  virtual Future<ConsentStatus> RequestConsentStatus(const ConsentRequestParameters& params) = 0;
+  virtual Future<ConsentFormStatus> LoadConsentForm() = 0;
+  virtual Future<ConsentStatus> ShowConsentForm(FormParent parent) = 0;
 
  protected:
   ConsentInfoInternal();

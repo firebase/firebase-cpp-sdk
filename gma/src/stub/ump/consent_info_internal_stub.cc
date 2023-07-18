@@ -29,6 +29,30 @@ ConsentInfoInternal* ConsentInfoInternal::CreateInstance() {
 
 ConsentInfoInternalStub::~ConsentInfoInternalStub() {}
 
+ConsentStatus ConsentInfoInternalStub::GetConsentStatus() {
+  return kConsentStatusUnknown;
+}
+
+ConsentFormStatus ConsentInfoInternalStub::GetConsentFormStatus() {
+  return kConsentFormStatusUnknown;
+}
+  
+Future<ConsentStatus> ConsentInfoInternalStub::RequestConsentStatus(const ConsentRequestParameters& params) {
+  ConsentRequestError error = kConsentRequestSuccess;
+  if (!params.has_tag_for_under_age_of_consent()) {
+    error = kConsentRequestErrorTagForAgeOfConsentNotSet;
+  }
+  return Future<ConsentStatus>();
+}
+
+Future<ConsentFormStatus> ConsentInfoInternalStub::LoadConsentForm() {
+  return Future<ConsentFormStatus>();
+}
+
+Future<ConsentStatus> ConsentInfoInternalStub::ShowConsentForm(FormParent parent) {
+  return Future<ConsentStatus>();
+}
+
 }  // namespace internal
 }  // namespace ump
 }  // namespace gma
