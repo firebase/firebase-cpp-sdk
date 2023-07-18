@@ -24,7 +24,7 @@ namespace gma {
 namespace ump {
 namespace internal {
 
-class ConsentInfoInternalStub : ConsentInfoInternal {
+class ConsentInfoInternalStub : public ConsentInfoInternal {
  public:
   ConsentInfoInternalStub() {}
   ~ConsentInfoInternalStub() override;

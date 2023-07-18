@@ -26,8 +26,12 @@ namespace internal {
 
 class ConsentInfoInternal {
  public:
-  ConsentInfoInternal() {}
   virtual ~ConsentInfoInternal();
+
+  static ConsentInfoInternal* CreateInstance();
+
+ protected:
+  ConsentInfoInternal() {}
 };
 
 }  // namespace internal

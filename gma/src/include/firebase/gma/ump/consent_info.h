@@ -17,18 +17,16 @@
 #ifndef FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_UMP_CONSENT_INFO_H_
 #define FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_UMP_CONSENT_INFO_H_
 
+#include "app/src/assert.h"
+#include "firebase/app.h"
+#include "firebase/future.h"
 #include "firebase/gma/ump/types.h"
+#include "firebase/internal/common.h"
 #include "firebase/internal/platform.h"
 
 #if FIREBASE_PLATFORM_ANDROID
 #include <jni.h>
 #endif  // FIREBASE_PLATFORM_ANDROID
-
-#include <vector>
-
-#include "firebase/app.h"
-#include "firebase/future.h"
-#include "firebase/internal/common.h"
 
 namespace firebase {
 namespace gma {
@@ -45,7 +43,10 @@ class ConsentInfoInternal;
 
 class ConsentInfo {
  public:
-  /// Initializes the User Messaging Platform Consent API.
+  /// Shut down the User Messaging Platform Consent SDK
+  ~ConsentInfo();
+
+  /// Initializes the User Messaging Platform Consent SDK.
   ///
   /// @param[in] app Any Firebase App instance.
   ///
@@ -62,7 +63,7 @@ class ConsentInfo {
                                   InitResult* init_result_out = nullptr);
 
 #if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
-  /// Initializes the User Messaging Platform Consent API without Firebase for
+  /// Initializes the User Messaging Platform Consent SDK without Firebase for
   /// Android.
   ///
   /// The arguments to @ref Initialize are platform-specific so the caller must
@@ -89,7 +90,7 @@ class ConsentInfo {
 #endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 
 #if !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
-  /// Initializes Google Mobile Ads (GMA) without Firebase for iOS.
+  /// Initializes User Messaging Platform for iOS without Firebase.
   ///
   /// @param[out] init_result_out Optional: If provided, write the basic init
   /// result here. kInitResultSuccess if initialization succeeded, or
@@ -137,6 +138,21 @@ class ConsentInfo {
   void Reset();
 
  private:
+  ConsentInfo();
+#if FIREBASE_PLATFORM_ANDROID
+  InitResult Initialize(/* JNIEnv* jni_env, jobject activity */);  // TODO
+#else
+  InitResult Initialize();
+#endif  // FIREBASE_PLATFORM_ANDROID
+  void Terminate();
+
+  static ConsentInfo* instance_;
+
+#if FIREBASE_PLATFORM_ANDROID
+  JavaVM* java_vm() { return java_vm_; }
+  JavaVM* java_vm_;
+#endif
+
   // An internal, platform-specific implementation object that this class uses
   // to interact with the User Messaging Platform SDKs for iOS and Android.
   internal::ConsentInfoInternal* internal_;
