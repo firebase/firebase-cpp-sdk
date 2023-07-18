@@ -2441,42 +2441,7 @@ TEST_F(FirebaseGmaTest, TestAdViewMultithreadDeletion) {
         // TARGET_OS_IPHONE)
 
 // Tests for User Messaging Platform
-class FirebaseGmaUmpTest : public FirebaseTest {
- public:
-  FirebaseGmaUmpTest();
-  ~FirebaseGmaUmpTest() override;
-
-  void SetUpTestSuite();
-  void TearDownTestSuite();
-
- protected:
-  static firebase::App* shared_app_;
-};
-
-FirebaseGmaUmpTest::FirebaseGmaUmpTest() { shared_app_ = nullptr; }
-
-FirebaseGmaUmpTest::~FirebaseGmaUmpTest() { assert(shared_app_ = nullptr); }
-
-void FirebaseGmaUmpTest::SetUpTestSuite() {
-  LogDebug("Initialize Firebase App.");
-
-  FindFirebaseConfig(FIREBASE_CONFIG_STRING);
-
-#if defined(ANDROID)
-  shared_app_ = ::firebase::App::Create(app_framework::GetJniEnv(),
-                                        app_framework::GetActivity());
-#else
-  shared_app_ = ::firebase::App::Create();
-#endif  // defined(ANDROID)
-}
-
-void FirebaseGmaUmpTest::TearDownTestSuite() {
-  LogDebug("Shutdown Firebase App.");
-  delete shared_app_;
-  shared_app_ = nullptr;
-}
-
-TEST_F(FirebaseGmaUmpTest, TestInitialization) {
+TEST_F(FirebaseGmaTest, TestUmpInitialization) {
   using firebase::gma::ump::ConsentInfo;
   ConsentInfo* consent_info = ConsentInfo::GetInstance();
 
