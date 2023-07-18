@@ -17,8 +17,8 @@
 #ifndef FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_UMP_H_
 #define FIREBASE_GMA_SRC_INCLUDE_FIREBASE_GMA_UMP_H_
 
-#include "firebase/gma/ump/types.h"
 #include "firebase/gma/ump/consent_info.h"
+#include "firebase/gma/ump/types.h"
 
 namespace firebase {
 namespace gma {
@@ -31,10 +31,10 @@ namespace gma {
 namespace ump {
 
 /// Returns a static string describing the given error code.
-const char* GetConsentRequestErrorMessage(ConsentRequestError code);
+const char* GetConsentRequestErrorMessage(ConsentRequestError error_code);
 
 /// Returns a static string describing the given error code.
-const char* GetConsentFormErrorMessage(ConsentFormError code);
+const char* GetConsentFormErrorMessage(ConsentFormError error_code);
 
 }  // namespace ump
 }  // namespace gma

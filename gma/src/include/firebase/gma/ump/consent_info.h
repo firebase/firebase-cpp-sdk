@@ -27,6 +27,7 @@
 #include <vector>
 
 #include "firebase/app.h"
+#include "firebase/future.h"
 #include "firebase/internal/common.h"
 
 namespace firebase {
@@ -104,6 +105,33 @@ class ConsentInfo {
   /// delete the pointer, and the UMP SDK will shut down.
   static ConsentInfo* GetInstance(InitResult* init_result_out = nullptr);
 #endif  // !defined(__ANDROID__) || defined(DOXYGEN)
+
+
+  /// Requests consent information update. Must be called before loading a
+  /// consent form.
+  Future<ConsentStatus> RequestConsentStatus(const ConsentRequestParameters& params);
+
+  /// The user’s consent status. This value is cached between app sessions and
+  /// can be read before requesting updated parameters.
+  ConsentStatus GetConsentStatus();
+
+  /// Consent form status. This value defaults to kConsentFormStatusUnknown and
+  /// requires a call to RequestConsentStatus() to update.
+  ConsentFormStatus GetConsentFormStatus();
+
+  /// Loads a consent form.
+  Future<ConsentFormStatus> LoadConsentForm();
+
+  /// Presents the full screen consent form using the given FormParent, which is
+  /// defined as an Activity on Android and a UIViewController on iOS. The form
+  /// will be dismissed and the Future will be completed after the user selects
+  /// an option. GetConsentStatus()  is updated prior to the Future being
+  /// completed.
+  Future<ConsentStatus> ShowConsentForm(FormParent parent);
+
+  /// Clears all consent state from persistent storage. This can be used in
+  /// development to simulate a new installation.
+  void Reset();
 
  private:
   // An internal, platform-specific implementation object that this class uses
