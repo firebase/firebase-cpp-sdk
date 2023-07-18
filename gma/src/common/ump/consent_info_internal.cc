@@ -21,6 +21,8 @@ namespace gma {
 namespace ump {
 namespace internal {
 
+ConsentInfoInternal::ConsentInfoInternal() : futures_(kConsentInfoFnCount) {}
+
 ConsentInfoInternal::~ConsentInfoInternal() {}
 
 }  // namespace internal

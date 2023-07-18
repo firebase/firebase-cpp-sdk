@@ -2442,13 +2442,20 @@ TEST_F(FirebaseGmaTest, TestAdViewMultithreadDeletion) {
 
 // Tests for User Messaging Platform
 class FirebaseGmaUmpTest : public FirebaseTest {
-public:
+ public:
+  FirebaseGmaUmpTest();
+  ~FirebaseGmaUmpTest() override;
+
   void SetUpTestSuite();
   void TearDownTestSuite();
 
-protected:
+ protected:
   static firebase::App* shared_app_;
 };
+
+FirebaseGmaUmpTest::FirebaseGmaUmpTest() { shared_app_ = nullptr; }
+
+FirebaseGmaUmpTest::~FirebaseGmaUmpTest() { assert(shared_app_ = nullptr); }
 
 void FirebaseGmaUmpTest::SetUpTestSuite() {
   LogDebug("Initialize Firebase App.");
@@ -2472,6 +2479,8 @@ void FirebaseGmaUmpTest::TearDownTestSuite() {
 TEST_F(FirebaseGmaUmpTest, TestInitialization) {
   using firebase::gma::ump::ConsentInfo;
   ConsentInfo* consent_info = ConsentInfo::GetInstance();
+
+  EXPECT_NE(consent_info, nullptr);
 
   delete consent_info;
   consent_info = nullptr;

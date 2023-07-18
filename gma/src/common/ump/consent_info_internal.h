@@ -17,19 +17,40 @@
 #ifndef FIREBASE_GMA_SRC_COMMON_UMP_CONSENT_INFO_INTERNAL_H_
 #define FIREBASE_GMA_SRC_COMMON_UMP_CONSENT_INFO_INTERNAL_H_
 
+#include "app/src/cleanup_notifier.h"
+#include "app/src/reference_counted_future_impl.h"
+#include "firebase/future.h"
+
 namespace firebase {
 namespace gma {
 namespace ump {
 namespace internal {
 
+// Constants representing each ConsentInfo function that returns a Future.
+enum ConsentInfoFn {
+  kConsentInfoFnRequestConsentStatus,
+  kConsentInfoFnLoadConsentForm,
+  kConsentInfoFnShowConsentForm,
+  kConsentInfoFnCount
+};
+
 class ConsentInfoInternal {
  public:
   virtual ~ConsentInfoInternal();
 
+  // Implemented in platform-specific code to instantiate a
+  // platform-specific subclass.
   static ConsentInfoInternal* CreateInstance();
 
  protected:
-  ConsentInfoInternal() {}
+  ConsentInfoInternal();
+
+  ReferenceCountedFutureImpl* futures() { return &futures_; }
+  CleanupNotifier* cleanup() { return &cleanup_; }
+
+ private:
+  ReferenceCountedFutureImpl futures_;
+  CleanupNotifier cleanup_;
 };
 
 }  // namespace internal
