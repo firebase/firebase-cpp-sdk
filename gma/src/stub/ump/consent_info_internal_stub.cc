@@ -25,7 +25,7 @@ namespace internal {
 // ConsentInfoInternal.
 ConsentInfoInternal* ConsentInfoInternal::CreateInstance() {
   return new ConsentInfoInternalStub();
-};
+}
 
 ConsentInfoInternalStub::~ConsentInfoInternalStub() {}
 

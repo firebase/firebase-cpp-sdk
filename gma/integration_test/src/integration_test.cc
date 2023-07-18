@@ -26,6 +26,7 @@
 #include "firebase/app.h"
 #include "firebase/gma.h"
 #include "firebase/gma/types.h"
+#include "firebase/gma/ump.h"
 #include "firebase/util.h"
 #include "firebase_test_framework.h"  // NOLINT
 
@@ -2438,5 +2439,40 @@ TEST_F(FirebaseGmaTest, TestAdViewMultithreadDeletion) {
 }
 #endif  // #if defined(ANDROID) || (defined(TARGET_OS_IPHONE) &&
         // TARGET_OS_IPHONE)
+
+
+class FirebaseGmaUmpTest : public FirebaseTest {
+  void SetUpTestSuite();
+  void TearDownTestSuite();
+  
+  static firebase::App* shared_app_;
+};
+
+void FirebaseGmaUmpTest::SetUpTestSuite() {
+  LogDebug("Initialize Firebase App.");
+
+  FindFirebaseConfig(FIREBASE_CONFIG_STRING);
+
+#if defined(ANDROID)
+  shared_app_ = ::firebase::App::Create(app_framework::GetJniEnv(),
+                                        app_framework::GetActivity());
+#else
+  shared_app_ = ::firebase::App::Create();
+#endif  // defined(ANDROID)
+}
+
+void FirebaseGmaTest::TearDownTestSuite() {
+  LogDebug("Shutdown Firebase App.");
+  delete shared_app_;
+  shared_app_ = nullptr;
+}
+
+TEST_F(FirebaseGmaUmpTest, TestInitialization) {
+  using firebase::gma::ump::ConsentInfo;
+  ConsentInfo* consent_info = ConsentInfo::GetInstance();
+
+  delete consent_info;
+  consent_info = nullptr;
+}
 
 }  // namespace firebase_testapp_automated
