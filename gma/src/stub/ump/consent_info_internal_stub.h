@@ -28,7 +28,6 @@ class ConsentInfoInternalStub : ConsentInfoInternal {
  public:
   ConsentInfoInternalStub() {}
   ~ConsentInfoInternalStub() override;
-  
 };
 
 }  // namespace internal

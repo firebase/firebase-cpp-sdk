@@ -21,9 +21,7 @@ namespace gma {
 namespace ump {
 namespace internal {
 
-ConsentInfoInternalStub::~ConsentInfoInternalStub() {
-
-}
+ConsentInfoInternalStub::~ConsentInfoInternalStub() {}
 
 }  // namespace internal
 }  // namespace ump

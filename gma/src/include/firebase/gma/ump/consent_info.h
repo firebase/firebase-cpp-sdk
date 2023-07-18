@@ -43,7 +43,6 @@ namespace internal {
 class ConsentInfoInternal;
 }  // namespace internal
 
-
 class ConsentInfo {
  public:
   /// Initializes the User Messaging Platform Consent API.
@@ -60,20 +59,18 @@ class ConsentInfo {
   /// same pointer; when you are finished using the SDK, you can delete the
   /// pointer and the UMP SDK will shut down.
   static ConsentInfo* GetInstance(const ::firebase::App& app,
-				  InitResult* init_result_out = nullptr);
+                                  InitResult* init_result_out = nullptr);
 
 #if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
   /// Initializes the User Messaging Platform Consent API without Firebase for
   /// Android.
   ///
-  /// The arguments to @ref Initialize are platform-specific so the caller must do
-  /// something like this:
+  /// The arguments to @ref Initialize are platform-specific so the caller must
+  /// do something like this:
   /// @code
   /// #if defined(__ANDROID__)
-  /// consent_info = firebase::gma::ump::ConsentInfo::GetInstance(jni_env, activity);
-  /// #else
-  /// consent_info = firebase::gma::ump::GetInstance();
-  /// #endif
+  /// consent_info = firebase::gma::ump::ConsentInfo::GetInstance(jni_env,
+  /// activity); #else consent_info = firebase::gma::ump::GetInstance(); #endif
   /// @endcode
   ///
   /// @param[in] jni_env JNIEnv pointer.
@@ -88,7 +85,7 @@ class ConsentInfo {
   /// same pointer; when you are finished using the SDK, you can delete the
   /// pointer and the UMP SDK will shut down.
   static ConsentInfo* GetInstance(JNIEnv* jni_env, jobject activity,
-				  InitResult* init_result_out = nullptr);
+                                  InitResult* init_result_out = nullptr);
 #endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 
 #if !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
@@ -96,9 +93,9 @@ class ConsentInfo {
   ///
   /// @param[out] init_result_out Optional: If provided, write the basic init
   /// result here. kInitResultSuccess if initialization succeeded, or
-  /// kInitResultFailedMissingDependency if a dependency is missing. On iOS, this
-  /// will always return kInitResultSuccess, as missing dependencies would have
-  /// caused a linker error at build time.
+  /// kInitResultFailedMissingDependency if a dependency is missing. On iOS,
+  /// this will always return kInitResultSuccess, as missing dependencies would
+  /// have caused a linker error at build time.
   ///
   /// @return A pointer to the ConsentInfo instance. Each call to GetInstance()
   /// will return the same pointer; when you are finished using the SDK, you can
@@ -106,10 +103,10 @@ class ConsentInfo {
   static ConsentInfo* GetInstance(InitResult* init_result_out = nullptr);
 #endif  // !defined(__ANDROID__) || defined(DOXYGEN)
 
-
   /// Requests consent information update. Must be called before loading a
   /// consent form.
-  Future<ConsentStatus> RequestConsentStatus(const ConsentRequestParameters& params);
+  Future<ConsentStatus> RequestConsentStatus(
+      const ConsentRequestParameters& params);
 
   /// The user’s consent status. This value is cached between app sessions and
   /// can be read before requesting updated parameters.

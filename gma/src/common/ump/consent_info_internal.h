@@ -25,7 +25,7 @@ namespace ump {
 namespace internal {
 
 class ConsentInfoInternal {
-public:
+ public:
   ConsentInfoInternal() {}
   virtual ~ConsentInfoInternal();
 };

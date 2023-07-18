@@ -21,13 +21,9 @@ namespace gma {
 namespace ump {
 namespace internal {
 
-virtual ConsentInfoInternal::~ConsentInfoInternal() {
-
-}
+virtual ConsentInfoInternal::~ConsentInfoInternal() {}
 
 }  // namespace internal
 }  // namespace ump
 }  // namespace gma
 }  // namespace firebase
-
-

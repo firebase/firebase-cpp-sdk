@@ -42,20 +42,18 @@ struct ConsentDebugSettings {
 
 // Parameters for the consent info request operation.
 class ConsentRequestParameters {
-public:
-  ConsentRequestParameters() : has_debug_settings_(false),
-			       tag_for_under_age_of_consent_(false),
-			       has_tag_for_under_age_of_consent_(false)
-  {}
+ public:
+  ConsentRequestParameters()
+      : has_debug_settings_(false),
+        tag_for_under_age_of_consent_(false),
+        has_tag_for_under_age_of_consent_(false) {}
   // Set the age of consent tag.
   void set_tag_for_under_age_of_consent(bool tag) {
     tag_for_under_age_of_consent_ = tag;
     has_tag_for_under_age_of_consent_ = true;
   }
   // Get the age of consent tag.
-  bool tag_for_under_age_of_consent() {
-    return tag_for_under_age_of_consent_;
-  }
+  bool tag_for_under_age_of_consent() { return tag_for_under_age_of_consent_; }
   // Get whether the age of consent tag was previously set.
   bool has_tag_for_under_age_of_consent() {
     return has_tag_for_under_age_of_consent_;
@@ -73,20 +71,17 @@ public:
     has_debug_settings_ = true;
   }
   // Get the debug settings.
-  ConsentDebugSettings debug_settings() {
-    return debug_settings_;
-  }
+  ConsentDebugSettings debug_settings() { return debug_settings_; }
   // Get whether debug settings were set.
-  bool has_debug_settings() {
-    return has_debug_settings_;
-  }
-private:
+  bool has_debug_settings() { return has_debug_settings_; }
+
+ private:
   ConsentDebugSettings debug_settings_;
   bool tag_for_under_age_of_consent_;
   bool has_debug_settings_;
   bool has_tag_for_under_age_of_consent_;
 };
-  
+
 /// This is a platform specific datatype that is required to show a consent form
 /// on screen.
 ///
@@ -129,17 +124,17 @@ enum ConsentRequestError {
 };
 
 enum ConsentFormStatus {
-  kConsentFormStatusUnknown=0,
+  kConsentFormStatusUnknown = 0,
   kConsentFormStatusUnavailable,
   kConsentFormStatusAvailable,
 };
-  
+
 enum ConsentFormError {
   kConsentFormSuccess = 0,
   kConsentFormErrorTimeout,
   kConsentFormErrorNotLoaded,
   kConsentFormErrorInternal,
-  kConsentFormErrorUnknown, 
+  kConsentFormErrorUnknown,
   kConsentFormErrorCodeAlreadyUsed,
   kConsentFormErrorInvalidOperation,
   kConsentFormErrorNetwork
