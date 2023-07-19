@@ -28,15 +28,9 @@
 #include "firestore_integration_test.h"
 #include "util/event_accumulator.h"
 
-#if defined(__ANDROID__)
-#include "firestore/src/android/query_android.h"
-#include "firestore/src/common/wrapper_assertions.h"
-#endif  // defined(__ANDROID__)
-
 #include "Firestore/core/src/util/firestore_exceptions.h"
 #include "firebase/firestore/firestore_errors.h"
 #include "firebase_test_framework.h"
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 namespace firebase {
@@ -756,16 +750,6 @@ TEST_F(AggregateCountTest,
   EXPECT_EQ(1, aggregate_snapshot2.count());
   EXPECT_EQ(aggregate_query2, aggregate_snapshot2.query());
 }
-
-#if defined(__ANDROID__)
-TEST(QueryTestAndroidStub, Construction) {
-  testutil::AssertWrapperConstructionContract<Query>();
-}
-
-TEST(QueryTestAndroidStub, Assignment) {
-  testutil::AssertWrapperAssignmentContract<Query>();
-}
-#endif  // defined(__ANDROID__)
 
 }  // namespace firestore
 }  // namespace firebase
