@@ -14,28 +14,31 @@
  * limitations under the License.
  */
 
-#include "firebase/gma/ump/ump.h"
+#include "firebase/gma/ump.h"
 
 namespace firebase {
 namespace gma {
 namespace ump {
 
-  const char* GetConsentRequestErrorMessage(ConsentRequestError error_code) {
-    switch(error_code) {
+const char* GetConsentRequestErrorMessage(ConsentRequestError error_code) {
+  switch (error_code) {
     case kConsentRequestSuccess:
       return "Success";
-      case kConsentRequestErrorInvalidAppId:
+    case kConsentRequestErrorInvalidAppId:
 #if FIREBASE_PLATFORM_ANDROID
-	return "Missing or invalid com.google.android.gms.ads.APPLICATION_ID in AndroidManifest.xml.";
+      return "Missing or invalid com.google.android.gms.ads.APPLICATION_ID in "
+             "AndroidManifest.xml";
 #elif FIREBASE_PLATFORM_IOS
-	return "Missing or invalid GADApplicationidentifier in Info.plist.";
+      return "Missing or invalid GADApplicationidentifier in Info.plist";
 #else
-	return "Missing or invalid App ID.";
+      return "Missing or invalid App ID";
 #endif
     case kConsentRequestErrorNetwork:
-      return "Network error.";
+      return "Network error";
     case kConsentRequestErrorTagForAgeOfConsentNotSet:
-      return "You must explicitly call ConsentRequestParameters.set_tag_for_under_age_of_consent()."
+      return "You must explicitly call "
+             "ConsentRequestParameters.set_tag_for_under_age_of_consent() "
+             "before calling RequestConsentStatus()";
     case kConsentRequestErrorInternal:
       return "Internal error";
     case kConsentRequestErrorCodeMisconfiguration:
@@ -43,13 +46,33 @@ namespace ump {
     case kConsentRequestErrorUnknown:
       return "Unknown error";
     default:
-      return "Bad error code"
-    }
+      return "Bad error code";
   }
+}
 
- 
+const char* GetConsentFormErrorMessage(ConsentFormError error_code) {
+  switch (error_code) {
+    case kConsentFormSuccess:
+      return "Success";
+    case kConsentFormErrorTimeout:
+      return "Timed out";
+    case kConsentFormErrorNotLoaded:
+      return "Form not loaded";
+    case kConsentFormErrorInternal:
+      return "Internal error";
+    case kConsentFormErrorUnknown:
+      return "Unknown error";
+    case kConsentFormErrorCodeAlreadyUsed:
+      return "Code already used";
+    case kConsentFormErrorInvalidOperation:
+      return "Invalid operation";
+    case kConsentFormErrorNetwork:
+      return "Network error";
+    default:
+      return "Bad error code";
+  }
+}
+
 }  // namespace ump
 }  // namespace gma
 }  // namespace firebase
-
-
