@@ -27,6 +27,7 @@
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
+#include "firestore/src/include/firebase/firestore/filter.h"
 #include "firestore/src/include/firebase/firestore/listener_registration.h"
 #include "firestore/src/include/firebase/firestore/query_snapshot.h"
 #if defined(__ANDROID__)
@@ -110,6 +111,16 @@ Firestore* Query::firestore() {
 AggregateQuery Query::Count() const {
   if (!internal_) return {};
   return internal_->Count();
+}
+
+Query Query::Where(const Filter& filter) const {
+  if (!internal_) return {};
+  if (filter.IsEmpty()) {
+    // Return the existing query if not adding any more filters (e.g. an empty
+    // composite filter).
+    return *this;
+  }
+  return internal_->Where(filter);
 }
 
 Query Query::WhereEqualTo(const std::string& field,
