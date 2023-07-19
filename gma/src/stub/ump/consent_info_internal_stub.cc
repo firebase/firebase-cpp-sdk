@@ -41,7 +41,8 @@ Future<ConsentStatus> ConsentInfoInternalStub::RequestConsentStatus(
       CreateFuture<ConsentStatus>(kConsentInfoFnRequestConsentStatus);
 
   if (!params.has_tag_for_under_age_of_consent()) {
-    CompleteFuture(handle, kConsentRequestErrorTagForAgeOfConsentNotSet);
+    CompleteFuture<ConsentStatus>(handle, kConsentRequestErrorTagForAgeOfConsentNotSet,
+				  consent_status_);
     return MakeFuture<ConsentStatus>(futures(), handle);
   }
 

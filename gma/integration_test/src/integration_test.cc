@@ -2480,6 +2480,32 @@ TEST_F(FirebaseGmaTest, TestUmpRequestConsentStatus) {
   consent_info = nullptr;
 }
 
+TEST_F(FirebaseGmaTest, TestUmpRequestErrorWithoutTagForUnderAgeOfConsent) {
+  using firebase::gma::ump::ConsentInfo;
+  using firebase::gma::ump::ConsentRequestParameters;
+  using firebase::gma::ump::ConsentStatus;
+  ConsentInfo* consent_info = ConsentInfo::GetInstance();
+
+  ASSERT_NE(consent_info, nullptr);
+  consent_info->Reset();
+
+  ConsentRequestParameters params;
+  // Do not call set_tag_for_under_age_of_consent().
+
+  firebase::Future<ConsentStatus> future =
+      consent_info->RequestConsentStatus(params);
+
+  WaitForCompletion(future, "RequestConsentStatus",
+		    firebase::gma::ump::kConsentRequestErrorTagForAgeOfConsentNotSet);
+
+  EXPECT_EQ(*future.result(), consent_info->GetConsentStatus());
+  EXPECT_EQ(consent_info->GetConsentStatus(),
+            firebase::gma::ump::kConsentStatusUnknown);
+
+  delete consent_info;
+  consent_info = nullptr;
+}
+
 TEST_F(FirebaseGmaTest, TestUmpRequestConsentStatusDebugEEA) {
   using firebase::gma::ump::ConsentDebugSettings;
   using firebase::gma::ump::ConsentInfo;
