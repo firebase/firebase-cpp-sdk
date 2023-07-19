@@ -642,6 +642,10 @@ code.
     - GMA (Android): Updated dependency to play-services-ads version 22.2.0.
     - Remote Config (Desktop): Additional fix for handling of non-English time
       zone names on Windows.
+    - Firestore (Android): Fix the intermittent global references exhaustion
+      crash when working with documents with a large number of keys and/or large
+      map and/or array fields.
+      ([#1364](https://github.com/firebase/firebase-cpp-sdk/pull/1364)).
 
 ### 11.2.0
 -   Changes
@@ -655,10 +659,6 @@ code.
       time zone name in the current system language contains an accented
       character or apostrophe. This adds a requirement for applications using
       Remote Config on Windows desktop to link the "icu.dll" system library.
-    - Firestore (Android): Fix the intermittent global references exhaustion
-      crash when working with documents with a large number of keys and/or large
-      map and/or array fields.
-      ([#1364](https://github.com/firebase/firebase-cpp-sdk/pull/1364)).
 
 ### 11.1.0
 -   Changes
