@@ -89,44 +89,55 @@ InitResult ConsentInfo::Initialize() {
   return kInitResultSuccess;
 }
 
+// Below this, everything is a passthrough to ConsentInfoInternal. If there is
+// no internal_ pointer (e.g. it's been cleaned up), return default values and
+// invalid futures.
+ 
 ConsentStatus ConsentInfo::GetConsentStatus() {
-  FIREBASE_ASSERT(internal_);
+  if (!internal_) return kConsentStatusUnknown;
   return internal_->GetConsentStatus();
 }
 
 ConsentFormStatus ConsentInfo::GetConsentFormStatus() {
-  FIREBASE_ASSERT(internal_);
+  if (!internal_) return kConsentFormStatusUnknown;
   return internal_->GetConsentFormStatus();
 }
 
 Future<ConsentStatus> ConsentInfo::RequestConsentStatus(
     const ConsentRequestParameters& params) {
-  FIREBASE_ASSERT(internal_);
+  if (!internal_) return Future<ConsentStatus>();
   return internal_->RequestConsentStatus(params);
 }
 
 Future<ConsentStatus> ConsentInfo::RequestConsentStatusLastResult() {
+  if (!internal_) return Future<ConsentStatus>();
   return internal_->RequestConsentStatusLastResult();
 }
 
 Future<ConsentFormStatus> ConsentInfo::LoadConsentForm() {
-  FIREBASE_ASSERT(internal_);
+  if (!internal_) return Future<ConsentFormStatus>();
   return internal_->LoadConsentForm();
 }
 
 Future<ConsentFormStatus> ConsentInfo::LoadConsentFormLastResult() {
+  if (!internal_) return Future<ConsentFormStatus>();
   return internal_->LoadConsentFormLastResult();
 }
 
 Future<ConsentStatus> ConsentInfo::ShowConsentForm(FormParent parent) {
+  if (!internal_) return Future<ConsentStatus>();
   return internal_->ShowConsentForm(parent);
 }
 
 Future<ConsentStatus> ConsentInfo::ShowConsentFormLastResult() {
+  if (!internal_) return Future<ConsentStatus>();
   return internal_->ShowConsentFormLastResult();
 }
 
-void ConsentInfo::Reset() { return internal_->Reset(); }
+void ConsentInfo::Reset() {
+  if (!internal_) return;
+  internal_->Reset();
+}
 
 }  // namespace ump
 }  // namespace gma
