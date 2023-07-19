@@ -16,6 +16,8 @@
 
 #include "gma/src/stub/ump/consent_info_internal_stub.h"
 
+#include "app/src/thread.h"
+
 namespace firebase {
 namespace gma {
 namespace ump {
@@ -26,6 +28,11 @@ namespace internal {
 ConsentInfoInternal* ConsentInfoInternal::CreateInstance() {
   return new ConsentInfoInternalStub();
 }
+
+ConsentInfoInternalStub::ConsentInfoInternalStub() :
+  consent_status_(kConsentStatusUnknown),
+  consent_form_status_(kConsentFormStatusUnknown) {}
+
 
 ConsentInfoInternalStub::~ConsentInfoInternalStub() {}
 
@@ -39,20 +46,33 @@ ConsentFormStatus ConsentInfoInternalStub::GetConsentFormStatus() {
 
 Future<ConsentStatus> ConsentInfoInternalStub::RequestConsentStatus(
     const ConsentRequestParameters& params) {
-  ConsentRequestError error = kConsentRequestSuccess;
+  SafeFutureHandle<ConsentStatus> = CreateFuture<ConsentStatus>(kConsentInfoFnRequestConsentStatus);
+
   if (!params.has_tag_for_under_age_of_consent()) {
-    error = kConsentRequestErrorTagForAgeOfConsentNotSet;
+    CompleteFuture(handle, kConsentRequestErrorTagForAgeOfConsentNotSet);
+    return MakeFuture<ConsentStatus>(futures(), handle);
   }
-  return Future<ConsentStatus>();
+
+  consent_status_ = kConsentStatusRequired;
+  CompleteFuture<ConsentStatus>(handle, kConsentRequestSuccess, consent_status_);
+  return MakeFuture<ConsentStatus>(futures(), handle);
 }
 
 Future<ConsentFormStatus> ConsentInfoInternalStub::LoadConsentForm() {
-  return Future<ConsentFormStatus>();
+  SafeFutureHandle<ConsentFormStatus> = CreateFuture<ConsentFormStatus>(kConsentInfoFnLoadConsentForm);
+
+  consent_form_status_ = kConsentFormStatusAvailable;
+  CompleteFuture<ConsentFormStatus>(handle, kConsentFormSuccess, consent_form_status_);
+  return MakeFuture<ConsentFormStatus>(futures(), handle);
 }
 
 Future<ConsentStatus> ConsentInfoInternalStub::ShowConsentForm(
     FormParent parent) {
-  return Future<ConsentStatus>();
+  SafeFutureHandle<ConsentStatus> = CreateFuture<ConsentStatus>(kConsentInfoFnShowConsentForm);
+
+  consent_status_ = kConsentStatusObtained;
+  CompleteFuture<ConsentStatus>(handle, kConsentRequestSuccess, consent_status_);
+  return MakeFuture<ConsentStatus>(futures(), handle);
 }
 
 void ConsentInfoInternalStub::Reset() {}

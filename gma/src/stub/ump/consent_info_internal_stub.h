@@ -26,7 +26,7 @@ namespace internal {
 
 class ConsentInfoInternalStub : public ConsentInfoInternal {
  public:
-  ConsentInfoInternalStub() {}
+  ConsentInfoInternalStub();
   ~ConsentInfoInternalStub() override;
 
   ConsentStatus GetConsentStatus() override;
@@ -38,6 +38,9 @@ class ConsentInfoInternalStub : public ConsentInfoInternal {
   Future<ConsentStatus> ShowConsentForm(FormParent parent) override;
 
   void Reset() override;
+private:
+  ConsentStatus consent_status_;
+  ConsentFormStatus consent_form_status_;
 };
 
 }  // namespace internal

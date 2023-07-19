@@ -123,6 +123,7 @@ enum ConsentRequestError {
   kConsentRequestErrorInternal,
   kConsentRequestErrorCodeMisconfiguration,
   kConsentRequestErrorUnknown,
+  kConsentRequestErrorOperationInProgress
 };
 
 enum ConsentFormStatus {
@@ -139,7 +140,8 @@ enum ConsentFormError {
   kConsentFormErrorUnknown,
   kConsentFormErrorCodeAlreadyUsed,
   kConsentFormErrorInvalidOperation,
-  kConsentFormErrorNetwork
+  kConsentFormErrorNetwork,
+  kConsentFormErrorOperationInProgress
 };
 
 }  // namespace ump

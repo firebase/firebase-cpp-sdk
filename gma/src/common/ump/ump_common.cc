@@ -45,6 +45,8 @@ const char* GetConsentRequestErrorMessage(ConsentRequestError error_code) {
       return "Code misconfiguration error";
     case kConsentRequestErrorUnknown:
       return "Unknown error";
+  case kConsentFormErrorOperationInProgress:
+    return "Operation already in progress. Please wait for it to finish by checking RequestConsentStatusLastResult()."
     default:
       return "Bad error code";
   }
@@ -68,6 +70,8 @@ const char* GetConsentFormErrorMessage(ConsentFormError error_code) {
       return "Invalid operation";
     case kConsentFormErrorNetwork:
       return "Network error";
+  case kConsentFormErrorOperationInProgress:
+    return "Operation already in progress. Please wait for it to finish by checking LoadFormLastResult() or ShowFormLastResult()."
     default:
       return "Bad error code";
   }

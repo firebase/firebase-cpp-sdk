@@ -56,6 +56,32 @@ class ConsentInfoInternal {
  protected:
   ConsentInfoInternal();
 
+  template<typename T>
+  SafeFutureHandle<T> CreateFuture() {
+    return futures()->SafeAlloc<T>();
+  }
+  template<typename T>
+  SafeFutureHandle<T> CreateFuture(ConsentInfoFn fn_idx) {
+    return futures()->SafeAlloc<T>(fn_idx);
+  }
+
+  // With result and automatically generated error message.
+  template<typename T>
+  void CompleteFuture(SafeFutureHandle<T> handle, ConsentRequestError error, T& result) {
+    return futures()->CompleteWithResult<T>(handle, error,
+					    GetConsentRequestErrorMessage(error),
+					    result);
+  }
+  template<typename T>
+  void CompleteFuture(SafeFutureHandle<T> handle, ConsentFormError error, T& result) {
+    return futures()->CompleteWithResult<T>(handle, error,
+					    GetConsentFormErrorMessage(error),
+					    result);
+  }
+
+  // No result.
+  void CompleteFuture(SafeFutureHandle<T> handle, int error);
+
   ReferenceCountedFutureImpl* futures() { return &futures_; }
   CleanupNotifier* cleanup() { return &cleanup_; }
 
