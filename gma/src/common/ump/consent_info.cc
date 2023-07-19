@@ -39,7 +39,7 @@ ConsentInfo* ConsentInfo::GetInstance(const ::firebase::App& app,
 #else   // !FIREBASE_PLATFORM_ANDROID
   return GetInstance(init_result_out);
 #endif  // FIREBASE_PLATFORM_ANDROID
-};
+}
 
 #if FIREBASE_PLATFORM_ANDROID
 ConsentInfo* ConsentInfo::GetInstance(JNIEnv* jni_env, jobject activity,
@@ -65,7 +65,7 @@ ConsentInfo* ConsentInfo::GetInstance(::firebase::InitResult* init_result_out) {
     return nullptr;
   }
   return consent_info;
-};
+}
 
 ConsentInfo::ConsentInfo() {
   internal_ = nullptr;
