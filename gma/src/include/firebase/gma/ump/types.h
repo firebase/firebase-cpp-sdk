@@ -23,6 +23,15 @@
 
 #include "firebase/internal/platform.h"
 
+#if FIREBASE_PLATFORM_ANDROID
+#include <jni.h>
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+extern "C" {
+#include <objc/objc.h>
+}  // extern "C"
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
+
 namespace firebase {
 namespace gma {
 namespace ump {
