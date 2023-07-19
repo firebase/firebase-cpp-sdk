@@ -33,6 +33,8 @@ enum ConsentInfoFn {
   kConsentInfoFnRequestConsentStatus,
   kConsentInfoFnLoadConsentForm,
   kConsentInfoFnShowConsentForm,
+  kConsentInfoFnLoadAndShowConsentFormIfRequired,
+  kConsentInfoFnShowPrivacyOptionsForm,
   kConsentInfoFnCount
 };
 
@@ -66,6 +68,26 @@ class ConsentInfoInternal {
     return static_cast<const Future<ConsentStatus>&>(
         futures()->LastResult(kConsentInfoFnShowConsentForm));
   }
+
+  virtual Future<ConsentStatus> LoadAndShowConsentFormIfRequired(
+      FormParent parent) = 0;
+
+  Future<ConsentStatus> LoadAndShowConsentFormIfRequiredLastResult() {
+    return static_cast<const Future<ConsentStatus>&>(
+        futures()->LastResult(kConsentInfoFnLoadAndShowConsentFormIfRequired));
+  }
+
+  virtual PrivacyOptionsRequirementStatus
+  GetPrivacyOptionsRequirementStatus() = 0;
+
+  virtual Future<ConsentStatus> ShowPrivacyOptionsForm(FormParent parent) = 0;
+
+  Future<ConsentStatus> ShowPrivacyOptionsFormLastResult() {
+    return static_cast<const Future<ConsentStatus>&>(
+        futures()->LastResult(kConsentInfoFnShowPrivacyOptionsForm));
+  }
+
+  virtual bool CanRequestAds() = 0;
 
   virtual void Reset() = 0;
 

@@ -31,7 +31,9 @@ ConsentInfoInternal* ConsentInfoInternal::CreateInstance() {
 
 ConsentInfoInternalStub::ConsentInfoInternalStub()
     : consent_status_(kConsentStatusUnknown),
-      consent_form_status_(kConsentFormStatusUnknown) {}
+      consent_form_status_(kConsentFormStatusUnknown),
+      privacy_options_requirement_status_(
+          kPrivacyOptionsRequirementStatusUnknown) {}
 
 ConsentInfoInternalStub::~ConsentInfoInternalStub() {}
 
@@ -47,6 +49,7 @@ Future<ConsentStatus> ConsentInfoInternalStub::RequestConsentStatus(
   }
 
   ConsentStatus new_consent_status = kConsentStatusObtained;
+  // Simulate consent status based on debug geo.
   if (params.has_debug_settings()) {
     if (params.debug_settings().debug_geography == kConsentDebugGeographyEEA) {
       new_consent_status = kConsentStatusRequired;
@@ -57,6 +60,15 @@ Future<ConsentStatus> ConsentInfoInternalStub::RequestConsentStatus(
   }
   consent_status_ = new_consent_status;
   consent_form_status_ = kConsentFormStatusUnavailable;
+
+  // Simulate privacy options based on under age of consent.
+  if (params.tag_for_under_age_of_consent()) {
+    privacy_options_requirement_status_ =
+        kPrivacyOptionsRequirementStatusRequired;
+  } else {
+    privacy_options_requirement_status_ =
+        kPrivacyOptionsRequirementStatusNotRequired;
+  }
 
   CompleteFuture<ConsentStatus>(handle, kConsentRequestSuccess,
                                 consent_status_);
@@ -82,6 +94,45 @@ Future<ConsentStatus> ConsentInfoInternalStub::ShowConsentForm(
   CompleteFuture<ConsentStatus>(handle, kConsentRequestSuccess,
                                 consent_status_);
   return MakeFuture<ConsentStatus>(futures(), handle);
+}
+
+Future<ConsentStatus> ConsentInfoInternalStub::LoadAndShowConsentFormIfRequired(
+    FormParent parent) {
+  SafeFutureHandle<ConsentStatus> handle = CreateFuture<ConsentStatus>(
+      kConsentInfoFnLoadAndShowConsentFormIfRequired);
+
+  if (consent_status_ == kConsentStatusRequired) {
+    consent_status_ = kConsentStatusObtained;
+  }
+  CompleteFuture<ConsentStatus>(handle, kConsentRequestSuccess,
+                                consent_status_);
+  return MakeFuture<ConsentStatus>(futures(), handle);
+}
+
+PrivacyOptionsRequirementStatus
+ConsentInfoInternalStub::GetPrivacyOptionsRequirementStatus() {
+  return privacy_options_requirement_status_;
+}
+
+Future<ConsentStatus> ConsentInfoInternalStub::ShowPrivacyOptionsForm(
+    FormParent parent) {
+  SafeFutureHandle<ConsentStatus> handle =
+      CreateFuture<ConsentStatus>(kConsentInfoFnShowPrivacyOptionsForm);
+
+  if (consent_status_ == kConsentStatusObtained) {
+    consent_status_ = kConsentStatusRequired;
+  }
+  CompleteFuture<ConsentStatus>(handle, kConsentRequestSuccess,
+                                consent_status_);
+  return MakeFuture<ConsentStatus>(futures(), handle);
+}
+
+bool ConsentInfoInternalStub::CanRequestAds() {
+  bool consent_status_ok = (consent_status_ == kConsentStatusObtained ||
+                            consent_status_ == kConsentStatusNotRequired);
+  bool privacy_options_ok = (privacy_options_requirement_status_ !=
+                             kPrivacyOptionsRequirementStatusUnknown);
+  return consent_status_ok && privacy_options_ok;
 }
 
 void ConsentInfoInternalStub::Reset() {

@@ -192,6 +192,18 @@ enum ConsentFormError {
   kConsentFormErrorOperationInProgress
 };
 
+/// Whether the privacy options need to be displayed.
+enum PrivacyOptionsRequirementStatus {
+  /// Privacy options requirement status is unknown. Call
+  /// `ConsentInfo::RequestConsentStatus()` to update.
+  kPrivacyOptionsRequirementStatusUnknown = 0,
+  /// Privacy options are not required to be shown.
+  kPrivacyOptionsRequirementStatusNotRequired,
+  /// Privacy options must be shown. Call
+  /// `ConsentInfo::ShowPrivacyOptionsForm()` to fulfil this requirement.
+  kPrivacyOptionsRequirementStatusRequired
+};
+
 }  // namespace ump
 }  // namespace gma
 }  // namespace firebase

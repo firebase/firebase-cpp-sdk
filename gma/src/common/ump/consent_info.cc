@@ -126,6 +126,27 @@ Future<ConsentStatus> ConsentInfo::ShowConsentFormLastResult() {
   return internal_->ShowConsentFormLastResult();
 }
 
+Future<ConsentStatus> ConsentInfo::LoadAndShowConsentFormIfRequired(
+    FormParent parent) {
+  return internal_->LoadAndShowConsentFormIfRequired(parent);
+}
+
+Future<ConsentStatus>
+ConsentInfo::LoadAndShowConsentFormIfRequiredLastResult() {
+  return internal_->LoadAndShowConsentFormIfRequiredLastResult();
+}
+
+PrivacyOptionsRequirementStatus
+ConsentInfo::GetPrivacyOptionsRequirementStatus() {
+  return internal_->GetPrivacyOptionsRequirementStatus();
+}
+
+Future<ConsentStatus> ConsentInfo::ShowPrivacyOptionsForm(FormParent parent) {
+  return internal_->ShowPrivacyOptionsForm(parent);
+}
+
+bool ConsentInfo::CanRequestAds() { return internal_->CanRequestAds(); }
+
 void ConsentInfo::Reset() { return internal_->Reset(); }
 
 }  // namespace ump

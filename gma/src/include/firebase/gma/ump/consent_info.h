@@ -136,6 +136,26 @@ class ConsentInfo {
   /// Get the Future from the most recent call to ShowConsentForm().
   Future<ConsentStatus> ShowConsentFormLastResult();
 
+  /// If required, load and then show the consent form. You can call this
+  /// instead of LoadConsentForm() and ShowConsentForm().
+  Future<ConsentStatus> LoadAndShowConsentFormIfRequired(FormParent parent);
+
+  /// Get the Future from the most recent call to
+  /// LoadAndShowConsentFormIfRequired().
+  Future<ConsentStatus> LoadAndShowConsentFormIfRequiredLastResult();
+
+  /// Check whether the privacy options form needs to be displayed.
+  /// This is updated by RequestConsentStatus().
+  PrivacyOptionsRequirementStatus GetPrivacyOptionsRequirementStatus();
+
+  /// If needed, show the privacy options form to the user. This allows them to
+  /// revoke their consent.
+  Future<ConsentStatus> ShowPrivacyOptionsForm(FormParent parent);
+
+  /// If this returns true, it is now safe to request ads. If not, do not show
+  /// ads to the user. This is updated by RequestConsentStatus().
+  bool CanRequestAds();
+
   /// Clears all consent state from persistent storage. This can be used in
   /// development to simulate a new installation.
   void Reset();

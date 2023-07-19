@@ -39,11 +39,22 @@ class ConsentInfoInternalStub : public ConsentInfoInternal {
   Future<ConsentFormStatus> LoadConsentForm() override;
   Future<ConsentStatus> ShowConsentForm(FormParent parent) override;
 
+  virtual Future<ConsentStatus> LoadAndShowConsentFormIfRequired(
+      FormParent parent) override;
+
+  virtual PrivacyOptionsRequirementStatus GetPrivacyOptionsRequirementStatus()
+      override;
+  virtual Future<ConsentStatus> ShowPrivacyOptionsForm(
+      FormParent parent) override;
+
+  virtual bool CanRequestAds() override;
+
   void Reset() override;
 
  private:
   ConsentStatus consent_status_;
   ConsentFormStatus consent_form_status_;
+  PrivacyOptionsRequirementStatus privacy_options_requirement_status_;
 };
 
 }  // namespace internal
