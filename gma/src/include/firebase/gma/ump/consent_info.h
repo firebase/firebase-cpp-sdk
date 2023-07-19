@@ -39,6 +39,8 @@ namespace internal {
 class ConsentInfoInternal;
 }  // namespace internal
 
+/// This class contains all of the methods necessary for obtaining
+/// consent from the user.
 class ConsentInfo {
  public:
   /// Shut down the User Messaging Platform Consent SDK
@@ -64,7 +66,7 @@ class ConsentInfo {
   /// Initializes the User Messaging Platform Consent SDK without Firebase for
   /// Android.
   ///
-  /// The arguments to @ref Initialize are platform-specific so the caller must
+  /// The arguments to GetInstance() are platform-specific so the caller must
   /// do something like this:
   /// @code
   /// #if defined(__ANDROID__)

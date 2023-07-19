@@ -27,54 +27,69 @@ namespace firebase {
 namespace gma {
 namespace ump {
 
+/// Debug values for testing geography.
 enum ConsentDebugGeography {
+  /// Disable geography debugging.
   kConsentDebugGeographyDisabled = 0,
+  /// Geography appears as in EEA for debug devices.
   kConsentDebugGeographyEEA,
+  /// Geography appears as not in EEA for debug devices.
   kConsentDebugGeographyNonEEA
 };
 
+/// Debug settings for `ConsentInfo::RequestConsentStatus()`. These let you
+/// force a speific geographic location. Be sure to include debug device IDs to
+/// enable this on hardware. Debug features are always enabled for simulators.
 struct ConsentDebugSettings {
+  /// Create a default debug setting, with debugging disabled.
   ConsentDebugSettings() : debug_geography(kConsentDebugGeographyDisabled) {}
 
+  /// The geographical location, for debugging.
   ConsentDebugGeography debug_geography;
+  /// A list of all device IDs that are allowed to use debug settings. You can
+  /// obtain this from the device log after running with debug settings enabled.
   std::vector<std::string> debug_device_ids;
 };
 
-// Parameters for the consent info request operation.
+/// Parameters for the `ConsentInfo::RequestConsentStatus()` operation. You must
+/// explicitly set the age of consent tag (to true or false) or the operation
+/// will fail.
 class ConsentRequestParameters {
  public:
   ConsentRequestParameters()
       : has_debug_settings_(false),
         tag_for_under_age_of_consent_(false),
         has_tag_for_under_age_of_consent_(false) {}
-  // Set the age of consent tag.
+  /// Set the age of consent tag. This indicates whether the user is tagged for
+  /// under age of consent. This is a required setting.
   void set_tag_for_under_age_of_consent(bool tag) {
     tag_for_under_age_of_consent_ = tag;
     has_tag_for_under_age_of_consent_ = true;
   }
-  // Get the age of consent tag.
+  /// Get the age of consent tag. This indicates whether the user is tagged for
+  /// under age of consent.
   bool tag_for_under_age_of_consent() const {
     return tag_for_under_age_of_consent_;
   }
-  // Get whether the age of consent tag was previously set.
+  /// Get whether the age of consent tag was previously set.
   bool has_tag_for_under_age_of_consent() const {
     return has_tag_for_under_age_of_consent_;
   }
 
-  // Set the debug settings.
+  /// Set the debug settings.
   void set_debug_settings(const ConsentDebugSettings& settings) {
     debug_settings_ = settings;
     has_debug_settings_ = true;
   }
-  // Set the debug settings without copying data, useful if you have a large
-  // list of debug device IDs.
+  /// Set the debug settings without copying data, which could be useful if you
+  /// have a large list of debug device IDs.
   void set_debug_settings(const ConsentDebugSettings&& settings) {
     debug_settings_ = std::move(settings);
     has_debug_settings_ = true;
   }
-  // Get the debug settings.
+  /// Get the debug settings.
   const ConsentDebugSettings& debug_settings() const { return debug_settings_; }
-  // Get whether debug settings were set.
+  /// Get whether debug settings were set.
   bool has_debug_settings() const { return has_debug_settings_; }
 
  private:
@@ -104,43 +119,76 @@ typedef void* FormParent;
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
         // FIREBASE_PLATFORM_TVOS
 
+/// Consent status values.
 enum ConsentStatus {
-  // Unknown status, e.g. prior to calling Request, or if the request fails.
+  /// Unknown status, e.g. prior to calling Request, or if the request fails.
   kConsentStatusUnknown = 0,
-  // Consent is required, but not obtained
+  /// Consent is required, but not obtained
   kConsentStatusRequired,
-  // Consent is not required
+  /// Consent is not required
   kConsentStatusNotRequired,
-  // Consent was required, and has been obtained
+  /// Consent was required, and has been obtained
   kConsentStatusObtained
 };
 
+/// Errors that can occur during a RequestConsentStatus operation.
 enum ConsentRequestError {
+  /// The operation succeeded.
   kConsentRequestSuccess = 0,
+  /// Invalid GMA App ID specified in AndroidManifest.xml or Info.plist.
   kConsentRequestErrorInvalidAppId,
+  /// A network error occurred.
   kConsentRequestErrorNetwork,
+  /// The tag for age of consent was not set. You must call
+  /// `ConsentRequestParameters::set_tag_for_under_age_of_consent()` before the
+  /// request.
   kConsentRequestErrorTagForAgeOfConsentNotSet,
+  /// An internal error occurred.
   kConsentRequestErrorInternal,
+  /// This error is undocumented.
   kConsentRequestErrorCodeMisconfiguration,
+  /// An unknown error occurred.
   kConsentRequestErrorUnknown,
+  /// The operation is already in progress. Use
+  /// `ConsentInfo::RequestConsentStatusLastResult()`
+  /// to get the status.
   kConsentRequestErrorOperationInProgress
 };
 
+/// Status of the consent form, whether it is available to show or not.
 enum ConsentFormStatus {
+  /// Status is unknown. Call `ConsentInfo::RequestConsentStatus()` to update
+  /// this.
   kConsentFormStatusUnknown = 0,
+  /// The consent form is unavailable. Call `ConsentInfo::LoadConsentForm()` to
+  /// load it.
   kConsentFormStatusUnavailable,
+  /// The consent form is available. Call `ConsentInfo::ShowConsentForm()` to
+  /// display it.
   kConsentFormStatusAvailable,
 };
 
+/// Errors when loading or showing the consent form.
 enum ConsentFormError {
+  /// The operation succeeded.
   kConsentFormSuccess = 0,
+  /// The load request timed out. Try again.
   kConsentFormErrorTimeout,
+  /// Failed to show the consent form because it has not been loaded.
   kConsentFormErrorNotLoaded,
+  /// An internal error occurred.
   kConsentFormErrorInternal,
+  /// An unknown error occurred.
   kConsentFormErrorUnknown,
+  /// This form was already used.
   kConsentFormErrorCodeAlreadyUsed,
+  /// An invalid operation occurred. Try again.
   kConsentFormErrorInvalidOperation,
+  /// General network issues occurred. Try again.
   kConsentFormErrorNetwork,
+  /// The operation is already in progress. Call
+  /// `ConsentInfo::LoadConsentFormLastResult()` or
+  /// `ConsentInfo::ShowConsentFormLastResult()` to get the status.
   kConsentFormErrorOperationInProgress
 };
 
