@@ -15,16 +15,16 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_PERSISTENT_CONNECTION_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_PERSISTENT_CONNECTION_H_
 
+#include <atomic>
 #include <cassert>
 #include <map>
+#include <memory>
 #include <queue>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
-#include "app/memory/atomic.h"
-#include "app/memory/shared_ptr.h"
-#include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"
@@ -63,7 +63,7 @@ class PersistentConnectionEventHandler;
 // structure reference to update.
 class Response {
  public:
-  typedef void (*ResponseCallback)(const SharedPtr<Response>& response);
+  typedef void (*ResponseCallback)(const std::shared_ptr<Response>& response);
   explicit Response(ResponseCallback callback) : callback_(callback) {
     // Do not enforce non-null callback here since the Response can be used
     // to purely capture data when request is created, ex. SendAuthResponse.
@@ -96,7 +96,7 @@ class Response {
   friend class PersistentConnection;
 };
 // Use shared point so that it is easier to be forwarded to callbacks.
-typedef SharedPtr<Response> ResponsePtr;
+typedef std::shared_ptr<Response> ResponsePtr;
 
 class PersistentConnection : public ConnectionEventHandler {
  public:
@@ -154,9 +154,9 @@ class PersistentConnection : public ConnectionEventHandler {
   void Merge(const Path& path, const Variant& data, ResponsePtr response);
 
   // Purge all outstanding Put/Merge/OnDisconnectPut/OnDisconnectMerge requests.
-  // All response callback will be triggered with "write_canceled" error code.
+  // All response callback will be triggered with the given error code.
   // This should only be called from scheduler thread.
-  void PurgeOutstandingWrites();
+  void PurgeOutstandingWrites(Error error = kErrorWriteCanceled);
 
   // Overwrite the value at the given path on disconnection.
   // This should only be called from scheduler thread.
@@ -185,6 +185,8 @@ class PersistentConnection : public ConnectionEventHandler {
   // Check if the connection is currently interrupted manually.
   // This should only be called from scheduler thread.
   bool IsInterrupted();
+
+  void RefreshAppCheckToken(const std::string& token);
 
  private:
   // Enum of all the reason to interrupt the connection.
@@ -221,7 +223,7 @@ class PersistentConnection : public ConnectionEventHandler {
   struct RequestData {
     explicit RequestData(ResponsePtr response, ConnectionResponseHandler cb,
                          uint64_t id)
-        : response(Move(response)), callback(cb), outstanding_id(id) {}
+        : response(std::move(response)), callback(cb), outstanding_id(id) {}
 
     // Pointer to the response.  Can be nullptr
     ResponsePtr response;
@@ -233,7 +235,7 @@ class PersistentConnection : public ConnectionEventHandler {
     // Custom id to find outstanding puts or listens
     uint64_t outstanding_id;
   };
-  typedef UniquePtr<RequestData> RequestDataPtr;
+  typedef std::unique_ptr<RequestData> RequestDataPtr;
 
   // Capture the outstanding or ongoing listen requests.
   struct OutstandingListen {
@@ -258,14 +260,17 @@ class PersistentConnection : public ConnectionEventHandler {
     // std::function with lambda capture in RequestData.
     uint64_t outstanding_id;
   };
-  typedef UniquePtr<OutstandingListen> OutstandingListenPtr;
+  typedef std::unique_ptr<OutstandingListen> OutstandingListenPtr;
 
   // Capture the outstanding OnDisconnect requests when the connection is not
   // established yet.
   struct OutstandingOnDisconnect {
     explicit OutstandingOnDisconnect(const char* action, const Path& path,
                                      const Variant& data, ResponsePtr response)
-        : action(action), path(path), data(data), response(Move(response)) {}
+        : action(action),
+          path(path),
+          data(data),
+          response(std::move(response)) {}
 
     // Action of the request such as PUT, MERGE and CANCEL
     std::string action;
@@ -279,14 +284,17 @@ class PersistentConnection : public ConnectionEventHandler {
     // Response pointer to be triggered once the response is received
     ResponsePtr response;
   };
-  typedef UniquePtr<OutstandingOnDisconnect> OutstandingOnDisconnectPtr;
+  typedef std::unique_ptr<OutstandingOnDisconnect> OutstandingOnDisconnectPtr;
 
   // Capture the outstanding Put requests when the connection is not
   // established yet.
   struct OutstandingPut {
     explicit OutstandingPut(const char* action, const Variant& data,
                             ResponsePtr response)
-        : action(action), data(data), response(Move(response)), sent(false) {}
+        : action(action),
+          data(data),
+          response(std::move(response)),
+          sent(false) {}
 
     // Action of the request such as PUT, MERGE and CANCEL
     std::string action;
@@ -304,7 +312,7 @@ class PersistentConnection : public ConnectionEventHandler {
 
     bool WasSent() { return sent; }
   };
-  typedef UniquePtr<OutstandingPut> OutstandingPutPtr;
+  typedef std::unique_ptr<OutstandingPut> OutstandingPutPtr;
 
   void InterruptInternal(InterruptReason reason);
   void ResumeInternal(InterruptReason reason);
@@ -317,15 +325,26 @@ class PersistentConnection : public ConnectionEventHandler {
   // Try to reconnect to RT DB server.
   void TryScheduleReconnect();
 
-  // Callback function when the future to fetch token is complete.
-  static void OnTokenFutureComplete(const Future<std::string>& result_data,
-                                    void* user_data);
-  void HandleTokenFuture(Future<std::string> future);
+  // Callback function when the Auth future to fetch token is complete.
+  static void OnAuthTokenFutureComplete(const Future<std::string>& auth_future,
+                                        void* user_data);
+  // Callback function when the App Check future to fetch token is complete.
+  static void OnAppCheckTokenFutureComplete(
+      const Future<std::string>& app_check_future, void* user_data);
+  void HandleTokenFutures();
 
-  // Pending future to fetch the token.
-  Future<std::string> pending_token_future_;
   // Mutex to protect pending_token_future_
   Mutex pending_token_future_mutex_;
+  enum TokenFutureStatus {
+    kInvalidTokenFuture = 0,
+    kWaitingForTokenFuture,
+    kCompletedTokenFuture,
+  };
+  // Pending future to fetch the auth token.
+  Future<std::string> pending_auth_token_future_;
+  TokenFutureStatus auth_token_future_status_;
+  Future<std::string> pending_app_check_token_future_;
+  TokenFutureStatus app_check_token_future_status_;
 
   // Start to establish connection to RT DB server.
   void OpenNetworkConnection();
@@ -415,6 +434,11 @@ class PersistentConnection : public ConnectionEventHandler {
 
   void OnAuthRevoked(Error error_code, const std::string& reason);
 
+  // ConnectionResponseHandler function for SendAuthToken request.
+  void HandleAppCheckTokenResponse(const Variant& message,
+                                   const ResponsePtr& response,
+                                   uint64_t outstanding_id);
+
   static void TriggerResponse(const ResponsePtr& response_ptr, Error error_code,
                               const std::string& error_message);
 
@@ -471,14 +495,14 @@ class PersistentConnection : public ConnectionEventHandler {
   static int kInvalidAuthTokenThreshold;
 
   // Log id.  Unique for each persistent connection.
-  static compat::Atomic<uint32_t> next_log_id_;
+  static std::atomic<uint32_t> next_log_id_;
   std::string log_id_;
 
   // Reference to Firebase App.  Primarily used to get auth token.
   ::firebase::App* app_;
 
   // Safe reference to this.  Set in constructor and cleared in destructor
-  // Should be safe to be copied in any thread because the SharedPtr never
+  // Should be safe to be copied in any thread because the std::shared_ptr never
   // changes, until safe_this_ is completely destroyed.
   typedef firebase::internal::SafeReference<PersistentConnection> ThisRef;
   typedef firebase::internal::SafeReferenceLock<PersistentConnection>
@@ -495,7 +519,7 @@ class PersistentConnection : public ConnectionEventHandler {
   PersistentConnectionEventHandler* event_handler_;
 
   // Current connection.
-  UniquePtr<Connection> realtime_;
+  std::unique_ptr<Connection> realtime_;
 
   // States
   ConnectionState connection_state_;
@@ -514,6 +538,9 @@ class PersistentConnection : public ConnectionEventHandler {
   // Auth
   std::string auth_token_;
   bool force_auth_refresh_;
+
+  // App Check
+  std::string app_check_token_;
 
   // Interrupt
   std::set<InterruptReason> interrupt_reasons_;

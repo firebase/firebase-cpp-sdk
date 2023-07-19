@@ -19,6 +19,7 @@ import logging
 import subprocess
 import shutil
 import re
+from retry import retry
 
 GSUTIL = shutil.which("gsutil")
 
@@ -73,7 +74,7 @@ def _get_testapp_log_text_from_gcs(gcs_path):
     logging.error("Unexpected error reading GCS log:\n%s", e)
     return None
 
-
+@retry(subprocess.CalledProcessError, tries=3, delay=10)
 def _gcs_list_dir(gcs_path):
   """Recursively returns a list of contents for a directory on GCS."""
   args = [GSUTIL, "ls", "-r", gcs_path]
@@ -82,6 +83,7 @@ def _gcs_list_dir(gcs_path):
   return result.stdout.splitlines()
 
 
+@retry(subprocess.CalledProcessError, tries=3, delay=10)
 def _gcs_read_file(gcs_path):
   """Extracts the contents of a file on GCS."""
   args = [GSUTIL, "cat", gcs_path]

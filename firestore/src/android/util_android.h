@@ -70,7 +70,7 @@ jni::Local<jni::HashMap> MakeJavaMap(jni::Env& env, const MapFieldValue& data);
  */
 struct UpdateFieldPathArgs {
   jni::Local<jni::Object> first_field;
-  jni::Object first_value;
+  jni::Local<jni::Object> first_value;
   jni::Local<jni::Array<jni::Object>> varargs;
 };
 

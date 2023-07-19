@@ -14,9 +14,10 @@
 
 #include "database/src/desktop/core/sync_tree.h"
 
+#include <memory>
+#include <utility>
 #include <vector>
 
-#include "app/memory/unique_ptr.h"
 #include "app/src/assert.h"
 #include "app/src/callback.h"
 #include "app/src/include/firebase/variant.h"
@@ -97,7 +98,7 @@ std::vector<Event> SyncTree::AckUserWrite(WriteId write_id, AckStatus revert,
 }
 
 std::vector<Event> SyncTree::AddEventRegistration(
-    UniquePtr<EventRegistration> event_registration) {
+    std::unique_ptr<EventRegistration> event_registration) {
   std::vector<Event> events;
 
   persistence_manager_->RunInTransaction([&, this]() -> bool {
@@ -200,7 +201,7 @@ std::vector<Event> SyncTree::AddEventRegistration(
       tag_to_query_spec_map_[*tag] = query_spec;
     }
     WriteTreeRef writes_cache = pending_write_tree_->ChildWrites(path);
-    events = sync_point->AddEventRegistration(Move(event_registration),
+    events = sync_point->AddEventRegistration(std::move(event_registration),
                                               writes_cache, server_cache,
                                               persistence_manager_.get());
     if (!view_already_exists && !found_ancestor_default_view) {
@@ -527,7 +528,7 @@ void SyncTree::SetKeepSynchronized(const QuerySpec& query_spec,
       keep_synced_queries_.find(query_spec) != keep_synced_queries_.end();
   if (keep_synchronized && !contains) {
     AddEventRegistration(
-        MakeUnique<KeepSyncedEventRegistration>(this, query_spec));
+        std::make_unique<KeepSyncedEventRegistration>(this, query_spec));
     keep_synced_queries_.insert(query_spec);
   } else if (!keep_synchronized && contains) {
     RemoveEventRegistration(query_spec, this, kErrorNone);

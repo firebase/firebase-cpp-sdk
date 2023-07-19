@@ -1,0 +1,91 @@
+name: Generate Test Report Table
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 15 * * *"  # 3pm UTC = 7am PST / 8am PDT, 6 hours after testapps run
+
+env:
+  GITHUB_TOKEN: ${{ github.token }}
+  numDays: 7
+  numDaysExtended: 30
+  numTestsSummary: 10
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Setup python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Install Desktop SDK prerequisites
+      uses: nick-invision/retry@v2
+      with:
+        timeout_minutes: 15
+        max_attempts: 3
+        command: |
+          python3 scripts/gha/install_prereqs_desktop.py --gha_build
+          python3 -m pip install requests python-dateutil progress attrs
+    - name: Fetch GitHub jobs (with retry)
+      uses: nick-invision/retry@v2
+      with:
+        timeout_minutes: 20
+        max_attempts: 3
+        shell: bash
+        command: python3 scripts/gha/report_build_status.py --token ${{ github.token }} --days ${{ env.numDays }} --write_cache build_status_short.cache
+    - name: Fetch extended GitHub jobs (with retry)
+      uses: nick-invision/retry@v2
+      with:
+        timeout_minutes: 80
+        max_attempts: 3
+        shell: bash
+        command: python3 scripts/gha/report_build_status.py --token ${{ github.token }} --days ${{ env.numDaysExtended }} --write_cache build_status.cache
+    - name: Generate report files
+      run: |
+        python3 scripts/gha/report_build_status.py --token ${{ github.token }} --days ${{ env.numDays }} --output_markdown --read_cache build_status_short.cache > report_short.md
+        python3 scripts/gha/report_build_status.py --token ${{ github.token }} --days ${{ env.numDaysExtended }} --output_markdown --read_cache build_status.cache > report_extended.md
+        python3 scripts/gha/report_build_status.py --token ${{ github.token }} --days ${{ env.numDaysExtended }} --output_markdown --read_cache build_status.cache --report=test_summary --summary_count=${{ env.numTestsSummary }} > test_summary.md
+        python3 scripts/gha/report_build_status.py --token ${{ github.token }} --days ${{ env.numDays }} --nooutput_header --read_cache build_status_short.cache > report.txt
+    - name: Generate comment string
+      run: |
+        echo -n > comment.md
+        cat >> comment.md <<EOF
+        EOF
+        cat report_short.md >> comment.md
+        cat >> comment.md <<EOF
+
+        <details><summary>View extended history (last ${{ env.numDaysExtended }} days)</summary>
+
+        EOF
+        cat report_extended.md >> comment.md
+        cat >> comment.md <<EOF
+        </details>
+        <details><summary>Top ${{ env.numTestsSummary }} flakes/failures (last ${{ env.numDaysExtended }} days)</summary>
+
+        EOF
+        cat test_summary.md >> comment.md
+        cat >> comment.md <<EOF
+        </details>
+        <details><summary>📄</summary><pre>
+        EOF
+        cat report.txt >> comment.md
+        cat >> comment.md <<EOF
+        </pre></details>
+
+        ***
+
+        EOF
+    - name: Show comment string
+      run: |
+        cat comment.md
+    - name: Update GitHub issue (with retry)
+      uses: nick-invision/retry@v2
+      with:
+        timeout_minutes: 5
+        max_attempts: 3
+        shell: bash
+        command: python3 scripts/gha/update_issue_comment.py --token ${{ github.token }} --issue_title '[C++] Nightly Integration Testing Report' --start_tag build-dashboard-comment-start --end_tag build-dashboard-comment-end < comment.md

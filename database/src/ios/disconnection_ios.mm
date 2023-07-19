@@ -38,7 +38,7 @@ enum DisconnectionHandlerFn {
 };
 
 DisconnectionHandlerInternal::DisconnectionHandlerInternal(
-    DatabaseInternal* database, UniquePtr<FIRDatabaseReferencePointer> impl)
+    DatabaseInternal* database, std::unique_ptr<FIRDatabaseReferencePointer> impl)
     : database_(database), impl_(std::move(impl)) {
   database_->future_manager().AllocFutureApi(this, kDisconnectionHandlerFnCount);
 }

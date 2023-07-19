@@ -15,6 +15,7 @@
 #include "app_check/src/desktop/debug_provider_desktop.h"
 
 #include <map>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -34,7 +35,7 @@ namespace internal {
 
 class DebugAppCheckProvider : public AppCheckProvider {
  public:
-  explicit DebugAppCheckProvider(App* app);
+  DebugAppCheckProvider(App* app, const std::string& token);
   ~DebugAppCheckProvider() override;
 
   void GetToken(std::function<void(AppCheckToken, int, const std::string&)>
@@ -44,10 +45,12 @@ class DebugAppCheckProvider : public AppCheckProvider {
   App* app_;
 
   scheduler::Scheduler scheduler_;
+
+  std::string debug_token_;
 };
 
-DebugAppCheckProvider::DebugAppCheckProvider(App* app)
-    : app_(app), scheduler_() {
+DebugAppCheckProvider::DebugAppCheckProvider(App* app, const std::string& token)
+    : app_(app), scheduler_(), debug_token_(token) {
   firebase::rest::util::Initialize();
   firebase::rest::InitTransportCurl();
 }
@@ -59,7 +62,7 @@ DebugAppCheckProvider::~DebugAppCheckProvider() {
 
 // Performs the given rest request, and calls the callback based on the
 // response.
-void GetTokenAsync(SharedPtr<DebugTokenRequest> request,
+void GetTokenAsync(std::shared_ptr<DebugTokenRequest> request,
                    std::function<void(AppCheckToken, int, const std::string&)>
                        completion_callback) {
   TokenResponse response;
@@ -90,13 +93,22 @@ void DebugAppCheckProvider::GetToken(
     std::function<void(AppCheckToken, int, const std::string&)>
         completion_callback) {
   // Identify the user's debug token
-  // TODO(amaurice): For now uses an environment variable, but should use other
-  // options.
-  const char* debug_token = std::getenv("APP_CHECK_DEBUG_TOKEN");
+  const char* debug_token_cstr;
+  if (!debug_token_.empty()) {
+    debug_token_cstr = debug_token_.c_str();
+  } else {
+    debug_token_cstr = std::getenv("APP_CHECK_DEBUG_TOKEN");
+  }
+
+  if (!debug_token_cstr) {
+    completion_callback({}, kAppCheckErrorInvalidConfiguration,
+                        "Missing debug token");
+    return;
+  }
 
   // Exchange debug token with the backend to get a proper attestation token.
-  auto request = MakeShared<DebugTokenRequest>(app_);
-  request->SetDebugToken(debug_token);
+  auto request = std::make_shared<DebugTokenRequest>(app_);
+  request->SetDebugToken(debug_token_cstr);
 
   // Use an async call, since we don't want to block on the server response.
   auto async_call =
@@ -105,7 +117,7 @@ void DebugAppCheckProvider::GetToken(
 }
 
 DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal()
-    : provider_map_() {}
+    : provider_map_(), debug_token_() {}
 
 DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
   // Clear the map
@@ -123,9 +135,14 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(
     return it->second;
   }
   // Create a new provider and cache it
-  AppCheckProvider* provider = new DebugAppCheckProvider(app);
+  AppCheckProvider* provider = new DebugAppCheckProvider(app, debug_token_);
   provider_map_[app] = provider;
   return provider;
+}
+
+void DebugAppCheckProviderFactoryInternal::SetDebugToken(
+    const std::string& token) {
+  debug_token_ = token;
 }
 
 }  // namespace internal

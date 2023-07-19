@@ -91,6 +91,8 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS
     # public API are performed.
     src/integration_test.cc
     # Internal tests below.
+    src/aggregate_query_snapshot_test.cc
+    src/aggregate_query_test.cc
     src/bundle_test.cc
     src/collection_reference_test.cc
     src/cursor_test.cc
@@ -121,6 +123,7 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS
 
 # These sources contain the actual tests that run on Android only.
 set(FIREBASE_INTEGRATION_TEST_ANDROID_TEST_SRCS
+    src/android/arena_ref_android_test.cc
     src/android/field_path_portable_test.cc
     src/android/firestore_integration_test_android_test.cc
     src/android/geo_point_android_test.cc
@@ -230,8 +233,9 @@ include_directories(${ABSEIL_CPP_ROOT})
 # Allow testing internal Firebase APIs.
 add_definitions(-DINTERNAL_EXPERIMENTAL)
 
-# Integration test uses some features that require C++ 11, such as lambdas.
-set (CMAKE_CXX_STANDARD 11)
+# Firebase C++ SDK requires C++14.
+set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_STANDARD_REQUIRED YES)  # Don't fall back to an earlier version.
 
 # Download and unpack googletest (and googlemock) at configure time
 set(GOOGLETEST_ROOT ${CMAKE_CURRENT_LIST_DIR}/external/googletest)

@@ -20,7 +20,7 @@ endif()
 
 # If the format of the line below changes, then be sure to update
 # https://github.com/firebase/firebase-cpp-sdk/blob/fd054fa016/.github/workflows/update-dependencies.yml#L81
-set(version CocoaPods-10.5.0)
+set(version CocoaPods-10.12.0)
 
 function(GetReleasedDep)
   message("Getting released firebase-ios-sdk @ ${version}")
@@ -49,6 +49,7 @@ function(GetTag t)
     DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
     GIT_REPOSITORY "https://github.com/firebase/firebase-ios-sdk.git"
     GIT_TAG ${t}
+    GIT_CONFIG "core.autocrlf=input"
     GIT_SHALLOW "ON"
 
     PREFIX ${PROJECT_BINARY_DIR}

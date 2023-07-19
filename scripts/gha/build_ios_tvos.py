@@ -48,7 +48,7 @@ import utils
 # Configuration for supported os's, and platforms.
 CONFIG = {
   'ios': {
-    'supported_targets' : ('firebase_admob', 'firebase_analytics', 'firebase_app_check',
+    'supported_targets' : ('firebase_analytics', 'firebase_app_check',
                            'firebase_auth', 'firebase_database',
                            'firebase_dynamic_links', 'firebase_firestore',
                            'firebase_functions', 'firebase_gma',
@@ -138,14 +138,14 @@ def build_universal_framework(frameworks_path, targets):
                 - ios
                   - device-arm64
                     - firebase.framework
-                    - firebase_admob.framework
+                    - firebase_analytics.framework
                     ...
                   - simulator-i386
                   ...
                 - tvos
                   - device-arm64
                     - firebase.framework
-                    - firebase_admob.framework
+                    - firebase_analytics.framework
                     ...
                   - simulator-x86_64
                   ...
@@ -159,7 +159,7 @@ def build_universal_framework(frameworks_path, targets):
                   ...
                   - universal                     <-------------- Newly created
                     - firebase.framework
-                    - firebase_admob.framework
+                    - firebase_analytics.framework
                     ...
                 - tvos
                   - device-arm64
@@ -169,7 +169,7 @@ def build_universal_framework(frameworks_path, targets):
                   ...
                   - universal                     <-------------- Newly created
                     - firebase.framework
-                    - firebase_admob.framework
+                    - firebase_analytics.framework
                     ...
 
   """
@@ -289,14 +289,14 @@ def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist,
                 - ios                           <---------- <frameworks_os_path>
                   - device-arm64
                     - firebase.framework
-                    - firebase_admob.framework
+                    - firebase_analytics.framework
                     ...
                   - simulator-i386
                   ...
                 - tvos
                   - device-arm64
                     - firebase.framework
-                    - firebase_admob.framework
+                    - firebase_analytics.framework
                     ...
                   - simulator-x86_64
                   ...
@@ -587,7 +587,7 @@ def parse_cmdline_args():
     default=('arm64', 'armv7', 'x86_64', 'i386'),
     help='List of architectures to build for.')
   parser.add_argument('-t', '--target', nargs='+',
-    default=( 'firebase_admob', 'firebase_analytics',
+    default=( 'firebase_analytics', 'firebase_app_check',
               'firebase_auth', 'firebase_database',
               'firebase_dynamic_links', 'firebase_firestore',
               'firebase_functions', 'firebase_gma',

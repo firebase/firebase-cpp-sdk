@@ -15,15 +15,20 @@
 #include <inttypes.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <future>
+#include <memory>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
+#include "firebase/internal/platform.h"
 #include "firebase/log.h"
 #include "firebase/remote_config.h"
+#include "firebase/remote_config/config_update_listener_registration.h"
 #include "firebase/util.h"
 #include "firebase_test_framework.h"  // NOLINT
 
@@ -192,6 +197,8 @@ TEST_F(FirebaseRemoteConfigTest, TestInitializeAndTerminate) {
   // Already tested via SetUp() and TearDown().
 }
 
+/// This test requires to be run on a device or simulator that does not have a
+/// newer version of the config saved on disk from a previous test run.
 TEST_F(FirebaseRemoteConfigTest, TestSetDefault) {
   ASSERT_NE(rc_, nullptr);
 
@@ -252,6 +259,93 @@ TEST_F(FirebaseRemoteConfigTest, TestSetDefault) {
 #endif  // defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
     );
   }
+}
+
+/// This test requires to be run on a device or simulator that does not have the
+/// template version number stored on the disk or auto-fetch will be skipped.
+TEST_F(FirebaseRemoteConfigTest, TestAddOnConfigUpdateListener) {
+  ASSERT_NE(rc_, nullptr);
+
+  // Check if the config has default values. If not, we have cached data
+  // from a previous test run, and auto-fetch will not happen.
+  EXPECT_TRUE(WaitForCompletion(SetDefaults(rc_), "SetDefaults"));
+  bool validated_defaults = true;
+  firebase::remote_config::ValueInfo value_info;
+  bool bool_value = rc_->GetBoolean("TestBoolean", &value_info);
+  bool has_cached_data =
+      value_info.source != firebase::remote_config::kValueSourceDefaultValue;
+
+  if (has_cached_data) {
+    LogWarning(
+        "Can't validate defaults, they've been overridden by server values.\n"
+#if defined(__ANDROID__)
+        "Delete the app's data and run this test again to test\n"
+        " AddOnConfigUpdateListener: adb shell pm clear [bundle ID]"
+#elif defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+        "Uninstall and re-install the app and run this again to test "
+        "AddOnConfigUpdateListener."
+#else  // Desktop
+        "Delete the Remote Config cache and run this test again to test "
+        "AddOnConfigUpdateListener:\n"
+#if defined(_WIN32)
+        " del remote_config_data"
+#else
+        " rm remote_config_data"
+#endif  // defined(_WIN32)
+#endif  // defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+    );
+  }
+// Realtime RC is not yet supported on desktop.
+#if FIREBASE_PLATFORM_DESKTOP
+  rc_->AddOnConfigUpdateListener(
+      [](firebase::remote_config::ConfigUpdate&&,
+         firebase::remote_config::RemoteConfigError) {});
+#else
+  auto config_update_promise = std::make_shared<std::promise<void> >();
+
+  firebase::remote_config::ConfigUpdateListenerRegistration registration =
+      rc_->AddOnConfigUpdateListener(
+          [&, config_update_promise](
+              firebase::remote_config::ConfigUpdate&& configUpdate,
+              firebase::remote_config::RemoteConfigError remoteConfigError) {
+            EXPECT_EQ(configUpdate.updated_keys.size(), 5);
+            config_update_promise->set_value();
+          });
+  if (!has_cached_data) {
+    auto config_update_future = config_update_promise->get_future();
+    ASSERT_EQ(std::future_status::ready,
+              config_update_future.wait_for(std::chrono::milliseconds(30000)));
+
+    // On Android WaitForCompletion must be called from the main thread,
+    // so Activate is called here outside of the listener.
+    EXPECT_TRUE(WaitForCompletion(rc_->Activate(), "Activate"));
+    LogDebug("Real-time Config Update keys retrieved.");
+
+    std::map<std::string, firebase::Variant> key_values = rc_->GetAll();
+    EXPECT_EQ(key_values.size(), 6);
+
+    for (auto key_valur_pair : kServerValue) {
+      firebase::Variant k_value = key_valur_pair.value;
+      firebase::Variant fetched_value = key_values[key_valur_pair.key];
+      EXPECT_EQ(k_value.type(), fetched_value.type());
+      EXPECT_EQ(k_value, fetched_value);
+    }
+    registration.Remove();
+  }
+#endif  // !FIREBASE_PLATFORM_DESKTOP
+}
+
+TEST_F(FirebaseRemoteConfigTest, TestRemoveConfigUpdateListener) {
+#if !FIREBASE_PLATFORM_DESKTOP
+
+  firebase::remote_config::ConfigUpdateListenerRegistration registration =
+      rc_->AddOnConfigUpdateListener(
+          [](firebase::remote_config::ConfigUpdate&& configUpdate,
+             firebase::remote_config::RemoteConfigError remoteConfigError) {});
+
+  registration.Remove();
+
+#endif  // !FIREBASE_PLATFORM_DESKTOP
 }
 
 TEST_F(FirebaseRemoteConfigTest, TestGetKeys) {
@@ -405,5 +499,4 @@ TEST_F(FirebaseRemoteConfigTest, TestFetchSecondsParameter) {
 
   FLAKY_TEST_SECTION_END();
 }
-
 }  // namespace firebase_testapp_automated

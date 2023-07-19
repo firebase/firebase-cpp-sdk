@@ -28,6 +28,9 @@ namespace firebase {
 namespace app_check {
 namespace internal {
 
+// The key used by the iOS SDK to get the debug token from.
+static NSString* const kDebugTokenUserDefaultsKey = @"FIRAAppCheckDebugToken";
+
 class DebugAppCheckProvider : public AppCheckProvider {
  public:
   DebugAppCheckProvider(FIRAppCheckDebugProvider* provider);
@@ -59,7 +62,8 @@ void DebugAppCheckProvider::GetToken(
 
 DebugAppCheckProviderFactoryInternal::DebugAppCheckProviderFactoryInternal()
     : created_providers_() {
-  ios_provider_factory_ = [[FIRAppCheckDebugProviderFactory alloc] init];
+  ios_provider_factory_ = std::make_unique<FIRAppCheckDebugProviderFactoryPointer>(
+      [[FIRAppCheckDebugProviderFactory alloc] init]);
 }
 
 DebugAppCheckProviderFactoryInternal::~DebugAppCheckProviderFactoryInternal() {
@@ -78,10 +82,16 @@ AppCheckProvider* DebugAppCheckProviderFactoryInternal::CreateProvider(App* app)
   }
   // Otherwise, create a new provider
   FIRAppCheckDebugProvider* ios_provider =
-      [ios_provider_factory_ createProviderWithApp:app->GetPlatformApp()];
+      [ios_provider_factory() createProviderWithApp:app->GetPlatformApp()];
   AppCheckProvider* cpp_provider = new internal::DebugAppCheckProvider(ios_provider);
   created_providers_[app] = cpp_provider;
   return cpp_provider;
+}
+
+void DebugAppCheckProviderFactoryInternal::SetDebugToken(const std::string& token) {
+  // Write to the same location that the iOS SDK will read from.
+  NSString* token_string = (!token.empty()) ? util::StringToNSString(token) : nullptr;
+  [[NSUserDefaults standardUserDefaults] setObject:token_string forKey:kDebugTokenUserDefaultsKey];
 }
 
 }  // namespace internal

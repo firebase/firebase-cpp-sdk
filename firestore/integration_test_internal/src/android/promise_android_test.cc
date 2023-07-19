@@ -31,7 +31,6 @@
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/promise_factory_android.h"
-#include "firestore/src/common/make_unique.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/integer.h"
@@ -62,10 +61,9 @@ class PromiseTest : public FirestoreAndroidIntegrationTest {
 
   void SetUp() override {
     FirestoreAndroidIntegrationTest::SetUp();
-    jni::Env env = GetEnv();
-    cancellation_token_source_ = CancellationTokenSource::Create(env);
+    cancellation_token_source_ = CancellationTokenSource::Create(env());
     task_completion_source_ = TaskCompletionSource::Create(
-        env, cancellation_token_source_.GetToken(env));
+        env(), cancellation_token_source_.GetToken(env()));
   }
 
   // An enum of asynchronous functions to use in tests, as required by
@@ -79,27 +77,21 @@ class PromiseTest : public FirestoreAndroidIntegrationTest {
   PromiseFactory<AsyncFn>& promises() { return promises_; }
 
   jni::Local<jni::Task> GetTask() {
-    jni::Env env = GetEnv();
-    return task_completion_source_.GetTask(env);
+    return task_completion_source_.GetTask(env());
   }
 
   void SetTaskResult(int result) {
-    jni::Env env = GetEnv();
-    task_completion_source_.SetResult(env, jni::Integer::Create(env, result));
+    task_completion_source_.SetResult(env(),
+                                      jni::Integer::Create(env(), result));
   }
 
   void SetTaskException(Error error_code, const std::string& error_message) {
-    jni::Env env = GetEnv();
     task_completion_source_.SetException(
-        env, ExceptionInternal::Create(env, error_code, error_message.c_str()));
+        env(),
+        ExceptionInternal::Create(env(), error_code, error_message.c_str()));
   }
 
-  void CancelTask() {
-    jni::Env env = GetEnv();
-    cancellation_token_source_.Cancel(env);
-  }
-
-  static jni::Env GetEnv() { return jni::Env(app_framework::GetJniEnv()); }
+  void CancelTask() { cancellation_token_source_.Cancel(env()); }
 
  private:
   PromiseFactory<AsyncFn> promises_;
@@ -210,7 +202,7 @@ class TestCompletion : public TestCompletionBase<PublicType, InternalType> {
     if (result == nullptr) {
       result_.reset(nullptr);
     } else {
-      result_ = make_unique<PublicType>(*result);
+      result_ = std::make_unique<PublicType>(*result);
     }
   }
 
@@ -237,8 +229,7 @@ class TestVoidCompletion : public TestCompletionBase<void, void> {
 };
 
 TEST_F(PromiseTest, FutureVoidShouldSucceedWhenTaskSucceeds) {
-  jni::Env env = GetEnv();
-  auto future = promises().NewFuture<void>(env, AsyncFn::kFn, GetTask());
+  auto future = promises().NewFuture<void>(env(), AsyncFn::kFn, GetTask());
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusPending);
 
   SetTaskResult(0);
@@ -250,9 +241,8 @@ TEST_F(PromiseTest, FutureVoidShouldSucceedWhenTaskSucceeds) {
 }
 
 TEST_F(PromiseTest, FutureNonVoidShouldSucceedWhenTaskSucceeds) {
-  jni::Env env = GetEnv();
   auto future =
-      promises().NewFuture<std::string, int>(env, AsyncFn::kFn, GetTask());
+      promises().NewFuture<std::string, int>(env(), AsyncFn::kFn, GetTask());
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusPending);
 
   SetTaskResult(42);
@@ -264,8 +254,7 @@ TEST_F(PromiseTest, FutureNonVoidShouldSucceedWhenTaskSucceeds) {
 }
 
 TEST_F(PromiseTest, FutureVoidShouldFailWhenTaskFails) {
-  jni::Env env = GetEnv();
-  auto future = promises().NewFuture<void>(env, AsyncFn::kFn, GetTask());
+  auto future = promises().NewFuture<void>(env(), AsyncFn::kFn, GetTask());
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusPending);
 
   SetTaskException(Error::kErrorFailedPrecondition, "Simulated failure");
@@ -278,9 +267,8 @@ TEST_F(PromiseTest, FutureVoidShouldFailWhenTaskFails) {
 }
 
 TEST_F(PromiseTest, FutureNonVoidShouldFailWhenTaskFails) {
-  jni::Env env = GetEnv();
   auto future =
-      promises().NewFuture<std::string, int>(env, AsyncFn::kFn, GetTask());
+      promises().NewFuture<std::string, int>(env(), AsyncFn::kFn, GetTask());
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusPending);
 
   SetTaskException(Error::kErrorFailedPrecondition, "Simulated failure");
@@ -293,8 +281,7 @@ TEST_F(PromiseTest, FutureNonVoidShouldFailWhenTaskFails) {
 }
 
 TEST_F(PromiseTest, FutureVoidShouldCancelWhenTaskCancels) {
-  jni::Env env = GetEnv();
-  auto future = promises().NewFuture<void>(env, AsyncFn::kFn, GetTask());
+  auto future = promises().NewFuture<void>(env(), AsyncFn::kFn, GetTask());
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusPending);
 
   CancelTask();
@@ -307,9 +294,8 @@ TEST_F(PromiseTest, FutureVoidShouldCancelWhenTaskCancels) {
 }
 
 TEST_F(PromiseTest, FutureNonVoidShouldCancelWhenTaskCancels) {
-  jni::Env env = GetEnv();
   auto future =
-      promises().NewFuture<std::string, int>(env, AsyncFn::kFn, GetTask());
+      promises().NewFuture<std::string, int>(env(), AsyncFn::kFn, GetTask());
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusPending);
 
   CancelTask();
@@ -322,9 +308,8 @@ TEST_F(PromiseTest, FutureNonVoidShouldCancelWhenTaskCancels) {
 }
 
 TEST_F(PromiseTest, FutureVoidShouldCallCompletionWhenTaskSucceeds) {
-  jni::Env env = GetEnv();
   TestVoidCompletion completion;
-  auto future = promises().NewFuture<void, void>(env, AsyncFn::kFn, GetTask(),
+  auto future = promises().NewFuture<void, void>(env(), AsyncFn::kFn, GetTask(),
                                                  &completion);
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusPending);
 
@@ -338,9 +323,8 @@ TEST_F(PromiseTest, FutureVoidShouldCallCompletionWhenTaskSucceeds) {
 }
 
 TEST_F(PromiseTest, FutureNonVoidShouldCallCompletionWhenTaskSucceeds) {
-  jni::Env env = GetEnv();
   TestCompletion<std::string, int> completion;
-  auto future = promises().NewFuture<std::string, int>(env, AsyncFn::kFn,
+  auto future = promises().NewFuture<std::string, int>(env(), AsyncFn::kFn,
                                                        GetTask(), &completion);
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusPending);
 
@@ -354,9 +338,8 @@ TEST_F(PromiseTest, FutureNonVoidShouldCallCompletionWhenTaskSucceeds) {
 }
 
 TEST_F(PromiseTest, FutureVoidShouldCallCompletionWhenTaskFails) {
-  jni::Env env = GetEnv();
   TestVoidCompletion completion;
-  auto future = promises().NewFuture<void, void>(env, AsyncFn::kFn, GetTask(),
+  auto future = promises().NewFuture<void, void>(env(), AsyncFn::kFn, GetTask(),
                                                  &completion);
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusPending);
 
@@ -370,9 +353,8 @@ TEST_F(PromiseTest, FutureVoidShouldCallCompletionWhenTaskFails) {
 }
 
 TEST_F(PromiseTest, FutureNonVoidShouldCallCompletionWhenTaskFails) {
-  jni::Env env = GetEnv();
   TestCompletion<std::string, int> completion;
-  auto future = promises().NewFuture<std::string, int>(env, AsyncFn::kFn,
+  auto future = promises().NewFuture<std::string, int>(env(), AsyncFn::kFn,
                                                        GetTask(), &completion);
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusPending);
 
@@ -386,9 +368,8 @@ TEST_F(PromiseTest, FutureNonVoidShouldCallCompletionWhenTaskFails) {
 }
 
 TEST_F(PromiseTest, FutureVoidShouldCallCompletionWhenTaskCancels) {
-  jni::Env env = GetEnv();
   TestVoidCompletion completion;
-  auto future = promises().NewFuture<void, void>(env, AsyncFn::kFn, GetTask(),
+  auto future = promises().NewFuture<void, void>(env(), AsyncFn::kFn, GetTask(),
                                                  &completion);
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusPending);
 
@@ -402,9 +383,8 @@ TEST_F(PromiseTest, FutureVoidShouldCallCompletionWhenTaskCancels) {
 }
 
 TEST_F(PromiseTest, FutureNonVoidShouldCallCompletionWhenTaskCancels) {
-  jni::Env env = GetEnv();
   TestCompletion<std::string, int> completion;
-  auto future = promises().NewFuture<std::string, int>(env, AsyncFn::kFn,
+  auto future = promises().NewFuture<std::string, int>(env(), AsyncFn::kFn,
                                                        GetTask(), &completion);
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusPending);
 
@@ -418,17 +398,15 @@ TEST_F(PromiseTest, FutureNonVoidShouldCallCompletionWhenTaskCancels) {
 }
 
 TEST_F(PromiseTest, RegisterForTaskShouldNotCrashIfFirestoreWasDeleted) {
-  jni::Env env = GetEnv();
   auto promise = promises().MakePromise<void>();
   DeleteFirestore(TestFirestore());
 
-  promise.RegisterForTask(env, AsyncFn::kFn, GetTask());
+  promise.RegisterForTask(env(), AsyncFn::kFn, GetTask());
 }
 
 TEST_F(PromiseTest, GetFutureShouldNotCrashIfFirestoreWasDeleted) {
-  jni::Env env = GetEnv();
   auto promise = promises().MakePromise<void>();
-  promise.RegisterForTask(env, AsyncFn::kFn, GetTask());
+  promise.RegisterForTask(env(), AsyncFn::kFn, GetTask());
   DeleteFirestore(TestFirestore());
 
   auto future = promise.GetFuture();

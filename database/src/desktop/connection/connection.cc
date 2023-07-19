@@ -16,11 +16,13 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
 #include "app/src/assert.h"
 #include "app/src/log.h"
 #include "app/src/variant_util.h"
 #include "database/src/desktop/connection/util_connection.h"
+#include "database/src/desktop/connection/web_socket_client_impl.h"
 
 namespace firebase {
 namespace database {
@@ -48,11 +50,12 @@ const char* const Connection::kServerHelloTimestamp = "ts";
 const char* const Connection::kServerHelloHost = "h";
 const char* const Connection::kServerHelloSessionId = "s";
 
-compat::Atomic<uint32_t> Connection::next_log_id_(0);
+std::atomic<uint32_t> Connection::next_log_id_(0);
 
 Connection::Connection(scheduler::Scheduler* scheduler, const HostInfo& info,
                        const char* opt_last_session_id,
-                       ConnectionEventHandler* event_handler, Logger* logger)
+                       ConnectionEventHandler* event_handler, Logger* logger,
+                       const std::string& app_check_token)
     : safe_this_(this),
       event_handler_(event_handler),
       scheduler_(scheduler),
@@ -72,7 +75,7 @@ Connection::Connection(scheduler::Scheduler* scheduler, const HostInfo& info,
 
   // Create web socket client regardless of its implementation
   client_ = CreateWebSocketClient(host_info_, this, opt_last_session_id, logger,
-                                  scheduler);
+                                  scheduler, app_check_token);
 }
 
 Connection::~Connection() {
@@ -404,7 +407,10 @@ void Connection::OnConnectionShutdown(const std::string& reason) {
 
   event_handler_->OnKill(reason);
 
-  Close(kDisconnectReasonShutdownMessage);
+  // OnKill can result in the client being torn down, so check for that.
+  if (client_) {
+    Close(kDisconnectReasonShutdownMessage);
+  }
 }
 
 void Connection::OnHandshake(const Variant& handshake) {
@@ -460,6 +466,14 @@ void Connection::OnReset(const std::string& host) {
   event_handler_->OnCacheHost(host);
 
   Close(kDisconnectReasonServerReset);
+}
+
+void Connection::RefreshAppCheckToken(const std::string& token) {
+  WebSocketClientImpl* client_impl =
+      dynamic_cast<WebSocketClientImpl*>(client_.get());
+  if (client_impl) {
+    client_impl->RefreshAppCheckToken(token);
+  }
 }
 
 }  // namespace connection

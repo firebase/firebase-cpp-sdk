@@ -19,8 +19,8 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
-#include "app/meta/move.h"
 #include "app/src/embedded_file.h"
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/common/transaction_function.h"
@@ -47,7 +47,7 @@ class TransactionInternal : public Wrapper {
       : Wrapper(rhs), first_exception_(rhs.first_exception_) {}
 
   TransactionInternal(TransactionInternal&& rhs)
-      : Wrapper(firebase::Move(rhs)),
+      : Wrapper(std::move(rhs)),
         first_exception_(std::move(rhs.first_exception_)) {}
 
   void Set(const DocumentReference& document,

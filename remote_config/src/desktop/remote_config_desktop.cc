@@ -18,6 +18,7 @@
 #include <chrono>  // NOLINT
 #include <cstdint>
 #include <cstdlib>
+#include <memory>
 #include <set>
 #include <sstream>
 #include <string>
@@ -25,6 +26,7 @@
 #include <vector>
 
 #include "app/src/callback.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/time.h"
 #include "remote_config/src/common.h"
 #include "remote_config/src/include/firebase/remote_config.h"
@@ -78,7 +80,7 @@ RemoteConfigInternal::RemoteConfigInternal(
 
 RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
     : app_(app),
-      file_manager_(kFilePathSuffix),
+      file_manager_(kFilePathSuffix, app),
       is_fetch_process_have_task_(false),
       future_impl_(kRemoteConfigFnCount),
       safe_this_(this),
@@ -162,11 +164,11 @@ Future<bool> RemoteConfigInternal::FetchAndActivate() {
   if (!is_fetch_process_have_task_ &&
       ((cache_expiration_in_seconds_ == 0) ||
        (cache_expiration_timestamp < milliseconds_since_epoch))) {
-    auto data_handle =
-        MakeShared<RCDataHandle<bool>>(&future_impl_, future_handle, this);
+    auto data_handle = std::make_shared<RCDataHandle<bool>>(
+        &future_impl_, future_handle, this);
 
     auto callback = NewCallback(
-        [](ThisRef ref, SharedPtr<RCDataHandle<bool>> handle) {
+        [](ThisRef ref, std::shared_ptr<RCDataHandle<bool>> handle) {
           ThisRefLock lock(&ref);
           if (lock.GetReference() != nullptr) {
             MutexLock lock(handle->rc_internal->internal_mutex_);
@@ -582,6 +584,15 @@ const ConfigInfo RemoteConfigInternal::GetInfo() const {
   return configs_.metadata.info();
 }
 
+ConfigUpdateListenerRegistration
+RemoteConfigInternal::AddOnConfigUpdateListener(
+    std::function<void(ConfigUpdate&&, RemoteConfigError)>
+        config_update_listener) {
+  // Realtime RC is not yet implemented on desktop, so just return a
+  // registration object that is no-op.
+  return ConfigUpdateListenerRegistration();
+}
+
 void RemoteConfigInternal::FetchInternal() {
   // Fetch fresh config from server.
   rest_.Fetch(app_, config_settings_.fetch_timeout_in_milliseconds);
@@ -621,11 +632,11 @@ Future<void> RemoteConfigInternal::Fetch(uint64_t cache_expiration_in_seconds) {
   if (!is_fetch_process_have_task_ &&
       ((cache_expiration_in_seconds_ == 0) ||
        (cache_expiration_timestamp < milliseconds_since_epoch))) {
-    auto data_handle =
-        MakeShared<RCDataHandle<void>>(&future_impl_, future_handle, this);
+    auto data_handle = std::make_shared<RCDataHandle<void>>(
+        &future_impl_, future_handle, this);
 
     auto callback = NewCallback(
-        [](ThisRef ref, SharedPtr<RCDataHandle<void>> handle) {
+        [](ThisRef ref, std::shared_ptr<RCDataHandle<void>> handle) {
           ThisRefLock lock(&ref);
           if (lock.GetReference() != nullptr) {
             MutexLock lock(handle->rc_internal->internal_mutex_);

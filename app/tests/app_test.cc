@@ -498,7 +498,12 @@ TEST_F(AppTest, TestRegisterLibrary) {
               ContainsRegex("fire-cpp-arch/[^ ]+"));
   EXPECT_THAT(std::string(App::GetUserAgent()),
               ContainsRegex("fire-cpp-stl/[^ ]+"));
-  App::RegisterLibrary("fire-testing", "1.2.3");
+#if FIREBASE_PLATFORM_ANDROID
+  App::RegisterLibrary("fire-testing", "1.2.3",
+                       firebase_app_default->GetJNIEnv());
+#else
+  App::RegisterLibrary("fire-testing", "1.2.3", nullptr);
+#endif
   EXPECT_THAT(std::string(App::GetUserAgent()),
               HasSubstr("fire-testing/1.2.3"));
   firebase_app_default.reset(nullptr);

@@ -63,8 +63,11 @@ android {
         "-DFIREBASE_INCLUDE_LIBRARY_DEFAULT=OFF",
         "-DFIREBASE_INCLUDE_APP_CHECK=ON",
         "-DFIREBASE_INCLUDE_AUTH=ON",
-        "-DFIREBASE_INCLUDE_DATABASE=ON"
+        "-DFIREBASE_INCLUDE_DATABASE=ON",
+        "-DFIREBASE_INCLUDE_STORAGE=ON",
+        "-DFIREBASE_INCLUDE_FUNCTIONS=ON"
     }
+    multiDexEnabled true
   }
   externalNativeBuild.cmake {
     path 'CMakeLists.txt'
@@ -76,6 +79,12 @@ android {
       proguardFile file('proguard.pro')
     }
   }
+  lintOptions {
+    abortOnError false
+  }
+  packagingOptions {
+    pickFirst 'META-INF/**/coroutines.pro'
+  }
 }
 
 apply from: "$gradle.firebase_cpp_sdk_dir/Android/firebase_dependencies.gradle"
@@ -83,6 +92,8 @@ firebaseCpp.dependencies {
   appCheck
   auth
   database
+  storage
+  functions
 }
 
 apply plugin: 'com.google.gms.google-services'
@@ -90,7 +101,7 @@ apply plugin: 'com.google.gms.google-services'
 task copyIntegrationTestFiles(type:Exec) {
   // If this is running form inside the SDK directory, run the setup script.
   if (project.file('../../setup_integration_tests.py').exists()) {
-    commandLine 'python', '../../setup_integration_tests.py', project.projectDir.toString()
+    commandLine 'python3', '../../setup_integration_tests.py', project.projectDir.toString()
   }
   else {
     commandLine 'echo', ''

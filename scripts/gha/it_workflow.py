@@ -14,12 +14,12 @@
 
 """A utility for integration test workflow.
 
-This script helps to update PR/Issue comments and labels during testing process. 
+This script helps to update PR/Issue comments and labels during testing process.
 
 For PR comment, this script will update (create if not exist) the "Test Result" in comment.
 stage value: [start, progress, end]
 USAGE:
-  python scripts/gha/it_workflow.py --stage <stage> \
+  python3 scripts/gha/it_workflow.py --stage <stage> \
     --token ${{github.token}} \
     --issue_number ${{needs.check_trigger.outputs.pr_number}}\
     --actor ${{github.actor}} \
@@ -27,11 +27,11 @@ USAGE:
     --run_id ${{github.run_id}} \
     [--new_token ${{steps.generate-token.outputs.token}}]
 
-For Daily Report, this script will update (create if not exist) the "Test Result" in Issue 
+For Daily Report, this script will update (create if not exist) the "Test Result" in Issue
 with title "Nightly Integration Testing Report" and label "nightly-testing".
 stage value: [report]
 USAGE:
-  python scripts/gha/it_workflow.py --stage report \
+  python3 scripts/gha/it_workflow.py --stage report \
     --token ${{github.token}} \
     --actor ${{github.actor}} \
     --commit ${{needs.prepare_matrix.outputs.github_ref}} \
@@ -47,7 +47,7 @@ from absl import app
 from absl import flags
 from absl import logging
 
-import github
+import firebase_github
 import summarize_test_results as summarize
 
 _REPORT_LABEL = "nightly-testing"
@@ -61,8 +61,8 @@ _LABEL_FAILED = "tests: failed"
 _LABEL_SUCCEED = "tests: succeeded"
 
 _COMMENT_TITLE_PROGESS = "### ⏳&nbsp; Integration test in progress...\n"
-_COMMENT_TITLE_PROGESS_FLAKY = "### Integration test with FLAKINESS (but still ⏳&nbsp; in progress)\n" 
-_COMMENT_TITLE_PROGESS_FAIL = "### ❌&nbsp; Integration test FAILED (but still ⏳&nbsp; in progress)\n" 
+_COMMENT_TITLE_PROGESS_FLAKY = "### Integration test with FLAKINESS (but still ⏳&nbsp; in progress)\n"
+_COMMENT_TITLE_PROGESS_FAIL = "### ❌&nbsp; Integration test FAILED (but still ⏳&nbsp; in progress)\n"
 _COMMENT_TITLE_FLAKY = "### Integration test with FLAKINESS (succeeded after retry)\n"
 _COMMENT_TITLE_FAIL = "### ❌&nbsp; Integration test FAILED\n"
 _COMMENT_TITLE_SUCCEED = "### ✅&nbsp; Integration test succeeded!\n"
@@ -80,6 +80,10 @@ _COMMENT_FLAKY_TRACKER = "\n\nAdd flaky tests to **[go/fpl-cpp-flake-tracker](ht
 
 _COMMENT_IDENTIFIER = "integration-test-status-comment"
 _COMMENT_HIDDEN_DIVIDER = f'\r\n<hidden value="{_COMMENT_IDENTIFIER}"></hidden>\r\n'
+
+_COMMENT_IDENTIFIER_DASHBOARD = "build-dashboard-comment"
+_COMMENT_DASHBOARD_START = f'\r\n<hidden value="{_COMMENT_IDENTIFIER_DASHBOARD}-start"></hidden>\r\n'
+_COMMENT_DASHBOARD_END = f'\r\n<hidden value="{_COMMENT_IDENTIFIER_DASHBOARD}-end"></hidden>\r\n'
 
 _LOG_ARTIFACT_NAME = "log-artifact"
 _LOG_OUTPUT_DIR = "test_results"
@@ -105,7 +109,7 @@ flags.DEFINE_string(
     "Different stage while running the workflow. Valid values in _BUILD_STAGES.")
 
 flags.DEFINE_string(
-    "token", None, 
+    "token", None,
     "github.token: A token to authenticate on your repository.")
 
 flags.DEFINE_string(
@@ -127,7 +131,7 @@ flags.DEFINE_string(
     "new_token", None,
     "Only used with --stage end"
     "Use a different token to remove the \"in-progress\" label,"
-    "to allow the removal to trigger the \"Check Labels\" workflow.")   
+    "to allow the removal to trigger the \"Check Labels\" workflow.")
 
 flags.DEFINE_string(
     "build_against", None,
@@ -140,9 +144,9 @@ flags.DEFINE_string(
 
 def test_start(token, issue_number, actor, commit, run_id):
   """In PR, when start testing, add comment and label \"tests: in-progress\""""
-  github.add_label(token, issue_number, _LABEL_PROGRESS)
+  firebase_github.add_label(token, issue_number, _LABEL_PROGRESS)
   for label in [_LABEL_TRIGGER_FULL, _LABEL_TRIGGER_QUICK, _LABEL_FAILED, _LABEL_SUCCEED]:
-    github.delete_label(token, issue_number, label)
+    firebase_github.delete_label(token, issue_number, label)
 
   comment = (_COMMENT_TITLE_PROGESS +
              _get_description(actor, commit, run_id) +
@@ -151,7 +155,7 @@ def test_start(token, issue_number, actor, commit, run_id):
 
 
 def test_progress(token, issue_number, actor, commit, run_id):
-  """In PR, when some test failed, update failure info and 
+  """In PR, when some test failed, update failure info and
   add label \"tests: failed\""""
   success_or_only_flakiness, log_summary = _get_summary_table(token, run_id)
   if success_or_only_flakiness and not log_summary:
@@ -164,7 +168,7 @@ def test_progress(token, issue_number, actor, commit, run_id):
     else:
       # failures/errors still exist after retry
       title = _COMMENT_TITLE_PROGESS_FAIL
-      github.add_label(token, issue_number, _LABEL_FAILED)
+      firebase_github.add_label(token, issue_number, _LABEL_FAILED)
     comment = (title +
                _get_description(actor, commit, run_id) +
                log_summary +
@@ -174,13 +178,13 @@ def test_progress(token, issue_number, actor, commit, run_id):
 
 
 def test_end(token, issue_number, actor, commit, run_id, new_token):
-  """In PR, when some test end, update Test Result Report and 
+  """In PR, when some test end, update Test Result Report and
   update label: add \"tests: failed\" if test failed, add label
   \"tests: succeeded\" if test succeed"""
   success_or_only_flakiness, log_summary = _get_summary_table(token, run_id)
   if success_or_only_flakiness and not log_summary:
     # succeeded (without flakiness)
-    github.add_label(token, issue_number, _LABEL_SUCCEED)
+    firebase_github.add_label(token, issue_number, _LABEL_SUCCEED)
     comment = (_COMMENT_TITLE_SUCCEED +
                _get_description(actor, commit, run_id) +
                _COMMENT_HIDDEN_DIVIDER)
@@ -189,11 +193,11 @@ def test_end(token, issue_number, actor, commit, run_id, new_token):
     if success_or_only_flakiness:
       # all failures/errors are due to flakiness (succeeded after retry)
       title = _COMMENT_TITLE_FLAKY
-      github.add_label(token, issue_number, _LABEL_SUCCEED)
+      firebase_github.add_label(token, issue_number, _LABEL_SUCCEED)
     else:
       # failures/errors still exist after retry
       title = _COMMENT_TITLE_FAIL
-      github.add_label(token, issue_number, _LABEL_FAILED)
+      firebase_github.add_label(token, issue_number, _LABEL_FAILED)
     comment = (title +
                _get_description(actor, commit, run_id) +
                log_summary +
@@ -201,15 +205,18 @@ def test_end(token, issue_number, actor, commit, run_id, new_token):
                _COMMENT_HIDDEN_DIVIDER)
     _update_comment(token, issue_number, comment)
 
-  github.delete_label(new_token, issue_number, _LABEL_PROGRESS)
+  firebase_github.delete_label(new_token, issue_number, _LABEL_PROGRESS)
 
 
 def test_report(token, actor, commit, run_id, build_against, build_apis):
-  """Update (create if not exist) a Daily/Nightly Report in Issue. 
+  """Update (create if not exist) a Daily/Nightly Report in Issue.
   The Issue with title _REPORT_TITLE and label _REPORT_LABEL:
   https://github.com/firebase/firebase-cpp-sdk/issues?q=is%3Aissue+label%3Anightly-testing
   The report is with the format below:
     PREFIX
+    HIDDEN DASHBOARD START - optional
+    BUILD DASHBOARD - optional
+    HIDDEN DASHBOARD END - optional
     HIDDEN DIVIDER
     REPORT (TEST AGAINST REPO)
     HIDDEN DIVIDER
@@ -222,16 +229,29 @@ def test_report(token, actor, commit, run_id, build_against, build_apis):
     report_title = _REPORT_TITLE
     firestore_issue_number = _get_issue_number(token, _REPORT_TITLE_FIRESTORE, _REPORT_LABEL)
     firestore_issue_url = "https://github.com/firebase/firebase-cpp-sdk/issues/%s" % firestore_issue_number
-    prefix = "Note: This report excludes firestore. Please also check **[the report for firestore](%s)**\n***\n" % firestore_issue_url
+    prefix = "Note: This report excludes Firestore. Please also check **[the report for Firestore](%s).**\n***\n" % firestore_issue_url
 
   issue_number = _get_issue_number(token, report_title, _REPORT_LABEL)
-  previous_comment = github.get_issue_body(token, issue_number)
-  [_, previous_comment_repo, previous_comment_sdk, previous_comment_tip] = previous_comment.split(_COMMENT_HIDDEN_DIVIDER)
+  previous_comment = firebase_github.get_issue_body(token, issue_number)
+  [previous_prefix, previous_comment_repo, previous_comment_sdk,
+   previous_comment_tip] = previous_comment.split(_COMMENT_HIDDEN_DIVIDER)
+  logging.info("Previous prefix: %s", previous_prefix)
+  # If there is a build dashboard, preserve it.
+  if (_COMMENT_DASHBOARD_START in previous_prefix and
+      _COMMENT_DASHBOARD_END in previous_prefix):
+    logging.info("Found dashboard comment, preserving.")
+    [_, previous_dashboard_plus_the_rest] = previous_prefix.split(_COMMENT_DASHBOARD_START)
+    [previous_dashboard, _] = previous_dashboard_plus_the_rest.split(_COMMENT_DASHBOARD_END)
+    prefix = prefix + _COMMENT_DASHBOARD_START + previous_dashboard + _COMMENT_DASHBOARD_END
+    logging.info("New prefix: %s", prefix)
+  else:
+    logging.info("No dashboard comment '%s' or '%s'", _COMMENT_DASHBOARD_START, _COMMENT_DASHBOARD_END)
+
   success_or_only_flakiness, log_summary = _get_summary_table(token, run_id)
   if success_or_only_flakiness and not log_summary:
     # succeeded (without flakiness)
     if build_against==_BUILD_AGAINST_REPO:
-      title = _COMMENT_TITLE_SUCCEED_REPO  
+      title = _COMMENT_TITLE_SUCCEED_REPO
     elif build_against==_BUILD_AGAINST_SDK:
       title = _COMMENT_TITLE_SUCCEED_SDK
     else:
@@ -241,7 +261,7 @@ def test_report(token, actor, commit, run_id, build_against, build_apis):
     if success_or_only_flakiness:
       # all failures/errors are due to flakiness (succeeded after retry)
       if build_against==_BUILD_AGAINST_REPO:
-        title = _COMMENT_TITLE_FLAKY_REPO  
+        title = _COMMENT_TITLE_FLAKY_REPO
       elif build_against==_BUILD_AGAINST_SDK:
         title = _COMMENT_TITLE_FLAKY_SDK
       else:
@@ -249,13 +269,13 @@ def test_report(token, actor, commit, run_id, build_against, build_apis):
     else:
       # failures/errors still exist after retry
       if build_against==_BUILD_AGAINST_REPO:
-        title = _COMMENT_TITLE_FAIL_REPO  
+        title = _COMMENT_TITLE_FAIL_REPO
       elif build_against==_BUILD_AGAINST_SDK:
         title = _COMMENT_TITLE_FAIL_SDK
       else:
         title = _COMMENT_TITLE_FAIL_TIP
     comment = title + _get_description(actor, commit, run_id) + log_summary + _COMMENT_FLAKY_TRACKER
-  
+
   if build_against==_BUILD_AGAINST_REPO:
     comment = prefix + _COMMENT_HIDDEN_DIVIDER + comment + _COMMENT_HIDDEN_DIVIDER + previous_comment_sdk + _COMMENT_HIDDEN_DIVIDER + previous_comment_tip
   elif build_against==_BUILD_AGAINST_SDK:
@@ -264,32 +284,38 @@ def test_report(token, actor, commit, run_id, build_against, build_apis):
     comment = prefix + _COMMENT_HIDDEN_DIVIDER + previous_comment_repo + _COMMENT_HIDDEN_DIVIDER + previous_comment_sdk + _COMMENT_HIDDEN_DIVIDER + comment
 
   if (_COMMENT_TITLE_SUCCEED_REPO in comment) and (_COMMENT_TITLE_SUCCEED_SDK in comment) and (build_apis != _BUILD_API_FIRESTORE or _COMMENT_TITLE_SUCCEED_TIP in comment):
-    github.close_issue(token, issue_number)
+    firebase_github.close_issue(token, issue_number)
   else:
-    github.open_issue(token, issue_number)
-    
-  github.update_issue_comment(token, issue_number, comment)
+    firebase_github.open_issue(token, issue_number)
+
+  firebase_github.update_issue_comment(token, issue_number, comment)
 
 
 def _get_issue_number(token, title, label):
-  issues = github.search_issues_by_label(label)
+  issues = firebase_github.search_issues_by_label(label)
   for issue in issues:
     if issue["title"] == title:
       return issue["number"]
-  empty_comment = _COMMENT_HIDDEN_DIVIDER + " " + _COMMENT_HIDDEN_DIVIDER + " " + _COMMENT_HIDDEN_DIVIDER 
-  return github.create_issue(token, title, label, empty_comment)["number"]
+  empty_comment = (" " +
+                   _COMMENT_DASHBOARD_START + " " +
+                   _COMMENT_DASHBOARD_END + " " +
+                   _COMMENT_HIDDEN_DIVIDER + " " +
+                   _COMMENT_HIDDEN_DIVIDER + " " +
+                   _COMMENT_HIDDEN_DIVIDER + " "
+                   )
+  return firebase_github.create_issue(token, title, label, empty_comment)["number"]
 
 
 def _update_comment(token, issue_number, comment):
   comment_id = _get_comment_id(token, issue_number, _COMMENT_HIDDEN_DIVIDER)
   if not comment_id:
-    github.add_comment(token, issue_number, comment)
+    firebase_github.add_comment(token, issue_number, comment)
   else:
-    github.update_comment(token, comment_id, comment)
+    firebase_github.update_comment(token, comment_id, comment)
 
-  
+
 def _get_comment_id(token, issue_number, comment_identifier):
-  comments = github.list_comments(token, issue_number)
+  comments = firebase_github.list_comments(token, issue_number)
   for comment in comments:
     if comment_identifier in comment['body']:
       return comment['id']
@@ -316,7 +342,7 @@ def _get_summary_table(token, run_id):
 
 
 def _get_artifact_id(token, run_id, name):
-  artifacts = github.list_artifacts(token, run_id)
+  artifacts = firebase_github.list_artifacts(token, run_id)
   for artifact in artifacts:
     if artifact["name"] == name:
       return artifact["id"]

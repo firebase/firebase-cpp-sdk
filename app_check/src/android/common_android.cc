@@ -17,6 +17,7 @@
 #include <string>
 
 #include "app/src/app_common.h"
+#include "app/src/util.h"
 #include "app/src/util_android.h"
 #include "app_check/src/include/firebase/app_check.h"
 
@@ -44,8 +45,6 @@ METHOD_LOOKUP_DEFINITION(app_check_token,
                          PROGUARD_KEEP_CLASS
                          "com/google/firebase/appcheck/AppCheckToken",
                          APP_CHECK_TOKEN_METHODS)
-
-static const char* kApiIdentifier = "AppCheckProvider";
 
 bool CacheCommonAndroidMethodIds(JNIEnv* env, jobject activity) {
   // Cache the token and provider classes.
@@ -99,8 +98,6 @@ struct TokenResultCallbackData {
   std::function<void(AppCheckToken, int, const std::string&)> callback;
 };
 
-}  // anonymous namespace
-
 void TokenResultCallback(JNIEnv* env, jobject result,
                          util::FutureResult result_code,
                          const char* status_message, void* callback_data) {
@@ -122,15 +119,19 @@ void TokenResultCallback(JNIEnv* env, jobject result,
                                      status_message);
   delete completion_callback_data;
 }
+}  // anonymous namespace
 
 AndroidAppCheckProvider::AndroidAppCheckProvider(jobject local_provider)
     : android_provider_(nullptr) {
+  static const char* kApiIdentifier = "AppCheckProvider";
+  jni_task_id_ = CreateApiIdentifier(kApiIdentifier, this);
   JNIEnv* env = GetJniEnv();
   android_provider_ = env->NewGlobalRef(local_provider);
 }
 
 AndroidAppCheckProvider::~AndroidAppCheckProvider() {
   JNIEnv* env = GetJniEnv();
+  util::CancelCallbacks(env, jni_task_id_.c_str());
   if (env != nullptr && android_provider_ != nullptr) {
     env->DeleteGlobalRef(android_provider_);
   }
@@ -144,15 +145,19 @@ void AndroidAppCheckProvider::GetToken(
   jobject j_task = env->CallObjectMethod(
       android_provider_,
       app_check_provider::GetMethodId(app_check_provider::kGetToken));
-  FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
-
-  // Create an object to wrap the callback function
-  TokenResultCallbackData* completion_callback_data =
-      new TokenResultCallbackData(completion_callback);
-  util::RegisterCallbackOnTask(
-      env, j_task, TokenResultCallback,
-      reinterpret_cast<void*>(completion_callback_data), kApiIdentifier);
-
+  std::string error = util::GetAndClearExceptionMessage(env);
+  if (error.empty()) {
+    // Create an object to wrap the callback function
+    TokenResultCallbackData* completion_callback_data =
+        new TokenResultCallbackData(completion_callback);
+    util::RegisterCallbackOnTask(
+        env, j_task, TokenResultCallback,
+        reinterpret_cast<void*>(completion_callback_data),
+        jni_task_id_.c_str());
+  } else {
+    AppCheckToken empty_token;
+    completion_callback(empty_token, kAppCheckErrorUnknown, error.c_str());
+  }
   env->DeleteLocalRef(j_task);
 }
 

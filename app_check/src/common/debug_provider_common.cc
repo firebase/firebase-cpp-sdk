@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <string>
+
 #include "firebase/app_check/debug_provider.h"
 
 // Include the header that matches the platform being used.
@@ -27,14 +29,9 @@
 namespace firebase {
 namespace app_check {
 
-static DebugAppCheckProviderFactory* g_debug_app_check_provider_factory =
-    nullptr;
-
 DebugAppCheckProviderFactory* DebugAppCheckProviderFactory::GetInstance() {
-  if (!g_debug_app_check_provider_factory) {
-    g_debug_app_check_provider_factory = new DebugAppCheckProviderFactory();
-  }
-  return g_debug_app_check_provider_factory;
+  static DebugAppCheckProviderFactory g_debug_app_check_provider_factory;
+  return &g_debug_app_check_provider_factory;
 }
 
 DebugAppCheckProviderFactory::DebugAppCheckProviderFactory()
@@ -52,6 +49,12 @@ AppCheckProvider* DebugAppCheckProviderFactory::CreateProvider(App* app) {
     return internal_->CreateProvider(app);
   }
   return nullptr;
+}
+
+void DebugAppCheckProviderFactory::SetDebugToken(const std::string& token) {
+  if (internal_) {
+    return internal_->SetDebugToken(token);
+  }
 }
 
 }  // namespace app_check

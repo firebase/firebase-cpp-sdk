@@ -32,8 +32,8 @@ namespace internal {
 using util::VariantToId;
 
 DatabaseReferenceInternal::DatabaseReferenceInternal(DatabaseInternal* database,
-                                                     UniquePtr<FIRDatabaseReferencePointer> impl)
-    : QueryInternal(database, MakeUnique<FIRDatabaseQueryPointer>(impl->get())),
+                                                     std::unique_ptr<FIRDatabaseReferencePointer> impl)
+    : QueryInternal(database, std::make_unique<FIRDatabaseQueryPointer>(impl->get())),
       cached_disconnection_handler_(nullptr) {
   impl_ = std::move(impl);
   database_->future_manager().AllocFutureApi(&future_api_id_, kDatabaseReferenceFnCount);
@@ -65,14 +65,14 @@ DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 DatabaseReferenceInternal::DatabaseReferenceInternal(DatabaseReferenceInternal&& other)
     : QueryInternal(std::move(other)), impl_(std::move(other.impl_)) {
-  other.impl_ = MakeUnique<FIRDatabaseReferencePointer>(nil);
+  other.impl_ = std::make_unique<FIRDatabaseReferencePointer>(nil);
   database_->future_manager().MoveFutureApi(&other.future_api_id_, &future_api_id_);
 }
 
 DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(DatabaseReferenceInternal&& other) {
   QueryInternal::operator=(std::move(other));
   impl_ = std::move(other.impl_);
-  other.impl_ = MakeUnique<FIRDatabaseReferencePointer>(nil);
+  other.impl_ = std::make_unique<FIRDatabaseReferencePointer>(nil);
   database_->future_manager().MoveFutureApi(&other.future_api_id_, &future_api_id_);
   return *this;
 }
@@ -96,24 +96,24 @@ DatabaseReferenceInternal* DatabaseReferenceInternal::GetParent() {
   // If *this* is the root, the iOS SDK returns null.
   // But the Android C++ implementation returns the root again, so do that.
   return parent ? new DatabaseReferenceInternal(database_,
-                                                MakeUnique<FIRDatabaseReferencePointer>(parent))
+                                                std::make_unique<FIRDatabaseReferencePointer>(parent))
                 : new DatabaseReferenceInternal(database_,
-                                                MakeUnique<FIRDatabaseReferencePointer>(impl()));
+                                                std::make_unique<FIRDatabaseReferencePointer>(impl()));
 }
 
 DatabaseReferenceInternal* DatabaseReferenceInternal::GetRoot() {
   return new DatabaseReferenceInternal(database_,
-                                       MakeUnique<FIRDatabaseReferencePointer>(impl().root));
+                                       std::make_unique<FIRDatabaseReferencePointer>(impl().root));
 }
 
 DatabaseReferenceInternal* DatabaseReferenceInternal::Child(const char* path) {
   return new DatabaseReferenceInternal(
-      database_, MakeUnique<FIRDatabaseReferencePointer>([impl() child:@(path)]));
+      database_, std::make_unique<FIRDatabaseReferencePointer>([impl() child:@(path)]));
 }
 
 DatabaseReferenceInternal* DatabaseReferenceInternal::PushChild() {
   return new DatabaseReferenceInternal(
-      database_, MakeUnique<FIRDatabaseReferencePointer>([impl() childByAutoId]));
+      database_, std::make_unique<FIRDatabaseReferencePointer>([impl() childByAutoId]));
 }
 
 Future<void> DatabaseReferenceInternal::RemoveValue() {
@@ -135,7 +135,7 @@ Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
   FIRTransactionResult* _Nonnull (^transaction_block)(FIRMutableData* _Nonnull) =
       ^(FIRMutableData* mutable_data_impl) {
         MutableData mutable_data(new MutableDataInternal(
-            database, MakeUnique<FIRMutableDataPointer>(mutable_data_impl)));
+            database, std::make_unique<FIRMutableDataPointer>(mutable_data_impl)));
         TransactionResult result = transaction_function(&mutable_data, context);
         if (result == kTransactionResultSuccess) {
           return [FIRTransactionResult successWithValue:mutable_data_impl];
@@ -158,14 +158,14 @@ Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
             data->impl->CompleteWithResult(
                 data->handle, error_code, error_string,
                 DataSnapshot(new DataSnapshotInternal(
-                    data->database, MakeUnique<FIRDataSnapshotPointer>(snapshot))));
+                    data->database, std::make_unique<FIRDataSnapshotPointer>(snapshot))));
           } else {
             // Aborted.
             data->impl->CompleteWithResult(
                 data->handle, kErrorTransactionAbortedByUser,
                 GetErrorMessage(kErrorTransactionAbortedByUser),
                 DataSnapshot(new DataSnapshotInternal(
-                    data->database, MakeUnique<FIRDataSnapshotPointer>(snapshot))));
+                    data->database, std::make_unique<FIRDataSnapshotPointer>(snapshot))));
           }
         } else {
           // Error occurred.
@@ -270,7 +270,7 @@ std::string DatabaseReferenceInternal::GetUrl() const {
 DisconnectionHandler* DatabaseReferenceInternal::OnDisconnect() {
   if (cached_disconnection_handler_ == nullptr) {
     cached_disconnection_handler_ = new DisconnectionHandler(new DisconnectionHandlerInternal(
-        database_, MakeUnique<FIRDatabaseReferencePointer>(impl())));
+        database_, std::make_unique<FIRDatabaseReferencePointer>(impl())));
   }
   return cached_disconnection_handler_;
 }

@@ -17,7 +17,7 @@
 #ifndef FIREBASE_FIRESTORE_SRC_ANDROID_CONVERTER_ANDROID_H_
 #define FIREBASE_FIRESTORE_SRC_ANDROID_CONVERTER_ANDROID_H_
 
-#include "app/meta/move.h"
+#include <utility>
 #include "firestore/src/common/type_mapping.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/jni_fwd.h"
@@ -30,7 +30,7 @@ namespace firestore {
 struct ConverterImpl {
   template <typename PublicT, typename InternalT = InternalType<PublicT>>
   static PublicT MakePublicFromInternal(InternalT&& from) {
-    auto* internal = new InternalT(Forward<InternalT>(from));
+    auto* internal = new InternalT(std::forward<InternalT>(from));
     return PublicT(internal);
   }
 

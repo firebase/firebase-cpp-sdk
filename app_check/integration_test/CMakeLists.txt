@@ -84,8 +84,9 @@ set(FIREBASE_INTEGRATION_TEST_SRCS
 # The include directory for the testapp.
 include_directories(src)
 
-# Integration test uses some features that require C++ 11, such as lambdas.
-set (CMAKE_CXX_STANDARD 11)
+# Firebase C++ SDK requires C++14.
+set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_STANDARD_REQUIRED YES)  # Don't fall back to an earlier version.
 
 # Download and unpack googletest (and googlemock) at configure time
 set(GOOGLETEST_ROOT ${CMAKE_CURRENT_LIST_DIR}/external/googletest)
@@ -234,7 +235,7 @@ endif()
 # Add the Firebase libraries to the target using the function from the SDK.
 add_subdirectory(${FIREBASE_CPP_SDK_DIR} bin/ EXCLUDE_FROM_ALL)
 # Note that firebase_app needs to be last in the list.
-set(firebase_libs firebase_app_check firebase_database firebase_storage firebase_auth firebase_app)
+set(firebase_libs firebase_app_check firebase_database firebase_storage firebase_functions firebase_auth firebase_app)
 set(gtest_libs gtest gmock)
 target_link_libraries(${integration_test_target_name} ${firebase_libs}
   ${gtest_libs} ${ADDITIONAL_LIBS})

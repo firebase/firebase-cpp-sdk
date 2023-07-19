@@ -16,7 +16,9 @@
 
 #include "firestore/src/android/query_android.h"
 
-#include "app/meta/move.h"
+#include <string>
+#include <utility>
+
 #include "app/src/assert.h"
 #include "firestore/src/android/direction_android.h"
 #include "firestore/src/android/document_snapshot_android.h"
@@ -51,6 +53,8 @@ using jni::Task;
 
 constexpr char kClassName[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/Query";
+Method<Object> kCount("count",
+                      "()Lcom/google/firebase/firestore/AggregateQuery;");
 Method<Object> kEqualTo(
     "whereEqualTo",
     "(Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;)"
@@ -136,7 +140,7 @@ Method<int32_t> kHashCode("hashCode", "()I");
 
 void QueryInternal::Initialize(jni::Loader& loader) {
   loader.LoadClass(
-      kClassName, kEqualTo, kNotEqualTo, kLessThan, kLessThanOrEqualTo,
+      kClassName, kCount, kEqualTo, kNotEqualTo, kLessThan, kLessThanOrEqualTo,
       kGreaterThan, kGreaterThanOrEqualTo, kArrayContains, kArrayContainsAny,
       kIn, kNotIn, kOrderBy, kLimit, kLimitToLast, kStartAtSnapshot, kStartAt,
       kStartAfterSnapshot, kStartAfter, kEndBeforeSnapshot, kEndBefore,
@@ -146,6 +150,12 @@ void QueryInternal::Initialize(jni::Loader& loader) {
 Firestore* QueryInternal::firestore() {
   FIREBASE_ASSERT(firestore_->firestore_public() != nullptr);
   return firestore_->firestore_public();
+}
+
+AggregateQuery QueryInternal::Count() const {
+  Env env = GetEnv();
+  Local<Object> aggregate_query = env.Call(obj_, kCount);
+  return firestore_->NewAggregateQuery(env, aggregate_query);
 }
 
 Query QueryInternal::WhereEqualTo(const FieldPath& field,
@@ -272,7 +282,8 @@ Query QueryInternal::Where(const FieldPath& field,
                            const FieldValue& value) const {
   Env env = GetEnv();
   Local<Object> java_field = FieldPathConverter::Create(env, field);
-  Local<Object> query = env.Call(obj_, method, java_field, ToJava(value));
+  Local<Object> query =
+      env.Call(obj_, method, java_field, FieldValueInternal::ToJava(value));
   return firestore_->NewQuery(env, query);
 }
 
@@ -284,7 +295,7 @@ Query QueryInternal::Where(const FieldPath& field,
   size_t size = values.size();
   Local<ArrayList> java_values = ArrayList::Create(env, size);
   for (size_t i = 0; i < size; ++i) {
-    java_values.Add(env, ToJava(values[i]));
+    java_values.Add(env, FieldValueInternal::ToJava(values[i]));
   }
 
   Local<Object> java_field = FieldPathConverter::Create(env, field);
@@ -311,8 +322,7 @@ ListenerRegistration QueryInternal::AddSnapshotListener(
     MetadataChanges metadata_changes,
     std::function<void(const QuerySnapshot&, Error, const std::string&)>
         callback) {
-  auto* listener =
-      new LambdaEventListener<QuerySnapshot>(firebase::Move(callback));
+  auto* listener = new LambdaEventListener<QuerySnapshot>(std::move(callback));
   return AddSnapshotListener(metadata_changes, listener,
                              /*passing_listener_ownership=*/true);
 }
@@ -342,7 +352,7 @@ Local<Array<Object>> QueryInternal::ConvertFieldValues(
   size_t size = field_values.size();
   Local<Array<Object>> result = env.NewArray(size, Object::GetClass());
   for (size_t i = 0; i < size; ++i) {
-    result.Set(env, i, ToJava(field_values[i]));
+    result.Set(env, i, FieldValueInternal::ToJava(field_values[i]));
   }
   return result;
 }

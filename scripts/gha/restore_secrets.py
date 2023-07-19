@@ -16,8 +16,8 @@
 
 Usage:
 
-python restore_secrets.py --passphrase [--repo_dir <path_to_repo>]
-python restore_secrets.py --passphrase_file [--repo_dir <path_to_repo>]
+python3 restore_secrets.py --passphrase [--repo_dir <path_to_repo>]
+python3 restore_secrets.py --passphrase_file [--repo_dir <path_to_repo>]
 
 --passphrase: Passphrase to decrypt the files. This option is insecure on a
     multi-user machine; use the --passphrase_file option instead.
@@ -138,7 +138,7 @@ def main(argv):
     app_check_token = _decrypt(app_check_token_path, passphrase)
     app_check_project = os.path.join(
       repo_dir, "app_check", "integration_test")
-    _patch_xcschemes(
+    _patch_main_src(
       app_check_project, "REPLACE_WITH_APP_CHECK_TOKEN", app_check_token)
 
   print("Attempting to decrypt GCS service account key file.")

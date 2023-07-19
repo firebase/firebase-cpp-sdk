@@ -7,7 +7,7 @@ iOS, and desktop platforms. It includes the following Firebase libraries:
 
 |||
 |--|--|
-|[AdMob](https://firebase.google.com/docs/admob/)|[Google Analytics for Firebase](https://firebase.google.com/docs/analytics/)|
+|[Google Analytics for Firebase](https://firebase.google.com/docs/analytics/)|
 |[Firebase Authentication](https://firebase.google.com/docs/auth/)|[Firebase Realtime Database](https://firebase.google.com/docs/database/)|
 |[Firebase Dynamic Links](https://firebase.google.com/docs/dynamic-links/)|[Cloud Firestore](https://firebase.google.com/docs/firestore/)|
 |[Cloud Functions for Firebase](https://firebase.google.com/docs/functions/)|[Firebase Invites](https://firebase.google.com/docs/invites/)|
@@ -53,8 +53,8 @@ directories to your PATH as needed.
 Note: Once python is installed you can use the following commands to install
 required packages:
 
-* python -m ensurepip --default-pip
-* python -m pip install --user absl-py
+* python3 -m ensurepip --default-pip
+* python3 -m pip install --user absl-py
 
 ### Prerequisites for Desktop
 The following prerequisites are required when building the libraries for
@@ -111,7 +111,6 @@ The CMake following targets are available to build and link with:
 | Feature | CMake Target |
 | ------- | ------------ |
 | App (base library) | firebase_app |
-| AdMob | firebase_admob |
 | Google Analytics for Firebase | firebase_analytics |
 | Firebase Authentication | firebase_auth |
 | Firebase Realtime Database | firebase_database |
@@ -204,7 +203,7 @@ deliverable for both iOS and tvOS targets in the same XCode project.
 ``` bash
 # Install prereqs (like cocoapods)
 ./build_scripts/tvos/install_prereqs.sh
-python scripts/gha/build_ios_tvos.py -s . -b ios_tvos_build
+python3 scripts/gha/build_ios_tvos.py -s . -b ios_tvos_build
 ```
 
 
@@ -217,7 +216,6 @@ release version of each Firebase library is:
 | Feature | Gradle Target |
 | ------- | ------------- |
 | App (base library) | :app:assembleRelease |
-| AdMob | :admob:assembleRelease |
 | Google Analytics for Firebase | :analytics:assembleRelease |
 | Firebase Authentication | :auth:assembleRelease |
 | Firebase Realtime Database | :database:assembleRelease |

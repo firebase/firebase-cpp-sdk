@@ -21,6 +21,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include "app/src/include/firebase/app.h"
 #include "app/src/logger.h"
@@ -60,6 +61,9 @@ App* GetDefaultApp();
 // will be returned.
 App* GetAnyApp();
 
+// Get all existing apps
+std::vector<App*> GetAllApps();
+
 // Remove an app from the set of apps.
 // Call this method before destroying an app.
 void RemoveApp(App* app);
@@ -79,6 +83,10 @@ void RegisterLibrary(const char* library, const char* version);
 // Register a set of libraries from a user agent string.
 // This is useful when this SDK wraps other SDKs.
 void RegisterLibrariesFromUserAgent(const char* user_agent);
+
+// Register all user-agents related to C++ SDK usages.
+// platform_resource currently is only used for passing JNIEnv on Android
+void RegisterSdkUsage(void* platform_resource);
 
 // Get the user agent string for all registered libraries.
 // This is not thread safe w.r.t RegisterLibrary().

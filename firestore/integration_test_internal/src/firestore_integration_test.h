@@ -25,9 +25,9 @@
 #include <mutex>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
-#include "app/meta/move.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
@@ -49,7 +49,8 @@ const int kCheckIntervalMillis = 100;
 // The timeout of waiting for a Future or a listener.
 const int kTimeOutMillis = 15000;
 
-FirestoreInternal* CreateTestFirestoreInternal(App* app);
+FirestoreInternal* CreateTestFirestoreInternal(
+    App* app, const std::string& database_id = kDefaultDatabase);
 
 App* GetApp();
 App* GetApp(const char* name, const std::string& override_project_id);
@@ -252,9 +253,16 @@ class FirestoreIntegrationTest : public testing::Test {
   Firestore* TestFirestore(const std::string& name = kDefaultAppName) const;
 
   // Returns a Firestore instance for an app with the given `name`, associated
-  // with the database with the given `project_id`.
-  Firestore* TestFirestoreWithProjectId(const std::string& name,
-                                        const std::string& project_id) const;
+  // with the database with the given `project_id` and default `database_id`.
+  Firestore* TestFirestoreWithProjectId(
+      const std::string& name,
+      const std::string& project_id,
+      const std::string& database_id = kDefaultDatabase) const;
+
+  // Returns a Firestore instance for an app with the given `name`, associated
+  // with the database with the given `database_id`.
+  Firestore* TestFirestoreWithDatabaseId(const std::string& name,
+                                         const std::string& database_id) const;
 
   // Deletes the given `Firestore` instance, which must have been returned by a
   // previous invocation of `TestFirestore()`, and removes it from the cache of
@@ -332,6 +340,10 @@ class FirestoreIntegrationTest : public testing::Test {
 
   // Read documents in the specified collection / query.
   QuerySnapshot ReadDocuments(const Query& reference) const;
+
+  // Read the aggregate.
+  AggregateQuerySnapshot ReadAggregate(
+      const AggregateQuery& aggregate_query) const;
 
   // Delete the specified document.
   void DeleteDocument(DocumentReference reference) const;
@@ -415,15 +427,22 @@ class FirestoreIntegrationTest : public testing::Test {
   class FirestoreInfo {
    public:
     FirestoreInfo() = default;
-    FirestoreInfo(const std::string& name, std::unique_ptr<Firestore> firestore)
-        : name_(name), firestore_(std::move(firestore)) {}
+    FirestoreInfo(const std::string& name,
+                  const std::string& database_id,
+                  std::unique_ptr<Firestore> firestore)
+        : name_(name),
+          database_id_(database_id),
+          firestore_(std::move(firestore)) {}
 
     const std::string& name() const { return name_; }
     Firestore* firestore() const { return firestore_.get(); }
+    const std::string& database_id() const { return database_id_; }
+
     void ReleaseFirestore() { firestore_.release(); }
 
    private:
     std::string name_;
+    std::string database_id_;
     std::unique_ptr<Firestore> firestore_;
   };
 

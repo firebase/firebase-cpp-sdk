@@ -20,11 +20,11 @@
 #include <string.h>
 
 #include <map>
+#include <memory>
 #include <string>
 #include <utility>  // Used to detect STL variant.
 #include <vector>
 
-#include "app/memory/unique_ptr.h"
 #include "app/src/assert.h"
 #include "app/src/callback.h"
 #include "app/src/cleanup_notifier.h"
@@ -190,7 +190,7 @@ struct AppData {
 // Tracks library registrations.
 class LibraryRegistry {
  private:
-  LibraryRegistry() {}
+  LibraryRegistry() : is_common_library_registered(false) {}
 
  public:
   // Register a library, returns true if the library version changed.
@@ -252,16 +252,30 @@ class LibraryRegistry {
     }
   }
 
+  static bool IsCommonLibraryRegistered() {
+    if (library_registry_) {
+      return library_registry_->is_common_library_registered;
+    }
+    return false;
+  }
+
+  static void SetCommonLibraryRegistered() {
+    if (library_registry_) {
+      library_registry_->is_common_library_registered = true;
+    }
+  }
+
  private:
   std::map<std::string, std::string> library_to_version_;
   std::string user_agent_;
+  bool is_common_library_registered;
 
   static LibraryRegistry* library_registry_;
 };
 
 // Guards g_apps and g_default_app.
 static Mutex* g_app_mutex = new Mutex();
-static std::map<std::string, UniquePtr<AppData>>* g_apps;
+static std::map<std::string, std::unique_ptr<AppData>>* g_apps = nullptr;
 static App* g_default_app = nullptr;
 LibraryRegistry* LibraryRegistry::library_registry_ = nullptr;
 
@@ -275,14 +289,14 @@ App* AddApp(App* app, std::map<std::string, InitResult>* results) {
     assert(!g_default_app);
     g_default_app = app;
   }
-  UniquePtr<AppData> app_data = MakeUnique<AppData>();
+  std::unique_ptr<AppData> app_data = std::make_unique<AppData>();
   app_data->app = app;
   app_data->cleanup_notifier.RegisterOwner(app);
   if (!g_apps) {
-    g_apps = new std::map<std::string, UniquePtr<AppData>>();
+    g_apps = new std::map<std::string, std::unique_ptr<AppData>>();
     created_first_app = true;
   }
-  (*g_apps)[std::string(app->name())] = app_data;
+  (*g_apps)[std::string(app->name())] = std::move(app_data);
   // Create a cleanup notifier for the app.
   {
     const AppOptions& app_options = app->options();
@@ -293,21 +307,6 @@ App* AddApp(App* app, std::map<std::string, InitResult>* results) {
         app_options.database_url(), app_options.messaging_sender_id(),
         app_options.storage_bucket(), app_options.project_id(),
         static_cast<int>(reinterpret_cast<intptr_t>(app)));
-  }
-  LibraryRegistry::Initialize();
-  if (created_first_app) {
-    // This calls the platform specific method to propagate the registration to
-    // any SDKs in use by this library.
-    App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX,
-                         FIREBASE_VERSION_NUMBER_STRING);
-    App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX "-os",
-                         kOperatingSystem);
-    App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX "-arch",
-                         kCpuArchitecture);
-    App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX "-stl",
-                         kCppRuntimeOrStl);
-    App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX "-buildsrc",
-                         kBuildSource);
   }
   callback::Initialize();
   AppCallback::NotifyAllAppCreated(app, results);
@@ -337,6 +336,19 @@ App* GetAnyApp() {
     return g_apps->begin()->second->app;
   }
   return nullptr;
+}
+
+std::vector<App*> GetAllApps() {
+  std::vector<App*> result;
+  App* const default_app = GetDefaultApp();
+  MutexLock lock(*g_app_mutex);
+  if (g_apps) {
+    for (auto it = g_apps->begin(); it != g_apps->end(); ++it) {
+      if (it->second->app != default_app) result.push_back(it->second->app);
+    }
+    if (default_app) result.push_back(default_app);
+  }
+  return result;
 }
 
 void RemoveApp(App* app) {
@@ -431,6 +443,28 @@ void RegisterLibrariesFromUserAgent(const char* user_agent) {
     token = next_token;
   } while (token && next_token && next_token[0] != '\0');
   if (changed) registry->UpdateUserAgent();
+}
+
+void RegisterSdkUsage(void* platform_resource) {
+  MutexLock lock(*g_app_mutex);
+
+  // Only register libraries when no C++ apps was created before.
+  if (!LibraryRegistry::IsCommonLibraryRegistered()) {
+    LibraryRegistry::Initialize();
+    // This calls the platform specific method to propagate the registration to
+    // any SDKs in use by this library.
+    App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX,
+                         FIREBASE_VERSION_NUMBER_STRING, platform_resource);
+    App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX "-os", kOperatingSystem,
+                         platform_resource);
+    App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX "-arch",
+                         kCpuArchitecture, platform_resource);
+    App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX "-stl",
+                         kCppRuntimeOrStl, platform_resource);
+    App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX "-buildsrc",
+                         kBuildSource, platform_resource);
+    LibraryRegistry::SetCommonLibraryRegistered();
+  }
 }
 
 const char* GetUserAgent() {

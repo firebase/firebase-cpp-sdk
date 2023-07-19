@@ -20,7 +20,7 @@
 #include <functional>
 #include <string>
 
-#include "app/meta/move.h"
+#include <utility>
 #include "app/src/assert.h"
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/promise_android.h"
@@ -44,7 +44,7 @@ class LambdaTransactionFunction
  public:
   LambdaTransactionFunction(
       std::function<Error(Transaction&, std::string&)> update)
-      : update_(firebase::Move(update)) {
+      : update_(std::move(update)) {
     FIREBASE_ASSERT(update_);
   }
 

@@ -1,5 +1,9 @@
 .DS_Store
 
+# CMake "user presets" files
+# https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html
+CMakeUserPresets.json
+
 # Python byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -10,6 +14,9 @@ __pycache__/
 **/build/
 **/.externalNativeBuild/
 
+### IDE generated files
+.vscode/
+
 # Unencrypted secret files
 google-services.json
 GoogleService-Info.plist
@@ -19,7 +26,7 @@ gcs_key_file.json
 
 # Folders for cmake/test output
 *_build/
-*cmake-build-debug/
+cmake-build-*/
 testing/test_framework/external/
 
 # XCode user specific folders

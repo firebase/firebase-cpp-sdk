@@ -16,7 +16,8 @@
 
 cmake_minimum_required (VERSION 3.1)
 
-set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_STANDARD_REQUIRED YES)  # Don't fall back to an earlier version.
 
 # Turn on virtual folders for visual studio
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -27,8 +28,6 @@ option(FIREBASE_INCLUDE_LIBRARY_DEFAULT
        "Should each library be included by default." ON)
 # Different options to enable/disable each library being included during
 # configuration.
-option(FIREBASE_INCLUDE_ADMOB "Include the AdMob library."
-       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_ANALYTICS
        "Include the Google Analytics for Firebase library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
@@ -124,8 +123,7 @@ if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)
 endif()
 
 if (PLATFORM STREQUAL TVOS OR PLATFORM STREQUAL SIMULATOR_TVOS)
-  # AdMob, GMA and FDL are not supported on tvOS.
-  set(FIREBASE_INCLUDE_ADMOB OFF)
+  #  GMA and FDL are not supported on tvOS.
   set(FIREBASE_INCLUDE_DYNAMIC_LINKS OFF)
   set(FIREBASE_INCLUDE_GMA OFF)
 endif()
@@ -266,7 +264,7 @@ if(DESKTOP)
 
   if(FIREBASE_USE_BORINGSSL)
     # Use BoringSSL instead of OpenSSL.
-    set(BORINGSSL_ROOT_DIR ${PROJECT_BINARY_DIR}/external/src/boringssl/src CACHE STRING "" FORCE)
+    set(BORINGSSL_ROOT_DIR ${PROJECT_BINARY_DIR}/external/src/boringssl CACHE STRING "" FORCE)
     set(BORINGSSL_BINARY_DIR ${PROJECT_BINARY_DIR}/external/src/boringssl-build CACHE STRING "" FORCE)
     set(OPENSSL_ROOT_DIR ${BORINGSSL_ROOT_DIR} CACHE STRING "" FORCE)
 
@@ -592,9 +590,6 @@ else()
   )
 endif()
 
-if (FIREBASE_INCLUDE_ADMOB)
-  add_subdirectory(admob)
-endif()
 if (FIREBASE_INCLUDE_ANALYTICS)
   add_subdirectory(analytics)
   add_dependencies(FIREBASE_GENERATED_HEADERS FIREBASE_ANALYTICS_GENERATED_HEADERS)

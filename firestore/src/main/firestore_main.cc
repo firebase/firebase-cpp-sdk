@@ -17,6 +17,7 @@
 #include "firestore/src/main/firestore_main.h"
 
 #include <cstring>
+#include <memory>
 #include <sstream>
 #include <utility>
 
@@ -42,6 +43,7 @@
 #include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/main/converter_main.h"
+#include "firestore/src/main/create_app_check_credentials_provider.h"
 #include "firestore/src/main/create_credentials_provider.h"
 #include "firestore/src/main/create_firebase_metadata_provider.h"
 #include "firestore/src/main/document_reference_main.h"
@@ -52,6 +54,7 @@ namespace firebase {
 namespace firestore {
 namespace {
 
+using credentials::AppCheckCredentialsProvider;
 using credentials::AuthCredentialsProvider;
 using credentials::EmptyAppCheckCredentialsProvider;
 using model::DatabaseId;
@@ -99,18 +102,30 @@ void ValidateDoubleSlash(const char* path) {
 
 }  // namespace
 
-FirestoreInternal::FirestoreInternal(App* app)
-    : FirestoreInternal{app, CreateCredentialsProvider(*app)} {}
+FirestoreInternal::FirestoreInternal(App* app, const std::string& database_id)
+    : FirestoreInternal{app, database_id, CreateCredentialsProvider(*app),
+                        CreateAppCheckCredentialsProvider(*app)} {}
 
 FirestoreInternal::FirestoreInternal(
-    App* app, std::unique_ptr<AuthCredentialsProvider> credentials)
+    App* app,
+    const std::string& database_id,
+    std::unique_ptr<AuthCredentialsProvider> auth_credentials,
+    std::unique_ptr<AppCheckCredentialsProvider> app_check_credentials)
     : app_(NOT_NULL(app)),
-      firestore_core_(CreateFirestore(app, std::move(credentials))),
+      firestore_core_(CreateFirestore(app,
+                                      database_id,
+                                      std::move(auth_credentials),
+                                      std::move(app_check_credentials))),
       transaction_executor_(absl::ShareUniquePtr(Executor::CreateConcurrent(
-          "com.google.firebase.firestore.transaction", /*threads=*/5))) {
+          "com.google.firebase.firestore.transaction", /*threads=*/5))),
+      database_name_(database_id) {
   ApplyDefaultSettings();
 
-  App::RegisterLibrary("fire-fst", kFirestoreVersionString);
+#if FIREBASE_PLATFORM_ANDROID
+  App::RegisterLibrary("fire-fst", kFirestoreVersionString, app->GetJNIEnv());
+#else
+  App::RegisterLibrary("fire-fst", kFirestoreVersionString, nullptr);
+#endif
 }
 
 FirestoreInternal::~FirestoreInternal() {
@@ -120,12 +135,15 @@ FirestoreInternal::~FirestoreInternal() {
 }
 
 std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
-    App* app, std::unique_ptr<AuthCredentialsProvider> credentials) {
+    App* app,
+    const std::string& database_id,
+    std::unique_ptr<AuthCredentialsProvider> auth_credentials,
+    std::unique_ptr<AppCheckCredentialsProvider> app_check_credentials) {
   const AppOptions& opt = app->options();
   return std::make_shared<api::Firestore>(
-      DatabaseId{opt.project_id()}, app->name(), std::move(credentials),
-      std::make_shared<EmptyAppCheckCredentialsProvider>(), CreateWorkerQueue(),
-      CreateFirebaseMetadataProvider(*app), this);
+      DatabaseId{opt.project_id(), database_id}, app->name(),
+      std::move(auth_credentials), std::move(app_check_credentials),
+      CreateWorkerQueue(), CreateFirebaseMetadataProvider(*app), this);
 }
 
 CollectionReference FirestoreInternal::Collection(
@@ -375,8 +393,8 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
     const std::string& bundle) {
   auto promise = promise_factory_.CreatePromise<LoadBundleTaskProgress>(
       AsyncApi::kLoadBundle);
-  auto bundle_stream = absl::make_unique<util::ByteStreamCpp>(
-      absl::make_unique<std::stringstream>(bundle));
+  auto bundle_stream = std::make_unique<util::ByteStreamCpp>(
+      std::make_unique<std::stringstream>(bundle));
 
   std::shared_ptr<api::LoadBundleTask> task =
       firestore_core_->LoadBundle(std::move(bundle_stream));
@@ -400,8 +418,8 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
     std::function<void(const LoadBundleTaskProgress&)> progress_callback) {
   auto promise = promise_factory_.CreatePromise<LoadBundleTaskProgress>(
       AsyncApi::kLoadBundle);
-  auto bundle_stream = absl::make_unique<util::ByteStreamCpp>(
-      absl::make_unique<std::stringstream>(bundle));
+  auto bundle_stream = std::make_unique<util::ByteStreamCpp>(
+      std::make_unique<std::stringstream>(bundle));
 
   std::shared_ptr<api::LoadBundleTask> task =
       firestore_core_->LoadBundle(std::move(bundle_stream));

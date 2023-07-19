@@ -15,9 +15,9 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CORE_REPO_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CORE_REPO_H_
 
+#include <memory>
 #include <vector>
 
-#include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -52,7 +52,7 @@ class Repo : public connection::PersistentConnectionEventHandler {
 
   connection::PersistentConnection* connection() { return connection_.get(); }
 
-  void AddEventCallback(UniquePtr<EventRegistration> event_registration);
+  void AddEventCallback(std::unique_ptr<EventRegistration> event_registration);
 
   void RemoveEventCallback(void* listener_ptr, const QuerySpec& query_spec);
 
@@ -158,6 +158,10 @@ class Repo : public connection::PersistentConnectionEventHandler {
 
   void UpdateInfo(const std::string& key, const Variant& value);
 
+  // Callback function used to listen for App Check token changes, and updating
+  // the connection with them.
+  static void OnAppCheckTokenChanged(const std::string& token, void* context);
+
   DatabaseInternal* database_;
 
   SparseSnapshotTree on_disconnect_;
@@ -176,11 +180,11 @@ class Repo : public connection::PersistentConnectionEventHandler {
   bool persistence_enabled_;
 
   // Firebase websocket connection with wire protocol support
-  UniquePtr<connection::PersistentConnection> connection_;
+  std::unique_ptr<connection::PersistentConnection> connection_;
 
-  UniquePtr<SyncTree> info_sync_tree_;
+  std::unique_ptr<SyncTree> info_sync_tree_;
 
-  UniquePtr<SyncTree> server_sync_tree_;
+  std::unique_ptr<SyncTree> server_sync_tree_;
 
   Variant info_data_;
 

@@ -15,6 +15,7 @@
 #include "database/src/desktop/connection/web_socket_client_impl.h"
 
 #include <cassert>
+#include <map>
 
 #include "app/src/app_common.h"
 #include "app/src/assert.h"
@@ -30,7 +31,7 @@ namespace connection {
 
 WebSocketClientImpl::WebSocketClientImpl(
     const std::string& uri, const std::string& user_agent, Logger* logger,
-    scheduler::Scheduler* scheduler,
+    scheduler::Scheduler* scheduler, const std::string& app_check_token,
     WebSocketClientEventHandler* handler /*=nullptr*/)
     : uri_(uri),
       handler_(handler),
@@ -45,7 +46,8 @@ WebSocketClientImpl::WebSocketClientImpl(
       user_agent_(user_agent),
       logger_(logger),
       scheduler_(scheduler),
-      safe_this_(this) {
+      safe_this_(this),
+      app_check_token_(app_check_token) {
   // Bind callback function
   hub_.onError(WebSocketClientImpl::OnError);
   hub_.onConnection(WebSocketClientImpl::OnConnection);
@@ -81,7 +83,7 @@ WebSocketClientImpl::WebSocketClientImpl(
   process_queue_async_->start(ProcessCallbackQueue);
 
   // Start the event loop
-  thread_ = MakeUnique<Thread>(EventLoopRoutine, this);
+  thread_ = std::make_unique<Thread>(EventLoopRoutine, this);
 }
 
 void WebSocketClientImpl::EventLoopRoutine(void* data) {
@@ -127,6 +129,9 @@ void WebSocketClientImpl::Connect(int timeout_ms) {
           std::map<std::string, std::string> headers;
           headers["User-Agent"] = client->user_agent_;
           headers[app_common::kApiClientHeader] = App::GetUserAgent();
+          if (!client->app_check_token_.empty()) {
+            headers["X-Firebase-AppCheck"] = client->app_check_token_;
+          }
           client->hub_.connect(client->uri_, client, headers, timeout_ms);
         } else {
           logger->LogWarning("websocket has already been connected to %s",
@@ -162,6 +167,10 @@ void WebSocketClientImpl::Send(const char* msg) {
         }
       },
       0, msg);
+}
+
+void WebSocketClientImpl::RefreshAppCheckToken(const std::string& token) {
+  app_check_token_ = token;
 }
 
 void WebSocketClientImpl::OnError(void* data) {

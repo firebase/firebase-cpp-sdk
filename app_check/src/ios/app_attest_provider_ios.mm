@@ -82,13 +82,9 @@ AppCheckProvider* AppAttestProviderFactoryInternal::CreateProvider(App* app) {
 
 }  // namespace internal
 
-static AppAttestProviderFactory* g_app_attest_provider_factory = nullptr;
-
 AppAttestProviderFactory* AppAttestProviderFactory::GetInstance() {
-  if (!g_app_attest_provider_factory) {
-    g_app_attest_provider_factory = new AppAttestProviderFactory();
-  }
-  return g_app_attest_provider_factory;
+  static AppAttestProviderFactory g_app_attest_provider_factory;
+  return &g_app_attest_provider_factory;
 }
 
 AppAttestProviderFactory::AppAttestProviderFactory()

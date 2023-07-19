@@ -196,7 +196,8 @@ TEST(WebSocketClientImpl, Test1) {
   TestClientEventHandler handler(&semaphore);
   Logger logger(nullptr);
   scheduler::Scheduler scheduler;
-  WebSocketClientImpl ws_client(uri.c_str(), "", &logger, &scheduler, &handler);
+  WebSocketClientImpl ws_client(uri.c_str(), "", &logger, &scheduler, "",
+                                &handler);
 
   // Connect to local server
   LogDebug("[Client] Connecting to %s", uri.c_str());
@@ -231,7 +232,7 @@ TEST(WebSocketClientImpl, Test1) {
 TEST(WebSocketClientImpl, TestEdgeCase1) {
   Logger logger(nullptr);
   scheduler::Scheduler scheduler;
-  WebSocketClientImpl ws_client("ws://localhost", "", &logger, &scheduler);
+  WebSocketClientImpl ws_client("ws://localhost", "", &logger, &scheduler, "");
 }
 
 // Test if it is safe to connect to a server and destroy the client immediately.
@@ -249,7 +250,7 @@ TEST(WebSocketClientImpl, TestEdgeCase2) {
   int count = 0;
   while ((count++) < 10000) {
     WebSocketClientImpl* ws_client =
-        new WebSocketClientImpl(uri.c_str(), "", &logger, &scheduler);
+        new WebSocketClientImpl(uri.c_str(), "", &logger, &scheduler, "");
 
     // Connect to local server
     LogDebug("[Client][%d] Connecting to %s", count, uri.c_str());

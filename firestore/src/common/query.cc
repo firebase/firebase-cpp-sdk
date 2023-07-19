@@ -16,13 +16,14 @@
 
 #include "firestore/src/include/firebase/firestore/query.h"
 
-#include "app/meta/move.h"
+#include <utility>
 #include "app/src/include/firebase/future.h"
 #include "firestore/src/common/cleanup.h"
 #include "firestore/src/common/event_listener.h"
 #include "firestore/src/common/futures.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/util.h"
+#include "firestore/src/include/firebase/firestore/aggregate_query.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
@@ -104,6 +105,11 @@ const Firestore* Query::firestore() const {
 Firestore* Query::firestore() {
   if (!internal_) return {};
   return internal_->firestore();
+}
+
+AggregateQuery Query::Count() const {
+  if (!internal_) return {};
+  return internal_->Count();
 }
 
 Query Query::WhereEqualTo(const std::string& field,
@@ -286,8 +292,7 @@ Future<QuerySnapshot> Query::Get(Source source) const {
 ListenerRegistration Query::AddSnapshotListener(
     std::function<void(const QuerySnapshot&, Error, const std::string&)>
         callback) {
-  return AddSnapshotListener(MetadataChanges::kExclude,
-                             firebase::Move(callback));
+  return AddSnapshotListener(MetadataChanges::kExclude, std::move(callback));
 }
 
 ListenerRegistration Query::AddSnapshotListener(
@@ -298,8 +303,7 @@ ListenerRegistration Query::AddSnapshotListener(
                      "Snapshot listener callback cannot be an empty function.");
 
   if (!internal_) return {};
-  return internal_->AddSnapshotListener(metadata_changes,
-                                        firebase::Move(callback));
+  return internal_->AddSnapshotListener(metadata_changes, std::move(callback));
 }
 
 size_t Query::Hash() const {

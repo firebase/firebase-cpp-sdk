@@ -27,7 +27,7 @@ binary_to_array("response_resource"
 set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
     "--no-union-value-namespacing"
     "--gen-object-api"
-    "--cpp-ptr-type" "flatbuffers::unique_ptr")
+    "--cpp-ptr-type" "std::unique_ptr")
 set(flatbuffer_schemas
     ${CMAKE_CURRENT_LIST_DIR}/src/desktop/request.fbs
     ${CMAKE_CURRENT_LIST_DIR}/src/desktop/response.fbs)
@@ -45,10 +45,23 @@ build_flatbuffers("${flatbuffer_schemas}"
 # Common source files used by all platforms
 set(common_SRCS
     src/common.cc
+    src/cleanup.h
+    src/config_update_listener_registration.cc
+    src/config_update_listener_registration_internal.cc
     src/remote_config.cc)
+
+
+# Run gradle command to make jar
+firebase_cpp_gradle(":remote_config:remote_config_resources:generateDexJarRelease"
+    "${CMAKE_CURRENT_LIST_DIR}/remote_config_resources/build/remote_config_resources_lib.jar")
+binary_to_array("remote_config_resources"
+    "${CMAKE_CURRENT_LIST_DIR}/remote_config_resources/build/remote_config_resources_lib.jar"
+    "firebase_remote_config"
+    "${FIREBASE_GEN_FILE_DIR}/remote_config")
 
 # Source files used by the Android implementation.
 set(android_SRCS
+    ${remote_config_resources_source}
     src/android/remote_config_android.cc)
 
 # Source files used by the iOS implementation.
@@ -94,6 +107,11 @@ else()
       ${PROJECT_BINARY_DIR}/..)
   set(additional_link_LIB
       firebase_rest_lib)
+  if(MSVC)
+    # Remote Config on Windows requires the icu.dll system library for time zone
+    # handling.
+    set(additional_link_LIB ${additional_link_LIB} icu)
+  endif()
 endif()
 
 add_library(firebase_remote_config STATIC

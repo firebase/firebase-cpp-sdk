@@ -16,7 +16,7 @@ r"""Tool for mobile testapps to Test on iOS Simulator / Android Emulator locally
 
 Usage:
 
-  python test_simulator.py --testapp_dir ~/testapps --test_type gameloop
+  python3 test_simulator.py --testapp_dir ~/testapps --test_type gameloop
 
 This will recursively search ~/testapps for apps,
 test on local simulators/emulators, and validate their results. The validation is 
@@ -80,6 +80,7 @@ import json
 import os
 import pathlib
 import platform
+import re
 import shutil
 import signal
 import subprocess
@@ -499,12 +500,24 @@ def _create_and_boot_simulator(apple_platform, device_name, device_os):
 
   if not device_id:
     # download and create device
-    os.environ["GEM_HOME"] = "$HOME/.gem"
-    args = ["gem", "install", "xcode-install"]
-    logging.info("Download xcode-install: %s", " ".join(args))
+    args = ["brew", "install", "xcodesorg/made/xcodes"]
+    logging.info("Download xcodes: %s", " ".join(args))
     subprocess.run(args=args, check=True)
 
-    args = ["xcversion", "simulators", "--install=%s %s" % (apple_platform, device_os)]
+    # Get the set of available versions for the given Apple platform
+    args = ["xcodes", "runtimes"]
+    runtimes = subprocess.run(args=args, capture_output=True, text=True, check=True)
+    available_versions = re.findall('{0} ([\d|.]+)'.format(apple_platform), runtimes.stdout.strip())
+    logging.info("Found available versions for %s: %s", apple_platform, ", ".join(available_versions))
+
+    # If the requested version is available, use it, otherwise default to the latest
+    if (device_os not in available_versions):
+      logging.warning("Unable to find version %s, will fall back to %s", device_os, available_versions[-1])
+      if FLAGS.ci:
+        print("::warning ::Unable to find %s version %s, will fall back to %s" % (apple_platform, device_os, available_versions[-1]))
+      device_os = available_versions[-1]
+
+    args = ["sudo", "xcodes", "runtimes", "install", "%s %s" % (apple_platform, device_os)]
     logging.info("Download simulator: %s", " ".join(args))
     subprocess.run(args=args, check=False)
     

@@ -15,10 +15,10 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_CONNECTION_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_CONNECTION_H_
 
+#include <atomic>
+#include <memory>
 #include <sstream>
 
-#include "app/memory/atomic.h"
-#include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/logger.h"
 #include "app/src/safe_reference.h"
@@ -75,7 +75,8 @@ class Connection : public WebSocketClientEventHandler {
 
   explicit Connection(scheduler::Scheduler* scheduler, const HostInfo& info,
                       const char* opt_last_session_id,
-                      ConnectionEventHandler* event_handler, Logger* logger);
+                      ConnectionEventHandler* event_handler, Logger* logger,
+                      const std::string& app_check_token = "");
   ~Connection() override;
 
   // Connection is neither copyable nor movable.
@@ -103,6 +104,12 @@ class Connection : public WebSocketClientEventHandler {
   void OnClose() override;
   void OnError(const WebSocketClientErrorData& error_data) override;
   // END WebSocketClientEventHandler
+
+  // Refresh the stored App Check token being used by the connection.
+  // This doesn't change the connection itself, just the data used for
+  // establishing new connections.
+  // Expect to be called from scheduler thread.
+  void RefreshAppCheckToken(const std::string& token);
 
  private:
   // State of the connection
@@ -170,11 +177,11 @@ class Connection : public WebSocketClientEventHandler {
   static const char* const kServerHelloSessionId;
 
   // Log id.  Unique for each connection.
-  static compat::Atomic<uint32_t> next_log_id_;
+  static std::atomic<uint32_t> next_log_id_;
   std::string log_id_;
 
   // Safe reference to this.  Set in constructor and cleared in destructor
-  // Should be safe to be copied in any thread because the SharedPtr never
+  // Should be safe to be copied in any thread because the std::shared_ptr never
   // changes, until safe_this_ is completely destroyed.
   typedef firebase::internal::SafeReference<Connection> ConnectionRef;
   typedef firebase::internal::SafeReferenceLock<Connection> ConnectionRefLock;
@@ -198,7 +205,7 @@ class Connection : public WebSocketClientEventHandler {
   bool ws_connected_;
 
   // Web socket client implementation.  Only safe to access in scheduler thread.
-  UniquePtr<WebSocketClientInterface> client_;
+  std::unique_ptr<WebSocketClientInterface> client_;
 
   // The handle for periodic callback to keep the connection alive.  Only safe
   // to access in scheduler thread.

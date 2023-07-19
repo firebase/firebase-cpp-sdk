@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/connection/util_connection.h"
 
+#include <string>
+
 #include "database/src/desktop/connection/web_socket_client_impl.h"
 
 namespace firebase {
@@ -21,14 +23,14 @@ namespace database {
 namespace internal {
 namespace connection {
 
-UniquePtr<WebSocketClientInterface> CreateWebSocketClient(
+std::unique_ptr<WebSocketClientInterface> CreateWebSocketClient(
     const HostInfo& info, WebSocketClientEventHandler* delegate,
     const char* opt_last_session_id, Logger* logger,
-    scheduler::Scheduler* scheduler) {
+    scheduler::Scheduler* scheduler, const std::string& app_check_token) {
   // Currently we use uWebSockets implementation.
   std::string uri = info.GetConnectionUrl(opt_last_session_id);
-  return MakeUnique<WebSocketClientImpl>(uri, info.user_agent(), logger,
-                                         scheduler, delegate);
+  return std::make_unique<WebSocketClientImpl>(
+      uri, info.user_agent(), logger, scheduler, app_check_token, delegate);
 }
 
 }  // namespace connection

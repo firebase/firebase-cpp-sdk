@@ -19,7 +19,7 @@ set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
     "--no-union-value-namespacing"
     "--gen-generated"
     "--gen-object-api"
-    "--cpp-ptr-type" "flatbuffers::unique_ptr")
+    "--cpp-ptr-type" "std::unique_ptr")
 set(flatbuffer_schemas
     ${CMAKE_CURRENT_LIST_DIR}/src/android/schemas/messaging.fbs)
 # Because of a bug in the version of Flatbuffers we are pinned to,
@@ -109,6 +109,19 @@ endif()
 
 if(ANDROID)
   firebase_cpp_proguard_file(messaging)
+
+  # Expose the Messaging Java AAR file as a target
+  set(FIREBASE_MESSAGING_JAVA_AAR_PATH
+    "${CMAKE_CURRENT_LIST_DIR}/messaging_java/build/outputs/aar/messaging_java.aar")
+  firebase_cpp_gradle(":messaging:messaging_java:assemble"
+    "${FIREBASE_MESSAGING_JAVA_AAR_PATH}"
+  )
+  add_custom_target(firebase_messaging_java_aar
+    DEPENDS "${FIREBASE_MESSAGING_JAVA_AAR_PATH}"
+  )
+  set_target_properties(firebase_messaging_java_aar PROPERTIES
+    OBJECT_OUTPUTS "${FIREBASE_MESSAGING_JAVA_AAR_PATH}"
+  )
 elseif(IOS)
   # Enable Automatic Reference Counting (ARC) and Bitcode.
   target_compile_options(firebase_messaging

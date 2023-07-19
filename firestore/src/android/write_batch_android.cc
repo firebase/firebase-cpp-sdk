@@ -107,8 +107,9 @@ Future<void> WriteBatchInternal::Commit() {
   return promises_.NewFuture<void>(env, AsyncFn::kCommit, task);
 }
 
-jni::Object WriteBatchInternal::ToJava(const DocumentReference& reference) {
-  return reference.internal_ ? reference.internal_->ToJava() : jni::Object();
+Local<jni::Object> WriteBatchInternal::ToJava(
+    const DocumentReference& reference) {
+  return reference.internal_ ? reference.internal_->ToJava() : Local<Object>();
 }
 
 }  // namespace firestore

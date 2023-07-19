@@ -15,7 +15,10 @@
 #ifndef FIREBASE_REMOTE_CONFIG_SRC_ANDROID_REMOTE_CONFIG_ANDROID_H_
 #define FIREBASE_REMOTE_CONFIG_SRC_ANDROID_REMOTE_CONFIG_ANDROID_H_
 
-#include "app/meta/move.h"
+#include <string>
+#include <utility>
+
+#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/reference_count.h"
@@ -80,9 +83,16 @@ class RemoteConfigInternal {
 
   const ConfigInfo GetInfo() const;
 
+  ConfigUpdateListenerRegistration AddOnConfigUpdateListener(
+      std::function<void(ConfigUpdate&&, RemoteConfigError)>
+          config_update_listener);
+
   bool Initialized() const;
 
   void Cleanup();
+
+  // When this is deleted, it will clean up all ListenerRegistrations.
+  CleanupNotifier& cleanup_notifier() { return cleanup_; }
 
   void set_throttled_end_time(int64_t end_time) {
     throttled_end_time_ = end_time;
@@ -91,7 +101,7 @@ class RemoteConfigInternal {
   void SaveTmpKeysToDefault(std::vector<std::string> tmp_default_keys) {
     MutexLock lock(default_key_mutex_);
 #if defined(FIREBASE_USE_MOVE_OPERATORS)
-    default_keys_ = firebase::Move(tmp_default_keys);
+    default_keys_ = std::move(tmp_default_keys);
 #else
     default_keys_ = tmp_default_keys;
 #endif  // FIREBASE_USE_MOVE_OPERATORS
@@ -105,6 +115,8 @@ class RemoteConfigInternal {
   /// Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl_;
 
+  CleanupNotifier cleanup_;
+
   jobject internal_obj_;
 
   Mutex default_key_mutex_;
@@ -114,6 +126,9 @@ class RemoteConfigInternal {
   // If a fetch was throttled, this is set to the time when throttling is
   // finished, in milliseconds since epoch.
   int64_t throttled_end_time_ = 0;
+
+  // String to be used when registering for JNI task callbacks.
+  std::string jni_task_id_;
 };
 
 }  // namespace internal

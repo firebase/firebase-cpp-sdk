@@ -100,10 +100,29 @@ class IdTokenRefreshThread {
 };
 
 // Facilitates completion of Federated Auth operations on non-mobile
-// environments. Custom application logic fulfills the authentication request
-// and uses this completion handle in callbacks. Our callbacks observe
-// contextual information in these handles to access to trigger the
-// corresponding Future<SignInResult>.
+// environments which return AuthResults. Custom application logic fulfills the
+// authentication request and uses this completion handle in callbacks. Our
+// callbacks observe contextual information in these handles to access to
+// trigger the corresponding Future<SignInResult>.
+struct AuthResultCompletionHandle {
+ public:
+  AuthResultCompletionHandle(const SafeFutureHandle<AuthResult>& handle,
+                             AuthData* auth_data)
+      : future_handle(handle), auth_data(auth_data) {}
+
+  AuthResultCompletionHandle() = delete;
+
+  virtual ~AuthResultCompletionHandle() { auth_data = nullptr; }
+
+  SafeFutureHandle<AuthResult> future_handle;
+  AuthData* auth_data;
+};
+
+// Facilitates completion of Federated Auth operations on non-mobile
+// environments which return SignInResults. Custom application logic fulfills
+// the authentication request and uses this completion handle in callbacks. Our
+// callbacks observe contextual information in these handles to access to
+// trigger the corresponding Future<SignInResult>.
 struct AuthCompletionHandle {
  public:
   AuthCompletionHandle(const SafeFutureHandle<SignInResult>& handle,
@@ -151,13 +170,13 @@ struct AuthImpl {
   // Thread responsible for refreshing the auth token periodically.
   IdTokenRefreshThread token_refresh_thread;
   // Instance responsible for user data persistence.
-  UniquePtr<UserDataPersist> user_data_persist;
+  std::unique_ptr<UserDataPersist> user_data_persist;
 
   // Firebase-internal auth state listeners added via the function registry
   // are tracked here. This is added as the first AuthStateListener to mimic
   // the behavior of the iOS and Android SDKs which guarantee that all internal
   // listeners are called before any user-supplied ones.
-  UniquePtr<FunctionRegistryAuthStateListener> internal_listeners;
+  std::unique_ptr<FunctionRegistryAuthStateListener> internal_listeners;
 
   // Serializes all REST call from this object.
   scheduler::Scheduler scheduler_;

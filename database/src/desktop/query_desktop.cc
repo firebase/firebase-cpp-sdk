@@ -14,9 +14,10 @@
 
 #include "database/src/desktop/query_desktop.h"
 
+#include <memory>
 #include <sstream>
+#include <utility>
 
-#include "app/memory/unique_ptr.h"
 #include "app/rest/transport_builder.h"
 #include "app/rest/transport_curl.h"
 #include "app/rest/util.h"
@@ -136,12 +137,12 @@ QueryInternal::~QueryInternal() {}
 class SingleValueEventRegistration : public ValueEventRegistration {
  public:
   SingleValueEventRegistration(DatabaseInternal* database,
-                               UniquePtr<SingleValueListener> listener,
+                               std::unique_ptr<SingleValueListener> listener,
                                const QuerySpec& query_spec)
       : ValueEventRegistration(database, listener.get(), query_spec),
         active_(true),
         database_(database),
-        listener_(Move(listener)) {}
+        listener_(std::move(listener)) {}
 
   void FireEvent(const Event& event) override {
     if (active_) {
@@ -172,18 +173,18 @@ class SingleValueEventRegistration : public ValueEventRegistration {
 
   bool active_;
   DatabaseInternal* database_;
-  UniquePtr<SingleValueListener> listener_;
+  std::unique_ptr<SingleValueListener> listener_;
 };
 
 Future<DataSnapshot> QueryInternal::GetValue() {
   SafeFutureHandle<DataSnapshot> handle =
       query_future()->SafeAlloc<DataSnapshot>(kQueryFnGetValue,
                                               DataSnapshot(nullptr));
-  auto listener = MakeUnique<SingleValueListener>(database_, query_spec_,
-                                                  query_future(), handle);
+  auto listener = std::make_unique<SingleValueListener>(database_, query_spec_,
+                                                        query_future(), handle);
   void* listener_ptr = listener.get();
-  AddEventRegistration(MakeUnique<SingleValueEventRegistration>(
-                           database_, Move(listener), query_spec_),
+  AddEventRegistration(std::make_unique<SingleValueEventRegistration>(
+                           database_, std::move(listener), query_spec_),
                        listener_ptr);
   return MakeFuture(query_future(), handle);
 }
@@ -195,9 +196,9 @@ Future<DataSnapshot> QueryInternal::GetValueLastResult() {
 
 void QueryInternal::AddValueListener(ValueListener* listener) {
   ValueListenerCleanupData cleanup_data(query_spec_);
-  AddEventRegistration(
-      MakeUnique<ValueEventRegistration>(database_, listener, query_spec_),
-      static_cast<void*>(listener));
+  AddEventRegistration(std::make_unique<ValueEventRegistration>(
+                           database_, listener, query_spec_),
+                       static_cast<void*>(listener));
   database_->RegisterValueListener(query_spec_, listener,
                                    std::move(cleanup_data));
 }
@@ -213,17 +214,36 @@ void QueryInternal::RemoveAllValueListeners() {
 }
 
 void QueryInternal::AddEventRegistration(
-    UniquePtr<EventRegistration> registration, void* listener_ptr) {
+    std::unique_ptr<EventRegistration> registration, void* listener_ptr) {
   database_->AddEventRegistration(query_spec_, listener_ptr,
                                   registration.get());
+  // NewCallback() does not allow you to pass in a move-only object
+  // such as the unique_ptr above. To avoid the need for that, we can
+  // wrap the unique_ptr into a shared_ptr. This will allow us to
+  // safely pass it to the callback, which will then release the pointer
+  // from the unique_ptr and create its own unique_ptr.
+  //
+  // This guarantees that the pointer is always owned by something: either the
+  // shared_ptr created here, or (once it's removed from the inner unique_ptr)
+  // the newly-created unique_ptr in the callback.
+  //
+  // TODO(b/289284829): Refactor NewCallback to support move semantics for
+  // callback arguments.
+  std::shared_ptr<std::unique_ptr<EventRegistration>> reg_wrapped =
+      std::make_shared<std::unique_ptr<EventRegistration>>(
+          std::move(registration));
   Repo::scheduler().Schedule(NewCallback(
-      [](Repo::ThisRef ref, UniquePtr<EventRegistration> registration) {
+      [](Repo::ThisRef ref,
+         std::shared_ptr<std::unique_ptr<EventRegistration>> reg_ptr_shared) {
         Repo::ThisRefLock lock(&ref);
+        // Transfer ownership of the internal pointer to a new unique_ptr.
+        EventRegistration* reg_ptr = reg_ptr_shared->release();
+        std::unique_ptr<EventRegistration> reg(reg_ptr);
         if (lock.GetReference() != nullptr) {
-          lock.GetReference()->AddEventCallback(Move(registration));
+          lock.GetReference()->AddEventCallback(std::move(reg));
         }
       },
-      database_->repo()->this_ref(), Move(registration)));
+      database_->repo()->this_ref(), reg_wrapped));
 }
 
 void QueryInternal::RemoveEventRegistration(void* listener_ptr,
@@ -261,9 +281,9 @@ void QueryInternal::RemoveEventRegistration(ChildListener* listener,
 
 void QueryInternal::AddChildListener(ChildListener* listener) {
   ChildListenerCleanupData cleanup_data(query_spec_);
-  AddEventRegistration(
-      MakeUnique<ChildEventRegistration>(database_, listener, query_spec_),
-      static_cast<void*>(listener));
+  AddEventRegistration(std::make_unique<ChildEventRegistration>(
+                           database_, listener, query_spec_),
+                       static_cast<void*>(listener));
   database_->RegisterChildListener(query_spec_, listener,
                                    std::move(cleanup_data));
 }

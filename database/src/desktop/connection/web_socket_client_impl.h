@@ -15,11 +15,11 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_WEB_SOCKET_CLIENT_IMPL_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_WEB_SOCKET_CLIENT_IMPL_H_
 
+#include <atomic>
+#include <memory>
 #include <queue>
 #include <string>
 
-#include "app/memory/atomic.h"
-#include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/internal/mutex.h"
 #include "app/src/logger.h"
 #include "app/src/safe_reference.h"
@@ -37,6 +37,7 @@ class WebSocketClientImpl : public WebSocketClientInterface {
  public:
   WebSocketClientImpl(const std::string& uri, const std::string& user_agent,
                       Logger* logger, scheduler::Scheduler* scheduler,
+                      const std::string& app_check_token,
                       WebSocketClientEventHandler* handler = nullptr);
   ~WebSocketClientImpl() override;
 
@@ -49,6 +50,12 @@ class WebSocketClientImpl : public WebSocketClientInterface {
   void Close() override;
   void Send(const char* msg) override;
   // END WebSocketClientInterface
+
+  // Refresh the stored App Check token being used by the connection.
+  // This doesn't change the connection itself, just the data used for
+  // establishing new connections.
+  // Expect to be called from scheduler thread.
+  void RefreshAppCheckToken(const std::string& token);
 
  private:
   typedef uWS::WebSocket<uWS::CLIENT> ClientWebSocket;
@@ -97,7 +104,7 @@ class WebSocketClientImpl : public WebSocketClientInterface {
   WebSocketClientEventHandler* handler_;
 
   // The thread to host the event loop of hub_
-  UniquePtr<Thread> thread_;
+  std::unique_ptr<Thread> thread_;
 
   // The access point for uWebSockets which contains event loops and
   // different sockets.
@@ -143,7 +150,7 @@ class WebSocketClientImpl : public WebSocketClientInterface {
   // is not guarded by any synchronization primitives and is changed outside of
   // the event loop.  If referenced during the event loop, make sure the racing
   // condition will not cause the problem.
-  compat::Atomic<int> is_destructing_;
+  std::atomic<int> is_destructing_;
 
   // The websocket handler to send message, to receive message and to close the
   // connection.  Should only be used in the event loop.  Not thread safe
@@ -152,12 +159,15 @@ class WebSocketClientImpl : public WebSocketClientInterface {
   // User agent used when opening the connection.
   std::string user_agent_;
 
+  // App Check token used when opening the connection.
+  std::string app_check_token_;
+
   Logger* logger_;
 
   scheduler::Scheduler* scheduler_;
 
   // Safe reference to this.  Set in constructor and cleared in destructor
-  // Should be safe to be copied in any thread because the SharedPtr never
+  // Should be safe to be copied in any thread because the std::shared_ptr never
   // changes, until safe_this_ is completely destroyed.
   typedef firebase::internal::SafeReference<WebSocketClientImpl> ClientRef;
   typedef firebase::internal::SafeReferenceLock<WebSocketClientImpl>

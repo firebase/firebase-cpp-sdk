@@ -12,16 +12,16 @@ if [[ -z $(which cmake) ]]; then
     exit 1
 fi
 
-if [[ -z $(which python) ]]; then
-    echo "Error, python is not installed or is not in the PATH."
+if [[ -z $(which python3) ]]; then
+    echo "Error, python3 is not installed or is not in the PATH."
     exit 1
 else
     updated_pip=0
-    if ! $(echo "import absl"$'\n'"import google.protobuf" | python - 2> /dev/null); then
+    if ! $(echo "import absl"$'\n'"import google.protobuf" | python3 - 2> /dev/null); then
 	echo "Installing python packages."
 	set -x
-	sudo python -m pip install --upgrade pip
-	pip install absl-py protobuf
+	sudo python3 -m pip install --upgrade pip
+	pip3 install absl-py protobuf
 	set +x
     fi
 fi

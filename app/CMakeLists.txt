@@ -59,7 +59,7 @@ set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
     "--no-union-value-namespacing"
     "--gen-generated"
     "--gen-object-api"
-    "--cpp-ptr-type" "flatbuffers::unique_ptr")
+    "--cpp-ptr-type" "std::unique_ptr")
 # Because of a bug in the version of Flatbuffers we are pinned to,
 # additional flags need to be set.
 set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
@@ -180,7 +180,7 @@ set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
     "--no-union-value-namespacing"
     "--gen-generated"
     "--gen-object-api"
-    "--cpp-ptr-type" "flatbuffers::unique_ptr")
+    "--cpp-ptr-type" "std::unique_ptr")
 # Because of a bug in the version of Flatbuffers we are pinned to,
 # additional flags need to be set.
 # also see if app_generated_includes will conflict
@@ -312,6 +312,7 @@ set(app_android_HDRS
     src/invites/android/invites_android_helper.h
     src/invites/android/invites_receiver_internal_android.h)
 set(app_ios_HDRS
+    src/app_ios.h
     src/invites/ios/invites_receiver_internal_ios.h)
 set(app_desktop_HDRS
     src/invites/stub/invites_receiver_internal_stub.h)
@@ -350,10 +351,6 @@ add_library(firebase_app STATIC
     ${utility_HDRS}
     ${app_platform_HDRS}
     ${FIREBASE_GEN_FILE_DIR}/app/google_services_generated.h
-    memory/atomic.h
-    meta/move.h
-    memory/unique_ptr.h
-    memory/shared_ptr.h
     ${app_flatbuffers_srcs})
 
 set_property(TARGET firebase_app PROPERTY FOLDER "Firebase Cpp")
@@ -454,15 +451,6 @@ if (IOS)
     )
   endif()
 
-  # framework header files
-  set(admob_HDRS
-    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob.h
-    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob/banner_view.h
-    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob/interstitial_ad.h
-    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob/native_express_ad_view.h
-    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob/rewarded_video.h
-    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob/types.h)
-
   # Generate the analytics header file
   # Copy from analytics/CMakeList.txt
   function(generate_analytics_header OBJC_FILE CPP_FILE)
@@ -521,6 +509,9 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/dynamic_links/src/include/firebase/dynamic_links/components.h)
   set(firestore_HDRS
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_query.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_query_snapshot.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/aggregate_source.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/collection_reference.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_change.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_reference.h
@@ -553,6 +544,7 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/ad_view.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/interstitial_ad.h
+    ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/internal/native_ad.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/rewarded_ad.h
     ${FIREBASE_SOURCE_DIR}/gma/src/include/firebase/gma/types.h)
   set(installations_HDRS
@@ -560,7 +552,8 @@ if (IOS)
   set(messaging_HDRS
     ${FIREBASE_SOURCE_DIR}/messaging/src/include/firebase/messaging.h)
   set(remote_config_HDRS
-    ${FIREBASE_SOURCE_DIR}/remote_config/src/include/firebase/remote_config.h)
+    ${FIREBASE_SOURCE_DIR}/remote_config/src/include/firebase/remote_config.h
+    ${FIREBASE_SOURCE_DIR}/remote_config/src/include/firebase/remote_config/config_update_listener_registration.h)
   set(storage_HDRS
     ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage.h
     ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/common.h
@@ -571,7 +564,6 @@ if (IOS)
 
   list(APPEND framework_HDRS
     src/include/firebase/internal/platform.h
-    ${admob_HDRS}
     ${analytics_HDRS}
     ${app_check_HDRS}
     ${auth_HDRS}

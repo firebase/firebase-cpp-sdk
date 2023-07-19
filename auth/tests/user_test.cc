@@ -167,9 +167,9 @@ class UserTest : public ::testing::Test {
         "}");
     firebase_app_ = testing::CreateApp();
     firebase_auth_ = Auth::GetAuth(firebase_app_);
-    Future<User*> result = firebase_auth_->SignInAnonymously();
+    Future<User*> result = firebase_auth_->SignInAnonymously_DEPRECATED();
     MaybeWaitForFuture(result);
-    firebase_user_ = firebase_auth_->current_user();
+    firebase_user_ = firebase_auth_->current_user_DEPRECATED();
     EXPECT_NE(nullptr, firebase_user_);
   }
 
@@ -254,7 +254,7 @@ TEST_F(UserTest, TestGetToken) {
 TEST_F(UserTest, TestGetProviderData) {
   // Test get provider data. Right now, most of the sign-in does not have extra
   // data coming from providers.
-  const std::vector<UserInfoInterface*>& provider =
+  const std::vector<UserInfoInterface>& provider =
       firebase_user_->provider_data();
   EXPECT_TRUE(provider.empty());
 }
@@ -342,7 +342,7 @@ TEST_F(UserTest, TestReauthenticate) {
 
   Credential credential = EmailAuthProvider::GetCredential("i@email.com", "pw");
   Future<User*> sign_in_result =
-      firebase_auth_->SignInWithCredential(credential);
+      firebase_auth_->SignInWithCredential_DEPRECATED(credential);
   Verify(sign_in_result);
 
   Future<void> reauthenticate_result =
@@ -368,8 +368,9 @@ TEST_F(UserTest, TestReauthenticateAndRetrieveData) {
       "}";
   firebase::testing::cppsdk::ConfigSet(config.c_str());
 
-  Future<SignInResult> result = firebase_user_->ReauthenticateAndRetrieveData(
-      EmailAuthProvider::GetCredential("i@email.com", "pw"));
+  Future<SignInResult> result =
+      firebase_user_->ReauthenticateAndRetrieveData_DEPRECATED(
+          EmailAuthProvider::GetCredential("i@email.com", "pw"));
   Verify(result);
 }
 #endif  // !defined(__APPLE__) && !defined(FIREBASE_WAIT_ASYNC_IN_TEST)
@@ -414,29 +415,10 @@ TEST_F(UserTest, TestLinkWithCredential) {
       "}";
   firebase::testing::cppsdk::ConfigSet(config.c_str());
 
-  Future<User*> result = firebase_user_->LinkWithCredential(
+  Future<User*> result = firebase_user_->LinkWithCredential_DEPRECATED(
       EmailAuthProvider::GetCredential("i@email.com", "pw"));
   Verify(result);
 }
-
-#if !defined(__APPLE__) && !defined(FIREBASE_WAIT_ASYNC_IN_TEST)
-TEST_F(UserTest, TestLinkAndRetrieveDataWithCredential) {
-  // Test link and retrieve data with credential. This calls the same native SDK
-  // function as LinkWithCredential().
-  firebase::testing::cppsdk::ConfigSet(
-      "{"
-      "  config:["
-      "    {fake:'FirebaseUser.linkWithCredential', futuregeneric:{ticker:1}},"
-      "    {fake:'FIRUser.linkAndRetrieveDataWithCredential:completion:',"
-      "     futuregeneric:{ticker:1}}"
-      "  ]"
-      "}");
-  Future<SignInResult> result =
-      firebase_user_->LinkAndRetrieveDataWithCredential(
-          EmailAuthProvider::GetCredential("i@email.com", "pw"));
-  Verify(result);
-}
-#endif  // !defined(__APPLE__) && !defined(FIREBASE_WAIT_ASYNC_IN_TEST)
 
 TEST_F(UserTest, TestUnlink) {
   const std::string config =
@@ -461,7 +443,7 @@ TEST_F(UserTest, TestUnlink) {
   // MaybeWaitForFuture because to Reload will return immediately for mobile
   // wrappers, and Verify expects at least a single "tick".
   MaybeWaitForFuture(firebase_user_->Reload());
-  Future<User*> result = firebase_user_->Unlink("provider");
+  Future<User*> result = firebase_user_->Unlink_DEPRECATED("provider");
   Verify(result);
   // For desktop, the provider must have been removed. For mobile wrappers, the
   // whole flow must have been a no-op, and the provider list was empty to begin
@@ -539,5 +521,55 @@ TEST_F(UserTest, TestGetter) {
   EXPECT_FALSE(firebase_user_->uid().empty());
   EXPECT_TRUE(firebase_user_->photo_url().empty());
 }
+
+TEST_F(UserTest, TestComparisonOperator) {
+  {
+    // Two invalid users
+    User user_invalid1;
+    User user_invalid2;
+    EXPECT_EQ(user_invalid1, user_invalid2);
+  }
+
+  {
+    // A invalid user
+    User user_invalid;
+    EXPECT_NE(*firebase_user_, user_invalid);
+  }
+
+  {
+    // Copied valid user
+    User user_copy(*firebase_user_);
+    EXPECT_EQ(*firebase_user_, user_copy);
+  }
+
+  {
+    // Copied invalid user
+    User user_invalid;
+    User user_invalid_copy(user_invalid);
+    EXPECT_EQ(user_invalid, user_invalid_copy);
+  }
+
+  {
+    // Two copied of current_user()
+    User user1 = firebase_auth_->current_user();
+    User user2 = firebase_auth_->current_user();
+    EXPECT_EQ(user1, user2);
+  }
+
+  {
+    // Two copied of current_user_DEPRECATED()
+    User* user1 = firebase_auth_->current_user_DEPRECATED();
+    User* user2 = firebase_auth_->current_user_DEPRECATED();
+    EXPECT_EQ(*user1, *user2);
+  }
+
+  {
+    // User from deprecated API and new API
+    User* user_deprecated = firebase_auth_->current_user_DEPRECATED();
+    User user_new = firebase_auth_->current_user();
+    EXPECT_EQ(*user_deprecated, user_new);
+  }
+}
+
 }  // namespace auth
 }  // namespace firebase

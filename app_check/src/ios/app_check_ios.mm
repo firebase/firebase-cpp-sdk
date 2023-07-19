@@ -148,8 +148,8 @@ namespace internal {
 
 AppCheckInternal::AppCheckInternal(App* app) : app_(app) {
   future_manager().AllocFutureApi(this, kAppCheckFnCount);
-  impl_ = MakeUnique<FIRAppCheckPointer>([FIRAppCheck appCheck]);
-  notification_center_wrapper_ = MakeUnique<AppCheckNotificationCenterWrapperPointer>(
+  impl_ = std::make_unique<FIRAppCheckPointer>([FIRAppCheck appCheck]);
+  notification_center_wrapper_ = std::make_unique<AppCheckNotificationCenterWrapperPointer>(
       [[AppCheckNotificationCenterWrapper alloc] init]);
 }
 
@@ -176,11 +176,9 @@ void AppCheckInternal::SetTokenAutoRefreshEnabled(bool is_token_auto_refresh_ena
 }
 
 Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
-  SafeFutureHandle<AppCheckToken> handle =
+  __block SafeFutureHandle<AppCheckToken> handle =
       future()->SafeAlloc<AppCheckToken>(kAppCheckFnGetAppCheckToken);
 
-  // __block allows handle to be referenced inside the objective C completion.
-  __block SafeFutureHandle<AppCheckToken>* handle_in_block = &handle;
   [impl()
       tokenForcingRefresh:force_refresh
                completion:^(FIRAppCheckToken* _Nullable token, NSError* _Nullable error) {
@@ -190,18 +188,18 @@ Future<AppCheckToken> AppCheckInternal::GetAppCheckToken(bool force_refresh) {
                    int error_code = firebase::app_check::internal::AppCheckErrorFromNSError(error);
                    std::string error_message = util::NSStringToString(error.localizedDescription);
 
-                   future()->CompleteWithResult(*handle_in_block, error_code, error_message.c_str(),
+                   future()->CompleteWithResult(handle, error_code, error_message.c_str(),
                                                 cpp_token);
                    return;
                  }
                  if (token == nil) {
                    NSLog(@"App Check token is nil.");
-                   future()->CompleteWithResult(*handle_in_block, kAppCheckErrorUnknown,
+                   future()->CompleteWithResult(handle, kAppCheckErrorUnknown,
                                                 "AppCheck GetToken returned an empty token.",
                                                 cpp_token);
                    return;
                  }
-                 future()->CompleteWithResult(*handle_in_block, kAppCheckErrorNone, cpp_token);
+                 future()->CompleteWithResult(handle, kAppCheckErrorNone, cpp_token);
                }];
   return MakeFuture(future(), handle);
 }

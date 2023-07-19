@@ -30,6 +30,13 @@
 #if FIREBASE_PLATFORM_WINDOWS
 #define fseeko _fseeki64
 #define ftello _ftelli64
+
+// Also include files needed for path conversion.
+#include <wchar.h>  // NOLINT
+
+#include <codecvt>
+#include <locale>
+#include <string>
 #endif  // FIREBASE_PLATFORM_WINDOWS
 
 namespace firebase {
@@ -37,8 +44,17 @@ namespace rest {
 
 // Create a request that will read from the specified file.
 // This file isn't opened until the first call to ReadBody().
-RequestFile::RequestFile(const char* filename, size_t offset)
-    : file_(fopen(filename, "rb")), file_size_(0) {
+// Note that on Windows, the filename will be UTF-8 encoded
+// and needs to be converted to utf16.
+RequestFile::RequestFile(const char* filename, size_t offset) : file_size_(0) {
+#if FIREBASE_PLATFORM_WINDOWS
+  std::string filename_utf8(filename);
+  std::wstring_convert<std::codecvt_utf8<wchar_t>> utf8_to_utf16;
+  std::wstring filename_utf16 = utf8_to_utf16.from_bytes(filename_utf8);
+  file_ = _wfopen(filename_utf16.c_str(), L"rb");
+#else
+  file_ = fopen(filename, "rb");
+#endif
   options_.stream_post_fields = true;
   // If the file exists, seek to the end of the file and get the size.
   if (file_ && fseeko(file_, 0, SEEK_END) == 0) {

@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-#include "app/meta/move.h"
+#include <utility>
 #include "app/src/embedded_file.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/jni_fwd.h"
@@ -103,7 +103,7 @@ class Loader {
                              jclass existing_ref,
                              Members&&... members) {
     UsingExistingClass(class_name, existing_ref);
-    LoadAll(Forward<Members>(members)...);
+    LoadAll(std::forward<Members>(members)...);
   }
 
   /**
@@ -118,7 +118,7 @@ class Loader {
   template <typename... Members>
   jclass LoadClass(const char* name, Members&&... members) {
     jclass result = LoadClass(name);
-    LoadAll(Forward<Members>(members)...);
+    LoadAll(std::forward<Members>(members)...);
     return result;
   }
 
@@ -147,8 +147,8 @@ class Loader {
    */
   template <typename Member, typename... Members>
   void LoadAll(Member&& first, Members&&... rest) {
-    Load(Forward<Member>(first));
-    LoadAll(Forward<Members>(rest)...);
+    Load(std::forward<Member>(first));
+    LoadAll(std::forward<Members>(rest)...);
   }
   void LoadAll() {}
 
@@ -158,6 +158,8 @@ class Loader {
   bool RegisterNatives(const JNINativeMethod methods[], size_t num_methods);
 
   void Unload();
+
+  JNIEnv* env() { return env_; }
 
  private:
   App* app_ = nullptr;

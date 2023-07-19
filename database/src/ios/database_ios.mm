@@ -37,7 +37,7 @@ DatabaseInternal::DatabaseInternal(App* app)
   } @catch (NSException* exception) {
     logger_.LogError(
         [[NSString stringWithFormat:@"Database::GetInstance(): %@", exception] UTF8String]);
-    impl_ = MakeUnique<FIRDatabasePointer>(nil);
+    impl_ = std::make_unique<FIRDatabasePointer>(nil);
   }
 }
 
@@ -50,7 +50,7 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
   } @catch (NSException* exception) {
     logger_.LogError(
         [[NSString stringWithFormat:@"Database::GetInstance(%s): %@", url, exception] UTF8String]);
-    impl_ = MakeUnique<FIRDatabasePointer>(nil);
+    impl_ = std::make_unique<FIRDatabasePointer>(nil);
   }
 }
 
@@ -66,7 +66,7 @@ DatabaseInternal::~DatabaseInternal() {
       delete listener;
     }
   }
-  impl_ = MakeUnique<FIRDatabasePointer>(nil);
+  impl_ = std::make_unique<FIRDatabasePointer>(nil);
 }
 
 App* DatabaseInternal::GetApp() { return app_; }
@@ -74,19 +74,19 @@ App* DatabaseInternal::GetApp() { return app_; }
 DatabaseReference DatabaseInternal::GetReference() const {
   return DatabaseReference(
       new DatabaseReferenceInternal(const_cast<DatabaseInternal*>(this),
-                                    MakeUnique<FIRDatabaseReferencePointer>([impl() reference])));
+                                    std::make_unique<FIRDatabaseReferencePointer>([impl() reference])));
 }
 
 DatabaseReference DatabaseInternal::GetReference(const char* path) const {
   return DatabaseReference(new DatabaseReferenceInternal(
       const_cast<DatabaseInternal*>(this),
-      MakeUnique<FIRDatabaseReferencePointer>([impl() referenceWithPath:@(path)])));
+      std::make_unique<FIRDatabaseReferencePointer>([impl() referenceWithPath:@(path)])));
 }
 
 DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) const {
   return DatabaseReference(new DatabaseReferenceInternal(
       const_cast<DatabaseInternal*>(this),
-      MakeUnique<FIRDatabaseReferencePointer>([impl() referenceFromURL:@(url)])));
+      std::make_unique<FIRDatabaseReferencePointer>([impl() referenceFromURL:@(url)])));
 }
 
 void DatabaseInternal::GoOffline() { [impl() goOffline]; }

@@ -16,6 +16,8 @@
 
 #import "gma/src/ios/gma_ios.h"
 
+#include <string>
+#include <vector>
 #include "gma/src/include/firebase/gma.h"
 
 #import <Foundation/Foundation.h>
@@ -338,6 +340,21 @@ void CompleteLoadAdInternalError(FutureCallbackData<AdResult>* callback_data,
 
   CompleteAdResultError(callback_data, /*error=*/nullptr,
                         /*is_load_ad_error=*/false, error_code, error_message);
+}
+
+void CompleteLoadImageInternalSuccess(FutureCallbackData<ImageResult>* callback_data,
+                                      const std::vector<unsigned char>& img_data) {
+  FIREBASE_ASSERT(callback_data);
+
+  GmaInternal::CompleteLoadImageFutureSuccess(callback_data, img_data);
+}
+
+void CompleteLoadImageInternalError(FutureCallbackData<ImageResult>* callback_data,
+                                 int error_code, const char* error_message) {
+  FIREBASE_ASSERT(callback_data);
+  FIREBASE_ASSERT(error_message);
+
+  GmaInternal::CompleteLoadImageFutureFailure(callback_data, error_code, std::string(error_message));
 }
 
 void CompleteAdResultError(FutureCallbackData<AdResult>* callback_data, NSError* gad_error,

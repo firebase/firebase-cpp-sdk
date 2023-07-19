@@ -25,7 +25,6 @@
 #include <thread>
 #include <vector>
 
-#include "app/memory/shared_ptr.h"
 #include "app/rest/zlibwrapper.h"
 #include "app/src/app_common.h"
 #include "app/src/base64.h"
@@ -111,8 +110,9 @@ std::string HeartbeatController::GetAndResetStoredHeartbeats() {
   }
   last_read_all_heartbeats_time_ = now;
 
-  SharedPtr<std::string> output_str = MakeShared<std::string>("");
-  SharedPtr<Semaphore> scheduled_work_semaphore = MakeShared<Semaphore>(0);
+  std::shared_ptr<std::string> output_str = std::make_shared<std::string>("");
+  std::shared_ptr<Semaphore> scheduled_work_semaphore =
+      std::make_shared<Semaphore>(0);
 
   std::function<void(void)> get_and_reset_function =
       [&, output_str, scheduled_work_semaphore]() {
@@ -162,8 +162,9 @@ std::string HeartbeatController::GetAndResetTodaysStoredHeartbeats() {
     return "";
   }
   last_read_todays_heartbeat_time_ = now;
-  SharedPtr<std::string> output_str = MakeShared<std::string>("");
-  SharedPtr<Semaphore> scheduled_work_semaphore = MakeShared<Semaphore>(0);
+  std::shared_ptr<std::string> output_str = std::make_shared<std::string>("");
+  std::shared_ptr<Semaphore> scheduled_work_semaphore =
+      std::make_shared<Semaphore>(0);
 
   std::function<void(void)> get_and_reset_function =
       [&, output_str, scheduled_work_semaphore]() {

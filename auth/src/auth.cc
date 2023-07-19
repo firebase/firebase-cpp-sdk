@@ -108,17 +108,11 @@ Auth::Auth(App* app, void* auth_impl) : auth_data_(new AuthData) {
   auth_data_->app = app;
   auth_data_->auth = this;
   auth_data_->auth_impl = auth_impl;
+  auth_data_->user_impl = nullptr;
   InitPlatformAuth(auth_data_);
 
-  std::string* future_id = &auth_data_->future_api_id;
   static const char* kApiIdentifier = "Auth";
-  future_id->reserve(strlen(kApiIdentifier) +
-                     16 /* hex characters in the pointer */ +
-                     1 /* null terminator */);
-  snprintf(&((*future_id)[0]), future_id->capacity(), "%s0x%016llx",
-           kApiIdentifier,
-           static_cast<unsigned long long>(  // NOLINT
-               reinterpret_cast<intptr_t>(this)));
+  auth_data_->future_api_id = CreateApiIdentifier(kApiIdentifier, this);
 
   // Cleanup this object if app is destroyed.
   CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app);
@@ -140,8 +134,13 @@ void Auth::DeleteInternal() {
   if (!auth_data_) return;
 
   {
-    MutexLock destructing_lock(auth_data_->desctruting_mutex);
+    MutexLock destructing_lock(auth_data_->destructing_mutex);
     auth_data_->destructing = true;
+  }
+
+  // Make sure we don't have any pending futures in flight before we disappear.
+  while (!auth_data_->future_impl.IsSafeToDelete()) {
+    internal::Sleep(100);
   }
 
   CleanupNotifier* notifier = CleanupNotifier::FindByOwner(auth_data_->app);
@@ -227,8 +226,8 @@ void Auth::AddAuthStateListener(AuthStateListener* listener) {
   // If the listener is registered successfully and persistent cache has been
   // loaded, trigger OnAuthStateChanged() immediately.  Otherwise, wait until
   // the cache is loaded, through AuthStateListener event.
-  // NOTE: This should be called synchronously or current_user() for desktop
-  // implementation may not work.
+  // NOTE: This should be called synchronously or current_user_DEPRECATED() for
+  // desktop implementation may not work.
   if (added && !auth_data_->persistent_cache_load_pending) {
     listener->OnAuthStateChanged(this);
   }
@@ -364,13 +363,26 @@ AUTH_NOTIFY_LISTENERS(NotifyIdTokenListeners, "ID token", id_token_listeners,
                       OnIdTokenChanged);
 
 AUTH_RESULT_FN(Auth, FetchProvidersForEmail, Auth::FetchProvidersResult)
-AUTH_RESULT_FN(Auth, SignInWithCustomToken, User*)
-AUTH_RESULT_FN(Auth, SignInWithCredential, User*)
-AUTH_RESULT_FN(Auth, SignInAndRetrieveDataWithCredential, SignInResult)
-AUTH_RESULT_FN(Auth, SignInAnonymously, User*)
-AUTH_RESULT_FN(Auth, SignInWithEmailAndPassword, User*)
-AUTH_RESULT_FN(Auth, CreateUserWithEmailAndPassword, User*)
 AUTH_RESULT_FN(Auth, SendPasswordResetEmail, void)
+
+AUTH_RESULT_FN(Auth, SignInWithCustomToken, AuthResult)
+AUTH_RESULT_DEPRECATED_FN(Auth, SignInWithCustomToken, User*)
+
+AUTH_RESULT_FN(Auth, SignInWithCredential, User)
+AUTH_RESULT_DEPRECATED_FN(Auth, SignInWithCredential, User*)
+
+AUTH_RESULT_FN(Auth, SignInAndRetrieveDataWithCredential, AuthResult)
+AUTH_RESULT_DEPRECATED_FN(Auth, SignInAndRetrieveDataWithCredential,
+                          SignInResult)
+
+AUTH_RESULT_FN(Auth, SignInAnonymously, AuthResult)
+AUTH_RESULT_DEPRECATED_FN(Auth, SignInAnonymously, User*)
+
+AUTH_RESULT_FN(Auth, SignInWithEmailAndPassword, AuthResult)
+AUTH_RESULT_DEPRECATED_FN(Auth, SignInWithEmailAndPassword, User*)
+
+AUTH_RESULT_FN(Auth, CreateUserWithEmailAndPassword, AuthResult)
+AUTH_RESULT_DEPRECATED_FN(Auth, CreateUserWithEmailAndPassword, User*)
 
 }  // namespace auth
 }  // namespace firebase

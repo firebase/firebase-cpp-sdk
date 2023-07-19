@@ -18,10 +18,9 @@ if(TARGET boringssl OR NOT DOWNLOAD_BORINGSSL)
   return()
 endif()
 
-set(patch_file 
-  ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/boringssl/0001-disable-warnings.patch)
+set(patch_file ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/boringssl/0001-disable-warnings.patch)
 
-set(boringssl_commit_tag 83da28a68f32023fd3b95a8ae94991a07b1f6c62)
+set(boringssl_commit_tag fips-20220613)
 
 ExternalProject_Add(
   boringssl

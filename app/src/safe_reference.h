@@ -15,7 +15,8 @@
 #ifndef FIREBASE_APP_SRC_SAFE_REFERENCE_H_
 #define FIREBASE_APP_SRC_SAFE_REFERENCE_H_
 
-#include "app/memory/shared_ptr.h"
+#include <memory>
+
 #include "app/src/include/firebase/internal/mutex.h"
 
 namespace firebase {
@@ -54,7 +55,7 @@ class SafeReference {
     T* ref;
   };
 
-  SharedPtr<ReferenceData> data_;
+  std::shared_ptr<ReferenceData> data_;
 };
 
 // SafeReferenceLock is used to lock and to safely obtain the reference.

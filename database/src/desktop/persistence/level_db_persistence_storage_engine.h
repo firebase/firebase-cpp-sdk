@@ -15,7 +15,8 @@
 #ifndef FIREBASE_DATABASE_SRC_DESKTOP_PERSISTENCE_LEVEL_DB_PERSISTENCE_STORAGE_ENGINE_H_
 #define FIREBASE_DATABASE_SRC_DESKTOP_PERSISTENCE_LEVEL_DB_PERSISTENCE_STORAGE_ENGINE_H_
 
-#include "app/memory/unique_ptr.h"
+#include <memory>
+
 #include "app/src/include/firebase/variant.h"
 #include "app/src/logger.h"
 #include "app/src/path.h"
@@ -183,7 +184,7 @@ class LevelDbPersistenceStorageEngine : public PersistenceStorageEngine {
  private:
   void VerifyInsideTransaction();
 
-  UniquePtr<leveldb::DB> database_;
+  std::unique_ptr<leveldb::DB> database_;
 
   bool inside_transaction_;
 

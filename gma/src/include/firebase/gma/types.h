@@ -147,6 +147,8 @@ enum AdErrorCode {
   kAdErrorCodeInspectorFailedToLoad,
   /// The request to show the Ad Inspector failed because it's already open.
   kAdErrorCodeInsepctorAlreadyOpen,
+  /// Error processing image url.
+  kAdErrorCodeImageUrlMalformed,
   /// Fallback error for any unidentified cases.
   kAdErrorCodeUnknown,
 };

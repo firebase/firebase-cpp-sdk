@@ -32,7 +32,7 @@ binary_to_array("user_data_resource"
 set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
     "--no-union-value-namespacing"
     "--gen-object-api"
-    "--cpp-ptr-type" "flatbuffers::unique_ptr")
+    "--cpp-ptr-type" "std::unique_ptr")
 set(flatbuffer_schemas
     ${CMAKE_CURRENT_LIST_DIR}/src/desktop/rpcs/request.fbs
     ${CMAKE_CURRENT_LIST_DIR}/src/desktop/rpcs/response.fbs
@@ -51,6 +51,7 @@ build_flatbuffers("${flatbuffer_schemas}"
 # Common source files used by all platforms
 set(common_SRCS
     src/auth.cc
+    src/credential.cc
     src/common.cc
     src/common.h
     src/data.h

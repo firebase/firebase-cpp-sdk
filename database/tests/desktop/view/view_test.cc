@@ -14,7 +14,8 @@
 
 #include "database/src/desktop/view/view.h"
 
-#include "app/memory/unique_ptr.h"
+#include <memory>
+
 #include "app/src/variant_util.h"
 #include "database/src/desktop/core/event_registration.h"
 #include "database/src/desktop/core/value_event_registration.h"
@@ -68,7 +69,7 @@ TEST(View, MoveConstructor) {
       new ValueEventRegistration(nullptr, nullptr, QuerySpec());
   // old_view now owns registration.
   old_view.AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(registration));
+      std::unique_ptr<ValueEventRegistration>(registration));
 
   View new_view(std::move(old_view));
 
@@ -98,7 +99,7 @@ TEST(View, MoveAssignment) {
       new ValueEventRegistration(nullptr, nullptr, QuerySpec());
   // old_view now owns registration.
   old_view.AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(registration));
+      std::unique_ptr<ValueEventRegistration>(registration));
 
   // When we move the old_view into the new_view, make sure any existing
   // registrations are properly cleaned up and not leaked.
@@ -106,7 +107,7 @@ TEST(View, MoveAssignment) {
       new ValueEventRegistration(nullptr, nullptr, QuerySpec());
   View new_view((QuerySpec()), ViewCache(CacheNode(), CacheNode()));
   new_view.AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(registration_to_be_deleted));
+      std::unique_ptr<ValueEventRegistration>(registration_to_be_deleted));
 
   new_view = std::move(old_view);
 
@@ -138,7 +139,7 @@ TEST(View, CopyConstructor) {
       new ValueEventRegistration(nullptr, nullptr, QuerySpec());
   // old_view now owns registration.
   old_view.AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(registration));
+      std::unique_ptr<ValueEventRegistration>(registration));
 
   View new_view(old_view);
 
@@ -170,7 +171,7 @@ TEST(View, CopyAssignment) {
       new ValueEventRegistration(nullptr, nullptr, QuerySpec());
   // old_view now owns registration.
   old_view.AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(registration));
+      std::unique_ptr<ValueEventRegistration>(registration));
 
   // When we move the old_view into the new_view, make sure any existing
   // registrations are properly cleaned up and not leaked.
@@ -178,7 +179,7 @@ TEST(View, CopyAssignment) {
       new ValueEventRegistration(nullptr, nullptr, QuerySpec());
   View new_view((QuerySpec()), ViewCache(CacheNode(), CacheNode()));
   new_view.AddEventRegistration(
-      UniquePtr<ValueEventRegistration>(registration_to_be_deleted));
+      std::unique_ptr<ValueEventRegistration>(registration_to_be_deleted));
 
   new_view = old_view;
 
@@ -229,7 +230,8 @@ TEST(View, IsNotEmpty) {
 
   ValueEventRegistration* registration =
       new ValueEventRegistration(nullptr, nullptr, QuerySpec());
-  view.AddEventRegistration(UniquePtr<ValueEventRegistration>(registration));
+  view.AddEventRegistration(
+      std::unique_ptr<ValueEventRegistration>(registration));
 
   EXPECT_FALSE(view.IsEmpty());
 }
@@ -255,10 +257,14 @@ TEST(View, AddEventRegistration) {
       new ValueEventRegistration(nullptr, nullptr, QuerySpec());
   ValueEventRegistration* registration4 =
       new ValueEventRegistration(nullptr, nullptr, QuerySpec());
-  view.AddEventRegistration(UniquePtr<ValueEventRegistration>(registration1));
-  view.AddEventRegistration(UniquePtr<ValueEventRegistration>(registration2));
-  view.AddEventRegistration(UniquePtr<ValueEventRegistration>(registration3));
-  view.AddEventRegistration(UniquePtr<ValueEventRegistration>(registration4));
+  view.AddEventRegistration(
+      std::unique_ptr<ValueEventRegistration>(registration1));
+  view.AddEventRegistration(
+      std::unique_ptr<ValueEventRegistration>(registration2));
+  view.AddEventRegistration(
+      std::unique_ptr<ValueEventRegistration>(registration3));
+  view.AddEventRegistration(
+      std::unique_ptr<ValueEventRegistration>(registration4));
 
   std::vector<EventRegistration*> expected_registrations{
       registration1,
@@ -300,10 +306,10 @@ TEST(View, RemoveEventRegistration_RemoveOne) {
       new ValueEventRegistration(nullptr, &listener3, QuerySpec());
   ValueEventRegistration* registration4 =
       new ValueEventRegistration(nullptr, &listener4, QuerySpec());
-  view.AddEventRegistration(UniquePtr<EventRegistration>(registration1));
-  view.AddEventRegistration(UniquePtr<EventRegistration>(registration2));
-  view.AddEventRegistration(UniquePtr<EventRegistration>(registration3));
-  view.AddEventRegistration(UniquePtr<EventRegistration>(registration4));
+  view.AddEventRegistration(std::unique_ptr<EventRegistration>(registration1));
+  view.AddEventRegistration(std::unique_ptr<EventRegistration>(registration2));
+  view.AddEventRegistration(std::unique_ptr<EventRegistration>(registration3));
+  view.AddEventRegistration(std::unique_ptr<EventRegistration>(registration4));
 
   std::vector<Event> expected_events{};
   std::vector<EventRegistration*> expected_registrations{
@@ -339,10 +345,14 @@ TEST(View, RemoveEventRegistration_RemoveAll) {
       new ValueEventRegistration(nullptr, &listener3, QuerySpec());
   ValueEventRegistration* registration4 =
       new ValueEventRegistration(nullptr, &listener4, QuerySpec());
-  view.AddEventRegistration(UniquePtr<ValueEventRegistration>(registration1));
-  view.AddEventRegistration(UniquePtr<ValueEventRegistration>(registration2));
-  view.AddEventRegistration(UniquePtr<ValueEventRegistration>(registration3));
-  view.AddEventRegistration(UniquePtr<ValueEventRegistration>(registration4));
+  view.AddEventRegistration(
+      std::unique_ptr<ValueEventRegistration>(registration1));
+  view.AddEventRegistration(
+      std::unique_ptr<ValueEventRegistration>(registration2));
+  view.AddEventRegistration(
+      std::unique_ptr<ValueEventRegistration>(registration3));
+  view.AddEventRegistration(
+      std::unique_ptr<ValueEventRegistration>(registration4));
 
   std::vector<Event> results =
       view.RemoveEventRegistration(nullptr, kErrorDisconnected);
