@@ -92,7 +92,7 @@ InitResult ConsentInfo::Initialize() {
 // Below this, everything is a passthrough to ConsentInfoInternal. If there is
 // no internal_ pointer (e.g. it's been cleaned up), return default values and
 // invalid futures.
- 
+
 ConsentStatus ConsentInfo::GetConsentStatus() {
   if (!internal_) return kConsentStatusUnknown;
   return internal_->GetConsentStatus();
