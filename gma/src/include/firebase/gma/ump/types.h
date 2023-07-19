@@ -73,7 +73,7 @@ class ConsentRequestParameters {
     has_debug_settings_ = true;
   }
   // Get the debug settings.
-  ConsentDebugSettings debug_settings() const { return debug_settings_; }
+  const ConsentDebugSettings& debug_settings() const { return debug_settings_; }
   // Get whether debug settings were set.
   bool has_debug_settings() const { return has_debug_settings_; }
 

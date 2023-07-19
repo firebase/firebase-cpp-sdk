@@ -29,8 +29,10 @@ class ConsentInfoInternalStub : public ConsentInfoInternal {
   ConsentInfoInternalStub();
   ~ConsentInfoInternalStub() override;
 
-  ConsentStatus GetConsentStatus() override;
-  ConsentFormStatus GetConsentFormStatus() override;
+  ConsentStatus GetConsentStatus() const override { return consent_status_; }
+  ConsentFormStatus GetConsentFormStatus() const override {
+    return consent_form_status_;
+  }
 
   Future<ConsentStatus> RequestConsentStatus(
       const ConsentRequestParameters& params) override;
@@ -38,7 +40,8 @@ class ConsentInfoInternalStub : public ConsentInfoInternal {
   Future<ConsentStatus> ShowConsentForm(FormParent parent) override;
 
   void Reset() override;
-private:
+
+ private:
   ConsentStatus consent_status_;
   ConsentFormStatus consent_form_status_;
 };

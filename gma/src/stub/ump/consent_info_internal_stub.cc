@@ -29,53 +29,64 @@ ConsentInfoInternal* ConsentInfoInternal::CreateInstance() {
   return new ConsentInfoInternalStub();
 }
 
-ConsentInfoInternalStub::ConsentInfoInternalStub() :
-  consent_status_(kConsentStatusUnknown),
-  consent_form_status_(kConsentFormStatusUnknown) {}
-
+ConsentInfoInternalStub::ConsentInfoInternalStub()
+    : consent_status_(kConsentStatusUnknown),
+      consent_form_status_(kConsentFormStatusUnknown) {}
 
 ConsentInfoInternalStub::~ConsentInfoInternalStub() {}
 
-ConsentStatus ConsentInfoInternalStub::GetConsentStatus() {
-  return kConsentStatusUnknown;
-}
-
-ConsentFormStatus ConsentInfoInternalStub::GetConsentFormStatus() {
-  return kConsentFormStatusUnknown;
-}
-
 Future<ConsentStatus> ConsentInfoInternalStub::RequestConsentStatus(
     const ConsentRequestParameters& params) {
-  SafeFutureHandle<ConsentStatus> = CreateFuture<ConsentStatus>(kConsentInfoFnRequestConsentStatus);
+  SafeFutureHandle<ConsentStatus> handle =
+      CreateFuture<ConsentStatus>(kConsentInfoFnRequestConsentStatus);
 
   if (!params.has_tag_for_under_age_of_consent()) {
     CompleteFuture(handle, kConsentRequestErrorTagForAgeOfConsentNotSet);
     return MakeFuture<ConsentStatus>(futures(), handle);
   }
 
-  consent_status_ = kConsentStatusRequired;
-  CompleteFuture<ConsentStatus>(handle, kConsentRequestSuccess, consent_status_);
+  ConsentStatus new_consent_status = kConsentStatusObtained;
+  if (params.has_debug_settings()) {
+    if (params.debug_settings().debug_geography == kConsentDebugGeographyEEA) {
+      new_consent_status = kConsentStatusRequired;
+    } else if (params.debug_settings().debug_geography ==
+               kConsentDebugGeographyNonEEA) {
+      new_consent_status = kConsentStatusNotRequired;
+    }
+  }
+  consent_status_ = new_consent_status;
+  consent_form_status_ = kConsentFormStatusUnavailable;
+
+  CompleteFuture<ConsentStatus>(handle, kConsentRequestSuccess,
+                                consent_status_);
   return MakeFuture<ConsentStatus>(futures(), handle);
 }
 
 Future<ConsentFormStatus> ConsentInfoInternalStub::LoadConsentForm() {
-  SafeFutureHandle<ConsentFormStatus> = CreateFuture<ConsentFormStatus>(kConsentInfoFnLoadConsentForm);
+  SafeFutureHandle<ConsentFormStatus> handle =
+      CreateFuture<ConsentFormStatus>(kConsentInfoFnLoadConsentForm);
 
   consent_form_status_ = kConsentFormStatusAvailable;
-  CompleteFuture<ConsentFormStatus>(handle, kConsentFormSuccess, consent_form_status_);
+  CompleteFuture<ConsentFormStatus>(handle, kConsentFormSuccess,
+                                    consent_form_status_);
   return MakeFuture<ConsentFormStatus>(futures(), handle);
 }
 
 Future<ConsentStatus> ConsentInfoInternalStub::ShowConsentForm(
     FormParent parent) {
-  SafeFutureHandle<ConsentStatus> = CreateFuture<ConsentStatus>(kConsentInfoFnShowConsentForm);
+  SafeFutureHandle<ConsentStatus> handle =
+      CreateFuture<ConsentStatus>(kConsentInfoFnShowConsentForm);
 
   consent_status_ = kConsentStatusObtained;
-  CompleteFuture<ConsentStatus>(handle, kConsentRequestSuccess, consent_status_);
+  CompleteFuture<ConsentStatus>(handle, kConsentRequestSuccess,
+                                consent_status_);
   return MakeFuture<ConsentStatus>(futures(), handle);
 }
 
-void ConsentInfoInternalStub::Reset() {}
+void ConsentInfoInternalStub::Reset() {
+  consent_status_ = kConsentStatusUnknown;
+  consent_form_status_ = kConsentFormStatusUnknown;
+}
 
 }  // namespace internal
 }  // namespace ump
