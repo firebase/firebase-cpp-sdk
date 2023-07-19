@@ -2473,6 +2473,8 @@ TEST_F(FirebaseGmaTest, TestUmpRequestConsentStatus) {
   EXPECT_EQ(*future.result(), consent_info->GetConsentStatus());
   EXPECT_NE(consent_info->GetConsentStatus(),
             firebase::gma::ump::kConsentStatusUnknown);
+  EXPECT_NE(consent_info->GetConsentFormStatus(),
+            firebase::gma::ump::kConsentFormStatusUnknown);
 
   delete consent_info;
   consent_info = nullptr;
