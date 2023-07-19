@@ -105,13 +105,25 @@ Future<ConsentStatus> ConsentInfo::RequestConsentStatus(
   return internal_->RequestConsentStatus(params);
 }
 
+Future<ConsentStatus> ConsentInfo::RequestConsentStatusLastResult() {
+  return internal_->RequestConsentStatusLastResult();
+}
+
 Future<ConsentFormStatus> ConsentInfo::LoadConsentForm() {
   FIREBASE_ASSERT(internal_);
   return internal_->LoadConsentForm();
 }
 
+Future<ConsentFormStatus> ConsentInfo::LoadConsentFormLastResult() {
+  return internal_->LoadConsentFormLastResult();
+}
+
 Future<ConsentStatus> ConsentInfo::ShowConsentForm(FormParent parent) {
   return internal_->ShowConsentForm(parent);
+}
+
+Future<ConsentStatus> ConsentInfo::ShowConsentFormLastResult() {
+  return internal_->ShowConsentFormLastResult();
 }
 
 void ConsentInfo::Reset() { return internal_->Reset(); }

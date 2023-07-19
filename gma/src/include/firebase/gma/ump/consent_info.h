@@ -133,6 +133,9 @@ class ConsentInfo {
   /// completed.
   Future<ConsentStatus> ShowConsentForm(FormParent parent);
 
+  /// Get the Future from the most recent call to ShowConsentForm().
+  Future<ConsentStatus> ShowConsentFormLastResult();
+
   /// Clears all consent state from persistent storage. This can be used in
   /// development to simulate a new installation.
   void Reset();

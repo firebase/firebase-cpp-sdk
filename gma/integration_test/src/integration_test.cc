@@ -2499,6 +2499,8 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentStatus) {
   firebase::Future<ConsentStatus> future =
       consent_info_->RequestConsentStatus(params);
 
+  EXPECT_TRUE(future == consent_info_->RequestConsentStatusLastResult());
+
   WaitForCompletion(future, "RequestConsentStatus");
 
   EXPECT_NE(future.result(), nullptr);
@@ -2606,6 +2608,8 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadForm) {
     firebase::Future<ConsentFormStatus> future =
         consent_info_->LoadConsentForm();
 
+    EXPECT_TRUE(future == consent_info_->LoadConsentFormLastResult());
+
     WaitForCompletion(future, "LoadConsentForm");
 
     EXPECT_NE(future.result(), nullptr);
@@ -2662,6 +2666,8 @@ TEST_F(FirebaseGmaUmpTest, TestUmpShowForm) {
   {
     firebase::Future<ConsentStatus> future =
         consent_info_->ShowConsentForm(nullptr);
+
+    EXPECT_TRUE(future == consent_info_->ShowConsentFormLastResult());
 
     WaitForCompletion(future, "ShowConsentForm");
 
