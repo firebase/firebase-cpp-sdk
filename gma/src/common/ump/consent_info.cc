@@ -55,7 +55,7 @@ ConsentInfo* ConsentInfo::GetInstance(::firebase::InitResult* init_result_out) {
   ConsentInfo* consent_info = new ConsentInfo();
 #if FIREBASE_PLATFORM_ANDROID
   InitResult result =
-      consent_info->Initialize(/* jni_env, activity */);  // TODO
+      consent_info->Initialize(/* jni_env, activity */);  // TODO(b/291622888)
 #else
   InitResult result = consent_info->Initialize();
 #endif
