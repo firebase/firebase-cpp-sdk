@@ -28,6 +28,10 @@ namespace auth {
 // Key name for header when sending language code data.
 extern const char* kHeaderFirebaseLocale;
 
+const char* const kServerURL = "https://www.googleapis.com";
+
+const char* const kExtraPath = "/identitytoolkit/v3/relyingparty/";
+
 class AuthRequest
     : public firebase::rest::RequestJson<fbs::Request, fbs::RequestT> {
  public:
@@ -39,6 +43,8 @@ class AuthRequest
               bool deliver_heartbeat)
       : AuthRequest(app, reinterpret_cast<const char*>(schema),
                     deliver_heartbeat) {}
+
+  std::string GetUrl();
 };
 
 }  // namespace auth

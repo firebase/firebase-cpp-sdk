@@ -54,6 +54,8 @@
 namespace firebase {
 namespace auth {
 
+static std::string g_emulator_host;
+static uint32_t g_emulator_port;
 namespace {
 
 template <typename ResultT>
@@ -642,6 +644,18 @@ Future<void> Auth::SendPasswordResetEmail(const char* email) {
 void Auth::SignOut() {
   // No REST request. So we can do this in the main thread.
   AuthenticationResult::SignOut(auth_data_);
+}
+
+void Auth::UseEmulator(const std::string host, uint32_t port) {
+  g_emulator_host = host;
+  g_emulator_port = port;
+}
+
+std::string Auth::GetEmulatorUrl() {
+  if (g_emulator_host.empty()) {
+    return "";
+  }
+  return "https://" + g_emulator_host + ":" + std::to_string(g_emulator_port);
 }
 
 // AuthStateListener to wait for current_user_DEPRECATED() until persistent

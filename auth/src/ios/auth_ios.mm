@@ -663,6 +663,16 @@ void Auth::SignOut() {
   SetUserImpl(auth_data_, NULL);
 }
 
+void Auth::UseEmulator(const std::string host, uint32_t port) {
+  [AuthImpl(auth_data_) useEmulatorWithHost:@(host.c_str())
+                        port:@(port)
+  ];
+}
+
+std::string Auth::GetEmulatorUrl() {
+  return "";
+}
+
 Future<void> Auth::SendPasswordResetEmail(const char *email) {
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kAuthFn_SendPasswordResetEmail);

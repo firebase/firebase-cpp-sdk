@@ -53,6 +53,7 @@ using util::JniStringToString;
   X(RemoveIdTokenListener, "removeIdTokenListener",                            \
     "(Lcom/google/firebase/auth/FirebaseAuth$IdTokenListener;)V"),             \
   X(SignOut, "signOut", "()V"),                                                \
+  X(UseEmulator, "useEmulator", "(Ljava/lang/String;I)V"),\
   X(FetchSignInMethodsForEmail, "fetchSignInMethodsForEmail",                  \
     "(Ljava/lang/String;)"                                                     \
     "Lcom/google/android/gms/tasks/Task;"),                                    \
@@ -772,6 +773,18 @@ void Auth::SignOut() {
   // Release our current user implementation in Java.
   MutexLock lock(auth_data_->future_impl.mutex());
   SetImplFromLocalRef(env, nullptr, &auth_data_->user_impl);
+}
+
+void Auth::UseEmulator(const std::string host, uint32_t port) {
+  JNIEnv* env = Env(auth_data_);
+  jstring j_host = env->NewStringUTF(host.c_str());
+  env->CallVoidMethod(AuthImpl(auth_data_), auth::GetMethodId(auth::kUseEmulator), j_host, port);
+  env->DeleteLocalRef(j_host);
+  firebase::util::CheckAndClearJniExceptions(env);
+}
+
+std::string Auth::GetEmulatorUrl() {
+  return "";
 }
 
 Future<void> Auth::SendPasswordResetEmail(const char* email) {

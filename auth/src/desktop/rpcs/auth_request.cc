@@ -23,9 +23,12 @@
 #include "app/src/heartbeat/heartbeat_controller_desktop.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/mutex.h"
+#include "firebase/auth.h"
 
 namespace firebase {
 namespace auth {
+
+using ::firebase::auth::Auth;
 
 // Key name for header when sending language code data.
 const char* kHeaderFirebaseLocale = "X-Firebase-Locale";
@@ -74,6 +77,19 @@ AuthRequest::AuthRequest(::firebase::App& app, const char* schema,
         add_header(app_common::kXFirebaseGmpIdHeader, gmp_app_id.c_str());
       }
     }
+  }
+}
+
+std::string AuthRequest::GetUrl() {
+  std::string emulator_url = ::firebase::auth::Auth::GetEmulatorUrl();
+  if (emulator_url.empty()) {
+    std::string url(kServerURL);
+    url += kExtraPath;
+    return url;
+  } else {
+    std::string url(emulator_url);
+    url += kExtraPath;
+    return url;
   }
 }
 

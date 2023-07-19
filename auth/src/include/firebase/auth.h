@@ -629,6 +629,10 @@ class Auth {
   /// to be called explicitly.
   void RemoveIdTokenListener(IdTokenListener* listener);
 #endif  // not SWIG
+  
+  void UseEmulator(const std::string host, uint32_t port);
+
+  static std::string GetEmulatorUrl();
 
   /// Gets the App this auth object is connected to.
   App& app();
