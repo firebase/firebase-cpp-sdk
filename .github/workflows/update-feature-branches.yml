@@ -6,7 +6,7 @@ on:
         description: 'Space-separated list of feature branch patterns'
         default: 'feature_branch/*'
         required: true
-      main_branch_:
+      main_branch:
         description: 'Main branch to merge'
         default: 'main'
         required: true
@@ -33,7 +33,7 @@ jobs:
         id: get-branches
         run: |
             branch_pattern='origin/${{ env.defaultBranchPattern }}'
-            if [[ -n ${{ github.event.inputs.branch_patterns }} ]]; then
+            if [[ -n '${{ github.event.inputs.branch_patterns }}' ]]; then
               branch_pattern=origin/$(echo '${{ github.event.inputs.branch_patterns }}' | sed 's| | origin/|g')
             fi
             git remote update
@@ -94,7 +94,7 @@ jobs:
         id: create-pr
         run: |
             main_branch='${{ env.defaultMainBranch }}'
-            if [[ -n ${{ github.event.inputs.main_branch }} ]]; then
+            if [[ -n '${{ github.event.inputs.main_branch }}' ]]; then
               main_branch='${{ github.event.inputs.main_branch }}'
             fi
             # Attempt a merge, then check if any files changed.
