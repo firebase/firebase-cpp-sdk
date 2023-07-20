@@ -34,7 +34,7 @@ jobs:
         run: |
             branch_pattern=remotes/origin/'${{ env.defaultBranchPattern }}'
             if [[ -n ${{ github.event.inputs.branch_patterns }} ]]; then
-              branch_pattern=remote/origin/$(echo '${{ github.event.inputs.branch_patterns }}' | sed 's| | remote/origin/|g')
+              branch_pattern=remotes/origin/$(echo '${{ github.event.inputs.branch_patterns }}' | sed 's| | remotes/origin/|g')
             fi
             git remote update
             echo "All known branches:"
