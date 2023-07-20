@@ -32,17 +32,22 @@ jobs:
       - name: Get list of feature branches
         id: get-branches
         run: |
-            branch_pattern='${{ env.defaultBranchPattern }}'
+            branch_pattern='origin/${{ env.defaultBranchPattern }}'
             if [[ -n ${{ github.event.inputs.branch_patterns }} ]]; then
-              branch_pattern='${{ github.event.inputs.branch_patterns }}'
+              branch_pattern=origin/$(echo '${{ github.event.inputs.branch_patterns }}' | sed 's| | origin/|g')
             fi
-            branch_list=$(git branch --list "${branch_pattern}" | sed 's/ /,/g')
+            branch_list=$(git branch --list --remote "${branch_pattern}")
+	    # Remove origin/ from all branches.
+	    branch_list=$(echo "${branch_list}" | sed 's| origin/| |g' | sed 's|^origin/||')
+	    # Change spaces to commas.
+	    branch_list=$(echo "${branch_list}" | sed 's/ /,/g')
+
             if [[ -n "${branch_list}" ]]; then
-              # add quotes around each entry
+              # If there's at least one entry, add quotes around each branch name.
               branch_list='"'$(echo "${branch_list}" | sed 's/,/","/g')'"'
             fi
             echo "::warning ::Branch list: [${branch_list}]"
-            echo "[${branch_list}]" >> $GITHUB_OUTPUT
+            echo "branch_list=[${branch_list}]" >> $GITHUB_OUTPUT
 
   create_merge_prs:
     name: create-merge-pr-${{ matrix.branch_name }}
