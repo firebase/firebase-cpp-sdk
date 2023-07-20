@@ -47,7 +47,7 @@ jobs:
               # Change spaces to commas.
               branch_list=$(echo "${branch_list}" | sed 's/ /,/g')
               echo "Branch list with commas: ${branch_pattern}"
-	      # Add quotes around each branch name.
+              # Add quotes around each branch name.
               branch_list='"'$(echo "${branch_list}" | sed 's/,/","/g')'"'
               echo "Branch list with quotes: ${branch_pattern}"
             fi
