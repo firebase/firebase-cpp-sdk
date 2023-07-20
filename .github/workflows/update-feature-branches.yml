@@ -39,7 +39,7 @@ jobs:
             branch_list=$(git branch --list "${branch_pattern}" | sed 's/ /,/g')
             if [[ -n "${branch_list}" ]]; then
               # add quotes around each entry
-              branch_list='"'$(echo "${branch_list}" | sed 's/,/","/g)'"'
+              branch_list='"'$(echo "${branch_list}" | sed 's/,/","/g')'"'
             fi
             echo "::warning ::Branch list: [${branch_list}]"
             echo "[${branch_list}]" >> $GITHUB_OUTPUT
