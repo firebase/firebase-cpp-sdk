@@ -36,6 +36,9 @@ jobs:
             if [[ -n ${{ github.event.inputs.branch_patterns }} ]]; then
               branch_pattern=origin/$(echo '${{ github.event.inputs.branch_patterns }}' | sed 's| | origin/|g')
             fi
+	    git remote update
+	    echo "All known branches:"
+	    git branch --list --all
             echo "Branch pattern: ${branch_pattern}"
             branch_list=$(git branch --list --remote "${branch_pattern}")
             if [[ -n ${branch_list} ]]; then
