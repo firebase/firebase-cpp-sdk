@@ -664,8 +664,9 @@ void Auth::SignOut() {
 }
 
 void Auth::UseEmulator(const std::string host, uint32_t port) {
+  NSUInteger ns_port = port;
   [AuthImpl(auth_data_) useEmulatorWithHost:@(host.c_str())
-                        port:@(port)
+                        port:ns_port
   ];
 }
 
