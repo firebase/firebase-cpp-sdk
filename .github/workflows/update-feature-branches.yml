@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-20.04
     outputs:
       branch_list: ${{ steps.get-branches.outputs.branch-list }}
-      
+
       - name: Check out repo (if needed)
         if: ${{ github.event.inputs.branch_list == '' }}
         uses: actions/checkout@v3
@@ -89,14 +89,14 @@ jobs:
               # No merge necessary.
               echo "::warning ::No merge needed for ${{ matrix.branch_name }}, won't create pull request."
               echo "created_pr_number=0" >> $GITHUB_OUTPUT
-              exit 0          
+              exit 0
             fi
 
             # Undo the actual merge. Let the PR creation handle it.
             git merge --abort
-            
+
             date_str=$(date "+%b %d, %Y")
-            
+
             pr_title="Automatic merge of ${main_branch} into ${{ matrix.branch_name }} - ${date_str}"
             pr_body="Automatic merge of ${main_branch} into ${{ matrix.branch_name }}.
 
