@@ -34,10 +34,10 @@ class ConsentInfoInternalStub : public ConsentInfoInternal {
     return consent_form_status_;
   }
 
-  Future<ConsentStatus> RequestConsentInfoUpdate(
+  Future<void> RequestConsentInfoUpdate(
       const ConsentRequestParameters& params) override;
-  Future<ConsentFormStatus> LoadConsentForm() override;
-  Future<ConsentStatus> ShowConsentForm(FormParent parent) override;
+  Future<void> LoadConsentForm() override;
+  Future<void> ShowConsentForm(FormParent parent) override;
 
   void Reset() override;
 

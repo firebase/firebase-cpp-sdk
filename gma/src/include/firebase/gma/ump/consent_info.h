@@ -87,6 +87,14 @@ class ConsentInfo {
   /// pointer and the UMP SDK will shut down.
   static ConsentInfo* GetInstance(JNIEnv* jni_env, jobject activity,
                                   InitResult* init_result_out = nullptr);
+
+#if !defined(DOXYGEN)
+  // On Android, this convenience function exists so you can easily get the
+  // existing ConsentInfo instance after it's first initialized. Returns nullptr
+  // if no instance has been created yet; make sure you have called
+  // GetInstance(JNIEnv*, jobject) first.
+  static ConsentInfo* GetInstance();
+#endif  // defined(DOXYGEN)
 #endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 
 #if !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
@@ -104,37 +112,36 @@ class ConsentInfo {
   static ConsentInfo* GetInstance(InitResult* init_result_out = nullptr);
 #endif  // !defined(__ANDROID__) || defined(DOXYGEN)
 
-  /// Requests consent information update. Must be called before loading a
-  /// consent form.
-  Future<ConsentStatus> RequestConsentInfoUpdate(
-      const ConsentRequestParameters& params);
-
-  /// Get the Future from the most recent call to RequestConsentInfoUpdate().
-  Future<ConsentStatus> RequestConsentInfoUpdateLastResult();
-
   /// The user’s consent status. This value is cached between app sessions and
   /// can be read before calling RequestConsentInfoUpdate().
   ConsentStatus GetConsentStatus();
+
+  /// Requests consent information update. Must be called before loading a
+  /// consent form. If successful, GetConsentStatus() will be updated.
+  Future<void> RequestConsentInfoUpdate(const ConsentRequestParameters& params);
+
+  /// Get the Future from the most recent call to RequestConsentInfoUpdate().
+  Future<void> RequestConsentInfoUpdateLastResult();
 
   /// Consent form status. This value defaults to kConsentFormStatusUnknown and
   /// requires a call to RequestConsentInfoUpdate() to update.
   ConsentFormStatus GetConsentFormStatus();
 
-  /// Loads a consent form.
-  Future<ConsentFormStatus> LoadConsentForm();
+  /// Loads a consent form. If successful, GetConsentFormStatus() will be
+  /// updated.
+  Future<void> LoadConsentForm();
 
   /// Get the Future from the most recent call to LoadConsentForm().
-  Future<ConsentFormStatus> LoadConsentFormLastResult();
+  Future<void> LoadConsentFormLastResult();
 
   /// Presents the full screen consent form using the given FormParent, which is
   /// defined as an Activity on Android and a UIViewController on iOS. The form
   /// will be dismissed and the Future will be completed after the user selects
-  /// an option. GetConsentStatus() is updated prior to the Future being
-  /// completed.
-  Future<ConsentStatus> ShowConsentForm(FormParent parent);
+  /// an option. GetConsentStatus() is updated when the Future is completed.
+  Future<void> ShowConsentForm(FormParent parent);
 
   /// Get the Future from the most recent call to ShowConsentForm().
-  Future<ConsentStatus> ShowConsentFormLastResult();
+  Future<void> ShowConsentFormLastResult();
 
   /// Clears all consent state from persistent storage. This can be used in
   /// development to simulate a new installation.

@@ -2496,15 +2496,13 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdate) {
   ConsentRequestParameters params;
   params.set_tag_for_under_age_of_consent(false);
 
-  firebase::Future<ConsentStatus> future =
+  firebase::Future<void> future =
       consent_info_->RequestConsentInfoUpdate(params);
 
   EXPECT_TRUE(future == consent_info_->RequestConsentInfoUpdateLastResult());
 
   WaitForCompletion(future, "RequestConsentInfoUpdate");
 
-  EXPECT_NE(future.result(), nullptr);
-  EXPECT_EQ(*future.result(), consent_info_->GetConsentStatus());
   EXPECT_NE(consent_info_->GetConsentStatus(),
             firebase::gma::ump::kConsentStatusUnknown);
   EXPECT_NE(consent_info_->GetConsentFormStatus(),
@@ -2518,14 +2516,13 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestErrorWithoutTagForUnderAgeOfConsent) {
   ConsentRequestParameters params;
   // Do not call set_tag_for_under_age_of_consent().
 
-  firebase::Future<ConsentStatus> future =
+  firebase::Future<void> future =
       consent_info_->RequestConsentInfoUpdate(params);
 
   WaitForCompletion(
       future, "RequestConsentInfoUpdate",
       firebase::gma::ump::kConsentRequestErrorTagForAgeOfConsentNotSet);
 
-  EXPECT_EQ(*future.result(), consent_info_->GetConsentStatus());
   EXPECT_EQ(consent_info_->GetConsentStatus(),
             firebase::gma::ump::kConsentStatusUnknown);
 }
@@ -2542,13 +2539,11 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugEEA) {
       firebase::gma::ump::kConsentDebugGeographyEEA;
   params.set_debug_settings(debug_settings);
 
-  firebase::Future<ConsentStatus> future =
+  firebase::Future<void> future =
       consent_info_->RequestConsentInfoUpdate(params);
 
   WaitForCompletion(future, "RequestConsentInfoUpdate");
 
-  EXPECT_NE(future.result(), nullptr);
-  EXPECT_EQ(*future.result(), consent_info_->GetConsentStatus());
   EXPECT_EQ(consent_info_->GetConsentStatus(),
             firebase::gma::ump::kConsentStatusRequired);
 }
@@ -2565,13 +2560,11 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugNonEEA) {
       firebase::gma::ump::kConsentDebugGeographyNonEEA;
   params.set_debug_settings(debug_settings);
 
-  firebase::Future<ConsentStatus> future =
+  firebase::Future<void> future =
       consent_info_->RequestConsentInfoUpdate(params);
 
   WaitForCompletion(future, "RequestConsentInfoUpdate");
 
-  EXPECT_NE(future.result(), nullptr);
-  EXPECT_EQ(*future.result(), consent_info_->GetConsentStatus());
   EXPECT_EQ(consent_info_->GetConsentStatus(),
             firebase::gma::ump::kConsentStatusNotRequired);
 }
@@ -2589,32 +2582,21 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadForm) {
       firebase::gma::ump::kConsentDebugGeographyEEA;
   params.set_debug_settings(debug_settings);
 
-  {
-    firebase::Future<ConsentStatus> future =
-        consent_info_->RequestConsentInfoUpdate(params);
-
-    WaitForCompletion(future, "RequestConsentInfoUpdate");
-
-    EXPECT_NE(future.result(), nullptr);
-    EXPECT_EQ(*future.result(), consent_info_->GetConsentStatus());
-  }
+  WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
+                    "RequestConsentInfoUpdate");
 
   EXPECT_EQ(consent_info_->GetConsentStatus(),
             firebase::gma::ump::kConsentStatusRequired);
 
-  if (consent_info_->GetConsentFormStatus() ==
-      firebase::gma::ump::kConsentFormStatusUnavailable) {
-    // Load the form.
-    firebase::Future<ConsentFormStatus> future =
-        consent_info_->LoadConsentForm();
+  EXPECT_EQ(consent_info_->GetConsentFormStatus(),
+            firebase::gma::ump::kConsentFormStatusUnavailable);
 
-    EXPECT_TRUE(future == consent_info_->LoadConsentFormLastResult());
+  // Load the form.
+  firebase::Future<void> future = consent_info_->LoadConsentForm();
 
-    WaitForCompletion(future, "LoadConsentForm");
+  EXPECT_TRUE(future == consent_info_->LoadConsentFormLastResult());
 
-    EXPECT_NE(future.result(), nullptr);
-    EXPECT_EQ(*future.result(), consent_info_->GetConsentFormStatus());
-  }
+  WaitForCompletion(future, "LoadConsentForm");
 
   EXPECT_EQ(consent_info_->GetConsentFormStatus(),
             firebase::gma::ump::kConsentFormStatusAvailable);
@@ -2635,45 +2617,26 @@ TEST_F(FirebaseGmaUmpTest, TestUmpShowForm) {
       firebase::gma::ump::kConsentDebugGeographyEEA;
   params.set_debug_settings(debug_settings);
 
-  {
-    firebase::Future<ConsentStatus> future =
-        consent_info_->RequestConsentInfoUpdate(params);
-
-    WaitForCompletion(future, "RequestConsentInfoUpdate");
-
-    EXPECT_NE(future.result(), nullptr);
-    EXPECT_EQ(*future.result(), consent_info_->GetConsentStatus());
-  }
+  WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
+                    "RequestConsentInfoUpdate");
 
   EXPECT_EQ(consent_info_->GetConsentStatus(),
             firebase::gma::ump::kConsentStatusRequired);
 
-  if (consent_info_->GetConsentFormStatus() ==
-      firebase::gma::ump::kConsentFormStatusUnavailable) {
-    // Load the form.
-    firebase::Future<ConsentFormStatus> future =
-        consent_info_->LoadConsentForm();
+  EXPECT_EQ(consent_info_->GetConsentFormStatus(),
+            firebase::gma::ump::kConsentFormStatusUnavailable);
 
-    WaitForCompletion(future, "LoadConsentForm");
-
-    EXPECT_NE(future.result(), nullptr);
-    EXPECT_EQ(*future.result(), consent_info_->GetConsentFormStatus());
-  }
+  WaitForCompletion(consent_info_->LoadConsentForm(), "LoadConsentForm");
 
   EXPECT_EQ(consent_info_->GetConsentFormStatus(),
             firebase::gma::ump::kConsentFormStatusAvailable);
 
-  {
-    firebase::Future<ConsentStatus> future =
-        consent_info_->ShowConsentForm(nullptr);
+  firebase::Future<void> future =
+      consent_info_->ShowConsentForm(nullptr);
 
-    EXPECT_TRUE(future == consent_info_->ShowConsentFormLastResult());
+  EXPECT_TRUE(future == consent_info_->ShowConsentFormLastResult());
 
-    WaitForCompletion(future, "ShowConsentForm");
-
-    EXPECT_NE(future.result(), nullptr);
-    EXPECT_EQ(*future.result(), consent_info_->GetConsentStatus());
-  }
+  WaitForCompletion(future, "ShowConsentForm");
 
   EXPECT_EQ(consent_info_->GetConsentStatus(),
             firebase::gma::ump::kConsentStatusObtained);
@@ -2686,11 +2649,11 @@ TEST_F(FirebaseGmaUmpTest, TestUmpCleanup) {
 
   ConsentRequestParameters params;
   params.set_tag_for_under_age_of_consent(false);
-  firebase::Future<ConsentStatus> future_request =
+  firebase::Future<void> future_request =
       consent_info_->RequestConsentInfoUpdate(params);
-  firebase::Future<ConsentFormStatus> future_load =
+  firebase::Future<void> future_load =
       consent_info_->LoadConsentForm();
-  firebase::Future<ConsentStatus> future_show =
+  firebase::Future<void> future_show =
       consent_info_->ShowConsentForm(nullptr);
 
   delete consent_info_;
