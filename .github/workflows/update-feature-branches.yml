@@ -32,9 +32,9 @@ jobs:
       - name: Get list of feature branches
         id: get-branches
         run: |
-            branch_pattern=remotes/origin/'${{ env.defaultBranchPattern }}'
+            branch_pattern='origin/${{ env.defaultBranchPattern }}'
             if [[ -n ${{ github.event.inputs.branch_patterns }} ]]; then
-              branch_pattern=remotes/origin/$(echo '${{ github.event.inputs.branch_patterns }}' | sed 's| | remotes/origin/|g')
+              branch_pattern=origin/$(echo '${{ github.event.inputs.branch_patterns }}' | sed 's| | origin/|g')
             fi
             git remote update
             echo "All known branches:"
@@ -44,7 +44,7 @@ jobs:
             if [[ -n ${branch_list} ]]; then
               # If there's at least one entry, process them.
               echo "Remote branch list: ${branch_list}"
-              # Remove remotes/origin/ from all branches.
+              # Remove remotes/origin/ from each branch.
               branch_list=$(echo "${branch_list}" | sed 's| remotes/origin/| |g' | sed 's|^remotes/origin/||')
               echo "Local branch list: ${branch_list}"
               # Change spaces to commas.
