@@ -2489,6 +2489,34 @@ TEST_F(FirebaseGmaUmpTest, TestUmpInitialization) {
   // Terminate handled automatically in test teardown.
 }
 
+// Tests for User Messaging Platform
+TEST_F(FirebaseGmaUmpTest, TestUmpGetInstanceIsAlwaysEqual) {
+  using firebase::gma::ump::ConsentInfo;
+
+  EXPECT_NE(consent_info_, nullptr);
+
+  // Ensure that GetInstance() with any options is always equal.
+  EXPECT_EQ(consent_info_, ConsentInfo::GetInstance());
+  EXPECT_EQ(consent_info_, ConsentInfo::GetInstance(*shared_app_));
+
+#if defined(ANDROID)
+  EXPECT_EQ(consent_info_,
+            ConsentInfo::GetInstance(app_framework::GetJniEnv(),
+                                     app_framework::GetActivity()));
+
+  firebase::App* second_app = firebase::App::Create(
+      firebase::AppOptions(), "2ndApp", app_framework::GetJniEnv(),
+      app_framework::GetActivity());
+#else
+  firebase::App* second_app =
+      firebase::App::Create(firebase::AppOptions(), "2ndApp");
+#endif  // defined(ANDROID)
+
+  EXPECT_EQ(consent_info_, ConsentInfo::GetInstance(*second_app));
+
+  delete second_app;
+}
+
 TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdate) {
   using firebase::gma::ump::ConsentRequestParameters;
   using firebase::gma::ump::ConsentStatus;
@@ -2631,8 +2659,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpShowForm) {
   EXPECT_EQ(consent_info_->GetConsentFormStatus(),
             firebase::gma::ump::kConsentFormStatusAvailable);
 
-  firebase::Future<void> future =
-      consent_info_->ShowConsentForm(nullptr);
+  firebase::Future<void> future = consent_info_->ShowConsentForm(nullptr);
 
   EXPECT_TRUE(future == consent_info_->ShowConsentFormLastResult());
 
@@ -2651,10 +2678,8 @@ TEST_F(FirebaseGmaUmpTest, TestUmpCleanup) {
   params.set_tag_for_under_age_of_consent(false);
   firebase::Future<void> future_request =
       consent_info_->RequestConsentInfoUpdate(params);
-  firebase::Future<void> future_load =
-      consent_info_->LoadConsentForm();
-  firebase::Future<void> future_show =
-      consent_info_->ShowConsentForm(nullptr);
+  firebase::Future<void> future_load = consent_info_->LoadConsentForm();
+  firebase::Future<void> future_show = consent_info_->ShowConsentForm(nullptr);
 
   delete consent_info_;
   consent_info_ = nullptr;

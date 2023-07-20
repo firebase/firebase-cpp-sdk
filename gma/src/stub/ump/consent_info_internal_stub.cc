@@ -70,8 +70,7 @@ Future<void> ConsentInfoInternalStub::LoadConsentForm() {
 }
 
 Future<void> ConsentInfoInternalStub::ShowConsentForm(FormParent parent) {
-  SafeFutureHandle<void> handle =
-      CreateFuture(kConsentInfoFnShowConsentForm);
+  SafeFutureHandle<void> handle = CreateFuture(kConsentInfoFnShowConsentForm);
 
   consent_status_ = kConsentStatusObtained;
   CompleteFuture(handle, kConsentRequestSuccess);
