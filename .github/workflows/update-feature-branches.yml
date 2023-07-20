@@ -33,7 +33,7 @@ jobs:
         id: get-branches
         run: |
             branch_pattern='${{ env.defaultBranchPattern }}'
-            if [[ -n ${{ github.event.inputs.branch_patterns }} ]; then
+            if [[ -n ${{ github.event.inputs.branch_patterns }} ]]; then
               branch_pattern='${{ github.event.inputs.branch_patterns }}'
             fi
             branch_list=$(git branch --list "${branch_pattern}" | sed 's/ /,/g')
@@ -80,7 +80,7 @@ jobs:
         id: create-pr
         run: |
             main_branch='${{ env.defaultMainBranch }}'
-            if [[ -n ${{ github.event.inputs.main_branch }} ]; then
+            if [[ -n ${{ github.event.inputs.main_branch }} ]]; then
               main_branch='${{ github.event.inputs.main_branch }}'
             fi
             # Attempt a merge, then check if any files changed.
