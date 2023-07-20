@@ -23,7 +23,7 @@ jobs:
     name: list-feature-branches
     runs-on: ubuntu-20.04
     outputs:
-      branch_list: ${{ steps.get-branches.outputs.branch-list }}
+      branch_list: ${{ steps.get-branches.outputs.branch_list }}
     steps:
       - name: Check out repo (if needed)
         if: ${{ github.event.inputs.branch_list == '' }}
