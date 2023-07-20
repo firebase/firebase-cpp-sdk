@@ -61,11 +61,11 @@ jobs:
     name: create-merge-pr-${{ matrix.branch_name }}
     needs: [ list_feature_branches ]
     runs-on: ubuntu-20.04
-    if: ${{ needs.list_feature_branches.branch_list != '[]' }}
+    if: ${{ needs.list_feature_branches.outputs.branch_list != '[]' }}
     strategy:
       fail-fast: false
       matrix:
-        branch_name: ${{ fromJson(needs.list_feature_branches.branch_list) }}
+        branch_name: ${{ fromJson(needs.list_feature_branches.outputs.branch_list) }}
     steps:
       - name: Get token for firebase-workflow-trigger
         uses: tibdex/github-app-token@v1
