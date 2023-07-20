@@ -30,7 +30,7 @@ namespace internal {
 
 // Constants representing each ConsentInfo function that returns a Future.
 enum ConsentInfoFn {
-  kConsentInfoFnRequestConsentStatus,
+  kConsentInfoFnRequestConsentInfoUpdate,
   kConsentInfoFnLoadConsentForm,
   kConsentInfoFnShowConsentForm,
   kConsentInfoFnCount
@@ -47,11 +47,11 @@ class ConsentInfoInternal {
   virtual ConsentStatus GetConsentStatus() const = 0;
   virtual ConsentFormStatus GetConsentFormStatus() const = 0;
 
-  virtual Future<ConsentStatus> RequestConsentStatus(
+  virtual Future<ConsentStatus> RequestConsentInfoUpdate(
       const ConsentRequestParameters& params) = 0;
-  Future<ConsentStatus> RequestConsentStatusLastResult() {
+  Future<ConsentStatus> RequestConsentInfoUpdateLastResult() {
     return static_cast<const Future<ConsentStatus>&>(
-        futures()->LastResult(kConsentInfoFnRequestConsentStatus));
+        futures()->LastResult(kConsentInfoFnRequestConsentInfoUpdate));
   }
   virtual Future<ConsentFormStatus> LoadConsentForm() = 0;
 

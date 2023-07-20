@@ -103,15 +103,15 @@ ConsentFormStatus ConsentInfo::GetConsentFormStatus() {
   return internal_->GetConsentFormStatus();
 }
 
-Future<ConsentStatus> ConsentInfo::RequestConsentStatus(
+Future<ConsentStatus> ConsentInfo::RequestConsentInfoUpdate(
     const ConsentRequestParameters& params) {
   if (!internal_) return Future<ConsentStatus>();
-  return internal_->RequestConsentStatus(params);
+  return internal_->RequestConsentInfoUpdate(params);
 }
 
-Future<ConsentStatus> ConsentInfo::RequestConsentStatusLastResult() {
+Future<ConsentStatus> ConsentInfo::RequestConsentInfoUpdateLastResult() {
   if (!internal_) return Future<ConsentStatus>();
-  return internal_->RequestConsentStatusLastResult();
+  return internal_->RequestConsentInfoUpdateLastResult();
 }
 
 Future<ConsentFormStatus> ConsentInfo::LoadConsentForm() {

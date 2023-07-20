@@ -35,10 +35,10 @@ ConsentInfoInternalStub::ConsentInfoInternalStub()
 
 ConsentInfoInternalStub::~ConsentInfoInternalStub() {}
 
-Future<ConsentStatus> ConsentInfoInternalStub::RequestConsentStatus(
+Future<ConsentStatus> ConsentInfoInternalStub::RequestConsentInfoUpdate(
     const ConsentRequestParameters& params) {
   SafeFutureHandle<ConsentStatus> handle =
-      CreateFuture<ConsentStatus>(kConsentInfoFnRequestConsentStatus);
+      CreateFuture<ConsentStatus>(kConsentInfoFnRequestConsentInfoUpdate);
 
   if (!params.has_tag_for_under_age_of_consent()) {
     CompleteFuture<ConsentStatus>(

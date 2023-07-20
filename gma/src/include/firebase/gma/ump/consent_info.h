@@ -106,18 +106,18 @@ class ConsentInfo {
 
   /// Requests consent information update. Must be called before loading a
   /// consent form.
-  Future<ConsentStatus> RequestConsentStatus(
+  Future<ConsentStatus> RequestConsentInfoUpdate(
       const ConsentRequestParameters& params);
 
-  /// Get the Future from the most recent call to RequestConsentStatus().
-  Future<ConsentStatus> RequestConsentStatusLastResult();
+  /// Get the Future from the most recent call to RequestConsentInfoUpdate().
+  Future<ConsentStatus> RequestConsentInfoUpdateLastResult();
 
   /// The user’s consent status. This value is cached between app sessions and
-  /// can be read before calling RequestConsentStatus().
+  /// can be read before calling RequestConsentInfoUpdate().
   ConsentStatus GetConsentStatus();
 
   /// Consent form status. This value defaults to kConsentFormStatusUnknown and
-  /// requires a call to RequestConsentStatus() to update.
+  /// requires a call to RequestConsentInfoUpdate() to update.
   ConsentFormStatus GetConsentFormStatus();
 
   /// Loads a consent form.
