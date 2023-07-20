@@ -45,13 +45,13 @@ jobs:
               # If there's at least one entry, process them.
               echo "Remote branch list: ${branch_list}"
               # Remove remotes/origin/ from each branch.
-              branch_list=$(echo "${branch_list}" | sed 's| remotes/origin/| |g' | sed 's|^remotes/origin/||')
+              branch_list=$(echo ${branch_list} | sed 's| remotes/origin/| |g' | sed 's|^remotes/origin/||')
               echo "Local branch list: ${branch_list}"
               # Change spaces to commas.
-              branch_list=$(echo "${branch_list}" | sed 's/ /,/g')
+              branch_list=$(echo ${branch_list} | sed 's/ /,/g')
               echo "Branch list with commas: ${branch_pattern}"
               # Add quotes around each branch name.
-              branch_list='"'$(echo "${branch_list}" | sed 's/,/","/g')'"'
+              branch_list='"'$(echo ${branch_list} | sed 's/,/","/g')'"'
               echo "Branch list with quotes: ${branch_pattern}"
             fi
             echo "::warning ::Branch list: [${branch_list}]"
