@@ -2489,7 +2489,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpInitialization) {
   // Terminate handled automatically in test teardown.
 }
 
-TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentStatus) {
+TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdate) {
   using firebase::gma::ump::ConsentRequestParameters;
   using firebase::gma::ump::ConsentStatus;
 
@@ -2497,11 +2497,11 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentStatus) {
   params.set_tag_for_under_age_of_consent(false);
 
   firebase::Future<ConsentStatus> future =
-      consent_info_->RequestConsentStatus(params);
+      consent_info_->RequestConsentInfoUpdate(params);
 
-  EXPECT_TRUE(future == consent_info_->RequestConsentStatusLastResult());
+  EXPECT_TRUE(future == consent_info_->RequestConsentInfoUpdateLastResult());
 
-  WaitForCompletion(future, "RequestConsentStatus");
+  WaitForCompletion(future, "RequestConsentInfoUpdate");
 
   EXPECT_NE(future.result(), nullptr);
   EXPECT_EQ(*future.result(), consent_info_->GetConsentStatus());
@@ -2519,10 +2519,10 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestErrorWithoutTagForUnderAgeOfConsent) {
   // Do not call set_tag_for_under_age_of_consent().
 
   firebase::Future<ConsentStatus> future =
-      consent_info_->RequestConsentStatus(params);
+      consent_info_->RequestConsentInfoUpdate(params);
 
   WaitForCompletion(
-      future, "RequestConsentStatus",
+      future, "RequestConsentInfoUpdate",
       firebase::gma::ump::kConsentRequestErrorTagForAgeOfConsentNotSet);
 
   EXPECT_EQ(*future.result(), consent_info_->GetConsentStatus());
@@ -2530,7 +2530,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestErrorWithoutTagForUnderAgeOfConsent) {
             firebase::gma::ump::kConsentStatusUnknown);
 }
 
-TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentStatusDebugEEA) {
+TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugEEA) {
   using firebase::gma::ump::ConsentDebugSettings;
   using firebase::gma::ump::ConsentRequestParameters;
   using firebase::gma::ump::ConsentStatus;
@@ -2543,9 +2543,9 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentStatusDebugEEA) {
   params.set_debug_settings(debug_settings);
 
   firebase::Future<ConsentStatus> future =
-      consent_info_->RequestConsentStatus(params);
+      consent_info_->RequestConsentInfoUpdate(params);
 
-  WaitForCompletion(future, "RequestConsentStatus");
+  WaitForCompletion(future, "RequestConsentInfoUpdate");
 
   EXPECT_NE(future.result(), nullptr);
   EXPECT_EQ(*future.result(), consent_info_->GetConsentStatus());
@@ -2553,7 +2553,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentStatusDebugEEA) {
             firebase::gma::ump::kConsentStatusRequired);
 }
 
-TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentStatusDebugNonEEA) {
+TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugNonEEA) {
   using firebase::gma::ump::ConsentDebugSettings;
   using firebase::gma::ump::ConsentRequestParameters;
   using firebase::gma::ump::ConsentStatus;
@@ -2566,9 +2566,9 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentStatusDebugNonEEA) {
   params.set_debug_settings(debug_settings);
 
   firebase::Future<ConsentStatus> future =
-      consent_info_->RequestConsentStatus(params);
+      consent_info_->RequestConsentInfoUpdate(params);
 
-  WaitForCompletion(future, "RequestConsentStatus");
+  WaitForCompletion(future, "RequestConsentInfoUpdate");
 
   EXPECT_NE(future.result(), nullptr);
   EXPECT_EQ(*future.result(), consent_info_->GetConsentStatus());
@@ -2591,9 +2591,9 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadForm) {
 
   {
     firebase::Future<ConsentStatus> future =
-        consent_info_->RequestConsentStatus(params);
+        consent_info_->RequestConsentInfoUpdate(params);
 
-    WaitForCompletion(future, "RequestConsentStatus");
+    WaitForCompletion(future, "RequestConsentInfoUpdate");
 
     EXPECT_NE(future.result(), nullptr);
     EXPECT_EQ(*future.result(), consent_info_->GetConsentStatus());
@@ -2637,9 +2637,9 @@ TEST_F(FirebaseGmaUmpTest, TestUmpShowForm) {
 
   {
     firebase::Future<ConsentStatus> future =
-        consent_info_->RequestConsentStatus(params);
+        consent_info_->RequestConsentInfoUpdate(params);
 
-    WaitForCompletion(future, "RequestConsentStatus");
+    WaitForCompletion(future, "RequestConsentInfoUpdate");
 
     EXPECT_NE(future.result(), nullptr);
     EXPECT_EQ(*future.result(), consent_info_->GetConsentStatus());
@@ -2687,7 +2687,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpCleanup) {
   ConsentRequestParameters params;
   params.set_tag_for_under_age_of_consent(false);
   firebase::Future<ConsentStatus> future_request =
-      consent_info_->RequestConsentStatus(params);
+      consent_info_->RequestConsentInfoUpdate(params);
   firebase::Future<ConsentFormStatus> future_load =
       consent_info_->LoadConsentForm();
   firebase::Future<ConsentStatus> future_show =
