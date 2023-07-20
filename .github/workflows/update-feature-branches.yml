@@ -93,9 +93,9 @@ jobs:
       - name: Create merge PR
         id: create-pr
         run: |
-            main_branch='${{ env.defaultMainBranch }}'
+            main_branch='origin/${{ env.defaultMainBranch }}'
             if [[ -n '${{ github.event.inputs.main_branch }}' ]]; then
-              main_branch='${{ github.event.inputs.main_branch }}'
+              main_branch='origin/${{ github.event.inputs.main_branch }}'
             fi
             # Attempt a merge, then check if any files changed.
             git merge --no-commit --no-ff "${main_branch}" || true
