@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-20.04
     outputs:
       branch_list: ${{ steps.get-branches.outputs.branch-list }}
-
+    steps:
       - name: Check out repo (if needed)
         if: ${{ github.event.inputs.branch_list == '' }}
         uses: actions/checkout@v3
