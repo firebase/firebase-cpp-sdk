@@ -61,6 +61,7 @@ jobs:
     name: create-merge-pr-${{ matrix.branch_name }}
     needs: [ list_feature_branches ]
     runs-on: ubuntu-20.04
+    if: ${{ needs.list_feature_branches.branch_list != '[]' }}
     strategy:
       fail-fast: false
       matrix:
