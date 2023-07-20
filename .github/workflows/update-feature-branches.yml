@@ -120,8 +120,8 @@ jobs:
 
       - name: Set test trigger label.
         uses: actions-ecosystem/action-add-labels@v1
-        if: ${{ steps.push-branch.outputs.created_pr_number }}
+        if: ${{ steps.create-pr.outputs.created_pr_number }}
         with:
           github_token: ${{ steps.generate-token.outputs.token }}
-          number: ${{ steps.push-branch.outputs.created_pr_number }}
+          number: ${{ steps.create-pr.outputs.created_pr_number }}
           labels: "${{ env.triggerTestsLabel }}"
