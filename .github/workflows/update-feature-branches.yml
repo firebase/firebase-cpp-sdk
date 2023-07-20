@@ -88,6 +88,10 @@ jobs:
       - name: Create merge PR
         id: create-pr
         run: |
+            git config user.email "firebase-workflow-trigger-bot@google.com"
+            git config user.name "firebase-workflow-trigger-bot"
+            git config core.commentChar "%"  # so we can use # in git commit messages
+
             main_branch='origin/${{ env.defaultMainBranch }}'
             if [[ -n '${{ github.event.inputs.main_branch }}' ]]; then
               main_branch='origin/${{ github.event.inputs.main_branch }}'
