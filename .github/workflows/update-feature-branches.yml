@@ -92,12 +92,12 @@ jobs:
             git config user.name "firebase-workflow-trigger-bot"
             git config core.commentChar "%"  # so we can use # in git commit messages
 
-            main_branch='origin/${{ env.defaultMainBranch }}'
+            main_branch='${{ env.defaultMainBranch }}'
             if [[ -n '${{ github.event.inputs.main_branch }}' ]]; then
-              main_branch='origin/${{ github.event.inputs.main_branch }}'
+              main_branch='${{ github.event.inputs.main_branch }}'
             fi
             # Attempt a merge, then check if any files changed.
-            git merge --no-commit --no-ff "${main_branch}" || true
+            git merge --no-commit --no-ff "origin/${main_branch}" || true
             if git diff --quiet ${{ matrix.branch_name }}; then
               # No merge necessary.
               echo "::warning ::No merge needed for ${{ matrix.branch_name }}, won't create pull request."
