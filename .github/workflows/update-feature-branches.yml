@@ -1,4 +1,4 @@
-name: Update Android and iOS dependencies
+name: Update Feature Branches
 on:
   workflow_dispatch:
     inputs:
