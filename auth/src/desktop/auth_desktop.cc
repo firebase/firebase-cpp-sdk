@@ -54,8 +54,6 @@
 namespace firebase {
 namespace auth {
 
-static std::string g_emulator_host;
-static uint32_t g_emulator_port;
 namespace {
 
 template <typename ResultT>
@@ -647,15 +645,19 @@ void Auth::SignOut() {
 }
 
 void Auth::UseEmulator(const std::string host, uint32_t port) {
-  g_emulator_host = host;
-  g_emulator_port = port;
+  if (!auth_data_) return;
+  auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
+  auth_impl->emulator_host = host;
+  auth_impl->emulator_port = port;
 }
 
 std::string Auth::GetEmulatorUrl() {
-  if (g_emulator_host.empty()) {
+  if (!auth_data_) return "";
+  auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
+  if (auth_impl->emulator_host.empty()) {
     return "";
   }
-  return g_emulator_host + ":" + std::to_string(g_emulator_port) + "/";
+  return auth_impl->emulator_host + ":" + std::to_string(auth_impl->emulator_port) + "/";
 }
 
 // AuthStateListener to wait for current_user_DEPRECATED() until persistent

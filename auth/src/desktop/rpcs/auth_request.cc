@@ -79,10 +79,13 @@ AuthRequest::AuthRequest(::firebase::App& app, const char* schema,
       }
     }
   }
+
+  // Get emulator url
+  Auth* auth = Auth::GetAuth(&app);
+  emulator_url = auth->GetEmulatorUrl();
 }
 
 std::string AuthRequest::GetUrl() {
-  std::string emulator_url = ::firebase::auth::Auth::GetEmulatorUrl();
   if (emulator_url.empty()) {
     std::string url(kHttps);
     url += kServerURL;

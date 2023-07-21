@@ -18,6 +18,7 @@
 #define FIREBASE_AUTH_SRC_INCLUDE_FIREBASE_AUTH_H_
 
 #include <vector>
+#include <string>
 
 #include "firebase/app.h"
 #include "firebase/auth/user.h"
@@ -637,7 +638,7 @@ class Auth {
   void UseEmulator(const std::string host, uint32_t port);
 
   /// Get the emulator url
-  static std::string GetEmulatorUrl();
+  std::string GetEmulatorUrl();
 #endif  // !defined(DOXYGEN)
 
   /// Gets the App this auth object is connected to.

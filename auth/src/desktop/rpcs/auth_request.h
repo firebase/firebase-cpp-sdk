@@ -17,6 +17,8 @@
 #ifndef FIREBASE_AUTH_SRC_DESKTOP_RPCS_AUTH_REQUEST_H_
 #define FIREBASE_AUTH_SRC_DESKTOP_RPCS_AUTH_REQUEST_H_
 
+#include <string>
+
 #include "app/rest/request_json.h"
 #include "app/src/include/firebase/app.h"
 #include "auth/request_generated.h"
@@ -36,7 +38,7 @@ const char* const kServerURL = "www.googleapis.com/identitytoolkit/v3/relyingpar
 
 class AuthRequest
     : public firebase::rest::RequestJson<fbs::Request, fbs::RequestT> {
- public:
+public:
   // App is a non-const parameter because this constructor might modify App's
   // internal HeartbeatController by logging or fetching heartbeats.
   AuthRequest(::firebase::App& app, const char* schema, bool deliver_heartbeat);
@@ -47,6 +49,8 @@ class AuthRequest
                     deliver_heartbeat) {}
 
   std::string GetUrl();
+private:
+  std::string emulator_url;
 };
 
 }  // namespace auth

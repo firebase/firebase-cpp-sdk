@@ -187,6 +187,9 @@ struct AuthImpl {
   // The current user language code. This can be set to the app’s current
   // language by calling SetLanguageCode.
   std::string language_code;
+
+  std::string emulator_host;
+  int32_t emulator_port;
 };
 
 // Constant, describing how often we automatically fetch a new auth token.
