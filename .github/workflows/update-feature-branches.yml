@@ -1,0 +1,12 @@
+name: Update Feature Branches
+on:
+  workflow_dispatch:
+    inputs:
+
+jobs:
+  no_op:
+    name: no-op
+    runs-on: ubuntu-20.04
+    steps:
+      - name: noop
+        run: true
