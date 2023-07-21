@@ -28,9 +28,11 @@ namespace auth {
 // Key name for header when sending language code data.
 extern const char* kHeaderFirebaseLocale;
 
-const char* const kServerURL = "https://www.googleapis.com";
+const char* const kHttps = "https://";
 
-const char* const kExtraPath = "/identitytoolkit/v3/relyingparty/";
+const char* const kHttp = "http://";
+
+const char* const kServerURL = "www.googleapis.com/identitytoolkit/v3/relyingparty/";
 
 class AuthRequest
     : public firebase::rest::RequestJson<fbs::Request, fbs::RequestT> {

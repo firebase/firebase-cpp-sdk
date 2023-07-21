@@ -655,7 +655,7 @@ std::string Auth::GetEmulatorUrl() {
   if (g_emulator_host.empty()) {
     return "";
   }
-  return "https://" + g_emulator_host + ":" + std::to_string(g_emulator_port);
+  return g_emulator_host + ":" + std::to_string(g_emulator_port) + "/";
 }
 
 // AuthStateListener to wait for current_user_DEPRECATED() until persistent

@@ -630,9 +630,15 @@ class Auth {
   void RemoveIdTokenListener(IdTokenListener* listener);
 #endif  // not SWIG
   
+#if !defined(DOXYGEN)
+  // Hidden from the public documentation for now
+
+  /// Configures Firebase Auth to connect to an emulated host instead of the remote backend.
   void UseEmulator(const std::string host, uint32_t port);
 
+  /// Get the emulator url
   static std::string GetEmulatorUrl();
+#endif  // !defined(DOXYGEN)
 
   /// Gets the App this auth object is connected to.
   App& app();
