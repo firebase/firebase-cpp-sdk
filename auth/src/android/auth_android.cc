@@ -53,7 +53,7 @@ using util::JniStringToString;
   X(RemoveIdTokenListener, "removeIdTokenListener",                            \
     "(Lcom/google/firebase/auth/FirebaseAuth$IdTokenListener;)V"),             \
   X(SignOut, "signOut", "()V"),                                                \
-  X(UseEmulator, "useEmulator", "(Ljava/lang/String;I)V"),\
+  X(UseEmulator, "useEmulator", "(Ljava/lang/String;I)V"),                     \
   X(FetchSignInMethodsForEmail, "fetchSignInMethodsForEmail",                  \
     "(Ljava/lang/String;)"                                                     \
     "Lcom/google/android/gms/tasks/Task;"),                                    \
