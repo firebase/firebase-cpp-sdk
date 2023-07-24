@@ -429,9 +429,15 @@ def main(argv):
     with progress.bar.Bar('Downloading triggered workflow logs...', max=len(package_tests_all)) as bar:
       for run in package_tests_all:
         day = str(run['date'].date())
-        if day in package_tests and int(package_tests[day]['id']) < int(run['id']):
-          bar.next()
-          continue
+        if day in package_tests:
+          # Packaging triggers two tests. For Firestore, we want the larger run ID (the second run triggered).
+          if FLAGS.firestore and int(package_tests[day]['id']) > int(run['id']):
+            bar.next()
+            continue
+          # For general tests we want the smaller run ID (the first run triggered).
+          if not FLAGS.firestore and int(package_tests[day]['id']) < int(run['id']):
+            bar.next()
+            continue
 
         packaging_run = 0
 

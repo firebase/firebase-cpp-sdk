@@ -20,6 +20,9 @@ jobs:
     runs-on: ubuntu-20.04
     name: generate-report-${{ matrix.test_set }}
     steps:
+    - name: Pause 5 minutes to offset Firestore fetches.
+      if: ${{ matrix.test_set == 'firestore' }}
+      run: sleep 300
     - name: Setup python
       uses: actions/setup-python@v4
       with:
