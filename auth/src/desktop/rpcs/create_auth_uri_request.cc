@@ -14,6 +14,8 @@
 
 #include "auth/src/desktop/rpcs/create_auth_uri_request.h"
 
+#include <string>
+
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/log.h"

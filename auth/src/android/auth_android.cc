@@ -778,14 +778,13 @@ void Auth::SignOut() {
 void Auth::UseEmulator(const std::string host, uint32_t port) {
   JNIEnv* env = Env(auth_data_);
   jstring j_host = env->NewStringUTF(host.c_str());
-  env->CallVoidMethod(AuthImpl(auth_data_), auth::GetMethodId(auth::kUseEmulator), j_host, port);
+  env->CallVoidMethod(AuthImpl(auth_data_),
+                      auth::GetMethodId(auth::kUseEmulator), j_host, port);
   env->DeleteLocalRef(j_host);
   firebase::util::CheckAndClearJniExceptions(env);
 }
 
-std::string Auth::GetEmulatorUrl() {
-  return "";
-}
+std::string Auth::GetEmulatorUrl() { return ""; }
 
 Future<void> Auth::SendPasswordResetEmail(const char* email) {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;

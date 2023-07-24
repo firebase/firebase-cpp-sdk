@@ -34,11 +34,12 @@ const char* const kHttps = "https://";
 
 const char* const kHttp = "http://";
 
-const char* const kServerURL = "www.googleapis.com/identitytoolkit/v3/relyingparty/";
+const char* const kServerURL =
+    "www.googleapis.com/identitytoolkit/v3/relyingparty/";
 
 class AuthRequest
     : public firebase::rest::RequestJson<fbs::Request, fbs::RequestT> {
-public:
+ public:
   // App is a non-const parameter because this constructor might modify App's
   // internal HeartbeatController by logging or fetching heartbeats.
   AuthRequest(::firebase::App& app, const char* schema, bool deliver_heartbeat);
@@ -49,7 +50,8 @@ public:
                     deliver_heartbeat) {}
 
   std::string GetUrl();
-private:
+
+ private:
   std::string emulator_url;
 };
 

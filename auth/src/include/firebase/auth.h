@@ -17,8 +17,8 @@
 #ifndef FIREBASE_AUTH_SRC_INCLUDE_FIREBASE_AUTH_H_
 #define FIREBASE_AUTH_SRC_INCLUDE_FIREBASE_AUTH_H_
 
-#include <vector>
 #include <string>
+#include <vector>
 
 #include "firebase/app.h"
 #include "firebase/auth/user.h"
@@ -630,11 +630,12 @@ class Auth {
   /// to be called explicitly.
   void RemoveIdTokenListener(IdTokenListener* listener);
 #endif  // not SWIG
-  
+
 #if !defined(DOXYGEN)
   // Hidden from the public documentation for now
 
-  /// Configures Firebase Auth to connect to an emulated host instead of the remote backend.
+  /// Configures Firebase Auth to connect to an emulated host instead of the
+  /// remote backend.
   void UseEmulator(const std::string host, uint32_t port);
 
   /// Get the emulator url

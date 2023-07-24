@@ -14,6 +14,8 @@
 
 #include "auth/src/desktop/rpcs/get_account_info_request.h"
 
+#include <string>
+
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 

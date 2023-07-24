@@ -14,6 +14,8 @@
 
 #include "auth/src/desktop/rpcs/reset_password_request.h"
 
+#include <string>
+
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/log.h"

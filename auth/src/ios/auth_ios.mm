@@ -665,14 +665,10 @@ void Auth::SignOut() {
 
 void Auth::UseEmulator(const std::string host, uint32_t port) {
   NSUInteger ns_port = port;
-  [AuthImpl(auth_data_) useEmulatorWithHost:@(host.c_str())
-                        port:ns_port
-  ];
+  [AuthImpl(auth_data_) useEmulatorWithHost:@(host.c_str()) port:ns_port];
 }
 
-std::string Auth::GetEmulatorUrl() {
-  return "";
-}
+std::string Auth::GetEmulatorUrl() { return ""; }
 
 Future<void> Auth::SendPasswordResetEmail(const char *email) {
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
