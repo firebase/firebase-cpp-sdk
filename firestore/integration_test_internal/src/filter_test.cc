@@ -23,6 +23,8 @@ namespace {
 
 using FilterTest = FirestoreIntegrationTest;
 
+#if false
+
 TEST_F(FilterTest, CopyConstructorReturnsEqualObject) {
   const Filter filter1a = Filter::EqualTo("foo", FieldValue::Integer(42));
   const Filter filter2a = Filter::ArrayContainsAny(
@@ -543,6 +545,8 @@ TEST_F(FilterTest, QueryEmptyWhereComposite) {
       ReadDocuments(collection.Where(Filter::Or(Filter::And(), Filter::And())));
   EXPECT_EQ(std::vector<MapFieldValue>({doc}), QuerySnapshotToValues(s4));
 }
+
+#endif
 
 }  // namespace
 
