@@ -128,8 +128,7 @@ enum ConsentRequestError {
 /// Status of the consent form, whether it is available to show or not.
 enum ConsentFormStatus {
   /// Status is unknown. Call `ConsentInfo::RequestConsentInfoUpdate()` to
-  /// update
-  /// this.
+  /// update this.
   kConsentFormStatusUnknown = 0,
   /// The consent form is unavailable. Call `ConsentInfo::LoadConsentForm()` to
   /// load it.
