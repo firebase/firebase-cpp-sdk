@@ -172,7 +172,7 @@ void CheckEmulator(AuthData *auth_data) {
   }
 
   NSUInteger ns_port = port;
-  [AuthImpl(auth_data_) useEmulatorWithHost:@(kEmulatorLocalHost) port:ns_port];
+  [AuthImpl(auth_data) useEmulatorWithHost:@(kEmulatorLocalHost) port:ns_port];
 }
 
 // Platform-specific method to initialize AuthData.
