@@ -35,16 +35,14 @@ const char* GetConsentRequestErrorMessage(ConsentRequestError error_code) {
 #endif
     case kConsentRequestErrorNetwork:
       return "Network error";
-    case kConsentRequestErrorTagForAgeOfConsentNotSet:
-      return "You must explicitly call "
-             "ConsentRequestParameters.set_tag_for_under_age_of_consent() "
-             "before calling RequestConsentInfoUpdate()";
     case kConsentRequestErrorInternal:
       return "Internal error";
     case kConsentRequestErrorCodeMisconfiguration:
       return "Code misconfiguration error";
     case kConsentRequestErrorUnknown:
       return "Unknown error";
+    case kConsentRequestErrorInvalidOperation:
+      return "Invalid operation. Please try again..";
     case kConsentRequestErrorOperationInProgress:
       return "Operation already in progress. Please wait for it to finish by "
              "checking RequestConsentInfoUpdateLastResult().";
@@ -59,8 +57,8 @@ const char* GetConsentFormErrorMessage(ConsentFormError error_code) {
       return "Success";
     case kConsentFormErrorTimeout:
       return "Timed out";
-    case kConsentFormErrorNotLoaded:
-      return "Form not loaded";
+    case kConsentFormErrorUnavailable:
+      return "The form is unavailable.";
     case kConsentFormErrorInternal:
       return "Internal error";
     case kConsentFormErrorUnknown:
@@ -69,8 +67,6 @@ const char* GetConsentFormErrorMessage(ConsentFormError error_code) {
       return "Code already used";
     case kConsentFormErrorInvalidOperation:
       return "Invalid operation";
-    case kConsentFormErrorNetwork:
-      return "Network error";
     case kConsentFormErrorOperationInProgress:
       return "Operation already in progress. Please wait for it to finish by "
              "checking LoadFormLastResult() or ShowFormLastResult().";

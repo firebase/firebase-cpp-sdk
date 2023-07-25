@@ -42,26 +42,21 @@ Future<void> ConsentInfoInternalStub::RequestConsentInfoUpdate(
   SafeFutureHandle<void> handle =
       CreateFuture(kConsentInfoFnRequestConsentInfoUpdate);
 
-  if (!params.has_tag_for_under_age_of_consent()) {
-    CompleteFuture(handle, kConsentRequestErrorTagForAgeOfConsentNotSet);
-    return MakeFuture<void>(futures(), handle);
-  }
-
   ConsentStatus new_consent_status = kConsentStatusObtained;
   // Simulate consent status based on debug geo.
-  if (params.has_debug_settings()) {
-    if (params.debug_settings().debug_geography == kConsentDebugGeographyEEA) {
-      new_consent_status = kConsentStatusRequired;
-    } else if (params.debug_settings().debug_geography ==
-               kConsentDebugGeographyNonEEA) {
-      new_consent_status = kConsentStatusNotRequired;
-    }
+  if (params.debug_settings.debug_geography == kConsentDebugGeographyEEA) {
+    new_consent_status = kConsentStatusRequired;
+  } else if (params.debug_settings.debug_geography ==
+             kConsentDebugGeographyNonEEA) {
+    new_consent_status = kConsentStatusNotRequired;
   }
+
   consent_status_ = new_consent_status;
   consent_form_status_ = kConsentFormStatusUnavailable;
+  under_age_of_consent_ = params.tag_for_under_age_of_consent;
 
-  // Simulate privacy options based on under age of consent.
-  if (params.tag_for_under_age_of_consent()) {
+  // Simulate privacy options based on geo.
+  if (params.debug_settings.debug_geography == kConsentDebugGeographyEEA) {
     privacy_options_requirement_status_ =
         kPrivacyOptionsRequirementStatusRequired;
   } else {
@@ -76,6 +71,11 @@ Future<void> ConsentInfoInternalStub::RequestConsentInfoUpdate(
 Future<void> ConsentInfoInternalStub::LoadConsentForm() {
   SafeFutureHandle<void> handle = CreateFuture(kConsentInfoFnLoadConsentForm);
 
+  if (under_age_of_consent_) {
+    consent_form_status_ = kConsentFormStatusUnavailable;
+    CompleteFuture(handle, kConsentFormErrorUnavailable);
+    return MakeFuture<void>(futures(), handle);
+  }
   consent_form_status_ = kConsentFormStatusAvailable;
   CompleteFuture(handle, kConsentFormSuccess);
   return MakeFuture<void>(futures(), handle);
@@ -93,6 +93,12 @@ Future<void> ConsentInfoInternalStub::LoadAndShowConsentFormIfRequired(
     FormParent parent) {
   SafeFutureHandle<void> handle =
       CreateFuture(kConsentInfoFnLoadAndShowConsentFormIfRequired);
+
+  if (under_age_of_consent_) {
+    consent_form_status_ = kConsentFormStatusUnavailable;
+    CompleteFuture(handle, kConsentFormErrorUnavailable);
+    return MakeFuture<void>(futures(), handle);
+  }
 
   if (consent_status_ == kConsentStatusRequired) {
     consent_status_ = kConsentStatusObtained;

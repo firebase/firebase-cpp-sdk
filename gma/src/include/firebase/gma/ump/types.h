@@ -60,52 +60,12 @@ struct ConsentDebugSettings {
   std::vector<std::string> debug_device_ids;
 };
 
-/// Parameters for the `ConsentInfo::RequestConsentInfoUpdate()` operation. You
-/// must explicitly set the age of consent tag (to true or false) or the
-/// operation will fail.
-class ConsentRequestParameters {
- public:
-  ConsentRequestParameters()
-      : has_debug_settings_(false),
-        tag_for_under_age_of_consent_(false),
-        has_tag_for_under_age_of_consent_(false) {}
-  /// Set the age of consent tag. This indicates whether the user is tagged for
-  /// under age of consent. This is a required setting.
-  void set_tag_for_under_age_of_consent(bool tag) {
-    tag_for_under_age_of_consent_ = tag;
-    has_tag_for_under_age_of_consent_ = true;
-  }
-  /// Get the age of consent tag. This indicates whether the user is tagged for
-  /// under age of consent.
-  bool tag_for_under_age_of_consent() const {
-    return tag_for_under_age_of_consent_;
-  }
-  /// Get whether the age of consent tag was previously set.
-  bool has_tag_for_under_age_of_consent() const {
-    return has_tag_for_under_age_of_consent_;
-  }
+/// Parameters for the `ConsentInfo::RequestConsentInfoUpdate()` operation.
+struct ConsentRequestParameters {
+  ConsentRequestParameters() : tag_for_under_age_of_consent(false) {}
 
-  /// Set the debug settings.
-  void set_debug_settings(const ConsentDebugSettings& settings) {
-    debug_settings_ = settings;
-    has_debug_settings_ = true;
-  }
-  /// Set the debug settings without copying data, which could be useful if you
-  /// have a large list of debug device IDs.
-  void set_debug_settings(const ConsentDebugSettings&& settings) {
-    debug_settings_ = std::move(settings);
-    has_debug_settings_ = true;
-  }
-  /// Get the debug settings.
-  const ConsentDebugSettings& debug_settings() const { return debug_settings_; }
-  /// Get whether debug settings were set.
-  bool has_debug_settings() const { return has_debug_settings_; }
-
- private:
-  ConsentDebugSettings debug_settings_;
-  bool tag_for_under_age_of_consent_;
-  bool has_debug_settings_;
-  bool has_tag_for_under_age_of_consent_;
+  ConsentDebugSettings debug_settings;
+  bool tag_for_under_age_of_consent;
 };
 
 /// This is a platform specific datatype that is required to show a consent form
@@ -148,16 +108,14 @@ enum ConsentRequestError {
   kConsentRequestErrorInvalidAppId,
   /// A network error occurred.
   kConsentRequestErrorNetwork,
-  /// The tag for age of consent was not set. You must call
-  /// `ConsentRequestParameters::set_tag_for_under_age_of_consent()` before the
-  /// request.
-  kConsentRequestErrorTagForAgeOfConsentNotSet,
   /// An internal error occurred.
   kConsentRequestErrorInternal,
   /// This error is undocumented.
   kConsentRequestErrorCodeMisconfiguration,
   /// An unknown error occurred.
   kConsentRequestErrorUnknown,
+  /// An invalid operation occurred. Try again.
+  kConsentRequestErrorInvalidOperation,
   /// The operation is already in progress. Use
   /// `ConsentInfo::RequestConsentInfoUpdateLastResult()`
   /// to get the status.
@@ -180,22 +138,21 @@ enum ConsentFormStatus {
 
 /// Errors when loading or showing the consent form.
 enum ConsentFormError {
+
   /// The operation succeeded.
   kConsentFormSuccess = 0,
   /// The load request timed out. Try again.
   kConsentFormErrorTimeout,
-  /// Failed to show the consent form because it has not been loaded.
-  kConsentFormErrorNotLoaded,
   /// An internal error occurred.
   kConsentFormErrorInternal,
   /// An unknown error occurred.
   kConsentFormErrorUnknown,
+  /// The form is unavailable.
+  kConsentFormErrorUnavailable,
   /// This form was already used.
   kConsentFormErrorCodeAlreadyUsed,
   /// An invalid operation occurred. Try again.
   kConsentFormErrorInvalidOperation,
-  /// General network issues occurred. Try again.
-  kConsentFormErrorNetwork,
   /// The operation is already in progress. Call
   /// `ConsentInfo::LoadConsentFormLastResult()` or
   /// `ConsentInfo::ShowConsentFormLastResult()` to get the status.

@@ -2490,6 +2490,17 @@ TEST_F(FirebaseGmaUmpTest, TestUmpInitialization) {
 }
 
 // Tests for User Messaging Platform
+TEST_F(FirebaseGmaUmpTest, TestUmpDefaultsToUnknownStatus) {
+  EXPECT_EQ(consent_info_->GetConsentStatus(),
+            firebase::gma::ump::kConsentStatusUnknown);
+  EXPECT_EQ(consent_info_->GetConsentFormStatus(),
+            firebase::gma::ump::kConsentFormStatusUnknown);
+  EXPECT_EQ(consent_info_->GetPrivacyOptionsRequirementStatus(),
+            firebase::gma::ump::kPrivacyOptionsRequirementStatusUnknown);
+  EXPECT_FALSE(consent_info_->CanRequestAds());
+}
+
+// Tests for User Messaging Platform
 TEST_F(FirebaseGmaUmpTest, TestUmpGetInstanceIsAlwaysEqual) {
   using firebase::gma::ump::ConsentInfo;
 
@@ -2522,7 +2533,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdate) {
   using firebase::gma::ump::ConsentStatus;
 
   ConsentRequestParameters params;
-  params.set_tag_for_under_age_of_consent(false);
+  params.tag_for_under_age_of_consent = false;
 
   firebase::Future<void> future =
       consent_info_->RequestConsentInfoUpdate(params);
@@ -2537,35 +2548,15 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdate) {
             firebase::gma::ump::kConsentFormStatusUnknown);
 }
 
-TEST_F(FirebaseGmaUmpTest, TestUmpRequestErrorWithoutTagForUnderAgeOfConsent) {
-  using firebase::gma::ump::ConsentRequestParameters;
-  using firebase::gma::ump::ConsentStatus;
-
-  ConsentRequestParameters params;
-  // Do not call set_tag_for_under_age_of_consent().
-
-  firebase::Future<void> future =
-      consent_info_->RequestConsentInfoUpdate(params);
-
-  WaitForCompletion(
-      future, "RequestConsentInfoUpdate",
-      firebase::gma::ump::kConsentRequestErrorTagForAgeOfConsentNotSet);
-
-  EXPECT_EQ(consent_info_->GetConsentStatus(),
-            firebase::gma::ump::kConsentStatusUnknown);
-}
-
 TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugEEA) {
   using firebase::gma::ump::ConsentDebugSettings;
   using firebase::gma::ump::ConsentRequestParameters;
   using firebase::gma::ump::ConsentStatus;
 
   ConsentRequestParameters params;
-  params.set_tag_for_under_age_of_consent(false);
-  ConsentDebugSettings debug_settings;
-  debug_settings.debug_geography =
+  params.tag_for_under_age_of_consent = false;
+  params.debug_settings.debug_geography =
       firebase::gma::ump::kConsentDebugGeographyEEA;
-  params.set_debug_settings(debug_settings);
 
   firebase::Future<void> future =
       consent_info_->RequestConsentInfoUpdate(params);
@@ -2582,11 +2573,9 @@ TEST_F(FirebaseGmaUmpTest, TestUmpRequestConsentInfoUpdateDebugNonEEA) {
   using firebase::gma::ump::ConsentStatus;
 
   ConsentRequestParameters params;
-  params.set_tag_for_under_age_of_consent(false);
-  ConsentDebugSettings debug_settings;
-  debug_settings.debug_geography =
+  params.tag_for_under_age_of_consent = false;
+  params.debug_settings.debug_geography =
       firebase::gma::ump::kConsentDebugGeographyNonEEA;
-  params.set_debug_settings(debug_settings);
 
   firebase::Future<void> future =
       consent_info_->RequestConsentInfoUpdate(params);
@@ -2604,11 +2593,9 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadForm) {
   using firebase::gma::ump::ConsentStatus;
 
   ConsentRequestParameters params;
-  params.set_tag_for_under_age_of_consent(false);
-  ConsentDebugSettings debug_settings;
-  debug_settings.debug_geography =
+  params.tag_for_under_age_of_consent = false;
+  params.debug_settings.debug_geography =
       firebase::gma::ump::kConsentDebugGeographyEEA;
-  params.set_debug_settings(debug_settings);
 
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
@@ -2639,11 +2626,9 @@ TEST_F(FirebaseGmaUmpTest, TestUmpShowForm) {
   using firebase::gma::ump::ConsentStatus;
 
   ConsentRequestParameters params;
-  params.set_tag_for_under_age_of_consent(false);
-  ConsentDebugSettings debug_settings;
-  debug_settings.debug_geography =
+  params.tag_for_under_age_of_consent = false;
+  params.debug_settings.debug_geography =
       firebase::gma::ump::kConsentDebugGeographyEEA;
-  params.set_debug_settings(debug_settings);
 
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
@@ -2669,6 +2654,35 @@ TEST_F(FirebaseGmaUmpTest, TestUmpShowForm) {
             firebase::gma::ump::kConsentStatusObtained);
 }
 
+TEST_F(FirebaseGmaUmpTest, TestUmpLoadFormUnavailableDueUnderAgeOfConsent) {
+  TEST_REQUIRES_USER_INTERACTION;
+
+  using firebase::gma::ump::ConsentDebugSettings;
+  using firebase::gma::ump::ConsentFormStatus;
+  using firebase::gma::ump::ConsentRequestParameters;
+  using firebase::gma::ump::ConsentStatus;
+
+  ConsentRequestParameters params;
+  params.tag_for_under_age_of_consent = true;
+  params.debug_settings.debug_geography =
+      firebase::gma::ump::kConsentDebugGeographyEEA;
+
+  WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
+                    "RequestConsentInfoUpdate");
+
+  EXPECT_EQ(consent_info_->GetConsentStatus(),
+            firebase::gma::ump::kConsentStatusRequired);
+
+  EXPECT_EQ(consent_info_->GetConsentFormStatus(),
+            firebase::gma::ump::kConsentFormStatusUnavailable);
+
+  WaitForCompletion(consent_info_->LoadConsentForm(), "LoadConsentForm",
+                    firebase::gma::ump::kConsentFormErrorUnavailable);
+
+  EXPECT_EQ(consent_info_->GetConsentFormStatus(),
+            firebase::gma::ump::kConsentFormStatusUnavailable);
+}
+
 TEST_F(FirebaseGmaUmpTest, TestUmpLoadAndShowIfRequired) {
   using firebase::gma::ump::ConsentDebugSettings;
   using firebase::gma::ump::ConsentRequestParameters;
@@ -2677,11 +2691,9 @@ TEST_F(FirebaseGmaUmpTest, TestUmpLoadAndShowIfRequired) {
   TEST_REQUIRES_USER_INTERACTION;
 
   ConsentRequestParameters params;
-  params.set_tag_for_under_age_of_consent(false);
-  ConsentDebugSettings debug_settings;
-  debug_settings.debug_geography =
+  params.tag_for_under_age_of_consent = false;
+  params.debug_settings.debug_geography =
       firebase::gma::ump::kConsentDebugGeographyEEA;
-  params.set_debug_settings(debug_settings);
 
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
@@ -2710,11 +2722,9 @@ TEST_F(FirebaseGmaUmpTest, TestUmpPrivacyOptions) {
   TEST_REQUIRES_USER_INTERACTION;
 
   ConsentRequestParameters params;
-  params.set_tag_for_under_age_of_consent(true);
-  ConsentDebugSettings debug_settings;
-  debug_settings.debug_geography =
+  params.tag_for_under_age_of_consent = false;
+  params.debug_settings.debug_geography =
       firebase::gma::ump::kConsentDebugGeographyEEA;
-  params.set_debug_settings(debug_settings);
 
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
@@ -2756,11 +2766,9 @@ TEST_F(FirebaseGmaUmpTest, TestCanRequestAdsNonEEA) {
   TEST_REQUIRES_USER_INTERACTION;
 
   ConsentRequestParameters params;
-  params.set_tag_for_under_age_of_consent(false);
-  ConsentDebugSettings debug_settings;
-  debug_settings.debug_geography =
+  params.tag_for_under_age_of_consent = false;
+  params.debug_settings.debug_geography =
       firebase::gma::ump::kConsentDebugGeographyNonEEA;
-  params.set_debug_settings(debug_settings);
 
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
@@ -2779,11 +2787,9 @@ TEST_F(FirebaseGmaUmpTest, TestCanRequestAdsEEA) {
   TEST_REQUIRES_USER_INTERACTION;
 
   ConsentRequestParameters params;
-  params.set_tag_for_under_age_of_consent(false);
-  ConsentDebugSettings debug_settings;
-  debug_settings.debug_geography =
+  params.tag_for_under_age_of_consent = false;
+  params.debug_settings.debug_geography =
       firebase::gma::ump::kConsentDebugGeographyEEA;
-  params.set_debug_settings(debug_settings);
 
   WaitForCompletion(consent_info_->RequestConsentInfoUpdate(params),
                     "RequestConsentInfoUpdate");
@@ -2800,7 +2806,7 @@ TEST_F(FirebaseGmaUmpTest, TestUmpCleanup) {
   using firebase::gma::ump::ConsentStatus;
 
   ConsentRequestParameters params;
-  params.set_tag_for_under_age_of_consent(false);
+  params.tag_for_under_age_of_consent = false;
   firebase::Future<void> future_request =
       consent_info_->RequestConsentInfoUpdate(params);
   firebase::Future<void> future_load = consent_info_->LoadConsentForm();

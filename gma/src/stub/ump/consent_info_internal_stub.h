@@ -52,6 +52,7 @@ class ConsentInfoInternalStub : public ConsentInfoInternal {
   ConsentStatus consent_status_;
   ConsentFormStatus consent_form_status_;
   PrivacyOptionsRequirementStatus privacy_options_requirement_status_;
+  bool under_age_of_consent_;
 };
 
 }  // namespace internal
