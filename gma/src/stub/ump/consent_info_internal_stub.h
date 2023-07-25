@@ -26,13 +26,17 @@ namespace internal {
 
 // The stub interface implements a few specific workflows, for testing:
 //
-// Before requesting: consent and privacy options will be Unknown.
+// Before requesting: consent and privacy options requirement will be Unknown.
 //
-// If debug_geography == EEA, consent will be Required and will change to
-// Obtained once the consent form is "shown". Privacy options will be Required,
-// and when the privacy options form is shown, consent will go back to Required.
+// After requesting:
 //
-// If debug_geography == NotEEA, consent will be NotRequired. No privacy options
+// If debug_geography == EEA, consent will be Required, privacy options
+// NotRequired. After calling ShowConsentForm() or
+// LoadAndShowConsentFormIfRequired(), it will change to change to Obtained and
+// privacy options will become Required, and when the privacy options form is
+// shown, consent will go back to Required.
+//
+// If debug_geography == NonEEA, consent will be NotRequired. No privacy options
 // form is required.
 //
 // If debug_geography == Disabled, consent will be Obtained and privacy options
@@ -70,6 +74,7 @@ class ConsentInfoInternalStub : public ConsentInfoInternal {
   ConsentStatus consent_status_;
   ConsentFormStatus consent_form_status_;
   PrivacyOptionsRequirementStatus privacy_options_requirement_status_;
+  ConsentDebugGeography debug_geo_;
   bool under_age_of_consent_;
 };
 

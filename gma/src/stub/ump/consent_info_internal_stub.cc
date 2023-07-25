@@ -34,7 +34,8 @@ ConsentInfoInternalStub::ConsentInfoInternalStub()
       consent_form_status_(kConsentFormStatusUnknown),
       privacy_options_requirement_status_(
           kPrivacyOptionsRequirementStatusUnknown),
-      under_age_of_consent_(false) {}
+      under_age_of_consent_(false),
+      debug_geo_(kConsentDebugGeographyDisabled) {}
 
 ConsentInfoInternalStub::~ConsentInfoInternalStub() {}
 
@@ -58,14 +59,9 @@ Future<void> ConsentInfoInternalStub::RequestConsentInfoUpdate(
   consent_status_ = new_consent_status;
   consent_form_status_ = kConsentFormStatusUnavailable;
   under_age_of_consent_ = params.tag_for_under_age_of_consent;
-
-  // Simulate privacy options based on geo.
-  if (params.debug_settings.debug_geography == kConsentDebugGeographyEEA) {
-    new_privacy_req = kPrivacyOptionsRequirementStatusRequired;
-  } else {
-    new_privacy_req = kPrivacyOptionsRequirementStatusNotRequired;
-  }
-  privacy_options_requirement_status_ = new_privacy_req;
+  debug_geo_ = params.debug_settings.debug_geography;
+  privacy_options_requirement_status_ =
+      kPrivacyOptionsRequirementStatusNotRequired;
 
   CompleteFuture(handle, kConsentRequestSuccess);
   return MakeFuture<void>(futures(), handle);
@@ -88,6 +84,18 @@ Future<void> ConsentInfoInternalStub::ShowConsentForm(FormParent parent) {
   SafeFutureHandle<void> handle = CreateFuture(kConsentInfoFnShowConsentForm);
 
   consent_status_ = kConsentStatusObtained;
+
+  if (debug_geo_ == kConsentDebugGeographyEEA) {
+    privacy_options_requirement_status_ =
+        kPrivacyOptionsRequirementStatusRequired;
+  } else if (debug_geo_ == kConsentDebugGeographyNonEEA) {
+    privacy_options_requirement_status_ =
+        kPrivacyOptionsRequirementStatusNotRequired;
+  } else {  // no debug option
+    privacy_options_requirement_status_ =
+        kPrivacyOptionsRequirementStatusNotRequired;
+  }
+
   CompleteFuture(handle, kConsentRequestSuccess);
   return MakeFuture<void>(futures(), handle);
 }
@@ -105,6 +113,16 @@ Future<void> ConsentInfoInternalStub::LoadAndShowConsentFormIfRequired(
 
   if (consent_status_ == kConsentStatusRequired) {
     consent_status_ = kConsentStatusObtained;
+    if (debug_geo_ == kConsentDebugGeographyEEA) {
+      privacy_options_requirement_status_ =
+          kPrivacyOptionsRequirementStatusRequired;
+    } else if (debug_geo_ == kConsentDebugGeographyNonEEA) {
+      privacy_options_requirement_status_ =
+          kPrivacyOptionsRequirementStatusNotRequired;
+    } else {  // no debug option
+      privacy_options_requirement_status_ =
+          kPrivacyOptionsRequirementStatusNotRequired;
+    }
   }
   CompleteFuture(handle, kConsentRequestSuccess);
   return MakeFuture<void>(futures(), handle);
@@ -122,6 +140,8 @@ Future<void> ConsentInfoInternalStub::ShowPrivacyOptionsForm(
 
   if (consent_status_ == kConsentStatusObtained) {
     consent_status_ = kConsentStatusRequired;
+    privacy_options_requirement_status_ =
+        kPrivacyOptionsRequirementStatusNotRequired;
   }
   CompleteFuture(handle, kConsentRequestSuccess);
   return MakeFuture<void>(futures(), handle);
